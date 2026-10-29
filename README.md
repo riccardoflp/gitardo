@@ -2,6 +2,8 @@
 
 Commit graph, history and everyday Git operations in a single VS Code panel.
 
+![The graph in the panel: the references on the left, the commits of every branch with their lines and labels, and the details of the selected merge on the right](media/screenshots/graph-dark.png)
+
 Gitardo has a view in the bottom panel and five in the Source Control side bar of VS Code:
 
 - **Graph**, in the panel next to the terminal: the commit graph, the references and the commit details, side by side.
@@ -36,6 +38,8 @@ Reload the VS Code window afterwards. To update, run the last two commands again
 ## Features
 
 ### Graph
+
+![The graph with the pointer on the label of feature/map-view: its commits keep their colors and the rest fades](media/screenshots/graph-history.png)
 
 - Commit graph of all branches, remote branches and tags, loaded progressively: the next commits are read while you scroll, long before you get to the end of those shown, so that scrolling does not stop to wait for them. `gitardo.graph.pageSize` says how many are read at a time, 1,000 unless set otherwise.
 - The labels of a commit are outlined in the color of its line in the graph; the branch that is checked out is the one filled in.
@@ -184,6 +188,8 @@ Under them are the files the commit changed, each with the lines it gained and l
 
 **Show the changes** puts the diff of every file in the page, under the list, and **Hide the changes** takes them away again; the eye on the row of a file shows them and goes to that file. Each diff has the number each line has before and after, and its code in the colors your theme gives it in the editor, under a header that stays in sight while its lines scroll. The arrow on the header folds a diff away, and **Fold all** and **Unfold all** do so with all of them. The button at the end of a header opens that file in the diff editor. Once the page is scrolled down, the round button in its corner takes it back to the top.
 
+![The tab of a commit: its message, author, date, hash and parent, the file it changed, and its diff in the colors of the theme](media/screenshots/commit-tab.png)
+
 A file changed in more than 800 lines starts folded, and so do the ones that come after 5,000 lines are showing. A commit is sent to its tab up to 20,000 lines: the files past that say so, with a link to the diff editor. A merge is shown against its first parent, as in the details. `Ctrl`+`F` searches the page with the search box of VS Code.
 
 Each commit has one tab: asking for it again shows the one it has. A tab stays of the repository its commit is in, also after the other views are pointed at another, and **Show in the graph** brings them back to it.
@@ -193,6 +199,8 @@ Each commit has one tab: asking for it again shows the one it has. A tab stays o
 **Gitardo: Compare Branches, Tags or Commits…**, also the compare button in the headers of the Gitardo Graph and Branches views and the first entry under **…** in the toolbar, asks for the two sides one after the other. Each is chosen from the list of branches, remote branches and tags, or the **Working tree**, the files as they are with what is not committed, or typed with **Enter a hash or a revision…**: a commit hash, or anything else git turns into a commit, such as `HEAD~3`, `v1.0^` or `main@{yesterday}`. What git does not know is refused while you type. The comparisons opened last are listed first, under **Opened before**, to open one again as it was.
 
 The comparison opens in a tab of the editor, one for each pair: asking for the same two again shows the tab they have.
+
+![The comparison of feature/map-view with main: how far apart they are, that merging would not conflict, the commits only in each, and the files that differ](media/screenshots/compare-tab.png)
 
 - At the top are the two sides. A click on one chooses another branch, tag or commit in its place, the hash beside it opens that commit in its tab, and the arrows between them swap the two.
 - Under them, how far apart they are: how many commits the second has that the first has not, and the other way round, and the commit where they diverged, which opens in its tab. Then what merging the second into the first would do, worked out with `git merge-tree` without touching anything: fast-forward, merge with no conflict, or conflict in the files it names.
