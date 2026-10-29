@@ -7,6 +7,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 ### Added
 
 - **Merge into `<current branch>`…** after **Merge into `<current branch>`** in the context menus and in the menu of a branch dropped on the commit checked out: the other ways to merge, always with a merge commit (`--no-ff`), as a fast-forward only (`--ff-only`), which Gitardo refuses before git runs when it cannot be one, and as a squash (`--squash`), which stages the changes and commits nothing. After a squash the commit box starts from the message Git prepares, and **Undo** takes the staged changes out again.
+- The setting `gitardo.cherryPick.recordOrigin`, off by default: each commit cherry-picked, on its own, with others selected or by drag and drop, ends its message with `(cherry picked from commit …)`, as `git cherry-pick -x` writes it.
 
 ### Changed
 

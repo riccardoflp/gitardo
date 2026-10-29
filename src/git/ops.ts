@@ -411,13 +411,16 @@ export function rewordHeadOp(message: string): GitOp {
 /** A merge commit has several parents, so git must be told which one is the mainline: the first. */
 const mainline = (isMerge: boolean) => (isMerge ? ['-m', '1'] : []);
 
-export function cherryPickOp(hash: string, isMerge: boolean): GitOp {
-  return { title: `Cherry-pick ${short(hash)}`, commands: [['cherry-pick', ...mainline(isMerge), arg(hash)]] };
+/** With `recordOrigin`, the message of each new commit ends with "(cherry picked from commit …)", the one it was picked from. */
+const origin = (recordOrigin: boolean) => (recordOrigin ? ['-x'] : []);
+
+export function cherryPickOp(hash: string, isMerge: boolean, recordOrigin = false): GitOp {
+  return { title: `Cherry-pick ${short(hash)}`, commands: [['cherry-pick', ...origin(recordOrigin), ...mainline(isMerge), arg(hash)]] };
 }
 
 /** Picks several commits with one command, so that git treats them as one operation to continue or abort. `hashes`: oldest first. */
-export function cherryPickManyOp(hashes: string[]): GitOp {
-  return { title: `Cherry-pick ${hashes.length} commits`, commands: [['cherry-pick', ...hashes.map(arg)]] };
+export function cherryPickManyOp(hashes: string[], recordOrigin = false): GitOp {
+  return { title: `Cherry-pick ${hashes.length} commits`, commands: [['cherry-pick', ...origin(recordOrigin), ...hashes.map(arg)]] };
 }
 
 export function revertOp(hash: string, isMerge: boolean): GitOp {

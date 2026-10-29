@@ -323,6 +323,34 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect((await state()).head).toBe(first);
   });
 
+  it('records the commit a cherry-pick was picked from only when asked, for one commit and for several', async () => {
+    write('a.txt', 'one\n');
+    await commitAll('First commit');
+    await run(createBranchOp('feature', 'HEAD', true));
+    write('b.txt', 'b\n');
+    const one = await commitAll('Add b');
+    write('c.txt', 'c\n');
+    const two = await commitAll('Add c');
+    write('d.txt', 'd\n');
+    const three = await commitAll('Add d');
+    await run(checkoutOp('branch', 'main'));
+
+    expect(cherryPickOp(one, false).commands).toEqual([['cherry-pick', one]]);
+    expect(cherryPickOp(one, true, true).commands).toEqual([['cherry-pick', '-x', '-m', '1', one]]);
+    await run(cherryPickOp(one, false, true));
+    expect(await repo.commitMessage((await state()).head!)).toBe(`Add b\n\n(cherry picked from commit ${one})`);
+
+    await run(cherryPickManyOp([two, three], true));
+    // The branch picked from has commits of the same time: what main has is asked of git, not of the rows.
+    const [last, before, first] = (await git(root, ['rev-list', '-3', 'main'])).stdout.trim().split('\n');
+    expect(await repo.commitMessage(last)).toBe(`Add d\n\n(cherry picked from commit ${three})`);
+    expect(await repo.commitMessage(before)).toBe(`Add c\n\n(cherry picked from commit ${two})`);
+
+    await run(resetOp(first, 'hard', 'main'));
+    await run(cherryPickManyOp([two, three]));
+    expect(await repo.commitMessage((await state()).head!)).toBe('Add d');
+  });
+
   it('merges as git does by default, always with a merge commit, as a fast-forward only, or as a squash, and undoes each', async () => {
     write('a.txt', 'one\n');
     const base = await commitAll('First commit');

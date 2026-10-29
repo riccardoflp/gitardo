@@ -100,6 +100,9 @@ async function pick<T>(title: string, options: { label: string; description?: st
   return (await vscode.window.showQuickPick(options, { title }))?.value;
 }
 
+/** Whether a commit that is cherry-picked says in its message which commit it was picked from, as the settings ask. */
+const recordOrigin = () => vscode.workspace.getConfiguration('gitardo').get<boolean>('cherryPick.recordOrigin', false);
+
 function requireOperation(state: RepoState) {
   if (!state.operation) throw new Error('No merge, rebase, cherry-pick or revert is in progress.');
   return state.operation;
@@ -253,7 +256,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
     }
 
     case 'cherryPick': {
-      const op = { ...cherryPickOp(action.hash, action.isMerge), recover: skipEmptyPicks(state.root) };
+      const op = { ...cherryPickOp(action.hash, action.isMerge, recordOrigin()), recover: skipEmptyPicks(state.root) };
       // Picking a commit is a merge of it into HEAD with the commit's parent as the common base.
       return action.isMerge ? op : withConflictPreview(op, await repo.conflictsWith(action.hash, `${action.hash}^`));
     }
@@ -268,7 +271,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
       const shown = rows.slice(0, 15).map((row) => `${row.hash.slice(0, 7)} ${row.subject}`);
       const more = rows.length > shown.length ? `\n…and ${rows.length - shown.length} more` : '';
       return {
-        ...cherryPickManyOp(rows.map((row) => row.hash)),
+        ...cherryPickManyOp(rows.map((row) => row.hash), recordOrigin()),
         note: `In this order:\n${shown.join('\n')}${more}\n\nIf one of them conflicts, git stops there: resolve it and continue, skip that commit, or abort them all.`,
         recover: skipEmptyPicks(state.root),
       };

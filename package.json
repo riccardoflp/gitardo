@@ -1124,6 +1124,11 @@
           "default": true,
           "markdownDescription": "Whether the **Pull** button puts your commits that are not pushed on top of what comes in, instead of merging the two: `git pull --rebase`. With `#gitardo.pull.autostash#` it runs `git pull --rebase --autostash`. Switched off, the button leaves the choice to the configuration of Git, which merges unless told otherwise. The menu beside the button has every way to pull, whatever is set here."
         },
+        "gitardo.cherryPick.recordOrigin": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Whether a commit that Gitardo cherry-picks ends its message with the commit it was picked from: `(cherry picked from commit …)`, as `git cherry-pick -x` writes it. For one commit, for several selected in the graph and for one dropped on what is checked out."
+        },
         "gitardo.branches.openIn": {
           "type": "string",
           "enum": [

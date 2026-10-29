@@ -2225,6 +2225,29 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('records the commit a cherry-pick was picked from when the settings ask', async () => {
+    const before = state().head!;
+    await git(app, ['checkout', '-b', 'origins']);
+    write('origin.txt', 'origin\n');
+    await git(app, ['add', '--all']);
+    await git(app, ['commit', '-m', 'Add a file to pick']);
+    const picked = (await git(app, ['rev-parse', 'HEAD'])).stdout.trim();
+    await git(app, ['checkout', 'main']);
+    await vscode.commands.executeCommand('gitardo.refresh');
+    await vscode.workspace.getConfiguration('gitardo').update('cherryPick.recordOrigin', true, vscode.ConfigurationTarget.Global);
+    try {
+      answer = run;
+      await controller.action({ kind: 'cherryPick', hash: picked, isMerge: false });
+      const message = (await git(app, ['log', '-1', '--format=%B'])).stdout.trim();
+      assert.equal(message, `Add a file to pick\n\n(cherry picked from commit ${picked})`);
+    } finally {
+      await vscode.workspace.getConfiguration('gitardo').update('cherryPick.recordOrigin', undefined, vscode.ConfigurationTarget.Global);
+      await git(app, ['reset', '--hard', before]);
+      await git(app, ['branch', '-D', 'origins']);
+      await vscode.commands.executeCommand('gitardo.refresh');
+    }
+  });
+
   await step('follows a renamed file in its history', async () => {
     await git(app, ['mv', 'pick-one.txt', 'renamed.txt']);
     await git(app, ['commit', '-m', 'Rename a file']);

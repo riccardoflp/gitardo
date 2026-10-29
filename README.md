@@ -104,6 +104,8 @@ Right-click a commit, a branch, a tag or a stash for the operations that apply t
 
 **Undo** right after such a cherry-pick takes back all of its commits at once, also when it had stopped on a conflict and you continued it in Gitardo. If you continued it from the terminal, or did something else in between, Undo goes back one commit at a time like after any other commit.
 
+With the setting `gitardo.cherryPick.recordOrigin` on, each commit that Gitardo cherry-picks, on its own, with others selected or dropped on the commit checked out, ends its message with the commit it was picked from: `(cherry picked from commit …)`, as `git cherry-pick -x` writes it. It is off by default.
+
 ### Drag and drop
 
 Drag a commit, or a branch from the graph or the references tree, onto a row of the graph. Rows that accept the drop are outlined, and dropping opens a menu with what can be done:
