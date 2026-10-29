@@ -1412,6 +1412,51 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('narrows the graph to the history of the selected lines, as the commit checked out has them', async () => {
+    const before = (await git(app, ['rev-parse', 'HEAD'])).stdout.trim();
+    try {
+      write('lines.txt', 'one\ntwo\n');
+      await git(app, ['add', 'lines.txt']);
+      await git(app, ['commit', '-m', 'Add lines']);
+      write('lines.txt', 'one\nTWO\n');
+      await git(app, ['commit', '-am', 'Change two']);
+      await vscode.commands.executeCommand('gitardo.refresh');
+      const head = state().head!;
+      const editor = await vscode.window.showTextDocument(vscode.Uri.file(path.join(app, 'lines.txt')));
+
+      // The line of the cursor.
+      editor.selection = new vscode.Selection(1, 2, 1, 2);
+      await vscode.commands.executeCommand('gitardo.lineHistory');
+      assert.deepEqual(state().filter, { kind: 'lines', path: 'lines.txt', start: 2, end: 2, commit: head });
+      assert.deepEqual(subjects(), ['Change two', 'Add lines']);
+      // A selection of whole lines ends at the start of the next one, which it leaves out.
+      editor.selection = new vscode.Selection(0, 0, 1, 0);
+      await vscode.commands.executeCommand('gitardo.lineHistory');
+      assert.deepEqual(state().filter, { kind: 'lines', path: 'lines.txt', start: 1, end: 1, commit: head });
+      assert.deepEqual(subjects(), ['Add lines']);
+
+      // With a line inserted above and not saved, the line below is the second one of the commit.
+      await editor.edit((edit) => edit.insert(new vscode.Position(0, 0), 'zero\n'));
+      editor.selection = new vscode.Selection(2, 0, 2, 0);
+      await vscode.commands.executeCommand('gitardo.lineHistory');
+      assert.deepEqual(state().filter, { kind: 'lines', path: 'lines.txt', start: 2, end: 2, commit: head, editor: { start: 3, end: 3 } });
+      assert.deepEqual(subjects(), ['Change two', 'Add lines']);
+
+      // The line inserted has no history: that is said, and the graph is left as it was.
+      asked.length = 0;
+      editor.selection = new vscode.Selection(0, 0, 0, 0);
+      await vscode.commands.executeCommand('gitardo.lineHistory');
+      assert.ok(asked.some((each) => each.message.includes('added after the last commit')), asked.map((each) => each.message).join('\n'));
+      assert.equal(state().filter?.kind, 'lines');
+      await vscode.commands.executeCommand('workbench.action.files.revert');
+    } finally {
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+      await controller.setFilter(null);
+      await git(app, ['reset', '--hard', before]);
+      await vscode.commands.executeCommand('gitardo.refresh');
+    }
+  });
+
   await step('narrows the graph to the branches chosen, remembers them for each repository, and shows them all for a commit elsewhere', async () => {
     const graph = view('graph');
     const everything = subjects();

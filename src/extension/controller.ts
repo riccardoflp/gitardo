@@ -607,8 +607,8 @@ export class Controller implements vscode.Disposable {
     await this.whenLocated();
     this.filter = filter;
     this.limit = pageSize();
-    // Searching inside the changes of every commit can take a while on a large repository.
-    const slow = filter?.kind === 'pickaxe' || filter?.kind === 'regex';
+    // Searching inside the changes of every commit can take a while on a large repository, and so can following lines.
+    const slow = filter?.kind === 'pickaxe' || filter?.kind === 'regex' || filter?.kind === 'lines';
     if (slow) this.post({ type: 'busy', title: 'Searching' });
     try {
       await this.reload('filter');
@@ -629,6 +629,49 @@ export class Controller implements vscode.Disposable {
     }
     await vscode.commands.executeCommand('gitardo.graph.focus');
     await this.setFilter({ kind: 'path', path: file });
+  }
+
+  /**
+   * Shows the commits that changed some lines of the file in the active editor: the ones selected, or the line of the
+   * cursor. Git follows them back from the commit checked out, so they are first found there when the file in the
+   * editor is not as committed.
+   */
+  async lineHistory(): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    if (!(await this.requireState())) return;
+    const uri = editor?.document.uri;
+    if (uri?.scheme === 'file') await this.showRepoOf(uri);
+    const repo = this.repo;
+    if (!repo) return;
+    const file = editor && uri?.scheme === 'file' ? path.relative(repo.root, uri.fsPath).replace(/\\/g, '/') : '';
+    if (!editor || !file || file.startsWith('..') || path.isAbsolute(file)) {
+      void vscode.window.showWarningMessage('Gitardo: open a file of this repository to see the history of its lines.');
+      return;
+    }
+    const { document, selection } = editor;
+    // A selection that ends at the start of a line leaves that line out, as when whole lines are selected; and the empty
+    // line after the last line break is no line for git.
+    const last = selection.end.line > selection.start.line && selection.end.character === 0 ? selection.end.line - 1 : selection.end.line;
+    const count = Math.max(1, document.lineAt(document.lineCount - 1).text === '' ? document.lineCount - 1 : document.lineCount);
+    const selected = { start: Math.min(selection.start.line + 1, count), end: Math.min(last + 1, count) };
+    // A file renamed in the index has its old name in the commit checked out.
+    const committedAs = this.state?.working.staged.find((change) => change.path === file)?.oldPath ?? file;
+    const found = await repo.committedLines(committedAs, selected, document.getText());
+    if (found === 'file') {
+      void vscode.window.showInformationMessage(`Gitardo: ${path.posix.basename(file)} is in no commit yet, so its lines have no history.`);
+      return;
+    }
+    if (found === 'lines') {
+      const one = selected.start === selected.end;
+      void vscode.window.showInformationMessage(
+        `Gitardo: ${one ? 'this line was' : 'these lines were'} added after the last commit, and ${one ? 'has' : 'have'} no history yet.`,
+      );
+      return;
+    }
+    const { commit, ...lines } = found;
+    const moved = lines.start !== selected.start || lines.end !== selected.end;
+    await vscode.commands.executeCommand('gitardo.graph.focus');
+    await this.setFilter({ kind: 'lines', path: committedAs, ...lines, commit, ...(moved ? { editor: selected } : {}) });
   }
 
   /** Shows the commits that changed anything in a folder. */

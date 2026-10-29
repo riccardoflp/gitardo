@@ -317,7 +317,7 @@ export function App({ compact = false }: { compact?: boolean }) {
   };
 
   // Only a history with its lines has merges to fold: not what a search finds.
-  const connected = !state.filter || state.filter.kind === 'path' || state.filter.kind === 'ref';
+  const connected = !state.filter || state.filter.kind === 'path' || state.filter.kind === 'lines' || state.filter.kind === 'ref';
   const fold = (merge: string) => setFolds((previous) => foldMerge(previous, merge, true));
 
   const onRowMenu = (event: MouseEvent, row: Row) => {

@@ -156,6 +156,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     fileBlame,
     command('gitardo.fileHistory', (uri) => controller.fileHistory(uri instanceof vscode.Uri ? uri : undefined)),
     command('gitardo.folderHistory', (uri) => controller.folderHistory(uri instanceof vscode.Uri ? uri : undefined)),
+    command('gitardo.lineHistory', () => controller.lineHistory()),
     command('gitardo.revealCommit', (hash) => typeof hash === 'string' && controller.reveal(hash)),
     command('gitardo.reflog', () => controller.command('reflog')),
     command('gitardo.cleanupBranches', () => controller.command('cleanupBranches')),

@@ -29,6 +29,7 @@ import { subjectAndBody } from '../shared/message';
 import { REF_KINDS, SCOPE_PREFIXES, pruneScope, scopeKinds } from '../shared/scope';
 import { resolveConflicts, type Conflict } from './conflicts';
 import { GitError, formatCommand, git, type GitResult } from './exec';
+import { committedRange, type LineRange } from './lines';
 import type { UndoInfo } from './ops';
 import {
   COMPARE_FORMAT,
@@ -548,7 +549,7 @@ export class Repo {
     const layout = new GraphLayout();
     const rows: Row[] = [];
     // Search results are unrelated commits: drawing lines between them would suggest a history that is not there.
-    const connected = !filter || filter.kind === 'path' || filter.kind === 'ref';
+    const connected = !filter || filter.kind === 'path' || filter.kind === 'lines' || filter.kind === 'ref';
     // Nor are the changes shown above a graph that leaves out the commit they are made on.
     const headListed = !shown || !head || commits.some((commit) => commit.hash === head);
     if (changes.length && !filter && headListed) {
@@ -637,10 +638,18 @@ export class Repo {
       if (text?.kind === 'regex') args.push(`-G${text.query}`);
     }
     // With --parents git reports each commit's nearest listed ancestors as its parents, so the filtered graph stays connected.
-    if (filter?.kind === 'path') args.push('--parents');
+    if (filter?.kind === 'path' || filter?.kind === 'lines') args.push('--parents');
     if (filter?.kind === 'ref') {
       if (filter.ref.startsWith('-')) throw new Error(`"${filter.ref}" is not a valid name.`);
       args.push(filter.ref);
+    } else if (filter?.kind === 'lines') {
+      const { start, end } = filter;
+      if (!isHash(filter.commit) || !Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) {
+        throw new Error('These are not lines of a commit.');
+      }
+      // Lines are followed from one commit only, whatever the branches shown, and with no pathspec. What git prints of
+      // the changes to them is not read.
+      args.push('--no-patch', `-L${start},${end}:${filter.path}`, filter.commit);
     } else if (scope?.kind === 'current' && head) {
       args.push('HEAD');
       // Git has no upstream to give for a branch that has none, or with nothing checked out.
@@ -929,6 +938,17 @@ export class Repo {
     else if (dirty && (await this.query(['diff', '--quiet', previous])).code === 0) mode = 'mixed';
     else mode = 'keep';
     return { kind: 'move', previous, subject, mode };
+  }
+
+  /**
+   * Some lines of a file as it is now, `contents`, as the commit checked out has them, for following them back from
+   * there: 'file' when that commit has no such file, or there is none, and 'lines' when none of the lines are in it.
+   */
+  async committedLines(file: string, lines: LineRange, contents: string): Promise<(LineRange & { commit: string }) | 'file' | 'lines'> {
+    const commit = await this.head();
+    if (!commit || (await this.query(['cat-file', '-e', `${commit}:${file}`])).code !== 0) return 'file';
+    const range = committedRange(await this.show(commit, file), contents, lines);
+    return range ? { ...range, commit } : 'lines';
   }
 
   /** Contents of a file at a commit, or an empty string if it does not exist there. */

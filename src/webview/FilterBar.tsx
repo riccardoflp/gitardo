@@ -7,7 +7,19 @@ import { post } from './vscode';
 /** No more names than this are spelled out: the rest are counted. */
 const NAMED = 3;
 
-function describe(filter: Filter): ReactNode {
+/** "line 4", "lines 4–9". */
+const lines = ({ start, end }: { start: number; end: number }) => (start === end ? `line ${start}` : `lines ${start}–${end}`);
+
+function describe(filter: Filter, head: string | null): ReactNode {
+  if (filter.kind === 'lines') {
+    return (
+      <>
+        History of <b>{lines(filter)}</b> of <b>{filter.path}</b>
+        {filter.editor && <span className="muted"> · {lines(filter.editor)} in the editor</span>}
+        {filter.commit !== head && <span className="muted"> · as committed in {filter.commit.slice(0, 7)}</span>}
+      </>
+    );
+  }
   if (filter.kind === 'path') {
     if (filter.folder) {
       return (
@@ -86,18 +98,21 @@ function branches(scope: Scope): ReactNode {
   );
 }
 
-/** Shown while the graph is narrowed: to the history of some branches, to that of a file, or to the results of a search. */
+/**
+ * Shown while the graph is narrowed: to the history of some branches, to that of a file, a folder or some lines, or to
+ * the results of a search.
+ */
 export function FilterBar({ state }: { state: RepoState }) {
   const { filter } = state;
-  // The history of a commit that no branch reaches is not narrowed to branches.
-  const scope = filter?.kind === 'ref' ? null : state.scope;
+  // The history of a commit that no branch reaches is not narrowed to branches, nor are lines, followed from one commit.
+  const scope = filter?.kind === 'ref' || filter?.kind === 'lines' ? null : state.scope;
   if (!filter && !scope) return null;
   const count = state.rows.filter((row) => row.hash !== WORKTREE).length;
   return (
     <div className="filterbar" role="status">
       <Icon name={filter ? 'filter' : 'list-filter'} />
       <span className="grow">
-        {filter ? describe(filter) : <>Only the history of {branches(scope!)}</>}
+        {filter ? describe(filter, state.head) : <>Only the history of {branches(scope!)}</>}
         {filter && scope && <span className="muted"> · in {branches(scope)}</span>}
         <span className="muted">
           {' · '}

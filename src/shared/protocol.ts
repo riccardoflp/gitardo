@@ -125,7 +125,7 @@ export interface WorkingState {
 }
 
 /**
- * Narrows the graph to some commits. A path filter keeps the graph connected, because git can skip over
+ * Narrows the graph to some commits. A path or lines filter keeps the graph connected, because git can skip over
  * the commits in between; the search filters return unrelated commits, shown as a plain list.
  */
 export type Filter =
@@ -134,6 +134,11 @@ export type Filter =
    * `folder`: the path is of a folder, whose history is that of everything in it, with no renames followed.
    */
   | { kind: 'path'; path: string; renamedFrom?: string[]; folder?: true }
+  /**
+   * Some lines of a file, `start` to `end` from 1, as `commit` has them: git follows them back from there, through
+   * moves too. `editor`: the same lines as the editor numbers them, when the file there is not as committed.
+   */
+  | { kind: 'lines'; path: string; start: number; end: number; commit: string; editor?: { start: number; end: number } }
   /** Only what is reachable from one branch, tag or commit. `lost` when it is a commit that no branch or tag reaches any more. */
   | { kind: 'ref'; ref: string; lost?: boolean }
   /** `message` and `author` match text; `pickaxe` finds commits that add or remove the text; `regex` matches changed lines. */

@@ -214,6 +214,11 @@
         "category": "Gitardo"
       },
       {
+        "command": "gitardo.lineHistory",
+        "title": "Show History of Selected Lines",
+        "category": "Gitardo"
+      },
+      {
         "command": "gitardo.revealCommit",
         "title": "Show Commit in Graph",
         "category": "Gitardo"
@@ -685,6 +690,11 @@
       "editor/context": [
         {
           "command": "gitardo.fileHistory",
+          "when": "resourceScheme == file",
+          "group": "z_gitardo@1"
+        },
+        {
+          "command": "gitardo.lineHistory",
           "when": "resourceScheme == file",
           "group": "z_gitardo@1"
         },

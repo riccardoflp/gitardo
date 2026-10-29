@@ -306,6 +306,8 @@ Type the hash of a commit in the box, or the first four characters or more of it
 
 Renames are followed: Gitardo first asks git for the names the file had before (`git log --follow`), then shows the commits that changed any of them, and the bar above the graph lists the earlier names. A file that began as a copy of another is not traced back into the original. If an earlier name was later reused for a different file, the commits of that one appear too.
 
+**Gitardo: Show History of Selected Lines**, also in the context menu of the editor, narrows the graph to the commits that changed the lines selected, or the line of the cursor when nothing is selected (`git log -L`). Git follows the lines back from the commit checked out, through moves too, so only its history is shown, whichever branches the graph shows otherwise. When the file in the editor is not as committed, with edits not saved or not committed, the lines are first found in the commit checked out: a line edited since stands for the line it was, and the bar above the graph gives both numbers. Lines added since have no history, and Gitardo says so. The bar names the file and the lines, and **Show all commits** removes it. The lines stay those of that commit after another is checked out or made, and the bar then names it.
+
 **Show Folder History**, in the context menu of a folder in the Explorer, narrows the graph to the commits that changed anything in the folder, and the bar above the graph names it. Renames are not followed here: the history of a folder starts where it got its name, and the commits that changed its files under another folder are not in it. It is not offered on the root folder of a repository, whose history is all of it.
 
 ### Blame

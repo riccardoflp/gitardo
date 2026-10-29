@@ -935,6 +935,50 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect(await repo.position(first, folder)).toBe(2);
   });
 
+  it('narrows the graph to the history of some lines, from the commit checked out', async () => {
+    write('a.txt', 'one\ntwo\nthree\nfour\n');
+    const first = await commitAll('Add a');
+    write('a.txt', 'one\nTWO\nthree\nfour\n');
+    await commitAll('Change two');
+    write('a.txt', 'one\nTWO\nthree\nFOUR\n');
+    await commitAll('Change four');
+    write('a.txt', 'zero\none\nTWO\nthree\nFOUR\n');
+    const fourth = await commitAll('Add zero');
+    // On another branch, which the history of lines followed from HEAD does not reach.
+    await git(root, ['checkout', '-q', '-b', 'other']);
+    write('a.txt', 'zero\none\nTwo\nthree\nFOUR\n');
+    await commitAll('Change two elsewhere');
+    await git(root, ['checkout', '-q', 'main']);
+
+    // The text the editor has: a line added above, which moves the others down by one more.
+    write('a.txt', 'new\nzero\none\nTWO\nthree\nFOUR\n');
+    const contents = fs.readFileSync(path.join(root, 'a.txt'), 'utf8');
+    const found = await repo.committedLines('a.txt', { start: 4, end: 4 }, contents);
+    expect(found).toEqual({ start: 3, end: 3, commit: fourth });
+    expect(await repo.committedLines('a.txt', { start: 1, end: 1 }, contents)).toBe('lines');
+    expect(await repo.committedLines('new.txt', { start: 1, end: 1 }, 'new\n')).toBe('file');
+
+    const lines: Filter = { kind: 'lines', path: 'a.txt', start: 3, end: 3, commit: fourth };
+    const history = await repo.state(100, lines);
+    expect(history.filter).toEqual(lines);
+    // Neither the uncommitted changes, nor the commits that changed other lines, nor the other branch.
+    expect(history.rows.map((row) => row.subject)).toEqual(['Change two', 'Add a']);
+    expect(history.rows[1].hash).toBe(first);
+    expect(history.rows[0].parents).toEqual([first]);
+    expect(history.rows[0].graph.bottom).toHaveLength(1);
+    expect((await repo.state(100, { ...lines, start: 1, end: 5 })).rows.map((row) => row.subject)).toEqual([
+      'Add zero',
+      'Change four',
+      'Change two',
+      'Add a',
+    ]);
+    expect(await repo.position(first, lines)).toBe(1);
+    expect(await repo.matches({ kind: 'message', query: 'add' }, lines, 10)).toEqual({ hashes: [first], more: false });
+    // Whatever a view sends, it is lines of a commit or nothing.
+    await expect(repo.state(100, { ...lines, commit: '--all' })).rejects.toThrow();
+    await expect(repo.state(100, { ...lines, start: 0 })).rejects.toThrow();
+  });
+
   it('searches the whole history by message, author and changed text', async () => {
     write('a.txt', 'alpha\n');
     await commitAll('Add the Parser');
