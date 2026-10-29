@@ -1380,6 +1380,56 @@
           "highContrastLight": "#0550ae"
         }
       }
+    ],
+    "walkthroughs": [
+      {
+        "id": "gitardo.gettingStarted",
+        "title": "Get started with Gitardo",
+        "description": "Where the graph and the views of Gitardo are, and what to try first.",
+        "steps": [
+          {
+            "id": "graph",
+            "title": "Open the graph",
+            "description": "The commit graph is in the bottom panel, next to the terminal: the branches and tags on the left, the commits of every branch in the middle, and the details of the selected commit on the right.\n[Show the graph](command:gitardo.openGraph)",
+            "media": {
+              "image": "media/screenshots/graph-dark.png",
+              "altText": "The graph in the panel, with the references, the commits of every branch and the details of a commit."
+            },
+            "completionEvents": ["onCommand:gitardo.openGraph", "onView:gitardo.graph"]
+          },
+          {
+            "id": "sideBar",
+            "title": "Find the views in the side bar",
+            "description": "Commits, Gitardo Graph, Branches and Stashes are in the Source Control side bar, under the views of VS Code. Click the header of one to unfold it.\n[Show the commits](command:gitardo.openCommits)",
+            "media": { "markdown": "media/walkthrough/side-bar.md" },
+            "completionEvents": ["onCommand:gitardo.openCommits", "onView:gitardo.commits"]
+          },
+          {
+            "id": "commit",
+            "title": "Open a commit, compare two branches",
+            "description": "Double-click a commit in the graph, or press Enter on it, to read it whole in an editor tab, with the diff of each file. Compare two branches, tags or commits to see what one has that the other has not, and what merging them would do.\n[Open a commit…](command:gitardo.openCommit)\n[Compare…](command:gitardo.compare)",
+            "media": {
+              "image": "media/screenshots/commit-tab.png",
+              "altText": "The tab of a commit, with its message, author, date and hash, the file it changed and its diff."
+            },
+            "completionEvents": ["onCommand:gitardo.openCommit", "onCommand:gitardo.compare"]
+          },
+          {
+            "id": "blame",
+            "title": "See who changed each line",
+            "description": "The line under the cursor says who last changed it and when. The button with a person at the top right of an editor shows it for every line of the file.\n[Open a file](command:workbench.action.quickOpen)",
+            "media": { "markdown": "media/walkthrough/blame.md" },
+            "completionEvents": ["onCommand:gitardo.showFileBlame", "onCommand:gitardo.toggleFileBlame"]
+          },
+          {
+            "id": "worktrees",
+            "title": "Work in another worktree",
+            "description": "A worktree is another folder of the same repository, on a branch of its own: work on something else, or let an agent work, without touching this one.\n[Create a worktree…](command:gitardo.createWorktree)",
+            "media": { "markdown": "media/walkthrough/worktrees.md" },
+            "completionEvents": ["onCommand:gitardo.createWorktree"]
+          }
+        ]
+      }
     ]
   },
   "scripts": {

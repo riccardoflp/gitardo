@@ -35,6 +35,8 @@ code --install-extension gitardo-0.9.0.vsix
 
 Reload the VS Code window afterwards. To update, run the last two commands again; to remove it, `code --uninstall-extension RiccardoFilippozzi.gitardo`.
 
+The walkthrough **Get started with Gitardo**, which VS Code opens once Gitardo is installed and **Welcome: Open Walkthrough…** opens again, shows in five steps where the graph and the views are and what to try first: a commit in a tab, a comparison, the blame and worktrees.
+
 ## Features
 
 ### Graph

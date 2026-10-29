@@ -4,6 +4,9 @@
 !CHANGELOG.md
 !LICENSE
 !media/*
+!media/walkthrough/**
+!media/screenshots/graph-dark.png
+!media/screenshots/commit-tab.png
 !dist/extension.js
 !dist/webview.js
 !dist/webview.css
