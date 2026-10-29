@@ -1324,6 +1324,15 @@
           "scope": "resource",
           "markdownDescription": "Files and folders that git ignores to copy into each new worktree from the folder it is created from, in `.gitignore` syntax, such as `/.env`. What is inside a linked folder, and what the worktree has from its commit, is not copied. Set here, even empty, it takes the place of VS Code's `#git.worktreeIncludeFiles#` for the worktrees Gitardo creates. [Choose what new worktrees get](command:gitardo.worktreeSetup), from what git ignores now."
         },
+        "gitardo.worktrees.setupCommands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "scope": "resource",
+          "markdownDescription": "Commands to run in each new worktree once Gitardo has created it and made its links and copies, such as `npm ci`: one after the other, each as a task in a terminal of this window, with the worktree as its folder, in the shell VS Code runs tasks with. One that fails stops those after it. A worktree that opens in another window, or in the Agents window, opens once they have all succeeded. They run only in a trusted workspace. [Choose what new worktrees get](command:gitardo.worktreeSetup), with commands proposed from the lock files of the repository."
+        },
         "gitardo.worktrees.branchFormat": {
           "type": "string",
           "default": "",

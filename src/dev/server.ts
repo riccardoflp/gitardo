@@ -8,7 +8,7 @@ import type { Conflict } from '../git/conflicts';
 import { CONFLICT_SIDES } from '../git/ops';
 import { Repo } from '../git/repo';
 import { fingerprint, reviewFiles, type Answer } from '../git/review';
-import { previewSetup, scanIgnored } from '../git/worktreeSetup';
+import { previewSetup, proposedCommands, scanIgnored } from '../git/worktreeSetup';
 import { addressed, languageMap, readFileIconTheme } from '../extension/fileIconTheme';
 import {
   GRAPH_COLUMNS,
@@ -23,7 +23,7 @@ import {
 } from '../shared/protocol';
 import { sortRefs } from '../shared/refs';
 import type { Asking } from '../shared/resolution';
-import { cleanPatterns, type SetupLayer, type SetupSource } from '../shared/worktreeSetup';
+import { cleanCommands, cleanPatterns, type SetupLayer, type SetupSource } from '../shared/worktreeSetup';
 
 // Usage: node dist/dev-server.js [--port=5174] [--icon-theme=<file>] [folder...]   (every repository found in the folders can be chosen in the page)
 // Read-only: actions that would change the repository or open an editor are only logged.
@@ -296,10 +296,13 @@ async function main() {
       setup.workspace[kind] ? [setup.workspace[kind]!, 'workspace'] : setup.user[kind] ? [setup.user[kind]!, 'user'] : [[], 'none'];
     const [link, linkFrom] = one('link');
     const [copy, copyFrom] = one('copy');
+    const commands = setup.workspace.commands ?? setup.user.commands;
+    const commandsFrom: SetupSource = setup.workspace.commands ? 'workspace' : setup.user.commands ? 'user' : 'none';
     const others = (await repo.state(1)).worktrees.filter((worktree) => !worktree.prunable && !samePath(worktree.path, repo!.root)).length;
     const info = {
       root: repo.root,
       entries: await scanIgnored(repo.root),
+      commands: { effective: commands ?? [], from: commandsFrom, proposed: await proposedCommands(repo.root) },
       user: setup.user,
       workspace: { ...setup.workspace, name: path.basename(repo.root), file: path.join(repo.root, '.vscode', 'settings.json') },
       vscode: { link: [], copy: [] },
@@ -475,7 +478,13 @@ async function main() {
         return [{ type: 'fileIcons', theme: addressed(theme, languages, address) }];
       }
       case 'saveWorktreeSetup':
-        setup[message.target] = message.patterns ? { link: cleanPatterns(message.patterns.link), copy: cleanPatterns(message.patterns.copy) } : {};
+        setup[message.target] = message.patterns
+          ? {
+              link: cleanPatterns(message.patterns.link),
+              copy: cleanPatterns(message.patterns.copy),
+              commands: message.commands ? cleanCommands(message.commands) : setup[message.target].commands,
+            }
+          : {};
         return worktreeSetup();
       default:
         console.log('not available in the preview:', JSON.stringify(message));

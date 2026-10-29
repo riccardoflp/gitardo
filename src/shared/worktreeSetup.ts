@@ -1,6 +1,7 @@
 /*
  * What new worktrees get of what git ignores in the checkout they are made from: folders linked, such as
- * node_modules, and files copied, such as .env. Shared by the page that chooses it and the extension behind it.
+ * node_modules, and files copied, such as .env; and the commands run in them once they are made, such as npm ci.
+ * Shared by the page that chooses it and the extension behind it.
  */
 
 /** What a new worktree gets of something git ignores. */
@@ -50,6 +51,13 @@ export type SetupTarget = 'workspace' | 'user';
 export interface SetupLayer {
   link?: string[];
   copy?: string[];
+  commands?: string[];
+}
+
+/** A command proposed for new worktrees from a file the checkout commits at its top, such as `npm ci` from package-lock.json. */
+export interface CommandProposal {
+  command: string;
+  file: string;
 }
 
 /** Everything the page shows. */
@@ -66,6 +74,8 @@ export interface WorktreeSetupInfo {
   effective: SetupPatterns & { linkFrom: SetupSource; copyFrom: SetupSource };
   /** The other worktrees of the repository, which can be given what applies now. */
   worktrees: number;
+  /** The commands run in new worktrees: those that apply now, where they come from, and those proposed. */
+  commands: { effective: string[]; from: SetupSource; proposed: CommandProposal[] };
 }
 
 /** Dependencies and environments: heavy to make again, and the same in every worktree as long as the branches agree. */
@@ -285,6 +295,13 @@ export function cleanPatterns(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   const kept = value.filter((pattern): pattern is string => typeof pattern === 'string').map((pattern) => pattern.trim());
   return [...new Set(kept.filter((pattern) => pattern && !/[\r\n]/.test(pattern)))];
+}
+
+/** The commands of the setting as they are kept: trimmed, without empty ones or line breaks, in their order. */
+export function cleanCommands(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const kept = value.filter((command): command is string => typeof command === 'string').map((command) => command.trim());
+  return kept.filter((command) => command && !/[\r\n]/.test(command));
 }
 
 /** A size as people read it. */

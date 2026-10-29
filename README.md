@@ -384,11 +384,25 @@ Where neither place sets one of them, Gitardo follows the matching experimental 
 
 In the Explorer, the context menu of a folder has **Link into New Worktrees**, and that of a file or a folder **Copy into New Worktrees**, for those selected. Each adds the pattern of its path, such as `/packages/api/node_modules/` or `/.env`, to the setting, and takes it out of the other one. Git is asked first what the patterns would then take, and Gitardo says why it changes nothing: git tracks it, and each worktree has it from its commit; git does not ignore it; a pattern such as `node_modules/` gives it that already; or, to copy, it is in a linked folder. Of a folder git tracks part of, what git ignores in it is copied. Where a pattern of its own path gives it something, the menu has **Stop Linking into New Worktrees** or **Stop Copying into New Worktrees** in its place, which takes that pattern out and says if another one still gives it something. The setting is saved where it is set now, in the workspace folder or the user's settings; where it is not set, in the workspace folder, starting from VS Code's patterns when they apply. VS Code's own two settings are not changed.
 
-The first worktree Gitardo creates while neither setting is set offers **Choose What It Gets…**, once. **Bring ignored files…** on a worktree, and **Bring ignored files into the other worktrees…** in the **…** of the Worktrees section, give worktrees that are there already what new ones get, without touching what they have.
+The first worktree Gitardo creates while neither setting is set, nor commands to run (see [Commands in a new worktree](#commands-in-a-new-worktree)), offers **Choose What It Gets…**, once. **Bring ignored files…** on a worktree, and **Bring ignored files into the other worktrees…** in the **…** of the Worktrees section, give worktrees that are there already what new ones get, without touching what they have.
 
 Gitardo works the patterns out the way VS Code does and says each one in the log, as `symlink <folder>` and `copy <path>`, before making it. Nothing is made where the worktree has something already. One that fails does not stop the others, and Gitardo says so once they are done. With the command preview on, the question says the patterns of what will be linked and copied, and from where.
 
 On Windows, git deletes what is inside a junction when it removes a worktree: the folder it links to, in the folder you are in. So before **Remove…** and **Gitardo: Clean Up Branches** remove a worktree, Gitardo takes out of it the links to folders outside it, among the files git does not track, each said in the log as `unlink <path>`. A worktree with such links, made by VS Code or by Gitardo, is to be removed from Gitardo, or after deleting the links, not with `git worktree remove` in a terminal.
+
+#### Commands in a new worktree
+
+A new worktree can also have commands run in it once Gitardo has created it and made its links and copies, such as `npm ci`:
+
+```json
+"gitardo.worktrees.setupCommands": ["npm ci", "npm run build"]
+```
+
+They run one after the other in a terminal of this window, with the worktree as its folder, each as a task of VS Code named after the worktree, so that you see what they print and can answer what they ask. Each is run by the shell VS Code runs tasks with, PowerShell, cmd, bash or zsh, and is written for it: one command to a line, with no `&&` between them, which Windows PowerShell does not know. One that fails, or that you stop, stops those after it, and Gitardo says which. Each is said in the log as `run <command>` before it starts. They run only in a trusted workspace, so that a repository you have just cloned runs nothing from its `.vscode/settings.json` before you trust it. The workspace folder's setting comes first, then the user's.
+
+When the worktree opens in another window or in the Agents window, as **Open in worktree** does, the commands run here first, and it opens once they have all succeeded, with what they installed. Creating a worktree offers to open it once they have succeeded too. When one fails, Gitardo offers to open it all the same.
+
+The tab of **Gitardo: Choose What New Worktrees Get…** has a section for them: add one, change its text where it is, move it up or down, or remove it, and **Save** writes them with the patterns. It proposes commands from the lock files the repository commits at its top: `npm ci` for `package-lock.json`, `pnpm install --frozen-lockfile` for `pnpm-lock.yaml`, `yarn install --frozen-lockfile` for `yarn.lock` (`--immutable` from Yarn 2), `bun install` for `bun.lock` or `bun.lockb`, one of them only, the one `packageManager` of `package.json` names if it has a lock file; and `uv sync --locked` for `uv.lock` or else `poetry install` for `poetry.lock`, `cargo fetch` for `Cargo.lock`, `go mod download` for `go.mod` and `bundle install` for `Gemfile.lock`. A `requirements.txt` gets none: no one command installs it into an environment of the worktree's own, whatever the shell.
 
 #### A format for the names
 
@@ -605,6 +619,7 @@ A few operations do more than run commands:
 
 - Resolving conflicts automatically or with AI, which are experimental and off by default, writes the files itself, and then runs `git add`. The confirmation lists the files before the command, and the log has a `write <file>` line for each.
 - Creating a worktree, when `gitardo.worktrees.linkFolders` and `gitardo.worktrees.copyFiles`, or VS Code's `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles`, ask for something, links and copies it after `git worktree add`, with a `symlink <folder>` or `copy <path>` line in the log for each (see [What git ignores, in a new worktree](#what-git-ignores-in-a-new-worktree)). **Bring ignored files…** does the same in a worktree that is there already, and runs no git command that changes anything.
+- Creating a worktree, when `gitardo.worktrees.setupCommands` has commands, then runs them in a terminal of this window, with a `run <command>` line in the log for each, and the question of the command preview says them (see [Commands in a new worktree](#commands-in-a-new-worktree)).
 - Renaming or removing a worktree first has VS Code's Git extension close it, when it has it open, with a `git.close <path>` line. On Windows, removing one also takes out of it the links to folders outside it, with an `unlink <path>` line for each, and when Windows held the folder so that git could not delete it, deletes what is left, with a `delete <path>` line (see [Worktrees](#worktrees)).
 
 Two operations pass data that does not fit on a command line, and the confirmation shows it next to the command:

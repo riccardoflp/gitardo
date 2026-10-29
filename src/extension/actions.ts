@@ -76,7 +76,8 @@ import { formatCommand, git, type GitError } from '../git/exec';
 import { parseWorktrees, samePath } from '../git/parse';
 import { setUpWorktree, unlinkFolderLinks } from '../git/worktreeSetup';
 import type { SetupPatterns } from '../shared/worktreeSetup';
-import { setupPatterns } from './worktreeSettings';
+import { runSetupCommands } from './worktreeCommands';
+import { setupCommands, setupPatterns } from './worktreeSettings';
 import type { Action, MergeMode, RebaseStep, RepoState, Submodule, Worktree } from '../shared/protocol';
 import { isHome, refArg, worktreeOf } from '../shared/refs';
 import { submoduleFolder } from '../shared/submodules';
@@ -649,14 +650,36 @@ async function setUpWorktrees(root: string, dirs: string[], patterns: SetupPatte
 
 /**
  * Has a new worktree get, once git has made it, what gitardo.worktrees.linkFolders and gitardo.worktrees.copyFiles,
- * or VS Code's own git.worktreeSymlinkFolders and git.worktreeIncludeFiles, bring from this checkout.
+ * or VS Code's own git.worktreeSymlinkFolders and git.worktreeIncludeFiles, bring from this checkout, and then run
+ * the commands of gitardo.worktrees.setupCommands. What the operation does once it has succeeded, such as opening the
+ * worktree, waits for the commands; when one of them fails, Gitardo says so and offers to open it.
  */
 function withSetup(op: GitOp, dir: string, state: RepoState): GitOp {
   const patterns = setupPatterns(state.root);
   const note = setupNote(patterns, state.root);
-  if (!note) return op;
-  op.note = `Then ${note.charAt(0).toLowerCase()}${note.slice(1)}`;
-  op.finish = (log) => setUpWorktrees(state.root, [dir], patterns, log);
+  const { commands } = setupCommands(state.root);
+  if (!note && !commands.length) return op;
+  const run = commands.length
+    ? `${note ? 'After that it will run' : 'Then Gitardo will run'} ${commands.join(', then ')}, in a terminal of this window, in the worktree.`
+    : '';
+  op.note = [note && `Then ${note.charAt(0).toLowerCase()}${note.slice(1)}`, run].filter(Boolean).join(' ');
+  let ran: Promise<string | undefined> = Promise.resolve(undefined);
+  op.finish = async (log) => {
+    if (note) await setUpWorktrees(state.root, [dir], patterns, log);
+    // Not waited for: the commands can take minutes, and other operations go on meanwhile.
+    if (commands.length) ran = runSetupCommands(state.root, dir, commands, log);
+  };
+  const then = op.onSuccess;
+  if (commands.length) {
+    op.onSuccess = () =>
+      void ran.then((stopped) => {
+        if (!stopped) return then?.();
+        const choices = [...(state.agentsWindow ? ['Open in Agents Window'] : []), 'Open in New Window'];
+        void vscode.window.showWarningMessage(`Gitardo: ${stopped}`, ...choices).then((choice) => {
+          if (choice) void openWorktree(dir, choice === 'Open in Agents Window' ? 'agents' : 'window');
+        });
+      });
+  }
   return op;
 }
 
@@ -1275,7 +1298,7 @@ async function addWorktree(
 
   const op = worktreeAddOp(dir, base!, newBranch, !isBranch);
   // While new worktrees get nothing of what git ignores, the first one created says it can be chosen, once.
-  const offerSetup = !setupNote(setupPatterns(state.root), state.root) && !memory.get(SETUP_OFFERED);
+  const offerSetup = !setupNote(setupPatterns(state.root), state.root) && !setupCommands(state.root).commands.length && !memory.get(SETUP_OFFERED);
   op.onSuccess = () => {
     if (offerSetup) void memory.update(SETUP_OFFERED, true);
     const choices = [...(state.agentsWindow ? ['Open in Agents Window'] : []), 'Open in New Window', ...(offerSetup ? [SET_UP] : [])];

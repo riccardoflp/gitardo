@@ -720,8 +720,11 @@ export type WebviewMessage =
   /** Asks for what the tab of the setup of new worktrees shows, looking again at what git ignores when `rescan`. */
   | { type: 'getWorktreeSetup'; rescan?: boolean }
   | { type: 'previewWorktreeSetup'; patterns: SetupPatterns }
-  /** Saves the patterns there, and in VS Code's settings too when `alsoVSCode`; null takes Gitardo's out of there. */
-  | { type: 'saveWorktreeSetup'; target: SetupTarget; patterns: SetupPatterns | null; alsoVSCode?: boolean }
+  /**
+   * Saves the patterns there, with the commands run in new worktrees when given, and in VS Code's settings too when
+   * `alsoVSCode`; null takes Gitardo's out of there, the commands too.
+   */
+  | { type: 'saveWorktreeSetup'; target: SetupTarget; patterns: SetupPatterns | null; alsoVSCode?: boolean; commands?: string[] }
   /** Opens the file of the settings there. */
   | { type: 'editWorktreeSetup'; target: SetupTarget }
   /**

@@ -11,6 +11,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - **Get started with Gitardo**, a walkthrough in the Welcome page of VS Code: where the graph in the panel and the views in the Source Control side bar are, then a commit in an editor tab and a comparison, the blame and worktrees, each with a button to try it.
 - **Gitardo: Show History of Selected Lines**, also in the context menu of the editor: the graph narrowed to the commits that changed the lines selected, or the line of the cursor, followed back from the commit checked out with `git log -L`, through moves too. Lines edited and not committed yet are found in that commit first; lines added since are said to have no history.
 - **Show Folder History** in the context menu of a folder in the Explorer: the graph narrowed to the commits that changed anything in it, with the folder named in the bar above the graph. Renames of the folder are not followed.
+- Commands to run in each new worktree once Gitardo has created it and made its links and copies, such as `npm ci`, in the setting `gitardo.worktrees.setupCommands` or in a section of the tab of **Gitardo: Choose What New Worktrees Get…**, which proposes them from the lock files of the repository. They run one after the other as tasks in a terminal of this window, in whatever shell VS Code runs tasks with, and one that fails stops those after it. A worktree that opens in another window or in the Agents window opens once they have succeeded. They run only in a trusted workspace.
 
 ### Changed
 

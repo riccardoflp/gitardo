@@ -2,7 +2,16 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { git, GitError } from './exec';
-import { chooseByPath, statusOf, suggest, type IgnoredEntry, type SetupChoice, type SetupPatterns, type SetupPreview } from '../shared/worktreeSetup';
+import {
+  chooseByPath,
+  statusOf,
+  suggest,
+  type CommandProposal,
+  type IgnoredEntry,
+  type SetupChoice,
+  type SetupPatterns,
+  type SetupPreview,
+} from '../shared/worktreeSetup';
 import type { OpLog } from './ops';
 
 /*
@@ -350,6 +359,75 @@ export async function scanIgnored(root: string): Promise<IgnoredEntry[]> {
     }),
   );
   return entries.filter((entry): entry is IgnoredEntry => entry !== null);
+}
+
+/**
+ * The package managers of JavaScript, each with its lock files and the command that installs exactly what they lock,
+ * in the order one is chosen when several lock files are committed: npm last, whose lock file is the one most often
+ * left behind by mistake.
+ */
+const JAVASCRIPT: { manager: string; files: string[]; command: (files: Set<string>, version: string) => string }[] = [
+  { manager: 'pnpm', files: ['pnpm-lock.yaml'], command: () => 'pnpm install --frozen-lockfile' },
+  {
+    manager: 'yarn',
+    files: ['yarn.lock'],
+    // Yarn 2 and later, which have a .yarnrc.yml, say it with --immutable.
+    command: (files, version) => (files.has('.yarnrc.yml') || /^[2-9]|^\d{2,}/.test(version) ? 'yarn install --immutable' : 'yarn install --frozen-lockfile'),
+  },
+  { manager: 'bun', files: ['bun.lock', 'bun.lockb'], command: () => 'bun install' },
+  { manager: 'npm', files: ['package-lock.json', 'npm-shrinkwrap.json'], command: () => 'npm ci' },
+];
+
+/** The other kinds of project, each with the files that say it and the command that fetches what they lock, one of each kind. */
+const OTHERS: { files: string[]; command: string }[] = [
+  { files: ['uv.lock'], command: 'uv sync --locked' },
+  { files: ['poetry.lock'], command: 'poetry install' },
+  { files: ['Cargo.lock'], command: 'cargo fetch' },
+  { files: ['go.mod'], command: 'go mod download' },
+  { files: ['Gemfile.lock'], command: 'bundle install' },
+];
+
+/** The files at the top of a checkout that commands are proposed from. */
+export const PROPOSING_FILES = [...JAVASCRIPT.flatMap((each) => each.files), '.yarnrc.yml', ...OTHERS.flatMap((each) => each.files)];
+
+/**
+ * The commands proposed for new worktrees of a checkout that commits `files` at its top: one for the package manager of
+ * JavaScript, the one that `packageManager` of package.json names when it has a lock file, and one for each other kind
+ * of project. uv and Poetry are one kind, Python, as both make the same environment. A requirements.txt gets none: no
+ * command installs it into an environment of the worktree's own whatever the shell and the Python are.
+ */
+export function proposeCommands(files: string[], packageManager = ''): CommandProposal[] {
+  const committed = new Set(files);
+  const [name, version = ''] = packageManager.split('@');
+  const locked = JAVASCRIPT.filter((each) => each.files.some((file) => committed.has(file)));
+  const javascript = locked.find((each) => each.manager === name) ?? locked[0];
+  const proposed: CommandProposal[] = [];
+  if (javascript) proposed.push({ command: javascript.command(committed, version), file: javascript.files.find((file) => committed.has(file))! });
+  let python = false;
+  for (const other of OTHERS) {
+    const file = other.files.find((each) => committed.has(each));
+    if (!file) continue;
+    const isPython = file === 'uv.lock' || file === 'poetry.lock';
+    if (isPython && python) continue;
+    python ||= isPython;
+    proposed.push({ command: other.command, file });
+  }
+  return proposed;
+}
+
+/** The commands proposed for new worktrees of the checkout in `root`, from what it commits at its top. */
+export async function proposedCommands(root: string): Promise<CommandProposal[]> {
+  const files = paths(await read(root, ['ls-files', '-z', '--', ...PROPOSING_FILES.map((file) => `:(top,literal)${file}`)]));
+  let packageManager = '';
+  if (files.some((file) => JAVASCRIPT.some((each) => each.files.includes(file)))) {
+    try {
+      const found = (JSON.parse(await fs.promises.readFile(path.join(root, 'package.json'), 'utf8')) as { packageManager?: unknown }).packageManager;
+      if (typeof found === 'string') packageManager = found;
+    } catch {
+      // No package.json, or not one that can be read: the lock files say it alone.
+    }
+  }
+  return proposeCommands(files, packageManager);
 }
 
 /**

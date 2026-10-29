@@ -2860,11 +2860,49 @@ input:focus-visible,
   margin: 6px 0;
 }
 
+.setup-page .commands ol {
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setup-page .commands li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+}
+
+.setup-page .commands .order {
+  flex: none;
+  min-width: 2ch;
+  margin-right: 4px;
+  text-align: right;
+}
+
+.setup-page .commands .none {
+  margin: 6px 0;
+}
+
+/* The commands proposed from the lock files, each a button that adds it. */
+.setup-page .commands .proposed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.setup-page .commands .proposed .button {
+  gap: 6px;
+}
+
 .setup-page .add {
   display: flex;
   gap: 6px;
 }
 
+.setup-page .commands li input,
 .setup-page .add input {
   flex: 1;
   min-width: 0;

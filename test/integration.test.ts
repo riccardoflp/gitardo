@@ -64,7 +64,7 @@ import {
 } from '../src/git/ops';
 import { hunkPatch, linesPatch } from '../src/git/parse';
 import { Repo } from '../src/git/repo';
-import { changeSetup, foldersToLink, previewSetup, scanIgnored, setUpWorktree, unlinkFolderLinks } from '../src/git/worktreeSetup';
+import { changeSetup, foldersToLink, previewSetup, proposedCommands, scanIgnored, setUpWorktree, unlinkFolderLinks } from '../src/git/worktreeSetup';
 import { WORKTREE, type CompareCommit, type Filter, type RepoState, type Scope } from '../src/shared/protocol';
 import { canFastForward } from '../src/shared/refs';
 
@@ -813,6 +813,21 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect(fs.existsSync(dir)).toBe(false);
     expect(fs.readFileSync(path.join(root, 'node_modules/pkg/index.js'), 'utf8')).toBe('module\n');
     expect(fs.readFileSync(path.join(root, 'packages/a/node_modules/x.js'), 'utf8')).toBe('nested\n');
+  });
+
+  it('proposes commands for new worktrees from the lock files committed at the top, as package.json names its manager', async () => {
+    expect(await proposedCommands(root)).toEqual([]);
+    write('package.json', JSON.stringify({ name: 'app', packageManager: 'pnpm@9.12.0' }));
+    write('package-lock.json', '{}\n');
+    write('pnpm-lock.yaml', 'lockfileVersion: 9.0\n');
+    fs.mkdirSync(path.join(root, 'tools'));
+    write('tools/go.mod', 'module tools\n');
+    await commitAll('First commit');
+    // Not committed: a new worktree would not have it.
+    write('Cargo.lock', '# not committed\n');
+    expect(await proposedCommands(root)).toEqual([{ command: 'pnpm install --frozen-lockfile', file: 'pnpm-lock.yaml' }]);
+    await run(stageOp(['Cargo.lock']));
+    expect((await proposedCommands(root)).map((proposal) => proposal.command)).toEqual(['pnpm install --frozen-lockfile', 'cargo fetch']);
   });
 
   it('links and copies from the Explorer only what git ignores, and says why not', async () => {

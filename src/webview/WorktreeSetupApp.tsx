@@ -4,11 +4,13 @@ import {
   choose,
   chooseAll,
   chooseOne,
+  cleanCommands,
   cleanPatterns,
   groupEntries,
   sizeText,
   statusNow,
   statusOfAll,
+  type CommandProposal,
   type IgnoredEntry,
   type SetupChoice,
   type SetupGroup,
@@ -381,8 +383,105 @@ function PatternList(props: {
 }
 
 /**
+ * The commands run in new worktrees, in their order, each edited where it is, with a box to add one and those proposed
+ * from the lock files the checkout commits.
+ */
+function CommandList(props: { commands: string[]; proposed: CommandProposal[]; onChange(commands: string[]): void }) {
+  const { commands, proposed, onChange } = props;
+  const [typed, setTyped] = useState('');
+  const add = (event: FormEvent) => {
+    event.preventDefault();
+    if (typed.trim()) onChange([...commands, typed.trim()]);
+    setTyped('');
+  };
+  const move = (index: number, by: number) => {
+    const next = [...commands];
+    [next[index], next[index + by]] = [next[index + by], next[index]];
+    onChange(next);
+  };
+  const left = proposed.filter((proposal) => !commands.includes(proposal.command));
+  return (
+    <div className="commands">
+      {commands.length === 0 && <p className="muted none">None.</p>}
+      <ol>
+        {commands.map((command, index) => (
+          <li key={index}>
+            <span className="muted order">{index + 1}</span>
+            <input
+              className="mono"
+              value={command}
+              aria-label={`Command ${index + 1}`}
+              spellCheck={false}
+              onChange={(event) => onChange(commands.map((each, at) => (at === index ? event.target.value : each)))}
+            />
+            <button
+              className="button icon"
+              title="Run it before the one above"
+              aria-label={`Move ${command} up`}
+              disabled={index === 0}
+              onClick={() => move(index, -1)}
+            >
+              <Icon name="arrow-up" />
+            </button>
+            <button
+              className="button icon"
+              title="Run it after the one below"
+              aria-label={`Move ${command} down`}
+              disabled={index === commands.length - 1}
+              onClick={() => move(index, 1)}
+            >
+              <Icon name="arrow-down" />
+            </button>
+            <button
+              className="button icon"
+              title={`Remove ${command}`}
+              aria-label={`Remove ${command}`}
+              onClick={() => onChange(commands.filter((_, at) => at !== index))}
+            >
+              <Icon name="close" />
+            </button>
+          </li>
+        ))}
+      </ol>
+      {left.length > 0 && (
+        <div className="proposed">
+          <span className="muted">Proposed from what is committed here:</span>
+          {left.map((proposal) => (
+            <button
+              key={proposal.command}
+              className="button"
+              title={`Adds it to the end, for the ${proposal.file} of the repository`}
+              aria-label={`Add ${proposal.command}`}
+              onClick={() => onChange([...commands, proposal.command])}
+            >
+              <Icon name="add" />
+              <span className="mono">{proposal.command}</span>
+              <span className="muted">{proposal.file}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <form className="add" onSubmit={add}>
+        <input
+          className="mono"
+          value={typed}
+          placeholder="npm ci"
+          aria-label="A command to add"
+          spellCheck={false}
+          onChange={(event) => setTyped(event.target.value)}
+        />
+        <button className="button" type="submit" disabled={!typed.trim()}>
+          <Icon name="add" />
+          Add
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/**
  * The tab where what new worktrees get of what git ignores in this checkout is chosen: what git ignores, each with
- * what it gets, the patterns that say so, and where they are saved.
+ * what it gets, the patterns that say so, the commands run in them, and where they are saved.
  */
 export function WorktreeSetupApp() {
   // Undefined while it is read.
@@ -390,6 +489,8 @@ export function WorktreeSetupApp() {
   const [error, setError] = useState<string>();
   // The patterns as changed here, until they are saved; null while they are what applies.
   const [draft, setDraft] = useState<SetupPatterns | null>(null);
+  // The commands as changed here, the same way.
+  const [commandsDraft, setCommandsDraft] = useState<string[] | null>(null);
   const [target, setTarget] = useState<SetupTarget>();
   const [alsoVSCode, setAlsoVSCode] = useState(false);
   const [checked, setChecked] = useState<Checked | null>(null);
@@ -408,7 +509,10 @@ export function WorktreeSetupApp() {
     const stop = onMessage((message) => {
       if (message.type === 'worktreeSetup') {
         setInfo(message.info);
-        if (saving.current) setDraft(null);
+        if (saving.current) {
+          setDraft(null);
+          setCommandsDraft(null);
+        }
         saving.current = false;
         setError(message.error);
         if (!message.info) setScanning(false);
@@ -441,12 +545,17 @@ export function WorktreeSetupApp() {
   if (info === null) return <div className="empty">Gitardo could not read this repository. {error}</div>;
 
   // Saved where it applies from, unless that is VS Code's own or nothing, when the workspace folder is the first choice.
-  const from = info.effective.linkFrom === 'user' || info.effective.copyFrom === 'user' ? 'user' : 'workspace';
+  const from = info.effective.linkFrom === 'user' || info.effective.copyFrom === 'user' || info.commands.from === 'user' ? 'user' : 'workspace';
   const where: SetupTarget = target ?? (info.workspace ? from : 'user');
   const layer = where === 'workspace' ? info.workspace : info.user;
-  const savedHere = !!layer && same(layer.link, patterns.link) && same(layer.copy, patterns.copy);
-  const setHere = !!layer && (layer.link !== undefined || layer.copy !== undefined);
-  const changed = draft !== null && keyOf(draft) !== keyOf(effective);
+  const commands = commandsDraft ?? info.commands.effective;
+  const kept = cleanCommands(commands);
+  // An empty list of commands is not written where none is set anywhere: then it is as good as saved.
+  const commandsSaved = !!layer && (same(layer.commands, kept) || (layer.commands === undefined && !kept.length && info.commands.from === 'none'));
+  const savedHere = !!layer && same(layer.link, patterns.link) && same(layer.copy, patterns.copy) && commandsSaved;
+  const setHere = !!layer && (layer.link !== undefined || layer.copy !== undefined || layer.commands !== undefined);
+  const changed = (draft !== null && keyOf(draft) !== keyOf(effective)) || (commandsDraft !== null && !same(commandsDraft, info.commands.effective));
+  const updateCommands = (next: string[]) => setCommandsDraft(same(next, info.commands.effective) ? null : next);
   const counts = (kind: 'link' | 'copy') =>
     checked && Object.fromEntries(patterns[kind].filter((pattern) => pattern in checked.preview.counts[kind]).map((pattern) => [pattern, checked.preview.counts[kind][pattern]]));
   const update = (next: SetupPatterns) => setDraft(keyOf(next) === keyOf(effective) ? null : next);
@@ -466,7 +575,7 @@ export function WorktreeSetupApp() {
   };
   const save = (saved: SetupPatterns | null) => {
     saving.current = true;
-    post({ type: 'saveWorktreeSetup', target: where, patterns: saved, alsoVSCode: saved !== null && alsoVSCode });
+    post({ type: 'saveWorktreeSetup', target: where, patterns: saved, alsoVSCode: saved !== null && alsoVSCode, commands: saved ? kept : undefined });
   };
 
   return (
@@ -488,6 +597,11 @@ export function WorktreeSetupApp() {
           <dd>
             {info.effective.copy.length ? <span className="mono">{info.effective.copy.join(', ')}</span> : <span className="muted">nothing</span>}
             <span className="muted"> · from {sourceText(info.effective.copyFrom, 'copy', info)}</span>
+          </dd>
+          <dt>Run now</dt>
+          <dd>
+            {info.commands.effective.length ? <span className="mono">{info.commands.effective.join(', then ')}</span> : <span className="muted">nothing</span>}
+            {info.commands.from !== 'none' && <span className="muted"> · from {sourceText(info.commands.from, 'link', info)}</span>}
           </dd>
         </dl>
       </header>
@@ -590,6 +704,17 @@ export function WorktreeSetupApp() {
         </div>
       </section>
 
+      <section aria-label="Commands">
+        <h2>Commands to run</h2>
+        <p className="muted">
+          Run one after the other in each new worktree once its links and copies are made, each as a task in a terminal of this window, with the worktree as
+          its folder, in the shell VS Code runs tasks with. One that fails stops those after it. A worktree that opens in another window opens once they have
+          all succeeded. They run only in a trusted workspace.
+        </p>
+        <p className="muted">gitardo.worktrees.setupCommands</p>
+        <CommandList commands={commands} proposed={info.commands.proposed} onChange={updateCommands} />
+      </section>
+
       <footer className="setup-actions">
         <div className="where">
           <span>Save in</span>
@@ -618,7 +743,14 @@ export function WorktreeSetupApp() {
             <Icon name="save" />
             Save
           </button>
-          <button className="button" disabled={!changed} onClick={() => setDraft(null)}>
+          <button
+            className="button"
+            disabled={!changed}
+            onClick={() => {
+              setDraft(null);
+              setCommandsDraft(null);
+            }}
+          >
             <Icon name="discard" />
             Discard changes
           </button>

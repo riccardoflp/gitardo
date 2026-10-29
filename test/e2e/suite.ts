@@ -689,6 +689,63 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('runs the commands for new worktrees in tasks, in order, before opening the worktree, and stops at one that fails', async () => {
+    const gitardo = () => vscode.workspace.getConfiguration('gitardo', vscode.Uri.file(app));
+    const home = path.join(workspace, 'app.worktrees').replace(/\\/g, '/');
+    const commands = vscode.commands as unknown as Record<string, (...args: unknown[]) => Thenable<unknown>>;
+    const executeCommand = commands.executeCommand;
+    const opened: string[] = [];
+    commands.executeCommand = (id: unknown, ...args: unknown[]) => {
+      if (id !== 'vscode.openFolder') return executeCommand(id, ...args);
+      opened.push((args[0] as vscode.Uri).fsPath.replace(/\\/g, '/').toLowerCase());
+      return Promise.resolve();
+    };
+    const ref = async (name: string) => (await git(app, ['rev-parse', '--verify', '--quiet', name]).catch(() => null))?.stdout.trim();
+    await git(app, ['branch', 'commands/one', 'main']);
+    await git(app, ['branch', 'commands/two', 'main']);
+    await vscode.commands.executeCommand('gitardo.refresh');
+    try {
+      // No quotes, nothing but a command and its arguments: the same in every shell. The second needs the first.
+      const made = ['git update-ref refs/setup/one HEAD', 'git update-ref refs/setup/two refs/setup/one'];
+      // Saved from the tab, with the patterns, and without what is empty.
+      await vscode.commands.executeCommand('gitardo.worktreeSetup');
+      const tab = (await until('the tab', () => [...internals.views].find(([, kind]) => kind === 'worktreeSetup')))[0];
+      await internals.onMessage(tab, { type: 'saveWorktreeSetup', target: 'workspace', patterns: { link: [], copy: [] }, commands: [...made, ' '] });
+      assert.deepEqual(gitardo().inspect('worktrees.setupCommands')?.workspaceFolderValue, made);
+      logged.length = 0;
+      asked.length = 0;
+      await controller.action({ kind: 'openInWorktree', name: 'commands/one' });
+      const one = `${home}/commands/one`.toLowerCase();
+      await until('the worktree to open once the commands are done', () => opened.includes(one), 60_000);
+      assert.equal(await ref('refs/setup/two'), await ref('main'));
+      assert.deepEqual(logged.filter((line) => line.startsWith('> run ')), made.map((command) => `> run ${command}`));
+      assert.equal(asked.length, 0, JSON.stringify(asked));
+
+      // One that fails stops those after it, and the worktree is only offered.
+      const failing = ['git rev-parse --verify --quiet refs/setup/missing', 'git update-ref refs/setup/after HEAD'];
+      await gitardo().update('worktrees.setupCommands', failing, vscode.ConfigurationTarget.WorkspaceFolder);
+      opened.length = 0;
+      await controller.action({ kind: 'openInWorktree', name: 'commands/two' });
+      const stopped = await until('the warning that a command failed', () => asked.find((question) => /failed with exit code/.test(question.message)), 60_000);
+      assert.match(stopped.message, /git rev-parse --verify --quiet refs\/setup\/missing failed with exit code 1 in two, so the command after it did not run/);
+      assert.ok(stopped.items.includes('Open in New Window'), JSON.stringify(stopped.items));
+      assert.deepEqual(opened, []);
+      assert.equal(await ref('refs/setup/after'), undefined);
+    } finally {
+      commands.executeCommand = executeCommand;
+      for (const key of ['worktrees.setupCommands', 'worktrees.linkFolders', 'worktrees.copyFiles']) {
+        await gitardo().update(key, undefined, vscode.ConfigurationTarget.WorkspaceFolder);
+      }
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+      for (const name of ['one', 'two']) await git(app, ['worktree', 'remove', '--force', `${home}/commands/${name}`]).catch(() => undefined);
+      fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      await git(app, ['worktree', 'prune']);
+      for (const name of ['commands/one', 'commands/two']) await git(app, ['branch', '-D', name]).catch(() => undefined);
+      for (const name of ['one', 'two', 'after']) await git(app, ['update-ref', '-d', `refs/setup/${name}`]).catch(() => undefined);
+      await vscode.commands.executeCommand('gitardo.refresh');
+    }
+  });
+
   await step('shows another worktree in the views of this window, works in it there and goes back', async () => {
     const home = path.join(workspace, 'app.worktrees').replace(/\\/g, '/');
     const dir = `${home}/shown`;

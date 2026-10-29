@@ -2,8 +2,10 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { SetupChange } from '../git/worktreeSetup';
 import {
+  cleanCommands,
   cleanPatterns,
   namedPaths,
+  type CommandProposal,
   type SetupChoice,
   type SetupLayer,
   type SetupPatterns,
@@ -38,23 +40,43 @@ export function setupPatterns(root: string): SetupPatterns & { linkFrom: SetupSo
   return { link, copy, linkFrom, copyFrom };
 }
 
-/** What is set in one place, each of the two missing where it is not set there. */
+/** Gitardo's setting of the commands run in new worktrees, which VS Code has none of. */
+const COMMANDS = 'worktrees.setupCommands';
+
+/**
+ * The commands run in new worktrees of the repository in `root`, and where they come from: the workspace folder's
+ * setting wherever it is set, even empty, or else the user's.
+ */
+export function setupCommands(root: string): { commands: string[]; from: SetupSource } {
+  const set = config('gitardo', root).inspect<unknown>(COMMANDS);
+  const workspace = set?.workspaceFolderValue ?? set?.workspaceValue;
+  if (workspace !== undefined) return { commands: cleanCommands(workspace), from: 'workspace' };
+  if (set?.globalValue !== undefined) return { commands: cleanCommands(set.globalValue), from: 'user' };
+  return { commands: [], from: 'none' };
+}
+
+/** What is set in one place, each of the three missing where it is not set there. */
 function layer(root: string, place: 'globalValue' | 'workspaceFolderValue'): SetupLayer {
-  const value = (kind: Kind) => {
-    const set = config('gitardo', root).inspect<unknown>(OURS[kind]);
-    const found = place === 'globalValue' ? set?.globalValue : (set?.workspaceFolderValue ?? set?.workspaceValue);
-    return found === undefined ? undefined : cleanPatterns(found);
+  const found = (key: string) => {
+    const set = config('gitardo', root).inspect<unknown>(key);
+    return place === 'globalValue' ? set?.globalValue : (set?.workspaceFolderValue ?? set?.workspaceValue);
   };
-  return { link: value('link'), copy: value('copy') };
+  const value = (kind: Kind) => {
+    const patterns = found(OURS[kind]);
+    return patterns === undefined ? undefined : cleanPatterns(patterns);
+  };
+  const commands = found(COMMANDS);
+  return { link: value('link'), copy: value('copy'), commands: commands === undefined ? undefined : cleanCommands(commands) };
 }
 
 /**
- * What the page shows of the settings of the repository in `root`, whose other worktrees are `worktrees`: all but what
- * git ignores, which takes longer to look at.
+ * What the page shows of the settings of the repository in `root`, whose other worktrees are `worktrees`, with the
+ * commands `proposed` for it: all but what git ignores, which takes longer to look at.
  */
-export function worktreeSetupInfo(root: string, worktrees: number): Omit<WorktreeSetupInfo, 'entries'> {
+export function worktreeSetupInfo(root: string, worktrees: number, proposed: CommandProposal[]): Omit<WorktreeSetupInfo, 'entries'> {
   const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(root));
   const { link, copy, linkFrom, copyFrom } = setupPatterns(root);
+  const { commands, from } = setupCommands(root);
   return {
     root,
     user: layer(root, 'globalValue'),
@@ -64,6 +86,7 @@ export function worktreeSetupInfo(root: string, worktrees: number): Omit<Worktre
     vscode: { link: cleanPatterns(config('git', root).get(THEIRS.link)), copy: cleanPatterns(config('git', root).get(THEIRS.copy)) },
     effective: { link, copy, linkFrom, copyFrom },
     worktrees,
+    commands: { effective: commands, from, proposed },
   };
 }
 
@@ -73,14 +96,26 @@ const targetOf = (target: SetupTarget) =>
 /**
  * Saves the patterns in the settings of the user or of the workspace folder that has the repository, and in VS Code's
  * own settings there too when `alsoVSCode`, for the worktrees VS Code creates. Null patterns take the settings out of
- * that place, so that what is set elsewhere applies again.
+ * that place, the commands too, so that what is set elsewhere applies again. The commands, when given, are saved with
+ * the patterns; an empty list of them is written only where one is set somewhere, as it would change nothing else.
  */
-export async function saveSetup(root: string, target: SetupTarget, patterns: SetupPatterns | null, alsoVSCode: boolean): Promise<void> {
+export async function saveSetup(
+  root: string,
+  target: SetupTarget,
+  patterns: SetupPatterns | null,
+  alsoVSCode: boolean,
+  commands?: string[],
+): Promise<void> {
   const where = targetOf(target);
   for (const kind of ['link', 'copy'] as const) {
     const value = patterns ? cleanPatterns(patterns[kind]) : undefined;
     await config('gitardo', root).update(OURS[kind], value, where);
     if (alsoVSCode && value) await config('git', root).update(THEIRS[kind], value, where);
+  }
+  if (!patterns) await config('gitardo', root).update(COMMANDS, undefined, where);
+  else if (commands) {
+    const value = cleanCommands(commands);
+    if (value.length || setupCommands(root).from !== 'none') await config('gitardo', root).update(COMMANDS, value, where);
   }
 }
 
