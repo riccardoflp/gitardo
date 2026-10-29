@@ -631,6 +631,26 @@ export class Controller implements vscode.Disposable {
     await this.setFilter({ kind: 'path', path: file });
   }
 
+  /** Shows the commits that changed anything in a folder. */
+  async folderHistory(uri: vscode.Uri | undefined): Promise<void> {
+    if (!(await this.requireState())) return;
+    if (uri?.scheme === 'file') {
+      // The root folder of a repository is not in the repository: it is the repository.
+      const own = this.repos.find((repo) => samePath(repo.root, uri.fsPath));
+      if (own) await this.selectRepo(own.root);
+      else await this.showRepoOf(uri);
+    }
+    if (!this.repo) return;
+    const folder = uri?.scheme === 'file' ? path.relative(this.repo.root, uri.fsPath).replace(/\\/g, '/') : '..';
+    if (folder.startsWith('..') || path.isAbsolute(folder)) {
+      void vscode.window.showWarningMessage('Gitardo: choose a folder of this repository to see its history.');
+      return;
+    }
+    await vscode.commands.executeCommand('gitardo.graph.focus');
+    // The root folder of a repository has all of its history.
+    await this.setFilter(folder ? { kind: 'path', path: folder, folder: true } : null);
+  }
+
   /** In a workspace with several repositories a file decides which one to show: the innermost one that contains it. */
   private async showRepoOf(uri: vscode.Uri): Promise<void> {
     const contains = (root: string) => {

@@ -209,6 +209,11 @@
         "category": "Gitardo"
       },
       {
+        "command": "gitardo.folderHistory",
+        "title": "Show Folder History",
+        "category": "Gitardo"
+      },
+      {
         "command": "gitardo.revealCommit",
         "title": "Show Commit in Graph",
         "category": "Gitardo"
@@ -512,6 +517,10 @@
     "menus": {
       "commandPalette": [
         {
+          "command": "gitardo.folderHistory",
+          "when": "false"
+        },
+        {
           "command": "gitardo.linkIntoWorktrees",
           "when": "false"
         },
@@ -640,6 +649,11 @@
         {
           "command": "gitardo.fileHistory",
           "when": "resourceScheme == file && !explorerResourceIsFolder",
+          "group": "4_search@90"
+        },
+        {
+          "command": "gitardo.folderHistory",
+          "when": "resourceScheme == file && explorerResourceIsFolder && resourcePath not in gitardo.repositoryRoots",
           "group": "4_search@90"
         },
         {

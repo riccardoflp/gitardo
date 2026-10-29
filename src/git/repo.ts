@@ -658,8 +658,9 @@ export class Repo {
       // What is checked out is always there, whichever kinds of references are left out.
       if (head) args.push('HEAD');
     }
-    // A file is followed under the names it had before, or its history would end at the commit that renamed it.
-    const names = filter?.kind === 'path' ? await this.pathNames(filter.path) : [];
+    // A file is followed under the names it had before, or its history would end at the commit that renamed it. A
+    // folder is not: git follows only files.
+    const names = filter?.kind === 'path' ? (filter.folder ? [filter.path] : await this.pathNames(filter.path)) : [];
     if (names.length) args.push('--', ...names.map((name) => `:(literal)${name}`));
     return { args, names };
   }

@@ -910,6 +910,31 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect((await repo.state(100, { kind: 'path', path: '*.txt' })).rows).toEqual([]);
   });
 
+  it('narrows the graph to the history of a folder, without following its renames', async () => {
+    fs.mkdirSync(path.join(root, 'lib', 'deep'), { recursive: true });
+    write('lib/a.txt', 'one\n');
+    const first = await commitAll('Add lib');
+    write('top.txt', 'elsewhere\n');
+    await commitAll('Add top');
+    write('lib/deep/b.txt', 'two\n');
+    const third = await commitAll('Add deep');
+    fs.mkdirSync(path.join(root, 'library'));
+    write('library/c.txt', 'a folder whose name starts the same\n');
+    await commitAll('Add library');
+    await git(root, ['mv', 'lib', 'moved']);
+    await commitAll('Move lib');
+
+    const folder: Filter = { kind: 'path', path: 'lib', folder: true };
+    const history = await repo.state(100, folder);
+    expect(history.filter).toEqual(folder);
+    // What is in its subfolders too, and the move that took everything out of it.
+    expect(history.rows.map((row) => row.subject)).toEqual(['Move lib', 'Add deep', 'Add lib']);
+    expect(history.rows[1]).toMatchObject({ hash: third, parents: [first] });
+    // Where it is now, only the move: what came before is under the name it had.
+    expect((await repo.state(100, { kind: 'path', path: 'moved', folder: true })).rows.map((row) => row.subject)).toEqual(['Move lib']);
+    expect(await repo.position(first, folder)).toBe(2);
+  });
+
   it('searches the whole history by message, author and changed text', async () => {
     write('a.txt', 'alpha\n');
     await commitAll('Add the Parser');

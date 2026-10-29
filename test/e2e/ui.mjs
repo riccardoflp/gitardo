@@ -2195,7 +2195,7 @@ try {
     await until('the new commit in the details', () => graph.evaluate(`document.querySelector('.detail h2')?.textContent === ${JSON.stringify(`${older}, edited`)}`));
   });
 
-  await step('the context menu of the Explorer links a folder git ignores into new worktrees, stops it, and says why a file git tracks is not copied', async () => {
+  await step('the context menu of the Explorer offers the history of a folder but not of a repository, links a folder git ignores into new worktrees, stops it, and says why a file git tracks is not copied', async () => {
     const exclude = path.join(app, '.git', 'info', 'exclude');
     const excluded = fs.existsSync(exclude) ? fs.readFileSync(exclude, 'utf8') : null;
     const settingsFile = path.join(workspace, '.vscode', 'settings.json');
@@ -2232,9 +2232,15 @@ try {
       const folder = await row('app');
       if (!folder.expanded) await mouse(folder.x, folder.y);
 
-      let items = await menu('node_modules');
+      // The root folder of a repository is its whole history: only the folders in it offer theirs.
+      let items = await menu('app');
+      assert(!items.includes('Show Folder History'), `menu of the root folder: ${items}`);
+      await key('Escape');
+
+      items = await menu('node_modules');
       await shot('explorer-link');
       assert(items.includes('Link into New Worktrees') && items.includes('Copy into New Worktrees'), `menu: ${items}`);
+      assert(items.includes('Show Folder History'), `menu of a folder: ${items}`);
       await pick('Link into New Worktrees');
       await until('the folder in the setting of the workspace folder', () => linked()?.join() === '/node_modules/');
 

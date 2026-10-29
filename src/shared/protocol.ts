@@ -129,8 +129,11 @@ export interface WorkingState {
  * the commits in between; the search filters return unrelated commits, shown as a plain list.
  */
 export type Filter =
-  /** `renamedFrom`: the names the file had before, which the extension finds and adds to the state it sends back. */
-  | { kind: 'path'; path: string; renamedFrom?: string[] }
+  /**
+   * `renamedFrom`: the names the file had before, which the extension finds and adds to the state it sends back.
+   * `folder`: the path is of a folder, whose history is that of everything in it, with no renames followed.
+   */
+  | { kind: 'path'; path: string; renamedFrom?: string[]; folder?: true }
   /** Only what is reachable from one branch, tag or commit. `lost` when it is a commit that no branch or tag reaches any more. */
   | { kind: 'ref'; ref: string; lost?: boolean }
   /** `message` and `author` match text; `pickaxe` finds commits that add or remove the text; `regex` matches changed lines. */

@@ -306,6 +306,8 @@ Type the hash of a commit in the box, or the first four characters or more of it
 
 Renames are followed: Gitardo first asks git for the names the file had before (`git log --follow`), then shows the commits that changed any of them, and the bar above the graph lists the earlier names. A file that began as a copy of another is not traced back into the original. If an earlier name was later reused for a different file, the commits of that one appear too.
 
+**Show Folder History**, in the context menu of a folder in the Explorer, narrows the graph to the commits that changed anything in the folder, and the bar above the graph names it. Renames are not followed here: the history of a folder starts where it got its name, and the commits that changed its files under another folder are not in it. It is not offered on the root folder of a repository, whose history is all of it.
+
 ### Blame
 
 The line under the cursor shows who last changed it, when, and the subject of that commit, dimmed at the end of the line. It takes unsaved edits into account. Hover it for a link that shows the commit in the graph. Turn it off with `gitardo.blame.enabled` or **Gitardo: Toggle Inline Blame**.

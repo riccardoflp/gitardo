@@ -9,6 +9,13 @@ const NAMED = 3;
 
 function describe(filter: Filter): ReactNode {
   if (filter.kind === 'path') {
+    if (filter.folder) {
+      return (
+        <>
+          History of the folder <b>{filter.path}</b>
+        </>
+      );
+    }
     return (
       <>
         History of <b>{filter.path}</b>

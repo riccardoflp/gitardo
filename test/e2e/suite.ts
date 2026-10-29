@@ -1382,6 +1382,36 @@ export async function run(): Promise<void> {
     assert.equal(state().filter, null);
   });
 
+  await step('narrows the graph to the history of a folder, and shows all of it for the root folder of a repository', async () => {
+    const before = (await git(app, ['rev-parse', 'HEAD'])).stdout.trim();
+    try {
+      fs.mkdirSync(path.join(app, 'docs', 'deep'), { recursive: true });
+      write('docs/deep/guide.txt', 'guide\n');
+      await git(app, ['add', 'docs']);
+      await git(app, ['commit', '-m', 'Add docs']);
+      await vscode.commands.executeCommand('gitardo.folderHistory', vscode.Uri.file(path.join(app, 'docs')));
+      assert.deepEqual(state().filter, { kind: 'path', path: 'docs', folder: true });
+      assert.deepEqual(subjects(), ['Add docs']);
+
+      await vscode.commands.executeCommand('gitardo.folderHistory', vscode.Uri.file(lib));
+      assert.equal(state().name, 'lib');
+      assert.equal(state().filter, null);
+      await vscode.commands.executeCommand('gitardo.folderHistory', vscode.Uri.file(app));
+      assert.equal(state().name, 'app');
+      assert.equal(state().filter, null);
+
+      // Outside of every repository there is no history to show.
+      asked.length = 0;
+      await vscode.commands.executeCommand('gitardo.folderHistory', vscode.Uri.file(workspace));
+      assert.ok(asked.some((each) => each.message.includes('choose a folder of this repository')), asked.map((each) => each.message).join('\n'));
+      assert.equal(state().filter, null);
+    } finally {
+      await controller.setFilter(null);
+      await git(app, ['reset', '--hard', before]);
+      await vscode.commands.executeCommand('gitardo.refresh');
+    }
+  });
+
   await step('narrows the graph to the branches chosen, remembers them for each repository, and shows them all for a commit elsewhere', async () => {
     const graph = view('graph');
     const everything = subjects();

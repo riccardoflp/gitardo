@@ -85,6 +85,14 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     else status.hide();
     void vscode.commands.executeCommand('setContext', 'gitardo.hasRepository', has);
   };
+  // The context menu of the Explorer does not offer the history of the root folder of a repository, which is all of it.
+  let rootsInMenus = '';
+  const showRootsInMenus = (found: string[]) => {
+    const named = Object.fromEntries(found.map((root) => [vscode.Uri.file(root).fsPath, true]));
+    if (JSON.stringify(named) === rootsInMenus) return;
+    rootsInMenus = JSON.stringify(named);
+    void vscode.commands.executeCommand('setContext', 'gitardo.repositoryRoots', named);
+  };
   // The context menu of the Explorer offers to stop giving new worktrees what a pattern of its own path gives them.
   let roots: string[] = [];
   const lookForRepos = async () => {
@@ -92,6 +100,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     roots = await discoverRepos(folders).catch(() => []);
     hasRepository(roots.length > 0);
     showSetupInMenus(roots);
+    showRootsInMenus(roots);
   };
   void lookForRepos();
   // The repository is read now, for the views to open with its graph already there rather than wait for git. Until one
@@ -105,6 +114,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     controller.onDidChangeState((state) => {
       if (!state) return;
       hasRepository(true);
+      showRootsInMenus([...new Set([...roots, ...state.repos.map((repo) => repo.root)])]);
       flowDiff.repositoryChanged(state.root);
       // A commit made since gives its name to the lines that had none.
       fileBlame.refresh();
@@ -145,6 +155,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     new BlameAnnotator(blameSource),
     fileBlame,
     command('gitardo.fileHistory', (uri) => controller.fileHistory(uri instanceof vscode.Uri ? uri : undefined)),
+    command('gitardo.folderHistory', (uri) => controller.folderHistory(uri instanceof vscode.Uri ? uri : undefined)),
     command('gitardo.revealCommit', (hash) => typeof hash === 'string' && controller.reveal(hash)),
     command('gitardo.reflog', () => controller.command('reflog')),
     command('gitardo.cleanupBranches', () => controller.command('cleanupBranches')),
