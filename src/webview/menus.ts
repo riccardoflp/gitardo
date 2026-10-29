@@ -194,6 +194,8 @@ export function commitMenu(row: Row, state: RepoState, tools: CommitMenuTools): 
     'separator',
     ...integrate(hash, hash, state),
     canReword(hash, state) && { label: 'Edit message…', run: onEditMessage },
+    // A merge has no one set of changes to take out, and the first commit nothing before it to go back to.
+    canReword(hash, state) && row.parents.length === 1 && { label: 'Split this commit…', run: () => act({ kind: 'split', hash }) },
     range && {
       label: range.length === 1 ? 'Edit this commit (interactive rebase)…' : `Interactive rebase of ${range.length} commits…`,
       run: () => onInteractiveRebase(range),

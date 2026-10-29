@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import type { Repo } from '../git/repo';
+import { isHash, type Repo } from '../git/repo';
 import {
   abortOp,
   bisectOp,
@@ -12,7 +12,11 @@ import {
   rebaseInteractiveOp,
   rewordHeadOp,
   rebaseTodo,
+  splitHeadOp,
+  splitLeft,
   splitMessage,
+  splitRebaseOp,
+  splitRestOp,
   squashMessage,
   undoOp,
   worktreeAddOp,
@@ -78,7 +82,7 @@ import { setUpWorktree, unlinkFolderLinks } from '../git/worktreeSetup';
 import type { SetupPatterns } from '../shared/worktreeSetup';
 import { runSetupCommands } from './worktreeCommands';
 import { setupCommands, setupPatterns } from './worktreeSettings';
-import type { Action, MergeMode, RebaseStep, RepoState, Submodule, Worktree } from '../shared/protocol';
+import type { Action, MergeMode, RebaseStep, RebaseStop, RepoState, Submodule, Worktree } from '../shared/protocol';
 import { isHome, refArg, worktreeOf } from '../shared/refs';
 import { submoduleFolder } from '../shared/submodules';
 
@@ -254,6 +258,37 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
       const aside = state.working.staged.length || state.working.unstaged.length ? ' Changes that are not committed are set aside and put back.' : '';
       op.note = `${[oldest, ...squashed].map((hash) => hash.slice(0, 7)).join(', ')} become one commit, with the changes of them all.${commits}${aside}`;
       return warnIfPushed(op, oldest, repo);
+    }
+
+    case 'split': {
+      if (state.operation) throw new Error(`Finish or abort the ${state.operation} first.`);
+      if (state.bisect) throw new Error('End the bisect first.');
+      if (!isHash(action.hash)) throw new Error(`"${action.hash}" is not a commit.`);
+      const short = action.hash.slice(0, 7);
+      const parents =(await git(repo.root, ['rev-list', '--parents', '-n', '1', action.hash])).stdout.trim().split(' ').slice(1);
+      if (parents.length > 1) throw new Error(`${short} is a merge: it cannot be split.`);
+      if (!parents.length) throw new Error(`${short} is the first commit, with nothing before it to take its changes back to: it cannot be split.`);
+      const dirty = state.working.staged.length > 0 || state.working.unstaged.some((file) => file.status !== '?');
+      let op: GitOp;
+      if (action.hash === state.head) {
+        op = splitHeadOp(action.hash);
+        op.note = [
+          `The changes of ${short} go back into the working tree, unstaged, and the branch goes back to the commit before it: commit them in as many commits as you like.`,
+          dirty && 'The changes that are not committed stay, among them.',
+        ]
+          .filter(Boolean)
+          .join(' ');
+      } else {
+        // The commits after it are made again on top of the ones it is split in, which a merge among them would undo.
+        const after = await repo.lineAfter(action.hash);
+        if (!after) throw new Error(`${short} is not on the line of commits before HEAD without merges: it cannot be split by a rebase from here.`);
+        const steps: RebaseStep[] = [{ action: 'edit', hash: action.hash }, ...after.reverse().map((hash): RebaseStep => ({ action: 'pick', hash }))];
+        op = splitRebaseOp(await interactiveRebase(steps, parents[0], state, repo, true), action.hash, await repo.gitDirAt(''));
+        const commits = !after.length ? '' : after.length === 1 ? ', and the commit after it is made again on top' : `, and the ${after.length} commits after it are made again on top`;
+        const aside = dirty ? ' Changes that are not committed are set aside until the end.' : '';
+        op.note = `The rebase stops at ${short} with its changes taken out of it, unstaged: commit them in as many commits as you like, then Continue${commits}.${aside}`;
+      }
+      return warnIfPushed(op, action.hash, repo);
     }
 
     case 'cherryPick': {
@@ -492,6 +527,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
 
     // A conflict resolved by keeping what HEAD has leaves the commit with nothing to commit, and so can the next one.
     case 'continue':
+      if (state.rebaseStop?.kind === 'split') return continueSplit(state.rebaseStop, state, repo);
       if (state.rebaseStop) refuseUncommitted(state);
       return { ...continueOp(requireOperation(state)), recover: skipEmptyPicks(state.root) };
     case 'skip':
@@ -551,6 +587,29 @@ function refuseUncommitted(state: RepoState): void {
   if (staged.length || unstaged.some((file) => file.status !== '?')) {
     throw new Error('Some changes are not committed: amend the commit with them, commit them, or stash them, then continue.');
   }
+}
+
+/**
+ * A rebase that stopped to split a commit goes on once its changes are committed. What is left of them can be
+ * committed as one more commit, with the message the commit had, or left for the user to go back to committing.
+ */
+async function continueSplit(stop: RebaseStop, state: RepoState, repo: Repo): Promise<GitOp | undefined> {
+  const { left, others } = splitLeft(await repo.changedPaths(stop.hash), state.working);
+  if (others.length) {
+    const files = others.length === 1 ? `${others[0]} has changes` : `${others.length} files have changes`;
+    throw new Error(`${files} that are not committed and are not part of the split: commit or stash them, then continue.`);
+  }
+  if (!left.length) return { ...continueOp('rebase'), recover: skipEmptyPicks(state.root) };
+  const files = left.length === 1 ? '1 file of it is' : `${left.length} files of it are`;
+  const commit = 'Commit What Is Left';
+  const choice = await vscode.window.showWarningMessage(
+    `"${stop.subject}" is not all committed yet: ${files} still changed.`,
+    { modal: true, detail: 'Commit what is left as one more commit, with the message the commit had, and continue? Or go back to committing it yourself.' },
+    commit,
+    'Go Back to Committing',
+  );
+  if (choice !== commit) return;
+  return { ...splitRestOp(left, await repo.commitMessage(stop.hash)), recover: skipEmptyPicks(state.root) };
 }
 
 /**

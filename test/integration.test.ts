@@ -45,6 +45,10 @@ import {
   revertOp,
   skipEmptyPicks,
   skipOp,
+  splitHeadOp,
+  splitLeft,
+  splitRebaseOp,
+  splitRestOp,
   stageAllOp,
   stageOp,
   stashOp,
@@ -738,6 +742,94 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await run(abortOp('rebase'));
     expect(await line()).toEqual(before);
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('splits the last commit by taking its changes out of it, which undo puts back', async () => {
+    write('a.txt', 'a\n');
+    const base = await commitAll('Add a');
+    write('a.txt', 'a, changed\n');
+    write('b.txt', 'b\n');
+    const both = await commitAll('Change a and add b');
+
+    const op = splitHeadOp(both);
+    expect(op).toMatchObject({ title: `Split ${both.slice(0, 7)}`, commands: [['reset', '--mixed', 'HEAD~']], confirm: true });
+    await run(op);
+    expect(await state()).toMatchObject({ head: base, operation: null, rebaseStop: null });
+    expect((await state()).working.unstaged).toEqual([
+      { status: 'M', path: 'a.txt' },
+      { status: '?', path: 'b.txt' },
+    ]);
+    // Right after, a mixed reset to it makes it the commit it was, also with the file it added untracked now: that is
+    // the undo Gitardo keeps for it.
+    await run(undoOp({ kind: 'move', previous: both, subject: op.title, mode: 'mixed' }, 'main'));
+    expect(await state()).toMatchObject({ head: both, changes: 0 });
+
+    await run(op);
+    await run(stageOp(['a.txt']));
+    await run(commitOp('Change a', false, false));
+    await commitAll('Add b');
+    expect(await subjects()).toEqual(['Add b', 'Change a', 'Add a']);
+    expect(await repo.changedPaths(both)).toEqual(['a.txt', 'b.txt']);
+  });
+
+  it('splits an older commit in a rebase that stops there, and commits what is left of it on the way to the end', async () => {
+    const hashes: Record<string, string> = {};
+    write('base.txt', 'base\n');
+    hashes.base = await commitAll('Add base');
+    write('b.txt', 'b\n');
+    write('c.txt', 'c\n');
+    hashes.bc = await commitAll('Add b and c\n\nTwo files at once.');
+    write('d.txt', 'd\n');
+    hashes.d = await commitAll('Add d');
+    write('d.txt', 'not committed\n');
+
+    // As a split of b and c does it: the rebase stops right after making it, and its changes are taken out of it.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-todo-'));
+    const file = (name: string) => path.join(dir, name).replace(/\\/g, '/');
+    const todo = rebaseTodo(
+      [
+        { action: 'edit', hash: hashes.bc },
+        { action: 'pick', hash: hashes.d },
+      ],
+      (index) => file(`message-${index}.txt`),
+    );
+    fs.writeFileSync(file('todo'), todo);
+    expect(todo).toBe(`edit ${hashes.bc}\npick ${hashes.d}\n`);
+    const op = splitRebaseOp(rebaseInteractiveOp(hashes.base, file('todo'), todo, 'main', true), hashes.bc, await repo.gitDirAt(''));
+    expect(op.commands.at(-1)).toEqual(['reset', '--mixed', 'HEAD~']);
+    await run(op);
+    await op.finish!(log);
+    fs.rmSync(dir, { recursive: true, force: true });
+
+    expect(await state()).toMatchObject({
+      head: hashes.base,
+      operation: 'rebase',
+      rebaseStop: { kind: 'split', hash: hashes.bc, subject: 'Add b and c' },
+    });
+    // What was not committed is set aside until the end, and the commit after it is not made yet.
+    expect(exists('d.txt')).toBe(false);
+    const paths = await repo.changedPaths(hashes.bc);
+    expect(splitLeft(paths, (await state()).working)).toEqual({ left: ['b.txt', 'c.txt'], others: [] });
+
+    await run(stageOp(['b.txt']));
+    await run(commitOp('Add b', false, false));
+    expect((await state()).rebaseStop).toMatchObject({ kind: 'split', hash: hashes.bc });
+    // A change to a file the commit did not touch is in the way of going on.
+    write('base.txt', 'changed\n');
+    expect(splitLeft(paths, (await state()).working)).toEqual({ left: ['c.txt'], others: ['base.txt'] });
+    write('base.txt', 'base\n');
+
+    await run(splitRestOp(['c.txt'], await repo.commitMessage(hashes.bc)));
+    expect(await state()).toMatchObject({ operation: null, rebaseStop: null, branch: 'main' });
+    expect(await subjects()).toEqual(['Uncommitted changes (1)', 'Add d', 'Add b and c', 'Add b', 'Add base']);
+    expect(await repo.commitMessage((await state()).rows[2].hash)).toBe('Add b and c\n\nTwo files at once.');
+    expect(fs.readFileSync(path.join(root, 'd.txt'), 'utf8')).toBe('not committed\n');
+
+    // One undo takes back the whole split, and leaves what is not committed.
+    await undo();
+    expect((await state()).head).toBe(hashes.d);
+    expect(await subjects()).toEqual(['Uncommitted changes (1)', 'Add d', 'Add b and c', 'Add base']);
+    expect(fs.readFileSync(path.join(root, 'd.txt'), 'utf8')).toBe('not committed\n');
   });
 
   it('adds, lists and removes worktrees', async () => {

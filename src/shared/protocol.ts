@@ -218,11 +218,12 @@ export interface ConflictFile {
 export type Operation = 'merge' | 'rebase' | 'cherry-pick' | 'revert';
 
 /**
- * Where an interactive rebase stopped for the user to change a commit rather than on a conflict: to edit it.
- * `hash` is the commit as the rebase made it.
+ * Where an interactive rebase stopped for the user to change a commit rather than on a conflict: to edit it, or to
+ * split it, with its changes taken out of it into the working tree. `hash` is the commit as the rebase made it, or
+ * the commit being split.
  */
 export interface RebaseStop {
-  kind: 'edit';
+  kind: 'edit' | 'split';
   hash: string;
   subject: string;
 }
@@ -248,7 +249,7 @@ export interface RepoState {
   /** The files in conflict that have the markers of git in them, with what can be resolved of each without a choice. */
   conflictFiles: ConflictFile[];
   operation: Operation | null;
-  /** Set while a rebase waits for the user to edit a commit. */
+  /** Set while a rebase waits for the user to edit a commit, or to split one. */
   rebaseStop: RebaseStop | null;
   bisect: Bisect | null;
   identity: Identity;
@@ -512,6 +513,12 @@ export type Action =
    * the commits after them again. The message is asked for.
    */
   | { kind: 'squash'; hashes: string[] }
+  /**
+   * Takes the changes of a commit out of it into the working tree, to commit them again in several commits: the last
+   * one by a reset, an older one by an interactive rebase that stops there and makes the commits after it again on
+   * Continue.
+   */
+  | { kind: 'split'; hash: string }
   | { kind: 'undo' }
   /** On an existing branch or at a commit, or, without `ref`, on a new branch from a base asked for. */
   | { kind: 'worktreeAdd'; ref?: string; isBranch?: boolean }
@@ -626,7 +633,7 @@ export type HostMessage =
   | { type: 'found'; search: Search; hashes: string[]; more: boolean; failed?: boolean }
   /** A commit message is being drafted, or has been (`message`). */
   | { type: 'drafting'; active: boolean; message?: string }
-  /** A message for the commit box to start from when it is empty, such as the one git prepared for a squash merge. */
+  /** A message for the commit box to start from when it is empty, such as the one git prepared for a squash merge, or that of a commit being split. */
   | { type: 'commitMessage'; message: string }
   /** What the tab of the setup of new worktrees shows. Null, with `error`, when it could not be read. */
   | { type: 'worktreeSetup'; info: WorktreeSetupInfo | null; error?: string }

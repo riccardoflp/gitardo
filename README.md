@@ -89,7 +89,7 @@ Right-click a commit, a branch, a tag or a stash for the operations that apply t
 | On | Operations |
 | --- | --- |
 | Uncommitted changes | Stash, stash the staged changes, stage all, unstage all, discard all, staged changes and untracked files included |
-| Commit | Open in an editor tab, check out (detached), create branch, create tag, create worktree, cherry-pick, revert, merge into the current branch, rebase the current branch onto it, edit its message, interactive rebase, squash into the commit before it, fixup, reset (soft, mixed or hard), compare, bisect |
+| Commit | Open in an editor tab, check out (detached), create branch, create tag, create worktree, cherry-pick, revert, merge into the current branch, rebase the current branch onto it, edit its message, split it, interactive rebase, squash into the commit before it, fixup, reset (soft, mixed or hard), compare, bisect |
 | Local branch | Check out (also by double-click), open in a worktree made for it, or, when another worktree has it, open, rename or remove that worktree (see [Worktrees](#worktrees)), fast-forward to its upstream, merge, rebase onto, compare with the current branch or with anything else, show it in the graph, show only its history or add it to the ones shown, open or create its pull request, create worktree, rename, delete |
 | Remote branch | Check out (also by double-click) as a local tracking branch, or in the local branch of its name when there is one, brought up to it: fast-forwarded, or with its own commits rebased onto it if you choose; when another worktree has that branch, that worktree opens instead; open in a worktree on a local tracking branch, merge, rebase onto, compare, show it in the graph, show only its history or add it to the ones shown, open its pull request, delete from the remote |
 | Tag | Check out (detached), create branch, compare, show it in the graph, show only its history or add it to the ones shown, push, delete |
@@ -147,6 +147,13 @@ The pencil beside the message in the details, or **Edit message…** in the cont
 ### Squash
 
 Select commits that follow one another and choose **Squash into one** in the bar above the graph, or **Squash N commits into one…** in their context menu; **Squash into the commit before it…** in the context menu of a single commit does it with the commit under it. Gitardo asks for the subject of the commit they become, the subject of the oldest to start with, and puts what their messages say under it, oldest first, as git does; a message whose subject is the one given adds only its body. The commits become one with the changes of them all, by an interactive rebase that makes the commits after them again, with new hashes, after asking; the changes that are not committed are set aside and put back with `--autostash`. It is offered for commits on the line before `HEAD` down to the first merge, while no merge, rebase or bisect is under way. When they are on a remote branch already, Gitardo says so first: the branch will have to be force pushed. The commit they become is selected after, and **Undo** takes the whole squash back.
+
+### Split a commit
+
+**Split this commit…** in the context menu of a commit takes its changes out of it into the working tree, unstaged, to commit them again in as many commits as you like; the box of the Changes view starts with its message. It is offered where **Edit message…** is, except on a merge and on the first commit, and asks first. When the commit is on a remote branch already, Gitardo says so first: the branch will have to be force pushed.
+
+- The last commit is split with `git reset --mixed HEAD~`: the branch goes back to the commit before it, and a message says what to do next. Changes that are not committed stay, among its own. **Undo** right after puts the commit back as it was.
+- An older one is split by an interactive rebase that stops right after making it, followed by `git reset --mixed HEAD~`; the changes that are not committed are set aside until the end with `--autostash`. The banner says *Splitting "Add the login page": commit its changes in as many commits as you like, then Continue.* **Continue** makes the commits after it again on top of yours, with new hashes. If some of its changes are not committed yet, it asks whether to commit what is left as one more commit, with the message the commit had, or to go back to committing; changes to other files that are not committed are in the way, and it says so. **Abort** takes it all back, and **Undo** after the end takes back the whole split.
 
 ### Fixup
 
@@ -547,7 +554,7 @@ Gitardo shows one repository at a time. It finds the repository of each workspac
 
 ### Conflicts
 
-When a merge, rebase, cherry-pick or revert stops, the Graph and Changes views show a banner with **Continue**, **Skip** and **Abort**. A rebase that stopped to edit a commit rather than on a conflict says so in the banner: see [Interactive rebase](#interactive-rebase). The banner also shows while files are in conflict without such an operation, as after a stash that did not apply cleanly. Conflicting files are listed in the Changes view, and **Mark as resolved** stages one.
+When a merge, rebase, cherry-pick or revert stops, the Graph and Changes views show a banner with **Continue**, **Skip** and **Abort**. A rebase that stopped to edit or split a commit rather than on a conflict says so in the banner: see [Interactive rebase](#interactive-rebase) and [Split a commit](#split-a-commit). The banner also shows while files are in conflict without such an operation, as after a stash that did not apply cleanly. Conflicting files are listed in the Changes view, and **Mark as resolved** stages one.
 
 Selecting a conflicting file opens it in VS Code's merge editor, with the common ancestor as the base and the two sides labelled by what they are in the operation that stopped: in a rebase, **Current** is what you are rebasing onto and **Incoming** is your own commit. Save the result there, then mark the file as resolved. A file that was added or deleted on one side has no three versions to merge, and opens as a normal file instead. The merge editor is opened through the command VS Code's own Git extension uses, which is not part of the documented API: if a future version changes it, the file opens in the normal editor with its conflict markers.
 
@@ -607,7 +614,7 @@ Set `gitardo.commandPreview` to `all` to see the exact commands before they run 
 
 | Value | Behavior |
 | --- | --- |
-| `off` (default) | Only asks before commands that can lose work or rewrite history: force push, hard reset, discarding changes, applying, popping or dropping a stash, deleting a branch or a tag, deleting a remote branch, removing a remote, removing a worktree, aborting an operation, undo, interactive rebase, squash, fixup, branch cleanup, a merge or cherry-pick that is going to conflict, resolving conflicts automatically (when that is turned on) and taking one side of a file in conflict. |
+| `off` (default) | Only asks before commands that can lose work or rewrite history: force push, hard reset, discarding changes, applying, popping or dropping a stash, deleting a branch or a tag, deleting a remote branch, removing a remote, removing a worktree, aborting an operation, undo, interactive rebase, squash, split, fixup, branch cleanup, a merge or cherry-pick that is going to conflict, resolving conflicts automatically (when that is turned on) and taking one side of a file in conflict. |
 | `all` | Shows the commands and asks before running anything that changes the repository or a remote, staging included. |
 
 The commands shown are the commands that run: Gitardo adds no hidden flags to them. Where a command would open an editor for a commit message, which cannot work from an extension, the flag that prevents it is part of the command you see (`--no-edit`, or `-c core.editor=true` when continuing an operation).
@@ -627,7 +634,7 @@ A few operations do more than run commands:
 Two operations pass data that does not fit on a command line, and the confirmation shows it next to the command:
 
 - Staging or unstaging a change in the Flow Diff runs `git apply --cached` with a patch on standard input.
-- An interactive rebase runs `git rebase -i` with `sequence.editor` set to copy a prepared todo list from a temporary file. A reworded commit is a `pick` followed by `exec git commit --amend -F <file>`. A commit to edit is an `edit`, and Gitardo tells such a stop from one on a conflict by the `amend` file git writes in `.git/rebase-merge`, while the step done last is that `edit`. A squash rewords the oldest commit with the message put together, and the others follow it as `fixup`, which keeps that message. A fixup uses the todo list git prepares itself, with `sequence.editor=true` to accept it unchanged.
+- An interactive rebase runs `git rebase -i` with `sequence.editor` set to copy a prepared todo list from a temporary file. A reworded commit is a `pick` followed by `exec git commit --amend -F <file>`. A commit to edit is an `edit`, and Gitardo tells such a stop from one on a conflict by the `amend` file git writes in `.git/rebase-merge`, while the step done last is that `edit`. A split of an older commit is an `edit` of it, followed by the commits after it as `pick`, and Gitardo leaves a `gitardo-split` file beside the `amend` file of git, with the hash of the commit, which goes with the rest when the rebase ends. A squash rewords the oldest commit with the message put together, and the others follow it as `fixup`, which keeps that message. A fixup uses the todo list git prepares itself, with `sequence.editor=true` to accept it unchanged.
 
 Gitardo needs Git 2.40 or later for the conflict previews; without it the previews are skipped and everything else works. Read-only queries (`git log`, `git status` and similar) never ask; they are logged at the debug level.
 

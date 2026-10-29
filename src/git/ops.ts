@@ -1,3 +1,5 @@
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { MergeMode, Operation, RebaseStep, RepoState, PullAction, SyncAction, WorkingState } from '../shared/protocol';
 import { canFastForward, refArg, worktreeOf } from '../shared/refs';
 import { RESOLUTIONS, type Proposal } from '../shared/resolution';
@@ -405,6 +407,54 @@ export function rewordHeadOp(message: string): GitOp {
     title: 'Edit the message of the last commit',
     commands: [['commit', '--amend', '--only', '--allow-empty', '-F', '-']],
     input: `${message.trim()}\n`,
+  };
+}
+
+/**
+ * The file Gitardo leaves beside git's own in `.git/rebase-merge` while a rebase stops to split a commit, with the hash
+ * of that commit. It goes with the rest of them when the rebase ends.
+ */
+export const SPLIT_MARKER = 'gitardo-split';
+
+/** Takes the changes of the last commit out of it, into the working tree and unstaged. */
+export function splitHeadOp(hash: string): GitOp {
+  return { title: `Split ${short(hash)}`, commands: [['reset', '--mixed', 'HEAD~']], confirm: true };
+}
+
+/**
+ * Takes the changes of an older commit out of it, once the interactive rebase `rebase` stopped right after making it,
+ * and notes in the rebase that it is split. `gitDir` is the git directory of the worktree.
+ */
+export function splitRebaseOp(rebase: GitOp, hash: string, gitDir: string): GitOp {
+  const marker = join(gitDir, 'rebase-merge', SPLIT_MARKER);
+  return {
+    ...rebase,
+    title: `Split ${short(hash)}`,
+    commands: [...rebase.commands, ['reset', '--mixed', 'HEAD~']],
+    finish: async (log) => {
+      log.info(`> write ${marker}`);
+      await writeFile(marker, `${hash}\n`).catch((error) => log.warn(`${marker} could not be written: ${error}`));
+    },
+  };
+}
+
+/**
+ * The files of a commit being split that are not committed yet, and the other changes that are not committed, which
+ * git would refuse to continue with. Untracked files are left out of the others: git goes on with them there.
+ */
+export function splitLeft(paths: string[], working: WorkingState): { left: string[]; others: string[] } {
+  const ofCommit = new Set(paths);
+  const changed = [...working.staged, ...working.unstaged];
+  const left = changed.filter((file) => ofCommit.has(file.path) || (file.oldPath !== undefined && ofCommit.has(file.oldPath)));
+  const others = changed.filter((file) => !left.includes(file) && file.status !== '?');
+  return { left: [...new Set(left.map((file) => file.path))], others: [...new Set(others.map((file) => file.path))] };
+}
+
+/** Commits what is left of a commit being split as one more commit, with `message`, and goes on with the rebase. */
+export function splitRestOp(paths: string[], message: string): GitOp {
+  return {
+    title: 'Commit what is left and continue the rebase',
+    commands: [['add', '--all', '--', ...paths.map(pathspec)], ['commit', '--quiet', '-m', message.trim()], ...continueOp('rebase').commands],
   };
 }
 

@@ -31,7 +31,7 @@ import { REF_KINDS, SCOPE_PREFIXES, pruneScope, scopeKinds } from '../shared/sco
 import { resolveConflicts, type Conflict } from './conflicts';
 import { GitError, formatCommand, git, type GitResult } from './exec';
 import { committedRange, type LineRange } from './lines';
-import type { UndoInfo } from './ops';
+import { SPLIT_MARKER, type UndoInfo } from './ops';
 import {
   COMPARE_FORMAT,
   DETAIL_FORMAT,
@@ -281,17 +281,26 @@ export class Repo {
   /**
    * Where an interactive rebase stopped for the user to change a commit, if it did. Git notes the commit to amend
    * when it stops on `edit`, and leaves that note there when the rebase goes on, so the step done last must be that
-   * `edit` too: not a pick further on that stopped with conflicts.
+   * `edit` too: not a pick further on that stopped with conflicts. A commit Gitardo is splitting has a note of its own.
    */
   async rebaseStop(): Promise<RebaseStop | null> {
     if (!(await this.hasMarker('rebase-merge/amend'))) return null;
     const file = (name: string) => fs.promises.readFile(path.join(this.gitDir!, 'rebase-merge', name), 'utf8').catch(() => '');
-    const [amend, done] = await Promise.all([file('amend'), file('done')]);
-    const hash = amend.trim();
-    const last = done.split('\n').filter((line) => line.trim() && !line.startsWith('#')).pop() ?? '';
-    if (!isHash(hash) || !/^(?:edit|e)\s/.test(last)) return null;
+    const [amend, done, split] = await Promise.all([file('amend'), file('done'), file(SPLIT_MARKER)]);
+    const last = /^(?:edit|e)\s+([0-9a-f]+)/.exec(done.split('\n').filter((line) => line.trim() && !line.startsWith('#')).pop() ?? '');
+    const splitting = split.trim();
+    const kind = last && isHash(splitting) && splitting.startsWith(last[1]) ? 'split' : 'edit';
+    const hash = kind === 'split' ? splitting : amend.trim();
+    if (!last || !isHash(hash)) return null;
     const subject = (await this.read(['log', '-1', '--format=%s', hash, '--'], true)).trim();
-    return { kind: 'edit', hash, subject };
+    return { kind, hash, subject };
+  }
+
+  /** The paths of the files a commit changes, both names of a file it renames. */
+  async changedPaths(hash: string): Promise<string[]> {
+    if (!isHash(hash)) throw new Error(`"${hash}" is not a commit.`);
+    const out = await this.read(['diff-tree', '-r', '--no-commit-id', '--name-only', '--no-renames', '-z', '--root', hash]);
+    return out.split('\0').filter(Boolean);
   }
 
   /** Every name a file has had, the given one first: renames are followed back through the history of HEAD. */

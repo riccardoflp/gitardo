@@ -20,6 +20,7 @@ import {
   restoreBranchOp,
   restoreConflictsOp,
   restoreStashOp,
+  splitMessage,
   syncOp,
   takeFileOp,
   undoOp,
@@ -1639,6 +1640,14 @@ export class Controller implements vscode.Disposable {
       if (action.kind === 'bisect') this.reportBisect();
       if (action.kind === 'reword' || action.kind === 'squash') this.show((await git(repo.root, ['rev-parse', `HEAD~${after}`])).stdout.trim());
       this.undoable = undefined;
+      // The reflog would take back a reset with a mixed reset only while every file is tracked, and the commit may
+      // have added files, which are untracked now: its files are all there, so a mixed reset to it is what undoes it.
+      if (action.kind === 'split' && action.hash === state.head) {
+        const now = (await repo.reflog('HEAD', 1))[0];
+        const info = { kind: 'move', previous: action.hash, subject: op.title, mode: 'mixed' } as const;
+        if (now) this.undoable = { reflogTop: `${now.hash} ${now.subject}`, op: undoOp(info, state.branch) };
+      }
+      if (action.kind === 'split') await this.reportSplit(repo, action.hash, action.hash === state.head);
       const branch = action.kind === 'deleteBranch' && state.branches.find((candidate) => candidate.name === action.name);
       const stash = action.kind === 'stashDrop' && state.stashes.find((candidate) => candidate.ref === action.ref);
       if (branch) this.undoable = { reflogTop, op: restoreBranchOp(branch.name, branch.hash) };
@@ -1718,6 +1727,20 @@ export class Controller implements vscode.Disposable {
       if (choice === 'Show Changes') void vscode.commands.executeCommand('gitardo.changes.focus');
       if (choice === 'Undo') void this.action({ kind: 'undo' });
     });
+  }
+
+  /**
+   * Puts the message of a commit being split in the box of the Changes view, to start from. The last commit is split
+   * without a rebase, so no banner says what to do next: a message does.
+   */
+  private async reportSplit(repo: Repo, hash: string, wasHead: boolean): Promise<void> {
+    const message = await repo.commitMessage(hash).catch(() => '');
+    if (message) this.post({ type: 'commitMessage', message });
+    if (!wasHead) return;
+    const subject = splitMessage(message).subject || hash.slice(0, 7);
+    void vscode.window
+      .showInformationMessage(`The changes of "${subject}" are in the working tree, unstaged: commit them in as many commits as you like.`, 'Undo')
+      .then((choice) => choice && this.action({ kind: 'undo' }));
   }
 
   /** Says so when the last answer left a single suspect: that is the commit the bisect was looking for. */

@@ -21,7 +21,7 @@ export function resolvableConflicts(state: RepoState, path?: string): [resolvabl
 
 /**
  * Shown while a merge, rebase, cherry-pick or revert has stopped and waits for the user, and while files are in
- * conflict without one, as after a stash was applied. A rebase that stopped to edit a commit says so.
+ * conflict without one, as after a stash was applied. A rebase that stopped to edit or split a commit says so.
  */
 export function OperationBanner({ state, busy }: { state: RepoState; busy: boolean }) {
   const { operation, rebaseStop } = state;
@@ -35,11 +35,13 @@ export function OperationBanner({ state, busy }: { state: RepoState; busy: boole
     <div className="banner" role="status">
       <Icon name={rebaseStop ? 'edit' : 'warning'} />
       <span className="grow">
-        {rebaseStop
-          ? `Stopped at "${rebaseStop.subject}" to edit it. Amend it or commit more, then Continue.`
-          : operation
-            ? `${NAMES[operation]} in progress${conflicts > 0 ? ` · ${files}` : ''}`
-            : files}
+        {rebaseStop?.kind === 'split'
+          ? `Splitting "${rebaseStop.subject}": commit its changes in as many commits as you like, then Continue.`
+          : rebaseStop
+            ? `Stopped at "${rebaseStop.subject}" to edit it. Amend it or commit more, then Continue.`
+            : operation
+              ? `${NAMES[operation]} in progress${conflicts > 0 ? ` · ${files}` : ''}`
+              : files}
       </span>
       {resolvable > 0 && (
         <button className="button resolve" disabled={busy} title={RESOLVE_TITLE} onClick={() => post({ type: 'reviewConflicts' })}>

@@ -3512,6 +3512,82 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('splits the last commit and an older one, commits what is left on Continue, and undoes each split whole', async () => {
+    const home = state().branch!;
+    const rev = async (ref: string) => (await git(app, ['rev-parse', ref])).stdout.trim();
+    await git(app, ['checkout', '-b', 'split']);
+    const commit = async (message: string, ...files: string[]) => {
+      for (const file of files) write(file, `${file}\n`);
+      await git(app, ['add', ...files]);
+      await git(app, ['commit', '-m', message]);
+      return rev('HEAD');
+    };
+    const start = await rev('HEAD');
+    const older = await commit('Add split one and two\n\nIn one go.', 'split-one.txt', 'split-two.txt');
+    const last = await commit('Add split three and four', 'split-three.txt', 'split-four.txt');
+    await controller.refresh();
+    const drafted = () => posted.flatMap((message) => (message.type === 'commitMessage' ? [message.message] : []));
+    try {
+      // The last one: a reset, a message that says what to do, its message in the box, and an undo of its own.
+      asked.length = 0;
+      posted.length = 0;
+      answer = run;
+      await controller.action({ kind: 'split', hash: last });
+      assert.deepEqual(
+        asked.map((question) => question.message),
+        [
+          `Split ${last.slice(0, 7)}?`,
+          'The changes of "Add split three and four" are in the working tree, unstaged: commit them in as many commits as you like.',
+        ],
+      );
+      assert.equal(state().head, older);
+      assert.equal(state().operation, null);
+      assert.deepEqual(drafted(), ['Add split three and four']);
+      await controller.action({ kind: 'undo' });
+      assert.equal(state().head, last);
+      assert.equal(state().changes, 0);
+
+      // An older one: a rebase that stops there, with a banner of its own.
+      asked.length = 0;
+      posted.length = 0;
+      await controller.action({ kind: 'split', hash: older });
+      assert.ok(asked[0].detail.includes('the commit after it is made again on top'), asked[0].detail);
+      assert.equal(state().head, start);
+      assert.deepEqual(state().rebaseStop, { kind: 'split', hash: older, subject: 'Add split one and two' });
+      assert.deepEqual(drafted(), ['Add split one and two\n\nIn one go.']);
+      await git(app, ['add', 'split-one.txt']);
+      await git(app, ['commit', '-m', 'Add split one']);
+      await controller.refresh();
+
+      // Continue with a file of it not committed: going back to committing changes nothing.
+      asked.length = 0;
+      answer = () => 'Go Back to Committing';
+      await controller.action({ kind: 'continue' });
+      assert.equal(asked.length, 1);
+      assert.ok(/^"Add split one and two" is not all committed yet: 1 file of it is still changed\.$/.test(asked[0].message), asked[0].message);
+      assert.equal(state().operation, 'rebase');
+      // Or what is left is committed with the message the commit had, and the rebase goes on to the end.
+      answer = (_message, _detail, items) => (items.includes('Commit What Is Left') ? 'Commit What Is Left' : items.includes('Run') ? 'Run' : undefined);
+      await controller.action({ kind: 'continue' });
+      assert.equal(state().operation, null);
+      assert.equal(state().rebaseStop, null);
+      assert.deepEqual(subjects().slice(0, 3), ['Add split three and four', 'Add split one and two', 'Add split one']);
+      assert.equal((await git(app, ['log', '-1', '--format=%B', 'HEAD~1'])).stdout.trim(), 'Add split one and two\n\nIn one go.');
+
+      // One undo takes back the whole split.
+      answer = run;
+      await controller.action({ kind: 'undo' });
+      assert.equal(state().head, last);
+    } finally {
+      answer = () => undefined;
+      await git(app, ['rebase', '--abort']).catch(() => undefined);
+      await git(app, ['checkout', '--force', home]);
+      await git(app, ['branch', '-D', 'split']);
+      for (const name of ['one', 'two', 'three', 'four']) fs.rmSync(path.join(app, `split-${name}.txt`), { force: true });
+      await controller.refresh();
+    }
+  });
+
   await step('logged no unexpected errors', async () => {
     // The conflicting merge is the one failure the tests provoke on purpose.
     assert.deepEqual(
