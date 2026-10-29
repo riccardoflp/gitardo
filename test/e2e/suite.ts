@@ -3463,6 +3463,55 @@ export async function run(): Promise<void> {
     assert.equal(state().changes, 0);
   });
 
+  await step('stops an interactive rebase to edit a commit, and goes on once what was changed is committed', async () => {
+    const home = state().branch!;
+    await git(app, ['checkout', '-b', 'edit-stop']);
+    for (const name of ['one', 'two']) {
+      write(`edit-${name}.txt`, `${name}\n`);
+      await git(app, ['add', `edit-${name}.txt`]);
+      await git(app, ['commit', '-m', `Edit ${name}`]);
+    }
+    await controller.refresh();
+    try {
+      const [one, two, base] = await Promise.all(['HEAD~1', 'HEAD', 'HEAD~2'].map(async (ref) => (await git(app, ['rev-parse', ref])).stdout.trim()));
+      answer = run;
+      await controller.action({
+        kind: 'rebaseInteractive',
+        base,
+        steps: [
+          { action: 'edit', hash: one },
+          { action: 'pick', hash: two },
+        ],
+      });
+      assert.equal(state().operation, 'rebase');
+      assert.deepEqual(state().rebaseStop, { kind: 'edit', hash: one, subject: 'Edit one' });
+
+      // What is changed and not committed is in the way, which is said rather than tried.
+      write('edit-one.txt', 'one, changed\n');
+      await controller.refresh();
+      errors.length = 0;
+      await controller.action({ kind: 'continue' });
+      assert.ok(errors.some((text) => /amend the commit with them, commit them, or stash them/.test(text)), JSON.stringify(errors));
+      errors.length = 0;
+      assert.equal(state().operation, 'rebase');
+
+      // Amended, it goes on, and the commit after it is made again on top.
+      await git(app, ['commit', '--all', '--amend', '--no-edit']);
+      await controller.refresh();
+      await controller.action({ kind: 'continue' });
+      assert.equal(state().operation, null);
+      assert.equal(state().rebaseStop, null);
+      assert.deepEqual(subjects().slice(0, 2), ['Edit two', 'Edit one']);
+      assert.equal((await git(app, ['show', 'HEAD~1:edit-one.txt'])).stdout, 'one, changed\n');
+    } finally {
+      answer = () => undefined;
+      await git(app, ['rebase', '--abort']).catch(() => undefined);
+      await git(app, ['checkout', '--force', home]);
+      await git(app, ['branch', '-D', 'edit-stop']);
+      await controller.refresh();
+    }
+  });
+
   await step('logged no unexpected errors', async () => {
     // The conflicting merge is the one failure the tests provoke on purpose.
     assert.deepEqual(

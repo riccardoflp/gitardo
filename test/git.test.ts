@@ -626,11 +626,13 @@ describe('operations', () => {
         { action: 'pick', hash: 'c1' },
         { action: 'reword', hash: 'c2', message: 'Better' },
         { action: 'fixup', hash: 'c3' },
+        { action: 'edit', hash: 'c5' },
         { action: 'drop', hash: 'c4' },
       ],
       (index) => `/tmp/message-${index}.txt`,
     );
-    expect(todo).toBe('pick c1\npick c2\nexec git commit --amend -F "/tmp/message-1.txt"\nfixup c3\ndrop c4\n');
+    expect(todo).toBe('pick c1\npick c2\nexec git commit --amend -F "/tmp/message-1.txt"\nfixup c3\nedit c5\ndrop c4\n');
+    expect(rebaseTodo([{ action: 'edit', hash: 'c1' }], String)).toBe('edit c1\n');
     expect(() => rebaseTodo([{ action: 'drop', hash: 'c1' }, { action: 'squash', hash: 'c2' }], String)).toThrow(/nothing before it/);
     expect(() => rebaseTodo([{ action: 'drop', hash: 'c1' }], String)).toThrow(/dropped/);
     expect(rebaseInteractiveOp(null, '/tmp/todo', todo, 'work').commands[0].slice(-3)).toEqual(['rebase', '-i', '--root']);

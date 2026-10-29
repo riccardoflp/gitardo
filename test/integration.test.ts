@@ -65,7 +65,7 @@ import {
 import { hunkPatch, linesPatch } from '../src/git/parse';
 import { Repo } from '../src/git/repo';
 import { changeSetup, foldersToLink, previewSetup, proposedCommands, scanIgnored, setUpWorktree, unlinkFolderLinks } from '../src/git/worktreeSetup';
-import { WORKTREE, type CompareCommit, type Filter, type RepoState, type Scope } from '../src/shared/protocol';
+import { WORKTREE, type CompareCommit, type Filter, type RebaseStep, type RepoState, type Scope } from '../src/shared/protocol';
 import { canFastForward } from '../src/shared/refs';
 
 // Runs the real commands against a throwaway repository, the way the extension does.
@@ -676,6 +676,68 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect(await repo.commitMessage(squashed)).toBe('Add b, c and d\n\nAdd b\n\nAdd c\n\nWith a body.\n\nAdd d');
     expect((await repo.commitDetail(squashed))!.files.map((each) => each.path)).toEqual(['b.txt', 'c.txt', 'd.txt']);
     expect(fs.readFileSync(path.join(root, 'e.txt'), 'utf8')).toBe('not committed\n');
+  });
+
+  it('stops to edit a commit, and goes on whether it was amended, followed by more commits or left as it is', async () => {
+    const hashes: Record<string, string> = {};
+    for (const name of ['base', 'b', 'c', 'd']) {
+      write(`${name}.txt`, `${name}\n`);
+      hashes[name] = await commitAll(`Add ${name}`);
+    }
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-todo-'));
+    const file = (name: string) => path.join(dir, name).replace(/\\/g, '/');
+    const rebase = async (base: string, steps: RebaseStep[]) => {
+      const todo = rebaseTodo(steps, (index) => file(`message-${index}.txt`));
+      fs.writeFileSync(file('todo'), todo);
+      await run(rebaseInteractiveOp(base, file('todo'), todo, 'main', true));
+    };
+    const line = async () => (await git(root, ['rev-list', 'HEAD'])).stdout.trim().split('\n').reverse();
+
+    await rebase(hashes.base, [
+      { action: 'edit', hash: hashes.b },
+      { action: 'edit', hash: hashes.c },
+      { action: 'pick', hash: hashes.d },
+    ]);
+    expect(await state()).toMatchObject({ operation: 'rebase', rebaseStop: { kind: 'edit', hash: hashes.b, subject: 'Add b' } });
+    // Amended, the commit is still the one the rebase stopped at.
+    write('b.txt', 'b amended\n');
+    await run(commitOp('', true, true));
+    expect((await state()).rebaseStop).toMatchObject({ hash: hashes.b });
+    await run(continueOp('rebase'));
+    const c = (await line())[2];
+    expect(await state()).toMatchObject({ operation: 'rebase', rebaseStop: { kind: 'edit', hash: c, subject: 'Add c' } });
+    // A commit made after it goes in before the ones that follow.
+    write('extra.txt', 'extra\n');
+    await commitAll('Add extra');
+    await run(continueOp('rebase'));
+    expect(await state()).toMatchObject({ operation: null, rebaseStop: null, branch: 'main', changes: 0 });
+    expect(await subjects()).toEqual(['Add d', 'Add extra', 'Add c', 'Add b', 'Add base']);
+    expect(fs.readFileSync(path.join(root, 'b.txt'), 'utf8')).toBe('b amended\n');
+
+    // Left as it is, nothing changes.
+    const before = await line();
+    await rebase(before[2], [
+      { action: 'edit', hash: before[3] },
+      { action: 'pick', hash: before[4] },
+    ]);
+    expect((await state()).rebaseStop).toMatchObject({ kind: 'edit', hash: before[3], subject: 'Add extra' });
+    await run(continueOp('rebase'));
+    expect(await state()).toMatchObject({ operation: null, rebaseStop: null });
+    expect(await line()).toEqual(before);
+
+    // A pick further on that stops with conflicts is no stop to edit, though git keeps its note of the commit to amend.
+    await rebase(before[0], [
+      { action: 'edit', hash: before[1] },
+      { action: 'pick', hash: before[2] },
+    ]);
+    write('c.txt', 'in the way\n');
+    await run(commitOp('', true, true));
+    await expect(run(continueOp('rebase'))).rejects.toThrow();
+    expect(await state()).toMatchObject({ operation: 'rebase', rebaseStop: null });
+    expect((await state()).working.conflicts.map((each) => each.path)).toEqual(['c.txt']);
+    await run(abortOp('rebase'));
+    expect(await line()).toEqual(before);
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 
   it('adds, lists and removes worktrees', async () => {

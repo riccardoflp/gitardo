@@ -16,6 +16,7 @@ import {
   type FilePatch,
   type Filter,
   type Operation,
+  type RebaseStop,
   type RepoState,
   type Row,
   type Scope,
@@ -277,6 +278,22 @@ export class Repo {
     return null;
   }
 
+  /**
+   * Where an interactive rebase stopped for the user to change a commit, if it did. Git notes the commit to amend
+   * when it stops on `edit`, and leaves that note there when the rebase goes on, so the step done last must be that
+   * `edit` too: not a pick further on that stopped with conflicts.
+   */
+  async rebaseStop(): Promise<RebaseStop | null> {
+    if (!(await this.hasMarker('rebase-merge/amend'))) return null;
+    const file = (name: string) => fs.promises.readFile(path.join(this.gitDir!, 'rebase-merge', name), 'utf8').catch(() => '');
+    const [amend, done] = await Promise.all([file('amend'), file('done')]);
+    const hash = amend.trim();
+    const last = done.split('\n').filter((line) => line.trim() && !line.startsWith('#')).pop() ?? '';
+    if (!isHash(hash) || !/^(?:edit|e)\s/.test(last)) return null;
+    const subject = (await this.read(['log', '-1', '--format=%s', hash, '--'], true)).trim();
+    return { kind: 'edit', hash, subject };
+  }
+
   /** Every name a file has had, the given one first: renames are followed back through the history of HEAD. */
   async pathNames(file: string): Promise<string[]> {
     const out = await this.read(['log', '--follow', '-M', '--name-status', '-z', '--format=', '--', `:(literal)${file}`], true);
@@ -528,6 +545,7 @@ export class Repo {
       this.submodules(),
     ]);
     const head = headOut.trim() || null;
+    const rebaseStop = operation === 'rebase' ? await this.rebaseStop() : null;
     const changes = allChanges(working);
     const plans = resolve && working.conflicts.length ? await this.conflictPlans(working.conflicts.map((file) => file.path)) : [];
     const refs = parseRefs(refsOut);
@@ -589,6 +607,7 @@ export class Repo {
         resolvable: plan.conflicts.flatMap((conflict) => conflict.resolution ?? []),
       })),
       operation,
+      rebaseStop,
       bisect,
       identity: parseIdentity(identityOut),
       filter: filter?.kind === 'path' && names.length > 1 ? { ...filter, renamedFrom: names.slice(1) } : filter,

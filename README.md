@@ -136,7 +136,9 @@ Each of them but the fast-forward only says first which files will conflict.
 
 ### Interactive rebase
 
-**Interactive rebase…** on a commit opens an editor with the commits from there up to `HEAD`. Reorder them by dragging, and pick, reword, squash, fixup or drop each one. It is offered when those commits form a single line without merges. A reworded commit gets the subject typed there and keeps the rest of its message.
+**Interactive rebase…** on a commit opens an editor with the commits from there up to `HEAD`. Reorder them by dragging, and pick, reword, edit, squash, fixup or drop each one. It is offered when those commits form a single line without merges. A reworded commit gets the subject typed there and keeps the rest of its message.
+
+**Edit** stops the rebase right after that commit is made, and the banner says so with its subject, such as *Stopped at "Add the login page" to edit it. Amend it or commit more, then Continue.* Change its files and amend it, give it a new message, or make more commits after it, then **Continue**: the commits after it are made again on top of what you did, and **Continue** works as well when you changed nothing. Git goes on only once what you changed is committed, so with changes that are not committed Gitardo says to amend the commit with them, commit them or stash them first. **Skip** is not offered there, as it would throw away what is not committed and keep the commit anyway; **Abort** takes the whole rebase back.
 
 ### Edit a commit message
 
@@ -545,7 +547,7 @@ Gitardo shows one repository at a time. It finds the repository of each workspac
 
 ### Conflicts
 
-When a merge, rebase, cherry-pick or revert stops, the Graph and Changes views show a banner with **Continue**, **Skip** and **Abort**. The banner also shows while files are in conflict without such an operation, as after a stash that did not apply cleanly. Conflicting files are listed in the Changes view, and **Mark as resolved** stages one.
+When a merge, rebase, cherry-pick or revert stops, the Graph and Changes views show a banner with **Continue**, **Skip** and **Abort**. A rebase that stopped to edit a commit rather than on a conflict says so in the banner: see [Interactive rebase](#interactive-rebase). The banner also shows while files are in conflict without such an operation, as after a stash that did not apply cleanly. Conflicting files are listed in the Changes view, and **Mark as resolved** stages one.
 
 Selecting a conflicting file opens it in VS Code's merge editor, with the common ancestor as the base and the two sides labelled by what they are in the operation that stopped: in a rebase, **Current** is what you are rebasing onto and **Incoming** is your own commit. Save the result there, then mark the file as resolved. A file that was added or deleted on one side has no three versions to merge, and opens as a normal file instead. The merge editor is opened through the command VS Code's own Git extension uses, which is not part of the documented API: if a future version changes it, the file opens in the normal editor with its conflict markers.
 
@@ -625,7 +627,7 @@ A few operations do more than run commands:
 Two operations pass data that does not fit on a command line, and the confirmation shows it next to the command:
 
 - Staging or unstaging a change in the Flow Diff runs `git apply --cached` with a patch on standard input.
-- An interactive rebase runs `git rebase -i` with `sequence.editor` set to copy a prepared todo list from a temporary file. A reworded commit is a `pick` followed by `exec git commit --amend -F <file>`. A squash rewords the oldest commit with the message put together, and the others follow it as `fixup`, which keeps that message. A fixup uses the todo list git prepares itself, with `sequence.editor=true` to accept it unchanged.
+- An interactive rebase runs `git rebase -i` with `sequence.editor` set to copy a prepared todo list from a temporary file. A reworded commit is a `pick` followed by `exec git commit --amend -F <file>`. A commit to edit is an `edit`, and Gitardo tells such a stop from one on a conflict by the `amend` file git writes in `.git/rebase-merge`, while the step done last is that `edit`. A squash rewords the oldest commit with the message put together, and the others follow it as `fixup`, which keeps that message. A fixup uses the todo list git prepares itself, with `sequence.editor=true` to accept it unchanged.
 
 Gitardo needs Git 2.40 or later for the conflict previews; without it the previews are skipped and everything else works. Read-only queries (`git log`, `git status` and similar) never ask; they are logged at the debug level.
 

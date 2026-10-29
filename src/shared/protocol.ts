@@ -217,6 +217,16 @@ export interface ConflictFile {
 /** A multi-step git operation that stopped and waits for the user. */
 export type Operation = 'merge' | 'rebase' | 'cherry-pick' | 'revert';
 
+/**
+ * Where an interactive rebase stopped for the user to change a commit rather than on a conflict: to edit it.
+ * `hash` is the commit as the rebase made it.
+ */
+export interface RebaseStop {
+  kind: 'edit';
+  hash: string;
+  subject: string;
+}
+
 export interface RepoState {
   root: string;
   name: string;
@@ -238,6 +248,8 @@ export interface RepoState {
   /** The files in conflict that have the markers of git in them, with what can be resolved of each without a choice. */
   conflictFiles: ConflictFile[];
   operation: Operation | null;
+  /** Set while a rebase waits for the user to edit a commit. */
+  rebaseStop: RebaseStop | null;
   bisect: Bisect | null;
   identity: Identity;
   filter: Filter | null;
@@ -446,7 +458,8 @@ export interface FilePatch {
   hunks: Hunk[] | null;
 }
 
-export type RebaseAction = 'pick' | 'reword' | 'squash' | 'fixup' | 'drop';
+/** What an interactive rebase does with a commit. `edit` stops right after making it, for the user to change it. */
+export type RebaseAction = 'pick' | 'reword' | 'edit' | 'squash' | 'fixup' | 'drop';
 
 export interface RebaseStep {
   action: RebaseAction;

@@ -492,6 +492,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
 
     // A conflict resolved by keeping what HEAD has leaves the commit with nothing to commit, and so can the next one.
     case 'continue':
+      if (state.rebaseStop) refuseUncommitted(state);
       return { ...continueOp(requireOperation(state)), recover: skipEmptyPicks(state.root) };
     case 'skip':
       return { ...skipOp(requireOperation(state)), recover: skipEmptyPicks(state.root) };
@@ -539,6 +540,17 @@ async function merge(ref: string, asked: MergeMode | 'ask', state: RepoState, re
   if (mode !== 'squash') return previewed;
   const squash = `The changes of ${name} are staged in ${current} as one change, for you to commit. No merge is recorded: ${name} will not show as merged.`;
   return { ...previewed, note: [squash, previewed.note].filter(Boolean).join('\n\n') };
+}
+
+/**
+ * A rebase that stopped to edit a commit goes on only once what was changed is committed. Git refuses changes that
+ * are not staged, and would fold staged ones into the commit without a word: the user is told what to do instead.
+ */
+function refuseUncommitted(state: RepoState): void {
+  const { staged, unstaged } = state.working;
+  if (staged.length || unstaged.some((file) => file.status !== '?')) {
+    throw new Error('Some changes are not committed: amend the commit with them, commit them, or stash them, then continue.');
+  }
 }
 
 /**
@@ -771,8 +783,10 @@ async function interactiveRebase(steps: RebaseStep[], base: string | null, state
   const todo = rebaseTodo(steps, messageFile);
   fs.writeFileSync(file('todo'), todo);
   const op = rebaseInteractiveOp(base, file('todo'), todo, state.branch, autostash);
-  // If the rebase stops half way the files are still needed, so they are only removed after a clean finish.
-  op.onSuccess = () => fs.rmSync(dir, { recursive: true, force: true });
+  // If the rebase stops half way the files are still needed, so they are only removed after a clean finish. A stop
+  // to edit a commit is no failure: the rebase is still there.
+  const rebasing = path.join(await repo.gitDirAt(''), 'rebase-merge');
+  op.onSuccess = () => !fs.existsSync(rebasing) && fs.rmSync(dir, { recursive: true, force: true });
   return op;
 }
 

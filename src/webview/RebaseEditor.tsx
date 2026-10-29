@@ -20,6 +20,7 @@ interface Step {
 const ACTIONS: { value: RebaseAction; label: string }[] = [
   { value: 'pick', label: 'Pick' },
   { value: 'reword', label: 'Reword' },
+  { value: 'edit', label: 'Edit' },
   { value: 'squash', label: 'Squash' },
   { value: 'fixup', label: 'Fixup' },
   { value: 'drop', label: 'Drop' },
@@ -28,6 +29,7 @@ const ACTIONS: { value: RebaseAction; label: string }[] = [
 const HELP: Record<RebaseAction, string> = {
   pick: 'Keep the commit as it is',
   reword: 'Keep the changes, change the message',
+  edit: 'Stop right after this commit, to amend it or commit more, then continue',
   squash: 'Meld into the commit below, keeping both messages',
   fixup: 'Meld into the commit below, discarding this message',
   drop: 'Remove the commit',

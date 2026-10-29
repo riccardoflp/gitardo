@@ -21,10 +21,10 @@ export function resolvableConflicts(state: RepoState, path?: string): [resolvabl
 
 /**
  * Shown while a merge, rebase, cherry-pick or revert has stopped and waits for the user, and while files are in
- * conflict without one, as after a stash was applied.
+ * conflict without one, as after a stash was applied. A rebase that stopped to edit a commit says so.
  */
 export function OperationBanner({ state, busy }: { state: RepoState; busy: boolean }) {
-  const { operation } = state;
+  const { operation, rebaseStop } = state;
   const conflicts = state.working.conflicts.length;
   if (!operation && !conflicts) return null;
   const [resolvable, marked] = resolvableConflicts(state);
@@ -33,9 +33,13 @@ export function OperationBanner({ state, busy }: { state: RepoState; busy: boole
   const files = `${conflicts} ${conflicts === 1 ? 'file has' : 'files have'} conflicts`;
   return (
     <div className="banner" role="status">
-      <Icon name="warning" />
+      <Icon name={rebaseStop ? 'edit' : 'warning'} />
       <span className="grow">
-        {operation ? `${NAMES[operation]} in progress${conflicts > 0 ? ` · ${files}` : ''}` : files}
+        {rebaseStop
+          ? `Stopped at "${rebaseStop.subject}" to edit it. Amend it or commit more, then Continue.`
+          : operation
+            ? `${NAMES[operation]} in progress${conflicts > 0 ? ` · ${files}` : ''}`
+            : files}
       </span>
       {resolvable > 0 && (
         <button className="button resolve" disabled={busy} title={RESOLVE_TITLE} onClick={() => post({ type: 'reviewConflicts' })}>
@@ -53,13 +57,20 @@ export function OperationBanner({ state, busy }: { state: RepoState; busy: boole
         <button
           className="button"
           disabled={busy || conflicts > 0}
-          title={conflicts > 0 ? 'Resolve the conflicts and stage the files first' : undefined}
+          title={
+            conflicts > 0
+              ? 'Resolve the conflicts and stage the files first'
+              : rebaseStop
+                ? 'Go on with the rebase: the commits after it are made again on top'
+                : undefined
+          }
           onClick={() => act({ kind: 'continue' })}
         >
           Continue
         </button>
       )}
-      {operation && operation !== 'merge' && (
+      {/* Skipping here would throw away what is not committed, and the commit stays anyway. */}
+      {operation && operation !== 'merge' && !rebaseStop && (
         <button className="button" disabled={busy} onClick={() => act({ kind: 'skip' })}>
           Skip
         </button>
