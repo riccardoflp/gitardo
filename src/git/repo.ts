@@ -453,6 +453,18 @@ export class Repo {
   }
 
   /**
+   * These commits as one patch that `git am` takes, oldest first, each with its author, date and message, as
+   * `git format-patch` makes it. Git leaves merge commits out.
+   */
+  async formatPatch(hashes: string[]): Promise<string> {
+    if (!hashes.length || !hashes.every(isHash)) return '';
+    // Given commits that are not walked, git writes them in the reverse of the order it was given them. Without a count,
+    // a single commit would be where to start from, up to HEAD.
+    const commits = [`--max-count=${hashes.length}`, '--no-walk=unsorted', ...[...hashes].reverse()];
+    return this.read(['format-patch', '--stdout', ...PLAIN_DIFF, ...commits, '--']);
+  }
+
+  /**
    * Counts what is not committed in each worktree: in this one it is known already, in the others `git status` is run in
    * their folders, all at once and without taking the lock of their index.
    */

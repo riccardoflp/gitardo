@@ -5,7 +5,7 @@ import { changesText, upstreamHint, worktreeOf, worktreeStatus } from '../src/sh
 // The menus post what is chosen to the extension; here they are only read.
 const posted = vi.hoisted(() => [] as unknown[]);
 vi.mock('../src/webview/vscode', () => ({ post: (message: unknown) => posted.push(message) }));
-const { branchMenu, canReword, canSquash, changesMenu, commitMenu, dropMenu, openBranch, openRemoteBranch, remoteBranchMenu, selectionMenu, worktreeMenu } = await import(
+const { branchMenu, canFormatPatch, canReword, canSquash, changesMenu, commitMenu, dropMenu, openBranch, openRemoteBranch, remoteBranchMenu, selectionMenu, worktreeMenu } = await import(
   '../src/webview/menus'
 );
 
@@ -299,5 +299,32 @@ describe('ways to merge', () => {
     const menu = dropMenu({ kind: 'branch', name: 'feature', hash: 'bbb', local: true, current: false }, head, repo);
     expect(labels(menu)).toEqual(['Merge feature into main', 'Merge feature into main…', 'Rebase main onto feature']);
     expect(choose(menu, 'Merge feature into main…')).toEqual([{ type: 'action', action: { kind: 'merge', ref: 'feature', mode: 'ask' } }]);
+  });
+});
+
+describe('commits as a patch', () => {
+  const row = (hash: string, parents: string[]): Row => ({ hash, parents, author: '', email: '', date: 0, subject: hash, graph: [] as never });
+  const rows = [row('d', ['c']), row('c', ['b', 'x']), row('b', ['a']), row('a', [])];
+  const repo = { ...state([], []), head: 'd', rows, working: { staged: [], unstaged: [], conflicts: [] }, bisect: null } as RepoState;
+  const tools = { selected: null, onInteractiveRebase: () => {}, onCompare: () => {}, onEditMessage: () => {} };
+
+  it('is offered for commits that are not merges, the first one included', () => {
+    expect(labels(commitMenu(rows[0], repo, tools))).toEqual(expect.arrayContaining(['Copy as patch', 'Save as patch…']));
+    expect(labels(commitMenu(rows[3], repo, tools))).toContain('Copy as patch');
+    expect(labels(commitMenu(rows[1], repo, tools))).not.toContain('Copy as patch');
+    expect(canFormatPatch([rows[0], rows[2]])).toBe(true);
+    expect(canFormatPatch([rows[0], rows[1]])).toBe(false);
+    // A stash keeps only its first parent in the graph, and is a merge all the same.
+    expect(canFormatPatch([{ ...row('s', ['d']), stash: 'stash@{0}' }])).toBe(false);
+  });
+
+  it('asks for the selected commits oldest first', () => {
+    posted.length = 0;
+    const entries = selectionMenu([rows[0], rows[2], rows[3]], repo, () => {});
+    for (const entry of entries) if (entry && entry !== 'separator' && / as patch/.test(entry.label)) entry.run();
+    expect(posted).toEqual([
+      { type: 'formatPatch', hashes: ['a', 'b', 'd'], save: false },
+      { type: 'formatPatch', hashes: ['a', 'b', 'd'], save: true },
+    ]);
   });
 });

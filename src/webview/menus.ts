@@ -224,8 +224,19 @@ export function commitMenu(row: Row, state: RepoState, tools: CommitMenuTools): 
     'separator',
     { label: 'Copy hash', run: () => copy(hash) },
     { label: 'Copy message', run: () => copy(row.subject) },
+    canFormatPatch([row]) && { label: 'Copy as patch', run: () => formatPatch([row]) },
+    canFormatPatch([row]) && { label: 'Save as patch…', run: () => formatPatch([row], true) },
   ];
 }
+
+/** Whether these commits can be made into a patch: git makes none of a merge commit. */
+export const canFormatPatch = (rows: Row[]) => rows.length > 0 && rows.every((row) => row.hash !== WORKTREE && !row.stash && row.parents.length < 2);
+
+/**
+ * Copies these commits as one patch, oldest first, as `git format-patch` makes it, or with `save` saves it to a file.
+ * `rows` are in the order of the graph, newest first.
+ */
+export const formatPatch = (rows: Row[], save = false) => post({ type: 'formatPatch', hashes: rows.map((row) => row.hash).reverse(), save });
 
 /** What can be done with a commit of what is checked out, where they are listed apart from the graph. */
 export function logMenu(commit: Commit, state: RepoState): MenuEntry[] {
@@ -269,6 +280,8 @@ export function selectionMenu(rows: Row[], state: RepoState, onCompare: (compari
     },
     'separator',
     { label: 'Copy hashes', run: () => copy(rows.map((row) => row.hash).join('\n')) },
+    canFormatPatch(rows) && { label: 'Copy as patch', run: () => formatPatch(rows) },
+    canFormatPatch(rows) && { label: 'Save as patch…', run: () => formatPatch(rows, true) },
   ];
 }
 

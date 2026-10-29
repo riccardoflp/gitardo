@@ -1548,6 +1548,35 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect(await repo.compareSides(WORKTREE, 'no-such', 'direct')).toBeNull();
   });
 
+  it('makes a patch of commits oldest first, the first commit included, and leaves merge commits out', async () => {
+    write('a.txt', 'one\n');
+    const first = await commitAll('add a');
+    await run(createBranchOp('other', 'HEAD', true));
+    write('b.txt', 'b\n');
+    const second = await commitAll('add b');
+    write('a.txt', 'one\ntwo\n');
+    const third = await commitAll('change a');
+    const subjectsOf = (text: string) => [...text.matchAll(/^Subject: (.*)$/gm)].map((match) => match[1]);
+
+    const one = await repo.formatPatch([third]);
+    expect(one).toMatch(new RegExp(`^From ${third} `));
+    expect(subjectsOf(one)).toEqual(['[PATCH] change a']);
+    expect(one).toContain('+two');
+    expect(subjectsOf(await repo.formatPatch([first]))).toEqual(['[PATCH] add a']);
+    // Commits that do not follow one another, in the order given.
+    expect(subjectsOf(await repo.formatPatch([first, third]))).toEqual(['[PATCH 1/2] add a', '[PATCH 2/2] change a']);
+    expect(subjectsOf(await repo.formatPatch([second, third]))).toEqual(['[PATCH 1/2] add b', '[PATCH 2/2] change a']);
+
+    await run(checkoutOp('branch', 'main'));
+    write('c.txt', 'c\n');
+    await commitAll('add c');
+    await git(root, ['merge', '--no-ff', '--no-edit', 'other']);
+    const merge = (await state()).head!;
+    expect(await repo.formatPatch([merge])).toBe('');
+    expect(subjectsOf(await repo.formatPatch([third, merge]))).toEqual(['[PATCH] change a']);
+    expect(await repo.formatPatch(['--stdout'])).toBe('');
+  });
+
   it('takes the version of a file another commit has, or deletes it when that commit has none', async () => {
     write('a.txt', 'base\n');
     write('b.txt', 'b\n');

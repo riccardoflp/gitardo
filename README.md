@@ -89,7 +89,7 @@ Right-click a commit, a branch, a tag or a stash for the operations that apply t
 | On | Operations |
 | --- | --- |
 | Uncommitted changes | Stash, stash the staged changes, stage all, unstage all, discard all, staged changes and untracked files included |
-| Commit | Open in an editor tab, check out (detached), create branch, create tag, create worktree, cherry-pick, revert, merge into the current branch, rebase the current branch onto it, edit its message, split it, interactive rebase, squash into the commit before it, fixup, reset (soft, mixed or hard), compare, bisect |
+| Commit | Open in an editor tab, check out (detached), create branch, create tag, create worktree, cherry-pick, revert, merge into the current branch, rebase the current branch onto it, edit its message, split it, interactive rebase, squash into the commit before it, fixup, reset (soft, mixed or hard), compare, bisect, copy as patch or save as patch (see [Patches](#patches)) |
 | Local branch | Check out (also by double-click), open in a worktree made for it, or, when another worktree has it, open, rename or remove that worktree (see [Worktrees](#worktrees)), fast-forward to its upstream, merge, rebase onto, compare with the current branch or with anything else, show it in the graph, show only its history or add it to the ones shown, open or create its pull request, create worktree, rename, delete |
 | Remote branch | Check out (also by double-click) as a local tracking branch, or in the local branch of its name when there is one, brought up to it: fast-forwarded, or with its own commits rebased onto it if you choose; when another worktree has that branch, that worktree opens instead; open in a worktree on a local tracking branch, merge, rebase onto, compare, show it in the graph, show only its history or add it to the ones shown, open its pull request, delete from the remote |
 | Tag | Check out (detached), create branch, compare, show it in the graph, show only its history or add it to the ones shown, push, delete |
@@ -106,11 +106,16 @@ Right-click a commit, a branch, a tag or a stash for the operations that apply t
 - **Squash into one** makes one commit of them, when they follow one another before `HEAD`: see [Squash](#squash).
 - **Cherry-pick onto `<current branch>`** runs a single `git cherry-pick` with all of them, oldest first whatever the order you clicked them in. Git treats them as one operation: if one conflicts it stops there, and **Continue**, **Skip** and **Abort** in the banner apply to the whole series. It is not offered when the selection contains a merge commit, which can only be picked on its own.
 - **Compare these two commits**, when two are selected.
+- **Copy as patch** copies them as one patch, oldest first, as `git format-patch` makes it; **Save as patch…**, in the context menu, saves it to a file. Not offered when the selection contains a merge commit, of which git makes no patch.
 - **Copy hashes**.
 
 **Undo** right after such a cherry-pick takes back all of its commits at once, also when it had stopped on a conflict and you continued it in Gitardo. If you continued it from the terminal, or did something else in between, Undo goes back one commit at a time like after any other commit.
 
 With the setting `gitardo.cherryPick.recordOrigin` on, each commit that Gitardo cherry-picks, on its own, with others selected or dropped on the commit checked out, ends its message with the commit it was picked from: `(cherry picked from commit …)`, as `git cherry-pick -x` writes it. It is off by default.
+
+### Patches
+
+**Copy as patch** in the context menu of a commit, or of several selected commits, copies them as one patch, oldest first, as `git format-patch --stdout` makes it: each commit with its author, its date and its message, for `git am` to make it again in another repository or on another branch. **Save as patch…** saves the same patch to a file you choose. Neither is offered on a merge commit, of which git makes no patch.
 
 ### Drag and drop
 

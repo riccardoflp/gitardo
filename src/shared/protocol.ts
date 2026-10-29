@@ -691,6 +691,8 @@ export type WebviewMessage =
   | { type: 'takeCompareFile'; file: FileChange }
   /** Copies the changes of the comparison as a patch. */
   | { type: 'copyComparePatch' }
+  /** Copies these commits as one patch that `git am` takes, oldest first, or with `save` saves it to a file the user chooses. */
+  | { type: 'formatPatch'; hashes: string[]; save?: boolean }
   /** Opens the comparison on GitHub. */
   | { type: 'openCompareOnGitHub' }
   /** Selects a commit in the views that list commits and are open, without opening one. */

@@ -461,6 +461,10 @@ async function main() {
         const detail = await repo?.commitDetail(message.hash);
         return [{ type: 'patch', hash: message.hash, patch: (detail && (await repo?.commitPatch(detail, 20_000))) ?? null }];
       }
+      // The clipboard and the save dialog are VS Code's: here the patch is printed.
+      case 'formatPatch':
+        console.log(await repo?.formatPatch(message.hashes));
+        return [];
       case 'getWorktreeSetup':
         return worktreeSetup();
       case 'previewWorktreeSetup': {

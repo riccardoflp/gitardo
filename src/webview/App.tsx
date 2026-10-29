@@ -19,11 +19,13 @@ import { dragging } from './drag';
 import {
   branchMenu,
   canCherryPick,
+  canFormatPatch,
   canReword,
   canSquash,
   cherryPickMany,
   commitMenu,
   dropMenu,
+  formatPatch,
   openBranch,
   openRemoteBranch,
   remoteBranchMenu,
@@ -412,6 +414,16 @@ export function App({ compact = false }: { compact?: boolean }) {
             >
               <Icon name="git-commit" />
               Cherry-pick onto {state.branch ?? 'HEAD'}
+            </button>
+          )}
+          {canFormatPatch(markedRows) && (
+            <button
+              className="button"
+              title="Copies them as one patch, oldest first, with their authors and messages, for git am to make them again"
+              onClick={() => formatPatch(markedRows)}
+            >
+              <Icon name="copy" />
+              Copy as patch
             </button>
           )}
           <button className="button" onClick={() => setMarked(NONE)}>

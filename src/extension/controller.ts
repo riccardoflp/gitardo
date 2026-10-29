@@ -1243,6 +1243,35 @@ export class Controller implements vscode.Disposable {
   }
 
   /**
+   * Copies commits as one patch that `git am` takes, oldest first, each with its author, date and message, or saves it
+   * to a file the user chooses. Git makes no patch of a merge commit.
+   */
+  private async formatPatch(repo: Repo, hashes: unknown, save: boolean): Promise<void> {
+    if (!Array.isArray(hashes) || !hashes.length || !hashes.every(isHash)) return;
+    const short = (hash: string) => hash.slice(0, 7);
+    const commits = hashes.length === 1 ? short(hashes[0]) : `${hashes.length} commits`;
+    try {
+      const text = await this.activity.track(`Making a patch of ${commits}`, () => repo.formatPatch(hashes));
+      const made = text.match(/^From [0-9a-f]{40,64} /gm)?.length ?? 0;
+      if (made < hashes.length) throw new Error(`git makes no patch of a merge commit${hashes.length === 1 ? '' : ': leave the merges out of the selection'}.`);
+      if (!save) {
+        await vscode.env.clipboard.writeText(text);
+        void vscode.window.showInformationMessage(`Gitardo: copied ${commits} as a patch.`);
+        return;
+      }
+      const name = hashes.length === 1 ? short(hashes[0]) : `${short(hashes[0])}-${short(hashes[hashes.length - 1])}`;
+      const uri = await vscode.window.showSaveDialog({
+        title: `Save ${commits} as a patch`,
+        defaultUri: vscode.Uri.file(path.join(repo.root, `${name}.patch`)),
+        filters: { Patches: ['patch'] },
+      });
+      if (uri) await vscode.workspace.fs.writeFile(uri, Buffer.from(text, 'utf8'));
+    } catch (error) {
+      void vscode.window.showErrorMessage(`Gitardo: ${errorText(error)}`);
+    }
+  }
+
+  /**
    * Opens the comparison on GitHub, each side by the name it has there: a branch by its upstream there, a remote
    * branch of that remote and a tag by their names, anything else by its commit, which GitHub knows once it is pushed.
    */
@@ -2287,6 +2316,8 @@ export class Controller implements vscode.Disposable {
         return compareTab ? this.takeCompareFile(compareTab, message.file) : undefined;
       case 'copyComparePatch':
         return compareTab ? this.copyComparePatch(compareTab) : undefined;
+      case 'formatPatch':
+        return repo && this.formatPatch(repo, message.hashes, message.save === true);
       case 'openCompareOnGitHub':
         return compareTab ? this.openCompareOnGitHub(compareTab) : undefined;
       case 'show':

@@ -2380,6 +2380,44 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('copies commits as a patch oldest first, and saves it to the file chosen', async () => {
+    const hashOf = (subject: string) => state().rows.find((row) => row.subject === subject)!.hash;
+    const hashes = [hashOf('Pick one'), hashOf('Pick two')];
+    const made = (text: string) => [...text.matchAll(/^From ([0-9a-f]+) /gm)].map((match) => match[1]);
+    asked.length = 0;
+    await fromWebview({ type: 'formatPatch', hashes });
+    assert.deepEqual(made(await vscode.env.clipboard.readText()), hashes);
+    assert.deepEqual(
+      asked.map((question) => question.message),
+      ['Gitardo: copied 2 commits as a patch.'],
+    );
+
+    const file = path.join(workspace, 'picks.patch');
+    const offered: vscode.SaveDialogOptions[] = [];
+    const showSaveDialog = ui.showSaveDialog;
+    ui.showSaveDialog = ((options: vscode.SaveDialogOptions) => {
+      offered.push(options);
+      return Promise.resolve(vscode.Uri.file(file));
+    }) as never;
+    try {
+      await fromWebview({ type: 'formatPatch', hashes: hashes.slice(1), save: true });
+      assert.equal(offered[0].title, `Save ${hashes[1].slice(0, 7)} as a patch`);
+      assert.ok(samePath(offered[0].defaultUri!.fsPath, path.join(app, `${hashes[1].slice(0, 7)}.patch`)));
+      assert.deepEqual(made(fs.readFileSync(file, 'utf8')), hashes.slice(1));
+      // Git makes no patch of a merge: nothing is written, and the user is told why.
+      errors.length = 0;
+      const merge = state().rows.find((row) => row.parents.length > 1 && !row.stash);
+      if (merge) {
+        await fromWebview({ type: 'formatPatch', hashes: [merge.hash], save: true });
+        assert.equal(offered.length, 1);
+        assert.deepEqual(errors, ['Gitardo: git makes no patch of a merge commit.']);
+      }
+    } finally {
+      ui.showSaveDialog = showSaveDialog;
+      fs.rmSync(file, { force: true });
+    }
+  });
+
   await step('follows a renamed file in its history', async () => {
     await git(app, ['mv', 'pick-one.txt', 'renamed.txt']);
     await git(app, ['commit', '-m', 'Rename a file']);
