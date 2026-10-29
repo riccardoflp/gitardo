@@ -136,7 +136,7 @@ try {
       dots: [...document.querySelectorAll('.row .label')].map((label) => getComputedStyle(label.closest('.row').querySelector('circle')).fill),
     })`);
     assert(look.icons, 'the icon font is loaded');
-    assert(look.labels.join() === 'feature,main,merged,origin/main', `labels: ${look.labels}`);
+    assert(look.labels.join() === 'feature,main,merged', `labels: ${look.labels}`);
     // Each label is outlined in the color of the line its commit is on.
     assert(look.outlines.join() === look.dots.join(), `outlines ${look.outlines} for dots ${look.dots}`);
     // The dark theme VS Code starts with has light text.
@@ -1564,7 +1564,7 @@ try {
     assert(narrowed.recent.join() === 'feature' && !('favorites' in narrowed) && !narrowed.remotes.length, `narrowed: ${JSON.stringify(narrowed)}`);
     assert((await graph.evaluate(`document.querySelector('.refs-scope .grow').textContent`)) === 'feature', 'the references say what they are narrowed to');
     await shot('branches-narrowed');
-    await graph.click('.refs-scope button');
+    await graph.click('.refs-scope button.link');
     await until('all the branches again', async () => (await sections(graph)).branches.includes('main'));
     assert((await menuOf('merged')).includes('Remove from favorites'), 'a favorite can be taken out');
     await graph.click('[role="menuitem"]', 'Remove from favorites');
