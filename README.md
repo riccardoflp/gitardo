@@ -358,7 +358,7 @@ The button with a person at the top right of an editor shows it for the whole fi
 When branches are named after a convention, `gitardo.branches.format` writes it down, and Gitardo asks for its parts:
 
 ```json
-"gitardo.branches.format": "PRJ-${input:ticket}-${input:kind}-rfi-${base}",
+"gitardo.branches.format": "PRJ-${input:ticket}-${input:kind}-${base}",
 "gitardo.branches.inputs": [
   { "id": "ticket", "type": "promptString", "description": "Ticket number", "pattern": "^\\d+$" },
   { "id": "kind", "type": "pickString", "description": "Type of change", "options": ["feat", "fix", "chore"], "allowCustom": true }

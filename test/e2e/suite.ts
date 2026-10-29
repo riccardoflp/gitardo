@@ -441,7 +441,7 @@ export async function run(): Promise<void> {
       titles.push(options.title ?? '');
       return byLabel(picks.shift()!)(items);
     };
-    await config.update('branches.format', 'PRJ-${input:ticket}-${input:kind}-rfi-${base}', vscode.ConfigurationTarget.Global);
+    await config.update('branches.format', 'PRJ-${input:ticket}-${input:kind}-${base}', vscode.ConfigurationTarget.Global);
     await config.update(
       'branches.inputs',
       [
@@ -456,9 +456,9 @@ export async function run(): Promise<void> {
       picks = ['Use the format', 'main', 'fix'];
       typed = ['123', KEEP];
       await controller.action({ kind: 'worktreeAdd' });
-      const made = state().worktrees.find((worktree) => worktree.branch === 'PRJ-123-fix-rfi-main');
+      const made = state().worktrees.find((worktree) => worktree.branch === 'PRJ-123-fix-main');
       assert.ok(made, JSON.stringify(state().worktrees));
-      assert.equal(made.path.toLowerCase(), `${home}/PRJ-123-fix-rfi-main`.toLowerCase());
+      assert.equal(made.path.toLowerCase(), `${home}/PRJ-123-fix-main`.toLowerCase());
 
       // From a remote branch, ${base} has no remote; the ticket used last is proposed, and a kind can be typed.
       picks = ['Use the format', 'origin/main', 'Type another value…'];
@@ -466,7 +466,7 @@ export async function run(): Promise<void> {
       typed = [KEEP, 'hotfix', KEEP];
       await controller.action({ kind: 'worktreeAdd' });
       assert.equal(proposed[0], '123');
-      assert.ok(state().worktrees.some((worktree) => worktree.branch === 'PRJ-123-hotfix-rfi-main'), JSON.stringify(state().worktrees));
+      assert.ok(state().worktrees.some((worktree) => worktree.branch === 'PRJ-123-hotfix-main'), JSON.stringify(state().worktrees));
 
       // A typed ticket that is not a number is refused.
       errors.length = 0;
@@ -481,7 +481,7 @@ export async function run(): Promise<void> {
       picks = ['Use the format', head.slice(0, 7), 'feat'];
       typed = ['7', KEEP];
       await controller.action({ kind: 'worktreeAdd', ref: head, isBranch: false });
-      assert.ok(state().worktrees.some((worktree) => worktree.branch === `PRJ-7-feat-rfi-${head.slice(0, 7)}`), JSON.stringify(state().worktrees));
+      assert.ok(state().worktrees.some((worktree) => worktree.branch === `PRJ-7-feat-${head.slice(0, 7)}`), JSON.stringify(state().worktrees));
       assert.ok(titles.includes(`Create worktree at ${head.slice(0, 7)}: what \${base} is`), JSON.stringify(titles));
 
       // Or the name is typed, as without a format.

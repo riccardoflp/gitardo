@@ -1238,7 +1238,7 @@
         "gitardo.branches.format": {
           "type": "string",
           "default": "",
-          "markdownDescription": "A format for the names of the branches that **Create Branch** and **Create Worktree** make, such as `PRJ-${input:ticket}-${input:kind}-rfi-${base}`. `${input:<id>}` is asked for as `#gitardo.branches.inputs#` says, `${base}` is the branch it starts from without its remote, `${repo}` the name of the folder of the repository and `${date}` today, as `2026-10-15`. The name it makes can still be changed before the branch is created, and a branch name can be typed instead. Empty, the name is typed."
+          "markdownDescription": "A format for the names of the branches that **Create Branch** and **Create Worktree** make, such as `PRJ-${input:ticket}-${input:kind}-${base}`. `${input:<id>}` is asked for as `#gitardo.branches.inputs#` says, `${base}` is the branch it starts from without its remote, `${repo}` the name of the folder of the repository and `${date}` today, as `2026-10-15`. The name it makes can still be changed before the branch is created, and a branch name can be typed instead. Empty, the name is typed."
         },
         "gitardo.branches.inputs": {
           "type": "array",

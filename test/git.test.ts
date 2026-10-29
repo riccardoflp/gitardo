@@ -656,13 +656,13 @@ describe('operations', () => {
   });
 
   it('names branches from a format, with inputs, the base without its remote, the repository and the date', () => {
-    const format = 'PRJ-${input:ticket}-${input:kind}-rfi-${base}';
+    const format = 'PRJ-${input:ticket}-${input:kind}-${base}';
     expect(formatInputs(`${format}-\${input:ticket}`)).toEqual(['ticket', 'kind']);
     expect(formatProblem(format, ['ticket', 'kind'])).toBeUndefined();
     expect(formatProblem(format, ['ticket'])).toMatch(/\$\{input:kind\}, which gitardo\.branches\.inputs does not define/);
     expect(formatProblem('${branch}-x', [])).toMatch(/\$\{branch\}, which is not one of/);
     const values = { base: 'feature/login', repo: 'app', date: '2026-10-15', inputs: { ticket: '123', kind: 'feat' } };
-    expect(expandFormat(format, values)).toBe('PRJ-123-feat-rfi-feature/login');
+    expect(expandFormat(format, values)).toBe('PRJ-123-feat-feature/login');
     expect(expandFormat('${repo}/${date}', values)).toBe('app/2026-10-15');
     expect(withoutRemote('origin/feature/login', ['origin'])).toBe('feature/login');
     expect(withoutRemote('team/fork/fix', ['team', 'team/fork'])).toBe('fix');
