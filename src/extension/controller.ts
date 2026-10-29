@@ -253,7 +253,7 @@ export class Controller implements vscode.Disposable {
   private watcher?: vscode.Disposable;
   /** The inverse of Gitardo's last operation, valid for as long as HEAD's reflog has not moved since. */
   private undoable?: { reflogTop: string; op: GitOp };
-  /** Where the branch was before the cherry-pick of several commits that is under way, or just ended. */
+  /** Where the branch was before the cherry-pick of several commits, or the patch applied as commits, under way or just ended. */
   private series?: { before: string; branch: string | null; title: string };
   private filter: Filter | null = null;
   /** Which branches the graph shows: all of them when null. */
@@ -1651,7 +1651,9 @@ export class Controller implements vscode.Disposable {
       if (asked && !(await this.confirmWrites(repo, op, action.paths))) return;
 
       const { result, ran } = await this.runWithFallback(op, asked);
-      if (action.kind === 'cherryPickMany' && state.head && (result.ok || this.state?.operation === 'cherry-pick')) {
+      // A patch applied as commits makes them one after the other too, and is taken back as a whole like such a cherry-pick.
+      const making = action.kind === 'cherryPickMany' ? 'cherry-pick' : action.kind === 'applyPatch' && op.commands[0]?.[0] === 'am' ? 'am' : null;
+      if (making && state.head && (result.ok || this.state?.operation === making)) {
         this.series = { before: state.head, branch: state.branch, title: op.title };
       }
       // A squash merge moves no branch, so the reflog cannot take it back: Gitardo remembers how, also when it stopped
@@ -2410,6 +2412,11 @@ export class Controller implements vscode.Disposable {
       error = failure instanceof GitError ? `${failure.result.stdout}${failure.result.stderr}`.trim() : errorText(failure);
       this.log.error(error);
     } finally {
+      try {
+        op.cleanup?.();
+      } catch (failure) {
+        this.log.warn(`Could not clean up after ${op.title}: ${errorText(failure)}`);
+      }
       this.running = false;
       task.end();
       this.post({ type: 'busy', title: null });

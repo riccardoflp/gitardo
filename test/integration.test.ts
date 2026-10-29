@@ -6,6 +6,7 @@ import { discoverRepos, repoName } from '../src/git/discover';
 import { GitError, git } from '../src/git/exec';
 import {
   abortOp,
+  applyPatchOp,
   bisectOp,
   bisectResetOp,
   checkoutLocalOp,
@@ -28,6 +29,7 @@ import {
   identityOp,
   isSquashMerge,
   mergeOp,
+  patchCommits,
   pullAction,
   rebaseInteractiveOp,
   rewordHeadOp,
@@ -87,6 +89,15 @@ const run = async (op: GitOp) => {
     } catch (failure) {
       if (!(failure instanceof GitError) || !(await op.recover?.(args, failure, log))) throw failure;
     }
+  }
+};
+/** Runs an operation that writes what its commands need first, as the extension does, and cleans up after it. */
+const runPrepared = async (op: GitOp) => {
+  await op.prepare?.(log);
+  try {
+    await run(op);
+  } finally {
+    op.cleanup?.();
   }
 };
 const subjects = async () => (await state()).rows.map((row) => row.subject);
@@ -1575,6 +1586,102 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect(await repo.formatPatch([merge])).toBe('');
     expect(subjectsOf(await repo.formatPatch([third, merge]))).toEqual(['[PATCH] change a']);
     expect(await repo.formatPatch(['--stdout'])).toBe('');
+  });
+
+  it('applies the patch of commits on another branch, as commits or to the working tree only', async () => {
+    write('a.txt', 'one\n');
+    const base = await commitAll('base');
+    await run(createBranchOp('other', 'HEAD', true));
+    write('a.txt', 'one\ntwo\n');
+    const first = await commitAll('add two');
+    write('b.txt', 'bee\n');
+    const second = await commitAll('add b');
+    const text = await repo.formatPatch([first, second]);
+    expect(patchCommits(text)).toBe(2);
+    expect(patchCommits(await repo.compareText(base, second))).toBe(0);
+    await run(checkoutOp('branch', 'main'));
+    expect(await repo.checkPatch({ text })).toEqual({ conflicts: [], errors: [] });
+
+    // As commits, from the clipboard through a temporary file that is gone once they are made.
+    const asCommits = applyPatchOp({ name: 'the patch in the clipboard', text }, true, 'main');
+    expect(asCommits.title).toBe('Apply the patch in the clipboard as 2 commits');
+    const temporary = asCommits.commands[0][2];
+    expect(asCommits.commands).toEqual([['am', '--3way', temporary]]);
+    expect(fs.existsSync(temporary)).toBe(false);
+    await runPrepared(asCommits);
+    expect(fs.existsSync(temporary)).toBe(false);
+    expect(await mainSubjects()).toEqual(['add b', 'add two', 'base']);
+    expect((await state()).changes).toBe(0);
+
+    // To the working tree only, from a file that stays where it is: the changes are staged, and nothing is committed.
+    await run(resetOp(base, 'hard', 'main'));
+    const saved = path.join(root, '.git', 'saved.patch');
+    fs.writeFileSync(saved, text);
+    const onFiles = applyPatchOp({ name: 'saved.patch', file: saved, text }, false, 'main');
+    expect(onFiles.title).toBe('Apply saved.patch to the working tree');
+    expect(onFiles.commands).toEqual([['apply', '--3way', saved]]);
+    expect(await repo.checkPatch({ file: saved, text })).toEqual({ conflicts: [], errors: [] });
+    await runPrepared(onFiles);
+    expect(fs.existsSync(saved)).toBe(true);
+    const current = await state();
+    expect(current.head).toBe(base);
+    expect(current.working.staged.map((file) => file.path).sort()).toEqual(['a.txt', 'b.txt']);
+    expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('one\ntwo\n');
+  });
+
+  it('says what keeps a patch from applying, and which files it would leave in conflict, without changing anything', async () => {
+    const other = await divergent();
+    const text = await repo.formatPatch([other]);
+    // The file has changed on both sides: git has what the patch was made from, and merges the two.
+    expect(await repo.checkPatch({ text })).toEqual({ conflicts: ['a.txt'], errors: [] });
+
+    // A file that is not there, and whose content before git has never seen, cannot be patched.
+    const foreign = 'diff --git a/missing.txt b/missing.txt\nindex 1234567..89abcde 100644\n--- a/missing.txt\n+++ b/missing.txt\n@@ -1 +1 @@\n-old\n+new\n';
+    const missing = await repo.checkPatch({ text: foreign });
+    expect(missing.conflicts).toEqual([]);
+    expect(missing.errors.join('\n')).toMatch(/missing\.txt/);
+
+    // Nor can a file with changes that are not committed.
+    write('a.txt', 'local\n');
+    const before = await state();
+    expect((await repo.checkPatch({ text })).errors.join('\n')).toMatch(/a\.txt/);
+    expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('local\n');
+    expect(await state()).toMatchObject({ head: before.head, operation: null, working: before.working });
+  });
+
+  it('stops applying a patch as commits on a conflict, to be continued, skipped or aborted', async () => {
+    const other = await divergent();
+    await run(checkoutOp('branch', 'other'));
+    write('c.txt', 'sea\n');
+    const third = await commitAll('add c');
+    await run(checkoutOp('branch', 'main'));
+    const head = (await state()).head;
+    const text = await repo.formatPatch([other, third]);
+    const apply = () => runPrepared(applyPatchOp({ name: 'the patch in the clipboard', text }, true, 'main'));
+
+    await expect(apply()).rejects.toThrow();
+    let current = await state();
+    expect(current.operation).toBe('am');
+    expect(current.working.conflicts.map((file) => file.path)).toEqual(['a.txt']);
+    expect(await repo.conflictSubjects()).toEqual(['main change', 'other change']);
+    expect(await repo.conflictStages('a.txt')).toEqual([1, 2, 3]);
+    await run(abortOp('am'));
+    expect(await state()).toMatchObject({ operation: null, head, changes: 0 });
+
+    await expect(apply()).rejects.toThrow();
+    await run(skipOp('am'));
+    expect(await state()).toMatchObject({ operation: null, changes: 0 });
+    expect(await mainSubjects()).toEqual(['add c', 'main change', 'base']);
+    await run(resetOp(head!, 'hard', 'main'));
+
+    await expect(apply()).rejects.toThrow();
+    write('a.txt', 'resolved\n');
+    await run(stageOp(['a.txt']));
+    await run(continueOp('am'));
+    current = await state();
+    expect(current.operation).toBeNull();
+    expect(await mainSubjects()).toEqual(['add c', 'other change', 'main change', 'base']);
+    expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('resolved\n');
   });
 
   it('takes the version of a file another commit has, or deletes it when that commit has none', async () => {

@@ -117,6 +117,10 @@ With the setting `gitardo.cherryPick.recordOrigin` on, each commit that Gitardo 
 
 **Copy as patch** in the context menu of a commit, or of several selected commits, copies them as one patch, oldest first, as `git format-patch --stdout` makes it: each commit with its author, its date and its message, for `git am` to make it again in another repository or on another branch. **Save as patch…** saves the same patch to a file you choose. Neither is offered on a merge commit, of which git makes no patch.
 
+**Gitardo: Apply Patch…**, in the Command Palette and in the **…** menu of the toolbar of the graph, applies a patch from a file you choose or from the clipboard. A patch made by `git format-patch`, which starts with `From <hash>`, can be applied **As commits**, with `git am --3way`: each of its commits is made again on top of the current branch, with its author and message; or **To the working tree only**, with `git apply --3way`, as any other patch is: its changes go to your files and are staged, and nothing is committed. Before anything is touched, Gitardo checks the patch with `git apply --check --3way`, the commits of a patch all together: when it does not apply, it says why and changes nothing, and when it will leave files in conflict, it names them and asks first. As commits, it needs nothing to be staged, as `git am` does.
+
+When `git am` stops on a conflict, the banner shows **Continue**, **Skip** and **Abort**, as for a cherry-pick (see [Conflicts](#conflicts)). **Undo** right after the patch takes back all of its commits at once, also when it had stopped and you continued it in Gitardo.
+
 ### Drag and drop
 
 Drag a commit, or a branch from the graph or the references tree, onto a row of the graph. Rows that accept the drop are outlined, and dropping opens a menu with what can be done:
@@ -273,6 +277,7 @@ To find the commit that broke something, right-click a commit you know is broken
 ### Previews before risky operations
 
 - **Merge and cherry-pick**: Gitardo computes the result first, without touching your files, and tells you which files will conflict before it starts.
+- **Apply a patch**: Gitardo checks it with `git apply --check` first, and says what keeps it from applying, changing nothing, or which files it will leave in conflict (see [Patches](#patches)).
 - **Force push**: the confirmation lists the commits on the remote branch that are not in yours and would be overwritten, as of the last fetch.
 - **Apply and pop a stash**: Gitardo asks first and says what the stash would stop on: the files that would be in conflict, computed the same way; the files not committed that it changes, for which git refuses it and changes nothing; or an untracked file it took along that is there again, which git leaves as it is while it applies the rest. A popped stash is dropped only when its changes went in without conflicts.
 - **Delete a branch or a tag**: a tag is deleted after asking, and a branch too, saying whether its commits are merged, into its upstream or into the current branch, so that none is lost, or would be lost with it; **Undo** brings the branch back. A remote that has the tag keeps it.
@@ -559,7 +564,7 @@ Gitardo shows one repository at a time. It finds the repository of each workspac
 
 ### Conflicts
 
-When a merge, rebase, cherry-pick or revert stops, the Graph and Changes views show a banner with **Continue**, **Skip** and **Abort**. A rebase that stopped to edit or split a commit rather than on a conflict says so in the banner: see [Interactive rebase](#interactive-rebase) and [Split a commit](#split-a-commit). The banner also shows while files are in conflict without such an operation, as after a stash that did not apply cleanly. Conflicting files are listed in the Changes view, and **Mark as resolved** stages one.
+When a merge, rebase, cherry-pick, revert or a patch applied with `git am` stops, the Graph and Changes views show a banner with **Continue**, **Skip** and **Abort**. A rebase that stopped to edit or split a commit rather than on a conflict says so in the banner: see [Interactive rebase](#interactive-rebase) and [Split a commit](#split-a-commit). The banner also shows while files are in conflict without such an operation, as after a stash that did not apply cleanly. Conflicting files are listed in the Changes view, and **Mark as resolved** stages one.
 
 Selecting a conflicting file opens it in VS Code's merge editor, with the common ancestor as the base and the two sides labelled by what they are in the operation that stopped: in a rebase, **Current** is what you are rebasing onto and **Incoming** is your own commit. Save the result there, then mark the file as resolved. A file that was added or deleted on one side has no three versions to merge, and opens as a normal file instead. The merge editor is opened through the command VS Code's own Git extension uses, which is not part of the documented API: if a future version changes it, the file opens in the normal editor with its conflict markers.
 
@@ -619,7 +624,7 @@ Set `gitardo.commandPreview` to `all` to see the exact commands before they run 
 
 | Value | Behavior |
 | --- | --- |
-| `off` (default) | Only asks before commands that can lose work or rewrite history: force push, hard reset, discarding changes, applying, popping or dropping a stash, deleting a branch or a tag, deleting a remote branch, removing a remote, removing a worktree, aborting an operation, undo, interactive rebase, squash, split, fixup, branch cleanup, a merge or cherry-pick that is going to conflict, resolving conflicts automatically (when that is turned on) and taking one side of a file in conflict. |
+| `off` (default) | Only asks before commands that can lose work or rewrite history: force push, hard reset, discarding changes, applying, popping or dropping a stash, deleting a branch or a tag, deleting a remote branch, removing a remote, removing a worktree, aborting an operation, undo, interactive rebase, squash, split, fixup, branch cleanup, a merge, cherry-pick or patch that is going to conflict, resolving conflicts automatically (when that is turned on) and taking one side of a file in conflict. |
 | `all` | Shows the commands and asks before running anything that changes the repository or a remote, staging included. |
 
 The commands shown are the commands that run: Gitardo adds no hidden flags to them. Where a command would open an editor for a commit message, which cannot work from an extension, the flag that prevents it is part of the command you see (`--no-edit`, or `-c core.editor=true` when continuing an operation).
@@ -636,9 +641,10 @@ A few operations do more than run commands:
 - Creating a worktree, when `gitardo.worktrees.setupCommands` has commands, then runs them in a terminal of this window, with a `run <command>` line in the log for each, and the question of the command preview says them (see [Commands in a new worktree](#commands-in-a-new-worktree)).
 - Renaming or removing a worktree first has VS Code's Git extension close it, when it has it open, with a `git.close <path>` line. On Windows, removing one also takes out of it the links to folders outside it, with an `unlink <path>` line for each, and when Windows held the folder so that git could not delete it, deletes what is left, with a `delete <path>` line (see [Worktrees](#worktrees)).
 
-Two operations pass data that does not fit on a command line, and the confirmation shows it next to the command:
+Three operations pass data that does not fit on a command line, and the confirmation shows it next to the command:
 
 - Staging or unstaging a change in the Flow Diff runs `git apply --cached` with a patch on standard input.
+- Applying a patch from the clipboard writes it to a temporary file, with a `write <file>` line in the log, and runs `git am` or `git apply` on that file, which is deleted afterwards. A patch from a file is given to git as it is.
 - An interactive rebase runs `git rebase -i` with `sequence.editor` set to copy a prepared todo list from a temporary file. A reworded commit is a `pick` followed by `exec git commit --amend -F <file>`. A commit to edit is an `edit`, and Gitardo tells such a stop from one on a conflict by the `amend` file git writes in `.git/rebase-merge`, while the step done last is that `edit`. A split of an older commit is an `edit` of it, followed by the commits after it as `pick`, and Gitardo leaves a `gitardo-split` file beside the `amend` file of git, with the hash of the commit, which goes with the rest when the rebase ends. A squash rewords the oldest commit with the message put together, and the others follow it as `fixup`, which keeps that message. A fixup uses the todo list git prepares itself, with `sequence.editor=true` to accept it unchanged.
 
 Gitardo needs Git 2.40 or later for the conflict previews; without it the previews are skipped and everything else works. Read-only queries (`git log`, `git status` and similar) never ask; they are logged at the debug level.

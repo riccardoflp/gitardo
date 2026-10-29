@@ -1,5 +1,7 @@
-import { writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import type { MergeMode, Operation, RebaseStep, RepoState, PullAction, SyncAction, WorkingState } from '../shared/protocol';
 import { canFastForward, refArg, worktreeOf } from '../shared/refs';
 import { RESOLUTIONS, type Proposal } from '../shared/resolution';
@@ -40,6 +42,8 @@ export interface GitOp {
   recover?(args: string[], error: GitError, log: OpLog): Promise<boolean>;
   /** What Gitardo does itself once the commands have succeeded, saying each step in the log. It must not throw. */
   finish?(log: OpLog): Promise<void>;
+  /** Called once the commands have run, whether they succeeded or not, to remove what `prepare` made for them alone. */
+  cleanup?(): void;
   /** Called once all commands have succeeded. */
   onSuccess?(): void;
 }
@@ -426,14 +430,14 @@ export function splitHeadOp(hash: string): GitOp {
  * and notes in the rebase that it is split. `gitDir` is the git directory of the worktree.
  */
 export function splitRebaseOp(rebase: GitOp, hash: string, gitDir: string): GitOp {
-  const marker = join(gitDir, 'rebase-merge', SPLIT_MARKER);
+  const marker = path.join(gitDir, 'rebase-merge', SPLIT_MARKER);
   return {
     ...rebase,
     title: `Split ${short(hash)}`,
     commands: [...rebase.commands, ['reset', '--mixed', 'HEAD~']],
     finish: async (log) => {
       log.info(`> write ${marker}`);
-      await writeFile(marker, `${hash}\n`).catch((error) => log.warn(`${marker} could not be written: ${error}`));
+      await fs.promises.writeFile(marker, `${hash}\n`).catch((error) => log.warn(`${marker} could not be written: ${error}`));
     },
   };
 }
@@ -471,6 +475,48 @@ export function cherryPickOp(hash: string, isMerge: boolean, recordOrigin = fals
 /** Picks several commits with one command, so that git treats them as one operation to continue or abort. `hashes`: oldest first. */
 export function cherryPickManyOp(hashes: string[], recordOrigin = false): GitOp {
   return { title: `Cherry-pick ${hashes.length} commits`, commands: [['cherry-pick', ...origin(recordOrigin), ...hashes.map(arg)]] };
+}
+
+/** A patch to apply, and what the user knows it by: the name of its file, or where it came from. */
+export interface Patch {
+  name: string;
+  /** The file it is in. None when it came from the clipboard. */
+  file?: string;
+  text: string;
+}
+
+/** How many commits a patch has when `git format-patch` made it, each starting with a line `From <hash>`; none otherwise. */
+export function patchCommits(text: string): number {
+  if (!/^From [0-9a-f]{40,64} /.test(text.trimStart())) return 0;
+  return text.match(/^From [0-9a-f]{40,64} /gm)?.length ?? 0;
+}
+
+/**
+ * Applies a patch. With `asCommits`, `git am` makes again each commit of a patch made by `git format-patch`, with its
+ * author and message, on top of `onto`, what is checked out; otherwise `git apply` applies the changes to the files and
+ * stages them. Both leave the files in conflict when the changes do not fit, and `git am` then stops until it is
+ * continued, skipped or aborted. A patch that is in no file reaches git through a temporary one, written when the
+ * operation runs and removed after it.
+ */
+export function applyPatchOp(patch: Patch, asCommits: boolean, onto: string): GitOp {
+  const file = patch.file ?? path.join(os.tmpdir(), `gitardo-${randomUUID()}.patch`);
+  const commits = plural(patchCommits(patch.text), 'commit');
+  const op: GitOp = {
+    title: asCommits ? `Apply ${patch.name} as ${commits}` : `Apply ${patch.name} to the working tree`,
+    commands: [[asCommits ? 'am' : 'apply', '--3way', arg(file)]],
+    note: asCommits
+      ? `The ${commits} will be made on top of ${onto}, with the authors and messages the patch has.`
+      : 'The changes will be applied to the files and staged: nothing is committed.',
+  };
+  if (patch.file) return op;
+  return {
+    ...op,
+    prepare: (log) => {
+      log.info(`> write ${file}`);
+      fs.writeFileSync(file, patch.text);
+    },
+    cleanup: () => fs.rmSync(file, { force: true }),
+  };
 }
 
 export function revertOp(hash: string, isMerge: boolean): GitOp {
@@ -1051,6 +1097,7 @@ export const CONFLICT_SIDES: Record<Operation | 'none', [current: string, incomi
   rebase: ['What the branch is being rebased onto', 'Your commit being replayed'],
   'cherry-pick': ['The branch checked out', 'The commit being picked'],
   revert: ['The branch checked out', 'The state before the reverted commit'],
+  am: ['The branch checked out', 'The patch being applied'],
   none: ['Your files', 'The changes being applied'],
 };
 

@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import { isHash, type Repo } from '../git/repo';
 import {
   abortOp,
+  applyPatchOp,
   bisectOp,
   bisectResetOp,
   fixupOp,
@@ -55,6 +56,7 @@ import {
   fastForwardOp,
   MERGE_MODES,
   mergeOp,
+  patchCommits,
   pushTagOp,
   rebaseOp,
   refNameProblem,
@@ -74,6 +76,7 @@ import {
   unstageOp,
   type GitOp,
   type OpLog,
+  type Patch,
   type ResetMode,
 } from '../git/ops';
 import { formatCommand, git, type GitError } from '../git/exec';
@@ -109,7 +112,7 @@ async function pick<T>(title: string, options: { label: string; description?: st
 const recordOrigin = () => vscode.workspace.getConfiguration('gitardo').get<boolean>('cherryPick.recordOrigin', false);
 
 function requireOperation(state: RepoState) {
-  if (!state.operation) throw new Error('No merge, rebase, cherry-pick or revert is in progress.');
+  if (!state.operation) throw new Error('No merge, rebase, cherry-pick, revert or am is in progress.');
   return state.operation;
 }
 
@@ -158,6 +161,71 @@ async function withStashPreview(op: GitOp, ref: string, state: RepoState, repo: 
  * Turns what the user asked for into git commands, asking for whatever is still missing.
  * Returns undefined when the user backs out of a prompt, or when the action needed no git command.
  */
+/**
+ * Asks for a patch, from a file or from the clipboard, and, for one that `git format-patch` made, whether to make its
+ * commits again or only to apply its changes. The patch is checked first: when it does not apply, the user is told why
+ * and nothing is changed; the files it would leave in conflict are said before it runs.
+ */
+async function applyPatch(state: RepoState, repo: Repo): Promise<GitOp | undefined> {
+  const source = await pick('Apply patch', [
+    { label: '$(file) From a file…', value: 'file' as const },
+    { label: '$(clippy) From the clipboard', value: 'clipboard' as const },
+  ]);
+  if (!source) return;
+  let patch: Patch;
+  if (source === 'file') {
+    const [uri] =
+      (await vscode.window.showOpenDialog({
+        title: 'Apply patch',
+        defaultUri: vscode.Uri.file(state.root),
+        canSelectMany: false,
+        openLabel: 'Choose',
+        filters: { Patches: ['patch', 'diff', 'mbox', 'eml'], 'All files': ['*'] },
+      })) ?? [];
+    if (!uri) return;
+    patch = { name: path.basename(uri.fsPath), file: uri.fsPath, text: await fs.promises.readFile(uri.fsPath, 'utf8') };
+  } else {
+    patch = { name: 'the patch in the clipboard', text: await vscode.env.clipboard.readText() };
+  }
+  if (!/^(diff --git |--- \S)/m.test(patch.text)) throw new Error(patch.file ? `${patch.name} has no patch in it.` : 'There is no patch in the clipboard.');
+
+  const commits = patchCommits(patch.text);
+  const onto = state.branch ?? 'HEAD';
+  let asCommits = false;
+  if (commits) {
+    const made = commits === 1 ? 'its commit' : `its ${commits} commits`;
+    const choice = await pick(`Apply ${patch.name}`, [
+      { label: 'As commits', description: 'git am --3way', detail: `Makes ${made} again on top of ${onto}, with the authors and messages`, value: true },
+      {
+        label: 'To the working tree only',
+        description: 'git apply --3way',
+        detail: 'Applies the changes to the files and stages them, without committing',
+        value: false,
+      },
+    ]);
+    if (choice === undefined) return;
+    asCommits = choice;
+  }
+  if (asCommits && state.operation) throw new Error(`Finish or abort the ${state.operation} first.`);
+  // Git would start, refuse at once and be left half way, waiting to be aborted.
+  if (asCommits && state.working.staged.length) {
+    throw new Error('git am applies patches only while nothing is staged: commit or unstage the staged changes first.');
+  }
+
+  const { conflicts, errors } = await repo.checkPatch(patch);
+  if (errors.length) {
+    const more = errors.length > 15 ? `\n…and ${errors.length - 15} more` : '';
+    await vscode.window.showWarningMessage(`${patch.name[0].toUpperCase()}${patch.name.slice(1)} does not apply, so nothing was changed.`, {
+      modal: true,
+      detail: `${errors.slice(0, 15).join('\n')}${more}`,
+    });
+    return;
+  }
+  const op = applyPatchOp(patch, asCommits, onto);
+  const checked = withConflictPreview(op, conflicts);
+  return { ...checked, note: `${op.note}\n\n${checked.note}` };
+}
+
 export async function resolveAction(action: Action, state: RepoState, repo: Repo, memory: vscode.Memento): Promise<GitOp | undefined> {
   const hasHead = state.head !== null;
 
@@ -312,6 +380,9 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
         recover: skipEmptyPicks(state.root),
       };
     }
+
+    case 'applyPatch':
+      return applyPatch(state, repo);
 
     case 'undo': {
       if (state.operation) throw new Error(`Finish or abort the ${state.operation} first.`);

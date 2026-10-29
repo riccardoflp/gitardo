@@ -204,6 +204,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
       ] as const
     ).map(([id, choice]) => command(id, (uri, uris) => controller.setUpFromExplorer(choice, explorerUris(uri, uris)))),
     command('gitardo.addSubmodule', () => controller.action({ kind: 'submoduleAdd' })),
+    command('gitardo.applyPatch', () => controller.action({ kind: 'applyPatch' })),
     vscode.workspace.registerTextDocumentContentProvider(SCHEME, new GitContentProvider()),
     vscode.window.registerWebviewViewProvider(GRAPH_VIEW, graphProvider, webviewOptions),
     // Hidden until it is asked for: VS Code has its own list of changes just above.

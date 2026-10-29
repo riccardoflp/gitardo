@@ -3,7 +3,7 @@ import { Icon } from './Icon';
 import { act } from './menus';
 import { post } from './vscode';
 
-const NAMES = { merge: 'Merge', rebase: 'Rebase', 'cherry-pick': 'Cherry-pick', revert: 'Revert' };
+const NAMES = { merge: 'Merge', rebase: 'Rebase', 'cherry-pick': 'Cherry-pick', revert: 'Revert', am: 'Patch (git am)' };
 
 const RESOLVE_TITLE =
   'Resolve the conflicts that need no choice between the two sides: changes to lines next to each other, the same change made by both, ' +
@@ -20,7 +20,7 @@ export function resolvableConflicts(state: RepoState, path?: string): [resolvabl
 }
 
 /**
- * Shown while a merge, rebase, cherry-pick or revert has stopped and waits for the user, and while files are in
+ * Shown while a merge, rebase, cherry-pick, revert or patch has stopped and waits for the user, and while files are in
  * conflict without one, as after a stash was applied. A rebase that stopped to edit or split a commit says so.
  */
 export function OperationBanner({ state, busy }: { state: RepoState; busy: boolean }) {

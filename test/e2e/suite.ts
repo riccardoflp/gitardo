@@ -2418,6 +2418,109 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('applies a patch from the clipboard as commits, which undo takes back together, and refuses one that does not apply', async () => {
+    const before = state().head!;
+    const subject = state().rows.find((row) => row.hash === before)!.subject;
+    await git(app, ['checkout', '-b', 'patched']);
+    write('patched.txt', 'one\n');
+    await git(app, ['add', '--all']);
+    await git(app, ['commit', '-m', 'Patch one']);
+    write('patched.txt', 'one\ntwo\n');
+    await git(app, ['commit', '-am', 'Patch two']);
+    const made = (await git(app, ['rev-list', '-2', 'HEAD'])).stdout.trim().split('\n').reverse();
+    await git(app, ['checkout', 'main']);
+    await vscode.commands.executeCommand('gitardo.refresh');
+    await fromWebview({ type: 'formatPatch', hashes: made });
+    const titles: (string | undefined)[] = [];
+    choose = (items, options) => {
+      titles.push(options.title);
+      return byLabel(/From the clipboard|As commits/)(items);
+    };
+    asked.length = 0;
+    errors.length = 0;
+    try {
+      await vscode.commands.executeCommand('gitardo.applyPatch');
+      assert.deepEqual(titles, ['Apply patch', 'Apply the patch in the clipboard']);
+      assert.deepEqual(errors, []);
+      assert.deepEqual((await git(app, ['log', '--format=%s', '-3', 'main'])).stdout.trim().split('\n'), ['Patch two', 'Patch one', subject]);
+      // The patch reached git through a file of its own, which is gone.
+      const command = [...logged].reverse().find((line) => line.startsWith('> git am --3way '))!;
+      assert.match(command, /gitardo-[\w-]+\.patch"?$/);
+      const temporary = command.slice('> git am --3way '.length).replace(/^"|"$/g, '').replace(/\\\\/g, '\\');
+      assert.ok(!fs.existsSync(temporary), `${temporary} is removed`);
+
+      // Undo takes back both commits.
+      answer = run;
+      asked.length = 0;
+      await controller.action({ kind: 'undo' });
+      assert.equal(asked[0].message, 'Undo "Apply the patch in the clipboard as 2 commits"?');
+      assert.equal(state().head, before);
+
+      // A file the patch adds is there already: it is refused, and nothing changes.
+      write('patched.txt', 'local\n');
+      await vscode.commands.executeCommand('gitardo.refresh');
+      asked.length = 0;
+      answer = () => undefined;
+      await vscode.commands.executeCommand('gitardo.applyPatch');
+      assert.equal(asked.length, 1);
+      assert.equal(asked[0].message, 'The patch in the clipboard does not apply, so nothing was changed.');
+      assert.match(asked[0].detail, /patched\.txt/);
+      assert.equal(state().head, before);
+      assert.equal(state().operation, null);
+      assert.equal(fs.readFileSync(path.join(app, 'patched.txt'), 'utf8'), 'local\n');
+    } finally {
+      choose = () => undefined;
+      fs.rmSync(path.join(app, 'patched.txt'), { force: true });
+      await git(app, ['branch', '-D', 'patched']);
+      await vscode.commands.executeCommand('gitardo.refresh');
+    }
+  });
+
+  await step('stops applying a patch from a file on a conflict, says so first, and aborts it', async () => {
+    const before = state().head!;
+    await git(app, ['checkout', '-b', 'clashing-patch']);
+    write('a.txt', 'patched\n');
+    await git(app, ['commit', '-am', 'Patch a']);
+    const text = (await git(app, ['format-patch', '--stdout', '-1', 'HEAD'])).stdout;
+    await git(app, ['checkout', 'main']);
+    write('a.txt', 'main side\n');
+    await git(app, ['commit', '-am', 'Change a on main']);
+    await vscode.commands.executeCommand('gitardo.refresh');
+    const file = path.join(workspace, 'clash.patch');
+    fs.writeFileSync(file, text);
+    const showOpenDialog = ui.showOpenDialog;
+    ui.showOpenDialog = (() => Promise.resolve([vscode.Uri.file(file)])) as never;
+    choose = byLabel(/From a file|As commits/);
+    answer = run;
+    asked.length = 0;
+    try {
+      await vscode.commands.executeCommand('gitardo.applyPatch');
+      assert.equal(asked[0].message, 'Apply clash.patch as 1 commit?');
+      assert.match(asked[0].detail, /stop with conflicts in 1 file:\na\.txt/);
+      assert.match(asked[0].detail, /git am --3way \S*clash\.patch"?$/);
+      assert.equal(state().operation, 'am');
+      assert.deepEqual(
+        state().working.conflicts.map((change) => change.path),
+        ['a.txt'],
+      );
+      const stopped = /^Apply clash\.patch as 1 commit stopped: 1 file has conflicts\. Resolve them, then continue or abort the am\./;
+      assert.ok(asked.some((question) => stopped.test(question.message)));
+
+      await controller.action({ kind: 'abort' });
+      assert.equal(state().operation, null);
+      assert.equal(state().changes, 0);
+      assert.ok(fs.existsSync(file), 'the file chosen is left as it is');
+    } finally {
+      ui.showOpenDialog = showOpenDialog;
+      choose = () => undefined;
+      await git(app, ['am', '--abort']).catch(() => undefined);
+      await git(app, ['reset', '--hard', before]);
+      await git(app, ['branch', '-D', 'clashing-patch']);
+      fs.rmSync(file, { force: true });
+      await vscode.commands.executeCommand('gitardo.refresh');
+    }
+  });
+
   await step('follows a renamed file in its history', async () => {
     await git(app, ['mv', 'pick-one.txt', 'renamed.txt']);
     await git(app, ['commit', '-m', 'Rename a file']);

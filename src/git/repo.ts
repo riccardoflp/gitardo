@@ -265,6 +265,8 @@ export class Repo {
 
   /** The operation that stopped half way, if any. */
   async operation(): Promise<Operation | null> {
+    // `git am` keeps its patches where a rebase of old kept its own, and marks the folder as its own.
+    if (await this.hasMarker(path.join('rebase-apply', 'applying'))) return 'am';
     // A rebase replays commits by cherry-picking, so its markers must be checked first.
     if (await this.hasMarker('rebase-merge', 'rebase-apply')) return 'rebase';
     if (await this.hasMarker('MERGE_HEAD')) return 'merge';
@@ -332,7 +334,18 @@ export class Repo {
     const incoming = { merge: 'MERGE_HEAD', 'cherry-pick': 'CHERRY_PICK_HEAD', revert: 'REVERT_HEAD', rebase: 'REBASE_HEAD' };
     const operation = await this.operation().catch(() => null);
     const subject = async (ref: string) => (await this.read(['log', '-1', '--format=%s', ref, '--'], true)).trim() || null;
+    // A patch being applied is no commit yet: its message is in a file of its own.
+    if (operation === 'am') return [await subject('HEAD'), this.patchSubject()];
     return [await subject('HEAD'), operation ? await subject(incoming[operation]) : null];
+  }
+
+  /** The subject of the patch `git am` stopped on. Null when there is none. */
+  private patchSubject(): string | null {
+    try {
+      return fs.readFileSync(path.join(this.gitDir!, 'rebase-apply', 'final-commit'), 'utf8').split('\n')[0].trim() || null;
+    } catch {
+      return null;
+    }
   }
 
   async conflictStages(file: string): Promise<number[]> {
@@ -462,6 +475,25 @@ export class Repo {
     // a single commit would be where to start from, up to HEAD.
     const commits = [`--max-count=${hashes.length}`, '--no-walk=unsorted', ...[...hashes].reverse()];
     return this.read(['format-patch', '--stdout', ...PLAIN_DIFF, ...commits, '--']);
+  }
+
+  /**
+   * What applying a patch with `--3way` would do, without doing it: the files it would leave in conflict, or what keeps
+   * it from applying at all, which is nothing when it applies. The patch is in a file, or else given as `text`. A patch
+   * of several commits is checked as a whole, each change on top of the ones before it.
+   */
+  async checkPatch(patch: { file?: string; text: string }): Promise<{ conflicts: string[]; errors: string[] }> {
+    const args = ['apply', '--check', '--3way', ...(patch.file ? [patch.file] : [])];
+    this.onCommand(formatCommand(args));
+    const result = await git(this.root, args, { readOnly: true, input: patch.file ? undefined : patch.text }).catch((error: unknown) => {
+      if (error instanceof GitError) return error.result;
+      throw error;
+    });
+    const lines = `${result.stdout}\n${result.stderr}`.split('\n').map((line) => line.trim());
+    const conflicts = lines.flatMap((line) => /^Applied patch to '(.+)' with conflicts\.$/.exec(line)?.[1] ?? []);
+    if (!result.code) return { conflicts: [...new Set(conflicts)], errors: [] };
+    const errors = lines.filter((line) => /^(error|fatal):/.test(line)).map((line) => line.replace(/^(error|fatal):\s*/, ''));
+    return { conflicts: [], errors: errors.length ? [...new Set(errors)] : [result.stderr.trim() || `git apply exited with code ${result.code}`] };
   }
 
   /**

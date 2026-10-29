@@ -215,7 +215,7 @@ export interface ConflictFile {
 }
 
 /** A multi-step git operation that stopped and waits for the user. */
-export type Operation = 'merge' | 'rebase' | 'cherry-pick' | 'revert';
+export type Operation = 'merge' | 'rebase' | 'cherry-pick' | 'revert' | 'am';
 
 /**
  * Where an interactive rebase stopped for the user to change a commit rather than on a conflict: to edit it, or to
@@ -556,6 +556,8 @@ export type Action =
   | { kind: 'cherryPick'; hash: string; isMerge: boolean }
   /** Several commits in one go, in any order: they are applied oldest first. */
   | { kind: 'cherryPickMany'; hashes: string[] }
+  /** Asks for a patch, from a file or from the clipboard, and whether to make its commits or only to apply its changes. */
+  | { kind: 'applyPatch' }
   | { kind: 'revert'; hash: string; isMerge: boolean }
   | { kind: 'reset'; hash: string }
   | { kind: 'createTag'; at: string }
