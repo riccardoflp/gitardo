@@ -34,6 +34,7 @@ import {
   upstreamEntries,
   type Comparing,
 } from './menus';
+import { foldMerge, NO_FOLDS, recallFolds, rememberFolds, withoutGone, type Folds } from './folds';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
 const NONE: ReadonlySet<string> = new Set();
@@ -132,8 +133,8 @@ export function App({ compact = false }: { compact?: boolean }) {
 
   // The history the graph brings out, of the label, the branch beside it or the branch in the side bar the pointer rests on.
   const [traced, trace] = useTrace();
-  // The merges whose commits the graph folds into one row, until another repository is shown.
-  const [folded, setFolded] = useState<ReadonlySet<string>>(NONE);
+  // The merges whose commits the graph folds into one row, kept for each repository.
+  const [folded, setFolded] = useState<Folds>(NO_FOLDS);
 
   useEffect(() => {
     const stop = onMessage((message) => {
@@ -147,7 +148,7 @@ export function App({ compact = false }: { compact?: boolean }) {
           // Another repository: what was selected or being edited belongs to the previous one.
           rootRef.current = root;
           select(null);
-          setFolded(NONE);
+          setFolded(root ? recallFolds(loadUiState({ foldedMerges: null as unknown }).foldedMerges, root) : NO_FOLDS);
           setRebase(null);
           setFind(null);
         } else if (selectedRef.current === WORKTREE) {
@@ -183,6 +184,17 @@ export function App({ compact = false }: { compact?: boolean }) {
   useEffect(() => {
     saveUiState({ refsWidth, detailWidth, graphWidth, detailHeight, refsHidden });
   }, [refsWidth, detailWidth, graphWidth, detailHeight, refsHidden]);
+
+  // The folds stay while the view is hidden, when it is loaded again and after VS Code restarts.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (root) saveUiState({ foldedMerges: rememberFolds(loadUiState({ foldedMerges: null as unknown }).foldedMerges, root, folded) });
+  }, [folded]);
+
+  // A merge that is no longer in the history, after a rebase or a reset, is forgotten once the whole history is loaded.
+  useEffect(() => {
+    if (state && !state.hasMore && !state.filter && !state.scope && !state.firstParent) setFolded((previous) => withoutGone(previous, state.rows));
+  }, [state]);
 
   const labels = useMemo(() => (state ? buildLabels(state) : new Map<string, Label[]>()), [state]);
   const unpushed = useMemo(() => (state ? unpushedOf(state) : new Map<string, string>()), [state]);
@@ -302,7 +314,7 @@ export function App({ compact = false }: { compact?: boolean }) {
 
   // Only a history with its lines has merges to fold: not what a search finds.
   const connected = !state.filter || state.filter.kind === 'path' || state.filter.kind === 'ref';
-  const fold = (merge: string) => setFolded((previous) => new Set(previous).add(merge));
+  const fold = (merge: string) => setFolded((previous) => foldMerge(previous, merge, true));
 
   const onRowMenu = (event: MouseEvent, row: Row) => {
     if (markedRows.length > 1 && marked.has(row.hash)) return openMenu(event, selectionMenu(markedRows, state, compare));
@@ -361,7 +373,7 @@ export function App({ compact = false }: { compact?: boolean }) {
         refsHidden={refsHidden}
         onToggleRefs={() => setRefsHidden((hidden) => !hidden)}
         onFoldAll={
-          connected ? (fold) => setFolded(fold ? new Set(state.rows.filter((row) => row.parents.length > 1).map((row) => row.hash)) : NONE) : undefined
+          connected ? (fold) => setFolded(fold ? new Set(state.rows.filter((row) => row.parents.length > 1).map((row) => row.hash)) : NO_FOLDS) : undefined
         }
         someFolded={folded.size > 0}
         onQuery={setQuery}
@@ -454,13 +466,7 @@ export function App({ compact = false }: { compact?: boolean }) {
           dateSeparators={state.dateSeparators}
           folded={connected ? folded : NONE}
           onFold={connected ? fold : undefined}
-          onUnfold={(merge) =>
-            setFolded((previous) => {
-              const next = new Set(previous);
-              next.delete(merge);
-              return next;
-            })
-          }
+          onUnfold={(merge) => setFolded((previous) => foldMerge(previous, merge, false))}
         />
         {hasDetail && !compact && (
           <Sash

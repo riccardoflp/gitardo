@@ -2,6 +2,12 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Changed
+
+- The merges folded in the graph stay folded while the view is hidden, when it is loaded again and after VS Code restarts, for each repository.
+
 ## 0.9.0 - 2026-10-29
 
 ### Changed
