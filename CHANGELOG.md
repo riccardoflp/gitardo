@@ -4,6 +4,10 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 ## Unreleased
 
+### Added
+
+- **Merge into `<current branch>`…** after **Merge into `<current branch>`** in the context menus and in the menu of a branch dropped on the commit checked out: the other ways to merge, always with a merge commit (`--no-ff`), as a fast-forward only (`--ff-only`), which Gitardo refuses before git runs when it cannot be one, and as a squash (`--squash`), which stages the changes and commits nothing. After a squash the commit box starts from the message Git prepares, and **Undo** takes the staged changes out again.
+
 ### Changed
 
 - The merges folded in the graph stay folded while the view is hidden, when it is loaded again and after VS Code restarts, for each repository.

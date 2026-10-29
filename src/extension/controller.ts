@@ -10,6 +10,7 @@ import {
   clearIdentityOp,
   fetchRemoteOp,
   identityOp,
+  isSquashMerge,
   pullAction,
   refNameProblem,
   remoteAddOp,
@@ -22,6 +23,7 @@ import {
   syncOp,
   takeFileOp,
   undoOp,
+  undoSquashOp,
   type GitOp,
   type IdentityProfile,
 } from '../git/ops';
@@ -1542,7 +1544,14 @@ export class Controller implements vscode.Disposable {
       if (action.kind === 'cherryPickMany' && state.head && (result.ok || this.state?.operation === 'cherry-pick')) {
         this.series = { before: state.head, branch: state.branch, title: op.title };
       }
-      if (!result.ok) return;
+      // A squash merge moves no branch, so the reflog cannot take it back: Gitardo remembers how, also when it stopped
+      // on conflicts. Git leaves the message of its commit while its changes wait to be committed.
+      const squashed = action.kind === 'merge' && isSquashMerge(ran) ? await repo.squashMessage() : null;
+      const undoSquash = { reflogTop, op: undoSquashOp(ran.title) };
+      if (!result.ok) {
+        if (squashed !== null && this.state?.working.conflicts.length) this.undoable = undoSquash;
+        return;
+      }
       // Said along with the operation, so not asked again.
       if (ran.then) await this.runWithFallback(ran.then, true);
 
@@ -1554,6 +1563,10 @@ export class Controller implements vscode.Disposable {
       const stash = action.kind === 'stashDrop' && state.stashes.find((candidate) => candidate.ref === action.ref);
       if (branch) this.undoable = { reflogTop, op: restoreBranchOp(branch.name, branch.hash) };
       if (stash) this.undoable = { reflogTop, op: restoreStashOp(stash.message, stash.hash) };
+      if (squashed !== null) {
+        this.undoable = undoSquash;
+        this.reportSquashed(squashed);
+      }
       if (action.kind === 'takeSide' && sides.includes(2) && sides.includes(3)) {
         this.undoable = { reflogTop, op: restoreConflictsOp([action.path]) };
       }
@@ -1610,6 +1623,20 @@ export class Controller implements vscode.Disposable {
     void vscode.window.showInformationMessage(`Gitardo resolved conflicts in ${files}. ${rest}`, ...buttons).then((choice) => {
       if (choice === 'Undo') void this.action({ kind: 'undo' });
       if (choice === 'Continue') void this.action({ kind: 'continue' });
+    });
+  }
+
+  /**
+   * Says that a squash merge committed nothing, and gives the commit box the message git prepared for it, which lists
+   * the commits it brought.
+   */
+  private reportSquashed(message: string): void {
+    if (message.trim()) this.post({ type: 'commitMessage', message: message.trim() });
+    const branch = this.state?.branch ?? 'HEAD';
+    const text = `Gitardo: the changes are staged, and nothing is committed yet. Commit them to make them one commit on ${branch}.`;
+    void vscode.window.showInformationMessage(text, 'Show Changes', 'Undo').then((choice) => {
+      if (choice === 'Show Changes') void vscode.commands.executeCommand('gitardo.changes.focus');
+      if (choice === 'Undo') void this.action({ kind: 'undo' });
     });
   }
 

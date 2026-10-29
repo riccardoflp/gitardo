@@ -49,6 +49,7 @@ import {
   discardChangesOp,
   discardOp,
   fastForwardOp,
+  MERGE_MODES,
   mergeOp,
   pushTagOp,
   rebaseOp,
@@ -76,7 +77,7 @@ import { parseWorktrees, samePath } from '../git/parse';
 import { setUpWorktree, unlinkFolderLinks } from '../git/worktreeSetup';
 import type { SetupPatterns } from '../shared/worktreeSetup';
 import { setupPatterns } from './worktreeSettings';
-import type { Action, RebaseStep, RepoState, Submodule, Worktree } from '../shared/protocol';
+import type { Action, MergeMode, RebaseStep, RepoState, Submodule, Worktree } from '../shared/protocol';
 import { isHome, refArg, worktreeOf } from '../shared/refs';
 import { submoduleFolder } from '../shared/submodules';
 
@@ -95,7 +96,7 @@ function askName(title: string, state: RepoState, kind: 'branch' | 'tag', value 
   });
 }
 
-async function pick<T>(title: string, options: { label: string; description?: string; value: T }[]): Promise<T | undefined> {
+async function pick<T>(title: string, options: { label: string; description?: string; detail?: string; value: T }[]): Promise<T | undefined> {
   return (await vscode.window.showQuickPick(options, { title }))?.value;
 }
 
@@ -189,7 +190,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
       return deleteRemoteBranchOp(action.name, state);
 
     case 'merge':
-      return withConflictPreview(mergeOp(action.ref, state.branch), await repo.conflictsWith(action.ref));
+      return merge(action.ref, action.mode ?? 'default', state, repo);
 
     case 'rebase':
       return rebaseOp(action.onto, state.branch, action.branch);
@@ -493,6 +494,47 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
     case 'abort':
       return abortOp(requireOperation(state));
   }
+}
+
+/**
+ * Merges `ref` into what is checked out in the way asked, or asks which way first. A fast-forward only is refused
+ * before git runs when what is checked out has commits of its own; the other ways say first which files will conflict.
+ */
+async function merge(ref: string, asked: MergeMode | 'ask', state: RepoState, repo: Repo): Promise<GitOp | undefined> {
+  const current = state.branch ?? 'HEAD';
+  const name = /^[0-9a-f]{40,64}$/.test(ref) ? ref.slice(0, 7) : ref;
+  const forward = await repo.canFastForwardTo(ref);
+  const details: Record<MergeMode, string> = {
+    default: 'A fast-forward when one is possible, otherwise a merge commit',
+    noFastForward: 'Always a merge commit, even where a fast-forward would do',
+    fastForwardOnly: forward ? `${current} moves up to ${name}, with no merge commit` : `Not possible: ${current} has commits that ${name} has not`,
+    squash: `The changes of ${name} staged as one, for you to commit, with no merge recorded`,
+  };
+  const modes = Object.keys(MERGE_MODES) as MergeMode[];
+  const mode =
+    asked === 'ask'
+      ? await pick(
+          mergeOp(ref, state.branch).title,
+          modes.map((value) => {
+            const { flags, name: way } = MERGE_MODES[value];
+            return { label: way ? `Merge (${way})` : 'Merge', description: formatCommand(['merge', ...flags, name]), detail: details[value], value };
+          }),
+        )
+      : asked;
+  if (!mode) return;
+  const op = mergeOp(ref, state.branch, mode);
+  if (mode === 'fastForwardOnly') {
+    if (!forward) {
+      // Git would refuse it, unless there is nothing to bring in.
+      if (!(await repo.divergence('HEAD', ref)).behind) throw new Error(`${current} already has every commit of ${name}.`);
+      throw new Error(`${current} cannot be fast-forwarded to ${name}: it has commits that ${name} has not. Merge it another way, or rebase ${current} onto it.`);
+    }
+    return { ...op, note: 'A fast-forward: no conflicts.' };
+  }
+  const previewed = withConflictPreview(op, await repo.conflictsWith(ref));
+  if (mode !== 'squash') return previewed;
+  const squash = `The changes of ${name} are staged in ${current} as one change, for you to commit. No merge is recorded: ${name} will not show as merged.`;
+  return { ...previewed, note: [squash, previewed.note].filter(Boolean).join('\n\n') };
 }
 
 /**

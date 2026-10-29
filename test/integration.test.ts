@@ -26,6 +26,7 @@ import {
   fixupOp,
   hunkOp,
   identityOp,
+  isSquashMerge,
   mergeOp,
   pullAction,
   rebaseInteractiveOp,
@@ -52,6 +53,7 @@ import {
   takeFileOp,
   takeSideOp,
   undoOp,
+  undoSquashOp,
   unstageAllOp,
   unstageOp,
   worktreeAddOp,
@@ -319,6 +321,72 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
     await run(resetOp(first, 'hard', 'main'));
     expect((await state()).head).toBe(first);
+  });
+
+  it('merges as git does by default, always with a merge commit, as a fast-forward only, or as a squash, and undoes each', async () => {
+    write('a.txt', 'one\n');
+    const base = await commitAll('First commit');
+    await run(createBranchOp('feature', 'HEAD', true));
+    write('b.txt', 'feature\n');
+    const tip = await commitAll('Feature work');
+    await run(checkoutOp('branch', 'main'));
+    expect(await repo.canFastForwardTo('feature')).toBe(true);
+
+    expect(mergeOp('feature', 'main', 'noFastForward')).toMatchObject({
+      title: 'Merge feature into main (no fast-forward)',
+      commands: [['merge', '--no-ff', 'feature']],
+    });
+    await run(mergeOp('feature', 'main', 'noFastForward'));
+    const merged = await state();
+    expect(merged.rows[0]).toMatchObject({ parents: [base, tip] });
+    expect(await undo()).toMatchObject({ kind: 'move', previous: base });
+    expect(await state()).toMatchObject({ head: base, changes: 0 });
+
+    await run(mergeOp('feature', 'main', 'fastForwardOnly'));
+    expect((await state()).head).toBe(tip);
+    expect(await undo()).toMatchObject({ kind: 'move', previous: base });
+    expect((await state()).head).toBe(base);
+
+    await run(mergeOp('feature', 'main'));
+    expect((await state()).head).toBe(tip);
+    await undo();
+
+    // A squash stages the changes and commits nothing, so the reflog has nothing to take back: it is undone by itself.
+    const squash = mergeOp('feature', 'main', 'squash');
+    expect(isSquashMerge(squash)).toBe(true);
+    expect(isSquashMerge(mergeOp('feature', 'main'))).toBe(false);
+    await run(squash);
+    expect(await state()).toMatchObject({ head: base, operation: null, working: { staged: [{ status: 'A', path: 'b.txt' }] } });
+    expect(await repo.squashMessage()).toContain('Feature work');
+    write('c.txt', 'not staged\n');
+    await run(undoSquashOp(squash.title));
+    expect(exists('b.txt')).toBe(false);
+    expect(exists('c.txt')).toBe(true);
+    expect(await state()).toMatchObject({ head: base, working: { staged: [] } });
+    expect(await repo.squashMessage()).toBeNull();
+    fs.rmSync(path.join(root, 'c.txt'));
+
+    // With a commit of its own, main can no longer move up to feature: a merge makes a commit of the two.
+    write('a.txt', 'two\n');
+    const own = await commitAll('Main work');
+    expect(await repo.canFastForwardTo('feature')).toBe(false);
+    await expect(run(mergeOp('feature', 'main', 'fastForwardOnly'))).rejects.toThrow();
+    expect((await state()).head).toBe(own);
+    await run(mergeOp('feature', 'main'));
+    expect((await state()).rows[0]).toMatchObject({ parents: [own, tip] });
+  });
+
+  it('undoes a squash merge that stopped on conflicts, which leaves no merge to abort', async () => {
+    const other = await divergent();
+    const head = (await state()).head;
+    const squash = mergeOp('other', 'main', 'squash');
+    await expect(run(squash)).rejects.toThrow();
+    expect(await state()).toMatchObject({ head, operation: null, working: { conflicts: [{ status: 'U', path: 'a.txt' }] } });
+    expect(await repo.squashMessage()).toContain(other);
+
+    await run(undoSquashOp(squash.title));
+    expect(await state()).toMatchObject({ head, changes: 0, working: { conflicts: [] } });
+    expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('main\n');
   });
 
   it('stashes tracked and untracked changes and pops them back', async () => {

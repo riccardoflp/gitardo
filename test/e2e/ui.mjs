@@ -832,7 +832,7 @@ try {
     );
     await shot('drop-menu');
     assert(outlined === 'Commit from the UI', `outlined row: ${outlined}`);
-    assert(items.join() === 'Merge feature into main,Rebase main onto feature', `menu: ${items}`);
+    assert(items.join() === 'Merge feature into main,Merge feature into main…choose how,Rebase main onto feature', `menu: ${items}`);
     await key('Escape');
   });
 

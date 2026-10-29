@@ -111,9 +111,20 @@ Drag a commit, or a branch from the graph or the references tree, onto a row of 
 | Drag | Onto | Offers |
 | --- | --- | --- |
 | A commit | The checked-out commit | Cherry-pick it onto the current branch |
-| A branch | The checked-out commit | Merge it into the current branch, or rebase the current branch onto it |
+| A branch | The checked-out commit | Merge it into the current branch, as Git does by default or in the way you choose, or rebase the current branch onto it |
 | The current branch | Any other commit | Rebase it onto that commit, or reset it there |
 | Another local branch | Any other commit | Rebase it onto that commit |
+
+### Ways to merge
+
+**Merge into `<current branch>`**, in the context menu of a commit, a branch or a remote branch and in the menu of a branch dropped on the commit checked out, runs `git merge`: a fast-forward when one is possible, otherwise a merge commit, as the configuration of Git says. **Merge into `<current branch>`…**, the entry after it, asks which way, as the menu beside **Pull** has the ways to pull:
+
+- **Merge**: `git merge`, the same as the entry before.
+- **Merge (no fast-forward)**: `git merge --no-ff`, always a merge commit, even where a fast-forward would do.
+- **Merge (fast-forward only)**: `git merge --ff-only`, the current branch moves up to the other one with no merge commit. When the current branch has commits of its own, the list says it is not possible, and choosing it says so instead of running git.
+- **Merge (squash)**: `git merge --squash`, the changes are staged as one and nothing is committed; no merge is recorded, so the other branch does not show as merged. Gitardo says so after, and the commit box of the Changes view, when it is empty, starts from the message Git prepares, which lists the commits brought in. **Undo** takes the staged changes out again with `git reset --merge`, also when the squash stopped on conflicts, until something is committed.
+
+Each of them but the fast-forward only says first which files will conflict.
 
 ### Interactive rebase
 
@@ -231,7 +242,7 @@ To find the commit that broke something, right-click a commit you know is broken
 
 ### Undo
 
-**Undo** in the toolbar takes back the last commit, amend, checkout, merge, pull, rebase or reset, including ones made from the terminal, by reading the reflog. It always shows what it is about to do first. Undoing twice redoes. It also restores a branch deleted or a stash dropped in Gitardo, and the conflicts Gitardo resolved, as long as nothing else happened since.
+**Undo** in the toolbar takes back the last commit, amend, checkout, merge, pull, rebase or reset, including ones made from the terminal, by reading the reflog. It always shows what it is about to do first. Undoing twice redoes. It also restores a branch deleted or a stash dropped in Gitardo and the conflicts Gitardo resolved, and takes out the changes a squash merge staged, as long as nothing else happened since.
 
 ### Previews before risky operations
 

@@ -220,6 +220,17 @@ export class Repo {
     return (await this.query(['merge-base', '--is-ancestor', `refs/heads/${name}`, into])).code === 0;
   }
 
+  /** Whether HEAD can be fast-forwarded to `ref`: it has no commit that `ref` has not. */
+  async canFastForwardTo(ref: string): Promise<boolean> {
+    return (await this.query(['merge-base', '--is-ancestor', 'HEAD', ref])).code === 0;
+  }
+
+  /** The message git prepared for the commit of a squash merge, while its changes wait to be committed; null otherwise. */
+  async squashMessage(): Promise<string | null> {
+    if (!(await this.hasMarker('SQUASH_MSG'))) return null;
+    return fs.readFileSync(path.join(this.gitDir!, 'SQUASH_MSG'), 'utf8');
+  }
+
   /** The message of a commit, as it was written: its subject and its body. */
   async commitMessage(hash: string): Promise<string> {
     if (!isHash(hash)) throw new Error(`"${hash}" is not a commit.`);

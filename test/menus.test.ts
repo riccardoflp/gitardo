@@ -274,3 +274,30 @@ describe('squashing commits', () => {
     expect(posted).toEqual([{ type: 'action', action: { kind: 'squash', hashes: ['d', 'e'] } }]);
   });
 });
+
+describe('ways to merge', () => {
+  const main: Branch = { name: 'main', hash: 'aaa', current: true };
+  const feature: Branch = { name: 'feature', hash: 'bbb', current: false };
+  const repo = { ...state([worktree({})], [main, feature]), rows: [] } as unknown as RepoState;
+  const choose = (entries: ReturnType<typeof branchMenu>, label: string) => {
+    posted.length = 0;
+    const entry = entries.find((each) => each && each !== 'separator' && each.label === label);
+    if (entry && entry !== 'separator') entry.run();
+    return posted;
+  };
+
+  it('merges with one click as git does by default, and asks for the other ways with the entry after it', () => {
+    const menu = branchMenu(feature, repo, () => {});
+    expect(labels(menu)).toEqual(expect.arrayContaining(['Merge into main', 'Merge into main…']));
+    expect(labels(menu).indexOf('Merge into main…')).toBe(labels(menu).indexOf('Merge into main') + 1);
+    expect(choose(menu, 'Merge into main')).toEqual([{ type: 'action', action: { kind: 'merge', ref: 'feature' } }]);
+    expect(choose(menu, 'Merge into main…')).toEqual([{ type: 'action', action: { kind: 'merge', ref: 'feature', mode: 'ask' } }]);
+  });
+
+  it('offers the same when a branch is dropped on what is checked out', () => {
+    const head = { hash: 'aaa', parents: [], subject: '', graph: {} } as unknown as Row;
+    const menu = dropMenu({ kind: 'branch', name: 'feature', hash: 'bbb', local: true, current: false }, head, repo);
+    expect(labels(menu)).toEqual(['Merge feature into main', 'Merge feature into main…', 'Rebase main onto feature']);
+    expect(choose(menu, 'Merge feature into main…')).toEqual([{ type: 'action', action: { kind: 'merge', ref: 'feature', mode: 'ask' } }]);
+  });
+});

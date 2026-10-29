@@ -1,4 +1,4 @@
-import type { Operation, RebaseStep, RepoState, PullAction, SyncAction, WorkingState } from '../shared/protocol';
+import type { MergeMode, Operation, RebaseStep, RepoState, PullAction, SyncAction, WorkingState } from '../shared/protocol';
 import { canFastForward, refArg, worktreeOf } from '../shared/refs';
 import { RESOLUTIONS, type Proposal } from '../shared/resolution';
 import { applyReplacements, conflictCount } from './conflicts';
@@ -298,8 +298,33 @@ export function deleteRemoteBranchOp(name: string, state: RepoState): GitOp {
   };
 }
 
-export function mergeOp(ref: string, into: string | null): GitOp {
-  return { title: `Merge ${short(ref)} into ${into ?? 'HEAD'}`, commands: [['merge', arg(ref)]] };
+/** What git is told for each way to merge, and what the title says of it, as the ways to pull are named. */
+export const MERGE_MODES: Record<MergeMode, { flags: string[]; name: string }> = {
+  default: { flags: [], name: '' },
+  noFastForward: { flags: ['--no-ff'], name: 'no fast-forward' },
+  fastForwardOnly: { flags: ['--ff-only'], name: 'fast-forward only' },
+  squash: { flags: ['--squash'], name: 'squash' },
+};
+
+export function mergeOp(ref: string, into: string | null, mode: MergeMode = 'default'): GitOp {
+  const { flags, name } = MERGE_MODES[mode];
+  return { title: `Merge ${short(ref)} into ${into ?? 'HEAD'}${name ? ` (${name})` : ''}`, commands: [['merge', ...flags, arg(ref)]] };
+}
+
+/** Whether an operation is a squash merge, which stages what it brings and commits nothing. */
+export const isSquashMerge = (op: GitOp) => op.commands.some((command) => command[0] === 'merge' && command.includes('--squash'));
+
+/**
+ * Takes back a squash merge, which moves no branch: what it staged leaves the index and the working tree, as
+ * `git merge --abort` takes back a merge.
+ */
+export function undoSquashOp(title: string): GitOp {
+  return {
+    title: `Undo "${title}"`,
+    commands: [['reset', '--merge']],
+    confirm: true,
+    note: 'What is staged goes back to HEAD, in the index and in the working tree, and so does what was staged since. Changes that are not staged stay.',
+  };
 }
 
 /** Rebases the current branch, or `other`, which git checks out first. */

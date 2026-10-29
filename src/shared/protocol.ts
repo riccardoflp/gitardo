@@ -318,6 +318,12 @@ export type SyncAction =
 /** The ways to pull. */
 export type PullAction = Extract<SyncAction, `pull${string}`>;
 
+/**
+ * The ways to merge: as the settings of git say, which is a fast-forward when one is possible; always with a merge
+ * commit; only as a fast-forward; or as changes staged for the user to commit, with no merge recorded.
+ */
+export type MergeMode = 'default' | 'noFastForward' | 'fastForwardOnly' | 'squash';
+
 /** The files that differ between two commits, going from `from` to `to`. */
 export interface Comparison {
   from: string;
@@ -469,7 +475,8 @@ export type Action =
   /** Moves a branch that is not checked out up to its upstream, which is fetched first. */
   | { kind: 'fastForward'; name: string }
   | { kind: 'deleteRemoteBranch'; name: string }
-  | { kind: 'merge'; ref: string }
+  /** As the settings of git say when `mode` is left out; `ask` asks which way. */
+  | { kind: 'merge'; ref: string; mode?: MergeMode | 'ask' }
   /** Rebases `branch`, or the current branch when it is left out. */
   | { kind: 'rebase'; onto: string; branch?: string }
   /** `steps` are oldest first; `base` is the commit they sit on, or null when they start at the root. */
@@ -598,6 +605,8 @@ export type HostMessage =
   | { type: 'found'; search: Search; hashes: string[]; more: boolean; failed?: boolean }
   /** A commit message is being drafted, or has been (`message`). */
   | { type: 'drafting'; active: boolean; message?: string }
+  /** A message for the commit box to start from when it is empty, such as the one git prepared for a squash merge. */
+  | { type: 'commitMessage'; message: string }
   /** What the tab of the setup of new worktrees shows. Null, with `error`, when it could not be read. */
   | { type: 'worktreeSetup'; info: WorktreeSetupInfo | null; error?: string }
   /** What the patterns take from the checkout. Null when git could not say. */

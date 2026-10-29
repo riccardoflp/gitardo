@@ -27,14 +27,20 @@ import { post } from './vscode';
 export const act = (action: Action) => post({ type: 'action', action });
 const copy = (text: string) => post({ type: 'copy', text });
 
+/**
+ * Merges as the settings of git say, a fast-forward when one is possible, and after it asks for the other ways: always
+ * a merge commit, a fast-forward only, or a squash.
+ */
+const mergeEntries = (label: string, ref: string): MenuEntry[] => [
+  { label, run: () => act({ kind: 'merge', ref }) },
+  { label: `${label}…`, hint: 'choose how', run: () => act({ kind: 'merge', ref, mode: 'ask' }) },
+];
+
 /** Merging or rebasing only makes sense against something other than the commit already checked out. */
 function integrate(ref: string, hash: string, state: RepoState): MenuEntry[] {
   if (!state.head || hash === state.head) return [];
   const current = state.branch ?? 'HEAD';
-  return [
-    { label: `Merge into ${current}`, run: () => act({ kind: 'merge', ref }) },
-    { label: `Rebase ${current} onto this`, run: () => act({ kind: 'rebase', onto: ref }) },
-  ];
+  return [...mergeEntries(`Merge into ${current}`, ref), { label: `Rebase ${current} onto this`, run: () => act({ kind: 'rebase', onto: ref }) }];
 }
 
 /**
@@ -564,10 +570,7 @@ export function dropMenu(source: DragSource, target: Row, state: RepoState): Men
   if (onHead) {
     if (source.current || source.hash === state.head) return [];
     const ref = refArg(source.local ? 'branch' : 'remote', name, state);
-    return [
-      { label: `Merge ${name} into ${current}`, run: () => act({ kind: 'merge', ref }) },
-      { label: `Rebase ${current} onto ${name}`, run: () => act({ kind: 'rebase', onto: ref }) },
-    ];
+    return [...mergeEntries(`Merge ${name} into ${current}`, ref), { label: `Rebase ${current} onto ${name}`, run: () => act({ kind: 'rebase', onto: ref }) }];
   }
 
   // A branch another worktree has checked out is rebased there, not from here.

@@ -2158,6 +2158,73 @@ export async function run(): Promise<void> {
     }
   });
 
+  await step('merges in the way chosen, refuses a fast-forward only that cannot be one, and undoes a squash, which moves no branch', async () => {
+    const before = state().head!;
+    await git(app, ['checkout', '-b', 'merging']);
+    write('merge-way.txt', 'merged\n');
+    await git(app, ['add', '--all']);
+    await git(app, ['commit', '-m', 'Add a file to merge']);
+    const tip = (await git(app, ['rev-parse', 'HEAD'])).stdout.trim();
+    await git(app, ['checkout', 'main']);
+    await vscode.commands.executeCommand('gitardo.refresh');
+    try {
+      answer = run;
+      let offered: string[] = [];
+      const way = (label: string) => (items: Item[]) => {
+        offered = items.map((item) => item.label);
+        return byLabel(label)(items);
+      };
+
+      choose = way('Merge (fast-forward only)');
+      await controller.action({ kind: 'merge', ref: 'merging', mode: 'ask' });
+      assert.deepEqual(offered, ['Merge', 'Merge (no fast-forward)', 'Merge (fast-forward only)', 'Merge (squash)']);
+      assert.equal(state().head, tip);
+      await controller.action({ kind: 'undo' });
+      assert.equal(state().head, before);
+
+      // The changes are staged, the commit box is given the message git prepared, and Undo takes them out again.
+      asked.length = 0;
+      posted.length = 0;
+      choose = way('Merge (squash)');
+      await controller.action({ kind: 'merge', ref: 'merging', mode: 'ask' });
+      assert.equal(state().head, before);
+      assert.deepEqual(state().working.staged, [{ status: 'A', path: 'merge-way.txt' }]);
+      assert.ok(asked.some((question) => /the changes are staged, and nothing is committed yet/.test(question.message)), JSON.stringify(asked));
+      const message = posted.find((outgoing) => outgoing.type === 'commitMessage');
+      assert.ok(message?.type === 'commitMessage' && message.message.includes('Add a file to merge'), JSON.stringify(message));
+      asked.length = 0;
+      await controller.action({ kind: 'undo' });
+      assert.equal(asked[0].message, 'Undo "Merge merging into main (squash)"?');
+      assert.match(asked[0].detail, /git reset --merge$/);
+      assert.equal(state().head, before);
+      assert.equal(state().changes, 0);
+      assert.ok(!fs.existsSync(path.join(app, 'merge-way.txt')));
+
+      // With a commit of its own, main cannot be fast-forwarded: that is said before git runs.
+      write('merge-own.txt', 'own\n');
+      await git(app, ['add', '--all']);
+      await git(app, ['commit', '-m', 'Add a file of main']);
+      await vscode.commands.executeCommand('gitardo.refresh');
+      const own = state().head!;
+      errors.length = 0;
+      logged.length = 0;
+      await controller.action({ kind: 'merge', ref: 'merging', mode: 'fastForwardOnly' });
+      assert.ok(errors.some((text) => /main cannot be fast-forwarded to merging/.test(text)), JSON.stringify(errors));
+      assert.ok(!logged.some((line) => line.startsWith('> git merge --ff-only')), JSON.stringify(logged));
+      assert.equal(state().head, own);
+
+      await controller.action({ kind: 'merge', ref: 'merging', mode: 'noFastForward' });
+      assert.deepEqual(state().rows[0].parents, [own, tip]);
+      await controller.action({ kind: 'undo' });
+      assert.equal(state().head, own);
+    } finally {
+      choose = () => undefined;
+      await git(app, ['reset', '--hard', before]);
+      await git(app, ['branch', '-D', 'merging']);
+      await vscode.commands.executeCommand('gitardo.refresh');
+    }
+  });
+
   await step('follows a renamed file in its history', async () => {
     await git(app, ['mv', 'pick-one.txt', 'renamed.txt']);
     await git(app, ['commit', '-m', 'Rename a file']);

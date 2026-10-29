@@ -82,6 +82,9 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
         } else if (incoming.type === 'drafting') {
           setDrafting(incoming.active);
           if (incoming.message) setMessage(incoming.message);
+        } else if (incoming.type === 'commitMessage') {
+          // What the user has written already is kept.
+          setMessage((written) => (written.trim() ? written : incoming.message));
         }
       }),
     [],
