@@ -7,6 +7,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 ### Changed
 
 - The merges folded in the graph stay folded while the view is hidden, when it is loaded again and after VS Code restarts, for each repository.
+- **Fold all merges** in the **…** menu of the graph is a switch with a check: while it is on, the merges loaded later, as the graph is scrolled or more of the history is read, are folded too, but those unfolded by hand, until **Unfold all merges**. It is kept with the folds.
 
 ## 0.9.0 - 2026-10-29
 

@@ -25,10 +25,10 @@ interface Props {
   onToggleRefs?(): void;
   /** Highlights the loaded commits that contain the text. */
   onQuery(query: string): void;
-  /** Folds every merge loaded into one row, or shows all their commits again; missing where nothing can be folded. */
+  /** Folds every merge into one row, those loaded later too, or shows all their commits again; missing where nothing can be folded. */
   onFoldAll?(fold: boolean): void;
-  /** Whether some merges are folded now. */
-  someFolded?: boolean;
+  /** Whether every merge is folded, but those unfolded one by one, or only some merges are folded now, or none. */
+  folded?: 'all' | 'some' | 'none';
   /** A search of the whole history is asked for, or again to go on from its results; null when it no longer holds. */
   onSearch(search: Search | null, by: 1 | -1): void;
   /** To the match after the selected one, or to the one before it. */
@@ -74,7 +74,7 @@ const SEARCH_MODES: Record<SearchMode, { label: string; placeholder: string; tit
   },
 };
 
-export function Toolbar({ state, busy, compact, matches, searching, refsHidden, onToggleRefs, onFoldAll, someFolded, onQuery, onSearch, onStep }: Props) {
+export function Toolbar({ state, busy, compact, matches, searching, refsHidden, onToggleRefs, onFoldAll, folded = 'none', onQuery, onSearch, onStep }: Props) {
   const [mode, setMode] = useState<SearchMode>('loaded');
   const [text, setText] = useState('');
   // Whether a search of the whole history replaces the graph with what it finds, rather than highlight it there.
@@ -199,12 +199,14 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
       run: () => post({ type: 'setTraceSelected', trace: !state.traceSelected }),
     },
     onFoldAll && {
+      // Checked, it folds the merges loaded later too; unchecked, it shows all their commits again.
       label: 'Fold all merges',
+      checked: folded === 'all',
       // A stash keeps only its first parent in the graph: a row with more is a merge.
-      disabled: !state.rows.some((row) => row.parents.length > 1),
-      run: () => onFoldAll(true),
+      disabled: folded !== 'all' && !state.rows.some((row) => row.parents.length > 1),
+      run: () => onFoldAll(folded !== 'all'),
     },
-    onFoldAll && { label: 'Unfold all merges', disabled: !someFolded, run: () => onFoldAll(false) },
+    onFoldAll && { label: 'Unfold all merges', disabled: folded === 'none', run: () => onFoldAll(false) },
     'separator',
     showColumn('author', 'Show the author'),
     showColumn('date', 'Show the date'),
