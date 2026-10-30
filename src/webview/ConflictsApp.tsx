@@ -319,17 +319,20 @@ function Conflict(props: {
   busy: boolean;
   /** Whether it is shown in three columns rather than as the two sides over what is proposed. */
   columns: boolean;
+  /** Whether only its first line is shown, as for a conflict whose proposal is accepted. */
+  folded: boolean;
   onAccept(accepted: boolean): void;
+  onFold(folded: boolean): void;
   onWidths(weights: number[]): void;
 }) {
-  const { file, conflict, sides, ai, accepted, busy, columns, onAccept, onWidths } = props;
+  const { file, conflict, sides, ai, accepted, busy, columns, folded, onAccept, onFold, onWidths } = props;
   const { proposal, asking } = conflict;
   const ref: ConflictRef = { path: file.path, key: conflict.key };
   // Each part is colored on its own: the lines before, the two sides, the proposal, the lines after, the base, and the
   // lines the proposal replaces on each side, which the columns show.
   const parts = [conflict.before, conflict.ours, conflict.theirs, proposal?.text ?? '', conflict.after, conflict.base ?? '', conflict.region.ours, conflict.region.theirs];
   const hunks = useMemo<Hunk[]>(() => parts.map((text) => ({ header: '', lines: linesOf(text).map((line) => ` ${line}`) })), parts);
-  const colors = useColors(file.path, hunks, true);
+  const colors = useColors(file.path, hunks, !folded);
   const [showBase, setShowBase] = useState(false);
   const known = useMemo(
     () => new Set([conflict.ours, conflict.theirs, conflict.base ?? ''].flatMap((text) => linesOf(text).map((line) => line.trim()))),
@@ -341,13 +344,49 @@ function Conflict(props: {
   ) : (
     <p className="muted nothing">Nothing is proposed: the two sides changed the same lines in different ways.</p>
   );
+  const accept = proposal && (
+    <button
+      className={`button${accepted ? ' accept on' : ' primary accept'}`}
+      disabled={busy}
+      title={accepted ? 'Take back the acceptance: the conflict is left as it is' : 'Put this in place of the conflict when the accepted resolutions are written'}
+      onClick={() => onAccept(!accepted)}
+    >
+      <Icon name={accepted ? 'pass-filled' : 'check'} />
+      {accepted ? 'Accepted' : 'Accept'}
+    </button>
+  );
+  const className = `conflict${accepted ? ' accepted' : ''}${proposal ? ` proposed ${proposal.source}` : ''}${folded ? ' folded' : ''}`;
+  const head = (
+    <>
+      <button className="button icon" title={folded ? 'Show this conflict' : 'Show only the first line of this conflict'} aria-expanded={!folded} onClick={() => onFold(!folded)}>
+        <Icon name={folded ? 'chevron-right' : 'chevron-down'} />
+      </button>
+      <button className="link" title="Open the file at this line" onClick={() => open('text')}>
+        Line {conflict.line}
+      </button>
+    </>
+  );
+
+  if (folded) {
+    const first = linesOf(proposal?.text ?? conflict.ours).find((line) => line.trim()) ?? '';
+    return (
+      <article className={className} aria-label={`Conflict at line ${conflict.line}`}>
+        <header>
+          {head}
+          <code className="grow first-line" title={proposal?.text}>
+            {first.trim()}
+          </code>
+          {proposal && <Source proposal={proposal} />}
+          {accept}
+        </header>
+      </article>
+    );
+  }
 
   return (
-    <article className={`conflict${accepted ? ' accepted' : ''}${proposal ? ` proposed ${proposal.source}` : ''}`} aria-label={`Conflict at line ${conflict.line}`}>
+    <article className={className} aria-label={`Conflict at line ${conflict.line}`}>
       <header>
-        <button className="link" title="Open the file at this line" onClick={() => open('text')}>
-          Line {conflict.line}
-        </button>
+        {head}
         <span className="grow" />
         {conflict.base !== null && (
           <button className={`button icon${showBase ? ' toggled' : ''}`} title={showBase ? 'Hide the base' : 'Show what the lines were before either side changed them'} onClick={() => setShowBase(!showBase)}>
@@ -418,17 +457,7 @@ function Conflict(props: {
       )}
 
       <footer>
-        {proposal && (
-          <button
-            className={`button${accepted ? ' accept on' : ' primary accept'}`}
-            disabled={busy}
-            title={accepted ? 'Take back the acceptance: the conflict is left as it is' : 'Put this in place of the conflict when the accepted resolutions are written'}
-            onClick={() => onAccept(!accepted)}
-          >
-            <Icon name={accepted ? 'pass-filled' : 'check'} />
-            {accepted ? 'Accepted' : 'Accept'}
-          </button>
-        )}
+        {accept}
         <button className="button" title="Resolve it in the Flow Merge, choosing for each change" onClick={() => open('flowMerge')}>
           <Icon name="git-merge" />
           Resolve by hand
@@ -521,6 +550,11 @@ export function ConflictsApp() {
   const [columns, setColumns] = useState(() => loadUiState<Remembered>({ accepted: [] }).columns === true);
   const [kept, setKept] = useState(() => loadUiState<Remembered>({ accepted: [] }).widths);
   widths.now ??= kept;
+  /**
+   * The conflicts and files folded or unfolded by hand, by id and by path. The others are folded once accepted: a
+   * conflict when its proposal is, a file when all of its conflicts are.
+   */
+  const [folds, setFolds] = useState(() => new Map<string, boolean>());
 
   useEffect(() => {
     const stop = onMessage((message) => {
@@ -550,12 +584,18 @@ export function ConflictsApp() {
   const refs = (ids: string[]): ConflictRef[] => ids.map((id) => ({ path: id.slice(0, id.indexOf('\0')), key: id.slice(id.indexOf('\0') + 1) }));
   const accept = (ids: string[], on: boolean) => {
     const next = new Set(accepted);
+    const unfolded = new Map(folds);
     for (const id of ids) {
       if (on) next.add(id);
       else next.delete(id);
+      // What is accepted or taken back folds or unfolds again as it would by itself, and so does its file.
+      unfolded.delete(id);
+      unfolded.delete(id.slice(0, id.indexOf('\0')));
     }
     setAccepted(next);
+    setFolds(unfolded);
   };
+  const fold = (id: string, folded: boolean) => setFolds(new Map(folds).set(id, folded));
   const allProposed = [...present];
   const sides: [Side, Side] = [
     { role: 'Current', label: review.oursLabel, name: review.oursName, subject: review.oursSubject },
@@ -665,35 +705,54 @@ export function ConflictsApp() {
       {review.files.map((file) => {
         const ids = file.conflicts.filter((conflict) => conflict.proposal).map((conflict) => idOf(file.path, conflict.key));
         const all = ids.length > 0 && ids.every((id) => accepted.has(id));
+        const settled = all && ids.length === file.conflicts.length;
+        const folded = folds.get(file.path) ?? settled;
         return (
-          <section key={file.path} className="conflict-file" aria-label={file.path}>
+          <section key={file.path} className={`conflict-file${folded ? ' folded' : ''}`} aria-label={file.path}>
             <h2>
+              <button
+                className="button icon"
+                title={folded ? 'Show the conflicts of this file' : 'Hide the conflicts of this file'}
+                aria-expanded={!folded}
+                onClick={() => fold(file.path, !folded)}
+              >
+                <Icon name={folded ? 'chevron-right' : 'chevron-down'} />
+              </button>
               <FileIcon path={file.path} />
               <span className="grow path" title={file.path}>
                 {file.path}
               </span>
               <span className="muted">
-                {ids.length} of {plural(file.conflicts.length, 'conflict')} proposed
+                {settled
+                  ? `${file.conflicts.length === 1 ? 'Its conflict is' : `All ${file.conflicts.length} conflicts are`} accepted`
+                  : `${ids.length} of ${plural(file.conflicts.length, 'conflict')} proposed`}
               </span>
               <button className="button" disabled={!ids.length || all} title="Accept every resolution proposed in this file" onClick={() => accept(ids, true)}>
                 <Icon name="check-all" />
                 Accept the file
               </button>
             </h2>
-            {file.conflicts.map((conflict) => (
-              <Conflict
-                key={conflict.key}
-                file={file}
-                conflict={conflict}
-                sides={sides}
-                ai={review.ai}
-                busy={busy}
-                columns={columns}
-                accepted={accepted.has(idOf(file.path, conflict.key))}
-                onAccept={(on) => accept([idOf(file.path, conflict.key)], on)}
-                onWidths={setKept}
-              />
-            ))}
+            {!folded &&
+              file.conflicts.map((conflict) => {
+                const id = idOf(file.path, conflict.key);
+                const on = accepted.has(id);
+                return (
+                  <Conflict
+                    key={conflict.key}
+                    file={file}
+                    conflict={conflict}
+                    sides={sides}
+                    ai={review.ai}
+                    busy={busy}
+                    columns={columns}
+                    accepted={on}
+                    folded={folds.get(id) ?? (on && !!conflict.proposal)}
+                    onAccept={(yes) => accept([id], yes)}
+                    onFold={(yes) => fold(id, yes)}
+                    onWidths={setKept}
+                  />
+                );
+              })}
           </section>
         );
       })}

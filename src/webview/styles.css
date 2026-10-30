@@ -3061,6 +3061,10 @@ input:focus-visible,
   font-weight: 400;
 }
 
+.conflict-file.folded h2 {
+  margin-bottom: 0;
+}
+
 .conflict {
   margin: 0 0 12px;
   border: 1px solid var(--vscode-panel-border);
@@ -3097,6 +3101,21 @@ input:focus-visible,
 .conflict > footer {
   flex-wrap: wrap;
   padding-top: 0;
+}
+
+/* A conflict folded to one line: where it is, the first line of what was accepted, and the way to take it back. */
+.conflict.folded > header {
+  padding: 3px 10px;
+}
+
+.conflict .first-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size, 12px);
+  color: var(--vscode-descriptionForeground);
 }
 
 .conflict .button.icon.toggled {
