@@ -339,6 +339,46 @@ export class Repo {
     return [await subject('HEAD'), operation ? await subject(incoming[operation]) : null];
   }
 
+  /**
+   * What the two sides of the conflicts are called: a branch at that commit when there is one, else its short hash. In
+   * a rebase, the current side is what the branch is rebased onto, and the incoming side is the branch being rebased.
+   * Null where there is no such commit, as for a patch or a stash.
+   */
+  async conflictNames(): Promise<[ours: string | null, theirs: string | null]> {
+    const operation = await this.operation().catch(() => null);
+    const named = async (ref: string) => {
+      const hash = (await this.read(['rev-parse', '--verify', '-q', `${ref}^{commit}`], true)).trim();
+      if (!isHash(hash)) return null;
+      const refs = await this.read(['for-each-ref', `--points-at=${hash}`, '--format=%(refname)', 'refs/heads', 'refs/remotes'], true);
+      const branch = refs.split('\n').find((name) => name && !name.endsWith('/HEAD'));
+      return branch ? branch.replace(/^refs\/(heads|remotes)\//, '') : hash.slice(0, 7);
+    };
+    const checkedOut = (await this.read(['symbolic-ref', '--short', '-q', 'HEAD'], true)).trim();
+    const current = checkedOut || (await named('HEAD'));
+    if (operation === 'rebase') {
+      const rebase = (name: string) => this.gitFile('rebase-merge', name) ?? this.gitFile('rebase-apply', name);
+      const onto = rebase('onto');
+      const head = rebase('head-name');
+      return [onto ? await named(onto) : null, head ? head.replace(/^refs\/heads\//, '') : await named('REBASE_HEAD')];
+    }
+    const incoming = { merge: 'MERGE_HEAD', 'cherry-pick': 'CHERRY_PICK_HEAD', revert: 'REVERT_HEAD' };
+    if (operation === 'merge') return [current, await named(incoming.merge)];
+    if (operation === 'cherry-pick' || operation === 'revert') {
+      const hash = (await this.read(['rev-parse', '--verify', '-q', `${incoming[operation]}^{commit}`], true)).trim();
+      return [current, isHash(hash) ? hash.slice(0, 7) : null];
+    }
+    return [current, null];
+  }
+
+  /** The first line of a file git keeps in its folder for this worktree, or null when there is no such file. */
+  private gitFile(...parts: string[]): string | null {
+    try {
+      return fs.readFileSync(path.join(this.gitDir!, ...parts), 'utf8').split('\n')[0].trim() || null;
+    } catch {
+      return null;
+    }
+  }
+
   /** The subject of the patch `git am` stopped on. Null when there is none. */
   private patchSubject(): string | null {
     try {

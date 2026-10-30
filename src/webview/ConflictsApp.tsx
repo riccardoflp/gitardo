@@ -16,6 +16,14 @@ interface Remembered {
   columns?: boolean;
 }
 
+/** What a side of the conflicts is: its place in the operation, and the branch or commit it comes from. */
+interface Side {
+  role: 'Current' | 'Incoming';
+  label: string;
+  name: string | null;
+  subject: string | null;
+}
+
 const idOf = (path: string, key: string) => `${path}\0${key}`;
 const linesOf = (text: string) => (text ? text.replace(/\r?\n$/, '').split(/\r?\n/) : []);
 const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
@@ -36,6 +44,17 @@ function Code(props: { text: string; colors?: (Token[] | null)[]; kind?: (line: 
         );
       })}
       {caret && <span className="caret" aria-hidden="true" />}
+    </div>
+  );
+}
+
+/** The label over the lines of a side: Current or Incoming, the branch or commit, and the subject of the commit. */
+function SideLabel({ side }: { side: Side }) {
+  const title = `${side.label}${side.name ? `: ${side.name}` : ''}${side.subject ? `, “${side.subject}”` : ''}`;
+  return (
+    <div className="side-label" title={title}>
+      {side.role} · {side.name ? <span className="side-name">{side.name}</span> : side.label}
+      {side.subject && <span className="side-subject"> {side.subject}</span>}
     </div>
   );
 }
@@ -172,12 +191,12 @@ function Bands(props: { pairs: [number, number][]; left: Place[]; right: Place[]
  */
 function Columns(props: {
   conflict: ReviewConflict;
-  labels: [string, string];
+  sides: [Side, Side];
   accepted: boolean;
   colors?: (Token[] | null)[][];
   middle: ReactNode;
 }) {
-  const { conflict, labels, accepted, colors, middle } = props;
+  const { conflict, sides, accepted, colors, middle } = props;
   const { proposal } = conflict;
   const ours = linesOf(conflict.region.ours);
   const theirs = linesOf(conflict.region.theirs);
@@ -222,9 +241,7 @@ function Columns(props: {
   return (
     <div className="columns" ref={grid}>
       <div className="side ours">
-        <div className="side-label" title={labels[0]}>
-          Current · {labels[0]}
-        </div>
+        <SideLabel side={sides[0]} />
         <Code text={conflict.region.ours} colors={colors?.[6]} kind={(_line, index) => (!proposal ? '' : taken.ours.has(index) ? 'taken' : 'left-out')} />
       </div>
       {proposal ? <Bands pairs={fromOurs} left={places.ours} right={places.proposed} side="ours" /> : <div />}
@@ -234,9 +251,7 @@ function Columns(props: {
       </div>
       {proposal ? <Bands pairs={toTheirs} left={places.proposed} right={places.theirs} side="theirs" /> : <div />}
       <div className="side theirs">
-        <div className="side-label" title={labels[1]}>
-          Incoming · {labels[1]}
-        </div>
+        <SideLabel side={sides[1]} />
         <Code text={conflict.region.theirs} colors={colors?.[7]} kind={(_line, index) => (!proposal ? '' : taken.theirs.has(index) ? 'taken' : 'left-out')} />
       </div>
     </div>
@@ -247,7 +262,7 @@ function Columns(props: {
 function Conflict(props: {
   file: ReviewFile;
   conflict: ReviewConflict;
-  labels: [string, string];
+  sides: [Side, Side];
   ai: boolean;
   accepted: boolean;
   busy: boolean;
@@ -255,7 +270,7 @@ function Conflict(props: {
   columns: boolean;
   onAccept(accepted: boolean): void;
 }) {
-  const { file, conflict, labels, ai, accepted, busy, columns, onAccept } = props;
+  const { file, conflict, sides, ai, accepted, busy, columns, onAccept } = props;
   const { proposal, asking } = conflict;
   const ref: ConflictRef = { path: file.path, key: conflict.key };
   // Each part is colored on its own: the lines before, the two sides, the proposal, the lines after, the base, and the
@@ -297,7 +312,7 @@ function Conflict(props: {
       )}
       {columns ? (
         <>
-          <Columns conflict={conflict} labels={labels} accepted={accepted} colors={colors} middle={nothing} />
+          <Columns conflict={conflict} sides={sides} accepted={accepted} colors={colors} middle={nothing} />
           {proposal && (
             <p className="columns-reason">
               <span className="muted">{proposal.reason}</span>
@@ -314,15 +329,11 @@ function Conflict(props: {
         <>
           <div className="sides">
             <div className="side ours">
-              <div className="side-label" title={labels[0]}>
-                Current · {labels[0]}
-              </div>
+              <SideLabel side={sides[0]} />
               <Code text={conflict.ours} colors={colors?.[1]} />
             </div>
             <div className="side theirs">
-              <div className="side-label" title={labels[1]}>
-                Incoming · {labels[1]}
-              </div>
+              <SideLabel side={sides[1]} />
               <Code text={conflict.theirs} colors={colors?.[2]} />
             </div>
           </div>
@@ -492,7 +503,10 @@ export function ConflictsApp() {
     setAccepted(next);
   };
   const allProposed = [...present];
-  const labels: [string, string] = [review.oursLabel, review.theirsLabel];
+  const sides: [Side, Side] = [
+    { role: 'Current', label: review.oursLabel, name: review.oursName, subject: review.oursSubject },
+    { role: 'Incoming', label: review.theirsLabel, name: review.theirsName, subject: review.theirsSubject },
+  ];
   const summary = [
     byRules && `${byRules} proposed by the rules`,
     byAI && `${byAI} by the AI`,
@@ -617,7 +631,7 @@ export function ConflictsApp() {
                 key={conflict.key}
                 file={file}
                 conflict={conflict}
-                labels={labels}
+                sides={sides}
                 ai={review.ai}
                 busy={busy}
                 columns={columns}

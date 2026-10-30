@@ -591,6 +591,7 @@ From the command palette and from the message that says an operation stopped, Gi
 
 A tab, **Conflicts · \<repository\>**, with every conflict of the files in conflict, one card each: the lines of the current side and of the incoming one, in the colors of the code, the base on demand, and under them what is proposed for it, with the lines around it as they are in the file. **Gitardo: Review the Resolutions of the Conflicts** opens it from the command palette.
 
+- Each side is named by the branch it comes from, with the subject of its commit: **Current · main** and **Incoming · feature/map-view** in a merge. In a rebase, **Current** is the branch you rebase onto and **Incoming** is your branch; a commit cherry-picked or reverted is named by its short hash.
 - Each proposal says where it comes from: **Rules** for the conflicts that need no choice, with the reason, and **AI** for what the language model wrote, with how sure it said it is and how many of its lines neither side has.
 - **Accept** on a card takes that resolution, **Accept the file** takes those of a file, and **Accept all proposed** takes all of them. **Clear** takes the acceptances back. Nothing is written until **Write N resolutions**.
 - **Show the result** opens each file beside what the accepted resolutions make of it, in the diff editor.

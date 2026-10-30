@@ -81,6 +81,11 @@ export interface ConflictReview {
   /** What the two sides are, as the Flow Merge names them. */
   oursLabel: string;
   theirsLabel: string;
+  /** Which branch or commit each side is, and the subject of its commit, where they can be told. */
+  oursName: string | null;
+  theirsName: string | null;
+  oursSubject: string | null;
+  theirsSubject: string | null;
   files: ReviewFile[];
   /** The files in conflict without markers to look at here: binary ones, the ones a side deleted, the very large ones. */
   others: string[];

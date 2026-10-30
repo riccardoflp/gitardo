@@ -46,6 +46,9 @@ export class ConflictReviewTab implements vscode.Disposable {
   private error: string | undefined;
   /** The model the questions go to, as the tab names it, read with the files. */
   private model: string | null = null;
+  /** What each side is called, and the subject of its commit, read with the files. */
+  private names: [string | null, string | null] = [null, null];
+  private subjects: [string | null, string | null] = [null, null];
   /** Where each question to the language model is, by file and fingerprint of the conflict. */
   private readonly asking = new Map<string, Asking>();
   private readonly queue: { path: string; print: string }[] = [];
@@ -107,6 +110,7 @@ export class ConflictReviewTab implements vscode.Disposable {
       this.plans = await this.repo.conflictPlans(files);
       this.others = files.filter((file) => !this.plans.some((plan) => plan.path === file));
       this.operation = await this.repo.operation().catch(() => null);
+      [this.names, this.subjects] = await Promise.all([this.repo.conflictNames(), this.repo.conflictSubjects()]);
       this.conflicted = conflicted.length;
       this.model = this.host.settings().ai ? await conflictModelName() : null;
       this.error = undefined;
@@ -129,6 +133,10 @@ export class ConflictReviewTab implements vscode.Disposable {
       operation: this.operation,
       oursLabel,
       theirsLabel,
+      oursName: this.names[0],
+      theirsName: this.names[1],
+      oursSubject: this.subjects[0],
+      theirsSubject: this.subjects[1],
       files: reviewFiles(this.plans, rules, asked),
       others: this.others,
       rules,

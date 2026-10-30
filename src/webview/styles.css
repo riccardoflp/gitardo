@@ -3172,6 +3172,17 @@ input:focus-visible,
   white-space: nowrap;
 }
 
+/* The branch or commit of a side stands out of its label; the subject of its commit is there to recognise it. */
+.conflict .side-label .side-name {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.conflict .side-label .side-subject {
+  margin-left: 6px;
+  opacity: 0.8;
+}
+
 .conflict .ours {
   border-top: 2px solid var(--vscode-merge-currentHeaderBackground, var(--vscode-gitDecoration-addedResourceForeground));
 }

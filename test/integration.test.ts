@@ -291,6 +291,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
     await expect(run(mergeOp('other', 'main'))).rejects.toThrow();
     expect(await state()).toMatchObject({ operation: 'merge', working: { conflicts: [{ status: 'U', path: 'a.txt' }] } });
+    expect(await repo.conflictNames()).toEqual(['main', 'other']);
 
     await run(abortOp('merge'));
     expect(await state()).toMatchObject({ operation: null, changes: 0 });
@@ -312,6 +313,8 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
     await expect(run(rebaseOp('other', 'main'))).rejects.toThrow();
     expect(await state()).toMatchObject({ operation: 'rebase', branch: null });
+    // The current side is what the branch is rebased onto, and the incoming side is the branch being rebased.
+    expect(await repo.conflictNames()).toEqual(['other', 'main']);
 
     await run(skipOp('rebase'));
     expect(await state()).toMatchObject({ operation: null, branch: 'main', head: other });
