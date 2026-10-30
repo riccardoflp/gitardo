@@ -2969,20 +2969,27 @@ input:focus-visible,
   content: attr(data-character);
 }
 
-/* The tab of the review of the conflicts: each conflict, what is proposed for it, and what is accepted. */
+/*
+ * The tab of the review of the conflicts: each conflict, what is proposed for it, and what is accepted. What is done
+ * for all of them stays at the top; under it, the list of the files and their conflicts each scroll on their own.
+ */
 .conflicts-page {
   --ai: var(--vscode-charts-purple, #b180d7);
   --rules: var(--vscode-charts-blue, #3794ff);
   --accepted: var(--vscode-testing-iconPassed, #73c991);
+  display: flex;
+  flex-direction: column;
   height: 100%;
   box-sizing: border-box;
-  overflow-y: auto;
-  padding: 0 24px 24px;
+  overflow: hidden;
+  padding: 0 24px;
   container-type: inline-size;
 }
 
 .conflicts-page > * {
-  max-width: 1100px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1360px;
   margin-left: auto;
   margin-right: auto;
 }
@@ -3010,14 +3017,155 @@ input:focus-visible,
   color: var(--vscode-editorWarning-foreground, #cca700);
 }
 
-/* What is said and done for all the conflicts, along the top however far the page is scrolled. */
+/* What is said and done for all the conflicts, along the top. */
 .conflicts-head {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+  flex: none;
   padding: 16px 0 10px;
   background: var(--vscode-editor-background);
   border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.conflicts-page > .report {
+  flex: none;
+}
+
+.conflicts-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+}
+
+/* The conflicts of the files shown: the narrow layouts of a conflict follow the width of this pane, not of the tab. */
+.conflicts-list {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding-bottom: 24px;
+  container-type: inline-size;
+}
+
+/* The filters and the files, beside the conflicts. */
+.conflicts-nav {
+  flex: 0 0 240px;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 12px 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.conflicts-nav .filters,
+.conflicts-nav .file-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.conflicts-nav .filter,
+.conflicts-nav .file-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px 8px;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--vscode-foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.conflicts-nav .filter:hover,
+.conflicts-nav .file-entry:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.conflicts-nav .filter.on,
+.conflicts-nav .file-entry.on {
+  background: var(--vscode-list-activeSelectionBackground, var(--vscode-list-inactiveSelectionBackground));
+  color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground));
+}
+
+.conflicts-nav .filter:focus-visible,
+.conflicts-nav .file-entry:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.conflicts-nav .filter .count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.conflicts-nav .file-entry .name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conflicts-nav .file-entry .folder {
+  margin-left: 4px;
+  font-size: 0.9em;
+  opacity: 0.7;
+}
+
+.conflicts-nav .file-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.conflicts-nav .file-state.done .codicon {
+  color: var(--accepted);
+}
+
+.conflicts-nav .file-state.nothing .codicon {
+  color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.conflicts-nav .file-state.open .codicon {
+  color: var(--vscode-descriptionForeground);
+}
+
+.conflicts-nav .others-label {
+  padding: 3px 8px;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.conflicts-nav .none {
+  padding: 3px 8px;
+}
+
+/* In a narrow tab the list stands over the conflicts, and takes no more than a part of the height. */
+@container (max-width: 720px) {
+  .conflicts-body {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .conflicts-nav {
+    flex: none;
+    max-height: 35%;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+  }
+}
+
+.conflicts-list .empty-filter {
+  padding: 24px 0;
+  text-align: center;
 }
 
 .conflicts-head .actions {

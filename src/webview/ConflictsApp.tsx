@@ -16,6 +16,27 @@ interface Remembered {
   accepted: string[];
   columns?: boolean;
   widths?: number[];
+  /** The file chosen in the list, or none for all of them, and which of their conflicts are shown. */
+  file?: string | null;
+  filter?: Filter;
+}
+
+/** Which conflicts are shown: all of them, those not accepted yet, those with nothing proposed, or those from the AI. */
+type Filter = 'all' | 'open' | 'nothing' | 'ai';
+
+const FILTERS: { filter: Filter; label: string; title: string }[] = [
+  { filter: 'all', label: 'All', title: 'Show every conflict' },
+  { filter: 'open', label: 'Not accepted', title: 'Show the conflicts whose resolution is not accepted yet' },
+  { filter: 'nothing', label: 'Nothing proposed', title: 'Show the conflicts with nothing proposed, to resolve by hand or to ask the AI about' },
+  { filter: 'ai', label: 'From the AI', title: 'Show the conflicts the AI proposed a resolution for, to look at before you accept them' },
+];
+
+/** Whether a conflict is one the filter shows. */
+function shows(filter: Filter, conflict: ReviewConflict, accepted: boolean): boolean {
+  if (filter === 'open') return !accepted;
+  if (filter === 'nothing') return !conflict.proposal;
+  if (filter === 'ai') return conflict.proposal?.source === 'ai';
+  return true;
 }
 
 /** What a side of the conflicts is: its place in the operation, and the branch or commit it comes from. */
@@ -540,6 +561,93 @@ function Progress({ review }: { review: ConflictReview }) {
   );
 }
 
+/** Where a file of the review stands: how many of its conflicts are accepted, and whether some have nothing proposed. */
+function FileState({ file, accepted }: { file: ReviewFile; accepted: (conflict: ReviewConflict) => boolean }) {
+  const total = file.conflicts.length;
+  const done = file.conflicts.filter(accepted).length;
+  const nothing = file.conflicts.filter((conflict) => !conflict.proposal).length;
+  const [icon, state, title] =
+    done === total
+      ? ['pass-filled', 'done', 'Every conflict of it is accepted']
+      : nothing
+        ? ['circle-filled', 'nothing', `${plural(nothing, 'conflict has', 'conflicts have')} nothing proposed`]
+        : ['circle-outline', 'open', 'Something is proposed for each conflict: not all of it is accepted yet'];
+  return (
+    <span className={`file-state ${state}`} title={title}>
+      {done}/{total}
+      <Icon name={icon} />
+    </span>
+  );
+}
+
+/**
+ * The files of the review, beside their conflicts: which ones are shown, and where each file stands. A file chosen
+ * here is shown alone; the first entry shows them all again.
+ */
+function FileList(props: {
+  review: ConflictReview;
+  filter: Filter;
+  selected: string | null;
+  /** How many conflicts each filter shows, in the order of `FILTERS`. */
+  counts: number[];
+  accepted: (file: ReviewFile, conflict: ReviewConflict) => boolean;
+  /** Whether a file has a conflict the filter shows. */
+  listed: (file: ReviewFile) => boolean;
+  onFilter(filter: Filter): void;
+  onSelect(path: string | null): void;
+}) {
+  const { review, filter, selected, counts, accepted, listed, onFilter, onSelect } = props;
+  const files = review.files.filter(listed);
+  const total = counts[FILTERS.findIndex((each) => each.filter === filter)];
+  return (
+    <nav className="conflicts-nav" aria-label="Files in conflict">
+      <div className="filters" role="radiogroup" aria-label="Which conflicts are shown">
+        {FILTERS.map((each, index) => (
+          <button key={each.filter} className={`filter${filter === each.filter ? ' on' : ''}`} role="radio" aria-checked={filter === each.filter} title={each.title} onClick={() => onFilter(each.filter)}>
+            <span className="grow">{each.label}</span>
+            <span className="count">{counts[index]}</span>
+          </button>
+        ))}
+      </div>
+      <div className="file-entries">
+        <button className={`file-entry${selected === null ? ' on' : ''}`} aria-current={selected === null} title="Show the conflicts of every file" onClick={() => onSelect(null)}>
+          <Icon name="files" />
+          <span className="grow name">All files</span>
+          <span className="file-state">{plural(total, 'conflict')}</span>
+        </button>
+        {files.map((file) => {
+          const slash = file.path.lastIndexOf('/');
+          return (
+            <button key={file.path} className={`file-entry${selected === file.path ? ' on' : ''}`} aria-current={selected === file.path} title={file.path} onClick={() => onSelect(file.path)}>
+              <FileIcon path={file.path} />
+              <span className="grow name">
+                {file.path.slice(slash + 1)}
+                {slash > 0 && <span className="folder"> {file.path.slice(0, slash)}</span>}
+              </span>
+              <FileState file={file} accepted={(conflict) => accepted(file, conflict)} />
+            </button>
+          );
+        })}
+        {!files.length && <p className="muted none">No file has a conflict to show here.</p>}
+      </div>
+      {review.others.length > 0 && (
+        <div className="file-entries others">
+          <div className="others-label" title="Binary files, files a side deleted, and very large files are resolved in an editor, or by taking one side">
+            Also in conflict
+          </div>
+          {review.others.map((file) => (
+            <button key={file} className="file-entry" title={`${file}: open it in the merge editor`} onClick={() => post({ type: 'openConflict', path: file, line: 1, editor: 'mergeEditor' })}>
+              <FileIcon path={file} />
+              <span className="grow name">{file.slice(file.lastIndexOf('/') + 1)}</span>
+              <Icon name="go-to-file" />
+            </button>
+          ))}
+        </div>
+      )}
+    </nav>
+  );
+}
+
 /** The tab where what is proposed for the conflicts is looked at, accepted and written. */
 export function ConflictsApp() {
   // Undefined while it is read.
@@ -555,6 +663,14 @@ export function ConflictsApp() {
    * conflict when its proposal is, a file when all of its conflicts are.
    */
   const [folds, setFolds] = useState(() => new Map<string, boolean>());
+  const [selected, setSelected] = useState(() => loadUiState<Remembered>({ accepted: [] }).file ?? null);
+  const [filter, setFilter] = useState<Filter>(() => loadUiState<Remembered>({ accepted: [] }).filter ?? 'all');
+  /**
+   * The conflicts accepted or taken back since the filter was chosen: they stay in view, folded, until it changes,
+   * rather than leaving under the pointer the moment they are accepted.
+   */
+  const [lingering, setLingering] = useState(() => new Set<string>());
+  const list = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const stop = onMessage((message) => {
@@ -571,7 +687,11 @@ export function ConflictsApp() {
   // What was accepted and is no longer there, written or edited, is forgotten.
   const present = useMemo(() => new Set(review?.files.flatMap((file) => file.conflicts.filter((each) => each.proposal).map((each) => idOf(file.path, each.key)))), [review]);
   const chosen = useMemo(() => [...accepted].filter((id) => present.has(id)), [accepted, present]);
-  useEffect(() => saveUiState({ accepted: chosen, columns, widths: kept }), [chosen, columns, kept]);
+  useEffect(() => saveUiState({ accepted: chosen, columns, widths: kept, file: selected, filter }), [chosen, columns, kept, selected, filter]);
+  // Another file, or other conflicts, are read from their top.
+  useEffect(() => {
+    if (list.current) list.current.scrollTop = 0;
+  }, [selected, filter]);
 
   if (review === undefined) return <div className="empty">Reading the files in conflict…</div>;
   if (review === null) return <div className="empty">Gitardo could not read the files in conflict. {error}</div>;
@@ -594,8 +714,21 @@ export function ConflictsApp() {
     }
     setAccepted(next);
     setFolds(unfolded);
+    if (filter !== 'all') setLingering(new Set([...lingering, ...ids]));
   };
   const fold = (id: string, folded: boolean) => setFolds(new Map(folds).set(id, folded));
+  const choose = (next: Filter) => {
+    setFilter(next);
+    setLingering(new Set());
+  };
+  const isAccepted = (file: ReviewFile, conflict: ReviewConflict) => accepted.has(idOf(file.path, conflict.key)) && !!conflict.proposal;
+  const shown = (file: ReviewFile, conflict: ReviewConflict) =>
+    shows(filter, conflict, isAccepted(file, conflict)) || lingering.has(idOf(file.path, conflict.key));
+  const listed = (file: ReviewFile) => file.conflicts.some((conflict) => shown(file, conflict));
+  const counts = FILTERS.map((each) => conflicts.filter(({ file, conflict }) => shows(each.filter, conflict, isAccepted(file, conflict))).length);
+  // A file no longer in conflict, or no longer shown, gives way to all of them.
+  const current = review.files.find((file) => file.path === selected && listed(file));
+  const files = (current ? [current] : review.files).filter(listed);
   const allProposed = [...present];
   const sides: [Side, Side] = [
     { role: 'Current', label: review.oursLabel, name: review.oursName, subject: review.oursSubject },
@@ -702,97 +835,123 @@ export function ConflictsApp() {
 
       <Report review={review} />
 
-      {review.files.map((file) => {
-        const ids = file.conflicts.filter((conflict) => conflict.proposal).map((conflict) => idOf(file.path, conflict.key));
-        const all = ids.length > 0 && ids.every((id) => accepted.has(id));
-        const settled = all && ids.length === file.conflicts.length;
-        const folded = folds.get(file.path) ?? settled;
-        return (
-          <section key={file.path} className={`conflict-file${folded ? ' folded' : ''}`} aria-label={file.path}>
-            <h2>
-              <button
-                className="button icon"
-                title={folded ? 'Show the conflicts of this file' : 'Hide the conflicts of this file'}
-                aria-expanded={!folded}
-                onClick={() => fold(file.path, !folded)}
-              >
-                <Icon name={folded ? 'chevron-right' : 'chevron-down'} />
-              </button>
-              <FileIcon path={file.path} />
-              <span className="grow path" title={file.path}>
-                {file.path}
-              </span>
-              <span className="muted">
-                {settled
-                  ? `${file.conflicts.length === 1 ? 'Its conflict is' : `All ${file.conflicts.length} conflicts are`} accepted`
-                  : `${ids.length} of ${plural(file.conflicts.length, 'conflict')} proposed`}
-              </span>
-              <button className="button" disabled={!ids.length || all} title="Accept every resolution proposed in this file" onClick={() => accept(ids, true)}>
-                <Icon name="check-all" />
-                Accept the file
-              </button>
-            </h2>
-            {!folded &&
-              file.conflicts.map((conflict) => {
-                const id = idOf(file.path, conflict.key);
-                const on = accepted.has(id);
-                return (
-                  <Conflict
-                    key={conflict.key}
-                    file={file}
-                    conflict={conflict}
-                    sides={sides}
-                    ai={review.ai}
-                    busy={busy}
-                    columns={columns}
-                    accepted={on}
-                    folded={folds.get(id) ?? (on && !!conflict.proposal)}
-                    onAccept={(yes) => accept([id], yes)}
-                    onFold={(yes) => fold(id, yes)}
-                    onWidths={setKept}
-                  />
-                );
-              })}
-          </section>
-        );
-      })}
+      <div className="conflicts-body">
+        {(review.files.length > 0 || review.others.length > 0) && (
+          <FileList
+            review={review}
+            filter={filter}
+            selected={current?.path ?? null}
+            counts={counts}
+            accepted={isAccepted}
+            listed={listed}
+            onFilter={choose}
+            onSelect={setSelected}
+          />
+        )}
+        <div className="conflicts-list" ref={list}>
+          {files.map((file) => {
+            const ids = file.conflicts.filter((conflict) => conflict.proposal).map((conflict) => idOf(file.path, conflict.key));
+            const all = ids.length > 0 && ids.every((id) => accepted.has(id));
+            const settled = all && ids.length === file.conflicts.length;
+            // A file chosen alone is not folded unless asked: it is there to be looked at.
+            const folded = folds.get(file.path) ?? (settled && !current);
+            return (
+              <section key={file.path} className={`conflict-file${folded ? ' folded' : ''}`} aria-label={file.path}>
+                <h2>
+                  <button
+                    className="button icon"
+                    title={folded ? 'Show the conflicts of this file' : 'Hide the conflicts of this file'}
+                    aria-expanded={!folded}
+                    onClick={() => fold(file.path, !folded)}
+                  >
+                    <Icon name={folded ? 'chevron-right' : 'chevron-down'} />
+                  </button>
+                  <FileIcon path={file.path} />
+                  <span className="grow path" title={file.path}>
+                    {file.path}
+                  </span>
+                  <span className="muted">
+                    {settled
+                      ? `${file.conflicts.length === 1 ? 'Its conflict is' : `All ${file.conflicts.length} conflicts are`} accepted`
+                      : `${ids.length} of ${plural(file.conflicts.length, 'conflict')} proposed`}
+                  </span>
+                  <button className="button" disabled={!ids.length || all} title="Accept every resolution proposed in this file" onClick={() => accept(ids, true)}>
+                    <Icon name="check-all" />
+                    Accept the file
+                  </button>
+                </h2>
+                {!folded &&
+                  file.conflicts.filter((conflict) => shown(file, conflict)).map((conflict) => {
+                    const id = idOf(file.path, conflict.key);
+                    const on = accepted.has(id);
+                    return (
+                      <Conflict
+                        key={conflict.key}
+                        file={file}
+                        conflict={conflict}
+                        sides={sides}
+                        ai={review.ai}
+                        busy={busy}
+                        columns={columns}
+                        accepted={on}
+                        folded={folds.get(id) ?? (on && !!conflict.proposal)}
+                        onAccept={(yes) => accept([id], yes)}
+                        onFold={(yes) => fold(id, yes)}
+                        onWidths={setKept}
+                      />
+                    );
+                  })}
+              </section>
+            );
+          })}
 
-      {review.others.length > 0 && (
-        <section className="conflict-file others" aria-label="Other files in conflict">
-          <h2>
-            <Icon name="file-binary" />
-            <span className="grow">Also in conflict, with no markers to look at here</span>
-          </h2>
-          <p className="muted">Binary files, files a side deleted, and very large files are resolved in an editor, or by taking one side.</p>
-          <ul>
-            {review.others.map((file) => (
-              <li key={file}>
-                <FileIcon path={file} />
-                <button className="link" onClick={() => post({ type: 'openConflict', path: file, line: 1, editor: 'mergeEditor' })}>
-                  {file}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {!review.files.length && !review.others.length && !review.report && (
-        <div className="empty-review">
-          <Icon name="pass" />
-          <p>No file is in conflict{review.operation ? `: the ${review.operation} can continue` : ''}.</p>
-          {review.operation && (
-            <button className="button primary" onClick={() => post({ type: 'action', action: { kind: 'continue' } })}>
-              <Icon name="debug-continue" />
-              Continue the {review.operation}
-            </button>
+          {review.files.length > 0 && !files.length && (
+            <div className="empty-filter">
+              <p className="muted">No conflict is left to show here.</p>
+              <button className="button" onClick={() => choose('all')}>
+                Show every conflict
+              </button>
+            </div>
           )}
+
+          {review.others.length > 0 && !current && filter === 'all' && (
+            <section className="conflict-file others" aria-label="Other files in conflict">
+              <h2>
+                <Icon name="file-binary" />
+                <span className="grow">Also in conflict, with no markers to look at here</span>
+              </h2>
+              <p className="muted">Binary files, files a side deleted, and very large files are resolved in an editor, or by taking one side.</p>
+              <ul>
+                {review.others.map((file) => (
+                  <li key={file}>
+                    <FileIcon path={file} />
+                    <button className="link" onClick={() => post({ type: 'openConflict', path: file, line: 1, editor: 'mergeEditor' })}>
+                      {file}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {!review.files.length && !review.others.length && !review.report && (
+            <div className="empty-review">
+              <Icon name="pass" />
+              <p>No file is in conflict{review.operation ? `: the ${review.operation} can continue` : ''}.</p>
+              {review.operation && (
+                <button className="button primary" onClick={() => post({ type: 'action', action: { kind: 'continue' } })}>
+                  <Icon name="debug-continue" />
+                  Continue the {review.operation}
+                </button>
+              )}
+            </div>
+          )}
+          <p className="muted footnote">
+            {review.rules ? 'The rules resolve a conflict only where no choice is needed, and every line they write is a line of one of the two sides. ' : ''}
+            {review.ai ? 'The AI proposes the rest from the lines around each conflict: look at what it writes before you accept it.' : ''}
+          </p>
         </div>
-      )}
-      <p className="muted footnote">
-        {review.rules ? 'The rules resolve a conflict only where no choice is needed, and every line they write is a line of one of the two sides. ' : ''}
-        {review.ai ? 'The AI proposes the rest from the lines around each conflict: look at what it writes before you accept it.' : ''}
-      </p>
+      </div>
     </main>
   );
 }
