@@ -42,6 +42,17 @@ export class Columns {
     });
   }
 
+  /** Gives the columns these widths, as other columns of the page were given them. */
+  set(weights: number[]): void {
+    this.weights = [...weights];
+    this.apply();
+  }
+
+  /** Stops following the sizes of the columns, which are gone. */
+  dispose(): void {
+    this.observer.disconnect();
+  }
+
   /** Every column the same width. */
   reset(): void {
     this.weights = this.columns.map(() => 1);

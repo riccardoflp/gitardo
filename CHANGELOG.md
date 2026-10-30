@@ -21,6 +21,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 - The merges folded in the graph stay folded while the view is hidden, when it is loaded again and after VS Code restarts, for each repository.
 - In the review of the conflicts, each side is named by its branch, or by the short hash of its commit, with the subject of that commit, rather than only as the branch checked out and the branch being merged.
+- The **Columns** of the review of the conflicts take the whole width of the tab, and their lines no longer wrap: a column too narrow for them scrolls sideways, with the other two. The bands between the columns can be dragged to make one wider, for every conflict at once, as in the Flow Merge.
 - **Fold all merges** in the **…** menu of the graph is a switch with a check: while it is on, the merges loaded later, as the graph is scrolled or more of the history is read, are folded too, but those unfolded by hand, until **Unfold all merges**. It is kept with the folds.
 
 ## 0.9.0 - 2026-10-29

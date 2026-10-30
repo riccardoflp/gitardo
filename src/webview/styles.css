@@ -2987,6 +2987,11 @@ input:focus-visible,
   margin-right: auto;
 }
 
+/* Three columns of code need all the width there is. */
+.conflicts-page.wide > * {
+  max-width: none;
+}
+
 .conflicts-page h1 {
   margin: 0 0 6px;
   font-size: 1.5em;
@@ -3268,15 +3273,75 @@ input:focus-visible,
 .conflict .columns {
   --current: var(--vscode-merge-currentHeaderBackground, rgba(64, 200, 174, 0.5));
   --incoming: var(--vscode-merge-incomingHeaderBackground, rgba(64, 166, 255, 0.5));
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr) 24px minmax(0, 1fr);
-  align-items: start;
+  display: flex;
+  align-items: flex-start;
   padding: 0 10px 8px;
 }
 
+/*
+ * The widths are shared by weight, as the gutters are dragged. Inside, a column is a block: the width given to its
+ * label, which matters where the labels are in a row of their own, has nothing to do here.
+ */
+.conflict .columns > .side {
+  display: block;
+  height: auto;
+  flex: 1 1 0;
+}
+
 .conflict .columns .bands {
+  flex: 0 0 24px;
   align-self: stretch;
   position: relative;
+}
+
+/* The lines keep the shape of the code: a column too narrow for them scrolls sideways, with the other two. */
+.conflict .columns .code-lines {
+  overflow-x: auto;
+}
+
+.conflict .columns .code-width {
+  width: max-content;
+  min-width: 100%;
+}
+
+.conflict .columns .code-line {
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+/* A gutter is also the sash between its two columns, as in the Flow Merge. */
+.conflict .columns .column-sash {
+  cursor: col-resize;
+}
+
+.conflict .columns .column-sash::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--vscode-sash-hoverBorder, var(--vscode-focusBorder, #007fd4));
+  opacity: 0;
+  transition: opacity 0.1s;
+  pointer-events: none;
+}
+
+.conflict .columns .column-sash:hover::after {
+  opacity: 0.6;
+  transition-delay: 0.4s;
+}
+
+.conflict .columns .column-sash.dragging::after {
+  opacity: 1;
+  transition-delay: 0s;
+}
+
+.columns-resizing,
+.columns-resizing * {
+  cursor: col-resize !important;
+  user-select: none;
 }
 
 .conflict .columns .bands svg {
@@ -3365,12 +3430,16 @@ input:focus-visible,
 /* One under the other in a narrow tab, where bands between them would join nothing. */
 @container (max-width: 640px) {
   .conflict .columns {
-    grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
+    align-items: stretch;
     gap: 8px;
   }
 
-  .conflict .columns .bands,
-  .conflict .columns > div:empty {
+  .conflict .columns > .side {
+    flex-basis: auto;
+  }
+
+  .conflict .columns .bands {
     display: none;
   }
 }

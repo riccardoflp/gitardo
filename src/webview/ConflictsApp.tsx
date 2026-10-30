@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Columns as Resizer } from '../flow/webview/columns';
 import type { Hunk } from '../shared/protocol';
 import type { Asking, ConflictRef, ConflictReview, Proposal, ReviewConflict, ReviewFile } from '../shared/resolution';
 import { Piece } from './FileChanges';
@@ -8,12 +9,13 @@ import { useColors, type Token } from './syntax';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
 /**
- * What the page remembers while it is hidden: the conflicts whose proposal was accepted, by file and key, and whether
- * they are shown in columns.
+ * What the page remembers while it is hidden: the conflicts whose proposal was accepted, by file and key, whether
+ * they are shown in columns, and how wide the columns were made.
  */
 interface Remembered {
   accepted: string[];
   columns?: boolean;
+  widths?: number[];
 }
 
 /** What a side of the conflicts is: its place in the operation, and the branch or commit it comes from. */
@@ -24,6 +26,12 @@ interface Side {
   subject: string | null;
 }
 
+/**
+ * The widths of the columns, the same for every conflict of the page: dragging the gutter of one conflict moves the
+ * gutters of all of them.
+ */
+const widths: { now?: number[]; columns: Set<Resizer> } = { columns: new Set() };
+
 const idOf = (path: string, key: string) => `${path}\0${key}`;
 const linesOf = (text: string) => (text ? text.replace(/\r?\n$/, '').split(/\r?\n/) : []);
 const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
@@ -33,17 +41,20 @@ function Code(props: { text: string; colors?: (Token[] | null)[]; kind?: (line: 
   const { text, colors, kind, className, caret } = props;
   const lines = linesOf(text);
   if (!lines.length && !caret) return <div className={`code-lines empty-lines ${className ?? ''}`}>Nothing: the lines are deleted</div>;
+  // The lines are as wide as the longest of them, for their colors to go all the way when the columns scroll sideways.
   return (
     <div className={`code-lines ${className ?? ''}`}>
-      {lines.map((line, index) => {
-        const pieces = colors?.[index];
-        return (
-          <div key={index} className={`code-line ${kind?.(line, index) ?? ''}`}>
-            {pieces ? pieces.map((token, piece) => <Piece key={piece} token={token} />) : line || ' '}
-          </div>
-        );
-      })}
-      {caret && <span className="caret" aria-hidden="true" />}
+      <div className="code-width">
+        {lines.map((line, index) => {
+          const pieces = colors?.[index];
+          return (
+            <div key={index} className={`code-line ${kind?.(line, index) ?? ''}`}>
+              {pieces ? pieces.map((token, piece) => <Piece key={piece} token={token} />) : line || ' '}
+            </div>
+          );
+        })}
+        {caret && <span className="caret" aria-hidden="true" />}
+      </div>
     </div>
   );
 }
@@ -187,7 +198,8 @@ function Bands(props: { pairs: [number, number][]; left: Place[]; right: Place[]
 
 /**
  * A conflict in three columns, as the Flow Merge shows a file: the current side, what is proposed, and the incoming
- * side, with bands that join each line proposed to the side it comes from.
+ * side, with bands that join each line proposed to the side it comes from. The bands are also the sashes that make a
+ * column wider, and the lines do not wrap: the three columns scroll sideways together.
  */
 function Columns(props: {
   conflict: ReviewConflict;
@@ -195,8 +207,10 @@ function Columns(props: {
   accepted: boolean;
   colors?: (Token[] | null)[][];
   middle: ReactNode;
+  /** Keeps the widths once a gutter is let go. */
+  onWidths(weights: number[]): void;
 }) {
-  const { conflict, sides, accepted, colors, middle } = props;
+  const { conflict, sides, accepted, colors, middle, onWidths } = props;
   const { proposal } = conflict;
   const ours = linesOf(conflict.region.ours);
   const theirs = linesOf(conflict.region.theirs);
@@ -231,6 +245,43 @@ function Columns(props: {
     return () => observer.disconnect();
   }, [conflict.region.ours, conflict.region.theirs, proposal?.text]);
 
+  const kept = useRef(onWidths);
+  kept.current = onWidths;
+  useEffect(() => {
+    const element = grid.current;
+    if (!element) return;
+    const columns = ['ours', 'proposed', 'theirs'].map((column) => {
+      const host = element.querySelector<HTMLElement>(`:scope > .side.${column}`)!;
+      return { host, label: host.querySelector<HTMLElement>('.side-label')! };
+    });
+    const resizer: Resizer = new Resizer(columns, [...element.querySelectorAll<HTMLElement>(':scope > .bands')], widths.now, (weights, done) => {
+      widths.now = weights;
+      for (const other of widths.columns) if (other !== resizer) other.set(weights);
+      if (done) kept.current(weights);
+    });
+    widths.columns.add(resizer);
+    // A column scrolled sideways takes the other two along. Each of those then says it scrolled too, which is not
+    // passed on: it would bring back a column that could go further than they can.
+    const following = new Set<Element>();
+    const scrolled = (event: Event) => {
+      const from = event.target;
+      if (!(from instanceof HTMLElement) || !from.classList.contains('code-lines') || from.parentElement?.parentElement !== element) return;
+      if (following.delete(from)) return;
+      for (const other of element.querySelectorAll<HTMLElement>(':scope > .side > .code-lines')) {
+        if (other === from || other.scrollLeft === from.scrollLeft) continue;
+        const before = other.scrollLeft;
+        other.scrollLeft = from.scrollLeft;
+        if (other.scrollLeft !== before) following.add(other);
+      }
+    };
+    element.addEventListener('scroll', scrolled, true);
+    return () => {
+      element.removeEventListener('scroll', scrolled, true);
+      widths.columns.delete(resizer);
+      resizer.dispose();
+    };
+  }, []);
+
   const kindOfProposed = (line: string, index: number) => {
     const [byOurs, byTheirs] = [taken.byOurs.has(index), taken.byTheirs.has(index)];
     if (byOurs && byTheirs) return 'from-both';
@@ -244,12 +295,12 @@ function Columns(props: {
         <SideLabel side={sides[0]} />
         <Code text={conflict.region.ours} colors={colors?.[6]} kind={(_line, index) => (!proposal ? '' : taken.ours.has(index) ? 'taken' : 'left-out')} />
       </div>
-      {proposal ? <Bands pairs={fromOurs} left={places.ours} right={places.proposed} side="ours" /> : <div />}
+      <Bands pairs={fromOurs} left={places.ours} right={places.proposed} side="ours" />
       <div className={`side proposed${proposal ? ` ${proposal.source}` : ''}`}>
         <div className="side-label">{proposal ? (accepted ? 'Accepted' : 'Proposed') : 'Nothing proposed yet'}</div>
         {proposal ? <Code text={proposal.text} colors={colors?.[3]} kind={kindOfProposed} /> : middle}
       </div>
-      {proposal ? <Bands pairs={toTheirs} left={places.proposed} right={places.theirs} side="theirs" /> : <div />}
+      <Bands pairs={toTheirs} left={places.proposed} right={places.theirs} side="theirs" />
       <div className="side theirs">
         <SideLabel side={sides[1]} />
         <Code text={conflict.region.theirs} colors={colors?.[7]} kind={(_line, index) => (!proposal ? '' : taken.theirs.has(index) ? 'taken' : 'left-out')} />
@@ -269,8 +320,9 @@ function Conflict(props: {
   /** Whether it is shown in three columns rather than as the two sides over what is proposed. */
   columns: boolean;
   onAccept(accepted: boolean): void;
+  onWidths(weights: number[]): void;
 }) {
-  const { file, conflict, sides, ai, accepted, busy, columns, onAccept } = props;
+  const { file, conflict, sides, ai, accepted, busy, columns, onAccept, onWidths } = props;
   const { proposal, asking } = conflict;
   const ref: ConflictRef = { path: file.path, key: conflict.key };
   // Each part is colored on its own: the lines before, the two sides, the proposal, the lines after, the base, and the
@@ -312,7 +364,7 @@ function Conflict(props: {
       )}
       {columns ? (
         <>
-          <Columns conflict={conflict} sides={sides} accepted={accepted} colors={colors} middle={nothing} />
+          <Columns conflict={conflict} sides={sides} accepted={accepted} colors={colors} middle={nothing} onWidths={onWidths} />
           {proposal && (
             <p className="columns-reason">
               <span className="muted">{proposal.reason}</span>
@@ -467,6 +519,8 @@ export function ConflictsApp() {
   const [busy, setBusy] = useState(false);
   const [accepted, setAccepted] = useState(() => new Set(loadUiState<Remembered>({ accepted: [] }).accepted));
   const [columns, setColumns] = useState(() => loadUiState<Remembered>({ accepted: [] }).columns === true);
+  const [kept, setKept] = useState(() => loadUiState<Remembered>({ accepted: [] }).widths);
+  widths.now ??= kept;
 
   useEffect(() => {
     const stop = onMessage((message) => {
@@ -483,7 +537,7 @@ export function ConflictsApp() {
   // What was accepted and is no longer there, written or edited, is forgotten.
   const present = useMemo(() => new Set(review?.files.flatMap((file) => file.conflicts.filter((each) => each.proposal).map((each) => idOf(file.path, each.key)))), [review]);
   const chosen = useMemo(() => [...accepted].filter((id) => present.has(id)), [accepted, present]);
-  useEffect(() => saveUiState({ accepted: chosen, columns }), [chosen, columns]);
+  useEffect(() => saveUiState({ accepted: chosen, columns, widths: kept }), [chosen, columns, kept]);
 
   if (review === undefined) return <div className="empty">Reading the files in conflict…</div>;
   if (review === null) return <div className="empty">Gitardo could not read the files in conflict. {error}</div>;
@@ -514,7 +568,7 @@ export function ConflictsApp() {
   ].filter(Boolean);
 
   return (
-    <main className="conflicts-page">
+    <main className={`conflicts-page${columns ? ' wide' : ''}`}>
       <header className="conflicts-head">
         <h1>
           Conflicts
@@ -637,6 +691,7 @@ export function ConflictsApp() {
                 columns={columns}
                 accepted={accepted.has(idOf(file.path, conflict.key))}
                 onAccept={(on) => accept([idOf(file.path, conflict.key)], on)}
+                onWidths={setKept}
               />
             ))}
           </section>
