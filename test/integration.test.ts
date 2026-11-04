@@ -2137,6 +2137,24 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     }
   });
 
+  it('puts the repositories a folder holds before the one the folder is in', async () => {
+    write('a.txt', 'one\n');
+    await commitAll('base');
+    // A folder of projects inside a repository of its own, such as a home folder kept in git.
+    const projects = path.join(root, 'projects');
+    for (const name of ['app', 'lib']) {
+      fs.mkdirSync(path.join(projects, name), { recursive: true });
+      await git(path.join(projects, name), ['init', '--initial-branch=main']);
+    }
+    fs.mkdirSync(path.join(root, 'notes'));
+
+    const names = (found: string[]) => found.map((each) => path.relative(root, each).replace(/\\/g, '/'));
+    expect(names(await discoverRepos([projects]))).toEqual(['projects/app', 'projects/lib', '']);
+    // A folder of the repository with none of its own is opened for that repository, as before.
+    expect(names(await discoverRepos([path.join(root, 'notes'), projects]))).toEqual(['', 'projects/app', 'projects/lib']);
+    expect(names(await discoverRepos([root]))).toEqual(['']);
+  });
+
   it('reads the staged and the unstaged changes as patches', async () => {
     write('a.txt', 'one\n');
     await commitAll('base');

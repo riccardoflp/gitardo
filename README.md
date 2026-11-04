@@ -560,7 +560,7 @@ The same way to look at a file in conflict, in three columns: what the current s
 
 ### Multiple repositories
 
-Gitardo shows one repository at a time. It finds the repository of each workspace folder, the repositories directly inside a folder, and their submodules. When there is more than one, a list at the start of the toolbar and at the top of the Changes view switches between them, as does **Gitardo: Select Repository**, and the header of the Commits view names the one that is shown. The choice is remembered per workspace. **Show File History** switches to the repository of the file on its own.
+Gitardo shows one repository at a time. It finds the repository of each workspace folder, the repositories directly inside a folder, and their submodules. A folder that holds repositories but is itself inside another, such as a home folder kept in git, is about the ones it holds: they come first, and the one around it last. When there is more than one, a list at the start of the toolbar and at the top of the Changes view switches between them, as does **Gitardo: Select Repository**, and the header of the Commits view names the one that is shown. The choice is remembered per workspace. **Show File History** switches to the repository of the file on its own.
 
 ### Conflicts
 

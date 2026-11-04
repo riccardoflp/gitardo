@@ -46,10 +46,14 @@ export async function discoverRepos(folders: string[]): Promise<string[]> {
     for (const submodule of await submodules(root)) await add(submodule);
   };
   for (const folder of folders) {
-    await add(folder);
-    for (const child of childDirectories(folder)) {
-      if (fs.existsSync(path.join(child, '.git'))) await add(child);
-    }
+    const inside = childDirectories(folder).filter((child) => fs.existsSync(path.join(child, '.git')));
+    // A folder that holds repositories but is itself in a repository further up, such as a home folder kept in git, is
+    // opened for the ones it holds: they come first, and the first is the one shown.
+    const enclosing = inside.length ? await Repo.discover(folder) : null;
+    const above = enclosing !== null && key(enclosing) !== key(folder);
+    if (!above) await add(folder);
+    for (const child of inside) await add(child);
+    if (above) await add(folder);
   }
   return [...found.values()];
 }

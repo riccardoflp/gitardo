@@ -30,6 +30,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 ### Fixed
 
 - A file in conflict because one side deleted it and the other changed it showed nothing in the review of the conflicts, and opened from the Changes view as the plain file, with no way to see what changed. The review now gives it a card with what the side that kept it changed, as a diff, and **Keep it, with these changes** or **Delete it**; from the Changes view it opens in the diff editor, as it was beside what it is now.
+- A workspace folder that holds repositories but is itself inside another one, such as a home folder kept in git, showed that other repository first, with its own branches rather than those of the repositories in the folder. The repositories in the folder now come first, and the one around it last in the list.
 
 ## 0.9.0 - 2026-10-29
 
