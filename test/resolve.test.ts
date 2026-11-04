@@ -22,7 +22,7 @@ import {
   type GitOp,
 } from '../src/git/ops';
 import { Repo } from '../src/git/repo';
-import { reviewFiles } from '../src/git/review';
+import { conflictChanges, reviewFiles } from '../src/git/review';
 
 // Conflicts as git itself leaves them, in a throwaway repository, resolved the way the extension does it.
 
@@ -199,6 +199,17 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     // What each proposal takes the place of, as each side has it, for the columns.
     expect(b.conflicts[0].region).toEqual({ ours: text('two', 'THREE'), theirs: text('TWO', 'three') });
     expect(c.conflicts[0].region).toEqual({ ours: text('ours'), theirs: text('theirs') });
+    // What each side changed of the base, for the cards, with the lines of the file around it and their numbers.
+    expect(b.conflicts[0].changes).toEqual({
+      base: text('two', 'three'),
+      ours: text('two', 'THREE'),
+      theirs: text('TWO', 'three'),
+      before: text('one'),
+      beforeLine: 1,
+      after: text('four', 'five'),
+      afterLine: 9,
+    });
+    expect(c.conflicts[0].changes).toMatchObject({ base: text('one'), ours: text('ours'), theirs: text('theirs'), before: '', beforeLine: 1, after: text('two', 'three', 'four'), afterLine: 6 });
     // Without the rules, only the language model proposes.
     expect(reviewFiles(await plans(), false, asked).map((file) => file.conflicts[0].proposal?.source ?? null)).toEqual([null, 'ai']);
 
@@ -215,6 +226,22 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     write('b.txt', `${read('b.txt')}typed\n`);
     const stale = writeResolutionsOp([{ ...files[0], proposals: [b.conflicts[0].proposal!] }]);
     await expect(run(stale)).rejects.toThrow('b.txt has changed since it was read');
+  });
+
+  it('finds in the file the lines that the changes of a conflict take around its markers, for the lines around to follow them', () => {
+    // Both sides changed "b" to "X" the same way, next to the conflict: what each side changed starts there.
+    const file = text('a', 'X', '<<<<<<< ours', 'c1', '=======', 'c2', '>>>>>>> theirs', 'd');
+    const conflict = { line: 3, resolution: null, from: 2, to: 7, ours: text('c1'), theirs: text('c2'), patch: null, stretch: { base: text('b', 'c'), ours: text('X', 'c1'), theirs: text('X', 'c2') } };
+    expect(conflictChanges(file.split(/(?<=\n)/), conflict)).toEqual({
+      base: text('b', 'c'),
+      ours: text('X', 'c1'),
+      theirs: text('X', 'c2'),
+      before: text('a'),
+      beforeLine: 1,
+      after: text('d'),
+      afterLine: 8,
+    });
+    expect(conflictChanges(file.split(/(?<=\n)/), { ...conflict, stretch: null })).toBeNull();
   });
 
   it('puts the conflicts back as git left them, also in a file that was staged since', async () => {

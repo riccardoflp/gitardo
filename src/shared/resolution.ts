@@ -36,6 +36,16 @@ export interface Proposal {
 /** Where the question to the language model about a conflict is: waiting for its turn, answered in part, or failed. */
 export type Asking = { state: 'waiting' } | { state: 'thinking'; text: string } | { state: 'failed'; error: string };
 
+export interface ConflictChanges {
+  base: string;
+  ours: string;
+  theirs: string;
+  before: string;
+  beforeLine: number;
+  after: string;
+  afterLine: number;
+}
+
 export interface ReviewConflict {
   /** The same for the same conflict as long as nobody edits it, whatever is written elsewhere in the file. */
   key: string;
@@ -54,6 +64,12 @@ export interface ReviewConflict {
    * around them that the rules take too. Without a proposal, what is between the markers.
    */
   region: { ours: string; theirs: string };
+  /**
+   * What each side changed of the base: the lines from where the two sides are known to be at the same place to where
+   * they are again, as the base had them and as each side has them, with a few lines of the file before them and after
+   * them, and the number of the first line of each. Null when the base cannot be told.
+   */
+  changes: ConflictChanges | null;
   proposal: Proposal | null;
   asking: Asking | null;
 }

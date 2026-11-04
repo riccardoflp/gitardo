@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { ConflictAnswer } from '../shared/conflictPrompt';
-import { RESOLUTIONS, newLineCount, type Asking, type Proposal, type ReviewConflict, type ReviewFile } from '../shared/resolution';
+import { RESOLUTIONS, newLineCount, type Asking, type ConflictChanges, type Proposal, type ReviewConflict, type ReviewFile } from '../shared/resolution';
 import type { Conflict } from './conflicts';
 import type { ConflictPlan } from './repo';
 
@@ -69,6 +69,41 @@ export function questionParts(text: string, conflict: Conflict): { before: strin
   };
 }
 
+/**
+ * What each side of a conflict changed of the base, with the lines of the file around it. The stretch can take some
+ * lines of the file before the markers and after them, which both sides have: they are found again in the file, for
+ * the lines around to start where the stretch ends.
+ */
+export function conflictChanges(lines: string[], conflict: Conflict): ConflictChanges | null {
+  const stretch = conflict.stretch;
+  if (!stretch) return null;
+  const [side, own] = [linesOf(stretch.ours), linesOf(conflict.ours)].map((list) => list.filter(Boolean));
+  const same = (one: string[], other: string[]) => one.length === other.length && one.every((line, index) => line === other[index]);
+  let [above, below] = [0, 0];
+  for (let taken = 0; taken <= side.length - own.length; taken++) {
+    const after = side.length - own.length - taken;
+    const fits =
+      same(side.slice(0, taken), lines.slice(conflict.from - taken, conflict.from)) &&
+      same(side.slice(taken, taken + own.length), own) &&
+      same(side.slice(taken + own.length), lines.slice(conflict.to, conflict.to + after));
+    if (fits) {
+      [above, below] = [taken, after];
+      break;
+    }
+  }
+  const [start, end] = [conflict.from - above, conflict.to + below];
+  const first = Math.max(0, start - AROUND);
+  return {
+    base: stretch.base,
+    ours: stretch.ours,
+    theirs: stretch.theirs,
+    before: lines.slice(first, start).join(''),
+    beforeLine: first + 1,
+    after: lines.slice(end, end + AROUND).join(''),
+    afterLine: end + 1,
+  };
+}
+
 /** What the rules put in place of a conflict, when they resolve it. */
 export function rulesProposal(conflict: Conflict): Proposal | null {
   if (!conflict.patch || !conflict.resolution) return null;
@@ -101,6 +136,7 @@ export function reviewFiles(plans: ConflictPlan[], rules: boolean, asked: Asked)
           ours: lines.slice(from, conflict.from).join('') + conflict.ours + lines.slice(conflict.to, to).join(''),
           theirs: lines.slice(from, conflict.from).join('') + conflict.theirs + lines.slice(conflict.to, to).join(''),
         },
+        changes: conflictChanges(lines, conflict),
         proposal,
         asking: proposal ? null : (asked.asking(plan.path, print) ?? null),
       };

@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Columns as Resizer } from '../flow/webview/columns';
 import type { Hunk } from '../shared/protocol';
-import type { Asking, ConflictRef, ConflictReview, Proposal, ReviewConflict, ReviewFile } from '../shared/resolution';
+import type { Asking, ConflictChanges, ConflictRef, ConflictReview, Proposal, ReviewConflict, ReviewFile } from '../shared/resolution';
 import { Piece } from './FileChanges';
 import { FileIcon } from './FileIcon';
 import { Icon } from './Icon';
+import { sideChanges, type ChangedLine } from './sideChanges';
 import { useColors, type Token } from './syntax';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
@@ -75,6 +76,86 @@ function Code(props: { text: string; colors?: (Token[] | null)[]; kind?: (line: 
           );
         })}
         {caret && <span className="caret" aria-hidden="true" />}
+      </div>
+    </div>
+  );
+}
+
+/** A line in its colors, with the words that changed in it marked. */
+function Marked({ text, tokens, words }: { text: string; tokens?: Token[] | null; words?: [number, number][] }) {
+  const pieces = tokens ?? [{ text }];
+  if (!words?.length) return pieces.map((token, index) => <Piece key={index} token={token} />);
+  const marked: ReactNode[] = [];
+  let at = 0;
+  for (const token of pieces) {
+    // A piece of the colors can start or end inside a word that changed: it is cut where the word starts and ends.
+    for (let start = 0; start < token.text.length; ) {
+      const where = at + start;
+      const inside = words.find(([from, to]) => where >= from && where < to);
+      const next = inside ? inside[1] : Math.min(...words.map(([from]) => from).filter((from) => from > where), at + token.text.length);
+      const end = Math.min(token.text.length, next - at);
+      const piece = <Piece key={marked.length} token={{ ...token, text: token.text.slice(start, end) }} />;
+      marked.push(
+        inside ? (
+          <mark key={marked.length} className="word">
+            {piece}
+          </mark>
+        ) : (
+          piece
+        ),
+      );
+      start = end;
+    }
+    at += token.text.length;
+  }
+  return marked;
+}
+
+/** A line of a side shown as what it changed: what it is, what is in its gutter, and its words that changed. */
+interface ChangeRow {
+  kind: ChangedLine['kind'] | 'around';
+  gutter: string;
+  text: string;
+  tokens?: Token[] | null;
+  words?: [number, number][];
+}
+
+/** Lines of the file around what a side changed, numbered as they are in the file. */
+function aroundLines(text: string, first: number, colors?: (Token[] | null)[]): ChangeRow[] {
+  return linesOf(text).map((line, index) => ({ kind: 'around', gutter: String(first + index), text: line, tokens: colors?.[index] }));
+}
+
+/**
+ * A side as what it changed of the base: the lines it took out, with a minus, over the ones it wrote in their place,
+ * with a plus, and the words that changed marked in both, between the lines of the file around them.
+ */
+function Changes(props: { changes: ConflictChanges; lines: ChangedLine[]; side: 'ours' | 'theirs'; colors?: (Token[] | null)[][] }) {
+  const { changes, lines, side, colors } = props;
+  const rows: ChangeRow[] = [
+    ...aroundLines(changes.before, changes.beforeLine, colors?.[11]),
+    ...lines.map((line) => ({
+      kind: line.kind,
+      gutter: line.kind === 'removed' ? '−' : line.kind === 'added' ? '+' : '',
+      text: line.text,
+      tokens: (line.kind === 'removed' ? colors?.[8] : colors?.[side === 'ours' ? 9 : 10])?.[line.index],
+      words: line.words,
+    })),
+    ...aroundLines(changes.after, changes.afterLine, colors?.[12]),
+  ];
+  const titles: Record<string, string> = { removed: 'Taken out of the base by this side', added: 'Written by this side', around: 'Line of the file around the conflict' };
+  return (
+    <div className="code-lines changes">
+      <div className="code-width">
+        {rows.map((row, index) => (
+          <div key={index} className={`code-line ${row.kind}`}>
+            <span className="gutter" title={titles[row.kind]}>
+              {row.gutter}
+            </span>
+            <span className="text">
+              <Marked text={row.text || ' '} tokens={row.tokens} words={row.words} />
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -349,12 +430,32 @@ function Conflict(props: {
   const { file, conflict, sides, ai, accepted, busy, columns, folded, onAccept, onFold, onWidths } = props;
   const { proposal, asking } = conflict;
   const ref: ConflictRef = { path: file.path, key: conflict.key };
-  // Each part is colored on its own: the lines before, the two sides, the proposal, the lines after, the base, and the
-  // lines the proposal replaces on each side, which the columns show.
-  const parts = [conflict.before, conflict.ours, conflict.theirs, proposal?.text ?? '', conflict.after, conflict.base ?? '', conflict.region.ours, conflict.region.theirs];
+  // Each part is colored on its own: the lines before, the two sides, the proposal, the lines after, the base, the
+  // lines the proposal replaces on each side, which the columns show, and what each side changed of the base, with the
+  // lines around it, which the cards show.
+  const { changes } = conflict;
+  const parts = [
+    conflict.before,
+    conflict.ours,
+    conflict.theirs,
+    proposal?.text ?? '',
+    conflict.after,
+    conflict.base ?? '',
+    conflict.region.ours,
+    conflict.region.theirs,
+    changes?.base ?? '',
+    changes?.ours ?? '',
+    changes?.theirs ?? '',
+    changes?.before ?? '',
+    changes?.after ?? '',
+  ];
   const hunks = useMemo<Hunk[]>(() => parts.map((text) => ({ header: '', lines: linesOf(text).map((line) => ` ${line}`) })), parts);
   const colors = useColors(file.path, hunks, !folded);
   const [showBase, setShowBase] = useState(false);
+  const changed = useMemo(
+    () => (changes && !folded && !columns ? { ours: sideChanges(changes.base, changes.ours), theirs: sideChanges(changes.base, changes.theirs) } : null),
+    [changes?.base, changes?.ours, changes?.theirs, folded, columns],
+  );
   const known = useMemo(
     () => new Set([conflict.ours, conflict.theirs, conflict.base ?? ''].flatMap((text) => linesOf(text).map((line) => line.trim()))),
     [conflict.ours, conflict.theirs, conflict.base],
@@ -442,11 +543,15 @@ function Conflict(props: {
           <div className="sides">
             <div className="side ours">
               <SideLabel side={sides[0]} />
-              <Code text={conflict.ours} colors={colors?.[1]} />
+              {changes && changed?.ours ? <Changes changes={changes} lines={changed.ours} side="ours" colors={colors} /> : <Code text={conflict.ours} colors={colors?.[1]} />}
             </div>
             <div className="side theirs">
               <SideLabel side={sides[1]} />
-              <Code text={conflict.theirs} colors={colors?.[2]} />
+              {changes && changed?.theirs ? (
+                <Changes changes={changes} lines={changed.theirs} side="theirs" colors={colors} />
+              ) : (
+                <Code text={conflict.theirs} colors={colors?.[2]} />
+              )}
             </div>
           </div>
 

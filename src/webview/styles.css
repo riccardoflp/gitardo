@@ -3379,6 +3379,59 @@ input:focus-visible,
   tab-size: 4;
 }
 
+/*
+ * A side as what it changed of the base: a gutter with the number of each line of the file around it, and a minus or
+ * a plus for each line taken out or written, in the colors of the diff editor.
+ */
+.code-lines.changes .code-line {
+  display: flex;
+  padding-left: 0;
+}
+
+.code-lines.changes .gutter {
+  flex: none;
+  width: 4ch;
+  padding-right: 1ch;
+  text-align: right;
+  color: var(--vscode-editorLineNumber-foreground, var(--vscode-descriptionForeground));
+  user-select: none;
+}
+
+.code-lines.changes .text {
+  flex: 1;
+  min-width: 0;
+}
+
+.code-lines.changes .around .text {
+  opacity: 0.55;
+}
+
+.code-lines.changes .removed {
+  background: var(--vscode-diffEditor-removedLineBackground, rgba(255, 0, 0, 0.15));
+}
+
+.code-lines.changes .added {
+  background: var(--vscode-diffEditor-insertedLineBackground, rgba(155, 185, 85, 0.2));
+}
+
+.code-lines.changes .removed .gutter,
+.code-lines.changes .added .gutter {
+  color: var(--vscode-foreground);
+}
+
+.code-lines.changes mark.word {
+  color: inherit;
+  border-radius: 2px;
+}
+
+.code-lines.changes .removed mark.word {
+  background: var(--vscode-diffEditor-removedTextBackground, rgba(255, 0, 0, 0.3));
+}
+
+.code-lines.changes .added mark.word {
+  background: var(--vscode-diffEditor-insertedTextBackground, rgba(155, 185, 85, 0.4));
+}
+
 .code-lines.empty-lines {
   padding: 3px 10px;
   font-family: inherit;
