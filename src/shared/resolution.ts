@@ -74,6 +74,19 @@ export interface ReviewConflict {
   asking: Asking | null;
 }
 
+/**
+ * A file in conflict because one side deleted it and the other changed it: there are no lines to choose between, only
+ * whether the file stays, with the changes of the side that kept it, or goes.
+ */
+export interface DeletedConflict {
+  path: string;
+  /** The side that deleted it. */
+  deletedBy: 'ours' | 'theirs';
+  /** What the file was before either side changed it, and what the side that kept it made of it. */
+  base: string;
+  changed: string;
+}
+
 export interface ReviewFile {
   path: string;
   conflicts: ReviewConflict[];
@@ -103,7 +116,9 @@ export interface ConflictReview {
   oursSubject: string | null;
   theirsSubject: string | null;
   files: ReviewFile[];
-  /** The files in conflict without markers to look at here: binary ones, the ones a side deleted, the very large ones. */
+  /** The files one side deleted and the other changed. */
+  deleted: DeletedConflict[];
+  /** The files in conflict without markers to look at here: binary ones, the very large ones, the ones both sides added or deleted. */
   others: string[];
   /** Whether the rules propose resolutions, and whether the language model can be asked: each has its setting. */
   rules: boolean;

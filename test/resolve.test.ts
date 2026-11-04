@@ -267,6 +267,8 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     await expect(run(mergeOp('other', 'main'))).rejects.toThrow();
     // A file one side deleted has no markers: there is nothing in it to resolve line by line.
     expect((await state()).conflictFiles).toEqual([{ path: 'a.txt', conflicts: 1, resolvable: [] }]);
+    // What there is to choose is whether it stays: the review shows what the other side changed of it.
+    expect(await repo.deletedConflicts(['a.txt', 'gone.txt'])).toEqual([{ path: 'gone.txt', deletedBy: 'ours', base: BASE, changed: theirs }]);
 
     const incoming = takeSideOp('a.txt', 'theirs', await repo.conflictStages('a.txt'), 'merge');
     expect(incoming).toMatchObject({

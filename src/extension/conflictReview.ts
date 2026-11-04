@@ -7,7 +7,7 @@ import type { ConflictPlan, Repo } from '../git/repo';
 import { fingerprint, questionParts, reviewFiles } from '../git/review';
 import { partialResolution } from '../shared/conflictPrompt';
 import type { HostMessage, Operation, ViewKind } from '../shared/protocol';
-import type { Asking, ConflictRef, ConflictReview, Proposal, ReviewReport } from '../shared/resolution';
+import type { Asking, ConflictRef, ConflictReview, DeletedConflict, Proposal, ReviewReport } from '../shared/resolution';
 import { askResolution, conflictModelName } from './ai';
 import { proposalUri } from './content';
 import { answers } from './answers';
@@ -38,6 +38,7 @@ export class ConflictReviewTab implements vscode.Disposable {
   /** Kept apart from the panel, which no longer gives it once it is closed. */
   readonly webview: vscode.Webview;
   private plans: ConflictPlan[] = [];
+  private deleted: DeletedConflict[] = [];
   private others: string[] = [];
   private operation: Operation | null = null;
   private report: ReviewReport | null = null;
@@ -108,7 +109,9 @@ export class ConflictReviewTab implements vscode.Disposable {
       const conflicted = await this.repo.conflicted();
       const files = this.paths ? conflicted.filter((file) => this.paths?.includes(file)) : conflicted;
       this.plans = await this.repo.conflictPlans(files);
-      this.others = files.filter((file) => !this.plans.some((plan) => plan.path === file));
+      const unmarked = files.filter((file) => !this.plans.some((plan) => plan.path === file));
+      this.deleted = await this.repo.deletedConflicts(unmarked);
+      this.others = unmarked.filter((file) => !this.deleted.some((each) => each.path === file));
       this.operation = await this.repo.operation().catch(() => null);
       [this.names, this.subjects] = await Promise.all([this.repo.conflictNames(), this.repo.conflictSubjects()]);
       this.conflicted = conflicted.length;
@@ -138,6 +141,7 @@ export class ConflictReviewTab implements vscode.Disposable {
       oursSubject: this.subjects[0],
       theirsSubject: this.subjects[1],
       files: reviewFiles(this.plans, rules, asked),
+      deleted: this.deleted,
       others: this.others,
       rules,
       ai,

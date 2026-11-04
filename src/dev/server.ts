@@ -268,8 +268,10 @@ async function main() {
     };
     const files = reviewFiles(plans, true, asked);
     const busy = files.some((file) => file.conflicts.some((conflict) => conflict.asking && conflict.asking.state !== 'failed'));
-    const others = conflicted.filter((file) => !plans.some((plan) => plan.path === file));
-    const shown = { root: repo.root, operation, oursLabel, theirsLabel, oursName, theirsName, oursSubject, theirsSubject, files, others, rules: true, ai: true, asking: busy, model: PRETEND_MODEL, report: null, conflicted: conflicted.length };
+    const unmarked = conflicted.filter((file) => !plans.some((plan) => plan.path === file));
+    const deleted = await repo.deletedConflicts(unmarked);
+    const others = unmarked.filter((file) => !deleted.some((each) => each.path === file));
+    const shown = { root: repo.root, operation, oursLabel, theirsLabel, oursName, theirsName, oursSubject, theirsSubject, files, deleted, others, rules: true, ai: true, asking: busy, model: PRETEND_MODEL, report: null, conflicted: conflicted.length };
     return [{ type: 'review', review: shown }];
   }
 

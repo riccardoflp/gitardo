@@ -6,6 +6,7 @@ import { discoverRepos, repoName } from '../git/discover';
 import { GitError, formatCommand, git, writeFiles } from '../git/exec';
 import { compareRangeUrl, compareUrl, parseGitHubRemote, type GitHubRepo } from '../git/github';
 import {
+  CONFLICT_SIDES,
   cleanupBranchesOp,
   clearIdentityOp,
   fetchRemoteOp,
@@ -526,11 +527,26 @@ export class Controller implements vscode.Disposable {
       if (editor === 'mergeEditor' && [1, 2, 3].every((stage) => stages.includes(stage))) {
         return await openMergeEditor(repo.root, file, await repo.operation().catch(() => null));
       }
+      if (editor !== 'text' && (await this.openDeletedConflict(repo, file, stages))) return;
     } catch (error) {
       this.log.warn(`Could not open ${file} to resolve it: ${errorText(error)}`);
     }
     const at = Math.max(0, (Number(line) || 1) - 1);
     await vscode.window.showTextDocument(uri, { selection: new vscode.Range(at, 0, at, 0), preview: false });
+  }
+
+  /**
+   * A file one side deleted and the other changed, as what it was beside what the side that kept it made of it. False
+   * when the file is not one of those.
+   */
+  private async openDeletedConflict(repo: Repo, file: string, stages: number[]): Promise<boolean> {
+    if (!stages.includes(1) || stages.includes(2) === stages.includes(3)) return false;
+    const [current, incoming] = CONFLICT_SIDES[(await repo.operation().catch(() => null)) ?? 'none'];
+    const [deleter, keeper] = stages.includes(2) ? [incoming, current] : [current, incoming];
+    const lower = (label: string) => `${label[0].toLowerCase()}${label.slice(1)}`;
+    const title = `${path.posix.basename(file)} (deleted by ${lower(deleter)}, changed by ${lower(keeper)})`;
+    await vscode.commands.executeCommand('vscode.diff', contentUri(repo.root, ':1', file), vscode.Uri.file(path.join(repo.root, file)), title);
+    return true;
   }
 
   /** Writes resolutions of conflicts, with the way back, and says what is left. */
@@ -2550,7 +2566,8 @@ export class Controller implements vscode.Disposable {
         return;
       }
       case 'conflict': {
-        // The merge editor needs all three sides: a file added or deleted on one of them has fewer, and opens as it is.
+        // The merge editor needs all three sides. A file one side deleted shows what the other changed of it; one both
+        // sides added, or both deleted, opens as it is.
         const stages = await repo.conflictStages(file.path);
         if ([1, 2, 3].every((stage) => stages.includes(stage))) {
           try {
@@ -2561,6 +2578,7 @@ export class Controller implements vscode.Disposable {
             this.log.warn(`Could not open the merge editor: ${errorText(error)}`);
           }
         }
+        if (await this.openDeletedConflict(repo, file.path, stages)) return;
         await vscode.commands.executeCommand('vscode.open', onDisk);
         return;
       }

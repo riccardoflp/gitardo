@@ -28,6 +28,7 @@ import {
 } from '../shared/protocol';
 import { subjectAndBody } from '../shared/message';
 import { REF_KINDS, SCOPE_PREFIXES, pruneScope, scopeKinds } from '../shared/scope';
+import type { DeletedConflict } from '../shared/resolution';
 import { resolveConflicts, type Conflict } from './conflicts';
 import { GitError, formatCommand, git, type GitResult } from './exec';
 import { committedRange, type LineRange } from './lines';
@@ -395,6 +396,23 @@ export class Repo {
       .split('\0')
       .filter(Boolean)
       .map((record) => Number(record.split('\t')[0].split(' ')[2]));
+  }
+
+  /**
+   * Of these files in conflict, the ones that one side deleted and the other changed, with what they were and what the
+   * side that kept them made of them. Left out are those that are not text, or too large to show.
+   */
+  async deletedConflicts(files: string[]): Promise<DeletedConflict[]> {
+    const found: DeletedConflict[] = [];
+    for (const file of files.slice(0, CONFLICT_FILES)) {
+      const stages = await this.conflictStages(file);
+      if (!stages.includes(1) || stages.includes(2) === stages.includes(3)) continue;
+      const deletedBy = stages.includes(2) ? 'theirs' : 'ours';
+      const [base, changed] = await Promise.all([this.show(':1', file), this.show(deletedBy === 'theirs' ? ':2' : ':3', file)]);
+      if ([base, changed].some((text) => text.includes(' ') || text.length > CONFLICT_BYTES)) continue;
+      found.push({ path: file, deletedBy, base, changed });
+    }
+    return found;
   }
 
   /**

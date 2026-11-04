@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Columns as Resizer } from '../flow/webview/columns';
 import type { Hunk } from '../shared/protocol';
-import type { Asking, ConflictChanges, ConflictRef, ConflictReview, Proposal, ReviewConflict, ReviewFile } from '../shared/resolution';
+import type { Asking, ConflictChanges, ConflictRef, ConflictReview, DeletedConflict, Proposal, ReviewConflict, ReviewFile } from '../shared/resolution';
 import { Piece } from './FileChanges';
 import { FileIcon } from './FileIcon';
 import { Icon } from './Icon';
@@ -111,9 +111,12 @@ function Marked({ text, tokens, words }: { text: string; tokens?: Token[] | null
   return marked;
 }
 
-/** A line of a side shown as what it changed: what it is, what is in its gutter, and its words that changed. */
+/**
+ * A line of a side shown as what it changed: what it is, what is in its gutter, and its words that changed. A row
+ * skipped stands for lines of the file that neither changed nor are near a change.
+ */
 interface ChangeRow {
-  kind: ChangedLine['kind'] | 'around';
+  kind: ChangedLine['kind'] | 'around' | 'skipped';
   gutter: string;
   text: string;
   tokens?: Token[] | null;
@@ -142,7 +145,11 @@ function Changes(props: { changes: ConflictChanges; lines: ChangedLine[]; side: 
     })),
     ...aroundLines(changes.after, changes.afterLine, colors?.[12]),
   ];
-  const titles: Record<string, string> = { removed: 'Taken out of the base by this side', added: 'Written by this side', around: 'Line of the file around the conflict' };
+  return <ChangeLines rows={rows} titles={{ removed: 'Taken out of the base by this side', added: 'Written by this side', around: 'Line of the file around the conflict' }} />;
+}
+
+/** Rows of changes, each with its gutter, and what the gutter of each kind of row says when the pointer is on it. */
+function ChangeLines({ rows, titles }: { rows: ChangeRow[]; titles: Partial<Record<ChangeRow['kind'], string>> }) {
   return (
     <div className="code-lines changes">
       <div className="code-width">
@@ -158,6 +165,101 @@ function Changes(props: { changes: ConflictChanges; lines: ChangedLine[]; side: 
         ))}
       </div>
     </div>
+  );
+}
+
+/** How many lines that did not change are shown before and after each change of a file, at most. */
+const AROUND_CHANGES = 3;
+
+/**
+ * What a side changed of a whole file, as a unified diff shows it: the changes with the lines around them, numbered as
+ * the file has them now, and the lines between them left out.
+ */
+function fileRows(lines: ChangedLine[], colors?: (Token[] | null)[][]): ChangeRow[] {
+  const near = lines.map(() => false);
+  lines.forEach((line, at) => {
+    if (line.kind === 'same') return;
+    for (let each = Math.max(0, at - AROUND_CHANGES); each <= Math.min(lines.length - 1, at + AROUND_CHANGES); each++) near[each] = true;
+  });
+  const rows: ChangeRow[] = [];
+  for (let at = 0; at < lines.length; ) {
+    const line = lines[at];
+    if (near[at]) {
+      const gutter = line.kind === 'removed' ? '−' : line.kind === 'added' ? '+' : String(line.index + 1);
+      rows.push({ kind: line.kind === 'same' ? 'around' : line.kind, gutter, text: line.text, tokens: colors?.[line.kind === 'removed' ? 0 : 1]?.[line.index], words: line.words });
+      at++;
+      continue;
+    }
+    let end = at;
+    while (end < lines.length && !near[end]) end++;
+    rows.push({ kind: 'skipped', gutter: '⋯', text: `${plural(end - at, 'line')} that did not change` });
+    at = end;
+  }
+  return rows;
+}
+
+/**
+ * A file one side deleted and the other changed. There are no lines to choose between: the file is kept with the
+ * changes of the side that has it, or deleted as the other side did.
+ */
+function DeletedFile({ file, sides, busy }: { file: DeletedConflict; sides: [Side, Side]; busy: boolean }) {
+  const [deleter, keeper] = file.deletedBy === 'ours' ? [sides[0], sides[1]] : [sides[1], sides[0]];
+  const kept = file.deletedBy === 'ours' ? 'theirs' : 'ours';
+  const hunks = useMemo<Hunk[]>(() => [file.base, file.changed].map((text) => ({ header: '', lines: linesOf(text).map((line) => ` ${line}`) })), [file.base, file.changed]);
+  const colors = useColors(file.path, hunks, true);
+  const lines = useMemo(() => sideChanges(file.base, file.changed), [file.base, file.changed]);
+  const rows = useMemo(() => lines && fileRows(lines, colors), [lines, colors]);
+  const named = (side: Side) => `${side.role.toLowerCase()} side${side.name ? ` (${side.name})` : ''}`;
+  const take = (side: 'ours' | 'theirs') => post({ type: 'action', action: { kind: 'takeSide', path: file.path, side } });
+  return (
+    <section className="conflict-file deleted" aria-label={file.path}>
+      <h2>
+        <FileIcon path={file.path} />
+        <span className="grow path" title={file.path}>
+          {file.path}
+        </span>
+        <span className="muted">
+          Deleted by the {named(deleter)}, changed by the {named(keeper)}
+        </span>
+      </h2>
+      <article className="conflict">
+        <div className="side">
+          <SideLabel side={keeper} />
+          {rows?.length ? (
+            <ChangeLines rows={rows} titles={{ removed: 'Taken out of the file by this side', added: 'Written by this side', around: 'Line of the file', skipped: 'Lines left out here' }} />
+          ) : (
+            <p className="muted nothing">{rows ? 'This side changed nothing of the lines of the file.' : 'The changes are too many to show here.'}</p>
+          )}
+        </div>
+        <footer>
+          <button
+            className="button primary"
+            disabled={busy}
+            title={`Keep ${file.path} as the ${keeper.role.toLowerCase()} side has it, and mark it as resolved`}
+            onClick={() => take(kept)}
+          >
+            <Icon name="check" />
+            Keep it, with these changes
+          </button>
+          <button
+            className="button"
+            disabled={busy}
+            title={`Delete ${file.path}, as the ${deleter.role.toLowerCase()} side did: the changes above are left out`}
+            onClick={() => take(file.deletedBy)}
+          >
+            <Icon name="trash" />
+            Delete it
+          </button>
+          <button
+            className="button icon"
+            title="Show what it was beside what it is now, in the diff editor"
+            onClick={() => post({ type: 'openConflict', path: file.path, line: 1, editor: 'mergeEditor' })}
+          >
+            <Icon name="diff" />
+          </button>
+        </footer>
+      </article>
+    </section>
   );
 }
 
@@ -698,10 +800,12 @@ function FileList(props: {
   accepted: (file: ReviewFile, conflict: ReviewConflict) => boolean;
   /** Whether a file has a conflict the filter shows. */
   listed: (file: ReviewFile) => boolean;
+  /** The files a side deleted that the filter shows. */
+  deleted: DeletedConflict[];
   onFilter(filter: Filter): void;
   onSelect(path: string | null): void;
 }) {
-  const { review, filter, selected, counts, accepted, listed, onFilter, onSelect } = props;
+  const { review, filter, selected, counts, accepted, listed, deleted, onFilter, onSelect } = props;
   const files = review.files.filter(listed);
   const total = counts[FILTERS.findIndex((each) => each.filter === filter)];
   return (
@@ -733,11 +837,31 @@ function FileList(props: {
             </button>
           );
         })}
-        {!files.length && <p className="muted none">No file has a conflict to show here.</p>}
+        {!files.length && !deleted.length && <p className="muted none">No file has a conflict to show here.</p>}
       </div>
+      {deleted.length > 0 && (
+        <div className="file-entries others">
+          <div className="others-label" title="Files one side deleted and the other changed: keep them with those changes, or delete them">
+            Deleted on one side
+          </div>
+          {deleted.map((file) => {
+            const slash = file.path.lastIndexOf('/');
+            return (
+              <button key={file.path} className={`file-entry${selected === file.path ? ' on' : ''}`} aria-current={selected === file.path} title={file.path} onClick={() => onSelect(file.path)}>
+                <FileIcon path={file.path} />
+                <span className="grow name">
+                  {file.path.slice(slash + 1)}
+                  {slash > 0 && <span className="folder"> {file.path.slice(0, slash)}</span>}
+                </span>
+                <Icon name="trash" />
+              </button>
+            );
+          })}
+        </div>
+      )}
       {review.others.length > 0 && (
         <div className="file-entries others">
-          <div className="others-label" title="Binary files, files a side deleted, and very large files are resolved in an editor, or by taking one side">
+          <div className="others-label" title="Binary files, very large files, and files both sides added are resolved in an editor, or by taking one side">
             Also in conflict
           </div>
           {review.others.map((file) => (
@@ -833,7 +957,11 @@ export function ConflictsApp() {
   const counts = FILTERS.map((each) => conflicts.filter(({ file, conflict }) => shows(each.filter, conflict, isAccepted(file, conflict))).length);
   // A file no longer in conflict, or no longer shown, gives way to all of them.
   const current = review.files.find((file) => file.path === selected && listed(file));
-  const files = (current ? [current] : review.files).filter(listed);
+  // The files a side deleted have nothing proposed, and are shown with the conflicts that have none.
+  const deleted = filter === 'ai' ? [] : review.deleted;
+  const currentDeleted = current ? undefined : deleted.find((file) => file.path === selected);
+  const files = currentDeleted ? [] : (current ? [current] : review.files).filter(listed);
+  const deletedShown = currentDeleted ? [currentDeleted] : current ? [] : deleted;
   const allProposed = [...present];
   const sides: [Side, Side] = [
     { role: 'Current', label: review.oursLabel, name: review.oursName, subject: review.oursSubject },
@@ -844,6 +972,10 @@ export function ConflictsApp() {
     byAI && `${byAI} by the AI`,
     unanswered.length && `${unanswered.length} with nothing proposed`,
   ].filter(Boolean);
+  const said = [
+    conflicts.length && `${plural(conflicts.length, 'conflict')} in ${plural(review.files.length, 'file')}${summary.length ? `: ${summary.join(', ')}` : ''}`,
+    review.deleted.length && `${plural(review.deleted.length, 'file')} deleted on one side and changed on the other`,
+  ].filter(Boolean);
 
   return (
     <main className={`conflicts-page${columns ? ' wide' : ''}`}>
@@ -853,9 +985,7 @@ export function ConflictsApp() {
           {review.operation && <span className="muted"> of the {review.operation}</span>}
         </h1>
         <p className="muted">
-          {conflicts.length
-            ? `${plural(conflicts.length, 'conflict')} in ${plural(review.files.length, 'file')}${summary.length ? `: ${summary.join(', ')}` : ''}. Nothing is written until you write what you accepted.`
-            : 'No conflict with markers to look at here.'}
+          {said.length ? `${said.join('; ')}. Nothing is written until you write what you accepted.` : 'No conflict with markers to look at here.'}
         </p>
         {!review.rules && !review.ai && <p className="note">Neither the rules nor the AI are switched on in the settings: nothing is proposed.</p>}
         <div className="actions">
@@ -941,14 +1071,15 @@ export function ConflictsApp() {
       <Report review={review} />
 
       <div className="conflicts-body">
-        {(review.files.length > 0 || review.others.length > 0) && (
+        {(review.files.length > 0 || review.deleted.length > 0 || review.others.length > 0) && (
           <FileList
             review={review}
             filter={filter}
-            selected={current?.path ?? null}
+            selected={current?.path ?? currentDeleted?.path ?? null}
             counts={counts}
             accepted={isAccepted}
             listed={listed}
+            deleted={deleted}
             onFilter={choose}
             onSelect={setSelected}
           />
@@ -1010,7 +1141,11 @@ export function ConflictsApp() {
             );
           })}
 
-          {review.files.length > 0 && !files.length && (
+          {deletedShown.map((file) => (
+            <DeletedFile key={file.path} file={file} sides={sides} busy={busy} />
+          ))}
+
+          {review.files.length > 0 && !files.length && !deletedShown.length && (
             <div className="empty-filter">
               <p className="muted">No conflict is left to show here.</p>
               <button className="button" onClick={() => choose('all')}>
@@ -1025,7 +1160,7 @@ export function ConflictsApp() {
                 <Icon name="file-binary" />
                 <span className="grow">Also in conflict, with no markers to look at here</span>
               </h2>
-              <p className="muted">Binary files, files a side deleted, and very large files are resolved in an editor, or by taking one side.</p>
+              <p className="muted">Binary files, very large files, and files both sides added are resolved in an editor, or by taking one side.</p>
               <ul>
                 {review.others.map((file) => (
                   <li key={file}>
@@ -1039,7 +1174,7 @@ export function ConflictsApp() {
             </section>
           )}
 
-          {!review.files.length && !review.others.length && !review.report && (
+          {!review.files.length && !review.deleted.length && !review.others.length && !review.report && (
             <div className="empty-review">
               <Icon name="pass" />
               <p>No file is in conflict{review.operation ? `: the ${review.operation} can continue` : ''}.</p>

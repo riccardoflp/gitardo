@@ -27,6 +27,10 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - The **Columns** of the review of the conflicts take the whole width of the tab, and their lines no longer wrap: a column too narrow for them scrolls sideways, with the other two. The bands between the columns can be dragged to make one wider, for every conflict at once, as in the Flow Merge.
 - **Fold all merges** in the **…** menu of the graph is a switch with a check: while it is on, the merges loaded later, as the graph is scrolled or more of the history is read, are folded too, but those unfolded by hand, until **Unfold all merges**. It is kept with the folds.
 
+### Fixed
+
+- A file in conflict because one side deleted it and the other changed it showed nothing in the review of the conflicts, and opened from the Changes view as the plain file, with no way to see what changed. The review now gives it a card with what the side that kept it changed, as a diff, and **Keep it, with these changes** or **Delete it**; from the Changes view it opens in the diff editor, as it was beside what it is now.
+
 ## 0.9.0 - 2026-10-29
 
 ### Changed
