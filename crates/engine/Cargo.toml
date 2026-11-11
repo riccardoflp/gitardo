@@ -1,0 +1,10 @@
+[package]
+name = "engine"
+description = "What runs the plans of Gitardo Desktop: preview, steps, the log, the undo journal, activity and follow-ups."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true

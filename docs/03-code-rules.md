@@ -34,7 +34,9 @@ first, in its own commit, with the reason.
 - **R2.5** A read is split into `<what>_arguments(request)`, which builds the git arguments, and
   `parse_<what>(output)`, which parses them. Both are pure; only `read_<what>` runs git.
 - **R2.6** Every line of a card's acceptance list has a test whose name starts with the feature's identifier
-  (`branch_create__…`). `cargo xtask check` matches cards, functions and tests.
+  (`branch_create__…`). `cargo xtask check` matches cards, functions and tests. Rust does not count the double
+  underscore as snake case, so a module of such tests says
+  `#![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]`.
 
 ## 3. Purity and effects
 
@@ -191,7 +193,7 @@ first, in its own commit, with the reason.
 | --- | --- |
 | No package in `Cargo.lock` outside the workspace but those of `xtask/allowed-packages.txt`, at their versions; only `crates/tls` depends on them; no `build.rs` in the workspace | R1.1, R1.2, R1.5 |
 | The edges between crates are the allowed ones | R1.3 |
-| Every card has a function, every function a card, every acceptance line a test | R2.1, R2.6 |
+| Every function that says `/// Feature:` has a card, in the crate and with the name the card gives; every card the index marks *Built* or *Seen* has its function and at least as many tests named after it as its acceptance list has lines; every test named `<feature>__…` has a card; the index and the cards list the same features, of the same kinds | R2.1, R2.6 |
 | Pure crates use no I/O, time, threads or environment | R3.1, R3.2 |
 | `unsafe` appears only under `crates/platform`, each block with `// SAFETY:` | R5.1, R5.3 |
 | Files are at most 500 lines | R6.2 |

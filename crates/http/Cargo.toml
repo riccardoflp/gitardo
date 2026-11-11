@@ -1,0 +1,10 @@
+[package]
+name = "http"
+description = "HTTP/1.1 for Gitardo Desktop: requests, chunked bodies, server-sent events and proxies."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true

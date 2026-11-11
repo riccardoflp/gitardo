@@ -1,0 +1,10 @@
+[package]
+name = "views"
+description = "Every pane and page of Gitardo Desktop, as functions of state that return what the user wants."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true

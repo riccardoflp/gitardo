@@ -1,0 +1,10 @@
+[package]
+name = "tls"
+description = "A TLS stream over TCP that trusts the certificates of the system; the one crate with a library from outside."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true

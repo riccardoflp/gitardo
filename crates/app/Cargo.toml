@@ -1,0 +1,15 @@
+[package]
+name = "app"
+description = "Gitardo Desktop: the windows, the event loop, the store, the settings and what is kept between runs."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+default-run = "gitardo"
+
+[[bin]]
+name = "gitardo"
+path = "src/main.rs"
+
+[lints]
+workspace = true

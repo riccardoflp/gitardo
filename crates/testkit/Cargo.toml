@@ -1,0 +1,10 @@
+[package]
+name = "testkit"
+description = "What the tests of Gitardo Desktop share: throwaway repositories, golden files, a seeded random source and PNG images."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true

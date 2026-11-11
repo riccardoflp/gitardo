@@ -132,3 +132,7 @@ them in the card.
 - **Q4** — Should the undo journal survive a restart of the application? The extension keeps it in memory only.
 - **Q5** — Accessibility: exposing the views to screen readers needs the system's accessibility APIs (UI Automation,
   AT-SPI over D-Bus, NSAccessibility). In which milestone?
+- **Q6** — [02-architecture.md](02-architecture.md#who-may-use-whom): the picture lets `app` use `views`, `engine`,
+  `features`, `json` and `http` only, but `app` owns the windows and the event loop (`platform`), lays out and draws
+  the frame (`ui`, `render`), keeps the repository state in its store (`model`) and reads the settings. May `app` use
+  every crate below it, or only those drawn? `cargo xtask check` follows the picture as drawn until it changes.

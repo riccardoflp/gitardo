@@ -4,8 +4,9 @@ A desktop application for Git: the commit graph, the history and the everyday op
 It does everything the Gitardo extension for VS Code does, and is written from scratch in Rust, with the standard
 library and nothing else, but for one library for TLS.
 
-This branch has no code yet. It has the documents to build it from, in a clean room: what every feature does, as a
-function, and the rules the code follows.
+This branch has the documents to build it from, in a clean room: what every feature does, as a function, and the
+rules the code follows. The code has started with milestone M0 of the [roadmap](docs/07-roadmap.md): the workspace of
+crates, `cargo xtask check`, the kit of the tests and JSON with comments. There is no window yet.
 
 ## The documents
 
@@ -25,8 +26,6 @@ function, and the rules the code follows.
 Read 00, 01 and 04 first. Then the cards of the area you work on.
 
 ## Building
-
-There is nothing to build yet. Once milestone M0 of the roadmap is done:
 
 ```bash
 cargo build --release

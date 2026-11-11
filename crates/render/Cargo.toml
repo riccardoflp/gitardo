@@ -1,0 +1,10 @@
+[package]
+name = "render"
+description = "The pixels of Gitardo Desktop: the frame buffer, shapes, anti-aliasing, fonts and glyphs, icons and themes."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
