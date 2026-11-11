@@ -18,8 +18,8 @@ reading only what a view needs.
 
 ## D2 — No dependencies
 
-No crate from outside the workspace (see [02-architecture.md](02-architecture.md#what-no-dependencies-means)).
-Everything the program does is in this repository, readable, and changeable without waiting for anyone. The price is
+No crate from outside the workspace (see [02-architecture.md](02-architecture.md#what-no-dependencies-means)), with
+one exception, TLS ([D13](#d13--one-library-for-tls)). Everything the program does is in this repository, readable, and changeable without waiting for anyone. The price is
 that some parts are written here that a library would give: fonts, PNG, deflate, JSON, diffs. Each is written from its
 public specification and kept small by doing only what Gitardo needs.
 
@@ -38,6 +38,8 @@ not shape right-to-left or complex scripts, nor draw color emoji. File names and
 shown, character by character.
 
 ## D5 — HTTPS through curl
+
+*Replaced by [D13](#d13--one-library-for-tls).*
 
 The standard library has no TLS, and writing TLS and its cryptography here would be a risk no one should take.
 `curl` is on every supported system and speaks to the system's certificates. Gitardo runs it as it runs git, with the
@@ -80,6 +82,44 @@ opens a sign-in page on its own and never signs in for the user.
 
 Where the extension had no number because VS Code decided (the length of the log, the size of the undo journal), the
 cards give one and say it is new: the command log keeps 10,000 lines, the journal 50 entries per repository.
+
+## D13 — One library, for TLS
+
+*Replaces [D5](#d5--https-through-curl).*
+
+Gitardo speaks HTTPS itself for two things only: the API of GitHub and the AI provider. Fetching, pulling, pushing and
+cloning, over HTTPS or SSH, are done by the `git` process, which has its own TLS and runs the system's `ssh`; they need
+nothing of this.
+
+TLS and its cryptography are the one part not written here: a mistake there is a security hole, not a bug, and the
+cryptography must be checked by people who do only that. So D2 has one exception:
+
+- **`rustls`**, TLS 1.2 and 1.3 written in Rust, with **`ring`** as its cryptography, and only the features it needs
+  (`default-features = false`; `std`, `tls12`, `ring`);
+- **`rustls-native-certs`**, which reads the root certificates the system trusts, so that a company's own certificate
+  authority is trusted as it is by the browser and by git.
+
+How the exception is kept an exception:
+
+- These crates, and the packages they bring with them, are the only packages of `Cargo.lock` outside the workspace.
+  Their names and exact versions are in `xtask/allowed-packages.txt`, and `cargo xtask check` fails on any other
+  package, or on another version of these.
+- Only `crates/tls` depends on them. It gives the rest of the program an interface of Gitardo's own, a stream that
+  reads and writes, opened with a host name and a port, so that replacing the library changes that crate only. No type
+  of the library appears outside it.
+- HTTP itself is Gitardo's: HTTP/1.1, chunked bodies, server-sent events and proxies, over `std::net::TcpStream` and
+  that stream, in `crates/http`.
+- Updating them is a commit of its own that says why (a security advisory, a fix that Gitardo needs) and changes the
+  allowlist in the same commit.
+- Their own build scripts and `unsafe` are theirs: the rules R1.2 and R5 are about the crates of the workspace.
+
+Why not the others:
+
+- **`curl` as a process** (D5): a process per request, a different curl on each system, errors that are harder to tell
+  apart while an answer streams, and a token that passes through another program.
+- **`native-tls`**: on Linux it needs OpenSSL installed, and it behaves differently on each system.
+- **`aws-lc-rs`** in place of `ring`: it needs CMake and NASM to build on Windows.
+- **Writing TLS here**: no.
 
 ## Open questions
 

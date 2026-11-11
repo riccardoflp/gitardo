@@ -7,13 +7,18 @@ first, in its own commit, with the reason.
 
 ## 1. Dependencies
 
-- **R1.1** No crate from outside the workspace, in any `[dependencies]`, `[dev-dependencies]` or `[build-dependencies]`.
-  `cargo xtask check` reads `Cargo.lock` and fails on any package that is not a member.
-- **R1.2** No `build.rs`, no procedural macros. `macro_rules!` only where it removes repetition that a function cannot,
-  and never to hide control flow.
+- **R1.1** No crate from outside the workspace, in any `[dependencies]`, `[dev-dependencies]` or `[build-dependencies]`,
+  except the TLS of R1.5. `cargo xtask check` reads `Cargo.lock` and fails on any package that is neither a member nor
+  in `xtask/allowed-packages.txt` at its exact version.
+- **R1.2** No `build.rs` in the crates of the workspace, no procedural macros. `macro_rules!` only where it removes
+  repetition that a function cannot, and never to hide control flow.
 - **R1.3** The edges between crates are those of [02-architecture.md](02-architecture.md#who-may-use-whom). A new edge
   changes that picture first.
-- **R1.4** External programs: only `git` and `curl`, only through `crates/git` and `crates/http`.
+- **R1.4** External programs: only `git`, only through `crates/git`.
+- **R1.5** The one exception is TLS ([D13](08-decisions.md#d13--one-library-for-tls)): `rustls` with `ring`, and
+  `rustls-native-certs`, used by `crates/tls` only, with only the features named there. No type of theirs appears in
+  the interface of `crates/tls`. Adding a package to the allowlist, or changing a version in it, is a commit of its own
+  that says why. Nothing else may use the exception: a second library is a new decision, not a line in the allowlist.
 
 ## 2. Features are functions
 
@@ -184,7 +189,7 @@ first, in its own commit, with the reason.
 
 | Check | Rules |
 | --- | --- |
-| No package in `Cargo.lock` outside the workspace; no `build.rs` | R1.1, R1.2 |
+| No package in `Cargo.lock` outside the workspace but those of `xtask/allowed-packages.txt`, at their versions; only `crates/tls` depends on them; no `build.rs` in the workspace | R1.1, R1.2, R1.5 |
 | The edges between crates are the allowed ones | R1.3 |
 | Every card has a function, every function a card, every acceptance line a test | R2.1, R2.6 |
 | Pure crates use no I/O, time, threads or environment | R3.1, R3.2 |

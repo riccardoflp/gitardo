@@ -1,7 +1,7 @@
 # The product
 
 Gitardo Desktop is a desktop application for Git: a commit graph, history and the everyday operations of Git, in one
-window, written in Rust with no dependencies. It does what the Gitardo extension for VS Code does, feature for feature,
+window, written in Rust with no dependencies but one library for TLS. It does what the Gitardo extension for VS Code does, feature for feature,
 in a window of its own. This page says what that window is made of, and how each thing the extension borrowed from
 VS Code is done here instead. The features themselves are in the [catalog](features/README.md).
 

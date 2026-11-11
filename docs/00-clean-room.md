@@ -50,7 +50,9 @@ Allowed:
 - the words the user reads (labels, messages, tooltips), which are the product and are written in the cards;
 - the names of the settings, which are the product's interface with its users;
 - published algorithms implemented from their description (Myers' diff, the histogram diff of git's documentation,
-  the TrueType rasterization rules, deflate), with the source named in the doc comment of the code.
+  the TrueType rasterization rules, deflate), with the source named in the doc comment of the code;
+- the TLS library of [D13](08-decisions.md#d13--one-library-for-tls), used as a dependency of `crates/tls` through its
+  public interface, never copied into the workspace.
 
 ## How a feature goes through the room
 

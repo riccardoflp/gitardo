@@ -81,7 +81,7 @@ Exit: the fuzz tests of the conflict rules pass thousands of cases against git.
 
 ## M9 — Over the network
 
-- `http` through curl, credentials of the system.
+- `tls` with the one library of the exception, `http` written here, proxies, credentials of the system.
 - Areas: `github.`, `ai.`, and drafting a commit message with the AI.
 
 ## M10 — Linux, then M11 — macOS

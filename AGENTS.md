@@ -1,6 +1,6 @@
 # Working on Gitardo Desktop
 
-Gitardo Desktop is a desktop application for Git, written in Rust with no dependencies, in a clean room. This file is
+Gitardo Desktop is a desktop application for Git, written in Rust with no dependencies but one for TLS, in a clean room. This file is
 for whoever changes this branch, person or agent. What the program does is in [README.md](README.md) and in
 [docs/](docs/); keep the two apart.
 
@@ -11,7 +11,9 @@ for whoever changes this branch, person or agent. What the program does is in [R
   building. When a card is not enough, write the question in [docs/08-decisions.md](docs/08-decisions.md) under
   **Open questions** and stop there. See [docs/00-clean-room.md](docs/00-clean-room.md).
 - **No dependencies.** Only the standard library and the crates of this workspace. Never add a crate from crates.io,
-  git or a path outside the repository.
+  git or a path outside the repository. The one exception is TLS: `rustls` with `ring` and `rustls-native-certs`,
+  used by `crates/tls` only, at the versions of `xtask/allowed-packages.txt` (rule R1.5, decision D13). Do not use the
+  exception for anything else.
 - **Every feature is a function**, as [docs/04-feature-contract.md](docs/04-feature-contract.md) says, named after its
   card, with a test for each line of its acceptance list.
 - **The code rules** of [docs/03-code-rules.md](docs/03-code-rules.md) apply to every line. `cargo xtask check` must pass

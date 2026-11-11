@@ -1,19 +1,22 @@
 # Architecture
 
-Gitardo Desktop is one Cargo workspace with no dependency outside it. This page says what its crates are, which may use
+Gitardo Desktop is one Cargo workspace with no dependency outside it but one, for TLS. This page says what its crates are, which may use
 which, how a click becomes a git command, and where state lives. The rules for writing the code are in
 [03-code-rules.md](03-code-rules.md); the operating systems are in [05-platform.md](05-platform.md).
 
 ## What "no dependencies" means
 
-- Every `[dependencies]` entry of every `Cargo.toml` is a `path` to a crate of this workspace. `Cargo.lock` lists only
-  workspace members. There is no `build.rs` that downloads or generates from outside, and no procedural macro.
+- Every `[dependencies]` entry of every `Cargo.toml` is a `path` to a crate of this workspace, except in
+  `crates/tls`. There is no `build.rs` in the workspace, and no procedural macro.
+- **The one exception is TLS** ([D13](08-decisions.md#d13--one-library-for-tls)): `crates/tls` depends on `rustls`, with
+  `ring` for its cryptography, and on `rustls-native-certs` for the certificates the system trusts. They and what they
+  bring are the only packages of `Cargo.lock` outside the workspace, at the versions of `xtask/allowed-packages.txt`.
 - The Rust standard library is used freely: `std` is the toolchain, not a dependency.
 - The libraries the operating system ships (`user32.dll`, `libX11.so`, `AppKit.framework`) are called through `extern`
   declarations written here. They are the system, not a dependency: the program would not run without the system
   anyway.
-- Two programs are run as external processes: `git`, which is what the application is about, and `curl`, the only way
-  to speak HTTPS without a TLS library (see [D5](08-decisions.md#d5-https-through-curl)). Both are found on the `PATH`.
+- One program is run as an external process: `git`, found on the `PATH`, which is what the application is about. It
+  does its own networking for fetch, pull, push and clone, over HTTPS or SSH.
 - `rustfmt` and `clippy` come with the toolchain and are used.
 
 ## Crates
@@ -32,7 +35,8 @@ crates/
   model/      the data of the domain and its derivations: commits, references, lanes, file trees, names, messages
   text/       algorithms on text: diffs, conflict rules, syntax tokenizers, patterns, fuzzy ranking, templates
   json/       JSON and JSON with comments: parse, write, edit in place keeping comments
-  http/       HTTP requests through curl, and server-sent events for streamed answers
+  http/       HTTP/1.1 requests, chunked bodies, server-sent events for streamed answers, proxies
+  tls/        the only crate with a dependency: a TLS stream over TCP, with the system's root certificates
   testkit/    for tests only: throwaway repositories, golden files, pixel snapshots, a deterministic random source
 xtask/        the project's own checks and chores: `cargo xtask check`, `cargo xtask snapshots`, …
 ```
@@ -46,7 +50,7 @@ app ──► views ──► ui ──► render ──► platform
  ├──► engine ──► git ──► model, text
  │       └─────► http, platform (processes, files)
  ├──► features ──► model, text, git (types only, never running)
- └──► json, http
+ └──► json, http ──► tls ──► rustls, rustls-native-certs (the exception)
 ```
 
 - Nothing depends on `app`. Nothing below `views` knows about panes or pages.
@@ -54,6 +58,7 @@ app ──► views ──► ui ──► render ──► platform
   most of the tests are.
 - `git` runs processes but knows nothing of the UI. `engine` is the only crate that changes the disk or the repository.
 - `platform` is the only crate with `unsafe`. Everything above it sees safe functions.
+- `tls` is the only crate with a dependency outside the workspace. No type of that library leaves it.
 - `testkit` is a `dev-dependency` only.
 
 Cargo refuses a cycle; `cargo xtask check` also refuses an edge that is not in this picture.

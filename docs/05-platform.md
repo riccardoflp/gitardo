@@ -2,7 +2,7 @@
 
 Everything Gitardo Desktop asks of the operating system goes through `crates/platform`, the only crate with `unsafe`.
 This page lists what it asks, and how on each system. Windows comes first (see
-[D6](08-decisions.md#d6-windows-first)); Linux and macOS follow behind the same interface.
+[D6](08-decisions.md#d6--windows-first)); Linux and macOS follow behind the same interface.
 
 ## The interface
 
@@ -22,7 +22,7 @@ This page lists what it asks, and how on each system. Windows comes first (see
 | Credentials | Read, write and delete a secret by name in the system's credential store. |
 | Fonts | The paths of the system's font files, and the default UI and monospace families. |
 | Theme | Whether the system is dark or light, high contrast, the accent color, and a notification when it changes. |
-| Processes | Running `git` and `curl` uses `std::process`, which is enough; `platform` only adds killing a whole process tree on cancel. |
+| Processes | Running `git` uses `std::process`, which is enough; `platform` only adds killing a whole process tree on cancel. |
 
 ## Windows
 
@@ -45,7 +45,7 @@ The minimum is Windows 10 version 1809. The libraries are those every Windows ha
 | Theme | Registry `HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme` with `RegGetValueW`, `WM_SETTINGCHANGE` for changes; `SystemParametersInfoW(SPI_GETHIGHCONTRAST)`. |
 | Fonts | `%WINDIR%\Fonts`: Segoe UI for the interface, Cascadia Mono or Consolas for code. |
 | Killing a process tree | `CreateJobObjectW`, `AssignProcessToJobObject`, `TerminateJobObject`. |
-| No console | `#![windows_subsystem = "windows"]` in the binary; `CREATE_NO_WINDOW` for git and curl. |
+| No console | `#![windows_subsystem = "windows"]` in the binary; `CREATE_NO_WINDOW` for git. |
 
 ## Linux
 
@@ -97,11 +97,23 @@ everywhere.
 - **Fallback**: a character the font lacks is looked for in the other fonts of the system, in a fixed order per system.
 - **Out of scope for the first release**: right-to-left text, scripts that need shaping (Arabic, Indic), color emoji.
   Their characters are drawn one by one, or as a box when no font has them. The decision is
-  [D4](08-decisions.md#d4-our-own-text-rendering).
+  [D4](08-decisions.md#d4--our-own-text-rendering).
 
 ## HTTP
 
-`crates/http` runs `curl` (present on Windows 10 1803 and later, on macOS, and on every common Linux) with the request
-on standard input and the answer on standard output: `curl --silent --show-error --fail-with-body --config -`, so that
-headers with tokens never appear in the list of processes. Streamed answers of a language model are read line by line
-as server-sent events while curl runs. The decision is [D5](08-decisions.md#d5-https-through-curl).
+Gitardo speaks HTTPS itself only to the API of GitHub and to the AI provider; git does its own networking. The decision
+is [D13](08-decisions.md#d13--one-library-for-tls).
+
+- **`crates/tls`** opens a TLS stream over `std::net::TcpStream` with `rustls` and `ring`, TLS 1.2 or 1.3, checking the
+  server's certificate against the root certificates the system trusts, read by `rustls-native-certs` (the certificate
+  store of Windows, the keychain of macOS, the certificate files of the Linux distribution). The rest of the program
+  sees a stream that reads and writes, opened with a host name and a port, and an error in words when the certificate
+  is not trusted.
+- **`crates/http`** is Gitardo's own HTTP/1.1: a request with its headers and body, the answer's status, headers and
+  body, `Content-Length` and chunked bodies, gzip not asked for, redirects followed up to 5 times to `https` only, and
+  server-sent events read line by line as they arrive, for the streamed answers of a language model. One connection
+  per request; timeouts for connecting (10 s) and between two reads (60 s, 300 s while a model streams).
+- **Proxies**: `HTTPS_PROXY` (or `https_proxy`), and git's `http.proxy` read with `git config --get http.proxy`, are
+  reached with `CONNECT`, with basic authentication when the proxy's URL has a user; `NO_PROXY` lists the hosts that
+  are reached directly.
+- **Secrets**: tokens and keys go in headers only, never in a URL, and never in the log, also when a request fails.
