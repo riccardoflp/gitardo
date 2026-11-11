@@ -1,7 +1,9 @@
 //! Throwaway repositories: an empty git repository for one test, with helpers in the words of the domain.
 
+use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use crate::environment::{CommitDate, Environment, Place};
 use crate::folder::TemporaryFolder;
@@ -65,6 +67,14 @@ impl Repository {
     #[must_use]
     pub fn path(&self) -> &Path {
         &self.path
+    }
+
+    /// A program to run in the repository's folder, in the environment its git commands run in: the same identity, the
+    /// date of the next commit, and none of the configuration of the person running the tests. For a test that runs
+    /// Gitardo's own programs on the repository.
+    #[must_use]
+    pub fn command(&self, program: impl AsRef<OsStr>) -> Command {
+        self.environment.command(program, self.place())
     }
 
     /// Runs any git command in the repository and returns what it printed on its standard output. A commit it makes

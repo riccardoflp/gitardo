@@ -46,9 +46,10 @@ fn is_crate_root(folder: &str, relative: &str) -> bool {
     };
     inside == "src/lib.rs"
         || inside == "src/main.rs"
-        || inside
-            .strip_prefix("src/bin/")
-            .is_some_and(|name| has_extension(name, "rs") && !name.contains('/'))
+        || inside.strip_prefix("src/bin/").is_some_and(|name| {
+            (has_extension(name, "rs") && !name.contains('/'))
+                || name.split_once('/').is_some_and(|(_, file)| file == "main.rs")
+        })
 }
 
 /// The lines of the `unsafe` blocks that have no `// SAFETY:` comment on the line or in the comments just above.
@@ -110,6 +111,8 @@ mod tests {
             ("crates/app/src/main.rs", true),
             ("crates/app/src/lib.rs", true),
             ("crates/app/src/bin/gitardo-cli.rs", true),
+            ("crates/app/src/bin/gitardo-cli/main.rs", true),
+            ("crates/app/src/bin/gitardo-cli/asker.rs", false),
             ("crates/app/src/store.rs", false),
             ("crates/app/tests/window.rs", false),
             ("crates/application/src/lib.rs", false),

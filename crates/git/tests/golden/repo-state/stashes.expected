@@ -1,0 +1,22 @@
+[
+    Stash {
+        commit: CommitId(
+            "4c10da986382ffd45bbc29ec6dea6cb2d5b169e6",
+        ),
+        index: 0,
+        message: "WIP on main: 705fe6e Add the parser",
+        date: Timestamp(
+            1735689660,
+        ),
+    },
+    Stash {
+        commit: CommitId(
+            "6cbe303d908062225e7244e218299000fd6ee0f5",
+        ),
+        index: 1,
+        message: "On main: before the merge: [draft] é",
+        date: Timestamp(
+            1735689660,
+        ),
+    },
+]

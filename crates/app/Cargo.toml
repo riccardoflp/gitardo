@@ -11,5 +11,18 @@ default-run = "gitardo"
 name = "gitardo"
 path = "src/main.rs"
 
+[[bin]]
+name = "gitardo-cli"
+path = "src/bin/gitardo-cli/main.rs"
+
+[dependencies]
+engine = { path = "../engine" }
+features = { path = "../features" }
+git = { path = "../git" }
+model = { path = "../model" }
+
+[dev-dependencies]
+testkit = { path = "../testkit" }
+
 [lints]
 workspace = true

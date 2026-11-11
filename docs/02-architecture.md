@@ -48,12 +48,17 @@ app ──► views ──► ui ──► render ──► platform
  │        │        └───► editor ──► render
  │        └──────► model, features (identifiers and questions only)
  ├──► engine ──► git ──► model, text
+ │       ├─────► model (the plans it runs, the queries it answers)
  │       └─────► http, platform (processes, files)
  ├──► features ──► model, text, git (types only, never running)
- └──► json, http ──► tls ──► rustls, rustls-native-certs (the exception)
+ ├──► json, http ──► tls ──► rustls, rustls-native-certs (the exception)
+ └──► every other crate below it: platform, ui, render, model, git, text (D15)
 ```
 
-- Nothing depends on `app`. Nothing below `views` knows about panes or pages.
+- Nothing depends on `app`, and `app` may use any crate but `testkit` and `xtask`
+  ([D15](08-decisions.md#d15--app-may-use-every-crate-below-it)). Nothing below `views` knows about panes or pages.
+- The types of the feature contract are in `model`
+  ([D14](08-decisions.md#d14--the-types-of-the-contract-are-in-model)).
 - `features`, `model`, `text` and `json` are pure: no I/O, no threads, no clock. They are where most of the code and
   most of the tests are.
 - `git` runs processes but knows nothing of the UI. `engine` is the only crate that changes the disk or the repository.

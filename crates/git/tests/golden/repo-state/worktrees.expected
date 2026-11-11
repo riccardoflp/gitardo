@@ -1,0 +1,60 @@
+[
+    Worktree {
+        folder: "<folder>/repository",
+        commit: Some(
+            CommitId(
+                "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+            ),
+        ),
+        branch: Some(
+            "refs/heads/main",
+        ),
+        is_main: true,
+        is_current: false,
+        is_missing: false,
+        uncommitted: None,
+    },
+    Worktree {
+        folder: "<folder>/détaché",
+        commit: Some(
+            CommitId(
+                "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+            ),
+        ),
+        branch: None,
+        is_main: false,
+        is_current: false,
+        is_missing: false,
+        uncommitted: None,
+    },
+    Worktree {
+        folder: "<folder>/feature with space",
+        commit: Some(
+            CommitId(
+                "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+            ),
+        ),
+        branch: Some(
+            "refs/heads/feature",
+        ),
+        is_main: false,
+        is_current: false,
+        is_missing: false,
+        uncommitted: None,
+    },
+    Worktree {
+        folder: "<folder>/gone",
+        commit: Some(
+            CommitId(
+                "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+            ),
+        ),
+        branch: Some(
+            "refs/heads/gone",
+        ),
+        is_main: false,
+        is_current: false,
+        is_missing: true,
+        uncommitted: None,
+    },
+]

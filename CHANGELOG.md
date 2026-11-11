@@ -10,3 +10,6 @@
   rustfmt, clippy and the tests.
 - `testkit`, for the tests: throwaway repositories, golden files, a seeded random source, and PNG images.
 - `json`: JSON and JSON with comments, parsed, written, and edited in place keeping the comments and the order.
+- `gitardo-cli`: the state of a repository, and the first features run from a terminal through the engine: create a
+  branch, commit, fetch, and undo the last commit, checkout, rebase or reset. A feature asks for what it needs with
+  `<key>=<answer>`, and a plan that is shown first runs with `--yes`.

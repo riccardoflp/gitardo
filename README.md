@@ -5,8 +5,10 @@ It does everything the Gitardo extension for VS Code does, and is written from s
 library and nothing else, but for one library for TLS.
 
 This branch has the documents to build it from, in a clean room: what every feature does, as a function, and the
-rules the code follows. The code has started with milestone M0 of the [roadmap](docs/07-roadmap.md): the workspace of
-crates, `cargo xtask check`, the kit of the tests and JSON with comments. There is no window yet.
+rules the code follows. The code has milestone M0 of the [roadmap](docs/07-roadmap.md): the workspace of crates,
+`cargo xtask check`, the kit of the tests and JSON with comments; and the start of M1: the state of a repository read
+from git, the engine that runs features, and the first features, run from a terminal by `gitardo-cli`. There is no
+window yet.
 
 ## The documents
 
@@ -31,6 +33,17 @@ Read 00, 01 and 04 first. Then the cards of the area you work on.
 cargo build --release
 cargo xtask check
 ```
+
+`gitardo-cli` prints the state of a repository and runs a feature on it through the engine, as the window will:
+
+```bash
+cargo run --bin gitardo-cli -- state
+cargo run --bin gitardo-cli -- branch.create name=fix/login mode=checkout
+cargo run --bin gitardo-cli -- --yes undo.last
+```
+
+A question it has no answer for is printed with the `<key>=<answer>` that answers it; a plan that is shown before it
+runs is printed, and runs with `--yes`.
 
 The only program needed besides the Rust toolchain is `git`, 2.40 or later for the previews of conflicts. Building
 needs the C compiler the Rust toolchain uses on the system, for the cryptography of the TLS library.

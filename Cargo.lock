@@ -5,6 +5,13 @@ version = 4
 [[package]]
 name = "app"
 version = "0.1.0"
+dependencies = [
+ "engine",
+ "features",
+ "git",
+ "model",
+ "testkit",
+]
 
 [[package]]
 name = "editor"
@@ -13,14 +20,26 @@ version = "0.1.0"
 [[package]]
 name = "engine"
 version = "0.1.0"
+dependencies = [
+ "git",
+ "model",
+ "testkit",
+]
 
 [[package]]
 name = "features"
 version = "0.1.0"
+dependencies = [
+ "model",
+]
 
 [[package]]
 name = "git"
 version = "0.1.0"
+dependencies = [
+ "model",
+ "testkit",
+]
 
 [[package]]
 name = "http"

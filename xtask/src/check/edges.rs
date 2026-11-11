@@ -4,16 +4,23 @@ use super::Workspace;
 use crate::problem::Problem;
 use crate::workspace::{Origin, UseKind};
 
-/// The crates each crate may use directly, as the picture of "Who may use whom" draws them.
+/// The crates each crate may use directly, as the picture of "Who may use whom" draws them, with `app` using every
+/// crate below it (decision D15) and `engine` using `model` (decision D14).
 const ALLOWED: [(&str, &[&str]); 16] = [
-    ("app", &["views", "engine", "features", "json", "http"]),
+    (
+        "app",
+        &[
+            "views", "engine", "features", "json", "http", "ui", "editor", "render", "platform", "git", "model",
+            "text", "tls",
+        ],
+    ),
     ("views", &["ui", "model", "features"]),
     ("ui", &["render", "editor"]),
     ("editor", &["render"]),
     ("render", &["platform"]),
     ("platform", &[]),
     ("features", &["model", "text", "git"]),
-    ("engine", &["git", "http", "platform"]),
+    ("engine", &["git", "model", "http", "platform"]),
     ("git", &["model", "text"]),
     ("model", &[]),
     ("text", &[]),

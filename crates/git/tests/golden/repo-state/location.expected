@@ -1,0 +1,4 @@
+Location {
+    folder: "<folder>/repository",
+    git_folder: "<folder>/repository/.git",
+}

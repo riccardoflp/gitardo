@@ -121,6 +121,24 @@ Why not the others:
 - **`aws-lc-rs`** in place of `ring`: it needs CMake and NASM to build on Windows.
 - **Writing TLS here**: no.
 
+## D14 — The types of the contract are in `model`
+
+*Answers a question of the implementation side, 2026-11-12.*
+
+The types every feature speaks in (`Context`, `Answers`, `Outcome`, `Question`, `Query`, `Refusal`, `Plan`, `Step`,
+`Danger`, `Undo`, `FollowUp`, `Target`) are data of the domain, as `RepositoryState` is, and live in `model`. `features`
+returns them; `engine` runs the plans, answers the queries and keeps the journal of Undo, so `engine` uses `model`
+directly. The engine calls a feature as a plain function, `fn(&Context, &Answers) -> Outcome`, that `app` hands it: it
+needs no edge to `features`.
+
+## D15 — `app` may use every crate below it
+
+*Answers Q6, 2026-11-12.*
+
+`app` owns the windows and the event loop, draws the frame, keeps the store and reads the settings, so it uses
+`platform`, `ui`, `render`, `model` and `git` as well as what the picture drew. It may use every crate of the workspace
+but `testkit` (a dev-dependency only) and `xtask`; nothing uses `app`.
+
 ## Open questions
 
 Questions from the implementation side go here, with the card they are about, until the specification side answers
@@ -132,7 +150,3 @@ them in the card.
 - **Q4** — Should the undo journal survive a restart of the application? The extension keeps it in memory only.
 - **Q5** — Accessibility: exposing the views to screen readers needs the system's accessibility APIs (UI Automation,
   AT-SPI over D-Bus, NSAccessibility). In which milestone?
-- **Q6** — [02-architecture.md](02-architecture.md#who-may-use-whom): the picture lets `app` use `views`, `engine`,
-  `features`, `json` and `http` only, but `app` owns the windows and the event loop (`platform`), lays out and draws
-  the frame (`ui`, `render`), keeps the repository state in its store (`model`) and reads the settings. May `app` use
-  every crate below it, or only those drawn? `cargo xtask check` follows the picture as drawn until it changes.

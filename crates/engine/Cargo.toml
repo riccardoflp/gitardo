@@ -8,3 +8,10 @@ publish.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies]
+git = { path = "../git" }
+model = { path = "../model" }
+
+[dev-dependencies]
+testkit = { path = "../testkit" }

@@ -67,15 +67,20 @@ impl Environment {
         }
     }
 
-    /// Runs git with arguments, never through a shell, and returns what it printed and how it ended.
-    pub(crate) fn run<Argument: AsRef<OsStr>>(&self, place: Place<'_>, arguments: &[Argument]) -> Output {
-        let output = Command::new("git")
-            .args(arguments)
+    /// A program run in a place, in the environment of the tests, never through a shell.
+    pub(crate) fn command(&self, program: impl AsRef<OsStr>, place: Place<'_>) -> Command {
+        let mut command = Command::new(program);
+        let _ = command
             .current_dir(place.directory)
             .env_clear()
             .envs(inherited_variables())
-            .envs(self.variables(place.date))
-            .output();
+            .envs(self.variables(place.date));
+        command
+    }
+
+    /// Runs git with arguments, never through a shell, and returns what it printed and how it ended.
+    pub(crate) fn run<Argument: AsRef<OsStr>>(&self, place: Place<'_>, arguments: &[Argument]) -> Output {
+        let output = self.command("git", place).args(arguments).output();
         match output {
             Ok(output) => output,
             Err(error) => panic!("could not run git, which the tests need on the PATH: {error}"),
