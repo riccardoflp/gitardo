@@ -1,0 +1,389 @@
+# Stashes
+
+Changes set aside with `git stash` and brought back later: all of them, only what is staged, or some files; the
+**Stashes** pane that lists them; applying, popping, dropping a stash or making a branch of it, each said first with what
+it would stop on; the stashes in the graph; the stash a pull leaves when the changes it set aside no longer fit; and
+Undo of a stash dropped.
+
+### `stash.read-list` — Read the stashes
+
+The stashes of the repository, newest first, as every pane, the references and the graph list them.
+
+- **Kind**: Read
+- **Function**: `read::stash::read_list(git: &Git, request: &StashListRequest) -> Result<Vec<Stash>, GitError>`
+- **Reads**: `git stash list -z --format=%H%x1f%gd%x1f%gs%x1f%at`: the hash of each stash, its name (`stash@{0}`), its
+  message and its date.
+
+Acceptance:
+
+- [ ] Two stashes are returned newest first, as `stash@{0}` and `stash@{1}`, with their messages and dates.
+- [ ] A repository with no stash returns none, and no error.
+- [ ] A message with spaces, colons and quotes is returned whole.
+
+### `stash.read-files` — Read what a stash changes
+
+The files a stash changes, and the untracked files it took along, for what applying it would stop on.
+
+- **Kind**: Read
+- **Function**: `read::stash::read_files(git: &Git, request: &StashRef) -> Result<StashFiles, GitError>`
+- **Reads**:
+  - `git diff --name-only -z <stash>^1 <stash>`: the files it changes against the commit it was made on;
+  - `git ls-tree -r -z --name-only <stash>^3`: the untracked files it took along; a stash made without them has no third
+    parent, which is no error.
+- **Refuses**: a name that is not of the form `stash@{N}`: **"`<name>`" is not a stash.**
+
+Acceptance:
+
+- [ ] A stash of two changed files and one untracked file returns the two and the one apart.
+- [ ] A stash made without `--include-untracked` returns no untracked files.
+- [ ] `main` as a stash name is refused before git runs.
+
+### `stash.pane` — The Stashes pane
+
+Lists the stashes; each unfolds to the files it holds, which open as diffs.
+
+- **Kind**: View
+- **Function**: `views::stash::pane(state: &StashesState, ui: &mut Ui) -> Vec<Intent>`
+- **Entry points**: the **Stashes** pane of the side bar; command palette: **Show Stashes**, which unfolds and shows
+  it; **Show Stashes** in the message of `stash.autostash-left`.
+- **Reads**: `stash.read-list`; `details.read-commit` for a stash unfolded.
+- **Uses**: `stash.push`, `stash.apply`, `stash.pop`, `stash.drop`, `stash.branch`, the Diff page (`diff.page`).
+
+What it shows:
+
+- the header counts the stashes and has a button that stashes all changes (`stash.push`);
+- with no stash: **No stashes. Put your changes aside with the button above, or from the Changes pane: one file, what
+  is staged, or everything.**;
+- each stash by its message and how long ago it was made; its tooltip has `stash@{N}: <message>` and the full date;
+- on each row, unless Gitardo is running an operation: **Apply: bring the changes back and keep the stash**, **Pop:
+  bring the changes back and drop the stash** and **Drop…**;
+- its context menu: **Apply**, **Pop**, **Create branch from stash…** and, apart, **Drop**;
+- a click unfolds it, **Loading…** while it is read: the files it changed, a click opening the diff of one against the
+  commit it was made on, then the untracked files it took, a click opening the file against nothing; **No files** when
+  it has none.
+
+What was read of a stash is kept while it is listed, as a stash does not change; a stash gone is forgotten.
+
+Acceptance:
+
+- [ ] The header says how many stashes there are.
+- [ ] Unfolding a stash made with untracked files lists its changed files, then its untracked ones.
+- [ ] A click on a changed file opens the Diff page of the file between the commit the stash was made on and the stash.
+- [ ] The buttons of the rows are not there while Gitardo is running an operation.
+- [ ] With no stash, the pane says how to make one.
+- [ ] A stash dropped from elsewhere leaves the pane when the repository is read again.
+
+### `stash.push` — Stash all changes
+
+Sets every change aside, staged or not, untracked files included, and leaves the working tree as the last commit.
+
+- **Kind**: Operation
+- **Function**: `features::stash::push(context, answers) -> Outcome`
+- **Entry points**: **Stash** in the toolbar of the Graph tab (**Stash: git stash push --include-untracked**); the
+  button in the header of the Stashes pane; **Stash all changes…** in the header of the Changes pane; **Stash
+  changes…** in the context menu of the row of the uncommitted changes; **Stash all changes…** above the files of that
+  row in the details when none is ticked; command palette: **Stash Changes**.
+- **Offered when**: there is a commit (git has nothing to stash onto before the first one); the toolbar button also
+  needs changes, and is disabled while Gitardo is running an operation.
+- **Asks**: **Stash changes**, an input box with the prompt **Optional message. Untracked files are stashed too.**,
+  empty by default. Escape backs out.
+- **Plan**: `git stash push --include-untracked`, followed by `-m <message>` when one was typed, the message trimmed.
+- **Danger**: None
+- **Undo**: Undo does not take it back, as no branch moves: `stash.pop` brings the changes back.
+- **After**: the stash is first in the Stashes pane, in the references and, when shown, in the graph.
+
+Acceptance:
+
+- [ ] With a changed file, a staged file and an untracked file, the stash takes the three, and `git status` is clean.
+- [ ] A message typed becomes the message of the stash; with none, git names it `WIP on <branch>: …`.
+- [ ] Escape in the box stashes nothing.
+- [ ] Before the first commit, the entries are not offered.
+
+### `stash.push-staged` — Stash the staged changes
+
+Sets aside only what is staged; the rest stays where it is.
+
+- **Kind**: Operation
+- **Function**: `features::stash::push_staged(context, answers) -> Outcome`
+- **Entry points**: **Stash only the staged changes…** in the header of the Changes pane; **Stash staged changes…** in
+  the context menu of the row of the uncommitted changes.
+- **Offered when**: there is a commit and something is staged.
+- **Asks**: **Stash staged changes**, an input box with the prompt **Optional message. Only what is staged is stashed;
+  the rest stays where it is.**, empty by default.
+- **Plan**: `git stash push --staged`, followed by `-m <message>` when one was typed. Untracked files are never staged,
+  so `--include-untracked` is not given.
+- **Danger**: None
+- **Undo**: Undo does not take it back, as no branch moves: `stash.pop` brings them back.
+- **After**: as `stash.push`.
+- **Refuses**: git refuses `--staged` before Git 2.35, and the failure is shown with git's words.
+
+Acceptance:
+
+- [ ] With one file staged and another changed, only the staged one is stashed; the other is still changed.
+- [ ] The entry is not there while nothing is staged.
+
+### `stash.push-file` — Stash a file, or the files ticked
+
+Sets aside every change to one file, or to the files chosen, staged or not.
+
+- **Kind**: Operation
+- **Function**: `features::stash::push_file(context, answers) -> Outcome`
+- **Entry points**: **Stash this file…** on the row of a file in the Changes pane and in the details of the uncommitted
+  changes; **Stash N selected files…** above the files of the details of the uncommitted changes, while some are ticked.
+- **Offered when**: there is a commit; not on a file whose changes are only unsaved edits in Gitardo's editor.
+- **Asks**: **Stash `<file>`**, or **Stash N files**, an input box with the prompt **Optional message. Every change to
+  the file is stashed, staged or not.**, empty by default.
+- **Plan**: `git stash push --include-untracked [-m <message>] -- <file>…`; a renamed file is given with both its names.
+  A name that is also a pattern to git (with `[`, `]`, `*`, `?` or `\`, or starting with `:`) is given as
+  `:(literal)<name>`.
+- **Danger**: None
+- **Undo**: Undo does not take it back, as no branch moves: `stash.pop` brings them back.
+- **After**: as `stash.push`.
+
+Acceptance:
+
+- [ ] Stashing `src/app.rs` with other files changed stashes that file only, staged and unstaged changes alike.
+- [ ] Stashing an untracked file takes it into the stash and out of the working tree.
+- [ ] Ticking two files in the details and stashing stashes those two only.
+- [ ] Stashing `pages/[id].tsx` leaves `pages/i.tsx` and `pages/d.tsx` as they were.
+- [ ] Stashing a staged rename stashes both its old and its new name.
+
+### `stash.preview` — What applying a stash would stop on
+
+Says, before a stash is applied or popped, what git would stop on: the conflicts its changes make with what is
+committed, the changed files it would refuse to touch, and the untracked files it took that are there again.
+
+- **Kind**: Derivation
+- **Function**: `model::stash::preview(input: &StashPreviewInput) -> StashPreview`
+
+Rules:
+
+- **Input**: the files the stash changes and the untracked files it took (`stash.read-files`), the files of the working
+  tree that have changes, staged or not, other than untracked ones, the untracked files of the stash that exist in the
+  working tree, and the files `git merge-tree --write-tree --no-messages --name-only -z --merge-base=<stash>^1 HEAD
+  <stash>` names in conflict, or nothing when git cannot tell (older than 2.40). **Output**: the paragraphs of the note
+  of the plan, in this order, after the note of `stash.apply` or `stash.pop`.
+- Files the stash changes that have changes not committed: **Git will refuse it and change nothing, as N files it
+  changes have changes that are not committed: commit or stash them first.**, with their list.
+- Untracked files it took that are there again: **N untracked files it took along are there again: git leaves them as
+  it is and keeps the stash.**, with their list.
+- Conflicts: **This will stop with conflicts in N files:**, with their list.
+- No conflict, and no file of the first kind: **No conflicts expected.** When git cannot tell, nothing is said of the
+  conflicts.
+- `1 file` and the singular forms (**1 file it changes has**, **An untracked file it took along is there again: git
+  leaves it as it is and keeps the stash.**) are used for one. Each list names the first 15 files and ends with **…and K
+  more**.
+
+Examples:
+
+- A stash of `a.txt`, with `a.txt` changed in the working tree: the note says git will refuse it, naming `a.txt`.
+- A stash whose change to `b.txt` meets a commit made since that changed the same lines: **This will stop with
+  conflicts in 1 file:** `b.txt`.
+
+Acceptance:
+
+- [ ] A stash that applies cleanly on a clean working tree says **No conflicts expected.**
+- [ ] A stash whose file is changed in the working tree names that file, and says nothing of conflicts expected.
+- [ ] An untracked file of the stash created again in the working tree is named.
+- [ ] A conflict with a commit made after the stash names the file.
+- [ ] Twenty files in conflict list 15 and **…and 5 more**.
+
+### `stash.apply` — Apply a stash
+
+Brings the changes of a stash back into the files, and keeps the stash.
+
+- **Kind**: Operation
+- **Function**: `features::stash::apply(context, answers) -> Outcome`
+- **Entry points**: **Apply** on the row and in the context menu of a stash in the Stashes pane; in the context menu of
+  a stash in the references, in the Branches pane and on its row in the graph.
+- **Reads**: `stash.read-files`, the conflicts by `git merge-tree` as `stash.preview` says, the state of the working
+  tree.
+- **Plan**: `git stash apply stash@{N}`, titled **Apply stash@{N}**, with the note **Its changes go into the files, and
+  it stays in the list.** followed by `stash.preview`.
+- **Danger**: Confirm, because it changes the files and may stop with conflicts: it is always asked first, saying what
+  it would stop on.
+- **Undo**: not by the reflog, which it does not move; the stash stays, so the changes can be discarded and applied
+  again.
+- **After**: when files are left in conflict, the banner of conflicts shows (`conflicts.banner`), and the files are
+  listed in the Changes pane.
+- **Settings**: `commandPreview`.
+- **Uses**: `stash.read-files`, `stash.preview`, `preview.confirm`.
+
+Acceptance:
+
+- [ ] **Apply** asks first, with the note and what it would stop on, also with `commandPreview` set to `off`.
+- [ ] Once confirmed, the changes are in the files and the stash is still listed.
+- [ ] A stash that conflicts leaves the files in conflict, the banner shows, and the stash is kept.
+- [ ] When git refuses because a file it changes has changes, nothing changes and git's words are shown.
+
+### `stash.pop` — Pop a stash
+
+Brings the changes of a stash back into the files, and drops the stash once they are in without conflicts.
+
+- **Kind**: Operation
+- **Function**: `features::stash::pop(context, answers) -> Outcome`
+- **Entry points**: **Pop** on the row and in the context menu of a stash in the Stashes pane; in the context menu of a
+  stash in the references, in the Branches pane and on its row in the graph.
+- **Reads**: as `stash.apply`.
+- **Plan**: `git stash pop stash@{N}`, titled **Pop stash@{N}**, with the note **Its changes go into the files, and it
+  is dropped once they are in without conflicts: with conflicts it stays.** followed by `stash.preview`.
+- **Danger**: Confirm, because it changes the files, may stop with conflicts, and drops the stash: it is always asked
+  first, saying what it would stop on.
+- **Undo**: not by the reflog, which it does not move. A stash dropped by a clean pop is no longer listed.
+- **After**: as `stash.apply`. Git keeps the stash when it stopped with conflicts.
+- **Settings**: `commandPreview`.
+- **Uses**: `stash.read-files`, `stash.preview`, `preview.confirm`.
+
+Acceptance:
+
+- [ ] A clean pop puts the changes in the files and the stash leaves the list.
+- [ ] A pop that conflicts leaves the files in conflict and the stash in the list.
+- [ ] **Pop** asks first, also with `commandPreview` set to `off`.
+
+### `stash.drop` — Drop a stash
+
+Deletes a stash and the changes it holds.
+
+- **Kind**: Operation
+- **Function**: `features::stash::drop(context, answers) -> Outcome`
+- **Entry points**: **Drop…** on the row and **Drop** in the context menu of a stash in the Stashes pane; **Drop** in
+  the context menu of a stash in the references, in the Branches pane and on its row in the graph.
+- **Plan**: `git stash drop stash@{N}`, titled **Drop stash@{N}**, with the note **The stashed changes will be
+  deleted.**
+- **Danger**: Destructive, because the changes of the stash are deleted and no reference keeps them.
+- **Undo**: `stash.undo-drop`, right after and as long as nothing else happened since.
+- **After**: the stash leaves every list; the ones after it are renumbered by git.
+- **Settings**: `commandPreview`.
+
+Acceptance:
+
+- [ ] **Drop** asks with a warning, also with `commandPreview` set to `off`.
+- [ ] Once confirmed, the stash is gone and `stash@{1}` becomes `stash@{0}`.
+- [ ] Undo right after brings it back (`stash.undo-drop`).
+
+### `stash.undo-drop` — Undo a stash dropped
+
+Brings back a stash dropped in Gitardo, while its commit is still in the repository.
+
+- **Kind**: Operation
+- **Function**: `features::stash::undo_drop(context, answers) -> Outcome`
+- **Entry points**: **Undo** in the toolbar (`undo.last`), right after `stash.drop`.
+- **Offered when**: the last operation Gitardo ran was the drop, and the last entry of the reflog of `HEAD` is the one
+  there was when it ran: nothing else happened since. Otherwise Undo takes back what the reflog says.
+- **Reads**: none: the message and the hash of the stash were kept when it was dropped.
+- **Plan**: `git stash store -m <message> <hash>`, titled **Undo: restore dropped stash**.
+- **Danger**: Confirm, because Undo always shows what it is about to do first.
+- **Undo**: by `stash.drop` again.
+- **After**: the stash is `stash@{0}` again, with its message. Undo is used up.
+- **Refuses**: git refuses when the commit of the stash has been collected since; its words are shown.
+
+Acceptance:
+
+- [ ] Dropping `stash@{0}` and pressing **Undo** shows `git stash store -m "<message>" <hash>` and, confirmed, lists the
+      stash again with its message and its files.
+- [ ] A stash dropped, then a commit made, is not restored by Undo: Undo takes back the commit.
+- [ ] A stash restored from `stash@{2}` comes back as `stash@{0}`.
+
+### `stash.branch` — Create a branch from a stash
+
+Makes a branch at the commit a stash was made on, checks it out, and applies the stash there, where it cannot conflict
+with what came after.
+
+- **Kind**: Operation
+- **Function**: `features::stash::branch(context, answers) -> Outcome`
+- **Entry points**: **Create branch from stash…** in the context menu of a stash in the Stashes pane, in the
+  references, in the Branches pane and on its row in the graph.
+- **Asks**: **Create branch from stash@{N}**: the name of the branch, refused while typing when git does not accept it
+  as a branch name (`branch.validate-name`) or when **A branch with that name already exists**.
+- **Plan**: `git stash branch <name> stash@{N}`, titled **Create branch `<name>` from stash@{N}**; followed by the update
+  of the submodules when the commit it was made on records other submodule commits than those checked out
+  (`submodule.update-on-checkout`).
+- **Danger**: None
+- **Undo**: by the reflog: Undo checks out again what was checked out before; the branch stays, and the stash, which git
+  drops once it applied cleanly, is not brought back.
+- **After**: the new branch is checked out with the changes of the stash in its files; git drops the stash when it
+  applied cleanly, and keeps it otherwise.
+- **Refuses**: git refuses when the files it would check out have changes; its words are shown.
+- **Uses**: `branch.validate-name`, `submodule.update-on-checkout`.
+
+Acceptance:
+
+- [ ] On a stash made on `a1b2c3d`, typing `rescue` makes `rescue` at `a1b2c3d`, checks it out and applies the stash.
+- [ ] The stash leaves the list when it applied cleanly.
+- [ ] A name of an existing branch, or one git refuses such as `bad..name`, cannot be accepted.
+
+### `stash.in-graph` — Stashes in the graph
+
+Shows each stash in the graph, above the commit it was made on and where its date puts it, so that what was set aside
+is seen where it belongs.
+
+- **Kind**: Derivation
+- **Function**: `model::stash::in_graph(input: &GraphWithStashes) -> Vec<Row>`
+- **Entry points**: the Graph tab and its narrow layout; **Show stashes** in the **…** menu of the toolbar of the Graph
+  tab, which switches them on and off.
+- **Reads**: `stash.read-list`; the commits of the stashes with `git log --no-walk=unsorted -z --format=<hash, parents,
+  author name, author email, author date, subject> <hashes of the stashes> --`.
+- **Settings**: `graph.showStashes`, on by default.
+- **Uses**: `graph.lanes`, `stash.apply`, `stash.pop`, `stash.drop`, `stash.branch`, `details.stash`.
+
+Rules:
+
+- **Input**: the commits of the graph in their order, the stashes with their commits. **Output**: the rows of the graph,
+  with the stashes among the commits.
+- A stash is shown only when the commit it was made on, its first parent, is among the commits loaded: on the branches
+  the graph shows, as far as it has loaded them. Not while the graph shows what a search finds or the history of a
+  file.
+- A stash keeps its first parent only: the commits that keep its index and its untracked files are not shown, as the
+  stash stands for them.
+- The stashes are placed newest first, each before the first row whose date is not later than its own, but never below
+  the commit it was made on: stashes made on the same commit are listed as they were made.
+- A stash is drawn as a square with no fill rather than a dot, joined to its commit by a dashed line, as the uncommitted
+  changes are; its label, `stash@{N}`, has a dotted border, and its message is in italics.
+- Its context menu has **Apply**, **Pop**, **Create branch from stash…** and **Drop**, as in the Stashes pane, and none
+  of the operations of a commit; it cannot be dragged, nor dropped on, nor selected together with commits.
+- Selected, it shows its details (`details.stash`); double-clicked, its page (`commit-page.open`).
+
+Examples:
+
+- A stash made on `main` an hour ago, after which a commit was made on `feature` ten minutes ago: the stash is below
+  that commit of `feature` and above the tip of `main`.
+
+Acceptance:
+
+- [ ] A stash made on the commit checked out is the row right above it, joined by a dashed line.
+- [ ] A stash made on a commit the graph does not show is not in the graph.
+- [ ] **Show stashes** unchecked takes every stash out of the graph, and checked brings them back; the setting is the
+      same switch.
+- [ ] With a search shown, or the history of a file, no stash is in the graph.
+- [ ] Two stashes on the same commit are listed newest first, both above it.
+- [ ] The context menu of a stash row has the four stash entries only.
+
+### `stash.autostash-left` — The stash a pull leaves
+
+A pull with `--autostash` sets the changes aside, pulls, and puts them back; when they no longer fit on what came in,
+git leaves them in conflict in the files and keeps the stash. Nothing says so unless git's output is read: Gitardo says
+it, and offers the stashes.
+
+- **Kind**: Derivation
+- **Function**: `model::stash::autostash_left(input: &PullOutcome) -> Option<Notice>`
+- **Entry points**: after `sync.pull` with `--autostash`, the button of the toolbar or an entry of the menu beside it.
+- **Uses**: `stash.pane`, `stash.drop`, `conflicts.banner`.
+
+Rules:
+
+- **Input**: how the pull was run, whether it succeeded, the stashes before it and after it. **Output**: a warning, or
+  nothing.
+- A warning when the pull had `--autostash`, succeeded, there is one stash more than before, and the newest stash has
+  `autostash` in its message, in any case: **Pulled, but your changes do not fit on what came in. They are in conflict
+  in the files, and whole in the stash "`<message>`": resolve the conflicts, then drop the stash.**, with **Show
+  Stashes**, which shows the Stashes pane.
+- Nothing otherwise: when the changes went back cleanly, git drops the stash; when the pull itself stops on a conflict,
+  git puts the changes back once the merge or the rebase is finished or given up. Untracked files are not touched.
+
+Acceptance:
+
+- [ ] A pull with `--autostash` whose incoming commit changes the lines changed in the working tree leaves the files in
+      conflict, a stash named `autostash`, and shows the warning.
+- [ ] **Show Stashes** shows the Stashes pane with that stash first.
+- [ ] A pull whose changes go back cleanly says nothing of a stash.
+- [ ] A pull without `--autostash` never shows the warning.
