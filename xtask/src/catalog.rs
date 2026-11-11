@@ -121,19 +121,28 @@ pub fn parse_feature_functions(source: &str, file: &str) -> Vec<FeatureFunction>
         let Some(identifier) = line.trim_start().strip_prefix("/// Feature:") else {
             continue;
         };
-        let name = lines
-            .iter()
-            .skip(index + 1)
-            .map(|next| next.trim_start())
-            .find(|next| !(next.starts_with("///") || next.starts_with("#[") || next.is_empty()));
         found.push(FeatureFunction {
             identifier: identifier.trim().trim_end_matches('.').to_owned(),
-            name: name.and_then(function_name),
+            name: declaration_after(lines.iter().skip(index + 1).copied()).and_then(function_name),
             file: file.to_owned(),
             line: index + 1,
         });
     }
     found
+}
+
+/// The first line after a doc comment that is neither the comment nor an attribute, also one written on several
+/// lines such as an `#[allow(…)]` with a reason.
+fn declaration_after<'a>(lines: impl Iterator<Item = &'a str>) -> Option<&'a str> {
+    let mut open_brackets = 0_usize;
+    for line in lines.map(str::trim_start) {
+        if open_brackets > 0 || line.starts_with("#[") {
+            open_brackets = (open_brackets + line.matches('[').count()).saturating_sub(line.matches(']').count());
+        } else if !(line.starts_with("///") || line.is_empty()) {
+            return Some(line);
+        }
+    }
+    None
 }
 
 /// The name of the function a line declares: `pub fn create(…)` is `create`.

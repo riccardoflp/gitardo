@@ -76,6 +76,13 @@ fn finds_the_functions_that_name_their_feature() {
 }
 
 #[test]
+fn finds_a_function_after_an_attribute_on_several_lines() {
+    let source = "/// Feature: branch.validate-name\n#[allow(\n    clippy::x,\n    reason = \"[a]\"\n)]\npub fn validate_name() {}\n";
+    let found = parse_feature_functions(source, "crates/model/src/branch.rs");
+    assert_eq!(found[0].name.as_deref(), Some("validate_name"));
+}
+
+#[test]
 fn names_tests_after_the_identifier() {
     assert_eq!(test_prefix("graph.fold-merge"), "graph_fold_merge");
     let names = feature_test_names(
