@@ -6,6 +6,7 @@
 
 mod changes;
 mod commit_page;
+mod diff_page;
 pub mod feature;
 mod inspector;
 mod log_lines;
@@ -31,6 +32,7 @@ use crate::settings::Settings;
 
 pub use changes::{Changes, ChangesData};
 pub use commit_page::{CommitPage, CommitPages, PageReadState};
+pub use diff_page::{DiffPage, DiffPages};
 pub use inspector::{Inspector, InspectorRead, Subject, SubjectRow};
 pub use message::{Effect, Found, Job, JobId, JobKind, Known, Message, MorePages, TimelineRequest};
 pub use rail::{FilterPicker, Rail};
@@ -48,6 +50,8 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(inspector::follow(state));
     effects.extend(commit_page::prune(state));
     effects.extend(commit_page::follow(state));
+    effects.extend(diff_page::prune(state));
+    effects.extend(diff_page::follow(state));
     effects.extend(reads::watch(state));
     effects
 }
@@ -79,6 +83,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         Message::Searched { job, result } => search::searched(state, job, result),
         Message::DetailsRead { job, result } => inspector::details_read(state, job, result),
         Message::CommitPageRead { job, result } => commit_page::page_read(state, job, result),
+        Message::DiffRead { job, result } => diff_page::diff_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, settings),
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
         Message::Wake { at } => reads::wake(state, at),
@@ -278,6 +283,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Search(intent) => search::reduce(state, intent),
         Intent::Details(intent) => inspector::reduce_details(state, intent),
         Intent::CommitPage(id, intent) => commit_page::reduce_page(state, id, intent),
+        Intent::Diff(intent) => diff_page::reduce(state, intent),
         Intent::Feature(intent) => feature::reduce(state, intent),
         Intent::Changes(intent) => changes::reduce(state, intent),
     }

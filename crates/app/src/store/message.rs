@@ -83,6 +83,13 @@ pub enum Message {
         /// What was read, none for a commit that is not in the repository, or what git said when the read failed.
         result: Result<Option<Box<(CommitDetail, PatchLines)>>, String>,
     },
+    /// A job that read and computed the diff of a file of a Diff page is done (`diff.page`).
+    DiffRead {
+        /// The job.
+        job: JobId,
+        /// What it came to.
+        result: crate::work::diff::DiffRead,
+    },
     /// The settings files changed and were read again.
     SettingsRead(Settings),
     /// The watcher of the repository saw changes (`repo.watch-changes`), at a moment counted from when the window
@@ -236,6 +243,13 @@ pub enum JobKind {
         folder: PathBuf,
         /// The commit.
         commit: CommitId,
+    },
+    /// Reads the two versions of a file of a Diff page and computes their diff (`diff.read-sides`, `diff.page`).
+    ReadDiff {
+        /// The top folder of the working tree.
+        folder: PathBuf,
+        /// What is read.
+        job: crate::work::diff::DiffJob,
     },
 }
 

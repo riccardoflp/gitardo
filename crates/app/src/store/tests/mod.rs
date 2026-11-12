@@ -61,7 +61,8 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::ReadTimeline { .. }
             | JobKind::Search(_)
             | JobKind::ReadDetails { .. }
-            | JobKind::ReadCommitPage { .. } => None,
+            | JobKind::ReadCommitPage { .. }
+            | JobKind::ReadDiff { .. } => None,
         })
         .collect()
 }
@@ -139,6 +140,10 @@ fn answer(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[PathBuf])]
                 JobKind::ReadCommitPage { .. } => Message::CommitPageRead {
                     job,
                     result: Err(String::from("not read in these tests")),
+                },
+                JobKind::ReadDiff { .. } => Message::DiffRead {
+                    job,
+                    result: crate::work::diff::DiffRead::Failed(String::from("not read in these tests")),
                 },
             };
             waiting.extend(reduce(state, message));

@@ -84,6 +84,12 @@
 - The Activity drawer lists what runs, with why each read runs and how many reads in a row it is, and what ran a
   moment ago. **Show the commands Gitardo runs** shows the Command log beside it, each line with its time; the lines
   selected are copied with `Ctrl+C`. At `log.level` `debug` the log has each read with how long it took.
+- The Diff page: two versions of a file side by side, kept level with blank rows, each change joined across the gutter
+  and the words that changed marked, with a mark for each change beside the scroll bar. A page is never opened twice for
+  the same diff. `F7` and `Shift+F7` go from change to change and, between `HEAD`, the index and the working tree, on to
+  the next changed file. Long runs of unchanged lines fold (`diff.collapseUnchanged`), the line between the two sides is
+  dragged, and changes already staged are dimmed. A binary file or a diff of more than 5 seconds is refused, and a file
+  of more than 100,000 lines asks first.
 - The settings page (**Settings** in **…**, or `Ctrl+,`) lists every setting with its description, its value, where
   the value comes from and why a value was not taken. A switch or a choice changes it in the user's file or the
   repository's, keeping the rest of the file. **Theme…** in **…** picks the theme. **Show Command Log** and **Open

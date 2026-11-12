@@ -35,6 +35,8 @@ pub const NARROWING_TIMELINE: &str = "Showing other branches";
 pub const SHOWING_DETAILS: &str = "Showing the details of a commit";
 /// What asks for a read of the commit of a page and its lines: the page was opened.
 pub const OPENING_COMMIT_PAGE: &str = "Opening the page of a commit";
+/// Why the diff of a file is read: a Diff page shows it.
+pub const COMPUTING_DIFF: &str = "Showing the diff of a file";
 
 /// The title of a read of a repository: `Reading app`.
 #[must_use]

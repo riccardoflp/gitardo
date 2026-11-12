@@ -8,6 +8,8 @@ mod activity;
 mod branches;
 mod changes;
 mod commit_page;
+mod diff;
+mod diff_views;
 mod filter;
 mod folds;
 mod go_to;

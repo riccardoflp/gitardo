@@ -169,6 +169,7 @@ impl ViewData {
                         .map(|plan| views::FeatureDialog::Plan(views::feature::ConfirmState { plan }))
                 }),
             said: super::feature::said_state(state),
+            large_diff: super::diff_page::large_question(state),
         }
     }
 
@@ -240,6 +241,13 @@ impl ViewData {
                 Some(page) => Content::Page(PageHostState {
                     has_trail: true,
                     page: PageState::Commit(page),
+                }),
+                None => Content::Timeline(self.timeline(state)),
+            },
+            Some(Page::Diff(id)) => match super::diff_page::page_state(state, id) {
+                Some(page) => Content::Page(PageHostState {
+                    has_trail: true,
+                    page: PageState::Diff(page),
                 }),
                 None => Content::Timeline(self.timeline(state)),
             },

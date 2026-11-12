@@ -57,6 +57,10 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: read_search(search, cancel),
         },
+        JobKind::ReadDiff { folder, job: diff } => Message::DiffRead {
+            job: job.id,
+            result: super::diff::read_diff(folder, diff, cancel),
+        },
     }
 }
 

@@ -6,6 +6,7 @@ pub mod branch;
 pub mod changes;
 pub mod dates;
 pub mod details;
+pub mod diff;
 pub mod feature;
 pub mod filter;
 pub mod header;

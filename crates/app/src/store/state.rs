@@ -58,6 +58,8 @@ pub struct State {
     pub inspector: super::inspector::Inspector,
     /// The pages of commits open.
     pub commit_pages: super::commit_page::CommitPages,
+    /// The Diff pages open, or waiting for their first read (`diff.page`).
+    pub diff_pages: super::diff_page::DiffPages,
     /// The reads of the repository shown that changes ask for, and the ones the window starts itself
     /// (`repo.schedule-reads`).
     pub reads: super::reads::Reads,

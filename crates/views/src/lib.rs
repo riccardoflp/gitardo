@@ -19,6 +19,7 @@ pub mod branch;
 pub mod changes;
 pub mod commit_page;
 pub mod details;
+pub mod diff;
 pub mod feature;
 pub mod filter;
 pub mod graph;

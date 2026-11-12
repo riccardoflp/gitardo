@@ -72,6 +72,8 @@ pub enum Intent {
     Details(DetailsIntent),
     /// Something asked of the page of a commit (`commit-page.view`).
     CommitPage(CommitPageId, CommitPageIntent),
+    /// Something asked of the Diff pages (`diff.page`).
+    Diff(crate::diff::DiffIntent),
     /// An operation to run, or what is answered to the one running.
     Feature(crate::feature::FeatureIntent),
     /// Something asked of the Changes page or of the commit box of the draft (`changes.pane`).
@@ -195,4 +197,8 @@ pub enum Notice {
     SingleRepository,
     /// **Select repository…** in a workspace with no repository (`repo.select`).
     NoRepositoryToSelect,
+    /// A diff refused because a side has a NUL byte (`diff.page`).
+    DiffLooksBinary,
+    /// A diff refused because it took longer than its time to compute (`diff.page`).
+    DiffTooComplex,
 }

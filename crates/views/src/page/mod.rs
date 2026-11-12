@@ -5,6 +5,7 @@ use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{AccessRole, Axis, Button, ButtonKind, Icon, Label, Rect, TextKind, Tone, Ui};
 
 use crate::commit_page::{CommitPageId, CommitPageState, view as commit_page_view};
+use crate::diff::{DiffPageId, DiffPageState, page_view as diff_page_view};
 use crate::intent::Intent;
 use crate::settings::{SettingsPageState, settings_view};
 use crate::text::pages as words;
@@ -22,6 +23,8 @@ pub enum Page {
     Settings,
     /// The Changes page (`changes.pane`).
     Changes,
+    /// A Diff page (`diff.page`).
+    Diff(DiffPageId),
 }
 
 impl Page {
@@ -33,6 +36,7 @@ impl Page {
             Page::Commit(_) => crate::text::details::PAGE,
             Page::Settings => settings_words::PAGE,
             Page::Changes => crate::text::changes::PAGE,
+            Page::Diff(_) => crate::text::diff::PAGE,
         }
     }
 }
@@ -48,6 +52,8 @@ pub enum PageState<'a> {
     Settings(SettingsPageState<'a>),
     /// The Changes page.
     Changes(crate::changes::ChangesState<'a>),
+    /// A Diff page.
+    Diff(DiffPageState<'a>),
 }
 
 impl PageState<'_> {
@@ -59,6 +65,7 @@ impl PageState<'_> {
             PageState::Commit(commit) => Page::Commit(commit.id),
             PageState::Settings(_) => Page::Settings,
             PageState::Changes(_) => Page::Changes,
+            PageState::Diff(diff) => Page::Diff(diff.id),
         }
     }
 
@@ -68,6 +75,7 @@ impl PageState<'_> {
         match self {
             PageState::Commit(commit) => commit.title,
             PageState::Welcome(_) | PageState::Settings(_) | PageState::Changes(_) => self.page().title(),
+            PageState::Diff(diff) => diff.title,
         }
     }
 }
@@ -101,6 +109,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Commit(commit) => commit_page_view(commit, ui),
         PageState::Settings(settings) => settings_view(settings, ui),
         PageState::Changes(changes) => crate::changes::pane(changes, ui),
+        PageState::Diff(diff) => diff_page_view(diff, ui),
     }));
     intents
 }
