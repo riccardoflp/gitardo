@@ -97,6 +97,8 @@ pub struct Description<'text> {
     pub is_selected: Option<bool>,
     /// Whether it is on, for a check box, a radio button or a toggle switch.
     pub is_on: Option<bool>,
+    /// Whether a check box is half ticked: some of what it stands for is on.
+    pub is_mixed: bool,
     /// Whether what it holds is shown, for a row that unfolds or a button that opens a menu.
     pub is_expanded: Option<bool>,
     /// Whether it cannot be used now.
@@ -113,6 +115,7 @@ impl<'text> Description<'text> {
             value: None,
             is_selected: None,
             is_on: None,
+            is_mixed: false,
             is_expanded: None,
             is_disabled: false,
         }
@@ -143,6 +146,12 @@ impl<'text> Description<'text> {
             is_on: Some(is_on),
             ..self
         }
+    }
+
+    /// The same description, half ticked or not.
+    #[must_use]
+    pub fn mixed(self, is_mixed: bool) -> Description<'text> {
+        Description { is_mixed, ..self }
     }
 
     /// The same description, unfolded or folded.
@@ -182,6 +191,8 @@ pub(crate) struct AccessNode {
     pub(crate) is_selected: Option<bool>,
     /// Whether it is on.
     pub(crate) is_on: Option<bool>,
+    /// Whether it is half ticked.
+    pub(crate) is_mixed: bool,
     /// Whether it is unfolded.
     pub(crate) is_expanded: Option<bool>,
     /// Whether it cannot be used now.
@@ -304,6 +315,7 @@ impl Ui<'_> {
             value: description.value.map(str::to_owned),
             is_selected: description.is_selected,
             is_on: description.is_on,
+            is_mixed: description.is_mixed,
             is_expanded: description.is_expanded,
             is_disabled: description.is_disabled,
             is_modal,

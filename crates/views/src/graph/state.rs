@@ -65,6 +65,9 @@ pub struct HistoryState<'a> {
     /// What the menus of the commits and of their labels are made from; none while the repository is not read, and
     /// they have only the fold of a merge.
     pub references: Option<ReferenceMenus<'a>>,
+    /// The commit box of the Changes page, whose message and **Commit** the draft shows; and whether an operation
+    /// runs, which disables them and the entries of its menu.
+    pub commit_box: crate::changes::CommitBox<'a>,
 }
 
 /// What the draft of the uncommitted changes shows and offers.

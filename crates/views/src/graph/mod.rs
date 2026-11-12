@@ -28,7 +28,9 @@ mod toggle;
 mod toolbar;
 
 pub use columns::{ColumnsState, columns_view};
-pub use draft::{DraftEntry, UncommittedRow, draft_entries, draft_menu, uncommitted_row_view};
+pub use draft::{
+    DraftEntry, UncommittedRow, draft_entries, draft_entry_intent, draft_menu, entry_operation, uncommitted_row_view,
+};
 pub use edge::{GraphEdgeState, resize_graph_view};
 pub use fold::{FoldAllEntry, FoldAllState, FoldsState, MergeEntry, fold_all_view, fold_merge_view, merge_menu};
 pub use hover::{HoverState, LINGER, REST, hover_history_view, hover_intent};

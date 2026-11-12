@@ -99,3 +99,10 @@
 - `gitardo-cli` stages and unstages a file or all changes, discards the changes of a file or all of them after a warning
   that says what is lost, amends the last commit, and switches the identity of a repository or goes back to the global
   one. A file whose name is also a pattern, such as `pages/[id].tsx`, is named to git as itself.
+- The Changes page, from **Review** in the draft or **Show changes** in Quick search: the commit box with its message,
+  kept for each repository between runs, **Commit** or **Amend** with **Amend last commit**, and `Ctrl+Enter`; the
+  identity commits are made with, which a click switches; the files in conflict apart; and one list of the changed
+  files, as a list or a tree, each with a box ticked, half ticked or empty as much of it is staged, the box on the
+  header for every file, and **Discard changes** and **Discard all changes**. The draft at the top of the timeline
+  shows the message and commits it, and its menu stages, unstages and discards all changes. **Switch identity…** is
+  in **…** and in Quick search.

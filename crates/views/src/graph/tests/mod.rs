@@ -136,6 +136,7 @@ impl Fixture {
                 repository: &self.repository,
                 open_in: OpenIn::Checkout,
             }),
+            commit_box: crate::changes::CommitBox::default(),
         }
     }
 }

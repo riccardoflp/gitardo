@@ -728,3 +728,24 @@ the reading given until it is answered:
   when `commandPreview` shows it, says the commands but not "This is saved in the configuration of this repository
   only.", since the dialog says a reason only for a plan that is `Confirm` or `Destructive`. `commit.amend` before the
   first commit says "There is no commit to amend yet." Should the cards say so?
+- **Q-A3** — The Changes page (`changes.pane`) and the draft. The message box is one line for now: the toolkit has no
+  input box of several lines, and a message pasted with blank lines keeps them. The draft shows the first line of the
+  message, or **Describe the next commit**, but it is typed in the Changes page: **Review** opens the page with the
+  keyboard in the message box, as **Show changes** does, and **Commit** of the draft is the one of the page, so it
+  reads **Amend** while **Amend last commit** is ticked there. The message is kept for each repository in `state.json`
+  under `commitMessages` (`[{"folder", "message"}]`, written when the window closes, forgotten once committed) and the
+  layout of the list under `fileLayouts.changes`, `list` to start with. The buttons of the files and of the header are
+  icons with their names as tooltips; those whose operations come with other areas are shown disabled: **Open file**,
+  **Open changes** and **Open all changes in one Diff page** (`diff.page`, `file-view.page`), the stashes
+  (`stash.push`, `stash.push-staged`, `stash.push-file`), **Save** and **Save all** (`changes.save`), and the
+  buttons of a file in conflict (`conflicts.*`); a click on a file in conflict opens nothing yet (`merge-view.page`).
+  The sparkle button is disabled until the AI provider (M9, `commit.draft-message`). **Switch identity…** is put after
+  **Undo** in **…**, with the operations. Are these right?
+- **Q-A4** — Cards of the area left **Specified**: `changes.pane` (a click on a file in conflict opens the Merge page,
+  and **Save all** appears with a file not saved: both need pages and editors of other milestones); `changes.unsaved`
+  and `changes.save` (Gitardo has no editor yet, so no file is ever not saved); `changes.open` (the Diff and File
+  pages); `changes.discard-all` (its line on the files only an editor has changed waits for `changes.unsaved`);
+  `commit.create` (git's prepared message, `SQUASH_MSG` or the message of a commit being split, is not read yet:
+  should `repo.read-state` read it, or the commit box when it is empty?); `commit.draft-message` (the AI provider,
+  M9). `preview.confirm` has its line on staging a file tested, and stays Specified for its first line, which is not
+  of this area.

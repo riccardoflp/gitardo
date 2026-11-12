@@ -202,12 +202,13 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
     }
 }
 
-/// **Branch**, **Stash** and **Undo**, each disabled while an operation runs and when it has nothing to work on.
+/// **Branch**, **Stash**, **Undo** and **Switch identity…**, each disabled while an operation runs and when it has nothing to work on.
 fn operation_entries(menu: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
     [
         (words::BRANCH, "branch.create", menu.has_commits),
         (words::STASH, "stash.push", menu.can_stash),
         (words::UNDO, "undo.last", menu.has_commits),
+        (crate::text::changes::SWITCH_IDENTITY, "identity.switch", true),
     ]
     .into_iter()
     .map(|(label, feature, can_run)| {

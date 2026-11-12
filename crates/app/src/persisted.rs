@@ -2,8 +2,8 @@
 //! program started before, the steps of the Welcome page done, the recent workspaces with the repository shown last in
 //! each, the size of the window and the width of the branch rail; the sizes of the panes of each workspace and the
 //! folds of each repository ([`timeline`]); the favorites and the branches shown of each repository ([`rail`]).
-//! folds of each repository ([`timeline`]); how the files are laid out in the inspector and in the pages of commits
-//! ([`layouts`]).
+//! folds of each repository ([`timeline`]); how the files are laid out in the inspector, in the pages of commits and in
+//! the Changes page ([`layouts`]); the message of the commit box of each repository ([`changes`]).
 //!
 //! The file is JSON, written whole each time. A file that cannot be read gives what a first start has.
 
@@ -11,10 +11,12 @@ use std::path::{Path, PathBuf};
 
 use json::{Member, Number, Value};
 
+pub mod changes;
 pub mod layouts;
 pub mod rail;
 pub mod timeline;
 
+pub use changes::RepositoryMessage;
 pub use layouts::FileLayouts;
 pub use rail::{RepositoryFavorites, RepositoryShown};
 pub use timeline::{RepositoryFolds, WorkspacePanes};
@@ -50,8 +52,10 @@ pub struct Persisted {
     /// Whether the funnel of the search box is pressed: a search of the whole history narrows the timeline to what
     /// it finds (`search.list-mode`).
     pub search_as_list: bool,
-    /// How the files are laid out in the inspector and in the pages of commits.
+    /// How the files are laid out in the inspector, in the pages of commits and in the Changes page.
     pub file_layouts: FileLayouts,
+    /// The messages of the commit boxes of the repositories whose message changed last (`changes.pane`).
+    pub commit_messages: Vec<RepositoryMessage>,
 }
 
 /// A workspace opened before.
@@ -100,6 +104,7 @@ impl Persisted {
                 .get("fileLayouts")
                 .map(layouts::file_layouts)
                 .unwrap_or_default(),
+            commit_messages: list(&document, "commitMessages", changes::repository_message),
         }
     }
 
@@ -144,6 +149,12 @@ impl Persisted {
         }
         if self.file_layouts != FileLayouts::default() {
             members.push(member("fileLayouts", layouts::layouts_value(self.file_layouts)));
+        }
+        if !self.commit_messages.is_empty() {
+            members.push(member(
+                "commitMessages",
+                Value::Array(self.commit_messages.iter().map(changes::message_value).collect()),
+            ));
         }
         json::to_pretty_text(&Value::Object(members))
     }
@@ -285,6 +296,7 @@ mod tests {
             file_layouts: super::FileLayouts {
                 inspector: views::details::FileLayout::Tree,
                 page: views::details::FileLayout::List,
+                changes: views::details::FileLayout::Tree,
             },
             ..Persisted::default()
         };

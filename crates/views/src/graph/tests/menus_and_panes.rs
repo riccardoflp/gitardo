@@ -242,3 +242,75 @@ fn graph_view__a_double_click_on_the_label_of_a_branch_not_checked_out_checks_it
     );
     assert_eq!(double_click_label(&state, None), None, "off the labels, the row opens");
 }
+
+#[test]
+fn changes_stage_all__the_menu_of_the_draft_has_no_stage_all_while_a_file_is_in_conflict() {
+    let conflict = DraftState {
+        files: 2,
+        unstaged: 1,
+        conflicted: 1,
+        has_commit: true,
+        ..DraftState::default()
+    };
+    assert!(!draft_entries(&conflict).contains(&DraftEntry::StageAll));
+    let calm = DraftState {
+        conflicted: 0,
+        ..conflict
+    };
+    assert!(draft_entries(&calm).contains(&DraftEntry::StageAll));
+}
+
+#[test]
+fn changes_discard_all__the_entry_of_the_draft_is_not_in_its_menu_while_a_merge_is_stopped() {
+    let merging = DraftState {
+        files: 1,
+        conflicted: 1,
+        has_commit: true,
+        is_operation_stopped: true,
+        ..DraftState::default()
+    };
+    assert!(!draft_entries(&merging).contains(&DraftEntry::DiscardAll));
+}
+
+#[test]
+fn the_entries_of_the_draft_run_their_operations_on_the_whole_working_tree_and_the_stashes_wait() {
+    use crate::graph::{draft_entry_intent, draft_menu};
+    let draft = DraftState {
+        files: 2,
+        staged: 1,
+        unstaged: 1,
+        has_commit: true,
+        ..DraftState::default()
+    };
+    let enabled: Vec<(DraftEntry, bool)> = draft_menu(&draft, false)
+        .iter()
+        .filter_map(|entry| match entry {
+            ui::MenuEntry::Item(item) => Some((item.value, item.availability == ui::Availability::Enabled)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        enabled,
+        [
+            (DraftEntry::Stash, false),
+            (DraftEntry::StashStaged, false),
+            (DraftEntry::StageAll, true),
+            (DraftEntry::UnstageAll, true),
+            (DraftEntry::DiscardAll, true),
+        ]
+    );
+    assert_eq!(
+        draft_entry_intent(DraftEntry::DiscardAll),
+        Some(crate::Intent::Feature(crate::feature::FeatureIntent::Run(
+            model::contract::FeatureId("changes.discard-all"),
+            model::contract::Target::Head,
+        )))
+    );
+    assert!(
+        draft_menu(&draft, true).iter().all(|entry| match entry {
+            ui::MenuEntry::Item(item) => item.availability == ui::Availability::Disabled,
+            _ => true,
+        }),
+        "nothing while an operation runs"
+    );
+}

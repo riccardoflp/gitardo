@@ -8,7 +8,7 @@ use ui::layout::{Align, Insets, inset, place};
 use ui::{AccessRole, Label, List, Rect, Reveal, Selection, SelectionMode, Steering, Tone, Ui};
 
 use super::commit_menu::{commit_menu, double_click_label, menu_key, open_row_menu};
-use super::draft::draft_menu;
+use super::draft::{draft_entry_intent, draft_menu};
 use super::edge::{GraphEdgeState, resize_graph_view};
 use super::hover::{HoverState, hover_history_view};
 use super::intent::GraphIntent;
@@ -209,8 +209,11 @@ fn row_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usize) -> Vec<Inte
     };
     match row {
         Row::Uncommitted { .. } if ui.is_menu_open(key) => {
-            let _ = ui.menu(key, &draft_menu(&state.draft.unwrap_or_default()));
-            Vec::new()
+            let entries = draft_menu(&state.draft.unwrap_or_default(), state.commit_box.is_running);
+            ui.menu(key, &entries)
+                .and_then(draft_entry_intent)
+                .into_iter()
+                .collect()
         }
         Row::Stash { .. } if ui.is_menu_open(key) => {
             let _ = ui.menu(key, &stash_menu());

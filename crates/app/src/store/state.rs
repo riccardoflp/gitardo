@@ -67,6 +67,8 @@ pub struct State {
     pub is_log_shown: bool,
     /// The file the settings page writes changes in (`settings.edit`).
     pub settings_target: views::settings::SettingsTarget,
+    /// The Changes page and the commit box (`changes.pane`).
+    pub changes: super::changes::Changes,
 }
 
 /// The folders of a window and the repositories found in them.

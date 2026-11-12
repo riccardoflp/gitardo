@@ -71,7 +71,9 @@ fn node(widget: &AccessNode, scale: f32, is_focusable: bool) -> Node {
     if let Some(is_selected) = widget.is_selected {
         node.set_selected(is_selected);
     }
-    if let Some(is_on) = widget.is_on {
+    if widget.is_mixed {
+        node.set_toggled(Toggled::Mixed);
+    } else if let Some(is_on) = widget.is_on {
         node.set_toggled(if is_on { Toggled::True } else { Toggled::False });
     }
     if let Some(is_expanded) = widget.is_expanded {

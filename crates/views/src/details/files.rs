@@ -34,6 +34,8 @@ pub enum FilesOwner {
     Inspector,
     /// The page of a commit.
     Page(CommitPageId),
+    /// The Changes page (`changes.pane`).
+    Changes,
 }
 
 impl FilesOwner {
@@ -43,6 +45,7 @@ impl FilesOwner {
         match self {
             FilesOwner::Inspector => Intent::Details(DetailsIntent::Files(files)),
             FilesOwner::Page(page) => Intent::CommitPage(page, CommitPageIntent::Files(files)),
+            FilesOwner::Changes => Intent::Changes(crate::changes::ChangesIntent::Files(files)),
         }
     }
 }

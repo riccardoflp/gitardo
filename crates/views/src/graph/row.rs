@@ -88,6 +88,7 @@ pub(crate) fn draw_row(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row,
             let state = UncommittedRow {
                 draft: context.state.draft.unwrap_or_default(),
                 is_selected: row.is_selected,
+                commit: context.state.commit_box,
             };
             report
                 .intents

@@ -57,6 +57,8 @@ pub struct ViewData {
     now: i64,
     /// The entries of Quick search.
     search: search::SearchView,
+    /// The list of the Changes page, while it is open.
+    changes: super::changes::ChangesData,
 }
 
 impl ViewData {
@@ -119,6 +121,7 @@ impl ViewData {
             panes: workspace_panes(state),
             now,
             search: search::SearchView::new(state),
+            changes: super::changes::ChangesData::new(state),
         }
     }
 
@@ -248,6 +251,10 @@ impl ViewData {
                     has_repository: state.shown_folder().is_some(),
                 }),
             }),
+            Some(Page::Changes) => Content::Page(PageHostState {
+                has_trail: true,
+                page: PageState::Changes(self.changes.page_state(state)),
+            }),
             None => Content::Timeline(self.timeline(state)),
         }
     }
@@ -320,6 +327,7 @@ impl ViewData {
                 repository: &read.state,
                 open_in: state.settings.features.branch_open_in,
             }),
+            commit_box: super::changes::commit_box(state),
         }
     }
 }

@@ -138,7 +138,7 @@ impl QuickCommand {
     /// nothing.
     #[must_use]
     pub fn is_built(self) -> bool {
-        self <= QuickCommand::Welcome
+        self <= QuickCommand::ShowChanges
     }
 
     /// The operation of the catalog the command runs at `HEAD`, for the commands that run one: the window runs it once

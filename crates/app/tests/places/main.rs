@@ -6,6 +6,7 @@
 
 mod activity;
 mod branches;
+mod changes;
 mod commit_page;
 mod filter;
 mod folds;

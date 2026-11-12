@@ -20,6 +20,8 @@ pub enum Page {
     Commit(CommitPageId),
     /// The settings page (`settings.edit`).
     Settings,
+    /// The Changes page (`changes.pane`).
+    Changes,
 }
 
 impl Page {
@@ -30,6 +32,7 @@ impl Page {
             Page::Welcome => words::WELCOME,
             Page::Commit(_) => crate::text::details::PAGE,
             Page::Settings => settings_words::PAGE,
+            Page::Changes => crate::text::changes::PAGE,
         }
     }
 }
@@ -43,6 +46,8 @@ pub enum PageState<'a> {
     Commit(CommitPageState<'a>),
     /// The settings page.
     Settings(SettingsPageState<'a>),
+    /// The Changes page.
+    Changes(crate::changes::ChangesState<'a>),
 }
 
 impl PageState<'_> {
@@ -53,6 +58,7 @@ impl PageState<'_> {
             PageState::Welcome(_) => Page::Welcome,
             PageState::Commit(commit) => Page::Commit(commit.id),
             PageState::Settings(_) => Page::Settings,
+            PageState::Changes(_) => Page::Changes,
         }
     }
 
@@ -61,7 +67,7 @@ impl PageState<'_> {
     pub fn title(&self) -> &str {
         match self {
             PageState::Commit(commit) => commit.title,
-            PageState::Welcome(_) | PageState::Settings(_) => self.page().title(),
+            PageState::Welcome(_) | PageState::Settings(_) | PageState::Changes(_) => self.page().title(),
         }
     }
 }
@@ -94,6 +100,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Welcome(welcome) => page_view(welcome, ui),
         PageState::Commit(commit) => commit_page_view(commit, ui),
         PageState::Settings(settings) => settings_view(settings, ui),
+        PageState::Changes(changes) => crate::changes::pane(changes, ui),
     }));
     intents
 }

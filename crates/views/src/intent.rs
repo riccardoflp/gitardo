@@ -74,6 +74,8 @@ pub enum Intent {
     CommitPage(CommitPageId, CommitPageIntent),
     /// An operation to run, or what is answered to the one running.
     Feature(crate::feature::FeatureIntent),
+    /// Something asked of the Changes page or of the commit box of the draft (`changes.pane`).
+    Changes(crate::changes::ChangesIntent),
 }
 
 /// What is done with a folder opened while the window shows a workspace.

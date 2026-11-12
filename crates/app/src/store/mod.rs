@@ -4,6 +4,7 @@
 //!
 //! `reduce` reads no file and runs no git: it is tested without a window.
 
+mod changes;
 mod commit_page;
 pub mod feature;
 mod inspector;
@@ -28,6 +29,7 @@ use views::{FolderAnswer, Intent};
 use crate::persisted;
 use crate::settings::Settings;
 
+pub use changes::{Changes, ChangesData};
 pub use commit_page::{CommitPage, CommitPages, PageReadState};
 pub use inspector::{Inspector, InspectorRead, Subject, SubjectRow};
 pub use message::{Effect, Found, Job, JobId, JobKind, Known, Message, MorePages, TimelineRequest};
@@ -63,15 +65,15 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
             result,
             read_at,
         } => repository_read(state, job, &folder, (result, read_at)),
-        Message::FeatureAsks(question) => {
-            feature::asks(state, *question);
-            Vec::new()
-        }
+        Message::FeatureAsks(question) => changes::asks(state, *question),
         Message::FeatureConfirms(plan) => {
             feature::confirms(state, *plan);
             Vec::new()
         }
-        Message::FeatureEnded { ended, log } => feature::ended(state, ended, log),
+        Message::FeatureEnded { ended, log } => {
+            changes::ended(state, &ended);
+            feature::ended(state, ended, log)
+        }
         Message::CommitsRead { job, result } => timeline::commits_read(state, job, result),
         Message::TimelineRead { job, result } => timeline::timeline_read(state, job, result),
         Message::Searched { job, result } => search::searched(state, job, result),
@@ -277,6 +279,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Details(intent) => inspector::reduce_details(state, intent),
         Intent::CommitPage(id, intent) => commit_page::reduce_page(state, id, intent),
         Intent::Feature(intent) => feature::reduce(state, intent),
+        Intent::Changes(intent) => changes::reduce(state, intent),
     }
 }
 

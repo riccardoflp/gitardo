@@ -32,6 +32,11 @@ pub struct Choice<'text> {
     pub label: &'text str,
     /// Whether it is on.
     pub is_on: bool,
+    /// Whether a check box is half ticked, with a dash: some of what it stands for is on.
+    pub is_mixed: bool,
+    /// Whether its label is drawn after the mark; when not, the label is only its name for the screen reader, the row
+    /// it is on saying what it is.
+    pub is_label_shown: bool,
     /// Whether it can be used now.
     pub availability: Availability,
 }
@@ -44,7 +49,18 @@ impl<'text> Choice<'text> {
             kind: ChoiceKind::CheckBox,
             label,
             is_on,
+            is_mixed: false,
+            is_label_shown: true,
             availability: Availability::Enabled,
+        }
+    }
+
+    /// A check box half ticked, with a dash: some of what it stands for is on.
+    #[must_use]
+    pub fn half_ticked(label: &'text str) -> Choice<'text> {
+        Choice {
+            is_mixed: true,
+            ..Choice::check_box(label, true)
         }
     }
 
@@ -63,6 +79,15 @@ impl<'text> Choice<'text> {
         Choice {
             kind: ChoiceKind::Toggle,
             ..Choice::check_box(label, is_on)
+        }
+    }
+
+    /// The same choice with its label not drawn: only the screen reader hears it.
+    #[must_use]
+    pub fn label_hidden(self) -> Choice<'text> {
+        Choice {
+            is_label_shown: false,
+            ..self
         }
     }
 
@@ -96,12 +121,12 @@ impl Ui<'_> {
         let side = metrics::mark_side(&theme);
         let mark = place(rect, (mark_width, side), (Align::Start, Align::Center));
         let state = MarkState {
-            is_on: choice.is_on,
+            is_on: choice.is_on || choice.is_mixed,
             is_enabled,
             is_lit: is_enabled && (response.hovered || response.pressed),
         };
         match choice.kind {
-            ChoiceKind::CheckBox => self.check_mark(mark, state),
+            ChoiceKind::CheckBox => self.check_mark(mark, state, choice.is_mixed),
             ChoiceKind::Radio => self.radio_mark(mark, state),
             ChoiceKind::Toggle => self.toggle_mark(mark, state),
         }
@@ -117,7 +142,9 @@ impl Ui<'_> {
             has_tooltip_when_cut: false,
             ..Label::new(choice.label).tone(tone)
         };
-        let _ = self.draw_label(text, &label);
+        if choice.is_label_shown {
+            let _ = self.draw_label(text, &label);
+        }
         if response.shows_focus {
             let radius = match choice.kind {
                 ChoiceKind::CheckBox => theme.sizes.radius.small,
@@ -132,13 +159,14 @@ impl Ui<'_> {
         };
         let description = Description::new(role, choice.label)
             .on(choice.is_on)
+            .mixed(choice.is_mixed)
             .disabled(!is_enabled);
         self.access_node(id, rect, &description);
         response
     }
 
-    /// The square of a check box, filled with a check mark when on.
-    fn check_mark(&mut self, mark: Rect, state: MarkState) {
+    /// The square of a check box, filled with a check mark when on, or a dash when half ticked.
+    fn check_mark(&mut self, mark: Rect, state: MarkState, is_mixed: bool) {
         let theme = *self.theme();
         let radius = theme.sizes.radius.small;
         let colors = mark_colors(&theme, state);
@@ -155,7 +183,8 @@ impl Ui<'_> {
             );
         }
         if state.is_on {
-            self.icon(Icon::Check, Point::new(mark.x, mark.y), mark.height, colors.dot);
+            let icon = if is_mixed { Icon::Minus } else { Icon::Check };
+            self.icon(icon, Point::new(mark.x, mark.y), mark.height, colors.dot);
         }
     }
 

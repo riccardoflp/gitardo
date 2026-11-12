@@ -3,6 +3,7 @@
 
 pub mod activity;
 pub mod branch;
+pub mod changes;
 pub mod dates;
 pub mod details;
 pub mod feature;

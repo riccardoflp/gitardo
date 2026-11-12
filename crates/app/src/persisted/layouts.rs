@@ -1,5 +1,6 @@
 //! How the files are laid out, kept between runs: as last chosen in the inspector (`details.show`), the list to start
-//! with, and in the pages of commits (`commit-page.view`), the tree to start with.
+//! with, in the pages of commits (`commit-page.view`), the tree to start with, and in the Changes page
+//! (`changes.pane`), the list to start with.
 
 use json::Value;
 use views::details::FileLayout;
@@ -13,6 +14,8 @@ pub struct FileLayouts {
     pub inspector: FileLayout,
     /// The layout of the files of the pages of commits opened later.
     pub page: FileLayout,
+    /// The layout of the files of the Changes page.
+    pub changes: FileLayout,
 }
 
 impl Default for FileLayouts {
@@ -20,15 +23,17 @@ impl Default for FileLayouts {
         FileLayouts {
             inspector: FileLayout::List,
             page: FileLayout::Tree,
+            changes: FileLayout::List,
         }
     }
 }
 
-/// The layouts, as written: `{"inspector": "list", "page": "tree"}`.
+/// The layouts, as written: `{"inspector": "list", "page": "tree", "changes": "list"}`.
 pub(super) fn layouts_value(layouts: FileLayouts) -> Value {
     Value::Object(vec![
         member("inspector", Value::String(name(layouts.inspector).to_owned())),
         member("page", Value::String(name(layouts.page).to_owned())),
+        member("changes", Value::String(name(layouts.changes).to_owned())),
     ])
 }
 
@@ -39,6 +44,7 @@ pub(super) fn file_layouts(value: &Value) -> FileLayouts {
     FileLayouts {
         inspector: read("inspector").unwrap_or(first.inspector),
         page: read("page").unwrap_or(first.page),
+        changes: read("changes").unwrap_or(first.changes),
     }
 }
 

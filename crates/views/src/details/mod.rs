@@ -24,7 +24,7 @@ use crate::text::details as words;
 use crate::text::timeline as timeline_words;
 
 pub use files::{CappedList, FILE_CAP, FileLayout, FilesIntent, FilesOwner, FilesState, show_all_files};
-pub(crate) use files::{FileRow, directory_row, file_rows, file_start, layout_buttons};
+pub(crate) use files::{FileRow, directory_row, file_name, file_rows, file_start, indent_of, layout_buttons, status};
 pub(crate) use head::{outdent, shown_parents};
 pub use message::{MessageState, SHOWN_LINES, show_more};
 
