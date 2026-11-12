@@ -5,6 +5,7 @@
 //! `reduce` reads no file and runs no git: it is tested without a window.
 
 mod commit_page;
+pub mod feature;
 mod inspector;
 mod log_lines;
 mod message;
@@ -62,6 +63,15 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
             result,
             read_at,
         } => repository_read(state, job, &folder, (result, read_at)),
+        Message::FeatureAsks(question) => {
+            feature::asks(state, *question);
+            Vec::new()
+        }
+        Message::FeatureConfirms(plan) => {
+            feature::confirms(state, *plan);
+            Vec::new()
+        }
+        Message::FeatureEnded { ended, log } => feature::ended(state, ended, log),
         Message::CommitsRead { job, result } => timeline::commits_read(state, job, result),
         Message::TimelineRead { job, result } => timeline::timeline_read(state, job, result),
         Message::Searched { job, result } => search::searched(state, job, result),
@@ -98,7 +108,9 @@ fn repository_read(
         state.log.record_failure(model::Timestamp(read_at), error);
     }
     let mut effects = if is_shown {
-        workspace::repository_read(state, job, folder, (result, read_at))
+        let mut effects = workspace::repository_read(state, job, folder, (result, read_at));
+        effects.extend(feature::after_read(state));
+        effects
     } else {
         let _thrown_away = state.jobs.remove(&job);
         Vec::new()
@@ -264,6 +276,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Search(intent) => search::reduce(state, intent),
         Intent::Details(intent) => inspector::reduce_details(state, intent),
         Intent::CommitPage(id, intent) => commit_page::reduce_page(state, id, intent),
+        Intent::Feature(intent) => feature::reduce(state, intent),
     }
 }
 

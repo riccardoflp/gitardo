@@ -140,6 +140,22 @@ impl QuickCommand {
     pub fn is_built(self) -> bool {
         self <= QuickCommand::Welcome
     }
+
+    /// The operation of the catalog the command runs at `HEAD`, for the commands that run one: the window runs it once
+    /// it is built.
+    #[must_use]
+    pub fn operation(self) -> Option<&'static str> {
+        match self {
+            QuickCommand::CreateBranch => Some("branch.create"),
+            QuickCommand::Fetch => Some("sync.fetch"),
+            QuickCommand::Push => Some("sync.push"),
+            QuickCommand::StashChanges => Some("stash.push"),
+            QuickCommand::CleanUpBranches => Some("branch.clean-up"),
+            QuickCommand::SwitchIdentity => Some("identity.switch"),
+            QuickCommand::UndoLastOperation => Some("undo.last"),
+            _ => None,
+        }
+    }
 }
 
 /// The box of Quick search in the middle of the rectangle its caller clipped it to, as wide as it can be up to its

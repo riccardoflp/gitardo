@@ -2,7 +2,8 @@
 //! configuration folder and from `.gitardo/settings.json` of the repository shown, both JSON with comments.
 //!
 //! Only the settings this window uses are read here: the theme and the fonts (`settings.theme`), `readOnStartup`,
-//! `graph.pageSize`, the switches of the timeline, `branches.sortOrder`, `branches.followGraphFilter` and `log.level`.
+//! `graph.pageSize`, the switches of the timeline, `branches.sortOrder`, `branches.followGraphFilter`, `log.level`, and
+//! `commandPreview`, `branches.format` and `submodules.updateOnCheckout`, which the operations read.
 //! Each card that uses another setting adds it to [`keys`]. Every value the files set is kept as written too, for the
 //! settings page (`settings.edit`).
 
@@ -17,6 +18,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use engine::LogLevel;
+use model::contract::FeatureSettings;
 use model::graph::PageSize;
 use model::refs::SortOrder;
 use render::ThemeName;
@@ -48,6 +50,8 @@ pub struct Settings {
     pub follows_graph_filter: bool,
     /// `log.level`: whether the Command log records the reads too.
     pub log_level: LogLevel,
+    /// `commandPreview`, `branches.format` and `submodules.updateOnCheckout`: the settings the operations read.
+    pub features: FeatureSettings,
     /// Every value the files set, by key, the repository's file first: what the settings page shows.
     pub values: BTreeMap<String, Vec<(SettingsFile, json::Value)>>,
     /// The values that were not taken, with which key and why, for the settings page to say.
@@ -65,6 +69,7 @@ impl Default for Settings {
             sort_order: None,
             follows_graph_filter: true,
             log_level: LogLevel::Info,
+            features: FeatureSettings::default(),
             values: BTreeMap::new(),
             problems: Vec::new(),
         }

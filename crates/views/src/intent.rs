@@ -72,6 +72,8 @@ pub enum Intent {
     Details(DetailsIntent),
     /// Something asked of the page of a commit (`commit-page.view`).
     CommitPage(CommitPageId, CommitPageIntent),
+    /// An operation to run, or what is answered to the one running.
+    Feature(crate::feature::FeatureIntent),
 }
 
 /// What is done with a folder opened while the window shows a workspace.

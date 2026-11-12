@@ -660,3 +660,14 @@ the reading given until it is answered:
   labels shrank its message to `…`, so now its message keeps half of the first line, or all of it when shorter, and the
   labels take the rest: as many named as fit, then the count of the others, `+2`, with their names in its tooltip, as
   in the narrow layout. Should the card say so, and is half the right share?
+- **Q110** — Operations run from the window (M4, slice 1). The engine runs each on a thread of the operations of the
+  window, one at a time, with one engine for each repository kept for its undo journal; a question or a plan to
+  confirm is sent to the window and the thread waits for the answer. Choices made without a card: `preview.confirm`
+  is the dialog of the window (`views::feature::confirm_view`), since the engine already decides when to ask
+  (`engine::needs_confirmation`), so its card is now a View; `Enter` does not press the button of a dialog that cannot
+  be undone (the toolkit's `DialogRole::Danger`), as the card says **Run** is the default only when the plan is not
+  destructive; the button of a question of text or of a pick says its title, **Create branch**; once an operation ran,
+  the bar over the timeline says what the plan's **Say** says, or `<title>: done.`, with **Undo** unless Undo cannot
+  take it back or it was Undo itself; a step that failed says `` `<the step>` failed: <what git said> ``. **Sync** and
+  the button of its menu are one control; **Stash** in **…**, and **Sync**, **Pull** and **Push**, are disabled until
+  their operations are built. Are these right?

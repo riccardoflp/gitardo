@@ -109,6 +109,22 @@ impl CommandLog {
         }
     }
 
+    /// Writes lines another log recorded, as those of an operation that ran on a thread of its own: a read only when
+    /// the level is debug.
+    pub fn append(&mut self, entries: impl IntoIterator<Item = LogEntry>) {
+        for entry in entries {
+            if self.level == LogLevel::Debug || !matches!(entry.kind, LogKind::Read(_)) {
+                self.push(entry);
+            }
+        }
+    }
+
+    /// Takes the lines kept, oldest first, and leaves the log empty.
+    pub fn take(&mut self) -> Vec<LogEntry> {
+        self.dropped = 0;
+        self.entries.drain(..).collect()
+    }
+
     /// The lines kept, oldest first.
     pub fn entries(&self) -> impl Iterator<Item = &LogEntry> {
         self.entries.iter()

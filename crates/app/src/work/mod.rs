@@ -2,6 +2,7 @@
 //! cancels it and an entry among the activities, and send back the message of its result.
 
 pub mod jobs;
+mod operations;
 mod persist;
 mod repository_watch;
 mod setting_writer;
@@ -24,6 +25,7 @@ use views::text::search as search_words;
 use crate::store::search::SearchJob;
 use crate::store::{Job, JobId, JobKind, Message};
 
+pub use operations::Operations;
 pub use persist::PersistedWriter;
 pub use repository_watch::{RepositoryWatch, change_of, common_git_folder};
 pub use setting_writer::SettingWriter;

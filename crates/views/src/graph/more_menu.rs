@@ -24,6 +24,19 @@ pub struct MoreMenuState {
     pub can_select_repository: bool,
     /// The switches of the timeline, while a repository is shown.
     pub timeline: Option<TimelineMenu>,
+    /// **Branch**, **Stash** and **Undo**, while a repository is shown.
+    pub operations: Option<OperationsMenu>,
+}
+
+/// What **Branch**, **Stash** and **Undo** may do.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct OperationsMenu {
+    /// Whether an operation runs, which disables the entries that change something.
+    pub is_running: bool,
+    /// Whether the repository has a commit: **Branch** and **Undo** are disabled before the first.
+    pub has_commits: bool,
+    /// Whether there is something to stash, and **Stash** is built.
+    pub can_stash: bool,
 }
 
 /// The entries of **…** about the timeline.
@@ -60,6 +73,8 @@ pub(crate) enum MoreCommand {
     Settings,
     /// **Theme…** (`settings.theme`).
     Theme,
+    /// **Branch**, **Stash** or **Undo**: the operation of the catalog it runs at `HEAD`.
+    Operation(&'static str),
 }
 
 /// The words of a switch.
@@ -159,6 +174,10 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
         Some(MoreCommand::GoToCommit) => vec![Intent::Search(crate::search::SearchIntent::GoToCommit)],
         Some(MoreCommand::Settings) => vec![Intent::ShowPage(crate::page::Page::Settings)],
         Some(MoreCommand::Theme) => vec![Intent::PickTheme],
+        Some(MoreCommand::Operation(feature)) => vec![Intent::Feature(crate::feature::FeatureIntent::Run(
+            model::contract::FeatureId(feature),
+            model::contract::Target::Head,
+        ))],
         Some(MoreCommand::Switch(TimelineSwitch::FirstParent)) => {
             let state = FirstParentState {
                 is_on: switches.is_on(TimelineSwitch::FirstParent),
@@ -183,7 +202,26 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
     }
 }
 
-/// The entries of **…**: **Refresh**, the entries of the timeline, **Go to commit…**, **Select repository**, then
+/// **Branch**, **Stash** and **Undo**, each disabled while an operation runs and when it has nothing to work on.
+fn operation_entries(menu: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
+    [
+        (words::BRANCH, "branch.create", menu.has_commits),
+        (words::STASH, "stash.push", menu.can_stash),
+        (words::UNDO, "undo.last", menu.has_commits),
+    ]
+    .into_iter()
+    .map(|(label, feature, can_run)| {
+        let item = MenuItem::new(label, MoreCommand::Operation(feature));
+        MenuEntry::Item(if can_run && !menu.is_running {
+            item
+        } else {
+            item.disabled()
+        })
+    })
+    .collect()
+}
+
+/// The entries of **…**: **Refresh**, **Branch**, **Stash** and **Undo**, the entries of the timeline, **Go to commit…**, **Select repository**, then
 /// **Settings** and **Theme…**.
 fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
     let refresh = MenuItem::new(words::REFRESH, MoreCommand::Refresh).with_icon(Icon::Refresh);
@@ -192,6 +230,9 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
     } else {
         refresh.disabled()
     })];
+    if let Some(operations) = state.operations {
+        entries.extend(operation_entries(operations));
+    }
     if let Some(timeline) = &state.timeline {
         entries.extend(timeline_entries(*timeline));
     }

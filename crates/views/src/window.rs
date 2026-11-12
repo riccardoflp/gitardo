@@ -8,6 +8,7 @@ use ui::{Button, ButtonKind, Icon, Key, Label, Modifiers, NamedKey, Rect, Tone, 
 
 use crate::activity::{ActivityState, what_is_running_view};
 use crate::details::{DetailsState, show};
+use crate::feature::{ConfirmState, QuestionState, SaidState, confirm_view, question_view, said_view};
 use crate::filter::{NarrowedBar, bar_height, bar_view};
 use crate::graph::{
     GraphState, HoverTarget, PaneLayout, PaneSizes, ToolbarState, pane_rects, resize_panes_view, toolbar_view,
@@ -45,6 +46,19 @@ pub struct WindowState<'a> {
     pub notice: Option<Notice>,
     /// **Go to commit**, while it is open (`search.go-to-commit`).
     pub go_to_commit: Option<GoToCommitDialog<'a>>,
+    /// What the operation running asks, or the plan it is about to run (`preview.confirm`).
+    pub feature: Option<FeatureDialog<'a>>,
+    /// What was said once an operation ended, until it is put away.
+    pub said: Option<SaidState<'a>>,
+}
+
+/// What the operation running shows over the window.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FeatureDialog<'a> {
+    /// A question.
+    Question(QuestionState<'a>),
+    /// The plan, before it runs.
+    Plan(ConfirmState<'a>),
 }
 
 /// What is under the header.
@@ -91,6 +105,11 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let top = area.top(theme.sizes.header_height);
     intents.extend(ui.clip(top, |ui| toolbar_view(&state.header, ui)));
     let mut body = area.rest();
+    if let Some(said) = &state.said {
+        let bar = Area::new(body).top(theme.sizes.control_height + 2.0 * theme.sizes.spacing.medium);
+        body = Rect::new(body.x, bar.bottom(), body.width, (body.height - bar.height).max(0.0));
+        intents.extend(ui.clip(bar, |ui| said_view(said, ui)));
+    }
     if let Some(notice) = state.notice {
         let bar = Area::new(body).top(theme.sizes.control_height + 2.0 * theme.sizes.spacing.medium);
         body = Rect::new(body.x, bar.bottom(), body.width, (body.height - bar.height).max(0.0));
@@ -114,6 +133,11 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     }
     if let Some(theme_picker) = &state.theme_picker {
         intents.extend(theme_picker_view(theme_picker, ui));
+    }
+    match &state.feature {
+        Some(FeatureDialog::Question(question)) => intents.extend(question_view(question, ui)),
+        Some(FeatureDialog::Plan(plan)) => intents.extend(confirm_view(plan, ui)),
+        None => {}
     }
     intents.extend(shortcuts(ui, state.drawer.is_some()));
     intents

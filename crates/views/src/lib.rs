@@ -17,6 +17,7 @@ pub mod activity;
 mod blocks;
 pub mod commit_page;
 pub mod details;
+pub mod feature;
 pub mod filter;
 pub mod graph;
 mod intent;
@@ -33,4 +34,4 @@ pub mod welcome;
 mod window;
 
 pub use intent::{FilterIntent, FolderAnswer, Intent, Notice, RailIntent, RailList, RailLists};
-pub use window::{Content, TimelineState, WindowState, view};
+pub use window::{Content, FeatureDialog, TimelineState, WindowState, view};

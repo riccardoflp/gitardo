@@ -109,6 +109,17 @@ pub enum Message {
         /// When it started, in seconds since 1970.
         time: model::Timestamp,
     },
+    /// The operation running asks a question.
+    FeatureAsks(Box<model::contract::Question>),
+    /// The operation running shows its plan before it runs it (`preview.confirm`).
+    FeatureConfirms(Box<model::contract::Plan>),
+    /// The operation running ended, with the lines its engine logged.
+    FeatureEnded {
+        /// How it ended.
+        ended: super::feature::Ended,
+        /// The lines of the Command log.
+        log: Vec<engine::LogEntry>,
+    },
     /// The person asked to close the window, whose inside had this size in logical pixels.
     CloseRequested {
         /// The size of the inside of the window.
@@ -268,6 +279,18 @@ pub enum Effect {
     /// Sends [`Message::Wake`] at this moment, counted from when the window opened, in place of the wake asked for
     /// before (`repo.schedule-reads`).
     WakeAt(Duration),
+    /// Runs an operation of the catalog in a repository, on the thread of the operations; the window sets the time of
+    /// its context.
+    RunFeature {
+        /// The repository.
+        folder: PathBuf,
+        /// The operation.
+        feature: model::contract::FeatureId,
+        /// What it is given.
+        context: model::contract::Context,
+    },
+    /// Gives the operation running what the user answered.
+    ReplyToFeature(super::feature::Reply),
     /// Closes the window and ends the program.
     Quit,
 }

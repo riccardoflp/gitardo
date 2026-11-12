@@ -39,6 +39,14 @@ pub const SORT_ORDER: &str = "branches.sortOrder";
 pub const SORT_ORDERS: [&str; 2] = ["name", "date"];
 /// `branches.followGraphFilter`.
 pub const FOLLOW_GRAPH_FILTER: &str = "branches.followGraphFilter";
+/// `commandPreview`.
+pub const COMMAND_PREVIEW: &str = "commandPreview";
+/// The values of `commandPreview`: the commands shown only before what can lose work, or before everything.
+pub const COMMAND_PREVIEWS: [&str; 2] = ["off", "all"];
+/// `branches.format`.
+pub const BRANCH_FORMAT: &str = "branches.format";
+/// `submodules.updateOnCheckout`.
+pub const UPDATE_SUBMODULES_ON_CHECKOUT: &str = "submodules.updateOnCheckout";
 
 /// The default of `font.ui`: the font of the interface that comes with the program.
 pub const INTERFACE_FONT: &str = "Inter";

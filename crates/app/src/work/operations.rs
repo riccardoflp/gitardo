@@ -1,0 +1,204 @@
+//! The thread of the operations of a window: it runs one operation at a time through the engine of its repository,
+//! which it keeps from one operation to the next for its undo journal, asks the window each question and each plan to
+//! confirm, waits for the answer, and sends back how the operation ended with the lines it logged.
+
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::thread::{self, JoinHandle};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use engine::{Activities, Asker, Clock, CommandLog, Engine, EngineError, Finished, LogLevel};
+use git::{CancelToken, Git};
+use model::Timestamp;
+use model::contract::{Answer, Context, FeatureId, Plan, Question, Undo};
+
+use super::Deliver;
+use crate::store::Message;
+use crate::store::feature::{Ended, Reply};
+
+/// An operation to run.
+struct Request {
+    /// The repository.
+    folder: PathBuf,
+    /// The operation.
+    feature: FeatureId,
+    /// What it is given.
+    context: Context,
+    /// What the Command log records.
+    level: LogLevel,
+}
+
+/// The thread of the operations, and the way to answer the one running.
+pub struct Operations {
+    /// Where the operations go; none once the window is closing.
+    requests: Option<Sender<Request>>,
+    /// Where the answers go.
+    replies: Sender<Reply>,
+    /// The token of the operation running, which cancels it when the window closes.
+    cancel: CancelToken,
+    /// The thread.
+    thread: Option<JoinHandle<()>>,
+}
+
+impl Operations {
+    /// The thread, which puts the plans it runs among `activities` and gives what the operations ask and how they ended
+    /// to `deliver`.
+    #[must_use]
+    pub fn new(activities: &Activities, deliver: &Deliver) -> Operations {
+        let (requests, requested) = mpsc::channel::<Request>();
+        let (replies, answers) = mpsc::channel::<Reply>();
+        let cancel = CancelToken::new();
+        let activities = activities.clone();
+        let deliver = std::sync::Arc::clone(deliver);
+        let token = cancel.clone();
+        let thread = thread::Builder::new()
+            .name(String::from("operations"))
+            .spawn(move || serve(&requested, &answers, (&activities, &deliver, &token)))
+            .ok();
+        Operations {
+            requests: Some(requests),
+            replies,
+            cancel,
+            thread,
+        }
+    }
+
+    /// Runs an operation, its context taken at this moment.
+    pub fn run(&self, folder: PathBuf, feature: FeatureId, mut context: Context, level: LogLevel) {
+        context.now = SystemClock.now();
+        if let Some(requests) = &self.requests {
+            let _sent = requests.send(Request {
+                folder,
+                feature,
+                context,
+                level,
+            });
+        }
+    }
+
+    /// Gives the operation running what the user answered.
+    pub fn reply(&self, reply: Reply) {
+        let _sent = self.replies.send(reply);
+    }
+}
+
+impl Drop for Operations {
+    fn drop(&mut self) {
+        self.cancel.cancel();
+        self.requests = None;
+        // An operation waiting for an answer is told the user backed out.
+        let _sent = self.replies.send(Reply::Answer(None));
+        let _sent = self.replies.send(Reply::Confirm(false));
+        if let Some(thread) = self.thread.take() {
+            let _ended = thread.join();
+        }
+    }
+}
+
+/// The system's clock.
+struct SystemClock;
+
+impl Clock for SystemClock {
+    fn now(&self) -> Timestamp {
+        let seconds = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |since| since.as_secs());
+        Timestamp(i64::try_from(seconds).unwrap_or(i64::MAX))
+    }
+}
+
+/// What the thread does until the window closes: runs each operation through the engine of its repository.
+fn serve(
+    requests: &Receiver<Request>,
+    replies: &Receiver<Reply>,
+    (activities, deliver, cancel): (&Activities, &Deliver, &CancelToken),
+) {
+    let mut engines: HashMap<PathBuf, Engine> = HashMap::new();
+    while let Ok(request) = requests.recv() {
+        if cancel.is_cancelled() {
+            return;
+        }
+        // An answer left from an operation before is not one for this one.
+        while replies.try_recv().is_ok() {}
+        let engine = engines.entry(request.folder.clone()).or_insert_with(|| {
+            let mut engine = Engine::new(
+                Git::new(&request.folder),
+                CommandLog::new(request.level),
+                Box::new(SystemClock),
+            );
+            engine.share_activities(activities.clone());
+            engine
+        });
+        engine.cancel_with(cancel.clone());
+        let operation = features::operation(request.feature.0).map(|(_, operation)| operation);
+        let ended = match operation {
+            Some(operation) => {
+                let mut asker = WindowAsker { deliver, replies };
+                ended_of(
+                    request.feature,
+                    engine.run_feature(request.feature, operation, &request.context, &mut asker),
+                )
+            }
+            None => Ended::Refused(model::contract::Text::from(format!(
+                "{} is not built yet",
+                request.feature.0
+            ))),
+        };
+        let log = engine.take_log(request.level);
+        deliver(Message::FeatureEnded { ended, log });
+    }
+}
+
+/// How an operation ended, in the words the store keeps.
+fn ended_of(feature: FeatureId, result: Result<Finished, EngineError>) -> Ended {
+    match result {
+        Ok(Finished::Ran { plan, .. }) => Ended::Ran {
+            can_undo: !matches!(plan.undo, Undo::Impossible(_)),
+            title: plan.title,
+            after: plan.after,
+        },
+        Ok(Finished::Refused(refusal)) => Ended::Refused(refusal.message),
+        Ok(Finished::BackedOut | Finished::NotConfirmed(_)) => Ended::BackedOut,
+        Err(EngineError::Step(failure)) => Ended::Failed {
+            title: format!("`{}`", failure.failed),
+            said: failure.said,
+        },
+        Err(error) => Ended::Failed {
+            title: feature.0.to_owned(),
+            said: error.to_string(),
+        },
+    }
+}
+
+/// Asks the window: sends the question or the plan, then waits on this thread for what the user answers.
+struct WindowAsker<'a> {
+    /// Where the question goes.
+    deliver: &'a Deliver,
+    /// Where the answer comes from.
+    replies: &'a Receiver<Reply>,
+}
+
+impl Asker for WindowAsker<'_> {
+    fn ask(&mut self, question: &Question) -> Option<Answer> {
+        (self.deliver)(Message::FeatureAsks(Box::new(question.clone())));
+        loop {
+            match self.replies.recv() {
+                Ok(Reply::Answer(answer)) => return answer,
+                Ok(Reply::Confirm(_)) => {}
+                Err(_) => return None,
+            }
+        }
+    }
+
+    fn confirm(&mut self, plan: &Plan) -> bool {
+        (self.deliver)(Message::FeatureConfirms(Box::new(plan.clone())));
+        loop {
+            match self.replies.recv() {
+                Ok(Reply::Confirm(is_confirmed)) => return is_confirmed,
+                Ok(Reply::Answer(_)) => {}
+                Err(_) => return false,
+            }
+        }
+    }
+}

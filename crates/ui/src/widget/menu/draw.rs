@@ -22,6 +22,8 @@ struct EntryLook<'text> {
     icon: Option<Icon>,
     /// The text of its shortcut.
     shortcut: Option<&'text str>,
+    /// What it says under the pointer.
+    tooltip: Option<&'text str>,
     /// Whether it opens a submenu.
     is_submenu: bool,
     /// Whether it can be used.
@@ -35,6 +37,7 @@ fn look<'text, T>(entry: &MenuEntry<'text, T>) -> Option<EntryLook<'text>> {
             label: item.label,
             icon: item.icon,
             shortcut: item.shortcut,
+            tooltip: item.tooltip,
             is_submenu: false,
             is_enabled: item.availability == Availability::Enabled,
         }),
@@ -42,6 +45,7 @@ fn look<'text, T>(entry: &MenuEntry<'text, T>) -> Option<EntryLook<'text>> {
             label,
             icon: *icon,
             shortcut: None,
+            tooltip: None,
             is_submenu: true,
             is_enabled: true,
         }),
@@ -174,6 +178,9 @@ impl Ui<'_> {
             let item = level.id.with(("item", level.depth, index));
             let sense = if look.is_enabled { Sense::CLICK } else { Sense::HOVER };
             let response = self.interact(item, rect, sense);
+            if let Some(tooltip) = look.tooltip {
+                self.tooltip(&response, tooltip);
+            }
             if response.hovered && self.pointer_moved() {
                 open.levels.truncate(level.depth + 1);
                 if let Some(lit) = open.levels.last_mut() {

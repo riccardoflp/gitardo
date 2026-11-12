@@ -9,9 +9,9 @@ Undo needs.
 Before a plan runs, the engine decides from `commandPreview` and the plan's danger whether to show it, and waits for the
 user's answer.
 
-- **Kind**: Operation
-- **Function**: `features::preview::confirm(context, answers) -> Outcome`
-- **Entry points**: every operation, through the engine.
+- **Kind**: View
+- **Function**: `views::feature::confirm_view(state: &ConfirmState, ui) -> Vec<Intent>`
+- **Entry points**: every operation, through the engine, which decides with `engine::needs_confirmation`.
 - **Asks**: one dialog with the plan's title, its steps exactly as they will be logged, the data passed on standard
   input or through a file beside the step that takes it (the patch of `git apply --cached`, the todo list of an
   interactive rebase, a patch from the clipboard), the reason when the plan is destructive, and **Run** and **Cancel**.

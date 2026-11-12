@@ -2,6 +2,7 @@
 //! command whose card is not built yet does nothing; a branch, a tag or a commit is gone to in the timeline.
 
 use views::Intent;
+use views::feature::FeatureIntent;
 use views::graph::GraphIntent;
 use views::search::{QuickChoice, QuickCommand, SearchIntent};
 
@@ -46,6 +47,10 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         }
         QuickChoice::Command(command) => command,
     };
+    if let Some(feature) = command.operation().filter(|_| super::view::is_built(command)) {
+        let run = FeatureIntent::Run(model::contract::FeatureId(feature), model::contract::Target::Head);
+        return super::super::reduce(state, Message::Intent(Intent::Feature(run)));
+    }
     let intents = match command {
         QuickCommand::OpenTimeline => vec![Intent::ShowTimeline],
         QuickCommand::GoToCommit => vec![Intent::Search(SearchIntent::GoToCommit)],

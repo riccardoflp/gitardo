@@ -38,9 +38,10 @@ pub struct State {
     pub rail: super::rail::Rail,
     /// Whether the Activity drawer is open.
     pub is_activity_open: bool,
-    /// Whether an operation runs: choosing another repository waits for it (`repo.select`). No operation runs in
-    /// this slice; the engine sets it once operations do.
+    /// Whether an operation runs: choosing another repository waits for it (`repo.select`).
     pub is_operation_running: bool,
+    /// The operation running, and what was said once the last one ended.
+    pub operations: super::feature::Operations,
     /// The jobs started and not finished, by their number: a result whose job is not here any more is not wanted.
     pub jobs: BTreeMap<JobId, JobKind>,
     /// The number of the next job.

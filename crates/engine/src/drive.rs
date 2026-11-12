@@ -114,6 +114,19 @@ impl Engine {
         &self.activities
     }
 
+    /// Puts the plans this engine runs among the activities of a window, so that its activity indicator shows them.
+    pub fn share_activities(&mut self, activities: Activities) {
+        self.activities = activities;
+    }
+
+    /// Takes the lines the log recorded since the last time, as a window that keeps a log of its own does, and
+    /// records from now on what `level` says.
+    pub fn take_log(&mut self, level: crate::log::LogLevel) -> Vec<crate::log::LogEntry> {
+        let entries = self.log.take();
+        self.log.set_level(level);
+        entries
+    }
+
     /// Carries a feature to its end: asks, reads, refuses, or runs its plan, first showing it when its danger and
     /// `commandPreview` say so.
     ///

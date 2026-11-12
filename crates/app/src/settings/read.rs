@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 
 use engine::LogLevel;
 use json::Value;
+use model::contract::{CommandPreview, FeatureSettings};
 use model::graph::PageSize;
 use model::refs::SortOrder;
 use render::ThemeName;
@@ -59,8 +60,12 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
         .choice(keys::THEME, &keys::THEMES)
         .map_or(defaults.theme, theme_name);
     let fonts = FontChoice {
-        interface: lookup.string(keys::FONT_INTERFACE).unwrap_or(defaults.fonts.interface),
-        code: lookup.string(keys::FONT_CODE).unwrap_or(defaults.fonts.code),
+        interface: lookup
+            .string(keys::FONT_INTERFACE, Scope::User)
+            .unwrap_or(defaults.fonts.interface),
+        code: lookup
+            .string(keys::FONT_CODE, Scope::User)
+            .unwrap_or(defaults.fonts.code),
         size: lookup.font_size().unwrap_or(defaults.fonts.size),
     };
     let read_on_startup = lookup.boolean(keys::READ_ON_STARTUP, Scope::UserAndRepository);
@@ -78,9 +83,11 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
         Some("debug") => LogLevel::Debug,
         _ => LogLevel::Info,
     };
+    let features = feature_settings(&mut lookup);
     let values = written_values(&lookup);
     Settings {
         log_level,
+        features,
         values,
         theme,
         fonts,
@@ -90,6 +97,24 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
         read_on_startup: read_on_startup.unwrap_or(defaults.read_on_startup),
         page_size: page_size.map_or(defaults.page_size, |size| PageSize::from_setting(Some(size))),
         problems: lookup.problems,
+    }
+}
+
+/// The settings the operations read: `commandPreview`, `branches.format` and `submodules.updateOnCheckout`.
+fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
+    let defaults = FeatureSettings::default();
+    let command_preview = match lookup.choice(keys::COMMAND_PREVIEW, &keys::COMMAND_PREVIEWS) {
+        Some("all") => CommandPreview::All,
+        _ => CommandPreview::Off,
+    };
+    FeatureSettings {
+        command_preview,
+        update_submodules_on_checkout: lookup
+            .boolean(keys::UPDATE_SUBMODULES_ON_CHECKOUT, Scope::UserAndRepository)
+            .unwrap_or(defaults.update_submodules_on_checkout),
+        branch_format: lookup
+            .string(keys::BRANCH_FORMAT, Scope::UserAndRepository)
+            .unwrap_or(defaults.branch_format),
     }
 }
 
@@ -229,9 +254,9 @@ impl Lookup {
         None
     }
 
-    /// A string the user's file sets.
-    fn string(&mut self, key: &str) -> Option<String> {
-        self.first((key, Scope::User), |value| {
+    /// A string.
+    fn string(&mut self, key: &str, scope: Scope) -> Option<String> {
+        self.first((key, scope), |value| {
             value
                 .as_str()
                 .map(str::to_owned)

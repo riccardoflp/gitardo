@@ -18,12 +18,34 @@ pub const QUICK_SEARCH: &str = "Commits, branches, files, commands";
 pub const QUICK_SEARCH_KEYS: &str = "Ctrl K";
 /// The words of Sync.
 pub const SYNC: &str = "Sync";
+/// What **Sync** runs, in its tooltip.
+pub const SYNC_TOOLTIP: &str = "Sync: git fetch, git pull, git push";
+/// The button of the menu of **Sync**, as the screen reader and its tooltip say it.
+pub const SYNC_MENU: &str = "More ways to sync";
+/// **Fetch** in the menu of **Sync**.
+pub const FETCH: &str = "Fetch";
+/// What **Fetch** runs.
+pub const FETCH_TOOLTIP: &str = "Fetch: git fetch --all --prune";
+/// **Pull** in the menu of **Sync**.
+pub const PULL: &str = "Pull";
+/// What **Pull** runs.
+pub const PULL_TOOLTIP: &str = "Pull: git pull";
+/// **Push** in the menu of **Sync**.
+pub const PUSH: &str = "Push";
+/// What **Push** runs.
+pub const PUSH_TOOLTIP: &str = "Push: git push";
 /// The button of the Activity drawer, as the screen reader and its tooltip say it.
 pub const ACTIVITY: &str = "Activity";
 /// The **…** button at the end of the header, as the screen reader and its tooltip say it.
 pub const MORE: &str = "More";
 /// **Refresh** in the **…** menu: reads the repository again at once.
 pub const REFRESH: &str = "Refresh";
+/// **Branch** in **…**: create a branch at `HEAD`.
+pub const BRANCH: &str = "Branch";
+/// **Stash** in **…**: stash all changes.
+pub const STASH: &str = "Stash";
+/// **Undo** in **…**: take back the last operation.
+pub const UNDO: &str = "Undo";
 /// **Select repository…** in the **…** menu (`repo.select`).
 pub const SELECT_REPOSITORY: &str = "Select repository\u{2026}";
 /// The last line of the tooltip of the activity indicator (`activity.status-bar`).

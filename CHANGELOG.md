@@ -84,3 +84,8 @@
   that do not fit are counted, `+2`, with their names in the tooltip of the count.
 - Quick search keeps its room in the header while something runs: the activity indicator takes only what is left,
   and shows its icon alone where its words would be cut short.
+- Operations run from the window: **Branch** and **Undo** in **…**, **Fetch** in the menu of **Sync**, and **Create
+  branch…**, **Fetch** and **Undo Last Operation** in Quick search. Their questions are dialogs of the window; a plan
+  that can lose work, or every plan with `commandPreview` `all`, shows its commands first, and **Run** of one that
+  cannot be undone is not pressed by `Enter`. What ran is in the Command log, and what it did is said over the
+  timeline with **Undo**.

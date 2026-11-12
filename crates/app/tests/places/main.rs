@@ -14,6 +14,7 @@ mod inspector;
 mod inspector_files;
 mod jobs;
 mod large_diffs;
+mod operations;
 mod panes;
 mod pointer;
 mod rail;

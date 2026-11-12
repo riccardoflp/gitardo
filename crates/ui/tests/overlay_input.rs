@@ -187,7 +187,7 @@ fn tab_stays_inside_a_dialog_and_escape_cancels_it() {
 }
 
 #[test]
-fn a_confirmation_runs_on_enter_and_is_cancelled_by_escape() {
+fn a_confirmation_of_what_cannot_be_undone_is_cancelled_by_escape_and_not_run_by_enter() {
     let mut gallery = Gallery::new();
     gallery
         .state
@@ -201,7 +201,8 @@ fn a_confirmation_runs_on_enter_and_is_cancelled_by_escape() {
         .apply(&gallery::GalleryIntent::Open(Overlay::ConfirmDelete));
     let _ = gallery.step(&[]);
     gallery.keys(&[NamedKey::Enter]);
-    assert_eq!(gallery.state.status.as_deref(), Some("Deleted feature/login-page"));
+    assert_eq!(gallery.state.status, None, "Enter does not delete");
+    assert_eq!(gallery.state.overlay, Some(Overlay::ConfirmDelete));
 }
 
 #[test]

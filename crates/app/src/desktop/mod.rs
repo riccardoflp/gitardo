@@ -19,7 +19,7 @@ use crate::persisted::{FILE_NAME, Persisted};
 use crate::settings::{self, SettingsFiles, keys, read_files, user_settings_file};
 use crate::store::{Effect, Message, State, ViewData, reduce};
 use crate::window::{Step, Surface, SurfaceOptions};
-use crate::work::{Deliver, PersistedWriter, SettingWriter, SettingsWatcher, Workers};
+use crate::work::{Deliver, Operations, PersistedWriter, SettingWriter, SettingsWatcher, Workers};
 
 /// The timer of the frames of the window.
 const FRAME_TIMER: TimerId = TimerId(1);
@@ -95,6 +95,8 @@ struct DesktopWindow {
     state: State,
     /// The workers.
     workers: Workers,
+    /// The thread of the operations.
+    operations: Operations,
     /// The watcher of the settings files.
     watcher: SettingsWatcher,
     /// The writer of what is kept between runs; none when there is no configuration folder.
@@ -141,6 +143,7 @@ impl DesktopWindow {
             surface,
             state: State::new(persisted, settings, user_file),
             workers: Workers::new(WORKERS, &activities, deliver),
+            operations: Operations::new(&activities, deliver),
             watcher: SettingsWatcher::new(Arc::clone(deliver)),
             writer: options
                 .configuration
@@ -246,6 +249,15 @@ impl DesktopWindow {
                 self.surface.set_theme(self.state.settings.theme);
                 apply_text(&mut self.surface, &self.state.settings)?;
             }
+            Effect::RunFeature {
+                folder,
+                feature,
+                context,
+            } => {
+                self.operations
+                    .run(folder, feature, context, self.state.settings.log_level);
+            }
+            Effect::ReplyToFeature(reply) => self.operations.reply(reply),
             Effect::Quit => return Ok(Some(Followed::Quit)),
         }
         Ok(None)

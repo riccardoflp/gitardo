@@ -1,6 +1,7 @@
 //! Dialogs: a box in the middle of the window over a dimmed backdrop, with a title, a body of widgets the view draws,
 //! and buttons along its bottom right, the main one last. While one is open nothing below it gets the pointer or the
-//! keys, Tab goes round its widgets only, Enter presses its main button and Escape cancels it.
+//! keys, Tab goes round its widgets only, Enter presses its main button, unless that one cannot be undone, and Escape
+//! cancels it.
 //!
 //! A dialog is open while the view declares it: the view keeps whether it is open, and stops declaring it once it is
 //! answered.
@@ -24,7 +25,8 @@ use crate::widget::metrics;
 pub enum DialogRole {
     /// The main button: what the dialog is for. Enter presses it.
     Primary,
-    /// The main button of a dialog whose action cannot be undone, drawn in the color of errors. Enter presses it.
+    /// The main button of a dialog whose action cannot be undone, drawn in the color of errors. Enter does not press
+    /// it: what cannot be undone runs on a click, never on a key pressed by habit.
     Danger,
     /// Another button.
     Secondary,
@@ -164,12 +166,13 @@ impl Ui<'_> {
         response
     }
 
-    /// Enter presses the main button and Escape cancels, when no widget of the dialog used them.
+    /// Enter presses the main button, unless it is one of danger, and Escape cancels, when no widget of the dialog used
+    /// them.
     fn dialog_keys(&mut self, dialog: &Dialog<'_>, response: &mut DialogResponse) {
         let main = dialog
             .buttons
             .iter()
-            .position(|button| matches!(button.role, DialogRole::Primary | DialogRole::Danger));
+            .position(|button| button.role == DialogRole::Primary);
         for key in self.unclaimed_keys() {
             if key.modifiers != Modifiers::NONE {
                 continue;

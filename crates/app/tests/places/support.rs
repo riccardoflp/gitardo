@@ -232,3 +232,62 @@ pub fn run(state: &mut State, message: Message) -> Vec<Effect> {
     }
     all
 }
+
+/// The thread of the operations of a window, run for a test: what the store asks of it is given to it, and what it
+/// says comes back to the test, which reduces it.
+pub struct OperationsDriver {
+    /// The thread.
+    operations: app::work::Operations,
+    /// What it says.
+    said: std::sync::mpsc::Receiver<Message>,
+}
+
+impl OperationsDriver {
+    /// A thread of the operations of its own.
+    pub fn new() -> OperationsDriver {
+        let (sender, said) = std::sync::mpsc::channel();
+        let sender = std::sync::Mutex::new(sender);
+        let deliver: app::work::Deliver = std::sync::Arc::new(move |message| {
+            let _sent = sender.lock().unwrap().send(message);
+        });
+        OperationsDriver {
+            operations: app::work::Operations::new(&engine::Activities::new(), &deliver),
+            said,
+        }
+    }
+
+    /// Gives the thread what the store asked of it among some effects.
+    pub fn take(&self, state: &State, effects: &[Effect]) {
+        for effect in effects {
+            match effect {
+                Effect::RunFeature {
+                    folder,
+                    feature,
+                    context,
+                } => {
+                    self.operations
+                        .run(folder.clone(), *feature, context.clone(), state.settings.log_level);
+                }
+                Effect::ReplyToFeature(reply) => self.operations.reply(reply.clone()),
+                _ => {}
+            }
+        }
+    }
+
+    /// Waits for what the thread says next, reduces it with the jobs it starts, and gives it.
+    pub fn next(&self, state: &mut State) -> Message {
+        let message = self
+            .said
+            .recv_timeout(Duration::from_secs(30))
+            .unwrap_or_else(|_| panic!("the operation says nothing within 30 s"));
+        let effects = run(state, message.clone());
+        self.take(state, &effects);
+        message
+    }
+
+    /// Reduces an intent with the jobs it starts, and gives the thread what it asks of it.
+    pub fn intent(&self, state: &mut State, intent: Intent) {
+        let effects = run(state, Message::Intent(intent));
+        self.take(state, &effects);
+    }
+}

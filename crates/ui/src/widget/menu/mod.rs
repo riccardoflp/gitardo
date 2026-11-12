@@ -51,6 +51,8 @@ pub struct MenuItem<'text, T> {
     pub shortcut: Option<&'text str>,
     /// Whether it can be chosen now.
     pub availability: Availability,
+    /// What it says under the pointer: the command it runs.
+    pub tooltip: Option<&'text str>,
     /// What the view gets when it is chosen.
     pub value: T,
 }
@@ -64,6 +66,7 @@ impl<'text, T> MenuItem<'text, T> {
             icon: None,
             shortcut: None,
             availability: Availability::Enabled,
+            tooltip: None,
             value,
         }
     }
@@ -82,6 +85,15 @@ impl<'text, T> MenuItem<'text, T> {
     pub fn with_shortcut(self, shortcut: &'text str) -> MenuItem<'text, T> {
         MenuItem {
             shortcut: Some(shortcut),
+            ..self
+        }
+    }
+
+    /// The same item, saying something under the pointer.
+    #[must_use]
+    pub fn with_tooltip(self, tooltip: &'text str) -> MenuItem<'text, T> {
+        MenuItem {
+            tooltip: Some(tooltip),
             ..self
         }
     }

@@ -130,6 +130,15 @@ pub fn go_to_commit(state: &State) -> Option<GoToCommitDialog<'_>> {
     })
 }
 
+/// Whether a command of Quick search runs: one of the window, or one that runs an operation that is built.
+#[must_use]
+pub fn is_built(command: QuickCommand) -> bool {
+    command.is_built()
+        || command
+            .operation()
+            .is_some_and(|feature| features::operation(feature).is_some())
+}
+
 /// The entries of Quick search: the commands, then the branches, the remote branches and the tags of the repository
 /// shown, then its commits loaded.
 fn quick_entries(state: &State) -> Vec<QuickEntry> {
@@ -137,7 +146,7 @@ fn quick_entries(state: &State) -> Vec<QuickEntry> {
         .into_iter()
         .map(|command| QuickEntry {
             label: words::command_name(command).to_owned(),
-            detail: if command.is_built() {
+            detail: if is_built(command) {
                 words::COMMAND
             } else {
                 words::NOT_YET

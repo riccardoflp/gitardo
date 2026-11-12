@@ -31,6 +31,8 @@ pub struct ToolbarState<'a> {
     pub status: StatusBarState<'a>,
     /// How many commits Sync would bring and send, once the repository is read and its branch has an upstream.
     pub sync: Option<SyncCounts>,
+    /// What **Sync** and its menu may run, once the repository is read.
+    pub sync_menu: Option<SyncMenu>,
     /// What the **…** menu offers.
     pub more: MoreMenuState,
     /// Whether the Activity drawer is open.
@@ -85,6 +87,16 @@ pub enum HeadName<'a> {
     Detached(&'a str),
     /// Nothing yet: the repository has no commits.
     NoCommits,
+}
+
+/// What **Sync** and its menu may run: each operation once it is built, none while an operation runs.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct SyncMenu {
+    /// Whether an operation runs.
+    pub is_running: bool,
+    /// Whether each of **Sync**, **Fetch**, **Pull** and **Push** is built, in that order (`sync.sync`, `sync.fetch`,
+    /// `sync.pull`, `sync.push`).
+    pub built: [bool; 4],
 }
 
 /// The commits Sync would bring and send.
@@ -143,7 +155,7 @@ pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         }
         more_button(state.more, ui, &mut area, &mut intents);
         activity_button(state.is_activity_open, ui, &mut area, &mut intents);
-        sync_button(state.sync, ui, &mut area);
+        sync_button((state.sync, state.sync_menu), ui, &mut area, &mut intents);
         // The indicator is declared even while it takes no room, so that it asks for the frame it appears in; it takes
         // only the room Quick search leaves.
         let room = area.rest().width - search::SEARCH_LEAST_WIDTH - spacing.large;
@@ -258,16 +270,61 @@ fn branch_chip(branch: &BranchChip<'_>, ui: &mut Ui<'_>, area: &mut Area) {
     ui.tooltip(&response, branch.folder);
 }
 
-/// Sync, with how many commits it would bring and send; it runs nothing until the everyday operations.
-fn sync_button(counts: Option<SyncCounts>, ui: &mut Ui<'_>, area: &mut Area) {
+/// Sync, with how many commits it would bring and send, which runs a fetch, a pull and a push (`sync.sync`); and the
+/// button of its menu, **Fetch**, **Pull** and **Push**, each saying in its tooltip what it runs.
+fn sync_button(
+    (counts, menu): (Option<SyncCounts>, Option<SyncMenu>),
+    ui: &mut Ui<'_>,
+    area: &mut Area,
+    intents: &mut Vec<Intent>,
+) {
+    let menu = menu.unwrap_or_default();
+    let [can_sync, can_fetch, can_pull, can_push] = menu.built;
     let words = counts.map_or_else(
         || words::SYNC.to_owned(),
         |counts| words::sync_counts(counts.behind, counts.ahead),
     );
-    let button = Button::primary(&words).disabled();
+    let mut button = Button::primary(&words).with_tooltip(words::SYNC_TOOLTIP);
+    if !can_sync || menu.is_running {
+        button = button.disabled();
+    }
     let (width, _) = ui.button_size(&button);
-    let rect = control_in(ui, area.right(width), width);
-    let _ = ui.button("sync", rect, &button);
+    let side = ui.theme().sizes.control_height;
+    let joined = ui.theme().sizes.spacing.small;
+    // Sync and the button of its menu are one control, with a hair of room between them.
+    let mut pair = Area::with_gap(area.right(width + joined + side), joined);
+    let rect = control_in(ui, pair.right(side), side);
+    let entries: Vec<MenuEntry<'_, &'static str>> = [
+        (words::FETCH, "sync.fetch", can_fetch, words::FETCH_TOOLTIP),
+        (words::PULL, "sync.pull", can_pull, words::PULL_TOOLTIP),
+        (words::PUSH, "sync.push", can_push, words::PUSH_TOOLTIP),
+    ]
+    .into_iter()
+    .map(|(label, feature, is_built, tooltip)| {
+        let item = MenuItem::new(label, feature).with_tooltip(tooltip);
+        MenuEntry::Item(if is_built && !menu.is_running {
+            item
+        } else {
+            item.disabled()
+        })
+    })
+    .collect();
+    let chevron = Button::icon(Icon::ChevronDown, words::SYNC_MENU).kind(ButtonKind::Outline);
+    if let Some(feature) = ui.menu_button("sync menu", rect, &chevron, &entries) {
+        intents.push(run(feature));
+    }
+    let rect = control_in(ui, pair.rest(), width);
+    if ui.button("sync", rect, &button).clicked {
+        intents.push(run("sync.sync"));
+    }
+}
+
+/// The intent that runs an operation of the catalog at `HEAD`.
+fn run(feature: &'static str) -> Intent {
+    Intent::Feature(crate::feature::FeatureIntent::Run(
+        model::contract::FeatureId(feature),
+        model::contract::Target::Head,
+    ))
 }
 
 /// The button that opens and closes the Activity drawer.

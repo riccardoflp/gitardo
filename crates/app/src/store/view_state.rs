@@ -158,6 +158,13 @@ impl ViewData {
             }),
             notice: state.notice,
             go_to_commit: search_view::go_to_commit(state),
+            feature: super::feature::question_state(state)
+                .map(views::FeatureDialog::Question)
+                .or_else(|| {
+                    super::feature::plan_shown(state)
+                        .map(|plan| views::FeatureDialog::Plan(views::feature::ConfirmState { plan }))
+                }),
+            said: super::feature::said_state(state),
         }
     }
 
@@ -185,10 +192,20 @@ impl ViewData {
                 let (ahead, behind) = upstream.unwrap_or_default();
                 SyncCounts { behind, ahead }
             }),
+            sync_menu: read.map(|_| views::graph::SyncMenu {
+                is_running: state.is_operation_running,
+                built: ["sync.sync", "sync.fetch", "sync.pull", "sync.push"]
+                    .map(|feature| features::operation(feature).is_some()),
+            }),
             more: MoreMenuState {
                 can_refresh: state.workspace.is_some(),
                 can_select_repository: state.workspace.is_some(),
                 timeline: read.map(|_| timeline_menu(state)),
+                operations: read.map(|read| views::graph::OperationsMenu {
+                    is_running: state.is_operation_running,
+                    has_commits: read.head.commit.is_some(),
+                    can_stash: features::operation("stash.push").is_some() && !read.working_tree.is_clean(),
+                }),
             },
             is_activity_open: state.is_activity_open,
             references: read.map(|_| ReferencesShown {
