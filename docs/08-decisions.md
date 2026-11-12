@@ -709,7 +709,7 @@ the reading given until it is answered:
 - **Q118** — Cards of this slice left **Specified**: `branch.create` and `branch.name-from-format` (Q112);
   `branch.pane`, whose top with the branch checked out and **Create branch**, and the **…** of the Worktrees list, are
   not built; `undo.last`, whose lines about a stash, a cherry-pick, a squash merge and conflicts wait for those areas.
-- **Q-A1** — The operations on the files of the Changes page (`changes.stage`, `changes.unstage`, `changes.discard`)
+- **Q119** — The operations on the files of the Changes page (`changes.stage`, `changes.unstage`, `changes.discard`)
   are given their file as a new kind of target, `Target::File(path)`, and the header of the page as `Target::Changes`,
   which is how `changes.discard-all` tells the header (the files of the list, the conflicts left alone) from the draft
   (the whole working tree); `gitardo-cli` takes them as `--target file:<path>` and `--target changes:list`. Words the
@@ -720,7 +720,7 @@ the reading given until it is answered:
   does ("Unstaging it takes it back."). With `commandPreview` `off`, the header's **Discard all changes** names in
   `git restore --source=HEAD --staged --worktree` every tracked file of the list and leaves the untracked files that
   are not staged to `git clean -f`, since `git restore` refuses a path git does not know. Are these right?
-- **Q-A2** — `identity.switch`: each profile is one choice, `Name <email>`, with **In use** under the one that matches
+- **Q120** — `identity.switch`: each profile is one choice, `Name <email>`, with **In use** under the one that matches
   the identity used now; the identity used now is said under the title of the pick (**Now: `Name <email>`**), since a
   pick has no placeholder. A name or an email left empty is refused with "A name and an email are both needed:
   nothing was changed.", as an operation cannot end with nothing. **Edit the list of identities…** is not in the pick
@@ -728,7 +728,7 @@ the reading given until it is answered:
   when `commandPreview` shows it, says the commands but not "This is saved in the configuration of this repository
   only.", since the dialog says a reason only for a plan that is `Confirm` or `Destructive`. `commit.amend` before the
   first commit says "There is no commit to amend yet." Should the cards say so?
-- **Q-A3** — The Changes page (`changes.pane`) and the draft. The message box is one line for now: the toolkit has no
+- **Q121** — The Changes page (`changes.pane`) and the draft. The message box is one line for now: the toolkit has no
   input box of several lines, and a message pasted with blank lines keeps them. The draft shows the first line of the
   message, or **Describe the next commit**, but it is typed in the Changes page: **Review** opens the page with the
   keyboard in the message box, as **Show changes** does, and **Commit** of the draft is the one of the page, so it
@@ -741,7 +741,7 @@ the reading given until it is answered:
   buttons of a file in conflict (`conflicts.*`); a click on a file in conflict opens nothing yet (`merge-view.page`).
   The sparkle button is disabled until the AI provider (M9, `commit.draft-message`). **Switch identity…** is put after
   **Undo** in **…**, with the operations. Are these right?
-- **Q-A4** — Cards of the area left **Specified**: `changes.pane` (a click on a file in conflict opens the Merge page,
+- **Q122** — Cards of the area left **Specified**: `changes.pane` (a click on a file in conflict opens the Merge page,
   and **Save all** appears with a file not saved: both need pages and editors of other milestones); `changes.unsaved`
   and `changes.save` (Gitardo has no editor yet, so no file is ever not saved); `changes.open` (the Diff and File
   pages); `changes.discard-all` (its line on the files only an editor has changed waits for `changes.unsaved`);
