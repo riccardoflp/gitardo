@@ -2,7 +2,7 @@
 
 use std::ffi::OsString;
 
-use crate::read::repo::fields::arguments;
+use crate::read::fields::arguments;
 use crate::{Git, GitError};
 
 /// How many entries of the reflog are read.

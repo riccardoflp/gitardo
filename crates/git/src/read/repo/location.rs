@@ -3,7 +3,7 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-use crate::read::repo::fields::{arguments, unexpected};
+use crate::read::fields::{arguments, unexpected};
 use crate::{Git, GitError};
 
 /// The top folder of a working tree and the folder of git's files for it, as git names them.
@@ -39,6 +39,6 @@ pub fn parse_location(output: &[u8]) -> Result<Location, GitError> {
 }
 
 /// Where the repository of git's folder is.
-pub(super) fn read_location(git: &Git) -> Result<Location, GitError> {
+pub(crate) fn read_location(git: &Git) -> Result<Location, GitError> {
     parse_location(&git.run_read(&location_arguments())?)
 }

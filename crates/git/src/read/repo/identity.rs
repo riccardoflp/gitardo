@@ -4,7 +4,7 @@ use std::ffi::OsString;
 
 use model::state::Identity;
 
-use crate::read::repo::fields::{arguments, read_or_nothing};
+use crate::read::fields::{arguments, read_or_nothing};
 use crate::{Git, GitError};
 
 /// `git config -z --get-regexp ^user\.(name|email)$`: each key and its value, a line break between them and a NUL after,

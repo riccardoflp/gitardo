@@ -1,0 +1,47 @@
+[
+    FileChange {
+        path: "accentué.txt",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "deleted.txt",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "image.bin",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "link",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "no newline.txt",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "pages/[id].tsx",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "renamed from.txt",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "script.sh",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "with space.txt",
+        original_path: None,
+        kind: Added,
+    },
+]

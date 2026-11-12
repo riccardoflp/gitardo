@@ -11,7 +11,7 @@ Everything the details, the Commits pane, the Stashes pane and the page of a com
 author, committer, dates, parents and the files it changed, and, for a stash, the untracked files it took.
 
 - **Kind**: Read
-- **Function**: `read::details::read_commit(git: &Git, request: &CommitRequest) -> Result<CommitDetail, GitError>`
+- **Function**: `git::read::details::read_commit(git: &Git, request: &CommitRequest) -> Result<CommitDetail, GitError>`
 - **Reads**:
   - `git show --no-patch --format=<hash, parents, author name, author email, author date, committer name, committer
     email, committer date, raw message, separated by %x1f> <hash>`;
@@ -293,7 +293,7 @@ Acceptance:
 The commits of `HEAD`, newest first, and which of them are not pushed yet, for the Commits pane.
 
 - **Kind**: Read
-- **Function**: `read::commits::read_log(git: &Git, request: &LogRequest) -> Result<BranchLog, GitError>`
+- **Function**: `git::read::commits::read_log(git: &Git, request: &LogRequest) -> Result<BranchLog, GitError>`
 - **Reads**:
   - `git log -z --format=<hash, parents, author name, author email, author date, subject> --max-count=<limit + 1> HEAD
     --`: one more than asked, to know whether there are more;
@@ -455,7 +455,7 @@ Acceptance:
 What a commit changed in each of its files, as lines, for its page; the same lines serve the comparison page.
 
 - **Kind**: Read
-- **Function**: `read::commit_page::read_patch(git: &Git, request: &PatchRequest) -> Result<Vec<FilePatch>, GitError>`
+- **Function**: `git::read::commit_page::read_patch(git: &Git, request: &PatchRequest) -> Result<Vec<FilePatch>, GitError>`
 - **Reads**: `git diff --no-color --no-ext-diff --no-textconv --submodule=short -M <first parent> <hash>`; for a commit
   with no parent, `git diff-tree --root --no-commit-id -r -p --no-color --no-ext-diff --no-textconv --submodule=short
   <hash>`.

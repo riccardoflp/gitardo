@@ -1,0 +1,65 @@
+diff --git a/accentué.txt b/accentué.txt
+new file mode 100644
+index 0000000..d00491f
+--- /dev/null
++++ b/accentué.txt
+@@ -0,0 +1 @@
++1
+diff --git a/deleted.txt b/deleted.txt
+new file mode 100644
+index 0000000..d00491f
+--- /dev/null
++++ b/deleted.txt
+@@ -0,0 +1 @@
++1
+diff --git a/image.bin b/image.bin
+new file mode 100644
+index 0000000..8352675
+Binary files /dev/null and b/image.bin differ
+diff --git a/link b/link
+new file mode 100644
+index 0000000..eb5a316
+--- /dev/null
++++ b/link
+@@ -0,0 +1 @@
++target
+diff --git a/no newline.txt b/no newline.txt
+new file mode 100644
+index 0000000..0a207c0
+--- /dev/null
++++ b/no newline.txt	
+@@ -0,0 +1,2 @@
++a
++b
+\ No newline at end of file
+diff --git a/pages/[id].tsx b/pages/[id].tsx
+new file mode 100644
+index 0000000..d00491f
+--- /dev/null
++++ b/pages/[id].tsx
+@@ -0,0 +1 @@
++1
+diff --git a/renamed from.txt b/renamed from.txt
+new file mode 100644
+index 0000000..f384549
+--- /dev/null
++++ b/renamed from.txt	
+@@ -0,0 +1,4 @@
++one
++two
++three
++four
+diff --git a/script.sh b/script.sh
+new file mode 100644
+index 0000000..fa11a6a
+--- /dev/null
++++ b/script.sh
+@@ -0,0 +1 @@
++echo
+diff --git a/with space.txt b/with space.txt
+new file mode 100644
+index 0000000..d00491f
+--- /dev/null
++++ b/with space.txt	
+@@ -0,0 +1 @@
++1

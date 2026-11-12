@@ -1,0 +1,22 @@
+[
+    FileChange {
+        path: "pages/[id].tsx",
+        original_path: None,
+        kind: Modified,
+    },
+    FileChange {
+        path: "pages/i.tsx",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "shared.txt",
+        original_path: None,
+        kind: Modified,
+    },
+    FileChange {
+        path: "src/app.rs",
+        original_path: None,
+        kind: Modified,
+    },
+]

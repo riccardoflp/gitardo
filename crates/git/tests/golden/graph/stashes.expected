@@ -1,0 +1,49 @@
+[
+    StashCommit {
+        commit: Commit {
+            id: CommitId(
+                "4c10da986382ffd45bbc29ec6dea6cb2d5b169e6",
+            ),
+            parents: [
+                CommitId(
+                    "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+                ),
+                CommitId(
+                    "40d3712c04d699c063253343b17b5ecb91e6489c",
+                ),
+                CommitId(
+                    "bd42eb88516b82c0ea78be23e5056f1ba78d05ac",
+                ),
+            ],
+            author_name: "Test Author",
+            author_email: "author@example.com",
+            author_date: Timestamp(
+                1735689660,
+            ),
+            subject: "WIP on main: 705fe6e Add the parser",
+        },
+        index: 0,
+    },
+    StashCommit {
+        commit: Commit {
+            id: CommitId(
+                "6cbe303d908062225e7244e218299000fd6ee0f5",
+            ),
+            parents: [
+                CommitId(
+                    "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+                ),
+                CommitId(
+                    "40d3712c04d699c063253343b17b5ecb91e6489c",
+                ),
+            ],
+            author_name: "Test Author",
+            author_email: "author@example.com",
+            author_date: Timestamp(
+                1735689660,
+            ),
+            subject: "On main: before the merge: [draft] é",
+        },
+        index: 1,
+    },
+]

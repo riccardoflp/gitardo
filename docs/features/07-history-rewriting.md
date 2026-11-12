@@ -250,7 +250,7 @@ Acceptance:
 Works out, without touching the index or the working tree, which files a merge would leave in conflict.
 
 - **Kind**: Read
-- **Function**: `read::merge::read_predicted_conflicts(git, request) -> Result<Option<Vec<PathBuf>>, GitError>`
+- **Function**: `git::read::merge::read_predicted_conflicts(git, request) -> Result<Option<Vec<PathBuf>>, GitError>`
 - **Entry points**: none: used by `merge.into-current`, `merge.choose-way` and `cherry-pick.commit`.
 - **Reads**: `git merge-tree --write-tree --no-messages --name-only -z [--merge-base=<base>] <ours> <theirs>`, where
   `<ours>` is `HEAD` unless the request says otherwise, and `<base>` is given for a cherry-pick (the parent of the
@@ -455,7 +455,7 @@ The remote branches that have a commit, read before a commit is rewritten, so th
 will have to be force pushed.
 
 - **Kind**: Read
-- **Function**: `read::rebase::read_pushed(git, request) -> Result<Vec<String>, GitError>`
+- **Function**: `git::read::rebase::read_pushed(git, request) -> Result<Vec<String>, GitError>`
 - **Entry points**: none: used by `message.edit`, `squash.commits`, `squash.into-previous` and `split.commit`.
 - **Reads**: `git for-each-ref --contains <hash> --format=%(refname:short) refs/remotes`, leaving out the names that end
   in `/HEAD` and the ones with no `/`.
@@ -602,7 +602,7 @@ Acceptance:
 Tells a stop to edit a commit, or to split one, from a stop on a conflict, and names the commit.
 
 - **Kind**: Read
-- **Function**: `read::rebase::read_stop(git, request) -> Result<Option<RebaseStop>, GitError>`
+- **Function**: `git::read::rebase::read_stop(git, request) -> Result<Option<RebaseStop>, GitError>`
 - **Entry points**: none: read with the state of the repository while a rebase is under way.
 - **Reads**: in the git directory of the worktree, `rebase-merge/amend`, `rebase-merge/done` and
   `rebase-merge/gitardo-split`; `git log -1 --format=%s <hash> --` for the subject.

@@ -13,5 +13,13 @@
 - `gitardo-cli`: the state of a repository, and the first features run from a terminal through the engine: create a
   branch, commit, fetch, and undo the last commit, checkout, rebase or reset. A feature asks for what it needs with
   `<key>=<answer>`, and a plan that is shown first runs with `--yes`.
+- Every read of milestone M1, each with golden tests on awkward repositories: a page of the graph and where a commit is
+  in it, the commits of what is checked out and which are not pushed, the details and the lines of a commit, the two
+  sides, files and lines of a comparison, a file at a revision, the working tree, the identity, the remotes, what a
+  force push would overwrite, the stashes and what one changes, the worktrees and their links to folders, what git
+  ignores, the submodules, the files in conflict and their sides, the conflicts a merge would have, a search of the
+  history, blame, the names a file had, the reflog, a bisect, and where a rebase stopped.
+- What is derived from them in `model`: the lanes of the graph, its labels, folds, dates and traced history; the tree
+  of the files of a commit and the lines of its changes; the order of references; where a range of lines was.
 - Undo keeps a journal of what the reflog does not see: a branch deleted, a stash dropped, conflicts resolved, a squash
   merge, a series of commits made at once.

@@ -4,7 +4,7 @@ use std::ffi::OsString;
 
 use model::CommitId;
 
-use crate::read::repo::fields::{arguments, commit_id, read_or_nothing, unexpected};
+use crate::read::fields::{arguments, commit_id, read_or_nothing, unexpected};
 use crate::{Git, GitError};
 
 /// `git rev-parse --verify --quiet HEAD`: the commit checked out, or nothing and the exit code 1 before the first commit.

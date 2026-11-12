@@ -1,0 +1,37 @@
+WorkingTree {
+    staged: [
+        FileChange {
+            path: "-leading-dash.txt",
+            original_path: None,
+            kind: Deleted,
+        },
+        FileChange {
+            path: "pages/[id].tsx",
+            original_path: None,
+            kind: Modified,
+        },
+        FileChange {
+            path: "renamed to.txt",
+            original_path: Some(
+                "renamed from.txt",
+            ),
+            kind: Renamed,
+        },
+    ],
+    unstaged: [
+        FileChange {
+            path: "pages/[id].tsx",
+            original_path: None,
+            kind: Modified,
+        },
+        FileChange {
+            path: "with space é.txt",
+            original_path: None,
+            kind: Modified,
+        },
+    ],
+    untracked: [
+        "new folder/[draft] ü.md",
+    ],
+    conflicted: [],
+}

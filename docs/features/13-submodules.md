@@ -15,7 +15,7 @@ The submodules of the repository, and theirs, each with the commit recorded for 
 branch, how far apart the two are and how many of its files are not committed.
 
 - **Kind**: Read
-- **Function**: `submodule::read_list(git, request) -> Result<Vec<Submodule>, GitError>`
+- **Function**: `git::read::submodule::read_list(git, request) -> Result<Vec<Submodule>, GitError>`
 - **Reads**, in a repository with a `.gitmodules` at its top:
   - `git config -z --file .gitmodules --get-regexp '^submodule\.'`: the name, folder, URL and branch of each;
   - `git ls-tree -z HEAD -- <folders>`: the commit recorded for each in the last commit, none before the first commit or

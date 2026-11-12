@@ -1,0 +1,9 @@
+[
+    Renamed {
+        from: "src/a b.rs",
+        to: "src/parsé.rs",
+    },
+    Added(
+        "src/a b.rs",
+    ),
+]

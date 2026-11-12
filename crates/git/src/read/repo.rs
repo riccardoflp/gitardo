@@ -3,7 +3,6 @@
 //! Each part is a read of its own, its arguments and its parser apart (rule R2.5). The parsers and the arguments are
 //! public so that the golden tests record exactly what the read asks git, and parse it without git.
 
-mod fields;
 mod head;
 mod identity;
 mod location;
@@ -11,26 +10,34 @@ mod operation;
 mod references;
 mod reflog_subjects;
 mod remotes;
+mod repositories;
 mod stashes;
 mod status;
-mod worktrees;
 
 use std::path::PathBuf;
 use std::thread::{self, ScopedJoinHandle};
 
 use model::state::{Head, Identity, Operation, RepositoryState, Stash, WorkingTree, Worktree};
 
+use crate::read::worktree::{self, WorktreeListRequest};
 use crate::{Git, GitError};
 
+pub use crate::read::worktree::{parse_worktrees, worktrees_arguments};
 pub use head::{head_branch_arguments, head_commit_arguments, parse_head_branch, parse_head_commit};
 pub use identity::{identity_arguments, parse_identity};
 pub use location::{Location, location_arguments, parse_location};
 pub use references::{References, parse_references, references_arguments};
 pub use reflog_subjects::{parse_reflog_subjects, reflog_subjects_arguments};
 pub use remotes::{parse_remotes, remotes_arguments};
+pub use repositories::{
+    RepositoriesRequest, parse_submodule_paths, parse_top_level, read_repositories, submodule_paths_arguments,
+    top_level_arguments,
+};
 pub use stashes::{parse_stashes, stashes_arguments};
 pub use status::{parse_status, status_arguments, worktree_status_arguments};
-pub use worktrees::{parse_worktrees, worktrees_arguments};
+
+pub(crate) use location::read_location;
+pub(crate) use operation::read_operation;
 
 /// Which repository to read.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -76,12 +83,16 @@ struct Parts {
 /// Runs every read at once, each in a thread of its own, so that the whole takes about as long as the slowest; the
 /// operation in progress is read from the disk meanwhile.
 fn read_parts(git: &Git, location: &Location) -> Result<Parts, GitError> {
+    let worktree_request = WorktreeListRequest {
+        folder: location.folder.clone(),
+        uncommitted_here: None,
+    };
     thread::scope(|scope| {
         let references = scope.spawn(|| references::read_references(git));
         let head_commit = scope.spawn(|| head::read_head_commit(git));
         let head_branch = scope.spawn(|| head::read_head_branch(git));
         let stashes = scope.spawn(|| stashes::read_stashes(git));
-        let worktrees = scope.spawn(|| worktrees::read_worktrees(git, &location.folder));
+        let worktrees = scope.spawn(|| worktree::read_list(git, &worktree_request));
         let remotes = scope.spawn(|| remotes::read_remotes(git));
         let identity = scope.spawn(|| identity::read_identity(git));
         let reflog_subjects = scope.spawn(|| reflog_subjects::read_reflog_subjects(git));
@@ -139,7 +150,7 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
 
 /// What a read on a thread of its own returned. A read that panicked panics here too, as it would have without the
 /// thread.
-fn joined<Value>(reader: ScopedJoinHandle<'_, Value>) -> Value {
+pub(crate) fn joined<Value>(reader: ScopedJoinHandle<'_, Value>) -> Value {
     reader
         .join()
         .unwrap_or_else(|payload| std::panic::resume_unwind(payload))

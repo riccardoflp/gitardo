@@ -10,7 +10,7 @@ the working tree with `git apply`. A patch is checked before anything is touched
 One or more commits as one patch, oldest first, each with its author, date and message, as `git am` takes it.
 
 - **Kind**: Read
-- **Function**: `read::patch::read_format_patch(git: &Git, request: &FormatPatchRequest) -> Result<String, GitError>`
+- **Function**: `git::read::patch::read_format_patch(git: &Git, request: &FormatPatchRequest) -> Result<String, GitError>`
 - **Reads**: `git format-patch --stdout --no-color --no-ext-diff --no-textconv --submodule=short --max-count=<N>
   --no-walk=unsorted <hashes, newest first> --`. Git writes commits given this way in the reverse of the order it is
   given them, so the newest is given first for the patch to start with the oldest; the count keeps a single commit from
@@ -113,7 +113,7 @@ What applying a patch with `--3way` would do, without doing it: the files it wou
 from applying at all.
 
 - **Kind**: Read
-- **Function**: `read::patch::check(git: &Git, request: &PatchCheckRequest) -> Result<PatchCheck, GitError>`
+- **Function**: `git::read::patch::check(git: &Git, request: &PatchCheckRequest) -> Result<PatchCheck, GitError>`
 - **Reads**: `git apply --check --3way <file>`, or `git apply --check --3way` with the patch on standard input when it
   is not in a file. A patch of several commits is checked as a whole, each change on top of the ones before it. The
   exit code is part of the answer:

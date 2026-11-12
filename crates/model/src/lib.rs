@@ -3,10 +3,29 @@
 
 #![forbid(unsafe_code)]
 
+pub mod bisect;
+pub mod blame;
 pub mod branch;
 pub mod changes;
+pub mod commit;
+pub mod commit_page;
+pub mod commits;
+pub mod compare;
 pub mod contract;
+pub mod details;
+pub mod diff;
+pub mod file_history;
+pub mod graph;
 mod identifier;
+pub mod patch;
+pub mod rebase;
+pub mod reflog;
+pub mod refs;
+pub mod repo;
+pub mod search;
+pub mod stash;
 pub mod state;
+pub mod submodule;
+pub mod worktree_setup;
 
 pub use identifier::{CommitId, Timestamp};

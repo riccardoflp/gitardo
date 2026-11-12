@@ -1,0 +1,38 @@
+0000000000000000000000000000000000000000 2 2 1
+author External file (--contents)
+author-mail <external.file>
+author-time 1794441648
+author-tz +0100
+committer External file (--contents)
+committer-mail <external.file>
+committer-time 1794441648
+committer-tz +0100
+summary Version of src/parsé.rs from standard input
+previous cb0b43bad7e4fd8a4958a853f4fb10b3273c5df6 src/parsé.rs
+filename src/parsé.rs
+34c7a537068654c5c21e28c6dbc20d25794f0170 4 4 1
+author Test Author
+author-mail <author@example.com>
+author-time 1735689720
+author-tz +0000
+committer Test Author
+committer-mail <author@example.com>
+committer-time 1735689720
+committer-tz +0000
+summary Change the end
+previous 74163edfa8be56422f948f19284bf5bf66c07170 src/a b.rs
+filename src/a b.rs
+74163edfa8be56422f948f19284bf5bf66c07170 1 1 1
+author Test Author
+author-mail <author@example.com>
+author-time 1735689600
+author-tz +0000
+committer Test Author
+committer-mail <author@example.com>
+committer-time 1735689600
+committer-tz +0000
+summary Add the parser
+boundary
+filename src/a b.rs
+74163edfa8be56422f948f19284bf5bf66c07170 3 3 1
+filename src/a b.rs

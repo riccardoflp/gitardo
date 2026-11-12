@@ -1,0 +1,12 @@
+[
+    FileChange {
+        path: "feature.txt",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "notes.txt",
+        original_path: None,
+        kind: Modified,
+    },
+]

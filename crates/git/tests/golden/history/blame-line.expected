@@ -1,0 +1,22 @@
+Some(
+    Committed(
+        BlameCommit {
+            id: CommitId(
+                "34c7a537068654c5c21e28c6dbc20d25794f0170",
+            ),
+            author: "Test Author",
+            author_time: Timestamp(
+                1735689720,
+            ),
+            summary: "Change the end",
+            previous: Some(
+                PreviousVersion {
+                    commit: CommitId(
+                        "74163edfa8be56422f948f19284bf5bf66c07170",
+                    ),
+                    path: "src/a b.rs",
+                },
+            ),
+        },
+    ),
+)

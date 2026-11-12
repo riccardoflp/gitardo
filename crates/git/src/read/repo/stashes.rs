@@ -4,7 +4,7 @@ use std::ffi::OsString;
 
 use model::state::Stash;
 
-use crate::read::repo::fields::{arguments, commit_id, timestamp, unexpected};
+use crate::read::fields::{arguments, commit_id, timestamp, unexpected};
 use crate::{Git, GitError};
 
 /// What is being read, for the errors.

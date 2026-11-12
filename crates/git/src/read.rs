@@ -1,4 +1,32 @@
 //! The reads: what Gitardo asks git, and how it reads the answers.
 
+pub mod bisect;
+pub mod blame;
+pub mod changed_files;
+pub mod changes;
+pub mod commit_page;
+pub mod commits;
+pub mod compare;
+pub mod conflicts;
+pub mod details;
+pub mod diff;
+mod existing;
+pub(crate) mod fields;
+pub mod file_history;
+pub mod file_view;
+pub mod graph;
+pub mod identity;
+pub mod log_records;
+pub mod merge;
+pub mod merge_view;
+pub mod patch;
+pub mod rebase;
 pub mod reflog;
+pub mod remote;
 pub mod repo;
+pub mod search;
+pub mod stash;
+pub mod submodule;
+pub mod sync;
+pub mod worktree;
+pub mod worktree_setup;

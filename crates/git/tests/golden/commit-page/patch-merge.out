@@ -1,0 +1,14 @@
+diff --git a/feature.txt b/feature.txt
+new file mode 100644
+index 0000000..6a69f92
+--- /dev/null
++++ b/feature.txt
+@@ -0,0 +1 @@
++f
+diff --git a/notes.txt b/notes.txt
+index 7898192..6178079 100644
+--- a/notes.txt
++++ b/notes.txt
+@@ -1 +1 @@
+-a
++b

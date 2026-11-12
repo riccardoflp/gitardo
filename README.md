@@ -6,9 +6,9 @@ library and nothing else, but for one library for TLS.
 
 This branch has the documents to build it from, in a clean room: what every feature does, as a function, and the
 rules the code follows. The code has milestone M0 of the [roadmap](docs/07-roadmap.md): the workspace of crates,
-`cargo xtask check`, the kit of the tests and JSON with comments; and the start of M1: the state of a repository read
-from git, the engine that runs features, and the first features, run from a terminal by `gitardo-cli`. There is no
-window yet.
+`cargo xtask check`, the kit of the tests and JSON with comments; and M1: every read of git, what the model derives from
+it, the engine that runs features with its log and the journal of Undo, and the first features, run from a terminal by
+`gitardo-cli`. There is no window yet.
 
 ## The documents
 

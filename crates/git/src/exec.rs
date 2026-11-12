@@ -121,12 +121,31 @@ impl Git {
     ///
     /// When git cannot be started or is cancelled.
     pub fn read_output<Argument: AsRef<OsStr>>(&self, arguments: &[Argument]) -> Result<Output, GitError> {
+        self.run(self.read_command(arguments), arguments, None)
+    }
+
+    /// Runs a read that reads what it is given on its standard input, such as `blame --contents -` with the text of a
+    /// file not saved, and returns how it ended. It is a read like the others: no lock, no question, the C locale.
+    ///
+    /// # Errors
+    ///
+    /// When git cannot be started or is cancelled.
+    pub fn read_output_with_input<Argument: AsRef<OsStr>>(
+        &self,
+        arguments: &[Argument],
+        input: &[u8],
+    ) -> Result<Output, GitError> {
+        self.run(self.read_command(arguments), arguments, Some(input))
+    }
+
+    /// The command of a read: one that never takes a lock another program waits for, in the C locale.
+    fn read_command<Argument: AsRef<OsStr>>(&self, arguments: &[Argument]) -> Command {
         let mut command = self.command(arguments);
         let _ = command
             .env("GIT_OPTIONAL_LOCKS", "0")
             .env("LC_ALL", "C")
             .env("LANGUAGE", "C");
-        self.run(command, arguments, None)
+        command
     }
 
     /// Runs a step of a plan, with what it reads on its standard input, and returns how it ended. Unlike a read, it

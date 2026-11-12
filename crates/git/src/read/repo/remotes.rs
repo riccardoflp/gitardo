@@ -2,7 +2,7 @@
 
 use std::ffi::OsString;
 
-use crate::read::repo::fields::arguments;
+use crate::read::fields::arguments;
 use crate::{Git, GitError};
 
 /// `git remote`: one name per line, as a remote name never holds a line break.

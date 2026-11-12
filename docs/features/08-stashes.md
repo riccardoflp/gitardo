@@ -10,7 +10,7 @@ Undo of a stash dropped.
 The stashes of the repository, newest first, as every pane, the references and the graph list them.
 
 - **Kind**: Read
-- **Function**: `read::stash::read_list(git: &Git, request: &StashListRequest) -> Result<Vec<Stash>, GitError>`
+- **Function**: `git::read::stash::read_list(git: &Git, request: &StashListRequest) -> Result<Vec<Stash>, GitError>`
 - **Reads**: `git stash list -z --format=%H%x1f%gd%x1f%gs%x1f%at`: the hash of each stash, its name (`stash@{0}`), its
   message and its date.
 
@@ -25,7 +25,7 @@ Acceptance:
 The files a stash changes, and the untracked files it took along, for what applying it would stop on.
 
 - **Kind**: Read
-- **Function**: `read::stash::read_files(git: &Git, request: &StashRef) -> Result<StashFiles, GitError>`
+- **Function**: `git::read::stash::read_files(git: &Git, request: &StashRef) -> Result<StashFiles, GitError>`
 - **Reads**:
   - `git diff --name-only -z <stash>^1 <stash>`: the files it changes against the commit it was made on;
   - `git ls-tree -r -z --name-only <stash>^3`: the untracked files it took along; a stash made without them has no third

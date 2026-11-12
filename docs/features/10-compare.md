@@ -11,7 +11,7 @@ Turns what the user types or chooses, a hash, a branch, a tag, `HEAD~3`, `v1.0^`
 it stands for, or says there is none.
 
 - **Kind**: Read
-- **Function**: `read::compare::resolve_revision(git: &Git, request: &RevisionRequest) -> Result<Option<Hash>, GitError>`
+- **Function**: `git::read::compare::resolve_revision(git: &Git, request: &RevisionRequest) -> Result<Option<Hash>, GitError>`
 - **Reads**: `git rev-parse --verify --quiet <revision>^{commit}`.
 
 Acceptance:
@@ -176,7 +176,7 @@ Acceptance:
 Everything the comparison page shows of two sides, except the lines of the files.
 
 - **Kind**: Read
-- **Function**: `read::compare::read_sides(git: &Git, request: &CompareRequest) -> Result<CompareView, GitError>`
+- **Function**: `git::read::compare::read_sides(git: &Git, request: &CompareRequest) -> Result<CompareView, GitError>`
 - **Reads**, with `<ours>` the first side and `<theirs>` the second, the working tree standing for `HEAD` in both,
   `<since>` the merge base in **Since they diverged** when there is one and the first side otherwise, and
   `-- :(literal)<path>` at the end of each command when the comparison is narrowed, a bare `--` when it is not:
@@ -211,7 +211,7 @@ Acceptance:
 What changed in each file of a comparison, for its page, and the same as a patch to copy.
 
 - **Kind**: Read
-- **Function**: `read::compare::read_patch(git: &Git, request: &ComparePatchRequest) -> Result<ComparePatch, GitError>`
+- **Function**: `git::read::compare::read_patch(git: &Git, request: &ComparePatchRequest) -> Result<ComparePatch, GitError>`
 - **Reads**, with `<since>`, `<second>` and the path as in `compare.read-sides`, the working tree on either side given
   the same way:
   - the lines: `git diff --no-color --no-ext-diff --no-textconv --submodule=short -M <since> <second> -- [<path>]`;
@@ -593,7 +593,7 @@ Acceptance:
 The files the in-place comparison lists.
 
 - **Kind**: Read
-- **Function**: `read::compare::read_files(git: &Git, request: &FilesRequest) -> Result<Comparison, GitError>`
+- **Function**: `git::read::compare::read_files(git: &Git, request: &FilesRequest) -> Result<Comparison, GitError>`
 - **Reads**: `git diff --name-status -z -M <from> <to>`.
 
 Acceptance:

@@ -1,10 +1,12 @@
-//! The last entries of the reflog of a reference, for Undo.
+//! The last entries of the reflog of a reference: for Undo, and where `HEAD` has been, to go back there.
 
 use std::ffi::OsString;
 
 use model::CommitId;
 use model::contract::ReflogEntry;
+use model::reflog::ReflogPosition;
 
+use crate::read::fields::{arguments, commit_id, timestamp, unexpected};
 use crate::{Git, GitError};
 
 /// Which reflog, and how much of it.
@@ -66,6 +68,57 @@ pub fn parse_entries(output: &[u8]) -> Result<Vec<ReflogEntry>, GitError> {
             Ok(ReflogEntry {
                 commit,
                 subject: subject.to_owned(),
+            })
+        })
+        .collect()
+}
+
+/// Where a reference has been, newest first: for each position the commit, what moved the reference there, how git
+/// names the position (`HEAD@{3}`) and the date of the commit. A reference with no reflog yet has been nowhere.
+///
+/// Feature: reflog.read
+///
+/// # Errors
+///
+/// When git cannot be started, or prints what this does not understand.
+pub fn read(git: &Git, request: &ReflogRequest) -> Result<Vec<ReflogPosition>, GitError> {
+    let output = git.read_output(&positions_arguments(request))?;
+    if !output.is_success() {
+        // Before the first commit, or for a reference without a reflog, git fails: there is no position to list.
+        return Ok(Vec::new());
+    }
+    parse_positions(&output.stdout)
+}
+
+/// `git reflog --max-count=<n> --format=%H%x1f%gs%x1f%gd%x1f%ct <reference>`: one position per line, its four fields
+/// separated by the unit separator.
+#[must_use]
+pub fn positions_arguments(request: &ReflogRequest) -> Vec<OsString> {
+    let count = format!("--max-count={}", request.count);
+    arguments(&["reflog", &count, "--format=%H%x1f%gs%x1f%gd%x1f%ct", &request.reference])
+}
+
+/// The positions that [`positions_arguments`] listed, in the order listed. The subject may hold spaces and colons: it
+/// is kept whole.
+///
+/// # Errors
+///
+/// When a line does not have its four fields, or a hash or a date cannot be read.
+pub fn parse_positions(output: &[u8]) -> Result<Vec<ReflogPosition>, GitError> {
+    const WHAT: &str = "the reflog";
+    String::from_utf8_lossy(output)
+        .split('\n')
+        .filter(|line| !line.is_empty())
+        .map(|line| {
+            let fields: Vec<&str> = line.split('\x1f').collect();
+            let [hash, subject, selector, time] = fields.as_slice() else {
+                return Err(unexpected(WHAT, line));
+            };
+            Ok(ReflogPosition {
+                commit: commit_id(WHAT, hash)?,
+                subject: (*subject).to_owned(),
+                selector: (*selector).to_owned(),
+                time: timestamp(WHAT, time)?,
             })
         })
         .collect()

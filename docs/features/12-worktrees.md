@@ -13,7 +13,7 @@ The list of the worktrees of the repository, each with its branch and the number
 Worktrees section, the picker of **Switch worktree…** and the rules about branches that another worktree has.
 
 - **Kind**: Read
-- **Function**: `worktree::read_list(git, request) -> Result<Vec<Worktree>, GitError>`
+- **Function**: `git::read::worktree::read_list(git, request) -> Result<Vec<Worktree>, GitError>`
 - **Reads**: `git worktree list --porcelain -z`, run in the folder the views show. For each worktree: its folder, the
   commit it has checked out, its branch or none (detached), whether it is the main worktree (the first one listed, the
   folder the repository was created in), whether it is the folder the views show, and whether it is missing (listed as
@@ -516,7 +516,7 @@ On Windows, git deletes what is inside a junction when it removes a worktree: th
 link came from. This read finds those links, so that they are taken out first.
 
 - **Kind**: Read
-- **Function**: `worktree::read_folder_links(git, request) -> Result<Vec<PathBuf>, GitError>`
+- **Function**: `git::read::worktree::read_folder_links(git, request) -> Result<Vec<PathBuf>, GitError>`
 - **Reads**: only on Windows, in the worktree: `git ls-files --others --directory -z` and
   `git ls-files --others --ignored --exclude-standard --directory -z`. Each entry that is a link is kept when it leads
   to a folder outside the worktree; each entry that is a folder is looked into, without going past a link. Elsewhere it
@@ -859,7 +859,7 @@ Acceptance:
 What git ignores in the folder the views show, as the page that chooses what new worktrees get lists it.
 
 - **Kind**: Read
-- **Function**: `worktree_setup::read_ignored(git, request) -> Result<Vec<IgnoredEntry>, GitError>`
+- **Function**: `git::read::worktree_setup::read_ignored(git, request) -> Result<Vec<IgnoredEntry>, GitError>`
 - **Reads**: `git ls-files --others --ignored --exclude-standard --directory -z`: a folder whose content git ignores
   whole as one entry, such as `node_modules/`, and each other file on its own. An entry inside a folder also listed is
   dropped, as git lists both for `.vscode/*` and `.vscode/` in one `.gitignore`. On disk, each entry's size: a file's
@@ -946,7 +946,7 @@ Acceptance:
 What the link and copy patterns of the page take from the folder the views show, as a whole and each on its own.
 
 - **Kind**: Read
-- **Function**: `worktree_setup::read_what_patterns_take(git, request) -> Result<SetupPreview, GitError>`
+- **Function**: `git::read::worktree_setup::read_what_patterns_take(git, request) -> Result<SetupPreview, GitError>`
 - **Reads**: the reads of `worktree-setup.folders-to-link` and `worktree-setup.paths-to-copy` for all the patterns, as
   for a worktree that has nothing of them yet; then, for each link pattern alone, how many folders it links, and for
   each copy pattern alone, how many files or folders it copies with the links of all the patterns in place.

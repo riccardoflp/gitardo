@@ -150,3 +150,52 @@ them in the card.
 - **Q4** — Should the undo journal survive a restart of the application? The extension keeps it in memory only.
 - **Q5** — Accessibility: exposing the views to screen readers needs the system's accessibility APIs (UI Automation,
   AT-SPI over D-Bus, NSAccessibility). In which milestone?
+
+From milestone M1 (each was built with the reading given, until the card says otherwise):
+
+- **Q7** — `reflog.read`: the card reads the time of an entry with `%ct`, the date of the commit, not when `HEAD`
+  moved there. Built as the card says; `reflog.browse` probably wants the date of the move (`%gd` with
+  `--date=unix`).
+- **Q8** — `rebase.read-stop`: git 2.53 removes `rebase-merge/amend` when the rebase continues, though the card says
+  git leaves it. Both are read; nothing checks that `amend` is the hash of the last `edit`.
+- **Q9** — `refs.sort`: the card says that with the setting not set branches sort by name; `18-settings.md` says by
+  date when git's `branch.sort` is `-committerdate`. Only the two orders are built, not how the setting is resolved.
+- **Q10** — `graph.date-separators` returns the words of a separator ("Yesterday", "October 2026") from `model`, as
+  its signature asks, while rule R10.2 puts the words of the UI in `views/text`. Dates use one UTC offset for all,
+  so a change to daylight saving between two dates is not seen.
+- **Q11** — `graph.fold-rows` names a fold after the branch that labels the second parent, which needs the labels its
+  signature does not take: `Fold::branch(labels)` and `Fold::title(labels)` were added. When two folded merges
+  compete for the same commits, the one higher in the list wins.
+- **Q12** — `graph.labels`: the marks of a bisect and the badges of pull requests are not in the state of the
+  repository, so the labels leave them out for now; among the branches of one commit, the one checked out comes
+  first.
+- **Q13** — `graph.unpushed` narrowed to Local: "no ring" holds only when the upstream is not an ancestor of the
+  branch; when the upstream is merely behind, its commit is among the rows and the rings show.
+- **Q14** — Return types that differ from the cards' signatures: `details.read-commit` gives `Option<CommitDetail>`
+  (none for a hash that is not a commit); `commit-page.diff-lines` and `commit-page.read-patch` give
+  `PatchLines { Files, Unmatched }`, which is how "the lines cannot be shown" is said; `compare.read-patch` gives
+  `ComparePatch { Lines, Text }`; `reflog.read` gives `model::reflog::ReflogPosition`, since `ReflogEntry` is the
+  contract's type for Undo. The cards should say these.
+- **Q15** — `compare.read-sides`: `git merge-base` and `git merge-tree` take no pathspec, so with the comparison
+  narrowed to a path the merge base and the predicted conflicts are those of the whole merge.
+- **Q16** — `compare.read-sides`: the uncommitted changes taken as a commit are the staged, the not staged, the
+  untracked (as added) and the conflicted (as modified) files, one entry per path; a staged file keeps its staged
+  kind unless it is now deleted on disk.
+- **Q17** — `patch.read-format-patch`: the commits picked in any order are put in order with
+  `git merge-base --octopus` and `git rev-list --topo-order`, since commit dates are not reliable after a rebase.
+- **Q18** — Every diff whose lines are shown, copied or applied is read with `--src-prefix=a/ --dst-prefix=b/`, so that
+  `diff.noprefix` or `diff.mnemonicPrefix` in the user's configuration does not break it. Should the cards say so?
+- **Q19** — `repo.read-repositories`: acceptance line 3 has the home folder itself hold `projects-x`, but the rules
+  put the projects first only when the workspace folder is inside a repository further up. Built as the rules say:
+  with the home folder itself as the workspace folder, the home repository comes first.
+- **Q20** — `changes.read-working-tree` returns the state's `WorkingTree`, with untracked files in their own list
+  rather than as not staged with status `?`; it reads `git status` in its first format, while `repo.read-state`
+  reads the second, as each card says. Should both read the same format?
+- **Q21** — Words of the UI outside `views/text` (rule R10.2): `SubmoduleStatus::sentence` in `model` (without the
+  backticks around the short hash) and `describe_predicted_conflicts` in `git::read::merge`, as their cards return
+  text. Move them to `views/text` once it exists?
+- **Q22** — `worktree-setup.read-what-patterns-take` asks git with `ls-files --others --ignored --exclude=<pattern>
+  --directory` in the checkout, and `check-ignore --no-index -z --stdin` for "git ignores the folder", so no
+  temporary file is written; clashes are judged on the files of `HEAD`.
+- **Q23** — Card **Function** lines that named a module without its crate (`read::…`, `worktree::…`, `submodule::…`)
+  now start with `git::read::`, since `cargo xtask check` takes the first segment as the crate.

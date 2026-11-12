@@ -39,7 +39,7 @@ pub(super) fn operation_from(present: &[&str], sequencer_todo: Option<&str>) -> 
 }
 
 /// The operation in progress in the worktree whose git folder this is.
-pub(super) fn read_operation(git_folder: &Path) -> Option<Operation> {
+pub(crate) fn read_operation(git_folder: &Path) -> Option<Operation> {
     let present: Vec<&str> = MARKERS
         .iter()
         .map(|(marker, _)| *marker)

@@ -10,7 +10,7 @@ Every name a file had in the history of what is checked out, so that its history
 it.
 
 - **Kind**: Read
-- **Function**: `read::file_history::read_names(git, request) -> Result<Vec<String>, GitError>`
+- **Function**: `git::read::file_history::read_names(git, request) -> Result<Vec<String>, GitError>`
 - **Entry points**: none: used by `file-history.file`.
 - **Reads**: `git log --follow -M --name-status -z --format= -- :(literal)<file>`.
 
@@ -65,7 +65,7 @@ Before following lines back, they are found in the commit checked out, since git
 file in the File page may have edits not saved or not committed.
 
 - **Kind**: Read
-- **Function**: `read::file_history::read_committed_lines(git, request) -> Result<CommittedLines, GitError>`
+- **Function**: `git::read::file_history::read_committed_lines(git, request) -> Result<CommittedLines, GitError>`
 - **Entry points**: none: used by `file-history.lines`.
 - **Reads**: `git rev-parse HEAD`; `git cat-file -e <commit>:<file>`; `git show <commit>:<file>`.
 
@@ -184,7 +184,7 @@ Acceptance:
 ### `blame.read-line` — Who last changed one line
 
 - **Kind**: Read
-- **Function**: `read::blame::read_line(git, request) -> Result<Option<BlameLine>, GitError>`
+- **Function**: `git::read::blame::read_line(git, request) -> Result<Option<BlameLine>, GitError>`
 - **Entry points**: none: used by `blame.current-line`.
 - **Reads**: `git blame --porcelain -L <n>,<n> [-w -M] [--contents -] -- <file>`, with the text of the File page on
   standard input when it has edits not saved; `-w -M` when `blame.ignoreWhitespaceAndMoves` is on.
@@ -297,7 +297,7 @@ Acceptance:
 ### `blame.read-file` — Who last changed each line of a file
 
 - **Kind**: Read
-- **Function**: `read::blame::read_file(git, request) -> Result<Option<Vec<Option<BlameLine>>>, GitError>`
+- **Function**: `git::read::blame::read_file(git, request) -> Result<Option<Vec<Option<BlameLine>>>, GitError>`
 - **Entry points**: none: used by `blame.file`, `blame.toggle-file`, `blame.previous` and the commands of the current
   line.
 - **Reads**: `git blame --incremental [-w -M] [--contents -] [<revision>] -- <file>`: `-w -M` when
@@ -605,7 +605,7 @@ Acceptance:
 ### `reflog.read` — Where `HEAD` has been
 
 - **Kind**: Read
-- **Function**: `read::reflog::read(git, request) -> Result<Vec<ReflogEntry>, GitError>`
+- **Function**: `git::read::reflog::read(git, request) -> Result<Vec<ReflogEntry>, GitError>`
 - **Entry points**: none: used by `reflog.browse` (and by Undo).
 - **Reads**: `git reflog --max-count=<n> --format=%H%x1f%gs%x1f%gd%x1f%ct <ref>`: one entry per line, its fields
   separated by the byte `0x1f`: the commit, what moved `HEAD` there, the selector (`HEAD@{3}`) and the time in seconds.
@@ -650,7 +650,7 @@ Acceptance:
 ### `bisect.read` — The bisect under way
 
 - **Kind**: Read
-- **Function**: `read::bisect::read(git, request) -> Result<Option<Bisect>, GitError>`
+- **Function**: `git::read::bisect::read(git, request) -> Result<Option<Bisect>, GitError>`
 - **Entry points**: none: read with the state of the repository.
 - **Reads**: the file `BISECT_START` in the git directory of the worktree; `git for-each-ref --format=%(refname)
   %(objectname) refs/bisect`; with a bad commit and at least one good one,

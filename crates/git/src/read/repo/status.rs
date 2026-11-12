@@ -2,9 +2,10 @@
 
 use std::ffi::OsString;
 
-use model::state::{ChangeKind, ConflictKind, ConflictedFile, FileChange, WorkingTree};
+use model::state::{ChangeKind, ConflictedFile, FileChange, WorkingTree};
 
-use crate::read::repo::fields::{arguments, unexpected};
+use crate::read::changes::{change_kind, conflict_kind};
+use crate::read::fields::{arguments, unexpected};
 use crate::{Git, GitError};
 
 /// What is being read, for the errors.
@@ -108,34 +109,6 @@ fn add_change(working_tree: &mut WorkingTree, line: &Line<'_>, original: Option<
         working_tree.unstaged.push(file(kind));
     }
     Ok(())
-}
-
-/// What a code of a side says, none for `.`: that side did not change the file.
-fn change_kind(code: char) -> Result<Option<ChangeKind>, GitError> {
-    Ok(Some(match code {
-        '.' => return Ok(None),
-        'M' => ChangeKind::Modified,
-        'T' => ChangeKind::TypeChanged,
-        'A' => ChangeKind::Added,
-        'D' => ChangeKind::Deleted,
-        'R' => ChangeKind::Renamed,
-        'C' => ChangeKind::Copied,
-        other => return Err(unexpected(WHAT, &other.to_string())),
-    }))
-}
-
-/// What each side did to a file in conflict, from the two codes of `git status`.
-fn conflict_kind(codes: &str) -> Option<ConflictKind> {
-    Some(match codes {
-        "DD" => ConflictKind::BothDeleted,
-        "AU" => ConflictKind::AddedByUs,
-        "UD" => ConflictKind::DeletedByThem,
-        "UA" => ConflictKind::AddedByThem,
-        "DU" => ConflictKind::DeletedByUs,
-        "AA" => ConflictKind::BothAdded,
-        "UU" => ConflictKind::BothModified,
-        _ => return None,
-    })
 }
 
 #[cfg(test)]
