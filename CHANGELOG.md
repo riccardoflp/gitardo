@@ -2,6 +2,17 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Added
+
+- When the repository has more than one worktree, the branch checked out at the start of the toolbar of the graph is a button that lists the worktrees by their branch and shows the one picked, as **Show in Gitardo** does.
+- The repository Gitardo shows follows the one clicked in the Repositories view of VS Code's Source Control side bar, worktrees included. While that view lists one repository at a time, one chosen in Gitardo is selected there too.
+
+### Changed
+
+- While the views show another worktree, the list of repositories keeps the repository it is of chosen, instead of listing the worktree.
+
 ## 0.10.0 - 2026-11-04
 
 ### Added

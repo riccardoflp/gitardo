@@ -58,7 +58,7 @@ async function until<T>(what: string, check: () => T | undefined | null | false,
 
 /** The API of VS Code's Git extension, which opens worktrees as repositories of their own. */
 interface VSCodeGitApi {
-  repositories: { rootUri: vscode.Uri }[];
+  repositories: { rootUri: vscode.Uri; ui: { readonly selected: boolean } }[];
   openRepository(root: vscode.Uri): Promise<unknown>;
 }
 
@@ -789,6 +789,60 @@ export async function run(): Promise<void> {
     }
     assert.equal(state().branches.length, branches);
     assert.equal(state().worktrees.length, 1);
+  });
+
+  await step("follows the repository selected in VS Code's Repositories view, selects there the one shown, and shows a worktree of another", async () => {
+    const vscodeApi = await vscodeGit();
+    const opened = (root: string) => vscodeApi.repositories.find((repository) => samePath(repository.rootUri.fsPath, root));
+    const selected = () => vscodeApi.repositories.filter((repository) => repository.ui.selected).map((repository) => path.basename(repository.rootUri.fsPath));
+    // The view makes the commands that select in it; the worktrees of the steps before, gone from disk, are closed.
+    await vscode.commands.executeCommand('workbench.view.scm');
+    await until("VS Code's Git extension to have app and lib open, alone", () => opened(app) && opened(lib) && vscodeApi.repositories.length === 2);
+    const scm = vscode.workspace.getConfiguration('scm');
+    const home = path.join(workspace, 'lib.worktrees').replace(/\\/g, '/');
+    const beside = `${home}/beside`;
+    try {
+      // With several repositories listed at once, Gitardo leaves the view as it is.
+      await until('app to be the repository Source Control is on', () => opened(app)?.ui.selected);
+      await controller.selectRepo(lib);
+      await sleep(1500);
+      assert.deepEqual(selected(), ['app']);
+
+      // With one at a time, choosing one in Gitardo selects it in the view.
+      await scm.update('repositories.selectionMode', 'single', vscode.ConfigurationTarget.Workspace);
+      // The view keeps the first repository it lists, which may move Source Control.
+      await sleep(500);
+      await controller.selectRepo(app);
+      await controller.selectRepo(lib);
+      await until(`lib to be selected in the Repositories view, not ${selected()}`, () => opened(lib)?.ui.selected && !opened(app)?.ui.selected);
+
+      // Chosen there, as a click on it would, it is shown in Gitardo.
+      const prefix = 'workbench.scm.action.toggleRepositoryVisibility.scm';
+      const toggles = (await vscode.commands.getCommands(true))
+        .filter((id) => id.startsWith(prefix))
+        .sort((a, b) => Number(a.slice(prefix.length)) - Number(b.slice(prefix.length)));
+      // The Git extension hands out new objects each time it is asked: a repository is found by its root.
+      const roots = vscodeApi.repositories.map((repository) => repository.rootUri.fsPath);
+      assert.equal(toggles.length, roots.length, JSON.stringify({ toggles, roots }));
+      await vscode.commands.executeCommand(toggles[roots.findIndex((root) => samePath(root, app))]);
+      await until('Gitardo to show app', () => samePath(state().root, app));
+      assert.deepEqual(selected(), ['app']);
+
+      // A worktree of lib, which is not in the workspace, is shown as one of lib.
+      await git(lib, ['worktree', 'add', '-b', 'beside', beside]);
+      await controller.selectRepo(beside);
+      assert.ok(samePath(state().root, beside), state().root);
+      assert.equal(state().branch, 'beside');
+      assert.ok(state().home && samePath(state().home!.root, lib), JSON.stringify(state().home));
+    } finally {
+      await scm.update('repositories.selectionMode', undefined, vscode.ConfigurationTarget.Workspace);
+      if (!samePath(state().root, app)) await controller.selectRepo(app);
+      await git(lib, ['worktree', 'remove', '--force', beside]).catch(() => undefined);
+      fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      await git(lib, ['worktree', 'prune']);
+      await git(lib, ['branch', '-D', 'beside']).catch(() => undefined);
+    }
+    assert.ok(samePath(state().root, app), state().root);
   });
 
   await step('opens a branch in its worktree, made for it with nothing asked, and switches between worktrees', async () => {

@@ -309,6 +309,9 @@ export class Controller implements vscode.Disposable {
 
   /** Fires whenever the repository state has been reloaded. */
   readonly onDidChangeState = this.stateEmitter.event;
+  private readonly chosenEmitter = new vscode.EventEmitter<string>();
+  /** Fires with the root of the repository or worktree chosen to be shown, once the views show it. */
+  readonly onDidChooseRepo = this.chosenEmitter.event;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -323,6 +326,7 @@ export class Controller implements vscode.Disposable {
     this.activity = new Activity(log);
     this.subscriptions = [
       this.stateEmitter,
+      this.chosenEmitter,
       this.activity,
       this.fileIcons,
       this.fileIcons.onDidChange(() => this.sendFileIcons()),
@@ -2017,7 +2021,9 @@ export class Controller implements vscode.Disposable {
     const repo = this.repos.find((each) => samePath(each.root, root));
     if (repo) {
       await this.memento.update(REPO_KEY, repo.root);
-      return this.open(repo.root);
+      await this.open(repo.root);
+      this.chosenEmitter.fire(repo.root);
+      return;
     }
     const state = this.state;
     // A worktree of it, or one of its submodules initialized since the repositories of the workspace were looked for.
@@ -2025,10 +2031,38 @@ export class Controller implements vscode.Disposable {
       ? undefined
       : (state.worktrees.find((each) => samePath(each.path, root) && !each.prunable)?.path ??
         state.submodules.filter((each) => each.head).map((each) => submoduleFolder(each, state)).find((each) => samePath(each, root)));
-    if (!folder) return;
-    // The way back is the repository of the workspace that was shown, or the one that was before another worktree.
-    this.home = this.repos.find((each) => shown && samePath(each.root, shown)) ?? this.home;
-    await this.open(folder);
+    if (folder) {
+      // The way back is the repository of the workspace that was shown, or the one that was before another worktree.
+      this.home = this.repos.find((each) => shown && samePath(each.root, shown)) ?? this.home;
+      await this.open(folder);
+      this.chosenEmitter.fire(folder);
+      return;
+    }
+    // A worktree of another repository of the workspace, such as one chosen in VS Code's Repositories view.
+    const owner = await this.worktreeOwner(root);
+    if (!owner || this.running) return;
+    this.home = owner;
+    await this.open(root);
+    this.chosenEmitter.fire(root);
+  }
+
+  /** The repository of the workspace that a folder is a worktree of, by the git directory they share. */
+  private async worktreeOwner(root: string): Promise<RepoInfo | undefined> {
+    const commonDir = (folder: string) => new Repo(folder, (command) => this.log.debug(command)).commonDir().catch(() => undefined);
+    const shared = await commonDir(root);
+    if (!shared) return undefined;
+    const theirs = await Promise.all(this.repos.map((repo) => commonDir(repo.root)));
+    return this.repos.find((_, index) => theirs[index] && samePath(theirs[index], shared));
+  }
+
+  /**
+   * Shows the repository or worktree chosen in VS Code's Repositories view, once Gitardo has looked for the
+   * repositories of the workspace: until then, it reads nothing for it.
+   */
+  async followSourceControl(root: string): Promise<void> {
+    if (!this.located) return;
+    await this.whenLocated();
+    await this.selectRepo(root);
   }
 
   private async pickRepo(): Promise<void> {

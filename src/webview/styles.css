@@ -107,6 +107,33 @@ input:focus-visible,
   text-overflow: ellipsis;
 }
 
+/* The branch shown, as a button that shows another worktree when the repository has several. */
+.toolbar .current.pick {
+  height: 24px;
+  padding: 0 4px;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.toolbar .current.pick:hover:not(:disabled) {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.toolbar .current.pick:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.toolbar .current.pick:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
 .button {
   display: inline-flex;
   align-items: center;

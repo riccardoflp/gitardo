@@ -5,6 +5,7 @@ import { useMenu, type MenuEntry } from './ContextMenu';
 import { Icon } from './Icon';
 import { RepoSelect } from './RepoSelect';
 import { ScopeButton } from './ScopeButton';
+import { WorktreeSelect } from './WorktreeSelect';
 import { act } from './menus';
 import { loadUiState, post, saveUiState } from './vscode';
 
@@ -346,10 +347,7 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
         </button>
       )}
       <RepoSelect state={state} disabled={!!busy} />
-      <span className="current" title={state.root}>
-        <Icon name="git-branch" />
-        <span className="name">{state.branch ?? (state.head ? `detached at ${state.head.slice(0, 7)}` : 'no commits yet')}</span>
-      </span>
+      <WorktreeSelect state={state} disabled={!!busy} />
 
       {/* The words are hidden when the panel is narrow, so each button also says what it is in its tooltip. */}
       <button className="button" disabled={!!busy} onClick={() => sync('fetch')} title="Fetch: git fetch --all --prune" aria-label="Fetch">

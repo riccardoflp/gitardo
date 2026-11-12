@@ -8,6 +8,7 @@ import { BlameAnnotator, BlameSource } from './blame';
 import { GitContentProvider, SCHEME } from './content';
 import { Controller } from './controller';
 import { FileBlame } from './fileBlame';
+import { SourceControlSelection } from './sourceControlSelection';
 import { showSetupInMenus } from './worktreeSettings';
 
 const GRAPH_VIEW = 'gitardo.graph';
@@ -35,6 +36,13 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
   });
   // What it stages and unstages runs as Gitardo's own operations, and what Gitardo reads again may have moved it.
   const flowDiff = new FlowDiff(context.extensionUri, (root, op) => controller.runIn(root, op));
+  // The repository shown and the one selected in VS Code's Repositories view follow each other.
+  const sourceControl = new SourceControlSelection((root) => controller.followSourceControl(root), log);
+  void sourceControl.start();
+  context.subscriptions.push(
+    sourceControl,
+    controller.onDidChooseRepo((root) => sourceControl.select(root)),
+  );
 
   const graphProvider: vscode.WebviewViewProvider = {
     resolveWebviewView(view) {
