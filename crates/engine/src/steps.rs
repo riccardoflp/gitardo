@@ -1,12 +1,15 @@
 //! Running the steps of a plan, one by one, each written to the log before it starts. A step that fails stops the
-//! plan (rule R4.5).
+//! plan (rule R4.5), and so does cancelling it: the process of the step running is killed, and no step after it starts.
 
 use std::fmt;
 use std::fs;
+use std::io::Read;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::thread;
+use std::time::Duration;
 
-use git::Git;
+use git::{CancelToken, Git, GitError};
 use model::contract::Step;
 
 use crate::clock::Clock;
@@ -19,55 +22,91 @@ pub struct StepFailure {
     pub ran: Vec<String>,
     /// The line of the step that failed.
     pub failed: String,
-    /// What git or the system said.
+    /// What git or the system said, or that it was cancelled.
     pub said: String,
+    /// Whether it stopped because the plan was cancelled, not because the step failed.
+    pub cancelled: bool,
 }
 
 impl fmt::Display for StepFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.cancelled {
+            return write!(formatter, "`{}` was cancelled", self.failed);
+        }
         write!(formatter, "`{}` failed: {}", self.failed, self.said.trim())
     }
 }
 
-/// Where steps run and what they write to.
+/// Where steps run, what they write to, and what cancels them.
 pub(crate) struct StepRunner<'a> {
     pub(crate) git: &'a Git,
     pub(crate) log: &'a mut CommandLog,
     pub(crate) clock: &'a dyn Clock,
+    pub(crate) cancel: &'a CancelToken,
+}
+
+/// Why a step did not run to its end.
+enum StepError {
+    /// It failed, and git or the system said this.
+    Failed(String),
+    /// The plan was cancelled while it ran: its process was killed.
+    Cancelled,
+}
+
+impl StepError {
+    fn failed(error: &dyn fmt::Display) -> Self {
+        StepError::Failed(error.to_string())
+    }
 }
 
 impl StepRunner<'_> {
-    /// Runs the steps in order, and stops at the first that fails.
+    /// Runs the steps in order, and stops at the first that fails or when the plan is cancelled. A step that does not
+    /// start because the plan was cancelled before it is not logged.
     pub(crate) fn run(&mut self, steps: &[Step]) -> Result<Vec<String>, StepFailure> {
         let mut ran = Vec::new();
         for step in steps {
-            self.log.record(self.clock.now(), step);
-            if let Err(said) = run_step(self.git, step) {
-                self.log.record_failure(self.clock.now(), &said);
+            if self.cancel.is_cancelled() {
                 return Err(StepFailure {
                     ran,
                     failed: step.log_line(),
-                    said,
+                    said: String::from("Cancelled before it started."),
+                    cancelled: true,
                 });
             }
-            ran.push(step.log_line());
+            self.log.record(self.clock.now(), step);
+            let (said, cancelled) = match run_step(self.git, step, self.cancel) {
+                Ok(()) => {
+                    ran.push(step.log_line());
+                    continue;
+                }
+                Err(StepError::Failed(said)) => (said, false),
+                Err(StepError::Cancelled) => (String::from("Cancelled."), true),
+            };
+            self.log.record_failure(self.clock.now(), &said);
+            return Err(StepFailure {
+                ran,
+                failed: step.log_line(),
+                said,
+                cancelled,
+            });
         }
         Ok(ran)
     }
 }
 
 /// Runs one step; what went wrong, in the words of git or of the system, when it fails.
-fn run_step(git: &Git, step: &Step) -> Result<(), String> {
+fn run_step(git: &Git, step: &Step, cancel: &CancelToken) -> Result<(), StepError> {
     match step {
         Step::Git {
             arguments,
             directory,
             input,
         } => {
-            let output = git
-                .in_directory(directory)
-                .run_step(arguments, input.as_deref())
-                .map_err(|error| error.to_string())?;
+            let output = match git.in_directory(directory).run_step(arguments, input.as_deref()) {
+                Ok(output) => output,
+                Err(GitError::Cancelled { .. }) => return Err(StepError::Cancelled),
+                Err(error) => return Err(StepError::failed(&error)),
+            };
             if output.is_success() {
                 return Ok(());
             }
@@ -77,14 +116,14 @@ fn run_step(git: &Git, step: &Step) -> Result<(), String> {
             } else {
                 &output.stderr
             };
-            Err(String::from_utf8_lossy(said).into_owned())
+            Err(StepError::Failed(String::from_utf8_lossy(said).into_owned()))
         }
-        Step::Write { path, contents } => write(path, contents).map_err(|error| error.to_string()),
-        Step::Link { from, to } => link(from, to).map_err(|error| error.to_string()),
-        Step::Copy { from, to } => copy(from, to).map_err(|error| error.to_string()),
-        Step::Unlink { path } => unlink(path),
-        Step::Delete { path } => delete(path).map_err(|error| error.to_string()),
-        Step::Run { command, directory } => run_command(command, directory),
+        Step::Write { path, contents } => write(path, contents).map_err(|error| StepError::failed(&error)),
+        Step::Link { from, to } => link(from, to).map_err(|error| StepError::failed(&error)),
+        Step::Copy { from, to } => copy(from, to).map_err(|error| StepError::failed(&error)),
+        Step::Unlink { path } => unlink(path).map_err(StepError::Failed),
+        Step::Delete { path } => delete(path).map_err(|error| StepError::failed(&error)),
+        Step::Run { command, directory } => run_command(command, directory, cancel),
     }
 }
 
@@ -139,8 +178,9 @@ fn delete(path: &Path) -> std::io::Result<()> {
     }
 }
 
-/// Runs a command of the user's through the system's shell.
-fn run_command(command: &str, directory: &Path) -> Result<(), String> {
+/// Runs a command of the user's through the system's shell, and kills the shell when the plan is cancelled. What the
+/// shell started itself may outlive it.
+fn run_command(command: &str, directory: &Path, cancel: &CancelToken) -> Result<(), StepError> {
     #[cfg(windows)]
     let mut shell = {
         let mut shell = Command::new("cmd");
@@ -153,13 +193,38 @@ fn run_command(command: &str, directory: &Path) -> Result<(), String> {
         let _ = shell.arg("-c").arg(command);
         shell
     };
-    let output = shell
+    let mut child = shell
         .current_dir(directory)
-        .output()
-        .map_err(|error| error.to_string())?;
-    if output.status.success() {
-        Ok(())
-    } else {
-        Err(String::from_utf8_lossy(&output.stderr).into_owned())
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| StepError::failed(&error))?;
+    let stderr = child.stderr.take();
+    // What the command says on its error output is read on a thread of its own, so that a full pipe never stops it.
+    let said = thread::spawn(move || {
+        let mut bytes = Vec::new();
+        if let Some(mut pipe) = stderr {
+            let _length = pipe.read_to_end(&mut bytes);
+        }
+        bytes
+    });
+    let mut pause = Duration::from_micros(200);
+    let status = loop {
+        if let Some(status) = child.try_wait().map_err(|error| StepError::failed(&error))? {
+            break status;
+        }
+        if cancel.is_cancelled() {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(StepError::Cancelled);
+        }
+        thread::sleep(pause);
+        pause = (pause * 2).min(Duration::from_millis(5));
+    };
+    if status.success() {
+        return Ok(());
     }
+    let said = said.join().unwrap_or_default();
+    Err(StepError::Failed(String::from_utf8_lossy(&said).into_owned()))
 }

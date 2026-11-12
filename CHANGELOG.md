@@ -23,3 +23,5 @@
   of the files of a commit and the lines of its changes; the order of references; where a range of lines was.
 - Undo keeps a journal of what the reflog does not see: a branch deleted, a stash dropped, conflicts resolved, a squash
   merge, a series of commits made at once.
+- A plan can be cancelled while it runs: the git process or the command of the step running is killed, and no step
+  after it starts.

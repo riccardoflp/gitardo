@@ -4,8 +4,8 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use git::Git;
 use git::read::repo::{StateRequest, read_state};
+use git::{CancelToken, Git};
 use model::contract::{
     Answer, Answers, Context, FeatureId, Operation, Outcome, Plan, Query, Question, QuestionKind, Refusal, Text, Undo,
 };
@@ -61,6 +61,7 @@ pub struct Engine {
     activities: Activities,
     journal: Journal,
     last_state: Option<Arc<RepositoryState>>,
+    cancel: CancelToken,
 }
 
 impl Engine {
@@ -74,7 +75,16 @@ impl Engine {
             activities: Activities::new(),
             journal: Journal::new(),
             last_state: None,
+            cancel: CancelToken::new(),
         }
+    }
+
+    /// Takes the token that cancels what the engine runs from now on: the reads of the features and the steps of their
+    /// plans. The worker that runs a job gives the job's token; cancelling it kills the process of the step running,
+    /// and no step after it starts.
+    pub fn cancel_with(&mut self, cancel: CancelToken) {
+        self.git = self.git.clone().with_cancel(cancel.clone());
+        self.cancel = cancel;
     }
 
     /// The journal of what Undo needs for the operations of Gitardo the reflog does not see.
@@ -203,6 +213,7 @@ impl Engine {
             git: &self.git,
             log: &mut self.log,
             clock: self.clock.as_ref(),
+            cancel: &self.cancel,
         }
         .run(&plan.steps)
     }
