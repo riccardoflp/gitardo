@@ -133,7 +133,8 @@ Sets aside every change to one file, or to the files chosen, staged or not.
 - **Offered when**: there is a commit; not on a file whose changes are only unsaved edits in Gitardo's editor.
 - **Asks**: **Stash `<file>`**, or **Stash N files**, an input box with the prompt **Optional message. Every change to
   the file is stashed, staged or not.**, empty by default.
-- **Plan**: `git stash push --include-untracked [-m <message>] -- <file>…`; a renamed file is given with both its names.
+- **Plan**: `git stash push --include-untracked [-m <message>] -- <file>…`; a renamed file is given with both its names,
+  after `git reset --quiet -- <old name>` when the rename is staged, as git does not find the old name otherwise.
   A name that is also a pattern to git (with `[`, `]`, `*`, `?` or `\`, or starting with `:`) is given as
   `:(literal)<name>`.
 - **Danger**: None

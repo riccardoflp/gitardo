@@ -188,23 +188,23 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`tag.push`](06-branches-tags-remotes.md#tagpush--push-a-tag) | Push a tag | Operation | Built |
 | [`tag.delete`](06-branches-tags-remotes.md#tagdelete--delete-a-tag) | Delete a tag | Operation | Built |
 | [`tag.checkout`](06-branches-tags-remotes.md#tagcheckout--check-out-a-tag) | Check out a tag | Operation | Built |
-| [`remote.read-remotes`](06-branches-tags-remotes.md#remoteread-remotes--read-the-remotes) | Read the remotes | Read | Specified |
-| [`remote.default`](06-branches-tags-remotes.md#remotedefault--the-remote-a-new-upstream-or-a-tag-goes-to) | The remote a new upstream or a tag goes to | Derivation | Specified |
+| [`remote.read-remotes`](06-branches-tags-remotes.md#remoteread-remotes--read-the-remotes) | Read the remotes | Read | Built |
+| [`remote.default`](06-branches-tags-remotes.md#remotedefault--the-remote-a-new-upstream-or-a-tag-goes-to) | The remote a new upstream or a tag goes to | Derivation | Built |
 | [`remote.manage`](06-branches-tags-remotes.md#remotemanage--manage-remotes) | Manage remotes | Operation | Specified |
-| [`remote.fetch`](06-branches-tags-remotes.md#remotefetch--fetch-one-remote) | Fetch one remote | Operation | Specified |
-| [`remote.set-url`](06-branches-tags-remotes.md#remoteset-url--change-the-url-of-a-remote) | Change the URL of a remote | Operation | Specified |
-| [`remote.rename`](06-branches-tags-remotes.md#remoterename--rename-a-remote) | Rename a remote | Operation | Specified |
-| [`remote.remove`](06-branches-tags-remotes.md#remoteremove--remove-a-remote) | Remove a remote | Operation | Specified |
+| [`remote.fetch`](06-branches-tags-remotes.md#remotefetch--fetch-one-remote) | Fetch one remote | Operation | Built |
+| [`remote.set-url`](06-branches-tags-remotes.md#remoteset-url--change-the-url-of-a-remote) | Change the URL of a remote | Operation | Built |
+| [`remote.rename`](06-branches-tags-remotes.md#remoterename--rename-a-remote) | Rename a remote | Operation | Built |
+| [`remote.remove`](06-branches-tags-remotes.md#remoteremove--remove-a-remote) | Remove a remote | Operation | Built |
 | [`remote.add`](06-branches-tags-remotes.md#remoteadd--add-a-remote) | Add a remote | Operation | Specified |
-| [`remote.delete-branch`](06-branches-tags-remotes.md#remotedelete-branch--delete-a-branch-from-its-remote) | Delete a branch from its remote | Operation | Specified |
-| [`sync.fetch`](06-branches-tags-remotes.md#syncfetch--fetch) | Fetch | Operation | Specified |
+| [`remote.delete-branch`](06-branches-tags-remotes.md#remotedelete-branch--delete-a-branch-from-its-remote) | Delete a branch from its remote | Operation | Built |
+| [`sync.fetch`](06-branches-tags-remotes.md#syncfetch--fetch) | Fetch | Operation | Built |
 | [`sync.pull`](06-branches-tags-remotes.md#syncpull--pull) | Pull | Operation | Specified |
 | [`sync.pull-with`](06-branches-tags-remotes.md#syncpull-with--pull-one-way-or-another) | Pull one way or another | Operation | Specified |
-| [`sync.push`](06-branches-tags-remotes.md#syncpush--push) | Push | Operation | Specified |
+| [`sync.push`](06-branches-tags-remotes.md#syncpush--push) | Push | Operation | Built |
 | [`sync.sync`](06-branches-tags-remotes.md#syncsync--sync-with-the-upstream) | Sync with the upstream | Operation | Specified |
-| [`sync.read-overwritten`](06-branches-tags-remotes.md#syncread-overwritten--read-what-a-force-push-would-overwrite) | Read what a force push would overwrite | Read | Specified |
-| [`sync.push-force-with-lease`](06-branches-tags-remotes.md#syncpush-force-with-lease--push-with---force-with-lease) | Push with `--force-with-lease` | Operation | Specified |
-| [`sync.push-force`](06-branches-tags-remotes.md#syncpush-force--push-with---force) | Push with `--force` | Operation | Specified |
+| [`sync.read-overwritten`](06-branches-tags-remotes.md#syncread-overwritten--read-what-a-force-push-would-overwrite) | Read what a force push would overwrite | Read | Built |
+| [`sync.push-force-with-lease`](06-branches-tags-remotes.md#syncpush-force-with-lease--push-with---force-with-lease) | Push with `--force-with-lease` | Operation | Built |
+| [`sync.push-force`](06-branches-tags-remotes.md#syncpush-force--push-with---force) | Push with `--force` | Operation | Built |
 
 ## History rewriting
 
@@ -245,18 +245,18 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`stash.read-list`](08-stashes.md#stashread-list--read-the-stashes) | Read the stashes | Read | Specified |
-| [`stash.read-files`](08-stashes.md#stashread-files--read-what-a-stash-changes) | Read what a stash changes | Read | Specified |
+| [`stash.read-list`](08-stashes.md#stashread-list--read-the-stashes) | Read the stashes | Read | Built |
+| [`stash.read-files`](08-stashes.md#stashread-files--read-what-a-stash-changes) | Read what a stash changes | Read | Built |
 | [`stash.pane`](08-stashes.md#stashpane--the-stashes-list) | The Stashes list | View | Specified |
-| [`stash.push`](08-stashes.md#stashpush--stash-all-changes) | Stash all changes | Operation | Specified |
-| [`stash.push-staged`](08-stashes.md#stashpush-staged--stash-the-staged-changes) | Stash the staged changes | Operation | Specified |
-| [`stash.push-file`](08-stashes.md#stashpush-file--stash-a-file-or-the-files-ticked) | Stash a file, or the files ticked | Operation | Specified |
-| [`stash.preview`](08-stashes.md#stashpreview--what-applying-a-stash-would-stop-on) | What applying a stash would stop on | Derivation | Specified |
-| [`stash.apply`](08-stashes.md#stashapply--apply-a-stash) | Apply a stash | Operation | Specified |
-| [`stash.pop`](08-stashes.md#stashpop--pop-a-stash) | Pop a stash | Operation | Specified |
+| [`stash.push`](08-stashes.md#stashpush--stash-all-changes) | Stash all changes | Operation | Built |
+| [`stash.push-staged`](08-stashes.md#stashpush-staged--stash-the-staged-changes) | Stash the staged changes | Operation | Built |
+| [`stash.push-file`](08-stashes.md#stashpush-file--stash-a-file-or-the-files-ticked) | Stash a file, or the files ticked | Operation | Built |
+| [`stash.preview`](08-stashes.md#stashpreview--what-applying-a-stash-would-stop-on) | What applying a stash would stop on | Derivation | Built |
+| [`stash.apply`](08-stashes.md#stashapply--apply-a-stash) | Apply a stash | Operation | Built |
+| [`stash.pop`](08-stashes.md#stashpop--pop-a-stash) | Pop a stash | Operation | Built |
 | [`stash.drop`](08-stashes.md#stashdrop--drop-a-stash) | Drop a stash | Operation | Specified |
 | [`stash.undo-drop`](08-stashes.md#stashundo-drop--undo-a-stash-dropped) | Undo a stash dropped | Operation | Specified |
-| [`stash.branch`](08-stashes.md#stashbranch--create-a-branch-from-a-stash) | Create a branch from a stash | Operation | Specified |
+| [`stash.branch`](08-stashes.md#stashbranch--create-a-branch-from-a-stash) | Create a branch from a stash | Operation | Built |
 | [`stash.in-graph`](08-stashes.md#stashin-graph--stashes-in-the-timeline) | Stashes in the timeline | Derivation | Specified |
 | [`stash.autostash-left`](08-stashes.md#stashautostash-left--the-stash-a-pull-leaves) | The stash a pull leaves | Derivation | Specified |
 

@@ -24,6 +24,7 @@ pub mod patch;
 pub mod rebase;
 pub mod reflog;
 pub mod refs;
+pub mod remote;
 pub mod repo;
 pub mod review;
 pub mod search;

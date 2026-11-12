@@ -39,6 +39,12 @@ pub enum Answer {
     },
     /// Names read: the branches merged into a revision.
     Names(Vec<String>),
+    /// The commits a force push would throw away (`sync.read-overwritten`).
+    Overwritten(crate::remote::Overwritten),
+    /// The remotes, each with its URL (`remote.read-remotes`).
+    Remotes(Vec<crate::remote::Remote>),
+    /// What is read of a stash before it is applied (`stash.read-files`, and the conflicts of `stash.preview`).
+    Stash(crate::stash::StashReading),
     /// Who commits are made as, and the `user.*` keys the repository sets for itself.
     Identity(IdentityKeys),
 }

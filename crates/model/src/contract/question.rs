@@ -69,6 +69,8 @@ pub enum Validation {
         /// What is said when the name is taken: "A branch with that name already exists".
         taken_message: Text,
     },
+    /// The URL of a remote repository: not empty, and not starting with `-`, which git would take for an option.
+    Url,
 }
 
 impl Validation {
@@ -80,6 +82,20 @@ impl Validation {
             Validation::ReferenceName { taken, taken_message } => {
                 validate_name(text).or_else(|| taken.iter().any(|name| name == text).then(|| taken_message.clone()))
             }
+            Validation::Url => url_problem(text),
         }
+    }
+}
+
+/// What is wrong with the URL of a remote, spaces around it left out: "Enter a URL" when there is none, "That is not a
+/// URL" when it starts with `-`.
+fn url_problem(text: &str) -> Option<Text> {
+    let url = text.trim();
+    if url.is_empty() {
+        Some(Text::from("Enter a URL"))
+    } else if url.starts_with('-') {
+        Some(Text::from("That is not a URL"))
+    } else {
+        None
     }
 }

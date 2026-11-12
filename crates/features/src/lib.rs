@@ -10,7 +10,9 @@ pub mod changes;
 pub mod commit;
 pub mod commit_page;
 pub mod identity;
+pub mod remote;
 pub mod search;
+pub mod stash;
 pub mod sync;
 pub mod tag;
 pub mod undo;
@@ -21,7 +23,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 27] = [
+pub const OPERATIONS: [(FeatureId, Operation); 48] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -52,6 +54,28 @@ pub const OPERATIONS: [(FeatureId, Operation); 27] = [
     (FeatureId("tag.delete"), tag::delete),
     (FeatureId("tag.push"), tag::push),
     (FeatureId("undo.last"), undo::last),
+    // Remotes, sync and stashes.
+    (FeatureId("sync.pull"), sync::pull),
+    (FeatureId("sync.pull-with"), sync::pull_with),
+    (FeatureId("sync.push"), sync::push),
+    (FeatureId("sync.push-force"), sync::push_force),
+    (FeatureId("sync.push-force-with-lease"), sync::push_force_with_lease),
+    (FeatureId("sync.sync"), sync::sync),
+    (FeatureId("remote.add"), remote::add),
+    (FeatureId("remote.delete-branch"), remote::delete_branch),
+    (FeatureId("remote.fetch"), remote::fetch),
+    (FeatureId("remote.manage"), remote::manage),
+    (FeatureId("remote.remove"), remote::remove),
+    (FeatureId("remote.rename"), remote::rename),
+    (FeatureId("remote.set-url"), remote::set_url),
+    (FeatureId("stash.apply"), stash::apply),
+    (FeatureId("stash.branch"), stash::branch),
+    (FeatureId("stash.drop"), stash::drop),
+    (FeatureId("stash.pop"), stash::pop),
+    (FeatureId("stash.push"), stash::push),
+    (FeatureId("stash.push-file"), stash::push_file),
+    (FeatureId("stash.push-staged"), stash::push_staged),
+    (FeatureId("stash.undo-drop"), stash::undo_drop),
 ];
 
 /// The operation of an identifier, when it is built.

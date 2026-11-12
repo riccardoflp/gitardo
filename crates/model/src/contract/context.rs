@@ -33,6 +33,12 @@ pub enum Target {
     RemoteBranch(String),
     /// A tag, by its short name.
     Tag(String),
+    /// A stash, by its place in the list: 0 for `stash@{0}`.
+    Stash(usize),
+    /// A remote, by its name.
+    Remote(String),
+    /// Files of the working tree, from its top: the one a menu was opened on, or those ticked.
+    Files(Vec<String>),
     /// A file of the Changes page, by its path from the top of the working tree.
     File(String),
     /// The list of the Changes page: the files changed for git, without the files in conflict, which are apart.
@@ -50,6 +56,10 @@ pub struct FeatureSettings {
     pub branch_format: String,
     /// `branches.openIn`: what a double click on a branch does.
     pub branch_open_in: OpenIn,
+    /// `pull.rebase`: **Pull** adds `--rebase`.
+    pub pull_rebase: bool,
+    /// `pull.autostash`: **Pull** adds `--autostash`.
+    pub pull_autostash: bool,
     /// `identities`: the names and emails to choose from when switching identity, in their order.
     pub identities: Vec<IdentityProfile>,
 }
@@ -72,6 +82,8 @@ impl Default for FeatureSettings {
             update_submodules_on_checkout: true,
             branch_format: String::new(),
             branch_open_in: OpenIn::Checkout,
+            pull_rebase: true,
+            pull_autostash: true,
             identities: Vec::new(),
         }
     }

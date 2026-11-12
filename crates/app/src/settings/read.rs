@@ -101,7 +101,7 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
 }
 
 /// The settings the operations read: `commandPreview`, `branches.format`, `branches.openIn`,
-/// `submodules.updateOnCheckout` and `identities`.
+/// `submodules.updateOnCheckout`, `identities`, `pull.rebase` and `pull.autostash`.
 fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
     let defaults = FeatureSettings::default();
     let command_preview = match lookup.choice(keys::COMMAND_PREVIEW, &keys::COMMAND_PREVIEWS) {
@@ -120,6 +120,12 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
             Some("worktree") => OpenIn::Worktree,
             _ => OpenIn::Checkout,
         },
+        pull_rebase: lookup
+            .boolean(keys::PULL_REBASE, Scope::UserAndRepository)
+            .unwrap_or(defaults.pull_rebase),
+        pull_autostash: lookup
+            .boolean(keys::PULL_AUTOSTASH, Scope::UserAndRepository)
+            .unwrap_or(defaults.pull_autostash),
         identities: lookup
             .first((keys::IDENTITIES, Scope::User), identity_profiles)
             .unwrap_or(defaults.identities),

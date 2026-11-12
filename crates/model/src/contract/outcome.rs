@@ -81,6 +81,20 @@ pub enum Query {
         /// The path of the file, from the top of the tree.
         path: String,
     },
+    /// The commits of an upstream that `HEAD` does not have, as of the last fetch (`sync.read-overwritten`). The answer
+    /// is [`super::Answer::Overwritten`].
+    Overwritten {
+        /// The upstream, in full: `refs/remotes/origin/main`.
+        upstream: String,
+    },
+    /// The remotes with their URLs (`remote.read-remotes`). The answer is [`super::Answer::Remotes`].
+    Remotes,
+    /// The files of a stash, those of its untracked files that are there again, and the conflicts applying it onto
+    /// `HEAD` would make (`stash.read-files`, `stash.preview`). The answer is [`super::Answer::Stash`].
+    Stash {
+        /// Its place in the list: 0 for `stash@{0}`.
+        index: usize,
+    },
     /// Who commits are made as, and which `user.*` keys the repository sets for itself (`identity.read`). The answer
     /// is [`super::Answer::Identity`].
     Identity,

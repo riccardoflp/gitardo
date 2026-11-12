@@ -14,7 +14,8 @@ pub const USAGE: &str = "Usage:
 
   --repository <folder>   the repository, by any folder in it; the current folder when not given
   --target <what>         what the feature is invoked on: commit:<hash>, branch:<name>, remote-branch:<name>,
-                          tag:<name>; what is checked out when not given
+                          tag:<name>, stash:<N>, remote:<name>, files:<path>,<path>; what is checked out
+                          when not given
   --plan                  show the plan and do not run it
   --yes                   run a plan that asks to be confirmed first
   <key>=<answer>          the answer of a question: the text typed, the identifier of a choice, or yes";
@@ -122,10 +123,16 @@ fn parse_target(text: &str) -> Result<Target, String> {
         "branch" => Ok(Target::Branch(name.to_owned())),
         "remote-branch" => Ok(Target::RemoteBranch(name.to_owned())),
         "tag" => Ok(Target::Tag(name.to_owned())),
+        "stash" => name
+            .parse()
+            .map(Target::Stash)
+            .map_err(|_| format!("{name} is not the place of a stash: 0 for stash@{{0}}.")),
+        "remote" => Ok(Target::Remote(name.to_owned())),
+        "files" => Ok(Target::Files(name.split(',').map(str::to_owned).collect())),
         "file" => Ok(Target::File(name.to_owned())),
         "changes" => Ok(Target::Changes),
         _ => Err(format!(
-            "{kind} is not a kind of target: commit, branch, remote-branch, tag, file or changes."
+            "{kind} is not a kind of target: commit, branch, remote-branch, tag, file, changes, stash, remote or files."
         )),
     }
 }

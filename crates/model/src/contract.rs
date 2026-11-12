@@ -7,6 +7,7 @@ mod journal;
 mod outcome;
 mod plan;
 mod question;
+mod results;
 mod words;
 
 pub use answers::{Answer, AnswerKey, Answers, IdentityKeys, ReflogEntry};

@@ -9,8 +9,12 @@ mod branches;
 mod changes;
 mod checkout;
 mod commit;
+mod push;
+mod remote;
+mod stash;
 mod state;
 mod sync;
+mod sync_all;
 mod tag;
 mod undo;
 

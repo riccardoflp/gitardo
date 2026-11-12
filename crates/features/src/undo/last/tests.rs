@@ -135,7 +135,9 @@ fn journal(record: UndoRecord) -> Answers {
 fn journal_lines(record: UndoRecord) -> Vec<String> {
     let plan = plan(last(&context(state(), Target::Head), &journal(record)));
     assert_eq!(plan.undo, Undo::TakesBack(7));
-    assert!(matches!(plan.danger, Danger::Destructive(_)));
+    // Undo always shows what it does first; the undo of a stash dropped is confirmed rather than warned of
+    // (`stash.undo-drop`).
+    assert!(!matches!(plan.danger, Danger::None));
     lines(&plan)
 }
 

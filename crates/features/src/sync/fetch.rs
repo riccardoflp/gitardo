@@ -1,6 +1,8 @@
 //! `sync.fetch`: brings what every remote has, and forgets the remote branches deleted there.
 
-use model::contract::{Answers, Context, Danger, FeatureId, FollowUp, Outcome, Plan, Refusal, Step, Text, Undo};
+use model::contract::{Answers, Context, Danger, FollowUp, Outcome, Plan, Step, Text, Undo};
+
+use super::target::no_remote;
 
 /// Fetches every remote and prunes what was deleted there; refuses in a repository with no remote, offering to add
 /// one.
@@ -9,10 +11,7 @@ use model::contract::{Answers, Context, Danger, FeatureId, FollowUp, Outcome, Pl
 #[must_use]
 pub fn fetch(context: &Context, _answers: &Answers) -> Outcome {
     if context.repository.remotes.is_empty() {
-        return Outcome::Refuse(Refusal {
-            message: Text::from("This repository has no remote."),
-            offer: Some((FeatureId("remote.add"), Text::from("Add remote…"))),
-        });
+        return no_remote();
     }
     Outcome::Run(Plan {
         title: Text::from("Fetch"),

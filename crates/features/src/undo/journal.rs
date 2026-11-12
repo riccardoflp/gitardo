@@ -7,6 +7,9 @@ use model::contract::{Context, Danger, FollowUp, JournalEntry, Plan, Step, Text,
 
 /// The plan that takes back the operation of an entry of the journal.
 pub(super) fn plan(context: &Context, entry: &JournalEntry) -> Plan {
+    if let UndoRecord::StashDropped { message, commit } = &entry.record {
+        return crate::stash::restore_plan(context, entry, (message, commit));
+    }
     let (what, arguments) = what_and_arguments(entry);
     let title = Text::from(format!("Undo {what}"));
     let warning = match entry.record {

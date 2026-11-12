@@ -13,6 +13,11 @@
 - `gitardo-cli`: the state of a repository, and the first features run from a terminal through the engine: create a
   branch, commit, fetch, and undo the last commit, checkout, rebase or reset. A feature asks for what it needs with
   `<key>=<answer>`, and a plan that is shown first runs with `--yes`.
+- Remotes, sync and stashes from `gitardo-cli`: pull as the settings `pull.rebase` and `pull.autostash` say or in any
+  of its four ways, push, force push with a lease or without, listing the commits it overwrites, sync, which fetches,
+  pulls and pushes; add, remove, rename, repoint and fetch a remote, delete a branch from its remote; stash all changes,
+  the staged ones or some files, apply, pop, drop or make a branch of a stash, each apply and pop saying first what it
+  would stop on, and a stash dropped is brought back by Undo. A pull that leaves its autostash says so.
 - Every read of milestone M1, each with golden tests on awkward repositories: a page of the graph and where a commit is
   in it, the details and the lines of a commit, the two sides, files and lines of a comparison, a file at a revision,
   the working tree, the identity, the remotes, what a force push would overwrite, the stashes and what one changes, the

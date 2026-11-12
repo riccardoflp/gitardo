@@ -749,3 +749,21 @@ the reading given until it is answered:
   should `repo.read-state` read it, or the commit box when it is empty?); `commit.draft-message` (the AI provider,
   M9). `preview.confirm` has its line on staging a file tested, and stays Specified for its first line, which is not
   of this area.
+- **Q-D1** — `stash.push-file` on a rename that is staged: `git stash push -- <old> <new>` fails, as the old name is no
+  longer in the index (`pathspec ... did not match`). The plan first runs `git reset --quiet -- <old name>`, then
+  stashes both names; the card says so now. Popping the stash brings both names back, but the rename is no longer
+  staged. Is that right, or should the plan stash with `--staged` as well?
+- **Q-D2** — `sync.pull-with` asks its way as a pick, with the key `way` and the choices `plain`, `rebase`,
+  `autostash` and `rebase-autostash` (`gitardo-cli sync.pull-with way=rebase`); the entries of the menu of **Sync**
+  and of Quick search give the answer before it asks. The pick is titled **Pull** and marks the default way of the
+  settings **default**.
+- **Q-D3** — `sync.sync` and `stash.apply` when the pull or the stash stops on a conflict: the conflicts banner is the
+  card of `conflicts.`, not built yet. The tests check what it reads instead: a rebase stopped with the files in
+  conflict, nothing pushed, the stash kept.
+- **Q-D4** — Cards of M4 left **Specified**: `remote.manage` (typing `github` in its pick needs a pick that filters by
+  the URL too, and its last line needs `github.`), `remote.add` (**Load pull requests from GitHub** needs `github.`),
+  and `stash.pane` (the Stashes list as its own place is not built).
+- **Q-D5** — A refusal of `sync.fetch`, `sync.pull`, `sync.push` and `sync.sync` in a repository with no remote offers
+  **Add remote…** (`remote.add`); the command line prints the offer after the reason. The forced pushes and sync share
+  the refusals of `sync.push`; sync also refuses, without running anything, when the pull would rebase over changes
+  that `pull.autostash` off does not set aside.

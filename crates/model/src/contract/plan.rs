@@ -164,6 +164,11 @@ pub enum FollowUp {
     ReadPullRequests,
     /// Offer another feature, with the words of its button.
     Offer(FeatureId, Text),
+    /// Put this text on the clipboard.
+    CopyToClipboard(String),
+    /// Once the repository is read again, say whether the pull left the changes it set aside in a stash
+    /// (`stash.autostash-left`).
+    CheckAutostash,
 }
 
 #[cfg(test)]

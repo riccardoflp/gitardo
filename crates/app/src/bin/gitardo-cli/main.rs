@@ -114,7 +114,36 @@ fn run_feature(
             return Ok(FAILED);
         }
     };
-    report(&finished, &asker, run.plan_choice, out, errors)
+    let code = report(&finished, &asker, run.plan_choice, out, errors)?;
+    autostash_notice(&context, &finished, out)?;
+    Ok(code)
+}
+
+/// Says, after a pull with `--autostash`, that the changes it set aside were left in a stash, when they were
+/// (`stash.autostash-left`).
+fn autostash_notice(context: &Context, finished: &Finished, out: &mut dyn Write) -> io::Result<()> {
+    let Finished::Ran { plan, .. } = finished else {
+        return Ok(());
+    };
+    if !plan.after.contains(&FollowUp::CheckAutostash) {
+        return Ok(());
+    }
+    let request = StateRequest {
+        folder: context.repository.folder.clone(),
+    };
+    let Ok(after) = read_state(&Git::new(&context.repository.folder), &request) else {
+        return Ok(());
+    };
+    let outcome = model::stash::PullOutcome {
+        had_autostash: true,
+        succeeded: true,
+        stashes_before: &context.repository.stashes,
+        stashes_after: &after.stashes,
+    };
+    match model::stash::autostash_left(&outcome) {
+        Some(notice) => writeln!(out, "{}", notice.message),
+        None => Ok(()),
+    }
 }
 
 fn report(
@@ -133,7 +162,11 @@ fn report(
                     FollowUp::Offer(feature, label) => writeln!(out, "Next: {label} ({})", feature.0)?,
                     FollowUp::SelectCommit(commit) => writeln!(out, "Select {commit}")?,
                     FollowUp::OpenCommitPage(commit) => writeln!(out, "Open the page of {commit}")?,
-                    FollowUp::SelectHead | FollowUp::EmptyCommitMessage | FollowUp::ReadPullRequests => {}
+                    FollowUp::CopyToClipboard(text) => writeln!(out, "Copy {text}")?,
+                    FollowUp::SelectHead
+                    | FollowUp::EmptyCommitMessage
+                    | FollowUp::ReadPullRequests
+                    | FollowUp::CheckAutostash => {}
                 }
             }
             Ok(DONE)

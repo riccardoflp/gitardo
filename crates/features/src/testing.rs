@@ -94,3 +94,25 @@ pub fn plan(outcome: Outcome) -> Plan {
 pub fn lines(plan: &Plan) -> Vec<String> {
     plan.steps.iter().map(model::contract::Step::log_line).collect()
 }
+
+/// An upstream on a remote at no distance: `tracking("origin", "main")` is `origin/main`.
+pub fn tracking(remote: &str, name: &str) -> model::state::Upstream {
+    model::state::Upstream {
+        reference: format!("refs/remotes/{remote}/{name}"),
+        remote: remote.to_owned(),
+        remote_branch: format!("refs/heads/{name}"),
+        ahead: 0,
+        behind: 0,
+        is_gone: false,
+    }
+}
+
+/// A stash at `commit('5')`, its place in the list and its message.
+pub fn stash(index: usize, message: &str) -> model::state::Stash {
+    model::state::Stash {
+        commit: commit('5'),
+        index,
+        message: message.to_owned(),
+        date: Timestamp(0),
+    }
+}

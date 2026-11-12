@@ -3,4 +3,4 @@
 mod journal;
 mod last;
 
-pub use last::last;
+pub use last::{JOURNAL, last};
