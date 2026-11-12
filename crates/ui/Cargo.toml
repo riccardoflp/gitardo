@@ -9,7 +9,11 @@ publish.workspace = true
 [lints]
 workspace = true
 
+# The library of decision D16 (rule R1.6) this crate may use.
 [dependencies]
+# The tree of what is on screen, told to the screen reader: plain data, at the version accesskit_winit of crates/platform
+# takes. It has no default features, and needs none.
+accesskit = { version = "=0.25.2", default-features = false }
 render = { path = "../render" }
 
 [dev-dependencies]

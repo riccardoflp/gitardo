@@ -24,13 +24,11 @@ const HEIGHT: u32 = 200;
 fn backgrounds(colors: &Colors) -> Vec<Color> {
     vec![
         colors.window_background,
-        colors.side_bar_background,
+        colors.header_background,
+        colors.rail_background,
         colors.page_background,
-        colors.panel_background,
-        colors.toolbar_background,
-        colors.status_bar_background,
-        colors.tab_background,
-        colors.tab_active_background,
+        colors.card_background,
+        colors.drawer_background,
         colors.list_hover,
         colors.list_selection,
         colors.list_inactive_selection,
@@ -59,9 +57,6 @@ fn foregrounds(colors: &Colors) -> Vec<Color> {
         colors.foreground,
         colors.muted_foreground,
         colors.disabled_foreground,
-        colors.status_bar_foreground,
-        colors.tab_foreground,
-        colors.tab_active_foreground,
         colors.list_selection_foreground,
         colors.input_foreground,
         colors.input_placeholder,
@@ -168,12 +163,12 @@ fn draw_swatch(theme: &Theme, scale: u8) -> FrameBuffer {
     draw_boxes(&mut canvas, theme, &backgrounds(&theme.colors), 8.0);
     draw_boxes(&mut canvas, theme, &foregrounds(&theme.colors), 26.0);
     draw_widgets(&mut canvas, theme, &typefaces);
-    canvas.fill_rect(Rect::new(0.0, 176.0, 320.0, 24.0), theme.colors.status_bar_background);
+    canvas.fill_rect(Rect::new(0.0, 176.0, 320.0, 24.0), theme.colors.card_background);
     let style = Typefaces::style(typefaces.sans, theme.sizes.font.small);
     let status = TextRun {
         text: "main \u{2191}2 \u{2193}0",
         style,
-        color: theme.colors.status_bar_foreground,
+        color: theme.colors.foreground,
         origin: Point::new(8.0, 181.0),
         max_width: None,
     };

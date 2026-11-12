@@ -65,26 +65,16 @@ pub enum Appearance {
 pub struct Colors {
     /// Behind everything: the window where nothing else is.
     pub window_background: Color,
-    /// Behind the panes of the side bar.
-    pub side_bar_background: Color,
-    /// Behind the pages of the tabs, such as the graph.
+    /// Behind the header: the repository, the branch, Quick search, Sync.
+    pub header_background: Color,
+    /// Behind the branch rail on the left.
+    pub rail_background: Color,
+    /// Behind the timeline and the pages opened in its place.
     pub page_background: Color,
-    /// Behind the panel of the command log and the tasks.
-    pub panel_background: Color,
-    /// Behind the toolbar.
-    pub toolbar_background: Color,
-    /// Behind the status bar.
-    pub status_bar_background: Color,
-    /// The text of the status bar.
-    pub status_bar_foreground: Color,
-    /// Behind a tab that is not the one shown.
-    pub tab_background: Color,
-    /// Behind the tab shown.
-    pub tab_active_background: Color,
-    /// The text of a tab that is not the one shown.
-    pub tab_foreground: Color,
-    /// The text of the tab shown.
-    pub tab_active_foreground: Color,
+    /// Behind a card: the inspector, the draft, a group of settings.
+    pub card_background: Color,
+    /// Behind the Activity drawer.
+    pub drawer_background: Color,
     /// The text of the interface.
     pub foreground: Color,
     /// Text that says less: descriptions, dates, hashes, placeholders.
@@ -123,7 +113,7 @@ pub struct Colors {
     pub border: Color,
     /// The ring around what has the keyboard focus.
     pub focus_ring: Color,
-    /// What stands out: the current branch, links, the active tab's mark.
+    /// What stands out: the current branch, links, the main button, the last step of the trail.
     pub accent: Color,
     /// Errors.
     pub error: Color,
@@ -133,7 +123,7 @@ pub struct Colors {
     pub info: Color,
     /// What went well.
     pub success: Color,
-    /// Behind a count or a label on a row, such as a branch name in the graph.
+    /// Behind a count or a pill on a row, such as how many files a commit changed.
     pub badge_background: Color,
     /// The text of a badge.
     pub badge_foreground: Color,
@@ -206,6 +196,9 @@ pub struct FontSizes {
     pub small: f32,
     /// The text of the interface.
     pub body: f32,
+    /// The second line of a row and what is said beside a control: the author and the date of a commit, its hash, a
+    /// count, what runs.
+    pub detail: f32,
     /// Code, diffs and the command log.
     pub code: f32,
     /// The titles of pages and dialogs.
@@ -223,6 +216,8 @@ pub struct Sizes {
     pub font: FontSizes,
     /// The height of a row of a list or a tree.
     pub row_height: f32,
+    /// The height of buttons, input boxes and the other controls on a line.
+    pub control_height: f32,
     /// The side of an icon.
     pub icon: f32,
     /// The width of borders.
@@ -231,10 +226,14 @@ pub struct Sizes {
     pub focus_ring: f32,
     /// The width of a scroll bar.
     pub scrollbar: f32,
-    /// The height of the toolbar and of the row of tabs.
-    pub bar_height: f32,
-    /// The height of the status bar.
-    pub status_bar_height: f32,
+    /// The height of the header.
+    pub header_height: f32,
+    /// The height of a row of the timeline: the subject on one line, the author and the date on the next.
+    pub timeline_row_height: f32,
+    /// The width of the branch rail.
+    pub rail_width: f32,
+    /// The width of the inspector.
+    pub inspector_width: f32,
     /// The width of the lines of the graph.
     pub graph_line: f32,
     /// The radius of the dot of a commit in the graph.
@@ -250,8 +249,8 @@ pub struct Theme {
     pub colors: Colors,
     /// The sizes.
     pub sizes: Sizes,
-    /// The colors of the lanes of the graph, used in turn.
-    pub lanes: [Color; 8],
+    /// The colors of the lanes of the graph, used in turn: four, told apart by lightness as well as hue.
+    pub lanes: [Color; 4],
 }
 
 impl Theme {
@@ -286,25 +285,29 @@ pub(crate) const SIZES: Sizes = Sizes {
         huge: 20.0,
     },
     radius: Radii {
-        small: 3.0,
-        medium: 4.0,
-        large: 6.0,
+        small: 4.0,
+        medium: 6.0,
+        large: 10.0,
     },
     font: FontSizes {
         small: 11.0,
         body: 13.0,
+        detail: 12.0,
         code: 13.0,
         heading: 18.0,
     },
-    row_height: 22.0,
+    row_height: 26.0,
+    control_height: 32.0,
     icon: 16.0,
     border: 1.0,
     focus_ring: 1.0,
     scrollbar: 10.0,
-    bar_height: 34.0,
-    status_bar_height: 22.0,
-    graph_line: 1.5,
-    graph_dot: 4.0,
+    header_height: 56.0,
+    timeline_row_height: 52.0,
+    rail_width: 248.0,
+    inspector_width: 344.0,
+    graph_line: 2.0,
+    graph_dot: 5.0,
 };
 
 #[cfg(test)]
@@ -329,7 +332,7 @@ mod tests {
         );
         assert_eq!(Theme::new(ThemeName::System, Appearance::Dark).name, ThemeName::Dark);
         assert_eq!(
-            Theme::new(ThemeName::Dark, Appearance::Dark).lane(9),
+            Theme::new(ThemeName::Dark, Appearance::Dark).lane(5),
             Theme::new(ThemeName::Dark, Appearance::Dark).lanes[1]
         );
     }
@@ -371,7 +374,14 @@ mod tests {
             };
             for (foreground, background, what) in [
                 (colors.foreground, colors.page_background, "text on a page"),
-                (colors.foreground, colors.side_bar_background, "text in the side bar"),
+                (colors.foreground, colors.rail_background, "text in the branch rail"),
+                (colors.foreground, colors.card_background, "text on a card"),
+                (
+                    colors.muted_foreground,
+                    colors.page_background,
+                    "muted text on the timeline",
+                ),
+                (colors.muted_foreground, colors.card_background, "muted text on a card"),
                 (
                     colors.list_selection_foreground,
                     colors.list_selection,
@@ -381,9 +391,9 @@ mod tests {
                 (colors.input_foreground, colors.input_background, "an input box"),
                 (colors.menu_foreground, colors.menu_background, "a menu"),
                 (
-                    colors.status_bar_foreground,
-                    colors.status_bar_background,
-                    "the status bar",
+                    colors.secondary_button_foreground,
+                    colors.secondary_button_background,
+                    "a button that is not the main one",
                 ),
             ] {
                 let ratio = contrast(foreground, background);

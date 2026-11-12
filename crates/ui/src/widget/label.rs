@@ -4,6 +4,7 @@
 use render::{Icon, Point, Rect, TextRun};
 
 use super::Tone;
+use crate::access::{AccessRole, Description};
 use crate::frame::{TextKind, Ui};
 use crate::interaction::Sense;
 use crate::layout::{Align, place};
@@ -59,6 +60,19 @@ impl Ui<'_> {
     /// Draws a line of text in the middle of a rectangle, down, cut with an ellipsis when it does not fit across, and
     /// returns the width it takes.
     pub fn label(&mut self, rect: Rect, label: &Label<'_>) -> f32 {
+        let (drawn, id) = self.draw_label(rect, label);
+        let role = if label.kind == TextKind::Heading {
+            AccessRole::Heading
+        } else {
+            AccessRole::Label
+        };
+        self.access_node(id, rect, &Description::new(role, label.text));
+        drawn
+    }
+
+    /// Draws a label that the screen reader hears as part of the widget it belongs to, such as the words of a check
+    /// box, and returns the width it takes and its name.
+    pub(crate) fn draw_label(&mut self, rect: Rect, label: &Label<'_>) -> (f32, crate::id::WidgetId) {
         let style = self.text_style(label.kind);
         let width = self.measure(label.text, style);
         let height = self.line_height(style);
@@ -72,12 +86,12 @@ impl Ui<'_> {
             max_width: Some(rect.width),
         };
         let drawn = self.text(&run);
+        let id = self.id(("label", label.text, rect.x.to_bits(), rect.y.to_bits()));
         if label.has_tooltip_when_cut && width > rect.width {
-            let id = self.id(("label", label.text, rect.x.to_bits(), rect.y.to_bits()));
             let response = self.interact(id, rect, Sense::HOVER);
             self.tooltip(&response, label.text);
         }
-        drawn
+        (drawn, id)
     }
 
     /// Draws the title of a page, a box or a dialog, and returns the width it takes.
@@ -92,6 +106,8 @@ impl Ui<'_> {
         let height = self.line_height(style);
         let color = tone.color(self.theme());
         let lines = self.fonts().wrap(text, style, rect.width);
+        let id = self.id(("paragraph", text.len(), rect.x.to_bits(), rect.y.to_bits()));
+        self.access_node(id, rect, &Description::new(AccessRole::Label, text));
         let mut y = rect.y;
         for line in &lines {
             if y + height > rect.bottom() + 0.5 {

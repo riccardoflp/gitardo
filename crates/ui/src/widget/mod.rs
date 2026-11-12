@@ -38,6 +38,8 @@ pub enum Tone {
     Warning,
     /// An error.
     Error,
+    /// The color of a lane of the graph, by its number: the lanes take the colors of the theme in turn.
+    Lane(usize),
 }
 
 impl Tone {
@@ -53,6 +55,7 @@ impl Tone {
             Tone::Success => colors.success,
             Tone::Warning => colors.warning,
             Tone::Error => colors.error,
+            Tone::Lane(lane) => theme.lane(lane),
         }
     }
 }
@@ -73,7 +76,7 @@ pub(crate) mod metrics {
 
     /// The height of buttons, input boxes and other controls on a line.
     pub(crate) fn control_height(theme: &Theme) -> f32 {
-        theme.sizes.row_height + theme.sizes.spacing.small
+        theme.sizes.control_height
     }
 
     /// The side of the box of a check box and of the circle of a radio button.

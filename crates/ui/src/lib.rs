@@ -33,7 +33,7 @@
 //!     if ui.button("fetch", fetch, &fetch_button).clicked {
 //!         intents.push(Intent::Fetch);
 //!     }
-//!     let typed = ui.input_box("search", field, &ui::InputBox { text: search, placeholder: "Search", message: None });
+//!     let typed = ui.input_box("search", field, &ui::InputBox::new(search, "Search"));
 //!     if let Some(text) = typed.changed_text {
 //!         intents.push(Intent::Search(text));
 //!     }
@@ -43,6 +43,7 @@
 
 #![forbid(unsafe_code)]
 
+mod access;
 mod frame;
 pub mod gallery;
 mod id;
@@ -55,6 +56,7 @@ mod number;
 mod paint;
 mod widget;
 
+pub use access::{AccessRole, Description};
 pub use frame::{FrameInput, FrameOutput, FrameSettings, TextKind, Typefaces, Ui};
 pub use id::WidgetId;
 pub use input::{

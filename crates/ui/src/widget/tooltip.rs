@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use render::{Border, Point, Rect, TextRun};
+use render::{Point, Rect, TextRun};
 
 use super::metrics;
 use crate::frame::{TextKind, Ui};
@@ -46,14 +46,12 @@ pub(crate) fn draw(ui: &mut Ui<'_>, text: &str, pointer: Point) {
     ui.layer(Layer::Tooltip, |ui| {
         let radius = theme.sizes.radius.medium;
         let shadow = Rect::new(rect.x, rect.y + theme.sizes.spacing.tiny, rect.width, rect.height);
-        ui.fill_rounded_rect(shadow, radius, theme.colors.shadow);
-        ui.fill_rounded_rect(rect, radius, theme.colors.tooltip_background);
-        let border = Border {
-            width: theme.sizes.border,
+        ui.fill_rounded_rect(
+            shadow.inset(-theme.sizes.spacing.tiny),
             radius,
-            color: theme.colors.border,
-        };
-        ui.border(rect, border);
+            theme.colors.shadow.with_alpha(theme.colors.shadow.alpha / 2),
+        );
+        ui.fill_rounded_rect(rect, radius, theme.colors.tooltip_background);
         let mut y = rect.y + padding;
         for line in &lines {
             let run = TextRun {

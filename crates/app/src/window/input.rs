@@ -5,7 +5,7 @@ use platform::InputEvent as SystemEvent;
 use ui::InputEvent as ToolkitEvent;
 
 /// The event of the toolkit for an event of the platform, or nothing for what is about the window rather than its
-/// content: its size, its scale, a request to close it or to draw it.
+/// content: its size, its scale, a request to close it or to draw it, or what a screen reader asks of it.
 #[must_use]
 pub fn toolkit_event(event: &SystemEvent) -> Option<ToolkitEvent> {
     let translated = match event {
@@ -26,10 +26,13 @@ pub fn toolkit_event(event: &SystemEvent) -> Option<ToolkitEvent> {
         SystemEvent::TextTyped(text) => ToolkitEvent::TextTyped(text.clone()),
         SystemEvent::FocusGained => ToolkitEvent::FocusGained,
         SystemEvent::FocusLost => ToolkitEvent::FocusLost,
-        SystemEvent::Resized(_)
+        // The text the input method composes is not drawn by the toolkit yet: only what it types reaches it.
+        SystemEvent::TextComposing(_)
+        | SystemEvent::Resized(_)
         | SystemEvent::ScaleChanged(_)
         | SystemEvent::CloseRequested
-        | SystemEvent::RedrawRequested => {
+        | SystemEvent::RedrawRequested
+        | SystemEvent::Accessibility(_) => {
             return None;
         }
     };

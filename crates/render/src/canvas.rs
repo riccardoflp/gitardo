@@ -6,13 +6,15 @@ pub use shapes::Border;
 
 use crate::assets::Assets;
 use crate::color::Color;
-use crate::flatten::{Polyline, flatten};
 use crate::frame::FrameBuffer;
 use crate::geometry::{PixelRect, Point, Rect, Transform};
+use crate::mask::{Outline, rasterize};
 use crate::number;
-use crate::path::Path;
-use crate::raster::{FillRule, rasterize};
-use crate::stroke::{LineCap, stroke_outline};
+use crate::path::{FillRule, LineCap, Path};
+
+/// How many pixels beyond the frame a shape is rasterized, so that the edge of what is rasterized changes none of the
+/// pixels of the frame.
+const RASTER_MARGIN: i32 = 4;
 
 /// How a path is stroked: the width of the line, in logical pixels, how its ends look, and its color.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -23,15 +25,6 @@ pub struct Stroke {
     pub cap: LineCap,
     /// The color of the line.
     pub color: Color,
-}
-
-/// A color and the rule that says which parts of a path it fills.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct Fill {
-    /// The color.
-    pub(crate) color: Color,
-    /// Which parts of the path are inside.
-    pub(crate) rule: FillRule,
 }
 
 /// The clip and the offset a canvas draws with, saved and restored together.
@@ -165,14 +158,17 @@ impl<'frame> Canvas<'frame> {
     /// Fills a path with a color, anti-aliased, by a fill rule.
     pub fn fill_path(&mut self, path: &Path, color: Color, rule: FillRule) {
         let physical = path.transformed(self.transform());
-        self.fill_physical(&physical, color, rule);
+        if let Some(outline) = Outline::fill(&physical, rule) {
+            self.fill_outline_within(&outline, self.frame.bounds(), color);
+        }
     }
 
     /// Strokes a path with a line of a width, anti-aliased.
     pub fn stroke_path(&mut self, path: &Path, stroke: &Stroke) {
         let physical = path.transformed(self.transform());
-        let outline = stroke_outline(&flatten(&physical), stroke.width * self.scale, stroke.cap);
-        self.fill_polylines(&outline, stroke.color, FillRule::NonZero);
+        if let Some(outline) = Outline::stroke(&physical, stroke.width * self.scale, stroke.cap) {
+            self.fill_outline_within(&outline, self.frame.bounds(), stroke.color);
+        }
     }
 
     /// A straight line from one point to another.
@@ -224,44 +220,30 @@ impl<'frame> Canvas<'frame> {
         self.state.clip
     }
 
-    /// Fills a path already in physical pixels.
-    pub(crate) fn fill_physical(&mut self, path: &Path, color: Color, rule: FillRule) {
-        self.fill_polylines(&flatten(path), color, rule);
-    }
-
-    /// Fills contours of straight lines in physical pixels, inside the clip.
-    fn fill_polylines(&mut self, contours: &[Polyline], color: Color, rule: FillRule) {
-        self.fill_polylines_within(contours, self.state.clip, Fill { color, rule });
-    }
-
-    /// Fills contours of straight lines in physical pixels, only inside a rectangle of the frame.
-    pub(crate) fn fill_polylines_within(&mut self, contours: &[Polyline], within: PixelRect, fill: Fill) {
-        if fill.color.is_transparent() {
+    /// Fills a shape in physical pixels with a color, only inside a rectangle of the frame and the clip.
+    ///
+    /// The shape is rasterized inside that rectangle whatever the clip, and a few pixels beyond the frame: the
+    /// rasterizer treats the edge of what it rasterizes as a clip, which changes the coverage of the pixels near it,
+    /// so rasterizing only what the clip shows would give a frame drawn in parts other pixels than the frame drawn at
+    /// once.
+    pub(crate) fn fill_outline_within(&mut self, outline: &Outline, within: PixelRect, color: Color) {
+        if color.is_transparent() {
             return;
         }
-        let Some(bounds) = polyline_bounds(contours) else {
-            return;
-        };
-        let rect = PixelRect::enclosing(bounds)
-            .intersection(within)
-            .intersection(self.state.clip);
-        if rect.is_empty() {
+        let rasterized = outline.bounds().intersection(within);
+        let shown = rasterized.intersection(self.state.clip);
+        if shown.is_empty() {
             return;
         }
-        let mask = rasterize(contours, rect, fill.rule);
-        self.frame.fill_mask(mask.view(), fill.color, rect);
+        let frame = self.frame.bounds();
+        let around_frame = PixelRect::new(
+            frame.left - RASTER_MARGIN,
+            frame.top - RASTER_MARGIN,
+            frame.right + RASTER_MARGIN,
+            frame.bottom + RASTER_MARGIN,
+        );
+        if let Some(mask) = rasterize(std::slice::from_ref(outline), rasterized.intersection(around_frame)) {
+            self.frame.fill_mask(mask.view(), color, shown);
+        }
     }
-}
-
-/// The smallest rectangle that holds every point of some contours.
-fn polyline_bounds(contours: &[Polyline]) -> Option<Rect> {
-    let mut points = contours.iter().flat_map(|contour| contour.points.iter());
-    let first = *points.next()?;
-    let (low, high) = points.fold((first, first), |(low, high), point| {
-        (
-            Point::new(low.x.min(point.x), low.y.min(point.y)),
-            Point::new(high.x.max(point.x), high.y.max(point.y)),
-        )
-    });
-    Some(Rect::new(low.x, low.y, high.x - low.x, high.y - low.y))
 }

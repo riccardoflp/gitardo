@@ -18,9 +18,9 @@ use support::{Typefaces, assets};
 /// The frames drawn after the first, to average.
 const FRAMES: u32 = 30;
 
-/// Sixty rows of about eighty characters, as a screen of the graph shows them.
-fn rows() -> Vec<String> {
-    (0..60)
+/// Sixty rows of about eighty characters from a first row on, as a screen of the graph shows them.
+fn rows(first: usize) -> Vec<String> {
+    (first..first + 60)
         .map(|row| format!("{row:>3} 3f2a1c9 Fix the parser of the configuration file when a section has no name main"))
         .collect()
 }
@@ -65,7 +65,7 @@ fn time_frames(scale: u8) -> (Duration, Duration, u64) {
     let (mut assets, typefaces) = assets();
     let mut frame = FrameBuffer::new(1920 * u32::from(scale), 1080 * u32::from(scale));
     let scale = f32::from(scale);
-    let rows = rows();
+    let rows = rows(0);
     let start = Instant::now();
     draw_frame(&mut frame, &mut assets, (&typefaces, scale), &rows);
     let first = start.elapsed();
@@ -90,6 +90,25 @@ fn a_full_frame_of_text_and_rectangles() {
         );
         assert_eq!(rasterized_after_first, 0);
     }
+}
+
+#[test]
+#[ignore = "a measure to read in a release build, not a check"]
+fn frames_of_rows_never_drawn_before() {
+    let (mut assets, typefaces) = assets();
+    let mut frame = FrameBuffer::new(1920, 1080);
+    draw_frame(&mut frame, &mut assets, (&typefaces, 1.0), &rows(0));
+    let screens: Vec<Vec<String>> = (1..=FRAMES)
+        .map(|screen| rows(60 * usize::try_from(screen).unwrap()))
+        .collect();
+    let start = Instant::now();
+    for screen in &screens {
+        draw_frame(&mut frame, &mut assets, (&typefaces, 1.0), screen);
+    }
+    println!(
+        "1920 x 1080 at scale 1, every row new, as when scrolling a page at a time: {:.2} ms a frame",
+        (start.elapsed() / FRAMES).as_secs_f64() * 1000.0
+    );
 }
 
 #[test]

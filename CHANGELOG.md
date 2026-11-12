@@ -25,11 +25,18 @@
   merge, a series of commits made at once.
 - A plan can be cancelled while it runs: the git process or the command of the step running is killed, and no step
   after it starts.
-- A window on Windows, drawn by the program: per-monitor scale, keys, the input method, the pointer, the clipboard,
-  timers, a dark or light title bar, and the theme and fonts of the system.
-- Drawing in software: shapes with anti-aliasing, TrueType fonts read and rasterized by the program with kerning and
-  fallback fonts, icons of its own, and five themes (the system's, dark, light, high contrast dark and light).
-- The toolkit: labels, buttons, check boxes, radio buttons, toggles, badges, progress, input boxes, scroll areas,
-  lists that draw only the rows in sight, splitters, tooltips, menus with submenus, dialogs, confirmations, a quick
-  pick with fuzzy filtering, find in page and drag and drop; only what changed is drawn again.
-- `gitardo-demo`: every widget in a window, with the themes to choose from.
+- A window on Windows, Linux and macOS through `winit`: per-monitor scale, keys, the input method, the pointer, the
+  clipboard, the system's dialogs to choose a folder or a file, timers, a dark or light title bar, and the theme and
+  high contrast of the system. The frame drawn in memory is shown with `softbuffer`, and what is on screen is told to
+  screen readers through AccessKit.
+- Drawing in software: shapes with anti-aliasing through `tiny-skia`, text through `cosmic-text` (shaping,
+  right-to-left, fallback to the fonts of the system, emoji), Inter and JetBrains Mono that come with the program, icons
+  of its own, and five themes (the system's, dark, light, high contrast dark and light) in the warm colors of the
+  Timeline.
+- The toolkit: labels, buttons and pills, check boxes, radio buttons, toggles, badges, progress, input boxes, scroll
+  areas, lists that draw only the rows in sight, cards, splitters, tooltips, menus with submenus, dialogs,
+  confirmations, a quick pick with fuzzy filtering, find in page and drag and drop; only what changed is drawn again,
+  and the tree of what is on screen is built for the screen reader.
+- `gitardo-demo`: the window of the Timeline with made-up data: the header with Quick search and Sync, the branch rail,
+  the timeline with its draft and a million commits, the inspector and the Activity drawer, with the themes to choose
+  from.

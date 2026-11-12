@@ -1,0 +1,85 @@
+//! The settings of the system the libraries of the window do not read, the same on every system: asked of Windows,
+//! and the usual values elsewhere until their part is written.
+
+use crate::click::ClickLimits;
+#[cfg(not(windows))]
+use crate::geometry::Scale;
+
+/// What a notch of the wheel scrolls when the system says a page: Gitardo scrolls this many lines instead.
+pub(crate) const LINES_FOR_A_PAGE: f32 = 20.0;
+
+/// How far a notch of the wheel scrolls.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct WheelSteps {
+    /// In lines, down or up.
+    pub(crate) down: f32,
+    /// In characters, across.
+    pub(crate) across: f32,
+}
+
+#[cfg(windows)]
+pub(crate) use crate::windows::{click_limits, is_high_contrast, wheel_steps};
+
+/// Whether high contrast is on: not known yet on this system.
+#[cfg(not(windows))]
+pub(crate) fn is_high_contrast() -> bool {
+    false
+}
+
+/// How soon and how near the next press must come to make a double click: the usual half second and 4 pixels.
+#[cfg(not(windows))]
+pub(crate) fn click_limits(scale: Scale) -> ClickLimits {
+    let side = i32::try_from(crate::convert::round_to_pixels(4.0 * scale.factor())).unwrap_or(i32::MAX);
+    ClickLimits {
+        time: 500,
+        width: side,
+        height: side,
+    }
+}
+
+/// How far a notch of the wheel scrolls: the usual 3 lines.
+#[cfg(not(windows))]
+pub(crate) fn wheel_steps() -> WheelSteps {
+    WheelSteps { down: 3.0, across: 3.0 }
+}
+
+/// Makes sure the limits of a double click are usable: at least a moment and a pixel.
+pub(crate) fn usable(limits: ClickLimits) -> ClickLimits {
+    ClickLimits {
+        time: limits.time.max(1),
+        width: limits.width.max(1),
+        height: limits.height.max(1),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{click_limits, is_high_contrast, usable, wheel_steps};
+    use crate::click::ClickLimits;
+    use crate::geometry::Scale;
+
+    #[test]
+    fn reads_the_settings_of_the_system() {
+        let _ = is_high_contrast();
+        let limits = usable(click_limits(Scale::default()));
+        assert!(
+            limits.time >= 1 && limits.width >= 1 && limits.height >= 1,
+            "{limits:?}"
+        );
+        let steps = wheel_steps();
+        assert!(steps.down >= 0.0 && steps.across >= 0.0, "{steps:?}");
+        let zero = ClickLimits {
+            time: 0,
+            width: 0,
+            height: -1,
+        };
+        assert_eq!(
+            usable(zero),
+            ClickLimits {
+                time: 1,
+                width: 1,
+                height: 1
+            }
+        );
+    }
+}

@@ -1,7 +1,7 @@
 //! Input boxes: one line of text the person types, with a caret that blinks, a selection made with Shift and the
 //! arrows or by dragging, a word selected by a double click, the clipboard, undo and redo of its own, a placeholder
 //! when empty, and a message under it when what is typed is not valid. Text longer than the box scrolls across to keep
-//! the caret in sight.
+//! the caret in sight. A box may have an icon before its text and the keys that reach it after, as Quick search has.
 
 mod keys;
 mod line;
@@ -12,9 +12,11 @@ use std::time::Duration;
 
 pub use line::{EditableLine, Extent, Movement, Selecting};
 
-use render::{Border, Point, Rect, TextRun, TextStyle};
+use render::{Border, Icon, Point, Rect, TextRun, TextStyle};
 
+use crate::access::{AccessRole, Description};
 use crate::frame::{TextKind, Ui};
+use crate::id::WidgetId;
 use crate::input::{Cursor, PointerButton};
 use crate::interaction::{Response, Sense, WidgetEvent};
 use crate::layer::Layer;
@@ -51,10 +53,55 @@ pub struct InputBox<'text> {
     /// The text the view holds. When it changes from what the view gave before, the box takes it, so that a view can
     /// clear or fill the box; otherwise the box keeps what is being typed.
     pub text: &'text str,
-    /// What the box shows while it is empty.
+    /// What the box shows while it is empty, which is also its name for the screen reader.
     pub placeholder: &'text str,
     /// The message under the box, if any.
     pub message: Option<Message<'text>>,
+    /// The icon before the text, such as the magnifying glass of a box that searches.
+    pub icon: Option<Icon>,
+    /// The keys that bring the keyboard to the box, shown at its right end, such as `Ctrl K`.
+    pub key_hint: Option<&'text str>,
+}
+
+impl<'text> InputBox<'text> {
+    /// A box holding a text, with what it shows while it is empty, and no message, icon or keys.
+    #[must_use]
+    pub fn new(text: &'text str, placeholder: &'text str) -> InputBox<'text> {
+        InputBox {
+            text,
+            placeholder,
+            message: None,
+            icon: None,
+            key_hint: None,
+        }
+    }
+
+    /// The same box with a message under it.
+    #[must_use]
+    pub fn with_message(self, message: Message<'text>) -> InputBox<'text> {
+        InputBox {
+            message: Some(message),
+            ..self
+        }
+    }
+
+    /// The same box with an icon before its text.
+    #[must_use]
+    pub fn with_icon(self, icon: Icon) -> InputBox<'text> {
+        InputBox {
+            icon: Some(icon),
+            ..self
+        }
+    }
+
+    /// The same box with the keys that reach it at its right end.
+    #[must_use]
+    pub fn with_key_hint(self, keys: &'text str) -> InputBox<'text> {
+        InputBox {
+            key_hint: Some(keys),
+            ..self
+        }
+    }
 }
 
 /// What an input box tells its view.
@@ -76,43 +123,11 @@ impl Ui<'_> {
         let mut state = self.memory().input_boxes.remove(&id).unwrap_or_default();
         take_given_text(&mut state, input.text);
         let style = self.text_style(TextKind::Body);
-        let inner = self.inner_rect(rect);
+        let inner = self.inner_rect(rect, input);
         let before = (state.line.text().to_owned(), state.line.selection(), state.line.caret());
         let mut is_submitted = false;
         for event in events {
-            match event {
-                WidgetEvent::Pressed {
-                    button: PointerButton::Primary,
-                    position,
-                    modifiers,
-                    click_count,
-                } => {
-                    let at = self.index_at(&state, (style, inner), position.x);
-                    match click_count {
-                        1 => state.line.place_caret(at, selecting(modifiers.shift())),
-                        2 => state.line.select_word_at(at),
-                        _ => state.line.select_all(),
-                    }
-                }
-                WidgetEvent::Dragged { position, .. } => {
-                    let at = self.index_at(&state, (style, inner), position.x);
-                    state.line.place_caret(at, Selecting::Extend);
-                }
-                WidgetEvent::Key(key) => {
-                    if keys::is_used(key) {
-                        self.claim_key(id, key);
-                    }
-                    let outcome = keys::apply_key(&mut state.line, key);
-                    is_submitted |= outcome.is_submitted;
-                    if let Some(copied) = outcome.copied {
-                        self.copy_to_clipboard(copied);
-                    }
-                }
-                WidgetEvent::Text(text) | WidgetEvent::Paste(text) => {
-                    let _ = state.line.insert(&text);
-                }
-                _ => {}
-            }
+            is_submitted |= self.input_box_event(id, &mut state, (style, inner), event);
         }
         let is_moved =
             (state.line.text(), state.line.selection(), state.line.caret()) != (before.0.as_str(), before.1, before.2);
@@ -125,6 +140,13 @@ impl Ui<'_> {
             self.set_cursor(Cursor::Text);
         }
         self.draw_input_box(rect, input, &state, &response);
+        let role = if input.icon == Some(Icon::Search) {
+            AccessRole::SearchInput
+        } else {
+            AccessRole::TextInput
+        };
+        let description = Description::new(role, input.placeholder).value(state.line.text());
+        self.access_node(id, rect, &description);
         let _ = self.memory().input_boxes.insert(id, state);
         InputBoxResponse {
             response,
@@ -133,15 +155,75 @@ impl Ui<'_> {
         }
     }
 
-    /// The part of an input box the text is drawn in.
-    fn inner_rect(&self, rect: Rect) -> Rect {
-        let padding = self.theme().sizes.spacing.medium;
+    /// Applies an event to an input box: a press places the caret or selects, a drag selects, a key edits or moves,
+    /// and typed or pasted text goes in. Says whether Enter was pressed.
+    fn input_box_event(
+        &mut self,
+        id: WidgetId,
+        state: &mut InputBoxState,
+        (style, inner): (TextStyle, Rect),
+        event: WidgetEvent,
+    ) -> bool {
+        match event {
+            WidgetEvent::Pressed {
+                button: PointerButton::Primary,
+                position,
+                modifiers,
+                click_count,
+            } => {
+                let at = self.index_at(state, (style, inner), position.x);
+                match click_count {
+                    1 => state.line.place_caret(at, selecting(modifiers.shift())),
+                    2 => state.line.select_word_at(at),
+                    _ => state.line.select_all(),
+                }
+            }
+            WidgetEvent::Dragged { position, .. } => {
+                let at = self.index_at(state, (style, inner), position.x);
+                state.line.place_caret(at, Selecting::Extend);
+            }
+            WidgetEvent::Key(key) => {
+                if keys::is_used(key) {
+                    self.claim_key(id, key);
+                }
+                let outcome = keys::apply_key(&mut state.line, key);
+                if let Some(copied) = outcome.copied {
+                    self.copy_to_clipboard(copied);
+                }
+                return outcome.is_submitted;
+            }
+            WidgetEvent::Text(text) | WidgetEvent::Paste(text) => {
+                let _ = state.line.insert(&text);
+            }
+            // The other events do not change an input box.
+            _ => {}
+        }
+        false
+    }
+
+    /// The part of an input box the text is drawn in: inside its padding, after its icon and before its keys.
+    fn inner_rect(&self, rect: Rect, input: &InputBox<'_>) -> Rect {
+        let theme = self.theme();
+        let padding = theme.sizes.spacing.large;
+        let icon = input
+            .icon
+            .map_or(0.0, |_| theme.sizes.icon + theme.sizes.spacing.medium);
+        let keys = input
+            .key_hint
+            .map_or(0.0, |keys| self.key_hint_width(keys) + theme.sizes.spacing.medium);
         Rect::new(
-            rect.x + padding,
+            rect.x + padding + icon,
             rect.y,
-            (rect.width - 2.0 * padding).max(0.0),
+            (rect.width - 2.0 * padding - icon - keys).max(0.0),
             rect.height,
         )
+    }
+
+    /// The width of the box of the keys that reach an input box.
+    fn key_hint_width(&self, keys: &str) -> f32 {
+        let theme = self.theme();
+        self.measure(keys, self.text_style(TextKind::Small))
+            + 2.0 * (theme.sizes.spacing.small + theme.sizes.spacing.tiny)
     }
 
     /// The position in the text nearest to a place across the window.
@@ -181,12 +263,12 @@ impl Ui<'_> {
         state.scroll = scroll.min((whole + caret_width - inner.width).max(0.0)).max(0.0);
     }
 
-    /// Draws an input box: its background and border, the selection, the text or the placeholder, the caret, and the
-    /// message under it.
+    /// Draws an input box: its background and border, its icon and keys, the selection, the text or the placeholder,
+    /// the caret, and the message under it.
     fn draw_input_box(&mut self, rect: Rect, input: &InputBox<'_>, state: &InputBoxState, response: &Response) {
         let theme = *self.theme();
         let colors = theme.colors;
-        let radius = theme.sizes.radius.medium;
+        let radius = theme.sizes.radius.large;
         self.fill_rounded_rect(rect, radius, colors.input_background);
         let edge = match (input.message.map(|message| message.severity), response.has_focus) {
             (Some(severity), _) => severity_tone(severity).color(&theme),
@@ -201,8 +283,9 @@ impl Ui<'_> {
                 color: edge,
             },
         );
+        self.input_ends(rect, input);
         let style = self.text_style(TextKind::Body);
-        let inner = self.inner_rect(rect);
+        let inner = self.inner_rect(rect, input);
         let line_height = self.line_height(style);
         let line = place(inner, (inner.width, line_height), (Align::Start, Align::Center));
         let text = state.line.text();
@@ -235,6 +318,39 @@ impl Ui<'_> {
         if let Some(message) = input.message {
             self.input_message(rect, message);
         }
+    }
+
+    /// Draws the icon at the start of an input box and the keys that reach it at its end.
+    fn input_ends(&mut self, rect: Rect, input: &InputBox<'_>) {
+        let theme = *self.theme();
+        let spacing = theme.sizes.spacing;
+        let muted = theme.colors.muted_foreground;
+        if let Some(icon) = input.icon {
+            let side = theme.sizes.icon;
+            let at = place(rect, (side, side), (Align::Start, Align::Center));
+            self.icon(icon, Point::new(rect.x + spacing.large, at.y), side, muted);
+        }
+        let Some(keys) = input.key_hint else {
+            return;
+        };
+        let style = self.text_style(TextKind::Small);
+        let size = (self.key_hint_width(keys), self.line_height(style) + 2.0 * spacing.tiny);
+        let right = Rect::new(rect.x, rect.y, rect.width - spacing.medium, rect.height);
+        let hint = place(right, size, (Align::End, Align::Center));
+        let border = Border {
+            width: theme.sizes.border,
+            radius: theme.sizes.radius.small,
+            color: theme.colors.border,
+        };
+        self.border(hint, border);
+        let run = TextRun {
+            text: keys,
+            style,
+            color: muted,
+            origin: Point::new(hint.x + spacing.small + spacing.tiny, hint.y + spacing.tiny),
+            max_width: None,
+        };
+        let _ = self.text(&run);
     }
 
     /// Draws the caret while it is in the visible half of its blink, and asks for the frame where it turns.

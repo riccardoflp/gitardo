@@ -1,10 +1,13 @@
 //! What the event loop hands to the program, and the names it gives to windows and timers.
 
 use crate::input::InputEvent;
+use crate::theme::SystemTheme;
 
 /// Something the event loop hands to the program's handler.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Event<M> {
+    /// The loop started running: the first event of every run, when windows can be opened.
+    Started,
     /// Input for a window, or a change to it.
     Input {
         /// The window.
@@ -16,11 +19,11 @@ pub enum Event<M> {
     Message(M),
     /// A timer went off. It goes off again after its interval until it is stopped.
     Timer(TimerId),
-    /// The system changed between dark and light, or turned high contrast on or off.
-    ThemeChanged,
+    /// The system changed between dark and light, or turned high contrast on or off: how it is now.
+    ThemeChanged(SystemTheme),
 }
 
-/// The name of a window, unique in its event loop.
+/// The name of a window, unique among the windows open.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct WindowId(pub(crate) u64);
 

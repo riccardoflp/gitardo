@@ -9,6 +9,7 @@ use std::time::Duration;
 
 use render::{Point, ThemeName};
 
+use crate::access::AccessMemory;
 use crate::frame::OverlayState;
 use crate::id::WidgetId;
 use crate::interaction::Interaction;
@@ -110,6 +111,8 @@ pub struct UiMemory {
     pub(crate) surface: Option<Surface>,
     /// The time of the last frame.
     pub(crate) last_frame: Option<Duration>,
+    /// What the screen reader was told of the last frame, and what it asked for since.
+    pub(crate) access: AccessMemory,
 }
 
 impl UiMemory {

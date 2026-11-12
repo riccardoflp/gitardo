@@ -1,5 +1,5 @@
-//! What the tests of `ui` share: the fonts kept for the tests, a window without a window that draws frames from
-//! synthetic input, and the comparison of a frame with its reference image.
+//! What the tests of `ui` share: the fonts that come with the program, a window without a window that draws frames
+//! from synthetic input, and the comparison of a frame with its reference image.
 
 #![allow(dead_code, reason = "each test file uses its own part of the support")]
 #![allow(
@@ -11,30 +11,22 @@
 use std::path::Path;
 use std::time::Duration;
 
-use render::{Appearance, Assets, Font, FrameBuffer, Point, Theme, ThemeName};
+use render::{Appearance, Assets, FontFamily, FontWeight, FrameBuffer, Point, Theme, ThemeName};
 use testkit::png::{self, Image};
 use ui::{
     FrameInput, FrameOutput, FrameSettings, InputEvent, Key, KeyEvent, Modifiers, NamedKey, PointerButton,
     PointerButtonEvent, PointerMove, Typefaces, Ui, UiMemory, WheelDelta, WheelEvent,
 };
 
-/// Assets with the fonts kept for the tests loaded, and their typefaces.
+/// Assets with the fonts that come with the program, and no font of the system, and their typefaces.
 pub fn assets() -> (Assets, Typefaces) {
-    let mut assets = Assets::new();
-    let fonts_folder = Path::new(env!("CARGO_MANIFEST_DIR")).join("../testkit/fonts");
-    let mut load = |name: &str| {
-        let bytes = std::fs::read(fonts_folder.join(name)).unwrap_or_else(|error| panic!("{name}: {error}"));
-        assets.fonts.add_font(Font::from_bytes(bytes).unwrap()).unwrap()
-    };
-    let (sans, bold, mono) = (
-        load("DejaVuSans.ttf"),
-        load("DejaVuSans-Bold.ttf"),
-        load("DejaVuSansMono.ttf"),
-    );
+    let mut assets = Assets::bundled();
+    let mut add = |family, weight| assets.fonts.add_typeface(&family, weight).unwrap();
     let typefaces = Typefaces {
-        sans: assets.fonts.add_typeface(&[sans]).unwrap(),
-        bold: assets.fonts.add_typeface(&[bold, sans]).unwrap(),
-        mono: assets.fonts.add_typeface(&[mono, sans]).unwrap(),
+        sans: add(FontFamily::Interface, FontWeight::REGULAR),
+        medium: add(FontFamily::Interface, FontWeight::MEDIUM),
+        bold: add(FontFamily::Interface, FontWeight::SEMIBOLD),
+        mono: add(FontFamily::Code, FontWeight::REGULAR),
     };
     (assets, typefaces)
 }

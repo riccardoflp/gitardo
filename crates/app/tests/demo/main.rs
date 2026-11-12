@@ -1,7 +1,8 @@
 //! The demo window opened hidden on a real event loop and driven with synthetic input, as a person would drive it:
-//! the context menu of the list, an input box, the wheel over the list of a million rows, the theme chosen in the
-//! menu of the toolbar, and closing the window. Each loop has a watchdog, so that a test that waits for what never
-//! comes fails instead of hanging.
+//! the context menu of the timeline, the message of the draft, the wheel over the timeline of a million commits, the
+//! theme chosen in the menu of the repository, and closing the window. Each run has a watchdog, so that a test that waits for what never
+//! comes fails instead of hanging. `winit` allows one event loop for the life of a program: each test makes the loop
+//! of its own program, and only one of them runs unless the measure is asked for.
 
 #![cfg(windows)]
 #![allow(clippy::unwrap_used, reason = "a test that cannot go on fails")]
@@ -13,11 +14,11 @@ use std::time::{Duration, Instant};
 
 use demo::{Demo, Flow};
 use platform::{
-    Event, EventLoop, InputEvent, Key, KeyEvent, Modifiers, NamedKey, PlatformError, Point, PointerButton,
-    PointerButtonEvent, PointerMove, TimerId, Visibility, WheelDelta, WheelEvent,
+    Context, Event, EventLoop, InputEvent, InputSender, Key, KeyEvent, Modifiers, NamedKey, PlatformError, Point,
+    PointerButton, PointerButtonEvent, PointerMove, TimerId, Visibility, WheelDelta, WheelEvent,
 };
 use render::ThemeName;
-use ui::gallery::{self, ROW_COUNT};
+use ui::gallery;
 
 /// The timer that ends a loop that waited too long.
 const WATCHDOG: TimerId = TimerId(9_999);
@@ -25,8 +26,14 @@ const WATCHDOG: TimerId = TimerId(9_999);
 /// How long a loop waits for what a test expects.
 const PATIENCE: Duration = Duration::from_secs(20);
 
-/// A row of the list of the gallery, with "Add the login page".
-const ROW: (f32, f32) = (700.0, 242.0);
+/// A commit of the timeline of the gallery, with "Speed up the reading of large histories".
+const ROW: (f32, f32) = (600.0, 394.0);
+/// Where Cherry-pick is in the context menu opened at [`ROW`]: the third item.
+const CHERRY_PICK: (f32, f32) = (ROW.0 + 60.0, ROW.1 + 80.0);
+/// Where the pill of the repository is, in the header, whose menu has the themes.
+const REPOSITORY: (f32, f32) = (66.0, 28.0);
+/// Where the message of the draft is, at the top of the timeline.
+const MESSAGE: (f32, f32) = (500.0, 96.0);
 
 /// A stage of a test: the input sent to the window, then what the demo must show before the next stage starts.
 struct Stage {
@@ -47,45 +54,70 @@ enum Ending {
     StuckAt(&'static str),
 }
 
+/// The demo window, once the loop opened it, and the sender of its input.
+struct Opened {
+    demo: Demo,
+    sender: InputSender,
+}
+
+/// Takes an event of the loop: opens the demo hidden when the loop starts, then hands it every event. Whether the demo
+/// asked to stop, or the watchdog went off.
+fn take(opened: &mut Option<Opened>, context: &Context<'_>, event: &Event<()>) -> bool {
+    match event {
+        Event::Started => {
+            context.start_timer(WATCHDOG, PATIENCE);
+            let demo = Demo::open(context, Visibility::Hidden).unwrap();
+            let sender = demo.surface().window().input_sender();
+            *opened = Some(Opened { demo, sender });
+            false
+        }
+        Event::Timer(WATCHDOG) => true,
+        _ => opened
+            .as_mut()
+            .is_some_and(|open| open.demo.handle(context, event).unwrap() == Flow::Quit),
+    }
+}
+
 /// Opens the demo hidden and runs the stages in turn, each once the one before is done and a frame was drawn; the last
 /// stage closes the window. Checks that no window is left once the demo is gone.
 fn run_stages(stages: &[Stage]) -> Ending {
-    let event_loop = EventLoop::<()>::new().unwrap();
-    let mut demo = Demo::open(&event_loop, Visibility::Hidden).unwrap();
-    let sender = demo.surface().window().input_sender();
+    let mut event_loop = EventLoop::<()>::new().unwrap();
+    let mut opened: Option<Opened> = None;
     let mut current: Option<usize> = None;
     let mut ending = None;
-    event_loop.start_timer(WATCHDOG, PATIENCE).unwrap();
     event_loop
-        .run(|event| {
-            if matches!(event, Event::Timer(WATCHDOG)) {
+        .run(|context, event| {
+            let is_watchdog = matches!(event, Event::Timer(WATCHDOG));
+            if take(&mut opened, context, &event) {
                 let stuck = current
                     .and_then(|index| stages.get(index))
                     .map_or("the first frame", |stage| stage.name);
-                ending = Some(Ending::StuckAt(stuck));
-                event_loop.quit();
+                ending = Some(if is_watchdog {
+                    Ending::StuckAt(stuck)
+                } else {
+                    Ending::Closed
+                });
+                context.quit();
                 return;
             }
-            if demo.handle(&event_loop, &event).unwrap() == Flow::Quit {
-                ending = Some(Ending::Closed);
-                event_loop.quit();
+            let Some(open) = opened.as_ref() else {
                 return;
-            }
+            };
             let is_done = current
                 .and_then(|index| stages.get(index))
-                .is_none_or(|stage| (stage.is_done)(&demo));
-            if demo.surface().frames_drawn() > 0 && is_done {
+                .is_none_or(|stage| (stage.is_done)(&open.demo));
+            if open.demo.surface().frames_drawn() > 0 && is_done {
                 let next = current.map_or(0, |index| index + 1);
                 if let Some(stage) = stages.get(next) {
                     for input in &stage.input {
-                        sender.send(input.clone()).unwrap();
+                        open.sender.send(input.clone()).unwrap();
                     }
                     current = Some(next);
                 }
             }
         })
         .unwrap();
-    event_loop.stop_timer(WATCHDOG);
+    let Opened { demo, sender } = opened.unwrap();
     drop(demo);
     assert_eq!(
         sender.send(InputEvent::PointerLeft),
@@ -123,7 +155,7 @@ fn press(key: Key) -> InputEvent {
     })
 }
 
-/// Three lines of the wheel down, over the list.
+/// Three lines of the wheel down, over the timeline.
 fn wheel() -> InputEvent {
     InputEvent::Wheel(WheelEvent {
         delta: WheelDelta::Lines { x: 0.0, y: 3.0 },
@@ -132,31 +164,25 @@ fn wheel() -> InputEvent {
     })
 }
 
-/// How far the list of the gallery is scrolled.
-fn list_offset(demo: &Demo) -> f64 {
+/// How far the timeline of the gallery is scrolled: not at all when the demo opens.
+fn timeline_offset(demo: &Demo) -> f64 {
     demo.surface()
         .memory()
-        .list_offset(gallery::widget_id("commits"))
+        .list_offset(gallery::widget_id("history"))
         .unwrap_or_default()
 }
 
-/// How far the list of the gallery is scrolled when the demo opens.
-fn starting_offset(demo: &Demo) -> f64 {
-    let rows = u32::try_from(ROW_COUNT / 2 - 4).unwrap();
-    f64::from(rows) * f64::from(demo.surface().theme().sizes.row_height)
-}
-
-/// The stages that use the menus: a context menu on a row, then the theme chosen in the menu of the toolbar.
+/// The stages that use the menus: a context menu on a commit, then the theme chosen in the menu of the repository.
 fn menu_stages() -> Vec<Stage> {
     vec![
         Stage {
-            name: "the context menu opens on a row",
+            name: "the context menu opens on a commit",
             input: click(PointerButton::Secondary, ROW),
             is_done: Box::new(|demo| demo.state().menu_row.is_some()),
         },
         Stage {
             name: "an item of the context menu is chosen",
-            input: click(PointerButton::Primary, (ROW.0 + 60.0, ROW.1 + 59.0)),
+            input: click(PointerButton::Primary, CHERRY_PICK),
             is_done: Box::new(|demo| {
                 demo.state()
                     .status
@@ -165,9 +191,9 @@ fn menu_stages() -> Vec<Stage> {
             }),
         },
         Stage {
-            name: "the menu of the toolbar opens",
-            input: click(PointerButton::Primary, (1259.0, 16.0)),
-            is_done: Box::new(|demo| demo.surface().memory().focus() == Some(gallery::widget_id("more"))),
+            name: "the menu of the repository opens",
+            input: click(PointerButton::Primary, REPOSITORY),
+            is_done: Box::new(|demo| demo.surface().memory().focus() == Some(gallery::widget_id("repository"))),
         },
         Stage {
             name: "the light theme is chosen with the keys",
@@ -181,23 +207,23 @@ fn menu_stages() -> Vec<Stage> {
     ]
 }
 
-/// The stages that type into an input box and turn the wheel over the list.
+/// The stages that type into the message of the draft and turn the wheel over the timeline.
 fn typing_and_wheel_stages() -> Vec<Stage> {
     vec![
         Stage {
-            name: "an input box takes the focus",
-            input: click(PointerButton::Primary, (220.0, 458.0)),
-            is_done: Box::new(|demo| demo.surface().memory().focus() == Some(gallery::widget_id("search"))),
+            name: "the message of the draft takes the focus",
+            input: click(PointerButton::Primary, MESSAGE),
+            is_done: Box::new(|demo| demo.surface().memory().focus() == Some(gallery::widget_id("draft message"))),
         },
         Stage {
             name: "text is typed into it",
-            input: vec![InputEvent::TextTyped(String::from("login"))],
-            is_done: Box::new(|demo| demo.state().search == "login"),
+            input: vec![InputEvent::TextTyped(String::from(" again"))],
+            is_done: Box::new(|demo| demo.state().message.contains(" again")),
         },
         Stage {
-            name: "the wheel scrolls the list",
+            name: "the wheel scrolls the timeline",
             input: vec![wheel()],
-            is_done: Box::new(|demo| list_offset(demo) > starting_offset(demo)),
+            is_done: Box::new(|demo| timeline_offset(demo) > 0.0),
         },
     ]
 }
@@ -220,21 +246,22 @@ const MEASURED: Duration = Duration::from_secs(2);
 #[test]
 #[ignore = "a measure: run it in release with --ignored --nocapture"]
 #[allow(clippy::print_stdout, reason = "the measure is printed")]
-fn the_list_of_a_million_rows_scrolls_in_the_real_loop() {
-    let event_loop = EventLoop::<()>::new().unwrap();
-    let mut demo = Demo::open(&event_loop, Visibility::Hidden).unwrap();
-    let sender = demo.surface().window().input_sender();
+fn the_timeline_of_a_million_commits_scrolls_in_the_real_loop() {
+    let mut event_loop = EventLoop::<()>::new().unwrap();
+    let mut opened: Option<Opened> = None;
     let mut started: Option<(Instant, u64)> = None;
     let mut measured = None;
     let mut drawn = 0;
-    event_loop.start_timer(WATCHDOG, PATIENCE).unwrap();
     event_loop
-        .run(|event| {
-            if matches!(event, Event::Timer(WATCHDOG)) || demo.handle(&event_loop, &event).unwrap() == Flow::Quit {
-                event_loop.quit();
+        .run(|context, event| {
+            if take(&mut opened, context, &event) {
+                context.quit();
                 return;
             }
-            let frames = demo.surface().frames_drawn();
+            let Some(open) = opened.as_ref() else {
+                return;
+            };
+            let frames = open.demo.surface().frames_drawn();
             if frames == drawn {
                 return;
             }
@@ -242,19 +269,19 @@ fn the_list_of_a_million_rows_scrolls_in_the_real_loop() {
             let (start, first) = *started.get_or_insert((Instant::now(), frames));
             if start.elapsed() >= MEASURED {
                 measured = Some((frames - first, start.elapsed()));
-                event_loop.quit();
+                context.quit();
             } else {
-                sender.send(wheel()).unwrap();
+                open.sender.send(wheel()).unwrap();
             }
         })
         .unwrap();
-    event_loop.stop_timer(WATCHDOG);
+    let demo = opened.unwrap().demo;
     let (frames, elapsed) = measured.unwrap();
     let rate = f64::from(u32::try_from(frames).unwrap()) / elapsed.as_secs_f64();
-    let size = demo.surface().window().size().unwrap();
+    let size = demo.surface().window().size();
     let scale = demo.surface().window().scale().factor();
     println!(
-        "a million rows in the demo window ({} x {} pixels, scale {scale}), a turn of the wheel each frame: {frames} \
+        "a million commits in the demo window ({} x {} pixels, scale {scale}), a turn of the wheel each frame: {frames} \
          frames in {:.2} s, {rate:.0} frames a second",
         size.width,
         size.height,

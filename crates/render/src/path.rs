@@ -1,10 +1,35 @@
-//! Paths: outlines made of straight lines and Bézier curves, filled or stroked by the rasterizer.
+//! Paths: outlines made of straight lines and Bézier curves, filled or stroked by the canvas, with the rule that says
+//! which parts of a path are inside and how the ends of a line look.
 
 use crate::geometry::{Point, Rect, Transform};
 
 /// How far along its tangent a cubic Bézier curve puts its control points to follow a quarter of a circle closely:
 /// `4/3 × (√2 − 1)`, which makes the curve meet the circle at its ends and at its middle.
 const QUARTER_CIRCLE: f32 = 0.552_284_8;
+
+/// Which parts of an outline that crosses itself are inside.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum FillRule {
+    /// A point is inside when the outline winds around it at least once in either direction: contours in the same
+    /// direction add up, contours in opposite directions cut holes.
+    #[default]
+    NonZero,
+    /// A point is inside when the outline crosses any ray from it an odd number of times: every contour inside
+    /// another cuts a hole, whatever its direction.
+    EvenOdd,
+}
+
+/// How the ends of an open contour are drawn.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum LineCap {
+    /// The stroke ends square at the end point.
+    #[default]
+    Butt,
+    /// The stroke ends with a half circle around the end point.
+    Round,
+    /// The stroke ends square, half its width past the end point.
+    Square,
+}
 
 /// One step of a path.
 #[derive(Clone, Copy, Debug, PartialEq)]

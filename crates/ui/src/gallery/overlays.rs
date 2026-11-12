@@ -1,67 +1,45 @@
-//! What opens over the gallery: the menu of the toolbar with its submenu of themes, the context menu of the rows, a
-//! dialog, a confirmation of something that cannot be undone, and pickers of one branch or of several.
+//! What opens over the gallery and waits for an answer: a dialog that asks for a name, the dialog of Pull with its
+//! choices, the dialog that says a commit needs a message, a confirmation of something that cannot be undone, Quick
+//! search, and pickers of one branch or of several.
 
-use render::{Icon, ThemeName};
+use render::Rect;
 
-use super::{Field, GalleryIntent, GalleryState, Overlay};
-use crate::frame::Ui;
-use crate::input::{Key, Modifiers};
-use crate::layout::Area;
+use super::{Field, GalleryIntent, GalleryState, Overlay, Switch};
+use crate::frame::{TextKind, Ui};
+use crate::layout::{Area, Size, columns};
 use crate::widget::Tone;
+use crate::widget::choice::Choice;
 use crate::widget::dialog::{ConfirmAnswer, ConfirmStyle, Confirmation, Dialog, DialogButton, DialogRole};
 use crate::widget::input_box::InputBox;
 use crate::widget::label::Label;
-use crate::widget::list::Selection;
-use crate::widget::menu::{MenuEntry, MenuItem};
 use crate::widget::metrics;
 use crate::widget::picker::{Picker, PickerAnswer, PickerItem, PickerMode};
 
-/// What the items of the menus of the gallery do.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum MenuCommand {
-    /// Opens an overlay.
-    Open(Overlay),
-    /// Opens the find bar.
-    Find,
-    /// Changes the theme.
-    Theme(ThemeName),
-    /// Copies the hash of the row the menu was opened on.
-    CopyHash,
-    /// Cherry-picks the commit of the row.
-    CherryPick,
-    /// Resets the branch to the commit of the row, in a way.
-    Reset(&'static str),
-    /// Reverts the commit of the row.
-    Revert,
-    /// Signs in to GitHub.
-    SignIn,
-}
-
 /// The branches the pickers offer, with what they say about each.
-pub(super) const BRANCHES: [PickerItem<'static>; 10] = [
+const PICKER_BRANCHES: [PickerItem<'static>; 10] = [
     PickerItem {
         label: "main",
-        description: "origin/main, 2 hours ago",
+        description: "origin/main, yesterday",
     },
     PickerItem {
         label: "feature/login-page",
-        description: "3 ahead",
+        description: "2 ahead, checked out",
     },
     PickerItem {
         label: "feature/search",
         description: "1 ahead, 4 behind",
     },
     PickerItem {
-        label: "fix/parser-empty-section",
-        description: "yesterday",
+        label: "fix/parser",
+        description: "merged",
     },
     PickerItem {
         label: "release/2.4",
         description: "tag v2.4.0",
     },
     PickerItem {
-        label: "experiment/graph-colors",
-        description: "last week",
+        label: "spike/graph-colors",
+        description: "5 ahead",
     },
     PickerItem {
         label: "feature/file-history",
@@ -81,146 +59,47 @@ pub(super) const BRANCHES: [PickerItem<'static>; 10] = [
     },
 ];
 
-/// The key of the context menu of the rows.
-pub(super) const ROW_MENU: &str = "row menu";
-/// The key of the find bar.
-pub(super) const FIND: &str = "find";
+/// What Quick search offers: commits, branches, files and commands.
+const QUICK_SEARCH: [PickerItem<'static>; 8] = [
+    PickerItem {
+        label: "Add the login page",
+        description: "commit 4b830a6",
+    },
+    PickerItem {
+        label: "feature/login-page",
+        description: "branch, checked out",
+    },
+    PickerItem {
+        label: "src/login/page.rs",
+        description: "file",
+    },
+    PickerItem {
+        label: "Fetch",
+        description: "command",
+    },
+    PickerItem {
+        label: "Switch to a branch",
+        description: "command, Ctrl+P",
+    },
+    PickerItem {
+        label: "Create a branch",
+        description: "command",
+    },
+    PickerItem {
+        label: "Find in page",
+        description: "command, Ctrl+F",
+    },
+    PickerItem {
+        label: "main",
+        description: "branch",
+    },
+];
+
+/// The ways Pull brings the commits of the upstream.
+const STRATEGIES: [&str; 3] = ["Merge", "Rebase", "Fast-forward"];
+
 /// The key of the pickers.
 pub(super) const PICKER: &str = "picker";
-
-/// The entries of the menu of the toolbar, with its submenu of themes.
-pub(super) fn more_menu<'menu>(
-    themes: &'menu [MenuEntry<'menu, MenuCommand>; 5],
-) -> [MenuEntry<'menu, MenuCommand>; 9] {
-    [
-        MenuEntry::Item(
-            MenuItem::new("Create a branch", MenuCommand::Open(Overlay::CreateBranch)).with_icon(Icon::Branch),
-        ),
-        MenuEntry::Item(MenuItem::new(
-            "Delete the branch",
-            MenuCommand::Open(Overlay::ConfirmDelete),
-        )),
-        MenuEntry::Item(
-            MenuItem::new("Switch to a branch", MenuCommand::Open(Overlay::PickBranch)).with_shortcut("Ctrl+P"),
-        ),
-        MenuEntry::Item(
-            MenuItem::new("Choose branches", MenuCommand::Open(Overlay::PickBranches)).with_shortcut("Ctrl+Shift+P"),
-        ),
-        MenuEntry::Item(
-            MenuItem::new("Find in page", MenuCommand::Find)
-                .with_icon(Icon::Search)
-                .with_shortcut("Ctrl+F"),
-        ),
-        MenuEntry::Separator,
-        MenuEntry::Submenu {
-            label: "Theme",
-            icon: Some(Icon::Gear),
-            entries: themes,
-        },
-        MenuEntry::Separator,
-        MenuEntry::Item(MenuItem::new("Sign in to GitHub", MenuCommand::SignIn).disabled()),
-    ]
-}
-
-/// The entries of the submenu of themes.
-pub(super) fn theme_menu() -> [MenuEntry<'static, MenuCommand>; 5] {
-    [
-        MenuEntry::Item(MenuItem::new("System", MenuCommand::Theme(ThemeName::System))),
-        MenuEntry::Item(MenuItem::new("Dark", MenuCommand::Theme(ThemeName::Dark))),
-        MenuEntry::Item(MenuItem::new("Light", MenuCommand::Theme(ThemeName::Light))),
-        MenuEntry::Item(MenuItem::new(
-            "High contrast dark",
-            MenuCommand::Theme(ThemeName::HighContrastDark),
-        )),
-        MenuEntry::Item(MenuItem::new(
-            "High contrast light",
-            MenuCommand::Theme(ThemeName::HighContrastLight),
-        )),
-    ]
-}
-
-/// The entries of the submenu of the ways to reset.
-pub(super) fn reset_menu() -> [MenuEntry<'static, MenuCommand>; 3] {
-    [
-        MenuEntry::Item(MenuItem::new("Soft", MenuCommand::Reset("soft"))),
-        MenuEntry::Item(MenuItem::new("Mixed", MenuCommand::Reset("mixed"))),
-        MenuEntry::Item(MenuItem::new("Hard", MenuCommand::Reset("hard"))),
-    ]
-}
-
-/// The place of the submenu of the ways to reset in the context menu of the rows.
-pub(super) const RESET_ENTRY: usize = 4;
-
-/// The entries of the context menu of the rows.
-pub(super) fn row_menu<'menu>(resets: &'menu [MenuEntry<'menu, MenuCommand>; 3]) -> [MenuEntry<'menu, MenuCommand>; 7] {
-    [
-        MenuEntry::Item(MenuItem::new("Copy the hash", MenuCommand::CopyHash).with_shortcut("Ctrl+C")),
-        MenuEntry::Item(
-            MenuItem::new("Create a branch here", MenuCommand::Open(Overlay::CreateBranch)).with_icon(Icon::Branch),
-        ),
-        MenuEntry::Item(MenuItem::new("Cherry-pick", MenuCommand::CherryPick).with_icon(Icon::Commit)),
-        MenuEntry::Separator,
-        MenuEntry::Submenu {
-            label: "Reset the branch to here",
-            icon: None,
-            entries: resets,
-        },
-        MenuEntry::Separator,
-        MenuEntry::Item(MenuItem::new("Revert", MenuCommand::Revert).disabled()),
-    ]
-}
-
-/// Does what a command chosen in a menu asks; the row is the one the context menu was opened on.
-pub(super) fn run_command(ui: &mut Ui<'_>, command: MenuCommand, row: Option<usize>, intents: &mut Vec<GalleryIntent>) {
-    let hash = row.map(super::rows::short_hash).unwrap_or_default();
-    let intent = match command {
-        MenuCommand::Open(overlay) => GalleryIntent::Open(overlay),
-        MenuCommand::Find => {
-            ui.open_find(FIND);
-            return;
-        }
-        MenuCommand::SignIn => return,
-        MenuCommand::Theme(theme) => GalleryIntent::ChoseTheme(theme),
-        MenuCommand::CopyHash => {
-            ui.copy_to_clipboard(hash.clone());
-            GalleryIntent::Did(format!("Copied {hash}"))
-        }
-        MenuCommand::CherryPick => GalleryIntent::Did(format!("Cherry-picked {hash}")),
-        MenuCommand::Reset(mode) => GalleryIntent::Did(format!("Reset main to {hash}, {mode}")),
-        MenuCommand::Revert => GalleryIntent::Did(format!("Reverted {hash}")),
-    };
-    intents.push(intent);
-}
-
-/// The shortcuts of the gallery, read once its widgets used the keys they wanted: Ctrl+P and Ctrl+Shift+P open the
-/// pickers, and Ctrl+C copies the hash of the row with the cursor of the list. They do nothing while an overlay is
-/// open.
-pub(super) fn shortcuts(state: &GalleryState, ui: &mut Ui<'_>, intents: &mut Vec<GalleryIntent>) {
-    if state.overlay.is_some() {
-        return;
-    }
-    let control_shift = Modifiers::CONTROL | Modifiers::SHIFT;
-    for key in ui.unclaimed_keys() {
-        match (key.key, key.modifiers) {
-            (Key::Character('p'), modifiers) if modifiers == Modifiers::CONTROL => {
-                intents.push(GalleryIntent::Open(Overlay::PickBranch));
-            }
-            (Key::Character('p'), modifiers) if modifiers == control_shift => {
-                intents.push(GalleryIntent::Open(Overlay::PickBranches));
-            }
-            (Key::Character('c'), modifiers) if modifiers == Modifiers::CONTROL => {
-                let row = ui
-                    .memory_view()
-                    .list_selection(super::widget_id("commits"))
-                    .and_then(Selection::cursor);
-                if row.is_some() {
-                    run_command(ui, MenuCommand::CopyHash, row, intents);
-                }
-            }
-            _ => {}
-        }
-    }
-}
 
 /// Declares the overlay open, if any.
 pub(super) fn overlay(state: &GalleryState, ui: &mut Ui<'_>, intents: &mut Vec<GalleryIntent>) {
@@ -230,6 +109,9 @@ pub(super) fn overlay(state: &GalleryState, ui: &mut Ui<'_>, intents: &mut Vec<G
         Some(Overlay::ConfirmDelete) => confirm_delete(ui, intents),
         Some(Overlay::PickBranch) => pick(ui, PickerMode::Single, intents),
         Some(Overlay::PickBranches) => pick(ui, PickerMode::Multiple, intents),
+        Some(Overlay::QuickSearch) => quick_search(ui, intents),
+        Some(Overlay::Pull) => pull(state, ui, intents),
+        Some(Overlay::EmptyMessage) => empty_message(ui, intents),
     }
 }
 
@@ -256,11 +138,7 @@ fn create_branch(state: &GalleryState, ui: &mut Ui<'_>, intents: &mut Vec<Galler
     let response = ui.dialog("create branch", &dialog, |ui, body| {
         let mut area = Area::with_gap(body.rect, theme.sizes.spacing.medium);
         let _ = ui.label(area.top(row), &Label::new("Name of the new branch").tone(Tone::Muted));
-        let input = InputBox {
-            text: &state.new_branch,
-            placeholder: "Branch name",
-            message: None,
-        };
+        let input = InputBox::new(&state.new_branch, "Branch name");
         let field = area.top(control);
         if body.is_opening {
             let id = ui.id("name");
@@ -302,14 +180,14 @@ fn confirm_delete(ui: &mut Ui<'_>, intents: &mut Vec<GalleryIntent>) {
 fn pick(ui: &mut Ui<'_>, mode: PickerMode, intents: &mut Vec<GalleryIntent>) {
     let placeholder = match mode {
         PickerMode::Single => "Switch to a branch",
-        PickerMode::Multiple => "Choose the branches to show in the graph",
+        PickerMode::Multiple => "Choose the branches to show in the timeline",
     };
     let picker = Picker {
         placeholder,
-        items: &BRANCHES,
+        items: &PICKER_BRANCHES,
         mode,
     };
-    let label = |index: usize| BRANCHES.get(index).map_or("", |item| item.label);
+    let label = |index: usize| PICKER_BRANCHES.get(index).map_or("", |item| item.label);
     match ui.picker(PICKER, &picker) {
         Some(PickerAnswer::Chose(index)) => intents.push(GalleryIntent::Did(format!("Switched to {}", label(index)))),
         Some(PickerAnswer::ChoseMany(chosen)) => {
@@ -318,5 +196,122 @@ fn pick(ui: &mut Ui<'_>, mode: PickerMode, intents: &mut Vec<GalleryIntent>) {
         }
         Some(PickerAnswer::Cancelled) => intents.push(GalleryIntent::Close),
         None => {}
+    }
+}
+
+/// Quick search: commits, branches, files and commands, filtered by what is typed.
+fn quick_search(ui: &mut Ui<'_>, intents: &mut Vec<GalleryIntent>) {
+    let picker = Picker {
+        placeholder: "Commits, branches, files, commands",
+        items: &QUICK_SEARCH,
+        mode: PickerMode::Single,
+    };
+    match ui.picker(PICKER, &picker) {
+        Some(PickerAnswer::Chose(index)) => {
+            let label = QUICK_SEARCH.get(index).map_or("", |item| item.label);
+            intents.push(GalleryIntent::Did(format!("Opened {label}")));
+        }
+        Some(PickerAnswer::Cancelled) => intents.push(GalleryIntent::Close),
+        // A picker of one item never answers with several.
+        Some(PickerAnswer::ChoseMany(_)) | None => {}
+    }
+}
+
+/// The dialog of Pull: how it brings the commits, and what it does before and around it.
+fn pull(state: &GalleryState, ui: &mut Ui<'_>, intents: &mut Vec<GalleryIntent>) {
+    let theme = *ui.theme();
+    let control = metrics::control_height(&theme);
+    let gap = theme.sizes.spacing.medium;
+    let buttons = [
+        DialogButton {
+            label: "Cancel",
+            role: DialogRole::Cancel,
+        },
+        DialogButton {
+            label: "Pull",
+            role: DialogRole::Primary,
+        },
+    ];
+    let dialog = Dialog {
+        title: "Pull feature/login-page",
+        body_height: theme.sizes.row_height + 3.0 * control + 3.0 * gap,
+        buttons: &buttons,
+    };
+    let response = ui.dialog("pull", &dialog, |ui, body| pull_choices(state, ui, body.rect, intents));
+    if response.is_cancelled {
+        intents.push(GalleryIntent::Close);
+    } else if response.pressed.is_some() {
+        let way = STRATEGIES
+            .get(state.pull.strategy)
+            .copied()
+            .unwrap_or_default()
+            .to_lowercase();
+        intents.push(GalleryIntent::Did(format!("Pulled feature/login-page, {way}")));
+    }
+}
+
+/// The choices in the body of the dialog of Pull: the way, as radio buttons, then check boxes and a toggle switch.
+fn pull_choices(state: &GalleryState, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<GalleryIntent>) {
+    let theme = *ui.theme();
+    let control = metrics::control_height(&theme);
+    let gap = theme.sizes.spacing.medium;
+    let mut area = Area::with_gap(rect, gap);
+    let words = Label::new("Bring the commits of origin/feature/login-page by").tone(Tone::Muted);
+    let _ = ui.label(area.top(theme.sizes.row_height), &words);
+    let radios = columns(
+        area.top(control),
+        gap,
+        [Size::Fill(1.0), Size::Fill(1.0), Size::Fill(1.3)],
+    );
+    for (index, (rect, label)) in radios.into_iter().zip(STRATEGIES).enumerate() {
+        let choice = Choice::radio(label, state.pull.strategy == index);
+        if ui.choice(("strategy", index), rect, &choice).clicked {
+            intents.push(GalleryIntent::Chose(index));
+        }
+    }
+    let [fetch, prune] = columns(area.top(control), gap, [Size::Fill(1.0), Size::Fill(1.0)]);
+    let switches = [
+        (
+            fetch,
+            Switch::FetchFirst,
+            Choice::check_box("Fetch before pulling", state.pull.fetch_first),
+        ),
+        (
+            prune,
+            Switch::Prune,
+            Choice::check_box("Prune remote branches", state.pull.prune),
+        ),
+        (
+            area.top(control),
+            Switch::Autostash,
+            Choice::toggle("Keep the changes aside while pulling", state.pull.autostash),
+        ),
+    ];
+    for (rect, switch, choice) in switches {
+        if ui.choice(switch, rect, &choice).clicked {
+            intents.push(GalleryIntent::Toggled(switch));
+        }
+    }
+}
+
+/// The dialog that says a commit needs a message.
+fn empty_message(ui: &mut Ui<'_>, intents: &mut Vec<GalleryIntent>) {
+    let buttons = [DialogButton {
+        label: "Write the message",
+        role: DialogRole::Primary,
+    }];
+    let text = "Say in the message of the draft what the commit does, then commit again.";
+    let style = ui.text_style(TextKind::Body);
+    let lines = ui.fonts().wrap(text, style, ui.dialog_body_width()).len();
+    let dialog = Dialog {
+        title: "The commit needs a message",
+        body_height: crate::number::float_of_count(lines) * ui.line_height(style),
+        buttons: &buttons,
+    };
+    let response = ui.dialog("empty message", &dialog, |ui, body| {
+        let _ = ui.paragraph(body.rect, text, (TextKind::Body, Tone::Normal));
+    });
+    if response.is_cancelled || response.pressed.is_some() {
+        intents.push(GalleryIntent::Close);
     }
 }

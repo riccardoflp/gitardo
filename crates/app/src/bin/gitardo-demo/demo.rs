@@ -3,7 +3,7 @@
 
 use app::AppError;
 use app::window::{Step, Surface, SurfaceOptions};
-use platform::{Event, EventLoop, LogicalSize, TimerId, Visibility};
+use platform::{Context, Event, LogicalSize, TimerId, Visibility};
 use render::ThemeName;
 use ui::gallery::{self, GalleryIntent, GalleryState};
 
@@ -28,12 +28,13 @@ pub struct Demo {
 }
 
 impl Demo {
-    /// Opens the demo window, in the theme of the system, with the gallery in its fixed starting state.
+    /// Opens the demo window, in the theme of the system, with the gallery in its fixed starting state, once the loop
+    /// runs.
     ///
     /// # Errors
     ///
     /// The errors of [`Surface::open`].
-    pub fn open(event_loop: &EventLoop<()>, visibility: Visibility) -> Result<Demo, AppError> {
+    pub fn open(context: &Context<'_>, visibility: Visibility) -> Result<Demo, AppError> {
         let options = SurfaceOptions {
             title: String::from("Gitardo Desktop widgets"),
             size: LogicalSize {
@@ -44,7 +45,7 @@ impl Demo {
             theme: ThemeName::System,
             frame_timer: FRAME_TIMER,
         };
-        let mut surface = Surface::open(event_loop, options)?;
+        let mut surface = Surface::open(context, options)?;
         let theme = *surface.theme();
         gallery::prepare(surface.memory_mut(), &theme);
         Ok(Demo {
@@ -58,9 +59,9 @@ impl Demo {
     /// # Errors
     ///
     /// The errors of [`Surface::draw`].
-    pub fn handle(&mut self, event_loop: &EventLoop<()>, event: &Event<()>) -> Result<Flow, AppError> {
+    pub fn handle(&mut self, context: &Context<'_>, event: &Event<()>) -> Result<Flow, AppError> {
         match self.surface.handle(event) {
-            Step::Draw => self.draw(event_loop)?,
+            Step::Draw => self.draw(context)?,
             Step::Close => return Ok(Flow::Quit),
             Step::Handled | Step::Ignored => {}
         }
@@ -86,9 +87,9 @@ impl Demo {
     }
 
     /// Draws a frame of the gallery and applies what the person asked for in it, a theme chosen included.
-    fn draw(&mut self, event_loop: &EventLoop<()>) -> Result<(), AppError> {
+    fn draw(&mut self, context: &Context<'_>) -> Result<(), AppError> {
         let state = self.state.clone();
-        let intents = self.surface.draw(event_loop, |ui| gallery::view(&state, ui))?;
+        let intents = self.surface.draw(context, |ui| gallery::view(&state, ui))?;
         for intent in &intents {
             if let GalleryIntent::ChoseTheme(theme) = intent {
                 self.surface.set_theme(*theme);

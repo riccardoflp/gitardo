@@ -56,9 +56,11 @@ fn a_full_frame_of_the_gallery() {
 fn a_list_of_a_million_rows_scrolled_by_the_wheel_every_frame() {
     let mut window = Window::new(ThemeName::Dark, (1920, 1080), 1);
     let list = List {
+        name: "Rows",
         row_count: 1_000_000,
         row_height: window.theme.sizes.row_height,
         selection_mode: SelectionMode::Multiple,
+        lead: 0.0,
     };
     let view = |ui: &mut ui::Ui<'_>| {
         let style = ui.text_style(TextKind::Body);

@@ -250,6 +250,8 @@ impl Ui<'_> {
                 self.open_menu(key, MenuAnchor::Below(rect));
             }
         }
+        let is_open = self.is_menu_open(key);
+        self.access_expanded(response.id, is_open);
         self.menu(key, entries)
     }
 }

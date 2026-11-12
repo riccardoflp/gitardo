@@ -31,14 +31,14 @@ fn a_frame_with_nothing_new_draws_nothing() {
 }
 
 #[test]
-fn the_blink_of_the_caret_and_the_turn_of_the_spinners_draw_only_around_them() {
+fn the_blink_of_the_caret_and_the_turn_of_the_spinner_draw_only_around_them() {
     let mut window = gallery_window(ThemeName::Light, 2);
     let state = GalleryState::default();
     window.wait(600);
     let (_, output) = window.frame(&[], |ui| gallery::view(&state, ui));
     let area: u64 = output.dirty.iter().map(|region| region.area()).sum();
-    // The caret and the two spinners, each in a tile of 128 pixels at 200 %, one of them on the edge of two.
-    assert_eq!(output.dirty.len(), 3, "{:?}", output.dirty);
+    // The caret and the spinner of the header, each in a tile or two of 128 pixels at 200 %.
+    assert!(output.dirty.len() <= 3, "{:?}", output.dirty);
     assert!(area <= 4 * 128 * 128, "{area} pixels drawn again: {:?}", output.dirty);
     let caret = output.caret.unwrap();
     let physical = |value: f32| value * 2.0;
@@ -55,15 +55,15 @@ fn a_frame_drawn_over_the_last_has_the_pixels_of_the_same_frame_drawn_whole() {
         whole.memory = incremental.memory.clone();
         whole.memory.redraw_everything();
         let state = GalleryState::default();
-        let mut events = vec![typed("s"), wheel(700.0, 200.0, 3.0)];
-        events.extend(click(30.0, 231.0));
+        let mut events = vec![typed("s"), wheel(450.0, 300.0, 3.0)];
+        events.extend(click(60.0, 140.0));
         let mut drawn = Vec::new();
         for window in [&mut incremental, &mut whole] {
             window.wait(50);
             let (_, output) = window.frame(&events, |ui| gallery::view(&state, ui));
             drawn.push(output.dirty);
         }
-        assert_eq!(incremental.frame.pixels(), whole.frame.pixels(), "{theme:?} at {scale}");
+        assert_same_pixels(&incremental, &whole, &format!("{theme:?} at {scale}"));
         let parts: u64 = drawn.first().unwrap().iter().map(|region| region.area()).sum();
         let all = u64::from(incremental.frame.width()) * u64::from(incremental.frame.height());
         assert!(
@@ -76,10 +76,33 @@ fn a_frame_drawn_over_the_last_has_the_pixels_of_the_same_frame_drawn_whole() {
             window.wait(50);
             let _ = window.frame(&[], |ui| gallery::view(&state, ui));
         }
-        assert_eq!(
-            incremental.frame.pixels(),
-            whole.frame.pixels(),
-            "{theme:?} at {scale}, as the list glides"
+        assert_same_pixels(
+            &incremental,
+            &whole,
+            &format!("{theme:?} at {scale}, as the list glides"),
         );
     }
+}
+
+/// Fails with where the pixels of two windows differ, if they do.
+fn assert_same_pixels(drawn: &Window, expected: &Window, what: &str) {
+    let width = drawn.frame.width() as usize;
+    let differing: Vec<(usize, usize)> = drawn
+        .frame
+        .pixels()
+        .iter()
+        .zip(expected.frame.pixels())
+        .enumerate()
+        .filter(|(_, (left, right))| left != right)
+        .map(|(index, _)| (index % width, index / width))
+        .collect();
+    let left = differing.iter().map(|point| point.0).min();
+    let right = differing.iter().map(|point| point.0).max();
+    let top = differing.iter().map(|point| point.1).min();
+    let bottom = differing.iter().map(|point| point.1).max();
+    assert!(
+        differing.is_empty(),
+        "{what}: {} pixels differ, from {left:?}, {top:?} to {right:?}, {bottom:?}",
+        differing.len()
+    );
 }

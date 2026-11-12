@@ -7,6 +7,7 @@ use render::{Border, Icon, Point, Rect, Theme};
 
 use super::label::Label;
 use super::{Availability, Tone, metrics};
+use crate::access::{AccessRole, Description};
 use crate::frame::Ui;
 use crate::interaction::{Response, Sense};
 use crate::layout::{Align, place};
@@ -116,11 +117,23 @@ impl Ui<'_> {
             has_tooltip_when_cut: false,
             ..Label::new(choice.label).tone(tone)
         };
-        let _ = self.label(text, &label);
+        let _ = self.draw_label(text, &label);
         if response.shows_focus {
-            let radius = theme.sizes.radius.small;
+            let radius = match choice.kind {
+                ChoiceKind::CheckBox => theme.sizes.radius.small,
+                ChoiceKind::Radio | ChoiceKind::Toggle => mark.height,
+            };
             self.focus_ring(mark.inset(-theme.sizes.spacing.tiny), radius);
         }
+        let role = match choice.kind {
+            ChoiceKind::CheckBox => AccessRole::CheckBox,
+            ChoiceKind::Radio => AccessRole::RadioButton,
+            ChoiceKind::Toggle => AccessRole::Switch,
+        };
+        let description = Description::new(role, choice.label)
+            .on(choice.is_on)
+            .disabled(!is_enabled);
+        self.access_node(id, rect, &description);
         response
     }
 

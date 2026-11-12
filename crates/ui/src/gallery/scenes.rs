@@ -1,13 +1,14 @@
 //! The gallery with something open over it, each in a fixed state for the snapshots of the tests: a context menu with
-//! a submenu open, a dialog, a confirmation, a picker with something typed, the find bar with its matches, and a badge
-//! being dragged over the list.
+//! a submenu open, a dialog, the dialog of Pull with its choices, a confirmation, a picker with something typed, the
+//! find bar with its matches, a branch being dragged over the timeline, and the Activity drawer.
 
 use std::hash::Hash;
 
 use render::{Point, Theme};
 
-use super::overlays::{FIND, PICKER, RESET_ENTRY, ROW_MENU};
-use super::{GalleryState, Overlay, ROW_COUNT, SCOPE, prepare};
+use super::menus::{FIND, RESET_ENTRY, ROW_MENU};
+use super::overlays::PICKER;
+use super::{GalleryState, Overlay, SCOPE, prepare};
 use crate::frame::OverlayState;
 use crate::id::WidgetId;
 use crate::interaction::Active;
@@ -20,18 +21,22 @@ use crate::widget::picker::PickerState;
 /// What is open over the gallery in a scene.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Scene {
-    /// The context menu of a row, with the submenu of the ways to reset open.
+    /// The context menu of a commit, with the submenu of the ways to reset open.
     Menu,
     /// The dialog that asks for the name of a new branch, with a name typed.
     Dialog,
+    /// The dialog of Pull, with its radio buttons, check boxes and toggle switch.
+    Pull,
     /// The confirmation of the deletion of a branch, with the commands it runs.
     Confirmation,
     /// The picker of several branches, with "fe" typed and two branches checked.
     Picker,
-    /// The find bar, with "login" looked for and the match in sight in the list current.
+    /// The find bar, with "login" looked for and a match in the timeline current.
     Find,
-    /// The badge of main dragged over the list.
+    /// The pill of main dragged over the timeline.
     Drag,
+    /// The Activity drawer, with what runs, the command log and the tasks.
+    Activity,
 }
 
 /// The name of a widget of the gallery by any key.
@@ -44,13 +49,12 @@ fn scoped(key: impl Hash) -> WidgetId {
 pub fn prepare_scene(memory: &mut UiMemory, theme: &Theme, scene: Scene) -> GalleryState {
     prepare(memory, theme);
     let mut state = GalleryState::default();
-    let row = theme.sizes.row_height;
     match scene {
         Scene::Menu => {
-            state.menu_row = Some(ROW_COUNT / 2);
+            state.menu_row = Some(MENU_ROW);
             memory.menu = Some(OpenMenu {
                 id: scoped(ROW_MENU),
-                placement: Placement::At(Point::new(row * 20.0, row * 8.0)),
+                placement: Placement::At(MENU_AT),
                 levels: vec![Some(RESET_ENTRY), Some(2)],
                 rects: Vec::new(),
             });
@@ -61,6 +65,11 @@ pub fn prepare_scene(memory: &mut UiMemory, theme: &Theme, scene: Scene) -> Gall
             let name = scoped("create branch").with("name");
             memory.set_input_text(name, &state.new_branch, (8, 20));
             open_overlay(memory, scoped("create branch"), Vec::new(), name);
+        }
+        Scene::Pull => {
+            state.overlay = Some(Overlay::Pull);
+            let id = scoped("pull");
+            open_overlay(memory, id, Vec::new(), id.with(("strategy", 1_usize)));
         }
         Scene::Confirmation => state.overlay = Some(Overlay::ConfirmDelete),
         Scene::Picker => {
@@ -78,14 +87,20 @@ pub fn prepare_scene(memory: &mut UiMemory, theme: &Theme, scene: Scene) -> Gall
             open_overlay(memory, id, vec![input, id], input);
         }
         Scene::Find => open_find(memory),
-        Scene::Drag => drag(memory, theme),
+        Scene::Drag => drag(memory),
+        Scene::Activity => state.is_activity_open = true,
     }
     state
 }
 
-/// The number of the match of "login" in the row of the list in sight with that word: the rows with it are one in
-/// twelve, from the second.
-const FIND_CURRENT: usize = (ROW_COUNT / 2 + 5) / 12;
+/// The commit the context menu is open on.
+const MENU_ROW: usize = 4;
+/// Where the context menu opened, over the timeline.
+const MENU_AT: Point = Point::new(430.0, 300.0);
+/// Where the pill of main was pressed, on its commit, and where it is dragged to.
+const DRAG: (Point, Point) = (Point::new(600.0, 268.0), Point::new(520.0, 470.0));
+/// The number of the match of "login" made current: that in the subject of the first commit.
+const FIND_CURRENT: usize = 0;
 
 /// The find bar open with "login" looked for.
 fn open_find(memory: &mut UiMemory) {
@@ -102,19 +117,19 @@ fn open_find(memory: &mut UiMemory) {
     open_overlay(memory, id, vec![input], input);
 }
 
-/// The badge of main dragged over the list.
-fn drag(memory: &mut UiMemory, theme: &Theme) {
-    let row = theme.sizes.row_height;
-    let source = scoped(("badge", "main"));
+/// The pill of main dragged over the timeline.
+fn drag(memory: &mut UiMemory) {
+    let source = scoped(("reference", "main"));
+    let (start, now) = DRAG;
     memory.drag_and_drop = Some(DragAndDrop {
         source,
         label: String::from("main"),
-        start: Point::new(row * 22.0, row * 26.0),
+        start,
         is_dragging: true,
         dropped_at: None,
     });
     memory.interaction.active = Some(Active { id: source });
-    memory.interaction.pointer = Some(Point::new(row * 30.0, row * 10.0));
+    memory.interaction.pointer = Some(now);
 }
 
 /// Notes an overlay as open since an earlier frame, with the focus in one of its widgets.

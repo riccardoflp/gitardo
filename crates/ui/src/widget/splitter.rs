@@ -82,12 +82,11 @@ impl Ui<'_> {
                 Split::Rows => Cursor::ResizeNorthSouth,
             });
         }
-        let color = if response.hovered || response.pressed {
-            theme.colors.focus_ring
-        } else {
-            theme.colors.border
-        };
-        self.fill_rect(line_rect(rect, splitter.split, size, line), color);
+        // The line shows only while the pointer is on it: the parts of the window are told apart by their tones.
+        if response.hovered || response.pressed {
+            let lit = line_rect(rect, splitter.split, size - line, 3.0 * line);
+            self.fill_rect(lit, theme.colors.focus_ring);
+        }
         let (first, second) = panes(rect, splitter.split, size, line);
         SplitResponse {
             first,

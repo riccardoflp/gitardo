@@ -150,7 +150,7 @@ impl Ui<'_> {
             self.fill_rect(rect, theme.colors.accent.with_alpha(DROP_LIGHT));
             let border = Border {
                 width: theme.sizes.focus_ring * 2.0,
-                radius: 0.0,
+                radius: theme.sizes.radius.large,
                 color: theme.colors.focus_ring,
             };
             self.border(rect, border);
@@ -201,14 +201,9 @@ impl Ui<'_> {
         let gap = theme.sizes.spacing.large;
         let rect = Rect::new(pointer.x + gap, pointer.y + gap, size.0, size.1);
         self.layer(Layer::Tooltip, |ui| {
-            let radius = theme.sizes.radius.medium;
+            let radius = rect.height * 0.5;
+            ui.floating_card(rect, radius);
             ui.fill_rounded_rect(rect, radius, theme.colors.menu_selection);
-            let border = Border {
-                width: theme.sizes.border,
-                radius,
-                color: theme.colors.border,
-            };
-            ui.border(rect, border);
             let run = TextRun {
                 text: label,
                 style,

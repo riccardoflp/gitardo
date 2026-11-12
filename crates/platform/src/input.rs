@@ -2,6 +2,7 @@
 
 use std::ops::{BitOr, BitOrAssign};
 
+use crate::accessibility::AccessibilityRequest;
 use crate::geometry::{PhysicalSize, Point, Scale};
 
 /// Something that happened to a window: input from the person, or a change the system made.
@@ -23,6 +24,9 @@ pub enum InputEvent {
     KeyReleased(KeyEvent),
     /// Text was typed, after the keyboard layout and the input method made it.
     TextTyped(String),
+    /// The input method is composing this text, not typed yet: it is shown at the caret until it is typed, or
+    /// empty once the composition ends.
+    TextComposing(String),
     /// The window got the keyboard.
     FocusGained,
     /// The window lost the keyboard.
@@ -35,6 +39,8 @@ pub enum InputEvent {
     CloseRequested,
     /// The window needs a new frame: it was resized, uncovered with nothing to show, or a redraw was asked for.
     RedrawRequested,
+    /// A screen reader asks for something: the tree of what is on screen, or an action on a part of it.
+    Accessibility(AccessibilityRequest),
 }
 
 /// Where the pointer moved to.

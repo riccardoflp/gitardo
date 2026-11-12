@@ -1,5 +1,5 @@
-//! Snapshots of text in each of the fonts kept for the tests, at scale 1 and 2: kerning, accents and other scripts,
-//! a line cut with an ellipsis, a character no font has, and a paragraph wrapped by words.
+//! Snapshots of text in each of the fonts that come with the program, at scale 1 and 2: kerning, accents and other
+//! scripts, a line cut with an ellipsis, a character no font has, and a paragraph wrapped by words.
 
 #![allow(
     clippy::unwrap_used,
@@ -47,7 +47,7 @@ fn draw_text(choose: fn(&Typefaces) -> TypefaceId, scale: u8) -> FrameBuffer {
     }
     let long = "src/components/branches/the list of branches.rs was changed in this commit";
     let _ = canvas.draw_text(&run(long, y, Some(240.0)));
-    let missing = "A box for \u{E000}, which no font has";
+    let missing = "A box for \u{10FFFD}, which no font has";
     let _ = canvas.draw_text(&TextRun {
         color: Color::rgb(0xE0, 0xB0, 0x50),
         ..run(missing, y + 18.0, None)

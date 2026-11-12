@@ -44,10 +44,10 @@ impl MenuMetrics {
     pub(crate) fn new(theme: &Theme) -> MenuMetrics {
         let sizes = theme.sizes;
         MenuMetrics {
-            item: sizes.row_height,
+            item: sizes.row_height + sizes.spacing.small,
             separator: sizes.spacing.medium + sizes.border,
-            padding: sizes.spacing.small,
-            side: sizes.spacing.medium,
+            padding: sizes.spacing.small + sizes.spacing.tiny,
+            side: sizes.spacing.large + sizes.spacing.tiny,
             icon_column: sizes.icon + sizes.spacing.medium,
             shortcut_gap: sizes.spacing.huge,
             least_width: sizes.row_height * 8.0,

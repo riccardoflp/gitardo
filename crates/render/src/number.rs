@@ -33,11 +33,6 @@ pub(crate) fn float(value: i32) -> f32 {
     value as f32
 }
 
-/// A count or a size as a float.
-pub(crate) fn float_of_count(value: usize) -> f32 {
-    value as f32
-}
-
 /// An unsigned size as a float.
 pub(crate) fn float_of_size(value: u32) -> f32 {
     value as f32
@@ -63,11 +58,6 @@ pub(crate) fn size(value: i32) -> u32 {
     u32::try_from(value).unwrap_or(0)
 }
 
-/// A fraction from 0 to 1 as a byte from 0 to 255, rounded, clamped at both ends.
-pub(crate) fn unit_to_byte(value: f32) -> u8 {
-    (value.clamp(0.0, 1.0) * 255.0 + 0.5) as u8
-}
-
 /// A float as an unsigned key for a cache, rounded, zero when negative.
 pub(crate) fn key(value: f32) -> u32 {
     value.round().max(0.0) as u32
@@ -84,10 +74,6 @@ mod tests {
         assert_eq!(
             (index(-3), index(7), size(-1), coordinate(u32::MAX)),
             (0, 7, 0, i32::MAX)
-        );
-        assert_eq!(
-            (unit_to_byte(-1.0), unit_to_byte(0.5), unit_to_byte(2.0)),
-            (0, 128, 255)
         );
         assert_eq!((key(-4.0), key(12.6)), (0, 13));
     }

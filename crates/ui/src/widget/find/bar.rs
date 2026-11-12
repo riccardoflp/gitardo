@@ -1,7 +1,7 @@
 //! The find bar: an input box, the count of the matches, a switch for the case of letters, the buttons that go to the
 //! previous and the next match, and the one that closes the bar, in a box at the top right of the page.
 
-use render::{Border, Icon, Rect};
+use render::{Icon, Rect};
 
 use super::matches::PageMatches;
 use super::{MatchCase, Step};
@@ -31,17 +31,14 @@ impl Ui<'_> {
             width,
             height,
         );
-        let _ = self.interact(id.with("bar"), rect, Sense::CLICK);
-        let radius = theme.sizes.radius.medium;
-        let shadow = Rect::new(rect.x, rect.y + spacing.tiny, rect.width, rect.height);
-        self.fill_rounded_rect(shadow, radius, theme.colors.shadow);
-        self.fill_rounded_rect(rect, radius, theme.colors.menu_background);
-        let border = Border {
-            width: theme.sizes.border,
-            radius,
-            color: theme.colors.border,
-        };
-        self.border(rect, border);
+        let bar = id.with("bar");
+        let _ = self.interact(bar, rect, Sense::CLICK);
+        self.floating_card(rect, theme.sizes.radius.large);
+        self.access_node(
+            bar,
+            rect,
+            &crate::access::Description::new(crate::access::AccessRole::Region, "Find in page"),
+        );
         let mut area = Area::with_gap(inset(rect, Insets::all(spacing.small)), spacing.tiny);
         let close = area.right(control);
         let next = area.right(control);
@@ -61,11 +58,7 @@ impl Ui<'_> {
     /// The input box of the bar: what is typed is looked for at once.
     fn find_field(&mut self, rect: Rect) {
         let query = self.memory_view().find.query.clone();
-        let input = InputBox {
-            text: &query,
-            placeholder: "Find",
-            message: None,
-        };
+        let input = InputBox::new(&query, "Find");
         let typed = self.input_box("query", rect, &input);
         if let Some(text) = typed.changed_text {
             let now = self.now();

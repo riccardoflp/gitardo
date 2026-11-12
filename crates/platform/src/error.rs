@@ -1,19 +1,25 @@
 //! What can go wrong when Gitardo Desktop asks something of the operating system.
 
 use std::fmt;
-use std::path::PathBuf;
 
 use crate::geometry::PhysicalSize;
 
 /// Why the operating system did not do what was asked.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlatformError {
-    /// A call into the system failed, with the code the system gave.
+    /// The system, or the library that speaks to it, refused, and said why in its own words.
     System {
-        /// The name of the call, as the system's documentation gives it.
+        /// What was asked: the call, or the library and what it was asked.
         call: &'static str,
-        /// The error code the system gave, or 0 when it gave none.
-        code: u32,
+        /// What the system or the library said, kept to be shown under the details of the error.
+        details: String,
+    },
+    /// The program already has its event loop: a program has one, for the life of the program.
+    EventLoopExists,
+    /// The system cannot do what was asked, such as saying where a window is on Wayland.
+    Unsupported {
+        /// What was asked.
+        what: &'static str,
     },
     /// The event loop or the window that a waker or an input sender points to is gone.
     Closed,
@@ -26,21 +32,24 @@ pub enum PlatformError {
     },
     /// Another program kept the clipboard open.
     ClipboardBusy,
-    /// A folder the system keeps something in could not be read.
-    Folder {
-        /// The folder.
-        path: PathBuf,
-        /// Why it could not be read.
-        kind: std::io::ErrorKind,
-    },
+}
+
+impl PlatformError {
+    /// The error of a library that refused, with its words.
+    pub(crate) fn system(call: &'static str, error: &impl fmt::Display) -> PlatformError {
+        PlatformError::System {
+            call,
+            details: error.to_string(),
+        }
+    }
 }
 
 impl fmt::Display for PlatformError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            PlatformError::System { call, code } => {
-                write!(formatter, "The system refused {call} (error {code}).")
-            }
+            PlatformError::System { call, details } => write!(formatter, "The system refused {call}: {details}"),
+            PlatformError::EventLoopExists => write!(formatter, "The program already has its event loop."),
+            PlatformError::Unsupported { what } => write!(formatter, "This system cannot {what}."),
             PlatformError::Closed => write!(formatter, "The window or the event loop is already closed."),
             PlatformError::FrameSize { pixels, size } => write!(
                 formatter,
@@ -52,9 +61,6 @@ impl fmt::Display for PlatformError {
                     formatter,
                     "Another program is using the clipboard. Try again in a moment."
                 )
-            }
-            PlatformError::Folder { path, kind } => {
-                write!(formatter, "The folder {} could not be read: {kind}.", path.display())
             }
         }
     }

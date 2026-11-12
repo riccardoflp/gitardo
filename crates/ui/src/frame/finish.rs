@@ -14,6 +14,7 @@ impl Ui<'_> {
     pub fn finish(mut self) -> FrameOutput {
         self.finish_drag();
         self.show_tooltip();
+        self.keep_access();
         self.keep_widgets();
         self.close_overlays();
         if self.memory.interaction.active.is_none() {

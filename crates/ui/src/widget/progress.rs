@@ -89,7 +89,7 @@ fn spinner_step(now: Duration) -> (u16, Duration) {
 }
 
 /// An arc of a circle from an angle, clockwise, as straight lines.
-fn arc_path(center: Point, radius: f32, start: f32, sweep: f32) -> Path {
+pub(crate) fn arc_path(center: Point, radius: f32, start: f32, sweep: f32) -> Path {
     let mut path = Path::new();
     for segment in 0..=ARC_SEGMENTS {
         let angle = start + sweep * f32::from(segment) / f32::from(ARC_SEGMENTS);

@@ -1,5 +1,5 @@
-//! The gallery with each overlay open — a menu with a submenu, a dialog, a confirmation, a picker, the find bar and a
-//! drag — in the dark and light themes at 100 % and in the dark theme at 200 %, compared with their reference images:
+//! The gallery with each overlay open — a menu with a submenu, a dialog, the dialog of Pull, a confirmation, a picker,
+//! the find bar, a drag and the Activity drawer — in the dark and light themes at 100 % and in the dark theme at 200 %, compared with their reference images:
 //! `GITARDO_GOLDEN_RECORD=1 cargo test -p ui --test overlays` records them again.
 
 #![allow(clippy::unwrap_used, reason = "a test that cannot go on fails")]
@@ -40,6 +40,16 @@ fn a_context_menu_with_a_submenu_open() {
 #[test]
 fn a_dialog() {
     check_all(Scene::Dialog, "dialog");
+}
+
+#[test]
+fn the_dialog_of_pull_with_its_choices() {
+    check_all(Scene::Pull, "pull");
+}
+
+#[test]
+fn the_activity_drawer() {
+    check_all(Scene::Activity, "activity");
 }
 
 #[test]

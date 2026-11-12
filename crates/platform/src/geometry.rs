@@ -161,19 +161,25 @@ impl Scale {
         }
     }
 
-    /// A point of the system, in physical pixels from the top left corner of a window, in logical pixels.
-    #[must_use]
-    pub fn to_logical_point(self, x: i16, y: i16) -> Point {
-        Point {
-            x: f32::from(x) / self.factor(),
-            y: f32::from(y) / self.factor(),
+    /// The scale of a screen whose logical pixel is `factor` physical pixels, as `winit` gives it.
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "the dots per inch are rounded and clamped to the range of u32 first"
+    )]
+    pub(crate) fn from_factor(factor: f64) -> Scale {
+        let dpi = (factor * f64::from(Scale::STANDARD_DPI)).round();
+        if dpi.is_nan() || dpi < 1.0 {
+            Scale::default()
+        } else {
+            Scale::from_dpi(dpi.min(f64::from(u32::MAX)) as u32)
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{LogicalSize, PhysicalSize, PixelRect, Point, Scale};
+    use super::{LogicalSize, PhysicalSize, PixelRect, Scale};
 
     fn rect(x: u32, y: u32, width: u32, height: u32) -> PixelRect {
         PixelRect { x, y, width, height }
@@ -243,7 +249,10 @@ mod tests {
             }),
             PhysicalSize { width: 4, height: 1 }
         );
-        assert_eq!(scale.to_logical_point(5, -10), Point { x: 4.0, y: -8.0 });
         assert_eq!(Scale::from_dpi(0), Scale::default());
+        assert_eq!(Scale::from_factor(1.25), scale);
+        assert_eq!(Scale::from_factor(2.0), Scale::from_dpi(192));
+        assert_eq!(Scale::from_factor(f64::NAN), Scale::default());
+        assert_eq!(Scale::from_factor(-1.0), Scale::default());
     }
 }

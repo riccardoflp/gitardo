@@ -1,16 +1,15 @@
-//! Drawing a line of text on a canvas: each glyph copied from the cache at its place, snapped to the baseline and to
-//! a quarter of a pixel along the line.
+//! Drawing a line of text on a canvas: each glyph rasterized once at its size and its position inside a pixel, a
+//! quarter of a pixel apart along the line, and then laid over the frame at its place, the baseline on a whole pixel.
 
-use super::cache::{GlyphKey, SUBPIXEL_POSITIONS};
-use super::layout::{self, Shape};
+use cosmic_text::SwashContent;
+
+use super::engine::{Engine, Face};
 use super::{ELLIPSIS, TextStyle};
 use crate::canvas::Canvas;
 use crate::color::Color;
+use crate::frame::MaskView;
 use crate::geometry::{PixelRect, Point};
 use crate::number;
-
-/// The height of the box drawn for a character no font has, in ems.
-const MISSING_HEIGHT: f32 = 0.7;
 
 /// A line of text to draw.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -19,13 +18,44 @@ pub struct TextRun<'text> {
     pub text: &'text str,
     /// The typeface and size.
     pub style: TextStyle,
-    /// The color of the glyphs.
+    /// The color of the glyphs; glyphs in color, such as emoji, keep their own.
     pub color: Color,
     /// The top left corner of the line, in logical pixels; the baseline is the ascent of the typeface below it.
     pub origin: Point,
     /// The widest the line may be, in logical pixels: a longer line is cut and ends with an ellipsis. Nothing for no
     /// limit.
     pub max_width: Option<f32>,
+}
+
+/// A line of text to turn into images of glyphs.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct GlyphRun<'text> {
+    /// The text.
+    pub(crate) text: &'text str,
+    /// The typeface and size.
+    pub(crate) style: TextStyle,
+    /// Where the line starts on the baseline, in physical pixels of the frame.
+    pub(crate) pen: Point,
+    /// Physical pixels for each logical pixel.
+    pub(crate) scale: f32,
+}
+
+/// What a glyph covers.
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum GlyphPixels<'image> {
+    /// How much of each pixel the glyph covers, a byte for each, to fill in the color of the text.
+    Coverage(&'image [u8]),
+    /// The colors of a glyph in color, four bytes for each pixel: red, green, blue and opacity.
+    Colors(&'image [u8]),
+}
+
+/// The image of a glyph at its place in the frame.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct GlyphImage<'image> {
+    /// The pixels of the frame it covers.
+    pub(crate) rect: PixelRect,
+    /// What it covers them with.
+    pub(crate) pixels: GlyphPixels<'image>,
 }
 
 impl Canvas<'_> {
@@ -41,10 +71,10 @@ impl Canvas<'_> {
         };
         let ascent = self.assets.fonts.line_metrics(run.style).ascent;
         let origin = self.to_physical_point(run.origin);
-        let baseline = number::round(origin.y + ascent * self.scale());
-        let mut width = self.draw_line(shown, run, Point::new(origin.x, number::float(baseline)));
+        let baseline = number::float(number::round(origin.y + ascent * self.scale()));
+        let mut width = self.draw_line(shown, run, Point::new(origin.x, baseline));
         if ellipsis {
-            let at = Point::new(origin.x + width * self.scale(), number::float(baseline));
+            let at = Point::new(origin.x + width * self.scale(), baseline);
             width += self.draw_line(ELLIPSIS, run, at);
         }
         width
@@ -53,83 +83,64 @@ impl Canvas<'_> {
     /// Draws the glyphs of some text with the pen starting at a point in physical pixels on the baseline, and returns
     /// their width in logical pixels.
     fn draw_line(&mut self, text: &str, run: &TextRun<'_>, pen: Point) -> f32 {
-        let scale = self.scale();
-        let size = number::key(run.style.size * scale * 64.0);
+        let glyphs = GlyphRun {
+            text,
+            style: run.style,
+            pen,
+            scale: self.scale(),
+        };
         let clip = self.physical_clip();
-        let mut placements = Vec::with_capacity(text.len());
-        let width = layout::place(&self.assets.fonts, text, run.style, |placed| placements.push(placed));
-        let baseline = number::round(pen.y);
-        for placed in placements {
-            let x = pen.x + placed.x * scale;
-            match placed.shape {
-                Shape::Glyph { font, glyph } => {
-                    let (column, subpixel) = split_position(x);
-                    let key = GlyphKey {
-                        font,
-                        glyph,
-                        size,
-                        subpixel,
-                    };
-                    let fonts = &mut self.assets.fonts;
-                    let Some(font_data) = fonts.faces.get(usize::from(font.0)) else {
-                        continue;
-                    };
-                    if let Some(mask) = fonts.glyphs.mask(key, font_data) {
-                        self.frame.fill_mask(mask.view_at(column, baseline), run.color, clip);
-                    }
-                }
-                Shape::Missing => {
-                    let box_width = placed.advance * scale * 0.8;
-                    let rect = PixelRect::new(
-                        number::round(x + placed.advance * scale * 0.1),
-                        number::round(pen.y - run.style.size * scale * MISSING_HEIGHT),
-                        number::round(x + placed.advance * scale * 0.1 + box_width),
-                        baseline,
-                    );
-                    self.draw_missing_box(rect, run.color);
-                }
-                Shape::Blank => {}
+        let frame = &mut *self.frame;
+        self.assets.fonts.glyph_images(&glyphs, |image| match image.pixels {
+            GlyphPixels::Coverage(coverage) => {
+                let mask = MaskView {
+                    rect: image.rect,
+                    coverage,
+                };
+                frame.fill_mask(mask, run.color, clip);
             }
-        }
-        width
-    }
-
-    /// The outline of the box drawn for a character no font has, one pixel wide at each scale.
-    fn draw_missing_box(&mut self, rect: PixelRect, color: Color) {
-        let line = number::round(self.scale()).max(1);
-        let clip = self.physical_clip();
-        let sides = [
-            PixelRect::new(rect.left, rect.top, rect.right, rect.top + line),
-            PixelRect::new(rect.left, rect.bottom - line, rect.right, rect.bottom),
-            PixelRect::new(rect.left, rect.top, rect.left + line, rect.bottom),
-            PixelRect::new(rect.right - line, rect.top, rect.right, rect.bottom),
-        ];
-        for side in sides {
-            self.frame.fill_rect(side.intersection(clip), color);
-        }
+            GlyphPixels::Colors(colors) => frame.fill_colors(image.rect, colors, clip),
+        })
     }
 }
 
-/// The pixel a position along the line falls in, and its place inside it in quarters of a pixel, rounded to the
-/// nearest quarter.
-fn split_position(x: f32) -> (i32, u8) {
-    let column = number::floor(x);
-    let quarters = number::round((x - number::float(column)) * f32::from(SUBPIXEL_POSITIONS));
-    let positions = i32::from(SUBPIXEL_POSITIONS);
-    let column = column + quarters / positions;
-    let subpixel = u8::try_from(quarters % positions).unwrap_or(0);
-    (column, subpixel)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn positions_are_split_into_a_pixel_and_quarters() {
-        assert_eq!(split_position(10.0), (10, 0));
-        assert_eq!(split_position(10.26), (10, 1));
-        assert_eq!(split_position(10.9), (11, 0));
-        assert_eq!(split_position(-0.25), (-1, 3));
+/// Calls `visit` with the image of each glyph of a line of text in a face, and returns the width of the line in
+/// logical pixels. The typeface's number keeps the lines it shaped apart from those of other typefaces.
+pub(crate) fn glyph_images(
+    engine: &mut Engine,
+    face: &Face,
+    (typeface, run): (u16, &GlyphRun<'_>),
+    mut visit: impl FnMut(GlyphImage<'_>),
+) -> f32 {
+    let key = (typeface, run.style.size.to_bits());
+    let Some(shaped) = engine.shaped(key, face, run.text, run.style.size) else {
+        return 0.0;
+    };
+    let width = shaped.width;
+    let placed: Vec<_> = shaped
+        .glyphs
+        .iter()
+        .map(|glyph| glyph.physical((run.pen.x, run.pen.y), run.scale))
+        .collect();
+    for glyph in placed {
+        let Some(image) = engine.glyph(glyph.cache_key) else {
+            continue;
+        };
+        let pixels = match image.content {
+            SwashContent::Mask => GlyphPixels::Coverage(&image.data),
+            SwashContent::Color => GlyphPixels::Colors(&image.data),
+            // Glyphs are asked for in shades of gray, never with a coverage for each color of a pixel.
+            SwashContent::SubpixelMask => continue,
+        };
+        let left = glyph.x + image.placement.left;
+        let top = glyph.y - image.placement.top;
+        let rect = PixelRect::new(
+            left,
+            top,
+            left + number::coordinate(image.placement.width),
+            top + number::coordinate(image.placement.height),
+        );
+        visit(GlyphImage { rect, pixels });
     }
+    width
 }

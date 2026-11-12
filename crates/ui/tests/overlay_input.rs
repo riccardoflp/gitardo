@@ -1,5 +1,6 @@
 //! The overlays of the gallery driven over several frames with synthetic input, as a person would: menus with the
-//! pointer and the keys, a dialog, a confirmation, the pickers, and dragging a badge onto the list.
+//! pointer and the keys, a dialog, a confirmation, the pickers, Quick search, the Activity drawer, and dragging the
+//! pill of a branch onto the timeline.
 
 #![allow(clippy::unwrap_used, reason = "a test that cannot go on fails")]
 
@@ -10,10 +11,12 @@ use support::{Window, click, key, move_to, press, release, shortcut, typed};
 use ui::gallery::{self, GalleryState, Overlay};
 use ui::{FrameOutput, InputEvent, Modifiers, NamedKey, PointerButton, PointerButtonEvent, Ui};
 
-/// Where a row of the list is in the gallery, with "Add the login page", and the row it is.
-const ROW: (f32, f32) = (700.0, 242.0);
-/// The row of the list at [`ROW`].
-const ROW_NUMBER: usize = 500_005;
+/// Where a commit of the timeline is in the gallery, with "Speed up the reading of large histories".
+const ROW: (f32, f32) = (600.0, 394.0);
+/// The commit of the timeline at [`ROW`].
+const ROW_NUMBER: usize = 4;
+/// Where the pill of the repository is, in the header.
+const REPOSITORY: (f32, f32) = (66.0, 28.0);
 
 /// The gallery in a window of its size, driven frame by frame, with what it asked for applied to its state.
 struct Gallery {
@@ -26,7 +29,7 @@ struct Gallery {
 impl Gallery {
     /// The gallery drawn once in its fixed state.
     fn new() -> Gallery {
-        let mut window = Window::new(ThemeName::Dark, (1024, 720), 1);
+        let mut window = Window::new(ThemeName::Dark, (1280, 800), 1);
         gallery::prepare(&mut window.memory, &window.theme);
         let mut gallery = Gallery {
             window,
@@ -90,7 +93,7 @@ fn a_context_menu_opens_at_the_pointer_and_a_click_chooses_its_item() {
     let _ = gallery.step(&secondary_click(ROW.0, ROW.1));
     assert_eq!(gallery.state.menu_row, Some(ROW_NUMBER));
     assert!(gallery.is_row_menu_open());
-    let output = gallery.step(&click(ROW.0 + 60.0, ROW.1 + 15.0));
+    let output = gallery.step(&click(ROW.0 + 60.0, ROW.1 + 20.0));
     let copied = output.clipboard.expect("the hash is copied");
     assert_eq!(copied.len(), 7);
     assert_eq!(gallery.state.status, Some(format!("Copied {copied}")));
@@ -131,7 +134,7 @@ fn escape_closes_a_menu_and_a_click_outside_too() {
 #[test]
 fn the_menu_of_a_button_opens_under_it_and_a_letter_goes_to_an_item() {
     let mut gallery = Gallery::new();
-    let _ = gallery.step(&click(1003.0, 16.0));
+    let _ = gallery.step(&click(REPOSITORY.0, REPOSITORY.1));
     let _ = gallery.step(&[shortcut('t', Modifiers::NONE)]);
     gallery.keys(&[
         NamedKey::ArrowRight,
@@ -163,7 +166,7 @@ fn tab_stays_inside_a_dialog_and_escape_cancels_it() {
         .state
         .apply(&gallery::GalleryIntent::Open(Overlay::CreateBranch));
     let _ = gallery.step(&[]);
-    let outside = gallery::widget_id("branch name");
+    let outside = gallery::widget_id("draft message");
     for _ in 0..6 {
         gallery.keys(&[NamedKey::Tab]);
         let focus = gallery.window.memory.focus();
@@ -235,11 +238,11 @@ fn a_picker_of_several_checks_rows_with_ctrl_space_and_escape_cancels_it() {
     assert_eq!(gallery.state.overlay, None);
 }
 
-/// Where the badge of main is in the box of labels.
-const BADGE: (f32, f32) = (490.0, 596.0);
+/// Where the pill of main is, on the merge in the timeline.
+const BADGE: (f32, f32) = (600.0, 281.0);
 
 #[test]
-fn a_badge_dragged_onto_the_list_is_dropped_there() {
+fn the_pill_of_a_branch_dragged_onto_the_timeline_is_dropped_there() {
     let mut gallery = Gallery::new();
     let _ = gallery.step(&[move_to(BADGE.0, BADGE.1), press(BADGE.0, BADGE.1)]);
     let _ = gallery.step(&[move_to(BADGE.0 + 1.0, BADGE.1)]);
@@ -248,7 +251,7 @@ fn a_badge_dragged_onto_the_list_is_dropped_there() {
     let (dragged, _) = gallery.step_and(&[move_to(ROW.0, ROW.1)], |ui| ui.dragged());
     assert!(dragged.is_some());
     let _ = gallery.step(&[release(ROW.0, ROW.1)]);
-    assert_eq!(gallery.state.status.as_deref(), Some("Dropped main on the list"));
+    assert_eq!(gallery.state.status.as_deref(), Some("Dropped main on the timeline"));
 }
 
 #[test]
@@ -260,4 +263,46 @@ fn escape_cancels_a_drag() {
     assert_eq!(dragged, None);
     let _ = gallery.step(&[release(ROW.0, ROW.1)]);
     assert_eq!(gallery.state.status, None, "nothing was dropped");
+}
+
+#[test]
+fn ctrl_k_and_a_click_on_quick_search_open_it_and_escape_closes_it() {
+    let mut gallery = Gallery::new();
+    let _ = gallery.step(&[shortcut('k', Modifiers::CONTROL)]);
+    assert_eq!(gallery.state.overlay, Some(Overlay::QuickSearch));
+    let _ = gallery.step(&[]);
+    gallery.keys(&[NamedKey::Escape]);
+    assert_eq!(gallery.state.overlay, None);
+    let _ = gallery.step(&[]);
+    let _ = gallery.step(&click(700.0, 28.0));
+    assert_eq!(gallery.state.overlay, Some(Overlay::QuickSearch));
+    let _ = gallery.step(&[]);
+    let _ = gallery.step(&[typed("login.rs")]);
+    let _ = gallery.step(&[]);
+    gallery.keys(&[NamedKey::Enter]);
+    assert_eq!(gallery.state.status.as_deref(), Some("Opened src/login/page.rs"));
+}
+
+#[test]
+fn the_activity_button_opens_the_drawer_and_escape_closes_it() {
+    let mut gallery = Gallery::new();
+    let _ = gallery.step(&click(1248.0, 28.0));
+    assert!(gallery.state.is_activity_open);
+    let _ = gallery.step(&[]);
+    gallery.keys(&[NamedKey::Escape]);
+    assert!(!gallery.state.is_activity_open);
+}
+
+#[test]
+fn commit_with_an_empty_message_opens_a_dialog() {
+    let mut gallery = Gallery::new();
+    gallery
+        .state
+        .apply(&gallery::GalleryIntent::Typed(gallery::Field::Message, String::new()));
+    let _ = gallery.step(&[]);
+    let _ = gallery.step(&click(880.0, 110.0));
+    assert_eq!(gallery.state.overlay, Some(Overlay::EmptyMessage));
+    let _ = gallery.step(&[]);
+    gallery.keys(&[NamedKey::Enter]);
+    assert_eq!(gallery.state.overlay, None);
 }

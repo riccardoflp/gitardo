@@ -8,8 +8,6 @@ pub mod fonts;
 pub mod input;
 pub mod theme;
 
-#[cfg(windows)]
 mod surface;
 
-#[cfg(windows)]
 pub use surface::{Step, Surface, SurfaceOptions};

@@ -122,9 +122,33 @@ impl Ui<'_> {
         } else {
             theme.colors.scrollbar_thumb
         };
-        let shape = shown.inset(theme.sizes.spacing.tiny);
+        let shape = thin(shown, spec.axis, theme.sizes.spacing, is_lit);
         let radius = shape.width.min(shape.height) * 0.5;
         self.fill_rounded_rect(shape, radius, color);
+    }
+}
+
+/// The thumb as it is drawn: a thin rounded line along the far side of its track, a little wider under the pointer.
+fn thin(thumb: Rect, axis: Axis, spacing: render::Spacing, is_lit: bool) -> Rect {
+    let thickness = if is_lit {
+        spacing.small + spacing.tiny
+    } else {
+        spacing.small
+    };
+    let edge = spacing.tiny;
+    match axis {
+        Axis::Vertical => Rect::new(
+            thumb.right() - edge - thickness,
+            thumb.y + edge,
+            thickness,
+            (thumb.height - 2.0 * edge).max(0.0),
+        ),
+        Axis::Horizontal => Rect::new(
+            thumb.x + edge,
+            thumb.bottom() - edge - thickness,
+            (thumb.width - 2.0 * edge).max(0.0),
+            thickness,
+        ),
     }
 }
 

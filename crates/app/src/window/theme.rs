@@ -1,5 +1,5 @@
 //! The theme a window is drawn in: the one chosen, or the system's when the choice is to follow it, high contrast
-//! included; and whether the title bar is dark or light to go with it.
+//! included; and whether the title bar is dark or light to go with it, or follows the system.
 
 use platform::{Appearance, SystemTheme};
 use render::{Theme, ThemeName};
@@ -18,13 +18,17 @@ pub fn resolve_theme(choice: ThemeName, system: SystemTheme) -> Theme {
     Theme::new(name, render::Appearance::Dark)
 }
 
-/// Whether the title bar goes dark or light with a theme.
+/// Whether the title bar goes dark or light with a theme chosen; none when the choice is to follow the system, so that
+/// the title bar follows it too and the system says when it changes.
 #[must_use]
-pub fn title_bar(theme: &Theme) -> Appearance {
-    match theme.name {
+pub fn title_bar(choice: ThemeName, theme: &Theme) -> Option<Appearance> {
+    if choice == ThemeName::System {
+        return None;
+    }
+    Some(match theme.name {
         ThemeName::Dark | ThemeName::HighContrastDark => Appearance::Dark,
         ThemeName::Light | ThemeName::HighContrastLight | ThemeName::System => Appearance::Light,
-    }
+    })
 }
 
 #[cfg(test)]
@@ -56,10 +60,12 @@ mod tests {
         let high_contrast = system(Appearance::Dark, true);
         assert_eq!(resolve_theme(ThemeName::Light, high_contrast).name, ThemeName::Light);
         assert_eq!(
-            title_bar(&resolve_theme(ThemeName::Light, high_contrast)),
-            Appearance::Light
+            title_bar(ThemeName::Light, &resolve_theme(ThemeName::Light, high_contrast)),
+            Some(Appearance::Light)
         );
         let dark = resolve_theme(ThemeName::HighContrastDark, system(Appearance::Light, false));
-        assert_eq!(title_bar(&dark), Appearance::Dark);
+        assert_eq!(title_bar(ThemeName::HighContrastDark, &dark), Some(Appearance::Dark));
+        let followed = resolve_theme(ThemeName::System, high_contrast);
+        assert_eq!(title_bar(ThemeName::System, &followed), None);
     }
 }

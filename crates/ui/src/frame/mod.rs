@@ -20,12 +20,15 @@ use crate::layer::Layer;
 use crate::memory::UiMemory;
 use crate::paint::{DisplayList, Shape};
 
-/// The typefaces the toolkit draws with, made by the application from the fonts it loaded.
+/// The typefaces the toolkit draws with, made by the application from the fonts it loaded: Inter at three weights
+/// and `JetBrains Mono`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Typefaces {
-    /// The text of the interface.
+    /// The text of the interface: Inter, regular.
     pub sans: TypefaceId,
-    /// Headings and what stands out.
+    /// Names that stand out a little, such as the subject of a commit or a branch: Inter, medium (500).
+    pub medium: TypefaceId,
+    /// Headings, the main button and what stands out: Inter, semibold (600).
     pub bold: TypefaceId,
     /// Code, hashes and the command log.
     pub mono: TypefaceId,
@@ -36,14 +39,22 @@ pub struct Typefaces {
 pub enum TextKind {
     /// The text of the interface.
     Body,
+    /// Names that stand out a little: the subject of a commit, a branch, a person.
+    Medium,
     /// The text of the interface that stands out.
     Strong,
-    /// Badges and small print.
+    /// The second line of a row and what is said beside a control: an author and a date, a count, what runs.
+    Detail,
+    /// Small print.
     Small,
-    /// The titles of pages, boxes and dialogs.
+    /// Small print that stands out: the words of pills and the titles of the sections of the branch rail.
+    SmallStrong,
+    /// The titles of pages, cards and dialogs.
     Heading,
-    /// Code and hashes.
+    /// Code and the command log.
     Code,
+    /// Hashes beside the words of the interface, at the size of the second line of a row.
+    Hash,
 }
 
 /// What a frame is drawn with, besides the input.
@@ -136,6 +147,8 @@ pub struct Ui<'frame> {
     overlays: Vec<WidgetId>,
     /// The text drawn in this frame, kept while find in page is open.
     pub(crate) recording: crate::widget::find::Recording,
+    /// The widgets described for the screen reader in this frame.
+    pub(crate) access: crate::access::AccessRecorder,
 }
 
 impl<'frame> Ui<'frame> {
@@ -155,6 +168,9 @@ impl<'frame> Ui<'frame> {
             now: settings.now,
         };
         let mut routed = route(&mut memory.interaction, events, route_settings);
+        for (id, event) in memory.access.pending.drain(..) {
+            routed.events.entry(id).or_default().push(event);
+        }
         crate::widget::drag::start_frame(memory, &mut routed);
         let recording = crate::widget::find::Recording::new(memory.find.is_searching());
         let scale = if settings.scale.is_finite() && settings.scale > 0.0 {
@@ -185,6 +201,7 @@ impl<'frame> Ui<'frame> {
             tooltip: None,
             overlays: Vec::new(),
             recording,
+            access: crate::access::AccessRecorder::default(),
         };
         ui.fill_rect(window, ui.settings.theme.colors.window_background);
         ui
@@ -215,10 +232,14 @@ impl<'frame> Ui<'frame> {
         let sizes = self.settings.theme.sizes.font;
         let (typeface, size) = match kind {
             TextKind::Body => (typefaces.sans, sizes.body),
+            TextKind::Medium => (typefaces.medium, sizes.body),
             TextKind::Strong => (typefaces.bold, sizes.body),
+            TextKind::Detail => (typefaces.sans, sizes.detail),
             TextKind::Small => (typefaces.sans, sizes.small),
+            TextKind::SmallStrong => (typefaces.bold, sizes.small),
             TextKind::Heading => (typefaces.bold, sizes.heading),
             TextKind::Code => (typefaces.mono, sizes.code),
+            TextKind::Hash => (typefaces.mono, sizes.detail),
         };
         TextStyle { typeface, size }
     }
@@ -381,6 +402,21 @@ impl<'frame> Ui<'frame> {
                 text: text.to_owned(),
             });
         }
+    }
+
+    /// Physical pixels for each logical pixel.
+    pub(crate) fn scale(&self) -> f32 {
+        self.settings.scale
+    }
+
+    /// The layer drawn into now.
+    pub(crate) fn current_layer(&self) -> Layer {
+        self.layer
+    }
+
+    /// The widgets declared so far that take input.
+    pub(crate) fn hits(&self) -> &Hits {
+        &self.hits
     }
 
     /// What is kept between frames.

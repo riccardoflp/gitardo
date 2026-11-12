@@ -20,6 +20,11 @@ impl WidgetId {
         WidgetId(hasher.finish())
     }
 
+    /// The number the name is made of, which names the widget to the screen reader too.
+    pub(crate) fn number(self) -> u64 {
+        self.0
+    }
+
     /// The name at the end of a path of keys from the root, such as `["gallery", "list"]`.
     #[must_use]
     pub fn from_path<K: Hash>(path: &[K]) -> WidgetId {

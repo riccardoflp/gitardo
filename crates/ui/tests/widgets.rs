@@ -19,11 +19,7 @@ use ui::{
 /// An input box from 10 to 310 across, 10 to 36 down, showing what the view holds.
 fn input_box(text: &str) -> impl Fn(&mut Ui<'_>) -> InputBoxResponse + '_ {
     move |ui| {
-        let input = InputBox {
-            text,
-            placeholder: "Branch name",
-            message: None,
-        };
+        let input = InputBox::new(text, "Branch name");
         ui.input_box("name", Rect::new(10.0, 10.0, 300.0, 26.0), &input)
     }
 }
@@ -82,9 +78,11 @@ fn a_view_that_changes_its_text_replaces_what_the_box_holds() {
 /// A list of a million rows from 0 to 300 across and 0 to 220 down: ten rows of 22 pixels in sight.
 fn list(ui: &mut Ui<'_>) -> ListResponse {
     let list = List {
+        name: "Rows",
         row_count: 1_000_000,
         row_height: 22.0,
         selection_mode: SelectionMode::Multiple,
+        lead: 0.0,
     };
     ui.list("rows", Rect::new(0.0, 0.0, 300.0, 220.0), &list, |_, _| {})
 }
@@ -161,11 +159,13 @@ fn a_scroll_area_scrolls_by_wheel_keys_and_its_bar_and_never_past_its_content() 
     window.wait(200);
     let (answer, _) = window.frame(&[], scroll_area);
     assert_eq!(answer.offset.1, 0.0);
+    // A page is the height of the area less a row, so that the last row in sight stays in sight.
+    let page = 100.0 - f64::from(window.theme.sizes.row_height);
     let (answer, _) = window.frame(&[key(NamedKey::PageDown, Modifiers::NONE)], scroll_area);
-    assert!(answer.offset.1 > 0.0 && answer.offset.1 < 78.0, "the glide has started");
+    assert!(answer.offset.1 > 0.0 && answer.offset.1 < page, "the glide has started");
     window.wait(200);
     let (answer, _) = window.frame(&[], scroll_area);
-    assert_eq!(answer.offset.1, 78.0);
+    assert_eq!(answer.offset.1, page);
     let drag = [
         move_to(195.0, 15.0),
         press(195.0, 15.0),

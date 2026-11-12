@@ -34,9 +34,11 @@ fn page(ui: &mut Ui<'_>) -> (FindResponse, usize) {
     );
     let _ = ui.label(Rect::new(10.0, 40.0, 300.0, 22.0), &Label::new("Nothing here"));
     let list = List {
+        name: "Rows",
         row_count: ROWS,
         row_height: 22.0,
         selection_mode: SelectionMode::Single,
+        lead: 0.0,
     };
     let search = ListSearch {
         row_text: &row_text,
@@ -86,7 +88,7 @@ fn ctrl_f_opens_the_bar_and_matches_are_counted_in_sight_and_out_of_it() {
 }
 
 /// Where the switch for the case of letters is in the bar, at the top right of the page.
-const CASE_BUTTON: (f32, f32) = (600.0 - 114.0, 21.0);
+const CASE_BUTTON: (f32, f32) = (466.0, 24.0);
 
 #[test]
 fn the_case_of_letters_does_not_matter_until_it_is_asked_to() {

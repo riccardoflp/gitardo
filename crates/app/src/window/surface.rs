@@ -3,9 +3,10 @@
 
 use std::time::{Duration, Instant};
 
+use platform::accesskit::{Node, NodeId, Role, TreeId, TreeInfo, TreeUpdate};
 use platform::{
-    Clipboard, Event, EventLoop, Frame, InputEvent, LogicalSize, PhysicalSize, SystemTheme, TimerId, Visibility,
-    Window, WindowOptions,
+    AccessibilityRequest, Clipboard, Context, Event, Frame, InputEvent, LogicalSize, PhysicalSize, SystemTheme,
+    TextInputArea, TimerId, Visibility, Window, WindowOptions,
 };
 use render::{Assets, FrameBuffer, Theme, ThemeName};
 use ui::{FrameInput, FrameOutput, FrameSettings, Typefaces, Ui, UiMemory};
@@ -43,10 +44,15 @@ pub enum Step {
     Close,
 }
 
+/// The node of the window itself in the tree given to the screen reader.
+const WINDOW_NODE: NodeId = NodeId(0);
+
 /// A window that shows a view of the toolkit.
 pub struct Surface {
     /// The window.
     window: Window,
+    /// The text of its title bar, which the screen reader says.
+    title: String,
     /// The pixels of the window.
     frame: FrameBuffer,
     /// The fonts and the glyphs drawn so far.
@@ -73,32 +79,36 @@ pub struct Surface {
     caret: Option<render::Rect>,
     /// How many frames were drawn.
     frames_drawn: u64,
+    /// Whether a screen reader listens, from its first question until it goes away.
+    is_reader_listening: bool,
+    /// The tree the screen reader was given last, so that a frame that changed nothing of it sends nothing.
+    told_reader: Option<TreeUpdate>,
 }
 
 impl Surface {
-    /// Opens a window and loads the fonts of the system for it. It asks for its first frame.
+    /// Opens a window and loads the fonts for it, once the loop runs. It asks for its first frame.
     ///
     /// # Errors
     ///
     /// `AppError::Platform` when the window could not open; the errors of [`load_system_fonts`] when the fonts
     /// could not be loaded.
-    pub fn open<M: 'static>(event_loop: &EventLoop<M>, options: SurfaceOptions) -> Result<Surface, AppError> {
-        let system = platform::system_theme().unwrap_or_default();
+    pub fn open(context: &Context<'_>, options: SurfaceOptions) -> Result<Surface, AppError> {
+        let system = context.system_theme();
         let theme = resolve_theme(options.theme, system);
         let window_options = WindowOptions {
-            title: options.title,
+            title: options.title.clone(),
             size: options.size,
             visibility: options.visibility,
-            title_bar: title_bar(&theme),
+            title_bar: title_bar(options.theme, &theme),
             ..WindowOptions::default()
         };
-        let window = Window::open(event_loop, &window_options)?;
+        let window = Window::open(context, &window_options)?;
         let mut assets = Assets::new();
         let typefaces = load_system_fonts(&mut assets)?;
-        let size = window.size()?;
-        window.request_redraw();
+        let size = window.size();
         Ok(Surface {
             window,
+            title: options.title,
             frame: FrameBuffer::new(size.width, size.height),
             assets,
             typefaces,
@@ -112,6 +122,8 @@ impl Surface {
             frame_timer: options.frame_timer,
             caret: None,
             frames_drawn: 0,
+            is_reader_listening: false,
+            told_reader: None,
         })
     }
 
@@ -147,6 +159,8 @@ impl Surface {
     /// Changes the theme chosen: the title bar follows, and a frame is asked for.
     pub fn set_theme(&mut self, choice: ThemeName) {
         self.choice = choice;
+        self.window
+            .set_title_bar(title_bar(choice, &resolve_theme(choice, self.system)));
         self.apply_theme();
     }
 
@@ -159,12 +173,12 @@ impl Surface {
                 self.window.request_redraw();
                 Step::Handled
             }
-            Event::ThemeChanged => {
-                self.system = platform::system_theme().unwrap_or(self.system);
+            Event::ThemeChanged(system) => {
+                self.system = *system;
                 self.apply_theme();
                 Step::Handled
             }
-            Event::Input { .. } | Event::Timer(_) | Event::Message(_) => Step::Ignored,
+            Event::Started | Event::Input { .. } | Event::Timer(_) | Event::Message(_) => Step::Ignored,
         }
     }
 
@@ -174,12 +188,8 @@ impl Surface {
     /// # Errors
     ///
     /// `AppError::Platform` when the system refused to show the frame.
-    pub fn draw<M: 'static, R>(
-        &mut self,
-        event_loop: &EventLoop<M>,
-        view: impl FnOnce(&mut Ui<'_>) -> R,
-    ) -> Result<R, AppError> {
-        let size = self.window.size()?;
+    pub fn draw<R>(&mut self, context: &Context<'_>, view: impl FnOnce(&mut Ui<'_>) -> R) -> Result<R, AppError> {
+        let size = self.window.size();
         if size.width != self.frame.width() || size.height != self.frame.height() {
             self.frame.resize(size.width, size.height);
         }
@@ -201,9 +211,10 @@ impl Surface {
         let answer = view(&mut ui);
         let output = ui.finish();
         self.frames_drawn += 1;
+        self.tell_screen_reader();
         self.present(&output)?;
         self.follow(&output);
-        self.schedule(event_loop, output.next_frame, now)?;
+        self.schedule(context, output.next_frame, now);
         Ok(answer)
     }
 
@@ -221,6 +232,7 @@ impl Surface {
                     self.pending.push(ui::InputEvent::Paste(text));
                 }
             }
+            InputEvent::Accessibility(request) => return self.answer_screen_reader(request),
             InputEvent::Resized(_) | InputEvent::ScaleChanged(_) => {}
             _ => self.pending.extend(toolkit_event(event)),
         }
@@ -228,23 +240,68 @@ impl Surface {
         Step::Handled
     }
 
-    /// Draws in the theme the choice and the system give, with the title bar to go with it.
+    /// Draws in the theme the choice and the system give.
     fn apply_theme(&mut self) {
         let theme = resolve_theme(self.choice, self.system);
         if theme.name != self.theme.name {
             self.theme = theme;
-            // A system without dark title bars keeps a light one: nothing else to do about it.
-            let _ = self.window.set_title_bar(title_bar(&theme));
             self.window.request_redraw();
         }
     }
 
-    /// Shows the parts of the frame that changed.
+    /// Answers what a screen reader asks: the tree of the last frame when it starts listening, and a click or the
+    /// focus it asks for, which the next frame acts on as it would on the pointer's or the keyboard's.
+    fn answer_screen_reader(&mut self, request: &AccessibilityRequest) -> Step {
+        match request {
+            AccessibilityRequest::InitialTree => {
+                self.is_reader_listening = true;
+                let tree = self.reader_tree();
+                self.told_reader = Some(tree.clone());
+                self.window.update_accessibility(tree);
+            }
+            AccessibilityRequest::Action(action) => {
+                if self.memory.accessibility_action(action) {
+                    self.window.request_redraw();
+                }
+            }
+            AccessibilityRequest::Deactivated => {
+                self.is_reader_listening = false;
+                self.told_reader = None;
+            }
+        }
+        Step::Handled
+    }
+
+    /// Gives the screen reader the tree of the frame just drawn, when one listens and the tree changed.
+    fn tell_screen_reader(&mut self) {
+        if !self.is_reader_listening {
+            return;
+        }
+        let tree = self.reader_tree();
+        if self.told_reader.as_ref() != Some(&tree) {
+            self.told_reader = Some(tree.clone());
+            self.window.update_accessibility(tree);
+        }
+    }
+
+    /// The tree of the last frame for the screen reader, its window named by the title; the window alone with its
+    /// title before the first frame.
+    fn reader_tree(&self) -> TreeUpdate {
+        if self.frames_drawn == 0 {
+            return window_tree(&self.title);
+        }
+        let mut tree = self.memory.accessibility_update();
+        let root = tree.tree.as_ref().map(|info| info.root);
+        if let Some((_, window)) = tree.nodes.iter_mut().find(|(id, _)| Some(*id) == root) {
+            window.set_label(self.title.as_str());
+        }
+        tree
+    }
+
+    /// Shows the parts of the frame that changed; the platform shows it whole when the window lost what it showed,
+    /// so it is asked even when nothing changed.
     fn present(&self, output: &FrameOutput) -> Result<(), AppError> {
         let dirty: Vec<platform::PixelRect> = output.dirty.iter().filter_map(|rect| system_rect(*rect)).collect();
-        if dirty.is_empty() {
-            return Ok(());
-        }
         let frame = Frame {
             pixels: self.frame.pixels(),
             size: PhysicalSize {
@@ -261,12 +318,13 @@ impl Surface {
         self.window.set_cursor(system_cursor(output.cursor));
         if output.caret != self.caret {
             self.caret = output.caret;
-            if let Some(caret) = output.caret {
-                // The input method keeps its last place when it refuses this one, which is the best left to do.
-                let _ = self
-                    .window
-                    .set_text_input_area(platform::Point { x: caret.x, y: caret.y });
-            }
+            self.window.set_text_input_area(output.caret.map(|caret| TextInputArea {
+                position: platform::Point { x: caret.x, y: caret.y },
+                size: LogicalSize {
+                    width: caret.width,
+                    height: caret.height,
+                },
+            }));
         }
         if let Some(text) = &output.clipboard {
             // Text that could not be copied stays where it was: the person sees nothing on the clipboard and copies
@@ -276,29 +334,35 @@ impl Surface {
     }
 
     /// Asks for the next frame when the last one wants it: at once, or when the timer goes off.
-    fn schedule<M: 'static>(
-        &self,
-        event_loop: &EventLoop<M>,
-        next: Option<Duration>,
-        now: Duration,
-    ) -> Result<(), AppError> {
+    fn schedule(&self, context: &Context<'_>, next: Option<Duration>, now: Duration) {
         match next {
-            None => event_loop.stop_timer(self.frame_timer),
+            None => context.stop_timer(self.frame_timer),
             Some(at) if at <= now => {
-                event_loop.stop_timer(self.frame_timer);
+                context.stop_timer(self.frame_timer);
                 self.window.request_redraw();
             }
-            Some(at) => event_loop.start_timer(self.frame_timer, at.saturating_sub(now))?,
+            Some(at) => context.start_timer(self.frame_timer, at.saturating_sub(now)),
         }
-        Ok(())
     }
 
     /// The clipboard, opened the first time it is needed.
-    fn clipboard(&mut self) -> Option<&Clipboard> {
+    fn clipboard(&mut self) -> Option<&mut Clipboard> {
         if self.clipboard.is_none() {
             self.clipboard = Clipboard::new().ok();
         }
-        self.clipboard.as_ref()
+        self.clipboard.as_mut()
+    }
+}
+
+/// The tree of a window with nothing in it but its title, for the screen reader.
+fn window_tree(title: &str) -> TreeUpdate {
+    let mut window = Node::new(Role::Window);
+    window.set_label(title);
+    TreeUpdate {
+        nodes: vec![(WINDOW_NODE, window)],
+        tree: Some(TreeInfo::new(WINDOW_NODE)),
+        tree_id: TreeId::ROOT,
+        focus: WINDOW_NODE,
     }
 }
 

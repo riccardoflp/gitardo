@@ -3,6 +3,8 @@
 
 use render::{Border, Color, Point, Rect, TextRun};
 
+use crate::access::{AccessRole, Description};
+
 use super::fuzzy::FuzzyMatch;
 use super::{Picker, PickerAnswer, PickerItem, PickerMode, PickerState, SHOWN_ROWS, ranked, toggle};
 use crate::frame::{TextKind, Ui};
@@ -38,18 +40,12 @@ impl Ui<'_> {
     ) -> Option<PickerAnswer> {
         let theme = *self.theme();
         let spacing = theme.sizes.spacing;
-        let _ = self.interact(self.id("box"), rect, Sense::CLICK);
-        let radius = theme.sizes.radius.large;
-        let shadow = Rect::new(rect.x, rect.y + spacing.tiny, rect.width, rect.height);
-        self.fill_rounded_rect(shadow.inset(-spacing.tiny), radius, theme.colors.shadow);
-        self.fill_rounded_rect(rect, radius, theme.colors.menu_background);
-        let border = Border {
-            width: theme.sizes.border,
-            radius,
-            color: theme.colors.border,
-        };
-        self.border(rect, border);
-        let mut area = Area::with_gap(inset(rect, Insets::all(spacing.small)), spacing.small);
+        let box_id = self.id("box");
+        let _ = self.interact(box_id, rect, Sense::CLICK);
+        self.floating_card(rect, theme.sizes.radius.large + spacing.small);
+        self.access_node(box_id, rect, &Description::new(AccessRole::Dialog, picker.placeholder));
+        self.access_enter(box_id);
+        let mut area = Area::with_gap(inset(rect, Insets::all(spacing.medium)), spacing.small);
         let mut top = Area::with_gap(area.top(metrics::control_height(&theme)), spacing.small);
         let mut answer = None;
         if picker.mode == PickerMode::Multiple {
@@ -60,13 +56,10 @@ impl Ui<'_> {
             }
         }
         let query = state.query.clone();
-        let input = InputBox {
-            text: &query,
-            placeholder: picker.placeholder,
-            message: None,
-        };
+        let input = InputBox::new(&query, picker.placeholder).with_icon(render::Icon::Search);
         let _ = self.input_box("query", top.rest(), &input);
         let rows = self.picker_rows(area.rest(), picker, state);
+        self.access_leave();
         answer.or(rows)
     }
 
@@ -121,6 +114,11 @@ impl Ui<'_> {
                 is_checked: (picker.mode == PickerMode::Multiple).then(|| state.checked.contains(item_index)),
             };
             self.picker_row(&row);
+            let mut description = Description::new(AccessRole::ListItem, item.label).selected(row.is_lit);
+            if let Some(is_checked) = row.is_checked {
+                description = description.on(is_checked);
+            }
+            self.access_node(response.id, row_rect, &description);
         }
         answer
     }
@@ -131,7 +129,7 @@ impl Ui<'_> {
         let colors = theme.colors;
         let spacing = theme.sizes.spacing;
         if row.is_lit {
-            self.fill_rounded_rect(row.rect, theme.sizes.radius.small, colors.menu_selection);
+            self.fill_rounded_rect(row.rect, theme.sizes.radius.medium, colors.menu_selection);
         }
         let (color, matched, muted) = if row.is_lit {
             let lit = colors.menu_selection_foreground;

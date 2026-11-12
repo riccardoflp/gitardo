@@ -1,11 +1,12 @@
-//! Drawing the levels of a menu, each in a box with a shadow on the layer of popups, and the pointer over their items:
+//! Drawing the levels of a menu, each a floating card on the layer of popups, and the pointer over their items:
 //! the item under the pointer is lit when the pointer moves, the submenu of an item opens when the pointer is over
 //! it, and a click chooses.
 
-use render::{Border, Icon, Point, Rect, TextRun, Theme};
+use render::{Icon, Point, Rect, TextRun};
 
 use super::layout::{self, MenuMetrics, Placement};
 use super::{MenuEntry, OpenMenu};
+use crate::access::{AccessRole, Description};
 use crate::frame::{TextKind, Ui};
 use crate::id::WidgetId;
 use crate::interaction::Sense;
@@ -154,7 +155,9 @@ impl Ui<'_> {
             level.id.with(("level", level.depth))
         };
         let _ = self.interact(panel, level.rect, sense);
-        self.menu_box(level.rect, &theme);
+        self.floating_card(level.rect, theme.sizes.radius.large);
+        self.access_node(panel, level.rect, &Description::new(AccessRole::Menu, ""));
+        self.access_enter(panel);
         let border = theme.sizes.border;
         let mut y = level.rect.y + level.metrics.padding + border;
         let mut rects = Vec::with_capacity(entries.len());
@@ -189,22 +192,14 @@ impl Ui<'_> {
             }
             let is_lit = open.levels.get(level.depth).copied().flatten() == Some(index);
             self.menu_entry(rect, &look, is_lit, &level.metrics);
+            let mut description = Description::new(AccessRole::MenuItem, look.label).disabled(!look.is_enabled);
+            if look.is_submenu {
+                description = description.expanded(is_lit && open.levels.len() > level.depth + 1);
+            }
+            self.access_node(item, rect, &description);
         }
+        self.access_leave();
         rects
-    }
-
-    /// The box of a level: its shadow, its background and its border.
-    fn menu_box(&mut self, rect: Rect, theme: &Theme) {
-        let radius = theme.sizes.radius.large;
-        let shadow = Rect::new(rect.x, rect.y + theme.sizes.spacing.tiny, rect.width, rect.height);
-        self.fill_rounded_rect(shadow.inset(-theme.sizes.spacing.tiny), radius, theme.colors.shadow);
-        self.fill_rounded_rect(rect, radius, theme.colors.menu_background);
-        let border = Border {
-            width: theme.sizes.border,
-            radius,
-            color: theme.colors.border,
-        };
-        self.border(rect, border);
     }
 
     /// Draws an entry: lit under the pointer or the keys, its icon, its words, its shortcut, and the arrow of a
@@ -212,24 +207,21 @@ impl Ui<'_> {
     fn menu_entry(&mut self, rect: Rect, look: &EntryLook<'_>, is_lit: bool, metrics: &MenuMetrics) {
         let theme = *self.theme();
         let colors = theme.colors;
-        let inner = rect.inset(theme.sizes.spacing.tiny);
         if is_lit {
-            self.fill_rounded_rect(inner, theme.sizes.radius.small, colors.menu_selection);
+            let inset = theme.sizes.spacing.small;
+            let inner = Rect::new(
+                rect.x + inset,
+                rect.y + 1.0,
+                rect.width - 2.0 * inset,
+                rect.height - 2.0,
+            );
+            self.fill_rounded_rect(inner, theme.sizes.radius.medium, colors.menu_selection);
         }
-        let (color, shortcut_color) = match (look.is_enabled, is_lit) {
-            (false, _) => (colors.disabled_foreground, colors.disabled_foreground),
-            (true, true) => (colors.menu_selection_foreground, colors.menu_selection_foreground),
-            (true, false) => (colors.menu_foreground, colors.muted_foreground),
-        };
+        let (color, shortcut_color) = entry_colors(&colors, look.is_enabled, is_lit);
         let side = theme.sizes.icon;
         let mut x = rect.x + metrics.side;
         if let Some(icon) = look.icon {
-            let at = place(
-                Rect::new(x, rect.y, side, rect.height),
-                (side, side),
-                (Align::Start, Align::Center),
-            );
-            self.icon(icon, Point::new(at.x, at.y), side, color);
+            self.entry_icon(icon, Rect::new(x, rect.y, side, rect.height), color);
         }
         x += metrics.icon_column;
         let style = self.text_style(TextKind::Body);
@@ -241,12 +233,7 @@ impl Ui<'_> {
         let mut right = rect.right() - metrics.side;
         if look.is_submenu {
             right -= side;
-            let at = place(
-                Rect::new(right, rect.y, side, rect.height),
-                (side, side),
-                (Align::Start, Align::Center),
-            );
-            self.icon(Icon::ChevronRight, Point::new(at.x, at.y), side, color);
+            self.entry_icon(Icon::ChevronRight, Rect::new(right, rect.y, side, rect.height), color);
         }
         if let Some(shortcut) = look.shortcut {
             let width = self.measure(shortcut, style);
@@ -269,6 +256,22 @@ impl Ui<'_> {
             max_width: Some((right - x).max(0.0)),
         };
         let _ = self.text(&run);
+    }
+
+    /// Draws an icon of an entry in the middle of its column, down.
+    fn entry_icon(&mut self, icon: Icon, column: Rect, color: render::Color) {
+        let side = self.theme().sizes.icon;
+        let at = place(column, (side, side), (Align::Start, Align::Center));
+        self.icon(icon, Point::new(at.x, at.y), side, color);
+    }
+}
+
+/// The colors of the words and of the shortcut of an entry, lit or not, enabled or not.
+fn entry_colors(colors: &render::Colors, is_enabled: bool, is_lit: bool) -> (render::Color, render::Color) {
+    match (is_enabled, is_lit) {
+        (false, _) => (colors.disabled_foreground, colors.disabled_foreground),
+        (true, true) => (colors.menu_selection_foreground, colors.menu_selection_foreground),
+        (true, false) => (colors.menu_foreground, colors.muted_foreground),
     }
 }
 

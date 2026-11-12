@@ -154,6 +154,31 @@ impl FrameBuffer {
         }
     }
 
+    /// Lays an image in color over a rectangle of pixels, four bytes for each pixel of the rectangle, row after row:
+    /// red, green, blue and opacity. Only the pixels inside the clip and the frame change.
+    pub(crate) fn fill_colors(&mut self, rect: PixelRect, colors: &[u8], clip: PixelRect) {
+        let shown = rect.intersection(clip).intersection(self.bounds());
+        if shown.is_empty() {
+            return;
+        }
+        self.dirty.add(shown);
+        let image_width = number::index_of_size(rect.width());
+        let skipped_columns = number::index(shown.left - rect.left);
+        for row in shown.top..shown.bottom {
+            let start = (number::index(row - rect.top) * image_width + skipped_columns) * 4;
+            let source = colors.get(start..).unwrap_or_default();
+            let Some(span) = self.span_mut(row, shown.left, shown.right) else {
+                continue;
+            };
+            let (colors, _) = source.as_chunks::<4>();
+            for (pixel, &[red, green, blue, opacity]) in span.iter_mut().zip(colors) {
+                if opacity > 0 {
+                    *pixel = blend(*pixel, Color::rgb(red, green, blue).pixel(), u32::from(opacity));
+                }
+            }
+        }
+    }
+
     /// The pixels of a row from a column to the one before another, when they are in the frame.
     fn span_mut(&mut self, row: i32, left: i32, right: i32) -> Option<&mut [u32]> {
         let start = self.index(left, row)?;

@@ -9,6 +9,8 @@ use std::hash::Hash;
 
 use render::{Border, Color, Rect, Theme};
 
+use crate::access::{AccessRole, Description};
+
 use crate::frame::{TextKind, Ui};
 use crate::input::{Key, Modifiers, NamedKey};
 use crate::interaction::Sense;
@@ -119,7 +121,9 @@ impl Ui<'_> {
         self.layer(Layer::Modal, |ui| {
             ui.fill_rect(window, backdrop(&theme));
             let _ = ui.interact(id.with("backdrop"), window, Sense::CLICK);
-            ui.dialog_box(rect, &theme);
+            ui.floating_card(rect, theme.sizes.radius.large + spacing.small);
+            ui.access_node(id, rect, &Description::new(AccessRole::Dialog, dialog.title));
+            ui.access_enter(id);
             let mut area = Area::new(inset(rect, Insets::all(spacing.huge)));
             let _ = ui.heading(area.top(title_height), dialog.title);
             let _ = area.top(spacing.large);
@@ -134,24 +138,10 @@ impl Ui<'_> {
                 ui.clip(body_rect, |ui| body(ui, opened));
                 response = ui.dialog_buttons(buttons, dialog.buttons);
             });
+            ui.access_leave();
         });
         self.dialog_keys(dialog, &mut response);
         response
-    }
-
-    /// The box of a dialog: its shadow, its background and its border.
-    fn dialog_box(&mut self, rect: Rect, theme: &Theme) {
-        let radius = theme.sizes.radius.large;
-        let spacing = theme.sizes.spacing;
-        let shadow = Rect::new(rect.x, rect.y + spacing.small, rect.width, rect.height);
-        self.fill_rounded_rect(shadow.inset(-spacing.small), radius, theme.colors.shadow);
-        self.fill_rounded_rect(rect, radius, theme.colors.menu_background);
-        let border = Border {
-            width: theme.sizes.border,
-            radius,
-            color: theme.colors.border,
-        };
-        self.border(rect, border);
     }
 
     /// The buttons of a dialog along the right of a row, in order, and which was pressed.
@@ -291,8 +281,8 @@ impl Ui<'_> {
     /// Commands as lines of code in a box, scrolled when there are many.
     fn command_lines(&mut self, rect: Rect, commands: &[&str]) {
         let theme = *self.theme();
-        let radius = theme.sizes.radius.medium;
-        self.fill_rounded_rect(rect, radius, theme.colors.input_background);
+        let radius = theme.sizes.radius.large;
+        self.fill_rounded_rect(rect, radius, theme.colors.secondary_button_background);
         let border = Border {
             width: theme.sizes.border,
             radius,

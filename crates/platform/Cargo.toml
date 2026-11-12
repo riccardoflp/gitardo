@@ -6,5 +6,35 @@ edition.workspace = true
 license.workspace = true
 publish.workspace = true
 
+# The libraries of decision D16 (rule R1.6). Each takes only the features named beside it; the rest are turned off.
+# Every feature below matters only on Linux: on Windows and macOS these libraries use the system's own interfaces.
+[dependencies]
+# The tree of what is on screen, as plain data: it has no default features, and needs none.
+accesskit = "=0.25.2"
+# The screen reader, through the window. The release made for winit 0.30.
+# - rwh_06: the handles of winit's windows, which the adapter needs.
+# - accesskit_unix, async-io: AT-SPI over D-Bus on Linux, with the smaller of the two runtimes it can use (tokio is
+#   the other). It is the largest part of the Linux build; without it Linux has no screen reader.
+accesskit_winit = { version = "=0.34.2", default-features = false, features = ["rwh_06", "accesskit_unix", "async-io"] }
+# The clipboard, text only.
+# - Not image-data, which brings an image library; not wayland-data-control, so that on Wayland the clipboard goes
+#   through XWayland, as it does on X11.
+arboard = { version = "=3.7.0", default-features = false }
+# The system's dialogs to choose a folder or a file.
+# - xdg-portal: on Linux, the dialogs of the desktop through its portal, which brings only a small executor; gtk3
+#   would link the GTK libraries of the system at build time. Not wayland, which only attaches a dialog to its window
+#   on Wayland and links libwayland.
+rfd = { version = "=0.18.0", default-features = false, features = ["xdg-portal"] }
+# Showing a frame of pixels drawn in memory.
+# - x11, x11-dlopen, wayland, wayland-dlopen: the two display servers of Linux, with their libraries loaded when the
+#   program runs rather than linked. Not kms, which draws without a display server.
+softbuffer = { version = "=0.4.8", default-features = false, features = ["x11", "x11-dlopen", "wayland", "wayland-dlopen"] }
+# Windows, input, input methods, scale, cursors and the event loop. 0.30, the last stable release.
+# - rwh_06: the handles of its windows, which softbuffer, rfd and accesskit_winit take.
+# - x11, wayland, wayland-dlopen: the two display servers of Linux, libwayland loaded when the program runs. Not
+#   wayland-csd-adwaita, which draws the title bar on GNOME's Wayland with a font library of its own: winit's plain
+#   frame is drawn instead.
+winit = { version = "=0.30.13", default-features = false, features = ["rwh_06", "x11", "wayland", "wayland-dlopen"] }
+
 [lints]
 workspace = true

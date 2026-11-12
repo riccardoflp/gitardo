@@ -7,12 +7,10 @@ use std::collections::HashMap;
 
 use crate::canvas::Canvas;
 use crate::color::Color;
-use crate::flatten::flatten;
 use crate::geometry::{PixelRect, Point, Rect, Transform};
+use crate::mask::{Mask, Outline, rasterize};
 use crate::number;
-use crate::path::Path;
-use crate::raster::{FillRule, Mask, rasterize};
-use crate::stroke::{LineCap, stroke_outline};
+use crate::path::{FillRule, LineCap, Path};
 
 /// The side of the grid the icons are designed on, in logical pixels.
 pub const GRID: f32 = 16.0;
@@ -136,19 +134,20 @@ impl Icons {
     }
 }
 
-/// The coverage of an icon whose grid is scaled to a side in physical pixels.
+/// The coverage of an icon whose grid is scaled to a side in physical pixels; nothing covered for a size of nothing.
 fn rasterize_icon(icon: Icon, size: f32) -> Mask {
     let factor = size / GRID;
     let design = designs::design(icon);
     let transform = Transform::scale(factor, factor);
-    let mut contours = stroke_outline(
-        &flatten(&design.strokes.transformed(transform)),
+    let strokes = Outline::stroke(
+        &design.strokes.transformed(transform),
         LINE_WIDTH * factor,
         LineCap::Round,
     );
-    contours.extend(flatten(&design.fills.transformed(transform)));
+    let fills = Outline::fill(&design.fills.transformed(transform), FillRule::NonZero);
+    let outlines: Vec<Outline> = strokes.into_iter().chain(fills).collect();
     let pixels = number::ceil(size);
-    rasterize(&contours, PixelRect::new(0, 0, pixels, pixels), FillRule::NonZero)
+    rasterize(&outlines, PixelRect::new(0, 0, pixels, pixels)).unwrap_or_default()
 }
 
 impl Canvas<'_> {

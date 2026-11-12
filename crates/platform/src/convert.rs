@@ -30,16 +30,6 @@ pub(crate) fn round_to_coordinate(value: f32) -> i32 {
     if value.is_nan() { 0 } else { value.round() as i32 }
 }
 
-/// A count of pixels as the signed integer the system takes, clamped.
-pub(crate) fn to_signed(value: u32) -> i32 {
-    i32::try_from(value).unwrap_or(i32::MAX)
-}
-
-/// A signed length of the system as a count of pixels, 0 when negative.
-pub(crate) fn to_unsigned(value: i32) -> u32 {
-    u32::try_from(value).unwrap_or(0)
-}
-
 /// A count of pixels as an index into a frame; every system Gitardo runs on has pointers of at least 32 bits.
 pub(crate) fn to_index(value: u32) -> usize {
     usize::try_from(value).unwrap_or(usize::MAX)
@@ -47,7 +37,7 @@ pub(crate) fn to_index(value: u32) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{round_to_coordinate, round_to_pixels, to_signed, to_unsigned};
+    use super::{round_to_coordinate, round_to_pixels};
 
     #[test]
     fn rounds_and_clamps() {
@@ -58,8 +48,5 @@ mod tests {
         assert_eq!(round_to_pixels(f32::INFINITY), u32::MAX);
         assert_eq!(round_to_coordinate(-2.5), -3);
         assert_eq!(round_to_coordinate(f32::NAN), 0);
-        assert_eq!(to_signed(u32::MAX), i32::MAX);
-        assert_eq!(to_unsigned(-1), 0);
-        assert_eq!(to_unsigned(7), 7);
     }
 }

@@ -1,55 +1,70 @@
-//! The gallery: every widget of the toolkit in one fixed layout, for the demo window of the application and for the
-//! snapshots of the tests. It is written as a view would be: a function of its state that declares widgets and returns
-//! what the person asked for, and a function that applies that to the state.
+//! The gallery: a window shaped as the Timeline of Gitardo Desktop, over a made-up repository, that shows every widget
+//! of the toolkit where the application will use it, for the demo window and for the snapshots of the tests. It is
+//! written as a view would be: a function of its state that declares widgets and returns what the person asked for,
+//! and a function that applies that to the state.
+//!
+//! The header has the repository, the branch checked out, Quick search, what runs, Sync and the Activity button; the
+//! branch rail is on the left, the timeline of a million commits with the draft of the next one in the middle, and the
+//! inspector of the commit picked on the right. Below about 900 logical pixels the rail shows only icons, and below
+//! about 700 the inspector opens over the timeline when a commit is picked.
 
-mod controls;
+mod activity;
+mod data;
+mod graph;
+mod header;
+mod inspector;
+mod menus;
 mod overlays;
-mod rows;
+mod rail;
 mod scenes;
+mod timeline;
 
-pub use overlays::MenuCommand;
+pub use menus::MenuCommand;
 pub use scenes::{Scene, prepare_scene};
 
-use render::{Icon, Rect, Theme, ThemeName};
+use render::{Rect, Theme, ThemeName};
 
+use crate::access::AccessRole;
 use crate::frame::Ui;
 use crate::id::WidgetId;
-use crate::layout::{Area, Insets, inset};
+use crate::layout::Area;
 use crate::memory::UiMemory;
-use crate::widget::Tone;
-use crate::widget::badge::Badge;
-use crate::widget::button::Button;
-use crate::widget::label::Label;
 use crate::widget::list::Selection;
-use crate::widget::metrics;
-use crate::widget::splitter::{Split, Splitter};
 
 /// The key of the scope every widget of the gallery is declared in.
 const SCOPE: &str = "gallery";
 
-/// How many rows the list of the gallery has.
+/// How many commits the timeline has.
 pub const ROW_COUNT: usize = 1_000_000;
 
-/// The switches of the gallery.
+/// The width of the window, in logical pixels, below which the branch rail shows only icons.
+const ICON_RAIL_BELOW: f32 = 900.0;
+/// The width of the window, in logical pixels, below which the inspector opens over the timeline.
+const INSPECTOR_OVER_BELOW: f32 = 700.0;
+/// The width of the branch rail when it shows only icons.
+const ICON_RAIL_WIDTH: f32 = 56.0;
+
+/// The message of the draft, as the gallery opens.
+const MESSAGE: &str = "Remember the e-mail of the last login";
+
+/// The switches of the dialog of Pull.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Switch {
-    /// The check box that is on.
+    /// Fetch before pulling, a check box that is on.
     FetchFirst,
-    /// The check box that is off.
+    /// Prune the remote branches, a check box that is off.
     Prune,
-    /// The toggle switch.
-    ShowRemotes,
+    /// Keep the changes aside while pulling, a toggle switch.
+    Autostash,
 }
 
 /// The input boxes of the gallery.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Field {
-    /// The box with the focus.
-    BranchName,
-    /// The empty box with a placeholder.
+    /// The message of the draft.
+    Message,
+    /// Quick search, in the header.
     Search,
-    /// The box with an error under it.
-    Existing,
     /// The box of the dialog that creates a branch.
     NewBranch,
 }
@@ -65,6 +80,24 @@ pub enum Overlay {
     PickBranch,
     /// The picker of several branches.
     PickBranches,
+    /// Quick search: commits, branches, files and commands.
+    QuickSearch,
+    /// The dialog of Pull, with its choices.
+    Pull,
+    /// The dialog that says a commit needs a message.
+    EmptyMessage,
+}
+
+/// How the branch rail is shown.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum RailMode {
+    /// With the names of the branches.
+    #[default]
+    Full,
+    /// With icons only, as in a narrow window.
+    Icons,
+    /// Not at all.
+    Hidden,
 }
 
 /// What the person asked for in the gallery.
@@ -78,91 +111,121 @@ pub enum GalleryIntent {
     Chose(usize),
     /// Text was typed in an input box.
     Typed(Field, String),
-    /// A row of the list was opened.
+    /// A commit of the timeline was opened, by a double click or Enter.
     Opened(usize),
-    /// The context menu was opened on a row of the list.
+    /// A commit of the timeline was picked, which opens the inspector over a narrow window.
+    Picked(usize),
+    /// The context menu was opened on a commit of the timeline.
     MenuOn(usize),
     /// An overlay is to open.
     Open(Overlay),
     /// The overlay open was closed without an answer.
     Close,
-    /// Something was done, as the status bar says, which closes the overlay open.
+    /// Something was done, as the header says, which closes the overlay open.
     Did(String),
     /// A theme was chosen.
     ChoseTheme(ThemeName),
+    /// The branch rail is to be shown so.
+    ShowRail(RailMode),
+    /// A section of what is kept aside was unfolded or folded, by its place.
+    Unfold(usize),
+    /// The Activity drawer is to open.
+    OpenActivity,
+    /// The Activity drawer is to close.
+    CloseActivity,
+    /// The inspector open over the timeline is to close.
+    CloseInspector,
+}
+
+/// The choices of the dialog of Pull.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PullChoices {
+    /// The way chosen: merge, rebase or fast-forward.
+    pub strategy: usize,
+    /// Whether Pull fetches first.
+    pub fetch_first: bool,
+    /// Whether Pull prunes the remote branches.
+    pub prune: bool,
+    /// Whether Pull keeps the changes aside while it runs.
+    pub autostash: bool,
+}
+
+impl Default for PullChoices {
+    fn default() -> PullChoices {
+        PullChoices {
+            strategy: 1,
+            fetch_first: true,
+            prune: false,
+            autostash: true,
+        }
+    }
 }
 
 /// What the gallery shows that a person can change.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GalleryState {
-    /// Whether the first check box is on.
-    pub fetch_first: bool,
-    /// Whether the second check box is on.
-    pub prune: bool,
-    /// Whether the toggle switch is on.
-    pub show_remotes: bool,
-    /// The radio button chosen.
-    pub strategy: usize,
-    /// The text of the box with the focus.
-    pub branch_name: String,
-    /// The text of the empty box.
+    /// The message of the draft.
+    pub message: String,
+    /// What is typed in Quick search.
     pub search: String,
-    /// The text of the box with an error.
-    pub existing: String,
-    /// How far the progress bar is, from 0 to 1.
-    pub progress: f32,
-    /// The last row opened.
+    /// The text of the box of the dialog that creates a branch.
+    pub new_branch: String,
+    /// The choices of the dialog of Pull.
+    pub pull: PullChoices,
+    /// How the branch rail is shown.
+    pub rail: RailMode,
+    /// Which sections of what is kept aside are unfolded: stashes, worktrees and tags.
+    pub unfolded: [bool; 3],
+    /// Whether the Activity drawer is open.
+    pub is_activity_open: bool,
+    /// Whether the inspector is open over the timeline, in a narrow window.
+    pub is_inspector_open: bool,
+    /// The last commit opened.
     pub opened: Option<usize>,
-    /// The row the context menu was last opened on.
+    /// The commit the context menu was last opened on.
     pub menu_row: Option<usize>,
     /// What is open over the gallery.
     pub overlay: Option<Overlay>,
-    /// The text of the box of the dialog that creates a branch.
-    pub new_branch: String,
     /// The theme chosen in the menu.
     pub theme: ThemeName,
-    /// What was done last, which the status bar shows in place of what runs.
+    /// What was done last, which the header shows in place of what runs.
     pub status: Option<String>,
 }
 
 impl Default for GalleryState {
     fn default() -> GalleryState {
         GalleryState {
-            fetch_first: true,
-            prune: false,
-            show_remotes: true,
-            strategy: 1,
-            branch_name: String::from(BRANCH_NAME),
+            message: String::from(MESSAGE),
             search: String::new(),
-            existing: String::from("main"),
-            progress: 0.62,
+            new_branch: String::new(),
+            pull: PullChoices::default(),
+            rail: RailMode::Full,
+            unfolded: [false; 3],
+            is_activity_open: false,
+            is_inspector_open: false,
             opened: None,
             menu_row: None,
             overlay: None,
-            new_branch: String::new(),
             theme: ThemeName::System,
             status: None,
         }
     }
 }
 
-/// The text of the box with the focus, of which a word is selected.
-const BRANCH_NAME: &str = "feature/login-page";
-
 impl GalleryState {
     /// Applies what the person asked for.
     pub fn apply(&mut self, intent: &GalleryIntent) {
         match intent {
             GalleryIntent::Clicked(_) => {}
-            GalleryIntent::Toggled(Switch::FetchFirst) => self.fetch_first = !self.fetch_first,
-            GalleryIntent::Toggled(Switch::Prune) => self.prune = !self.prune,
-            GalleryIntent::Toggled(Switch::ShowRemotes) => self.show_remotes = !self.show_remotes,
-            GalleryIntent::Chose(choice) => self.strategy = *choice,
-            GalleryIntent::Typed(Field::BranchName, text) => self.branch_name.clone_from(text),
+            GalleryIntent::Toggled(Switch::FetchFirst) => self.pull.fetch_first = !self.pull.fetch_first,
+            GalleryIntent::Toggled(Switch::Prune) => self.pull.prune = !self.pull.prune,
+            GalleryIntent::Toggled(Switch::Autostash) => self.pull.autostash = !self.pull.autostash,
+            GalleryIntent::Chose(choice) => self.pull.strategy = *choice,
+            GalleryIntent::Typed(Field::Message, text) => self.message.clone_from(text),
             GalleryIntent::Typed(Field::Search, text) => self.search.clone_from(text),
-            GalleryIntent::Typed(Field::Existing, text) => self.existing.clone_from(text),
             GalleryIntent::Typed(Field::NewBranch, text) => self.new_branch.clone_from(text),
             GalleryIntent::Opened(row) => self.opened = Some(*row),
+            GalleryIntent::Picked(_) => self.is_inspector_open = true,
             GalleryIntent::MenuOn(row) => self.menu_row = Some(*row),
             GalleryIntent::Open(overlay) => {
                 self.overlay = Some(*overlay);
@@ -174,27 +237,43 @@ impl GalleryState {
                 self.status = Some(text.clone());
             }
             GalleryIntent::ChoseTheme(theme) => self.theme = *theme,
+            GalleryIntent::ShowRail(mode) => self.rail = *mode,
+            GalleryIntent::Unfold(section) => {
+                if let Some(unfolded) = self.unfolded.get_mut(*section) {
+                    *unfolded = !*unfolded;
+                }
+            }
+            GalleryIntent::OpenActivity => self.is_activity_open = true,
+            GalleryIntent::CloseActivity => self.is_activity_open = false,
+            GalleryIntent::CloseInspector => self.is_inspector_open = false,
         }
     }
 }
 
-/// The name of a widget of the gallery, by its key, to find it in tests.
+/// The name of a widget of the gallery, by its key, to find it in tests: such as `"draft message"`, `"history"` or
+/// `"your branches"`.
 #[must_use]
 pub fn widget_id(key: &str) -> WidgetId {
     WidgetId::ROOT.with(SCOPE).with(key)
 }
 
-/// Puts the memory in the fixed state the gallery is shown in: the focus in the first input box with a word selected,
-/// the list scrolled to its middle with three rows selected.
-pub fn prepare(memory: &mut UiMemory, theme: &Theme) {
-    let name = widget_id("branch name");
-    memory.set_input_text(name, BRANCH_NAME, (8, 13));
-    memory.set_focus(Some(name));
-    let middle = ROW_COUNT / 2;
-    let first = crate::number::wide_of_count(middle - 4) * f64::from(theme.sizes.row_height);
-    let mut selection = Selection::span(middle, middle + 2);
-    selection.toggle(middle + 5);
-    memory.set_list(widget_id("commits"), selection, first);
+/// Puts the memory in the fixed state the gallery is shown in: the focus at the end of the message of the draft, the
+/// first commit of the timeline picked, and the branch checked out picked in the rail. The state is the same in every
+/// theme, which the gallery is given for the window it is shown in.
+pub fn prepare(memory: &mut UiMemory, _theme: &Theme) {
+    let message = widget_id("draft message");
+    let end = MESSAGE.len();
+    memory.set_input_text(message, MESSAGE, (end, end));
+    memory.set_focus(Some(message));
+    memory.set_list(widget_id("history"), Selection::single(0), 0.0);
+    memory.set_list(widget_id("your branches"), Selection::single(0), 0.0);
+}
+
+/// The commit picked in the timeline, if any.
+fn picked_commit(ui: &Ui<'_>) -> Option<usize> {
+    ui.memory_view()
+        .list_selection(widget_id("history"))
+        .and_then(Selection::cursor)
 }
 
 /// Declares the gallery over the whole window.
@@ -202,110 +281,49 @@ pub fn view(state: &GalleryState, ui: &mut Ui<'_>) -> Vec<GalleryIntent> {
     let mut intents = Vec::new();
     ui.scope(SCOPE, |ui| {
         let theme = *ui.theme();
-        let mut area = Area::new(ui.window());
-        let bar = area.top(theme.sizes.bar_height);
-        toolbar(state, ui, bar, &mut intents);
-        let status = area.bottom(theme.sizes.status_bar_height);
-        status_bar(state, ui, status);
+        let window = ui.window();
+        ui.fill_rect(window, theme.colors.page_background);
+        let mut area = Area::new(window);
+        let top = area.top(theme.sizes.header_height);
+        header::header(state, ui, top, &mut intents);
         let body = area.rest();
-        ui.fill_rect(body, theme.colors.page_background);
-        let split = Splitter {
-            split: Split::Columns,
-            default_size: theme.sizes.row_height * 20.0,
-            least_first: theme.sizes.row_height * 12.0,
-            least_second: theme.sizes.row_height * 12.0,
+        let mut columns = Area::new(body);
+        let mode = rail_mode(state.rail, window.width);
+        let rail_width = match mode {
+            RailMode::Full => theme.sizes.rail_width,
+            RailMode::Icons => ICON_RAIL_WIDTH,
+            RailMode::Hidden => 0.0,
         };
-        let panes = ui.splitter("columns", body, &split);
-        ui.fill_rect(panes.first, theme.colors.side_bar_background);
-        controls::controls(state, ui, panes.first, &mut intents);
-        rows::rows(state, ui, panes.second, &mut intents);
-        overlays::shortcuts(state, ui, &mut intents);
-        let _ = ui.find_in_page(overlays::FIND, body);
+        if rail_width > 0.0 {
+            rail::rail(state, ui, (columns.left(rail_width), mode), &mut intents);
+        }
+        let is_narrow = window.width < INSPECTOR_OVER_BELOW;
+        let beside = (!is_narrow).then(|| columns.right(theme.sizes.inspector_width));
+        let main = columns.rest();
+        ui.region("timeline region", (main, AccessRole::Main, "Timeline"), |ui| {
+            timeline::timeline(state, ui, main, &mut intents);
+        });
+        match beside {
+            Some(rect) => inspector::inspector(ui, rect, &mut intents),
+            None if state.is_inspector_open => inspector::inspector_over(ui, main, &mut intents),
+            None => {}
+        }
+        if state.is_activity_open {
+            let beside_rail = Rect::new(main.x, main.y, body.right() - main.x, main.height);
+            activity::drawer(state, ui, beside_rail, &mut intents);
+        }
+        menus::shortcuts(state, ui, &mut intents);
+        let _ = ui.find_in_page(menus::FIND, body);
         overlays::overlay(state, ui, &mut intents);
+        menus::close_on_escape(state, ui, &mut intents);
     });
     intents
 }
 
-/// The toolbar: a heading, buttons of each kind, and buttons that are only an icon, the first of which opens a menu.
-fn toolbar(state: &GalleryState, ui: &mut Ui<'_>, bar: Rect, intents: &mut Vec<GalleryIntent>) {
-    let theme = *ui.theme();
-    ui.fill_rect(bar, theme.colors.toolbar_background);
-    let spacing = theme.sizes.spacing;
-    let inner = inset(bar, Insets::symmetric(spacing.medium, spacing.tiny));
-    let mut area = Area::with_gap(inner, spacing.small);
-    let heading = area.left(theme.sizes.row_height * 6.0);
-    let _ = ui.label(
-        heading,
-        &Label::new("Gitardo widgets").kind(crate::frame::TextKind::Strong),
-    );
-    let buttons = [
-        Button::primary("Fetch")
-            .with_icon(Icon::ArrowDown)
-            .with_tooltip("Fetch from every remote"),
-        Button::secondary("Push").with_icon(Icon::ArrowUp),
-        Button::secondary("Undo").disabled(),
-    ];
-    for button in &buttons {
-        let (width, height) = ui.button_size(button);
-        let cell = area.left(width);
-        let rect = crate::layout::place(
-            cell,
-            (width, height),
-            (crate::layout::Align::Start, crate::layout::Align::Center),
-        );
-        if ui.button(button.label, rect, button).clicked {
-            intents.push(GalleryIntent::Clicked(button.label.to_owned()));
-        }
+/// How the branch rail is shown in a window of a width: with icons only when the window is narrow.
+fn rail_mode(chosen: RailMode, width: f32) -> RailMode {
+    match chosen {
+        RailMode::Full if width < ICON_RAIL_BELOW => RailMode::Icons,
+        RailMode::Full | RailMode::Icons | RailMode::Hidden => chosen,
     }
-    let icons = [
-        Button::icon(Icon::More, "More actions"),
-        Button::icon(Icon::Gear, "Open the settings"),
-        Button::icon(Icon::Refresh, "Read the repository again"),
-    ];
-    let side = metrics::control_height(&theme);
-    let themes = overlays::theme_menu();
-    let entries = overlays::more_menu(&themes);
-    for (index, button) in icons.iter().enumerate() {
-        let cell = area.right(side);
-        let rect = crate::layout::place(
-            cell,
-            (side, side),
-            (crate::layout::Align::Start, crate::layout::Align::Center),
-        );
-        if index == 0 {
-            if let Some(command) = ui.menu_button(MORE, rect, button, &entries) {
-                overlays::run_command(ui, command, state.menu_row, intents);
-            }
-        } else if ui.button(button.tooltip, rect, button).clicked {
-            intents.push(GalleryIntent::Clicked(button.tooltip.unwrap_or_default().to_owned()));
-        }
-    }
-}
-
-/// The key of the menu of the toolbar.
-const MORE: &str = "more";
-
-/// The status bar: a spinner with what runs, or what was done last, and the branch with how far it is from its
-/// upstream.
-fn status_bar(state: &GalleryState, ui: &mut Ui<'_>, bar: Rect) {
-    let theme = *ui.theme();
-    ui.fill_rect(bar, theme.colors.status_bar_background);
-    let spacing = theme.sizes.spacing;
-    let mut area = Area::with_gap(inset(bar, Insets::symmetric(spacing.medium, 0.0)), spacing.small);
-    let spinner = area.left(theme.sizes.icon);
-    if state.status.is_none() {
-        ui.spinner(spinner);
-    }
-    let ahead = Badge {
-        text: "2 ahead",
-        icon: Some(Icon::ArrowUp),
-        tone: Tone::Normal,
-    };
-    let width = ui.badge_width(&ahead);
-    let _ = ui.badge(area.right(width), &ahead);
-    let branch = area.right(theme.sizes.row_height * 3.0);
-    let _ = ui.label(branch, &Label::new("main").align(crate::layout::Align::End));
-    let text = area.rest();
-    let shown = state.status.as_deref().unwrap_or("Reading the repository (0.8 s)");
-    let _ = ui.label(text, &Label::new(shown).tone(Tone::Normal));
 }

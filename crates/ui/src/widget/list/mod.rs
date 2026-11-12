@@ -11,10 +11,11 @@ use std::ops::Range;
 pub use keys::SelectionMode;
 pub use selection::Selection;
 
-use render::{Border, Color, Rect};
+use render::{Border, Color, Rect, Theme};
 
 use super::scroll::GLIDE_FRAME;
 use super::scroll::bar::BarSpec;
+use crate::access::{AccessRole, Description};
 use crate::frame::Ui;
 use crate::id::WidgetId;
 use crate::input::{Modifiers, PointerButton};
@@ -26,13 +27,17 @@ use crate::widget::panel::Axis;
 
 /// A list.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct List {
+pub struct List<'text> {
+    /// What it is, for the screen reader, such as **History**.
+    pub name: &'text str,
     /// How many rows it has.
     pub row_count: usize,
     /// The height of each row, in logical pixels.
     pub row_height: f32,
     /// Whether several rows can be selected.
     pub selection_mode: SelectionMode,
+    /// The width at the start of each row that its highlight leaves out, such as the lanes of the graph.
+    pub lead: f32,
 }
 
 /// A row being drawn, for the view that draws what is in it.
@@ -75,7 +80,7 @@ pub(crate) struct Window {
 }
 
 /// The rows of a list in sight for an offset, and where the first starts.
-pub(crate) fn visible_rows(list: &List, offset: f64, view: f32) -> Window {
+pub(crate) fn visible_rows(list: &List<'_>, offset: f64, view: f32) -> Window {
     let height = f64::from(list.row_height);
     let first = number::index_at(offset, height).min(list.row_count);
     let shown = number::index_at(f64::from(view), height) + 2;
@@ -88,7 +93,7 @@ pub(crate) fn visible_rows(list: &List, offset: f64, view: f32) -> Window {
 }
 
 /// The row at a height in a list, from its top, for an offset; nothing past the last row.
-pub(crate) fn row_at(list: &List, offset: f64, y: f32) -> Option<usize> {
+pub(crate) fn row_at(list: &List<'_>, offset: f64, y: f32) -> Option<usize> {
     let row = number::index_at(offset + f64::from(y), f64::from(list.row_height));
     (y >= 0.0 && row < list.row_count).then_some(row)
 }
@@ -99,7 +104,7 @@ impl Ui<'_> {
         &mut self,
         key: impl Hash,
         rect: Rect,
-        list: &List,
+        list: &List<'_>,
         draw_row: impl FnMut(&mut Ui<'_>, &Row),
     ) -> ListResponse {
         let id = self.id(key);
@@ -110,7 +115,7 @@ impl Ui<'_> {
     pub fn searchable_list(
         &mut self,
         key: impl Hash,
-        (rect, list): (Rect, &List),
+        (rect, list): (Rect, &List<'_>),
         search: &ListSearch<'_>,
         draw_row: impl FnMut(&mut Ui<'_>, &Row),
     ) -> ListResponse {
@@ -122,7 +127,7 @@ impl Ui<'_> {
     fn list_of(
         &mut self,
         id: WidgetId,
-        (rect, list): (Rect, &List),
+        (rect, list): (Rect, &List<'_>),
         search: Option<&ListSearch<'_>>,
         mut draw_row: impl FnMut(&mut Ui<'_>, &Row),
     ) -> ListResponse {
@@ -152,27 +157,29 @@ impl Ui<'_> {
             .filter(|_| outcome.response.hovered)
             .and_then(|point| row_at(list, state.scroll.offset(), point.y - rect.y));
         let is_searched = search.is_some_and(|search| self.search_rows(id, (rect, list), search));
+        self.access_node(id, rect, &Description::new(AccessRole::List, list.name));
+        self.access_enter(id);
         self.clip(rect, |ui| {
             let mut top = rect.y + window.first_top;
             for index in window.rows.clone() {
                 let row_rect = Rect::new(rect.x, top, rect.width, list.row_height);
-                let row = ui.row_background(row_rect, (index, hovered_row), &state.selection, &outcome.response);
+                let shape = RowShape {
+                    rect: row_rect,
+                    lead: list.lead,
+                };
+                let row = ui.row_background(shape, (index, hovered_row), &state.selection, &outcome.response);
                 if is_searched {
                     ui.recording.set_owner(Some(RowOwner { list: id, row: index }));
                 }
+                ui.describe_row(id, &row, search, state.selection.cursor());
                 draw_row(ui, &row);
+                ui.access_leave();
                 top += list.row_height;
             }
             ui.recording.set_owner(None);
         });
-        let spec = BarSpec {
-            axis: Axis::Vertical,
-            view: f64::from(rect.height),
-            content,
-        };
-        let thickness = self.theme().sizes.scrollbar;
-        let track = Rect::new(rect.right() - thickness, rect.y, thickness, rect.height);
-        self.scroll_bar(id.with("bar"), track, spec, &mut state.scroll);
+        self.access_leave();
+        self.list_scroll_bar(id, (rect, content), &mut state);
         if state.selection != before {
             outcome.changed_selection = Some(state.selection.clone());
         }
@@ -181,11 +188,23 @@ impl Ui<'_> {
         outcome
     }
 
+    /// Draws the scroll bar of a list along its right side, for the height of all its rows.
+    fn list_scroll_bar(&mut self, id: WidgetId, (rect, content): (Rect, f64), state: &mut ListState) {
+        let spec = BarSpec {
+            axis: Axis::Vertical,
+            view: f64::from(rect.height),
+            content,
+        };
+        let thickness = self.theme().sizes.scrollbar;
+        let track = Rect::new(rect.right() - thickness, rect.y, thickness, rect.height);
+        self.scroll_bar(id.with("bar"), track, spec, &mut state.scroll);
+    }
+
     /// Applies one event to a list.
     fn list_event(
         &mut self,
         rect: Rect,
-        list: &List,
+        list: &List<'_>,
         state: &mut ListState,
         (event, outcome): (WidgetEvent, &mut ListResponse),
     ) {
@@ -230,10 +249,11 @@ impl Ui<'_> {
         }
     }
 
-    /// Draws the background of a row, for the pointer, the selection and the keyboard, and says how the row is.
+    /// Draws the background of a row, for the pointer, the selection and the keyboard: rounded, inset from the sides
+    /// of the list and from its lead; and says how the row is.
     fn row_background(
         &mut self,
-        rect: Rect,
+        shape: RowShape,
         (index, hovered): (usize, Option<usize>),
         selection: &Selection,
         list: &Response,
@@ -249,18 +269,19 @@ impl Ui<'_> {
             (false, _, true) => colors.list_hover,
             (false, _, false) => Color::TRANSPARENT,
         };
-        self.fill_rect(rect, background);
+        let (highlight, radius) = highlight(&theme, shape);
+        self.fill_rounded_rect(highlight, radius, background);
         if list.shows_focus && selection.cursor() == Some(index) {
             let border = Border {
                 width: theme.sizes.focus_ring,
-                radius: 0.0,
+                radius,
                 color: colors.focus_ring,
             };
-            self.border(rect, border);
+            self.border(highlight, border);
         }
         Row {
             index,
-            rect,
+            rect: shape.rect,
             is_selected,
             is_hovered,
             foreground: if is_selected && is_active {
@@ -270,11 +291,54 @@ impl Ui<'_> {
             },
         }
     }
+
+    /// Notes a row for the screen reader, named by the text find in page sees in it, and opens it for what the view
+    /// draws in it.
+    fn describe_row(&mut self, list: WidgetId, row: &Row, search: Option<&ListSearch<'_>>, cursor: Option<usize>) {
+        let name = search.map(|search| (search.row_text)(row.index)).unwrap_or_default();
+        let id = list.with(("row", row.index));
+        let description = Description::new(AccessRole::ListItem, &name).selected(row.is_selected);
+        self.access_row((list, id), row.rect, &description);
+        if cursor == Some(row.index) {
+            self.access_active_row(list, id);
+        }
+        self.access_enter(id);
+    }
+}
+
+/// Where a row is, and the width at its start its highlight leaves out.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct RowShape {
+    /// The whole row.
+    rect: Rect,
+    /// The width left out at its start.
+    lead: f32,
+}
+
+/// The highlight of a row and the radius of its corners: inset from the sides and from the lead, rounded more for the
+/// rows of two lines.
+fn highlight(theme: &Theme, shape: RowShape) -> (Rect, f32) {
+    let spacing = theme.sizes.spacing;
+    let rect = shape.rect;
+    let left = rect.x + shape.lead + spacing.small;
+    let right = rect.right() - spacing.small;
+    let inset = Rect::new(
+        left,
+        rect.y + 1.0,
+        (right - left).max(0.0),
+        (rect.height - 2.0).max(0.0),
+    );
+    let radius = if rect.height > theme.sizes.control_height {
+        theme.sizes.radius.large
+    } else {
+        theme.sizes.radius.medium
+    };
+    (inset, radius)
 }
 
 impl Ui<'_> {
     /// Searches every row of a list for find in page, once per query, and says whether it did.
-    fn search_rows(&mut self, id: WidgetId, (rect, list): (Rect, &List), search: &ListSearch<'_>) -> bool {
+    fn search_rows(&mut self, id: WidgetId, (rect, list): (Rect, &List<'_>), search: &ListSearch<'_>) -> bool {
         if !self.recording.is_on() {
             return false;
         }
@@ -325,9 +389,11 @@ mod tests {
     #[test]
     fn only_the_rows_in_sight_are_laid_out_even_in_a_million() {
         let list = List {
+            name: "Rows",
             row_count: 1_000_000,
             row_height: 22.0,
             selection_mode: SelectionMode::Single,
+            lead: 0.0,
         };
         let window = visible_rows(&list, 11_000_011.0, 440.0);
         assert_eq!(window.rows, 500_000..500_022);

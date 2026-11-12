@@ -1,13 +1,12 @@
 //! Rectangles with rounded corners and borders, drawn fast: the rows between the corners are filled as plain
-//! rectangles, and only the rows of the corners go through the rasterizer.
+//! rectangles, and only the rows of the corners are rasterized.
 
-use super::{Canvas, Fill};
+use super::Canvas;
 use crate::color::Color;
-use crate::flatten::flatten;
 use crate::geometry::{PixelRect, Rect};
+use crate::mask::Outline;
 use crate::number;
-use crate::path::Path;
-use crate::raster::FillRule;
+use crate::path::{FillRule, Path};
 
 /// A border inside a rectangle: its width and color, and the radius of its corners, in logical pixels.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -32,15 +31,7 @@ impl Canvas<'_> {
         }
         let path = Path::rounded_rect(pixel_rect_as_rect(snapped), radius);
         let band = number::ceil(radius);
-        self.fill_banded(
-            &path,
-            snapped,
-            band,
-            Fill {
-                color,
-                rule: FillRule::NonZero,
-            },
-        );
+        self.fill_banded(&path, FillRule::NonZero, (snapped, band), color);
         let middle = PixelRect::new(snapped.left, snapped.top + band, snapped.right, snapped.bottom - band);
         self.frame.fill_rect(middle.intersection(self.physical_clip()), color);
     }
@@ -72,15 +63,7 @@ impl Canvas<'_> {
             let mut path = Path::rounded_rect(pixel_rect_as_rect(snapped), radius);
             let inner_radius = (radius - number::float(width)).max(0.0);
             let _ = path.extend(&Path::rounded_rect(pixel_rect_as_rect(inner), inner_radius));
-            self.fill_banded(
-                &path,
-                snapped,
-                band,
-                Fill {
-                    color: border.color,
-                    rule: FillRule::EvenOdd,
-                },
-            );
+            self.fill_banded(&path, FillRule::EvenOdd, (snapped, band), border.color);
         }
         for column in [
             PixelRect::new(snapped.left, snapped.top + band, inner.left, snapped.bottom - band),
@@ -97,13 +80,16 @@ impl Canvas<'_> {
         (radius * self.scale()).min(smaller * 0.5).max(0.0)
     }
 
-    /// Fills a path over a rectangle only in the rows of its top and bottom bands, where its corners are.
-    fn fill_banded(&mut self, path: &Path, rect: PixelRect, band: i32, fill: Fill) {
-        let contours = flatten(path);
+    /// Fills a path by a rule over a rectangle only in the rows of its top and bottom bands, as tall as the band,
+    /// where its corners are.
+    fn fill_banded(&mut self, path: &Path, rule: FillRule, (rect, band): (PixelRect, i32), color: Color) {
+        let Some(outline) = Outline::fill(path, rule) else {
+            return;
+        };
         let top = PixelRect::new(rect.left, rect.top, rect.right, (rect.top + band).min(rect.bottom));
         let bottom = PixelRect::new(rect.left, (rect.bottom - band).max(top.bottom), rect.right, rect.bottom);
-        self.fill_polylines_within(&contours, top, fill);
-        self.fill_polylines_within(&contours, bottom, fill);
+        self.fill_outline_within(&outline, top, color);
+        self.fill_outline_within(&outline, bottom, color);
     }
 
     /// Fills the rows above and below an inner rectangle, inside an outer one: the top and bottom of a square border.

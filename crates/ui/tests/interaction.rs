@@ -197,11 +197,7 @@ fn a_click_hides_the_tooltip_until_the_pointer_leaves_the_widget() {
 
 /// An input box over the width of the window.
 fn input_box(ui: &mut Ui<'_>) -> Vec<KeyEvent> {
-    let input = ui::InputBox {
-        text: "",
-        placeholder: "Name",
-        message: None,
-    };
+    let input = ui::InputBox::new("", "Name");
     let _ = ui.input_box("name", Rect::new(10.0, 10.0, 300.0, 26.0), &input);
     ui.unclaimed_keys()
 }
