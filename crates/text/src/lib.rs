@@ -4,3 +4,4 @@
 
 pub mod conflicts;
 pub mod details;
+pub mod patch;

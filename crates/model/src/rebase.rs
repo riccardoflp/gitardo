@@ -3,6 +3,11 @@
 
 use std::collections::HashMap;
 
+mod todo;
+
+pub(crate) use todo::body_of;
+pub use todo::{Reword, TodoAction, TodoList, TodoStep, build_todo_list};
+
 use crate::CommitId;
 use crate::commit::Commit;
 use crate::contract::Text;

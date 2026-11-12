@@ -522,7 +522,7 @@ Turns the rows of the interactive rebase page, or the steps another operation pr
 and the files of the new messages.
 
 - **Kind**: Derivation
-- **Function**: `model::rebase::build_todo_list(input) -> TodoList`
+- **Function**: `model::rebase::build_todo_list(steps: &[TodoStep], folder: &str) -> Result<TodoList, Text>`
 
 Rules:
 
@@ -709,7 +709,7 @@ Acceptance:
 Puts together the message of the commit that several become.
 
 - **Kind**: Derivation
-- **Function**: `model::squash::join_messages(input) -> String`
+- **Function**: `model::squash::join_messages(subject: &str, messages: &[&str]) -> String`
 
 Rules:
 
@@ -907,7 +907,7 @@ Acceptance:
 Decides which rows of the timeline accept what is dragged, and what dropping it there offers.
 
 - **Kind**: Derivation
-- **Function**: `model::drag::list_drop_entries(input) -> Vec<DropEntry>`
+- **Function**: `model::drag::list_drop_entries(input: &DropInput) -> Vec<DropEntry>`
 
 Rules (an empty list means the row does not accept the drop):
 
