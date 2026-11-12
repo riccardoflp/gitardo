@@ -12,7 +12,6 @@ use std::path::PathBuf;
 use git::GitError;
 use git::read::bisect::{marks_arguments, parse_marks};
 use git::read::blame::{BlameFileRequest, BlameLineRequest, Whitespace, file_arguments, line_arguments, parse_file};
-use git::read::commits::{LogRequest, branch_log_arguments, parse_branch_log};
 use git::read::file_history::{NamesRequest, names_arguments, parse_name_changes};
 use git::read::rebase::{PushedRequest, parse_pushed, pushed_arguments};
 use git::read::reflog::{ReflogRequest, parse_positions, positions_arguments};
@@ -94,17 +93,6 @@ fn blame_repository() -> Repository {
 
 /// What the File page has of the file of [`blame_repository`]: its second line typed over.
 const TYPED: &[u8] = b"one\r\nTWO typed\r\nthree\r\nFOUR";
-
-#[test]
-fn commits_read_log__golden_commits_of_a_merge_and_awkward_subjects() {
-    let request = LogRequest { limit: 4 };
-    record(
-        "commits-log",
-        || (log_repository(), branch_log_arguments(&request)),
-        b"",
-    );
-    check("commits-log", |output| parse_branch_log(output, &request));
-}
 
 #[test]
 fn search_read_matches__golden_messages_found() {

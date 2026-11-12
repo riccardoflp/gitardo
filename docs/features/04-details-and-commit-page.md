@@ -1,15 +1,14 @@
 # Details, commits and the page of a commit
 
 How a commit is read. The inspector, beside the timeline, summarizes the commit selected: its message, who made it,
-and the files it changed. The timeline narrowed to the branch checked out lists the commits of what is checked out,
-read apart from the rest of the history, and says which are pushed. The page of a commit shows it whole with what it
-changed in each file.
-The derivations that shape a message and a list of files for all three are here too.
+and the files it changed. Copying the hash or the message of a commit (`commits.`) is here too. The page of a commit
+shows it whole with what it changed in each file. The commits of what is checked out are the timeline narrowed to the
+branch checked out (`filter.show-only`), with what is not pushed ringed (`graph.unpushed`).
+The derivations that shape a message and a list of files for the inspector and the page are here too.
 
 ### `details.read-commit` — Read the details of a commit
 
-Everything the inspector, the commits of what is checked out, the Stashes list and the page of a commit show of one
-commit: its message,
+Everything the inspector, the Stashes list and the page of a commit show of one commit: its message,
 author, committer, dates, parents and the files it changed, and, for a stash, the untracked files it took.
 
 - **Kind**: Read
@@ -292,111 +291,14 @@ Acceptance:
 - [ ] A stash made without untracked files shows no such section.
 - [ ] The page of a stash (`commit-page.view`) shows the untracked files the same way.
 
-### `commits.read-log` — Read the commits of what is checked out
-
-The commits of `HEAD`, newest first, and which of them are not pushed yet, for the commits of what is checked out
-(`commits.view`).
-
-- **Kind**: Read
-- **Function**: `git::read::commits::read_log(git: &Git, request: &LogRequest) -> Result<BranchLog, GitError>`
-- **Reads**:
-  - `git log -z --format=<hash, parents, author name, author email, author date, subject> --max-count=<limit + 1> HEAD
-    --`: one more than asked, to know whether there are more;
-  - `git rev-parse --symbolic-full-name @{upstream}`, which has no answer without an upstream or when its branch is gone;
-  - `git remote`;
-  - unless there is no commit, or neither an upstream nor a remote:
-    `git rev-list --max-count=<limit> HEAD --not <upstream> --`, or `--not --remotes` without an upstream.
-- The limit asked for is at least 1 and at most 10,000.
-
-Acceptance:
-
-- [ ] Before the first commit it returns no commits and no error.
-- [ ] With an upstream, the unpushed commits are those of `HEAD` not in the upstream.
-- [ ] Without an upstream, the unpushed commits are those in no remote branch.
-- [ ] In a repository with no remote, no commit is marked either way.
-- [ ] Asking for 100 of a history of 150 returns 100 and says there are more.
-
-### `commits.push-state` — What is pushed and what is to pull
-
-What the line above the commits of what is checked out says, and the mark on each commit.
-
-- **Kind**: Derivation
-- **Function**: `model::commits::push_state(input: &BranchLogAndBranch) -> PushState`
-
-Rules:
-
-- **Input**: the result of `commits.read-log`, the branch checked out, its upstream and how far behind it is.
-  **Output**: the line above the list, and one mark per commit.
-- No remote at all: the line says **No remote to push to**, and no commit has a mark.
-- With an upstream: **N commits to push to `<upstream>`**, or **Everything is pushed to `<upstream>`**, followed by
-  **, M commits to pull** when the branch is behind it.
-- Without an upstream: **N commits on no remote branch: `<branch>` has no upstream**, or **Everything is on a remote
-  branch: `<branch>` has no upstream**; when nothing is checked out, the reason is **no branch is checked out**.
-- `1 commit` is singular. When every commit listed is unpushed and there are more, the count has a `+`: **100+
-  commits to push**.
-- A commit not pushed has a cloud with an arrow, in color, titled **Not pushed to `<upstream>`** or **On no remote
-  branch**. A commit pushed has a plain cloud, titled **Pushed: it is in `<upstream>`**, or **in a remote branch**.
-- With no commit, the list says **No commits yet.** instead of the line.
-
-Acceptance:
-
-- [ ] Two commits ahead of `origin/main` and three behind give **2 commits to push to origin/main, 3 commits to pull**.
-- [ ] A branch level with its upstream gives **Everything is pushed to origin/main**.
-- [ ] A branch with no upstream, in a repository with a remote, marks its commits that no remote branch has.
-- [ ] A repository with no remote says **No remote to push to** and marks nothing.
-
-### `commits.view` — The commits of what is checked out
-
-The commits of what is checked out, newest first, and nothing else: the timeline narrowed to the branch checked out,
-picked in the branch rail. They are read apart from the rest of the history, so that what the timeline was narrowed to,
-searched for or scrolled to before changes nothing here.
-
-- **Kind**: View
-- **Function**: `views::commits::view(state: &CommitsState, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: picking the branch checked out in the branch rail; Quick search: **Show Commits of What Is Checked
-  Out**, which shows them.
-- **Reads**: `commits.read-log`, first with a limit of 100; `details.read-commit` for a commit unfolded.
-- **Uses**: `commits.push-state`, `commit-page.open`, `commit-page.show-in-graph`, `branch.checkout`, `branch.create`,
-  `tag.create`, `revert.commit`, `reset.to-commit`, `commits.copy-hash`, `commits.copy-message`, `sync.fetch`, `sync.pull`,
-  `sync.push`, `undo.last`, the Diff page (`diff.page`).
-
-What it shows:
-
-- the top of the list names the branch checked out, and the repository when the workspace has several; it has fetch,
-  pull and push, and under **…** the other ways to pull and push, and undo;
-- the line of `commits.push-state`, then the commits, each with its mark and subject; its tooltip has the subject, the
-  short hash, the author and the full date;
-- the arrow before a commit unfolds the files it added, changed, deleted or renamed (**No files** when there are none,
-  **Loading…** meanwhile), and a click on a file opens its diff against the first parent in the Diff page;
-- on each commit, a button that opens its page (**Open as a page, with its changes**) and one that shows it in
-  the whole history (**Show in the timeline**);
-- its context menu: **Open as a page**, **Show in the timeline**, **Check out commit (detached)** (not on the
-  commit checked out), **Create branch here…**, **Create tag here…**, **Revert `<short hash>`**, **Reset `<branch>` to
-  here…** (not on the commit checked out), **Copy hash**, **Copy message**;
-- **Load more commits…** at the end, while there are more, reads 100 more.
-
-The commits are read again when what is checked out, its upstream, or where the remote branches are changes, and from
-the first 100 again when another repository is shown. Picking the branch checked out again in the branch rail brings
-back the whole history, as it was narrowed, searched and scrolled before.
-
-Acceptance:
-
-- [ ] Picking the branch checked out lists the first 100 commits of `HEAD`, and **Load more commits…** lists 200.
-- [ ] A search or a filter of the timeline made before does not change the list, and is back with the whole history.
-- [ ] Checking out another branch lists its commits, and the top of the list names it.
-- [ ] A commit pushed after the list was read loses its arrow once the remote branch moves.
-- [ ] Unfolding a commit lists its files, and a click on one opens its Diff page.
-- [ ] The context menu of the commit checked out has no **Check out commit (detached)** and no **Reset … to here…**.
-- [ ] Unfolded commits that are still listed stay unfolded after the list is read again.
-
 ### `commits.copy-hash` — Copy the hash of a commit
 
 Puts the full hash of a commit on the clipboard.
 
 - **Kind**: Operation
 - **Function**: `features::commits::copy_hash(context, answers) -> Outcome`
-- **Entry points**: **Copy hash** in the context menu of a commit in the commits of what is checked out; a click on
-  the hash in the inspector and in the page of a commit.
+- **Entry points**: **Copy hash** in the context menu of a commit in the timeline, narrowed or not; a click on the hash
+  in the inspector and in the page of a commit.
 - **Plan**: no steps.
 - **Danger**: None
 - **Undo**: Nothing to take back: nothing changes.
@@ -412,7 +314,7 @@ Puts the whole message of a commit on the clipboard, as it was written.
 
 - **Kind**: Operation
 - **Function**: `features::commits::copy_message(context, answers) -> Outcome`
-- **Entry points**: **Copy message** in the context menu of a commit in the commits of what is checked out.
+- **Entry points**: **Copy message** in the context menu of a commit in the timeline, narrowed or not.
 - **Reads**: `details.read-commit`, for the message in full.
 - **Plan**: no steps.
 - **Danger**: None
@@ -431,9 +333,8 @@ Opens a commit whole, in a page of its own, or shows the page it has.
 
 - **Kind**: Operation
 - **Function**: `features::commit_page::open(context, answers) -> Outcome`
-- **Entry points**: double-click on a commit in the timeline, in its narrow layout or in the commits of what is
-  checked out, or `Enter` on the commit selected; the button on its row in the commits of what is checked out; the
-  button beside the one that closes the inspector; **Open as a page** in the context menu of a commit; a parent in the
+- **Entry points**: double-click on a commit in the timeline, narrowed or not, or in its narrow layout, or `Enter` on
+  the commit selected; the button beside the one that closes the inspector; **Open as a page** in the context menu of a commit; a parent in the
   page of a commit, a side, a commit or the merge base in the comparison page; Quick search: **Open Commit as a
   Page…**.
 - **Offered when**: on a commit or a stash; not on the draft. A double click on the label of a
@@ -601,13 +502,11 @@ Acceptance:
 
 ### `commit-page.show-in-graph` — Show a commit in the timeline
 
-Brings the timeline to a commit, from a page or from the commits of what is checked out, which are apart from the rest
-of the history.
+Brings the timeline to a commit, from the page of that commit.
 
 - **Kind**: View
 - **Function**: `views::commit_page::show_in_graph(state: &CommitPageState, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: **Show in the timeline** in the page of a commit; the button and the context menu entry of a commit
-  in the commits of what is checked out.
+- **Entry points**: **Show in the timeline** in the page of a commit.
 - **Uses**: `repo.select` when the page is of another repository than the one the window shows; `graph.show-in-graph`,
   which loads the commit when it is further back than the history loaded and shows all branches when a filter leaves it
   out.

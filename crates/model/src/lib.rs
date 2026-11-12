@@ -9,7 +9,6 @@ pub mod branch;
 pub mod changes;
 pub mod commit;
 pub mod commit_page;
-pub mod commits;
 pub mod compare;
 pub mod contract;
 pub mod details;

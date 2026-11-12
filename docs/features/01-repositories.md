@@ -413,8 +413,8 @@ what to try first, and opens a folder.
 - **Function**: `views::welcome::page_view(state: &WelcomeState, ui) -> Vec<Intent>`
 - **Entry points**: shown by itself the first time Gitardo Desktop starts; **Welcome** in Quick search and in the
   Help menu; the window with no workspace.
-- **Uses**: `repo.open-folder`, `repo.open-recent`, `commit-page.open`, `compare.choose`, `blame.toggle-file`,
-  `worktree.create`.
+- **Uses**: `repo.open-folder`, `repo.open-recent`, `filter.show-only`, `commit-page.open`, `compare.choose`,
+  `blame.toggle-file`, `worktree.create`.
 
 Its title is **Get started with Gitardo**. At the top, **Open folder…** and the recent workspaces, the latest first,
 each by its folders, opening it on a click. Then the five steps, each with a short text, a picture and a button; a step
@@ -423,7 +423,7 @@ is ticked once it is done, in any way, and stays ticked:
 | Step | Says | Button | Ticked when |
 | --- | --- | --- | --- |
 | **Open the timeline** | The branches on the left, the commits of every branch in the middle, the selected commit on the right | **Show the timeline** | the timeline is shown |
-| **Find the branches** | The branch rail lists the branches in the colors of their lanes, and keeps the stashes, the worktrees and the tags aside; a branch picked there narrows the timeline to its history | **Show the commits** | the timeline is narrowed to the branch checked out |
+| **Find the branches** | The branch rail lists the branches in the colors of their lanes, and keeps the stashes, the worktrees and the tags aside; a branch picked there narrows the timeline to its history | **Show the commits**, which narrows the timeline to the branch checked out (`filter.show-only`) | the timeline is narrowed to the branch checked out |
 | **Open a commit, compare two branches** | A double click or `Enter` on a commit reads it whole on a page; a comparison says what one side has that the other has not, and what merging them would do | **Open a commit…**, **Compare…** | a commit page or a comparison is opened |
 | **See who changed each line** | The File page says who last changed each line | **Open a file…** | a blame is shown |
 | **Work in another worktree** | A worktree is another folder of the same repository on a branch of its own | **Create a worktree…** | a worktree is created |

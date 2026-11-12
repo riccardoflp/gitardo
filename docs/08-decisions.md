@@ -231,6 +231,28 @@ the snapshots of the tests are drawn with the same fonts as the program. A chara
 fonts of the system, through `cosmic-text`. The settings `font.ui` and `font.code` can name a font of the system
 instead.
 
+## D19 — The answers about the Timeline window
+
+*The maintainer's decision, 2026-11-12. Answers Q37, Q38, Q39 and Q40, asked when the catalog moved to the Timeline
+([D17](#d17--the-timeline-a-window-of-gitardos-own)).*
+
+- **Sync** (Q37). A click on **Sync** in the header fetches, pulls as the settings of how to pull say, then pushes what
+  is ahead (`sync.sync`); fetch, pull and push, with their other ways, stay in its menu, and **Branch**, **Stash**,
+  **Undo** and **Refresh** stay entries of the **…** menu of the header. One click does what the counts on it promise,
+  as other Git clients do.
+- **The commits of what is checked out** (Q38) are the timeline narrowed to the branch checked out
+  (`filter.show-only`), read by `graph.read-commits`, with what is not pushed ringed by `graph.unpushed`; the cards
+  `commits.view`, `commits.read-log` and `commits.push-state` are gone, with their code. One history, read once, with
+  the filter and the search of the timeline, instead of a second list.
+- **The branch rail** (Q39). A click on a branch narrows the timeline to its history and selects its tip, and a second
+  click brings the whole history back; a tag, a stash or a worktree still goes to its commit. The lists of **Kept
+  aside**, **Submodules** among them, start closed and the others open, and each remote has a heading of its own.
+  The rail is the legend and the filter of the timeline.
+- **The draft** (Q40) shows the message, **Commit**, **Review** and the counts only; **Amend last commit**, the button
+  that drafts the message with the AI and the identity are on the Changes page only, which is also where one commits
+  while the timeline is narrowed to branches that do not hold the commit checked out. The draft stays a calm card, and
+  the rest of the commit box is where there is room for it.
+
 ## Open questions
 
 Questions from the implementation side go here, with the card they are about, until the specification side answers
@@ -312,29 +334,6 @@ From milestone M1 (each was built with the reading given, until the card says ot
 From the move of the catalog to the Timeline ([D17](#d17--the-timeline-a-window-of-gitardos-own)), each written in the
 card with the reading given, until the card says otherwise:
 
-- **Q37** — `graph.toolbar`: the header's **Sync** shows the commits to pull and to push and has a menu with **Fetch**,
-  **Pull** and its other ways, **Push** and its other ways. [01-product.md](01-product.md) also names a *sync* entry,
-  which no card has. What does a click on **Sync** itself run (a fetch, a pull then a push?), and does *sync* need a
-  card of its own? **Branch**, **Stash**, **Undo** and **Refresh**, which were buttons of the toolbar, are now entries
-  of the **…** menu of the header (`graph.more-menu`, `undo.last`): should any of them stay a button?
-- **Q38** — `commits.view`: the Commits pane is now the timeline narrowed to the branch checked out, picked in the
-  branch rail, but keeps its own reading (`commits.read-log`, 100 commits at a time), its line of what is pushed
-  (`commits.push-state`), the files of a commit unfolded in its row, its own fetch, pull and push, and leaves the
-  search and the filter of the timeline aside until the whole history is back. Or should it simply be the timeline
-  narrowed with `filter.show-only`, read by `graph.read-commits`, where `graph.unpushed` already rings what is not
-  pushed? The entry points that name "the commits of what is checked out" (`revert.commit`, `reset.to-commit`,
-  `undo.last`, `sync.*`) follow the answer.
-- **Q39** — `refs.tree`, `branch.pane`: as [01-product.md](01-product.md) says, a click on a branch in the branch rail
-  now narrows the timeline to its history and selects its tip, and a second click brings the whole history back; the
-  extension's click went to the commit (`graph.show-in-graph`), which tags, stashes and worktrees still do. The lists
-  of **Kept aside** start closed and the others open, since the local branches are the legend of the lanes (the
-  extension closed every section); **Submodules** is put in **Kept aside** too, which the product does not name; and
-  the remotes stay one **Remotes** list, where the picture of the window has a heading per remote. Right?
-- **Q40** — `graph.uncommitted-row`, `changes.pane`: the draft says `<n> files changed · <m> staged` where the row said
-  `Uncommitted changes (<n>)`, and shares the commit box of the Changes page: the message and **Commit**. Do the
-  **Amend last commit** box, the button that drafts the message and the identity show in the draft as well, or only on
-  the Changes page? And while the timeline is narrowed to branches that do not have the commit checked out, the draft
-  is not there: is committing from the Changes page alone enough then?
 - **Q41** — `activity.status-bar`: the branch of the header says how far it is from its upstream, `main ↑2 ↓0`, as the
   status bar did; the picture in [01-product.md](01-product.md) also says how far it is from the default branch
   (`2 ahead · 12 behind main`). Which words, and which card reads the second count? The activity indicator drops the

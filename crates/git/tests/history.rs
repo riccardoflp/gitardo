@@ -1,6 +1,6 @@
-//! The reads of the history against throwaway repositories: the commits of what is checked out, the search, the blame,
-//! the history of a file, the reflog, the bisect and what rewriting commits reads; and their parsers on what git printed
-//! in awkward repositories (`history/golden.rs`).
+//! The reads of the history against throwaway repositories: the search, the blame, the history of a file, the reflog,
+//! the bisect and what rewriting commits reads; and their parsers on what git printed in awkward repositories
+//! (`history/golden.rs`).
 
 // The helpers of these tests fail as the tests do, loudly: clippy allows them what it allows tests.
 #![cfg(test)]
@@ -8,8 +8,6 @@
 
 #[path = "history/blame.rs"]
 mod blame;
-#[path = "history/commits.rs"]
-mod commits;
 #[path = "history/file_history.rs"]
 mod file_history;
 #[path = "history/golden.rs"]

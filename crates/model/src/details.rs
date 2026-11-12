@@ -1,5 +1,5 @@
-//! The details of a commit: what the details beside the graph, the Commits pane, the Stashes pane and the page of a
-//! commit show of one commit, and its files laid out under their directories.
+//! The details of a commit: what the details beside the graph, the Stashes pane and the page of a commit show of one
+//! commit, and its files laid out under their directories.
 
 mod tree;
 

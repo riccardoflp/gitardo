@@ -1,4 +1,4 @@
-//! The commits that `git log` prints for a list: the graph, the Commits pane, a search, the history of a file.
+//! The commits that `git log` prints for a list: the graph, a search, the history of a file.
 
 use std::ffi::OsString;
 

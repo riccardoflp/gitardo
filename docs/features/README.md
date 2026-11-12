@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo Desktop, one card each, 408 in all. A card says what the feature does from the user's side,
+Every feature of Gitardo Desktop, one card each, 406 in all. A card says what the feature does from the user's side,
 which function it is, what it asks, what it runs, how it is undone, and what has to be true for it to be done. The
 template and the rules of the cards are in [04-feature-contract.md](../04-feature-contract.md).
 
@@ -13,9 +13,9 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [01-repositories.md](01-repositories.md) | Repositories | 14 |
 | [02-graph.md](02-graph.md) | Graph | 38 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
-| [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 20 |
+| [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 19 |
-| [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 35 |
+| [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 36 |
 | [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 30 |
 | [08-stashes.md](08-stashes.md) | Stashes | 14 |
 | [09-conflicts.md](09-conflicts.md) | Conflicts | 35 |
@@ -132,9 +132,6 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`details.show-all-files`](04-details-and-commit-page.md#detailsshow-all-files--the-first-300-files-and-show-all) | The first 300 files, and Show all | View | Specified |
 | [`details.compare-file-with`](04-details-and-commit-page.md#detailscompare-file-with--compare-a-file-with-a-branch-tag-or-commit) | Compare a file with a branch, tag or commit | Operation | Specified |
 | [`details.stash`](04-details-and-commit-page.md#detailsstash--details-of-a-stash) | Details of a stash | View | Specified |
-| [`commits.read-log`](04-details-and-commit-page.md#commitsread-log--read-the-commits-of-what-is-checked-out) | Read the commits of what is checked out | Read | Specified |
-| [`commits.push-state`](04-details-and-commit-page.md#commitspush-state--what-is-pushed-and-what-is-to-pull) | What is pushed and what is to pull | Derivation | Specified |
-| [`commits.view`](04-details-and-commit-page.md#commitsview--the-commits-of-what-is-checked-out) | The commits of what is checked out | View | Specified |
 | [`commits.copy-hash`](04-details-and-commit-page.md#commitscopy-hash--copy-the-hash-of-a-commit) | Copy the hash of a commit | Operation | Specified |
 | [`commits.copy-message`](04-details-and-commit-page.md#commitscopy-message--copy-the-message-of-a-commit) | Copy the message of a commit | Operation | Specified |
 | [`commit-page.open`](04-details-and-commit-page.md#commit-pageopen--open-a-commit-as-a-page) | Open a commit as a page | Operation | Specified |
@@ -204,6 +201,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`sync.pull`](06-branches-tags-remotes.md#syncpull--pull) | Pull | Operation | Specified |
 | [`sync.pull-with`](06-branches-tags-remotes.md#syncpull-with--pull-one-way-or-another) | Pull one way or another | Operation | Specified |
 | [`sync.push`](06-branches-tags-remotes.md#syncpush--push) | Push | Operation | Specified |
+| [`sync.sync`](06-branches-tags-remotes.md#syncsync--sync-with-the-upstream) | Sync with the upstream | Operation | Specified |
 | [`sync.read-overwritten`](06-branches-tags-remotes.md#syncread-overwritten--read-what-a-force-push-would-overwrite) | Read what a force push would overwrite | Read | Specified |
 | [`sync.push-force-with-lease`](06-branches-tags-remotes.md#syncpush-force-with-lease--push-with---force-with-lease) | Push with `--force-with-lease` | Operation | Specified |
 | [`sync.push-force`](06-branches-tags-remotes.md#syncpush-force--push-with---force) | Push with `--force` | Operation | Specified |

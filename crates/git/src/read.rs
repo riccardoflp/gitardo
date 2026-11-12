@@ -5,7 +5,6 @@ pub mod blame;
 pub mod changed_files;
 pub mod changes;
 pub mod commit_page;
-pub mod commits;
 pub mod compare;
 pub mod conflicts;
 pub mod details;

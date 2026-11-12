@@ -2,8 +2,9 @@
 
 Checking out, creating, renaming, deleting and cleaning up branches; bringing a branch that is not checked out up to its
 upstream; the format that names new branches; tags; the branch rail as a whole; the remotes of a repository;
-and fetch, pull and push with their variants. Merging and rebasing are in `merge.` and `rebase.`; worktrees, which a
-branch is often opened in, are in `worktree.`; the pull requests of GitHub are in `github.`.
+and fetch, pull and push with their variants, and the sync that does all three in one click. Merging and rebasing are
+in `merge.` and `rebase.`; worktrees, which a branch is often opened in, are in `worktree.`; the pull requests of GitHub
+are in `github.`.
 
 ### `branch.checkout` — Check out a branch
 
@@ -157,8 +158,7 @@ Checks out a commit on a detached `HEAD`, to look at it or build it.
 
 - **Kind**: Operation
 - **Function**: `features::branch::checkout_detached(context, answers) -> Outcome`
-- **Entry points**: **Check out commit (detached)** in the context menu of a commit, in the timeline and in the commits
-  of what is checked out.
+- **Entry points**: **Check out commit (detached)** in the context menu of a commit in the timeline, narrowed or not.
 - **Offered when**: the commit is not the one checked out.
 - **Plan**: `git checkout --detach <hash>`, then the update of the submodules (`submodule.update-on-checkout`).
 - **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
@@ -178,8 +178,8 @@ Makes a new branch at a commit, a branch or a tag, and checks it out or not.
 - **Kind**: Operation
 - **Function**: `features::branch::create(context, answers) -> Outcome`
 - **Entry points**: **Branch** in the **…** menu of the header, whose tooltip is **Branch: create a branch at HEAD**;
-  **Create branch…** in Quick search, at `HEAD`; **Create branch here…** in the context menu of a commit (timeline and
-  commits of what is checked out), of a local branch and of a tag; the button **Create branch** at the top of the
+  **Create branch…** in Quick search, at `HEAD`; **Create branch here…** in the context menu of a commit in the
+  timeline, narrowed or not, of a local branch and of a tag; the button **Create branch** at the top of the
   branch rail.
 - **Offered when**: there is a commit: **Branch** in the header is disabled before the first one.
 - **Asks**:
@@ -490,9 +490,10 @@ Acceptance:
 
 ### `branch.pane` — The branch rail, its buttons and its comparison
 
-The branch rail as one place: its top, with the branch checked out and its buttons; the recent branches and the
-favorites, the local branches, the remote branches, and the stashes, worktrees, tags and submodules kept aside, with
-their context menus (`refs.tree`); and the comparison of a reference with the branch checked out.
+The branch rail as one place, the legend and the filter of the timeline: its top, with the branch checked out and its
+buttons; the recent branches and the favorites, the local branches, the branches of each remote under a heading of its
+own, and the stashes, worktrees, tags and submodules kept aside, with their context menus (`refs.tree`); and the
+comparison of a reference with the branch checked out.
 
 - **Kind**: View
 - **Function**: `views::branch::pane(state: &BranchesState, ui: &mut Ui) -> Vec<Intent>`
@@ -509,13 +510,16 @@ What the branch rail shows and does:
 - Its top names the branch checked out, and has the buttons **Create branch** (`branch.create` at `HEAD`) and
   **Compare** (`compare.choose`).
 - The lists, their order, their menus, the filter box from 15 branches and tags on, and the cap of 100 entries per
-  list with **Show all** are those of `refs.tree`. The lists of **Kept aside** are closed when the window opens; the
-  ones opened stay open until it is closed.
+  list with **Show all** are those of `refs.tree`: **Local**, then a heading for each remote (**ORIGIN**) with its
+  branches, then **Kept aside** with **Stashes**, **Worktrees**, **Tags** and **Submodules**. The lists of **Kept
+  aside** are closed when the window opens and the others open; the ones opened or closed stay so until it is closed.
 - The title of the **Worktrees** list has **+**, which creates a worktree (`worktree.create`), and **…**, with
   **Switch worktree…**, **Choose what new worktrees get…**, **Bring ignored files into the other worktrees…**
   and, when a worktree is missing, **Prune missing worktrees**.
-- Picking a reference selects its commit in the timeline, a branch narrowing it to its history (`refs.tree`), without
-  opening a page. **Show in the timeline** in its context menu shows the whole timeline at it (`graph.show-in-graph`).
+- A click on a branch narrows the timeline to its history and selects its tip; a second click on it brings the whole
+  history back (`refs.tree`). A click on a tag, a stash or a worktree still selects its commit in the timeline
+  (`graph.show-in-graph`). Neither opens a page. **Show in the timeline** in the context menu of a reference shows the
+  whole timeline at it (`graph.show-in-graph`).
 - Resting the pointer on a branch, a tag or a worktree brings out its history in the timeline while it is shown
   (`graph.hover-history`), until the pointer leaves it.
 - **Compare with `<current branch>`** in the menu of a reference shows the comparison in the inspector
@@ -528,8 +532,9 @@ Acceptance:
       name of a branch at `HEAD`.
 - [ ] With the timeline narrowed to `main`, the branch rail lists only `main` among the local branches; with
       `branches.followGraphFilter` off it lists all of them, the others dimmed.
-- [ ] Picking `feature` selects its commit in the timeline, and opens no page.
-- [ ] Every list of **Kept aside** is closed when the window opens.
+- [ ] A click on `feature` narrows the timeline to its history and selects its tip, and opens no page; a second click
+      brings the whole history back.
+- [ ] Every list of **Kept aside** is closed when the window opens, and the others are open.
 - [ ] The **…** of the Worktrees list has **Prune missing worktrees** only while a worktree's folder is missing.
 
 ### `tag.create` — Create a tag
@@ -538,8 +543,7 @@ Puts a tag on a commit: a lightweight one, or an annotated one with a message.
 
 - **Kind**: Operation
 - **Function**: `features::tag::create(context, answers) -> Outcome`
-- **Entry points**: **Create tag here…** in the context menu of a commit, in the timeline and in the commits of what is
-  checked out.
+- **Entry points**: **Create tag here…** in the context menu of a commit in the timeline, narrowed or not.
 - **Asks**:
   1. The name, in an input box titled **Create tag** with the placeholder `v1.0.0`; checked by `branch.validate-name`
      and "A tag with that name already exists".
@@ -793,7 +797,7 @@ Brings what every remote has, and forgets the remote branches deleted there.
 - **Kind**: Operation
 - **Function**: `features::sync::fetch(context, answers) -> Outcome`
 - **Entry points**: **Fetch** in the menu of **Sync** in the header, whose tooltip is **Fetch: git fetch --all
-  --prune**; **Fetch** in Quick search; the top of the commits of what is checked out.
+  --prune**; **Fetch** in Quick search. **Sync** fetches first too (`sync.sync`).
 - **Plan**: `git fetch --all --prune`.
 - **Danger**: None.
 - **Undo**: Impossible: a fetch only moves the remote-tracking branches, which Undo does not take back.
@@ -816,7 +820,7 @@ Brings what the upstream has into the branch checked out, the way the settings c
 - **Function**: `features::sync::pull(context, answers) -> Outcome`
 - **Entry points**: **Pull** in the menu of **Sync** in the header, which has the number of commits to pull when there
   are some, and whose tooltip says the command it runs, **Pull: git pull --rebase --autostash**; **Pull** in Quick
-  search; the top of the commits of what is checked out.
+  search. **Sync** pulls the same way after its fetch (`sync.sync`).
 - **Plan**: `git pull`, with `--rebase` when `pull.rebase` is on and `--autostash` when `pull.autostash` is on:
   `git pull --rebase --autostash` with both on, as they are by default.
 - **Danger**: None.
@@ -849,8 +853,7 @@ Pulls in one of the four ways, whatever the settings say **Pull** does.
 - **Entry points**: the other ways to pull, in the menu of **Sync** in the header, which lists **Pull** (`git pull`),
   **Pull (rebase)** (`git pull --rebase`), **Pull (autostash)** (`git pull --autostash`) and **Pull (rebase,
   autostash)** (`git pull --rebase --autostash`), the one of **Pull** marked **default**; in Quick search, **Pull (no
-  options)**, which is `git pull` alone, **Pull (rebase)**, **Pull (autostash)** and **Pull (rebase, autostash)**; the
-  **…** at the top of the commits of what is checked out.
+  options)**, which is `git pull` alone, **Pull (rebase)**, **Pull (autostash)** and **Pull (rebase, autostash)**.
 - **Plan**: the command of the way chosen.
 - **Danger**: None.
 - **Undo**: By the reflog, as `sync.pull`.
@@ -872,8 +875,8 @@ upstream.
 - **Kind**: Operation
 - **Function**: `features::sync::push(context, answers) -> Outcome`
 - **Entry points**: **Push** in the menu of **Sync** in the header, which has the number of commits to push when there
-  are some, and whose tooltip is **Push: git push**; **Push** in Quick search; the top of the commits of what is
-  checked out.
+  are some, and whose tooltip is **Push: git push**; **Push** in Quick search. **Sync** pushes the same way after its
+  pull (`sync.sync`).
 - **Plan**:
   - With an upstream of the same name: `git push <remote> <branch>`.
   - With an upstream of another name: `git push <remote> <branch>:<upstream branch>`.
@@ -896,6 +899,63 @@ Acceptance:
       `origin/feature` after.
 - [ ] `release` with a tag `release` runs `git push origin refs/heads/release`.
 - [ ] On a detached `HEAD` nothing runs and the message says why.
+
+### `sync.sync` — Sync with the upstream
+
+Fetches, pulls what the upstream has, then pushes what the branch checked out has ahead of it: in one click, what the
+counts on **Sync** promise.
+
+- **Kind**: Operation
+- **Function**: `features::sync::sync(context, answers) -> Outcome`
+- **Entry points**: a click on **Sync** in the header (`graph.toolbar`), which shows beforehand the commits to pull and
+  to push as of the last fetch, `↓2 ↑1`, and whose tooltip is **Sync: git fetch, git pull, git push**; **Sync** in
+  Quick search. **Fetch**, **Pull** and its other ways, **Push** and its other ways stay in the menu of **Sync**.
+- **Asks**: when the branch has no upstream, a confirmation, "`<branch>` has no upstream. Publish it to `<remote>`?",
+  with **Publish branch**, `<remote>` being the one of `remote.default`.
+- **Plan**, in this order:
+  - `git fetch --all --prune`, as `sync.fetch`;
+  - the pull of `sync.pull`, as the settings of how to pull say: `git pull --rebase --autostash` with both on, as they
+    are by default;
+  - the push of `sync.push`, `git push <remote> <branch>` (with `:<upstream branch>` when the names differ, and the
+    branch named as `branch.ref-argument` names it), only when the branch has commits to push;
+  - with no upstream, after the confirmation, only the first push of `sync.push`:
+    `git push --set-upstream <remote> <branch>`.
+- **Danger**: None, as for a pull and a push: the plan is shown first only when `commandPreview` asks for it.
+- **Undo**: By the reflog, as `sync.pull`: Undo moves the branch back to where it was before the pull (`undo.last`).
+  The push is not taken back, as for `sync.push`, nor the fetch, as for `sync.fetch`; a sync that pulled nothing leaves
+  nothing for Undo to take back.
+- **After**: as `sync.pull` and `sync.push`: the pull requests are read again from GitHub when the token is known,
+  `stash.autostash-left` says when the changes set aside no longer fit, and after the first push of a branch
+  `github.offer-after-push`. The counts on **Sync** are read again with the rest of the state.
+- **On failure**: no step after the one that failed runs. A fetch that fails (no network, a remote that refuses) stops
+  the sync before the pull. A pull that stops on a conflict opens the conflicts as `sync.pull` does (`conflicts.banner`),
+  and the push does not run. A pull that git refuses because what comes in would overwrite changes not committed stops
+  the sync before the push. A push that the remote refuses, because its branch moved since the fetch, keeps what the
+  pull brought, and says what git said.
+- **Refuses**: what a pull and a push refuse: on a detached `HEAD`, "Cannot sync: HEAD is detached. Check out a branch
+  first."; in a repository with no remote, "This repository has no remote." with **Add remote…** (`remote.add`); with
+  `pull.rebase` on and `pull.autostash` off, while a tracked file has changes, staged or not, which would stop the pull:
+  "Commit or stash the changes first: the pull cannot rebase over them."
+- **Settings**: `pull.rebase` and `pull.autostash`, for the pull, as `sync.pull`; `commandPreview`.
+- **Uses**: `sync.fetch`, `sync.pull`, `sync.push`, `remote.default`, `branch.ref-argument`, `remote.add`,
+  `stash.autostash-left`, `conflicts.banner`, `github.read-pull-requests`, `github.offer-after-push`, `undo.last`.
+
+Acceptance:
+
+- [ ] With `main` one commit ahead of `origin/main` and two behind, **Sync** shows `↓2 ↑1`, and a click runs
+      `git fetch --all --prune`, `git pull --rebase --autostash` and `git push origin main`, in that order; `main` and
+      `origin/main` are at the same commit after.
+- [ ] With nothing to push, the plan has the fetch and the pull and no push.
+- [ ] With `commandPreview` set to `all`, the commands are shown before any of them runs, and declining runs nothing;
+      with `off`, they run at once.
+- [ ] A branch `feature` with no upstream asks to publish it, and **Publish branch** runs only
+      `git push --set-upstream origin feature`; `feature` follows `origin/feature` after.
+- [ ] With `pull.rebase` on, `pull.autostash` off and a tracked file modified, nothing runs and the message says why.
+- [ ] When the pull stops on a conflict, the conflicts banner shows, the push does not run, and `origin/main` on the
+      remote is where it was.
+- [ ] On a detached `HEAD` nothing runs and the message says why.
+- [ ] Undo right after a sync that pulled two commits and pushed one moves `main` back to where it was before the pull;
+      the remote branch stays where the push put it.
 
 ### `sync.read-overwritten` — Read what a force push would overwrite
 
@@ -920,7 +980,7 @@ Replaces the remote branch with the branch checked out, unless the remote branch
 - **Kind**: Operation
 - **Function**: `features::sync::push_force_with_lease(context, answers) -> Outcome`
 - **Entry points**: **Push (force with lease)** among the other ways to push, in the menu of **Sync**, and in Quick
-  search; the **…** at the top of the commits of what is checked out.
+  search.
 - **Reads**: `sync.read-overwritten`, when the branch has an upstream that is not gone.
 - **Plan**: `git push --force-with-lease <remote> <branch>`, with `:<upstream branch>` and `--set-upstream` as for
   `sync.push`.
@@ -947,8 +1007,7 @@ Replaces the remote branch with the branch checked out, whatever it has.
 
 - **Kind**: Operation
 - **Function**: `features::sync::push_force(context, answers) -> Outcome`
-- **Entry points**: **Push (force)** among the other ways to push, in the menu of **Sync**, and in Quick search; the
-  **…** at the top of the commits of what is checked out.
+- **Entry points**: **Push (force)** among the other ways to push, in the menu of **Sync**, and in Quick search.
 - **Reads**: `sync.read-overwritten`, when the branch has an upstream that is not gone.
 - **Plan**: `git push --force <remote> <branch>`, with `:<upstream branch>` and `--set-upstream` as for `sync.push`.
 - **Danger**: Destructive, because the commits only the remote branch has are lost for everyone; the warning lists them

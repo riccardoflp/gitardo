@@ -1,4 +1,4 @@
-//! A commit as the lists show it: the graph, the Commits pane, a search, the history of a file.
+//! A commit as the lists show it: the graph, a search, the history of a file.
 
 use crate::{CommitId, Timestamp};
 

@@ -118,7 +118,7 @@ pub fn parse_third_parent(output: &[u8]) -> bool {
         .is_some_and(|(_, subject)| subject.starts_with(UNTRACKED_SUBJECT))
 }
 
-/// Everything the details, the Commits pane, the Stashes pane and the page of a commit show of one commit: its message,
+/// Everything the details, the Stashes pane and the page of a commit show of one commit: its message,
 /// author, committer, dates and parents, the files it changed against its first parent (every file it added when it has
 /// none), and for a stash with three parents the untracked files it took. The uncommitted changes asked for as a commit
 /// have the subject **Uncommitted changes**, no author, and the files of the index and the working tree together. A

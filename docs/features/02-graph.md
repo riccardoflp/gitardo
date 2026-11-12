@@ -111,18 +111,21 @@ What applies to the whole repository, at the top of the window.
 - **Kind**: View
 - **Function**: `views::graph::toolbar_view(state: &ToolbarState, ui) -> Vec<Intent>`
 - **Entry points**: the top of the window.
-- **Uses**: `graph.toggle-references`, `repo.select`, `sync.fetch`, `sync.pull`, `sync.push`, `branch.create`,
-  `stash.push`, `undo.last`, `filter.picker`, `search.box`, `repo.schedule-reads`, `graph.more-menu`.
+- **Uses**: `graph.toggle-references`, `repo.select`, `sync.sync`, `sync.fetch`, `sync.pull`, `sync.pull-with`,
+  `sync.push`, `branch.create`, `stash.push`, `undo.last`, `filter.picker`, `search.box`, `repo.schedule-reads`,
+  `graph.more-menu`.
 
 From left to right: the button that puts the branch rail away (`graph.toggle-references`); the repository menu, which
 names the repository shown and lists the others of the workspace (`repo.select`); the branch checked out, or `detached
 at 3f2a1c9`, or `no commits yet`, with how far it is from its upstream (`activity.status-bar`) and the folder of the
 repository in its tooltip; Quick search; the activity indicator (`activity.status-bar`); **Sync** with the number of
-commits to pull and to push, `↓3 ↑2`, and its menu: **Fetch**, **Pull** and its other ways, **Push** and its other
-ways; **Activity**, which opens the Activity drawer; and **…** (`graph.more-menu`), which has **Refresh**, **Branch**,
-which creates a branch at `HEAD`, **Stash**, which stashes all changes, and **Undo**. The button of the branches shown
-(`filter.picker`) and the search (`search.box`) are at the top of the timeline. Each entry says in its tooltip what it
-runs: **Fetch: git fetch --all --prune**, **Push: git push**, **Stash: git stash push --include-untracked**. When the
+commits to pull and to push, `↓3 ↑2`, which a click runs: a fetch, a pull, then a push of what is ahead (`sync.sync`),
+and its menu: **Fetch**, **Pull** and its other ways, **Push** and its other ways; **Activity**, which opens the
+Activity drawer; and **…** (`graph.more-menu`), which has **Refresh**, **Branch**, which creates a branch at `HEAD`,
+**Stash**, which stashes all changes, and **Undo**, none of which is a button of the header. The button of the
+branches shown (`filter.picker`) and the search (`search.box`) are at the top of the timeline. Each entry says in its
+tooltip what it runs: **Sync: git fetch, git pull, git push**, **Fetch: git fetch --all --prune**, **Push: git push**,
+**Stash: git stash push --include-untracked**. When the
 window is narrow the header keeps its icons and gives up its words. While an operation runs, the entries that change
 something are disabled. **Branch** and **Undo** are disabled before the first commit, and **Stash** also while there is
 nothing to stash.
@@ -131,7 +134,7 @@ Acceptance:
 
 - [ ] With `main` two ahead of its upstream and three behind, **Sync** shows `↓3 ↑2`.
 - [ ] Detached at a commit, the header names `detached at <short hash>`.
-- [ ] While a fetch runs, **Pull** and **Push** in the menu of **Sync** cannot be clicked.
+- [ ] While a fetch runs, **Sync** itself, and **Pull** and **Push** in its menu, cannot be clicked.
 - [ ] Narrowing the window hides the words of the header and keeps its icons; **Refresh** stays in **…**.
 
 ### `graph.more-menu` — The … menu of the header
@@ -253,7 +256,7 @@ The graph is as wide as its lines need, within limits, and draws its lines close
 
 - **Kind**: Derivation
 - **Function**: `model::graph::fit_width(lanes: usize, wanted: Option<f32>, available: f32) -> GraphFit`
-- **Uses**: by `graph.view`, `graph.resize-graph` and the commits of what is checked out (`commits.`).
+- **Uses**: by `graph.view` and `graph.resize-graph`.
 
 Input: the most lanes any row of the list has, the width the graph was dragged to (none while it chooses its own), and
 the width of the list (0 while it is not known). Output: the width the graph is drawn in, the room each lane gets in
@@ -771,13 +774,15 @@ before the first commit of a new repository.
 - **Entry points**: the first card of the timeline; its context menu.
 - **Offered when**: there are changes (staged, not staged, untracked or in conflict), nothing narrows the timeline but
   the branches shown, and the commit checked out is among the commits listed (or there is none yet). Narrowed to
-  branches that do not have it, the draft is not there.
-- **Uses**: `details.show`, `changes.pane`, `stash.push`, `stash.push-staged`, `changes.stage-all`,
+  branches that do not have it, the draft is not there, and the Changes page is where one commits.
+- **Uses**: `details.show`, `changes.pane`, `commit.create`, `stash.push`, `stash.push-staged`, `changes.stage-all`,
   `changes.unstage-all`, `changes.discard-all`.
 
-- The draft has the commit box of the Changes page (`changes.pane`): the message of the next commit and **Commit**.
-  Under them it says `<n> files changed`, `<n>` being the number of files with a change of any kind, each once
-  (`1 file changed`), followed by `· <m> staged` while some are staged; and **Review**, which opens the Changes page.
+- The draft shows the message of the commit box of the Changes page (`changes.pane`) and **Commit**
+  (`commit.create`), and nothing else of that box: **Amend last commit**, the button that drafts the message with the
+  AI provider and the identity are on the Changes page only. Under them it says `<n> files changed`, `<n>` being the
+  number of files with a change of any kind, each once (`1 file changed`), followed by `· <m> staged` while some are
+  staged; and **Review**, which opens the Changes page.
   Its dot is a hollow ring joined to the commit checked out by a dashed line; it has no author, date or hash.
 - Selected, it lists its files in the inspector, as a commit does (`details.show`). It cannot be selected together with
   commits, opened as a page, dragged or folded.
@@ -854,7 +859,7 @@ leaves it out.
 - **Function**: `views::graph::show_in_graph_view(state: &GoToState, ui) -> Vec<Intent>`
 - **Entry points**: **Show in the timeline** in the menu of a branch, tag or worktree in the branch rail (the
   worktree's commit); a click on a tag, a stash or a worktree in the branch rail; and, from other areas, a step of a
-  search, **Go to commit…**, the reflog, the commits of what is checked out, the bisect banner.
+  search, **Go to commit…**, the reflog, the page of a commit (`commit-page.show-in-graph`), the bisect banner.
 - **Reads**: `graph.read-position`.
 - **Uses**: `graph.read-commits`, `graph.fold-merge`, `filter.log-arguments`.
 
@@ -881,9 +886,9 @@ Acceptance:
 
 ### `refs.tree` — The branch rail
 
-The local branches with how far each is from its upstream, each in the color of its lane, and the remote branches;
-then, kept aside, the stashes, the worktrees, the tags and the submodules: in lists that fold, on the left of the
-window.
+The legend and the filter of the timeline: the local branches with how far each is from its upstream, each in the
+color of its lane, and the branches of each remote under a heading of its own; then, kept aside, the stashes, the
+worktrees, the tags and the submodules: in lists that fold, on the left of the window.
 
 - **Kind**: View
 - **Function**: `views::refs::tree_view(state: &ReferencesState, ui) -> Vec<Intent>`
@@ -894,11 +899,13 @@ window.
   `graph.hover-history`, `graph.pull-request-badge`, `branch.open`, `drag.drop`, `branch.`, `tag.`, `stash.`,
   `worktree.`, `submodule.`.
 
-- Lists, in this order: **Favorites** and **Recent** (each only when it has something), **Local**, **Remotes** (the
-  branches of each remote under its name), then **Kept aside**: **Stashes**, **Worktrees**, **Tags**, **Submodules**
-  (only when there are some). Each has its icon and the count of what it lists.
-- The lists of **Kept aside** are closed when Gitardo starts, and the others open, since the local branches are the
-  legend of the lanes; the ones opened or closed stay so until the application is closed.
+- Lists, in this order: **Favorites** and **Recent** (each only when it has something), **Local**, then one list for
+  each remote, under a heading that is the remote's name (**ORIGIN**, **UPSTREAM**), with its branches; then **Kept
+  aside**: **Stashes**, **Worktrees**, **Tags**, **Submodules** (only when there are some). Each has its icon and the
+  count of what it lists.
+- The lists of **Kept aside** are closed when Gitardo starts, and the others (the local branches, the favorites, the
+  recent branches and the list of each remote) open, since the local branches are the legend of the lanes; the ones
+  opened or closed stay so until the application is closed.
 - A list with more than 100 entries lists the first 100 and **Show all `<n>`…**, which lists them all until the
   list is closed. The branch checked out is listed even when it comes after the first 100.
 - A local branch says how far it is from its upstream, `↑1 ↓2`, or `gone` when its upstream was deleted; its tooltip
@@ -913,7 +920,7 @@ window.
   commit are marked as selected.
 - A click on a branch or a remote branch narrows the timeline to its history and selects its tip
   (`filter.show-only`); a second click on it brings the whole history back (`filter.show-all`). A click on a tag, stash
-  or worktree goes to its commit (`graph.show-in-graph`). A double click on a branch
+  or worktree still goes to its commit (`graph.show-in-graph`), without narrowing anything. A double click on a branch
   opens it as `branch.open` says; on a remote branch, checks it out (`branch.open`); on a worktree or a submodule,
   opens it in a new window. Resting the pointer on one brings out its history (`graph.hover-history`). Branches can be
   dragged onto the timeline (`drag.drop`).
@@ -923,8 +930,8 @@ window.
 
 Acceptance:
 
-- [ ] After the application starts, every list of **Kept aside** is closed; one opened stays open when another
-      repository is chosen.
+- [ ] After the application starts, every list of **Kept aside** is closed and the others are open; one opened stays
+      open when another repository is chosen.
 - [ ] A list of 250 tags lists 100 and **Show all 250…**.
 - [ ] A branch one ahead and two behind its upstream says `↑1 ↓2`; one whose upstream is gone says `gone`.
 - [ ] Clicking a stash in the branch rail selects the stash in the timeline.
@@ -984,8 +991,8 @@ Branches, remote branches and tags are listed by name, or the one committed to l
 
 - **Kind**: Derivation
 - **Function**: `model::refs::sort(references: &References, order: SortOrder) -> References`
-- **Entry points**: **Sort by name** and **Sort by date** in the **…** on the title of the Local, Remotes and Tags
-  lists, checked as they are.
+- **Entry points**: **Sort by name** and **Sort by date** in the **…** on the title of the Local list, of the list of
+  each remote and of the Tags list, checked as they are.
 - **Settings**: `branches.sortOrder`: `name` or `date`; not set, by name.
 
 - By name is the order git lists them in.

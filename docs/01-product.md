@@ -39,16 +39,23 @@ history fills it, and everything else opens from it.
 
 - **Header**: the **repository** (a menu of the repositories of the workspace and the recent ones), the **branch**
   checked out with how far it is from its upstream and from the default branch, **Quick search**, the **activity**
-  indicator (what is running, which opens the **Activity** drawer), **Sync** with its menu (fetch, pull, push, sync),
-  and the **Activity** button. It gives up its words for icons when the window is narrow.
+  indicator (what is running, which opens the **Activity** drawer), **Sync**, which shows the commits to pull and to
+  push and, clicked, fetches, pulls and pushes them, with its menu (fetch, pull, push and their other ways), the
+  **Activity** button, and **…** (refresh, branch, stash, undo and the switches of the timeline). It gives up its
+  words for icons when the window is narrow.
 - **Branch rail**: the local branches, each with the color of its lane, so that the rail is also the legend of the
-  graph; the branches of each remote; **Kept aside**: stashes, worktrees and tags, each a list that opens in the rail.
-  A branch picked in the rail narrows the timeline to its history; picked again, the whole history is back. The rail
-  can be narrowed to icons or hidden.
+  graph; the branches of each remote, under a heading for each remote (**ORIGIN**); **Kept aside**: stashes,
+  worktrees, tags and submodules, each a list that opens in the rail. The lists of Kept aside start closed and the
+  others open. A click on a branch narrows the timeline to its history and selects its tip; a second click brings the
+  whole history back; a tag, a stash or a worktree goes to its commit. The commits of what is checked out are the
+  timeline narrowed to the branch checked out. The rail can be narrowed to icons or hidden.
 - **Timeline**: the commits with their lanes, two lines a row: the subject with its labels as pills, then the author
   and the date; the short hash on the right. The selected commit is shown in the inspector.
 - **Draft**: the first card of the timeline when there are uncommitted changes: the message of the next commit, how
-  many files changed and how many are staged, **Review**, which opens the **Changes** page, and **Commit**.
+  many files changed and how many are staged, **Review**, which opens the **Changes** page, and **Commit**, and nothing
+  else: amending, the message drafted by the AI and the identity are on the Changes page. While the timeline is
+  narrowed to branches that do not hold the commit checked out, the draft is not shown, and one commits from the
+  Changes page.
 - **Inspector**: the selected commit as a card: its hash and date, its message, its author, its files with their lines
   added and removed, and its actions. When the window is narrow it opens over the timeline.
 - **Pages**: a commit, a comparison, the diff of a file, the merge of a file in conflict, a file with its blame, the
@@ -72,7 +79,7 @@ The cards of the catalog name the places of the window with these words, and onl
 | Place | What it is |
 | --- | --- |
 | **Header** | The bar at the top: repository, branch, Quick search, activity, Sync, Activity. |
-| **Branch rail** | The list on the left: local branches, remotes, and **Kept aside** (stashes, worktrees, tags). |
+| **Branch rail** | The list on the left: local branches, a heading for each remote, and **Kept aside** (stashes, worktrees, tags, submodules). |
 | **Timeline** | The history with its lanes, in the middle. "The graph" is the drawing of its lanes. |
 | **Draft** | The card of the uncommitted changes at the top of the timeline. |
 | **Inspector** | The card of the selected commit, on the right. |

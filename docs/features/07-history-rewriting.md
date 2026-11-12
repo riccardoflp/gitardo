@@ -204,8 +204,7 @@ Makes a new commit that takes back the changes of a commit.
 
 - **Kind**: Operation
 - **Function**: `features::revert::commit(context, answers) -> Outcome`
-- **Entry points**: **Revert `<short hash>`** in the context menu of a commit in the timeline, and of a commit of what
-  is checked out (`commits.view`).
+- **Entry points**: **Revert `<short hash>`** in the context menu of a commit in the timeline, narrowed or not.
 - **Offered when**: on every commit, the one checked out included.
 - **Plan**: `git revert --no-edit [-m 1] <hash>`: `-m 1` for a merge commit, which is reverted against its first parent.
   `--no-edit` keeps the message git writes, *Revert "<subject>"*, since no editor can open.
@@ -227,9 +226,9 @@ Moves the branch checked out (or `HEAD` when detached) to a commit, keeping the 
 - **Kind**: Operation
 - **Function**: `features::reset::to_commit(context, answers) -> Outcome`
 - **Entry points**: **Reset `<branch>` to here…** (`HEAD` when detached) in the context menu of a commit in the
-  timeline, and of a commit of what is checked out (`commits.view`) except the one checked out; **Reset `<branch>` to
-  `<short hash>`…** when the current branch is dropped on another commit (`drag.drop`); **Reset `<branch>` to here…** in
-  the menu of a reflog entry.
+  timeline, narrowed or not, the one checked out included, where **Hard** discards the changes not committed;
+  **Reset `<branch>` to `<short hash>`…** when the current branch is dropped on another commit (`drag.drop`);
+  **Reset `<branch>` to here…** in the menu of a reflog entry.
 - **Asks**: a pick titled *Reset `<branch>` to `<short hash>`*, with **Soft** (*Keep all changes, staged*), **Mixed**
   (*Keep all changes, unstaged*) and **Hard** (*Discard all changes*). No default: the user picks one.
 - **Plan**: `git reset --soft <hash>`, `git reset --mixed <hash>` or `git reset --hard <hash>`.
@@ -244,8 +243,8 @@ Acceptance:
 - [ ] Choosing **Mixed** on `abc1234` runs `git reset --mixed <full hash of abc1234>`.
 - [ ] Choosing **Hard** always shows the command and the warning first, whatever `commandPreview` says.
 - [ ] Closing the pick runs nothing.
-- [ ] The commits of what is checked out (`commits.view`) have no reset entry on the commit checked out; the whole
-      timeline has one.
+- [ ] Every commit of the timeline, narrowed to the branch checked out or not, has the reset entry in its context
+      menu, the commit checked out included.
 
 ### `merge.read-predicted-conflicts` — Predict the conflicts of a merge
 

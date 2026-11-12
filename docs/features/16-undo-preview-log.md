@@ -81,8 +81,8 @@ shows what it is about to do first. Undoing twice redoes.
 
 - **Kind**: Operation
 - **Function**: `features::undo::last(context, answers) -> Outcome`
-- **Entry points**: **Undo** in the **…** menu of the header; **Undo Last Operation** in Quick search; the **…** of the
-  commits of what is checked out (`commits.view`); the **Undo** of the messages that follow an operation.
+- **Entry points**: **Undo** in the **…** menu of the header; **Undo Last Operation** in Quick search; the **Undo** of
+  the messages that follow an operation.
 - **Offered when**: the journal has an entry, or the reflog of `HEAD` has a previous position.
 - **Reads**: the journal of Gitardo's own operations for this repository; the last two entries of the reflog of `HEAD`
   and, when a branch is checked out, of `refs/heads/<branch>` (a rebase moves `HEAD` many times but the branch once, so

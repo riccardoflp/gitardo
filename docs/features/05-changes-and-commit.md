@@ -2,15 +2,18 @@
 
 What is not committed yet, and making a commit of it: the **Changes** page, opened by **Review** in the draft, with its
 one list of files, staging and unstaging, marking conflicts as resolved, discarding, the files edited in Gitardo's own
-editors and not saved yet, the commit box with **Commit** and **Amend**, which the draft at the top of the timeline
-shares, the message drafted by the AI provider, and the identity that commits are made as. The same staging and
+editors and not saved yet, the commit box with **Commit** and **Amend**, whose message and **Commit** the draft at the
+top of the timeline shows too, the message drafted by the AI provider, and the identity that commits are made as. The same staging and
 discarding are in the context menu of the draft. Stashing from this page is in `stash.`; taking one side of a file in
 conflict is in `conflicts.`.
 
 ### `changes.pane` — The Changes page
 
 The page where the changes are staged and committed: one list of the changed files, each with a box, the files in
-conflict apart above it, and the commit box at the top, which the draft at the top of the timeline shares.
+conflict apart above it, and the commit box at the top, whose message and **Commit** the draft at the top of the
+timeline shows too. The rest of the commit box, **Amend last commit**, the button that drafts the message with the AI
+provider and the identity, is on this page only. While the timeline is narrowed to branches that do not have the
+commit checked out, the draft is not there, and this page is where one commits.
 
 - **Kind**: View
 - **Function**: `views::changes::pane(state: &ChangesState, ui: &mut Ui) -> Vec<Intent>`
@@ -26,13 +29,13 @@ From top to bottom the page shows:
 
 1. The banners of a worktree, of an operation that stopped (**Continue**, **Skip**, **Abort**) and of a bisect, as the
    timeline has them.
-2. The commit box, whose message and **Commit** the draft shows too: the message, with the placeholder **Message
-   (Ctrl+Enter to commit on `<branch>`)**, or `detached HEAD` for the branch; **Commit**, which reads **Amend** while
-   **Amend last commit** is ticked; the sparkle button that drafts the message (`commit.draft-message`), turning while
-   it runs; the box **Amend last commit**. The message is kept while the page is closed and when the window is opened
-   again.
-3. Under the commit box, the identity commits will be made with, as `Name <email>`, or **No identity configured**. A
-   click on it is `identity.switch`.
+2. The commit box, whose message and **Commit** the draft shows too, and nothing else of it: the message, with the
+   placeholder **Message (Ctrl+Enter to commit on `<branch>`)**, or `detached HEAD` for the branch; **Commit**, which
+   reads **Amend** while **Amend last commit** is ticked; the sparkle button that drafts the message
+   (`commit.draft-message`), turning while it runs, here only; the box **Amend last commit**, here only. The message
+   is kept while the page is closed and when the window is opened again.
+3. Under the commit box, the identity commits will be made with, as `Name <email>`, or **No identity configured**,
+   here only. A click on it is `identity.switch`.
 4. **Conflicts**, when there are files in conflict, with their count: each file with no box, and the buttons
    **Resolve its conflicts automatically, after looking at what is proposed** (only when the rules can resolve some of
    them, `conflicts.resolve-by-rules`), **Resolve with AI, after looking at what is proposed** (only when `ai.*` is set
@@ -441,9 +444,8 @@ Replaces the last commit with one that has the staged changes too, and the new m
 
 - **Kind**: Operation
 - **Function**: `features::commit::amend(context, answers) -> Outcome`
-- **Entry points**: **Amend** in the draft and in the Changes page, which **Commit** becomes while **Amend last
-  commit** is ticked;
-  `Ctrl+Enter` (`Cmd+Enter` on macOS) in the message box then.
+- **Entry points**: **Amend** in the Changes page, which **Commit** becomes while **Amend last commit** is ticked
+  there, the box being on the Changes page only; `Ctrl+Enter` (`Cmd+Enter` on macOS) in its message box then.
 - **Offered when**: there is a commit: the box **Amend last commit** is disabled before the first one. Nothing needs to
   be staged.
 - **Plan**: `git commit --amend -m <message>`; with the message box empty, `git commit --amend --no-edit`, which keeps
@@ -471,7 +473,7 @@ Asks the AI provider to write the commit message from the changes, and puts its 
 - **Kind**: Derivation
 - **Function**: `model::commit::draft_message(input: &DraftInput) -> AiRequest`, and
   `model::commit::clean_draft(answer: &str) -> String`
-- **Entry points**: the sparkle button beside **Commit** in the draft and in the Changes page, whose tooltip says
+- **Entry points**: the sparkle button beside **Commit** in the Changes page, and not in the draft, whose tooltip says
   **Draft a message from the changes with the AI provider**.
 - **Offered when**: something is changed; the button is disabled while a draft is being written.
 - **Reads**: the staged changes, `git diff --cached --no-color --no-ext-diff`, when something is staged; otherwise all

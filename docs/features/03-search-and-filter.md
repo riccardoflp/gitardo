@@ -494,13 +494,17 @@ Narrows the timeline to what a branch, remote branch or tag can reach.
 - **Kind**: Derivation
 - **Function**: `model::filter::show_only(reference: &str) -> BranchesShown`
 - **Entry points**: **Show only this history** in the context menu of a branch, remote branch or tag: on its label in
-  the timeline and in the branch rail.
+  the timeline and in the branch rail; a click on a branch or a remote branch in the branch rail (`refs.tree`);
+  **Show the commits** on the Welcome page, on the branch checked out (`welcome.page`).
 - **Offered when**: the reference is not already the only one shown (then the menu has **Show all branches** alone).
-- **Uses**: `filter.log-arguments`.
+- **Uses**: `filter.log-arguments`, `graph.read-commits`, `graph.unpushed`.
 
 The timeline shows that reference alone, ticked one by one, whatever was shown before. What is checked out is not
 added: narrowed to a branch that is not checked out, the draft of the uncommitted changes is not there
-(`graph.uncommitted-row`).
+(`graph.uncommitted-row`). Narrowed to the branch checked out, the timeline is the commits of what is checked out: read
+a page at a time by `graph.read-commits` like any other history, with the search and the filter of the timeline, and
+the commits not pushed yet ringed (`graph.unpushed`); how far the branch is from its upstream, what is to pull
+included, is said by the branch in the header and by **Sync** (`graph.toolbar`).
 
 Acceptance:
 
@@ -554,7 +558,8 @@ Shows everything again.
 - **Function**: `model::filter::show_all() -> Option<BranchesShown>`
 - **Entry points**: **Show all branches** in the context menu of a branch, remote branch or tag while the timeline is
   narrowed; **Show all branches** on the bar above the commits (`filter.bar`); **Show all** on the line at the top of
-  the branch rail (`refs.scope-line`); **All** in the branch filter.
+  the branch rail (`refs.scope-line`); a second click on the branch the timeline is narrowed to in the branch rail
+  (`refs.tree`); **All** in the branch filter.
 - **Offered when**: the timeline is narrowed to some branches.
 
 Acceptance:
