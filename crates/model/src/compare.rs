@@ -1,6 +1,16 @@
 //! A comparison of two branches, tags, commits, or one of them and the working tree, as git reads it: how far apart
 //! they are, what merging them would do, the commits only in each and the files that differ.
 
+mod choices;
+mod recent;
+mod sides;
+mod summary;
+
+pub use choices::{PickItem, SideChoice, SideChoicesInput, filter_choices, side_choices};
+pub use recent::{RECENT_LIMIT, RecentComparison, RecentInput, RecentSide, recent, reopened};
+pub use sides::{CompareSide, SideInput, WORKING_TREE, follow_sides, initial_mode, is_same_page};
+pub use summary::{CompareSummary, Diverged, Merging, SummaryInput, summary};
+
 use crate::commit_page::PatchLines;
 use crate::state::FileChange;
 use crate::{CommitId, Timestamp};

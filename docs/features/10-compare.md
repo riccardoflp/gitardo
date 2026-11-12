@@ -279,7 +279,7 @@ Acceptance:
 The sentences under the sides of a comparison.
 
 - **Kind**: Derivation
-- **Function**: `model::compare::summary(input: &CompareView) -> CompareSummary`
+- **Function**: `model::compare::summary(input: &SummaryInput) -> CompareSummary`
 
 Rules:
 
