@@ -671,3 +671,41 @@ the reading given until it is answered:
   take it back or it was Undo itself; a step that failed says `` `<the step>` failed: <what git said> ``. **Sync** and
   the button of its menu are one control; **Stash** in **…**, and **Sync**, **Pull** and **Push**, are disabled until
   their operations are built. Are these right?
+- **Q111** — Branches and tags (M4). `branch.checkout`, `branch.checkout-remote`, `branch.checkout-detached` and
+  `tag.checkout` read whether `HEAD` or the revision checked out has a `.gitmodules`, and with
+  `submodules.updateOnCheckout` on add `git submodule update --init --recursive` to their plan. This stands in for
+  `submodule.update-on-checkout` (M8), which has the Confirm when the update would leave commits behind: should the
+  checkouts call it once it is built, and is a plain step right until then?
+- **Q112** — `branch.format-name` fills `${date}` in UTC: the context of an operation has no offset of the local time
+  yet. `branch.name-from-format` needs a regular expression for `pattern`, the values given last kept between runs and
+  a read of the branches that contain a commit, so it is not built, nor line 6 of `branch.create` (the pick between
+  **Use the format** and **Type a branch name**); both cards stay **Specified**. Which crate may keep the values given
+  last, and is `${date}` in UTC acceptable until then?
+- **Q113** — `tag.push` pushes to `origin`, or to the first remote without one, through a function of its own until
+  `remote.default` is built by the slice of the remotes; then it calls that.
+- **Q114** — `branch.clean-up` runs `git worktree prune`, then `git worktree remove [--force] <path>`, then
+  `git branch -d` and `git branch -D`; it leaves out the steps that unlink the folders linked into a worktree on Windows
+  and remove the folders left empty, which come with the worktrees (M7). Its pick says of each branch, joined with
+  commas, "merged into `<branch>`", "upstream is gone, not merged", "with its worktree `<folder>`", "`<n>` files not
+  committed" and "with its missing worktree"; its title is "Delete `<n>` branches and `<m>` worktrees". Are the words
+  right?
+- **Q115** — `branch.delete` decides between `-d` and `-D` by reading whether the branch is in its upstream, or in
+  `HEAD` without one or when it is gone; when `git branch -d` still fails, git's words are shown and nothing offers
+  `-D` after. Should it?
+- **Q116** — `branch.checkout-remote` asks "`<name>` has `<n>` commits that `<remote>` has not, which has `<m>` commits
+  of its own", with **Check out `<name>` and rebase it onto `<remote>`** and **Check out `<name>` as it is**. On the
+  branch checked out, level with its remote branch, nothing runs and it says "`<name>` is checked out already, with
+  everything `<remote>` has." An operation started on a reference that changed since its menu was drawn refuses with
+  words of its own: "There is no branch `<name>`.", "`<name>` is checked out already.", "`<name>` is checked out in
+  the worktree `<folder>`.", "The commit of `<tag>` is checked out already.". Are the words right?
+- **Q117** — The menus. A branch, a remote branch and a tag have the same operations in the branch rail and on their
+  label in the timeline; the menu of a label has them, then those of its commit (**Create branch here…**, **Create tag
+  here…**, **Check out commit (detached)** unless it is checked out), then the fold of a merge. **Open in worktree**,
+  the entries of a worktree and **Delete** of a remote branch are shown greyed out until the worktrees (M7) and the
+  remotes are built. A double click on a label does what `branch.open` says and never opens the page of the commit,
+  also on the branch checked out, where it does nothing; `Enter` while the pointer rests on a label does the same, since
+  the list does not tell the two apart. In the branch rail the first click of a double click narrows the timeline, as a
+  click does, before the double click checks the branch out. Is that right?
+- **Q118** — Cards of this slice left **Specified**: `branch.create` and `branch.name-from-format` (Q112);
+  `branch.pane`, whose top with the branch checked out and **Create branch**, and the **…** of the Worktrees list, are
+  not built; `undo.last`, whose lines about a stash, a cherry-pick, a squash merge and conflicts wait for those areas.

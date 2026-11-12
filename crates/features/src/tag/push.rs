@@ -32,7 +32,7 @@ pub fn push(context: &Context, _answers: &Answers) -> Outcome {
 }
 
 /// The remote a tag goes to, as `remote.default` says: `origin` when there is one, otherwise the first; none without
-/// a remote. Open question Q-C3: this is to be `model::remote::default` once that card is built.
+/// a remote. Open question Q113: this is to be `model::remote::default` once that card is built.
 fn default_remote(remotes: &[String]) -> Option<&str> {
     remotes
         .iter()
