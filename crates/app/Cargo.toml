@@ -15,11 +15,18 @@ path = "src/main.rs"
 name = "gitardo-cli"
 path = "src/bin/gitardo-cli/main.rs"
 
+[[bin]]
+name = "gitardo-demo"
+path = "src/bin/gitardo-demo/main.rs"
+
 [dependencies]
 engine = { path = "../engine" }
 features = { path = "../features" }
 git = { path = "../git" }
 model = { path = "../model" }
+platform = { path = "../platform" }
+render = { path = "../render" }
+ui = { path = "../ui" }
 
 [dev-dependencies]
 testkit = { path = "../testkit" }

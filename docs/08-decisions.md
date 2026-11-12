@@ -199,3 +199,32 @@ From milestone M1 (each was built with the reading given, until the card says ot
   temporary file is written; clashes are judged on the files of `HEAD`.
 - **Q23** — Card **Function** lines that named a module without its crate (`read::…`, `worktree::…`, `submodule::…`)
   now start with `git::read::`, since `cargo xtask check` takes the first segment as the crate.
+- **Q24** — The platform has one `EventLoop` per UI thread, with any number of windows whose events carry a
+  `WindowId`, and `Window::open(&event_loop, &options)`. Doc 02 says "the event loop of each window": is one loop for
+  all the windows of the UI thread what is meant?
+- **Q25** — `ui` may not depend on `platform` (`ui → render, editor`), so it has input types of its own, which `app`
+  translates from `platform::InputEvent`, and it hands back the cursor, the text to copy and the caret's place for the
+  input method as the output of a frame. Paste comes in as an event carrying the text. Should `ui` be allowed to use
+  `platform`'s input types instead?
+- **Q26** — The platform swallows F10 and Alt pressed alone, so that Windows does not enter the menu mode of a menu bar
+  Gitardo does not have; Alt+F4 and Alt+Space still reach the system. Should that be the application's choice?
+- **Q27** — The colors of the five themes and the names of their tokens (`render::theme`) are the renderer's own
+  design, checked only for contrast (4.5:1, and 7:1 in high contrast): they need a review from the product side.
+- **Q28** — The renderer reads TrueType outlines only: a font of CFF outlines (`.otf`) is refused and the next font of
+  the list is used. GPOS is read for pair kerning only (the first glyph's advance), with no shaping and no
+  right-to-left text.
+- **Q29** — UI text of the toolkit's gallery is in `crates/ui/src/gallery`, not in `views/src/text` (R10.2), since it
+  is a demonstration of the widgets and not a view. Move it once `views` exists, or leave it?
+- **Q30** — A focused widget that scrolls out of sight is no longer drawn, so it loses the focus. Should the focus stay
+  on it?
+- **Q31** — An input box keeps its own text while it is edited and takes the view's text only when the view gives one
+  that differs from what the box last gave (so a view may normalize it). Is that the rule, or should the view always
+  own the text?
+- **Q32** — Dialogs put the main button last, on the right, as macOS and GNOME do; Windows puts the default first.
+  Which order? And should Enter in a danger confirmation run the action, or should Cancel be the default there?
+- **Q33** — Fuzzy ranking for the quick pick is in `ui::fuzzy`, since `ui` may not use `text`, where doc 02 puts
+  matching. Should `ui` be allowed to use `text`?
+- **Q34** — A modal dialog does not stop the view under it from reading its own shortcut keys; the demo checks that
+  no overlay is open. Should the toolkit hold the keys back while a modal is open?
+- **Q35** — Drawing a whole frame at scale 2 takes 14.6 ms for the 1920×1080 gallery, over the 8 ms of R10.5 (6 ms at
+  scale 1, 0.3 ms when nothing changed). Most frames redraw a few tiles; is the rule about the whole frame?

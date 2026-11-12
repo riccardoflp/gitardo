@@ -25,3 +25,11 @@
   merge, a series of commits made at once.
 - A plan can be cancelled while it runs: the git process or the command of the step running is killed, and no step
   after it starts.
+- A window on Windows, drawn by the program: per-monitor scale, keys, the input method, the pointer, the clipboard,
+  timers, a dark or light title bar, and the theme and fonts of the system.
+- Drawing in software: shapes with anti-aliasing, TrueType fonts read and rasterized by the program with kerning and
+  fallback fonts, icons of its own, and five themes (the system's, dark, light, high contrast dark and light).
+- The toolkit: labels, buttons, check boxes, radio buttons, toggles, badges, progress, input boxes, scroll areas,
+  lists that draw only the rows in sight, splitters, tooltips, menus with submenus, dialogs, confirmations, a quick
+  pick with fuzzy filtering, find in page and drag and drop; only what changed is drawn again.
+- `gitardo-demo`: every widget in a window, with the themes to choose from.

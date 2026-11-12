@@ -8,7 +8,8 @@ This branch has the documents to build it from, in a clean room: what every feat
 rules the code follows. The code has milestone M0 of the [roadmap](docs/07-roadmap.md): the workspace of crates,
 `cargo xtask check`, the kit of the tests and JSON with comments; and M1: every read of git, what the model derives from
 it, the engine that runs features with its log and the journal of Undo, and the first features, run from a terminal by
-`gitardo-cli`. There is no window yet.
+`gitardo-cli`; and M2: a window on Windows, drawn by the program itself, with its own fonts, icons, themes and
+toolkit, shown in `gitardo-demo`. The window does not show a repository yet.
 
 ## The documents
 
@@ -44,6 +45,15 @@ cargo run --bin gitardo-cli -- --yes undo.last
 
 A question it has no answer for is printed with the `<key>=<answer>` that answers it; a plan that is shown before it
 runs is printed, and runs with `--yes`.
+
+`gitardo-demo` opens a window, on Windows only for now, with every widget of the toolkit: buttons, check boxes, input
+boxes, a list of a million rows, splitters, menus, dialogs, a quick pick, find in page (Ctrl+F) and drag and drop. The
+**More actions** menu at the top right switches between the system's theme, dark, light and the two high contrast
+themes; the window follows the scale of its monitor.
+
+```bash
+cargo run --release --bin gitardo-demo
+```
 
 The only program needed besides the Rust toolchain is `git`, 2.40 or later for the previews of conflicts. Building
 needs the C compiler the Rust toolchain uses on the system, for the cryptography of the TLS library.

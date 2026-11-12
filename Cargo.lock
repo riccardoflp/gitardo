@@ -10,7 +10,10 @@ dependencies = [
  "features",
  "git",
  "model",
+ "platform",
+ "render",
  "testkit",
+ "ui",
 ]
 
 [[package]]
@@ -60,6 +63,9 @@ version = "0.1.0"
 [[package]]
 name = "render"
 version = "0.1.0"
+dependencies = [
+ "testkit",
+]
 
 [[package]]
 name = "testkit"
@@ -76,6 +82,10 @@ version = "0.1.0"
 [[package]]
 name = "ui"
 version = "0.1.0"
+dependencies = [
+ "render",
+ "testkit",
+]
 
 [[package]]
 name = "views"
