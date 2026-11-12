@@ -363,6 +363,22 @@ impl<'frame> Ui<'frame> {
         self.memory.interaction.pointer
     }
 
+    /// The modifier keys held, as the last input said.
+    #[must_use]
+    pub fn modifiers(&self) -> crate::input::Modifiers {
+        self.memory.interaction.modifiers
+    }
+
+    /// Since when, in the time of the frames, the pointer has rested on a widget; none while it is not over it.
+    #[must_use]
+    pub fn hovered_since(&self, response: &Response) -> Option<Duration> {
+        self.memory
+            .interaction
+            .hover_since
+            .filter(|(id, _)| *id == response.id && response.hovered)
+            .map(|(_, since)| since)
+    }
+
     /// Whether the window has the keyboard.
     #[must_use]
     pub fn is_window_focused(&self) -> bool {

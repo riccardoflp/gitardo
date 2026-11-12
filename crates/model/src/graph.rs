@@ -21,7 +21,7 @@ mod unpushed;
 pub use combine_upstream::combine_upstream;
 pub use date_separators::{DateTime, date_separators};
 pub use fit_width::{GraphFit, fit_width};
-pub use fold_rows::{Fold, FoldedRows, ShownRow, fold_rows};
+pub use fold_rows::{Fold, FoldedRows, ShownRow, fold_rows, foldable_merges};
 pub use labels::{GraphSettings, Label, LabelKind, labels};
 pub use lane_tips::lane_tips;
 pub use lanes::{CellLine, GraphCell, Half, PALETTE_SIZE, lanes};

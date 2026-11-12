@@ -15,6 +15,20 @@ pub const FONT_SIZE_KEY: &str = "font.size";
 pub const READ_ON_STARTUP: &str = "readOnStartup";
 /// `graph.pageSize`.
 pub const PAGE_SIZE: &str = "graph.pageSize";
+/// `graph.showStashes`.
+pub const SHOW_STASHES: &str = "graph.showStashes";
+/// `graph.columns`.
+pub const COLUMNS: &str = "graph.columns";
+/// The values of `graph.columns`.
+pub const COLUMN_NAMES: [&str; 3] = ["author", "date", "hash"];
+/// `graph.dateSeparators`.
+pub const DATE_SEPARATORS: &str = "graph.dateSeparators";
+/// `graph.combineUpstream`.
+pub const COMBINE_UPSTREAM: &str = "graph.combineUpstream";
+/// `graph.firstParent`.
+pub const FIRST_PARENT: &str = "graph.firstParent";
+/// `graph.traceSelected`.
+pub const TRACE_SELECTED: &str = "graph.traceSelected";
 
 /// The default of `font.ui`: the font of the interface that comes with the program.
 pub const INTERFACE_FONT: &str = "Inter";

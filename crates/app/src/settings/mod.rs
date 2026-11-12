@@ -1,8 +1,8 @@
 //! The settings of Gitardo Desktop (`docs/features/18-settings.md`): read from the user's `settings.json` in Gitardo's
 //! configuration folder and from `.gitardo/settings.json` of the repository shown, both JSON with comments.
 //!
-//! Only the settings this window uses are read here: the theme and the fonts (`settings.theme`), `readOnStartup` and
-//! `graph.pageSize`. Each card that uses another setting adds it to [`keys`].
+//! Only the settings this window uses are read here: the theme and the fonts (`settings.theme`), `readOnStartup`,
+//! `graph.pageSize` and the switches of the timeline. Each card that uses another setting adds it to [`keys`].
 
 mod folder;
 pub mod keys;
@@ -14,6 +14,7 @@ use std::path::PathBuf;
 
 use model::graph::PageSize;
 use render::ThemeName;
+use views::graph::Switches;
 
 pub use folder::{configuration_folder, repository_settings_file, user_settings_file};
 pub use read::{parse, read, read_files};
@@ -30,6 +31,9 @@ pub struct Settings {
     pub read_on_startup: bool,
     /// `graph.pageSize`: how many commits the timeline reads at a time.
     pub page_size: PageSize,
+    /// `graph.showStashes`, `graph.firstParent`, `graph.traceSelected`, `graph.columns`, `graph.dateSeparators` and
+    /// `graph.combineUpstream`: the switches of the timeline.
+    pub switches: Switches,
     /// The values that were not taken, with which key and why, for the settings page to say.
     pub problems: Vec<SettingProblem>,
 }
@@ -41,6 +45,7 @@ impl Default for Settings {
             fonts: FontChoice::default(),
             read_on_startup: true,
             page_size: PageSize::DEFAULT,
+            switches: Switches::DEFAULT,
             problems: Vec::new(),
         }
     }
@@ -120,4 +125,28 @@ pub struct SettingsFiles {
     pub user: Option<PathBuf>,
     /// The file of the repository shown, when one is shown.
     pub repository: Option<PathBuf>,
+}
+
+/// The key a switch of the timeline is written under, and the value it is written as, in the user's settings file:
+/// a column writes the whole list of `graph.columns`.
+#[must_use]
+pub fn switch_setting(switches: Switches, switch: views::graph::TimelineSwitch) -> (&'static str, json::Value) {
+    use views::graph::TimelineSwitch;
+    let key = match switch {
+        TimelineSwitch::ShowStashes => keys::SHOW_STASHES,
+        TimelineSwitch::FirstParent => keys::FIRST_PARENT,
+        TimelineSwitch::TraceSelected => keys::TRACE_SELECTED,
+        TimelineSwitch::DateSeparators => keys::DATE_SEPARATORS,
+        TimelineSwitch::CombineUpstream => keys::COMBINE_UPSTREAM,
+        TimelineSwitch::Author | TimelineSwitch::Date | TimelineSwitch::Hash => {
+            let columns = [TimelineSwitch::Author, TimelineSwitch::Date, TimelineSwitch::Hash]
+                .into_iter()
+                .zip(keys::COLUMN_NAMES)
+                .filter(|(column, _)| switches.is_on(*column))
+                .map(|(_, name)| json::Value::String(name.to_owned()))
+                .collect();
+            return (keys::COLUMNS, json::Value::Array(columns));
+        }
+    };
+    (key, json::Value::Bool(switches.is_on(switch)))
 }

@@ -55,7 +55,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
         .into_iter()
         .filter_map(|(_, kind)| match kind {
             JobKind::ReadRepository { folder, .. } => Some(folder),
-            JobKind::FindRepositories { .. } => None,
+            JobKind::FindRepositories { .. } | JobKind::ReadCommits { .. } => None,
         })
         .collect()
 }
@@ -112,6 +112,11 @@ fn answer(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[PathBuf])]
                     job,
                     result: Ok(Box::new((repository_state(&folder), CommitPage::default()))),
                     folder,
+                    read_at: 0,
+                },
+                JobKind::ReadCommits { .. } => Message::CommitsRead {
+                    job,
+                    result: Err(String::from("not read in these tests")),
                 },
             };
             waiting.extend(reduce(state, message));
@@ -128,7 +133,7 @@ fn open(state: &mut State, opened: &Path, found: &[(&Path, &[PathBuf])]) -> Vec<
 
 /// What the views are given, with nothing running.
 fn view_data(state: &State) -> ViewData {
-    ViewData::new(state, Vec::new())
+    ViewData::new(state, Vec::new(), 0)
 }
 
 /// The header the views are given.

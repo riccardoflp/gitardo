@@ -1,12 +1,17 @@
 //! What is kept between runs, in one file per user (`state.json` in Gitardo's configuration folder): whether the
 //! program started before, the steps of the Welcome page done, the recent workspaces with the repository shown last in
-//! each, the size of the window and the width of the branch rail.
+//! each, the size of the window and the width of the branch rail; the sizes of the panes of each workspace and the
+//! folds of each repository ([`timeline`]).
 //!
 //! The file is JSON, written whole each time. A file that cannot be read gives what a first start has.
 
 use std::path::{Path, PathBuf};
 
 use json::{Member, Number, Value};
+
+pub mod timeline;
+
+pub use timeline::{RepositoryFolds, WorkspacePanes};
 
 /// The name of the file, in Gitardo's configuration folder.
 pub const FILE_NAME: &str = "state.json";
@@ -28,10 +33,14 @@ pub struct Persisted {
     pub window_size: Option<(f32, f32)>,
     /// The width of the branch rail, in logical pixels, once it was changed.
     pub rail_width: Option<f32>,
+    /// The sizes of the panes of the workspaces opened last.
+    pub panes: Vec<WorkspacePanes>,
+    /// The folds of the repositories shown last.
+    pub folds: Vec<RepositoryFolds>,
 }
 
 /// A workspace opened before.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct RecentWorkspace {
     /// Its folders, in their order.
     pub folders: Vec<PathBuf>,
@@ -67,6 +76,8 @@ impl Persisted {
                 .collect(),
             window_size: document.get("windowSize").and_then(size),
             rail_width: document.get("railWidth").and_then(number),
+            panes: list(&document, "panes", timeline::workspace_panes),
+            folds: list(&document, "folds", timeline::repository_folds),
         }
     }
 
@@ -90,6 +101,14 @@ impl Persisted {
         if let Some(width) = self.rail_width {
             members.push(member("railWidth", number_value(width)));
         }
+        members.push(member(
+            "panes",
+            Value::Array(self.panes.iter().map(timeline::panes_value).collect()),
+        ));
+        members.push(member(
+            "folds",
+            Value::Array(self.folds.iter().map(timeline::folds_value).collect()),
+        ));
         json::to_pretty_text(&Value::Object(members))
     }
 
@@ -131,6 +150,18 @@ fn folder_key(folder: &Path) -> String {
     } else {
         trimmed.to_owned()
     }
+}
+
+/// The items of a list of the document that read back, at most [`MOST_RECENT`].
+fn list<T>(document: &Value, name: &str, read: fn(&Value) -> Option<T>) -> Vec<T> {
+    document
+        .get(name)
+        .and_then(Value::as_array)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(read)
+        .take(MOST_RECENT)
+        .collect()
 }
 
 /// A member of an object.

@@ -3,6 +3,7 @@
 
 pub mod jobs;
 mod persist;
+mod setting_writer;
 mod watch;
 
 use std::collections::HashMap;
@@ -21,6 +22,7 @@ use views::text::activity;
 use crate::store::{Job, JobId, JobKind, Message};
 
 pub use persist::PersistedWriter;
+pub use setting_writer::SettingWriter;
 pub use watch::{SettingsWatcher, WATCH_INTERVAL};
 
 /// Where the messages of the workers go: into the event loop of the window, which it wakes up.
@@ -137,6 +139,10 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadRepository { folder, .. } => (
             Text::from(activity::reading(&folder_name(folder))),
             Text::from(activity::SHOWING_REPOSITORY),
+        ),
+        JobKind::ReadCommits { folder, .. } => (
+            Text::from(activity::reading(&folder_name(folder))),
+            Text::from(activity::LOADING_MORE_COMMITS),
         ),
     }
 }

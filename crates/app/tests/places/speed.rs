@@ -1,98 +1,169 @@
-//! How long opening a large repository takes, from the folder to the first frame: 5,000 commits over 200 files, with 50
+//! How long opening a large repository takes, from the folder to the first frame, and how long each next page of the
+//! timeline takes, from the intent to the rows laid out: 56,000 commits, a merge of a topic branch every ten, with 40
 //! branches and 50 tags. Not run by default:
 //!
 //! ```text
 //! cargo test -p app --release --test places -- --ignored --nocapture
 //! ```
+//!
+//! With `GITARDO_COMMIT_GRAPH` set, the repository gets a commit-graph file, as `git gc` writes one: `--date-order`
+//! then no longer walks the whole history before the first commit.
 
 use std::fmt::Write as _;
-use std::io::Write as _;
-use std::process::{Command, Stdio};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use app::store::{Message, State};
 use app::work::jobs::{find_repositories, read_repository};
 use git::CancelToken;
 use model::graph::PageSize;
 use render::ThemeName;
-use testkit::{FIRST_COMMIT_TIME, Repository};
+use testkit::Repository;
+use views::Intent;
+use views::graph::GraphIntent;
 
+use super::histories::{Commit, import, write_commit};
 use super::support::{Window, run};
 
-/// How many commits the repository has.
-const COMMITS: u64 = 5_000;
-/// How many files the commits change, one each, in turn.
-const FILES: u64 = 200;
-/// How many branches and how many tags, spread over the history.
-const REFERENCES: u64 = 50;
+/// How many rounds of ten commits: six on `main`, three on a topic branch, and the merge.
+const ROUNDS: u64 = 5_600;
+/// How many branches, at the tips of topic branches spread over the history.
+const BRANCHES: u64 = 40;
+/// How many tags, spread over the history.
+const TAGS: u64 = 50;
+/// The longest an opening may take, from the folder to the first frame.
+const OPEN_AT_MOST: Duration = Duration::from_millis(1_500);
+/// The longest a next page may take, from the intent to the rows laid out.
+const PAGE_AT_MOST: Duration = Duration::from_millis(300);
 
-/// The stream `git fast-import` reads: one commit a minute on `main`, and the branches and tags spread over it.
+/// The stream of the history, the oldest commit first.
 fn history() -> String {
     let mut stream = String::new();
-    for number in 1..=COMMITS {
-        let content = format!("content {number}\n");
-        let message = format!("Change {number}\n");
-        let date = FIRST_COMMIT_TIME + number * 60;
-        let file = number % FILES;
-        write!(
+    let mut mark = 0;
+    let mut commit = |stream: &mut String, branch: &str, (from, merge): (Option<u64>, Option<u64>), message: &str| {
+        mark += 1;
+        let file = format!("src/file{}.txt", mark % 200);
+        write_commit(
             stream,
-            "commit refs/heads/main\nmark :{number}\ncommitter Test Author <author@example.com> {date} +0000\n\
-             data {}\n{message}M 644 inline src/file{file}.txt\ndata {}\n{content}\n",
-            message.len(),
-            content.len(),
-        )
-        .unwrap();
+            &Commit {
+                branch,
+                mark,
+                from,
+                merge,
+                message,
+                file: &file,
+            },
+        );
+        mark
+    };
+    let mut topic_tips = Vec::new();
+    for round in 0..ROUNDS {
+        let mut base = 0;
+        for step in 0..6 {
+            base = commit(&mut stream, "main", (None, None), &format!("Change {round}.{step}"));
+        }
+        let mut tip = commit(&mut stream, "topic", (Some(base), None), &format!("Topic {round}.0"));
+        for step in 1..3 {
+            tip = commit(&mut stream, "topic", (None, None), &format!("Topic {round}.{step}"));
+        }
+        topic_tips.push(tip);
+        let _merge = commit(&mut stream, "main", (None, Some(tip)), &format!("Merge topic {round}"));
     }
-    for number in 1..=REFERENCES {
-        let mark = number * (COMMITS / REFERENCES);
-        write!(stream, "reset refs/heads/branch-{number}\nfrom :{mark}\n\n").unwrap();
-        write!(stream, "reset refs/tags/v{number}\nfrom :{mark}\n\n").unwrap();
+    let spread = |count: u64, index: u64| {
+        *topic_tips
+            .get(usize::try_from(index * ROUNDS / count).unwrap())
+            .unwrap()
+    };
+    for number in 0..BRANCHES {
+        let tip = spread(BRANCHES, number);
+        write!(stream, "reset refs/heads/branch-{number}\nfrom :{tip}\n\n").unwrap();
     }
+    for number in 0..TAGS {
+        let at = spread(TAGS, number) + 1;
+        write!(stream, "reset refs/tags/v{number}\nfrom :{at}\n\n").unwrap();
+    }
+    write!(stream, "reset refs/heads/topic\nfrom :{}\n\n", spread(1, 0)).unwrap();
     stream
 }
 
-/// Makes the history in the repository and checks it out.
-fn import(repository: &Repository) {
-    let mut child = Command::new("git")
-        .args(["fast-import", "--quiet"])
-        .current_dir(repository.path())
-        .stdin(Stdio::piped())
-        .spawn()
-        .unwrap();
-    child.stdin.take().unwrap().write_all(history().as_bytes()).unwrap();
-    assert!(child.wait().unwrap().success(), "git fast-import failed");
-    let _ = repository.git(&["reset", "--quiet", "--hard", "main"]);
-}
-
 #[test]
-#[ignore = "makes a repository of 5,000 commits; run by hand to measure"]
-fn opening_a_repository_of_5000_commits() {
+#[ignore = "makes a repository of 56,000 commits; run by hand, in release, to measure"]
+fn opening_a_repository_of_56000_commits_and_loading_its_next_pages() {
     let repository = Repository::new();
-    import(&repository);
+    import(&repository, &history());
+    if std::env::var_os("GITARDO_COMMIT_GRAPH").is_some() {
+        let _ = repository.git(&["commit-graph", "write", "--reachable"]);
+    }
     let folder = repository.path().to_path_buf();
+    let (_, commits) = read_repository(&folder, &first_page(), &CancelToken::new()).unwrap();
+    assert_eq!(commits.rows.len(), 1_000);
+    let mut slowest_open = Duration::ZERO;
     for attempt in 1..=3 {
         let started = Instant::now();
         let _found = find_repositories(std::slice::from_ref(&folder), &CancelToken::new());
         let found = started.elapsed();
-        let (state, commits) = read_repository(&folder, PageSize::DEFAULT, &CancelToken::new()).unwrap();
-        let read = started.elapsed();
-        assert_eq!(state.branches.len(), 51);
-        assert_eq!(commits.rows.len(), 1_000);
-        let mut window_state = State::default();
+        let mut state = State::default();
         let _effects = run(
-            &mut window_state,
+            &mut state,
             Message::Started {
                 folders: vec![folder.clone()],
             },
         );
+        let read = started.elapsed();
         let mut window = Window::new(ThemeName::Dark, (1280, 800));
-        let drawn = Instant::now();
-        let _ = window.draw(&window_state, &[]);
+        let _ = window.draw(&state, &[]);
+        let opened = started.elapsed();
         println!(
-            "attempt {attempt}: repositories found in {found:?}, state and first page read in {:?}, \
-             first frame drawn in {:?}",
+            "attempt {attempt}: repositories found in {found:?}, opened and read in {:?}, first frame drawn after \
+             {opened:?} in all",
             read.checked_sub(found).unwrap(),
-            drawn.elapsed()
         );
+        slowest_open = slowest_open.max(opened);
+        assert_eq!(state.shown_read().unwrap().state.branches.len(), 42);
+    }
+    let passes: Vec<Vec<Duration>> = (0..2).map(|_| next_pages(&folder)).collect();
+    let pages: Vec<Duration> = passes[0]
+        .iter()
+        .zip(&passes[1])
+        .map(|(first, second)| *first.min(second))
+        .collect();
+    let in_ms: Vec<u128> = pages.iter().map(Duration::as_millis).collect();
+    println!("each next page, the faster of two passes, in ms: {in_ms:?}");
+    let slowest_page = pages.iter().max().copied().unwrap_or_default();
+    assert!(slowest_open < OPEN_AT_MOST, "opening took {slowest_open:?}");
+    assert!(slowest_page < PAGE_AT_MOST, "a page took {slowest_page:?}");
+}
+
+/// Opens the repository of a folder and loads every next page of its timeline, and gives how long each took, from the
+/// intent to the rows laid out.
+fn next_pages(folder: &std::path::Path) -> Vec<Duration> {
+    let mut state = State::default();
+    let _effects = run(
+        &mut state,
+        Message::Started {
+            folders: vec![folder.to_path_buf()],
+        },
+    );
+    let mut timings = Vec::new();
+    while state.timeline.has_more {
+        let started = Instant::now();
+        let loaded = state.timeline.loaded();
+        let _effects = run(
+            &mut state,
+            Message::Intent(Intent::Graph(GraphIntent::LoadMore { loaded })),
+        );
+        timings.push(started.elapsed());
+        assert!(state.timeline.loaded() > loaded);
+    }
+    assert_eq!(state.timeline.loaded(), 56_000);
+    timings
+}
+
+/// The first page of the timeline, as a window reads it with the default settings.
+fn first_page() -> app::store::TimelineRequest {
+    app::store::TimelineRequest {
+        page_size: PageSize::DEFAULT,
+        pages: 1,
+        parents: git::read::graph::Parents::All,
+        shows_stashes: true,
     }
 }

@@ -388,3 +388,38 @@ repositories, the settings), each built with the reading given until it is answe
 - **Q54** — `settings.read`, acceptance line 2: the problems of the settings (which key, which file, why) are kept for
   the settings page (`settings.edit`), which does not exist yet; nothing shows them. The card stays **Specified**
   until that page says them.
+- **Q55** — `graph.resize-panes`: the card starts the branch rail at 210 px and the inspector at 320 px, while the
+  theme's tokens for them say 248 and 344. The panes follow the card; the tokens are unused by the timeline. Should
+  the tokens change to the card's sizes, or the card to the tokens?
+- **Q56** — `graph.load-more`: the next pages are read with `--skip=<commits loaded - 1>` added to the read of
+  `graph.read-commits`, so that git prints only the new page and the last commit loaded again; when that commit is
+  not where it was, every page is read again and replaces the rows. The card of the read does not name `--skip`.
+  Is that the reading? Without a commit-graph file, `--date-order` walks the whole history before the first commit
+  of any page (about 170 ms for 56,000 commits here), which is most of the time of a page.
+- **Q57** — `graph.uncommitted-row`: the draft says **Describe the next commit** in place of a message, and its
+  **Review** and **Commit** buttons, and every entry of its menu and of a stash row's menu, are shown but cannot be
+  clicked, with the tooltip "Not yet", until the operations they run exist (M4 and later). Is showing them disabled
+  the reading, rather than leaving them out?
+- **Q58** — `graph.columns` and `graph.date-separators`: dates are said and the days counted in UTC, since the
+  program does not read the local time zone yet; the tooltip of a date says `UTC`. Should the local time zone be read
+  (through which library on the allowlist), and the separators counted in it?
+- **Q59** — `graph.first-parent`, `graph.fold-all`, `graph.trace-selected`: these are entries of **…**
+  (`graph.more-menu`), so their functions are views that turn the entry chosen into the intent; the menu itself is
+  drawn by `graph.more-menu`. Is that the shape meant for a card whose only control is a menu entry?
+- **Q60** — `graph.fold-merge`, line 4: the folds are kept for each repository with the hashes sorted, at most 200 of
+  them, not the 200 used last. Should the last ones be kept instead?
+- **Q61** — `graph.scroll-marks`: the marks are not drawn while every row is in sight, where the mark of a row would
+  stand beside another row (row `i` of `n` at `(i + 0.5) / n` of the height). Line 2 is checked on the places of the
+  marks, since no search fills them yet (`search.`). Is hiding them while nothing scrolls the reading?
+- **Q62** — `graph.resize-graph`, line 3, and `graph.uncommitted-row`, line 3: the timeline cannot be narrowed yet
+  (`filter.`). The width of the graph is kept for the workspace whatever the timeline shows, and the draft is left out
+  whenever the commit checked out is not among the rows read; the tests check those rules. Are the cards **Built** on
+  that, or should they wait for the filter?
+- **Q63** — `graph.fold-rows`: `model::graph::foldable_merges` was added beside `fold_rows`, to tell which merges get
+  an arrow and an entry (`graph.fold-merge`, line 5) without folding them. Is a second function of the derivation
+  right, or should the card name it?
+- **Q64** — The sizes of the panes, the width of the graph and whether the branch rail is put away are kept for each
+  workspace under the key `panes` of the state file, and the folds for each repository under `folds`. `11-data.md`
+  does not exist in this branch, so these keys are named nowhere else. Where should they be written down?
+- **Q65** — `graph.view`: the inspector shows only the hash, the subject, the author and the date of the row selected,
+  and an empty card while nothing is; what it says while nothing is selected is not in a card. Which words?

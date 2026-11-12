@@ -18,6 +18,9 @@ pub struct CommitsRequest {
     pub page_size: PageSize,
     /// How many pages are read, from the newest commit; one at least.
     pub pages: usize,
+    /// How many of the newest commits of those pages are left out, since the window has them already: the read
+    /// starts after them (`graph.load-more`).
+    pub skip: usize,
     /// The stashes to place among the commits: those of the repository while `graph.showStashes` is on, none while it
     /// is off. They are read only while nothing narrows the history but the branches shown.
     pub stashes: Vec<Stash>,
@@ -28,6 +31,12 @@ impl CommitsRequest {
     #[must_use]
     pub fn count(&self) -> usize {
         self.page_size.get().saturating_mul(self.pages.max(1))
+    }
+
+    /// How many commits the read prints: those of the pages asked for, but the ones left out.
+    #[must_use]
+    pub fn printed(&self) -> usize {
+        self.count().saturating_sub(self.skip)
     }
 }
 
@@ -41,11 +50,14 @@ pub struct CommitPage {
 }
 
 /// `git log -z` with the format of every list, one commit more than the pages asked for (which says whether there are
-/// more), and the history listed.
+/// more), the commits left out skipped, and the history listed.
 #[must_use]
 pub fn commits_arguments(request: &CommitsRequest) -> Vec<OsString> {
     let mut arguments = log_arguments();
-    arguments.push(OsString::from(format!("--max-count={}", request.count() + 1)));
+    arguments.push(OsString::from(format!("--max-count={}", request.printed() + 1)));
+    if request.skip > 0 {
+        arguments.push(OsString::from(format!("--skip={}", request.skip)));
+    }
     arguments.extend(request.history.arguments());
     arguments
 }
@@ -82,8 +94,8 @@ pub fn parse_stash_commits(output: &[u8], stashes: &[Stash]) -> Result<Vec<Stash
         .collect())
 }
 
-/// The commits the graph lists, newest first, with their parents: as many pages as were asked for, and whether there
-/// are more. With `graph.firstParent` each commit keeps only its first parent. The stashes asked for are placed among
+/// The commits the graph lists, newest first, with their parents: as many pages as were asked for, but the newest
+/// ones the request leaves out, and whether there are more. With `graph.firstParent` each commit keeps only its first parent. The stashes asked for are placed among
 /// the commits while nothing narrows the history but the branches shown; `refs/stash` is never part of the selection,
 /// since the commits of a stash would clutter the graph.
 ///
@@ -94,8 +106,8 @@ pub fn parse_stash_commits(output: &[u8], stashes: &[Stash]) -> Result<Vec<Stash
 /// When git cannot be started, fails, or prints what this does not understand.
 pub fn read_commits(git: &Git, request: &CommitsRequest) -> Result<CommitPage, GitError> {
     let mut commits = parse_commits(&git.run_read(&commits_arguments(request))?)?;
-    let has_more = commits.len() > request.count();
-    commits.truncate(request.count());
+    let has_more = commits.len() > request.printed();
+    commits.truncate(request.printed());
     if request.history.parents == Parents::First {
         for commit in &mut commits {
             commit.parents.truncate(1);
@@ -133,6 +145,7 @@ mod tests {
             },
             page_size: PageSize::from_setting(Some(100.0)),
             pages: 3,
+            skip: 0,
             stashes: Vec::new(),
         };
         let arguments: Vec<String> = commits_arguments(&request)
@@ -143,5 +156,25 @@ mod tests {
             arguments[3..],
             ["--max-count=301", "--first-parent", "--date-order", "HEAD", "--"]
         );
+    }
+
+    #[test]
+    fn skips_the_commits_left_out_and_asks_for_the_rest_of_the_pages() {
+        let request = CommitsRequest {
+            history: History {
+                selection: vec![OsString::from("HEAD")],
+                narrowing: Vec::new(),
+                parents: Parents::All,
+            },
+            page_size: PageSize::from_setting(Some(100.0)),
+            pages: 3,
+            skip: 199,
+            stashes: Vec::new(),
+        };
+        let arguments: Vec<String> = commits_arguments(&request)
+            .iter()
+            .map(|argument| argument.to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(arguments[3..], ["--max-count=102", "--skip=199", "HEAD", "--"]);
     }
 }

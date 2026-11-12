@@ -9,6 +9,7 @@ pub(crate) mod drag;
 pub(crate) mod find;
 pub(crate) mod input_box;
 pub(crate) mod label;
+pub(crate) mod lanes;
 pub(crate) mod list;
 pub(crate) mod menu;
 pub(crate) mod panel;

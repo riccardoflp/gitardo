@@ -52,3 +52,27 @@ pub fn sync_counts(behind: u32, ahead: u32) -> String {
 pub fn running(title: &str, seconds: u64) -> String {
     format!("{title} ({})", super::activity::duration(seconds))
 }
+/// **Show stashes** in **…** (`graph.stashes`).
+pub const SHOW_STASHES: &str = "Show stashes";
+/// **Show only the first parent of merges** in **…** (`graph.first-parent`).
+pub const FIRST_PARENT: &str = "Show only the first parent of merges";
+/// **Bring out the history of the selected commit** in **…** (`graph.trace-selected`).
+pub const TRACE_SELECTED: &str = "Bring out the history of the selected commit";
+/// **Fold all merges** in **…** (`graph.fold-all`).
+pub const FOLD_ALL: &str = "Fold all merges";
+/// **Unfold all merges** in **…** (`graph.fold-all`).
+pub const UNFOLD_ALL: &str = "Unfold all merges";
+/// **Show the author** in **…** (`graph.columns`).
+pub const SHOW_AUTHOR: &str = "Show the author";
+/// **Show the date** in **…** (`graph.columns`).
+pub const SHOW_DATE: &str = "Show the date";
+/// **Show the hash** in **…** (`graph.columns`).
+pub const SHOW_HASH: &str = "Show the hash";
+/// **Separate the days, weeks and months** in **…** (`graph.date-separators`).
+pub const DATE_SEPARATORS: &str = "Separate the days, weeks and months";
+/// **Put a branch and its upstream on one label** in **…** (`graph.combine-upstream`).
+pub const COMBINE_UPSTREAM: &str = "Put a branch and its upstream on one label";
+/// The tooltip of the first button of the header while the branch rail is shown (`graph.toggle-references`).
+pub const HIDE_REFERENCES: &str = "Hide the branches, tags and stashes beside the commits";
+/// Its tooltip while the branch rail is put away.
+pub const SHOW_REFERENCES: &str = "Show the branches, tags and stashes beside the commits";

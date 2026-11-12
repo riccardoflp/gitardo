@@ -9,6 +9,7 @@ mod pages;
 mod state;
 #[cfg(test)]
 mod tests;
+mod timeline;
 mod view_state;
 mod workspace;
 
@@ -17,9 +18,11 @@ use std::path::PathBuf;
 use views::{FolderAnswer, Intent};
 
 use crate::persisted;
+use crate::settings::Settings;
 
-pub use message::{Effect, Found, Job, JobId, JobKind, Message};
+pub use message::{Effect, Found, Job, JobId, JobKind, Known, Message, MorePages, TimelineRequest};
 pub use state::{Dialog, Opening, Pages, RepositoryRead, Shown, State, Workspace};
+pub use timeline::{Timeline, commits_request, draft_of, history_of, known};
 pub use view_state::ViewData;
 pub use workspace::OpenRequest;
 
@@ -30,16 +33,14 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
         Message::Intent(intent) => reduce_intent(state, intent),
         Message::FolderChosen(folder) => folder_chosen(state, folder),
         Message::RepositoriesFound { job, found } => workspace::repositories_found(state, job, found),
-        Message::RepositoryRead { job, folder, result } => workspace::repository_read(state, job, &folder, result),
-        Message::SettingsRead(settings) => {
-            let looks_different = settings.theme != state.settings.theme || settings.fonts != state.settings.fonts;
-            state.settings = settings;
-            if looks_different {
-                vec![Effect::ApplySettings]
-            } else {
-                Vec::new()
-            }
-        }
+        Message::RepositoryRead {
+            job,
+            folder,
+            result,
+            read_at,
+        } => workspace::repository_read(state, job, &folder, (result, read_at)),
+        Message::CommitsRead { job, result } => timeline::commits_read(state, job, result),
+        Message::SettingsRead(settings) => settings_read(state, settings),
         Message::CloseRequested { window_size } => {
             let mut effects = workspace::cancel_all(state);
             state.persisted.window_size = window_size.or(state.persisted.window_size);
@@ -48,6 +49,23 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
             effects
         }
     }
+}
+
+/// The settings read again: the theme and the fonts drawn with, the switches of the timeline in force.
+fn settings_read(state: &mut State, settings: Settings) -> Vec<Effect> {
+    let looks_different = settings.theme != state.settings.theme || settings.fonts != state.settings.fonts;
+    let before = state.settings.switches;
+    state.settings = settings;
+    let mut effects = Vec::new();
+    if looks_different {
+        effects.push(Effect::ApplySettings);
+    }
+    for switch in views::graph::TimelineSwitch::ALL {
+        if before.is_on(switch) != state.settings.switches.is_on(switch) {
+            effects.extend(timeline::apply_switch(state, switch));
+        }
+    }
+    effects
 }
 
 /// The window opened: the Welcome page the first time, and the workspace of the command line when it names one.
@@ -148,6 +166,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
             state.notice = None;
             Vec::new()
         }
+        Intent::Graph(intent) => timeline::reduce_graph(state, intent),
     }
 }
 

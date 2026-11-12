@@ -118,6 +118,7 @@ fn repo_select__the_read_of_a_repository_no_longer_chosen_is_cancelled_and_its_r
             job: late,
             folder: work.join("lib"),
             result: Err(String::from("cancelled")),
+            read_at: 0,
         },
     );
     assert_eq!(dropped.len(), 0);

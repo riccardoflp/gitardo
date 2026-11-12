@@ -5,7 +5,6 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use git::read::graph::CommitPage;
 use model::repo::Repository;
 use model::state::RepositoryState;
 use views::page::Page;
@@ -50,6 +49,8 @@ pub struct State {
     pub next_generation: u64,
     /// What the last read that failed said, for the Command log once it exists.
     pub last_error: Option<String>,
+    /// The timeline of the repository shown.
+    pub timeline: super::timeline::Timeline,
 }
 
 /// The folders of a window and the repositories found in them.
@@ -84,10 +85,8 @@ pub enum Shown {
 pub struct RepositoryRead {
     /// Its folder, as found among the repositories of the workspace.
     pub folder: PathBuf,
-    /// Its references, its `HEAD` and the rest of its state.
+    /// Its references, its `HEAD` and the rest of its state; its commits are in the [`super::timeline::Timeline`].
     pub state: Arc<RepositoryState>,
-    /// The first page of its commits, kept apart so that a read with the same commits does not draw them again.
-    pub commits: Arc<CommitPage>,
     /// Which read this is.
     pub generation: u64,
 }

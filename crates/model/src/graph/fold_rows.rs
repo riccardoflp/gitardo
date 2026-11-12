@@ -66,6 +66,9 @@ impl FoldedRows {
 /// Feature: graph.fold-rows
 #[must_use]
 pub fn fold_rows<Hasher: BuildHasher>(rows: &[Row], folded: &HashSet<CommitId, Hasher>) -> FoldedRows {
+    if folded.is_empty() {
+        return shown_rows(rows, &vec![None; rows.len()], Vec::new());
+    }
     let ancestry = Ancestry::new(rows);
     let children = children(&ancestry);
     let mut put_away: Vec<Option<usize>> = vec![None; rows.len()];
@@ -97,6 +100,27 @@ pub fn fold_rows<Hasher: BuildHasher>(rows: &[Row], folded: &HashSet<CommitId, H
         folds.push((anchor, Fold::new(commit, ids(&brought), ids(&parents))));
     }
     shown_rows(rows, &put_away, folds)
+}
+
+/// The merges among the rows that can be folded there, each on its own: those that brought in commits loaded which
+/// one row can stand for, as [`fold_rows`] folds a merge asked for alone. A merge that brought nothing in is not one.
+#[must_use]
+pub fn foldable_merges(rows: &[Row]) -> HashSet<CommitId> {
+    let ancestry = Ancestry::new(rows);
+    let children = children(&ancestry);
+    rows.iter()
+        .enumerate()
+        .filter_map(|(merge, row)| {
+            let Row::Commit(commit) = row else {
+                return None;
+            };
+            if !commit.is_merge() {
+                return None;
+            }
+            let brought = brought_in::brought_in(&ancestry, commit, merge);
+            placement(&ancestry, &children, &brought).map(|_| commit.id.clone())
+        })
+        .collect()
 }
 
 /// Where the row of the commits brought in goes, and the rows of the commits they come from; none when it cannot go

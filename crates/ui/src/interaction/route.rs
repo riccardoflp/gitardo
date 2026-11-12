@@ -87,6 +87,8 @@ pub(crate) struct Interaction {
     pub(crate) hover_since: Option<(WidgetId, Duration)>,
     /// The widget a button was pressed on, whose tooltip stays hidden until the pointer leaves it.
     pub(crate) tooltip_hidden_on: Option<WidgetId>,
+    /// The modifier keys held, as the last input said.
+    pub(crate) modifiers: Modifiers,
     /// The widgets of the last frame.
     pub(crate) hits: Hits,
 }
@@ -103,6 +105,7 @@ impl Default for Interaction {
             hovered: None,
             hover_since: None,
             tooltip_hidden_on: None,
+            modifiers: Modifiers::NONE,
             hits: Hits::default(),
         }
     }
@@ -179,6 +182,7 @@ pub(crate) fn route(state: &mut Interaction, events: &[InputEvent], settings: Ro
         match event {
             InputEvent::PointerMoved(moved) => {
                 state.pointer = Some(moved.position);
+                state.modifiers = moved.modifiers;
                 routed.pointer_moved = true;
                 if let Some(active) = state.active {
                     let dragged = WidgetEvent::Dragged {
@@ -192,20 +196,25 @@ pub(crate) fn route(state: &mut Interaction, events: &[InputEvent], settings: Ro
             InputEvent::PointerReleased(release) => released(state, &mut routed, release),
             InputEvent::Wheel(wheel) => {
                 state.pointer = Some(wheel.position);
+                state.modifiers = wheel.modifiers;
                 let delta = wheel_pixels(wheel.delta, wheel.modifiers, settings.line_height);
                 if let Some(hit) = state.hits.topmost(wheel.position, Sense::SCROLL) {
                     routed.send(hit.id, WidgetEvent::Wheel { delta });
                 }
             }
             InputEvent::PointerLeft => state.pointer = None,
-            InputEvent::KeyPressed(key) => key_pressed(state, &mut routed, *key),
-            InputEvent::KeyReleased(_) => {}
+            InputEvent::KeyPressed(key) => {
+                state.modifiers = key.modifiers | modifier_of(key.key);
+                key_pressed(state, &mut routed, *key);
+            }
+            InputEvent::KeyReleased(key) => state.modifiers = key.modifiers.without(modifier_of(key.key)),
             InputEvent::TextTyped(text) => to_focus(state, &mut routed, WidgetEvent::Text(text.clone())),
             InputEvent::Paste(text) => to_focus(state, &mut routed, WidgetEvent::Paste(text.clone())),
             InputEvent::FocusGained => state.window_focused = true,
             InputEvent::FocusLost => {
                 state.window_focused = false;
                 state.active = None;
+                state.modifiers = Modifiers::NONE;
             }
         }
     }
@@ -213,9 +222,22 @@ pub(crate) fn route(state: &mut Interaction, events: &[InputEvent], settings: Ro
     routed
 }
 
+/// The modifier a key is, when it is one: what holding it adds to the keys held.
+fn modifier_of(key: Key) -> Modifiers {
+    match key {
+        Key::Named(NamedKey::Shift) => Modifiers::SHIFT,
+        Key::Named(NamedKey::Control) => Modifiers::CONTROL,
+        Key::Named(NamedKey::Alt) => Modifiers::ALT,
+        Key::Named(NamedKey::Meta) => Modifiers::META,
+        // Any other key is not a modifier, and adds none.
+        _ => Modifiers::NONE,
+    }
+}
+
 /// A press of a button: to the topmost widget under it, which holds the main button and takes the focus.
 fn pressed(state: &mut Interaction, routed: &mut Routed, press: &PointerButtonEvent) {
     state.pointer = Some(press.position);
+    state.modifiers = press.modifiers;
     routed.presses.push(press.position);
     state.tooltip_hidden_on = state.hits.covering(press.position).map(|hit| hit.id);
     let target = state

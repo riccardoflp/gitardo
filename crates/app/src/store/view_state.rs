@@ -4,12 +4,14 @@
 
 use std::path::PathBuf;
 
+use model::graph::Row;
 use model::repo::name_repositories;
 use model::state::RepositoryState;
 use views::activity::{ActivityState, RunningTask, StatusBarState};
-use views::details::DetailsState;
+use views::details::{DetailsState, SelectedDetails};
 use views::graph::{
-    BranchChip, GraphState, HeadName, MoreMenuState, RepositoryEntry, RepositoryPill, SyncCounts, ToolbarState,
+    BranchChip, Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, ReferencesShown, RepositoryEntry,
+    RepositoryPill, Selected, SyncCounts, TimelineMenu, ToolbarState, TraceShown,
 };
 use views::page::{Page, PageHostState, PageState};
 use views::refs::ReferencesState;
@@ -18,7 +20,8 @@ use views::welcome::WelcomeState;
 use views::{Content, TimelineState, WindowState};
 
 use super::state::{Dialog, Shown, State};
-use crate::persisted::same_folder;
+use super::timeline::{Timeline, workspace_panes};
+use crate::persisted::{WorkspacePanes, same_folder};
 
 /// The words the views need that the store does not keep.
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -35,12 +38,16 @@ pub struct ViewData {
     question_folder: String,
     /// What is running, for the header and the Activity drawer.
     running: Vec<RunningTask>,
+    /// The sizes of the panes of the workspace.
+    panes: WorkspacePanes,
+    /// The moment the dates are said from, in seconds since 1970.
+    now: i64,
 }
 
 impl ViewData {
-    /// The words of a state, with what is running.
+    /// The words of a state, with what is running and the moment the dates are said from, in seconds since 1970.
     #[must_use]
-    pub fn new(state: &State, running: Vec<RunningTask>) -> ViewData {
+    pub fn new(state: &State, running: Vec<RunningTask>, now: i64) -> ViewData {
         let recent = state
             .persisted
             .recent
@@ -83,6 +90,8 @@ impl ViewData {
             folder: shown.map(|folder| display(folder)).unwrap_or_default(),
             question_folder,
             running,
+            panes: workspace_panes(state),
+            now,
         }
     }
 
@@ -138,8 +147,12 @@ impl ViewData {
             more: MoreMenuState {
                 can_refresh: state.workspace.is_some(),
                 can_select_repository: state.workspace.is_some(),
+                timeline: read.map(|_| timeline_menu(state)),
             },
             is_activity_open: state.is_activity_open,
+            references: read.map(|_| ReferencesShown {
+                is_shown: !self.panes.is_rail_hidden,
+            }),
         }
     }
 
@@ -159,28 +172,98 @@ impl ViewData {
                     has_timeline: state.workspace.is_some(),
                 }),
             }),
-            None => Content::Timeline(timeline(state)),
+            None => Content::Timeline(self.timeline(state)),
+        }
+    }
+
+    /// The timeline, the branch rail and the inspector of the repository shown.
+    fn timeline<'a>(&'a self, state: &'a State) -> TimelineState<'a> {
+        let shown = state.workspace.as_ref().map(|workspace| &workspace.shown);
+        match shown {
+            Some(Shown::Read(read)) => TimelineState::Repository {
+                rail: ReferencesState {
+                    repository: &read.state,
+                    open: &state.kept_open,
+                },
+                graph: GraphState::Listed(Box::new(self.history(state, read.state.head.commit.is_none()))),
+                inspector: DetailsState {
+                    selected: selected_details(&state.timeline),
+                },
+                panes: self.panes.sizes,
+                is_rail_hidden: self.panes.is_rail_hidden,
+            },
+            Some(Shown::NoRepository) => TimelineState::NoRepository(NoRepositoryState::NoRepository),
+            Some(Shown::Looking | Shown::Reading { .. }) | None => {
+                TimelineState::NoRepository(NoRepositoryState::Loading)
+            }
+        }
+    }
+
+    /// The commits of the timeline and everything about them.
+    fn history<'a>(&'a self, state: &'a State, has_no_commits: bool) -> HistoryState<'a> {
+        let timeline = &state.timeline;
+        let reading = match (timeline.is_reading_again, timeline.more_job) {
+            (true, _) => Reading::Again,
+            (false, Some(_)) => Reading::More,
+            (false, None) => Reading::Nothing,
+        };
+        HistoryState {
+            rows: &timeline.rows,
+            layout: &timeline.layout,
+            folds: Folds {
+                folded: &timeline.folded,
+                is_all_folded: timeline.is_all_folded,
+            },
+            has_no_commits,
+            has_more: timeline.has_more,
+            reading,
+            asked_at: timeline.asked_at,
+            selected: timeline.selected.as_ref(),
+            reveal: timeline.reveal,
+            trace: timeline.trace.as_ref().map(|(cells, strength)| TraceShown {
+                cells,
+                strength: *strength,
+            }),
+            hover: timeline.hover.as_ref(),
+            hover_left_at: timeline.hover_left_at,
+            switches: state.settings.switches,
+            graph_width: self.panes.graph_width,
+            now: self.now,
+            found: &[],
+            draft: timeline.draft,
         }
     }
 }
 
-/// The timeline, the branch rail and the inspector of the repository shown.
-fn timeline(state: &State) -> TimelineState<'_> {
-    let shown = state.workspace.as_ref().map(|workspace| &workspace.shown);
-    match shown {
-        Some(Shown::Read(read)) => TimelineState::Repository {
-            rail: ReferencesState {
-                repository: &read.state,
-                open: &state.kept_open,
-            },
-            graph: GraphState::Listed {
-                rows: &read.commits.rows,
-                has_no_commits: read.state.head.commit.is_none(),
-            },
-            inspector: DetailsState,
-        },
-        Some(Shown::NoRepository) => TimelineState::NoRepository(NoRepositoryState::NoRepository),
-        Some(Shown::Looking | Shown::Reading { .. }) | None => TimelineState::NoRepository(NoRepositoryState::Loading),
+/// The entries of **…** about the timeline.
+fn timeline_menu(state: &State) -> TimelineMenu {
+    let timeline = &state.timeline;
+    TimelineMenu {
+        switches: state.settings.switches,
+        has_merges: !timeline.layout.foldable.is_empty(),
+        has_folds: !timeline.folded.is_empty(),
+        is_all_folded: timeline.is_all_folded,
+    }
+}
+
+/// What the inspector shows of the row selected, as the timeline read it.
+fn selected_details(timeline: &Timeline) -> Option<SelectedDetails<'_>> {
+    let commit = match timeline.selected.as_ref()? {
+        Selected::Draft => return timeline.draft.map(SelectedDetails::Draft),
+        Selected::Commit(commit) => commit,
+    };
+    let row = timeline
+        .layout
+        .shown_of
+        .get(commit)
+        .and_then(|shown| timeline.layout.read_of.get(*shown))
+        .and_then(|read| timeline.rows.get(*read))
+        .filter(|row| row.id() == Some(commit))
+        .or_else(|| timeline.rows.iter().find(|row| row.id() == Some(commit)))?;
+    match row {
+        Row::Commit(commit) => Some(SelectedDetails::Commit(commit)),
+        Row::Stash { commit, index } => Some(SelectedDetails::Stash { commit, index: *index }),
+        Row::Uncommitted { .. } => None,
     }
 }
 

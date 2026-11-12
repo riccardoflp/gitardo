@@ -4,12 +4,14 @@
 
 mod keys;
 mod selection;
+mod steer;
 
 use std::hash::Hash;
 use std::ops::Range;
 
 pub use keys::SelectionMode;
 pub use selection::Selection;
+pub use steer::{Reveal, RevealPlace, Steering};
 
 use render::{Border, Color, Rect, Theme};
 
@@ -108,7 +110,20 @@ impl Ui<'_> {
         draw_row: impl FnMut(&mut Ui<'_>, &Row),
     ) -> ListResponse {
         let id = self.id(key);
-        self.list_of(id, (rect, list), None, draw_row)
+        self.list_of(id, (rect, list), (None, None), draw_row)
+    }
+
+    /// Declares a list steered by its view: it starts from the selection the view gives, brings into sight the row the
+    /// view asks for, and leaves the view the keys it names.
+    pub fn steered_list(
+        &mut self,
+        key: impl Hash,
+        (rect, list): (Rect, &List<'_>),
+        steering: &Steering<'_>,
+        draw_row: impl FnMut(&mut Ui<'_>, &Row),
+    ) -> ListResponse {
+        let id = self.id(key);
+        self.list_of(id, (rect, list), (None, Some(steering)), draw_row)
     }
 
     /// Declares a list whose rows find in page searches all of, in sight or not, by the text `search` gives of each.
@@ -120,19 +135,22 @@ impl Ui<'_> {
         draw_row: impl FnMut(&mut Ui<'_>, &Row),
     ) -> ListResponse {
         let id = self.id(key);
-        self.list_of(id, (rect, list), Some(search), draw_row)
+        self.list_of(id, (rect, list), (Some(search), None), draw_row)
     }
 
-    /// Declares a list, searched by find in page when a search is given.
+    /// Declares a list, searched by find in page when a search is given, and steered by its view when a steering is.
     fn list_of(
         &mut self,
         id: WidgetId,
         (rect, list): (Rect, &List<'_>),
-        search: Option<&ListSearch<'_>>,
+        (search, steering): (Option<&ListSearch<'_>>, Option<&Steering<'_>>),
         mut draw_row: impl FnMut(&mut Ui<'_>, &Row),
     ) -> ListResponse {
         let (response, events) = self.interact_with_events(id, rect, Sense::CLICK | Sense::FOCUS | Sense::SCROLL);
         let mut state = self.memory().lists.remove(&id).unwrap_or_default();
+        if let Some(steering) = steering {
+            steering.apply(&mut state, (f64::from(list.row_height), f64::from(rect.height)));
+        }
         state.selection.limit(list.row_count);
         let before = state.selection.clone();
         let mut outcome = ListResponse {
@@ -143,14 +161,14 @@ impl Ui<'_> {
             visible_rows: 0..0,
         };
         for event in events {
+            if let (WidgetEvent::Key(key), Some(steering)) = (&event, steering)
+                && steering.leaves(key)
+            {
+                continue;
+            }
             self.list_event(rect, list, &mut state, (event, &mut outcome));
         }
-        let content = number::wide_of_count(list.row_count) * f64::from(list.row_height);
-        state.scroll.clamp(content - f64::from(rect.height));
-        if state.scroll.advance(self.now()) {
-            let next = self.now() + GLIDE_FRAME;
-            self.request_frame_at(next);
-        }
+        let content = self.glide_list(rect, list, &mut state);
         let window = visible_rows(list, state.scroll.offset(), rect.height);
         let hovered_row = self
             .pointer()
@@ -186,6 +204,17 @@ impl Ui<'_> {
         outcome.visible_rows = window.rows;
         let _ = self.memory().lists.insert(id, state);
         outcome
+    }
+
+    /// Keeps the offset of a list inside its rows and moves it along its glide, and gives the height of all its rows.
+    fn glide_list(&mut self, rect: Rect, list: &List<'_>, state: &mut ListState) -> f64 {
+        let content = number::wide_of_count(list.row_count) * f64::from(list.row_height);
+        state.scroll.clamp(content - f64::from(rect.height));
+        if state.scroll.advance(self.now()) {
+            let next = self.now() + GLIDE_FRAME;
+            self.request_frame_at(next);
+        }
+        content
     }
 
     /// Draws the scroll bar of a list along its right side, for the height of all its rows.

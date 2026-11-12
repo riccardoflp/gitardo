@@ -1,8 +1,12 @@
-//! The **…** menu at the end of the header (`graph.more-menu`), with only what is built: **Refresh**, and **Select
-//! repository…** when the workspace has more than one repository.
+//! The **…** menu at the end of the header (`graph.more-menu`), with what is built: **Refresh**; the switches of the
+//! timeline, checked while they are on; **Fold all merges** and **Unfold all merges**; and **Select repository…**
+//! when the workspace has more than one repository.
 
 use ui::{Button, ButtonKind, Icon, MenuEntry, MenuItem, Ui};
 
+use super::fold::{FoldAllEntry, FoldAllState, fold_all_view};
+use super::intent::{GraphIntent, Switches, TimelineSwitch};
+use super::switches::{FirstParentState, SelectedTrace, first_parent_view, trace_selected_view};
 use crate::intent::Intent;
 use crate::text::header as words;
 
@@ -16,6 +20,21 @@ pub struct MoreMenuState {
     pub can_refresh: bool,
     /// Whether **Select repository…** is offered: the workspace has more than one repository (`repo.select`).
     pub can_select_repository: bool,
+    /// The switches of the timeline, while a repository is shown.
+    pub timeline: Option<TimelineMenu>,
+}
+
+/// The entries of **…** about the timeline.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TimelineMenu {
+    /// The switches, as they stand.
+    pub switches: Switches,
+    /// Whether a merge that can be folded is loaded.
+    pub has_merges: bool,
+    /// Whether a merge is folded.
+    pub has_folds: bool,
+    /// Whether every merge is folded.
+    pub is_all_folded: bool,
 }
 
 /// What an item of the menu does.
@@ -23,14 +42,77 @@ pub struct MoreMenuState {
 enum MoreCommand {
     /// **Refresh**.
     Refresh,
+    /// A switch of the timeline.
+    Switch(TimelineSwitch),
+    /// **Fold all merges** or **Unfold all merges**.
+    FoldAll(FoldAllEntry),
     /// **Select repository…**.
     SelectRepository,
 }
 
+/// The words of a switch.
+fn switch_words(switch: TimelineSwitch) -> &'static str {
+    match switch {
+        TimelineSwitch::ShowStashes => words::SHOW_STASHES,
+        TimelineSwitch::FirstParent => words::FIRST_PARENT,
+        TimelineSwitch::TraceSelected => words::TRACE_SELECTED,
+        TimelineSwitch::Author => words::SHOW_AUTHOR,
+        TimelineSwitch::Date => words::SHOW_DATE,
+        TimelineSwitch::Hash => words::SHOW_HASH,
+        TimelineSwitch::DateSeparators => words::DATE_SEPARATORS,
+        TimelineSwitch::CombineUpstream => words::COMBINE_UPSTREAM,
+    }
+}
+
+/// The item of a switch, with a check while it is on.
+fn switch_item(switches: Switches, switch: TimelineSwitch) -> MenuEntry<'static, MoreCommand> {
+    let item = MenuItem::new(switch_words(switch), MoreCommand::Switch(switch));
+    MenuEntry::Item(if switches.is_on(switch) {
+        item.with_icon(Icon::Check)
+    } else {
+        item
+    })
+}
+
+/// The entries of the timeline, in the order of the card: the switches of what is listed and brought out, the folds,
+/// then the switches of what each row shows.
+fn timeline_entries(menu: TimelineMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
+    let mut entries = vec![MenuEntry::Separator];
+    for switch in [
+        TimelineSwitch::ShowStashes,
+        TimelineSwitch::FirstParent,
+        TimelineSwitch::TraceSelected,
+    ] {
+        entries.push(switch_item(menu.switches, switch));
+    }
+    let fold = MenuItem::new(words::FOLD_ALL, MoreCommand::FoldAll(FoldAllEntry::Fold));
+    let fold = match (menu.is_all_folded, menu.has_merges) {
+        (true, _) => fold.with_icon(Icon::Check),
+        (false, true) => fold,
+        (false, false) => fold.disabled(),
+    };
+    let unfold = MenuItem::new(words::UNFOLD_ALL, MoreCommand::FoldAll(FoldAllEntry::Unfold));
+    entries.push(MenuEntry::Item(fold));
+    entries.push(MenuEntry::Item(if menu.has_folds { unfold } else { unfold.disabled() }));
+    entries.push(MenuEntry::Separator);
+    for switch in [
+        TimelineSwitch::Author,
+        TimelineSwitch::Date,
+        TimelineSwitch::Hash,
+        TimelineSwitch::DateSeparators,
+        TimelineSwitch::CombineUpstream,
+    ] {
+        entries.push(switch_item(menu.switches, switch));
+    }
+    entries
+}
+
 /// The **…** button and its menu, over the rectangle its caller clipped it to.
 ///
-/// Feature cards that fill it further: `graph.more-menu` (**Branch**, **Stash**, **Undo**, the switches of the
-/// timeline, the ways to the pages), `repo.schedule-reads` (what **Refresh** asks for).
+/// Feature cards that fill it further: `graph.more-menu` (**Branch**, **Stash**, **Undo**, the kinds of references
+/// shown, the ways to the pages), `repo.schedule-reads` (what **Refresh** asks for).
+///
+/// Feature: graph.more-menu
 pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
     let button = Button::icon(Icon::More, words::MORE).kind(ButtonKind::Outline);
@@ -40,6 +122,9 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
     } else {
         refresh.disabled()
     })];
+    if let Some(timeline) = &state.timeline {
+        entries.extend(timeline_entries(*timeline));
+    }
     if state.can_select_repository {
         entries.push(MenuEntry::Separator);
         entries.push(MenuEntry::Item(MenuItem::new(
@@ -47,9 +132,30 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
             MoreCommand::SelectRepository,
         )));
     }
+    let switches = state.timeline.map_or(Switches::DEFAULT, |timeline| timeline.switches);
     match ui.menu_button(MORE_MENU, rect, &button, &entries) {
         Some(MoreCommand::Refresh) => vec![Intent::Refresh],
         Some(MoreCommand::SelectRepository) => vec![Intent::PickRepository],
+        Some(MoreCommand::Switch(TimelineSwitch::FirstParent)) => {
+            let state = FirstParentState {
+                is_on: switches.is_on(TimelineSwitch::FirstParent),
+            };
+            first_parent_view(&state, ui)
+        }
+        Some(MoreCommand::Switch(TimelineSwitch::TraceSelected)) => {
+            let state = SelectedTrace {
+                is_on: switches.is_on(TimelineSwitch::TraceSelected),
+            };
+            trace_selected_view(&state, ui)
+        }
+        Some(MoreCommand::Switch(switch)) => vec![Intent::Graph(GraphIntent::Switch(switch, !switches.is_on(switch)))],
+        Some(MoreCommand::FoldAll(chosen)) => {
+            let state = FoldAllState {
+                chosen,
+                is_all_folded: state.timeline.is_some_and(|timeline| timeline.is_all_folded),
+            };
+            fold_all_view(&state, ui)
+        }
         None => Vec::new(),
     }
 }

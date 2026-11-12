@@ -18,7 +18,7 @@ use crate::persisted::{FILE_NAME, Persisted};
 use crate::settings::{self, SettingsFiles, keys, read_files, user_settings_file};
 use crate::store::{Effect, Message, State, ViewData, reduce};
 use crate::window::{Step, Surface, SurfaceOptions};
-use crate::work::{Deliver, PersistedWriter, SettingsWatcher, Workers};
+use crate::work::{Deliver, PersistedWriter, SettingWriter, SettingsWatcher, Workers};
 
 /// The timer of the frames of the window.
 const FRAME_TIMER: TimerId = TimerId(1);
@@ -98,6 +98,8 @@ struct DesktopWindow {
     watcher: SettingsWatcher,
     /// The writer of what is kept between runs; none when there is no configuration folder.
     writer: Option<PersistedWriter>,
+    /// The writer of the settings the window changes.
+    setting_writer: SettingWriter,
     /// What runs, as the workers tell it.
     activities: Activities,
     /// When each activity was first seen, for how long it has run.
@@ -139,6 +141,7 @@ impl DesktopWindow {
                 .configuration
                 .as_ref()
                 .map(|folder| PersistedWriter::new(folder.join(FILE_NAME))),
+            setting_writer: SettingWriter::new(),
             activities,
             running: running::RunningClock::default(),
         })
@@ -203,6 +206,7 @@ impl DesktopWindow {
                     writer.write(persisted);
                 }
             }
+            Effect::WriteSetting { file, key, value } => self.setting_writer.write(file, key, value),
             Effect::WatchSettings(files) => self.watcher.watch(files),
             Effect::ApplySettings => {
                 self.surface.set_theme(self.state.settings.theme);
@@ -216,7 +220,7 @@ impl DesktopWindow {
     /// Draws a frame of the views from the store, then reduces the intents they returned.
     fn draw(&mut self, context: &Context<'_>) -> Result<Flow, AppError> {
         let running = self.running.tasks(&self.activities.running());
-        let data = ViewData::new(&self.state, running);
+        let data = ViewData::new(&self.state, running, seconds_now());
         self.surface.set_title(&views::text::window_title(data.name()));
         let state = &self.state;
         let intents = self
@@ -244,4 +248,11 @@ enum Followed {
 fn apply_text(surface: &mut Surface, settings: &settings::Settings) -> Result<(), AppError> {
     let fonts = &settings.fonts;
     surface.set_text(&fonts.interface, &fonts.code, fonts.size / keys::FONT_SIZE)
+}
+
+/// The moment, in seconds since 1970: what the dates of the timeline are said from.
+fn seconds_now() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |since| i64::try_from(since.as_secs()).unwrap_or(i64::MAX))
 }

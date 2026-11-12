@@ -87,6 +87,7 @@ fn page_of_everything() -> CommitsRequest {
         history: everything(),
         page_size: PageSize::DEFAULT,
         pages: 1,
+        skip: 0,
         stashes: Vec::new(),
     }
 }

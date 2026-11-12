@@ -4,9 +4,14 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 #![allow(clippy::unwrap_used, clippy::panic, reason = "a test that cannot go on fails")]
 
+mod folds;
+mod histories;
 mod jobs;
+mod panes;
+mod pointer;
 mod speed;
 mod support;
+mod timeline;
 mod views_drawn;
 
 use std::path::PathBuf;

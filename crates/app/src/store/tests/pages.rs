@@ -151,6 +151,7 @@ fn repo_no_repository__a_read_that_fails_shows_it_and_keeps_what_git_said() {
             job: read.id,
             folder: work,
             result: Err(String::from("fatal: not a git repository")),
+            read_at: 0,
         },
     );
     assert_eq!(

@@ -19,6 +19,10 @@ use crate::state::{Branch, RemoteBranch};
 /// Feature: graph.unpushed
 #[must_use]
 pub fn unpushed(rows: &[Row], branches: &[Branch], remote_branches: &[RemoteBranch]) -> HashMap<CommitId, String> {
+    let is_ahead = |branch: &Branch| branch.upstream.as_ref().is_some_and(|upstream| upstream.ahead > 0);
+    if !branches.iter().any(is_ahead) {
+        return HashMap::new();
+    }
     let ancestry = Ancestry::new(rows);
     let mut marked = HashMap::new();
     for branch in branches {

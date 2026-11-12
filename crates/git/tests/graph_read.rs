@@ -51,6 +51,7 @@ fn request(history: History, page_size: PageSize, pages: usize) -> CommitsReques
         history,
         page_size,
         pages,
+        skip: 0,
         stashes: Vec::new(),
     }
 }

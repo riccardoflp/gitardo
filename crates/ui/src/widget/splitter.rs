@@ -1,5 +1,6 @@
 //! Splitters: a rectangle cut in two panes by a line that the pointer drags to give one pane more room, never less than
-//! each pane's least size; a double click on the line puts it back where it started.
+//! each pane's least size; a double click on the line puts it back where it started, and with the keyboard on it the
+//! arrows move it by a step.
 
 use std::hash::Hash;
 
@@ -8,7 +9,7 @@ use render::Rect;
 use super::metrics;
 use crate::frame::Ui;
 use crate::id::WidgetId;
-use crate::input::{Cursor, PointerButton};
+use crate::input::{Cursor, Key, KeyEvent, NamedKey, PointerButton};
 use crate::interaction::{Sense, WidgetEvent};
 use crate::memory::DragStart;
 
@@ -32,6 +33,11 @@ pub struct Splitter {
     pub least_first: f32,
     /// The least size of the second pane.
     pub least_second: f32,
+    /// The size of the first pane the view keeps, which the splitter takes over its own; none while the view keeps
+    /// none, and then the splitter remembers the size it was moved to.
+    pub size: Option<f32>,
+    /// How far an arrow moves the line while the splitter has the keyboard; with 0 the splitter takes no keyboard.
+    pub step: f32,
 }
 
 /// What a splitter tells its view.
@@ -45,6 +51,8 @@ pub struct SplitResponse {
     pub size: f32,
     /// Whether the line moved in this frame, so that a view that keeps the size can keep the new one.
     pub is_changed: bool,
+    /// Whether the line was put back where it started by a double click in this frame.
+    pub is_reset: bool,
 }
 
 /// The size of the first pane kept inside the least sizes of both, in a length that holds the line too. When the
@@ -65,25 +73,34 @@ impl Ui<'_> {
             Split::Columns => rect.width,
             Split::Rows => rect.height,
         };
-        let kept = self.memory_view().splitters.get(&id).copied();
+        let kept = splitter.size.or_else(|| self.memory_view().splitters.get(&id).copied());
         let mut size = clamp_size(kept.unwrap_or(splitter.default_size), length, splitter, line);
         let events = self.take_events(id);
         let before = size;
+        let mut is_reset = false;
         for event in &events {
-            size = self.move_splitter(id, event, (splitter, length, line), size);
+            let moved = self.move_splitter(id, event, (splitter, length, line), size);
+            is_reset |= moved.is_reset;
+            size = moved.size;
         }
-        let is_changed = (size - before).abs() > f32::EPSILON;
+        let is_changed = (size - before).abs() > f32::EPSILON || is_reset;
         let grip = metrics::splitter_grip(&theme);
         let grip_rect = line_rect(rect, splitter.split, size + line * 0.5 - grip * 0.5, grip);
-        let response = self.interact_raised(id, grip_rect, (Sense::DRAG | Sense::CLICK, &events));
+        let sense = if splitter.step > 0.0 {
+            Sense::DRAG | Sense::CLICK | Sense::FOCUS
+        } else {
+            Sense::DRAG | Sense::CLICK
+        };
+        let response = self.interact_raised(id, grip_rect, (sense, &events));
         if response.hovered || response.pressed {
             self.set_cursor(match splitter.split {
                 Split::Columns => Cursor::ResizeEastWest,
                 Split::Rows => Cursor::ResizeNorthSouth,
             });
         }
-        // The line shows only while the pointer is on it: the parts of the window are told apart by their tones.
-        if response.hovered || response.pressed {
+        // The line shows only while the pointer or the keyboard is on it: the parts of the window are told apart by
+        // their tones.
+        if response.hovered || response.pressed || response.shows_focus {
             let lit = line_rect(rect, splitter.split, size - line, 3.0 * line);
             self.fill_rect(lit, theme.colors.focus_ring);
         }
@@ -93,8 +110,18 @@ impl Ui<'_> {
             second,
             size,
             is_changed,
+            is_reset,
         }
     }
+}
+
+/// Where an event left the line of a splitter.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Moved {
+    /// The size of the first pane.
+    size: f32,
+    /// Whether a double click put it back where it started.
+    is_reset: bool,
 }
 
 impl Ui<'_> {
@@ -106,7 +133,8 @@ impl Ui<'_> {
         event: &WidgetEvent,
         (splitter, length, line): (&Splitter, f32, f32),
         size: f32,
-    ) -> f32 {
+    ) -> Moved {
+        let at = |size| Moved { size, is_reset: false };
         match event {
             WidgetEvent::Pressed {
                 button: PointerButton::Primary,
@@ -117,15 +145,18 @@ impl Ui<'_> {
                 let (position, click_count) = (*position, *click_count);
                 if click_count == 2 {
                     let _ = self.memory().splitters.remove(&id);
-                    return clamp_size(splitter.default_size, length, splitter, line);
+                    return Moved {
+                        size: clamp_size(splitter.default_size, length, splitter, line),
+                        is_reset: true,
+                    };
                 }
                 let value = f64::from(size);
                 self.memory().drag = Some(DragStart { id, position, value });
-                size
+                at(size)
             }
             WidgetEvent::Dragged { position, .. } => {
                 let Some(start) = self.memory_view().drag.filter(|drag| drag.id == id) else {
-                    return size;
+                    return at(size);
                 };
                 let moved = match splitter.split {
                     Split::Columns => position.x - start.position.x,
@@ -133,10 +164,33 @@ impl Ui<'_> {
                 };
                 let moved_to = clamp_size(crate::number::narrow(start.value) + moved, length, splitter, line);
                 let _ = self.memory().splitters.insert(id, moved_to);
-                moved_to
+                at(moved_to)
             }
-            _ => size,
+            WidgetEvent::Key(key) => {
+                let Some(direction) = arrow_direction(splitter, key) else {
+                    return at(size);
+                };
+                self.claim_key(id, *key);
+                let moved_to = clamp_size(size + direction * splitter.step, length, splitter, line);
+                let _ = self.memory().splitters.insert(id, moved_to);
+                at(moved_to)
+            }
+            _ => at(size),
         }
+    }
+}
+
+/// Which way an arrow moves the line of a splitter that takes the keyboard: -1 back, 1 on; none for another key.
+fn arrow_direction(splitter: &Splitter, key: &KeyEvent) -> Option<f32> {
+    if splitter.step <= 0.0 || !key.modifiers.is_empty() {
+        return None;
+    }
+    match (splitter.split, key.key) {
+        (Split::Columns, Key::Named(NamedKey::ArrowLeft)) | (Split::Rows, Key::Named(NamedKey::ArrowUp)) => Some(-1.0),
+        (Split::Columns, Key::Named(NamedKey::ArrowRight)) | (Split::Rows, Key::Named(NamedKey::ArrowDown)) => {
+            Some(1.0)
+        }
+        _ => None,
     }
 }
 
@@ -183,6 +237,8 @@ mod tests {
             default_size: 200.0,
             least_first: 100.0,
             least_second: 150.0,
+            size: None,
+            step: 0.0,
         };
         assert_eq!(clamp_size(200.0, 501.0, &splitter, 1.0), 200.0);
         assert_eq!(clamp_size(50.0, 501.0, &splitter, 1.0), 100.0);

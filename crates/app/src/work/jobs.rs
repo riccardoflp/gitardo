@@ -1,16 +1,16 @@
 //! What each job does on a worker: the reads of git a window asks for, each turned into the message that carries its
 //! result back.
 
-use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
-use git::read::graph::{CommitPage, CommitsRequest, History, Parents, read_commits};
+use git::read::graph::{CommitPage, CommitsRequest, read_commits};
 use git::read::repo::{RepositoriesRequest, StateRequest, read_repositories, read_state};
 use git::{CancelToken, Git};
-use model::graph::PageSize;
+use model::graph::Row;
 use model::state::RepositoryState;
 
-use crate::store::{Found, Job, JobKind, Message};
+use crate::store::{Found, Job, JobKind, Known, Message, MorePages, TimelineRequest, commits_request};
 
 /// Runs a job, cancelled through its token, and gives the message of its result.
 #[must_use]
@@ -20,14 +20,26 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             found: find_repositories(folders, cancel),
         },
-        JobKind::ReadRepository { folder, page_size } => Message::RepositoryRead {
+        JobKind::ReadRepository { folder, request } => Message::RepositoryRead {
             job: job.id,
             folder: folder.clone(),
-            result: read_repository(folder, *page_size, cancel)
+            result: read_repository(folder, request, cancel)
                 .map(Box::new)
                 .map_err(|error| error.to_string()),
+            read_at: seconds_now(),
+        },
+        JobKind::ReadCommits { folder, request, known } => Message::CommitsRead {
+            job: job.id,
+            result: read_more(folder, request, known, cancel).map_err(|error| error.to_string()),
         },
     }
+}
+
+/// The moment, in seconds since 1970.
+fn seconds_now() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |since| i64::try_from(since.as_secs()).unwrap_or(i64::MAX))
 }
 
 /// The repositories of some folders (`repo.read-repositories`); [`Found::AllGone`] when none of the folders is there.
@@ -44,15 +56,15 @@ pub fn find_repositories(folders: &[PathBuf], cancel: &CancelToken) -> Found {
     }
 }
 
-/// A repository as the window shows it: its state (`repo.read-state`), then the first page of its commits
-/// (`graph.read-commits`).
+/// A repository as the window shows it: its state (`repo.read-state`), then the pages of its commits the timeline has
+/// loaded (`graph.read-commits`).
 ///
 /// # Errors
 ///
 /// What git said when a read failed, as when the folder is not a repository any more.
 pub fn read_repository(
     folder: &Path,
-    page_size: PageSize,
+    request: &TimelineRequest,
     cancel: &CancelToken,
 ) -> Result<(RepositoryState, CommitPage), git::GitError> {
     let git = Git::new(folder).with_cancel(cancel.clone());
@@ -62,30 +74,37 @@ pub fn read_repository(
             folder: folder.to_path_buf(),
         },
     )?;
-    let request = CommitsRequest {
-        history: History {
-            selection: everything(&state),
-            narrowing: Vec::new(),
-            parents: Parents::All,
-        },
-        page_size,
-        pages: 1,
-        stashes: state.stashes.clone(),
-    };
-    let commits = read_commits(&git.in_directory(&state.folder), &request)?;
+    let commits = read_commits(&git.in_directory(&state.folder), &commits_request(&state, request))?;
     Ok((state, commits))
 }
 
-/// The history of every branch, remote branch and tag, and of `HEAD` once there is a commit: what the timeline lists
-/// when nothing narrows it. `filter.log-arguments` makes it once the branches shown can be chosen (`filter.show-only`,
-/// `filter.remember`).
-fn everything(state: &RepositoryState) -> Vec<OsString> {
-    let mut selection: Vec<OsString> = ["--branches", "--remotes", "--tags"]
-        .into_iter()
-        .map(OsString::from)
-        .collect();
-    if state.head.commit.is_some() {
-        selection.push(OsString::from("HEAD"));
+/// The next pages of the timeline, read from the last commit the window has: only the rows after it when the history
+/// is the same up to it, every row of the pages otherwise (`graph.load-more`).
+///
+/// # Errors
+///
+/// What git said when the read failed.
+pub fn read_more(
+    folder: &Path,
+    request: &CommitsRequest,
+    known: &Known,
+    cancel: &CancelToken,
+) -> Result<MorePages, git::GitError> {
+    let git = Git::new(folder).with_cancel(cancel.clone());
+    let (Some(last), Some(skip)) = (&known.last, known.commits.checked_sub(1)) else {
+        return Ok(MorePages::Replaced(read_commits(&git, request)?));
+    };
+    let after = CommitsRequest {
+        skip,
+        ..request.clone()
+    };
+    let CommitPage { mut rows, has_more } = read_commits(&git, &after)?;
+    let first = rows.iter().position(|row| matches!(row, Row::Commit(_)));
+    match first.filter(|index| rows.get(*index).and_then(Row::id) == Some(last)) {
+        Some(index) => Ok(MorePages::Appended {
+            rows: rows.split_off(index + 1),
+            has_more,
+        }),
+        None => Ok(MorePages::Replaced(read_commits(&git, request)?)),
     }
-    selection
 }

@@ -129,11 +129,11 @@ pub fn repository_read(
     state: &mut State,
     job: JobId,
     folder: &Path,
-    result: Result<Box<(RepositoryState, CommitPage)>, String>,
+    (result, read_at): (Result<Box<(RepositoryState, CommitPage)>, String>, i64),
 ) -> Vec<Effect> {
-    if state.jobs.remove(&job).is_none() {
+    let Some(JobKind::ReadRepository { request, .. }) = state.jobs.remove(&job) else {
         return Vec::new();
-    }
+    };
     let generation = state.next_generation;
     let Some(workspace) = state.workspace.as_mut() else {
         return Vec::new();
@@ -150,12 +150,14 @@ pub fn repository_read(
         Ok(read) => {
             let (repository, commits) = *read;
             state.next_generation += 1;
+            let repository = Arc::new(repository);
             workspace.shown = Shown::Read(RepositoryRead {
                 folder: folder.to_path_buf(),
-                state: Arc::new(repository),
-                commits: Arc::new(commits),
+                state: Arc::clone(&repository),
                 generation,
             });
+            let page = (commits.has_more, request.pages, read_at);
+            super::timeline::take_read(state, (folder, &repository), commits.rows, page);
             super::pages::tick_timeline(state).into_iter().collect()
         }
         Err(error) => {
@@ -229,10 +231,17 @@ fn find_repository<'a>(repositories: &'a [Repository], folder: &Path) -> Option<
         .find(|repository| same_folder(&repository.folder, folder))
 }
 
-/// Starts a read of a repository with the page size in force.
+/// Starts a read of a repository with the settings in force: as many pages as its timeline has loaded when it is the
+/// one shown, one otherwise.
 fn start_read(state: &mut State, folder: PathBuf) -> Effect {
-    let page_size = state.settings.page_size;
-    Effect::Start(start_job(state, JobKind::ReadRepository { folder, page_size }))
+    let is_shown = state
+        .timeline
+        .folder
+        .as_deref()
+        .is_some_and(|shown| same_folder(shown, &folder));
+    let pages = if is_shown { state.timeline.pages } else { 1 };
+    let request = super::timeline::read_request(state, pages);
+    Effect::Start(start_job(state, JobKind::ReadRepository { folder, request }))
 }
 
 /// Notes a job as started and gives it its number.
@@ -243,21 +252,21 @@ fn start_job(state: &mut State, kind: JobKind) -> Job {
     Job { id, kind }
 }
 
-/// Cancels the reads of repositories running: their results are not wanted any more.
+/// Cancels the reads of repositories running, and of the next pages of the timeline: their results are not wanted any
+/// more.
 fn cancel_reads(state: &mut State) -> Vec<Effect> {
+    let mut effects = super::timeline::cancel_more(state);
     let reads: Vec<JobId> = state
         .jobs
         .iter()
         .filter(|(_, kind)| matches!(kind, JobKind::ReadRepository { .. }))
         .map(|(id, _)| *id)
         .collect();
-    reads
-        .into_iter()
-        .map(|id| {
-            let _cancelled = state.jobs.remove(&id);
-            Effect::Cancel(id)
-        })
-        .collect()
+    effects.extend(reads.into_iter().map(|id| {
+        let _cancelled = state.jobs.remove(&id);
+        Effect::Cancel(id)
+    }));
+    effects
 }
 
 /// Cancels the workspace being opened, which another one replaces.

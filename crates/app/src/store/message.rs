@@ -2,8 +2,9 @@
 
 use std::path::PathBuf;
 
-use git::read::graph::CommitPage;
+use git::read::graph::{CommitPage, CommitsRequest, Parents};
 use model::graph::PageSize;
+use model::graph::Row;
 use model::repo::Repository;
 use model::state::RepositoryState;
 use views::Intent;
@@ -38,6 +39,15 @@ pub enum Message {
         folder: PathBuf,
         /// What was read, or what git said when the read failed.
         result: Result<Box<(RepositoryState, CommitPage)>, String>,
+        /// When it was read, in seconds since 1970: the lines between days and months are counted from it.
+        read_at: i64,
+    },
+    /// A job that read the next pages of the timeline is done (`graph.load-more`).
+    CommitsRead {
+        /// The job.
+        job: JobId,
+        /// What was read, or what git said when the read failed.
+        result: Result<MorePages, String>,
     },
     /// The settings files changed and were read again.
     SettingsRead(Settings),
@@ -59,6 +69,45 @@ pub enum Found {
     Failed(String),
 }
 
+/// The next pages of the timeline, as a worker sends them.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum MorePages {
+    /// The commits known are read again as they were: only the rows after them are sent.
+    Appended {
+        /// The rows after those known.
+        rows: Vec<Row>,
+        /// Whether the history has more.
+        has_more: bool,
+    },
+    /// The history changed under the commits known: every row read.
+    Replaced(CommitPage),
+}
+
+/// The commits a window has of a timeline, as a worker checks them.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct Known {
+    /// How many rows were read, the stashes among them.
+    pub count: usize,
+    /// How many of them are commits.
+    pub commits: usize,
+    /// The last commit read: the read of the next pages starts from it again, to tell whether the history is the
+    /// same above it.
+    pub last: Option<model::CommitId>,
+}
+
+/// How the timeline of a repository is read.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TimelineRequest {
+    /// How many commits a page has.
+    pub page_size: PageSize,
+    /// How many pages are read, from the newest commit.
+    pub pages: usize,
+    /// Which parents are followed (`graph.firstParent`).
+    pub parents: Parents,
+    /// Whether the stashes are placed among the commits (`graph.showStashes`).
+    pub shows_stashes: bool,
+}
+
 /// The number of a job, unique in its window.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct JobId(pub u64);
@@ -75,8 +124,18 @@ pub enum JobKind {
     ReadRepository {
         /// The folder of the repository.
         folder: PathBuf,
-        /// How many commits a page has.
-        page_size: PageSize,
+        /// How the timeline is read.
+        request: TimelineRequest,
+    },
+    /// Reads the pages of the timeline from the first again, one more than are loaded, and sends only the rows after
+    /// those known when they are the same (`graph.load-more`).
+    ReadCommits {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// What is read.
+        request: CommitsRequest,
+        /// The rows the window has.
+        known: Known,
     },
 }
 
@@ -100,6 +159,16 @@ pub enum Effect {
     ChooseFolder,
     /// Writes what is kept between runs.
     WritePersisted(Persisted),
+    /// Sets a value in a settings file, keeping the rest of its text, on a thread of its own: a switch of the timeline
+    /// in the user's file.
+    WriteSetting {
+        /// The file.
+        file: PathBuf,
+        /// The key.
+        key: &'static str,
+        /// The value.
+        value: json::Value,
+    },
     /// Watches these settings files, in place of those watched before.
     WatchSettings(SettingsFiles),
     /// Draws the window with the theme and the fonts of the settings in force.

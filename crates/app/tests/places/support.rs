@@ -18,6 +18,10 @@ use ui::{
 };
 use views::Intent;
 
+/// The moment the dates of the timeline are said from in the tests: three hours after the first commit of the test
+/// repositories, so that the pictures do not change from one day to the next.
+pub const NOW: i64 = 1_735_689_600 + 3 * 3_600;
+
 /// A window drawn in memory at a scale of 1, in a theme.
 pub struct Window {
     /// The pixels.
@@ -30,6 +34,8 @@ pub struct Window {
     typefaces: Typefaces,
     /// The theme.
     theme: Theme,
+    /// The time of the frames, which a test moves on to let a scroll glide to its end.
+    pub now: Duration,
 }
 
 impl Window {
@@ -49,6 +55,7 @@ impl Window {
             memory: UiMemory::new(),
             typefaces,
             theme: Theme::new(theme, Appearance::Dark),
+            now: Duration::from_secs(1),
         }
     }
 
@@ -63,7 +70,7 @@ impl Window {
                 theme: self.theme,
                 typefaces: self.typefaces,
                 scale: 1.0,
-                now: Duration::from_secs(1),
+                now: self.now,
             },
         });
         let returned = view(&mut ui);
@@ -74,7 +81,7 @@ impl Window {
 
     /// Draws the window of a store with some input, and gives the intents of the frame and its tree.
     pub fn draw(&mut self, state: &State, events: &[InputEvent]) -> (Vec<Intent>, TreeUpdate) {
-        let data = ViewData::new(state, Vec::new());
+        let data = ViewData::new(state, Vec::new(), NOW);
         self.frame(events, |ui| views::view(&data.window_state(state), ui))
     }
 

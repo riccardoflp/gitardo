@@ -104,3 +104,42 @@ fn repo_select__the_repository_menu_opens_from_the_pill() {
     let (_, tree) = window.draw(&state, &[]);
     let _pill = find(&tree, Role::Button, "repository");
 }
+
+#[test]
+fn the_draft_and_a_commit_selected_with_the_inspector_are_drawn_in_each_theme() {
+    let (repository, _remote) = repository_with_history();
+    std::fs::write(repository.path().join("README.md"), "Gitardo, changed\n").unwrap();
+    let mut state = showing(repository.path().to_path_buf());
+    let chosen = state
+        .timeline
+        .rows
+        .iter()
+        .find_map(|row| row.commit().filter(|commit| commit.subject == "Show the branch rail"));
+    let chosen = chosen.unwrap().id.clone();
+    let select = views::graph::GraphIntent::Select(views::graph::Selected::Commit(chosen));
+    let _effects = super::support::run(&mut state, app::store::Message::Intent(Intent::Graph(select)));
+    for (theme, name) in [
+        (ThemeName::Dark, "timeline-draft-dark"),
+        (ThemeName::Light, "timeline-draft-light"),
+    ] {
+        let mut window = Window::new(theme, WIDE);
+        let _ = window.draw(&state, &[]);
+        window.assert_snapshot(name);
+    }
+}
+
+#[test]
+fn a_folded_merge_is_drawn_as_one_row() {
+    let repository = super::folds::merged_feature();
+    let mut state = showing(repository.path().to_path_buf());
+    let merge = state
+        .timeline
+        .rows
+        .iter()
+        .find_map(|row| row.commit().filter(|commit| commit.parents.len() == 2));
+    let fold = views::graph::GraphIntent::Fold(merge.unwrap().id.clone());
+    let _effects = super::support::run(&mut state, app::store::Message::Intent(Intent::Graph(fold)));
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let _ = window.draw(&state, &[]);
+    window.assert_snapshot("timeline-folded-dark");
+}

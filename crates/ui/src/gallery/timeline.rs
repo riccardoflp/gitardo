@@ -13,7 +13,7 @@ use crate::access::AccessRole;
 use crate::frame::{TextKind, Ui};
 use crate::layout::{Align, Area, Insets, inset, place};
 use crate::widget::Tone;
-use crate::widget::badge::Badge;
+use crate::widget::badge::{Badge, BadgeFill};
 use crate::widget::button::Button;
 use crate::widget::find::ListSearch;
 use crate::widget::input_box::InputBox;
@@ -269,8 +269,9 @@ fn two_lines(ui: &mut Ui<'_>, row: &Row, rect: Rect) {
         .iter()
         .map(|reference| Badge {
             text: reference.name,
-            icon: None,
+            icons: &[],
             tone: Tone::Lane(reference.lane),
+            fill: BadgeFill::Tint,
         })
         .collect();
     let pills: f32 = badges

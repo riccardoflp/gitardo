@@ -51,6 +51,8 @@ pub(crate) struct ListState {
     pub(crate) selection: Selection,
     /// How far the rows are scrolled.
     pub(crate) scroll: ScrollAxis,
+    /// The number of the last row its view asked to bring into sight, so that each is brought once.
+    pub(crate) revealed: Option<u64>,
 }
 
 /// A drag in progress: where it started and the value it moves, such as the size of a splitter or the offset of a

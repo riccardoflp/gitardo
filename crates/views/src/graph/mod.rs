@@ -1,10 +1,47 @@
-//! The timeline and the header above it: the commits (`graph.view`), the header (`graph.toolbar`) and its **…** menu
-//! (`graph.more-menu`).
+//! The timeline and the header above it: the commits (`graph.view`) with their graph, labels, columns, draft, stashes,
+//! folds, sticky names, marks and edge; moving through them with the keyboard; the header (`graph.toolbar`), its
+//! **…** menu (`graph.more-menu`) and the panes beside the timeline (`graph.resize-panes`).
 
+mod cell;
+mod columns;
+mod draft;
+mod edge;
+mod fold;
+mod hover;
+mod intent;
+mod keyboard;
+mod layout;
+mod load_more;
+mod marks;
 mod more_menu;
+mod panes;
+mod row;
+mod stashes;
+mod state;
+mod sticky;
+mod switches;
+#[cfg(test)]
+mod tests;
 mod timeline;
+mod toggle;
 mod toolbar;
 
-pub use more_menu::{MoreMenuState, more_menu_view};
-pub use timeline::{GraphState, view};
+pub use columns::{ColumnsState, columns_view};
+pub use draft::{DraftEntry, UncommittedRow, draft_entries, draft_menu, uncommitted_row_view};
+pub use edge::{GraphEdgeState, resize_graph_view};
+pub use fold::{FoldAllEntry, FoldAllState, FoldsState, MergeEntry, fold_all_view, fold_merge_view, merge_menu};
+pub use hover::{HoverState, LINGER, REST, hover_history_view, hover_intent};
+pub use intent::{GraphIntent, HoverTarget, HoverWay, Pane, Selected, Switches, TimelineSwitch};
+pub use keyboard::{key_intent, keyboard_view};
+pub use layout::{LayoutInput, TimelineLayout};
+pub use load_more::{AHEAD, LoadMoreState, load_more_view, wants_more};
+pub use marks::{ScrollMarks, mark_positions, scroll_marks_view};
+pub use more_menu::{MoreMenuState, TimelineMenu, more_menu_view};
+pub use panes::{PaneLayout, PaneRects, PaneSizes, RAIL_START, pane_rects, resize_panes_view};
+pub use stashes::{StashEntry, StashRow, stash_menu, stashes_view};
+pub use state::{DraftState, Folds, GraphState, HistoryState, Reading, TraceShown, TraceStrength};
+pub use sticky::{StickyName, StickyNames, sticky_branch_names_view, sticky_names};
+pub use switches::{FirstParentState, SelectedTrace, first_parent_view, trace_selected_view};
+pub use timeline::view;
+pub use toggle::{ReferencesShown, toggle_references_view};
 pub use toolbar::{BranchChip, HeadName, RepositoryEntry, RepositoryPill, SyncCounts, ToolbarState, toolbar_view};

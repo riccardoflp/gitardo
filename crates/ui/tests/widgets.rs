@@ -193,6 +193,8 @@ fn splitter(ui: &mut Ui<'_>) -> SplitResponse {
         default_size: 200.0,
         least_first: 100.0,
         least_second: 100.0,
+        size: None,
+        step: 0.0,
     };
     ui.splitter("split", Rect::new(0.0, 0.0, 501.0, 100.0), &splitter)
 }

@@ -7,6 +7,7 @@ use std::path::Path;
 use json::Value;
 use model::graph::PageSize;
 use render::ThemeName;
+use views::graph::{Switches, TimelineSwitch};
 
 use super::keys::{self, Scope};
 use super::{FontChoice, ProblemReason, SettingProblem, Settings, SettingsFile, SettingsFiles};
@@ -60,9 +61,11 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
     };
     let read_on_startup = lookup.boolean(keys::READ_ON_STARTUP, Scope::UserAndRepository);
     let page_size = lookup.number(keys::PAGE_SIZE, Scope::UserAndRepository);
+    let switches = timeline_switches(&mut lookup);
     Settings {
         theme,
         fonts,
+        switches,
         read_on_startup: read_on_startup.unwrap_or(defaults.read_on_startup),
         page_size: page_size.map_or(defaults.page_size, |size| PageSize::from_setting(Some(size))),
         problems: lookup.problems,
@@ -110,6 +113,30 @@ fn theme_name(value: &str) -> ThemeName {
         "highContrastLight" => ThemeName::HighContrastLight,
         _ => ThemeName::System,
     }
+}
+
+/// The switches of the timeline: each from its setting of the user's file, or its default.
+fn timeline_switches(lookup: &mut Lookup) -> Switches {
+    let mut switches = Switches::DEFAULT;
+    let booleans = [
+        (keys::SHOW_STASHES, TimelineSwitch::ShowStashes),
+        (keys::FIRST_PARENT, TimelineSwitch::FirstParent),
+        (keys::TRACE_SELECTED, TimelineSwitch::TraceSelected),
+        (keys::DATE_SEPARATORS, TimelineSwitch::DateSeparators),
+        (keys::COMBINE_UPSTREAM, TimelineSwitch::CombineUpstream),
+    ];
+    for (key, switch) in booleans {
+        if let Some(is_on) = lookup.boolean(key, Scope::User) {
+            switches = switches.with(switch, is_on);
+        }
+    }
+    if let Some(columns) = lookup.columns() {
+        let names = [TimelineSwitch::Author, TimelineSwitch::Date, TimelineSwitch::Hash];
+        for (name, switch) in keys::COLUMN_NAMES.iter().zip(names) {
+            switches = switches.with(switch, columns.iter().any(|column| column == name));
+        }
+    }
+    switches
 }
 
 /// The two files as read, and the problems found in them so far.
@@ -184,6 +211,17 @@ impl Lookup {
                 .find(|choice| **choice == text)
                 .copied()
                 .ok_or(ProblemReason::NotAChoice { choices })
+        })
+    }
+
+    /// `graph.columns`: the names it lists among `author`, `date` and `hash`; none, which shows all three, when it is
+    /// not a list.
+    fn columns(&mut self) -> Option<Vec<String>> {
+        self.first((keys::COLUMNS, Scope::User), |value| {
+            value
+                .as_array()
+                .map(|items| items.iter().filter_map(Value::as_str).map(str::to_owned).collect())
+                .ok_or(ProblemReason::WrongType { expected: "a list" })
         })
     }
 

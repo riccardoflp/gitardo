@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use super::{FoldedRows, ShownRow, fold_rows};
+use super::{FoldedRows, ShownRow, fold_rows, foldable_merges};
 use crate::CommitId;
 use crate::graph::labels::{Label, LabelKind};
 use crate::graph::lanes::{Half, lanes};
@@ -141,4 +141,16 @@ fn graph_fold_rows__a_commit_put_away_by_a_merge_folded_first_is_not_put_away_ag
     assert_eq!(shown(&rows, &folded), ["M2", "[4]", "B", "A"]);
     assert_eq!(folded.folded_by[&id("F1")], id("M2"));
     assert_eq!(folded.folded_by[&id("M1")], id("M2"));
+}
+
+#[test]
+fn graph_fold_rows__the_merges_that_can_fold_are_those_that_brought_commits_in() {
+    let lines = ["N: M A", "M: B F1", "F1: A", "B: A", "A:"];
+    let rows = with_merge_message(&lines, "Merge branch 'feature'");
+    let foldable = foldable_merges(&rows);
+    assert_eq!(
+        foldable,
+        folding(&["M"]),
+        "N's second parent is in its first parent's history"
+    );
 }

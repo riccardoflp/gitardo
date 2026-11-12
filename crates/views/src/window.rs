@@ -8,7 +8,9 @@ use ui::{Button, ButtonKind, Icon, Key, Label, Modifiers, NamedKey, Rect, Tone, 
 
 use crate::activity::{ActivityState, what_is_running_view};
 use crate::details::{DetailsState, show};
-use crate::graph::{GraphState, ToolbarState, toolbar_view, view as graph_view};
+use crate::graph::{
+    GraphState, PaneLayout, PaneSizes, ToolbarState, pane_rects, resize_panes_view, toolbar_view, view as graph_view,
+};
 use crate::intent::{Intent, Notice};
 use crate::line::{ICON_RAIL_WIDTH, INSPECTOR_OVER_BELOW, is_narrow};
 use crate::page::{PageHostState, host_view};
@@ -55,7 +57,11 @@ pub enum TimelineState<'a> {
         /// The commits.
         graph: GraphState<'a>,
         /// The inspector.
-        inspector: DetailsState,
+        inspector: DetailsState<'a>,
+        /// The sizes of the panes, as dragged.
+        panes: PaneSizes,
+        /// Whether the branch rail is put away (`graph.toggle-references`).
+        is_rail_hidden: bool,
     },
     /// No repository to show yet, or none at all: the rail is empty and the timeline says why.
     NoRepository(NoRepositoryState),
@@ -93,34 +99,46 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     intents
 }
 
-/// The branch rail, the timeline and the inspector, side by side.
+/// The branch rail, the timeline and the inspector, side by side; in a narrow window the rail shows its icons and the
+/// inspector opens over the commits while something is selected.
 fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, intents: &mut Vec<Intent>) {
     let theme = *ui.theme();
-    let mut columns = Area::new(body);
-    let rail_width = if is_narrow(ui) {
-        ICON_RAIL_WIDTH
-    } else {
-        theme.sizes.rail_width
-    };
-    let rail = columns.left(rail_width);
-    let has_inspector = body.width >= INSPECTOR_OVER_BELOW;
-    let inspector = has_inspector.then(|| columns.right(theme.sizes.inspector_width));
-    let main = columns.rest();
+    let icon_rail = is_narrow(ui).then_some(ICON_RAIL_WIDTH);
     match state {
         TimelineState::Repository {
             rail: references,
             graph,
             inspector: details,
+            panes,
+            is_rail_hidden,
         } => {
-            intents.extend(ui.clip(rail, |ui| tree_view(references, ui)));
-            intents.extend(ui.clip(main, |ui| graph_view(graph, ui)));
-            if let Some(column) = inspector {
+            let is_inspector_over = ui.window().width < INSPECTOR_OVER_BELOW;
+            let layout = PaneLayout {
+                body,
+                sizes: *panes,
+                icon_rail,
+                is_rail_hidden: *is_rail_hidden,
+                is_inspector_over,
+                has_inspector: !is_inspector_over || details.selected.is_some(),
+            };
+            let rects = pane_rects(&layout, theme.sizes.border);
+            if let Some(rail) = rects.rail {
+                intents.extend(ui.clip(rail, |ui| tree_view(references, ui)));
+            }
+            intents.extend(ui.clip(rects.main, |ui| graph_view(graph, ui)));
+            if let Some(column) = rects.inspector {
+                if is_inspector_over {
+                    ui.fill_rect(column, theme.colors.page_background);
+                }
                 intents.extend(ui.clip(column, |ui| show(details, ui)));
             }
+            intents.extend(resize_panes_view(&layout, ui));
         }
         TimelineState::NoRepository(no_repository) => {
+            let mut columns = Area::new(body);
+            let rail = columns.left(icon_rail.unwrap_or(crate::graph::RAIL_START));
             ui.fill_rect(rail, theme.colors.rail_background);
-            intents.extend(ui.clip(main, |ui| no_repository_view(no_repository, ui)));
+            intents.extend(ui.clip(columns.rest(), |ui| no_repository_view(no_repository, ui)));
         }
     }
 }

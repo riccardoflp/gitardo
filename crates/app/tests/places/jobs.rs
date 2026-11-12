@@ -23,8 +23,8 @@ fn repo_read_state__the_header_shows_the_branch_checked_out_and_how_far_it_is_fr
     let state = showing(repository.path().to_path_buf());
     let read = state.shown_read().unwrap();
     assert_eq!(read.state.branches.len(), 2);
-    assert_eq!(read.commits.rows.len(), 4, "three commits and the stash");
-    let data = ViewData::new(&state, Vec::new());
+    assert_eq!(state.timeline.loaded(), 4, "three commits and the stash");
+    let data = ViewData::new(&state, Vec::new(), super::support::NOW);
     let header = data.window_state(&state).header;
     let chip = header.branch.unwrap();
     assert_eq!(chip.head, HeadName::Branch("main"));
@@ -48,8 +48,8 @@ fn repo_no_repository__running_git_init_and_check_again_shows_the_new_repository
     let _effects = run(&mut state, Message::Intent(Intent::CheckAgain));
     let read = state.shown_read().expect("the new repository is shown");
     assert!(read.state.head.commit.is_none());
-    assert_eq!(read.commits.rows, [] as [model::graph::Row; 0]);
-    let data = ViewData::new(&state, Vec::new());
+    assert_eq!(state.timeline.rows, [] as [model::graph::Row; 0]);
+    let data = ViewData::new(&state, Vec::new(), super::support::NOW);
     assert_eq!(
         data.window_state(&state).header.branch.map(|chip| chip.head),
         Some(HeadName::Branch("main"))

@@ -9,6 +9,7 @@ use ui::{
 };
 
 use super::more_menu::{MoreMenuState, more_menu_view};
+use super::toggle::{ReferencesShown, toggle_references_view};
 use crate::activity::{StatusBarState, status_bar_view, status_bar_width};
 use crate::intent::Intent;
 use crate::line::{control_in, is_narrow};
@@ -33,6 +34,8 @@ pub struct ToolbarState<'a> {
     pub more: MoreMenuState,
     /// Whether the Activity drawer is open.
     pub is_activity_open: bool,
+    /// Whether the branch rail is shown, once a repository is: the first button puts it away.
+    pub references: Option<ReferencesShown>,
 }
 
 /// The pill of the repository: its name, and its menu of the repositories of the workspace and the recent ones.
@@ -101,8 +104,8 @@ enum RepositoryCommand {
 
 /// The header, over the rectangle its caller clipped it to.
 ///
-/// Feature cards that fill it further: `graph.toolbar` (the button of `graph.toggle-references`, the menu of Sync with
-/// **Fetch**, **Pull** and **Push** in M4), `search.box` (Quick search), `activity.status-bar`.
+/// Feature cards that fill it further: `graph.toolbar` (the menu of Sync with **Fetch**, **Pull** and **Push**, and
+/// **Sync** itself, in M4), `search.box` (Quick search), `activity.status-bar`.
 pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut intents = Vec::new();
     let rect = ui.current_clip();
@@ -119,6 +122,11 @@ pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         let spacing = theme.sizes.spacing;
         let inner = inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0));
         let mut area = Area::with_gap(inner, spacing.large);
+        if let Some(references) = &state.references {
+            let side = theme.sizes.control_height;
+            let rect = control_in(ui, area.left(side), side);
+            intents.extend(ui.clip(rect, |ui| toggle_references_view(references, ui)));
+        }
         repository_pill(&state.repository, ui, &mut area, &mut intents);
         if let Some(branch) = &state.branch {
             branch_chip(branch, ui, &mut area);

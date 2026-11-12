@@ -2,10 +2,11 @@
 
 use std::path::PathBuf;
 
+use crate::graph::GraphIntent;
 use crate::page::Page;
 
 /// Something the user asked for in a place or a page of the window.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Intent {
     /// **Open folder…**: ask for a folder in the system's dialog (`repo.open-folder`).
     OpenFolder,
@@ -41,6 +42,8 @@ pub enum Intent {
     ToggleKept(KeptList),
     /// Put the notice shown away.
     DismissNotice,
+    /// Something asked of the timeline.
+    Graph(GraphIntent),
 }
 
 /// What is done with a folder opened while the window shows a workspace.

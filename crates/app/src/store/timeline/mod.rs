@@ -1,0 +1,278 @@
+//! The timeline of the repository shown, as the store keeps it: the rows read, the draft on top, the pages loaded and
+//! the one being read (`graph.load-more`), the selection, the folds, the label under the pointer and the history
+//! brought out, laid out again only when one of them changes.
+
+mod folds;
+mod paging;
+mod sizes;
+
+use std::collections::HashSet;
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Duration;
+
+use git::read::graph::{CommitsRequest, History, Parents};
+use model::CommitId;
+use model::graph::{CellTrace, DateTime, Row, Trace};
+use model::state::RepositoryState;
+use ui::RevealPlace;
+use views::graph::{
+    DraftState, GraphIntent, HoverTarget, HoverWay, LayoutInput, Selected, TimelineLayout, TimelineSwitch,
+    TraceStrength,
+};
+
+use super::message::{Effect, JobId, TimelineRequest};
+use super::state::State;
+
+pub use paging::{cancel_more, commits_read, known, read_request};
+pub use sizes::{apply_switch, workspace_panes};
+
+/// The timeline of the repository shown.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct Timeline {
+    /// The folder of the repository the rows are of.
+    pub folder: Option<PathBuf>,
+    /// The rows read, the draft first when there is one.
+    pub rows: Vec<Row>,
+    /// The draft, when it is the first row.
+    pub draft: Option<DraftState>,
+    /// Whether the history has more commits than those read.
+    pub has_more: bool,
+    /// How many pages are loaded.
+    pub pages: usize,
+    /// The read of the next pages, while it runs.
+    pub more_job: Option<JobId>,
+    /// Whether the commits are read again from the first page, for another history.
+    pub is_reading_again: bool,
+    /// The commits loaded when the next page was asked for last.
+    pub asked_at: Option<usize>,
+    /// The timeline laid out.
+    pub layout: Arc<TimelineLayout>,
+    /// The row selected.
+    pub selected: Option<Selected>,
+    /// The row to bring into sight, with the number that asks for it once.
+    pub reveal: Option<(u64, RevealPlace)>,
+    /// The label under the pointer whose history stands out.
+    pub hover: Option<HoverTarget>,
+    /// When the pointer left the labels.
+    pub hover_left_at: Option<Duration>,
+    /// The history brought out, for each row shown, and how strongly.
+    pub trace: Option<(Arc<Vec<CellTrace>>, TraceStrength)>,
+    /// The merges folded.
+    pub folded: HashSet<CommitId>,
+    /// The merges unfolded by hand while all are folded.
+    pub unfolded: HashSet<CommitId>,
+    /// Whether every merge is folded, also those loaded later.
+    pub is_all_folded: bool,
+    /// When the repository was read, in seconds since 1970.
+    pub read_at: i64,
+}
+
+impl Timeline {
+    /// How many commits are loaded: the rows read but the draft.
+    #[must_use]
+    pub fn loaded(&self) -> usize {
+        self.rows.len() - usize::from(self.draft.is_some())
+    }
+
+    /// The rows read from git, without the draft.
+    #[must_use]
+    pub fn read_rows(&self) -> &[Row] {
+        self.rows.get(usize::from(self.draft.is_some())..).unwrap_or_default()
+    }
+}
+
+/// The history the timeline lists: every branch, remote branch and tag, and `HEAD` once there is a commit, in date
+/// order, each commit before its parents. `filter.log-arguments` makes it once the branches shown can be chosen.
+#[must_use]
+pub fn history_of(repository: &RepositoryState, parents: Parents) -> History {
+    let mut selection: Vec<OsString> = ["--date-order", "--branches", "--remotes", "--tags"]
+        .into_iter()
+        .map(OsString::from)
+        .collect();
+    if repository.head.commit.is_some() {
+        selection.push(OsString::from("HEAD"));
+    }
+    History {
+        selection,
+        narrowing: Vec::new(),
+        parents,
+    }
+}
+
+/// What a read of the timeline asks of git, for a repository as read.
+#[must_use]
+pub fn commits_request(repository: &RepositoryState, request: &TimelineRequest) -> CommitsRequest {
+    CommitsRequest {
+        history: history_of(repository, request.parents),
+        page_size: request.page_size,
+        pages: request.pages.max(1),
+        skip: 0,
+        stashes: if request.shows_stashes {
+            repository.stashes.clone()
+        } else {
+            Vec::new()
+        },
+    }
+}
+
+/// The draft of the uncommitted changes, when there are some and the commit checked out is among the rows read, or
+/// there is none yet (`graph.uncommitted-row`).
+#[must_use]
+pub fn draft_of(repository: &RepositoryState, rows: &[Row]) -> Option<DraftState> {
+    let tree = &repository.working_tree;
+    if tree.is_clean() {
+        return None;
+    }
+    let is_listed = repository
+        .head
+        .commit
+        .as_ref()
+        .is_none_or(|head| rows.iter().any(|row| row.id() == Some(head)));
+    is_listed.then(|| DraftState {
+        files: tree.file_count(),
+        staged: tree.staged.len(),
+        unstaged: tree.unstaged.len() + tree.untracked.len(),
+        conflicted: tree.conflicted.len(),
+        has_commit: repository.head.commit.is_some(),
+        is_operation_stopped: repository.operation.is_some(),
+    })
+}
+
+/// Takes the rows of a read of the repository shown: a read that finds the same rows changes none of them; a new
+/// repository starts with nothing selected and the folds kept for it.
+pub fn take_read(
+    state: &mut State,
+    (folder, repository): (&Path, &RepositoryState),
+    rows: Vec<Row>,
+    page: (bool, usize, i64),
+) {
+    let (has_more, pages, read_at) = page;
+    if state.timeline.folder.as_deref() != Some(folder) {
+        state.timeline = Timeline {
+            folder: Some(folder.to_path_buf()),
+            ..Timeline::default()
+        };
+        folds::restore(state, folder);
+    }
+    let draft = draft_of(repository, &rows);
+    let mut all = Vec::with_capacity(rows.len() + 1);
+    if let Some(changes) = &draft {
+        all.push(Row::Uncommitted {
+            parent: repository.head.commit.clone(),
+            files: changes.files,
+        });
+    }
+    all.extend(rows);
+    let timeline = &mut state.timeline;
+    timeline.is_reading_again = false;
+    timeline.has_more = has_more;
+    timeline.pages = pages;
+    timeline.read_at = read_at;
+    timeline.draft = draft;
+    if timeline.rows != all {
+        timeline.rows = all;
+        timeline.asked_at = None;
+    }
+    if timeline.selected == Some(Selected::Draft) && timeline.draft.is_none() {
+        timeline.selected = None;
+    }
+    folds::fold_new_merges(state);
+    relayout(state);
+}
+
+/// Lays the timeline out again from its rows, its folds and the repository as last read, then its history.
+pub fn relayout(state: &mut State) {
+    let Some(read) = state.shown_read() else {
+        return;
+    };
+    let switches = state.settings.switches;
+    let timeline = &state.timeline;
+    let input = LayoutInput {
+        rows: &timeline.rows,
+        repository: &read.state,
+        folded: &timeline.folded,
+        combine_upstream: switches.is_on(TimelineSwitch::CombineUpstream),
+        separators_at: switches.is_on(TimelineSwitch::DateSeparators).then_some(DateTime {
+            moment: model::Timestamp(timeline.read_at),
+            utc_offset: 0,
+        }),
+    };
+    let layout = TimelineLayout::new(&input);
+    state.timeline.layout = Arc::new(layout);
+    retrace(state);
+}
+
+/// Works out the history brought out: the one of the label under the pointer, or else the one of the commit selected
+/// while `graph.traceSelected` is on; none for the draft and while nothing is.
+pub fn retrace(state: &mut State) {
+    let head = state.shown_read().and_then(|read| read.state.head.commit.clone());
+    let timeline = &state.timeline;
+    let wanted = match (&timeline.hover, &timeline.selected) {
+        (Some(hover), _) => {
+            let head = head.filter(|head| timeline.layout.shown_of.contains_key(head));
+            let trace = match (hover.way, head) {
+                (HoverWay::NotCheckedOut, Some(other)) => Trace::HasNot {
+                    commit: hover.commit.clone(),
+                    other,
+                },
+                _ => Trace::Reaches(hover.commit.clone()),
+            };
+            Some((trace, TraceStrength::Label))
+        }
+        (None, Some(Selected::Commit(commit))) if state.settings.switches.is_on(TimelineSwitch::TraceSelected) => {
+            Some((Trace::Around(commit.clone()), TraceStrength::Selected))
+        }
+        _ => None,
+    };
+    let trace = wanted.and_then(|(trace, strength)| {
+        timeline
+            .layout
+            .trace(&timeline.rows, &trace)
+            .map(|cells| (Arc::new(cells), strength))
+    });
+    state.timeline.trace = trace;
+}
+
+/// Changes the timeline as the user asked.
+pub fn reduce_graph(state: &mut State, intent: GraphIntent) -> Vec<Effect> {
+    match intent {
+        GraphIntent::Select(selected) => {
+            select(state, selected, RevealPlace::Nearest);
+            Vec::new()
+        }
+        GraphIntent::GoTo(commit) => {
+            select(state, Selected::Commit(commit), RevealPlace::Center);
+            Vec::new()
+        }
+        GraphIntent::Open(_) => Vec::new(),
+        GraphIntent::LoadMore { loaded } => paging::load_more(state, loaded),
+        GraphIntent::Fold(merge) => folds::fold(state, merge),
+        GraphIntent::Unfold(merge) => folds::unfold(state, &merge),
+        GraphIntent::FoldAll => folds::fold_all(state),
+        GraphIntent::UnfoldAll => folds::unfold_all(state),
+        GraphIntent::Hover(target) => {
+            state.timeline.hover = target;
+            state.timeline.hover_left_at = None;
+            retrace(state);
+            Vec::new()
+        }
+        GraphIntent::HoverLeft(at) => {
+            state.timeline.hover_left_at = Some(at);
+            Vec::new()
+        }
+        GraphIntent::SetGraphWidth(_) | GraphIntent::SetPane(..) | GraphIntent::ToggleReferences => {
+            sizes::resize(state, &intent)
+        }
+        GraphIntent::Switch(switch, is_on) => sizes::switch(state, switch, is_on),
+    }
+}
+
+/// Selects a row and brings it into sight.
+fn select(state: &mut State, selected: Selected, place: RevealPlace) {
+    let serial = state.timeline.reveal.map_or(1, |(serial, _)| serial + 1);
+    state.timeline.selected = Some(selected);
+    state.timeline.reveal = Some((serial, place));
+    retrace(state);
+}

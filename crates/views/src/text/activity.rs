@@ -14,6 +14,8 @@ pub const NOTHING_RUNNING_DETAIL: &str = "Gitardo is not reading or changing any
 pub const OPENING_WORKSPACE: &str = "Opening the workspace";
 /// What asks for a read of a repository: it was chosen, or is read again.
 pub const SHOWING_REPOSITORY: &str = "Showing the repository";
+/// What asks for the next pages of the timeline: it was scrolled near the end of the commits loaded.
+pub const LOADING_MORE_COMMITS: &str = "Loading more commits";
 
 /// The title of a read of a repository: `Reading app`.
 #[must_use]

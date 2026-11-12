@@ -217,6 +217,14 @@ impl Modifiers {
     /// The Windows key, or Command.
     pub const META: Modifiers = Modifiers { keys: 8 };
 
+    /// These modifiers and another held together, in a constant.
+    #[must_use]
+    pub const fn with(self, other: Modifiers) -> Modifiers {
+        Modifiers {
+            keys: self.keys | other.keys,
+        }
+    }
+
     /// Whether every key of `other` is held.
     #[must_use]
     pub fn contains(self, other: Modifiers) -> bool {
@@ -227,6 +235,14 @@ impl Modifiers {
     #[must_use]
     pub fn is_empty(self) -> bool {
         self.keys == 0
+    }
+
+    /// These keys without those of `other`.
+    #[must_use]
+    pub fn without(self, other: Modifiers) -> Modifiers {
+        Modifiers {
+            keys: self.keys & !other.keys,
+        }
     }
 
     /// Whether Shift is held.

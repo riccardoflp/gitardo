@@ -60,8 +60,8 @@ mod widget;
 /// and the frame buffer and fonts a frame is drawn into), so that the views, which use the toolkit and not `render`
 /// itself, can name them.
 pub use render::{
-    Appearance, Assets, Color, FontFamily, FontWeight, FrameBuffer, Icon, LineCap, Point, Rect, Stroke, TextRun, Theme,
-    ThemeName,
+    Appearance, Assets, Border, Color, FontFamily, FontWeight, FrameBuffer, Icon, LineCap, Point, Rect, Stroke,
+    TextRun, Theme, ThemeName,
 };
 
 pub use access::{AccessRole, Description};
@@ -74,7 +74,7 @@ pub use input::{
 pub use interaction::{Response, Sense, WidgetEvent};
 pub use layer::Layer;
 pub use memory::UiMemory;
-pub use widget::badge::Badge;
+pub use widget::badge::{Badge, BadgeFill};
 pub use widget::button::{Button, ButtonKind};
 pub use widget::choice::{Choice, ChoiceKind};
 pub use widget::dialog::{
@@ -84,7 +84,7 @@ pub use widget::drag::{DragSourceResponse, DropTargetResponse};
 pub use widget::find::{FindResponse, ListSearch, MatchCase};
 pub use widget::input_box::{EditableLine, Extent, InputBox, InputBoxResponse, Message, Movement, Selecting, Severity};
 pub use widget::label::Label;
-pub use widget::list::{List, ListResponse, Row, Selection, SelectionMode};
+pub use widget::list::{List, ListResponse, Reveal, RevealPlace, Row, Selection, SelectionMode, Steering};
 pub use widget::menu::{MenuAnchor, MenuEntry, MenuItem};
 pub use widget::panel::Axis;
 pub use widget::picker::fuzzy::{self, FuzzyMatch};
