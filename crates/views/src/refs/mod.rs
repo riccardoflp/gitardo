@@ -4,6 +4,8 @@
 
 mod rows;
 
+use std::collections::HashMap;
+
 use model::state::RepositoryState;
 use ui::layout::{Align, Insets, inset, place};
 use ui::{AccessRole, Axis, Description, Icon, Rect, Tone, Ui};
@@ -20,6 +22,9 @@ pub struct ReferencesState<'a> {
     pub repository: &'a RepositoryState,
     /// The lists of **Kept aside** that are open; they start closed.
     pub open: &'a [KeptList],
+    /// The color of the line of each local branch in the timeline, by its name; a branch whose commit is not shown has
+    /// none, and its dot is muted.
+    pub branch_colors: &'a HashMap<String, usize>,
 }
 
 /// The branch rail, over the rectangle its caller clipped it to.
@@ -27,7 +32,7 @@ pub struct ReferencesState<'a> {
 /// Feature cards that fill it: `refs.tree` (a click on a branch narrows the timeline to its history, a click on a tag,
 /// a stash or a worktree goes to its commit, the menus of each reference, **Favorites** and **Recent**, the
 /// submodules, **Show all…** past 100 entries), `refs.filter`, `refs.scope-line`, `refs.sort`, `refs.favorite`,
-/// `graph.lane-tips` (the color of each branch's lane, a placeholder for now), `graph.toggle-references`.
+/// `graph.toggle-references`. The dot of a branch is in the color of its line in the timeline, as its labels are.
 pub fn tree_view(state: &ReferencesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut intents = Vec::new();
     let rect = ui.current_clip();
@@ -41,7 +46,7 @@ pub fn tree_view(state: &ReferencesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     );
     ui.separator(edge, Axis::Vertical);
     let is_icons = is_narrow(ui);
-    let rows = rail_rows(state.repository, state.open, is_icons);
+    let rows = rail_rows(state, is_icons);
     let spacing = theme.sizes.spacing;
     let across = if is_icons {
         spacing.small + spacing.tiny
@@ -76,8 +81,8 @@ fn draw_row(ui: &mut Ui<'_>, row: &RailRow<'_>, rect: Rect, is_icons: bool) -> O
             rows::title(ui, rect, title);
             None
         }
-        RailRow::Branch { lane, branch } => {
-            rows::branch(ui, rect, (*lane, branch), is_icons);
+        RailRow::Branch { color, branch } => {
+            rows::branch(ui, rect, (*color, branch), is_icons);
             None
         }
         RailRow::Remote(branch) => {

@@ -52,6 +52,9 @@ pub struct TimelineLayout {
     pub foldable: HashSet<CommitId>,
     /// The row shown of the commit checked out, when it is shown.
     pub checked_out: Option<usize>,
+    /// The color of the line of each local branch whose commit is shown, by the branch's name, so that its dot in the
+    /// branch rail matches its labels in the graph.
+    pub branch_colors: HashMap<String, usize>,
 }
 
 impl TimelineLayout {
@@ -91,6 +94,15 @@ impl TimelineLayout {
             .commit
             .as_ref()
             .and_then(|commit| shown_of.get(commit).copied());
+        let branch_colors = input
+            .repository
+            .branches
+            .iter()
+            .filter_map(|branch| {
+                let cell = cells.get(*shown_of.get(&branch.commit)?)?;
+                Some((branch.name.clone(), cell.color))
+            })
+            .collect();
         TimelineLayout {
             read_of: read_rows(input.rows, &folded),
             unpushed: unpushed(
@@ -107,6 +119,7 @@ impl TimelineLayout {
             tips,
             shown_of,
             checked_out,
+            branch_colors,
         }
     }
 

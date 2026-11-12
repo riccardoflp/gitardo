@@ -148,3 +148,23 @@ pub(super) fn feature_and_main() -> Fixture {
         None,
     )
 }
+
+#[test]
+fn refs_tree__each_local_branch_is_in_the_color_of_its_lane() {
+    let rows = rows(&["F2: F1", "M3: M2", "F1: A", "M2: M1", "M1: A", "A:"]);
+    let repository = repository("M3", &[("main", "M3"), ("feature", "F2"), ("old", "Z")]);
+    let fixture = Fixture::new(rows, &repository, None);
+    let layout = &fixture.layout;
+    let color_of_commit = |name: &str| {
+        let shown = layout.shown_of.get(&id(name)).copied();
+        shown.and_then(|shown| layout.cells.get(shown)).map(|cell| cell.color)
+    };
+    assert_eq!(layout.branch_colors.get("main").copied(), color_of_commit("M3"));
+    assert_eq!(layout.branch_colors.get("feature").copied(), color_of_commit("F2"));
+    assert_ne!(layout.branch_colors.get("main"), layout.branch_colors.get("feature"));
+    assert_eq!(
+        layout.branch_colors.get("old"),
+        None,
+        "a branch whose commit is not loaded has no color"
+    );
+}

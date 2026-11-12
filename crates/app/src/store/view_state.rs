@@ -184,6 +184,7 @@ impl ViewData {
                 rail: ReferencesState {
                     repository: &read.state,
                     open: &state.kept_open,
+                    branch_colors: &state.timeline.layout.branch_colors,
                 },
                 graph: GraphState::Listed(Box::new(self.history(state, read.state.head.commit.is_none()))),
                 inspector: DetailsState {

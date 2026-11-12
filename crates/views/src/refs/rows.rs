@@ -6,6 +6,7 @@ use model::state::{Branch, RemoteBranch, RepositoryState, Worktree};
 use ui::layout::{Area, Insets, inset};
 use ui::{AccessRole, Description, Icon, Label, LineCap, Rect, Sense, Stroke, TextKind, Theme, Tone, Ui};
 
+use super::ReferencesState;
 use crate::intent::{Intent, KeptList};
 use crate::text::header;
 use crate::text::rail as words;
@@ -24,10 +25,10 @@ const DOT: f32 = 10.0;
 pub(super) enum RailRow<'a> {
     /// The title of a list: **LOCAL**, **ORIGIN**, **KEPT ASIDE**.
     Title(String),
-    /// A local branch, with the number of the lane its color stands for.
+    /// A local branch, with the color of its line in the timeline.
     Branch {
-        /// The lane: for now its place among the branches, until `graph.lane-tips` gives the real one.
-        lane: usize,
+        /// The color of its line, none when its commit is not shown.
+        color: Option<usize>,
         /// The branch.
         branch: &'a Branch,
     },
@@ -63,17 +64,15 @@ impl RailRow<'_> {
 
 /// The rows of the rail of a repository: the local branches, the branches of each remote, and **Kept aside** with the
 /// entries of its lists that are open. In the narrow layout there are no titles and no entries.
-pub(super) fn rail_rows<'a>(repository: &'a RepositoryState, open: &[KeptList], is_icons: bool) -> Vec<RailRow<'a>> {
+pub(super) fn rail_rows<'a>(state: &ReferencesState<'a>, is_icons: bool) -> Vec<RailRow<'a>> {
+    let repository = state.repository;
     let mut rows = Vec::new();
     let title = |text: &str| (!is_icons).then(|| RailRow::Title(text.to_owned()));
     rows.extend(title(words::LOCAL));
-    rows.extend(
-        repository
-            .branches
-            .iter()
-            .enumerate()
-            .map(|(lane, branch)| RailRow::Branch { lane, branch }),
-    );
+    rows.extend(repository.branches.iter().map(|branch| RailRow::Branch {
+        color: state.branch_colors.get(&branch.name).copied(),
+        branch,
+    }));
     for remote in &repository.remotes {
         rows.push(RailRow::Gap);
         rows.extend(title(&words::remote_title(remote)));
@@ -89,7 +88,7 @@ pub(super) fn rail_rows<'a>(repository: &'a RepositoryState, open: &[KeptList], 
     rows.extend(title(words::KEPT_ASIDE));
     for list in KeptList::ALL {
         let entries = kept_entries(repository, list);
-        let is_open = open.contains(&list);
+        let is_open = state.open.contains(&list);
         rows.push(RailRow::Kept {
             list,
             count: entries.len(),
@@ -148,9 +147,9 @@ pub(super) fn title(ui: &mut Ui<'_>, rect: Rect, text: &str) {
 }
 
 /// A local branch: the dot of its lane, its name, and how far it is from its upstream, `↑1 ↓2`, or `gone`.
-pub(super) fn branch(ui: &mut Ui<'_>, rect: Rect, (lane, branch): (usize, &Branch), is_icons: bool) {
+pub(super) fn branch(ui: &mut Ui<'_>, rect: Rect, (color, branch): (Option<usize>, &Branch), is_icons: bool) {
     let theme = *ui.theme();
-    let color = theme.lane(lane);
+    let color = color.map_or(theme.colors.muted_foreground, |color| theme.lane(color));
     if is_icons {
         ui.fill_circle(rect.center(), DOT * 0.5, color);
         let id = ui.id(("branch dot", &branch.name));
