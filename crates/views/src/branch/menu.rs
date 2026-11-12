@@ -173,6 +173,12 @@ pub(crate) fn commit_entries(menus: ReferenceMenus<'_>, commit: &CommitId) -> Ve
             target(),
         ));
     }
+    entries.push(OperationEntry::runs(words::COPY_HASH, "commits.copy-hash", target()));
+    entries.push(OperationEntry::runs(
+        words::COPY_MESSAGE,
+        "commits.copy-message",
+        target(),
+    ));
     entries
 }
 

@@ -9,6 +9,7 @@ mod branches;
 mod changes;
 mod checkout;
 mod commit;
+mod commits;
 mod push;
 mod remote;
 mod stash;

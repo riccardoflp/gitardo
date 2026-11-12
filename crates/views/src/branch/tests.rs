@@ -227,11 +227,16 @@ fn branch_checkout_detached__the_menu_of_the_commit_checked_out_has_no_such_entr
     let of_commit = |letter| labels(&commit_entries(menus(&repository, OpenIn::Checkout), &id(letter)));
     assert_eq!(
         of_commit('a'),
-        ["Create branch here\u{2026}", "Create tag here\u{2026}"]
+        [
+            "Create branch here\u{2026}",
+            "Create tag here\u{2026}",
+            "Copy hash",
+            "Copy message"
+        ]
     );
     let entries = commit_entries(menus(&repository, OpenIn::Checkout), &id('b'));
     assert_eq!(
-        labels(&entries).last().map(String::as_str),
+        labels(&entries).get(2).map(String::as_str),
         Some("Check out commit (detached)")
     );
     assert_eq!(
@@ -241,6 +246,20 @@ fn branch_checkout_detached__the_menu_of_the_commit_checked_out_has_no_such_entr
             Target::Commit(id('b'))
         )))
     );
+}
+
+#[test]
+fn copy_hash_and_copy_message_are_in_the_menu_of_every_commit() {
+    let repository = repository();
+    let entries = commit_entries(menus(&repository, OpenIn::Checkout), &id('b'));
+    let run = |feature| {
+        Some(Intent::Feature(FeatureIntent::Run(
+            FeatureId(feature),
+            Target::Commit(id('b')),
+        )))
+    };
+    assert_eq!(chosen(&entries, 3), run("commits.copy-hash"));
+    assert_eq!(chosen(&entries, 4), run("commits.copy-message"));
 }
 
 #[test]

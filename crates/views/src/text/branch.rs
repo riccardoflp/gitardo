@@ -21,6 +21,10 @@ pub const PUSH_TAG: &str = "Push tag";
 pub const CREATE_TAG_HERE: &str = "Create tag here\u{2026}";
 /// **Check out commit (detached)** in the menu of a commit (`branch.checkout-detached`).
 pub const CHECK_OUT_COMMIT: &str = "Check out commit (detached)";
+/// **Copy hash** in the menu of a commit (`commits.copy-hash`).
+pub const COPY_HASH: &str = "Copy hash";
+/// **Copy message** in the menu of a commit (`commits.copy-message`).
+pub const COPY_MESSAGE: &str = "Copy message";
 /// **Clean up branches…** in the **…** menu of the header (`branch.clean-up`).
 pub const CLEAN_UP_BRANCHES: &str = "Clean up branches\u{2026}";
 

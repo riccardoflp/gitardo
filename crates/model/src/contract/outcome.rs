@@ -98,6 +98,12 @@ pub enum Query {
     /// Who commits are made as, and which `user.*` keys the repository sets for itself (`identity.read`). The answer
     /// is [`super::Answer::Identity`].
     Identity,
+    /// The whole message of a commit as it was written, as `git log -1 --format=%B` prints it without the newlines
+    /// at its end. The answer is [`super::Answer::Text`].
+    Message {
+        /// The commit.
+        commit: CommitId,
+    },
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

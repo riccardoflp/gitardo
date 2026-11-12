@@ -18,6 +18,8 @@
   pulls and pushes; add, remove, rename, repoint and fetch a remote, delete a branch from its remote; stash all changes,
   the staged ones or some files, apply, pop, drop or make a branch of a stash, each apply and pop saying first what it
   would stop on, and a stash dropped is brought back by Undo. A pull that leaves its autostash says so.
+- **Copy hash** and **Copy message** in the menu of a commit in the timeline, and `commits.copy-hash` and
+  `commits.copy-message` from `gitardo-cli`: the full hash, or the whole message as it was written.
 - In the window: **Sync** in the header with the commits to pull and to push, and its menu with **Fetch**, **Pull**
   and its four ways, the default one marked, **Push** and the two forced pushes, none of which can be clicked while an
   operation runs; **Manage remotes…** in **…** and in Quick search; **Apply**, **Pop**, **Create branch from

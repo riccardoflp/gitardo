@@ -9,6 +9,7 @@ pub mod branch;
 pub mod changes;
 pub mod commit;
 pub mod commit_page;
+pub mod commits;
 pub mod identity;
 pub mod remote;
 pub mod search;
@@ -23,7 +24,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 48] = [
+pub const OPERATIONS: [(FeatureId, Operation); 50] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -45,6 +46,8 @@ pub const OPERATIONS: [(FeatureId, Operation); 48] = [
     (FeatureId("commit-page.open"), commit_page::open),
     (FeatureId("commit.amend"), commit::amend),
     (FeatureId("commit.create"), commit::create),
+    (FeatureId("commits.copy-hash"), commits::copy_hash),
+    (FeatureId("commits.copy-message"), commits::copy_message),
     (FeatureId("identity.switch"), identity::switch),
     (FeatureId("identity.use-global"), identity::use_global),
     (FeatureId("search.go-to-commit"), search::go_to_commit),

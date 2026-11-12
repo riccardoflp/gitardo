@@ -57,7 +57,28 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
                 local_keys: read.local_keys,
             })
         }),
+        Query::Message { commit } => message(git, commit),
     }
+}
+
+/// The whole message of a commit as it was written, without the newlines at its end.
+fn message(git: &Git, commit: &model::CommitId) -> Result<Answer, GitError> {
+    let arguments = message_arguments(commit);
+    let output = git.read_output(&arguments)?;
+    if output.code != Some(0) {
+        return Err(GitError::Failed {
+            command: git::command_line(&arguments),
+            code: output.code,
+            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        });
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    Ok(Answer::Text(text.trim_end_matches(['\n', '\r']).to_owned()))
+}
+
+/// `git log -1 --format=%B <commit> --`.
+fn message_arguments(commit: &model::CommitId) -> [&str; 5] {
+    ["log", "-1", "--format=%B", commit.as_str(), "--"]
 }
 
 /// Whether the files of the working tree are as a commit has them.
@@ -145,5 +166,6 @@ pub(crate) fn describe(query: &Query) -> String {
              --merge-base=stash@{{{index}}}^1 HEAD stash@{{{index}}}"
         ),
         Query::Identity => String::from(r"git config -z --get-regexp ^user\.(name|email)$"),
+        Query::Message { commit } => git::command_line(&message_arguments(commit)),
     }
 }
