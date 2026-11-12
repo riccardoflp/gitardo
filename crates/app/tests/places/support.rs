@@ -64,6 +64,17 @@ impl Window {
 
     /// Draws a frame of a view with some input, and gives what it returned and the tree told to the screen reader.
     pub fn frame<R>(&mut self, events: &[InputEvent], view: impl FnOnce(&mut Ui<'_>) -> R) -> (R, TreeUpdate) {
+        let (returned, tree, _output) = self.frame_output(events, view);
+        (returned, tree)
+    }
+
+    /// Draws a frame of a view with some input, and gives what it returned, the tree told to the screen reader and what
+    /// the frame asks of the window, such as text to copy.
+    pub fn frame_output<R>(
+        &mut self,
+        events: &[InputEvent],
+        view: impl FnOnce(&mut Ui<'_>) -> R,
+    ) -> (R, TreeUpdate, ui::FrameOutput) {
         let mut ui = Ui::new(FrameInput {
             frame: &mut self.frame,
             assets: &mut self.assets,
@@ -79,8 +90,8 @@ impl Window {
         let returned = view(&mut ui);
         let tree = ui.accessibility_update();
         let output = ui.finish();
-        self.clipboard = output.clipboard;
-        (returned, tree)
+        self.clipboard.clone_from(&output.clipboard);
+        (returned, tree, output)
     }
 
     /// Draws the window of a store with some input, and gives the intents of the frame and its tree.

@@ -4,6 +4,9 @@
 use std::io::ErrorKind;
 use std::path::Path;
 
+use std::collections::BTreeMap;
+
+use engine::LogLevel;
 use json::Value;
 use model::graph::PageSize;
 use model::refs::SortOrder;
@@ -71,7 +74,14 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
         }
     });
     let follows_graph_filter = lookup.boolean(keys::FOLLOW_GRAPH_FILTER, Scope::User);
+    let log_level = match lookup.choice(keys::LOG_LEVEL, &keys::LOG_LEVELS) {
+        Some("debug") => LogLevel::Debug,
+        _ => LogLevel::Info,
+    };
+    let values = written_values(&lookup);
     Settings {
+        log_level,
+        values,
         theme,
         fonts,
         switches,
@@ -81,6 +91,24 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
         page_size: page_size.map_or(defaults.page_size, |size| PageSize::from_setting(Some(size))),
         problems: lookup.problems,
     }
+}
+
+/// Every value the two files set, by key, the repository's first.
+fn written_values(lookup: &Lookup) -> BTreeMap<String, Vec<(SettingsFile, Value)>> {
+    let mut values: BTreeMap<String, Vec<(SettingsFile, Value)>> = BTreeMap::new();
+    let files = [
+        (SettingsFile::Repository, lookup.repository.as_ref()),
+        (SettingsFile::User, lookup.user.as_ref()),
+    ];
+    for (file, document) in files {
+        for member in document.and_then(Value::as_object).unwrap_or_default() {
+            values
+                .entry(member.name.clone())
+                .or_default()
+                .push((file, member.value.clone()));
+        }
+    }
+    values
 }
 
 /// The text of a settings file; none when it is not there, or cannot be read, which is a problem.

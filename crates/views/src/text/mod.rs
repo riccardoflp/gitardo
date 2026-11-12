@@ -10,6 +10,7 @@ pub mod pages;
 pub mod rail;
 pub mod repo;
 pub mod search;
+pub mod settings;
 pub mod timeline;
 pub mod welcome;
 

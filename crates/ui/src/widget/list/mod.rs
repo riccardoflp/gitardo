@@ -115,6 +115,18 @@ pub(crate) fn row_at(list: &List<'_>, offset: f64, y: f32) -> Option<usize> {
 }
 
 impl Ui<'_> {
+    /// The rows selected in a list, as the list keeps them between frames: what a view copies, for instance. Nothing is
+    /// selected in a list not declared yet.
+    #[must_use]
+    pub fn list_selection(&mut self, key: impl Hash) -> Selection {
+        let id = self.id(key);
+        self.memory()
+            .lists
+            .get(&id)
+            .map(|state| state.selection.clone())
+            .unwrap_or_default()
+    }
+
     /// Declares a list over a rectangle, and calls `draw_row` for each row in sight.
     pub fn list(
         &mut self,

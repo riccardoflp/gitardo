@@ -2,16 +2,21 @@
 //! configuration folder and from `.gitardo/settings.json` of the repository shown, both JSON with comments.
 //!
 //! Only the settings this window uses are read here: the theme and the fonts (`settings.theme`), `readOnStartup`,
-//! `graph.pageSize`, the switches of the timeline, `branches.sortOrder` and `branches.followGraphFilter`. Each card that uses another setting adds it to [`keys`].
+//! `graph.pageSize`, the switches of the timeline, `branches.sortOrder`, `branches.followGraphFilter` and `log.level`.
+//! Each card that uses another setting adds it to [`keys`]. Every value the files set is kept as written too, for the
+//! settings page (`settings.edit`).
 
 mod folder;
 pub mod keys;
 mod read;
+mod rows;
 #[cfg(test)]
 mod tests;
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
+use engine::LogLevel;
 use model::graph::PageSize;
 use model::refs::SortOrder;
 use render::ThemeName;
@@ -19,6 +24,7 @@ use views::graph::Switches;
 
 pub use folder::{configuration_folder, repository_settings_file, user_settings_file};
 pub use read::{parse, read, read_files};
+pub use rows::{problem_words, setting_rows, theme_value};
 
 /// The settings in force: those of the repository's file for the settings it may set, then those of the user's file,
 /// then the defaults.
@@ -40,6 +46,10 @@ pub struct Settings {
     pub sort_order: Option<SortOrder>,
     /// `branches.followGraphFilter`: the branch rail lists only the branches the timeline shows.
     pub follows_graph_filter: bool,
+    /// `log.level`: whether the Command log records the reads too.
+    pub log_level: LogLevel,
+    /// Every value the files set, by key, the repository's file first: what the settings page shows.
+    pub values: BTreeMap<String, Vec<(SettingsFile, json::Value)>>,
     /// The values that were not taken, with which key and why, for the settings page to say.
     pub problems: Vec<SettingProblem>,
 }
@@ -54,6 +64,8 @@ impl Default for Settings {
             switches: Switches::DEFAULT,
             sort_order: None,
             follows_graph_filter: true,
+            log_level: LogLevel::Info,
+            values: BTreeMap::new(),
             problems: Vec::new(),
         }
     }

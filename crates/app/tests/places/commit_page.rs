@@ -130,6 +130,21 @@ fn commit_page_open__double_clicking_a_commit_opens_a_page_titled_with_its_short
     assert!(says(&drawn(&state), &title), "the trail names the page");
 }
 
+#[test]
+fn welcome_page__opening_a_commit_with_a_double_click_in_the_timeline_ticks_its_step() {
+    let (repository, _remote) = repository_with_history();
+    let mut state = showing(repository.path().to_path_buf());
+    assert!(!state.persisted.welcome_steps[2]);
+    for intent in double_click_row(&state, 1) {
+        ask(&mut state, intent);
+    }
+    let _id = shown_page(&state);
+    assert!(
+        state.persisted.welcome_steps[2],
+        "Open a commit, compare two branches is ticked"
+    );
+}
+
 /// A double click on a row of the timeline, by its place from the top, and the intents it gives.
 fn double_click_row(state: &State, row: usize) -> Vec<Intent> {
     let mut window = Window::new(ThemeName::Dark, PAGE);

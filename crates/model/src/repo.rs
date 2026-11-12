@@ -1,6 +1,13 @@
-//! The repositories of a workspace: how they are called in lists, and which one a file is in.
+//! The repositories of a workspace: how they are called in lists, which one a file is in, which changes ask for a read
+//! of the one shown and when it is read.
+
+mod schedule;
+mod watch;
 
 use std::path::{Path, PathBuf};
+
+pub use schedule::{ReadAction, ReadEvent, ReadSchedule, StartedRead, schedule_reads};
+pub use watch::{Change, FilesChange, LATER, ReadCause, ReadRequest, SOON, watch_changes};
 
 /// A repository a window can show: one a folder of the workspace is in or holds, or a submodule of one of these.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -7,6 +7,8 @@ use super::state::State;
 
 /// The step of the Welcome page ticked when the timeline is shown.
 const TIMELINE_STEP: usize = 0;
+/// The step of the Welcome page ticked when the page of a commit is opened.
+const COMMIT_STEP: usize = 2;
 
 /// Shows a page, opening it once: asking for it again shows the one there is.
 pub fn show_page(state: &mut State, page: Page) {
@@ -58,10 +60,24 @@ pub fn close_page(state: &mut State) -> Vec<Effect> {
 /// Ticks **Open the timeline** on the Welcome page once the timeline shows a repository, and writes it down.
 pub fn tick_timeline(state: &mut State) -> Option<Effect> {
     let is_timeline_shown = state.pages.shown.is_none() && state.shown_read().is_some();
-    let step = state.persisted.welcome_steps.get_mut(TIMELINE_STEP)?;
-    if !is_timeline_shown || *step {
+    if !is_timeline_shown {
         return None;
     }
-    *step = true;
+    tick(state, TIMELINE_STEP)
+}
+
+/// Ticks **Open a commit, compare two branches** on the Welcome page once the page of a commit is opened, in any way,
+/// and writes it down.
+pub fn tick_commit_page(state: &mut State) -> Option<Effect> {
+    tick(state, COMMIT_STEP)
+}
+
+/// Ticks a step of the Welcome page, which stays ticked, and writes it down the first time.
+fn tick(state: &mut State, step: usize) -> Option<Effect> {
+    let done = state.persisted.welcome_steps.get_mut(step)?;
+    if *done {
+        return None;
+    }
+    *done = true;
     Some(Effect::WritePersisted(state.persisted.clone()))
 }

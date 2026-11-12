@@ -10,6 +10,19 @@ pub const NOTHING_RUNNING: &str = "Nothing is running now";
 /// What the drawer says under it.
 pub const NOTHING_RUNNING_DETAIL: &str = "Gitardo is not reading or changing anything";
 
+/// The title of the column of what runs.
+pub const RUNNING_COLUMN: &str = "WHAT IS RUNNING";
+/// The title of the column of the Command log.
+pub const LOG_COLUMN: &str = "COMMAND LOG";
+/// The button under what runs that shows the Command log (`activity.what-is-running`).
+pub const SHOW_COMMANDS: &str = "Show the commands Gitardo runs";
+/// The button that puts the Command log away again.
+pub const HIDE_COMMANDS: &str = "Hide the commands";
+/// The Command log, as the screen reader says its list (`log.show`).
+pub const COMMAND_LOG: &str = "Command log";
+/// What the Command log says before anything was logged.
+pub const LOG_EMPTY: &str = "No command has run yet";
+
 /// What asks for the search for the repositories: a workspace opened, or looked at again.
 pub const OPENING_WORKSPACE: &str = "Opening the workspace";
 /// What asks for a read of a repository: it was chosen, or is read again.
@@ -33,6 +46,22 @@ pub fn reading(name: &str) -> String {
 #[must_use]
 pub fn finding_repositories(folders: &str) -> String {
     format!("Looking for repositories in {folders}")
+}
+
+/// What the Command log says once older lines were dropped: `12 older lines were dropped`.
+#[must_use]
+pub fn dropped_lines(count: usize) -> String {
+    if count == 1 {
+        String::from("1 older line was dropped")
+    } else {
+        format!("{count} older lines were dropped")
+    }
+}
+
+/// What ran a moment ago, in the drawer: `Took 2 s`.
+#[must_use]
+pub fn took(seconds: u64) -> String {
+    format!("Took {}", duration(seconds))
 }
 
 /// How long something has run, in whole seconds, `12 s`, and from a minute on `1 min 5 s`.

@@ -562,3 +562,58 @@ repositories, the settings), each built with the reading given until it is answe
   it leaves the commit out, and a commit no branch or tag reaches (a stash dropped since the page opened, a commit lost
   to a reset) is shown with its history alone, under the bar with **Show all commits**. Is that right for a dropped
   stash too, or should the page say that it is no longer in the repository?
+
+From slice 6 of milestone M3, what runs, the Command log, the reads of changes and the settings page, each built with
+the reading given until it is answered:
+
+- **Q99** — `activity.describe-task`: the words of a task are made in `model` (`model::activity`), as the card's
+  function says, like the words of Q10. Its tests are in `views`, since a pure crate may not read the time, even in
+  its tests. Is `model` the place of these words?
+- **Q100** — `activity.what-is-running`: the drawer is a card over the bottom of what is under the header, as the
+  gallery draws it. **What is running** comes first, and **Command log** beside it once **Show the commands Gitardo
+  runs** is clicked; **Hide the commands** puts the log away; `Escape` closes the drawer. The **Tasks** column of the
+  gallery (the tasks of a new worktree) is left out until `worktree.create`. Under what runs, the drawer lists what
+  ran in the last 30 seconds, at most five, with a check and `Took 2 s`, which no card says. The words chosen are "No
+  command has run yet", "12 older lines were dropped", "Took 2 s" and "Hide the commands". Are these the drawer and the
+  words?
+- **Q101** — `log.record`: no plan runs in the window yet. At `debug` its Command log has one line for each read of
+  the repository, `read <folder>: the state and 2 pages of commits (12 ms)`, not one for each git command the read
+  runs, and what git said when a read failed. Should each command of a read be logged? Line 4 (no token or key in the
+  log of a request to GitHub or to the AI provider) waits for those requests (M9), so the card stays **Specified**.
+- **Q102** — `log.show`: the time of each line is said in UTC, as the dates of the timeline are (Q58).
+- **Q103** — `repo.watch-changes`: only Windows is watched (`ReadDirectoryChangesW`, in `platform`); on Linux and
+  macOS `Watcher::new` says the system is not supported, and only **Refresh** reads again. A change the system reports
+  for a folder, the time it was written, is left out: the files created or deleted in it are reported on their own.
+  Without that rule, `refs/heads` and `refs/remotes` were reported a moment after a read, which asked for another
+  read. Is leaving the folders out right, and which library or calls watch on Linux and macOS?
+- **Q104** — `repo.schedule-reads`: **Refresh** while a read runs is noted and followed by one more read, as the card
+  says. With no read running, **Refresh** still looks for the repositories of the workspace again before reading, as
+  in slice 1. A change of a setting under `conflicts`, `pull`, `worktrees`, `branches` or `graph` asks for a read at
+  once, not after 400 ms, since the watcher of the settings files says no moment. The next pages of the timeline
+  (`graph.load-more`), the first page of the branches shown (Q76), a search of the whole history and the reads of the
+  inspector and of the page of a commit are read outside the schedule too. A narrowing while a read of the repository
+  runs starts that read again with the branches shown, and the schedule counts it as the read running, with the cause
+  **Filter**. The schedule says when the bar along the top of the commits stops, but the timeline keeps its own bar,
+  which the narrowing and the next pages use too. Are these readings right?
+- **Q105** — `repo.read-state`, `readOnStartup`: when the window opens, the setting is taken from the user's file only,
+  because the repository's file is not known until the repositories are found, and finding them runs git. With it off,
+  the window names the workspace by its first folder, and **Read the repository**, **Refresh** or **Check again** look
+  for the repositories and read the one shown. Should a repository remembered for the workspace have its own file read
+  first?
+- **Q106** — `settings.edit`: the page changes switches and choices, and shows numbers, strings and lists without
+  changing them, until an input box or the File page (M6) does. While **Repository settings** is chosen, a setting the
+  repository's file may not set cannot be changed, with the tooltip "Only the user settings can set this". The words
+  chosen are "Write changes in", "Default", "From user settings", and for a value not taken "User settings: not a
+  number. The default is used." Line 2 (**Edit in settings.json** opens the file in a File page) waits for the File
+  page (M6): the button is shown disabled with the tooltip "Not yet", and the card stays **Specified**.
+- **Q107** — `settings.theme`: **Theme…** in the **…** menu opens a picker of the five themes. The theme picked is
+  written in the user's file by the store (Q44 is still open), and the window takes it when the watcher reads the file
+  again. The picker shows no theme as the user moves through the list, which the card asks. Should it, and should the
+  theme be written only when the picker closes? The card stays **Specified** (Q44).
+- **Q108** — Cards of this slice left **Specified**: `repo.open-folder`, `repo.open-recent` and `repo.select` (Q43);
+  `settings.theme` (Q44, Q107); `settings.edit` (Q106); `log.record` (Q101). `repo.read-repositories` is **Built** on
+  the reading of Q19, and `welcome.page` on Quick search (slice 4) and the page of a commit (slice 5): the page of a
+  commit opened in any way ticks **Open a commit, compare two branches**. Its buttons **Show the commits**, **Open a
+  commit…** and **Compare…** stay disabled, as the rest of the steps but the first: should **Show the commits** narrow
+  the timeline to the branch checked out and **Open a commit…** open the box of **Open commit** now? **Show Command
+  Log** and **Open Settings** in Quick search now run. No key was added to `state.json`.

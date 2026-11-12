@@ -1,6 +1,7 @@
 //! What the store of a window is told ([`Message`]) and what it asks of the outside ([`Effect`]).
 
 use std::path::PathBuf;
+use std::time::Duration;
 
 use git::read::details::CommitRequest;
 use git::read::graph::{CommitPage, CommitsRequest, Parents};
@@ -10,7 +11,7 @@ use model::details::CommitDetail;
 use model::filter::BranchesShown;
 use model::graph::PageSize;
 use model::graph::Row;
-use model::repo::Repository;
+use model::repo::{Change, Repository};
 use model::state::RepositoryState;
 use views::Intent;
 
@@ -84,6 +85,30 @@ pub enum Message {
     },
     /// The settings files changed and were read again.
     SettingsRead(Settings),
+    /// The watcher of the repository saw changes (`repo.watch-changes`), at a moment counted from when the window
+    /// opened.
+    Changed {
+        /// What changed.
+        changes: Vec<Change>,
+        /// When.
+        at: Duration,
+    },
+    /// The moment an [`Effect::WakeAt`] asked for came, or later.
+    Wake {
+        /// The moment, counted from when the window opened.
+        at: Duration,
+    },
+    /// The window was minimized, or shown again: nothing of the repository is in sight while it is minimized.
+    Minimized(bool),
+    /// A read of the repository ended, after so long: its line in the Command log at `log.level` `debug`.
+    ReadTook {
+        /// The words of the line.
+        line: String,
+        /// How long it took.
+        took: Duration,
+        /// When it started, in seconds since 1970.
+        time: model::Timestamp,
+    },
     /// The person asked to close the window, whose inside had this size in logical pixels.
     CloseRequested {
         /// The size of the inside of the window.
@@ -237,6 +262,12 @@ pub enum Effect {
     WatchSettings(SettingsFiles),
     /// Draws the window with the theme and the fonts of the settings in force.
     ApplySettings,
+    /// Watches this working tree and its git folder for changes, in place of the one watched before; none stops
+    /// watching (`repo.watch-changes`).
+    WatchRepository(Option<PathBuf>),
+    /// Sends [`Message::Wake`] at this moment, counted from when the window opened, in place of the wake asked for
+    /// before (`repo.schedule-reads`).
+    WakeAt(Duration),
     /// Closes the window and ends the program.
     Quit,
 }

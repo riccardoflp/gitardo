@@ -4,6 +4,7 @@
 //! Each event goes to the store as a [`Message`]; what `reduce` asks is carried out at once, in order, and a frame is
 //! asked for. The intents of each frame are reduced after it.
 
+mod reads;
 mod running;
 
 use std::collections::VecDeque;
@@ -104,6 +105,10 @@ struct DesktopWindow {
     activities: Activities,
     /// When each activity was first seen, for how long it has run.
     running: running::RunningClock,
+    /// The watcher of the repository shown, the timer of the next read, and how long each read took.
+    reads: reads::ReadClock,
+    /// Where the messages of the threads of the window go.
+    deliver: Deliver,
 }
 
 impl DesktopWindow {
@@ -144,13 +149,32 @@ impl DesktopWindow {
             setting_writer: SettingWriter::new(),
             activities,
             running: running::RunningClock::default(),
+            reads: reads::ReadClock::new(),
+            deliver: Arc::clone(deliver),
         })
     }
 
     /// Takes an event of the loop.
     fn handle(&mut self, context: &Context<'_>, event: Event<Message>) -> Result<Flow, AppError> {
-        if let Event::Message(message) = event {
-            return self.dispatch(message);
+        let flow = self.handle_event(context, event);
+        self.reads.arm(context);
+        flow
+    }
+
+    /// Takes an event of the loop, before the timer of the next read is set.
+    fn handle_event(&mut self, context: &Context<'_>, event: Event<Message>) -> Result<Flow, AppError> {
+        let event = match event {
+            Event::Message(message) => return self.dispatch(message),
+            Event::Timer(timer) if timer == reads::READ_TIMER => {
+                let woken = self.reads.woken(context);
+                return self.dispatch(woken);
+            }
+            other => other,
+        };
+        if let Event::Input { event: input, .. } = &event
+            && let Some(message) = self.reads.input(input)
+        {
+            let _flow = self.dispatch(message)?;
         }
         match self.surface.handle(&event) {
             Step::Draw => self.draw(context),
@@ -179,6 +203,7 @@ impl DesktopWindow {
             | Message::CommitPageRead { job, .. } = &message
             {
                 self.workers.finished(*job);
+                waiting.extend(self.reads.finished(*job));
             }
             for effect in reduce(&mut self.state, message) {
                 match self.carry_out(effect)? {
@@ -195,7 +220,12 @@ impl DesktopWindow {
     /// Carries out what the store asked.
     fn carry_out(&mut self, effect: Effect) -> Result<Option<Followed>, AppError> {
         match effect {
-            Effect::Start(job) => self.workers.start(job),
+            Effect::Start(job) => {
+                let words = self.reads.started(&self.state, &job, model::Timestamp(seconds_now()));
+                self.workers.start_described(job, words);
+            }
+            Effect::WatchRepository(folder) => self.reads.watch(folder.as_deref(), &self.deliver),
+            Effect::WakeAt(at) => self.reads.wake_at(at),
             Effect::Cancel(job) => self.workers.cancel(job),
             Effect::ChooseFolder => {
                 let dialog = FileDialog {
@@ -224,7 +254,7 @@ impl DesktopWindow {
     /// Draws a frame of the views from the store, then reduces the intents they returned.
     fn draw(&mut self, context: &Context<'_>) -> Result<Flow, AppError> {
         let running = self.running.tasks(&self.activities.running());
-        let data = ViewData::new(&self.state, running, seconds_now());
+        let data = ViewData::new(&self.state, running, seconds_now()).with_finished(self.running.finished());
         self.surface.set_title(&views::text::window_title(data.name()));
         let state = &self.state;
         let intents = self

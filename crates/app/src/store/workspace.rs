@@ -252,7 +252,9 @@ fn start_read(state: &mut State, folder: PathBuf) -> Effect {
     let pages = if is_shown { state.timeline.pages } else { 1 };
     let mut request = super::timeline::read_request(state, pages);
     request.shown = super::timeline::kept_shown(state, &folder);
-    Effect::Start(start_job(state, JobKind::ReadRepository { folder, request }))
+    let job = start_job(state, JobKind::ReadRepository { folder, request });
+    super::reads::adopt(state, job.id, model::repo::ReadCause::RepositoryChosen);
+    Effect::Start(job)
 }
 
 /// Notes a job as started and gives it its number.
@@ -266,6 +268,7 @@ pub(super) fn start_job(state: &mut State, kind: JobKind) -> Job {
 /// Cancels the reads of repositories running, and of the next pages of the timeline: their results are not wanted any
 /// more.
 fn cancel_reads(state: &mut State) -> Vec<Effect> {
+    super::reads::stopped(state);
     let mut effects = super::timeline::cancel_more(state);
     let reads: Vec<JobId> = state
         .jobs

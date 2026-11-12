@@ -67,3 +67,16 @@
   with the lines each gained and lost, and with **Show the changes** the diff of each file, the long ones folded at
   first, under headers that stay at the top, with find in page over the lines unfolded and **Show in the timeline**, which
   shows all branches again when the branches shown leave the commit out.
+- `gitardo` watches the repository shown on Windows and reads it again on its own: once after a burst of changes,
+  never two reads at once, never for the files git and its `core.fsmonitor` daemon write during a read, and not while
+  the window is minimized. **Refresh** during a read is followed by one more read. With `readOnStartup` off, the
+  window opens with the repository not read until **Read the repository** is clicked.
+- The Activity drawer lists what runs, with why each read runs and how many reads in a row it is, and what ran a
+  moment ago. **Show the commands Gitardo runs** shows the Command log beside it, each line with its time; the lines
+  selected are copied with `Ctrl+C`. At `log.level` `debug` the log has each read with how long it took.
+- The settings page (**Settings** in **…**, or `Ctrl+,`) lists every setting with its description, its value, where
+  the value comes from and why a value was not taken. A switch or a choice changes it in the user's file or the
+  repository's, keeping the rest of the file. **Theme…** in **…** picks the theme. **Show Command Log** and **Open
+  Settings** in Quick search open the log and the page.
+- The Welcome page ticks **Open a commit, compare two branches** once the page of a commit is opened, and **Welcome**
+  in Quick search shows it again with the steps done ticked.

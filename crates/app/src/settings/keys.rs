@@ -27,6 +27,10 @@ pub const DATE_SEPARATORS: &str = "graph.dateSeparators";
 pub const COMBINE_UPSTREAM: &str = "graph.combineUpstream";
 /// `graph.firstParent`.
 pub const FIRST_PARENT: &str = "graph.firstParent";
+/// `log.level`.
+pub const LOG_LEVEL: &str = "log.level";
+/// The values `log.level` takes: what changes something, or the reads too.
+pub const LOG_LEVELS: [&str; 2] = ["info", "debug"];
 /// `graph.traceSelected`.
 pub const TRACE_SELECTED: &str = "graph.traceSelected";
 /// `branches.sortOrder`.

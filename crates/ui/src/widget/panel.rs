@@ -48,7 +48,7 @@ impl Ui<'_> {
 
     /// Draws a card that floats over the window, such as a menu, a dialog or a picker: a soft shadow under it, the tone
     /// of menus, rounded, with a border.
-    pub(crate) fn floating_card(&mut self, rect: Rect, radius: f32) {
+    pub fn floating_card(&mut self, rect: Rect, radius: f32) {
         let theme = *self.theme();
         let shadow = theme.colors.shadow;
         if !shadow.is_transparent() {

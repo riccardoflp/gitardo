@@ -56,6 +56,10 @@ pub(crate) enum MoreCommand {
     Kind(ReferenceKind),
     /// **Go to commit…** (`search.go-to-commit`).
     GoToCommit,
+    /// **Settings** (`settings.edit`).
+    Settings,
+    /// **Theme…** (`settings.theme`).
+    Theme,
 }
 
 /// The words of a switch.
@@ -146,6 +150,42 @@ pub(crate) fn kind_entries(kinds: Option<Kinds>) -> Vec<MenuEntry<'static, MoreC
 pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
     let button = Button::icon(Icon::More, words::MORE).kind(ButtonKind::Outline);
+    let entries = menu_entries(state);
+    let switches = state.timeline.map_or(Switches::DEFAULT, |timeline| timeline.switches);
+    match ui.menu_button(MORE_MENU, rect, &button, &entries) {
+        Some(MoreCommand::Refresh) => vec![Intent::Refresh],
+        Some(MoreCommand::SelectRepository) => vec![Intent::PickRepository],
+        Some(MoreCommand::Kind(kind)) => vec![Intent::Filter(FilterIntent::SwitchKind(kind))],
+        Some(MoreCommand::GoToCommit) => vec![Intent::Search(crate::search::SearchIntent::GoToCommit)],
+        Some(MoreCommand::Settings) => vec![Intent::ShowPage(crate::page::Page::Settings)],
+        Some(MoreCommand::Theme) => vec![Intent::PickTheme],
+        Some(MoreCommand::Switch(TimelineSwitch::FirstParent)) => {
+            let state = FirstParentState {
+                is_on: switches.is_on(TimelineSwitch::FirstParent),
+            };
+            first_parent_view(&state, ui)
+        }
+        Some(MoreCommand::Switch(TimelineSwitch::TraceSelected)) => {
+            let state = SelectedTrace {
+                is_on: switches.is_on(TimelineSwitch::TraceSelected),
+            };
+            trace_selected_view(&state, ui)
+        }
+        Some(MoreCommand::Switch(switch)) => vec![Intent::Graph(GraphIntent::Switch(switch, !switches.is_on(switch)))],
+        Some(MoreCommand::FoldAll(chosen)) => {
+            let state = FoldAllState {
+                chosen,
+                is_all_folded: state.timeline.is_some_and(|timeline| timeline.is_all_folded),
+            };
+            fold_all_view(&state, ui)
+        }
+        None => Vec::new(),
+    }
+}
+
+/// The entries of **…**: **Refresh**, the entries of the timeline, **Go to commit…**, **Select repository**, then
+/// **Settings** and **Theme…**.
+fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
     let refresh = MenuItem::new(words::REFRESH, MoreCommand::Refresh).with_icon(Icon::Refresh);
     let mut entries = vec![MenuEntry::Item(if state.can_refresh {
         refresh
@@ -170,32 +210,13 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
             MoreCommand::SelectRepository,
         )));
     }
-    let switches = state.timeline.map_or(Switches::DEFAULT, |timeline| timeline.switches);
-    match ui.menu_button(MORE_MENU, rect, &button, &entries) {
-        Some(MoreCommand::Refresh) => vec![Intent::Refresh],
-        Some(MoreCommand::SelectRepository) => vec![Intent::PickRepository],
-        Some(MoreCommand::Kind(kind)) => vec![Intent::Filter(FilterIntent::SwitchKind(kind))],
-        Some(MoreCommand::GoToCommit) => vec![Intent::Search(crate::search::SearchIntent::GoToCommit)],
-        Some(MoreCommand::Switch(TimelineSwitch::FirstParent)) => {
-            let state = FirstParentState {
-                is_on: switches.is_on(TimelineSwitch::FirstParent),
-            };
-            first_parent_view(&state, ui)
-        }
-        Some(MoreCommand::Switch(TimelineSwitch::TraceSelected)) => {
-            let state = SelectedTrace {
-                is_on: switches.is_on(TimelineSwitch::TraceSelected),
-            };
-            trace_selected_view(&state, ui)
-        }
-        Some(MoreCommand::Switch(switch)) => vec![Intent::Graph(GraphIntent::Switch(switch, !switches.is_on(switch)))],
-        Some(MoreCommand::FoldAll(chosen)) => {
-            let state = FoldAllState {
-                chosen,
-                is_all_folded: state.timeline.is_some_and(|timeline| timeline.is_all_folded),
-            };
-            fold_all_view(&state, ui)
-        }
-        None => Vec::new(),
-    }
+    entries.push(MenuEntry::Separator);
+    entries.push(MenuEntry::Item(
+        MenuItem::new(crate::text::settings::SETTINGS_ENTRY, MoreCommand::Settings).with_shortcut("Ctrl+,"),
+    ));
+    entries.push(MenuEntry::Item(MenuItem::new(
+        crate::text::settings::THEME_ENTRY,
+        MoreCommand::Theme,
+    )));
+    entries
 }

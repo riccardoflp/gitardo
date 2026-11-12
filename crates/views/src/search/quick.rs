@@ -63,6 +63,10 @@ pub enum QuickCommand {
     ShowWhatIsRunning,
     /// **Show branches** (`refs.tree`).
     ShowBranches,
+    /// **Show Command Log** (`log.show`).
+    ShowCommandLog,
+    /// **Open Settings** (`settings.edit`).
+    OpenSettings,
     /// **Welcome** (`welcome.page`).
     Welcome,
     /// **Show changes** (`changes.page`).
@@ -93,12 +97,8 @@ pub enum QuickCommand {
     ApplyPatch,
     /// **Switch identity** (`identity.switch`).
     SwitchIdentity,
-    /// **Show Command Log** (`log.show`).
-    ShowCommandLog,
     /// **Undo Last Operation** (`undo.last`).
     UndoLastOperation,
-    /// **Open Settings** (`settings.edit`).
-    OpenSettings,
 }
 
 impl QuickCommand {
@@ -112,6 +112,8 @@ impl QuickCommand {
         QuickCommand::SelectRepository,
         QuickCommand::ShowWhatIsRunning,
         QuickCommand::ShowBranches,
+        QuickCommand::ShowCommandLog,
+        QuickCommand::OpenSettings,
         QuickCommand::Welcome,
         QuickCommand::ShowChanges,
         QuickCommand::CreateBranch,
@@ -127,9 +129,7 @@ impl QuickCommand {
         QuickCommand::AddSubmodule,
         QuickCommand::ApplyPatch,
         QuickCommand::SwitchIdentity,
-        QuickCommand::ShowCommandLog,
         QuickCommand::UndoLastOperation,
-        QuickCommand::OpenSettings,
     ];
 
     /// Whether what the command runs is built: the others are listed with **Not yet**, and choosing them does

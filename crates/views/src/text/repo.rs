@@ -7,6 +7,10 @@ pub const NO_REPOSITORY: &str = "No Git repository in this workspace";
 pub const CHECK_AGAIN: &str = "Check again";
 /// What the timeline says while the repositories are looked for and the first one is read.
 pub const LOADING_REPOSITORY: &str = "Loading repository\u{2026}";
+/// What the timeline says when the window opened with `readOnStartup` off (`repo.read-state`).
+pub const NOT_READ_YET: &str = "Not read yet";
+/// The button that reads the repository then.
+pub const READ_THE_REPOSITORY: &str = "Read the repository";
 /// The title of the system's folder dialog.
 pub const CHOOSE_FOLDER: &str = "Open folder";
 /// The picker of the repositories (`repo.select`).

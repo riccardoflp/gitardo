@@ -2,12 +2,14 @@
 //! workspace: the settings read again, the window closed.
 
 use render::ThemeName;
+use views::graph::GraphIntent;
 use views::page::{Page, PageState};
 use views::repo::NoRepositoryState;
+use views::search::{QuickChoice, QuickCommand, SearchIntent};
 use views::{Content, Intent, RailIntent, RailList, TimelineState};
 
 use super::{answer, folder, intent, open, reads, send, view_data, window};
-use crate::persisted::Persisted;
+use crate::persisted::{Persisted, RecentWorkspace};
 use crate::settings::Settings;
 use crate::store::{Effect, Message, Shown, State, reduce};
 
@@ -80,6 +82,98 @@ fn welcome_page__shown_again_it_has_the_steps_done_ticked() {
     };
     assert_eq!(welcome.done, [true, false, false, false, false]);
     assert!(welcome.has_timeline);
+}
+
+/// The steps ticked on the Welcome page, as the page is drawn from the store.
+fn steps_done(state: &State) -> [bool; 5] {
+    let data = view_data(state);
+    let Content::Page(host) = data.window_state(state).content else {
+        panic!("the Welcome page is not shown");
+    };
+    let PageState::Welcome(welcome) = host.page else {
+        panic!("the Welcome page is not shown");
+    };
+    welcome.done
+}
+
+#[test]
+fn welcome_page__welcome_in_quick_search_shows_it_again_with_the_steps_done_ticked() {
+    let mut state = window();
+    let work = folder("work");
+    let _opened = open(&mut state, &work, &[(&work, std::slice::from_ref(&work))]);
+    let commit = super::repository_state(&work).head.commit.unwrap();
+    let _page = intent(&mut state, Intent::Graph(GraphIntent::Open(commit)));
+    let _back = intent(&mut state, Intent::ShowTimeline);
+    let _typed = intent(&mut state, Intent::Search(SearchIntent::OpenQuick(String::from("wel"))));
+    let _chosen = intent(
+        &mut state,
+        Intent::Search(SearchIntent::ChooseQuick(QuickChoice::Command(QuickCommand::Welcome))),
+    );
+    assert_eq!(page_shown(&state), Some((Page::Welcome, true)));
+    assert_eq!(steps_done(&state), [true, false, true, false, false]);
+}
+
+#[test]
+fn welcome_page__opening_a_commit_page_ticks_its_step_once_and_writes_it_down() {
+    let mut state = window();
+    let work = folder("work");
+    let _opened = open(&mut state, &work, &[(&work, std::slice::from_ref(&work))]);
+    let commit = super::repository_state(&work).head.commit.unwrap();
+    let effects = intent(&mut state, Intent::Graph(GraphIntent::Open(commit.clone())));
+    assert!(state.persisted.welcome_steps[2]);
+    assert!(effects.contains(&Effect::WritePersisted(state.persisted.clone())));
+    let _closed = intent(&mut state, Intent::ClosePage);
+    let again = intent(&mut state, Intent::Graph(GraphIntent::Open(commit)));
+    assert!(
+        !again.iter().any(|effect| matches!(effect, Effect::WritePersisted(_))),
+        "a step ticked stays ticked and is written once"
+    );
+}
+
+#[test]
+fn welcome_page__a_workspace_opened_from_the_page_is_listed_first_the_next_time() {
+    let (work, other) = (folder("work"), folder("other"));
+    let mut state = window();
+    state.persisted.recent = vec![
+        RecentWorkspace {
+            folders: vec![work.clone()],
+            repository: None,
+        },
+        RecentWorkspace {
+            folders: vec![other.clone()],
+            repository: None,
+        },
+    ];
+    let _shown = intent(&mut state, Intent::ShowPage(Page::Welcome));
+    let effects = intent(&mut state, Intent::OpenRecent(1));
+    let _read = answer(&mut state, effects, &[(&other, std::slice::from_ref(&other))]);
+    let mut next = State::new(state.persisted.clone(), Settings::default(), None);
+    let _started = reduce(&mut next, Message::Started { folders: Vec::new() });
+    let _shown = intent(&mut next, Intent::ShowPage(Page::Welcome));
+    let data = view_data(&next);
+    let Content::Page(host) = data.window_state(&next).content else {
+        panic!("the Welcome page is not shown");
+    };
+    let PageState::Welcome(welcome) = host.page else {
+        panic!("the Welcome page is not shown");
+    };
+    assert_eq!(welcome.recent.first(), Some(&other.display().to_string()));
+}
+
+#[test]
+fn quick_search_opens_the_command_log_and_the_settings_page() {
+    let mut state = window();
+    let work = folder("work");
+    let _opened = open(&mut state, &work, &[(&work, std::slice::from_ref(&work))]);
+    for command in [QuickCommand::ShowCommandLog, QuickCommand::OpenSettings] {
+        assert!(command.is_built());
+        let _chosen = intent(
+            &mut state,
+            Intent::Search(SearchIntent::ChooseQuick(QuickChoice::Command(command))),
+        );
+    }
+    assert!(state.is_activity_open && state.is_log_shown);
+    assert_eq!(page_shown(&state), Some((Page::Settings, true)));
 }
 
 #[test]

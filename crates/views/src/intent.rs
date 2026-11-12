@@ -32,6 +32,20 @@ pub enum Intent {
     CheckAgain,
     /// **Refresh**: read the repository shown again at once.
     Refresh,
+    /// **Read the repository**: the window opened with `readOnStartup` off reads it now (`repo.read-state`).
+    ReadRepository,
+    /// **Show the commands Gitardo runs**: the Command log in the Activity drawer (`log.show`).
+    ShowCommandLog,
+    /// The Command log put away again.
+    HideCommandLog,
+    /// **Theme…**: the picker of the themes (`settings.theme`).
+    PickTheme,
+    /// The picker of the themes closed with nothing chosen.
+    CloseThemePicker,
+    /// A value of the settings page, or the theme picked, written in a settings file (`settings.edit`).
+    SetSetting(crate::settings::SettingChange),
+    /// The file the settings page writes changes in (`settings.edit`).
+    ChooseSettingsFile(crate::settings::SettingsTarget),
     /// Show the timeline: the first step of a trail, or **Show the timeline** on the Welcome page.
     ShowTimeline,
     /// Show a page, opening it when it is not open; a page is open once.

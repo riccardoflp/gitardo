@@ -43,7 +43,7 @@ pub struct LogEntry {
 }
 
 /// The lines of the log of a window, oldest first.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct CommandLog {
     entries: VecDeque<LogEntry>,
     dropped: usize,
@@ -59,6 +59,17 @@ impl CommandLog {
             dropped: 0,
             level,
         }
+    }
+
+    /// Records from now on what another level says, as when `log.level` changed.
+    pub fn set_level(&mut self, level: LogLevel) {
+        self.level = level;
+    }
+
+    /// What the log records.
+    #[must_use]
+    pub fn level(&self) -> LogLevel {
+        self.level
     }
 
     /// Writes a step, before it starts.

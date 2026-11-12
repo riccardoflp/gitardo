@@ -15,6 +15,7 @@ use crate::graph::{
 };
 use crate::intent::{Intent, Notice};
 use crate::line::{ICON_RAIL_WIDTH, INSPECTOR_OVER_BELOW, is_narrow};
+use crate::page::Page;
 use crate::page::{PageHostState, host_view};
 use crate::refs::{ReferencesState, rail_view};
 use crate::repo::{
@@ -22,6 +23,7 @@ use crate::repo::{
     repository_picker_view,
 };
 use crate::search::{GoToCommitDialog, ListMode, SearchBox, go_to_commit_dialog, list_mode_view};
+use crate::settings::{ThemePickerState, theme_picker_view};
 use crate::text::repo as repo_words;
 
 /// Everything the window shows, made from the store of the window for each frame.
@@ -37,6 +39,8 @@ pub struct WindowState<'a> {
     pub picker: Option<RepositoryPickerState<'a>>,
     /// The question asked about a folder opened, while it waits for its answer.
     pub question: Option<OpenFolderQuestion<'a>>,
+    /// The picker of the themes, while it is open (`settings.theme`).
+    pub theme_picker: Option<ThemePickerState<'a>>,
     /// A sentence said once, until it is put away.
     pub notice: Option<Notice>,
     /// **Go to commit**, while it is open (`search.go-to-commit`).
@@ -108,7 +112,10 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     if let Some(dialog) = &state.go_to_commit {
         intents.extend(go_to_commit_dialog(dialog, ui));
     }
-    intents.extend(shortcuts(ui));
+    if let Some(theme_picker) = &state.theme_picker {
+        intents.extend(theme_picker_view(theme_picker, ui));
+    }
+    intents.extend(shortcuts(ui, state.drawer.is_some()));
     intents
 }
 
@@ -219,11 +226,16 @@ fn notice_bar(notice: Notice, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Int
     let _ = ui.label(parts.rest(), &Label::new(said));
 }
 
-/// The keys of the window that no widget used: `Ctrl+Tab` goes through the timeline and the pages open.
-fn shortcuts(ui: &Ui<'_>) -> Vec<Intent> {
+/// The keys of the window that no widget used: `Ctrl+Tab` goes through the timeline and the pages open, `Ctrl+,`
+/// opens the settings page, and `Escape` closes the Activity drawer while it is open.
+fn shortcuts(ui: &Ui<'_>, is_drawer_open: bool) -> Vec<Intent> {
     ui.unclaimed_keys()
         .into_iter()
-        .filter(|key| key.key == Key::Named(NamedKey::Tab) && key.modifiers == Modifiers::CONTROL)
-        .map(|_| Intent::NextPage)
+        .filter_map(|key| match (key.key, key.modifiers) {
+            (Key::Named(NamedKey::Tab), Modifiers::CONTROL) => Some(Intent::NextPage),
+            (Key::Character(','), Modifiers::CONTROL) => Some(Intent::ShowPage(Page::Settings)),
+            (Key::Named(NamedKey::Escape), Modifiers::NONE) if is_drawer_open => Some(Intent::CloseActivity),
+            _ => None,
+        })
         .collect()
 }

@@ -4,6 +4,7 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 #![allow(clippy::unwrap_used, clippy::panic, reason = "a test that cannot go on fails")]
 
+mod activity;
 mod commit_page;
 mod filter;
 mod folds;
@@ -22,6 +23,7 @@ mod speed;
 mod support;
 mod timeline;
 mod views_drawn;
+mod watch;
 
 use std::path::PathBuf;
 

@@ -6,7 +6,9 @@ use ui::{AccessRole, Axis, Button, ButtonKind, Icon, Label, Rect, TextKind, Tone
 
 use crate::commit_page::{CommitPageId, CommitPageState, view as commit_page_view};
 use crate::intent::Intent;
+use crate::settings::{SettingsPageState, settings_view};
 use crate::text::pages as words;
+use crate::text::settings as settings_words;
 use crate::welcome::{WelcomeState, page_view};
 
 /// A page of the window. Each is open once: asking for it again shows the one there is.
@@ -16,6 +18,8 @@ pub enum Page {
     Welcome,
     /// The page of a commit (`commit-page.view`).
     Commit(CommitPageId),
+    /// The settings page (`settings.edit`).
+    Settings,
 }
 
 impl Page {
@@ -25,6 +29,7 @@ impl Page {
         match self {
             Page::Welcome => words::WELCOME,
             Page::Commit(_) => crate::text::details::PAGE,
+            Page::Settings => settings_words::PAGE,
         }
     }
 }
@@ -36,6 +41,8 @@ pub enum PageState<'a> {
     Welcome(WelcomeState<'a>),
     /// The page of a commit.
     Commit(CommitPageState<'a>),
+    /// The settings page.
+    Settings(SettingsPageState<'a>),
 }
 
 impl PageState<'_> {
@@ -45,6 +52,7 @@ impl PageState<'_> {
         match self {
             PageState::Welcome(_) => Page::Welcome,
             PageState::Commit(commit) => Page::Commit(commit.id),
+            PageState::Settings(_) => Page::Settings,
         }
     }
 
@@ -53,7 +61,7 @@ impl PageState<'_> {
     pub fn title(&self) -> &str {
         match self {
             PageState::Commit(commit) => commit.title,
-            PageState::Welcome(_) => self.page().title(),
+            PageState::Welcome(_) | PageState::Settings(_) => self.page().title(),
         }
     }
 }
@@ -85,6 +93,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     intents.extend(ui.clip(body, |ui| match &state.page {
         PageState::Welcome(welcome) => page_view(welcome, ui),
         PageState::Commit(commit) => commit_page_view(commit, ui),
+        PageState::Settings(settings) => settings_view(settings, ui),
     }));
     intents
 }

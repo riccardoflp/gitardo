@@ -15,9 +15,11 @@ use views::graph::{
     BranchChip, Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, ReferencesShown, RepositoryEntry,
     RepositoryPill, Selected, SyncCounts, TimelineMenu, ToolbarState, TraceShown,
 };
+use views::log::{LogLine, LogState};
 use views::page::{Page, PageHostState, PageState};
 use views::refs::ReferencesState;
 use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState};
+use views::settings::{SettingRow, SettingsPageState, ThemePickerState};
 use views::welcome::WelcomeState;
 use views::{Content, TimelineState, WindowState};
 
@@ -42,6 +44,12 @@ pub struct ViewData {
     question_folder: String,
     /// What is running, for the header and the Activity drawer.
     running: Vec<RunningTask>,
+    /// What ran a moment ago, the latest first, for the Activity drawer.
+    finished: Vec<RunningTask>,
+    /// The lines of the Command log, while the drawer shows it.
+    log_lines: Vec<LogLine>,
+    /// The settings, while the settings page is open.
+    setting_rows: Vec<SettingRow>,
     /// The sizes of the panes of the workspace.
     panes: WorkspacePanes,
     /// The moment the dates are said from, in seconds since 1970.
@@ -96,10 +104,27 @@ impl ViewData {
             folder: shown.map(|folder| display(folder)).unwrap_or_default(),
             question_folder,
             running,
+            finished: Vec::new(),
+            log_lines: if state.is_activity_open && state.is_log_shown {
+                super::log_lines::log_lines(&state.log)
+            } else {
+                Vec::new()
+            },
+            setting_rows: if state.pages.open.contains(&Page::Settings) {
+                crate::settings::setting_rows(&state.settings)
+            } else {
+                Vec::new()
+            },
             panes: workspace_panes(state),
             now,
             search: search::SearchView::new(state),
         }
+    }
+
+    /// The same words, with what ran a moment ago, the latest first, for the Activity drawer.
+    #[must_use]
+    pub fn with_finished(self, finished: Vec<RunningTask>) -> ViewData {
+        ViewData { finished, ..self }
     }
 
     /// The name of the repository shown, for the title of the window.
@@ -114,9 +139,17 @@ impl ViewData {
         WindowState {
             header: self.header(state),
             content: self.content(state),
-            drawer: state
-                .is_activity_open
-                .then_some(ActivityState { running: &self.running }),
+            drawer: state.is_activity_open.then_some(ActivityState {
+                running: &self.running,
+                finished: &self.finished,
+                log: state.is_log_shown.then_some(LogState {
+                    lines: &self.log_lines,
+                    dropped: state.log.dropped(),
+                }),
+            }),
+            theme_picker: (state.dialog == Some(Dialog::ThemePicker)).then_some(ThemePickerState {
+                current: crate::settings::theme_value(state.settings.theme),
+            }),
             picker: (state.dialog == Some(Dialog::Picker)).then_some(RepositoryPickerState {
                 repositories: &self.repositories,
             }),
@@ -189,6 +222,14 @@ impl ViewData {
                 }),
                 None => Content::Timeline(self.timeline(state)),
             },
+            Some(Page::Settings) => Content::Page(PageHostState {
+                has_trail: state.workspace.is_some(),
+                page: PageState::Settings(SettingsPageState {
+                    rows: &self.setting_rows,
+                    target: state.settings_target,
+                    has_repository: state.shown_folder().is_some(),
+                }),
+            }),
             None => Content::Timeline(self.timeline(state)),
         }
     }
@@ -216,6 +257,7 @@ impl ViewData {
                 search: Box::new((search_view::search_box(state), search_view::list_mode(state))),
             },
             Some(Shown::NoRepository) => TimelineState::NoRepository(NoRepositoryState::NoRepository),
+            Some(Shown::Looking) if state.reads.is_not_read => TimelineState::NoRepository(NoRepositoryState::NotRead),
             Some(Shown::Looking | Shown::Reading { .. }) | None => {
                 TimelineState::NoRepository(NoRepositoryState::Loading)
             }

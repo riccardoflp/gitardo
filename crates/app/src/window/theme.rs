@@ -59,7 +59,8 @@ mod tests {
     }
 
     #[test]
-    fn following_the_system_takes_its_appearance_and_its_high_contrast() {
+    #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
+    fn settings_theme__with_system_the_window_follows_the_system_when_it_switches() {
         let cases = [
             (system(Appearance::Dark, false), ThemeName::Dark),
             (system(Appearance::Light, false), ThemeName::Light),

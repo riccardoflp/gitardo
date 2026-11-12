@@ -57,6 +57,15 @@ pub struct State {
     pub inspector: super::inspector::Inspector,
     /// The pages of commits open.
     pub commit_pages: super::commit_page::CommitPages,
+    /// The reads of the repository shown that changes ask for, and the ones the window starts itself
+    /// (`repo.schedule-reads`).
+    pub reads: super::reads::Reads,
+    /// The Command log of the window (`log.record`, `log.show`).
+    pub log: engine::CommandLog,
+    /// Whether the Activity drawer shows the Command log beside what runs.
+    pub is_log_shown: bool,
+    /// The file the settings page writes changes in (`settings.edit`).
+    pub settings_target: views::settings::SettingsTarget,
 }
 
 /// The folders of a window and the repositories found in them.
@@ -134,6 +143,8 @@ pub enum Dialog {
         /// The folder chosen.
         folder: PathBuf,
     },
+    /// The picker of the themes (`settings.theme`).
+    ThemePicker,
 }
 
 impl State {
@@ -141,6 +152,7 @@ impl State {
     #[must_use]
     pub fn new(persisted: Persisted, settings: Settings, user_settings_file: Option<PathBuf>) -> State {
         State {
+            log: engine::CommandLog::new(settings.log_level),
             persisted,
             settings,
             user_settings_file,

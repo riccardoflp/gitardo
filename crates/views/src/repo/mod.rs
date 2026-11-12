@@ -17,11 +17,14 @@ pub enum NoRepositoryState {
     Loading,
     /// The workspace has no repository, or the one it had could not be read.
     NoRepository,
+    /// The window opened with `readOnStartup` off: the repository is named but not read (`repo.read-state`).
+    NotRead,
 }
 
 /// What the timeline shows in a workspace with no repository: **No Git repository in this workspace** with **Check
-/// again**, or **Loading repository…** while the repositories are looked for and the first one is read. The branch
-/// rail beside it is empty.
+/// again**, or **Loading repository…** while the repositories are looked for and the first one is read, or **Not read
+/// yet** with **Read the repository** when the window opened with `readOnStartup` off. The branch rail beside it is
+/// empty.
 ///
 /// Feature: repo.no-repository
 pub fn no_repository_view(state: &NoRepositoryState, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -31,23 +34,30 @@ pub fn no_repository_view(state: &NoRepositoryState, ui: &mut Ui<'_>) -> Vec<Int
     let line = theme.sizes.row_height;
     let height = match state {
         NoRepositoryState::Loading => line,
-        NoRepositoryState::NoRepository => line + spacing.large + theme.sizes.control_height,
+        NoRepositoryState::NoRepository | NoRepositoryState::NotRead => {
+            line + spacing.large + theme.sizes.control_height
+        }
     };
     let block = place(rect, (rect.width, height), (Align::Center, Align::Center));
     let mut area = Area::with_gap(block, spacing.large);
     let said = match state {
         NoRepositoryState::Loading => words::LOADING_REPOSITORY,
         NoRepositoryState::NoRepository => words::NO_REPOSITORY,
+        NoRepositoryState::NotRead => words::NOT_READ_YET,
     };
     let _ = ui.label(area.top(line), &Label::new(said).tone(Tone::Muted).align(Align::Center));
     if *state == NoRepositoryState::Loading {
         return Vec::new();
     }
-    let button = Button::secondary(words::CHECK_AGAIN);
+    let (button, intent) = if *state == NoRepositoryState::NotRead {
+        (Button::primary(words::READ_THE_REPOSITORY), Intent::ReadRepository)
+    } else {
+        (Button::secondary(words::CHECK_AGAIN), Intent::CheckAgain)
+    };
     let (width, button_height) = ui.button_size(&button);
     let cell = place(area.rest(), (width, button_height), (Align::Center, Align::Start));
     if ui.button("check again", cell, &button).clicked {
-        vec![Intent::CheckAgain]
+        vec![intent]
     } else {
         Vec::new()
     }

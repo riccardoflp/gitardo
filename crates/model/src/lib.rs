@@ -3,6 +3,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod activity;
 pub mod bisect;
 pub mod blame;
 pub mod branch;

@@ -6,10 +6,13 @@
 
 mod commit_page;
 mod inspector;
+mod log_lines;
 mod message;
 mod pages;
 mod rail;
+mod reads;
 pub mod search;
+mod settings_page;
 mod state;
 #[cfg(test)]
 mod tests;
@@ -28,18 +31,21 @@ pub use commit_page::{CommitPage, CommitPages, PageReadState};
 pub use inspector::{Inspector, InspectorRead, Subject, SubjectRow};
 pub use message::{Effect, Found, Job, JobId, JobKind, Known, Message, MorePages, TimelineRequest};
 pub use rail::{FilterPicker, Rail};
+pub use reads::Reads;
 pub use state::{Dialog, Opening, Pages, RepositoryRead, Shown, State, Workspace};
 pub use timeline::{Timeline, commits_request, draft_of, history_of, known};
 pub use view_state::ViewData;
 pub use workspace::OpenRequest;
 
 /// Changes the store as a message says, and gives what the outside is to do after it, in order: then the inspector
-/// follows the row selected, the pages closed are forgotten, and **Show in the timeline** follows the timeline read.
+/// follows the row selected, the pages closed are forgotten, **Show in the timeline** follows the timeline read, and
+/// the repository shown is watched, when it is not the one watched.
 pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     let mut effects = reduce_message(state, message);
     effects.extend(inspector::follow(state));
     effects.extend(commit_page::prune(state));
     effects.extend(commit_page::follow(state));
+    effects.extend(reads::watch(state));
     effects
 }
 
@@ -55,13 +61,20 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
             folder,
             result,
             read_at,
-        } => workspace::repository_read(state, job, &folder, (result, read_at)),
+        } => repository_read(state, job, &folder, (result, read_at)),
         Message::CommitsRead { job, result } => timeline::commits_read(state, job, result),
         Message::TimelineRead { job, result } => timeline::timeline_read(state, job, result),
         Message::Searched { job, result } => search::searched(state, job, result),
         Message::DetailsRead { job, result } => inspector::details_read(state, job, result),
         Message::CommitPageRead { job, result } => commit_page::page_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, settings),
+        Message::Changed { changes, at } => reads::changed(state, &changes, at),
+        Message::Wake { at } => reads::wake(state, at),
+        Message::Minimized(is_minimized) => reads::minimized(state, is_minimized),
+        Message::ReadTook { line, took, time } => {
+            reads::read_took(state, (line, took, time));
+            Vec::new()
+        }
         Message::CloseRequested { window_size } => {
             let mut effects = workspace::cancel_all(state);
             state.persisted.window_size = window_size.or(state.persisted.window_size);
@@ -72,12 +85,40 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
     }
 }
 
-/// The settings read again: the theme and the fonts drawn with, the switches of the timeline in force.
+/// A read of the repository ended: shown, unless the schedule throws it away; then the read that follows it, if one
+/// does. At `log.level` `debug`, what git said of a read that failed goes to the Command log.
+fn repository_read(
+    state: &mut State,
+    job: JobId,
+    folder: &std::path::Path,
+    (result, read_at): (ReadResult, i64),
+) -> Vec<Effect> {
+    let (is_shown, follow) = reads::finished(state, job);
+    if let (Err(error), engine::LogLevel::Debug) = (&result, state.log.level()) {
+        state.log.record_failure(model::Timestamp(read_at), error);
+    }
+    let mut effects = if is_shown {
+        workspace::repository_read(state, job, folder, (result, read_at))
+    } else {
+        let _thrown_away = state.jobs.remove(&job);
+        Vec::new()
+    };
+    effects.extend(follow);
+    effects
+}
+
+/// What a read of a repository found, or what git said.
+type ReadResult = Result<Box<(model::state::RepositoryState, git::read::graph::CommitPage)>, String>;
+
+/// The settings read again: the theme and the fonts drawn with, the switches of the timeline in force, the level of the
+/// Command log; a change to a setting that changes what is read reads the repository again.
 fn settings_read(state: &mut State, settings: Settings) -> Vec<Effect> {
     let looks_different = settings.theme != state.settings.theme || settings.fonts != state.settings.fonts;
     let before = state.settings.switches;
     let sorted_before = state.settings.sort_order;
+    let changes_reads = settings_page::changes_reads(&state.settings, &settings);
     state.settings = settings;
+    state.log.set_level(state.settings.log_level);
     if state.settings.sort_order != sorted_before {
         rail::arrange(state);
     }
@@ -90,6 +131,9 @@ fn settings_read(state: &mut State, settings: Settings) -> Vec<Effect> {
             effects.extend(timeline::apply_switch(state, switch));
         }
     }
+    if changes_reads && !effects.iter().any(|effect| matches!(effect, Effect::Start(_))) {
+        effects.extend(reads::asked(state, model::repo::ReadCause::Settings));
+    }
     effects
 }
 
@@ -101,7 +145,14 @@ fn started(state: &mut State, folders: Vec<PathBuf>) -> Vec<Effect> {
         pages::show_page(state, views::page::Page::Welcome);
         effects.push(Effect::WritePersisted(state.persisted.clone()));
     }
-    if !folders.is_empty() {
+    if !folders.is_empty() && !state.settings.read_on_startup {
+        state.workspace = Some(Workspace {
+            folders,
+            repositories: None,
+            shown: Shown::Looking,
+        });
+        state.reads.is_not_read = true;
+    } else if !folders.is_empty() {
         let request = OpenRequest {
             is_shown_at_once: true,
             ..OpenRequest::default()
@@ -175,7 +226,19 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
             workspace::pick_repository(state);
             Vec::new()
         }
+        Intent::ReadRepository => {
+            state.reads.is_not_read = false;
+            look_again(state, false)
+        }
+        Intent::CheckAgain | Intent::Refresh if state.reads.is_not_read => {
+            state.reads.is_not_read = false;
+            look_again(state, false)
+        }
+        Intent::Refresh if state.reads.schedule.is_reading() => reads::asked(state, model::repo::ReadCause::Refresh),
         Intent::CheckAgain | Intent::Refresh => look_again(state, intent == Intent::Refresh),
+        Intent::PickTheme | Intent::CloseThemePicker | Intent::SetSetting(_) | Intent::ChooseSettingsFile(_) => {
+            settings_page::reduce_intent(state, &intent)
+        }
         Intent::ShowTimeline => pages::show_timeline(state),
         Intent::ShowPage(page) => {
             pages::show_page(state, page);
@@ -183,7 +246,11 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         }
         Intent::NextPage => pages::next_page(state),
         Intent::ClosePage => pages::close_page(state),
-        Intent::ClosePicker | Intent::OpenActivity | Intent::CloseActivity => {
+        Intent::ClosePicker
+        | Intent::OpenActivity
+        | Intent::CloseActivity
+        | Intent::ShowCommandLog
+        | Intent::HideCommandLog => {
             reduce_view_intent(state, &intent);
             Vec::new()
         }
@@ -206,6 +273,8 @@ fn reduce_view_intent(state: &mut State, intent: &Intent) {
         Intent::ClosePicker => state.dialog = None,
         Intent::OpenActivity => state.is_activity_open = true,
         Intent::CloseActivity => state.is_activity_open = false,
+        Intent::ShowCommandLog => state.is_log_shown = true,
+        Intent::HideCommandLog => state.is_log_shown = false,
         _ => {}
     }
 }

@@ -112,3 +112,21 @@ fn settings_read__the_files_on_disk_are_read_the_repositorys_first() {
     assert!((settings.fonts.size - 15.0).abs() < f32::EPSILON);
     assert_eq!(settings.page_size, PageSize::from_setting(Some(250.0)));
 }
+
+#[test]
+fn settings_read__the_settings_page_says_which_key_and_why_and_shows_the_default() {
+    let settings = parse(Some(r#"{ "graph.pageSize": "many", "graph.firstParent": true }"#), None);
+    let rows = super::setting_rows(&settings);
+    let row = |key: &str| rows.iter().find(|row| row.info.key == key).unwrap();
+    let page_size = row("graph.pageSize");
+    assert_eq!(page_size.value, "1000");
+    assert_eq!(page_size.source, views::settings::SettingSource::Default);
+    assert_eq!(
+        page_size.problem.as_deref(),
+        Some("User settings: not a number. The default is used.")
+    );
+    let first_parent = row("graph.firstParent");
+    assert_eq!(first_parent.value, "true");
+    assert_eq!(first_parent.source, views::settings::SettingSource::User);
+    assert_eq!(first_parent.problem, None);
+}

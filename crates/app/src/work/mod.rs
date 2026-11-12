@@ -3,6 +3,7 @@
 
 pub mod jobs;
 mod persist;
+mod repository_watch;
 mod setting_writer;
 mod watch;
 
@@ -24,6 +25,7 @@ use crate::store::search::SearchJob;
 use crate::store::{Job, JobId, JobKind, Message};
 
 pub use persist::PersistedWriter;
+pub use repository_watch::{RepositoryWatch, change_of, common_git_folder};
 pub use setting_writer::SettingWriter;
 pub use watch::{SettingsWatcher, WATCH_INTERVAL};
 
@@ -36,6 +38,9 @@ struct Task {
     job: Job,
     /// The token that cancels it.
     cancel: CancelToken,
+    /// What it is and why it runs, in the words of the Activity drawer, when the window says them; otherwise they are
+    /// made from the job.
+    words: Option<(Text, Text)>,
 }
 
 /// The pool of workers of a window.
@@ -74,10 +79,16 @@ impl Workers {
 
     /// Gives a job to the next worker free.
     pub fn start(&mut self, job: Job) {
+        self.start_described(job, None);
+    }
+
+    /// Gives a job to the next worker free, with what it is and why it runs in the words of the Activity drawer, such
+    /// as `Reading app` and `Because src/a.rs changed.` (`activity.describe-task`).
+    pub fn start_described(&mut self, job: Job, words: Option<(Text, Text)>) {
         let cancel = CancelToken::new();
         let _replaced = self.tokens.insert(job.id, cancel.clone());
         if let Some(sender) = &self.sender {
-            let _sent = sender.send(Task { job, cancel });
+            let _sent = sender.send(Task { job, cancel, words });
         }
     }
 
@@ -118,7 +129,7 @@ fn work(receiver: &Mutex<Receiver<Task>>, activities: &Activities, deliver: &Del
             continue;
         }
         let message = {
-            let (description, cause) = words(&task.job.kind);
+            let (description, cause) = task.words.clone().unwrap_or_else(|| words(&task.job.kind));
             let _activity = activities.track(description, cause, now());
             jobs::run(&task.job, &task.cancel)
         };

@@ -30,9 +30,11 @@ pub struct WelcomeState<'a> {
 /// The Welcome page, over the rectangle its caller clipped it to: its title, **Open folder…**, the recent workspaces
 /// that open on a click, and the five steps, each ticked once done.
 ///
-/// Feature cards that fill it further: `welcome.page` (the buttons of the steps that open a commit, a comparison, a
-/// file and a worktree, and the pictures of the steps, which are icons for now), with `filter.show-only`,
+/// Feature cards that fill it further: the buttons of the steps that narrow the timeline, open a commit, a comparison,
+/// a file and a worktree, and the pictures of the steps, which are icons for now, with `filter.show-only`,
 /// `commit-page.open`, `compare.choose`, `blame.toggle-file` and `worktree.create`.
+///
+/// Feature: welcome.page
 pub fn page_view(state: &WelcomeState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut intents = Vec::new();
     let rect = ui.current_clip();

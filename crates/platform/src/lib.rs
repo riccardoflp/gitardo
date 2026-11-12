@@ -30,6 +30,7 @@ mod system;
 mod theme;
 mod timers;
 mod translate;
+mod watch;
 mod window;
 mod window_state;
 #[cfg(windows)]
@@ -52,4 +53,5 @@ pub use input::{
 pub use mailbox::{InputSender, Waker};
 pub use present::Frame;
 pub use theme::{Appearance, SystemTheme};
+pub use watch::{WatchDeliver, WatchEvent, Watcher};
 pub use window::{TextInputArea, Visibility, Window, WindowOptions};

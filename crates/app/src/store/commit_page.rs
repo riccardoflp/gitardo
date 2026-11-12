@@ -80,7 +80,8 @@ pub struct CommitPage {
 }
 
 /// Opens the page of a commit of a repository, or shows the one it has: there is never a second page for the same
-/// commit of the same repository. What `features::commit_page::open` decides, reduced in the store as Q90 says.
+/// commit of the same repository. What `features::commit_page::open` decides, reduced in the store as Q90 says; a page
+/// opened ticks its step of the Welcome page (`welcome.page`).
 pub fn open(state: &mut State, folder: PathBuf, commit: CommitId) -> Vec<Effect> {
     let open = state
         .commit_pages
@@ -122,7 +123,9 @@ pub fn open(state: &mut State, folder: PathBuf, commit: CommitId) -> Vec<Effect>
         version: 0,
     });
     super::pages::show_page(state, Page::Commit(id));
-    vec![Effect::Start(job)]
+    let mut effects = vec![Effect::Start(job)];
+    effects.extend(super::pages::tick_commit_page(state));
+    effects
 }
 
 /// Takes the commit of a page read, with its lines: the diffs folded as `commit-page.initial-folds` says, the title

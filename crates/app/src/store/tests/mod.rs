@@ -6,6 +6,7 @@
 mod open_folder;
 mod open_recent;
 mod pages;
+mod reads;
 mod select;
 
 use std::path::{Path, PathBuf};
