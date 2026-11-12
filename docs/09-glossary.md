@@ -70,6 +70,7 @@ titles of the commands in `package.json`, the words of the webviews, and the typ
 | conflict | A part of a file that two sides changed differently, marked by git with `<<<<<<<`. | | | `Conflict`, `ConflictFile` |
 | conflict that needs no choice | A conflict whose sides change the same text the same way, or differ only in whitespace, or change different lines that git still marked: the rules can resolve it. | | auto-resolve | `Resolution`, `src/git/conflicts.ts` |
 | proposal | What is proposed for one conflict, by the rules or by the language model, waiting in the review to be accepted. | resolution (what is written) | | `Proposal` |
+| choice (in the review) | A side, both sides, or lines written by hand, that the user put in place of a proposal in the review: a proposal of its own, **Your choice**. | proposal (of the rules or the AI) | | `Choice`, `choices` |
 | take a side | Resolve a whole file with the version of one side of the operation under way. | | | action `takeSide` |
 | branches shown | The branches, remote branches and tags the graph is narrowed to, chosen with the button before the search. The README calls choosing them "filter by branch". | search | | `Scope`, `src/shared/scope.ts` |
 | search | Finding commits in the graph by message, author, hash or change. | branches shown | | `Filter`, `Search` |

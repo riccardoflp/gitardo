@@ -1,12 +1,10 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Columns as Resizer } from '../flow/webview/columns';
-import type { Hunk } from '../shared/protocol';
-import type { Asking, ConflictChanges, ConflictRef, ConflictReview, DeletedConflict, Proposal, ReviewConflict, ReviewFile } from '../shared/resolution';
-import { Piece } from './FileChanges';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import type { Choice, ConflictRef, ConflictReview, DeletedConflict, ReviewConflict, ReviewFile } from '../shared/resolution';
+import { Conflict, DeletedFile } from './ConflictCard';
+import { widths, type Side } from './ConflictColumns';
+import { plural } from './conflictCode';
 import { FileIcon } from './FileIcon';
 import { Icon } from './Icon';
-import { sideChanges, type ChangedLine } from './sideChanges';
-import { useColors, type Token } from './syntax';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
 /**
@@ -40,674 +38,7 @@ function shows(filter: Filter, conflict: ReviewConflict, accepted: boolean): boo
   return true;
 }
 
-/** What a side of the conflicts is: its place in the operation, and the branch or commit it comes from. */
-interface Side {
-  role: 'Current' | 'Incoming';
-  label: string;
-  name: string | null;
-  subject: string | null;
-}
-
-/**
- * The widths of the columns, the same for every conflict of the page: dragging the gutter of one conflict moves the
- * gutters of all of them.
- */
-const widths: { now?: number[]; columns: Set<Resizer> } = { columns: new Set() };
-
 const idOf = (path: string, key: string) => `${path}\0${key}`;
-const linesOf = (text: string) => (text ? text.replace(/\r?\n$/, '').split(/\r?\n/) : []);
-const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
-
-/** Lines of code, in the colors of the theme once they are known, each with the class `kind` gives it. */
-function Code(props: { text: string; colors?: (Token[] | null)[]; kind?: (line: string, index: number) => string; className?: string; caret?: boolean }) {
-  const { text, colors, kind, className, caret } = props;
-  const lines = linesOf(text);
-  if (!lines.length && !caret) return <div className={`code-lines empty-lines ${className ?? ''}`}>Nothing: the lines are deleted</div>;
-  // The lines are as wide as the longest of them, for their colors to go all the way when the columns scroll sideways.
-  return (
-    <div className={`code-lines ${className ?? ''}`}>
-      <div className="code-width">
-        {lines.map((line, index) => {
-          const pieces = colors?.[index];
-          return (
-            <div key={index} className={`code-line ${kind?.(line, index) ?? ''}`}>
-              {pieces ? pieces.map((token, piece) => <Piece key={piece} token={token} />) : line || ' '}
-            </div>
-          );
-        })}
-        {caret && <span className="caret" aria-hidden="true" />}
-      </div>
-    </div>
-  );
-}
-
-/** A line in its colors, with the words that changed in it marked. */
-function Marked({ text, tokens, words }: { text: string; tokens?: Token[] | null; words?: [number, number][] }) {
-  const pieces = tokens ?? [{ text }];
-  if (!words?.length) return pieces.map((token, index) => <Piece key={index} token={token} />);
-  const marked: ReactNode[] = [];
-  let at = 0;
-  for (const token of pieces) {
-    // A piece of the colors can start or end inside a word that changed: it is cut where the word starts and ends.
-    for (let start = 0; start < token.text.length; ) {
-      const where = at + start;
-      const inside = words.find(([from, to]) => where >= from && where < to);
-      const next = inside ? inside[1] : Math.min(...words.map(([from]) => from).filter((from) => from > where), at + token.text.length);
-      const end = Math.min(token.text.length, next - at);
-      const piece = <Piece key={marked.length} token={{ ...token, text: token.text.slice(start, end) }} />;
-      marked.push(
-        inside ? (
-          <mark key={marked.length} className="word">
-            {piece}
-          </mark>
-        ) : (
-          piece
-        ),
-      );
-      start = end;
-    }
-    at += token.text.length;
-  }
-  return marked;
-}
-
-/**
- * A line of a side shown as what it changed: what it is, what is in its gutter, and its words that changed. A row
- * skipped stands for lines of the file that neither changed nor are near a change.
- */
-interface ChangeRow {
-  kind: ChangedLine['kind'] | 'around' | 'skipped';
-  gutter: string;
-  text: string;
-  tokens?: Token[] | null;
-  words?: [number, number][];
-}
-
-/** Lines of the file around what a side changed, numbered as they are in the file. */
-function aroundLines(text: string, first: number, colors?: (Token[] | null)[]): ChangeRow[] {
-  return linesOf(text).map((line, index) => ({ kind: 'around', gutter: String(first + index), text: line, tokens: colors?.[index] }));
-}
-
-/**
- * A side as what it changed of the base: the lines it took out, with a minus, over the ones it wrote in their place,
- * with a plus, and the words that changed marked in both, between the lines of the file around them.
- */
-function Changes(props: { changes: ConflictChanges; lines: ChangedLine[]; side: 'ours' | 'theirs'; colors?: (Token[] | null)[][] }) {
-  const { changes, lines, side, colors } = props;
-  const rows: ChangeRow[] = [
-    ...aroundLines(changes.before, changes.beforeLine, colors?.[11]),
-    ...lines.map((line) => ({
-      kind: line.kind,
-      gutter: line.kind === 'removed' ? '−' : line.kind === 'added' ? '+' : '',
-      text: line.text,
-      tokens: (line.kind === 'removed' ? colors?.[8] : colors?.[side === 'ours' ? 9 : 10])?.[line.index],
-      words: line.words,
-    })),
-    ...aroundLines(changes.after, changes.afterLine, colors?.[12]),
-  ];
-  return <ChangeLines rows={rows} titles={{ removed: 'Taken out of the base by this side', added: 'Written by this side', around: 'Line of the file around the conflict' }} />;
-}
-
-/** Rows of changes, each with its gutter, and what the gutter of each kind of row says when the pointer is on it. */
-function ChangeLines({ rows, titles }: { rows: ChangeRow[]; titles: Partial<Record<ChangeRow['kind'], string>> }) {
-  return (
-    <div className="code-lines changes">
-      <div className="code-width">
-        {rows.map((row, index) => (
-          <div key={index} className={`code-line ${row.kind}`}>
-            <span className="gutter" title={titles[row.kind]}>
-              {row.gutter}
-            </span>
-            <span className="text">
-              <Marked text={row.text || ' '} tokens={row.tokens} words={row.words} />
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/** How many lines that did not change are shown before and after each change of a file, at most. */
-const AROUND_CHANGES = 3;
-
-/**
- * What a side changed of a whole file, as a unified diff shows it: the changes with the lines around them, numbered as
- * the file has them now, and the lines between them left out.
- */
-function fileRows(lines: ChangedLine[], colors?: (Token[] | null)[][]): ChangeRow[] {
-  const near = lines.map(() => false);
-  lines.forEach((line, at) => {
-    if (line.kind === 'same') return;
-    for (let each = Math.max(0, at - AROUND_CHANGES); each <= Math.min(lines.length - 1, at + AROUND_CHANGES); each++) near[each] = true;
-  });
-  const rows: ChangeRow[] = [];
-  for (let at = 0; at < lines.length; ) {
-    const line = lines[at];
-    if (near[at]) {
-      const gutter = line.kind === 'removed' ? '−' : line.kind === 'added' ? '+' : String(line.index + 1);
-      rows.push({ kind: line.kind === 'same' ? 'around' : line.kind, gutter, text: line.text, tokens: colors?.[line.kind === 'removed' ? 0 : 1]?.[line.index], words: line.words });
-      at++;
-      continue;
-    }
-    let end = at;
-    while (end < lines.length && !near[end]) end++;
-    rows.push({ kind: 'skipped', gutter: '⋯', text: `${plural(end - at, 'line')} that did not change` });
-    at = end;
-  }
-  return rows;
-}
-
-/**
- * A file one side deleted and the other changed. There are no lines to choose between: the file is kept with the
- * changes of the side that has it, or deleted as the other side did.
- */
-function DeletedFile({ file, sides, busy }: { file: DeletedConflict; sides: [Side, Side]; busy: boolean }) {
-  const [deleter, keeper] = file.deletedBy === 'ours' ? [sides[0], sides[1]] : [sides[1], sides[0]];
-  const kept = file.deletedBy === 'ours' ? 'theirs' : 'ours';
-  const hunks = useMemo<Hunk[]>(() => [file.base, file.changed].map((text) => ({ header: '', lines: linesOf(text).map((line) => ` ${line}`) })), [file.base, file.changed]);
-  const colors = useColors(file.path, hunks, true);
-  const lines = useMemo(() => sideChanges(file.base, file.changed), [file.base, file.changed]);
-  const rows = useMemo(() => lines && fileRows(lines, colors), [lines, colors]);
-  const named = (side: Side) => `${side.role.toLowerCase()} side${side.name ? ` (${side.name})` : ''}`;
-  const take = (side: 'ours' | 'theirs') => post({ type: 'action', action: { kind: 'takeSide', path: file.path, side } });
-  return (
-    <section className="conflict-file deleted" aria-label={file.path}>
-      <h2>
-        <FileIcon path={file.path} />
-        <span className="grow path" title={file.path}>
-          {file.path}
-        </span>
-        <span className="muted">
-          Deleted by the {named(deleter)}, changed by the {named(keeper)}
-        </span>
-      </h2>
-      <article className="conflict">
-        <div className="side">
-          <SideLabel side={keeper} />
-          {rows?.length ? (
-            <ChangeLines rows={rows} titles={{ removed: 'Taken out of the file by this side', added: 'Written by this side', around: 'Line of the file', skipped: 'Lines left out here' }} />
-          ) : (
-            <p className="muted nothing">{rows ? 'This side changed nothing of the lines of the file.' : 'The changes are too many to show here.'}</p>
-          )}
-        </div>
-        <footer>
-          <button
-            className="button primary"
-            disabled={busy}
-            title={`Keep ${file.path} as the ${keeper.role.toLowerCase()} side has it, and mark it as resolved`}
-            onClick={() => take(kept)}
-          >
-            <Icon name="check" />
-            Keep it, with these changes
-          </button>
-          <button
-            className="button"
-            disabled={busy}
-            title={`Delete ${file.path}, as the ${deleter.role.toLowerCase()} side did: the changes above are left out`}
-            onClick={() => take(file.deletedBy)}
-          >
-            <Icon name="trash" />
-            Delete it
-          </button>
-          <button
-            className="button icon"
-            title="Show what it was beside what it is now, in the diff editor"
-            onClick={() => post({ type: 'openConflict', path: file.path, line: 1, editor: 'mergeEditor' })}
-          >
-            <Icon name="diff" />
-          </button>
-        </footer>
-      </article>
-    </section>
-  );
-}
-
-/** The label over the lines of a side: Current or Incoming, the branch or commit, and the subject of the commit. */
-function SideLabel({ side }: { side: Side }) {
-  const title = `${side.label}${side.name ? `: ${side.name}` : ''}${side.subject ? `, “${side.subject}”` : ''}`;
-  return (
-    <div className="side-label" title={title}>
-      {side.role} · {side.name ? <span className="side-name">{side.name}</span> : side.label}
-      {side.subject && <span className="side-subject"> {side.subject}</span>}
-    </div>
-  );
-}
-
-/** Says where a proposal comes from, and how sure the language model is of it. */
-function Source({ proposal }: { proposal: Proposal }) {
-  if (proposal.source === 'rules') {
-    return (
-      <span className="source rules" title="Every line of it is a line of one of the two sides">
-        <Icon name="wand" />
-        Rules
-      </span>
-    );
-  }
-  return (
-    <span className={`source ai ${proposal.confidence ?? ''}`} title="Written by the language model: look at it before you accept it">
-      <Icon name="sparkle" />
-      AI{proposal.model ? ` · ${proposal.model}` : ''}
-      {proposal.confidence ? ` · ${proposal.confidence} confidence` : ''}
-    </span>
-  );
-}
-
-/** What the page shows while the language model is asked about a conflict. */
-function AskingState({ asking, onRetry }: { asking: Asking; onRetry(): void }) {
-  if (asking.state === 'waiting') {
-    return (
-      <div className="asking waiting" role="status">
-        <div className="asking-label">
-          <Icon name="sparkle" />
-          Waiting for its turn…
-        </div>
-        <div className="skeleton" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-      </div>
-    );
-  }
-  if (asking.state === 'thinking') {
-    return (
-      <div className="asking thinking" role="status">
-        <div className="asking-label">
-          <span className="orbit" aria-hidden="true">
-            <Icon name="sparkle" />
-          </span>
-          {asking.text ? 'The AI is writing a resolution…' : 'The AI is reading the conflict…'}
-        </div>
-        {asking.text ? (
-          <Code text={asking.text} className="streaming" caret />
-        ) : (
-          <div className="skeleton" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-        )}
-      </div>
-    );
-  }
-  return (
-    <div className="asking failed" role="alert">
-      <Icon name="error" />
-      <span className="grow">The AI could not propose a resolution: {asking.error}</span>
-      <button className="button" onClick={onRetry}>
-        <Icon name="refresh" />
-        Ask again
-      </button>
-    </div>
-  );
-}
-
-/** Which lines of `a` are lines of `b`, in the same order, as pairs of their indexes: as many as can be. */
-function sameLines(a: string[], b: string[]): [number, number][] {
-  // Past this, a conflict is too large to be worth pairing line by line: the columns show it without bands.
-  if (!a.length || !b.length || a.length * b.length > 250_000) return [];
-  const same = (one: string, other: string) => one.trim() === other.trim();
-  const longest = Array.from({ length: a.length + 1 }, () => new Uint32Array(b.length + 1));
-  for (let i = a.length - 1; i >= 0; i--) {
-    for (let j = b.length - 1; j >= 0; j--) longest[i][j] = same(a[i], b[j]) ? longest[i + 1][j + 1] + 1 : Math.max(longest[i + 1][j], longest[i][j + 1]);
-  }
-  const pairs: [number, number][] = [];
-  for (let i = 0, j = 0; i < a.length && j < b.length; ) {
-    if (same(a[i], b[j])) pairs.push([i++, j++]);
-    else if (longest[i + 1][j] >= longest[i][j + 1]) i++;
-    else j++;
-  }
-  return pairs;
-}
-
-/** Where a line is drawn, from the top of the columns. */
-interface Place {
-  top: number;
-  bottom: number;
-}
-
-/** The bands of a gutter: each joins lines of the column at its left to the same lines in the column at its right. */
-function Bands(props: { pairs: [number, number][]; left: Place[]; right: Place[]; side: 'ours' | 'theirs' }) {
-  const { pairs, left, right, side } = props;
-  const width = 24;
-  const runs: [number, number, number, number][] = [];
-  for (const [i, j] of pairs) {
-    const last = runs[runs.length - 1];
-    if (last && last[1] === i - 1 && last[3] === j - 1) {
-      last[1] = i;
-      last[3] = j;
-    } else runs.push([i, i, j, j]);
-  }
-  const middle = width / 2;
-  // The bands take the height of the row, and never set it: the lines they join are measured in that row.
-  return (
-    <div className="bands">
-      <svg width={width} aria-hidden="true">
-        {runs.map(([fromLeft, toLeft, fromRight, toRight]) => {
-          const [a, b, c, d] = [left[fromLeft]?.top, left[toLeft]?.bottom, right[fromRight]?.top, right[toRight]?.bottom];
-          if ([a, b, c, d].some((y) => y === undefined)) return null;
-          return (
-            <path
-              key={`${fromLeft}:${fromRight}`}
-              className={side}
-              d={`M0 ${a} C${middle} ${a} ${middle} ${c} ${width} ${c} L${width} ${d} C${middle} ${d} ${middle} ${b} 0 ${b} Z`}
-            />
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
-/**
- * A conflict in three columns, as the Flow Merge shows a file: the current side, what is proposed, and the incoming
- * side, with bands that join each line proposed to the side it comes from. The bands are also the sashes that make a
- * column wider, and the lines do not wrap: the three columns scroll sideways together.
- */
-function Columns(props: {
-  conflict: ReviewConflict;
-  sides: [Side, Side];
-  accepted: boolean;
-  colors?: (Token[] | null)[][];
-  middle: ReactNode;
-  /** Keeps the widths once a gutter is let go. */
-  onWidths(weights: number[]): void;
-}) {
-  const { conflict, sides, accepted, colors, middle, onWidths } = props;
-  const { proposal } = conflict;
-  const ours = linesOf(conflict.region.ours);
-  const theirs = linesOf(conflict.region.theirs);
-  const proposed = linesOf(proposal?.text ?? '');
-  const fromOurs = useMemo(() => (proposal ? sameLines(ours, proposed) : []), [conflict.region.ours, proposal?.text]);
-  const toTheirs = useMemo(() => (proposal ? sameLines(proposed, theirs) : []), [conflict.region.theirs, proposal?.text]);
-  const taken = {
-    ours: new Set(fromOurs.map(([i]) => i)),
-    theirs: new Set(toTheirs.map(([, j]) => j)),
-    byOurs: new Set(fromOurs.map(([, j]) => j)),
-    byTheirs: new Set(toTheirs.map(([i]) => i)),
-  };
-  const grid = useRef<HTMLDivElement>(null);
-  const [places, setPlaces] = useState<{ ours: Place[]; proposed: Place[]; theirs: Place[] }>({ ours: [], proposed: [], theirs: [] });
-  useLayoutEffect(() => {
-    const element = grid.current;
-    if (!element) return;
-    // Lines wrap in a narrow column: where each one is drawn is measured, again whenever the columns change size.
-    const measure = () => {
-      const top = element.getBoundingClientRect().top;
-      const of = (column: string) =>
-        [...element.querySelectorAll(`:scope > .side.${column} .code-line`)].map((line) => {
-          const box = line.getBoundingClientRect();
-          return { top: box.top - top, bottom: box.bottom - top };
-        });
-      const next = { ours: of('ours'), proposed: of('proposed'), theirs: of('theirs') };
-      setPlaces((now) => (JSON.stringify(now) === JSON.stringify(next) ? now : next));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [conflict.region.ours, conflict.region.theirs, proposal?.text]);
-
-  const kept = useRef(onWidths);
-  kept.current = onWidths;
-  useEffect(() => {
-    const element = grid.current;
-    if (!element) return;
-    const columns = ['ours', 'proposed', 'theirs'].map((column) => {
-      const host = element.querySelector<HTMLElement>(`:scope > .side.${column}`)!;
-      return { host, label: host.querySelector<HTMLElement>('.side-label')! };
-    });
-    const resizer: Resizer = new Resizer(columns, [...element.querySelectorAll<HTMLElement>(':scope > .bands')], widths.now, (weights, done) => {
-      widths.now = weights;
-      for (const other of widths.columns) if (other !== resizer) other.set(weights);
-      if (done) kept.current(weights);
-    });
-    widths.columns.add(resizer);
-    // A column scrolled sideways takes the other two along. Each of those then says it scrolled too, which is not
-    // passed on: it would bring back a column that could go further than they can.
-    const following = new Set<Element>();
-    const scrolled = (event: Event) => {
-      const from = event.target;
-      if (!(from instanceof HTMLElement) || !from.classList.contains('code-lines') || from.parentElement?.parentElement !== element) return;
-      if (following.delete(from)) return;
-      for (const other of element.querySelectorAll<HTMLElement>(':scope > .side > .code-lines')) {
-        if (other === from || other.scrollLeft === from.scrollLeft) continue;
-        const before = other.scrollLeft;
-        other.scrollLeft = from.scrollLeft;
-        if (other.scrollLeft !== before) following.add(other);
-      }
-    };
-    element.addEventListener('scroll', scrolled, true);
-    return () => {
-      element.removeEventListener('scroll', scrolled, true);
-      widths.columns.delete(resizer);
-      resizer.dispose();
-    };
-  }, []);
-
-  const kindOfProposed = (line: string, index: number) => {
-    const [byOurs, byTheirs] = [taken.byOurs.has(index), taken.byTheirs.has(index)];
-    if (byOurs && byTheirs) return 'from-both';
-    if (byOurs) return 'from-ours';
-    if (byTheirs) return 'from-theirs';
-    return line.trim() ? 'new' : '';
-  };
-  return (
-    <div className="columns" ref={grid}>
-      <div className="side ours">
-        <SideLabel side={sides[0]} />
-        <Code text={conflict.region.ours} colors={colors?.[6]} kind={(_line, index) => (!proposal ? '' : taken.ours.has(index) ? 'taken' : 'left-out')} />
-      </div>
-      <Bands pairs={fromOurs} left={places.ours} right={places.proposed} side="ours" />
-      <div className={`side proposed${proposal ? ` ${proposal.source}` : ''}`}>
-        <div className="side-label">{proposal ? (accepted ? 'Accepted' : 'Proposed') : 'Nothing proposed yet'}</div>
-        {proposal ? <Code text={proposal.text} colors={colors?.[3]} kind={kindOfProposed} /> : middle}
-      </div>
-      <Bands pairs={toTheirs} left={places.proposed} right={places.theirs} side="theirs" />
-      <div className="side theirs">
-        <SideLabel side={sides[1]} />
-        <Code text={conflict.region.theirs} colors={colors?.[7]} kind={(_line, index) => (!proposal ? '' : taken.theirs.has(index) ? 'taken' : 'left-out')} />
-      </div>
-    </div>
-  );
-}
-
-/** One conflict: what each side has, what is proposed in its place, and what can be done with it. */
-function Conflict(props: {
-  file: ReviewFile;
-  conflict: ReviewConflict;
-  sides: [Side, Side];
-  ai: boolean;
-  accepted: boolean;
-  busy: boolean;
-  /** Whether it is shown in three columns rather than as the two sides over what is proposed. */
-  columns: boolean;
-  /** Whether only its first line is shown, as for a conflict whose proposal is accepted. */
-  folded: boolean;
-  onAccept(accepted: boolean): void;
-  onFold(folded: boolean): void;
-  onWidths(weights: number[]): void;
-}) {
-  const { file, conflict, sides, ai, accepted, busy, columns, folded, onAccept, onFold, onWidths } = props;
-  const { proposal, asking } = conflict;
-  const ref: ConflictRef = { path: file.path, key: conflict.key };
-  // Each part is colored on its own: the lines before, the two sides, the proposal, the lines after, the base, the
-  // lines the proposal replaces on each side, which the columns show, and what each side changed of the base, with the
-  // lines around it, which the cards show.
-  const { changes } = conflict;
-  const parts = [
-    conflict.before,
-    conflict.ours,
-    conflict.theirs,
-    proposal?.text ?? '',
-    conflict.after,
-    conflict.base ?? '',
-    conflict.region.ours,
-    conflict.region.theirs,
-    changes?.base ?? '',
-    changes?.ours ?? '',
-    changes?.theirs ?? '',
-    changes?.before ?? '',
-    changes?.after ?? '',
-  ];
-  const hunks = useMemo<Hunk[]>(() => parts.map((text) => ({ header: '', lines: linesOf(text).map((line) => ` ${line}`) })), parts);
-  const colors = useColors(file.path, hunks, !folded);
-  const [showBase, setShowBase] = useState(false);
-  const changed = useMemo(
-    () => (changes && !folded && !columns ? { ours: sideChanges(changes.base, changes.ours), theirs: sideChanges(changes.base, changes.theirs) } : null),
-    [changes?.base, changes?.ours, changes?.theirs, folded, columns],
-  );
-  const known = useMemo(
-    () => new Set([conflict.ours, conflict.theirs, conflict.base ?? ''].flatMap((text) => linesOf(text).map((line) => line.trim()))),
-    [conflict.ours, conflict.theirs, conflict.base],
-  );
-  const open = (editor: 'flowMerge' | 'mergeEditor' | 'text') => post({ type: 'openConflict', path: file.path, line: conflict.line, editor });
-  const nothing = asking ? (
-    <AskingState asking={asking} onRetry={() => post({ type: 'askAI', conflicts: [ref] })} />
-  ) : (
-    <p className="muted nothing">Nothing is proposed: the two sides changed the same lines in different ways.</p>
-  );
-  const accept = proposal && (
-    <button
-      className={`button${accepted ? ' accept on' : ' primary accept'}`}
-      disabled={busy}
-      title={accepted ? 'Take back the acceptance: the conflict is left as it is' : 'Put this in place of the conflict when the accepted resolutions are written'}
-      onClick={() => onAccept(!accepted)}
-    >
-      <Icon name={accepted ? 'pass-filled' : 'check'} />
-      {accepted ? 'Accepted' : 'Accept'}
-    </button>
-  );
-  const className = `conflict${accepted ? ' accepted' : ''}${proposal ? ` proposed ${proposal.source}` : ''}${folded ? ' folded' : ''}`;
-  const head = (
-    <>
-      <button className="button icon" title={folded ? 'Show this conflict' : 'Show only the first line of this conflict'} aria-expanded={!folded} onClick={() => onFold(!folded)}>
-        <Icon name={folded ? 'chevron-right' : 'chevron-down'} />
-      </button>
-      <button className="link" title="Open the file at this line" onClick={() => open('text')}>
-        Line {conflict.line}
-      </button>
-    </>
-  );
-
-  if (folded) {
-    const first = linesOf(proposal?.text ?? conflict.ours).find((line) => line.trim()) ?? '';
-    return (
-      <article className={className} aria-label={`Conflict at line ${conflict.line}`}>
-        <header>
-          {head}
-          <code className="grow first-line" title={proposal?.text}>
-            {first.trim()}
-          </code>
-          {proposal && <Source proposal={proposal} />}
-          {accept}
-        </header>
-      </article>
-    );
-  }
-
-  return (
-    <article className={className} aria-label={`Conflict at line ${conflict.line}`}>
-      <header>
-        {head}
-        <span className="grow" />
-        {conflict.base !== null && (
-          <button className={`button icon${showBase ? ' toggled' : ''}`} title={showBase ? 'Hide the base' : 'Show what the lines were before either side changed them'} onClick={() => setShowBase(!showBase)}>
-            <Icon name="history" />
-          </button>
-        )}
-        {proposal && <Source proposal={proposal} />}
-      </header>
-      {showBase && conflict.base !== null && (
-        <div className="side base">
-          <div className="side-label">Base · before either side changed it</div>
-          <Code text={conflict.base} colors={colors?.[5]} />
-        </div>
-      )}
-      {columns ? (
-        <>
-          <Columns conflict={conflict} sides={sides} accepted={accepted} colors={colors} middle={nothing} onWidths={onWidths} />
-          {proposal && (
-            <p className="columns-reason">
-              <span className="muted">{proposal.reason}</span>
-              {proposal.newLines > 0 && (
-                <span className="warning">
-                  <Icon name="warning" />
-                  {plural(proposal.newLines, 'line is', 'lines are')} new: neither side has {proposal.newLines === 1 ? 'it' : 'them'}.
-                </span>
-              )}
-            </p>
-          )}
-        </>
-      ) : (
-        <>
-          <div className="sides">
-            <div className="side ours">
-              <SideLabel side={sides[0]} />
-              {changes && changed?.ours ? <Changes changes={changes} lines={changed.ours} side="ours" colors={colors} /> : <Code text={conflict.ours} colors={colors?.[1]} />}
-            </div>
-            <div className="side theirs">
-              <SideLabel side={sides[1]} />
-              {changes && changed?.theirs ? (
-                <Changes changes={changes} lines={changed.theirs} side="theirs" colors={colors} />
-              ) : (
-                <Code text={conflict.theirs} colors={colors?.[2]} />
-              )}
-            </div>
-          </div>
-
-          {proposal && (
-            <div className={`proposal ${proposal.source}`} key={`${proposal.source}:${proposal.text}`}>
-              <div className="side-label">
-                {accepted ? 'Accepted' : 'Proposed'}
-                <span className="muted"> · {proposal.reason}</span>
-              </div>
-              <Code text={conflict.before} colors={colors?.[0]} className="around" />
-              <Code
-                text={proposal.text}
-                colors={colors?.[3]}
-                className="resolved"
-                kind={(line) => (proposal.source === 'ai' && line.trim() && !known.has(line.trim()) ? 'new' : '')}
-              />
-              <Code text={conflict.after} colors={colors?.[4]} className="around" />
-              {proposal.newLines > 0 && (
-                <p className="note">
-                  <Icon name="warning" />
-                  {plural(proposal.newLines, 'line is', 'lines are')} new: neither side has {proposal.newLines === 1 ? 'it' : 'them'}.
-                </p>
-              )}
-            </div>
-          )}
-          {!proposal && asking && <AskingState asking={asking} onRetry={() => post({ type: 'askAI', conflicts: [ref] })} />}
-          {!proposal && !asking && <p className="muted nothing">Nothing is proposed: the two sides changed the same lines in different ways.</p>}
-        </>
-      )}
-
-      <footer>
-        {accept}
-        <button className="button" title="Resolve it in the Flow Merge, choosing for each change" onClick={() => open('flowMerge')}>
-          <Icon name="git-merge" />
-          Resolve by hand
-        </button>
-        <button className="button icon" title="Open it in the merge editor of VS Code" onClick={() => open('mergeEditor')}>
-          <Icon name="split-horizontal" />
-        </button>
-        {ai && proposal?.source !== 'rules' && asking?.state !== 'waiting' && asking?.state !== 'thinking' && (
-          <button
-            className="button"
-            disabled={busy}
-            title={proposal ? 'Ask the language model again: its answer takes the place of this one' : 'Ask the language model how to resolve it'}
-            onClick={() => post({ type: 'askAI', conflicts: [ref] })}
-          >
-            <Icon name="sparkle" />
-            {proposal ? 'Ask again' : 'Ask the AI'}
-          </button>
-        )}
-      </footer>
-    </article>
-  );
-}
 
 /** What the last resolutions written did, with the way back and the way on. */
 function Report({ review }: { review: ConflictReview }) {
@@ -928,18 +259,22 @@ export function ConflictsApp() {
   const conflicts = review.files.flatMap((file) => file.conflicts.map((conflict) => ({ file, conflict })));
   const byRules = conflicts.filter(({ conflict }) => conflict.proposal?.source === 'rules').length;
   const byAI = conflicts.filter(({ conflict }) => conflict.proposal?.source === 'ai').length;
+  const byYou = conflicts.filter(({ conflict }) => conflict.proposal?.source === 'choice').length;
   const unanswered = conflicts.filter(({ conflict }) => !conflict.proposal);
   const askable = unanswered.filter(({ conflict }) => conflict.asking?.state !== 'waiting' && conflict.asking?.state !== 'thinking').length;
   const refs = (ids: string[]): ConflictRef[] => ids.map((id) => ({ path: id.slice(0, id.indexOf('\0')), key: id.slice(id.indexOf('\0') + 1) }));
-  const accept = (ids: string[], on: boolean) => {
+  /** Accepts conflicts or takes them back; `open` keeps them in view, as after a choice whose result is to be seen. */
+  const accept = (ids: string[], on: boolean, open = false) => {
     const next = new Set(accepted);
     const unfolded = new Map(folds);
     for (const id of ids) {
       if (on) next.add(id);
       else next.delete(id);
       // What is accepted or taken back folds or unfolds again as it would by itself, and so does its file.
-      unfolded.delete(id);
-      unfolded.delete(id.slice(0, id.indexOf('\0')));
+      for (const each of [id, id.slice(0, id.indexOf('\0'))]) {
+        if (open) unfolded.set(each, false);
+        else unfolded.delete(each);
+      }
     }
     setAccepted(next);
     setFolds(unfolded);
@@ -962,7 +297,16 @@ export function ConflictsApp() {
   const currentDeleted = current ? undefined : deleted.find((file) => file.path === selected);
   const files = currentDeleted ? [] : (current ? [current] : review.files).filter(listed);
   const deletedShown = currentDeleted ? [currentDeleted] : current ? [] : deleted;
-  const allProposed = [...present];
+  // A proposal with a warning is accepted only one by one, after it was looked at: never with the others.
+  const unwarned = (file: ReviewFile) => file.conflicts.filter((conflict) => conflict.proposal && !conflict.warnings.length).map((conflict) => idOf(file.path, conflict.key));
+  const allProposed = review.files.flatMap(unwarned);
+  const warnedLeft = conflicts.filter(({ file, conflict }) => conflict.warnings.length && conflict.proposal && !accepted.has(idOf(file.path, conflict.key))).length;
+  const pick = (file: ReviewFile, conflict: ReviewConflict, choice: Choice | null) => {
+    post({ type: 'chooseResolution', conflict: { path: file.path, key: conflict.key }, choice });
+    // What is chosen is accepted with the choice, and stays in view for its result to be seen; what was proposed before
+    // it comes back as it was, not accepted.
+    accept([idOf(file.path, conflict.key)], choice !== null, true);
+  };
   const sides: [Side, Side] = [
     { role: 'Current', label: review.oursLabel, name: review.oursName, subject: review.oursSubject },
     { role: 'Incoming', label: review.theirsLabel, name: review.theirsName, subject: review.theirsSubject },
@@ -970,6 +314,7 @@ export function ConflictsApp() {
   const summary = [
     byRules && `${byRules} proposed by the rules`,
     byAI && `${byAI} by the AI`,
+    byYou && `${byYou} chosen by you`,
     unanswered.length && `${unanswered.length} with nothing proposed`,
   ].filter(Boolean);
   const said = [
@@ -988,11 +333,17 @@ export function ConflictsApp() {
           {said.length ? `${said.join('; ')}. Nothing is written until you write what you accepted.` : 'No conflict with markers to look at here.'}
         </p>
         {!review.rules && !review.ai && <p className="note">Neither the rules nor the AI are switched on in the settings: nothing is proposed.</p>}
+        {warnedLeft > 0 && (
+          <p className="note warned-note">
+            <Icon name="warning" />
+            {plural(warnedLeft, 'proposal has a warning', 'proposals have a warning')}: look at {warnedLeft === 1 ? 'it' : 'them'} and accept one by one.
+          </p>
+        )}
         <div className="actions">
           <button
             className="button"
-            disabled={!allProposed.length || chosen.length === allProposed.length}
-            title="Accept every resolution proposed, from the rules and from the AI"
+            disabled={!allProposed.length || allProposed.every((id) => accepted.has(id))}
+            title="Accept every resolution proposed, from the rules, from the AI and chosen by you, but those with a warning, which are accepted one by one"
             onClick={() => accept(allProposed, true)}
           >
             <Icon name="check-all" />
@@ -1088,6 +439,7 @@ export function ConflictsApp() {
           {files.map((file) => {
             const ids = file.conflicts.filter((conflict) => conflict.proposal).map((conflict) => idOf(file.path, conflict.key));
             const all = ids.length > 0 && ids.every((id) => accepted.has(id));
+            const acceptable = unwarned(file);
             const settled = all && ids.length === file.conflicts.length;
             // A file chosen alone is not folded unless asked: it is there to be looked at.
             const folded = folds.get(file.path) ?? (settled && !current);
@@ -1111,7 +463,12 @@ export function ConflictsApp() {
                       ? `${file.conflicts.length === 1 ? 'Its conflict is' : `All ${file.conflicts.length} conflicts are`} accepted`
                       : `${ids.length} of ${plural(file.conflicts.length, 'conflict')} proposed`}
                   </span>
-                  <button className="button" disabled={!ids.length || all} title="Accept every resolution proposed in this file" onClick={() => accept(ids, true)}>
+                  <button
+                    className="button"
+                    disabled={!acceptable.length || acceptable.every((id) => accepted.has(id))}
+                    title="Accept every resolution proposed in this file, but those with a warning, which are accepted one by one"
+                    onClick={() => accept(acceptable, true)}
+                  >
                     <Icon name="check-all" />
                     Accept the file
                   </button>
@@ -1132,6 +489,7 @@ export function ConflictsApp() {
                         accepted={on}
                         folded={folds.get(id) ?? (on && !!conflict.proposal)}
                         onAccept={(yes) => accept([id], yes)}
+                        onChoose={(choice) => pick(file, conflict, choice)}
                         onFold={(yes) => fold(id, yes)}
                         onWidths={setKept}
                       />

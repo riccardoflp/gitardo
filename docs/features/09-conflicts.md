@@ -362,7 +362,7 @@ file, deletes it.
 - **Implemented in**: `Action` `{ kind: 'takeSide'; path; side }`; case `'takeSide'` of `resolveAction` in
   `src/extension/actions.ts`; `takeSideOp` in `src/git/ops.ts`; `Controller.action` (reads the stages first and sets
   `undoable` to `restoreConflictsOp([path])` when stages 2 and 3 were there); buttons in `ChangesApp.tsx` and
-  `DeletedFile` in `ConflictsApp.tsx`.
+  `DeletedFile` in `ConflictCard.tsx`.
 - **Tested by**: `test/resolve.test.ts` — "takes a whole file from one side, which for a side that deleted it is
   deleting it"; `test/integration.test.ts` — "continues a series of cherry-picks past a conflict resolved by keeping
   what the branch has"; `test/e2e/suite.ts` — "offers nothing about resolving conflicts until its setting is on, then
@@ -728,8 +728,9 @@ resolution is looked at, accepted or not, before anything is written.
 - **Refuses**: with both settings off, **Gitardo: resolving conflicts automatically is experimental, and it is switched
   off in the settings.** with **Open Settings**.
 - **Settings**: `gitardo.conflicts.autoResolve` (the rules propose), `gitardo.conflicts.ai` (the AI can be asked).
-- **Uses**: `conflict.review-files`, `conflict.review-card`, `conflict.review-columns`, `conflict.accept`,
-  `conflict.show-result`, `conflict.write`, `conflict.deleted-card`, `conflict.resolve-ai`, `operation.continue`.
+- **Uses**: `conflict.review-files`, `conflict.review-card`, `conflict.review-columns`, `conflict.proposal-lines`,
+  `conflict.proposal-warnings`, `conflict.choose`, `conflict.accept`, `conflict.show-result`, `conflict.write`,
+  `conflict.deleted-card`, `conflict.resolve-ai`, `operation.continue`.
 - **Implemented in**: `Controller.reviewConflicts`; the commands `gitardo.reviewConflicts` and
   `gitardo.resolveConflictsWithAI` in `src/extension/extension.ts`; the messages `reviewConflicts`, `getReview` and
   `review` in `src/shared/protocol.ts`; `ConflictReview`, `ReviewFile`, `ReviewConflict` in
@@ -786,71 +787,198 @@ Acceptance:
 
 ### `conflict.review-card` — A conflict in the review
 
-One card per conflict: what each side changed of the base, the base on demand, what is proposed and where it comes
-from, and the ways to resolve it by hand.
+One card per conflict: what is proposed first, with where each of its lines comes from and what it does with the two
+sides, what looks wrong in it, the other ways to resolve it, what each side changed on demand, and where the proposal
+comes from beside the buttons that decide.
 
 - **Kind**: View
-- **Function**: `Conflict(props)`, `Changes(props)`, `SideLabel`, `Source` and `AskingState` in
-  `src/webview/ConflictsApp.tsx`; `conflictChanges(lines, conflict)`, `rulesProposal(conflict)` and the `region` of
-  `reviewFiles` in `src/git/review.ts`; `Controller.openConflict(repo, file, line, editor)`.
+- **Function**: `Conflict(props)`, `Composition`, `Warnings`, `Source`, `Editor` and `AskingState` in
+  `src/webview/ConflictCard.tsx`; `Code`, `Changes` and `PART` in `src/webview/conflictCode.tsx`;
+  `conflictChanges(lines, conflict)`, `rulesProposal(conflict)` and the `region` of `reviewFiles` in
+  `src/git/review.ts`; `Controller.openConflict(repo, file, line, editor)`.
 - **Entry points**: each conflict of the review, in **Cards**.
-- **Uses**: `conflict.accept`, `conflict.resolve-ai`, `conflict.sides`.
-- **Implemented in**: `Conflict` in `ConflictsApp.tsx`; `sideChanges` in `src/webview/sideChanges.ts`; the message
+- **Uses**: `conflict.proposal-lines`, `conflict.proposal-warnings`, `conflict.choose`, `conflict.accept`,
+  `conflict.resolve-ai`, `conflict.sides`.
+- **Implemented in**: `Conflict` in `ConflictCard.tsx`; `sideChanges` in `src/webview/sideChanges.ts`; the message
   `openConflict` and `Controller.openConflict`.
 - **Tested by**: `test/resolve.test.ts` — "proposes a resolution for each conflict, and writes only the ones accepted";
   "finds in the file the lines that the changes of a conflict take around its markers, for the lines around to follow
-  them".
+  them"; `test/proposalLines.test.ts` (the sentence and the counts).
 
 Acceptance:
 
-- [ ] Each side is labelled **Current · main** and **Incoming · feature/map-view**, with the subject of its commit; in a
-      cherry-pick the incoming side is the short hash.
-- [ ] Each side shows the lines it took out of the base with `−` over those it wrote with `+`, the changed words marked,
-      and up to 3 lines of the file before and after, numbered as in the file.
+- [ ] The heading of a card says what the proposal does with the two sides: **Takes only the current side, main**,
+      **Takes only the incoming side, feature/map-view**, **Keeps both sides: main first, then feature/map-view** (or
+      the other way), **Takes lines of both sides**, **Takes lines of both sides, and writes 1 line of its own**,
+      **Writes 2 lines of its own in place of both sides**, **Leaves out the lines of both sides**; with nothing proposed,
+      **Nothing proposed yet**. The names of the sides are underlined in their colors.
+- [ ] Under it, a bar and **4 from main · 1 on both sides · 4 from feature/map-view · 0 new**: the lines that are not
+      empty, counted by where they come from; a count of 0 is left out, but for the new lines of a proposal of the AI.
+- [ ] What is proposed is shown first, between 3 lines of the file before and after it, faded; each line proposed has a
+      bar at its left, green for the current side, blue for the incoming one, both for a line of both sides, grey for a
+      line of the base, purple, with a tint, for a line neither has. The pointer on a line says **From main**, **On both
+      sides**, **As it was before either side changed it** or **New: neither side has this line**.
+- [ ] A proposal that deletes the lines says **Nothing: the lines are deleted**.
+- [ ] **Compare with the sides** shows each side labelled **Current · main** and **Incoming · feature/map-view**, with
+      the subject of its commit, as the lines it took out of the base with `−` over those it wrote with `+`, the changed
+      words marked, and up to 3 lines of the file before and after, numbered as in the file; **Hide the sides** hides
+      them. With nothing proposed they are shown at once. In a cherry-pick the incoming side is the short hash.
 - [ ] Where the base cannot be told, each side shows its lines between the markers as they are.
 - [ ] The clock button, **Show what the lines were before either side changed them**, shows **Base · before either
       side changed it**; it is there only when the base is known.
-- [ ] A proposal is shown as **Proposed · <reason>** between 3 lines of the file before and after it; a rule says
-      **Rules** with the reason **Changes to lines next to each other**; the AI says **AI · Chosen model · high
-      confidence**.
-- [ ] A proposal of the AI with lines neither side nor the base has marks them, and says **1 line is new: neither side
-      has it.**
-- [ ] With nothing proposed it says **Nothing is proposed: the two sides changed the same lines in different ways.**
+- [ ] The bottom of the card has where the proposal comes from, **Rules**, **AI · Chosen model · high confidence** or
+      **Your choice**, its reason, and for new lines **1 line is new: neither side has it.**, then **Resolve by hand**,
+      the merge editor, **Ask again** for a proposal of the AI (**Ask the AI** with nothing proposed) and **Accept**,
+      last.
+- [ ] With nothing proposed it says **Nothing is proposed: the two sides changed the same lines in different ways.
+      Choose a side, or write the lines.**
 - [ ] **Line 2** opens the file at that line; **Resolve by hand** opens the file in the Flow Merge; the button beside it
       opens it in the merge editor; nothing opens for a file no longer in conflict.
-- [ ] An accepted conflict folds to its line, the first line of its resolution and **Accepted**; the arrow folds or
-      unfolds it by hand, and the same for a file whose conflicts are all accepted.
+- [ ] An accepted conflict folds to its line, the first line of its resolution, its warnings, where it comes from and
+      **Accepted**; the arrow folds or unfolds it by hand, and the same for a file whose conflicts are all accepted.
 
 ### `conflict.review-columns` — A conflict in three columns
 
-Shows each conflict as the Flow Merge does: the current side, what is proposed, and the incoming side, joined by bands.
+Shows each conflict as the Flow Merge does: the current side, what is proposed, and the incoming side, joined by bands,
+between the lines of the file around them.
 
 - **Kind**: View
-- **Function**: `Columns(props)`, `Bands(props)` and `sameLines(a, b)` in `src/webview/ConflictsApp.tsx`.
+- **Function**: `Columns(props)` and `Bands(props)` in `src/webview/ConflictColumns.tsx`; `sameLines(a, b)` in
+  `src/shared/proposalLines.ts`.
 - **Entry points**: **Columns**, beside **Cards**, at the top of the review.
-- **Implemented in**: `Columns`, `Bands`, `sameLines`, the shared `widths` and `Resizer` from
+- **Implemented in**: `Columns`, `Bands`, `ORIGIN_CLASS`, the shared `widths` and `Resizer` from
   `src/flow/webview/columns.ts`; `columns` and `widths` remembered with `saveUiState`.
-- **Tested by**: *none*
+- **Tested by**: `test/proposalLines.test.ts` — "pairs the lines that are the same in order, spaces at the ends aside".
 
 Acceptance:
 
-- [ ] Each column shows the lines the proposal takes the place of, as that side has them; the middle one is labelled
-      **Proposed**, **Accepted** or **Nothing proposed yet**.
+- [ ] Each column shows the lines the proposal takes the place of, as that side has them, between up to 3 lines of the
+      file before and after, faded; the middle one is labelled **Proposed**, **Accepted** or **Nothing proposed yet**.
 - [ ] A band joins each proposed line to the line of a side that is the same, spaces at the ends aside: green for the
       current side, blue for the incoming one; a side's lines left out are faded, and a proposed line neither side has
       is marked.
+- [ ] The pointer on a line outlines it and the lines it is joined to in the other columns.
 - [ ] Conflicts whose sides multiply to more than 250,000 lines are shown without bands.
-- [ ] The lines do not wrap; a column scrolled sideways takes the other two along.
+- [ ] A line too long for its column wraps; no column scrolls sideways.
 - [ ] Dragging a band changes the widths of every conflict at once; a double click makes them even; the choice of
       **Columns** and the widths are kept with the tab.
-- [ ] Under the columns, the reason of the proposal and, for new lines, **2 lines are new: neither side has them.**
+- [ ] The heading, the bar of where the lines come from, the warnings, the choices and the bottom of the card are those
+      of `conflict.review-card`.
+
+### `conflict.proposal-lines` — Where the lines of a proposal come from
+
+Tells, for each line of a proposal, which side has it, and what the proposal does with the two sides as a whole, so
+that a card can say it in a sentence and in colors.
+
+- **Kind**: Derivation
+- **Function**: `proposalLines(ours, theirs, proposed, base)` and `summarize(ours, theirs, proposed, origins)` in
+  `src/shared/proposalLines.ts`.
+- **Uses**: `sameLines(a, b)`.
+- **Implemented in**: `src/shared/proposalLines.ts`; used by `Conflict` and `Columns` in the webview and by
+  `reviewFiles` for `conflict.proposal-warnings`.
+- **Tested by**: `test/proposalLines.test.ts` — "where the lines of a proposal come from", "what a proposal does with
+  the two sides".
+
+Rules of its result:
+
+- The inputs are the lines each side has where the proposal goes (the `region`), the proposal, and the base when it is
+  known. Two lines are the same when they differ only in the spaces at their ends.
+- A line is first paired, in order, with the same line of each side, as many as can be (`fromOurs`, `toTheirs`: the
+  bands). A line paired with both sides is `both`; with one, that side. A line that cannot be paired in order still
+  comes from the side that has it, from both when both have it, then from the `base`; else it is `new`. An empty line is
+  `blank`.
+- The shape leaves aside the empty lines and the spaces at the ends: `nothing` when nothing is left, `current` or
+  `incoming` when it is exactly one side, `current-first` or `incoming-first` when it is one side then the other, else
+  `mixed`. The counts are those of each origin but `blank`.
+- `ours: "a\nb\n"`, `theirs: "c\n"`, proposed `"b\na\nc\n"` → `ours, ours, theirs`, `mixed`.
+- `ours: "version 1.2.1\nshipping\n"`, `theirs: "version 1.3.0\ndiscounts\n"`, proposed the two one after the other
+  → `current-first`, 2 from each side.
+
+### `conflict.proposal-warnings` — What looks like a mistake in a proposal
+
+Finds in a proposal what is most likely a mistake of keeping both sides: a setting or a variable given a value twice,
+and a JSON file that would no longer be JSON.
+
+- **Kind**: Derivation
+- **Function**: `repeatedKeys(proposed, origins)` in `src/shared/proposalLines.ts`; `jsonCheck(plan)` in
+  `src/git/review.ts`, called by `reviewFiles`.
+- **Uses**: `conflict.proposal-lines`.
+- **Implemented in**: the `warnings` of `ReviewConflict` in `src/shared/resolution.ts`; `Warnings` and the `warned`
+  lines of `Conflict` in `src/webview/ConflictCard.tsx`; `unwarned` in `ConflictsApp`.
+- **Tested by**: `test/proposalLines.test.ts` — "what looks like a mistake in a proposal"; `test/resolve.test.ts` —
+  "puts what the user chose before what is proposed, and warns of a proposal that keeps a setting twice or leaves a
+  file that is not JSON".
+
+Rules of its result:
+
+- A name is what a line gives a value with `:` or `=`, after its indentation and the words that declare a variable
+  (`const`, `let`, `var`, `export`, `readonly`, …), in quotes or not: a key of JSON or YAML, a property, a variable, a
+  setting. `==`, `=>` and `::` give no value.
+- A name is repeated when the proposal has it at the same indentation in a line of the current side and in a line of
+  the incoming side, and the two lines differ. The same line on both sides is not a warning.
+- A file whose name ends in `.json` is checked when the file with every conflict resolved for one side is JSON: the
+  proposal, with the other conflicts resolved for that side, must be JSON too. A file that neither side makes JSON, as
+  one with comments, is not checked.
+- `"version": "1.2.1",` from the current side and `"version": "1.3.0",` from the incoming one → **version is set
+  twice**; with `"shipping": true` before the second and no comma → **Not valid JSON**.
+- `const count = items.length;` and `const count = items.reduce(…);` → **count is set twice**.
+
+Acceptance:
+
+- [ ] A card with warnings says **version is set twice**, **Not valid JSON** or **2 warnings** at its top, with the
+      whole of each in its tooltip, and the lines a repeated name is on tinted.
+- [ ] **Accept all proposed** and **Accept the file** leave out the proposals with a warning, and the top of the review
+      says **1 proposal has a warning: look at it and accept one by one.** while one is not accepted.
+
+### `conflict.choose` — Choose a side, or write the lines, in the review
+
+Puts in place of what is proposed for a conflict one of its sides, both one after the other, or lines written in the
+card, accepted at once, without leaving the review.
+
+- **Kind**: View
+- **Function**: `Conflict(props)` and `Editor` in `src/webview/ConflictCard.tsx`, `pick` of `ConflictsApp()`;
+  `ConflictReviewTab.choose(ref, choice)` in `src/extension/conflictReview.ts`; `choiceProposal(text, conflict,
+  choice)` in `src/git/review.ts`; `choiceText(choice, ours, theirs)` in `src/shared/proposalLines.ts`.
+- **Entry points**: **Current only**, **Incoming only**, **Both, current first**, **Both, incoming first** and **Edit**
+  under what is proposed (after **Instead:**, or **Choose:** with nothing proposed); **Drop your choice** on a choice.
+- **Offered when**: the language model is not writing about the conflict, and nothing runs.
+- **Plan**: nothing runs: the choice is a proposal, written by `conflict.write` with the others.
+- **Undo**: **Drop your choice** brings back what was proposed before, not accepted; nothing was written.
+- **After**: the choice is accepted and its card stays open, with **Your choice** and its reason: **Only the current
+  side**, **Only the incoming side**, **Both sides, the current one first**, **Both sides, the incoming one first**,
+  **Written by you**.
+- **Uses**: `conflict.accept`, `conflict.write`, `conflict.proposal-lines`, `conflict.proposal-warnings`.
+- **Implemented in**: the message `chooseResolution` in `src/shared/protocol.ts` and its case in
+  `Controller.onMessage`; `Choice` and `SideChoice` in `src/shared/resolution.ts`; the store `choices` in
+  `src/extension/answers.ts`; `Asked.choice` and `reviewFiles` in `src/git/review.ts`; the case `chooseResolution` of
+  `src/dev/server.ts`.
+- **Tested by**: `test/resolve.test.ts` — "puts what the user chose before what is proposed, and warns of a proposal
+  that keeps a setting twice or leaves a file that is not JSON"; `test/proposalLines.test.ts` — "what a choice of the
+  two sides puts in place of a conflict".
+
+Acceptance:
+
+- [ ] A choice takes the place of the proposal of the rules or of the AI for that conflict, and is accepted at once;
+      choosing changes no file and runs nothing.
+- [ ] The choice of the shape the proposal already has is not offered: a proposal that keeps both sides, the current
+      one first, offers **Current only**, **Incoming only** and **Both, incoming first**.
+- [ ] **Current only** on a conflict whose sides are `"version": "1.2.1"` and `"version": "1.3.0"` proposes the first,
+      **Incoming only** the second; **Both, current first** proposes the lines of the current side then those of the
+      incoming one, each ending its line, in the line endings of the file.
+- [ ] **Edit** opens the lines in the card, from what is proposed, or from the two sides one after the other when
+      nothing is; **Use these lines** or `Ctrl`+`Enter` takes them, **Cancel** or `Escape` leaves them. Lines neither side
+      has are counted as new.
+- [ ] The language model is not asked about a conflict with a choice, by **Ask the AI about the rest** or otherwise.
+- [ ] A choice is kept while VS Code runs, by file and fingerprint of the conflict: also when the tab is closed, and
+      when **Undo** marks the conflict again; it is gone once the conflict is edited.
+- [ ] Written, a choice counts in the question as **(chosen by you)**, or **1 chosen by you** among others.
 
 ### `conflict.accept` — Accept a proposed resolution
 
 Chooses which proposals are written, one by one, by file or all at once, and takes the choice back; nothing is written.
 
 - **Kind**: View
-- **Function**: `accept(ids, on)` of `ConflictsApp()` in `src/webview/ConflictsApp.tsx`.
+- **Function**: `accept(ids, on, open)` and `unwarned(file)` of `ConflictsApp()` in `src/webview/ConflictsApp.tsx`.
 - **Entry points**: **Accept** on a card (and **Accepted** to take it back); **Accept the file** on the heading of a
   file; **Accept all proposed** and **Clear** at the top of the review.
 - **Implemented in**: the `accepted` state of `ConflictsApp`, remembered with `saveUiState` by file and key
@@ -861,13 +989,14 @@ Chooses which proposals are written, one by one, by file or all at once, and tak
 Acceptance:
 
 - [ ] Accepting changes no file and runs nothing.
-- [ ] **Accept all proposed** accepts every proposal, of the rules and of the AI; it is disabled when nothing is
-      proposed or all is accepted.
-- [ ] **Accept the file** accepts the proposals of that file, and is disabled when there are none or all are accepted.
+- [ ] **Accept all proposed** accepts every proposal, of the rules, of the AI and chosen, but those with a warning; it
+      is disabled when there are none of those or all of them are accepted.
+- [ ] **Accept the file** accepts the proposals of that file but those with a warning, and is disabled when there are
+      none or all are accepted.
 - [ ] **Clear** shows only when something is accepted, and takes every acceptance back.
 - [ ] The heading of a file says **1 of 2 conflicts proposed**, or **All 2 conflicts are accepted**.
 - [ ] An acceptance whose proposal is gone, written or edited since, is forgotten.
-- [ ] There is no way to change the text of a proposal in the tab: **Resolve by hand** is the way to write another.
+- [ ] The text of a proposal is changed in the tab only by `conflict.choose`, which makes it a choice of the user.
 
 ### `conflict.show-result` — Show the result of the accepted resolutions
 
@@ -899,7 +1028,8 @@ Writes the resolutions accepted in the review into their files, and stages the f
   accepted**, disabled, while nothing is accepted.
 - **Offered when**: at least one resolution is accepted and nothing runs.
 - **Asks**: nothing, unless `gitardo.commandPreview` is `all`: then **Write the resolutions of 2 conflicts?**, detail
-  **e.txt: 2 of 2 conflicts (1 by the AI)** (or **(by the rules)**, **(by the AI)**), what is left, **All of them were
+  **e.txt: 2 of 2 conflicts (1 by the AI)** (or **(by the rules)**, **(by the AI)**, **(chosen by you)**,
+  **(1 by the AI, 1 chosen by you)**), what is left, **All of them were
   written by a language model: look at them before you commit.** (or **1 of them were …**) when the AI wrote some, then
   the files and the command, with **Run**.
 - **Plan**: `> write e.txt` for each file with an accepted resolution, then `> git add -- e.txt` for those left with no
@@ -950,7 +1080,8 @@ A card for a file one side deleted and the other changed: what the side that kep
 or delete it.
 
 - **Kind**: View
-- **Function**: `DeletedFile({ file, sides, busy })` in `src/webview/ConflictsApp.tsx`, with `fileRows`.
+- **Function**: `DeletedFile({ file, sides, busy })` in `src/webview/ConflictCard.tsx`, with `fileRows` from
+  `src/webview/conflictCode.tsx`.
 - **Entry points**: the review, with **All** and **Nothing proposed**; a click on the file under **Deleted on one
   side**.
 - **Uses**: `conflict.take-side`, `conflict.open-deleted`.
@@ -984,14 +1115,15 @@ proposals in the review, to accept or not.
   **Resolve with AI** in the message that says an operation stopped; in the review, **Ask the AI about the rest (2)**,
   **Ask the AI** or **Ask again** on a card, and **Ask again** on a card whose question failed.
 - **Offered when**: `gitardo.conflicts.ai` is on. **Ask the AI about the rest** is disabled while questions run or
-  none is left to ask; a card offers it unless the rules propose for it or its question is under way.
+  none is left to ask; a card offers it unless the rules propose for it, it has a choice of the user
+  (`conflict.choose`), or its question is under way.
 - **Reads**: `vscode.lm.selectChatModels()`; `Repo.conflictSubjects()`; the conflict as `conflict.ai-prompt` puts it.
 - **Settings**: `gitardo.conflicts.ai`, `gitardo.conflicts.aiModel`, `gitardo.conflicts.aiEffort`.
 - **Uses**: `conflict.review`, `conflict.ai-prompt`, `conflict.ai-answer`, `conflict.choose-model`, `conflict.write`.
 - **Implemented in**: `Controller.reviewConflicts(paths, true)`; the messages `askAI` and `stopAsking`;
   `ConflictReviewTab.ask`, `next`, `stop` (`AT_ONCE` = 2, `SEND_EVERY` = 120 ms); `answers` in
-  `src/extension/answers.ts`; `askResolution`, `conflictModel` in `src/extension/ai.ts`; `Progress` and `AskingState`
-  in `ConflictsApp.tsx`.
+  `src/extension/answers.ts`; `askResolution`, `conflictModel` in `src/extension/ai.ts`; `Progress` in
+  `ConflictsApp.tsx` and `AskingState` in `ConflictCard.tsx`.
 - **Tested by**: `test/e2e/suite.ts` — "shows what the rules and the AI propose for each conflict, writes only what is
   accepted, and takes it back".
 

@@ -64,8 +64,8 @@ A change that needs to break a rule changes this page first, in its own commit, 
 - **R5.1** A module does what its name says; no `utils` grows into a second home. *Source: project choice. Followed,
   but for `src/webview/util.ts`, which is small.*
 - **R5.2** A file over about 1,000 lines is split along a line the reader sees, when it is changed anyway.
-  *Source: project choice. Target: `controller.ts` (2,600 lines), `actions.ts` (1,500), `ops.ts` (1,300), `repo.ts`
-  (1,100) and `ConflictsApp.tsx` (1,200) are over it; see [RS1](13-risks.md).*
+  *Source: project choice. Target: `controller.ts` (2,600 lines), `actions.ts` (1,500), `ops.ts` (1,300) and
+  `repo.ts` (1,100) are over it; see [RS1](13-risks.md).*
 - **R5.3** Types carry meaning: unions of string literals (`MergeMode`, `ResetMode`, `Operation`), not bare strings or
   booleans that switch behavior. *Source: project choice. Followed.*
 - **R5.4** A `switch` on a union handles every case. *Source: project choice. Review: `tsc` checks it only where the

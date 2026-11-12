@@ -8,10 +8,15 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 - When the repository has more than one worktree, the branch checked out at the start of the toolbar of the graph is a button that lists the worktrees by their branch and shows the one picked, as **Show in Gitardo** does.
 - The repository Gitardo shows follows the one clicked in the Repositories view of VS Code's Source Control side bar, worktrees included. While that view lists one repository at a time, one chosen in Gitardo is selected there too.
+- In the review of the conflicts, each card says in a sentence what the proposal does with the two sides (**Keeps both sides: main first, then feature/map-view**), with a bar and counts of how many of its lines come from each side, from both and from neither, and each line proposed is marked in the color of the side it comes from.
+- A proposal that keeps twice a name both sides gave a value to, such as a key of JSON or a variable, or that leaves a JSON file no longer JSON, says so on its card with its lines marked; **Accept all proposed** and **Accept the file** leave it to be accepted on its own.
+- **Current only**, **Incoming only**, **Both, current first**, **Both, incoming first** and **Edit** on each card of the review: what you choose or write takes the place of what is proposed, accepted at once, and **Drop your choice** brings back the proposal.
 
 ### Changed
 
 - While the views show another worktree, the list of repositories keeps the repository it is of chosen, instead of listing the worktree.
+- The cards of the review show what is proposed first; what each side changed is under **Compare with the sides**, shown at once when nothing is proposed. Where the proposal comes from, why, and **Accept** are together at the bottom of the card.
+- In **Columns**, the lines wrap instead of scrolling sideways, each column shows the lines of the file around the conflict, and the pointer on a line lights up the lines it is joined to.
 
 ## 0.10.0 - 2026-11-04
 

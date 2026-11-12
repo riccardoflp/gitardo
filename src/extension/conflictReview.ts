@@ -7,10 +7,10 @@ import type { ConflictPlan, Repo } from '../git/repo';
 import { fingerprint, questionParts, reviewFiles } from '../git/review';
 import { partialResolution } from '../shared/conflictPrompt';
 import type { HostMessage, Operation, ViewKind } from '../shared/protocol';
-import type { Asking, ConflictRef, ConflictReview, DeletedConflict, Proposal, ReviewReport } from '../shared/resolution';
+import type { Asking, Choice, ConflictRef, ConflictReview, DeletedConflict, Proposal, ReviewReport } from '../shared/resolution';
 import { askResolution, conflictModelName } from './ai';
 import { proposalUri } from './content';
-import { answers } from './answers';
+import { answers, choices } from './answers';
 
 /** How many conflicts the language model is asked about at the same time. */
 const AT_ONCE = 2;
@@ -73,6 +73,7 @@ export class ConflictReviewTab implements vscode.Disposable {
     this.disposables.push(
       host.attach(this.webview, 'conflicts', { root: repo.root }),
       answers.onDidChange((root) => samePath(root, repo.root) && this.schedule()),
+      choices.onDidChange((root) => samePath(root, repo.root) && this.send()),
       vscode.lm.onDidChangeChatModels(() => void this.reload()),
     );
     this.panel.onDidDispose(() => {
@@ -130,6 +131,7 @@ export class ConflictReviewTab implements vscode.Disposable {
     const asked = {
       answer: (file: string, print: string) => answers.get(this.repo.root, file, print),
       asking: (file: string, print: string) => this.asking.get(`${file}\0${print}`),
+      choice: (file: string, print: string) => choices.get(this.repo.root, file, print),
     };
     return {
       root: this.repo.root,
@@ -196,6 +198,16 @@ export class ConflictReviewTab implements vscode.Disposable {
     await this.reload();
   }
 
+  /**
+   * Puts what the user chose in place of what is proposed for a conflict, or takes the choice back for what was
+   * proposed before. Nothing is written: the choice is a proposal like the others, accepted in the tab.
+   */
+  choose(ref: ConflictRef, choice: Choice | null): void {
+    const print = ref.key.slice(ref.key.indexOf(':') + 1);
+    if (choice) choices.set(this.repo.root, ref.path, print, choice);
+    else choices.delete(this.repo.root, ref.path, print);
+  }
+
   /** Shows each file beside what the proposals accepted would make of it. */
   async preview(refs: ConflictRef[]): Promise<void> {
     await this.reading;
@@ -222,8 +234,9 @@ export class ConflictReviewTab implements vscode.Disposable {
     for (const file of this.review().files) {
       for (const conflict of file.conflicts) {
         const wanted = refs ? refs.some((ref) => ref.path === file.path && ref.key === conflict.key) : !conflict.proposal;
-        // What the rules resolve, they resolve without inventing a line: the model is not asked about it.
-        if (!wanted || conflict.proposal?.source === 'rules') continue;
+        // What the rules resolve, they resolve without inventing a line, and what the user chose is theirs: the model is
+        // not asked about either.
+        if (!wanted || conflict.proposal?.source === 'rules' || conflict.proposal?.source === 'choice') continue;
         const print = conflict.key.slice(conflict.key.indexOf(':') + 1);
         const id = `${file.path}\0${print}`;
         if (this.queue.some((job) => `${job.path}\0${job.print}` === id) || this.asking.get(id)?.state === 'thinking') continue;

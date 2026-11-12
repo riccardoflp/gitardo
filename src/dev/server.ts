@@ -22,7 +22,7 @@ import {
   type WebviewMessage,
 } from '../shared/protocol';
 import { sortRefs } from '../shared/refs';
-import type { Asking } from '../shared/resolution';
+import type { Asking, Choice } from '../shared/resolution';
 import { cleanCommands, cleanPatterns, type SetupLayer, type SetupSource } from '../shared/worktreeSetup';
 
 // Usage: node dist/dev-server.js [--port=5174] [--icon-theme=<file>] [folder...]   (every repository found in the folders can be chosen in the page)
@@ -235,6 +235,8 @@ async function main() {
    * and answers a little more each time the page asks for the review again.
    */
   const pretended = new Map<string, number>();
+  /** What was chosen in the review in place of what is proposed, by file and fingerprint, while the server runs. */
+  const chosen = new Map<string, Choice>();
 
   async function review(): Promise<HostMessage[]> {
     if (!repo) return [{ type: 'review', review: null, error: 'No repository.' }];
@@ -265,6 +267,7 @@ async function main() {
         if (now - at < PRETEND_WAIT) return { state: 'waiting' };
         return { state: 'thinking', text: text.slice(0, Math.floor((text.length * (now - at - PRETEND_WAIT)) / PRETEND_WRITE)) };
       },
+      choice: (file: string, print: string) => chosen.get(`${file}\0${print}`),
     };
     const files = reviewFiles(plans, true, asked);
     const busy = files.some((file) => file.conflicts.some((conflict) => conflict.asking && conflict.asking.state !== 'failed'));
@@ -397,7 +400,7 @@ async function main() {
         for (const file of files) {
           for (const conflict of file.conflicts) {
             const wanted = message.conflicts ? message.conflicts.some((ref) => ref.path === file.path && ref.key === conflict.key) : !conflict.proposal;
-            if (wanted && conflict.proposal?.source !== 'rules') pretended.set(`${file.path}\0${conflict.key.slice(conflict.key.indexOf(':') + 1)}`, Date.now());
+            if (wanted && conflict.proposal?.source !== 'rules' && conflict.proposal?.source !== 'choice') pretended.set(`${file.path}\0${conflict.key.slice(conflict.key.indexOf(':') + 1)}`, Date.now());
           }
         }
         return review();
@@ -405,6 +408,12 @@ async function main() {
       case 'stopAsking':
         pretended.clear();
         return review();
+      case 'chooseResolution': {
+        const id = `${message.conflict.path}\0${message.conflict.key.slice(message.conflict.key.indexOf(':') + 1)}`;
+        if (message.choice) chosen.set(id, message.choice);
+        else chosen.delete(id);
+        return review();
+      }
       case 'chooseConflictModel':
         // The preview has no language model to choose.
         return [];

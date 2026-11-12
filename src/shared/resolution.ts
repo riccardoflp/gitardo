@@ -1,8 +1,9 @@
 import type { Operation, Resolution } from './protocol';
 
 // What can be proposed for the conflicts of a merge, and the tab where the proposals are looked at before anything is
-// written. The proposals come from the rules of Gitardo, which never write a line that neither side has, or from the
-// language model the user has set up in VS Code, which can.
+// written. The proposals come from the rules of Gitardo, which never write a line that neither side has, from the
+// language model the user has set up in VS Code, which can, or from the user, who chose a side or wrote the lines in the
+// tab.
 
 /** The cases the rules resolve, said as the tab and the questions say them. */
 export const RESOLUTIONS: Record<Resolution, string> = {
@@ -12,8 +13,20 @@ export const RESOLUTIONS: Record<Resolution, string> = {
   oneSide: 'a change on one side only',
 };
 
-/** Where a proposal comes from. */
-export type ProposalSource = 'rules' | 'ai';
+/** Where a proposal comes from: the rules, the language model, or the user's own choice in the review. */
+export type ProposalSource = 'rules' | 'ai' | 'choice';
+
+/** What can be chosen of the two sides of a conflict: one of them, or both, one after the other. */
+export type SideChoice = 'current' | 'incoming' | 'current-first' | 'incoming-first';
+
+/** What the user chose in the review in place of what was proposed: the sides, or lines written by hand. */
+export type Choice = { kind: SideChoice } | { kind: 'edited'; text: string };
+
+/**
+ * What looks like a mistake in a proposal: a name given a value twice, once by each side, at these lines of the
+ * proposal from 0; or a file that would no longer be read as JSON, though it can be with either side.
+ */
+export type ProposalWarning = { kind: 'repeated'; key: string; lines: number[] } | { kind: 'invalid'; format: 'JSON'; error: string };
 
 /** How sure the language model says it is of what it proposes. */
 export type Confidence = 'high' | 'medium' | 'low';
@@ -71,6 +84,8 @@ export interface ReviewConflict {
    */
   changes: ConflictChanges | null;
   proposal: Proposal | null;
+  /** What looks like a mistake in the proposal. */
+  warnings: ProposalWarning[];
   asking: Asking | null;
 }
 

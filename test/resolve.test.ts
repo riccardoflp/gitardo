@@ -23,6 +23,7 @@ import {
 } from '../src/git/ops';
 import { Repo } from '../src/git/repo';
 import { conflictChanges, reviewFiles } from '../src/git/review';
+import type { Choice } from '../src/shared/resolution';
 
 // Conflicts as git itself leaves them, in a throwaway repository, resolved the way the extension does it.
 
@@ -226,6 +227,48 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     write('b.txt', `${read('b.txt')}typed\n`);
     const stale = writeResolutionsOp([{ ...files[0], proposals: [b.conflicts[0].proposal!] }]);
     await expect(run(stale)).rejects.toThrow('b.txt has changed since it was read');
+  });
+
+  it('puts what the user chose before what is proposed, and warns of a proposal that keeps a setting twice or leaves a file that is not JSON', async () => {
+    const json = (...lines: string[]) => text('{', '  "name": "shop",', ...lines, '}');
+    await divergent(
+      { 'config.json': json('  "version": "1.2.0"'), 'b.txt': BASE },
+      { 'config.json': json('  "version": "1.3.0",', '  "discounts": true'), 'b.txt': BASE.replace('two', 'TWO') },
+      { 'config.json': json('  "version": "1.2.1",', '  "shipping": true'), 'b.txt': BASE.replace('three', 'THREE') },
+    );
+    await expect(run(mergeOp('other', 'main'))).rejects.toThrow();
+    const both = { text: text('  "version": "1.2.1",', '  "shipping": true', '  "version": "1.3.0",', '  "discounts": true'), reason: 'Both.', confidence: 'low' as const };
+    const chosen = new Map<string, Choice>();
+    const asked = { answer: (file: string) => (file === 'config.json' ? both : undefined), asking: () => undefined, choice: (file: string) => chosen.get(file) };
+    const review = async () => reviewFiles(await plans(), true, asked);
+
+    // Both sides one after the other: the version twice, and a comma missing.
+    const [b, config] = await review();
+    expect(b.conflicts[0].warnings).toEqual([]);
+    expect(config.conflicts[0].proposal?.source).toBe('ai');
+    expect(config.conflicts[0].warnings).toMatchObject([
+      { kind: 'repeated', key: 'version', lines: [0, 2] },
+      { kind: 'invalid', format: 'JSON' },
+    ]);
+
+    // A side chosen comes before the language model and the rules, and leaves the file JSON.
+    chosen.set('config.json', { kind: 'incoming' });
+    chosen.set('b.txt', { kind: 'current-first' });
+    const [b2, config2] = await review();
+    expect(config2.conflicts[0].proposal).toMatchObject({ source: 'choice', text: text('  "version": "1.3.0",', '  "discounts": true'), reason: 'Only the incoming side', newLines: 0 });
+    expect(config2.conflicts[0].warnings).toEqual([]);
+    expect(b2.conflicts[0].proposal).toMatchObject({ source: 'choice', text: text('two', 'THREE', 'TWO', 'three'), reason: 'Both sides, the current one first' });
+
+    // Lines written by hand: what neither side has is counted as new, and is what is written.
+    chosen.set('config.json', { kind: 'edited', text: '  "version": "1.3.0",\n  "shipping": true,\n  "discounts": true' });
+    const [, config3] = await review();
+    expect(config3.conflicts[0].proposal).toMatchObject({ source: 'choice', reason: 'Written by you', newLines: 1 });
+    const files = (await plans()).map((plan, index) => ({ path: plan.path, text: plan.text, conflicts: plan.conflicts.length, proposals: [[b2, config3][index].conflicts[0].proposal!] }));
+    const op = writeResolutionsOp(files);
+    expect(op.note).toContain('b.txt: 1 of 1 conflict (chosen by you)');
+    await run(op);
+    expect(JSON.parse(read('config.json'))).toEqual({ name: 'shop', version: '1.3.0', shipping: true, discounts: true });
+    expect(read('b.txt')).toBe(text('one', 'two', 'THREE', 'TWO', 'three', 'four', 'five'));
   });
 
   it('finds in the file the lines that the changes of a conflict take around its markers, for the lines around to follow them', () => {

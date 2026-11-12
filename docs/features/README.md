@@ -155,6 +155,9 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | [`conflict.review-files`](09-conflicts.md#conflictreview-files--the-files-of-the-review-and-its-filters) | The files of the review and its filters | View | Documented |
 | [`conflict.review-card`](09-conflicts.md#conflictreview-card--a-conflict-in-the-review) | A conflict in the review | View | Documented |
 | [`conflict.review-columns`](09-conflicts.md#conflictreview-columns--a-conflict-in-three-columns) | A conflict in three columns | View | Documented |
+| [`conflict.proposal-lines`](09-conflicts.md#conflictproposal-lines--where-the-lines-of-a-proposal-come-from) | Where the lines of a proposal come from | Derivation | Documented |
+| [`conflict.proposal-warnings`](09-conflicts.md#conflictproposal-warnings--what-looks-like-a-mistake-in-a-proposal) | What looks like a mistake in a proposal | Derivation | Documented |
+| [`conflict.choose`](09-conflicts.md#conflictchoose--choose-a-side-or-write-the-lines-in-the-review) | Choose a side, or write the lines, in the review | View | Documented |
 | [`conflict.accept`](09-conflicts.md#conflictaccept--accept-a-proposed-resolution) | Accept a proposed resolution | View | Documented |
 | [`conflict.show-result`](09-conflicts.md#conflictshow-result--show-the-result-of-the-accepted-resolutions) | Show the result of the accepted resolutions | View | Documented |
 | [`conflict.write`](09-conflicts.md#conflictwrite--write-the-accepted-resolutions) | Write the accepted resolutions | Operation | Differs |

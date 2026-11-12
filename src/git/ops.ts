@@ -1152,8 +1152,11 @@ export function writeResolutionsOp(files: AcceptedFile[]): GitOp {
   const done = writes.filter((write) => conflictCount(write.content) === 0);
   const fromAI = chosen.reduce((sum, file) => sum + file.proposals.filter((proposal) => proposal.source === 'ai').length, 0);
   const lines = chosen.map((file) => {
-    const ai = file.proposals.filter((proposal) => proposal.source === 'ai').length;
-    const how = ai === file.proposals.length ? 'by the AI' : ai ? `${ai} by the AI` : 'by the rules';
+    const from = (source: Proposal['source'], by: string) => {
+      const count = file.proposals.filter((proposal) => proposal.source === source).length;
+      return count === file.proposals.length ? by : count ? `${count} ${by}` : null;
+    };
+    const how = [from('ai', 'by the AI'), from('choice', 'chosen by you')].filter(Boolean).join(', ') || 'by the rules';
     return `${file.path}: ${file.proposals.length} of ${plural(file.conflicts, 'conflict')} (${how})`;
   });
   const left = files.reduce((sum, file) => sum + file.conflicts, 0) - count;

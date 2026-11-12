@@ -1,6 +1,6 @@
 import type { SyntaxTheme } from '../flow/diff/protocol';
 import type { FileIconTheme } from './fileIcons';
-import type { ConflictRef, ConflictReview } from './resolution';
+import type { Choice, ConflictRef, ConflictReview } from './resolution';
 import type { SetupPatterns, SetupPreview, SetupTarget, WorktreeSetupInfo } from './worktreeSetup';
 
 /** Pseudo-hash of the row that stands for uncommitted changes. */
@@ -761,6 +761,8 @@ export type WebviewMessage =
   | { type: 'writeResolutions'; accepted: ConflictRef[] }
   /** Shows each file in conflict beside what the proposals accepted would make of it, in a multi-file diff editor. */
   | { type: 'previewResolutions'; accepted: ConflictRef[] }
+  /** Puts what the user chose in place of what is proposed for a conflict, or takes the choice back with null. */
+  | { type: 'chooseResolution'; conflict: ConflictRef; choice: Choice | null }
   /** Asks the language model about these conflicts, or about all the ones with nothing proposed. */
   | { type: 'askAI'; conflicts?: ConflictRef[] }
   | { type: 'stopAsking' }

@@ -32,7 +32,7 @@ in the commit that fixes it, which says so in its message; the [roadmap](07-road
 
 | | Kind | What it is | What happens if it bites | How likely | What we do |
 | --- | --- | --- | --- | --- | --- |
-| RS1 | Debt | Five files are over 1,000 lines: `controller.ts` (2,600), `actions.ts` (1,500), `ops.ts` (1,300), `ConflictsApp.tsx` (1,200), `repo.ts` (1,100). R5.2. | Changes there are slower to review and collide between parallel branches. | Certain | Split along a seam when a change touches one anyway; no rewrite |
+| RS1 | Debt | Four files are over 1,000 lines: `controller.ts` (2,600), `actions.ts` (1,500), `ops.ts` (1,300), `repo.ts` (1,100). R5.2. | Changes there are slower to review and collide between parallel branches. | Certain | Split along a seam when a change touches one anyway; no rewrite |
 | RS3 | Debt | The webviews import pure code from `src/git/parse.ts` and `src/flow`, and `src/shared/protocol.ts` imports a type of `src/flow`; nothing keeps that code free of Node or VS Code. R1.4. | A Node import added to `parse.ts` breaks the webview bundle, or bloats it. | Low | M4: a check of the imports, or move the shared code to `src/shared` |
 | RS4 | Risk | Several windows of the same workspace share its workspace state; the last to write a key wins. | Favorites marked in one window are lost when another writes its own. | Low | Accepted |
 | RS5 | Risk | The maintainer works on Windows; macOS and Linux are exercised only by whoever runs the tests there. | A path, a link or a case-sensitivity problem ships unnoticed. | Medium | Run `npm test` on the other two before a release, when a machine is at hand |

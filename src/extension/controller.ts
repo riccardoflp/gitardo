@@ -2309,6 +2309,8 @@ export class Controller implements vscode.Disposable {
         return Array.isArray(message.accepted) ? review?.write(message.accepted) : undefined;
       case 'previewResolutions':
         return Array.isArray(message.accepted) ? review?.preview(message.accepted) : undefined;
+      case 'chooseResolution':
+        return message.conflict && review?.choose(message.conflict, message.choice ?? null);
       case 'askAI':
         return review?.ask(Array.isArray(message.conflicts) ? message.conflicts : undefined);
       case 'stopAsking':
