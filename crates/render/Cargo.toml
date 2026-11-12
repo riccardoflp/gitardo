@@ -8,3 +8,6 @@ publish.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+testkit = { path = "../testkit" }
