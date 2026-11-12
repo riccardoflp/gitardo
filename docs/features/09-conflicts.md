@@ -588,8 +588,8 @@ accepted or not, and written. Nothing is written until the user writes what was 
 - **Refuses**: with both settings off: *Resolving conflicts automatically is experimental, and it is switched off in the
   settings.* with **Open settings**.
 - **Settings**: `conflicts.autoResolve` (the rules propose), `conflicts.ai` (the AI can be asked).
-- **Uses**: `review.file-list`, `review.card`, `review.columns`, `review.proposals`, `review.accept`,
-  `review.accept-file`, `review.accept-all`, `review.clear`, `review.write`, `review.report`, `review.show-result`,
+- **Uses**: `review.file-list`, `review.card`, `review.columns`, `review.proposals`, `review.proposal-lines`,
+  `review.proposal-warnings`, `review.choose`, `review.accept`, `review.accept-file`, `review.accept-all`, `review.clear`, `review.write`, `review.report`, `review.show-result`,
   `review.deleted-card`, `ai.resolve-conflicts`, `ai.choose-model`.
 
 The page is **Conflicts · \<repository folder name\>**; there is one per window, and asking for it again shows it (with
@@ -647,40 +647,68 @@ Acceptance:
 
 ### `review.card` — A conflict, as a card
 
-One conflict: what each side changed, and what is proposed for it with the lines around it as they are in the file.
+One conflict: what is proposed first, with where each of its lines comes from and what it does with the two sides,
+what looks wrong in it, the other ways to resolve it, what each side changed on demand, and where the proposal comes
+from beside the buttons that decide.
 
 - **Kind**: View
 - **Function**: `views::review::card_view(state, ui) -> Vec<Intent>`
 - **Entry points**: one card per conflict in `review.page`, under its file.
-- **Uses**: `review.side-diff`, `review.proposals`, `file-view.highlight`, `merge-view.page` (**Resolve by hand**),
-  `conflicts.open-file`, `ai.resolve-conflicts`.
+- **Uses**: `review.side-diff`, `review.proposals`, `review.proposal-lines`, `review.proposal-warnings`,
+  `review.choose`, `file-view.highlight`, `merge-view.page` (**Resolve by hand**), `conflicts.open-file`,
+  `ai.resolve-conflicts`.
 
 - Its title is **Conflict at line N**; the line number opens the file at that line (*Open the file at this line*).
-- Each side is named by its role and the branch it comes from, with the subject of its commit: **Current · main** and
-  **Incoming · feature/map-view** in a merge; in a rebase **Current** is the branch rebased onto and **Incoming** is the
-  branch being rebased; a commit cherry-picked or reverted is named by its short hash (`conflicts.side-names`).
-- Each side shows what it changed of the base, in the colors of the code (`review.side-diff`). **Show the base**
-  (*Show what the lines were before either side changed them*) shows **Base · before either side changed it**, and
-  **Hide the base** hides it.
-- Under the sides, what is proposed, with the 3 lines of the file before and after the lines it replaces, numbered as
-  in the file. It says where it comes from: **Rules** with the case (*Changes to lines next to each other*) and *Every
-  line of it is a line of one of the two sides*; or **AI** with the model's name, how sure it said it is (high, medium,
-  low), what it said, and how many of its lines neither side has (*Written by the language model: look at it before you
-  accept it*). A proposal of nothing reads *Nothing: the lines are deleted*.
-- With nothing proposed: *Nothing is proposed: the two sides changed the same lines in different ways.*
+- Its heading says in a sentence what the proposal does with the two sides (`review.proposal-lines`), the names of the
+  sides underlined in their colors, and under it a bar and the counts of where its lines come from.
+- What is proposed is shown first, between 3 lines of the file before and after it, faded. Each line proposed has a
+  bar at its left in the color of where it comes from: green for the current side, blue for the incoming one, both for
+  a line of both sides, grey for a line of the base, purple, with a tint, for a line neither has. The pointer on a line
+  says it in words.
+- Every line shown has its number at its left, as the file will have it once those lines take the place of the
+  conflict: the lines after a proposal follow its last line; the conflicts higher up in the file count as they are now.
+- What looks wrong in the proposal is said at its top (`review.proposal-warnings`).
+- Under what is proposed, the choices of `review.choose`.
+- **Compare with the sides** shows each side named by its role and the branch it comes from, with the subject of its
+  commit: **Current · main** and **Incoming · feature/map-view** in a merge; in a rebase **Current** is the branch
+  rebased onto and **Incoming** is the branch being rebased; a commit cherry-picked or reverted is named by its short
+  hash (`conflicts.side-names`). Each side shows what it changed of the base, in the colors of the code
+  (`review.side-diff`), and **Hide the sides** hides them. With nothing proposed they are shown at once. **Show the
+  base** (*Show what the lines were before either side changed them*) shows **Base · before either side changed it**,
+  only when the base is known.
+- At the bottom, where the proposal comes from: **Rules** with the case (*Changes to lines next to each other*); **AI**
+  with the model's name, how sure it said it is (high, medium, low), what it said, and how many of its lines neither
+  side has (*Written by the language model: look at it before you accept it*); or **Your choice**. A proposal of
+  nothing reads *Nothing: the lines are deleted*.
+- With nothing proposed: *Nothing is proposed: the two sides changed the same lines in different ways. Choose a side,
+  or write the lines.*
 - While the AI is asked: *The AI is reading the conflict…*, then the lines of its answer as they come with *The AI is
   writing a resolution…*; when it failed, why, with **Ask again**.
-- Buttons: **Accept** (*Put this in place of the conflict when the accepted resolutions are written*), or **Accepted** to
-  take it back; **Resolve by hand** (*Resolve it in the Merge page, choosing for each change*), which opens
-  `merge-view.page` at that conflict; **Ask the AI** (**Ask again** once answered: *its answer takes the place of this
-  one*), with `conflicts.ai`.
-- An accepted conflict folds to one line, with the first line of its resolution and **Accepted**; a file whose conflicts
-  are all accepted folds to its name. The arrow at the left of a conflict or a file folds or unfolds it by hand.
+- Buttons, at the bottom after where the proposal comes from: **Resolve by hand** (*Resolve it in the Merge page,
+  choosing for each change*), which opens `merge-view.page` at that conflict; **Ask again** for a proposal of the AI
+  (**Ask the AI** with nothing proposed: *its answer takes the place of this one*), with `conflicts.ai`; and
+  **Accept** (*Put this in place of the conflict when the accepted resolutions are written*), last, or **Accepted** to
+  take it back.
+- An accepted conflict folds to one line, with the first line of its resolution, its warnings, where it comes from and
+  **Accepted**; a file whose conflicts are all accepted folds to its name. The arrow at the left of a conflict or a file
+  folds or unfolds it by hand.
 
 Acceptance:
 
-- [ ] During `git merge feature/map-view` on `main`, the sides of every card read **Current · main** and **Incoming ·
-      feature/map-view**, each with its subject.
+- [ ] The heading of a card says **Takes only the current side, main**, **Takes only the incoming side,
+      feature/map-view**, **Keeps both sides: main first, then feature/map-view** (or the other way), **Takes lines of
+      both sides**, **Takes lines of both sides, and writes 1 line of its own**, **Writes 2 lines of its own in place of
+      both sides** or **Leaves out the lines of both sides**; with nothing proposed, **Nothing proposed yet**.
+- [ ] Under it, a bar and **4 from main · 1 on both sides · 4 from feature/map-view · 0 new**: the lines that are not
+      empty, counted by where they come from; a count of 0 is left out, but for the new lines of a proposal of the AI.
+- [ ] Each line proposed has the bar of where it comes from, and the pointer on it says **From main**, **On both
+      sides**, **As it was before either side changed it** or **New: neither side has this line**.
+- [ ] Every line shown is numbered as the file would number it with those lines in place of the conflict: the first
+      line proposed of a conflict that starts at line 11 is **11**, the lines after follow the last line proposed, and
+      the numbers of a card are as wide as the largest of them.
+- [ ] During `git merge feature/map-view` on `main`, **Compare with the sides** shows **Current · main** and
+      **Incoming · feature/map-view**, each with its subject, numbered as with that side in place of the conflict, the
+      lines it wrote with `+` in place of a number.
 - [ ] A rules proposal shows **Rules**, its case and no count of new lines; an AI proposal with 2 lines neither side has
       says so.
 - [ ] **Accept** folds the card to one line that starts with the first line of the resolution.
@@ -758,6 +786,101 @@ Acceptance:
 - [ ] An AI answer with one line `log(value);` that neither side nor the base has counts 1 new line; a line that differs
       from a side's only by indentation counts 0.
 
+### `review.proposal-lines` — Where the lines of a proposal come from
+
+Tells, for each line of a proposal, which side has it, and what the proposal does with the two sides as a whole, so
+that a card can say it in a sentence and in colors.
+
+- **Kind**: Derivation
+- **Function**: `model::review::proposal_lines(input) -> ProposalLines`
+
+- The inputs are the lines each side has where the proposal goes, the proposal, and the base when it is known. Two lines
+  are the same when they differ only in the spaces at their ends.
+- A line is first paired, in order, with the same line of each side, as many as can be: these pairs are the bands of
+  `review.columns`. A line paired with both sides comes from **both**; with one, from that side. A line that cannot be
+  paired in order still comes from the side that has it, from both when both have it, then from the **base**; else it
+  is **new**. An empty line is **blank**.
+- The shape leaves aside the empty lines and the spaces at the ends: **nothing** when nothing is left, **current** or
+  **incoming** when it is exactly one side, **current first** or **incoming first** when it is one side then the other,
+  else **mixed**. The counts are those of each origin but blank.
+- The sentence of the card is the shape's: **Takes only the current side, main**, **Keeps both sides: main first, then
+  feature/map-view**, **Takes lines of both sides, and writes 1 line of its own**, **Writes 2 lines of its own in place
+  of both sides**, **Leaves out the lines of both sides**.
+
+Acceptance:
+
+- [ ] Current side `a`, `b`, incoming side `c`, proposed `b`, `a`, `c` → current, current, incoming, and the shape is
+      mixed.
+- [ ] Current side `version 1.2.1`, `shipping`, incoming side `version 1.3.0`, `discounts`, proposed the two one after
+      the other → current first, 2 lines from each side.
+- [ ] A proposed line that differs from a side's only in its indentation comes from that side; an empty line is blank
+      and not counted.
+
+### `review.proposal-warnings` — What looks like a mistake in a proposal
+
+Finds in a proposal what is most likely a mistake of keeping both sides: a setting or a variable given a value twice,
+and a JSON file that would no longer be JSON.
+
+- **Kind**: Derivation
+- **Function**: `model::review::proposal_warnings(input) -> Vec<ProposalWarning>`
+- **Uses**: `review.proposal-lines`.
+
+- A name is what a line gives a value with `:` or `=`, after its indentation and the words that declare a variable
+  (`const`, `let`, `var`, `pub`, `export`, `readonly`, …), in quotes or not: a key of JSON or YAML, a property, a
+  variable, a setting. `==`, `=>` and `::` give no value.
+- A name is repeated when the proposal has it at the same indentation in a line of the current side and in a line of
+  the incoming side, and the two lines differ. The same line on both sides is not a warning.
+- A file whose name ends in `.json` is checked when the file with every conflict resolved for one side is JSON: the
+  proposal, with the other conflicts resolved for that side, must be JSON too. A file that neither side makes JSON, as
+  one with comments, is not checked.
+- On the card, the warnings are said at its top, **version is set twice**, **Not valid JSON**, or **2 warnings** with
+  the whole of each in its tooltip, and the lines a repeated name is on are tinted. While a proposal with a warning is
+  not accepted, the head of `review.page` says **1 proposal has a warning: look at it and accept one by one.**
+
+Acceptance:
+
+- [ ] `"version": "1.2.1",` from the current side and `"version": "1.3.0",` from the incoming one → **version is set
+      twice**; with `"shipping": true` before the second and no comma → **Not valid JSON** too.
+- [ ] `const count = items.length;` and `const count = items.reduce(add, 0);` → **count is set twice**; the same line on
+      both sides gives no warning, nor does `if count == 1`.
+- [ ] A `.json` file with comments, which neither side makes JSON, gets no **Not valid JSON**.
+- [ ] **Accept all proposed** and **Accept the file** leave out a proposal with a warning, and the head of the review
+      says **1 proposal has a warning: look at it and accept one by one.** until it is accepted on its own.
+
+### `review.choose` — Choose a side, or write the lines
+
+Puts in place of what is proposed for a conflict one of its sides, both one after the other, or lines written in the
+card, accepted at once, without leaving the review.
+
+- **Kind**: View
+- **Function**: `views::review::choose_view(state, ui) -> Vec<Intent>`
+- **Entry points**: **Current only**, **Incoming only**, **Both, current first**, **Both, incoming first** and **Edit**
+  under what is proposed (after **Instead:**, or **Choose:** with nothing proposed); **Drop your choice** on a choice.
+- **Offered when**: the language model is not writing about the conflict, and nothing runs.
+- **Plan**: nothing runs: the choice is a proposal, written by `review.write` with the others.
+- **Undo**: **Drop your choice** brings back what was proposed before, not accepted; nothing was written.
+- **After**: the choice is accepted and its card stays open, with **Your choice** and its reason: **Only the current
+  side**, **Only the incoming side**, **Both sides, the current one first**, **Both sides, the incoming one first**,
+  **Written by you**.
+- **Uses**: `review.accept`, `review.write`, `review.proposal-lines`, `review.proposal-warnings`.
+
+Acceptance:
+
+- [ ] A choice takes the place of the proposal of the rules or of the AI for that conflict, and is accepted at once;
+      choosing changes no file and runs nothing.
+- [ ] The choice of the shape the proposal already has is not offered: a proposal that keeps both sides, the current
+      one first, offers **Current only**, **Incoming only** and **Both, incoming first**.
+- [ ] **Current only** on a conflict whose sides are `"version": "1.2.1"` and `"version": "1.3.0"` proposes the first,
+      **Incoming only** the second; **Both, current first** proposes the lines of the current side then those of the
+      incoming one, each ending its line, in the line endings of the file.
+- [ ] **Edit** opens the lines in the card, from what is proposed, or from the two sides one after the other when
+      nothing is; **Use these lines** or `Ctrl`+`Enter` takes them, **Cancel** or `Escape` leaves them. Lines neither
+      side has are counted as new.
+- [ ] The language model is not asked about a conflict with a choice, by **Ask the AI about the rest** or otherwise.
+- [ ] A choice is kept while the window is open, by file and fingerprint of the conflict: also when the page is closed,
+      and when **Undo** marks the conflict again; it is gone once the conflict is edited.
+- [ ] Written, a choice counts in the question as **(chosen by you)**, or **1 chosen by you** among others.
+
 ### `review.accept` — Accept
 
 Takes the proposal of one conflict, to be written with the others.
@@ -781,17 +904,18 @@ Takes every proposal of one file.
 - **Function**: `views::review::accept_file_view(state, ui) -> Vec<Intent>`
 - **Entry points**: **Accept the file** (*Accept every resolution proposed in this file*) on the header of a file's
   conflicts.
-- **Offered when**: the file has a proposal not accepted yet.
+- **Offered when**: the file has a proposal not accepted yet, without a warning.
 
 Acceptance:
 
 - [ ] With 3 conflicts in a file of which 2 have proposals, **Accept the file** accepts those 2 and the file shows 2 of
       3 accepted, with a yellow dot.
 - [ ] When every conflict of the file is accepted, the file folds to its name.
+- [ ] A proposal of the file with a warning (`review.proposal-warnings`) is left out.
 
 ### `review.accept-all` — Accept all proposed
 
-Takes every proposal of the page, from the rules and from the AI.
+Takes every proposal of the page, from the rules, from the AI and chosen, but those with a warning.
 
 - **Kind**: View
 - **Function**: `views::review::accept_all_view(state, ui) -> Vec<Intent>`
@@ -802,7 +926,7 @@ Takes every proposal of the page, from the rules and from the AI.
 Acceptance:
 
 - [ ] With 3 rules proposals and 1 AI proposal, **Accept all proposed** accepts all 4, and the button is then disabled.
-- [ ] Conflicts with nothing proposed stay unaccepted.
+- [ ] Conflicts with nothing proposed stay unaccepted, and so do proposals with a warning.
 
 ### `review.clear` — Clear
 
@@ -885,10 +1009,17 @@ side.
 
 - Each column has the lines the proposal takes the place of: what is between the markers and the lines around them the
   rules take too.
-- A band joins each line proposed to the side it comes from, green for the current side and blue for the incoming one;
-  the lines of a side left out are faded, and a line neither side has is marked.
-- The columns take the whole width of the page. Lines keep the shape of the code: they do not wrap, and a column too
-  narrow for them scrolls sideways, taking the other two along.
+- Each column has the 3 lines of the file before and after, faded, and numbers its lines as the file would with them
+  in place of the conflict, as the cards do: the lines before are the same in the three columns, those after follow
+  the lines of their column.
+- A band joins each line proposed to the line of a side that is the same, spaces at the ends aside
+  (`review.proposal-lines`), green for the current side and blue for the incoming one; the lines of a side left out are
+  faded, and a line neither side has is marked. The pointer on a line outlines it and the lines it is joined to in the
+  other columns.
+- The columns take the whole width of the page. A line too long for its column wraps, keeping its number on its first
+  row; no column scrolls sideways.
+- The heading, the bar of where the lines come from, the warnings, the choices and the bottom of the card are those of
+  `review.card`.
 - A band can be dragged to make the column on one side of it wider, for every conflict at once; a double click makes
   them even again. The choice of Cards or Columns and the widths are kept with the page.
 - In a narrow window the columns stand one above the other.
@@ -897,7 +1028,8 @@ Acceptance:
 
 - [ ] In Columns, the "lines next to each other" proposal `a`, `B`, `C` shows a green band from `B` to the current side
       and a blue band from `C` to the incoming side, with the incoming side's `b` and the current side's `c` faded.
-- [ ] Scrolling one column sideways scrolls the two others by the same amount.
+- [ ] A line too long for its column wraps and keeps its number on its first row; no column scrolls sideways.
+- [ ] The pointer on a proposed line outlines it and the line of the side it is joined to.
 - [ ] Dragging a band in one conflict changes the widths of every conflict; reopening the page keeps Columns and the
       widths.
 
