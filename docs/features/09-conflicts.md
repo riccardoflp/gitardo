@@ -1186,7 +1186,7 @@ Acceptance:
 Reads the reply of the model into the lines of a resolution, a reason and a confidence.
 
 - **Kind**: Derivation
-- **Function**: `model::ai::read_answer(input) -> Result<ConflictAnswer, AnswerError>`
+- **Function**: `model::ai::read_answer(reply: &str) -> Result<ConflictAnswer, AnswerError>`
 
 - The resolution is the text between the last `<resolution>` and the `</resolution>` after it, from the line after the
   opening tag to the last line break before the closing one. None: *The language model did not answer with a
@@ -1213,7 +1213,7 @@ Small models often write the lines around the conflict again with their answer. 
 sent, only what stands in place of the conflict is kept.
 
 - **Kind**: Derivation
-- **Function**: `model::ai::trim_answer(input) -> Result<ConflictAnswer, AnswerError>`
+- **Function**: `model::ai::trim_answer(answer: ConflictAnswer, input: &TrimInput) -> Result<ConflictAnswer, AnswerError>`
 
 - A **significant** line has a letter, digit or underscore in it and is not a conflict marker: a brace or an empty line
   anchors nothing. Lines are compared without spaces at their ends.
