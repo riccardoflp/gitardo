@@ -18,8 +18,9 @@ reading only what a view needs.
 
 ## D2 — No dependencies
 
-*Narrowed by [D16](#d16--libraries-for-the-window-the-text-and-the-pixels), which lets in the libraries of the window,
-the text and the pixels.*
+*Replaced by [D20](#d20--libraries-where-they-serve). It had been narrowed by
+[D16](#d16--libraries-for-the-window-the-text-and-the-pixels), which let in the libraries of the window, the text and
+the pixels.*
 
 No crate from outside the workspace (see [02-architecture.md](02-architecture.md#dependencies)), with
 one exception, TLS ([D13](#d13--one-library-for-tls)). Everything the program does is in this repository, readable, and changeable without waiting for anyone. The price is
@@ -91,7 +92,8 @@ cards give one and say it is new: the command log keeps 10,000 lines, the journa
 
 ## D13 — One library, for TLS
 
-*Replaces [D5](#d5--https-through-curl).*
+*Replaces [D5](#d5--https-through-curl). How its libraries are listed and kept in their crate is now
+[D20](#d20--libraries-where-they-serve); why these are the ones for TLS still stands.*
 
 Gitardo speaks HTTPS itself for two things only: the API of GitHub and the AI provider. Fetching, pulling, pushing and
 cloning, over HTTPS or SSH, are done by the `git` process, which has its own TLS and runs the system's `ssh`; they need
@@ -148,7 +150,8 @@ but `testkit` (a dev-dependency only) and `xtask`; nothing uses `app`.
 ## D16 — Libraries for the window, the text and the pixels
 
 *The maintainer's decision, 2026-11-12. Narrows [D2](#d2--no-dependencies), replaces
-[D4](#d4--our-own-text-rendering), answers Q24, Q25, Q26 and Q28.*
+[D4](#d4--our-own-text-rendering), answers Q24, Q25, Q26 and Q28. How its libraries are listed is now
+[D20](#d20--libraries-where-they-serve); which libraries, and why, still stands.*
 
 The first version of milestone M2 wrote the window of Windows, the reader and rasterizer of TrueType fonts and the
 rasterizer of shapes here. They worked, but they are the parts where a library gives the most and Gitardo's own code
@@ -252,6 +255,42 @@ instead.
   that drafts the message with the AI and the identity are on the Changes page only, which is also where one commits
   while the timeline is narrowed to branches that do not hold the commit checked out. The draft stays a calm card, and
   the rest of the commit box is where there is room for it.
+
+## D20 — Libraries where they serve
+
+*The maintainer's decision, 2026-11-12. Replaces [D2](#d2--no-dependencies). [D13](#d13--one-library-for-tls) and
+[D16](#d16--libraries-for-the-window-the-text-and-the-pixels) stay as the reasons for the libraries they name.*
+
+Writing everything here was meant to keep the program readable and free of other people's schedules. D16 showed the
+price: the parts a library does well (text, the window, the screen reader) cost the most to write and gave the least,
+and the time went there instead of into the features. From now on a crate of the workspace may depend on a library
+from crates.io when the library does a job better than code written here would: highlighting code, watching files,
+the credential store, property tests, and the like.
+
+What a library must be:
+
+- under a licence that MIT code may use: MIT, Apache-2.0, BSD, ISC, Zlib, Unicode, or MPL-2.0 used unchanged;
+- kept up, with a release in the last year, or small and finished;
+- built by Cargo alone. A library that needs a C compiler, CMake or a library installed on the system is a decision of
+  its own, as `aws-lc-rs` was in D13;
+- used with the fewest features that work, named in the `Cargo.toml` that uses it.
+
+How libraries are kept in their place:
+
+- `xtask/allowed-packages.txt` names each library a manifest names, with the crates of the workspace that may use it,
+  and `cargo xtask check` fails on a library not listed there or used by a crate it does not name. The versions are
+  those of `Cargo.lock`, and what the libraries bring is not listed. Adding a library is a line in that file, in the
+  commit that first uses it, which says why.
+- The pure crates (`features`, `model`, `text`, `json`) use only libraries that do no I/O, start no thread and read no
+  clock ([R3](03-code-rules.md)).
+- The types of a library stay in the crates the allowlist names for it, so that replacing it changes those crates only.
+- The build scripts and procedural macros of libraries are theirs (a `derive` of `serde` is fine). The crates of the
+  workspace still have none of their own.
+- `git` is still run as a program, not replaced by a library ([D1](#d1--the-git-executable-not-a-library)), and the
+  clean room still holds: a library is used through its interface and its documentation, never copied
+  ([00-clean-room.md](00-clean-room.md)).
+- What is already written here (PNG, deflate, JSON, diffs, HTTP, the file watcher, the credential store) stays until a
+  library is worth the change. Each replacement is a commit of its own, and the tests stay as they are.
 
 ## Open questions
 

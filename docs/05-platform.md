@@ -68,7 +68,7 @@ X11 and Wayland, both through `winit`.
 | Watching files | `inotify_init1`, `inotify_add_watch` from the C library, one watch per folder. |
 | Links | `std::os::unix::fs::symlink`. |
 | Open, reveal | `xdg-open` run as a process; revealing a file opens its folder. |
-| Credentials | The Secret Service over D-Bus is a dependency in all but name; a file in the configuration folder readable only by the user (mode `0600`) is used instead, and the settings page says so. |
+| Credentials | The Secret Service over D-Bus, through a library ([D20](08-decisions.md#d20--libraries-where-they-serve)); until one is chosen, a file in the configuration folder readable only by the user (mode `0600`), and the settings page says so. |
 
 ## macOS
 

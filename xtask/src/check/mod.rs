@@ -63,21 +63,21 @@ impl Workspace {
 }
 
 /// Every rule a program can check, without running the tools of the toolchain.
-pub fn problems(root: &Path, workspace: &Workspace) -> Result<Vec<Problem>, Error> {
-    let mut found = packages::check(root, workspace)?;
+pub fn problems(workspace: &Workspace) -> Vec<Problem> {
+    let mut found = packages::check(workspace);
     found.extend(edges::check(workspace));
     found.extend(catalog::check(workspace));
     found.extend(purity::check(workspace));
     found.extend(unsafe_code::check(workspace));
     found.extend(shape::check(workspace));
     found.sort();
-    Ok(found)
+    found
 }
 
 /// Runs every check, says what it found, and returns whether the workspace passed.
 pub fn run(root: &Path) -> Result<bool, Error> {
     let workspace = Workspace::read(root)?;
-    let found = problems(root, &workspace)?;
+    let found = problems(&workspace);
     let mut output = std::io::stdout().lock();
     for problem in &found {
         writeln!(output, "{problem}")?;

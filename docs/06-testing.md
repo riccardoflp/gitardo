@@ -1,7 +1,8 @@
 # Testing
 
 Every line of every card's acceptance list is a test. This page says what kinds of tests there are, where they live and
-how they run, all with the standard test harness of Rust and no testing library.
+how they run, with the standard test harness of Rust, and a testing library only where
+[D20](08-decisions.md#d20--libraries-where-they-serve) lets one in.
 
 ## The kinds, from cheapest to most real
 
