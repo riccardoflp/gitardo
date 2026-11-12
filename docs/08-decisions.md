@@ -343,3 +343,48 @@ card with the reading given, until the card says otherwise:
   icons and the inspector opens over the commits, half the height to start with and resized as the details were under
   the commits. Is that the narrow layout meant, and should the inspector over the commits close by itself when the
   selection goes?
+
+From the first slice of milestone M3, the window of `gitardo` (the store, the places empty but real, opening
+repositories, the settings), each built with the reading given until it is answered:
+
+- **Q43** — `repo.open-folder`, `repo.open-recent`, `repo.select`: their cards name `features::repo::…(context,
+  answers) -> Outcome`, but the `Context` of the feature contract holds one repository, not the workspace; there is no
+  kind of question for the system's folder dialog or for **Replace the workspace** / **Add to the workspace**; and an
+  outcome cannot say "show this workspace". They are reduced in the store of `app` for now (`app::store`), with the
+  card's acceptance lines as tests. Should the contract gain a workspace in `Context`, a folder question and a
+  follow-up that changes the workspace, or are these cards of the store, not features?
+- **Q44** — `settings.theme` is an operation in `features`, which may not use `crates/json` to write the settings
+  file. For now the theme and the fonts are only read (`app::settings`) and applied when the files change; nothing
+  writes them. Which crate writes the settings file?
+- **Q45** — What is kept between runs is in `state.json` in Gitardo's configuration folder, beside `settings.json`
+  (`%APPDATA%\Gitardo Desktop`, `~/Library/Application Support/Gitardo Desktop`, `$XDG_CONFIG_HOME/gitardo-desktop`
+  or `~/.config/gitardo-desktop`); [11-data.md](11-data.md) does not name the file. On Linux, should it be under
+  `$XDG_STATE_HOME` instead, since it is state and not configuration?
+- **Q46** — The settings files are flat JSON with dotted keys (`"font.size": 14`), as VS Code's are; an object
+  `{"font": {"size": 14}}` is not read. Should nested objects be read too?
+- **Q47** — `views` may not use `render`, yet the toolkit's interface takes and gives its types (`Rect`, `Color`,
+  `Theme`, `Icon`…). `ui` now re-exports them so that the views can name them. Is that the reading of the picture of
+  doc 02, or should `views` use `render` directly?
+- **Q48** — The pictures of the places with a real repository are tests of `app` (`crates/app/tests/places`), since
+  `views` may not use `git` or `testkit` beyond its dev-dependencies and its tests need a `RepositoryState` read from
+  a repository. Is that where they belong?
+- **Q49** — Words of the window that no card gives, chosen for now: the repository pill with no workspace says **No
+  folder open**; its tooltip is "Choose the repository shown, or open a folder"; the Welcome page heads its list
+  **Recent**; a notice is shown as a bar under the header with a **Dismiss** button; the question of a folder opened
+  is titled "Open {folder}"; the Activity drawer says what asked for a read: "Opening the workspace", "Showing the
+  repository". Are these the words?
+- **Q50** — The pictures of the steps of the Welcome page are, for now, the icon of the place each is about. Which
+  pictures?
+- **Q51** — With no workspace the window shows the Welcome page without its trail, since there is no timeline to go
+  back to; the first start on a folder shows the Welcome page over the workspace, with the trail. Is that the first
+  start meant?
+- **Q52** — `readOnStartup` is read but not honoured: the repository is always read when the window opens. And a
+  repository chosen is read with the `graph.pageSize` of the repository shown before it, until its own settings file
+  is read a moment later. Should the read wait for the repository's settings?
+- **Q53** — `repo.no-repository`, acceptance line 3: deleting the folder of the repository shown brings the window to
+  the page at the next read (**Refresh** in the **…** menu), since nothing watches the repository yet
+  (`repo.watch-changes`, `repo.schedule-reads`). The test reads again by hand. Is that enough for the card, until
+  the watcher exists?
+- **Q54** — `settings.read`, acceptance line 2: the problems of the settings (which key, which file, why) are kept for
+  the settings page (`settings.edit`), which does not exist yet; nothing shows them. The card stays **Specified**
+  until that page says them.

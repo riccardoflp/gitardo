@@ -11,9 +11,9 @@ use platform::{
 use render::{Assets, FrameBuffer, Theme, ThemeName};
 use ui::{FrameInput, FrameOutput, FrameSettings, Typefaces, Ui, UiMemory};
 
-use super::fonts::load_system_fonts;
+use super::fonts::{chosen_typefaces, load_system_fonts};
 use super::input::{is_paste, system_cursor, toolkit_event};
-use super::theme::{resolve_theme, title_bar};
+use super::theme::{resolve_theme, scale_text, title_bar};
 use crate::error::AppError;
 
 /// What a new window is like.
@@ -71,8 +71,10 @@ pub struct Surface {
     choice: ThemeName,
     /// The theme of the system.
     system: SystemTheme,
-    /// The theme drawn.
+    /// The theme drawn, its text scaled.
     theme: Theme,
+    /// How much larger the text is drawn than the theme says: `font.size` over its default.
+    text_scale: f32,
     /// The timer of the next frame.
     frame_timer: TimerId,
     /// Where the caret was in the last frame, given to the input method.
@@ -119,6 +121,7 @@ impl Surface {
             choice: options.theme,
             system,
             theme,
+            text_scale: 1.0,
             frame_timer: options.frame_timer,
             caret: None,
             frames_drawn: 0,
@@ -162,6 +165,29 @@ impl Surface {
         self.window
             .set_title_bar(title_bar(choice, &resolve_theme(choice, self.system)));
         self.apply_theme();
+    }
+
+    /// Changes the text of the title bar, which the screen reader says too.
+    pub fn set_title(&mut self, title: &str) {
+        if self.title != title {
+            title.clone_into(&mut self.title);
+            self.window.set_title(title);
+        }
+    }
+
+    /// Changes the fonts and the size of the text (`font.ui`, `font.code`, `font.size`): a family the system does not
+    /// have gives the program's own. A frame is asked for.
+    ///
+    /// # Errors
+    ///
+    /// `AppError::Font` when even the program's fonts are missing.
+    pub fn set_text(&mut self, interface: &str, code: &str, scale: f32) -> Result<(), AppError> {
+        self.typefaces = chosen_typefaces(&mut self.assets.fonts, interface, code)?;
+        self.text_scale = scale;
+        let theme = scale_text(resolve_theme(self.choice, self.system), scale);
+        self.theme = theme;
+        self.window.request_redraw();
+        Ok(())
     }
 
     /// Takes an event of the loop: input for this window, the timer of its next frame, or a change of the theme of
@@ -242,8 +268,8 @@ impl Surface {
 
     /// Draws in the theme the choice and the system give.
     fn apply_theme(&mut self) {
-        let theme = resolve_theme(self.choice, self.system);
-        if theme.name != self.theme.name {
+        let theme = scale_text(resolve_theme(self.choice, self.system), self.text_scale);
+        if theme != self.theme {
             self.theme = theme;
             self.window.request_redraw();
         }

@@ -23,10 +23,12 @@ path = "src/bin/gitardo-demo/main.rs"
 engine = { path = "../engine" }
 features = { path = "../features" }
 git = { path = "../git" }
+json = { path = "../json" }
 model = { path = "../model" }
 platform = { path = "../platform" }
 render = { path = "../render" }
 ui = { path = "../ui" }
+views = { path = "../views" }
 
 [dev-dependencies]
 testkit = { path = "../testkit" }

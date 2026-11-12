@@ -56,6 +56,14 @@ mod number;
 mod paint;
 mod widget;
 
+/// The types of `render` that the toolkit's own interface takes and gives (rectangles, points, colors, icons, themes,
+/// and the frame buffer and fonts a frame is drawn into), so that the views, which use the toolkit and not `render`
+/// itself, can name them.
+pub use render::{
+    Appearance, Assets, Color, FontFamily, FontWeight, FrameBuffer, Icon, LineCap, Point, Rect, Stroke, TextRun, Theme,
+    ThemeName,
+};
+
 pub use access::{AccessRole, Description};
 pub use frame::{FrameInput, FrameOutput, FrameSettings, TextKind, Typefaces, Ui};
 pub use id::WidgetId;

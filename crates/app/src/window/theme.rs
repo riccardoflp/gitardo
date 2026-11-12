@@ -31,6 +31,22 @@ pub fn title_bar(choice: ThemeName, theme: &Theme) -> Option<Appearance> {
     })
 }
 
+/// A theme with its text made larger or smaller by a factor: the setting `font.size` over its default.
+#[must_use]
+pub fn scale_text(mut theme: Theme, factor: f32) -> Theme {
+    let font = &mut theme.sizes.font;
+    for size in [
+        &mut font.small,
+        &mut font.body,
+        &mut font.detail,
+        &mut font.code,
+        &mut font.heading,
+    ] {
+        *size *= factor;
+    }
+    theme
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
