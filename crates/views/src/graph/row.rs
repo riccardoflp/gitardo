@@ -221,17 +221,20 @@ fn subject_line(
     } else {
         0.0
     };
-    let pills: Vec<Pill<'_>> = pills(labels, context.is_narrow);
-    let pills_width: f32 = pills
-        .iter()
-        .map(|pill| ui.badge_width(&pill.badge(color)) + theme.sizes.spacing.medium)
-        .sum();
+    let available = (lines.width - arrow).max(0.0);
+    let kept = ui
+        .measure(&commit.subject, subject_style)
+        .min(available * SUBJECT_SHARE);
+    let gap = theme.sizes.spacing.medium;
+    let (pills, pills_width) = fitted_pills(labels, available - kept, context.is_narrow, |pill| {
+        ui.badge_width(&pill.badge(color)) + gap
+    });
     let subject = TextRun {
         text: &commit.subject,
         style: subject_style,
         color: row.foreground,
         origin: Point::new(lines.x, top),
-        max_width: Some((lines.width - pills_width - arrow).max(0.0)),
+        max_width: Some((available - pills_width).max(0.0)),
     };
     let mut x = lines.x + ui.text(&subject) + theme.sizes.spacing.medium;
     if folds.is_foldable {
@@ -292,15 +295,15 @@ fn hover_label(ui: &mut Ui<'_>, (rect, pill): (Rect, &Pill<'_>), commit: &model:
 }
 
 /// A label as a pill: its words, its icons and how it is filled, or the count of the labels not named.
-struct Pill<'a> {
+pub(super) struct Pill<'a> {
     /// Its words.
-    text: Cow<'a, str>,
+    pub(super) text: Cow<'a, str>,
     /// Its icons.
     icons: &'static [Icon],
     /// How it is filled.
     fill: BadgeFill,
     /// Its tooltip.
-    tooltip: Option<String>,
+    pub(super) tooltip: Option<String>,
     /// Whether it counts other labels, in the muted tone.
     is_count: bool,
 }
@@ -317,13 +320,44 @@ impl Pill<'_> {
     }
 }
 
-/// The pills of the labels of a commit: in the narrow layout, two and the count of the others past three.
-fn pills(labels: &[Label], is_narrow: bool) -> Vec<Pill<'_>> {
-    let named = if is_narrow && labels.len() > NARROW_LABELS {
+/// The share of the first line of a row its message keeps, when it is that long, before the labels take the rest.
+const SUBJECT_SHARE: f32 = 0.5;
+
+/// The pills of the labels of a commit that fit in a width, each as wide as `width_of` says with the gap after it, and
+/// the width they take: as many named as fit, and the count of the others, `+2`, with their names in its tooltip; none
+/// when not even the count fits.
+pub(super) fn fitted_pills(
+    labels: &[Label],
+    room: f32,
+    is_narrow: bool,
+    width_of: impl Fn(&Pill<'_>) -> f32,
+) -> (Vec<Pill<'_>>, f32) {
+    for named in (0..=named_labels(labels, is_narrow)).rev() {
+        let pills = counted_pills(labels, named);
+        let width: f32 = pills.iter().map(&width_of).sum();
+        if width <= room {
+            return (pills, width);
+        }
+    }
+    (Vec::new(), 0.0)
+}
+
+/// How many labels of a commit are named before the count of the others: in the narrow layout, two past three.
+fn named_labels(labels: &[Label], is_narrow: bool) -> usize {
+    if is_narrow && labels.len() > NARROW_LABELS {
         NAMED_WHEN_COUNTED
     } else {
         labels.len()
-    };
+    }
+}
+
+/// The pills of the labels of a commit: in the narrow layout, two and the count of the others past three.
+fn pills(labels: &[Label], is_narrow: bool) -> Vec<Pill<'_>> {
+    counted_pills(labels, named_labels(labels, is_narrow))
+}
+
+/// The pills of the first labels of a commit, then the count of the others when there are some.
+fn counted_pills(labels: &[Label], named: usize) -> Vec<Pill<'_>> {
     let mut pills: Vec<Pill<'_>> = labels.iter().take(named).map(pill).collect();
     if let Some(rest) = labels.get(named..).filter(|rest| !rest.is_empty()) {
         pills.push(Pill {

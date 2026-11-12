@@ -172,3 +172,41 @@ fn graph_view__the_label_of_the_branch_checked_out_is_filled_and_the_others_outl
     assert_eq!(fills("M3"), [ui::BadgeFill::Solid]);
     assert_eq!(fills("F2"), [ui::BadgeFill::Outline]);
 }
+
+#[test]
+fn graph_view__a_row_keeps_room_for_its_message_and_counts_the_labels_that_do_not_fit() {
+    use model::graph::{Label, LabelKind};
+
+    use super::super::row::fitted_pills;
+
+    let labels: Vec<Label> = ["main", "feature", "origin/main", "origin/feature", "v1.0"]
+        .iter()
+        .map(|name| Label {
+            name: (*name).to_owned(),
+            kind: LabelKind::Tag,
+            is_checked_out: false,
+        })
+        .collect();
+    let width_of = |pill: &super::super::row::Pill<'_>| {
+        10.0 * f32::from(u8::try_from(pill.text.chars().count()).unwrap_or(u8::MAX)) + 20.0
+    };
+    let words =
+        |pills: &[super::super::row::Pill<'_>]| pills.iter().map(|pill| pill.text.to_string()).collect::<Vec<_>>();
+
+    let (all, width) = fitted_pills(&labels, 1_000.0, false, width_of);
+    assert_eq!(
+        words(&all),
+        ["main", "feature", "origin/main", "origin/feature", "v1.0"]
+    );
+    assert!((width - 500.0).abs() < 0.01);
+
+    let (some, width) = fitted_pills(&labels, 200.0, false, width_of);
+    assert_eq!(words(&some), ["main", "feature", "+3"]);
+    assert!(width <= 200.0);
+    let tooltip = some.last().and_then(|pill| pill.tooltip.clone());
+    assert_eq!(tooltip.as_deref(), Some("origin/main, origin/feature, v1.0"));
+
+    let (none, width) = fitted_pills(&labels, 30.0, false, width_of);
+    assert!(none.is_empty(), "not even the count fits");
+    assert!(width.abs() < 0.01);
+}

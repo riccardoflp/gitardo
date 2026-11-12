@@ -85,7 +85,8 @@ fn graph_view__a_repository_with_main_feature_and_a_tag_lists_the_commits_of_all
             "Add the readme"
         ]
     );
-    let mut window = Window::new(ThemeName::Dark, WIDE);
+    // Wide enough for every label beside its message; in less room the ones that do not fit are counted, `+2`.
+    let mut window = Window::new(ThemeName::Dark, (1400, 520));
     let (_, tree) = window.draw(&state, &[]);
     let rows = rows_drawn(&tree);
     for (label, row) in [("main", 1), ("feature", 2), ("v1.0", 2), ("origin/main", 2)] {

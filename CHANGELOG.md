@@ -80,3 +80,5 @@
   Settings** in Quick search open the log and the page.
 - The Welcome page ticks **Open a commit, compare two branches** once the page of a commit is opened, and **Welcome**
   in Quick search shows it again with the steps done ticked.
+- A row of the timeline keeps its message whole when it can: the labels take the room the message leaves, and those
+  that do not fit are counted, `+2`, with their names in the tooltip of the count.

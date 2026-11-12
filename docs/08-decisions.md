@@ -656,3 +656,7 @@ the reading given until it is answered:
   commit…** and **Compare…** stay disabled, as the rest of the steps but the first: should **Show the commits** narrow
   the timeline to the branch checked out and **Open a commit…** open the box of **Open commit** now? **Show Command
   Log** and **Open Settings** in Quick search now run. No key was added to `state.json`.
+- **Q109** — `graph.view` counts the labels past three only in the narrow layout. A row of the wide layout with many
+  labels shrank its message to `…`, so now its message keeps half of the first line, or all of it when shorter, and the
+  labels take the rest: as many named as fit, then the count of the others, `+2`, with their names in its tooltip, as
+  in the narrow layout. Should the card say so, and is half the right share?
