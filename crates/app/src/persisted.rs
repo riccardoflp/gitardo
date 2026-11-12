@@ -1,7 +1,7 @@
 //! What is kept between runs, in one file per user (`state.json` in Gitardo's configuration folder): whether the
 //! program started before, the steps of the Welcome page done, the recent workspaces with the repository shown last in
 //! each, the size of the window and the width of the branch rail; the sizes of the panes of each workspace and the
-//! folds of each repository ([`timeline`]).
+//! folds of each repository ([`timeline`]); the favorites and the branches shown of each repository ([`rail`]).
 //!
 //! The file is JSON, written whole each time. A file that cannot be read gives what a first start has.
 
@@ -9,8 +9,10 @@ use std::path::{Path, PathBuf};
 
 use json::{Member, Number, Value};
 
+pub mod rail;
 pub mod timeline;
 
+pub use rail::{RepositoryFavorites, RepositoryShown};
 pub use timeline::{RepositoryFolds, WorkspacePanes};
 
 /// The name of the file, in Gitardo's configuration folder.
@@ -37,6 +39,10 @@ pub struct Persisted {
     pub panes: Vec<WorkspacePanes>,
     /// The folds of the repositories shown last.
     pub folds: Vec<RepositoryFolds>,
+    /// The favorites of the repositories whose favorites changed last.
+    pub favorites: Vec<RepositoryFavorites>,
+    /// The branches shown of the repositories narrowed last.
+    pub branches_shown: Vec<RepositoryShown>,
 }
 
 /// A workspace opened before.
@@ -78,6 +84,8 @@ impl Persisted {
             rail_width: document.get("railWidth").and_then(number),
             panes: list(&document, "panes", timeline::workspace_panes),
             folds: list(&document, "folds", timeline::repository_folds),
+            favorites: list(&document, "favorites", rail::repository_favorites),
+            branches_shown: list(&document, "branchesShown", rail::repository_shown),
         }
     }
 
@@ -108,6 +116,14 @@ impl Persisted {
         members.push(member(
             "folds",
             Value::Array(self.folds.iter().map(timeline::folds_value).collect()),
+        ));
+        members.push(member(
+            "favorites",
+            Value::Array(self.favorites.iter().map(rail::favorites_value).collect()),
+        ));
+        members.push(member(
+            "branchesShown",
+            Value::Array(self.branches_shown.iter().filter_map(rail::shown_value).collect()),
         ));
         json::to_pretty_text(&Value::Object(members))
     }

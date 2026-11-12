@@ -144,6 +144,10 @@ fn words(kind: &JobKind) -> (Text, Text) {
             Text::from(activity::reading(&folder_name(folder))),
             Text::from(activity::LOADING_MORE_COMMITS),
         ),
+        JobKind::ReadTimeline { folder, .. } => (
+            Text::from(activity::reading(&folder_name(folder))),
+            Text::from(activity::NARROWING_TIMELINE),
+        ),
     }
 }
 

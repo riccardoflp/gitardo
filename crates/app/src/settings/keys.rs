@@ -29,6 +29,12 @@ pub const COMBINE_UPSTREAM: &str = "graph.combineUpstream";
 pub const FIRST_PARENT: &str = "graph.firstParent";
 /// `graph.traceSelected`.
 pub const TRACE_SELECTED: &str = "graph.traceSelected";
+/// `branches.sortOrder`.
+pub const SORT_ORDER: &str = "branches.sortOrder";
+/// The values of `branches.sortOrder`.
+pub const SORT_ORDERS: [&str; 2] = ["name", "date"];
+/// `branches.followGraphFilter`.
+pub const FOLLOW_GRAPH_FILTER: &str = "branches.followGraphFilter";
 
 /// The default of `font.ui`: the font of the interface that comes with the program.
 pub const INTERFACE_FONT: &str = "Inter";

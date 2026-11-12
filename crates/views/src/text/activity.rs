@@ -16,6 +16,8 @@ pub const OPENING_WORKSPACE: &str = "Opening the workspace";
 pub const SHOWING_REPOSITORY: &str = "Showing the repository";
 /// What asks for the next pages of the timeline: it was scrolled near the end of the commits loaded.
 pub const LOADING_MORE_COMMITS: &str = "Loading more commits";
+/// What asks for the first page of another history: the branches the timeline shows were changed.
+pub const NARROWING_TIMELINE: &str = "Showing other branches";
 
 /// The title of a read of a repository: `Reading app`.
 #[must_use]

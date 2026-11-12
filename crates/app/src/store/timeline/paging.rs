@@ -22,6 +22,7 @@ pub fn read_request(state: &State, pages: usize) -> TimelineRequest {
             Parents::All
         },
         shows_stashes: switches.is_on(TimelineSwitch::ShowStashes),
+        shown: state.timeline.shown.clone(),
     }
 }
 
@@ -113,18 +114,24 @@ pub fn read_again(state: &mut State) -> Vec<Effect> {
     effects
 }
 
-/// Cancels the read of the next pages, when one runs.
+/// Cancels the read of the next pages and the read of another history, when they run.
 pub fn cancel_more(state: &mut State) -> Vec<Effect> {
-    let Some(job) = state.timeline.more_job.take() else {
-        return Vec::new();
-    };
-    let _cancelled = state.jobs.remove(&job);
-    state.timeline.asked_at = None;
-    vec![Effect::Cancel(job)]
+    let mut effects = Vec::new();
+    if let Some(job) = state.timeline.narrow_job.take() {
+        let _cancelled = state.jobs.remove(&job);
+        state.timeline.is_reading_again = false;
+        effects.push(Effect::Cancel(job));
+    }
+    if let Some(job) = state.timeline.more_job.take() {
+        let _cancelled = state.jobs.remove(&job);
+        state.timeline.asked_at = None;
+        effects.push(Effect::Cancel(job));
+    }
+    effects
 }
 
 /// Notes a job as started and gives it its number.
-fn start(state: &mut State, kind: JobKind) -> Job {
+pub(super) fn start(state: &mut State, kind: JobKind) -> Job {
     let id = JobId(state.next_job);
     state.next_job += 1;
     let _new = state.jobs.insert(id, kind.clone());

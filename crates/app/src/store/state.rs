@@ -7,8 +7,8 @@ use std::sync::Arc;
 
 use model::repo::Repository;
 use model::state::RepositoryState;
+use views::Notice;
 use views::page::Page;
-use views::{KeptList, Notice};
 
 use super::message::{JobId, JobKind};
 use crate::persisted::Persisted;
@@ -34,8 +34,8 @@ pub struct State {
     pub dialog: Option<Dialog>,
     /// A sentence said once, until it is put away.
     pub notice: Option<Notice>,
-    /// The lists of the branch rail that are open.
-    pub kept_open: Vec<KeptList>,
+    /// The branch rail and the branch filter.
+    pub rail: super::rail::Rail,
     /// Whether the Activity drawer is open.
     pub is_activity_open: bool,
     /// Whether an operation runs: choosing another repository waits for it (`repo.select`). No operation runs in

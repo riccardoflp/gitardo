@@ -46,6 +46,9 @@ pub struct HistoryState<'a> {
     pub hover: Option<&'a HoverTarget>,
     /// When the pointer left the labels, while the history of the last one is still brought out.
     pub hover_left_at: Option<Duration>,
+    /// The reference of the branch rail the pointer rests on, with since when, whose history is brought out as a
+    /// label's is; the window sets it from the rail drawn before the timeline.
+    pub rail_hover: Option<(HoverTarget, Duration)>,
     /// The switches of the timeline: the columns among them.
     pub switches: Switches,
     /// The width the graph was dragged to; none while it chooses its own.

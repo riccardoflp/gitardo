@@ -6,6 +6,7 @@ use std::path::Path;
 
 use json::Value;
 use model::graph::PageSize;
+use model::refs::SortOrder;
 use render::ThemeName;
 use views::graph::{Switches, TimelineSwitch};
 
@@ -62,10 +63,20 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
     let read_on_startup = lookup.boolean(keys::READ_ON_STARTUP, Scope::UserAndRepository);
     let page_size = lookup.number(keys::PAGE_SIZE, Scope::UserAndRepository);
     let switches = timeline_switches(&mut lookup);
+    let sort_order = lookup.choice(keys::SORT_ORDER, &keys::SORT_ORDERS).map(|order| {
+        if order == "date" {
+            SortOrder::Date
+        } else {
+            SortOrder::Name
+        }
+    });
+    let follows_graph_filter = lookup.boolean(keys::FOLLOW_GRAPH_FILTER, Scope::User);
     Settings {
         theme,
         fonts,
         switches,
+        sort_order,
+        follows_graph_filter: follows_graph_filter.unwrap_or(defaults.follows_graph_filter),
         read_on_startup: read_on_startup.unwrap_or(defaults.read_on_startup),
         page_size: page_size.map_or(defaults.page_size, |size| PageSize::from_setting(Some(size))),
         problems: lookup.problems,

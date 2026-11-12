@@ -67,11 +67,19 @@ pub enum Icon {
     Worktree,
     /// A tray with layers above it: a stash.
     Stash,
+    /// A star with five points: a favorite.
+    Star,
+    /// A clock: what was done last.
+    Clock,
+    /// An eye: show.
+    Eye,
+    /// Three lines that get shorter: what is shown, filtered.
+    Filter,
 }
 
 impl Icon {
     /// Every icon, in the order of the enumeration.
-    pub const ALL: [Icon; 23] = [
+    pub const ALL: [Icon; 27] = [
         Icon::ChevronRight,
         Icon::ChevronDown,
         Icon::Close,
@@ -95,6 +103,10 @@ impl Icon {
         Icon::Info,
         Icon::Worktree,
         Icon::Stash,
+        Icon::Star,
+        Icon::Clock,
+        Icon::Eye,
+        Icon::Filter,
     ];
 }
 

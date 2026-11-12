@@ -2,12 +2,14 @@
 //! timeline, checked while they are on; **Fold all merges** and **Unfold all merges**; and **Select repository…**
 //! when the workspace has more than one repository.
 
+use model::filter::{Kinds, ReferenceKind};
 use ui::{Button, ButtonKind, Icon, MenuEntry, MenuItem, Ui};
 
 use super::fold::{FoldAllEntry, FoldAllState, fold_all_view};
 use super::intent::{GraphIntent, Switches, TimelineSwitch};
 use super::switches::{FirstParentState, SelectedTrace, first_parent_view, trace_selected_view};
-use crate::intent::Intent;
+use crate::intent::{FilterIntent, Intent};
+use crate::text::filter as filter_words;
 use crate::text::header as words;
 
 /// The key of the menu.
@@ -35,11 +37,13 @@ pub struct TimelineMenu {
     pub has_folds: bool,
     /// Whether every merge is folded.
     pub is_all_folded: bool,
+    /// The kinds of references the timeline shows; none while the branch filter chose otherwise (`filter.kinds`).
+    pub kinds: Option<Kinds>,
 }
 
 /// What an item of the menu does.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum MoreCommand {
+pub(crate) enum MoreCommand {
     /// **Refresh**.
     Refresh,
     /// A switch of the timeline.
@@ -48,6 +52,8 @@ enum MoreCommand {
     FoldAll(FoldAllEntry),
     /// **Select repository…**.
     SelectRepository,
+    /// **Show local branches**, **Show remote branches** or **Show tags**.
+    Kind(ReferenceKind),
 }
 
 /// The words of a switch.
@@ -78,6 +84,7 @@ fn switch_item(switches: Switches, switch: TimelineSwitch) -> MenuEntry<'static,
 /// then the switches of what each row shows.
 fn timeline_entries(menu: TimelineMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
     let mut entries = vec![MenuEntry::Separator];
+    entries.extend(kind_entries(menu.kinds));
     for switch in [
         TimelineSwitch::ShowStashes,
         TimelineSwitch::FirstParent,
@@ -105,6 +112,27 @@ fn timeline_entries(menu: TimelineMenu) -> Vec<MenuEntry<'static, MoreCommand>> 
         entries.push(switch_item(menu.switches, switch));
     }
     entries
+}
+
+/// The kinds of references shown, each checked while it is shown: greyed out with **Chosen in the filter** while the
+/// branch filter chose otherwise, and the one kind left on greyed out, since one is always on.
+pub(crate) fn kind_entries(kinds: Option<Kinds>) -> Vec<MenuEntry<'static, MoreCommand>> {
+    [
+        (ReferenceKind::Local, filter_words::SHOW_LOCAL),
+        (ReferenceKind::Remote, filter_words::SHOW_REMOTE),
+        (ReferenceKind::Tag, filter_words::SHOW_TAGS),
+    ]
+    .into_iter()
+    .map(|(kind, label)| {
+        let item = MenuItem::new(label, MoreCommand::Kind(kind));
+        MenuEntry::Item(match kinds {
+            None => item.disabled().with_shortcut(filter_words::CHOSEN_IN_FILTER),
+            Some(kinds) if kinds.has(kind) && kinds.count() == 1 => item.with_icon(Icon::Check).disabled(),
+            Some(kinds) if kinds.has(kind) => item.with_icon(Icon::Check),
+            Some(_) => item,
+        })
+    })
+    .collect()
 }
 
 /// The **…** button and its menu, over the rectangle its caller clipped it to.
@@ -136,6 +164,7 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
     match ui.menu_button(MORE_MENU, rect, &button, &entries) {
         Some(MoreCommand::Refresh) => vec![Intent::Refresh],
         Some(MoreCommand::SelectRepository) => vec![Intent::PickRepository],
+        Some(MoreCommand::Kind(kind)) => vec![Intent::Filter(FilterIntent::SwitchKind(kind))],
         Some(MoreCommand::Switch(TimelineSwitch::FirstParent)) => {
             let state = FirstParentState {
                 is_on: switches.is_on(TimelineSwitch::FirstParent),

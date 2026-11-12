@@ -8,13 +8,15 @@ use ui::{Button, ButtonKind, Icon, Key, Label, Modifiers, NamedKey, Rect, Tone, 
 
 use crate::activity::{ActivityState, what_is_running_view};
 use crate::details::{DetailsState, show};
+use crate::filter::{NarrowedBar, bar_height, bar_view};
 use crate::graph::{
-    GraphState, PaneLayout, PaneSizes, ToolbarState, pane_rects, resize_panes_view, toolbar_view, view as graph_view,
+    GraphState, HoverTarget, PaneLayout, PaneSizes, ToolbarState, pane_rects, resize_panes_view, toolbar_view,
+    view as graph_view,
 };
 use crate::intent::{Intent, Notice};
 use crate::line::{ICON_RAIL_WIDTH, INSPECTOR_OVER_BELOW, is_narrow};
 use crate::page::{PageHostState, host_view};
-use crate::refs::{ReferencesState, tree_view};
+use crate::refs::{ReferencesState, rail_view};
 use crate::repo::{
     NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, no_repository_view, open_folder_question_view,
     repository_picker_view,
@@ -53,7 +55,7 @@ pub enum TimelineState<'a> {
     /// A repository, as read: the rail of its references, its commits and the inspector.
     Repository {
         /// The branch rail.
-        rail: ReferencesState<'a>,
+        rail: Box<ReferencesState<'a>>,
         /// The commits.
         graph: GraphState<'a>,
         /// The inspector.
@@ -62,6 +64,8 @@ pub enum TimelineState<'a> {
         panes: PaneSizes,
         /// Whether the branch rail is put away (`graph.toggle-references`).
         is_rail_hidden: bool,
+        /// The bar above the commits, while the timeline is narrowed to some branches (`filter.bar`).
+        bar: Option<NarrowedBar<'a>>,
     },
     /// No repository to show yet, or none at all: the rail is empty and the timeline says why.
     NoRepository(NoRepositoryState),
@@ -111,6 +115,7 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
             inspector: details,
             panes,
             is_rail_hidden,
+            bar,
         } => {
             let is_inspector_over = ui.window().width < INSPECTOR_OVER_BELOW;
             let layout = PaneLayout {
@@ -122,10 +127,19 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
                 has_inspector: !is_inspector_over || details.selected.is_some(),
             };
             let rects = pane_rects(&layout, theme.sizes.border);
+            let mut rail_hover = None;
             if let Some(rail) = rects.rail {
-                intents.extend(ui.clip(rail, |ui| tree_view(references, ui)));
+                let (rail_intents, hover) = ui.clip(rail, |ui| rail_view(references, ui));
+                intents.extend(rail_intents);
+                rail_hover = hover;
             }
-            intents.extend(ui.clip(rects.main, |ui| graph_view(graph, ui)));
+            let mut main = Area::new(rects.main);
+            if let Some(bar) = bar {
+                let top = main.top(bar_height(ui));
+                intents.extend(ui.clip(top, |ui| bar_view(bar, ui)));
+            }
+            let graph = with_rail_hover(graph, rail_hover);
+            intents.extend(ui.clip(main.rest(), |ui| graph_view(&graph, ui)));
             if let Some(column) = rects.inspector {
                 if is_inspector_over {
                     ui.fill_rect(column, theme.colors.page_background);
@@ -140,6 +154,18 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
             ui.fill_rect(rail, theme.colors.rail_background);
             intents.extend(ui.clip(columns.rest(), |ui| no_repository_view(no_repository, ui)));
         }
+    }
+}
+
+/// The timeline with the reference of the branch rail the pointer rests on, whose history it brings out.
+fn with_rail_hover<'a>(graph: &GraphState<'a>, hover: Option<(HoverTarget, std::time::Duration)>) -> GraphState<'a> {
+    match (graph, hover) {
+        (GraphState::Listed(history), Some(hover)) => {
+            let mut history = history.as_ref().clone();
+            history.rail_hover = Some(hover);
+            GraphState::Listed(Box::new(history))
+        }
+        _ => graph.clone(),
     }
 }
 

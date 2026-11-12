@@ -40,3 +40,10 @@
 - `gitardo-demo`: the window of the Timeline with made-up data: the header with Quick search and Sync, the branch rail,
   the timeline with its draft and a million commits, the inspector and the Activity drawer, with the themes to choose
   from.
+- The branch rail: favorites, the branches checked out last, the local branches with how far each is from its
+  upstream, one list for each remote, and the stashes, worktrees and tags kept aside; a filter box from 15 names on,
+  the order by name or by date, the menus of the references, and a branch's history brought out under the pointer.
+- The branch filter: the button before Quick search and its list with the presets, the box and a tick on every
+  reference, the kinds of references in **…**, **Show only this history**, **Show this history too** and **Hide this
+  history** on the references of the rail, the bar over the timeline narrowed, and the line at the top of the rail.
+  Narrowing reads only the first page of the history shown, and the choice is kept for each repository.

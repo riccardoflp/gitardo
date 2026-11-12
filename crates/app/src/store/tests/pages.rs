@@ -4,7 +4,7 @@
 use render::ThemeName;
 use views::page::{Page, PageState};
 use views::repo::NoRepositoryState;
-use views::{Content, Intent, KeptList, TimelineState};
+use views::{Content, Intent, RailIntent, RailList, TimelineState};
 
 use super::{answer, folder, intent, open, reads, send, view_data, window};
 use crate::persisted::Persisted;
@@ -194,12 +194,12 @@ fn the_window_closed_keeps_its_size_cancels_its_jobs_and_quits() {
 #[test]
 fn the_lists_kept_aside_and_the_activity_drawer_open_and_close() {
     let mut state = window();
-    let _open = intent(&mut state, Intent::ToggleKept(KeptList::Tags));
+    let _open = intent(&mut state, Intent::Rail(RailIntent::Toggle(RailList::Tags)));
     let _drawer = intent(&mut state, Intent::OpenActivity);
-    assert_eq!(state.kept_open, [KeptList::Tags]);
+    assert!(state.rail.lists.is_open(&RailList::Tags));
     assert!(state.is_activity_open);
-    let _closed = intent(&mut state, Intent::ToggleKept(KeptList::Tags));
+    let _closed = intent(&mut state, Intent::Rail(RailIntent::Toggle(RailList::Tags)));
     let _drawer = intent(&mut state, Intent::CloseActivity);
-    assert_eq!(state.kept_open.len(), 0);
+    assert!(!state.rail.lists.is_open(&RailList::Tags));
     assert!(!state.is_activity_open);
 }

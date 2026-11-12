@@ -3,18 +3,20 @@
 //! brought out, laid out again only when one of them changes.
 
 mod folds;
+mod narrow;
 mod paging;
 mod sizes;
 
 use std::collections::HashSet;
-use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
 use git::read::graph::{CommitsRequest, History, Parents};
 use model::CommitId;
+use model::filter::{BranchesShown, checked, log_arguments};
 use model::graph::{CellTrace, DateTime, Row, Trace};
+use model::refs::References;
 use model::state::RepositoryState;
 use ui::RevealPlace;
 use views::graph::{
@@ -25,6 +27,7 @@ use views::graph::{
 use super::message::{Effect, JobId, TimelineRequest};
 use super::state::State;
 
+pub use narrow::{keep_shown, kept_shown, show, timeline_read};
 pub use paging::{cancel_more, commits_read, known, read_request};
 pub use sizes::{apply_switch, workspace_panes};
 
@@ -43,6 +46,10 @@ pub struct Timeline {
     pub pages: usize,
     /// The read of the next pages, while it runs.
     pub more_job: Option<JobId>,
+    /// The read of the first page of another history, the timeline narrowed or shown whole again, while it runs.
+    pub narrow_job: Option<JobId>,
+    /// The branches shown, as checked against the repository at its last read; none is everything (`filter.picker`).
+    pub shown: Option<BranchesShown>,
     /// Whether the commits are read again from the first page, for another history.
     pub is_reading_again: bool,
     /// The commits loaded when the next page was asked for last.
@@ -83,19 +90,21 @@ impl Timeline {
     }
 }
 
-/// The history the timeline lists: every branch, remote branch and tag, and `HEAD` once there is a commit, in date
-/// order, each commit before its parents. `filter.log-arguments` makes it once the branches shown can be chosen.
+/// The history the timeline lists, in date order, each commit before its parents: the branches shown, checked against
+/// the references the repository has now, as `filter.log-arguments` gives them, with the upstream of the branch
+/// checked out for **Upstream**.
 #[must_use]
-pub fn history_of(repository: &RepositoryState, parents: Parents) -> History {
-    let mut selection: Vec<OsString> = ["--date-order", "--branches", "--remotes", "--tags"]
-        .into_iter()
-        .map(OsString::from)
-        .collect();
-    if repository.head.commit.is_some() {
-        selection.push(OsString::from("HEAD"));
-    }
+pub fn history_of(repository: &RepositoryState, shown: Option<&BranchesShown>, parents: Parents) -> History {
+    let shown = checked(shown, &References::of(repository));
+    let upstream = repository
+        .branches
+        .iter()
+        .find(|branch| branch.is_checked_out)
+        .and_then(|branch| branch.upstream.as_ref())
+        .map(|upstream| upstream.reference.as_str())
+        .filter(|reference| reference.starts_with("refs/"));
     History {
-        selection,
+        selection: log_arguments(shown.as_ref(), repository.head.commit.as_ref(), upstream),
         narrowing: Vec::new(),
         parents,
     }
@@ -105,7 +114,7 @@ pub fn history_of(repository: &RepositoryState, parents: Parents) -> History {
 #[must_use]
 pub fn commits_request(repository: &RepositoryState, request: &TimelineRequest) -> CommitsRequest {
     CommitsRequest {
-        history: history_of(repository, request.parents),
+        history: history_of(repository, request.shown.as_ref(), request.parents),
         page_size: request.page_size,
         pages: request.pages.max(1),
         skip: 0,
@@ -140,12 +149,23 @@ pub fn draft_of(repository: &RepositoryState, rows: &[Row]) -> Option<DraftState
     })
 }
 
-/// Takes the rows of a read of the repository shown: a read that finds the same rows changes none of them; a new
-/// repository starts with nothing selected and the folds kept for it.
+/// Whether the branches shown have what is checked out: a timeline narrowed to references ticked one by one has the
+/// draft only when the branch checked out is among them (`filter.show-only`).
+fn shows_checked_out(shown: Option<&BranchesShown>, repository: &RepositoryState) -> bool {
+    match shown {
+        Some(BranchesShown::References(names)) => {
+            repository.head.branch.as_ref().is_some_and(|head| names.contains(head))
+        }
+        _ => true,
+    }
+}
+
+/// Takes the rows of a read of the repository shown, of the history of the branches shown: a read that finds the
+/// same rows changes none of them; a new repository starts with nothing selected and the folds kept for it.
 pub fn take_read(
     state: &mut State,
     (folder, repository): (&Path, &RepositoryState),
-    rows: Vec<Row>,
+    (rows, shown): (Vec<Row>, Option<BranchesShown>),
     page: (bool, usize, i64),
 ) {
     let (has_more, pages, read_at) = page;
@@ -156,7 +176,8 @@ pub fn take_read(
         };
         folds::restore(state, folder);
     }
-    let draft = draft_of(repository, &rows);
+    let draft = draft_of(repository, &rows).filter(|_| shows_checked_out(shown.as_ref(), repository));
+    state.timeline.shown = shown;
     let mut all = Vec::with_capacity(rows.len() + 1);
     if let Some(changes) = &draft {
         all.push(Row::Uncommitted {

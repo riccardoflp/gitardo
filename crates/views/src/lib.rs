@@ -15,6 +15,7 @@
 
 pub mod activity;
 pub mod details;
+pub mod filter;
 pub mod graph;
 mod intent;
 mod line;
@@ -26,5 +27,5 @@ pub mod text;
 pub mod welcome;
 mod window;
 
-pub use intent::{FolderAnswer, Intent, KeptList, Notice};
+pub use intent::{FilterIntent, FolderAnswer, Intent, Notice, RailIntent, RailList, RailLists};
 pub use window::{Content, TimelineState, WindowState, view};

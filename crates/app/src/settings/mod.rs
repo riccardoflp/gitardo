@@ -2,7 +2,7 @@
 //! configuration folder and from `.gitardo/settings.json` of the repository shown, both JSON with comments.
 //!
 //! Only the settings this window uses are read here: the theme and the fonts (`settings.theme`), `readOnStartup`,
-//! `graph.pageSize` and the switches of the timeline. Each card that uses another setting adds it to [`keys`].
+//! `graph.pageSize`, the switches of the timeline, `branches.sortOrder` and `branches.followGraphFilter`. Each card that uses another setting adds it to [`keys`].
 
 mod folder;
 pub mod keys;
@@ -13,6 +13,7 @@ mod tests;
 use std::path::PathBuf;
 
 use model::graph::PageSize;
+use model::refs::SortOrder;
 use render::ThemeName;
 use views::graph::Switches;
 
@@ -34,6 +35,11 @@ pub struct Settings {
     /// `graph.showStashes`, `graph.firstParent`, `graph.traceSelected`, `graph.columns`, `graph.dateSeparators` and
     /// `graph.combineUpstream`: the switches of the timeline.
     pub switches: Switches,
+    /// `branches.sortOrder`: the order of the branches, the remote branches and the tags; none while it is not set,
+    /// which is by name.
+    pub sort_order: Option<SortOrder>,
+    /// `branches.followGraphFilter`: the branch rail lists only the branches the timeline shows.
+    pub follows_graph_filter: bool,
     /// The values that were not taken, with which key and why, for the settings page to say.
     pub problems: Vec<SettingProblem>,
 }
@@ -46,6 +52,8 @@ impl Default for Settings {
             read_on_startup: true,
             page_size: PageSize::DEFAULT,
             switches: Switches::DEFAULT,
+            sort_order: None,
+            follows_graph_filter: true,
             problems: Vec::new(),
         }
     }
@@ -125,6 +133,16 @@ pub struct SettingsFiles {
     pub user: Option<PathBuf>,
     /// The file of the repository shown, when one is shown.
     pub repository: Option<PathBuf>,
+}
+
+/// The value `branches.sortOrder` is written as.
+#[must_use]
+pub fn sort_order_value(order: SortOrder) -> json::Value {
+    let [name, date] = keys::SORT_ORDERS;
+    json::Value::String(String::from(match order {
+        SortOrder::Name => name,
+        SortOrder::Date => date,
+    }))
 }
 
 /// The key a switch of the timeline is written under, and the value it is written as, in the user's settings file:

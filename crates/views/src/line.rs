@@ -19,6 +19,11 @@ pub(crate) fn control_in(ui: &Ui<'_>, cell: Rect, width: f32) -> Rect {
     place(cell, (width, height), (Align::Start, Align::Center))
 }
 
+/// A count of rows as a length in rows, which an `f32` holds exactly up to 65,535; more are as many.
+pub(crate) fn rows_of(count: usize) -> f32 {
+    f32::from(u16::try_from(count).unwrap_or(u16::MAX))
+}
+
 /// Whether the window is narrow: the header shows icons for words, the rail only icons.
 pub(crate) fn is_narrow(ui: &Ui<'_>) -> bool {
     ui.window().width < NARROW_BELOW

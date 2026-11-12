@@ -12,7 +12,7 @@ use views::Intent;
 use super::support::{Window, run};
 
 /// The pointer moved to a point.
-fn moved(position: Point) -> InputEvent {
+pub fn moved(position: Point) -> InputEvent {
     InputEvent::PointerMoved(PointerMove {
         position,
         modifiers: Modifiers::NONE,

@@ -3,6 +3,7 @@
 use std::path::PathBuf;
 
 use git::read::graph::{CommitPage, CommitsRequest, Parents};
+use model::filter::BranchesShown;
 use model::graph::PageSize;
 use model::graph::Row;
 use model::repo::Repository;
@@ -41,6 +42,13 @@ pub enum Message {
         result: Result<Box<(RepositoryState, CommitPage)>, String>,
         /// When it was read, in seconds since 1970: the lines between days and months are counted from it.
         read_at: i64,
+    },
+    /// A job that read the first page of another history of the timeline is done (`filter.show-only`).
+    TimelineRead {
+        /// The job.
+        job: JobId,
+        /// What was read, or what git said when the read failed.
+        result: Result<CommitPage, String>,
     },
     /// A job that read the next pages of the timeline is done (`graph.load-more`).
     CommitsRead {
@@ -96,7 +104,7 @@ pub struct Known {
 }
 
 /// How the timeline of a repository is read.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TimelineRequest {
     /// How many commits a page has.
     pub page_size: PageSize,
@@ -106,6 +114,8 @@ pub struct TimelineRequest {
     pub parents: Parents,
     /// Whether the stashes are placed among the commits (`graph.showStashes`).
     pub shows_stashes: bool,
+    /// The branches shown, as chosen: the worker checks them against the references it reads (`filter.remember`).
+    pub shown: Option<BranchesShown>,
 }
 
 /// The number of a job, unique in its window.
@@ -126,6 +136,14 @@ pub enum JobKind {
         folder: PathBuf,
         /// How the timeline is read.
         request: TimelineRequest,
+    },
+    /// Reads the first page of the timeline for the branches shown, and nothing else of the repository: the timeline
+    /// narrowed, or shown whole again (`filter.show-only`, `filter.show-all`).
+    ReadTimeline {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// What is read.
+        request: CommitsRequest,
     },
     /// Reads the pages of the timeline from the first again, one more than are loaded, and sends only the rows after
     /// those known when they are the same (`graph.load-more`).

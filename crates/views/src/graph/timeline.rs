@@ -111,7 +111,7 @@ fn timeline(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent
     let hover = HoverState {
         current: state.hover,
         left_at: state.hover_left_at,
-        under_pointer: report.label.or(sticky.label),
+        under_pointer: report.label.or(sticky.label).or_else(|| state.rail_hover.clone()),
         now: ui.now(),
     };
     intents.extend(hover_history_view(&hover, ui));

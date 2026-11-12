@@ -6,6 +6,7 @@
 
 mod message;
 mod pages;
+mod rail;
 mod state;
 #[cfg(test)]
 mod tests;
@@ -21,6 +22,7 @@ use crate::persisted;
 use crate::settings::Settings;
 
 pub use message::{Effect, Found, Job, JobId, JobKind, Known, Message, MorePages, TimelineRequest};
+pub use rail::{FilterPicker, Rail};
 pub use state::{Dialog, Opening, Pages, RepositoryRead, Shown, State, Workspace};
 pub use timeline::{Timeline, commits_request, draft_of, history_of, known};
 pub use view_state::ViewData;
@@ -40,6 +42,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
             read_at,
         } => workspace::repository_read(state, job, &folder, (result, read_at)),
         Message::CommitsRead { job, result } => timeline::commits_read(state, job, result),
+        Message::TimelineRead { job, result } => timeline::timeline_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, settings),
         Message::CloseRequested { window_size } => {
             let mut effects = workspace::cancel_all(state);
@@ -55,7 +58,11 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
 fn settings_read(state: &mut State, settings: Settings) -> Vec<Effect> {
     let looks_different = settings.theme != state.settings.theme || settings.fonts != state.settings.fonts;
     let before = state.settings.switches;
+    let sorted_before = state.settings.sort_order;
     state.settings = settings;
+    if state.settings.sort_order != sorted_before {
+        rail::arrange(state);
+    }
     let mut effects = Vec::new();
     if looks_different {
         effects.push(Effect::ApplySettings);
@@ -158,7 +165,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         }
         Intent::NextPage => pages::next_page(state),
         Intent::ClosePage => pages::close_page(state),
-        Intent::ClosePicker | Intent::OpenActivity | Intent::CloseActivity | Intent::ToggleKept(_) => {
+        Intent::ClosePicker | Intent::OpenActivity | Intent::CloseActivity => {
             reduce_view_intent(state, &intent);
             Vec::new()
         }
@@ -166,6 +173,8 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
             state.notice = None;
             Vec::new()
         }
+        Intent::Rail(intent) => rail::reduce_rail(state, intent),
+        Intent::Filter(intent) => rail::reduce_filter(state, intent),
         Intent::Graph(intent) => timeline::reduce_graph(state, intent),
     }
 }
@@ -176,13 +185,6 @@ fn reduce_view_intent(state: &mut State, intent: &Intent) {
         Intent::ClosePicker => state.dialog = None,
         Intent::OpenActivity => state.is_activity_open = true,
         Intent::CloseActivity => state.is_activity_open = false,
-        Intent::ToggleKept(list) => {
-            if let Some(index) = state.kept_open.iter().position(|open| open == list) {
-                let _closed = state.kept_open.remove(index);
-            } else {
-                state.kept_open.push(*list);
-            }
-        }
         _ => {}
     }
 }

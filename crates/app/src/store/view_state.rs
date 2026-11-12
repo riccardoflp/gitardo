@@ -4,11 +4,13 @@
 
 use std::path::PathBuf;
 
+use model::filter::kinds_shown;
 use model::graph::Row;
 use model::repo::name_repositories;
 use model::state::RepositoryState;
 use views::activity::{ActivityState, RunningTask, StatusBarState};
 use views::details::{DetailsState, SelectedDetails};
+use views::filter::{BranchPicker, NarrowedBar, PickerOpen};
 use views::graph::{
     BranchChip, Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, ReferencesShown, RepositoryEntry,
     RepositoryPill, Selected, SyncCounts, TimelineMenu, ToolbarState, TraceShown,
@@ -19,7 +21,8 @@ use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState};
 use views::welcome::WelcomeState;
 use views::{Content, TimelineState, WindowState};
 
-use super::state::{Dialog, Shown, State};
+use super::rail::{favorites, sort_order};
+use super::state::{Dialog, RepositoryRead, Shown, State};
 use super::timeline::{Timeline, workspace_panes};
 use crate::persisted::{WorkspacePanes, same_folder};
 
@@ -153,6 +156,7 @@ impl ViewData {
             references: read.map(|_| ReferencesShown {
                 is_shown: !self.panes.is_rail_hidden,
             }),
+            filter: read.map(|_| branch_picker(state)),
         }
     }
 
@@ -181,17 +185,23 @@ impl ViewData {
         let shown = state.workspace.as_ref().map(|workspace| &workspace.shown);
         match shown {
             Some(Shown::Read(read)) => TimelineState::Repository {
-                rail: ReferencesState {
-                    repository: &read.state,
-                    open: &state.kept_open,
-                    branch_colors: &state.timeline.layout.branch_colors,
-                },
+                rail: Box::new(rail(state, read)),
                 graph: GraphState::Listed(Box::new(self.history(state, read.state.head.commit.is_none()))),
                 inspector: DetailsState {
                     selected: selected_details(&state.timeline),
                 },
                 panes: self.panes.sizes,
                 is_rail_hidden: self.panes.is_rail_hidden,
+                bar: state.timeline.shown.as_ref().map(|shown| NarrowedBar {
+                    shown,
+                    listed: state
+                        .timeline
+                        .read_rows()
+                        .iter()
+                        .filter(|row| row.id().is_some())
+                        .count(),
+                    has_more: state.timeline.has_more,
+                }),
             },
             Some(Shown::NoRepository) => TimelineState::NoRepository(NoRepositoryState::NoRepository),
             Some(Shown::Looking | Shown::Reading { .. }) | None => {
@@ -227,6 +237,7 @@ impl ViewData {
             }),
             hover: timeline.hover.as_ref(),
             hover_left_at: timeline.hover_left_at,
+            rail_hover: None,
             switches: state.settings.switches,
             graph_width: self.panes.graph_width,
             now: self.now,
@@ -244,6 +255,43 @@ fn timeline_menu(state: &State) -> TimelineMenu {
         has_merges: !timeline.layout.foldable.is_empty(),
         has_folds: !timeline.folded.is_empty(),
         is_all_folded: timeline.is_all_folded,
+        kinds: kinds_shown(timeline.shown.as_ref()),
+    }
+}
+
+/// The branch rail of the repository shown.
+fn rail<'a>(state: &'a State, read: &'a RepositoryRead) -> ReferencesState<'a> {
+    let selected = match &state.timeline.selected {
+        Some(Selected::Commit(commit)) => Some(commit),
+        _ => None,
+    };
+    ReferencesState {
+        repository: &read.state,
+        references: &state.rail.references,
+        lists: &state.rail.lists,
+        branch_colors: &state.timeline.layout.branch_colors,
+        remote_colors: &state.timeline.layout.remote_colors,
+        favorites: favorites(state),
+        recent: &state.rail.recent,
+        submodules: &[],
+        typed: &state.rail.typed,
+        shown: state.timeline.shown.as_ref(),
+        follows_timeline: state.settings.follows_graph_filter,
+        selected,
+        sort: sort_order(state),
+    }
+}
+
+/// The branch filter of the header.
+fn branch_picker(state: &State) -> BranchPicker<'_> {
+    BranchPicker {
+        shown: state.timeline.shown.as_ref(),
+        references: &state.rail.references,
+        open: state.rail.picker.as_ref().map(|picker| PickerOpen {
+            typed: &picker.typed,
+            window: picker.window,
+        }),
+        follows_timeline: state.settings.follows_graph_filter,
     }
 }
 

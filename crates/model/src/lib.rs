@@ -14,6 +14,7 @@ pub mod contract;
 pub mod details;
 pub mod diff;
 pub mod file_history;
+pub mod filter;
 pub mod graph;
 mod identifier;
 pub mod patch;

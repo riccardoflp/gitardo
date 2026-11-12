@@ -14,6 +14,7 @@ pub(crate) mod list;
 pub(crate) mod menu;
 pub(crate) mod panel;
 pub(crate) mod picker;
+pub(crate) mod popover;
 pub(crate) mod progress;
 pub(crate) mod scroll;
 pub(crate) mod splitter;

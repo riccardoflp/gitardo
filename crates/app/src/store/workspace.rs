@@ -6,6 +6,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use git::read::graph::CommitPage;
+use model::filter::checked;
+use model::refs::References;
 use model::repo::Repository;
 use model::state::RepositoryState;
 use views::Notice;
@@ -157,8 +159,12 @@ pub fn repository_read(
                 generation,
             });
             let page = (commits.has_more, request.pages, read_at);
-            super::timeline::take_read(state, (folder, &repository), commits.rows, page);
-            super::pages::tick_timeline(state).into_iter().collect()
+            let shown = checked(request.shown.as_ref(), &References::of(&repository));
+            super::timeline::take_read(state, (folder, &repository), (commits.rows, shown), page);
+            super::rail::arrange(state);
+            let mut effects = super::timeline::keep_shown(state, folder);
+            effects.extend(super::pages::tick_timeline(state));
+            effects
         }
         Err(error) => {
             workspace.shown = Shown::NoRepository;
@@ -240,7 +246,8 @@ fn start_read(state: &mut State, folder: PathBuf) -> Effect {
         .as_deref()
         .is_some_and(|shown| same_folder(shown, &folder));
     let pages = if is_shown { state.timeline.pages } else { 1 };
-    let request = super::timeline::read_request(state, pages);
+    let mut request = super::timeline::read_request(state, pages);
+    request.shown = super::timeline::kept_shown(state, &folder);
     Effect::Start(start_job(state, JobKind::ReadRepository { folder, request }))
 }
 

@@ -236,6 +236,10 @@ fn subject_line(
     for pill in &pills {
         let badge = pill.badge(color);
         let width = ui.badge_width(&badge).min((lines.right() - x).max(0.0));
+        // A label with less room than its own height is not drawn at all, rather than squeezed past the end.
+        if width < first {
+            break;
+        }
         let drawn = ui.badge(Rect::new(x, top, width, first), &badge);
         x += width + theme.sizes.spacing.medium;
         hover_label(ui, (drawn, pill), &commit.id, report);

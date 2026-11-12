@@ -1,5 +1,5 @@
 //! The header (`graph.toolbar`): the repository with its menu, the branch checked out and how far it is from its
-//! upstream, Quick search, the activity indicator, Sync, the button of the Activity drawer and the **…** menu.
+//! upstream, the branch filter, Quick search, the activity indicator, Sync, the button of the Activity drawer and the **…** menu.
 
 use std::path::PathBuf;
 
@@ -11,6 +11,7 @@ use ui::{
 use super::more_menu::{MoreMenuState, more_menu_view};
 use super::toggle::{ReferencesShown, toggle_references_view};
 use crate::activity::{StatusBarState, status_bar_view, status_bar_width};
+use crate::filter::{BranchPicker, picker_button_width, picker_view};
 use crate::intent::Intent;
 use crate::line::{control_in, is_narrow};
 use crate::search;
@@ -36,6 +37,8 @@ pub struct ToolbarState<'a> {
     pub is_activity_open: bool,
     /// Whether the branch rail is shown, once a repository is: the first button puts it away.
     pub references: Option<ReferencesShown>,
+    /// The branch filter, once a repository is read (`filter.picker`).
+    pub filter: Option<BranchPicker<'a>>,
 }
 
 /// The pill of the repository: its name, and its menu of the repositories of the workspace and the recent ones.
@@ -130,6 +133,11 @@ pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         repository_pill(&state.repository, ui, &mut area, &mut intents);
         if let Some(branch) = &state.branch {
             branch_chip(branch, ui, &mut area);
+        }
+        if let Some(filter) = &state.filter {
+            let width = picker_button_width(filter, ui);
+            let rect = control_in(ui, area.left(width), width);
+            intents.extend(ui.clip(rect, |ui| picker_view(filter, ui)));
         }
         more_button(state.more, ui, &mut area, &mut intents);
         activity_button(state.is_activity_open, ui, &mut area, &mut intents);

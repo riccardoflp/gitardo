@@ -45,6 +45,14 @@ pub(crate) fn design(icon: Icon) -> Design {
         }
         Icon::Worktree => worktree(),
         Icon::Stash => stash(),
+        Icon::Star => star(),
+        Icon::Clock => with_ring(lines(&[&[(8.0, 4.5), (8.0, 8.0), (10.5, 9.5)]])),
+        Icon::Eye => eye(),
+        Icon::Filter => lines(&[
+            &[(2.5, 4.5), (13.5, 4.5)],
+            &[(4.5, 8.0), (11.5, 8.0)],
+            &[(6.5, 11.5), (9.5, 11.5)],
+        ]),
     }
 }
 
@@ -238,4 +246,32 @@ fn stash() -> Design {
     add_polyline(&mut design.strokes, &[(3.0, 6.5), (13.0, 6.5)]);
     add_polyline(&mut design.strokes, &[(4.5, 3.5), (11.5, 3.5)]);
     design
+}
+
+/// A star with five points, its outline through the points and the corners between them.
+fn star() -> Design {
+    let center = Point::new(8.0, 8.5);
+    let points: Vec<(f32, f32)> = (0..10_u8)
+        .map(|index| {
+            let radius = if index % 2 == 0 { 6.5 } else { 2.75 };
+            let angle = std::f32::consts::PI * (f32::from(index) / 5.0 - 0.5);
+            (center.x + radius * angle.cos(), center.y + radius * angle.sin())
+        })
+        .collect();
+    closed(&points)
+}
+
+/// An eye: two curves that meet at its corners, and a ring for its middle.
+fn eye() -> Design {
+    let mut strokes = Path::new();
+    let _ = strokes
+        .move_to(Point::new(1.5, 8.0))
+        .cubic_to(Point::new(4.5, 3.0), Point::new(11.5, 3.0), Point::new(14.5, 8.0))
+        .cubic_to(Point::new(11.5, 13.0), Point::new(4.5, 13.0), Point::new(1.5, 8.0))
+        .close();
+    let _ = strokes.extend(&Path::circle(Point::new(8.0, 8.0), 2.0));
+    Design {
+        strokes,
+        fills: Path::new(),
+    }
 }

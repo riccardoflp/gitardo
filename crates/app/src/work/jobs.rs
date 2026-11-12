@@ -28,6 +28,11 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
                 .map_err(|error| error.to_string()),
             read_at: seconds_now(),
         },
+        JobKind::ReadTimeline { folder, request } => Message::TimelineRead {
+            job: job.id,
+            result: read_commits(&Git::new(folder).with_cancel(cancel.clone()), request)
+                .map_err(|error| error.to_string()),
+        },
         JobKind::ReadCommits { folder, request, known } => Message::CommitsRead {
             job: job.id,
             result: read_more(folder, request, known, cancel).map_err(|error| error.to_string()),

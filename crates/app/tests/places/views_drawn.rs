@@ -4,7 +4,7 @@
 use platform::accesskit::Role;
 use render::ThemeName;
 use views::page::Page;
-use views::{Intent, KeptList};
+use views::{Intent, RailIntent, RailList};
 
 use super::support::{Window, find};
 use super::{repository_with_history, showing, window};
@@ -46,7 +46,7 @@ fn a_list_kept_aside_opens_with_a_click() {
     let state = showing(repository.path().to_path_buf());
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let intents = window.click(&state, Role::Button, "Tags");
-    assert_eq!(intents, [Intent::ToggleKept(KeptList::Tags)]);
+    assert_eq!(intents, [Intent::Rail(RailIntent::Toggle(RailList::Tags))]);
 }
 
 #[test]

@@ -55,6 +55,28 @@ pub struct TimelineLayout {
     /// The color of the line of each local branch whose commit is shown, by the branch's name, so that its dot in the
     /// branch rail matches its labels in the graph.
     pub branch_colors: HashMap<String, usize>,
+    /// The same for each remote branch whose commit is shown, by its name, as `origin/main`, for its ring.
+    pub remote_colors: HashMap<String, usize>,
+}
+
+/// The color of the line of each local branch and each remote branch whose commit is shown, by its name.
+fn reference_colors(
+    repository: &RepositoryState,
+    cells: &[GraphCell],
+    shown_of: &HashMap<CommitId, usize>,
+) -> (HashMap<String, usize>, HashMap<String, usize>) {
+    let color_of = |commit: &CommitId| cells.get(*shown_of.get(commit)?).map(|cell| cell.color);
+    let branch_colors = repository
+        .branches
+        .iter()
+        .filter_map(|branch| Some((branch.name.clone(), color_of(&branch.commit)?)))
+        .collect();
+    let remote_colors = repository
+        .remote_branches
+        .iter()
+        .filter_map(|branch| Some((branch.name.clone(), color_of(&branch.commit)?)))
+        .collect();
+    (branch_colors, remote_colors)
 }
 
 impl TimelineLayout {
@@ -94,15 +116,7 @@ impl TimelineLayout {
             .commit
             .as_ref()
             .and_then(|commit| shown_of.get(commit).copied());
-        let branch_colors = input
-            .repository
-            .branches
-            .iter()
-            .filter_map(|branch| {
-                let cell = cells.get(*shown_of.get(&branch.commit)?)?;
-                Some((branch.name.clone(), cell.color))
-            })
-            .collect();
+        let (branch_colors, remote_colors) = reference_colors(input.repository, &cells, &shown_of);
         TimelineLayout {
             read_of: read_rows(input.rows, &folded),
             unpushed: unpushed(
@@ -120,6 +134,7 @@ impl TimelineLayout {
             shown_of,
             checked_out,
             branch_colors,
+            remote_colors,
         }
     }
 

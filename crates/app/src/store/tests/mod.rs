@@ -55,7 +55,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
         .into_iter()
         .filter_map(|(_, kind)| match kind {
             JobKind::ReadRepository { folder, .. } => Some(folder),
-            JobKind::FindRepositories { .. } | JobKind::ReadCommits { .. } => None,
+            JobKind::FindRepositories { .. } | JobKind::ReadCommits { .. } | JobKind::ReadTimeline { .. } => None,
         })
         .collect()
 }
@@ -117,6 +117,10 @@ fn answer(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[PathBuf])]
                 JobKind::ReadCommits { .. } => Message::CommitsRead {
                     job,
                     result: Err(String::from("not read in these tests")),
+                },
+                JobKind::ReadTimeline { .. } => Message::TimelineRead {
+                    job,
+                    result: Ok(CommitPage::default()),
                 },
             };
             waiting.extend(reduce(state, message));

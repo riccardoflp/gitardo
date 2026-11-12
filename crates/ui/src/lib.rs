@@ -89,6 +89,7 @@ pub use widget::menu::{MenuAnchor, MenuEntry, MenuItem};
 pub use widget::panel::Axis;
 pub use widget::picker::fuzzy::{self, FuzzyMatch};
 pub use widget::picker::{Picker, PickerAnswer, PickerItem, PickerMode};
+pub use widget::popover::{Popover, PopoverResponse};
 pub use widget::scroll::{ScrollAxis, ScrollResponse};
 pub use widget::splitter::{Split, SplitResponse, Splitter};
 pub use widget::{Availability, Tone};

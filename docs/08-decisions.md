@@ -414,7 +414,8 @@ repositories, the settings), each built with the reading given until it is answe
 - **Q62** — `graph.resize-graph`, line 3, and `graph.uncommitted-row`, line 3: the timeline cannot be narrowed yet
   (`filter.`). The width of the graph is kept for the workspace whatever the timeline shows, and the draft is left out
   whenever the commit checked out is not among the rows read; the tests check those rules. Are the cards **Built** on
-  that, or should they wait for the filter?
+  that, or should they wait for the filter? *Since the branch filter is built, both lines are checked with the
+  timeline really narrowed (to `feature`, and to **Current**).*
 - **Q63** — `graph.fold-rows`: `model::graph::foldable_merges` was added beside `fold_rows`, to tell which merges get
   an arrow and an entry (`graph.fold-merge`, line 5) without folding them. Is a second function of the derivation
   right, or should the card name it?
@@ -423,3 +424,55 @@ repositories, the settings), each built with the reading given until it is answe
   does not exist in this branch, so these keys are named nowhere else. Where should they be written down?
 - **Q65** — `graph.view`: the inspector shows only the hash, the subject, the author and the date of the row selected,
   and an empty card while nothing is; what it says while nothing is selected is not in a card. Which words?
+- **Q66** — `refs.filter`, line 2, and `filter.picker`, line 4: the names are ranked by `filter.rank-names` within
+  each list of the rail (**Local**, one list per remote) and within each group of the branch filter (**Local**,
+  **Remotes**, **Tags**), as the text of both cards says. On screen, `maintenance` (under **Local**) then comes before
+  `origin/main` (under its remote), while the two lines want `main`, `origin/main`, `maintenance`. The order of the
+  ranking itself is tested as the lines say. Both cards stay *Specified* until this is answered: should a filter typed
+  give one list of every match, the best first, or are the lines about the order within a list?
+- **Q67** — `filter.picker`: the card puts the button "at the top of the timeline before the search box"; in the
+  window of D17 the search box is Quick search in the header, so the button is in the header, after the branch
+  checked out and before Quick search. Is that the place?
+- **Q68** — `refs.tree`: the entries of the menus of the rail whose operations come in later milestones are shown but
+  cannot be chosen, as Q57 does for the draft: on a branch **Check out**, **Rename…**, **Delete** (on the one checked
+  out, **Rename…** alone); on a remote branch **Check out as local branch**, **Delete**; on a tag **Delete**; on a
+  stash **Apply**, **Pop**, **Create branch from stash…**, **Drop**; **Create worktree…** on the Worktrees list and
+  **Add submodule…** on the Submodules list. The entries of the branch filter, **Show in the timeline**, the
+  favorites and the sort work. Is showing them disabled the reading?
+- **Q69** — The state file has two new keys: `favorites`, for each repository folder the full names of its favorites
+  in the order they were added, and `branchesShown`, for each repository folder what its timeline shows (a preset by
+  its name, the kinds shown, or the full names ticked, as `filter.remember` stores them); each keeps the 20 repositories
+  used last. Nothing is kept for a repository whose timeline shows everything. `branches.sortOrder` and
+  `branches.followGraphFilter` are written in the user's settings file. Where should these keys be written down (Q64)?
+- **Q70** — `refs.tree`: the lists opened or closed are kept by the window, the same for every repository, and not
+  between runs, as the card says ("until the application is closed"). Is a list opened in one repository meant to be
+  open in another, as line 1 reads?
+- **Q71** — `refs.tree`: a list of local branches or of a remote that has no entry left once the branches the timeline
+  leaves out are taken away (the rail following the timeline) is not listed, so that a narrowed rail has no empty
+  heading such as **ORIGIN 0**; the lists of **Kept aside** are always listed. While something is typed, the count of
+  an empty list says `0` rather than `0 of 0`. Is that the reading?
+- **Q72** — `refs.tree`: the Submodules list is never shown yet, since the submodules are not read for the rail until
+  `submodule.` (M8). A worktree's branch, its folder and how far it is from its upstream are shown; the pull request
+  of a branch (`graph.pull-request-badge`), the double click on an entry (`branch.open`) and dragging a branch onto the
+  timeline (`drag.drop`) are not built, since those cards come later.
+- **Q73** — `refs.favorite`: **Add to favorites** is in the menus of the branch rail only; the labels of the timeline
+  have no menu yet, so the entry point on them, and **Add `origin/feature` to favorites** on a label shared with its
+  upstream, wait for the menu of a label. Which card brings that menu?
+- **Q74** — `filter.kinds`: **Chosen in the filter**, on the three entries greyed out while some references are
+  ticked, is drawn where a menu entry shows its shortcut, since menu entries have no tooltip. Is that enough, or should
+  menu entries get tooltips?
+- **Q75** — The functions of two cards differ from their cards: `filter.label` takes `Option<&BranchesShown>` (none
+  is everything, as in every other function of the filter), and `filter.log-arguments` takes the commit checked out as
+  `Option<&CommitId>`, the type of a hash in `model`. Should the cards be changed?
+- **Q76** — Narrowing the timeline reads the first page of the history of the branches shown, and only that: the state
+  of the repository stays as it was last read, and the rows read are dimmed meanwhile. A narrowing while the
+  repository is being read starts that read again with the branches shown. With some references ticked the stashes
+  are not listed (the read of `graph.read-commits` lists them only when nothing is ticked); with a preset they are. Is
+  that the reading of `graph.stashes` for a narrowed timeline?
+- **Q77** — `graph.labels`: a commit with more labels than its row has room for drew the last ones squeezed past the
+  end of the row, over the hash. A label with less room than its own height is now left out. Should a wide row count
+  the labels left out, as the narrow layout does (`+3`)?
+- **Q78** — `refs.scope-line`: the line has the filter icon, what the timeline is narrowed to, the eye button and
+  **Show all**; in a rail of 210 px the icon is left out when the words would not fit beside it. Is the eye the
+  button the card means ("its button lists all the references instead"), with the tooltip **List every branch, the
+  others dimmed** and **List only the branches the timeline shows**?

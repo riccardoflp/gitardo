@@ -6,18 +6,19 @@ use std::path::PathBuf;
 
 use app::persisted::Persisted;
 use app::settings::Settings;
-use app::store::{Effect, Message, State, draft_of};
+use app::store::{Effect, Message, State};
 use model::commit::Commit;
+use model::filter::BranchesShown;
 use model::graph::{PageSize, Row};
 use model::state::RepositoryState;
 use model::{CommitId, Timestamp};
 use platform::accesskit::Role;
 use render::ThemeName;
-use views::Intent;
 use views::graph::{
     Folds, GraphIntent, GraphState, HistoryState, LayoutInput, Reading, Selected, Switches, TimelineLayout,
     TimelineSwitch,
 };
+use views::{FilterIntent, Intent};
 
 use super::histories::{imported, line};
 use super::pointer::{apply, bounds, rows_drawn, says, wheel};
@@ -155,6 +156,7 @@ fn graph_view__scrolling_a_list_of_50000_commits_draws_only_the_rows_in_sight() 
         trace: None,
         hover: None,
         hover_left_at: None,
+        rail_hover: None,
         switches: Switches::DEFAULT,
         graph_width: None,
         now: 1_735_689_600,
@@ -291,18 +293,23 @@ fn graph_uncommitted_row__in_a_new_repository_with_one_untracked_file_the_draft_
 fn graph_uncommitted_row__narrowed_to_a_branch_that_is_not_checked_out_the_draft_is_not_there() {
     let (repository, _remote) = repository_with_history();
     std::fs::write(repository.path().join("README.md"), "Gitardo, changed\n").unwrap();
-    let state = showing(repository.path().to_path_buf());
-    let read = &state.shown_read().unwrap().state;
-    let head = read.head.commit.clone().unwrap();
-    let feature: Vec<Row> = state
-        .timeline
-        .read_rows()
-        .iter()
-        .filter(|row| row.id() != Some(&head))
-        .cloned()
-        .collect();
-    assert!(draft_of(read, &feature).is_none());
-    assert!(draft_of(read, state.timeline.read_rows()).is_some());
+    let mut state = showing(repository.path().to_path_buf());
+    assert!(state.timeline.draft.is_some());
+    let feature = BranchesShown::References(vec!["refs/heads/feature".to_owned()]);
+    let _effects = run(
+        &mut state,
+        Message::Intent(Intent::Filter(FilterIntent::Show(Some(feature)))),
+    );
+    assert!(state.timeline.draft.is_none());
+    assert!(
+        !state
+            .timeline
+            .rows
+            .iter()
+            .any(|row| matches!(row, Row::Uncommitted { .. }))
+    );
+    let _effects = run(&mut state, Message::Intent(Intent::Filter(FilterIntent::Show(None))));
+    assert!(state.timeline.draft.is_some());
 }
 
 #[test]

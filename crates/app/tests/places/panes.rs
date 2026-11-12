@@ -7,8 +7,8 @@ use app::settings::Settings;
 use app::store::{Message, State};
 use platform::accesskit::Role;
 use render::{Point, Rect, ThemeName};
-use views::Intent;
 use views::graph::{GraphEdgeState, GraphIntent, Pane};
+use views::{FilterIntent, Intent};
 
 use super::folds::feature_left_main;
 use super::pointer::{apply, bounds, click_at, drag};
@@ -110,6 +110,21 @@ fn graph_resize_graph__the_width_dragged_is_there_after_the_window_is_opened_aga
     apply(&mut state, intents);
     let again = opened_again(&state, repository.path());
     assert_eq!(super::pointer::graph_width_of(&again), Some(dragged));
+}
+
+#[test]
+fn graph_resize_graph__the_width_dragged_stays_while_the_timeline_is_narrowed_to_the_branch_checked_out() {
+    let repository = feature_left_main();
+    let mut state = showing(repository.path().to_path_buf());
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, edge) = edge_of(&mut window, &state);
+    let intents = drag(&mut window, &state, edge, Point::new(edge.x - 10.0, edge.y));
+    let dragged = graph_widths(&intents).last().copied().flatten().unwrap();
+    apply(&mut state, intents);
+    let current = model::filter::preset(model::filter::Preset::Current);
+    let _effects = run(&mut state, Message::Intent(Intent::Filter(FilterIntent::Show(current))));
+    assert!(state.timeline.shown.is_some());
+    assert_eq!(super::pointer::graph_width_of(&state), Some(dragged));
 }
 
 #[test]
