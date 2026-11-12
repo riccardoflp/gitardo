@@ -7,8 +7,9 @@
 use model::CommitId;
 use model::search::hash_prefix;
 use views::graph::GraphIntent;
-use views::search::SearchIntent;
+use views::search::{GoToCommitPurpose, SearchIntent};
 
+use super::super::commit_page;
 use super::super::message::{Effect, JobId};
 use super::super::pages;
 use super::super::state::State;
@@ -195,24 +196,44 @@ pub fn revision_read(state: &mut State, job: JobId, result: Result<Option<Commit
 }
 
 /// **Go to commit…** (`search.go-to-commit`): what is typed is asked of git as it is typed; **Go to commit** goes to
-/// the commit once git knows it, and does nothing before.
+/// the commit once git knows it, and does nothing before. **Open Commit as a Page…** (`commit-page.open`) asks the
+/// same way, and opens the page of the commit.
 pub fn dialog(state: &mut State, intent: SearchIntent) -> Vec<Effect> {
     match intent {
-        SearchIntent::GoToCommit => {
+        SearchIntent::GoToCommit | SearchIntent::OpenCommit => {
             if state.shown_read().is_some() {
-                state.search.dialog = Some(GoToCommit::default());
+                let purpose = if intent == SearchIntent::OpenCommit {
+                    GoToCommitPurpose::OpenPage
+                } else {
+                    GoToCommitPurpose::GoTo
+                };
+                state.search.dialog = Some(GoToCommit {
+                    purpose,
+                    ..GoToCommit::default()
+                });
             }
             Vec::new()
         }
         SearchIntent::GoToCommitTyped(text) => typed(state, text),
         SearchIntent::GoToCommitSubmit => {
-            let Some(Some(commit)) = state.search.dialog.as_ref().and_then(|dialog| dialog.verdict.clone()) else {
+            let Some(dialog) = state.search.dialog.as_ref() else {
+                return Vec::new();
+            };
+            let (Some(Some(commit)), purpose) = (dialog.verdict.clone(), dialog.purpose) else {
                 return Vec::new();
             };
             state.search.dialog = None;
-            let mut effects = pages::show_timeline(state);
-            effects.extend(go_to(state, commit));
-            effects
+            match purpose {
+                GoToCommitPurpose::GoTo => {
+                    let mut effects = pages::show_timeline(state);
+                    effects.extend(go_to(state, commit));
+                    effects
+                }
+                GoToCommitPurpose::OpenPage => match state.shown_read().map(|read| read.folder.clone()) {
+                    Some(folder) => commit_page::open(state, folder, commit),
+                    None => Vec::new(),
+                },
+            }
         }
         _ => {
             let job = state.search.dialog.take().and_then(|dialog| dialog.job);

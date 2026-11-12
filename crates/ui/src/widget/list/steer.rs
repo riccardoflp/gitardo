@@ -36,6 +36,8 @@ pub enum RevealPlace {
     Nearest,
     /// In the middle of the list.
     Center,
+    /// At the top of the list, as far as the rows after it let it go.
+    Top,
 }
 
 impl Steering<'_> {
@@ -60,6 +62,7 @@ impl Steering<'_> {
         match reveal.place {
             RevealPlace::Nearest => state.scroll.reveal((start, start + row_height), view),
             RevealPlace::Center => state.scroll.jump((start + row_height * 0.5 - view * 0.5).max(0.0)),
+            RevealPlace::Top => state.scroll.jump(start),
         }
     }
 }

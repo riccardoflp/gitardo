@@ -57,3 +57,13 @@
 - **Go to commit…** in the **…** menu of the header: any name git takes for a commit, checked as you type.
 - Quick search in the header (`Ctrl+K`): the commands, the branches, the remote branches, the tags and the commits
   loaded, filtered as you type; a command that is not built yet says so and does nothing.
+- The inspector shows the row selected in the timeline: the title of its message and the rest unwrapped, cut at four
+  lines with **Show more**, who made it and when, its hash, which a click copies, its parents, which a click selects,
+  and its files as a list or as a tree whose directories fold, the first 300 with **Show all**; a stash shows the
+  untracked files it took apart from the others. The layout chosen is kept between runs.
+- The page of a commit, opened by a double click or `Enter` on a row of the timeline, by the button of the inspector or
+  by **Open Commit as a Page…** in Quick search, which takes any name git turns into a commit, and never twice for the
+  same commit: its whole message with its labels, who made it, its hash and parents, its files
+  with the lines each gained and lost, and with **Show the changes** the diff of each file, the long ones folded at
+  first, under headers that stay at the top, with find in page over the lines unfolded and **Show in the timeline**, which
+  shows all branches again when the branches shown leave the commit out.

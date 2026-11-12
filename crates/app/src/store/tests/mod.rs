@@ -58,7 +58,9 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             JobKind::FindRepositories { .. }
             | JobKind::ReadCommits { .. }
             | JobKind::ReadTimeline { .. }
-            | JobKind::Search(_) => None,
+            | JobKind::Search(_)
+            | JobKind::ReadDetails { .. }
+            | JobKind::ReadCommitPage { .. } => None,
         })
         .collect()
 }
@@ -128,6 +130,14 @@ fn answer(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[PathBuf])]
                 JobKind::Search(_) => Message::Searched {
                     job,
                     result: crate::store::search::SearchResult::Matches(Err(String::from("not read in these tests"))),
+                },
+                JobKind::ReadDetails { .. } => Message::DetailsRead {
+                    job,
+                    result: Err(String::from("not read in these tests")),
+                },
+                JobKind::ReadCommitPage { .. } => Message::CommitPageRead {
+                    job,
+                    result: Err(String::from("not read in these tests")),
                 },
             };
             waiting.extend(reduce(state, message));

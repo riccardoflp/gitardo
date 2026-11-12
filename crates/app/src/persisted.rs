@@ -2,6 +2,8 @@
 //! program started before, the steps of the Welcome page done, the recent workspaces with the repository shown last in
 //! each, the size of the window and the width of the branch rail; the sizes of the panes of each workspace and the
 //! folds of each repository ([`timeline`]); the favorites and the branches shown of each repository ([`rail`]).
+//! folds of each repository ([`timeline`]); how the files are laid out in the inspector and in the pages of commits
+//! ([`layouts`]).
 //!
 //! The file is JSON, written whole each time. A file that cannot be read gives what a first start has.
 
@@ -9,9 +11,11 @@ use std::path::{Path, PathBuf};
 
 use json::{Member, Number, Value};
 
+pub mod layouts;
 pub mod rail;
 pub mod timeline;
 
+pub use layouts::FileLayouts;
 pub use rail::{RepositoryFavorites, RepositoryShown};
 pub use timeline::{RepositoryFolds, WorkspacePanes};
 
@@ -46,6 +50,8 @@ pub struct Persisted {
     /// Whether the funnel of the search box is pressed: a search of the whole history narrows the timeline to what
     /// it finds (`search.list-mode`).
     pub search_as_list: bool,
+    /// How the files are laid out in the inspector and in the pages of commits.
+    pub file_layouts: FileLayouts,
 }
 
 /// A workspace opened before.
@@ -90,6 +96,10 @@ impl Persisted {
             favorites: list(&document, "favorites", rail::repository_favorites),
             branches_shown: list(&document, "branchesShown", rail::repository_shown),
             search_as_list: document.get("searchAsList").and_then(Value::as_bool).unwrap_or(false),
+            file_layouts: document
+                .get("fileLayouts")
+                .map(layouts::file_layouts)
+                .unwrap_or_default(),
         }
     }
 
@@ -131,6 +141,9 @@ impl Persisted {
         ));
         if self.search_as_list {
             members.push(member("searchAsList", Value::Bool(true)));
+        }
+        if self.file_layouts != FileLayouts::default() {
+            members.push(member("fileLayouts", layouts::layouts_value(self.file_layouts)));
         }
         json::to_pretty_text(&Value::Object(members))
     }
@@ -269,6 +282,10 @@ mod tests {
             welcome_steps: [true, false, false, true, false],
             window_size: Some((1280.0, 800.0)),
             rail_width: Some(250.5),
+            file_layouts: super::FileLayouts {
+                inspector: views::details::FileLayout::Tree,
+                page: views::details::FileLayout::List,
+            },
             ..Persisted::default()
         };
         persisted.remember_workspace(workspace("/work"));

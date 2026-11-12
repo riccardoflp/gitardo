@@ -132,6 +132,7 @@ fn report(
                     FollowUp::Say(words) => writeln!(out, "{words}")?,
                     FollowUp::Offer(feature, label) => writeln!(out, "Next: {label} ({})", feature.0)?,
                     FollowUp::SelectCommit(commit) => writeln!(out, "Select {commit}")?,
+                    FollowUp::OpenCommitPage(commit) => writeln!(out, "Open the page of {commit}")?,
                     FollowUp::SelectHead | FollowUp::EmptyCommitMessage | FollowUp::ReadPullRequests => {}
                 }
             }

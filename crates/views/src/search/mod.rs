@@ -14,7 +14,7 @@ mod tests;
 
 use model::search::{BoxMode, Direction};
 
-pub use go_to_commit::{GoToCommitDialog, GoToCommitVerdict, go_to_commit_dialog};
+pub use go_to_commit::{GoToCommitDialog, GoToCommitPurpose, GoToCommitVerdict, go_to_commit_dialog};
 pub use go_to_hash::go_to_hash_view;
 pub use history::{HistorySearch, MatchCount, history_view};
 pub use list_mode::{ListMode, Narrowed, list_mode_view};
@@ -46,6 +46,9 @@ pub enum SearchIntent {
     GoToCommitSubmit,
     /// **Go to commit** closed.
     GoToCommitClose,
+    /// **Open Commit as a Page…** asked (`commit-page.open`): the box of **Go to commit**, whose commit opens as a
+    /// page.
+    OpenCommit,
     /// Quick search opened, with what was typed in its box in the header.
     OpenQuick(String),
     /// An entry of Quick search chosen.

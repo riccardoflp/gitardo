@@ -14,11 +14,14 @@
 #![forbid(unsafe_code)]
 
 pub mod activity;
+mod blocks;
+pub mod commit_page;
 pub mod details;
 pub mod filter;
 pub mod graph;
 mod intent;
 mod line;
+mod number;
 pub mod page;
 pub mod refs;
 pub mod repo;

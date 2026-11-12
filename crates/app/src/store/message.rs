@@ -2,7 +2,11 @@
 
 use std::path::PathBuf;
 
+use git::read::details::CommitRequest;
 use git::read::graph::{CommitPage, CommitsRequest, Parents};
+use model::CommitId;
+use model::commit_page::PatchLines;
+use model::details::CommitDetail;
 use model::filter::BranchesShown;
 use model::graph::PageSize;
 use model::graph::Row;
@@ -63,6 +67,20 @@ pub enum Message {
         job: JobId,
         /// What was read.
         result: crate::store::search::SearchResult,
+    },
+    /// A job that read the details of the row selected is done (`details.read-commit`).
+    DetailsRead {
+        /// The job.
+        job: JobId,
+        /// What was read, none for a commit that is not in the repository, or what git said when the read failed.
+        result: Result<Option<Box<CommitDetail>>, String>,
+    },
+    /// A job that read the commit of a page and its lines is done (`details.read-commit`, `commit-page.read-patch`).
+    CommitPageRead {
+        /// The job.
+        job: JobId,
+        /// What was read, none for a commit that is not in the repository, or what git said when the read failed.
+        result: Result<Option<Box<(CommitDetail, PatchLines)>>, String>,
     },
     /// The settings files changed and were read again.
     SettingsRead(Settings),
@@ -169,6 +187,20 @@ pub enum JobKind {
     },
     /// A read of the search: the commits it finds, the commit of a name, or where a commit is in the history.
     Search(crate::store::search::SearchJob),
+    /// Reads the details of the row selected (`details.read-commit`).
+    ReadDetails {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// The commit, or the uncommitted changes.
+        request: CommitRequest,
+    },
+    /// Reads the commit of a page, then the lines it changed (`commit-page.read-patch`).
+    ReadCommitPage {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// The commit.
+        commit: CommitId,
+    },
 }
 
 /// A job for a worker.

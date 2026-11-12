@@ -49,6 +49,7 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
     let intents = match command {
         QuickCommand::OpenTimeline => vec![Intent::ShowTimeline],
         QuickCommand::GoToCommit => vec![Intent::Search(SearchIntent::GoToCommit)],
+        QuickCommand::OpenCommitAsPage => vec![Intent::Search(SearchIntent::OpenCommit)],
         QuickCommand::Refresh => vec![Intent::Refresh],
         QuickCommand::OpenFolder => vec![Intent::OpenFolder],
         QuickCommand::SelectRepository => vec![Intent::PickRepository],

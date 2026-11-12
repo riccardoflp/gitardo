@@ -256,7 +256,7 @@ fn start_read(state: &mut State, folder: PathBuf) -> Effect {
 }
 
 /// Notes a job as started and gives it its number.
-fn start_job(state: &mut State, kind: JobKind) -> Job {
+pub(super) fn start_job(state: &mut State, kind: JobKind) -> Job {
     let id = JobId(state.next_job);
     state.next_job += 1;
     let _new = state.jobs.insert(id, kind.clone());

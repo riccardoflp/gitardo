@@ -184,12 +184,12 @@ fn history(
     (intents, report, response.visible_rows)
 }
 
-/// What a double click or `Enter` on a row opens: a commit as a page; the draft, a stash and a folded row open
+/// What a double click or `Enter` on a row opens: a commit or a stash as a page; the draft and a folded row open
 /// nothing.
 fn open_row(state: &HistoryState<'_>, shown: usize) -> Option<Intent> {
     let read = state.layout.read_of.get(shown)?;
     match (state.layout.folded.rows.get(shown)?, state.rows.get(*read)?) {
-        (model::graph::ShownRow::Row { .. }, Row::Commit(commit)) => {
+        (model::graph::ShownRow::Row { .. }, Row::Commit(commit) | Row::Stash { commit, .. }) => {
             Some(Intent::Graph(GraphIntent::Open(commit.id.clone())))
         }
         _ => None,

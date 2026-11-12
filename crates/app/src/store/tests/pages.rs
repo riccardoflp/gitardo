@@ -75,7 +75,9 @@ fn welcome_page__shown_again_it_has_the_steps_done_ticked() {
     let Content::Page(host) = data.window_state(&state).content else {
         panic!("the Welcome page is shown");
     };
-    let PageState::Welcome(welcome) = host.page;
+    let PageState::Welcome(welcome) = host.page else {
+        panic!("the Welcome page is not shown");
+    };
     assert_eq!(welcome.done, [true, false, false, false, false]);
     assert!(welcome.has_timeline);
 }

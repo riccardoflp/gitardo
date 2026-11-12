@@ -27,6 +27,7 @@ json = { path = "../json" }
 model = { path = "../model" }
 platform = { path = "../platform" }
 render = { path = "../render" }
+text = { path = "../text" }
 ui = { path = "../ui" }
 views = { path = "../views" }
 

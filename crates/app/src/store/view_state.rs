@@ -9,7 +9,7 @@ use model::graph::Row;
 use model::repo::name_repositories;
 use model::state::RepositoryState;
 use views::activity::{ActivityState, RunningTask, StatusBarState};
-use views::details::{DetailsState, SelectedDetails};
+use views::details::SelectedDetails;
 use views::filter::{BranchPicker, NarrowedBar, PickerOpen};
 use views::graph::{
     BranchChip, Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, ReferencesShown, RepositoryEntry,
@@ -182,6 +182,13 @@ impl ViewData {
                     has_timeline: state.workspace.is_some(),
                 }),
             }),
+            Some(Page::Commit(id)) => match super::commit_page::page_state(state, id) {
+                Some(page) => Content::Page(PageHostState {
+                    has_trail: true,
+                    page: PageState::Commit(page),
+                }),
+                None => Content::Timeline(self.timeline(state)),
+            },
             None => Content::Timeline(self.timeline(state)),
         }
     }
@@ -193,9 +200,7 @@ impl ViewData {
             Some(Shown::Read(read)) => TimelineState::Repository {
                 rail: Box::new(rail(state, read)),
                 graph: GraphState::Listed(Box::new(self.history(state, read.state.head.commit.is_none()))),
-                inspector: DetailsState {
-                    selected: selected_details(&state.timeline),
-                },
+                inspector: super::inspector::details_state(state, selected_details(&state.timeline)),
                 panes: self.panes.sizes,
                 is_rail_hidden: self.panes.is_rail_hidden,
                 bar: state.timeline.shown.as_ref().map(|shown| NarrowedBar {

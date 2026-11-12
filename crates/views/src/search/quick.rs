@@ -51,6 +51,8 @@ pub enum QuickCommand {
     OpenTimeline,
     /// **Go to Commit…** (`search.go-to-commit`).
     GoToCommit,
+    /// **Open Commit as a Page…** (`commit-page.open`).
+    OpenCommitAsPage,
     /// **Refresh** (`repo.schedule-reads`).
     Refresh,
     /// **Open folder…** (`repo.open-folder`).
@@ -101,9 +103,10 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 25] = [
+    pub const ALL: [QuickCommand; 26] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
+        QuickCommand::OpenCommitAsPage,
         QuickCommand::Refresh,
         QuickCommand::OpenFolder,
         QuickCommand::SelectRepository,

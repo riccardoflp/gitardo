@@ -40,6 +40,7 @@ pub use marks::{ScrollMarks, mark_positions, scroll_marks_view};
 pub(crate) use more_menu::kind_entries;
 pub use more_menu::{MoreMenuState, TimelineMenu, more_menu_view};
 pub use panes::{PaneLayout, PaneRects, PaneSizes, RAIL_START, pane_rects, resize_panes_view};
+pub(crate) use row::draw_labels;
 pub use stashes::{StashEntry, StashRow, stash_menu, stashes_view};
 pub use state::{DraftState, Folds, GraphState, HistoryState, Reading, TraceShown, TraceStrength};
 pub use sticky::{StickyName, StickyNames, sticky_branch_names_view, sticky_names};

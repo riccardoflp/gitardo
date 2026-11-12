@@ -156,6 +156,8 @@ pub enum FollowUp {
     SelectHead,
     /// Select a commit in the timeline, going to it as `graph.show-in-graph` does.
     SelectCommit(crate::CommitId),
+    /// Open the page of a commit (`commit-page.view`), or show the one it has.
+    OpenCommitPage(crate::CommitId),
     /// Empty the commit message box and untick **Amend last commit**.
     EmptyCommitMessage,
     /// Read the pull requests of GitHub again, when the token is known.

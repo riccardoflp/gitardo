@@ -63,8 +63,8 @@ pub fn key_intent(state: &HistoryState<'_>, key: &KeyEvent) -> Option<GraphInten
         }
         (NamedKey::ArrowLeft | NamedKey::ArrowRight, Modifiers::NONE) => fold_key(state, selected?, named),
         (NamedKey::Enter, Modifiers::NONE) => match read_row(state, selected?)? {
-            Row::Commit(commit) => Some(GraphIntent::Open(commit.id.clone())),
-            Row::Stash { .. } | Row::Uncommitted { .. } => None,
+            Row::Commit(commit) | Row::Stash { commit, .. } => Some(GraphIntent::Open(commit.id.clone())),
+            Row::Uncommitted { .. } => None,
         },
         _ => None,
     }

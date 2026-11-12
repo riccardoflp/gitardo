@@ -122,7 +122,9 @@ fn repo_open_folder__the_workspace_opened_is_the_first_recent_one_on_the_welcome
     let Content::Page(page) = data.window_state(&state).content else {
         panic!("the Welcome page is shown");
     };
-    let views::page::PageState::Welcome(welcome) = page.page;
+    let views::page::PageState::Welcome(welcome) = page.page else {
+        panic!("the Welcome page is not shown");
+    };
     assert_eq!(
         welcome.recent,
         [other.display().to_string(), work.display().to_string()]

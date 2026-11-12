@@ -3,6 +3,7 @@
 
 pub mod activity;
 pub mod dates;
+pub mod details;
 pub mod filter;
 pub mod header;
 pub mod pages;

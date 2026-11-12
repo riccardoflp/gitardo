@@ -13,6 +13,8 @@ pub enum SelectionMode {
     Single,
     /// Any rows, with Shift and Ctrl.
     Multiple,
+    /// None: the rows are read, as the lines of a page, and are neither selected nor lit; the keys scroll them.
+    Read,
 }
 
 /// What a key did to a list.

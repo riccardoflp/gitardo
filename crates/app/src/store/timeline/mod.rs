@@ -297,7 +297,10 @@ pub fn reduce_graph(state: &mut State, intent: GraphIntent) -> Vec<Effect> {
             select(state, Selected::Commit(commit), RevealPlace::Center);
             Vec::new()
         }
-        GraphIntent::Open(_) => Vec::new(),
+        GraphIntent::Open(commit) => match state.timeline.folder.clone() {
+            Some(folder) => super::commit_page::open(state, folder, commit),
+            None => Vec::new(),
+        },
         GraphIntent::LoadMore { loaded } => paging::load_more(state, loaded),
         GraphIntent::Fold(merge) => folds::fold(state, merge),
         GraphIntent::Unfold(merge) => folds::unfold(state, &merge),

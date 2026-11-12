@@ -160,6 +160,14 @@ fn words(kind: &JobKind) -> (Text, Text) {
                 Text::from(cause),
             )
         }
+        JobKind::ReadDetails { folder, .. } => (
+            Text::from(activity::reading(&folder_name(folder))),
+            Text::from(activity::SHOWING_DETAILS),
+        ),
+        JobKind::ReadCommitPage { folder, .. } => (
+            Text::from(activity::reading(&folder_name(folder))),
+            Text::from(activity::OPENING_COMMIT_PAGE),
+        ),
     }
 }
 

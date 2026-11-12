@@ -36,6 +36,8 @@ pub struct Window {
     theme: Theme,
     /// The time of the frames, which a test moves on to let a scroll glide to its end.
     pub now: Duration,
+    /// What the last frame put on the clipboard.
+    pub clipboard: Option<String>,
 }
 
 impl Window {
@@ -56,6 +58,7 @@ impl Window {
             typefaces,
             theme: Theme::new(theme, Appearance::Dark),
             now: Duration::from_secs(1),
+            clipboard: None,
         }
     }
 
@@ -75,7 +78,8 @@ impl Window {
         });
         let returned = view(&mut ui);
         let tree = ui.accessibility_update();
-        let _output = ui.finish();
+        let output = ui.finish();
+        self.clipboard = output.clipboard;
         (returned, tree)
     }
 
@@ -88,20 +92,44 @@ impl Window {
     /// Draws the window of a store twice, the second time with a click on the widget of a role and a name, and gives
     /// the intents of that click.
     pub fn click(&mut self, state: &State, role: Role, name: &str) -> Vec<Intent> {
+        self.click_times(state, (role, name), 1)
+    }
+
+    /// Draws the window of a store twice, the second time with a double click on the widget of a role and a name, and
+    /// gives the intents of that double click.
+    pub fn double_click(&mut self, state: &State, role: Role, name: &str) -> Vec<Intent> {
+        self.click_times(state, (role, name), 2)
+    }
+
+    /// Draws the window of a store, then clicks the widget of a role and a name once or twice.
+    fn click_times(&mut self, state: &State, (role, name): (Role, &str), count: u8) -> Vec<Intent> {
         let (_, tree) = self.draw(state, &[]);
         let point = center(&tree, role, name);
+        self.click_at(state, point, count)
+    }
+
+    /// Draws the window of a store with the pointer moved to a point, then with a click there, once or twice, and gives
+    /// the intents of the click.
+    pub fn click_at(&mut self, state: &State, point: Point, count: u8) -> Vec<Intent> {
         let button = PointerButtonEvent {
             button: PointerButton::Primary,
             position: point,
             modifiers: ui::Modifiers::NONE,
             click_count: 1,
         };
+        let second = PointerButtonEvent {
+            click_count: 2,
+            ..button
+        };
         let moved = InputEvent::PointerMoved(PointerMove {
             position: point,
             modifiers: ui::Modifiers::NONE,
         });
         let (_, _) = self.draw(state, &[moved]);
-        let events = [InputEvent::PointerPressed(button), InputEvent::PointerReleased(button)];
+        let mut events = vec![InputEvent::PointerPressed(button), InputEvent::PointerReleased(button)];
+        if count > 1 {
+            events.extend([InputEvent::PointerPressed(second), InputEvent::PointerReleased(second)]);
+        }
         self.draw(state, &events).0
     }
 
@@ -140,6 +168,30 @@ pub fn has(tree: &TreeUpdate, role: Role, name: &str) -> bool {
     tree.nodes
         .iter()
         .any(|(_, node)| node.role() == role && node.label() == Some(name))
+}
+
+/// Whether the tree has a node whose name or value is a text.
+pub fn says(tree: &TreeUpdate, text: &str) -> bool {
+    tree.nodes
+        .iter()
+        .any(|(_, node)| node.label() == Some(text) || node.value() == Some(text))
+}
+
+/// Whether the tree has a node whose name or value holds a text.
+pub fn says_in(tree: &TreeUpdate, text: &str) -> bool {
+    tree.nodes.iter().any(|(_, node)| {
+        node.label().is_some_and(|label| label.contains(text)) || node.value().is_some_and(|value| value.contains(text))
+    })
+}
+
+/// A key that types a character, pressed with modifiers, such as Ctrl+F.
+pub fn shortcut(character: char, modifiers: ui::Modifiers) -> InputEvent {
+    InputEvent::KeyPressed(ui::KeyEvent::press(ui::Key::Character(character), modifiers))
+}
+
+/// Text typed.
+pub fn typed(text: &str) -> InputEvent {
+    InputEvent::TextTyped(text.to_owned())
 }
 
 /// The middle of the node of a role and a name.

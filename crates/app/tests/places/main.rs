@@ -4,15 +4,20 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 #![allow(clippy::unwrap_used, clippy::panic, reason = "a test that cannot go on fails")]
 
+mod commit_page;
 mod filter;
 mod folds;
 mod go_to;
 mod histories;
+mod inspector;
+mod inspector_files;
 mod jobs;
+mod large_diffs;
 mod panes;
 mod pointer;
 mod rail;
 mod search;
+mod show_in_graph;
 mod speed;
 mod support;
 mod timeline;

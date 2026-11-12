@@ -6,6 +6,8 @@ use std::path::PathBuf;
 use model::filter::{BranchesShown, ReferenceKind};
 use model::refs::SortOrder;
 
+use crate::commit_page::{CommitPageId, CommitPageIntent};
+use crate::details::DetailsIntent;
 use crate::graph::GraphIntent;
 use crate::page::Page;
 
@@ -52,6 +54,10 @@ pub enum Intent {
     Graph(GraphIntent),
     /// Something asked of the search, of **Go to commit…** or of Quick search.
     Search(crate::search::SearchIntent),
+    /// Something asked of the inspector (`details.show`).
+    Details(DetailsIntent),
+    /// Something asked of the page of a commit (`commit-page.view`).
+    CommitPage(CommitPageId, CommitPageIntent),
 }
 
 /// What is done with a folder opened while the window shows a workspace.

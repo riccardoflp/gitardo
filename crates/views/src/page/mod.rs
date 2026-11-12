@@ -4,6 +4,7 @@
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{AccessRole, Axis, Button, ButtonKind, Icon, Label, Rect, TextKind, Tone, Ui};
 
+use crate::commit_page::{CommitPageId, CommitPageState, view as commit_page_view};
 use crate::intent::Intent;
 use crate::text::pages as words;
 use crate::welcome::{WelcomeState, page_view};
@@ -13,6 +14,8 @@ use crate::welcome::{WelcomeState, page_view};
 pub enum Page {
     /// The Welcome page (`welcome.page`).
     Welcome,
+    /// The page of a commit (`commit-page.view`).
+    Commit(CommitPageId),
 }
 
 impl Page {
@@ -21,6 +24,7 @@ impl Page {
     pub fn title(self) -> &'static str {
         match self {
             Page::Welcome => words::WELCOME,
+            Page::Commit(_) => crate::text::details::PAGE,
         }
     }
 }
@@ -30,6 +34,8 @@ impl Page {
 pub enum PageState<'a> {
     /// The Welcome page.
     Welcome(WelcomeState<'a>),
+    /// The page of a commit.
+    Commit(CommitPageState<'a>),
 }
 
 impl PageState<'_> {
@@ -38,6 +44,16 @@ impl PageState<'_> {
     pub fn page(&self) -> Page {
         match self {
             PageState::Welcome(_) => Page::Welcome,
+            PageState::Commit(commit) => Page::Commit(commit.id),
+        }
+    }
+
+    /// Its name in the trail: the name of the page, or the short hash and the subject of a commit.
+    #[must_use]
+    pub fn title(&self) -> &str {
+        match self {
+            PageState::Commit(commit) => commit.title,
+            PageState::Welcome(_) => self.page().title(),
         }
     }
 }
@@ -63,17 +79,18 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut area = Area::new(rect);
     if state.has_trail {
         let bar = area.top(ui.theme().sizes.header_height * 0.75);
-        trail(state.page.page(), ui, bar, &mut intents);
+        trail(state.page.title(), ui, bar, &mut intents);
     }
     let body = area.rest();
     intents.extend(ui.clip(body, |ui| match &state.page {
         PageState::Welcome(welcome) => page_view(welcome, ui),
+        PageState::Commit(commit) => commit_page_view(commit, ui),
     }));
     intents
 }
 
 /// The trail above a page, and the button that closes it.
-fn trail(page: Page, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
+fn trail(title: &str, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
     let line = Rect::new(
@@ -103,6 +120,6 @@ fn trail(page: Page, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
         if ui.button("close page", close_cell, &close).clicked {
             intents.push(Intent::ClosePage);
         }
-        let _ = ui.label(parts.rest(), &Label::new(page.title()).kind(TextKind::Strong));
+        let _ = ui.label(parts.rest(), &Label::new(title).kind(TextKind::Strong));
     });
 }

@@ -4,10 +4,14 @@
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use git::read::commit_page::{PatchRequest, read_patch};
+use git::read::details::{CommitRequest, read_commit};
 use git::read::graph::{CommitPage, CommitsRequest, read_commits, read_position};
 use git::read::repo::{RepositoriesRequest, StateRequest, read_repositories, read_state};
 use git::read::search::{read_matches, read_revision};
 use git::{CancelToken, Git};
+use model::commit_page::PatchLines;
+use model::details::CommitDetail;
 use model::graph::Row;
 use model::state::RepositoryState;
 
@@ -39,6 +43,16 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: read_more(folder, request, known, cancel).map_err(|error| error.to_string()),
         },
+        JobKind::ReadDetails { folder, request } => Message::DetailsRead {
+            job: job.id,
+            result: read_commit(&Git::new(folder).with_cancel(cancel.clone()), request)
+                .map(|detail| detail.map(Box::new))
+                .map_err(|error| error.to_string()),
+        },
+        JobKind::ReadCommitPage { folder, commit } => Message::CommitPageRead {
+            job: job.id,
+            result: read_commit_page(folder, commit, cancel).map_err(|error| error.to_string()),
+        },
         JobKind::Search(search) => Message::Searched {
             job: job.id,
             result: read_search(search, cancel),
@@ -57,6 +71,30 @@ pub fn read_search(job: &SearchJob, cancel: &CancelToken) -> SearchResult {
         SearchJob::Revision { request, .. } => SearchResult::Revision(read_revision(&git, request).map_err(failed)),
         SearchJob::Position { request, .. } => SearchResult::Position(read_position(&git, request).map_err(failed)),
     }
+}
+
+/// The commit of a page and the lines it changed in each of its files; none for a commit that is not in the
+/// repository.
+///
+/// # Errors
+///
+/// What git said when a read failed.
+pub fn read_commit_page(
+    folder: &Path,
+    commit: &model::CommitId,
+    cancel: &CancelToken,
+) -> Result<Option<Box<(CommitDetail, PatchLines)>>, git::GitError> {
+    let git = Git::new(folder).with_cancel(cancel.clone());
+    let Some(detail) = read_commit(&git, &CommitRequest::Commit(commit.clone()))? else {
+        return Ok(None);
+    };
+    let request = PatchRequest {
+        commit: detail.id.clone().unwrap_or_else(|| commit.clone()),
+        first_parent: detail.first_parent().cloned(),
+        files: detail.files.clone(),
+    };
+    let patch = read_patch(&git, &request)?;
+    Ok(Some(Box::new((detail, patch))))
 }
 
 /// The moment, in seconds since 1970.

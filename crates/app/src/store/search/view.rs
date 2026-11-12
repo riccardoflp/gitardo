@@ -126,6 +126,7 @@ pub fn go_to_commit(state: &State) -> Option<GoToCommitDialog<'_>> {
             Some(Some(_)) => GoToCommitVerdict::Commit,
             Some(None) => GoToCommitVerdict::NoCommit,
         },
+        purpose: dialog.purpose,
     })
 }
 

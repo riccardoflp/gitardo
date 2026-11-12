@@ -160,6 +160,7 @@ dependencies = [
  "platform",
  "render",
  "testkit",
+ "text",
  "ui",
  "views",
 ]

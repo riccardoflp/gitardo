@@ -173,7 +173,11 @@ impl DesktopWindow {
         let mut waiting = VecDeque::from([message]);
         let mut flow = Flow::Continue;
         while let Some(message) = waiting.pop_front() {
-            if let Message::RepositoriesFound { job, .. } | Message::RepositoryRead { job, .. } = &message {
+            if let Message::RepositoriesFound { job, .. }
+            | Message::RepositoryRead { job, .. }
+            | Message::DetailsRead { job, .. }
+            | Message::CommitPageRead { job, .. } = &message
+            {
                 self.workers.finished(*job);
             }
             for effect in reduce(&mut self.state, message) {

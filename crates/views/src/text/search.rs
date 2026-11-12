@@ -144,6 +144,10 @@ pub const UNKNOWN_COMMIT: &str = "Git does not know a commit by this name in thi
 pub const GO: &str = "Go to commit";
 /// The button of **Go to commit** that closes it.
 pub const CANCEL: &str = "Cancel";
+/// The title of **Open commit**, which **Open Commit as a Page…** of Quick search opens (`commit-page.open`).
+pub const OPEN_COMMIT_TITLE: &str = "Open commit";
+/// The button of **Open commit** that opens the page of the commit.
+pub const OPEN_PAGE: &str = "Open as a page";
 /// **Go to commit…** in the **…** menu of the header.
 pub const GO_TO_COMMIT_ENTRY: &str = "Go to commit\u{2026}";
 
@@ -173,6 +177,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
     match command {
         QuickCommand::OpenTimeline => "Open Timeline",
         QuickCommand::GoToCommit => "Go to Commit\u{2026}",
+        QuickCommand::OpenCommitAsPage => "Open Commit as a Page\u{2026}",
         QuickCommand::Refresh => "Refresh",
         QuickCommand::OpenFolder => "Open folder\u{2026}",
         QuickCommand::SelectRepository => "Select Repository",

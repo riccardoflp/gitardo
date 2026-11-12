@@ -252,6 +252,23 @@ fn subject_line(
     }
 }
 
+/// Draws the labels of a commit as pills from the left of a rectangle, in the color of its line, as its row does: the
+/// page of a commit shows them so (`commit-page.view`); a label with less room than its own height is left out, as in
+/// a row.
+pub(crate) fn draw_labels(ui: &mut Ui<'_>, rect: Rect, (labels, color): (&[Label], usize)) {
+    let gap = ui.theme().sizes.spacing.medium;
+    let mut x = rect.x;
+    for pill in &pills(labels, false) {
+        let badge = pill.badge(color);
+        let width = ui.badge_width(&badge).min((rect.right() - x).max(0.0));
+        if width < rect.height {
+            break;
+        }
+        let _ = ui.badge(Rect::new(x, rect.y, width, rect.height), &badge);
+        x += width + gap;
+    }
+}
+
 /// Notes the label under the pointer, and gives a label its tooltip.
 fn hover_label(ui: &mut Ui<'_>, (rect, pill): (Rect, &Pill<'_>), commit: &model::CommitId, report: &mut RowReport) {
     let id = ui.id(("label", commit.as_str(), pill.text.as_ref()));

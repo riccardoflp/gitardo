@@ -53,6 +53,10 @@ pub struct State {
     pub timeline: super::timeline::Timeline,
     /// The search of the timeline, **Go to commit** and Quick search.
     pub search: super::search::Search,
+    /// The inspector of the row selected.
+    pub inspector: super::inspector::Inspector,
+    /// The pages of commits open.
+    pub commit_pages: super::commit_page::CommitPages,
 }
 
 /// The folders of a window and the repositories found in them.

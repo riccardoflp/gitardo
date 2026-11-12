@@ -14,7 +14,7 @@ pub mod view;
 
 use model::CommitId;
 use model::search::{BoxMode, Direction, SearchMode, hash_prefix, loaded};
-use views::search::SearchIntent;
+use views::search::{GoToCommitPurpose, SearchIntent};
 
 use super::message::{Effect, JobId};
 use super::state::State;
@@ -102,6 +102,8 @@ pub struct GoToCommit {
     pub verdict: Option<Option<CommitId>>,
     /// The read of what git says, while it runs.
     pub job: Option<JobId>,
+    /// What the commit is asked for: to go to it, or to open its page (`commit-page.open`).
+    pub purpose: GoToCommitPurpose,
 }
 
 /// Quick search.
@@ -135,7 +137,8 @@ pub fn reduce(state: &mut State, intent: SearchIntent) -> Vec<Effect> {
         SearchIntent::GoToCommit
         | SearchIntent::GoToCommitTyped(_)
         | SearchIntent::GoToCommitSubmit
-        | SearchIntent::GoToCommitClose => go_to::dialog(state, intent),
+        | SearchIntent::GoToCommitClose
+        | SearchIntent::OpenCommit => go_to::dialog(state, intent),
         SearchIntent::OpenQuick(_) | SearchIntent::ChooseQuick(_) | SearchIntent::CloseQuick => {
             quick::reduce(state, intent)
         }

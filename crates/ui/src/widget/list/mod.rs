@@ -3,6 +3,7 @@
 //! in the row.
 
 mod keys;
+mod read;
 mod selection;
 mod steer;
 
@@ -72,6 +73,19 @@ pub struct ListResponse {
     pub visible_rows: Range<usize>,
 }
 
+impl ListResponse {
+    /// What a list says before its events are applied.
+    fn of(response: Response) -> ListResponse {
+        ListResponse {
+            response,
+            changed_selection: None,
+            activated: None,
+            context_row: None,
+            visible_rows: 0..0,
+        }
+    }
+}
+
 /// The rows of a list in sight, and where the first of them starts.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Window {
@@ -138,6 +152,18 @@ impl Ui<'_> {
         self.list_of(id, (rect, list), (Some(search), None), draw_row)
     }
 
+    /// Declares a list both steered by its view and searched by find in page, as the lines of a page are.
+    pub fn steered_searchable_list(
+        &mut self,
+        key: impl Hash,
+        (rect, list): (Rect, &List<'_>),
+        (search, steering): (&ListSearch<'_>, &Steering<'_>),
+        draw_row: impl FnMut(&mut Ui<'_>, &Row),
+    ) -> ListResponse {
+        let id = self.id(key);
+        self.list_of(id, (rect, list), (Some(search), Some(steering)), draw_row)
+    }
+
     /// Declares a list, searched by find in page when a search is given, and steered by its view when a steering is.
     fn list_of(
         &mut self,
@@ -153,13 +179,7 @@ impl Ui<'_> {
         }
         state.selection.limit(list.row_count);
         let before = state.selection.clone();
-        let mut outcome = ListResponse {
-            response,
-            changed_selection: None,
-            activated: None,
-            context_row: None,
-            visible_rows: 0..0,
-        };
+        let mut outcome = ListResponse::of(response);
         for event in events {
             if let (WidgetEvent::Key(key), Some(steering)) = (&event, steering)
                 && steering.leaves(key)
@@ -185,7 +205,12 @@ impl Ui<'_> {
                     rect: row_rect,
                     lead: list.lead,
                 };
-                let row = ui.row_background(shape, (index, hovered_row), &state.selection, &outcome.response);
+                let row = ui.row_of(
+                    list.selection_mode,
+                    shape,
+                    (index, hovered_row),
+                    (&state.selection, &outcome.response),
+                );
                 if is_searched {
                     ui.recording.set_owner(Some(RowOwner { list: id, row: index }));
                 }
@@ -241,6 +266,9 @@ impl Ui<'_> {
         let height = f64::from(list.row_height);
         match event {
             WidgetEvent::Wheel { delta } => state.scroll.scroll_by(f64::from(delta.y), self.now()),
+            WidgetEvent::Key(key) if list.selection_mode == SelectionMode::Read => {
+                self.scroll_read_list((rect, list), state, (key, outcome.response.id));
+            }
             WidgetEvent::Key(key) => {
                 let result = keys::apply_key(&mut state.selection, key, list.selection_mode, (list.row_count, page));
                 if result.is_used {
@@ -264,6 +292,9 @@ impl Ui<'_> {
                 let Some(row) = row_at(list, state.scroll.offset(), position.y - rect.y) else {
                     return;
                 };
+                if list.selection_mode == SelectionMode::Read {
+                    return;
+                }
                 press_row(state, list.selection_mode, (row, button, modifiers));
                 if button == PointerButton::Primary && click_count == 2 {
                     outcome.activated = Some(row);
@@ -280,7 +311,7 @@ impl Ui<'_> {
 
     /// Draws the background of a row, for the pointer, the selection and the keyboard: rounded, inset from the sides
     /// of the list and from its lead; and says how the row is.
-    fn row_background(
+    pub(crate) fn row_background(
         &mut self,
         shape: RowShape,
         (index, hovered): (usize, Option<usize>),
@@ -337,11 +368,11 @@ impl Ui<'_> {
 
 /// Where a row is, and the width at its start its highlight leaves out.
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct RowShape {
+pub(crate) struct RowShape {
     /// The whole row.
-    rect: Rect,
+    pub(crate) rect: Rect,
     /// The width left out at its start.
-    lead: f32,
+    pub(crate) lead: f32,
 }
 
 /// The highlight of a row and the radius of its corners: inset from the sides and from the lead, rounded more for the

@@ -18,6 +18,10 @@ pub const SHOWING_REPOSITORY: &str = "Showing the repository";
 pub const LOADING_MORE_COMMITS: &str = "Loading more commits";
 /// What asks for the first page of another history: the branches the timeline shows were changed.
 pub const NARROWING_TIMELINE: &str = "Showing other branches";
+/// What asks for a read of the details of a commit: a row of the timeline was selected.
+pub const SHOWING_DETAILS: &str = "Showing the details of a commit";
+/// What asks for a read of the commit of a page and its lines: the page was opened.
+pub const OPENING_COMMIT_PAGE: &str = "Opening the page of a commit";
 
 /// The title of a read of a repository: `Reading app`.
 #[must_use]

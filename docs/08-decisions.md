@@ -424,6 +424,9 @@ repositories, the settings), each built with the reading given until it is answe
   does not exist in this branch, so these keys are named nowhere else. Where should they be written down?
 - **Q65** — `graph.view`: the inspector shows only the hash, the subject, the author and the date of the row selected,
   and an empty card while nothing is; what it says while nothing is selected is not in a card. Which words?
+  *Answered in slice 5 of M3 (`m3-inspector`)*: while nothing is selected the inspector says **Select a commit to see
+  its message and the files it changed.**, and **Loading…** while the details of the row selected are read; with
+  them it is the card of `details.show`.
 - **Q66** — `refs.filter`, line 2, and `filter.picker`, line 4: the names are ranked by `filter.rank-names` within
   each list of the rail (**Local**, one list per remote) and within each group of the branch filter (**Local**,
   **Remotes**, **Tags**), as the text of both cards says. On screen, `maintenance` (under **Local**) then comes before
@@ -512,3 +515,50 @@ repositories, the settings), each built with the reading given until it is answe
 - **Q87** — `search.list-mode`: the funnel is drawn with the filter icon of the branch filter (`Icon::Filter`, three
   lines that get shorter), rather than an icon of its own, so that the window has one icon for "only some commits".
   Is one icon the reading?
+- **Q88** — `app` now uses `text`: the store shapes the message of a commit once, when its details are read, with
+  `text::details::message_title` (which unwraps it, `details.message-unwrap`), rather than the views shaping it at
+  every frame. The edge is in the picture of `02-architecture.md` (D15), but it is new. Is the store the place, or
+  should `views` call `text` while it draws?
+- **Q89** — What opens a later page is shown and cannot be used yet, with the tooltip **Not yet: the Diff page and
+  the history of a file come later**: a click on a file of the inspector or of the page of a commit, **Open all
+  changes in one Diff page**, **Show the history of this file**, **Compare with…** in the context menu of a file and
+  of the header of a diff (`details.compare-file-with`), **Open in the Diff page**, **Open it in the Diff page** and
+  the button at the end of the header of a diff. Is that the reading, as for Q57?
+- **Q90** — `commit-page.open` is `features::commit_page::open(context, answers) -> Outcome`, as its card says, and
+  is in `features::OPERATIONS`: on a commit it opens its page at once; with no commit, as from Quick search, it asks
+  **Open commit**, reads the commit with `Query::Revision` and refuses a name git does not know. Its plan has no step
+  and says what follows with `FollowUp::OpenCommitPage`, which the contract gains for it. The window does not run it
+  through the engine yet: like `search.go-to-commit`, the store of `app` (`app::store`) opens the page itself, and
+  **Open Commit as a Page…** of Quick search opens the box of **Go to commit** titled **Open commit**, with the prompt
+  and the refusal of the card and **Open as a page** for its button. What is typed is read by `search.read-revision`,
+  as **Go to commit** does, rather than `compare.resolve-revision`, which comes with the comparison page. Is one box for
+  both right, and should the store run both through the engine once it shows questions?
+- **Q91** — The lines of a diff are in the colors of their kind (added, removed, context) and in the font of code,
+  but not in the colors of the code: no tokenizer is on the allowlist of D16. Which library, or a highlighter of
+  Gitardo's own, and from which milestone?
+- **Q92** — The icons of the inspector and of the page come from the icons there are: the eye of a file
+  (**Show its changes in this page**) is an arrow down, the list layout a minus, the tree a folder, and **Open as a
+  page, with its changes** the dot of a commit. Should the set of icons gain an eye and a list?
+- **Q93** — How the files are laid out is kept between runs in `state.json` under `fileLayouts`, as
+  `{"inspector": "list" | "tree", "page": "list" | "tree"}`, written only once one differs from a first start (the list
+  in the inspector, the tree in the pages). Like Q64, the key is named nowhere else. Is one layout for every page
+  right, as `commit-page.view` says, rather than one for each repository?
+- **Q94** — A stash is a commit with two or three parents: the commit it was made on, its index and its untracked
+  files. The inspector and the page show only the first as its **Parent**, and do not say **against the first parent**
+  after its count, since the stash is not a merge to the user. Is that the reading of `details.stash`?
+- **Q95** — The draft selected shows the files of the uncommitted changes, read as a commit, under the title
+  **Uncommitted changes**, with no author, hash or parents, and without the boxes to tick and the buttons of
+  `stash.push-file` and `changes.discard`, which come with them in M4. Its button to open a page is not there. Is that
+  enough for now?
+- **Q96** — What the cards left *Specified* in this slice wait on: `details.show` lines 6 and 7 (the Diff page; that
+  the button is not there with one file is tested), `details.stash` line 3 (the Diff page), `details.compare-file-with`
+  (the Diff page and `compare.side-choices`), `commit-page.view` lines 8 and 9 (their links are drawn and cannot be
+  used until the Diff page; every line has its test), and `graph.view` line 4, whose double click on a commit opens its page but on the label of a branch must check it out
+  (`branch.checkout`, M4). Should `commit-page.view` be *Built* on its tests, with the links disabled?
+- **Q97** — `commit-page.open` is offered on a stash, so a double click and `Enter` on the row of a stash in the
+  timeline now open its page too, where `graph.view` says "a commit". Is that the reading?
+- **Q98** — **Show in the timeline** goes to the commit as `graph.show-in-graph` does, through the same code as a
+  step of a search and **Go to commit**: the history is loaded up to it, what narrows the timeline is taken away when
+  it leaves the commit out, and a commit no branch or tag reaches (a stash dropped since the page opened, a commit lost
+  to a reset) is shown with its history alone, under the bar with **Show all commits**. Is that right for a dropped
+  stash too, or should the page say that it is no longer in the repository?

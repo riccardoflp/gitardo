@@ -1,5 +1,6 @@
 //! **Go to commit** (`search.go-to-commit`): Gitardo's input box for anything git takes for a commit, which says while
-//! it is typed when git knows no commit by that name.
+//! it is typed when git knows no commit by that name; the same box, as **Open commit**, opens the page of the commit
+//! (`commit-page.open`).
 
 use ui::layout::Area;
 use ui::{Dialog, DialogButton, DialogRole, InputBox, Label, Message, Severity, TextKind, Tone, Ui};
@@ -15,6 +16,18 @@ pub struct GoToCommitDialog<'a> {
     pub text: &'a str,
     /// What git says of it.
     pub verdict: GoToCommitVerdict,
+    /// What the commit is asked for.
+    pub purpose: GoToCommitPurpose,
+}
+
+/// What the commit of **Go to commit** is asked for.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum GoToCommitPurpose {
+    /// To go to it in the timeline (`search.go-to-commit`).
+    #[default]
+    GoTo,
+    /// To open it as a page, as **Open commit** (`commit-page.open`).
+    OpenPage,
 }
 
 /// What git says of the name typed in **Go to commit**.
@@ -41,15 +54,32 @@ const BUTTONS: [DialogButton<'static>; 2] = [
     },
 ];
 
-/// **Go to commit**, over the window: what it asks for, the box, and what git says of what is typed.
+/// The buttons of **Open commit**.
+const OPEN_BUTTONS: [DialogButton<'static>; 2] = [
+    DialogButton {
+        label: words::CANCEL,
+        role: DialogRole::Cancel,
+    },
+    DialogButton {
+        label: words::OPEN_PAGE,
+        role: DialogRole::Primary,
+    },
+];
+
+/// **Go to commit**, or **Open commit**, over the window: what it asks for, the box, and what git says of what is
+/// typed.
 pub fn go_to_commit_dialog(state: &GoToCommitDialog<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let theme = *ui.theme();
     let gap = theme.sizes.spacing.medium;
     let row = theme.sizes.row_height;
+    let (title, buttons) = match state.purpose {
+        GoToCommitPurpose::GoTo => (words::GO_TO_COMMIT_TITLE, &BUTTONS),
+        GoToCommitPurpose::OpenPage => (words::OPEN_COMMIT_TITLE, &OPEN_BUTTONS),
+    };
     let dialog = Dialog {
-        title: words::GO_TO_COMMIT_TITLE,
+        title,
         body_height: row + theme.sizes.control_height + gap,
-        buttons: &BUTTONS,
+        buttons,
     };
     let mut intents = Vec::new();
     let response = ui.dialog("go to commit", &dialog, |ui, body| {
@@ -58,7 +88,7 @@ pub fn go_to_commit_dialog(state: &GoToCommitDialog<'_>, ui: &mut Ui<'_>) -> Vec
             .kind(TextKind::Detail)
             .tone(Tone::Muted);
         let _ = ui.label(area.top(row), &detail);
-        let mut input = InputBox::new(state.text, words::GO_TO_COMMIT_TITLE);
+        let mut input = InputBox::new(state.text, title);
         if state.verdict == GoToCommitVerdict::NoCommit {
             input = input.with_message(Message {
                 text: words::UNKNOWN_COMMIT,

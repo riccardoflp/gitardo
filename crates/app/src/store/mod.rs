@@ -4,6 +4,8 @@
 //!
 //! `reduce` reads no file and runs no git: it is tested without a window.
 
+mod commit_page;
+mod inspector;
 mod message;
 mod pages;
 mod rail;
@@ -22,6 +24,8 @@ use views::{FolderAnswer, Intent};
 use crate::persisted;
 use crate::settings::Settings;
 
+pub use commit_page::{CommitPage, CommitPages, PageReadState};
+pub use inspector::{Inspector, InspectorRead, Subject, SubjectRow};
 pub use message::{Effect, Found, Job, JobId, JobKind, Known, Message, MorePages, TimelineRequest};
 pub use rail::{FilterPicker, Rail};
 pub use state::{Dialog, Opening, Pages, RepositoryRead, Shown, State, Workspace};
@@ -29,8 +33,18 @@ pub use timeline::{Timeline, commits_request, draft_of, history_of, known};
 pub use view_state::ViewData;
 pub use workspace::OpenRequest;
 
-/// Changes the store as a message says, and gives what the outside is to do after it, in order.
+/// Changes the store as a message says, and gives what the outside is to do after it, in order: then the inspector
+/// follows the row selected, the pages closed are forgotten, and **Show in the timeline** follows the timeline read.
 pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
+    let mut effects = reduce_message(state, message);
+    effects.extend(inspector::follow(state));
+    effects.extend(commit_page::prune(state));
+    effects.extend(commit_page::follow(state));
+    effects
+}
+
+/// Changes the store as a message says.
+fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
     match message {
         Message::Started { folders } => started(state, folders),
         Message::Intent(intent) => reduce_intent(state, intent),
@@ -45,6 +59,8 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
         Message::CommitsRead { job, result } => timeline::commits_read(state, job, result),
         Message::TimelineRead { job, result } => timeline::timeline_read(state, job, result),
         Message::Searched { job, result } => search::searched(state, job, result),
+        Message::DetailsRead { job, result } => inspector::details_read(state, job, result),
+        Message::CommitPageRead { job, result } => commit_page::page_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, settings),
         Message::CloseRequested { window_size } => {
             let mut effects = workspace::cancel_all(state);
@@ -179,6 +195,8 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Filter(intent) => rail::reduce_filter(state, intent),
         Intent::Graph(intent) => timeline::reduce_graph(state, intent),
         Intent::Search(intent) => search::reduce(state, intent),
+        Intent::Details(intent) => inspector::reduce_details(state, intent),
+        Intent::CommitPage(id, intent) => commit_page::reduce_page(state, id, intent),
     }
 }
 
