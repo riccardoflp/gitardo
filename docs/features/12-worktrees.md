@@ -40,7 +40,7 @@ The folder of a new worktree, from the setting `worktrees.folder` and the name o
 branch, slashes and all.
 
 - **Kind**: Derivation
-- **Function**: `model::worktree::folder_path(input) -> PathBuf`
+- **Function**: `model::worktree::folder_path(input: &FolderInput) -> PathBuf`
 - **Settings**: `worktrees.folder`, `${repo}.worktrees` by default.
 
 The rules:

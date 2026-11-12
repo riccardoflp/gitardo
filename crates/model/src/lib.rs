@@ -30,6 +30,7 @@ pub mod squash;
 pub mod stash;
 pub mod state;
 pub mod submodule;
+pub mod worktree;
 pub mod worktree_setup;
 
 pub use identifier::{CommitId, Timestamp};
