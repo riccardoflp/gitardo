@@ -1,5 +1,5 @@
-//! Rules R1.1, R1.2 and R1.5: nothing from outside the workspace but the TLS library, used by `crates/tls` only, at
-//! the versions of the allowlist; no build scripts and no procedural macros.
+//! Rules R1.1, R1.2, R1.5 and R1.6: nothing from outside the workspace but the libraries of the allowlist, at their
+//! versions, each used only by the crates the allowlist names; no build scripts and no procedural macros.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -13,9 +13,6 @@ use crate::workspace::Origin;
 /// The file that lists the packages from outside the workspace that may be in `Cargo.lock`.
 pub const ALLOWLIST: &str = "xtask/allowed-packages.txt";
 
-/// The one crate that may depend on them.
-const TLS_FOLDER: &str = "crates/tls";
-
 /// A package the allowlist names, at the one version allowed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Allowed {
@@ -23,6 +20,8 @@ pub struct Allowed {
     pub name: String,
     /// Its exact version.
     pub version: String,
+    /// The crates of the workspace that may name it in their manifest; none for a package only brought by another.
+    pub users: Vec<String>,
 }
 
 /// A package of `Cargo.lock`.
@@ -35,7 +34,8 @@ struct LockedPackage {
     line: usize,
 }
 
-/// The packages of the allowlist: one `name version` per line, `#` for comments.
+/// The packages of the allowlist: one `name version` per line, followed by the crates that may use it, if any; `#` for
+/// comments.
 pub fn parse_allowlist(text: &str) -> Vec<Allowed> {
     text.lines()
         .map(|line| line.split('#').next().unwrap_or_default().trim())
@@ -45,6 +45,7 @@ pub fn parse_allowlist(text: &str) -> Vec<Allowed> {
             Some(Allowed {
                 name: name.to_owned(),
                 version: version.to_owned(),
+                users: words.map(str::to_owned).collect(),
             })
         })
         .collect()
@@ -119,10 +120,13 @@ fn manifest_problems(workspace: &Workspace, allowed: &[Allowed]) -> Vec<Problem>
             let message = match &dependency.origin {
                 Origin::Folder(folder) if member_folders.contains(&folder.as_str()) => continue,
                 Origin::Folder(folder) => format!("{} is in {folder}, outside the workspace.", dependency.package),
-                Origin::Outside if member.folder == TLS_FOLDER && is_listed(allowed, &dependency.package) => continue,
+                Origin::Outside if may_use(allowed, &dependency.package, &member.name) => continue,
                 Origin::Outside if is_listed(allowed, &dependency.package) => {
-                    let message = format!("Only {TLS_FOLDER} may depend on {}.", dependency.package);
-                    found.push(Problem::at_line("R1.5", &manifest, dependency.line, message));
+                    let message = format!(
+                        "{} may not depend on {}: {ALLOWLIST} does not name it among the crates that use it.",
+                        member.name, dependency.package
+                    );
+                    found.push(Problem::at_line("R1.6", &manifest, dependency.line, message));
                     continue;
                 }
                 Origin::Outside => format!("{} is not a crate of the workspace.", dependency.package),
@@ -137,9 +141,16 @@ fn is_listed(allowed: &[Allowed], name: &str) -> bool {
     allowed.iter().any(|package| package.name == name)
 }
 
+/// Whether the allowlist names the crate among those that may depend on the package.
+pub fn may_use(allowed: &[Allowed], name: &str, user: &str) -> bool {
+    allowed
+        .iter()
+        .any(|package| package.name == name && package.users.iter().any(|listed| listed == user))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{Allowed, lock_problems, parse_allowlist};
+    use super::{Allowed, lock_problems, may_use, parse_allowlist};
 
     const LOCK: &str = "version = 4\n\n[[package]]\nname = \"json\"\nversion = \"0.1.0\"\n\n\
         [[package]]\nname = \"ring\"\nversion = \"0.17.14\"\nsource = \"registry+https://github.com/rust-lang/crates.io-index\"\n\
@@ -147,20 +158,31 @@ mod tests {
 
     #[test]
     fn reads_the_allowlist() {
-        let allowed = parse_allowlist("# The TLS of D13.\nrustls 0.23.31\n\nring 0.17.14 # cryptography\n");
+        let allowed = parse_allowlist("# The TLS of D13.\nrustls 0.23.31 tls\n\nring 0.17.14 # cryptography\n");
         assert_eq!(
             allowed,
             vec![
                 Allowed {
                     name: String::from("rustls"),
-                    version: String::from("0.23.31")
+                    version: String::from("0.23.31"),
+                    users: vec![String::from("tls")],
                 },
                 Allowed {
                     name: String::from("ring"),
-                    version: String::from("0.17.14")
+                    version: String::from("0.17.14"),
+                    users: Vec::new(),
                 },
             ]
         );
+    }
+
+    #[test]
+    fn lets_a_library_be_used_only_by_the_crates_it_names() {
+        let allowed = parse_allowlist("accesskit 0.21.1 ui platform\nwinit 0.30.12 platform\nbytemuck 1.24.0\n");
+        assert!(may_use(&allowed, "accesskit", "ui"));
+        assert!(may_use(&allowed, "accesskit", "platform"));
+        assert!(!may_use(&allowed, "winit", "ui"));
+        assert!(!may_use(&allowed, "bytemuck", "render"));
     }
 
     #[test]

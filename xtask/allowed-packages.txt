@@ -1,6 +1,7 @@
-# The packages from outside the workspace that may be in Cargo.lock, one per line: the name and the exact version.
+# The packages from outside the workspace that may be in Cargo.lock, one per line: the name, the exact version and,
+# for a library a crate of the workspace names in its manifest, the crates that may name it. A package with no crates
+# after its version is only brought by another one.
 #
-# Only the TLS of decision D13 may be here: rustls, ring, rustls-native-certs and the packages they bring, used by
-# crates/tls only (rule R1.5). Adding a package or changing a version is a commit of its own that says why.
-#
-# There is none yet: crates/tls gets its library in milestone M9.
+# Only the libraries of decisions D13 (TLS, for crates/tls, rule R1.5) and D16 (the window, the text and the pixels,
+# rule R1.6) and the packages they bring may be here. Adding a package or changing a version is a commit of its own
+# that says why. Cargo.lock lists the packages of every system, not only those built on this one.
