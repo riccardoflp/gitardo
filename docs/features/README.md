@@ -146,22 +146,22 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
 | [`changes.pane`](05-changes-and-commit.md#changespane--the-changes-page) | The Changes page | View | Specified |
-| [`changes.read-working-tree`](05-changes-and-commit.md#changesread-working-tree--read-what-is-not-committed) | Read what is not committed | Read | Specified |
-| [`changes.list`](05-changes-and-commit.md#changeslist--one-list-of-the-changed-files) | One list of the changed files | Derivation | Specified |
+| [`changes.read-working-tree`](05-changes-and-commit.md#changesread-working-tree--read-what-is-not-committed) | Read what is not committed | Read | Built |
+| [`changes.list`](05-changes-and-commit.md#changeslist--one-list-of-the-changed-files) | One list of the changed files | Derivation | Built |
 | [`changes.unsaved`](05-changes-and-commit.md#changesunsaved--files-with-edits-not-saved) | Files with edits not saved | Derivation | Specified |
 | [`changes.open`](05-changes-and-commit.md#changesopen--what-a-file-of-the-changes-page-opens) | What a file of the Changes page opens | Derivation | Specified |
-| [`changes.stage`](05-changes-and-commit.md#changesstage--stage-a-file) | Stage a file | Operation | Specified |
-| [`changes.unstage`](05-changes-and-commit.md#changesunstage--unstage-a-file) | Unstage a file | Operation | Specified |
+| [`changes.stage`](05-changes-and-commit.md#changesstage--stage-a-file) | Stage a file | Operation | Built |
+| [`changes.unstage`](05-changes-and-commit.md#changesunstage--unstage-a-file) | Unstage a file | Operation | Built |
 | [`changes.stage-all`](05-changes-and-commit.md#changesstage-all--stage-all-changes) | Stage all changes | Operation | Specified |
-| [`changes.unstage-all`](05-changes-and-commit.md#changesunstage-all--unstage-all-changes) | Unstage all changes | Operation | Specified |
-| [`changes.discard`](05-changes-and-commit.md#changesdiscard--discard-the-changes-of-a-file) | Discard the changes of a file | Operation | Specified |
+| [`changes.unstage-all`](05-changes-and-commit.md#changesunstage-all--unstage-all-changes) | Unstage all changes | Operation | Built |
+| [`changes.discard`](05-changes-and-commit.md#changesdiscard--discard-the-changes-of-a-file) | Discard the changes of a file | Operation | Built |
 | [`changes.discard-all`](05-changes-and-commit.md#changesdiscard-all--discard-all-changes) | Discard all changes | Operation | Specified |
 | [`changes.save`](05-changes-and-commit.md#changessave--save-a-file-or-all-of-them) | Save a file, or all of them | Operation | Specified |
-| [`changes.pathspec`](05-changes-and-commit.md#changespathspec--a-file-named-as-itself) | A file named as itself | Derivation | Specified |
+| [`changes.pathspec`](05-changes-and-commit.md#changespathspec--a-file-named-as-itself) | A file named as itself | Derivation | Built |
 | [`commit.create`](05-changes-and-commit.md#commitcreate--commit) | Commit | Operation | Specified |
 | [`commit.amend`](05-changes-and-commit.md#commitamend--amend-the-last-commit) | Amend the last commit | Operation | Specified |
 | [`commit.draft-message`](05-changes-and-commit.md#commitdraft-message--draft-the-commit-message) | Draft the commit message | Derivation | Specified |
-| [`identity.read`](05-changes-and-commit.md#identityread--read-the-identity) | Read the identity | Read | Specified |
+| [`identity.read`](05-changes-and-commit.md#identityread--read-the-identity) | Read the identity | Read | Built |
 | [`identity.switch`](05-changes-and-commit.md#identityswitch--switch-identity) | Switch identity | Operation | Specified |
 | [`identity.use-global`](05-changes-and-commit.md#identityuse-global--use-the-global-identity-again) | Use the global identity again | Operation | Specified |
 

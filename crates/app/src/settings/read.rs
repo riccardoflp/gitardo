@@ -100,8 +100,8 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
     }
 }
 
-/// The settings the operations read: `commandPreview`, `branches.format`, `branches.openIn` and
-/// `submodules.updateOnCheckout`.
+/// The settings the operations read: `commandPreview`, `branches.format`, `branches.openIn`,
+/// `submodules.updateOnCheckout` and `identities`.
 fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
     let defaults = FeatureSettings::default();
     let command_preview = match lookup.choice(keys::COMMAND_PREVIEW, &keys::COMMAND_PREVIEWS) {
@@ -120,7 +120,28 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
             Some("worktree") => OpenIn::Worktree,
             _ => OpenIn::Checkout,
         },
+        identities: lookup
+            .first((keys::IDENTITIES, Scope::User), identity_profiles)
+            .unwrap_or(defaults.identities),
     }
+}
+
+/// `identities`: each entry with a name and an email that are text, in order; the others are left out.
+fn identity_profiles(value: &Value) -> Result<Vec<model::contract::IdentityProfile>, ProblemReason> {
+    let entries = value
+        .as_array()
+        .ok_or(ProblemReason::WrongType { expected: "a list" })?;
+    Ok(entries
+        .iter()
+        .filter_map(|entry| {
+            let text = |key: &str| entry.get(key).and_then(Value::as_str).map(str::to_owned);
+            Some(model::contract::IdentityProfile {
+                name: text("name")?,
+                email: text("email")?,
+                signing_key: text("signingKey"),
+            })
+        })
+        .collect())
 }
 
 /// Every value the two files set, by key, the repository's first.

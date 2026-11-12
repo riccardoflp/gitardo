@@ -96,3 +96,6 @@
   the timeline, and a commit's menu has **Create branch here…**, **Create tag here…** and **Check out commit
   (detached)**. A double click on a branch checks it out, or does what `branches.openIn` says; **Clean up branches…**
   is in **…** and in Quick search; Undo brings back a branch deleted at its commit.
+- `gitardo-cli` stages and unstages a file or all changes, discards the changes of a file or all of them after a warning
+  that says what is lost, amends the last commit, and switches the identity of a repository or goes back to the global
+  one. A file whose name is also a pattern, such as `pages/[id].tsx`, is named to git as itself.

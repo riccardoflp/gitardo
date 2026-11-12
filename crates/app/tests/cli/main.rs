@@ -6,6 +6,7 @@
 
 mod branch;
 mod branches;
+mod changes;
 mod checkout;
 mod commit;
 mod state;

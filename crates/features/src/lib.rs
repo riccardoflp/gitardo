@@ -6,8 +6,10 @@
 #![forbid(unsafe_code)]
 
 pub mod branch;
+pub mod changes;
 pub mod commit;
 pub mod commit_page;
+pub mod identity;
 pub mod search;
 pub mod sync;
 pub mod tag;
@@ -19,7 +21,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 18] = [
+pub const OPERATIONS: [(FeatureId, Operation); 27] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -32,8 +34,17 @@ pub const OPERATIONS: [(FeatureId, Operation); 18] = [
     (FeatureId("branch.delete"), branch::delete),
     (FeatureId("branch.fast-forward"), branch::fast_forward),
     (FeatureId("branch.rename"), branch::rename),
-    (FeatureId("commit.create"), commit::create),
+    (FeatureId("changes.discard"), changes::discard),
+    (FeatureId("changes.discard-all"), changes::discard_all),
+    (FeatureId("changes.stage"), changes::stage),
+    (FeatureId("changes.stage-all"), changes::stage_all),
+    (FeatureId("changes.unstage"), changes::unstage),
+    (FeatureId("changes.unstage-all"), changes::unstage_all),
     (FeatureId("commit-page.open"), commit_page::open),
+    (FeatureId("commit.amend"), commit::amend),
+    (FeatureId("commit.create"), commit::create),
+    (FeatureId("identity.switch"), identity::switch),
+    (FeatureId("identity.use-global"), identity::use_global),
     (FeatureId("search.go-to-commit"), search::go_to_commit),
     (FeatureId("sync.fetch"), sync::fetch),
     (FeatureId("tag.checkout"), tag::checkout),

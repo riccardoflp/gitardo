@@ -122,8 +122,10 @@ fn parse_target(text: &str) -> Result<Target, String> {
         "branch" => Ok(Target::Branch(name.to_owned())),
         "remote-branch" => Ok(Target::RemoteBranch(name.to_owned())),
         "tag" => Ok(Target::Tag(name.to_owned())),
+        "file" => Ok(Target::File(name.to_owned())),
+        "changes" => Ok(Target::Changes),
         _ => Err(format!(
-            "{kind} is not a kind of target: commit, branch, remote-branch or tag."
+            "{kind} is not a kind of target: commit, branch, remote-branch, tag, file or changes."
         )),
     }
 }

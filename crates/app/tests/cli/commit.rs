@@ -61,3 +61,33 @@ fn commit_create__refuses_a_message_of_spaces_and_blank_lines() {
     assert_eq!(ended.code, Some(1));
     assert!(ended.errors.contains("Enter a commit message."), "{}", ended.errors);
 }
+
+#[test]
+fn commit_amend__a_new_message_keeps_the_files() {
+    let repository = repository();
+    let files_before = repository.git(&["show", "--name-only", "--format=", "HEAD"]);
+    let ended = cli_done(&repository, &["commit.amend", "message=Better words"]);
+    assert!(
+        ended.out.contains("> git commit --amend -m \"Better words\""),
+        "{}",
+        ended.out
+    );
+    assert_eq!(repository.git(&["log", "-1", "--format=%s"]).trim_end(), "Better words");
+    assert_eq!(
+        repository.git(&["show", "--name-only", "--format=", "HEAD"]),
+        files_before
+    );
+    assert_eq!(repository.git(&["rev-list", "--count", "HEAD"]).trim_end(), "1");
+}
+
+#[test]
+fn commit_amend__an_empty_message_keeps_the_old_one_and_takes_what_is_staged() {
+    let repository = repository();
+    write(&repository, "b.txt", "b");
+    let _staged = repository.git(&["add", "b.txt"]);
+    let ended = cli_done(&repository, &["commit.amend", "message="]);
+    assert!(ended.out.contains("> git commit --amend --no-edit"), "{}", ended.out);
+    assert_eq!(repository.git(&["log", "-1", "--format=%s"]).trim_end(), "Add a");
+    let files = repository.git(&["show", "--name-only", "--format=", "HEAD"]);
+    assert_eq!(files.lines().collect::<Vec<_>>(), ["a.txt", "b.txt"]);
+}

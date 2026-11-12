@@ -709,3 +709,22 @@ the reading given until it is answered:
 - **Q118** — Cards of this slice left **Specified**: `branch.create` and `branch.name-from-format` (Q112);
   `branch.pane`, whose top with the branch checked out and **Create branch**, and the **…** of the Worktrees list, are
   not built; `undo.last`, whose lines about a stash, a cherry-pick, a squash merge and conflicts wait for those areas.
+- **Q-A1** — The operations on the files of the Changes page (`changes.stage`, `changes.unstage`, `changes.discard`)
+  are given their file as a new kind of target, `Target::File(path)`, and the header of the page as `Target::Changes`,
+  which is how `changes.discard-all` tells the header (the files of the list, the conflicts left alone) from the draft
+  (the whole working tree); `gitardo-cli` takes them as `--target file:<path>` and `--target changes:list`. Words the
+  cards do not give: an operation on one file given none says "Choose a file of the Changes page.";
+  `changes.stage-all` and `changes.unstage-all` with nothing to do say "There is nothing to stage." and "There is
+  nothing to unstage."; the refusal of `changes.discard-all` from the draft names the operation `merge`, `rebase`,
+  `cherry-pick`, `revert` or `patch`. Undo never offers to take these back: their plans say Undo cannot, with what
+  does ("Unstaging it takes it back."). With `commandPreview` `off`, the header's **Discard all changes** names in
+  `git restore --source=HEAD --staged --worktree` every tracked file of the list and leaves the untracked files that
+  are not staged to `git clean -f`, since `git restore` refuses a path git does not know. Are these right?
+- **Q-A2** — `identity.switch`: each profile is one choice, `Name <email>`, with **In use** under the one that matches
+  the identity used now; the identity used now is said under the title of the pick (**Now: `Name <email>`**), since a
+  pick has no placeholder. A name or an email left empty is refused with "A name and an email are both needed:
+  nothing was changed.", as an operation cannot end with nothing. **Edit the list of identities…** is not in the pick
+  yet: the settings page cannot be opened at a key, and an operation has no follow-up that opens a page. The plan,
+  when `commandPreview` shows it, says the commands but not "This is saved in the configuration of this repository
+  only.", since the dialog says a reason only for a plan that is `Confirm` or `Destructive`. `commit.amend` before the
+  first commit says "There is no commit to amend yet." Should the cards say so?

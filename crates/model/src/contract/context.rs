@@ -33,6 +33,10 @@ pub enum Target {
     RemoteBranch(String),
     /// A tag, by its short name.
     Tag(String),
+    /// A file of the Changes page, by its path from the top of the working tree.
+    File(String),
+    /// The list of the Changes page: the files changed for git, without the files in conflict, which are apart.
+    Changes,
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.
@@ -46,6 +50,19 @@ pub struct FeatureSettings {
     pub branch_format: String,
     /// `branches.openIn`: what a double click on a branch does.
     pub branch_open_in: OpenIn,
+    /// `identities`: the names and emails to choose from when switching identity, in their order.
+    pub identities: Vec<IdentityProfile>,
+}
+
+/// An identity of the setting `identities`: `{ "name", "email", "signingKey"? }`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IdentityProfile {
+    /// `name`.
+    pub name: String,
+    /// `email`.
+    pub email: String,
+    /// `signingKey`, when it has one.
+    pub signing_key: Option<String>,
 }
 
 impl Default for FeatureSettings {
@@ -55,6 +72,7 @@ impl Default for FeatureSettings {
             update_submodules_on_checkout: true,
             branch_format: String::new(),
             branch_open_in: OpenIn::Checkout,
+            identities: Vec::new(),
         }
     }
 }

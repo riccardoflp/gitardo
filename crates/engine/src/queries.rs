@@ -1,10 +1,11 @@
 //! Answering the queries of features by reading git.
 
 use git::read::branch;
+use git::read::identity::{IdentityRequest, read_identity};
 use git::read::reflog::{ReflogRequest, read_entries};
 use git::read::search::{RevisionRequest, read_revision};
 use git::{Git, GitError};
-use model::contract::{Answer, Query};
+use model::contract::{Answer, IdentityKeys, Query};
 
 /// The answer of a query, read now.
 pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
@@ -32,6 +33,12 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         }
         Query::MergedBranches { into } => branch::read_merged(git, into).map(Answer::Names),
         Query::HasFile { revision, path } => branch::read_has_file(git, revision, path).map(Answer::Flag),
+        Query::Identity => read_identity(git, &IdentityRequest).map(|read| {
+            Answer::Identity(IdentityKeys {
+                identity: read.identity,
+                local_keys: read.local_keys,
+            })
+        }),
         Query::FilesMatch { commit } => {
             let arguments = ["diff", "--quiet", commit.as_str(), "--"];
             let output = git.read_output(&arguments)?;
@@ -61,5 +68,6 @@ pub(crate) fn describe(query: &Query) -> String {
         }
         Query::MergedBranches { into } => git::command_line(&branch::merged_arguments(into)),
         Query::HasFile { revision, path } => git::command_line(&branch::has_file_arguments(revision, path)),
+        Query::Identity => String::from(r"git config -z --get-regexp ^user\.(name|email)$"),
     }
 }

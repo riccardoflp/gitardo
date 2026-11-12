@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 
 use crate::CommitId;
+use crate::state::Identity;
 
 use super::JournalEntry;
 
@@ -38,6 +39,17 @@ pub enum Answer {
     },
     /// Names read: the branches merged into a revision.
     Names(Vec<String>),
+    /// Who commits are made as, and the `user.*` keys the repository sets for itself.
+    Identity(IdentityKeys),
+}
+
+/// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct IdentityKeys {
+    /// The name and the email git will use, wherever they are set.
+    pub identity: Identity,
+    /// The `user.*` keys of the repository's own configuration, each once: `user.name`, `user.signingkey`.
+    pub local_keys: Vec<String>,
 }
 
 /// An entry of a reflog: where a reference was, and what moved it there.
@@ -127,6 +139,15 @@ impl Answers {
         match self.get(key)? {
             Answer::Commit(commit) => Some(commit.as_ref()),
             _ => None, // Any other kind of answer is no commit.
+        }
+    }
+
+    /// Who commits are made as, read under a key.
+    #[must_use]
+    pub fn identity(&self, key: AnswerKey) -> Option<&IdentityKeys> {
+        match self.get(key)? {
+            Answer::Identity(keys) => Some(keys),
+            _ => None, // Any other kind of answer is no identity.
         }
     }
 

@@ -55,6 +55,15 @@ pub fn modified(path: &str) -> FileChange {
     }
 }
 
+/// A file renamed from `original` to `path`.
+pub fn renamed(path: &str, original: &str) -> FileChange {
+    FileChange {
+        path: path.to_owned(),
+        original_path: Some(original.to_owned()),
+        kind: ChangeKind::Renamed,
+    }
+}
+
 /// The context of a feature invoked on `target` in `state`, with the default settings.
 pub fn context(state: RepositoryState, target: Target) -> Context {
     Context {

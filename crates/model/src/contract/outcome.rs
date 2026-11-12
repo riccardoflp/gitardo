@@ -81,6 +81,9 @@ pub enum Query {
         /// The path of the file, from the top of the tree.
         path: String,
     },
+    /// Who commits are made as, and which `user.*` keys the repository sets for itself (`identity.read`). The answer
+    /// is [`super::Answer::Identity`].
+    Identity,
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

@@ -9,8 +9,8 @@ mod plan;
 mod question;
 mod words;
 
-pub use answers::{Answer, AnswerKey, Answers, ReflogEntry};
-pub use context::{CommandPreview, Context, FeatureSettings, OpenIn, Target};
+pub use answers::{Answer, AnswerKey, Answers, IdentityKeys, ReflogEntry};
+pub use context::{CommandPreview, Context, FeatureSettings, IdentityProfile, OpenIn, Target};
 pub use journal::{JournalEntry, UndoRecord};
 pub use outcome::{FeatureId, Operation, Outcome, Query, Refusal};
 pub use plan::{Danger, FollowUp, Plan, Step, Undo};

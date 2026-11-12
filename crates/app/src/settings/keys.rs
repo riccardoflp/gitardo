@@ -51,6 +51,8 @@ pub const UPDATE_SUBMODULES_ON_CHECKOUT: &str = "submodules.updateOnCheckout";
 pub const BRANCH_OPEN_IN: &str = "branches.openIn";
 /// The values of `branches.openIn`: what a double click on a branch does.
 pub const BRANCH_OPEN_INS: [&str; 2] = ["checkout", "worktree"];
+/// `identities`.
+pub const IDENTITIES: &str = "identities";
 
 /// The default of `font.ui`: the font of the interface that comes with the program.
 pub const INTERFACE_FONT: &str = "Inter";
