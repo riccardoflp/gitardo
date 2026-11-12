@@ -150,22 +150,30 @@ impl Calendar {
 }
 
 /// The year and the month (1 for January) of a day counted since 1970-01-01, in the proleptic Gregorian calendar.
+fn year_and_month(days: i64) -> (i64, i64) {
+    let (year, month, _) = civil_date(days);
+    (year, month)
+}
+
+/// The year, the month (1 for January) and the day of the month of a day counted since 1970-01-01, in the proleptic
+/// Gregorian calendar.
 ///
 /// Howard Hinnant, "chrono-Compatible Low-Level Date Algorithms", `civil_from_days`.
-fn year_and_month(days: i64) -> (i64, i64) {
+pub(crate) fn civil_date(days: i64) -> (i64, i64, i64) {
     let shifted = days + 719_468;
     let era = shifted.div_euclid(146_097);
     let day_of_era = shifted.rem_euclid(146_097);
     let year_of_era = (day_of_era - day_of_era / 1_460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
     let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
     let month_from_march = (5 * day_of_year + 2) / 153;
+    let day = day_of_year - (153 * month_from_march + 2) / 5 + 1;
     let month = if month_from_march < 10 {
         month_from_march + 3
     } else {
         month_from_march - 9
     };
     let year = year_of_era + era * 400 + i64::from(month <= 2);
-    (year, month)
+    (year, month, day)
 }
 
 #[cfg(test)]

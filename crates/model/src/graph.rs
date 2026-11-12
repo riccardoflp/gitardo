@@ -19,6 +19,7 @@ mod trace_history;
 mod unpushed;
 
 pub use combine_upstream::combine_upstream;
+pub(crate) use date_separators::civil_date;
 pub use date_separators::{DateTime, date_separators};
 pub use fit_width::{GraphFit, fit_width};
 pub use fold_rows::{Fold, FoldedRows, ShownRow, fold_rows, foldable_merges};

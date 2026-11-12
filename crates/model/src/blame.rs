@@ -2,6 +2,14 @@
 
 use std::sync::Arc;
 
+mod age;
+mod format;
+mod lines;
+
+pub use age::{AgeInput, OLD_AFTER_DAYS, OLD_COLOR, RECENT_COLOR, age_color};
+pub use format::{DEFAULT_FORMAT, FormatInput, NOT_COMMITTED, ago, format_line};
+pub use lines::{LineEdit, PinnedInput, mark_edited_lines, pick_pinned_line};
+
 use crate::{CommitId, Timestamp};
 
 /// Who last changed a line: a commit, or nobody yet.

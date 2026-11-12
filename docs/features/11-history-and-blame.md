@@ -327,7 +327,7 @@ Acceptance:
 Turns the format of `fileBlame.format` and the blame of a file into the text beside each line.
 
 - **Kind**: Derivation
-- **Function**: `text::blame::format_line(input) -> Vec<String>`
+- **Function**: `model::blame::format_line(input: &FormatInput) -> Vec<String>`
 - **Settings**: `fileBlame.format` (`${date} ${author:20}` unless set), `fileBlame.groupLines` (on by default).
 
 Rules of the format:
@@ -374,7 +374,7 @@ The bar at the left of what is beside a line has the color of its age: the recen
 old color for one changed `fileBlame.age.oldAfterDays` ago or more, and the colors in between for the ages in between.
 
 - **Kind**: Derivation
-- **Function**: `text::blame::age_color(input) -> Rgb`
+- **Function**: `model::blame::age_color(input: &AgeInput) -> Option<String>`
 - **Settings**: `fileBlame.age.enabled` (on), `fileBlame.age.recentColor` (`#e5534b`), `fileBlame.age.oldColor`
   (`#316dca`), `fileBlame.age.oldAfterDays` (730).
 
@@ -404,7 +404,7 @@ When the first line of a run of lines of one commit is scrolled out of sight, th
 so the lines at the top of the File page are never left unnamed.
 
 - **Kind**: Derivation
-- **Function**: `text::blame::pick_pinned_line(input) -> Option<(usize, String)>`
+- **Function**: `model::blame::pick_pinned_line(input: &PinnedInput) -> Option<(usize, String)>`
 
 Rules:
 
@@ -429,7 +429,7 @@ While a file shows its blame, what is typed says *Not committed yet* at once, so
 it and the text does not jump, until git is asked again.
 
 - **Kind**: Derivation
-- **Function**: `text::blame::mark_edited_lines(input) -> Vec<Option<BlameLine>>`
+- **Function**: `model::blame::mark_edited_lines(lines: &[Option<BlameLine>], edits: &[LineEdit]) -> Vec<Option<BlameLine>>`
 
 Rules:
 
