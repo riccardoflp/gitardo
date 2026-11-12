@@ -778,39 +778,39 @@ the reading given until it is answered:
   **Specified**, and so does `undo.last`, whose other lines belong to other slices.
 - **Q129** — `tag.push` now asks `model::remote::default` for its remote (Q113), and the menu of the draft runs
   **Stash changes…** and **Stash staged changes…** (`stash.push`, `stash.push-staged`).
-- **Q-B1** — `diff.line-diff` returns `Result<Vec<Change>, TooComplex>` and takes, beside the two texts, a function
+- **Q130** — `diff.line-diff` returns `Result<Vec<Change>, TooComplex>` and takes, beside the two texts, a function
   that says whether to go on, which the worker reads the clock and its cancel token in, since `text` does no I/O; its
   card now says so. It is the O(ND) algorithm of Myers (1986) with the linear-space search of the middle snake of the
   same paper (section 4b), on lines numbered once, after the lines common at the start and the end and the lines found
   on one side only are taken out. The result is minimal on the lines searched, but the middle snake searches from both
   ends, not "from the start of the texts" as the card says: two diffs of the same size may differ in which equal lines
   they pair. Does `conflicts.resolve-by-rules`, which runs it on both texts reversed, need the forward search alone?
-- **Q-B2** — `diff.align` is `model::diff::align`, but `model` and `text` do not use each other: the word marks of
+- **Q131** — `diff.align` is `model::diff::align`, but `model` and `text` do not use each other: the word marks of
   each pair of lines are given to it as a function, which the worker fills with `text::diff::word_diff`. Is that the
   reading of the edges, or should `model` use `text`?
-- **Q-B3** — `diff.scroll-together` and `diff.align` disagree: with filler rows keeping the two sides level, every row
+- **Q132** — `diff.scroll-together` and `diff.align` disagree: with filler rows keeping the two sides level, every row
   is as tall on both sides, so the two sides of a page are one list, scrolled as one, and the mapping is the identity.
   `model::diff::scroll_together` is built and tested on anchors that are not level, as for a side that has no filler
   rows, but the page does not call it. Should the card say the two sides of the Diff page are one list, and keep the
   mapping for the Merge page or the review of the conflicts in **Columns**?
-- **Q-B4** — The Diff page refuses a binary file or one with too many differences with the notice of the window (the
+- **Q133** — The Diff page refuses a binary file or one with too many differences with the notice of the window (the
   bar over the timeline), and asks before a very large file with a dialog of the window, **Continue** and **Cancel**.
   A page of one file opens only once its file is read, so that nothing opens when it refuses; a page of several files
   opens at once and says *This file looks binary.* or *This file has too many differences to display.* under the header
   of such a file, and a very large file in it is read without asking. `F7` going on to another file reads it without
   asking either. Are these right?
-- **Q-B5** — The words chosen without a card: **No changes.** under the header of a file with no change, **Git could
+- **Q134** — The words chosen without a card: **No changes.** under the header of a file with no change, **Git could
   not read this file.**, **Loading…**, the tooltip **Staged** on a change staged, and **Lines of the diff** for the
   screen reader. The band of a changed change in the gutter is in the color of a modified file of the theme, amber in
   the dark and light themes, where the card says blue: the themes have no blue for it. Which color should it be?
-- **Q-B6** — Where the page is opened from, and between which versions: a file of the inspector or of the page of a
+- **Q135** — Where the page is opened from, and between which versions: a file of the inspector or of the page of a
   commit, between the first parent of the commit (or **Empty** for a root commit) and the commit; a file of the draft in
   the inspector, between `HEAD` and the working tree; an untracked file of a stash, between **Empty** and the third
   parent of the stash, named by the stash's short hash. **Open all changes in one Diff page** and **Open in the Diff
   page** are titled as the page of the commit is, its short hash and subject. Q96 is answered: the links of
   `details.show` lines 6 and 7, `details.stash` line 3 and `commit-page.view` lines 8 and 9 open the Diff page, and the
   three cards are **Built**.
-- **Q-B7** — What the Diff page does not have yet, though `diff.page` is **Built** on its acceptance lines: the colors
+- **Q136** — What the Diff page does not have yet, though `diff.page` is **Built** on its acceptance lines: the colors
   of the code (Q91, `file-view.highlight`), editing the working tree side (`diff.edit`: the text editor of `editor` is
   not written yet), the unsaved text of a File page as the working tree (no File page yet), the title buttons of each
   file of a page of several files, and the buttons of the gutter (`diff.stage-change`, `diff.unstage-change`,
@@ -819,7 +819,7 @@ the reading given until it is answered:
   File page (`file-view.page`, M6). `details.compare-file-with` stays **Specified**: it needs `compare.side-choices`
   and `compare.resolve-revision`, which come with the comparison. `diff.staged-changes` is **Built** on a change staged
   with `git add` of a version that has it, since `diff.stage-change` comes in M5. Is that enough for now?
-- **Q-B8** — `diff.collapseUnchanged` is read from the user's settings file only, as the window reads it when it
+- **Q137** — `diff.collapseUnchanged` is read from the user's settings file only, as the window reads it when it
   opens; the fold button of a page switches that page alone, and a page keeps the folds clicked open until it is
   switched. `F7` landing in a fold unfolds nothing yet, since folds keep three lines next to each change and a change is
   never in a fold. The width of the left side is kept with the page and for the next page while the window is open, not
