@@ -1479,7 +1479,8 @@
     "test:ui": "node esbuild.mjs && node test/e2e/ui.mjs",
     "package": "node esbuild.mjs --production && vsce package --no-dependencies",
     "test:vsix": "npm run package && node test/e2e/run.mjs --vsix",
-    "preview": "node dist/dev-server.js"
+    "preview": "node dist/dev-server.js",
+    "check:docs": "python docs/catalog.py docs"
   },
   "devDependencies": {
     "@shikijs/engine-javascript": "^4.2.0",
