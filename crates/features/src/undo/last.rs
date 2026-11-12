@@ -2,12 +2,15 @@
 //! terminal, by reading the reflog.
 //!
 //! The operations Gitardo makes that the reflog does not see (a branch or a stash deleted, conflicts resolved, a series
-//! of cherry-picks) are taken back from the engine's journal, which comes with the cards that fill it.
+//! of cherry-picks) are taken back from the engine's journal, filled by the plans of the cards that make them.
 
 use model::CommitId;
 use model::contract::{
     AnswerKey, Answers, Context, Danger, FollowUp, Outcome, Plan, Query, ReflogEntry, Refusal, Step, Text, Undo,
 };
+
+/// The newest entry of the engine's journal that still holds.
+pub const JOURNAL: AnswerKey = AnswerKey("journal");
 
 /// The last two entries of the reflog of `HEAD`.
 pub const HEAD_REFLOG: AnswerKey = AnswerKey("head-reflog");
@@ -18,12 +21,18 @@ pub const BRANCH_REFLOG: AnswerKey = AnswerKey("branch-reflog");
 /// Whether the files of the working tree are as the previous position has them.
 pub const FILES_MATCH: AnswerKey = AnswerKey("files-match");
 
-/// Takes back the last move of `HEAD` or of the branch checked out, as their reflogs say, showing what it is about to
-/// do first. Undoing twice redoes.
+/// Takes back the last operation of Gitardo the reflog does not see, as the journal keeps it, or else the last move of
+/// `HEAD` or of the branch checked out, as their reflogs say; showing what it is about to do first. Undoing twice
+/// redoes.
 ///
 /// Feature: undo.last
 #[must_use]
 pub fn last(context: &Context, answers: &Answers) -> Outcome {
+    match answers.journal(JOURNAL) {
+        None => return Outcome::Read(JOURNAL, Query::Journal),
+        Some(Some(entry)) => return Outcome::Run(super::journal::plan(context, entry)),
+        Some(None) => {} // Nothing in the journal: the reflogs say what to undo.
+    }
     let Some(head) = answers.reflog(HEAD_REFLOG) else {
         return Outcome::Read(
             HEAD_REFLOG,

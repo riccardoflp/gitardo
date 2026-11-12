@@ -4,6 +4,8 @@ use std::collections::BTreeMap;
 
 use crate::CommitId;
 
+use super::JournalEntry;
+
 /// The name under which an answer or the result of a query comes back to the feature that asked.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AnswerKey(pub &'static str);
@@ -23,6 +25,8 @@ pub enum Answer {
     Reflog(Vec<ReflogEntry>),
     /// The answer of a query that says yes or no.
     Flag(bool),
+    /// The newest entry of the journal that still holds, if any.
+    Journal(Option<JournalEntry>),
 }
 
 /// An entry of a reflog: where a reference was, and what moved it there.
@@ -93,6 +97,15 @@ impl Answers {
         match self.get(key)? {
             Answer::Reflog(entries) => Some(entries),
             _ => None, // Any other kind of answer is no reflog.
+        }
+    }
+
+    /// The entry of the journal read under a key: `None` when it was not read yet, `Some(None)` when there is none.
+    #[must_use]
+    pub fn journal(&self, key: AnswerKey) -> Option<Option<&JournalEntry>> {
+        match self.get(key)? {
+            Answer::Journal(entry) => Some(entry.as_ref()),
+            _ => None, // Any other kind of answer is no entry of the journal.
         }
     }
 

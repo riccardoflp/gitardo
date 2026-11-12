@@ -42,6 +42,9 @@ pub enum Query {
         /// The commit.
         commit: CommitId,
     },
+    /// The newest entry of the engine's journal that still holds for this repository. The answer is
+    /// [`super::Answer::Journal`].
+    Journal,
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

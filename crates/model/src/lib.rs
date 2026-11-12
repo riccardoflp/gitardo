@@ -4,6 +4,7 @@
 #![forbid(unsafe_code)]
 
 pub mod branch;
+pub mod changes;
 pub mod contract;
 mod identifier;
 pub mod state;

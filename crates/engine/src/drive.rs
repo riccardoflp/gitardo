@@ -1,12 +1,15 @@
 //! Carrying a feature from its first call to its end: its questions asked, its queries read, its plan shown when it
 //! must be, then run.
 
+use std::sync::Arc;
 use std::time::Instant;
 
 use git::Git;
+use git::read::repo::{StateRequest, read_state};
 use model::contract::{
-    Answer, Answers, Context, FeatureId, Operation, Outcome, Plan, Question, QuestionKind, Refusal, Text,
+    Answer, Answers, Context, FeatureId, Operation, Outcome, Plan, Query, Question, QuestionKind, Refusal, Text, Undo,
 };
+use model::state::RepositoryState;
 
 use crate::activity::Activities;
 use crate::clock::Clock;
@@ -15,6 +18,7 @@ use crate::log::CommandLog;
 use crate::preview::needs_confirmation;
 use crate::queries;
 use crate::steps::{StepFailure, StepRunner};
+use crate::undo::{Journal, journal_after};
 
 /// How many times a feature may be called before the engine gives up on it: far more than any feature asks.
 const MOST_CALLS: usize = 100;
@@ -37,6 +41,9 @@ pub enum Finished {
         plan: Plan,
         /// The lines of the steps that ran.
         steps: Vec<String>,
+        /// The state of the repository read once it ran, when the journal needed it; none when it did not, or the read
+        /// failed.
+        state_after: Option<Arc<RepositoryState>>,
     },
     /// It refused to run, and said why.
     Refused(Refusal),
@@ -52,6 +59,8 @@ pub struct Engine {
     log: CommandLog,
     clock: Box<dyn Clock>,
     activities: Activities,
+    journal: Journal,
+    last_state: Option<Arc<RepositoryState>>,
 }
 
 impl Engine {
@@ -63,7 +72,24 @@ impl Engine {
             log,
             clock,
             activities: Activities::new(),
+            journal: Journal::new(),
+            last_state: None,
         }
+    }
+
+    /// The journal of what Undo needs for the operations of Gitardo the reflog does not see.
+    #[must_use]
+    pub fn journal(&self) -> &Journal {
+        &self.journal
+    }
+
+    /// Takes in a state of the repository read for any reason, so that an entry of the journal that no longer holds,
+    /// because something moved `HEAD` from a terminal, is dropped.
+    pub fn state_read(&mut self, state: Arc<RepositoryState>) {
+        if let Some(before) = &self.last_state {
+            self.journal = journal_after(&self.journal, None, before, &state);
+        }
+        self.last_state = Some(state);
     }
 
     /// The log of what ran.
@@ -102,6 +128,9 @@ impl Engine {
                     check_answer(&question, &answer)?;
                     answers.insert(question.key, answer);
                 }
+                Outcome::Read(key, Query::Journal) => {
+                    answers.insert(key, Answer::Journal(self.journal_entry(context).cloned()));
+                }
                 Outcome::Read(key, query) => {
                     let started = Instant::now();
                     let answer = queries::answer(&self.git, &query).map_err(EngineError::Query)?;
@@ -130,7 +159,38 @@ impl Engine {
             .activities
             .track(plan.title.clone(), Text::from(feature.0), self.clock.now());
         let steps = self.run_plan(&plan).map_err(EngineError::Step)?;
-        Ok(Finished::Ran { plan, steps })
+        let state_after = self.after_plan(&plan, context);
+        Ok(Finished::Ran {
+            plan,
+            steps,
+            state_after,
+        })
+    }
+
+    /// The newest entry of the journal, when it still holds for the state the feature was given.
+    fn journal_entry(&mut self, context: &Context) -> Option<&model::contract::JournalEntry> {
+        self.state_read(Arc::clone(&context.repository));
+        self.journal.newest()
+    }
+
+    /// Brings the journal up to date once a plan ran, reading the state again when the journal has anything to keep or
+    /// drop.
+    fn after_plan(&mut self, plan: &Plan, context: &Context) -> Option<Arc<RepositoryState>> {
+        if self.journal.is_empty() && !matches!(plan.undo, Undo::Journal(_)) {
+            return None;
+        }
+        let request = StateRequest {
+            folder: context.repository.folder.clone(),
+        };
+        let Ok(after) = read_state(&self.git, &request) else {
+            // Without the state after, nothing can say the entries still hold: Undo goes by the reflog.
+            self.journal = Journal::new();
+            return None;
+        };
+        let after = Arc::new(after);
+        self.journal = journal_after(&self.journal, Some(plan), &context.repository, &after);
+        self.last_state = Some(Arc::clone(&after));
+        Some(after)
     }
 
     /// Runs the steps of a plan in order, logging each before it starts, and stops at the first that fails.

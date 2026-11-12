@@ -3,6 +3,7 @@
 
 mod answers;
 mod context;
+mod journal;
 mod outcome;
 mod plan;
 mod question;
@@ -10,6 +11,7 @@ mod words;
 
 pub use answers::{Answer, AnswerKey, Answers, ReflogEntry};
 pub use context::{CommandPreview, Context, FeatureSettings, Target};
+pub use journal::{JournalEntry, UndoRecord};
 pub use outcome::{FeatureId, Operation, Outcome, Query, Refusal};
 pub use plan::{Danger, FollowUp, Plan, Step, Undo};
 pub use question::{Choice, Question, QuestionKind, Validation};

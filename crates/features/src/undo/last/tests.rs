@@ -1,6 +1,8 @@
-use super::{BRANCH_REFLOG, FILES_MATCH, HEAD_REFLOG, last};
+use super::{BRANCH_REFLOG, FILES_MATCH, HEAD_REFLOG, JOURNAL, last};
 use crate::testing::{commit, context, lines, modified, plan, state};
-use model::contract::{Answer, Answers, Danger, Outcome, Query, ReflogEntry, Target};
+use model::contract::{
+    Answer, Answers, Danger, JournalEntry, Outcome, Query, ReflogEntry, Target, Text, Undo, UndoRecord,
+};
 
 fn entry(digit: char, subject: &str) -> ReflogEntry {
     ReflogEntry {
@@ -9,8 +11,13 @@ fn entry(digit: char, subject: &str) -> ReflogEntry {
     }
 }
 
+/// No entry in the journal: what Undo takes back is in the reflogs.
+fn no_journal() -> Answers {
+    Answers::new().with(JOURNAL, Answer::Journal(None))
+}
+
 fn reflogs(head: Vec<ReflogEntry>, branch: Vec<ReflogEntry>) -> Answers {
-    Answers::new()
+    no_journal()
         .with(HEAD_REFLOG, Answer::Reflog(head))
         .with(BRANCH_REFLOG, Answer::Reflog(branch))
 }
@@ -18,11 +25,11 @@ fn reflogs(head: Vec<ReflogEntry>, branch: Vec<ReflogEntry>) -> Answers {
 #[test]
 fn undo_last__reads_the_reflog_of_head_then_of_the_branch() {
     let context = context(state(), Target::Head);
-    let Outcome::Read(key, Query::Reflog { reference, count }) = last(&context, &Answers::new()) else {
+    let Outcome::Read(key, Query::Reflog { reference, count }) = last(&context, &no_journal()) else {
         panic!("the reflog of HEAD is read first")
     };
     assert_eq!((key, reference.as_str(), count), (HEAD_REFLOG, "HEAD", 2));
-    let head = Answers::new().with(
+    let head = no_journal().with(
         HEAD_REFLOG,
         Answer::Reflog(vec![entry('b', "commit: Fix"), entry('a', "commit (initial): Add")]),
     );
@@ -113,4 +120,82 @@ fn undo_last__refuses_when_there_is_nothing_to_undo() {
         };
         assert_eq!(refusal.message.as_str(), "Nothing to undo");
     }
+}
+
+fn journal(record: UndoRecord) -> Answers {
+    let entry = JournalEntry {
+        number: 7,
+        title: Text::from("Cherry-pick 3 commits"),
+        record,
+        head: state().head,
+    };
+    Answers::new().with(JOURNAL, Answer::Journal(Some(entry)))
+}
+
+fn journal_lines(record: UndoRecord) -> Vec<String> {
+    let plan = plan(last(&context(state(), Target::Head), &journal(record)));
+    assert_eq!(plan.undo, Undo::TakesBack(7));
+    assert!(matches!(plan.danger, Danger::Destructive(_)));
+    lines(&plan)
+}
+
+#[test]
+fn undo_last__reads_the_journal_before_the_reflogs() {
+    let Outcome::Read(key, Query::Journal) = last(&context(state(), Target::Head), &Answers::new()) else {
+        panic!("the journal is read first")
+    };
+    assert_eq!(key, JOURNAL);
+}
+
+#[test]
+fn undo_last__creates_a_deleted_branch_again_at_its_commit() {
+    let record = UndoRecord::BranchDeleted {
+        name: String::from("feature"),
+        commit: commit('b'),
+    };
+    assert_eq!(
+        journal_lines(record.clone()),
+        [format!("git branch feature {}", commit('b'))]
+    );
+    let plan = plan(last(&context(state(), Target::Head), &journal(record)));
+    let Danger::Destructive(warning) = plan.danger else {
+        panic!("undo is destructive")
+    };
+    assert!(warning.as_str().contains("does not get its upstream back"), "{warning}");
+}
+
+#[test]
+fn undo_last__stores_a_dropped_stash_again_with_its_message() {
+    let record = UndoRecord::StashDropped {
+        message: String::from("On main: try this"),
+        commit: commit('c'),
+    };
+    assert_eq!(
+        journal_lines(record),
+        [format!("git stash store -m \"On main: try this\" {}", commit('c'))]
+    );
+}
+
+#[test]
+fn undo_last__takes_a_series_of_cherry_picks_back_at_once() {
+    let record = UndoRecord::Series {
+        head_before: commit('a'),
+    };
+    assert_eq!(journal_lines(record), [format!("git reset --keep {}", commit('a'))]);
+}
+
+#[test]
+fn undo_last__resets_a_squash_merge_with_merge() {
+    assert_eq!(journal_lines(UndoRecord::SquashMerge), ["git reset --merge"]);
+}
+
+#[test]
+fn undo_last__marks_resolved_conflicts_again_in_every_file() {
+    let record = UndoRecord::ConflictsResolved {
+        files: vec![String::from("a.txt"), String::from("pages/[id].tsx")],
+    };
+    assert_eq!(
+        journal_lines(record),
+        ["git checkout --merge -- a.txt :(literal)pages/[id].tsx"]
+    );
 }

@@ -15,6 +15,7 @@ pub mod log;
 mod preview;
 mod queries;
 mod steps;
+pub mod undo;
 
 pub use activity::{Activities, ActivityEntry, ActivityGuard};
 pub use clock::{Clock, FixedClock};

@@ -4,7 +4,7 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-use super::{FeatureId, Text};
+use super::{FeatureId, Text, UndoRecord};
 
 /// What a feature has decided to do. The steps are exactly what the preview shows and the log records.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -140,6 +140,11 @@ pub enum Undo {
     ByReflog,
     /// It cannot, for this reason.
     Impossible(Text),
+    /// By what the engine's journal keeps of it, since the reflog does not see it (`undo.journal`).
+    Journal(UndoRecord),
+    /// It is the Undo of the entry of the journal with this number: once it ran, that entry is gone, and Undo again
+    /// goes by the reflog.
+    TakesBack(u64),
 }
 
 /// What happens after a plan ran, or after one of its steps failed.

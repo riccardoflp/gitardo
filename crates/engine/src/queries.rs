@@ -14,6 +14,8 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
             };
             read_entries(git, &request).map(Answer::Reflog)
         }
+        // The engine answers it from its journal before asking git anything.
+        Query::Journal => Ok(Answer::Journal(None)),
         Query::FilesMatch { commit } => {
             let arguments = ["diff", "--quiet", commit.as_str(), "--"];
             let output = git.read_output(&arguments)?;
@@ -35,5 +37,6 @@ pub(crate) fn describe(query: &Query) -> String {
     match query {
         Query::Reflog { reference, count } => format!("git log --walk-reflogs --max-count={count} {reference}"),
         Query::FilesMatch { commit } => format!("git diff --quiet {commit} --"),
+        Query::Journal => String::from("the journal of Undo"),
     }
 }

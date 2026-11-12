@@ -13,3 +13,5 @@
 - `gitardo-cli`: the state of a repository, and the first features run from a terminal through the engine: create a
   branch, commit, fetch, and undo the last commit, checkout, rebase or reset. A feature asks for what it needs with
   `<key>=<answer>`, and a plan that is shown first runs with `--yes`.
+- Undo keeps a journal of what the reflog does not see: a branch deleted, a stash dropped, conflicts resolved, a squash
+  merge, a series of commits made at once.
