@@ -308,3 +308,39 @@ From milestone M1 (each was built with the reading given, until the card says ot
   scale 1, 0.3 ms when nothing changed). Most frames redraw a few tiles; is the rule about the whole frame?
 - **Q36** — Other libraries that may make sense, not let in: `syntect` or `tree-sitter` for the colors of code in the
   diffs, `notify` for watching files, `keyring` for the credential store. Each would be a decision of its own.
+
+From the move of the catalog to the Timeline ([D17](#d17--the-timeline-a-window-of-gitardos-own)), each written in the
+card with the reading given, until the card says otherwise:
+
+- **Q37** — `graph.toolbar`: the header's **Sync** shows the commits to pull and to push and has a menu with **Fetch**,
+  **Pull** and its other ways, **Push** and its other ways. [01-product.md](01-product.md) also names a *sync* entry,
+  which no card has. What does a click on **Sync** itself run (a fetch, a pull then a push?), and does *sync* need a
+  card of its own? **Branch**, **Stash**, **Undo** and **Refresh**, which were buttons of the toolbar, are now entries
+  of the **…** menu of the header (`graph.more-menu`, `undo.last`): should any of them stay a button?
+- **Q38** — `commits.view`: the Commits pane is now the timeline narrowed to the branch checked out, picked in the
+  branch rail, but keeps its own reading (`commits.read-log`, 100 commits at a time), its line of what is pushed
+  (`commits.push-state`), the files of a commit unfolded in its row, its own fetch, pull and push, and leaves the
+  search and the filter of the timeline aside until the whole history is back. Or should it simply be the timeline
+  narrowed with `filter.show-only`, read by `graph.read-commits`, where `graph.unpushed` already rings what is not
+  pushed? The entry points that name "the commits of what is checked out" (`revert.commit`, `reset.to-commit`,
+  `undo.last`, `sync.*`) follow the answer.
+- **Q39** — `refs.tree`, `branch.pane`: as [01-product.md](01-product.md) says, a click on a branch in the branch rail
+  now narrows the timeline to its history and selects its tip, and a second click brings the whole history back; the
+  extension's click went to the commit (`graph.show-in-graph`), which tags, stashes and worktrees still do. The lists
+  of **Kept aside** start closed and the others open, since the local branches are the legend of the lanes (the
+  extension closed every section); **Submodules** is put in **Kept aside** too, which the product does not name; and
+  the remotes stay one **Remotes** list, where the picture of the window has a heading per remote. Right?
+- **Q40** — `graph.uncommitted-row`, `changes.pane`: the draft says `<n> files changed · <m> staged` where the row said
+  `Uncommitted changes (<n>)`, and shares the commit box of the Changes page: the message and **Commit**. Do the
+  **Amend last commit** box, the button that drafts the message and the identity show in the draft as well, or only on
+  the Changes page? And while the timeline is narrowed to branches that do not have the commit checked out, the draft
+  is not there: is committing from the Changes page alone enough then?
+- **Q41** — `activity.status-bar`: the branch of the header says how far it is from its upstream, `main ↑2 ↓0`, as the
+  status bar did; the picture in [01-product.md](01-product.md) also says how far it is from the default branch
+  (`2 ahead · 12 behind main`). Which words, and which card reads the second count? The activity indicator drops the
+  `Gitardo —` before the title of what runs.
+- **Q42** — `graph.view`, `graph.columns`, `graph.resize-panes`: every row now has two lines (labels and message, then
+  author and date) with the hash at its end, in the wide layout too; in the narrow layout the branch rail keeps its
+  icons and the inspector opens over the commits, half the height to start with and resized as the details were under
+  the commits. Is that the narrow layout meant, and should the inspector over the commits close by itself when the
+  selection goes?

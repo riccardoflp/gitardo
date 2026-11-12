@@ -71,8 +71,8 @@ keeps that token for the next times.
 
 - **Kind**: Operation
 - **Function**: `features::github::load_pull_requests(context, answers) -> Outcome`
-- **Entry points**: **Load pull requests from GitHub** in the **…** menu of the toolbar; **Sign in to GitHub** in the
-  command palette.
+- **Entry points**: **Load pull requests from GitHub** in the **…** menu of the header; **Sign in to GitHub** in Quick
+  search.
 - **Offered when**: the main remote is on GitHub (`github.detect-remote`); in the **…** menu, only then.
 - **Reads**: `github.token`, allowed to run `git credential fill`.
 - **Asks**: only when no token was found: the token, in an input box titled **GitHub token** that hides what is typed,
@@ -85,7 +85,7 @@ keeps that token for the next times.
   on the pull requests are read again on their own (`github.read-pull-requests`). When GitHub refuses the token (status
   401), the kept token is taken out of the credential store, so that the next **Load pull requests from GitHub** asks
   for one again, and Gitardo says "Could not read pull requests. GitHub answered 401 Unauthorized".
-- **Refuses**: when the main remote is not on GitHub, as the command palette may still ask: "The main remote of this
+- **Refuses**: when the main remote is not on GitHub, as Quick search may still ask: "The main remote of this
   repository is not on github.com."
 - **Uses**: `github.detect-remote`, `github.token`, `github.read-pull-requests`, `graph.pull-request-badge`.
 
@@ -97,8 +97,8 @@ Acceptance:
 - [ ] With no token found, it asks for one; backing out sends nothing and keeps nothing.
 - [ ] After a restart of Gitardo, the pull requests are read again with the kept token, asking nothing.
 - [ ] A token refused by GitHub is not kept, and the next **Load pull requests from GitHub** asks again.
-- [ ] In a repository whose main remote is on another host, the **…** menu has no such entry, and the palette command
-      says why.
+- [ ] In a repository whose main remote is on another host, the **…** menu has no such entry, and the command in Quick
+      search says why.
 
 ### `github.read-pull-requests` — Read the open pull requests
 
@@ -134,9 +134,10 @@ When it runs:
   seconds old; never with no token kept.
 
 Only the main remote's repository is asked, and only `api.github.com`. While it runs for more than half a second, the
-status bar says **Reading the pull requests from GitHub** (`activity.track`). An error in a request made on its own is
-kept quiet, with a warning line in the command log; one from `github.load-pull-requests` is said. When the result is
-the same as before, nothing is drawn again. The pull requests known are forgotten when another repository is shown.
+activity indicator of the header says **Reading the pull requests from GitHub** (`activity.track`). An error in a
+request made on its own is kept quiet, with a warning line in the command log; one from `github.load-pull-requests` is
+said. When the result is the same as before, nothing is drawn again. The pull requests known are forgotten when another
+repository is shown.
 
 Acceptance:
 

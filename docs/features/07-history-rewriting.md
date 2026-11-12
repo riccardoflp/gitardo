@@ -3,20 +3,20 @@
 What changes the commits of a branch, or brings commits from elsewhere onto it: merging in its four ways, cherry-picking
 one commit or several, reverting, resetting, rebasing onto something else, the interactive rebase and the operations
 built on it (editing a message, squashing, splitting, fixup), several commits selected at once, and dragging commits and
-branches onto the graph. What the banner offers once one of them stops (**Continue**, **Skip**, **Abort**) is in the
+branches onto the timeline. What the banner offers once one of them stops (**Continue**, **Skip**, **Abort**) is in the
 conflicts area: `conflicts.continue-operation`, `conflicts.skip-step`, `conflicts.abort-operation`. Copying or saving commits as a patch is in the
 patch area.
 
 ### `selection.select` — Select several commits
 
-Selects several commits of the graph at once, to act on them together.
+Selects several commits of the timeline at once, to act on them together.
 
 - **Kind**: View
 - **Function**: `views::selection::select_view(state, ui) -> Vec<Intent>`
-- **Entry points**: `Ctrl`+click (`Cmd`+click on macOS) on a row of the graph adds that commit to the selection, or
+- **Entry points**: `Ctrl`+click (`Cmd`+click on macOS) on a row of the timeline adds that commit to the selection, or
   takes it out; `Shift`+click selects every commit between the selected one and the clicked one, both included.
-- **Offered when**: in the Graph tab and its narrow layout. The row of the uncommitted changes and the rows of stashes
-  are never part of a selection of several.
+- **Offered when**: in the timeline, wide or narrow. The draft and the rows of stashes are never part of a selection
+  of several.
 - **Uses**: `selection.bar`, `selection.menu`.
 
 Rules:
@@ -25,25 +25,25 @@ Rules:
 - `Ctrl`+click starts from the commit selected alone, if any, and adds the clicked one; on a commit already in the
   selection it takes it out. When one commit is left, it is selected alone.
 - `Shift`+click takes the rows between the commit selected alone (the anchor) and the clicked one, in the order of the
-  graph, leaving out the uncommitted changes and the stashes. When that leaves one commit, it is selected alone.
-- `Ctrl`+click or `Shift`+click on the uncommitted changes or on a stash selects that row alone.
-- The details show the commit clicked last that is in the selection.
+  timeline, leaving out the draft and the stashes. When that leaves one commit, it is selected alone.
+- `Ctrl`+click or `Shift`+click on the draft or on a stash selects it alone.
+- The inspector shows the commit clicked last that is in the selection.
 
 Acceptance:
 
 - [ ] With `A` selected, `Ctrl`+click on `C` selects `A` and `C`, and the bar says **2 commits selected**.
 - [ ] `Ctrl`+click on `C` again leaves `A` selected alone and the bar goes away.
 - [ ] With `A` selected, `Shift`+click on the fourth row below selects five commits, or fewer when stashes are among them.
-- [ ] `Shift`+click across the row of the uncommitted changes does not put that row in the selection.
+- [ ] `Shift`+click across the draft does not put the draft in the selection.
 - [ ] On macOS, `Cmd`+click does what `Ctrl`+click does elsewhere.
 
 ### `selection.bar` — The bar of a selection of several commits
 
-A bar above the graph counts the commits selected and offers what is done most with them.
+A bar above the commits of the timeline counts the commits selected and offers what is done most with them.
 
 - **Kind**: View
 - **Function**: `views::selection::bar_view(state, ui) -> Vec<Intent>`
-- **Entry points**: shown above the commits of the Graph tab while two commits or more are selected.
+- **Entry points**: shown above the commits of the timeline while two commits or more are selected.
 - **Offered when**: two commits or more are selected.
 - **Uses**: `squash.commits`, `selection.cherry-pick`, `patch.copy`, `rebase.find-line-before-head`.
 
@@ -82,18 +82,18 @@ Entries, in order, each shown only when it applies:
 - **Squash N commits into one…**, when `squash.commits` is offered for them.
 - **Cherry-pick N commits onto `<current branch>`**, when `selection.cherry-pick` is offered for them.
 - **Compare these two commits**, when exactly two are selected: opens the comparison of the older (the lower in the
-  graph) with the newer, in a Compare page.
+  timeline) with the newer, in a Compare page.
 - a separator;
-- **Copy hashes**: the full hashes, newest first as in the graph, one per line, to the clipboard.
+- **Copy hashes**: the full hashes, newest first as in the timeline, one per line, to the clipboard.
 - **Copy as patch** and **Save as patch…**, when none of them is a merge (`patch.copy`, `patch.save`).
 
 Acceptance:
 
 - [ ] With two commits selected, **Compare these two commits** opens a Compare page whose first side is the lower of
-      the two in the graph.
+      the two in the timeline.
 - [ ] With three commits selected, **Compare these two commits** is not in the menu.
 - [ ] **Copy hashes** with three commits selected puts three lines of 40 (or 64) hexadecimal characters in the clipboard,
-      in the order of the graph.
+      in the order of the timeline.
 
 ### `selection.cherry-pick` — Cherry-pick several commits
 
@@ -107,7 +107,7 @@ operation to continue, skip or abort.
 - **Offered when**: two commits or more are selected, none of them is a merge, and no merge, rebase, cherry-pick,
   revert, patch or bisect is under way.
 - **Plan**: `git cherry-pick [-x] <hash>…`, the hashes oldest first whatever the order they were clicked in: the order
-  of the graph, reversed.
+  of the timeline, reversed.
 - **Danger**: None. The dialog, when shown, says *In this order:* with the first 15 commits as `<short hash> <subject>`
   and *…and N more* past them, then *If one of them conflicts, git stops there: resolve it and continue, skip that
   commit, or abort them all.*
@@ -118,7 +118,7 @@ operation to continue, skip or abort.
 - **After**: the selection is emptied. When git stops on a commit that changes nothing on top of `HEAD`,
   `cherry-pick.skip-empty` gets past it.
 - **Refuses**: while an operation is under way, *Finish or abort the `<operation>` first.*; when fewer than two of the
-  selected commits are loaded, *Select the commits to cherry-pick in the graph.*; with a merge among them, *A merge
+  selected commits are loaded, *Select the commits to cherry-pick in the timeline.*; with a merge among them, *A merge
   commit can only be cherry-picked on its own.*
 - **Settings**: `cherryPick.recordOrigin` adds `-x`, so that each new commit ends its message with
   `(cherry picked from commit <hash>)`.
@@ -152,7 +152,7 @@ Applies the changes of one commit onto what is checked out, as a new commit, aft
   paths, then *…and N more*.
 - **Undo**: by the reflog (`undo.last`): the branch goes back to the commit before the pick.
 - **After**: when git stops because the commit changes nothing on top of `HEAD`, `cherry-pick.skip-empty`; when it
-  stops on conflicts, the conflicts banner and the Changes pane show them.
+  stops on conflicts, the conflicts banner and the Changes page show them.
 - **Settings**: `cherryPick.recordOrigin` adds `-x`, also for a commit dropped on the one checked out.
 - **Uses**: `merge.read-predicted-conflicts`, `cherry-pick.skip-empty`, `conflicts.continue-operation`, `undo.last`.
 
@@ -204,8 +204,8 @@ Makes a new commit that takes back the changes of a commit.
 
 - **Kind**: Operation
 - **Function**: `features::revert::commit(context, answers) -> Outcome`
-- **Entry points**: **Revert `<short hash>`** in the context menu of a commit in the graph, and of a commit in the
-  Commits pane.
+- **Entry points**: **Revert `<short hash>`** in the context menu of a commit in the timeline, and of a commit of what
+  is checked out (`commits.view`).
 - **Offered when**: on every commit, the one checked out included.
 - **Plan**: `git revert --no-edit [-m 1] <hash>`: `-m 1` for a merge commit, which is reverted against its first parent.
   `--no-edit` keeps the message git writes, *Revert "<subject>"*, since no editor can open.
@@ -226,9 +226,10 @@ Moves the branch checked out (or `HEAD` when detached) to a commit, keeping the 
 
 - **Kind**: Operation
 - **Function**: `features::reset::to_commit(context, answers) -> Outcome`
-- **Entry points**: **Reset `<branch>` to here…** (`HEAD` when detached) in the context menu of a commit in the graph,
-  and of a commit in the Commits pane except the one checked out; **Reset `<branch>` to `<short hash>`…** when the
-  current branch is dropped on another commit (`drag.drop`); **Reset `<branch>` to here…** in the menu of a reflog entry.
+- **Entry points**: **Reset `<branch>` to here…** (`HEAD` when detached) in the context menu of a commit in the
+  timeline, and of a commit of what is checked out (`commits.view`) except the one checked out; **Reset `<branch>` to
+  `<short hash>`…** when the current branch is dropped on another commit (`drag.drop`); **Reset `<branch>` to here…** in
+  the menu of a reflog entry.
 - **Asks**: a pick titled *Reset `<branch>` to `<short hash>`*, with **Soft** (*Keep all changes, staged*), **Mixed**
   (*Keep all changes, unstaged*) and **Hard** (*Discard all changes*). No default: the user picks one.
 - **Plan**: `git reset --soft <hash>`, `git reset --mixed <hash>` or `git reset --hard <hash>`.
@@ -243,7 +244,8 @@ Acceptance:
 - [ ] Choosing **Mixed** on `abc1234` runs `git reset --mixed <full hash of abc1234>`.
 - [ ] Choosing **Hard** always shows the command and the warning first, whatever `commandPreview` says.
 - [ ] Closing the pick runs nothing.
-- [ ] The Commits pane has no reset entry on the commit checked out; the graph has one.
+- [ ] The commits of what is checked out (`commits.view`) have no reset entry on the commit checked out; the whole
+      timeline has one.
 
 ### `merge.read-predicted-conflicts` — Predict the conflicts of a merge
 
@@ -331,8 +333,8 @@ has the ways to pull.
 - **Undo**: by the reflog for the first three. A squash merge moves no branch, so the journal keeps its Undo:
   `merge.undo-squash`, also when it stopped on conflicts, until something is committed.
 - **After**: after a squash, the message *The changes are staged, and nothing is committed yet. Commit them to make them
-  one commit on `<current>`.* with **Show changes** (shows the Changes pane) and **Undo**; and the commit box of the
-  Changes pane, when it is empty, starts from the message git prepared in `.git/SQUASH_MSG`, which lists the commits
+  one commit on `<current>`.* with **Show changes** (opens the Changes page) and **Undo**; and the message of the draft,
+  when it is empty, starts from the message git prepared in `.git/SQUASH_MSG`, which lists the commits
   brought in.
 - **Refuses**: the fast-forward only when it is not possible, without running git: when `<ref>` has nothing
   `<current>` has not, *`<current>` already has every commit of `<ref>`.*; otherwise *`<current>` cannot be
@@ -345,9 +347,9 @@ Acceptance:
       commit of its own.
 - [ ] Choosing **Merge (fast-forward only)** when it is not possible runs nothing and shows the second refusal.
 - [ ] Choosing **Merge (no fast-forward)** runs `git merge --no-ff <ref>`.
-- [ ] After **Merge (squash)**, nothing is committed, the changes are staged, and the commit box holds the text of
-      `.git/SQUASH_MSG` when it was empty.
-- [ ] After **Merge (squash)**, a commit box that already had text keeps it.
+- [ ] After **Merge (squash)**, nothing is committed, the changes are staged, and the message of the draft holds the
+      text of `.git/SQUASH_MSG` when it was empty.
+- [ ] After **Merge (squash)**, a draft whose message already had text keeps it.
 - [ ] Closing the pick runs nothing.
 
 ### `merge.undo-squash` — Take back a squash merge
@@ -357,8 +359,8 @@ the index and the working tree.
 
 - **Kind**: Operation
 - **Function**: `features::merge::undo_squash(context, answers) -> Outcome`
-- **Entry points**: **Undo** in the toolbar right after a squash merge (`undo.last` finds it in the journal); **Undo**
-  in the message that follows the squash merge.
+- **Entry points**: **Undo** in the **…** menu of the header right after a squash merge (`undo.last` finds it in the
+  journal); **Undo** in the message that follows the squash merge.
 - **Offered when**: the journal's entry for the squash merge still holds: the top of the reflog of `HEAD` is what it was
   when the squash merge ran (nothing committed or moved since). Also after a squash merge that stopped on conflicts.
 - **Plan**: `git reset --merge`.
@@ -428,7 +430,7 @@ form a single line without merges. It decides where the interactive rebase, **Ed
 
 - **Kind**: Derivation
 - **Function**: `model::rebase::find_line_before_head(input) -> Option<Vec<CommitId>>`
-- **Uses**: the commits of the graph as loaded, each with its parents.
+- **Uses**: the commits of the timeline as loaded, each with its parents.
 
 Rules:
 
@@ -489,7 +491,7 @@ What it shows:
 
 - A header, *Interactive rebase of `<branch>`: N commits* (*1 commit*; `HEAD` when detached), and *Newest first. Drag to
   reorder.*
-- One row per commit, newest first as in the graph: a grip to drag it by, the action (**Pick**, **Reword**, **Edit**,
+- One row per commit, newest first as in the timeline: a grip to drag it by, the action (**Pick**, **Reword**, **Edit**,
   **Squash**, **Fixup**, **Drop**) with its help as tooltip, the short hash, the subject, and **Move up** and **Move
   down** buttons, disabled at the ends. Every row starts as **Pick**.
 - The tooltips of the actions: Pick *Keep the commit as it is*; Reword *Keep the changes, change the message*; Edit
@@ -630,7 +632,7 @@ While an interactive rebase is stopped right after a commit marked **Edit**, the
 
 - **Kind**: View
 - **Function**: `views::rebase::edit_stop_view(state, ui) -> Vec<Intent>`
-- **Entry points**: the banner above the graph, in place of the banner of an operation in progress.
+- **Entry points**: the banner above the timeline, in place of the banner of an operation in progress.
 - **Offered when**: `rebase.read-stop` gives an edit.
 - **Uses**: `rebase.read-stop`, `conflicts.continue-operation`, `conflicts.abort-operation`.
 
@@ -663,14 +665,14 @@ after it again.
 
 - **Kind**: Operation
 - **Function**: `features::message::edit(context, answers) -> Outcome`
-- **Entry points**: the pencil beside the message in the details (tooltip *Edit message*); **Edit message…** in the
+- **Entry points**: the pencil beside the message in the inspector (tooltip *Edit message*); **Edit message…** in the
   context menu of a commit.
-- **Offered when**: the commit is not the uncommitted changes; no merge, rebase, cherry-pick, revert, patch or bisect is
+- **Offered when**: the commit is not the draft; no merge, rebase, cherry-pick, revert, patch or bisect is
   under way; and the commit is the one checked out (merge or not) or `rebase.find-line-before-head` gives a line for it.
-- **Asks**: the whole message, in a box in the details, put in place of the message with the cursor at its end; *Ctrl+Enter
-  to save* beside **Cancel** and **Save**. `Ctrl`+`Enter` (`Cmd`+`Enter` on macOS) or **Save** gives the commit the new
-  message, trimmed; `Escape` or **Cancel** leaves it as it was. **Save** is disabled while the box is empty or the
-  message is unchanged.
+- **Asks**: the whole message, in a box in the inspector, put in place of the message with the cursor at its end;
+  *Ctrl+Enter to save* beside **Cancel** and **Save**. `Ctrl`+`Enter` (`Cmd`+`Enter` on macOS) or **Save** gives the
+  commit the new message, trimmed; `Escape` or **Cancel** leaves it as it was. **Save** is disabled while the box is
+  empty or the message is unchanged.
 - **Reads**: `rebase.read-pushed`. For an older commit, the line after it up to `HEAD`:
   `git merge-base --is-ancestor <hash> HEAD`, then `git rev-list --topo-order --parents <hash>..HEAD`, which must be one
   line with no merge, each the parent of the one before, down to `<hash>`, which must not be a merge either; and
@@ -810,7 +812,7 @@ wanted.
 - **Undo**: the last commit, right after: the journal keeps `git reset --mixed <hash of the commit split>`, since the
   commit may have added files that are untracked now. An older one: **Abort** takes it all back while it is stopped, and
   after the end Undo takes back the whole split by the reflog of the branch.
-- **After**: the commit box of the Changes pane gets the message of the commit split. For the last commit, the message
+- **After**: the message of the draft becomes the message of the commit split. For the last commit, the message
   *The changes of "`<subject>`" are in the working tree, unstaged: commit them in as many commits as you like.* with
   **Undo**. For an older one, the banner *Splitting "`<subject>`": commit its changes in as many commits as you like,
   then Continue.*, with **Continue** (`split.continue`) and **Abort**, and no **Skip**.
@@ -823,7 +825,7 @@ wanted.
 
 Acceptance:
 
-- [ ] Splitting `HEAD` runs `git reset --mixed HEAD~`; its files are changed and unstaged, and the commit box holds its
+- [ ] Splitting `HEAD` runs `git reset --mixed HEAD~`; its files are changed and unstaged, and the draft holds its
       message.
 - [ ] Undo right after puts `HEAD` back on the commit split, with a file it added tracked again.
 - [ ] Splitting the second commit under `HEAD` stops the rebase with that commit's changes unstaged, `gitardo-split` in
@@ -903,7 +905,7 @@ Acceptance:
 
 ### `drag.list-drop-entries` — What a drop offers
 
-Decides which rows of the graph accept what is dragged, and what dropping it there offers.
+Decides which rows of the timeline accept what is dragged, and what dropping it there offers.
 
 - **Kind**: Derivation
 - **Function**: `model::drag::list_drop_entries(input) -> Vec<DropEntry>`
@@ -912,7 +914,7 @@ Rules (an empty list means the row does not accept the drop):
 
 - Nothing is accepted while nothing is checked out (no commit yet) or a merge, rebase, cherry-pick, revert or patch is
   under way.
-- The checked-out row is the row of the commit checked out, and the row of the uncommitted changes.
+- The checked-out row is the row of the commit checked out, and the draft.
 - A commit, onto the checked-out row, unless it is the commit checked out: **Cherry-pick `<short>` onto `<current>`**
   (`cherry-pick.commit`). Onto any other row: nothing.
 - A branch or remote branch, onto the checked-out row, unless it is the branch checked out or its tip is the commit
@@ -933,15 +935,15 @@ Acceptance:
 - [ ] `main`, checked out, dragged onto `abc1234` gives the rebase and the reset.
 - [ ] Any drag while a rebase is stopped gives an empty list.
 
-### `drag.drop` — Drag a commit or a branch onto the graph
+### `drag.drop` — Drag a commit or a branch onto the timeline
 
-Drag a commit, or a branch from the graph or the references, onto a row of the graph to cherry-pick, merge, rebase or
-reset.
+Drag a commit, or a branch from the timeline or the branch rail, onto a row of the timeline to cherry-pick, merge,
+rebase or reset.
 
 - **Kind**: View
 - **Function**: `views::drag::drop_view(state, ui) -> Vec<Intent>`
-- **Entry points**: dragging a row of the graph (a commit), a branch label of the graph, or a branch or remote branch of
-  the references, onto a row of the graph.
+- **Entry points**: dragging a row of the timeline (a commit), a branch label of the timeline, or a branch or remote
+  branch of the branch rail, onto a row of the timeline.
 - **Uses**: `drag.list-drop-entries`, `cherry-pick.commit`, `merge.into-current`, `merge.choose-way`, `rebase.onto`,
   `rebase.branch-onto`, `reset.to-commit`.
 
@@ -964,7 +966,7 @@ Acceptance:
 
 - [ ] Dragging a commit and dropping it on the commit checked out opens a menu with one entry, **Cherry-pick `<short>`
       onto `<current>`**.
-- [ ] Dragging `feature` from the references onto the commit checked out outlines that row, and the menu has the two
+- [ ] Dragging `feature` from the branch rail onto the commit checked out outlines that row, and the menu has the two
       merges and the rebase.
 - [ ] Dropping the current branch on another commit and choosing **Reset … to …** asks soft, mixed or hard.
 - [ ] Dropping on a row that does not accept the drop opens no menu.

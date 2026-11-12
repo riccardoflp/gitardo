@@ -59,11 +59,12 @@ Acceptance:
 
 ### `log.show` — Show the command log
 
-The **Command log** in the panel lists what the log recorded, newest last, and follows it as it grows.
+The **Command log** in the Activity drawer lists what the log recorded, newest last, and follows it as it grows.
 
 - **Kind**: View
 - **Function**: `views::log::log_view(state, ui) -> Vec<Intent>`
-- **Entry points**: the panel; **Show Command Log** in the command palette; the link in the **What is running** page.
+- **Entry points**: the Activity drawer; **Show Command Log** in Quick search; **Show the commands Gitardo runs** under
+  what is running, in the same drawer.
 - **Settings**: `log.level`.
 
 Acceptance:
@@ -80,8 +81,8 @@ shows what it is about to do first. Undoing twice redoes.
 
 - **Kind**: Operation
 - **Function**: `features::undo::last(context, answers) -> Outcome`
-- **Entry points**: **Undo** in the toolbar; **Undo Last Operation** in the command palette; the **…** of the Commits
-  and side Graph headers; the **Undo** of the messages that follow an operation.
+- **Entry points**: **Undo** in the **…** menu of the header; **Undo Last Operation** in Quick search; the **…** of the
+  commits of what is checked out (`commits.view`); the **Undo** of the messages that follow an operation.
 - **Offered when**: the journal has an entry, or the reflog of `HEAD` has a previous position.
 - **Reads**: the journal of Gitardo's own operations for this repository; the last two entries of the reflog of `HEAD`
   and, when a branch is checked out, of `refs/heads/<branch>` (a rebase moves `HEAD` many times but the branch once, so
@@ -149,9 +150,9 @@ Acceptance:
 
 ### `activity.track` — Say what is running
 
-Every read, plan, comparison and request that may take longer than a frame is registered while it runs, with what it
-is in words, when it started and what asked for it, so that the status bar (`activity.status-bar`) and the **What is
-running** page (`activity.what-is-running`) can say it. The words are those of `activity.describe-task`.
+Every read, plan, comparison and request that may take longer than a frame is registered while it runs, with what it is
+in words, when it started and what asked for it, so that the activity indicator of the header (`activity.status-bar`)
+and the **Activity** drawer (`activity.what-is-running`) can say it. The words are those of `activity.describe-task`.
 
 - **Kind**: Operation (of the engine; it has no entry point of its own)
 - **Function**: `engine::activity::track(description, cause) -> ActivityGuard`, which ends the entry when dropped.
@@ -160,5 +161,5 @@ running** page (`activity.what-is-running`) can say it. The words are those of `
 
 Acceptance:
 
-- [ ] A plan of a push shows **Pushing main to origin** in the status bar while `git push` runs for more than half a
-      second, and the time it has run.
+- [ ] A plan of a push shows **Pushing main to origin** in the activity indicator of the header while `git push` runs
+      for more than half a second, and the time it has run.

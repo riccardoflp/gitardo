@@ -2,8 +2,9 @@
 
 How two branches, tags, commits, or one of them and the working tree, differ: how far apart they are, whether merging
 them would conflict, the commits only in each, and the files that differ, with their changes. A comparison opens in a
-page of its own, one per pair; the comparison of a commit with what is checked out, or of two commits of the graph,
-shows first in place of the details. A file or a folder is compared the same way from the Files pane and the File page.
+page of its own, one per pair; the comparison of a commit with what is checked out, or of two commits of the timeline,
+shows first in the inspector, in place of the commit. A file or a folder is compared the same way from the Files page
+and the File page.
 
 ### `compare.resolve-revision` — Which commit a revision is
 
@@ -87,8 +88,8 @@ Asks for the two sides of a comparison, one after the other, and opens it.
 
 - **Kind**: Operation
 - **Function**: `features::compare::choose(context, answers) -> Outcome`
-- **Entry points**: command palette: **Compare Branches, Tags or Commits…**; the compare button of the toolbar of the
-  Graph tab, of its narrow layout and of the header of the Branches pane; the first entry under **…** in the toolbar.
+- **Entry points**: **Compare Branches, Tags or Commits…** in Quick search; **Compare** at the top of the branch
+  rail; **Compare branches, tags or commits…** in the **…** menu of the header.
 - **Asks**:
   1. **Compare**, with the placeholder **The branch, tag or commit to start from, or a comparison opened before**: the
      choices of `compare.side-choices`, with **Opened before** and the **Working tree**. Choosing a comparison opened
@@ -103,7 +104,7 @@ Asks for the two sides of a comparison, one after the other, and opens it.
 - **Plan**: no step; it changes nothing.
 - **Danger**: None
 - **Undo**: nothing to undo: it changes nothing.
-- **After**: opens the comparison page of the two (`compare.page`), or shows the tab they have, and remembers the
+- **After**: opens the comparison page of the two (`compare.page`), or shows the page they have, and remembers the
   comparison (`compare.recent`).
 - **Refuses**: a text accepted before its check came back, which git does not know: **"`<text>`" is not a commit of
   this repository.**
@@ -111,7 +112,7 @@ Asks for the two sides of a comparison, one after the other, and opens it.
 
 Acceptance:
 
-- [ ] Choosing `main` then `feature` opens the tab `main ↔ feature`.
+- [ ] Choosing `main` then `feature` opens the page `main ↔ feature`.
 - [ ] Choosing **Working tree** as the second side compares the files as they are with the first.
 - [ ] Typing `HEAD~3` as a side opens a comparison whose side is named `HEAD~3`.
 - [ ] Typing a name git does not know cannot be accepted.
@@ -133,13 +134,13 @@ Rules:
   it is chosen; otherwise it is fixed. A name that git reads as another commit than the one chosen, such as a tag that
   has the name of a branch, stays the commit chosen.
 - The **Working tree** is followed as the files change.
-- Each time the comparison is shown again, while the views show its repository, a followed side is resolved again: it
+- Each time the comparison is shown again, while the window shows its repository, a followed side is resolved again: it
   moves to where its name is now. When the name no longer resolves, as for a branch deleted, the side stays at its last
   commit and is marked gone: the page says **gone** beside it.
 - The tooltip of a side says which it is: **The comparison follows `<name>` as it moves**, **This commit**, **The files
   as they are now, with the changes not committed**, or **`<name>` no longer stands for a commit: the comparison stays
   where it was**, each followed by **. Choose another branch, tag or commit**.
-- Two comparisons are the same tab when they are of the same repository, their sides have the same names, both followed
+- Two comparisons are the same page when they are of the same repository, their sides have the same names, both followed
   or both fixed and, when fixed, at the same commits, and they are narrowed to the same path.
 
 Acceptance:
@@ -147,7 +148,7 @@ Acceptance:
 - [ ] A comparison of `main` and `feature` shows the new commits of `feature` once it moves, with no action.
 - [ ] A comparison of a commit given by its hash shows the same thing after its branch moves.
 - [ ] A branch deleted while its comparison is open leaves the side at its last commit, marked **gone**.
-- [ ] Asking for `main ↔ feature` twice shows one tab; asking for `feature ↔ main` opens another.
+- [ ] Asking for `main ↔ feature` twice shows one page; asking for `feature ↔ main` opens another.
 
 ### `compare.initial-mode` — How two sides are compared at first
 
@@ -225,12 +226,12 @@ Acceptance:
 
 ### `compare.page` — The comparison page
 
-Two sides compared in a tab: how far apart they are, what merging would do, the commits only in each and the files that
+Two sides compared on a page: how far apart they are, what merging would do, the commits only in each and the files that
 differ, with their changes.
 
 - **Kind**: View
 - **Function**: `views::compare::page(state: &CompareState, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: `compare.choose`, `compare.with`, `compare.path-with`, **Open in a tab** of
+- **Entry points**: `compare.choose`, `compare.with`, `compare.path-with`, **Open as a page** of
   `compare.in-place`, an entry of **Opened before**.
 - **Reads**: `compare.read-sides`, then `compare.read-patch`. A comparison with the working tree is read again whenever
   the repository is; the others when a followed side moves.
@@ -257,10 +258,10 @@ What it shows, from the top:
   version of the second side (`compare.take-file`), and in its context menu **Compare with…**, which compares the file
   as the second side has it, or, for a file the second side deleted, as it was where the comparison starts.
 
-The tab is titled `<first> ↔ <second>`, followed by ` · <last part of the path>` when it is narrowed. While the page is
+The page is titled `<first> ↔ <second>`, followed by ` · <last part of the path>` when it is narrowed. While the page is
 compared again after the user changed something in it, it shows that it is waiting; **Comparing…** shows until the first
-answer. `Ctrl+F` (`Cmd+F` on macOS) finds a word in the page. Each pair has one tab (`compare.follow-sides`). The page
-stays of its repository when the views are pointed at another.
+answer. `Ctrl+F` (`Cmd+F` on macOS) finds a word in the page. Each pair has one page (`compare.follow-sides`). The page
+stays of its repository when the window is pointed at another.
 
 Acceptance:
 
@@ -271,7 +272,7 @@ Acceptance:
 - [ ] **Open in the Diff page** opens all the files listed in one Diff page.
 - [ ] **Open on GitHub** is not there for a repository that is not on GitHub, nor when a side is the working tree.
 - [ ] A click on a file opens its Diff page between the two sides as the mode says.
-- [ ] Closing the tab while it is being compared drops the answer without error.
+- [ ] Closing the page while it is being compared drops the answer without error.
 
 ### `compare.summary` — How far apart, and what merging would do
 
@@ -309,26 +310,26 @@ Acceptance:
 
 ### `compare.change-side` — Choose another side
 
-Puts another branch, tag, commit or the working tree in place of one side, in the same tab.
+Puts another branch, tag, commit or the working tree in place of one side, in the same page.
 
 - **Kind**: Operation
 - **Function**: `features::compare::change_side(context, answers) -> Outcome`
 - **Entry points**: a click on either side at the top of the comparison page.
 - **Asks**: **Compare with `<second>`** for the first side, or **Compare `<first>` with** for the second, with the
   placeholder **The branch, tag or commit to put in place of `<side>`**: the choices of `compare.side-choices` of the
-  repository of the tab, the other side left out, and **Working tree** unless the other side is the working tree.
+  repository of the page, the other side left out, and **Working tree** unless the other side is the working tree.
 - **Plan**: no step; it changes nothing.
 - **Danger**: None
 - **Undo**: nothing to undo: it changes nothing.
-- **After**: the tab compares the new pair, in the mode `compare.initial-mode` gives, with the path it had; the
+- **After**: the page compares the new pair, in the mode `compare.initial-mode` gives, with the path it had; the
   comparison is remembered (`compare.recent`).
 - **Uses**: `compare.side-choices`, `compare.follow-sides`, `compare.initial-mode`.
 
 Acceptance:
 
-- [ ] Choosing `release` in place of `main` compares `release` with the second side in the same tab, retitled.
-- [ ] The choices are those of the tab's repository, also when the views show another.
-- [ ] Escape leaves the tab as it was.
+- [ ] Choosing `release` in place of `main` compares `release` with the second side in the same page, retitled.
+- [ ] The choices are those of the page's repository, also when the window shows another.
+- [ ] Escape leaves the page as it was.
 
 ### `compare.swap` — Swap the two sides
 
@@ -382,7 +383,7 @@ back the path in use, and **×** (**Show the changes of every file**) shows ever
 Acceptance:
 
 - [ ] Typing `src` and `Enter` lists only the files under `src` and the commits that change them, and the title of the
-      tab ends with ` · src`.
+      page ends with ` · src`.
 - [ ] The count of a side's commits then reads **N of M change `src`**.
 - [ ] `./src/` narrows to `src`.
 - [ ] **×** shows every file and commit again.
@@ -430,7 +431,7 @@ no file when it has none.
     `<second>`**, with the note **The file in the working tree and the index becomes the one of `<second>`.**;
   - a file it does not have: `git rm -f --ignore-unmatch -- <file>`, titled **Delete `<file>`, as in `<second>`**, with
     the note **`<second>` has no such file, so it is deleted from the working tree and the index.**;
-  - when the file has changes that are not committed, or when that cannot be told because the views show another
+  - when the file has changes that are not committed, or when that cannot be told because the window shows another
     repository, the note ends with **Its changes that are not committed are lost.**
   - The file is given to git as `:(literal)<file>` when its name has `[`, `]`, `*`, `?` or `\`, or starts with `:`.
 - **Danger**: Confirm, because it replaces the file in the working tree and the index; Destructive when the file has
@@ -503,14 +504,14 @@ comparison page narrowed to it.
 
 - **Kind**: Operation
 - **Function**: `features::compare::path_with(context, answers) -> Outcome`
-- **Entry points**: **Compare with Branch, Tag or Commit…** in the context menu of a file or a folder of the Files pane,
-  in the context menu and the title of the File page; command palette, for the file of the File page in front.
+- **Entry points**: **Compare with Branch, Tag or Commit…** in the context menu of a file or a folder of the Files page,
+  in the context menu and the title of the File page; Quick search, for the file of the File page shown.
 - **Asks**: **Compare `<file or folder name>` with**, with the placeholder **The branch, tag or commit to compare the
   working tree with**: the choices of `compare.side-choices`, without **Working tree**.
 - **Plan**: no step; it changes nothing.
 - **Danger**: None
 - **Undo**: nothing to undo: it changes nothing.
-- **After**: points the views at the repository of the file when it is another (`repo.select`), and opens the
+- **After**: points the window at the repository of the file when it is another (`repo.select`), and opens the
   comparison of the side chosen with the **Working tree**, narrowed to the file or folder (`compare.narrow-to-path`);
   the top folder of a repository is the whole repository.
 - **Refuses**: a file outside every repository of the workspace, or no file at all: **Choose a file or a folder of this
@@ -518,9 +519,9 @@ comparison page narrowed to it.
 
 Acceptance:
 
-- [ ] On `src/app.rs` in the Files pane, choosing `main` opens `main ↔ Working tree · app.rs`, listing only that file.
+- [ ] On `src/app.rs` in the Files page, choosing `main` opens `main ↔ Working tree · app.rs`, listing only that file.
 - [ ] On a folder, the page lists only the files under it.
-- [ ] On a file of another repository of the workspace, the views switch to it first.
+- [ ] On a file of another repository of the workspace, the window switches to it first.
 
 ### `compare.with` — Compare with…
 
@@ -528,8 +529,8 @@ Compares a commit, branch or tag with anything else, asking only for the other s
 
 - **Kind**: Operation
 - **Function**: `features::compare::with(context, answers) -> Outcome`
-- **Entry points**: **Compare with…** in the context menu of a commit in the graph, of a local branch, of a remote
-  branch and of a tag, in the graph, the references and the Branches pane.
+- **Entry points**: **Compare with…** in the context menu of a commit in the timeline, of a local branch, of a remote
+  branch and of a tag, in the timeline and the branch rail.
 - **Asks**: **Compare `<name>` with**, with the placeholder **The branch, tag or commit to compare it with**: the choices
   of `compare.side-choices`, the side itself left out, with **Working tree**.
 - **Plan**: no step; it changes nothing.
@@ -546,36 +547,35 @@ Acceptance:
 
 ### `compare.with-current` — Compare with the current branch
 
-Compares a commit, branch or tag with what is checked out, at once, in place of the details.
+Compares a commit, branch or tag with what is checked out, at once, in the inspector.
 
 - **Kind**: Operation
 - **Function**: `features::compare::with_current(context, answers) -> Outcome`
 - **Entry points**: **Compare with `<current branch>`** (or **Compare with HEAD** when no branch is checked out) in the
-  context menu of a commit, a local branch, a remote branch or a tag, in the graph, the references and the Branches
-  pane.
+  context menu of a commit, a local branch, a remote branch or a tag, in the timeline and the branch rail.
 - **Offered when**: there is a commit checked out and the item is not at that commit.
 - **Plan**: no step; it changes nothing.
 - **Danger**: None
 - **Undo**: nothing to undo: it changes nothing.
 - **After**: shows the in-place comparison (`compare.in-place`) of the item, first, with what is checked out, second,
-  in the view it was asked from: the Graph tab, or the Branches pane under its tree.
+  in the inspector, whether it was asked from the timeline or from the branch rail.
 
 Acceptance:
 
-- [ ] On `feature`, with `main` checked out, the details are replaced by the files that differ from `feature` to
+- [ ] On `feature`, with `main` checked out, the inspector shows the files that differ from `feature` to
       `main`.
 - [ ] The entry is not on the commit checked out, nor on a branch at that commit.
 
-### `compare.selected-before` — Compare two commits of the graph
+### `compare.selected-before` — Compare two commits of the timeline
 
 Compares the commit selected before with the one right-clicked.
 
 - **Kind**: Operation
 - **Function**: `features::compare::selected_before(context, answers) -> Outcome`
-- **Entry points**: **Compare with `<short hash>`, selected before** in the context menu of a commit in the graph;
+- **Entry points**: **Compare with `<short hash>`, selected before** in the context menu of a commit in the timeline;
   **Compare these two commits** in the bar and the context menu of a selection of two commits (`selection.bar`).
-- **Offered when**: a commit was selected, the commit right-clicked is another, and the one selected is not the row of
-  the uncommitted changes.
+- **Offered when**: a commit was selected, the commit right-clicked is another, and the one selected is not the
+  draft.
 - **Plan**: no step; it changes nothing.
 - **Danger**: None
 - **Undo**: nothing to undo: it changes nothing.
@@ -585,7 +585,7 @@ Compares the commit selected before with the one right-clicked.
 Acceptance:
 
 - [ ] Selecting `a1b2c3d`, then right-clicking `e4f5a6b`, offers **Compare with a1b2c3d, selected before**, which lists
-      the files that differ from `a1b2c3d` to `e4f5a6b` in place of the details.
+      the files that differ from `a1b2c3d` to `e4f5a6b` in the inspector.
 - [ ] The entry is not offered when nothing was selected, or on the commit selected itself.
 
 ### `compare.read-files` — Read the files that differ between two commits
@@ -601,10 +601,10 @@ Acceptance:
 - [ ] The files are those that differ between the two commits, renames with both names.
 - [ ] Two sides that are not full hashes return nothing, without running git.
 
-### `compare.in-place` — The comparison in place of the details
+### `compare.in-place` — The comparison in the inspector
 
-The files that differ between two commits, shown where the details of a commit are, with the way to swap them and to
-open the whole comparison in a tab.
+The files that differ between two commits, shown in the inspector in place of the card of a commit, with the way to
+swap them and to open the whole comparison as a page.
 
 - **Kind**: View
 - **Function**: `views::compare::in_place(state: &InPlaceState, ui: &mut Ui) -> Vec<Intent>`
@@ -612,17 +612,18 @@ open the whole comparison in a tab.
 - **Reads**: `compare.read-files`.
 - **Uses**: `details.show-all-files`, `details.compare-file-with`, `compare.page`, the Diff page (`diff.page`).
 
-What it shows: **Comparison**, a button that closes it and gives the place back to the details, **From** and **To**, each
-with its name when it is not its short hash and its short hash, which goes to that commit in the graph (**Show this
-commit**); **Swap** (**Compare in the other direction**), which exchanges the two; **Open in a tab** (**How far apart the
-two are, and every change, in a tab**), which opens the same two in the comparison page; **N changed files**, with, for
-more than one, a button that opens all of them in one Diff page titled `<from> ↔ <to>`; then the files, a click on one
-opening its Diff page from the first to the second. **Loading…** shows until the files are read.
+What it shows: **Comparison**, a button that closes it and gives the inspector back to the commit selected, **From** and
+**To**, each with its name when it is not its short hash and its short hash, which goes to that commit in the timeline
+(**Show this commit**); **Swap** (**Compare in the other direction**), which exchanges the two; **Open as a page**
+(**How far apart the two are, and every change, on a page**), which opens the same two in the comparison page; **N
+changed files**, with, for more than one, a button that opens all of them in one Diff page titled `<from> ↔ <to>`; then
+the files, a click on one opening its Diff page from the first to the second. **Loading…** shows until the files are
+read.
 
 Acceptance:
 
 - [ ] **Swap** shows the files changed from the second to the first, the names exchanged.
-- [ ] **Open in a tab** opens the comparison page of the same two sides, named as here.
+- [ ] **Open as a page** opens the comparison page of the same two sides, named as here.
 - [ ] A click on a file opens its Diff page between the two commits.
-- [ ] Closing it shows the details of the commit selected again.
-- [ ] In the Branches pane, the comparison shows under the tree.
+- [ ] Closing it shows the card of the commit selected in the inspector again.
+- [ ] Asked from the branch rail, the comparison shows in the inspector too.

@@ -10,11 +10,11 @@ provider about the conflicts the rules leave. The pages a file in conflict is re
 ### `conflicts.banner` — The banner of an operation that stopped
 
 Says that an operation is waiting for the user, how many files are in conflict, and gives the ways on, back and to the
-resolutions, at the top of the Graph tab and of the Changes pane.
+resolutions, at the top of the timeline and of the Changes page.
 
 - **Kind**: View
 - **Function**: `views::conflicts::banner_view(state, ui) -> Vec<Intent>`
-- **Entry points**: shown by itself over the commits of the Graph tab and over the list of the Changes pane.
+- **Entry points**: shown by itself over the commits of the timeline and over the list of the Changes page.
 - **Offered when**: a merge, rebase, cherry-pick, revert or `git am` is in progress, or at least one file is in conflict
   without one (as after a stash that did not apply cleanly). Otherwise it is not drawn.
 - **Reads**: the operation in progress (`MERGE_HEAD`, `.git/rebase-merge` or `.git/rebase-apply`, `CHERRY_PICK_HEAD`,
@@ -76,8 +76,8 @@ Goes on with the operation that stopped, once its conflicts are resolved and sta
 - **Kind**: Operation
 - **Function**: `features::conflicts::continue_operation(context, answers) -> Outcome`
 - **Entry points**: **Continue** in `conflicts.banner`; **Continue** in the message of `conflicts.resolve-automatically`;
-  **Continue the merge** (or rebase, cherry-pick, revert, am) in the report of `review.write`; command palette
-  **Continue the operation**.
+  **Continue the merge** (or rebase, cherry-pick, revert, am) in the report of `review.write`; **Continue the
+  operation** in Quick search.
 - **Offered when**: an operation is in progress and no file is in conflict.
 - **Plan**: `git -c core.editor=true <operation> --continue`, where `<operation>` is `merge`, `rebase`, `cherry-pick`,
   `revert` or `am`. The `-c core.editor=true` keeps the message git prepared rather than opening an editor that cannot
@@ -97,7 +97,7 @@ as a rebase drops such a commit by itself.
 Acceptance:
 
 - [ ] With a merge stopped and its only conflict resolved and staged, **Continue** runs exactly
-      `git -c core.editor=true merge --continue` and the merge commit appears in the graph.
+      `git -c core.editor=true merge --continue` and the merge commit appears in the timeline.
 - [ ] During a rebase, the command is `git -c core.editor=true rebase --continue`.
 - [ ] A cherry-pick whose conflicts were resolved by keeping what `HEAD` has goes on with `git cherry-pick --skip`, and
       the log has the line that says the commit changes nothing on top of HEAD.
@@ -109,7 +109,7 @@ Leaves out the commit or patch the operation stopped on and goes on with the nex
 
 - **Kind**: Operation
 - **Function**: `features::conflicts::skip_step(context, answers) -> Outcome`
-- **Entry points**: **Skip** in `conflicts.banner`; command palette **Skip this step**.
+- **Entry points**: **Skip** in `conflicts.banner`; **Skip this step** in Quick search.
 - **Offered when**: a rebase, cherry-pick, revert or `git am` is in progress, and the rebase did not stop to edit or
   split a commit (skipping there would throw away what is not committed and keep the commit anyway).
 - **Plan**: `git <operation> --skip`. Title: **Skip this step of the \<operation\>**.
@@ -130,7 +130,7 @@ Takes the repository back to how it was before the operation started.
 
 - **Kind**: Operation
 - **Function**: `features::conflicts::abort_operation(context, answers) -> Outcome`
-- **Entry points**: **Abort** in `conflicts.banner`; command palette **Abort the operation**.
+- **Entry points**: **Abort** in `conflicts.banner`; **Abort the operation** in Quick search.
 - **Offered when**: a merge, rebase, cherry-pick, revert or `git am` is in progress.
 - **Plan**: `git <operation> --abort`. Title: **Abort \<operation\>**.
 - **Danger**: Destructive, because *This goes back to the state before the \<operation\> started. Conflicts you already
@@ -243,8 +243,8 @@ Opens a file in conflict where it can be resolved by hand, which depends on what
 
 - **Kind**: View
 - **Function**: `views::conflicts::open_file_view(state, ui) -> Vec<Intent>`
-- **Entry points**: a click on a file in the **Conflicts** group of the Changes pane; a click on a file in conflict in
-  the details of the uncommitted changes in the Graph tab; the line number of a card in `review.page`.
+- **Entry points**: a click on a file in the **Conflicts** group of the Changes page; a click on a file in conflict in
+  the inspector, while the draft is selected in the timeline; the line number of a card in `review.page`.
 - **Offered when**: the file is in conflict (`conflicts.read-files`); a file no longer in conflict is not opened.
 - **Reads**: `conflicts.read-files` for its stages.
 - **Uses**: `merge-view.page`, `diff.page`, `file-view.page`, `conflicts.side-names`.
@@ -270,12 +270,12 @@ Tells git that a file's conflicts are resolved, by staging it.
 - **Kind**: Operation
 - **Function**: `features::conflicts::mark_resolved(context, answers) -> Outcome`
 - **Entry points**: the **+** button **Mark as resolved** on the row of a file in the **Conflicts** group of the
-  Changes pane.
+  Changes page.
 - **Offered when**: the file is in conflict.
 - **Plan**: `git add -- <file>`. Title: **Stage \<file\>**.
 - **Danger**: None.
-- **Undo**: Impossible from the toolbar: staging leaves nothing in the reflog. The conflicts can be marked again only by
-  `conflicts.restore` after a resolution Gitardo wrote.
+- **Undo**: Impossible with **Undo**: staging leaves nothing in the reflog. The conflicts can be marked
+  again only by `conflicts.restore` after a resolution Gitardo wrote.
 - **After**: the file leaves the **Conflicts** group; once none is left, **Continue** in the banner is enabled.
 - **Uses**: `merge-view.mark-resolved`, which asks first when markers are left; this one does not look into the file.
 
@@ -294,7 +294,7 @@ when that side deleted it.
 - **Kind**: Operation
 - **Function**: `features::conflicts::take_side(context, answers) -> Outcome`
 - **Entry points**: the buttons **Take the current side for the whole file** (←) and **Take the incoming side for the
-  whole file** (→) on the row of a file in conflict in the Changes pane; **Keep it, with these changes** and
+  whole file** (→) on the row of a file in conflict in the Changes page; **Keep it, with these changes** and
   **Delete it** on a card of `review.deleted-card`.
 - **Offered when**: the file is in conflict.
 - **Reads**: `conflicts.read-files` for the stages of the file; `conflicts.side-names` for what each side is.
@@ -503,7 +503,7 @@ look at each one first.
 
 - **Kind**: Operation
 - **Function**: `features::conflicts::resolve_automatically(context, answers) -> Outcome`
-- **Entry points**: command palette **Resolve conflicts automatically**; **Resolve automatically** in
+- **Entry points**: **Resolve conflicts automatically** in Quick search; **Resolve automatically** in
   `conflicts.stopped`. (The buttons of the banner and of a file open `review.page` instead.)
 - **Offered when**: `conflicts.autoResolve` is on (it is marked **Experimental** in the settings) and files are in
   conflict.
@@ -540,7 +540,7 @@ Acceptance:
 - [ ] **Review** in the question opens the review page of the same files and writes nothing.
 - [ ] Editing a file after the question is shown and then answering **Resolve** writes no file and says which one
       changed.
-- [ ] With `conflicts.autoResolve` off, the palette command refuses with the message and **Open settings**.
+- [ ] With `conflicts.autoResolve` off, the command in Quick search refuses with the message and **Open settings**.
 - [ ] After it ran with no file left in conflict during a merge, the message offers **Continue** and **Undo**.
 
 ### `conflicts.restore` — Undo a resolution
@@ -550,8 +550,9 @@ took one side of them.
 
 - **Kind**: Operation
 - **Function**: `features::conflicts::restore(context, answers) -> Outcome`
-- **Entry points**: **Undo** in the toolbar right after `conflicts.resolve-automatically`, `review.write` or
-  `conflicts.take-side`; **Undo** in the message that follows them and in the report of `review.write`.
+- **Entry points**: **Undo** in the **…** menu of the header right after `conflicts.resolve-automatically`,
+  `review.write` or `conflicts.take-side`; **Undo** in the message that follows them and in the report of
+  `review.write`.
 - **Offered when**: the last thing Gitardo did in this repository was one of those, and the reflog has not moved since.
 - **Plan**: `git checkout --merge -- <file>…`, with the files written (also the ones that were staged). Title:
   **Undo: restore the conflicts of \<file\>** (or **of N files**).
@@ -575,10 +576,10 @@ accepted or not, and written. Nothing is written until the user writes what was 
 
 - **Kind**: View
 - **Function**: `views::review::page_view(state, ui) -> Vec<Intent>`
-- **Entry points**: command palette **Review the resolutions of the conflicts**; **Resolve … automatically** and
+- **Entry points**: **Review the resolutions of the conflicts** in Quick search; **Resolve … automatically** and
   **Resolve with AI** in `conflicts.banner`; the wand (**Resolve its conflicts automatically, after looking at what is
   proposed**) and the sparkle (**Resolve with AI, after looking at what is proposed**) on the row of a file in conflict
-  in the Changes pane, which open it with that file alone; **Review** in the question of
+  in the Changes page, which open it with that file alone; **Review** in the question of
   `conflicts.resolve-automatically`.
 - **Offered when**: `conflicts.autoResolve` or `conflicts.ai` is on.
 - **Reads**: `conflicts.read-files`; for each file with markers, its text and three versions; for the files without,
@@ -591,28 +592,28 @@ accepted or not, and written. Nothing is written until the user writes what was 
   `review.accept-file`, `review.accept-all`, `review.clear`, `review.write`, `review.report`, `review.show-result`,
   `review.deleted-card`, `ai.resolve-conflicts`, `ai.choose-model`.
 
-The tab is **Conflicts · \<repository folder name\>**; there is one per window, and asking for it again shows it (with
+The page is **Conflicts · \<repository folder name\>**; there is one per window, and asking for it again shows it (with
 other files when asked for other files). Its head says **Conflicts of the merge** (of the rebase, …) and, under it,
 *5 conflicts in 2 files: 3 proposed by the rules, 1 by the AI, 1 with nothing proposed; 1 file deleted on one side and
 changed on the other. Nothing is written until you write what you accepted.* When neither setting is on: *Neither the
 rules nor the AI are switched on in the settings: nothing is proposed.* Its buttons: **Accept all proposed**, **Clear**,
 **Ask the AI about the rest (N)** (with `conflicts.ai`), the button with the model's name, **Cards** and **Columns**,
 **Show the result**, and **Write N resolutions**. Under the head, the file list and the cards side by side; in a narrow
-tab, the list over the cards.
+window, the list over the cards.
 
 The page follows the files: it reads them again whenever the repository changes. A conflict resolved elsewhere leaves
 it, and a file edited by hand is read again, its conflicts keyed by `review.fingerprint` so that what was accepted on a
-conflict nobody edited stays accepted. What is accepted is kept with the tab while it is open.
+conflict nobody edited stays accepted. What is accepted is kept with the page while it is open.
 
 Acceptance:
 
-- [ ] Opening it during a merge with 2 files in conflict shows the tab **Conflicts · \<folder\>** with every conflict of
-      both files.
+- [ ] Opening it during a merge with 2 files in conflict shows the page **Conflicts · \<folder\>** with every conflict
+      of both files.
 - [ ] Opening it from the sparkle of one file shows only that file and asks the AI about its conflicts with nothing
       proposed.
-- [ ] Staging a file from the Changes pane while the page is open removes that file's cards.
+- [ ] Staging a file from the Changes page while the review is open removes that file's cards.
 - [ ] Editing one conflict of a file by hand keeps the acceptance of the file's other conflicts.
-- [ ] With both settings off, the palette command refuses with the message.
+- [ ] With both settings off, the command in Quick search refuses with the message.
 
 ### `review.file-list` — The files and the filters
 
@@ -886,18 +887,18 @@ side.
   rules take too.
 - A band joins each line proposed to the side it comes from, green for the current side and blue for the incoming one;
   the lines of a side left out are faded, and a line neither side has is marked.
-- The columns take the whole width of the tab. Lines keep the shape of the code: they do not wrap, and a column too
+- The columns take the whole width of the page. Lines keep the shape of the code: they do not wrap, and a column too
   narrow for them scrolls sideways, taking the other two along.
 - A band can be dragged to make the column on one side of it wider, for every conflict at once; a double click makes
-  them even again. The choice of Cards or Columns and the widths are kept with the tab.
-- In a narrow tab the columns stand one above the other.
+  them even again. The choice of Cards or Columns and the widths are kept with the page.
+- In a narrow window the columns stand one above the other.
 
 Acceptance:
 
 - [ ] In Columns, the "lines next to each other" proposal `a`, `B`, `C` shows a green band from `B` to the current side
       and a blue band from `C` to the incoming side, with the incoming side's `b` and the current side's `c` faded.
 - [ ] Scrolling one column sideways scrolls the two others by the same amount.
-- [ ] Dragging a band in one conflict changes the widths of every conflict; reopening the tab keeps Columns and the
+- [ ] Dragging a band in one conflict changes the widths of every conflict; reopening the page keeps Columns and the
       widths.
 
 ### `review.show-result` — Show the result
@@ -953,7 +954,7 @@ proposal to accept or not.
 - **Kind**: View
 - **Function**: `views::ai::resolve_conflicts_view(state, ui) -> Vec<Intent>`
 - **Entry points**: **Resolve with AI** in `conflicts.banner` and in `conflicts.stopped`; the sparkle on the row of a
-  file in conflict in the Changes pane; command palette **Resolve conflicts with AI**; in `review.page`, **Ask the AI
+  file in conflict in the Changes page; **Resolve conflicts with AI** in Quick search; in `review.page`, **Ask the AI
   about the rest (N)** (*Ask the language model about each conflict that has nothing proposed*) and **Ask the AI** or
   **Ask again** on a card.
 - **Offered when**: `conflicts.ai` is on (it is marked **Experimental** in the settings).
@@ -1113,7 +1114,7 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
 
 - **Kind**: Operation
 - **Function**: `features::ai::choose_model(context, answers) -> Outcome`
-- **Entry points**: command palette **Choose the model that resolves conflicts**; the button with the model's name in
+- **Entry points**: **Choose the model that resolves conflicts** in Quick search; the button with the model's name in
   the head of `review.page` (*Choose the language model that resolves the conflicts, and how much it thinks*), which
   reads **No language model** when the provider has none.
 - **Reads**: the models the provider lists at `ai.endpoint`.
@@ -1125,7 +1126,7 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
 - **Plan**: one `write <settings.json>` step that sets `ai.model` (removed for the first model) and `ai.effort`
   (`low`, `medium`, `high`, `xhigh`, `max`, or removed) in the user's settings file.
 - **Danger**: None.
-- **Undo**: Impossible from the toolbar: choosing again sets them back.
+- **Undo**: Impossible with **Undo**: choosing again sets them back.
 - **Refuses**: when the provider lists no model: *No language model is available from the AI provider. Set one up in the
   settings.*
 - **Settings**: `ai.provider`, `ai.endpoint`, `ai.model`, `ai.effort`.

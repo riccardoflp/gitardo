@@ -1,13 +1,15 @@
 # Details, commits and the page of a commit
 
-How a commit is read. The details beside the graph summarize the commit selected: its message, who made it, and the
-files it changed. The **Commits** pane of the side bar lists the commits of what is checked out, apart from the graph,
-and says which are pushed. The page of a commit, in a tab of its own, shows it whole with what it changed in each file.
+How a commit is read. The inspector, beside the timeline, summarizes the commit selected: its message, who made it,
+and the files it changed. The timeline narrowed to the branch checked out lists the commits of what is checked out,
+read apart from the rest of the history, and says which are pushed. The page of a commit shows it whole with what it
+changed in each file.
 The derivations that shape a message and a list of files for all three are here too.
 
 ### `details.read-commit` — Read the details of a commit
 
-Everything the details, the Commits pane, the Stashes pane and the page of a commit show of one commit: its message,
+Everything the inspector, the commits of what is checked out, the Stashes list and the page of a commit show of one
+commit: its message,
 author, committer, dates, parents and the files it changed, and, for a stash, the untracked files it took.
 
 - **Kind**: Read
@@ -36,27 +38,29 @@ Acceptance:
 
 ### `details.show` — Details of the selected commit
 
-The summary of the commit selected in the graph, beside the commits or under them when the Graph tab is narrow: its
-message, who made it and when, its hash and parents, and the files it changed, each one click away from its diff.
+The summary of the commit selected in the timeline, in the inspector beside the commits or over them when the window is
+narrow: its message, who made it and when, its hash and parents, and the files it changed, each one click away from its
+diff.
 
 - **Kind**: View
 - **Function**: `views::details::show(state: &DetailsState, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: selecting a commit, a stash or the row of the uncommitted changes in the Graph tab; the same in the
-  narrow layout of the Graph tab, where the details are under the commits.
+- **Entry points**: selecting a commit, a stash or the draft in the timeline; the same in the narrow layout of the
+  window, where the inspector opens over the commits.
 - **Reads**: `details.read-commit`.
 - **Uses**: `details.message-title`, `details.message-unwrap`, `details.show-more`, `details.file-tree`,
   `details.show-all-files`, `details.compare-file-with`, `details.stash`, `commit-page.open`, `message.edit`,
-  `file-history.file`, the Diff page (`diff.page`), `compare.in-place` (which takes the place of the details).
+  `file-history.file`, the Diff page (`diff.page`), `compare.in-place` (which takes the place of the commit in the
+  inspector).
 
 What it shows, from the top:
 
-- a button that closes the details, one beside it that opens the commit in its tab (**Open in a tab, with its changes**;
-  not on the uncommitted changes), and the pencil of `message.edit` where that is offered;
+- a button that closes the inspector, one beside it that opens the commit as a page (**Open as a page, with its
+  changes**; not on the draft), and the pencil of `message.edit` where that is offered;
 - the title of the message in bold and the rest under it, as `details.message-title` and `details.message-unwrap` make
   them, cut by `details.show-more`;
 - **Author** (the email in the tooltip), **Date**, **Committer** with its date only when the committer or the date
   differs from the author's, **Commit** with the short hash, which a click copies whole (**Copy full hash**), and
-  **Parent** or **Parents**, each short hash going to that commit in the graph;
+  **Parent** or **Parents**, each short hash going to that commit in the timeline;
 - the count, **N changed files**, followed by **against the first parent** on a merge;
 - the two buttons that list the files one after the other, each with its directory beside its name (**One after the
   other, each with its directory**), or as a tree of directories (**Under their directories**); the choice is
@@ -67,7 +71,7 @@ What it shows, from the top:
   its history (**Show the history of this file**). A click opens its diff in the Diff page, against the first parent.
   Its context menu has **Compare with…**.
 
-On the row of the uncommitted changes the details have no author, hash or parents. Each file has a box to tick, the
+On the draft the inspector has no author, hash or parents. Each file has a box to tick, the
 buttons of `stash.push-file` and of discarding its changes, and the buttons above the files act on the ticked files, or
 on all of them when none is ticked (see `stash.push-file` and `changes.discard`).
 
@@ -76,18 +80,18 @@ Acceptance:
 - [ ] Selecting a commit shows its title, author, date, short hash and parents, and the count of its files.
 - [ ] The committer is shown only when its name or date differs from the author's.
 - [ ] A click on the hash puts the full hash on the clipboard.
-- [ ] A click on a parent selects that commit in the graph.
+- [ ] A click on a parent selects that commit in the timeline.
 - [ ] A merge says **against the first parent** after the count.
 - [ ] A click on a file opens the Diff page of that file between the first parent and the commit.
 - [ ] The button next to the count opens all the files in one Diff page; it is not there with a single file.
-- [ ] The layout chosen, list or tree, is the one the details have after the window is opened again.
+- [ ] The layout chosen, list or tree, is the one the inspector has after the window is opened again.
 - [ ] The button beside the close button opens the page of the commit (`commit-page.open`).
-- [ ] While loading, the details say **Loading…**.
+- [ ] While loading, the inspector says **Loading…**.
 
 ### `details.message-title` — The title of a message
 
 A commit message whose first paragraph is long, often a message written as one paragraph with no title, would fill the
-details with bold text: its title becomes its first sentence, or its first words, and the rest goes on under it.
+inspector with bold text: its title becomes its first sentence, or its first words, and the rest goes on under it.
 
 - **Kind**: Derivation
 - **Function**: `text::details::message_title(input: &RawMessage) -> ShownMessage`
@@ -128,7 +132,7 @@ Acceptance:
 ### `details.message-unwrap` — Lines of a message put back together
 
 Messages are written to fit in 72 columns; shown in a narrower or wider place they would break twice a line. The lines
-that were cut to fit are joined again, so that the text wraps at the width of the details or of the page.
+that were cut to fit are joined again, so that the text wraps at the width of the inspector or of the page.
 
 - **Kind**: Derivation
 - **Function**: `text::details::unwrap_message(input: &str) -> String`
@@ -167,19 +171,19 @@ Acceptance:
 
 ### `details.show-more` — Show more of a long message
 
-A long message in the details shows its first lines only, so that the files stay in sight under it; **Show more**
+A long message in the inspector shows its first lines only, so that the files stay in sight under it; **Show more**
 shows it whole, in place.
 
 - **Kind**: View
 - **Function**: `views::details::show_more(state: &MessageState, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: the link under the text of the message in the details.
-- **Offered when**: the text under the title is longer than four lines at the width of the details.
+- **Entry points**: the link under the text of the message in the inspector.
+- **Offered when**: the text under the title is longer than four lines at the width of the inspector.
 
 Acceptance:
 
 - [ ] Under the title the text shows four lines at most, and **Show more** is there only when more is hidden.
 - [ ] **Show more** shows the whole text in place, without a scroll bar of its own, and becomes **Show less**.
-- [ ] Making the details wider or narrower shows or hides **Show more** as the text fits or not.
+- [ ] Making the inspector wider or narrower shows or hides **Show more** as the text fits or not.
 - [ ] Selecting another commit shows its message cut again.
 
 ### `details.file-tree` — Files as a tree of directories
@@ -214,13 +218,13 @@ Acceptance:
 
 ### `details.show-all-files` — The first 300 files, and Show all
 
-A commit can change thousands of files, and a row for each makes the view slow: a list of more than 300 files shows the
+A commit can change thousands of files, and a row for each makes the list slow: a list of more than 300 files shows the
 first 300 and a link for the rest.
 
 - **Kind**: View
 - **Function**: `views::details::show_all_files(state: &CappedList, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: the end of the files in the details, in the page of a commit, in the comparison page and in the
-  in-place comparison, and of the Changes pane.
+- **Entry points**: the end of the files in the inspector, in the page of a commit, in the comparison page and in the
+  in-place comparison, and of the Changes page.
 
 Acceptance:
 
@@ -237,7 +241,7 @@ the user chooses, in the Diff page.
 
 - **Kind**: Operation
 - **Function**: `features::details::compare_file_with(context, answers) -> Outcome`
-- **Entry points**: **Compare with…** in the context menu of a file in the details, in the page of a commit (in the
+- **Entry points**: **Compare with…** in the context menu of a file in the inspector, in the page of a commit (in the
   list and on the header of its diff), in the comparison page and in the in-place comparison.
 - **Asks**: the other side, titled **Compare `<file name>` of `<side>` with**, with the choices of `compare.side-choices`,
   the side the file is taken from left out and **Working tree** offered unless that side is the working tree.
@@ -276,7 +280,7 @@ from the rest.
 
 - **Kind**: View
 - **Function**: `views::details::stash(state: &DetailsState, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: selecting a stash in the graph or in the Stashes section of the references; opening its page.
+- **Entry points**: selecting a stash in the timeline or in the Stashes list of the branch rail; opening its page.
 - **Reads**: `details.read-commit`.
 
 Acceptance:
@@ -290,7 +294,8 @@ Acceptance:
 
 ### `commits.read-log` — Read the commits of what is checked out
 
-The commits of `HEAD`, newest first, and which of them are not pushed yet, for the Commits pane.
+The commits of `HEAD`, newest first, and which of them are not pushed yet, for the commits of what is checked out
+(`commits.view`).
 
 - **Kind**: Read
 - **Function**: `git::read::commits::read_log(git: &Git, request: &LogRequest) -> Result<BranchLog, GitError>`
@@ -313,7 +318,7 @@ Acceptance:
 
 ### `commits.push-state` — What is pushed and what is to pull
 
-What the line above the commits of the Commits pane says, and the mark on each commit.
+What the line above the commits of what is checked out says, and the mark on each commit.
 
 - **Kind**: Derivation
 - **Function**: `model::commits::push_state(input: &BranchLogAndBranch) -> PushState`
@@ -331,7 +336,7 @@ Rules:
   commits to push**.
 - A commit not pushed has a cloud with an arrow, in color, titled **Not pushed to `<upstream>`** or **On no remote
   branch**. A commit pushed has a plain cloud, titled **Pushed: it is in `<upstream>`**, or **in a remote branch**.
-- With no commit, the pane says **No commits yet.** instead of the line.
+- With no commit, the list says **No commits yet.** instead of the line.
 
 Acceptance:
 
@@ -340,15 +345,16 @@ Acceptance:
 - [ ] A branch with no upstream, in a repository with a remote, marks its commits that no remote branch has.
 - [ ] A repository with no remote says **No remote to push to** and marks nothing.
 
-### `commits.view` — The Commits pane
+### `commits.view` — The commits of what is checked out
 
-The commits of what is checked out, newest first, and nothing else: apart from the graph, so that what the graph is
-narrowed to, searched for or scrolled to changes nothing here.
+The commits of what is checked out, newest first, and nothing else: the timeline narrowed to the branch checked out,
+picked in the branch rail. They are read apart from the rest of the history, so that what the timeline was narrowed to,
+searched for or scrolled to before changes nothing here.
 
 - **Kind**: View
 - **Function**: `views::commits::view(state: &CommitsState, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: the **Commits** pane of the side bar; command palette: **Show Commits in the Side Bar**, which
-  unfolds and shows it.
+- **Entry points**: picking the branch checked out in the branch rail; Quick search: **Show Commits of What Is Checked
+  Out**, which shows them.
 - **Reads**: `commits.read-log`, first with a limit of 100; `details.read-commit` for a commit unfolded.
 - **Uses**: `commits.push-state`, `commit-page.open`, `commit-page.show-in-graph`, `branch.checkout`, `branch.create`,
   `tag.create`, `revert.commit`, `reset.to-commit`, `commits.copy-hash`, `commits.copy-message`, `sync.fetch`, `sync.pull`,
@@ -356,27 +362,28 @@ narrowed to, searched for or scrolled to changes nothing here.
 
 What it shows:
 
-- the header names the branch checked out, and the repository when the workspace has several; it has fetch, pull and
-  push, and under **…** the other ways to pull and push, and undo;
+- the top of the list names the branch checked out, and the repository when the workspace has several; it has fetch,
+  pull and push, and under **…** the other ways to pull and push, and undo;
 - the line of `commits.push-state`, then the commits, each with its mark and subject; its tooltip has the subject, the
   short hash, the author and the full date;
-- a click on a commit unfolds the files it added, changed, deleted or renamed (**No files** when there are none,
+- the arrow before a commit unfolds the files it added, changed, deleted or renamed (**No files** when there are none,
   **Loading…** meanwhile), and a click on a file opens its diff against the first parent in the Diff page;
-- on each commit, a button that opens its page (**Open in a tab, with its changes**) and one that shows it in
-  the graph (**Show in the graph**);
-- its context menu: **Open in a tab**, **Show in the graph**, **Check out commit (detached)** (not on the
+- on each commit, a button that opens its page (**Open as a page, with its changes**) and one that shows it in
+  the whole history (**Show in the timeline**);
+- its context menu: **Open as a page**, **Show in the timeline**, **Check out commit (detached)** (not on the
   commit checked out), **Create branch here…**, **Create tag here…**, **Revert `<short hash>`**, **Reset `<branch>` to
   here…** (not on the commit checked out), **Copy hash**, **Copy message**;
 - **Load more commits…** at the end, while there are more, reads 100 more.
 
 The commits are read again when what is checked out, its upstream, or where the remote branches are changes, and from
-the first 100 again when another repository is shown.
+the first 100 again when another repository is shown. Picking the branch checked out again in the branch rail brings
+back the whole history, as it was narrowed, searched and scrolled before.
 
 Acceptance:
 
-- [ ] The pane lists the first 100 commits of `HEAD`, and **Load more commits…** lists 200.
-- [ ] Narrowing the graph to another branch, or searching in it, does not change the pane.
-- [ ] Checking out another branch lists its commits, and the header names it.
+- [ ] Picking the branch checked out lists the first 100 commits of `HEAD`, and **Load more commits…** lists 200.
+- [ ] A search or a filter of the timeline made before does not change the list, and is back with the whole history.
+- [ ] Checking out another branch lists its commits, and the top of the list names it.
 - [ ] A commit pushed after the list was read loses its arrow once the remote branch moves.
 - [ ] Unfolding a commit lists its files, and a click on one opens its Diff page.
 - [ ] The context menu of the commit checked out has no **Check out commit (detached)** and no **Reset … to here…**.
@@ -388,8 +395,8 @@ Puts the full hash of a commit on the clipboard.
 
 - **Kind**: Operation
 - **Function**: `features::commits::copy_hash(context, answers) -> Outcome`
-- **Entry points**: **Copy hash** in the context menu of a commit in the Commits pane; a click on the hash in the
-  details and in the page of a commit.
+- **Entry points**: **Copy hash** in the context menu of a commit in the commits of what is checked out; a click on
+  the hash in the inspector and in the page of a commit.
 - **Plan**: no steps.
 - **Danger**: None
 - **Undo**: Nothing to take back: nothing changes.
@@ -405,7 +412,7 @@ Puts the whole message of a commit on the clipboard, as it was written.
 
 - **Kind**: Operation
 - **Function**: `features::commits::copy_message(context, answers) -> Outcome`
-- **Entry points**: **Copy message** in the context menu of a commit in the Commits pane.
+- **Entry points**: **Copy message** in the context menu of a commit in the commits of what is checked out.
 - **Reads**: `details.read-commit`, for the message in full.
 - **Plan**: no steps.
 - **Danger**: None
@@ -416,39 +423,40 @@ Acceptance:
 
 - [ ] The clipboard holds the subject, the empty line and the body exactly as `git log -1 --format=%B` prints them,
       without the trailing newline.
-- [ ] The lines are as written, not as the details re-wrap them (`details.message-unwrap`).
+- [ ] The lines are as written, not as the inspector re-wraps them (`details.message-unwrap`).
 
-### `commit-page.open` — Open a commit in a tab
+### `commit-page.open` — Open a commit as a page
 
 Opens a commit whole, in a page of its own, or shows the page it has.
 
 - **Kind**: Operation
 - **Function**: `features::commit_page::open(context, answers) -> Outcome`
-- **Entry points**: double-click on a commit in the Graph tab, in its narrow layout or in the Commits pane, or `Enter`
-  on the commit selected; the button on its row in the Commits pane; the button beside the one that closes the details;
-  **Open in a tab** in the context menu of a commit; a parent in the page of a commit, a side, a commit or the
-  merge base in the comparison page; command palette: **Open Commit in a Tab…**.
-- **Offered when**: on a commit or a stash; not on the row of the uncommitted changes. A double click on the label of a
+- **Entry points**: double-click on a commit in the timeline, in its narrow layout or in the commits of what is
+  checked out, or `Enter` on the commit selected; the button on its row in the commits of what is checked out; the
+  button beside the one that closes the inspector; **Open as a page** in the context menu of a commit; a parent in the
+  page of a commit, a side, a commit or the merge base in the comparison page; Quick search: **Open Commit as a
+  Page…**.
+- **Offered when**: on a commit or a stash; not on the draft. A double click on the label of a
   branch checks the branch out instead (`branch.checkout`).
-- **Asks**: from the command palette only, **Open commit**: a hash, or anything else git turns into a commit, in an
+- **Asks**: from Quick search only, **Open commit**: a hash, or anything else git turns into a commit, in an
   input box with the prompt **A commit hash, or anything else git understands: HEAD~3, v1.0^, main@{yesterday}**; what
   git does not know is refused while typing with **Git does not know a commit by this name in this repository.**
 - **Reads**: `compare.resolve-revision` for what is typed; `details.read-commit`.
 - **Plan**: no step; it changes nothing.
 - **Danger**: None
 - **Undo**: nothing to undo: it changes nothing.
-- **After**: opens the page (`commit-page.view`) in a new tab titled with the short hash and the subject, cut after 32
-  characters with `…`; or shows the tab that commit of that repository has already.
+- **After**: opens the page (`commit-page.view`), titled in its trail with the short hash and the subject, cut after 32
+  characters with `…`; or shows the page that commit of that repository has already.
 - **Refuses**: a hash that is not a commit of the repository: **`<short hash>` is not a commit of this repository.**
 
 Acceptance:
 
-- [ ] Double-clicking a commit opens a tab titled `3f2a1c9 Fix the parser`.
-- [ ] Opening the same commit again shows the tab it has; there is never a second tab for it.
-- [ ] The same hash in two repositories of the workspace opens two tabs.
-- [ ] Typing `HEAD~3` in the palette command opens the commit three before `HEAD`.
+- [ ] Double-clicking a commit opens a page titled `3f2a1c9 Fix the parser`.
+- [ ] Opening the same commit again shows the page it has; there is never a second page for it.
+- [ ] The same hash in two repositories of the workspace opens two pages.
+- [ ] Typing `HEAD~3` in the command of Quick search opens the commit three before `HEAD`.
 - [ ] Typing a name git does not know is refused in the box, and nothing opens.
-- [ ] A subject longer than 32 characters is cut with `…` in the title of the tab.
+- [ ] A subject longer than 32 characters is cut with `…` in the title of the page.
 
 ### `commit-page.read-patch` — Read the lines a commit changed
 
@@ -502,8 +510,8 @@ Acceptance:
 
 ### `commit-page.view` — The page of a commit
 
-A commit whole, in a tab: its full message, labels, author, committer, dates, hash and parents, the files it changed with
-the lines each gained and lost, and, on demand, what changed in each, in the colors of the code.
+A commit whole, on a page: its full message, labels, author, committer, dates, hash and parents, the files it changed
+with the lines each gained and lost, and, on demand, what changed in each, in the colors of the code.
 
 - **Kind**: View
 - **Function**: `views::commit_page::view(state: &CommitPageState, ui: &mut Ui) -> Vec<Intent>`
@@ -515,12 +523,12 @@ the lines each gained and lost, and, on demand, what changed in each, in the col
 
 What it shows, from the top:
 
-- the title of the message, the labels of the commit (its branches, remote branches and tags, as the graph draws them,
-  while the other views show its repository), and the rest of the message;
+- the title of the message, the labels of the commit (its branches, remote branches and tags, as the timeline draws
+  them, while the window shows its repository), and the rest of the message;
 - **Author** with name and `<email>`, **Date**, **Committer** with name, `<email>` and date only when it differs from the
   author, **Commit** with the full hash, which a click copies (**Copy the hash**), **Parent** or **Parents**, each of
   which opens its own page;
-- **Show in the graph** and, when the commit changed files, **Open in the Diff page**, which opens all of its changes
+- **Show in the timeline** and, when the commit changed files, **Open in the Diff page**, which opens all of its changes
   one after the other in one Diff page;
 - the files, **N changed files** with the lines gained and lost by all of them (`+120 −45`), **against the first
   parent** on a merge, as a tree of directories or as a list: the two buttons beside the count choose, and the choice is
@@ -543,14 +551,14 @@ What it shows, from the top:
 
 `Ctrl+F` (`Cmd+F` on macOS) finds a word in the page with Gitardo's find in page.
 
-A page stays of the repository its commit is in, also after the other views are pointed at another; it is not read again
+A page stays of the repository its commit is in, also after the window is pointed at another; it is not read again
 when the repository changes, as a commit does not change.
 
 Acceptance:
 
 - [ ] The page shows the message in full, unwrapped as `details.message-unwrap` says, with no **Show more**.
 - [ ] A click on the hash copies the full hash; a click on a parent opens the page of the parent.
-- [ ] The labels are those of the commit in the graph, the branch checked out filled in.
+- [ ] The labels are those of the commit in the timeline, the branch checked out filled in.
 - [ ] **Show the changes** puts a diff under the list for every file shown, and **Hide the changes** removes them.
 - [ ] The eye on a file shows the changes and scrolls to that file's diff, unfolded.
 - [ ] A file whose diff is folded at first unfolds with its arrow, and **Unfold all** unfolds every diff.
@@ -591,20 +599,21 @@ Acceptance:
       be unfolded.
 - [ ] Folding a short diff by hand keeps it folded while the page is open.
 
-### `commit-page.show-in-graph` — Show a commit in the graph
+### `commit-page.show-in-graph` — Show a commit in the timeline
 
-Brings the Graph tab to a commit, from a page or a pane that is apart from the graph.
+Brings the timeline to a commit, from a page or from the commits of what is checked out, which are apart from the rest
+of the history.
 
 - **Kind**: View
 - **Function**: `views::commit_page::show_in_graph(state: &CommitPageState, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: **Show in the graph** in the page of a commit; the button and the context menu entry of a commit in
-  the Commits pane.
-- **Uses**: `repo.select` when the page is of another repository than the one the views show; `graph.show-in-graph`,
+- **Entry points**: **Show in the timeline** in the page of a commit; the button and the context menu entry of a commit
+  in the commits of what is checked out.
+- **Uses**: `repo.select` when the page is of another repository than the one the window shows; `graph.show-in-graph`,
   which loads the commit when it is further back than the history loaded and shows all branches when a filter leaves it
   out.
 
 Acceptance:
 
-- [ ] **Show in the graph** in the page of a commit selects that commit in the Graph tab and brings the tab to the front.
-- [ ] From the page of a commit of another repository, the views are pointed back at that repository first.
+- [ ] **Show in the timeline** in the page of a commit selects that commit in the timeline, shown in place of the page.
+- [ ] From the page of a commit of another repository, the window is pointed back at that repository first.
 - [ ] A commit further back than the history loaded is loaded and selected.

@@ -44,8 +44,8 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`repo.watch-changes`](01-repositories.md#repowatch-changes--which-changes-ask-for-a-read) | Which changes ask for a read | Derivation | Specified |
 | [`repo.schedule-reads`](01-repositories.md#reposchedule-reads--read-again-when-something-changed) | Read again when something changed | Derivation | Specified |
 | [`activity.describe-task`](01-repositories.md#activitydescribe-task--say-what-gitardo-is-doing) | Say what Gitardo is doing | Derivation | Specified |
-| [`activity.status-bar`](01-repositories.md#activitystatus-bar--what-is-running-in-the-status-bar) | What is running, in the status bar | View | Specified |
-| [`activity.what-is-running`](01-repositories.md#activitywhat-is-running--the-what-is-running-page) | The What is running page | View | Specified |
+| [`activity.status-bar`](01-repositories.md#activitystatus-bar--what-is-running-in-the-header) | What is running, in the header | View | Specified |
+| [`activity.what-is-running`](01-repositories.md#activitywhat-is-running--what-is-running-in-the-activity-drawer) | What is running, in the Activity drawer | View | Specified |
 | [`welcome.page`](01-repositories.md#welcomepage--the-welcome-page) | The Welcome page | View | Specified |
 
 ## Graph
@@ -54,15 +54,15 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | --- | --- | --- | --- |
 | [`graph.read-commits`](02-graph.md#graphread-commits--read-a-page-of-the-graph) | Read a page of the graph | Read | Specified |
 | [`graph.read-position`](02-graph.md#graphread-position--where-a-commit-is-in-the-history-listed) | Where a commit is in the history listed | Read | Specified |
-| [`graph.view`](02-graph.md#graphview--the-graph-tab) | The Graph tab | View | Specified |
-| [`graph.toolbar`](02-graph.md#graphtoolbar--the-toolbar-of-the-graph-tab) | The toolbar of the Graph tab | View | Specified |
-| [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-toolbar) | The … menu of the toolbar | View | Specified |
+| [`graph.view`](02-graph.md#graphview--the-timeline) | The timeline | View | Specified |
+| [`graph.toolbar`](02-graph.md#graphtoolbar--the-header) | The header | View | Specified |
+| [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Specified |
 | [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Specified |
 | [`graph.lanes`](02-graph.md#graphlanes--lay-out-the-lines-of-the-graph) | Lay out the lines of the graph | Derivation | Specified |
 | [`graph.fit-width`](02-graph.md#graphfit-width--how-wide-the-graph-is-drawn) | How wide the graph is drawn | Derivation | Specified |
 | [`graph.resize-graph`](02-graph.md#graphresize-graph--give-the-graph-less-room-or-more) | Give the graph less room or more | View | Specified |
-| [`graph.resize-panes`](02-graph.md#graphresize-panes--resize-the-references-and-the-details) | Resize the references and the details | View | Specified |
-| [`graph.toggle-references`](02-graph.md#graphtoggle-references--put-the-references-away) | Put the references away | View | Specified |
+| [`graph.resize-panes`](02-graph.md#graphresize-panes--resize-the-branch-rail-and-the-inspector) | Resize the branch rail and the inspector | View | Specified |
+| [`graph.toggle-references`](02-graph.md#graphtoggle-references--put-the-branch-rail-away) | Put the branch rail away | View | Specified |
 | [`graph.labels`](02-graph.md#graphlabels--the-labels-of-each-commit) | The labels of each commit | Derivation | Specified |
 | [`graph.combine-upstream`](02-graph.md#graphcombine-upstream--a-branch-and-its-upstream-on-one-label) | A branch and its upstream on one label | Derivation | Specified |
 | [`graph.pull-request-badge`](02-graph.md#graphpull-request-badge--pull-request-on-a-label) | Pull request on a label | View | Specified |
@@ -70,23 +70,23 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`graph.trace-history`](02-graph.md#graphtrace-history--the-history-of-a-commit-among-the-rows) | The history of a commit among the rows | Derivation | Specified |
 | [`graph.hover-history`](02-graph.md#graphhover-history--the-history-of-a-label-under-the-pointer) | The history of a label under the pointer | View | Specified |
 | [`graph.trace-selected`](02-graph.md#graphtrace-selected--the-history-of-the-selected-commit) | The history of the selected commit | View | Specified |
-| [`graph.columns`](02-graph.md#graphcolumns--what-is-shown-beside-each-message) | What is shown beside each message | View | Specified |
+| [`graph.columns`](02-graph.md#graphcolumns--what-is-shown-with-each-message) | What is shown with each message | View | Specified |
 | [`graph.date-separators`](02-graph.md#graphdate-separators--lines-between-days-weeks-and-months) | Lines between days, weeks and months | Derivation | Specified |
 | [`graph.first-parent`](02-graph.md#graphfirst-parent--only-the-first-parent-of-merges) | Only the first parent of merges | View | Specified |
-| [`graph.fold-rows`](02-graph.md#graphfold-rows--the-rows-of-the-graph-with-merges-folded) | The rows of the graph with merges folded | Derivation | Specified |
+| [`graph.fold-rows`](02-graph.md#graphfold-rows--the-rows-of-the-timeline-with-merges-folded) | The rows of the timeline with merges folded | Derivation | Specified |
 | [`graph.fold-merge`](02-graph.md#graphfold-merge--fold-the-commits-a-merge-brought-in) | Fold the commits a merge brought in | View | Specified |
 | [`graph.fold-all`](02-graph.md#graphfold-all--fold-all-merges) | Fold all merges | View | Specified |
 | [`graph.lane-tips`](02-graph.md#graphlane-tips--the-branch-each-line-comes-from) | The branch each line comes from | Derivation | Specified |
 | [`graph.sticky-branch-names`](02-graph.md#graphsticky-branch-names--branch-names-that-stay-at-the-top) | Branch names that stay at the top | View | Specified |
 | [`graph.scroll-marks`](02-graph.md#graphscroll-marks--marks-beside-the-scroll-bar) | Marks beside the scroll bar | View | Specified |
-| [`graph.keyboard`](02-graph.md#graphkeyboard--move-through-the-graph-with-the-keyboard) | Move through the graph with the keyboard | View | Specified |
-| [`graph.uncommitted-row`](02-graph.md#graphuncommitted-row--the-uncommitted-changes-in-the-graph) | The uncommitted changes in the graph | View | Specified |
+| [`graph.keyboard`](02-graph.md#graphkeyboard--move-through-the-timeline-with-the-keyboard) | Move through the timeline with the keyboard | View | Specified |
+| [`graph.uncommitted-row`](02-graph.md#graphuncommitted-row--the-draft-at-the-top-of-the-timeline) | The draft at the top of the timeline | View | Specified |
 | [`graph.place-stashes`](02-graph.md#graphplace-stashes--where-the-stashes-go-among-the-commits) | Where the stashes go among the commits | Derivation | Specified |
-| [`graph.stashes`](02-graph.md#graphstashes--stashes-in-the-graph) | Stashes in the graph | View | Specified |
-| [`graph.show-in-graph`](02-graph.md#graphshow-in-graph--go-to-a-commit-in-the-graph) | Go to a commit in the graph | View | Specified |
-| [`refs.tree`](02-graph.md#refstree--the-references-beside-the-graph) | The references beside the graph | View | Specified |
-| [`refs.filter`](02-graph.md#refsfilter--filter-the-references-by-name) | Filter the references by name | View | Specified |
-| [`refs.scope-line`](02-graph.md#refsscope-line--the-line-of-the-branches-shown-above-the-references) | The line of the branches shown, above the references | View | Specified |
+| [`graph.stashes`](02-graph.md#graphstashes--stashes-in-the-timeline) | Stashes in the timeline | View | Specified |
+| [`graph.show-in-graph`](02-graph.md#graphshow-in-graph--go-to-a-commit-in-the-timeline) | Go to a commit in the timeline | View | Specified |
+| [`refs.tree`](02-graph.md#refstree--the-branch-rail) | The branch rail | View | Specified |
+| [`refs.filter`](02-graph.md#refsfilter--filter-the-branch-rail-by-name) | Filter the branch rail by name | View | Specified |
+| [`refs.scope-line`](02-graph.md#refsscope-line--the-line-of-the-branches-shown-at-the-top-of-the-branch-rail) | The line of the branches shown, at the top of the branch rail | View | Specified |
 | [`refs.sort`](02-graph.md#refssort--sort-the-branches-and-tags) | Sort the branches and tags | Derivation | Specified |
 | [`refs.recent`](02-graph.md#refsrecent--the-branches-checked-out-last) | The branches checked out last | Derivation | Specified |
 | [`refs.favorite`](02-graph.md#refsfavorite--add-a-branch-to-favorites) | Add a branch to favorites | View | Specified |
@@ -115,8 +115,8 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`filter.show-too`](03-search-and-filter.md#filtershow-too--show-this-history-too) | Show this history too | Derivation | Specified |
 | [`filter.hide`](03-search-and-filter.md#filterhide--hide-this-history) | Hide this history | Derivation | Specified |
 | [`filter.show-all`](03-search-and-filter.md#filtershow-all--show-all-branches) | Show all branches | Derivation | Specified |
-| [`filter.bar`](03-search-and-filter.md#filterbar--the-bar-of-what-the-graph-is-narrowed-to) | The bar of what the graph is narrowed to | View | Specified |
-| [`filter.log-arguments`](03-search-and-filter.md#filterlog-arguments--which-history-the-graph-lists) | Which history the graph lists | Derivation | Specified |
+| [`filter.bar`](03-search-and-filter.md#filterbar--the-bar-of-what-the-timeline-is-narrowed-to) | The bar of what the timeline is narrowed to | View | Specified |
+| [`filter.log-arguments`](03-search-and-filter.md#filterlog-arguments--which-history-the-timeline-lists) | Which history the timeline lists | Derivation | Specified |
 | [`filter.remember`](03-search-and-filter.md#filterremember--the-branches-shown-remembered-per-repository) | The branches shown, remembered per repository | Derivation | Specified |
 
 ## Details, commits and the page of a commit
@@ -134,25 +134,25 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`details.stash`](04-details-and-commit-page.md#detailsstash--details-of-a-stash) | Details of a stash | View | Specified |
 | [`commits.read-log`](04-details-and-commit-page.md#commitsread-log--read-the-commits-of-what-is-checked-out) | Read the commits of what is checked out | Read | Specified |
 | [`commits.push-state`](04-details-and-commit-page.md#commitspush-state--what-is-pushed-and-what-is-to-pull) | What is pushed and what is to pull | Derivation | Specified |
-| [`commits.view`](04-details-and-commit-page.md#commitsview--the-commits-pane) | The Commits pane | View | Specified |
+| [`commits.view`](04-details-and-commit-page.md#commitsview--the-commits-of-what-is-checked-out) | The commits of what is checked out | View | Specified |
 | [`commits.copy-hash`](04-details-and-commit-page.md#commitscopy-hash--copy-the-hash-of-a-commit) | Copy the hash of a commit | Operation | Specified |
 | [`commits.copy-message`](04-details-and-commit-page.md#commitscopy-message--copy-the-message-of-a-commit) | Copy the message of a commit | Operation | Specified |
-| [`commit-page.open`](04-details-and-commit-page.md#commit-pageopen--open-a-commit-in-a-tab) | Open a commit in a tab | Operation | Specified |
+| [`commit-page.open`](04-details-and-commit-page.md#commit-pageopen--open-a-commit-as-a-page) | Open a commit as a page | Operation | Specified |
 | [`commit-page.read-patch`](04-details-and-commit-page.md#commit-pageread-patch--read-the-lines-a-commit-changed) | Read the lines a commit changed | Read | Specified |
 | [`commit-page.diff-lines`](04-details-and-commit-page.md#commit-pagediff-lines--the-lines-of-each-diff-and-how-many-are-sent) | The lines of each diff, and how many are sent | Derivation | Specified |
 | [`commit-page.view`](04-details-and-commit-page.md#commit-pageview--the-page-of-a-commit) | The page of a commit | View | Specified |
 | [`commit-page.initial-folds`](04-details-and-commit-page.md#commit-pageinitial-folds--which-diffs-start-folded) | Which diffs start folded | Derivation | Specified |
-| [`commit-page.show-in-graph`](04-details-and-commit-page.md#commit-pageshow-in-graph--show-a-commit-in-the-graph) | Show a commit in the graph | View | Specified |
+| [`commit-page.show-in-graph`](04-details-and-commit-page.md#commit-pageshow-in-graph--show-a-commit-in-the-timeline) | Show a commit in the timeline | View | Specified |
 
 ## Changes and commit
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`changes.pane`](05-changes-and-commit.md#changespane--the-changes-pane) | The Changes pane | View | Specified |
+| [`changes.pane`](05-changes-and-commit.md#changespane--the-changes-page) | The Changes page | View | Specified |
 | [`changes.read-working-tree`](05-changes-and-commit.md#changesread-working-tree--read-what-is-not-committed) | Read what is not committed | Read | Specified |
 | [`changes.list`](05-changes-and-commit.md#changeslist--one-list-of-the-changed-files) | One list of the changed files | Derivation | Specified |
 | [`changes.unsaved`](05-changes-and-commit.md#changesunsaved--files-with-edits-not-saved) | Files with edits not saved | Derivation | Specified |
-| [`changes.open`](05-changes-and-commit.md#changesopen--what-a-file-of-the-changes-pane-opens) | What a file of the Changes pane opens | Derivation | Specified |
+| [`changes.open`](05-changes-and-commit.md#changesopen--what-a-file-of-the-changes-page-opens) | What a file of the Changes page opens | Derivation | Specified |
 | [`changes.stage`](05-changes-and-commit.md#changesstage--stage-a-file) | Stage a file | Operation | Specified |
 | [`changes.unstage`](05-changes-and-commit.md#changesunstage--unstage-a-file) | Unstage a file | Operation | Specified |
 | [`changes.stage-all`](05-changes-and-commit.md#changesstage-all--stage-all-changes) | Stage all changes | Operation | Specified |
@@ -186,7 +186,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`branch.delete`](06-branches-tags-remotes.md#branchdelete--delete-a-branch) | Delete a branch | Operation | Specified |
 | [`branch.clean-up`](06-branches-tags-remotes.md#branchclean-up--clean-up-branches) | Clean up branches | Operation | Specified |
 | [`branch.fast-forward`](06-branches-tags-remotes.md#branchfast-forward--fast-forward-a-branch-that-is-not-checked-out) | Fast-forward a branch that is not checked out | Operation | Specified |
-| [`branch.pane`](06-branches-tags-remotes.md#branchpane--the-branches-pane) | The Branches pane | View | Specified |
+| [`branch.pane`](06-branches-tags-remotes.md#branchpane--the-branch-rail-its-buttons-and-its-comparison) | The branch rail, its buttons and its comparison | View | Specified |
 | [`tag.create`](06-branches-tags-remotes.md#tagcreate--create-a-tag) | Create a tag | Operation | Specified |
 | [`tag.push`](06-branches-tags-remotes.md#tagpush--push-a-tag) | Push a tag | Operation | Specified |
 | [`tag.delete`](06-branches-tags-remotes.md#tagdelete--delete-a-tag) | Delete a tag | Operation | Specified |
@@ -241,7 +241,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`split.continue`](07-history-rewriting.md#splitcontinue--continue-a-split) | Continue a split | Operation | Specified |
 | [`fixup.commit`](07-history-rewriting.md#fixupcommit--add-changes-to-an-earlier-commit) | Add changes to an earlier commit | Operation | Specified |
 | [`drag.list-drop-entries`](07-history-rewriting.md#draglist-drop-entries--what-a-drop-offers) | What a drop offers | Derivation | Specified |
-| [`drag.drop`](07-history-rewriting.md#dragdrop--drag-a-commit-or-a-branch-onto-the-graph) | Drag a commit or a branch onto the graph | View | Specified |
+| [`drag.drop`](07-history-rewriting.md#dragdrop--drag-a-commit-or-a-branch-onto-the-timeline) | Drag a commit or a branch onto the timeline | View | Specified |
 
 ## Stashes
 
@@ -249,7 +249,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | --- | --- | --- | --- |
 | [`stash.read-list`](08-stashes.md#stashread-list--read-the-stashes) | Read the stashes | Read | Specified |
 | [`stash.read-files`](08-stashes.md#stashread-files--read-what-a-stash-changes) | Read what a stash changes | Read | Specified |
-| [`stash.pane`](08-stashes.md#stashpane--the-stashes-pane) | The Stashes pane | View | Specified |
+| [`stash.pane`](08-stashes.md#stashpane--the-stashes-list) | The Stashes list | View | Specified |
 | [`stash.push`](08-stashes.md#stashpush--stash-all-changes) | Stash all changes | Operation | Specified |
 | [`stash.push-staged`](08-stashes.md#stashpush-staged--stash-the-staged-changes) | Stash the staged changes | Operation | Specified |
 | [`stash.push-file`](08-stashes.md#stashpush-file--stash-a-file-or-the-files-ticked) | Stash a file, or the files ticked | Operation | Specified |
@@ -259,7 +259,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`stash.drop`](08-stashes.md#stashdrop--drop-a-stash) | Drop a stash | Operation | Specified |
 | [`stash.undo-drop`](08-stashes.md#stashundo-drop--undo-a-stash-dropped) | Undo a stash dropped | Operation | Specified |
 | [`stash.branch`](08-stashes.md#stashbranch--create-a-branch-from-a-stash) | Create a branch from a stash | Operation | Specified |
-| [`stash.in-graph`](08-stashes.md#stashin-graph--stashes-in-the-graph) | Stashes in the graph | Derivation | Specified |
+| [`stash.in-graph`](08-stashes.md#stashin-graph--stashes-in-the-timeline) | Stashes in the timeline | Derivation | Specified |
 | [`stash.autostash-left`](08-stashes.md#stashautostash-left--the-stash-a-pull-leaves) | The stash a pull leaves | Derivation | Specified |
 
 ## Conflicts
@@ -327,9 +327,9 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`compare.path-with`](10-compare.md#comparepath-with--compare-a-file-or-a-folder-with-a-branch-tag-or-commit) | Compare a file or a folder with a branch, tag or commit | Operation | Specified |
 | [`compare.with`](10-compare.md#comparewith--compare-with) | Compare with… | Operation | Specified |
 | [`compare.with-current`](10-compare.md#comparewith-current--compare-with-the-current-branch) | Compare with the current branch | Operation | Specified |
-| [`compare.selected-before`](10-compare.md#compareselected-before--compare-two-commits-of-the-graph) | Compare two commits of the graph | Operation | Specified |
+| [`compare.selected-before`](10-compare.md#compareselected-before--compare-two-commits-of-the-timeline) | Compare two commits of the timeline | Operation | Specified |
 | [`compare.read-files`](10-compare.md#compareread-files--read-the-files-that-differ-between-two-commits) | Read the files that differ between two commits | Read | Specified |
-| [`compare.in-place`](10-compare.md#comparein-place--the-comparison-in-place-of-the-details) | The comparison in place of the details | View | Specified |
+| [`compare.in-place`](10-compare.md#comparein-place--the-comparison-in-the-inspector) | The comparison in the inspector | View | Specified |
 
 ## History and blame
 
@@ -345,7 +345,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`blame.current-line`](11-history-and-blame.md#blamecurrent-line--the-blame-of-the-line-under-the-cursor) | The blame of the line under the cursor | View | Specified |
 | [`blame.toggle-current-line`](11-history-and-blame.md#blametoggle-current-line--toggle-the-blame-of-the-line-under-the-cursor) | Toggle the blame of the line under the cursor | Operation | Specified |
 | [`blame.open-line-commit`](11-history-and-blame.md#blameopen-line-commit--open-the-commit-of-the-current-line) | Open the commit of the current line | Operation | Specified |
-| [`blame.reveal-line-commit`](11-history-and-blame.md#blamereveal-line-commit--show-the-commit-of-the-current-line-in-the-graph) | Show the commit of the current line in the graph | Operation | Specified |
+| [`blame.reveal-line-commit`](11-history-and-blame.md#blamereveal-line-commit--show-the-commit-of-the-current-line-in-the-timeline) | Show the commit of the current line in the timeline | Operation | Specified |
 | [`blame.read-file`](11-history-and-blame.md#blameread-file--who-last-changed-each-line-of-a-file) | Who last changed each line of a file | Read | Specified |
 | [`blame.format-line`](11-history-and-blame.md#blameformat-line--what-is-said-beside-each-line) | What is said beside each line | Derivation | Specified |
 | [`blame.age-color`](11-history-and-blame.md#blameage-color--the-color-of-the-age-of-a-line) | The color of the age of a line | Derivation | Specified |
@@ -363,7 +363,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`bisect.mark`](11-history-and-blame.md#bisectmark--mark-a-commit-good-or-bad) | Mark a commit good or bad | Operation | Specified |
 | [`bisect.answer`](11-history-and-blame.md#bisectanswer--answer-for-the-commit-being-tested) | Answer for the commit being tested | Operation | Specified |
 | [`bisect.banner`](11-history-and-blame.md#bisectbanner--the-banner-of-a-bisect) | The banner of a bisect | View | Specified |
-| [`bisect.marks`](11-history-and-blame.md#bisectmarks--the-marks-of-a-bisect-in-the-graph) | The marks of a bisect in the graph | View | Specified |
+| [`bisect.marks`](11-history-and-blame.md#bisectmarks--the-marks-of-a-bisect-in-the-timeline) | The marks of a bisect in the timeline | View | Specified |
 | [`bisect.end`](11-history-and-blame.md#bisectend--end-the-bisect) | End the bisect | Operation | Specified |
 
 ## Worktrees
@@ -375,13 +375,13 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`worktree.create`](12-worktrees.md#worktreecreate--create-a-worktree) | Create a worktree | Operation | Specified |
 | [`worktree.create-from-branch`](12-worktrees.md#worktreecreate-from-branch--put-a-branch-in-a-new-worktree) | Put a branch in a new worktree | Operation | Specified |
 | [`worktree.create-at-commit`](12-worktrees.md#worktreecreate-at-commit--create-a-worktree-at-a-commit) | Create a worktree at a commit | Operation | Specified |
-| [`worktree.section`](12-worktrees.md#worktreesection--the-worktrees-section) | The Worktrees section | View | Specified |
+| [`worktree.section`](12-worktrees.md#worktreesection--the-worktrees-list) | The Worktrees list | View | Specified |
 | [`worktree.open`](12-worktrees.md#worktreeopen--open-a-worktree-where-the-settings-say) | Open a worktree where the settings say | Operation | Specified |
 | [`worktree.open-in-new-window`](12-worktrees.md#worktreeopen-in-new-window--open-a-worktree-in-a-new-window) | Open a worktree in a new window | Operation | Specified |
 | [`worktree.open-in-editor`](12-worktrees.md#worktreeopen-in-editor--open-a-worktree-in-the-external-editor) | Open a worktree in the external editor | Operation | Specified |
 | [`worktree.open-in-terminal`](12-worktrees.md#worktreeopen-in-terminal--open-a-terminal-in-a-worktree) | Open a terminal in a worktree | Operation | Specified |
 | [`worktree.reveal`](12-worktrees.md#worktreereveal--reveal-a-worktree-in-the-file-manager) | Reveal a worktree in the file manager | Operation | Specified |
-| [`worktree.show-in-graph`](12-worktrees.md#worktreeshow-in-graph--show-the-commit-of-a-worktree-in-the-graph) | Show the commit of a worktree in the graph | Operation | Specified |
+| [`worktree.show-in-graph`](12-worktrees.md#worktreeshow-in-graph--show-the-commit-of-a-worktree-in-the-timeline) | Show the commit of a worktree in the timeline | Operation | Specified |
 | [`worktree.show-in-gitardo`](12-worktrees.md#worktreeshow-in-gitardo--show-another-worktree-in-this-window) | Show another worktree in this window | Operation | Specified |
 | [`worktree.banner`](12-worktrees.md#worktreebanner--the-banner-of-a-worktree-shown-in-this-window) | The banner of a worktree shown in this window | View | Specified |
 | [`worktree.rename`](12-worktrees.md#worktreerename--rename-a-worktree) | Rename a worktree | Operation | Specified |
@@ -412,7 +412,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`worktree-setup.copy-into-new-worktrees`](12-worktrees.md#worktree-setupcopy-into-new-worktrees--copy-a-file-or-a-folder-into-new-worktrees) | Copy a file or a folder into new worktrees | Operation | Specified |
 | [`worktree-setup.stop-linking`](12-worktrees.md#worktree-setupstop-linking--stop-linking-a-folder-into-new-worktrees) | Stop linking a folder into new worktrees | Operation | Specified |
 | [`worktree-setup.stop-copying`](12-worktrees.md#worktree-setupstop-copying--stop-copying-into-new-worktrees) | Stop copying into new worktrees | Operation | Specified |
-| [`worktree-setup.explain-change`](12-worktrees.md#worktree-setupexplain-change--why-a-choice-from-the-files-pane-changes-nothing) | Why a choice from the Files pane changes nothing | Derivation | Specified |
+| [`worktree-setup.explain-change`](12-worktrees.md#worktree-setupexplain-change--why-a-choice-from-the-files-page-changes-nothing) | Why a choice from the Files page changes nothing | Derivation | Specified |
 | [`worktree-setup.bring-into-worktree`](12-worktrees.md#worktree-setupbring-into-worktree--bring-ignored-files-into-a-worktree) | Bring ignored files into a worktree | Operation | Specified |
 | [`worktree-setup.bring-into-other-worktrees`](12-worktrees.md#worktree-setupbring-into-other-worktrees--bring-ignored-files-into-the-other-worktrees) | Bring ignored files into the other worktrees | Operation | Specified |
 
@@ -422,7 +422,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | --- | --- | --- | --- |
 | [`submodule.read-list`](13-submodules.md#submoduleread-list--read-the-submodules-and-where-they-stand) | Read the submodules and where they stand | Read | Specified |
 | [`submodule.status`](13-submodules.md#submodulestatus--where-a-submodule-stands) | Where a submodule stands | Derivation | Specified |
-| [`submodule.section`](13-submodules.md#submodulesection--the-submodules-section) | The Submodules section | View | Specified |
+| [`submodule.section`](13-submodules.md#submodulesection--the-submodules-list) | The Submodules list | View | Specified |
 | [`submodule.open-in-new-window`](13-submodules.md#submoduleopen-in-new-window--open-a-submodule-in-a-new-window) | Open a submodule in a new window | Operation | Specified |
 | [`submodule.open-in-terminal`](13-submodules.md#submoduleopen-in-terminal--open-a-terminal-in-a-submodule) | Open a terminal in a submodule | Operation | Specified |
 | [`submodule.reveal`](13-submodules.md#submodulereveal--reveal-a-submodule-in-the-file-manager) | Reveal a submodule in the file manager | Operation | Specified |

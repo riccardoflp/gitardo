@@ -1,16 +1,17 @@
 # Graph
 
-The Graph tab: the commits of every branch, remote branch and tag with their lines and labels, read a page at a time
+The timeline: the commits of every branch, remote branch and tag with their lines and labels, read a page at a time
 while scrolling; how the lines are laid out; what stands out under the pointer and around the selected commit; the
-merges folded into one row; the uncommitted changes and the stashes among the commits; and the references tree beside
-them, with its sections, its filter box, the recent and favorite branches and the way to a reference's commit. The
-search is in [03-search-and-filter.md](03-search-and-filter.md) (`search.`), and so are the branches the graph is
-narrowed to (`filter.`); the details of the selected commit are `details.`, several commits selected together
-`selection.`, drag and drop `drag.`, fetch, pull and push `sync.`, and what is done to a stash `stash.`.
+merges folded into one row; the draft of the uncommitted changes and the stashes among the commits; the header above
+them; and the branch rail beside them, with its lists, its filter box, the recent and favorite branches and the way to a
+reference's commit. The search is in [03-search-and-filter.md](03-search-and-filter.md) (`search.`), and so are the
+branches the timeline is narrowed to (`filter.`); the selected commit in the inspector is `details.`, several commits
+selected together `selection.`, drag and drop `drag.`, fetch, pull and push `sync.`, and what is done to a stash
+`stash.`.
 
 ### `graph.read-commits` — Read a page of the graph
 
-The commits the graph lists, newest first, with their parents: as many pages as were asked for.
+The commits the timeline lists, newest first, with their parents: as many pages as were asked for.
 
 - **Kind**: Read
 - **Function**: `git::read::graph::read_commits(git, request: &CommitsRequest) -> Result<CommitPage, GitError>`
@@ -42,8 +43,8 @@ Acceptance:
 
 ### `graph.read-position` — Where a commit is in the history listed
 
-How many commits come before a commit in the history the graph lists, to know how far it must be loaded for the commit
-to be there; or that it is not in it.
+How many commits come before a commit in the history the timeline lists, to know how far it must be loaded for the
+commit to be there; or that it is not in it.
 
 - **Kind**: Read
 - **Function**: `git::read::graph::read_position(git, request: &PositionRequest) -> Result<Option<usize>, GitError>`
@@ -54,39 +55,40 @@ to be there; or that it is not in it.
 Acceptance:
 
 - [ ] The 2,345th commit of the history listed is at position 2,344.
-- [ ] A commit on a branch the graph is not narrowed to has no position until the branches shown are all of them.
+- [ ] A commit on a branch the timeline is not narrowed to has no position until the branches shown are all of them.
 - [ ] A commit no branch or tag reaches has no position.
 
-### `graph.view` — The Graph tab
+### `graph.view` — The timeline
 
-The commits of every branch, remote branch and tag with their lines and labels, the references beside them and the
-details of the selected commit: the first tab of the window, which cannot be closed.
+The commits of every branch, remote branch and tag with their lines and labels, the branch rail beside them and the
+inspector of the selected commit: what the window shows while no page is open, and the first step of every trail.
 
 - **Kind**: View
 - **Function**: `views::graph::view(state: &GraphState, ui) -> Vec<Intent>`
-- **Entry points**: the **Graph** tab; **Open Graph** in the command palette shows it.
+- **Entry points**: the window, while no page is open; **Timeline**, the first step of the trail of a page; **Open
+  Timeline** in Quick search shows it.
 - **Uses**: `graph.toolbar`, `refs.tree`, `graph.lanes`, `graph.fit-width`, `graph.labels`, `graph.columns`,
   `graph.load-more`, `graph.uncommitted-row`, `graph.stashes`, `graph.hover-history`, `graph.trace-selected`,
   `graph.fold-merge`, `graph.sticky-branch-names`, `graph.scroll-marks`, `graph.keyboard`, `graph.resize-panes`,
   `filter.bar`, `details.show`, `selection.select`, `drag.drop`, `commit-page.open`, `branch.open`.
 
-- From left to right: the references (`refs.tree`), the commits, the details of the selected commit (`details.show`).
-  When the tab is too narrow to have them side by side, the references are left to the Branches pane, the details go
-  under the commits, and each commit has two lines: its message, and under it its labels, who made it and when. There,
-  a commit with more than three labels names two of them, what is checked out first, and counts the others, `+3`, with
-  their names in the tooltip of the count.
+- From left to right: the branch rail (`refs.tree`), the commits, the inspector of the selected commit (`details.show`).
+  When the window is too narrow to have them side by side, the branch rail is narrowed to its icons and the inspector
+  opens over the commits. There, a commit with more than three labels names two of them, what is checked out first, and
+  counts the others, `+3`, with their names in the tooltip of the count.
 - Above the commits, in this order: the banner of a worktree (`worktree.`), of an operation stopped half way
-  (`conflicts.`, `rebase.`), of a bisect (`bisect.`), the bar of what the graph is narrowed to (`filter.bar`) and the
-  bar of several commits selected (`selection.select`).
-- Each row has its cell of the graph (`graph.lanes`): a dot for a commit, in the color of its line. Then its labels
-  (`graph.labels`), its message, and the columns `graph.columns` asks for. The labels are outlined in the color of the
-  commit's line; the branch checked out is the one filled in.
-- A click selects a commit and shows its details; `Ctrl`+click (`Cmd` on macOS) and `Shift`+click select several
-  (`selection.select`). A double click, or `Enter`, opens it in its own tab (`commit-page.open`). A double click on the
-  label of a branch checks it out instead, or does what `branch.open` does for it, as where the branches are listed. A
+  (`conflicts.`, `rebase.`), of a bisect (`bisect.`), the bar of what the timeline is narrowed to (`filter.bar`) and
+  the bar of several commits selected (`selection.select`). The draft of the uncommitted changes is the first card of
+  the commits (`graph.uncommitted-row`).
+- Each row has its cell of the graph (`graph.lanes`): a dot for a commit, in the color of its line. Then two lines: its
+  labels (`graph.labels`) and its message, then the columns `graph.columns` asks for. The labels are outlined in the
+  color of the commit's line; the branch checked out is the one filled in.
+- A click selects a commit and shows it in the inspector; `Ctrl`+click (`Cmd` on macOS) and `Shift`+click select several
+  (`selection.select`). A double click, or `Enter`, opens it as a page (`commit-page.open`). A double click on the
+  label of a branch checks it out instead, or does what `branch.open` does for it, as in the branch rail. A
   right click opens the menu of the commit, of the label under the pointer, of the stash or of the uncommitted changes.
 - While no commit is listed it says **No commits yet** in a repository with none, **No commits found** while a filter
-  or a search narrows the graph, and **No commits to show** otherwise. While the commits of a new filter, of the
+  or a search narrows the timeline, and **No commits to show** otherwise. While the commits of a new filter, of the
   branches just chosen or of the first page are read, a bar runs along the top of the list, the commits listed before
   stay, dimmed, until the new ones are there, and with none listed it says **Loading commits…**.
 - Only the rows in sight are drawn, and a few more above and under them.
@@ -96,51 +98,54 @@ Acceptance:
 - [ ] A repository with `main`, `feature` and a tag `v1.0` lists the commits of all three, the newest first, with a
       label at each tip.
 - [ ] The label of the branch checked out is filled; the others are outlined in the color of their commit's line.
-- [ ] Narrowing the tab under the width of the three panes puts the details under the commits and gives each commit
-      two lines.
-- [ ] A double click on a commit opens its tab; on the label of a branch that is not checked out, checks it out.
+- [ ] Narrowing the window under the width of the branch rail, the commits and the inspector narrows the branch rail
+      to its icons and opens the inspector over the commits.
+- [ ] A double click on a commit opens its page; on the label of a branch that is not checked out, checks it out.
 - [ ] In a new repository with no commits and no changes, the list says **No commits yet**.
 - [ ] Scrolling a list of 50,000 commits draws only the rows in sight.
 
-### `graph.toolbar` — The toolbar of the Graph tab
+### `graph.toolbar` — The header
 
-What applies to the whole repository, above the commits.
+What applies to the whole repository, at the top of the window.
 
 - **Kind**: View
 - **Function**: `views::graph::toolbar_view(state: &ToolbarState, ui) -> Vec<Intent>`
-- **Entry points**: the top of the Graph tab.
+- **Entry points**: the top of the window.
 - **Uses**: `graph.toggle-references`, `repo.select`, `sync.fetch`, `sync.pull`, `sync.push`, `branch.create`,
   `stash.push`, `undo.last`, `filter.picker`, `search.box`, `repo.schedule-reads`, `graph.more-menu`.
 
-From left to right: the button that puts the references away (`graph.toggle-references`); the list of repositories,
-when there are several (`repo.select`); the branch checked out, or `detached at 3f2a1c9`, or `no commits yet`, with the
-folder of the repository in its tooltip; **Fetch**; **Pull** with the number of commits to pull and the arrow of its
-other ways; **Push** with the number of commits to push and the arrow of its other ways; **Branch**, which creates a
-branch at `HEAD`; **Stash**, which stashes all changes; **Undo**; then, at the other end, the button of the branches
-shown (`filter.picker`), the search (`search.box`), **Refresh** and **…** (`graph.more-menu`). Each button says in its
-tooltip what it runs: **Fetch: git fetch --all --prune**, **Push: git push**, **Stash: git stash push
---include-untracked**. When the tab is narrow the buttons keep their icons and give up their words, and **Refresh** is
-left to the **…** menu. While an operation runs, the buttons that change something are disabled. **Branch** and
-**Undo** are disabled before the first commit, and **Stash** also while there is nothing to stash.
+From left to right: the button that puts the branch rail away (`graph.toggle-references`); the repository menu, which
+names the repository shown and lists the others of the workspace (`repo.select`); the branch checked out, or `detached
+at 3f2a1c9`, or `no commits yet`, with how far it is from its upstream (`activity.status-bar`) and the folder of the
+repository in its tooltip; Quick search; the activity indicator (`activity.status-bar`); **Sync** with the number of
+commits to pull and to push, `↓3 ↑2`, and its menu: **Fetch**, **Pull** and its other ways, **Push** and its other
+ways; **Activity**, which opens the Activity drawer; and **…** (`graph.more-menu`), which has **Refresh**, **Branch**,
+which creates a branch at `HEAD`, **Stash**, which stashes all changes, and **Undo**. The button of the branches shown
+(`filter.picker`) and the search (`search.box`) are at the top of the timeline. Each entry says in its tooltip what it
+runs: **Fetch: git fetch --all --prune**, **Push: git push**, **Stash: git stash push --include-untracked**. When the
+window is narrow the header keeps its icons and gives up its words. While an operation runs, the entries that change
+something are disabled. **Branch** and **Undo** are disabled before the first commit, and **Stash** also while there is
+nothing to stash.
 
 Acceptance:
 
-- [ ] With `main` two ahead of its upstream and three behind, **Push** shows 2 and **Pull** shows 3.
-- [ ] Detached at a commit, the toolbar names `detached at <short hash>`.
-- [ ] While a fetch runs, **Pull** and **Push** cannot be clicked.
-- [ ] Narrowing the tab hides the words of the buttons and the **Refresh** button; **Refresh** stays in **…**.
+- [ ] With `main` two ahead of its upstream and three behind, **Sync** shows `↓3 ↑2`.
+- [ ] Detached at a commit, the header names `detached at <short hash>`.
+- [ ] While a fetch runs, **Pull** and **Push** in the menu of **Sync** cannot be clicked.
+- [ ] Narrowing the window hides the words of the header and keeps its icons; **Refresh** stays in **…**.
 
-### `graph.more-menu` — The … menu of the toolbar
+### `graph.more-menu` — The … menu of the header
 
-The switches of the graph and the ways to what is not on a button.
+The switches of the timeline and the ways to what is not elsewhere in the header.
 
 - **Kind**: View
 - **Function**: `views::graph::more_menu_view(state: &MoreMenuState, ui) -> Vec<Intent>`
-- **Entry points**: **…** at the end of the toolbar of the Graph tab.
+- **Entry points**: **…** at the end of the header.
 
 In this order, separated in groups:
 
-1. **Refresh** (`repo.schedule-reads`).
+1. **Refresh** (`repo.schedule-reads`); **Branch** (`branch.create` at `HEAD`), **Stash** (`stash.push`), **Undo**
+   (`undo.last`).
 2. **Show local branches**, **Show remote branches**, **Show tags** (`filter.kinds`); **Show stashes**
    (`graph.stashes`); **Show only the first parent of merges** (`graph.first-parent`); **Bring out the history of the
    selected commit** (`graph.trace-selected`); **Fold all merges** and **Unfold all merges** (`graph.fold-all`), while
@@ -150,7 +155,7 @@ In this order, separated in groups:
 4. **Compare branches, tags or commits…** (`compare.choose`), **Go to commit…** (`search.go-to-commit`), **History of
    the active file** (`file-history.file`), **Browse reflog…** (`reflog.browse`), **Clean up branches…**
    (`branch.clean-up`), **Apply patch…** (`patch.apply`), **Manage remotes…** (`remote.manage`), **Add submodule…**
-   (`submodule.add`) while the repository has no submodule (the Submodules section has it otherwise), **Select
+   (`submodule.add`) while the repository has no submodule (the Submodules list has it otherwise), **Select
    repository…** (`repo.select`) when it is offered.
 5. **Switch identity…** (`identity.switch`).
 6. **Load pull requests from GitHub** (`github.load-pull-requests`), when the main remote is on GitHub.
@@ -161,7 +166,7 @@ follows.
 Acceptance:
 
 - [ ] Every entry above is in the menu, in that order, with its condition.
-- [ ] Unchecking **Show the hash** takes the hashes out of the graph and sets `graph.columns` to `["author", "date"]`
+- [ ] Unchecking **Show the hash** takes the hashes out of the timeline and sets `graph.columns` to `["author", "date"]`
       in the user's settings.
 - [ ] **Add submodule…** is not in the menu of a repository with submodules.
 
@@ -248,7 +253,7 @@ The graph is as wide as its lines need, within limits, and draws its lines close
 
 - **Kind**: Derivation
 - **Function**: `model::graph::fit_width(lanes: usize, wanted: Option<f32>, available: f32) -> GraphFit`
-- **Uses**: by `graph.view`, `graph.resize-graph` and the Commits pane (`commits.`).
+- **Uses**: by `graph.view`, `graph.resize-graph` and the commits of what is checked out (`commits.`).
 
 Input: the most lanes any row of the list has, the width the graph was dragged to (none while it chooses its own), and
 the width of the list (0 while it is not known). Output: the width the graph is drawn in, the room each lane gets in
@@ -277,64 +282,67 @@ Drag the edge of the graph to give it less room or more; double-click it to let 
 
 - **Kind**: View
 - **Function**: `views::graph::resize_graph_view(state: &GraphEdgeState, ui) -> Vec<Intent>`
-- **Entry points**: the edge between the graph and the messages, in the Graph tab and in the Commits pane; with the
-  keyboard on it, `←` and `→`.
+- **Entry points**: the edge between the graph and the messages, in the timeline; with the keyboard on it, `←` and
+  `→`.
 - **Uses**: `graph.fit-width`.
 
 Dragging sets the width the graph is drawn in, from 20 px up to the width at which every lane has its room and no more
 than 60% of the list; `←` and `→` move it by 16 px. A double click forgets the width, and the graph chooses its own
-again. The edge stays where it is while the commits scroll. The Graph tab and the Commits pane each remember their own
-width, for the workspace, after the window is closed.
+again. The edge stays where it is while the commits scroll. The timeline remembers the width, for the workspace, after
+the window is closed, also while it is narrowed to a branch.
 
 Acceptance:
 
 - [ ] Dragging the edge past the natural width of the graph stops at it.
 - [ ] A double click on the edge brings back the width the graph chooses.
-- [ ] The width dragged in the Graph tab is there after the window is opened again, and does not change the Commits
-      pane.
+- [ ] The width dragged in the timeline is there after the window is opened again, and while the timeline is narrowed
+      to the branch checked out.
 
-### `graph.resize-panes` — Resize the references and the details
+### `graph.resize-panes` — Resize the branch rail and the inspector
 
-Drag the line between the references and the commits, or between the commits and the details, to change their widths.
+Drag the line between the branch rail and the commits, or between the commits and the inspector, to change their
+widths.
 
 - **Kind**: View
 - **Function**: `views::graph::resize_panes_view(state: &PaneSizes, ui) -> Vec<Intent>`
-- **Entry points**: the line between two panes of the Graph tab; with the keyboard on it, the arrows.
+- **Entry points**: the line between the branch rail and the commits, or between the commits and the inspector; with
+  the keyboard on it, the arrows.
 
 | Line | Starts at | Least | Most | Double click |
 | --- | --- | --- | --- | --- |
-| References and commits | 210 px | 120 px | 35% of the tab | back to 210 px |
-| Commits and details, side by side | 320 px for the details | 200 px | 55% of the tab | back to 320 px |
-| Commits and details, one over the other | half the height for the details | 80 px | 80% of the height | back to half |
+| Branch rail and commits | 210 px | 120 px | 35% of the window | back to 210 px |
+| Commits and inspector, side by side | 320 px for the inspector | 200 px | 55% of the window | back to 320 px |
+| Inspector over the commits, in the narrow layout | half the height for the inspector | 80 px | 80% of the height | back to half |
 
-Dragging away from a pane makes it larger. The arrows move the line by 16 px. A size larger than the tab has room for
-is drawn at the most the tab allows, and comes back when the tab is wider. The sizes are remembered for the workspace.
+Dragging away from the branch rail or the inspector makes it larger. The arrows move the line by 16 px. A size larger
+than the window has room for is drawn at the most the window allows, and comes back when the window is wider. The sizes
+are remembered for the workspace.
 
 Acceptance:
 
-- [ ] The references cannot be dragged narrower than 120 px nor wider than 35% of the tab.
-- [ ] A double click on the line before the details gives them 320 px again.
+- [ ] The branch rail cannot be dragged narrower than 120 px nor wider than 35% of the window.
+- [ ] A double click on the line before the inspector gives it 320 px again.
 - [ ] The sizes are there after the window is closed and opened again on the same workspace.
 
-### `graph.toggle-references` — Put the references away
+### `graph.toggle-references` — Put the branch rail away
 
-The first button of the toolbar puts the references away, to leave their room to the commits, and brings them back.
+The first button of the header puts the branch rail away, to leave its room to the commits, and brings it back.
 
 - **Kind**: View
 - **Function**: `views::graph::toggle_references_view(state: &ReferencesShown, ui) -> Vec<Intent>`
-- **Entry points**: the first button of the toolbar of the Graph tab, pressed while the references are shown.
+- **Entry points**: the first button of the header, pressed while the branch rail is shown.
 
 Its tooltip says **Hide the branches, tags and stashes beside the commits**, or **Show the branches, tags and stashes
 beside the commits**. Whether they are put away is remembered for the workspace.
 
 Acceptance:
 
-- [ ] A click hides the references and the commits take their room; another brings them back at the width they had.
-- [ ] Hidden references stay hidden after the window is opened again.
+- [ ] A click hides the branch rail and the commits take its room; another brings it back at the width it had.
+- [ ] A hidden branch rail stays hidden after the window is opened again.
 
 ### `graph.labels` — The labels of each commit
 
-Which labels a commit has in the graph, and what each says.
+Which labels a commit has in the timeline, and what each says.
 
 - **Kind**: Derivation
 - **Function**: `model::graph::labels(state: &RepositoryState, settings: &GraphSettings) -> HashMap<Oid, Vec<Label>>`
@@ -366,7 +374,7 @@ on, each has its own label again.
 
 - **Kind**: Derivation
 - **Function**: `model::graph::combine_upstream(branch: &Branch, remote_branches: &[RemoteBranch]) -> Option<String>`
-- **Entry points**: **Put a branch and its upstream on one label** in the **…** menu of the toolbar.
+- **Entry points**: **Put a branch and its upstream on one label** in the **…** menu of the header.
 - **Settings**: `graph.combineUpstream` (on by default); off, `feature` and `origin/feature` have a label each.
 - **Uses**: `refs.favorite`, `remote.delete-branch`.
 
@@ -395,7 +403,7 @@ color of its checks.
 
 - **Kind**: View
 - **Function**: `views::graph::pull_request_badge_view(state: &PullRequestBadge, ui) -> Vec<Intent>`
-- **Entry points**: the labels of the graph, the rows of the references tree and of the Branches pane.
+- **Entry points**: the labels of the timeline, the rows of the branch rail.
 - **Uses**: `github.load-pull-requests`, `github.open-pull-request`.
 
 - The badge has the icon of a pull request, a draft one for a draft, and its number, in the color of its checks:
@@ -430,7 +438,7 @@ whose tip is among the rows:
   the rows, are its commits not pushed, each with the name of its upstream;
 - when the upstream's commit is not among the rows, it is further down than all of them, and the commits the branch
   reaches among the rows are the ones not pushed, but only when they are no more than git counts ahead: more would mean
-  the graph leaves the upstream out (as with **Local**), and then which are pushed is not known, and none is marked;
+  the timeline leaves the upstream out (as with **Local**), and then which are pushed is not known, and none is marked;
 - a commit that two branches have is marked for the first.
 
 The ring is in the color of the commit's line; its tooltip says `Not pushed to origin/main`.
@@ -440,12 +448,12 @@ Acceptance:
 - [ ] `main` two commits ahead of `origin/main`: its two newest commits have a ring, and their tooltip says `Not pushed
       to origin/main`.
 - [ ] A branch with no upstream has no ring.
-- [ ] With the graph narrowed to **Local**, no commit has a ring.
+- [ ] With the timeline narrowed to **Local**, no commit has a ring.
 - [ ] After a push and the read that follows it, the rings are gone.
 
 ### `graph.trace-history` — The history of a commit among the rows
 
-Which commits and which parts of the lines belong to the history of a commit, for the graph to bring them out.
+Which commits and which parts of the lines belong to the history of a commit, for the timeline to bring them out.
 
 - **Kind**: Derivation
 - **Function**: `model::graph::trace_history(rows: &[Row], cells: &[GraphCell], wanted: &Trace) -> Vec<CellTrace>`
@@ -475,26 +483,25 @@ would bring to the branch checked out.
 
 - **Kind**: View
 - **Function**: `views::graph::hover_history_view(state: &HoverState, ui) -> Vec<Intent>`
-- **Entry points**: the pointer on a label of the graph; on a branch, tag, stash or worktree of the references tree; on
-  a branch, tag or worktree of the Branches pane; on a sticky branch name (`graph.sticky-branch-names`).
+- **Entry points**: the pointer on a label of the timeline; on a branch, tag, stash or worktree of the branch rail; on
+  a sticky branch name (`graph.sticky-branch-names`).
 - **Uses**: `graph.trace-history`.
 
-- After the pointer has rested 150 ms on a label, the commits it reaches, as far as the graph has loaded them, and the
-  lines between them keep their colors, and the rest of the graph fades. Going from one label to another changes it at
-  once; leaving the labels brings the graph back 100 ms later, so that passing over labels does not flash it.
-- With `Shift` held on a label of the graph, only the commits it has that the commit checked out has not stand out:
+- After the pointer has rested 150 ms on a label, the commits it reaches, as far as the timeline has loaded them, and
+  the lines between them keep their colors, and the rest of the timeline fades. Going from one label to another changes
+  it at once; leaving the labels brings the timeline back 100 ms later, so that passing over labels does not flash it.
+- With `Shift` held on a label of the timeline, only the commits it has that the commit checked out has not stand out:
   what merging it, or a pull request of it, would bring. When the commit checked out is not among the rows, the whole
   history stands out.
-- Rows in the references tree and the Branches pane bring out their commit's history in the Graph tab while it is
-  open.
+- Rows of the branch rail bring out their commit's history in the timeline while it is shown.
 - While a label is under the pointer, it takes the place of the history of the selected commit.
 
 Acceptance:
 
 - [ ] Resting on `feature` for 150 ms fades every commit `feature` does not reach.
-- [ ] Moving the pointer across labels quickly does not fade the graph.
+- [ ] Moving the pointer across labels quickly does not fade the timeline.
 - [ ] With `Shift` held on `feature`, only the commits of `feature` not in the commit checked out stay in color.
-- [ ] Resting on a branch in the Branches pane brings out its history in the Graph tab.
+- [ ] Resting on a branch in the branch rail brings out its history in the timeline.
 
 ### `graph.trace-selected` — The history of the selected commit
 
@@ -508,20 +515,20 @@ the ones made on top of it.
 - **Uses**: `graph.trace-history`.
 
 The commits the selected one reaches and those that reach it, with the lines between them, keep their colors; the rest
-is dimmed, less than under a label. It does not apply while several commits are selected, nor to the uncommitted
-changes, and gives way to the history of a label under the pointer until the pointer leaves it. It stays while the
+is dimmed, less than under a label. It does not apply while several commits are selected, nor to the draft, and
+gives way to the history of a label under the pointer until the pointer leaves it. It stays while the
 commits are read.
 
 Acceptance:
 
 - [ ] Selecting a commit on `feature` dims the commits of `main` made after `feature` left it.
-- [ ] Selecting the uncommitted changes dims nothing.
+- [ ] Selecting the draft dims nothing.
 - [ ] With two commits selected, nothing is dimmed.
 - [ ] Unchecking the entry in **…** sets `graph.traceSelected` to false and nothing is dimmed.
 
-### `graph.columns` — What is shown beside each message
+### `graph.columns` — What is shown with each message
 
-Who made each commit, when and its hash, beside the message, or under it where the graph is narrow.
+Who made each commit and when, on the line under its message, and its hash at the end of the row.
 
 - **Kind**: View
 - **Function**: `views::graph::columns_view(state: &ColumnsState, ui) -> Vec<Intent>`
@@ -532,13 +539,13 @@ Who made each commit, when and its hash, beside the message, or under it where t
   `5m ago`, `3h ago`, `2d ago` under a week, and as a date (`Oct 3, 2026`) after; its tooltip has the full date and
   time. The hash is the first seven characters.
 - What is left out gives its room to the messages.
-- In the narrow layout, the author and the date are under the message; the hash is not shown there.
-- The uncommitted changes have none of them; in the narrow layout they say **Not committed yet**.
+- In the narrow layout of the window, the hash is not shown.
+- The draft has none of them.
 
 Acceptance:
 
 - [ ] By default each row shows the author, the date and the short hash.
-- [ ] Unchecking **Show the date** removes the dates and the messages get wider.
+- [ ] Unchecking **Show the date** removes the dates from the line under each message.
 - [ ] A commit made 90 minutes ago says `1h ago`, and its tooltip the full date.
 
 ### `graph.date-separators` — Lines between days, weeks and months
@@ -578,7 +585,7 @@ Follows each branch along its own line only: a merge is one commit on it, withou
 - **Uses**: `graph.read-commits`, `graph.read-position`.
 
 On, the commits are read with `--first-parent`, and each merge has its first parent only. Each branch still shown has
-its line, down to where it started. Changing it reads the graph again from one page.
+its line, down to where it started. Changing it reads the timeline again from one page.
 
 Acceptance:
 
@@ -586,7 +593,7 @@ Acceptance:
       not listed unless `feature` itself is shown and reaches them.
 - [ ] A merge with the setting on has no fold button (`graph.fold-merge`): it brought nothing in.
 
-### `graph.fold-rows` — The rows of the graph with merges folded
+### `graph.fold-rows` — The rows of the timeline with merges folded
 
 The rows with the commits each folded merge brought in put away under one row, and the lines drawn again.
 
@@ -633,8 +640,8 @@ Puts the commits that a merge brought in under one row, and shows them again.
 - The folded row has a hollow dashed dot, the icon of unfolding and its text; its tooltip says **Click to show them
   again**. It cannot be selected; the arrows pass over it; it has no context menu.
 - The arrow of the merge says **Fold the commits it merged into one row**, or **Show the commits it merged again**.
-- Each view of the graph (the Graph tab, the narrow layout) keeps the folds of each repository after it is hidden and
-  after the window is closed: for the 20 repositories shown last, and the 200 merges of each folded or unfolded last.
+- The timeline keeps the folds of each repository, wide or narrow, after a page took its place and after the window
+  is closed: for the 20 repositories shown last, and the 200 merges of each folded or unfolded last.
 - A merge folded that is no longer in the history, after a rebase or a reset, is forgotten once the whole history is
   loaded with nothing narrowing it.
 
@@ -657,9 +664,9 @@ Folds every merge, also the ones loaded later, until it is unchecked.
   checked; **Unfold all merges** while no merge is folded.
 - **Uses**: `graph.fold-rows`, `graph.fold-merge`.
 
-Checked, it folds every merge, also those loaded later as the graph is scrolled or more of the history is read; a merge
-unfolded by hand stays unfolded. **Unfold all merges**, or **Fold all merges** again, shows all their commits again and
-forgets every fold. Whether all are folded is kept with the folds of the repository.
+Checked, it folds every merge, also those loaded later as the timeline is scrolled or more of the history is read; a
+merge unfolded by hand stays unfolded. **Unfold all merges**, or **Fold all merges** again, shows all their commits
+again and forgets every fold. Whether all are folded is kept with the folds of the repository.
 
 Acceptance:
 
@@ -707,8 +714,8 @@ Acceptance:
 
 ### `graph.scroll-marks` — Marks beside the scroll bar
 
-Beside the scroll bar of the graph, marks say where in the commits loaded the one checked out is, where the one selected
-is, and where what a search found is.
+Beside the scroll bar of the timeline, marks say where in the commits loaded the one checked out is, where the one
+selected is, and where what a search found is.
 
 - **Kind**: View
 - **Function**: `views::graph::scroll_marks_view(state: &ScrollMarks, ui) -> Vec<Intent>`
@@ -724,7 +731,7 @@ Acceptance:
 - [ ] A search with 14 matches shows their marks, merged where they fall on the same pixel.
 - [ ] Selecting a commit moves the mark of the selection to it.
 
-### `graph.keyboard` — Move through the graph with the keyboard
+### `graph.keyboard` — Move through the timeline with the keyboard
 
 With the keyboard on the list of commits, the arrows go from commit to commit.
 
@@ -742,7 +749,7 @@ With the keyboard on the list of commits, the arrows go from commit to commit.
 | `Shift+Alt+↓`, `Shift+Alt+↑` | Selects the next merge down, or up |
 | `←` on a merge | Folds the commits it merged |
 | `→` on a folded merge | Shows them again |
-| `Enter` | Opens the commit selected in its tab, as a double click does |
+| `Enter` | Opens the commit selected as a page, as a double click does |
 
 The row selected is scrolled into sight. `Ctrl+Home` and `Cmd+Home` are left to the list.
 
@@ -752,26 +759,28 @@ Acceptance:
 - [ ] `Alt+↓` on a merge selects its first parent, not the commit under it.
 - [ ] `Alt+↑` on the last commit of a merged branch selects the merge.
 - [ ] `Shift+Alt+↓` selects the next merge down.
-- [ ] `Enter` on the uncommitted changes opens nothing.
+- [ ] `Enter` on the draft opens nothing.
 
-### `graph.uncommitted-row` — The uncommitted changes in the graph
+### `graph.uncommitted-row` — The draft at the top of the timeline
 
-The changes not committed are the first row of the graph, joined to the commit they are made on, also before the first
-commit of a new repository.
+The changes not committed are the draft, the first card of the timeline, joined to the commit they are made on, also
+before the first commit of a new repository.
 
 - **Kind**: View
 - **Function**: `views::graph::uncommitted_row_view(state: &UncommittedRow, ui) -> Vec<Intent>`
-- **Entry points**: the first row of the graph; its context menu.
-- **Offered when**: there are changes (staged, not staged, untracked or in conflict), nothing narrows the graph but the
-  branches shown, and the commit checked out is among the commits listed (or there is none yet). Narrowed to branches
-  that do not have it, the row is not there.
-- **Uses**: `details.show`, `stash.push`, `stash.push-staged`, `changes.stage-all`, `changes.unstage-all`,
-  `changes.discard-all`.
+- **Entry points**: the first card of the timeline; its context menu.
+- **Offered when**: there are changes (staged, not staged, untracked or in conflict), nothing narrows the timeline but
+  the branches shown, and the commit checked out is among the commits listed (or there is none yet). Narrowed to
+  branches that do not have it, the draft is not there.
+- **Uses**: `details.show`, `changes.pane`, `stash.push`, `stash.push-staged`, `changes.stage-all`,
+  `changes.unstage-all`, `changes.discard-all`.
 
-- The row says `Uncommitted changes (<n>)`, `<n>` being the number of files with a change of any kind, each once. Its
-  dot is a hollow ring joined to the commit checked out by a dashed line; it has no author, date or hash.
-- Selected, it lists its files in the details, as a commit does (`details.show`). It cannot be selected together with
-  commits, opened in a tab, dragged or folded.
+- The draft has the commit box of the Changes page (`changes.pane`): the message of the next commit and **Commit**.
+  Under them it says `<n> files changed`, `<n>` being the number of files with a change of any kind, each once
+  (`1 file changed`), followed by `· <m> staged` while some are staged; and **Review**, which opens the Changes page.
+  Its dot is a hollow ring joined to the commit checked out by a dashed line; it has no author, date or hash.
+- Selected, it lists its files in the inspector, as a commit does (`details.show`). It cannot be selected together with
+  commits, opened as a page, dragged or folded.
 - Its context menu:
   - **Stash changes…** (`stash.push`), when there is a commit to stash onto;
   - **Stash staged changes…** (`stash.push-staged`), when there is a commit and something is staged;
@@ -780,13 +789,13 @@ commit of a new repository.
   - **Unstage all changes** (`changes.unstage-all`), when something is staged;
   - **Discard all changes…** (`changes.discard-all`), in the color of danger, but not during a merge, a rebase, a
     cherry-pick, a revert or a patch, which **Abort** takes back.
-- When the changes are all committed or discarded, the row goes and its details close.
+- When the changes are all committed or discarded, the draft goes and the inspector no longer shows it.
 
 Acceptance:
 
-- [ ] Changing a file adds `Uncommitted changes (1)` above the commit checked out, with a dashed line to it.
-- [ ] In a new repository with one untracked file, the row is the only one, with no line down.
-- [ ] Narrowed to a branch that is not checked out, the row is not there.
+- [ ] Changing a file adds the draft above the commit checked out, saying `1 file changed`, with a dashed line to it.
+- [ ] In a new repository with one untracked file, the draft is the only card, with no line down.
+- [ ] Narrowed to a branch that is not checked out, the draft is not there.
 - [ ] With a file in conflict, the menu has no **Stage all changes**; during a merge, no **Discard all changes…**.
 - [ ] Before the first commit, the menu has no stash entry.
 
@@ -810,85 +819,88 @@ Acceptance:
       since, above its base.
 - [ ] A stash made on a commit made after it in date order (its clock was behind) goes right above its base.
 - [ ] Two stashes on the same commit are listed `stash@{0}` above `stash@{1}`.
-- [ ] A stash on a branch the graph is not narrowed to is not listed.
+- [ ] A stash on a branch the timeline is not narrowed to is not listed.
 
-### `graph.stashes` — Stashes in the graph
+### `graph.stashes` — Stashes in the timeline
 
-The stashes are in the graph too, each above the commit it was made on, as long as that commit is in the graph.
+The stashes are in the timeline too, each above the commit it was made on, as long as that commit is in the timeline.
 
 - **Kind**: View
 - **Function**: `views::graph::stashes_view(state: &StashRows, ui) -> Vec<Intent>`
 - **Entry points**: **Show stashes** in the **…** menu; the context menu of a stash row.
-- **Offered when**: the commit the stash was made on is in the graph: on the branches shown, and not among what a
+- **Offered when**: the commit the stash was made on is in the timeline: on the branches shown, and not among what a
   search finds, in the history of a file or of a commit on no branch.
 - **Settings**: `graph.showStashes` (on by default).
 - **Uses**: `graph.place-stashes`, `stash.apply`, `stash.pop`, `stash.drop`, `stash.branch`, `details.show`.
 
-A stash is a square with no fill rather than a dot, joined to its commit by a dashed line; its label, `stash@{0}`, has
-a dotted border, and its message is in italics. Selected, its details show what it holds, the untracked files it took
-included. Its context menu applies, pops, drops it or makes a branch of it, as in the Stashes pane. It cannot be
-selected together with commits, dragged, or be where a commit is dropped.
+A stash is a square with no fill rather than a dot, joined to its commit by a dashed line; its label, `stash@{0}`, has a
+dotted border, and its message is in italics. Selected, the inspector shows what it holds, the untracked files it took
+included. Its context menu applies, pops, drops it or makes a branch of it, as in the Stashes list of the branch rail.
+It cannot be selected together with commits, dragged, or be where a commit is dropped.
 
 Acceptance:
 
 - [ ] `git stash` in a terminal adds a square above the commit checked out, labeled `stash@{0}`.
 - [ ] Unchecking **Show stashes** takes them out and sets `graph.showStashes` to false.
 - [ ] The context menu of a stash row has apply, pop, drop and create branch, and nothing of a commit.
-- [ ] While the graph shows the history of a file, no stash is in it.
+- [ ] While the timeline shows the history of a file, no stash is in it.
 
-### `graph.show-in-graph` — Go to a commit in the graph
+### `graph.show-in-graph` — Go to a commit in the timeline
 
-Opens the graph at a commit: loads the history up to it when it is further back, and shows it when the graph leaves it
-out.
+Opens the timeline at a commit: loads the history up to it when it is further back, and shows it when the timeline
+leaves it out.
 
 - **Kind**: View
 - **Function**: `views::graph::show_in_graph_view(state: &GoToState, ui) -> Vec<Intent>`
-- **Entry points**: **Show in the graph** in the menu of a branch, tag or worktree in the references tree and in the
-  Branches pane (the worktree's commit); a click on a reference in the references tree; and, from other areas, a step
-  of a search, **Go to commit…**, the reflog, the Commits pane, the bisect banner.
+- **Entry points**: **Show in the timeline** in the menu of a branch, tag or worktree in the branch rail (the
+  worktree's commit); a click on a tag, a stash or a worktree in the branch rail; and, from other areas, a step of a
+  search, **Go to commit…**, the reflog, the commits of what is checked out, the bisect banner.
 - **Reads**: `graph.read-position`.
 - **Uses**: `graph.read-commits`, `graph.fold-merge`, `filter.log-arguments`.
 
 - A commit among the rows loaded is selected and scrolled to the middle of the list. A commit inside a folded merge
   unfolds it first.
-- Otherwise its position in the history listed is read; when the graph is narrowed by a search shown as a list, the
+- Otherwise its position in the history listed is read; when the timeline is narrowed by a search shown as a list, the
   history of a file or of some lines, and the commit is not in it, that is taken away; when it is still not there and
-  the graph is narrowed to some branches, all of them are shown again; when it is still not there (no branch or tag
-  reaches it, such as a commit lost to a reset), the graph shows the history of that commit alone, and the bar says
+  the timeline is narrowed to some branches, all of them are shown again; when it is still not there (no branch or tag
+  reaches it, such as a commit lost to a reset), the timeline shows the history of that commit alone, and the bar says
   `Only the history of 3f2a1c9 · on no branch or tag` with **Show all commits**.
 - The history is loaded up to the page that has it, `position / page size + 1` pages, and the commit is selected and
   scrolled to the middle.
-- The view that asked is the one that selects it.
+- The timeline comes back in place of the page that asked, and selects it.
 
 Acceptance:
 
-- [ ] **Show in the graph** on a tag 3,500 commits back loads four pages and selects the tag's commit.
-- [ ] A click on a branch the graph is not narrowed to shows all branches again and selects its commit.
+- [ ] **Show in the timeline** on a tag 3,500 commits back loads four pages and selects the tag's commit.
+- [ ] **Show in the timeline** on a branch the timeline is not narrowed to shows all branches again and selects its
+      commit.
 - [ ] Going to a commit found in the reflog that no branch reaches shows its history alone, until **Show all
       commits**.
-- [ ] Going to a commit of the history listed while the graph shows the history of a file keeps that history when the
-      commit is in it.
+- [ ] Going to a commit of the history listed while the timeline shows the history of a file keeps that history when
+      the commit is in it.
 
-### `refs.tree` — The references beside the graph
+### `refs.tree` — The branch rail
 
-The local branches with how far each is from its upstream, the remote branches, the tags, the stashes, the worktrees
-and the submodules, in sections that fold.
+The local branches with how far each is from its upstream, each in the color of its lane, and the remote branches;
+then, kept aside, the stashes, the worktrees, the tags and the submodules: in lists that fold, on the left of the
+window.
 
 - **Kind**: View
 - **Function**: `views::refs::tree_view(state: &ReferencesState, ui) -> Vec<Intent>`
-- **Entry points**: the left of the Graph tab; the Branches pane of the side bar has the same tree, without the
-  stashes.
-- **Uses**: `refs.filter`, `refs.scope-line`, `refs.sort`, `refs.recent`, `refs.favorite`, `graph.show-in-graph`,
+- **Entry points**: the left of the window; it can be put away (`graph.toggle-references`), and in the narrow layout
+  it is narrowed to its icons.
+- **Uses**: `refs.filter`, `refs.scope-line`, `refs.sort`, `refs.recent`, `refs.favorite`, `filter.show-only`,
+  `filter.show-all`, `graph.show-in-graph`,
   `graph.hover-history`, `graph.pull-request-badge`, `branch.open`, `drag.drop`, `branch.`, `tag.`, `stash.`,
   `worktree.`, `submodule.`.
 
-- Sections, in this order: **Favorites** and **Recent** (each only when it has something), **Local**, **Remotes**,
-  **Tags**, **Stashes**, **Worktrees**, **Submodules** (only when there are some). Each has its icon and the count of
-  what it lists.
-- The sections are all closed when Gitardo starts, here and in the Branches pane; the ones opened stay open until the
-  application is closed.
-- A section with more than 100 entries lists the first 100 and **Show all `<n>`…**, which lists them all until the
-  view is shown again. The branch checked out is listed even when it comes after the first 100.
+- Lists, in this order: **Favorites** and **Recent** (each only when it has something), **Local**, **Remotes** (the
+  branches of each remote under its name), then **Kept aside**: **Stashes**, **Worktrees**, **Tags**, **Submodules**
+  (only when there are some). Each has its icon and the count of what it lists.
+- The lists of **Kept aside** are closed when Gitardo starts, and the others open, since the local branches are the
+  legend of the lanes; the ones opened or closed stay so until the application is closed.
+- A list with more than 100 entries lists the first 100 and **Show all `<n>`…**, which lists them all until the
+  list is closed. The branch checked out is listed even when it comes after the first 100.
 - A local branch says how far it is from its upstream, `↑1 ↓2`, or `gone` when its upstream was deleted; its tooltip
   says `main → origin/main` or `main (no upstream)`, the worktree that has it with what is not committed there, and its
   pull request. A branch that another worktree has has the worktree icon, and the number of files not committed there.
@@ -899,66 +911,69 @@ and the submodules, in sections that fold.
   `submodule.`).
 - The branch checked out, and the worktree of this window, are marked as current; the references at the selected
   commit are marked as selected.
-- A click on a branch, tag, stash or worktree goes to its commit (`graph.show-in-graph`). A double click on a branch
+- A click on a branch or a remote branch narrows the timeline to its history and selects its tip
+  (`filter.show-only`); a second click on it brings the whole history back (`filter.show-all`). A click on a tag, stash
+  or worktree goes to its commit (`graph.show-in-graph`). A double click on a branch
   opens it as `branch.open` says; on a remote branch, checks it out (`branch.open`); on a worktree or a submodule,
   opens it in a new window. Resting the pointer on one brings out its history (`graph.hover-history`). Branches can be
-  dragged onto the graph (`drag.drop`).
+  dragged onto the timeline (`drag.drop`).
 - A right click opens the menu of the reference (`branch.`, `remote.`, `tag.`, `stash.`, `worktree.`, `submodule.`); a
-  right click on the title of a section, or its **…**, opens the section's own menu. The Worktrees section has
-  **Create worktree…** on its title and **…** with what concerns worktrees; the Submodules section **Add submodule…**.
+  right click on the title of a list, or its **…**, opens the list's own menu. The Worktrees list has **Create
+  worktree…** on its title and **…** with what concerns worktrees; the Submodules list **Add submodule…**.
 
 Acceptance:
 
-- [ ] After the application starts, every section is closed; one opened stays open when another repository is chosen.
-- [ ] A section of 250 tags lists 100 and **Show all 250…**.
+- [ ] After the application starts, every list of **Kept aside** is closed; one opened stays open when another
+      repository is chosen.
+- [ ] A list of 250 tags lists 100 and **Show all 250…**.
 - [ ] A branch one ahead and two behind its upstream says `↑1 ↓2`; one whose upstream is gone says `gone`.
-- [ ] Clicking a stash in the references selects the stash in the graph.
+- [ ] Clicking a stash in the branch rail selects the stash in the timeline.
 - [ ] The checked-out branch, 150th by name, is listed after the first 100.
 
-### `refs.filter` — Filter the references by name
+### `refs.filter` — Filter the branch rail by name
 
-From 15 branches and tags on, a filter box appears above the references, which lists the names that match best first.
+From 15 branches and tags on, a filter box appears at the top of the branch rail, which lists the names that match best
+first.
 
 - **Kind**: View
 - **Function**: `views::refs::filter_view(state: &ReferencesFilter, ui) -> Vec<Intent>`
-- **Entry points**: the box above the references tree, and above the Branches pane.
-- **Offered when**: the sections listed there have 15 names or more together (local branches, remote branches, tags,
-  and stashes beside the graph), or something is typed in it.
+- **Entry points**: the box at the top of the branch rail.
+- **Offered when**: the lists there have 15 names or more together (local branches, remote branches, tags and
+  stashes), or something is typed in it.
 - **Uses**: `filter.rank-names`.
 
-What is typed leaves in each section the entries whose names have it, ignoring case, the best matches first
-(`filter.rank-names`). A section with matches is open while something is typed, whether it was closed or not; its
+What is typed leaves in each list the entries whose names have it, ignoring case, the best matches first
+(`filter.rank-names`). A list with matches is open while something is typed, whether it was closed or not; its
 count says `<matches> of <all>`. `Escape` or the button at the end of the box empties it.
 
 Acceptance:
 
 - [ ] With 14 branches and no tag, there is no box; with 15, there is.
 - [ ] Typing `main` lists `main`, then `origin/main`, then `maintenance`, then `release/main-2`, then `domain`.
-- [ ] A closed section with a match is shown open while the box has text, and closed again when it is emptied.
+- [ ] A closed list with a match is shown open while the box has text, and closed again when it is emptied.
 - [ ] `Escape` empties the box.
 
-### `refs.scope-line` — The line of the branches shown, above the references
+### `refs.scope-line` — The line of the branches shown, at the top of the branch rail
 
-While the graph is narrowed to some branches, the references list only those, under a line that says what they are
+While the timeline is narrowed to some branches, the branch rail lists only those, under a line that says what they are
 narrowed to.
 
 - **Kind**: View
 - **Function**: `views::refs::scope_line_view(state: &ScopeLine, ui) -> Vec<Intent>`
-- **Entry points**: the top of the references tree and of the Branches pane, while the graph is narrowed to some
-  branches.
+- **Entry points**: the top of the branch rail, while the timeline is narrowed to some branches.
 - **Settings**: `branches.followGraphFilter` (on by default).
 - **Uses**: `filter.list-too`, `filter.show-all`, `filter.show-too`.
 
-The line says what the graph is narrowed to, as the button of the branch filter does (`Current branch`, `main +2`). Its
-button lists all the references instead, with those the graph leaves out dimmed, and back (`filter.list-too`); its
-**Show all** shows all the branches again (`filter.show-all`). While all are listed, a dimmed one says **Not shown in
-the graph** in its tooltip, and has an eye at the end of its row, under the pointer, that adds its history to the
-graph (`filter.show-too`). The sections list only the branches, remote branches and tags shown while the line follows
-the graph; stashes, worktrees and submodules are always listed.
+The line says what the timeline is narrowed to, as the button of the branch filter does (`Current branch`, `main +2`).
+Its button lists all the references instead, with those the timeline leaves out dimmed, and back (`filter.list-too`);
+its **Show all** shows all the branches again (`filter.show-all`). While all are listed, a dimmed one says **Not shown
+in the timeline** in its tooltip, and has an eye at the end of its row, under the pointer, that adds its history to the
+timeline (`filter.show-too`). The lists have only the branches, remote branches and tags shown while the line follows
+the timeline; stashes, worktrees and submodules are always listed.
 
 Acceptance:
 
-- [ ] Narrowed to `main` and `feature`, the Local section lists only those two, under a line saying `main +1`.
+- [ ] Narrowed to `main` and `feature`, the Local list has only those two, under a line saying `main +1`.
 - [ ] The button of the line lists every branch, the others dimmed, and sets `branches.followGraphFilter` to false.
 - [ ] The eye on a dimmed `fix` adds `fix` to the branches shown.
 - [ ] **Show all** takes the line away and lists everything.
@@ -970,20 +985,20 @@ Branches, remote branches and tags are listed by name, or the one committed to l
 - **Kind**: Derivation
 - **Function**: `model::refs::sort(references: &References, order: SortOrder) -> References`
 - **Entry points**: **Sort by name** and **Sort by date** in the **…** on the title of the Local, Remotes and Tags
-  sections, checked as they are.
+  lists, checked as they are.
 - **Settings**: `branches.sortOrder`: `name` or `date`; not set, by name.
 
 - By name is the order git lists them in.
 - By date, the latest first: the date of the commit, or for a tag made with a message, when it was made; among the
   same date, by name.
-- The order is the same for all three, in the references tree, in the Branches pane and in every picker a branch or a
-  tag is chosen from. Choosing one writes the setting in the user's settings file.
+- The order is the same for all three, in the branch rail and in every picker a branch or a tag is chosen from. Choosing
+  one writes the setting in the user's settings file.
 
 Acceptance:
 
 - [ ] By date, a branch committed to an hour ago comes before one committed to yesterday.
 - [ ] An annotated tag made today on an old commit comes first among the tags by date.
-- [ ] **Sort by date** in the Tags section also orders the Local section and the branch picker of `branch.create`.
+- [ ] **Sort by date** in the Tags list also orders the Local list and the branch picker of `branch.create`.
 
 ### `refs.recent` — The branches checked out last
 
@@ -1014,7 +1029,7 @@ listed with the others.
 - **Kind**: View
 - **Function**: `views::refs::favorite_view(state: &Favorites, ui) -> Vec<Intent>`
 - **Entry points**: **Add to favorites** and **Remove from favorites** in the context menu of a branch or a remote
-  branch, in the references tree, the Branches pane and on labels of the graph; on a label shared with its upstream,
+  branch, in the branch rail and on labels of the timeline; on a label shared with its upstream,
   **Add `origin/feature` to favorites** too (`graph.combine-upstream`).
 - **Uses**: by `refs.tree`.
 
@@ -1025,6 +1040,6 @@ not listed, and is forgotten the next time the favorites change. Nothing of the 
 Acceptance:
 
 - [ ] **Add to favorites** on `feature` lists it under **Favorites** and puts a star on it under **Local**.
-- [ ] **Remove from favorites** takes it out; with none left, the Favorites section is not there.
+- [ ] **Remove from favorites** takes it out; with none left, the Favorites list is not there.
 - [ ] The favorites of one repository are not those of another of the same workspace.
 - [ ] A favorite deleted with `git branch -D` is no longer listed.

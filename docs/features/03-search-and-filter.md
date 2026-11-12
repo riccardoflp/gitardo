@@ -1,18 +1,19 @@
 # Search and filter
 
-Finding commits and narrowing the graph. The search box of the toolbar finds commits among those loaded or in the whole
-history, by message, author or what they changed, steps through them and goes to a commit by its hash; **Go to
-commit…** goes to anything git takes for a commit. The branch filter chooses which branches, remote branches and tags
-the graph shows, from presets, from ticks in a list, or from the context menu of a reference, and remembers the choice
-for each repository.
+Finding commits and narrowing the timeline. The search box at the top of the timeline finds commits among those loaded
+or in the whole history, by message, author or what they changed, steps through them and goes to a commit by its hash;
+**Go to commit…** goes to anything git takes for a commit. The branch filter chooses which branches, remote branches and
+tags the timeline shows, from presets, from ticks in a list, or from the context menu of a reference, and remembers the
+choice for each repository.
 
 ### `search.box` — The search box
 
-The box in the toolbar searches in one of five ways, chosen from the list next to it, and steps through what it finds.
+The box at the top of the timeline searches in one of five ways, chosen from the list next to it, and steps through what
+it finds.
 
 - **Kind**: View
 - **Function**: `views::search::box_view(state: &SearchBox, ui) -> Vec<Intent>`
-- **Entry points**: the search box in the toolbar of the Graph tab, also in its narrow layout.
+- **Entry points**: the search box at the top of the timeline, also in the narrow layout of the window.
 - **Uses**: `search.loaded`, `search.history`, `search.step`, `search.list-mode`, `search.go-to-hash`.
 
 - The list before the box chooses the mode; each says in its tooltip what it runs, and the box has a placeholder of its
@@ -26,9 +27,9 @@ The box in the toolbar searches in one of five ways, chosen from the list next t
   | **Changes** | Text added or removed, then Enter | git log -S: commits that add or remove this text |
   | **Changes (regex)** | Regex on changed lines, then Enter | git log -G: commits whose changed lines match this POSIX extended regular expression ([0-9], not \d) |
 
-- **Loaded** is the mode when the view opens. With **Loaded**, what is typed is searched at once (`search.loaded`); with
-  the other modes, when `Enter` is pressed (`search.history`). Typing in another mode, or choosing another mode, drops
-  what was found. Going to **Loaded** searches what is in the box among the loaded commits.
+- **Loaded** is the mode when the window opens. With **Loaded**, what is typed is searched at once (`search.loaded`);
+  with the other modes, when `Enter` is pressed (`search.history`). Typing in another mode, or choosing another mode,
+  drops what was found. Going to **Loaded** searches what is in the box among the loaded commits.
 - While git looks, a spinning icon. Then the count: `14`, or `2/14` when the selected commit is the second of fourteen,
   with `+` when the search stopped counting (`search.history`), and the tooltip **Only the first matches were
   counted**. With matches, two buttons step through them: up, **Previous match (Shift+Enter, Shift+F3)**, and down,
@@ -36,23 +37,23 @@ The box in the toolbar searches in one of five ways, chosen from the list next t
 - The funnel at the end, there for every mode but **Loaded**, shows only what is found, as a list (`search.list-mode`).
 - With **Loaded** and a hash that is not among the loaded commits, `Enter ↵` takes the place of the count
   (`search.go-to-hash`).
-- The commits found stay where they are in the graph and the others are dimmed; they have marks beside the scroll bar
+- The commits found stay where they are in the timeline and the others are dimmed; they have marks beside the scroll bar
   (`graph.scroll-marks`).
 
 | Key | Does |
 | --- | --- |
 | `Enter`, `F3` or the arrow down | Selects the next match, and starts again from the first after the last (`search.step`) |
 | `Shift+Enter`, `Shift+F3` or the arrow up | Selects the previous one |
-| `Ctrl+F` (`Cmd+F` on macOS) | Puts the cursor in the box and selects its text, from anywhere in the Graph tab: there the key is the box's, not Find in page |
+| `Ctrl+F` (`Cmd+F` on macOS) | Puts the cursor in the box and selects its text, from anywhere in the timeline: there the key is the box's, not Find in page |
 | `Escape` | Empties the box |
 
-`F3` and `Shift+F3` work wherever the keyboard is in the Graph tab; `Enter` and `Shift+Enter` in the box.
+`F3` and `Shift+F3` work wherever the keyboard is in the timeline; `Enter` and `Shift+Enter` in the box.
 
 Acceptance:
 
-- [ ] The list has the five modes in that order, **Loaded** chosen when the tab opens.
+- [ ] The list has the five modes in that order, **Loaded** chosen when the window opens.
 - [ ] `Ctrl+F` with the keyboard on the list of commits puts the cursor in the box with its text selected.
-- [ ] `Escape` in the box empties it and the graph is no longer dimmed.
+- [ ] `Escape` in the box empties it and the timeline is no longer dimmed.
 - [ ] Choosing **Message** after a search of the loaded commits drops the highlight until `Enter`.
 - [ ] With matches, the count says `<n>`, and `<i>/<n>` once one of them is selected.
 
@@ -70,7 +71,7 @@ character on. Nothing runs.
   or in the name of its author.
 - Text of four characters or more that are all hexadecimal digits also finds the commits whose hash starts with it:
   "add" and "bed" are words before they are digits, and somewhere in forty digits they are bound to turn up.
-- The uncommitted changes are a row, not a commit to find. Stashes in the graph are found like commits.
+- The draft of the uncommitted changes is not a commit to find. Stashes in the timeline are found like commits.
 - Empty text finds nothing and dims nothing.
 - The result is in the order of the rows.
 
@@ -79,7 +80,7 @@ Acceptance:
 - [ ] `PARSER` finds `Fix the parser` and a commit by an author named `Parser Bot`.
 - [ ] `3f2a` finds the commit `3f2a1c9…`; `3f2` finds only commits with `3f2` in their message or author.
 - [ ] `add` does not find a commit by its hash `add1…`, only by message or author; `add1` does.
-- [ ] The text `Uncommitted` does not find the row of the uncommitted changes.
+- [ ] The text `Uncommitted` does not find the draft of the uncommitted changes.
 
 ### `search.read-matches` — Search the whole history
 
@@ -87,9 +88,9 @@ The commits of the history shown that a search of their messages, their authors 
 
 - **Kind**: Read
 - **Function**: `git::read::search::read_matches(git, request: &MatchesRequest) -> Result<Matches, GitError>`
-- **Reads**: `git log --format=%H --max-count=5001 <search> <selection>`, where `<selection>` is that of the graph
+- **Reads**: `git log --format=%H --max-count=5001 <search> <selection>`, where `<selection>` is that of the timeline
   (`filter.log-arguments`, with `--first-parent` when `graph.firstParent` is on, and the history of a file or some
-  lines when the graph shows it), and `<search>`:
+  lines when the timeline shows it), and `<search>`:
 
   | Mode | Arguments | Finds |
   | --- | --- | --- |
@@ -98,7 +99,7 @@ The commits of the history shown that a search of their messages, their authors 
   | **Changes** | `-S<text>` | Commits that add or remove the text |
   | **Changes (regex)** | `-G<text>` | Commits with a changed line that matches the POSIX extended regular expression |
 
-  The same arguments, without `--format` and the count, narrow the graph itself when the search is shown as a list
+  The same arguments, without `--format` and the count, narrow the timeline itself when the search is shown as a list
   (`search.list-mode`).
 - **Refuses**: git refusing the search, as for an invalid regular expression, is an error with git's message, not a
   search that found nothing.
@@ -116,7 +117,7 @@ Acceptance:
 - [ ] **Changes (regex)** with `[0-9]{3}` finds a commit that changed a line with `404`.
 - [ ] **Changes (regex)** with `(` is refused with git's error.
 - [ ] A search with 6,000 matches returns 5,000 and says there are more.
-- [ ] With the graph narrowed to `main`, a commit only on `feature` is not found.
+- [ ] With the timeline narrowed to `main`, a commit only on `feature` is not found.
 
 ### `search.history` — Find in the whole history
 
@@ -133,8 +134,8 @@ tag, or what a filter leaves of them.
   (`search.step`), and while git still looks does nothing more.
 - When the commits found come, the first of them is selected and shown, going back as far in the history as it is
   (`graph.show-in-graph`), unless the commit selected is one of them.
-- The commits found stay where they are in the graph and the others are dimmed. The box counts them, stopping at 5,000
-  with a `+`.
+- The commits found stay where they are in the timeline and the others are dimmed. The box counts them, stopping at
+  5,000 with a `+`.
 - What a search of the whole history found is found again each time the commits listed change, so that a commit made
   or fetched meanwhile, or the history of another filter, is counted too.
 - The two that look inside the changes read every commit and can take a while on a large repository; the box has its
@@ -146,9 +147,9 @@ Acceptance:
 
 - [ ] **Message** `fix`, `Enter`: the commits with `fix` in their message stay in color and the first is selected.
 - [ ] `Enter` again selects the second.
-- [ ] A commit made with `fix` in its message while the search is there is counted once the graph is read again.
+- [ ] A commit made with `fix` in its message while the search is there is counted once the timeline is read again.
 - [ ] A match 3,000 commits back is selected after the history is loaded up to it.
-- [ ] **Changes (regex)** with `(` says "Gitardo: the search failed." and leaves the graph undimmed.
+- [ ] **Changes (regex)** with `(` says "Gitardo: the search failed." and leaves the timeline undimmed.
 
 ### `search.step` — Step through the matches
 
@@ -179,27 +180,28 @@ or choose **Show all commits**.
 - **Kind**: View
 - **Function**: `views::search::list_mode_view(state: &ListMode, ui) -> Vec<Intent>`
 - **Entry points**: the funnel at the end of the search box, **Show only the commits found, as a list, instead of
-  highlighting them in the graph**, pressed while it is on.
+  highlighting them in the timeline**, pressed while it is on.
 - **Offered when**: the mode is not **Loaded**.
 - **Reads**: `graph.read-commits` with the arguments of the search.
 - **Uses**: `search.read-matches`, `filter.bar`, `graph.lanes`.
 
-- While it is pressed, `Enter` narrows the graph to the commits the search finds instead of highlighting them, a page
-  at a time. They are not each other's history: they are drawn with no lines between them, with no uncommitted
-  changes, no stashes and no folds.
+- While it is pressed, `Enter` narrows the timeline to the commits the search finds instead of highlighting them, a page
+  at a time. They are not each other's history: they are drawn with no lines between them, with no draft,
+  no stashes and no folds.
 - The bar above the commits says `Commits whose message contains <text>`, `Commits by authors matching <text>`,
-  `Commits that add or remove <text>` or `Commits whose changed lines match <text>`, with the branches when the graph
+  `Commits that add or remove <text>` or `Commits whose changed lines match <text>`, with the branches when the timeline
   is narrowed to some, and the count, and has **Show all commits** (`filter.bar`).
 - Pressing it with text in the box turns what is highlighted into the list; pressing it again turns the list back into
-  a search highlighted in the graph, or, with nothing in the box, shows all commits again.
-- Whether it is pressed stays the way it is left, after the tab is hidden and after the window is closed.
-- While the list of a search in the changes is read, the toolbar says **Searching…**.
+  a search highlighted in the timeline, or, with nothing in the box, shows all commits again.
+- Whether it is pressed stays the way it is left, after a page took the place of the timeline and after the window is
+  closed.
+- While the list of a search in the changes is read, the search box says **Searching…**.
 
 Acceptance:
 
 - [ ] With the funnel pressed, **Author** `alice`, `Enter`: only Alice's commits are listed, with no lines, under a
       bar saying `Commits by authors matching alice`.
-- [ ] **Show all commits** brings back the whole graph.
+- [ ] **Show all commits** brings back the whole timeline.
 - [ ] The funnel is still pressed after the window is opened again.
 - [ ] The funnel is not there with **Loaded**.
 
@@ -224,8 +226,8 @@ history**, in the place of the count. `Enter` goes to the commit as `graph.show-
 - further back than the history is loaded: the history is loaded up to it;
 - left out by a filter in use, such as the history of a file, or by the branches shown: the filter is taken away, then
   the branches shown;
-- on no branch or tag, such as a commit lost to a reset or a rebase: the graph shows the history of that commit alone,
-  until **Show all commits**.
+- on no branch or tag, such as a commit lost to a reset or a rebase: the timeline shows the history of that commit
+  alone, until **Show all commits**.
 
 Acceptance:
 
@@ -260,11 +262,11 @@ Acceptance:
 
 ### `search.go-to-commit` — Go to commit…
 
-Asks for anything git takes for a commit, and opens the graph at it.
+Asks for anything git takes for a commit, and opens the timeline at it.
 
 - **Kind**: Operation
 - **Function**: `features::search::go_to_commit(context, answers) -> Outcome`
-- **Entry points**: **Go to Commit…** in the command palette; **Go to commit…** in the **…** menu of the toolbar
+- **Entry points**: **Go to Commit…** in Quick search; **Go to commit…** in the **…** menu of the header
   (`graph.more-menu`), also in the narrow layout.
 - **Asks**: **Go to commit**, in Gitardo's input box: "A commit hash, or anything else git understands: HEAD~3, v1.0^,
   main@{yesterday}". While typing, what git does not know is refused with "Git does not know a commit by this name in
@@ -273,7 +275,7 @@ Asks for anything git takes for a commit, and opens the graph at it.
 - **Plan**: no step: nothing changes in the repository.
 - **Danger**: None.
 - **Undo**: nothing to undo.
-- **After**: the commit is selected in the graph, as `graph.show-in-graph` goes to it.
+- **After**: the commit is selected in the timeline, as `graph.show-in-graph` goes to it.
 - **Refuses**: with no repository: nothing is asked.
 - **Uses**: `graph.show-in-graph`.
 
@@ -281,23 +283,23 @@ Acceptance:
 
 - [ ] `main@{yesterday}` selects the commit `main` was at yesterday.
 - [ ] Typing `nope` shows "Git does not know a commit by this name in this repository." and `Enter` does nothing.
-- [ ] `HEAD~3` with the graph narrowed to the history of a file that `HEAD~3` did not change shows all commits again
+- [ ] `HEAD~3` with the timeline narrowed to the history of a file that `HEAD~3` did not change shows all commits again
       and selects it.
 
 ### `filter.picker` — Choose the branches shown
 
-The graph shows every branch, remote branch and tag until you tell it which ones. The button before the search box says
-what is shown and opens the list to choose from.
+The timeline shows every branch, remote branch and tag until you tell it which ones. The button before the search box
+says what is shown and opens the list to choose from.
 
 - **Kind**: View
 - **Function**: `views::filter::picker_view(state: &BranchPicker, ui) -> Vec<Intent>`
-- **Entry points**: the button before the search box in the toolbar, with the icon of three lines that get shorter; in
-  the narrow layout, the icon alone.
+- **Entry points**: the button of the branches shown, at the top of the timeline before the search box, with the icon
+  of three lines that get shorter; in the narrow layout, the icon alone.
 - **Uses**: `filter.preset`, `filter.tick`, `filter.rank-names`, `filter.list-too`, `filter.label`.
 
 - The button says what is shown (`filter.label`), the first name and `+2` apart when several are ticked, so that the
-  count stays when the name is cut; its tooltip is `Branches shown in the graph: <what>`. It is pressed in while the
-  graph is narrowed.
+  count stays when the name is cut; its tooltip is `Branches shown in the timeline: <what>`. It is pressed in while the
+  timeline is narrowed.
 - A click opens the list under it, as tall as the room there is, and puts the keyboard in its box; another click on
   the button closes it, and so do a click outside it, the window losing the focus, and the window being resized.
 - At the top, **All**, **Current**, **Upstream**, **Local** and **Remotes** (`filter.preset`), the one in use marked,
@@ -315,8 +317,8 @@ what is shown and opens the list to choose from.
   that match best first (`filter.rank-names`). `Escape` empties it, wherever the keyboard is in the list, and closes
   the list when it is empty.
 - Then every local branch, remote branch and tag with a tick, under **Local**, **Remotes** and **Tags**, in the order of
-  `refs.sort`, the branch checked out marked; the ticks are those of what is shown now (`filter.tick`). The graph
-  changes as they are ticked; a second tick does not wait for the graph to show the first. With no name left it says
+  `refs.sort`, the branch checked out marked; the ticks are those of what is shown now (`filter.tick`). The timeline
+  changes as they are ticked; a second tick does not wait for the timeline to show the first. With no name left it says
   **No branch or tag has that in its name**, and in a repository with none **No branches or tags yet**.
 - At the bottom, **Filter the list of branches too** (`filter.list-too`).
 
@@ -330,7 +332,8 @@ Acceptance:
 
 ### `filter.label` — What the branches shown are called
 
-The words for the branches the graph shows, on the button of the filter and on the line above the references.
+The words for the branches the timeline shows, on the button of the filter and on the line at the top of the branch
+rail.
 
 - **Kind**: Derivation
 - **Function**: `model::filter::label(shown: &BranchesShown) -> String`
@@ -364,7 +367,7 @@ branches, or only the remote ones.
 - **Entry points**: the presets at the top of the branch filter (`filter.picker`).
 - **Uses**: `filter.log-arguments`.
 
-| Preset | The graph shows |
+| Preset | The timeline shows |
 | --- | --- |
 | **All** | everything: nothing narrows it |
 | **Current** | what is checked out |
@@ -374,7 +377,7 @@ branches, or only the remote ones.
 
 **Current** and **Upstream** follow you as you switch branch: they name no branch, and are worked out at each read.
 **Upstream** shows at a glance what the branch has that its remote has not, and what there is to pull. What is checked
-out is in the graph whichever preset is chosen.
+out is in the timeline whichever preset is chosen.
 
 Acceptance:
 
@@ -385,7 +388,7 @@ Acceptance:
 
 ### `filter.tick` — Tick the branches to show
 
-Under the presets, every local branch, remote branch and tag has a tick: the graph shows the ones ticked.
+Under the presets, every local branch, remote branch and tag has a tick: the timeline shows the ones ticked.
 
 - **Kind**: Derivation
 - **Function**: `model::filter::tick(shown: Option<&BranchesShown>, reference: &str, references: &References) -> Option<BranchesShown>`
@@ -410,8 +413,8 @@ Acceptance:
 
 ### `filter.rank-names` — Which names match best
 
-The names that contain what is typed, the ones that match best first, as both the branch filter and the references
-tree list them.
+The names that contain what is typed, the ones that match best first, as both the branch filter and the branch
+rail list them.
 
 - **Kind**: Derivation
 - **Function**: `model::filter::rank_names(names: &[String], typed: &str) -> Vec<usize>`
@@ -438,44 +441,44 @@ Acceptance:
 
 ### `filter.list-too` — Filter the list of branches too
 
-Chooses what the references beside the graph and the Branches pane list while the graph is narrowed: only the branches
-it shows, or all of them, with the ones it leaves out dimmed.
+Chooses what the branch rail lists while the timeline is narrowed: only the branches it shows, or all of them, with
+the ones it leaves out dimmed.
 
 - **Kind**: View
 - **Function**: `views::filter::list_too_view(state: &ListToo, ui) -> Vec<Intent>`
-- **Entry points**: **Filter the list of branches too** at the bottom of the branch filter, with its tooltip **Beside
-  the graph and in the Branches view: only the branches the graph shows, or all of them with the others dimmed**; the
-  button of the line above the references (`refs.scope-line`).
+- **Entry points**: **Filter the list of branches too** at the bottom of the branch filter, with its tooltip **In the
+  branch rail: only the branches the timeline shows, or all of them with the others dimmed**; the button of the line at
+  the top of the branch rail (`refs.scope-line`).
 - **Settings**: `branches.followGraphFilter` (on by default). Changing it writes the setting in the user's settings
   file.
 - **Uses**: `refs.scope-line`, `filter.show-too`.
 
-On, the references list only the branches, remote branches and tags the graph shows. Off, they list them all, and the
-ones the graph leaves out are dimmed, each with an eye at the end of its row, under the pointer, that adds its history
-to the graph. Either way the references list everything while the graph is not narrowed. The references list only the
-branches that are shown, unless they are set to list them all, so one that is not shown is added from its label in the
-graph or from the branch filter.
+On, the branch rail lists only the branches, remote branches and tags the timeline shows. Off, it lists them all, and
+the ones the timeline leaves out are dimmed, each with an eye at the end of its row, under the pointer, that adds its
+history to the timeline. Either way the branch rail lists everything while the timeline is not narrowed. The branch rail
+lists only the branches that are shown, unless it is set to list them all, so one that is not shown is added from its
+label in the timeline or from the branch filter.
 
 Acceptance:
 
 - [ ] Narrowed to `main`, on: the Local section lists `main` alone.
-- [ ] Off: it lists every branch, all but `main` dimmed, and the eye on `feature` adds `feature` to the graph.
+- [ ] Off: it lists every branch, all but `main` dimmed, and the eye on `feature` adds `feature` to the timeline.
 - [ ] Unticking it in the branch filter sets `branches.followGraphFilter` to false in the user's settings.
 
 ### `filter.kinds` — Show local branches, remote branches, tags
 
-Switch each kind of reference on and off in the graph, the same choice the list makes.
+Switch each kind of reference on and off in the timeline, the same choice the list makes.
 
 - **Kind**: Derivation
 - **Function**: `model::filter::kinds(shown: Option<&BranchesShown>, kind: ReferenceKind) -> Option<BranchesShown>`
-- **Entry points**: **Show local branches**, **Show remote branches** and **Show tags** in the **…** menu of the toolbar
+- **Entry points**: **Show local branches**, **Show remote branches** and **Show tags** in the **…** menu of the header
   (`graph.more-menu`), each checked while that kind is shown.
 - **Offered when**: always, but greyed out with the hint **Chosen in the filter** while references are ticked one by
   one, or **Current** or **Upstream** is chosen; the one kind left on is greyed out too: one of them is always on.
 
 The kinds shown are switched one at a time. All three on is everything (**All**); local branches alone is **Local**,
 remote branches alone **Remotes**; the other pairs and single kinds show those kinds. What is checked out is in the
-graph whichever kinds are shown.
+timeline whichever kinds are shown.
 
 Acceptance:
 
@@ -486,17 +489,18 @@ Acceptance:
 
 ### `filter.show-only` — Show only this history
 
-Narrows the graph to what a branch, remote branch or tag can reach.
+Narrows the timeline to what a branch, remote branch or tag can reach.
 
 - **Kind**: Derivation
 - **Function**: `model::filter::show_only(reference: &str) -> BranchesShown`
 - **Entry points**: **Show only this history** in the context menu of a branch, remote branch or tag: on its label in
-  the graph, in the references tree and in the Branches pane.
+  the timeline and in the branch rail.
 - **Offered when**: the reference is not already the only one shown (then the menu has **Show all branches** alone).
 - **Uses**: `filter.log-arguments`.
 
-The graph shows that reference alone, ticked one by one, whatever was shown before. What is checked out is not added:
-narrowed to a branch that is not checked out, the uncommitted changes are not listed (`graph.uncommitted-row`).
+The timeline shows that reference alone, ticked one by one, whatever was shown before. What is checked out is not
+added: narrowed to a branch that is not checked out, the draft of the uncommitted changes is not there
+(`graph.uncommitted-row`).
 
 Acceptance:
 
@@ -506,14 +510,13 @@ Acceptance:
 
 ### `filter.show-too` — Show this history too
 
-Adds a branch, remote branch or tag to the ones shown, when the graph is narrowed already.
+Adds a branch, remote branch or tag to the ones shown, when the timeline is narrowed already.
 
 - **Kind**: Derivation
 - **Function**: `model::filter::show_too(shown: &BranchesShown, reference: &str, references: &References) -> BranchesShown`
 - **Entry points**: **Show this history too** in the context menu of a branch, remote branch or tag (on its label in
-  the graph, in the references tree, in the Branches pane); the eye on a dimmed reference of the references
-  (`filter.list-too`).
-- **Offered when**: the graph is narrowed and the reference is not among those shown.
+  the timeline, in the branch rail); the eye on a dimmed reference of the branch rail (`filter.list-too`).
+- **Offered when**: the timeline is narrowed and the reference is not among those shown.
 - **Uses**: `filter.tick`.
 
 It is a tick added (`filter.tick`): from a preset, the references it stands for and this one, ticked one by one.
@@ -522,7 +525,7 @@ Acceptance:
 
 - [ ] Narrowed to `main`, **Show this history too** on `feature` shows both, and the button says `main` and `+1`.
 - [ ] Narrowed to **Current** on `main`, it shows `main` and `feature`, no longer following the branch checked out.
-- [ ] With the graph not narrowed, the entry is not offered.
+- [ ] With the timeline not narrowed, the entry is not offered.
 
 ### `filter.hide` — Hide this history
 
@@ -531,8 +534,8 @@ Takes a branch, remote branch or tag out of the ones shown.
 - **Kind**: Derivation
 - **Function**: `model::filter::hide(shown: &BranchesShown, reference: &str, references: &References) -> BranchesShown`
 - **Entry points**: **Hide this history** in the context menu of a branch, remote branch or tag (on its label in the
-  graph, in the references tree, in the Branches pane).
-- **Offered when**: the graph is narrowed, the reference is among those shown and is not the only one.
+  timeline, in the branch rail).
+- **Offered when**: the timeline is narrowed, the reference is among those shown and is not the only one.
 - **Uses**: `filter.tick`.
 
 It is a tick taken away (`filter.tick`).
@@ -549,24 +552,24 @@ Shows everything again.
 
 - **Kind**: Derivation
 - **Function**: `model::filter::show_all() -> Option<BranchesShown>`
-- **Entry points**: **Show all branches** in the context menu of a branch, remote branch or tag while the graph is
-  narrowed; **Show all branches** on the bar above the commits (`filter.bar`); **Show all** on the line above the
-  references (`refs.scope-line`); **All** in the branch filter.
-- **Offered when**: the graph is narrowed to some branches.
+- **Entry points**: **Show all branches** in the context menu of a branch, remote branch or tag while the timeline is
+  narrowed; **Show all branches** on the bar above the commits (`filter.bar`); **Show all** on the line at the top of
+  the branch rail (`refs.scope-line`); **All** in the branch filter.
+- **Offered when**: the timeline is narrowed to some branches.
 
 Acceptance:
 
 - [ ] **Show all branches** on the bar shows every branch, remote branch and tag, and the bar goes.
 - [ ] The button of the branch filter is no longer pressed in.
 
-### `filter.bar` — The bar of what the graph is narrowed to
+### `filter.bar` — The bar of what the timeline is narrowed to
 
-While the graph is narrowed, a bar above the commits says to what, with the way to undo it.
+While the timeline is narrowed, a bar above the commits says to what, with the way to undo it.
 
 - **Kind**: View
 - **Function**: `views::filter::bar_view(state: &NarrowedBar, ui) -> Vec<Intent>`
-- **Entry points**: above the commits of the Graph tab, while the graph is narrowed to some branches, to a search shown
-  as a list, to the history of a file, a folder or some lines, or to the history of a commit on no branch.
+- **Entry points**: above the commits of the timeline, while the timeline is narrowed to some branches, to a search
+  shown as a list, to the history of a file, a folder or some lines, or to the history of a commit on no branch.
 - **Uses**: `filter.show-all`, `search.list-mode`, `file-history.file`, `graph.show-in-graph`.
 
 - What it says, from what was narrowed last:
@@ -580,11 +583,11 @@ While the graph is narrowed, a bar above the commits says to what, with the way 
     and 2 more`.
 - A search or a file history inside some branches adds `· in` and the branches; not the history of a commit on no
   branch, nor that of lines, which is followed from one commit.
-- Then the number of commits listed, without the uncommitted changes, with `+` while there are more: `· 1000+ commits`,
+- Then the number of commits listed, without the draft, with `+` while there are more: `· 1000+ commits`,
   `· 1 commit`.
 - One thing at a time, what was narrowed last first: **Show all commits** takes away the search or the history of a
   file or a commit; with only branches left, **Show all branches** (`filter.show-all`).
-- While the graph is narrowed to some branches, the branch filter's button is pressed in.
+- While the timeline is narrowed to some branches, the branch filter's button is pressed in.
 
 Acceptance:
 
@@ -595,10 +598,10 @@ Acceptance:
       **Show all commits** leaves `Only the history of the local branches`.
 - [ ] With 1,000 commits loaded and more, it says `· 1000+ commits`.
 
-### `filter.log-arguments` — Which history the graph lists
+### `filter.log-arguments` — Which history the timeline lists
 
-The arguments of `git log` that say which commits the graph lists, from the branches shown, in which order: everything
-but the format, the count, and what a search or the history of a file adds.
+The arguments of `git log` that say which commits the timeline lists, from the branches shown, in which order:
+everything but the format, the count, and what a search or the history of a file adds.
 
 - **Kind**: Derivation
 - **Function**: `model::filter::log_arguments(shown: Option<&BranchesShown>, head: Option<Oid>, upstream: Option<&str>) -> Vec<OsString>`
@@ -615,7 +618,7 @@ Always `--date-order` first, then:
 | References ticked one by one | `--ignore-missing` and their full names, so that a name is never taken for an option, and one deleted since it was chosen is passed over; only names under `refs/heads/`, `refs/remotes/` and `refs/tags/` |
 
 `HEAD` is left out before the first commit. `refs/stash` is never listed: the stashes have their own place
-(`graph.place-stashes`). What narrows the graph further works inside the branches shown: the history of a file is the
+(`graph.place-stashes`). What narrows the timeline further works inside the branches shown: the history of a file is the
 one it has on them, and a search finds only their commits. Following some lines (`file-history.`) and the history of a
 commit on no branch take one commit instead, whatever the branches shown.
 
@@ -629,7 +632,7 @@ Acceptance:
 
 ### `filter.remember` — The branches shown, remembered per repository
 
-The choice is one for the Graph tab and its narrow layout, and is remembered for each repository of the workspace. A
+The choice is one for the timeline, wide or narrow, and is remembered for each repository of the workspace. A
 branch that is deleted is forgotten.
 
 - **Kind**: Derivation
@@ -646,7 +649,7 @@ branch that is deleted is forgotten.
 Acceptance:
 
 - [ ] Narrowing to `feature`, choosing another repository and coming back shows `feature` alone again.
-- [ ] After `git branch -D feature` in a terminal, a graph narrowed to `feature` and `main` shows `main` alone, and
+- [ ] After `git branch -D feature` in a terminal, a timeline narrowed to `feature` and `main` shows `main` alone, and
       that is what is kept.
 - [ ] Narrowed to `feature` alone, deleting `feature` shows everything.
 - [ ] The choice is there after the window is closed and opened again on the workspace.

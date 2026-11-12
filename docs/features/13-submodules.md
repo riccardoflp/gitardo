@@ -1,7 +1,7 @@
 # Submodules
 
 A submodule is a repository inside another, which records for it one commit of its own in each of its commits. This
-area covers the Submodules section, which says where each submodule stands against the commit recorded for it, what
+area covers the Submodules list, which says where each submodule stands against the commit recorded for it, what
 can be done with a submodule from its context menu, adding a submodule and synchronizing their URLs, bringing the
 submodules to what a checkout records, and following what happens inside them.
 
@@ -68,15 +68,14 @@ Acceptance:
 - [ ] One commit is said **1 commit**, more **`<n>` commits**.
 - [ ] The icons read in the dark, the light and both high contrast themes.
 
-### `submodule.section` — The Submodules section
+### `submodule.section` — The Submodules list
 
-The submodules of the repository among the references, beside the graph and in the Branches pane, each with where it
-stands.
+The submodules of the repository in the branch rail, under **Kept aside**, each with where it stands.
 
 - **Kind**: View
 - **Function**: `views::submodule::section(state, ui) -> Vec<Intent>`
-- **Entry points**: the Submodules section of the references of the Graph tab and of the Branches pane.
-- **Offered when**: the repository has submodules; otherwise the section is not there.
+- **Entry points**: the **Submodules** list in **Kept aside** of the branch rail.
+- **Offered when**: the repository has submodules; otherwise the list is not there.
 - **Reads**: `submodule.read-list`.
 - **Uses**: `submodule.status`.
 
@@ -90,7 +89,7 @@ What each row shows:
   `<short>`**, **Staged as the recorded commit: `<short>`** when another commit is staged for it, and how many files are
   not committed.
 
-The title of the section has **+**, which is `submodule.add`. A double click on an initialized submodule opens it as
+The title of the list has **+**, which is `submodule.add`. A double click on an initialized submodule opens it as
 `submodule.open-in-new-window` does; on one that is not initialized it does nothing. Its context menu has, in this
 order, those of the cards of this area that are offered: `submodule.open-in-new-window`, `submodule.open-in-terminal`,
 `submodule.reveal`, `submodule.show-in-gitardo`; `submodule.initialize`, `submodule.update-to-recorded`,
@@ -103,7 +102,7 @@ Acceptance:
       `main`, and a pencil with 1.
 - [ ] `vendor/a/b` shows as `b`, indented under `vendor/a`.
 - [ ] The tooltip of `lib` has its URL and both commits.
-- [ ] A repository without submodules has no Submodules section.
+- [ ] A repository without submodules has no Submodules list.
 
 ### `submodule.open-in-new-window` — Open a submodule in a new window
 
@@ -121,7 +120,7 @@ Opens the submodule's folder in a new window of Gitardo Desktop, as a repository
 
 Acceptance:
 
-- [ ] A double click on `lib` opens a window whose graph is the history of `lib`.
+- [ ] A double click on `lib` opens a window whose timeline is the history of `lib`.
 
 ### `submodule.open-in-terminal` — Open a terminal in a submodule
 
@@ -161,7 +160,7 @@ Acceptance:
 
 ### `submodule.show-in-gitardo` — Show a submodule in this window
 
-Points the views of this window at the submodule, as a repository of its own, without opening another window.
+Points this window at the submodule, as a repository of its own, without opening another window.
 
 - **Kind**: Operation
 - **Function**: `features::submodule::show_in_gitardo(context, answers) -> Outcome`
@@ -170,14 +169,14 @@ Points the views of this window at the submodule, as a repository of its own, wi
 - **Plan**: no steps.
 - **Danger**: None.
 - **Undo**: Nothing to take back: nothing changes.
-- **After**: the graph and the Changes, Commits and Branches panes are those of the submodule, and what is done there is
-  done in it. The banner of `worktree.banner` says which folder they show, with **Back to** the repository of the
-  window. The choice is not remembered when the window is opened again.
+- **After**: the timeline, the draft, the branch rail and the Changes page are those of the submodule, and what is done
+  there is done in it. The banner of `worktree.banner` says which folder they show, with **Back to** the repository of
+  the window. The choice is not remembered when the window is opened again.
 - **Uses**: `worktree.banner`.
 
 Acceptance:
 
-- [ ] After **Show in Gitardo** on `lib`, a commit made from the Changes pane is made in `lib`, and **Back to** shows the
+- [ ] After **Show in Gitardo** on `lib`, a commit made from the draft is made in `lib`, and **Back to** shows the
       repository again, where `lib` is now one commit ahead.
 
 ### `submodule.update-to-recorded` — Update a submodule to the recorded commit
@@ -219,7 +218,7 @@ repository.
 - **Offered when**: it is initialized and is ahead, behind, both, or does not have the recorded commit.
 - **Plan**: `git [-C <parent>] add -- <folder>`. The plan's note: **Commit it to record that commit for the submodule.**
 - **Danger**: None.
-- **Undo**: Not taken back by Undo: unstaging the submodule in the Changes pane takes it back.
+- **Undo**: Not taken back by Undo: unstaging the submodule in the Changes page takes it back.
 - **After**: the submodule is among the staged changes of the repository; its tooltip says the commit staged.
 - **Refuses**: on one that is not initialized, **`<folder>` is not initialized.**
 - **Uses**: `changes.`.
@@ -317,7 +316,7 @@ directory; the removal is staged, ready to commit.
   pushed. Gitardo then deletes its clone in `<folder>`. The removal is staged along with .gitmodules: commit them to
   record it.**
 - **Undo**: Cannot be undone: its clone is deleted. What was pushed of it can be added again.
-- **After**: the submodule is no longer listed, and the Changes pane has the removal and `.gitmodules` staged.
+- **After**: the submodule is no longer listed, and the Changes page has the removal and `.gitmodules` staged.
 
 Acceptance:
 
@@ -367,8 +366,8 @@ Clones a repository into a folder of this one as a submodule, with its own submo
 
 - **Kind**: Operation
 - **Function**: `features::submodule::add(context, answers) -> Outcome`
-- **Entry points**: the **+** on the title of the Submodules section; **Add submodule…** in the **…** menu of the graph
-  while the repository has none; the command palette, **Add Submodule…**.
+- **Entry points**: the **+** on the title of the Submodules list; **Add submodule…** in the **…** menu of the header
+  while the repository has none; Quick search, **Add Submodule…**.
 - **Asks**:
   1. **URL of the repository, or its path on disk**, with `https://github.com/owner/repo.git` as a placeholder; refused
      while typed: **Enter a URL** when empty, **That is not a URL** when it starts with `-`.
@@ -384,7 +383,7 @@ Clones a repository into a folder of this one as a submodule, with its own submo
   record it in the repository.** When git refuses to clone from a folder on disk, as `submodule.allow-file-protocol`.
 - **Danger**: None.
 - **Undo**: Not taken back by Undo: `submodule.remove` removes it.
-- **After**: the Submodules section lists it as added, not committed yet, and the Changes pane has it and
+- **After**: the Submodules list has it as added, not committed yet, and the Changes page has it and
   `.gitmodules` staged.
 - **Uses**: `submodule.allow-file-protocol`.
 

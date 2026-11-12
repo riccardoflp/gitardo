@@ -1,8 +1,9 @@
 # Repositories
 
 How a window finds the repositories of its workspace, which one it shows, what it reads of it, and how it keeps that up
-to date on its own while the repository and its files change, from Gitardo or from anything else. Also what the status
-bar says Gitardo is doing, the **What is running** page, and the **Welcome** page of the first start.
+to date on its own while the repository and its files change, from Gitardo or from anything else. Also what the
+activity indicator of the header says Gitardo is doing, the **Activity** drawer, and the **Welcome** page of the first
+start.
 
 ### `repo.read-repositories` — Find the repositories of a workspace
 
@@ -43,7 +44,7 @@ Acceptance:
 
 ### `repo.name-repositories` — Name the repositories in lists
 
-How a repository is called in the list of the toolbar, in the picker and in the status bar.
+How a repository is called in the repository menu of the header, in the picker and in the activity indicator.
 
 - **Kind**: Derivation
 - **Function**: `model::repo::name_repositories(roots: &[PathBuf], folders: &[PathBuf]) -> Vec<String>`
@@ -64,7 +65,7 @@ Shows a folder, or several, in the window: replaces what the window shows, or ad
 
 - **Kind**: Operation
 - **Function**: `features::repo::open_folder(context, answers) -> Outcome`
-- **Entry points**: **Open folder…** on the Welcome page, in the toolbar's repository list, and in the command palette.
+- **Entry points**: **Open folder…** on the Welcome page, in the repository menu of the header, and in Quick search.
 - **Asks**:
   1. The folder, in the system's folder dialog.
   2. When the window already shows a workspace: **Replace the workspace** or **Add to the workspace** (default:
@@ -79,7 +80,7 @@ Shows a folder, or several, in the window: replaces what the window shows, or ad
 
 Acceptance:
 
-- [ ] Opening a folder with two repositories shows the first one and lists both in the toolbar.
+- [ ] Opening a folder with two repositories shows the first one and lists both in the repository menu of the header.
 - [ ] Adding a folder to a workspace keeps the repository that was shown.
 - [ ] Opening a folder with no repository shows `repo.no-repository`.
 - [ ] The workspace opened is the first of the recent workspaces on the Welcome page.
@@ -90,7 +91,7 @@ Opens again a workspace the window showed before, with the repository that was s
 
 - **Kind**: Operation
 - **Function**: `features::repo::open_recent(context, answers) -> Outcome`
-- **Entry points**: the list of recent workspaces on the Welcome page; **Open recent** in the command palette.
+- **Entry points**: the list of recent workspaces on the Welcome page; **Open recent** in Quick search.
 - **Asks**: the workspace, from Gitardo's picker of the recent ones, the latest first (when not chosen on the page).
 - **Reads**: `repo.read-repositories`.
 - **Plan**: no step.
@@ -111,22 +112,24 @@ Gitardo shows one repository at a time; in a workspace with several, this choose
 
 - **Kind**: Operation
 - **Function**: `features::repo::select(context, answers) -> Outcome`
-- **Entry points**: the list at the start of the toolbar and at the top of the Changes pane; **Select repository…** in
-  the **…** menu of the toolbar; **Select Repository** in the command palette.
+- **Entry points**: the repository menu of the header; **Select repository…** in the **…** menu of the header;
+  **Select Repository** in Quick search.
 - **Offered when**: the workspace has more than one repository, or the window shows a worktree of a repository of the
-  workspace that is not in the workspace itself (see `worktree.switch`). The list in the toolbar is there only then.
+  workspace that is not in the workspace itself (see `worktree.switch`). The repository menu of the header lists the
+  repositories to choose from only then.
 - **Asks**: the repository, in Gitardo's picker titled **Repository shown in Gitardo**: each repository by its name,
   with its folder under it, and the one shown marked **current**; a worktree shown from outside the workspace is listed
   last as **worktree, current**. The text typed matches the names and the folders.
 - **Plan**: no step: nothing runs in a repository.
 - **Danger**: None.
 - **Undo**: nothing in a repository changes; choosing the other one again goes back.
-- **After**: every pane and the Graph tab show the repository chosen: its own branches shown (`filter.remember`), the
-  first page of its commits, nothing searched and nothing selected. The choice is remembered for the workspace, and is
-  the one shown the next time the workspace opens, as long as it is still among its repositories.
+- **After**: the branch rail, the timeline and the draft show the repository chosen: its own branches shown
+  (`filter.remember`), the first page of its commits, nothing searched and nothing selected. The choice is remembered
+  for the workspace, and is the one shown the next time the workspace opens, as long as it is still among its
+  repositories.
 - **Refuses**:
   - while an operation runs: nothing happens;
-  - from the command palette, with a single repository: "Gitardo: this workspace has a single repository."; with none:
+  - from Quick search, with a single repository: "Gitardo: this workspace has a single repository."; with none:
     "Gitardo: no Git repository in this workspace."
 - **Uses**: `repo.read-state`, `repo.name-repositories`, `filter.remember`.
 
@@ -135,8 +138,8 @@ Acceptance:
 - [ ] In a workspace of two repositories, choosing the second shows its branches and commits, and the next time the
       workspace opens it is the one shown.
 - [ ] A remembered repository that is no longer in the workspace gives way to the first one found.
-- [ ] With one repository the toolbar has no list, and the command says "Gitardo: this workspace has a single
-      repository."
+- [ ] With one repository the repository menu of the header lists no repository to choose, and the command says
+      "Gitardo: this workspace has a single repository."
 - [ ] Choosing the repository already shown reads nothing.
 - [ ] While an operation runs, choosing another repository does nothing.
 
@@ -146,7 +149,7 @@ When a file is chosen for its history or its blame, the window switches on its o
 
 - **Kind**: Derivation
 - **Function**: `model::repo::owner_of_file(path: &Path, repositories: &[Repository]) -> Option<&Repository>`
-- **Uses**: by `file-history.file`, `blame.toggle-file` and the entries of the Files pane.
+- **Uses**: by `file-history.file`, `blame.toggle-file` and the entries of the Files page.
 
 The owner is the innermost repository of the workspace whose folder contains the file: of a file in a submodule, the
 submodule. A path that is the folder of a repository itself is in no repository but is that repository (for the history
@@ -164,9 +167,9 @@ What the window shows when the workspace has no repository, or the one it had ca
 
 - **Kind**: View
 - **Function**: `views::repo::no_repository_view(state: &NoRepositoryState, ui) -> Vec<Intent>`
-- **Entry points**: the Graph tab and the panes of the side bar, in place of what they list.
+- **Entry points**: the timeline and the branch rail, in place of what they list.
 
-The Graph tab says **No Git repository in this workspace** with a **Check again** button, which looks for the
+The timeline says **No Git repository in this workspace** with a **Check again** button, which looks for the
 repositories again (`repo.read-repositories`) and reads the first one. While the repositories are looked for and the
 first one is read, it says **Loading repository…**. A read that fails, as when the folder was deleted, comes here too;
 the error goes to the Command log.
@@ -219,10 +222,11 @@ operation that stopped half way.
   - With the setting `conflicts.autoResolve`, what can be resolved without a choice in the files in conflict: see
     `conflicts.resolve-by-rules`.
 - **Settings**: `readOnStartup` (on by default): when the window opens a workspace as it starts, the repository shown is
-  read at once, so that the Graph tab and the panes have it when the window appears. Off, in the user's settings or in
-  `.gitardo/settings.json` of a very large repository, the window opens with the repository named but not read, and
-  the Graph tab and the panes say **Not read yet** with **Read the repository**; the first click there, **Refresh**, or
-  any command that needs the state reads it. GitHub is never asked for the pull requests before the first read.
+  read at once, so that the timeline and the branch rail have it when the window appears. Off, in the user's settings or
+  in `.gitardo/settings.json` of a very large repository, the window opens with the repository named but not read, and
+  the timeline and the branch rail say **Not read yet** with **Read the repository**; the first click there,
+  **Refresh**, or any command that needs the state reads it. GitHub is never asked for the pull requests before the
+  first read.
 - **Uses**: `repo.schedule-reads`, `graph.read-commits`, `refs.recent`, `submodule.read-list`,
   `conflicts.resolve-by-rules`.
 
@@ -285,9 +289,8 @@ changing during each read, never during an operation. **Refresh** asks for a rea
 
 - **Kind**: Derivation
 - **Function**: `model::repo::schedule_reads(schedule: &ReadSchedule, event: &ReadEvent) -> (ReadSchedule, Vec<ReadAction>)`
-- **Entry points**: **Refresh**, the button at the end of the toolbar of the Graph tab and the first entry of its
-  **…** menu (where the button goes when the toolbar is narrow); **Refresh** in the command palette; and every change
-  `repo.watch-changes` counts.
+- **Entry points**: **Refresh**, the first entry of the **…** menu of the header; **Refresh** in Quick search; and
+  every change `repo.watch-changes` counts.
 - **Settings**: `readOnStartup`, for the first read (see `repo.read-state`).
 - **Uses**: `repo.watch-changes`, `repo.read-state`, `graph.read-commits`, `activity.describe-task`.
 
@@ -296,8 +299,8 @@ The rules:
 - A change asks for a read after its delay, counted from the first change of a burst: further changes do not push it
   back, however long the burst lasts, but one with a shorter delay brings it forward. The read is said to be for the
   last change of the burst.
-- Changes ask for nothing while no pane or tab shows the repository, and while an operation runs: the operation is
-  followed by a read of its own.
+- Changes ask for nothing while the window is minimized, so that nothing of the repository is in sight, and while an
+  operation runs: the operation is followed by a read of its own.
 - **Refresh**, the end of an operation, choosing a repository, the branches shown, a search, a filter or the next page
   ask for a read at once.
 - Only one read runs at a time. A read asked for while one runs is noted, and one more read follows the one under way,
@@ -309,7 +312,7 @@ The rules:
 - The bar along the top of the list of commits runs while the commits of a filter, of the branches just chosen or of
   the next page are read, and stops as soon as the read that has them is done, even when the files go on changing and
   the repository is read again behind it.
-- A read that fails while a search narrows the graph (git refuses the search, as an invalid regular expression) drops
+- A read that fails while a search narrows the timeline (git refuses the search, as an invalid regular expression) drops
   the search, says "Gitardo: the search failed." with the first line of git's error, and reads again without it. Any
   other failure shows `repo.no-repository`.
 - After each read, the pull requests are read again when they are older than 2 minutes (`github.load-pull-requests`).
@@ -317,8 +320,8 @@ The rules:
 Acceptance:
 
 - [ ] Ten files written within half a second lead to one read, about a second after the first.
-- [ ] A file that changes every 200 ms for 5 s leads to reads one after another, never two at once, and the status bar
-      counts them.
+- [ ] A file that changes every 200 ms for 5 s leads to reads one after another, never two at once, and the activity
+      indicator counts them.
 - [ ] **Refresh** during a read leads to exactly one more read after it.
 - [ ] Nothing is read while an operation runs; one read follows it.
 - [ ] A read started before a commit made by Gitardo is not shown: the state shown after the commit has the commit
@@ -328,7 +331,7 @@ Acceptance:
 
 ### `activity.describe-task` — Say what Gitardo is doing
 
-The words the status bar and the **What is running** page use for each thing that takes time.
+The words the activity indicator of the header and the **Activity** drawer use for each thing that takes time.
 
 - **Kind**: Derivation
 - **Function**: `model::activity::describe_task(task: &Task, now: Instant) -> TaskText`
@@ -336,7 +339,7 @@ The words the status bar and the **What is running** page use for each thing tha
 
 | What | Title | Detail |
 | --- | --- | --- |
-| A read of the repository | `Reading <name>`, or `Searching <name>` while a search in the changes (`git log -S` or `-G`) narrows the graph | `Because <cause>.` for the change that asked for it; from the second read in a row, `Read <n> times in a row: something changed during each read.` before it |
+| A read of the repository | `Reading <name>`, or `Searching <name>` while a search in the changes (`git log -S` or `-G`) narrows the timeline | `Because <cause>.` for the change that asked for it; from the second read in a row, `Read <n> times in a row: something changed during each read.` before it |
 | An operation | its title, as the preview shows it | |
 | A comparison | `Comparing <from> ↔ <to>` | |
 | A patch being made | `Making a patch of <commits>` | |
@@ -350,64 +353,66 @@ Acceptance:
 - [ ] The third read in a row after `src/a.rs` changed says `Read 3 times in a row: something changed during each
       read. Because src/a.rs changed.`
 - [ ] 65 seconds is said as `1 min 5 s`, 59.9 seconds as `59 s`.
-- [ ] A read while the graph is narrowed to `git log -S foo` is titled `Searching <name>`.
+- [ ] A read while the timeline is narrowed to `git log -S foo` is titled `Searching <name>`.
 
-### `activity.status-bar` — What is running, in the status bar
+### `activity.status-bar` — What is running, in the header
 
-The status bar says what Gitardo is running, for how long, and why; and the branch and how far it is from its upstream.
+The activity indicator of the header says what Gitardo is running, for how long, and why; and the branch of the header
+says how far it is from its upstream.
 
 - **Kind**: View
 - **Function**: `views::activity::status_bar_view(state: &StatusBarState, ui) -> Vec<Intent>`
-- **Entry points**: the status bar of the window.
+- **Entry points**: the activity indicator and the branch of the header.
 - **Uses**: `activity.describe-task`, `activity.what-is-running`.
 
 - While Gitardo has been reading a repository, running an operation, comparing two sides, making a patch or asking
-  GitHub for more than half a second, the status bar shows a spinning icon and **Gitardo** with the title of what has
-  run longest and for how long, as `Gitardo — Reading app (2 s)`. What is over sooner never shows, so that it does
+  GitHub for more than half a second, the activity indicator shows a spinning icon with the title of what has run
+  longest and for how long, as `Reading app (2 s)`. What is over sooner never shows, so that it does
   not flicker.
 - Its tooltip lists everything that runs, the oldest first, each with its title, how long it has run and its detail,
-  and ends with **Click to see what Gitardo is doing in a list.** The times go on every half second; the tooltip is
+  and ends with **Click to open the Activity drawer.** The times go on every half second; the tooltip is
   drawn again only when its text changes.
-- A click opens `activity.what-is-running`.
-- At the other end, the branch checked out, `detached at 3f2a1c9` or `no commits yet`, with `↑<ahead> ↓<behind>` from
-  its upstream when it has one.
+- A click opens the Activity drawer (`activity.what-is-running`).
+- The branch of the header names the branch checked out, `detached at 3f2a1c9` or `no commits yet`, with `↑<ahead>
+  ↓<behind>` from its upstream when it has one.
 
 Acceptance:
 
-- [ ] A read of 0.3 s shows nothing; a read of 2 s shows **Gitardo** from 0.5 s until it ends.
+- [ ] A read of 0.3 s shows nothing; a read of 2 s shows the activity indicator from 0.5 s until it ends.
 - [ ] A fetch and a read at once are both in the tooltip, the fetch first if it started first.
 - [ ] The tooltip of a read asked for by a change says which file changed.
-- [ ] With `main` two ahead of `origin/main`, the status bar says `main ↑2 ↓0`.
+- [ ] With `main` two ahead of `origin/main`, the branch of the header says `main ↑2 ↓0`.
 
-### `activity.what-is-running` — The What is running page
+### `activity.what-is-running` — What is running, in the Activity drawer
 
 Lists what Gitardo is doing now, with the way to the commands it runs.
 
 - **Kind**: View
 - **Function**: `views::activity::what_is_running_view(state: &ActivityState, ui) -> Vec<Intent>`
-- **Entry points**: a click on **Gitardo** in the status bar; **Show What Is Running** in the command palette.
+- **Entry points**: a click on the activity indicator of the header; the **Activity** button of the header; **Show
+  What Is Running** in Quick search.
 - **Uses**: `activity.describe-task`, `log.show`.
 
-The page lists each thing that runs, with its title, how long it has run and its detail, the times going on every
+The drawer lists each thing that runs, with its title, how long it has run and its detail, the times going on every
 second while it is open, and the list following what starts and ends. With nothing running it says **Nothing is running
-now** and "Gitardo is not reading or changing anything". Under the list, **Show the commands Gitardo runs** opens the
-Command log in the panel and closes the page. Opening it while it is open shows the one there is.
+now** and "Gitardo is not reading or changing anything". Under the list, **Show the commands Gitardo runs** shows the
+Command log of the drawer. Opening the drawer while it is open leaves it as it is.
 
 Acceptance:
 
-- [ ] Opened during a long fetch, the page lists the fetch, and its time grows each second.
-- [ ] When the fetch ends, it leaves the list; with nothing else, the page says **Nothing is running now**.
+- [ ] Opened during a long fetch, the drawer lists the fetch, and its time grows each second.
+- [ ] When the fetch ends, it leaves the list; with nothing else, the drawer says **Nothing is running now**.
 - [ ] **Show the commands Gitardo runs** shows the Command log.
 
 ### `welcome.page` — The Welcome page
 
-On the first start, a page that shows in five steps where the graph and the panes are and what to try first, and
-opens a folder.
+On the first start, a page that shows in five steps where the timeline, the branch rail and the inspector are and
+what to try first, and opens a folder.
 
 - **Kind**: View
 - **Function**: `views::welcome::page_view(state: &WelcomeState, ui) -> Vec<Intent>`
-- **Entry points**: shown by itself the first time Gitardo Desktop starts; **Welcome** in the command palette and in
-  the Help menu; the window with no workspace.
+- **Entry points**: shown by itself the first time Gitardo Desktop starts; **Welcome** in Quick search and in the
+  Help menu; the window with no workspace.
 - **Uses**: `repo.open-folder`, `repo.open-recent`, `commit-page.open`, `compare.choose`, `blame.toggle-file`,
   `worktree.create`.
 
@@ -417,15 +422,15 @@ is ticked once it is done, in any way, and stays ticked:
 
 | Step | Says | Button | Ticked when |
 | --- | --- | --- | --- |
-| **Open the graph** | The references on the left, the commits of every branch in the middle, the details of the selected commit on the right | **Show the graph** | the Graph tab is shown |
-| **Find the panes in the side bar** | Changes, Commits, Branches, Stashes and Files, folded by a click on their header | **Show the commits** | the Commits pane is shown |
-| **Open a commit, compare two branches** | A double click or `Enter` on a commit reads it whole in a tab; a comparison says what one side has that the other has not, and what merging them would do | **Open a commit…**, **Compare…** | a commit page or a comparison is opened |
+| **Open the timeline** | The branches on the left, the commits of every branch in the middle, the selected commit on the right | **Show the timeline** | the timeline is shown |
+| **Find the branches** | The branch rail lists the branches in the colors of their lanes, and keeps the stashes, the worktrees and the tags aside; a branch picked there narrows the timeline to its history | **Show the commits** | the timeline is narrowed to the branch checked out |
+| **Open a commit, compare two branches** | A double click or `Enter` on a commit reads it whole on a page; a comparison says what one side has that the other has not, and what merging them would do | **Open a commit…**, **Compare…** | a commit page or a comparison is opened |
 | **See who changed each line** | The File page says who last changed each line | **Open a file…** | a blame is shown |
 | **Work in another worktree** | A worktree is another folder of the same repository on a branch of its own | **Create a worktree…** | a worktree is created |
 
 Acceptance:
 
 - [ ] The first start shows the Welcome page; the second does not.
-- [ ] **Welcome** in the command palette shows it again, with the steps done ticked.
-- [ ] Opening a commit with a double click in the graph ticks **Open a commit, compare two branches**.
+- [ ] **Welcome** in Quick search shows it again, with the steps done ticked.
+- [ ] Opening a commit with a double click in the timeline ticks **Open a commit, compare two branches**.
 - [ ] A workspace opened from the page is listed first the next time.

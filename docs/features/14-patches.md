@@ -58,10 +58,9 @@ another branch.
 
 - **Kind**: Operation
 - **Function**: `features::patch::copy(context, answers) -> Outcome`
-- **Entry points**: **Copy as patch** in the context menu of a commit in the graph; in the bar above the graph and in
-  the context menu of several selected commits (`selection.bar`).
-- **Offered when**: every commit chosen is a commit with at most one parent: not a merge, not a stash, not the row of
-  the uncommitted changes.
+- **Entry points**: **Copy as patch** in the context menu of a commit in the timeline; in the bar above the commits of
+  the timeline and in the context menu of several selected commits (`selection.bar`).
+- **Offered when**: every commit chosen is a commit with at most one parent: not a merge, not a stash, not the draft.
 - **Reads**: `patch.read-format-patch`, with the commits in the order of the history, whatever the order they were
   clicked in.
 - **Plan**: no step; it changes nothing in the repository.
@@ -87,8 +86,8 @@ Saves the same patch as **Copy as patch** to a file the user chooses.
 
 - **Kind**: Operation
 - **Function**: `features::patch::save(context, answers) -> Outcome`
-- **Entry points**: **Save as patch…** in the context menu of a commit in the graph and in the context menu of several
-  selected commits.
+- **Entry points**: **Save as patch…** in the context menu of a commit in the timeline and in the context menu of
+  several selected commits.
 - **Offered when**: as `patch.copy`.
 - **Asks**: where to save it, in Gitardo's own save dialog titled **Save `<short hash>` as a patch** or **Save N commits
   as a patch**, filtered to `.patch`, starting in the top folder of the repository with the name `<short hash>.patch`,
@@ -135,8 +134,7 @@ author and message, or to the working tree only, its changes staged and nothing 
 
 - **Kind**: Operation
 - **Function**: `features::patch::apply(context, answers) -> Outcome`
-- **Entry points**: command palette: **Apply Patch…**; **Apply patch…** in the **…** menu of the toolbar of the
-  Graph tab.
+- **Entry points**: Quick search: **Apply Patch…**; **Apply patch…** in the **…** menu of the header.
 - **Asks**:
   1. **Apply patch**: **From a file…** or **From the clipboard**.
   2. From a file: Gitardo's own open dialog titled **Apply patch**, starting in the top folder of the repository, with
@@ -201,7 +199,7 @@ cherry-pick does.
 
 - **Kind**: View
 - **Function**: `views::patch::am_stopped(state: &OperationState, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: the banner of the operation in the Graph tab and the Changes pane, shown while `git am` is under
+- **Entry points**: the banner of the operation in the timeline and the Changes page, shown while `git am` is under
   way: the repository is in an am when `.git/rebase-apply/applying` exists, which is checked before the markers of a
   rebase.
 - **Uses**: `conflicts.banner`, `conflicts.continue-operation` (`git -c core.editor=true am --continue`), `conflicts.skip-step`

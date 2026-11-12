@@ -13,10 +13,10 @@ Two versions of a file side by side, kept level, with every change joined across
 
 - **Kind**: View
 - **Function**: `views::diff::page_view(state, ui) -> Vec<Intent>`
-- **Entry points**: a click on a file in the Changes pane when `changes.openOnClick` is `diff`, and **Open changes** on
-  its row; a file in the details of a commit, in the Commit page and in a comparison; **Compare with the saved file** in
-  the Changes pane; **Compare with…** on a file; the button on the header of the Changes pane that opens all its diffs
-  in one page; **Show the result** in the review of the conflicts; `conflicts.open-file` for a file deleted on one side.
+- **Entry points**: a click on a file in the Changes page when `changes.openOnClick` is `diff`, and **Open changes** on
+  its row; a file in the inspector, in the Commit page and in a comparison; **Compare with the saved file** in the
+  Changes page; **Compare with…** on a file; the button on the header of the Changes page that opens all its diffs in
+  one page; **Show the result** in the review of the conflicts; `conflicts.open-file` for a file deleted on one side.
 - **Reads**: `diff.read-sides`.
 - **Refuses**: a file with a NUL byte on either side: *This file looks binary.* A diff that takes more than 5 seconds to
   compute: *This file has too many differences to display.*
@@ -44,7 +44,8 @@ What it shows, left and right:
   every line added against an empty side; a file not in the right version (deleted) shows every line removed.
 - A renamed file is read under its old name on the left and its new name on the right; the header says
   `old/path → new/path`.
-- The tab is titled **\<file name\> (\<left\> ↔ \<right\>)**. Asking for the same diff again shows the page it has.
+- The page is titled **\<file name\> (\<left\> ↔ \<right\>)** in its trail. Asking for the same diff again shows the
+  page it has.
 - The diffs of several files open in one page, one after the other, each under a header with its path and its own
   title buttons; `F7` goes on from the last change of one to the first of the next.
 - The two sides are drawn in two columns of Gitardo's text editor, with the colors of the code, line numbers of their
@@ -62,8 +63,8 @@ Acceptance:
 - [ ] An untracked file of 10 lines shows 10 added lines and an empty left side.
 - [ ] A file with a NUL byte refuses with *This file looks binary.* and opens no page.
 - [ ] Two files of 60,000 lines each ask before computing; **Continue** shows the diff, and cancelling opens nothing.
-- [ ] Opening the same diff twice shows one tab.
-- [ ] Staging a file from the Changes pane while its diff against the index is open redraws the page with no change.
+- [ ] Opening the same diff twice shows one page.
+- [ ] Staging a file from the Changes page while its diff against the index is open redraws the page with no change.
 
 ### `diff.read-sides` — The two versions of a file
 
@@ -211,7 +212,7 @@ Goes from one change to the next, says where it is among them, and goes on to th
 - **Kind**: View
 - **Function**: `views::diff::navigate_view(state, ui) -> Vec<Intent>`
 - **Entry points**: `F7` and `Shift+F7` in either side; the arrows ▲ (**Previous change (Shift+F7)**) and ▼ (**Next
-  change (F7)**) of the toolbar; the title buttons **Previous change** and **Next change**.
+  change (F7)**) of the bar at the top of the page; the title buttons **Previous change** and **Next change**.
 - **Uses**: `diff.page` to open the next file in place.
 
 - Beside the arrows is **3 / 7** (the current change and how many there are), **– / 7** before any is chosen, or **No
@@ -241,8 +242,8 @@ Folds long runs of unchanged lines into a bar, so that the changes are seen toge
 
 - **Kind**: View
 - **Function**: `views::diff::collapse_unchanged_view(state, ui) -> Vec<Intent>`
-- **Entry points**: the fold button **Collapse unchanged regions** of the toolbar, which switches it for that page; the
-  bar **⋯ 12 unchanged lines** (*Click to expand*), which unfolds its lines.
+- **Entry points**: the fold button **Collapse unchanged regions** of the bar at the top of the page, which switches it
+  for that page; the bar **⋯ 12 unchanged lines** (*Click to expand*), which unfolds its lines.
 - **Settings**: `diff.collapseUnchanged` (on unless set to `false`) decides whether new pages start folded.
 
 - Each run of unchanged rows keeps 3 lines visible next to each change; at the start and at the end of the file, none
@@ -256,7 +257,7 @@ Acceptance:
 
 - [ ] A file of 100 lines with one change at line 50 shows lines 47 to 53 and two bars, of 46 and of 47 lines.
 - [ ] Two changes with 9 unchanged lines between them show all 9: 3 + 3 kept leaves 3, fewer than 4.
-- [ ] With `diff.collapseUnchanged` set to `false`, a new page shows every line, and the toolbar button folds them.
+- [ ] With `diff.collapseUnchanged` set to `false`, a new page shows every line, and the fold button folds them.
 - [ ] Clicking a bar shows its lines on both sides.
 
 ### `diff.staged-changes` — Which changes are in the index already
@@ -329,7 +330,7 @@ Puts one change of the working tree into the index.
   standard input changes this part of \<file\> in the index:* and the first `@@` line. For an untracked file there is no
   index to patch: the plan is `git add -- <file>`.
 - **Danger**: None.
-- **Undo**: Impossible from the toolbar, since the index has no reflog; **Unstage this change** takes it back.
+- **Undo**: Impossible with **Undo**, since the index has no reflog; **Unstage this change** takes it back.
 - **After**: the page is computed again and the change is drawn dimmed.
 - **Refuses**: when the file changed since the page was computed: *The file changed since the diff was shown. Try
   again.* When the file is not UTF-8 and the patch has a character above 127: *Staging a change needs UTF-8 text: stage
@@ -360,7 +361,7 @@ Takes one change back out of the index.
   `HEAD` on standard input, titled **Unstage change in \<file\>**. A file that is in the index and not in `HEAD` is one
   change: the plan is `git restore --staged -- <file>`, or `git rm --cached -r -- <file>` before the first commit.
 - **Danger**: None.
-- **Undo**: Impossible from the toolbar; **Stage this change** takes it back.
+- **Undo**: Impossible with **Undo**; **Stage this change** takes it back.
 - **After**: the page is computed again.
 - **Refuses**: as `diff.stage-change`.
 
@@ -383,7 +384,7 @@ Puts back in the working tree what the left side has in place of one change.
   removed change puts its lines back after the line before it), as one edit of that side, and the file is saved:
   `write <file>` (`file-view.save`).
 - **Danger**: None.
-- **Undo**: `Ctrl+Z` in the working-tree side takes the edit back, unsaved until `Ctrl+S`; the toolbar Undo does not.
+- **Undo**: `Ctrl+Z` in the working-tree side takes the edit back, unsaved until `Ctrl+S`; **Undo** does not.
 - **After**: the page is computed again; the change is gone.
 - **Refuses**: *The file changed since the diff was shown. Try again.*
 - **Uses**: `diff.edit`, `file-view.save`.
@@ -393,7 +394,7 @@ Acceptance:
 - [ ] Reverting a changed line against `HEAD` gives the file the line `HEAD` has, and the page has one change fewer.
 - [ ] Reverting a removed change at the end of a file with no final line break puts the lines back after the last
       line.
-- [ ] `Ctrl+Z` right after brings the change back, and the tab shows the file unsaved.
+- [ ] `Ctrl+Z` right after brings the change back, and the page shows the file unsaved.
 
 ### `diff.edit` — Editing the working tree side
 
@@ -406,7 +407,7 @@ The file can be edited where it is shown, when the right side is the working tre
 - **Uses**: `file-view.edit`, `file-view.save`.
 
 - What is typed goes into the file's text, the same text a File page of the file shows: it is unsaved until `Ctrl+S`,
-  and the tab and the Changes pane show it unsaved.
+  and the Diff page and the Changes page show it unsaved.
 - The diff is computed again a moment (200 ms) after typing stops; what is still being typed is never overwritten by it.
 - The left side, and both sides when the right is not the working tree, are read-only.
 
@@ -458,7 +459,7 @@ Stages the whole file shown.
 - **Offered when**: the right side is the working tree and the left is `HEAD` or the index.
 - **Plan**: `git add -- <file>`.
 - **Danger**: None.
-- **Undo**: Impossible from the toolbar; **Unstage file** takes it back.
+- **Undo**: Impossible with **Undo**; **Unstage file** takes it back.
 - **After**: the page is computed again.
 
 Acceptance:
@@ -475,7 +476,7 @@ Takes the whole file out of the index.
 - **Offered when**: the right side is the index.
 - **Plan**: `git restore --staged -- <file>`; before the first commit, `git rm --cached -r -- <file>`.
 - **Danger**: None.
-- **Undo**: Impossible from the toolbar; **Stage file** takes it back.
+- **Undo**: Impossible with **Undo**; **Stage file** takes it back.
 - **After**: the page is computed again and shows no change.
 
 Acceptance:
@@ -511,7 +512,7 @@ change of a side joined by a band to where it is in the result.
 - **Kind**: View
 - **Function**: `views::merge_view::page_view(state, ui) -> Vec<Intent>`
 - **Entry points**: `conflicts.open-file` on a file with all three versions; **Resolve by hand** on a card of the review
-  of the conflicts; command palette **Open in the Merge page** and the title button of the same name of a File page,
+  of the conflicts; **Open in the Merge page** in Quick search and the title button of the same name of a File page,
   for the file of the page in front when it is in conflict.
 - **Reads**: `merge-view.read-sides`.
 - **Refuses**: a file that is not in conflict with a version on each side: *\<file\> is not in conflict with a change on
@@ -525,7 +526,7 @@ change of a side joined by a band to where it is in the result.
   `merge-view.show-base`, `merge-view.navigate`, `merge-view.open-at-line`, `merge-view.mark-resolved`,
   `merge-view.close`, `file-view.edit`, `file-view.highlight`, `conflicts.side-names`.
 
-- The tab is titled **\<file name\> (Current ↔ Incoming)**; one page per file, and asking again shows it.
+- The page is titled **\<file name\> (Current ↔ Incoming)** in its trail; one page per file, and asking again shows it.
 - The columns are labelled **Current — \<what the current side is\>**, **\<path\> — Result** and **Incoming — \<what the
   incoming side is\>**, with the words of `conflicts.side-names` (**Current — The branch checked out**, **Incoming —
   The branch being merged** in a merge).
@@ -757,8 +758,8 @@ Saves the file and stages it, which tells git that its conflicts are resolved, a
   resolved all the same, with the markers in it?** with **Mark as resolved**; no default.
 - **Plan**: `write <file>` when the result has unsaved changes (what was being typed included), then `git add -- <file>`.
 - **Danger**: None; the question above is asked whenever markers are left, since staged they would be committed.
-- **Undo**: Impossible from the toolbar: staging leaves nothing in the reflog.
-- **After**: the page closes; the file leaves the conflicts of the Changes pane.
+- **Undo**: Impossible with **Undo**: staging leaves nothing in the reflog.
+- **After**: the page closes; the file leaves the conflicts of the Changes page.
 - **Uses**: `file-view.save`, `conflicts.mark-resolved`.
 
 Acceptance:
@@ -774,7 +775,7 @@ Closing a Merge page never loses what was chosen or typed in it.
 
 - **Kind**: View
 - **Function**: `views::merge_view::close_view(state, ui) -> Vec<Intent>`
-- **Entry points**: closing the tab of a Merge page.
+- **Entry points**: closing a Merge page.
 - **Uses**: `file-view.page`.
 
 - When the result has changes that are not saved, the file is shown in a File page with them, in the same place, so
@@ -783,7 +784,7 @@ Closing a Merge page never loses what was chosen or typed in it.
 
 Acceptance:
 
-- [ ] Choosing **→** on a conflict and closing the tab opens the File page of the file, unsaved, with the choice in it.
+- [ ] Choosing **→** on a conflict and closing the page opens the File page of the file, unsaved, with the choice in it.
 - [ ] Closing a page with nothing unsaved opens nothing.
 
 ### `file-view.page` — The File page
@@ -793,7 +794,7 @@ read-only.
 
 - **Kind**: View
 - **Function**: `views::file_view::page_view(state, ui) -> Vec<Intent>`
-- **Entry points**: a click on a file in the Files pane; a click on a file in the Changes pane when
+- **Entry points**: a click on a file in the Files page; a click on a file in the Changes page when
   `changes.openOnClick` is not `diff`, and **Open file** on its row; **Open file** of a Diff page; `F4` in a Diff or
   Merge page; `conflicts.open-file` for a file both sides added; a line number in the review of the conflicts;
   `merge-view.close`; **Open the file at this revision** on a file of a commit; **Blame the file as it was before** in
@@ -804,8 +805,8 @@ read-only.
   file, which draw in this page), `file-history.` (the history of the file and of the selected lines, from its context
   menu), `merge-view.page`.
 
-- The tab is titled with the file's name; a file at a revision is titled **\<name\> (\<short hash\>)** and is read-only.
-  One page per file and revision: asking again shows it, at the line asked for.
+- The page is titled with the file's name in its trail; a file at a revision is titled **\<name\> (\<short hash\>)** and
+  is read-only. One page per file and revision: asking again shows it, at the line asked for.
 - The editor has line numbers, the colors of the code, a cursor and selections, and the font and tab width of the
   editor settings. It opens at the line asked for, centered, with the cursor at its start.
 - The title buttons: **Open in external editor**; the buttons of the blame; **Open in the Merge page** when the file is
@@ -816,8 +817,8 @@ read-only.
 
 Acceptance:
 
-- [ ] Clicking `src/app.rs` in the Files pane opens a tab **app.rs** with the file, editable.
-- [ ] Opening `src/app.rs` at `3f2a1c9` opens a read-only tab **app.rs (3f2a1c9)**; typing does nothing.
+- [ ] Clicking `src/app.rs` in the Files page opens a page **app.rs** with the file, editable.
+- [ ] Opening `src/app.rs` at `3f2a1c9` opens a read-only page **app.rs (3f2a1c9)**; typing does nothing.
 - [ ] Opening the same file at line 120 when its page is open shows that page, scrolled to line 120.
 - [ ] Changing the file in another program while the page has no unsaved edits shows the new text.
 
@@ -846,8 +847,8 @@ Typing in a file, with undo and redo, in the File page and in the editable sides
 
 - A file has one text while it is open, whichever pages show it: what is typed in one shows in the others, and each
   keeps its own cursor. The text keeps the line endings the file has.
-- Typing makes the file unsaved: its tab has a dot, and the Changes pane shows it with a dot (`changes.`). Nothing is
-  written until it is saved.
+- Typing makes the file unsaved: its page has a dot in its trail, and the Changes page shows it with a dot (`changes.`).
+  Nothing is written until it is saved.
 - Undo and redo go through what was typed and what the buttons of a page did (a revert of a change, a choice of a side,
   accepting proposals), each as one step.
 - Closing the last page of a file that has unsaved edits, other than a Merge page (`merge-view.close`), asks **Save
@@ -855,7 +856,7 @@ Typing in a file, with undo and redo, in the File page and in the editable sides
 
 Acceptance:
 
-- [ ] Typing in the File page of `app.rs` shows the text in its open Diff page and puts a dot on both tabs.
+- [ ] Typing in the File page of `app.rs` shows the text in its open Diff page and puts a dot on both pages.
 - [ ] Three typed words and `Ctrl+Z` three times give back the saved text, and the dot goes away.
 - [ ] A file with CRLF line endings keeps CRLF in the lines typed.
 - [ ] Closing the File page of an unsaved file asks; **Don't save** leaves the disk as it was.
@@ -867,13 +868,13 @@ Writes the text of a file to the disk.
 - **Kind**: Operation
 - **Function**: `features::file_view::save(context, answers) -> Outcome`
 - **Entry points**: `Ctrl+S` (`Cmd+S` on macOS) in a File page, in the working-tree side of a Diff page and in the
-  result of a Merge page; **Save** and **Save all** in the Changes pane; `diff.revert-change`;
+  result of a Merge page; **Save** and **Save all** in the Changes page; `diff.revert-change`;
   `merge-view.mark-resolved`.
 - **Offered when**: the file has unsaved edits.
 - **Plan**: `write <file>`, with the text as it is, in its own line endings and encoding.
 - **Danger**: None.
-- **Undo**: Impossible from the toolbar; `Ctrl+Z` in the page goes on taking back the edits, unsaved again.
-- **After**: the dot leaves the tab and the Changes pane; the pages of the file and the repository are read again.
+- **Undo**: Impossible with **Undo**; `Ctrl+Z` in the page goes on taking back the edits, unsaved again.
+- **After**: the dot leaves the page and the Changes page; the pages of the file and the repository are read again.
 - **Refuses**: when the file changed on disk since it was read: *app.rs changed on disk since it was opened.* with
   **Overwrite** and **Cancel**.
 
@@ -928,7 +929,7 @@ Opens the file in the editor the user works in, outside Gitardo.
 - **Kind**: Operation
 - **Function**: `features::file_view::open_external(context, answers) -> Outcome`
 - **Entry points**: the title button **Open in external editor** of a File page; the same entry in the context menu of a
-  file in the Files pane and in the Changes pane.
+  file in the Files page and in the Changes page.
 - **Offered when**: the file is in the working tree.
 - **Plan**: `run <command>`, the command of `editor.external` with the path of the file and the line of the cursor put
   in it, run in the folder of the repository; when `editor.external` is empty, the file is opened with the program the

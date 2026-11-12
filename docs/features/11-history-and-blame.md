@@ -1,6 +1,6 @@
 # History and blame
 
-Where a file, some lines or a folder come from, and who wrote what: the graph narrowed to the history of a file, of
+Where a file, some lines or a folder come from, and who wrote what: the timeline narrowed to the history of a file, of
 lines or of a folder; the blame of the line under the cursor and of every line of a file in the File page; the reflog,
 to get back to where `HEAD` has been; and bisect, to find the commit that broke something.
 
@@ -30,23 +30,23 @@ Acceptance:
 
 ### `file-history.file` — Show the history of a file
 
-Narrows the graph to the commits that changed a file, under every name it had. The graph stays connected, so it still
-shows on which branches the file changed.
+Narrows the timeline to the commits that changed a file, under every name it had. The graph stays connected, so it
+still shows on which branches the file changed.
 
 - **Kind**: Operation
 - **Function**: `features::file_history::file(context, answers) -> Outcome`
-- **Entry points**: **Show file history** in the context menu of a file in the Files pane, of the File page and of its
-  tab; the clock button next to each file in the commit details; **History of the active file** in the **…** menu of the
-  toolbar; **Show file history** in the command palette, for the File page in front.
+- **Entry points**: **Show file history** in the context menu of a file in the Files page, of the File page and of its
+  title; the clock button next to each file in the inspector; **History of the active file** in the **…** menu of the
+  header; **Show file history** in Quick search, for the File page in front.
 - **Offered when**: the file is inside a repository of the workspace. In a workspace with several, the repository that
   holds the file (the innermost one) is shown first.
 - **Reads**: `file-history.read-names`.
-- **Plan**: no step: nothing in the repository changes. The graph is read again with the names as its paths:
+- **Plan**: no step: nothing in the repository changes. The timeline is read again with the names as its paths:
   `git log … --parents … -- :(literal)<name> …` (`--parents` makes each commit's parents the nearest commits listed, so
-  the lines stay connected), on the branches the graph shows.
+  the lines stay connected), on the branches the timeline shows.
 - **Danger**: None.
 - **Undo**: nothing to take back; **Show all commits** on the bar removes the narrowing.
-- **After**: the Graph tab is in front; the bar above the graph says *History of `<path>`*, and, dimmed, *· earlier
+- **After**: the timeline is shown; the bar above its commits says *History of `<path>`*, and, dimmed, *· earlier
   `<old names>`*, joined by `, `, when it had others.
 - **Refuses**: a file outside every repository of the workspace, *Open a file of this repository to see its history.*
 - **Uses**: `file-history.read-names`.
@@ -55,7 +55,7 @@ Acceptance:
 
 - [ ] The history of `src/b.rs`, renamed from `src/a.rs`, lists the commits that changed either name, and the bar says
       *History of src/b.rs · earlier src/a.rs*.
-- [ ] The history is limited to the branches the graph shows when it is narrowed to some.
+- [ ] The history is limited to the branches the timeline shows when it is narrowed to some.
 - [ ] A commit that changed only other files is not listed.
 - [ ] If an earlier name was later used for another file, the commits of that file are listed too.
 
@@ -114,21 +114,21 @@ Acceptance:
 
 ### `file-history.lines` — Show the history of some lines
 
-Narrows the graph to the commits that changed the lines selected in the File page, or the line of the cursor (`git log
--L`). Git follows the lines back from the commit checked out, through moves too.
+Narrows the timeline to the commits that changed the lines selected in the File page, or the line of the cursor (`git
+log -L`). Git follows the lines back from the commit checked out, through moves too.
 
 - **Kind**: Operation
 - **Function**: `features::file_history::lines(context, answers) -> Outcome`
-- **Entry points**: **Show history of selected lines** in the context menu of the File page and in the command palette.
+- **Entry points**: **Show history of selected lines** in the context menu of the File page and in Quick search.
 - **Offered when**: the File page in front shows a file on disk inside a repository.
 - **Reads**: `file-history.read-committed-lines`, with the text of the File page as it is, saved or not.
-- **Plan**: no step: nothing in the repository changes. The graph is read with
+- **Plan**: no step: nothing in the repository changes. The timeline is read with
   `git log … --parents --no-patch -L<start>,<end>:<path> <commit>`, where the range and the path are those of the
-  commit checked out. It follows the lines from that commit only, with no pathspec, whatever branches the graph shows
+  commit checked out. It follows the lines from that commit only, with no pathspec, whatever branches the timeline shows
   otherwise; what git prints of the changes is not read.
 - **Danger**: None.
 - **Undo**: nothing to take back; **Show all commits** on the bar removes the narrowing.
-- **After**: the Graph tab is in front; the bar says *History of line 4 of `<path>`* or *History of lines 4–9 of
+- **After**: the timeline is shown; the bar says *History of line 4 of `<path>`* or *History of lines 4–9 of
   `<path>`*; when the lines of the commit are not the ones selected, it adds, dimmed, *· lines 5–10 in the editor*. The
   lines stay those of that commit after another commit is checked out or made, and the bar then adds *· as committed in
   `<short hash>`*.
@@ -148,31 +148,31 @@ Which lines are selected:
 
 Acceptance:
 
-- [ ] With lines 4–9 selected in a file as committed, the graph lists the commits `git log -L4,9:<path> HEAD` lists, and
-      the bar says *History of lines 4–9 of `<path>`*.
+- [ ] With lines 4–9 selected in a file as committed, the timeline lists the commits `git log -L4,9:<path> HEAD` lists,
+      and the bar says *History of lines 4–9 of `<path>`*.
 - [ ] Selecting from line 4 to the start of line 10 asks for lines 4–9.
 - [ ] With a line inserted above, unsaved, selecting lines 5–10 asks for lines 4–9 and the bar adds *· lines 5–10 in the
       editor*.
 - [ ] Selecting only lines typed since the last commit is refused with the message above.
-- [ ] With the graph narrowed to `main`, the history of lines of a file checked out on `feature` still follows them from
-      the commit checked out.
+- [ ] With the timeline narrowed to `main`, the history of lines of a file checked out on `feature` still follows them
+      from the commit checked out.
 
 ### `file-history.folder` — Show the history of a folder
 
-Narrows the graph to the commits that changed anything in a folder.
+Narrows the timeline to the commits that changed anything in a folder.
 
 - **Kind**: Operation
 - **Function**: `features::file_history::folder(context, answers) -> Outcome`
-- **Entry points**: **Show folder history** in the context menu of a folder in the Files pane.
+- **Entry points**: **Show folder history** in the context menu of a folder in the Files page.
 - **Offered when**: the folder is inside a repository and is not the root folder of a repository, whose history is all
   of it.
-- **Plan**: no step: nothing in the repository changes. The graph is read with `git log … --parents … --
+- **Plan**: no step: nothing in the repository changes. The timeline is read with `git log … --parents … --
   :(literal)<folder>`. Renames are not followed: git follows only files, so the history of a folder starts where it got
   its name.
 - **Danger**: None.
 - **Undo**: nothing to take back; **Show all commits** removes the narrowing.
-- **After**: the Graph tab is in front; the bar says *History of the folder `<path>`*. Asked for the root folder of a
-  repository (from the command palette), it shows that repository with no narrowing.
+- **After**: the timeline is shown; the bar says *History of the folder `<path>`*. Asked for the root folder of a
+  repository (from Quick search), it shows that repository with no narrowing.
 - **Refuses**: a folder outside every repository, *Choose a folder of this repository to see its history.*
 
 Acceptance:
@@ -223,7 +223,7 @@ What it shows:
   `${ago}`.
 - A line not committed yet: *Not committed yet*. It takes edits not saved into account.
 - Hovering it, for a committed line: the author, the date and time, the summary, and a link **Show `<short hash>` in the
-  Gitardo graph**, which shows that commit in the graph. Nothing is shown when git has no blame for the line.
+  timeline**, which shows that commit in the timeline. Nothing is shown when git has no blame for the line.
 
 Acceptance:
 
@@ -231,13 +231,14 @@ Acceptance:
 - [ ] Typing on a line makes it say *Not committed yet* once the cursor rests.
 - [ ] With `blame.enabled` off, nothing is shown.
 - [ ] Selecting across two lines shows nothing.
-- [ ] The link of the hover selects the commit in the graph, loading it if it is further back than the graph is loaded.
+- [ ] The link of the hover selects the commit in the timeline, loading it if it is further back than the timeline is
+      loaded.
 
 ### `blame.toggle-current-line` — Toggle the blame of the line under the cursor
 
 - **Kind**: Operation
 - **Function**: `features::blame::toggle_current_line(context, answers) -> Outcome`
-- **Entry points**: **Toggle inline blame** in the command palette.
+- **Entry points**: **Toggle inline blame** in Quick search.
 - **Plan**: `write <user settings.json>`, with `blame.enabled` set to the opposite of what it is.
 - **Danger**: None.
 - **Undo**: not by Undo; the command again switches it back.
@@ -251,12 +252,12 @@ Acceptance:
 
 ### `blame.open-line-commit` — Open the commit of the current line
 
-Opens the commit that last changed the line under the cursor in a tab of its own.
+Opens the commit that last changed the line under the cursor as a page of its own.
 
 - **Kind**: Operation
 - **Function**: `features::blame::open_line_commit(context, answers) -> Outcome`
-- **Entry points**: `Alt+B` (`Ctrl+Alt+B` on macOS) in the File page; **Open commit of current line in a tab** in the
-  context menu of the File page and in the command palette.
+- **Entry points**: `Alt+B` (`Ctrl+Alt+B` on macOS) in the File page; **Open commit of current line as a page** in the
+  context menu of the File page and in Quick search.
 - **Offered when**: the File page shows a file of a repository; the key works while its editor has the keyboard.
 - **Reads**: the blame the file shows, when it shows one; otherwise `blame.read-file`.
 - **Plan**: no step: nothing in the repository changes.
@@ -272,26 +273,26 @@ Acceptance:
 - [ ] `Alt+B` on a line last changed by `abc1234` opens the page of `abc1234`.
 - [ ] `Alt+B` on a line typed since the last commit opens nothing and says the line is not committed yet.
 
-### `blame.reveal-line-commit` — Show the commit of the current line in the graph
+### `blame.reveal-line-commit` — Show the commit of the current line in the timeline
 
 - **Kind**: Operation
 - **Function**: `features::blame::reveal_line_commit(context, answers) -> Outcome`
 - **Entry points**: `Shift+Alt+B` (`Ctrl+Shift+Alt+B` on macOS) in the File page; **Reveal commit of current line in
-  graph** in the context menu of the File page and in the command palette.
+  the timeline** in the context menu of the File page and in Quick search.
 - **Offered when**: as `blame.open-line-commit`.
 - **Reads**: as `blame.open-line-commit`.
 - **Plan**: no step: nothing in the repository changes.
 - **Danger**: None.
 - **Undo**: nothing to take back.
-- **After**: the Graph tab is in front with the commit selected: loaded when it is further back than the graph is
+- **After**: the timeline is shown with the commit selected: loaded when it is further back than the timeline is
   loaded, and with the narrowing removed when it leaves the commit out.
 - **Refuses**: as `blame.open-line-commit`.
 - **Uses**: `blame.read-file`.
 
 Acceptance:
 
-- [ ] `Shift+Alt+B` on a line selects its commit in the graph.
-- [ ] With the graph narrowed to a branch that does not have the commit, the narrowing is removed and the commit
+- [ ] `Shift+Alt+B` on a line selects its commit in the timeline.
+- [ ] With the timeline narrowed to a branch that does not have the commit, the narrowing is removed and the commit
       selected.
 
 ### `blame.read-file` — Who last changed each line of a file
@@ -458,7 +459,7 @@ lines brought out and the age of each line in color.
 - **Kind**: View
 - **Function**: `views::blame::file_view(state, ui) -> Vec<Intent>`
 - **Entry points**: the button with a person at the top right of the File page (**Show file blame**), the entry in its
-  context menu, **Toggle file blame** in the command palette (`blame.toggle-file`); or on its own, with
+  context menu, **Toggle file blame** in Quick search (`blame.toggle-file`); or on its own, with
   `fileBlame.everyFile`.
 - **Offered when**: the File page shows a file on disk inside a repository of the workspace, or a file as it was in a
   commit. It is switched on file by file, and a file keeps it until its page is closed.
@@ -483,13 +484,13 @@ What it shows:
 - Lines not committed yet say *Not committed yet* and have the color of what was just changed; what is typed says so at
   once (`blame.mark-edited-lines`).
 - Hovering what is beside a committed line shows the author, the date and time and the summary, and the links **Show
-  `<short hash>` in the Gitardo graph**, **Open it in a tab**, and, when the commit has a commit before it for this
+  `<short hash>` in the timeline**, **Open it as a page**, and, when the commit has a commit before it for this
   file, **Blame the file as it was before** (`blame.previous`).
 - When lines wrap, the column stays: the parts of a wrapped line after the first start after the column, in line with
   the text, and nothing of the text is drawn under or past the column.
 - While the file shows its blame, the title of the File page has the closed eye (**Hide file blame**) in place of the
   person, the funnel (`blame.ignore-whitespace`) and the pin (`blame.every-file`).
-- While the blame is read the first time on request, the status bar says *reading the blame…*.
+- While the blame is read the first time on request, the activity indicator of the header says *reading the blame…*.
 
 Acceptance:
 
@@ -509,7 +510,7 @@ Acceptance:
 - **Kind**: Operation
 - **Function**: `features::blame::toggle_file(context, answers) -> Outcome`
 - **Entry points**: the person button (**Show file blame**) and the closed eye (**Hide file blame**) at the top right of
-  the File page; **Toggle file blame** in its context menu and in the command palette.
+  the File page; **Toggle file blame** in its context menu and in Quick search.
 - **Offered when**: the File page shows a file on disk while the workspace has a repository, or a file as it was in a
   commit.
 - **Reads**: `blame.read-file`, to show it.
@@ -535,7 +536,7 @@ reformatted it.
 - **Kind**: Operation
 - **Function**: `features::blame::previous(context, answers) -> Outcome`
 - **Entry points**: **Blame the file as it was before** in the hover of the blame of a line (`blame.file`); **Blame file
-  before commit of current line** in the context menu of the File page and in the command palette.
+  before commit of current line** in the context menu of the File page and in Quick search.
 - **Offered when**: the link, when the commit has a commit before it for this file (`previous` of `blame.read-file`);
   the command, on a File page of a file of a repository.
 - **Reads**: for the command, the blame of the file, as `blame.open-line-commit`; then `blame.read-file` with the commit
@@ -543,16 +544,17 @@ reformatted it.
 - **Plan**: no step: nothing in the repository changes.
 - **Danger**: None.
 - **Undo**: nothing to take back.
-- **After**: a File page opens on the file as it was in the commit before (read-only), its tab naming that commit, with
-  its blame shown, the cursor on the line of the same number (or the last line), highlighted as the file it came from.
+- **After**: a File page opens on the file as it was in the commit before (read-only), its trail naming that commit,
+  with its blame shown, the cursor on the line of the same number (or the last line), highlighted as the file it came
+  from.
 - **Refuses**: as `blame.open-line-commit`; and when the commit of the line added the file, *`<short hash>` is the
   commit that added this file, so there is nothing before it to blame.*
 - **Uses**: `blame.read-file`, `blame.file`.
 
 Acceptance:
 
-- [ ] On a line last changed by `B`, whose parent is `A`, it opens the file as of `A`, with `A`'s blame, the tab naming
-      `A`.
+- [ ] On a line last changed by `B`, whose parent is `A`, it opens the file as of `A`, with `A`'s blame, the trail
+      naming `A`.
 - [ ] On a file renamed by `B`, it opens the file under its old name as of `A`.
 - [ ] On a line of the commit that added the file, it says so and opens nothing.
 
@@ -564,7 +566,7 @@ Leaves a line to who wrote it when all that was changed since is its whitespace 
 - **Function**: `features::blame::ignore_whitespace(context, answers) -> Outcome`
 - **Entry points**: the funnel at the top right of the File page while the file shows its blame (**Ignore whitespace and
   moved lines in blame**, filled while on: **Stop ignoring whitespace and moved lines in blame**); **Toggle ignoring
-  whitespace and moved lines in blame** in the command palette.
+  whitespace and moved lines in blame** in Quick search.
 - **Plan**: `write <user settings.json>`, with `blame.ignoreWhitespaceAndMoves` set to the opposite.
 - **Danger**: None.
 - **Undo**: not by Undo; the funnel again.
@@ -586,7 +588,7 @@ The pin shows the blame in every file that is opened, rather than in the ones it
 - **Function**: `features::blame::every_file(context, answers) -> Outcome`
 - **Entry points**: the pin at the top right of the File page while the file shows its blame (**Keep file blame on in
   every file**, pinned while on: **Stop keeping file blame on in every file**); **Toggle file blame in every file** in
-  the command palette, from anywhere.
+  Quick search, from anywhere.
 - **Plan**: `write <user settings.json>`, with `fileBlame.everyFile` set to the opposite.
 - **Danger**: None.
 - **Undo**: not by Undo; the pin again.
@@ -622,20 +624,20 @@ way back to commits that no branch reaches any more, after a reset or a rebase.
 
 - **Kind**: Operation
 - **Function**: `features::reflog::browse(context, answers) -> Outcome`
-- **Entry points**: **Browse reflog** in the command palette; **Reflog** in the **…** menu of the toolbar, and of the
-  narrow layout of the Graph tab.
+- **Entry points**: **Browse reflog** in Quick search; **Reflog** in the **…** menu of the header, also in the narrow
+  layout of the window.
 - **Reads**: `reflog.read` of `HEAD`, 200 entries.
 - **Asks**:
   1. a pick titled *Reflog: where HEAD has been*, with the placeholder *Pick an entry to go back to it or recover it*;
      each entry has its subject as label, `<short hash> · HEAD@{n}` as description and the local date and time as
      detail; typing filters on the label and the description;
-  2. a pick titled *`<short hash>`: `<subject>`*, with **Show in the graph**, **Create branch here…**, **Reset
+  2. a pick titled *`<short hash>`: `<subject>`*, with **Show in the timeline**, **Create branch here…**, **Reset
      `<branch>` to here…** (`HEAD` when detached), **Check out (detached)** and **Cherry-pick**.
 - **Plan**: none of its own: the second answer calls the feature it names with the commit of the entry.
 - **Danger**: None of its own; the feature called says its own.
 - **Undo**: that of the feature called.
-- **After**: **Show in the graph** selects the commit, loading the history up to it, removing the narrowing that leaves
-  it out, or, for a commit on no branch or tag, showing its history alone.
+- **After**: **Show in the timeline** selects the commit, loading the history up to it, removing the narrowing that
+  leaves it out, or, for a commit on no branch or tag, showing its history alone.
 - **Refuses**: with no repository, *No Git repository in this workspace.*
 - **Uses**: `reflog.read`, `branch.create`, `reset.to-commit`, `cherry-pick.commit`, `branch.checkout-detached`.
 
@@ -694,7 +696,7 @@ Acceptance:
 
 ### `bisect.mark` — Mark a commit good or bad
 
-While a bisect is under way, marks any commit of the graph.
+While a bisect is under way, marks any commit of the timeline.
 
 - **Kind**: Operation
 - **Function**: `features::bisect::mark(context, answers) -> Outcome`
@@ -706,7 +708,7 @@ While a bisect is under way, marks any commit of the graph.
 - **Danger**: None.
 - **Undo**: not by Undo (*End the bisect first.*).
 - **After**: when a single commit is left that can be the first bad one, the message *Bisect: the first bad commit is
-  `<short>` "`<subject>`".* with **Show in the graph** and **End bisect**.
+  `<short>` "`<subject>`".* with **Show in the timeline** and **End bisect**.
 - **Uses**: `bisect.read`, `bisect.end`.
 
 Acceptance:
@@ -737,8 +739,8 @@ The banner's **Good**, **Bad** and **Skip** mark the commit git checked out to t
 Acceptance:
 
 - [ ] **Good** runs `git bisect good`, and the banner's count goes down.
-- [ ] **Skip** runs `git bisect skip`, and the commit gets the mark *skipped* in the graph.
-- [ ] The answer that leaves one commit shows *Bisect: the first bad commit is …* with **Show in the graph** and
+- [ ] **Skip** runs `git bisect skip`, and the commit gets the mark *skipped* in the timeline.
+- [ ] The answer that leaves one commit shows *Bisect: the first bad commit is …* with **Show in the timeline** and
       **End bisect**.
 
 ### `bisect.banner` — The banner of a bisect
@@ -747,7 +749,7 @@ Says what the bisect needs next, and takes the answer for the commit checked out
 
 - **Kind**: View
 - **Function**: `views::bisect::banner_view(state, ui) -> Vec<Intent>`
-- **Entry points**: above the graph of the Graph tab, while a bisect is under way.
+- **Entry points**: above the commits of the timeline, while a bisect is under way.
 - **Offered when**: `bisect.read` gives a bisect.
 - **Uses**: `bisect.read`, `bisect.answer`, `bisect.end`.
 
@@ -757,7 +759,7 @@ What it says, after a search icon:
 - a bad one and no good one: *Bisect: mark a good commit to begin*;
 - both, more than one commit left: *Bisect: test `<short hash of HEAD>` · N commits can still be the first bad one*,
   with **Good**, **Bad** and **Skip**;
-- one commit left: *Bisect: the first bad commit is `<short>`*, with **Show**, which selects it in the graph.
+- one commit left: *Bisect: the first bad commit is `<short>`*, with **Show**, which selects it in the timeline.
 
 **End** is always there.
 
@@ -768,13 +770,13 @@ Acceptance:
 - [ ] Once found, **Good**, **Bad** and **Skip** are gone, and **Show** selects the commit.
 - [ ] Without a bisect, there is no banner.
 
-### `bisect.marks` — The marks of a bisect in the graph
+### `bisect.marks` — The marks of a bisect in the timeline
 
-The commits marked so far carry a label in the graph: `good`, `bad` or `skipped`.
+The commits marked so far carry a label in the timeline: `good`, `bad` or `skipped`.
 
 - **Kind**: View
 - **Function**: `views::bisect::marks_view(state, ui) -> Vec<Intent>`
-- **Entry points**: the labels of the commits in the graph, while a bisect is under way.
+- **Entry points**: the labels of the commits in the timeline, while a bisect is under way.
 - **Offered when**: `bisect.read` gives a bisect.
 - **Uses**: `bisect.read`.
 

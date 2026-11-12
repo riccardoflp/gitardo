@@ -1,7 +1,7 @@
 # Branches, tags, remotes and sync
 
 Checking out, creating, renaming, deleting and cleaning up branches; bringing a branch that is not checked out up to its
-upstream; the format that names new branches; tags; the **Branches** pane of the side bar; the remotes of a repository;
+upstream; the format that names new branches; tags; the branch rail as a whole; the remotes of a repository;
 and fetch, pull and push with their variants. Merging and rebasing are in `merge.` and `rebase.`; worktrees, which a
 branch is often opened in, are in `worktree.`; the pull requests of GitHub are in `github.`.
 
@@ -11,8 +11,8 @@ Switches the working tree to a local branch.
 
 - **Kind**: Operation
 - **Function**: `features::branch::checkout(context, answers) -> Outcome`
-- **Entry points**: **Check out `<branch>`** in the context menu of a local branch, in the graph, in the references
-  beside it and in the Branches pane; a double click on a local branch, as `branch.open` decides.
+- **Entry points**: **Check out `<branch>`** in the context menu of a local branch, in the timeline and in the branch
+  rail beside it; a double click on a local branch, as `branch.open` decides.
 - **Offered when**: the branch is not the one checked out, and no other worktree has it checked out. Where another
   worktree has it, its menu opens that worktree instead (`worktree.open`).
 - **Plan**: `git checkout <branch>`; then, as an operation of its own that the confirmation shows with it, the update of
@@ -28,7 +28,7 @@ files not committed would be overwritten, and says which; the working tree is th
 
 Acceptance:
 
-- [ ] Double clicking `feature` in the references runs `git checkout feature`, and the label of `feature` is the filled
+- [ ] Double clicking `feature` in the branch rail runs `git checkout feature`, and the label of `feature` is the filled
       one after.
 - [ ] With `branches.openIn` set to `worktree`, the double click runs `worktree.open-in-worktree` and no checkout.
 - [ ] The menu of the branch that is checked out has no **Check out** entry.
@@ -44,8 +44,8 @@ entry comes first in its context menu.
 
 - **Kind**: Derivation
 - **Function**: `model::branch::open(input: &OpenBranchInput) -> Option<Intent>`
-- **Entry points**: a double click on a branch or a remote branch in the references beside the graph, in **Recent** and
-  **Favorites**, in the Branches pane, and on its label in the graph.
+- **Entry points**: a double click on a branch or a remote branch in the branch rail, in its **Recent** and
+  **Favorites** lists too, and on its label in the timeline.
 - **Settings**: `branches.openIn`: `checkout` (the default) or `worktree`.
 - **Uses**: `branch.checkout`, `branch.checkout-remote`, `worktree.open`, `worktree.open-in-worktree`.
 
@@ -157,8 +157,8 @@ Checks out a commit on a detached `HEAD`, to look at it or build it.
 
 - **Kind**: Operation
 - **Function**: `features::branch::checkout_detached(context, answers) -> Outcome`
-- **Entry points**: **Check out commit (detached)** in the context menu of a commit, in the graph and in the Commits
-  pane.
+- **Entry points**: **Check out commit (detached)** in the context menu of a commit, in the timeline and in the commits
+  of what is checked out.
 - **Offered when**: the commit is not the one checked out.
 - **Plan**: `git checkout --detach <hash>`, then the update of the submodules (`submodule.update-on-checkout`).
 - **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
@@ -167,7 +167,7 @@ Checks out a commit on a detached `HEAD`, to look at it or build it.
 
 Acceptance:
 
-- [ ] On a commit that is not `HEAD` it runs `git checkout --detach <full hash>`, and the toolbar says
+- [ ] On a commit that is not `HEAD` it runs `git checkout --detach <full hash>`, and the header says
       **detached at `<short hash>`** after.
 - [ ] The menu of the commit checked out has no such entry.
 
@@ -177,10 +177,11 @@ Makes a new branch at a commit, a branch or a tag, and checks it out or not.
 
 - **Kind**: Operation
 - **Function**: `features::branch::create(context, answers) -> Outcome`
-- **Entry points**: **Branch** in the toolbar, whose tooltip is **Branch: create a branch at HEAD**; **Create branch…**
-  in the command palette, at `HEAD`; **Create branch here…** in the context menu of a commit (graph and Commits pane),
-  of a local branch and of a tag; the button **Create branch** on the header of the Branches pane.
-- **Offered when**: there is a commit: the toolbar button is disabled before the first one.
+- **Entry points**: **Branch** in the **…** menu of the header, whose tooltip is **Branch: create a branch at HEAD**;
+  **Create branch…** in Quick search, at `HEAD`; **Create branch here…** in the context menu of a commit (timeline and
+  commits of what is checked out), of a local branch and of a tag; the button **Create branch** at the top of the
+  branch rail.
+- **Offered when**: there is a commit: **Branch** in the header is disabled before the first one.
 - **Asks**:
   1. With `branches.format` set: a pick titled **Create branch**, **Use the format** (the format beside it), which is
      where the pick starts, or **Type a branch name**. With the format, the questions of `branch.name-from-format`,
@@ -193,7 +194,7 @@ Makes a new branch at a commit, a branch or a tag, and checks it out or not.
   The name is checked while it is typed: `branch.validate-name`, and "A branch with that name already exists".
 - **Plan**: `git checkout -b <name> <start>` to check it out, then the update of the submodules
   (`submodule.update-on-checkout`); `git branch <name> <start>` to create it only. `<start>` is `HEAD` from the
-  toolbar and the palette, the full hash on a commit, and the branch or the tag as `branch.ref-argument` names it.
+  header and Quick search, the full hash on a commit, and the branch or the tag as `branch.ref-argument` names it.
 - **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
 - **Undo**: Checked out: by the reflog, Undo goes back to what was checked out before; the branch stays, and
   `branch.delete` removes it with nothing lost. Created only: Undo does not take it back, since nothing moved `HEAD`;
@@ -205,7 +206,7 @@ A new branch has no upstream until its first push (`sync.push`).
 
 Acceptance:
 
-- [ ] From the toolbar, with no format, typing `fix/login` and **Create and check out** runs
+- [ ] From the header, with no format, typing `fix/login` and **Create and check out** runs
       `git checkout -b fix/login HEAD`.
 - [ ] On a commit, **Create only** runs `git branch <name> <full hash>` and leaves the branch checked out as it was.
 - [ ] On the branch `release` when a tag `release` also exists, it runs `git branch <name> refs/heads/release`.
@@ -277,7 +278,7 @@ Rules:
   **Type another value…**, opens an input box that cannot be left empty.
 - The value proposed is the one used last for that input, in this workspace, or the input's `default` before any was
   used. The values given are remembered once all the inputs of the format have been answered.
-- `${base}`, only when the format has it: from the toolbar and the palette, the branch checked out; on a branch, that
+- `${base}`, only when the format has it: from the header and Quick search, the branch checked out; on a branch, that
   branch; on a remote branch, its name without its remote; on a tag, the tag. A branch or a tag named in full because
   of a namesake is matched by its short name.
 - `${base}` at a commit, and on a detached `HEAD`, is asked in a pick titled **Create branch: what ${base} is**: the
@@ -292,7 +293,7 @@ Acceptance:
 - [ ] With `"pattern": "^\d+$"`, typing `12a` cannot be accepted.
 - [ ] The second time, the input box starts with the value given the first time.
 - [ ] A `pickString` with `allowCustom` whose last value was typed lists that value first with **Used last**.
-- [ ] From the toolbar on `main`, `${base}` is `main` and nothing is asked for it.
+- [ ] From the header on `main`, `${base}` is `main` and nothing is asked for it.
 - [ ] On a commit that `main` points at and `feature` contains, the pick lists `main`, then the short hash, then
       `feature`.
 - [ ] A format without `${base}` asks nothing about it, also at a commit.
@@ -363,7 +364,7 @@ Git renames the branch's configuration with it, its upstream included; the upstr
 
 Acceptance:
 
-- [ ] Renaming `feature` to `feature/login` runs `git branch -m feature feature/login`, and the references list
+- [ ] Renaming `feature` to `feature/login` runs `git branch -m feature feature/login`, and the branch rail lists
       `feature/login` with the same upstream after.
 - [ ] Accepting the box with the old name unchanged is refused by the box: that name is taken.
 - [ ] Renaming the branch checked out keeps it checked out.
@@ -404,8 +405,7 @@ the worktrees that have them.
 
 - **Kind**: Operation
 - **Function**: `features::branch::clean_up(context, answers) -> Outcome`
-- **Entry points**: **Clean up branches** in the command palette; **Clean up branches…** in the **…** menu of the
-  toolbar.
+- **Entry points**: **Clean up branches** in Quick search; **Clean up branches…** in the **…** menu of the header.
 - **Reads**: the branches merged into what is checked out, `git branch --merged HEAD --format=%(refname:short)`; the
   branches whose upstream is gone, and the worktrees with how many files each has not committed, from the state of the
   repository (`repo.read-state`).
@@ -488,47 +488,49 @@ Acceptance:
 - [ ] When the remote branch was force-pushed since the last fetch, git's refusal is shown and the branch has not
       moved.
 
-### `branch.pane` — The Branches pane
+### `branch.pane` — The branch rail, its buttons and its comparison
 
-The references tree on its own in the side bar: the recent branches and the favorites, the local branches, the remote
-branches, the tags, the worktrees and the submodules, with the context menus they have beside the graph.
+The branch rail as one place: its top, with the branch checked out and its buttons; the recent branches and the
+favorites, the local branches, the remote branches, and the stashes, worktrees, tags and submodules kept aside, with
+their context menus (`refs.tree`); and the comparison of a reference with the branch checked out.
 
 - **Kind**: View
 - **Function**: `views::branch::pane(state: &BranchesState, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: the **Branches** pane of the side bar; **Show branches** in the command palette unfolds it.
-- **Settings**: `branches.followGraphFilter` (on by default): while the graph is narrowed to some branches, the pane
-  lists only those; off, it lists them all, the ones the graph leaves out dimmed. `branches.sortOrder`.
+- **Entry points**: the left of the window; **Show branches** in Quick search shows the branch rail when it was put
+  away.
+- **Settings**: `branches.followGraphFilter` (on by default): while the timeline is narrowed to some branches, the
+  branch rail lists only those; off, it lists them all, the ones the timeline leaves out dimmed. `branches.sortOrder`.
 - **Uses**: `refs.tree`, `filter.list-too`, `branch.create`, `compare.with-current`,
   `compare.choose`, `worktree.create`, `worktree.switch`, `worktree-setup.page`,
   `worktree-setup.bring-into-other-worktrees`, `worktree.prune`, `graph.show-in-graph`, `graph.hover-history`.
 
-What the pane shows and does:
+What the branch rail shows and does:
 
-- The header names the branch checked out, and has the buttons **Create branch** (`branch.create` at `HEAD`) and
+- Its top names the branch checked out, and has the buttons **Create branch** (`branch.create` at `HEAD`) and
   **Compare** (`compare.choose`).
-- The sections, their order, their menus, the filter box from 15 branches and tags on, and the cap of 100 entries per
-  section with **Show all** are those of the references tree (`refs.tree`). The sections are all closed when the window
-  opens; the ones opened stay open until it is closed.
-- The title of the **Worktrees** section has **+**, which creates a worktree (`worktree.create`), and **…**, with
+- The lists, their order, their menus, the filter box from 15 branches and tags on, and the cap of 100 entries per
+  list with **Show all** are those of `refs.tree`. The lists of **Kept aside** are closed when the window opens; the
+  ones opened stay open until it is closed.
+- The title of the **Worktrees** list has **+**, which creates a worktree (`worktree.create`), and **…**, with
   **Switch worktree…**, **Choose what new worktrees get…**, **Bring ignored files into the other worktrees…**
   and, when a worktree is missing, **Prune missing worktrees**.
-- Selecting a reference selects its commit in the Commits pane and in the Graph tab, when they are open, without
-  opening them. **Show in the graph** in its context menu opens the Graph tab at it (`graph.show-in-graph`).
-- Resting the pointer on a branch, a tag or a worktree brings out its history in the Graph tab while it is open
+- Picking a reference selects its commit in the timeline, a branch narrowing it to its history (`refs.tree`), without
+  opening a page. **Show in the timeline** in its context menu shows the whole timeline at it (`graph.show-in-graph`).
+- Resting the pointer on a branch, a tag or a worktree brings out its history in the timeline while it is shown
   (`graph.hover-history`), until the pointer leaves it.
-- **Compare with `<current branch>`** in the menu of a reference shows the comparison under the tree (`compare.`), with
-  a button that swaps its sides and one that closes it.
+- **Compare with `<current branch>`** in the menu of a reference shows the comparison in the inspector
+  (`compare.in-place`), with a button that swaps its sides and one that closes it.
 - When the repository shown changes, what was selected and compared goes.
 
 Acceptance:
 
-- [ ] The header reads the name of the branch checked out, and **Create branch** on it asks for the name of a branch at
-      `HEAD`.
-- [ ] With the graph narrowed to `main`, the pane lists only `main` among the local branches; with
+- [ ] The top of the branch rail reads the name of the branch checked out, and **Create branch** there asks for the
+      name of a branch at `HEAD`.
+- [ ] With the timeline narrowed to `main`, the branch rail lists only `main` among the local branches; with
       `branches.followGraphFilter` off it lists all of them, the others dimmed.
-- [ ] Selecting `feature` selects its commit in the Graph tab when it is open, and opens nothing when it is not.
-- [ ] Every section is closed when the window opens.
-- [ ] The **…** of the Worktrees section has **Prune missing worktrees** only while a worktree's folder is missing.
+- [ ] Picking `feature` selects its commit in the timeline, and opens no page.
+- [ ] Every list of **Kept aside** is closed when the window opens.
+- [ ] The **…** of the Worktrees list has **Prune missing worktrees** only while a worktree's folder is missing.
 
 ### `tag.create` — Create a tag
 
@@ -536,7 +538,8 @@ Puts a tag on a commit: a lightweight one, or an annotated one with a message.
 
 - **Kind**: Operation
 - **Function**: `features::tag::create(context, answers) -> Outcome`
-- **Entry points**: **Create tag here…** in the context menu of a commit, in the graph and in the Commits pane.
+- **Entry points**: **Create tag here…** in the context menu of a commit, in the timeline and in the commits of what is
+  checked out.
 - **Asks**:
   1. The name, in an input box titled **Create tag** with the placeholder `v1.0.0`; checked by `branch.validate-name`
      and "A tag with that name already exists".
@@ -646,7 +649,7 @@ another.
 
 - **Kind**: Operation
 - **Function**: `features::remote::manage(context, answers) -> Outcome`
-- **Entry points**: **Manage remotes** in the command palette; **Manage remotes…** in the **…** menu of the toolbar.
+- **Entry points**: **Manage remotes** in Quick search; **Manage remotes…** in the **…** menu of the header.
 - **Reads**: `remote.read-remotes`.
 - **Asks**:
   1. A pick titled **Remotes of `<repository>`**, with the placeholder **Pick a remote to fetch, rename, repoint or
@@ -683,7 +686,7 @@ Acceptance:
 Acceptance:
 
 - [ ] Fetching `upstream` runs `git fetch --prune upstream`, and its branches deleted on the remote are gone from the
-      references after.
+      branch rail after.
 
 ### `remote.set-url` — Change the URL of a remote
 
@@ -768,8 +771,8 @@ Deletes a branch on the remote, for everyone.
 
 - **Kind**: Operation
 - **Function**: `features::remote::delete_branch(context, answers) -> Outcome`
-- **Entry points**: **Delete from remote** in the context menu of a remote branch; **Delete `<branch>` from
-  `<remote>`** at the end of the menu of a label that a branch shares with its upstream in the graph (`graph.labels`).
+- **Entry points**: **Delete from remote** in the context menu of a remote branch; **Delete `<branch>` from `<remote>`**
+  at the end of the menu of a label that a branch shares with its upstream in the timeline (`graph.labels`).
 - **Plan**: `git push <remote> --delete <branch>`. The remote is the longest name among the remotes that the remote
   branch starts with followed by `/`; the branch is the rest.
 - **Danger**: Destructive, because "This deletes the branch on the remote for everyone."
@@ -789,8 +792,8 @@ Brings what every remote has, and forgets the remote branches deleted there.
 
 - **Kind**: Operation
 - **Function**: `features::sync::fetch(context, answers) -> Outcome`
-- **Entry points**: **Fetch** in the toolbar, whose tooltip is **Fetch: git fetch --all --prune**; **Fetch** in the
-  command palette; the header of the Commits pane.
+- **Entry points**: **Fetch** in the menu of **Sync** in the header, whose tooltip is **Fetch: git fetch --all
+  --prune**; **Fetch** in Quick search; the top of the commits of what is checked out.
 - **Plan**: `git fetch --all --prune`.
 - **Danger**: None.
 - **Undo**: Impossible: a fetch only moves the remote-tracking branches, which Undo does not take back.
@@ -811,9 +814,9 @@ Brings what the upstream has into the branch checked out, the way the settings c
 
 - **Kind**: Operation
 - **Function**: `features::sync::pull(context, answers) -> Outcome`
-- **Entry points**: **Pull** in the toolbar, with the number of commits to pull on it when there are some, and whose
-  tooltip says the command it runs, **Pull: git pull --rebase --autostash**; **Pull** in the command palette; the header
-  of the Commits pane.
+- **Entry points**: **Pull** in the menu of **Sync** in the header, which has the number of commits to pull when there
+  are some, and whose tooltip says the command it runs, **Pull: git pull --rebase --autostash**; **Pull** in Quick
+  search; the top of the commits of what is checked out.
 - **Plan**: `git pull`, with `--rebase` when `pull.rebase` is on and `--autostash` when `pull.autostash` is on:
   `git pull --rebase --autostash` with both on, as they are by default.
 - **Danger**: None.
@@ -839,15 +842,15 @@ Acceptance:
 
 ### `sync.pull-with` — Pull one way or another
 
-Pulls in one of the four ways, whatever the settings say the **Pull** button does.
+Pulls in one of the four ways, whatever the settings say **Pull** does.
 
 - **Kind**: Operation
 - **Function**: `features::sync::pull_with(context, answers) -> Outcome`
-- **Entry points**: the menu beside **Pull** in the toolbar, which lists **Pull** (`git pull`), **Pull (rebase)**
-  (`git pull --rebase`), **Pull (autostash)** (`git pull --autostash`) and **Pull (rebase, autostash)**
-  (`git pull --rebase --autostash`), the one of the button marked **default**; in the command palette, **Pull (no
+- **Entry points**: the other ways to pull, in the menu of **Sync** in the header, which lists **Pull** (`git pull`),
+  **Pull (rebase)** (`git pull --rebase`), **Pull (autostash)** (`git pull --autostash`) and **Pull (rebase,
+  autostash)** (`git pull --rebase --autostash`), the one of **Pull** marked **default**; in Quick search, **Pull (no
   options)**, which is `git pull` alone, **Pull (rebase)**, **Pull (autostash)** and **Pull (rebase, autostash)**; the
-  **…** of the header of the Commits pane.
+  **…** at the top of the commits of what is checked out.
 - **Plan**: the command of the way chosen.
 - **Danger**: None.
 - **Undo**: By the reflog, as `sync.pull`.
@@ -868,9 +871,9 @@ upstream.
 
 - **Kind**: Operation
 - **Function**: `features::sync::push(context, answers) -> Outcome`
-- **Entry points**: **Push** in the toolbar, with the number of commits to push on it when there are some, and whose
-  tooltip is **Push: git push**; **Push** in the command palette and in the menu beside the button; the header of the
-  Commits pane.
+- **Entry points**: **Push** in the menu of **Sync** in the header, which has the number of commits to push when there
+  are some, and whose tooltip is **Push: git push**; **Push** in Quick search; the top of the commits of what is
+  checked out.
 - **Plan**:
   - With an upstream of the same name: `git push <remote> <branch>`.
   - With an upstream of another name: `git push <remote> <branch>:<upstream branch>`.
@@ -916,8 +919,8 @@ Replaces the remote branch with the branch checked out, unless the remote branch
 
 - **Kind**: Operation
 - **Function**: `features::sync::push_force_with_lease(context, answers) -> Outcome`
-- **Entry points**: **Push (force with lease)** in the menu beside **Push** and in the command palette; the **…** of the
-  header of the Commits pane.
+- **Entry points**: **Push (force with lease)** among the other ways to push, in the menu of **Sync**, and in Quick
+  search; the **…** at the top of the commits of what is checked out.
 - **Reads**: `sync.read-overwritten`, when the branch has an upstream that is not gone.
 - **Plan**: `git push --force-with-lease <remote> <branch>`, with `:<upstream branch>` and `--set-upstream` as for
   `sync.push`.
@@ -944,8 +947,8 @@ Replaces the remote branch with the branch checked out, whatever it has.
 
 - **Kind**: Operation
 - **Function**: `features::sync::push_force(context, answers) -> Outcome`
-- **Entry points**: **Push (force)** in the menu beside **Push** and in the command palette; the **…** of the header of
-  the Commits pane.
+- **Entry points**: **Push (force)** among the other ways to push, in the menu of **Sync**, and in Quick search; the
+  **…** at the top of the commits of what is checked out.
 - **Reads**: `sync.read-overwritten`, when the branch has an upstream that is not gone.
 - **Plan**: `git push --force <remote> <branch>`, with `:<upstream branch>` and `--set-upstream` as for `sync.push`.
 - **Danger**: Destructive, because the commits only the remote branch has are lost for everyone; the warning lists them

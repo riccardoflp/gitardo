@@ -1,34 +1,36 @@
 # Changes and commit
 
-What is not committed yet, and making a commit of it: the **Changes** pane of the side bar with its one list of files,
-staging and unstaging, marking conflicts as resolved, discarding, the files edited in Gitardo's own editors and not
-saved yet, the commit box with **Commit** and **Amend**, the message drafted by the AI provider, and the identity that
-commits are made as. The same staging and discarding are on the row of the uncommitted changes in the graph. Stashing
-from this pane is in `stash.`; taking one side of a file in conflict is in `conflicts.`.
+What is not committed yet, and making a commit of it: the **Changes** page, opened by **Review** in the draft, with its
+one list of files, staging and unstaging, marking conflicts as resolved, discarding, the files edited in Gitardo's own
+editors and not saved yet, the commit box with **Commit** and **Amend**, which the draft at the top of the timeline
+shares, the message drafted by the AI provider, and the identity that commits are made as. The same staging and
+discarding are in the context menu of the draft. Stashing from this page is in `stash.`; taking one side of a file in
+conflict is in `conflicts.`.
 
-### `changes.pane` — The Changes pane
+### `changes.pane` — The Changes page
 
-The pane of the side bar where the changes are staged and committed: one list of the changed files, each with a box,
-the files in conflict apart above it, and the commit box at the top.
+The page where the changes are staged and committed: one list of the changed files, each with a box, the files in
+conflict apart above it, and the commit box at the top, which the draft at the top of the timeline shares.
 
 - **Kind**: View
 - **Function**: `views::changes::pane(state: &ChangesState, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: the **Changes** pane of the side bar; **Show changes** in the command palette unfolds it and puts
-  the keyboard in its message box.
+- **Entry points**: **Review** in the draft (`graph.uncommitted-row`); **Show changes** in Quick search opens it and
+  puts the keyboard in its message box.
 - **Uses**: `changes.list`, `changes.unsaved`, `changes.open`, `changes.stage`, `changes.unstage`, `changes.stage-all`,
   `changes.unstage-all`, `conflicts.mark-resolved`, `changes.discard`, `changes.discard-all`, `changes.save`,
   `details.show-all-files`, `commit.create`, `commit.amend`, `commit.draft-message`, `identity.switch`, `stash.push`,
   `stash.push-staged`, `stash.push-file`, `conflicts.take-side`, `conflicts.resolve-by-rules`,
   `ai.resolve-conflicts`, `repo.select`, `diff.page`, `merge-view.page`.
 
-From top to bottom the pane shows:
+From top to bottom the page shows:
 
-1. The list of repositories, when the workspace has more than one (`repo.select`), and the banners of a worktree, of an
-   operation that stopped (**Continue**, **Skip**, **Abort**) and of a bisect, as the Graph tab has them.
-2. The commit box: the message, with the placeholder **Message (Ctrl+Enter to commit on `<branch>`)**, or
-   `detached HEAD` for the branch; **Commit**, which reads **Amend** while **Amend last commit** is ticked; the sparkle
-   button that drafts the message (`commit.draft-message`), turning while it runs; the box **Amend last commit**. The
-   message is kept while the pane is hidden and when the window is opened again.
+1. The banners of a worktree, of an operation that stopped (**Continue**, **Skip**, **Abort**) and of a bisect, as the
+   timeline has them.
+2. The commit box, whose message and **Commit** the draft shows too: the message, with the placeholder **Message
+   (Ctrl+Enter to commit on `<branch>`)**, or `detached HEAD` for the branch; **Commit**, which reads **Amend** while
+   **Amend last commit** is ticked; the sparkle button that drafts the message (`commit.draft-message`), turning while
+   it runs; the box **Amend last commit**. The message is kept while the page is closed and when the window is opened
+   again.
 3. Under the commit box, the identity commits will be made with, as `Name <email>`, or **No identity configured**. A
    click on it is `identity.switch`.
 4. **Conflicts**, when there are files in conflict, with their count: each file with no box, and the buttons
@@ -46,11 +48,11 @@ From top to bottom the pane shows:
    with the tooltip **Not saved: save it to stage it**, and the buttons **Compare with the saved file** and **Save**.
 6. **No changes** when there is nothing in either list.
 
-With no repository the pane says **No Git repository in this workspace** with **Check again**, which reads the folders
+With no repository the page says **No Git repository in this workspace** with **Check again**, which reads the folders
 of the workspace again. While an operation runs, the buttons that change something are disabled.
 
 **View as tree** shows the files under their directories, which fold; **View as list** shows them one after the other,
-each with its directory beside its name. The choice is kept for the pane, and the folds while the window is open. Each
+each with its directory beside its name. The choice is kept for the page, and the folds while the window is open. Each
 file has the icon of its kind from Gitardo's set of file icons.
 
 Acceptance:
@@ -62,10 +64,10 @@ Acceptance:
 - [ ] **Stash only the staged changes…** is on the header only while at least one file is staged; **Save all** only
       while at least one file has edits not saved.
 - [ ] A file in conflict is listed under **Conflicts** only, with no box, and a click on it opens the Merge page.
-- [ ] **View as tree** then hiding the side bar and showing it again keeps the tree; it is kept after the window is
-      closed and opened again.
+- [ ] **View as tree** then closing the Changes page and opening it again keeps the tree; it is kept after the window
+      is closed and opened again.
 - [ ] A deleted file has no **Open file** button.
-- [ ] With no repository in the workspace, the pane shows **No Git repository in this workspace** and **Check again**.
+- [ ] With no repository in the workspace, the page shows **No Git repository in this workspace** and **Check again**.
 - [ ] The identity line reads `Ada <ada@example.com>` when `git config user.name` and `user.email` say so, and
       **No identity configured** when neither is set.
 
@@ -97,7 +99,7 @@ Acceptance:
 
 ### `changes.list` — One list of the changed files
 
-Turns what git says into the one list of the Changes pane: each file once, as it is next to the last commit, with how
+Turns what git says into the one list of the Changes page: each file once, as it is next to the last commit, with how
 much of it is staged.
 
 - **Kind**: Derivation
@@ -158,9 +160,9 @@ Acceptance:
 - [ ] A buffer of a file outside the repository is not in the result.
 - [ ] The row of a file that is changed for git and also has edits not saved has a dot after its name and **Save**.
 
-### `changes.open` — What a file of the Changes pane opens
+### `changes.open` — What a file of the Changes page opens
 
-Decides which page, and which two versions, a click or a button on a file of the Changes pane opens.
+Decides which page, and which two versions, a click or a button on a file of the Changes page opens.
 
 - **Kind**: Derivation
 - **Function**: `model::changes::open(input: &OpenInput) -> PageRequest`
@@ -197,7 +199,7 @@ Puts the changes of a file in the index, for the next commit.
 
 - **Kind**: Operation
 - **Function**: `features::changes::stage(context, answers) -> Outcome`
-- **Entry points**: ticking the box of a file that is empty or half ticked, in the Changes pane.
+- **Entry points**: ticking the box of a file that is empty or half ticked, in the Changes page.
 - **Offered when**: the file is changed for git; the box of a file that only an editor has changed is disabled.
 - **Plan**: `git add -- <path>`, with the path as `changes.pathspec` writes it.
 - **Danger**: None.
@@ -217,7 +219,7 @@ Takes the changes of a file out of the index; the file on disk is not touched.
 
 - **Kind**: Operation
 - **Function**: `features::changes::unstage(context, answers) -> Outcome`
-- **Entry points**: unticking the box of a file that is ticked, in the Changes pane.
+- **Entry points**: unticking the box of a file that is ticked, in the Changes page.
 - **Plan**: `git restore --staged -- <path>`; for a staged rename, both names: `git restore --staged -- <new> <old>`.
   Before the first commit there is no `HEAD` to restore the index from: `git rm --cached -r -- <path>`.
 - **Danger**: None.
@@ -238,8 +240,8 @@ Stages every change at once.
 
 - **Kind**: Operation
 - **Function**: `features::changes::stage_all(context, answers) -> Outcome`
-- **Entry points**: ticking the box on the header of the list in the Changes pane, when it is empty or half ticked;
-  **Stage all changes** in the context menu of the row of the uncommitted changes in the graph.
+- **Entry points**: ticking the box on the header of the list in the Changes page, when it is empty or half ticked;
+  **Stage all changes** in the context menu of the draft in the timeline.
 - **Offered when**: in the context menu of the row, while some change is not staged and no file is in conflict.
 - **Plan**: `git add --all`. While files are in conflict, which `--all` would take as resolved, markers and all, every
   other file that is not all staged is named instead: `git add -- <path>…`.
@@ -252,7 +254,7 @@ Acceptance:
 - [ ] With no conflict, ticking the header box runs `git add --all`, untracked files included.
 - [ ] With `a.txt` in conflict and `b.txt`, `c.txt` changed, ticking the header box runs `git add -- b.txt c.txt`, and
       `a.txt` is still in conflict after.
-- [ ] The context menu of the row of the uncommitted changes has no **Stage all changes** while a file is in conflict.
+- [ ] The context menu of the draft has no **Stage all changes** while a file is in conflict.
 
 ### `changes.unstage-all` — Unstage all changes
 
@@ -260,8 +262,8 @@ Takes everything out of the index; the files on disk are not touched.
 
 - **Kind**: Operation
 - **Function**: `features::changes::unstage_all(context, answers) -> Outcome`
-- **Entry points**: unticking the box on the header of the list in the Changes pane, when it is ticked; **Unstage all
-  changes** in the context menu of the row of the uncommitted changes in the graph.
+- **Entry points**: unticking the box on the header of the list in the Changes page, when it is ticked; **Unstage all
+  changes** in the context menu of the draft in the timeline.
 - **Offered when**: in the context menu of the row, while something is staged.
 - **Plan**: `git reset`; before the first commit, `git rm --cached -r -- .`. While files are in conflict, whose conflicts
   `git reset` would forget, the files that are staged are named instead: `git restore --staged -- <path>…`, a staged
@@ -283,7 +285,7 @@ Takes one file back to the last commit, staged changes included, or deletes it w
 
 - **Kind**: Operation
 - **Function**: `features::changes::discard(context, answers) -> Outcome`
-- **Entry points**: **Discard changes** on a file of the Changes pane.
+- **Entry points**: **Discard changes** on a file of the Changes page.
 - **Offered when**: the file is changed for git.
 - **Plan**:
   - Nothing of it staged: `git restore -- <path>` for a tracked file, `git clean -f -- <path>` for an untracked one.
@@ -315,11 +317,11 @@ Takes every changed file back to the last commit, staged changes included, and d
 
 - **Kind**: Operation
 - **Function**: `features::changes::discard_all(context, answers) -> Outcome`
-- **Entry points**: **Discard all changes** on the header of the list in the Changes pane; **Discard all changes…** in
-  the context menu of the row of the uncommitted changes in the graph.
+- **Entry points**: **Discard all changes** on the header of the list in the Changes page; **Discard all changes…** in
+  the context menu of the draft in the timeline.
 - **Offered when**: in the context menu of the row, while no merge, rebase, cherry-pick, revert or `git am` is in
   progress: there, **Abort** is what goes back.
-- **Plan**, from the header of the Changes pane, which acts on the files of its list and leaves the files in conflict
+- **Plan**, from the header of the Changes page, which acts on the files of its list and leaves the files in conflict
   alone:
   - Nothing staged: `git restore -- <path>…` for the tracked files and `git clean -f -- <path>…` for the untracked
     ones, each file named.
@@ -327,7 +329,7 @@ Takes every changed file back to the last commit, staged changes included, and d
     with both names, and `git clean -f -- <path>…` for the untracked files not staged.
   - Before the first commit, the staged files are deleted with `git rm -r --force --quiet -- <path>…`.
 
-  From the row of the uncommitted changes, which acts on the whole working tree, files in conflict included:
+  From the draft, which acts on the whole working tree, files in conflict included:
   `git restore --source=HEAD --staged --worktree -- .` when some tracked file changed, then `git clean -f -d -- .` when
   there are untracked files, folders included. Before the first commit, `git rm -r --force --quiet -- .` in place of
   `git restore`.
@@ -360,7 +362,7 @@ Writes to disk the edits typed in Gitardo's editors and not saved yet, so that g
 
 - **Kind**: Operation
 - **Function**: `features::changes::save(context, answers) -> Outcome`
-- **Entry points**: **Save** on a row of the Changes pane, on a file that has edits not saved; **Save all** on the
+- **Entry points**: **Save** on a row of the Changes page, on a file that has edits not saved; **Save all** on the
   header of the list, for every such file.
 - **Offered when**: the file has edits not saved (`changes.unsaved`).
 - **Plan**: `write <path>` for each file, with the text of its buffer.
@@ -403,8 +405,8 @@ Makes a commit of what is staged, with the message of the commit box.
 
 - **Kind**: Operation
 - **Function**: `features::commit::create(context, answers) -> Outcome`
-- **Entry points**: **Commit** under the message in the Changes pane; `Ctrl+Enter` (`Cmd+Enter` on macOS) in the
-  message box.
+- **Entry points**: **Commit** in the draft and under the message in the Changes page; `Ctrl+Enter` (`Cmd+Enter` on
+  macOS) in the message box.
 - **Offered when**: **Amend last commit** is not ticked, the message is not empty and something is changed; otherwise
   the button is disabled.
 - **Asks**: when nothing is staged and some change is not: a confirmation, "There are no staged changes. Stage all
@@ -414,7 +416,7 @@ Makes a commit of what is staged, with the message of the commit box.
 - **Danger**: None.
 - **Undo**: By the reflog: Undo moves the branch back to the commit before, with `git reset --soft`, and the changes of
   the commit stay staged (`undo.last`).
-- **After**: the message box is emptied and **Amend last commit** unticked; the Graph tab selects nothing new.
+- **After**: the message box is emptied and **Amend last commit** unticked; the timeline selects nothing new.
 - **Refuses**: "Enter a commit message." with an empty message; "There are no changes to commit." when nothing is
   staged and nothing else is changed.
 - **Uses**: `changes.stage-all`.
@@ -424,8 +426,8 @@ commit being split (`split.`), the message box starts from it while it is empty;
 
 Acceptance:
 
-- [ ] With `a.txt` staged and the message `Fix the parser`, it runs `git commit -m "Fix the parser"`, and the graph has
-      the new commit at the top after.
+- [ ] With `a.txt` staged and the message `Fix the parser`, it runs `git commit -m "Fix the parser"`, and the timeline
+      has the new commit at the top after.
 - [ ] With nothing staged and `a.txt` modified, it asks, and after **Stage all and commit** runs `git add --all` then
       `git commit -m …`; untracked files are in the commit.
 - [ ] Declining the confirmation runs nothing and keeps the message.
@@ -439,7 +441,8 @@ Replaces the last commit with one that has the staged changes too, and the new m
 
 - **Kind**: Operation
 - **Function**: `features::commit::amend(context, answers) -> Outcome`
-- **Entry points**: **Amend** in the Changes pane, which **Commit** becomes while **Amend last commit** is ticked;
+- **Entry points**: **Amend** in the draft and in the Changes page, which **Commit** becomes while **Amend last
+  commit** is ticked;
   `Ctrl+Enter` (`Cmd+Enter` on macOS) in the message box then.
 - **Offered when**: there is a commit: the box **Amend last commit** is disabled before the first one. Nothing needs to
   be staged.
@@ -468,12 +471,12 @@ Asks the AI provider to write the commit message from the changes, and puts its 
 - **Kind**: Derivation
 - **Function**: `model::commit::draft_message(input: &DraftInput) -> AiRequest`, and
   `model::commit::clean_draft(answer: &str) -> String`
-- **Entry points**: the sparkle button beside **Commit** in the Changes pane, whose tooltip says **Draft a message from
-  the changes with the AI provider**.
+- **Entry points**: the sparkle button beside **Commit** in the draft and in the Changes page, whose tooltip says
+  **Draft a message from the changes with the AI provider**.
 - **Offered when**: something is changed; the button is disabled while a draft is being written.
 - **Reads**: the staged changes, `git diff --cached --no-color --no-ext-diff`, when something is staged; otherwise all
   changes, `git diff --no-color --no-ext-diff`, with the paths of the untracked files; and the subjects of the last 10
-  commits as the graph lists them, without the row of the uncommitted changes and without stashes.
+  commits as the timeline lists them, without the draft and without stashes.
 - **Settings**: `ai.provider`, `ai.endpoint`, `ai.model` and `ai.effort`, the same as for the conflicts, with the key in
   the credential store of the system.
 - **Uses**: `ai.choose-model`, `changes.read-working-tree`.
@@ -490,11 +493,11 @@ separated by lines:
 4. "Diff:" and the diff, or, when the diff is longer than 20,000 characters, "Diff (truncated):" and its first 20,000
    characters.
 
-The answer is cleaned: spaces and blank lines around it are taken off, and a code fence the model put around it
-anyway, a first line of three backticks with or without a language and a last line of three backticks, is removed. The
-cleaned answer replaces the text of the message box. Nothing is sent until the button is pressed. While the request
-runs, the status bar says **drafting commit message** and it can be cancelled there; cancelled or failed, the message
-box is left as it was.
+The answer is cleaned: spaces and blank lines around it are taken off, and a code fence the model put around it anyway,
+a first line of three backticks with or without a language and a last line of three backticks, is removed. The cleaned
+answer replaces the text of the message box. Nothing is sent until the button is pressed. While the request runs, the
+activity indicator of the header says **drafting commit message** and it can be cancelled there; cancelled or failed,
+the message box is left as it was.
 
 Refuses: "There are no changes to describe." with nothing changed; with `ai.provider` empty, "No AI provider is set
 up." with **Open settings** at `ai.provider`.
@@ -533,8 +536,8 @@ Sets the name and email that commits are made with in this repository, from a pr
 
 - **Kind**: Operation
 - **Function**: `features::identity::switch(context, answers) -> Outcome`
-- **Entry points**: **Switch identity** in the command palette; **Switch identity…** in the **…** menu of the toolbar; a
-  click on the identity under the commit box in the Changes pane.
+- **Entry points**: **Switch identity** in Quick search; **Switch identity…** in the **…** menu of the header; a click
+  on the identity under the commit box in the Changes page.
 - **Asks**:
   1. A pick, titled **Commit in `<repository>` as**, with the identity used now as its placeholder
      (**Now: `Name <email>`**, or **No identity is configured**): each profile of `identities`, with its email beside

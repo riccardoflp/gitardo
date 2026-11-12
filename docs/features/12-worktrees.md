@@ -2,15 +2,15 @@
 
 A worktree is another folder checked out from the same repository, on a branch of its own: a place to work on something
 else, or to let an agent work, without touching the folder the window shows. This area covers creating worktrees and
-where their folders go, what a new worktree gets of what git ignores and which commands run in it, the page that
-chooses that, the Worktrees section with how each worktree stands, what can be done with a worktree and with a branch
-that another worktree has, showing another worktree in this window, working in worktrees only, and what Windows needs
-when a worktree is renamed or removed.
+where their folders go, what a new worktree gets of what git ignores and which commands run in it, the page that chooses
+that, the Worktrees list of the branch rail with how each worktree stands, what can be done with a worktree and with a
+branch that another worktree has, showing another worktree in this window, working in worktrees only, and what Windows
+needs when a worktree is renamed or removed.
 
 ### `worktree.read-list` — Read the worktrees and how they stand
 
 The list of the worktrees of the repository, each with its branch and the number of its files not committed, for the
-Worktrees section, the picker of **Switch worktree…** and the rules about branches that another worktree has.
+Worktrees list, the picker of **Switch worktree…** and the rules about branches that another worktree has.
 
 - **Kind**: Read
 - **Function**: `git::read::worktree::read_list(git, request) -> Result<Vec<Worktree>, GitError>`
@@ -19,7 +19,7 @@ Worktrees section, the picker of **Switch worktree…** and the rules about bran
   folder the repository was created in), whether it is the folder the views show, and whether it is missing (listed as
   `prunable`). Then, for every worktree other than the one the views show and other than a missing one, all at once:
   `git -C <folder> status --porcelain=v2 -z --untracked-files=all`, whose entries are counted: staged, not staged and
-  untracked alike. The count of the worktree the views show is the count of the Changes pane, read already.
+  untracked alike. The count of the worktree the views show is the count of the Changes page, read already.
 - **Uses**: `repo.read-state`.
 
 Acceptance:
@@ -80,9 +80,9 @@ Makes a new worktree on a new branch, from a branch the user picks, in the folde
 
 - **Kind**: Operation
 - **Function**: `features::worktree::create(context, answers) -> Outcome`
-- **Entry points**: the **+** on the title of the Worktrees section, beside the graph and in the Branches pane; **Create
-  worktree…** in the **…** of the Worktrees section; the last entry of the picker of `worktree.switch`; the command
-  palette, **Create Worktree…**.
+- **Entry points**: the **+** on the title of the Worktrees list, in Kept aside of the branch rail; **Create
+  worktree…** in the **…** of the Worktrees list; the last entry of the picker of `worktree.switch`; Quick search,
+  **Create Worktree…**.
 - **Asks**:
   1. Only when `branches.format` is set: **Use the format** (with the format beside it, the default) or **Type a branch
      name**.
@@ -129,8 +129,8 @@ Puts a local branch in a worktree of its own, or, with a format of branch names,
 
 - **Kind**: Operation
 - **Function**: `features::worktree::create_from_branch(context, answers) -> Outcome`
-- **Entry points**: **Create worktree…** in the context menu of a local branch, in the references and on its label in
-  the graph.
+- **Entry points**: **Create worktree…** in the context menu of a local branch, in the branch rail and on its label in
+  the timeline.
 - **Offered when**: no worktree has the branch checked out, this one included.
 - **Asks**:
   1. Only when `branches.format` is set: **Use the format** (the default) or **Use the branch `<branch>`** (**Check it
@@ -160,11 +160,11 @@ Acceptance:
 
 ### `worktree.create-at-commit` — Create a worktree at a commit
 
-Makes a worktree at a commit of the graph, on a new branch made there, or on a detached HEAD when no name is given.
+Makes a worktree at a commit of the timeline, on a new branch made there, or on a detached HEAD when no name is given.
 
 - **Kind**: Operation
 - **Function**: `features::worktree::create_at_commit(context, answers) -> Outcome`
-- **Entry points**: **Create worktree here…** in the context menu of a commit in the graph.
+- **Entry points**: **Create worktree here…** in the context menu of a commit in the timeline.
 - **Asks**:
   1. Only when `branches.format` is set: **Use the format** (the default) or **Type a branch name**.
   2. With the format, when it has `${base}`: what `${base}` is, titled **Create worktree at `<short>`: what ${base} is**:
@@ -191,14 +191,13 @@ Acceptance:
 - [ ] With the format `${base}-spike`, on a commit that `main` points at, the picker of `${base}` lists `main` first,
       and picking it proposes `main-spike`.
 
-### `worktree.section` — The Worktrees section
+### `worktree.section` — The Worktrees list
 
-The worktrees of the repository, each with how it stands, among the references beside the graph and in the Branches
-pane.
+The worktrees of the repository, each with how it stands, in **Kept aside** of the branch rail.
 
 - **Kind**: View
 - **Function**: `views::worktree::section(state, ui) -> Vec<Intent>`
-- **Entry points**: the Worktrees section of the references of the Graph tab and of the Branches pane.
+- **Entry points**: **Worktrees** in **Kept aside** of the branch rail, a list that opens in the rail.
 - **Reads**: `worktree.read-list`, the branches with their upstreams (`refs.`), the pull requests (`github.`).
 
 What each row shows:
@@ -212,7 +211,7 @@ What each row shows:
 - Its tooltip says the same in words: its folder, `<branch> → <upstream>`, how many files are not committed, the pull
   request.
 
-The title of the section has **+** (`worktree.create`) and **…**, which has **Create worktree…**, **Switch worktree…**,
+The title of the list has **+** (`worktree.create`) and **…**, which has **Create worktree…**, **Switch worktree…**,
 **Choose what new worktrees get…**, **Bring ignored files into the other worktrees…** while there is another worktree
 that is not missing, and **Prune missing worktrees** while one is missing. A double click on a row opens it as
 `worktree.open` does, except on the current one and on a missing one, where it does nothing. Its context menu is the
@@ -237,8 +236,8 @@ has, does, and what `worktree.open-in-worktree` and `worktree.switch` do once th
 
 - **Kind**: Operation
 - **Function**: `features::worktree::open(context, answers) -> Outcome`
-- **Entry points**: a double click on a worktree in the Worktrees section, on a branch another worktree has (in the
-  references and on its label in the graph), and on a remote branch whose local branch another worktree has.
+- **Entry points**: a double click on a worktree in the Worktrees list, on a branch another worktree has (in the
+  branch rail and on its label in the timeline), and on a remote branch whose local branch another worktree has.
 - **Offered when**: the worktree is not the one the views show and is not missing.
 - **Plan**: no steps.
 - **Danger**: None.
@@ -333,23 +332,24 @@ Acceptance:
 
 - [ ] On each system the entry has the name given above, and the file manager opens on the worktree's folder.
 
-### `worktree.show-in-graph` — Show the commit of a worktree in the graph
+### `worktree.show-in-graph` — Show the commit of a worktree in the timeline
 
-Selects in the graph the commit a worktree has checked out.
+Selects in the timeline the commit a worktree has checked out.
 
 - **Kind**: Operation
 - **Function**: `features::worktree::show_in_graph(context, answers) -> Outcome`
-- **Entry points**: **Show in the graph** in the context menu of a worktree, beside the graph.
+- **Entry points**: **Show in the timeline** in the context menu of a worktree, in the branch rail.
 - **Offered when**: the worktree is not missing.
 - **Plan**: no steps.
 - **Danger**: None.
 - **Undo**: Nothing to take back: nothing changes.
-- **After**: the graph scrolls to the commit and selects it, loading more of the history when it is not listed yet.
+- **After**: the timeline scrolls to the commit and selects it, loading more of the history when it is not listed
+  yet.
 - **Uses**: `graph.show-in-graph`.
 
 Acceptance:
 
-- [ ] On a worktree whose commit is far down the history, the graph loads up to it and selects it.
+- [ ] On a worktree whose commit is far down the history, the timeline loads up to it and selects it.
 
 ### `worktree.show-in-gitardo` — Show another worktree in this window
 
@@ -359,12 +359,12 @@ pushing, is done in it, without opening another window.
 - **Kind**: Operation
 - **Function**: `features::worktree::show_in_gitardo(context, answers) -> Outcome`
 - **Entry points**: **Show in Gitardo** in the context menu of a worktree; **Show worktree in Gitardo** in the menu of a
-  branch another worktree has; the repository picker of the toolbar, which lists it while it is shown.
+  branch another worktree has; the repository menu of the header, which lists it while it is shown.
 - **Offered when**: the worktree is not the one the views show and is not missing.
 - **Plan**: no steps.
 - **Danger**: None.
 - **Undo**: Nothing to take back: nothing changes.
-- **After**: the graph and the Changes, Commits and Branches panes are those of the worktree; the banner of
+- **After**: the timeline with its draft, the branch rail and the Changes page are those of the worktree; the banner of
   `worktree.banner` says so. The folder of the window is then listed as another worktree, and can be neither renamed
   nor removed, nor given ignored files, from there. The choice is not remembered: the next time the window opens, the
   views show its own folder.
@@ -372,9 +372,9 @@ pushing, is done in it, without opening another window.
 
 Acceptance:
 
-- [ ] After **Show in Gitardo** on `feature/login`'s worktree, a commit made from the Changes pane is made in that
+- [ ] After **Show in Gitardo** on `feature/login`'s worktree, a commit made from the draft is made in that
       worktree, on `feature/login`, and the window's folder is untouched.
-- [ ] While it is shown, the menu of the window's own folder in the Worktrees section has no **Rename…** and no
+- [ ] While it is shown, the menu of the window's own folder in the Worktrees list has no **Rename…** and no
       **Remove…**.
 - [ ] Closing the window and opening it again shows its own folder.
 
@@ -384,8 +384,8 @@ Says which worktree the views show while it is not the folder of the window, and
 
 - **Kind**: View
 - **Function**: `views::worktree::banner(state, ui) -> Vec<Intent>`
-- **Entry points**: the top of the Graph tab, the Changes pane and the Branches pane, while another worktree or a
-  submodule is shown.
+- **Entry points**: the top of the timeline and of the Changes page, while another worktree or a submodule is
+  shown.
 - **After**: **Back to `<name>`** points the views at the repository of the window again.
 
 The banner says **Showing the worktree `<label>`**, followed by **on `<branch>`** when it has one, with its folder as the
@@ -395,7 +395,7 @@ button is disabled while an operation runs.
 Acceptance:
 
 - [ ] While `feature/login`'s worktree is shown, the banner reads **Showing the worktree feature/login on feature/login**
-      in the three places.
+      in both places.
 - [ ] **Back to app** shows the window's folder again, and the banner goes.
 - [ ] No banner shows while the views show the window's own folder.
 
@@ -498,7 +498,7 @@ Has git forget the worktrees whose folders are gone, which frees their branches.
 - **Kind**: Operation
 - **Function**: `features::worktree::prune(context, answers) -> Outcome`
 - **Entry points**: **Prune missing worktrees** in the context menu of a worktree and in the **…** of the Worktrees
-  section.
+  list.
 - **Offered when**: at least one worktree is missing.
 - **Plan**: `git worktree prune`.
 - **Danger**: None.
@@ -590,7 +590,7 @@ Acceptance:
 ### `worktree.branch-in-another-worktree` — The branch of another worktree
 
 Git checks a branch out in one worktree at a time, so a branch that another worktree has is worked on there. This is
-how the references, the graph and the menus treat it.
+how the branch rail, the timeline and the menus treat it.
 
 - **Kind**: Derivation
 - **Function**: `model::worktree::branch_in_another_worktree(input) -> WorktreeBranch`
@@ -599,7 +599,7 @@ how the references, the graph and the menus treat it.
 The rules, for a local branch that a worktree other than the one the views show has checked out:
 
 - It has the worktree's icon instead of the branch's among the local branches, and before the branch's icon on its
-  label in the graph; its tooltip says which worktree has it.
+  label in the timeline; its tooltip says which worktree has it.
 - A double click on it opens its worktree as `worktree.open` does, instead of checking it out; on a missing worktree it
   does nothing.
 - Its context menu starts with what opens the worktree: **Open worktree in new window**, **Open worktree in external
@@ -609,7 +609,7 @@ The rules, for a local branch that a worktree other than the one the views show 
   worktree…**, **Remove worktree…** and **Remove worktree and delete branch…** are, the last three except for the main
   worktree and the folder of the window. What does not touch the branch's files, such as merging it into the current
   branch, comparing it or opening its pull request, is there as for any branch.
-- Dragged onto a commit of the graph, it offers no rebase.
+- Dragged onto a commit of the timeline, it offers no rebase.
 - Checking out a remote branch whose local branch another worktree has opens that worktree instead; its menu starts with
   the same entries and has no **Check out … and rebase it onto this**.
 - Seen from another worktree, the branch of the main worktree is the same, except that the main worktree can be neither
@@ -619,8 +619,8 @@ The rules, for a local branch that a worktree other than the one the views show 
 
 Acceptance:
 
-- [ ] A branch another worktree has shows the worktree icon in the references and on its graph label, and its tooltip
-      names the worktree.
+- [ ] A branch another worktree has shows the worktree icon in the branch rail and on its label in the timeline, and its
+      tooltip names the worktree.
 - [ ] Its menu has no **Check out** and no **Delete**, and starts with **Open worktree in new window**.
 - [ ] A double click on it opens the worktree and runs no checkout.
 - [ ] Dragging it onto a commit offers no rebase, and still offers to merge.
@@ -668,8 +668,8 @@ Lists the worktrees with their branches and how they stand, and opens the one pi
 
 - **Kind**: Operation
 - **Function**: `features::worktree::switch(context, answers) -> Outcome`
-- **Entry points**: the command palette, **Switch Worktree…**; **Switch worktree…** in the **…** of the Branches pane and
-  of the Worktrees section.
+- **Entry points**: Quick search, **Switch Worktree…**; **Switch worktree…** in the **…** of the Worktrees list in the
+  branch rail.
 - **Asks**: **Switch Worktree**, **The worktree to open**: the worktrees that are not missing, each with the main
   worktree's icon or the worktree's icon and its label, then its branch (or **detached at `<short>`**) with `↑n ↓m`, a
   pencil with the number of its files not committed, its pull request as `#<number>`, and **this window** for the one the
@@ -831,9 +831,9 @@ links and copies made.
 The rules:
 
 - Each command is a `Run` step in the worktree, `run <command>` in the log, after the links and copies.
-- They run one after the other in the **Tasks** panel, each as a task named after the worktree's folder, with the
-  shell of the system, so that what they print is seen and what they ask can be answered. One command to a line, with
-  no `&&` between them, which Windows PowerShell does not know.
+- They run one after the other in **Tasks**, in the Activity drawer, each as a task named after the worktree's folder,
+  with the shell of the system, so that what they print is seen and what they ask can be answered. One command to a
+  line, with no `&&` between them, which Windows PowerShell does not know.
 - One that fails or is stopped stops those after it, and Gitardo says which: **`<command>` failed with exit code `<n>`
   in `<worktree>`, so the `<k>` commands after it did not run.**, or **did not finish** for one stopped.
 - They run only in a trusted folder. Otherwise none runs, the log says **The commands of worktrees.setupCommands did not
@@ -842,15 +842,15 @@ The rules:
 - Other operations do not wait for them. What the operation does once it succeeded, such as opening the worktree, waits
   for the last of them; when one did not succeed, Gitardo says why and offers to open the worktree all the same, with
   the choices of `worktree.create`.
-- The plan's note adds **After that it will run `<command>`, then `<command>`, in the Tasks panel, in the worktree.**
+- The plan's note adds **After that it will run `<command>`, then `<command>`, in Tasks, in the worktree.**
   (**Then Gitardo will run…** when nothing is linked or copied).
 
 Acceptance:
 
-- [ ] With `["npm ci", "npm run build"]`, the plan ends with `run npm ci` and `run npm run build`, and the Tasks panel
-      shows both, one after the other, with the worktree as their folder.
+- [ ] With `["npm ci", "npm run build"]`, the plan ends with `run npm ci` and `run npm run build`, and Tasks, in the
+      Activity drawer, shows both, one after the other, with the worktree as their folder.
 - [ ] When `npm ci` exits with 1, `npm run build` does not run, and the warning says so and offers to open the worktree.
-- [ ] A command that waits for input can be answered in the Tasks panel.
+- [ ] A command that waits for input can be answered in Tasks, in the Activity drawer.
 - [ ] In a folder that is not trusted, no command runs and the worktree is still created, linked and copied.
 - [ ] **Open in worktree** opens the worktree only once both commands exit with 0.
 
@@ -965,10 +965,10 @@ saves the patterns and the commands.
 
 - **Kind**: View
 - **Function**: `views::worktree_setup::page(state, ui) -> Vec<Intent>`
-- **Entry points**: the command palette, **Choose What New Worktrees Get…**; **Choose what new worktrees get…** in the
-  **…** of the Worktrees section and of the Branches pane; **Choose What It Gets…** offered after the first worktree is
-  created; **Choose What New Worktrees Get…** in the messages of the Files pane entries. The tab is named **New
-  Worktrees · `<repository>`**; asking for it again shows the one there.
+- **Entry points**: Quick search, **Choose What New Worktrees Get…**; **Choose what new worktrees get…** in the
+  **…** of the Worktrees list in the branch rail; **Choose What It Gets…** offered after the first worktree is
+  created; **Choose What New Worktrees Get…** in the messages of the Files page entries. The page is named **New
+  Worktrees · `<repository>`** in its trail; asking for it again shows the one there.
 - **Reads**: `worktree-setup.read-ignored`, `worktree-setup.settings-in-effect`, `worktree-setup.propose-commands`, the
   number of the other worktrees, and `worktree-setup.read-what-patterns-take` when it opens and at **Look again**.
 - **Uses**: `worktree-setup.propose`, `worktree-setup.choose`, `worktree-setup.save`, `worktree-setup.remove-from`,
@@ -1138,11 +1138,11 @@ Acceptance:
 
 ### `worktree-setup.link-into-new-worktrees` — Link a folder into new worktrees
 
-Has new worktrees link a folder of the checkout, chosen in the Files pane, by the pattern of its path.
+Has new worktrees link a folder of the checkout, chosen in the Files page, by the pattern of its path.
 
 - **Kind**: Operation
 - **Function**: `features::worktree_setup::link_into_new_worktrees(context, answers) -> Outcome`
-- **Entry points**: **Link into New Worktrees** in the context menu of a folder in the Files pane, for the folders
+- **Entry points**: **Link into New Worktrees** in the context menu of a folder in the Files page, for the folders
   selected.
 - **Offered when**: the folder is in a repository, and no link pattern of its own path, `/<path>/` or `/<path>`, names
   it already; otherwise **Stop Linking into New Worktrees** is there in its place.
@@ -1173,12 +1173,12 @@ Acceptance:
 
 ### `worktree-setup.copy-into-new-worktrees` — Copy a file or a folder into new worktrees
 
-Has new worktrees get a copy of a file or a folder of the checkout, chosen in the Files pane, by the pattern of its
+Has new worktrees get a copy of a file or a folder of the checkout, chosen in the Files page, by the pattern of its
 path.
 
 - **Kind**: Operation
 - **Function**: `features::worktree_setup::copy_into_new_worktrees(context, answers) -> Outcome`
-- **Entry points**: **Copy into New Worktrees** in the context menu of a file or a folder in the Files pane, for those
+- **Entry points**: **Copy into New Worktrees** in the context menu of a file or a folder in the Files page, for those
   selected.
 - **Offered when**: it is in a repository, and no copy pattern of its own path names it already; otherwise **Stop
   Copying into New Worktrees** is there in its place.
@@ -1204,11 +1204,11 @@ Acceptance:
 
 ### `worktree-setup.stop-linking` — Stop linking a folder into new worktrees
 
-Takes the link pattern of a folder's own path out, from the Files pane.
+Takes the link pattern of a folder's own path out, from the Files page.
 
 - **Kind**: Operation
 - **Function**: `features::worktree_setup::stop_linking(context, answers) -> Outcome`
-- **Entry points**: **Stop Linking into New Worktrees** in the context menu of a folder in the Files pane, for those
+- **Entry points**: **Stop Linking into New Worktrees** in the context menu of a folder in the Files page, for those
   selected.
 - **Offered when**: a link pattern of its own path, `/<path>/` or `/<path>`, is in `worktrees.linkFolders` as in effect.
 - **Plan**: `write <file>` of the settings where `worktrees.linkFolders` is set now, without the patterns of its path.
@@ -1227,11 +1227,11 @@ Acceptance:
 
 ### `worktree-setup.stop-copying` — Stop copying into new worktrees
 
-Takes the copy pattern of a file's or a folder's own path out, from the Files pane.
+Takes the copy pattern of a file's or a folder's own path out, from the Files page.
 
 - **Kind**: Operation
 - **Function**: `features::worktree_setup::stop_copying(context, answers) -> Outcome`
-- **Entry points**: **Stop Copying into New Worktrees** in the context menu of a file or a folder in the Files pane, for
+- **Entry points**: **Stop Copying into New Worktrees** in the context menu of a file or a folder in the Files page, for
   those selected.
 - **Offered when**: a copy pattern of its own path is in `worktrees.copyFiles` as in effect.
 - **Plan**: `write <file>` of the settings where `worktrees.copyFiles` is set now, without the patterns of its path.
@@ -1245,14 +1245,14 @@ Acceptance:
 - [ ] With `["/.env"]`, stopping on `.env` leaves `[]` and says **New worktrees will no longer get .env.**
 - [ ] With `["/.env", ".env"]`, it says `.env` is still copied, by the pattern `.env`.
 
-### `worktree-setup.explain-change` — Why a choice from the Files pane changes nothing
+### `worktree-setup.explain-change` — Why a choice from the Files page changes nothing
 
-What becomes of a file or a folder given to new worktrees, or taken from them, from the Files pane, as git works the
+What becomes of a file or a folder given to new worktrees, or taken from them, from the Files page, as git works the
 patterns out, and the sentence that says it.
 
 - **Kind**: Derivation
 - **Function**: `model::worktree_setup::explain_change(input) -> SetupChange`
-- **Uses**: `worktree-setup.folders-to-link`, `worktree-setup.paths-to-copy`; by the four Files pane entries.
+- **Uses**: `worktree-setup.folders-to-link`, `worktree-setup.paths-to-copy`; by the four Files page entries.
 
 The rules, for **Link** or **Copy**:
 
@@ -1305,7 +1305,7 @@ Gives every other worktree of the repository what new worktrees get, without tou
 
 - **Kind**: Operation
 - **Function**: `features::worktree_setup::bring_into_other_worktrees(context, answers) -> Outcome`
-- **Entry points**: **Bring ignored files into the other worktrees…** in the **…** of the Worktrees section; **Bring into
+- **Entry points**: **Bring ignored files into the other worktrees…** in the **…** of the Worktrees list; **Bring into
   the other worktree** (**the other `<n>` worktrees**) on `worktree-setup.page`.
 - **Offered when**: there is a worktree, other than the one the views show, that is not missing; on the page, also when
   the patterns are saved and there is one.
