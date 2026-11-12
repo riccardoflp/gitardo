@@ -792,7 +792,7 @@ Tells, for each line of a proposal, which side has it, and what the proposal doe
 that a card can say it in a sentence and in colors.
 
 - **Kind**: Derivation
-- **Function**: `model::review::proposal_lines(input) -> ProposalLines`
+- **Function**: `model::review::proposal_lines(sides: Sides, proposed: &[&str]) -> ProposalLines`
 
 - The inputs are the lines each side has where the proposal goes, the proposal, and the base when it is known. Two lines
   are the same when they differ only in the spaces at their ends.
@@ -822,7 +822,7 @@ Finds in a proposal what is most likely a mistake of keeping both sides: a setti
 and a JSON file that would no longer be JSON.
 
 - **Kind**: Derivation
-- **Function**: `model::review::proposal_warnings(input) -> Vec<ProposalWarning>`
+- **Function**: `model::review::proposal_warnings(input: WarningInput) -> Vec<ProposalWarning>`
 - **Uses**: `review.proposal-lines`.
 
 - A name is what a line gives a value with `:` or `=`, after its indentation and the words that declare a variable
