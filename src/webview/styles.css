@@ -3604,23 +3604,27 @@ input:focus-visible,
 
 /*
  * A side as what it changed of the base: a gutter with the number of each line of the file around it, and a minus or
- * a plus for each line taken out or written, in the colors of the diff editor.
+ * a plus for each line taken out or written, in the colors of the diff editor. Lines numbered have the same gutter,
+ * as wide as the largest number of their conflict, for the numbers of its pieces to line up.
  */
-.code-lines.changes .code-line {
+.code-lines.changes .code-line,
+.code-lines.numbered .code-line {
   display: flex;
   padding-left: 0;
 }
 
-.code-lines.changes .gutter {
+.code-lines.changes .gutter,
+.code-lines.numbered .number {
   flex: none;
-  width: 4ch;
-  padding-right: 1ch;
+  width: var(--number-width, 4ch);
+  padding: 0 1ch;
   text-align: right;
   color: var(--vscode-editorLineNumber-foreground, var(--vscode-descriptionForeground));
   user-select: none;
 }
 
-.code-lines.changes .text {
+.code-lines.changes .text,
+.code-lines.numbered .text {
   flex: 1;
   min-width: 0;
 }

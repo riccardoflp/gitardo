@@ -56,7 +56,6 @@ export interface ConflictChanges {
   before: string;
   beforeLine: number;
   after: string;
-  afterLine: number;
 }
 
 export interface ReviewConflict {
@@ -80,7 +79,7 @@ export interface ReviewConflict {
   /**
    * What each side changed of the base: the lines from where the two sides are known to be at the same place to where
    * they are again, as the base had them and as each side has them, with a few lines of the file before them and after
-   * them, and the number of the first line of each. Null when the base cannot be told.
+   * them, and the number in the file of the first line before them. Null when the base cannot be told.
    */
   changes: ConflictChanges | null;
   proposal: Proposal | null;

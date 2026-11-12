@@ -793,7 +793,7 @@ comes from beside the buttons that decide.
 
 - **Kind**: View
 - **Function**: `Conflict(props)`, `Composition`, `Warnings`, `Source`, `Editor` and `AskingState` in
-  `src/webview/ConflictCard.tsx`; `Code`, `Changes` and `PART` in `src/webview/conflictCode.tsx`;
+  `src/webview/ConflictCard.tsx`; `Code`, `Changes`, `numbering` and `PART` in `src/webview/conflictCode.tsx`;
   `conflictChanges(lines, conflict)`, `rulesProposal(conflict)` and the `region` of `reviewFiles` in
   `src/git/review.ts`; `Controller.openConflict(repo, file, line, editor)`.
 - **Entry points**: each conflict of the review, in **Cards**.
@@ -818,12 +818,18 @@ Acceptance:
       bar at its left, green for the current side, blue for the incoming one, both for a line of both sides, grey for a
       line of the base, purple, with a tint, for a line neither has. The pointer on a line says **From main**, **On both
       sides**, **As it was before either side changed it** or **New: neither side has this line**.
+- [ ] Every line shown has its number in a gutter at its left, as the file would number it with those lines in place of
+      the conflict: the lines before as they are, the lines proposed from where the conflict starts (**Line 11** is the
+      first of them), the lines after following them. The conflicts above it in the file count as they are now, markers
+      and all. The numbers of a card are as wide as the largest of them, and line up from one piece to the next.
 - [ ] A proposal that deletes the lines says **Nothing: the lines are deleted**.
 - [ ] **Compare with the sides** shows each side labelled **Current · main** and **Incoming · feature/map-view**, with
       the subject of its commit, as the lines it took out of the base with `−` over those it wrote with `+`, the changed
-      words marked, and up to 3 lines of the file before and after, numbered as in the file; **Hide the sides** hides
+      words marked, and up to 3 lines of the file before and after, numbered as with that side in place of the
+      conflict, the lines it wrote with `+` in place of a number; **Hide the sides** hides
       them. With nothing proposed they are shown at once. In a cherry-pick the incoming side is the short hash.
-- [ ] Where the base cannot be told, each side shows its lines between the markers as they are.
+- [ ] Where the base cannot be told, each side shows its lines between the markers as they are, numbered from the line
+      of the conflict; the base is numbered from where its lines are in the file.
 - [ ] The clock button, **Show what the lines were before either side changed them**, shows **Base · before either
       side changed it**; it is there only when the base is known.
 - [ ] The bottom of the card has where the proposal comes from, **Rules**, **AI · Chosen model · high confidence** or
@@ -854,6 +860,9 @@ Acceptance:
 
 - [ ] Each column shows the lines the proposal takes the place of, as that side has them, between up to 3 lines of the
       file before and after, faded; the middle one is labelled **Proposed**, **Accepted** or **Nothing proposed yet**.
+- [ ] Each column numbers its lines as the file would with them in place of the conflict, as the cards do: the lines
+      before are the same in the three columns, those after follow the lines of their column. A line that wraps keeps
+      its number on its first row.
 - [ ] A band joins each proposed line to the line of a side that is the same, spaces at the ends aside: green for the
       current side, blue for the incoming one; a side's lines left out are faded, and a proposed line neither side has
       is marked.

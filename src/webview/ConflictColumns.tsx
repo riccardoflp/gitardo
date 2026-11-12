@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import { Columns as Resizer } from '../flow/webview/columns';
 import type { LineOrigin, ProposalLines } from '../shared/proposalLines';
 import type { ReviewConflict } from '../shared/resolution';
-import { Code, PART } from './conflictCode';
+import { Code, numbering, PART } from './conflictCode';
 import type { Token } from './syntax';
 
 /** What a side of the conflicts is: its place in the operation, and the branch or commit it comes from. */
@@ -174,31 +174,42 @@ export function Columns(props: {
   const sideKind = (column: 'ours' | 'theirs') => (_line: string, index: number) =>
     `${!proposal ? '' : taken[column].has(index) ? 'taken' : 'left-out'}${lit(column, index)}`;
   const hover = (column: 'ours' | 'proposed' | 'theirs') => (index: number | null) => setPointed(index === null ? null : { column, index });
-  // The lines of the file around the conflict, the same in each column, for where the lines go.
-  const around = (text: string, part: number) => <Code text={text} colors={colors?.[part]} className="around" />;
+  // The lines of the file around the conflict, the same in each column, for where the lines go; each column is numbered
+  // as the file would be with its lines in place of the conflict.
+  const numbers = numbering(conflict);
+  const before = <Code text={conflict.before} first={numbers.before} colors={colors?.[PART.before]} className="around" />;
+  const after = (body: string) => <Code text={conflict.after} first={numbers.after(body)} colors={colors?.[PART.after]} className="around" />;
   return (
     <div className="columns" ref={grid}>
       <div className="side ours">
         <SideLabel side={sides[0]} />
-        {around(conflict.before, PART.before)}
-        <Code text={conflict.region.ours} colors={colors?.[PART.regionOurs]} className="body" kind={sideKind('ours')} onHover={proposal ? hover('ours') : undefined} />
-        {around(conflict.after, PART.after)}
+        {before}
+        <Code
+          text={conflict.region.ours}
+          first={numbers.start}
+          colors={colors?.[PART.regionOurs]}
+          className="body"
+          kind={sideKind('ours')}
+          onHover={proposal ? hover('ours') : undefined}
+        />
+        {after(conflict.region.ours)}
       </div>
       <Bands pairs={fromOurs} left={places.ours} right={places.proposed} side="ours" />
       <div className={`side proposed${proposal ? ` ${proposal.source}` : ''}`}>
         <div className="side-label">{proposal ? (accepted ? 'Accepted' : 'Proposed') : 'Nothing proposed yet'}</div>
         {proposal ? (
           <>
-            {around(conflict.before, PART.before)}
+            {before}
             <Code
               text={proposal.text}
+              first={numbers.start}
               colors={colors?.[PART.proposal]}
               className="body"
               kind={(line, index) => `${kind(line, index)}${lit('proposed', index)}`}
               title={title}
               onHover={hover('proposed')}
             />
-            {around(conflict.after, PART.after)}
+            {after(proposal.text)}
           </>
         ) : (
           middle
@@ -207,9 +218,16 @@ export function Columns(props: {
       <Bands pairs={toTheirs} left={places.proposed} right={places.theirs} side="theirs" />
       <div className="side theirs">
         <SideLabel side={sides[1]} />
-        {around(conflict.before, PART.before)}
-        <Code text={conflict.region.theirs} colors={colors?.[PART.regionTheirs]} className="body" kind={sideKind('theirs')} onHover={proposal ? hover('theirs') : undefined} />
-        {around(conflict.after, PART.after)}
+        {before}
+        <Code
+          text={conflict.region.theirs}
+          first={numbers.start}
+          colors={colors?.[PART.regionTheirs]}
+          className="body"
+          kind={sideKind('theirs')}
+          onHover={proposal ? hover('theirs') : undefined}
+        />
+        {after(conflict.region.theirs)}
       </div>
     </div>
   );

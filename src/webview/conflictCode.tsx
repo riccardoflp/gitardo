@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { ConflictChanges } from '../shared/resolution';
+import type { ConflictChanges, ReviewConflict } from '../shared/resolution';
 import { linesOf } from '../shared/proposalLines';
 import { Piece } from './FileChanges';
 import type { ChangedLine } from './sideChanges';
@@ -11,10 +11,11 @@ export const plural = (count: number, one: string, many = `${one}s`) => `${count
 
 /**
  * Lines of code, in the colors of the theme once they are known, each with the class `kind` gives it and the tooltip
- * `title` gives it.
+ * `title` gives it, and numbered from `first` when it is given.
  */
 export function Code(props: {
   text: string;
+  first?: number;
   colors?: (Token[] | null)[];
   kind?: (line: string, index: number) => string;
   title?: (line: string, index: number) => string | undefined;
@@ -23,18 +24,26 @@ export function Code(props: {
   /** What is done when the pointer comes onto a line, or leaves the lines with null. */
   onHover?: (index: number | null) => void;
 }) {
-  const { text, colors, kind, title, className, caret, onHover } = props;
+  const { text, first, colors, kind, title, className, caret, onHover } = props;
   const lines = linesOf(text);
   if (!lines.length && !caret) return <div className={`code-lines empty-lines ${className ?? ''}`}>Nothing: the lines are deleted</div>;
   // The lines are as wide as the longest of them, for their colors to go all the way when the lines scroll sideways.
   return (
-    <div className={`code-lines ${className ?? ''}`} onMouseLeave={onHover && (() => onHover(null))}>
+    <div className={`code-lines${first === undefined ? '' : ' numbered'} ${className ?? ''}`} onMouseLeave={onHover && (() => onHover(null))}>
       <div className="code-width">
         {lines.map((line, index) => {
           const pieces = colors?.[index];
+          const content = pieces ? pieces.map((token, piece) => <Piece key={piece} token={token} />) : line || ' ';
           return (
             <div key={index} className={`code-line ${kind?.(line, index) ?? ''}`} title={title?.(line, index)} onMouseEnter={onHover && (() => onHover(index))}>
-              {pieces ? pieces.map((token, piece) => <Piece key={piece} token={token} />) : line || ' '}
+              {first === undefined ? (
+                content
+              ) : (
+                <>
+                  <span className="number">{first + index}</span>
+                  <span className="text">{content}</span>
+                </>
+              )}
             </div>
           );
         })}
@@ -42,6 +51,24 @@ export function Code(props: {
       </div>
     </div>
   );
+}
+
+/**
+ * Where the lines shown of a conflict are numbered from. Each piece of it is numbered as the file would be with that
+ * piece in place of the conflict: the lines before it as they are, the lines put in its place from where it starts,
+ * and the lines after it following them. The conflicts above it in the file count as they are now, markers and all.
+ */
+export function numbering(conflict: ReviewConflict) {
+  // Where the lines the proposal replaces start in the file: the rules can take some lines above the markers too.
+  const start = conflict.proposal?.from ?? conflict.line - 1;
+  const longest = Math.max(...[conflict.region.ours, conflict.region.theirs, conflict.proposal?.text ?? ''].map((text) => linesOf(text).length));
+  return {
+    before: start - linesOf(conflict.before).length + 1,
+    start: start + 1,
+    after: (text: string) => start + linesOf(text).length + 1,
+    /** As wide as the largest number shown, for the numbers of a conflict to line up. */
+    width: `${Math.max(3, String(start + longest + linesOf(conflict.after).length).length)}ch`,
+  };
 }
 
 /** A line in its colors, with the words that changed in it marked. */
@@ -118,6 +145,8 @@ export const PART = {
  */
 export function Changes(props: { changes: ConflictChanges; lines: ChangedLine[]; side: 'ours' | 'theirs'; colors?: (Token[] | null)[][] }) {
   const { changes, lines, side, colors } = props;
+  // The lines after are numbered as the file would be with this side in place of the conflict, as the proposal is.
+  const afterLine = changes.beforeLine + linesOf(changes.before).length + linesOf(changes[side]).length;
   const rows: ChangeRow[] = [
     ...aroundLines(changes.before, changes.beforeLine, colors?.[PART.changesBefore]),
     ...lines.map((line) => ({
@@ -127,7 +156,7 @@ export function Changes(props: { changes: ConflictChanges; lines: ChangedLine[];
       tokens: (line.kind === 'removed' ? colors?.[PART.changesBase] : colors?.[side === 'ours' ? PART.changesOurs : PART.changesTheirs])?.[line.index],
       words: line.words,
     })),
-    ...aroundLines(changes.after, changes.afterLine, colors?.[PART.changesAfter]),
+    ...aroundLines(changes.after, afterLine, colors?.[PART.changesAfter]),
   ];
   return <ChangeLines rows={rows} titles={{ removed: 'Taken out of the base by this side', added: 'Written by this side', around: 'Line of the file around the conflict' }} />;
 }

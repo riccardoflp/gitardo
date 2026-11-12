@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, typ
 import type { Hunk } from '../shared/protocol';
 import { linesOf, proposalLines, summarize, type LineOrigin, type ProposalShape, type ProposalSummary } from '../shared/proposalLines';
 import type { Asking, Choice, ConflictRef, DeletedConflict, Proposal, ProposalWarning, ReviewConflict, ReviewFile, SideChoice } from '../shared/resolution';
-import { ChangeLines, Changes, Code, fileRows, PART, plural } from './conflictCode';
+import { ChangeLines, Changes, Code, fileRows, numbering, PART, plural } from './conflictCode';
 import { Columns, ORIGIN_CLASS, SideLabel, type Side } from './ConflictColumns';
 import { FileIcon } from './FileIcon';
 import { Icon } from './Icon';
@@ -325,6 +325,7 @@ export function Conflict(props: {
   }, [warnings]);
   const kind = (_line: string, index: number) => `${ORIGIN_CLASS[lines?.origins[index] ?? 'blank']}${warned.has(index) ? ' warned' : ''}`;
   const title = (_line: string, index: number) => lineTitle(lines?.origins[index], warned.get(index), sides);
+  const numbers = numbering(conflict);
   const open = (editor: 'flowMerge' | 'mergeEditor' | 'text') => post({ type: 'openConflict', path: file.path, line: conflict.line, editor });
   const thinking = asking?.state === 'waiting' || asking?.state === 'thinking';
 
@@ -387,7 +388,7 @@ export function Conflict(props: {
   );
 
   return (
-    <article className={className} aria-label={`Conflict at line ${conflict.line}`}>
+    <article className={className} aria-label={`Conflict at line ${conflict.line}`} style={{ '--number-width': numbers.width } as CSSProperties}>
       <header>
         {head}
         <span className="grow summary">{summary ? shapeSentence(summary, sides) : <span className="muted">Nothing proposed yet</span>}</span>
@@ -402,7 +403,7 @@ export function Conflict(props: {
       {showBase && conflict.base !== null && (
         <div className="side base">
           <div className="side-label">Base · before either side changed it</div>
-          <Code text={conflict.base} colors={colors?.[PART.base]} />
+          <Code text={conflict.base} first={changes ? changes.beforeLine + linesOf(changes.before).length : conflict.line} colors={colors?.[PART.base]} />
         </div>
       )}
 
@@ -413,9 +414,9 @@ export function Conflict(props: {
           {editor ||
             (proposal ? (
               <div className={`proposal ${proposal.source}`} key={`${proposal.source}:${proposal.text}`}>
-                <Code text={conflict.before} colors={colors?.[PART.before]} className="around" />
-                <Code text={proposal.text} colors={colors?.[PART.proposal]} className="resolved" kind={kind} title={title} />
-                <Code text={conflict.after} colors={colors?.[PART.after]} className="around" />
+                <Code text={conflict.before} first={numbers.before} colors={colors?.[PART.before]} className="around" />
+                <Code text={proposal.text} first={numbers.start} colors={colors?.[PART.proposal]} className="resolved" kind={kind} title={title} />
+                <Code text={conflict.after} first={numbers.after(proposal.text)} colors={colors?.[PART.after]} className="around" />
               </div>
             ) : (
               nothing
@@ -427,7 +428,7 @@ export function Conflict(props: {
                 {changes && changed?.ours ? (
                   <Changes changes={changes} lines={changed.ours} side="ours" colors={colors} />
                 ) : (
-                  <Code text={conflict.ours} colors={colors?.[PART.ours]} />
+                  <Code text={conflict.ours} first={conflict.line} colors={colors?.[PART.ours]} />
                 )}
               </div>
               <div className="side theirs">
@@ -435,7 +436,7 @@ export function Conflict(props: {
                 {changes && changed?.theirs ? (
                   <Changes changes={changes} lines={changed.theirs} side="theirs" colors={colors} />
                 ) : (
-                  <Code text={conflict.theirs} colors={colors?.[PART.theirs]} />
+                  <Code text={conflict.theirs} first={conflict.line} colors={colors?.[PART.theirs]} />
                 )}
               </div>
             </div>

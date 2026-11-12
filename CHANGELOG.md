@@ -11,6 +11,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - In the review of the conflicts, each card says in a sentence what the proposal does with the two sides (**Keeps both sides: main first, then feature/map-view**), with a bar and counts of how many of its lines come from each side, from both and from neither, and each line proposed is marked in the color of the side it comes from.
 - A proposal that keeps twice a name both sides gave a value to, such as a key of JSON or a variable, or that leaves a JSON file no longer JSON, says so on its card with its lines marked; **Accept all proposed** and **Accept the file** leave it to be accepted on its own.
 - **Current only**, **Incoming only**, **Both, current first**, **Both, incoming first** and **Edit** on each card of the review: what you choose or write takes the place of what is proposed, accepted at once, and **Drop your choice** brings back the proposal.
+- Line numbers beside every line of code in the review of the conflicts, in **Cards** and in **Columns**, as the file would have them with the lines shown in place of the conflict.
 
 ### Changed
 

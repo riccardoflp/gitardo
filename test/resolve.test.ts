@@ -208,9 +208,8 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
       before: text('one'),
       beforeLine: 1,
       after: text('four', 'five'),
-      afterLine: 9,
     });
-    expect(c.conflicts[0].changes).toMatchObject({ base: text('one'), ours: text('ours'), theirs: text('theirs'), before: '', beforeLine: 1, after: text('two', 'three', 'four'), afterLine: 6 });
+    expect(c.conflicts[0].changes).toMatchObject({ base: text('one'), ours: text('ours'), theirs: text('theirs'), before: '', beforeLine: 1, after: text('two', 'three', 'four') });
     // Without the rules, only the language model proposes.
     expect(reviewFiles(await plans(), false, asked).map((file) => file.conflicts[0].proposal?.source ?? null)).toEqual([null, 'ai']);
 
@@ -282,7 +281,6 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
       before: text('a'),
       beforeLine: 1,
       after: text('d'),
-      afterLine: 8,
     });
     expect(conflictChanges(file.split(/(?<=\n)/), { ...conflict, stretch: null })).toBeNull();
   });

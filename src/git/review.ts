@@ -146,7 +146,6 @@ export function conflictChanges(lines: string[], conflict: Conflict): ConflictCh
     before: lines.slice(first, start).join(''),
     beforeLine: first + 1,
     after: lines.slice(end, end + AROUND).join(''),
-    afterLine: end + 1,
   };
 }
 
