@@ -24,7 +24,7 @@ pub use bar::{collapse_unchanged_view, navigate_view};
 pub use columns::{LEAST_WIDTH, resize_sides_view};
 pub use data::{ChangePlace, DiffFile, DiffTarget, DiffText, DiffVersion, FileDiff, Hint, PageLine};
 pub use question::{LargeDiffQuestion, large_diff_question_view};
-pub use targets::{commit_file, commit_files, commit_sides, listed_file, untracked_file};
+pub use targets::{changes_file, commit_file, commit_files, commit_sides, listed_file, untracked_file};
 
 /// The number of a Diff page, unique in its window.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

@@ -259,6 +259,7 @@ fn changes_pane__the_identity_line_reads_name_and_email_or_no_identity_configure
         identity: &model::state::Identity::default(),
         is_running: false,
         wants_focus: false,
+        on_click: model::changes::OpenOnClick::File,
     });
     let (_, tree) = window.frame(&[], |ui| views::changes::pane(&page, ui));
     assert!(has(&tree, Role::Button, "No identity configured"));
@@ -400,4 +401,70 @@ fn identity_use_global__unsets_the_name_and_email_of_the_repository_and_the_glob
         has(&tree, Role::Button, &line),
         "the line shows the identity read again"
     );
+}
+
+#[test]
+fn a_file_partly_staged_opens_the_index_against_the_file_on_disk_from_open_changes_and_from_a_click_set_to_diff() {
+    use views::diff::{DiffVersion, DiffVersion::Index, DiffVersion::WorkingTree};
+    let repository = committed();
+    write(&repository, "a.txt", "a, staged\n");
+    let _ = repository.git(&["add", "a.txt"]);
+    write(&repository, "a.txt", "a, staged, then changed\n");
+    let (mut state, driver) = changes_page(&repository);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let sides = |intents: &[Intent]| -> Vec<(DiffVersion, DiffVersion, String)> {
+        super::diff_links::opened(intents)
+            .into_iter()
+            .map(|target| (target.left, target.right, target.files[0].right.clone()))
+            .collect()
+    };
+    let from_button = window.click(&state, Role::Button, "Open changes");
+    assert_eq!(sides(&from_button), [(Index, WorkingTree, String::from("a.txt"))]);
+    let (_, tree) = window.draw(&state, &[]);
+    // The box of the file is also named by its path: the name is the last node that says it, right of the box.
+    let name = tree
+        .nodes
+        .iter()
+        .filter(|(_, node)| node.label() == Some("a.txt") || node.value() == Some("a.txt"))
+        .filter_map(|(_, node)| node.bounds())
+        .max_by(|one, other| one.x0.total_cmp(&other.x0))
+        .expect("the name of the file");
+    #[allow(
+        clippy::cast_possible_truncation,
+        reason = "a window is far smaller than an f32 counts"
+    )]
+    let on_name = render::Point::new(name.x0 as f32 + 4.0, f64::midpoint(name.y0, name.y1) as f32);
+    let from_click = super::pointer::click_at(&mut window, &state, on_name, 1);
+    assert_eq!(sides(&from_click), [], "a click opens the File page, which comes later");
+    state.settings.open_on_click = model::changes::OpenOnClick::Diff;
+    let from_click = super::pointer::click_at(&mut window, &state, on_name, 1);
+    assert_eq!(sides(&from_click), sides(&from_button));
+    apply(&driver, &mut state, from_click);
+    assert!(matches!(state.page_shown(), Some(Page::Diff(_))));
+}
+
+#[test]
+fn the_stash_buttons_of_the_changes_page_run_the_stash_of_a_file_of_all_changes_and_of_the_staged_ones() {
+    use model::contract::{FeatureId, Target};
+    let repository = committed();
+    write(&repository, "a.txt", "a, staged\n");
+    let _ = repository.git(&["add", "a.txt"]);
+    let (state, _driver) = changes_page(&repository);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let run = |feature: &'static str, target: Target| Intent::Feature(FeatureIntent::Run(FeatureId(feature), target));
+    let cases = [
+        (
+            "Stash this file\u{2026}",
+            run("stash.push-file", Target::Files(vec![String::from("a.txt")])),
+        ),
+        ("Stash all changes\u{2026}", run("stash.push", Target::Head)),
+        (
+            "Stash only the staged changes\u{2026}",
+            run("stash.push-staged", Target::Head),
+        ),
+    ];
+    for (button, asked) in cases {
+        let intents = window.click(&state, Role::Button, button);
+        assert!(intents.contains(&asked), "{button}: {intents:?}");
+    }
 }

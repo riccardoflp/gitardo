@@ -7,7 +7,7 @@ mod rows;
 
 use std::collections::BTreeSet;
 
-use model::changes::ChangesList;
+use model::changes::{ChangesList, OpenOnClick};
 use model::details::TreeNode;
 use model::state::{FileChange, Identity};
 use ui::layout::{Area, Insets, inset};
@@ -50,6 +50,8 @@ pub struct ChangesRepository<'a> {
     pub is_running: bool,
     /// Whether the keyboard goes to the message box in this frame, as **Show changes** in Quick search asks.
     pub wants_focus: bool,
+    /// `changes.openOnClick`: what a click on a file does.
+    pub on_click: OpenOnClick,
 }
 
 /// Something asked of the Changes page, or of the draft of the timeline, which shows its message and **Commit**.

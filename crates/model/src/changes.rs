@@ -1,10 +1,12 @@
 //! The files of the working tree, as the Changes page lists them and the operations on them name them.
 
 mod list;
+mod open;
 
 use std::ffi::OsString;
 
 pub use list::{ChangeRow, ChangesInput, ChangesList, FileStatus, StagedBox, list};
+pub use open::{OpenAction, OpenInput, OpenOnClick, OpenTarget, OpenVersion, PageRequest, open};
 
 /// How a file is named to the git commands that take patterns (`git add`, `git restore`, `git rm`, `git clean`,
 /// `git stash push`, `git checkout <commit> -- <path>`), so that a name that is also a pattern means only that file:

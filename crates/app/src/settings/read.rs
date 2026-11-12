@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 
 use engine::LogLevel;
 use json::Value;
+use model::changes::OpenOnClick;
 use model::contract::{CommandPreview, FeatureSettings, OpenIn};
 use model::graph::PageSize;
 use model::refs::SortOrder;
@@ -80,6 +81,10 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
     });
     let follows_graph_filter = lookup.boolean(keys::FOLLOW_GRAPH_FILTER, Scope::User);
     let collapse_unchanged = lookup.boolean(keys::COLLAPSE_UNCHANGED, Scope::User);
+    let open_on_click = match lookup.choice(keys::OPEN_ON_CLICK, &keys::OPEN_ON_CLICKS) {
+        Some("diff") => OpenOnClick::Diff,
+        _ => OpenOnClick::File,
+    };
     let log_level = match lookup.choice(keys::LOG_LEVEL, &keys::LOG_LEVELS) {
         Some("debug") => LogLevel::Debug,
         _ => LogLevel::Info,
@@ -96,6 +101,7 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
         sort_order,
         follows_graph_filter: follows_graph_filter.unwrap_or(defaults.follows_graph_filter),
         collapse_unchanged: collapse_unchanged.unwrap_or(defaults.collapse_unchanged),
+        open_on_click,
         read_on_startup: read_on_startup.unwrap_or(defaults.read_on_startup),
         page_size: page_size.map_or(defaults.page_size, |size| PageSize::from_setting(Some(size))),
         problems: lookup.problems,

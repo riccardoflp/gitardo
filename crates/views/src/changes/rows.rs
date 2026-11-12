@@ -1,11 +1,13 @@
 //! The lists of the Changes page: **Conflicts**, each file with no box; then **Changes**, with the box on its header,
 //! the buttons that act on every file, and each file with its box and its buttons; **No changes** when both are empty.
 
-use model::changes::{ChangeRow, FileStatus, StagedBox};
+use model::changes::{ChangeRow, FileStatus, OpenAction, OpenInput, OpenOnClick, OpenTarget, StagedBox};
 use model::contract::{FeatureId, Target};
 use model::state::ChangeKind;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, ButtonKind, Choice, Icon, Label, List, Point, Rect, SelectionMode, TextKind, TextRun, Tone, Ui};
+use ui::{
+    Button, ButtonKind, Choice, Icon, Label, List, Point, Rect, SelectionMode, Sense, TextKind, TextRun, Tone, Ui,
+};
 
 use super::{ChangesIntent, ChangesRepository};
 use crate::details::{CappedList, FileLayout, FileRow, FilesIntent, FilesOwner, FilesState, directory_row, file_rows};
@@ -134,9 +136,18 @@ fn changes_heading(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -
     if state.list.has_unsaved() {
         let _ = icon_button(ui, &mut area, ("save all", Icon::Check, words::SAVE_ALL), false);
     }
-    let _ = icon_button(ui, &mut area, ("stash all", Icon::Stash, words::STASH_ALL), false);
-    if state.list.has_staged() {
-        let _ = icon_button(ui, &mut area, ("stash staged", Icon::Stash, words::STASH_STAGED), false);
+    if icon_button(ui, &mut area, ("stash all", Icon::Stash, words::STASH_ALL), can_change) {
+        intents.push(run("stash.push", Target::Head));
+    }
+    if state.list.has_staged()
+        && icon_button(
+            ui,
+            &mut area,
+            ("stash staged", Icon::Stash, words::STASH_STAGED),
+            can_change,
+        )
+    {
+        intents.push(run("stash.push-staged", Target::Head));
     }
     let _ = icon_button(ui, &mut area, ("open all", Icon::Eye, words::OPEN_ALL_CHANGES), false);
     let (layout, icon, said) = match state.layout {
@@ -200,10 +211,30 @@ fn file_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index, depth)
         };
         intents.push(run(feature, Target::File(row.path.clone())));
     }
+    let named = parts.rest();
+    let response = ui.interact(ui.id(("file name", path)), named, Sense::CLICK | Sense::HOVER);
+    if response.hovered {
+        let theme = *ui.theme();
+        ui.fill_rounded_rect(named, theme.sizes.radius.medium, theme.colors.list_hover);
+    }
     let (letter, color) = letter_of(row.status, ui);
-    let name = status_start(ui, parts.rest(), (letter, color, 0));
+    let name = status_start(ui, named, (letter, color, 0));
     file_name(state, ui, (name, index));
+    if response.clicked {
+        intents.extend(open_page(row, OpenAction::Click, state.on_click));
+    }
     intents
+}
+
+/// What opens the page `changes.open` decides on, when it is the Diff page: the File and Merge pages come later.
+fn open_page(row: &ChangeRow, action: OpenAction, on_click: OpenOnClick) -> Option<Intent> {
+    let request = model::changes::open(&OpenInput {
+        file: OpenTarget::Changed(row),
+        action,
+        on_click,
+    });
+    let target = crate::diff::changes_file(&request)?;
+    Some(Intent::Diff(crate::diff::DiffIntent::Open(Box::new(target))))
 }
 
 /// The buttons of a file, from the right, each with what it asks; those whose operations come later ask nothing and
@@ -220,12 +251,17 @@ fn file_buttons(row: &ChangeRow) -> Vec<(&'static str, Icon, Option<Intent>)> {
     let discard = run("changes.discard", Target::File(row.path.clone()));
     let mut buttons = vec![
         (words::DISCARD, Icon::Close, Some(discard)),
-        (words::STASH_FILE, Icon::Stash, None),
+        (
+            words::STASH_FILE,
+            Icon::Stash,
+            Some(run("stash.push-file", Target::Files(vec![row.path.clone()]))),
+        ),
     ];
     if row.is_unsaved {
         buttons.push((words::SAVE, Icon::Check, None));
     }
-    buttons.push((words::OPEN_CHANGES, Icon::Eye, None));
+    let open_changes = open_page(row, OpenAction::OpenChanges, OpenOnClick::File);
+    buttons.push((words::OPEN_CHANGES, Icon::Eye, open_changes));
     if row.status != FileStatus::Changed(ChangeKind::Deleted) {
         buttons.push((words::OPEN_FILE, Icon::File, None));
     }

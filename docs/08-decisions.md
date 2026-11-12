@@ -824,3 +824,10 @@ the reading given until it is answered:
   switched. `F7` landing in a fold unfolds nothing yet, since folds keep three lines next to each change and a change is
   never in a fold. The width of the left side is kept with the page and for the next page while the window is open, not
   in `state.json`. Are these right?
+- **Q138** — `changes.open` is built, and **Open changes** and a click on a file of the Changes page with
+  `changes.openOnClick` set to `diff` open the Diff page. What it decides on the other pages waits for them: **Open
+  file** and a click with `file` (the File page, M6) do nothing yet, nor does a click on a file in conflict (the Merge
+  page); **Compare with the saved file** waits for an editor. **Open all changes in one Diff page** on the Changes page
+  stays disabled: a Diff page has one pair of versions for all its files, while each file of the Changes page has its
+  own (the index against the file on disk, or the last commit against the index). Should a Diff page take a pair of
+  versions for each file, or should the button open the last commit against the file on disk for every file?

@@ -47,6 +47,10 @@ pub const COMMAND_PREVIEWS: [&str; 2] = ["off", "all"];
 pub const BRANCH_FORMAT: &str = "branches.format";
 /// `diff.collapseUnchanged`.
 pub const COLLAPSE_UNCHANGED: &str = "diff.collapseUnchanged";
+/// `changes.openOnClick`.
+pub const OPEN_ON_CLICK: &str = "changes.openOnClick";
+/// The values of `changes.openOnClick`.
+pub const OPEN_ON_CLICKS: [&str; 2] = ["file", "diff"];
 /// `submodules.updateOnCheckout`.
 pub const UPDATE_SUBMODULES_ON_CHECKOUT: &str = "submodules.updateOnCheckout";
 /// `branches.openIn`.

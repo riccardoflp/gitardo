@@ -86,9 +86,12 @@
   selected are copied with `Ctrl+C`. At `log.level` `debug` the log has each read with how long it took.
 - The Diff page: two versions of a file side by side, kept level with blank rows, each change joined across the gutter
   and the words that changed marked, with a mark for each change beside the scroll bar. A click on a file in the
-  inspector or the page of a commit, **Open all changes in one Diff page**, **Open in the Diff page** and an untracked
-  file of a stash open it, never twice for the same diff. `F7` and `Shift+F7` go from change to change and, between
-  `HEAD`, the index and the working tree, on to the next changed file. Long runs of unchanged lines fold
+  inspector or the page of a commit, **Open all changes in one Diff page**, **Open in the Diff page**, an untracked
+  file of a stash, and **Open changes** on a file of the Changes page open it: the index against the file on disk
+  while some of the file is not staged, the last commit against the index once all of it is. With
+  `changes.openOnClick` set to `diff`, a click on a file of the Changes page does the same. They open it never twice
+  for the same diff. `F7` and `Shift+F7` go from change to change and, between `HEAD`, the index and the working tree,
+  on to the next changed file. Long runs of unchanged lines fold
   (`diff.collapseUnchanged`), the line between the two sides is dragged, and changes already staged are dimmed. A binary
   file or a diff of more than 5 seconds is refused, and a file of more than 100,000 lines asks first.
 - The settings page (**Settings** in **…**, or `Ctrl+,`) lists every setting with its description, its value, where
@@ -120,6 +123,7 @@
   kept for each repository between runs, **Commit** or **Amend** with **Amend last commit**, and `Ctrl+Enter`; the
   identity commits are made with, which a click switches; the files in conflict apart; and one list of the changed
   files, as a list or a tree, each with a box ticked, half ticked or empty as much of it is staged, the box on the
-  header for every file, and **Discard changes** and **Discard all changes**. The draft at the top of the timeline
+  header for every file, **Discard changes** and **Discard all changes**, and **Stash this file…**, **Stash all
+  changes…** and **Stash only the staged changes…**. The draft at the top of the timeline
   shows the message and commits it, and its menu stages, unstages and discards all changes. **Switch identity…** is
   in **…** and in Quick search.

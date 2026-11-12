@@ -18,6 +18,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use engine::LogLevel;
+use model::changes::OpenOnClick;
 use model::contract::FeatureSettings;
 use model::graph::PageSize;
 use model::refs::SortOrder;
@@ -54,6 +55,8 @@ pub struct Settings {
     pub features: FeatureSettings,
     /// `diff.collapseUnchanged`: a new Diff page starts with its unchanged lines folded.
     pub collapse_unchanged: bool,
+    /// `changes.openOnClick`: what a click on a file of the Changes page opens.
+    pub open_on_click: OpenOnClick,
     /// Every value the files set, by key, the repository's file first: what the settings page shows.
     pub values: BTreeMap<String, Vec<(SettingsFile, json::Value)>>,
     /// The values that were not taken, with which key and why, for the settings page to say.
@@ -73,6 +76,7 @@ impl Default for Settings {
             log_level: LogLevel::Info,
             features: FeatureSettings::default(),
             collapse_unchanged: true,
+            open_on_click: OpenOnClick::File,
             values: BTreeMap::new(),
             problems: Vec::new(),
         }

@@ -202,6 +202,7 @@ impl ChangesData {
             identity: &read.state.identity,
             is_running: state.is_operation_running,
             wants_focus: state.changes.wants_focus,
+            on_click: state.settings.open_on_click,
         })
     }
 }

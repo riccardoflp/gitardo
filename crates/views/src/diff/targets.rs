@@ -1,6 +1,7 @@
 //! What the places that list the files of a commit open in the Diff page: a file between the first parent and the
 //! commit, all of them in one page, and an untracked file of a stash against nothing.
 
+use model::changes::{OpenVersion, PageRequest};
 use model::details::CommitDetail;
 use model::state::FileChange;
 
@@ -64,4 +65,35 @@ pub fn untracked_file(detail: &CommitDetail, file: &FileChange) -> Option<DiffTa
         name,
     };
     Some(DiffTarget::file(DiffVersion::Empty, right, DiffFile::same(&file.path)))
+}
+
+/// The Diff page a file of the Changes page opens, from what `changes.open` decided; none for another page, or for a
+/// side the Diff page cannot show yet (what an editor has not saved).
+#[must_use]
+pub fn changes_file(request: &PageRequest) -> Option<DiffTarget> {
+    let PageRequest::Diff {
+        left,
+        right,
+        left_path,
+        right_path,
+    } = request
+    else {
+        return None;
+    };
+    let file = DiffFile {
+        left: left_path.clone(),
+        right: right_path.clone(),
+    };
+    Some(DiffTarget::file(version_of(*left)?, version_of(*right)?, file))
+}
+
+/// The version of a side of the Diff page.
+fn version_of(version: OpenVersion) -> Option<DiffVersion> {
+    match version {
+        OpenVersion::Head => Some(DiffVersion::Head),
+        OpenVersion::Index => Some(DiffVersion::Index),
+        OpenVersion::WorkingTree => Some(DiffVersion::WorkingTree),
+        OpenVersion::Nothing => Some(DiffVersion::Empty),
+        OpenVersion::Buffer => None,
+    }
 }
