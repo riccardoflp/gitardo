@@ -10,17 +10,17 @@ This page lists what it asks, and how on each system. Windows comes first (see
 
 | Area | What the rest of the program sees |
 | --- | --- |
-| Windows | `Window::open(options)`, title, size, position, scale factor, close request, `present(&FrameBuffer, dirty_regions)`. |
-| Input | `InputEvent`: pointer moved, pressed, released, wheel (lines and pixels), key pressed with modifiers, text typed (after the input method), focus gained and lost, files dropped. |
+| Windows | `Window::open(&event_loop, &options)`, title, size, position, scale factor, close request, dark or light title bar, `present(Frame, dirty_regions)`: a `Frame` is the pixels `0x00RRGGBB` of the renderer's buffer and its size, so that `platform` needs nothing of `render`. |
+| Input | `InputEvent`: pointer moved, pressed, released (with the count of clicks), left, wheel (lines and pixels), key pressed and released with modifiers, text typed (after the input method), focus gained and lost, resized, scale changed, close requested, redraw requested, files dropped. `set_text_input_area` says where the input method shows its window. An `InputSender` feeds a window input as if the system sent it, for the tests of the application. |
 | Cursor | Arrow, text beam, hand, resize east-west and north-south, grab, not allowed. |
-| Event loop | `run(handler)`: waits for events, and wakes when another thread sends a message (`Waker`). Timers for blinking carets, delayed reads and animations. |
+| Event loop | One `EventLoop` for the UI thread and every window it opens; `run(handler)` waits for events, tagged with the window they are for, and wakes when another thread sends a message (`Waker`). Timers (`start_timer`, `stop_timer`) for blinking carets, delayed reads and animations. |
 | Clipboard | Read and write text. |
 | Files | Watching folders for changes (`Watcher`), the configuration and state folders of the user, the temporary folder, the trash. |
 | Links | `make_folder_link(from, to)`: a junction on Windows, a symbolic link elsewhere; `unlink_folder_link`. |
 | Shell | Open a URL in the browser, reveal a path in the file manager, open a path in the external editor or a terminal. |
 | Dialogs | Choose a folder, choose a file to open, choose where to save. Everything else is drawn by Gitardo. |
 | Credentials | Read, write and delete a secret by name in the system's credential store. |
-| Fonts | The paths of the system's font files, and the default UI and monospace families. |
+| Fonts | `system_fonts()`: the paths of the system's font files, and the files of the default UI and monospace families. |
 | Theme | Whether the system is dark or light, high contrast, the accent color, and a notification when it changes. |
 | Processes | Running `git` uses `std::process`, which is enough; `platform` only adds killing a whole process tree on cancel. |
 
