@@ -26,6 +26,9 @@ impl TemporaryFolder {
             match fs::create_dir(&path) {
                 Ok(()) => return TemporaryFolder { path },
                 Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
+                // On Windows a folder of the same name that another test is still deleting refuses access: the next
+                // name is as good.
+                Err(error) if cfg!(windows) && error.kind() == ErrorKind::PermissionDenied && number < 10_000 => {}
                 Err(error) => panic!("could not make a test folder at {}: {error}", path.display()),
             }
         }

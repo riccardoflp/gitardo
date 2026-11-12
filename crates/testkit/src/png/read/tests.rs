@@ -1,5 +1,6 @@
 use super::*;
 use crate::png::filter::{Filter, filter_row};
+use crate::png::inflate::decompress;
 use crate::png::write::{append_chunk, encode, zlib_stored};
 
 /// A PNG file of chunks, each with its CRC-32.
@@ -63,10 +64,10 @@ fn a_one_pixel_image_is_written_as_the_specification_lays_it_out() {
         bytes[bytes.len() - 12..],
         [0, 0, 0, 0, b'I', b'E', b'N', b'D', 0xAE, 0x42, 0x60, 0x82]
     );
-    // The IDAT holds the zlib header, one last stored block of the filter type and the pixel, and the Adler-32.
-    let idat = [0x78, 0x01, 0x01, 5, 0, 0xFA, 0xFF, 0, 255, 0, 0, 255];
-    assert_eq!(bytes[33..41], [0, 0, 0, 16, b'I', b'D', b'A', b'T']);
-    assert_eq!(bytes[41..53], idat);
+    // The IDAT holds the row compressed: the filter type None, then the pixel.
+    let idat_length = usize::try_from(u32::from_be_bytes(bytes[33..37].try_into().unwrap())).unwrap();
+    assert_eq!(bytes[37..41], *b"IDAT");
+    assert_eq!(decompress(&bytes[41..41 + idat_length]).unwrap(), [0, 255, 0, 0, 255]);
 }
 
 #[test]

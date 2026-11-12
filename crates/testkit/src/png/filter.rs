@@ -114,15 +114,48 @@ fn neighbours(row: &[u8], previous: &[u8], index: usize, bytes_per_pixel: usize)
     }
 }
 
-/// A row filtered as a writer would filter it, for the tests of the reader.
-#[cfg(test)]
+/// A row filtered with a filter, from the row above it, which is empty for the first row.
 pub(crate) fn filter_row(filter: Filter, row: &[u8], previous: &[u8], bytes_per_pixel: usize) -> Vec<u8> {
-    (0..row.len())
-        .map(|index| {
+    row.iter()
+        .enumerate()
+        .map(|(index, byte)| {
             let prediction = filter.prediction(neighbours(row, previous, index, bytes_per_pixel));
-            row[index].wrapping_sub(prediction)
+            byte.wrapping_sub(prediction)
         })
         .collect()
+}
+
+/// The filter that makes a row smallest to compress, and the row filtered with it: the one whose bytes, read as
+/// signed differences, are nearest to zero, as the PNG specification suggests in section 12.8.
+pub(crate) fn best_filter(row: &[u8], previous: &[u8], bytes_per_pixel: usize) -> (Filter, Vec<u8>) {
+    let candidates = [Filter::None, Filter::Sub, Filter::Up, Filter::Average, Filter::Paeth];
+    let mut best = (Filter::None, row.to_vec());
+    let mut best_score = u64::MAX;
+    for filter in candidates {
+        let filtered = filter_row(filter, row, previous, bytes_per_pixel);
+        let score: u64 = filtered
+            .iter()
+            .map(|byte| u64::from((*byte).min(byte.wrapping_neg())))
+            .sum();
+        if score < best_score {
+            best_score = score;
+            best = (filter, filtered);
+        }
+    }
+    best
+}
+
+impl Filter {
+    /// The filter type byte written before a row.
+    pub(crate) fn byte(self) -> u8 {
+        match self {
+            Filter::None => 0,
+            Filter::Sub => 1,
+            Filter::Up => 2,
+            Filter::Average => 3,
+            Filter::Paeth => 4,
+        }
+    }
 }
 
 #[cfg(test)]

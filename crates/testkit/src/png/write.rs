@@ -1,9 +1,13 @@
-//! Writing an image as a PNG file: one IDAT chunk of stored deflate blocks, so that no compressor is needed.
+//! Writing an image as a PNG file: each row with the filter that suits it, compressed with deflate.
 
 use std::fs;
 use std::path::Path;
 
-use super::checksum::{adler32, crc32};
+#[cfg(test)]
+use super::checksum::adler32;
+use super::checksum::crc32;
+use super::deflate::zlib_compressed;
+use super::filter::best_filter;
 use super::image::{Image, pixel_count};
 use crate::error::Error;
 
@@ -23,10 +27,11 @@ pub(crate) const COLOUR_TYPE_RGBA: u8 = 6;
 const LARGEST_IDAT: usize = 1 << 20;
 
 /// The most bytes a stored deflate block holds, as its 16-bit length allows.
+#[cfg(test)]
 const LARGEST_STORED_BLOCK: usize = 0xFFFF;
 
 /// Writes an image as a PNG file: red, green, blue and alpha at 8 bits, not interlaced, every row with the filter
-/// type None, in stored deflate blocks.
+/// that makes it smallest, compressed with deflate.
 ///
 /// # Errors
 ///
@@ -35,9 +40,12 @@ const LARGEST_STORED_BLOCK: usize = 0xFFFF;
 pub fn encode(image: &Image) -> Result<Vec<u8>, Error> {
     let row_length = row_length(image)?;
     let mut rows = Vec::with_capacity(image.pixels.len() + usize::try_from(image.height).unwrap_or(0));
+    let mut previous: &[u8] = &[];
     for row in image.pixels.chunks_exact(row_length) {
-        rows.push(0);
-        rows.extend_from_slice(row);
+        let (filter, filtered) = best_filter(row, previous, 4);
+        rows.push(filter.byte());
+        rows.extend_from_slice(&filtered);
+        previous = row;
     }
     let mut header = Vec::with_capacity(13);
     header.extend_from_slice(&image.width.to_be_bytes());
@@ -46,7 +54,7 @@ pub fn encode(image: &Image) -> Result<Vec<u8>, Error> {
     header.extend_from_slice(&[BIT_DEPTH, COLOUR_TYPE_RGBA, 0, 0, 0]);
     let mut file = SIGNATURE.to_vec();
     append_chunk(&mut file, *b"IHDR", &header);
-    for piece in zlib_stored(&rows).chunks(LARGEST_IDAT) {
+    for piece in zlib_compressed(&rows).chunks(LARGEST_IDAT) {
         append_chunk(&mut file, *b"IDAT", piece);
     }
     append_chunk(&mut file, *b"IEND", &[]);
@@ -109,7 +117,9 @@ pub(crate) fn append_chunk(file: &mut Vec<u8>, kind: [u8; 4], data: &[u8]) {
 ///
 /// RFC 1950, section 2.2: the header 0x78 0x01 says deflate with a 32 KiB window and the fastest compression, and
 /// makes the header a multiple of 31; the Adler-32 of the bytes follows the data. RFC 1951, section 3.2.4: each
-/// stored block is its header bits, padding to the byte, its length and the complement of its length.
+/// stored block is its header bits, padding to the byte, its length and the complement of its length. The tests of
+/// the reader use it.
+#[cfg(test)]
 pub(crate) fn zlib_stored(bytes: &[u8]) -> Vec<u8> {
     let blocks = bytes.len() / LARGEST_STORED_BLOCK + 1;
     let mut stream = Vec::with_capacity(bytes.len() + blocks * 5 + 6);

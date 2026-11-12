@@ -1,1 +1,5 @@
 /target/
+
+# What a snapshot that did not match leaves beside its reference.
+*.actual.png
+*.difference.png
