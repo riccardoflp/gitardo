@@ -8,3 +8,9 @@ publish.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies]
+render = { path = "../render" }
+
+[dev-dependencies]
+testkit = { path = "../testkit" }
