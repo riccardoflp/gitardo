@@ -9,6 +9,7 @@ use ui::RevealPlace;
 
 use super::intent::{HoverTarget, Selected, Switches};
 use super::layout::TimelineLayout;
+use crate::branch::ReferenceMenus;
 
 /// What the timeline lists.
 #[derive(Clone, Debug, PartialEq)]
@@ -61,6 +62,9 @@ pub struct HistoryState<'a> {
     pub dims_others: bool,
     /// The draft, when it is the first row.
     pub draft: Option<DraftState>,
+    /// What the menus of the commits and of their labels are made from; none while the repository is not read, and
+    /// they have only the fold of a merge.
+    pub references: Option<ReferenceMenus<'a>>,
 }
 
 /// What the draft of the uncommitted changes shows and offers.

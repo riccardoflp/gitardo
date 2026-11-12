@@ -164,6 +164,7 @@ fn graph_view__scrolling_a_list_of_50000_commits_draws_only_the_rows_in_sight() 
         found: &[],
         dims_others: false,
         draft: None,
+        references: None,
     };
     let graph = GraphState::Listed(Box::new(history));
     let mut window = Window::new(ThemeName::Dark, WIDE);

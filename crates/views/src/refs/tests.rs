@@ -6,6 +6,7 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
 
+use model::contract::OpenIn;
 use model::filter::{BranchesShown, rank_names};
 use model::refs::{References, SortOrder};
 use model::state::{Branch, RemoteBranch, RepositoryState, Stash, Tag, Upstream};
@@ -120,6 +121,7 @@ impl Rail {
             follows_timeline: self.follows,
             selected: None,
             sort: SortOrder::Name,
+            open_in: OpenIn::Checkout,
         }
     }
 
@@ -414,7 +416,7 @@ fn refs_favorite__remove_from_favorites_with_none_left_takes_the_list_away() {
     rail.favorites = vec![String::from("refs/heads/feature")];
     let state = rail.state();
     let feature = branch("feature");
-    let menu = entry_menu(&state, &Entry::Branch(&feature), "Check out feature");
+    let menu = entry_menu(&state, &Entry::Branch(&feature), &[]);
     let labels: Vec<&str> = menu
         .iter()
         .filter_map(|entry| match entry {
@@ -437,7 +439,7 @@ fn refs_favorite__a_favorite_deleted_with_branch_d_is_no_longer_listed() {
 /// The entries of the menu of a reference about the branches shown.
 fn filter_entries_of(rail: &Rail, entry: &Entry<'_>) -> Vec<FilterEntry> {
     let state = rail.state();
-    entry_menu(&state, entry, "")
+    entry_menu(&state, entry, &[])
         .iter()
         .filter_map(|item| match item {
             MenuEntry::Item(item) => match item.value {

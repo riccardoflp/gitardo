@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use std::fmt::Write as _;
 
 use model::commit::Commit;
+use model::contract::OpenIn;
 use model::graph::Row;
 use model::state::{Branch, Head, RepositoryState};
 use model::{CommitId, Timestamp};
@@ -16,6 +17,7 @@ use ui::{Key, KeyEvent, Modifiers, NamedKey};
 use super::intent::{GraphIntent, Selected, Switches};
 use super::layout::{LayoutInput, TimelineLayout};
 use super::state::{DraftState, Folds, HistoryState, Reading};
+use crate::branch::ReferenceMenus;
 
 mod keys_and_pages;
 mod menus_and_panes;
@@ -79,6 +81,7 @@ pub(super) struct Fixture {
     folded: HashSet<CommitId>,
     selected: Option<Selected>,
     draft: Option<DraftState>,
+    repository: RepositoryState,
 }
 
 impl Fixture {
@@ -101,6 +104,7 @@ impl Fixture {
             folded,
             selected,
             draft,
+            repository: repository.clone(),
         }
     }
 
@@ -128,6 +132,10 @@ impl Fixture {
             found: &[],
             dims_others: false,
             draft: self.draft,
+            references: Some(ReferenceMenus {
+                repository: &self.repository,
+                open_in: OpenIn::Checkout,
+            }),
         }
     }
 }

@@ -47,14 +47,8 @@ pub fn checkout_remote(context: &Context, answers: &Answers) -> Outcome {
             checkout_steps(context, &[checkout]),
         );
     };
-    if let Some(worktree) = other_worktree(state, name) {
-        let folder = worktree.folder.display();
-        if worktree.is_missing {
-            return refuse(&format!(
-                "The worktree of {name} is missing from {folder}: prune the worktrees to free the branch."
-            ));
-        }
-        return refuse(&format!("{name} is checked out in the worktree {folder}."));
+    if let Some(refusal) = held_elsewhere(state, name) {
+        return refusal;
     }
     let Some((own, theirs)) = answers.counts(COUNTS) else {
         let left = format!("refs/heads/{name}");
@@ -94,6 +88,19 @@ pub fn checkout_remote(context: &Context, answers: &Answers) -> Outcome {
         }
         None => Outcome::Run(nothing_to_do(name, &remote.name, theirs == 0)),
     }
+}
+
+/// The refusal of a local branch another worktree has checked out, or whose worktree is missing.
+fn held_elsewhere(state: &model::state::RepositoryState, name: &str) -> Option<Outcome> {
+    let worktree = other_worktree(state, name)?;
+    let folder = worktree.folder.display();
+    Some(if worktree.is_missing {
+        refuse(&format!(
+            "The worktree of {name} is missing from {folder}: prune the worktrees to free the branch."
+        ))
+    } else {
+        refuse(&format!("{name} is checked out in the worktree {folder}."))
+    })
 }
 
 /// What is done with the local branch.

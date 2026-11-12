@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use model::CommitId;
+use model::contract::OpenIn;
 use model::filter::{BranchesShown, label};
 use model::refs::{References, SortOrder};
 use model::state::RepositoryState;
@@ -58,6 +59,8 @@ pub struct ReferencesState<'a> {
     pub selected: Option<&'a CommitId>,
     /// The order of the branches and tags: `branches.sortOrder`.
     pub sort: SortOrder,
+    /// What a double click on a branch does, and which entry comes first in its menu: `branches.openIn`.
+    pub open_in: OpenIn,
 }
 
 /// The filter box at the top of the rail.

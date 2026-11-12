@@ -9,6 +9,7 @@ use model::graph::Row;
 use model::repo::name_repositories;
 use model::state::RepositoryState;
 use views::activity::{ActivityState, RunningTask, StatusBarState};
+use views::branch::ReferenceMenus;
 use views::details::SelectedDetails;
 use views::filter::{BranchPicker, NarrowedBar, PickerOpen};
 use views::graph::{
@@ -315,6 +316,10 @@ impl ViewData {
             found: &state.search.found_rows,
             dims_others: search_view::dims_others(state),
             draft: timeline.draft,
+            references: state.shown_read().map(|read| ReferenceMenus {
+                repository: &read.state,
+                open_in: state.settings.features.branch_open_in,
+            }),
         }
     }
 }
@@ -351,6 +356,7 @@ fn rail<'a>(state: &'a State, read: &'a RepositoryRead) -> ReferencesState<'a> {
         follows_timeline: state.settings.follows_graph_filter,
         selected,
         sort: sort_order(state),
+        open_in: state.settings.features.branch_open_in,
     }
 }
 

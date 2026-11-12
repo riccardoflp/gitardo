@@ -1,13 +1,17 @@
 //! The menus of the draft, a stash and a merge, the fold button, the panes and the labels.
 
+use model::contract::{FeatureId, Target};
 use ui::Rect;
 
+use super::super::commit_menu::double_click_label;
 use super::super::draft::{DraftEntry, draft_entries};
 use super::super::fold::{MergeEntry, merge_menu};
 use super::super::panes::{PaneLayout, PaneSizes, pane_rects};
 use super::super::state::DraftState;
 use super::{Fixture, feature_and_main, id, repository, rows};
+use crate::feature::FeatureIntent;
 use crate::graph::StashEntry;
+use crate::intent::Intent;
 
 #[test]
 fn graph_uncommitted_row__with_a_file_in_conflict_no_stage_all_and_during_a_merge_no_discard_all() {
@@ -209,4 +213,32 @@ fn graph_view__a_row_keeps_room_for_its_message_and_counts_the_labels_that_do_no
     let (none, width) = fitted_pills(&labels, 30.0, false, width_of);
     assert!(none.is_empty(), "not even the count fits");
     assert!(width.abs() < 0.01);
+}
+
+#[test]
+fn graph_view__a_double_click_on_the_label_of_a_branch_not_checked_out_checks_it_out() {
+    let fixture = feature_and_main();
+    let state = fixture.history();
+    let label = |commit: &str, name: &str| {
+        let labels = fixture.layout.labels.get(&id(commit));
+        let index = labels.and_then(|labels| labels.iter().position(|label| label.name == name));
+        (
+            id(commit),
+            index.unwrap_or_else(|| panic!("{commit} has no label {name}")),
+        )
+    };
+    let check_out = Intent::Feature(FeatureIntent::Run(
+        FeatureId("branch.checkout"),
+        Target::Branch(String::from("feature")),
+    ));
+    assert_eq!(
+        double_click_label(&state, Some(&label("F2", "feature"))),
+        Some(vec![check_out])
+    );
+    assert_eq!(
+        double_click_label(&state, Some(&label("M3", "main"))),
+        Some(Vec::new()),
+        "the branch checked out does nothing, and opens no page"
+    );
+    assert_eq!(double_click_label(&state, None), None, "off the labels, the row opens");
 }

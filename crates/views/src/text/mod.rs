@@ -2,6 +2,7 @@
 //! R10.2). Where a card says the words, they are the card's, word for word.
 
 pub mod activity;
+pub mod branch;
 pub mod dates;
 pub mod details;
 pub mod feature;

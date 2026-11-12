@@ -1,0 +1,205 @@
+//! The entries of the operations in the menu of a local branch, a remote branch, a tag or a commit, each with the
+//! operation it runs, or greyed out while its operation comes in a later milestone.
+
+use model::CommitId;
+use model::branch::{
+    OpenBranchInput, OpenedReference, can_fast_forward, local_name, open, other_worktree, rebase_onto,
+};
+use model::contract::{FeatureId, OpenIn, Target};
+use model::state::{Branch, RemoteBranch, Tag};
+use ui::{MenuEntry, MenuItem};
+
+use super::ReferenceMenus;
+use crate::feature::FeatureIntent;
+use crate::intent::Intent;
+use crate::text::branch as words;
+use crate::text::rail as rail_words;
+
+/// An entry of a menu that runs an operation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct OperationEntry {
+    /// What it says.
+    pub(crate) label: String,
+    /// The operation and what it runs on; none while the operation comes in a later milestone, and it is greyed out.
+    pub(crate) run: Option<(FeatureId, Target)>,
+}
+
+impl OperationEntry {
+    /// An entry that runs an operation.
+    fn runs(label: impl Into<String>, feature: &'static str, target: Target) -> Self {
+        OperationEntry {
+            label: label.into(),
+            run: Some((FeatureId(feature), target)),
+        }
+    }
+
+    /// An entry greyed out until its operation exists.
+    fn later(label: impl Into<String>) -> Self {
+        OperationEntry {
+            label: label.into(),
+            run: None,
+        }
+    }
+}
+
+/// The operations of a local branch. The one checked out here can be renamed or branched from; one another worktree
+/// has gets the entries of that worktree and no **Check out**; any other is checked out, or opened in a worktree, as
+/// `branches.openIn` puts first, fast-forwarded when it is only behind its upstream, renamed and deleted.
+pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<OperationEntry> {
+    let state = menus.repository;
+    let name = branch.name.as_str();
+    let target = || Target::Branch(name.to_owned());
+    let create = OperationEntry::runs(words::CREATE_BRANCH_HERE, "branch.create", target());
+    if branch.is_checked_out {
+        return vec![
+            create,
+            OperationEntry::runs(rail_words::RENAME, "branch.rename", target()),
+        ];
+    }
+    let fast_forward = branch
+        .upstream
+        .as_ref()
+        .filter(|_| can_fast_forward(state, branch))
+        .map(|upstream| {
+            let short = upstream
+                .reference
+                .strip_prefix("refs/remotes/")
+                .unwrap_or(&upstream.reference);
+            OperationEntry::runs(words::fast_forward_to(short), "branch.fast-forward", target())
+        });
+    if other_worktree(state, name).is_some() {
+        let mut entries = vec![
+            OperationEntry::later(words::OPEN_WORKTREE_IN_NEW_WINDOW),
+            OperationEntry::later(words::REMOVE_WORKTREE),
+            OperationEntry::later(words::REMOVE_WORKTREE_AND_DELETE_BRANCH),
+            create,
+        ];
+        entries.extend(fast_forward);
+        entries.push(OperationEntry::runs(words::RENAME_BRANCH, "branch.rename", target()));
+        return entries;
+    }
+    let mut entries = opening(
+        menus.open_in,
+        OperationEntry::runs(rail_words::check_out(name), "branch.checkout", target()),
+    );
+    entries.push(create);
+    entries.extend(fast_forward);
+    entries.push(OperationEntry::runs(rail_words::RENAME, "branch.rename", target()));
+    entries.push(OperationEntry::runs(rail_words::DELETE, "branch.delete", target()));
+    entries
+}
+
+/// **Check out** and **Open in worktree**, the one a double click does first.
+fn opening(open_in: OpenIn, check_out: OperationEntry) -> Vec<OperationEntry> {
+    let in_worktree = OperationEntry::later(words::OPEN_IN_WORKTREE);
+    match open_in {
+        OpenIn::Checkout => vec![check_out, in_worktree],
+        OpenIn::Worktree => vec![in_worktree, check_out],
+    }
+}
+
+/// The operations of a remote branch: checked out as the local branch of its name, or as a new one; checked out and
+/// rebased onto it when its local branch has commits of its own and commits to take; branched from; and deleted from
+/// its remote, which comes with the remotes.
+pub(crate) fn remote_entries(menus: ReferenceMenus<'_>, remote: &RemoteBranch) -> Vec<OperationEntry> {
+    let state = menus.repository;
+    let name = local_name(&remote.name, &state.remotes);
+    let target = || Target::RemoteBranch(remote.name.clone());
+    let mut entries = Vec::new();
+    if other_worktree(state, name).is_none() {
+        let label = if state.branches.iter().any(|branch| branch.name == name) {
+            words::check_out_local(name)
+        } else {
+            rail_words::CHECK_OUT_AS_LOCAL.to_owned()
+        };
+        entries = opening(
+            menus.open_in,
+            OperationEntry::runs(label, "branch.checkout-remote", target()),
+        );
+    }
+    if let Some(local) = rebase_onto(state, &remote.name) {
+        entries.push(OperationEntry::runs(
+            words::check_out_and_rebase(&local.name),
+            "branch.checkout-remote-and-rebase",
+            target(),
+        ));
+    }
+    entries.push(OperationEntry::runs(
+        words::CREATE_BRANCH_HERE,
+        "branch.create",
+        target(),
+    ));
+    entries.push(OperationEntry::later(rail_words::DELETE));
+    entries
+}
+
+/// The operations of a tag: checked out on a detached `HEAD` unless its commit is, branched from, pushed when the
+/// repository has a remote, and deleted.
+pub(crate) fn tag_entries(menus: ReferenceMenus<'_>, tag: &Tag) -> Vec<OperationEntry> {
+    let state = menus.repository;
+    let target = || Target::Tag(tag.name.clone());
+    let mut entries = Vec::new();
+    if state.head.commit.as_ref() != Some(&tag.commit) {
+        entries.push(OperationEntry::runs(words::CHECK_OUT_TAG, "tag.checkout", target()));
+    }
+    entries.push(OperationEntry::runs(
+        words::CREATE_BRANCH_HERE,
+        "branch.create",
+        target(),
+    ));
+    if !state.remotes.is_empty() {
+        entries.push(OperationEntry::runs(words::PUSH_TAG, "tag.push", target()));
+    }
+    entries.push(OperationEntry::runs(rail_words::DELETE, "tag.delete", target()));
+    entries
+}
+
+/// The operations of a commit of the timeline: a branch or a tag made there, and the commit checked out on a detached
+/// `HEAD` unless it is the one checked out.
+pub(crate) fn commit_entries(menus: ReferenceMenus<'_>, commit: &CommitId) -> Vec<OperationEntry> {
+    let target = || Target::Commit(commit.clone());
+    let mut entries = vec![
+        OperationEntry::runs(words::CREATE_BRANCH_HERE, "branch.create", target()),
+        OperationEntry::runs(words::CREATE_TAG_HERE, "tag.create", target()),
+    ];
+    if menus.repository.head.commit.as_ref() != Some(commit) {
+        entries.push(OperationEntry::runs(
+            words::CHECK_OUT_COMMIT,
+            "branch.checkout-detached",
+            target(),
+        ));
+    }
+    entries
+}
+
+/// The items of the entries, each carrying the value of its place among them, greyed out while its operation comes
+/// later.
+pub(crate) fn menu_items<Value>(
+    entries: &[OperationEntry],
+    value: impl Fn(usize) -> Value,
+) -> Vec<MenuEntry<'_, Value>> {
+    entries
+        .iter()
+        .enumerate()
+        .map(|(index, entry)| {
+            let item = MenuItem::new(entry.label.as_str(), value(index));
+            MenuEntry::Item(if entry.run.is_some() { item } else { item.disabled() })
+        })
+        .collect()
+}
+
+/// What the entry at a place asks: its operation, run on its reference.
+pub(crate) fn chosen(entries: &[OperationEntry], index: usize) -> Option<Intent> {
+    let (feature, target) = entries.get(index)?.run.clone()?;
+    Some(Intent::Feature(FeatureIntent::Run(feature, target)))
+}
+
+/// What a double click on a branch or a remote branch asks, as `branch.open` decides.
+pub(crate) fn open_intent(menus: ReferenceMenus<'_>, reference: OpenedReference<'_>) -> Option<Intent> {
+    let input = OpenBranchInput {
+        state: menus.repository,
+        reference,
+        open_in: menus.open_in,
+    };
+    open(&input).map(|(feature, target)| Intent::Feature(FeatureIntent::Run(feature, target)))
+}

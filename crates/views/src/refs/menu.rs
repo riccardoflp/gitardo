@@ -1,12 +1,14 @@
 //! The menus of the branch rail: the menu of a reference, with what narrows the timeline to it, **Add to favorites**
-//! or **Remove from favorites**, **Show in the timeline** and the operations of later milestones greyed out; and the
-//! menu of a list, with **Sort by name** and **Sort by date**, **Create worktree…** or **Add submodule…**.
+//! or **Remove from favorites**, **Show in the timeline** and the operations of the reference, those of later
+//! milestones greyed out; and the menu of a list, with **Sort by name** and **Sort by date**, **Create worktree…** or
+//! **Add submodule…**.
 
 use model::refs::SortOrder;
 use ui::{Icon, MenuEntry, MenuItem};
 
 use super::ReferencesState;
 use super::rows::Entry;
+use crate::branch::{OperationEntry, ReferenceMenus, branch_entries, menu_items, remote_entries, tag_entries};
 use crate::filter::{FilterEntry, filter_entries, filter_entry_words};
 use crate::intent::RailList;
 use crate::text::rail as words;
@@ -21,6 +23,8 @@ pub(super) enum EntryCommand {
     Favorite,
     /// **Show in the timeline**: its commit, selected.
     ShowInTimeline,
+    /// The operation at a place among those of the reference.
+    Operation(usize),
     /// An operation of a later milestone, greyed out until then.
     Later,
 }
@@ -39,11 +43,11 @@ fn later(label: &str) -> MenuEntry<'_, EntryCommand> {
     MenuEntry::Item(MenuItem::new(label, EntryCommand::Later).disabled())
 }
 
-/// The menu of a reference of the rail. `check_out` is the words of **Check out `<branch>`** for a local branch.
+/// The menu of a reference of the rail, with the operations of the reference, from [`operations`].
 pub(super) fn entry_menu<'t>(
     state: &ReferencesState<'_>,
     entry: &Entry<'_>,
-    check_out: &'t str,
+    operations: &'t [OperationEntry],
 ) -> Vec<MenuEntry<'t, EntryCommand>> {
     let mut entries = Vec::new();
     if let Some(full) = entry.full_name() {
@@ -74,7 +78,10 @@ pub(super) fn entry_menu<'t>(
             MenuItem::new(label, EntryCommand::Favorite).with_icon(Icon::Star),
         ));
     }
-    let operations = later_operations(entry, check_out);
+    let mut operations = menu_items(operations, EntryCommand::Operation);
+    if let Entry::Stash(_) = entry {
+        operations = later_stash_operations();
+    }
     if !operations.is_empty() {
         entries.push(MenuEntry::Separator);
         entries.extend(operations);
@@ -82,21 +89,29 @@ pub(super) fn entry_menu<'t>(
     entries
 }
 
-/// The operations of a reference that come in later milestones, greyed out.
-fn later_operations<'t>(entry: &Entry<'_>, check_out: &'t str) -> Vec<MenuEntry<'t, EntryCommand>> {
+/// The operations of a branch, a remote branch or a tag, as their menus have them wherever they are listed; none for
+/// the others.
+pub(super) fn operations(state: &ReferencesState<'_>, entry: &Entry<'_>) -> Vec<OperationEntry> {
+    let menus = ReferenceMenus {
+        repository: state.repository,
+        open_in: state.open_in,
+    };
     match entry {
-        Entry::Branch(branch) if branch.is_checked_out => vec![later(words::RENAME)],
-        Entry::Branch(_) => vec![later(check_out), later(words::RENAME), later(words::DELETE)],
-        Entry::Remote(_) => vec![later(words::CHECK_OUT_AS_LOCAL), later(words::DELETE)],
-        Entry::Tag(_) => vec![later(words::DELETE)],
-        Entry::Stash(_) => vec![
-            later(stash_words::APPLY),
-            later(stash_words::POP),
-            later(stash_words::CREATE_BRANCH_FROM_STASH),
-            later(stash_words::DROP),
-        ],
-        Entry::Worktree(_) | Entry::Submodule(_) => Vec::new(),
+        Entry::Branch(branch) => branch_entries(menus, branch),
+        Entry::Remote(remote) => remote_entries(menus, remote),
+        Entry::Tag(tag) => tag_entries(menus, tag),
+        Entry::Stash(_) | Entry::Worktree(_) | Entry::Submodule(_) => Vec::new(),
     }
+}
+
+/// The operations of a stash, which come with the stashes, greyed out.
+fn later_stash_operations() -> Vec<MenuEntry<'static, EntryCommand>> {
+    vec![
+        later(stash_words::APPLY),
+        later(stash_words::POP),
+        later(stash_words::CREATE_BRANCH_FROM_STASH),
+        later(stash_words::DROP),
+    ]
 }
 
 /// The menu of a list, none for a list that has none: the order of the local branches, of each remote and of the

@@ -221,8 +221,8 @@ fn operation_entries(menu: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand
     .collect()
 }
 
-/// The entries of **…**: **Refresh**, **Branch**, **Stash** and **Undo**, the entries of the timeline, **Go to commit…**, **Select repository**, then
-/// **Settings** and **Theme…**.
+/// The entries of **…**: **Refresh**, **Branch**, **Stash** and **Undo**, the entries of the timeline, **Go to commit…**,
+/// **Clean up branches…**, **Select repository**, then **Settings** and **Theme…**.
 fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
     let refresh = MenuItem::new(words::REFRESH, MoreCommand::Refresh).with_icon(Icon::Refresh);
     let mut entries = vec![MenuEntry::Item(if state.can_refresh {
@@ -244,6 +244,17 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
             crate::text::search::GO_TO_COMMIT_ENTRY,
             MoreCommand::GoToCommit,
         )));
+        if let Some(operations) = state.operations {
+            let clean_up = MenuItem::new(
+                crate::text::branch::CLEAN_UP_BRANCHES,
+                MoreCommand::Operation("branch.clean-up"),
+            );
+            entries.push(MenuEntry::Item(if operations.is_running {
+                clean_up.disabled()
+            } else {
+                clean_up
+            }));
+        }
     }
     if state.can_select_repository {
         entries.push(MenuEntry::Item(MenuItem::new(

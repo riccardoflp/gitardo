@@ -89,3 +89,10 @@
   that can lose work, or every plan with `commandPreview` `all`, shows its commands first, and **Run** of one that
   cannot be undone is not pressed by `Enter`. What ran is in the Command log, and what it did is said over the
   timeline with **Undo**.
+- Branches and tags: check out a branch, a remote branch (tracked, fast-forwarded, or rebased onto it when each has
+  commits of its own), a commit or a tag on a detached `HEAD`; rename and delete a branch, fast-forward one that is not
+  checked out, and clean up the branches merged or whose upstream is gone with their worktrees; create, delete, check
+  out and push a tag. Each is in the menu of its branch, remote branch or tag in the branch rail and on its label in
+  the timeline, and a commit's menu has **Create branch here…**, **Create tag here…** and **Check out commit
+  (detached)**. A double click on a branch checks it out, or does what `branches.openIn` says; **Clean up branches…**
+  is in **…** and in Quick search; Undo brings back a branch deleted at its commit.

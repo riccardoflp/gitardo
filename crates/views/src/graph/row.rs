@@ -4,6 +4,7 @@
 use std::borrow::Cow;
 use std::time::Duration;
 
+use model::CommitId;
 use model::commit::Commit;
 use model::graph::{Label, LabelKind, Row, ShownRow};
 use ui::layout::{Align, Area, place};
@@ -11,6 +12,7 @@ use ui::{Badge, BadgeFill, Icon, Point, Rect, Sense, TextKind, TextRun, Tone, Ui
 
 use super::cell::{CellPlace, Dot, draw_cell};
 use super::columns::{ColumnsState, columns_view, hash_room};
+use super::commit_menu::PointedLabel;
 use super::draft::{UncommittedRow, uncommitted_row_view};
 use super::fold::{FoldsState, fold_merge_view};
 use super::intent::{GraphIntent, HoverTarget, HoverWay, Selected};
@@ -46,6 +48,8 @@ pub(crate) struct RowReport {
     pub intents: Vec<Intent>,
     /// The label under the pointer, with since when it rests there.
     pub label: Option<(HoverTarget, Duration)>,
+    /// The label the pointer is on, for its menu and its double click.
+    pub pointed: Option<PointedLabel>,
 }
 
 /// Draws a row of the list.
@@ -242,7 +246,7 @@ fn subject_line(
         report.intents.extend(ui.clip(cell, |ui| fold_merge_view(&folds, ui)));
         x += arrow;
     }
-    for pill in &pills {
+    for (index, pill) in pills.iter().enumerate() {
         let badge = pill.badge(color);
         let width = ui.badge_width(&badge).min((lines.right() - x).max(0.0));
         // A label with less room than its own height is not drawn at all, rather than squeezed past the end.
@@ -251,7 +255,7 @@ fn subject_line(
         }
         let drawn = ui.badge(Rect::new(x, top, width, first), &badge);
         x += width + theme.sizes.spacing.medium;
-        hover_label(ui, (drawn, pill), &commit.id, report);
+        hover_label(ui, (drawn, pill), (&commit.id, index), report);
     }
 }
 
@@ -272,10 +276,18 @@ pub(crate) fn draw_labels(ui: &mut Ui<'_>, rect: Rect, (labels, color): (&[Label
     }
 }
 
-/// Notes the label under the pointer, and gives a label its tooltip.
-fn hover_label(ui: &mut Ui<'_>, (rect, pill): (Rect, &Pill<'_>), commit: &model::CommitId, report: &mut RowReport) {
+/// Notes the label under the pointer, and the one the pointer is on, and gives a label its tooltip.
+fn hover_label(
+    ui: &mut Ui<'_>,
+    (rect, pill): (Rect, &Pill<'_>),
+    (commit, index): (&CommitId, usize),
+    report: &mut RowReport,
+) {
     let id = ui.id(("label", commit.as_str(), pill.text.as_ref()));
     let response = ui.interact(id, rect, Sense::HOVER);
+    if response.hovered && !pill.is_count {
+        report.pointed = Some((commit.clone(), index));
+    }
     if let Some(tooltip) = &pill.tooltip {
         ui.tooltip(&response, tooltip);
     }

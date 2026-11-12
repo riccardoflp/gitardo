@@ -15,6 +15,7 @@
 
 pub mod activity;
 mod blocks;
+pub mod branch;
 pub mod commit_page;
 pub mod details;
 pub mod feature;

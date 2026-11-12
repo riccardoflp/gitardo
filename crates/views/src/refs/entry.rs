@@ -4,6 +4,7 @@
 
 use std::time::Duration;
 
+use model::branch::OpenedReference;
 use model::filter::{ReferenceKind, show_only, show_too};
 use model::state::{Branch, Worktree};
 use ui::layout::{Area, Insets, inset};
@@ -14,8 +15,9 @@ use ui::{
 
 use super::ReferencesState;
 use super::draw::{Context, DOT, RailReport, indent};
-use super::menu::{EntryCommand, entry_menu};
+use super::menu::{EntryCommand, entry_menu, operations};
 use super::rows::{Entry, Marks, worktree_folder};
+use crate::branch::{ReferenceMenus, chosen, open_intent};
 use crate::filter::filter_entry_intent;
 use crate::graph::{GraphIntent, HoverTarget, HoverWay};
 use crate::intent::{FilterIntent, Intent, RailList};
@@ -70,7 +72,9 @@ pub(super) fn entry_row(
         rect,
         &Description::new(AccessRole::Button, &name).selected(marks.is_selected),
     );
-    if response.clicked {
+    if response.double_clicked {
+        report.intents.extend(double_click_intent(context.state, entry));
+    } else if response.clicked {
         report.intents.extend(click_intents(context.state, entry));
     }
     if let Some(hover) = hover_of(ui, &response, entry) {
@@ -121,6 +125,21 @@ pub(super) fn click_intents(state: &ReferencesState<'_>, entry: &Entry<'_>) -> V
     }
 }
 
+/// What a double click on an entry asks: on a branch or a remote branch, what `branch.open` decides; on the others,
+/// nothing more than the click before it.
+pub(super) fn double_click_intent(state: &ReferencesState<'_>, entry: &Entry<'_>) -> Option<Intent> {
+    let reference = match entry {
+        Entry::Branch(branch) => OpenedReference::Branch(&branch.name),
+        Entry::Remote(remote) => OpenedReference::RemoteBranch(&remote.name),
+        _ => return None,
+    };
+    let menus = ReferenceMenus {
+        repository: state.repository,
+        open_in: state.open_in,
+    };
+    open_intent(menus, reference)
+}
+
 /// The menu of an entry while it is open, and what the entry chosen asks.
 fn entry_menu_chosen(
     ui: &mut Ui<'_>,
@@ -128,13 +147,13 @@ fn entry_menu_chosen(
     entry: &Entry<'_>,
     menu_key: (&str, &RailList, &String),
 ) -> Vec<Intent> {
-    let check_out = words::check_out(&entry.name());
-    let entries = entry_menu(state, entry, &check_out);
-    let Some(chosen) = ui.menu(menu_key, &entries) else {
+    let operations = operations(state, entry);
+    let entries = entry_menu(state, entry, &operations);
+    let Some(command) = ui.menu(menu_key, &entries) else {
         return Vec::new();
     };
     let full = entry.full_name().unwrap_or_default();
-    match chosen {
+    match command {
         EntryCommand::Filter(filter) => vec![filter_entry_intent(filter, state.shown, &full, state.references)],
         EntryCommand::Favorite => {
             let favorites = super::Favorites {
@@ -148,6 +167,7 @@ fn entry_menu_chosen(
             .map(|commit| Intent::Graph(GraphIntent::GoTo(commit.clone())))
             .into_iter()
             .collect(),
+        EntryCommand::Operation(index) => chosen(&operations, index).into_iter().collect(),
         EntryCommand::Later => Vec::new(),
     }
 }

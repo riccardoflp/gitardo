@@ -4,6 +4,7 @@
 
 mod cell;
 mod columns;
+mod commit_menu;
 mod draft;
 mod edge;
 mod fold;

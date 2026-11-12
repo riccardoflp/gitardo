@@ -5,11 +5,11 @@
 
 use model::graph::Row;
 use ui::layout::{Align, Insets, inset, place};
-use ui::{AccessRole, Label, List, MenuAnchor, Rect, Reveal, Selection, SelectionMode, Steering, Tone, Ui};
+use ui::{AccessRole, Label, List, Rect, Reveal, Selection, SelectionMode, Steering, Tone, Ui};
 
+use super::commit_menu::{commit_menu, double_click_label, menu_key, open_row_menu};
 use super::draft::draft_menu;
 use super::edge::{GraphEdgeState, resize_graph_view};
-use super::fold::{MergeEntry, merge_menu};
 use super::hover::{HoverState, hover_history_view};
 use super::intent::GraphIntent;
 use super::keyboard::{LEFT_TO_VIEW, keyboard_view};
@@ -172,11 +172,15 @@ fn history(
     {
         intents.push(Intent::Graph(intent));
     }
+    let pointed = report.pointed.take();
     if let Some(row) = response.activated {
-        intents.extend(open_row(state, row));
+        match double_click_label(state, pointed.as_ref()) {
+            Some(intent) => intents.extend(intent),
+            None => intents.extend(open_row(state, row)),
+        }
     }
     if let Some(row) = response.context_row {
-        ui.open_menu(("row menu", row), MenuAnchor::Pointer);
+        open_row_menu(state, ui, row, pointed.as_ref());
     }
     for row in response.visible_rows.clone() {
         intents.extend(row_menu(state, ui, row));
@@ -196,34 +200,24 @@ fn open_row(state: &HistoryState<'_>, shown: usize) -> Option<Intent> {
     }
 }
 
-/// The context menu of a row while it is open: the draft's, a stash's, or a merge's with its fold.
+/// The context menu of a row while it is open: the draft's, a stash's, or a commit's, on the commit or on one of
+/// its labels.
 fn row_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usize) -> Vec<Intent> {
-    let key = ("row menu", shown);
-    if !ui.is_menu_open(key) {
-        return Vec::new();
-    }
+    let key = menu_key(shown, None);
     let Some(row) = state.layout.read_of.get(shown).and_then(|read| state.rows.get(*read)) else {
         return Vec::new();
     };
     match row {
-        Row::Uncommitted { .. } => {
+        Row::Uncommitted { .. } if ui.is_menu_open(key) => {
             let _ = ui.menu(key, &draft_menu(&state.draft.unwrap_or_default()));
             Vec::new()
         }
-        Row::Stash { .. } => {
+        Row::Stash { .. } if ui.is_menu_open(key) => {
             let _ = ui.menu(key, &stash_menu());
             Vec::new()
         }
-        Row::Commit(commit) => {
-            let is_folded = state.folds.folded.contains(&commit.id);
-            let entries = merge_menu(state.layout.foldable.contains(&commit.id), is_folded);
-            let intent = match ui.menu(key, &entries) {
-                Some(MergeEntry::Fold) => GraphIntent::Fold(commit.id.clone()),
-                Some(MergeEntry::Unfold) => GraphIntent::Unfold(commit.id.clone()),
-                None => return Vec::new(),
-            };
-            vec![Intent::Graph(intent)]
-        }
+        Row::Uncommitted { .. } | Row::Stash { .. } => Vec::new(),
+        Row::Commit(commit) => commit_menu(state, ui, shown, commit),
     }
 }
 
