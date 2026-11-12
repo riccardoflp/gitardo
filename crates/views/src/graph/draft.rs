@@ -76,11 +76,12 @@ fn entry_words(entry: DraftEntry) -> &'static str {
     }
 }
 
-/// The operation of an entry, and what it is invoked on: the whole working tree. The stashes have none yet.
+/// The operation of an entry, and what it is invoked on: the whole working tree.
 #[must_use]
 pub fn entry_operation(entry: DraftEntry) -> Option<&'static str> {
     match entry {
-        DraftEntry::Stash | DraftEntry::StashStaged => None,
+        DraftEntry::Stash => Some("stash.push"),
+        DraftEntry::StashStaged => Some("stash.push-staged"),
         DraftEntry::StageAll => Some("changes.stage-all"),
         DraftEntry::UnstageAll => Some("changes.unstage-all"),
         DraftEntry::DiscardAll => Some("changes.discard-all"),

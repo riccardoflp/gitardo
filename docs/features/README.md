@@ -198,10 +198,10 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`remote.add`](06-branches-tags-remotes.md#remoteadd--add-a-remote) | Add a remote | Operation | Specified |
 | [`remote.delete-branch`](06-branches-tags-remotes.md#remotedelete-branch--delete-a-branch-from-its-remote) | Delete a branch from its remote | Operation | Built |
 | [`sync.fetch`](06-branches-tags-remotes.md#syncfetch--fetch) | Fetch | Operation | Built |
-| [`sync.pull`](06-branches-tags-remotes.md#syncpull--pull) | Pull | Operation | Specified |
-| [`sync.pull-with`](06-branches-tags-remotes.md#syncpull-with--pull-one-way-or-another) | Pull one way or another | Operation | Specified |
+| [`sync.pull`](06-branches-tags-remotes.md#syncpull--pull) | Pull | Operation | Built |
+| [`sync.pull-with`](06-branches-tags-remotes.md#syncpull-with--pull-one-way-or-another) | Pull one way or another | Operation | Built |
 | [`sync.push`](06-branches-tags-remotes.md#syncpush--push) | Push | Operation | Built |
-| [`sync.sync`](06-branches-tags-remotes.md#syncsync--sync-with-the-upstream) | Sync with the upstream | Operation | Specified |
+| [`sync.sync`](06-branches-tags-remotes.md#syncsync--sync-with-the-upstream) | Sync with the upstream | Operation | Built |
 | [`sync.read-overwritten`](06-branches-tags-remotes.md#syncread-overwritten--read-what-a-force-push-would-overwrite) | Read what a force push would overwrite | Read | Built |
 | [`sync.push-force-with-lease`](06-branches-tags-remotes.md#syncpush-force-with-lease--push-with---force-with-lease) | Push with `--force-with-lease` | Operation | Built |
 | [`sync.push-force`](06-branches-tags-remotes.md#syncpush-force--push-with---force) | Push with `--force` | Operation | Built |
@@ -254,10 +254,10 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`stash.preview`](08-stashes.md#stashpreview--what-applying-a-stash-would-stop-on) | What applying a stash would stop on | Derivation | Built |
 | [`stash.apply`](08-stashes.md#stashapply--apply-a-stash) | Apply a stash | Operation | Built |
 | [`stash.pop`](08-stashes.md#stashpop--pop-a-stash) | Pop a stash | Operation | Built |
-| [`stash.drop`](08-stashes.md#stashdrop--drop-a-stash) | Drop a stash | Operation | Specified |
-| [`stash.undo-drop`](08-stashes.md#stashundo-drop--undo-a-stash-dropped) | Undo a stash dropped | Operation | Specified |
+| [`stash.drop`](08-stashes.md#stashdrop--drop-a-stash) | Drop a stash | Operation | Built |
+| [`stash.undo-drop`](08-stashes.md#stashundo-drop--undo-a-stash-dropped) | Undo a stash dropped | Operation | Built |
 | [`stash.branch`](08-stashes.md#stashbranch--create-a-branch-from-a-stash) | Create a branch from a stash | Operation | Built |
-| [`stash.in-graph`](08-stashes.md#stashin-graph--stashes-in-the-timeline) | Stashes in the timeline | Derivation | Specified |
+| [`stash.in-graph`](08-stashes.md#stashin-graph--stashes-in-the-timeline) | Stashes in the timeline | Derivation | Built |
 | [`stash.autostash-left`](08-stashes.md#stashautostash-left--the-stash-a-pull-leaves) | The stash a pull leaves | Derivation | Specified |
 
 ## Conflicts

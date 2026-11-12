@@ -151,6 +151,7 @@ impl QuickCommand {
             QuickCommand::Push => Some("sync.push"),
             QuickCommand::StashChanges => Some("stash.push"),
             QuickCommand::CleanUpBranches => Some("branch.clean-up"),
+            QuickCommand::ManageRemotes => Some("remote.manage"),
             QuickCommand::SwitchIdentity => Some("identity.switch"),
             QuickCommand::UndoLastOperation => Some("undo.last"),
             _ => None,

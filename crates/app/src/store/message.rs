@@ -286,11 +286,15 @@ pub enum Effect {
         folder: PathBuf,
         /// The operation.
         feature: model::contract::FeatureId,
+        /// The answers it is given before it asks: none, or what the entry chosen names.
+        preset: model::contract::Answers,
         /// What it is given.
         context: model::contract::Context,
     },
     /// Gives the operation running what the user answered.
     ReplyToFeature(super::feature::Reply),
+    /// Puts text on the clipboard of the system: the URL of a remote (`remote.manage`).
+    CopyText(String),
     /// Closes the window and ends the program.
     Quit,
 }

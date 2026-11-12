@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use engine::LogEntry;
 use model::CommitId;
-use model::contract::{Answer, Context, FeatureId, FollowUp, Plan, Question, QuestionKind, Target, Text};
+use model::contract::{Answer, Answers, Context, FeatureId, FollowUp, Plan, Question, QuestionKind, Target, Text};
 use model::repo::ReadCause;
 use views::feature::{FeatureIntent, QuestionState, SaidState};
 use views::text::feature as words;
@@ -92,12 +92,16 @@ pub struct Operations {
     pub said: Option<Said>,
     /// The commit to select once the repository is read again after an operation; `Some(None)` selects `HEAD`.
     pub select_after_read: Option<Option<CommitId>>,
+    /// The stashes before a pull with `--autostash`, to tell once the repository is read again whether it left one
+    /// (`stash.autostash-left`).
+    pub autostash_before: Option<Vec<model::state::Stash>>,
 }
 
 /// What is asked of an operation, or answered to it.
 pub fn reduce(state: &mut State, intent: FeatureIntent) -> Vec<Effect> {
     match intent {
-        FeatureIntent::Run(feature, target) => run(state, feature, target),
+        FeatureIntent::Run(feature, target) => run(state, feature, target, Answers::new()),
+        FeatureIntent::RunWith(feature, target, preset) => run(state, feature, target, preset),
         FeatureIntent::Typed(text) => {
             if let Some(Asking::Question { typed, .. }) = asking(state) {
                 *typed = text;
@@ -119,8 +123,9 @@ pub fn reduce(state: &mut State, intent: FeatureIntent) -> Vec<Effect> {
     }
 }
 
-/// Starts an operation on what it was invoked on, in the repository shown, unless one runs already.
-fn run(state: &mut State, feature: FeatureId, target: Target) -> Vec<Effect> {
+/// Starts an operation on what it was invoked on, with the answers it was given already, in the repository shown,
+/// unless one runs already.
+fn run(state: &mut State, feature: FeatureId, target: Target, preset: Answers) -> Vec<Effect> {
     if state.operations.running.is_some() {
         return Vec::new();
     }
@@ -141,6 +146,7 @@ fn run(state: &mut State, feature: FeatureId, target: Target) -> Vec<Effect> {
     vec![Effect::RunFeature {
         folder,
         feature,
+        preset,
         context,
     }]
 }
@@ -213,6 +219,9 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
                     FollowUp::Say(text) => said = Some(text.as_str().to_owned()),
                     FollowUp::SelectHead => state.operations.select_after_read = Some(None),
                     FollowUp::SelectCommit(commit) => state.operations.select_after_read = Some(Some(commit.clone())),
+                    FollowUp::CheckAutostash => {
+                        state.operations.autostash_before = state.shown_read().map(|read| read.state.stashes.clone());
+                    }
                     _ => {}
                 }
             }
@@ -224,8 +233,12 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
             });
             let mut effects = reads::asked(state, ReadCause::OperationEnded);
             for follow_up in after {
-                if let (FollowUp::OpenCommitPage(commit), Some(folder)) = (follow_up, state.shown_folder().cloned()) {
-                    effects.extend(super::commit_page::open(state, folder, commit));
+                match (follow_up, state.shown_folder().cloned()) {
+                    (FollowUp::OpenCommitPage(commit), Some(folder)) => {
+                        effects.extend(super::commit_page::open(state, folder, commit));
+                    }
+                    (FollowUp::CopyToClipboard(text), _) => effects.push(Effect::CopyText(text)),
+                    _ => {}
                 }
             }
             effects
@@ -250,8 +263,29 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
     }
 }
 
+/// Once the repository is read again after a pull with `--autostash`, says so when the changes it set aside were left in
+/// a stash.
+fn autostash_left(state: &mut State) {
+    let Some(before) = state.operations.autostash_before.take() else {
+        return;
+    };
+    let notice = state.shown_read().and_then(|read| {
+        model::stash::autostash_left(&model::stash::PullOutcome {
+            had_autostash: true,
+            succeeded: true,
+            stashes_before: &before,
+            stashes_after: &read.state.stashes,
+        })
+    });
+    if let (Some(notice), Some(said)) = (notice, state.operations.said.as_mut()) {
+        notice.message.as_str().clone_into(&mut said.text);
+        said.is_error = true;
+    }
+}
+
 /// Once the repository is read again after an operation, the commit it said to select is gone to.
 pub fn after_read(state: &mut State) -> Vec<Effect> {
+    autostash_left(state);
     let Some(selected) = state.operations.select_after_read.take() else {
         return Vec::new();
     };

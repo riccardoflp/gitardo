@@ -371,6 +371,11 @@ impl Surface {
         }
     }
 
+    /// Puts text on the clipboard; nothing happens when the system has none the program can reach.
+    pub fn copy(&mut self, text: &str) {
+        let _ = self.clipboard().map(|clipboard| clipboard.write_text(text));
+    }
+
     /// The clipboard, opened the first time it is needed.
     fn clipboard(&mut self) -> Option<&mut Clipboard> {
         if self.clipboard.is_none() {

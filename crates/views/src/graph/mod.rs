@@ -21,6 +21,7 @@ mod stashes;
 mod state;
 mod sticky;
 mod switches;
+mod sync_menu;
 #[cfg(test)]
 mod tests;
 mod timeline;
@@ -44,10 +45,11 @@ pub(crate) use more_menu::kind_entries;
 pub use more_menu::{MoreMenuState, OperationsMenu, TimelineMenu, more_menu_view};
 pub use panes::{PaneLayout, PaneRects, PaneSizes, RAIL_START, pane_rects, resize_panes_view};
 pub(crate) use row::draw_labels;
-pub use stashes::{StashEntry, StashRow, stash_menu, stashes_view};
+pub use stashes::{StashEntry, StashRow, stash_intent, stash_menu, stashes_view};
 pub use state::{DraftState, Folds, GraphState, HistoryState, Reading, TraceShown, TraceStrength};
 pub use sticky::{StickyName, StickyNames, sticky_branch_names_view, sticky_names};
 pub use switches::{FirstParentState, SelectedTrace, first_parent_view, trace_selected_view};
+pub use sync_menu::{PULL_WAYS, SYNC_FEATURES};
 pub use timeline::view;
 pub use toggle::{ReferencesShown, toggle_references_view};
 pub use toolbar::{

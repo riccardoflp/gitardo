@@ -168,7 +168,10 @@ fn entry_menu_chosen(
             .into_iter()
             .collect(),
         EntryCommand::Operation(index) => chosen(&operations, index).into_iter().collect(),
-        EntryCommand::Later => Vec::new(),
+        EntryCommand::Stash(chosen) => match entry {
+            Entry::Stash(stash) => vec![crate::graph::stash_intent(chosen, stash.index)],
+            _ => Vec::new(), // Only a stash has the entries of a stash.
+        },
     }
 }
 

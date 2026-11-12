@@ -1,6 +1,6 @@
 //! A stash in the timeline (`graph.stashes`): a square with no fill on its dashed line, its label `stash@{0}`, its
 //! message, and its context menu, which applies, pops, drops it or makes a branch of it, as the Stashes list of the
-//! branch rail does once those operations exist (milestone M4).
+//! branch rail does (`stash.apply`, `stash.pop`, `stash.drop`, `stash.branch`).
 
 use model::commit::Commit;
 use ui::layout::{Align, place};
@@ -33,10 +33,10 @@ pub enum StashEntry {
     Drop,
 }
 
-/// The context menu of a stash: nothing of a commit; its entries cannot be chosen until their operations exist.
+/// The context menu of a stash: nothing of a commit.
 #[must_use]
 pub fn stash_menu() -> Vec<MenuEntry<'static, StashEntry>> {
-    let item = |label, entry| MenuEntry::Item(MenuItem::new(label, entry).disabled());
+    let item = |label, entry| MenuEntry::Item(MenuItem::new(label, entry));
     vec![
         item(words::APPLY, StashEntry::Apply),
         item(words::POP, StashEntry::Pop),
@@ -72,4 +72,19 @@ pub fn stashes_view(state: &StashRow<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     };
     let _ = ui.text(&run);
     Vec::new()
+}
+
+/// What an entry of the menu of `stash@{index}` runs, in the timeline and in the Stashes list of the branch rail.
+#[must_use]
+pub fn stash_intent(entry: StashEntry, index: usize) -> Intent {
+    let feature = match entry {
+        StashEntry::Apply => "stash.apply",
+        StashEntry::Pop => "stash.pop",
+        StashEntry::CreateBranch => "stash.branch",
+        StashEntry::Drop => "stash.drop",
+    };
+    Intent::Feature(crate::feature::FeatureIntent::Run(
+        model::contract::FeatureId(feature),
+        model::contract::Target::Stash(index),
+    ))
 }

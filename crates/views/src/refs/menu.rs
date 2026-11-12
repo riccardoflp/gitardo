@@ -1,6 +1,6 @@
 //! The menus of the branch rail: the menu of a reference, with what narrows the timeline to it, **Add to favorites**
-//! or **Remove from favorites**, **Show in the timeline** and the operations of the reference, those of later
-//! milestones greyed out; and the menu of a list, with **Sort by name** and **Sort by date**, **Create worktree…** or
+//! or **Remove from favorites**, **Show in the timeline** and the operations of the reference or the stash, those of
+//! later milestones greyed out; and the menu of a list, with **Sort by name** and **Sort by date**, **Create worktree…** or
 //! **Add submodule…**.
 
 use model::refs::SortOrder;
@@ -10,9 +10,9 @@ use super::ReferencesState;
 use super::rows::Entry;
 use crate::branch::{OperationEntry, ReferenceMenus, branch_entries, menu_items, remote_entries, tag_entries};
 use crate::filter::{FilterEntry, filter_entries, filter_entry_words};
+use crate::graph::{StashEntry, stash_menu};
 use crate::intent::RailList;
 use crate::text::rail as words;
-use crate::text::timeline as stash_words;
 
 /// What an entry of the menu of a reference does.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -25,8 +25,8 @@ pub(super) enum EntryCommand {
     ShowInTimeline,
     /// The operation at a place among those of the reference.
     Operation(usize),
-    /// An operation of a later milestone, greyed out until then.
-    Later,
+    /// An entry of the menu of a stash: **Apply**, **Pop**, **Create branch from stash…** or **Drop**.
+    Stash(StashEntry),
 }
 
 /// What an entry of the menu of a list does.
@@ -36,11 +36,6 @@ pub(super) enum ListCommand {
     Sort(SortOrder),
     /// An operation of a later milestone, greyed out until then.
     Later,
-}
-
-/// An item greyed out until its operation exists.
-fn later(label: &str) -> MenuEntry<'_, EntryCommand> {
-    MenuEntry::Item(MenuItem::new(label, EntryCommand::Later).disabled())
 }
 
 /// The menu of a reference of the rail, with the operations of the reference, from [`operations`].
@@ -80,7 +75,7 @@ pub(super) fn entry_menu<'t>(
     }
     let mut operations = menu_items(operations, EntryCommand::Operation);
     if let Entry::Stash(_) = entry {
-        operations = later_stash_operations();
+        operations = stash_operations();
     }
     if !operations.is_empty() {
         entries.push(MenuEntry::Separator);
@@ -104,14 +99,19 @@ pub(super) fn operations(state: &ReferencesState<'_>, entry: &Entry<'_>) -> Vec<
     }
 }
 
-/// The operations of a stash, which come with the stashes, greyed out.
-fn later_stash_operations() -> Vec<MenuEntry<'static, EntryCommand>> {
-    vec![
-        later(stash_words::APPLY),
-        later(stash_words::POP),
-        later(stash_words::CREATE_BRANCH_FROM_STASH),
-        later(stash_words::DROP),
-    ]
+/// The operations of a stash, as its row in the timeline has them.
+fn stash_operations() -> Vec<MenuEntry<'static, EntryCommand>> {
+    stash_menu()
+        .into_iter()
+        .filter_map(|entry| match entry {
+            MenuEntry::Item(item) => Some(MenuEntry::Item(MenuItem::new(
+                item.label,
+                EntryCommand::Stash(item.value),
+            ))),
+            MenuEntry::Separator => Some(MenuEntry::Separator),
+            MenuEntry::Submenu { .. } => None, // The menu of a stash has no submenu.
+        })
+        .collect()
 }
 
 /// The menu of a list, none for a list that has none: the order of the local branches, of each remote and of the

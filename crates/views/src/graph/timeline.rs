@@ -16,7 +16,7 @@ use super::keyboard::{LEFT_TO_VIEW, keyboard_view};
 use super::load_more::{LoadMoreState, load_more_view};
 use super::marks::{ScrollMarks, scroll_marks_view};
 use super::row::{RowContext, RowReport, draw_row, select_row, selected_row};
-use super::stashes::stash_menu;
+use super::stashes::{stash_intent, stash_menu};
 use super::state::{GraphState, HistoryState, Reading};
 use super::sticky::{sticky_names, sticky_names_drawn};
 use crate::intent::Intent;
@@ -215,10 +215,11 @@ fn row_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usize) -> Vec<Inte
                 .into_iter()
                 .collect()
         }
-        Row::Stash { .. } if ui.is_menu_open(key) => {
-            let _ = ui.menu(key, &stash_menu());
-            Vec::new()
-        }
+        Row::Stash { index, .. } if ui.is_menu_open(key) => ui
+            .menu(key, &stash_menu())
+            .map(|entry| stash_intent(entry, *index))
+            .into_iter()
+            .collect(),
         Row::Uncommitted { .. } | Row::Stash { .. } => Vec::new(),
         Row::Commit(commit) => commit_menu(state, ui, shown, commit),
     }

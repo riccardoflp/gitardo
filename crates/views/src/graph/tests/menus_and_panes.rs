@@ -273,7 +273,7 @@ fn changes_discard_all__the_entry_of_the_draft_is_not_in_its_menu_while_a_merge_
 }
 
 #[test]
-fn the_entries_of_the_draft_run_their_operations_on_the_whole_working_tree_and_the_stashes_wait() {
+fn the_entries_of_the_draft_run_their_operations_on_the_whole_working_tree() {
     use crate::graph::{draft_entry_intent, draft_menu};
     let draft = DraftState {
         files: 2,
@@ -292,8 +292,8 @@ fn the_entries_of_the_draft_run_their_operations_on_the_whole_working_tree_and_t
     assert_eq!(
         enabled,
         [
-            (DraftEntry::Stash, false),
-            (DraftEntry::StashStaged, false),
+            (DraftEntry::Stash, true),
+            (DraftEntry::StashStaged, true),
             (DraftEntry::StageAll, true),
             (DraftEntry::UnstageAll, true),
             (DraftEntry::DiscardAll, true),
@@ -312,5 +312,41 @@ fn the_entries_of_the_draft_run_their_operations_on_the_whole_working_tree_and_t
             _ => true,
         }),
         "nothing while an operation runs"
+    );
+}
+
+#[test]
+fn stash_in_graph__the_context_menu_of_a_stash_row_has_the_four_stash_entries_only_each_running_its_operation() {
+    let items: Vec<(StashEntry, bool)> = super::super::stashes::stash_menu()
+        .iter()
+        .filter_map(|entry| match entry {
+            ui::MenuEntry::Item(item) => Some((item.value, item.availability == ui::Availability::Enabled)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        items,
+        [
+            (StashEntry::Apply, true),
+            (StashEntry::Pop, true),
+            (StashEntry::CreateBranch, true),
+            (StashEntry::Drop, true)
+        ]
+    );
+    let run = |entry| match super::super::stashes::stash_intent(entry, 2) {
+        crate::Intent::Feature(crate::feature::FeatureIntent::Run(feature, model::contract::Target::Stash(2))) => {
+            feature.0
+        }
+        _ => "",
+    };
+    assert_eq!(
+        [
+            StashEntry::Apply,
+            StashEntry::Pop,
+            StashEntry::CreateBranch,
+            StashEntry::Drop
+        ]
+        .map(run),
+        ["stash.apply", "stash.pop", "stash.branch", "stash.drop"]
     );
 }

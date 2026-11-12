@@ -252,12 +252,14 @@ impl DesktopWindow {
             Effect::RunFeature {
                 folder,
                 feature,
+                preset,
                 context,
             } => {
                 self.operations
-                    .run(folder, feature, context, self.state.settings.log_level);
+                    .run(folder, (feature, preset), context, self.state.settings.log_level);
             }
             Effect::ReplyToFeature(reply) => self.operations.reply(reply),
+            Effect::CopyText(text) => self.surface.copy(&text),
             Effect::Quit => return Ok(Some(Followed::Quit)),
         }
         Ok(None)

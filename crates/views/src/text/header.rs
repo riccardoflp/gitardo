@@ -28,12 +28,28 @@ pub const FETCH: &str = "Fetch";
 pub const FETCH_TOOLTIP: &str = "Fetch: git fetch --all --prune";
 /// **Pull** in the menu of **Sync**.
 pub const PULL: &str = "Pull";
-/// What **Pull** runs.
-pub const PULL_TOOLTIP: &str = "Pull: git pull";
+/// **Pull (no options)** among the ways to pull (`sync.pull-with`).
+pub const PULL_PLAIN: &str = "Pull (no options)";
+/// **Pull (rebase)**.
+pub const PULL_REBASE: &str = "Pull (rebase)";
+/// **Pull (autostash)**.
+pub const PULL_AUTOSTASH: &str = "Pull (autostash)";
+/// **Pull (rebase, autostash)**.
+pub const PULL_REBASE_AUTOSTASH: &str = "Pull (rebase, autostash)";
+/// Beside the way to pull that **Pull** takes.
+pub const DEFAULT_WAY: &str = "default";
 /// **Push** in the menu of **Sync**.
 pub const PUSH: &str = "Push";
 /// What **Push** runs.
 pub const PUSH_TOOLTIP: &str = "Push: git push";
+/// **Push (force with lease)** in the menu of **Sync** (`sync.push-force-with-lease`).
+pub const PUSH_FORCE_WITH_LEASE: &str = "Push (force with lease)";
+/// What **Push (force with lease)** runs.
+pub const PUSH_FORCE_WITH_LEASE_TOOLTIP: &str = "git push --force-with-lease";
+/// **Push (force)** in the menu of **Sync** (`sync.push-force`).
+pub const PUSH_FORCE: &str = "Push (force)";
+/// What **Push (force)** runs.
+pub const PUSH_FORCE_TOOLTIP: &str = "git push --force";
 /// The button of the Activity drawer, as the screen reader and its tooltip say it.
 pub const ACTIVITY: &str = "Activity";
 /// The **…** button at the end of the header, as the screen reader and its tooltip say it.
@@ -44,6 +60,8 @@ pub const REFRESH: &str = "Refresh";
 pub const BRANCH: &str = "Branch";
 /// **Stash** in **…**: stash all changes.
 pub const STASH: &str = "Stash";
+/// **Manage remotes…** in **…** (`remote.manage`).
+pub const MANAGE_REMOTES: &str = "Manage remotes\u{2026}";
 /// **Undo** in **…**: take back the last operation.
 pub const UNDO: &str = "Undo";
 /// **Select repository…** in the **…** menu (`repo.select`).
@@ -61,6 +79,16 @@ pub fn detached_at(short_hash: &str) -> String {
 #[must_use]
 pub fn upstream_distance(ahead: u32, behind: u32) -> String {
     format!("\u{2191}{ahead} \u{2193}{behind}")
+}
+
+/// An entry of the menu of **Sync** with the commits it would bring or send, when there are some: `Pull  ↓3`.
+#[must_use]
+pub fn with_count(label: &str, arrow: char, count: u32) -> String {
+    if count == 0 {
+        label.to_owned()
+    } else {
+        format!("{label}  {arrow}{count}")
+    }
 }
 
 /// The words of Sync with the commits to pull, then to push: `↓3 ↑2   Sync`.

@@ -5,7 +5,7 @@
 #[cfg(test)]
 mod tests;
 
-use model::contract::{Answer, FeatureId, Plan, Question, QuestionKind, Step, Target};
+use model::contract::{Answer, Answers, FeatureId, Plan, Question, QuestionKind, Step, Target};
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{
     Button, ButtonKind, Choice, ConfirmAnswer, ConfirmStyle, Confirmation, Dialog, DialogButton, DialogRole, Icon,
@@ -20,6 +20,9 @@ use crate::text::feature as words;
 pub enum FeatureIntent {
     /// Run an operation of the catalog on what it was invoked on.
     Run(FeatureId, Target),
+    /// Run an operation with some of its questions answered already, as an entry of a menu that names the answer does:
+    /// **Pull (rebase)** among the ways to pull.
+    RunWith(FeatureId, Target, Answers),
     /// The text of the question shown was typed.
     Typed(String),
     /// A choice of the question shown was picked, or ticked or unticked when it takes many.

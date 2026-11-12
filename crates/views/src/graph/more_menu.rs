@@ -223,7 +223,7 @@ fn operation_entries(menu: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand
 }
 
 /// The entries of **…**: **Refresh**, **Branch**, **Stash** and **Undo**, the entries of the timeline, **Go to commit…**,
-/// **Clean up branches…**, **Select repository**, then **Settings** and **Theme…**.
+/// **Clean up branches…**, **Manage remotes…**, **Select repository**, then **Settings** and **Theme…**.
 fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
     let refresh = MenuItem::new(words::REFRESH, MoreCommand::Refresh).with_icon(Icon::Refresh);
     let mut entries = vec![MenuEntry::Item(if state.can_refresh {
@@ -256,6 +256,14 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
                 clean_up
             }));
         }
+    }
+    if let Some(operations) = state.operations {
+        let item = MenuItem::new(words::MANAGE_REMOTES, MoreCommand::Operation("remote.manage"));
+        entries.push(MenuEntry::Item(if operations.is_running {
+            item.disabled()
+        } else {
+            item
+        }));
     }
     if state.can_select_repository {
         entries.push(MenuEntry::Item(MenuItem::new(

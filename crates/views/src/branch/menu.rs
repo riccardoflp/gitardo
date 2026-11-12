@@ -100,7 +100,7 @@ fn opening(open_in: OpenIn, check_out: OperationEntry) -> Vec<OperationEntry> {
 
 /// The operations of a remote branch: checked out as the local branch of its name, or as a new one; checked out and
 /// rebased onto it when its local branch has commits of its own and commits to take; branched from; and deleted from
-/// its remote, which comes with the remotes.
+/// its remote (`remote.delete-branch`).
 pub(crate) fn remote_entries(menus: ReferenceMenus<'_>, remote: &RemoteBranch) -> Vec<OperationEntry> {
     let state = menus.repository;
     let name = local_name(&remote.name, &state.remotes);
@@ -129,7 +129,11 @@ pub(crate) fn remote_entries(menus: ReferenceMenus<'_>, remote: &RemoteBranch) -
         "branch.create",
         target(),
     ));
-    entries.push(OperationEntry::later(rail_words::DELETE));
+    entries.push(OperationEntry::runs(
+        rail_words::DELETE_FROM_REMOTE,
+        "remote.delete-branch",
+        target(),
+    ));
     entries
 }
 

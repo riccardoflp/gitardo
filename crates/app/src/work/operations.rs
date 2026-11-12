@@ -11,7 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use engine::{Activities, Asker, Clock, CommandLog, Engine, EngineError, Finished, LogLevel};
 use git::{CancelToken, Git};
 use model::Timestamp;
-use model::contract::{Answer, Context, FeatureId, Plan, Question, Undo};
+use model::contract::{Answer, Answers, Context, FeatureId, Plan, Question, Undo};
 
 use super::Deliver;
 use crate::store::Message;
@@ -23,6 +23,8 @@ struct Request {
     folder: PathBuf,
     /// The operation.
     feature: FeatureId,
+    /// The answers it is given before it asks.
+    preset: Answers,
     /// What it is given.
     context: Context,
     /// What the Command log records.
@@ -64,13 +66,14 @@ impl Operations {
         }
     }
 
-    /// Runs an operation, its context taken at this moment.
-    pub fn run(&self, folder: PathBuf, feature: FeatureId, mut context: Context, level: LogLevel) {
+    /// Runs an operation with the answers it is given before it asks, its context taken at this moment.
+    pub fn run(&self, folder: PathBuf, (feature, preset): (FeatureId, Answers), mut context: Context, level: LogLevel) {
         context.now = SystemClock.now();
         if let Some(requests) = &self.requests {
             let _sent = requests.send(Request {
                 folder,
                 feature,
+                preset,
                 context,
                 level,
             });
@@ -134,7 +137,11 @@ fn serve(
         let operation = features::operation(request.feature.0).map(|(_, operation)| operation);
         let ended = match operation {
             Some(operation) => {
-                let mut asker = WindowAsker { deliver, replies };
+                let mut asker = WindowAsker {
+                    deliver,
+                    replies,
+                    preset: &request.preset,
+                };
                 ended_of(
                     request.feature,
                     engine.run_feature(request.feature, operation, &request.context, &mut asker),
@@ -177,10 +184,15 @@ struct WindowAsker<'a> {
     deliver: &'a Deliver,
     /// Where the answer comes from.
     replies: &'a Receiver<Reply>,
+    /// The answers given before it asks, which no dialog shows.
+    preset: &'a Answers,
 }
 
 impl Asker for WindowAsker<'_> {
     fn ask(&mut self, question: &Question) -> Option<Answer> {
+        if let Some(answer) = self.preset.get(question.key) {
+            return Some(answer.clone());
+        }
         (self.deliver)(Message::FeatureAsks(Box::new(question.clone())));
         loop {
             match self.replies.recv() {

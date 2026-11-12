@@ -767,3 +767,12 @@ the reading given until it is answered:
   **Add remote…** (`remote.add`); the command line prints the offer after the reason. The forced pushes and sync share
   the refusals of `sync.push`; sync also refuses, without running anything, when the pull would rebase over changes
   that `pull.autostash` off does not set aside.
+- **Q-D6** — The window (M4): the menu of **Sync** lists **Fetch**; **Pull** with `↓N` when there is something to pull
+  and its command in the tooltip, then the four ways, the one **Pull** takes marked **default** on the right; **Push**
+  with `↑N`, **Push (force with lease)** and **Push (force)**. The way `git pull` alone is **Pull (no options)** in the
+  menu too, not **Pull**, so that two entries do not have the same words. A way chosen gives `sync.pull-with` its answer
+  and nothing is asked. Not done here: the ways to pull and the forced pushes in Quick search (they are not among its
+  commands yet); **Add remote…** on a refusal, which the window says without the button; **Stash changes…** in the
+  menu of the draft, left to the slice of the changes; **Show Stashes** after a pull that left its autostash, which
+  waits for `stash.pane`. So `stash.autostash-left` and `graph.toolbar` (its narrow window line has no test yet) stay
+  **Specified**, and so does `undo.last`, whose other lines belong to other slices.

@@ -57,6 +57,8 @@ pub const ADD_SUBMODULE: &str = "Add submodule\u{2026}";
 pub const RENAME: &str = "Rename\u{2026}";
 /// **Delete** in the menu of a local branch or a tag.
 pub const DELETE: &str = "Delete";
+/// **Delete from remote** in the menu of a remote branch (`remote.delete-branch`).
+pub const DELETE_FROM_REMOTE: &str = "Delete from remote";
 /// **Check out as local branch** in the menu of a remote branch.
 pub const CHECK_OUT_AS_LOCAL: &str = "Check out as local branch";
 /// **Show in the timeline** in the menu of a reference.

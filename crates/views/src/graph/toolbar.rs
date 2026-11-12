@@ -9,6 +9,7 @@ use ui::{
 };
 
 use super::more_menu::{MoreMenuState, more_menu_view};
+use super::sync_menu::{SyncWords, sync_entries, sync_intent};
 use super::toggle::{ReferencesShown, toggle_references_view};
 use crate::activity::{StatusBarState, status_bar_view, status_bar_width};
 use crate::filter::{BranchPicker, picker_button_width, picker_view};
@@ -94,9 +95,10 @@ pub enum HeadName<'a> {
 pub struct SyncMenu {
     /// Whether an operation runs.
     pub is_running: bool,
-    /// Whether each of **Sync**, **Fetch**, **Pull** and **Push** is built, in that order (`sync.sync`, `sync.fetch`,
-    /// `sync.pull`, `sync.push`).
-    pub built: [bool; 4],
+    /// Whether each operation of **Sync** and its menu is built, in the order of `SYNC_FEATURES`.
+    pub built: [bool; 7],
+    /// The place among `PULL_WAYS` of the way **Pull** takes, as the settings `pull.rebase` and `pull.autostash` say.
+    pub pull_way: usize,
 }
 
 /// The commits Sync would bring and send.
@@ -271,7 +273,7 @@ fn branch_chip(branch: &BranchChip<'_>, ui: &mut Ui<'_>, area: &mut Area) {
 }
 
 /// Sync, with how many commits it would bring and send, which runs a fetch, a pull and a push (`sync.sync`); and the
-/// button of its menu, **Fetch**, **Pull** and **Push**, each saying in its tooltip what it runs.
+/// button of its menu (`sync_entries`).
 fn sync_button(
     (counts, menu): (Option<SyncCounts>, Option<SyncMenu>),
     ui: &mut Ui<'_>,
@@ -279,7 +281,7 @@ fn sync_button(
     intents: &mut Vec<Intent>,
 ) {
     let menu = menu.unwrap_or_default();
-    let [can_sync, can_fetch, can_pull, can_push] = menu.built;
+    let can_sync = menu.built.first().copied().unwrap_or_default();
     let words = counts.map_or_else(
         || words::SYNC.to_owned(),
         |counts| words::sync_counts(counts.behind, counts.ahead),
@@ -294,24 +296,11 @@ fn sync_button(
     // Sync and the button of its menu are one control, with a hair of room between them.
     let mut pair = Area::with_gap(area.right(width + joined + side), joined);
     let rect = control_in(ui, pair.right(side), side);
-    let entries: Vec<MenuEntry<'_, &'static str>> = [
-        (words::FETCH, "sync.fetch", can_fetch, words::FETCH_TOOLTIP),
-        (words::PULL, "sync.pull", can_pull, words::PULL_TOOLTIP),
-        (words::PUSH, "sync.push", can_push, words::PUSH_TOOLTIP),
-    ]
-    .into_iter()
-    .map(|(label, feature, is_built, tooltip)| {
-        let item = MenuItem::new(label, feature).with_tooltip(tooltip);
-        MenuEntry::Item(if is_built && !menu.is_running {
-            item
-        } else {
-            item.disabled()
-        })
-    })
-    .collect();
+    let said = SyncWords::new(counts, &menu);
+    let entries = sync_entries(&menu, &said);
     let chevron = Button::icon(Icon::ChevronDown, words::SYNC_MENU).kind(ButtonKind::Outline);
-    if let Some(feature) = ui.menu_button("sync menu", rect, &chevron, &entries) {
-        intents.push(run(feature));
+    if let Some(command) = ui.menu_button("sync menu", rect, &chevron, &entries) {
+        intents.push(sync_intent(command));
     }
     let rect = control_in(ui, pair.rest(), width);
     if ui.button("sync", rect, &button).clicked {

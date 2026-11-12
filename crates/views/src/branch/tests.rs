@@ -216,7 +216,7 @@ fn branch_checkout_remote_and_rebase__the_entry_is_there_only_when_the_branch_ha
             "Check out as local branch",
             "Open in worktree (off)",
             "Create branch here\u{2026}",
-            "Delete (off)",
+            "Delete from remote",
         ]
     );
 }
