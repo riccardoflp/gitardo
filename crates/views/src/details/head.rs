@@ -27,6 +27,8 @@ pub(crate) struct Head<'a> {
     pub(crate) message: MessageState<'a>,
     /// The commit, none for the draft.
     pub(crate) detail: Option<&'a CommitDetail>,
+    /// What was read of the commit or the draft, whose files open in the Diff page.
+    pub(crate) read: &'a CommitDetail,
     /// How many files, and how they are laid out.
     pub(crate) files: (usize, FileLayout),
     /// Whether the commit is a stash, whose parents after the first are where git keeps its index and its untracked
@@ -228,9 +230,12 @@ fn files_header(ui: &mut Ui<'_>, rect: Rect, head: &Head<'_>, intents: &mut Vec<
     let mut parts = Area::with_gap(rect, ui.theme().sizes.spacing.small);
     intents.extend(layout_buttons(ui, &mut parts, (FilesOwner::Inspector, layout)));
     if count > 1 {
-        let open = Button::icon(Icon::File, words::OPEN_ALL_CHANGES).disabled();
+        let open = Button::icon(Icon::File, words::OPEN_ALL_CHANGES);
         let cell = place(parts.right(side), (side, side), (Align::Start, Align::Center));
-        let _ = ui.button("open all changes", cell, &open);
+        if ui.button("open all changes", cell, &open).clicked {
+            let title = all_changes_title(head.read);
+            intents.push(super::rows::open_diff(crate::diff::commit_files(head.read, title)));
+        }
     }
     let mut said = words::changed_files(count);
     if !head.is_stash && head.detail.is_some_and(CommitDetail::is_merge) {
@@ -240,6 +245,15 @@ fn files_header(ui: &mut Ui<'_>, rect: Rect, head: &Head<'_>, intents: &mut Vec<
         parts.rest(),
         &Label::new(&said).kind(TextKind::Detail).tone(Tone::Muted),
     );
+}
+
+/// The title of the Diff page of all the files of a commit: its short hash and subject, or the subject of the draft.
+pub(crate) fn all_changes_title(detail: &CommitDetail) -> String {
+    let subject = detail.message.lines().next().unwrap_or_default();
+    match &detail.id {
+        Some(commit) => words::page_title(commit.short(), subject),
+        None => subject.to_owned(),
+    }
 }
 
 /// A rectangle of a height, from its top.

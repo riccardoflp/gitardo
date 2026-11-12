@@ -803,6 +803,13 @@ the reading given until it is answered:
   not read this file.**, **Loading…**, the tooltip **Staged** on a change staged, and **Lines of the diff** for the
   screen reader. The band of a changed change in the gutter is in the color of a modified file of the theme, amber in
   the dark and light themes, where the card says blue: the themes have no blue for it. Which color should it be?
+- **Q-B6** — Where the page is opened from, and between which versions: a file of the inspector or of the page of a
+  commit, between the first parent of the commit (or **Empty** for a root commit) and the commit; a file of the draft in
+  the inspector, between `HEAD` and the working tree; an untracked file of a stash, between **Empty** and the third
+  parent of the stash, named by the stash's short hash. **Open all changes in one Diff page** and **Open in the Diff
+  page** are titled as the page of the commit is, its short hash and subject. Q96 is answered: the links of
+  `details.show` lines 6 and 7, `details.stash` line 3 and `commit-page.view` lines 8 and 9 open the Diff page, and the
+  three cards are **Built**.
 - **Q-B7** — What the Diff page does not have yet, though `diff.page` is **Built** on its acceptance lines: the colors
   of the code (Q91, `file-view.highlight`), editing the working tree side (`diff.edit`: the text editor of `editor` is
   not written yet), the unsaved text of a File page as the working tree (no File page yet), the title buttons of each

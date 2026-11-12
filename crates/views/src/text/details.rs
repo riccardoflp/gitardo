@@ -44,8 +44,6 @@ pub const OPEN_ALL_CHANGES: &str = "Open all changes in one Diff page";
 pub const FILE_HISTORY: &str = "Show the history of this file";
 /// The entry of the context menu of a file that compares it.
 pub const COMPARE_WITH: &str = "Compare with\u{2026}";
-/// The tooltip of what opens the Diff page, the history of a file or a comparison, until they exist (Q89).
-pub const NOT_YET: &str = "Not yet: the Diff page and the history of a file come later";
 /// The link under a long message that shows it whole.
 pub const SHOW_MORE: &str = "Show more";
 /// The link under a long message shown whole.

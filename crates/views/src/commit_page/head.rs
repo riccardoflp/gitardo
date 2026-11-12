@@ -191,19 +191,22 @@ fn key_line(ui: &mut Ui<'_>, rect: Rect, key: &str) -> Rect {
     parts.rest()
 }
 
-/// **Show in the timeline** and, when the commit changed files, **Open in the Diff page**, which comes with the Diff
-/// page (Q89).
+/// **Show in the timeline** and, when the commit changed files, **Open in the Diff page**, which opens all of its
+/// changes one after the other in one Diff page.
 fn actions(ui: &mut Ui<'_>, rect: Rect, head: &PageHead<'_>, intents: &mut Vec<Intent>) {
     let mut parts = Area::with_gap(rect, ui.theme().sizes.spacing.medium);
     let show = Button::outline(words::SHOW_IN_TIMELINE).with_icon(ui::Icon::Branch);
     let width = ui.button_size(&show).0;
     intents.extend(ui.clip(parts.left(width), |ui| show_in_graph(head.state, ui)));
     if !head.data.detail.files.is_empty() {
-        let open = Button::outline(words::OPEN_IN_DIFF_PAGE)
-            .with_tooltip(words::NOT_YET)
-            .disabled();
+        let open = Button::outline(words::OPEN_IN_DIFF_PAGE);
         let width = ui.button_size(&open).0;
-        let _ = ui.button(("open in diff page", head.state.id), parts.left(width), &open);
+        if ui
+            .button(("open in diff page", head.state.id), parts.left(width), &open)
+            .clicked
+        {
+            intents.push(super::diff::open_all(head.state, head.data));
+        }
     }
 }
 

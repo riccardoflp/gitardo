@@ -1,6 +1,7 @@
 //! The rows of the card of the inspector: its head as a block of rows, a row for each file shown, the link that shows
 //! them all, and for a stash its untracked files under a heading of their own.
 
+use model::details::CommitDetail;
 use model::state::FileChange;
 use ui::layout::{Align, Area, place};
 use ui::{Button, ButtonKind, Icon, Label, List, MenuEntry, MenuItem, Rect, SelectionMode, Sense, TextKind, Tone, Ui};
@@ -91,15 +92,18 @@ fn read_card(
                     intents.extend(draw_head(ui, &head, top));
                 }
             }
-            Some(CardRow::File(file)) => intents.extend(file_row(ui, row, (&files, file))),
+            Some(CardRow::File(file)) => intents.extend(file_row(ui, row, (&files, file, detail))),
             Some(CardRow::ShowAll) => intents.extend(ui.clip(row.rect, |ui| show_all_files(&files.capped, ui))),
             Some(CardRow::UntrackedHeading) => {
                 let said = words::untracked_files(untracked.len());
                 let _ = ui.label(row.rect, &Label::new(&said).kind(TextKind::Detail).tone(Tone::Muted));
             }
             Some(CardRow::Untracked(index)) => {
-                if let Some(file) = untracked.get(*index) {
-                    inspector_file(ui, row, (file, 0, files.layout), ("untracked file", *index));
+                if let Some(file) = untracked.get(*index)
+                    && inspector_file(ui, row, (file, 0, files.layout), ("untracked file", *index))
+                    && let Some(target) = crate::diff::untracked_file(detail, file)
+                {
+                    intents.push(open_diff(target));
                 }
             }
             None => {}
@@ -118,6 +122,7 @@ fn head_of<'a>(state: &DetailsState<'_>, (read, is_stash): (&'a ReadDetails, boo
             is_expanded: state.is_message_expanded,
         },
         detail: (!matches!(state.selected, Some(SelectedDetails::Draft(_)))).then_some(detail),
+        read: detail,
         files: (detail.files.len(), state.layout),
         is_stash,
     }
@@ -137,28 +142,37 @@ fn card_rows<'a>(head_rows: usize, files: &FilesState<'a>, untracked: &[FileChan
     rows
 }
 
-/// A row of the files: a directory, which folds, or a file.
-fn file_row(ui: &mut Ui<'_>, row: &ui::Row, (files, file_row): (&FilesState<'_>, &FileRow<'_>)) -> Vec<Intent> {
+/// A row of the files: a directory, which folds, or a file, which opens its diff when clicked.
+fn file_row(
+    ui: &mut Ui<'_>,
+    row: &ui::Row,
+    (files, file_row, detail): (&FilesState<'_>, &FileRow<'_>, &CommitDetail),
+) -> Vec<Intent> {
     match file_row {
         FileRow::Directory { .. } => directory_row(ui, row.rect, (FilesOwner::Inspector, file_row)),
-        FileRow::File(index, depth) => {
-            if let Some(file) = files.files.get(*index) {
-                inspector_file(ui, row, (file, *depth, files.layout), ("file", *index));
+        FileRow::File(index, depth) => match files.files.get(*index) {
+            Some(file) if inspector_file(ui, row, (file, *depth, files.layout), ("file", *index)) => {
+                vec![open_diff(crate::diff::commit_file(detail, file))]
             }
-            Vec::new()
-        }
+            _ => Vec::new(),
+        },
     }
 }
 
+/// What opens the Diff page of a target.
+pub(crate) fn open_diff(target: crate::diff::DiffTarget) -> Intent {
+    Intent::Diff(crate::diff::DiffIntent::Open(Box::new(target)))
+}
+
 /// A file of the inspector: its status, icon and name, lit under the pointer, with the button of its history at its
-/// end and **Compare with…** in its context menu. The Diff page, the history of a file and the comparison come in later
-/// milestones: their entries are shown and cannot be used yet (Q89).
+/// end and **Compare with…** in its context menu; whether it was clicked, which opens its diff. The history of a file
+/// and the comparison come in later milestones: their entries are shown and cannot be used yet (Q89).
 fn inspector_file(
     ui: &mut Ui<'_>,
     row: &ui::Row,
     (file, depth, layout): (&FileChange, usize, super::FileLayout),
     key: (&'static str, usize),
-) {
+) -> bool {
     let theme = *ui.theme();
     let response = ui.interact(ui.id(key), row.rect, Sense::CLICK | Sense::HOVER);
     if response.hovered {
@@ -177,4 +191,5 @@ fn inspector_file(
     file_name(ui, parts.rest(), (file, layout));
     let entries = [MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, ()).disabled())];
     let _ = ui.context_menu((key.0, key.1, "menu"), &response, &entries);
+    response.clicked
 }

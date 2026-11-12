@@ -263,6 +263,25 @@ fn details_stash__a_stash_made_with_untracked_files_shows_them_under_their_count
 }
 
 #[test]
+fn details_stash__a_click_on_an_untracked_file_opens_its_diff_page_against_nothing_all_its_lines_added() {
+    let repository = repository_with_stashes();
+    let mut state = showing(repository.path().to_path_buf());
+    let _ = select(&mut state, "On main: with the notes");
+    let mut window = Window::new(ThemeName::Dark, TALL);
+    let (_, tree) = window.draw(&state, &[]);
+    let point = super::diff_links::words_at(&tree, "notes.txt");
+    let intents = super::pointer::click_at(&mut window, &state, point, 1);
+    let targets = super::diff_links::opened(&intents);
+    assert_eq!(targets.len(), 1);
+    assert_eq!(targets[0].left, views::diff::DiffVersion::Empty);
+    super::pointer::apply(&mut state, intents);
+    let read = super::diff::text(super::diff::shown(&state));
+    assert_eq!(read.aligned.rows.len(), 1);
+    assert!(read.aligned.rows.iter().all(|row| row.left.is_none()));
+    assert_eq!(read.right_line(0), "new notes");
+}
+
+#[test]
 fn details_stash__a_stash_made_without_untracked_files_shows_no_such_section() {
     let repository = repository_with_stashes();
     let mut state = showing(repository.path().to_path_buf());

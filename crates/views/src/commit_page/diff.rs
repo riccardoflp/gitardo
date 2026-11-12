@@ -57,13 +57,7 @@ pub(crate) fn simple_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, kind): (&ui::Ro
             let _ = ui.label(row.rect, &Label::new(&said).kind(TextKind::Detail).tone(Tone::Muted));
             Vec::new()
         }
-        PageRow::Untracked(index) => {
-            if let Some(file) = page.data.detail.untracked_files.get(index) {
-                let rest = file_start(ui, row.rect, (file, 0));
-                let _ = ui.label(rest, &Label::new(&file.path));
-            }
-            Vec::new()
-        }
+        PageRow::Untracked(index) => untracked_row(ui, page, (row, index)),
         PageRow::Hunk(file, hunk) => {
             if let Some(hunk) = page.patch(file).and_then(|patch| patch.hunks.get(hunk)) {
                 ui.fill_rect(row.rect, ui.theme().colors.card_background);
@@ -85,8 +79,32 @@ pub(crate) fn simple_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, kind): (&ui::Ro
     }
 }
 
+/// An untracked file of a stash, which opens in the Diff page against nothing when clicked.
+fn untracked_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index): (&ui::Row, usize)) -> Vec<Intent> {
+    let detail = &page.data.detail;
+    let Some(file) = detail.untracked_files.get(index) else {
+        return Vec::new();
+    };
+    let theme = *ui.theme();
+    let response = ui.interact(
+        ui.id(("page untracked file", index)),
+        row.rect,
+        Sense::CLICK | Sense::HOVER,
+    );
+    if response.hovered {
+        ui.fill_rounded_rect(row.rect, theme.sizes.radius.medium, theme.colors.list_hover);
+    }
+    let rest = file_start(ui, row.rect, (file, 0));
+    let _ = ui.label(rest, &Label::new(&file.path));
+    match crate::diff::untracked_file(detail, file) {
+        Some(target) if response.clicked => vec![open(target)],
+        _ => Vec::new(),
+    }
+}
+
 /// A file of the list: its status, icon and path, its lines gained and lost or **binary**, and the eye that shows its
-/// changes in the page; **Compare with…** in its context menu, which comes with the Diff page (Q89).
+/// changes in the page; a click opens it in the Diff page; **Compare with…** in its context menu, which comes with the
+/// comparison (Q89).
 fn file_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index, depth): (&ui::Row, usize, usize)) -> Vec<Intent> {
     let Some(file) = page.data.detail.files.get(index) else {
         return Vec::new();
@@ -113,7 +131,29 @@ fn file_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index, depth): (&ui::Row, us
     let _ = ui.label(parts.rest(), &Label::new(&path));
     let entries = [MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, ()).disabled())];
     let _ = ui.context_menu(("page file menu", index), &response, &entries);
+    if response.clicked && intents.is_empty() {
+        intents.push(open_file(page, index));
+    }
     intents
+}
+
+/// What opens the Diff page of a file of the page, by its place.
+fn open_file(page: &Page<'_>, index: usize) -> Intent {
+    let detail = &page.data.detail;
+    match detail.files.get(index) {
+        Some(file) => open(crate::diff::commit_file(detail, file)),
+        None => open_all(page.state, page.data),
+    }
+}
+
+/// What opens all the changes of a commit in one Diff page, titled as the page of the commit is.
+pub(crate) fn open_all(state: &super::CommitPageState<'_>, data: &super::PageData) -> Intent {
+    open(crate::diff::commit_files(&data.detail, state.title.to_owned()))
+}
+
+/// What opens the Diff page of a target.
+fn open(target: crate::diff::DiffTarget) -> Intent {
+    Intent::Diff(crate::diff::DiffIntent::Open(Box::new(target)))
 }
 
 /// The lines a file gained and lost, or **binary**, at the right of a row.
@@ -147,7 +187,7 @@ fn lines_of(ui: &mut Ui<'_>, parts: &mut Area, (page, index): (&Page<'_>, usize)
 }
 
 /// The header of a diff: the arrow that folds it, its status, icon and path, which folds it too, its lines gained and
-/// lost, and the button that opens it in the Diff page, which comes with that page (Q89).
+/// lost, and the button that opens it in the Diff page.
 pub(crate) fn header(ui: &mut Ui<'_>, page: &Page<'_>, (file, rect): (usize, Rect)) -> Vec<Intent> {
     let Some(change) = page.data.detail.files.get(file) else {
         return Vec::new();
@@ -179,12 +219,17 @@ pub(crate) fn header(ui: &mut Ui<'_>, page: &Page<'_>, (file, rect): (usize, Rec
     {
         intents.push(Intent::CommitPage(id, CommitPageIntent::Fold(file, wanted)));
     }
-    let open = Button::icon(Icon::File, words::OPEN_IN_DIFF_PAGE).disabled();
-    let _ = ui.button(
-        ("diff open", file),
-        place(parts.right(side), (side, side), (Align::Start, Align::Center)),
-        &open,
-    );
+    let open_button = Button::icon(Icon::File, words::OPEN_IN_DIFF_PAGE);
+    if ui
+        .button(
+            ("diff open", file),
+            place(parts.right(side), (side, side), (Align::Start, Align::Center)),
+            &open_button,
+        )
+        .clicked
+    {
+        intents.push(open_file(page, file));
+    }
     lines_of(ui, &mut parts, (page, file));
     let name_cell = file_start(ui, parts.rest(), (change, 0));
     let path = change.original_path.as_ref().map_or_else(
@@ -212,17 +257,19 @@ pub(crate) fn note(ui: &mut Ui<'_>, page: &Page<'_>, (file, rect): (Option<usize
     let width = ui.measure(said, ui.text_style(TextKind::Body));
     let _ = ui.label(parts.left(width), &Label::new(said).tone(Tone::Muted));
     if let Some(link) = link {
-        let button = Button::secondary(link)
-            .kind(ButtonKind::Icon)
-            .with_tooltip(words::NOT_YET)
-            .disabled();
+        let button = Button::secondary(link).kind(ButtonKind::Icon);
         let width = ui.button_size(&button).0;
         let cell = place(
             parts.left(width),
             (width, ui.theme().sizes.control_height),
             (Align::Start, Align::Center),
         );
-        let _ = ui.button(("note link", file), cell, &button);
+        if ui.button(("note link", file), cell, &button).clicked {
+            return vec![match file {
+                Some(file) => open_file(page, file),
+                None => open_all(page.state, page.data),
+            }];
+        }
     }
     Vec::new()
 }
