@@ -9,6 +9,7 @@ use model::filter::{BranchesShown, StoredValue, checked, remember};
 use model::refs::References;
 
 use super::super::message::{Effect, JobId, JobKind};
+use super::super::search;
 use super::super::state::State;
 use super::{commits_request, paging, take_read};
 use crate::persisted::rail::shown_of;
@@ -97,7 +98,8 @@ fn narrow(state: &mut State, folder: PathBuf) -> Vec<Effect> {
 }
 
 /// Takes the first page of the history of the branches shown, with the draft when they have what is checked out; the
-/// commit selected is brought into sight again.
+/// commit selected is brought into sight again, a commit being gone to is selected, and a search of the whole history
+/// is asked again over the new history.
 pub fn timeline_read(state: &mut State, job: JobId, result: Result<CommitPage, String>) -> Vec<Effect> {
     let Some(JobKind::ReadTimeline { .. }) = state.jobs.remove(&job) else {
         return Vec::new();
@@ -119,7 +121,7 @@ pub fn timeline_read(state: &mut State, job: JobId, result: Result<CommitPage, S
     };
     let shown = state.timeline.shown.clone();
     let read_at = state.timeline.read_at;
-    take_read(
+    let is_changed = take_read(
         state,
         (&read.folder, &read.state),
         (page.rows, shown),
@@ -129,5 +131,9 @@ pub fn timeline_read(state: &mut State, job: JobId, result: Result<CommitPage, S
         let serial = state.timeline.reveal.map_or(1, |(serial, _)| serial + 1);
         state.timeline.reveal = Some((serial, ui::RevealPlace::Center));
     }
-    Vec::new()
+    let mut effects = search::settle(state);
+    if is_changed {
+        effects.extend(search::repository_read(state));
+    }
+    effects
 }

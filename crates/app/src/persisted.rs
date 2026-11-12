@@ -43,6 +43,9 @@ pub struct Persisted {
     pub favorites: Vec<RepositoryFavorites>,
     /// The branches shown of the repositories narrowed last.
     pub branches_shown: Vec<RepositoryShown>,
+    /// Whether the funnel of the search box is pressed: a search of the whole history narrows the timeline to what
+    /// it finds (`search.list-mode`).
+    pub search_as_list: bool,
 }
 
 /// A workspace opened before.
@@ -86,6 +89,7 @@ impl Persisted {
             folds: list(&document, "folds", timeline::repository_folds),
             favorites: list(&document, "favorites", rail::repository_favorites),
             branches_shown: list(&document, "branchesShown", rail::repository_shown),
+            search_as_list: document.get("searchAsList").and_then(Value::as_bool).unwrap_or(false),
         }
     }
 
@@ -125,6 +129,9 @@ impl Persisted {
             "branchesShown",
             Value::Array(self.branches_shown.iter().filter_map(rail::shown_value).collect()),
         ));
+        if self.search_as_list {
+            members.push(member("searchAsList", Value::Bool(true)));
+        }
         json::to_pretty_text(&Value::Object(members))
     }
 

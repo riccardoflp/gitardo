@@ -21,8 +21,10 @@ pub fn read_request(state: &State, pages: usize) -> TimelineRequest {
         } else {
             Parents::All
         },
-        shows_stashes: switches.is_on(TimelineSwitch::ShowStashes),
+        shows_stashes: switches.is_on(TimelineSwitch::ShowStashes) && !super::super::search::is_narrowed(state),
         shown: state.timeline.shown.clone(),
+        narrowing: super::super::search::narrowing(state),
+        alone: state.search.alone.clone(),
     }
 }
 
@@ -47,6 +49,28 @@ pub fn load_more(state: &mut State, loaded: usize) -> Vec<Effect> {
     state.timeline.more_job = Some(job.id);
     state.timeline.asked_at = Some(loaded);
     vec![Effect::Start(job)]
+}
+
+/// Loads the pages of the timeline up to a number, for a commit gone to further back than it is loaded
+/// (`graph.show-in-graph`); nothing when as many are loaded or read, or there are no more.
+pub fn load_up_to(state: &mut State, pages: usize) -> Vec<Effect> {
+    let timeline = &state.timeline;
+    let is_wanted = timeline.has_more && !timeline.is_reading_again && pages > timeline.pages;
+    let Some(read) = state.shown_read().filter(|_| is_wanted) else {
+        return Vec::new();
+    };
+    let request = read_request(state, pages);
+    let kind = JobKind::ReadCommits {
+        folder: read.state.folder.clone(),
+        request: commits_request(&read.state, &request),
+        known: known(timeline.read_rows()),
+    };
+    let mut effects = cancel_more(state);
+    let job = start(state, kind);
+    state.timeline.more_job = Some(job.id);
+    state.timeline.asked_at = Some(state.timeline.loaded());
+    effects.push(Effect::Start(job));
+    effects
 }
 
 /// Takes the next pages read: the rows after those loaded are added under them, so that the scroll position, the
@@ -77,17 +101,17 @@ pub fn commits_read(state: &mut State, job: JobId, result: Result<MorePages, Str
         }
         Err(error) => {
             state.last_error = Some(error);
-            return Vec::new();
+            return super::super::search::settle(state);
         }
     }
     state.timeline.pages = request.pages;
     folds::fold_new_merges(state);
     relayout(state);
-    if state.timeline.has_more {
-        Vec::new()
-    } else {
-        folds::forget_gone(state)
+    let mut effects = super::super::search::settle(state);
+    if !state.timeline.has_more {
+        effects.extend(folds::forget_gone(state));
     }
+    effects
 }
 
 /// Reads the timeline again from one page, for another history: the rows listed stay, dimmed, until the new ones are

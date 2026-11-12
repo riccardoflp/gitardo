@@ -23,6 +23,8 @@ use crate::text::timeline as words;
 const NARROW_LABELS: usize = 3;
 /// How many labels it names then.
 const NAMED_WHEN_COUNTED: usize = 2;
+/// How opaque the veil over a row a search did not find is, out of 255.
+const DIMMED: u8 = 150;
 
 /// Where the rows are drawn, the same for each.
 #[derive(Clone, Copy, Debug)]
@@ -99,6 +101,10 @@ pub(crate) fn draw_row(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row,
         (_, None) => {}
     }
     separator(ui, context, row);
+    if context.state.dims_others && context.state.found.binary_search(&row.index).is_err() {
+        let veil = ui.theme().colors.page_background.with_alpha(DIMMED);
+        ui.fill_rect(row.rect, veil);
+    }
 }
 
 /// Draws the cell of the graph of a row, faded by the history brought out.

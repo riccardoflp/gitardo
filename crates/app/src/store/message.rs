@@ -57,6 +57,13 @@ pub enum Message {
         /// What was read, or what git said when the read failed.
         result: Result<MorePages, String>,
     },
+    /// A read of the search is done.
+    Searched {
+        /// The job.
+        job: JobId,
+        /// What was read.
+        result: crate::store::search::SearchResult,
+    },
     /// The settings files changed and were read again.
     SettingsRead(Settings),
     /// The person asked to close the window, whose inside had this size in logical pixels.
@@ -116,6 +123,11 @@ pub struct TimelineRequest {
     pub shows_stashes: bool,
     /// The branches shown, as chosen: the worker checks them against the references it reads (`filter.remember`).
     pub shown: Option<BranchesShown>,
+    /// What narrows the history further: the arguments of a search shown as a list (`search.list-mode`).
+    pub narrowing: Vec<std::ffi::OsString>,
+    /// The commit whose history alone is listed, in place of the branches shown: a commit gone to that is on no branch
+    /// or tag (`search.go-to-hash`).
+    pub alone: Option<model::CommitId>,
 }
 
 /// The number of a job, unique in its window.
@@ -155,6 +167,8 @@ pub enum JobKind {
         /// The rows the window has.
         known: Known,
     },
+    /// A read of the search: the commits it finds, the commit of a name, or where a commit is in the history.
+    Search(crate::store::search::SearchJob),
 }
 
 /// A job for a worker.

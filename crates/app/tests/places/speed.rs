@@ -224,5 +224,7 @@ fn first_page() -> app::store::TimelineRequest {
         parents: git::read::graph::Parents::All,
         shows_stashes: true,
         shown: None,
+        narrowing: Vec::new(),
+        alone: None,
     }
 }

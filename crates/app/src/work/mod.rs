@@ -18,7 +18,9 @@ use model::Timestamp;
 use model::contract::Text;
 
 use views::text::activity;
+use views::text::search as search_words;
 
+use crate::store::search::SearchJob;
 use crate::store::{Job, JobId, JobKind, Message};
 
 pub use persist::PersistedWriter;
@@ -148,6 +150,16 @@ fn words(kind: &JobKind) -> (Text, Text) {
             Text::from(activity::reading(&folder_name(folder))),
             Text::from(activity::NARROWING_TIMELINE),
         ),
+        JobKind::Search(search) => {
+            let cause = match search {
+                SearchJob::Matches { .. } => search_words::SEARCHING_HISTORY,
+                SearchJob::Revision { .. } | SearchJob::Position { .. } => search_words::LOOKING_FOR_COMMIT,
+            };
+            (
+                Text::from(search_words::searching(&folder_name(search.folder()))),
+                Text::from(cause),
+            )
+        }
     }
 }
 

@@ -8,8 +8,8 @@
 //!
 //! The places of [01-product.md](../../docs/01-product.md): the header ([`graph::toolbar_view`]), the branch rail
 //! ([`refs::tree_view`]), the timeline ([`graph::view`]), the inspector ([`details::show`]), the pages with their trail
-//! ([`page::host_view`]), the Activity drawer ([`activity::what_is_running_view`]) and Quick search
-//! ([`search::box_view`]); and [`view`], the whole window. All the words are in [`text`] (rule R10.2).
+//! ([`page::host_view`]), the Activity drawer ([`activity::what_is_running_view`]), the search box at the top of the
+//! timeline ([`search::box_view`]) and Quick search ([`search::quick_search_view`]); and [`view`], the whole window. All the words are in [`text`] (rule R10.2).
 
 #![forbid(unsafe_code)]
 

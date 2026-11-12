@@ -39,6 +39,8 @@ pub struct ToolbarState<'a> {
     pub references: Option<ReferencesShown>,
     /// The branch filter, once a repository is read (`filter.picker`).
     pub filter: Option<BranchPicker<'a>>,
+    /// Quick search.
+    pub quick: search::QuickSearchState<'a>,
 }
 
 /// The pill of the repository: its name, and its menu of the repositories of the workspace and the recent ones.
@@ -108,7 +110,7 @@ enum RepositoryCommand {
 /// The header, over the rectangle its caller clipped it to.
 ///
 /// Feature cards that fill it further: `graph.toolbar` (the menu of Sync with **Fetch**, **Pull** and **Push**, and
-/// **Sync** itself, in M4), `search.box` (Quick search), `activity.status-bar`.
+/// **Sync** itself, in M4), `activity.status-bar`.
 pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut intents = Vec::new();
     let rect = ui.current_clip();
@@ -151,7 +153,7 @@ pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         };
         intents.extend(ui.clip(cell, |ui| status_bar_view(&state.status, ui)));
         let middle = area.rest();
-        intents.extend(ui.clip(middle, |ui| search::box_view(&search::SearchBox, ui)));
+        intents.extend(ui.clip(middle, |ui| search::quick_search_view(&state.quick, ui)));
     });
     intents
 }

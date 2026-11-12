@@ -4,12 +4,14 @@
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use git::read::graph::{CommitPage, CommitsRequest, read_commits};
+use git::read::graph::{CommitPage, CommitsRequest, read_commits, read_position};
 use git::read::repo::{RepositoriesRequest, StateRequest, read_repositories, read_state};
+use git::read::search::{read_matches, read_revision};
 use git::{CancelToken, Git};
 use model::graph::Row;
 use model::state::RepositoryState;
 
+use crate::store::search::{SearchJob, SearchResult};
 use crate::store::{Found, Job, JobKind, Known, Message, MorePages, TimelineRequest, commits_request};
 
 /// Runs a job, cancelled through its token, and gives the message of its result.
@@ -37,6 +39,23 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: read_more(folder, request, known, cancel).map_err(|error| error.to_string()),
         },
+        JobKind::Search(search) => Message::Searched {
+            job: job.id,
+            result: read_search(search, cancel),
+        },
+    }
+}
+
+/// What a read of the search gives: the commits found (`search.read-matches`), the commit of a name
+/// (`search.read-revision`), or where a commit is in the history (`graph.read-position`).
+#[must_use]
+pub fn read_search(job: &SearchJob, cancel: &CancelToken) -> SearchResult {
+    let git = Git::new(job.folder()).with_cancel(cancel.clone());
+    let failed = |error: git::GitError| error.to_string();
+    match job {
+        SearchJob::Matches { request, .. } => SearchResult::Matches(read_matches(&git, request).map_err(failed)),
+        SearchJob::Revision { request, .. } => SearchResult::Revision(read_revision(&git, request).map_err(failed)),
+        SearchJob::Position { request, .. } => SearchResult::Position(read_position(&git, request).map_err(failed)),
     }
 }
 

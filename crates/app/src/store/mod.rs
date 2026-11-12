@@ -7,6 +7,7 @@
 mod message;
 mod pages;
 mod rail;
+pub mod search;
 mod state;
 #[cfg(test)]
 mod tests;
@@ -43,6 +44,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
         } => workspace::repository_read(state, job, &folder, (result, read_at)),
         Message::CommitsRead { job, result } => timeline::commits_read(state, job, result),
         Message::TimelineRead { job, result } => timeline::timeline_read(state, job, result),
+        Message::Searched { job, result } => search::searched(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, settings),
         Message::CloseRequested { window_size } => {
             let mut effects = workspace::cancel_all(state);
@@ -176,6 +178,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Rail(intent) => rail::reduce_rail(state, intent),
         Intent::Filter(intent) => rail::reduce_filter(state, intent),
         Intent::Graph(intent) => timeline::reduce_graph(state, intent),
+        Intent::Search(intent) => search::reduce(state, intent),
     }
 }
 

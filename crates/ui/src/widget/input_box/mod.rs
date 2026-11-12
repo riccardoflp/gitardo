@@ -155,6 +155,17 @@ impl Ui<'_> {
         }
     }
 
+    /// Gives the keyboard to an input box with all its text selected, as `Ctrl+F` does to a search box. Called before
+    /// the box is declared, the box is drawn so in the same frame.
+    pub fn focus_input_box(&mut self, id: WidgetId) {
+        let now = self.now();
+        if let Some(state) = self.memory().input_boxes.get_mut(&id) {
+            state.line.select_all();
+            state.changed_at = now;
+        }
+        self.request_focus(id);
+    }
+
     /// Applies an event to an input box: a press places the caret or selects, a drag selects, a key edits or moves,
     /// and typed or pasted text goes in. Says whether Enter was pressed.
     fn input_box_event(

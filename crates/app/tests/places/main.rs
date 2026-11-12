@@ -6,11 +6,13 @@
 
 mod filter;
 mod folds;
+mod go_to;
 mod histories;
 mod jobs;
 mod panes;
 mod pointer;
 mod rail;
+mod search;
 mod speed;
 mod support;
 mod timeline;

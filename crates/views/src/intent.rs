@@ -50,6 +50,8 @@ pub enum Intent {
     DismissNotice,
     /// Something asked of the timeline.
     Graph(GraphIntent),
+    /// Something asked of the search, of **Go to commit…** or of Quick search.
+    Search(crate::search::SearchIntent),
 }
 
 /// What is done with a folder opened while the window shows a workspace.

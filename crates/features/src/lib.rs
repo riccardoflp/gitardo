@@ -7,6 +7,7 @@
 
 pub mod branch;
 pub mod commit;
+pub mod search;
 pub mod sync;
 pub mod undo;
 
@@ -16,9 +17,10 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 4] = [
+pub const OPERATIONS: [(FeatureId, Operation); 5] = [
     (FeatureId("branch.create"), branch::create),
     (FeatureId("commit.create"), commit::create),
+    (FeatureId("search.go-to-commit"), search::go_to_commit),
     (FeatureId("sync.fetch"), sync::fetch),
     (FeatureId("undo.last"), undo::last),
 ];

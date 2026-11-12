@@ -476,3 +476,39 @@ repositories, the settings), each built with the reading given until it is answe
   **Show all**; in a rail of 210 px the icon is left out when the words would not fit beside it. Is the eye the
   button the card means ("its button lists all the references instead"), with the tooltip **List every branch, the
   others dimmed** and **List only the branches the timeline shows**?
+- **Q79** — `search.box`: the box is a row of its own at the top of the timeline, as its card says, and the box in the
+  middle of the header is Quick search (`Ctrl+K`), which opens the picker of the toolkit with what was typed in it.
+  The picker gained `query`, what its box holds when it opens. The button of the branch filter stays in the header
+  (Q67), though the card of `filter.picker` puts it before this box. Is the header box Quick search's alone, as D17
+  draws it, and should the filter's button move beside the search box?
+- **Q80** — Quick search: no card describes it, so it lists the commands whose cards name it among their entry points,
+  in the words of those cards, then the branches, remote branches and tags, then at most 2,000 commits loaded. The
+  commands whose features are not built yet are listed with **Not yet** and do nothing; files are left out until the
+  File page (M7). Should Quick search have a card, and which entries, in which order?
+- **Q81** — `search.list-mode`: whether the funnel is pressed is kept under the key `searchAsList` of the state file,
+  written only while it is pressed. Like Q64 and Q69, where should the key be written down?
+- **Q82** — `search.box`: the tooltip of each mode is on the list button, for the mode chosen; the entries of a menu
+  of the toolkit have no tooltips (as in Q74). Should menu entries get them, or is the tooltip of the button enough?
+- **Q83** — `search.go-to-hash` and `graph.show-in-graph`: a commit that the timeline does not list takes away, one
+  at a time, what narrows it: a search shown as a list or the history of another commit alone, then the branches shown
+  (`filter.show-all`); a commit that is still not listed, being on no branch or tag, is shown with its history alone,
+  `--date-order <hash>` in place of the branches shown, under the bar `Only the history of <short hash> · on no branch
+  or tag`, until **Show all commits**. The history alone is not kept between runs. The bar of a search shown as a
+  list, or of a commit alone, is the bar of `filter.bar`, drawn by `views::search::list_mode_view` (the function of
+  `search.list-mode`) with the words of `filter.bar`; while one of them is there, the bar of the branches shown is not
+  drawn, and the branches are said after `· in`. Is that the order meant, and is a commit made since then on no branch
+  counted as one "lost to a reset"?
+- **Q84** — `search.go-to-commit`, line 3: the history of a file is narrowed by `history.` (M7), so the card stays
+  **Specified**. The dialog of the window checks each value with `search.read-revision` as it is typed and goes to the
+  commit itself, as the operation `features::search::go_to_commit` does through the contract: the contract gained
+  `Query::Revision`, `Answer::Commit` and `FollowUp::SelectCommit` for it, and `Validation::Anything` stands for the
+  check made while typing. Should the window run the operation through the engine once operations run there (M4)?
+- **Q85** — `search.go-to-hash`: "no loaded commit matches it" is read as no loaded commit's hash starting with the
+  text; a loaded commit whose message holds the text does not hide `Enter ↵`. Is that the reading?
+- **Q86** — `search.history`, line 3: what a search of the whole history found is asked again whenever a read of the
+  repository, or the narrowing of the timeline to other branches, changes the rows; loading more pages does not ask
+  again, since the search already covers the whole history shown. Is that enough, or should a change of
+  `graph.firstParent` ask again too?
+- **Q87** — `search.list-mode`: the funnel is drawn with the filter icon of the branch filter (`Icon::Filter`, three
+  lines that get shorter), rather than an icon of its own, so that the window has one icon for "only some commits".
+  Is one icon the reading?

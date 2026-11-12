@@ -68,18 +68,28 @@ pub fn button_tooltip(what: &str) -> String {
 /// What the bar says the timeline is narrowed to: `Only the history of main, feature, fix and 2 more`, then how many
 /// commits are listed, with `+` while there are more: `· 1000+ commits`.
 #[must_use]
-pub fn bar_words(shown: &BranchesShown, (listed, has_more): (usize, bool)) -> String {
+pub fn bar_words(shown: &BranchesShown, counted: (usize, bool)) -> String {
+    format!(
+        "Only the history of {} \u{b7} {}",
+        narrowed_to(shown),
+        commits_words(counted)
+    )
+}
+
+/// How many commits are listed, with `+` while there are more: `1000+ commits`, `1 commit`.
+#[must_use]
+pub fn commits_words((listed, has_more): (usize, bool)) -> String {
     let more = if has_more { "+" } else { "" };
-    let commits = if listed == 1 && !has_more {
+    if listed == 1 && !has_more {
         String::from("1 commit")
     } else {
         format!("{listed}{more} commits")
-    };
-    format!("Only the history of {} \u{b7} {commits}", narrowed_to(shown))
+    }
 }
 
-/// What the timeline is narrowed to, in the words of the bar.
-fn narrowed_to(shown: &BranchesShown) -> String {
+/// What the timeline is narrowed to, in the words of the bar: `main, feature and 2 more`, `the local branches`.
+#[must_use]
+pub fn narrowed_to(shown: &BranchesShown) -> String {
     match shown {
         BranchesShown::Current => String::from("the current branch"),
         BranchesShown::Upstream => String::from("the current branch and its upstream"),

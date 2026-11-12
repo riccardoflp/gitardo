@@ -54,6 +54,8 @@ pub(crate) enum MoreCommand {
     SelectRepository,
     /// **Show local branches**, **Show remote branches** or **Show tags**.
     Kind(ReferenceKind),
+    /// **Go to commit…** (`search.go-to-commit`).
+    GoToCommit,
 }
 
 /// The words of a switch.
@@ -153,8 +155,16 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
     if let Some(timeline) = &state.timeline {
         entries.extend(timeline_entries(*timeline));
     }
-    if state.can_select_repository {
+    if state.timeline.is_some() || state.can_select_repository {
         entries.push(MenuEntry::Separator);
+    }
+    if state.timeline.is_some() {
+        entries.push(MenuEntry::Item(MenuItem::new(
+            crate::text::search::GO_TO_COMMIT_ENTRY,
+            MoreCommand::GoToCommit,
+        )));
+    }
+    if state.can_select_repository {
         entries.push(MenuEntry::Item(MenuItem::new(
             words::SELECT_REPOSITORY,
             MoreCommand::SelectRepository,
@@ -165,6 +175,7 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
         Some(MoreCommand::Refresh) => vec![Intent::Refresh],
         Some(MoreCommand::SelectRepository) => vec![Intent::PickRepository],
         Some(MoreCommand::Kind(kind)) => vec![Intent::Filter(FilterIntent::SwitchKind(kind))],
+        Some(MoreCommand::GoToCommit) => vec![Intent::Search(crate::search::SearchIntent::GoToCommit)],
         Some(MoreCommand::Switch(TimelineSwitch::FirstParent)) => {
             let state = FirstParentState {
                 is_on: switches.is_on(TimelineSwitch::FirstParent),

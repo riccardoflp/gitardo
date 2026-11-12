@@ -42,6 +42,12 @@ pub enum Query {
         /// The commit.
         commit: CommitId,
     },
+    /// The commit that a hash, a branch, a tag or anything else git understands stands for
+    /// (`search.read-revision`). The answer is [`super::Answer::Commit`].
+    Revision {
+        /// The name, as typed.
+        revision: String,
+    },
     /// The newest entry of the engine's journal that still holds for this repository. The answer is
     /// [`super::Answer::Journal`].
     Journal,

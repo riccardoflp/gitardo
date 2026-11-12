@@ -154,6 +154,8 @@ pub enum FollowUp {
     Say(Text),
     /// Select the commit `HEAD` is at.
     SelectHead,
+    /// Select a commit in the timeline, going to it as `graph.show-in-graph` does.
+    SelectCommit(crate::CommitId),
     /// Empty the commit message box and untick **Amend last commit**.
     EmptyCommitMessage,
     /// Read the pull requests of GitHub again, when the token is known.

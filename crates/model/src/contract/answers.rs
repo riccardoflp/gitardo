@@ -25,6 +25,8 @@ pub enum Answer {
     Reflog(Vec<ReflogEntry>),
     /// The answer of a query that says yes or no.
     Flag(bool),
+    /// The commit a name stands for, or none when git knows no commit by it.
+    Commit(Option<CommitId>),
     /// The newest entry of the journal that still holds, if any.
     Journal(Option<JournalEntry>),
 }
@@ -106,6 +108,16 @@ impl Answers {
         match self.get(key)? {
             Answer::Journal(entry) => Some(entry.as_ref()),
             _ => None, // Any other kind of answer is no entry of the journal.
+        }
+    }
+
+    /// The commit a name read under a key stands for: `None` when it was not read yet, `Some(None)` when git knows
+    /// no commit by that name.
+    #[must_use]
+    pub fn commit(&self, key: AnswerKey) -> Option<Option<&CommitId>> {
+        match self.get(key)? {
+            Answer::Commit(commit) => Some(commit.as_ref()),
+            _ => None, // Any other kind of answer is no commit.
         }
     }
 

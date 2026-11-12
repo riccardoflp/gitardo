@@ -186,6 +186,7 @@ fn pick(ui: &mut Ui<'_>, mode: PickerMode, intents: &mut Vec<GalleryIntent>) {
         placeholder,
         items: &PICKER_BRANCHES,
         mode,
+        query: "",
     };
     let label = |index: usize| PICKER_BRANCHES.get(index).map_or("", |item| item.label);
     match ui.picker(PICKER, &picker) {
@@ -205,6 +206,7 @@ fn quick_search(ui: &mut Ui<'_>, intents: &mut Vec<GalleryIntent>) {
         placeholder: "Commits, branches, files, commands",
         items: &QUICK_SEARCH,
         mode: PickerMode::Single,
+        query: "",
     };
     match ui.picker(PICKER, &picker) {
         Some(PickerAnswer::Chose(index)) => {

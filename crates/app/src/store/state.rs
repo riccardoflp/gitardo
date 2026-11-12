@@ -51,6 +51,8 @@ pub struct State {
     pub last_error: Option<String>,
     /// The timeline of the repository shown.
     pub timeline: super::timeline::Timeline,
+    /// The search of the timeline, **Go to commit** and Quick search.
+    pub search: super::search::Search,
 }
 
 /// The folders of a window and the repositories found in them.

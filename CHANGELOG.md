@@ -47,3 +47,13 @@
   reference, the kinds of references in **…**, **Show only this history**, **Show this history too** and **Hide this
   history** on the references of the rail, the bar over the timeline narrowed, and the line at the top of the rail.
   Narrowing reads only the first page of the history shown, and the choice is kept for each repository.
+- The search box at the top of the timeline: the commits loaded found as you type, by message, author or the start
+  of a hash; the whole history searched by message, author or change on `Enter`, the commits found kept in color and
+  marked beside the scroll bar, the others dimmed, with their count; `Enter`, `F3` and the arrows step through them,
+  loading the history as far back as they are; `Ctrl+F` puts the cursor in the box. The funnel shows only the commits
+  found, as a list, until **Show all commits**, and stays pressed between runs. A hash that is not loaded is gone to
+  with `Enter`, wherever it is: the history is loaded up to it, what narrows the timeline is taken away, and a commit
+  on no branch or tag is shown with its history alone.
+- **Go to commit…** in the **…** menu of the header: any name git takes for a commit, checked as you type.
+- Quick search in the header (`Ctrl+K`): the commands, the branches, the remote branches, the tags and the commits
+  loaded, filtered as you type; a command that is not built yet says so and does nothing.

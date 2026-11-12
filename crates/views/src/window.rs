@@ -21,6 +21,7 @@ use crate::repo::{
     NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, no_repository_view, open_folder_question_view,
     repository_picker_view,
 };
+use crate::search::{GoToCommitDialog, ListMode, SearchBox, go_to_commit_dialog, list_mode_view};
 use crate::text::repo as repo_words;
 
 /// Everything the window shows, made from the store of the window for each frame.
@@ -38,6 +39,8 @@ pub struct WindowState<'a> {
     pub question: Option<OpenFolderQuestion<'a>>,
     /// A sentence said once, until it is put away.
     pub notice: Option<Notice>,
+    /// **Go to commit**, while it is open (`search.go-to-commit`).
+    pub go_to_commit: Option<GoToCommitDialog<'a>>,
 }
 
 /// What is under the header.
@@ -66,6 +69,9 @@ pub enum TimelineState<'a> {
         is_rail_hidden: bool,
         /// The bar above the commits, while the timeline is narrowed to some branches (`filter.bar`).
         bar: Option<NarrowedBar<'a>>,
+        /// The search box at the top of the timeline, and the bar of a search shown as a list or of the history of a
+        /// commit alone, drawn in place of `bar`.
+        search: Box<(SearchBox<'a>, Option<ListMode<'a>>)>,
     },
     /// No repository to show yet, or none at all: the rail is empty and the timeline says why.
     NoRepository(NoRepositoryState),
@@ -99,6 +105,9 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     if let Some(question) = &state.question {
         intents.extend(open_folder_question_view(question, ui));
     }
+    if let Some(dialog) = &state.go_to_commit {
+        intents.extend(go_to_commit_dialog(dialog, ui));
+    }
     intents.extend(shortcuts(ui));
     intents
 }
@@ -116,6 +125,7 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
             panes,
             is_rail_hidden,
             bar,
+            search,
         } => {
             let is_inspector_over = ui.window().width < INSPECTOR_OVER_BELOW;
             let layout = PaneLayout {
@@ -133,8 +143,12 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
                 intents.extend(rail_intents);
                 rail_hover = hover;
             }
-            let mut main = Area::new(rects.main);
-            if let Some(bar) = bar {
+            let main = search_row(&search.0, ui, rects.main, intents);
+            let mut main = Area::new(main);
+            if let Some(list) = &search.1 {
+                let top = main.top(bar_height(ui));
+                intents.extend(ui.clip(top, |ui| list_mode_view(list, ui)));
+            } else if let Some(bar) = bar {
                 let top = main.top(bar_height(ui));
                 intents.extend(ui.clip(top, |ui| bar_view(bar, ui)));
             }
@@ -167,6 +181,18 @@ fn with_rail_hover<'a>(graph: &GraphState<'a>, hover: Option<(HoverTarget, std::
         }
         _ => graph.clone(),
     }
+}
+
+/// The search box at the top of the timeline; gives what is left under it, for the bar of what the timeline is
+/// narrowed to and the commits.
+fn search_row(search_box: &SearchBox<'_>, ui: &mut Ui<'_>, main: Rect, intents: &mut Vec<Intent>) -> Rect {
+    let theme = *ui.theme();
+    let spacing = theme.sizes.spacing;
+    let mut area = Area::new(main);
+    let top = area.top(theme.sizes.control_height + 2.0 * spacing.medium);
+    let row = inset(top, Insets::symmetric(spacing.large + spacing.small, spacing.medium));
+    intents.extend(ui.clip(row, |ui| crate::search::box_view(search_box, ui)));
+    area.rest()
 }
 
 /// A notice across the top of what is under the header, with a button that puts it away.

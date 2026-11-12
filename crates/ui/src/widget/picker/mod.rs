@@ -47,6 +47,8 @@ pub struct Picker<'text> {
     pub items: &'text [PickerItem<'text>],
     /// How many it chooses.
     pub mode: PickerMode,
+    /// What its input box holds when it opens, such as what was typed in the box that opened it.
+    pub query: &'text str,
 }
 
 /// What a picker was answered.
@@ -133,7 +135,8 @@ impl Ui<'_> {
         let input = id.with("query");
         let is_new = self.declare_overlay(id, &[input, id]);
         if is_new {
-            self.memory().set_input_text(input, "", (0, 0));
+            let end = picker.query.len();
+            self.memory().set_input_text(input, picker.query, (end, end));
             self.request_focus(input);
         }
         let mut state = self.memory().pickers.remove(&id).unwrap_or_default();

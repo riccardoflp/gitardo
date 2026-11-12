@@ -22,6 +22,7 @@ use views::welcome::WelcomeState;
 use views::{Content, TimelineState, WindowState};
 
 use super::rail::{favorites, sort_order};
+use super::search::{self, view as search_view};
 use super::state::{Dialog, RepositoryRead, Shown, State};
 use super::timeline::{Timeline, workspace_panes};
 use crate::persisted::{WorkspacePanes, same_folder};
@@ -45,6 +46,8 @@ pub struct ViewData {
     panes: WorkspacePanes,
     /// The moment the dates are said from, in seconds since 1970.
     now: i64,
+    /// The entries of Quick search.
+    search: search::SearchView,
 }
 
 impl ViewData {
@@ -95,6 +98,7 @@ impl ViewData {
             running,
             panes: workspace_panes(state),
             now,
+            search: search::SearchView::new(state),
         }
     }
 
@@ -120,6 +124,7 @@ impl ViewData {
                 folder: &self.question_folder,
             }),
             notice: state.notice,
+            go_to_commit: search_view::go_to_commit(state),
         }
     }
 
@@ -157,6 +162,7 @@ impl ViewData {
                 is_shown: !self.panes.is_rail_hidden,
             }),
             filter: read.map(|_| branch_picker(state)),
+            quick: self.search.quick(state),
         }
     }
 
@@ -202,6 +208,7 @@ impl ViewData {
                         .count(),
                     has_more: state.timeline.has_more,
                 }),
+                search: Box::new((search_view::search_box(state), search_view::list_mode(state))),
             },
             Some(Shown::NoRepository) => TimelineState::NoRepository(NoRepositoryState::NoRepository),
             Some(Shown::Looking | Shown::Reading { .. }) | None => {
@@ -241,7 +248,8 @@ impl ViewData {
             switches: state.settings.switches,
             graph_width: self.panes.graph_width,
             now: self.now,
-            found: &[],
+            found: &state.search.found_rows,
+            dims_others: search_view::dims_others(state),
             draft: timeline.draft,
         }
     }

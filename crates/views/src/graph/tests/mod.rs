@@ -126,6 +126,7 @@ impl Fixture {
             graph_width: None,
             now: 0,
             found: &[],
+            dims_others: false,
             draft: self.draft,
         }
     }

@@ -8,6 +8,7 @@ pub mod header;
 pub mod pages;
 pub mod rail;
 pub mod repo;
+pub mod search;
 pub mod timeline;
 pub mod welcome;
 

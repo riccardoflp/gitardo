@@ -55,8 +55,10 @@ pub struct HistoryState<'a> {
     pub graph_width: Option<f32>,
     /// The moment the dates are said from, in seconds since 1970.
     pub now: i64,
-    /// The rows a search found, for their marks (`graph.scroll-marks`).
+    /// The rows shown that a search found, in order, for their marks (`graph.scroll-marks`).
     pub found: &'a [usize],
+    /// Whether the rows a search did not find are dimmed (`search.box`).
+    pub dims_others: bool,
     /// The draft, when it is the first row.
     pub draft: Option<DraftState>,
 }

@@ -160,10 +160,14 @@ pub fn repository_read(
             });
             let page = (commits.has_more, request.pages, read_at);
             let shown = checked(request.shown.as_ref(), &References::of(&repository));
-            super::timeline::take_read(state, (folder, &repository), (commits.rows, shown), page);
+            let is_changed = super::timeline::take_read(state, (folder, &repository), (commits.rows, shown), page);
             super::rail::arrange(state);
             let mut effects = super::timeline::keep_shown(state, folder);
             effects.extend(super::pages::tick_timeline(state));
+            effects.extend(super::search::settle(state));
+            if is_changed {
+                effects.extend(super::search::repository_read(state));
+            }
             effects
         }
         Err(error) => {

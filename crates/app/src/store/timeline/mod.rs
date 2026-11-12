@@ -8,6 +8,7 @@ mod paging;
 mod sizes;
 
 use std::collections::HashSet;
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -28,7 +29,7 @@ use super::message::{Effect, JobId, TimelineRequest};
 use super::state::State;
 
 pub use narrow::{keep_shown, kept_shown, show, timeline_read};
-pub use paging::{cancel_more, commits_read, known, read_request};
+pub use paging::{cancel_more, commits_read, known, load_up_to, read_again, read_request};
 pub use sizes::{apply_switch, workspace_panes};
 
 /// The timeline of the repository shown.
@@ -113,8 +114,13 @@ pub fn history_of(repository: &RepositoryState, shown: Option<&BranchesShown>, p
 /// What a read of the timeline asks of git, for a repository as read.
 #[must_use]
 pub fn commits_request(repository: &RepositoryState, request: &TimelineRequest) -> CommitsRequest {
+    let mut history = history_of(repository, request.shown.as_ref(), request.parents);
+    if let Some(commit) = &request.alone {
+        history.selection = vec![OsString::from("--date-order"), OsString::from(commit.as_str())];
+    }
+    history.narrowing.clone_from(&request.narrowing);
     CommitsRequest {
-        history: history_of(repository, request.shown.as_ref(), request.parents),
+        history,
         page_size: request.page_size,
         pages: request.pages.max(1),
         skip: 0,
@@ -161,13 +167,14 @@ fn shows_checked_out(shown: Option<&BranchesShown>, repository: &RepositoryState
 }
 
 /// Takes the rows of a read of the repository shown, of the history of the branches shown: a read that finds the
-/// same rows changes none of them; a new repository starts with nothing selected and the folds kept for it.
+/// same rows changes none of them; a new repository starts with nothing selected and the folds kept for it. A search
+/// shown as a list, or the history of a commit alone, has no draft. Says whether the rows changed.
 pub fn take_read(
     state: &mut State,
     (folder, repository): (&Path, &RepositoryState),
     (rows, shown): (Vec<Row>, Option<BranchesShown>),
     page: (bool, usize, i64),
-) {
+) -> bool {
     let (has_more, pages, read_at) = page;
     if state.timeline.folder.as_deref() != Some(folder) {
         state.timeline = Timeline {
@@ -176,7 +183,8 @@ pub fn take_read(
         };
         folds::restore(state, folder);
     }
-    let draft = draft_of(repository, &rows).filter(|_| shows_checked_out(shown.as_ref(), repository));
+    let is_narrowed = state.search.list.is_some() || state.search.alone.is_some();
+    let draft = draft_of(repository, &rows).filter(|_| !is_narrowed && shows_checked_out(shown.as_ref(), repository));
     state.timeline.shown = shown;
     let mut all = Vec::with_capacity(rows.len() + 1);
     if let Some(changes) = &draft {
@@ -192,7 +200,8 @@ pub fn take_read(
     timeline.pages = pages;
     timeline.read_at = read_at;
     timeline.draft = draft;
-    if timeline.rows != all {
+    let is_changed = timeline.rows != all;
+    if is_changed {
         timeline.rows = all;
         timeline.asked_at = None;
     }
@@ -201,19 +210,25 @@ pub fn take_read(
     }
     folds::fold_new_merges(state);
     relayout(state);
+    is_changed
 }
 
-/// Lays the timeline out again from its rows, its folds and the repository as last read, then its history.
+/// Lays the timeline out again from its rows, its folds and the repository as last read, then its history and the
+/// rows a search found. The commits of a search shown as a list are not each other's history: they are laid out
+/// with no lines and no folds.
 pub fn relayout(state: &mut State) {
     let Some(read) = state.shown_read() else {
         return;
     };
     let switches = state.settings.switches;
     let timeline = &state.timeline;
+    let is_list = state.search.list.is_some();
+    let unlinked: Vec<Row> = if is_list { unlinked(&timeline.rows) } else { Vec::new() };
+    let no_folds = HashSet::new();
     let input = LayoutInput {
-        rows: &timeline.rows,
+        rows: if is_list { &unlinked } else { &timeline.rows },
         repository: &read.state,
-        folded: &timeline.folded,
+        folded: if is_list { &no_folds } else { &timeline.folded },
         combine_upstream: switches.is_on(TimelineSwitch::CombineUpstream),
         separators_at: switches.is_on(TimelineSwitch::DateSeparators).then_some(DateTime {
             moment: model::Timestamp(timeline.read_at),
@@ -223,6 +238,20 @@ pub fn relayout(state: &mut State) {
     let layout = TimelineLayout::new(&input);
     state.timeline.layout = Arc::new(layout);
     retrace(state);
+    super::search::after_layout(state);
+}
+
+/// Rows with no parents, so that no line joins them.
+fn unlinked(rows: &[Row]) -> Vec<Row> {
+    rows.iter()
+        .cloned()
+        .map(|mut row| {
+            if let Row::Commit(commit) = &mut row {
+                commit.parents.clear();
+            }
+            row
+        })
+        .collect()
 }
 
 /// Works out the history brought out: the one of the label under the pointer, or else the one of the commit selected
@@ -247,6 +276,7 @@ pub fn retrace(state: &mut State) {
         }
         _ => None,
     };
+    let wanted = wanted.filter(|_| state.search.list.is_none());
     let trace = wanted.and_then(|(trace, strength)| {
         timeline
             .layout

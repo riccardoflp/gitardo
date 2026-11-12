@@ -95,14 +95,14 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`search.box`](03-search-and-filter.md#searchbox--the-search-box) | The search box | View | Specified |
-| [`search.loaded`](03-search-and-filter.md#searchloaded--find-among-the-loaded-commits) | Find among the loaded commits | Derivation | Specified |
-| [`search.read-matches`](03-search-and-filter.md#searchread-matches--search-the-whole-history) | Search the whole history | Read | Specified |
-| [`search.history`](03-search-and-filter.md#searchhistory--find-in-the-whole-history) | Find in the whole history | View | Specified |
-| [`search.step`](03-search-and-filter.md#searchstep--step-through-the-matches) | Step through the matches | Derivation | Specified |
-| [`search.list-mode`](03-search-and-filter.md#searchlist-mode--only-the-commits-found-as-a-list) | Only the commits found, as a list | View | Specified |
-| [`search.go-to-hash`](03-search-and-filter.md#searchgo-to-hash--go-to-a-commit-by-its-hash) | Go to a commit by its hash | View | Specified |
-| [`search.read-revision`](03-search-and-filter.md#searchread-revision--the-commit-a-name-stands-for) | The commit a name stands for | Read | Specified |
+| [`search.box`](03-search-and-filter.md#searchbox--the-search-box) | The search box | View | Built |
+| [`search.loaded`](03-search-and-filter.md#searchloaded--find-among-the-loaded-commits) | Find among the loaded commits | Derivation | Built |
+| [`search.read-matches`](03-search-and-filter.md#searchread-matches--search-the-whole-history) | Search the whole history | Read | Built |
+| [`search.history`](03-search-and-filter.md#searchhistory--find-in-the-whole-history) | Find in the whole history | View | Built |
+| [`search.step`](03-search-and-filter.md#searchstep--step-through-the-matches) | Step through the matches | Derivation | Built |
+| [`search.list-mode`](03-search-and-filter.md#searchlist-mode--only-the-commits-found-as-a-list) | Only the commits found, as a list | View | Built |
+| [`search.go-to-hash`](03-search-and-filter.md#searchgo-to-hash--go-to-a-commit-by-its-hash) | Go to a commit by its hash | View | Built |
+| [`search.read-revision`](03-search-and-filter.md#searchread-revision--the-commit-a-name-stands-for) | The commit a name stands for | Read | Built |
 | [`search.go-to-commit`](03-search-and-filter.md#searchgo-to-commit--go-to-commit) | Go to commit… | Operation | Specified |
 | [`filter.picker`](03-search-and-filter.md#filterpicker--choose-the-branches-shown) | Choose the branches shown | View | Specified |
 | [`filter.label`](03-search-and-filter.md#filterlabel--what-the-branches-shown-are-called) | What the branches shown are called | Derivation | Built |

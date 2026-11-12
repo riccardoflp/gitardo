@@ -91,6 +91,7 @@ pub fn repository_picker_view(state: &RepositoryPickerState<'_>, ui: &mut Ui<'_>
         placeholder: words::PICKER_TITLE,
         items: &items,
         mode: PickerMode::Single,
+        query: "",
     };
     match ui.picker("repository picker", &picker) {
         Some(PickerAnswer::Chose(index)) => state
