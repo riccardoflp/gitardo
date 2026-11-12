@@ -14,7 +14,7 @@ pub fn push(context: &Context, _answers: &Answers) -> Outcome {
         Ok(tag) => tag,
         Err(refusal) => return *refusal,
     };
-    let Some(remote) = default_remote(&context.repository.remotes) else {
+    let Some(remote) = model::remote::default(&context.repository.remotes) else {
         return refuse("This repository has no remote.");
     };
     let name = tag.name.as_str();
@@ -22,23 +22,13 @@ pub fn push(context: &Context, _answers: &Answers) -> Outcome {
         title: Text::from(format!("Push tag {name} to {remote}")),
         steps: vec![Step::git(
             context.repository.folder.clone(),
-            ["push", remote, &format!("refs/tags/{name}")],
+            ["push", remote.as_str(), &format!("refs/tags/{name}")],
         )],
         danger: Danger::None,
         undo: Undo::Impossible(Text::from("A push changes the remote, which Undo does not take back.")),
         after: Vec::new(),
         on_failure: Vec::new(),
     })
-}
-
-/// The remote a tag goes to, as `remote.default` says: `origin` when there is one, otherwise the first; none without
-/// a remote. Open question Q113: this is to be `model::remote::default` once that card is built.
-fn default_remote(remotes: &[String]) -> Option<&str> {
-    remotes
-        .iter()
-        .find(|remote| *remote == "origin")
-        .or_else(|| remotes.first())
-        .map(String::as_str)
 }
 
 #[cfg(test)]

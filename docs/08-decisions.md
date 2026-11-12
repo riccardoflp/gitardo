@@ -776,3 +776,5 @@ the reading given until it is answered:
   menu of the draft, left to the slice of the changes; **Show Stashes** after a pull that left its autostash, which
   waits for `stash.pane`. So `stash.autostash-left` and `graph.toolbar` (its narrow window line has no test yet) stay
   **Specified**, and so does `undo.last`, whose other lines belong to other slices.
+- **Q-D7** — `tag.push` now asks `model::remote::default` for its remote (Q113), and the menu of the draft runs
+  **Stash changes…** and **Stash staged changes…** (`stash.push`, `stash.push-staged`).
