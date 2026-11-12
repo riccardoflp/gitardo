@@ -5,7 +5,7 @@ shows and logs. These documents are for whoever changes its code, person or agen
 code, and a catalog of its features with what each must do. What it does for its users is in the
 [README](../README.md) of the repository, which is also its page on the Marketplace; `AGENTS.md` is the way in.
 
-The code exists and is released (0.10.0). The documents describe it as it is; where the code does otherwise than a
+The code exists and is released (0.11.0). The documents describe it as it is; where the code does otherwise than a
 document wants, the card says **Differs**, and the gap is in [the risks](13-risks.md) and [the roadmap](07-roadmap.md).
 
 ## The documents
