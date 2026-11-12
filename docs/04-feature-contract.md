@@ -157,7 +157,7 @@ What it is for, in one or two sentences, from the user's side.
 
 - **Kind**: Operation | Read | View | Derivation
 - **Function**: `features::area::action(context, answers) -> Outcome`
-- **Entry points**: where the user finds it (toolbar, context menu of a commit, command palette, key).
+- **Entry points**: where the user finds it (the header, the context menu of a commit, Quick search, a key).
 - **Offered when**: the conditions under which the entry points show it; otherwise it is not there.
 - **Asks**: the questions, in order, with their defaults.
 - **Reads**: the queries it needs before it can decide, and why.

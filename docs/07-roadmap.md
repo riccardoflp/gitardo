@@ -33,15 +33,21 @@ Exit: `gitardo-cli state` on a repository of 50,000 commits prints its state in 
 
 ## M2 — Pixels
 
-A window that draws, on Windows.
+A window that draws, on Windows, in the look of the Timeline
+([D17](08-decisions.md#d17--the-timeline-a-window-of-gitardos-own)).
 
-- `platform` for Windows: window, input, frame presentation, HiDPI, clipboard, timers, waking the loop.
-- `render`: frame buffer, shapes with anti-aliasing, the TrueType reader and rasterizer, the glyph cache, icons, themes.
+- `platform` on the libraries of [D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels): window,
+  input, input methods, frame presentation, HiDPI, clipboard, file dialogs, timers, waking the loop, the screen reader.
+- `render`: frame buffer, shapes with `tiny-skia`, text with `cosmic-text` in the fonts of the program, icons, themes.
 - `ui`: layout, text, buttons, boxes, lists that draw only the rows in sight, scroll, splitters, menus, tooltips,
-  dialogs, pickers, input boxes, focus and keys, find in page.
+  dialogs, pickers, input boxes, focus and keys, find in page, the tree of what is on screen.
 
-Exit: a demo window with every widget, in every theme, at 100 % and 200 % scale; its snapshots match; a list of a
-million rows scrolls at 60 frames a second on the reference machine.
+Exit: a demo window in the shape of the Timeline (header, branch rail, timeline with a draft, inspector) and every
+widget, in every theme, at 100 % and 200 % scale; its snapshots match; a list of a million rows scrolls at 60 frames a
+second on the reference machine; a screen reader reads the buttons and the rows.
+
+A first version, on Gitardo's own window of Windows, TrueType rasterizer and shapes, in a look like VS Code's, was built
+and replaced by this one.
 
 ## M3 — The graph
 
@@ -73,7 +79,7 @@ Exit: the fuzz tests of the conflict rules pass thousands of cases against git.
 
 ## M7 — Files and blame
 
-- Areas: `file-history.`, `blame.`, the Files pane.
+- Areas: `file-history.`, `blame.`, the Files page.
 
 ## M8 — Worktrees and submodules
 

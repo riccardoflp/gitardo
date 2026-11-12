@@ -18,7 +18,10 @@ reading only what a view needs.
 
 ## D2 — No dependencies
 
-No crate from outside the workspace (see [02-architecture.md](02-architecture.md#what-no-dependencies-means)), with
+*Narrowed by [D16](#d16--libraries-for-the-window-the-text-and-the-pixels), which lets in the libraries of the window,
+the text and the pixels.*
+
+No crate from outside the workspace (see [02-architecture.md](02-architecture.md#dependencies)), with
 one exception, TLS ([D13](#d13--one-library-for-tls)). Everything the program does is in this repository, readable, and changeable without waiting for anyone. The price is
 that some parts are written here that a library would give: fonts, PNG, deflate, JSON, diffs. Each is written from its
 public specification and kept small by doing only what Gitardo needs.
@@ -31,6 +34,9 @@ does when only the regions that changed are drawn. A GPU backend, through the sy
 same `render` interface if measurements ask for it.
 
 ## D4 — Our own text rendering
+
+*Replaced by [D16](#d16--libraries-for-the-window-the-text-and-the-pixels) and
+[D18](#d18--the-fonts-come-with-the-program).*
 
 Fonts are read and rasterized by Gitardo, not by the system, so that text looks and measures the same everywhere and the
 snapshots are stable. The first release covers Latin, Greek, Cyrillic, CJK characters one by one, and symbols; it does
@@ -139,6 +145,92 @@ needs no edge to `features`.
 `platform`, `ui`, `render`, `model` and `git` as well as what the picture drew. It may use every crate of the workspace
 but `testkit` (a dev-dependency only) and `xtask`; nothing uses `app`.
 
+## D16 — Libraries for the window, the text and the pixels
+
+*The maintainer's decision, 2026-11-12. Narrows [D2](#d2--no-dependencies), replaces
+[D4](#d4--our-own-text-rendering), answers Q24, Q25, Q26 and Q28.*
+
+The first version of milestone M2 wrote the window of Windows, the reader and rasterizer of TrueType fonts and the
+rasterizer of shapes here. They worked, but they are the parts where a library gives the most and Gitardo's own code
+the least: text that needs shaping (Arabic, Indic scripts, right-to-left, emoji in color, which commit messages do
+have), input methods, screen readers, and a window on Linux and macOS, each of which would be thousands of lines of
+calls to the system. The toolkit above them, which gives Gitardo its look and its speed, stays Gitardo's own.
+
+The libraries let in, each used by the crates named and by no other:
+
+| Library | For | Used by |
+| --- | --- | --- |
+| `winit` | Windows, input, input methods, scale, cursors, the event loop, on Windows, Linux (X11 and Wayland) and macOS | `platform` |
+| `softbuffer` | Showing a frame of pixels drawn in memory in a window | `platform` |
+| `arboard` | The clipboard | `platform` |
+| `rfd` | The system's dialogs to choose a folder or a file | `platform` |
+| `accesskit`, `accesskit_winit` | What is on screen, told to the screen reader of the system | `ui` (`accesskit`, the tree of what is drawn), `platform` (`accesskit_winit`) |
+| `tiny-skia` | Shapes, paths, anti-aliasing, images | `render` |
+| `cosmic-text` | Text: fonts, shaping, right-to-left, fallback fonts, emoji, line breaking, the glyphs | `render` |
+
+How they are kept in their place:
+
+- Their names and exact versions, and the packages they bring, are in `xtask/allowed-packages.txt`, each with the crates
+  of the workspace that may depend on it; `cargo xtask check` fails on a package not listed, at another version, or used
+  by another crate.
+- No type of `winit`, `softbuffer`, `arboard`, `rfd`, `tiny-skia` or `cosmic-text` appears in the interface of
+  `platform` or `render`: the rest of the program sees the types of Gitardo, so that replacing a library changes one
+  crate. The one exception is the tree of `accesskit`, which is plain data that `ui` builds and `platform` hands over.
+- Drawing stays in software ([D3](#d3--drawing-in-software)): `tiny-skia` and `cosmic-text` draw into the frame buffer
+  of `render`, and `softbuffer` shows it. A GPU backend is still a later decision.
+- `ui` keeps its own types of input, which `app` makes from those of `platform` (Q25), and the toolkit, its widgets,
+  its layout and its look are Gitardo's.
+- The program still writes the rest itself: git, the engine, the features, diffs, JSON, PNG, HTTP, and the parts of the
+  system no library above covers (junctions, killing a tree of processes, the credential store, watching files), behind
+  `platform`.
+- Updating one is a commit of its own that says why and changes the allowlist.
+
+Why not a whole toolkit:
+
+- **gpui** (the toolkit of the Zed editor): no release since October 2025; using it means depending on the repository
+  of Zed.
+- **iced**: no screen reader support and no list that draws only the rows in sight; restyling it to a look of
+  Gitardo's own costs about what the toolkit already written cost.
+- **egui**: the weakest text of all (no right-to-left, no emoji in color, no fonts of the system), and its look fights
+  every change.
+- **Slint**: a markup language of its own and a licence to weigh, for views that are mostly drawn by hand, like the graph.
+- **A web view** (Tauri): not a program drawn in Rust, and several hundred megabytes of memory.
+
+## D17 — The Timeline: a window of Gitardo's own
+
+*The maintainer's decision, 2026-11-12. Replaces the window of the first version of [01-product.md](01-product.md),
+which was shaped like VS Code, and answers Q27.*
+
+The window is not a copy of an editor's: there is no side bar of folding panes, no row of tabs, no panel and no status
+bar. The history is the window, and everything else opens from it.
+
+- **The timeline** fills the middle: the commits with their lanes, two lines a row (the subject; the author, the date),
+  labels as pills in the color of their lane. The uncommitted changes are a **draft** at its top: the message of the
+  next commit and a **Commit** button, with **Review** for the files.
+- **The branch rail**, on the left, lists the branches in the colors of their lanes, so it is also the legend of the
+  graph; then the remote branches, and what is kept aside: stashes, worktrees, tags.
+- **The inspector**, on the right, is the selected commit as a card: its message, its author, its files, its actions.
+- **The header** holds the repository, the branch and how far it is from its upstream, **Quick search** (`Ctrl+K`,
+  `Cmd+K` on macOS: commits, branches, files and commands in one field), what is running, **Sync**, and the
+  **Activity** drawer with the command log and the tasks.
+- **Pages** (a commit, a comparison, a diff, a merge, the conflicts, a file, the settings) open in place of the timeline
+  with a trail to come back; `Ctrl+Tab` goes through the pages open.
+- The look is calm and warm: a dark graphite or a light paper ground, one accent, the lanes in four colors told apart by
+  lightness as well as hue, rounded rows and cards, Inter for the interface and JetBrains Mono for hashes and code
+  ([D18](#d18--the-fonts-come-with-the-program)). The themes are dark, light, and the two of high contrast.
+
+The pictures of the direction chosen are the canvas *Gitardo Desktop directions*, artboards *A · Timeline*.
+
+## D18 — The fonts come with the program
+
+*2026-11-12. Replaces the system fonts of the first version of [05-platform.md](05-platform.md).*
+
+Inter (for the interface) and JetBrains Mono (for hashes and code), both under the SIL Open Font License, are part of
+the program, in `crates/render/fonts/` with their licences. The text looks and measures the same on every system, and
+the snapshots of the tests are drawn with the same fonts as the program. A character neither has is looked for in the
+fonts of the system, through `cosmic-text`. The settings `font.ui` and `font.code` can name a font of the system
+instead.
+
 ## Open questions
 
 Questions from the implementation side go here, with the card they are about, until the specification side answers
@@ -199,20 +291,6 @@ From milestone M1 (each was built with the reading given, until the card says ot
   temporary file is written; clashes are judged on the files of `HEAD`.
 - **Q23** — Card **Function** lines that named a module without its crate (`read::…`, `worktree::…`, `submodule::…`)
   now start with `git::read::`, since `cargo xtask check` takes the first segment as the crate.
-- **Q24** — The platform has one `EventLoop` per UI thread, with any number of windows whose events carry a
-  `WindowId`, and `Window::open(&event_loop, &options)`. Doc 02 says "the event loop of each window": is one loop for
-  all the windows of the UI thread what is meant?
-- **Q25** — `ui` may not depend on `platform` (`ui → render, editor`), so it has input types of its own, which `app`
-  translates from `platform::InputEvent`, and it hands back the cursor, the text to copy and the caret's place for the
-  input method as the output of a frame. Paste comes in as an event carrying the text. Should `ui` be allowed to use
-  `platform`'s input types instead?
-- **Q26** — The platform swallows F10 and Alt pressed alone, so that Windows does not enter the menu mode of a menu bar
-  Gitardo does not have; Alt+F4 and Alt+Space still reach the system. Should that be the application's choice?
-- **Q27** — The colors of the five themes and the names of their tokens (`render::theme`) are the renderer's own
-  design, checked only for contrast (4.5:1, and 7:1 in high contrast): they need a review from the product side.
-- **Q28** — The renderer reads TrueType outlines only: a font of CFF outlines (`.otf`) is refused and the next font of
-  the list is used. GPOS is read for pair kerning only (the first glyph's advance), with no shaping and no
-  right-to-left text.
 - **Q29** — UI text of the toolkit's gallery is in `crates/ui/src/gallery`, not in `views/src/text` (R10.2), since it
   is a demonstration of the widgets and not a view. Move it once `views` exists, or leave it?
 - **Q30** — A focused widget that scrolls out of sight is no longer drawn, so it loses the focus. Should the focus stay
@@ -228,3 +306,5 @@ From milestone M1 (each was built with the reading given, until the card says ot
   no overlay is open. Should the toolkit hold the keys back while a modal is open?
 - **Q35** — Drawing a whole frame at scale 2 takes 14.6 ms for the 1920×1080 gallery, over the 8 ms of R10.5 (6 ms at
   scale 1, 0.3 ms when nothing changed). Most frames redraw a few tiles; is the rule about the whole frame?
+- **Q36** — Other libraries that may make sense, not let in: `syntect` or `tree-sitter` for the colors of code in the
+  diffs, `notify` for watching files, `keyring` for the credential store. Each would be a decision of its own.

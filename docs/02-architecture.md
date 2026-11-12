@@ -1,20 +1,26 @@
 # Architecture
 
-Gitardo Desktop is one Cargo workspace with no dependency outside it but one, for TLS. This page says what its crates are, which may use
-which, how a click becomes a git command, and where state lives. The rules for writing the code are in
-[03-code-rules.md](03-code-rules.md); the operating systems are in [05-platform.md](05-platform.md).
+Gitardo Desktop is one Cargo workspace with few dependencies outside it: TLS, and the libraries of the window, the text
+and the pixels. This page says what its crates are, which may use which, how a click becomes a git command, and where
+state lives. The rules for writing the code are in [03-code-rules.md](03-code-rules.md); the operating systems are in
+[05-platform.md](05-platform.md).
 
-## What "no dependencies" means
+## Dependencies
 
-- Every `[dependencies]` entry of every `Cargo.toml` is a `path` to a crate of this workspace, except in
-  `crates/tls`. There is no `build.rs` in the workspace, and no procedural macro.
-- **The one exception is TLS** ([D13](08-decisions.md#d13--one-library-for-tls)): `crates/tls` depends on `rustls`, with
-  `ring` for its cryptography, and on `rustls-native-certs` for the certificates the system trusts. They and what they
-  bring are the only packages of `Cargo.lock` outside the workspace, at the versions of `xtask/allowed-packages.txt`.
+- Every `[dependencies]` entry of every `Cargo.toml` is a `path` to a crate of this workspace, except for the libraries
+  below, each in the crates named. There is no `build.rs` in the workspace, and no procedural macro.
+- **TLS** ([D13](08-decisions.md#d13--one-library-for-tls)): `crates/tls` depends on `rustls`, with `ring` for its
+  cryptography, and on `rustls-native-certs` for the certificates the system trusts.
+- **The window, the text and the pixels** ([D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)):
+  `platform` depends on `winit`, `softbuffer`, `arboard`, `rfd` and `accesskit_winit`; `render` on `tiny-skia` and
+  `cosmic-text`; `ui` on `accesskit`, for the tree of what is on screen.
+- These and what they bring are the only packages of `Cargo.lock` outside the workspace, at the versions of
+  `xtask/allowed-packages.txt`, which also says which crates may use each. No type of theirs leaves the crate that uses
+  them, but the tree of `accesskit`, which `ui` builds and `platform` hands to the system.
 - The Rust standard library is used freely: `std` is the toolchain, not a dependency.
-- The libraries the operating system ships (`user32.dll`, `libX11.so`, `AppKit.framework`) are called through `extern`
-  declarations written here. They are the system, not a dependency: the program would not run without the system
-  anyway.
+- What no library above covers (junctions, killing a tree of processes, the credential store, watching files) is asked
+  of the libraries the operating system ships (`kernel32.dll`, `libc`, `Security.framework`) through `extern`
+  declarations written here, in `platform`. They are the system, not a dependency.
 - One program is run as an external process: `git`, found on the `PATH`, which is what the application is about. It
   does its own networking for fetch, pull, push and clone, over HTTPS or SSH.
 - `rustfmt` and `clippy` come with the toolchain and are used.
@@ -24,11 +30,12 @@ which, how a click becomes a git command, and where state lives. The rules for w
 ```
 crates/
   app/        the binary: windows, the event loop, the store, settings, persistence
-  views/      every pane and page, as functions of state that return intents
+  views/      every place and page of the window, as functions of state that return intents
   ui/         the toolkit: layout, widgets, lists, menus, dialogs, pickers, drag and drop, focus, find in page
   editor/     the text editor: buffer, cursor, selection, undo, wrap, highlighting hooks
-  render/     pixels: the frame buffer, shapes, anti-aliasing, fonts and glyphs, icons, themes
-  platform/   the operating system: windows, input, clipboard, timers, file watching, dialogs, credentials, open/reveal
+  render/     pixels: the frame buffer, shapes and text drawn into it, the fonts of the program, icons, themes
+  platform/   the operating system: windows, input, the frame shown, clipboard, timers, the screen reader, file
+              dialogs, file watching, credentials, open/reveal
   features/   every operation, as a function that asks questions and returns a plan
   engine/     runs plans: preview, steps, log, undo journal, activity, follow-ups
   git/        git itself: running it, reads and their parsers, repository discovery
@@ -36,7 +43,7 @@ crates/
   text/       algorithms on text: diffs, conflict rules, syntax tokenizers, patterns, fuzzy ranking, templates
   json/       JSON and JSON with comments: parse, write, edit in place keeping comments
   http/       HTTP/1.1 requests, chunked bodies, server-sent events for streamed answers, proxies
-  tls/        the only crate with a dependency: a TLS stream over TCP, with the system's root certificates
+  tls/        a TLS stream over TCP, with the system's root certificates
   testkit/    for tests only: throwaway repositories, golden files, pixel snapshots, a deterministic random source
 xtask/        the project's own checks and chores: `cargo xtask check`, `cargo xtask snapshots`, …
 ```
@@ -45,25 +52,30 @@ xtask/        the project's own checks and chores: `cargo xtask check`, `cargo x
 
 ```
 app ──► views ──► ui ──► render ──► platform
- │        │        └───► editor ──► render
+ │        │        ├───► editor ──► render
+ │        │        └───► accesskit (D16)
  │        └──────► model, features (identifiers and questions only)
  ├──► engine ──► git ──► model, text
  │       ├─────► model (the plans it runs, the queries it answers)
  │       └─────► http, platform (processes, files)
  ├──► features ──► model, text, git (types only, never running)
- ├──► json, http ──► tls ──► rustls, rustls-native-certs (the exception)
+ ├──► json, http ──► tls ──► rustls, rustls-native-certs (D13)
+ │   render ──► tiny-skia, cosmic-text (D16)
+ │   platform ──► winit, softbuffer, arboard, rfd, accesskit_winit (D16)
  └──► every other crate below it: platform, ui, render, model, git, text (D15)
 ```
 
 - Nothing depends on `app`, and `app` may use any crate but `testkit` and `xtask`
-  ([D15](08-decisions.md#d15--app-may-use-every-crate-below-it)). Nothing below `views` knows about panes or pages.
+  ([D15](08-decisions.md#d15--app-may-use-every-crate-below-it)). Nothing below `views` knows about the places of the window or its pages.
 - The types of the feature contract are in `model`
   ([D14](08-decisions.md#d14--the-types-of-the-contract-are-in-model)).
 - `features`, `model`, `text` and `json` are pure: no I/O, no threads, no clock. They are where most of the code and
   most of the tests are.
 - `git` runs processes but knows nothing of the UI. `engine` is the only crate that changes the disk or the repository.
 - `platform` is the only crate with `unsafe`. Everything above it sees safe functions.
-- `tls` is the only crate with a dependency outside the workspace. No type of that library leaves it.
+- `tls`, `render`, `platform` and `ui` are the only crates with dependencies outside the workspace, each with its own
+  ([D13](08-decisions.md#d13--one-library-for-tls), [D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)).
+  No type of those libraries leaves the crate, but the tree of `accesskit`.
 - `testkit` is a `dev-dependency` only.
 
 Cargo refuses a cycle; `cargo xtask check` also refuses an edge that is not in this picture.
@@ -114,7 +126,7 @@ and send back results.
 ## State
 
 - **One store per window**, owned by the UI thread: the repositories of the workspace, the state of each as last read,
-  the state of every pane and page, the dialogs open, the activity, the log.
+  the state of every place and page, the dialogs open, the activity, the log.
 - **`reduce(state, message) -> Vec<Effect>`** is the only function that changes it. `Effect`s are what the store asks
   of the outside (start a job, open a window, write the persisted state) and are carried out after the reduce.
 - **The repository state is immutable** once read: a read makes a new `RepositoryState`, and views compare by
@@ -130,17 +142,20 @@ Every frame is drawn by the program into a buffer of pixels in memory, and the p
 There is no GPU code and no system widget.
 
 - `render` draws shapes (rectangles, rounded rectangles, lines, circles, Bézier curves for the lines of the graph) with
-  anti-aliasing, glyphs from fonts it reads and rasterizes itself, and icons from paths of its own.
-- `ui` lays out and draws widgets with `render`. It redraws only what changed: each widget says whether its content
-  changed since the last frame, and the regions that did are drawn again and sent to the window.
+  `tiny-skia`, text with `cosmic-text` in the fonts that come with the program
+  ([D18](08-decisions.md#d18--the-fonts-come-with-the-program)), and icons from paths of its own.
+- `ui` lays out and draws widgets with `render`. It redraws only what changed: each frame records what each part of the
+  window drew, and only the parts that differ from the last frame are drawn again and sent to the window. It also
+  builds the tree of what is on screen for the screen reader.
+- `platform` shows the frame with `softbuffer`, in a window of `winit`.
 - Long lists draw only the rows in sight: the graph of a hundred thousand commits costs what a screen of rows costs.
 - The scale of the screen (HiDPI) is applied when drawing, not when laying out: layout is in logical pixels.
 
 ## Long work and cancellation
 
 Everything that may take longer than a frame runs on a worker with an `Activity`: a name in words, a start time and why
-it was asked. The status bar shows the activities that have run for more than half a second, and the **What is
-running** page lists them. A job that is no longer wanted, such as the read of a page that was closed, is cancelled
+it was asked. The activity indicator of the header shows the activities that have run for more than half a second,
+and the **Activity** drawer lists them. A job that is no longer wanted, such as the read of a page that was closed, is cancelled
 through its token, and the git process it runs is killed.
 
 ## Where things are
@@ -149,7 +164,7 @@ through its token, and the git process it runs is killed.
 | --- | --- |
 | What an operation asks or runs | `crates/features/src/<area>/<action>.rs`, and its card |
 | How git output is read | `crates/git/src/read/<what>.rs` |
-| How a pane or page looks or reacts | `crates/views/src/<name>/` |
+| How a place or a page looks or reacts | `crates/views/src/<name>/` |
 | A widget used by several views | `crates/ui/src/widget/` |
 | A setting | `crates/app/src/settings/`, and [features/18-settings.md](features/18-settings.md) |
 | What runs before an operation, the log, Undo | `crates/engine/` |

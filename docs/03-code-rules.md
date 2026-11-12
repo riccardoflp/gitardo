@@ -8,17 +8,24 @@ first, in its own commit, with the reason.
 ## 1. Dependencies
 
 - **R1.1** No crate from outside the workspace, in any `[dependencies]`, `[dev-dependencies]` or `[build-dependencies]`,
-  except the TLS of R1.5. `cargo xtask check` reads `Cargo.lock` and fails on any package that is neither a member nor
-  in `xtask/allowed-packages.txt` at its exact version.
+  except the libraries of R1.5 and R1.6. `cargo xtask check` reads `Cargo.lock` and fails on any package that is
+  neither a member nor in `xtask/allowed-packages.txt` at its exact version, and on a crate of the workspace that
+  depends on a library the allowlist does not give it.
 - **R1.2** No `build.rs` in the crates of the workspace, no procedural macros. `macro_rules!` only where it removes
   repetition that a function cannot, and never to hide control flow.
 - **R1.3** The edges between crates are those of [02-architecture.md](02-architecture.md#who-may-use-whom). A new edge
   changes that picture first.
 - **R1.4** External programs: only `git`, only through `crates/git`.
-- **R1.5** The one exception is TLS ([D13](08-decisions.md#d13--one-library-for-tls)): `rustls` with `ring`, and
+- **R1.5** TLS ([D13](08-decisions.md#d13--one-library-for-tls)): `rustls` with `ring`, and
   `rustls-native-certs`, used by `crates/tls` only, with only the features named there. No type of theirs appears in
   the interface of `crates/tls`. Adding a package to the allowlist, or changing a version in it, is a commit of its own
-  that says why. Nothing else may use the exception: a second library is a new decision, not a line in the allowlist.
+  that says why. Nothing else may use these: another library is a new decision, not a line in the allowlist.
+- **R1.6** The libraries of the window, the text and the pixels
+  ([D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)): `winit`, `softbuffer`, `arboard`,
+  `rfd` and `accesskit_winit` in `crates/platform`, `tiny-skia` and `cosmic-text` in `crates/render`, `accesskit` in
+  `crates/ui` and `crates/platform`. No type of theirs appears in the interface of those crates, but the tree of
+  `accesskit` between `ui` and `platform`. Their features are the fewest that work, named in the `Cargo.toml` that
+  uses them. Adding a library, or changing a version, is a commit of its own that says why.
 
 ## 2. Features are functions
 
@@ -68,8 +75,9 @@ first, in its own commit, with the reason.
 ## 5. Unsafe and the operating system
 
 - **R5.1** `unsafe` only in `crates/platform`. Every other crate has `#![forbid(unsafe_code)]`.
-- **R5.2** Every `extern` block is in one file per system library (`platform/src/windows/user32.rs`), with only the
-  functions, types and constants used, each with the name the system documentation gives it.
+- **R5.2** Every `extern` block is in one file per system library (`platform/src/windows/kernel32.rs`), with only the
+  functions, types and constants used, each with the name the system documentation gives it. What a library of R1.6
+  does (the window, the input, the clipboard) is not asked of the system a second time.
 - **R5.3** Every `unsafe` block is as small as it can be and has a `// SAFETY:` comment saying why each requirement of the
   call holds. Clippy's `undocumented_unsafe_blocks` is denied.
 - **R5.4** Unsafe calls are wrapped at once in safe functions that own what they create (`Drop` releases it) and return
@@ -191,7 +199,7 @@ first, in its own commit, with the reason.
 
 | Check | Rules |
 | --- | --- |
-| No package in `Cargo.lock` outside the workspace but those of `xtask/allowed-packages.txt`, at their versions; only `crates/tls` depends on them; no `build.rs` in the workspace | R1.1, R1.2, R1.5 |
+| No package in `Cargo.lock` outside the workspace but those of `xtask/allowed-packages.txt`, at their versions; each used only by the crates the allowlist names; no `build.rs` in the workspace | R1.1, R1.2, R1.5, R1.6 |
 | The edges between crates are the allowed ones | R1.3 |
 | Every function that says `/// Feature:` has a card, in the crate and with the name the card gives; every card the index marks *Built* or *Seen* has its function and at least as many tests named after it as its acceptance list has lines; every test named `<feature>__…` has a card; the index and the cards list the same features, of the same kinds | R2.1, R2.6 |
 | Pure crates use no I/O, time, threads or environment | R3.1, R3.2 |

@@ -1,7 +1,7 @@
 # The product
 
 Gitardo Desktop is a desktop application for Git: a commit graph, history and the everyday operations of Git, in one
-window, written in Rust with no dependencies but one library for TLS. It does what the Gitardo extension for VS Code does, feature for feature,
+window, written in Rust with few dependencies: TLS, and the libraries of the window, the text and the pixels. It does what the Gitardo extension for VS Code does, feature for feature,
 in a window of its own. This page says what that window is made of, and how each thing the extension borrowed from
 VS Code is done here instead. The features themselves are in the [catalog](features/README.md).
 
@@ -13,71 +13,104 @@ again in a terminal, and what is done in a terminal shows in it at once.
 
 ## The window
 
+The window is Gitardo's own, not an editor's ([D17](08-decisions.md#d17--the-timeline-a-window-of-gitardos-own)): the
+history fills it, and everything else opens from it.
+
 ```
-┌───────────────────────────────────────────────────────────────────────────────────────────┐
-│ Toolbar: repository ▾  branch  Fetch  Pull ▾  Push ▾  Undo  Create branch  …     ⌕ search │
-├──────────────┬────────────────────────────────────────────────────────────────────────────┤
-│ Side bar     │ Tabs: [Graph] [Commit 3f2a1c9] [main ↔ feature] [Conflicts] [src/app.rs ⇄]   │
-│              ├───────────────┬──────────────────────────────────────┬─────────────────────┤
-│ ▸ Changes    │ References    │ Graph                                │ Details             │
-│ ▸ Commits    │ Recent        │ ● ─ Uncommitted changes              │ message, author,    │
-│ ▸ Branches   │ Favorites     │ ●   Fix the parser       main        │ files               │
-│ ▸ Stashes    │ Local         │ │ ● Add the login page   feature     │                     │
-│ ▸ Files      │ Remotes …     │ ●─┘ Merge …                          │                     │
-├──────────────┴───────────────┴──────────────────────────────────────┴─────────────────────┤
-│ Panel: Command log │ Tasks                                                                │
-├───────────────────────────────────────────────────────────────────────────────────────────┤
-│ Status bar: ⟳ Gitardo — reading the repository (0.8 s)                       main ↑2 ↓0   │
-└───────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ● gitardo ▾   feature/login-page  2 ahead · 12 behind main    [⌕ Quick search       Ctrl K]  │
+│                                                          ◔ Fetching origin  [↓2 ↑1 Sync] [≈] │
+├────────────────┬─────────────────────────────────────────────────────┬───────────────────────┤
+│ YOURS          │ ┌ Draft ─────────────────────────────────────────┐  │ 4b830a6 · 2 hours ago │
+│ ● feature/… ↑2 │ │ ◌ Remember the e-mail of the last login         │  │ Add the login page    │
+│ ● main         │ │   3 files changed · 2 staged   [Review] [Commit]│  │ The page asks for …   │
+│ ● fix/parser   │ └────────────────────────────────────────────────┘  │                       │
+│                │  ●   Add the login page       (feature/login-page)  │ Dana Ruiz             │
+│ ORIGIN         │  │   Dana Ruiz · 2 hours ago                4b830a6 │                       │
+│ ○ origin/main  │  ●   Validate the e-mail before sending it          │ 4 files      +180 −7  │
+│                │ ◉─┤  Merge branch 'fix/parser' into main    (main)   │ src/login/page.rs +84 │
+│ KEPT ASIDE     │ │ ●  Read a section that has no name   (fix/parser)   │ …                     │
+│ Stashes      3 │ ●─┘  …                                              │ [Show the changes]    │
+│ Worktrees    2 │                                                     │ [Cherry-pick]  […]    │
+│ Tags        14 │                                                     │                       │
+└────────────────┴─────────────────────────────────────────────────────┴───────────────────────┘
+  Branch rail       Timeline (the draft at its top)                       Inspector
 ```
 
-- **Toolbar**: what applies to the whole repository. It gives up its words for icons when the window is narrow.
-- **Side bar**: five panes, each can be folded, resized against the others, or hidden. **Changes** stages and commits.
-  **Commits** lists the commits of what is checked out. **Branches** is the references tree on its own. **Stashes**
-  lists the stashes. **Files** is the tree of the working tree, which replaces the Explorer of VS Code as the place
-  where a file or a folder is chosen for its history, its blame, a comparison, or what new worktrees get.
-- **Tabs**: the **Graph** tab is always first and cannot be closed. The others are pages: a commit, a comparison, the
-  diff of a file, the merge of a file in conflict, a file with its blame, the review of the conflicts, what new worktrees
-  get, the settings, the welcome page. Each page has one tab: asking for it again shows the one it has.
-- **Graph tab**: the references, the commits with their lines, and the details of the selected commit, side by side, or
-  the details under the commits when the tab is narrow.
-- **Panel**: the **Command log**, every command that changed something, and **Tasks**, the commands run in new
-  worktrees, with what they print.
-- **Status bar**: what Gitardo is running, for how long, and why; the branch and how far it is from its upstream.
-- **Command palette** (`Ctrl+Shift+P`, `Cmd+Shift+P` on macOS): every command of the catalog that has the command
-  palette among its entry points, by name.
+- **Header**: the **repository** (a menu of the repositories of the workspace and the recent ones), the **branch**
+  checked out with how far it is from its upstream and from the default branch, **Quick search**, the **activity**
+  indicator (what is running, which opens the **Activity** drawer), **Sync** with its menu (fetch, pull, push, sync),
+  and the **Activity** button. It gives up its words for icons when the window is narrow.
+- **Branch rail**: the local branches, each with the color of its lane, so that the rail is also the legend of the
+  graph; the branches of each remote; **Kept aside**: stashes, worktrees and tags, each a list that opens in the rail.
+  A branch picked in the rail narrows the timeline to its history; picked again, the whole history is back. The rail
+  can be narrowed to icons or hidden.
+- **Timeline**: the commits with their lanes, two lines a row: the subject with its labels as pills, then the author
+  and the date; the short hash on the right. The selected commit is shown in the inspector.
+- **Draft**: the first card of the timeline when there are uncommitted changes: the message of the next commit, how
+  many files changed and how many are staged, **Review**, which opens the **Changes** page, and **Commit**.
+- **Inspector**: the selected commit as a card: its hash and date, its message, its author, its files with their lines
+  added and removed, and its actions. When the window is narrow it opens over the timeline.
+- **Pages**: a commit, a comparison, the diff of a file, the merge of a file in conflict, a file with its blame, the
+  review of the conflicts, the changes, the files of the working tree, what new worktrees get, the settings, the
+  welcome page. A page opens in place of the timeline and the inspector, with a **trail** above it
+  (`Timeline › Commit 4b830a6 › src/login/page.rs`) whose first step comes back to the timeline. Each page is open
+  once: asking for it again shows the one there is. `Ctrl+Tab` goes through the pages open.
+- **Activity drawer**: what is running, for how long and why; the **Command log**, every command that changed
+  something; and **Tasks**, the commands run in new worktrees, with what they print.
+- **Quick search** (`Ctrl+K`, `Cmd+K` on macOS): one field that finds commits, branches, files and commands. Every
+  command of the catalog that names Quick search among its entry points is there by name.
 
 A window shows one **workspace**: one or more folders, each of which may hold repositories. **Open folder…** adds or
 replaces them, and the recent workspaces are listed on the welcome page. A worktree or a submodule opened "in a new
 window" is a new window of Gitardo Desktop on that folder.
 
+### The names of the places
+
+The cards of the catalog name the places of the window with these words, and only these:
+
+| Place | What it is |
+| --- | --- |
+| **Header** | The bar at the top: repository, branch, Quick search, activity, Sync, Activity. |
+| **Branch rail** | The list on the left: local branches, remotes, and **Kept aside** (stashes, worktrees, tags). |
+| **Timeline** | The history with its lanes, in the middle. "The graph" is the drawing of its lanes. |
+| **Draft** | The card of the uncommitted changes at the top of the timeline. |
+| **Inspector** | The card of the selected commit, on the right. |
+| **Changes page** | Every uncommitted file, staged or not, with its diff; opened by **Review** in the draft. |
+| **Files page** | The tree of the working tree, where a file or a folder is picked for its history, its blame or a comparison. |
+| **Commit**, **Compare**, **Diff**, **Merge**, **Conflicts**, **File**, **Settings**, **Welcome** and **Worktree setup** pages | The other pages, each opened in place of the timeline with its trail. |
+| **Activity drawer** | What is running, the Command log and the Tasks. |
+| **Quick search** | `Ctrl+K`: commits, branches, files and commands. |
+
 ## What replaces VS Code
 
 | In the extension | In Gitardo Desktop |
 | --- | --- |
-| Views in the panel and in the Source Control side bar | The panes of the side bar and the Graph tab of one window. The narrow "Gitardo Graph" view of the side bar becomes the narrow layout of the Graph tab. |
-| Editor tabs (webview panels) | Tabs of the window. |
+| Views in the panel and in the Source Control side bar | The timeline, the branch rail and the inspector of one window. The narrow "Gitardo Graph" view of the side bar becomes the narrow layout of the window, where the inspector opens over the timeline. |
+| Editor tabs (webview panels) | Pages, opened in place of the timeline with a trail to come back. |
 | The diff editor of VS Code, and the multi-file diff editor | The **Diff** page: the side-by-side diff of the Flow Diff, which is the only diff here. The diffs of several files open in one **Diff** page, one after the other. |
 | The merge editor of VS Code | The **Merge** page: the three columns of the Flow Merge. |
 | The text editor (for blame, line history, unsaved edits) | The **File** page, and the editable sides of the Diff and Merge pages, all on Gitardo's own text editor. Opening a file outside Gitardo uses the external editor of the setting `editor.external`. |
-| The Explorer and its context menus | The **Files** pane. |
+| The Explorer and its context menus | The **Files** page. |
 | Editor context menu, editor title buttons | The context menu and the title buttons of the File page. |
 | Quick pick, input box, modal dialog | Gitardo's own picker, input box and dialog, drawn in the window. |
-| Output channel **Gitardo** | The **Command log** in the panel. |
-| Status bar item and **Show What Is Running** | The status bar of the window, and the **What is running** page it opens. |
+| The command palette | **Quick search** (`Ctrl+K`), which also finds commits, branches and files. |
+| The Source Control view and its list of changes | The **draft** at the top of the timeline, and the **Changes** page it opens. |
+| Output channel **Gitardo** | The **Command log** in the Activity drawer. |
+| Status bar item and **Show What Is Running** | The activity indicator of the header, and the **Activity** drawer it opens. |
 | `settings.json` of the user | `settings.json` in Gitardo's folder of the user's configuration. |
 | `.vscode/settings.json` of a repository | `.gitardo/settings.json` of the repository, which can be committed to share it. For worktrees, VS Code's `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles` in `.vscode/settings.json` are still read as the fallback the extension has. |
 | Workspace trust | A folder is trusted once the user says so; until then nothing it asks to run is run. |
-| Theme colors and the file icon theme | Built-in themes (dark, light, dark and light high contrast, or as the system is) and a built-in set of file icons. |
+| Theme colors and the file icon theme | Gitardo's own themes (dark, light, dark and light high contrast, or as the system is), its own fonts, and a built-in set of file icons. |
 | Codicons | Built-in icons, drawn from paths of Gitardo's own. |
 | Language models of VS Code (Copilot) | A language model reached over HTTP, as the settings `ai.*` say, with its key in the credential store of the system. |
 | GitHub account of VS Code | A GitHub token from `git credential fill` for `github.com`, or one the user gives, kept in the credential store of the system. Asked for only when the user first loads the pull requests. |
-| Tasks of VS Code (setup commands of new worktrees) | The **Tasks** panel, which runs each command with the shell of the system, in the worktree. |
+| Tasks of VS Code (setup commands of new worktrees) | **Tasks** in the Activity drawer, which runs each command with the shell of the system, in the worktree. |
 | Agents window of VS Code | Not there. A worktree opens in a new window of Gitardo Desktop, in the external editor, or in a terminal. |
 | VS Code's Git extension holding worktrees | Not there; but other programs can still hold a folder on Windows, so the retries and the deletion of what is left stay. |
 | Walkthrough | The **Welcome** page, shown on the first start, with the same five steps. |
 | `Ctrl+F` in a webview | Find in page, Gitardo's own. |
-| Buttons added to VS Code's list of changes | Not there: the Changes pane has them. |
+| Buttons added to VS Code's list of changes | Not there: the Changes page has them. |
 
 Everything else the extension does, Gitardo Desktop does the same way, with the same words.
 

@@ -37,10 +37,11 @@ The awkward repositories, used by every read's golden tests:
 - The random source is `testkit::Random`, a xorshift generator. A test that uses it prints its seed when it fails, and
   `GITARDO_TEST_SEED=<seed>` runs it again with that seed.
 - Times are given, never read: `Context::now` is fixed in tests.
-- Snapshots are drawn with fonts that are in the repository (`testkit/fonts/`, free fonts with their licenses beside
-  them), at scale 1 and 2, so that they are the same on every machine.
-- PNG files are written and read by `testkit` itself: stored deflate blocks to write, a full inflate to read. A snapshot
-  that differs writes the actual image and an image of the differences beside the reference.
+- Snapshots are drawn with the fonts that come with the program (`crates/render/fonts/`), with no fallback to the fonts
+  of the system, at scale 1 and 2, so that they are the same on every machine.
+- PNG files are written and read by `testkit` itself: deflate with fixed codes to write, a full inflate to read. A
+  snapshot that differs writes the actual image and an image of the differences beside the reference
+  (`testkit::png::assert_snapshot`).
 
 ## Conflicts against git
 

@@ -18,8 +18,8 @@ This page says what that means in practice, for people and for agents.
 | | Specification side | Implementation side |
 | --- | --- | --- |
 | Who | Whoever writes or changes the documents in `docs/`. | Whoever writes code in this branch. |
-| May read | The extension: its README, its behavior, its source on the `main` branch. Git's documentation. | This branch only. Git's documentation. Public specifications (OpenType, PNG, deflate, Win32, X11, AppKit, HTTP). Papers that describe algorithms. |
-| May not | Put code, pseudo-code translated from code, or internal names of the extension in a document. | Open the source of the extension (`src/`, `test/` on `main`), or any other project's source for a part it is building. |
+| May read | The extension: its README, its behavior, its source on the `main` branch. Git's documentation. | This branch only. Git's documentation. Public specifications (PNG, deflate, Win32, X11, AppKit, HTTP). Papers that describe algorithms. The documentation and the public interface of the libraries the program depends on. |
+| May not | Put code, pseudo-code translated from code, or internal names of the extension in a document. | Open the source of the extension (`src/`, `test/` on `main`), or the source of another project to copy a part it is building. |
 | Writes | Behavior, git commands, rules with examples, acceptance criteria. | Rust, tests, and the changes a document needs when the code shows it was unclear (as a question first, see below). |
 
 One person may be on both sides at different times, but not for the same feature at the same time: a feature
@@ -50,9 +50,12 @@ Allowed:
 - the words the user reads (labels, messages, tooltips), which are the product and are written in the cards;
 - the names of the settings, which are the product's interface with its users;
 - published algorithms implemented from their description (Myers' diff, the histogram diff of git's documentation,
-  the TrueType rasterization rules, deflate), with the source named in the doc comment of the code;
-- the TLS library of [D13](08-decisions.md#d13--one-library-for-tls), used as a dependency of `crates/tls` through its
-  public interface, never copied into the workspace.
+  deflate), with the source named in the doc comment of the code;
+- the libraries of [D13](08-decisions.md#d13--one-library-for-tls) and
+  [D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels), used as dependencies of the crates
+  named there through their public interface and their documentation, never copied into the workspace;
+- the fonts of [D18](08-decisions.md#d18--the-fonts-come-with-the-program), under their licence, which is kept beside
+  them.
 
 ## How a feature goes through the room
 
