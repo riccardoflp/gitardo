@@ -2,4 +2,5 @@
 
 #![forbid(unsafe_code)]
 
+pub mod conflicts;
 pub mod details;

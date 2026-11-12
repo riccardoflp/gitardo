@@ -324,7 +324,7 @@ Finds the conflicts in the text of a file as git marked them, in any of git's st
 whatever names git wrote after the markers.
 
 - **Kind**: Derivation
-- **Function**: `text::conflicts::parse_markers(input) -> Option<Vec<MarkedConflict>>`
+- **Function**: `text::conflicts::parse_markers(text: &str) -> Option<Vec<MarkedConflict>>`
 
 Rules:
 
@@ -746,7 +746,7 @@ edited around it, and however git named the sides after the markers (which chang
 back).
 
 - **Kind**: Derivation
-- **Function**: `model::review::fingerprint(input) -> Fingerprint`
+- **Function**: `text::conflicts::fingerprint(lines: &[&str]) -> Fingerprint`
 
 The lines of the conflict from its first marker to its last, each without what ends it, with what follows `<<<<<<<`,
 `|||||||` or `>>>>>>>` taken away, joined with LF, hashed with SHA-1; the key is the first 16 hexadecimal digits. On a
