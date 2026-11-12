@@ -368,7 +368,8 @@ says how far it is from its upstream.
 - While Gitardo has been reading a repository, running an operation, comparing two sides, making a patch or asking
   GitHub for more than half a second, the activity indicator shows a spinning icon with the title of what has run
   longest and for how long, as `Reading app (2 s)`. What is over sooner never shows, so that it does
-  not flicker.
+  not flicker. It takes only the room Quick search leaves: where its words would be cut short, and when the window is
+  narrow, it shows its icon alone.
 - Its tooltip lists everything that runs, the oldest first, each with its title, how long it has run and its detail,
   and ends with **Click to open the Activity drawer.** The times go on every half second; the tooltip is
   drawn again only when its text changes.
@@ -381,6 +382,8 @@ Acceptance:
 - [ ] A read of 0.3 s shows nothing; a read of 2 s shows the activity indicator from 0.5 s until it ends.
 - [ ] A fetch and a read at once are both in the tooltip, the fetch first if it started first.
 - [ ] The tooltip of a read asked for by a change says which file changed.
+- [ ] Beside Quick search in a window 1000 pixels wide, the indicator shows its icon alone and Quick search keeps its
+  room; at 1200 pixels it says what runs.
 - [ ] With `main` two ahead of `origin/main`, the branch of the header says `main ↑2 ↓0`.
 
 ### `activity.what-is-running` — What is running, in the Activity drawer

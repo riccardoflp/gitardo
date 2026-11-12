@@ -22,6 +22,8 @@ const SHOWN_AFTER: Duration = Duration::from_millis(500);
 const TICK: Duration = Duration::from_millis(500);
 /// The widest the words of the activity indicator are.
 const WORDS_WIDTH: f32 = 240.0;
+/// The narrowest the words of the activity indicator are; in less room it shows its icon alone.
+const WORDS_LEAST_WIDTH: f32 = 80.0;
 
 /// Something running, or that ran, as the header and the drawer say it.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -46,19 +48,26 @@ fn shown(running: &[RunningTask]) -> impl Iterator<Item = &RunningTask> {
     running.iter().filter(|task| task.elapsed >= SHOWN_AFTER)
 }
 
-/// The width the activity indicator takes in the header: none while nothing has run for half a second.
+/// The width the activity indicator takes in the header out of the room it is given: none while nothing has run for
+/// half a second, its icon alone when the window is narrow or its words would be cut to less than they say, and its words
+/// cut to the room otherwise.
 #[must_use]
-pub fn status_bar_width(state: &StatusBarState<'_>, ui: &Ui<'_>) -> f32 {
+pub fn status_bar_width(state: &StatusBarState<'_>, ui: &Ui<'_>, room: f32) -> f32 {
     let Some(longest) = shown(state.running).next() else {
         return 0.0;
     };
     let theme = ui.theme();
-    if is_narrow(ui) {
-        return theme.sizes.icon;
+    let icon = theme.sizes.icon;
+    let words_room = room - icon - theme.sizes.spacing.medium;
+    if is_narrow(ui) || words_room < WORDS_LEAST_WIDTH {
+        return icon;
     }
     let words = header::running(&longest.title, longest.elapsed.as_secs());
-    let words_width = ui.measure(&words, ui.text_style(TextKind::Detail)).min(WORDS_WIDTH);
-    theme.sizes.icon + theme.sizes.spacing.medium + words_width
+    let words_width = ui
+        .measure(&words, ui.text_style(TextKind::Detail))
+        .min(WORDS_WIDTH)
+        .min(words_room);
+    icon + theme.sizes.spacing.medium + words_width
 }
 
 /// The tooltip of the activity indicator: everything that runs, the oldest first, each with its title, how long it has
@@ -96,11 +105,9 @@ pub fn status_bar_view(state: &StatusBarState<'_>, ui: &mut Ui<'_>) -> Vec<Inten
         (mark.width, theme.sizes.icon),
         (Align::Start, Align::Center),
     ));
-    if !is_narrow(ui) {
-        let _ = ui.label(
-            parts.rest(),
-            &Label::new(&words).kind(TextKind::Detail).tone(Tone::Muted),
-        );
+    let words_rect = parts.rest();
+    if words_rect.width > 0.0 {
+        let _ = ui.label(words_rect, &Label::new(&words).kind(TextKind::Detail).tone(Tone::Muted));
     }
     let id = ui.id("activity indicator");
     let response = ui.interact(id, rect, Sense::CLICK | Sense::FOCUS);

@@ -144,8 +144,10 @@ pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         more_button(state.more, ui, &mut area, &mut intents);
         activity_button(state.is_activity_open, ui, &mut area, &mut intents);
         sync_button(state.sync, ui, &mut area);
-        // The indicator is declared even while it takes no room, so that it asks for the frame it appears in.
-        let width = status_bar_width(&state.status, ui);
+        // The indicator is declared even while it takes no room, so that it asks for the frame it appears in; it takes
+        // only the room Quick search leaves.
+        let room = area.rest().width - search::SEARCH_LEAST_WIDTH - spacing.large;
+        let width = status_bar_width(&state.status, ui, room);
         let cell = if width > 0.0 {
             area.right(width)
         } else {

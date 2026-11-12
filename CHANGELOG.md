@@ -82,3 +82,5 @@
   in Quick search shows it again with the steps done ticked.
 - A row of the timeline keeps its message whole when it can: the labels take the room the message leaves, and those
   that do not fit are counted, `+2`, with their names in the tooltip of the count.
+- Quick search keeps its room in the header while something runs: the activity indicator takes only what is left,
+  and shows its icon alone where its words would be cut short.

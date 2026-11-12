@@ -18,6 +18,7 @@ pub use go_to_commit::{GoToCommitDialog, GoToCommitPurpose, GoToCommitVerdict, g
 pub use go_to_hash::go_to_hash_view;
 pub use history::{HistorySearch, MatchCount, history_view};
 pub use list_mode::{ListMode, Narrowed, list_mode_view};
+pub(crate) use quick::SEARCH_LEAST_WIDTH;
 pub use quick::{QuickChoice, QuickCommand, QuickEntry, QuickSearchState, quick_search_view};
 pub use search_box::{SearchBox, box_view, mode_entries};
 

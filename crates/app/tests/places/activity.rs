@@ -386,3 +386,31 @@ fn settings_edit__changing_a_value_writes_only_that_key_and_keeps_the_comments()
         before.replace("\"graph.firstParent\": false", "\"graph.firstParent\": true")
     );
 }
+
+/// The width of the node of a role and a name in the tree.
+fn width_of(tree: &TreeUpdate, role: Role, name: &str) -> f64 {
+    let bounds = find(tree, role, name).bounds().unwrap();
+    bounds.x1 - bounds.x0
+}
+
+#[test]
+fn activity_status_bar__beside_quick_search_in_a_window_1000_pixels_wide_the_indicator_shows_its_icon_alone() {
+    let (repository, _remote) = repository_with_history();
+    let state = showing(repository.path().to_path_buf());
+    let running = [task("Reading the history of app", 2_000, None)];
+    let data = ViewData::new(&state, running.to_vec(), NOW);
+    let header = |width: u32| {
+        let mut window = Window::new(ThemeName::Dark, (width, 520));
+        let (_, tree) = window.frame(&[], |ui| views::view(&data.window_state(&state), ui));
+        let search = width_of(&tree, Role::SearchInput, "Commits, branches, files, commands");
+        let indicator = width_of(&tree, Role::Button, "Reading the history of app (2 s)");
+        (window, search, indicator)
+    };
+    let (window, search, indicator) = header(1000);
+    assert!(search >= 260.0, "Quick search keeps its room: {search}");
+    assert!(indicator < 30.0, "the indicator shows its icon alone: {indicator}");
+    window.assert_snapshot("header-running-dark");
+    let (_, search, indicator) = header(1200);
+    assert!(search >= 260.0, "Quick search keeps its room: {search}");
+    assert!(indicator > 100.0, "the indicator says what runs: {indicator}");
+}

@@ -12,6 +12,8 @@ use crate::text::search as words;
 
 /// The widest the box of Quick search is.
 const SEARCH_WIDTH: f32 = 420.0;
+/// The room the header keeps for the box of Quick search before what is beside it, the activity indicator, takes more.
+pub(crate) const SEARCH_LEAST_WIDTH: f32 = 260.0;
 
 /// What Quick search shows.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
