@@ -87,7 +87,7 @@ Acceptance:
 The changes between two texts, line by line, used by every diff of the application and by the rules of the conflicts.
 
 - **Kind**: Derivation
-- **Function**: `text::diff::line_diff(input) -> Vec<Change>`
+- **Function**: `text::diff::line_diff(input) -> Result<Vec<Change>, TooComplex>`
 
 What the result must satisfy:
 

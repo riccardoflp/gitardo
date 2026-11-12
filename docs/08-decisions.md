@@ -778,3 +778,13 @@ the reading given until it is answered:
   **Specified**, and so does `undo.last`, whose other lines belong to other slices.
 - **Q129** — `tag.push` now asks `model::remote::default` for its remote (Q113), and the menu of the draft runs
   **Stash changes…** and **Stash staged changes…** (`stash.push`, `stash.push-staged`).
+- **Q-B1** — `diff.line-diff` returns `Result<Vec<Change>, TooComplex>` and takes, beside the two texts, a function
+  that says whether to go on, which the worker reads the clock and its cancel token in, since `text` does no I/O; its
+  card now says so. It is the O(ND) algorithm of Myers (1986) with the linear-space search of the middle snake of the
+  same paper (section 4b), on lines numbered once, after the lines common at the start and the end and the lines found
+  on one side only are taken out. The result is minimal on the lines searched, but the middle snake searches from both
+  ends, not "from the start of the texts" as the card says: two diffs of the same size may differ in which equal lines
+  they pair. Does `conflicts.resolve-by-rules`, which runs it on both texts reversed, need the forward search alone?
+- **Q-B2** — `diff.align` is `model::diff::align`, but `model` and `text` do not use each other: the word marks of
+  each pair of lines are given to it as a function, which the worker fills with `text::diff::word_diff`. Is that the
+  reading of the edges, or should `model` use `text`?
