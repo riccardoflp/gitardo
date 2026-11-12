@@ -44,6 +44,8 @@ pub struct FeatureSettings {
     pub update_submodules_on_checkout: bool,
     /// `branches.format`: a format for the names of new branches; empty when there is none.
     pub branch_format: String,
+    /// `branches.openIn`: what a double click on a branch does.
+    pub branch_open_in: OpenIn,
 }
 
 impl Default for FeatureSettings {
@@ -52,8 +54,19 @@ impl Default for FeatureSettings {
             command_preview: CommandPreview::Off,
             update_submodules_on_checkout: true,
             branch_format: String::new(),
+            branch_open_in: OpenIn::Checkout,
         }
     }
+}
+
+/// `branches.openIn`: what a double click on a local branch, or on a remote branch, does (`branch.open`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum OpenIn {
+    /// `checkout`: it is checked out.
+    #[default]
+    Checkout,
+    /// `worktree`: it opens in a worktree of its own.
+    Worktree,
 }
 
 /// `commandPreview`: when the engine shows a plan before it runs it.

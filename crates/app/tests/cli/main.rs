@@ -5,9 +5,12 @@
 #![allow(clippy::panic, reason = "a helper that cannot go on fails the test")]
 
 mod branch;
+mod branches;
+mod checkout;
 mod commit;
 mod state;
 mod sync;
+mod tag;
 mod undo;
 
 use testkit::Repository;

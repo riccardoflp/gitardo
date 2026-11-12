@@ -10,6 +10,7 @@ pub mod commit;
 pub mod commit_page;
 pub mod search;
 pub mod sync;
+pub mod tag;
 pub mod undo;
 
 #[cfg(test)]
@@ -18,12 +19,27 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 6] = [
+pub const OPERATIONS: [(FeatureId, Operation); 18] = [
+    (FeatureId("branch.checkout"), branch::checkout),
+    (FeatureId("branch.checkout-detached"), branch::checkout_detached),
+    (FeatureId("branch.checkout-remote"), branch::checkout_remote),
+    (
+        FeatureId("branch.checkout-remote-and-rebase"),
+        branch::checkout_remote_and_rebase,
+    ),
+    (FeatureId("branch.clean-up"), branch::clean_up),
     (FeatureId("branch.create"), branch::create),
+    (FeatureId("branch.delete"), branch::delete),
+    (FeatureId("branch.fast-forward"), branch::fast_forward),
+    (FeatureId("branch.rename"), branch::rename),
     (FeatureId("commit.create"), commit::create),
     (FeatureId("commit-page.open"), commit_page::open),
     (FeatureId("search.go-to-commit"), search::go_to_commit),
     (FeatureId("sync.fetch"), sync::fetch),
+    (FeatureId("tag.checkout"), tag::checkout),
+    (FeatureId("tag.create"), tag::create),
+    (FeatureId("tag.delete"), tag::delete),
+    (FeatureId("tag.push"), tag::push),
     (FeatureId("undo.last"), undo::last),
 ];
 

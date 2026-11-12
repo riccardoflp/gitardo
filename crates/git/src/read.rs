@@ -2,6 +2,7 @@
 
 pub mod bisect;
 pub mod blame;
+pub mod branch;
 pub mod changed_files;
 pub mod changes;
 pub mod commit_page;

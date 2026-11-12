@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 use engine::LogLevel;
 use json::Value;
-use model::contract::{CommandPreview, FeatureSettings};
+use model::contract::{CommandPreview, FeatureSettings, OpenIn};
 use model::graph::PageSize;
 use model::refs::SortOrder;
 use render::ThemeName;
@@ -100,7 +100,8 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
     }
 }
 
-/// The settings the operations read: `commandPreview`, `branches.format` and `submodules.updateOnCheckout`.
+/// The settings the operations read: `commandPreview`, `branches.format`, `branches.openIn` and
+/// `submodules.updateOnCheckout`.
 fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
     let defaults = FeatureSettings::default();
     let command_preview = match lookup.choice(keys::COMMAND_PREVIEW, &keys::COMMAND_PREVIEWS) {
@@ -115,6 +116,10 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
         branch_format: lookup
             .string(keys::BRANCH_FORMAT, Scope::UserAndRepository)
             .unwrap_or(defaults.branch_format),
+        branch_open_in: match lookup.choice(keys::BRANCH_OPEN_IN, &keys::BRANCH_OPEN_INS) {
+            Some("worktree") => OpenIn::Worktree,
+            _ => OpenIn::Checkout,
+        },
     }
 }
 

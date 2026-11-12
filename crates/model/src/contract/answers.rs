@@ -29,6 +29,15 @@ pub enum Answer {
     Commit(Option<CommitId>),
     /// The newest entry of the journal that still holds, if any.
     Journal(Option<JournalEntry>),
+    /// How many commits each of two revisions has that the other has not.
+    Counts {
+        /// The commits only the left revision has.
+        left: u32,
+        /// The commits only the right revision has.
+        right: u32,
+    },
+    /// Names read: the branches merged into a revision.
+    Names(Vec<String>),
 }
 
 /// An entry of a reflog: where a reference was, and what moved it there.
@@ -127,6 +136,33 @@ impl Answers {
         match self.get(key)? {
             Answer::Flag(flag) => Some(*flag),
             _ => None, // Any other kind of answer is no flag.
+        }
+    }
+
+    /// The choices ticked for a key, when the answer takes many.
+    #[must_use]
+    pub fn choices(&self, key: AnswerKey) -> Option<&[String]> {
+        match self.get(key)? {
+            Answer::Choices(choices) => Some(choices),
+            _ => None, // Any other kind of answer is no list of choices.
+        }
+    }
+
+    /// The counts read under a key: the commits only the left revision has, then those only the right one has.
+    #[must_use]
+    pub fn counts(&self, key: AnswerKey) -> Option<(u32, u32)> {
+        match self.get(key)? {
+            Answer::Counts { left, right } => Some((*left, *right)),
+            _ => None, // Any other kind of answer is no counts.
+        }
+    }
+
+    /// The names read under a key.
+    #[must_use]
+    pub fn names(&self, key: AnswerKey) -> Option<&[String]> {
+        match self.get(key)? {
+            Answer::Names(names) => Some(names),
+            _ => None, // Any other kind of answer is no names.
         }
     }
 }

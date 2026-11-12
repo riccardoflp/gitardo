@@ -51,6 +51,36 @@ pub enum Query {
     /// The newest entry of the engine's journal that still holds for this repository. The answer is
     /// [`super::Answer::Journal`].
     Journal,
+    /// How many commits each of two revisions has that the other has not
+    /// (`git rev-list --left-right --count <left>...<right> --`). The answer is [`super::Answer::Counts`].
+    Counts {
+        /// The revision counted on the left: `refs/heads/feature`.
+        left: String,
+        /// The revision counted on the right: `origin/feature`.
+        right: String,
+    },
+    /// Whether a revision is an ancestor of another, or the same commit
+    /// (`git merge-base --is-ancestor <ancestor> <descendant>`). The answer is [`super::Answer::Flag`].
+    IsAncestor {
+        /// The revision that may be the ancestor: `refs/heads/feature`.
+        ancestor: String,
+        /// The revision that may have it: `HEAD`.
+        descendant: String,
+    },
+    /// The local branches merged into a revision, by their short names
+    /// (`git branch --merged <into> --format=%(refname:short)`). The answer is [`super::Answer::Names`].
+    MergedBranches {
+        /// The revision: `HEAD`.
+        into: String,
+    },
+    /// Whether a commit has a file (`git cat-file -e <revision>:<path>`): `.gitmodules`, to know whether it has
+    /// submodules. The answer is [`super::Answer::Flag`].
+    HasFile {
+        /// The commit, by any name git understands: `HEAD`, `feature`.
+        revision: String,
+        /// The path of the file, from the top of the tree.
+        path: String,
+    },
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

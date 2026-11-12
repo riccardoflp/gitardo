@@ -1,5 +1,6 @@
 //! Answering the queries of features by reading git.
 
+use git::read::branch;
 use git::read::reflog::{ReflogRequest, read_entries};
 use git::read::search::{RevisionRequest, read_revision};
 use git::{Git, GitError};
@@ -23,6 +24,14 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         }
         // The engine answers it from its journal before asking git anything.
         Query::Journal => Ok(Answer::Journal(None)),
+        Query::Counts { left, right } => {
+            branch::read_counts(git, left, right).map(|(left, right)| Answer::Counts { left, right })
+        }
+        Query::IsAncestor { ancestor, descendant } => {
+            branch::read_is_ancestor(git, ancestor, descendant).map(Answer::Flag)
+        }
+        Query::MergedBranches { into } => branch::read_merged(git, into).map(Answer::Names),
+        Query::HasFile { revision, path } => branch::read_has_file(git, revision, path).map(Answer::Flag),
         Query::FilesMatch { commit } => {
             let arguments = ["diff", "--quiet", commit.as_str(), "--"];
             let output = git.read_output(&arguments)?;
@@ -46,5 +55,11 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::FilesMatch { commit } => format!("git diff --quiet {commit} --"),
         Query::Revision { revision } => format!("git rev-parse --verify --quiet {revision}^{{commit}}"),
         Query::Journal => String::from("the journal of Undo"),
+        Query::Counts { left, right } => git::command_line(&branch::counts_arguments(left, right)),
+        Query::IsAncestor { ancestor, descendant } => {
+            git::command_line(&branch::ancestor_arguments(ancestor, descendant))
+        }
+        Query::MergedBranches { into } => git::command_line(&branch::merged_arguments(into)),
+        Query::HasFile { revision, path } => git::command_line(&branch::has_file_arguments(revision, path)),
     }
 }

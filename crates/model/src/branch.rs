@@ -1,7 +1,38 @@
-//! Rules about the names of branches, tags and remotes.
+//! Rules about the names of branches, tags and remotes, what a double click on a branch does, and the format of the
+//! names of new branches.
+
+mod format;
+mod offers;
+mod open;
 
 use crate::contract::Text;
-use crate::state::RepositoryState;
+use crate::state::{RepositoryState, Worktree};
+
+pub use format::{BranchInput, FormatValues, InputKind, day_of, format_name, format_problem, repository_name};
+pub use offers::{can_fast_forward, rebase_onto};
+pub use open::{OpenBranchInput, OpenedReference, open};
+
+/// The local branch of a remote branch's name: the remote branch without its remote, the longest remote name that
+/// matches taken off. `origin/feature/login` gives `feature/login`; with remotes `a` and `a/b`, `a/b/x` gives `x`. A
+/// name no remote starts is given as it is.
+#[must_use]
+pub fn local_name<'a>(remote_branch: &'a str, remotes: &[String]) -> &'a str {
+    remotes
+        .iter()
+        .filter_map(|remote| remote_branch.strip_prefix(remote.as_str())?.strip_prefix('/'))
+        .min_by_key(|rest| rest.len())
+        .unwrap_or(remote_branch)
+}
+
+/// The worktree other than the one read that has a local branch checked out, by the branch's short name.
+#[must_use]
+pub fn other_worktree<'a>(state: &'a RepositoryState, branch: &str) -> Option<&'a Worktree> {
+    let full = format!("refs/heads/{branch}");
+    state
+        .worktrees
+        .iter()
+        .find(|worktree| !worktree.is_current && worktree.branch.as_deref() == Some(full.as_str()))
+}
 
 /// What keeps a name from being a branch, a tag or a remote, said while it is typed; nothing when git would take it.
 /// Git has the final say; this catches the common mistakes early.
