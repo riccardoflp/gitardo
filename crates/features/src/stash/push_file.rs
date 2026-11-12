@@ -44,7 +44,7 @@ pub fn push_file(context: &Context, answers: &Answers) -> Outcome {
             .and_then(|change| change.original_path.as_ref());
         if let Some(original) = renamed_from {
             // Git takes no path that is not in the index: the old name of a staged rename is put back in the index
-            // first, deleted in the working tree, so that the stash takes both (open question Q-D1).
+            // first, deleted in the working tree, so that the stash takes both (open question Q123).
             let original = pathspec(original);
             let step = ["reset", "--quiet", "--"].map(std::ffi::OsString::from);
             unstaged_first.push(Step::git(
