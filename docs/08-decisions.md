@@ -1518,6 +1518,11 @@ From the cards left over up to M8 (each built with the reading given, until the 
   file of a few megabytes is measured as too slow? The arrows up and down, `Home`, `End` and Page Up and Down still go
   by lines of the file, not by rows, and a click past the end of a row that is not the last of its line puts the
   cursor before the row's last character, so that it stays on that row. Should the arrows go by rows, as VS Code's do?
+- **Q-W2** — `review.columns` is built (Q210): its lines wrap with the same `editor::wrap_line`, between words, the
+  spaces at the end of a row left out, and each line of a column, and its number on its first row, is told to the
+  screen reader as a label where it is drawn, which is also how its tests find them; the outline the pointer draws is
+  tested by the pixels of the edges of the lines. Is a label for each line and each number right for a screen reader,
+  or should a column be one text whose value is its lines?
 
 - **Q294** — The card of `ai.ask-conflict` named `ai::read::ask_conflict`, a crate that does not exist; the question is
   `engine::ai::ask_conflict(sending, provider, &request, pieces)`, beside the GitHub reads, since it goes over `http`

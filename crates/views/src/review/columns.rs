@@ -2,7 +2,7 @@
 //! the lines around it, joined by bands from each line proposed to the line of a side that is the same.
 
 use ui::layout::Area;
-use ui::{Border, Color, FillRule, Label, Path, Point, Rect, Split, Splitter, TextKind, Ui};
+use ui::{AccessRole, Border, Color, Description, FillRule, Label, Path, Point, Rect, Split, Splitter, TextKind, Ui};
 
 use super::card::CardState;
 use super::lines::{Look, code_line, gutter_width, origin_bars, rows_of, text_width, wrapped};
@@ -182,10 +182,10 @@ pub fn columns_view(state: &CardState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let columns = columns(state, ui);
     if rect.width < NARROWEST {
         let mut area = Area::new(rect);
-        for column in &columns {
+        for (index, column) in columns.iter().enumerate() {
             let placed = place_lines(ui, column, (0.0, rect.width, gutter));
             let height = row + placed.iter().map(|placed| placed.height).sum::<f32>();
-            draw_column(ui, column, (area.top(height), gutter), &[]);
+            draw_column(ui, (index, column), (area.top(height), gutter), &[]);
         }
         return Vec::new();
     }
@@ -205,7 +205,7 @@ pub fn columns_view(state: &CardState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             .filter(|(which, _)| *which == index)
             .map(|(_, line)| *line)
             .collect();
-        draw_column(ui, column, (column_rect, gutter), &lit);
+        draw_column(ui, (index, column), (column_rect, gutter), &lit);
     }
     intents
 }
@@ -280,8 +280,9 @@ fn column_rects(state: &CardState<'_>, (rect, band): (Rect, f32)) -> [Rect; 3] {
     ]
 }
 
-/// Draws a column: its heading, then its lines, wrapped, those the pointer lights outlined.
-fn draw_column(ui: &mut Ui<'_>, column: &Column<'_>, (rect, gutter): (Rect, f32), lit: &[usize]) {
+/// Draws a column: its heading, then its lines, wrapped, those the pointer lights outlined. Each line, and its number
+/// on its first row, is told to the screen reader where it is drawn.
+fn draw_column(ui: &mut Ui<'_>, (which, column): (usize, &Column<'_>), (rect, gutter): (Rect, f32), lit: &[usize]) {
     let theme = *ui.theme();
     let row = theme.sizes.row_height;
     let mut area = Area::new(rect);
@@ -291,6 +292,11 @@ fn draw_column(ui: &mut Ui<'_>, column: &Column<'_>, (rect, gutter): (Rect, f32)
         let pieces = wrapped(ui, &line.text, text);
         let line_rect = area.top(row * float_of_count(pieces.len()));
         let number = line.number.to_string();
+        let first_row = Rect::new(line_rect.x, line_rect.y, gutter, row);
+        let number_id = ui.id(("column line number", which, index));
+        ui.describe(number_id, first_row, &Description::new(AccessRole::Label, &number));
+        let line_id = ui.id(("column line", which, index));
+        ui.describe(line_id, line_rect, &Description::new(AccessRole::Label, &line.text));
         for (piece_index, piece) in pieces.iter().enumerate() {
             let piece_rect = Rect::new(
                 line_rect.x,

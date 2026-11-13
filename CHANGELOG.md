@@ -347,3 +347,5 @@
 - With the new setting `editor.wordWrap` set to `on`, the File page wraps a line longer than the page between its
   words, or inside a word longer than the page; its number and its blame stay on its first row, the other rows start in
   the column of the text, and a click or a selection follows the rows.
+- In the Columns of the review of the conflicts, a long line wraps between its words rather than in the middle of one,
+  and the screen reader is told each line and its number.

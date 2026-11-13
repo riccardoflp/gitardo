@@ -84,30 +84,30 @@ pub(super) fn text_width(ui: &Ui<'_>, width: f32, gutter: f32) -> f32 {
     (width - 6.0 * theme.sizes.border - theme.sizes.spacing.small - gutter).max(1.0)
 }
 
-/// A line cut into the rows it takes in a width: each as long as fits, the first keeping the number.
+/// The room of a row of a line of code in a width: as many columns of the font of code as fit, its tabs four columns.
+fn wrap_width(ui: &Ui<'_>, width: f32) -> ui::editor::WrapWidth {
+    let advance = ui.measure("0000000000", ui.text_style(TextKind::Code)) / 10.0;
+    let columns = if advance > 0.0 { (width / advance).floor() } else { 1.0 };
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "a count of columns of a column of the page, at least one"
+    )]
+    let columns = columns.max(1.0) as usize;
+    ui::editor::WrapWidth { columns, tab_width: 4 }
+}
+
+/// A line cut into the rows it takes in a width, the first keeping the number: after a space between words, inside
+/// a word only when it is longer than a row, the spaces at the end of a row left out.
 pub(super) fn wrapped(ui: &Ui<'_>, text: &str, width: f32) -> Vec<String> {
-    let style = ui.text_style(TextKind::Code);
     let text = text.replace('\t', "    ");
-    let mut rows = Vec::new();
-    let mut row = String::new();
-    for character in text.chars() {
-        row.push(character);
-        if ui.measure(&row, style) > width && row.chars().count() > 1 {
-            let _ = row.pop();
-            rows.push(std::mem::take(&mut row));
-            row.push(character);
-        }
-    }
-    rows.push(row);
-    rows
+    ui::editor::wrap_line(&text, wrap_width(ui, width))
+        .into_iter()
+        .map(|row| text.get(row).unwrap_or_default().trim_end().to_owned())
+        .collect()
 }
 
 /// How many rows a line takes in a width.
 pub(super) fn rows_of(ui: &Ui<'_>, text: &str, width: f32) -> usize {
-    let style = ui.text_style(TextKind::Code);
-    if ui.measure(&text.replace('\t', "    "), style) <= width {
-        1
-    } else {
-        wrapped(ui, text, width).len()
-    }
+    ui::editor::row_count(&text.replace('\t', "    "), wrap_width(ui, width))
 }

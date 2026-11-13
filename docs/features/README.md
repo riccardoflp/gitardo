@@ -293,7 +293,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`review.clear`](09-conflicts.md#reviewclear--clear) | Clear | View | Built |
 | [`review.write`](09-conflicts.md#reviewwrite--write-the-resolutions) | Write the resolutions | Operation | Built |
 | [`review.report`](09-conflicts.md#reviewreport--what-was-written) | What was written | View | Built |
-| [`review.columns`](09-conflicts.md#reviewcolumns--columns) | Columns | View | Specified |
+| [`review.columns`](09-conflicts.md#reviewcolumns--columns) | Columns | View | Built |
 | [`review.show-result`](09-conflicts.md#reviewshow-result--show-the-result) | Show the result | View | Built |
 | [`review.deleted-card`](09-conflicts.md#reviewdeleted-card--a-file-deleted-on-one-side) | A file deleted on one side | View | Built |
 | [`ai.resolve-conflicts`](09-conflicts.md#airesolve-conflicts--resolve-conflicts-with-ai) | Resolve conflicts with AI | View | Built |
