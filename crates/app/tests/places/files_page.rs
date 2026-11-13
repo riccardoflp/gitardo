@@ -289,3 +289,24 @@ fn compare_path_with__on_a_folder_the_page_lists_only_the_files_under_it() {
     compare_with(&driver, &mut state, intents, "main");
     assert_eq!(files(&state), ["src/ui/list.rs"]);
 }
+
+#[test]
+fn compare_path_with__on_a_file_of_another_repository_of_the_workspace_the_window_switches_to_it_first() {
+    let mut first = Repository::new();
+    let _ = first.commit("Write the notes", &[("notes.txt", "notes\n")]);
+    let second = two_branches();
+    let mut state = super::window();
+    let folders = vec![first.path().to_path_buf(), second.path().to_path_buf()];
+    let _effects = support::run(&mut state, Message::Started { folders });
+    assert!(state.shown_folder().is_some_and(|shown| shown == first.path()));
+    let driver = OperationsDriver::new();
+    let on_disk = second.path().join("src").join("app.rs");
+    let run = FeatureIntent::Run(
+        model::contract::FeatureId("compare.path-with"),
+        model::contract::Target::Path(on_disk),
+    );
+    compare_with(&driver, &mut state, vec![Intent::Feature(run)], "main");
+    assert!(state.shown_folder().is_some_and(|shown| shown == second.path()));
+    assert!(matches!(state.page_shown(), Some(Page::Compare(_))));
+    assert_eq!(files(&state), ["src/app.rs"]);
+}

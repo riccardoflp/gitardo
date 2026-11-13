@@ -130,6 +130,9 @@ pub struct Operations {
     pub check_bisect: bool,
     /// The title of the plan that failed, to tell once the repository is read again whether it stopped on conflicts.
     pub check_stopped: Option<String>,
+    /// An operation on a file of another repository of the workspace, run once the window shows that repository
+    /// (`compare.path-with`): the folder of the repository, the operation and its target.
+    pub run_after_read: Option<(PathBuf, FeatureId, Target)>,
 }
 
 /// What is asked of an operation, or answered to it.
@@ -166,6 +169,9 @@ fn run(state: &mut State, feature: FeatureId, target: Target, mut preset: Answer
         super::pages::show_page(state, views::page::Page::Settings);
         return Vec::new();
     }
+    if let Some(effects) = switch_first(state, feature, &target) {
+        return effects;
+    }
     let Some(read) = state.shown_read() else {
         return Vec::new();
     };
@@ -175,6 +181,29 @@ fn run(state: &mut State, feature: FeatureId, target: Target, mut preset: Answer
         preset.insert(features::compare::RECENT, Answer::Recent(recent));
     }
     run_in(state, repository, (feature, target), preset)
+}
+
+/// Points the window at the repository of a file or a folder of another repository of the workspace, for an operation
+/// that compares it (`compare.path-with`), which then runs once that repository is read; none when the file is in the
+/// repository shown, or in none of the workspace.
+fn switch_first(state: &mut State, feature: FeatureId, target: &Target) -> Option<Vec<Effect>> {
+    let Target::Path(path) = target else {
+        return None;
+    };
+    if feature != FeatureId("compare.path-with") || state.operations.running.is_some() {
+        return None;
+    }
+    let shown = state.shown_folder()?;
+    if model::repo::path_in_folder(path, shown).is_some() {
+        return None;
+    }
+    let holding = super::workspace::repository_holding(state, path)?;
+    let effects = super::workspace::select(state, &holding);
+    if effects.is_empty() {
+        return None;
+    }
+    state.operations.run_after_read = Some((holding, feature, target.clone()));
+    Some(effects)
 }
 
 /// Starts an operation in a repository as it was last read, unless one runs already.

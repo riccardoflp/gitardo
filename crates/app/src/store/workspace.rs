@@ -253,6 +253,19 @@ fn refuse_recent(state: &mut State, recent: Option<usize>) -> Vec<Effect> {
 }
 
 /// The repository of a folder among those found.
+/// The folder of the repository of the workspace that holds a file or a folder, the innermost when they are inside one
+/// another.
+pub fn repository_holding(state: &State, path: &Path) -> Option<PathBuf> {
+    state
+        .repositories()
+        .iter()
+        .filter_map(|repository| {
+            model::repo::path_in_folder(path, &repository.folder).map(|inside| (inside.len(), &repository.folder))
+        })
+        .min_by_key(|(inside, _)| *inside)
+        .map(|(_, folder)| folder.clone())
+}
+
 fn find_repository<'a>(repositories: &'a [Repository], folder: &Path) -> Option<&'a Repository> {
     repositories
         .iter()

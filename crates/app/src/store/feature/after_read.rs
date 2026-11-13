@@ -58,6 +58,9 @@ fn bisect_found(state: &mut State) {
 pub fn after_read(state: &mut State) -> Vec<Effect> {
     autostash_left(state);
     bisect_found(state);
+    if let Some(effects) = run_pending(state) {
+        return effects;
+    }
     let Some(selected) = state.operations.select_after_read.take() else {
         return Vec::new();
     };
@@ -67,6 +70,18 @@ pub fn after_read(state: &mut State) -> Vec<Effect> {
         Some(before(&state.timeline.rows, head, back))
     });
     commit.map(|commit| search::go_to(state, commit)).unwrap_or_default()
+}
+
+/// The operation on a file of another repository, once the window shows that repository (`compare.path-with`); it is
+/// forgotten when another repository was shown in its place.
+fn run_pending(state: &mut State) -> Option<Vec<Effect>> {
+    let (folder, feature, target) = state.operations.run_after_read.take()?;
+    let read = state.shown_read()?;
+    if !crate::persisted::same_folder(&read.folder, &folder) {
+        return None;
+    }
+    let repository = (read.folder.clone(), std::sync::Arc::clone(&read.state));
+    Some(super::run_in(state, repository, (feature, target), model::contract::Answers::new()))
 }
 
 /// The commit a number of commits before another, following first parents through the rows read; as far as they go.

@@ -352,3 +352,5 @@
 - **Compare with…** in the context menu of a file of the inspector, of the page of a commit (in its list and on the
   header of its diff), of the comparison page and of the comparison in the inspector compares that file with a branch,
   a tag, a commit or the working tree, in the Diff page.
+- Comparing a file or a folder of another repository of the workspace with a branch, a tag or a commit shows that
+  repository first.

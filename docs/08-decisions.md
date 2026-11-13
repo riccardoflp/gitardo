@@ -1631,3 +1631,9 @@ answered:
   with**, which the card does not give; a file a root commit deleted, which has no version, is refused with
   **`<name>` has no version to compare here.** The sides of the comparison in the inspector are fixed at their
   commits, named as it names them. The untracked files of a stash are taken from its third parent. Are these right?
+- **Q-S2** — `compare.path-with` is built (Q241, Q252): run on a file or a folder of another repository of the
+  workspace, the window first shows that repository, as choosing it in the list of repositories does (the page shown is
+  put away), and the operation runs once it is read, its choices those of that repository; the innermost repository
+  holds a path inside two. Only this operation switches so; the Files page still lists only the repository shown, so
+  the switch is reached from operations given such a path. Should the history of a file (`file-history.file`) switch
+  in the same way?
