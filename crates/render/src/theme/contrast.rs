@@ -1,7 +1,7 @@
 //! The two high contrast themes: black and white backgrounds, text at the strongest contrast, colored borders around
 //! every part, and a wider focus ring.
 
-use super::{Colors, SIZES, Sizes, Theme, ThemeName};
+use super::{CodeColors, Colors, SIZES, Sizes, Theme, ThemeName};
 use crate::color::Color;
 
 /// The sizes of the high contrast themes: those of the others, with a focus ring twice as wide.
@@ -71,6 +71,21 @@ pub(super) const DARK: Theme = Theme {
         Color::rgb(0x70, 0xE0, 0x90),
         Color::rgb(0xE0, 0xA0, 0xFF),
     ],
+    code: CodeColors {
+        comment: Color::rgb(0x9F, 0xD3, 0x9F),
+        string: Color::rgb(0xF2, 0xB8, 0x9A),
+        number: Color::rgb(0xC8, 0xE6, 0xB5),
+        keyword: Color::rgb(0x8C, 0xC8, 0xFF),
+        operator: Color::rgb(0xFF, 0xFF, 0xFF),
+        punctuation: Color::rgb(0xFF, 0xFF, 0xFF),
+        type_name: Color::rgb(0x7F, 0xE8, 0xD2),
+        function: Color::rgb(0xF0, 0xF0, 0xB0),
+        variable: Color::rgb(0xCD, 0xEB, 0xFF),
+        property: Color::rgb(0xCD, 0xEB, 0xFF),
+        constant: Color::rgb(0x9C, 0xDC, 0xFF),
+        tag: Color::rgb(0x8C, 0xC8, 0xFF),
+        attribute: Color::rgb(0xCD, 0xEB, 0xFF),
+    },
 };
 
 /// The light high contrast theme: black text on white.
@@ -134,4 +149,19 @@ pub(super) const LIGHT: Theme = Theme {
         Color::rgb(0x0D, 0x6B, 0x30),
         Color::rgb(0x6A, 0x2A, 0x9A),
     ],
+    code: CodeColors {
+        comment: Color::rgb(0x2F, 0x5F, 0x2F),
+        string: Color::rgb(0x7A, 0x2E, 0x0E),
+        number: Color::rgb(0x0A, 0x4F, 0x2A),
+        keyword: Color::rgb(0x0A, 0x2F, 0x8F),
+        operator: Color::rgb(0x00, 0x00, 0x00),
+        punctuation: Color::rgb(0x00, 0x00, 0x00),
+        type_name: Color::rgb(0x0B, 0x4F, 0x4F),
+        function: Color::rgb(0x5A, 0x3A, 0x00),
+        variable: Color::rgb(0x00, 0x2D, 0x5A),
+        property: Color::rgb(0x00, 0x2D, 0x5A),
+        constant: Color::rgb(0x00, 0x3F, 0x7F),
+        tag: Color::rgb(0x0A, 0x2F, 0x8F),
+        attribute: Color::rgb(0x5A, 0x1A, 0x6A),
+    },
 };

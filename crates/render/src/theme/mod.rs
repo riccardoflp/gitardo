@@ -163,6 +163,93 @@ pub struct Colors {
     pub removed_background: Color,
 }
 
+/// What a token of code is, which the theme gives a color (`file-view.highlight`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum CodeKind {
+    /// A comment.
+    Comment,
+    /// A string, or a character.
+    String,
+    /// A number.
+    Number,
+    /// A keyword of the language.
+    Keyword,
+    /// An operator.
+    Operator,
+    /// Punctuation.
+    Punctuation,
+    /// The name of a type.
+    Type,
+    /// The name of a function.
+    Function,
+    /// The name of a variable.
+    Variable,
+    /// The name of a property, a field or a key.
+    Property,
+    /// A constant.
+    Constant,
+    /// The name of a tag of markup.
+    Tag,
+    /// The name of an attribute, or a decorator.
+    Attribute,
+    /// Anything else, in the color of text.
+    Plain,
+}
+
+/// The colors of the tokens of code, by their kinds.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CodeColors {
+    /// Comments.
+    pub comment: Color,
+    /// Strings and characters.
+    pub string: Color,
+    /// Numbers.
+    pub number: Color,
+    /// Keywords.
+    pub keyword: Color,
+    /// Operators.
+    pub operator: Color,
+    /// Punctuation.
+    pub punctuation: Color,
+    /// The names of types.
+    pub type_name: Color,
+    /// The names of functions.
+    pub function: Color,
+    /// The names of variables.
+    pub variable: Color,
+    /// The names of properties, fields and keys.
+    pub property: Color,
+    /// Constants.
+    pub constant: Color,
+    /// The names of tags.
+    pub tag: Color,
+    /// The names of attributes, and decorators.
+    pub attribute: Color,
+}
+
+impl CodeColors {
+    /// The color of a kind of token; plain text is drawn in the color given for it.
+    #[must_use]
+    pub fn color(&self, kind: CodeKind, plain: Color) -> Color {
+        match kind {
+            CodeKind::Comment => self.comment,
+            CodeKind::String => self.string,
+            CodeKind::Number => self.number,
+            CodeKind::Keyword => self.keyword,
+            CodeKind::Operator => self.operator,
+            CodeKind::Punctuation => self.punctuation,
+            CodeKind::Type => self.type_name,
+            CodeKind::Function => self.function,
+            CodeKind::Variable => self.variable,
+            CodeKind::Property => self.property,
+            CodeKind::Constant => self.constant,
+            CodeKind::Tag => self.tag,
+            CodeKind::Attribute => self.attribute,
+            CodeKind::Plain => plain,
+        }
+    }
+}
+
 /// The distances between things, in logical pixels.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Spacing {
@@ -251,6 +338,8 @@ pub struct Theme {
     pub sizes: Sizes,
     /// The colors of the lanes of the graph, used in turn: four, told apart by lightness as well as hue.
     pub lanes: [Color; 4],
+    /// The colors of the tokens of code.
+    pub code: CodeColors,
 }
 
 impl Theme {
@@ -311,94 +400,4 @@ pub(crate) const SIZES: Sizes = Sizes {
 };
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn settings_name_the_five_themes_and_system_follows_the_appearance() {
-        for name in [
-            ThemeName::System,
-            ThemeName::Dark,
-            ThemeName::Light,
-            ThemeName::HighContrastDark,
-            ThemeName::HighContrastLight,
-        ] {
-            assert_eq!(ThemeName::from_setting(name.setting()), Some(name));
-        }
-        assert_eq!(ThemeName::from_setting("solarized"), None);
-        assert_eq!(
-            Theme::new(ThemeName::System, Appearance::Light),
-            Theme::new(ThemeName::Light, Appearance::Dark)
-        );
-        assert_eq!(Theme::new(ThemeName::System, Appearance::Dark).name, ThemeName::Dark);
-        assert_eq!(
-            Theme::new(ThemeName::Dark, Appearance::Dark).lane(5),
-            Theme::new(ThemeName::Dark, Appearance::Dark).lanes[1]
-        );
-    }
-
-    /// The contrast of two colors as the Web Content Accessibility Guidelines 2.1 define it, from 1 to 21.
-    fn contrast(first: Color, second: Color) -> f64 {
-        let luminance = |color: Color| {
-            let channel = |value: u8| {
-                let value = f64::from(value) / 255.0;
-                if value <= 0.039_28 {
-                    value / 12.92
-                } else {
-                    ((value + 0.055) / 1.055).powf(2.4)
-                }
-            };
-            0.2126 * channel(color.red) + 0.7152 * channel(color.green) + 0.0722 * channel(color.blue)
-        };
-        let (lighter, darker) = (
-            luminance(first).max(luminance(second)),
-            luminance(first).min(luminance(second)),
-        );
-        (lighter + 0.05) / (darker + 0.05)
-    }
-
-    #[test]
-    fn text_is_readable_on_its_backgrounds_in_every_theme() {
-        for name in [
-            ThemeName::Dark,
-            ThemeName::Light,
-            ThemeName::HighContrastDark,
-            ThemeName::HighContrastLight,
-        ] {
-            let theme = Theme::new(name, Appearance::Dark);
-            let colors = theme.colors;
-            let least = if matches!(name, ThemeName::HighContrastDark | ThemeName::HighContrastLight) {
-                7.0
-            } else {
-                4.5
-            };
-            for (foreground, background, what) in [
-                (colors.foreground, colors.page_background, "text on a page"),
-                (colors.foreground, colors.rail_background, "text in the branch rail"),
-                (colors.foreground, colors.card_background, "text on a card"),
-                (
-                    colors.muted_foreground,
-                    colors.page_background,
-                    "muted text on the timeline",
-                ),
-                (colors.muted_foreground, colors.card_background, "muted text on a card"),
-                (
-                    colors.list_selection_foreground,
-                    colors.list_selection,
-                    "a selected row",
-                ),
-                (colors.button_foreground, colors.button_background, "a button"),
-                (colors.input_foreground, colors.input_background, "an input box"),
-                (colors.menu_foreground, colors.menu_background, "a menu"),
-                (
-                    colors.secondary_button_foreground,
-                    colors.secondary_button_background,
-                    "a button that is not the main one",
-                ),
-            ] {
-                let ratio = contrast(foreground, background);
-                assert!(ratio >= least, "{name:?}: {what} has a contrast of {ratio:.2}");
-            }
-        }
-    }
-}
+mod tests;

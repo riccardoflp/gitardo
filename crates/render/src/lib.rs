@@ -37,4 +37,4 @@ pub use geometry::{PixelRect, Point, Rect, Transform};
 pub use icon::{GRID as ICON_GRID, Icon, Icons};
 pub use path::{Command, FillRule, LineCap, Path};
 pub use text::{FontFamily, FontWeight, Fonts, LineMetrics, TextRun, TextStyle, Truncation, TypefaceId};
-pub use theme::{Appearance, Colors, FontSizes, Radii, Sizes, Spacing, Theme, ThemeName};
+pub use theme::{Appearance, CodeColors, CodeKind, Colors, FontSizes, Radii, Sizes, Spacing, Theme, ThemeName};

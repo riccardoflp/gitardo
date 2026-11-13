@@ -1,6 +1,6 @@
 //! The light theme: dark text on a paper ground, white cards, a burnt orange accent.
 
-use super::{Colors, SIZES, Theme, ThemeName};
+use super::{CodeColors, Colors, SIZES, Theme, ThemeName};
 use crate::color::Color;
 
 /// The light theme.
@@ -64,4 +64,19 @@ pub(super) const THEME: Theme = Theme {
         Color::rgb(0x6B, 0x4F, 0xD1),
         Color::rgb(0xC0, 0x39, 0x6B),
     ],
+    code: CodeColors {
+        comment: Color::rgb(0x5F, 0x6B, 0x66),
+        string: Color::rgb(0x1F, 0x7A, 0x3A),
+        number: Color::rgb(0x0B, 0x5F, 0xA8),
+        keyword: Color::rgb(0xB0, 0x2A, 0x4A),
+        operator: Color::rgb(0x9A, 0x3A, 0x12),
+        punctuation: Color::rgb(0x3A, 0x38, 0x33),
+        type_name: Color::rgb(0x8A, 0x53, 0x00),
+        function: Color::rgb(0x6A, 0x3A, 0xB2),
+        variable: Color::rgb(0x1E, 0x1D, 0x1B),
+        property: Color::rgb(0x0B, 0x5F, 0xA8),
+        constant: Color::rgb(0x0B, 0x5F, 0xA8),
+        tag: Color::rgb(0x1F, 0x7A, 0x3A),
+        attribute: Color::rgb(0x6A, 0x3A, 0xB2),
+    },
 };

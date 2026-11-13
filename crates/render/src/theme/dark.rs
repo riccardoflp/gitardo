@@ -1,6 +1,6 @@
 //! The dark theme: light warm text on a graphite ground, cards a step lighter, an amber accent.
 
-use super::{Colors, SIZES, Theme, ThemeName};
+use super::{CodeColors, Colors, SIZES, Theme, ThemeName};
 use crate::color::Color;
 
 /// The dark theme.
@@ -64,4 +64,19 @@ pub(super) const THEME: Theme = Theme {
         Color::rgb(0xAD, 0x91, 0xF7),
         Color::rgb(0xF0, 0x7F, 0xA6),
     ],
+    code: CodeColors {
+        comment: Color::rgb(0x8B, 0x90, 0x99),
+        string: Color::rgb(0x9B, 0xCB, 0x7E),
+        number: Color::rgb(0xE3, 0xA2, 0x6F),
+        keyword: Color::rgb(0xC7, 0x92, 0xEA),
+        operator: Color::rgb(0x5F, 0xC4, 0xD0),
+        punctuation: Color::rgb(0xB8, 0xBC, 0xC4),
+        type_name: Color::rgb(0xF0, 0xC6, 0x74),
+        function: Color::rgb(0x72, 0xB7, 0xF2),
+        variable: Color::rgb(0xE6, 0xE3, 0xDC),
+        property: Color::rgb(0x93, 0xC7, 0xF5),
+        constant: Color::rgb(0xE3, 0xA2, 0x6F),
+        tag: Color::rgb(0xF0, 0x8A, 0x8A),
+        attribute: Color::rgb(0xE3, 0xA2, 0x6F),
+    },
 };
