@@ -41,6 +41,10 @@ pub fn edit(context: &Context, answers: &Answers) -> Outcome {
     if let Some(refusal) = refuse_under_way(context) {
         return refusal;
     }
+    if context.repository.bisect.is_some() {
+        // A new message makes the commit again, and the bisect would test commits that are no longer there.
+        return Outcome::Refuse(Refusal::saying(crate::bisect::END_FIRST));
+    }
     let Some(old) = answers.message(OLD) else {
         return Outcome::Read(OLD, Query::Message { commit: commit.clone() });
     };

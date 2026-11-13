@@ -2,6 +2,8 @@
 
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 
+mod bisect;
+
 use std::path::PathBuf;
 
 use model::CommitId;

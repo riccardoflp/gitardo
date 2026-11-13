@@ -182,7 +182,7 @@ pub(crate) fn tag_entries(menus: ReferenceMenus<'_>, tag: &Tag) -> Vec<Operation
 
 /// The operations of a commit of the timeline: a branch or a tag made there; the commit checked out on a detached
 /// `HEAD`, merged or cherry-picked unless it is the one checked out; reverted; the branch checked out reset to it; and
-/// its message edited while no operation is under way.
+/// its message edited while no operation and no bisect is under way.
 pub(crate) fn commit_entries(menus: ReferenceMenus<'_>, commit: &CommitId) -> Vec<OperationEntry> {
     let state = menus.repository;
     let target = || Target::Commit(commit.clone());
@@ -221,7 +221,7 @@ pub(crate) fn commit_entries(menus: ReferenceMenus<'_>, commit: &CommitId) -> Ve
         "reset.to-commit",
         target(),
     ));
-    if state.operation.is_none() {
+    if state.operation.is_none() && state.bisect.is_none() {
         entries.push(OperationEntry::runs(
             history_words::EDIT_MESSAGE,
             "message.edit",

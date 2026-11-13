@@ -305,3 +305,4 @@
   local branches`. Several commits selected bring out no history. A narrow window shows **Sync** as its icon and its
   counts.
 - **Open file** in the bar of a Diff page whose right side is the working tree opens the File page of the file.
+- **Edit message…** is not in the menu of a commit while a bisect is under way, and says *End the bisect first.*

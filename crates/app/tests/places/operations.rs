@@ -8,7 +8,7 @@ use render::ThemeName;
 use views::Intent;
 use views::feature::FeatureIntent;
 
-use super::support::{OperationsDriver, Window, find, says, typed};
+use super::support::{OperationsDriver, Window, find, says, says_in, typed};
 use super::{repository_with_history, showing};
 
 /// The size of the window of the pictures.
@@ -94,6 +94,48 @@ fn preview_confirm__cancel_runs_nothing_and_logs_nothing() {
         "nothing is logged"
     );
     assert_eq!(repository.git(&["rev-parse", "HEAD"]), head_before, "nothing ran");
+}
+
+#[test]
+fn preview_confirm__with_command_preview_off_a_branch_is_made_at_once_and_a_hard_reset_shows_its_command_and_warning() {
+    use model::contract::{Answer, AnswerKey, Answers, CommandPreview, Danger, FeatureId, Target};
+    let (repository, _remote) = repository_with_history();
+    let mut state = showing(repository.path().to_path_buf());
+    state.settings.features.command_preview = CommandPreview::Off;
+    let driver = OperationsDriver::new();
+    let branch = Answers::new()
+        .with(AnswerKey("name"), Answer::Text(String::from("topic")))
+        .with(AnswerKey("mode"), Answer::Choice(String::from("only")));
+    let created = FeatureIntent::RunWith(FeatureId("branch.create"), Target::Head, branch);
+    driver.intent(&mut state, Intent::Feature(created));
+    assert_eq!(next_kind(&driver, &mut state), "ended", "no dialog before it runs");
+    assert!(repository.git(&["branch", "--list", "topic"]).contains("topic"));
+    let head = repository.git(&["rev-parse", "HEAD~1"]).trim().to_owned();
+    let hard = Answers::new().with(features::reset::MODE, Answer::Choice(String::from("hard")));
+    let commit = Target::Commit(model::CommitId::parse(&head).unwrap());
+    driver.intent(
+        &mut state,
+        Intent::Feature(FeatureIntent::RunWith(FeatureId("reset.to-commit"), commit, hard)),
+    );
+    let Message::FeatureConfirms(plan) = driver.next(&mut state) else {
+        panic!("a hard reset is shown first");
+    };
+    assert_eq!(views::feature::plan_lines(&plan), [format!("git reset --hard {head}")]);
+    assert!(matches!(plan.danger, Danger::Destructive(_)), "with its warning");
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    let said: Vec<String> = tree
+        .nodes
+        .iter()
+        .filter_map(|(_, node)| node.label().map(str::to_owned))
+        .collect();
+    assert!(
+        says_in(
+            &tree,
+            "A hard reset throws away all uncommitted changes to tracked files."
+        ),
+        "{said:?}"
+    );
 }
 
 #[test]

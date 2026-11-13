@@ -101,6 +101,17 @@ fn message_edit__an_empty_message_is_refused() {
 }
 
 #[test]
+fn message_edit__while_a_bisect_is_under_way_it_is_refused() {
+    let mut state = state();
+    state.bisect = Some(model::bisect::Bisect::default());
+    let context = context(state, Target::Commit(commit('a')));
+    let Outcome::Refuse(refusal) = edit(&context, &typed("New words")) else {
+        panic!("refused during a bisect")
+    };
+    assert_eq!(refusal.message.as_str(), "End the bisect first.");
+}
+
+#[test]
 fn message_edit__a_commit_off_the_line_before_head_is_refused_before_asking() {
     let mut state = state();
     state.head.commit = Some(commit('d'));

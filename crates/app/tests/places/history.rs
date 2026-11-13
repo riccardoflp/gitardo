@@ -179,6 +179,21 @@ fn merge_choose_way__after_a_squash_the_empty_message_of_the_draft_holds_what_gi
 }
 
 #[test]
+fn commit_create__a_squash_merge_that_stopped_fills_the_empty_message_box_and_commit_takes_it() {
+    let (repository, _picked) = three_on_feature();
+    let mut state = showing(repository.path().to_path_buf());
+    let driver = OperationsDriver::new();
+    let _merged = squash_feature(&driver, &mut state);
+    driver.intent(&mut state, Intent::Changes(ChangesIntent::Commit));
+    let lines = confirm_until_ended(&driver, &mut state);
+    assert!(lines.iter().any(|line| line.starts_with("git commit")), "{lines:?}");
+    assert_eq!(
+        repository.git(&["log", "-1", "--format=%s"]),
+        "Squashed commit of the following:\n"
+    );
+}
+
+#[test]
 fn merge_choose_way__after_a_squash_a_draft_message_with_text_keeps_it() {
     let (repository, _picked) = three_on_feature();
     let mut state = showing(repository.path().to_path_buf());
@@ -274,6 +289,43 @@ fn selection_menu__copy_hashes_puts_one_full_hash_per_line_in_the_clipboard_in_t
             .all(|line| line.len() == 40 && line.chars().all(|character| character.is_ascii_hexdigit()))
     );
     assert_eq!(lines, hashes.iter().map(CommitId::as_str).collect::<Vec<_>>());
+}
+
+#[test]
+fn message_edit__escape_in_the_box_of_the_message_leaves_it_as_it_was_and_runs_nothing() {
+    let (repository, _picked) = three_on_feature();
+    let head = commit_id(&repository.git(&["rev-parse", "HEAD"]));
+    let mut state = showing(repository.path().to_path_buf());
+    let driver = OperationsDriver::new();
+    run(&driver, &mut state, "message.edit", Target::Commit(head.clone()));
+    let asked = loop {
+        match driver.next(&mut state) {
+            Message::FeatureAsks(question) => break question,
+            Message::FeatureEnded { .. } => panic!("it asks for the message"),
+            _ => {}
+        }
+    };
+    assert_eq!(asked.default, Some(Answer::Text(String::from("Add m"))));
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let typed = ui::InputEvent::TextTyped(String::from(" and n"));
+    let escape = ui::InputEvent::KeyPressed(ui::KeyEvent::press(
+        ui::Key::Named(ui::NamedKey::Escape),
+        ui::Modifiers::NONE,
+    ));
+    for events in [vec![typed], vec![escape]] {
+        let (intents, _) = window.draw(&state, &events);
+        for intent in intents {
+            driver.intent(&mut state, intent);
+        }
+    }
+    let lines = loop {
+        if let Message::FeatureEnded { log, .. } = driver.next(&mut state) {
+            break log;
+        }
+    };
+    assert_eq!(lines, []);
+    assert_eq!(repository.git(&["log", "-1", "--format=%s"]), "Add m\n");
+    assert_eq!(commit_id(&repository.git(&["rev-parse", "HEAD"])), head);
 }
 
 #[test]

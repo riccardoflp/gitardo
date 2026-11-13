@@ -748,7 +748,8 @@ the reading given until it is answered:
   `commit.create` (git's prepared message, `SQUASH_MSG` or the message of a commit being split, is not read yet:
   should `repo.read-state` read it, or the commit box when it is empty?); `commit.draft-message` (the AI provider,
   M9). `preview.confirm` has its line on staging a file tested, and stays Specified for its first line, which is not
-  of this area.
+  of this area. (Both built since: the empty box takes `SQUASH_MSG` after the operation that leaves it, and the
+  first line of `preview.confirm` is tested from the window; Q-W5.)
 - **Q123** — `stash.push-file` on a rename that is staged: `git stash push -- <old> <new>` fails, as the old name is no
   longer in the index (`pathspec ... did not match`). The plan first runs `git reset --quiet -- <old name>`, then
   stashes both names; the card says so now. Popping the stash brings both names back, but the rename is no longer
@@ -920,7 +921,7 @@ the reading given until it is answered:
   It stays **Specified** for its lines 4 (`Escape` in the box) and 5 (a bisect). For an older commit, the interactive
   rebase writes its files in `gitardo-rebase-<time>` inside the git folder, not in the temporary folder of the system,
   since `features` reads no environment; that plan is the one `rebase.interactive` will have, and the two should be
-  one when the rebase slice is merged. Right?
+  one when the rebase slice is merged. Right? (Lines 4 and 5 are built since, with the question dialog: Q-W5.)
 - **Q160** — **Edit message…** is in the menu of every commit while no operation is under way, not only where
   `rebase.find-line-before-head` gives a line: the menu does not read git, and the operation refuses a commit off the
   line with the card's words. **Merge into `<branch>`…** has no hint *choose how*: an item of a menu has a shortcut
@@ -1471,3 +1472,10 @@ From the cards left over up to M8 (each built with the reading given, until the 
 - **Q-W4** — `diff.open-file` is the title button of a page of one file whose right side is the working tree, between
   **Discard changes** and the fold button; a page of several files has no title button for each file yet, as it has
   none of `diff.stage-file`. Should the files of a page of several have a bar of their own with these buttons?
+- **Q-W5** — `commit.create` is built: the commit box empty after a squash merge holds what git prepared in
+  `SQUASH_MSG`, and **Commit** makes the commit with it. `preview.confirm` is built: with `commandPreview` `off` a
+  branch is made at once and a hard reset shows its command and its warning first. `message.edit` is built with the
+  question dialog of the window in place of a box in the inspector (Q159): `Escape` in it runs nothing, and while a
+  bisect is under way **Edit message…** is not in the menu of a commit and the operation says *End the bisect first.*
+  The pencil of the inspector is not drawn, as the inspector has no box to edit a message in. Should the box come with
+  the multi-line editor, or is the dialog the box?
