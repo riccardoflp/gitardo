@@ -253,9 +253,9 @@ Opens a file in conflict where it can be resolved by hand, which depends on what
 
 | Stages | Opens |
 | --- | --- |
-| 1, 2, 3 | the **Merge** page of the file |
+| 1, 2, 3 | the **Merge** page of the file, at the region of the result the line asked for is in |
 | 1 and one of 2, 3 | a **Diff** page of the base (`:1:<file>`) beside the file in the working tree, titled **\<name\> (deleted by \<deleter\>, changed by \<keeper\>)** with the words of `conflicts.side-names` in lower case |
-| 2, 3 (both added) | the **File** page, at the line asked for, with git's markers in it |
+| 2, 3 (both added), or 2 or 3 alone (added on one side) | the **File** page, at the line asked for, with git's markers in it |
 
 Acceptance:
 

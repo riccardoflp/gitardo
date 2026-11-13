@@ -66,6 +66,9 @@ pub struct MergePageState<'a> {
 pub enum MergeIntent {
     /// Open the Merge page of a file in conflict, by its path from the top of the working tree, or show the one it has.
     Open(String),
+    /// Open it, or show it, at the region of the result a line of the file on disk is in, from 1: **Resolve by hand** on
+    /// a card of the review of the conflicts, and `conflicts.open-file` from the line number of a card.
+    OpenAt(String, usize),
     /// Something asked of a page.
     Page(MergePageId, MergePageIntent),
     /// The answer to the question asked before a very large file: **Continue**, or anything else.

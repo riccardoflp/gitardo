@@ -38,6 +38,7 @@ mod rebase;
 mod review;
 mod review_cards;
 mod review_entry;
+mod review_wiring;
 mod search;
 mod show_in_graph;
 mod speed;

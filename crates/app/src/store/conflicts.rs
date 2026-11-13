@@ -108,9 +108,14 @@ pub fn banner_state<'a>(state: &'a State, read: &'a RepositoryRead) -> Option<Ba
     })
 }
 
-/// An intent of a file in conflict: a click on it opens it where it can be resolved, unless it is resolved meanwhile.
+/// An intent of a file in conflict: a click on it opens it where it can be resolved, unless it is resolved meanwhile;
+/// from the line number of a card of the review, at that line: the File page at it, the Merge page at the region of the
+/// result it is in.
 pub fn reduce(state: &mut State, intent: ConflictsIntent) -> Vec<Effect> {
-    let ConflictsIntent::Open(path) = intent;
+    let (path, line) = match intent {
+        ConflictsIntent::Open(path) => (path, None),
+        ConflictsIntent::OpenAtLine(path, line) => (path, Some(line)),
+    };
     let Some(read) = state.shown_read() else {
         return Vec::new();
     };
@@ -122,8 +127,12 @@ pub fn reduce(state: &mut State, intent: ConflictsIntent) -> Vec<Effect> {
         .find(|file| file.path == path)
         .and_then(|file| open_target(file, repository.operation));
     match target {
-        Some(OpenAt::Merge(path)) => super::merge_page::open(state, path),
+        Some(OpenAt::Merge(path)) => super::merge_page::open_at(state, &path, line),
         Some(OpenAt::Diff(target)) => super::diff_page::open(state, target),
+        Some(OpenAt::File(mut target)) => {
+            target.line = line;
+            super::file_page::open(state, target)
+        }
         None => Vec::new(),
     }
 }

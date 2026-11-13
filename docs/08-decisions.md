@@ -1094,12 +1094,12 @@ says otherwise):
   again has files in conflict, keeping the count of files of that read. What an operation offers next
   (`FollowUp::Offer`, and the offer of a refusal) is now a button beside what it said: **Continue** after the rules left
   no file in conflict, **Open settings**, which opens the settings page, after a refusal. Are these right?
-- **Q190** — `conflicts.open-file` stays **Specified** until the File page is there: a file both sides changed opens
-  in the Merge page, while a file both sides added, or added on one side, opens in the Diff page of `HEAD` beside the
-  working tree, with git's markers in it; a file one side deleted opens, as its card says, in the Diff page of its base
-  (`DiffVersion::Base`, `:1:<file>`, which offers no button in the gutter) beside the working tree. Where it opens is
-  decided by `views::conflicts::open_target(file, operation) -> Option<OpenAt>`, beside the card's `open_file_view`.
-  Should the line of a review card come in the intent, for the File page to open at it?
+- **Q190** — A file both sides changed opens in the Merge page; a file both sides added, or added on one side only,
+  opens in the File page with git's markers in it (`OpenAt::File`); a file one side deleted opens, as its card says,
+  in the Diff page of its base (`DiffVersion::Base`, `:1:<file>`, which offers no button in the gutter) beside the
+  working tree. Where it opens is decided by `views::conflicts::open_target(file, operation) -> Option<OpenAt>`, beside
+  the card's `open_file_view`. The line of a review card comes in the intent (`ConflictsIntent::OpenAtLine`): the File
+  page opens at it, the Merge page at the region of the result that line of the file on disk is in. Are these right?
 - **Q191** — The buttons of a file in conflict on the Changes page are **+** (**Mark as resolved**), then **↓** for the
   incoming side and **↑** for the current one: the set of icons has no left and right arrows for the ← and → of the
   card of `conflicts.take-side`. Should arrows to the left and the right be drawn for them?
@@ -1177,15 +1177,16 @@ says otherwise):
 - **Q207** — No proposal of the AI exists yet: `review.proposals` is given no answers, and **Ask the AI about the
   rest**, the button with the model's name, **Ask again** and **Ask the AI** are left out until `ai.resolve-conflicts`
   is built; what the cards and the counts say of the AI is built and tested on data. `review.accept-all` is built with
-  its line about the AI checked on proposals of the rules only, and `review.card` stays Specified for **Resolve by
-  hand** and for a card the AI failed on. Is this right?
-- **Q208** — Where the review hands over to a card not built yet, the entry is disabled: **Resolve by hand**
-  (`merge-view.page`), **Keep it, with these changes** and **Delete it** (`conflicts.take-side`, so
-  `review.deleted-card` stays Specified), and **Continue the merge** (`conflicts.continue-operation`, so
-  `review.report` stays Specified), which lights up once that operation is registered and then runs it at `HEAD`.
-  **Undo** in the report runs `conflicts.restore` once it is registered, else `undo.last`, which puts the conflicts
-  back from the journal. The line number of a card, the files under **Also in conflict** and the button that shows a
-  deleted file's base (`conflicts.open-file`, `diff.page`) are not clickable yet. Is this right?
+  its line about the AI checked on proposals of the rules only, and `review.card` stays Specified for a card the AI
+  failed on, which cannot be had before the AI is asked. Is this right?
+- **Q208** — The review hands over to the rest of the window: **Resolve by hand** opens the Merge page of the file
+  with the region of the conflict current and in the middle (`MergeIntent::OpenAt`, by the line of its first marker);
+  **Keep it, with these changes** and **Delete it** run `conflicts.take-side` in the repository of the page, with the
+  side given, so that it asks only its confirmation; **Continue the merge** runs `conflicts.continue-operation` at
+  `HEAD`; **Undo** in the report runs `conflicts.restore`. The line number of a card, the files under **Also in
+  conflict** and the eye beside **Keep it** and **Delete it**, which shows a deleted file's base beside it, open the
+  file through `conflicts.open-file`. **Conflict at line N** is drawn as a button of words, with *Open the file at this
+  line* as its tooltip. Is this right?
 - **Q209** — **Edit** in `review.choose` is shown but disabled: the toolkit has no box of several lines yet, and
   `review.choose` stays Specified until it does; the four other choices are built and accepted at once. Should the
   box of several lines come with the File page of M6?

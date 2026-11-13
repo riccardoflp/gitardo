@@ -6,6 +6,7 @@ use model::state::{ConflictKind, ConflictedFile, Operation};
 use ui::{Label, Sense, Ui};
 
 use crate::diff::{DiffFile, DiffTarget, DiffVersion};
+use crate::file_view::FileTarget;
 use crate::intent::Intent;
 use crate::text::conflicts as words;
 
@@ -14,6 +15,9 @@ use crate::text::conflicts as words;
 pub enum ConflictsIntent {
     /// A file in conflict was clicked: open it where it can be resolved, unless it was resolved meanwhile.
     Open(String),
+    /// The line number of a card of the review was clicked: open the file where it can be resolved, at that line of
+    /// the file as it is on disk, from 1.
+    OpenAtLine(String, usize),
 }
 
 /// Where a file in conflict opens.
@@ -23,6 +27,8 @@ pub enum OpenAt {
     Merge(String),
     /// A Diff page.
     Diff(DiffTarget),
+    /// The File page of the file in the working tree, with git's markers in it.
+    File(FileTarget),
 }
 
 /// A file in conflict, where its name is drawn.
@@ -54,8 +60,7 @@ pub fn open_file_view(state: &OpenFileState<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
 
 /// Where a file in conflict opens: a file both sides changed in the Merge page; a file one side deleted in a Diff page
 /// of its base beside the file in the working tree, titled with what each side did; a file added on one side or on both
-/// in a Diff page of what is checked out beside the working tree, with git's markers in it, until the File page is
-/// there. A file both sides deleted opens nothing.
+/// in the File page, with git's markers in it. A file both sides deleted opens nothing.
 #[must_use]
 pub fn open_target(file: &ConflictedFile, operation: Option<Operation>) -> Option<OpenAt> {
     let names = side_names(&SideNamesInput {
@@ -70,14 +75,10 @@ pub fn open_target(file: &ConflictedFile, operation: Option<Operation>) -> Optio
         ConflictKind::DeletedByUs => Some((current, incoming)),
         ConflictKind::BothAdded | ConflictKind::AddedByUs | ConflictKind::AddedByThem => None,
     };
-    let paths = DiffFile::same(&file.path);
     let Some((deleter, keeper)) = deleter_and_keeper else {
-        return Some(OpenAt::Diff(DiffTarget::file(
-            DiffVersion::Head,
-            DiffVersion::WorkingTree,
-            paths,
-        )));
+        return Some(OpenAt::File(FileTarget::working_tree(&file.path)));
     };
+    let paths = DiffFile::same(&file.path);
     let name = file.path.rsplit('/').next().unwrap_or(&file.path);
     let mut target = DiffTarget::file(DiffVersion::Base, DiffVersion::WorkingTree, paths);
     target.title = Some(words::deleted_and_changed(

@@ -271,7 +271,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`conflicts.stopped`](09-conflicts.md#conflictsstopped--the-message-when-an-operation-stops-on-conflicts) | The message when an operation stops on conflicts | View | Built |
 | [`conflicts.read-files`](09-conflicts.md#conflictsread-files--the-files-in-conflict-and-their-sides) | The files in conflict and their sides | Read | Built |
 | [`conflicts.side-names`](09-conflicts.md#conflictsside-names--what-the-two-sides-are) | What the two sides are | Derivation | Built |
-| [`conflicts.open-file`](09-conflicts.md#conflictsopen-file--open-a-file-in-conflict) | Open a file in conflict | View | Specified |
+| [`conflicts.open-file`](09-conflicts.md#conflictsopen-file--open-a-file-in-conflict) | Open a file in conflict | View | Built |
 | [`conflicts.mark-resolved`](09-conflicts.md#conflictsmark-resolved--mark-as-resolved) | Mark as resolved | Operation | Built |
 | [`conflicts.take-side`](09-conflicts.md#conflictstake-side--take-the-current-side-take-the-incoming-side) | Take the current side, take the incoming side | Operation | Built |
 | [`conflicts.parse-markers`](09-conflicts.md#conflictsparse-markers--the-conflicts-git-marked-in-a-file) | The conflicts git marked in a file | Derivation | Built |
@@ -292,10 +292,10 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`review.accept-all`](09-conflicts.md#reviewaccept-all--accept-all-proposed) | Accept all proposed | View | Built |
 | [`review.clear`](09-conflicts.md#reviewclear--clear) | Clear | View | Built |
 | [`review.write`](09-conflicts.md#reviewwrite--write-the-resolutions) | Write the resolutions | Operation | Built |
-| [`review.report`](09-conflicts.md#reviewreport--what-was-written) | What was written | View | Specified |
+| [`review.report`](09-conflicts.md#reviewreport--what-was-written) | What was written | View | Built |
 | [`review.columns`](09-conflicts.md#reviewcolumns--columns) | Columns | View | Specified |
 | [`review.show-result`](09-conflicts.md#reviewshow-result--show-the-result) | Show the result | View | Built |
-| [`review.deleted-card`](09-conflicts.md#reviewdeleted-card--a-file-deleted-on-one-side) | A file deleted on one side | View | Specified |
+| [`review.deleted-card`](09-conflicts.md#reviewdeleted-card--a-file-deleted-on-one-side) | A file deleted on one side | View | Built |
 | [`ai.resolve-conflicts`](09-conflicts.md#airesolve-conflicts--resolve-conflicts-with-ai) | Resolve conflicts with AI | View | Specified |
 | [`ai.ask-conflict`](09-conflicts.md#aiask-conflict--one-question-about-one-conflict) | One question about one conflict | Read | Specified |
 | [`ai.conflict-question`](09-conflicts.md#aiconflict-question--what-is-sent-about-a-conflict) | What is sent about a conflict | Derivation | Specified |

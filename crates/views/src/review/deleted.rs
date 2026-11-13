@@ -4,9 +4,11 @@
 use model::conflicts::SideNames;
 use model::review::{DeletedFile, KeptChanges, KeptRow, Which};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, Label, Rect, TextKind, Tone, Ui};
+use ui::{Button, ButtonKind, Icon, Label, Rect, TextKind, Tone, Ui};
 
+use super::ReviewIntent;
 use super::lines::{Look, code_line, gutter_width};
+use crate::conflicts::ConflictsIntent;
 use crate::intent::Intent;
 use crate::text::review as words;
 
@@ -17,6 +19,8 @@ pub struct DeletedState<'a> {
     pub file: &'a DeletedFile,
     /// What the two sides are.
     pub sides: &'a SideNames,
+    /// Whether an operation runs, which disables the buttons that change the file.
+    pub is_running: bool,
 }
 
 /// How many rows the changes take: one per row of the diff, or one for what is said in its place.
@@ -35,7 +39,8 @@ pub(super) fn deleted_height(file: &DeletedFile, ui: &Ui<'_>) -> f32 {
 
 /// A file one side deleted and the other changed, over the rectangle its caller clipped it to: its path, which side
 /// deleted it and which changed it, the changes of the side that kept it with the lines between them left out, and
-/// **Keep it, with these changes** and **Delete it**, which stay disabled until `conflicts.take-side` is built.
+/// **Keep it, with these changes** and **Delete it**, which take that side of it (`conflicts.take-side`), and the button
+/// that shows its base beside it (`conflicts.open-file`).
 ///
 /// Feature: review.deleted-card
 pub fn deleted_card_view(state: &DeletedState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -77,22 +82,47 @@ pub fn deleted_card_view(state: &DeletedState<'_>, ui: &mut Ui<'_>) -> Vec<Inten
             }
         }
     }
-    let mut buttons = Area::with_gap(area.top(theme.sizes.control_height), theme.sizes.spacing.small);
+    let buttons = area.top(theme.sizes.control_height);
+    decide(state, ui, buttons)
+}
+
+/// **Keep it, with these changes** and **Delete it**, which take that side of the file, and the eye that shows its base
+/// beside it, from the left of a row.
+fn decide(state: &DeletedState<'_>, ui: &mut Ui<'_>, row: Rect) -> Vec<Intent> {
+    let file = state.file;
+    let mut buttons = Area::with_gap(row, ui.theme().sizes.spacing.small);
     let keeps_current = file.deleted_by == Which::Incoming;
-    for (key, said, tooltip) in [
-        ("keep", words::KEEP_IT, words::keep_tooltip(&file.path, keeps_current)),
+    let keeper = if keeps_current { Which::Current } else { Which::Incoming };
+    let mut intents = Vec::new();
+    for (key, said, tooltip, taken) in [
+        (
+            "keep",
+            words::KEEP_IT,
+            words::keep_tooltip(&file.path, keeps_current),
+            keeper,
+        ),
         (
             "delete",
             words::DELETE_IT,
             words::delete_tooltip(&file.path, !keeps_current),
+            file.deleted_by,
         ),
     ] {
-        let button = Button::secondary(said).with_tooltip(&tooltip).disabled();
+        let button = Button::secondary(said).with_tooltip(&tooltip);
+        let button = if state.is_running { button.disabled() } else { button };
         let (width, height) = ui.button_size(&button);
         let cell = place(buttons.left(width), (width, height), (Align::Start, Align::Center));
-        let _ = ui.button(key, cell, &button);
+        if ui.button(key, cell, &button).clicked {
+            intents.push(Intent::Review(ReviewIntent::TakeSide(file.path.clone(), taken)));
+        }
     }
-    Vec::new()
+    let shown = Button::icon(Icon::Eye, words::SHOW_WHAT_IT_WAS).kind(ButtonKind::Icon);
+    let (width, height) = ui.button_size(&shown);
+    let cell = place(buttons.left(width), (width, height), (Align::Start, Align::Center));
+    if ui.button("what it was", cell, &shown).clicked {
+        intents.push(Intent::Conflicts(ConflictsIntent::Open(file.path.clone())));
+    }
+    intents
 }
 
 /// A row of the changes of the side that kept the file.

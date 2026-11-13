@@ -16,7 +16,9 @@ mod lines;
 mod tests;
 
 use model::conflicts::SideNames;
-use model::review::{ChoiceKind, DeletedFile, Origin, OriginCounts, ProposalSource, ProposalWarning, Shape, SideDiff};
+use model::review::{
+    ChoiceKind, DeletedFile, Origin, OriginCounts, ProposalSource, ProposalWarning, Shape, SideDiff, Which,
+};
 use model::state::Operation;
 
 pub use card::{CardState, card_view};
@@ -326,6 +328,9 @@ impl ReviewState<'_> {
 pub enum ReviewIntent {
     /// Open the page, of some files or of every file in conflict (`review.page`).
     Open(Option<Vec<String>>),
+    /// **Keep it, with these changes** or **Delete it** on a file deleted on one side: take that side of the whole file
+    /// (`conflicts.take-side`).
+    TakeSide(String, Which),
     /// Accept the proposal of a conflict (`review.accept`).
     Accept(ConflictKey),
     /// Take back its acceptance.

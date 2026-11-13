@@ -8,6 +8,7 @@ use ui::{Button, Icon, Label, Rect, TextKind, Tone, Ui};
 use super::card::{CardState, fold_arrow};
 use super::{ConflictCard, Layout, ReviewIntent};
 use crate::intent::Intent;
+use crate::merge_view::MergeIntent;
 use crate::text::review as words;
 
 /// The bottom of an open card, or the card folded to one line.
@@ -31,10 +32,13 @@ fn bottom(state: &CardState<'_>, ui: &mut Ui<'_>, row: Rect, intents: &mut Vec<I
     intents.extend(ui.clip(row, |ui| accept_view(state, ui)));
     let accept = Button::primary(words::ACCEPTED);
     let _ = area.right(ui.button_size(&accept).0);
-    let by_hand = Button::secondary(words::RESOLVE_BY_HAND)
-        .with_tooltip(words::RESOLVE_BY_HAND_TOOLTIP)
-        .disabled();
-    let _ = ui.button("by hand", right_cell(ui, &mut area, &by_hand), &by_hand);
+    let by_hand = Button::secondary(words::RESOLVE_BY_HAND).with_tooltip(words::RESOLVE_BY_HAND_TOOLTIP);
+    if ui
+        .button("by hand", right_cell(ui, &mut area, &by_hand), &by_hand)
+        .clicked
+    {
+        intents.push(Intent::MergeView(MergeIntent::OpenAt(card.key.path.clone(), card.line)));
+    }
     if state.layout == Layout::Cards && card.proposal.is_some() {
         if card.shown.is_sides_shown && card.base.is_some() {
             let base = Button::secondary(words::SHOW_BASE).with_tooltip(words::SHOW_BASE_TOOLTIP);

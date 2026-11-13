@@ -251,18 +251,24 @@ fn plain_line(ui: &mut Ui<'_>, (row, gutter): (Rect, f32), (number, text, color)
     );
 }
 
-/// The arrow that folds the card, and **Conflict at line N**.
+/// The arrow that folds the card, and **Conflict at line N**, which opens the file at that line
+/// (`conflicts.open-file`).
 fn title(state: &CardState<'_>, ui: &mut Ui<'_>, row: Rect, intents: &mut Vec<Intent>) {
     let mut area = Area::with_gap(row, ui.theme().sizes.spacing.small);
     if fold_arrow(ui, &mut area, ("fold", Icon::ChevronDown, words::FOLD)) {
         intents.push(Intent::Review(ReviewIntent::Fold(state.card.key.clone(), true)));
     }
-    let _ = ui.label(
-        area.rest(),
-        &Label::new(&words::conflict_at(state.card.line))
-            .kind(TextKind::Small)
-            .tone(Tone::Muted),
-    );
+    let said = words::conflict_at(state.card.line);
+    let button = Button::secondary(&said)
+        .kind(ButtonKind::Icon)
+        .with_tooltip(words::OPEN_AT_LINE);
+    let (width, height) = ui.button_size(&button);
+    let cell = place(area.left(width), (width, height), (Align::Start, Align::Center));
+    if ui.button("open at line", cell, &button).clicked {
+        let path = state.card.key.path.clone();
+        let open = crate::conflicts::ConflictsIntent::OpenAtLine(path, state.card.line);
+        intents.push(Intent::Conflicts(open));
+    }
 }
 
 /// An arrow that folds or unfolds, at the left of an area; whether it was clicked.

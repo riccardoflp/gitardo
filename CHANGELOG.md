@@ -251,3 +251,8 @@
 - The review of the conflicts also opens from **Resolve … automatically** in the banner of an operation that stopped,
   from the wand of a file in conflict on the Changes page, for that file alone, and from **Review** in the question of
   **Resolve conflicts automatically**.
+- From the review of the conflicts: **Conflict at line N** opens the file at that line, **Resolve by hand** opens the
+  Merge page at that conflict, a file under **Also in conflict** opens where it can be resolved, **Keep it, with these
+  changes** and **Delete it** take a side of a file deleted on one side, and **Undo** and **Continue the merge** in the
+  report put the conflicts back and go on with the merge. A file both sides added opens in the File page, with git's
+  markers in it.

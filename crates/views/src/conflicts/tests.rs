@@ -208,3 +208,18 @@ fn conflicts_open_file__a_file_both_sides_deleted_opens_nothing() {
         None
     );
 }
+
+#[test]
+fn conflicts_open_file__a_file_both_sides_added_opens_in_the_file_page() {
+    for kind in [
+        ConflictKind::BothAdded,
+        ConflictKind::AddedByUs,
+        ConflictKind::AddedByThem,
+    ] {
+        assert_eq!(
+            open_target(&conflicted("src/app.rs", kind), Some(Operation::Merge)),
+            Some(OpenAt::File(crate::file_view::FileTarget::working_tree("src/app.rs"))),
+            "{kind:?}"
+        );
+    }
+}

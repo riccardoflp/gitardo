@@ -141,7 +141,11 @@ pub fn file_list_view(state: &ReviewState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
                     }
                 }
                 Entry::Other(path) => {
-                    let _ = ui.label(area.top(sizes.row_height), &Label::new(path).tone(Tone::Muted));
+                    let button = Button::secondary(path).kind(ButtonKind::Icon);
+                    if wide_button(ui, (area.top(sizes.row_height), ("other", path)), &button) {
+                        let open = crate::conflicts::ConflictsIntent::Open(path.to_owned());
+                        intents.push(Intent::Conflicts(open));
+                    }
                 }
                 Entry::Nothing => {
                     let _ = ui.label(

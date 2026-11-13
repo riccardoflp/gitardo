@@ -4,8 +4,8 @@
 
 use std::sync::Arc;
 
-use model::contract::{Answers, FeatureId, Target};
-use model::review::{FileResolutions, Resolutions};
+use model::contract::{Answer, Answers, FeatureId, Target};
+use model::review::{FileResolutions, Resolutions, Which};
 use views::diff::{DiffFile, DiffTarget, DiffVersion};
 use views::review::{ConflictKey, Filter, Report, ReviewIntent};
 
@@ -20,6 +20,8 @@ pub const WRITE: &str = "review.write";
 pub const CONTINUE: &str = "conflicts.continue-operation";
 /// The operation that puts back the conflicts of the files written, once it is built.
 pub const RESTORE: &str = "conflicts.restore";
+/// The operation that takes one side of a whole file.
+pub const TAKE_SIDE: &str = "conflicts.take-side";
 
 /// A conflict by its file and fingerprint.
 fn fingerprinted(key: &ConflictKey) -> Fingerprinted {
@@ -30,6 +32,7 @@ fn fingerprinted(key: &ConflictKey) -> Fingerprinted {
 pub fn reduce(state: &mut State, intent: ReviewIntent) -> Vec<Effect> {
     match intent {
         ReviewIntent::Open(only) => return super::open(state, only),
+        ReviewIntent::TakeSide(path, taken) => return take_side(state, path, taken),
         ReviewIntent::ShowResult => return show_result(state),
         ReviewIntent::Write => return write(state),
         ReviewIntent::Undo => return undo(state),
@@ -212,6 +215,11 @@ fn write(state: &mut State) -> Vec<Effect> {
 
 /// Runs an operation in the repository of the page.
 fn run(state: &mut State, feature: &'static str, target: Target) -> Vec<Effect> {
+    run_with(state, (feature, target), Answers::new())
+}
+
+/// Runs an operation in the repository of the page, with answers given already.
+fn run_with(state: &mut State, (feature, target): (&'static str, Target), answers: Answers) -> Vec<Effect> {
     let Some(page) = state.reviews.page.as_ref() else {
         return Vec::new();
     };
@@ -219,7 +227,18 @@ fn run(state: &mut State, feature: &'static str, target: Target) -> Vec<Effect> 
         return Vec::new();
     }
     let repository = (page.folder.clone(), Arc::clone(&page.repository));
-    crate::store::feature::run_in(state, repository, (FeatureId(feature), target), Answers::new())
+    crate::store::feature::run_in(state, repository, (FeatureId(feature), target), answers)
+}
+
+/// **Keep it, with these changes** or **Delete it** on a file deleted on one side: `conflicts.take-side` of that side,
+/// which asks first.
+fn take_side(state: &mut State, path: String, taken: Which) -> Vec<Effect> {
+    let side = match taken {
+        Which::Current => "current",
+        Which::Incoming => "incoming",
+    };
+    let answers = Answers::new().with(features::conflicts::SIDE, Answer::Choice(side.to_owned()));
+    run_with(state, (TAKE_SIDE, Target::File(path)), answers)
 }
 
 /// **Undo** in the report: `conflicts.restore` once it is built, else `undo.last`, which puts back the conflicts of the

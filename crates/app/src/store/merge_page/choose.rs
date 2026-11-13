@@ -161,7 +161,7 @@ fn step(state: &mut State, id: MergePageId, is_next: bool) -> Vec<Effect> {
 }
 
 /// Makes a region the current one, and brings it to the middle.
-fn go_to_region(page: &mut MergePage, region: usize, serial: u64) {
+pub(super) fn go_to_region(page: &mut MergePage, region: usize, serial: u64) {
     page.current = Some(region);
     if let Some(rows) = page.layout.regions.get(region) {
         page.reveal = Some((serial, rows.start));

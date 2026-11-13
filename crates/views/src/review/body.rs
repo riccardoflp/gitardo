@@ -58,6 +58,7 @@ fn blocks<'a>(state: &ReviewState<'a>) -> Vec<Block<'a>> {
                 Block::Deleted(DeletedState {
                     file,
                     sides: state.sides,
+                    is_running: state.is_running,
                 })
             }),
     );

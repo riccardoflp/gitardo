@@ -5,6 +5,7 @@
 
 mod choose;
 mod edit;
+mod lines;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -22,6 +23,7 @@ use crate::persisted::same_folder;
 use crate::work::merge_view::{MergeJob, MergeRead, MergeSidesText};
 
 pub use choose::reduce_page;
+pub use lines::open_at;
 
 /// The Merge pages, open or waiting for their first read.
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
@@ -79,6 +81,8 @@ pub struct MergePage {
     pub current: Option<usize>,
     /// The row to bring to the middle, once for each number.
     pub reveal: Option<(u64, usize)>,
+    /// The line of the result to go to once the regions are known, from 0.
+    pub pending_line: Option<usize>,
     /// The read of the repository it was last read against.
     pub read_generation: u64,
 }
@@ -95,6 +99,7 @@ impl MergePage {
 pub fn reduce(state: &mut State, intent: MergeIntent) -> Vec<Effect> {
     match intent {
         MergeIntent::Open(path) => open(state, path),
+        MergeIntent::OpenAt(path, line) => open_at(state, &path, Some(line)),
         MergeIntent::Page(id, intent) => reduce_page(state, id, intent),
         MergeIntent::AnswerLarge(is_continued) => answer_large(state, is_continued),
     }
@@ -142,6 +147,7 @@ pub fn open(state: &mut State, path: String) -> Vec<Effect> {
         waiting: None,
         current: None,
         reveal: None,
+        pending_line: None,
         read_generation: generation,
     });
     start_read(state, id, Reading::FromDisk).into_iter().collect()
@@ -267,6 +273,7 @@ fn shown(
     if is_first {
         super::pages::show_page(state, Page::Merge(id));
     }
+    lines::go_to_pending(state, id);
     choose::after_regions(state, id)
 }
 
