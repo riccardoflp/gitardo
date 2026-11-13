@@ -1297,11 +1297,11 @@ says otherwise):
 From milestone M8, the settings of new worktrees (`worktree-setup.`), each built with the reading given until it is
 answered:
 
-- **Q-T1** — The operations that write the settings of new worktrees (`worktree-setup.save`, `remove-from`,
+- **Q242** — The operations that write the settings of new worktrees (`worktree-setup.save`, `remove-from`,
   `link-into-new-worktrees`…) edit the files in place, keeping their comments, which only `crates/json` can do. So
   `features` may now use `json`, a pure crate, and the picture of doc 02 says so. This also answers Q44 for these
   settings: the operation writes the file, through a `write` step. Is the new edge right?
-- **Q-T2** — `worktree-setup.link-and-copy-steps`: the engine makes a link on Windows as a junction itself
+- **Q243** — `worktree-setup.link-and-copy-steps`: the engine makes a link on Windows as a junction itself
   (`platform::link_folder`, through `DeviceIoControl`), so `engine` now uses `platform`, as the picture allows. The
   log names the path from the top of the worktree, `symlink node_modules` and `copy .env`, not the full paths. What
   is in the worktree already is said as **`<path>` is in the worktree already.** by the engine when it finds it on disk,
@@ -1310,24 +1310,24 @@ answered:
   that holds the worktree as **`<path>` holds the worktree, so it is not copied.**, two sentences no card gives. A link
   met inside a folder copied is made again as a link to the same place, a junction when it is a link to a folder. Are
   these right?
-- **Q-T3** — `worktree-setup.explain-change`: the card says that only **will be** and **still** write the settings;
+- **Q244** — `worktree-setup.explain-change`: the card says that only **will be** and **still** write the settings;
   **New worktrees will no longer get `<name>`.** writes them too, since the pattern of its path is taken out. Is that
   the reading?
-- **Q-T4** — `worktree-setup.propose`: the folder `.yarn/cache` is a dependency chosen by its path, `/.yarn/cache/`,
+- **Q245** — `worktree-setup.propose`: the folder `.yarn/cache` is a dependency chosen by its path, `/.yarn/cache/`,
   since a pattern with a `/` in its middle is from the top in `.gitignore` syntax anyway. Is that right?
-- **Q-T5** — The four entries of the Files page (`worktree-setup.link-into-new-worktrees`, `copy-into-new-worktrees`,
+- **Q246** — The four entries of the Files page (`worktree-setup.link-into-new-worktrees`, `copy-into-new-worktrees`,
   `stop-linking`, `stop-copying`) say what changed nothing as a refusal, which the window shows as a warning, and what
   changed in a `FollowUp::Say` with **Saved in the settings of the repository** (or **of the user**), then offer
   **Choose What New Worktrees Get…**. They read git through two new queries, `Query::PathStatuses` (whether git tracks
   or ignores each path, and whether it is a folder) and `Query::SetupTakes` (what the patterns take, for the checkout
   or for a worktree's commit). A path chosen outside the repository is refused with **`<path>` is in no repository of
   the workspace.**; picking the repository of each path is the Files page's, which M7 builds. Is that right?
-- **Q-T6** — The page and the Files page pass what they save through two new targets, `Target::SetupSettings` (the
+- **Q247** — The page and the Files page pass what they save through two new targets, `Target::SetupSettings` (the
   place, the patterns, the commands and the box of VS Code's settings) and `Target::Worktree(folder)` for
   `worktree-setup.bring-into-worktree`. The operations find the user's settings file in
   `FeatureSettings::user_settings_file`, which the window fills and `gitardo-cli` leaves empty, so that a test never
   writes the settings of the person running it. Is that right?
-- **Q-T7** — `worktree-setup.bring-into-worktree` and `bring-into-other-worktrees` confirm with the note of the links
+- **Q248** — `worktree-setup.bring-into-worktree` and `bring-into-other-worktrees` confirm with the note of the links
   and copies, **Gitardo will link the folders matching …, from `<folder>`, where git ignores them.**; the first is
   titled **Bring ignored files into `<name>`**, a title the card does not give. What failed while the others went on
   is said once at the end, after what the plan says, in the sentence the window shows when the plan ran, not as an
