@@ -1135,7 +1135,7 @@ Acceptance:
 Sends the AI provider the question about one conflict and returns its answer as it comes.
 
 - **Kind**: Read
-- **Function**: `ai::read::ask_conflict(provider, &request) -> Result<ConflictAnswer, AiError>`
+- **Function**: `engine::ai::ask_conflict(sending, provider, &request, pieces) -> Result<ConflictReply, AiError>`
 - **Reads**: an HTTP request to the AI provider of `ai.provider` at `ai.endpoint`, with the model of `ai.model` (or the
   first model the provider lists when it is empty) and the effort of `ai.effort` when it is set, the key taken from the
   credential store of the system; the answer is streamed, and each piece is passed on as it comes.

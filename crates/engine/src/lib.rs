@@ -8,6 +8,7 @@
 #![forbid(unsafe_code)]
 
 mod activity;
+pub mod ai;
 mod clock;
 mod drive;
 mod error;

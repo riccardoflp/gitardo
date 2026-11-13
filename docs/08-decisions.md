@@ -1510,3 +1510,16 @@ From the cards left over up to M8 (each built with the reading given, until the 
   `selection.cherry-pick` and `undo.last` are built; the line of `undo.last` on a terminal's operation after one of
   Gitardo's is tested with a commit made in a terminal after a cherry-pick. Right?
 
+- **Q-X1** — The card of `ai.ask-conflict` named `ai::read::ask_conflict`, a crate that does not exist; the question is
+  `engine::ai::ask_conflict(sending, provider, &request, pieces)`, beside the GitHub reads, since it goes over `http`
+  and its key comes from `engine::SecretStore`. It returns the answer with the model that wrote it
+  (`ConflictReply`), and `pieces` is told each piece of text as it comes. The card says so now. Is this right?
+- **Q-X2** — The address of the provider: for `anthropic`, `ai.endpoint` (default `https://api.anthropic.com`) is the
+  base, followed by `/v1/messages` and `/v1/models`; for `openai-compatible`, `ai.endpoint` (default
+  `https://api.openai.com/v1`) already holds `/v1`, followed by `/chat/completions` and `/models`, as servers of that
+  kind are set up. Is this right?
+- **Q-X3** — The requests carry `anthropic-version: 2026-10-21` and `max_tokens` 32000 for `anthropic`, with the effort
+  as `output_config.effort`; for `openai-compatible` the effort is `reasoning_effort`, where `xhigh` and `max` are both
+  sent as `xhigh`, the most such servers take. Is this right?
+- **Q-X4** — The requests to the AI provider go through `HTTPS_PROXY` and `NO_PROXY` only: git's `http.proxy` is not
+  read for them yet, since the engine has no read of git's configuration at hand there. Should it be?

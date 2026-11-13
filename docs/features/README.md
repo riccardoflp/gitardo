@@ -297,7 +297,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`review.show-result`](09-conflicts.md#reviewshow-result--show-the-result) | Show the result | View | Built |
 | [`review.deleted-card`](09-conflicts.md#reviewdeleted-card--a-file-deleted-on-one-side) | A file deleted on one side | View | Built |
 | [`ai.resolve-conflicts`](09-conflicts.md#airesolve-conflicts--resolve-conflicts-with-ai) | Resolve conflicts with AI | View | Specified |
-| [`ai.ask-conflict`](09-conflicts.md#aiask-conflict--one-question-about-one-conflict) | One question about one conflict | Read | Specified |
+| [`ai.ask-conflict`](09-conflicts.md#aiask-conflict--one-question-about-one-conflict) | One question about one conflict | Read | Built |
 | [`ai.conflict-question`](09-conflicts.md#aiconflict-question--what-is-sent-about-a-conflict) | What is sent about a conflict | Derivation | Built |
 | [`ai.read-answer`](09-conflicts.md#airead-answer--the-answer-read) | The answer, read | Derivation | Built |
 | [`ai.trim-answer`](09-conflicts.md#aitrim-answer--the-lines-around-the-conflict-written-again) | The lines around the conflict, written again | Derivation | Built |
