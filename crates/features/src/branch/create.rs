@@ -136,7 +136,8 @@ fn start(context: &Context) -> (String, String) {
         | Target::SetupSettings(_)
         | Target::Path(_)
         | Target::Lines(_)
-        | Target::LineOfFile(_) => (String::from("HEAD"), String::from("HEAD")),
+        | Target::LineOfFile(_)
+        | Target::ListedFile(_) => (String::from("HEAD"), String::from("HEAD")),
         Target::Commit(commit) => (commit.to_string(), commit.short().to_owned()),
         Target::Branch(name) => (ref_argument(RefKind::Branch, name, &names), name.clone()),
         Target::RemoteBranch(name) => (ref_argument(RefKind::RemoteBranch, name, &names), name.clone()),

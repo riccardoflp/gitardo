@@ -27,6 +27,7 @@ pub use files::{CappedList, FILE_CAP, FileLayout, FilesIntent, FilesOwner, Files
 pub(crate) use files::{FileRow, directory_row, file_name, file_rows, file_start, indent_of, layout_buttons, status};
 pub(crate) use head::{outdent, shown_parents};
 pub use message::{MessageState, SHOWN_LINES, show_more};
+pub(crate) use rows::{commit_list, compare_file};
 
 /// What the inspector shows.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

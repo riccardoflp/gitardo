@@ -407,6 +407,9 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
             (FollowUp::CopyToClipboard(text), _) => effects.push(Effect::CopyText(text)),
             (FollowUp::OpenWindow(folder), _) => effects.push(Effect::OpenWindow(folder)),
             (FollowUp::OpenComparison(target), _) => effects.extend(super::compare::opened(state, *target)),
+            (FollowUp::OpenFileDiff(sides), _) => {
+                effects.extend(super::diff_page::open(state, views::diff::file_sides(&sides)));
+            }
             (FollowUp::CloseMergePage(path), _) => super::merge_page::close_file(state, &path),
             (FollowUp::OpenReview(files), _) => {
                 state.operations.said = None;

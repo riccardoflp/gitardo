@@ -1,7 +1,9 @@
 //! What the places that list the files of a commit open in the Diff page: a file between the first parent and the
-//! commit, all of them in one page, and an untracked file of a stash against nothing.
+//! commit, all of them in one page, an untracked file of a stash against nothing, and a file compared with a side
+//! chosen for it (`details.compare-file-with`).
 
 use model::changes::{OpenVersion, PageRequest};
+use model::compare::{CompareSide, FileSides, Side};
 use model::details::CommitDetail;
 use model::state::FileChange;
 
@@ -95,5 +97,26 @@ fn version_of(version: OpenVersion) -> Option<DiffVersion> {
         OpenVersion::WorkingTree => Some(DiffVersion::WorkingTree),
         OpenVersion::Nothing => Some(DiffVersion::Empty),
         OpenVersion::Buffer => None,
+    }
+}
+
+/// The Diff page of a file between two sides of a comparison, each named as the comparison names it.
+#[must_use]
+pub fn file_sides(sides: &FileSides) -> DiffTarget {
+    DiffTarget::file(
+        side_version(&sides.left),
+        side_version(&sides.right),
+        DiffFile::same(&sides.path),
+    )
+}
+
+/// The version of a side of a comparison.
+fn side_version(side: &CompareSide) -> DiffVersion {
+    match &side.side {
+        Side::WorkingTree => DiffVersion::WorkingTree,
+        Side::Commit(commit) => DiffVersion::Commit {
+            commit: commit.clone(),
+            name: side.name.clone(),
+        },
     }
 }

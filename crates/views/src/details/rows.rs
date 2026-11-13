@@ -1,6 +1,8 @@
 //! The rows of the card of the inspector: its head as a block of rows, a row for each file shown, the link that shows
 //! them all, and for a stash its untracked files under a heading of their own.
 
+use model::compare::{FileList, ListedFile, NamedCommit};
+use model::contract::{FeatureId, Target};
 use model::details::CommitDetail;
 use model::state::FileChange;
 use ui::layout::{Align, Area, place};
@@ -11,6 +13,7 @@ use super::head::{Head, draw_head, head_height};
 use super::message::MessageState;
 use super::{DetailsRead, DetailsState, FilesOwner, ReadDetails, SelectedDetails, say, show_all_files};
 use crate::blocks::{block_top, rows_for};
+use crate::feature::FeatureIntent;
 use crate::intent::Intent;
 use crate::text::details as words;
 
@@ -103,6 +106,9 @@ fn read_card(
                     match inspector_file(ui, row, (file, 0, files.layout), ("untracked file", *index)) {
                         Some(Picked::Diff) => intents.extend(crate::diff::untracked_file(detail, file).map(open_diff)),
                         Some(Picked::History) => intents.push(file_history(file)),
+                        Some(Picked::Compare) => {
+                            intents.extend(untracked_list(detail).map(|list| compare_file(file, list)));
+                        }
                         None => {}
                     }
                 }
@@ -158,6 +164,7 @@ fn file_row(
             match inspector_file(ui, row, (file, *depth, files.layout), ("file", *index)) {
                 Some(Picked::Diff) => vec![open_diff(crate::diff::commit_file(detail, file))],
                 Some(Picked::History) => vec![file_history(file)],
+                Some(Picked::Compare) => vec![compare_file(file, commit_list(detail))],
                 None => Vec::new(),
             }
         }
@@ -176,6 +183,51 @@ enum Picked {
     Diff,
     /// Its clock, which shows its history (`file-history.file`).
     History,
+    /// **Compare with…** in its context menu (`details.compare-file-with`).
+    Compare,
+}
+
+/// What compares a file of a list with a side asked for (`details.compare-file-with`).
+pub(crate) fn compare_file(file: &FileChange, list: FileList) -> Intent {
+    let listed = ListedFile {
+        file: file.clone(),
+        list,
+    };
+    let run = FeatureIntent::Run(
+        FeatureId("details.compare-file-with"),
+        Target::ListedFile(Box::new(listed)),
+    );
+    Intent::Feature(run)
+}
+
+/// The list of the files of a commit, named by its short hash; of the uncommitted changes when it has no hash.
+pub(crate) fn commit_list(detail: &CommitDetail) -> FileList {
+    match &detail.id {
+        Some(commit) => FileList::Commit {
+            commit: NamedCommit {
+                name: commit.short().to_owned(),
+                commit: commit.clone(),
+            },
+            first_parent: detail.first_parent().cloned(),
+        },
+        None => FileList::Changes,
+    }
+}
+
+/// The list of the untracked files of a stash, which git keeps in its third parent, named by the stash.
+fn untracked_list(detail: &CommitDetail) -> Option<FileList> {
+    let untracked = detail.parents.get(2)?.clone();
+    let name = detail
+        .id
+        .as_ref()
+        .map_or_else(|| untracked.short().to_owned(), |stash| stash.short().to_owned());
+    Some(FileList::Commit {
+        commit: NamedCommit {
+            name,
+            commit: untracked,
+        },
+        first_parent: None,
+    })
 }
 
 /// What shows the history of a file of the inspector, by its path in the working tree (`file-history.file`).
@@ -185,8 +237,7 @@ fn file_history(file: &FileChange) -> Intent {
 }
 
 /// A file of the inspector: its status, icon and name, lit under the pointer, with the clock of its history at its
-/// end and **Compare with…** in its context menu; what it was picked for. The comparison comes in a later milestone:
-/// its entry is shown and cannot be used yet (Q89).
+/// end and **Compare with…** in its context menu; what it was picked for.
 fn inspector_file(
     ui: &mut Ui<'_>,
     row: &ui::Row,
@@ -211,7 +262,9 @@ fn inspector_file(
         }
     }
     file_name(ui, parts.rest(), (file, layout));
-    let entries = [MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, ()).disabled())];
-    let _ = ui.context_menu((key.0, key.1, "menu"), &response, &entries);
+    let entries = [MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, ()))];
+    if ui.context_menu((key.0, key.1, "menu"), &response, &entries).is_some() {
+        picked = Some(Picked::Compare);
+    }
     picked
 }

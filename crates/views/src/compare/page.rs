@@ -1,10 +1,10 @@
 //! The comparison page: the two sides, what `compare.summary` says of them, the box that narrows it, the mode, the
 //! commits only in each side and the files that differ.
 
-use model::compare::{CompareSide, Diverged, Side, SummaryInput, summary};
+use model::compare::{CompareSide, Diverged, FileList, Side, SummaryInput, summary};
 use model::state::ChangeKind;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Button, ButtonKind, Icon, Label, Rect, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, Icon, Label, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
 
 use super::parts::{commits, commits_height, narrow_to_path, set_mode, swap};
 use super::{CompareIntent, CompareRead, CompareState};
@@ -156,7 +156,8 @@ fn side(
 }
 
 /// A file that differs: its path, a click opening it in the Diff page, and the arrow that takes the version of the
-/// second side, unless the second side is the working tree.
+/// second side, unless the second side is the working tree; **Compare with…** in its context menu
+/// (`details.compare-file-with`).
 fn file_row(
     state: &CompareState<'_>,
     (index, file): (usize, &model::state::FileChange),
@@ -184,7 +185,16 @@ fn file_row(
     let rest = parts.rest();
     let (width, height) = ui.button_size(&open);
     let cell = place(rest, (width.min(rest.width), height), (Align::Start, Align::Center));
-    if ui.button(("open file", index), cell, &open).clicked {
+    let response = ui.button(("open file", index), cell, &open);
+    if response.clicked {
         intents.push(Intent::Compare(CompareIntent::OpenFile(state.id, index)));
+    }
+    let entries = [MenuEntry::Item(MenuItem::new(crate::text::details::COMPARE_WITH, ()))];
+    if ui.context_menu(("file menu", index), &response, &entries).is_some() {
+        let list = FileList::Comparison {
+            first: state.target.first.clone(),
+            second: state.target.second.clone(),
+        };
+        intents.push(crate::details::compare_file(file, list));
     }
 }

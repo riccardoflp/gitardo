@@ -1619,3 +1619,15 @@ From the cards left over up to M8 (each built with the reading given, until the 
   screen reader as a label where it is drawn, which is also how its tests find them; the outline the pointer draws is
   tested by the pixels of the edges of the lines. Is a label for each line and each number right for a screen reader,
   or should a column be one text whose value is its lines?
+
+From the slice of the setup page and of comparing a path (`Q-S`), each built with the reading given until it is
+answered:
+
+- **Q-S1** — `details.compare-file-with` is built. The menus give the file and its list as a new target,
+  `Target::ListedFile` (the files of a commit, named by its short hash, with its first parent; of a comparison, with
+  its two sides; or the uncommitted changes), and the operation opens the Diff page through a new follow-up,
+  `FollowUp::OpenFileDiff`, with the two sides and the path. The file is compared under its path on its own side on
+  both sides, also when it was renamed. The picker's placeholder is **The branch, tag or commit to compare the file
+  with**, which the card does not give; a file a root commit deleted, which has no version, is refused with
+  **`<name>` has no version to compare here.** The sides of the comparison in the inspector are fixed at their
+  commits, named as it names them. The untracked files of a stash are taken from its third parent. Are these right?

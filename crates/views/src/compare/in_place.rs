@@ -1,9 +1,9 @@
 //! The comparison of two commits in the inspector, in place of the card of a commit.
 
-use model::compare::{InPlaceSides, NamedCommit};
+use model::compare::{CompareSide, FileList, InPlaceSides, NamedCommit, Side};
 use model::state::FileChange;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Button, ButtonKind, Icon, Label, Rect, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, Icon, Label, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
 
 use super::CompareIntent;
 use crate::graph::GraphIntent;
@@ -81,7 +81,7 @@ pub fn in_place(state: &InPlaceState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
                         InPlaceRead::Failed => {
                             let _ = ui.label(column.top(line), &Label::new(words::FAILED).tone(Tone::Muted));
                         }
-                        InPlaceRead::Read(files) => file_rows(files, ui, &mut column, &mut intents),
+                        InPlaceRead::Read(files) => file_rows((files, state.sides), ui, &mut column, &mut intents),
                     }
                 },
             );
@@ -134,8 +134,14 @@ fn actions(ui: &mut Ui<'_>, row: Rect, intents: &mut Vec<Intent>) {
     }
 }
 
-/// **N changed files**, the button that opens them all when there are more than one, and the files.
-fn file_rows(files: &[FileChange], ui: &mut Ui<'_>, column: &mut Area, intents: &mut Vec<Intent>) {
+/// **N changed files**, the button that opens them all when there are more than one, and the files, with **Compare
+/// with…** in the context menu of each (`details.compare-file-with`).
+fn file_rows(
+    (files, sides): (&[FileChange], &InPlaceSides),
+    ui: &mut Ui<'_>,
+    column: &mut Area,
+    intents: &mut Vec<Intent>,
+) {
     let line = ui.theme().sizes.row_height;
     let spacing = ui.theme().sizes.spacing;
     let mut heading = Area::with_gap(column.top(line), spacing.medium);
@@ -158,8 +164,30 @@ fn file_rows(files: &[FileChange], ui: &mut Ui<'_>, column: &mut Area, intents: 
         let open = Button::secondary(&label).kind(ButtonKind::Icon).with_icon(Icon::File);
         let (width, height) = ui.button_size(&open);
         let cell = place(row, (width.min(row.width), height), (Align::Start, Align::Center));
-        if ui.button(("in place file", index), cell, &open).clicked {
+        let response = ui.button(("in place file", index), cell, &open);
+        if response.clicked {
             intents.push(Intent::Compare(CompareIntent::InPlaceFile(index)));
         }
+        let entries = [MenuEntry::Item(MenuItem::new(crate::text::details::COMPARE_WITH, ()))];
+        if ui
+            .context_menu(("in place file menu", index), &response, &entries)
+            .is_some()
+        {
+            let list = FileList::Comparison {
+                first: fixed(&sides.from),
+                second: fixed(&sides.to),
+            };
+            intents.push(crate::details::compare_file(file, list));
+        }
+    }
+}
+
+/// A side of the comparison in the inspector, at its commit, named as it shows it.
+fn fixed(side: &NamedCommit) -> CompareSide {
+    CompareSide {
+        name: side.name.clone(),
+        side: Side::Commit(side.commit.clone()),
+        is_followed: false,
+        is_gone: false,
     }
 }

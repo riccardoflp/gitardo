@@ -130,7 +130,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`details.show-more`](04-details-and-commit-page.md#detailsshow-more--show-more-of-a-long-message) | Show more of a long message | View | Built |
 | [`details.file-tree`](04-details-and-commit-page.md#detailsfile-tree--files-as-a-tree-of-directories) | Files as a tree of directories | Derivation | Built |
 | [`details.show-all-files`](04-details-and-commit-page.md#detailsshow-all-files--the-first-300-files-and-show-all) | The first 300 files, and Show all | View | Built |
-| [`details.compare-file-with`](04-details-and-commit-page.md#detailscompare-file-with--compare-a-file-with-a-branch-tag-or-commit) | Compare a file with a branch, tag or commit | Operation | Specified |
+| [`details.compare-file-with`](04-details-and-commit-page.md#detailscompare-file-with--compare-a-file-with-a-branch-tag-or-commit) | Compare a file with a branch, tag or commit | Operation | Built |
 | [`details.stash`](04-details-and-commit-page.md#detailsstash--details-of-a-stash) | Details of a stash | View | Built |
 | [`commits.copy-hash`](04-details-and-commit-page.md#commitscopy-hash--copy-the-hash-of-a-commit) | Copy the hash of a commit | Operation | Built |
 | [`commits.copy-message`](04-details-and-commit-page.md#commitscopy-message--copy-the-message-of-a-commit) | Copy the message of a commit | Operation | Built |

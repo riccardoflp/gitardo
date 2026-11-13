@@ -16,6 +16,7 @@ pub mod commit_page;
 pub mod commits;
 pub mod compare;
 pub mod conflicts;
+pub mod details;
 pub mod diff;
 pub mod file_history;
 pub mod file_view;
@@ -155,6 +156,7 @@ pub const OPERATIONS: [(FeatureId, Operation); 154] = [
     (FeatureId("compare.take-file"), compare::take_file),
     (FeatureId("compare.with"), compare::with),
     (FeatureId("compare.with-current"), compare::with_current),
+    (FeatureId("details.compare-file-with"), details::compare_file_with),
     // The reflog.
     (FeatureId("reflog.browse"), reflog::browse),
     // Conflicts.

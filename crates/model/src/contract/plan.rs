@@ -282,6 +282,8 @@ pub enum FollowUp {
     /// Open a file in a File page to edit it, at a line from 1: by its path from the top of the working tree, or by
     /// its whole path for a file outside it, such as the user's settings file (`worktree-setup.edit-settings-file`).
     EditFile(String, usize),
+    /// Open the Diff page of a file between two sides (`details.compare-file-with`).
+    OpenFileDiff(Box<crate::compare::FileSides>),
 }
 
 /// A plan offered in place of one whose step failed, when git said some words.

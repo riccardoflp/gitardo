@@ -349,3 +349,6 @@
   the column of the text, and a click or a selection follows the rows.
 - In the Columns of the review of the conflicts, a long line wraps between its words rather than in the middle of one,
   and the screen reader is told each line and its number.
+- **Compare with…** in the context menu of a file of the inspector, of the page of a commit (in its list and on the
+  header of its diff), of the comparison page and of the comparison in the inspector compares that file with a branch,
+  a tag, a commit or the working tree, in the Diff page.

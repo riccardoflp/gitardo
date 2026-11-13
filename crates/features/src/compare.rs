@@ -40,7 +40,7 @@ const REVISION_PROMPT: &str = "A commit hash, or anything else git understands: 
 /// The keys of the question of a side: what is picked, what is typed after **Enter a hash or a revision…**, and the
 /// commit git says it stands for.
 #[derive(Clone, Copy)]
-struct SideKeys {
+pub(crate) struct SideKeys {
     /// What is picked.
     picked: AnswerKey,
     /// What is typed.
@@ -51,13 +51,13 @@ struct SideKeys {
 
 impl SideKeys {
     /// The keys of the first side.
-    const FIRST: SideKeys = SideKeys {
+    pub(crate) const FIRST: SideKeys = SideKeys {
         picked: FIRST,
         typed: AnswerKey("first-revision"),
         commit: AnswerKey("first-commit"),
     };
     /// The keys of the second side.
-    const SECOND: SideKeys = SideKeys {
+    pub(crate) const SECOND: SideKeys = SideKeys {
         picked: SECOND,
         typed: AnswerKey("second-revision"),
         commit: AnswerKey("second-commit"),
@@ -66,21 +66,21 @@ impl SideKeys {
 
 /// A question of a side: its title, its placeholder, the side chosen already, whether the working tree may be offered,
 /// and the comparisons opened before when they are.
-struct SideQuestion<'a> {
+pub(crate) struct SideQuestion<'a> {
     /// The title.
-    title: String,
+    pub(crate) title: String,
     /// What the box says before anything is typed.
-    placeholder: &'a str,
+    pub(crate) placeholder: &'a str,
     /// The side chosen already, left out.
-    chosen: Option<&'a CompareSide>,
+    pub(crate) chosen: Option<&'a CompareSide>,
     /// Whether the working tree may be offered.
-    may_offer_working_tree: bool,
+    pub(crate) may_offer_working_tree: bool,
     /// The comparisons opened before, offered first.
-    recent: Option<&'a [RecentComparison]>,
+    pub(crate) recent: Option<&'a [RecentComparison]>,
 }
 
 /// What a side question came to.
-enum Picked {
+pub(crate) enum Picked {
     /// A side.
     Side(CompareSide),
     /// A comparison opened before, by its place in the list.
@@ -88,7 +88,7 @@ enum Picked {
 }
 
 /// The side picked or typed for a question, or what the feature does next: ask, read, or refuse.
-fn side(
+pub(crate) fn side(
     context: &Context,
     answers: &Answers,
     keys: SideKeys,
@@ -258,7 +258,7 @@ fn comparison(first: CompareSide, second: CompareSide, path: Option<String>) -> 
 }
 
 /// A plan with no step, which changes nothing in the repository and does what follows.
-fn no_step(title: String, after: Vec<FollowUp>) -> Plan {
+pub(crate) fn no_step(title: String, after: Vec<FollowUp>) -> Plan {
     Plan {
         title: Text::from(title),
         steps: Vec::new(),

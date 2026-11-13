@@ -2,11 +2,13 @@
 //! they are, what merging them would do, the commits only in each and the files that differ.
 
 mod choices;
+mod listed;
 mod recent;
 mod sides;
 mod summary;
 
 pub use choices::{PickItem, SideChoice, SideChoicesInput, filter_choices, side_choices};
+pub use listed::{CheckedOut, FileList, FileSides, ListedFile};
 pub use recent::{RECENT_LIMIT, RecentComparison, RecentInput, RecentSide, recent, reopened};
 pub use sides::{CompareSide, SideInput, WORKING_TREE, follow_sides, initial_mode, is_same_page};
 pub use summary::{CompareSummary, Diverged, Merging, SummaryInput, summary};

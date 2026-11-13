@@ -11,7 +11,7 @@ use ui::{
 
 use super::CommitPageIntent;
 use super::rows::{HEADER_ROWS, Page, PageRow};
-use crate::details::{FileRow, FilesOwner, directory_row, file_start, show_all_files};
+use crate::details::{FileRow, FilesOwner, commit_list, compare_file, directory_row, file_start, show_all_files};
 use crate::intent::Intent;
 use crate::text::details as words;
 
@@ -104,7 +104,7 @@ fn untracked_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index): (&ui::Row, usiz
 
 /// A file of the list: its status, icon and path, its lines gained and lost or **binary**, and the eye that shows its
 /// changes in the page; a click opens it in the Diff page; **Open the file at this revision** in its context menu, and
-/// **Compare with…**, which comes with the comparison (Q89).
+/// **Compare with…** (`details.compare-file-with`).
 fn file_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index, depth): (&ui::Row, usize, usize)) -> Vec<Intent> {
     let Some(file) = page.data.detail.files.get(index) else {
         return Vec::new();
@@ -149,10 +149,12 @@ fn file_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index, depth): (&ui::Row, us
         } else {
             open_at_revision.disabled()
         }),
-        MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, false).disabled()),
+        MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, false)),
     ];
-    if ui.context_menu(("page file menu", index), &response, &entries) == Some(true) {
-        intents.extend(at_revision);
+    match ui.context_menu(("page file menu", index), &response, &entries) {
+        Some(true) => intents.extend(at_revision),
+        Some(false) => intents.push(compare_file(file, commit_list(&page.data.detail))),
+        None => {}
     }
     if response.clicked && intents.is_empty() {
         intents.push(open_file(page, index));
@@ -260,8 +262,13 @@ pub(crate) fn header(ui: &mut Ui<'_>, page: &Page<'_>, (file, rect): (usize, Rec
         |original| words::renamed(original, &change.path),
     );
     let _ = ui.label(name_cell, &Label::new(&path).kind(TextKind::Medium));
-    let entries = [MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, ()).disabled())];
-    let _ = ui.context_menu(("diff header menu", file), &response, &entries);
+    let entries = [MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, ()))];
+    if ui
+        .context_menu(("diff header menu", file), &response, &entries)
+        .is_some()
+    {
+        intents.push(compare_file(change, commit_list(&page.data.detail)));
+    }
     intents
 }
 

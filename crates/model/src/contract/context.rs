@@ -74,6 +74,9 @@ pub enum Target {
     Lines(Box<crate::file_history::LinesOfFile>),
     /// The file of a File page and the line of its cursor, for the operations of the blame.
     LineOfFile(Box<crate::blame::LineOfFile>),
+    /// A file of a list, the files of a commit, of a comparison or the uncommitted changes
+    /// (`details.compare-file-with`).
+    ListedFile(Box<crate::compare::ListedFile>),
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.
