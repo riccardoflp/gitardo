@@ -32,6 +32,7 @@ pub use rows::{problem_words, setting_rows, theme_value};
 /// The settings in force: those of the repository's file for the settings it may set, then those of the user's file,
 /// then the defaults.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(clippy::struct_excessive_bools, reason = "each is a setting of its own")]
 pub struct Settings {
     /// `theme`: the theme chosen, or to follow the system.
     pub theme: ThemeName,
@@ -55,6 +56,8 @@ pub struct Settings {
     pub features: FeatureSettings,
     /// `diff.collapseUnchanged`: a new Diff page starts with its unchanged lines folded.
     pub collapse_unchanged: bool,
+    /// `conflicts.autoResolve`: the rules propose what they can for the conflicts of a Merge page.
+    pub auto_resolve: bool,
     /// `changes.openOnClick`: what a click on a file of the Changes page opens.
     pub open_on_click: OpenOnClick,
     /// Every value the files set, by key, the repository's file first: what the settings page shows.
@@ -76,6 +79,7 @@ impl Default for Settings {
             log_level: LogLevel::Info,
             features: FeatureSettings::default(),
             collapse_unchanged: true,
+            auto_resolve: false,
             open_on_click: OpenOnClick::File,
             values: BTreeMap::new(),
             problems: Vec::new(),

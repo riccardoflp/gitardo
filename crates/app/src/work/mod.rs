@@ -4,6 +4,7 @@
 pub mod compare;
 pub mod diff;
 pub mod jobs;
+pub mod merge_view;
 mod operations;
 mod persist;
 mod repository_watch;
@@ -194,6 +195,10 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::CountConflicts { folder } => (
             Text::from(activity::reading(&folder_name(folder))),
             Text::from(activity::COUNTING_CONFLICTS),
+        ),
+        JobKind::ReadMerge { folder, .. } => (
+            Text::from(activity::reading(&folder_name(folder))),
+            Text::from(activity::SHOWING_MERGE),
         ),
     }
 }

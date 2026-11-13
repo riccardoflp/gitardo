@@ -56,6 +56,8 @@ pub struct Persisted {
     pub file_layouts: FileLayouts,
     /// The messages of the commit boxes of the repositories whose message changed last (`changes.pane`).
     pub commit_messages: Vec<RepositoryMessage>,
+    /// Whether the Merge pages show the base in a fourth column (`merge-view.show-base`).
+    pub merge_shows_base: bool,
 }
 
 /// A workspace opened before.
@@ -105,6 +107,7 @@ impl Persisted {
                 .map(layouts::file_layouts)
                 .unwrap_or_default(),
             commit_messages: list(&document, "commitMessages", changes::repository_message),
+            merge_shows_base: document.get("mergeShowsBase").and_then(Value::as_bool).unwrap_or(false),
         }
     }
 
@@ -155,6 +158,9 @@ impl Persisted {
                 "commitMessages",
                 Value::Array(self.commit_messages.iter().map(changes::message_value).collect()),
             ));
+        }
+        if self.merge_shows_base {
+            members.push(member("mergeShowsBase", Value::Bool(true)));
         }
         json::to_pretty_text(&Value::Object(members))
     }

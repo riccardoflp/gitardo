@@ -14,6 +14,7 @@ pub mod feature;
 pub mod filter;
 pub mod header;
 pub mod history;
+pub mod merge_view;
 pub mod pages;
 pub mod patch;
 pub mod rail;

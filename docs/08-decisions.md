@@ -1108,3 +1108,46 @@ says otherwise):
   of the Undo of `UndoRecord::ConflictsResolved` changed to **Undo: restore the conflicts of \<file\>**. Its plan says
   `Undo::TakesBack` of the entry it restores, as `stash.undo-drop` does, rather than Impossible: once it ran, Undo
   goes by the reflog again. Is that right?
+- **Q-M1** — `merge-view.accept-proposals` takes the proposals of the rules straight from
+  `text::conflicts::resolve_by_rules`, computed with the regions on the worker when `conflicts.autoResolve` is on, and
+  matched to the region of the conflict whose markers they replace. `review.proposals` does not exist on this branch,
+  so the proposals of the AI are not there, and the card stays **Specified** for its second line. Should the review
+  page and the Merge page share one list of proposals for a file, kept by the store (`review.proposals`), which the
+  Merge page would read in place of computing the rules again, and the review page keep up to date when a proposal is
+  accepted on either?
+- **Q-M2** — The result of the Merge page cannot be typed in until the File page and its editor (`file-view.edit`,
+  `file-view.save`) come: the choices are edits of a text the page holds, with an undo and a redo of its own (`Ctrl+Z`,
+  `Ctrl+Y` and `Ctrl+Shift+Z` in the page), and the text is saved only by **Mark as resolved**, which writes it before
+  staging. When the editor comes, should the page hold the editor's text of the file, so that its undo and the edits of
+  the page are one history, as the cards of `merge-view.take-side` and `merge-view.page` say?
+- **Q-M3** — `merge-view.open-at-line` and `merge-view.close` stay **Specified**: both open the File page, which is
+  built elsewhere. The line of the result a line of any column stands for is built and tested
+  (`model::merge_view::result_line`, with the two lines of the acceptance of `merge-view.open-at-line`); the key `F4`,
+  the context menu and **Open the file**, and the File page opened on close with what is unsaved, wait for the File
+  page. Until then a page closed with unsaved choices loses them. Is that acceptable for now?
+- **Q-M4** — The page refuses a file not in conflict with a version on each side with *This file is not in conflict
+  with a change on each side.*, without the name of the file, since a notice of the window holds no text of its own;
+  the card of `merge-view.page` now says so. Should notices take a text, so that this one, and others, can name what
+  they are about?
+- **Q-M5** — The columns of the Merge page are kept level by blank rows (`model::merge_view::merge_rows`) and scroll as
+  one list, rather than each side scrolling with the result as `diff.scroll-together` would; the page is computed
+  again after each choice and at each read of the repository, not a quarter of a second after typing, since nothing is
+  typed in it yet. The columns cannot be made wider by hand (`diff.resize-sides`). The card of `merge-view.page` says
+  so now. The title buttons **Previous change** and **Next change** of `merge-view.navigate` are not there: the window
+  has no title buttons of a page yet. Are these right?
+- **Q-M6** — Whether the base is shown is kept between runs in `state.json` under `mergeShowsBase`, written only when
+  it is shown. Is that the right place and name?
+- **Q-M7** — `merge-view.mark-resolved` is given its file by a target of its own, `Target::MergeResult(MergeResolution)`:
+  the path, the bytes to write when the result has unsaved changes, and how many conflicts git still marks in it; it
+  asks for nothing else. Its plan ends with `FollowUp::CloseMergePage(path)`, which closes the Merge page of that file
+  in the repository shown; `gitardo-cli` prints it as *Close the Merge page of \<path\>*. `conflicts.mark-resolved`,
+  which the card uses, is not on this branch: the plan stages the file itself with `git add -- <file>`. Once both are
+  merged, should `merge-view.mark-resolved` take its staging step from `conflicts.mark-resolved`?
+- **Q-M8** — `git::read::merge_view::read_sides` now says whether the index has a version of the file on each side
+  (`MergeSides::has_both_sides`, from stages 2 and 3), which the page needs to refuse a file deleted on one side; the
+  setting `conflicts.autoResolve` is read by the window (`Settings::auto_resolve`, a setting of the user, off by
+  default), since the Merge page is the first to use it. Are these right?
+- **Q-M9** — A choice made while the regions of the result are computed again waits for them and is made then, as the
+  card of `merge-view.take-side` says; `Ctrl+Z` and `Ctrl+Y` drop a choice that waits. When the file on disk changes
+  while the page is open and has nothing unsaved, the page takes the file as it is now, and `Ctrl+Z` brings back what it
+  held before. Are these right?

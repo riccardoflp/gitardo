@@ -205,3 +205,12 @@
   `conflicts.autoResolve` on, **Resolve … automatically** writes the conflicts that need no choice in the files after
   saying what they are, stages the files left with none, offers **Continue** when none is left, and Undo marks the
   conflicts again. `gitardo-cli` continues, skips, aborts and marks a file resolved.
+- The Merge page: a file in conflict in three columns, the current side, the result and the incoming side, labelled
+  with what each side is, kept level and scrolled together; each change joined to the result by a band in its color,
+  green for the current side, blue for the incoming side, grey for both, red for a conflict, with the words that
+  changed marked, git's markers marked, and a conflict resolved by hand drawn faintly. The buttons of a band put a
+  side, or both, in place of its region; the button with two ticks accepts every change that needs no choice; with
+  `conflicts.autoResolve` on, **✦** and the sparkle accept what the rules propose; each is one edit that `Ctrl+Z` takes
+  back and `Ctrl+Y` puts again. The arrows, `F7` and `Shift+F7` go from region to region and round, beside how many
+  conflicts are left; the clock shows the base in a fourth column, and the next page opens the same way. **Mark as
+  resolved** writes the result and stages it, asking first while git's markers are left, and closes the page.

@@ -60,6 +60,8 @@ pub struct State {
     pub commit_pages: super::commit_page::CommitPages,
     /// The Diff pages open, or waiting for their first read (`diff.page`).
     pub diff_pages: super::diff_page::DiffPages,
+    /// The Merge pages open, or waiting for their first read (`merge-view.page`).
+    pub merge_pages: super::merge_page::MergePages,
     /// The comparison pages, the comparisons opened before and the comparison in the inspector.
     pub compares: super::compare::Compares,
     /// The reads of the repository shown that changes ask for, and the ones the window starts itself

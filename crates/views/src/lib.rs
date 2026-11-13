@@ -29,6 +29,7 @@ pub mod graph;
 mod intent;
 mod line;
 pub mod log;
+pub mod merge_view;
 mod number;
 pub mod page;
 pub mod rebase;

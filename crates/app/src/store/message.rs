@@ -90,6 +90,13 @@ pub enum Message {
         /// What it came to.
         result: crate::work::diff::DiffRead,
     },
+    /// A job that read a file in conflict and computed its regions is done (`merge-view.page`).
+    MergeRead {
+        /// The job.
+        job: JobId,
+        /// What it came to.
+        result: crate::work::merge_view::MergeRead,
+    },
     /// A job that read a comparison page is done (`compare.read-sides`).
     ComparisonRead {
         /// The job.
@@ -271,6 +278,13 @@ pub enum JobKind {
         folder: PathBuf,
         /// What is read.
         job: crate::work::diff::DiffJob,
+    },
+    /// Reads a file in conflict of a Merge page and computes its regions (`merge-view.read-sides`, `merge-view.page`).
+    ReadMerge {
+        /// The top folder of the working tree.
+        folder: PathBuf,
+        /// What is read.
+        job: crate::work::merge_view::MergeJob,
     },
     /// Reads a comparison page: its followed sides where they are now, then what differs (`compare.read-sides`).
     ReadComparison {

@@ -84,6 +84,8 @@ pub enum Intent {
     Rebase(crate::rebase::RebaseIntent),
     /// Something asked of a file in conflict (`conflicts.open-file`).
     Conflicts(crate::conflicts::ConflictsIntent),
+    /// Something asked of the Merge pages (`merge-view.page`).
+    MergeView(crate::merge_view::MergeIntent),
 }
 
 /// What is done with a folder opened while the window shows a workspace.
@@ -211,4 +213,6 @@ pub enum Notice {
     DiffLooksBinary,
     /// A diff refused because it took longer than its time to compute (`diff.page`).
     DiffTooComplex,
+    /// A Merge page refused because the file is not in conflict with a version on each side (`merge-view.page`).
+    MergeNotInConflict,
 }

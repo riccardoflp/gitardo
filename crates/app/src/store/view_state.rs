@@ -167,6 +167,7 @@ impl ViewData {
                 }),
             said: super::feature::said_state(state),
             large_diff: super::diff_page::large_question(state),
+            large_merge: super::merge_page::large_question(state),
         }
     }
 
@@ -234,27 +235,12 @@ impl ViewData {
                     has_timeline: state.workspace.is_some(),
                 }),
             }),
-            Some(Page::Commit(id)) => match super::commit_page::page_state(state, id) {
-                Some(page) => Content::Page(PageHostState {
-                    has_trail: true,
-                    page: PageState::Commit(page),
-                }),
-                None => Content::Timeline(self.timeline(state)),
-            },
-            Some(Page::Diff(id)) => match super::diff_page::page_state(state, id) {
-                Some(page) => Content::Page(PageHostState {
-                    has_trail: true,
-                    page: PageState::Diff(page),
-                }),
-                None => Content::Timeline(self.timeline(state)),
-            },
-            Some(Page::Compare(id)) => match super::compare::page_state(state, id) {
-                Some(page) => Content::Page(PageHostState {
-                    has_trail: true,
-                    page: PageState::Compare(page),
-                }),
-                None => Content::Timeline(self.timeline(state)),
-            },
+            Some(page @ (Page::Commit(_) | Page::Diff(_) | Page::Merge(_) | Page::Compare(_))) => {
+                match opened_page(state, page) {
+                    Some(page) => Content::Page(PageHostState { has_trail: true, page }),
+                    None => Content::Timeline(self.timeline(state)),
+                }
+            }
             Some(Page::Settings) => Content::Page(PageHostState {
                 has_trail: state.workspace.is_some(),
                 page: PageState::Settings(SettingsPageState {
@@ -358,6 +344,17 @@ impl ViewData {
             }),
             commit_box: super::changes::commit_box(state),
         }
+    }
+}
+
+/// A page of a commit, a diff, a file in conflict or a comparison, when it is still kept.
+fn opened_page(state: &State, page: Page) -> Option<PageState<'_>> {
+    match page {
+        Page::Commit(id) => super::commit_page::page_state(state, id).map(PageState::Commit),
+        Page::Diff(id) => super::diff_page::page_state(state, id).map(PageState::Diff),
+        Page::Merge(id) => super::merge_page::page_state(state, id).map(|(page, title)| PageState::Merge(page, title)),
+        Page::Compare(id) => super::compare::page_state(state, id).map(PageState::Compare),
+        _ => None,
     }
 }
 

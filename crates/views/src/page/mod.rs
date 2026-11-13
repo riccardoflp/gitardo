@@ -30,6 +30,8 @@ pub enum Page {
     Rebase,
     /// A comparison page (`compare.page`).
     Compare(ComparePageId),
+    /// A Merge page (`merge-view.page`).
+    Merge(crate::merge_view::MergePageId),
 }
 
 impl Page {
@@ -44,6 +46,7 @@ impl Page {
             Page::Diff(_) => crate::text::diff::PAGE,
             Page::Rebase => crate::text::rebase::PAGE,
             Page::Compare(_) => crate::text::compare::PAGE,
+            Page::Merge(_) => crate::text::merge_view::PAGE,
         }
     }
 }
@@ -65,6 +68,8 @@ pub enum PageState<'a> {
     Rebase(crate::rebase::TodoPageState<'a>),
     /// A comparison page.
     Compare(CompareState<'a>),
+    /// A Merge page, with its title.
+    Merge(crate::merge_view::MergePageState<'a>, &'a str),
 }
 
 impl PageState<'_> {
@@ -79,6 +84,7 @@ impl PageState<'_> {
             PageState::Diff(diff) => Page::Diff(diff.id),
             PageState::Rebase(_) => Page::Rebase,
             PageState::Compare(compare) => Page::Compare(compare.id),
+            PageState::Merge(merge, _) => Page::Merge(merge.id),
         }
     }
 
@@ -92,6 +98,7 @@ impl PageState<'_> {
             }
             PageState::Diff(diff) => diff.title,
             PageState::Compare(compare) => compare.title,
+            PageState::Merge(_, title) => title,
         }
     }
 }
@@ -128,6 +135,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Diff(diff) => diff_page_view(diff, ui),
         PageState::Rebase(rebase) => crate::rebase::todo_page_view(rebase, ui),
         PageState::Compare(compare) => compare_page_view(compare, ui),
+        PageState::Merge(merge, _) => crate::merge_view::page_view(merge, ui),
     }));
     intents
 }

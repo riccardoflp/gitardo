@@ -12,6 +12,7 @@ mod diff_page;
 pub mod feature;
 mod inspector;
 mod log_lines;
+mod merge_page;
 mod message;
 mod pages;
 mod rail;
@@ -39,6 +40,7 @@ pub use changes::{Changes, ChangesData};
 pub use commit_page::{CommitPage, CommitPages, PageReadState};
 pub use diff_page::{DiffPage, DiffPages};
 pub use inspector::{Inspector, InspectorRead, Subject, SubjectRow};
+pub use merge_page::{MergePage, MergePages};
 pub use message::{Effect, Found, Job, JobId, JobKind, Known, Message, MorePages, TimelineRequest};
 pub use rail::{FilterPicker, Rail};
 pub use reads::Reads;
@@ -58,6 +60,8 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(commit_page::follow(state));
     effects.extend(diff_page::prune(state));
     effects.extend(diff_page::follow(state));
+    effects.extend(merge_page::prune(state));
+    effects.extend(merge_page::follow(state));
     effects.extend(compare::prune(state));
     effects.extend(compare::follow(state));
     effects.extend(reads::watch(state));
@@ -98,6 +102,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         Message::DetailsRead { job, result } => inspector::details_read(state, job, result),
         Message::CommitPageRead { job, result } => commit_page::page_read(state, job, result),
         Message::DiffRead { job, result } => diff_page::diff_read(state, job, result),
+        Message::MergeRead { job, result } => merge_page::merge_read(state, job, result),
         Message::ComparisonRead { job, result } => compare::comparison_read(state, job, result),
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
         Message::ConflictsCounted { job, result } => conflicts::counted(state, job, result),
@@ -302,6 +307,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Details(intent) => inspector::reduce_details(state, intent),
         Intent::CommitPage(id, intent) => commit_page::reduce_page(state, id, intent),
         Intent::Diff(intent) => diff_page::reduce(state, intent),
+        Intent::MergeView(intent) => merge_page::reduce(state, intent),
         Intent::Compare(intent) => compare::reduce(state, intent),
         Intent::Feature(intent) => feature::reduce(state, intent),
         Intent::Changes(intent) => changes::reduce(state, intent),

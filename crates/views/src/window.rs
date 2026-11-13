@@ -53,6 +53,8 @@ pub struct WindowState<'a> {
     pub said: Option<SaidState<'a>>,
     /// The question asked before a very large diff is computed (`diff.page`).
     pub large_diff: Option<crate::diff::LargeDiffQuestion<'a>>,
+    /// The question asked before a very large file in conflict is shown (`merge-view.page`).
+    pub large_merge: Option<crate::merge_view::LargeMergeQuestion<'a>>,
 }
 
 /// What the operation running shows over the window.
@@ -144,6 +146,9 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     }
     if let Some(question) = &state.large_diff {
         intents.extend(crate::diff::large_diff_question_view(question, ui));
+    }
+    if let Some(question) = &state.large_merge {
+        intents.extend(crate::merge_view::large_merge_question_view(question, ui));
     }
     match &state.feature {
         Some(FeatureDialog::Question(question)) => intents.extend(question_view(question, ui)),
@@ -272,6 +277,7 @@ fn notice_bar(notice: Notice, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Int
         Notice::NoRepositoryToSelect => repo_words::NO_REPOSITORY_TO_SELECT,
         Notice::DiffLooksBinary => crate::text::diff::LOOKS_BINARY,
         Notice::DiffTooComplex => crate::text::diff::TOO_MANY_DIFFERENCES,
+        Notice::MergeNotInConflict => crate::text::merge_view::NOT_IN_CONFLICT,
     };
     let mut parts = Area::with_gap(
         inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0)),

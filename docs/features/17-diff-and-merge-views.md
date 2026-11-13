@@ -518,16 +518,16 @@ change of a side joined by a band to where it is in the result.
   of the conflicts; **Open in the Merge page** in Quick search and the title button of the same name of a File page,
   for the file of the page in front when it is in conflict.
 - **Reads**: `merge-view.read-sides`.
-- **Refuses**: a file that is not in conflict with a version on each side: *\<file\> is not in conflict with a change on
+- **Refuses**: a file that is not in conflict with a version on each side: *This file is not in conflict with a change on
   each side.* A NUL byte in any of the four texts: *This file looks binary.* A diff that takes more than 5 seconds:
   *This file has too many differences to display.*
 - **Asks**: when the four texts have more than 200,000 lines together: **This file is very large and the merge may be
   slow to show. Continue?** with **Continue**.
 - **Settings**: `conflicts.autoResolve` and `conflicts.ai`, for the proposals.
-- **Uses**: `merge-view.read-sides`, `merge-view.three-way`, `diff.word-diff`, `diff.scroll-together`,
-  `diff.resize-sides`, `merge-view.take-side`, `merge-view.accept-simple`, `merge-view.accept-proposals`,
-  `merge-view.show-base`, `merge-view.navigate`, `merge-view.open-at-line`, `merge-view.mark-resolved`,
-  `merge-view.close`, `file-view.edit`, `file-view.highlight`, `conflicts.side-names`.
+- **Uses**: `merge-view.read-sides`, `merge-view.three-way`, `diff.word-diff`, `merge-view.take-side`,
+  `merge-view.accept-simple`, `merge-view.accept-proposals`, `merge-view.show-base`, `merge-view.navigate`,
+  `merge-view.open-at-line`, `merge-view.mark-resolved`, `merge-view.close`, `file-view.edit`, `file-view.highlight`,
+  `conflicts.side-names`.
 
 - The page is titled **\<file name\> (Current ↔ Incoming)** in its trail; one page per file, and asking again shows it.
 - The columns are labelled **Current — \<what the current side is\>**, **\<path\> — Result** and **Incoming — \<what the
@@ -542,9 +542,11 @@ change of a side joined by a band to where it is in the result.
   `=======`, `>>>>>>>`) are marked, and the two parts of a conflict between them are each joined, by a mark in the
   margin, to the side it comes from. A conflict resolved in the file, whose markers are gone, is drawn faintly.
 - The scroll bar of the result has a mark for each region in its color.
-- The three columns scroll together: each side with the result, and so with each other, as `diff.scroll-together` says,
-  anchored on every region.
-- The page is computed again a quarter of a second after the file changes, and when what is proposed for it changes.
+- The columns are kept level: in each region, and between two regions, the lines of each column face each other in
+  order, the column with fewer lines there having blank rows after them, so that the columns scroll together as one
+  list. A region has at least one row, so that its band shows even where it took every line out.
+- The page is computed again after each choice, and when the repository is read again: from the file on disk, or from
+  the result it holds when that has changes that are not saved.
 
 Acceptance:
 
@@ -576,7 +578,7 @@ Aligns the base, the two sides and the result: what each side changed of the bas
 and where each one is in the result as it is now.
 
 - **Kind**: Derivation
-- **Function**: `model::merge_view::three_way(input) -> MergeRegions`
+- **Function**: `model::merge_view::three_way(input) -> Option<MergeRegions>`
 - **Uses**: `diff.line-diff`, `diff.word-diff`, `conflicts.parse-markers`.
 
 What the result must satisfy:

@@ -25,6 +25,8 @@ mod inspector;
 mod inspector_files;
 mod jobs;
 mod large_diffs;
+mod merge;
+mod merge_actions;
 mod operations;
 mod panes;
 mod patches;
