@@ -1671,3 +1671,8 @@ answered:
 - **Q329** — Q316 is answered: a row of the Worktrees list draws the badge of the pull request of its branch at its
   right, after the pencil, and its tooltip adds the line of the badge; a missing worktree has none. The card gains an
   acceptance line for it. Is this right?
+- **Q-R1** — `repo.open-folder`, `repo.open-recent` and `repo.select` are built as cards of the store, not features,
+  as the lead decided for Q43: their Function lines name `app::store::open_folder`, `app::store::open_recent` and
+  `app::store::workspace::select`, which reduce them, and their acceptance lines are tests of the store. The system's
+  folder dialog is the platform's (`platform::FileDialog`), shown for `Effect::ChooseFolder`. Can the maintainer
+  confirm that the workspace stays out of the feature contract?

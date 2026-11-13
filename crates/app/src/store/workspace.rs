@@ -180,6 +180,8 @@ pub fn repository_read(
 
 /// Chooses the repository shown (`repo.select`): nothing while an operation runs or when it is the one shown; otherwise
 /// it is read, and remembered for the workspace.
+///
+/// Feature: repo.select
 pub fn select(state: &mut State, folder: &Path) -> Vec<Effect> {
     if state.is_operation_running {
         return Vec::new();

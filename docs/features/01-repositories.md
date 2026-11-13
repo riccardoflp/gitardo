@@ -64,7 +64,8 @@ Acceptance:
 Shows a folder, or several, in the window: replaces what the window shows, or adds to it.
 
 - **Kind**: Operation
-- **Function**: `features::repo::open_folder(context, answers) -> Outcome`
+- **Function**: `app::store::open_folder(state: &mut State, folder: Option<PathBuf>) -> Vec<Effect>`, a function of
+  the store: the workspace is the window's, not a repository's (Q43)
 - **Entry points**: **Open folder…** on the Welcome page, in the repository menu of the header, and in Quick search.
 - **Asks**:
   1. The folder, in the system's folder dialog.
@@ -90,7 +91,8 @@ Acceptance:
 Opens again a workspace the window showed before, with the repository that was shown in it.
 
 - **Kind**: Operation
-- **Function**: `features::repo::open_recent(context, answers) -> Outcome`
+- **Function**: `app::store::open_recent(state: &mut State, index: usize) -> Vec<Effect>`, a function of the store
+  (Q43)
 - **Entry points**: the list of recent workspaces on the Welcome page; **Open recent** in Quick search.
 - **Asks**: the workspace, from Gitardo's picker of the recent ones, the latest first (when not chosen on the page).
 - **Reads**: `repo.read-repositories`.
@@ -111,7 +113,8 @@ Acceptance:
 Gitardo shows one repository at a time; in a workspace with several, this chooses which.
 
 - **Kind**: Operation
-- **Function**: `features::repo::select(context, answers) -> Outcome`
+- **Function**: `app::store::workspace::select(state: &mut State, folder: &Path) -> Vec<Effect>`, a function of the
+  store (Q43)
 - **Entry points**: the repository menu of the header; **Select repository…** in the **…** menu of the header;
   **Select Repository** in Quick search.
 - **Offered when**: the workspace has more than one repository, or the window shows a worktree of a repository of the

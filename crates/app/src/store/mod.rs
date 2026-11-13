@@ -90,7 +90,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
     match message {
         Message::Started { folders } => started(state, folders),
         Message::Intent(intent) => reduce_intent(state, intent),
-        Message::FolderChosen(folder) => folder_chosen(state, folder),
+        Message::FolderChosen(folder) => open_folder(state, folder),
         Message::RepositoriesFound { job, found } => workspace::repositories_found(state, job, found),
         Message::RepositoryRead {
             job,
@@ -233,8 +233,12 @@ fn started(state: &mut State, folders: Vec<PathBuf>) -> Vec<Effect> {
     effects
 }
 
-/// A folder chosen in the system's dialog: shown at once in a window with no workspace, asked about otherwise.
-fn folder_chosen(state: &mut State, folder: Option<PathBuf>) -> Vec<Effect> {
+/// A folder chosen in the system's dialog, which the platform shows for [`Effect::ChooseFolder`]: shown at once in a
+/// window with no workspace; otherwise **Replace the workspace** or **Add to the workspace** is asked, and answered by
+/// `answer_open_folder`.
+///
+/// Feature: repo.open-folder
+fn open_folder(state: &mut State, folder: Option<PathBuf>) -> Vec<Effect> {
     let Some(folder) = folder else {
         return Vec::new();
     };
@@ -369,6 +373,8 @@ fn reduce_view_intent(state: &mut State, intent: &Intent) {
 
 /// Opens a recent workspace, with the repository shown in it last; the window keeps what it shows until its
 /// repositories are found, since one whose folders are all gone is refused.
+///
+/// Feature: repo.open-recent
 fn open_recent(state: &mut State, index: usize) -> Vec<Effect> {
     let Some(recent) = state.persisted.recent.get(index).cloned() else {
         return Vec::new();
