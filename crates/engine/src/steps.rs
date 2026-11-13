@@ -124,6 +124,8 @@ fn run_step(git: &Git, step: &Step, cancel: &CancelToken) -> Result<(), StepErro
         Step::Unlink { path } => unlink(path).map_err(StepError::Failed),
         Step::Delete { path } => delete(path).map_err(|error| StepError::failed(&error)),
         Step::Run { command, directory } => run_command(command, directory, cancel),
+        // A warning is written to the log before it "runs", and does nothing.
+        Step::Warn { .. } => Ok(()),
     }
 }
 

@@ -106,6 +106,7 @@ fn run_feature(
     };
     let git = Git::new(context.repository.folder.clone());
     let mut engine = Engine::new(git, CommandLog::new(LogLevel::Info), Box::new(SystemClock));
+    engine.find_operations_with(features::operation);
     let mut asker = ArgumentAsker::new(run.answers.clone(), run.plan_choice);
     let finished = match engine.run_feature(feature, operation, &context, &mut asker) {
         Ok(finished) => finished,
@@ -154,19 +155,26 @@ fn report(
     errors: &mut dyn Write,
 ) -> io::Result<u8> {
     match finished {
-        Finished::Ran { plan, .. } => {
+        Finished::Ran { plan, steps, .. } => {
             show::plan(out, plan)?;
+            // A step that failed and was got past, as a cherry-pick of a commit that changes nothing, ran more steps.
+            for line in steps.iter().skip(plan.steps.len()) {
+                writeln!(out, "  > {line}")?;
+            }
             for follow_up in &plan.after {
                 match follow_up {
                     FollowUp::Say(words) => writeln!(out, "{words}")?,
                     FollowUp::Offer(feature, label) => writeln!(out, "Next: {label} ({})", feature.0)?,
                     FollowUp::SelectCommit(commit) => writeln!(out, "Select {commit}")?,
+                    FollowUp::SelectBeforeHead(count) => writeln!(out, "Select HEAD~{count}")?,
                     FollowUp::OpenCommitPage(commit) => writeln!(out, "Open the page of {commit}")?,
                     FollowUp::CopyToClipboard(text) => writeln!(out, "Copy {text}")?,
                     FollowUp::SelectHead
                     | FollowUp::EmptyCommitMessage
                     | FollowUp::ReadPullRequests
-                    | FollowUp::CheckAutostash => {}
+                    | FollowUp::CheckAutostash
+                    | FollowUp::Recover(_)
+                    | FollowUp::PreparedMessage => {}
                 }
             }
             Ok(DONE)

@@ -7,13 +7,20 @@
 
 pub mod branch;
 pub mod changes;
+pub mod cherry_pick;
 pub mod commit;
 pub mod commit_page;
 pub mod commits;
 pub mod diff;
+mod history;
 pub mod identity;
+pub mod merge;
+pub mod message;
 pub mod remote;
+pub mod reset;
+pub mod revert;
 pub mod search;
+pub mod selection;
 pub mod stash;
 pub mod sync;
 pub mod tag;
@@ -25,7 +32,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 56] = [
+pub const OPERATIONS: [(FeatureId, Operation); 65] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -87,6 +94,16 @@ pub const OPERATIONS: [(FeatureId, Operation); 56] = [
     (FeatureId("diff.stage-file"), diff::stage_file),
     (FeatureId("diff.unstage-change"), diff::unstage_change),
     (FeatureId("diff.unstage-file"), diff::unstage_file),
+    // Commits brought, taken back and reworded, and several selected at once.
+    (FeatureId("cherry-pick.commit"), cherry_pick::commit),
+    (FeatureId("cherry-pick.skip-empty"), cherry_pick::skip_empty),
+    (FeatureId("merge.choose-way"), merge::choose_way),
+    (FeatureId("merge.into-current"), merge::into_current),
+    (FeatureId("merge.undo-squash"), merge::undo_squash),
+    (FeatureId("message.edit"), message::edit),
+    (FeatureId("reset.to-commit"), reset::to_commit),
+    (FeatureId("revert.commit"), revert::commit),
+    (FeatureId("selection.cherry-pick"), selection::cherry_pick),
 ];
 
 /// The operation of an identifier, when it is built.

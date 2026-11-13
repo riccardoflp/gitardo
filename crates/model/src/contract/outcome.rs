@@ -98,8 +98,30 @@ pub enum Query {
     /// Who commits are made as, and which `user.*` keys the repository sets for itself (`identity.read`). The answer
     /// is [`super::Answer::Identity`].
     Identity,
-    /// The whole message of a commit as it was written, as `git log -1 --format=%B` prints it without the newlines
-    /// at its end. The answer is [`super::Answer::Text`].
+    /// The files a merge of `theirs` into `ours` would leave in conflict (`merge.read-predicted-conflicts`). The answer
+    /// is [`super::Answer::Conflicts`].
+    PredictedConflicts {
+        /// What the merge goes into; `HEAD` when none is given.
+        ours: Option<String>,
+        /// What is merged.
+        theirs: String,
+        /// The base to merge from, for a cherry-pick: the parent of the commit picked; none lets git find it.
+        base: Option<String>,
+    },
+    /// Commits, each with its parents and its subject, in the order given
+    /// (`git log --no-walk=unsorted <revision>… --`). The answer is [`super::Answer::Commits`].
+    Commits {
+        /// The commits, by any name git understands.
+        revisions: Vec<String>,
+    },
+    /// The commits after a commit up to `HEAD`, newest first, each with its parents
+    /// (`git log --topo-order <commit>..HEAD --`). The answer is [`super::Answer::Commits`].
+    LineAfter {
+        /// The commit the line starts after.
+        commit: CommitId,
+    },
+    /// The whole message of a commit (`git log -1 --format=%B <commit> --`). The answer is
+    /// [`super::Answer::Message`].
     Message {
         /// The commit.
         commit: CommitId,
@@ -112,6 +134,14 @@ pub enum Query {
         /// The commit to read it in too: `HEAD`, or the one a page compares with; none for no commit.
         commit: Option<CommitId>,
     },
+    /// The remote branches that have a commit (`rebase.read-pushed`). The answer is [`super::Answer::Names`].
+    Pushed {
+        /// The commit.
+        commit: CommitId,
+    },
+    /// The commit a cherry-pick or a revert stopped on with nothing left to do (`cherry-pick.skip-empty`). The answer
+    /// is [`super::Answer::EmptyStop`].
+    EmptyStop,
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

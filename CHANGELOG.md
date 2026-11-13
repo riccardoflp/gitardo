@@ -141,3 +141,9 @@
   changes…** and **Stash only the staged changes…**. The draft at the top of the timeline
   shows the message and commits it, and its menu stages, unstages and discards all changes. **Switch identity…** is
   in **…** and in Quick search.
+- `gitardo-cli` merges a commit, a branch or a remote branch into the branch checked out, as git's configuration says
+  or in one of four ways (no fast-forward, fast-forward only, squash), and takes a squash merge back; cherry-picks one
+  commit, or several selected ones oldest first as one operation that Undo takes back whole, and gets past a commit
+  that changes nothing with a warning in the log; reverts a commit; resets the branch to a commit, soft, mixed or hard;
+  and edits the message of the last commit, or of an older one with an interactive rebase. A merge or a cherry-pick
+  predicted to conflict says which files first; `cherryPick.recordOrigin` adds `-x`.

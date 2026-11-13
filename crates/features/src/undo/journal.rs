@@ -10,6 +10,9 @@ pub(super) fn plan(context: &Context, entry: &JournalEntry) -> Plan {
     if let UndoRecord::StashDropped { message, commit } = &entry.record {
         return crate::stash::restore_plan(context, entry, (message, commit));
     }
+    if entry.record == UndoRecord::SquashMerge {
+        return crate::merge::undo_squash_plan(context, entry);
+    }
     let (what, arguments) = what_and_arguments(entry);
     let title = Text::from(format!("Undo {what}"));
     let warning = match entry.record {

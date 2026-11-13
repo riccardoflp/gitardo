@@ -73,6 +73,11 @@ pub enum Step {
         /// The folder it runs in.
         directory: PathBuf,
     },
+    /// Writes a warning to the log, and changes nothing: what the steps after it do and why.
+    Warn {
+        /// The sentence.
+        words: String,
+    },
 }
 
 impl Step {
@@ -88,7 +93,7 @@ impl Step {
 
     /// The line of the command log for this step, in the fixed form of `log.record`: the git command as it runs, with
     /// the arguments that hold spaces in quotes; `write <path>`; `symlink <folder>`; `copy <path>`; `unlink <path>`;
-    /// `delete <path>`; `run <command>`.
+    /// `delete <path>`; `run <command>`; and the sentence of a warning.
     #[must_use]
     pub fn log_line(&self) -> String {
         match self {
@@ -106,6 +111,7 @@ impl Step {
             Step::Unlink { path } => format!("unlink {}", path.display()),
             Step::Delete { path } => format!("delete {}", path.display()),
             Step::Run { command, .. } => format!("run {command}"),
+            Step::Warn { words } => words.clone(),
         }
     }
 }
@@ -169,6 +175,14 @@ pub enum FollowUp {
     /// Once the repository is read again, say whether the pull left the changes it set aside in a stash
     /// (`stash.autostash-left`).
     CheckAutostash,
+    /// When a step failed: run this feature at once, on the same target, which gets past the stop when it can
+    /// (`cherry-pick.skip-empty`); when it does nothing, the failure is shown.
+    Recover(FeatureId),
+    /// Select the commit as many first parents before `HEAD` as this, once the plan ran: 0 is `HEAD`.
+    SelectBeforeHead(usize),
+    /// Put the message git prepared for the next commit (`SQUASH_MSG` in the git folder) in the commit box, when the
+    /// box is empty.
+    PreparedMessage,
 }
 
 #[cfg(test)]

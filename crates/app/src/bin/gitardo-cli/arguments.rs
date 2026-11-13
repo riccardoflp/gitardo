@@ -13,9 +13,9 @@ pub const USAGE: &str = "Usage:
   gitardo-cli [--repository <folder>] [--target <what>] [--plan] [--yes] <feature> [<key>=<answer>]...
 
   --repository <folder>   the repository, by any folder in it; the current folder when not given
-  --target <what>         what the feature is invoked on: commit:<hash>, branch:<name>, remote-branch:<name>,
-                          tag:<name>, stash:<N>, remote:<name>, files:<path>,<path>; what is checked out
-                          when not given
+  --target <what>         what the feature is invoked on: commit:<hash>, commits:<hash>,<hash> (newest first),
+                          branch:<name>, remote-branch:<name>, tag:<name>, stash:<N>, remote:<name>,
+                          files:<path>,<path>; what is checked out when not given
   --plan                  show the plan and do not run it
   --yes                   run a plan that asks to be confirmed first
   <key>=<answer>          the answer of a question: the text typed, the identifier of a choice, or yes";
@@ -120,6 +120,11 @@ fn parse_target(text: &str) -> Result<Target, String> {
         "commit" => CommitId::parse(name)
             .map(Target::Commit)
             .ok_or_else(|| format!("{name} is not a full commit hash.")),
+        "commits" => name
+            .split(',')
+            .map(|hash| CommitId::parse(hash).ok_or_else(|| format!("{hash} is not a full commit hash.")))
+            .collect::<Result<_, _>>()
+            .map(Target::Commits),
         "branch" => Ok(Target::Branch(name.to_owned())),
         "remote-branch" => Ok(Target::RemoteBranch(name.to_owned())),
         "tag" => Ok(Target::Tag(name.to_owned())),
@@ -132,7 +137,8 @@ fn parse_target(text: &str) -> Result<Target, String> {
         "file" => Ok(Target::File(name.to_owned())),
         "changes" => Ok(Target::Changes),
         _ => Err(format!(
-            "{kind} is not a kind of target: commit, branch, remote-branch, tag, file, changes, stash, remote or files."
+            "{kind} is not a kind of target: commit, commits, branch, remote-branch, tag, file, changes, stash, \
+             remote or files."
         )),
     }
 }

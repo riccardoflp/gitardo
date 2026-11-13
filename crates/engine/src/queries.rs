@@ -4,8 +4,10 @@ use git::read::branch;
 use git::read::diff::{DiffRequest, FileVersion, VersionRequest, read_sides};
 use git::read::identity::{IdentityRequest, read_identity};
 use git::read::merge::{PredictedConflictsRequest, read_predicted_conflicts};
+use git::read::rebase::{PushedRequest, pushed_arguments, read_pushed};
 use git::read::reflog::{ReflogRequest, read_entries};
 use git::read::remote::{RemotesRequest, read_remotes};
+use git::read::rewrite;
 use git::read::search::{RevisionRequest, read_revision};
 use git::read::stash::{StashRef, read_files};
 use git::read::sync::{OverwrittenRequest, read_overwritten};
@@ -58,29 +60,21 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
                 local_keys: read.local_keys,
             })
         }),
-        Query::Message { commit } => message(git, commit),
         Query::FileVersions { path, commit } => file_versions(git, path, commit.as_ref()),
+        Query::PredictedConflicts { ours, theirs, base } => predicted_conflicts(
+            git,
+            &PredictedConflictsRequest {
+                ours: ours.clone(),
+                theirs: theirs.clone(),
+                base: base.clone(),
+            },
+        ),
+        Query::Commits { revisions } => rewrite::read_commits(git, revisions).map(Answer::Commits),
+        Query::LineAfter { commit } => rewrite::read_line_after(git, commit).map(Answer::Commits),
+        Query::Message { commit } => rewrite::read_message(git, commit).map(Answer::Message),
+        Query::Pushed { commit } => read_pushed(git, &PushedRequest { commit: commit.clone() }).map(Answer::Names),
+        Query::EmptyStop => rewrite::read_empty_stop(git).map(Answer::EmptyStop),
     }
-}
-
-/// The whole message of a commit as it was written, without the newlines at its end.
-fn message(git: &Git, commit: &model::CommitId) -> Result<Answer, GitError> {
-    let arguments = message_arguments(commit);
-    let output = git.read_output(&arguments)?;
-    if output.code != Some(0) {
-        return Err(GitError::Failed {
-            command: git::command_line(&arguments),
-            code: output.code,
-            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
-        });
-    }
-    let text = String::from_utf8_lossy(&output.stdout);
-    Ok(Answer::Text(text.trim_end_matches(['\n', '\r']).to_owned()))
-}
-
-/// `git log -1 --format=%B <commit> --`.
-fn message_arguments(commit: &model::CommitId) -> [&str; 5] {
-    ["log", "-1", "--format=%B", commit.as_str(), "--"]
 }
 
 /// A file in a commit, in the index and on disk, each none where it is not.
@@ -104,6 +98,17 @@ fn file_versions(git: &Git, path: &str, commit: Option<&model::CommitId>) -> Res
         index: first.right,
         working_tree: second.right,
     }))
+}
+
+/// The files a merge would leave in conflict, as the paths the features say.
+fn predicted_conflicts(git: &Git, request: &PredictedConflictsRequest) -> Result<Answer, GitError> {
+    let paths = read_predicted_conflicts(git, request)?;
+    Ok(Answer::Conflicts(paths.map(|paths| {
+        paths
+            .into_iter()
+            .map(|path| path.to_string_lossy().into_owned())
+            .collect()
+    })))
 }
 
 /// Whether the files of the working tree are as a commit has them.
@@ -191,10 +196,23 @@ pub(crate) fn describe(query: &Query) -> String {
              --merge-base=stash@{{{index}}}^1 HEAD stash@{{{index}}}"
         ),
         Query::Identity => String::from(r"git config -z --get-regexp ^user\.(name|email)$"),
-        Query::Message { commit } => git::command_line(&message_arguments(commit)),
         Query::FileVersions { path, commit } => match commit {
             Some(commit) => format!("git show {commit}:{path}, git show :0:{path}, read {path}"),
             None => format!("git show :0:{path}, read {path}"),
         },
+        Query::PredictedConflicts { ours, theirs, base } => git::command_line(
+            &git::read::merge::predicted_conflicts_arguments(&PredictedConflictsRequest {
+                ours: ours.clone(),
+                theirs: theirs.clone(),
+                base: base.clone(),
+            }),
+        ),
+        Query::Commits { revisions } => git::command_line(&rewrite::commits_arguments(revisions)),
+        Query::LineAfter { commit } => git::command_line(&rewrite::line_after_arguments(commit)),
+        Query::Message { commit } => git::command_line(&rewrite::message_arguments(commit)),
+        Query::Pushed { commit } => git::command_line(&pushed_arguments(&PushedRequest { commit: commit.clone() })),
+        Query::EmptyStop => String::from(
+            "git rev-parse -q --verify CHERRY_PICK_HEAD (or REVERT_HEAD), git ls-files -u -z, git diff --quiet HEAD --",
+        ),
     }
 }

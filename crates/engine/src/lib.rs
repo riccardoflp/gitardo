@@ -19,7 +19,7 @@ pub mod undo;
 
 pub use activity::{Activities, ActivityEntry, ActivityGuard};
 pub use clock::{Clock, FixedClock};
-pub use drive::{Asker, Engine, Finished};
+pub use drive::{Asker, Engine, FindOperation, Finished};
 pub use error::EngineError;
 pub use log::{CommandLog, LogEntry, LogKind, LogLevel};
 pub use preview::needs_confirmation;

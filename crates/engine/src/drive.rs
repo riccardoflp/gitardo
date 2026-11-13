@@ -7,7 +7,8 @@ use std::time::Instant;
 use git::read::repo::{StateRequest, read_state};
 use git::{CancelToken, Git};
 use model::contract::{
-    Answer, Answers, Context, FeatureId, Operation, Outcome, Plan, Query, Question, QuestionKind, Refusal, Text, Undo,
+    Answer, Answers, Context, FeatureId, FollowUp, Operation, Outcome, Plan, Query, Question, QuestionKind, Refusal,
+    Text, Undo,
 };
 use model::state::RepositoryState;
 
@@ -22,6 +23,10 @@ use crate::undo::{Journal, journal_after};
 
 /// How many times a feature may be called before the engine gives up on it: far more than any feature asks.
 const MOST_CALLS: usize = 100;
+
+/// How the engine finds the operation of an identifier, for the features a plan names to run when one of its steps
+/// failed (`FollowUp::Recover`): the catalog's own lookup, which the engine cannot use itself.
+pub type FindOperation = fn(&str) -> Option<(FeatureId, Operation)>;
 
 /// Who answers the questions of a feature and confirms its plan: the dialogs of a window, or the arguments of the
 /// command line.
@@ -62,6 +67,7 @@ pub struct Engine {
     journal: Journal,
     last_state: Option<Arc<RepositoryState>>,
     cancel: CancelToken,
+    find_operation: Option<FindOperation>,
 }
 
 impl Engine {
@@ -76,7 +82,14 @@ impl Engine {
             journal: Journal::new(),
             last_state: None,
             cancel: CancelToken::new(),
+            find_operation: None,
         }
+    }
+
+    /// Takes the lookup of the operations of the catalog, so that a plan that names a feature to run when one of its
+    /// steps failed gets it run. Without it, a failed step is always the end.
+    pub fn find_operations_with(&mut self, find_operation: FindOperation) {
+        self.find_operation = Some(find_operation);
     }
 
     /// Takes the token that cancels what the engine runs from now on: the reads of the features and the steps of their
@@ -181,13 +194,59 @@ impl Engine {
         let _running = self
             .activities
             .track(plan.title.clone(), Text::from(feature.0), self.clock.now());
-        let steps = self.run_plan(&plan).map_err(EngineError::Step)?;
+        let steps = match self.run_plan(&plan) {
+            Ok(steps) => steps,
+            Err(failure) => match self.recover(&plan, context, asker, failure) {
+                Ok(steps) => steps,
+                Err(failure) => {
+                    if matches!(&plan.undo, Undo::Journal(record) if record.holds_after_a_stop()) {
+                        let _state_after = self.after_plan(&plan, context);
+                    }
+                    return Err(EngineError::Step(failure));
+                }
+            },
+        };
         let state_after = self.after_plan(&plan, context);
         Ok(Finished::Ran {
             plan,
             steps,
             state_after,
         })
+    }
+
+    /// Runs the features a plan names to get past a step that failed, in order, until one gets past it: the lines of
+    /// all the steps that ran, the failed one included; or the failure to show, which is that of the feature that tried
+    /// and failed, or the plan's own when none tried.
+    fn recover(
+        &mut self,
+        plan: &Plan,
+        context: &Context,
+        asker: &mut dyn Asker,
+        failure: crate::StepFailure,
+    ) -> Result<Vec<String>, crate::StepFailure> {
+        let Some(find_operation) = self.find_operation.filter(|_| !failure.cancelled) else {
+            return Err(failure);
+        };
+        for follow_up in &plan.on_failure {
+            let FollowUp::Recover(identifier) = follow_up else {
+                continue;
+            };
+            let Some((feature, operation)) = find_operation(identifier.0) else {
+                continue;
+            };
+            match self.run_feature(feature, operation, context, asker) {
+                Ok(Finished::Ran { steps, .. }) => {
+                    let mut all = failure.ran;
+                    all.push(failure.failed);
+                    all.extend(steps);
+                    return Ok(all);
+                }
+                Err(EngineError::Step(later)) => return Err(later),
+                // It found nothing to get past, or could not tell: the failure is the plan's own.
+                Ok(Finished::Refused(_) | Finished::BackedOut | Finished::NotConfirmed(_)) | Err(_) => {}
+            }
+        }
+        Err(failure)
     }
 
     /// The newest entry of the journal, when it still holds for the state the feature was given.

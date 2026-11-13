@@ -16,4 +16,5 @@ pub use journal::{JournalEntry, UndoRecord};
 pub use outcome::{FeatureId, Operation, Outcome, Query, Refusal};
 pub use plan::{Danger, FollowUp, Plan, Step, Undo};
 pub use question::{Choice, Question, QuestionKind, Validation};
+pub use results::EmptyStop;
 pub use words::Text;

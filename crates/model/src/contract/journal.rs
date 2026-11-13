@@ -43,6 +43,15 @@ pub enum UndoRecord {
     },
 }
 
+impl UndoRecord {
+    /// Whether the entry is kept also when the plan stopped half way on a conflict: a squash merge and a series of
+    /// commits are taken back whole, also from where they stopped.
+    #[must_use]
+    pub fn holds_after_a_stop(&self) -> bool {
+        matches!(self, UndoRecord::SquashMerge | UndoRecord::Series { .. })
+    }
+}
+
 /// An entry of the journal: what a plan of Gitardo left for Undo, and where `HEAD` was once it ran.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JournalEntry {

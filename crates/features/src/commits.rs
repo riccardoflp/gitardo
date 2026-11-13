@@ -56,7 +56,7 @@ pub fn copy_message(context: &Context, answers: &Answers) -> Outcome {
     let Some(commit) = commit_of(context) else {
         return no_commit();
     };
-    let Some(message) = answers.text(MESSAGE) else {
+    let Some(message) = answers.message(MESSAGE) else {
         return Outcome::Read(MESSAGE, Query::Message { commit: commit.clone() });
     };
     Outcome::Run(copy(
@@ -101,7 +101,7 @@ mod tests {
         );
         let message = "Fix the login\n\nThe session expired too early.\n  Kept as written.";
         let mut answers = Answers::new();
-        answers.insert(MESSAGE, Answer::Text(message.to_owned()));
+        answers.insert(MESSAGE, Answer::Message(message.to_owned()));
         assert_eq!(copied(copy_message(&on_commit, &answers)), [message]);
     }
 
@@ -110,7 +110,7 @@ mod tests {
         let on_commit = context(state(), Target::Commit(commit('b')));
         let long = format!("Subject\n\n{}", "word ".repeat(40).trim_end());
         let mut answers = Answers::new();
-        answers.insert(MESSAGE, Answer::Text(long.clone()));
+        answers.insert(MESSAGE, Answer::Message(long.clone()));
         assert_eq!(copied(copy_message(&on_commit, &answers)), [long]);
     }
 }

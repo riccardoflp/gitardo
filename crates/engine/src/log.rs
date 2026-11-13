@@ -27,6 +27,8 @@ pub enum LogKind {
     Step,
     /// What git or the system said when the step above failed.
     Failure,
+    /// A warning a plan writes about the steps after it.
+    Warning,
     /// A read, at the debug level, with how long it took.
     Read(Duration),
 }
@@ -76,9 +78,13 @@ impl CommandLog {
     ///
     /// Feature: log.record
     pub fn record(&mut self, time: Timestamp, step: &Step) {
+        let kind = match step {
+            Step::Warn { .. } => LogKind::Warning,
+            _ => LogKind::Step, // Every other step changes something, and is written as it runs.
+        };
         self.push(LogEntry {
             time,
-            kind: LogKind::Step,
+            kind,
             line: step.log_line(),
         });
     }

@@ -131,6 +131,7 @@ fn serve(
                 Box::new(SystemClock),
             );
             engine.share_activities(activities.clone());
+            engine.find_operations_with(features::operation);
             engine
         });
         engine.cancel_with(cancel.clone());

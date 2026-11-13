@@ -71,6 +71,12 @@ pub enum Validation {
     },
     /// The URL of a remote repository: not empty, and not starting with `-`, which git would take for an option.
     Url,
+    /// A new message for a commit: not empty, and not the message it has, spaces and blank lines around either left
+    /// out.
+    NewMessage {
+        /// The message the commit has.
+        old: String,
+    },
 }
 
 impl Validation {
@@ -83,6 +89,15 @@ impl Validation {
                 validate_name(text).or_else(|| taken.iter().any(|name| name == text).then(|| taken_message.clone()))
             }
             Validation::Url => url_problem(text),
+            Validation::NewMessage { old } => {
+                if text.trim().is_empty() {
+                    Some(Text::from("Enter a message."))
+                } else if text.trim() == old.trim() {
+                    Some(Text::from("The message is unchanged."))
+                } else {
+                    None
+                }
+            }
         }
     }
 }

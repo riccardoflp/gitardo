@@ -49,6 +49,15 @@ pub enum Answer {
     Identity(IdentityKeys),
     /// A file in a commit, in the index and on disk.
     FileVersions(crate::diff::FileVersions),
+    /// The files a merge would leave in conflict (`merge.read-predicted-conflicts`), or none when git cannot tell.
+    Conflicts(Option<Vec<String>>),
+    /// Commits read, each with its parents and its subject, in the order of the query.
+    Commits(Vec<crate::commit::Commit>),
+    /// The whole message of a commit.
+    Message(String),
+    /// The commit a cherry-pick or a revert stopped on with nothing left to do, when it did
+    /// (`cherry-pick.skip-empty`).
+    EmptyStop(Option<super::EmptyStop>),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).

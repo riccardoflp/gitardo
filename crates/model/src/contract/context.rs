@@ -45,10 +45,13 @@ pub enum Target {
     Changes,
     /// A change of a Diff page, from a button of its gutter.
     DiffChange(Box<crate::diff::DiffChange>),
+    /// Several commits selected in the timeline, in its order: newest first (`selection.select`).
+    Commits(Vec<CommitId>),
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::struct_excessive_bools, reason = "each is a setting of its own, on or off")]
 pub struct FeatureSettings {
     /// `commandPreview`: when the commands are shown before they run.
     pub command_preview: CommandPreview,
@@ -64,6 +67,8 @@ pub struct FeatureSettings {
     pub pull_autostash: bool,
     /// `identities`: the names and emails to choose from when switching identity, in their order.
     pub identities: Vec<IdentityProfile>,
+    /// `cherryPick.recordOrigin`: cherry-picks end their message with `(cherry picked from commit …)`, as `-x` does.
+    pub cherry_pick_record_origin: bool,
 }
 
 /// An identity of the setting `identities`: `{ "name", "email", "signingKey"? }`.
@@ -87,6 +92,7 @@ impl Default for FeatureSettings {
             pull_rebase: true,
             pull_autostash: true,
             identities: Vec::new(),
+            cherry_pick_record_origin: false,
         }
     }
 }
