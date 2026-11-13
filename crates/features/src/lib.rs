@@ -27,6 +27,7 @@ pub mod reflog;
 pub mod remote;
 pub mod reset;
 pub mod revert;
+pub mod review;
 pub mod search;
 pub mod selection;
 pub mod split;
@@ -42,7 +43,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 97] = [
+pub const OPERATIONS: [(FeatureId, Operation); 98] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -156,6 +157,8 @@ pub const OPERATIONS: [(FeatureId, Operation); 97] = [
     (FeatureId("conflicts.take-side"), conflicts::take_side),
     // The Merge page.
     (FeatureId("merge-view.mark-resolved"), merge_view::mark_resolved),
+    // The review of the conflicts.
+    (FeatureId("review.write"), review::write),
 ];
 
 /// The operation of an identifier, when it is built.

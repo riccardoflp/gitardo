@@ -52,6 +52,8 @@ pub enum Target {
     Comparison(Box<crate::compare::ComparisonTarget>),
     /// The file of a Merge page, with its result when it is not saved (`merge-view.mark-resolved`).
     MergeResult(Box<crate::merge_view::MergeResolution>),
+    /// The resolutions accepted on the review of the conflicts (`review.write`).
+    Resolutions(Box<crate::review::Resolutions>),
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.

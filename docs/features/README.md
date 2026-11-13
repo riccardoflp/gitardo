@@ -281,9 +281,9 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`review.page`](09-conflicts.md#reviewpage--the-review-of-the-resolutions) | The review of the resolutions | View | Specified |
 | [`review.file-list`](09-conflicts.md#reviewfile-list--the-files-and-the-filters) | The files and the filters | View | Specified |
 | [`review.card`](09-conflicts.md#reviewcard--a-conflict-as-a-card) | A conflict, as a card | View | Specified |
-| [`review.side-diff`](09-conflicts.md#reviewside-diff--what-a-side-changed-of-the-base) | What a side changed of the base | Derivation | Specified |
+| [`review.side-diff`](09-conflicts.md#reviewside-diff--what-a-side-changed-of-the-base) | What a side changed of the base | Derivation | Built |
 | [`review.fingerprint`](09-conflicts.md#reviewfingerprint--the-same-conflict-wherever-it-is) | The same conflict, wherever it is | Derivation | Built |
-| [`review.proposals`](09-conflicts.md#reviewproposals--what-is-proposed-for-each-conflict) | What is proposed for each conflict | Derivation | Specified |
+| [`review.proposals`](09-conflicts.md#reviewproposals--what-is-proposed-for-each-conflict) | What is proposed for each conflict | Derivation | Built |
 | [`review.proposal-lines`](09-conflicts.md#reviewproposal-lines--where-the-lines-of-a-proposal-come-from) | Where the lines of a proposal come from | Derivation | Built |
 | [`review.proposal-warnings`](09-conflicts.md#reviewproposal-warnings--what-looks-like-a-mistake-in-a-proposal) | What looks like a mistake in a proposal | Derivation | Specified |
 | [`review.choose`](09-conflicts.md#reviewchoose--choose-a-side-or-write-the-lines) | Choose a side, or write the lines | View | Specified |
@@ -291,7 +291,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`review.accept-file`](09-conflicts.md#reviewaccept-file--accept-the-file) | Accept the file | View | Specified |
 | [`review.accept-all`](09-conflicts.md#reviewaccept-all--accept-all-proposed) | Accept all proposed | View | Specified |
 | [`review.clear`](09-conflicts.md#reviewclear--clear) | Clear | View | Specified |
-| [`review.write`](09-conflicts.md#reviewwrite--write-the-resolutions) | Write the resolutions | Operation | Specified |
+| [`review.write`](09-conflicts.md#reviewwrite--write-the-resolutions) | Write the resolutions | Operation | Built |
 | [`review.report`](09-conflicts.md#reviewreport--what-was-written) | What was written | View | Specified |
 | [`review.columns`](09-conflicts.md#reviewcolumns--columns) | Columns | View | Specified |
 | [`review.show-result`](09-conflicts.md#reviewshow-result--show-the-result) | Show the result | View | Specified |

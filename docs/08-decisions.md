@@ -1150,3 +1150,16 @@ says otherwise):
   card of `merge-view.take-side` says; `Ctrl+Z` and `Ctrl+Y` drop a choice that waits. When the file on disk changes
   while the page is open and has nothing unsaved, the page takes the file as it is now, and `Ctrl+Z` brings back what it
   held before. Are these right?
+- **Q-L1** — `review.side-diff` stays in `model` as its card says, taking the line diff and the word diff of `text` as
+  functions (as `model::diff::align` takes the word marks), since `model` cannot use `text`; the worker computes the
+  two side diffs of every conflict when it reads the review, so a card shows them at once. Is this right?
+- **Q-L2** — `review.write` reads the files again through a new query, `Query::FileTexts` (answered with
+  `Answer::Files`), since an answer key is fixed and the files are many. Its detail is in `Step::Warn` lines before the
+  `write` steps, since a plan has no detail of its own, so the log has it too. Its target is a new
+  `Target::Resolutions`, with every file of the page, its text as read and the proposals accepted in it. Its undo is
+  the journal's `ConflictsResolved`, which `undo.last` runs as `git checkout --merge -- <file>…`, the command
+  `conflicts.restore` runs. Are these right?
+- **Q-L3** — The names of the two sides are read by a new `git::read::review::read_side_names` (the operation, the
+  branch checked out, `HEAD`, the commit brought in, and in a rebase `onto` and `head-name`, in `git am`
+  `final-commit`). The slice that builds the banner may read the same; the two should become one when merged. Is this
+  right?

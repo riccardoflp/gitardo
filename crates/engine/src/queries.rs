@@ -80,6 +80,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::ConflictStages { path } => git::read::conflicts::read_stages(git, path).map(Answer::Stages),
         Query::ConflictTexts => git::read::conflicts::read_texts(git, &git::read::conflicts::ConflictFilesRequest)
             .map(Answer::ConflictTexts),
+        Query::FileTexts { paths } => readings::file_texts(paths),
     }
 }
 
@@ -257,6 +258,11 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::ConflictTexts => String::from(
             "git diff --name-only --diff-filter=U -z, git ls-files --unmerged -z, git cat-file blob <object>, read <file>",
         ),
+        Query::FileTexts { paths } => paths
+            .iter()
+            .map(|path| format!("read {}", path.display()))
+            .collect::<Vec<String>>()
+            .join(", "),
     }
 }
 

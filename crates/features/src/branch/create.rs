@@ -114,7 +114,8 @@ fn start(context: &Context) -> (String, String) {
     let names = RefNames::of(&context.repository);
     match &context.target {
         // A stash, a remote, files, a file, the list of the Changes page, a change of a Diff page, several
-        // commits, a comparison and the file of a Merge page are no place to start a branch: it starts at what is checked out.
+        // commits, a comparison, the file of a Merge page and resolutions are no place to start a branch: it starts at
+        // what is checked out.
         Target::Head
         | Target::Stash(_)
         | Target::Remote(_)
@@ -124,7 +125,8 @@ fn start(context: &Context) -> (String, String) {
         | Target::DiffChange(_)
         | Target::Commits(_)
         | Target::Comparison(_)
-        | Target::MergeResult(_) => (String::from("HEAD"), String::from("HEAD")),
+        | Target::MergeResult(_)
+        | Target::Resolutions(_) => (String::from("HEAD"), String::from("HEAD")),
         Target::Commit(commit) => (commit.to_string(), commit.short().to_owned()),
         Target::Branch(name) => (ref_argument(RefKind::Branch, name, &names), name.clone()),
         Target::RemoteBranch(name) => (ref_argument(RefKind::RemoteBranch, name, &names), name.clone()),

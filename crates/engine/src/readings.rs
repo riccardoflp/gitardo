@@ -36,6 +36,24 @@ pub(crate) fn file_contents(path: &std::path::Path) -> Result<Answer, GitError> 
         })
 }
 
+/// The bytes of files, each none when it is not there.
+pub(crate) fn file_texts(paths: &[std::path::PathBuf]) -> Result<Answer, GitError> {
+    let mut texts = Vec::with_capacity(paths.len());
+    for path in paths {
+        match std::fs::read(path) {
+            Ok(bytes) => texts.push(Some(bytes)),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => texts.push(None),
+            Err(source) => {
+                return Err(GitError::File {
+                    path: path.clone(),
+                    source,
+                });
+            }
+        }
+    }
+    Ok(Answer::Files(texts))
+}
+
 /// A file in the temporary folder of the system that no other has: `gitardo-<process>-<random>.<extension>`, the random
 /// part from the keys the standard library draws for each hash map, which differ from one call to the next.
 pub(crate) fn temporary_file(extension: &str) -> Answer {

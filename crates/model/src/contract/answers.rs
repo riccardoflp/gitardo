@@ -81,6 +81,8 @@ pub enum Answer {
     Stages(Option<crate::conflicts::FileStages>),
     /// The files in conflict on disk and in the three versions of the index (`conflicts.resolve-by-rules`).
     ConflictTexts(Vec<crate::conflicts::ConflictTexts>),
+    /// The bytes of files, in the order asked, each none when it is not there.
+    Files(Vec<Option<Vec<u8>>>),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).

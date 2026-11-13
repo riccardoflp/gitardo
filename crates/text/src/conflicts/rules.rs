@@ -107,6 +107,9 @@ pub enum RuleCase {
 /// where they are again after it: what the review page shows each side changed.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Stretch<'a> {
+    /// Where its lines are in the file, counted from 0: from the line after the upper anchor to the line before the
+    /// lower one.
+    pub file_lines: Range<usize>,
     /// Where its lines are in the base, counted from 0.
     pub base_lines: Range<usize>,
     /// The lines of the base.
@@ -215,6 +218,7 @@ fn agreed<'a>(both: &[Paired<'_, 'a>; 2], index: usize) -> Option<RuleResolution
 fn stretch<'a>(paired: &Paired<'_, 'a>, places: &Places) -> Option<Stretch<'a>> {
     let parts = paired.parts(places)?;
     Some(Stretch {
+        file_lines: places.file.clone(),
         base_lines: places.base.clone(),
         base: parts.base.to_vec(),
         current: parts.current.lines.to_vec(),

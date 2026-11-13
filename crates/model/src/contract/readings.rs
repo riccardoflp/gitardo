@@ -34,6 +34,15 @@ impl Answers {
         }
     }
 
+    /// The bytes of files read under a key, each none when it is not there.
+    #[must_use]
+    pub fn files(&self, key: AnswerKey) -> Option<&[Option<Vec<u8>>]> {
+        match self.get(key)? {
+            Answer::Files(files) => Some(files),
+            _ => None, // Any other kind of answer is no files.
+        }
+    }
+
     /// The text of the clipboard read under a key: `None` when it was not read yet, `Some(None)` when it holds no text.
     #[must_use]
     pub fn clipboard(&self, key: AnswerKey) -> Option<Option<&str>> {

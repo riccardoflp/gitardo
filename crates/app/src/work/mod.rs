@@ -8,6 +8,7 @@ pub mod merge_view;
 mod operations;
 mod persist;
 mod repository_watch;
+pub mod review;
 mod setting_writer;
 mod watch;
 

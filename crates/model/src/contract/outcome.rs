@@ -206,6 +206,12 @@ pub enum Query {
     /// The files in conflict, the first 200, each on disk and in the three versions of the index, for the rules that
     /// resolve conflicts (`conflicts.resolve-by-rules`). The answer is [`super::Answer::ConflictTexts`].
     ConflictTexts,
+    /// The bytes of files, each none when it is not there (`review.write`). The answer is
+    /// [`super::Answer::Files`], in the same order.
+    FileTexts {
+        /// The files.
+        paths: Vec<std::path::PathBuf>,
+    },
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.
