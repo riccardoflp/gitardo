@@ -458,7 +458,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`github.detect-remote`](15-github.md#githubdetect-remote--the-repository-on-github) | The repository on GitHub | Derivation | Specified |
+| [`github.detect-remote`](15-github.md#githubdetect-remote--the-repository-on-github) | The repository on GitHub | Derivation | Built |
 | [`github.token`](15-github.md#githubtoken--read-the-github-token) | Read the GitHub token | Read | Specified |
 | [`github.load-pull-requests`](15-github.md#githubload-pull-requests--load-pull-requests-from-github) | Load pull requests from GitHub | Operation | Specified |
 | [`github.read-pull-requests`](15-github.md#githubread-pull-requests--read-the-open-pull-requests) | Read the open pull requests | Read | Specified |

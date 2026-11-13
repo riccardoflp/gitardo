@@ -18,6 +18,7 @@ pub mod diff;
 pub mod drag;
 pub mod file_history;
 pub mod filter;
+pub mod github;
 pub mod graph;
 mod identifier;
 pub mod patch;

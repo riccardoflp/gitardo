@@ -831,3 +831,6 @@ the reading given until it is answered:
   stays disabled: a Diff page has one pair of versions for all its files, while each file of the Changes page has its
   own (the index against the file on disk, or the last commit against the index). Should a Diff page take a pair of
   versions for each file, or should the button open the last commit against the file on disk for every file?
+- **Q139** — `github.detect-remote` is built as a derivation ahead of M9. Its last line, the badges going when the
+  remote on GitHub is renamed away from `origin`, is tested on what it decides: the result becomes nothing. The badges
+  come with `graph.pull-request-badge`, whose tests will check that they follow it. Is that enough to call it built?
