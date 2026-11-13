@@ -3,15 +3,16 @@
 //! (`review.proposal-warnings`), the lines around it and the columns, numbered as the file would number them with the
 //! proposal in place of the conflict.
 
+use std::collections::BTreeMap;
 use std::ops::Range;
 
 use model::conflicts::{Side, SideNames, SideRole};
 use model::review::{
-    ChoiceKind, JsonFile, Piece, Proposal, ProposalLines, ProposalSource, ProposalsInput, Proposers, ReviewConflict,
-    ReviewFile, Shape, Sides, WarningInput, chosen, proposal_lines, proposal_warnings, proposals,
+    AiAnswer, ChoiceKind, JsonFile, Piece, Proposal, ProposalLines, ProposalSource, ProposalsInput, Proposers,
+    ReviewConflict, ReviewFile, Shape, Sides, WarningInput, chosen, proposal_lines, proposal_warnings, proposals,
 };
 use views::review::{
-    CardProposal, CardShown, ConflictCard, ConflictKey, FileCards, NumberedLine, ProposedLine, SideColumn,
+    CardAi, CardProposal, CardShown, ConflictCard, ConflictKey, FileCards, NumberedLine, ProposedLine, SideColumn,
 };
 
 use super::{Fingerprinted, ReviewPage};
@@ -33,16 +34,27 @@ pub static NO_SIDES: SideNames = SideNames {
 /// How many lines of the file are shown before and after.
 const AROUND: usize = 3;
 
+/// What is known of the conflicts of the page besides what was read: the choices made, the questions to the AI
+/// provider and their answers, and where the AI stands on each conflict.
+pub struct Known<'a> {
+    /// The choices made, by file and fingerprint.
+    pub choices: &'a [(Fingerprinted, ChoiceKind)],
+    /// The questions to the AI provider and their answers.
+    pub questions: &'a super::ai::Questions,
+    /// Where the AI stands on each conflict it was asked about.
+    pub ai_states: &'a BTreeMap<Fingerprinted, CardAi>,
+}
+
 /// The proposal of each conflict of a file: the choice made on it, else what the rules or the AI propose.
 pub fn file_proposals(
     file: &ReviewFile,
-    choices: &[(Fingerprinted, ChoiceKind)],
+    (choices, answers): (&[(Fingerprinted, ChoiceKind)], &[AiAnswer]),
     (rules, ai): (bool, bool),
 ) -> Vec<Option<Proposal>> {
     let proposed = proposals(&ProposalsInput {
         file,
         proposers: Proposers { rules, ai },
-        answers: &[],
+        answers,
     });
     file.conflicts
         .iter()
@@ -58,7 +70,7 @@ pub fn file_proposals(
 }
 
 /// What each card of the page shows.
-pub fn cards(page: &ReviewPage, choices: &[(Fingerprinted, ChoiceKind)], settings: (bool, bool)) -> Vec<FileCards> {
+pub fn cards(page: &ReviewPage, known: &Known<'_>, settings: (bool, bool)) -> Vec<FileCards> {
     let Some(readout) = page.readout.as_deref() else {
         return Vec::new();
     };
@@ -70,10 +82,11 @@ pub fn cards(page: &ReviewPage, choices: &[(Fingerprinted, ChoiceKind)], setting
         .map(|(file, side_diffs)| {
             let lines: Vec<&str> = file.lines().into_iter().map(|(text, _)| text).collect();
             let pieces = json_pieces(file, &lines);
+            let answers = super::ai::answers_of(known.questions, &page.folder, &file.path);
             let conflicts: Vec<ConflictCard> = file
                 .conflicts
                 .iter()
-                .zip(file_proposals(file, choices, settings))
+                .zip(file_proposals(file, (known.choices, &answers), settings))
                 .zip(side_diffs)
                 .map(|((conflict, proposal), diffs)| {
                     let key = ConflictKey {
@@ -86,7 +99,14 @@ pub fn cards(page: &ReviewPage, choices: &[(Fingerprinted, ChoiceKind)], setting
                         lines: &lines,
                         pieces: pieces.as_deref(),
                     };
-                    card(page, (key, conflict, proposal.as_ref()), &shown, diffs.clone())
+                    let ai = known
+                        .ai_states
+                        .get(&(key.path.clone(), key.fingerprint.clone()))
+                        .cloned()
+                        .unwrap_or_default();
+                    let mut card = card(page, (key, conflict, proposal.as_ref()), &shown, diffs.clone());
+                    card.ai = ai;
+                    card
                 })
                 .collect();
             let is_whole = conflicts.iter().all(|card| card.is_accepted);
@@ -261,6 +281,7 @@ fn card(
             is_base_shown: page.base_shown.contains(&fingerprinted),
         },
         proposal: card_proposal,
+        ai: CardAi::default(),
         key,
     }
 }

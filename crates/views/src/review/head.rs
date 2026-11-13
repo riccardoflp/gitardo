@@ -74,6 +74,9 @@ fn head_height(state: &ReviewState<'_>, ui: &Ui<'_>, width: f32) -> f32 {
     if state.report.is_some() {
         height += row * 3.0;
     }
+    if state.model.is_some() {
+        height += sizes.control_height + sizes.spacing.small;
+    }
     height + sizes.spacing.medium
 }
 
@@ -95,11 +98,19 @@ fn head(state: &ReviewState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             &Label::new(&words::with_warnings(warned)).tone(Tone::Warning),
         );
     }
+    let mut intents = Vec::new();
+    if state.model.is_some() {
+        let asking = area.top(sizes.control_height);
+        intents.extend(ui.clip(asking, |ui| super::ai::resolve_conflicts_view(state, ui)));
+        let _ = area.top(sizes.spacing.small);
+    }
     if state.report.is_some() {
         let report = area.top(row * 3.0 + sizes.control_height);
-        return ui.clip(report, |ui| report_view(state, ui));
+        intents.extend(ui.clip(report, |ui| report_view(state, ui)));
+        return intents;
     }
-    buttons(state, ui, area.top(sizes.control_height))
+    intents.extend(buttons(state, ui, area.top(sizes.control_height)));
+    intents
 }
 
 /// A button at the left of an area; whether it was clicked.

@@ -28,6 +28,18 @@ pub struct CommitBox<'a> {
     pub has_changes: bool,
     /// Whether an operation runs.
     pub is_running: bool,
+    /// Whether the AI provider is drafting the message (`commit.draft-message`).
+    pub draft: Draft,
+}
+
+/// Where the draft of the message by the AI provider stands (`commit.draft-message`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum Draft {
+    /// None is being written.
+    #[default]
+    Idle,
+    /// The AI provider is writing it.
+    Writing,
 }
 
 /// What **Commit** makes.
@@ -81,13 +93,24 @@ pub(super) fn view(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -
     let mut intents = Vec::new();
     let mut area = Area::with_gap(rect, theme.sizes.spacing.medium);
     let mut message_row = Area::with_gap(area.top(control), theme.sizes.spacing.small);
-    let sparkle = Button::icon(Icon::Star, words::DRAFT_MESSAGE)
-        .kind(ButtonKind::Icon)
-        .disabled();
-    let _ = ui.button("draft message", message_row.right(control), &sparkle);
+    let commit = &state.commit;
+    let is_drafting = commit.draft == Draft::Writing;
+    let (icon, said, intent) = if is_drafting {
+        (Icon::Close, words::STOP_DRAFT, ChangesIntent::StopDraft)
+    } else {
+        (Icon::Star, words::DRAFT_MESSAGE, ChangesIntent::DraftMessage)
+    };
+    let sparkle = Button::icon(icon, said).kind(ButtonKind::Icon);
+    let sparkle = if commit.has_changes || is_drafting {
+        sparkle
+    } else {
+        sparkle.disabled()
+    };
+    if ui.button("draft message", message_row.right(control), &sparkle).clicked {
+        intents.push(Intent::Changes(intent));
+    }
     intents.extend(message_box(state, ui, message_row.rest()));
     let mut button_row = Area::with_gap(area.top(control), theme.sizes.spacing.large);
-    let commit = &state.commit;
     let mut button = Button::primary(commit.button_words());
     if !commit.can_commit() {
         button = button.disabled();

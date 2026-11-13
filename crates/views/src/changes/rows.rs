@@ -102,8 +102,9 @@ fn draw_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, row): (Rect, 
 }
 
 /// A file in conflict: its name, with no box, which opens it where it can be resolved (`conflicts.open-file`), and the
-/// buttons that resolve it: the wand, with `conflicts.autoResolve` on, which opens the review of its conflicts
-/// (`review.page`), **Mark as resolved** (`conflicts.mark-resolved`) and the two sides (`conflicts.take-side`).
+/// buttons that resolve it: the sparkle, with `conflicts.ai` on, which opens the review of its conflicts and asks the AI
+/// about them (`ai.resolve-conflicts`), the wand, with `conflicts.autoResolve` on, which opens the review of its
+/// conflicts (`review.page`), **Mark as resolved** (`conflicts.mark-resolved`) and the two sides (`conflicts.take-side`).
 fn conflict_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index): (Rect, usize)) -> Vec<Intent> {
     let Some(file) = state.list.conflicts.get(index) else {
         return Vec::new();
@@ -121,6 +122,13 @@ fn conflict_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index): (
             answers,
         ))
     };
+    if state.banner.is_some_and(|banner| banner.ai) {
+        let only = Some(vec![file.path.clone()]);
+        let said = words::RESOLVE_WITH_AI;
+        if icon_button(ui, &mut area, ((said, path), Icon::Star, said), !state.is_running) {
+            intents.push(Intent::Review(crate::review::ReviewIntent::ResolveWithAi(only)));
+        }
+    }
     let auto_resolve = state.banner.is_some_and(|banner| banner.auto_resolve);
     if auto_resolve {
         let only = Some(vec![file.path.clone()]);

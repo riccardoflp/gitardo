@@ -144,6 +144,54 @@ pub const ACCEPT_ALL_TOOLTIP: &str = "Accept every resolution proposed, from the
 pub const CLEAR: &str = "Clear";
 /// Its tooltip.
 pub const CLEAR_TOOLTIP: &str = "Take back every acceptance";
+/// What **Resolve with AI** says with `conflicts.ai` off (`ai.resolve-conflicts`).
+pub const AI_SWITCHED_OFF: &str =
+    "Resolving conflicts with AI is experimental, and it is switched off in the settings.";
+/// A card while the AI reads its conflict.
+pub const AI_READING: &str = "The AI is reading the conflict\u{2026}";
+/// A card while the lines of the answer come.
+pub const AI_WRITING: &str = "The AI is writing a resolution\u{2026}";
+/// **Ask the AI** on a card with nothing proposed.
+pub const ASK_THE_AI: &str = "Ask the AI";
+/// **Ask again** on a proposal of the AI, or a card the AI failed on.
+pub const ASK_AGAIN: &str = "Ask again";
+/// Their tooltip.
+pub const ASK_TOOLTIP: &str = "Ask the language model about this conflict: its answer takes the place of this one";
+/// The tooltip of **Ask the AI about the rest (N)**.
+pub const ASK_THE_REST_TOOLTIP: &str = "Ask the language model about each conflict that has nothing proposed";
+/// The bar over the page while the AI is asked: *Asking the AI: 3 of 5 conflicts answered*.
+#[must_use]
+pub fn asking(answered: usize, total: usize) -> String {
+    let noun = if total == 1 { "conflict" } else { "conflicts" };
+    format!("Asking the AI: {answered} of {total} {noun} answered")
+}
+/// **Stop**, which stops the questions.
+pub const STOP: &str = "Stop";
+/// Its tooltip.
+pub const STOP_TOOLTIP: &str = "Stop the questions under way and drop the ones waiting";
+/// The button with the model's name, with no AI provider set up.
+pub const NO_MODEL: &str = "No language model";
+/// The button with the model's name when `ai.model` is empty.
+pub const FIRST_MODEL: &str = "First model of the provider";
+/// Its tooltip.
+pub const MODEL_TOOLTIP: &str = "Choose the language model that resolves the conflicts, and how much it thinks";
+/// The words of the button with the model's name: *\<model\> · high effort*, or **No language model** with no AI
+/// provider set up (`ai.choose-model`).
+#[must_use]
+pub fn model_button(settings: &model::ai::AiSettings) -> String {
+    if settings.provider.is_none() {
+        return String::from(NO_MODEL);
+    }
+    let model = if settings.model.is_empty() {
+        FIRST_MODEL
+    } else {
+        settings.model.as_str()
+    };
+    match settings.effort {
+        Some(effort) => format!("{model} \u{b7} {} effort", effort.words()),
+        None => model.to_owned(),
+    }
+}
 /// **Ask the AI about the rest (N)**, with `conflicts.ai`.
 #[must_use]
 pub fn ask_the_rest(count: usize) -> String {

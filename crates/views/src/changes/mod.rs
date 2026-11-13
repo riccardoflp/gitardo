@@ -18,7 +18,7 @@ use crate::intent::Intent;
 use crate::repo::{NoRepositoryState, no_repository_view};
 use crate::text::changes as words;
 
-pub use commit_box::{CommitBox, CommitKind};
+pub use commit_box::{CommitBox, CommitKind, Draft};
 
 /// What the Changes page shows.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -74,6 +74,10 @@ pub enum ChangesIntent {
     Open,
     /// The keyboard went to the message box.
     Focused,
+    /// The sparkle: draft the message from the changes with the AI provider (`commit.draft-message`).
+    DraftMessage,
+    /// Stop drafting the message: the box is left as it was.
+    StopDraft,
 }
 
 /// The Changes page, over the rectangle its caller clipped it to: with no repository, what the timeline says in its

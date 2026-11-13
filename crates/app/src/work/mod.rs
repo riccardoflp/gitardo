@@ -1,6 +1,7 @@
 //! The workers of a window: a small pool of threads that run the jobs the store asks for, each with a token that
 //! cancels it and an entry among the activities, and send back the message of its result.
 
+pub mod ai;
 pub mod blame;
 pub mod compare;
 pub mod diff;

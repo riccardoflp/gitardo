@@ -23,6 +23,7 @@ path = "src/bin/gitardo-demo/main.rs"
 engine = { path = "../engine" }
 features = { path = "../features" }
 git = { path = "../git" }
+http = { path = "../http" }
 json = { path = "../json" }
 model = { path = "../model" }
 platform = { path = "../platform" }
@@ -32,6 +33,8 @@ ui = { path = "../ui" }
 views = { path = "../views" }
 
 [dev-dependencies]
+# The server of the tests on 127.0.0.1, which answers as an AI provider would.
+http = { path = "../http", features = ["test-server"] }
 testkit = { path = "../testkit" }
 
 [lints]

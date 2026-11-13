@@ -300,3 +300,60 @@ impl OperationsDriver {
         self.take(state, &effects);
     }
 }
+
+/// The questions to the AI provider of a window, asked for a test: the key is taken from secrets kept in memory, never
+/// from the user's store, and what comes back goes to the test, which reduces it.
+pub struct AiDriver {
+    /// The questions.
+    asking: app::work::ai::Asking,
+    /// What they say.
+    said: std::sync::mpsc::Receiver<Message>,
+}
+
+impl AiDriver {
+    /// Questions of their own, with the secrets given.
+    pub fn new(secrets: engine::MemorySecrets) -> AiDriver {
+        let (sender, said) = std::sync::mpsc::channel();
+        let sender = std::sync::Mutex::new(sender);
+        let deliver: app::work::Deliver = std::sync::Arc::new(move |message| {
+            let _sent = sender.lock().unwrap().send(message);
+        });
+        AiDriver {
+            asking: app::work::ai::Asking::new(&deliver, &engine::Activities::new(), Box::new(secrets)),
+            said,
+        }
+    }
+
+    /// Asks the questions and stops those the store asked among some effects.
+    pub fn take(&self, effects: &[Effect]) {
+        for effect in effects {
+            match effect {
+                Effect::Ask(question) => self.asking.ask((**question).clone()),
+                Effect::StopAsking(asks) => self.asking.stop(asks),
+                _ => {}
+            }
+        }
+    }
+
+    /// Reduces an intent with the jobs it starts, and asks what it asks.
+    pub fn intent(&self, state: &mut State, intent: Intent) -> Vec<Effect> {
+        let effects = run(state, Message::Intent(intent));
+        self.take(&effects);
+        effects
+    }
+
+    /// Reduces what the questions say until one is answered, and gives what it came to.
+    pub fn until_answered(&self, state: &mut State) -> Message {
+        loop {
+            let message = self
+                .said
+                .recv_timeout(Duration::from_secs(30))
+                .unwrap_or_else(|_| panic!("no question is answered within 30 s"));
+            let effects = run(state, message.clone());
+            self.take(&effects);
+            if matches!(message, Message::AiAnswered { .. }) {
+                return message;
+            }
+        }
+    }
+}

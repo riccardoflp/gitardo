@@ -107,6 +107,7 @@ fn card(source: ProposalSource, new: usize) -> ConflictCard {
             fingerprint: String::from("f"),
         },
         line: 11,
+        ai: super::CardAi::Idle,
         proposal: Some(CardProposal {
             source,
             shape: Shape::Mixed,

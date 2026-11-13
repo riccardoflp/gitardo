@@ -29,6 +29,8 @@ pub struct Changes {
     pub wants_focus: bool,
     /// The message given to the commit running, when it asks for it.
     pub sent: Option<String>,
+    /// The message being drafted by the AI provider (`commit.draft-message`).
+    pub drafting: Option<super::draft::Drafting>,
 }
 
 /// What is asked of the Changes page or of the commit box of the draft.
@@ -65,6 +67,7 @@ pub fn reduce(state: &mut State, intent: ChangesIntent) -> Vec<Effect> {
             state.changes.wants_focus = false;
             Vec::new()
         }
+        ChangesIntent::DraftMessage | ChangesIntent::StopDraft => super::draft::reduce(state, &intent),
     }
 }
 
@@ -141,6 +144,11 @@ pub fn commit_box(state: &State) -> CommitBox<'_> {
         has_commit: read.state.head.commit.is_some(),
         has_changes: !read.state.working_tree.is_clean(),
         is_running: state.is_operation_running,
+        draft: if state.changes.drafting.is_some() {
+            views::changes::Draft::Writing
+        } else {
+            views::changes::Draft::Idle
+        },
     }
 }
 

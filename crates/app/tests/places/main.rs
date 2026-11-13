@@ -5,6 +5,7 @@
 #![allow(clippy::unwrap_used, clippy::panic, reason = "a test that cannot go on fails")]
 
 mod activity;
+mod ai;
 mod am_stopped;
 mod bisect;
 mod blame;
@@ -21,6 +22,7 @@ mod diff_links;
 mod diff_open;
 mod diff_staging;
 mod diff_views;
+mod draft;
 mod file_view;
 mod file_view_tools;
 mod files_page;

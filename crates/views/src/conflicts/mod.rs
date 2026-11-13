@@ -83,8 +83,8 @@ impl BannerState<'_> {
             buttons.push(BannerButton {
                 label: words::RESOLVE_WITH_AI.to_owned(),
                 tooltip: None,
-                is_enabled: false,
-                intent: None,
+                is_enabled: can_press,
+                intent: Some(Intent::Review(crate::review::ReviewIntent::ResolveWithAi(None))),
             });
         }
         let Some(operation) = self.operation else {

@@ -39,6 +39,17 @@ fn bottom(state: &CardState<'_>, ui: &mut Ui<'_>, row: Rect, intents: &mut Vec<I
     {
         intents.push(Intent::MergeView(MergeIntent::OpenAt(card.key.path.clone(), card.line)));
     }
+    if let Some(said) = ask_words(state) {
+        let ask = Button::secondary(said).with_tooltip(words::ASK_TOOLTIP);
+        let ask = if card.ai.is_asked() || state.is_running {
+            ask.disabled()
+        } else {
+            ask
+        };
+        if ui.button("ask", right_cell(ui, &mut area, &ask), &ask).clicked {
+            intents.push(Intent::Review(ReviewIntent::AskAi(Some(card.key.clone()))));
+        }
+    }
     if state.layout == Layout::Cards && card.proposal.is_some() {
         if card.shown.is_sides_shown && card.base.is_some() {
             let base = Button::secondary(words::SHOW_BASE).with_tooltip(words::SHOW_BASE_TOOLTIP);
@@ -60,6 +71,21 @@ fn bottom(state: &CardState<'_>, ui: &mut Ui<'_>, row: Rect, intents: &mut Vec<I
         area.rest(),
         &Label::new(&origin(card)).kind(TextKind::Small).tone(Tone::Muted),
     );
+}
+
+/// The button that asks the AI about a card, with `conflicts.ai`: **Ask again** for a proposal of the AI or once it
+/// failed, **Ask the AI** with nothing proposed; none for a proposal of the rules or a choice.
+fn ask_words(state: &CardState<'_>) -> Option<&'static str> {
+    if !state.can_ask {
+        return None;
+    }
+    let card = state.card;
+    match card.proposal.as_ref().map(|proposal| &proposal.source) {
+        Some(ProposalSource::Ai { .. }) => Some(words::ASK_AGAIN),
+        None if matches!(card.ai, super::CardAi::Failed(_)) => Some(words::ASK_AGAIN),
+        None => Some(words::ASK_THE_AI),
+        Some(ProposalSource::Rules(_) | ProposalSource::Choice(_)) => None,
+    }
 }
 
 /// A button's cell at the right of an area, in the middle down.

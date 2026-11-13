@@ -37,6 +37,9 @@ pub fn reduce(state: &mut State, intent: ReviewIntent) -> Vec<Effect> {
         ReviewIntent::Write => return write(state),
         ReviewIntent::Undo => return undo(state),
         ReviewIntent::Continue => return run(state, CONTINUE, Target::Head),
+        ReviewIntent::AskAi(which) => return super::ai::ask(state, which),
+        ReviewIntent::StopAi => return super::ai::stop(state),
+        ReviewIntent::ResolveWithAi(only) => return super::ai::resolve_with_ai(state, only),
         ReviewIntent::Layout(layout) => state.reviews.layout = layout,
         ReviewIntent::Widths(widths) => state.reviews.widths = widths,
         ReviewIntent::Choose(key, kind) => {
@@ -159,10 +162,11 @@ fn resolutions(state: &State) -> Option<Resolutions> {
         .files
         .iter()
         .map(|file| {
+            let answers = super::ai::answers_of(&state.reviews.questions, &page.folder, &file.path);
             let accepted = file
                 .conflicts
                 .iter()
-                .zip(file_proposals(file, &choices, settings))
+                .zip(file_proposals(file, (&choices, &answers), settings))
                 .filter(|(conflict, _)| {
                     page.accepted
                         .contains(&(file.path.clone(), conflict.fingerprint.clone()))

@@ -1088,7 +1088,7 @@ Asks the AI provider how to resolve each conflict the rules leave, one conflict 
 proposal to accept or not.
 
 - **Kind**: View
-- **Function**: `views::ai::resolve_conflicts_view(state, ui) -> Vec<Intent>`
+- **Function**: `views::review::resolve_conflicts_view(state, ui) -> Vec<Intent>`
 - **Entry points**: **Resolve with AI** in `conflicts.banner` and in `conflicts.stopped`; the sparkle on the row of a
   file in conflict in the Changes page; **Resolve conflicts with AI** in Quick search; in `review.page`, **Ask the AI
   about the rest (N)** (*Ask the language model about each conflict that has nothing proposed*) and **Ask the AI** or

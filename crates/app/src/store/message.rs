@@ -183,6 +183,20 @@ pub enum Message {
         /// The lines of the Command log.
         log: Vec<engine::LogEntry>,
     },
+    /// The text of the answer of a question to the AI provider, so far (`ai.resolve-conflicts`).
+    AiPiece {
+        /// The question.
+        ask: crate::work::ai::AskId,
+        /// The text so far.
+        text: String,
+    },
+    /// A question to the AI provider is answered, or failed.
+    AiAnswered {
+        /// The question.
+        ask: crate::work::ai::AskId,
+        /// What it came to.
+        result: crate::work::ai::AiResult,
+    },
     /// The person asked to close the window, whose inside had this size in logical pixels.
     CloseRequested {
         /// The size of the inside of the window.
@@ -378,6 +392,10 @@ pub enum Effect {
     Start(Job),
     /// Cancels a job that is not wanted any more: the git it runs is stopped.
     Cancel(JobId),
+    /// Asks the AI provider a question, on a thread of its own (`ai.resolve-conflicts`, `commit.draft-message`).
+    Ask(Box<crate::work::ai::AiQuestion>),
+    /// Cancels questions to the AI provider under way: nothing more comes of them.
+    StopAsking(Vec<crate::work::ai::AskId>),
     /// Opens the system's folder dialog, whose answer comes back as [`Message::FolderChosen`].
     ChooseFolder,
     /// Writes what is kept between runs.

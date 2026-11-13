@@ -10,6 +10,7 @@ mod commit_page;
 pub mod compare;
 mod conflicts;
 mod diff_page;
+mod draft;
 pub mod feature;
 pub mod file_page;
 pub mod files_page;
@@ -132,6 +133,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
             reads::read_took(state, (line, took, time));
             Vec::new()
         }
+        message @ (Message::AiPiece { .. } | Message::AiAnswered { .. }) => review::ai::reduce(state, message),
         Message::CloseRequested { window_size } => {
             let mut effects = workspace::cancel_all(state);
             state.persisted.window_size = window_size.or(state.persisted.window_size);

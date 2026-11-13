@@ -160,7 +160,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`changes.pathspec`](05-changes-and-commit.md#changespathspec--a-file-named-as-itself) | A file named as itself | Derivation | Built |
 | [`commit.create`](05-changes-and-commit.md#commitcreate--commit) | Commit | Operation | Built |
 | [`commit.amend`](05-changes-and-commit.md#commitamend--amend-the-last-commit) | Amend the last commit | Operation | Built |
-| [`commit.draft-message`](05-changes-and-commit.md#commitdraft-message--draft-the-commit-message) | Draft the commit message | Derivation | Specified |
+| [`commit.draft-message`](05-changes-and-commit.md#commitdraft-message--draft-the-commit-message) | Draft the commit message | Derivation | Built |
 | [`identity.read`](05-changes-and-commit.md#identityread--read-the-identity) | Read the identity | Read | Built |
 | [`identity.switch`](05-changes-and-commit.md#identityswitch--switch-identity) | Switch identity | Operation | Built |
 | [`identity.use-global`](05-changes-and-commit.md#identityuse-global--use-the-global-identity-again) | Use the global identity again | Operation | Built |
@@ -277,10 +277,10 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`conflicts.parse-markers`](09-conflicts.md#conflictsparse-markers--the-conflicts-git-marked-in-a-file) | The conflicts git marked in a file | Derivation | Built |
 | [`conflicts.resolve-by-rules`](09-conflicts.md#conflictsresolve-by-rules--the-conflicts-that-need-no-choice) | The conflicts that need no choice | Derivation | Built |
 | [`conflicts.resolve-automatically`](09-conflicts.md#conflictsresolve-automatically--resolve-conflicts-automatically) | Resolve conflicts automatically | Operation | Built |
-| [`conflicts.restore`](09-conflicts.md#conflictsrestore--undo-a-resolution) | Undo a resolution | Operation | Specified |
-| [`review.page`](09-conflicts.md#reviewpage--the-review-of-the-resolutions) | The review of the resolutions | View | Specified |
+| [`conflicts.restore`](09-conflicts.md#conflictsrestore--undo-a-resolution) | Undo a resolution | Operation | Built |
+| [`review.page`](09-conflicts.md#reviewpage--the-review-of-the-resolutions) | The review of the resolutions | View | Built |
 | [`review.file-list`](09-conflicts.md#reviewfile-list--the-files-and-the-filters) | The files and the filters | View | Built |
-| [`review.card`](09-conflicts.md#reviewcard--a-conflict-as-a-card) | A conflict, as a card | View | Specified |
+| [`review.card`](09-conflicts.md#reviewcard--a-conflict-as-a-card) | A conflict, as a card | View | Built |
 | [`review.side-diff`](09-conflicts.md#reviewside-diff--what-a-side-changed-of-the-base) | What a side changed of the base | Derivation | Built |
 | [`review.fingerprint`](09-conflicts.md#reviewfingerprint--the-same-conflict-wherever-it-is) | The same conflict, wherever it is | Derivation | Built |
 | [`review.proposals`](09-conflicts.md#reviewproposals--what-is-proposed-for-each-conflict) | What is proposed for each conflict | Derivation | Built |
@@ -296,7 +296,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`review.columns`](09-conflicts.md#reviewcolumns--columns) | Columns | View | Specified |
 | [`review.show-result`](09-conflicts.md#reviewshow-result--show-the-result) | Show the result | View | Built |
 | [`review.deleted-card`](09-conflicts.md#reviewdeleted-card--a-file-deleted-on-one-side) | A file deleted on one side | View | Built |
-| [`ai.resolve-conflicts`](09-conflicts.md#airesolve-conflicts--resolve-conflicts-with-ai) | Resolve conflicts with AI | View | Specified |
+| [`ai.resolve-conflicts`](09-conflicts.md#airesolve-conflicts--resolve-conflicts-with-ai) | Resolve conflicts with AI | View | Built |
 | [`ai.ask-conflict`](09-conflicts.md#aiask-conflict--one-question-about-one-conflict) | One question about one conflict | Read | Built |
 | [`ai.conflict-question`](09-conflicts.md#aiconflict-question--what-is-sent-about-a-conflict) | What is sent about a conflict | Derivation | Built |
 | [`ai.read-answer`](09-conflicts.md#airead-answer--the-answer-read) | The answer, read | Derivation | Built |

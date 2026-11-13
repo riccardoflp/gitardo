@@ -14,6 +14,10 @@ pub const AMEND_TOOLTIP: &str =
     "Replace the last commit instead of adding a new one. Leave the message empty to keep it.";
 /// The tooltip of the sparkle button, which drafts the message with the AI provider (`commit.draft-message`).
 pub const DRAFT_MESSAGE: &str = "Draft a message from the changes with the AI provider";
+/// The tooltip of the button in place of the sparkle while the message is drafted.
+pub const STOP_DRAFT: &str = "Stop drafting the message: the box is left as it was";
+/// What the sparkle says with nothing changed.
+pub const NOTHING_TO_DESCRIBE: &str = "There are no changes to describe.";
 /// The tooltip of what comes in a later milestone.
 pub const NOT_YET: &str = "Not yet";
 /// **Switch identity…** in the **…** menu of the header (`identity.switch`).
@@ -62,6 +66,8 @@ pub const TAKE_CURRENT: &str = "Take the current side for the whole file";
 pub const TAKE_INCOMING: &str = "Take the incoming side for the whole file";
 /// The wand on a file in conflict, which opens the review of its conflicts (`review.page`).
 pub const RESOLVE_AUTOMATICALLY: &str = "Resolve its conflicts automatically, after looking at what is proposed";
+/// The sparkle on a file in conflict, with `conflicts.ai` (`ai.resolve-conflicts`).
+pub const RESOLVE_WITH_AI: &str = "Resolve with AI, after looking at what is proposed";
 /// What the page says when there is nothing in either list.
 pub const NO_CHANGES: &str = "No changes";
 /// The letter of an untracked file.

@@ -46,6 +46,7 @@ fn blocks<'a>(state: &ReviewState<'a>) -> Vec<Block<'a>> {
                 layout: state.layout,
                 widths: state.widths,
                 is_running: state.is_running,
+                can_ask: state.proposers.ai,
             })
         }));
     }

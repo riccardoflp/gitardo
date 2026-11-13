@@ -1532,3 +1532,28 @@ From the cards left over up to M8 (each built with the reading given, until the 
   cannot list its models; the card names only the refusal with no model listed. Is this right?
 - **Q-X7** — `FeatureSettings` holds the AI settings in a `Box`, since they made `Effect` too large for clippy. Is this
   right?
+- **Q-X8** — The card of `ai.resolve-conflicts` named `views::ai::resolve_conflicts_view`; the view is
+  `views::review::resolve_conflicts_view`, the row of the head of the review page that asks (**Ask the AI about the
+  rest (N)** and the button with the model's name, or the bar with **Stop** while the AI is asked), beside the other
+  views of the page. The questions are asked by `app::work::ai::Asking`, one thread per question, which takes the key
+  from the credential store; the store keeps two under way. The card says so now. Is this right?
+- **Q-X9** — The row that asks the AI is a row of its own in the head of the review page, over **Accept all proposed**
+  and the others, and the bar *Asking the AI: 3 of 5 conflicts answered* takes its place while the AI is asked. Is
+  that the place?
+- **Q-X10** — The button with the model's name shows the identifier of `ai.model` (*claude-test · high effort*), and
+  **First model of the provider** while it is empty, since the names the provider gives are known only once it is
+  asked for its models. Should the page ask the provider for them when it opens?
+- **Q-X11** — With no AI provider set up, the cards say *No AI provider is set up.* with **Ask again** at once, and no
+  request is made. Is this right?
+- **Q-X12** — Q187 is answered: **Resolve with AI** is enabled in the banner and in the message, and opens the review
+  page and asks.
+- **Q-X13** — `merge-view.accept-proposals` stays **Specified** for its second line: the Merge page computes its
+  proposals on its own regions with the rules only, and joining the answers kept by `review.fingerprint` to them needs
+  the review's reading of the conflicts in the read of the Merge page. Should that come with the next slice of the
+  Merge page?
+- **Q-X14** — The Activity drawer cannot cancel what it lists yet, so while the message is drafted the sparkle becomes
+  a button (*Stop drafting the message: the box is left as it was*) that stops it, where the card has the sparkle
+  disabled and the drawer cancelling. Should the drawer cancel, and the sparkle go back to disabled?
+- **Q-X15** — The diff of `commit.draft-message` is read on the thread of the question, with git, before the request;
+  a draft refused by the provider or failed is said in the message of the window, as the failure of an operation is.
+  Is this right?

@@ -57,7 +57,8 @@ impl StoppedState<'_> {
         }
         let counts = self.counts.unwrap_or_default();
         if self.ai && (counts.conflicts == 0 || counts.resolvable < counts.conflicts) {
-            buttons.push((words::RESOLVE_WITH_AI, None));
+            let resolve = Intent::Review(crate::review::ReviewIntent::ResolveWithAi(None));
+            buttons.push((words::RESOLVE_WITH_AI, Some(resolve)));
         }
         buttons.push((words::SHOW_LOG, Some(Intent::ShowCommandLog)));
         buttons

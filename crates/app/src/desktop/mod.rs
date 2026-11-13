@@ -97,6 +97,8 @@ struct DesktopWindow {
     workers: Workers,
     /// The thread of the operations.
     operations: Operations,
+    /// The questions to the AI provider (`ai.resolve-conflicts`, `commit.draft-message`).
+    asking: crate::work::ai::Asking,
     /// The watcher of the settings files.
     watcher: SettingsWatcher,
     /// The writer of what is kept between runs; none when there is no configuration folder.
@@ -144,6 +146,7 @@ impl DesktopWindow {
             state: State::new(persisted, settings, user_file),
             workers: Workers::new(WORKERS, &activities, deliver),
             operations: Operations::new(&activities, deliver),
+            asking: crate::work::ai::Asking::new(deliver, &activities, Box::new(engine::SystemSecrets)),
             watcher: SettingsWatcher::new(Arc::clone(deliver)),
             writer: options
                 .configuration
@@ -230,6 +233,8 @@ impl DesktopWindow {
             Effect::WatchRepository(folder) => self.reads.watch(folder.as_deref(), &self.deliver),
             Effect::WakeAt(at) => self.reads.wake_at(at),
             Effect::Cancel(job) => self.workers.cancel(job),
+            Effect::Ask(question) => self.asking.ask(*question),
+            Effect::StopAsking(asks) => self.asking.stop(&asks),
             Effect::ChooseFolder => {
                 let dialog = FileDialog {
                     title: String::from(views::text::repo::CHOOSE_FOLDER),

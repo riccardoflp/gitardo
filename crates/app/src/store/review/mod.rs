@@ -2,6 +2,7 @@
 //! whenever the repository is, what is accepted on it, and the choices, kept while the window is open by file and
 //! fingerprint of the conflict (`review.choose`).
 
+pub mod ai;
 mod cards;
 mod intents;
 
@@ -36,6 +37,8 @@ pub struct Reviews {
     pub layout: Layout,
     /// The widths of the current and incoming columns, in thousandths, once a band was dragged.
     pub widths: Option<(u32, u32)>,
+    /// The questions to the AI provider about conflicts, and their answers (`ai.resolve-conflicts`).
+    pub questions: ai::Questions,
 }
 
 /// The review page.
@@ -79,6 +82,8 @@ pub struct ReviewPage {
     pub writing: Option<Report>,
     /// What each card shows, derived from the rest.
     pub cards: Vec<FileCards>,
+    /// Whether the AI provider is asked about the conflicts with nothing proposed once the page is read.
+    pub asks_once_read: bool,
 }
 
 /// The title of the page: **Conflicts · \<folder name\>**.
@@ -139,6 +144,7 @@ pub fn open(state: &mut State, only: Option<Vec<String>>) -> Vec<Effect> {
             report: None,
             writing: None,
             cards: Vec::new(),
+            asks_once_read: false,
         });
     }
     super::pages::show_page(state, Page::Review);
@@ -187,8 +193,9 @@ pub fn review_read(state: &mut State, job: JobId, result: Result<Box<ReviewReado
             state.last_error = Some(error);
         }
     }
+    let asks = page.readout.is_some() && std::mem::take(&mut page.asks_once_read);
     derive(state);
-    Vec::new()
+    if asks { ai::ask(state, None) } else { Vec::new() }
 }
 
 /// Derives again what each card shows.
@@ -198,6 +205,7 @@ fn derive(state: &mut State) {
         state.settings.features.conflicts_ai,
     );
     let choices = state.reviews.choices.clone();
+    let questions = &state.reviews.questions;
     if let Some(page) = state.reviews.page.as_mut() {
         let folder = page.folder.clone();
         let choices: Vec<(Fingerprinted, ChoiceKind)> = choices
@@ -205,7 +213,12 @@ fn derive(state: &mut State) {
             .filter(|(known, _, _)| same_folder(known, &folder))
             .map(|(_, key, kind)| (key, kind))
             .collect();
-        page.cards = cards::cards(page, &choices, settings);
+        let known = cards::Known {
+            choices: &choices,
+            questions,
+            ai_states: &ai::card_states(questions, &folder),
+        };
+        page.cards = cards::cards(page, &known, settings);
     }
 }
 
@@ -275,5 +288,12 @@ pub fn page_state(state: &State) -> Option<ReviewState<'_>> {
         },
         is_running: state.is_operation_running,
         can_continue: features::operation(intents::CONTINUE).is_some(),
+        asking: (state.reviews.questions.total > 0)
+            .then_some((state.reviews.questions.answered, state.reviews.questions.total)),
+        model: state
+            .settings
+            .features
+            .conflicts_ai
+            .then(|| views::text::review::model_button(&state.settings.features.ai)),
     })
 }

@@ -10,7 +10,7 @@ use ui::{Button, ButtonKind, Icon, Label, Rect, Sense, TextKind, Tone, Ui};
 
 use super::decide::{bottom_and_folded, choose_view};
 use super::lines::{Look, code_line, gutter_width, origin_bars};
-use super::{CardProposal, ConflictCard, Layout, NumberedLine, ProposedLine, ReviewIntent};
+use super::{CardAi, CardProposal, ConflictCard, Layout, NumberedLine, ProposedLine, ReviewIntent};
 use crate::intent::Intent;
 use crate::text::review as words;
 
@@ -27,6 +27,8 @@ pub struct CardState<'a> {
     pub widths: (u32, u32),
     /// Whether an operation runs, which nothing on the card may change meanwhile.
     pub is_running: bool,
+    /// Whether the AI provider may be asked about it (`conflicts.ai`).
+    pub can_ask: bool,
 }
 
 impl CardState<'_> {
@@ -50,6 +52,10 @@ enum Piece<'a> {
     Counts(&'a CardProposal),
     /// What looks wrong in it.
     Warnings(&'a CardProposal),
+    /// Where the AI stands on it: reading, writing, or why it failed.
+    Ai(&'a CardAi),
+    /// A line of the answer of the AI so far.
+    Streamed(&'a str),
     /// A line of the file around it, faded.
     Around(&'a NumberedLine),
     /// A line proposed.
@@ -85,6 +91,12 @@ fn pieces<'a>(state: &CardState<'a>) -> Vec<Piece<'a>> {
         return vec![Piece::Folded];
     }
     let mut pieces = vec![Piece::Title, Piece::Heading];
+    if card.ai != CardAi::Idle {
+        pieces.push(Piece::Ai(&card.ai));
+    }
+    if let CardAi::Writing(lines) = &card.ai {
+        pieces.extend(lines.iter().map(|line| Piece::Streamed(line)));
+    }
     if let Some(proposal) = &card.proposal {
         pieces.push(Piece::Counts(proposal));
         if !proposal.warnings.is_empty() {
@@ -101,7 +113,7 @@ fn pieces<'a>(state: &CardState<'a>) -> Vec<Piece<'a>> {
         }
         pieces.extend(card.after.iter().map(Piece::Around));
     }
-    if card.proposal.is_none() {
+    if card.proposal.is_none() && card.ai == CardAi::Idle {
         pieces.push(Piece::NothingProposed);
     }
     pieces.push(Piece::Choices);
@@ -200,6 +212,14 @@ fn draw_piece(
         }
         Piece::Counts(proposal) => counts(state, ui, row, proposal),
         Piece::Warnings(proposal) => warnings(ui, row, proposal),
+        Piece::Ai(ai) => {
+            let (said, tone) = match ai {
+                CardAi::Failed(why) => (why.as_str(), Tone::Warning),
+                CardAi::Writing(_) => (words::AI_WRITING, Tone::Muted),
+                CardAi::Reading | CardAi::Idle => (words::AI_READING, Tone::Muted),
+            };
+            let _ = ui.label(row, &Label::new(said).tone(tone));
+        }
         Piece::Around(line) => plain_line(
             ui,
             (row, gutter),
@@ -229,7 +249,7 @@ fn draw_piece(
         Piece::BaseHeading => {
             let _ = ui.label(row, &Label::new(words::BASE).kind(TextKind::SmallStrong));
         }
-        Piece::BaseLine(text) => plain_line(ui, (row, gutter), (None, text, colors.foreground)),
+        Piece::Streamed(text) | Piece::BaseLine(text) => plain_line(ui, (row, gutter), (None, text, colors.foreground)),
         Piece::Bottom => bottom_and_folded(state, ui, (row, false), intents),
         Piece::Folded => bottom_and_folded(state, ui, (row, true), intents),
     }

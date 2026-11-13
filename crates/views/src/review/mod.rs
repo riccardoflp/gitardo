@@ -4,6 +4,7 @@
 //!
 //! The store derives what each card shows ([`ConflictCard`]); the views draw it and say what was clicked.
 
+mod ai;
 mod body;
 mod card;
 mod columns;
@@ -21,6 +22,7 @@ use model::review::{
 };
 use model::state::Operation;
 
+pub use ai::resolve_conflicts_view;
 pub use card::{CardState, card_view};
 pub use columns::columns_view;
 pub use decide::{accept_view, choose_view};
@@ -116,6 +118,28 @@ pub struct SideColumn {
     pub after: Vec<NumberedLine>,
 }
 
+/// Where the AI stands on a conflict (`ai.resolve-conflicts`).
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub enum CardAi {
+    /// It is not asked about it.
+    #[default]
+    Idle,
+    /// It is asked, and nothing of its answer came yet.
+    Reading,
+    /// The lines of its answer so far.
+    Writing(Vec<String>),
+    /// It could not answer: why.
+    Failed(String),
+}
+
+impl CardAi {
+    /// Whether the AI is asked about it now.
+    #[must_use]
+    pub fn is_asked(&self) -> bool {
+        matches!(self, CardAi::Reading | CardAi::Writing(_))
+    }
+}
+
 /// One conflict, as its card shows it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConflictCard {
@@ -125,6 +149,8 @@ pub struct ConflictCard {
     pub line: usize,
     /// What is proposed, when something is.
     pub proposal: Option<CardProposal>,
+    /// Where the AI stands on it.
+    pub ai: CardAi,
     /// The 3 lines of the file before what is proposed.
     pub before: Vec<NumberedLine>,
     /// The 3 lines of the file after it.
@@ -270,6 +296,10 @@ pub struct ReviewState<'a> {
     pub is_running: bool,
     /// Whether **Continue the …** can run.
     pub can_continue: bool,
+    /// While the AI is asked: how many of the conflicts asked about came to an end, and how many were asked about.
+    pub asking: Option<(usize, usize)>,
+    /// The words of the button with the model's name, with `conflicts.ai`.
+    pub model: Option<String>,
 }
 
 impl ReviewState<'_> {
@@ -306,6 +336,15 @@ impl ReviewState<'_> {
             Filter::FromTheAi => 0,
         };
         self.conflicts().filter(|conflict| conflict.is_kept_by(filter)).count() + deleted
+    }
+
+    /// How many conflicts **Ask the AI about the rest** asks about: those with nothing proposed that it is not asked
+    /// about already.
+    #[must_use]
+    pub fn to_ask(&self) -> usize {
+        self.conflicts()
+            .filter(|conflict| conflict.proposal.is_none() && !conflict.ai.is_asked())
+            .count()
     }
 
     /// How many proposals not accepted have a warning.
@@ -369,4 +408,10 @@ pub enum ReviewIntent {
     Undo,
     /// Continue the operation (`review.report`).
     Continue,
+    /// Ask the AI provider about one conflict, or about each that has nothing proposed (`ai.resolve-conflicts`).
+    AskAi(Option<ConflictKey>),
+    /// **Stop** the questions to the AI provider.
+    StopAi,
+    /// **Resolve with AI**: open the page, of some files or of all, and ask about each conflict with nothing proposed.
+    ResolveWithAi(Option<Vec<String>>),
 }

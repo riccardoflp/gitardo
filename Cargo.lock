@@ -164,6 +164,7 @@ dependencies = [
  "engine",
  "features",
  "git",
+ "http",
  "json",
  "model",
  "platform",

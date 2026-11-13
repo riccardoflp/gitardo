@@ -316,3 +316,14 @@
 - **Choose the model that resolves conflicts** in Quick search: the models the AI provider of `ai.provider` lists, and
   how much the model thinks, written to `ai.model` and `ai.effort` in the user's settings file. When the provider wants
   a key and none is kept, it is asked, and kept in the credential store of the system once the choice is written.
+- **Resolve with AI** in the banner, in the message of an operation that stopped, on a file in conflict in the Changes
+  page (the sparkle, for that file alone) and **Ask the AI about the rest (N)** in the review page: each conflict the
+  rules leave is asked about, one per question and two at a time, its card showing the AI reading, then the lines of
+  its answer as they come, then the proposal with the model's name, or why it failed with **Ask again**. A bar counts
+  the answers, with **Stop**. The answers are kept by file and conflict until the window is closed, also when the page
+  is closed or the conflicts restored, and are dropped once their conflict is edited. The head of the page has the
+  button with the model's name, which chooses another.
+- The sparkle beside the message of the commit box drafts the message with the AI provider: from the staged changes
+  when something is staged, otherwise from every change with the new files named, in the style of the last 10
+  subjects. The answer takes the place of the text of the box; while it is written, the Activity drawer says
+  **drafting commit message** and the sparkle becomes a button that stops it, leaving the box as it was.
