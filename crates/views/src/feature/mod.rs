@@ -1,6 +1,6 @@
 //! What an operation run from the window shows: each question it asks, as a dialog of the window; the plan it is about
 //! to run, with its commands, when the engine shows it first (`preview.confirm`); and what is said once it ended, with
-//! **Undo** when it can be taken back.
+//! **Undo** when it can be taken back and **Show Stashes** when a pull left its autostash.
 
 #[cfg(test)]
 mod tests;
@@ -62,6 +62,8 @@ pub struct SaidState<'a> {
     pub is_error: bool,
     /// Whether **Undo** is offered beside it (`undo.last`).
     pub can_undo: bool,
+    /// Whether it warns of a stash a pull left, with **Show Stashes** beside it (`stash.autostash-left`).
+    pub offers_stashes: bool,
 }
 
 /// A question of an operation over the window: its title, what it says will happen, and the box, the choices or the
@@ -320,6 +322,8 @@ pub fn said_view(state: &SaidState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     );
     let (icon, tone) = if state.is_error {
         (Icon::Error, Tone::Error)
+    } else if state.offers_stashes {
+        (Icon::Warning, Tone::Warning)
     } else {
         (Icon::Info, Tone::Accent)
     };
@@ -352,6 +356,14 @@ pub fn said_view(state: &SaidState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
                 FeatureId("undo.last"),
                 Target::Head,
             )));
+        }
+    }
+    if state.offers_stashes {
+        let show = Button::secondary(crate::text::stash::SHOW_STASHES).kind(ButtonKind::Outline);
+        let (width, height) = ui.button_size(&show);
+        let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
+        if ui.button("show stashes said", cell, &show).clicked {
+            intents.push(Intent::Rail(crate::intent::RailIntent::ShowStashes));
         }
     }
     let _ = ui.label(parts.rest(), &Label::new(state.text));

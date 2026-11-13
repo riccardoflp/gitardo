@@ -1,13 +1,14 @@
 //! The Stashes list of the branch rail drawn from the store, with repositories made for each test (`stash.pane`): its
 //! title, a stash unfolded to its files, the Diff page a file opens, the buttons of the rows, the list with no stash,
-//! a stash dropped from elsewhere, and **Show Stashes** in Quick search.
+//! a stash dropped from elsewhere, **Show Stashes** in Quick search, and the warning of a pull that left its autostash
+//! (`stash.autostash-left`).
 
 use app::store::{Message, State};
 use model::CommitId;
 use model::contract::{FeatureId, Target};
 use platform::accesskit::{Role, TreeUpdate};
 use render::ThemeName;
-use testkit::Repository;
+use testkit::{Remote, Repository};
 use views::diff::{DiffFile, DiffIntent, DiffTarget, DiffVersion};
 use views::feature::FeatureIntent;
 use views::search::{QuickChoice, QuickCommand, SearchIntent};
@@ -192,6 +193,79 @@ fn stash_pane__show_stashes_in_quick_search_opens_the_list() {
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
     assert!(has(&tree, Role::Button, "On main: with new"));
+}
+
+/// A repository whose `main` is behind `origin/main` by a commit that changes the line `a.txt` has changed in the working
+/// tree, and that has a stash of its own already.
+fn autostash_conflict() -> (Repository, Remote) {
+    let mut repository = Repository::new();
+    let base = repository.commit("Add a", &[("a.txt", "a\n"), ("b.txt", "b\n")]);
+    let remote = Remote::new(&repository);
+    let _theirs = repository.commit("Change a", &[("a.txt", "a, theirs\n")]);
+    let _pushed = repository.git(&["push", "--quiet", "origin", "main"]);
+    let _back = repository.git(&["reset", "--quiet", "--hard", &base]);
+    std::fs::write(repository.path().join("b.txt"), "b, older\n").unwrap();
+    let _ = repository.git(&["stash", "push", "--quiet", "-m", "older"]);
+    std::fs::write(repository.path().join("a.txt"), "a, mine\n").unwrap();
+    (repository, remote)
+}
+
+/// Pulls with `--autostash` from the window, confirming what it shows first, until it ended.
+fn pull(state: &mut State) {
+    let driver = OperationsDriver::new();
+    driver.intent(
+        state,
+        Intent::Feature(FeatureIntent::Run(FeatureId("sync.pull"), Target::Head)),
+    );
+    loop {
+        match driver.next(state) {
+            Message::FeatureConfirms(_) => driver.intent(state, Intent::Feature(FeatureIntent::Confirm(true))),
+            Message::FeatureEnded { .. } => return,
+            _ => {}
+        }
+    }
+}
+
+#[test]
+fn stash_autostash_left__a_pull_that_leaves_its_autostash_warns_in_the_window_with_show_stashes() {
+    let (repository, _remote) = autostash_conflict();
+    let mut state = showing(repository.path().to_path_buf());
+    pull(&mut state);
+    let messages = repository.git(&["stash", "list", "--format=%gs"]);
+    assert!(messages.lines().next().unwrap().contains("autostash"), "{messages}");
+    assert!(repository.git(&["status", "--porcelain"]).contains("UU a.txt"));
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(super::support::says_in(
+        &tree,
+        "Pulled, but your changes do not fit on what came in."
+    ));
+    assert!(has(&tree, Role::Button, words::SHOW_STASHES));
+}
+
+#[test]
+fn stash_autostash_left__show_stashes_shows_the_stashes_list_with_that_stash_first() {
+    let (repository, _remote) = autostash_conflict();
+    let mut state = showing(repository.path().to_path_buf());
+    pull(&mut state);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let clicked = window.click(&state, Role::Button, words::SHOW_STASHES);
+    assert_eq!(clicked, [Intent::Rail(RailIntent::ShowStashes)]);
+    for intent in clicked {
+        ask(&mut state, intent);
+    }
+    let (_, tree) = window.draw(&state, &[]);
+    let autostash = state
+        .shown_read()
+        .unwrap()
+        .state
+        .stashes
+        .first()
+        .unwrap()
+        .message
+        .clone();
+    assert!(autostash.contains("autostash"), "{autostash}");
+    assert!(top_of(&tree, Role::Button, &autostash) < top_of(&tree, Role::Button, "On main: older"));
 }
 
 #[test]

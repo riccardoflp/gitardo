@@ -890,3 +890,8 @@ the reading given until it is answered:
   the rail when it was put away; it does not scroll the rail to the list, as a scroll area of `ui` cannot be moved by
   its view yet. With many branches the list may be below what is in sight. Should `ui` let a view bring a part of a
   scroll area into sight?
+- **Q-J6** — `stash.autostash-left` in the window: once the repository is read again after a pull with `--autostash`
+  (`FollowUp::CheckAutostash`), the warning of the card replaces what the pull said, with a warning icon and **Show
+  Stashes** beside it. The stashes before the pull are those of the last read before it ended. The line of the card on
+  the conflicts banner cannot be tested until `conflicts.banner` (M6): the tests check the files left in conflict
+  (`UU a.txt`) and the stash named `autostash` first in the list. Is that enough to call it **Built**?

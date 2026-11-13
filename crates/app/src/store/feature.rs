@@ -81,6 +81,8 @@ pub struct Said {
     pub is_error: bool,
     /// Whether **Undo** is offered beside it.
     pub can_undo: bool,
+    /// Whether it warns of a stash a pull left, with **Show Stashes** beside it (`stash.autostash-left`).
+    pub offers_stashes: bool,
 }
 
 /// The operations of a window.
@@ -230,6 +232,7 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
                 text: said.unwrap_or_else(|| words::done(title.as_str())),
                 is_error: false,
                 can_undo: can_undo && !is_undo,
+                offers_stashes: false,
             });
             let mut effects = reads::asked(state, ReadCause::OperationEnded);
             for follow_up in after {
@@ -248,6 +251,7 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
                 text: reason.as_str().to_owned(),
                 is_error: true,
                 can_undo: false,
+                offers_stashes: false,
             });
             Vec::new()
         }
@@ -257,14 +261,15 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
                 text: words::failed(&title, &said),
                 is_error: true,
                 can_undo: false,
+                offers_stashes: false,
             });
             reads::asked(state, ReadCause::OperationEnded)
         }
     }
 }
 
-/// Once the repository is read again after a pull with `--autostash`, says so when the changes it set aside were left in
-/// a stash.
+/// Once the repository is read again after a pull with `--autostash`, warns when the changes it set aside were left in
+/// a stash, with **Show Stashes** beside the warning.
 fn autostash_left(state: &mut State) {
     let Some(before) = state.operations.autostash_before.take() else {
         return;
@@ -279,7 +284,8 @@ fn autostash_left(state: &mut State) {
     });
     if let (Some(notice), Some(said)) = (notice, state.operations.said.as_mut()) {
         notice.message.as_str().clone_into(&mut said.text);
-        said.is_error = true;
+        said.is_error = false;
+        said.offers_stashes = true;
     }
 }
 
@@ -326,5 +332,6 @@ pub fn said_state(state: &State) -> Option<SaidState<'_>> {
         text: &said.text,
         is_error: said.is_error,
         can_undo: said.can_undo,
+        offers_stashes: said.offers_stashes,
     })
 }
