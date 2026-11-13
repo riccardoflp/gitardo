@@ -10,6 +10,7 @@ pub mod compare;
 mod conflicts;
 mod diff_page;
 pub mod feature;
+pub mod file_page;
 mod inspector;
 mod log_lines;
 mod merge_page;
@@ -40,6 +41,7 @@ use crate::settings::Settings;
 pub use changes::{Changes, ChangesData};
 pub use commit_page::{CommitPage, CommitPages, PageReadState};
 pub use diff_page::{DiffPage, DiffPages};
+pub use file_page::{FileContent, FilePage, FilePages};
 pub use inspector::{Inspector, InspectorRead, Subject, SubjectRow};
 pub use merge_page::{MergePage, MergePages};
 pub use message::{Effect, Found, Job, JobId, JobKind, Known, Message, MorePages, TimelineRequest};
@@ -63,6 +65,8 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(diff_page::follow(state));
     effects.extend(merge_page::prune(state));
     effects.extend(merge_page::follow(state));
+    effects.extend(file_page::prune(state));
+    effects.extend(file_page::follow(state));
     effects.extend(compare::prune(state));
     effects.extend(compare::follow(state));
     effects.extend(review::prune(state));
@@ -91,6 +95,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         }
         Message::FeatureEnded { ended, log } => {
             changes::ended(state, &ended);
+            file_page::ended(state, &ended);
             if let feature::Ended::Ran { after, .. } = &ended {
                 rebase::ended(state, after);
             }
@@ -106,6 +111,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         Message::CommitPageRead { job, result } => commit_page::page_read(state, job, result),
         Message::DiffRead { job, result } => diff_page::diff_read(state, job, result),
         Message::MergeRead { job, result } => merge_page::merge_read(state, job, result),
+        Message::FileRead { job, result } => file_page::file_read(state, job, result),
         Message::ComparisonRead { job, result } => compare::comparison_read(state, job, result),
         Message::ReviewRead { job, result } => review::review_read(state, job, result),
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
@@ -291,7 +297,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
             Vec::new()
         }
         Intent::NextPage => pages::next_page(state),
-        Intent::ClosePage => pages::close_page(state),
+        Intent::ClosePage => file_page::close_page(state),
         Intent::ClosePicker
         | Intent::OpenActivity
         | Intent::CloseActivity
@@ -312,6 +318,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::CommitPage(id, intent) => commit_page::reduce_page(state, id, intent),
         Intent::Diff(intent) => diff_page::reduce(state, intent),
         Intent::MergeView(intent) => merge_page::reduce(state, intent),
+        Intent::FileView(intent) => file_page::reduce(state, intent),
         Intent::Compare(intent) => compare::reduce(state, intent),
         Intent::Review(intent) => review::reduce(state, intent),
         Intent::Feature(intent) => feature::reduce(state, intent),

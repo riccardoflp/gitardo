@@ -156,12 +156,12 @@ pub struct LinesReplaced {
 
 /// Colors a text again after some of its lines were replaced, from the first line changed and only as far as what is
 /// open at the end of a line comes back to what it was: typing in a line colors that line again, opening a block
-/// comment colors the lines after it.
+/// comment colors the lines after it. Gives the lines colored again, by their places in the text as it is now.
 pub fn highlight_again(
     (language, line_of): (Option<Language>, &dyn Fn(usize) -> String),
     tokens: &mut Vec<LineTokens>,
     replaced: LinesReplaced,
-) {
+) -> Range<usize> {
     let removed_end = (replaced.start + replaced.removed).min(tokens.len());
     let start = replaced.start.min(removed_end);
     let mut old_start = removed_end
@@ -183,7 +183,7 @@ pub fn highlight_again(
         if state == old_start {
             tokens.push(old);
             tokens.extend(after);
-            return;
+            return start..line;
         }
         old_start = old.end;
         let colored = highlight_line(language, &line_of(line), state);
@@ -191,4 +191,5 @@ pub fn highlight_again(
         tokens.push(colored);
         line += 1;
     }
+    start..line
 }

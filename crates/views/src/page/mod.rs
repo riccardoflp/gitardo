@@ -7,6 +7,7 @@ use ui::{AccessRole, Axis, Button, ButtonKind, Icon, Label, Rect, TextKind, Tone
 use crate::commit_page::{CommitPageId, CommitPageState, view as commit_page_view};
 use crate::compare::{ComparePageId, CompareState, page as compare_page_view};
 use crate::diff::{DiffPageId, DiffPageState, page_view as diff_page_view};
+use crate::file_view::{FilePageId, FilePageState, page_view as file_page_view};
 use crate::intent::Intent;
 use crate::settings::{SettingsPageState, settings_view};
 use crate::text::pages as words;
@@ -34,6 +35,8 @@ pub enum Page {
     Merge(crate::merge_view::MergePageId),
     /// The review of the resolutions of the conflicts (`review.page`).
     Review,
+    /// A File page (`file-view.page`).
+    File(FilePageId),
 }
 
 impl Page {
@@ -50,6 +53,7 @@ impl Page {
             Page::Compare(_) => crate::text::compare::PAGE,
             Page::Merge(_) => crate::text::merge_view::PAGE,
             Page::Review => crate::text::review::PAGE,
+            Page::File(_) => crate::text::file_view::PAGE,
         }
     }
 }
@@ -75,6 +79,8 @@ pub enum PageState<'a> {
     Merge(crate::merge_view::MergePageState<'a>, &'a str),
     /// The review of the resolutions of the conflicts.
     Review(crate::review::ReviewState<'a>),
+    /// A File page.
+    File(FilePageState<'a>),
 }
 
 impl PageState<'_> {
@@ -91,6 +97,7 @@ impl PageState<'_> {
             PageState::Compare(compare) => Page::Compare(compare.id),
             PageState::Merge(merge, _) => Page::Merge(merge.id),
             PageState::Review(_) => Page::Review,
+            PageState::File(file) => Page::File(file.id),
         }
     }
 
@@ -106,6 +113,17 @@ impl PageState<'_> {
             PageState::Compare(compare) => compare.title,
             PageState::Merge(_, title) => title,
             PageState::Review(review) => review.title,
+            PageState::File(file) => file.title,
+        }
+    }
+
+    /// Whether it shows a file with edits not saved, which puts a dot after its name in the trail (`file-view.edit`).
+    #[must_use]
+    pub fn is_unsaved(&self) -> bool {
+        match self {
+            PageState::File(file) => file.is_unsaved,
+            PageState::Diff(diff) => diff.is_unsaved,
+            _ => false,
         }
     }
 }
@@ -131,7 +149,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut area = Area::new(rect);
     if state.has_trail {
         let bar = area.top(ui.theme().sizes.header_height * 0.75);
-        trail(state.page.title(), ui, bar, &mut intents);
+        trail((state.page.title(), state.page.is_unsaved()), ui, bar, &mut intents);
     }
     let body = area.rest();
     intents.extend(ui.clip(body, |ui| match &state.page {
@@ -144,12 +162,13 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Compare(compare) => compare_page_view(compare, ui),
         PageState::Merge(merge, _) => crate::merge_view::page_view(merge, ui),
         PageState::Review(review) => crate::review::page_view(review, ui),
+        PageState::File(file) => file_page_view(file, ui),
     }));
     intents
 }
 
-/// The trail above a page, and the button that closes it.
-fn trail(title: &str, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
+/// The trail above a page, with a dot after the name of a file with edits not saved, and the button that closes it.
+fn trail((title, is_unsaved): (&str, bool), ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
     let line = Rect::new(
@@ -179,6 +198,14 @@ fn trail(title: &str, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
         if ui.button("close page", close_cell, &close).clicked {
             intents.push(Intent::ClosePage);
         }
-        let _ = ui.label(parts.rest(), &Label::new(title).kind(TextKind::Strong));
+        if is_unsaved {
+            let dot = crate::text::file_view::UNSAVED_DOT;
+            let title_width = ui.measure(title, ui.text_style(TextKind::Strong));
+            let _ = ui.label(parts.left(title_width), &Label::new(title).kind(TextKind::Strong));
+            let dot_width = ui.measure(dot, ui.text_style(TextKind::Body));
+            let _ = ui.label(parts.left(dot_width), &Label::new(dot));
+        } else {
+            let _ = ui.label(parts.rest(), &Label::new(title).kind(TextKind::Strong));
+        }
     });
 }

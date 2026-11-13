@@ -511,13 +511,13 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`merge-view.open-at-line`](17-diff-and-merge-views.md#merge-viewopen-at-line--open-the-file-at-this-line) | Open the file at this line | View | Specified |
 | [`merge-view.mark-resolved`](17-diff-and-merge-views.md#merge-viewmark-resolved--mark-as-resolved) | Mark as resolved | Operation | Built |
 | [`merge-view.close`](17-diff-and-merge-views.md#merge-viewclose--closing-with-unsaved-changes) | Closing with unsaved changes | View | Specified |
-| [`file-view.page`](17-diff-and-merge-views.md#file-viewpage--the-file-page) | The File page | View | Specified |
+| [`file-view.page`](17-diff-and-merge-views.md#file-viewpage--the-file-page) | The File page | View | Built |
 | [`file-view.read-revision`](17-diff-and-merge-views.md#file-viewread-revision--a-file-at-a-revision) | A file at a revision | Read | Built |
-| [`file-view.edit`](17-diff-and-merge-views.md#file-viewedit--editing-a-file) | Editing a file | View | Specified |
-| [`file-view.save`](17-diff-and-merge-views.md#file-viewsave--save) | Save | Operation | Specified |
-| [`file-view.find`](17-diff-and-merge-views.md#file-viewfind--find) | Find | View | Specified |
-| [`file-view.go-to-line`](17-diff-and-merge-views.md#file-viewgo-to-line--go-to-line) | Go to line | View | Specified |
-| [`file-view.open-external`](17-diff-and-merge-views.md#file-viewopen-external--open-in-external-editor) | Open in external editor | Operation | Specified |
+| [`file-view.edit`](17-diff-and-merge-views.md#file-viewedit--editing-a-file) | Editing a file | View | Built |
+| [`file-view.save`](17-diff-and-merge-views.md#file-viewsave--save) | Save | Operation | Built |
+| [`file-view.find`](17-diff-and-merge-views.md#file-viewfind--find) | Find | View | Built |
+| [`file-view.go-to-line`](17-diff-and-merge-views.md#file-viewgo-to-line--go-to-line) | Go to line | View | Built |
+| [`file-view.open-external`](17-diff-and-merge-views.md#file-viewopen-external--open-in-external-editor) | Open in external editor | Operation | Built |
 | [`file-view.highlight`](17-diff-and-merge-views.md#file-viewhighlight--the-colors-of-the-code) | The colors of the code | Derivation | Specified |
 
 ## Settings

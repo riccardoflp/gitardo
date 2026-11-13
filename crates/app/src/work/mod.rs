@@ -3,6 +3,7 @@
 
 pub mod compare;
 pub mod diff;
+pub mod file_view;
 pub mod jobs;
 pub mod merge_view;
 mod operations;
@@ -188,6 +189,10 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadDiff { folder, .. } => (
             Text::from(activity::reading(&folder_name(folder))),
             Text::from(activity::COMPUTING_DIFF),
+        ),
+        JobKind::ReadFile { folder, .. } => (
+            Text::from(activity::reading(&folder_name(folder))),
+            Text::from(activity::OPENING_FILE),
         ),
         JobKind::ReadComparison { folder, .. } | JobKind::ReadInPlace { folder, .. } => (
             Text::from(activity::reading(&folder_name(folder))),

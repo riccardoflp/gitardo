@@ -168,6 +168,7 @@ impl ViewData {
             said: super::feature::said_state(state),
             large_diff: super::diff_page::large_question(state),
             large_merge: super::merge_page::large_question(state),
+            close_file: super::file_page::close_question(state),
         }
     }
 
@@ -250,6 +251,9 @@ impl ViewData {
                 }
             }
             Some(Page::Review) => self.page_or_timeline(state, super::review::page_state(state).map(PageState::Review)),
+            Some(Page::File(id)) => {
+                self.page_or_timeline(state, super::file_page::page_state(state, id).map(PageState::File))
+            }
             Some(Page::Settings) => Content::Page(PageHostState {
                 has_trail: state.workspace.is_some(),
                 page: PageState::Settings(SettingsPageState {
@@ -269,6 +273,14 @@ impl ViewData {
                 has_trail: true,
                 page: PageState::Changes(self.changes.page_state(state)),
             }),
+            None => Content::Timeline(self.timeline(state)),
+        }
+    }
+
+    /// A page under its trail, or the timeline when the page is gone.
+    fn page_or_timeline<'a>(&'a self, state: &'a State, page: Option<PageState<'a>>) -> Content<'a> {
+        match page {
+            Some(page) => Content::Page(PageHostState { has_trail: true, page }),
             None => Content::Timeline(self.timeline(state)),
         }
     }

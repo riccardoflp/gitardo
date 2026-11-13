@@ -16,6 +16,8 @@ mod diff;
 mod diff_links;
 mod diff_staging;
 mod diff_views;
+mod file_view;
+mod file_view_tools;
 mod filter;
 mod folds;
 mod go_to;

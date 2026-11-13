@@ -62,6 +62,8 @@ pub struct State {
     pub diff_pages: super::diff_page::DiffPages,
     /// The Merge pages open, or waiting for their first read (`merge-view.page`).
     pub merge_pages: super::merge_page::MergePages,
+    /// The File pages open (`file-view.page`).
+    pub file_pages: super::file_page::FilePages,
     /// The comparison pages, the comparisons opened before and the comparison in the inspector.
     pub compares: super::compare::Compares,
     /// The review of the conflicts (`review.page`).

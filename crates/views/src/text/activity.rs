@@ -39,6 +39,8 @@ pub const OPENING_COMMIT_PAGE: &str = "Opening the page of a commit";
 pub const COMPUTING_DIFF: &str = "Showing the diff of a file";
 /// Why the regions of a file in conflict are computed.
 pub const SHOWING_MERGE: &str = "Showing a file in conflict";
+/// Why the File page reads.
+pub const OPENING_FILE: &str = "Opening a file";
 /// Why a comparison is read: its page, or the inspector, shows it.
 pub const COMPARING: &str = "Comparing two sides";
 /// Why the files in conflict are read: to count the conflicts the rules resolve (`conflicts.banner`).

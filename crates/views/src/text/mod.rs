@@ -11,6 +11,7 @@ pub mod dates;
 pub mod details;
 pub mod diff;
 pub mod feature;
+pub mod file_view;
 pub mod filter;
 pub mod header;
 pub mod history;

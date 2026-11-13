@@ -56,6 +56,8 @@ pub struct CodeEditor<'a> {
     pub is_read_only: bool,
     /// A line to bring to the middle, once for each number: the line a page opens at, a match gone to.
     pub reveal: Option<(u64, usize)>,
+    /// Takes the keyboard, once for each number: when its page opens, and when a dialog over it closes.
+    pub focus: Option<u64>,
     /// How many columns a tab goes to.
     pub tab_width: usize,
 }
@@ -93,9 +95,13 @@ impl Ui<'_> {
     /// Declares an editor of code over a rectangle, and says what was asked of it.
     pub fn code_editor(&mut self, key: impl Hash, rect: Rect, editor: &CodeEditor<'_>) -> CodeEditorResponse {
         let id = self.id(key);
+        let mut state = self.memory().code_editors.remove(&id).unwrap_or_default();
+        if let Some(serial) = editor.focus.filter(|serial| state.focused != Some(*serial)) {
+            state.focused = Some(serial);
+            self.request_focus(id);
+        }
         let sense = Sense::CLICK | Sense::DRAG | Sense::FOCUS | Sense::SCROLL;
         let (response, events) = self.interact_with_events(id, rect, sense);
-        let mut state = self.memory().code_editors.remove(&id).unwrap_or_default();
         let layout = self.code_layout(rect, editor.buffer);
         reveal_asked(&mut state, editor, layout);
         let mut outcome = CodeEditorResponse {

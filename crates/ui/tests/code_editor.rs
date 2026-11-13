@@ -40,6 +40,7 @@ impl Page {
             current_mark: None,
             is_read_only: self.is_read_only,
             reveal: None,
+            focus: None,
             tab_width: 4,
         };
         let (answer, output) = self.window.frame(events, |ui| {

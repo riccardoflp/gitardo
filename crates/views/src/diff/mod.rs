@@ -60,6 +60,8 @@ pub struct DiffPageState<'a> {
     pub reveal: Option<(u64, usize)>,
     /// What the bar says for a moment, and until when.
     pub hint: Option<(Hint, Duration)>,
+    /// Whether the file of the working tree it shows has edits not saved in a File page (`file-view.edit`).
+    pub is_unsaved: bool,
 }
 
 /// Something asked of the Diff pages.

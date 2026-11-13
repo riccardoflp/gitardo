@@ -1,8 +1,6 @@
 //! `file-view.open-external`: opens the file of a File page in the editor the user works in, outside Gitardo, with the
 //! command of `editor.external`, or with the program the system has for the file.
 
-use std::path::Path;
-
 use model::contract::{Answers, Context, Danger, Outcome, Plan, Refusal, Step, Target, Text, Undo};
 
 /// Said when the operation is given no file of the working tree.
@@ -21,7 +19,7 @@ pub fn open_external(context: &Context, _answers: &Answers) -> Outcome {
         return Outcome::Refuse(Refusal::saying(CHOOSE_A_FILE));
     };
     let folder = &context.repository.folder;
-    let path = quoted(&absolute(folder, &file.path));
+    let path = quoted(&super::on_disk(folder, &file.path).display().to_string());
     let template = context.settings.external_editor.trim();
     let command = if template.is_empty() {
         system_opener(&path)
@@ -43,13 +41,6 @@ pub fn open_external(context: &Context, _answers: &Answers) -> Outcome {
         after: Vec::new(),
         on_failure: Vec::new(),
     })
-}
-
-/// The path of a file of the working tree, from the root of the system, with the separators of the system.
-fn absolute(folder: &Path, path: &str) -> String {
-    let mut absolute = folder.to_path_buf();
-    absolute.extend(path.split('/').filter(|part| !part.is_empty()));
-    absolute.display().to_string()
 }
 
 /// A path as the shell takes it as one word: in double quotes when it has a space or a character the shell reads.
@@ -78,6 +69,8 @@ fn system_opener(path: &str) -> String {
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
+    use std::path::Path;
+
     use model::file_view::FileAt;
 
     use super::*;

@@ -26,7 +26,7 @@ pub fn save(context: &Context, answers: &Answers) -> Outcome {
     let Target::FileSave(file) = &context.target else {
         return Outcome::Refuse(Refusal::saying(CHOOSE_A_FILE));
     };
-    let path = context.repository.folder.join(&file.path);
+    let path = super::on_disk(&context.repository.folder, &file.path);
     let Some(on_disk) = answers.contents(ON_DISK) else {
         return Outcome::Read(ON_DISK, Query::FileContents { path });
     };
@@ -91,7 +91,7 @@ mod tests {
             lines(&plan),
             [format!(
                 "write {}",
-                std::path::Path::new("repository").join("src/app.rs").display()
+                std::path::Path::new("repository").join("src").join("app.rs").display()
             )]
         );
         let Some(Step::Write { contents, .. }) = plan.steps.first() else {

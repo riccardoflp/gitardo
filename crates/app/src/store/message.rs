@@ -97,6 +97,13 @@ pub enum Message {
         /// What it came to.
         result: crate::work::merge_view::MergeRead,
     },
+    /// A job that read the file of a File page is done (`file-view.page`).
+    FileRead {
+        /// The job.
+        job: JobId,
+        /// The bytes, none when the file is not there, or what the system or git said.
+        result: Result<Option<Vec<u8>>, String>,
+    },
     /// A job that read a comparison page is done (`compare.read-sides`).
     ComparisonRead {
         /// The job.
@@ -292,6 +299,13 @@ pub enum JobKind {
         folder: PathBuf,
         /// What is read.
         job: crate::work::merge_view::MergeJob,
+    },
+    /// Reads the file of a File page, from the disk or at a revision (`file-view.page`).
+    ReadFile {
+        /// The top folder of the working tree.
+        folder: PathBuf,
+        /// What is read.
+        job: crate::work::file_view::FileJob,
     },
     /// Reads a comparison page: its followed sides where they are now, then what differs (`compare.read-sides`).
     ReadComparison {

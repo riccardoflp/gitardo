@@ -166,6 +166,14 @@ impl Ui<'_> {
         self.request_focus(id);
     }
 
+    /// Gives the keyboard to an input box with all its text selected, once for each number: the box that finds in a
+    /// page takes it each time `Ctrl+F` is pressed, and leaves it to a click elsewhere in between.
+    pub fn focus_input_box_once(&mut self, id: WidgetId, serial: u64) {
+        if self.memory().focus_serials.insert(id, serial) != Some(serial) {
+            self.focus_input_box(id);
+        }
+    }
+
     /// Applies an event to an input box: a press places the caret or selects, a drag selects, a key edits or moves,
     /// and typed or pasted text goes in. Says whether Enter was pressed.
     fn input_box_event(

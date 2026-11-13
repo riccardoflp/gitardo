@@ -44,6 +44,8 @@ pub const OPEN_ALL_CHANGES: &str = "Open all changes in one Diff page";
 pub const FILE_HISTORY: &str = "Show the history of this file";
 /// The entry of the context menu of a file that compares it.
 pub const COMPARE_WITH: &str = "Compare with\u{2026}";
+/// The entry of the context menu of a file of a commit that opens it in the File page as the commit has it.
+pub const OPEN_AT_REVISION: &str = "Open the file at this revision";
 /// The link under a long message that shows it whole.
 pub const SHOW_MORE: &str = "Show more";
 /// The link under a long message shown whole.

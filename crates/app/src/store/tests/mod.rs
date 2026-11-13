@@ -64,6 +64,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::ReadCommitPage { .. }
             | JobKind::ReadDiff { .. }
             | JobKind::ReadMerge { .. }
+            | JobKind::ReadFile { .. }
             | JobKind::ReadComparison { .. }
             | JobKind::ReadInPlace { .. }
             | JobKind::ReadReview { .. }
@@ -168,6 +169,10 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
             result: crate::work::merge_view::MergeRead::Failed(String::from("not read in these tests")),
         },
         JobKind::ReadReview { .. } => Message::ReviewRead {
+            job,
+            result: Err(String::from("not read in these tests")),
+        },
+        JobKind::ReadFile { .. } => Message::FileRead {
             job,
             result: Err(String::from("not read in these tests")),
         },

@@ -14,6 +14,7 @@ use super::{ChangesIntent, ChangesRepository};
 use crate::conflicts::{OpenFileState, open_file_view};
 use crate::details::{CappedList, FileLayout, FileRow, FilesIntent, FilesOwner, FilesState, directory_row, file_rows};
 use crate::feature::FeatureIntent;
+use crate::file_view::{FileTarget, FileViewIntent};
 use crate::intent::Intent;
 use crate::text::changes as words;
 
@@ -245,15 +246,29 @@ fn file_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index, depth)
     intents
 }
 
-/// What opens the page `changes.open` decides on, when it is the Diff page: the File and Merge pages come later.
+/// What opens the page `changes.open` decides on, when it is the Diff page or the File page: the Merge page comes
+/// later.
 fn open_page(row: &ChangeRow, action: OpenAction, on_click: OpenOnClick) -> Option<Intent> {
     let request = model::changes::open(&OpenInput {
         file: OpenTarget::Changed(row),
         action,
         on_click,
     });
+    if let model::changes::PageRequest::File(path) = &request {
+        return Some(open_file(path));
+    }
     let target = crate::diff::changes_file(&request)?;
     Some(Intent::Diff(crate::diff::DiffIntent::Open(Box::new(target))))
+}
+
+/// What opens the File page of a file of the working tree (`file-view.page`).
+fn open_file(path: &str) -> Intent {
+    Intent::FileView(FileViewIntent::Open(FileTarget::working_tree(path)))
+}
+
+/// What saves a file with edits not saved in its File page (`file-view.save`).
+fn save_file(path: &str) -> Intent {
+    Intent::FileView(FileViewIntent::Save(path.to_owned()))
 }
 
 /// The buttons of a file, from the right, each with what it asks; those whose operations come later ask nothing and
@@ -263,7 +278,7 @@ fn open_page(row: &ChangeRow, action: OpenAction, on_click: OpenOnClick) -> Opti
 fn file_buttons(row: &ChangeRow) -> Vec<(&'static str, Icon, Option<Intent>)> {
     if row.status == FileStatus::Unsaved {
         return vec![
-            (words::SAVE, Icon::Check, None),
+            (words::SAVE, Icon::Check, Some(save_file(&row.path))),
             (words::COMPARE_WITH_SAVED, Icon::Eye, None),
         ];
     }
@@ -277,12 +292,12 @@ fn file_buttons(row: &ChangeRow) -> Vec<(&'static str, Icon, Option<Intent>)> {
         ),
     ];
     if row.is_unsaved {
-        buttons.push((words::SAVE, Icon::Check, None));
+        buttons.push((words::SAVE, Icon::Check, Some(save_file(&row.path))));
     }
     let open_changes = open_page(row, OpenAction::OpenChanges, OpenOnClick::File);
     buttons.push((words::OPEN_CHANGES, Icon::Eye, open_changes));
     if row.status != FileStatus::Changed(ChangeKind::Deleted) {
-        buttons.push((words::OPEN_FILE, Icon::File, None));
+        buttons.push((words::OPEN_FILE, Icon::File, Some(open_file(&row.path))));
     }
     buttons
 }

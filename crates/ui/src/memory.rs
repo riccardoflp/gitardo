@@ -62,6 +62,8 @@ pub(crate) struct CodeEditorState {
     pub(crate) scroll: ScrollAxis,
     /// The number of the last line its view asked to bring to the middle, so that each is brought once.
     pub(crate) revealed: Option<u64>,
+    /// The number of the last time its view asked it to take the keyboard, so that it takes it once each time.
+    pub(crate) focused: Option<u64>,
     /// Where the caret was in the last frame, to keep it in sight when it moves.
     pub(crate) head: Option<usize>,
     /// When the caret last moved, which its blink starts from.
@@ -106,6 +108,8 @@ pub struct UiMemory {
     pub(crate) lists: HashMap<WidgetId, ListState>,
     /// The editors of code.
     pub(crate) code_editors: HashMap<WidgetId, CodeEditorState>,
+    /// The number of the last time each input box was asked to take the keyboard once.
+    pub(crate) focus_serials: HashMap<WidgetId, u64>,
     /// The size of the first pane of each splitter that was moved.
     pub(crate) splitters: HashMap<WidgetId, f32>,
     /// The drag in progress of a splitter or a scroll bar.
@@ -201,6 +205,7 @@ impl UiMemory {
         let _ = self.scrolls.remove(&id);
         let _ = self.lists.remove(&id);
         let _ = self.code_editors.remove(&id);
+        let _ = self.focus_serials.remove(&id);
         let _ = self.splitters.remove(&id);
         let _ = self.pickers.remove(&id);
         let _ = self.list_searches.remove(&id);

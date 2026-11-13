@@ -74,6 +74,8 @@ pub enum Intent {
     CommitPage(CommitPageId, CommitPageIntent),
     /// Something asked of the Diff pages (`diff.page`).
     Diff(crate::diff::DiffIntent),
+    /// Something asked of the File pages.
+    FileView(crate::file_view::FileViewIntent),
     /// Something asked of a comparison page or of the comparison in the inspector (`compare.page`, `compare.in-place`).
     Compare(crate::compare::CompareIntent),
     /// An intent of the review of the conflicts.

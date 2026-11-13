@@ -58,6 +58,10 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: super::merge_view::read_merge(folder, merge, cancel),
         },
+        JobKind::ReadFile { folder, job: file } => Message::FileRead {
+            job: job.id,
+            result: super::file_view::read_file(folder, file, cancel),
+        },
         JobKind::ReadComparison { folder, target } => Message::ComparisonRead {
             job: job.id,
             result: super::compare::read_comparison(folder, target, cancel).map(Box::new),

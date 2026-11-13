@@ -103,8 +103,8 @@ fn untracked_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index): (&ui::Row, usiz
 }
 
 /// A file of the list: its status, icon and path, its lines gained and lost or **binary**, and the eye that shows its
-/// changes in the page; a click opens it in the Diff page; **Compare with…** in its context menu, which comes with the
-/// comparison (Q89).
+/// changes in the page; a click opens it in the Diff page; **Open the file at this revision** in its context menu, and
+/// **Compare with…**, which comes with the comparison (Q89).
 fn file_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index, depth): (&ui::Row, usize, usize)) -> Vec<Intent> {
     let Some(file) = page.data.detail.files.get(index) else {
         return Vec::new();
@@ -129,8 +129,31 @@ fn file_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index, depth): (&ui::Row, us
         _ => file.path.rsplit('/').next().unwrap_or_default().to_owned(),
     };
     let _ = ui.label(parts.rest(), &Label::new(&path));
-    let entries = [MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, ()).disabled())];
-    let _ = ui.context_menu(("page file menu", index), &response, &entries);
+    let at_revision = page
+        .data
+        .detail
+        .id
+        .clone()
+        .filter(|_| file.kind != model::state::ChangeKind::Deleted)
+        .map(|commit| {
+            Intent::FileView(crate::file_view::FileViewIntent::Open(crate::file_view::FileTarget {
+                path: file.path.clone(),
+                revision: Some(commit),
+                line: None,
+            }))
+        });
+    let open_at_revision = MenuItem::new(words::OPEN_AT_REVISION, true);
+    let entries = [
+        MenuEntry::Item(if at_revision.is_some() {
+            open_at_revision
+        } else {
+            open_at_revision.disabled()
+        }),
+        MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, false).disabled()),
+    ];
+    if ui.context_menu(("page file menu", index), &response, &entries) == Some(true) {
+        intents.extend(at_revision);
+    }
     if response.clicked && intents.is_empty() {
         intents.push(open_file(page, index));
     }

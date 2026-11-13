@@ -220,3 +220,17 @@
   and the filters beside them; a side, or both, chosen instead; the conflicts accepted one by one, by file or all at
   once; the result shown in the Diff page; and **Write N resolutions**, which writes them as one operation, stages
   the files left with no conflict and says what it did.
+- The File page: a file of the working tree, shown and edited in Gitardo's own editor, or a file at a revision, read
+  only and titled with its short hash. It opens from a click on a file in Changes when `changes.openOnClick` is `file`,
+  from **Open file** on a file in Changes, and from **Open the file at this revision** on a file of a commit; opening a
+  file again shows its page at the line asked. Typing, a selection, `Ctrl+Z` and `Ctrl+Y` by words, **Cut**, **Copy**
+  and `Ctrl+V`, with the line endings of the file kept; a dot in the trail while there are edits not saved, which the
+  Diff page of the file shows too; a page with edits not saved asks before closing, with **Save**, **Don't save** and
+  **Cancel**; a file changed in another program is read again when the page has no edits.
+- **Save** with `Ctrl+S` on the File page, and **Save** on a file in Changes, write the text as it is shown, asking
+  first when the file changed on disk since it was read.
+- **Find** with `Ctrl+F` on the File page: a text or a regular expression, matching case and whole words or not, every
+  match marked, `Enter`, `F3` and `Shift+F3` going from one to the next, and where the current one is among them; **Go
+  to line** with `Ctrl+G`.
+- **Open in external editor** on the File page, with the command of the setting `editor.external`, where `${file}` and
+  `${line}` are the file and the line of the cursor.

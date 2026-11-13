@@ -148,10 +148,12 @@ pub(super) fn read_file(state: &mut State, id: DiffPageId, file: usize, is_confi
     let head = state.shown_read().and_then(|read| read.state.head.commit.clone());
     let page = state.diff_pages.pages.iter().find(|page| page.id == id)?;
     let paths = page.target.files.get(file)?;
-    let version = |side: &DiffVersion| match side {
+    let version = |side: &DiffVersion, path: &str| match side {
         DiffVersion::Head => head.clone().map_or(FileVersion::Absent, FileVersion::Commit),
         DiffVersion::Index => FileVersion::Index,
-        DiffVersion::WorkingTree => FileVersion::WorkingTree { unsaved: None },
+        DiffVersion::WorkingTree => FileVersion::WorkingTree {
+            unsaved: super::file_page::unsaved_bytes(state, &page.top, path),
+        },
         DiffVersion::Commit { commit, .. } => FileVersion::Commit(commit.clone()),
         DiffVersion::Empty => FileVersion::Absent,
         DiffVersion::Base => FileVersion::Base,
@@ -166,11 +168,11 @@ pub(super) fn read_file(state: &mut State, id: DiffPageId, file: usize, is_confi
     };
     let request = DiffRequest {
         left: VersionRequest {
-            version: version(&page.target.left),
+            version: version(&page.target.left, &paths.left),
             path: paths.left.clone(),
         },
         right: VersionRequest {
-            version: version(&page.target.right),
+            version: version(&page.target.right, &paths.right),
             path: paths.right.clone(),
         },
     };
@@ -190,6 +192,35 @@ pub(super) fn read_file(state: &mut State, id: DiffPageId, file: usize, is_confi
         *running = Some(job.id);
     }
     Some(Effect::Start(job))
+}
+
+/// Reads again the files of the open pages that show a file of a working tree, with the text a File page has not
+/// saved yet (`file-view.edit`).
+pub(super) fn read_file_again(state: &mut State, top: &std::path::Path, path: &str) -> Vec<Effect> {
+    let to_read: Vec<(DiffPageId, usize)> = state
+        .diff_pages
+        .pages
+        .iter()
+        .filter(|page| page.is_open && same_folder(&page.top, top))
+        .flat_map(|page| {
+            let shows_working_tree = (
+                page.target.left == DiffVersion::WorkingTree,
+                page.target.right == DiffVersion::WorkingTree,
+            );
+            page.target
+                .files
+                .iter()
+                .enumerate()
+                .filter(move |(_, file)| {
+                    (shows_working_tree.0 && file.left == path) || (shows_working_tree.1 && file.right == path)
+                })
+                .map(move |(index, _)| (page.id, index))
+        })
+        .collect();
+    to_read
+        .into_iter()
+        .filter_map(|(id, file)| read_file(state, id, file, true))
+        .collect()
 }
 
 /// A page by its number.
@@ -341,6 +372,13 @@ pub fn page_state(state: &State, id: DiffPageId) -> Option<DiffPageState<'_>> {
         left_width: page.left_width,
         reveal: page.reveal,
         hint: page.hint,
+        is_unsaved: page.target.files.iter().any(|file| {
+            let shows = |version: &DiffVersion, path: &str| {
+                *version == DiffVersion::WorkingTree
+                    && super::file_page::unsaved_bytes(state, &page.top, path).is_some()
+            };
+            shows(&page.target.left, &file.left) || shows(&page.target.right, &file.right)
+        }),
     })
 }
 

@@ -6,3 +6,18 @@ mod save;
 
 pub use open_external::open_external;
 pub use save::{ON_DISK, OVERWRITE, save};
+
+use std::path::{Path, PathBuf};
+
+/// Where a file of the working tree is on disk, from the root of the system, in the separators of the system: git
+/// gives the folder of a repository with `/` on Windows too, and the log and the commands show the path as the system
+/// writes it.
+fn on_disk(folder: &Path, path: &str) -> PathBuf {
+    let mut absolute = folder.to_path_buf();
+    absolute.extend(path.split('/').filter(|part| !part.is_empty()));
+    if cfg!(windows) {
+        PathBuf::from(absolute.display().to_string().replace('/', "\\"))
+    } else {
+        absolute
+    }
+}

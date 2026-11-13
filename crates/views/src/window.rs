@@ -55,6 +55,8 @@ pub struct WindowState<'a> {
     pub large_diff: Option<crate::diff::LargeDiffQuestion<'a>>,
     /// The question asked before a very large file in conflict is shown (`merge-view.page`).
     pub large_merge: Option<crate::merge_view::LargeMergeQuestion<'a>>,
+    /// The question asked before closing the page of a file with edits not saved (`file-view.edit`).
+    pub close_file: Option<crate::file_view::CloseQuestion<'a>>,
 }
 
 /// What the operation running shows over the window.
@@ -149,6 +151,9 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     }
     if let Some(question) = &state.large_merge {
         intents.extend(crate::merge_view::large_merge_question_view(question, ui));
+    }
+    if let Some(question) = &state.close_file {
+        intents.extend(crate::file_view::close_question_view(question, ui));
     }
     match &state.feature {
         Some(FeatureDialog::Question(question)) => intents.extend(question_view(question, ui)),

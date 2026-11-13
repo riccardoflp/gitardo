@@ -200,12 +200,16 @@ fn markdown_has_headings_code_quotes_lists_and_links() {
 fn coloring_again_after_an_edit_matches_coloring_the_whole_text() {
     let before = "let a = 1;\nlet b = 2;\nlet c = 3;\nlet d = 4;";
     let cases = [
-        ("let a = 1;\nlet b = 2; /* open\nlet c = 3;\nlet d = 4;", (1, 1, 1)),
-        ("let a = 1;\nlet b = 2;\nlet d = 4;", (2, 1, 0)),
-        ("let a = 1;\nx\ny\nlet b = 2;\nlet c = 3;\nlet d = 4;", (1, 0, 2)),
-        ("`\nlet b = 2;\nlet c = 3;\nlet d = 4;", (0, 1, 1)),
+        (
+            "let a = 1;\nlet b = 2; /* open\nlet c = 3;\nlet d = 4;",
+            (1, 1, 1),
+            1..4,
+        ),
+        ("let a = 1;\nlet b = 2;\nlet d = 4;", (2, 1, 0), 2..2),
+        ("let a = 1;\nx\ny\nlet b = 2;\nlet c = 3;\nlet d = 4;", (1, 0, 2), 1..3),
+        ("`\nlet b = 2;\nlet c = 3;\nlet d = 4;", (0, 1, 1), 0..4),
     ];
-    for (after, (start, removed, added)) in cases {
+    for (after, (start, removed, added), lines_colored) in cases {
         let mut colored = highlight(&HighlightInput {
             path: "a.ts",
             text: before,
@@ -213,7 +217,8 @@ fn coloring_again_after_an_edit_matches_coloring_the_whole_text() {
         let lines: Vec<String> = after.split('\n').map(str::to_owned).collect();
         let line_of = |line: usize| lines.get(line).cloned().unwrap_or_default();
         let replaced = LinesReplaced { start, removed, added };
-        highlight_again((Language::of("a.ts"), &line_of), &mut colored, replaced);
+        let recolored = highlight_again((Language::of("a.ts"), &line_of), &mut colored, replaced);
+        assert_eq!(recolored, lines_colored, "{after}");
         let whole = highlight(&HighlightInput {
             path: "a.ts",
             text: after,

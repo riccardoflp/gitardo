@@ -163,9 +163,10 @@ impl ChangesData {
             Some(read) if state.pages.open.contains(&Page::Changes) => read,
             _ => return ChangesData::default(),
         };
+        let unsaved = super::file_page::unsaved_paths(state, &read.state.folder);
         let list = list(&ChangesInput {
             working_tree: &read.state.working_tree,
-            unsaved: &[],
+            unsaved: &unsaved,
         });
         let files: Vec<FileChange> = list
             .rows
