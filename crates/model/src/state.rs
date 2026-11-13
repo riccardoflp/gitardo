@@ -41,6 +41,8 @@ pub struct RepositoryState {
     pub working_tree: WorkingTree,
     /// The operation that stopped half way, if one did.
     pub operation: Option<Operation>,
+    /// Where an interactive rebase stopped to edit or to split a commit, when it did (`rebase.read-stop`).
+    pub rebase_stop: Option<crate::rebase::RebaseStop>,
 }
 
 impl RepositoryState {

@@ -142,6 +142,25 @@ pub enum Query {
     /// The commit a cherry-pick or a revert stopped on with nothing left to do (`cherry-pick.skip-empty`). The answer
     /// is [`super::Answer::EmptyStop`].
     EmptyStop,
+    /// The parents of a commit, and the line of commits from it up to `HEAD` with their messages, when it is a single
+    /// line without merges: what a rewrite makes again. The answer is [`super::Answer::Line`].
+    Line {
+        /// The commit.
+        commit: CommitId,
+    },
+    /// The whole messages of commits (`git log -1 --format=%B <hash>`). The answer is [`super::Answer::Messages`], in
+    /// the same order.
+    Messages {
+        /// The commits.
+        commits: Vec<CommitId>,
+    },
+    /// The files a commit changes, both names of one renamed
+    /// (`git diff-tree -r --no-commit-id --name-only --no-renames -z --root <hash>`). The answer is
+    /// [`super::Answer::Names`].
+    CommitFiles {
+        /// The commit.
+        commit: CommitId,
+    },
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

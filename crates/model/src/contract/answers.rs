@@ -58,6 +58,10 @@ pub enum Answer {
     /// The commit a cherry-pick or a revert stopped on with nothing left to do, when it did
     /// (`cherry-pick.skip-empty`).
     EmptyStop(Option<super::EmptyStop>),
+    /// The parents of a commit and the line from it up to `HEAD` (`Query::Line`).
+    Line(crate::rebase::LineToHead),
+    /// The whole messages of commits, in the order asked.
+    Messages(Vec<String>),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).

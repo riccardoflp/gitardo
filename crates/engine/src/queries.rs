@@ -4,7 +4,7 @@ use git::read::branch;
 use git::read::diff::{DiffRequest, FileVersion, VersionRequest, read_sides};
 use git::read::identity::{IdentityRequest, read_identity};
 use git::read::merge::{PredictedConflictsRequest, read_predicted_conflicts};
-use git::read::rebase::{PushedRequest, pushed_arguments, read_pushed};
+use git::read::rebase::{self, LineRequest, PushedRequest};
 use git::read::reflog::{ReflogRequest, read_entries};
 use git::read::remote::{RemotesRequest, read_remotes};
 use git::read::rewrite;
@@ -72,8 +72,13 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::Commits { revisions } => rewrite::read_commits(git, revisions).map(Answer::Commits),
         Query::LineAfter { commit } => rewrite::read_line_after(git, commit).map(Answer::Commits),
         Query::Message { commit } => rewrite::read_message(git, commit).map(Answer::Message),
-        Query::Pushed { commit } => read_pushed(git, &PushedRequest { commit: commit.clone() }).map(Answer::Names),
         Query::EmptyStop => rewrite::read_empty_stop(git).map(Answer::EmptyStop),
+        Query::Line { commit } => rebase::read_line(git, &LineRequest { commit: commit.clone() }).map(Answer::Line),
+        Query::Messages { commits } => rebase::read_messages(git, commits).map(Answer::Messages),
+        Query::Pushed { commit } => {
+            rebase::read_pushed(git, &PushedRequest { commit: commit.clone() }).map(Answer::Names)
+        }
+        Query::CommitFiles { commit } => rebase::read_commit_files(git, commit).map(Answer::Names),
     }
 }
 
@@ -210,9 +215,22 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::Commits { revisions } => git::command_line(&rewrite::commits_arguments(revisions)),
         Query::LineAfter { commit } => git::command_line(&rewrite::line_after_arguments(commit)),
         Query::Message { commit } => git::command_line(&rewrite::message_arguments(commit)),
-        Query::Pushed { commit } => git::command_line(&pushed_arguments(&PushedRequest { commit: commit.clone() })),
         Query::EmptyStop => String::from(
             "git rev-parse -q --verify CHERRY_PICK_HEAD (or REVERT_HEAD), git ls-files -u -z, git diff --quiet HEAD --",
         ),
+        Query::Line { commit } => format!(
+            "{}, {}, git log -z --topo-order --format=%H%x00%P%x00%B HEAD --not {commit}^@ --",
+            git::command_line(&rebase::parents_arguments(commit)),
+            git::command_line(&branch::ancestor_arguments(commit.as_str(), "HEAD"))
+        ),
+        Query::Messages { commits } => commits
+            .iter()
+            .map(|commit| git::command_line(&rebase::message_arguments(commit)))
+            .collect::<Vec<_>>()
+            .join(", "),
+        Query::Pushed { commit } => {
+            git::command_line(&rebase::pushed_arguments(&PushedRequest { commit: commit.clone() }))
+        }
+        Query::CommitFiles { commit } => git::command_line(&rebase::commit_files_arguments(commit)),
     }
 }

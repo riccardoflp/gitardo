@@ -77,6 +77,8 @@ pub enum Validation {
         /// The message the commit has.
         old: String,
     },
+    /// Anything but nothing, spaces left out: what is said while it is empty.
+    Required(Text),
 }
 
 impl Validation {
@@ -98,6 +100,7 @@ impl Validation {
                     None
                 }
             }
+            Validation::Required(message) => text.trim().is_empty().then(|| message.clone()),
         }
     }
 }

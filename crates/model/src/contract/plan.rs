@@ -183,6 +183,11 @@ pub enum FollowUp {
     /// Put the message git prepared for the next commit (`SQUASH_MSG` in the git folder) in the commit box, when the
     /// box is empty.
     PreparedMessage,
+    /// Put this message in the commit box, as the message of the next commit.
+    FillCommitMessage(String),
+    /// Delete this folder of the files of an interactive rebase once the plan ran, unless the rebase stopped, whose
+    /// steps still to run read them: the engine looks for `rebase-merge` in the git folder of the worktree.
+    DeleteWhenRebaseEnded(std::path::PathBuf),
 }
 
 #[cfg(test)]

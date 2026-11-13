@@ -170,6 +170,10 @@ impl Git {
             .current_dir(&self.directory)
             // Gitardo has no terminal to ask in: git asks the credential helper, or fails.
             .env("GIT_TERMINAL_PROMPT", "0")
+            // The editors the steps name with `-c core.editor=…` and `-c sequence.editor=…` (rule R9.4) would give way
+            // to these, which git puts before its configuration.
+            .env_remove("GIT_EDITOR")
+            .env_remove("GIT_SEQUENCE_EDITOR")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());

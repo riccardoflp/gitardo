@@ -51,9 +51,9 @@ pub struct StateRequest {
 /// the remotes, who commits are made as, where `HEAD` has been, what is not committed here, and the operation that
 /// stopped half way. The reads run at once, each in a thread of its own, and none takes a lock.
 ///
-/// The submodules (`submodule.read-list`), the bisect in progress (`bisect.start`), why a rebase stopped
-/// (`conflicts.continue-operation`, `split.commit`) and what `conflicts.autoResolve` could resolve
-/// (`conflicts.resolve-by-rules`) are read by their own cards.
+/// While a rebase is under way, where it stopped to edit or to split a commit is read too (`rebase.read-stop`). The
+/// submodules (`submodule.read-list`), the bisect in progress (`bisect.start`) and what `conflicts.autoResolve` could
+/// resolve (`conflicts.resolve-by-rules`) are read by their own cards.
 ///
 /// Feature: repo.read-state
 ///
@@ -64,7 +64,18 @@ pub fn read_state(git: &Git, request: &StateRequest) -> Result<RepositoryState, 
     let location = location::read_location(&git.in_directory(&request.folder))?;
     let git = git.in_directory(&location.folder);
     let parts = read_parts(&git, &location)?;
-    Ok(assemble(location, parts))
+    let rebase_stop = if parts.operation == Some(Operation::Rebase) {
+        let request = crate::read::rebase::StopRequest {
+            git_folder: location.git_folder.clone(),
+        };
+        crate::read::rebase::read_stop(&git, &request)?
+    } else {
+        None
+    };
+    Ok(RepositoryState {
+        rebase_stop,
+        ..assemble(location, parts)
+    })
 }
 
 /// What each read found.
@@ -145,6 +156,7 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
         reflog_subjects: parts.reflog_subjects,
         working_tree: parts.working_tree,
         operation: parts.operation,
+        rebase_stop: None,
     }
 }
 

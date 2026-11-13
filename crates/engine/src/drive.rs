@@ -8,7 +8,7 @@ use git::read::repo::{StateRequest, read_state};
 use git::{CancelToken, Git};
 use model::contract::{
     Answer, Answers, Context, FeatureId, FollowUp, Operation, Outcome, Plan, Query, Question, QuestionKind, Refusal,
-    Text, Undo,
+    Step, Text, Undo,
 };
 use model::state::RepositoryState;
 
@@ -202,10 +202,12 @@ impl Engine {
                     if matches!(&plan.undo, Undo::Journal(record) if record.holds_after_a_stop()) {
                         let _state_after = self.after_plan(&plan, context);
                     }
+                    self.delete_rebase_files(&plan.on_failure, context);
                     return Err(EngineError::Step(failure));
                 }
             },
         };
+        self.delete_rebase_files(&plan.after, context);
         let state_after = self.after_plan(&plan, context);
         Ok(Finished::Ran {
             plan,
@@ -247,6 +249,34 @@ impl Engine {
             }
         }
         Err(failure)
+    }
+
+    /// Deletes the folders of the files of an interactive rebase that the follow-ups name, once no rebase is under way
+    /// in the worktree: a rebase that stopped still reads them. The delete is logged as a step; one that fails leaves
+    /// the folder, which the next rebase writes over.
+    fn delete_rebase_files(&mut self, follow_ups: &[FollowUp], context: &Context) {
+        if context.repository.git_folder.join("rebase-merge").exists() {
+            return;
+        }
+        let steps: Vec<Step> = follow_ups
+            .iter()
+            .filter_map(|follow_up| match follow_up {
+                FollowUp::DeleteWhenRebaseEnded(folder) if folder.exists() => {
+                    Some(Step::Delete { path: folder.clone() })
+                }
+                _ => None, // Any other follow-up is for the window.
+            })
+            .collect();
+        if !steps.is_empty() {
+            // The rebase has run already, and its files are only left over: a failure to delete them is in the log.
+            let _ = StepRunner {
+                git: &self.git,
+                log: &mut self.log,
+                clock: self.clock.as_ref(),
+                cancel: &self.cancel,
+            }
+            .run(&steps);
+        }
     }
 
     /// The newest entry of the journal, when it still holds for the state the feature was given.

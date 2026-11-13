@@ -12,6 +12,13 @@ pub fn state(out: &mut dyn Write, state: &RepositoryState) -> io::Result<()> {
     if let Some(operation) = state.operation {
         writeln!(out, "Operation   {} in progress", operation_name(operation))?;
     }
+    if let Some(stop) = &state.rebase_stop {
+        let why = match stop.kind {
+            model::rebase::StopKind::Edit => "edit",
+            model::rebase::StopKind::Split => "split",
+        };
+        writeln!(out, "Stopped     to {why} {} \"{}\"", stop.commit.short(), stop.subject)?;
+    }
     writeln!(out, "Changes     {}", changes(&state.working_tree))?;
     writeln!(out, "Branches    {}", state.branches.len())?;
     for branch in &state.branches {

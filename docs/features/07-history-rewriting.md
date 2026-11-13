@@ -570,10 +570,9 @@ copy the prepared one over it, since no editor can be typed into.
   `message.edit`, `squash.commits`, `squash.into-previous` and `split.commit` build for an older commit.
 - **Offered when**: as `rebase.todo-page`.
 - **Plan**:
-  1. `write <temp>/gitardo-rebase-<id>/message-<n>.txt` for each reworded commit, in a new folder of the system's
-     temporary folder;
-  2. `write <temp>/gitardo-rebase-<id>/todo`, the list built by `rebase.build-todo-list`;
-  3. `git -c 'sequence.editor=cp "<temp>/gitardo-rebase-<id>/todo"' -c core.editor=true rebase -i [--autostash] <base>`:
+  1. `write <git directory of the worktree>/gitardo-rebase/message-<n>.txt` for each reworded commit;
+  2. `write <git directory of the worktree>/gitardo-rebase/todo`, the list built by `rebase.build-todo-list`;
+  3. `git -c 'sequence.editor=cp "<folder>/todo"' -c core.editor=true rebase -i [--autostash] <base>`:
      the value of `sequence.editor` is `cp "<path of the todo file>"`, quotes included, so that git's own todo list is
      replaced by the prepared one. `<base>` is the first parent of the oldest commit of the list, or `--root` when the
      oldest has none. `core.editor=true` keeps the messages git prepares for squashes. `--autostash` is added by the
@@ -582,7 +581,7 @@ copy the prepared one over it, since no editor can be typed into.
   list:* (or *after the root*) and the todo list. The title is *Interactive rebase of `<branch>`*.
 - **Undo**: by the reflog of the branch (`undo.last`): the branch goes back to where it was before the rebase.
 - **After**: when the rebase ended (there is no `rebase-merge` folder in the git directory of the worktree), the
-  temporary folder is deleted. When it stopped, on a conflict or to edit a commit, the folder stays, since the `exec`
+  `gitardo-rebase` folder is deleted, and so is it after the plan fails. When it stopped, on a conflict or to edit a commit, the folder stays, since the `exec`
   lines still to run read the message files. A stop to edit shows the banner of `rebase.edit-stop`.
 - **Refuses**: as `rebase.build-todo-list`; when git refuses to start (changes not committed and no `--autostash`),
   git's words are shown.
@@ -597,7 +596,7 @@ Acceptance:
 - [ ] **Squash** on a commit melds it into the one below, with both messages; **Fixup** with the message of the one below.
 - [ ] A list whose oldest commit is the root runs `git rebase -i --root`.
 - [ ] The confirmation shows the todo list before anything runs.
-- [ ] After a clean rebase the temporary folder is gone; after a stop it is there.
+- [ ] After a clean rebase the `gitardo-rebase` folder is gone; after a stop it is there.
 
 ### `rebase.read-stop` — Where an interactive rebase stopped to change a commit
 
@@ -648,7 +647,8 @@ What **Continue** does here:
 
 - With staged changes, or changes to tracked files not staged, it refuses: *Some changes are not committed: amend the
   commit with them, commit them, or stash them, then continue.* Untracked files do not count.
-- Otherwise it runs `git -c core.editor=true rebase --continue`, which works as well when nothing was changed.
+- Otherwise it runs `git -c core.editor=true rebase --continue`, which works as well when nothing was changed. This is
+  the operation `features::rebase::continue_edit(context, answers) -> Outcome`, registered as `rebase.edit-stop`.
 
 Acceptance:
 
@@ -676,7 +676,9 @@ after it again.
 - **Reads**: `rebase.read-pushed`. For an older commit, the line after it up to `HEAD`:
   `git merge-base --is-ancestor <hash> HEAD`, then `git rev-list --topo-order --parents <hash>..HEAD`, which must be one
   line with no merge, each the parent of the one before, down to `<hash>`, which must not be a merge either; and
-  `git rev-parse --verify --quiet <hash>^` for the base.
+  `git rev-parse --verify --quiet <hash>^` for the base. (`squash.commits`, `squash.into-previous` and `split.commit`
+  read the same with `git rev-list --parents -n 1 <hash> --`, `git merge-base --is-ancestor <hash> HEAD` and
+  `git log -z --topo-order --format=%H%x00%P%x00%B HEAD --not <parents of hash> --`, which gives the messages too.)
 - **Plan**:
   - the commit checked out: `git commit --amend --only --allow-empty -F -`, with the message and a line break on
     standard input. `--only` leaves out what is staged.
@@ -735,13 +737,13 @@ Makes one commit of several that follow one another before `HEAD`, with the chan
 - **Kind**: Operation
 - **Function**: `features::squash::commits(context, answers) -> Outcome`
 - **Entry points**: **Squash into one** in the selection bar; **Squash N commits into one…** in the context menu of the
-  selection.
+  selection; `gitardo-cli run squash.commits commits:<hash>,<hash>…`. Its target is the commits selected.
 - **Offered when**: two commits or more are selected; the oldest of them has a line to `HEAD`
   (`rebase.find-line-before-head`) and the others are the commits right after it on that line, with none missing; and
   no merge, rebase, cherry-pick, revert, patch or bisect is under way.
-- **Reads**: the line after the oldest up to `HEAD`, as `message.edit` reads it; the message of each commit squashed,
-  `git log -1 --format=%B <hash>`; `git rev-parse --verify --quiet <oldest>^` for the base; `rebase.read-pushed` for
-  the oldest.
+- **Reads**: the line after the oldest up to `HEAD` with the message of each commit, as `message.edit` says; the
+  oldest is not known before it is read, so it is read again from the commit it found below the one asked about until
+  the line holds every commit selected; `rebase.read-pushed` for the oldest.
 - **Asks**: a box titled *Squash N commits*, *Subject of the commit they become. What their messages say goes under
   it.*, filled with the subject of the oldest; an empty subject is refused while typing, *Enter a subject*.
 - **Plan**: `rebase.interactive` with `--autostash` and the steps: `reword <oldest>` with the message of
@@ -845,7 +847,8 @@ or commit what is left of them as one more commit.
 - **Reads**: the files of the commit split, both names of a renamed one:
   `git diff-tree -r --no-commit-id --name-only --no-renames -z --root <hash>`; the changes not committed. The files of the
   commit still changed are those, staged or not, whose path or old path is among them; the other changes are the rest of
-  the staged and unstaged ones, untracked files left out.
+  the staged and unstaged ones, untracked files left out. A file the commit added is untracked once its changes are
+  taken out of it: it counts among the files of the commit still changed.
 - **Asks**: when files of the commit are still changed, a dialog *"`<subject>`" is not all committed yet: 1 file of it
   is still changed.* (or *N files of it are*), with the detail *Commit what is left as one more commit, with the message
   the commit had, and continue? Or go back to committing it yourself.*, and **Commit what is left** (the default) and

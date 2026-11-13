@@ -12,15 +12,19 @@ pub mod commit;
 pub mod commit_page;
 pub mod commits;
 pub mod diff;
+pub mod fixup;
 mod history;
 pub mod identity;
 pub mod merge;
 pub mod message;
+pub mod rebase;
 pub mod remote;
 pub mod reset;
 pub mod revert;
 pub mod search;
 pub mod selection;
+pub mod split;
+pub mod squash;
 pub mod stash;
 pub mod sync;
 pub mod tag;
@@ -32,7 +36,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 65] = [
+pub const OPERATIONS: [(FeatureId, Operation); 74] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -104,6 +108,16 @@ pub const OPERATIONS: [(FeatureId, Operation); 65] = [
     (FeatureId("reset.to-commit"), reset::to_commit),
     (FeatureId("revert.commit"), revert::commit),
     (FeatureId("selection.cherry-pick"), selection::cherry_pick),
+    // Rebase and rewriting.
+    (FeatureId("rebase.onto"), rebase::onto),
+    (FeatureId("rebase.branch-onto"), rebase::branch_onto),
+    (FeatureId("rebase.interactive"), rebase::interactive),
+    (FeatureId("rebase.edit-stop"), rebase::continue_edit),
+    (FeatureId("squash.commits"), squash::commits),
+    (FeatureId("squash.into-previous"), squash::into_previous),
+    (FeatureId("split.commit"), split::commit),
+    (FeatureId("split.continue"), split::continue_split),
+    (FeatureId("fixup.commit"), fixup::commit),
 ];
 
 /// The operation of an identifier, when it is built.

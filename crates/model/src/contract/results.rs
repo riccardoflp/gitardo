@@ -3,6 +3,7 @@
 use super::{Answer, AnswerKey, Answers};
 use crate::CommitId;
 use crate::commit::Commit;
+use crate::rebase::LineToHead;
 use crate::remote::{Overwritten, Remote};
 use crate::stash::StashReading;
 use crate::state::Operation;
@@ -89,6 +90,24 @@ impl Answers {
         match self.get(key)? {
             Answer::EmptyStop(stop) => Some(stop.as_ref()),
             _ => None, // Any other kind of answer is no stop.
+        }
+    }
+
+    /// The line of a commit up to `HEAD`, read under a key.
+    #[must_use]
+    pub fn line(&self, key: AnswerKey) -> Option<&LineToHead> {
+        match self.get(key)? {
+            Answer::Line(line) => Some(line),
+            _ => None, // Any other kind of answer is no line.
+        }
+    }
+
+    /// The messages read under a key.
+    #[must_use]
+    pub fn messages(&self, key: AnswerKey) -> Option<&[String]> {
+        match self.get(key)? {
+            Answer::Messages(messages) => Some(messages),
+            _ => None, // Any other kind of answer is no messages.
         }
     }
 }

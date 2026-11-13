@@ -123,7 +123,7 @@ fn parse_target(text: &str) -> Result<Target, String> {
         "commits" => name
             .split(',')
             .map(|hash| CommitId::parse(hash).ok_or_else(|| format!("{hash} is not a full commit hash.")))
-            .collect::<Result<_, _>>()
+            .collect::<Result<Vec<_>, _>>()
             .map(Target::Commits),
         "branch" => Ok(Target::Branch(name.to_owned())),
         "remote-branch" => Ok(Target::RemoteBranch(name.to_owned())),

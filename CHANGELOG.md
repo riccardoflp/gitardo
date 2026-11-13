@@ -153,3 +153,9 @@
   several commits of the timeline; a bar over the commits counts them, with **Cherry-pick onto `<branch>`** and **Clear
   selection**, and their menu has **Cherry-pick N commits onto `<branch>`** and **Copy hashes**. After a squash merge,
   an empty message of the draft starts from the one git prepared, and Undo takes the squash merge back.
+- Rebase and rewriting from `gitardo-cli`: rebase the current branch onto a commit or a branch, or another branch onto
+  a commit; an interactive rebase of a todo list that picks, rewords, edits, squashes, fixes up, drops and reorders the
+  commits up to `HEAD`; squash several commits into one, or a commit into the one before it, under a subject asked for;
+  split a commit into its changes, unstaged, and continue the split; add the changes to an earlier commit as a fixup;
+  and continue a rebase stopped to edit a commit. Each asks first, saying when a commit is pushed already, sets aside
+  what is not committed where it can, and is taken back by Undo. `gitardo-cli show` says where a rebase stopped.

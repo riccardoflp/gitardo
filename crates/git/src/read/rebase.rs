@@ -1,6 +1,8 @@
 //! What rewriting commits needs to know: where a commit was pushed, and where an interactive rebase stopped to change
 //! a commit.
 
+mod line;
+
 use std::ffi::OsString;
 use std::fs;
 use std::path::PathBuf;
@@ -10,6 +12,11 @@ use model::rebase::{RebaseStop, StopKind};
 
 use crate::read::fields::{arguments, commit_id};
 use crate::{Git, GitError};
+
+pub use line::{
+    LineRequest, commit_files_arguments, line_arguments, message_arguments, parents_arguments, parse_commit_files,
+    parse_line, parse_parents, read_commit_files, read_line, read_messages,
+};
 
 /// The commit whose remote branches to read.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -938,3 +938,27 @@ the reading given until it is answered:
   `<name>` into `<current>`* with *(no fast-forward)*, *(fast-forward only)* or *(squash)*, *Cherry-pick `<short>`
   onto `<current>`*, *Revert `<short>`*, *Reset `<current>` to `<short>`*, *Skip `<short>`*, and *Cherry-pick N commits
   onto `<current>`*. Are they right?
+- **Q-F1** — The files of an interactive rebase, the todo list and the new messages, are written in
+  `gitardo-rebase` in the git directory of the worktree, not in a new folder of the system's temporary folder: the
+  `exec` lines of a stopped rebase read them while it is stopped, maybe after the window was closed and opened again,
+  and a folder of the repository is found again and deleted when the rebase ends, by any later plan. The plan says so
+  with `FollowUp::DeleteWhenRebaseEnded`, which the engine runs after the plan, and after a plan that fails. Is that
+  right?
+- **Q-F2** — **Continue** of the banner of `rebase.edit-stop` is the operation `features::rebase::continue_edit`,
+  registered under the identifier of its card, as `split.continue` is its own. `conflicts.continue-operation` (M6)
+  should hand over to it, and to `split.continue`, while `rebase.read-stop` gives a stop. Is that how it should be?
+- **Q-F3** — `split.continue` counts a file the commit split added among the files of it still changed, though it is
+  untracked after `git reset --mixed HEAD~`: otherwise **Continue** would go on and leave that file out of the branch.
+  Is that right?
+- **Q-F4** — Several commits selected are a target of their own, `Target::Commits`, oldest or newest first as they
+  were clicked; `squash.commits` runs on it, and `gitardo-cli` names it `commits:<hash>,<hash>…`. Since the oldest is
+  not known before the line is read, the squash reads the line from the commit below each one it finds, until the line
+  holds them all. Is that right?
+- **Q-F5** — The reads before a rewrite are `git rev-list --parents -n 1`, `git merge-base --is-ancestor` and one
+  `git log -z --topo-order` of the commits of `HEAD` that the parents of the commit lack, which gives their messages
+  too, where `message.edit` names `git rev-list --topo-order --parents <hash>..HEAD` and `git rev-parse <hash>^`. They
+  give the same line. Should `message.edit` read it the same way?
+- **Q-F6** — `split.commit`, `squash.commits` and `squash.into-previous` say what the window does after them with
+  `FollowUp::FillCommitMessage` (the message of the draft) and `FollowUp::SelectBeforeHead` (the commit as many before
+  `HEAD`); `gitardo-cli` prints them. A rebase run from `gitardo-cli` and `gitardo` no longer opens an editor git was
+  told of in `GIT_EDITOR` or `GIT_SEQUENCE_EDITOR`, which would wait for no one. Are these right?
