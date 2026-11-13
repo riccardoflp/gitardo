@@ -8,6 +8,7 @@
 //! The page is a list of rows of one height, a line of code, with the columns put level in each row, so that they
 //! scroll together and only the rows in sight are drawn.
 
+mod at_line;
 mod bar;
 mod columns;
 mod data;
@@ -15,13 +16,14 @@ mod gutter;
 mod question;
 mod rows;
 
-use model::merge_view::{Choice, MergeLayout};
+use model::merge_view::{Choice, Column, MergeLayout};
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{AccessRole, Button, List, Reveal, RevealPlace, SelectionMode, Steering, Ui};
 
 use crate::intent::Intent;
 use crate::text::merge_view as words;
 
+pub use at_line::open_at_line_view;
 pub use bar::{accept_proposals_view, accept_simple_view, navigate_view, show_base_view};
 pub use data::{MergeText, Offers, TextLines};
 pub use gutter::{GutterSide, TakeSideState, take_side_view};
@@ -59,6 +61,8 @@ pub struct MergePageState<'a> {
     pub current: Option<usize>,
     /// A row to bring to the middle, once for each number.
     pub reveal: Option<(u64, usize)>,
+    /// The line the cursor is on: its column and its place in it, from 0.
+    pub cursor: Option<(Column, usize)>,
 }
 
 /// Something asked of the Merge pages.
@@ -98,6 +102,10 @@ pub enum MergePageIntent {
     Redo,
     /// **Mark as resolved**.
     MarkResolved,
+    /// A click on a line: the cursor is put on it, by its column and its place in it, from 0.
+    Cursor(Column, usize),
+    /// `F4`, or **Jump to source** on a line: the File page at the line of the result it stands for.
+    OpenAtLine(Column, usize),
 }
 
 /// The Merge page, over the rectangle its caller clipped it to: its bar, the labels of its columns, its rows, and
@@ -124,6 +132,7 @@ pub fn page_view(state: &MergePageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         }
         intents.extend(mark_resolved(state, ui, (bottom, &columns)));
         intents.extend(keys(state, ui));
+        intents.extend(open_at_line_view(state, ui));
     });
     intents
 }

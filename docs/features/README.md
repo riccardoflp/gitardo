@@ -508,9 +508,9 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`merge-view.accept-proposals`](17-diff-and-merge-views.md#merge-viewaccept-proposals--accept-the-proposals) | Accept the proposals | View | Specified |
 | [`merge-view.show-base`](17-diff-and-merge-views.md#merge-viewshow-base--show-the-base) | Show the base | View | Built |
 | [`merge-view.navigate`](17-diff-and-merge-views.md#merge-viewnavigate--changes-and-conflicts-left) | Changes and conflicts left | View | Built |
-| [`merge-view.open-at-line`](17-diff-and-merge-views.md#merge-viewopen-at-line--open-the-file-at-this-line) | Open the file at this line | View | Specified |
+| [`merge-view.open-at-line`](17-diff-and-merge-views.md#merge-viewopen-at-line--open-the-file-at-this-line) | Open the file at this line | View | Built |
 | [`merge-view.mark-resolved`](17-diff-and-merge-views.md#merge-viewmark-resolved--mark-as-resolved) | Mark as resolved | Operation | Built |
-| [`merge-view.close`](17-diff-and-merge-views.md#merge-viewclose--closing-with-unsaved-changes) | Closing with unsaved changes | View | Specified |
+| [`merge-view.close`](17-diff-and-merge-views.md#merge-viewclose--closing-with-unsaved-changes) | Closing with unsaved changes | View | Built |
 | [`file-view.page`](17-diff-and-merge-views.md#file-viewpage--the-file-page) | The File page | View | Built |
 | [`file-view.read-revision`](17-diff-and-merge-views.md#file-viewread-revision--a-file-at-a-revision) | A file at a revision | Read | Built |
 | [`file-view.edit`](17-diff-and-merge-views.md#file-viewedit--editing-a-file) | Editing a file | View | Built |

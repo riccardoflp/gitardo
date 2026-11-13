@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use model::conflicts::{SideNamesInput, side_names};
-use model::merge_view::{ColumnLengths, MergeLayout, merge_rows};
+use model::merge_view::{Column, ColumnLengths, MergeLayout, merge_rows};
 use views::Notice;
 use views::merge_view::{MergeIntent, MergeLabels, MergePageId, MergePageState, MergeText};
 use views::page::Page;
@@ -83,6 +83,8 @@ pub struct MergePage {
     pub reveal: Option<(u64, usize)>,
     /// The line of the result to go to once the regions are known, from 0.
     pub pending_line: Option<usize>,
+    /// The line the cursor is on: its column and its place in it, from 0.
+    pub cursor: Option<(Column, usize)>,
     /// The read of the repository it was last read against.
     pub read_generation: u64,
 }
@@ -148,6 +150,7 @@ pub fn open(state: &mut State, path: String) -> Vec<Effect> {
         current: None,
         reveal: None,
         pending_line: None,
+        cursor: None,
         read_generation: generation,
     });
     start_read(state, id, Reading::FromDisk).into_iter().collect()
@@ -355,14 +358,15 @@ pub fn prune(state: &mut State) -> Vec<Effect> {
         .into_iter()
         .partition(|page| !page.is_open || open.contains(&Page::Merge(page.id)));
     state.merge_pages.pages = kept;
-    closed
-        .into_iter()
-        .filter_map(|page| page.job)
-        .map(|job| {
+    let mut effects = Vec::new();
+    for page in closed {
+        if let Some(job) = page.job {
             let _cancelled = state.jobs.remove(&job);
-            Effect::Cancel(job)
-        })
-        .collect()
+            effects.push(Effect::Cancel(job));
+        }
+        effects.extend(lines::closed(state, &page));
+    }
+    effects
 }
 
 /// Reads again the open pages of the repository shown once it was read again since they were: the file on disk, or
@@ -406,6 +410,7 @@ pub fn page_state(state: &State, id: MergePageId) -> Option<(MergePageState<'_>,
         is_base_shown: state.persisted.merge_shows_base,
         current: page.current,
         reveal: page.reveal,
+        cursor: page.cursor,
     };
     Some((shown, &page.title))
 }

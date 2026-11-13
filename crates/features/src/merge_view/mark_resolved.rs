@@ -1,8 +1,5 @@
 //! `merge-view.mark-resolved`: **Mark as resolved** at the bottom of the result of a Merge page.
 
-use std::ffi::OsString;
-
-use model::changes::pathspec;
 use model::contract::{
     AnswerKey, Answers, Context, Danger, FollowUp, Outcome, Plan, Question, QuestionKind, Refusal, Step, Target, Text,
     Undo,
@@ -41,8 +38,7 @@ pub fn mark_resolved(context: &Context, answers: &Answers) -> Outcome {
             contents: contents.clone(),
         });
     }
-    let arguments = vec![OsString::from("add"), OsString::from("--"), pathspec(&resolution.path)];
-    steps.push(Step::git(folder, arguments));
+    steps.push(crate::conflicts::staging(folder, &resolution.path));
     Outcome::Run(Plan {
         title: Text::from(format!("Mark {} as resolved", resolution.path)),
         steps,

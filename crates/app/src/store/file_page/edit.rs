@@ -78,7 +78,7 @@ pub fn reduce_page(state: &mut State, id: FilePageId, intent: FilePageIntent) ->
 
 /// Does what the keys and the pointer asked of the text of a page: the colors of its code and its matches follow, and
 /// the Diff pages of the file are read again with the text not saved.
-fn edit(state: &mut State, id: FilePageId, commands: &[Command]) -> Vec<Effect> {
+pub(super) fn edit(state: &mut State, id: FilePageId, commands: &[Command]) -> Vec<Effect> {
     let Some(page) = page_mut(state, id) else {
         return Vec::new();
     };

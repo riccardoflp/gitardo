@@ -256,3 +256,6 @@
   changes** and **Delete it** take a side of a file deleted on one side, and **Undo** and **Continue the merge** in the
   report put the conflicts back and go on with the merge. A file both sides added opens in the File page, with git's
   markers in it.
+- On the Merge page a click on a line puts the cursor on it, and `F4` or **Jump to source** in its context menu opens
+  the file in the File page at the line of the result it stands for. Closing a Merge page with choices not saved
+  shows them in the File page, not saved, so that they are not lost.

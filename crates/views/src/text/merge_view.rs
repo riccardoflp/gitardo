@@ -89,6 +89,10 @@ pub fn accept_simple(count: usize) -> String {
     format!("Accept {changes} that need no choice: of one side, or the same on both")
 }
 
+/// The entry of the context menu of a line that opens the file at the line of the result it stands for
+/// (`merge-view.open-at-line`).
+pub const JUMP_TO_SOURCE: &str = "Jump to source";
+
 /// The tooltip of the sparkle: **Accept what is proposed for the 2 conflicts, by the rules**.
 #[must_use]
 pub fn accept_proposals(count: usize) -> String {

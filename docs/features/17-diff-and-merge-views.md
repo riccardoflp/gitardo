@@ -737,18 +737,21 @@ Opens the file in the File page at the line of the result the cursor stands for.
 
 - **Kind**: View
 - **Function**: `views::merge_view::open_at_line_view(state, ui) -> Vec<Intent>`
-- **Entry points**: `F4` in any column; **Jump to source** in the context menu.
+- **Entry points**: `F4` in any column; **Jump to source** in the context menu of a line.
 - **Uses**: `file-view.page`.
 
+- A click on a line puts the cursor on it, marked. With no cursor, `F4` takes the first line of the region gone to,
+  or the first line of the file.
+- When the result has choices not saved, the File page holds them, not saved, as one edit that `Ctrl+Z` takes back.
 - In the result, the line is the cursor's. In a side or the base, a line before a region moves by as many lines as the
   regions before it grew or shrank in the result; a line inside a region goes to the first line of the region in the
   result (for a conflict still marked, the first line of that side's part).
 
 Acceptance:
 
-- [ ] `F4` on line 40 of the current side, below a region that has 2 more lines in the result, opens the File page at
+- [x] `F4` on line 40 of the current side, below a region that has 2 more lines in the result, opens the File page at
       line 42.
-- [ ] `F4` inside the incoming side of a marked conflict opens the File page at the first line after `=======`.
+- [x] `F4` inside the incoming side of a marked conflict opens the File page at the first line after `=======`.
 
 ### `merge-view.mark-resolved` — Mark as resolved
 
@@ -779,18 +782,19 @@ Acceptance:
 Closing a Merge page never loses what was chosen or typed in it.
 
 - **Kind**: View
-- **Function**: `views::merge_view::close_view(state, ui) -> Vec<Intent>`
+- **Function**: `app::store::merge_page::lines::closed(state, page) -> Vec<Effect>`
 - **Entry points**: closing a Merge page.
 - **Uses**: `file-view.page`.
 
 - When the result has changes that are not saved, the file is shown in a File page with them, in the same place, so
-  that they are not forgotten.
-- Closed by **Mark as resolved**, nothing is shown in its place.
+  that they are not forgotten: at the line of the cursor, or else of the region gone to, or else at the first line.
+  They are one edit there, which `Ctrl+Z` takes back to the file as it is on disk.
+- Closed by **Mark as resolved**, or because its file is no longer in conflict, nothing is shown in its place.
 
 Acceptance:
 
-- [ ] Choosing **→** on a conflict and closing the page opens the File page of the file, unsaved, with the choice in it.
-- [ ] Closing a page with nothing unsaved opens nothing.
+- [x] Choosing **→** on a conflict and closing the page opens the File page of the file, unsaved, with the choice in it.
+- [x] Closing a page with nothing unsaved opens nothing.
 
 ### `file-view.page` — The File page
 

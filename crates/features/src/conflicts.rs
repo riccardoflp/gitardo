@@ -14,6 +14,7 @@ mod take_side;
 pub use abort_operation::abort_operation;
 pub use continue_operation::continue_operation;
 pub use mark_resolved::mark_resolved;
+pub(crate) use mark_resolved::staging;
 pub use resolve_automatically::{AGAIN, RESOLVE, TEXTS, resolve_automatically};
 pub use restore::{JOURNAL, restore};
 pub use rules::{FileResolution, count_by_rules, resolve_files};

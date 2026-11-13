@@ -28,6 +28,13 @@ pub fn reduce_page(state: &mut State, id: MergePageId, intent: MergePageIntent) 
         MergePageIntent::Undo => back_or_again(state, id, true),
         MergePageIntent::Redo => back_or_again(state, id, false),
         MergePageIntent::MarkResolved => mark_resolved(state, id),
+        MergePageIntent::Cursor(column, line) => {
+            if let Some(page) = page_mut(state, id) {
+                page.cursor = Some((column, line));
+            }
+            Vec::new()
+        }
+        MergePageIntent::OpenAtLine(column, line) => super::lines::open_file_at(state, id, (column, line)),
     }
 }
 

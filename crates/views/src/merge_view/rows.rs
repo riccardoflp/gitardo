@@ -4,7 +4,7 @@
 
 use std::ops::Range;
 
-use model::merge_view::{MergeRow, Region, RegionKind};
+use model::merge_view::{Column, MergeRow, Region, RegionKind};
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{Color, Label, Point, Rect, TextKind, TextRun, Theme, Tone, Ui};
 
@@ -103,7 +103,7 @@ pub(crate) fn row(
     let rect = row.rect;
     let across = |column: Rect| Rect::new(column.x, rect.y, column.width, rect.height);
     cells(ui, (text, merge_row, region.map(|(_, region)| region)), (rect, columns));
-    let mut intents = Vec::new();
+    let mut intents = lines(ui, (state, merge_row), (rect, columns));
     if let Some((place, region)) = region {
         if let Some((_, base_gutter)) = columns.base {
             band(ui, across(base_gutter), region);
@@ -132,6 +132,29 @@ pub(crate) fn row(
         }
     }
     intents
+}
+
+/// The lines of a row, each where its column is: a click puts the cursor on one, its context menu opens the file at
+/// it (`merge-view.open-at-line`).
+fn lines(
+    ui: &mut Ui<'_>,
+    (state, row): (&MergePageState<'_>, &MergeRow),
+    (rect, columns): (Rect, &Columns),
+) -> Vec<Intent> {
+    let across = |column: Rect| Rect::new(column.x, rect.y, column.width, rect.height);
+    let mut placed = vec![
+        (Column::Current, row.current, columns.current),
+        (Column::Result, row.result, columns.result),
+        (Column::Incoming, row.incoming, columns.incoming),
+    ];
+    if let Some((base, _)) = columns.base {
+        placed.push((Column::Base, row.base, base));
+    }
+    placed
+        .into_iter()
+        .filter_map(|(column, line, cell)| line.map(|line| (across(cell), column, line)))
+        .flat_map(|at| super::at_line::line_cell(ui, state, at))
+        .collect()
 }
 
 /// The cells of a row, one for each column shown.

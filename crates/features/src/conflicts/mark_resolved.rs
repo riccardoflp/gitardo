@@ -19,15 +19,18 @@ pub fn mark_resolved(context: &Context, _answers: &Answers) -> Outcome {
     }
     Outcome::Run(Plan {
         title: Text::from(format!("Stage {path}")),
-        steps: vec![Step::git(
-            context.repository.folder.clone(),
-            [std::ffi::OsString::from("add"), "--".into(), pathspec(path)],
-        )],
+        steps: vec![staging(context.repository.folder.clone(), path)],
         danger: Danger::None,
         undo: Undo::Impossible(Text::from("Staging leaves nothing in the reflog.")),
         after: Vec::new(),
         on_failure: Vec::new(),
     })
+}
+
+/// The step that tells git a file's conflicts are resolved: `git add -- <file>`, the file named as itself. The Merge
+/// page stages through it too (`merge-view.mark-resolved`).
+pub(crate) fn staging(folder: std::path::PathBuf, path: &str) -> Step {
+    Step::git(folder, [std::ffi::OsString::from("add"), "--".into(), pathspec(path)])
 }
 
 #[cfg(test)]

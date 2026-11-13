@@ -1114,16 +1114,18 @@ says otherwise):
   page and the Merge page share one list of proposals for a file, kept by the store (`review.proposals`), which the
   Merge page would read in place of computing the rules again, and the review page keep up to date when a proposal is
   accepted on either?
-- **Q194** — The result of the Merge page cannot be typed in until the File page and its editor (`file-view.edit`,
-  `file-view.save`) come: the choices are edits of a text the page holds, with an undo and a redo of its own (`Ctrl+Z`,
-  `Ctrl+Y` and `Ctrl+Shift+Z` in the page), and the text is saved only by **Mark as resolved**, which writes it before
-  staging. When the editor comes, should the page hold the editor's text of the file, so that its undo and the edits of
-  the page are one history, as the cards of `merge-view.take-side` and `merge-view.page` say?
-- **Q195** — `merge-view.open-at-line` and `merge-view.close` stay **Specified**: both open the File page, which is
-  built elsewhere. The line of the result a line of any column stands for is built and tested
-  (`model::merge_view::result_line`, with the two lines of the acceptance of `merge-view.open-at-line`); the key `F4`,
-  the context menu and **Open the file**, and the File page opened on close with what is unsaved, wait for the File
-  page. Until then a page closed with unsaved choices loses them. Is that acceptable for now?
+- **Q194** — The result of the Merge page still cannot be typed in: the choices are edits of a text the page holds,
+  with an undo and a redo of its own (`Ctrl+Z`, `Ctrl+Y` and `Ctrl+Shift+Z` in the page), saved only by **Mark as
+  resolved**, which writes it before staging. To type, `F4` opens the File page at that line with the choices not
+  saved in it (`merge-view.open-at-line`), and closing the page hands them over the same way (`merge-view.close`).
+  Should the page hold the editor's text of the file, so that its undo and the edits of the page are one history, as
+  the cards of `merge-view.take-side` and `merge-view.page` say?
+- **Q195** — Answered: `merge-view.open-at-line` and `merge-view.close` are **Built**. A click on a line of any column
+  puts the cursor on it; `F4` and **Jump to source** open the File page at the line of the result it stands for
+  (`model::merge_view::result_line`). A page closed with choices not saved shows them in the File page, not saved, at
+  the line of its cursor or of the region gone to. The function of `merge-view.close` is
+  `app::store::merge_page::lines::closed`, not a view: a page is closed by the store, which forgets it, and there is
+  nothing for a view to draw (Q-P3).
 - **Q196** — The page refuses a file not in conflict with a version on each side with *This file is not in conflict
   with a change on each side.*, without the name of the file, since a notice of the window holds no text of its own;
   the card of `merge-view.page` now says so. Should notices take a text, so that this one, and others, can name what
@@ -1136,12 +1138,12 @@ says otherwise):
   has no title buttons of a page yet. Are these right?
 - **Q198** — Whether the base is shown is kept between runs in `state.json` under `mergeShowsBase`, written only when
   it is shown. Is that the right place and name?
-- **Q199** — `merge-view.mark-resolved` is given its file by a target of its own, `Target::MergeResult(MergeResolution)`:
-  the path, the bytes to write when the result has unsaved changes, and how many conflicts git still marks in it; it
-  asks for nothing else. Its plan ends with `FollowUp::CloseMergePage(path)`, which closes the Merge page of that file
-  in the repository shown; `gitardo-cli` prints it as *Close the Merge page of \<path\>*. `conflicts.mark-resolved`,
-  which the card uses, is not on this branch: the plan stages the file itself with `git add -- <file>`. Once both are
-  merged, should `merge-view.mark-resolved` take its staging step from `conflicts.mark-resolved`?
+- **Q199** — Answered: `merge-view.mark-resolved` is given its file by a target of its own,
+  `Target::MergeResult(MergeResolution)`: the path, the bytes to write when the result has unsaved changes, and how
+  many conflicts git still marks in it. Its plan ends with `FollowUp::CloseMergePage(path)`, which closes the Merge
+  page of that file in the repository shown; `gitardo-cli` prints it as *Close the Merge page of \<path\>*. It now
+  takes its staging step from `conflicts.mark-resolved` (`features::conflicts::staging`), so the two stage a file the
+  same way.
 - **Q200** — `git::read::merge_view::read_sides` now says whether the index has a version of the file on each side
   (`MergeSides::has_both_sides`, from stages 2 and 3), which the page needs to refuse a file deleted on one side; the
   page reads the setting `conflicts.autoResolve` where the banner reads it (`FeatureSettings::conflicts_auto_resolve`,

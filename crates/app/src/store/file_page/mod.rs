@@ -4,6 +4,7 @@
 
 mod colors;
 mod edit;
+mod given;
 
 use std::ops::Range;
 use std::path::{Path, PathBuf};
@@ -24,6 +25,7 @@ use crate::work::file_view::FileJob;
 
 pub use colors::{Colors, colors_of};
 pub use edit::{ended, reduce_page};
+pub use given::open_with_text;
 
 /// How many columns a tab goes to in the editor.
 const TAB_WIDTH: usize = 4;
@@ -120,6 +122,8 @@ pub struct FilePage {
     pub focus: Option<u64>,
     /// The line asked for before the file was read, from 1.
     pub pending_line: Option<usize>,
+    /// A text another page gave it, to take as edits not saved once the file is read, with the line to go to, from 1.
+    pub pending_text: Option<(String, usize)>,
     /// The read running.
     pub job: Option<JobId>,
     /// The read of the repository it was last read against.
@@ -188,6 +192,7 @@ pub fn open(state: &mut State, target: FileTarget) -> Vec<Effect> {
         reveal: None,
         focus: None,
         pending_line: target.line,
+        pending_text: None,
         job: None,
         generation,
         find: None,
@@ -279,7 +284,7 @@ pub fn file_read(state: &mut State, job: JobId, result: Result<Option<Vec<u8>>, 
         let line = page.pending_line.take().unwrap_or(1);
         go_to(page, line, serial);
     }
-    Vec::new()
+    given::take_pending(state, id)
 }
 
 /// Shows the bytes of a file: its text in a new document, keeping the cursor where it can, or that it is not text.

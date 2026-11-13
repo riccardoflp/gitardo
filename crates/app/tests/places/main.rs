@@ -29,6 +29,7 @@ mod jobs;
 mod large_diffs;
 mod merge;
 mod merge_actions;
+mod merge_at_line;
 mod operations;
 mod panes;
 mod patches;
