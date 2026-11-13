@@ -1,12 +1,28 @@
 //! What new worktrees get from the checkout: the things git ignores there, and what the link and copy patterns take.
 
+mod choose;
+mod explain;
 mod patterns;
+mod propose;
 mod settings;
+mod steps;
 
+pub use choose::{
+    ChooseInput, ChosenLine, GetsInput, ProposedLine, SetupPatterns, choose, line_gets, name_pattern, own_path_pattern,
+    path_patterns, use_proposed,
+};
+pub use explain::{ExplainInput, Ignored, SetupAction, SetupChange, Tracked, change_patterns, explain_change};
 pub use patterns::{
     CopyInput, LinkInput, PatternTake, SetupPreview, folders_holding_matches, folders_to_link, paths_to_copy,
 };
+pub use propose::{
+    CommandProposal, CommandsInput, Gets, LOCK_FILES, Proposal, ProposeInput, Section, propose, propose_commands,
+};
 pub use settings::{InEffect, Places, SettingSource, SettingsInput, SetupSettings, settings_in_effect};
+pub use steps::{
+    CommandStepsInput, LinkAndCopyInput, NoteStart, SetupSteps, Trust, command_steps, failed_setup_steps,
+    link_and_copy_steps,
+};
 
 /// How many files of a folder are counted before its size is said to be more.
 pub const FOLDER_FILES_COUNTED: usize = 5_000;

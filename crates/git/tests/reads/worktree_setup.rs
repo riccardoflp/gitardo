@@ -13,6 +13,7 @@ fn take(repository: &Repository, link: &[&str], copy: &[&str]) -> SetupPreview {
         folder: repository.path().to_path_buf(),
         link_patterns: link.iter().map(|pattern| (*pattern).to_owned()).collect(),
         copy_patterns: copy.iter().map(|pattern| (*pattern).to_owned()).collect(),
+        commit: None,
     };
     read_what_patterns_take(&Git::new(repository.path()), &request).unwrap()
 }

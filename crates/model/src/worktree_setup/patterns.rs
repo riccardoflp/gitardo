@@ -44,6 +44,8 @@ pub struct SetupPreview {
     pub link_patterns: Vec<PatternTake>,
     /// How many files or folders each copy pattern copies on its own, with the links of all the patterns in place.
     pub copy_patterns: Vec<PatternTake>,
+    /// The paths the copy patterns match that the worktree has from its commit already, which are not copied.
+    pub already: Vec<String>,
 }
 
 /// How much one pattern takes.
@@ -53,6 +55,8 @@ pub struct PatternTake {
     pub pattern: String,
     /// How many folders, or files and folders, it takes.
     pub count: usize,
+    /// The folders, or the files and folders, it takes.
+    pub paths: Vec<String>,
 }
 
 /// The folders that hold a file git ignores and the patterns match, each once, by path: the folders a link could be.

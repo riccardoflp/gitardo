@@ -106,13 +106,48 @@ impl Step {
                 line
             }
             Step::Write { path, .. } => format!("write {}", path.display()),
-            Step::Link { to, .. } => format!("symlink {}", to.display()),
-            Step::Copy { to, .. } => format!("copy {}", to.display()),
+            Step::Link { .. } | Step::Copy { .. } => {
+                let verb = if matches!(self, Step::Link { .. }) {
+                    "symlink"
+                } else {
+                    "copy"
+                };
+                let made = self.made_path().unwrap_or_default();
+                let words: Vec<String> = made
+                    .components()
+                    .map(|component| component.as_os_str().to_string_lossy().into_owned())
+                    .collect();
+                format!("{verb} {}", words.join("/"))
+            }
             Step::Unlink { path } => format!("unlink {}", path.display()),
             Step::Delete { path } => format!("delete {}", path.display()),
             Step::Run { command, .. } => format!("run {command}"),
             Step::Warn { words } => words.clone(),
         }
+    }
+}
+
+impl Step {
+    /// The path a link or a copy makes, from the top of the worktree it makes it in: what the folder it comes from and
+    /// the one it goes to end with alike, `node_modules` for a link from `repository/node_modules` to
+    /// `repository.worktrees/feature/node_modules` (`worktree-setup.link-and-copy-steps`). None for other steps.
+    #[must_use]
+    pub fn made_path(&self) -> Option<PathBuf> {
+        let (made, source) = match self {
+            Step::Link { from, to } => (from, to),
+            Step::Copy { from, to } => (to, from),
+            _ => return None, // Only a link and a copy make a path from another place.
+        };
+        let made_parts: Vec<_> = made.components().rev().collect();
+        let source_parts: Vec<_> = source.components().rev().collect();
+        let alike = made_parts
+            .iter()
+            .zip(&source_parts)
+            .take_while(|(made, source)| made == source)
+            .count();
+        let mut path: Vec<_> = made_parts.into_iter().take(alike).collect();
+        path.reverse();
+        Some(path.into_iter().collect())
     }
 }
 
@@ -257,6 +292,20 @@ mod tests {
                     path: PathBuf::from("old"),
                 },
                 "delete old",
+            ),
+            (
+                Step::Link {
+                    from: PathBuf::from("trees/feature/packages/api/node_modules"),
+                    to: PathBuf::from("repository/packages/api/node_modules"),
+                },
+                "symlink packages/api/node_modules",
+            ),
+            (
+                Step::Copy {
+                    from: PathBuf::from("repository/.env"),
+                    to: PathBuf::from("trees/feature/.env"),
+                },
+                "copy .env",
             ),
         ];
         for (step, expected) in cases {

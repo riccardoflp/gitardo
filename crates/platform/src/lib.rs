@@ -24,6 +24,7 @@ mod event;
 mod event_loop;
 mod geometry;
 mod input;
+mod links;
 mod mailbox;
 mod present;
 mod system;
@@ -50,6 +51,7 @@ pub use input::{
     InputEvent, Key, KeyEvent, Modifiers, NamedKey, PointerButton, PointerButtonEvent, PointerMove, WheelDelta,
     WheelEvent,
 };
+pub use links::link_folder;
 pub use mailbox::{InputSender, Waker};
 pub use present::Frame;
 pub use theme::{Appearance, SystemTheme};

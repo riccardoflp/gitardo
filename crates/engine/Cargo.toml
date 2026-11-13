@@ -12,6 +12,7 @@ workspace = true
 [dependencies]
 git = { path = "../git" }
 model = { path = "../model" }
+platform = { path = "../platform" }
 
 [dev-dependencies]
 testkit = { path = "../testkit" }

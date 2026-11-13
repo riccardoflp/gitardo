@@ -1301,3 +1301,17 @@ answered:
   `link-into-new-worktrees`…) edit the files in place, keeping their comments, which only `crates/json` can do. So
   `features` may now use `json`, a pure crate, and the picture of doc 02 says so. This also answers Q44 for these
   settings: the operation writes the file, through a `write` step. Is the new edge right?
+- **Q-T2** — `worktree-setup.link-and-copy-steps`: the engine makes a link on Windows as a junction itself
+  (`platform::link_folder`, through `DeviceIoControl`), so `engine` now uses `platform`, as the picture allows. The
+  log names the path from the top of the worktree, `symlink node_modules` and `copy .env`, not the full paths. What
+  is in the worktree already is said as **`<path>` is in the worktree already.** by the engine when it finds it on disk,
+  and by a warning of the plan for what the worktree's commit has; what would be made under a link or a file of the
+  worktree is said as **`<path>` is not made: `<folder>` in the worktree is a link or a file.**, and a path to copy
+  that holds the worktree as **`<path>` holds the worktree, so it is not copied.**, two sentences no card gives. A link
+  met inside a folder copied is made again as a link to the same place, a junction when it is a link to a folder. Are
+  these right?
+- **Q-T3** — `worktree-setup.explain-change`: the card says that only **will be** and **still** write the settings;
+  **New worktrees will no longer get `<name>`.** writes them too, since the pattern of its path is taken out. Is that
+  the reading?
+- **Q-T4** — `worktree-setup.propose`: the folder `.yarn/cache` is a dependency chosen by its path, `/.yarn/cache/`,
+  since a pattern with a `/` in its middle is from the top in `.gitignore` syntax anyway. Is that right?

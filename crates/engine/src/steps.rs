@@ -14,6 +14,7 @@ use model::contract::Step;
 
 use crate::clock::Clock;
 use crate::log::CommandLog;
+use crate::setup::{self, Room, room};
 
 /// A step that failed, with the steps that ran before it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,6 +46,8 @@ pub(crate) struct StepRunner<'a> {
     pub(crate) log: &'a mut CommandLog,
     pub(crate) clock: &'a dyn Clock,
     pub(crate) cancel: &'a CancelToken,
+    /// The links and copies that failed, which the steps after them went on from.
+    pub(crate) went_on_after: Vec<StepFailure>,
 }
 
 /// Why a step did not run to its end.
@@ -63,7 +66,9 @@ impl StepError {
 
 impl StepRunner<'_> {
     /// Runs the steps in order, and stops at the first that fails or when the plan is cancelled. A step that does not
-    /// start because the plan was cancelled before it is not logged.
+    /// start because the plan was cancelled before it is not logged. A link or a copy is the exception
+    /// (`worktree-setup.link-and-copy-steps`): one that has no room in the worktree is not made and the log says why,
+    /// and one that fails is kept in [`StepRunner::went_on_after`] while the steps after it go on.
     pub(crate) fn run(&mut self, steps: &[Step]) -> Result<Vec<String>, StepFailure> {
         let mut ran = Vec::new();
         for step in steps {
@@ -76,6 +81,11 @@ impl StepRunner<'_> {
                     plan: String::new(),
                 });
             }
+            let is_setup = matches!(step, Step::Link { .. } | Step::Copy { .. });
+            if is_setup && let Room::Taken(words) = room(step) {
+                self.log.record(self.clock.now(), &Step::Warn { words });
+                continue;
+            }
             self.log.record(self.clock.now(), step);
             let (said, cancelled) = match run_step(self.git, step, self.cancel) {
                 Ok(()) => {
@@ -86,13 +96,18 @@ impl StepRunner<'_> {
                 Err(StepError::Cancelled) => (String::from("Cancelled."), true),
             };
             self.log.record_failure(self.clock.now(), &said);
-            return Err(StepFailure {
-                ran,
+            let failure = StepFailure {
+                ran: ran.clone(),
                 failed: step.log_line(),
                 said,
                 cancelled,
                 plan: String::new(),
-            });
+            };
+            if is_setup && !cancelled {
+                self.went_on_after.push(failure);
+                continue;
+            }
+            return Err(failure);
         }
         Ok(ran)
     }
@@ -123,8 +138,8 @@ fn run_step(git: &Git, step: &Step, cancel: &CancelToken) -> Result<(), StepErro
             Err(StepError::Failed(String::from_utf8_lossy(said).into_owned()))
         }
         Step::Write { path, contents } => write(path, contents).map_err(|error| StepError::failed(&error)),
-        Step::Link { from, to } => link(from, to).map_err(|error| StepError::failed(&error)),
-        Step::Copy { from, to } => copy(from, to).map_err(|error| StepError::failed(&error)),
+        Step::Link { from, to } => setup::link(from, to).map_err(|error| StepError::failed(&error)),
+        Step::Copy { from, to } => setup::copy(from, to).map_err(|error| StepError::failed(&error)),
         Step::Unlink { path } => unlink(path).map_err(StepError::Failed),
         Step::Delete { path } => delete(path).map_err(|error| StepError::failed(&error)),
         Step::Run { command, directory } => run_command(command, directory, cancel),
@@ -138,30 +153,6 @@ fn write(path: &Path, contents: &[u8]) -> std::io::Result<()> {
         fs::create_dir_all(folder)?;
     }
     fs::write(path, contents)
-}
-
-/// Makes a link to a folder. Linking with a junction on Windows, which needs no privilege, comes with the worktree
-/// setup and the platform layer (milestone M8).
-fn link(from: &Path, to: &Path) -> std::io::Result<()> {
-    #[cfg(windows)]
-    return std::os::windows::fs::symlink_dir(to, from);
-    #[cfg(not(windows))]
-    return std::os::unix::fs::symlink(to, from);
-}
-
-fn copy(from: &Path, to: &Path) -> std::io::Result<()> {
-    if !fs::symlink_metadata(from)?.is_dir() {
-        if let Some(folder) = to.parent() {
-            fs::create_dir_all(folder)?;
-        }
-        return fs::copy(from, to).map(|_bytes| ());
-    }
-    fs::create_dir_all(to)?;
-    for entry in fs::read_dir(from)? {
-        let entry = entry?;
-        copy(&entry.path(), &to.join(entry.file_name()))?;
-    }
-    Ok(())
 }
 
 /// Removes a link and never what it points at.

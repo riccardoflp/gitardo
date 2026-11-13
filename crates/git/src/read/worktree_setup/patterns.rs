@@ -20,6 +20,8 @@ pub struct PatternsRequest {
     pub link_patterns: Vec<String>,
     /// The patterns of the files and folders to copy, in `.gitignore` syntax.
     pub copy_patterns: Vec<String>,
+    /// The commit whose files the worktree has, by any name git understands; `HEAD` when none is given.
+    pub commit: Option<String>,
 }
 
 /// Whether a listing of what git ignores keeps the folders that hold nothing.
@@ -51,10 +53,12 @@ struct Checkout {
 /// When git cannot be started or fails.
 pub fn read_what_patterns_take(git: &Git, request: &PatternsRequest) -> Result<SetupPreview, GitError> {
     let git = git.in_directory(&request.folder);
-    let commit_files = if read_or_nothing(&git, &head_commit_arguments())?.is_some() {
-        parse_paths(&git.run_read(&commit_files_arguments())?)
-    } else {
-        Vec::new()
+    let commit_files = match &request.commit {
+        Some(commit) => parse_paths(&git.run_read(&files_of_arguments(commit))?),
+        None if read_or_nothing(&git, &head_commit_arguments())?.is_some() => {
+            parse_paths(&git.run_read(&commit_files_arguments())?)
+        }
+        None => Vec::new(),
     };
     let checkout = Checkout {
         ignored_files: parse_paths(&git.run_read(&ignored_files_arguments())?),
@@ -67,26 +71,49 @@ pub fn read_what_patterns_take(git: &Git, request: &PatternsRequest) -> Result<S
     let copied = copy(&checkout, &request.copy_patterns, &linked)?;
     let mut link_patterns = Vec::new();
     for pattern in &request.link_patterns {
-        let count = link(&checkout, std::slice::from_ref(pattern))?.len();
+        let paths = link(&checkout, std::slice::from_ref(pattern))?;
         link_patterns.push(PatternTake {
             pattern: pattern.clone(),
-            count,
+            count: paths.len(),
+            paths,
         });
     }
     let mut copy_patterns = Vec::new();
     for pattern in &request.copy_patterns {
-        let count = copy(&checkout, std::slice::from_ref(pattern), &linked)?.len();
+        let paths = copy(&checkout, std::slice::from_ref(pattern), &linked)?;
         copy_patterns.push(PatternTake {
             pattern: pattern.clone(),
-            count,
+            count: paths.len(),
+            paths,
         });
     }
+    let already = if request.copy_patterns.is_empty() || checkout.commit_files.is_empty() {
+        Vec::new()
+    } else {
+        let without_commit = Checkout {
+            commit_files: Vec::new(),
+            git: checkout.git.clone(),
+            ignored_files: checkout.ignored_files.clone(),
+            whole_for_links: checkout.whole_for_links.clone(),
+            whole_for_copies: checkout.whole_for_copies.clone(),
+        };
+        copy(&without_commit, &request.copy_patterns, &linked)?
+            .into_iter()
+            .filter(|path| !copied.iter().any(|copy| copy == path || is_inside(path, copy)))
+            .collect()
+    };
     Ok(SetupPreview {
         linked,
         copied,
         link_patterns,
         copy_patterns,
+        already,
     })
+}
+
+/// Whether a path is inside a folder, not the folder itself.
+fn is_inside(path: &str, folder: &str) -> bool {
+    path.strip_prefix(folder).is_some_and(|rest| rest.starts_with('/'))
 }
 
 /// The folders some link patterns link.
@@ -196,6 +223,12 @@ pub fn ignored_folders_input(folders: &[String]) -> Vec<u8> {
         .iter()
         .flat_map(|folder| format!("{folder}\0").into_bytes())
         .collect()
+}
+
+/// `git ls-tree -r -z --name-only <commit>`: the files of a commit.
+#[must_use]
+pub fn files_of_arguments(commit: &str) -> Vec<OsString> {
+    arguments(&["ls-tree", "-r", "-z", "--name-only", commit])
 }
 
 /// `git ls-tree -r -z --name-only HEAD`: the files of the commit checked out.

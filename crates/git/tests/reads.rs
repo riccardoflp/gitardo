@@ -19,6 +19,8 @@ mod submodules;
 mod working_tree;
 #[path = "reads/worktree_setup.rs"]
 mod worktree_setup;
+#[path = "reads/worktree_setup_explain.rs"]
+mod worktree_setup_explain;
 #[path = "reads/worktrees.rs"]
 mod worktrees;
 

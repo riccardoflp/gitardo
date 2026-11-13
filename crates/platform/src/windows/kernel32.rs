@@ -1,5 +1,5 @@
 //! The functions, types and constants of `kernel32.dll` that Gitardo Desktop asks for itself, with the names the
-//! Windows documentation gives them: watching folders for changes.
+//! Windows documentation gives them: watching folders for changes, and making junctions.
 
 #![allow(
     clippy::upper_case_acronyms,
@@ -69,10 +69,24 @@ unsafe extern "system" {
     ) -> BOOL;
     pub(crate) fn CancelIoEx(hFile: HANDLE, lpOverlapped: *mut OVERLAPPED) -> BOOL;
     pub(crate) fn CloseHandle(hObject: HANDLE) -> BOOL;
+    pub(crate) fn DeviceIoControl(
+        hDevice: HANDLE,
+        dwIoControlCode: u32,
+        lpInBuffer: *mut c_void,
+        nInBufferSize: u32,
+        lpOutBuffer: *mut c_void,
+        nOutBufferSize: u32,
+        lpBytesReturned: *mut u32,
+        lpOverlapped: *mut OVERLAPPED,
+    ) -> BOOL;
     pub(crate) fn GetLastError() -> u32;
 }
 
 pub(crate) const FILE_LIST_DIRECTORY: u32 = 0x0000_0001;
+pub(crate) const GENERIC_WRITE: u32 = 0x4000_0000;
+pub(crate) const FILE_FLAG_OPEN_REPARSE_POINT: u32 = 0x0020_0000;
+pub(crate) const FSCTL_SET_REPARSE_POINT: u32 = 0x0009_00A4;
+pub(crate) const IO_REPARSE_TAG_MOUNT_POINT: u32 = 0xA000_0003;
 pub(crate) const FILE_SHARE_READ: u32 = 0x0000_0001;
 pub(crate) const FILE_SHARE_WRITE: u32 = 0x0000_0002;
 pub(crate) const FILE_SHARE_DELETE: u32 = 0x0000_0004;

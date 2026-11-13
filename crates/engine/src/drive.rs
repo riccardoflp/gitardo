@@ -53,6 +53,9 @@ pub enum Finished {
         /// The state of the repository read once it ran, when the journal needed it; none when it did not, or the read
         /// failed.
         state_after: Option<Arc<RepositoryState>>,
+        /// The links and copies that failed while the steps after them went on, each with what the system said
+        /// (`worktree-setup.link-and-copy-steps`).
+        went_on_after: Vec<StepFailure>,
     },
     /// It refused to run, and said why.
     Refused(Refusal),
@@ -72,6 +75,7 @@ pub struct Engine {
     last_state: Option<Arc<RepositoryState>>,
     cancel: CancelToken,
     find_operation: Option<FindOperation>,
+    went_on_after: Vec<StepFailure>,
 }
 
 impl Engine {
@@ -87,6 +91,7 @@ impl Engine {
             last_state: None,
             cancel: CancelToken::new(),
             find_operation: None,
+            went_on_after: Vec::new(),
         }
     }
 
@@ -215,6 +220,7 @@ impl Engine {
             .activities
             .track(plan.title.clone(), Text::from(feature.0), self.clock.now());
         let ran = self.run_plan(&plan);
+        let went_on_after = std::mem::take(&mut self.went_on_after);
         self.clean_up(&plan);
         let steps = match ran {
             Ok(steps) => steps,
@@ -236,6 +242,7 @@ impl Engine {
             plan,
             steps,
             state_after,
+            went_on_after,
         })
     }
 
@@ -307,6 +314,7 @@ impl Engine {
                 log: &mut self.log,
                 clock: self.clock.as_ref(),
                 cancel: &self.cancel,
+                went_on_after: Vec::new(),
             }
             .run(&steps);
         }
@@ -358,19 +366,29 @@ impl Engine {
         Some(after)
     }
 
-    /// Runs the steps of a plan in order, logging each before it starts, and stops at the first that fails.
+    /// Runs the steps of a plan in order, logging each before it starts, and stops at the first that fails, but for a
+    /// link or a copy, which the steps after it go on from: those are kept for [`Engine::take_went_on_after`].
     ///
     /// # Errors
     ///
     /// The step that failed, what it said, and the steps that ran before it.
     pub fn run_plan(&mut self, plan: &Plan) -> Result<Vec<String>, StepFailure> {
-        StepRunner {
+        let mut runner = StepRunner {
             git: &self.git,
             log: &mut self.log,
             clock: self.clock.as_ref(),
             cancel: &self.cancel,
-        }
-        .run(&plan.steps)
+            went_on_after: Vec::new(),
+        };
+        let ran = runner.run(&plan.steps);
+        let mut failed = runner.went_on_after;
+        self.went_on_after.append(&mut failed);
+        ran
+    }
+
+    /// Takes the links and copies that failed in the plans run since the last time, while the steps after them went on.
+    pub fn take_went_on_after(&mut self) -> Vec<StepFailure> {
+        std::mem::take(&mut self.went_on_after)
     }
 }
 
