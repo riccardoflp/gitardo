@@ -394,7 +394,8 @@ repositories, the settings), each built with the reading given until it is answe
   follow-up that changes the workspace, or are these cards of the store, not features?
 - **Q44** — `settings.theme` is an operation in `features`, which may not use `crates/json` to write the settings
   file. For now the theme and the fonts are only read (`app::settings`) and applied when the files change; nothing
-  writes them. Which crate writes the settings file?
+  writes them. Which crate writes the settings file? (Settled since: `features` writes the settings files with `json`, as
+  `worktree-setup.save` does, and `settings.theme` is built so; Q-W8.)
 - **Q45** — What is kept between runs is in `state.json` in Gitardo's configuration folder, beside `settings.json`
   (`%APPDATA%\Gitardo Desktop`, `~/Library/Application Support/Gitardo Desktop`, `$XDG_CONFIG_HOME/gitardo-desktop`
   or `~/.config/gitardo-desktop`); [11-data.md](11-data.md) does not name the file. On Linux, should it be under
@@ -649,7 +650,8 @@ the reading given until it is answered:
 - **Q107** — `settings.theme`: **Theme…** in the **…** menu opens a picker of the five themes. The theme picked is
   written in the user's file by the store (Q44 is still open), and the window takes it when the watcher reads the file
   again. The picker shows no theme as the user moves through the list, which the card asks. Should it, and should the
-  theme be written only when the picker closes? The card stays **Specified** (Q44).
+  theme be written only when the picker closes? The card stays **Specified** (Q44). (Built since, Q-W8; moving through the list
+  still shows no theme.)
 - **Q108** — Cards of this slice left **Specified**: `repo.open-folder`, `repo.open-recent` and `repo.select` (Q43);
   `settings.theme` (Q44, Q107); `settings.edit` (Q106); `log.record` (Q101). `repo.read-repositories` is **Built** on
   the reading of Q19, and `welcome.page` on Quick search (slice 4) and the page of a commit (slice 5): the page of a
@@ -1494,3 +1496,8 @@ From the cards left over up to M8 (each built with the reading given, until the 
   first one found, so `Enter` after typing opens it. The command line answers it as a pick. The choices still have no
   icons, and no pull request is said until M9 reads them. Is a kind of question of its own right, rather than the pick
   of Quick search?
+- **Q-W8** — `settings.theme` is an operation now: the picker of the themes runs it with the theme picked, and it
+  writes `theme` in the user's settings file with the rest of the file kept, logged in the Command log as every write;
+  with no theme given, as from the command line, it asks among the five. Its title is *Use the theme `<name>`*, and
+  Undo says to choose again. The picker still shows no theme while the user moves through it (Q107), since the
+  picker of the toolkit says nothing until a choice is made. Should it say which item is under the keyboard?

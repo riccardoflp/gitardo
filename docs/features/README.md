@@ -526,4 +526,4 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | --- | --- | --- | --- |
 | [`settings.read`](18-settings.md#settingsread--read-the-settings) | Read the settings | Read | Built |
 | [`settings.edit`](18-settings.md#settingsedit--open-the-settings-page) | Open the settings page | View | Built |
-| [`settings.theme`](18-settings.md#settingstheme--choose-the-theme-and-the-fonts) | Choose the theme and the fonts | Operation | Specified |
+| [`settings.theme`](18-settings.md#settingstheme--choose-the-theme-and-the-fonts) | Choose the theme and the fonts | Operation | Built |

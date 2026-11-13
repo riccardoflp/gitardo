@@ -310,3 +310,4 @@
   repository's `.gitardo/settings.json` with `{}` when it is not there.
 - **Switch Worktree…** has a box over the worktrees: typing part of a label, of a branch or of a folder keeps the
   worktrees it finds.
+- The theme picked in **Theme…** is written in the user's settings file by an operation, which the Command log shows.

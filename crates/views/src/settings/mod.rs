@@ -1,7 +1,7 @@
 //! The settings page (`settings.edit`) and the picker of the themes (`settings.theme`): every setting with its
 //! description, its value and where it comes from; a switch or a choice changes it in the file chosen at the top.
 
-use model::contract::{FeatureId, Target};
+use model::contract::{Answer, AnswerKey, Answers, FeatureId, Target};
 use model::worktree_setup::{SettingsPlace, SetupSave};
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{
@@ -304,7 +304,7 @@ pub struct ThemePickerState<'a> {
 }
 
 /// The picker of the themes: the five of `theme`, the one in force said as current; the one picked is written in the
-/// user's settings file, where `theme` is read from, and the window is drawn with it as soon as the file is read again.
+/// user's settings file by `settings.theme`, and the window is drawn with it as soon as the file is read again.
 pub fn theme_picker_view(state: &ThemePickerState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let descriptions: Vec<&str> = words::THEME_VALUES
         .iter()
@@ -330,14 +330,11 @@ pub fn theme_picker_view(state: &ThemePickerState<'_>, ui: &mut Ui<'_>) -> Vec<I
     };
     match ui.picker("theme picker", &picker) {
         Some(PickerAnswer::Chose(index)) => match words::THEME_VALUES.get(index) {
-            Some(value) => vec![
-                Intent::SetSetting(SettingChange {
-                    key: "theme",
-                    value: SettingValue::Choice(value),
-                    target: SettingsTarget::User,
-                }),
-                Intent::CloseThemePicker,
-            ],
+            Some(value) => {
+                let answers = Answers::new().with(AnswerKey("theme"), Answer::Choice((*value).to_owned()));
+                let run = FeatureIntent::RunWith(FeatureId("settings.theme"), Target::Head, answers);
+                vec![Intent::Feature(run), Intent::CloseThemePicker]
+            }
             None => vec![Intent::CloseThemePicker],
         },
         Some(PickerAnswer::Cancelled | PickerAnswer::ChoseMany(_)) => vec![Intent::CloseThemePicker],

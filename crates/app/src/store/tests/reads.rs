@@ -5,7 +5,9 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
+use model::contract::{Answer, Answers, FeatureId, Target};
 use model::repo::{Change, ReadCause};
+use views::feature::FeatureIntent;
 use views::settings::{SettingChange, SettingValue, SettingsTarget};
 use views::{Content, Intent, TimelineState};
 
@@ -229,7 +231,7 @@ fn settings_edit__a_value_changed_is_written_alone_in_the_file_chosen() {
 }
 
 #[test]
-fn settings_theme__the_theme_picked_is_written_in_the_users_file_and_the_picker_closes() {
+fn settings_theme__the_theme_picked_runs_settings_theme_and_the_picker_closes() {
     let (mut state, _app) = showing();
     state.user_settings_file = Some(PathBuf::from("/config/settings.json"));
     let _opened = intent(&mut state, Intent::PickTheme);
@@ -239,15 +241,19 @@ fn settings_theme__the_theme_picked_is_written_in_the_users_file_and_the_picker_
         data.window_state(&state).theme_picker.map(|picker| picker.current),
         Some("system")
     );
-    let effects = intent(
-        &mut state,
-        Intent::SetSetting(SettingChange {
-            key: "theme",
-            value: SettingValue::Choice("light"),
-            target: SettingsTarget::User,
-        }),
+    let answers = Answers::new().with(features::settings::THEME, Answer::Choice(String::from("light")));
+    let picked = FeatureIntent::RunWith(FeatureId("settings.theme"), Target::Head, answers);
+    let effects = intent(&mut state, Intent::Feature(picked));
+    assert!(
+        matches!(
+            &effects[..],
+            [Effect::RunFeature {
+                feature: FeatureId("settings.theme"),
+                ..
+            }]
+        ),
+        "{effects:?}"
     );
-    assert!(matches!(&effects[..], [Effect::WriteSetting { key: "theme", .. }]));
     let _closed = intent(&mut state, Intent::CloseThemePicker);
     assert_eq!(state.dialog, None);
 }
