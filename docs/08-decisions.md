@@ -1197,30 +1197,30 @@ says otherwise):
   accepted**; its lines cannot be staged or reverted. Is this right?
 - **Q212** — `conflicts.autoResolve` and `conflicts.ai` are read from the user's settings file once, into
   `FeatureSettings`, for the banner, the Merge page and the review alike. The toolkit now also names `Path` and `FillRule` for the views, for the bands. Is this right?
-- **Q-N1** — The editor of the File page is the widget `ui::CodeEditor`, kept small: text, caret, selection by mouse
+- **Q213** — The editor of the File page is the widget `ui::CodeEditor`, kept small: text, caret, selection by mouse
   and keys, typing, Undo and Redo, cut, copy and paste through the clipboard effects, one color and style for each
   kind of code. It leaves out wrapping long lines, scrolling sideways (a long line is cut at the right), characters
   drawn two columns wide, several cursors, italic and bold styles, folding, the minimap and an input method for
   composed characters. Which of these should come first?
-- **Q-N2** — **Paste** is in the context menu of the File page but cannot be clicked: the window reads the clipboard
+- **Q214** — **Paste** is in the context menu of the File page but cannot be clicked: the window reads the clipboard
   only on `Ctrl+V`, so the menu would have to ask it for the text first. Is `Ctrl+V` alone right for now?
-- **Q-N3** — A file that is not UTF-8 is decoded with each invalid byte as `U+FFFD` and stays editable, so saving it
+- **Q215** — A file that is not UTF-8 is decoded with each invalid byte as `U+FFFD` and stays editable, so saving it
   writes those bytes changed. Should such a file be read only instead, or decoded as Latin-1?
-- **Q-N4** — The cards name the Files page, Quick search and the blame as ways to open a file in its page; none of them
+- **Q216** — The cards name the Files page, Quick search and the blame as ways to open a file in its page; none of them
   exists yet, so the File page opens from Changes (a click when `changes.openOnClick` is `file`, and **Open file**) and
   from **Open the file at this revision** on a file of a commit. **Save all** on Changes is still not clickable and
   `changes.save` stays **Specified**: **Save** on a row saves the File page of that file through `file-view.save`. Are
   these right?
-- **Q-N5** — `file-view.save` logs the path on disk, `write C:\…\src\app.rs`, not `write src/app.rs`, since the step
+- **Q217** — `file-view.save` logs the path on disk, `write C:\…\src\app.rs`, not `write src/app.rs`, since the step
   writes where the path names; is the path from the top of the repository wanted in the log instead?
-- **Q-N6** — **Open in external editor** refuses with the engine's own words when the command fails to start, and a
+- **Q218** — **Open in external editor** refuses with the engine's own words when the command fails to start, and a
   command of `editor.external` without `${file}` gets the path put after it, in quotes when it has a space, and an
   empty one opens the file with the program the system has for it. `editor.external` is a setting of the user only,
   not of a repository, so that a repository cannot name a command to run. Are these right?
-- **Q-N7** — Undo takes typing back a word at a time: a space after a word, a new line, a paste, a cut and a move of
+- **Q219** — Undo takes typing back a word at a time: a space after a word, a new line, a paste, a cut and a move of
   the caret each end a step. Is that the grouping wanted?
-- **Q-N8** — There is one File page for each file: opening it again shows the same page at the line asked, so two
+- **Q220** — There is one File page for each file: opening it again shows the same page at the line asked, so two
   pages of one file, each with its own cursor, cannot be had; a file of the working tree and the same file at a
   revision are two pages. Is that right?
-- **Q-N9** — **Go to line** with a number past the last line goes to the last line rather than refusing, and `0` to
+- **Q221** — **Go to line** with a number past the last line goes to the last line rather than refusing, and `0` to
   the first. Is that right?

@@ -148,69 +148,37 @@ fn work(receiver: &Mutex<Receiver<Task>>, activities: &Activities, deliver: &Del
 
 /// What a job is and what asked for it, in the words of the Activity drawer.
 fn words(kind: &JobKind) -> (Text, Text) {
-    match kind {
+    let (folder, cause) = match kind {
         JobKind::FindRepositories { folders } => {
             let names: Vec<String> = folders.iter().map(|folder| folder_name(folder)).collect();
-            (
+            return (
                 Text::from(activity::finding_repositories(&names.join(", "))),
                 Text::from(activity::OPENING_WORKSPACE),
-            )
+            );
         }
-        JobKind::ReadRepository { folder, .. } => (
-            Text::from(activity::reading(&folder_name(folder))),
-            Text::from(activity::SHOWING_REPOSITORY),
-        ),
-        JobKind::ReadCommits { folder, .. } => (
-            Text::from(activity::reading(&folder_name(folder))),
-            Text::from(activity::LOADING_MORE_COMMITS),
-        ),
-        JobKind::ReadTimeline { folder, .. } => (
-            Text::from(activity::reading(&folder_name(folder))),
-            Text::from(activity::NARROWING_TIMELINE),
-        ),
         JobKind::Search(search) => {
             let cause = match search {
                 SearchJob::Matches { .. } => search_words::SEARCHING_HISTORY,
                 SearchJob::Revision { .. } | SearchJob::Position { .. } => search_words::LOOKING_FOR_COMMIT,
             };
-            (
+            return (
                 Text::from(search_words::searching(&folder_name(search.folder()))),
                 Text::from(cause),
-            )
+            );
         }
-        JobKind::ReadDetails { folder, .. } => (
-            Text::from(activity::reading(&folder_name(folder))),
-            Text::from(activity::SHOWING_DETAILS),
-        ),
-        JobKind::ReadCommitPage { folder, .. } => (
-            Text::from(activity::reading(&folder_name(folder))),
-            Text::from(activity::OPENING_COMMIT_PAGE),
-        ),
-        JobKind::ReadDiff { folder, .. } => (
-            Text::from(activity::reading(&folder_name(folder))),
-            Text::from(activity::COMPUTING_DIFF),
-        ),
-        JobKind::ReadFile { folder, .. } => (
-            Text::from(activity::reading(&folder_name(folder))),
-            Text::from(activity::OPENING_FILE),
-        ),
-        JobKind::ReadComparison { folder, .. } | JobKind::ReadInPlace { folder, .. } => (
-            Text::from(activity::reading(&folder_name(folder))),
-            Text::from(activity::COMPARING),
-        ),
-        JobKind::CountConflicts { folder } => (
-            Text::from(activity::reading(&folder_name(folder))),
-            Text::from(activity::COUNTING_CONFLICTS),
-        ),
-        JobKind::ReadMerge { folder, .. } => (
-            Text::from(activity::reading(&folder_name(folder))),
-            Text::from(activity::SHOWING_MERGE),
-        ),
-        JobKind::ReadReview { folder, .. } => (
-            Text::from(activity::reading(&folder_name(folder))),
-            Text::from(activity::REVIEWING_CONFLICTS),
-        ),
-    }
+        JobKind::ReadRepository { folder, .. } => (folder, activity::SHOWING_REPOSITORY),
+        JobKind::ReadCommits { folder, .. } => (folder, activity::LOADING_MORE_COMMITS),
+        JobKind::ReadTimeline { folder, .. } => (folder, activity::NARROWING_TIMELINE),
+        JobKind::ReadDetails { folder, .. } => (folder, activity::SHOWING_DETAILS),
+        JobKind::ReadCommitPage { folder, .. } => (folder, activity::OPENING_COMMIT_PAGE),
+        JobKind::ReadDiff { folder, .. } => (folder, activity::COMPUTING_DIFF),
+        JobKind::ReadFile { folder, .. } => (folder, activity::OPENING_FILE),
+        JobKind::ReadComparison { folder, .. } | JobKind::ReadInPlace { folder, .. } => (folder, activity::COMPARING),
+        JobKind::CountConflicts { folder } => (folder, activity::COUNTING_CONFLICTS),
+        JobKind::ReadMerge { folder, .. } => (folder, activity::SHOWING_MERGE),
+        JobKind::ReadReview { folder, .. } => (folder, activity::REVIEWING_CONFLICTS),
+    };
+    (Text::from(activity::reading(&folder_name(folder))), Text::from(cause))
 }
 
 /// The last name of a folder, or the whole folder when it has none.

@@ -60,8 +60,8 @@ mod widget;
 /// and the frame buffer and fonts a frame is drawn into), so that the views, which use the toolkit and not `render`
 /// itself, can name them.
 pub use render::{
-    Appearance, Assets, Border, CodeKind, Color, FillRule, FontFamily, FontWeight, FrameBuffer, Icon, LineCap, Path, Point, Rect,
-    Stroke, TextRun, Theme, ThemeName,
+    Appearance, Assets, Border, CodeKind, Color, FillRule, FontFamily, FontWeight, FrameBuffer, Icon, LineCap, Path,
+    Point, Rect, Stroke, TextRun, Theme, ThemeName,
 };
 
 /// The text editor the editor of code edits: its documents, cursors and commands, which the views and the store name.

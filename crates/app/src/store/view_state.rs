@@ -277,14 +277,6 @@ impl ViewData {
         }
     }
 
-    /// A page under its trail, or the timeline when the page is gone.
-    fn page_or_timeline<'a>(&'a self, state: &'a State, page: Option<PageState<'a>>) -> Content<'a> {
-        match page {
-            Some(page) => Content::Page(PageHostState { has_trail: true, page }),
-            None => Content::Timeline(self.timeline(state)),
-        }
-    }
-
     /// The timeline, the branch rail and the inspector of the repository shown.
     fn timeline<'a>(&'a self, state: &'a State) -> TimelineState<'a> {
         let shown = state.workspace.as_ref().map(|workspace| &workspace.shown);
