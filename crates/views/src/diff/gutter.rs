@@ -1,5 +1,6 @@
 //! The buttons on the band of a change in the gutter of a Diff page: **+** stages it (`diff.stage-change`), **−**
-//! unstages it (`diff.unstage-change`), **⟲** reverts it (`diff.revert-change`).
+//! unstages it (`diff.unstage-change`), **⟲** reverts it (`diff.revert-change`) as an edit of the text of the working
+//! tree side, saved at once. While the rows follow an edit and the diff is not computed again, there are no buttons.
 
 use model::contract::{FeatureId, Target};
 use model::diff::{DiffChange, DiffSide};
@@ -99,7 +100,7 @@ pub(crate) fn change_buttons(
     gutter: Rect,
 ) -> Vec<Intent> {
     let buttons = offered(state, (file, text, change));
-    if buttons.is_empty() {
+    if buttons.is_empty() || state.is_stale {
         return Vec::new();
     }
     let theme = *ui.theme();
@@ -124,7 +125,13 @@ pub(crate) fn change_buttons(
             room.height,
         );
         let rect = place(cell, (side, side), (Align::Center, Align::Center));
-        if gutter_button(ui, (state.id, file, change), *button, rect) {
+        if !gutter_button(ui, (state.id, file, change), *button, rect) {
+            continue;
+        }
+        if *button == GutterButton::Revert {
+            let revert = super::DiffEditIntent::Revert(file, change);
+            intents.push(Intent::Diff(super::DiffIntent::Edit(state.id, revert)));
+        } else {
             let target = Target::DiffChange(Box::new(diff_change(state, (file, text, change))));
             intents.push(Intent::Feature(FeatureIntent::Run(button.feature(), target)));
         }

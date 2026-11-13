@@ -3,6 +3,8 @@
 //! opens nothing, a very large one asks first), the page read again when `HEAD`, the index or the working tree it shows
 //! changes, and what the user changed in it.
 
+mod edit;
+mod follow;
 mod lines;
 mod navigate;
 
@@ -20,6 +22,7 @@ use super::state::State;
 use crate::persisted::same_folder;
 use crate::work::diff::{DiffJob, DiffRead};
 
+pub use edit::{PageCaret, follow_document, reduce_edit};
 pub use navigate::reduce_page;
 
 /// Something asked of the Diff pages.
@@ -28,6 +31,7 @@ pub fn reduce(state: &mut State, intent: views::diff::DiffIntent) -> Vec<Effect>
         views::diff::DiffIntent::Open(target) => open(state, *target),
         views::diff::DiffIntent::Page(id, intent) => reduce_page(state, id, intent),
         views::diff::DiffIntent::AnswerLarge(is_continued) => answer_large(state, is_continued),
+        views::diff::DiffIntent::Edit(id, intent) => reduce_edit(state, id, intent),
     }
 }
 
@@ -86,6 +90,14 @@ pub struct DiffPage {
     pub left_width: Option<u32>,
     /// The way `F7` is going from file to file, and the file it started from, while the file it went to is read.
     pub going: Option<(navigate::Direction, String)>,
+    /// Where the caret is (`diff.edit`).
+    pub caret: Option<PageCaret>,
+    /// The row of the caret to bring into sight, scrolled the least, once for each number.
+    pub caret_reveal: Option<(u64, usize)>,
+    /// When the text was last edited in the page, until the diff is computed again.
+    pub edited_at: Option<Duration>,
+    /// Whether the rows were moved by an edit and the diff not computed again since.
+    pub is_stale: bool,
 }
 
 /// Opens the Diff page of a target in the repository shown, or shows the one it has: there is never a second page for
@@ -128,6 +140,10 @@ pub fn open(state: &mut State, target: DiffTarget) -> Vec<Effect> {
         hint: None,
         left_width: state.diff_pages.last_width,
         going: None,
+        caret: None,
+        caret_reveal: None,
+        edited_at: None,
+        is_stale: false,
     };
     state.diff_pages.pages.push(page);
     let is_open = count != 1;
@@ -245,6 +261,11 @@ pub fn diff_read(state: &mut State, job: JobId, result: DiffRead) -> Vec<Effect>
         *running = None;
     }
     if page.is_open {
+        if page.edited_at.is_some() {
+            // The text was edited since this read started, and the diff is computed again once typing stops.
+            return Vec::new();
+        }
+        page.is_stale = false;
         return navigate::shown(state, (id, file), result);
     }
     match result {
@@ -370,7 +391,7 @@ pub fn page_state(state: &State, id: DiffPageId) -> Option<DiffPageState<'_>> {
         current: page.current,
         is_collapsed: page.is_collapsed,
         left_width: page.left_width,
-        reveal: page.reveal,
+        reveal: edit::reveal_state(page),
         hint: page.hint,
         is_unsaved: page.target.files.iter().any(|file| {
             let shows = |version: &DiffVersion, path: &str| {
@@ -379,6 +400,9 @@ pub fn page_state(state: &State, id: DiffPageId) -> Option<DiffPageState<'_>> {
             };
             shows(&page.target.left, &file.left) || shows(&page.target.right, &file.right)
         }),
+        caret: edit::caret_state(state, page),
+        edited_at: page.edited_at,
+        is_stale: page.is_stale,
     })
 }
 

@@ -14,6 +14,7 @@ mod keys;
 mod rows;
 
 pub use draw::code_columns;
+pub use keys::{KeyCommands, key_commands};
 pub use rows::{CodeRows, LineWrap};
 
 use std::hash::Hash;

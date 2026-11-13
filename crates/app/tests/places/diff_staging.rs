@@ -225,22 +225,6 @@ fn diff_unstage_change__unstaging_one_of_two_staged_changes_leaves_the_other_sta
 }
 
 #[test]
-fn diff_revert_change__reverting_a_changed_line_gives_the_file_the_line_head_has_and_the_page_one_change_fewer() {
-    let repository = repository_with_three_changes();
-    let (mut state, mut window) = page_of(&repository, "app.rs");
-    let intents = click_nth(&mut window, &state, (words::REVERT_CHANGE, 1));
-    let (ended, log) = run(&mut state, intents);
-    assert!(matches!(ended, Ended::Ran { .. }), "{ended:?}");
-    assert_eq!(log.len(), 1);
-    assert!(log[0].starts_with("write ") && log[0].ends_with("app.rs"), "{log:?}");
-    assert_eq!(
-        std::fs::read_to_string(repository.path().join("app.rs")).unwrap(),
-        edited(30, &[5, 25])
-    );
-    assert_eq!(text(shown(&state)).aligned.changes.len(), 2);
-}
-
-#[test]
 fn diff_stage_file__stage_file_runs_exactly_git_add_and_every_change_is_drawn_dimmed() {
     let repository = repository_with_three_changes();
     let (mut state, mut window) = page_of(&repository, "app.rs");

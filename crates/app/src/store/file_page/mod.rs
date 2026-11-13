@@ -5,6 +5,7 @@
 mod colors;
 mod edit;
 mod given;
+mod held;
 mod save_all;
 
 use std::ops::Range;
@@ -25,8 +26,10 @@ use crate::persisted::same_folder;
 use crate::work::file_view::FileJob;
 
 pub use colors::{Colors, colors_of};
-pub use edit::{ended, reduce_page};
+pub(crate) use edit::save;
+pub use edit::{Edited, edit_with, ended, reduce_page};
 pub use given::open_with_text;
+pub use held::{HeldFile, document_of, hold};
 
 /// How many columns a tab goes to in the editor.
 const TAB_WIDTH: usize = 4;
@@ -136,6 +139,8 @@ pub struct FilePage {
     pub find: Option<FindBox>,
     /// What is typed in **Go to line**, while it is asked.
     pub go_to_line: Option<String>,
+    /// Whether it is not among the pages of the window: it holds the text of a file a Diff page edits (`diff.edit`).
+    pub is_hidden: bool,
 }
 
 impl FilePage {
@@ -167,6 +172,11 @@ pub fn open(state: &mut State, target: FileTarget) -> Vec<Effect> {
     if let Some(index) = found {
         let serial = next_serial(state);
         if let Some(page) = state.file_pages.pages.get_mut(index) {
+            if page.is_hidden {
+                // Shown for the first time: the text a Diff page edited takes the keyboard, as a page read does.
+                page.is_hidden = false;
+                page.focus = Some(serial);
+            }
             if let Some(line) = target.line {
                 go_to(page, line, serial);
             }
@@ -206,6 +216,7 @@ pub fn open(state: &mut State, target: FileTarget) -> Vec<Effect> {
         generation,
         find: None,
         go_to_line: None,
+        is_hidden: false,
     });
     super::pages::show_page(state, Page::File(id));
     start_read(state, id).into_iter().collect()
@@ -337,12 +348,20 @@ pub fn follow(state: &mut State) -> Vec<Effect> {
     to_read.into_iter().filter_map(|id| start_read(state, id)).collect()
 }
 
-/// Forgets the pages closed, and cancels their reads.
+/// Forgets the pages closed, and cancels their reads; a page that is not shown and holds the text of a file a Diff page
+/// edits is kept while it is needed.
 pub fn prune(state: &mut State) -> Vec<Effect> {
+    let needed: Vec<FilePageId> = state
+        .file_pages
+        .pages
+        .iter()
+        .filter(|page| page.is_hidden && held::is_needed(state, page))
+        .map(|page| page.id)
+        .collect();
     let open = &state.pages.open;
     let (kept, closed): (Vec<FilePage>, Vec<FilePage>) = std::mem::take(&mut state.file_pages.pages)
         .into_iter()
-        .partition(|page| open.contains(&Page::File(page.id)));
+        .partition(|page| open.contains(&Page::File(page.id)) || needed.contains(&page.id));
     state.file_pages.pages = kept;
     closed
         .into_iter()

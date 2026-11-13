@@ -110,7 +110,8 @@ fn note(ui: &mut Ui<'_>, state: &DiffPageState<'_>, (file, rect): (usize, Rect))
 /// The bar of a fold, **⋯ 12 unchanged lines**, which shows its rows when clicked.
 fn folded(ui: &mut Ui<'_>, state: &DiffPageState<'_>, (file, rows, rect): (usize, &Range<usize>, Rect)) -> Vec<Intent> {
     let theme = *ui.theme();
-    let response = ui.interact(
+    // Above the sides, which take the pointer over the rows to place the caret (`diff.edit`).
+    let response = ui.interact_above(
         ui.id(("diff fold bar", state.id, file, rows.start)),
         rect,
         Sense::CLICK | Sense::HOVER,
@@ -220,14 +221,11 @@ fn side<'text>(
         ui.fill_rect(rect, background);
     }
     let style = ui.text_style(TextKind::Code);
-    let spacing = ui.theme().sizes.spacing.medium;
-    let mut parts = Area::with_gap(inset(rect, Insets::symmetric(spacing, 0.0)), spacing);
-    let number_cell = parts.left(ui.measure("00000", style));
+    let (number_cell, cell) = cells(ui, rect);
     let number = (line.line + 1).to_string();
     let width = ui.measure(&number, style);
     let number_rect = Rect::new(number_cell.right() - width, number_cell.y, width, number_cell.height);
     code(ui, number_rect, (&number, colors.muted_foreground));
-    let cell = parts.rest();
     for range in &line.marks {
         let original = text_of(line.line);
         let start = ui.measure(
@@ -249,6 +247,19 @@ fn side<'text>(
     }
     let spans = code_colors.get(line.line).map_or(&[][..], Vec::as_slice);
     colored_code(ui, cell, (text_of(line.line), spans));
+}
+
+/// The cell of the number and the cell of the text of one side of a row.
+fn cells(ui: &Ui<'_>, rect: Rect) -> (Rect, Rect) {
+    let spacing = ui.theme().sizes.spacing.medium;
+    let mut parts = Area::with_gap(inset(rect, Insets::symmetric(spacing, 0.0)), spacing);
+    let number_cell = parts.left(ui.measure("00000", ui.text_style(TextKind::Code)));
+    (number_cell, parts.rest())
+}
+
+/// Where the text of one side of a row is drawn: after its number.
+pub(crate) fn text_cell(ui: &Ui<'_>, rect: Rect) -> Rect {
+    cells(ui, rect).1
 }
 
 /// A line of code in the colors of its tokens, its tabs as four spaces, cut at the right of a rectangle.

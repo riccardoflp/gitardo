@@ -191,6 +191,7 @@ fn go_to_file(state: &mut State, id: DiffPageId, (direction, at): (Direction, Du
     page.jobs = vec![None];
     page.unfolded = vec![std::collections::BTreeSet::new()];
     page.current = None;
+    page.caret = None;
     lines::rebuild(page);
     read_file(state, id, 0, true).into_iter().collect()
 }

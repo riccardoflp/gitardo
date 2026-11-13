@@ -19,6 +19,7 @@ mod compare_actions;
 mod compare_file;
 mod conflicts;
 mod diff;
+mod diff_edit;
 mod diff_links;
 mod diff_open;
 mod diff_staging;

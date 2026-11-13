@@ -393,17 +393,17 @@ Puts back in the working tree what the left side has in place of one change.
 
 Acceptance:
 
-- [ ] Reverting a changed line against `HEAD` gives the file the line `HEAD` has, and the page has one change fewer.
-- [ ] Reverting a removed change at the end of a file with no final line break puts the lines back after the last
+- [x] Reverting a changed line against `HEAD` gives the file the line `HEAD` has, and the page has one change fewer.
+- [x] Reverting a removed change at the end of a file with no final line break puts the lines back after the last
       line.
-- [ ] `Ctrl+Z` right after brings the change back, and the page shows the file unsaved.
+- [x] `Ctrl+Z` right after brings the change back, and the page shows the file unsaved.
 
 ### `diff.edit` — Editing the working tree side
 
 The file can be edited where it is shown, when the right side is the working tree.
 
 - **Kind**: View
-- **Function**: `views::diff::edit_view(state, ui) -> Vec<Intent>`
+- **Function**: `views::diff::edit_view(sides, ui) -> Vec<Intent>`, over the rows the list of the page drew (Q-E1)
 - **Entry points**: typing in the right side of a Diff page whose right side is the working tree; `Ctrl+S` (`Cmd+S` on
   macOS) to save.
 - **Uses**: `file-view.edit`, `file-view.save`.
@@ -415,10 +415,10 @@ The file can be edited where it is shown, when the right side is the working tre
 
 Acceptance:
 
-- [ ] Typing a line in the right side shows it as an added change within half a second, and `Ctrl+S` writes the file
+- [x] Typing a line in the right side shows it as an added change within half a second, and `Ctrl+S` writes the file
       with `write <file>` in the log.
-- [ ] An edit made in the File page of the same file shows in the Diff page, and the other way round.
-- [ ] In a diff of the index against `HEAD`, typing does nothing.
+- [x] An edit made in the File page of the same file shows in the Diff page, and the other way round.
+- [x] In a diff of the index against `HEAD`, typing does nothing.
 
 ### `diff.open-at-line` — Open the file at this line
 
@@ -434,8 +434,8 @@ Opens the file in the File page at the line of the cursor.
 
 Acceptance:
 
-- [ ] `F4` on line 30 of the right side opens the File page at line 30.
-- [ ] `F4` on a removed line of the left side opens the File page at the line above where it was.
+- [x] `F4` on line 30 of the right side opens the File page at line 30.
+- [x] `F4` on a removed line of the left side opens the File page at the line above where it was.
 
 ### `diff.open-file` — Open file
 

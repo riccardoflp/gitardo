@@ -80,7 +80,9 @@ pub use memory::UiMemory;
 pub use widget::badge::{Badge, BadgeFill};
 pub use widget::button::{Button, ButtonKind};
 pub use widget::choice::{Choice, ChoiceKind};
-pub use widget::code_editor::{CodeEditor, CodeEditorResponse, CodePlaces, CodeRows, CodeSpan, LineWrap, code_columns};
+pub use widget::code_editor::{
+    CodeEditor, CodeEditorResponse, CodePlaces, CodeRows, CodeSpan, KeyCommands, LineWrap, code_columns, key_commands,
+};
 pub use widget::dialog::{
     ConfirmAnswer, ConfirmStyle, Confirmation, Dialog, DialogBody, DialogButton, DialogResponse, DialogRole,
 };

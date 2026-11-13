@@ -9,17 +9,19 @@ use crate::input::{Key, KeyEvent, Modifiers, NamedKey};
 
 /// What a key asks of an editor.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(crate) struct KeyCommands {
+pub struct KeyCommands {
     /// Whether the editor uses the key, so that it is not a shortcut of the view.
-    pub(crate) is_used: bool,
+    pub is_used: bool,
     /// Whether the selection is copied to the clipboard first.
-    pub(crate) copies: bool,
+    pub copies: bool,
     /// What it asks of the document.
-    pub(crate) commands: Vec<Command>,
+    pub commands: Vec<Command>,
 }
 
-/// What a key asks of an editor, which goes a page of so many lines with Page Up and Page Down.
-pub(crate) fn key_commands(key: KeyEvent, page: usize, is_read_only: bool) -> KeyCommands {
+/// What a key asks of an editor, which goes a page of so many lines with Page Up and Page Down: the keys of the editor
+/// of code, for a view that edits text drawn its own way, such as the side of a Diff page.
+#[must_use]
+pub fn key_commands(key: KeyEvent, page: usize, is_read_only: bool) -> KeyCommands {
     let asked = match key.key {
         Key::Named(named) => named_key(named, key.modifiers, page),
         Key::Character(character) => character_key(character, key.modifiers),

@@ -92,7 +92,9 @@ fn lines_of(bytes: &[u8]) -> Vec<Line<'_>> {
 /// The working tree with the lines of a change replaced by those of the left side, which take the line break of the
 /// file (`\r\n` when it has one, `\n` otherwise). A change that ends both sides ends the file as the left side does:
 /// with a line break or without.
-fn reverted(working_tree: &[u8], left: &[u8], change: &DiffChange) -> Vec<u8> {
+/// The window reverts a change in the text of the working tree side with it, as one edit.
+#[must_use]
+pub fn reverted(working_tree: &[u8], left: &[u8], change: &DiffChange) -> Vec<u8> {
     let right_lines = lines_of(working_tree);
     let left_lines = lines_of(left);
     let ending: &[u8] = if working_tree.windows(2).any(|pair| pair == b"\r\n") {

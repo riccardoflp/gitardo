@@ -7,7 +7,7 @@ use std::sync::Arc;
 use model::contract::{Answers, FeatureId, Target};
 use model::file_view::{FileAt, FileSave};
 use text::find::{FindQuery, find_all};
-use ui::editor::{Command, Cursor, apply};
+use ui::editor::{Change, Command, Cursor, apply};
 use views::file_view::{FilePageId, FilePageIntent};
 
 use super::{FileContent, FilePage, FindBox, close, next_serial, page_mut};
@@ -76,17 +76,41 @@ pub fn reduce_page(state: &mut State, id: FilePageId, intent: FilePageIntent) ->
     Vec::new()
 }
 
-/// Does what the keys and the pointer asked of the text of a page: the colors of its code and its matches follow, and
-/// the Diff pages of the file are read again with the text not saved.
+/// Does what the keys and the pointer asked of the text of a page: the colors of its code and its matches follow, the
+/// Diff pages of the file follow the text, and they are read again with the text not saved.
 pub(super) fn edit(state: &mut State, id: FilePageId, commands: &[Command]) -> Vec<Effect> {
-    let is_blamed = crate::store::blame::shows_file(state, id);
-    let Some(page) = page_mut(state, id) else {
+    let Some(edited) = edit_with(state, id, commands, None).filter(|edited| !edited.changes.is_empty()) else {
         return Vec::new();
     };
+    let file = (edited.top.as_path(), edited.path.as_str());
+    crate::store::diff_page::follow_document(state, file, (&edited.changes, None));
+    crate::store::diff_page::read_file_again(state, &edited.top, &edited.path)
+}
+
+/// What an edit of the text of a file did.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Edited {
+    /// How the text changed, in order.
+    pub changes: Vec<Change>,
+    /// The cursor given, where the edit left it.
+    pub cursor: Cursor,
+    /// The top folder of the working tree of the file.
+    pub top: std::path::PathBuf,
+    /// The path of the file from it.
+    pub path: String,
+}
+
+/// Does what the keys and the pointer asked of the text of a page, with the cursor of the page, or with another one
+/// given, such as that of a Diff page that edits the file, whose edits move the cursor of the page as they move its
+/// text; the colors of its code, its matches and its blame follow. Says how the text changed, none when it did not.
+pub fn edit_with(state: &mut State, id: FilePageId, commands: &[Command], given: Option<Cursor>) -> Option<Edited> {
+    let is_blamed = crate::store::blame::shows_file(state, id);
+    let page = page_mut(state, id)?;
     let is_read_only = page.revision.is_some();
     let FileContent::Text(document) = &mut page.content else {
-        return Vec::new();
+        return None;
     };
+    let mut cursor = given.unwrap_or(page.cursor);
     let mut changes = Vec::new();
     let mut blamed_edits = Vec::new();
     for command in commands {
@@ -94,7 +118,7 @@ pub(super) fn edit(state: &mut State, id: FilePageId, commands: &[Command]) -> V
             continue;
         }
         let before = is_blamed.then(|| document.buffer().text().to_owned());
-        let made = apply(document, &mut page.cursor, command);
+        let made = apply(document, &mut cursor, command);
         if let Some(before) = before {
             blamed_edits.extend(crate::store::blame::line_changes(
                 &before,
@@ -104,15 +128,29 @@ pub(super) fn edit(state: &mut State, id: FilePageId, commands: &[Command]) -> V
         }
         changes.extend(made);
     }
+    if given.is_none() {
+        page.cursor = cursor;
+    } else {
+        for change in &changes {
+            page.cursor.follow(change);
+        }
+    }
     match changes.as_slice() {
-        [] => return Vec::new(),
+        [] => {}
         [change] => page.colors.follow(document.buffer(), change),
         _ => page.colors = super::Colors::of(&page.path, document.buffer()),
     }
-    find_again(page);
-    let (top, path) = (page.top.clone(), page.path.clone());
+    if !changes.is_empty() {
+        find_again(page);
+    }
+    let edited = Edited {
+        changes,
+        cursor,
+        top: page.top.clone(),
+        path: page.path.clone(),
+    };
     crate::store::blame::mark_edits(state, id, &blamed_edits);
-    crate::store::diff_page::read_file_again(state, &top, &path)
+    Some(edited)
 }
 
 /// Finds again what the box of a page has typed, in the text as it is.
@@ -183,7 +221,7 @@ fn go_to_match(page: &mut FilePage, step: Step, serial: u64) {
 }
 
 /// Runs `file-view.save` on the text of a page with edits not saved, to close the page once it is saved when asked.
-pub(super) fn save(state: &mut State, id: FilePageId, then_close: bool) -> Vec<Effect> {
+pub(crate) fn save(state: &mut State, id: FilePageId, then_close: bool) -> Vec<Effect> {
     let Some(page) = state.file_pages.pages.iter().find(|page| page.id == id) else {
         return Vec::new();
     };

@@ -8,6 +8,7 @@
 mod bar;
 mod columns;
 mod data;
+mod edit;
 mod gutter;
 mod question;
 mod rows;
@@ -16,14 +17,17 @@ mod targets;
 use std::time::Duration;
 
 use ui::layout::Area;
-use ui::{AccessRole, List, Reveal, RevealPlace, SelectionMode, Steering, Ui};
+use ui::{AccessRole, List, SelectionMode, Steering, Ui};
 
 use crate::intent::Intent;
 use crate::text::diff as words;
 
 pub use bar::{collapse_unchanged_view, navigate_view, open_file_view};
 pub use columns::{LEAST_WIDTH, resize_sides_view};
-pub use data::{ChangePlace, DiffFile, DiffTarget, DiffText, DiffVersion, FileDiff, Hint, PageLine};
+pub use data::{
+    CaretSide, ChangePlace, DiffCaret, DiffFile, DiffTarget, DiffText, DiffVersion, FileDiff, Hint, PageLine,
+};
+pub use edit::{DrawnSides, RECOMPUTE_AFTER, edit_view, open_at_line_view};
 pub use question::{LargeDiffQuestion, large_diff_question_view};
 pub use targets::{changes_file, commit_file, commit_files, commit_sides, file_sides, listed_file, untracked_file};
 
@@ -56,12 +60,19 @@ pub struct DiffPageState<'a> {
     pub is_collapsed: bool,
     /// The width of the left side as dragged, in whole logical pixels; none for two sides of the same width.
     pub left_width: Option<u32>,
-    /// A row of the page to bring to the middle, once for each number.
-    pub reveal: Option<(u64, usize)>,
+    /// A row of the page to bring into sight, once for each number: a change gone to, to the middle; the line of the
+    /// caret, scrolled the least.
+    pub reveal: Option<ui::Reveal>,
     /// What the bar says for a moment, and until when.
     pub hint: Option<(Hint, Duration)>,
     /// Whether the file of the working tree it shows has edits not saved in a File page (`file-view.edit`).
     pub is_unsaved: bool,
+    /// Where the caret is.
+    pub caret: Option<DiffCaret<'a>>,
+    /// When the text was last edited in this page and the diff not computed again since (`diff.edit`).
+    pub edited_at: Option<Duration>,
+    /// Whether the rows were moved by an edit and the diff not computed again since: the buttons of the gutter wait.
+    pub is_stale: bool,
 }
 
 /// Something asked of the Diff pages.
@@ -73,6 +84,38 @@ pub enum DiffIntent {
     Page(DiffPageId, DiffPageIntent),
     /// The answer to the question asked before a very large diff: **Continue**, or anything else.
     AnswerLarge(bool),
+    /// Something asked of the sides of a page (`diff.edit`, `diff.revert-change`).
+    Edit(DiffPageId, DiffEditIntent),
+}
+
+/// Something asked of the sides of a Diff page.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DiffEditIntent {
+    /// What the keys and the pointer asked of the text of the working tree side of a file, in order, at a moment of
+    /// the frames.
+    Text {
+        /// The file, by its place in the page.
+        file: usize,
+        /// What was asked.
+        commands: Vec<ui::editor::Command>,
+        /// When.
+        at: Duration,
+    },
+    /// A line chosen on a side that is not edited, by its row among the rows of its file.
+    Line {
+        /// The file.
+        file: usize,
+        /// The side.
+        side: CaretSide,
+        /// The row.
+        row: usize,
+    },
+    /// The diff computed again with the text as it is, a moment after typing stopped.
+    Recompute,
+    /// `Ctrl+S`: the files of the working tree of the page with edits not saved written.
+    Save,
+    /// **Revert this change** (`diff.revert-change`): a file, and a change among its changes.
+    Revert(usize, usize),
 }
 
 /// Something asked of a Diff page.
@@ -106,14 +149,22 @@ pub fn page_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         let list_rect = area.rest();
         let columns = columns::Columns::of(list_rect, state.left_width, ui);
         rows::names(ui, names, (state, &columns));
-        intents.extend(lines(state, ui, (list_rect, &columns)));
+        let (row_intents, drawn) = lines(state, ui, (list_rect, &columns));
+        intents.extend(row_intents);
+        let sides = DrawnSides::new(state, (columns, list_rect), drawn);
+        intents.extend(ui.clip(list_rect, |ui| edit_view(&sides, ui)));
         intents.extend(ui.clip(list_rect, |ui| resize_sides_view(state, ui)));
     });
     intents
 }
 
-/// The rows of the page, as a list that draws those in sight, with the marks of the changes beside its scroll bar.
-fn lines(state: &DiffPageState<'_>, ui: &mut Ui<'_>, (rect, columns): (ui::Rect, &columns::Columns)) -> Vec<Intent> {
+/// The rows of the page, as a list that draws those in sight, with the marks of the changes beside its scroll bar; and
+/// the rows drawn, by their place and where they are.
+fn lines(
+    state: &DiffPageState<'_>,
+    ui: &mut Ui<'_>,
+    (rect, columns): (ui::Rect, &columns::Columns),
+) -> (Vec<Intent>, Vec<(usize, ui::Rect)>) {
     let height = rows::row_height(ui);
     let list = List {
         name: words::LINES,
@@ -124,17 +175,15 @@ fn lines(state: &DiffPageState<'_>, ui: &mut Ui<'_>, (rect, columns): (ui::Rect,
     };
     let steering = Steering {
         selection: None,
-        reveal: state.reveal.map(|(serial, row)| Reveal {
-            serial,
-            row,
-            place: RevealPlace::Center,
-        }),
+        reveal: state.reveal,
         left_to_view: &[],
     };
     let mut intents = Vec::new();
+    let mut drawn = Vec::new();
     let _ = ui.steered_list(("diff rows", state.id), (rect, &list), &steering, |ui, row| {
+        drawn.push((row.index, row.rect));
         intents.extend(rows::row(ui, state, (row, columns)));
     });
     rows::scroll_marks(ui, state, rect);
-    intents
+    (intents, drawn)
 }

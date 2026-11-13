@@ -66,6 +66,10 @@ pub const OPEN_FILE: &str = "Open file";
 pub const UNSTAGE_FILE: &str = "Unstage file";
 /// The title button that discards the changes of the file.
 pub const DISCARD_FILE: &str = "Discard changes";
+/// The entry of the context menu of a side that opens the file at the line of the caret (`diff.open-at-line`).
+pub const JUMP_TO_SOURCE: &str = "Jump to source";
+/// The key of **Jump to source**.
+pub const JUMP_TO_SOURCE_KEYS: &str = "F4";
 
 /// The title of the Diff page of a file: **app.rs (HEAD ↔ Working tree)**.
 #[must_use]

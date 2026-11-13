@@ -12,6 +12,13 @@
   together, the best first: `main`, then `origin/main`, then `maintenance`.
 - With `branches.sortOrder` not set, the branches, the remote branches and the tags are listed by date when Git's own
   `branch.sort` is `-committerdate` or `committerdate`, and by name otherwise.
+- The working tree side of a Diff page is edited where it is shown: a click places the caret, a drag, a double click
+  and a triple click select, the keys of the editor move and type, `Ctrl+C`, `Ctrl+X` and `Ctrl+V` use the clipboard,
+  and `Ctrl+Z` takes back what was typed. The lines typed show at once, the diff is computed again a moment after
+  typing stops, and `Ctrl+S` saves the file. The text is the one the File page of the file shows, so an edit in one
+  shows in the other. **Revert this change** is such an edit, saved at once, and `Ctrl+Z` brings the change back.
+- `F4`, or **Jump to source** in the menu of a side, opens the File page of the file at the line of the caret; on a
+  removed line of the left side, at the line above it.
 - The **…** menu of the header is in the groups of its card, with **Compare branches, tags or commits…** and
   **Switch identity…** in a group of its own.
 - The documents to build Gitardo Desktop from: the clean room, the product, the architecture, the code rules, the

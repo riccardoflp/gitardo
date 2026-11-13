@@ -14,7 +14,7 @@ mod testing;
 
 pub use change::VERSIONS;
 pub use discard_file::discard_file;
-pub use revert_change::revert_change;
+pub use revert_change::{revert_change, reverted};
 pub use stage_change::stage_change;
 pub use stage_file::stage_file;
 pub use unstage_change::unstage_change;

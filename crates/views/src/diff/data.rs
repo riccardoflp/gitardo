@@ -254,3 +254,46 @@ impl Hint {
         }
     }
 }
+
+/// A side of a Diff page.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum CaretSide {
+    /// The left side, read only.
+    Left,
+    /// The right side.
+    Right,
+}
+
+/// Where the caret of a Diff page is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DiffCaret<'a> {
+    /// A line chosen on a side that is not edited, by its row among the rows of its file.
+    Line {
+        /// The file, by its place in the page.
+        file: usize,
+        /// The side.
+        side: CaretSide,
+        /// The row.
+        row: usize,
+    },
+    /// The caret in the working tree side of a file (`diff.edit`): the text of the file, which every page of the file
+    /// shows, and the caret and the selection of this page in it.
+    Text {
+        /// The file, by its place in the page.
+        file: usize,
+        /// The text.
+        buffer: &'a ui::editor::Buffer,
+        /// The caret and the selection.
+        cursor: ui::editor::Cursor,
+    },
+}
+
+impl DiffCaret<'_> {
+    /// The file the caret is in.
+    #[must_use]
+    pub fn file(&self) -> usize {
+        match self {
+            DiffCaret::Line { file, .. } | DiffCaret::Text { file, .. } => *file,
+        }
+    }
+}
