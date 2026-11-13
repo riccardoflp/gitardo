@@ -372,7 +372,9 @@ fn check_answer(question: &Question, answer: &Answer) -> Result<(), EngineError>
             (!choices.iter().any(|choice| choice.identifier == *picked))
                 .then(|| Text::from(format!("{picked} is not one of the choices")))
         }
-        (QuestionKind::Confirm { .. }, Answer::Confirmed) | (QuestionKind::PickMany { .. }, Answer::Choices(_)) => None,
+        (QuestionKind::Confirm { .. }, Answer::Confirmed)
+        | (QuestionKind::PickMany { .. }, Answer::Choices(_))
+        | (QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_), Answer::Path(_)) => None,
         _ => Some(Text::from("This is not the kind of answer the question asks for")),
     };
     match problem {

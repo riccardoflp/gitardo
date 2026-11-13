@@ -37,7 +37,7 @@ fn target_commit(context: &Context) -> Result<&CommitId, Box<Outcome>> {
 }
 
 /// The refusal while an operation is stopped half way: a bisect is started or marked only when none is.
-fn refuse_while_operation(context: &Context) -> Option<Outcome> {
+pub(crate) fn refuse_while_operation(context: &Context) -> Option<Outcome> {
     let operation = context.repository.operation?;
     let name = match operation {
         Operation::Merge => "merge",

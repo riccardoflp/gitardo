@@ -222,8 +222,24 @@ fn operation_entries(menu: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand
     .collect()
 }
 
+/// **Manage remotes…**, **Apply patch…** and **Reflog**, which cannot be clicked while an operation runs.
+fn repository_entries(operations: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
+    [
+        (words::MANAGE_REMOTES, "remote.manage"),
+        (crate::text::patch::APPLY_PATCH, "patch.apply"),
+        (crate::text::bisect::REFLOG, "reflog.browse"),
+    ]
+    .into_iter()
+    .map(|(label, feature)| {
+        let item = MenuItem::new(label, MoreCommand::Operation(feature));
+        MenuEntry::Item(if operations.is_running { item.disabled() } else { item })
+    })
+    .collect()
+}
+
 /// The entries of **…**: **Refresh**, **Branch**, **Stash** and **Undo**, the entries of the timeline, **Go to commit…**,
-/// **Clean up branches…**, **Manage remotes…**, **Select repository**, then **Settings** and **Theme…**.
+/// **Clean up branches…**, **Manage remotes…**, **Apply patch…**, **Reflog**, **Select repository**, then **Settings** and
+/// **Theme…**.
 fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
     let refresh = MenuItem::new(words::REFRESH, MoreCommand::Refresh).with_icon(Icon::Refresh);
     let mut entries = vec![MenuEntry::Item(if state.can_refresh {
@@ -258,12 +274,7 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
         }
     }
     if let Some(operations) = state.operations {
-        let item = MenuItem::new(words::MANAGE_REMOTES, MoreCommand::Operation("remote.manage"));
-        entries.push(MenuEntry::Item(if operations.is_running {
-            item.disabled()
-        } else {
-            item
-        }));
+        entries.extend(repository_entries(operations));
     }
     if state.can_select_repository {
         entries.push(MenuEntry::Item(MenuItem::new(

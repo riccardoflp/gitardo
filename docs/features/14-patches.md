@@ -89,7 +89,7 @@ Saves the same patch as **Copy as patch** to a file the user chooses.
 - **Entry points**: **Save as patch…** in the context menu of a commit in the timeline and in the context menu of
   several selected commits.
 - **Offered when**: as `patch.copy`.
-- **Asks**: where to save it, in Gitardo's own save dialog titled **Save `<short hash>` as a patch** or **Save N commits
+- **Asks**: where to save it, in the system's save dialog titled **Save `<short hash>` as a patch** or **Save N commits
   as a patch**, filtered to `.patch`, starting in the top folder of the repository with the name `<short hash>.patch`,
   or `<short hash of the oldest>-<short hash of the newest>.patch` for several.
 - **Reads**: `patch.read-format-patch`.
@@ -137,7 +137,7 @@ author and message, or to the working tree only, its changes staged and nothing 
 - **Entry points**: Quick search: **Apply Patch…**; **Apply patch…** in the **…** menu of the header.
 - **Asks**:
   1. **Apply patch**: **From a file…** or **From the clipboard**.
-  2. From a file: Gitardo's own open dialog titled **Apply patch**, starting in the top folder of the repository, with
+  2. From a file: the system's open dialog titled **Apply patch**, starting in the top folder of the repository, with
      the filters **Patches** (`.patch`, `.diff`, `.mbox`, `.eml`) and **All files**, its button **Choose**.
   3. Only for a patch made by `git format-patch` (`patch.count-commits` above 0), **Apply `<name>`**, where the name is
      the file's name or **the patch in the clipboard**:

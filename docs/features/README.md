@@ -448,10 +448,10 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | --- | --- | --- | --- |
 | [`patch.read-format-patch`](14-patches.md#patchread-format-patch--read-commits-as-one-patch) | Read commits as one patch | Read | Built |
 | [`patch.count-commits`](14-patches.md#patchcount-commits--how-many-commits-a-patch-has) | How many commits a patch has | Derivation | Built |
-| [`patch.copy`](14-patches.md#patchcopy--copy-as-patch) | Copy as patch | Operation | Specified |
-| [`patch.save`](14-patches.md#patchsave--save-as-patch) | Save as patch… | Operation | Specified |
+| [`patch.copy`](14-patches.md#patchcopy--copy-as-patch) | Copy as patch | Operation | Built |
+| [`patch.save`](14-patches.md#patchsave--save-as-patch) | Save as patch… | Operation | Built |
 | [`patch.check`](14-patches.md#patchcheck--check-a-patch-before-applying-it) | Check a patch before applying it | Read | Built |
-| [`patch.apply`](14-patches.md#patchapply--apply-a-patch) | Apply a patch | Operation | Specified |
+| [`patch.apply`](14-patches.md#patchapply--apply-a-patch) | Apply a patch | Operation | Built |
 | [`patch.am-stopped`](14-patches.md#patcham-stopped--a-patch-that-stopped-on-a-conflict) | A patch that stopped on a conflict | View | Specified |
 
 ## GitHub

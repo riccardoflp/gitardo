@@ -24,6 +24,7 @@ mod jobs;
 mod large_diffs;
 mod operations;
 mod panes;
+mod patches;
 mod pointer;
 mod rail;
 mod rebase;

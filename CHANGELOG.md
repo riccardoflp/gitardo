@@ -173,3 +173,8 @@
   bisect needs next, with **Good**, **Bad** and **Skip** for the commit checked out and **End**; the labels `good`,
   `bad` and `skipped` on the commits marked; and a message that names the first bad commit once it is found, with
   **Show in the timeline** and **End bisect**. Undo refuses while a bisect is under way.
+- Patches, from the window and from `gitardo-cli`: **Copy as patch** and **Save as patch…** in the menu of a commit
+  that is not a merge, one patch of `git format-patch` for one commit or several, oldest first; **Apply patch…** in
+  **…** and in Quick search, from a file or from the clipboard, as commits with `git am --3way` or to the working tree
+  only with `git apply --3way`, checked first: a patch that does not apply says why and changes nothing, one that will
+  stop on conflicts names the files and asks first, and Undo takes back all the commits of a patch at once.

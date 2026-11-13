@@ -1039,3 +1039,12 @@ says otherwise):
   while a bisect is under way. The message that names the first bad commit is the one said once an operation ends, its
   **Undo** left out, with **Show in the timeline** and **End bisect**; once it is put away, the banner still says it,
   with **Show** and **End**. Are these right?
+- **Q-G2** — The files of `patch.save` and `patch.apply` are chosen in the system's dialog (the same as **Open
+  folder…**), not a dialog of Gitardo's own, so their cards now say so; `gitardo-cli` takes `path=<path>` and
+  `file=<path>`, and the text of the clipboard as `clipboard=<text>`. The temporary file of a patch from the clipboard
+  is deleted by a step the engine runs after the plan whether it succeeded or not (`FollowUp::Cleanup`), shown in the
+  plan and logged. A plan has no note of its own: what `patch.apply` says of the commits and of the conflicts is shown
+  only when it asks first, for conflicts, so **No conflicts expected.** is never shown. The journal of Undo lives in
+  the window, so the Undo of a patch of commits at once is in the window only; `gitardo-cli` undoes it one commit at a
+  time by the reflog. `patch.am-stopped` stays **Specified**: it is the banner of an operation stopped on a conflict
+  (`conflicts.banner`, `conflicts.continue-operation`) and the Merge page, which come with M6. Are these right?

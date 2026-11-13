@@ -12,6 +12,7 @@ mod commit;
 mod commits;
 mod merge;
 mod message;
+mod patch;
 mod picks;
 mod push;
 mod rebase;

@@ -18,6 +18,7 @@ mod history;
 pub mod identity;
 pub mod merge;
 pub mod message;
+pub mod patch;
 pub mod rebase;
 pub mod remote;
 pub mod reset;
@@ -37,7 +38,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 78] = [
+pub const OPERATIONS: [(FeatureId, Operation); 81] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -124,6 +125,10 @@ pub const OPERATIONS: [(FeatureId, Operation); 78] = [
     (FeatureId("bisect.end"), bisect::end),
     (FeatureId("bisect.mark"), bisect::mark),
     (FeatureId("bisect.start"), bisect::start),
+    // Patches.
+    (FeatureId("patch.apply"), patch::apply),
+    (FeatureId("patch.copy"), patch::copy),
+    (FeatureId("patch.save"), patch::save),
 ];
 
 /// The operation of an identifier, when it is built.
