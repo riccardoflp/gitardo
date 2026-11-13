@@ -137,6 +137,8 @@ pub enum FileViewIntent {
     Page(FilePageId, FilePageIntent),
     /// Save the file of the working tree open at this path, from the Changes page.
     Save(String),
+    /// **Save all** on the Changes page: every file of the working tree open with edits not saved (`changes.save`).
+    SaveAll,
     /// The answer to **Save changes to app.rs?**
     AnswerClose(CloseAnswer),
 }

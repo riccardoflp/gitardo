@@ -223,6 +223,7 @@ fn run(state: &mut State, feature: FeatureId, target: Target) -> Vec<Effect> {
 /// A save ended: once written, the text is what is saved and on disk, and the page closes when that was asked; a save
 /// refused, cancelled or failed leaves the edits not saved.
 pub fn ended(state: &mut State, ended: &Ended) {
+    super::save_all::ended(state, ended);
     let is_saving = state
         .operations
         .running
@@ -237,15 +238,7 @@ pub fn ended(state: &mut State, ended: &Ended) {
     if !matches!(ended, Ended::Ran { .. }) {
         return;
     }
-    let Some(page) = page_mut(state, id) else {
-        return;
-    };
-    if let FileContent::Text(document) = &mut page.content
-        && document.buffer().to_bytes() == written
-    {
-        document.mark_saved();
-    }
-    page.read = written;
+    super::save_all::saved(state, id, written);
     if then_close {
         close(state, id);
     }

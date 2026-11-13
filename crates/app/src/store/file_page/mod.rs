@@ -5,6 +5,7 @@
 mod colors;
 mod edit;
 mod given;
+mod save_all;
 
 use std::ops::Range;
 use std::path::{Path, PathBuf};
@@ -44,6 +45,7 @@ pub fn reduce(state: &mut State, intent: FileViewIntent) -> Vec<Effect> {
                 .map(|page| page.id);
             found.map(|id| edit::save(state, id, false)).unwrap_or_default()
         }
+        FileViewIntent::SaveAll => save_all::save_all(state),
         FileViewIntent::AnswerClose(answer) => answer_close(state, answer),
     }
 }
@@ -61,6 +63,8 @@ pub struct FilePages {
     pub closing: Option<FilePageId>,
     /// The page being saved, the bytes written, and whether it closes once they are.
     pub saving: Option<(FilePageId, Vec<u8>, bool)>,
+    /// The pages being saved by **Save all**, each with the bytes written.
+    pub saving_all: Vec<(FilePageId, Vec<u8>)>,
 }
 
 /// What a File page shows.

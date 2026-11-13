@@ -365,21 +365,22 @@ Writes to disk the edits typed in Gitardo's editors and not saved yet, so that g
 
 - **Kind**: Operation
 - **Function**: `features::changes::save(context, answers) -> Outcome`
-- **Entry points**: **Save** on a row of the Changes page, on a file that has edits not saved; **Save all** on the
-  header of the list, for every such file.
+- **Entry points**: **Save all** on the header of the list, for every file of the working tree with edits not saved
+  in a File page. **Save** on a row of the Changes page saves that file through `file-view.save`, which asks before
+  writing over a file another program changed.
 - **Offered when**: the file has edits not saved (`changes.unsaved`).
 - **Plan**: `write <path>` for each file, with the text of its buffer.
 - **Danger**: None.
 - **Undo**: Not taken back by Undo; the editor of the file still takes the edits back with `Ctrl+Z`.
 - **After**: the buffers are marked saved, the dots go, and the files are listed as git now sees them.
-- **Uses**: `changes.unsaved`, `file-view.page`.
+- **Uses**: `changes.unsaved`, `file-view.page`, `file-view.save`.
 
 Acceptance:
 
-- [ ] **Save** on a file edited in the File page writes its buffer to disk, and its row then has a box that can be
+- [x] **Save** on a file edited in the File page writes its buffer to disk, and its row then has a box that can be
       ticked.
-- [ ] **Save all** with two unsaved files writes both, and logs two `write` lines.
-- [ ] A file saved that ends up as in `HEAD` leaves the list.
+- [x] **Save all** with two unsaved files writes both, and logs two `write` lines.
+- [x] A file saved that ends up as in `HEAD` leaves the list.
 
 ### `changes.pathspec` — A file named as itself
 

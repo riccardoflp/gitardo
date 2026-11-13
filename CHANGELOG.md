@@ -259,3 +259,4 @@
 - On the Merge page a click on a line puts the cursor on it, and `F4` or **Jump to source** in its context menu opens
   the file in the File page at the line of the result it stands for. Closing a Merge page with choices not saved
   shows them in the File page, not saved, so that they are not lost.
+- **Save all** on the Changes page writes every file with edits not saved in a File page.

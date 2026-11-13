@@ -1212,9 +1212,10 @@ says otherwise):
   writes those bytes changed. Should such a file be read only instead, or decoded as Latin-1?
 - **Q216** — The cards name the Files page, Quick search and the blame as ways to open a file in its page; none of them
   exists yet, so the File page opens from Changes (a click when `changes.openOnClick` is `file`, and **Open file**) and
-  from **Open the file at this revision** on a file of a commit. **Save all** on Changes is still not clickable and
-  `changes.save` stays **Specified**: **Save** on a row saves the File page of that file through `file-view.save`. Are
-  these right?
+  from **Open the file at this revision** on a file of a commit. **Save all** on Changes now runs `changes.save`
+  (**Built**), given the texts of the File pages with edits not saved (`Target::FileSaves`); **Save** on a row still
+  saves the File page of that file through `file-view.save`, which asks before writing over a file changed on disk
+  (Q-P5). Are these right?
 - **Q217** — `file-view.save` logs the path on disk, `write C:\…\src\app.rs`, not `write src/app.rs`, since the step
   writes where the path names; is the path from the top of the repository wanted in the log instead?
 - **Q218** — **Open in external editor** refuses with the engine's own words when the command fails to start, and a

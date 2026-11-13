@@ -8,6 +8,7 @@ mod activity;
 mod bisect;
 mod branches;
 mod changes;
+mod changes_save;
 mod commit_page;
 mod compare;
 mod compare_actions;

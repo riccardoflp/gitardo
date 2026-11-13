@@ -162,8 +162,8 @@ fn changes_heading(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -
     ) {
         intents.push(run("changes.discard-all", Target::Changes));
     }
-    if state.list.has_unsaved() {
-        let _ = icon_button(ui, &mut area, ("save all", Icon::Check, words::SAVE_ALL), false);
+    if state.list.has_unsaved() && icon_button(ui, &mut area, ("save all", Icon::Check, words::SAVE_ALL), can_change) {
+        intents.push(Intent::FileView(FileViewIntent::SaveAll));
     }
     if icon_button(ui, &mut area, ("stash all", Icon::Stash, words::STASH_ALL), can_change) {
         intents.push(run("stash.push", Target::Head));

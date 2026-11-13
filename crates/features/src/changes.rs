@@ -4,6 +4,7 @@
 mod discard;
 mod discard_all;
 mod files;
+mod save;
 mod stage;
 mod stage_all;
 mod unstage;
@@ -11,6 +12,7 @@ mod unstage_all;
 
 pub use discard::discard;
 pub use discard_all::discard_all;
+pub use save::save;
 pub use stage::stage;
 pub use stage_all::stage_all;
 pub use unstage::unstage;

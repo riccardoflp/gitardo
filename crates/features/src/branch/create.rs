@@ -129,6 +129,7 @@ fn start(context: &Context) -> (String, String) {
         | Target::Resolutions(_)
         | Target::FileSave(_)
         | Target::FileAt(_)
+        | Target::FileSaves(_)
         | Target::Submodule(_) => (String::from("HEAD"), String::from("HEAD")),
         Target::Commit(commit) => (commit.to_string(), commit.short().to_owned()),
         Target::Branch(name) => (ref_argument(RefKind::Branch, name, &names), name.clone()),

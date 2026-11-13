@@ -34,6 +34,7 @@ pub fn onto(context: &Context, _answers: &Answers) -> Outcome {
         | Target::Resolutions(_)
         | Target::FileSave(_)
         | Target::FileAt(_)
+        | Target::FileSaves(_)
         | Target::Submodule(_) => return refuse("Choose a commit or a branch to rebase onto."),
     };
     Outcome::Run(Plan {

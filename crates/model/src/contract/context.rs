@@ -56,6 +56,8 @@ pub enum Target {
     Resolutions(Box<crate::review::Resolutions>),
     /// The text of a File page, to save (`file-view.save`).
     FileSave(Box<crate::file_view::FileSave>),
+    /// The texts of the File pages with edits not saved, to save at once (`changes.save`).
+    FileSaves(Vec<crate::file_view::FileSave>),
     /// A file of the working tree at the line of the cursor of its page (`file-view.open-external`).
     FileAt(crate::file_view::FileAt),
     /// A submodule, by its folder from the top of the repository: `vendor/a/b` (`submodule.section`).
