@@ -951,15 +951,18 @@ first.
   stashes), or something is typed in it.
 - **Uses**: `filter.rank-names`.
 
-What is typed leaves in each list the entries whose names have it, ignoring case, the best matches first
-(`filter.rank-names`). A list with matches is open while something is typed, whether it was closed or not; its
-count says `<matches> of <all>`. `Escape` or the button at the end of the box empties it.
+What is typed shows, in place of the lists, one list of the entries of every list whose names have it, ignoring case,
+the best matches first (`filter.rank-names`), under the title **MATCHES** with the count `<matches> of <all>`; among
+names that match as well, they keep the order of the lists. **Favorites** and **Recent**, whose branches are among the
+local ones, give none. An entry keeps the row and the menu of its list, so that a match of a list closed, such as
+**Tags**, is shown too; once the box is emptied, the lists are as they were. `Escape` or the button at the end of the
+box empties it.
 
 Acceptance:
 
 - [ ] With 14 branches and no tag, there is no box; with 15, there is.
 - [ ] Typing `main` lists `main`, then `origin/main`, then `maintenance`, then `release/main-2`, then `domain`.
-- [ ] A closed list with a match is shown open while the box has text, and closed again when it is emptied.
+- [ ] A match of a closed list is shown while the box has text, and the list is closed again when it is emptied.
 - [ ] `Escape` empties the box.
 
 ### `refs.scope-line` — The line of the branches shown, at the top of the branch rail

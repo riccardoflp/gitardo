@@ -9,6 +9,8 @@ pub const FAVORITES: &str = "FAVORITES";
 pub const RECENT: &str = "RECENT";
 /// The title of the local branches.
 pub const LOCAL: &str = "LOCAL";
+/// The title of the one list of the matches while something is typed in the filter box.
+pub const MATCHES: &str = "MATCHES";
 /// The title of what is kept aside.
 pub const KEPT_ASIDE: &str = "KEPT ASIDE";
 /// The list of the stashes.

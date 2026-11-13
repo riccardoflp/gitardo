@@ -52,7 +52,7 @@ impl RailRow<'_> {
     pub(super) fn height(&self, theme: &Theme) -> f32 {
         match self {
             RailRow::KeptTitle => TITLE,
-            RailRow::Heading(_) => HEADING,
+            RailRow::Heading(_) | RailRow::Matches { .. } => HEADING,
             RailRow::Kept(_) => QUIET_ROW,
             RailRow::Entry { entry, .. } => match entry {
                 Entry::Branch(_) => BRANCH_ROW,
@@ -97,6 +97,7 @@ pub(super) fn draw_row(
     }
     match row {
         RailRow::KeptTitle => title(ui, rect, words::KEPT_ASIDE),
+        RailRow::Matches { matches, all } => matches_title(ui, rect, (*matches, *all)),
         RailRow::Heading(head) | RailRow::Kept(head) => {
             if context.is_icons {
                 kept_icon(ui, rect, head);
@@ -138,6 +139,33 @@ pub(super) fn indent(theme: &Theme) -> f32 {
 fn title(ui: &mut Ui<'_>, rect: Rect, text: &str) {
     let padded = inset(rect, Insets::symmetric(ui.theme().sizes.spacing.medium, 0.0));
     let _ = ui.label(padded, &Label::new(text).kind(TextKind::SmallStrong).tone(Tone::Muted));
+}
+
+/// The title of the one list of the matches while something is typed: **MATCHES** and `<matches> of <all>`.
+fn matches_title(ui: &mut Ui<'_>, rect: Rect, (matches, all): (usize, usize)) {
+    let theme = *ui.theme();
+    let mut parts = Area::with_gap(
+        inset(rect, Insets::symmetric(theme.sizes.spacing.medium, 0.0)),
+        theme.sizes.spacing.small,
+    );
+    ui.icon_in(parts.left(theme.sizes.icon), Icon::Search, Tone::Muted);
+    let count = words::matches_of(matches, all);
+    let style = ui.text_style(TextKind::SmallStrong);
+    let count_width = ui.measure(&count, style);
+    let _ = ui.label(
+        parts.right(count_width),
+        &Label::new(&count).kind(TextKind::SmallStrong).tone(Tone::Muted),
+    );
+    let _ = ui.label(
+        parts.rest(),
+        &Label::new(words::MATCHES).kind(TextKind::SmallStrong).tone(Tone::Muted),
+    );
+    let id = ui.id("rail matches");
+    ui.describe(
+        id,
+        rect,
+        &Description::new(AccessRole::Label, words::MATCHES).value(&count),
+    );
 }
 
 /// The name of a list.

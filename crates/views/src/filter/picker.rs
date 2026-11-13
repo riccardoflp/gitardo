@@ -197,8 +197,9 @@ fn list(state: &BranchPicker<'_>, open: &PickerOpen<'_>, ui: &mut Ui<'_>, anchor
 /// checked out.
 type Group<'a> = (&'static str, ReferenceKind, Vec<(&'a str, bool)>);
 
-/// The rows of references: under **Local**, **Remotes** and **Tags**, those whose names have what is typed, the best
-/// first; with none, what the list says.
+/// The rows of references: under **Local**, **Remotes** and **Tags** while nothing is typed; while something is, one list
+/// of those whose names have it, the best first, and among those that match as well in the order of the groups; with
+/// none, what the list says.
 pub(super) fn pick_rows<'a>(references: &'a References, typed: &str) -> Vec<PickRow<'a>> {
     let groups: [Group<'a>; 3] = [
         (
@@ -225,27 +226,12 @@ pub(super) fn pick_rows<'a>(references: &'a References, typed: &str) -> Vec<Pick
             references.tags.iter().map(|tag| (tag.name.as_str(), false)).collect(),
         ),
     ];
-    let mut rows = Vec::new();
-    let mut has_any = false;
-    for (heading, kind, names) in groups {
-        has_any |= !names.is_empty();
-        let owned: Vec<String> = names.iter().map(|(name, _)| (*name).to_owned()).collect();
-        let ranked = rank_names(&owned, typed);
-        if ranked.is_empty() {
-            continue;
-        }
-        rows.push(PickRow::Heading(heading));
-        rows.extend(
-            ranked
-                .into_iter()
-                .filter_map(|index| names.get(index))
-                .map(|(name, is_checked_out)| PickRow::Reference {
-                    full: kind.full_name(name),
-                    name,
-                    is_checked_out: *is_checked_out,
-                }),
-        );
-    }
+    let has_any = groups.iter().any(|(_, _, names)| !names.is_empty());
+    let mut rows = if typed.is_empty() {
+        grouped_rows(groups)
+    } else {
+        matched_rows(groups, typed)
+    };
     if rows.is_empty() {
         rows.push(PickRow::Empty(if has_any {
             words::NO_NAME_MATCHES
@@ -254,6 +240,45 @@ pub(super) fn pick_rows<'a>(references: &'a References, typed: &str) -> Vec<Pick
         }));
     }
     rows
+}
+
+/// The references under the heading of their group, in their order.
+fn grouped_rows(groups: [Group<'_>; 3]) -> Vec<PickRow<'_>> {
+    let mut rows = Vec::new();
+    for (heading, kind, names) in groups {
+        if names.is_empty() {
+            continue;
+        }
+        rows.push(PickRow::Heading(heading));
+        rows.extend(names.into_iter().map(|(name, is_checked_out)| PickRow::Reference {
+            full: kind.full_name(name),
+            name,
+            is_checked_out,
+        }));
+    }
+    rows
+}
+
+/// The references whose names have what is typed, in one list, the best first (`filter.rank-names`).
+fn matched_rows<'a>(groups: [Group<'a>; 3], typed: &str) -> Vec<PickRow<'a>> {
+    let all: Vec<(ReferenceKind, &'a str, bool)> = groups
+        .into_iter()
+        .flat_map(|(_, kind, names)| {
+            names
+                .into_iter()
+                .map(move |(name, is_checked_out)| (kind, name, is_checked_out))
+        })
+        .collect();
+    let owned: Vec<String> = all.iter().map(|(_, name, _)| (*name).to_owned()).collect();
+    rank_names(&owned, typed)
+        .into_iter()
+        .filter_map(|index| all.get(index))
+        .map(|(kind, name, is_checked_out)| PickRow::Reference {
+            full: kind.full_name(name),
+            name,
+            is_checked_out: *is_checked_out,
+        })
+        .collect()
 }
 
 /// The inside of the list: the presets, the box, the references and **Filter the list of branches too**.

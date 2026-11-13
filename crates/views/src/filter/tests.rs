@@ -93,7 +93,7 @@ fn filter_bar__with_1000_commits_loaded_and_more_it_says_1000_plus() {
 }
 
 #[test]
-fn filter_picker__typing_main_lists_main_before_maintenance_and_origin_main_under_remotes() {
+fn filter_picker__typing_main_lists_main_before_origin_main_before_maintenance() {
     let references = references(&["domain", "main", "maintenance", "fix"], &["origin/main"], &["v1.0"]);
     let rows: Vec<String> = pick_rows(&references, "main")
         .into_iter()
@@ -104,15 +104,17 @@ fn filter_picker__typing_main_lists_main_before_maintenance_and_origin_main_unde
         .collect();
     assert_eq!(
         rows,
-        [
-            "Local",
-            "  main",
-            "  maintenance",
-            "  domain",
-            "Remotes",
-            "  origin/main"
-        ]
+        ["  main", "  origin/main", "  maintenance", "  domain"],
+        "one list of the matches, the best first, while something is typed"
     );
+    let all: Vec<String> = pick_rows(&references, "")
+        .into_iter()
+        .filter_map(|row| match row {
+            PickRow::Heading(text) => Some(text.to_owned()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(all, ["Local", "Remotes", "Tags"], "the groups while nothing is typed");
 }
 
 #[test]

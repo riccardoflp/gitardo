@@ -313,8 +313,8 @@ says what is shown and opens the list to choose from.
   | **Local** | Only the local branches, and what is checked out |
   | **Remotes** | Only the remote branches, and what is checked out |
 
-- Then the box **Filter branches and tags**, which leaves in the list the names that contain what is typed, the ones
-  that match best first (`filter.rank-names`). `Escape` empties it, wherever the keyboard is in the list, and closes
+- Then the box **Filter branches and tags**, which leaves in the list the names that contain what is typed, in one list
+  without the headings of the groups, the ones that match best first (`filter.rank-names`). `Escape` empties it, wherever the keyboard is in the list, and closes
   the list when it is empty.
 - Then every local branch, remote branch and tag with a tick, under **Local**, **Remotes** and **Tags**, in the order of
   `refs.sort`, the branch checked out marked; the ticks are those of what is shown now (`filter.tick`). The timeline

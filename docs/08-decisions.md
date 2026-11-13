@@ -1682,3 +1682,10 @@ answered:
   `git config --get branch.sort` in a thread of its own (`RepositoryState::branch_sort`). `committerdate`, the oldest
   first for git, gives the order by date too, the latest first, as the lead said. Should other keys of `branch.sort`,
   such as `-creatordate`, give the order by date as well?
+- **Q-R3** — `refs.filter` is built on the lead's answer to Q66: while something is typed in the branch rail, one list
+  of the matches of every list (local, each remote, stashes, worktrees, tags, submodules) takes the place of the lists,
+  the best first, under a title **MATCHES** with `<matches> of <all>`, a word the card did not give; **Favorites** and
+  **Recent** give no entry, since their branches are among the local ones. Each entry keeps the row and the menu of its
+  list. The branch filter (`filter.picker`) lists its matches the same way, without the headings **Local**,
+  **Remotes** and **Tags**. Line 3 of `refs.filter` now says that a match of a closed list is shown while text is
+  typed. In the narrow layout, where there is no box, nothing changed. Is this the list the maintainer meant?

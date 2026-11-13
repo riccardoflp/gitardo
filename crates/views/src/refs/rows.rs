@@ -1,6 +1,7 @@
 //! The rows of the branch rail under its filter box and the line of the branches shown, in their order: each list with
-//! its title and, while it is open, its entries: what the timeline does not show left out or dimmed, what is typed ranked
-//! first, and at most 100 of them until **Show all `<n>`…**.
+//! its title and, while it is open, its entries: what the timeline does not show left out or dimmed, and at most 100 of
+//! them until **Show all `<n>`…**. While something is typed in the filter box, one list of the entries of every list
+//! that have it, the best first, takes their place.
 
 use std::collections::HashSet;
 
@@ -22,6 +23,13 @@ pub(super) const FILTER_FROM: usize = 15;
 pub(super) enum RailRow<'a> {
     /// The title of what is kept aside.
     KeptTitle,
+    /// The title of the one list of the matches, while something is typed in the filter box (`refs.filter`).
+    Matches {
+        /// How many entries have what is typed.
+        matches: usize,
+        /// How many entries the lists have.
+        all: usize,
+    },
     /// The title of a list that is not kept aside, which opens and closes it, with how many it lists.
     Heading(ListHead),
     /// A list kept aside, with how many it holds, which a click opens or closes.
@@ -162,6 +170,9 @@ pub(super) fn rail_rows<'a>(state: &ReferencesState<'a>, is_icons: bool) -> Vec<
         .shown
         .map(|shown| ticked(Some(shown), state.references).into_iter().collect());
     let lister = Lister { state, shown, is_icons };
+    if !is_icons && !state.typed.is_empty() {
+        return with_stash_rows(lister.matches(), &state.stashes);
+    }
     for (list, entries) in branch_lists(state) {
         let is_extra = matches!(list, RailList::Favorites | RailList::Recent);
         if (is_extra && (entries.is_empty() || is_icons)) || lister.is_emptied(&entries) {
@@ -278,6 +289,36 @@ struct Lister<'s, 'a> {
 }
 
 impl<'a> Lister<'_, 'a> {
+    /// The one list of the matches of what is typed: the entries of every list but **Favorites** and **Recent**, which
+    /// hold local branches already listed, whose names have it, the best first (`filter.rank-names`), and among those
+    /// that match as well in the order of the lists.
+    fn matches(&self) -> Vec<RailRow<'a>> {
+        let candidates: Vec<(RailList, Entry<'a>, Marks)> = branch_lists(self.state)
+            .into_iter()
+            .chain(kept_lists(self.state))
+            .filter(|(list, _)| !matches!(list, RailList::Favorites | RailList::Recent))
+            .flat_map(|(list, entries)| {
+                entries
+                    .into_iter()
+                    .filter_map(|entry| self.marks(&entry).map(|marks| (list.clone(), entry, marks)))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        let names: Vec<String> = candidates.iter().map(|(_, entry, _)| entry.name()).collect();
+        let ranked = rank_names(&names, self.state.typed);
+        let mut rows = vec![RailRow::Matches {
+            matches: ranked.len(),
+            all: candidates.len(),
+        }];
+        rows.extend(
+            ranked
+                .into_iter()
+                .filter_map(|index| candidates.get(index).cloned())
+                .map(|(list, entry, marks)| RailRow::Entry { list, entry, marks }),
+        );
+        rows
+    }
+
     /// Adds a list: its title, and while it is open its entries, at most 100 until it is listed in full, the one
     /// checked out among them.
     fn add(&self, rows: &mut Vec<RailRow<'a>>, list: &RailList, entries: Vec<Entry<'a>>) {

@@ -148,6 +148,7 @@ impl Rail {
 fn row_words(row: &RailRow<'_>) -> Option<String> {
     match row {
         RailRow::KeptTitle => Some(String::from("KEPT ASIDE")),
+        RailRow::Matches { matches, all } => Some(format!("MATCHES {matches} of {all}")),
         RailRow::Heading(head) => Some(format!("{} {}", super::draw::list_name(&head.list), head.all)),
         RailRow::Kept(head) => {
             let mark = if head.is_open { '+' } else { '-' };
@@ -309,33 +310,36 @@ fn refs_filter__typing_main_lists_main_origin_main_maintenance_release_main_2_th
         &["origin/main"],
         &[],
     );
+    rail.repository.stashes.clear();
     rail.typed = String::from("main");
-    let rows = rail.rows();
     assert_eq!(
-        rows.get(..7),
-        Some(
-            &[
-                "LOCAL 5",
-                "  main",
-                "  maintenance",
-                "  release/main-2",
-                "  domain",
-                "ORIGIN 1",
-                "  origin/main"
-            ]
-            .map(String::from)[..]
-        )
+        rail.rows(),
+        [
+            "MATCHES 5 of 6",
+            "  main",
+            "  origin/main",
+            "  maintenance",
+            "  release/main-2",
+            "  domain"
+        ],
+        "one list of the matches, the best first, in place of the lists"
     );
 }
 
 #[test]
-fn refs_filter__a_closed_list_with_a_match_is_open_while_the_box_has_text() {
+fn refs_filter__a_closed_list_with_a_match_is_shown_while_the_box_has_text_and_closed_again_after() {
     let mut rail = Rail::new(&["main"], &[], &["v1.0", "v2.0"]);
+    assert!(rail.rows().contains(&String::from("-Tags 2")));
     rail.typed = String::from("v1");
-    assert!(rail.rows().contains(&String::from("+Tags 2")));
-    assert_eq!(rail.entries_of(&RailList::Tags), ["v1.0"]);
+    assert_eq!(rail.rows(), ["MATCHES 1 of 4", "  v1.0"]);
+    assert_eq!(
+        rail.entries_of(&RailList::Tags),
+        ["v1.0"],
+        "the tag keeps the menu of its list"
+    );
     rail.typed.clear();
     assert!(rail.rows().contains(&String::from("-Tags 2")));
+    assert_eq!(rail.entries_of(&RailList::Tags), [] as [String; 0]);
 }
 
 #[test]

@@ -100,7 +100,7 @@ pub(super) fn stashes_view(state: &StashesRow<'_, '_>, ui: &mut Ui<'_>) -> Vec<I
             Vec::new()
         }
         // The other rows are not of the Stashes list, and the rail draws them itself.
-        RailRow::KeptTitle | RailRow::InFull { .. } | RailRow::Gap => Vec::new(),
+        RailRow::KeptTitle | RailRow::Matches { .. } | RailRow::InFull { .. } | RailRow::Gap => Vec::new(),
     }
 }
 
@@ -110,7 +110,7 @@ pub(super) fn is_of_stashes(row: &RailRow<'_>) -> bool {
         RailRow::Kept(head) | RailRow::Heading(head) => head.list == RailList::Stashes,
         RailRow::Entry { list, .. } => *list == RailList::Stashes,
         RailRow::NoStashes | RailRow::StashLine { .. } => true,
-        RailRow::KeptTitle | RailRow::InFull { .. } | RailRow::Gap => false,
+        RailRow::KeptTitle | RailRow::Matches { .. } | RailRow::InFull { .. } | RailRow::Gap => false,
     }
 }
 

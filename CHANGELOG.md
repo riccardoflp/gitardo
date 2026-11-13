@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Typing in the filter box of the branch rail, or in the box of the branch filter, lists the matches of every list
+  together, the best first: `main`, then `origin/main`, then `maintenance`.
 - With `branches.sortOrder` not set, the branches, the remote branches and the tags are listed by date when Git's own
   `branch.sort` is `-committerdate` or `committerdate`, and by name otherwise.
 - The **…** menu of the header is in the groups of its card, with **Compare branches, tags or commits…** and
