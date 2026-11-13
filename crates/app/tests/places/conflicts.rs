@@ -334,3 +334,33 @@ fn conflicts_banner__the_banner_is_over_the_changes_page_too() {
     let (_, tree) = Window::new(ThemeName::Dark, WIDE).draw(&state, &[]);
     assert!(says(&tree, "Merge in progress \u{b7} 1 file has conflicts"));
 }
+
+#[test]
+fn changes_pane__a_file_in_conflict_is_under_conflicts_only_with_no_box_and_a_click_on_it_opens_the_merge_page() {
+    let mut repository = Repository::new();
+    repository.conflict();
+    std::fs::write(repository.path().join("new.txt"), "new\n").unwrap();
+    let (mut state, driver) = changes_page(&repository, Settings::default());
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(says(&tree, "Conflicts 1"));
+    assert!(
+        !has(&tree, Role::CheckBox, CONFLICT_FILE),
+        "a file in conflict has no box"
+    );
+    let named: Vec<f64> = tree
+        .nodes
+        .iter()
+        .filter(|(_, node)| node.value() == Some(CONFLICT_FILE) || node.label() == Some(CONFLICT_FILE))
+        .filter_map(|(_, node)| node.bounds().map(|bounds| bounds.y0))
+        .collect();
+    let changes = find(&tree, Role::CheckBox, "Changes 1").bounds().unwrap().y0;
+    assert_eq!(named.len(), 1, "it is listed once, under Conflicts: {named:?}");
+    assert!(named[0] < changes, "above the changes");
+    let whole = render::Rect::new(0.0, 0.0, 1200.0, 560.0);
+    let name = super::pointer::said_at(&tree, CONFLICT_FILE, whole);
+    for intent in window.click_at(&state, super::pointer::middle(name), 1) {
+        driver.intent(&mut state, intent);
+    }
+    assert!(matches!(state.page_shown(), Some(Page::Merge(_))));
+}

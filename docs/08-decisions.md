@@ -1595,3 +1595,8 @@ From the cards left over up to M8 (each built with the reading given, until the 
   (**Cherry-pick 3f2a1c9 onto main**), as the other menus say names; `rebase.branch-onto` runs on the commit with the
   answer `branch` given, since `views` does not use `features` for its presets. Pressing a row to drag it selects the
   row, as a click does. Are these right?
+- **Q-D2** — `changes.pane` and `changes.discard-all` are built on what the pages of other milestones now give: a
+  click on the name of a file in conflict opens the Merge page (`conflicts.open-file`), **Save all** is on the header
+  while a File page has edits not saved, and **Discard all changes** of the header names only what git sees changed,
+  so a file that only a File page changed keeps its edits and its file on disk. The lines of Q122 that waited on them
+  are answered. Should **Discard all changes** also say, in its warning, that the edits not saved are kept?

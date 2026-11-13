@@ -142,3 +142,42 @@ fn changes_save__a_file_saved_that_ends_up_as_in_head_leaves_the_list() {
     assert_eq!(on_disk(&repository, "a.txt"), "a\n");
     assert!(!has(&drawn(&state), Role::CheckBox, "a.txt"));
 }
+
+#[test]
+fn changes_discard_all__the_files_only_an_editor_has_changed_keep_their_edits_not_saved() {
+    let repository = committed();
+    std::fs::write(repository.path().join("a.txt"), "a, changed on disk\n").unwrap();
+    let (mut state, driver) = edited(&repository, &[("b.txt", "b, edited\n")]);
+    let intents = Window::new(ThemeName::Dark, WIDE).click(&state, Role::Button, "Discard all changes");
+    for intent in intents {
+        driver.intent(&mut state, intent);
+    }
+    until_ended(&driver, &mut state);
+    let lines = logged(&state);
+    assert!(
+        !lines.is_empty() && lines.iter().all(|line| !line.contains("b.txt")),
+        "{lines:?}"
+    );
+    assert_eq!(on_disk(&repository, "a.txt"), "a\n");
+    assert!(is_unsaved(&state, "b.txt"), "the edits of b.txt are kept");
+    assert_eq!(on_disk(&repository, "b.txt"), "b\n");
+    let text = state
+        .file_pages
+        .pages
+        .iter()
+        .find(|page| page.path == "b.txt")
+        .and_then(|page| page.document())
+        .map(|document| document.buffer().text().to_owned());
+    assert_eq!(text.as_deref(), Some("b, edited\n"));
+}
+
+#[test]
+fn changes_pane__save_all_is_on_the_header_only_while_a_file_has_edits_not_saved() {
+    let repository = committed();
+    std::fs::write(repository.path().join("a.txt"), "a, changed on disk\n").unwrap();
+    let (state, _driver) = edited(&repository, &[]);
+    assert!(has(&drawn(&state), Role::CheckBox, "a.txt"));
+    assert!(!has(&drawn(&state), Role::Button, "Save all"));
+    let (state, _driver) = edited(&repository, &[("b.txt", "b, edited\n")]);
+    assert!(has(&drawn(&state), Role::Button, "Save all"));
+}
