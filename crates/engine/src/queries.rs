@@ -59,6 +59,10 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::Clipboard => Ok(Answer::Clipboard(None)),
         // The engine answers it with its credential store before asking git anything.
         Query::GitHubToken { .. } => Ok(Answer::Token(None)),
+        // The engine answers it with the AI provider before asking git anything.
+        Query::AiModels { .. } => Ok(Answer::AiModels(model::ai::AiModels::Failed(String::from(
+            "The models of the AI provider are listed by the engine.",
+        )))),
         Query::TemporaryFile { extension } => Ok(readings::temporary_file(extension)),
         Query::ComparePatch(target) => readings::compare_patch(git, target),
         Query::ConflictStages { path } => git::read::conflicts::read_stages(git, path).map(Answer::Stages),
@@ -263,7 +267,7 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::ReflogPositions { reference, count } => describe_positions(reference, *count),
         Query::FilesMatch { commit } => format!("git diff --quiet {commit} --"),
         Query::Revision { revision } => format!("git rev-parse --verify --quiet {revision}^{{commit}}"),
-        Query::Journal | Query::Clipboard | Query::GitHubToken { .. } => describe_kept(query),
+        Query::Journal | Query::Clipboard | Query::GitHubToken { .. } | Query::AiModels { .. } => describe_kept(query),
         Query::Counts { left, right } => git::command_line(&branch::counts_arguments(left, right)),
         Query::IsAncestor { ancestor, descendant } => {
             git::command_line(&branch::ancestor_arguments(ancestor, descendant))
@@ -324,6 +328,7 @@ fn describe_kept(query: &Query) -> String {
     String::from(match query {
         Query::Journal => "the journal of Undo",
         Query::Clipboard => "the text of the clipboard",
+        Query::AiModels { .. } => "the models of the AI provider",
         // The token is read from the credential store; when git's helper is asked, the engine logs that itself.
         _ => "the GitHub token",
     })

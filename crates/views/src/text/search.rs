@@ -261,6 +261,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::ReviewConflicts => crate::text::review::COMMAND,
         QuickCommand::OpenSettings => "Open Settings",
         QuickCommand::ShowFiles => crate::text::files::COMMAND,
+        QuickCommand::ChooseAiModel => "Choose the model that resolves conflicts",
         QuickCommand::ShowFileHistory => crate::text::blame::SHOW_FILE_HISTORY,
         QuickCommand::ShowLinesHistory => crate::text::blame::SHOW_LINES_HISTORY,
         QuickCommand::ToggleFileBlame => crate::text::blame::TOGGLE_FILE_BLAME,

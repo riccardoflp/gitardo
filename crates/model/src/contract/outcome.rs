@@ -256,6 +256,14 @@ pub enum Query {
         /// Whether `git credential fill` may run.
         helper: crate::github::HelperAsked,
     },
+    /// The models the AI provider lists, asked with the key given, else the one kept in the credential store of the
+    /// system (`ai.choose-model`). The answer is [`super::Answer::AiModels`].
+    AiModels {
+        /// The settings of the provider.
+        settings: crate::ai::AiSettings,
+        /// The key just typed, when one was.
+        key: Option<crate::ai::Key>,
+    },
     /// The links in a worktree to folders outside it, which git on Windows would empty when it removes the worktree
     /// (`worktree.read-folder-links`). The answer is [`super::Answer::Paths`].
     FolderLinks {

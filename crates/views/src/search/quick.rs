@@ -107,6 +107,8 @@ pub enum QuickCommand {
     ReviewConflicts,
     /// **Show files**: the Files page.
     ShowFiles,
+    /// **Choose the model that resolves conflicts** (`ai.choose-model`).
+    ChooseAiModel,
     /// **Show file history** (`file-history.file`), for the File page in front.
     ShowFileHistory,
     /// **Show history of selected lines** (`file-history.lines`).
@@ -129,7 +131,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 38] = [
+    pub const ALL: [QuickCommand; 39] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -168,6 +170,7 @@ impl QuickCommand {
         QuickCommand::SwitchIdentity,
         QuickCommand::UndoLastOperation,
         QuickCommand::ReviewConflicts,
+        QuickCommand::ChooseAiModel,
     ];
 
     /// Whether what the command runs is built: the others are listed with **Not yet**, and choosing them does
@@ -218,6 +221,7 @@ impl QuickCommand {
             QuickCommand::UndoLastOperation => Some("undo.last"),
             QuickCommand::SwitchWorktree => Some("worktree.switch"),
             QuickCommand::CreateWorktree => Some("worktree.create"),
+            QuickCommand::ChooseAiModel => Some("ai.choose-model"),
             _ => self.file_page_operation(),
         }
     }

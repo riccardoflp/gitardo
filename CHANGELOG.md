@@ -313,3 +313,6 @@
 - The theme picked in **Theme…** is written in the user's settings file by an operation, which the Command log shows.
 - A cherry-pick of several commits that stopped on a conflict and is continued in Gitardo is taken back whole by one
   **Undo**.
+- **Choose the model that resolves conflicts** in Quick search: the models the AI provider of `ai.provider` lists, and
+  how much the model thinks, written to `ai.model` and `ai.effort` in the user's settings file. When the provider wants
+  a key and none is kept, it is asked, and kept in the credential store of the system once the choice is written.

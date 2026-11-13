@@ -69,6 +69,14 @@ pub const CHERRY_PICK_RECORD_ORIGIN: &str = "cherryPick.recordOrigin";
 pub const CONFLICTS_AUTO_RESOLVE: &str = "conflicts.autoResolve";
 /// `conflicts.ai`.
 pub const CONFLICTS_AI: &str = "conflicts.ai";
+/// `ai.provider`.
+pub const AI_PROVIDER: &str = "ai.provider";
+/// `ai.endpoint`.
+pub const AI_ENDPOINT: &str = "ai.endpoint";
+/// `ai.model`.
+pub const AI_MODEL: &str = "ai.model";
+/// `ai.effort`.
+pub const AI_EFFORT: &str = "ai.effort";
 /// `editor.external`.
 pub const EXTERNAL_EDITOR: &str = "editor.external";
 /// `blame.enabled`.

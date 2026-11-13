@@ -5,6 +5,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod ai;
 pub mod bisect;
 pub mod blame;
 pub mod branch;
@@ -51,7 +52,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 153] = [
+pub const OPERATIONS: [(FeatureId, Operation); 154] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -242,6 +243,8 @@ pub const OPERATIONS: [(FeatureId, Operation); 153] = [
     (FeatureId("blame.toggle-file"), blame::toggle_file),
     // GitHub.
     (FeatureId("github.load-pull-requests"), github::load_pull_requests),
+    // The language model.
+    (FeatureId("ai.choose-model"), ai::choose_model),
 ];
 
 /// The operation of an identifier, when it is built.

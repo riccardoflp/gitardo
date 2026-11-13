@@ -217,6 +217,9 @@ pub enum FollowUp {
     /// Keep this GitHub token in the credential store of the system, for `github.com`, before the pull requests are
     /// read with it (`github.load-pull-requests`).
     KeepGitHubToken(crate::github::Token),
+    /// Keep this key of the AI provider in the credential store of the system, under the provider's name
+    /// (`ai.choose-model`).
+    KeepAiKey(crate::ai::AiProvider, crate::ai::Key),
     /// Offer another feature, with the words of its button.
     Offer(FeatureId, Text),
     /// Put this text on the clipboard.

@@ -181,6 +181,7 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         FollowUp::ShowFolder(folder) => writeln!(out, "Show {} in this window", folder.display())?,
         FollowUp::OfferRun(offered) => writeln!(out, "Next: {} ({})", offered.label, offered.feature.0)?,
         FollowUp::KeepGitHubToken(_) => writeln!(out, "Keep the GitHub token in the credential store")?,
+        FollowUp::KeepAiKey(..) => writeln!(out, "Keep the key of the AI provider in the credential store")?,
         FollowUp::SelectHead
         | FollowUp::DeleteWhenRebaseEnded(_)
         | FollowUp::EmptyCommitMessage

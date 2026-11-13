@@ -103,6 +103,9 @@ pub struct FeatureSettings {
     /// `editor.external`: the command that opens a file in another editor, with `${file}` and `${line}`; empty for the
     /// program the system has for the file.
     pub external_editor: String,
+    /// `ai.provider`, `ai.endpoint`, `ai.model` and `ai.effort`: the AI provider, which drafts commit messages and
+    /// resolves conflicts.
+    pub ai: Box<crate::ai::AiSettings>,
     /// The user's settings file, which the operations that save settings write (`worktree-setup.save`); none when the
     /// system does not say where the user's folders are.
     pub user_settings_file: Option<std::path::PathBuf>,
@@ -195,6 +198,7 @@ impl Default for FeatureSettings {
             conflicts_auto_resolve: false,
             conflicts_ai: false,
             external_editor: String::new(),
+            ai: Box::default(),
             user_settings_file: None,
             trust: crate::worktree_setup::Trust::NotTrusted,
             blame: BlameSettings::default(),

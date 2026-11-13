@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 
 use engine::LogLevel;
 use json::Value;
+use model::ai::{AiProvider, AiSettings, Effort};
 use model::changes::OpenOnClick;
 use model::contract::{BlameSettings, CommandPreview, FeatureSettings, OpenIn, WorktreeOpenIn, WorktreeSettings};
 use model::graph::PageSize;
@@ -153,6 +154,7 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
         external_editor: lookup
             .string(keys::EXTERNAL_EDITOR, Scope::User)
             .unwrap_or(defaults.external_editor),
+        ai: Box::new(ai_settings(lookup)),
         user_settings_file: defaults.user_settings_file,
         trust: defaults.trust,
         blame: BlameSettings {
@@ -167,6 +169,31 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
                 .unwrap_or(defaults.blame.is_on_every_file),
         },
         worktrees: worktree_settings(lookup),
+    }
+}
+
+/// The AI provider: `ai.provider`, `ai.endpoint`, `ai.model` and `ai.effort`, from the user's file; a provider or an
+/// effort the settings do not take is said on the settings page and counts as empty.
+fn ai_settings(lookup: &mut Lookup) -> AiSettings {
+    let mut choice = |key: &str, values: &'static [&'static str]| {
+        lookup.first((key, Scope::User), |value| {
+            let text = value
+                .as_str()
+                .ok_or(ProblemReason::WrongType { expected: "a string" })?;
+            if text.is_empty() || values.contains(&text) {
+                Ok(text.to_owned())
+            } else {
+                Err(ProblemReason::NotAChoice { choices: values })
+            }
+        })
+    };
+    let provider = choice(keys::AI_PROVIDER, &AiProvider::VALUES).and_then(|value| AiProvider::from_setting(&value));
+    let effort = choice(keys::AI_EFFORT, &Effort::VALUES).and_then(|value| Effort::from_setting(&value));
+    AiSettings {
+        provider,
+        endpoint: lookup.string(keys::AI_ENDPOINT, Scope::User).unwrap_or_default(),
+        model: lookup.string(keys::AI_MODEL, Scope::User).unwrap_or_default(),
+        effort,
     }
 }
 

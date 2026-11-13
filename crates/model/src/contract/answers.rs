@@ -96,6 +96,8 @@ pub enum Answer {
     Paths(Vec<std::path::PathBuf>),
     /// The GitHub token found; none when none was (`github.token`).
     Token(Option<crate::github::Token>),
+    /// The models the AI provider listed, or why it did not (`ai.choose-model`).
+    AiModels(crate::ai::AiModels),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).

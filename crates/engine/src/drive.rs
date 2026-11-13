@@ -80,6 +80,7 @@ pub struct Engine {
     find_operation: Option<FindOperation>,
     went_on_after: Vec<StepFailure>,
     secrets: Box<dyn SecretStore>,
+    http: Option<http::Http>,
 }
 
 impl Engine {
@@ -97,7 +98,15 @@ impl Engine {
             find_operation: None,
             went_on_after: Vec::new(),
             secrets: Box::new(SystemSecrets),
+            http: None,
         }
+    }
+
+    /// Sends the requests of the features (the models of the AI provider) with this client: in a test, one that
+    /// reaches only the server of the test. Without it, a client that trusts the certificates of the system is made
+    /// when a request is first sent.
+    pub fn send_requests_with(&mut self, http: http::Http) {
+        self.http = Some(http);
     }
 
     /// Keeps the secrets of the features (the GitHub token) in another store than the system's: the memory of a test.
@@ -206,6 +215,9 @@ impl Engine {
                     let token = self.github_token(helper).map_err(EngineError::Query)?;
                     answers.insert(key, Answer::Token(token));
                 }
+                Outcome::Read(key, Query::AiModels { settings, key: typed }) => {
+                    answers.insert(key, Answer::AiModels(self.ai_models(settings, typed)));
+                }
                 Outcome::Read(key, query) => {
                     let started = Instant::now();
                     let answer = queries::answer(&self.git, &query).map_err(EngineError::Query)?;
@@ -253,6 +265,7 @@ impl Engine {
         };
         self.delete_rebase_files(&plan.after, context);
         self.keep_tokens(&plan.after);
+        self.keep_ai_keys(&plan.after);
         let state_after = self.after_plan(&plan, context);
         Ok(Finished::Ran {
             plan,

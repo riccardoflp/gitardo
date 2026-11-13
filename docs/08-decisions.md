@@ -1523,3 +1523,12 @@ From the cards left over up to M8 (each built with the reading given, until the 
   sent as `xhigh`, the most such servers take. Is this right?
 - **Q-X4** — The requests to the AI provider go through `HTTPS_PROXY` and `NO_PROXY` only: git's `http.proxy` is not
   read for them yet, since the engine has no read of git's configuration at hand there. Should it be?
+- **Q-X5** — The key of the AI provider is kept in the credential store under `ai.<provider>` (`ai.anthropic`,
+  `ai.openai-compatible`); `ai.choose-model` asks for it, as a secret, when the provider wants one and none is kept or
+  the one kept is refused, and keeps it with `FollowUp::KeepAiKey` once the choice is written. The card does not say
+  where the key comes from the first time. Is this right?
+- **Q-X6** — `ai.choose-model` also refuses with no AI provider set up (*No AI provider is set up.* with **Open
+  settings**), when the user's settings file is not JSON with comments, and with the error of the provider when it
+  cannot list its models; the card names only the refusal with no model listed. Is this right?
+- **Q-X7** — `FeatureSettings` holds the AI settings in a `Box`, since they made `Effect` too large for clippy. Is this
+  right?
