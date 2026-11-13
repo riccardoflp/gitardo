@@ -44,22 +44,9 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::HasFile { revision, path } => branch::read_has_file(git, revision, path).map(Answer::Flag),
         Query::FilesMatch { commit } => files_match(git, commit),
         Query::Overwritten { upstream } => overwritten(git, upstream),
-        Query::Remotes => Ok(Answer::Remotes(
-            read_remotes(git, &RemotesRequest)?
-                .into_iter()
-                .map(|remote| Remote {
-                    name: remote.name,
-                    url: remote.url,
-                })
-                .collect(),
-        )),
+        Query::Remotes => remotes(git),
         Query::Stash { index } => stash(git, *index),
-        Query::Identity => read_identity(git, &IdentityRequest).map(|read| {
-            Answer::Identity(IdentityKeys {
-                identity: read.identity,
-                local_keys: read.local_keys,
-            })
-        }),
+        Query::Identity => identity(git),
         Query::FileVersions { path, commit } => file_versions(git, path, commit.as_ref()),
         Query::PredictedConflicts { ours, theirs, base } => predicted_conflicts(
             git,
@@ -80,6 +67,29 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         }
         Query::CommitFiles { commit } => rebase::read_commit_files(git, commit).map(Answer::Names),
     }
+}
+
+/// The remotes of the repository, with their URLs.
+fn remotes(git: &Git) -> Result<Answer, GitError> {
+    Ok(Answer::Remotes(
+        read_remotes(git, &RemotesRequest)?
+            .into_iter()
+            .map(|remote| Remote {
+                name: remote.name,
+                url: remote.url,
+            })
+            .collect(),
+    ))
+}
+
+/// Who commits are made as, and which `user.*` keys the repository sets for itself.
+fn identity(git: &Git) -> Result<Answer, GitError> {
+    read_identity(git, &IdentityRequest).map(|read| {
+        Answer::Identity(IdentityKeys {
+            identity: read.identity,
+            local_keys: read.local_keys,
+        })
+    })
 }
 
 /// A file in a commit, in the index and on disk, each none where it is not.

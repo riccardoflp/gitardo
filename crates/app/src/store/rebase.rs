@@ -104,17 +104,14 @@ pub fn stop_state(repository: &RepositoryState) -> Option<EditStopState<'_>> {
     })
 }
 
-/// After a squash or a split: the commit as many before `HEAD` as the follow-up says is selected once the repository
-/// is read again, and the message of the commit split goes to the commit box.
+/// After a split: the message of the commit split goes to the commit box. The commit to select after a squash or a
+/// split is remembered with the other follow-ups of the operation.
 pub fn ended(state: &mut State, after: &[FollowUp]) {
     for follow_up in after {
-        match follow_up {
-            FollowUp::FillCommitMessage(message) => {
-                if let Some(folder) = state.shown_folder().cloned() {
-                    keep_message(&mut state.persisted.commit_messages, &folder, message);
-                }
-            }
-            _ => {}
+        if let FollowUp::FillCommitMessage(message) = follow_up
+            && let Some(folder) = state.shown_folder().cloned()
+        {
+            keep_message(&mut state.persisted.commit_messages, &folder, message);
         }
     }
 }

@@ -150,17 +150,7 @@ pub(super) fn commit_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usiz
             CommitCommand::TodoPage,
         )));
     }
-    let merge = merge_menu(
-        state.layout.foldable.contains(&commit.id),
-        state.folds.folded.contains(&commit.id),
-    );
-    if !merge.is_empty() && !entries.is_empty() {
-        entries.push(MenuEntry::Separator);
-    }
-    entries.extend(merge.into_iter().map(|entry| match entry {
-        MenuEntry::Item(item) => MenuEntry::Item(ui::MenuItem::new(item.label, CommitCommand::Merge(item.value))),
-        MenuEntry::Submenu { .. } | MenuEntry::Separator => MenuEntry::Separator,
-    }));
+    push_merge_entries(state, &commit.id, &mut entries);
     let shared = label
         .and_then(|label| pointed_label(state, &(commit.id.clone(), label)))
         .and_then(copy_upstream);
@@ -186,6 +176,21 @@ pub(super) fn commit_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usiz
         Some(CommitCommand::TodoPage) => vec![Intent::Rebase(crate::rebase::RebaseIntent::Open(commit.id.clone()))],
         None => Vec::new(),
     }
+}
+
+/// **Fold** or **Unfold** at the end of the menu of a merge commit whose branch can be folded, after a separator.
+fn push_merge_entries(state: &HistoryState<'_>, commit: &CommitId, entries: &mut Vec<MenuEntry<'_, CommitCommand>>) {
+    let merge = merge_menu(
+        state.layout.foldable.contains(commit),
+        state.folds.folded.contains(commit),
+    );
+    if !merge.is_empty() && !entries.is_empty() {
+        entries.push(MenuEntry::Separator);
+    }
+    entries.extend(merge.into_iter().map(|entry| match entry {
+        MenuEntry::Item(item) => MenuEntry::Item(ui::MenuItem::new(item.label, CommitCommand::Merge(item.value))),
+        MenuEntry::Submenu { .. } | MenuEntry::Separator => MenuEntry::Separator,
+    }));
 }
 
 /// The items of the operations, with a separator after each group of the sizes given that is followed by more.
