@@ -3,7 +3,7 @@
 use std::ffi::OsString;
 
 use model::CommitId;
-use model::file_history::{CommittedLines, LineRange, MapLinesInput, map_lines};
+use model::file_history::{CommittedLines, HistoryOf, LineRange, MapLinesInput, map_lines};
 
 use crate::read::fields::{arguments, read_or_nothing, unexpected};
 use crate::read::repo::{head_commit_arguments, parse_head_commit};
@@ -173,6 +173,30 @@ pub fn read_committed_lines(git: &Git, request: &CommittedLinesRequest) -> Resul
         path: path.to_owned(),
         lines,
     })
+}
+
+/// What narrows the history the timeline lists to the history of a file, of some lines or of a folder, after the
+/// branches it shows: `--parents`, which makes each commit's parents the nearest commits listed so that the lines of
+/// the graph stay connected, then `-- :(literal)<name>…` for a file under each of its names or for a folder, or
+/// `--no-patch -L<start>,<end>:<path>` for some lines, which git follows from the commit given in place of the branches.
+#[must_use]
+pub fn history_arguments(history: &HistoryOf) -> Vec<OsString> {
+    match history {
+        HistoryOf::Lines { path, lines, .. } => {
+            let range = format!("-L{},{}:{path}", lines.start, lines.end);
+            arguments(&["--parents", "--no-patch", &range])
+        }
+        HistoryOf::File { .. } | HistoryOf::Folder { .. } => {
+            let mut words = arguments(&["--parents", "--"]);
+            words.extend(
+                history
+                    .paths()
+                    .into_iter()
+                    .map(|path| OsString::from(format!(":(literal){path}"))),
+            );
+            words
+        }
+    }
 }
 
 /// `git cat-file -e <commit>:<file>`, which ends with the exit code 0 when the commit has the file.

@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use engine::LogLevel;
 use json::Value;
 use model::changes::OpenOnClick;
-use model::contract::{CommandPreview, FeatureSettings, OpenIn};
+use model::contract::{BlameSettings, CommandPreview, FeatureSettings, OpenIn};
 use model::graph::PageSize;
 use model::refs::SortOrder;
 use render::ThemeName;
@@ -110,7 +110,8 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
 
 /// The settings the operations read: `commandPreview`, `branches.format`, `branches.openIn`,
 /// `submodules.updateOnCheckout`, `identities`, `pull.rebase`, `pull.autostash`, `cherryPick.recordOrigin`,
-/// `conflicts.autoResolve`, `conflicts.ai` and `editor.external`.
+/// `conflicts.autoResolve`, `conflicts.ai`, `editor.external`, `blame.enabled`, `blame.ignoreWhitespaceAndMoves` and
+/// `fileBlame.everyFile`.
 fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
     let defaults = FeatureSettings::default();
     let command_preview = match lookup.choice(keys::COMMAND_PREVIEW, &keys::COMMAND_PREVIEWS) {
@@ -152,6 +153,18 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
             .unwrap_or(defaults.external_editor),
         user_settings_file: defaults.user_settings_file,
         trust: defaults.trust,
+        blame: BlameSettings {
+            is_enabled: lookup
+                .boolean(keys::BLAME_ENABLED, Scope::User)
+                .unwrap_or(defaults.blame.is_enabled),
+            ignores_whitespace: lookup
+                .boolean(keys::BLAME_IGNORE_WHITESPACE, Scope::User)
+                .unwrap_or(defaults.blame.ignores_whitespace),
+            is_on_every_file: lookup
+                .boolean(keys::FILE_BLAME_EVERY_FILE, Scope::User)
+                .unwrap_or(defaults.blame.is_on_every_file),
+            user_file: None,
+        },
     }
 }
 

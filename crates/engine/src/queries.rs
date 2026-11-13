@@ -16,7 +16,7 @@ use model::contract::{Answer, IdentityKeys, Query};
 use model::remote::{Overwritten, OverwrittenCommit, Remote};
 use model::stash::StashReading;
 
-use crate::readings;
+use crate::{history, readings};
 
 /// The answer of a query, read now.
 pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
@@ -67,6 +67,9 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::HasFiles { path } => Ok(Answer::Flag(readings::has_files(path))),
         Query::SetupTakes(requests) => setup_takes(git, requests),
         Query::PathStatuses { paths } => path_statuses(git, paths),
+        Query::FileNames { path } => history::file_names(git, path),
+        Query::CommittedLines(query) => history::committed_lines(git, query),
+        Query::Blame(query) => history::blame(git, query),
     }
 }
 
@@ -308,6 +311,9 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::FileTexts { .. } | Query::SetupTakes(_) | Query::PathStatuses { .. } => describe_reads(query),
         Query::GitFolder { folder } => format!("git -C {} rev-parse --absolute-git-dir", folder.display()),
         Query::HasFiles { path } => format!("look in {}", path.display()),
+        Query::FileNames { path } => history::describe_file_names(path),
+        Query::CommittedLines(query) => history::describe_committed_lines(query),
+        Query::Blame(query) => history::describe_blame(query),
     }
 }
 

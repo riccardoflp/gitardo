@@ -70,6 +70,25 @@ impl Answers {
         }
     }
 
+    /// Where some lines are in the commit checked out, read under a key.
+    #[must_use]
+    pub fn committed_lines(&self, key: AnswerKey) -> Option<&crate::file_history::CommittedLines> {
+        match self.get(key)? {
+            Answer::CommittedLines(lines) => Some(lines),
+            _ => None, // Any other kind of answer is no lines.
+        }
+    }
+
+    /// The blame of a file read under a key: `None` when it was not read yet, `Some(None)` when git has no blame for
+    /// the file.
+    #[must_use]
+    pub fn blame(&self, key: AnswerKey) -> Option<Option<&[Option<crate::blame::BlameLine>]>> {
+        match self.get(key)? {
+            Answer::Blame(lines) => Some(lines.as_deref()),
+            _ => None, // Any other kind of answer is no blame.
+        }
+    }
+
     /// The comparisons opened before, given under a key.
     #[must_use]
     pub fn recent_comparisons(&self, key: AnswerKey) -> Option<&[RecentComparison]> {

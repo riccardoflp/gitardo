@@ -88,6 +88,10 @@ pub enum Answer {
     SetupTakes(Vec<crate::worktree_setup::SetupPreview>),
     /// What each path is for git (`worktree-setup.explain-change`).
     PathStatuses(Vec<crate::worktree_setup::PathStatus>),
+    /// Where some lines are in the commit checked out (`file-history.read-committed-lines`).
+    CommittedLines(crate::file_history::CommittedLines),
+    /// Who last changed each line of a file, or none when git has no blame for it (`blame.read-file`).
+    Blame(Option<Vec<Option<crate::blame::BlameLine>>>),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).

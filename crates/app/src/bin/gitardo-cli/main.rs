@@ -166,6 +166,11 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         }
         FollowUp::OpenReview(files) => writeln!(out, "Review {}", files.join(", "))?,
         FollowUp::OpenWindow(folder) => writeln!(out, "Open {} in a new window", folder.display())?,
+        FollowUp::ShowHistory(Some(history)) => writeln!(out, "Show the history of {}", history.paths().join(", "))?,
+        FollowUp::ShowHistory(None) => writeln!(out, "Show all commits")?,
+        FollowUp::ShowBlame(blame) => writeln!(out, "Show the blame of {}", blame.path)?,
+        FollowUp::HideBlame(path, _) => writeln!(out, "Hide the blame of {path}")?,
+        FollowUp::OpenFile(file) => writeln!(out, "Open {} at line {}", file.blame.path, file.line)?,
         FollowUp::SelectHead
         | FollowUp::DeleteWhenRebaseEnded(_)
         | FollowUp::EmptyCommitMessage

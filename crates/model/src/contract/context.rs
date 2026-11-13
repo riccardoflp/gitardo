@@ -67,6 +67,13 @@ pub enum Target {
     /// What the page of new worktrees saves, or the place it removes them from or edits them in
     /// (`worktree-setup.save`, `worktree-setup.remove-from`, `worktree-setup.edit-settings-file`).
     SetupSettings(Box<crate::worktree_setup::SetupSave>),
+    /// A file or a folder on disk, by its whole path: an entry of the Files page, or the file of a File page
+    /// (`file-history.file`, `file-history.folder`, `compare.path-with`).
+    Path(std::path::PathBuf),
+    /// Some lines of the file of a File page (`file-history.lines`).
+    Lines(Box<crate::file_history::LinesOfFile>),
+    /// The file of a File page and the line of its cursor, for the operations of the blame.
+    LineOfFile(Box<crate::blame::LineOfFile>),
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.
@@ -102,6 +109,34 @@ pub struct FeatureSettings {
     /// Whether the user trusts the folder of the window, so that the commands it asks to run are run
     /// (`worktree-setup.command-steps`).
     pub trust: crate::worktree_setup::Trust,
+    /// The blame of the files and of the line under the cursor (`blame.enabled`, `blame.ignoreWhitespaceAndMoves`,
+    /// `fileBlame.everyFile`), and the user's settings file, where their switches are written.
+    pub blame: BlameSettings,
+}
+
+/// The settings of the blame the features switch, and the file they are written in.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::struct_excessive_bools, reason = "each is a setting of its own, on or off")]
+pub struct BlameSettings {
+    /// `blame.enabled`: the line under the cursor says who last changed it.
+    pub is_enabled: bool,
+    /// `blame.ignoreWhitespaceAndMoves`: blame with `-w -M`.
+    pub ignores_whitespace: bool,
+    /// `fileBlame.everyFile`: every file opened shows its blame.
+    pub is_on_every_file: bool,
+    /// The user's settings file; none when the window has no place for it.
+    pub user_file: Option<std::path::PathBuf>,
+}
+
+impl Default for BlameSettings {
+    fn default() -> Self {
+        BlameSettings {
+            is_enabled: true,
+            ignores_whitespace: false,
+            is_on_every_file: false,
+            user_file: None,
+        }
+    }
 }
 
 /// An identity of the setting `identities`: `{ "name", "email", "signingKey"? }`.
@@ -131,6 +166,7 @@ impl Default for FeatureSettings {
             external_editor: String::new(),
             user_settings_file: None,
             trust: crate::worktree_setup::Trust::NotTrusted,
+            blame: BlameSettings::default(),
         }
     }
 }

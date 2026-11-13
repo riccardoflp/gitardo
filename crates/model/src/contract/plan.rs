@@ -256,6 +256,16 @@ pub struct FailureOffer {
     pub when: String,
     /// The plan offered, which runs in place of what was left of the one that failed.
     pub plan: Plan,
+    /// Show the timeline narrowed to the history of a file, of some lines or of a folder; none shows it with no
+    /// narrowing (`file-history.file`, `file-history.lines`, `file-history.folder`).
+    ShowHistory(Option<Box<crate::file_history::HistoryOf>>),
+    /// Show this blame beside the lines of the File page of a file (`blame.toggle-file`).
+    ShowBlame(Box<crate::blame::BlameOfFile>),
+    /// Hide the blame of the File page of a file, by its path and its revision, until the page is closed
+    /// (`blame.toggle-file`).
+    HideBlame(String, Option<crate::CommitId>),
+    /// Open a file in a File page at a line, with its blame shown (`blame.previous`).
+    OpenFile(Box<crate::blame::FileToOpen>),
 }
 
 #[cfg(test)]

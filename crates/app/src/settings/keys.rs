@@ -71,6 +71,24 @@ pub const CONFLICTS_AUTO_RESOLVE: &str = "conflicts.autoResolve";
 pub const CONFLICTS_AI: &str = "conflicts.ai";
 /// `editor.external`.
 pub const EXTERNAL_EDITOR: &str = "editor.external";
+/// `blame.enabled`.
+pub const BLAME_ENABLED: &str = "blame.enabled";
+/// `blame.ignoreWhitespaceAndMoves`.
+pub const BLAME_IGNORE_WHITESPACE: &str = "blame.ignoreWhitespaceAndMoves";
+/// `fileBlame.everyFile`.
+pub const FILE_BLAME_EVERY_FILE: &str = "fileBlame.everyFile";
+/// `fileBlame.format`.
+pub const FILE_BLAME_FORMAT: &str = "fileBlame.format";
+/// `fileBlame.groupLines`.
+pub const FILE_BLAME_GROUP_LINES: &str = "fileBlame.groupLines";
+/// `fileBlame.age.enabled`.
+pub const FILE_BLAME_AGE_ENABLED: &str = "fileBlame.age.enabled";
+/// `fileBlame.age.recentColor`.
+pub const FILE_BLAME_AGE_RECENT_COLOR: &str = "fileBlame.age.recentColor";
+/// `fileBlame.age.oldColor`.
+pub const FILE_BLAME_AGE_OLD_COLOR: &str = "fileBlame.age.oldColor";
+/// `fileBlame.age.oldAfterDays`.
+pub const FILE_BLAME_AGE_OLD_AFTER_DAYS: &str = "fileBlame.age.oldAfterDays";
 
 /// The default of `font.ui`: the font of the interface that comes with the program.
 pub const INTERFACE_FONT: &str = "Inter";

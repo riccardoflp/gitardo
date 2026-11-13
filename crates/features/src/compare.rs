@@ -5,12 +5,14 @@
 mod choose;
 mod copy_patch;
 mod in_place;
+mod path_with;
 mod take_file;
 mod with;
 
 pub use choose::choose;
 pub use copy_patch::copy_patch;
 pub use in_place::{selected_before, with_current};
+pub use path_with::path_with;
 pub use take_file::take_file;
 pub use with::{change_side, with};
 

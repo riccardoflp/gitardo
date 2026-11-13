@@ -69,6 +69,15 @@ pub fn owner_of_file<'a>(path: &Path, repositories: &'a [Repository]) -> Option<
         .map(|(_, repository)| repository)
 }
 
+/// The path of a file or a folder from a folder that holds it, with `/` between names: empty for the folder itself,
+/// none when the folder does not hold it. Case counts in the names as it does on the system.
+#[must_use]
+pub fn path_in_folder(path: &Path, folder: &Path) -> Option<String> {
+    let path = segments(path);
+    let rest = strip_segments(&path, &segments(folder))?;
+    Some(rest.join("/"))
+}
+
 /// The names of the folders of a path, from its root. Both slashes separate them, so that a path written on Windows
 /// reads the same on every system; `.` is left out.
 fn segments(path: &Path) -> Vec<String> {

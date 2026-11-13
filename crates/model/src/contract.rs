@@ -13,7 +13,7 @@ mod results;
 mod words;
 
 pub use answers::{Answer, AnswerKey, Answers, IdentityKeys, ReflogEntry};
-pub use context::{CommandPreview, Context, FeatureSettings, IdentityProfile, OpenIn, Target};
+pub use context::{BlameSettings, CommandPreview, Context, FeatureSettings, IdentityProfile, OpenIn, Target};
 pub use journal::{JournalEntry, UndoRecord};
 pub use outcome::{FeatureId, Operation, Outcome, Query, Refusal};
 pub use plan::{Danger, FailureOffer, FollowUp, Plan, Step, Undo};

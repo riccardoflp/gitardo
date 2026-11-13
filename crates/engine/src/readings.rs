@@ -36,6 +36,15 @@ pub(crate) fn file_contents(path: &std::path::Path) -> Result<Answer, GitError> 
         })
 }
 
+/// The reads of the bytes of files.
+pub(crate) fn describe_file_texts(paths: &[std::path::PathBuf]) -> String {
+    paths
+        .iter()
+        .map(|path| format!("read {}", path.display()))
+        .collect::<Vec<String>>()
+        .join(", ")
+}
+
 /// The bytes of files, each none when it is not there.
 pub(crate) fn file_texts(paths: &[std::path::PathBuf]) -> Result<Answer, GitError> {
     let mut texts = Vec::with_capacity(paths.len());

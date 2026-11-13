@@ -6,6 +6,7 @@
 #![forbid(unsafe_code)]
 
 pub mod bisect;
+pub mod blame;
 pub mod branch;
 pub mod changes;
 pub mod cherry_pick;
@@ -15,6 +16,7 @@ pub mod commits;
 pub mod compare;
 pub mod conflicts;
 pub mod diff;
+pub mod file_history;
 pub mod file_view;
 pub mod fixup;
 mod history;
@@ -46,7 +48,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 122] = [
+pub const OPERATIONS: [(FeatureId, Operation); 132] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -144,6 +146,7 @@ pub const OPERATIONS: [(FeatureId, Operation); 122] = [
     (FeatureId("compare.change-side"), compare::change_side),
     (FeatureId("compare.choose"), compare::choose),
     (FeatureId("compare.copy-patch"), compare::copy_patch),
+    (FeatureId("compare.path-with"), compare::path_with),
     (FeatureId("compare.selected-before"), compare::selected_before),
     (FeatureId("compare.take-file"), compare::take_file),
     (FeatureId("compare.with"), compare::with),
@@ -200,6 +203,17 @@ pub const OPERATIONS: [(FeatureId, Operation); 122] = [
     (FeatureId("worktree-setup.save"), worktree_setup::save),
     (FeatureId("worktree-setup.stop-copying"), worktree_setup::stop_copying),
     (FeatureId("worktree-setup.stop-linking"), worktree_setup::stop_linking),
+    // The history of a file, of lines or of a folder, and the blame.
+    (FeatureId("file-history.file"), file_history::file),
+    (FeatureId("file-history.folder"), file_history::folder),
+    (FeatureId("file-history.lines"), file_history::lines),
+    (FeatureId("blame.every-file"), blame::every_file),
+    (FeatureId("blame.ignore-whitespace"), blame::ignore_whitespace),
+    (FeatureId("blame.open-line-commit"), blame::open_line_commit),
+    (FeatureId("blame.previous"), blame::previous),
+    (FeatureId("blame.reveal-line-commit"), blame::reveal_line_commit),
+    (FeatureId("blame.toggle-current-line"), blame::toggle_current_line),
+    (FeatureId("blame.toggle-file"), blame::toggle_file),
 ];
 
 /// The operation of an identifier, when it is built.

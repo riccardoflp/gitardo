@@ -176,6 +176,7 @@ pub fn run_in(
     }
     let mut settings = state.settings.features.clone();
     settings.user_settings_file.clone_from(&state.user_settings_file);
+    settings.blame.user_file.clone_from(&state.user_settings_file);
     let context = Context {
         repository,
         target,

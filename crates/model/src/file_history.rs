@@ -1,9 +1,12 @@
-//! The history of some lines of a file: which lines of the file as committed the lines as they are now come from.
+//! The history of a file, of some lines or of a folder: which lines of the file as committed the lines as they are now
+//! come from, and what the timeline is narrowed to.
 
+mod history;
 mod line_diff;
 
 use crate::CommitId;
 
+pub use history::{CommittedLinesQuery, HistoryOf, LinesOfFile, selected_lines};
 use line_diff::changed_runs;
 
 /// Some lines of a file, counted from 1, both ends included.

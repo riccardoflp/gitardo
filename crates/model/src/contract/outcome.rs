@@ -233,6 +233,17 @@ pub enum Query {
         /// The paths from the top of the working tree, with `/`.
         paths: Vec<String>,
     },
+    /// Every name a file had in the history of what is checked out, the name given first
+    /// (`file-history.read-names`). The answer is [`super::Answer::Names`].
+    FileNames {
+        /// The name now, from the top of the working tree.
+        path: String,
+    },
+    /// Where some lines of a file as the File page has it are in the commit checked out
+    /// (`file-history.read-committed-lines`). The answer is [`super::Answer::CommittedLines`].
+    CommittedLines(Box<crate::file_history::CommittedLinesQuery>),
+    /// Who last changed each line of a file (`blame.read-file`). The answer is [`super::Answer::Blame`].
+    Blame(Box<crate::blame::BlameQuery>),
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.
