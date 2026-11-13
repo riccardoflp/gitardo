@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use model::filter::{ReferenceKind, kinds};
-use model::refs::{References, SortOrder, recent, sort};
+use model::refs::{References, SortOrder, order_in_force, recent, sort};
 use views::{FilterIntent, RailIntent, RailLists};
 
 use super::message::Effect;
@@ -45,10 +45,12 @@ pub struct FilterPicker {
     pub window: (f32, f32),
 }
 
-/// The order of the branches and tags in force: `branches.sortOrder`, by name while it is not set.
+/// The order of the branches and tags in force: `branches.sortOrder`, or while it is not set the order of git's own
+/// `branch.sort` in the repository shown (`refs.sort`).
 #[must_use]
 pub fn sort_order(state: &State) -> SortOrder {
-    state.settings.sort_order.unwrap_or_default()
+    let branch_sort = state.shown_read().and_then(|read| read.state.branch_sort.as_deref());
+    order_in_force(state.settings.sort_order, branch_sort)
 }
 
 /// Puts the references of the repository shown in their order, and works out **Recent**, after a read or a change of

@@ -995,7 +995,9 @@ Branches, remote branches and tags are listed by name, or the one committed to l
 - **Function**: `model::refs::sort(references: &References, order: SortOrder) -> References`
 - **Entry points**: **Sort by name** and **Sort by date** in the **…** on the title of the Local list, of the list of
   each remote and of the Tags list, checked as they are.
-- **Settings**: `branches.sortOrder`: `name` or `date`; not set, by name.
+- **Settings**: `branches.sortOrder`: `name` or `date`; not set, by name, or by date when Git's own `branch.sort` is
+  `-committerdate` or `committerdate` (`model::refs::order_in_force`).
+- **Reads**: Git's `branch.sort`, with the state of the repository (`repo.read-state`).
 
 - By name is the order git lists them in.
 - By date, the latest first: the date of the commit, or for a tag made with a message, when it was made; among the

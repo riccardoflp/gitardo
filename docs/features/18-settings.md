@@ -52,7 +52,7 @@ Acceptance:
 | `graph.combineUpstream` | `true` | User | A branch and its upstream of the same name share one label while at the same commit. | `graph.labels` |
 | `graph.firstParent` | `false` | User | Follow only the first parent of merges. | `graph.first-parent` |
 | `graph.traceSelected` | `true` | User | Bring out the history of the selected commit. | `graph.trace-selected` |
-| `branches.sortOrder` | not set | User | `name` or `date`, for branches, remote branches and tags everywhere they are listed. Not set: by name, or by date when Git's `branch.sort` is `-committerdate`. | `refs.sort` |
+| `branches.sortOrder` | not set | User | `name` or `date`, for branches, remote branches and tags everywhere they are listed. Not set: by name, or by date when Git's `branch.sort` is `-committerdate` or `committerdate`. | `refs.sort` |
 | `branches.followGraphFilter` | `true` | User | The branch rail lists only the branches the timeline is narrowed to. | `filter.list-too` |
 | `branches.format` | `""` | User, Repository | A format for the names of new branches and worktrees. | `branch.format-name` |
 | `branches.inputs` | `[]` | User, Repository | What the `${input:<id>}` of the format asks for. | `branch.format-name` |

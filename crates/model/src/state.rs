@@ -34,6 +34,9 @@ pub struct RepositoryState {
     pub remotes: Vec<String>,
     /// Who commits are made as.
     pub identity: Identity,
+    /// Git's `branch.sort`, when it is set: the order `git branch` lists the branches in, such as `-committerdate`,
+    /// which `branches.sortOrder` follows while it is not set (`refs.sort`).
+    pub branch_sort: Option<String>,
     /// What the reflog of `HEAD` says, newest first: the subjects of its last entries, such as
     /// `checkout: moving from main to feature`.
     pub reflog_subjects: Vec<String>,

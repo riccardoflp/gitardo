@@ -208,6 +208,8 @@ operation that stopped half way.
     what is not committed there; this one's count is the one of this read.
   - `git remote`: the names of the remotes.
   - `git config --get-regexp ^user\.(name|email)$`: who commits are made as.
+  - `git config --get branch.sort`: Git's own order of the branches, which `refs.sort` follows while
+    `branches.sortOrder` is not set.
   - `git reflog --max-count=300 --format=%gs HEAD`: where HEAD has been, for `refs.recent`. Nothing before the first
     commit.
   - `git status --porcelain=v2 --branch -z --untracked-files=all`: the files staged, the files changed and not staged,

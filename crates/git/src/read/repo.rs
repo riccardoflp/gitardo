@@ -3,6 +3,7 @@
 //! Each part is a read of its own, its arguments and its parser apart (rule R2.5). The parsers and the arguments are
 //! public so that the golden tests record exactly what the read asks git, and parse it without git.
 
+mod branch_sort;
 mod head;
 mod identity;
 mod location;
@@ -23,6 +24,7 @@ use crate::read::worktree::{self, WorktreeListRequest};
 use crate::{Git, GitError};
 
 pub use crate::read::worktree::{parse_worktrees, worktrees_arguments};
+pub use branch_sort::{branch_sort_arguments, parse_branch_sort};
 pub use head::{head_branch_arguments, head_commit_arguments, parse_head_branch, parse_head_commit};
 pub use identity::{identity_arguments, parse_identity};
 pub use location::{Location, location_arguments, parse_location};
@@ -48,7 +50,7 @@ pub struct StateRequest {
 
 /// Everything the window shows of a repository but its commits: what is checked out, the branches and how far each is
 /// from its upstream, the remote branches, the tags, the stashes, the worktrees with what is not committed in each,
-/// the remotes, who commits are made as, where `HEAD` has been, what is not committed here, the operation that
+/// the remotes, who commits are made as, git's order of the branches, where `HEAD` has been, what is not committed here, the operation that
 /// stopped half way and the bisect under way (`bisect.read`). The reads run at once, each in a thread of its own, and
 /// none takes a lock.
 ///
@@ -88,6 +90,7 @@ struct Parts {
     worktrees: Vec<Worktree>,
     remotes: Vec<String>,
     identity: Identity,
+    branch_sort: Option<String>,
     reflog_subjects: Vec<String>,
     working_tree: WorkingTree,
     operation: Option<Operation>,
@@ -110,6 +113,7 @@ fn read_parts(git: &Git, location: &Location) -> Result<Parts, GitError> {
         let worktrees = scope.spawn(|| worktree::read_list(git, &worktree_request));
         let remotes = scope.spawn(|| remotes::read_remotes(git));
         let identity = scope.spawn(|| identity::read_identity(git));
+        let branch_sort = scope.spawn(|| branch_sort::read_branch_sort(git));
         let reflog_subjects = scope.spawn(|| reflog_subjects::read_reflog_subjects(git));
         let working_tree = scope.spawn(|| status::read_status(git));
         let bisect_request = crate::read::bisect::BisectRequest {
@@ -131,6 +135,7 @@ fn read_parts(git: &Git, location: &Location) -> Result<Parts, GitError> {
             worktrees: joined(worktrees)?,
             remotes: joined(remotes)?,
             identity: joined(identity)?,
+            branch_sort: joined(branch_sort)?,
             reflog_subjects: joined(reflog_subjects)?,
             working_tree: joined(working_tree)?,
             operation,
@@ -167,6 +172,7 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
         worktrees,
         remotes: parts.remotes,
         identity: parts.identity,
+        branch_sort: parts.branch_sort,
         reflog_subjects: parts.reflog_subjects,
         working_tree: parts.working_tree,
         operation: parts.operation,

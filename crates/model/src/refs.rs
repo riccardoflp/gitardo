@@ -6,7 +6,7 @@ mod sort;
 use crate::state::{Branch, RemoteBranch, RepositoryState, Tag};
 
 pub use recent::recent;
-pub use sort::{SortOrder, sort};
+pub use sort::{SortOrder, order_in_force, sort};
 
 /// The branches, the remote branches and the tags of a repository, each list in the order it is shown in.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

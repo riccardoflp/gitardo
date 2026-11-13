@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- With `branches.sortOrder` not set, the branches, the remote branches and the tags are listed by date when Git's own
+  `branch.sort` is `-committerdate` or `committerdate`, and by name otherwise.
 - The **…** menu of the header is in the groups of its card, with **Compare branches, tags or commits…** and
   **Switch identity…** in a group of its own.
 - The documents to build Gitardo Desktop from: the clean room, the product, the architecture, the code rules, the

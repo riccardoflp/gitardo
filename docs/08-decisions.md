@@ -1676,3 +1676,9 @@ answered:
   `app::store::workspace::select`, which reduce them, and their acceptance lines are tests of the store. The system's
   folder dialog is the platform's (`platform::FileDialog`), shown for `Effect::ChooseFolder`. Can the maintainer
   confirm that the workspace stays out of the feature contract?
+- **Q-R2** — `refs.sort` is built on the lead's answer to Q9: with `branches.sortOrder` not set, the branches sort by
+  name, unless Git's `branch.sort` of the repository shown is `-committerdate` or `committerdate`, which give the order
+  by date (`model::refs::order_in_force`). `branch.sort` is read with the state of the repository, by
+  `git config --get branch.sort` in a thread of its own (`RepositoryState::branch_sort`). `committerdate`, the oldest
+  first for git, gives the order by date too, the latest first, as the lead said. Should other keys of `branch.sort`,
+  such as `-creatordate`, give the order by date as well?

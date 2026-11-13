@@ -43,6 +43,17 @@ pub fn sort(references: &References, order: SortOrder) -> References {
     sorted
 }
 
+/// The order in force: `branches.sortOrder` when it is set; while it is not, by date when git's own `branch.sort` sorts
+/// by the date of the commits (`-committerdate`, or `committerdate`), and by name otherwise.
+#[must_use]
+pub fn order_in_force(setting: Option<SortOrder>, branch_sort: Option<&str>) -> SortOrder {
+    match (setting, branch_sort.map(str::trim)) {
+        (Some(order), _) => order,
+        (None, Some("-committerdate" | "committerdate")) => SortOrder::Date,
+        (None, _) => SortOrder::Name,
+    }
+}
+
 /// The latest first, and by name among the same date.
 fn by_date(left: (Timestamp, &String), right: (Timestamp, &String)) -> std::cmp::Ordering {
     (Reverse(left.0), left.1).cmp(&(Reverse(right.0), right.1))
@@ -51,7 +62,7 @@ fn by_date(left: (Timestamp, &String), right: (Timestamp, &String)) -> std::cmp:
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
-    use super::{SortOrder, sort};
+    use super::{SortOrder, order_in_force, sort};
     use crate::Timestamp;
     use crate::graph::testing::{branch, id, remote_branch};
     use crate::refs::References;
@@ -119,6 +130,20 @@ mod tests {
         assert_eq!(branch_names(&sorted), ["b", "a"]);
         assert_eq!(sorted.remote_branches[0].name, "origin/b");
         assert_eq!(sorted.tags[0].name, "b");
+    }
+
+    #[test]
+    fn refs_sort__not_set_it_is_by_name_unless_git_sorts_branches_by_the_date_of_their_commits() {
+        assert_eq!(order_in_force(None, None), SortOrder::Name);
+        assert_eq!(order_in_force(None, Some("refname")), SortOrder::Name);
+        assert_eq!(order_in_force(None, Some("-committerdate")), SortOrder::Date);
+        assert_eq!(order_in_force(None, Some("committerdate")), SortOrder::Date);
+        assert_eq!(
+            order_in_force(Some(SortOrder::Name), Some("-committerdate")),
+            SortOrder::Name,
+            "the setting set wins"
+        );
+        assert_eq!(order_in_force(Some(SortOrder::Date), None), SortOrder::Date);
     }
 
     #[test]

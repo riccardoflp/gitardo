@@ -188,6 +188,15 @@ fn repo_read_state__an_annotated_tag_is_read_at_its_commit_with_the_date_it_was_
 }
 
 #[test]
+fn refs_sort__the_state_has_the_branch_sort_of_git_when_it_is_set() {
+    let mut repository = Repository::new();
+    let _ = repository.commit("Add the parser", &[("parser.rs", "1\n")]);
+    assert_eq!(read(&repository).branch_sort, None);
+    let _ = repository.git(&["config", "branch.sort", "-committerdate"]);
+    assert_eq!(read(&repository).branch_sort.as_deref(), Some("-committerdate"));
+}
+
+#[test]
 fn repo_read_state__origin_head_is_not_among_the_remote_branches() {
     let mut repository = Repository::new();
     let first = repository.commit("Add the parser", &[("parser.rs", "1\n")]);
