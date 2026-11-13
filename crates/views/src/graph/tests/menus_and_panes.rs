@@ -350,3 +350,21 @@ fn stash_in_graph__the_context_menu_of_a_stash_row_has_the_four_stash_entries_on
         ["stash.apply", "stash.pop", "stash.branch", "stash.drop"]
     );
 }
+
+#[test]
+fn graph_combine_upstream__the_menu_of_a_shared_label_ends_with_copy_of_the_upstream() {
+    use model::graph::{Label, LabelKind};
+    let label = |upstream: Option<&str>| Label {
+        name: String::from("feature"),
+        kind: LabelKind::Branch {
+            worktree: None,
+            upstream: upstream.map(str::to_owned),
+        },
+        is_checked_out: false,
+    };
+    assert_eq!(
+        super::super::commit_menu::copy_upstream(&label(Some("origin/feature"))),
+        Some((String::from("Copy origin/feature"), "origin/feature"))
+    );
+    assert_eq!(super::super::commit_menu::copy_upstream(&label(None)), None);
+}

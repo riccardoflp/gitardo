@@ -27,6 +27,8 @@ enum CommitCommand {
     Operation(usize),
     /// The fold of a merge.
     Merge(MergeEntry),
+    /// **Copy `<upstream>`** on a label a branch shares with its upstream: the name of the upstream on the clipboard.
+    CopyUpstream,
 }
 
 /// The key of the menu of a row, and of the label on it it was opened on.
@@ -71,6 +73,18 @@ pub(super) fn double_click_label(state: &HistoryState<'_>, pointed: Option<&Poin
 /// The label of a commit at a place.
 fn pointed_label<'a>(state: &HistoryState<'a>, (commit, index): &PointedLabel) -> Option<&'a Label> {
     state.layout.labels.get(commit)?.get(*index)
+}
+
+/// The words of **Copy `<upstream>`** and the name it copies, on a label a branch shares with its upstream
+/// (`graph.combine-upstream`).
+pub(crate) fn copy_upstream(label: &Label) -> Option<(String, &str)> {
+    match &label.kind {
+        LabelKind::Branch {
+            upstream: Some(upstream),
+            ..
+        } => Some((crate::text::timeline::copy_name(upstream), upstream.as_str())),
+        _ => None,
+    }
 }
 
 /// The operations of the label of a commit at a place, as its reference has them in the branch rail.
@@ -131,10 +145,28 @@ pub(super) fn commit_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usiz
         MenuEntry::Item(item) => MenuEntry::Item(ui::MenuItem::new(item.label, CommitCommand::Merge(item.value))),
         MenuEntry::Submenu { .. } | MenuEntry::Separator => MenuEntry::Separator,
     }));
+    let shared = label
+        .and_then(|label| pointed_label(state, &(commit.id.clone(), label)))
+        .and_then(copy_upstream);
+    if let Some((words, _)) = &shared {
+        if !entries.is_empty() {
+            entries.push(MenuEntry::Separator);
+        }
+        entries.push(MenuEntry::Item(ui::MenuItem::new(
+            words.as_str(),
+            CommitCommand::CopyUpstream,
+        )));
+    }
     match ui.menu(menu_key(shown, label), &entries) {
         Some(CommitCommand::Operation(index)) => chosen(&operations, index).into_iter().collect(),
         Some(CommitCommand::Merge(MergeEntry::Fold)) => vec![Intent::Graph(GraphIntent::Fold(commit.id.clone()))],
         Some(CommitCommand::Merge(MergeEntry::Unfold)) => vec![Intent::Graph(GraphIntent::Unfold(commit.id.clone()))],
+        Some(CommitCommand::CopyUpstream) => {
+            if let Some((_, name)) = shared {
+                ui.copy_to_clipboard(name.to_owned());
+            }
+            Vec::new()
+        }
         None => Vec::new(),
     }
 }

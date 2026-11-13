@@ -95,3 +95,9 @@ pub fn not_pushed_to(upstream: &str) -> String {
 pub fn checked_out_in(folder: &str) -> String {
     format!("Checked out in {folder}")
 }
+
+/// **Copy `<name>`** in the menu of a label a branch shares with its upstream: the upstream's name on the clipboard.
+#[must_use]
+pub fn copy_name(name: &str) -> String {
+    format!("Copy {name}")
+}

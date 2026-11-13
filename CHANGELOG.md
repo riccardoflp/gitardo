@@ -104,6 +104,8 @@
   in Quick search shows it again with the steps done ticked.
 - A row of the timeline keeps its message whole when it can: the labels take the room the message leaves, and those
   that do not fit are counted, `+2`, with their names in the tooltip of the count.
+- The menu of a label a branch shares with its upstream ends with **Copy origin/feature**, which copies the name of the
+  upstream.
 - Quick search keeps its room in the header while something runs: the activity indicator takes only what is left,
   and shows its icon alone where its words would be cut short.
 - Operations run from the window: **Branch** and **Undo** in **…**, **Fetch** in the menu of **Sync**, and **Create
