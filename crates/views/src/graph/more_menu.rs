@@ -27,6 +27,8 @@ pub struct MoreMenuState {
     pub timeline: Option<TimelineMenu>,
     /// **Branch**, **Stash** and **Undo**, while a repository is shown.
     pub operations: Option<OperationsMenu>,
+    /// Whether the repository has submodules: **Add submodule…** is then in the Submodules list, not here.
+    pub has_submodules: bool,
 }
 
 /// What **Branch**, **Stash** and **Undo** may do.
@@ -233,9 +235,10 @@ fn operation_item(
 }
 
 /// The ways to what is not elsewhere in the header, in the order of the card: **Compare branches, tags or commits…**,
-/// **Go to commit…**, **Reflog**, **Clean up branches…**, **Apply patch…** and **Manage remotes…**.
-fn ways_entries(operations: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
-    vec![
+/// **Go to commit…**, **Reflog**, **Clean up branches…**, **Apply patch…**, **Manage remotes…** and, while the
+/// repository has no submodule, **Add submodule…**.
+fn ways_entries(operations: OperationsMenu, has_submodules: bool) -> Vec<MenuEntry<'static, MoreCommand>> {
+    let mut entries = vec![
         operation_item(crate::text::compare::COMPARE_BRANCHES, "compare.choose", operations),
         MenuEntry::Item(MenuItem::new(
             crate::text::search::GO_TO_COMMIT_ENTRY,
@@ -245,7 +248,15 @@ fn ways_entries(operations: OperationsMenu) -> Vec<MenuEntry<'static, MoreComman
         operation_item(crate::text::branch::CLEAN_UP_BRANCHES, "branch.clean-up", operations),
         operation_item(crate::text::patch::APPLY_PATCH, "patch.apply", operations),
         operation_item(words::MANAGE_REMOTES, "remote.manage", operations),
-    ]
+    ];
+    if !has_submodules {
+        entries.push(operation_item(
+            crate::text::rail::ADD_SUBMODULE,
+            "submodule.add",
+            operations,
+        ));
+    }
+    entries
 }
 
 /// The entries of **…**, in the groups of the card: **Refresh**, **Branch**, **Stash** and **Undo**; the entries of the
@@ -267,7 +278,7 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
         entries.push(MenuEntry::Separator);
     }
     if let Some(operations) = state.operations {
-        entries.extend(ways_entries(operations));
+        entries.extend(ways_entries(operations, state.has_submodules));
     }
     if state.can_select_repository {
         entries.push(MenuEntry::Item(MenuItem::new(
@@ -331,6 +342,7 @@ mod tests {
                 has_commits: true,
                 can_stash: true,
             }),
+            has_submodules: false,
         };
         assert_eq!(
             words(&state),
@@ -361,6 +373,7 @@ mod tests {
                 "Clean up branches\u{2026}",
                 "Apply patch\u{2026}",
                 "Manage remotes\u{2026}",
+                "Add submodule\u{2026}",
                 "Select repository\u{2026}",
                 "-",
                 "Switch identity\u{2026}",
@@ -369,5 +382,25 @@ mod tests {
                 "Theme\u{2026}",
             ]
         );
+    }
+
+    #[test]
+    fn graph_more_menu__add_submodule_is_not_in_the_menu_of_a_repository_with_submodules() {
+        let operations = OperationsMenu {
+            is_running: false,
+            has_commits: true,
+            can_stash: false,
+        };
+        let with = MoreMenuState {
+            operations: Some(operations),
+            has_submodules: true,
+            ..MoreMenuState::default()
+        };
+        assert!(!words(&with).contains(&"Add submodule\u{2026}"));
+        let without = MoreMenuState {
+            has_submodules: false,
+            ..with
+        };
+        assert!(words(&without).contains(&"Add submodule\u{2026}"));
     }
 }

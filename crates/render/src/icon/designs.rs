@@ -53,6 +53,11 @@ pub(crate) fn design(icon: Icon) -> Design {
             &[(4.5, 8.0), (11.5, 8.0)],
             &[(6.5, 11.5), (9.5, 11.5)],
         ]),
+        Icon::Pencil => {
+            let mut design = closed(&[(2.5, 13.5), (3.0, 10.5), (10.5, 3.0), (13.0, 5.5), (5.5, 13.0)]);
+            add_polyline(&mut design.strokes, &[(9.0, 4.5), (11.5, 7.0)]);
+            design
+        }
     }
 }
 

@@ -155,6 +155,7 @@ impl QuickCommand {
             QuickCommand::StashChanges => Some("stash.push"),
             QuickCommand::CleanUpBranches => Some("branch.clean-up"),
             QuickCommand::ManageRemotes => Some("remote.manage"),
+            QuickCommand::AddSubmodule => Some("submodule.add"),
             QuickCommand::Compare => Some("compare.choose"),
             QuickCommand::BrowseReflog => Some("reflog.browse"),
             QuickCommand::ApplyPatch => Some("patch.apply"),

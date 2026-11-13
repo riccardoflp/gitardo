@@ -359,6 +359,7 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
                 effects.extend(super::commit_page::open(state, folder, commit));
             }
             (FollowUp::CopyToClipboard(text), _) => effects.push(Effect::CopyText(text)),
+            (FollowUp::OpenWindow(folder), _) => effects.push(Effect::OpenWindow(folder)),
             (FollowUp::OpenComparison(target), _) => effects.extend(super::compare::opened(state, *target)),
             (FollowUp::CloseMergePage(path), _) => super::merge_page::close_file(state, &path),
             (FollowUp::CompareInPlace(sides), Some(folder)) => {

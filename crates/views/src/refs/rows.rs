@@ -6,6 +6,7 @@ use std::collections::HashSet;
 
 use model::filter::{ReferenceKind, rank_names, ticked};
 use model::state::{Branch, RemoteBranch, Stash, Tag, Worktree};
+use model::submodule::Submodule;
 
 use super::ReferencesState;
 use super::stashes::{StashLine, with_stash_rows};
@@ -82,8 +83,8 @@ pub(super) enum Entry<'a> {
     Stash(&'a Stash),
     /// A worktree.
     Worktree(&'a Worktree),
-    /// A submodule, by its path.
-    Submodule(&'a str),
+    /// A submodule.
+    Submodule(&'a Submodule),
 }
 
 impl Entry<'_> {
@@ -95,7 +96,7 @@ impl Entry<'_> {
             Entry::Tag(tag) => tag.name.clone(),
             Entry::Stash(stash) => stash.message.clone(),
             Entry::Worktree(worktree) => worktree_folder(worktree),
-            Entry::Submodule(path) => (*path).to_owned(),
+            Entry::Submodule(submodule) => submodule.folder.clone(),
         }
     }
 
@@ -257,10 +258,10 @@ fn kept_lists<'a>(state: &ReferencesState<'a>) -> Vec<(RailList, Vec<Entry<'a>>)
         ),
         (RailList::Tags, state.references.tags.iter().map(Entry::Tag).collect()),
     ];
-    if !state.submodules.is_empty() {
+    if !repository.submodules.is_empty() {
         lists.push((
             RailList::Submodules,
-            state.submodules.iter().map(|path| Entry::Submodule(path)).collect(),
+            repository.submodules.iter().map(Entry::Submodule).collect(),
         ));
     }
     lists

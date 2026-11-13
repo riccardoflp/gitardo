@@ -25,7 +25,6 @@ pub(super) fn rail<'a>(state: &'a State, read: &'a RepositoryRead, now: i64) -> 
         remote_colors: &state.timeline.layout.remote_colors,
         favorites: favorites(state),
         recent: &state.rail.recent,
-        submodules: &[],
         typed: &state.rail.typed,
         shown: state.timeline.shown.as_ref(),
         follows_timeline: state.settings.follows_graph_filter,

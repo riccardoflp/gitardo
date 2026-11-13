@@ -391,6 +391,9 @@ pub enum Effect {
     ReplyToFeature(super::feature::Reply),
     /// Puts text on the clipboard of the system: the URL of a remote (`remote.manage`).
     CopyText(String),
+    /// Opens a folder in a new window of Gitardo Desktop, as a repository of its own
+    /// (`submodule.open-in-new-window`).
+    OpenWindow(PathBuf),
     /// Opens the system's dialog to choose a file to open, or where to save one, for the question of the operation
     /// running; the path chosen, or none, is its answer.
     ChooseFile {

@@ -260,6 +260,7 @@ impl DesktopWindow {
             }
             Effect::ReplyToFeature(reply) => self.operations.reply(reply),
             Effect::CopyText(text) => self.surface.copy(&text),
+            Effect::OpenWindow(folder) => open_window(&folder),
             Effect::ChooseFile {
                 title,
                 question,
@@ -335,4 +336,12 @@ fn seconds_now() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |since| i64::try_from(since.as_secs()).unwrap_or(i64::MAX))
+}
+
+/// Starts Gitardo Desktop again on a folder, in a window of its own. When it cannot be started there is no one to tell
+/// but the window, which shows nothing new.
+fn open_window(folder: &std::path::Path) {
+    if let Ok(program) = std::env::current_exe() {
+        let _started = std::process::Command::new(program).arg(folder).spawn();
+    }
 }

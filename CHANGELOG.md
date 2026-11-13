@@ -236,9 +236,15 @@
   `${line}` are the file and the line of the cursor.
 - The code on the File and Diff pages in the colors of its language, the whole text colored at once, so that a line in
   a comment of several lines is a comment; changing the theme colors it again.
-- Adding a submodule clones it with its own submodules. Cloning a submodule from a folder on disk, which git refuses
-  unless allowed, is offered again allowed for those commands only, and **Deinitialize** of a submodule with changes
-  offers `--force`.
+- The Submodules list in **Kept aside** of the branch rail, while the repository has submodules: each indented under the
+  one that has it, with where it stands against its recorded commit, the branch it has checked out and a pencil with
+  its files not committed, a tooltip that says all of it, **+** to add one, a double click that opens it in a new
+  window, and a menu to open it in a terminal or the file manager, initialize it, update it to the recorded commit or
+  to the latest of its branch, stage its commit as the recorded one, synchronize the URLs, copy its path or URL,
+  deinitialize it and remove it; the list follows commits, checkouts and edits made in a submodule elsewhere.
+- **Add submodule…** in **…** while the repository has none, and in Quick search; adding one clones it with its own
+  submodules. Cloning a submodule from a folder on disk, which git refuses unless allowed, is offered again allowed for
+  those commands only, and **Deinitialize** of a submodule with changes offers `--force`.
 - A checkout updates the submodules to the commits it records, as `submodules.updateOnCheckout` says, asking first when
   a submodule has commits on a detached HEAD that no branch would keep.
 - The submodule operations from `gitardo-cli`, with `--target submodule:<folder>`.

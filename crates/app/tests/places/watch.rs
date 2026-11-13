@@ -15,7 +15,7 @@ use super::support::run;
 use super::{repository_with_history, showing};
 
 /// A watcher of a working tree whose messages come to a channel.
-fn watched(tree: &Path) -> (RepositoryWatch, Receiver<Message>) {
+pub(super) fn watched(tree: &Path) -> (RepositoryWatch, Receiver<Message>) {
     let (sender, receiver) = mpsc::channel();
     let sender = Mutex::new(sender);
     let deliver: Deliver = Arc::new(move |message| {
@@ -26,7 +26,7 @@ fn watched(tree: &Path) -> (RepositoryWatch, Receiver<Message>) {
 }
 
 /// The changes the watcher sent within some time.
-fn changes_within(receiver: &Receiver<Message>, time: Duration) -> Vec<Change> {
+pub(super) fn changes_within(receiver: &Receiver<Message>, time: Duration) -> Vec<Change> {
     let until = Instant::now() + time;
     let mut changes = Vec::new();
     while let Some(left) = until.checked_duration_since(Instant::now()) {
@@ -38,7 +38,7 @@ fn changes_within(receiver: &Receiver<Message>, time: Duration) -> Vec<Change> {
 }
 
 /// Reduces the changes into the store, then the moment every read they ask for is due; gives the reads started.
-fn reads_after(state: &mut State, changes: Vec<Change>) -> usize {
+pub(super) fn reads_after(state: &mut State, changes: Vec<Change>) -> usize {
     let mut effects = run(
         state,
         Message::Changed {

@@ -73,7 +73,7 @@ Acceptance:
 The submodules of the repository in the branch rail, under **Kept aside**, each with where it stands.
 
 - **Kind**: View
-- **Function**: `views::submodule::section(state, ui) -> Vec<Intent>`
+- **Function**: `views::refs::submodules::section(state, ui) -> Vec<Intent>`
 - **Entry points**: the **Submodules** list in **Kept aside** of the branch rail.
 - **Offered when**: the repository has submodules; otherwise the list is not there.
 - **Reads**: `submodule.read-list`.

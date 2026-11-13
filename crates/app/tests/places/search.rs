@@ -344,12 +344,12 @@ fn quick_search_opens_with_ctrl_k_and_goes_to_a_branch_chosen() {
 fn quick_search_lists_the_commands_not_built_yet_and_choosing_them_does_nothing() {
     let (repository, _remote) = repository_with_history();
     let mut state = showing(repository.path().to_path_buf());
-    search(&mut state, SearchIntent::OpenQuick(String::from("submodule")));
+    search(&mut state, SearchIntent::OpenQuick(String::from("worktree")));
     let before = state.clone();
     let effects = reduce(
         &mut state,
         Message::Intent(Intent::Search(SearchIntent::ChooseQuick(QuickChoice::Command(
-            views::search::QuickCommand::AddSubmodule,
+            views::search::QuickCommand::SwitchWorktree,
         )))),
     );
     assert_eq!(effects, []);

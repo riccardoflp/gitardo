@@ -25,6 +25,7 @@ pub mod review;
 pub mod search;
 pub mod settings;
 pub mod stash;
+pub mod submodule;
 pub mod timeline;
 pub mod welcome;
 

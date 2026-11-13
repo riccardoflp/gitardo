@@ -75,11 +75,13 @@ pub enum Icon {
     Eye,
     /// Three lines that get shorter: what is shown, filtered.
     Filter,
+    /// A pencil: files changed and not committed.
+    Pencil,
 }
 
 impl Icon {
     /// Every icon, in the order of the enumeration.
-    pub const ALL: [Icon; 27] = [
+    pub const ALL: [Icon; 28] = [
         Icon::ChevronRight,
         Icon::ChevronDown,
         Icon::Close,
@@ -107,6 +109,7 @@ impl Icon {
         Icon::Clock,
         Icon::Eye,
         Icon::Filter,
+        Icon::Pencil,
     ];
 }
 

@@ -1255,3 +1255,9 @@ says otherwise):
 - **Q-U11** — The inputs of `update_on_checkout` (`CheckoutUpdate`: the checkout's plan, the setting, whether there are
   submodules on either side, the folder and the submodules) and of `allow_file_protocol` (`FailedPlan`: the plan, the
   step that failed and what git said) are structs of their own; the cards name them `input`. Is this right?
+- **Q-U12** — `submodule.section` is drawn by `views::refs::submodules::section`, one row of the rail at a time, as the
+  Stashes list is, so that the filter box and the rows in sight work for it too; its card names that function now.
+  A submodule is listed by its folder below the one that has it (`b` under `vendor/a`), and the filter matches its
+  whole folder. A pencil icon is added to the toolkit for the files not committed. Is this right?
+- **Q-U13** — The marks of `submodule.status` are drawn as the number then its arrow, `2↑ 1↓`, as its card writes them,
+  where the branches of the rail write `↑1 ↓2`. Should they agree, and which way?

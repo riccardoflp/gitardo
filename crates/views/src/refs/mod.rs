@@ -11,6 +11,9 @@ mod rows;
 mod stashes;
 #[cfg(test)]
 mod stashes_tests;
+mod submodules;
+#[cfg(test)]
+mod submodules_tests;
 #[cfg(test)]
 mod tests;
 
@@ -37,7 +40,7 @@ pub use stashes::{StashFilesRead, StashesShown};
 /// What the branch rail lists.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ReferencesState<'a> {
-    /// The repository shown, as last read: its remotes, stashes and worktrees.
+    /// The repository shown, as last read: its remotes, stashes, worktrees and submodules.
     pub repository: &'a RepositoryState,
     /// Its branches, remote branches and tags, in the order of `refs.sort`.
     pub references: &'a References,
@@ -52,8 +55,6 @@ pub struct ReferencesState<'a> {
     pub favorites: &'a [String],
     /// The local branches checked out last, the latest first (`refs.recent`).
     pub recent: &'a [String],
-    /// The paths of the submodules, once they are read.
-    pub submodules: &'a [String],
     /// What is typed in the filter box.
     pub typed: &'a str,
     /// The branches the timeline shows; none is everything.

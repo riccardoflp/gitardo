@@ -13,6 +13,7 @@ use super::entry::entry_row;
 use super::menu::{ListCommand, list_menu};
 use super::rows::{Entry, ListHead, RailRow};
 use super::stashes::{StashesRow, empty_height, is_of_stashes, stashes_view};
+use super::submodules::{SubmodulesRow, is_of_submodules, section};
 use crate::graph::HoverTarget;
 use crate::intent::{Intent, RailIntent, RailList};
 use crate::text::rail as words;
@@ -86,6 +87,12 @@ pub(super) fn draw_row(
         report
             .intents
             .extend(stashes_view(&StashesRow { context, row, rect }, ui));
+        return;
+    }
+    if !context.is_icons && is_of_submodules(row) {
+        report
+            .intents
+            .extend(section(&SubmodulesRow { context, row, rect }, ui));
         return;
     }
     match row {
@@ -240,8 +247,18 @@ pub(super) fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListH
     if response.clicked {
         intents.push(Intent::Rail(RailIntent::Toggle(head.list.clone())));
     }
-    if let Some(ListCommand::Sort(order)) = ui.menu(menu_key, &entries) {
-        intents.push(Intent::Rail(RailIntent::Sort(order)));
-    }
+    intents.extend(ui.menu(menu_key, &entries).and_then(list_command_intent));
     intents
+}
+
+/// What an entry of the menu of a list asks.
+fn list_command_intent(command: ListCommand) -> Option<Intent> {
+    match command {
+        ListCommand::Sort(order) => Some(Intent::Rail(RailIntent::Sort(order))),
+        ListCommand::Run(feature) => Some(Intent::Feature(crate::feature::FeatureIntent::Run(
+            model::contract::FeatureId(feature),
+            model::contract::Target::Head,
+        ))),
+        ListCommand::Later => None,
+    }
 }

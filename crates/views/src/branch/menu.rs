@@ -43,7 +43,7 @@ impl OperationEntry {
     }
 
     /// An entry greyed out until its operation exists.
-    fn later(label: impl Into<String>) -> Self {
+    pub(crate) fn later(label: impl Into<String>) -> Self {
         OperationEntry {
             label: label.into(),
             run: None,

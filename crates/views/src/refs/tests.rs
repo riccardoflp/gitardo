@@ -115,7 +115,6 @@ impl Rail {
             remote_colors: &self.colors,
             favorites: &self.favorites,
             recent: &self.recent,
-            submodules: &[],
             typed: &self.typed,
             shown: self.shown.as_ref(),
             follows_timeline: self.follows,

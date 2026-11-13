@@ -36,6 +36,8 @@ pub(super) enum EntryCommand {
 pub(super) enum ListCommand {
     /// **Sort by name** or **Sort by date**.
     Sort(SortOrder),
+    /// The operation of the catalog it runs at `HEAD`, as **Add submodule…**.
+    Run(&'static str),
     /// An operation of a later milestone, greyed out until then.
     Later,
 }
@@ -132,7 +134,7 @@ fn stash_operations() -> Vec<MenuEntry<'static, EntryCommand>> {
 }
 
 /// The menu of a list, none for a list that has none: the order of the local branches, of each remote and of the
-/// tags, checked as it is; **Create worktree…** and **Add submodule…**, greyed out until their operations exist.
+/// tags, checked as it is; **Create worktree…**, greyed out until its operation exists, and **Add submodule…**.
 pub(super) fn list_menu(list: &RailList, order: SortOrder) -> Vec<MenuEntry<'static, ListCommand>> {
     let sort = |label, by| {
         let item = MenuItem::new(label, ListCommand::Sort(by));
@@ -146,9 +148,10 @@ pub(super) fn list_menu(list: &RailList, order: SortOrder) -> Vec<MenuEntry<'sta
         RailList::Worktrees => vec![MenuEntry::Item(
             MenuItem::new(words::CREATE_WORKTREE, ListCommand::Later).disabled(),
         )],
-        RailList::Submodules => vec![MenuEntry::Item(
-            MenuItem::new(words::ADD_SUBMODULE, ListCommand::Later).disabled(),
-        )],
+        RailList::Submodules => vec![MenuEntry::Item(MenuItem::new(
+            words::ADD_SUBMODULE,
+            ListCommand::Run("submodule.add"),
+        ))],
         RailList::Favorites | RailList::Recent | RailList::Stashes => Vec::new(),
     }
 }
