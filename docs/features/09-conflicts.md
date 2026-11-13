@@ -44,8 +44,8 @@ Its buttons, from the left:
   when some need a choice): only when `conflicts.autoResolve` is on and at least one conflict needs no choice. Its
   tooltip: *Resolve the conflicts that need no choice between the two sides: changes to lines next to each other, the
   same change made by both, differences in spaces or line endings only. Gitardo shows each resolution first, to accept
-  all of them or one by one; the other conflicts stay as they are.* It opens `review.page`; until
-  that page is there, it runs `conflicts.resolve-automatically`, whose question offers **Review** (Q186).
+  all of them or one by one; the other conflicts stay as they are.* It opens `review.page` with every file in
+  conflict.
 - **Resolve with AI**: only when `conflicts.ai` is on, files are in conflict, and the rules leave at least one conflict
   (or no conflict with markers was counted). It opens `review.page` and asks the AI provider (`ai.resolve-conflicts`);
   until then it is drawn disabled (Q187).

@@ -324,6 +324,8 @@ impl ReviewState<'_> {
 /// What the review page asks of the store.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ReviewIntent {
+    /// Open the page, of some files or of every file in conflict (`review.page`).
+    Open(Option<Vec<String>>),
     /// Accept the proposal of a conflict (`review.accept`).
     Accept(ConflictKey),
     /// Take back its acceptance.

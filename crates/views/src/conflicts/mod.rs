@@ -63,8 +63,8 @@ impl BannerState<'_> {
         }
     }
 
-    /// The buttons of the banner of an operation that stopped, from the left: **Resolve … automatically**, **Resolve
-    /// with AI**, **Continue**, **Skip** and **Abort**, each when it applies.
+    /// The buttons of the banner of an operation that stopped, from the left: **Resolve … automatically**, which opens
+    /// the review of the conflicts, **Resolve with AI**, **Continue**, **Skip** and **Abort**, each when it applies.
     #[must_use]
     pub fn buttons(&self) -> Vec<BannerButton> {
         let mut buttons = Vec::new();
@@ -75,7 +75,7 @@ impl BannerState<'_> {
                 label: words::resolve_automatically(counts.resolvable, counts.conflicts),
                 tooltip: Some(words::RESOLVE_AUTOMATICALLY_TOOLTIP),
                 is_enabled: can_press,
-                intent: Some(run("conflicts.resolve-automatically")),
+                intent: Some(Intent::Review(crate::review::ReviewIntent::Open(None))),
             });
         }
         let rules_leave_some = counts.conflicts == 0 || counts.resolvable < counts.conflicts;

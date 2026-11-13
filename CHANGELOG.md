@@ -248,3 +248,6 @@
 - A checkout updates the submodules to the commits it records, as `submodules.updateOnCheckout` says, asking first when
   a submodule has commits on a detached HEAD that no branch would keep.
 - The submodule operations from `gitardo-cli`, with `--target submodule:<folder>`.
+- The review of the conflicts also opens from **Resolve … automatically** in the banner of an operation that stopped,
+  from the wand of a file in conflict on the Changes page, for that file alone, and from **Review** in the question of
+  **Resolve conflicts automatically**.

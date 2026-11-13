@@ -1074,13 +1074,13 @@ says otherwise):
   sentence and a title: **Abort patch**, **Skip this step of the patch**, *the patch can continue*. **Abort** of the
   banner of a stop to edit or split a commit (Q170) now runs `conflicts.abort-operation`, and **Continue** of
   `conflicts.continue-operation` at such a stop hands over to `rebase.edit-stop` or `split.continue`. Are these right?
-- **Q186** — **Resolve … automatically** in the banner, and **Resolve automatically** in the message of
-  `conflicts.stopped`, run `conflicts.resolve-automatically` until `review.page` is there; its question offers
-  **Resolve** and **Review**, and **Review** runs nothing and asks the window to open the review of those files
-  (`FollowUp::OpenReview`), which nothing carries out yet. The question is the confirmation, so the plan's danger is
-  None rather than Confirm: a Confirm plan would be shown a second time. The rules are given no time limit
-  (`keep_going` is always yes), since a feature reads no clock; their own limits of size and lines stop them. Should the
-  banner open `review.page` once it exists, and how should **Review** hand the files to it?
+- **Q186** — **Resolve … automatically** in the banner opens `review.page` with every file in conflict; **Resolve
+  automatically** in the message of `conflicts.stopped` runs `conflicts.resolve-automatically`, as its card says. Its
+  question offers **Resolve** and **Review**, and **Review** runs nothing and asks the window to open the review of
+  those files (`FollowUp::OpenReview`), which the window does with `store::review::open(state, Some(files))`, putting
+  away the message of the operation. The question is the confirmation, so the plan's danger is None rather than
+  Confirm: a Confirm plan would be shown a second time. The rules are given no time limit (`keep_going` is always yes),
+  since a feature reads no clock; their own limits of size and lines stop them. Are these right?
 - **Q187** — **Resolve with AI** is drawn, disabled, in the banner and the message when `conflicts.ai` is on, until
   `ai.resolve-conflicts` is built (M9). `conflicts.restore` stays **Specified** for its third line, the answers of the
   AI provider shown again. Is that right?
@@ -1163,12 +1163,13 @@ says otherwise):
   branch checked out, `HEAD`, the commit brought in, and in a rebase `onto` and `head-name`, in `git am`
   `final-commit`). The slice that builds the banner may read the same; the two should become one when merged. Is this
   right?
-- **Q205** — The review page opens only from **Review the resolutions of the conflicts** in Quick search: the
-  buttons of `conflicts.banner`, the wand and the sparkle of the Changes page and **Review** in the question of
-  `conflicts.resolve-automatically` belong to cards not built in this slice, and can open it with
-  `store::review::open(state, Some(files))`. With both settings off, the refusal is said where an operation's
-  message is, with **Open settings** beside it. `review.page` stays Specified for its
-  line about the sparkle (the AI). Is this right?
+- **Q205** — The review page opens from **Review the resolutions of the conflicts** in Quick search, from **Resolve …
+  automatically** in `conflicts.banner` (every file), from the wand of a file in conflict on the Changes page (that
+  file alone, `ReviewIntent::Open`), drawn only while `conflicts.autoResolve` is on, and from **Review** in the question
+  of `conflicts.resolve-automatically`. The wand is a new icon of the set, `Icon::Wand`. The sparkle is not drawn until
+  `ai.resolve-conflicts` is built (M9). With both settings off, the refusal is said where an operation's message is,
+  with **Open settings** beside it. `review.page` stays Specified for its line about the sparkle (the AI). Is this
+  right?
 - **Q206** — What is accepted is kept with the page, by file and fingerprint, and forgotten once the page closes or
   the accepted resolutions are written; the choices are kept for the window by repository, file and fingerprint; Cards
   or Columns and the widths of the columns, in thousandths of the width, are kept for the window, not between runs.

@@ -58,6 +58,11 @@ pub(crate) fn design(icon: Icon) -> Design {
             add_polyline(&mut design.strokes, &[(9.0, 4.5), (11.5, 7.0)]);
             design
         }
+        Icon::Wand => lines(&[
+            &[(2.5, 13.5), (9.5, 6.5)],
+            &[(12.0, 1.5), (12.0, 6.5)],
+            &[(9.5, 4.0), (14.5, 4.0)],
+        ]),
     }
 }
 

@@ -29,6 +29,7 @@ fn fingerprinted(key: &ConflictKey) -> Fingerprinted {
 /// What the review page asks.
 pub fn reduce(state: &mut State, intent: ReviewIntent) -> Vec<Effect> {
     match intent {
+        ReviewIntent::Open(only) => return super::open(state, only),
         ReviewIntent::ShowResult => return show_result(state),
         ReviewIntent::Write => return write(state),
         ReviewIntent::Undo => return undo(state),

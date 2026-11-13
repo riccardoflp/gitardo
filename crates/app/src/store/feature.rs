@@ -362,6 +362,10 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
             (FollowUp::OpenWindow(folder), _) => effects.push(Effect::OpenWindow(folder)),
             (FollowUp::OpenComparison(target), _) => effects.extend(super::compare::opened(state, *target)),
             (FollowUp::CloseMergePage(path), _) => super::merge_page::close_file(state, &path),
+            (FollowUp::OpenReview(files), _) => {
+                state.operations.said = None;
+                effects.extend(super::review::open(state, Some(files)));
+            }
             (FollowUp::CompareInPlace(sides), Some(folder)) => {
                 effects.extend(super::compare::in_place::show(state, folder, *sides));
             }

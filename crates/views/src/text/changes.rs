@@ -60,6 +60,8 @@ pub const MARK_AS_RESOLVED: &str = "Mark as resolved";
 pub const TAKE_CURRENT: &str = "Take the current side for the whole file";
 /// **Take the incoming side for the whole file**.
 pub const TAKE_INCOMING: &str = "Take the incoming side for the whole file";
+/// The wand on a file in conflict, which opens the review of its conflicts (`review.page`).
+pub const RESOLVE_AUTOMATICALLY: &str = "Resolve its conflicts automatically, after looking at what is proposed";
 /// What the page says when there is nothing in either list.
 pub const NO_CHANGES: &str = "No changes";
 /// The letter of an untracked file.

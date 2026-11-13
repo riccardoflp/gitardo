@@ -37,6 +37,7 @@ mod rail;
 mod rebase;
 mod review;
 mod review_cards;
+mod review_entry;
 mod search;
 mod show_in_graph;
 mod speed;
