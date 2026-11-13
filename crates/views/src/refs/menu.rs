@@ -95,6 +95,7 @@ pub(super) fn operations(state: &ReferencesState<'_>, entry: &Entry<'_>) -> Vec<
         repository: state.repository,
         open_in: state.open_in,
         window: state.window,
+        github: state.github,
     };
     match entry {
         Entry::Branch(branch) => with_compare(
@@ -141,6 +142,7 @@ pub(super) fn list_operations(state: &ReferencesState<'_>, list: &RailList) -> V
         repository: state.repository,
         open_in: state.open_in,
         window: state.window,
+        github: state.github,
     };
     match list {
         RailList::Worktrees => crate::worktree::list_entries(menus),

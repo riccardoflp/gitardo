@@ -88,6 +88,7 @@ fn menus(repository: &RepositoryState, open_in: OpenIn) -> ReferenceMenus<'_> {
         repository,
         open_in,
         window: crate::worktree::WorktreeWindow::default(),
+        github: crate::github::GitHubShown::default(),
     }
 }
 

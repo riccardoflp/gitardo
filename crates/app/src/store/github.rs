@@ -5,8 +5,8 @@
 use std::path::PathBuf;
 
 use model::Timestamp;
-use model::contract::FollowUp;
-use model::github::{GitHubRepo, PullRequests, Token};
+use model::contract::{FeatureId, FollowUp};
+use model::github::{GitHubRepo, Notice, PullRequests, PushOutcome, Token};
 use views::text::github as words;
 
 use super::feature::Said;
@@ -196,15 +196,33 @@ pub fn not_opened(state: &mut State, said: String) -> Vec<Effect> {
     Vec::new()
 }
 
-/// The name of the main remote of the repository shown: `origin` when there is one, otherwise the first.
+/// What the views are told of GitHub: the repository on GitHub of the main remote and the pull requests known.
 #[must_use]
-pub fn main_remote(state: &State) -> Option<&str> {
-    let remotes = &state.shown_read()?.state.remotes;
-    remotes
-        .iter()
-        .find(|name| *name == "origin")
-        .or_else(|| remotes.first())
-        .map(String::as_str)
+pub fn shown(state: &State) -> views::github::GitHubShown<'_> {
+    views::github::GitHubShown {
+        repository: state.github.repository.as_ref(),
+        pull_requests: state.github.pull_requests.as_ref(),
+    }
+}
+
+/// The offer to create a pull request after a push that ran, worked out from the repository as it was before the push
+/// (`github.offer-after-push`): its branch checked out and whether it had an upstream.
+#[must_use]
+pub fn offer_after_push(state: &State, feature: FeatureId) -> Option<Notice> {
+    let pushes = ["sync.push", "sync.push-force-with-lease", "sync.push-force"];
+    if !pushes.contains(&feature.0) {
+        return None;
+    }
+    let repository = &state.shown_read()?.state;
+    let branch = repository.branches.iter().find(|branch| branch.is_checked_out)?;
+    let none = PullRequests::default();
+    model::github::offer_after_push(&PushOutcome {
+        succeeded: true,
+        branch: Some(&branch.name),
+        had_upstream: branch.upstream.is_some(),
+        repository: state.github.repository.as_ref(),
+        pull_requests: state.github.pull_requests.as_ref().unwrap_or(&none),
+    })
 }
 
 /// The pull requests of another repository are forgotten, and its repository on GitHub is looked for again.

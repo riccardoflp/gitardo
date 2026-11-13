@@ -44,5 +44,6 @@ pub fn said_state(state: &State) -> Option<SaidState<'_>> {
         offer: said.offer.as_ref().map(|(feature, label)| (*feature, label.as_str())),
         stopped: super::super::conflicts::stopped_state(state, said),
         runs: &said.runs,
+        link: said.link.as_ref().map(|(label, url)| (label.as_str(), url.as_str())),
     })
 }

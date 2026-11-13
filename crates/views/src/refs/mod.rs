@@ -73,6 +73,8 @@ pub struct ReferencesState<'a> {
     pub window: crate::worktree::WorktreeWindow<'a>,
     /// The stashes unfolded and what was read of their files, for the Stashes list (`stash.pane`).
     pub stashes: StashesShown<'a>,
+    /// The repository on GitHub and its pull requests, in the tooltips and the menus of the branches.
+    pub github: crate::github::GitHubShown<'a>,
 }
 
 /// The filter box at the top of the rail.

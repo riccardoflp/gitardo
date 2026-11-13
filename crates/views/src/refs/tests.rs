@@ -123,6 +123,7 @@ impl Rail {
             open_in: OpenIn::Checkout,
             window: crate::worktree::WorktreeWindow::default(),
             stashes: super::stashes_tests::nothing_unfolded(),
+            github: crate::github::GitHubShown::default(),
         }
     }
 

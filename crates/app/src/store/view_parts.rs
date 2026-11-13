@@ -38,6 +38,7 @@ pub(super) fn rail<'a>(state: &'a State, read: &'a RepositoryRead, now: i64) -> 
             is_operation_running: state.is_operation_running,
             now,
         },
+        github: super::github::shown(state),
     }
 }
 

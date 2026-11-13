@@ -374,6 +374,7 @@ impl ViewData {
                 repository: &read.state,
                 open_in: state.settings.features.branch_open_in,
                 window: super::worktrees::window_of(state),
+                github: super::github::shown(state),
             }),
             commit_box: super::changes::commit_box(state),
         }

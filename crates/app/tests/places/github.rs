@@ -302,3 +302,93 @@ fn github_load_pull_requests__on_another_host_the_menu_has_no_entry_and_quick_se
     assert!(!place.helper_ran());
     assert_eq!(place.sent_with(), [] as [String; 0]);
 }
+
+/// The name the screen reader is told of the badge of #12, which is its tooltip.
+const BADGE_12: &str = "Pull request #12: Add the parser \u{b7} checks failed\nClick to open it on GitHub";
+
+/// A window showing a repository whose pull requests were read with the kept token: #12 of `feature`.
+fn loaded() -> (GitHubPlace, State) {
+    let place = GitHubPlace::new("https://github.com/owner/app.git", false, vec![pull_request_12()]);
+    place.secrets.write(GITHUB_TOKEN, "kept-token").unwrap();
+    let state = place.open();
+    (place, state)
+}
+
+#[test]
+fn graph_pull_request_badge__a_branch_whose_upstream_has_pull_request_12_with_checks_failing_has_12_in_the_color_of_failure()
+ {
+    let (_place, state) = loaded();
+    let mut window = Window::new(ThemeName::Dark, (1000, 300));
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(has(&tree, Role::Button, BADGE_12), "the label of feature has the badge");
+    let read = state.shown_read().unwrap();
+    let feature = read
+        .state
+        .branches
+        .iter()
+        .find(|branch| branch.name == "feature")
+        .unwrap();
+    let pull_request = app::store::github::shown(&state).of_branch(feature).unwrap();
+    let badge = views::graph::PullRequestBadge { pull_request, lane: 0 };
+    assert_eq!(views::graph::pull_request_badge_tone(&badge), ui::Tone::Error);
+    window.assert_snapshot("pull-request-badge-dark");
+}
+
+#[test]
+fn graph_pull_request_badge__clicking_the_badge_opens_the_pull_request_and_leaves_the_selection_as_it_was() {
+    let (_place, mut state) = loaded();
+    let selected = state.timeline.selected.clone();
+    let mut window = Window::new(ThemeName::Dark, (1000, 300));
+    let intents = window.click(&state, Role::Button, BADGE_12);
+    let url = String::from("https://github.com/owner/app/pull/12");
+    assert_eq!(intents, [Intent::OpenUrl(url.clone())]);
+    let effects = run(&mut state, Message::Intent(Intent::OpenUrl(url.clone())));
+    assert_eq!(effects, [Effect::OpenUrl(url)]);
+    assert_eq!(state.timeline.selected, selected, "the selection is as it was");
+}
+
+#[test]
+fn graph_pull_request_badge__before_the_pull_requests_are_loaded_no_label_has_a_badge() {
+    let place = GitHubPlace::new("https://github.com/owner/app.git", false, vec![pull_request_12()]);
+    let state = place.open();
+    let mut window = Window::new(ThemeName::Dark, (1000, 300));
+    let (_, tree) = window.draw(&state, &[]);
+    let badges = tree
+        .nodes
+        .iter()
+        .filter(|(_, node)| node.label().is_some_and(|label| label.contains("Pull request #")))
+        .count();
+    assert_eq!(badges, 0);
+}
+
+#[test]
+fn github_open_pull_request__the_menu_of_a_branch_opens_its_pull_request_in_the_browser() {
+    let (_place, state) = loaded();
+    let mut window = Window::new(ThemeName::Dark, (1000, 800));
+    let (_, tree) = window.draw(&state, &[]);
+    let feature = super::support::find(&tree, Role::Button, "feature").bounds().unwrap();
+    #[allow(
+        clippy::cast_possible_truncation,
+        reason = "a window is far smaller than an f32 counts"
+    )]
+    let point = render::Point::new(
+        f64::midpoint(feature.x0, feature.x1) as f32,
+        f64::midpoint(feature.y0, feature.y1) as f32,
+    );
+    let button = ui::PointerButtonEvent {
+        button: ui::PointerButton::Secondary,
+        position: point,
+        modifiers: ui::Modifiers::NONE,
+        click_count: 1,
+    };
+    let pressed = [
+        ui::InputEvent::PointerPressed(button),
+        ui::InputEvent::PointerReleased(button),
+    ];
+    let _ = window.draw(&state, &pressed);
+    let chosen = window.click(&state, Role::MenuItem, "Open pull request #12");
+    assert_eq!(
+        chosen,
+        [Intent::OpenUrl(String::from("https://github.com/owner/app/pull/12"))]
+    );
+}

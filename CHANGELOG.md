@@ -334,3 +334,9 @@
   it is kept in the credential store of the system. From then on the open pull requests are read again after a fetch,
   a pull or a push, and after a read of the repository when the last request is more than two minutes old, also after
   a restart. A token GitHub refuses is taken out of the store, so that the next load asks for one again.
+- Once the pull requests are loaded, the label of a branch that has an open one ends with its number, with the icon of
+  a pull request or of a draft, in the color of its checks; its tooltip names it, and a click opens it in the browser
+  without selecting the commit. The branch rail shows the same badge and says the pull request in the tooltip of the
+  branch. The menu of a branch has **Open pull request #12**, or **Create pull request…** when it has none, and the
+  menu of a remote branch **Open pull request #12**. After the first push of a branch, the window says "Pushed
+  `<branch>`." with **Create pull request**.

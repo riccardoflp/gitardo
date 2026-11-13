@@ -16,6 +16,7 @@ mod load_more;
 mod marks;
 mod more_menu;
 mod panes;
+mod pull_request_badge;
 mod row;
 mod stashes;
 mod state;
@@ -45,6 +46,10 @@ pub use marks::{ScrollMarks, mark_positions, scroll_marks_view};
 pub(crate) use more_menu::kind_entries;
 pub use more_menu::{MainRemote, MoreMenuState, OperationsMenu, TimelineMenu, more_menu_view};
 pub use panes::{PaneLayout, PaneRects, PaneSizes, RAIL_START, pane_rects, resize_panes_view};
+pub use pull_request_badge::{
+    PullRequestBadge, draw_pull_request_badge, pull_request_badge_tone, pull_request_badge_view,
+    pull_request_badge_width,
+};
 pub(crate) use row::draw_labels;
 pub use stashes::{StashEntry, StashRow, stash_intent, stash_menu, stashes_view};
 pub use state::{DraftState, Folds, GraphState, HistoryState, Reading, TraceShown, TraceStrength};

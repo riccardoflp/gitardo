@@ -86,6 +86,7 @@ fn worktree_branch_in_another_worktree__the_rail_and_the_timeline_mark_it_and_it
         open_in: OpenIn::Checkout,
         window: crate::worktree::WorktreeWindow::default(),
         stashes: super::stashes_tests::nothing_unfolded(),
+        github: crate::github::GitHubShown::default(),
     };
     let (main, login) = (branch("main", 'a', true), branch("feature/login", 'b', false));
     assert!(

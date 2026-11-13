@@ -107,6 +107,9 @@ pub struct Said {
     pub stopped: Option<(String, usize)>,
     /// The operations offered beside it, each with its button: **Open in new window**, **Remove anyway**.
     pub runs: Vec<model::contract::OfferedRun>,
+    /// The words of a button that opens an address in the browser, and the address: **Create pull request** after the
+    /// first push of a branch (`github.offer-after-push`).
+    pub link: Option<(String, String)>,
 }
 
 /// The operations of a window.
@@ -287,11 +290,21 @@ fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<FeatureId>)
         } => {
             let said = remember_follow_ups(state, &after);
             let is_undo = feature == Some(FeatureId("undo.last"));
+            let pushed = feature.and_then(|feature| super::github::offer_after_push(state, feature));
             state.operations.said = Some(Said {
                 can_undo: can_undo && !is_undo,
                 offer: offer_of(&after),
                 runs: super::worktrees::offered(&after),
-                ..Said::new(said.unwrap_or_else(|| words::done(title.as_str())), false)
+                link: pushed
+                    .as_ref()
+                    .map(|notice| (notice.button.as_str().to_owned(), notice.url.clone())),
+                ..Said::new(
+                    pushed.map_or_else(
+                        || said.unwrap_or_else(|| words::done(title.as_str())),
+                        |notice| notice.message.as_str().to_owned(),
+                    ),
+                    false,
+                )
             });
             let mut effects = reads::asked(state, ReadCause::OperationEnded);
             effects.extend(super::github::after_operation(state, &after));
@@ -347,6 +360,7 @@ impl Said {
             offer: None,
             stopped: None,
             runs: Vec::new(),
+            link: None,
         }
     }
 }

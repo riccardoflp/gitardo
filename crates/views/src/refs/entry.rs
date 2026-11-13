@@ -19,8 +19,11 @@ use super::menu::{EntryCommand, entry_menu, operations};
 use super::rows::{Entry, Marks, worktree_folder};
 use crate::branch::{ReferenceMenus, chosen, open_intent};
 use crate::filter::filter_entry_intent;
-use crate::graph::{GraphIntent, HoverTarget, HoverWay};
+use crate::graph::{
+    GraphIntent, HoverTarget, HoverWay, PullRequestBadge, draw_pull_request_badge, pull_request_badge_width,
+};
 use crate::intent::{FilterIntent, Intent, RailList};
+use crate::text::github as github_words;
 use crate::text::header;
 use crate::text::rail as words;
 
@@ -155,6 +158,7 @@ pub(super) fn double_click_intent(state: &ReferencesState<'_>, entry: &Entry<'_>
         repository: state.repository,
         open_in: state.open_in,
         window: state.window,
+        github: state.github,
     };
     open_intent(menus, reference)
 }
@@ -221,6 +225,15 @@ pub(super) fn entry_tooltip(state: &ReferencesState<'_>, entry: &Entry<'_>, mark
             lines.push(words::upstream_of(&branch.name, upstream));
             if let Some(worktree) = other_worktree(state, branch) {
                 lines.push(words::in_worktree(&worktree_folder(worktree), worktree.uncommitted));
+            }
+            if let Some(pull_request) = state.github.of_branch(branch) {
+                let (number, title) = (pull_request.number, &pull_request.title);
+                lines.push(github_words::badge_tooltip(
+                    number,
+                    title,
+                    pull_request.is_draft,
+                    pull_request.checks,
+                ));
             }
         }
         Entry::Stash(stash) => {
@@ -317,6 +330,12 @@ fn branch_row(
     let mut parts = name_parts(ui, rect, marks);
     let dot = parts.left(DOT);
     ui.fill_circle(dot.center(), DOT * 0.5, color);
+    if let Some(pull_request) = state.github.of_branch(branch) {
+        let lane = state.branch_colors.get(&branch.name).copied().unwrap_or_default();
+        let badge = PullRequestBadge { pull_request, lane };
+        let width = pull_request_badge_width(ui, &badge);
+        let _ = draw_pull_request_badge(ui, parts.right(width), &badge);
+    }
     if let Some(stands) = &branch_stands(branch) {
         let width = ui.measure(stands, ui.text_style(TextKind::Small));
         let _ = ui.label(

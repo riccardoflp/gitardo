@@ -63,7 +63,28 @@ pub(crate) fn design(icon: Icon) -> Design {
             &[(12.0, 1.5), (12.0, 6.5)],
             &[(9.5, 4.0), (14.5, 4.0)],
         ]),
+        Icon::PullRequest => pull_request(false),
+        Icon::DraftPullRequest => pull_request(true),
     }
+}
+
+/// A pull request: a branch on the left with a dot at each end, and on the right a dot whose line goes up and comes
+/// back to the left with an arrow; for a draft, that line is three dots.
+fn pull_request(is_draft: bool) -> Design {
+    let mut design = lines(&[&[(4.5, 5.0), (4.5, 11.0)]]);
+    let strokes = &mut design.strokes;
+    for (x, y) in [(4.5, 3.5), (4.5, 12.5), (11.5, 12.5)] {
+        let _ = strokes.extend(&Path::circle(Point::new(x, y), 1.5));
+    }
+    if is_draft {
+        for y in [4.5, 7.0, 9.5] {
+            let _ = design.fills.extend(&Path::circle(Point::new(11.5, y), 0.85));
+        }
+    } else {
+        add_polyline(strokes, &[(11.5, 11.0), (11.5, 6.0), (10.0, 4.5), (7.5, 4.5)]);
+        add_polyline(strokes, &[(9.0, 3.0), (7.5, 4.5), (9.0, 6.0)]);
+    }
+    design
 }
 
 /// Open lines through points, each a list of points.

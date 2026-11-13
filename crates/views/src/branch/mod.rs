@@ -24,4 +24,6 @@ pub struct ReferenceMenus<'a> {
     pub open_in: OpenIn,
     /// What the menus of the worktrees are told of the window: its folder, and whether an external editor is set.
     pub window: crate::worktree::WorktreeWindow<'a>,
+    /// The repository on GitHub and its pull requests, for the badges of the labels and the links of the menus.
+    pub github: crate::github::GitHubShown<'a>,
 }

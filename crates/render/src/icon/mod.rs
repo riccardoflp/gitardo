@@ -79,11 +79,15 @@ pub enum Icon {
     Pencil,
     /// A wand with a spark at its tip: resolved for you, after a look.
     Wand,
+    /// Two branches, the second coming back to the first with an arrow: a pull request.
+    PullRequest,
+    /// A pull request whose second branch is dotted: a draft.
+    DraftPullRequest,
 }
 
 impl Icon {
     /// Every icon, in the order of the enumeration.
-    pub const ALL: [Icon; 29] = [
+    pub const ALL: [Icon; 31] = [
         Icon::ChevronRight,
         Icon::ChevronDown,
         Icon::Close,
@@ -113,6 +117,8 @@ impl Icon {
         Icon::Filter,
         Icon::Pencil,
         Icon::Wand,
+        Icon::PullRequest,
+        Icon::DraftPullRequest,
     ];
 }
 

@@ -17,7 +17,7 @@ use super::draft::{UncommittedRow, uncommitted_row_view};
 use super::fold::{FoldsState, fold_merge_view};
 use super::intent::{GraphIntent, HoverTarget, HoverWay, Selected};
 use super::stashes::{StashRow, stashes_view};
-use super::state::HistoryState;
+use super::{pull_request_badge::after_label, state::HistoryState};
 use crate::intent::Intent;
 use crate::text::timeline as words;
 
@@ -254,8 +254,8 @@ fn subject_line(
             break;
         }
         let drawn = ui.badge(Rect::new(x, top, width, first), &badge);
-        x += width + theme.sizes.spacing.medium;
         hover_label(ui, (drawn, pill), (&commit.id, index), report);
+        x = after_label(ui, context, (labels, index, pill.is_count), (drawn, color), report);
     }
 }
 

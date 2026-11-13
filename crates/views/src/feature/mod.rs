@@ -73,6 +73,9 @@ pub struct SaidState<'a> {
     /// The operations offered beside it, each with its button and the answers it is given: **Open in new window**
     /// once a worktree was made, **Remove anyway** once git refused to remove one.
     pub runs: &'a [model::contract::OfferedRun],
+    /// The words of a button that opens an address in the browser, and the address: **Create pull request**
+    /// (`github.offer-after-push`).
+    pub link: Option<(&'a str, &'a str)>,
 }
 
 /// A question of an operation over the window: its title, what it says will happen, and the box, the choices or the
@@ -456,6 +459,11 @@ pub fn said_view(state: &SaidState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         && outlined(ui, &mut parts, ("offer said", label))
     {
         intents.push(Intent::Feature(FeatureIntent::Run(feature, Target::Head)));
+    }
+    if let Some((label, url)) = state.link
+        && outlined(ui, &mut parts, ("link said", label))
+    {
+        intents.push(Intent::OpenUrl(url.to_owned()));
     }
     // The first offered is the leftmost, since the buttons are placed from the right.
     for (index, run) in state.runs.iter().enumerate().rev() {

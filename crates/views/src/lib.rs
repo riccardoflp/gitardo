@@ -28,6 +28,7 @@ pub mod feature;
 pub mod file_view;
 pub mod files;
 pub mod filter;
+pub mod github;
 pub mod graph;
 mod intent;
 mod line;

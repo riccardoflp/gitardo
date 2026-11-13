@@ -114,3 +114,32 @@ fn github_read_pull_requests__a_push_that_succeeded_is_followed_by_a_request_eve
     assert_eq!(answer(&mut state, effects, 10), 1);
     assert_eq!(read_again(&mut state, 20), 0, "and not again 10 seconds after it");
 }
+
+#[test]
+fn github_offer_after_push__the_first_push_of_a_branch_says_pushed_with_create_pull_request() {
+    let mut state = showing();
+    state.operations.running = Some(crate::store::feature::Running {
+        feature: model::contract::FeatureId("sync.push"),
+        asking: None,
+    });
+    let pushed = Ended::Ran {
+        title: Text::from("Push main"),
+        after: vec![FollowUp::ReadPullRequests],
+        can_undo: false,
+        prepared_message: None,
+    };
+    let _effects = reduce(
+        &mut state,
+        Message::FeatureEnded {
+            ended: pushed,
+            log: Vec::new(),
+        },
+    );
+    let said = state.operations.said.clone().unwrap();
+    assert_eq!(said.text, "Pushed main.");
+    let link = (
+        String::from("Create pull request"),
+        String::from("https://github.com/owner/app/compare/main?expand=1"),
+    );
+    assert_eq!(said.link, Some(link));
+}

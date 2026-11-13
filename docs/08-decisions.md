@@ -1574,3 +1574,13 @@ From the cards left over up to M8 (each built with the reading given, until the 
 - **Q-Y5** — A 401 to a read made on its own is kept quiet, as the card says of every error of such a read, with a
   warning line in the Command log; the token is still taken out of the store, and the badges go away. Should the
   window say it, as it does after **Load pull requests from GitHub**?
+- **Q-Y6** — In the branch rail the badge of a pull request is drawn at the right of the row of a local branch and the
+  pull request is said in its tooltip, but the badge is not a button of its own: a click on it is a click on the row,
+  as before. The rows of the remote branches have no badge. Should the rail's badge open the pull request too?
+- **Q-Y7** — **Open pull request #n** and **Create pull request…** come after the merge and rebase entries of a local
+  branch, before **Rename**; on a remote branch, before **Delete from remote**. A remote branch's link and badge do not
+  check that its remote is the main remote, as the card of `github.open-pull-request` says nothing of it. Is that the
+  place and the rule wanted?
+- **Q-Y8** — The rows of the Worktrees list (`worktree.section`) do not show the pull request of their branch yet: they
+  are drawn by the views of `worktree.`, left as they are to keep this slice's edits of shared views small. Should it
+  come in a slice of `worktree.`?

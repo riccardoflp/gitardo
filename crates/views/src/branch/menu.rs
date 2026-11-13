@@ -25,6 +25,8 @@ pub(crate) struct OperationEntry {
     pub(crate) run: Option<(FeatureId, Target)>,
     /// The answers the entry gives the operation before it asks, as **Start bisect: this commit is bad** does.
     pub(crate) answers: Answers,
+    /// The address it opens in the browser in place of an operation: a pull request (`github.open-pull-request`).
+    pub(crate) url: Option<String>,
 }
 
 impl OperationEntry {
@@ -39,6 +41,17 @@ impl OperationEntry {
             label: label.into(),
             run: Some((FeatureId(feature), target)),
             answers,
+            url: None,
+        }
+    }
+
+    /// An entry that opens the pull request of a branch, or GitHub's page to create one (`github.open-pull-request`).
+    pub(crate) fn opens(link: model::github::PullLink) -> Self {
+        OperationEntry {
+            label: link.label.as_str().to_owned(),
+            run: None,
+            answers: Answers::new(),
+            url: Some(link.url),
         }
     }
 }
@@ -51,11 +64,12 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
     let name = branch.name.as_str();
     let target = || Target::Branch(name.to_owned());
     let create = OperationEntry::runs(words::CREATE_BRANCH_HERE, "branch.create", target());
+    let link = menus.github.link_of_branch(branch).map(OperationEntry::opens);
     if branch.is_checked_out {
-        return vec![
-            create,
-            OperationEntry::runs(rail_words::RENAME, "branch.rename", target()),
-        ];
+        let mut entries = vec![create];
+        entries.extend(link);
+        entries.push(OperationEntry::runs(rail_words::RENAME, "branch.rename", target()));
+        return entries;
     }
     let fast_forward = branch
         .upstream
@@ -74,6 +88,7 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
         entries.extend(fast_forward);
         entries.extend(merge_entries(state, &branch.commit, target));
         entries.extend(crate::rebase::rebase_onto_entry(state, &branch.commit, target()));
+        entries.extend(link);
         entries.push(OperationEntry::runs(words::RENAME_BRANCH, "branch.rename", target()));
         entries.extend(changing);
         return entries;
@@ -92,6 +107,7 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
     entries.extend(fast_forward);
     entries.extend(merge_entries(state, &branch.commit, target));
     entries.extend(crate::rebase::rebase_onto_entry(state, &branch.commit, target()));
+    entries.extend(link);
     entries.push(OperationEntry::runs(rail_words::RENAME, "branch.rename", target()));
     entries.push(OperationEntry::runs(rail_words::DELETE, "branch.delete", target()));
     entries
@@ -151,6 +167,7 @@ pub(crate) fn remote_entries(menus: ReferenceMenus<'_>, remote: &RemoteBranch) -
         target(),
     ));
     entries.extend(merge_entries(state, &remote.commit, target));
+    entries.extend(menus.github.link_of_remote_branch(remote).map(OperationEntry::opens));
     entries.push(OperationEntry::runs(
         rail_words::DELETE_FROM_REMOTE,
         "remote.delete-branch",
@@ -270,7 +287,11 @@ pub(crate) fn menu_items<Value>(
         .enumerate()
         .map(|(index, entry)| {
             let item = MenuItem::new(entry.label.as_str(), value(index));
-            MenuEntry::Item(if entry.run.is_some() { item } else { item.disabled() })
+            MenuEntry::Item(if entry.run.is_some() || entry.url.is_some() {
+                item
+            } else {
+                item.disabled()
+            })
         })
         .collect()
 }
@@ -278,6 +299,9 @@ pub(crate) fn menu_items<Value>(
 /// What the entry at a place asks: its operation, run on its reference.
 pub(crate) fn chosen(entries: &[OperationEntry], index: usize) -> Option<Intent> {
     let entry = entries.get(index)?;
+    if let Some(url) = &entry.url {
+        return Some(Intent::OpenUrl(url.clone()));
+    }
     let (feature, target) = entry.run.clone()?;
     if entry.answers == Answers::new() {
         Some(Intent::Feature(FeatureIntent::Run(feature, target)))

@@ -58,6 +58,7 @@ fn entries(repository: &RepositoryState, rows: &[Row], commit: char) -> Vec<(Str
         repository,
         open_in: OpenIn::Checkout,
         window: crate::worktree::WorktreeWindow::default(),
+        github: crate::github::GitHubShown::default(),
     };
     let menu = rewrite_menu(menus, rows, &id(commit));
     let mut labels: Vec<(String, Option<&'static str>)> = menu

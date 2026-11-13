@@ -99,6 +99,7 @@ fn menus<'a>(repository: &'a RepositoryState, window: WorktreeWindow<'static>) -
         repository,
         open_in: OpenIn::Checkout,
         window,
+        github: crate::github::GitHubShown::default(),
     }
 }
 

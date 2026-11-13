@@ -140,6 +140,7 @@ impl Fixture {
                 repository: &self.repository,
                 open_in: OpenIn::Checkout,
                 window: crate::worktree::WorktreeWindow::default(),
+                github: crate::github::GitHubShown::default(),
             }),
             commit_box: crate::changes::CommitBox::default(),
         }
