@@ -412,4 +412,3 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
     }
     effects
 }
-

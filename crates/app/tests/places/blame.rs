@@ -95,7 +95,7 @@ pub fn settings_read(state: &mut State, repository: &Repository) {
         user: Some(settings_file(repository)),
         repository: None,
     });
-    let _effects = support::run(state, Message::SettingsRead(settings));
+    let _effects = support::run(state, Message::SettingsRead(Box::new(settings)));
 }
 
 /// The texts the window says that end of a line say of who last changed it.

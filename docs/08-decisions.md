@@ -1369,64 +1369,64 @@ answered:
 - **Q260** — The clock beside a file of the inspector runs `file-history.file` on the file of that path in the working
   tree, also when the commit of the inspector renamed it or it is gone from the working tree. Is running it on the path
   the commit has right?
-- **Q-S1** — `worktree.open-in-editor`, `worktree.open-in-terminal` and `worktree.reveal` run one step,
+- **Q261** — `worktree.open-in-editor`, `worktree.open-in-terminal` and `worktree.reveal` run one step,
   `run <command>` in the worktree's folder, where their cards said no steps, so that the program is started by the
   engine and its command is in the log like the others; their cards say so now. Is this right?
-- **Q-S2** — `worktree.open-in-new-window` gives `FollowUp::OpenWindow`, the follow-up the submodules made (Q227), and
+- **Q262** — `worktree.open-in-new-window` gives `FollowUp::OpenWindow`, the follow-up the submodules made (Q227), and
   the window starts `gitardo <folder>`. A window that cannot be started says nothing, as for a submodule. Its acceptance,
   a second window on the worktree with this one left as it was, is checked up to `Effect::OpenWindow`, since the tests
   open no window. Is this enough?
-- **Q-S3** — `editor.external` opens a folder by putting it in place of `${folder}` when the command has it, and
+- **Q263** — `editor.external` opens a folder by putting it in place of `${folder}` when the command has it, and
   otherwise after the program of the command, its `${file}` and `${line}` left out. The card of the setting names only
   `${file}` and `${line}`. Is this right?
-- **Q-S4** — What the operations of worktrees read is in `FeatureSettings::worktrees`: `worktrees.folder`,
+- **Q264** — What the operations of worktrees read is in `FeatureSettings::worktrees`: `worktrees.folder`,
   `worktrees.openIn`, `terminal.external`, the home folder for a `~`, the folder of the window while another worktree is
   shown, and whether **Choose What It Gets…** was offered. Reading the settings reads no environment, so the window and
   `gitardo-cli` set the home folder when an operation starts. Whether **Choose What It Gets…** was offered is kept for
   the window only, not stored. Is this right?
-- **Q-S5** — The operations that make a worktree call `features::worktree::setup_steps`, which hands over to
+- **Q265** — The operations that make a worktree call `features::worktree::setup_steps`, which hands over to
   `features::worktree_setup::new_worktree_steps` and appends its steps after `git worktree add`; what it says goes in a
   `FollowUp::Say` after **Worktree created in …**. **Choose What It Gets…** is offered while that gives neither steps nor
   a note, which is when no pattern and no command is in effect. The button runs `worktree-setup.page`, which is still
   Specified: until it is built the button refuses. Is this right?
-- **Q-S6** — Offers with a button are a follow-up of their own, `FollowUp::OfferRun`, with a target and answers:
+- **Q266** — Offers with a button are a follow-up of their own, `FollowUp::OfferRun`, with a target and answers:
   **Open in new window**, **Open in external editor** and **Open in terminal** after a worktree is made, and **Remove
   anyway** after git refused to remove one, kept from the follow-ups of the failure (`Plan::on_failure`, which the
   engine now hands to the window in `StepFailure::on_failure`) when git's words have one of its own. Main-desktop has
   `FollowUp::Offer` (an operation at `HEAD`, no answers) and `FollowUp::OfferWhenFailed` (a plan offered in place of the
   one that failed); **Remove anyway** could be the second. Should the three become one?
-- **Q-S7** — `worktree.remove` deletes the branch last, after the empty folders, where the card put `git branch -d`
+- **Q267** — `worktree.remove` deletes the branch last, after the empty folders, where the card put `git branch -d`
   before them, so that a branch git keeps, not merged, leaves nothing else undone; the card says so now. Is this right?
-- **Q-S8** — `worktree.remove` and `worktree.rename` refuse a missing worktree too, with the sentence of
+- **Q268** — `worktree.remove` and `worktree.rename` refuse a missing worktree too, with the sentence of
   `worktree.open-in-worktree`, **… is missing from …: prune the worktrees …**, since git can neither remove nor move a
   folder that is gone. Is this right?
-- **Q-S9** — The folders `worktree.rename` needs for the new place are made by a new step, `Step::MakeFolder`, and the
+- **Q269** — The folders `worktree.rename` needs for the new place are made by a new step, `Step::MakeFolder`, and the
   empty folders are deleted by `Step::DeleteEmptyFolder`, which leaves a folder that has something in it, so that
   `worktree.remove-empty-folders` gives its steps before the move or the removal has run. Two new queries read the disk:
   `Query::PathExists` (a file, a folder or a link at a path, for the folder of a new worktree, where
   `Query::HasFiles` of the submodules looks only for something in a folder) and `Query::FolderLinks`. Is this right?
-- **Q-S10** — `model::worktree::branch_in_another_worktree` gives an `Option<WorktreeBranch>`, none for a branch that
+- **Q270** — `model::worktree::branch_in_another_worktree` gives an `Option<WorktreeBranch>`, none for a branch that
   no other worktree has, where the card gave a `WorktreeBranch`; the card says so now. In the branch rail the worktree's
   icon is at the end of the row of such a branch, with the count of its files not committed, rather than in place of the
   branch's icon. Is this right?
-- **Q-S11** — The Worktrees list is drawn by the rows of the branch rail (`views::refs::entry::worktree_row`), with its
+- **Q271** — The Worktrees list is drawn by the rows of the branch rail (`views::refs::entry::worktree_row`), with its
   words from `views::worktree`, not by a `views::worktree::section` of its own; the card says so now. The title of the
   list has **…** and no **+**, since the titles of the lists kept aside have no buttons of their own. **Choose what new
   worktrees get…** and **Bring ignored files into the other worktrees…** in that **…**, and **Bring ignored files…** in
   the menu of a worktree, are left to the setup of new worktrees. Is this right?
-- **Q-S12** — The label of a worktree is worked out by the views from `worktrees.folder`; when it starts with `~`, the
+- **Q272** — The label of a worktree is worked out by the views from `worktrees.folder`; when it starts with `~`, the
   views, which do not know the home folder, name the worktrees by their folders. Is this good enough?
-- **Q-S13** — **Back to `<name>`** of the banner asks `Intent::SelectRepository` with the folder of the window, the
+- **Q273** — **Back to `<name>`** of the banner asks `Intent::SelectRepository` with the folder of the window, the
   intent of the list of repositories, which also forgets that another folder was shown. The banner shows a submodule
   too (`submodule.show-in-gitardo`, built now, Q228): **Showing the submodule `lib` on `main`**, named by its path from
   the folder of the window. A folder shown is taken for a submodule when the worktrees it lists do not have the folder
   of the window. Is this right?
-- **Q-S14** — `worktree.create-at-commit` lists, for `${base}`, the branches at the commit and the short hash, not yet
+- **Q274** — `worktree.create-at-commit` lists, for `${base}`, the branches at the commit and the short hash, not yet
   the other branches that have the commit, which needs a read of `git branch --contains`. Should that read come in M9?
-- **Q-S15** — The date of `${date}` in the names of new worktrees is the day in UTC, as for new branches; a format with
+- **Q275** — The date of `${date}` in the names of new worktrees is the day in UTC, as for new branches; a format with
   `${input:…}` is not used until `branch.name-from-format` asks for them. Is this right?
-- **Q-S16** — `worktree.switch` stays Specified: the question that picks is a list with no box to type in, and its card
+- **Q276** — `worktree.switch` stays Specified: the question that picks is a list with no box to type in, and its card
   says typing matches the label, the description and the folder. Its description says `<n> not committed` in words where
   the card has a pencil, since a choice has no icons. Should the pick of Quick search, which has a box, be used?
-- **Q-S17** — `Message::SettingsRead` holds its `Settings` in a `Box`, since the settings of worktrees made it the
+- **Q277** — `Message::SettingsRead` holds its `Settings` in a `Box`, since the settings of worktrees made it the
   largest message. Is this right?
