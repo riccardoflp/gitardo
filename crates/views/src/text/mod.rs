@@ -15,6 +15,7 @@ pub mod rail;
 pub mod repo;
 pub mod search;
 pub mod settings;
+pub mod stash;
 pub mod timeline;
 pub mod welcome;
 

@@ -81,7 +81,7 @@ pub enum QuickCommand {
     Push,
     /// **Stash Changes** (`stash.push`).
     StashChanges,
-    /// **Show Stashes** (`stash.list`).
+    /// **Show Stashes** (`stash.pane`).
     ShowStashes,
     /// **Compare Branches, Tags or Commits…** (`compare.choose`).
     Compare,
@@ -138,7 +138,7 @@ impl QuickCommand {
     /// nothing.
     #[must_use]
     pub fn is_built(self) -> bool {
-        self <= QuickCommand::ShowChanges
+        self <= QuickCommand::ShowChanges || self == QuickCommand::ShowStashes
     }
 
     /// The operation of the catalog the command runs at `HEAD`, for the commands that run one: the window runs it once

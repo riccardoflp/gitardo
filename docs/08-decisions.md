@@ -868,3 +868,25 @@ the reading given until it is answered:
 - **Q146** — A Diff page of one file closes when a read finds the file on neither side, as after **Discard changes**
   of an untracked file; the page shown before it, or the timeline, shows in its place. This holds for any way the file
   goes, an untracked file deleted by another program included. Is that right?
+- **Q-J1** — `stash.pane` is `views::refs::stashes_view`, which draws one row of the Stashes list (its title, a stash,
+  a line of its files, or the words of the list with no stash), not `views::stash::pane` over a pane of its own: the
+  list is rows of the branch rail, so that the filter box, **Show all `<n>`…** and drawing only the rows in sight work
+  for it as for the other lists (Q126). A stash's row is drawn by the rail's entry (its click, its menu, its tooltip)
+  with the arrow, the message, the age and the buttons added by the list. The card now names that function. Is that
+  right, or should the list become a pane with a scroll of its own?
+- **Q-J2** — The buttons of the Stashes list: **Stash all changes…** on its title is a **+**, shown under the pointer
+  as the **…** of the other titles, and always while the list is open with no stash, so that "the button above" is
+  there to see; **Apply**, **Pop** and **Drop…** on a row are a check, an arrow up and a cross, shown under the pointer
+  in place of the age of the stash, as the rail is 210 pixels wide. Should they be other icons, or always shown?
+- **Q-J3** — Words chosen without a card for the Stashes list: **Show the files of the stash** and **Hide the files
+  of the stash** on the arrow, **Git could not read this stash.** under a stash whose files git did not give (or that
+  is gone), the tooltip **Untracked: it was not in the commit the stash was made on** on an untracked file, and the full
+  date of a stash in UTC under `stash@{N}: <message>` in its tooltip. Its menu keeps **Show in the timeline** above
+  the four entries of the card. Are these right?
+- **Q-J4** — The files of a stash unfolded are read with `details.read-commit` on a worker, kept by the commit of the
+  stash until a read of the repository no longer lists it, and read again when unfolded after git could not read them.
+  Folding a stash keeps what was read.
+- **Q-J5** — **Show Stashes** opens the Stashes list, empties the filter box of the rail, and shows the timeline with
+  the rail when it was put away; it does not scroll the rail to the list, as a scroll area of `ui` cannot be moved by
+  its view yet. With many branches the list may be below what is in sight. Should `ui` let a view bring a part of a
+  scroll area into sight?

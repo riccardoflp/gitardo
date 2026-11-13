@@ -25,6 +25,10 @@
   operation runs; **Manage remotes…** in **…** and in Quick search; **Apply**, **Pop**, **Create branch from
   stash…** and **Drop** on a stash in the branch rail and in the timeline; **Delete from remote** on a remote branch;
   **Copy URL** puts the URL of a remote on the clipboard.
+- The Stashes list in **Kept aside** of the branch rail: its title counts the stashes and has a button that stashes all
+  changes; each stash says how long ago it was made, has **Apply**, **Pop** and **Drop…** under the pointer when no
+  operation runs, and unfolds to the files it changed, then the untracked files it took, a click opening one in the
+  Diff page; with no stash, it says how to make one. **Show Stashes** in Quick search opens it.
 - Every read of milestone M1, each with golden tests on awkward repositories: a page of the graph and where a commit is
   in it, the details and the lines of a commit, the two sides, files and lines of a comparison, a file at a revision,
   the working tree, the identity, the remotes, what a force push would overwrite, the stashes and what one changes, the

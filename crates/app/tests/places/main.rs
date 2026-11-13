@@ -27,6 +27,7 @@ mod rail;
 mod search;
 mod show_in_graph;
 mod speed;
+mod stashes;
 mod support;
 mod sync_stash;
 mod timeline;

@@ -8,6 +8,7 @@ use model::filter::{ReferenceKind, rank_names, ticked};
 use model::state::{Branch, RemoteBranch, Stash, Tag, Worktree};
 
 use super::ReferencesState;
+use super::stashes::{StashLine, with_stash_rows};
 use crate::intent::RailList;
 
 /// How many entries a list shows until **Show all `<n>`…**.
@@ -32,6 +33,15 @@ pub(super) enum RailRow<'a> {
         entry: Entry<'a>,
         /// How it is marked.
         marks: Marks,
+    },
+    /// How to make a stash, under the title of the Stashes list open with none (`stash.pane`).
+    NoStashes,
+    /// A line under a stash unfolded: **Loading…**, **No files**, or one of its files (`stash.pane`).
+    StashLine {
+        /// The stash.
+        stash: &'a Stash,
+        /// What the line is.
+        line: StashLine<'a>,
     },
     /// **Show all `<n>`…** under the first entries of a long list.
     InFull {
@@ -168,7 +178,11 @@ pub(super) fn rail_rows<'a>(state: &ReferencesState<'a>, is_icons: bool) -> Vec<
     for (list, entries) in kept_lists(state) {
         lister.add(&mut rows, &list, entries);
     }
-    rows
+    if is_icons {
+        rows
+    } else {
+        with_stash_rows(rows, &state.stashes)
+    }
 }
 
 /// Whether the filter box is offered: 15 names or more among the branches, the remote branches, the tags and the

@@ -247,7 +247,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | --- | --- | --- | --- |
 | [`stash.read-list`](08-stashes.md#stashread-list--read-the-stashes) | Read the stashes | Read | Built |
 | [`stash.read-files`](08-stashes.md#stashread-files--read-what-a-stash-changes) | Read what a stash changes | Read | Built |
-| [`stash.pane`](08-stashes.md#stashpane--the-stashes-list) | The Stashes list | View | Specified |
+| [`stash.pane`](08-stashes.md#stashpane--the-stashes-list) | The Stashes list | View | Built |
 | [`stash.push`](08-stashes.md#stashpush--stash-all-changes) | Stash all changes | Operation | Built |
 | [`stash.push-staged`](08-stashes.md#stashpush-staged--stash-the-staged-changes) | Stash the staged changes | Operation | Built |
 | [`stash.push-file`](08-stashes.md#stashpush-file--stash-a-file-or-the-files-ticked) | Stash a file, or the files ticked | Operation | Built |

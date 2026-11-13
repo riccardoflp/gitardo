@@ -16,6 +16,7 @@ mod rail;
 mod reads;
 pub mod search;
 mod settings_page;
+mod stashes;
 mod state;
 #[cfg(test)]
 mod tests;
@@ -37,6 +38,7 @@ pub use inspector::{Inspector, InspectorRead, Subject, SubjectRow};
 pub use message::{Effect, Found, Job, JobId, JobKind, Known, Message, MorePages, TimelineRequest};
 pub use rail::{FilterPicker, Rail};
 pub use reads::Reads;
+pub use stashes::StashesList;
 pub use state::{Dialog, Opening, Pages, RepositoryRead, Shown, State, Workspace};
 pub use timeline::{Timeline, commits_request, draft_of, history_of, known};
 pub use view_state::ViewData;
@@ -81,6 +83,9 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         Message::CommitsRead { job, result } => timeline::commits_read(state, job, result),
         Message::TimelineRead { job, result } => timeline::timeline_read(state, job, result),
         Message::Searched { job, result } => search::searched(state, job, result),
+        Message::DetailsRead { job, result } if stashes::is_files_read(state, job) => {
+            stashes::files_read(state, job, result)
+        }
         Message::DetailsRead { job, result } => inspector::details_read(state, job, result),
         Message::CommitPageRead { job, result } => commit_page::page_read(state, job, result),
         Message::DiffRead { job, result } => diff_page::diff_read(state, job, result),

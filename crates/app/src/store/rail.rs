@@ -1,6 +1,7 @@
 //! The branch rail and the branch filter as the store keeps them (`refs.tree`, `refs.filter`, `refs.favorite`,
 //! `refs.sort`, `filter.picker`, `filter.list-too`, `filter.kinds`): the lists opened and closed, what is typed, the
-//! references in their order and the branches checked out last, the favorites of each repository.
+//! references in their order and the branches checked out last, the favorites of each repository, the stashes unfolded
+//! in the Stashes list (`stash.pane`).
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -31,6 +32,8 @@ pub struct Rail {
     pub references: Arc<References>,
     /// The local branches checked out last, the latest first (`refs.recent`).
     pub recent: Vec<String>,
+    /// The stashes unfolded in the Stashes list, and what was read of their files (`stash.pane`).
+    pub stashes: super::stashes::StashesList,
 }
 
 /// The list of the branch filter, open.
@@ -65,6 +68,7 @@ pub fn arrange(state: &mut State) {
     );
     state.rail.references = Arc::new(references);
     state.rail.recent = recent;
+    super::stashes::forget_gone(state);
 }
 
 /// The favorites of the repository shown.
@@ -103,6 +107,8 @@ pub fn reduce_rail(state: &mut State, intent: RailIntent) -> Vec<Effect> {
             arrange(state);
             write_setting(state, keys::SORT_ORDER, sort_order_value(order))
         }
+        RailIntent::ToggleStash(commit) => super::stashes::toggle(state, commit),
+        RailIntent::ShowStashes => super::stashes::show(state),
     }
 }
 

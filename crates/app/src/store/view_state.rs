@@ -272,7 +272,7 @@ impl ViewData {
         let shown = state.workspace.as_ref().map(|workspace| &workspace.shown);
         match shown {
             Some(Shown::Read(read)) => TimelineState::Repository {
-                rail: Box::new(rail(state, read)),
+                rail: Box::new(rail(state, read, self.now)),
                 graph: GraphState::Listed(Box::new(self.history(state, read.state.head.commit.is_none()))),
                 inspector: super::inspector::details_state(state, selected_details(&state.timeline)),
                 panes: self.panes.sizes,
@@ -352,8 +352,8 @@ fn timeline_menu(state: &State) -> TimelineMenu {
     }
 }
 
-/// The branch rail of the repository shown.
-fn rail<'a>(state: &'a State, read: &'a RepositoryRead) -> ReferencesState<'a> {
+/// The branch rail of the repository shown, the ages of its stashes said from a moment in seconds since 1970.
+fn rail<'a>(state: &'a State, read: &'a RepositoryRead, now: i64) -> ReferencesState<'a> {
     let selected = match &state.timeline.selected {
         Some(Selected::Commit(commit)) => Some(commit),
         _ => None,
@@ -373,6 +373,12 @@ fn rail<'a>(state: &'a State, read: &'a RepositoryRead) -> ReferencesState<'a> {
         selected,
         sort: sort_order(state),
         open_in: state.settings.features.branch_open_in,
+        stashes: views::refs::StashesShown {
+            unfolded: &state.rail.stashes.unfolded,
+            files: &state.rail.stashes.files,
+            is_operation_running: state.is_operation_running,
+            now,
+        },
     }
 }
 

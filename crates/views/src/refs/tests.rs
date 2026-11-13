@@ -122,6 +122,7 @@ impl Rail {
             selected: None,
             sort: SortOrder::Name,
             open_in: OpenIn::Checkout,
+            stashes: super::stashes_tests::nothing_unfolded(),
         }
     }
 
@@ -157,7 +158,7 @@ fn row_words(row: &RailRow<'_>) -> Option<String> {
             Some(format!("  {}{star}{dim}", entry.name()))
         }
         RailRow::InFull { count, .. } => Some(crate::text::rail::show_all_of(*count)),
-        RailRow::Gap => None,
+        RailRow::Gap | RailRow::NoStashes | RailRow::StashLine { .. } => None,
     }
 }
 

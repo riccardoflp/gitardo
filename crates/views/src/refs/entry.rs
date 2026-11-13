@@ -59,7 +59,9 @@ pub(super) fn entry_row(
         eye.map_or(rect.width, |eye| (eye.x - rect.x).max(0.0)),
         rect.height,
     );
-    draw_entry(ui, context, (entry, marks), drawn);
+    report
+        .intents
+        .extend(entry_body(ui, context, (entry, marks), (is_pointed, drawn)));
     if let Some(eye) = eye {
         report.intents.extend(eye_button(ui, context.state, entry, eye));
     }
@@ -88,6 +90,21 @@ pub(super) fn entry_row(
         report
             .intents
             .extend(entry_menu_chosen(ui, context.state, entry, menu_key));
+    }
+}
+
+/// What an entry shows by its kind; a stash, what the Stashes list adds to it (`stash.pane`).
+fn entry_body(
+    ui: &mut Ui<'_>,
+    context: Context<'_, '_>,
+    (entry, marks): (&Entry<'_>, Marks),
+    (is_pointed, rect): (bool, Rect),
+) -> Vec<Intent> {
+    if let Entry::Stash(stash) = entry {
+        super::stashes::stash_entry(ui, context, stash, (is_pointed, rect))
+    } else {
+        draw_entry(ui, context, (entry, marks), rect);
+        Vec::new()
     }
 }
 
@@ -192,8 +209,8 @@ fn eye_button(ui: &mut Ui<'_>, state: &ReferencesState<'_>, entry: &Entry<'_>, r
     }
 }
 
-/// The tooltip of an entry: about the upstream and the worktree of a local branch, the name of a stash, and **Not
-/// shown in the timeline** on a dimmed reference.
+/// The tooltip of an entry: about the upstream and the worktree of a local branch, the name of a stash with its full
+/// date, and **Not shown in the timeline** on a dimmed reference.
 fn entry_tooltip(state: &ReferencesState<'_>, entry: &Entry<'_>, marks: Marks) -> String {
     let mut lines = Vec::new();
     match entry {
@@ -204,7 +221,10 @@ fn entry_tooltip(state: &ReferencesState<'_>, entry: &Entry<'_>, marks: Marks) -
                 lines.push(words::in_worktree(&worktree_folder(worktree), worktree.uncommitted));
             }
         }
-        Entry::Stash(stash) => lines.push(words::stash_tooltip(stash.index, &stash.message)),
+        Entry::Stash(stash) => {
+            lines.push(words::stash_tooltip(stash.index, &stash.message));
+            lines.push(crate::text::dates::full_date(stash.date.0));
+        }
         _ => {}
     }
     if marks.is_dimmed {

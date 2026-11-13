@@ -12,6 +12,7 @@ use super::ReferencesState;
 use super::entry::entry_row;
 use super::menu::{ListCommand, list_menu};
 use super::rows::{Entry, ListHead, RailRow};
+use super::stashes::{StashesRow, empty_height, is_of_stashes, stashes_view};
 use crate::graph::HoverTarget;
 use crate::intent::{Intent, RailIntent, RailList};
 use crate::text::rail as words;
@@ -57,9 +58,19 @@ impl RailRow<'_> {
                 Entry::Remote(_) => QUIET_ROW,
                 _ => theme.sizes.row_height,
             },
-            RailRow::InFull { .. } => theme.sizes.row_height,
+            RailRow::InFull { .. } | RailRow::StashLine { .. } | RailRow::NoStashes => theme.sizes.row_height,
             RailRow::Gap => theme.sizes.spacing.large + theme.sizes.spacing.small,
         }
+    }
+}
+
+/// The height of a row of the rail as wide as the rail, in logical pixels: that of the words of the Stashes list with no
+/// stash depends on how many lines they wrap to.
+pub(super) fn row_height(ui: &Ui<'_>, row: &RailRow<'_>, width: f32) -> f32 {
+    if matches!(row, RailRow::NoStashes) {
+        empty_height(ui, width)
+    } else {
+        row.height(ui.theme())
     }
 }
 
@@ -71,6 +82,12 @@ pub(super) fn draw_row(
     rect: Rect,
     report: &mut RailReport,
 ) {
+    if !context.is_icons && is_of_stashes(row) {
+        report
+            .intents
+            .extend(stashes_view(&StashesRow { context, row, rect }, ui));
+        return;
+    }
     match row {
         RailRow::KeptTitle => title(ui, rect, words::KEPT_ASIDE),
         RailRow::Heading(head) | RailRow::Kept(head) => {
@@ -101,7 +118,7 @@ pub(super) fn draw_row(
                 report.intents.push(Intent::Rail(RailIntent::InFull(list.clone())));
             }
         }
-        RailRow::Gap => {}
+        RailRow::Gap | RailRow::NoStashes | RailRow::StashLine { .. } => {}
     }
 }
 
@@ -166,7 +183,7 @@ fn kept_icon(ui: &mut Ui<'_>, rect: Rect, head: &ListHead) {
 
 /// The title of a list: its chevron, its icon, its name and its count, and **…** under the pointer when it has a
 /// menu. A click opens or closes it; a right click or **…** opens its menu.
-fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListHead, rect: Rect) -> Vec<Intent> {
+pub(super) fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListHead, rect: Rect) -> Vec<Intent> {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
     let is_kept = head.list.is_kept_aside();

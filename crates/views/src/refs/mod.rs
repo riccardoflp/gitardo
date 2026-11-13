@@ -8,6 +8,9 @@ mod draw;
 mod entry;
 mod menu;
 mod rows;
+mod stashes;
+#[cfg(test)]
+mod stashes_tests;
 #[cfg(test)]
 mod tests;
 
@@ -26,8 +29,10 @@ use crate::graph::HoverTarget;
 use crate::intent::{FilterIntent, Intent, RailIntent, RailLists};
 use crate::line::is_narrow;
 use crate::text::rail as words;
-use draw::{Context, RailReport, draw_row};
+use draw::{Context, RailReport, draw_row, row_height};
 use rows::{is_filter_offered, rail_rows};
+
+pub use stashes::{StashFilesRead, StashesShown};
 
 /// What the branch rail lists.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -61,6 +66,8 @@ pub struct ReferencesState<'a> {
     pub sort: SortOrder,
     /// What a double click on a branch does, and which entry comes first in its menu: `branches.openIn`.
     pub open_in: OpenIn,
+    /// The stashes unfolded and what was read of their files, for the Stashes list (`stash.pane`).
+    pub stashes: StashesShown<'a>,
 }
 
 /// The filter box at the top of the rail.
@@ -149,15 +156,14 @@ pub(crate) fn rail_view(
 
 /// The lists of the rail, in an area that scrolls.
 fn lists(state: &ReferencesState<'_>, ui: &mut Ui<'_>, rect: Rect, report: &mut RailReport) {
-    let theme = *ui.theme();
     let is_icons = is_narrow(ui);
     let rows = rail_rows(state, is_icons);
-    let height: f32 = rows.iter().map(|row| row.height(&theme)).sum();
+    let heights: Vec<f32> = rows.iter().map(|row| row_height(ui, row, rect.width)).collect();
+    let height: f32 = heights.iter().sum();
     let context = Context { state, is_icons };
     let _ = ui.scroll_area("rail", rect, (rect.width, height), |ui, content| {
         let mut y = content.y;
-        for row in &rows {
-            let row_height = row.height(&theme);
+        for (row, &row_height) in rows.iter().zip(&heights) {
             let row_rect = Rect::new(content.x, y, content.width, row_height);
             y += row_height;
             if row_rect.bottom() < rect.y || row_rect.y > rect.bottom() {

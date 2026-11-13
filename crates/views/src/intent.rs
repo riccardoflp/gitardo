@@ -165,6 +165,10 @@ pub enum RailIntent {
     },
     /// **Sort by name** or **Sort by date** (`refs.sort`).
     Sort(SortOrder),
+    /// The arrow of a stash, by its commit: list its files, or hide them (`stash.pane`).
+    ToggleStash(model::CommitId),
+    /// **Show Stashes**: the branch rail shown with the Stashes list open (`stash.pane`).
+    ShowStashes,
 }
 
 /// Something asked of the branches the timeline shows.

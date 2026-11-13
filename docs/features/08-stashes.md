@@ -43,20 +43,25 @@ Acceptance:
 Lists the stashes, in **Kept aside** of the branch rail; each unfolds to the files it holds, which open as diffs.
 
 - **Kind**: View
-- **Function**: `views::stash::pane(state: &StashesState, ui: &mut Ui) -> Vec<Intent>`
+- **Function**: `views::refs::stashes_view(state: &StashesRow, ui: &mut Ui) -> Vec<Intent>`: a row of the list, as the
+  list is rows of the branch rail, filtered, listed in full and drawn only in sight as the other lists are.
 - **Entry points**: the **Stashes** list in **Kept aside** of the branch rail; Quick search: **Show Stashes**, which
-  opens the list and shows it; **Show Stashes** in the message of `stash.autostash-left`.
+  opens the list and shows it, with the branch rail and its filter box emptied; **Show Stashes** in the message of
+  `stash.autostash-left`.
 - **Reads**: `stash.read-list`; `details.read-commit` for a stash unfolded.
 - **Uses**: `stash.push`, `stash.apply`, `stash.pop`, `stash.drop`, `stash.branch`, the Diff page (`diff.page`).
 
 What it shows:
 
-- its title counts the stashes and has a button that stashes all changes (`stash.push`);
+- its title counts the stashes and has a button that stashes all changes (`stash.push`), **Stash all changes…**, there
+  under the pointer, as the **…** of the other titles, and while the list is open with no stash; it is not there before
+  the first commit, and cannot be clicked while Gitardo is running an operation;
 - with no stash: **No stashes. Put your changes aside with the button above, or from the Changes page: one file, what
   is staged, or everything.**;
 - each stash by its message and how long ago it was made; its tooltip has `stash@{N}: <message>` and the full date;
-- on each row, unless Gitardo is running an operation: **Apply: bring the changes back and keep the stash**, **Pop:
-  bring the changes back and drop the stash** and **Drop…**;
+- on each row under the pointer, in place of how long ago it was made, unless Gitardo is running an operation:
+  **Apply: bring the changes back and keep the stash**, **Pop: bring the changes back and drop the stash** and
+  **Drop…**;
 - its context menu: **Apply**, **Pop**, **Create branch from stash…** and, apart, **Drop**;
 - a click selects it in the timeline (`refs.tree`); the arrow before it unfolds it, **Loading…** while it is read: the
   files it changed, a click opening the diff of one against the commit it was made on, then the untracked files it took,
