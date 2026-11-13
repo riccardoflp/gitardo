@@ -38,6 +38,7 @@ mod inspector;
 mod inspector_files;
 mod jobs;
 mod large_diffs;
+mod log_secrets;
 mod merge;
 mod merge_actions;
 mod merge_at_line;

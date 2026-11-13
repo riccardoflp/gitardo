@@ -1600,3 +1600,8 @@ From the cards left over up to M8 (each built with the reading given, until the 
   while a File page has edits not saved, and **Discard all changes** of the header names only what git sees changed,
   so a file that only a File page changed keeps its edits and its file on disk. The lines of Q122 that waited on them
   are answered. Should **Discard all changes** also say, in its warning, that the edits not saved are kept?
+- **Q-D3** — `log.record` is **Built**. Its fourth line is tested against test servers that refuse the secret and
+  say it back: GitHub, for a token kept and one from git's credential helper, read by the window on its own and from
+  **Load pull requests from GitHub**, and the AI provider, for a key, from the sparkle of the commit box. A refused
+  read of GitHub is a warning line of the log (Q313); a refused request to the AI provider is said, not logged.
+  Should a failed request to the AI provider be written to the Command log too?

@@ -268,6 +268,38 @@ fn github_load_pull_requests__a_token_github_refuses_is_not_kept_and_the_next_lo
 }
 
 #[test]
+fn log_record__a_token_github_refuses_and_says_back_never_appears_in_the_log_kept_or_from_the_helper() {
+    let refused = || super::log_secrets::refused("token-from-helper");
+    let place = GitHubPlace::new("https://github.com/owner/app.git", true, vec![refused(), refused()]);
+    place.secrets.write(GITHUB_TOKEN, "token-from-helper").unwrap();
+    let mut state = place.open();
+    assert!(!place.load_from_menu(&mut state));
+    assert_eq!(
+        place.sent_with(),
+        ["Bearer token-from-helper", "Bearer token-from-helper"]
+    );
+    assert!(place.helper_ran(), "the second token came from the helper");
+    let lines: Vec<&str> = state.log.entries().map(|entry| entry.line.as_str()).collect();
+    assert!(
+        lines
+            .iter()
+            .any(|line| line.starts_with("Could not read pull requests.")),
+        "{lines:?}"
+    );
+    assert!(
+        lines.iter().all(|line| !line.contains("token-from-helper")),
+        "{lines:?}"
+    );
+    let said = state
+        .operations
+        .said
+        .as_ref()
+        .map(|said| said.text.clone())
+        .unwrap_or_default();
+    assert!(!said.is_empty() && !said.contains("token-from-helper"), "{said}");
+}
+
+#[test]
 fn github_load_pull_requests__a_token_refused_after_loading_is_said() {
     let place = GitHubPlace::new("https://github.com/owner/app.git", true, vec![unauthorized()]);
     let mut state = place.open();
