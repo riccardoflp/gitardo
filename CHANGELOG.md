@@ -163,7 +163,8 @@
   branch; **Squash into the commit before it…**, **Split this commit…**, **Add staged changes to this commit (fixup)**
   or **Add all changes to this commit (fixup)**, and **Interactive rebase of N commits…** or **Edit this commit
   (interactive rebase)…** in the menu of a commit; **Squash into one** in the bar of a selection of commits that
-  follow one another up to `HEAD`, and **Squash N commits into one…** in its menu. The interactive rebase page lists the commits up to `HEAD`, newest
+  follow one another up to `HEAD`, and **Squash N commits into one…** in its menu. The bar of a selection also has
+  **Copy as patch**, and its menu **Compare these two commits**, **Copy as patch** and **Save as patch…**. The interactive rebase page lists the commits up to `HEAD`, newest
   first, to reorder with **Move up**, **Move down** or by dragging, and to pick, reword, edit, squash, fix up or drop,
   says what keeps it from starting, and starts the rebase. While a rebase is stopped to edit or split a commit, a banner
   above the timeline says so, with **Continue**. After a squash the commit it made is selected, and after a split the

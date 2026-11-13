@@ -48,28 +48,54 @@ pub(crate) fn bar_view(state: &HistoryState<'_>, several: &Several, ui: &mut Ui<
     let count_width = ui.measure(&count, ui.text_style(TextKind::Body));
     let _ = ui.label(area.left(count_width), &Label::new(&count));
     let entries = bar_entries(state, several);
-    // A button that does not fit beside the count is left out, from the right: the menu of the selection has them all.
-    let mut room = inner.width - count_width - theme.sizes.spacing.small;
-    for (index, entry) in entries.iter().enumerate().rev() {
-        let mut button = Button::secondary(&entry.label);
-        if let Some(tooltip) = entry.tooltip {
-            button = button.with_tooltip(tooltip);
-        }
-        if entry.runs_an_operation() && state.commit_box.is_running {
-            button = button.disabled();
-        }
-        let (width, height) = ui.button_size(&button);
-        if width > room {
+    let buttons: Vec<Button<'_>> = entries
+        .iter()
+        .map(|entry| {
+            let mut button = Button::secondary(&entry.label);
+            if let Some(tooltip) = entry.tooltip {
+                button = button.with_tooltip(tooltip);
+            }
+            if entry.runs_an_operation() && state.commit_box.is_running {
+                button = button.disabled();
+            }
+            button
+        })
+        .collect();
+    let sizes: Vec<(f32, f32)> = buttons.iter().map(|button| ui.button_size(button)).collect();
+    let room = inner.width - count_width - theme.sizes.spacing.small;
+    let shown = fitting(&sizes, room, theme.sizes.spacing.small);
+    for index in (0..entries.len()).rev().filter(|index| shown.contains(index)) {
+        let (Some(entry), Some(button), Some(&(width, height))) =
+            (entries.get(index), buttons.get(index), sizes.get(index))
+        else {
             continue;
-        }
-        room -= width + theme.sizes.spacing.small;
+        };
         let cell = place(area.right(width), (width, height), (Align::Start, Align::Center));
-        if ui.button((BAR_KEY, index), cell, &button).clicked {
+        if ui.button((BAR_KEY, index), cell, button).clicked {
             intents.extend(entry_intents(entry, several));
         }
     }
     let _ = ui.label(area.rest(), &Label::new(words::SELECTION_HINT).tone(Tone::Muted));
     intents
+}
+
+/// The buttons of the bar that fit in the room beside the count, by their places: the last, **Clear selection**,
+/// always; then the others in their order, each that still fits, so that those on the right are left out first. The menu of
+/// the selection has them all.
+fn fitting(sizes: &[(f32, f32)], room: f32, gap: f32) -> Vec<usize> {
+    let Some(last) = sizes.len().checked_sub(1) else {
+        return Vec::new();
+    };
+    let mut left = room - sizes.get(last).map_or(0.0, |size| size.0);
+    let mut shown = Vec::new();
+    for (index, (width, _)) in sizes.iter().enumerate().take(last) {
+        if width + gap <= left {
+            left -= width + gap;
+            shown.push(index);
+        }
+    }
+    shown.push(last);
+    shown
 }
 
 /// Opens the menu of the selection where a commit of it was right clicked.

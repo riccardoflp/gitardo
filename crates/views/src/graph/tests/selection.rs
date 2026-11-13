@@ -150,10 +150,18 @@ fn selection_bar__three_commits_that_follow_one_another_before_head_have_squash_
     fixture.several = several(&["D", "E", "F"]);
     assert_eq!(
         bar_labels(&fixture),
-        ["Squash into one", "Cherry-pick onto main", "Clear selection"]
+        [
+            "Squash into one",
+            "Cherry-pick onto main",
+            "Copy as patch",
+            "Clear selection"
+        ]
     );
     fixture.several = several(&["B", "D", "F"]);
-    assert_eq!(bar_labels(&fixture), ["Cherry-pick onto main", "Clear selection"]);
+    assert_eq!(
+        bar_labels(&fixture),
+        ["Cherry-pick onto main", "Copy as patch", "Clear selection"]
+    );
     fixture.several = several(&["E", "F"]);
     let history = fixture.history();
     let chosen = Several::of(&history).unwrap_or_else(|| panic!("two are selected"));
@@ -175,14 +183,17 @@ fn selection_bar__three_commits_that_follow_one_another_before_head_have_squash_
 }
 
 #[test]
-fn selection_bar__with_a_merge_commit_among_the_selection_cherry_pick_is_not_there() {
+fn selection_bar__with_a_merge_commit_among_the_selection_neither_cherry_pick_nor_copy_as_patch_is_there() {
     let mut fixture = Fixture::new(
         rows(&["A: B", "B: C X", "X: C", "C:"]),
         &repository("A", &[("main", "A")]),
         Some(Selected::Commit(id("A"))),
     );
     fixture.several = several(&["X", "C"]);
-    assert_eq!(bar_labels(&fixture), ["Cherry-pick onto main", "Clear selection"]);
+    assert_eq!(
+        bar_labels(&fixture),
+        ["Cherry-pick onto main", "Copy as patch", "Clear selection"]
+    );
     fixture.several = several(&["B", "C"]);
     assert_eq!(bar_labels(&fixture), ["Clear selection"]);
 }
@@ -193,7 +204,7 @@ fn selection_bar__while_a_rebase_is_stopped_cherry_pick_is_not_there() {
     state.operation = Some(Operation::Rebase);
     let mut fixture = Fixture::new(rows(&["A: B", "B: C", "C:"]), &state, Some(Selected::Commit(id("A"))));
     fixture.several = several(&["B", "C"]);
-    assert_eq!(bar_labels(&fixture), ["Clear selection"]);
+    assert_eq!(bar_labels(&fixture), ["Copy as patch", "Clear selection"]);
 }
 
 #[test]
@@ -230,11 +241,72 @@ fn selection_menu__copy_hashes_with_three_selected_copies_them_newest_first() {
     let chosen = Several::of(&history).unwrap_or_else(|| panic!("three are selected"));
     let (entries, separator) = menu_entries(&history, &chosen);
     let labels: Vec<&str> = entries.iter().map(|entry| entry.label.as_str()).collect();
-    assert_eq!(labels, ["Cherry-pick 3 commits onto main", "Copy hashes"]);
+    assert_eq!(
+        labels,
+        [
+            "Cherry-pick 3 commits onto main",
+            "Copy hashes",
+            "Copy as patch",
+            "Save as patch\u{2026}"
+        ]
+    );
     assert_eq!(separator, 1);
     let copy = entries.iter().find(|entry| entry.action == SelectionAction::CopyHashes);
     assert_eq!(
         copy.map(|entry| entry_intents(entry, &chosen)),
         Some(vec![Intent::Graph(GraphIntent::CopyHashes(several(&["A", "B", "D"])))])
     );
+}
+
+/// The words of the menu of a fixture whose selection of several is set.
+fn menu_labels(fixture: &Fixture) -> Vec<String> {
+    let history = fixture.history();
+    Several::of(&history)
+        .map(|chosen| {
+            menu_entries(&history, &chosen)
+                .0
+                .into_iter()
+                .map(|entry| entry.label)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+#[test]
+fn selection_menu__compare_these_two_commits_opens_a_comparison_whose_first_side_is_the_lower() {
+    let mut fixture = six();
+    fixture.several = several(&["A", "C"]);
+    let history = fixture.history();
+    let chosen = Several::of(&history).unwrap_or_else(|| panic!("two are selected"));
+    let (entries, _) = menu_entries(&history, &chosen);
+    let compare = entries.iter().find(|entry| entry.action == SelectionAction::CompareTwo);
+    let answers = model::contract::Answers::new()
+        .with(
+            model::contract::AnswerKey("second"),
+            model::contract::Answer::Choice(String::from("revision")),
+        )
+        .with(
+            model::contract::AnswerKey("second-revision"),
+            model::contract::Answer::Text(id("A").as_str().to_owned()),
+        );
+    assert_eq!(
+        compare.map(|entry| (entry.label.as_str(), entry_intents(entry, &chosen))),
+        Some((
+            "Compare these two commits",
+            vec![Intent::Feature(FeatureIntent::RunWith(
+                FeatureId("compare.with"),
+                Target::Commit(id("C")),
+                answers
+            ))]
+        ))
+    );
+}
+
+#[test]
+fn selection_menu__with_three_selected_compare_these_two_commits_is_not_there() {
+    let mut fixture = six();
+    fixture.several = several(&["A", "C"]);
+    assert!(menu_labels(&fixture).contains(&String::from("Compare these two commits")));
+    fixture.several = several(&["A", "C", "E"]);
+    assert!(!menu_labels(&fixture).contains(&String::from("Compare these two commits")));
 }

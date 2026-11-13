@@ -926,11 +926,11 @@ the reading given until it is answered:
   and a tooltip, no hint. Right?
 - **Q161** — `Cmd`+click selects as `Ctrl`+click on macOS in the timeline only, where the selection reads the keys:
   the window does not yet map `Cmd` to `Ctrl` for every shortcut, as `ui::Modifiers::command` says it will. Should it?
-- **Q162** — `selection.bar` stays **Specified** for its line 1 (**Squash into one**, from `squash.commits`: built
-  since, with the menu's **Squash N commits into one…**), and has no **Copy as patch** (`patch.copy`). `selection.menu` stays **Specified** for its lines 1 and 2 (**Compare these two
-  commits** waits for the Compare page), and has no **Copy as patch** nor **Save as patch…**. `selection.cherry-pick`
-  stays **Specified** for its line 5 (continued in Gitardo, M6). The bar and the menu empty the selection when their
-  cherry-pick is chosen, before the dialog, not once it ran. Right?
+- **Q162** — `selection.bar` and `selection.menu` are built since: **Squash into one** (`squash.commits`), **Copy as
+  patch** and **Save as patch…** (`patch.copy`, `patch.save`), which leave the commits selected, and **Compare these
+  two commits**, which runs `compare.with` on the older with the newer as its side already answered, so that the page
+  opens with no question. `selection.cherry-pick` stays **Specified** for its line 5 (continued in Gitardo, M6). The
+  bar and the menu empty the selection when their cherry-pick is chosen, before the dialog, not once it ran. Right?
 - **Q163** — The words chosen without a card: *Finish or abort the `<operation>` first.* for every operation of this
   slice; *Choose a commit first.*; *There is nothing to merge into before the first commit.*; *`<name>` is the commit
   checked out already.*; *There is no squash merge to undo.*; *Nothing is stopped on a commit that changes nothing.*;
@@ -979,10 +979,10 @@ the reading given until it is answered:
   `Target::Commits(selected)`. The interactive rebase page runs `rebase.interactive` on `Target::Head` with the rows
   under the answer `todo`, and **Continue** of the banner runs `rebase.edit-stop` or `split.continue` on `Target::Head`.
   Is that right?
-- **Q174** — The bar of a selection keeps **N commits selected** whole and leaves out, from the left, the buttons that
-  do not fit beside it: in a narrow timeline **Squash into one** goes first, then **Cherry-pick onto …**, and **Clear
-  selection** stays. The menu of the selection still has every entry. Should the bar rather wrap, or show a **More**
-  button?
+- **Q174** — The bar of a selection keeps **N commits selected** whole and **Clear selection** always, then its other
+  buttons in the order of the card, each that still fits: in a narrow timeline **Copy as patch** goes first, then
+  **Cherry-pick onto …**, and **Squash into one** last. The menu of the selection still has every entry. Should the
+  bar rather wrap, or show a **More** button?
 
 From milestone M6, the rules that resolve conflicts with no choice (each built with the reading given, until the card
 says otherwise):

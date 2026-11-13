@@ -12,6 +12,7 @@ use ui::Modifiers;
 
 use crate::graph::{GraphIntent, HistoryState, Selected};
 use crate::text::history as words;
+use crate::text::patch as patch_words;
 
 /// What a click on a row of the timeline does to the selection, by the keys held.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -160,6 +161,11 @@ fn spanned(state: &HistoryState<'_>, anchor: usize, place: usize) -> Vec<CommitI
 pub(crate) enum SelectionAction {
     /// Runs an operation on the commits selected, newest first, and empties the selection.
     Run(FeatureId),
+    /// Runs an operation on the commits selected, newest first, which stay selected: a copy or a save.
+    Keep(FeatureId),
+    /// Opens the comparison of the two commits selected, the older (the lower in the timeline) first
+    /// (`compare.with`).
+    CompareTwo,
     /// Copies the full hashes, one per line, newest first.
     CopyHashes,
     /// Empties the selection.
@@ -196,9 +202,21 @@ impl SelectionEntry {
         }
     }
 
+    /// An entry that runs an operation on the commits selected and leaves them selected.
+    fn keeps(label: &str, tooltip: Option<&'static str>, feature: &'static str) -> SelectionEntry {
+        SelectionEntry {
+            label: label.to_owned(),
+            tooltip,
+            action: SelectionAction::Keep(FeatureId(feature)),
+        }
+    }
+
     /// Whether it runs an operation, and is disabled while one runs.
     pub(crate) fn runs_an_operation(&self) -> bool {
-        matches!(self.action, SelectionAction::Run(_))
+        matches!(
+            self.action,
+            SelectionAction::Run(_) | SelectionAction::Keep(_) | SelectionAction::CompareTwo
+        )
     }
 }
 
@@ -244,6 +262,13 @@ pub(crate) fn bar_entries(state: &HistoryState<'_>, several: &Several) -> Vec<Se
             "selection.cherry-pick",
         ));
     }
+    if !several.has_merge {
+        entries.push(SelectionEntry::keeps(
+            patch_words::COPY_AS_PATCH,
+            Some(patch_words::COPY_SELECTION_TOOLTIP),
+            "patch.copy",
+        ));
+    }
     entries.push(SelectionEntry::does(words::CLEAR_SELECTION, SelectionAction::Clear));
     entries
 }
@@ -265,8 +290,15 @@ pub(crate) fn menu_entries(state: &HistoryState<'_>, several: &Several) -> (Vec<
             "selection.cherry-pick",
         ));
     }
+    if several.commits.len() == 2 {
+        entries.push(SelectionEntry::does(words::COMPARE_TWO, SelectionAction::CompareTwo));
+    }
     let separator = entries.len();
     entries.push(SelectionEntry::does(words::COPY_HASHES, SelectionAction::CopyHashes));
+    if !several.has_merge {
+        entries.push(SelectionEntry::keeps(patch_words::COPY_AS_PATCH, None, "patch.copy"));
+        entries.push(SelectionEntry::keeps(patch_words::SAVE_AS_PATCH, None, "patch.save"));
+    }
     (entries, separator)
 }
 
@@ -279,7 +311,31 @@ pub(crate) fn entry_intents(entry: &SelectionEntry, several: &Several) -> Vec<cr
             Intent::Feature(FeatureIntent::Run(*feature, Target::Commits(several.commits.clone()))),
             Intent::Graph(GraphIntent::ClearSelection),
         ],
+        SelectionAction::Keep(feature) => vec![Intent::Feature(FeatureIntent::Run(
+            *feature,
+            Target::Commits(several.commits.clone()),
+        ))],
+        SelectionAction::CompareTwo => compare_two(several).into_iter().collect(),
         SelectionAction::CopyHashes => vec![Intent::Graph(GraphIntent::CopyHashes(several.commits.clone()))],
         SelectionAction::Clear => vec![Intent::Graph(GraphIntent::ClearSelection)],
     }
+}
+
+/// `compare.with` on the older of two commits selected, with the newer as the side it is compared with: the page opens
+/// with no question asked.
+fn compare_two(several: &Several) -> Option<crate::intent::Intent> {
+    use crate::feature::FeatureIntent;
+    use crate::intent::Intent;
+    use model::contract::{Answer, AnswerKey, Answers};
+    let [newer, older] = several.commits.as_slice() else {
+        return None;
+    };
+    let answers = Answers::new()
+        .with(AnswerKey("second"), Answer::Choice(String::from("revision")))
+        .with(AnswerKey("second-revision"), Answer::Text(newer.as_str().to_owned()));
+    Some(Intent::Feature(FeatureIntent::RunWith(
+        FeatureId("compare.with"),
+        Target::Commit(older.clone()),
+        answers,
+    )))
 }

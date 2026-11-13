@@ -236,7 +236,7 @@ fn selection_bar__clear_selection_leaves_no_commit_selected_together_and_the_bar
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
     assert!(says(&tree, "2 commits selected"));
-    assert!(has(&tree, Role::Button, "Cherry-pick onto main"));
+    assert!(has(&tree, Role::Button, "Squash into one"));
     window.assert_snapshot("selection-bar-dark");
     let cleared = window.click(&state, Role::Button, "Clear selection");
     assert_eq!(cleared, [Intent::Graph(GraphIntent::ClearSelection)]);

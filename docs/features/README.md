@@ -211,8 +211,8 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
 | [`selection.select`](07-history-rewriting.md#selectionselect--select-several-commits) | Select several commits | View | Built |
-| [`selection.bar`](07-history-rewriting.md#selectionbar--the-bar-of-a-selection-of-several-commits) | The bar of a selection of several commits | View | Specified |
-| [`selection.menu`](07-history-rewriting.md#selectionmenu--the-context-menu-of-a-selection-of-several-commits) | The context menu of a selection of several commits | View | Specified |
+| [`selection.bar`](07-history-rewriting.md#selectionbar--the-bar-of-a-selection-of-several-commits) | The bar of a selection of several commits | View | Built |
+| [`selection.menu`](07-history-rewriting.md#selectionmenu--the-context-menu-of-a-selection-of-several-commits) | The context menu of a selection of several commits | View | Built |
 | [`selection.cherry-pick`](07-history-rewriting.md#selectioncherry-pick--cherry-pick-several-commits) | Cherry-pick several commits | Operation | Specified |
 | [`cherry-pick.commit`](07-history-rewriting.md#cherry-pickcommit--cherry-pick-a-commit) | Cherry-pick a commit | Operation | Built |
 | [`cherry-pick.skip-empty`](07-history-rewriting.md#cherry-pickskip-empty--get-past-a-commit-that-changes-nothing) | Get past a commit that changes nothing | Operation | Built |
