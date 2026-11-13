@@ -304,3 +304,4 @@
   folded over the commit unfolds. The bar of the history of a file says the branches it is narrowed to, `· in the
   local branches`. Several commits selected bring out no history. A narrow window shows **Sync** as its icon and its
   counts.
+- **Open file** in the bar of a Diff page whose right side is the working tree opens the File page of the file.

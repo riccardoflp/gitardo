@@ -60,6 +60,8 @@ pub const STAGED_UNSTAGE_CHANGE: &str = "Staged \u{2014} unstage this change";
 pub const REVERT_CHANGE: &str = "Revert this change";
 /// The title button that stages the file.
 pub const STAGE_FILE: &str = "Stage file";
+/// The title button that opens the file in the File page (`diff.open-file`).
+pub const OPEN_FILE: &str = "Open file";
 /// The title button that unstages the file.
 pub const UNSTAGE_FILE: &str = "Unstage file";
 /// The title button that discards the changes of the file.

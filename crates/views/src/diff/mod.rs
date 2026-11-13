@@ -21,7 +21,7 @@ use ui::{AccessRole, List, Reveal, RevealPlace, SelectionMode, Steering, Ui};
 use crate::intent::Intent;
 use crate::text::diff as words;
 
-pub use bar::{collapse_unchanged_view, navigate_view};
+pub use bar::{collapse_unchanged_view, navigate_view, open_file_view};
 pub use columns::{LEAST_WIDTH, resize_sides_view};
 pub use data::{ChangePlace, DiffFile, DiffTarget, DiffText, DiffVersion, FileDiff, Hint, PageLine};
 pub use question::{LargeDiffQuestion, large_diff_question_view};

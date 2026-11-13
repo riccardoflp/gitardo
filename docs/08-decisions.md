@@ -1468,3 +1468,6 @@ From the cards left over up to M8 (each built with the reading given, until the 
 - **Q-W3** — `graph.date-separators` is built on its derivation, which counts the days in the local time it is given,
   and on the switch that turns it off. The window still gives it an offset of 0 from UTC, until Q58 says how the local
   time zone is read. Is it right to call the card built?
+- **Q-W4** — `diff.open-file` is the title button of a page of one file whose right side is the working tree, between
+  **Discard changes** and the fold button; a page of several files has no title button for each file yet, as it has
+  none of `diff.stage-file`. Should the files of a page of several have a bar of their own with these buttons?

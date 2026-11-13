@@ -496,7 +496,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`diff.revert-change`](17-diff-and-merge-views.md#diffrevert-change--revert-this-change) | Revert this change | Operation | Specified |
 | [`diff.edit`](17-diff-and-merge-views.md#diffedit--editing-the-working-tree-side) | Editing the working tree side | View | Specified |
 | [`diff.open-at-line`](17-diff-and-merge-views.md#diffopen-at-line--open-the-file-at-this-line) | Open the file at this line | View | Specified |
-| [`diff.open-file`](17-diff-and-merge-views.md#diffopen-file--open-file) | Open file | View | Specified |
+| [`diff.open-file`](17-diff-and-merge-views.md#diffopen-file--open-file) | Open file | View | Built |
 | [`diff.stage-file`](17-diff-and-merge-views.md#diffstage-file--stage-file) | Stage file | Operation | Built |
 | [`diff.unstage-file`](17-diff-and-merge-views.md#diffunstage-file--unstage-file) | Unstage file | Operation | Built |
 | [`diff.discard-file`](17-diff-and-merge-views.md#diffdiscard-file--discard-changes) | Discard changes | Operation | Built |

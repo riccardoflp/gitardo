@@ -1,7 +1,7 @@
 //! The bar at the top of a Diff page: the arrows that go from change to change with where the current one is among
 //! them (`diff.navigate`), the hint that `F7` goes on to the next file, the fold button (`diff.collapse-unchanged`), and
-//! the title buttons that stage, unstage or discard the file (`diff.stage-file`, `diff.unstage-file`,
-//! `diff.discard-file`).
+//! the title buttons that stage, unstage, discard or open the file (`diff.stage-file`, `diff.unstage-file`,
+//! `diff.discard-file`, `diff.open-file`).
 
 use model::contract::{FeatureId, Target};
 use ui::layout::{Align, Area, Insets, inset, place};
@@ -24,6 +24,10 @@ pub(crate) fn bar_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent
     let mut intents = Vec::new();
     let fold = parts.right(side);
     intents.extend(ui.clip(fold, |ui| collapse_unchanged_view(state, ui)));
+    if opens_file(state).is_some() {
+        let cell = parts.right(side);
+        intents.extend(ui.clip(cell, |ui| open_file_view(state, ui)));
+    }
     for (feature, icon, said) in file_buttons(state) {
         let cell = place(parts.right(side), (side, side), (Align::Start, Align::Center));
         let button = Button::icon(icon, said).kind(ButtonKind::Icon);
@@ -56,6 +60,33 @@ pub(crate) fn bar_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent
     );
     ui.separator(separator, ui::Axis::Horizontal);
     intents
+}
+
+/// The file **Open file** opens: that of a page of one file whose right side is the working tree.
+fn opens_file<'a>(state: &DiffPageState<'a>) -> Option<&'a str> {
+    match (state.files, state.versions.1) {
+        ([file], DiffVersion::WorkingTree) => Some(file.right.as_str()),
+        _ => None,
+    }
+}
+
+/// The title button **Open file**, over the rectangle its caller clipped it to, on a page of one file of the working
+/// tree: it opens the File page of the file, as it is on disk.
+///
+/// Feature: diff.open-file
+pub fn open_file_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
+    let Some(path) = opens_file(state) else {
+        return Vec::new();
+    };
+    let rect = ui.current_clip();
+    let side = ui.theme().sizes.control_height;
+    let cell = place(rect, (side, side), (Align::Start, Align::Center));
+    let button = Button::icon(Icon::File, words::OPEN_FILE).kind(ButtonKind::Icon);
+    if ui.button(("diff open file", state.id), cell, &button).clicked {
+        let target = crate::file_view::FileTarget::working_tree(path);
+        return vec![Intent::FileView(crate::file_view::FileViewIntent::Open(target))];
+    }
+    Vec::new()
 }
 
 /// The title buttons of a page of one file, from the right: **Discard changes** and **Stage file** when the right side
