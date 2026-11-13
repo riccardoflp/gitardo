@@ -1293,3 +1293,11 @@ says otherwise):
   that stopped?
 - **Q241** — `compare.path-with` is still not built: its entry points are in the Files page, which does not exist
   yet. Is it right to leave it for the Files page?
+
+From milestone M8, the settings of new worktrees (`worktree-setup.`), each built with the reading given until it is
+answered:
+
+- **Q-T1** — The operations that write the settings of new worktrees (`worktree-setup.save`, `remove-from`,
+  `link-into-new-worktrees`…) edit the files in place, keeping their comments, which only `crates/json` can do. So
+  `features` may now use `json`, a pure crate, and the picture of doc 02 says so. This also answers Q44 for these
+  settings: the operation writes the file, through a `write` step. Is the new edge right?

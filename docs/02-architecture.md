@@ -59,7 +59,7 @@ app ──► views ──► ui ──► render ──► platform
  ├──► engine ──► git ──► model, text
  │       ├─────► model (the plans it runs, the queries it answers)
  │       └─────► http, platform (processes, files)
- ├──► features ──► model, text, git (types only, never running)
+ ├──► features ──► model, text, json, git (types only, never running)
  ├──► json, http ──► tls ──► rustls, rustls-native-certs (D13)
  │   render ──► tiny-skia, cosmic-text (D16)
  │   platform ──► winit, softbuffer, arboard, rfd, accesskit_winit (D16)
@@ -72,6 +72,7 @@ app ──► views ──► ui ──► render ──► platform
   ([D14](08-decisions.md#d14--the-types-of-the-contract-are-in-model)).
 - `features`, `model`, `text` and `json` are pure: no I/O, no threads, no clock. They are where most of the code and
   most of the tests are.
+- `features` edits the settings files its operations write with `json`, so that their comments are kept.
 - `git` runs processes but knows nothing of the UI. `engine` is the only crate that changes the disk or the repository.
 - `platform` is the only crate with `unsafe`. Everything above it sees safe functions.
 - Each crate uses the libraries the allowlist names for it ([D20](08-decisions.md#d20--libraries-where-they-serve));

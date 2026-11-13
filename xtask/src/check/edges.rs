@@ -19,7 +19,7 @@ const ALLOWED: [(&str, &[&str]); 16] = [
     ("editor", &["render"]),
     ("render", &["platform"]),
     ("platform", &[]),
-    ("features", &["model", "text", "git"]),
+    ("features", &["model", "text", "json", "git"]),
     ("engine", &["git", "model", "http", "platform"]),
     ("git", &["model", "text"]),
     ("model", &[]),
