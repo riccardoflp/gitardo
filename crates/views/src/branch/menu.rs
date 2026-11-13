@@ -41,15 +41,6 @@ impl OperationEntry {
             answers,
         }
     }
-
-    /// An entry greyed out until its operation exists.
-    pub(crate) fn later(label: impl Into<String>) -> Self {
-        OperationEntry {
-            label: label.into(),
-            run: None,
-            answers: Answers::new(),
-        }
-    }
 }
 
 /// The operations of a local branch. The one checked out here can be renamed or branched from; one another worktree

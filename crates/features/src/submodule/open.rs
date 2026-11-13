@@ -75,6 +75,27 @@ pub fn open_in_new_window(context: &Context, _answers: &Answers) -> Outcome {
     })
 }
 
+/// Points the timeline with its draft, the branch rail and the Changes page of this window at the folder of an
+/// initialized submodule, as a repository of its own, so that what is done there is done in it; the banner of
+/// `worktree.banner` says so and goes back. No steps.
+///
+/// Feature: submodule.show-in-gitardo
+#[must_use]
+pub fn show_in_gitardo(context: &Context, _answers: &Answers) -> Outcome {
+    let submodule = match initialized(context, ": update it first.") {
+        Ok(submodule) => submodule,
+        Err(refusal) => return *refusal,
+    };
+    Outcome::Run(Plan {
+        title: Text::from(format!("Show {} in this window", submodule.folder)),
+        steps: Vec::new(),
+        danger: Danger::None,
+        undo: nothing_to_undo(),
+        after: vec![FollowUp::ShowFolder(on_disk(context, submodule))],
+        on_failure: Vec::new(),
+    })
+}
+
 /// Opens the terminal of the system with the folder of an initialized submodule as its folder: `run <command>` in that
 /// folder.
 ///

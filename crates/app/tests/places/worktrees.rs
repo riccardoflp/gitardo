@@ -263,3 +263,30 @@ fn worktree_show_in_graph__a_worktree_on_a_commit_far_down_the_history_is_loaded
     assert_eq!(state.timeline.selected, Some(views::graph::Selected::Commit(commit)));
 }
 
+#[test]
+fn submodule_show_in_gitardo__a_commit_made_from_the_draft_is_made_in_lib_and_back_shows_it_one_commit_ahead() {
+    let (repository, _kept) = super::submodules::with_lib(false);
+    let lib = repository.path().join("lib");
+    std::fs::write(lib.join("notes.txt"), "notes\n").unwrap();
+    let _ = repository.git(&["-C", "lib", "add", "notes.txt"]);
+    let mut state = showing(repository.path().to_path_buf());
+    let target = Target::Submodule(String::from("lib"));
+    let _shown = run_operation(&mut state, "submodule.show-in-gitardo", target, Answers::new());
+    assert!(same(&shown(&state), &lib), "{:?}", shown(&state));
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(super::support::says_in(&tree, "Showing the submodule lib"));
+    let message = Answers::new().with(features::commit::MESSAGE, Answer::Text(String::from("Add the notes")));
+    let _committed = run_operation(&mut state, "commit.create", Target::Head, message);
+    let made = repository.git(&["-C", "lib", "log", "-1", "--format=%s"]);
+    assert_eq!(made.trim(), "Add the notes");
+    for intent in window.click(&state, Role::Button, "Back to repository") {
+        let _effects = run(&mut state, Message::Intent(intent));
+    }
+    assert!(same(&shown(&state), repository.path()), "{:?}", shown(&state));
+    let status = model::submodule::status(&super::submodules::read_submodule(&state, "lib"));
+    assert!(
+        matches!(status, model::submodule::SubmoduleStatus::Ahead { commits: 1, .. }),
+        "{status:?}"
+    );
+}

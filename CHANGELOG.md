@@ -290,7 +290,7 @@
   the missing ones. **Create worktree…** from the list, from Quick search, from a branch and from a commit asks for a
   name with where its folder goes said as it is typed, then offers to open it and, the first time, **Choose What It
   Gets…**; **Switch worktree…** lists them to open one.
-- A worktree shown in this window has a banner above the timeline and the
+- A worktree shown in this window, or a submodule with **Show in Gitardo**, has a banner above the timeline and the
   Changes page with **Back to** the repository of the window; what is done there is done in it.
 - A branch another worktree has shows the worktree's icon; its double click and the first entries of its menu open the
   worktree, and it can be neither checked out nor deleted here. With `branches.openIn` set to `worktree`, a branch

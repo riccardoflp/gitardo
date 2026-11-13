@@ -20,7 +20,7 @@ pub use add::{BRANCH, FOLDER, URL, add};
 pub use copy::{copy_path, copy_url};
 pub use deinitialize::{LOCAL_MODIFICATIONS, deinitialize};
 pub use initialize::initialize;
-pub use open::{OpenCommands, System, open_in_new_window, open_in_terminal, reveal};
+pub use open::{OpenCommands, System, open_in_new_window, open_in_terminal, reveal, show_in_gitardo};
 pub use remove::{GIT_FOLDER, remove};
 pub use stage_recorded::stage_recorded;
 pub use sync_urls::sync_urls;

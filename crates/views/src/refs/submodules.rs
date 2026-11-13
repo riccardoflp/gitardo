@@ -263,7 +263,7 @@ pub(super) fn menu_groups(submodule: &Submodule, system: &str) -> Vec<Vec<Operat
         opening.push(runs(words::OPEN_IN_NEW_WINDOW, "submodule.open-in-new-window"));
         opening.push(runs(words::OPEN_IN_TERMINAL, "submodule.open-in-terminal"));
         opening.push(runs(words::reveal(system), "submodule.reveal"));
-        opening.push(OperationEntry::later(words::SHOW_IN_GITARDO));
+        opening.push(runs(words::SHOW_IN_GITARDO, "submodule.show-in-gitardo"));
     }
     let mut moving = Vec::new();
     if !is_initialized {
