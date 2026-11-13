@@ -1267,3 +1267,29 @@ says otherwise):
   whole folder. A pencil icon is added to the toolkit for the files not committed. Is this right?
 - **Q234** — The marks of `submodule.status` are drawn as the number then its arrow, `2↑ 1↓`, as its card writes them,
   where the branches of the rail write `↑1 ↓2`. Should they agree, and which way?
+- **Q-P1** — The review of the conflicts opens from a file in conflict on the Changes page by a new icon, a wand
+  (`Icon::Wand`), drawn only while `conflicts.autoResolve` is on, with *Resolve its conflicts automatically, after
+  looking at what is proposed* as its tooltip; the sparkle stays the AI's. Is the wand right, and should it be there
+  with `conflicts.autoResolve` off too?
+- **Q-P2** — On the Merge page a click on a line of any column puts the cursor on it, marked with the color of a
+  selection; `F4` with no cursor takes the first line of the region gone to (`F7`), or the first line. Taking a side
+  does not make its region the one gone to. Is that right?
+- **Q-P3** — The function of `merge-view.close` is `app::store::merge_page::lines::closed`, in the store, not
+  `views::merge_view::close_view`: a page is closed by the store when it leaves the open pages, and nothing is drawn
+  for it. A page closed by **Mark as resolved**, or because its file is no longer in conflict, hands nothing over. Is
+  that right?
+- **Q-P4** — With choices not saved, `F4`, **Jump to source** and closing the page give the File page the result as
+  one edit not saved, which `Ctrl+Z` there takes back; the Merge page, when it stays open, keeps its own text, so the
+  two hold copies that do not follow each other until one is saved and the other reads the disk again. Should the two
+  pages share one text instead (Q194)?
+- **Q-P5** — `changes.save` writes every file given without reading it first, as its card asks nothing: **Save all**
+  writes over a file another program changed since its page read it, where **Save** on a row and `Ctrl+S`
+  (`file-view.save`) ask **Overwrite** first. Should `changes.save` read the files and ask the same, which needs a
+  query that reads several files at once?
+- **Q-P6** — `patch.am-stopped` is the banner of every operation that stopped (`conflicts.banner`), drawn through
+  `views::patch::am_stopped` while `git am` is under way; it adds nothing of its own, since what the card asks of
+  the banner, the commands and the names of the sides were already there. Its signature takes `&BannerState`, not an
+  `OperationState`, which does not exist. Should the banner of a patch say more, such as the subject of the commit
+  that stopped?
+- **Q-P7** — `compare.path-with` is still not built: its entry points are in the Files page, which does not exist
+  yet. Is it right to leave it for the Files page?
