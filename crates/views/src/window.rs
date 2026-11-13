@@ -102,6 +102,8 @@ pub enum TimelineState<'a> {
         conflicts: Option<crate::conflicts::BannerState<'a>>,
         /// The banner of the bisect under way, above the commits (`bisect.banner`).
         bisect: Option<BisectBanner<'a>>,
+        /// The banner of another worktree shown in this window, above the commits (`worktree.banner`).
+        worktree: Option<Box<crate::worktree::BannerState<'a>>>,
     },
     /// No repository to show yet, or none at all: the rail is empty and the timeline says why.
     NoRepository(NoRepositoryState),
@@ -225,6 +227,7 @@ fn banners(state: &TimelineState<'_>, ui: &mut Ui<'_>, main: &mut Area, intents:
         search,
         conflicts,
         bisect,
+        worktree,
         ..
     } = state
     else {
@@ -236,6 +239,10 @@ fn banners(state: &TimelineState<'_>, ui: &mut Ui<'_>, main: &mut Area, intents:
     } else if let Some(bar) = bar {
         let top = main.top(bar_height(ui));
         intents.extend(ui.clip(top, |ui| bar_view(bar, ui)));
+    }
+    if let Some(banner) = worktree {
+        let top = main.top(bar_height(ui));
+        intents.extend(ui.clip(top, |ui| crate::worktree::banner(banner, ui)));
     }
     if let Some(banner) = conflicts {
         let top = main.top(bar_height(ui));

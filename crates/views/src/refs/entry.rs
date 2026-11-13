@@ -148,11 +148,13 @@ pub(super) fn double_click_intent(state: &ReferencesState<'_>, entry: &Entry<'_>
     let reference = match entry {
         Entry::Branch(branch) => OpenedReference::Branch(&branch.name),
         Entry::Remote(remote) => OpenedReference::RemoteBranch(&remote.name),
+        Entry::Worktree(worktree) => return crate::worktree::open_intent(worktree),
         _ => return None,
     };
     let menus = ReferenceMenus {
         repository: state.repository,
         open_in: state.open_in,
+        window: state.window,
     };
     open_intent(menus, reference)
 }
@@ -211,7 +213,7 @@ fn eye_button(ui: &mut Ui<'_>, state: &ReferencesState<'_>, entry: &Entry<'_>, r
 
 /// The tooltip of an entry: about the upstream and the worktree of a local branch, the name of a stash with its full
 /// date, and **Not shown in the timeline** on a dimmed reference.
-fn entry_tooltip(state: &ReferencesState<'_>, entry: &Entry<'_>, marks: Marks) -> String {
+pub(super) fn entry_tooltip(state: &ReferencesState<'_>, entry: &Entry<'_>, marks: Marks) -> String {
     let mut lines = Vec::new();
     match entry {
         Entry::Branch(branch) => {
@@ -225,6 +227,7 @@ fn entry_tooltip(state: &ReferencesState<'_>, entry: &Entry<'_>, marks: Marks) -
             lines.push(words::stash_tooltip(stash.index, &stash.message));
             lines.push(crate::text::dates::full_date(stash.date.0));
         }
+        Entry::Worktree(worktree) => lines.push(crate::worktree::tooltip(state.repository, worktree)),
         _ => {}
     }
     if marks.is_dimmed {
@@ -242,7 +245,7 @@ fn short(full: &str) -> &str {
 }
 
 /// The worktree other than this window's that has a branch checked out.
-fn other_worktree<'a>(state: &ReferencesState<'a>, branch: &Branch) -> Option<&'a Worktree> {
+pub(super) fn other_worktree<'a>(state: &ReferencesState<'a>, branch: &Branch) -> Option<&'a Worktree> {
     let full = ReferenceKind::Local.full_name(&branch.name);
     state
         .repository
@@ -284,6 +287,7 @@ fn draw_entry(ui: &mut Ui<'_>, context: Context<'_, '_>, (entry, marks): (&Entry
             let tone = if marks.is_dimmed { Tone::Disabled } else { Tone::Muted };
             let _ = ui.label(parts.rest(), &Label::new(&branch.name).tone(tone));
         }
+        Entry::Worktree(worktree) => worktree_row(ui, context.state, (worktree, marks), rect),
         _ => kept_entry(ui, entry, marks, rect),
     }
 }
@@ -367,10 +371,7 @@ fn kept_entry(ui: &mut Ui<'_>, entry: &Entry<'_>, marks: Marks, rect: Rect) {
         _ => Icon::Folder,
     };
     ui.icon_in(parts.left(theme.sizes.icon), icon, Tone::Muted);
-    let text = match entry {
-        Entry::Worktree(worktree) => worktree_words(worktree),
-        _ => entry.name(),
-    };
+    let text = entry.name();
     let kind = if entry.is_current() {
         TextKind::Strong
     } else {
@@ -380,12 +381,40 @@ fn kept_entry(ui: &mut Ui<'_>, entry: &Entry<'_>, marks: Marks, rect: Rect) {
     let _ = ui.label(parts.rest(), &Label::new(&text).kind(kind).tone(tone));
 }
 
-/// A worktree as the rail lists it: its folder, then its branch, `detached` or `missing`.
-fn worktree_words(worktree: &Worktree) -> String {
-    let stands = if worktree.is_missing {
-        words::MISSING
+/// Small muted words at the end of a row.
+fn small(text: &str) -> Label<'_> {
+    Label::new(text).kind(TextKind::Small).tone(Tone::Muted)
+}
+
+/// A worktree of the Worktrees list (`worktree.section`): its icon, its label, strong for the one the views show, then
+/// how it stands, and a pencil with the number of its files not committed when there are some.
+///
+/// Feature: worktree.section
+fn worktree_row(ui: &mut Ui<'_>, state: &ReferencesState<'_>, (worktree, marks): (&Worktree, Marks), rect: Rect) {
+    let theme = *ui.theme();
+    let indent = indent(&theme);
+    let shown = Rect::new(rect.x + indent, rect.y, (rect.width - indent).max(0.0), rect.height);
+    let mut parts = Area::with_gap(shown, theme.sizes.spacing.small);
+    ui.icon_in(parts.left(theme.sizes.icon), Icon::Worktree, Tone::Muted);
+    if let Some(files) = worktree.uncommitted.filter(|files| *files > 0) {
+        let count = files.to_string();
+        let width = ui.measure(&count, ui.text_style(TextKind::Small));
+        let _ = ui.label(parts.right(width), &small(&count));
+        ui.icon_in(parts.right(theme.sizes.icon), Icon::Pencil, Tone::Muted);
+    }
+    let stands = crate::worktree::standing(state.repository, worktree);
+    let width = ui.measure(&stands, ui.text_style(TextKind::Small));
+    let _ = ui.label(parts.right(width), &small(&stands));
+    let label = crate::worktree::label(state.repository, state.window, worktree);
+    let kind = if worktree.is_current {
+        TextKind::Strong
     } else {
-        worktree.branch.as_deref().map_or(words::DETACHED, short)
+        TextKind::Detail
     };
-    format!("{} \u{b7} {stands}", worktree_folder(worktree))
+    let tone = if marks.is_dimmed || worktree.is_missing {
+        Tone::Disabled
+    } else {
+        Tone::Normal
+    };
+    let _ = ui.label(parts.rest(), &Label::new(&label).kind(kind).tone(tone));
 }

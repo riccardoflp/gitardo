@@ -54,6 +54,8 @@ pub struct ChangesRepository<'a> {
     pub on_click: OpenOnClick,
     /// The banner of an operation that stopped, over the lists (`conflicts.banner`).
     pub banner: Option<crate::conflicts::BannerState<'a>>,
+    /// The banner of another worktree shown in this window, at the top (`worktree.banner`).
+    pub worktree: Option<Box<crate::worktree::BannerState<'a>>>,
 }
 
 /// Something asked of the Changes page, or of the draft of the timeline, which shows its message and **Commit**.
@@ -90,6 +92,10 @@ pub fn pane(state: &ChangesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut intents = Vec::new();
     ui.region("changes page", (rect, AccessRole::Main, words::PAGE), |ui| {
         let mut area = Area::with_gap(inner, spacing.large);
+        if let Some(banner) = &repository.worktree {
+            let top = area.top(crate::filter::bar_height(ui));
+            intents.extend(ui.clip(top, |ui| crate::worktree::banner(banner, ui)));
+        }
         if let Some(banner) = &repository.banner {
             let top = area.top(crate::filter::bar_height(ui));
             intents.extend(ui.clip(top, |ui| crate::conflicts::banner_view(banner, ui)));

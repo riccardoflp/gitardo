@@ -55,6 +55,7 @@ mod sync_stash;
 mod timeline;
 mod views_drawn;
 mod watch;
+mod worktrees;
 
 use std::path::PathBuf;
 

@@ -93,6 +93,8 @@ pub enum QuickCommand {
     ManageRemotes,
     /// **Switch Worktree…** (`worktree.switch`).
     SwitchWorktree,
+    /// **Create Worktree…** (`worktree.create`).
+    CreateWorktree,
     /// **Add Submodule…** (`submodule.add`).
     AddSubmodule,
     /// **Apply Patch…** (`patch.apply`).
@@ -127,7 +129,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 37] = [
+    pub const ALL: [QuickCommand; 38] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -160,6 +162,7 @@ impl QuickCommand {
         QuickCommand::CleanUpBranches,
         QuickCommand::ManageRemotes,
         QuickCommand::SwitchWorktree,
+        QuickCommand::CreateWorktree,
         QuickCommand::AddSubmodule,
         QuickCommand::ApplyPatch,
         QuickCommand::SwitchIdentity,
@@ -213,6 +216,8 @@ impl QuickCommand {
             QuickCommand::ApplyPatch => Some("patch.apply"),
             QuickCommand::SwitchIdentity => Some("identity.switch"),
             QuickCommand::UndoLastOperation => Some("undo.last"),
+            QuickCommand::SwitchWorktree => Some("worktree.switch"),
+            QuickCommand::CreateWorktree => Some("worktree.create"),
             _ => self.file_page_operation(),
         }
     }

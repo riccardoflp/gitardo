@@ -32,6 +32,7 @@ mod timeline;
 mod view_parts;
 mod view_state;
 mod workspace;
+mod worktrees;
 
 use std::path::PathBuf;
 
@@ -54,6 +55,7 @@ pub use state::{Dialog, Opening, Pages, RepositoryRead, Shown, State, Workspace}
 pub use timeline::{Timeline, commits_request, draft_of, history_of, known};
 pub use view_state::ViewData;
 pub use workspace::OpenRequest;
+pub use worktrees::Worktrees;
 
 /// Changes the store as a message says, and gives what the outside is to do after it, in order: then the inspector
 /// follows the row selected, the pages closed are forgotten, **Show in the timeline** follows the timeline read, and
@@ -122,7 +124,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         Message::ConflictsCounted { job, result } => conflicts::counted(state, job, result),
         Message::FilesRead { job, result } => files_page::files_read(state, job, result),
         Message::BlameRead { job, result } => blame::blame_read(state, job, result),
-        Message::SettingsRead(settings) => settings_read(state, settings),
+        Message::SettingsRead(settings) => settings_read(state, *settings),
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
         Message::Wake { at } => reads::wake(state, at),
         Message::Minimized(is_minimized) => reads::minimized(state, is_minimized),

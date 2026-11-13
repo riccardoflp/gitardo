@@ -81,6 +81,7 @@ fn listed(submodules: Vec<Submodule>) -> Option<Vec<String>> {
         selected: None,
         sort: SortOrder::Name,
         open_in: OpenIn::Checkout,
+        window: crate::worktree::WorktreeWindow::default(),
         stashes: super::stashes_tests::nothing_unfolded(),
     };
     let rows = rail_rows(&state, false);

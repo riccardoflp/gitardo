@@ -10,7 +10,7 @@ use ui::{
 
 use super::ReferencesState;
 use super::entry::entry_row;
-use super::menu::{ListCommand, list_menu};
+use super::menu::{ListCommand, list_menu, list_operations};
 use super::rows::{Entry, ListHead, RailRow};
 use super::stashes::{StashesRow, empty_height, is_of_stashes, stashes_view};
 use super::submodules::{SubmodulesRow, is_of_submodules, section};
@@ -188,6 +188,18 @@ fn kept_icon(ui: &mut Ui<'_>, rect: Rect, head: &ListHead) {
     ui.describe(id, cell, &Description::new(AccessRole::Label, &name).value(&count));
 }
 
+/// The chevron of a list's title, down while it is open, and the icon of the list.
+fn title_icons(ui: &mut Ui<'_>, parts: &mut Area, head: &ListHead) {
+    let size = ui.theme().sizes.icon;
+    let chevron = if head.is_open {
+        Icon::ChevronDown
+    } else {
+        Icon::ChevronRight
+    };
+    ui.icon_in(parts.left(size), chevron, Tone::Muted);
+    ui.icon_in(parts.left(size), list_icon(&head.list), Tone::Muted);
+}
+
 /// The title of a list: its chevron, its icon, its name and its count, and **…** under the pointer when it has a
 /// menu. A click opens or closes it; a right click or **…** opens its menu.
 pub(super) fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListHead, rect: Rect) -> Vec<Intent> {
@@ -197,7 +209,8 @@ pub(super) fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListH
     let id = ui.id(("list", &head.list));
     let response = ui.interact(id, rect, Sense::CLICK | Sense::FOCUS);
     let menu_key = ("list menu", &head.list);
-    let entries = list_menu(&head.list, context.state.sort);
+    let operations = list_operations(context.state, &head.list);
+    let entries = list_menu(&head.list, context.state.sort, &operations);
     let is_menu_open = ui.is_menu_open(menu_key);
     if response.hovered || is_menu_open {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
@@ -206,13 +219,7 @@ pub(super) fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListH
         ui.focus_ring(rect, theme.sizes.radius.medium);
     }
     let mut parts = Area::with_gap(inset(rect, Insets::symmetric(spacing.medium, 0.0)), spacing.small);
-    let chevron = if head.is_open {
-        Icon::ChevronDown
-    } else {
-        Icon::ChevronRight
-    };
-    ui.icon_in(parts.left(theme.sizes.icon), chevron, Tone::Muted);
-    ui.icon_in(parts.left(theme.sizes.icon), list_icon(&head.list), Tone::Muted);
+    title_icons(ui, &mut parts, head);
     if !entries.is_empty() && (response.hovered || is_menu_open) {
         let button = Button::icon(Icon::More, words::LIST_MENU).kind(ButtonKind::Icon);
         let side = rect.height;
@@ -247,7 +254,10 @@ pub(super) fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListH
     if response.clicked {
         intents.push(Intent::Rail(RailIntent::Toggle(head.list.clone())));
     }
-    intents.extend(ui.menu(menu_key, &entries).and_then(list_command_intent));
+    match ui.menu(menu_key, &entries) {
+        Some(ListCommand::Operation(index)) => intents.extend(crate::branch::chosen(&operations, index)),
+        command => intents.extend(command.and_then(list_command_intent)),
+    }
     intents
 }
 
@@ -259,6 +269,6 @@ fn list_command_intent(command: ListCommand) -> Option<Intent> {
             model::contract::FeatureId(feature),
             model::contract::Target::Head,
         ))),
-        ListCommand::Later => None,
+        ListCommand::Operation(_) => None, // A place among the operations is run by the caller.
     }
 }

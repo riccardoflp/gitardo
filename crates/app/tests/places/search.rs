@@ -341,18 +341,19 @@ fn quick_search_opens_with_ctrl_k_and_goes_to_a_branch_chosen() {
 }
 
 #[test]
-fn quick_search_lists_the_commands_not_built_yet_and_choosing_them_does_nothing() {
+fn quick_search_switch_worktree_runs_the_operation_that_lists_the_worktrees() {
     let (repository, _remote) = repository_with_history();
     let mut state = showing(repository.path().to_path_buf());
     search(&mut state, SearchIntent::OpenQuick(String::from("worktree")));
-    let before = state.clone();
     let effects = reduce(
         &mut state,
         Message::Intent(Intent::Search(SearchIntent::ChooseQuick(QuickChoice::Command(
             views::search::QuickCommand::SwitchWorktree,
         )))),
     );
-    assert_eq!(effects, []);
+    let runs = effects.iter().any(
+        |effect| matches!(effect, app::store::Effect::RunFeature { feature, .. } if feature.0 == "worktree.switch"),
+    );
+    assert!(runs, "{effects:?}");
     assert!(!state.search.quick.is_open);
-    assert_eq!(state.timeline, before.timeline);
 }

@@ -31,6 +31,7 @@ pub(super) fn rail<'a>(state: &'a State, read: &'a RepositoryRead, now: i64) -> 
         selected,
         sort: sort_order(state),
         open_in: state.settings.features.branch_open_in,
+        window: super::worktrees::window_of(state),
         stashes: views::refs::StashesShown {
             unfolded: &state.rail.stashes.unfolded,
             files: &state.rail.stashes.files,

@@ -49,7 +49,7 @@ fn add(repository: &Repository, library: &Repository, folder: &str) {
 }
 
 /// A repository with the submodule `lib`, committed, with a submodule `inner` inside it when asked.
-fn with_lib(has_inner: bool) -> (Repository, Vec<Repository>) {
+pub(super) fn with_lib(has_inner: bool) -> (Repository, Vec<Repository>) {
     let inner = has_inner.then(library);
     let mut library = library();
     let mut kept = Vec::new();
@@ -88,7 +88,7 @@ fn with_submodules_open(repository: &Repository) -> State {
 }
 
 /// The submodule in a folder, as the window last read it.
-fn read_submodule(state: &State, folder: &str) -> Submodule {
+pub(super) fn read_submodule(state: &State, folder: &str) -> Submodule {
     let read = state.shown_read().unwrap();
     read.state
         .submodules
@@ -238,6 +238,7 @@ fn submodule_status__the_icons_read_in_the_dark_the_light_and_both_high_contrast
         selected: None,
         sort: SortOrder::Name,
         open_in: OpenIn::Checkout,
+        window: views::worktree::WorktreeWindow::default(),
         stashes: StashesShown {
             unfolded: &unfolded,
             files: &files,

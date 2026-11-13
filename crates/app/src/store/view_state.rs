@@ -320,6 +320,7 @@ impl ViewData {
                     head: read.state.head.commit.as_ref(),
                     is_running: state.is_operation_running,
                 }),
+                worktree: super::worktrees::banner_state(state, read),
             },
             Some(Shown::NoRepository) => TimelineState::NoRepository(NoRepositoryState::NoRepository),
             Some(Shown::Looking) if state.reads.is_not_read => TimelineState::NoRepository(NoRepositoryState::NotRead),
@@ -367,6 +368,7 @@ impl ViewData {
             references: state.shown_read().map(|read| ReferenceMenus {
                 repository: &read.state,
                 open_in: state.settings.features.branch_open_in,
+                window: super::worktrees::window_of(state),
             }),
             commit_box: super::changes::commit_box(state),
         }

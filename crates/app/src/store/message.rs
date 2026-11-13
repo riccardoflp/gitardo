@@ -147,7 +147,7 @@ pub enum Message {
         result: Result<crate::work::blame::BlameAnswer, String>,
     },
     /// The settings files changed and were read again.
-    SettingsRead(Settings),
+    SettingsRead(Box<Settings>),
     /// The watcher of the repository saw changes (`repo.watch-changes`), at a moment counted from when the window
     /// opened.
     Changed {
@@ -419,7 +419,7 @@ pub enum Effect {
     /// Puts text on the clipboard of the system: the URL of a remote (`remote.manage`).
     CopyText(String),
     /// Opens a folder in a new window of Gitardo Desktop, as a repository of its own
-    /// (`submodule.open-in-new-window`).
+    /// (`submodule.open-in-new-window`, `worktree.open-in-new-window`).
     OpenWindow(PathBuf),
     /// Opens the system's dialog to choose a file to open, or where to save one, for the question of the operation
     /// running; the path chosen, or none, is its answer.

@@ -191,6 +191,8 @@ pub fn select(state: &mut State, folder: &Path) -> Vec<Effect> {
     let Some(chosen) = find_repository(state.repositories(), folder).map(|found| found.folder.clone()) else {
         return Vec::new();
     };
+    // Choosing a repository leaves a worktree shown in place of the window's folder.
+    state.worktrees.window_folder = None;
     let mut effects = cancel_reads(state);
     effects.push(start_read(state, chosen.clone()));
     if let Some(workspace) = state.workspace.as_mut() {
@@ -201,6 +203,22 @@ pub fn select(state: &mut State, folder: &Path) -> Vec<Effect> {
             repository: Some(chosen),
         });
         effects.push(Effect::WritePersisted(state.persisted.clone()));
+    }
+    state.pages.shown = None;
+    effects.push(watch_settings(state));
+    effects
+}
+
+/// Points the views at a folder that is not among the repositories of the workspace, another worktree of the one
+/// shown (`worktree.show-in-gitardo`): it is read, and not remembered for the workspace.
+pub(super) fn show_folder(state: &mut State, folder: &Path) -> Vec<Effect> {
+    state.dialog = None;
+    let mut effects = cancel_reads(state);
+    effects.push(start_read(state, folder.to_path_buf()));
+    if let Some(workspace) = state.workspace.as_mut() {
+        workspace.shown = Shown::Reading {
+            folder: folder.to_path_buf(),
+        };
     }
     state.pages.shown = None;
     effects.push(watch_settings(state));

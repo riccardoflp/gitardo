@@ -30,6 +30,7 @@ pub mod stash;
 pub mod submodule;
 pub mod timeline;
 pub mod welcome;
+pub mod worktree;
 
 /// The name of the program, in the title bar of its window.
 pub const PROGRAM: &str = "Gitardo Desktop";

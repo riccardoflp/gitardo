@@ -22,4 +22,6 @@ pub struct ReferenceMenus<'a> {
     pub repository: &'a RepositoryState,
     /// `branches.openIn`: what a double click on a branch does, and which entry comes first in its menu.
     pub open_in: OpenIn,
+    /// What the menus of the worktrees are told of the window: its folder, and whether an external editor is set.
+    pub window: crate::worktree::WorktreeWindow<'a>,
 }

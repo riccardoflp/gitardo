@@ -105,6 +105,7 @@ pub fn open(state: &mut State, only: Option<Vec<String>>) -> Vec<Effect> {
                 String::from(views::text::review::OPEN_SETTINGS),
             )),
             stopped: None,
+            runs: Vec::new(),
         });
         return Vec::new();
     }

@@ -139,6 +139,7 @@ impl Fixture {
             references: Some(ReferenceMenus {
                 repository: &self.repository,
                 open_in: OpenIn::Checkout,
+                window: crate::worktree::WorktreeWindow::default(),
             }),
             commit_box: crate::changes::CommitBox::default(),
         }

@@ -38,8 +38,8 @@ pub(super) enum ListCommand {
     Sort(SortOrder),
     /// The operation of the catalog it runs at `HEAD`, as **Add submodule…**.
     Run(&'static str),
-    /// An operation of a later milestone, greyed out until then.
-    Later,
+    /// The operation at a place among those of the list, from [`list_operations`].
+    Operation(usize),
 }
 
 /// The menu of a reference of the rail, with the operations of the reference, from [`operations`].
@@ -94,6 +94,7 @@ pub(super) fn operations(state: &ReferencesState<'_>, entry: &Entry<'_>) -> Vec<
     let menus = ReferenceMenus {
         repository: state.repository,
         open_in: state.open_in,
+        window: state.window,
     };
     match entry {
         Entry::Branch(branch) => with_compare(
@@ -114,7 +115,8 @@ pub(super) fn operations(state: &ReferencesState<'_>, entry: &Entry<'_>) -> Vec<
             &Target::Tag(tag.name.clone()),
             &tag.commit,
         ),
-        Entry::Stash(_) | Entry::Worktree(_) | Entry::Submodule(_) => Vec::new(),
+        Entry::Worktree(worktree) => crate::worktree::worktree_entries(menus, worktree),
+        Entry::Stash(_) | Entry::Submodule(_) => Vec::new(),
     }
 }
 
@@ -133,9 +135,26 @@ fn stash_operations() -> Vec<MenuEntry<'static, EntryCommand>> {
         .collect()
 }
 
+/// The operations of a list: those of the **…** of the Worktrees list; none for the others.
+pub(super) fn list_operations(state: &ReferencesState<'_>, list: &RailList) -> Vec<OperationEntry> {
+    let menus = ReferenceMenus {
+        repository: state.repository,
+        open_in: state.open_in,
+        window: state.window,
+    };
+    match list {
+        RailList::Worktrees => crate::worktree::list_entries(menus),
+        _ => Vec::new(), // Only the Worktrees list runs operations from its menu.
+    }
+}
+
 /// The menu of a list, none for a list that has none: the order of the local branches, of each remote and of the
-/// tags, checked as it is; **Create worktree…**, greyed out until its operation exists, and **Add submodule…**.
-pub(super) fn list_menu(list: &RailList, order: SortOrder) -> Vec<MenuEntry<'static, ListCommand>> {
+/// tags, checked as it is; the operations of the Worktrees list, from [`list_operations`]; and **Add submodule…**.
+pub(super) fn list_menu<'t>(
+    list: &RailList,
+    order: SortOrder,
+    operations: &'t [OperationEntry],
+) -> Vec<MenuEntry<'t, ListCommand>> {
     let sort = |label, by| {
         let item = MenuItem::new(label, ListCommand::Sort(by));
         MenuEntry::Item(if order == by { item.with_icon(Icon::Check) } else { item })
@@ -145,9 +164,7 @@ pub(super) fn list_menu(list: &RailList, order: SortOrder) -> Vec<MenuEntry<'sta
             sort(words::SORT_BY_NAME, SortOrder::Name),
             sort(words::SORT_BY_DATE, SortOrder::Date),
         ],
-        RailList::Worktrees => vec![MenuEntry::Item(
-            MenuItem::new(words::CREATE_WORKTREE, ListCommand::Later).disabled(),
-        )],
+        RailList::Worktrees => menu_items(operations, ListCommand::Operation),
         RailList::Submodules => vec![MenuEntry::Item(MenuItem::new(
             words::ADD_SUBMODULE,
             ListCommand::Run("submodule.add"),

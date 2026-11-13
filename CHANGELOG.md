@@ -283,3 +283,19 @@
   the user's settings; `Alt+B` opens the commit of the line, `Shift+Alt+B` shows it in the timeline, and each has an
   entry in the context menu of the editor and in Quick search, as do **Toggle inline blame** and **Blame file before
   commit of current line**.
+- Worktrees in the window: the Worktrees list in **Kept aside** of the branch rail shows how each one stands, its
+  branch with `↑n ↓m`, `missing` when its folder is gone, and a pencil with the count of its files not committed; its
+  menu opens a worktree in a new window, in the external editor, in a terminal or the file manager, shows it in this
+  window or its commit in the timeline, renames it, copies its path, removes it with or without its branch, and prunes
+  the missing ones. **Create worktree…** from the list, from Quick search, from a branch and from a commit asks for a
+  name with where its folder goes said as it is typed, then offers to open it and, the first time, **Choose What It
+  Gets…**; **Switch worktree…** lists them to open one.
+- A worktree shown in this window has a banner above the timeline and the
+  Changes page with **Back to** the repository of the window; what is done there is done in it.
+- A branch another worktree has shows the worktree's icon; its double click and the first entries of its menu open the
+  worktree, and it can be neither checked out nor deleted here. With `branches.openIn` set to `worktree`, a branch
+  opens in a worktree of its own, made the first time.
+- Removing a worktree takes out its links to folders outside it first, on Windows, so that what they point to keeps
+  its files, and leaves no empty folder behind; when git refuses for modified files, **Remove anyway** removes it
+  with `--force`. A folder Windows holds for a moment is tried again.
+- The worktree operations from `gitardo-cli`, with `--target worktree:<folder>`.

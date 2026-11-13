@@ -70,6 +70,9 @@ pub struct SaidState<'a> {
     pub offer: Option<(FeatureId, &'a str)>,
     /// The message of an operation that stopped on conflicts, drawn in place of the failure (`conflicts.stopped`).
     pub stopped: Option<crate::conflicts::StoppedState<'a>>,
+    /// The operations offered beside it, each with its button and the answers it is given: **Open in new window**
+    /// once a worktree was made, **Remove anyway** once git refused to remove one.
+    pub runs: &'a [model::contract::OfferedRun],
 }
 
 /// A question of an operation over the window: its title, what it says will happen, and the box, the choices or the
@@ -384,6 +387,13 @@ pub fn said_view(state: &SaidState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         && outlined(ui, &mut parts, ("offer said", label))
     {
         intents.push(Intent::Feature(FeatureIntent::Run(feature, Target::Head)));
+    }
+    // The first offered is the leftmost, since the buttons are placed from the right.
+    for (index, run) in state.runs.iter().enumerate().rev() {
+        if outlined(ui, &mut parts, (&format!("run said {index}"), run.label.as_str())) {
+            let intent = FeatureIntent::RunWith(run.feature, run.target.clone(), run.answers.clone());
+            intents.push(Intent::Feature(intent));
+        }
     }
     if state.offers_stashes && outlined(ui, &mut parts, ("show stashes said", crate::text::stash::SHOW_STASHES)) {
         intents.push(Intent::Rail(crate::intent::RailIntent::ShowStashes));

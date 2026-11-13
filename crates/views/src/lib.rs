@@ -46,6 +46,7 @@ pub mod settings;
 pub mod text;
 pub mod welcome;
 mod window;
+pub mod worktree;
 
 pub use intent::{FilterIntent, FolderAnswer, Intent, Notice, RailIntent, RailList, RailLists};
 pub use window::{Content, FeatureDialog, TimelineState, WindowState, view};

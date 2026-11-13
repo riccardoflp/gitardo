@@ -2,11 +2,10 @@
 //! operation it runs, or greyed out while its operation comes in a later milestone.
 
 use model::CommitId;
-use model::branch::{
-    OpenBranchInput, OpenedReference, can_fast_forward, local_name, open, other_worktree, rebase_onto,
-};
+use model::branch::{OpenBranchInput, OpenedReference, can_fast_forward, local_name, open, rebase_onto};
 use model::contract::{Answers, FeatureId, OpenIn, Target};
 use model::state::{Branch, RemoteBranch, RepositoryState, Tag};
+use model::worktree::{OtherWorktreeInput, WorktreeBranch, branch_in_another_worktree};
 use ui::{MenuEntry, MenuItem};
 
 use super::ReferenceMenus;
@@ -15,6 +14,7 @@ use crate::intent::Intent;
 use crate::text::branch as words;
 use crate::text::history as history_words;
 use crate::text::rail as rail_words;
+use crate::text::worktree as worktree_words;
 
 /// An entry of a menu that runs an operation.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -77,24 +77,27 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
                 .unwrap_or(&upstream.reference);
             OperationEntry::runs(words::fast_forward_to(short), "branch.fast-forward", target())
         });
-    if other_worktree(state, name).is_some() {
-        let mut entries = vec![
-            OperationEntry::later(words::OPEN_WORKTREE_IN_NEW_WINDOW),
-            OperationEntry::later(words::REMOVE_WORKTREE),
-            OperationEntry::later(words::REMOVE_WORKTREE_AND_DELETE_BRANCH),
-            create,
-        ];
+    if let Some(found) = in_another_worktree(menus, name) {
+        let (mut entries, changing) = crate::worktree::other_branch_entries(menus, found);
+        entries.push(create);
         entries.extend(fast_forward);
         entries.extend(merge_entries(state, &branch.commit, target));
         entries.extend(crate::rebase::rebase_onto_entry(state, &branch.commit, target()));
         entries.push(OperationEntry::runs(words::RENAME_BRANCH, "branch.rename", target()));
+        entries.extend(changing);
         return entries;
     }
     let mut entries = opening(
         menus.open_in,
         OperationEntry::runs(rail_words::check_out(name), "branch.checkout", target()),
+        target(),
     );
     entries.push(create);
+    entries.push(OperationEntry::runs(
+        worktree_words::CREATE_WORKTREE,
+        "worktree.create-from-branch",
+        target(),
+    ));
     entries.extend(fast_forward);
     entries.extend(merge_entries(state, &branch.commit, target));
     entries.extend(crate::rebase::rebase_onto_entry(state, &branch.commit, target()));
@@ -103,9 +106,19 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
     entries
 }
 
+/// The worktree other than the one the views show that has a local branch, and whether it is renamed and removed from
+/// here (`worktree.branch-in-another-worktree`).
+fn in_another_worktree<'a>(menus: ReferenceMenus<'a>, branch: &'a str) -> Option<WorktreeBranch<'a>> {
+    branch_in_another_worktree(&OtherWorktreeInput {
+        state: menus.repository,
+        branch,
+        window_folder: menus.window.folder,
+    })
+}
+
 /// **Check out** and **Open in worktree**, the one a double click does first.
-fn opening(open_in: OpenIn, check_out: OperationEntry) -> Vec<OperationEntry> {
-    let in_worktree = OperationEntry::later(words::OPEN_IN_WORKTREE);
+fn opening(open_in: OpenIn, check_out: OperationEntry, target: Target) -> Vec<OperationEntry> {
+    let in_worktree = OperationEntry::runs(words::OPEN_IN_WORKTREE, "worktree.open-in-worktree", target);
     match open_in {
         OpenIn::Checkout => vec![check_out, in_worktree],
         OpenIn::Worktree => vec![in_worktree, check_out],
@@ -119,18 +132,20 @@ pub(crate) fn remote_entries(menus: ReferenceMenus<'_>, remote: &RemoteBranch) -
     let state = menus.repository;
     let name = local_name(&remote.name, &state.remotes);
     let target = || Target::RemoteBranch(remote.name.clone());
-    let mut entries = Vec::new();
-    if other_worktree(state, name).is_none() {
+    let mut entries = if let Some(found) = in_another_worktree(menus, name) {
+        crate::worktree::other_branch_entries(menus, found).0
+    } else {
         let label = if state.branches.iter().any(|branch| branch.name == name) {
             words::check_out_local(name)
         } else {
             rail_words::CHECK_OUT_AS_LOCAL.to_owned()
         };
-        entries = opening(
+        opening(
             menus.open_in,
             OperationEntry::runs(label, "branch.checkout-remote", target()),
-        );
-    }
+            target(),
+        )
+    };
     if let Some(local) = rebase_onto(state, &remote.name) {
         entries.push(OperationEntry::runs(
             words::check_out_and_rebase(&local.name),
@@ -192,6 +207,11 @@ pub(crate) fn commit_entries(menus: ReferenceMenus<'_>, commit: &CommitId) -> Ve
             target(),
         ));
     }
+    entries.push(OperationEntry::runs(
+        worktree_words::CREATE_WORKTREE_HERE,
+        "worktree.create-at-commit",
+        target(),
+    ));
     entries.extend(merge_entries(state, commit, target));
     if !is_checked_out {
         entries.push(OperationEntry::runs(

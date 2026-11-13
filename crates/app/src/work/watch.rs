@@ -67,7 +67,7 @@ fn watch(receiver: &Receiver<SettingsFiles>, deliver: &Deliver) {
         match receiver.recv_timeout(WATCH_INTERVAL) {
             Ok(files) => {
                 let stamps = stamps(&files);
-                deliver(Message::SettingsRead(read_files(&files)));
+                deliver(Message::SettingsRead(Box::new(read_files(&files))));
                 watched = Some((files, stamps));
             }
             Err(RecvTimeoutError::Timeout) => {
@@ -75,7 +75,7 @@ fn watch(receiver: &Receiver<SettingsFiles>, deliver: &Deliver) {
                     let now = stamps(files);
                     if now != *seen {
                         *seen = now;
-                        deliver(Message::SettingsRead(read_files(files)));
+                        deliver(Message::SettingsRead(Box::new(read_files(files))));
                     }
                 }
             }

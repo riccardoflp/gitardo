@@ -10,14 +10,16 @@ use model::CommitId;
 use model::contract::{Answer, Answers, Context, FeatureId, FollowUp, Plan, Question, QuestionKind, Target, Text};
 use model::repo::ReadCause;
 use model::state::RepositoryState;
-use views::feature::{FeatureIntent, QuestionState, SaidState};
+use views::feature::FeatureIntent;
 use views::text::feature as words;
 
 use super::{Effect, State, reads, search};
 
 mod after_read;
+mod shown;
 
 pub use after_read::after_read;
+pub use shown::{plan_shown, question_state, said_state};
 
 /// What is answered to the operation running.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -55,6 +57,8 @@ pub enum Ended {
         said: String,
         /// The title of the plan whose step failed; empty when no plan ran.
         plan: String,
+        /// What the plan has the window do when it fails: the operations offered for what was said.
+        on_failure: Vec<FollowUp>,
     },
 }
 
@@ -101,6 +105,8 @@ pub struct Said {
     /// The title of the operation that stopped on conflicts and how many files were in conflict, once the repository
     /// read again has some: the message of `conflicts.stopped` is shown in place of the failure.
     pub stopped: Option<(String, usize)>,
+    /// The operations offered beside it, each with its button: **Open in new window**, **Remove anyway**.
+    pub runs: Vec<model::contract::OfferedRun>,
 }
 
 /// The operations of a window.
@@ -180,6 +186,7 @@ pub fn run_in(
     }
     let mut settings = state.settings.features.clone();
     settings.user_settings_file.clone_from(&state.user_settings_file);
+    super::worktrees::settings_of(state, &mut settings.worktrees);
     let context = Context {
         repository,
         target,
@@ -283,6 +290,7 @@ fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<FeatureId>)
             state.operations.said = Some(Said {
                 can_undo: can_undo && !is_undo,
                 offer: offer_of(&after),
+                runs: super::worktrees::offered(&after),
                 ..Said::new(said.unwrap_or_else(|| words::done(title.as_str())), false)
             });
             let mut effects = reads::asked(state, ReadCause::OperationEnded);
@@ -302,15 +310,31 @@ fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<FeatureId>)
             state.compares.changing = None;
             Vec::new()
         }
-        Ended::Failed { title, said, plan } => {
-            state.operations.said = Some(Said::new(words::failed(&title, &said), true));
+        Ended::Failed {
+            title,
+            said,
+            plan,
+            on_failure,
+        } => {
+            state.operations.said = Some(Said {
+                runs: super::worktrees::offered(&on_failure),
+                ..Said::new(words::failed(&title, &said), true)
+            });
             state.operations.check_stopped = Some(plan).filter(|plan| !plan.is_empty());
-            reads::asked(state, ReadCause::OperationEnded)
+            let mut effects = reads::asked(state, ReadCause::OperationEnded);
+            effects.extend(carry_out(state, on_failure));
+            effects
         }
     }
 }
 
 impl Said {
+    /// A failure said alone, with nothing beside it: a new window that could not be opened.
+    #[must_use]
+    pub fn error(text: String) -> Said {
+        Said::new(text, true)
+    }
+
     /// A sentence alone, with nothing beside it.
     fn new(text: String, is_error: bool) -> Said {
         Said {
@@ -321,6 +345,7 @@ impl Said {
             found: None,
             offer: None,
             stopped: None,
+            runs: Vec::new(),
         }
     }
 }
@@ -382,48 +407,9 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
             (blamed @ (FollowUp::ShowBlame(_) | FollowUp::HideBlame(..) | FollowUp::OpenFile(_)), _) => {
                 effects.extend(super::blame::carry_out(state, blamed));
             }
-            _ => {}
+            (other, _) => effects.extend(super::worktrees::carry_out(state, other)),
         }
     }
     effects
 }
 
-/// What the window shows of the question asked.
-#[must_use]
-pub fn question_state(state: &State) -> Option<QuestionState<'_>> {
-    match state.operations.running.as_ref()?.asking.as_ref()? {
-        Asking::Question {
-            question,
-            typed,
-            picked,
-        } => Some(QuestionState {
-            question,
-            typed,
-            picked,
-        }),
-        Asking::Plan(_) => None,
-    }
-}
-
-/// The plan shown before it runs.
-#[must_use]
-pub fn plan_shown(state: &State) -> Option<&Plan> {
-    match state.operations.running.as_ref()?.asking.as_ref()? {
-        Asking::Plan(plan) => Some(plan),
-        Asking::Question { .. } => None,
-    }
-}
-
-/// What was said once the last operation ended.
-#[must_use]
-pub fn said_state(state: &State) -> Option<SaidState<'_>> {
-    state.operations.said.as_ref().map(|said| SaidState {
-        text: &said.text,
-        is_error: said.is_error,
-        can_undo: said.can_undo,
-        offers_stashes: said.offers_stashes,
-        found: said.found.as_ref(),
-        offer: said.offer.as_ref().map(|(feature, label)| (*feature, label.as_str())),
-        stopped: super::conflicts::stopped_state(state, said),
-    })
-}

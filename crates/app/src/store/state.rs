@@ -87,6 +87,8 @@ pub struct State {
     pub files_page: super::files_page::FilesPage,
     /// The blame of the File pages (`blame.current-line`, `blame.file`).
     pub blames: super::blame::Blames,
+    /// Another worktree shown in this window, and what the operations of worktrees are told of the window.
+    pub worktrees: super::worktrees::Worktrees,
 }
 
 /// The folders of a window and the repositories found in them.

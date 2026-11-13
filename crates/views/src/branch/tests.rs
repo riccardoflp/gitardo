@@ -82,7 +82,11 @@ fn repository() -> RepositoryState {
 }
 
 fn menus(repository: &RepositoryState, open_in: OpenIn) -> ReferenceMenus<'_> {
-    ReferenceMenus { repository, open_in }
+    ReferenceMenus {
+        repository,
+        open_in,
+        window: crate::worktree::WorktreeWindow::default(),
+    }
 }
 
 /// The words of some entries, with `(off)` after those greyed out.
@@ -121,15 +125,19 @@ fn branch_checkout__the_menu_of_a_branch_another_worktree_has_has_its_entries_an
     assert_eq!(
         of_branch(&repository, OpenIn::Checkout, "linked"),
         [
-            "Open worktree in new window (off)",
-            "Remove worktree\u{2026} (off)",
-            "Remove worktree and delete branch\u{2026} (off)",
+            "Open worktree in new window",
+            "Open terminal in worktree",
+            crate::text::worktree::reveal_worktree(),
+            "Show worktree in Gitardo",
             "Create branch here\u{2026}",
             "Fast-forward to origin/linked",
             "Merge into main",
             "Merge into main\u{2026}",
             "Rebase main onto this",
             "Rename branch\u{2026}",
+            "Rename worktree\u{2026}",
+            "Remove worktree\u{2026}",
+            "Remove worktree and delete branch\u{2026}",
         ]
     );
 }
@@ -154,12 +162,12 @@ fn branch_open__with_open_in_set_to_worktree_the_menu_of_feature_starts_with_ope
     let checkout = of_branch(&repository, OpenIn::Checkout, "feature");
     assert_eq!(
         checkout.get(..2),
-        Some(&["Check out feature".to_owned(), "Open in worktree (off)".to_owned()][..])
+        Some(&["Check out feature".to_owned(), "Open in worktree".to_owned()][..])
     );
     let worktree = of_branch(&repository, OpenIn::Worktree, "feature");
     assert_eq!(
         worktree.get(..2),
-        Some(&["Open in worktree (off)".to_owned(), "Check out feature".to_owned()][..])
+        Some(&["Open in worktree".to_owned(), "Check out feature".to_owned()][..])
     );
 }
 
@@ -217,7 +225,7 @@ fn branch_checkout_remote_and_rebase__the_entry_is_there_only_when_the_branch_ha
         of_remote(&repository, "origin/new"),
         [
             "Check out as local branch",
-            "Open in worktree (off)",
+            "Open in worktree",
             "Create branch here\u{2026}",
             "Delete from remote",
         ]

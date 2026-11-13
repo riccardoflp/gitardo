@@ -198,11 +198,13 @@ fn ended_of(feature: FeatureId, result: Result<Finished, EngineError>) -> Ended 
             title: format!("`{}`", failure.failed),
             said: failure.said,
             plan: failure.plan,
+            on_failure: failure.on_failure.into_vec(),
         },
         Err(error) => Ended::Failed {
             title: feature.0.to_owned(),
             said: error.to_string(),
             plan: String::new(),
+            on_failure: Vec::new(),
         },
     }
 }

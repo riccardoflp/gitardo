@@ -253,8 +253,9 @@ impl DesktopWindow {
                 folder,
                 feature,
                 preset,
-                context,
+                mut context,
             } => {
+                context.settings.worktrees.home = settings::home_folder().unwrap_or_default();
                 self.operations
                     .run(folder, (feature, preset), context, self.state.settings.log_level);
             }

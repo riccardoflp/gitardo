@@ -16,6 +16,8 @@ mod submodules;
 mod submodules_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod worktree_tests;
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -67,6 +69,8 @@ pub struct ReferencesState<'a> {
     pub sort: SortOrder,
     /// What a double click on a branch does, and which entry comes first in its menu: `branches.openIn`.
     pub open_in: OpenIn,
+    /// What the menus and the list of the worktrees are told of the window.
+    pub window: crate::worktree::WorktreeWindow<'a>,
     /// The stashes unfolded and what was read of their files, for the Stashes list (`stash.pane`).
     pub stashes: StashesShown<'a>,
 }

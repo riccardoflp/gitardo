@@ -121,6 +121,7 @@ impl Rail {
             selected: None,
             sort: SortOrder::Name,
             open_in: OpenIn::Checkout,
+            window: crate::worktree::WorktreeWindow::default(),
             stashes: super::stashes_tests::nothing_unfolded(),
         }
     }

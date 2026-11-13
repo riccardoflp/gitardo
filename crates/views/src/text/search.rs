@@ -248,6 +248,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::CleanUpBranches => "Clean up branches",
         QuickCommand::ManageRemotes => "Manage remotes",
         QuickCommand::SwitchWorktree => "Switch Worktree\u{2026}",
+        QuickCommand::CreateWorktree => "Create Worktree\u{2026}",
         QuickCommand::AddSubmodule => "Add Submodule\u{2026}",
         QuickCommand::ApplyPatch => "Apply Patch\u{2026}",
         QuickCommand::SwitchIdentity => "Switch identity",

@@ -215,6 +215,7 @@ impl ChangesData {
             wants_focus: state.changes.wants_focus,
             on_click: state.settings.open_on_click,
             banner: super::conflicts::banner_state(state, read),
+            worktree: super::worktrees::banner_state(state, read),
         })
     }
 }

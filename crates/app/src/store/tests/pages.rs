@@ -260,13 +260,16 @@ fn repo_no_repository__a_read_that_fails_shows_it_and_keeps_what_git_said() {
 #[test]
 fn settings_theme__settings_read_again_with_another_theme_redraw_the_window() {
     let mut state = window();
-    let same = reduce(&mut state, Message::SettingsRead(Settings::default()));
+    let same = reduce(&mut state, Message::SettingsRead(Box::default()));
     assert_eq!(same.len(), 0);
     let dark = Settings {
         theme: ThemeName::Dark,
         ..Settings::default()
     };
-    assert_eq!(reduce(&mut state, Message::SettingsRead(dark)), [Effect::ApplySettings]);
+    assert_eq!(
+        reduce(&mut state, Message::SettingsRead(Box::new(dark))),
+        [Effect::ApplySettings]
+    );
     assert_eq!(state.settings.theme, ThemeName::Dark);
 }
 

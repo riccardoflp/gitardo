@@ -287,6 +287,13 @@ impl OperationsDriver {
         message
     }
 
+    /// Waits for what the thread says next, and gives it as it is, for the test to reduce.
+    pub fn raw_next(&self) -> Message {
+        self.said
+            .recv_timeout(Duration::from_secs(30))
+            .unwrap_or_else(|_| panic!("the operation says nothing within 30 s"))
+    }
+
     /// Reduces an intent with the jobs it starts, and gives the thread what it asks of it.
     pub fn intent(&self, state: &mut State, intent: Intent) {
         let effects = run(state, Message::Intent(intent));
