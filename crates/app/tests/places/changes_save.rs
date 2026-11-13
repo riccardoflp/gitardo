@@ -1,5 +1,6 @@
 //! **Save** and **Save all** on the Changes page (`changes.save`): the edits typed in File pages and not saved yet
-//! written to disk, so that git sees them, and the list then showing the files as git sees them.
+//! written to disk, so that git sees them, and the list then showing the files as git sees them; and which files with
+//! edits not saved the list has (`changes.unsaved`).
 
 use app::store::State;
 use platform::accesskit::{Role, TreeUpdate};
@@ -10,7 +11,7 @@ use views::Intent;
 use views::changes::ChangesIntent;
 use views::file_view::{FilePageIntent, FileTarget, FileViewIntent};
 
-use super::support::{OperationsDriver, Window, find, has};
+use super::support::{OperationsDriver, Window, find, has, says};
 
 /// The size of the window.
 const WIDE: (u32, u32) = (1000, 520);
@@ -180,4 +181,33 @@ fn changes_pane__save_all_is_on_the_header_only_while_a_file_has_edits_not_saved
     assert!(!has(&drawn(&state), Role::Button, "Save all"));
     let (state, _driver) = edited(&repository, &[("b.txt", "b, edited\n")]);
     assert!(has(&drawn(&state), Role::Button, "Save all"));
+}
+
+#[test]
+fn changes_unsaved__a_file_changed_for_git_with_edits_not_saved_has_a_dot_after_its_name_and_save() {
+    let repository = committed();
+    std::fs::write(repository.path().join("a.txt"), "a, changed on disk
+").unwrap();
+    let (state, _driver) = edited(&repository, &[("a.txt", "a, typed
+")]);
+    let tree = drawn(&state);
+    assert!(says(&tree, views::text::changes::UNSAVED), "the dot");
+    assert!(has(&tree, Role::Button, "Save"));
+    assert!(!find(&tree, Role::CheckBox, "a.txt").is_disabled(), "changed for git, it can be staged");
+}
+
+#[test]
+fn changes_unsaved__a_file_git_ignores_is_left_out_and_one_it_does_not_is_listed() {
+    let mut repository = committed();
+    let _ = repository.commit("Ignore the build", &[(".gitignore", "build/
+")]);
+    std::fs::create_dir_all(repository.path().join("build")).unwrap();
+    std::fs::write(repository.path().join("build/out.txt"), "out
+").unwrap();
+    let (state, _driver) = edited(&repository, &[("build/out.txt", "typed
+"), ("b.txt", "b, typed
+")]);
+    let tree = drawn(&state);
+    assert!(has(&tree, Role::CheckBox, "b.txt"));
+    assert!(!has(&tree, Role::CheckBox, "build/out.txt"));
 }

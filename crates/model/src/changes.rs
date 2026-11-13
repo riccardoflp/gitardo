@@ -2,11 +2,13 @@
 
 mod list;
 mod open;
+mod unsaved;
 
 use std::ffi::OsString;
 
 pub use list::{ChangeRow, ChangesInput, ChangesList, FileStatus, StagedBox, list};
 pub use open::{OpenAction, OpenInput, OpenOnClick, OpenTarget, OpenVersion, PageRequest, open};
+pub use unsaved::{UnsavedInput, ignore_candidates, unsaved};
 
 /// How a file is named to the git commands that take patterns (`git add`, `git restore`, `git rm`, `git clean`,
 /// `git stash push`, `git checkout <commit> -- <path>`), so that a name that is also a pattern means only that file:

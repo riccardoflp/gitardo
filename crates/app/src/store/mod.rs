@@ -80,6 +80,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(review::follow(state));
     effects.extend(files_page::follow(state));
     effects.extend(new_worktrees::follow(state));
+    effects.extend(changes::follow_unsaved(state));
     effects.extend(blame::follow(state));
     effects.extend(reads::watch(state));
     effects
@@ -127,6 +128,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
         Message::ConflictsCounted { job, result } => conflicts::counted(state, job, result),
         message @ (Message::FilesRead { .. } | Message::NewWorktreesRead { .. }) => files_page::read(state, message),
+        Message::IgnoredRead { job, result } => changes::ignored_read(state, job, result),
         Message::BlameRead { job, result } => blame::blame_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, *settings),
         Message::Changed { changes, at } => reads::changed(state, &changes, at),

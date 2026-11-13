@@ -71,6 +71,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::ReadReview { .. }
             | JobKind::ReadFiles { .. }
             | JobKind::ReadNewWorktrees { .. }
+            | JobKind::ReadIgnored { .. }
             | JobKind::ReadBlame { .. }
             | JobKind::CountConflicts { .. } => None,
         })
@@ -139,7 +140,8 @@ fn answer(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[PathBuf])]
     all
 }
 
-/// What a list of the files of the Files page, or a read of the page of new worktrees, gives in these tests: nothing.
+/// What a list of the files of the Files page, a read of the page of new worktrees, or a question of the files git
+/// ignores gives in these tests: nothing.
 fn not_listed(job: JobId, kind: &JobKind) -> Message {
     if let JobKind::ReadNewWorktrees { .. } = kind {
         return Message::NewWorktreesRead {
@@ -150,6 +152,12 @@ fn not_listed(job: JobId, kind: &JobKind) -> Message {
                 user: crate::work::new_worktrees::PlaceLists::default(),
                 look: None,
             }),
+        };
+    }
+    if let JobKind::ReadIgnored { .. } = kind {
+        return Message::IgnoredRead {
+            job,
+            result: Err(String::from("not read in these tests")),
         };
     }
     Message::FilesRead {
@@ -211,7 +219,9 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
             job,
             result: Err(String::from("not read in these tests")),
         },
-        JobKind::ReadFiles { .. } | JobKind::ReadNewWorktrees { .. } => not_listed(job, kind),
+        JobKind::ReadFiles { .. } | JobKind::ReadNewWorktrees { .. } | JobKind::ReadIgnored { .. } => {
+            not_listed(job, kind)
+        }
         JobKind::ReadBlame { .. } => Message::BlameRead {
             job,
             result: Err(String::from("not read in these tests")),

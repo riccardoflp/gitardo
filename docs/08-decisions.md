@@ -1732,3 +1732,8 @@ answered:
   changed since the diff was shown. Try again.* Is it right to leave both?
 - **Q-E5** — `F4` and **Jump to source** need a caret: on a page where no line was clicked yet, `F4` does nothing.
   Should it open at the current change, or at the first line?
+- **Q-E6** — `changes.unsaved` gives the paths as strings from the top of the working tree with `/`, as the rest of
+  the Changes page does, rather than a type of path of its own. A file typed in is listed once git has said whether it
+  ignores it, which it is asked on a worker when a file becomes or stops being unsaved and when the repository is read
+  again; when git cannot say, none is left out. The editable side of the Merge page is not one of the editors yet, as
+  it keeps its own text. Right?

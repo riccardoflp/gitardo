@@ -3,8 +3,9 @@
 //! the commit when it asks for it, and emptied once the commit is made.
 
 use std::collections::BTreeSet;
+use std::path::PathBuf;
 
-use model::changes::{ChangesInput, ChangesList, FileStatus, list};
+use model::changes::{ChangesInput, ChangesList, FileStatus, UnsavedInput, ignore_candidates, list, unsaved};
 use model::contract::{Answer, FeatureId, FollowUp, Question, Target};
 use model::details::{FilePath, TreeNode, file_tree};
 use model::state::{ChangeKind, FileChange};
@@ -15,7 +16,7 @@ use views::page::Page;
 use views::repo::NoRepositoryState;
 
 use super::feature::{Ended, Reply};
-use super::{Effect, Shown, State, feature, pages};
+use super::{Effect, JobId, JobKind, Shown, State, feature, pages};
 use crate::persisted::changes::{keep_message, message_of};
 
 /// What the Changes page keeps while the window is open.
@@ -31,6 +32,24 @@ pub struct Changes {
     pub sent: Option<String>,
     /// The message being drafted by the AI provider (`commit.draft-message`).
     pub drafting: Option<super::draft::Drafting>,
+    /// The files with edits not saved git was asked about, in the read of the repository they were asked against, and
+    /// those of them it ignores (`changes.unsaved`).
+    pub checked: Option<Checked>,
+    /// The question to git running, and what it asks about.
+    pub checking: Option<(JobId, Checked)>,
+}
+
+/// The files with edits not saved that git was asked whether it ignores.
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
+pub struct Checked {
+    /// The top folder of the working tree.
+    pub top: PathBuf,
+    /// The read of the repository.
+    pub generation: u64,
+    /// The files asked about.
+    pub asked: Vec<String>,
+    /// Those git ignores.
+    pub ignored: Vec<String>,
 }
 
 /// What is asked of the Changes page or of the commit box of the draft.
@@ -171,7 +190,7 @@ impl ChangesData {
             Some(read) if state.pages.open.contains(&Page::Changes) => read,
             _ => return ChangesData::default(),
         };
-        let unsaved = super::file_page::unsaved_paths(state, &read.state.folder);
+        let unsaved = unsaved_files(state);
         let list = list(&ChangesInput {
             working_tree: &read.state.working_tree,
             unsaved: &unsaved,
@@ -226,4 +245,124 @@ impl ChangesData {
             worktree: super::worktrees::banner_state(state, read),
         })
     }
+}
+
+/// What the files with edits not saved are worked out from, for the repository shown: the editors' files, its
+/// submodules, the other worktrees inside it, and what git said it ignores when it was asked about them.
+fn unsaved_input<'a>(
+    state: &'a State,
+    (buffers, submodules, worktrees): (&'a [String], &'a [String], &'a [String]),
+) -> UnsavedInput<'a> {
+    let checked = state.changes.checked.as_ref().filter(|checked| {
+        state
+            .shown_read()
+            .is_some_and(|read| crate::persisted::same_folder(&checked.top, &read.state.folder))
+    });
+    UnsavedInput {
+        buffers,
+        submodules,
+        worktrees,
+        checked: checked.map_or((&[], &[]), |checked| {
+            (checked.asked.as_slice(), checked.ignored.as_slice())
+        }),
+    }
+}
+
+/// The parts of the repository shown the files with edits not saved are worked out from: the editors' files, its
+/// submodules and the other worktrees inside it, each from its top.
+fn unsaved_parts(state: &State) -> (Vec<String>, Vec<String>, Vec<String>) {
+    let Some(read) = state.shown_read() else {
+        return (Vec::new(), Vec::new(), Vec::new());
+    };
+    let top = &read.state.folder;
+    let buffers = super::file_page::unsaved_paths(state, top);
+    let submodules = read
+        .state
+        .submodules
+        .iter()
+        .map(|submodule| submodule.folder.clone())
+        .collect();
+    let worktrees = read
+        .state
+        .worktrees
+        .iter()
+        .filter(|worktree| !worktree.is_current)
+        .filter_map(|worktree| worktree.folder.strip_prefix(top).ok())
+        .map(|inside| inside.to_string_lossy().replace('\\', "/"))
+        .collect();
+    (buffers, submodules, worktrees)
+}
+
+/// The files of the repository shown with edits not saved, as the Changes page lists them (`changes.unsaved`).
+#[must_use]
+pub fn unsaved_files(state: &State) -> Vec<String> {
+    let (buffers, submodules, worktrees) = unsaved_parts(state);
+    unsaved(&unsaved_input(state, (&buffers, &submodules, &worktrees)))
+}
+
+/// Asks git which of the files with edits not saved it ignores, when they are not those last asked about in the read
+/// of the repository shown: a file becomes or stops being unsaved, or the repository is read again; not at every key.
+pub fn follow_unsaved(state: &mut State) -> Vec<Effect> {
+    let Some(read) = state.shown_read() else {
+        return Vec::new();
+    };
+    let (top, generation) = (read.state.folder.clone(), read.generation);
+    let (buffers, submodules, worktrees) = unsaved_parts(state);
+    let candidates = ignore_candidates(&unsaved_input(state, (&buffers, &submodules, &worktrees)));
+    let wanted = Checked {
+        top: top.clone(),
+        generation,
+        asked: candidates,
+        ignored: Vec::new(),
+    };
+    let is_same = |checked: &Checked| {
+        checked.top == wanted.top && checked.generation == wanted.generation && checked.asked == wanted.asked
+    };
+    let changes = &state.changes;
+    if changes.checking.as_ref().is_some_and(|(_, checked)| is_same(checked))
+        || (changes.checking.is_none() && changes.checked.as_ref().is_some_and(is_same))
+    {
+        return Vec::new();
+    }
+    let mut effects: Vec<Effect> = state
+        .changes
+        .checking
+        .take()
+        .map(|(job, _)| {
+            let _cancelled = state.jobs.remove(&job);
+            Effect::Cancel(job)
+        })
+        .into_iter()
+        .collect();
+    if wanted.asked.is_empty() {
+        state.changes.checked = Some(wanted);
+        return effects;
+    }
+    let kind = JobKind::ReadIgnored {
+        folder: top,
+        paths: wanted.asked.clone(),
+    };
+    let job = super::workspace::start_job(state, kind);
+    state.changes.checking = Some((job.id, wanted));
+    effects.push(Effect::Start(job));
+    effects
+}
+
+/// What git said of the files with edits not saved: those it ignores are left out of the Changes page; when it could
+/// not say, none is.
+pub fn ignored_read(state: &mut State, job: JobId, result: Result<Vec<String>, String>) -> Vec<Effect> {
+    let _finished = state.jobs.remove(&job);
+    let Some((running, mut checked)) = state.changes.checking.take() else {
+        return Vec::new();
+    };
+    if running != job {
+        state.changes.checking = Some((running, checked));
+        return Vec::new();
+    }
+    match result {
+        Ok(ignored) => checked.ignored = ignored,
+        Err(error) => state.last_error = Some(error),
+    }
+    state.changes.checked = Some(checked);
+    Vec::new()
 }

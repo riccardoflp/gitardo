@@ -77,11 +77,13 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
         JobKind::CountConflicts { .. }
         | JobKind::ReadNewWorktrees { .. }
         | JobKind::ReadFiles { .. }
-        | JobKind::ReadBlame { .. } => files_read(job, cancel),
+        | JobKind::ReadBlame { .. }
+        | JobKind::ReadIgnored { .. } => files_read(job, cancel),
     }
 }
 
-/// The message of a read of the Files page, of a blame, of the conflicts counted or of the page of new worktrees.
+/// The message of a read of the Files page, of a blame, of the conflicts counted, of the page of new worktrees, or of
+/// the files git ignores among those not saved.
 fn files_read(job: &Job, cancel: &CancelToken) -> Message {
     match &job.kind {
         JobKind::ReadBlame { folder, job: blame } => Message::BlameRead {
@@ -99,6 +101,11 @@ fn files_read(job: &Job, cancel: &CancelToken) -> Message {
         JobKind::ReadFiles { folder } => Message::FilesRead {
             job: job.id,
             result: git::read::files::read_files(&Git::new(folder).with_cancel(cancel.clone()))
+                .map_err(|error| error.to_string()),
+        },
+        JobKind::ReadIgnored { folder, paths } => Message::IgnoredRead {
+            job: job.id,
+            result: git::read::ignored::read_ignored(&Git::new(folder).with_cancel(cancel.clone()), paths)
                 .map_err(|error| error.to_string()),
         },
         _ => Message::FilesRead {

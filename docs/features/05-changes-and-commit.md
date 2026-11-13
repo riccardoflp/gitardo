@@ -141,7 +141,7 @@ Which files of the repository have edits typed in one of Gitardo's own editors a
 editable sides of the Diff and Merge pages.
 
 - **Kind**: Derivation
-- **Function**: `model::changes::unsaved(input: &UnsavedInput) -> Vec<RepoPath>`
+- **Function**: `model::changes::unsaved(input: &UnsavedInput) -> Vec<String>`, the paths from the top with `/` (Q-E6)
 - **Reads**: `git check-ignore -z --stdin`, given the candidate paths separated by NUL on standard input; git ends
   with code 1 when none of them is ignored, which means none is.
 - **Uses**: `file-view.page`, `diff.page`, `merge-view.page`.
@@ -158,10 +158,10 @@ Rules:
 
 Acceptance:
 
-- [ ] Typing in the File page of `src/a.rs` without saving adds `src/a.rs` to the result; `Ctrl+S` takes it out.
-- [ ] A buffer of a file in a submodule, or in `node_modules` ignored by `.gitignore`, is not in the result.
-- [ ] A buffer of a file outside the repository is not in the result.
-- [ ] The row of a file that is changed for git and also has edits not saved has a dot after its name and **Save**.
+- [x] Typing in the File page of `src/a.rs` without saving adds `src/a.rs` to the result; `Ctrl+S` takes it out.
+- [x] A buffer of a file in a submodule, or in `node_modules` ignored by `.gitignore`, is not in the result.
+- [x] A buffer of a file outside the repository is not in the result.
+- [x] The row of a file that is changed for git and also has edits not saved has a dot after its name and **Save**.
 
 ### `changes.open` — What a file of the Changes page opens
 

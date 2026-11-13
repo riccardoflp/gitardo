@@ -132,6 +132,13 @@ pub enum Message {
         /// What was read, or what git said when the read failed.
         result: Result<Box<crate::work::review::ReviewReadout>, String>,
     },
+    /// A job that asked git which of the files with edits not saved it ignores is done (`changes.unsaved`).
+    IgnoredRead {
+        /// The job.
+        job: JobId,
+        /// The paths git ignores, or what git said when the read failed.
+        result: Result<Vec<String>, String>,
+    },
     /// A job that listed the files of the working tree for the Files page is done.
     FilesRead {
         /// The job.
@@ -372,6 +379,13 @@ pub enum JobKind {
         folder: PathBuf,
         /// Which files.
         request: crate::work::review::ReviewRequest,
+    },
+    /// Asks git which of the files with edits not saved it ignores (`changes.unsaved`).
+    ReadIgnored {
+        /// The top folder of the working tree.
+        folder: PathBuf,
+        /// The files, from it.
+        paths: Vec<String>,
     },
     /// Lists the files of the working tree for the Files page.
     ReadFiles {

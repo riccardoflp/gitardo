@@ -12,6 +12,9 @@
   together, the best first: `main`, then `origin/main`, then `maintenance`.
 - With `branches.sortOrder` not set, the branches, the remote branches and the tags are listed by date when Git's own
   `branch.sort` is `-committerdate` or `committerdate`, and by name otherwise.
+- The Changes page leaves out the files with edits not saved that git ignores, that are in a submodule or in another
+  worktree inside the repository, and those outside it; git is asked with `git check-ignore` when a file becomes or
+  stops being unsaved, and when the repository is read again.
 - The working tree side of a Diff page is edited where it is shown: a click places the caret, a drag, a double click
   and a triple click select, the keys of the editor move and type, `Ctrl+C`, `Ctrl+X` and `Ctrl+V` use the clipboard,
   and `Ctrl+Z` takes back what was typed. The lines typed show at once, the diff is computed again a moment after
