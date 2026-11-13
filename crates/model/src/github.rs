@@ -1,4 +1,14 @@
-//! The repository on GitHub that the main remote names, if it names one (`github.detect-remote`).
+//! GitHub: the repository on GitHub that the main remote names, if it names one (`github.detect-remote`), its open
+//! pull requests, the link that opens the pull request of a branch (`github.open-pull-request`), and the offer to
+//! create one after the first push of a branch (`github.offer-after-push`).
+
+mod link;
+mod offer;
+mod pulls;
+
+pub use link::{BranchOf, PullLink, PullLinkInput, PullLinkKind, pull_request_link};
+pub use offer::{Notice, PushOutcome, offer_after_push};
+pub use pulls::{Checks, HelperAsked, PullRequest, PullRequests, Token};
 
 use crate::remote::Remote;
 

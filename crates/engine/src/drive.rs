@@ -18,8 +18,11 @@ use crate::error::EngineError;
 use crate::log::CommandLog;
 use crate::preview::needs_confirmation;
 use crate::queries;
+use crate::secrets::{SecretStore, SystemSecrets};
 use crate::steps::{StepFailure, StepRunner};
 use crate::undo::{Journal, journal_after};
+
+mod tokens;
 
 /// How many times a feature may be called before the engine gives up on it: far more than any feature asks.
 const MOST_CALLS: usize = 100;
@@ -76,6 +79,7 @@ pub struct Engine {
     cancel: CancelToken,
     find_operation: Option<FindOperation>,
     went_on_after: Vec<StepFailure>,
+    secrets: Box<dyn SecretStore>,
 }
 
 impl Engine {
@@ -92,7 +96,13 @@ impl Engine {
             cancel: CancelToken::new(),
             find_operation: None,
             went_on_after: Vec::new(),
+            secrets: Box::new(SystemSecrets),
         }
+    }
+
+    /// Keeps the secrets of the features (the GitHub token) in another store than the system's: the memory of a test.
+    pub fn keep_secrets_in(&mut self, secrets: Box<dyn SecretStore>) {
+        self.secrets = secrets;
     }
 
     /// Takes the lookup of the operations of the catalog, so that a plan that names a feature to run when one of its
@@ -192,6 +202,10 @@ impl Engine {
                     answers.insert(key, Answer::Journal(self.journal_entry(context).cloned()));
                 }
                 Outcome::Read(key, Query::Clipboard) => answers.insert(key, Answer::Clipboard(asker.clipboard())),
+                Outcome::Read(key, Query::GitHubToken { helper }) => {
+                    let token = self.github_token(helper).map_err(EngineError::Query)?;
+                    answers.insert(key, Answer::Token(token));
+                }
                 Outcome::Read(key, query) => {
                     let started = Instant::now();
                     let answer = queries::answer(&self.git, &query).map_err(EngineError::Query)?;
@@ -238,6 +252,7 @@ impl Engine {
             },
         };
         self.delete_rebase_files(&plan.after, context);
+        self.keep_tokens(&plan.after);
         let state_after = self.after_plan(&plan, context);
         Ok(Finished::Ran {
             plan,
@@ -415,7 +430,9 @@ fn offered_instead(plan: &Plan, failure: &StepFailure) -> Option<Plan> {
 /// give one.
 fn check_answer(question: &Question, answer: &Answer) -> Result<(), EngineError> {
     let problem = match (&question.kind, answer) {
-        (QuestionKind::Text { validation, .. }, Answer::Text(text)) => validation.problem(text),
+        (QuestionKind::Text { validation, .. } | QuestionKind::Secret { validation }, Answer::Text(text)) => {
+            validation.problem(text)
+        }
         (QuestionKind::Pick { choices }, Answer::Choice(picked)) => {
             (!choices.iter().any(|choice| choice.identifier == *picked))
                 .then(|| Text::from(format!("{picked} is not one of the choices")))

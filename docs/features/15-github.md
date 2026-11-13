@@ -47,7 +47,8 @@ Finds the token that `api.github.com` is asked with, without asking the user any
 - **Kind**: Read
 - **Function**: `git::read::github::read_token(git: &Git, request: &TokenRequest) -> Result<Option<Token>, GitError>`
 - **Reads**:
-  1. The token kept by Gitardo in the credential store of the system, for `github.com`.
+  1. The token kept by Gitardo in the credential store of the system, for `github.com`, which the engine reads and hands
+     to the function in `TokenRequest::kept`, since `git` does not reach the store.
   2. Only when the request allows it, which only `github.load-pull-requests` does: `git credential fill`, with
      `protocol=https`, `host=github.com` and an empty line on its standard input, and `GIT_TERMINAL_PROMPT=0`, so that
      git never asks in a terminal. The value of `password=` in what it prints is the token; nothing printed, or an exit
@@ -106,8 +107,8 @@ The open pull requests of the repository on GitHub, each with the result of the 
 of its branch.
 
 - **Kind**: Read
-- **Function**: `net::github::read_pull_requests(http: &Http, request: &PullsRequest) -> Result<PullRequests, GitHubError>`,
-  with `net::github::parse_pull_requests(body: &[u8], owner: &str) -> Result<PullRequests, GitHubError>`
+- **Function**: `engine::github::read_pull_requests(http: &Http, request: &PullsRequest) -> Result<PullRequests, GitHubError>`,
+  with `engine::github::parse_pull_requests(body: &[u8], owner: &str) -> Result<PullRequests, GitHubError>`
 - **Reads**: one `POST https://api.github.com/graphql`, with the headers `Authorization: Bearer <token>`,
   `Content-Type: application/json` and `User-Agent: gitardo-desktop`, and the body
   `{"query": <the query>, "variables": {"owner": <owner>, "repo": <repo>}}`. The query asks, of

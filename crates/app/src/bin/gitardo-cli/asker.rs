@@ -52,7 +52,7 @@ impl Asker for ArgumentAsker {
 /// What an argument answers to a question of this kind: a confirmation is answered only by `yes`.
 fn answer(kind: &QuestionKind, given: &str) -> Option<Answer> {
     match kind {
-        QuestionKind::Text { .. } => Some(Answer::Text(given.to_owned())),
+        QuestionKind::Text { .. } | QuestionKind::Secret { .. } => Some(Answer::Text(given.to_owned())),
         QuestionKind::Pick { .. } => Some(Answer::Choice(given.to_owned())),
         QuestionKind::PickMany { .. } => Some(Answer::Choices(
             given

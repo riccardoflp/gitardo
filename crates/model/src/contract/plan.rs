@@ -214,6 +214,9 @@ pub enum FollowUp {
     EmptyCommitMessage,
     /// Read the pull requests of GitHub again, when the token is known.
     ReadPullRequests,
+    /// Keep this GitHub token in the credential store of the system, for `github.com`, before the pull requests are
+    /// read with it (`github.load-pull-requests`).
+    KeepGitHubToken(crate::github::Token),
     /// Offer another feature, with the words of its button.
     Offer(FeatureId, Text),
     /// Put this text on the clipboard.

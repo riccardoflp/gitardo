@@ -18,6 +18,7 @@ mod accessibility;
 mod click;
 mod clipboard;
 mod convert;
+mod credentials;
 mod dialog;
 mod error;
 mod event;
@@ -42,6 +43,7 @@ pub use accesskit;
 
 pub use accessibility::AccessibilityRequest;
 pub use clipboard::Clipboard;
+pub use credentials::{delete_secret, read_secret, write_secret};
 pub use dialog::{FileDialog, FileFilter};
 pub use error::PlatformError;
 pub use event::{Cursor, Event, TimerId, WindowId};

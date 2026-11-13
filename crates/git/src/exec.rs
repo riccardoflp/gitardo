@@ -59,6 +59,7 @@ pub struct Git {
     executable: PathBuf,
     directory: PathBuf,
     cancel: CancelToken,
+    environment: Vec<(OsString, OsString)>,
 }
 
 /// The configuration every command gets, so that what git prints can be read whatever the user's configuration says
@@ -73,6 +74,7 @@ impl Git {
             executable: PathBuf::from("git"),
             directory: directory.into(),
             cancel: CancelToken::new(),
+            environment: Vec::new(),
         }
     }
 
@@ -90,7 +92,16 @@ impl Git {
             executable: self.executable.clone(),
             directory: directory.into(),
             cancel: self.cancel.clone(),
+            environment: self.environment.clone(),
         }
+    }
+
+    /// The same git, with a variable of the environment set for every command it runs: what keeps a credential helper
+    /// from opening a window of its own.
+    #[must_use]
+    pub fn with_variable(mut self, name: impl Into<OsString>, value: impl Into<OsString>) -> Self {
+        self.environment.push((name.into(), value.into()));
+        self
     }
 
     /// The folder git runs in.
@@ -174,6 +185,7 @@ impl Git {
             // to these, which git puts before its configuration.
             .env_remove("GIT_EDITOR")
             .env_remove("GIT_SEQUENCE_EDITOR")
+            .envs(self.environment.iter().map(|(name, value)| (name, value)))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());

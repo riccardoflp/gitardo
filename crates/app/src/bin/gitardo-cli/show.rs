@@ -124,6 +124,7 @@ pub fn question(out: &mut dyn Write, question: &Question) -> io::Result<()> {
                 .map_or("<text>", |placeholder| placeholder.as_str());
             writeln!(out, "  Answer with {key}={example}")?;
         }
+        QuestionKind::Secret { .. } => writeln!(out, "  Answer with {key}=<secret>")?,
         QuestionKind::Pick { choices } | QuestionKind::PickMany { choices } => {
             writeln!(out, "  Answer with one of:")?;
             for choice in choices {

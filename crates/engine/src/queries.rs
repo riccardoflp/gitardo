@@ -57,6 +57,8 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::FileContents { path } => readings::file_contents(path),
         // The engine asks the window for it before asking git anything.
         Query::Clipboard => Ok(Answer::Clipboard(None)),
+        // The engine answers it with its credential store before asking git anything.
+        Query::GitHubToken { .. } => Ok(Answer::Token(None)),
         Query::TemporaryFile { extension } => Ok(readings::temporary_file(extension)),
         Query::ComparePatch(target) => readings::compare_patch(git, target),
         Query::ConflictStages { path } => git::read::conflicts::read_stages(git, path).map(Answer::Stages),
@@ -261,7 +263,7 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::ReflogPositions { reference, count } => describe_positions(reference, *count),
         Query::FilesMatch { commit } => format!("git diff --quiet {commit} --"),
         Query::Revision { revision } => format!("git rev-parse --verify --quiet {revision}^{{commit}}"),
-        Query::Journal => String::from("the journal of Undo"),
+        Query::Journal | Query::Clipboard | Query::GitHubToken { .. } => describe_kept(query),
         Query::Counts { left, right } => git::command_line(&branch::counts_arguments(left, right)),
         Query::IsAncestor { ancestor, descendant } => {
             git::command_line(&branch::ancestor_arguments(ancestor, descendant))
@@ -299,7 +301,6 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::FormatPatch { commits } => describe_format_patch(commits),
         Query::PatchCheck { patch } => describe_patch_check(patch),
         Query::FileContents { path } => format!("read {}", path.display()),
-        Query::Clipboard => String::from("the text of the clipboard"),
         Query::TemporaryFile { extension } => format!("a temporary .{extension} file"),
         Query::ComparePatch(target) => readings::describe_compare_patch(target),
         Query::ConflictStages { path } => {
@@ -316,6 +317,16 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::Blame(query) => history::describe_blame(query),
         Query::PathExists { .. } | Query::FolderLinks { .. } => readings::describe_worktree_reading(query),
     }
+}
+
+/// What the reads that do not run git read: the journal, the clipboard, the credential store.
+fn describe_kept(query: &Query) -> String {
+    String::from(match query {
+        Query::Journal => "the journal of Undo",
+        Query::Clipboard => "the text of the clipboard",
+        // The token is read from the credential store; when git's helper is asked, the engine logs that itself.
+        _ => "the GitHub token",
+    })
 }
 
 /// What the reads of files and of what git ignores read, one after the other.

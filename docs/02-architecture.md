@@ -58,7 +58,8 @@ app ──► views ──► ui ──► render ──► platform
  │        └──────► model, features (identifiers and questions only)
  ├──► engine ──► git ──► model, text
  │       ├─────► model (the plans it runs, the queries it answers)
- │       └─────► http, platform (processes, files)
+ │       ├─────► json (the answers of web services)
+ │       └─────► http, platform (processes, files, the credential store)
  ├──► features ──► model, text, json, git (types only, never running)
  ├──► json, http ──► tls ──► rustls, rustls-native-certs (D13)
  │   render ──► tiny-skia, cosmic-text (D16)

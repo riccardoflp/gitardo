@@ -94,6 +94,8 @@ pub enum Answer {
     Blame(Option<Vec<Option<crate::blame::BlameLine>>>),
     /// Paths read: the links in a worktree to folders outside it.
     Paths(Vec<std::path::PathBuf>),
+    /// The GitHub token found; none when none was (`github.token`).
+    Token(Option<crate::github::Token>),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).

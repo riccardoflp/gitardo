@@ -28,6 +28,11 @@ pub enum QuestionKind {
         /// What the text must be.
         validation: Validation,
     },
+    /// A secret typed in an input box that hides what is typed: a token.
+    Secret {
+        /// What the secret must be.
+        validation: Validation,
+    },
     /// One choice among several.
     Pick {
         /// The choices, in order.

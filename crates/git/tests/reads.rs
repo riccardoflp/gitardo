@@ -7,6 +7,8 @@
 
 #[path = "reads/conflicts.rs"]
 mod conflicts;
+#[path = "reads/github.rs"]
+mod github;
 #[path = "reads/golden.rs"]
 mod golden;
 #[path = "reads/remotes_and_stashes.rs"]

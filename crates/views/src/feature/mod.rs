@@ -80,9 +80,10 @@ pub struct SaidState<'a> {
 pub fn question_view(state: &QuestionState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     match &state.question.kind {
         QuestionKind::Confirm { accept } => confirm_question(state.question, accept.as_str(), ui),
-        QuestionKind::Text { .. } | QuestionKind::Pick { .. } | QuestionKind::PickMany { .. } => {
-            answer_dialog(state, ui)
-        }
+        QuestionKind::Text { .. }
+        | QuestionKind::Secret { .. }
+        | QuestionKind::Pick { .. }
+        | QuestionKind::PickMany { .. } => answer_dialog(state, ui),
         // The dialog of the system answers these, which the window opens in place of one of its own.
         QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => Vec::new(),
     }
@@ -165,8 +166,14 @@ fn answer_body(
     let theme = *ui.theme();
     let mut intents = Vec::new();
     match &state.question.kind {
-        QuestionKind::Text { placeholder, .. } => {
-            let placeholder = placeholder.as_ref().map_or("", |placeholder| placeholder.as_str());
+        QuestionKind::Text { .. } | QuestionKind::Secret { .. } => {
+            let placeholder = match &state.question.kind {
+                QuestionKind::Text {
+                    placeholder: Some(placeholder),
+                    ..
+                } => placeholder.as_str(),
+                _ => "",
+            };
             let mut input = InputBox::new(state.typed, placeholder);
             if let Some(problem) = problem {
                 input = input.with_message(Message {
@@ -221,7 +228,7 @@ fn answer_body(
 fn answer_height(state: &QuestionState<'_>, ui: &Ui<'_>) -> f32 {
     let sizes = ui.theme().sizes;
     match &state.question.kind {
-        QuestionKind::Text { .. } => sizes.control_height + sizes.row_height,
+        QuestionKind::Text { .. } | QuestionKind::Secret { .. } => sizes.control_height + sizes.row_height,
         QuestionKind::Pick { choices } | QuestionKind::PickMany { choices } => {
             let rows: usize = choices
                 .iter()
@@ -243,7 +250,7 @@ fn paragraph_height(ui: &Ui<'_>, text: &str) -> f32 {
 /// What is wrong with the text typed, said under the box while it is typed.
 fn problem_of(state: &QuestionState<'_>) -> Option<String> {
     match &state.question.kind {
-        QuestionKind::Text { validation, .. } => validation
+        QuestionKind::Text { validation, .. } | QuestionKind::Secret { validation } => validation
             .problem(state.typed)
             .map(|problem| problem.as_str().to_owned()),
         _ => None,
@@ -253,7 +260,7 @@ fn problem_of(state: &QuestionState<'_>) -> Option<String> {
 /// Whether the question can be answered as it stands: text with nothing wrong, or a choice picked.
 fn can_answer(state: &QuestionState<'_>, problem: Option<&str>) -> bool {
     match &state.question.kind {
-        QuestionKind::Text { .. } => problem.is_none(),
+        QuestionKind::Text { .. } | QuestionKind::Secret { .. } => problem.is_none(),
         QuestionKind::Pick { .. } => !state.picked.is_empty(),
         QuestionKind::PickMany { .. }
         | QuestionKind::Confirm { .. }
@@ -265,7 +272,7 @@ fn can_answer(state: &QuestionState<'_>, problem: Option<&str>) -> bool {
 /// The answer the question has as it stands.
 fn answer_of(state: &QuestionState<'_>) -> Answer {
     match &state.question.kind {
-        QuestionKind::Text { .. } => Answer::Text(state.typed.to_owned()),
+        QuestionKind::Text { .. } | QuestionKind::Secret { .. } => Answer::Text(state.typed.to_owned()),
         QuestionKind::Pick { .. } => Answer::Choice(state.picked.first().cloned().unwrap_or_default()),
         QuestionKind::PickMany { .. } => Answer::Choices(state.picked.to_vec()),
         QuestionKind::Confirm { .. } => Answer::Confirmed,

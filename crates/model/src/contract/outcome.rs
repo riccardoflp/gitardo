@@ -250,6 +250,12 @@ pub enum Query {
         /// The path.
         path: std::path::PathBuf,
     },
+    /// The GitHub token: the one kept in the credential store of the system, or, when allowed, the one git's credential
+    /// helper knows for `github.com` (`github.token`). The answer is [`super::Answer::Token`].
+    GitHubToken {
+        /// Whether `git credential fill` may run.
+        helper: crate::github::HelperAsked,
+    },
     /// The links in a worktree to folders outside it, which git on Windows would empty when it removes the worktree
     /// (`worktree.read-folder-links`). The answer is [`super::Answer::Paths`].
     FolderLinks {

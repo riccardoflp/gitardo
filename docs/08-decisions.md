@@ -1430,3 +1430,23 @@ answered:
   the card has a pencil, since a choice has no icons. Should the pick of Quick search, which has a box, be used?
 - **Q277** — `Message::SettingsRead` holds its `Settings` in a `Box`, since the settings of worktrees made it the
   largest message. Is this right?
+- **Q-V1** — The card of `github.read-pull-requests` named `net::github::…`, a crate that does not exist; the read is
+  `engine::github::read_pull_requests`, beside the jobs that run it, with the engine now allowed to use `json` and
+  `http`; the card says so now. Should the requests to web services have a crate of their own, `net`, between the engine
+  and `http`?
+- **Q-V2** — `github.token` reads the credential store through the engine (`engine::SecretStore`, the store of Windows
+  by default), which hands what it found to `git::read::github::read_token` in `TokenRequest::kept`, since `git` may not
+  use `platform`. The token is asked with `Query::GitHubToken`, given back as `Answer::Token`, and kept by the follow-up
+  `FollowUp::KeepGitHubToken` once the plan has run. Is this right?
+- **Q-V3** — The certificates of the tests are in `crates/tls/fixtures`, and the TLS and HTTP test servers are in
+  `tls::test_server` and `http::test_server`, behind a feature `test-server` that only tests turn on, where
+  [testing](06-testing.md) named `testkit/certificates/`. Is this right?
+- **Q-V4** — A question of kind `QuestionKind::Secret` is shown like a text question by the views for now: what is
+  typed is not hidden until the input box has a mode that hides it. Should hiding come with the input box of M9 or later?
+- **Q-V5** — `rustls` 0.23.46 needs `rustls-pki-types` and `rustls-webpki`; their newest versions were less than two
+  weeks old, so `Cargo.lock` holds 1.15.1 and 0.103.16. Is pinning them in the lock, not in a `Cargo.toml`, enough?
+- **Q-V6** — Outside Windows the credential store says it is not supported, so a token is asked again on each start,
+  until M10 and M11 bring the stores of macOS and Linux. Is this right?
+- **Q-V7** — `http` goes through a proxy only by `CONNECT`, for `https` addresses, and refuses a proxy whose address is
+  `https`; the proxy is `HTTPS_PROXY`, else `http.proxy` of git, with the hosts of `NO_PROXY` reached directly, as
+  [the platform](05-platform.md) says. Is that enough?

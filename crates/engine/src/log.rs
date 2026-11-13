@@ -104,6 +104,16 @@ impl CommandLog {
         });
     }
 
+    /// Writes a warning, whatever the level: what went wrong beside a plan that still ran, such as a token that could
+    /// not be kept.
+    pub fn record_warning(&mut self, time: Timestamp, line: String) {
+        self.push(LogEntry {
+            time,
+            kind: LogKind::Warning,
+            line,
+        });
+    }
+
     /// Writes a read, when the level is debug.
     pub fn record_read(&mut self, time: Timestamp, line: String, took: Duration) {
         if self.level == LogLevel::Debug {
