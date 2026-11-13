@@ -115,13 +115,22 @@ impl BannerState<'_> {
 }
 
 /// The banner of an operation that stopped, over the rectangle its caller clipped it to: what it says, after a warning
-/// icon, and its buttons; at a stop to edit or to split a commit, the banner of that stop (`rebase.edit-stop`).
+/// icon, and its buttons; at a stop to edit or to split a commit, the banner of that stop (`rebase.edit-stop`), and
+/// while `git am` is under way, the banner of the patch (`patch.am-stopped`).
 ///
 /// Feature: conflicts.banner
 pub fn banner_view(state: &BannerState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     if let Some(stop) = &state.stop {
         return crate::rebase::edit_stop_view(stop, ui);
     }
+    if state.operation == Some(Operation::Patch) {
+        return crate::patch::am_stopped(state, ui);
+    }
+    operation_banner(state, ui)
+}
+
+/// The banner of an operation that stopped: what it says, after a warning icon, and its buttons.
+pub(crate) fn operation_banner(state: &BannerState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;

@@ -452,7 +452,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`patch.save`](14-patches.md#patchsave--save-as-patch) | Save as patch… | Operation | Built |
 | [`patch.check`](14-patches.md#patchcheck--check-a-patch-before-applying-it) | Check a patch before applying it | Read | Built |
 | [`patch.apply`](14-patches.md#patchapply--apply-a-patch) | Apply a patch | Operation | Built |
-| [`patch.am-stopped`](14-patches.md#patcham-stopped--a-patch-that-stopped-on-a-conflict) | A patch that stopped on a conflict | View | Specified |
+| [`patch.am-stopped`](14-patches.md#patcham-stopped--a-patch-that-stopped-on-a-conflict) | A patch that stopped on a conflict | View | Built |
 
 ## GitHub
 

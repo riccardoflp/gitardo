@@ -1046,8 +1046,9 @@ says otherwise):
   plan and logged. A plan has no note of its own: what `patch.apply` says of the commits and of the conflicts is shown
   only when it asks first, for conflicts, so **No conflicts expected.** is never shown. The journal of Undo lives in
   the window, so the Undo of a patch of commits at once is in the window only; `gitardo-cli` undoes it one commit at a
-  time by the reflog. `patch.am-stopped` stays **Specified**: it is the banner of an operation stopped on a conflict
-  (`conflicts.banner`, `conflicts.continue-operation`) and the Merge page, which come with M6. Are these right?
+  time by the reflog. `patch.am-stopped` is now **Built**: the banner of an operation stopped on a conflict
+  (`conflicts.banner`) draws it through `views::patch::am_stopped` while `git am` is under way, and the Merge page
+  names its sides; it takes the `BannerState` of the banner, as no `OperationState` exists (Q-P6). Are these right?
 - **Q182** — The questions of a side of a comparison are the window's own pick: its choices carry no group heading
   (**Opened before**, **Branches**…), since a choice has none, and a revision typed is checked only once accepted, not
   while typing. The comparisons opened before are given to `compare.choose` by the window before it asks

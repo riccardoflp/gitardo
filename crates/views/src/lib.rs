@@ -33,6 +33,7 @@ pub mod log;
 pub mod merge_view;
 mod number;
 pub mod page;
+pub mod patch;
 pub mod rebase;
 pub mod refs;
 pub mod repo;

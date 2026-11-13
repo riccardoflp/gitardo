@@ -198,7 +198,7 @@ When `git am` stops because a commit of the patch does not fit, it waits to be c
 cherry-pick does.
 
 - **Kind**: View
-- **Function**: `views::patch::am_stopped(state: &OperationState, ui: &mut Ui) -> Vec<Intent>`
+- **Function**: `views::patch::am_stopped(state: &BannerState, ui: &mut Ui) -> Vec<Intent>`
 - **Entry points**: the banner of the operation in the timeline and the Changes page, shown while `git am` is under
   way: the repository is in an am when `.git/rebase-apply/applying` exists, which is checked before the markers of a
   rebase.
@@ -210,9 +210,9 @@ The two sides of a file in conflict are named **The branch checked out** (curren
 
 Acceptance:
 
-- [ ] A patch whose second commit conflicts stops with the first commit made, and the banner shows **Continue**,
+- [x] A patch whose second commit conflicts stops with the first commit made, and the banner shows **Continue**,
       **Skip** and **Abort**.
-- [ ] **Continue** after the file is resolved makes that commit and the ones after it.
-- [ ] **Skip** leaves that commit out and goes on with the next.
-- [ ] **Abort** goes back to where the branch was before the patch, after asking.
-- [ ] The Merge page of a file in conflict names its sides **The branch checked out** and **The patch being applied**.
+- [x] **Continue** after the file is resolved makes that commit and the ones after it.
+- [x] **Skip** leaves that commit out and goes on with the next.
+- [x] **Abort** goes back to where the branch was before the patch, after asking.
+- [x] The Merge page of a file in conflict names its sides **The branch checked out** and **The patch being applied**.
