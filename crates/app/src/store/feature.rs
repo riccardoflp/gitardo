@@ -174,10 +174,12 @@ pub fn run_in(
     if state.operations.running.is_some() {
         return Vec::new();
     }
+    let mut settings = state.settings.features.clone();
+    settings.user_settings_file.clone_from(&state.user_settings_file);
     let context = Context {
         repository,
         target,
-        settings: state.settings.features.clone(),
+        settings,
         // The store reads no clock: the window sets the time when it starts the operation.
         now: model::Timestamp(0),
     };

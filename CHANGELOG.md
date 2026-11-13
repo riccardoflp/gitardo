@@ -260,3 +260,8 @@
   the file in the File page at the line of the result it stands for. Closing a Merge page with choices not saved
   shows them in the File page, not saved, so that they are not lost.
 - **Save all** on the Changes page writes every file with edits not saved in a File page.
+- What new worktrees get of what git ignores, from `gitardo-cli`: link a folder into new worktrees, copy a file or a
+  folder into them, and stop either, saved in the settings where the list is set, comments kept, with what became of
+  each path and why nothing changed when nothing did; save or remove the settings of a place; bring ignored files into
+  a worktree, or into all the other worktrees, without touching what they have, one warning at the end saying what
+  failed. Links to folders are junctions on Windows.

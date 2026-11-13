@@ -1315,3 +1315,20 @@ answered:
   the reading?
 - **Q-T4** — `worktree-setup.propose`: the folder `.yarn/cache` is a dependency chosen by its path, `/.yarn/cache/`,
   since a pattern with a `/` in its middle is from the top in `.gitignore` syntax anyway. Is that right?
+- **Q-T5** — The four entries of the Files page (`worktree-setup.link-into-new-worktrees`, `copy-into-new-worktrees`,
+  `stop-linking`, `stop-copying`) say what changed nothing as a refusal, which the window shows as a warning, and what
+  changed in a `FollowUp::Say` with **Saved in the settings of the repository** (or **of the user**), then offer
+  **Choose What New Worktrees Get…**. They read git through two new queries, `Query::PathStatuses` (whether git tracks
+  or ignores each path, and whether it is a folder) and `Query::SetupTakes` (what the patterns take, for the checkout
+  or for a worktree's commit). A path chosen outside the repository is refused with **`<path>` is in no repository of
+  the workspace.**; picking the repository of each path is the Files page's, which M7 builds. Is that right?
+- **Q-T6** — The page and the Files page pass what they save through two new targets, `Target::SetupSettings` (the
+  place, the patterns, the commands and the box of VS Code's settings) and `Target::Worktree(folder)` for
+  `worktree-setup.bring-into-worktree`. The operations find the user's settings file in
+  `FeatureSettings::user_settings_file`, which the window fills and `gitardo-cli` leaves empty, so that a test never
+  writes the settings of the person running it. Is that right?
+- **Q-T7** — `worktree-setup.bring-into-worktree` and `bring-into-other-worktrees` confirm with the note of the links
+  and copies, **Gitardo will link the folders matching …, from `<folder>`, where git ignores them.**; the first is
+  titled **Bring ignored files into `<name>`**, a title the card does not give. What failed while the others went on
+  is said once at the end, after what the plan says, in the sentence the window shows when the plan ran, not as an
+  error, since the rest was made. Are these right?

@@ -150,6 +150,8 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
         external_editor: lookup
             .string(keys::EXTERNAL_EDITOR, Scope::User)
             .unwrap_or(defaults.external_editor),
+        user_settings_file: defaults.user_settings_file,
+        trust: defaults.trust,
     }
 }
 

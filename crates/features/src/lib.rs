@@ -38,6 +38,7 @@ pub mod submodule;
 pub mod sync;
 pub mod tag;
 pub mod undo;
+pub mod worktree_setup;
 
 #[cfg(test)]
 mod testing;
@@ -45,7 +46,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 114] = [
+pub const OPERATIONS: [(FeatureId, Operation); 122] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -178,6 +179,27 @@ pub const OPERATIONS: [(FeatureId, Operation); 114] = [
     (FeatureId("submodule.sync-urls"), submodule::sync_urls),
     (FeatureId("submodule.update-to-latest"), submodule::update_to_latest),
     (FeatureId("submodule.update-to-recorded"), submodule::update_to_recorded),
+    // What new worktrees get.
+    (
+        FeatureId("worktree-setup.bring-into-other-worktrees"),
+        worktree_setup::bring_into_other_worktrees,
+    ),
+    (
+        FeatureId("worktree-setup.bring-into-worktree"),
+        worktree_setup::bring_into_worktree,
+    ),
+    (
+        FeatureId("worktree-setup.copy-into-new-worktrees"),
+        worktree_setup::copy_into_new_worktrees,
+    ),
+    (
+        FeatureId("worktree-setup.link-into-new-worktrees"),
+        worktree_setup::link_into_new_worktrees,
+    ),
+    (FeatureId("worktree-setup.remove-from"), worktree_setup::remove_from),
+    (FeatureId("worktree-setup.save"), worktree_setup::save),
+    (FeatureId("worktree-setup.stop-copying"), worktree_setup::stop_copying),
+    (FeatureId("worktree-setup.stop-linking"), worktree_setup::stop_linking),
 ];
 
 /// The operation of an identifier, when it is built.

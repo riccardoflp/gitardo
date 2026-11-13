@@ -60,3 +60,49 @@ pub struct FolderSize {
     /// Whether it has more files than were counted: its size is more than this says.
     pub has_more: bool,
 }
+
+/// Where the settings of new worktrees are saved.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SettingsPlace {
+    /// The repository's `.gitardo/settings.json`, for everyone who works on it.
+    #[default]
+    Repository,
+    /// The user's settings file, for every repository.
+    User,
+}
+
+/// What the page of new worktrees saves, and where.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct SetupSave {
+    /// Where.
+    pub place: SettingsPlace,
+    /// The link and copy patterns.
+    pub patterns: SetupPatterns,
+    /// The commands.
+    pub commands: Vec<String>,
+    /// Whether VS Code's `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles` get the same patterns, for the
+    /// worktrees VS Code creates: only while saving in the repository.
+    pub also_vs_code: bool,
+}
+
+/// What link and copy patterns take, asked of the checkout a worktree comes from.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct TakeRequest {
+    /// The top folder of the checkout.
+    pub folder: std::path::PathBuf,
+    /// The patterns.
+    pub patterns: SetupPatterns,
+    /// The commit whose files the worktree has, by any name git understands; `HEAD` when none is given.
+    pub commit: Option<String>,
+}
+
+/// What a path chosen from the Files page is for git.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PathStatus {
+    /// Whether it is a folder on disk.
+    pub is_folder: bool,
+    /// Whether git tracks it, or files in it.
+    pub tracked: Tracked,
+    /// How much of it git ignores.
+    pub ignored: Ignored,
+}

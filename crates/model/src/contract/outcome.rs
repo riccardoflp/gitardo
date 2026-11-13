@@ -224,6 +224,15 @@ pub enum Query {
         /// The path.
         path: std::path::PathBuf,
     },
+    /// What link and copy patterns take from a checkout, for worktrees each of a commit
+    /// (`worktree-setup.read-what-patterns-take`). The answer is [`super::Answer::SetupTakes`], in the same order.
+    SetupTakes(Vec<crate::worktree_setup::TakeRequest>),
+    /// Whether each path is a folder, whether git tracks it or files in it, and how much of it git ignores
+    /// (`worktree-setup.explain-change`). The answer is [`super::Answer::PathStatuses`], in the same order.
+    PathStatuses {
+        /// The paths from the top of the working tree, with `/`.
+        paths: Vec<String>,
+    },
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

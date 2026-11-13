@@ -79,7 +79,6 @@ fn sentence(change: &SetupChange) -> &str {
 fn worktree_setup_explain_change__each_sentence_is_given_in_its_case() {
     let repository = repository();
     let link = |path: &str, link: &[&str]| explained(&repository, path, SetupAction::Link, (link, &[]));
-    let copy = |path: &str, link: &[&str], copy: &[&str]| explained(&repository, path, SetupAction::Copy, (link, copy));
     let cases = [
         (
             link("node_modules", &["node_modules/"]),
@@ -101,6 +100,29 @@ fn worktree_setup_explain_change__each_sentence_is_given_in_its_case() {
             link("mixed", &[]),
             "Git ignores only part of mixed: only what it ignores is linked or copied into new worktrees.",
         ),
+    ];
+    for (change, expected) in &cases {
+        assert_eq!(sentence(change), *expected);
+    }
+    assert_copy_sentences(&repository);
+    let still = explained(
+        &repository,
+        "node_modules",
+        SetupAction::StopLinking,
+        (&["/node_modules/", "node_modules/"], &[]),
+    );
+    assert_eq!(
+        sentence(&still),
+        "node_modules is still linked into new worktrees, by the pattern node_modules/."
+    );
+    let gone = explained(&repository, ".env", SetupAction::StopCopying, (&[], &["/.env"]));
+    assert_eq!(sentence(&gone), "New worktrees will no longer get .env.");
+}
+
+/// The sentences of **Copy into New Worktrees**, each in its case.
+fn assert_copy_sentences(repository: &Repository) {
+    let copy = |path: &str, link: &[&str], copy: &[&str]| explained(repository, path, SetupAction::Copy, (link, copy));
+    let cases = [
         (
             copy(".env", &[], &["/.env"]),
             ".env is copied into new worktrees already, by the pattern /.env.",
@@ -116,8 +138,7 @@ fn worktree_setup_explain_change__each_sentence_is_given_in_its_case() {
         ),
         (
             copy("node_modules/x.local.json", &["node_modules/"], &[]),
-            "node_modules/x.local.json is in node_modules, which the pattern node_modules/ links into new worktrees: \
-             nothing in it is copied.",
+            "node_modules/x.local.json is in node_modules, which the pattern node_modules/ links into new worktrees: nothing in it is copied.",
         ),
         (
             copy("README.md", &[], &[]),
@@ -131,18 +152,6 @@ fn worktree_setup_explain_change__each_sentence_is_given_in_its_case() {
     for (change, expected) in &cases {
         assert_eq!(sentence(change), *expected);
     }
-    let still = explained(
-        &repository,
-        "node_modules",
-        SetupAction::StopLinking,
-        (&["/node_modules/", "node_modules/"], &[]),
-    );
-    assert_eq!(
-        sentence(&still),
-        "node_modules is still linked into new worktrees, by the pattern node_modules/."
-    );
-    let gone = explained(&repository, ".env", SetupAction::StopCopying, (&[], &["/.env"]));
-    assert_eq!(sentence(&gone), "New worktrees will no longer get .env.");
 }
 
 #[test]

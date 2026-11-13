@@ -11,7 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use engine::{Activities, Asker, Clock, CommandLog, Engine, EngineError, Finished, LogLevel};
 use git::{CancelToken, Git};
 use model::Timestamp;
-use model::contract::{Answer, Answers, Context, FeatureId, Plan, Question, Undo};
+use model::contract::{Answer, Answers, Context, FeatureId, FollowUp, Plan, Question, Text, Undo};
 
 use super::Deliver;
 use crate::store::Message;
@@ -184,10 +184,12 @@ fn with_prepared_message(mut ended: Ended, context: &Context) -> Ended {
 /// How an operation ended, in the words the store keeps.
 fn ended_of(feature: FeatureId, result: Result<Finished, EngineError>) -> Ended {
     match result {
-        Ok(Finished::Ran { plan, .. }) => Ended::Ran {
+        Ok(Finished::Ran {
+            plan, went_on_after, ..
+        }) => Ended::Ran {
             can_undo: !matches!(plan.undo, Undo::Impossible(_)),
             title: plan.title,
-            after: plan.after,
+            after: said_with_failures(plan.after, &went_on_after),
             prepared_message: None,
         },
         Ok(Finished::Refused(refusal)) => Ended::Refused(refusal.message, refusal.offer),
@@ -203,6 +205,24 @@ fn ended_of(feature: FeatureId, result: Result<Finished, EngineError>) -> Ended 
             plan: String::new(),
         },
     }
+}
+
+/// What a plan says once it ran, then what failed of the links and copies of a worktree while the others went on
+/// (`worktree-setup.link-and-copy-steps`), in the one sentence the window shows.
+fn said_with_failures(mut after: Vec<FollowUp>, went_on_after: &[engine::StepFailure]) -> Vec<FollowUp> {
+    let failed: Vec<String> = went_on_after.iter().map(|failure| failure.failed.clone()).collect();
+    let Some(warning) = model::worktree_setup::failed_setup_steps(&failed) else {
+        return after;
+    };
+    let said = after.iter().rev().find_map(|follow_up| match follow_up {
+        FollowUp::Say(words) => Some(words.as_str().to_owned()),
+        _ => None,
+    });
+    after.push(FollowUp::Say(Text::from(match said {
+        Some(said) => format!("{said} {warning}"),
+        None => warning,
+    })));
+    after
 }
 
 /// Asks the window: sends the question or the plan, then waits on this thread for what the user answers.

@@ -62,6 +62,11 @@ pub enum Target {
     FileAt(crate::file_view::FileAt),
     /// A submodule, by its folder from the top of the repository: `vendor/a/b` (`submodule.section`).
     Submodule(String),
+    /// A worktree, by its folder.
+    Worktree(std::path::PathBuf),
+    /// What the page of new worktrees saves, or the place it removes them from or edits them in
+    /// (`worktree-setup.save`, `worktree-setup.remove-from`, `worktree-setup.edit-settings-file`).
+    SetupSettings(Box<crate::worktree_setup::SetupSave>),
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.
@@ -91,6 +96,12 @@ pub struct FeatureSettings {
     /// `editor.external`: the command that opens a file in another editor, with `${file}` and `${line}`; empty for the
     /// program the system has for the file.
     pub external_editor: String,
+    /// The user's settings file, which the operations that save settings write (`worktree-setup.save`); none when the
+    /// system does not say where the user's folders are.
+    pub user_settings_file: Option<std::path::PathBuf>,
+    /// Whether the user trusts the folder of the window, so that the commands it asks to run are run
+    /// (`worktree-setup.command-steps`).
+    pub trust: crate::worktree_setup::Trust,
 }
 
 /// An identity of the setting `identities`: `{ "name", "email", "signingKey"? }`.
@@ -118,6 +129,8 @@ impl Default for FeatureSettings {
             conflicts_auto_resolve: false,
             conflicts_ai: false,
             external_editor: String::new(),
+            user_settings_file: None,
+            trust: crate::worktree_setup::Trust::NotTrusted,
         }
     }
 }

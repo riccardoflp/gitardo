@@ -189,7 +189,12 @@ fn report(
     errors: &mut dyn Write,
 ) -> io::Result<u8> {
     match finished {
-        Finished::Ran { plan, steps, .. } => {
+        Finished::Ran {
+            plan,
+            steps,
+            went_on_after,
+            ..
+        } => {
             show::plan(out, plan)?;
             // A step that failed and was got past, as a cherry-pick of a commit that changes nothing, ran more steps.
             for line in steps.iter().skip(plan.steps.len()) {
@@ -197,6 +202,11 @@ fn report(
             }
             for follow_up in &plan.after {
                 follow_up_line(out, follow_up)?;
+            }
+            // The links and copies of a worktree that failed while the others went on.
+            let failed: Vec<String> = went_on_after.iter().map(|failure| failure.failed.clone()).collect();
+            if let Some(warning) = model::worktree_setup::failed_setup_steps(&failed) {
+                writeln!(errors, "{warning}")?;
             }
             Ok(DONE)
         }

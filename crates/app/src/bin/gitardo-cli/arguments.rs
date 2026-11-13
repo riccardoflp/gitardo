@@ -15,7 +15,7 @@ pub const USAGE: &str = "Usage:
   --repository <folder>   the repository, by any folder in it; the current folder when not given
   --target <what>         what the feature is invoked on: commit:<hash>, commits:<hash>,<hash> (newest first),
                           branch:<name>, remote-branch:<name>, tag:<name>, stash:<N>, remote:<name>,
-                          files:<path>,<path>, submodule:<folder>; what is checked out when not given
+                          files:<path>,<path>, submodule:<folder>, worktree:<folder>; what is checked out when not given
   --plan                  show the plan and do not run it
   --yes                   run a plan that asks to be confirmed first
   <key>=<answer>          the answer of a question: the text typed, the identifier of a choice, or yes";
@@ -132,6 +132,7 @@ fn parse_target(text: &str) -> Result<Target, String> {
         "file" => Ok(Target::File(name.to_owned())),
         "changes" => Ok(Target::Changes),
         "submodule" => Ok(Target::Submodule(name.to_owned())),
+        "worktree" => Ok(Target::Worktree(std::path::PathBuf::from(name))),
         "commits" => name
             .split(',')
             .map(|hash| CommitId::parse(hash).ok_or_else(|| format!("{hash} is not a full commit hash.")))
@@ -139,7 +140,7 @@ fn parse_target(text: &str) -> Result<Target, String> {
             .map(Target::Commits),
         _ => Err(format!(
             "{kind} is not a kind of target: commit, commits, branch, remote-branch, tag, file, changes, stash, \
-             remote, files or submodule."
+             remote, files, submodule or worktree."
         )),
     }
 }

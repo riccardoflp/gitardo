@@ -21,20 +21,7 @@ use crate::readings;
 /// The answer of a query, read now.
 pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
     match query {
-        Query::Reflog { reference, count } => {
-            let request = ReflogRequest {
-                reference: reference.clone(),
-                count: *count,
-            };
-            read_entries(git, &request).map(Answer::Reflog)
-        }
-        Query::ReflogPositions { reference, count } => {
-            let request = ReflogRequest {
-                reference: reference.clone(),
-                count: *count,
-            };
-            git::read::reflog::read(git, &request).map(Answer::Positions)
-        }
+        Query::Reflog { .. } | Query::ReflogPositions { .. } => reflog(git, query),
         Query::Revision { revision } => commit(git, revision),
         // The engine answers it from its journal before asking git anything.
         Query::Journal => Ok(Answer::Journal(None)),
@@ -78,6 +65,8 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::FileTexts { paths } => readings::file_texts(paths),
         Query::GitFolder { folder } => git::read::submodule::read_git_folder(git, folder).map(Answer::Path),
         Query::HasFiles { path } => Ok(Answer::Flag(readings::has_files(path))),
+        Query::SetupTakes(requests) => setup_takes(git, requests),
+        Query::PathStatuses { paths } => path_statuses(git, paths),
     }
 }
 
@@ -87,6 +76,59 @@ fn commit(git: &Git, revision: &str) -> Result<Answer, GitError> {
         revision: revision.to_owned(),
     };
     read_revision(git, &request).map(Answer::Commit)
+}
+
+/// The entries of a reflog, or the positions of its commits.
+fn reflog(git: &Git, query: &Query) -> Result<Answer, GitError> {
+    match query {
+        Query::Reflog { reference, count } => {
+            let request = ReflogRequest {
+                reference: reference.clone(),
+                count: *count,
+            };
+            read_entries(git, &request).map(Answer::Reflog)
+        }
+        Query::ReflogPositions { reference, count } => {
+            let request = ReflogRequest {
+                reference: reference.clone(),
+                count: *count,
+            };
+            git::read::reflog::read(git, &request).map(Answer::Positions)
+        }
+        _ => Ok(Answer::Positions(Vec::new())),
+    }
+}
+
+/// What link and copy patterns take from a checkout, for worktrees each of a commit.
+fn setup_takes(git: &Git, requests: &[model::worktree_setup::TakeRequest]) -> Result<Answer, GitError> {
+    let mut takes = Vec::with_capacity(requests.len());
+    for request in requests {
+        let request = git::read::worktree_setup::PatternsRequest {
+            folder: request.folder.clone(),
+            link_patterns: request.patterns.link.clone(),
+            copy_patterns: request.patterns.copy.clone(),
+            commit: request.commit.clone(),
+        };
+        takes.push(git::read::worktree_setup::read_what_patterns_take(git, &request)?);
+    }
+    Ok(Answer::SetupTakes(takes))
+}
+
+/// What each path is for git, and whether it is a folder on disk.
+fn path_statuses(git: &Git, paths: &[String]) -> Result<Answer, GitError> {
+    let mut statuses = Vec::with_capacity(paths.len());
+    for path in paths {
+        let (tracked, ignored) = git::read::worktree_setup::read_path_status(git, path)?;
+        let on_disk = path
+            .split('/')
+            .fold(git.directory().to_path_buf(), |folder, part| folder.join(part));
+        statuses.push(model::worktree_setup::PathStatus {
+            is_folder: on_disk.is_dir(),
+            tracked,
+            ignored,
+        });
+    }
+    Ok(Answer::PathStatuses(statuses))
 }
 
 /// The remotes of the repository, with their URLs.
@@ -263,14 +305,27 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::ConflictTexts => String::from(
             "git diff --name-only --diff-filter=U -z, git ls-files --unmerged -z, git cat-file blob <object>, read <file>",
         ),
-        Query::FileTexts { paths } => paths
-            .iter()
-            .map(|path| format!("read {}", path.display()))
-            .collect::<Vec<String>>()
-            .join(", "),
+        Query::FileTexts { .. } | Query::SetupTakes(_) | Query::PathStatuses { .. } => describe_reads(query),
         Query::GitFolder { folder } => format!("git -C {} rev-parse --absolute-git-dir", folder.display()),
         Query::HasFiles { path } => format!("look in {}", path.display()),
     }
+}
+
+/// What the reads of files and of what git ignores read, one after the other.
+fn describe_reads(query: &Query) -> String {
+    let reads: Vec<String> = match query {
+        Query::FileTexts { paths } => paths.iter().map(|path| format!("read {}", path.display())).collect(),
+        Query::SetupTakes(requests) => requests
+            .iter()
+            .map(|request| format!("what the patterns take from {}", request.folder.display()))
+            .collect(),
+        Query::PathStatuses { paths } => paths
+            .iter()
+            .map(|path| git::command_line(&git::read::worktree_setup::tracked_arguments(path)))
+            .collect(),
+        _ => Vec::new(),
+    };
+    reads.join(", ")
 }
 
 /// What a prediction of the conflicts of a merge reads.

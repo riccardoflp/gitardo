@@ -83,6 +83,11 @@ pub enum Answer {
     ConflictTexts(Vec<crate::conflicts::ConflictTexts>),
     /// The bytes of files, in the order asked, each none when it is not there.
     Files(Vec<Option<Vec<u8>>>),
+    /// What link and copy patterns take from a checkout, for each worktree asked about
+    /// (`worktree-setup.read-what-patterns-take`).
+    SetupTakes(Vec<crate::worktree_setup::SetupPreview>),
+    /// What each path is for git (`worktree-setup.explain-change`).
+    PathStatuses(Vec<crate::worktree_setup::PathStatus>),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).
