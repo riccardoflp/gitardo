@@ -105,6 +105,25 @@ pub fn format_name(format: &str, values: &FormatValues) -> String {
     name
 }
 
+/// The ids of the inputs a format uses, in the order they first appear, each once.
+pub(super) fn input_ids(format: &str) -> Vec<&str> {
+    let mut ids: Vec<&str> = Vec::new();
+    for part in parts(format) {
+        if let Part::Placeholder(name) = part
+            && let Some(id) = name.strip_prefix("input:")
+            && !ids.contains(&id)
+        {
+            ids.push(id);
+        }
+    }
+    ids
+}
+
+/// Whether a format uses `${base}`.
+pub(super) fn has_base(format: &str) -> bool {
+    parts(format).contains(&Part::Placeholder("base"))
+}
+
 /// What is wrong with a format, said before anything is asked: a `${…}` that is not one of the parts, or an input
 /// that `branches.inputs` does not define.
 #[must_use]

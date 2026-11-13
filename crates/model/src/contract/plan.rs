@@ -281,6 +281,9 @@ pub enum FollowUp {
     HideBlame(String, Option<crate::CommitId>),
     /// Open a file in a File page at a line, with its blame shown (`blame.previous`).
     OpenFile(Box<crate::blame::FileToOpen>),
+    /// Remember the values given for the inputs of `branches.format`, by their ids, as the ones used last in this
+    /// workspace (`branch.name-from-format`).
+    RememberInputs(std::collections::BTreeMap<String, String>),
     /// Open a file in a File page to edit it, at a line from 1: by its path from the top of the working tree, or by
     /// its whole path for a file outside it, such as the user's settings file (`worktree-setup.edit-settings-file`).
     EditFile(String, usize),

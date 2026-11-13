@@ -1,6 +1,10 @@
-use super::{CHECK_OUT, CREATE_ONLY, MODE, NAME, create};
+use std::collections::BTreeMap;
+
+use super::{CHECK_OUT, CREATE_ONLY, MODE, NAME, TYPE_NAME, USE_FORMAT, WAY, create};
 use crate::testing::{branch, commit, context, lines, plan, question, state, tag};
-use model::contract::{Answer, Answers, QuestionKind, Target, Text, Undo};
+use model::Timestamp;
+use model::branch::{BranchInput, INPUTS, InputKind};
+use model::contract::{Answer, Answers, Context, FollowUp, QuestionKind, Target, Text, Undo};
 
 fn answered(name: &str, mode: &str) -> Answers {
     Answers::new()
@@ -86,4 +90,75 @@ fn branch_create__offers_to_check_out_or_create_only() {
             ("Create only", Some("Stay on the current branch"))
         ]
     );
+}
+
+fn with_format(format: &str) -> Context {
+    let mut context = context(state(), Target::Head);
+    context.settings.branch_format = format.to_owned();
+    context.settings.branch_inputs = vec![BranchInput {
+        id: String::from("ticket"),
+        kind: InputKind::PromptString,
+        description: Some(String::from("Ticket")),
+        default: None,
+        pattern: None,
+        options: Vec::new(),
+        allow_custom: false,
+    }];
+    context
+}
+
+#[test]
+fn branch_create__with_a_format_set_the_first_question_is_use_the_format_or_type_a_branch_name() {
+    let way = question(create(&with_format("${input:ticket}-${base}"), &Answers::new()));
+    assert_eq!(way.key, WAY);
+    assert_eq!(way.title.as_str(), "Create branch");
+    assert_eq!(way.default, Some(Answer::Choice(USE_FORMAT.to_owned())));
+    let QuestionKind::Pick { choices } = way.kind else {
+        panic!("the way is picked")
+    };
+    let labels: Vec<(&str, Option<&str>)> = choices
+        .iter()
+        .map(|choice| (choice.label.as_str(), choice.description.as_ref().map(Text::as_str)))
+        .collect();
+    assert_eq!(
+        labels,
+        [
+            ("Use the format", Some("${input:ticket}-${base}")),
+            ("Type a branch name", None)
+        ]
+    );
+    let typed = Answers::new().with(WAY, Answer::Choice(TYPE_NAME.to_owned()));
+    let name = question(create(&with_format("x"), &typed));
+    assert_eq!((name.key, name.title.as_str()), (NAME, "Create branch"));
+}
+
+#[test]
+fn branch_create__with_the_format_the_name_it_makes_is_proposed_and_the_inputs_are_remembered_when_it_runs() {
+    let context = with_format("${input:ticket}-${base}");
+    let answers = Answers::new().with(WAY, Answer::Choice(USE_FORMAT.to_owned()));
+    assert_eq!(question(create(&context, &answers)).key, INPUTS[0]);
+    let answers = answers.with(INPUTS[0], Answer::Text(String::from("12")));
+    let name = question(create(&context, &answers));
+    assert_eq!(name.title.as_str(), "Name of the new branch");
+    assert_eq!(name.default, Some(Answer::Text(String::from("12-main"))));
+    let plan = plan(create(
+        &context,
+        &answers
+            .with(NAME, Answer::Text(String::from("12-main")))
+            .with(MODE, Answer::Choice(CHECK_OUT.to_owned())),
+    ));
+    assert_eq!(lines(&plan), ["git checkout -b 12-main HEAD"]);
+    let remembered: BTreeMap<String, String> = [(String::from("ticket"), String::from("12"))].into();
+    assert_eq!(plan.after, [FollowUp::RememberInputs(remembered)]);
+}
+
+#[test]
+fn branch_create__the_date_of_the_format_is_today_in_local_time() {
+    let mut context = with_format("${date}");
+    // 23:00 on 1 January 1970 in UTC is already 2 January two hours east of it.
+    context.now = Timestamp(86_400 - 3_600);
+    context.settings.utc_offset = 7_200;
+    let answers = Answers::new().with(WAY, Answer::Choice(USE_FORMAT.to_owned()));
+    let name = question(create(&context, &answers));
+    assert_eq!(name.default, Some(Answer::Text(String::from("1970-01-02"))));
 }

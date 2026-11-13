@@ -1,13 +1,25 @@
 //! `branch.create`: makes a new branch at a commit, a branch or a tag, and checks it out or not.
 
-use model::branch::{RefKind, RefNames, ref_argument};
+use model::branch::{
+    FormatAsking, FormatName, FormatValues, RefKind, RefNames, base_of, day_of, name_from_format, ref_argument,
+    repository_name,
+};
 use model::contract::{
-    AnswerKey, Answers, Choice, Context, Danger, Outcome, Plan, Question, QuestionKind, Step, Target, Text, Undo,
-    Validation,
+    Answer, AnswerKey, Answers, Choice, Context, Danger, FollowUp, Outcome, Plan, Question, QuestionKind, Step, Target,
+    Text, Undo, Validation,
 };
 
 /// The name typed for the new branch.
 pub const NAME: AnswerKey = AnswerKey("name");
+
+/// How the name is made, when `branches.format` is set: [`USE_FORMAT`] or [`TYPE_NAME`].
+pub const WAY: AnswerKey = AnswerKey("way");
+
+/// The choice that makes the name with the format.
+pub const USE_FORMAT: &str = "format";
+
+/// The choice that types the name.
+pub const TYPE_NAME: &str = "typed";
 
 /// Whether the new branch is checked out: [`CHECK_OUT`] or [`CREATE_ONLY`].
 pub const MODE: AnswerKey = AnswerKey("mode");
@@ -19,23 +31,79 @@ pub const CHECK_OUT: &str = "checkout";
 pub const CREATE_ONLY: &str = "only";
 
 /// Makes a new branch where the user invoked it: at `HEAD` from the toolbar and the palette, at a commit, a branch
-/// or a tag from its menu. Asks for the name, then whether to check it out.
-///
-/// The format of `branches.format` is asked for by `branch.name-from-format`, which is not built yet: until it is,
-/// the name is always typed.
+/// or a tag from its menu. With `branches.format` set, asks first whether to use it, and then the parts of the format
+/// (`branch.name-from-format`) and the name it makes, to change or keep; otherwise the name is typed. Then whether to
+/// check the branch out.
 ///
 /// Feature: branch.create
 #[must_use]
 pub fn create(context: &Context, answers: &Answers) -> Outcome {
+    let format = context.settings.branch_format.trim();
+    let from_format = if format.is_empty() {
+        None
+    } else {
+        match answers.choice(WAY) {
+            None => return Outcome::Ask(way_question(format)),
+            Some(USE_FORMAT) => match name_from_format(&asking(context, format), answers) {
+                Ok(made) => Some(made),
+                Err(outcome) => return *outcome,
+            },
+            Some(_) => None,
+        }
+    };
     let Some(name) = answers.text(NAME) else {
-        return Outcome::Ask(name_question(context));
+        return Outcome::Ask(name_question(context, from_format.as_ref()));
     };
     let mode = match answers.choice(MODE) {
         None => return Outcome::Ask(mode_question(name)),
         Some(CHECK_OUT) => Mode::CheckOut,
         Some(_) => Mode::CreateOnly,
     };
-    Outcome::Run(plan(context, name, mode))
+    let mut plan = plan(context, name, mode);
+    if let Some(formatted) = from_format {
+        plan.after.push(FollowUp::RememberInputs(formatted.inputs));
+    }
+    Outcome::Run(plan)
+}
+
+/// What the questions of the format are made from: the inputs, the values used last in this workspace, what `${base}`
+/// is where the feature was invoked, and today in the local time of the computer.
+fn asking<'a>(context: &'a Context, format: &'a str) -> FormatAsking<'a> {
+    let state = &context.repository;
+    FormatAsking {
+        format,
+        inputs: &context.settings.branch_inputs,
+        used: &context.settings.branch_values,
+        base: base_of(state, &context.target),
+        values: FormatValues {
+            remotes: state.remotes.clone(),
+            repository: repository_name(state),
+            date: day_of(context.now, context.settings.utc_offset),
+            ..FormatValues::default()
+        },
+        title: "Create branch",
+    }
+}
+
+/// **Use the format**, the format beside it, where the pick starts, or **Type a branch name**.
+fn way_question(format: &str) -> Question {
+    let choice = |identifier: &str, label: &str, description: Option<&str>| Choice {
+        identifier: identifier.to_owned(),
+        label: Text::from(label),
+        description: description.map(Text::from),
+    };
+    Question {
+        key: WAY,
+        kind: QuestionKind::Pick {
+            choices: vec![
+                choice(USE_FORMAT, "Use the format", Some(format)),
+                choice(TYPE_NAME, "Type a branch name", None),
+            ],
+        },
+        title: Text::from("Create branch"),
+        detail: None,
+        default: Some(Answer::Choice(USE_FORMAT.to_owned())),
+    }
 }
 
 /// What happens to the new branch once it is made.
@@ -47,7 +115,8 @@ enum Mode {
     CreateOnly,
 }
 
-fn name_question(context: &Context) -> Question {
+/// The name typed, or the one the format made, to change or keep.
+fn name_question(context: &Context, made: Option<&FormatName>) -> Question {
     let taken = context
         .repository
         .branches
@@ -63,9 +132,13 @@ fn name_question(context: &Context) -> Question {
                 taken_message: Text::from("A branch with that name already exists"),
             },
         },
-        title: Text::from("Create branch"),
+        title: Text::from(if made.is_some() {
+            "Name of the new branch"
+        } else {
+            "Create branch"
+        }),
         detail: None,
-        default: None,
+        default: made.map(|made| Answer::Text(made.name.clone())),
     }
 }
 

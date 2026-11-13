@@ -140,6 +140,9 @@ pub enum Validation {
     },
     /// The name of a worktree and of its folder, with where the folder goes said while it is typed (`worktree.`).
     WorktreeName(Box<crate::worktree::WorktreeNameRule>),
+    /// Anything but nothing that matches a regular expression, the `pattern` of an input of `branches.inputs`
+    /// (`branch.name-from-format`): "It has to match `<pattern>`".
+    Pattern(String),
 }
 
 impl Validation {
@@ -165,6 +168,7 @@ impl Validation {
             Validation::OptionalReferenceName => (!text.trim().is_empty()).then(|| validate_name(text.trim()))?,
             Validation::SubmoduleFolder { submodules } => crate::submodule::folder_problem(text, submodules),
             Validation::WorktreeName(rule) => rule.problem(text),
+            Validation::Pattern(pattern) => pattern_problem(text, pattern),
         }
     }
 
@@ -180,9 +184,20 @@ impl Validation {
             | Validation::NewMessage { .. }
             | Validation::Required(_)
             | Validation::OptionalReferenceName
-            | Validation::SubmoduleFolder { .. } => None,
+            | Validation::SubmoduleFolder { .. }
+            | Validation::Pattern(_) => None,
         }
     }
+}
+
+/// What is wrong with a value that must match a pattern: nothing typed, or a value it does not match. A pattern that
+/// is not a regular expression takes anything but nothing, since the operation refuses it before it asks.
+fn pattern_problem(text: &str, pattern: &str) -> Option<Text> {
+    if text.trim().is_empty() {
+        return Some(Text::from("Enter a value."));
+    }
+    let is_matched = regex::Regex::new(pattern).map_or(true, |regex| regex.is_match(text));
+    (!is_matched).then(|| Text::from(format!("It has to match `{pattern}`")))
 }
 
 /// What is wrong with the URL of a remote, spaces around it left out: "Enter a URL" when there is none, "That is not a

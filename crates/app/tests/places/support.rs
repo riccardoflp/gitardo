@@ -274,7 +274,7 @@ impl OperationsDriver {
                 } => {
                     let started = (*feature, preset.clone());
                     self.operations
-                        .run(folder.clone(), started, context.clone(), state.settings.log_level);
+                        .run(folder.clone(), started, (**context).clone(), state.settings.log_level);
                 }
                 Effect::ReplyToFeature(reply) => self.operations.reply(reply.clone()),
                 _ => {}

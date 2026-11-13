@@ -112,7 +112,7 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
     }
 }
 
-/// The settings the operations read: `commandPreview`, `branches.format`, `branches.openIn`,
+/// The settings the operations read: `commandPreview`, `branches.format`, `branches.inputs`, `branches.openIn`,
 /// `submodules.updateOnCheckout`, `identities`, `pull.rebase`, `pull.autostash`, `cherryPick.recordOrigin`,
 /// `conflicts.autoResolve`, `conflicts.ai`, `editor.external`, `blame.enabled`, `blame.ignoreWhitespaceAndMoves` and
 /// `fileBlame.everyFile`.
@@ -130,6 +130,12 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
         branch_format: lookup
             .string(keys::BRANCH_FORMAT, Scope::UserAndRepository)
             .unwrap_or(defaults.branch_format),
+        branch_inputs: lookup
+            .first(
+                (keys::BRANCH_INPUTS, Scope::UserAndRepository),
+                super::branch_inputs::branch_inputs,
+            )
+            .unwrap_or(defaults.branch_inputs),
         branch_open_in: match lookup.choice(keys::BRANCH_OPEN_IN, &keys::BRANCH_OPEN_INS) {
             Some("worktree") => OpenIn::Worktree,
             _ => OpenIn::Checkout,
@@ -170,6 +176,9 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
                 .unwrap_or(defaults.blame.is_on_every_file),
         },
         worktrees: worktree_settings(lookup),
+        // The values given last for the inputs and the offset of the local time are the window's, set when an
+        // operation starts.
+        ..defaults
     }
 }
 

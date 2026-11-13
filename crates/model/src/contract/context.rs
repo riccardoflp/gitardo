@@ -89,6 +89,14 @@ pub struct FeatureSettings {
     pub update_submodules_on_checkout: bool,
     /// `branches.format`: a format for the names of new branches; empty when there is none.
     pub branch_format: String,
+    /// `branches.inputs`: what the `${input:<id>}` of the format ask for.
+    pub branch_inputs: Vec<crate::branch::BranchInput>,
+    /// The values given last for the inputs of the format in the workspace of the window, by their ids, set by the
+    /// window when an operation starts (`branch.name-from-format`).
+    pub branch_values: std::collections::BTreeMap<String, String>,
+    /// How far the local time of the computer is from UTC at `now`, in seconds, set by the window when an operation
+    /// starts: `${date}` is the day in local time.
+    pub utc_offset: i64,
     /// `branches.openIn`: what a double click on a branch does.
     pub branch_open_in: OpenIn,
     /// `pull.rebase`: **Pull** adds `--rebase`.
@@ -193,6 +201,9 @@ impl Default for FeatureSettings {
             command_preview: CommandPreview::Off,
             update_submodules_on_checkout: true,
             branch_format: String::new(),
+            branch_inputs: Vec::new(),
+            branch_values: std::collections::BTreeMap::new(),
+            utc_offset: 0,
             branch_open_in: OpenIn::Checkout,
             pull_rebase: true,
             pull_autostash: true,

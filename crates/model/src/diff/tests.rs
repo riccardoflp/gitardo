@@ -46,7 +46,7 @@ fn diff_align__two_lines_changed_into_five_give_two_paired_rows_then_three_facin
     }
     for row in &rows[2..] {
         assert_eq!(row.left, None);
-        assert_eq!(row.right.as_ref().unwrap().marks, Vec::new());
+        assert_eq!(row.right.as_ref().unwrap().marks, Vec::<std::ops::Range<usize>>::new());
     }
     assert_eq!(diff.changes[0].kind, LineChangeKind::Changed);
     assert_eq!(diff.changes[0].rows, 1..6);
@@ -133,7 +133,10 @@ fn diff_collapse_unchanged__nine_lines_between_two_changes_all_stay_in_sight() {
     let diff = file_with_changes(30, &[10, 20]);
     let folds = unchanged_folds(&diff);
     assert!(folds.iter().all(|fold| fold.end <= 6 || fold.start >= 23));
-    assert_eq!(unchanged_folds(&file_with_changes(30, &[])), Vec::new());
+    assert_eq!(
+        unchanged_folds(&file_with_changes(30, &[])),
+        Vec::<std::ops::Range<usize>>::new()
+    );
 }
 
 #[test]

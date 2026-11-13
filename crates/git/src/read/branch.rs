@@ -1,5 +1,5 @@
 //! What the operations on branches ask before they decide: how far two branches are apart, whether one has the other,
-//! which branches are merged, and whether a commit has submodules.
+//! which branches are merged or have a commit, and whether a commit has submodules.
 
 use std::ffi::OsString;
 
@@ -82,6 +82,38 @@ pub fn parse_merged(output: &[u8]) -> Vec<String> {
         .collect()
 }
 
+/// The local and remote branches that have a commit, by their full names, in the order git lists them, without the
+/// `HEAD` of a remote (`branch.name-from-format`).
+///
+/// # Errors
+///
+/// When git cannot be started or fails.
+pub fn read_containing(git: &Git, commit: &str) -> Result<Vec<String>, GitError> {
+    Ok(parse_containing(&git.run_read(&containing_arguments(commit))?))
+}
+
+/// `git for-each-ref --contains <hash> --format=%(refname) refs/heads refs/remotes`.
+#[must_use]
+pub fn containing_arguments(commit: &str) -> Vec<OsString> {
+    arguments(&[
+        "for-each-ref",
+        "--contains",
+        commit,
+        "--format=%(refname)",
+        "refs/heads",
+        "refs/remotes",
+    ])
+}
+
+/// The full names that [`containing_arguments`] listed, one a line, without `refs/remotes/<remote>/HEAD`.
+#[must_use]
+pub fn parse_containing(output: &[u8]) -> Vec<String> {
+    parse_merged(output)
+        .into_iter()
+        .filter(|name| !(name.starts_with("refs/remotes/") && name.ends_with("/HEAD")))
+        .collect()
+}
+
 /// Whether a commit has a file. A commit git does not know, or no commit yet, has none.
 ///
 /// # Errors
@@ -100,7 +132,7 @@ pub fn has_file_arguments(revision: &str, path: &str) -> Vec<OsString> {
 
 #[cfg(test)]
 mod tests {
-    use super::{counts_arguments, parse_counts, parse_merged};
+    use super::{counts_arguments, parse_containing, parse_counts, parse_merged};
 
     #[test]
     fn reads_the_two_counts_the_left_first() {
@@ -124,6 +156,19 @@ mod tests {
                 "refs/heads/feature...origin/feature",
                 "--"
             ]
+        );
+    }
+
+    #[test]
+    fn reads_the_branches_that_have_a_commit_without_the_head_of_a_remote() {
+        assert_eq!(
+            parse_containing(
+                b"refs/heads/main
+refs/remotes/origin/HEAD
+refs/remotes/origin/feature
+"
+            ),
+            ["refs/heads/main", "refs/remotes/origin/feature"]
         );
     }
 

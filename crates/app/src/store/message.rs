@@ -449,8 +449,8 @@ pub enum Effect {
         feature: model::contract::FeatureId,
         /// The answers it is given before it asks: none, or what the entry chosen names.
         preset: model::contract::Answers,
-        /// What it is given.
-        context: model::contract::Context,
+        /// What it is given, boxed for its settings.
+        context: Box<model::contract::Context>,
     },
     /// Gives the operation running what the user answered.
     ReplyToFeature(super::feature::Reply),

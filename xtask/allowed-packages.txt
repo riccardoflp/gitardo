@@ -7,7 +7,7 @@ accesskit ui platform
 accesskit_winit platform
 arboard platform
 cosmic-text render
-regex text
+regex text model
 rfd platform
 rustls tls # TLS, with ring for its cryptography (D13)
 rustls-native-certs tls # the root certificates the system trusts (D13)

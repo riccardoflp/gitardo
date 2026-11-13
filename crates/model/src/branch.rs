@@ -2,6 +2,7 @@
 //! names of new branches.
 
 mod format;
+mod from_format;
 mod offers;
 mod open;
 
@@ -9,6 +10,9 @@ use crate::contract::Text;
 use crate::state::{RepositoryState, Worktree};
 
 pub use format::{BranchInput, FormatValues, InputKind, day_of, format_name, format_problem, repository_name};
+pub use from_format::{
+    BASE, BaseOf, CONTAINING, FormatAsking, FormatName, INPUTS, TYPE_ANOTHER, TYPED, base_of, name_from_format,
+};
 pub use offers::{can_fast_forward, rebase_onto};
 pub use open::{OpenBranchInput, OpenedReference, open};
 

@@ -142,6 +142,12 @@ pub enum Query {
         /// The commit to read it in too: `HEAD`, or the one a page compares with; none for no commit.
         commit: Option<CommitId>,
     },
+    /// The local and remote branches that have a commit, by their full names, without the `HEAD` of a remote
+    /// (`branch.name-from-format`). The answer is [`super::Answer::Names`].
+    Containing {
+        /// The commit.
+        commit: CommitId,
+    },
     /// The remote branches that have a commit (`rebase.read-pushed`). The answer is [`super::Answer::Names`].
     Pushed {
         /// The commit.

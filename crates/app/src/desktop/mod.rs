@@ -266,7 +266,7 @@ impl DesktopWindow {
             } => {
                 context.settings.worktrees.home = settings::home_folder().unwrap_or_default();
                 self.operations
-                    .run(folder, (feature, preset), context, self.state.settings.log_level);
+                    .run(folder, (feature, preset), *context, self.state.settings.log_level);
             }
             Effect::ReplyToFeature(reply) => self.operations.reply(reply),
             Effect::CopyText(text) => self.surface.copy(&text),

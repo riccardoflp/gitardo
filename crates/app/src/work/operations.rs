@@ -74,9 +74,11 @@ impl Operations {
         }
     }
 
-    /// Runs an operation with the answers it is given before it asks, its context taken at this moment.
+    /// Runs an operation with the answers it is given before it asks, its context taken at this moment, in the local
+    /// time of the computer.
     pub fn run(&self, folder: PathBuf, (feature, preset): (FeatureId, Answers), mut context: Context, level: LogLevel) {
         context.now = SystemClock.now();
+        context.settings.utc_offset = platform::utc_offset();
         if let Some(requests) = &self.requests {
             let _sent = requests.send(Request {
                 folder,

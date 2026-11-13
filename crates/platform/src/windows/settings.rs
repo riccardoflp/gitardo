@@ -1,9 +1,9 @@
 //! The settings of Windows that the libraries of the window do not read: high contrast, how near and how soon two
-//! clicks make a double click, and how far a notch of the wheel scrolls.
+//! clicks make a double click, how far a notch of the wheel scrolls, and how far the local time is from UTC.
 
 use core::ffi::c_void;
 
-use super::user32;
+use super::{kernel32, user32};
 use crate::click::ClickLimits;
 use crate::geometry::Scale;
 use crate::system::{LINES_FOR_A_PAGE, WheelSteps};
@@ -40,6 +40,22 @@ pub(crate) fn wheel_steps() -> WheelSteps {
         down: wheel_setting(user32::SPI_GETWHEELSCROLLLINES),
         across: wheel_setting(user32::SPI_GETWHEELSCROLLCHARS),
     }
+}
+
+/// How far the local time is from UTC now, in seconds, with daylight saving time as it is now. A failure reads as UTC.
+pub(crate) fn utc_offset() -> i64 {
+    let mut now = kernel32::FILETIME::default();
+    // SAFETY: `now` is a FILETIME alive for the call, which only writes it.
+    unsafe { kernel32::GetSystemTimeAsFileTime(&raw mut now) };
+    let mut local = kernel32::FILETIME::default();
+    // SAFETY: `now` is a FILETIME the system filled in, `local` one alive for the call, which only writes it.
+    let result = unsafe { kernel32::FileTimeToLocalFileTime(&raw const now, &raw mut local) };
+    if result == 0 {
+        return 0;
+    }
+    let intervals = |time: kernel32::FILETIME| (i64::from(time.dwHighDateTime) << 32) | i64::from(time.dwLowDateTime);
+    // A FILETIME counts 100-nanosecond intervals: ten million make a second.
+    (intervals(local) - intervals(now)) / 10_000_000
 }
 
 /// One setting of the wheel, in lines or characters; a page is [`LINES_FOR_A_PAGE`], and a failure the usual 3.

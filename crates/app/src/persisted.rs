@@ -3,7 +3,8 @@
 //! each, the size of the window and the width of the branch rail; the sizes of the panes of each workspace and the
 //! folds of each repository ([`timeline`]); the favorites and the branches shown of each repository ([`rail`]).
 //! folds of each repository ([`timeline`]); how the files are laid out in the inspector, in the pages of commits and in
-//! the Changes page ([`layouts`]); the message of the commit box of each repository ([`changes`]).
+//! the Changes page ([`layouts`]); the message of the commit box of each repository ([`changes`]); the values given last
+//! for the inputs of the format of branch names in each workspace ([`inputs`]).
 //!
 //! The file is JSON, written whole each time. A file that cannot be read gives what a first start has.
 
@@ -12,6 +13,7 @@ use std::path::{Path, PathBuf};
 use json::{Member, Number, Value};
 
 pub mod changes;
+pub mod inputs;
 pub mod layouts;
 pub mod rail;
 pub mod timeline;
@@ -58,6 +60,8 @@ pub struct Persisted {
     pub commit_messages: Vec<RepositoryMessage>,
     /// Whether the Merge pages show the base in a fourth column (`merge-view.show-base`).
     pub merge_shows_base: bool,
+    /// The values given last for the inputs of `branches.format`, by workspace (`branch.name-from-format`).
+    pub branch_inputs: Vec<inputs::WorkspaceInputs>,
 }
 
 /// A workspace opened before.
@@ -108,6 +112,7 @@ impl Persisted {
                 .unwrap_or_default(),
             commit_messages: list(&document, "commitMessages", changes::repository_message),
             merge_shows_base: document.get("mergeShowsBase").and_then(Value::as_bool).unwrap_or(false),
+            branch_inputs: list(&document, "branchInputs", inputs::workspace_inputs),
         }
     }
 
@@ -161,6 +166,12 @@ impl Persisted {
         }
         if self.merge_shows_base {
             members.push(member("mergeShowsBase", Value::Bool(true)));
+        }
+        if !self.branch_inputs.is_empty() {
+            members.push(member(
+                "branchInputs",
+                Value::Array(self.branch_inputs.iter().map(inputs::inputs_value).collect()),
+            ));
         }
         json::to_pretty_text(&Value::Object(members))
     }

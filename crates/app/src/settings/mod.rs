@@ -7,6 +7,7 @@
 //! Each card that uses another setting adds it to [`keys`]. Every value the files set is kept as written too, for the
 //! settings page (`settings.edit`).
 
+mod branch_inputs;
 mod folder;
 pub mod keys;
 mod read;

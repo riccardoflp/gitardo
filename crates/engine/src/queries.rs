@@ -32,6 +32,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
             branch::read_is_ancestor(git, ancestor, descendant).map(Answer::Flag)
         }
         Query::MergedBranches { into } => branch::read_merged(git, into).map(Answer::Names),
+        Query::Containing { commit } => branch::read_containing(git, commit.as_str()).map(Answer::Names),
         Query::HasFile { revision, path } => branch::read_has_file(git, revision, path).map(Answer::Flag),
         Query::FilesMatch { commit } => files_match(git, commit),
         Query::Overwritten { upstream } => overwritten(git, upstream),
@@ -273,6 +274,7 @@ pub(crate) fn describe(query: &Query) -> String {
             git::command_line(&branch::ancestor_arguments(ancestor, descendant))
         }
         Query::MergedBranches { into } => git::command_line(&branch::merged_arguments(into)),
+        Query::Containing { commit } => git::command_line(&branch::containing_arguments(commit.as_str())),
         Query::HasFile { revision, path } => git::command_line(&branch::has_file_arguments(revision, path)),
         Query::Overwritten { upstream } => {
             format!("git log --max-count=11 --format=%h%x00%s%x00 HEAD..{upstream} --")

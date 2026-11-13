@@ -14,6 +14,7 @@ use views::feature::FeatureIntent;
 use views::text::feature as words;
 
 use super::{Effect, State, reads, search};
+use crate::persisted::inputs::{inputs_of, remember_inputs};
 
 mod after_read;
 mod shown;
@@ -221,6 +222,9 @@ pub fn run_in(
     }
     let mut settings = state.settings.features.clone();
     settings.user_settings_file.clone_from(&state.user_settings_file);
+    if let Some(workspace) = &state.workspace {
+        settings.branch_values = inputs_of(&state.persisted.branch_inputs, &workspace.folders);
+    }
     super::worktrees::settings_of(state, &mut settings.worktrees);
     let context = Context {
         repository,
@@ -236,7 +240,7 @@ pub fn run_in(
         folder,
         feature,
         preset,
-        context,
+        context: Box::new(context),
     }]
 }
 
@@ -428,6 +432,14 @@ fn remember_follow_ups(state: &mut State, after: &[FollowUp]) -> Option<String> 
     said
 }
 
+/// Keeps the values given for the inputs of `branches.format` as the ones used last in the workspace of the window
+/// (`branch.name-from-format`).
+fn remember_values(state: &mut State, values: &std::collections::BTreeMap<String, String>) -> Option<Effect> {
+    let folders = state.workspace.as_ref()?.folders.clone();
+    remember_inputs(&mut state.persisted.branch_inputs, &folders, values);
+    Some(Effect::WritePersisted(state.persisted.clone()))
+}
+
 /// What an operation that ran asks of the window after it: a page opened, text on the clipboard, a comparison shown.
 fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
     let mut effects = Vec::new();
@@ -438,6 +450,7 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
             }
             (FollowUp::CopyToClipboard(text), _) => effects.push(Effect::CopyText(text)),
             (FollowUp::OpenUrl(url), _) => effects.push(Effect::OpenUrl(url)),
+            (FollowUp::RememberInputs(values), _) => effects.extend(remember_values(state, &values)),
             (FollowUp::OpenWindow(folder), _) => effects.push(Effect::OpenWindow(folder)),
             (FollowUp::OpenComparison(target), _) => effects.extend(super::compare::opened(state, *target)),
             (FollowUp::OpenFileDiff(sides), _) => {

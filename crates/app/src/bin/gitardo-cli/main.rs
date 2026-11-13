@@ -95,6 +95,7 @@ fn run_feature(
     };
     let mut settings = FeatureSettings::default();
     settings.worktrees.home = app::settings::home_folder().unwrap_or_default();
+    settings.utc_offset = platform::utc_offset();
     if run.plan_choice == PlanChoice::ShowOnly {
         // Every plan is then shown before it runs, and the asker never confirms one.
         settings.command_preview = CommandPreview::All;
@@ -200,7 +201,8 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         | FollowUp::Cleanup(_)
         | FollowUp::AllowFileProtocol
         | FollowUp::OfferWhenFailed(_)
-        | FollowUp::CheckBisect => {}
+        | FollowUp::CheckBisect
+        | FollowUp::RememberInputs(_) => {}
     }
     Ok(())
 }

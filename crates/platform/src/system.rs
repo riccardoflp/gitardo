@@ -20,6 +20,21 @@ pub(crate) struct WheelSteps {
 #[cfg(windows)]
 pub(crate) use crate::windows::{click_limits, is_high_contrast, wheel_steps};
 
+/// How far the local time of the computer is from UTC now, in seconds: what `${date}` in the names of new branches is
+/// counted in.
+#[must_use]
+pub fn utc_offset() -> i64 {
+    #[cfg(windows)]
+    {
+        crate::windows::utc_offset()
+    }
+    // Elsewhere the local time is UTC until the part of each system is written.
+    #[cfg(not(windows))]
+    {
+        0
+    }
+}
+
 /// Whether high contrast is on: not known yet on this system.
 #[cfg(not(windows))]
 pub(crate) fn is_high_contrast() -> bool {

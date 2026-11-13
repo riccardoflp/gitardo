@@ -256,8 +256,9 @@ What is asked, in order, to fill the format of branch names in, and the values p
 shown, to change or keep, by the feature that asked.
 
 - **Kind**: Derivation
-- **Function**: `model::branch::name_from_format(input: &FormatAsking, answers: &Answers) -> Result<String, Question>`,
-  which gives the next question, or the name once every part is known
+- **Function**: `model::branch::name_from_format(input: &FormatAsking, answers: &Answers) -> Result<FormatName, Outcome>`,
+  which gives the name once every part is known, with the values given; until then the next question, the read of the
+  branches that have a commit, or why the format is refused
 - **Entry points**: the questions of `branch.create` and of `worktree.create` after **Use the format**.
 - **Reads**: for `${base}` at a commit, the branches that have it:
   `git for-each-ref --contains <hash> --format=%(refname) refs/heads refs/remotes`, leaving out `…/HEAD`.
@@ -277,7 +278,8 @@ Rules:
   listed first, described **Used last**, only when the input has `allowCustom`. With `allowCustom`, the last entry,
   **Type another value…**, opens an input box that cannot be left empty.
 - The value proposed is the one used last for that input, in this workspace, or the input's `default` before any was
-  used. The values given are remembered once all the inputs of the format have been answered.
+  used. The values given are remembered once all the inputs of the format have been answered and the plan of the
+  feature that asked runs.
 - `${base}`, only when the format has it: from the header and Quick search, the branch checked out; on a branch, that
   branch; on a remote branch, its name without its remote; on a tag, the tag. A branch or a tag named in full because
   of a namesake is matched by its short name.

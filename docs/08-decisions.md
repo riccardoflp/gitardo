@@ -1689,3 +1689,13 @@ answered:
   list. The branch filter (`filter.picker`) lists its matches the same way, without the headings **Local**,
   **Remotes** and **Tags**. Line 3 of `refs.filter` now says that a match of a closed list is shown while text is
   typed. In the narrow layout, where there is no box, nothing changed. Is this the list the maintainer meant?
+- **Q-R4** — `branch.name-from-format` is built on the lead's answer to Q112. The `regex` crate checks `pattern`, in
+  `model` (a new dependency there, `regex` already being allowed for `text`); a pattern that is not one accepts what
+  is typed, and is refused before any question. A format with more than ten inputs is refused too, since the answers
+  come back by the place of the input (`input1` to `input10`). The values given last are kept by workspace in the
+  window's persisted state (`branchInputs`), given to the feature in `FeatureSettings::branch_values`, and remembered
+  by `FollowUp::RememberInputs` only when the plan runs, not when the questions are answered and backed out of.
+  `${date}` is filled with the local offset the window gives in `FeatureSettings::utc_offset`, read on Windows from
+  the system and 0 (UTC) elsewhere, and in `gitardo-cli`. The Function line returns `Result<FormatName, Outcome>`,
+  since the read of the branches at a commit and a refusal are not questions. `branch.create` asks **Use the format**
+  first; `worktree.create` still uses only formats without `${input:…}`, in UTC. Right?

@@ -17,6 +17,6 @@ mod watch;
 
 pub(crate) use credentials::{delete_secret, read_secret, write_secret};
 pub(crate) use junction::make_junction;
-pub(crate) use settings::{click_limits, is_high_contrast, wheel_steps};
+pub(crate) use settings::{click_limits, is_high_contrast, utc_offset, wheel_steps};
 pub(crate) use shell::open_url;
 pub(crate) use watch::{DirectoryWatch, Waited};

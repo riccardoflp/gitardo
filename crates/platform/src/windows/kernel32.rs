@@ -1,5 +1,5 @@
 //! The functions, types and constants of `kernel32.dll` that Gitardo Desktop asks for itself, with the names the
-//! Windows documentation gives them: watching folders for changes, and making junctions.
+//! Windows documentation gives them: watching folders for changes, making junctions, and the local time.
 
 #![allow(
     clippy::upper_case_acronyms,
@@ -27,8 +27,18 @@ pub(crate) struct OVERLAPPED {
     pub(crate) hEvent: HANDLE,
 }
 
+/// A moment, in 100-nanosecond intervals since 1601, in two halves.
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub(crate) struct FILETIME {
+    pub(crate) dwLowDateTime: u32,
+    pub(crate) dwHighDateTime: u32,
+}
+
 #[link(name = "kernel32")]
 unsafe extern "system" {
+    pub(crate) fn GetSystemTimeAsFileTime(lpSystemTimeAsFileTime: *mut FILETIME);
+    pub(crate) fn FileTimeToLocalFileTime(lpFileTime: *const FILETIME, lpLocalFileTime: *mut FILETIME) -> BOOL;
     pub(crate) fn CreateFileW(
         lpFileName: *const u16,
         dwDesiredAccess: u32,

@@ -45,6 +45,8 @@ pub const COMMAND_PREVIEW: &str = "commandPreview";
 pub const COMMAND_PREVIEWS: [&str; 2] = ["off", "all"];
 /// `branches.format`.
 pub const BRANCH_FORMAT: &str = "branches.format";
+/// `branches.inputs`.
+pub const BRANCH_INPUTS: &str = "branches.inputs";
 /// `diff.collapseUnchanged`.
 pub const COLLAPSE_UNCHANGED: &str = "diff.collapseUnchanged";
 /// `changes.openOnClick`.
