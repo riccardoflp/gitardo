@@ -269,7 +269,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`conflicts.skip-step`](09-conflicts.md#conflictsskip-step--skip) | Skip | Operation | Specified |
 | [`conflicts.abort-operation`](09-conflicts.md#conflictsabort-operation--abort) | Abort | Operation | Specified |
 | [`conflicts.stopped`](09-conflicts.md#conflictsstopped--the-message-when-an-operation-stops-on-conflicts) | The message when an operation stops on conflicts | View | Specified |
-| [`conflicts.read-files`](09-conflicts.md#conflictsread-files--the-files-in-conflict-and-their-sides) | The files in conflict and their sides | Read | Specified |
+| [`conflicts.read-files`](09-conflicts.md#conflictsread-files--the-files-in-conflict-and-their-sides) | The files in conflict and their sides | Read | Built |
 | [`conflicts.side-names`](09-conflicts.md#conflictsside-names--what-the-two-sides-are) | What the two sides are | Derivation | Specified |
 | [`conflicts.open-file`](09-conflicts.md#conflictsopen-file--open-a-file-in-conflict) | Open a file in conflict | View | Specified |
 | [`conflicts.mark-resolved`](09-conflicts.md#conflictsmark-resolved--mark-as-resolved) | Mark as resolved | Operation | Specified |
@@ -371,7 +371,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`worktree.read-list`](12-worktrees.md#worktreeread-list--read-the-worktrees-and-how-they-stand) | Read the worktrees and how they stand | Read | Specified |
+| [`worktree.read-list`](12-worktrees.md#worktreeread-list--read-the-worktrees-and-how-they-stand) | Read the worktrees and how they stand | Read | Built |
 | [`worktree.folder-path`](12-worktrees.md#worktreefolder-path--where-a-new-worktree-goes) | Where a new worktree goes | Derivation | Built |
 | [`worktree.create`](12-worktrees.md#worktreecreate--create-a-worktree) | Create a worktree | Operation | Specified |
 | [`worktree.create-from-branch`](12-worktrees.md#worktreecreate-from-branch--put-a-branch-in-a-new-worktree) | Put a branch in a new worktree | Operation | Specified |
@@ -389,21 +389,21 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`worktree.copy-path`](12-worktrees.md#worktreecopy-path--copy-the-path-of-a-worktree) | Copy the path of a worktree | Operation | Specified |
 | [`worktree.remove`](12-worktrees.md#worktreeremove--remove-a-worktree) | Remove a worktree | Operation | Specified |
 | [`worktree.prune`](12-worktrees.md#worktreeprune--prune-missing-worktrees) | Prune missing worktrees | Operation | Specified |
-| [`worktree.read-folder-links`](12-worktrees.md#worktreeread-folder-links--read-the-links-to-folders-outside-a-worktree) | Read the links to folders outside a worktree | Read | Specified |
+| [`worktree.read-folder-links`](12-worktrees.md#worktreeread-folder-links--read-the-links-to-folders-outside-a-worktree) | Read the links to folders outside a worktree | Read | Built |
 | [`worktree.recover-held-folder`](12-worktrees.md#worktreerecover-held-folder--get-past-a-folder-that-windows-holds) | Get past a folder that Windows holds | Derivation | Specified |
 | [`worktree.remove-empty-folders`](12-worktrees.md#worktreeremove-empty-folders--leave-no-empty-folders-behind) | Leave no empty folders behind | Derivation | Specified |
 | [`worktree.branch-in-another-worktree`](12-worktrees.md#worktreebranch-in-another-worktree--the-branch-of-another-worktree) | The branch of another worktree | Derivation | Specified |
 | [`worktree.open-in-worktree`](12-worktrees.md#worktreeopen-in-worktree--open-a-branch-in-a-worktree-of-its-own) | Open a branch in a worktree of its own | Operation | Specified |
 | [`worktree.switch`](12-worktrees.md#worktreeswitch--switch-worktree) | Switch worktree | Operation | Specified |
 | [`worktree-setup.settings-in-effect`](12-worktrees.md#worktree-setupsettings-in-effect--what-new-worktrees-get-as-set) | What new worktrees get, as set | Derivation | Specified |
-| [`worktree-setup.folders-to-link`](12-worktrees.md#worktree-setupfolders-to-link--the-folders-to-link) | The folders to link | Derivation | Specified |
-| [`worktree-setup.paths-to-copy`](12-worktrees.md#worktree-setuppaths-to-copy--the-files-and-folders-to-copy) | The files and folders to copy | Derivation | Specified |
+| [`worktree-setup.folders-to-link`](12-worktrees.md#worktree-setupfolders-to-link--the-folders-to-link) | The folders to link | Derivation | Built |
+| [`worktree-setup.paths-to-copy`](12-worktrees.md#worktree-setuppaths-to-copy--the-files-and-folders-to-copy) | The files and folders to copy | Derivation | Built |
 | [`worktree-setup.link-and-copy-steps`](12-worktrees.md#worktree-setuplink-and-copy-steps--linking-and-copying-into-a-new-worktree) | Linking and copying into a new worktree | Derivation | Specified |
 | [`worktree-setup.command-steps`](12-worktrees.md#worktree-setupcommand-steps--commands-in-a-new-worktree) | Commands in a new worktree | Derivation | Specified |
-| [`worktree-setup.read-ignored`](12-worktrees.md#worktree-setupread-ignored--read-what-git-ignores-with-its-size) | Read what git ignores, with its size | Read | Specified |
+| [`worktree-setup.read-ignored`](12-worktrees.md#worktree-setupread-ignored--read-what-git-ignores-with-its-size) | Read what git ignores, with its size | Read | Built |
 | [`worktree-setup.propose`](12-worktrees.md#worktree-setuppropose--what-is-proposed-for-what-git-ignores) | What is proposed for what git ignores | Derivation | Specified |
 | [`worktree-setup.propose-commands`](12-worktrees.md#worktree-setuppropose-commands--commands-proposed-from-lock-files) | Commands proposed from lock files | Derivation | Specified |
-| [`worktree-setup.read-what-patterns-take`](12-worktrees.md#worktree-setupread-what-patterns-take--ask-git-what-the-patterns-take) | Ask git what the patterns take | Read | Specified |
+| [`worktree-setup.read-what-patterns-take`](12-worktrees.md#worktree-setupread-what-patterns-take--ask-git-what-the-patterns-take) | Ask git what the patterns take | Read | Built |
 | [`worktree-setup.page`](12-worktrees.md#worktree-setuppage--choose-what-new-worktrees-get) | Choose what new worktrees get | View | Specified |
 | [`worktree-setup.choose`](12-worktrees.md#worktree-setupchoose--choose-what-a-line-gets) | Choose what a line gets | Derivation | Specified |
 | [`worktree-setup.save`](12-worktrees.md#worktree-setupsave--save-what-new-worktrees-get) | Save what new worktrees get | Operation | Specified |
@@ -421,7 +421,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`submodule.read-list`](13-submodules.md#submoduleread-list--read-the-submodules-and-where-they-stand) | Read the submodules and where they stand | Read | Specified |
+| [`submodule.read-list`](13-submodules.md#submoduleread-list--read-the-submodules-and-where-they-stand) | Read the submodules and where they stand | Read | Built |
 | [`submodule.status`](13-submodules.md#submodulestatus--where-a-submodule-stands) | Where a submodule stands | Derivation | Specified |
 | [`submodule.section`](13-submodules.md#submodulesection--the-submodules-list) | The Submodules list | View | Specified |
 | [`submodule.open-in-new-window`](13-submodules.md#submoduleopen-in-new-window--open-a-submodule-in-a-new-window) | Open a submodule in a new window | Operation | Specified |
