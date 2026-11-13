@@ -1051,10 +1051,9 @@ says otherwise):
 - **Q182** — The questions of a side of a comparison are the window's own pick: its choices carry no group heading
   (**Opened before**, **Branches**…), since a choice has none, and a revision typed is checked only once accepted, not
   while typing. The comparisons opened before are given to `compare.choose` by the window before it asks
-  (`Answer::Recent`). `reflog.browse` offers only the actions whose feature is built: **Reset `<branch>` to here…**
-  and **Cherry-pick** appear once `reset.to-commit` and `cherry-pick.commit` are merged, and the card stays
-  **Specified** until its line 3 has a test then; its entries have no date and time, which a pure feature cannot put
-  in the local zone. `compare.path-with` is not built: its entry points are the Files and File pages of M6, and it is
+  (`Answer::Recent`). `reflog.browse` offers only the actions whose feature is built; all five are since, and the
+  card is built with a test of its line 3. Its entries have no date and time, which a pure feature cannot put in the
+  local zone. `compare.path-with` is not built: its entry points are the Files and File pages of M6, and it is
   best written with them, on the helpers of `features::compare`. Are these right?
 - **Q183** — The comparison page lists the files that differ without their changes: a click opens a file, and **Open
   in the Diff page** all of them, in the Diff page, so **Show the changes**, the folds, the tree of the files, their

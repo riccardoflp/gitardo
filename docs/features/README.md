@@ -358,7 +358,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`blame.ignore-whitespace`](11-history-and-blame.md#blameignore-whitespace--ignore-whitespace-and-moved-lines-in-the-blame) | Ignore whitespace and moved lines in the blame | Operation | Specified |
 | [`blame.every-file`](11-history-and-blame.md#blameevery-file--show-the-blame-in-every-file) | Show the blame in every file | Operation | Specified |
 | [`reflog.read`](11-history-and-blame.md#reflogread--where-head-has-been) | Where `HEAD` has been | Read | Built |
-| [`reflog.browse`](11-history-and-blame.md#reflogbrowse--browse-the-reflog) | Browse the reflog | Operation | Specified |
+| [`reflog.browse`](11-history-and-blame.md#reflogbrowse--browse-the-reflog) | Browse the reflog | Operation | Built |
 | [`bisect.read`](11-history-and-blame.md#bisectread--the-bisect-under-way) | The bisect under way | Read | Built |
 | [`bisect.start`](11-history-and-blame.md#bisectstart--start-a-bisect-from-a-commit) | Start a bisect from a commit | Operation | Built |
 | [`bisect.mark`](11-history-and-blame.md#bisectmark--mark-a-commit-good-or-bad) | Mark a commit good or bad | Operation | Built |

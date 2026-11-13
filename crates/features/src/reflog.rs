@@ -203,6 +203,33 @@ mod tests {
     }
 
     #[test]
+    fn reflog_browse__cherry_pick_on_an_entry_runs_cherry_pick_commit_for_its_commit() {
+        let context = context(state(), Target::Head);
+        let picked = positions(&['3', '2']).with(ENTRY, Answer::Choice(String::from("HEAD@{1}")));
+        let QuestionKind::Pick { choices } = question(browse(&context, &picked)).kind else {
+            panic!("a pick")
+        };
+        let labels: Vec<&str> = choices.iter().map(|choice| choice.label.as_str()).collect();
+        assert_eq!(
+            labels,
+            [
+                "Show in the timeline",
+                "Create branch here\u{2026}",
+                "Reset main to here\u{2026}",
+                "Check out (detached)",
+                "Cherry-pick"
+            ]
+        );
+        let chosen = picked.with(ACTION, Answer::Choice(String::from("cherry-pick")));
+        let called = crate::testing::context(state(), Target::Commit(commit('2')));
+        assert_eq!(
+            browse(&context, &chosen),
+            crate::cherry_pick::commit(&called, &chosen),
+            "cherry-pick.commit, on the commit of the entry"
+        );
+    }
+
+    #[test]
     fn reflog_browse__show_in_the_timeline_selects_the_commit() {
         let context = context(state(), Target::Head);
         let chosen = positions(&['3', '2'])
