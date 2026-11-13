@@ -15,6 +15,7 @@ pub mod commits;
 pub mod compare;
 pub mod conflicts;
 pub mod diff;
+pub mod file_view;
 pub mod fixup;
 mod history;
 pub mod identity;
@@ -43,7 +44,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 98] = [
+pub const OPERATIONS: [(FeatureId, Operation); 100] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -105,6 +106,8 @@ pub const OPERATIONS: [(FeatureId, Operation); 98] = [
     (FeatureId("diff.stage-file"), diff::stage_file),
     (FeatureId("diff.unstage-change"), diff::unstage_change),
     (FeatureId("diff.unstage-file"), diff::unstage_file),
+    (FeatureId("file-view.open-external"), file_view::open_external),
+    (FeatureId("file-view.save"), file_view::save),
     // Commits brought, taken back and reworded, and several selected at once.
     (FeatureId("cherry-pick.commit"), cherry_pick::commit),
     (FeatureId("cherry-pick.skip-empty"), cherry_pick::skip_empty),

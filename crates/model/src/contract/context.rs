@@ -54,6 +54,10 @@ pub enum Target {
     MergeResult(Box<crate::merge_view::MergeResolution>),
     /// The resolutions accepted on the review of the conflicts (`review.write`).
     Resolutions(Box<crate::review::Resolutions>),
+    /// The text of a File page, to save (`file-view.save`).
+    FileSave(Box<crate::file_view::FileSave>),
+    /// A file of the working tree at the line of the cursor of its page (`file-view.open-external`).
+    FileAt(crate::file_view::FileAt),
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.
@@ -80,6 +84,9 @@ pub struct FeatureSettings {
     pub conflicts_auto_resolve: bool,
     /// `conflicts.ai`: offer to ask the AI provider about the conflicts the rules leave.
     pub conflicts_ai: bool,
+    /// `editor.external`: the command that opens a file in another editor, with `${file}` and `${line}`; empty for the
+    /// program the system has for the file.
+    pub external_editor: String,
 }
 
 /// An identity of the setting `identities`: `{ "name", "email", "signingKey"? }`.
@@ -106,6 +113,7 @@ impl Default for FeatureSettings {
             cherry_pick_record_origin: false,
             conflicts_auto_resolve: false,
             conflicts_ai: false,
+            external_editor: String::new(),
         }
     }
 }

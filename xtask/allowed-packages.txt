@@ -7,6 +7,7 @@ accesskit ui platform
 accesskit_winit platform
 arboard platform
 cosmic-text render
+regex text
 rfd platform
 softbuffer platform
 tiny-skia render

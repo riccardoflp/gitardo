@@ -31,7 +31,9 @@ pub fn onto(context: &Context, _answers: &Answers) -> Outcome {
         | Target::DiffChange(_)
         | Target::Comparison(_)
         | Target::MergeResult(_)
-        | Target::Resolutions(_) => return refuse("Choose a commit or a branch to rebase onto."),
+        | Target::Resolutions(_)
+        | Target::FileSave(_)
+        | Target::FileAt(_) => return refuse("Choose a commit or a branch to rebase onto."),
     };
     Outcome::Run(Plan {
         title: Text::from(format!("Rebase {} onto {said}", current_name(context))),

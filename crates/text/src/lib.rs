@@ -5,5 +5,6 @@
 pub mod conflicts;
 pub mod details;
 pub mod diff;
+pub mod find;
 pub mod highlight;
 pub mod patch;

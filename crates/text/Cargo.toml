@@ -9,5 +9,10 @@ publish.workspace = true
 [lints]
 workspace = true
 
+[dependencies]
+# Regular expressions for finding in a file (`file-view.find`): no I/O, no thread, no clock. Only the Unicode tables of
+# case and of `\w` and `\b` are taken, for match case and whole word.
+regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-case", "unicode-perl"] }
+
 [dev-dependencies]
 testkit = { path = "../testkit" }

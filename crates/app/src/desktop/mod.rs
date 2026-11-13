@@ -210,7 +210,7 @@ impl DesktopWindow {
             }
             for effect in reduce(&mut self.state, message) {
                 match self.carry_out(effect)? {
-                    Some(Followed::Message(next)) => waiting.push_back(next),
+                    Some(Followed::Message(next)) => waiting.push_back(*next),
                     Some(Followed::Quit) => flow = Flow::Quit,
                     None => {}
                 }
@@ -236,7 +236,7 @@ impl DesktopWindow {
                     ..FileDialog::default()
                 };
                 let folder = dialog.choose_folder(self.surface.window());
-                return Ok(Some(Followed::Message(Message::FolderChosen(folder))));
+                return Ok(Some(Followed::Message(Box::new(Message::FolderChosen(folder)))));
             }
             Effect::WritePersisted(persisted) => {
                 if let Some(writer) = &self.writer {
@@ -292,9 +292,9 @@ impl DesktopWindow {
             dialog.choose_file(self.surface.window())
         };
         let answer = chosen.map(model::contract::Answer::Path);
-        Followed::Message(Message::Intent(views::Intent::Feature(
+        Followed::Message(Box::new(Message::Intent(views::Intent::Feature(
             views::feature::FeatureIntent::Answer(answer),
-        )))
+        ))))
     }
 
     /// Draws a frame of the views from the store, then reduces the intents they returned.
@@ -319,7 +319,7 @@ impl DesktopWindow {
 /// What follows from an effect carried out.
 enum Followed {
     /// A message to reduce next, as the answer of the folder dialog.
-    Message(Message),
+    Message(Box<Message>),
     /// The window is to close.
     Quit,
 }
