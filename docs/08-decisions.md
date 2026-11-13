@@ -1024,3 +1024,11 @@ says otherwise):
   collision, because the rules rightly read them another way: different lines both sides add at one place beside a
   line one side changes, which a diff reads as that change; and a collision beside a line both sides write the same
   way, which reads as *one side added more of the same*. Should `cargo xtask fuzz` run the ignored test?
+- **Q-I5** — `conflicts.side-names` is built as a derivation of what the reads found, `SideNamesInput`: the operation,
+  the branch checked out, and for `HEAD`, the commit brought in and `onto` their hash, the branches at them and their
+  subject, with `head-name` and the subject of a patch. The reads its card lists are not gathered by any function yet:
+  should they be one read, `git::read::conflicts::read_side_names`, built with the window of the conflicts? Choices
+  made: a branch at a commit is the first one `for-each-ref` lists that does not end in `/HEAD`, so a local branch
+  before a remote one, by its short name; the current side of a rebase with no branch at `onto` is its short hash, and
+  its subject is that of `HEAD`; a stash has no subjects; the words are in `model` (`SideRole::words`), not in
+  `views/src/text/`, since several pages and the questions to the AI provider use them. Are these right?

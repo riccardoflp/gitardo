@@ -270,7 +270,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`conflicts.abort-operation`](09-conflicts.md#conflictsabort-operation--abort) | Abort | Operation | Specified |
 | [`conflicts.stopped`](09-conflicts.md#conflictsstopped--the-message-when-an-operation-stops-on-conflicts) | The message when an operation stops on conflicts | View | Specified |
 | [`conflicts.read-files`](09-conflicts.md#conflictsread-files--the-files-in-conflict-and-their-sides) | The files in conflict and their sides | Read | Built |
-| [`conflicts.side-names`](09-conflicts.md#conflictsside-names--what-the-two-sides-are) | What the two sides are | Derivation | Specified |
+| [`conflicts.side-names`](09-conflicts.md#conflictsside-names--what-the-two-sides-are) | What the two sides are | Derivation | Built |
 | [`conflicts.open-file`](09-conflicts.md#conflictsopen-file--open-a-file-in-conflict) | Open a file in conflict | View | Specified |
 | [`conflicts.mark-resolved`](09-conflicts.md#conflictsmark-resolved--mark-as-resolved) | Mark as resolved | Operation | Specified |
 | [`conflicts.take-side`](09-conflicts.md#conflictstake-side--take-the-current-side-take-the-incoming-side) | Take the current side, take the incoming side | Operation | Specified |

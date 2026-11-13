@@ -206,7 +206,7 @@ is, and the subject of its commit. The Merge page, the review page, the question
 of `conflicts.take-side` all say the sides this way.
 
 - **Kind**: Derivation
-- **Function**: `model::conflicts::side_names(input) -> SideNames`
+- **Function**: `model::conflicts::side_names(input: &SideNamesInput) -> SideNames`
 - **Reads**: the operation in progress; `git symbolic-ref --short -q HEAD`; `git rev-parse --verify -q <ref>^{commit}`
   and `git for-each-ref --points-at=<hash> --format=%(refname) refs/heads refs/remotes` to name a commit by a branch
   that points at it (not one ending in `/HEAD`); `.git/rebase-merge/onto` and `head-name` (or `.git/rebase-apply/…`)

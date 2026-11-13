@@ -12,6 +12,7 @@ pub mod changes;
 pub mod commit;
 pub mod commit_page;
 pub mod compare;
+pub mod conflicts;
 pub mod contract;
 pub mod details;
 pub mod diff;
