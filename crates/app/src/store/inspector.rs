@@ -181,6 +181,7 @@ pub fn reduce_details(state: &mut State, intent: DetailsIntent) -> Vec<Effect> {
     match intent {
         DetailsIntent::Close => {
             state.timeline.selected = None;
+            state.timeline.several.clear();
             super::timeline::retrace(state);
             Vec::new()
         }

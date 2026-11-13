@@ -31,6 +31,7 @@ pub mod page;
 pub mod refs;
 pub mod repo;
 pub mod search;
+mod selection;
 pub mod settings;
 pub mod text;
 pub mod welcome;

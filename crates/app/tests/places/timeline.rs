@@ -153,6 +153,7 @@ fn graph_view__scrolling_a_list_of_50000_commits_draws_only_the_rows_in_sight() 
         reading: Reading::Nothing,
         asked_at: None,
         selected: None,
+        several: &[],
         reveal: None,
         trace: None,
         hover: None,

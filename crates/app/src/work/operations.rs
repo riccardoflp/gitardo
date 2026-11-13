@@ -153,9 +153,29 @@ fn serve(
                 request.feature.0
             ))),
         };
+        let ended = with_prepared_message(ended, &request.context);
         let log = engine.take_log(request.level);
         deliver(Message::FeatureEnded { ended, log });
     }
+}
+
+/// An operation that ran, with the message git prepared for the next commit when its plan asked for it: what
+/// `SQUASH_MSG` in the git folder says.
+fn with_prepared_message(mut ended: Ended, context: &Context) -> Ended {
+    if let Ended::Ran {
+        after,
+        prepared_message,
+        ..
+    } = &mut ended
+        && after.contains(&model::contract::FollowUp::PreparedMessage)
+    {
+        let file = context.repository.git_folder.join("SQUASH_MSG");
+        *prepared_message = std::fs::read_to_string(file)
+            .ok()
+            .map(|message| message.trim_end().to_owned())
+            .filter(|message| !message.is_empty());
+    }
+    ended
 }
 
 /// How an operation ended, in the words the store keeps.
@@ -165,6 +185,7 @@ fn ended_of(feature: FeatureId, result: Result<Finished, EngineError>) -> Ended 
             can_undo: !matches!(plan.undo, Undo::Impossible(_)),
             title: plan.title,
             after: plan.after,
+            prepared_message: None,
         },
         Ok(Finished::Refused(refusal)) => Ended::Refused(refusal.message),
         Ok(Finished::BackedOut | Finished::NotConfirmed(_)) => Ended::BackedOut,

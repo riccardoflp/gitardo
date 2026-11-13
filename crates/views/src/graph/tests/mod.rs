@@ -21,6 +21,7 @@ use crate::branch::ReferenceMenus;
 
 mod keys_and_pages;
 mod menus_and_panes;
+mod selection;
 
 /// The hash of a commit named in a test: its name in hexadecimal, padded.
 pub(super) fn id(name: &str) -> CommitId {
@@ -80,6 +81,7 @@ pub(super) struct Fixture {
     pub(super) layout: TimelineLayout,
     folded: HashSet<CommitId>,
     selected: Option<Selected>,
+    pub(crate) several: Vec<CommitId>,
     draft: Option<DraftState>,
     repository: RepositoryState,
 }
@@ -103,6 +105,7 @@ impl Fixture {
             layout,
             folded,
             selected,
+            several: Vec::new(),
             draft,
             repository: repository.clone(),
         }
@@ -121,6 +124,7 @@ impl Fixture {
             reading: Reading::Nothing,
             asked_at: None,
             selected: self.selected.as_ref(),
+            several: &self.several,
             reveal: None,
             trace: None,
             hover: None,

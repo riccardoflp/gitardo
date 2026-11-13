@@ -100,12 +100,23 @@ pub fn asks(state: &mut State, question: Question) -> Vec<Effect> {
     Vec::new()
 }
 
-/// An operation ended: once a commit is made, the message box is emptied and **Amend last commit** unticked.
+/// An operation ended: once a commit is made, the message box is emptied and **Amend last commit** unticked; the
+/// message git prepared for the next commit fills the box when it is empty.
 pub fn ended(state: &mut State, ended: &Ended) {
     state.changes.sent = None;
-    let Ended::Ran { after, .. } = ended else {
+    let Ended::Ran {
+        after,
+        prepared_message,
+        ..
+    } = ended
+    else {
         return;
     };
+    if let (Some(prepared), Some(folder)) = (prepared_message, state.shown_folder().cloned())
+        && message_of(&state.persisted.commit_messages, &folder).trim().is_empty()
+    {
+        keep_message(&mut state.persisted.commit_messages, &folder, prepared);
+    }
     if after.contains(&FollowUp::EmptyCommitMessage) {
         state.changes.is_amend = false;
         if let Some(folder) = state.shown_folder().cloned() {

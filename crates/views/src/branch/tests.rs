@@ -126,6 +126,8 @@ fn branch_checkout__the_menu_of_a_branch_another_worktree_has_has_its_entries_an
             "Remove worktree and delete branch\u{2026} (off)",
             "Create branch here\u{2026}",
             "Fast-forward to origin/linked",
+            "Merge into main",
+            "Merge into main\u{2026}",
             "Rename branch\u{2026}",
         ]
     );
@@ -225,15 +227,7 @@ fn branch_checkout_remote_and_rebase__the_entry_is_there_only_when_the_branch_ha
 fn branch_checkout_detached__the_menu_of_the_commit_checked_out_has_no_such_entry() {
     let repository = repository();
     let of_commit = |letter| labels(&commit_entries(menus(&repository, OpenIn::Checkout), &id(letter)));
-    assert_eq!(
-        of_commit('a'),
-        [
-            "Create branch here\u{2026}",
-            "Create tag here\u{2026}",
-            "Copy hash",
-            "Copy message"
-        ]
-    );
+    assert!(!of_commit('a').contains(&String::from("Check out commit (detached)")));
     let entries = commit_entries(menus(&repository, OpenIn::Checkout), &id('b'));
     assert_eq!(
         labels(&entries).get(2).map(String::as_str),
@@ -258,8 +252,10 @@ fn copy_hash_and_copy_message_are_in_the_menu_of_every_commit() {
             Target::Commit(id('b')),
         )))
     };
-    assert_eq!(chosen(&entries, 3), run("commits.copy-hash"));
-    assert_eq!(chosen(&entries, 4), run("commits.copy-message"));
+    let at = |label: &str| entries.iter().position(|entry| entry.label == label).unwrap_or(usize::MAX);
+    assert_eq!(chosen(&entries, at("Copy hash")), run("commits.copy-hash"));
+    assert_eq!(chosen(&entries, at("Copy message")), run("commits.copy-message"));
+    assert_eq!(at("Copy message"), entries.len() - 1, "the copies close the menu");
 }
 
 #[test]
@@ -297,4 +293,71 @@ fn tag_checkout__a_tag_on_the_commit_checked_out_has_no_such_entry() {
         of_tag(&repository, "v1"),
         ["Create branch here\u{2026}", "Push tag", "Delete"]
     );
+}
+
+/// The entries of a commit of the repository, by its letter.
+fn of_commit(repository: &RepositoryState, letter: char) -> Vec<String> {
+    labels(&commit_entries(menus(repository, OpenIn::Checkout), &id(letter)))
+}
+
+#[test]
+fn cherry_pick_commit__the_menu_of_the_commit_checked_out_has_no_cherry_pick_entry() {
+    let repository = repository();
+    assert!(
+        !of_commit(&repository, 'a')
+            .iter()
+            .any(|label| label.starts_with("Cherry-pick"))
+    );
+    let entries = commit_entries(menus(&repository, OpenIn::Checkout), &id('b'));
+    let place = labels(&entries).iter().position(|label| label == "Cherry-pick bbbbbbb");
+    assert_eq!(
+        place.and_then(|place| chosen(&entries, place)),
+        Some(Intent::Feature(FeatureIntent::Run(
+            FeatureId("cherry-pick.commit"),
+            Target::Commit(id('b'))
+        )))
+    );
+}
+
+#[test]
+fn merge_into_current__merging_the_commit_or_the_branch_checked_out_is_not_offered() {
+    let repository = repository();
+    let merges = |labels: &[String]| labels.iter().filter(|label| label.starts_with("Merge into")).count();
+    assert_eq!(merges(&of_commit(&repository, 'a')), 0);
+    assert_eq!(merges(&of_branch(&repository, OpenIn::Checkout, "main")), 0);
+    assert_eq!(merges(&of_commit(&repository, 'b')), 2);
+    let feature = of_branch(&repository, OpenIn::Checkout, "feature");
+    assert!(
+        feature.contains(&String::from("Merge into main"))
+            && feature.contains(&String::from("Merge into main\u{2026}"))
+    );
+    let remote = repository
+        .remote_branches
+        .iter()
+        .find(|remote| remote.name == "origin/new");
+    let at_head = remote.map(|remote| labels(&remote_entries(menus(&repository, OpenIn::Checkout), remote)));
+    assert_eq!(
+        at_head.map(|labels| merges(&labels)),
+        Some(0),
+        "origin/new is at the commit checked out"
+    );
+}
+
+#[test]
+fn reset_to_commit__every_commit_has_the_reset_entry_the_one_checked_out_included() {
+    let mut repository = repository();
+    for letter in ['a', 'b', 'c'] {
+        assert!(of_commit(&repository, letter).contains(&String::from("Reset main to here\u{2026}")));
+    }
+    repository.head.branch = None;
+    assert!(of_commit(&repository, 'b').contains(&String::from("Reset HEAD to here\u{2026}")));
+}
+
+#[test]
+fn revert_commit__every_commit_has_the_revert_entry_and_edit_message_waits_for_an_operation_under_way() {
+    let mut repository = repository();
+    let commit = of_commit(&repository, 'a');
+    assert!(commit.contains(&String::from("Revert aaaaaaa")) && commit.contains(&String::from("Edit message\u{2026}")));
+    repository.operation = Some(model::state::Operation::Merge);
+    assert!(!of_commit(&repository, 'a').contains(&String::from("Edit message\u{2026}")));
 }

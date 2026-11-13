@@ -147,3 +147,9 @@
   that changes nothing with a warning in the log; reverts a commit; resets the branch to a commit, soft, mixed or hard;
   and edits the message of the last commit, or of an older one with an interactive rebase. A merge or a cherry-pick
   predicted to conflict says which files first; `cherryPick.recordOrigin` adds `-x`.
+- In the window, the menu of a commit has **Merge into `<branch>`**, **Merge into `<branch>`…** to choose how,
+  **Cherry-pick `<hash>`**, **Revert `<hash>`**, **Reset `<branch>` to here…** and **Edit message…**; the menus of a
+  branch and of a remote branch have the two merges. `Ctrl`+click (`Cmd`+click on macOS) and `Shift`+click select
+  several commits of the timeline; a bar over the commits counts them, with **Cherry-pick onto `<branch>`** and **Clear
+  selection**, and their menu has **Cherry-pick N commits onto `<branch>`** and **Copy hashes**. After a squash merge,
+  an empty message of the draft starts from the one git prepared, and Undo takes the squash merge back.

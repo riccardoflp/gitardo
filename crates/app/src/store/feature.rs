@@ -33,6 +33,9 @@ pub enum Ended {
         after: Vec<FollowUp>,
         /// Whether Undo can take it back.
         can_undo: bool,
+        /// The message git prepared for the next commit, read from the git folder when the plan asked for it
+        /// (`FollowUp::PreparedMessage`).
+        prepared_message: Option<String>,
     },
     /// It refused to run, and said why.
     Refused(Text),
@@ -94,6 +97,8 @@ pub struct Operations {
     pub said: Option<Said>,
     /// The commit to select once the repository is read again after an operation; `Some(None)` selects `HEAD`.
     pub select_after_read: Option<Option<CommitId>>,
+    /// How many commits before `HEAD`, following first parents, `Some(None)` selects instead of `HEAD` itself.
+    pub select_before_head: usize,
     /// The stashes before a pull with `--autostash`, to tell once the repository is read again whether it left one
     /// (`stash.autostash-left`).
     pub autostash_before: Option<Vec<model::state::Stash>>,
@@ -214,12 +219,18 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
     state.is_operation_running = false;
     state.log.append(log);
     match ended {
-        Ended::Ran { title, after, can_undo } => {
+        Ended::Ran {
+            title, after, can_undo, ..
+        } => {
             let mut said = None;
             for follow_up in &after {
                 match follow_up {
                     FollowUp::Say(text) => said = Some(text.as_str().to_owned()),
                     FollowUp::SelectHead => state.operations.select_after_read = Some(None),
+                    FollowUp::SelectBeforeHead(count) => {
+                        state.operations.select_after_read = Some(None);
+                        state.operations.select_before_head = *count;
+                    }
                     FollowUp::SelectCommit(commit) => state.operations.select_after_read = Some(Some(commit.clone())),
                     FollowUp::CheckAutostash => {
                         state.operations.autostash_before = state.shown_read().map(|read| read.state.stashes.clone());
@@ -295,8 +306,27 @@ pub fn after_read(state: &mut State) -> Vec<Effect> {
     let Some(selected) = state.operations.select_after_read.take() else {
         return Vec::new();
     };
-    let commit = selected.or_else(|| state.shown_read().and_then(|read| read.state.head.commit.clone()));
+    let back = std::mem::take(&mut state.operations.select_before_head);
+    let commit = selected.or_else(|| {
+        let head = state.shown_read().and_then(|read| read.state.head.commit.clone())?;
+        Some(before(&state.timeline.rows, head, back))
+    });
     commit.map(|commit| search::go_to(state, commit)).unwrap_or_default()
+}
+
+/// The commit a number of commits before another, following first parents through the rows read; as far as they go.
+fn before(rows: &[model::graph::Row], mut commit: CommitId, count: usize) -> CommitId {
+    for _ in 0..count {
+        let parent = rows
+            .iter()
+            .find(|row| row.id() == Some(&commit))
+            .and_then(|row| row.parents().first().cloned());
+        match parent {
+            Some(parent) => commit = parent,
+            None => break,
+        }
+    }
+    commit
 }
 
 /// What the window shows of the question asked.

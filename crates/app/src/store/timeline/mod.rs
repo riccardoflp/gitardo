@@ -59,6 +59,8 @@ pub struct Timeline {
     pub layout: Arc<TimelineLayout>,
     /// The row selected.
     pub selected: Option<Selected>,
+    /// The commits selected together, the anchor first; empty while a row is selected alone (`selection.select`).
+    pub several: Vec<CommitId>,
     /// The row to bring into sight, with the number that asks for it once.
     pub reveal: Option<(u64, RevealPlace)>,
     /// The label under the pointer whose history stands out.
@@ -293,6 +295,19 @@ pub fn reduce_graph(state: &mut State, intent: GraphIntent) -> Vec<Effect> {
             select(state, selected, RevealPlace::Nearest);
             Vec::new()
         }
+        GraphIntent::SelectSeveral { commits, shown } => {
+            select(state, Selected::Commit(shown), RevealPlace::Nearest);
+            state.timeline.several = commits;
+            Vec::new()
+        }
+        GraphIntent::ClearSelection => {
+            state.timeline.several.clear();
+            Vec::new()
+        }
+        GraphIntent::CopyHashes(commits) => {
+            let lines: Vec<&str> = commits.iter().map(CommitId::as_str).collect();
+            vec![Effect::CopyText(lines.join("\n"))]
+        }
         GraphIntent::GoTo(commit) => {
             select(state, Selected::Commit(commit), RevealPlace::Center);
             Vec::new()
@@ -323,9 +338,10 @@ pub fn reduce_graph(state: &mut State, intent: GraphIntent) -> Vec<Effect> {
     }
 }
 
-/// Selects a row and brings it into sight.
+/// Selects a row alone and brings it into sight.
 fn select(state: &mut State, selected: Selected, place: RevealPlace) {
     let serial = state.timeline.reveal.map_or(1, |(serial, _)| serial + 1);
+    state.timeline.several.clear();
     state.timeline.selected = Some(selected);
     state.timeline.reveal = Some((serial, place));
     retrace(state);

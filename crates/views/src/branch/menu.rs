@@ -6,13 +6,14 @@ use model::branch::{
     OpenBranchInput, OpenedReference, can_fast_forward, local_name, open, other_worktree, rebase_onto,
 };
 use model::contract::{FeatureId, OpenIn, Target};
-use model::state::{Branch, RemoteBranch, Tag};
+use model::state::{Branch, RemoteBranch, RepositoryState, Tag};
 use ui::{MenuEntry, MenuItem};
 
 use super::ReferenceMenus;
 use crate::feature::FeatureIntent;
 use crate::intent::Intent;
 use crate::text::branch as words;
+use crate::text::history as history_words;
 use crate::text::rail as rail_words;
 
 /// An entry of a menu that runs an operation.
@@ -75,6 +76,7 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
             create,
         ];
         entries.extend(fast_forward);
+        entries.extend(merge_entries(state, &branch.commit, target));
         entries.push(OperationEntry::runs(words::RENAME_BRANCH, "branch.rename", target()));
         return entries;
     }
@@ -84,6 +86,7 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
     );
     entries.push(create);
     entries.extend(fast_forward);
+    entries.extend(merge_entries(state, &branch.commit, target));
     entries.push(OperationEntry::runs(rail_words::RENAME, "branch.rename", target()));
     entries.push(OperationEntry::runs(rail_words::DELETE, "branch.delete", target()));
     entries
@@ -129,6 +132,7 @@ pub(crate) fn remote_entries(menus: ReferenceMenus<'_>, remote: &RemoteBranch) -
         "branch.create",
         target(),
     ));
+    entries.extend(merge_entries(state, &remote.commit, target));
     entries.push(OperationEntry::runs(
         rail_words::DELETE_FROM_REMOTE,
         "remote.delete-branch",
@@ -158,18 +162,46 @@ pub(crate) fn tag_entries(menus: ReferenceMenus<'_>, tag: &Tag) -> Vec<Operation
     entries
 }
 
-/// The operations of a commit of the timeline: a branch or a tag made there, and the commit checked out on a detached
-/// `HEAD` unless it is the one checked out.
+/// The operations of a commit of the timeline: a branch or a tag made there; the commit checked out on a detached
+/// `HEAD`, merged or cherry-picked unless it is the one checked out; reverted; the branch checked out reset to it; and
+/// its message edited while no operation is under way.
 pub(crate) fn commit_entries(menus: ReferenceMenus<'_>, commit: &CommitId) -> Vec<OperationEntry> {
+    let state = menus.repository;
     let target = || Target::Commit(commit.clone());
+    let is_checked_out = state.head.commit.as_ref() == Some(commit);
     let mut entries = vec![
         OperationEntry::runs(words::CREATE_BRANCH_HERE, "branch.create", target()),
         OperationEntry::runs(words::CREATE_TAG_HERE, "tag.create", target()),
     ];
-    if menus.repository.head.commit.as_ref() != Some(commit) {
+    if !is_checked_out {
         entries.push(OperationEntry::runs(
             words::CHECK_OUT_COMMIT,
             "branch.checkout-detached",
+            target(),
+        ));
+    }
+    entries.extend(merge_entries(state, commit, target));
+    if !is_checked_out {
+        entries.push(OperationEntry::runs(
+            history_words::cherry_pick(commit.short()),
+            "cherry-pick.commit",
+            target(),
+        ));
+    }
+    entries.push(OperationEntry::runs(
+        history_words::revert(commit.short()),
+        "revert.commit",
+        target(),
+    ));
+    entries.push(OperationEntry::runs(
+        history_words::reset_to_here(current(state)),
+        "reset.to-commit",
+        target(),
+    ));
+    if state.operation.is_none() {
+        entries.push(OperationEntry::runs(
+            history_words::EDIT_MESSAGE,
+            "message.edit",
             target(),
         ));
     }
@@ -180,6 +212,28 @@ pub(crate) fn commit_entries(menus: ReferenceMenus<'_>, commit: &CommitId) -> Ve
         target(),
     ));
     entries
+}
+
+/// **Merge into `<current>`** and **Merge into `<current>`…**, which asks how, for a commit or the tip of a branch:
+/// none before the first commit, nor for the commit checked out.
+fn merge_entries(state: &RepositoryState, tip: &CommitId, target: impl Fn() -> Target) -> Vec<OperationEntry> {
+    if state.head.commit.as_ref().is_none_or(|head| head == tip) {
+        return Vec::new();
+    }
+    let current = current(state);
+    vec![
+        OperationEntry::runs(history_words::merge_into(current), "merge.into-current", target()),
+        OperationEntry::runs(
+            history_words::merge_into_choosing(current),
+            "merge.choose-way",
+            target(),
+        ),
+    ]
+}
+
+/// What is checked out, as the entries say it: the branch, or `HEAD` when detached.
+fn current(state: &RepositoryState) -> &str {
+    state.checked_out_branch().unwrap_or("HEAD")
 }
 
 /// The items of the entries, each carrying the value of its place among them, greyed out while its operation comes

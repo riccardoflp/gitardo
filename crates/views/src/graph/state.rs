@@ -39,6 +39,9 @@ pub struct HistoryState<'a> {
     pub asked_at: Option<usize>,
     /// The row selected.
     pub selected: Option<&'a Selected>,
+    /// The commits selected together by `Ctrl`+click or `Shift`+click, the anchor first; empty while one row is
+    /// selected alone (`selection.select`).
+    pub several: &'a [CommitId],
     /// The row to bring into sight, once for each number.
     pub reveal: Option<(u64, RevealPlace)>,
     /// The history brought out, under a label or of the selected commit.

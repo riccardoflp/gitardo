@@ -10,6 +10,7 @@ pub mod diff;
 pub mod feature;
 pub mod filter;
 pub mod header;
+pub mod history;
 pub mod pages;
 pub mod rail;
 pub mod repo;

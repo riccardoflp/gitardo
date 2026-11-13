@@ -16,6 +16,7 @@ mod filter;
 mod folds;
 mod go_to;
 mod histories;
+mod history;
 mod inspector;
 mod inspector_files;
 mod jobs;

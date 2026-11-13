@@ -21,6 +21,7 @@ use super::state::{GraphState, HistoryState, Reading};
 use super::sticky::{sticky_names, sticky_names_drawn};
 use crate::intent::Intent;
 use crate::line::INSPECTOR_OVER_BELOW;
+use crate::selection::{Several, bar_height, bar_view, menu_view, open_menu, select_view};
 use crate::text::timeline as words;
 
 /// The key of the list of commits.
@@ -92,7 +93,11 @@ fn timeline(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent
         lane_width: fit.lane_width,
         is_narrow: ui.window().width < INSPECTOR_OVER_BELOW,
     };
-    let (mut intents, report, visible) = history(state, ui, (rect, &context));
+    let several = Several::of(state);
+    let (mut intents, list_rect) = selection_bar(state, ui, rect, several.as_ref());
+    let (history_intents, report, visible) = history(state, ui, (list_rect, &context), several.as_ref());
+    intents.extend(history_intents);
+    let rect = list_rect;
     if state.reading != Reading::Nothing {
         ui.running_bar(rect);
     }
@@ -138,11 +143,36 @@ fn timeline(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent
     intents
 }
 
+/// The bar of a selection of several over the commits, when there is one, and the rectangle left to them.
+fn selection_bar(
+    state: &HistoryState<'_>,
+    ui: &mut Ui<'_>,
+    rect: Rect,
+    several: Option<&Several>,
+) -> (Vec<Intent>, Rect) {
+    let Some(several) = several else {
+        return (Vec::new(), rect);
+    };
+    let theme = *ui.theme();
+    let height = bar_height(ui);
+    let gap = theme.sizes.spacing.small;
+    let bar = Rect::new(rect.x, rect.y, rect.width - theme.sizes.scrollbar, height);
+    let intents = ui.clip(bar, |ui| bar_view(state, several, ui, bar));
+    let commits = Rect::new(
+        rect.x,
+        rect.y + height + gap,
+        rect.width,
+        (rect.height - height - gap).max(0.0),
+    );
+    (intents, commits)
+}
+
 /// The list of the rows, steered by the selection of the store, with the menus of its rows.
 fn history(
     state: &HistoryState<'_>,
     ui: &mut Ui<'_>,
     (rect, context): (Rect, &RowContext<'_>),
+    several: Option<&Several>,
 ) -> (Vec<Intent>, RowReport, std::ops::Range<usize>) {
     let list = List {
         name: words::HISTORY,
@@ -152,7 +182,7 @@ fn history(
         lead: context.graph_width,
     };
     let selected = selected_row(state);
-    let selection = selected.map(Selection::single).unwrap_or_default();
+    let selection = steered_selection(state, selected, several);
     let steering = Steering {
         selection: Some(&selection),
         reveal: state
@@ -166,11 +196,12 @@ fn history(
     });
     let mut intents = std::mem::take(&mut report.intents);
     let chosen = response.changed_selection.as_ref().and_then(Selection::cursor);
+    let is_several = several.is_some();
     if let Some(intent) = chosen
-        .filter(|row| Some(*row) != selected)
-        .and_then(|row| select_row(state, row))
+        .filter(|row| Some(*row) != selected || is_several)
+        .and_then(|row| select_view(state, ui, row).or_else(|| select_row(state, row).map(Intent::Graph)))
     {
-        intents.push(Intent::Graph(intent));
+        intents.push(intent);
     }
     let pointed = report.pointed.take();
     if let Some(row) = response.activated {
@@ -180,12 +211,36 @@ fn history(
         }
     }
     if let Some(row) = response.context_row {
-        open_row_menu(state, ui, row, pointed.as_ref());
+        match several.filter(|several| several.contains_row(state, row)) {
+            Some(_) => open_menu(ui),
+            None => open_row_menu(state, ui, row, pointed.as_ref()),
+        }
+    }
+    if let Some(several) = several {
+        intents.extend(menu_view(state, several, ui));
     }
     for row in response.visible_rows.clone() {
         intents.extend(row_menu(state, ui, row));
     }
     (intents, report, response.visible_rows)
+}
+
+/// The rows the list shows selected: the commits of a selection of several, with the keyboard on the one the
+/// inspector shows, or the row selected alone.
+fn steered_selection(state: &HistoryState<'_>, selected: Option<usize>, several: Option<&Several>) -> Selection {
+    let Some(several) = several else {
+        return selected.map(Selection::single).unwrap_or_default();
+    };
+    let rows = several
+        .commits
+        .iter()
+        .filter_map(|commit| state.layout.shown_of.get(commit).copied())
+        .filter(|row| Some(*row) != selected);
+    let mut selection = Selection::default();
+    for row in rows.chain(selected) {
+        selection.toggle(row);
+    }
+    selection
 }
 
 /// What a double click or `Enter` on a row opens: a commit or a stash as a page; the draft and a folded row open

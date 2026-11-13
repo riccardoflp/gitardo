@@ -5,8 +5,20 @@ use model::CommitId;
 /// Something the user asked of the timeline.
 #[derive(Clone, Debug, PartialEq)]
 pub enum GraphIntent {
-    /// Select a row, by a click or a key, and bring it into sight (`graph.view`, `graph.keyboard`).
+    /// Select a row, by a click or a key, and bring it into sight (`graph.view`, `graph.keyboard`); it empties the
+    /// selection of several.
     Select(Selected),
+    /// Select several commits at once, by `Ctrl`+click or `Shift`+click (`selection.select`).
+    SelectSeveral {
+        /// The commits, the anchor of `Shift`+click first.
+        commits: Vec<CommitId>,
+        /// The one the inspector shows: the one clicked last that is in the selection.
+        shown: CommitId,
+    },
+    /// Empty the selection of several, keeping the commit shown selected alone (`selection.bar`).
+    ClearSelection,
+    /// Copy the full hashes of commits, one per line, to the clipboard (`selection.menu`).
+    CopyHashes(Vec<CommitId>),
     /// Open a commit as a page, by a double click or `Enter` (`commit-page.open`).
     Open(CommitId),
     /// Read the next page: the commits loaded when it was asked for (`graph.load-more`).

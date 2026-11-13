@@ -317,6 +317,7 @@ impl ViewData {
             reading,
             asked_at: timeline.asked_at,
             selected: timeline.selected.as_ref(),
+            several: &timeline.several,
             reveal: timeline.reveal,
             trace: timeline.trace.as_ref().map(|(cells, strength)| TraceShown {
                 cells,
