@@ -184,3 +184,11 @@
   branches, remote branches and tags, and **Compare with `<short hash>`, selected before** in the menu of a commit
   while another is selected. **Reflog** in **…** and **Browse reflog** in Quick search list where `HEAD` has been, to
   show an entry in the timeline, make a branch there or check it out.
+- The comparison page: the two sides, each a button that puts another in its place and its short hash that opens its
+  commit, the arrows that swap them, how far apart they are and what merging would do, **Since they diverged** or
+  **Everything that differs**, a box that narrows it to a file or a folder, the commits only in each side, those
+  cherry-picked marked **also in**, and the files that differ, each opening in the Diff page, with an arrow that takes
+  the version of the second side; **Open in the Diff page** and **Copy as patch**. A comparison with the working tree
+  is read again with the repository, and one with a branch when the branch moves. **Compare with `<current branch>`**
+  and **Compare with `<short hash>`, selected before** show the files that differ between the two commits in the
+  inspector, with **Swap** and **Open as a page**.

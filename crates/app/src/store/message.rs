@@ -90,6 +90,20 @@ pub enum Message {
         /// What it came to.
         result: crate::work::diff::DiffRead,
     },
+    /// A job that read a comparison page is done (`compare.read-sides`).
+    ComparisonRead {
+        /// The job.
+        job: JobId,
+        /// What was read, or what git said when the read failed.
+        result: Result<Box<crate::work::compare::ComparisonRead>, String>,
+    },
+    /// A job that read the files of the comparison in the inspector is done (`compare.read-files`).
+    InPlaceRead {
+        /// The job.
+        job: JobId,
+        /// The files that differ, or what git said when the read failed.
+        result: Result<Vec<model::state::FileChange>, String>,
+    },
     /// The settings files changed and were read again.
     SettingsRead(Settings),
     /// The watcher of the repository saw changes (`repo.watch-changes`), at a moment counted from when the window
@@ -250,6 +264,20 @@ pub enum JobKind {
         folder: PathBuf,
         /// What is read.
         job: crate::work::diff::DiffJob,
+    },
+    /// Reads a comparison page: its followed sides where they are now, then what differs (`compare.read-sides`).
+    ReadComparison {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// The comparison.
+        target: Box<model::compare::ComparisonTarget>,
+    },
+    /// Reads the files of the comparison in the inspector (`compare.read-files`).
+    ReadInPlace {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// The two commits.
+        request: git::read::compare::FilesRequest,
     },
 }
 

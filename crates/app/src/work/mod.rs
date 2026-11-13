@@ -1,6 +1,7 @@
 //! The workers of a window: a small pool of threads that run the jobs the store asks for, each with a token that
 //! cancels it and an entry among the activities, and send back the message of its result.
 
+pub mod compare;
 pub mod diff;
 pub mod jobs;
 mod operations;
@@ -185,6 +186,10 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadDiff { folder, .. } => (
             Text::from(activity::reading(&folder_name(folder))),
             Text::from(activity::COMPUTING_DIFF),
+        ),
+        JobKind::ReadComparison { folder, .. } | JobKind::ReadInPlace { folder, .. } => (
+            Text::from(activity::reading(&folder_name(folder))),
+            Text::from(activity::COMPARING),
         ),
     }
 }

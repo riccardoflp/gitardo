@@ -74,6 +74,8 @@ pub enum Intent {
     CommitPage(CommitPageId, CommitPageIntent),
     /// Something asked of the Diff pages (`diff.page`).
     Diff(crate::diff::DiffIntent),
+    /// Something asked of a comparison page or of the comparison in the inspector (`compare.page`, `compare.in-place`).
+    Compare(crate::compare::CompareIntent),
     /// An operation to run, or what is answered to the one running.
     Feature(crate::feature::FeatureIntent),
     /// Something asked of the Changes page or of the commit box of the draft (`changes.pane`).

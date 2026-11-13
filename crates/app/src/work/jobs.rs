@@ -61,6 +61,14 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: super::diff::read_diff(folder, diff, cancel),
         },
+        JobKind::ReadComparison { folder, target } => Message::ComparisonRead {
+            job: job.id,
+            result: super::compare::read_comparison(folder, target, cancel).map(Box::new),
+        },
+        JobKind::ReadInPlace { folder, request } => Message::InPlaceRead {
+            job: job.id,
+            result: super::compare::read_in_place(folder, request, cancel),
+        },
     }
 }
 

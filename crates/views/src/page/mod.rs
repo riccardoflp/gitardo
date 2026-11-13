@@ -5,6 +5,7 @@ use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{AccessRole, Axis, Button, ButtonKind, Icon, Label, Rect, TextKind, Tone, Ui};
 
 use crate::commit_page::{CommitPageId, CommitPageState, view as commit_page_view};
+use crate::compare::{ComparePageId, CompareState, page as compare_page_view};
 use crate::diff::{DiffPageId, DiffPageState, page_view as diff_page_view};
 use crate::intent::Intent;
 use crate::settings::{SettingsPageState, settings_view};
@@ -27,6 +28,8 @@ pub enum Page {
     Diff(DiffPageId),
     /// The interactive rebase page (`rebase.todo-page`).
     Rebase,
+    /// A comparison page (`compare.page`).
+    Compare(ComparePageId),
 }
 
 impl Page {
@@ -40,6 +43,7 @@ impl Page {
             Page::Changes => crate::text::changes::PAGE,
             Page::Diff(_) => crate::text::diff::PAGE,
             Page::Rebase => crate::text::rebase::PAGE,
+            Page::Compare(_) => crate::text::compare::PAGE,
         }
     }
 }
@@ -59,6 +63,8 @@ pub enum PageState<'a> {
     Diff(DiffPageState<'a>),
     /// The interactive rebase page.
     Rebase(crate::rebase::TodoPageState<'a>),
+    /// A comparison page.
+    Compare(CompareState<'a>),
 }
 
 impl PageState<'_> {
@@ -72,6 +78,7 @@ impl PageState<'_> {
             PageState::Changes(_) => Page::Changes,
             PageState::Diff(diff) => Page::Diff(diff.id),
             PageState::Rebase(_) => Page::Rebase,
+            PageState::Compare(compare) => Page::Compare(compare.id),
         }
     }
 
@@ -84,6 +91,7 @@ impl PageState<'_> {
                 self.page().title()
             }
             PageState::Diff(diff) => diff.title,
+            PageState::Compare(compare) => compare.title,
         }
     }
 }
@@ -119,6 +127,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Changes(changes) => crate::changes::pane(changes, ui),
         PageState::Diff(diff) => diff_page_view(diff, ui),
         PageState::Rebase(rebase) => crate::rebase::todo_page_view(rebase, ui),
+        PageState::Compare(compare) => compare_page_view(compare, ui),
     }));
     intents
 }

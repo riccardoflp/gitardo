@@ -6,6 +6,7 @@
 
 mod changes;
 mod commit_page;
+pub mod compare;
 mod diff_page;
 pub mod feature;
 mod inspector;
@@ -55,6 +56,8 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(commit_page::follow(state));
     effects.extend(diff_page::prune(state));
     effects.extend(diff_page::follow(state));
+    effects.extend(compare::prune(state));
+    effects.extend(compare::follow(state));
     effects.extend(reads::watch(state));
     effects
 }
@@ -93,6 +96,8 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         Message::DetailsRead { job, result } => inspector::details_read(state, job, result),
         Message::CommitPageRead { job, result } => commit_page::page_read(state, job, result),
         Message::DiffRead { job, result } => diff_page::diff_read(state, job, result),
+        Message::ComparisonRead { job, result } => compare::comparison_read(state, job, result),
+        Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, settings),
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
         Message::Wake { at } => reads::wake(state, at),
@@ -288,11 +293,17 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         }
         Intent::Rail(intent) => rail::reduce_rail(state, intent),
         Intent::Filter(intent) => rail::reduce_filter(state, intent),
-        Intent::Graph(intent) => timeline::reduce_graph(state, intent),
+        Intent::Graph(intent) => {
+            if matches!(intent, views::graph::GraphIntent::Select(_)) {
+                state.compares.in_place = None;
+            }
+            timeline::reduce_graph(state, intent)
+        }
         Intent::Search(intent) => search::reduce(state, intent),
         Intent::Details(intent) => inspector::reduce_details(state, intent),
         Intent::CommitPage(id, intent) => commit_page::reduce_page(state, id, intent),
         Intent::Diff(intent) => diff_page::reduce(state, intent),
+        Intent::Compare(intent) => compare::reduce(state, intent),
         Intent::Feature(intent) => feature::reduce(state, intent),
         Intent::Changes(intent) => changes::reduce(state, intent),
         Intent::Rebase(intent) => rebase::reduce(state, intent),

@@ -2,12 +2,14 @@
 //! it asks or the plan it shows first (`preview.confirm`), and what is said once it ended. The engine runs it on a
 //! thread of its own; the store only keeps what the window shows of it, and says what the user answered.
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use engine::LogEntry;
 use model::CommitId;
 use model::contract::{Answer, Answers, Context, FeatureId, FollowUp, Plan, Question, QuestionKind, Target, Text};
 use model::repo::ReadCause;
+use model::state::RepositoryState;
 use views::feature::{FeatureIntent, QuestionState, SaidState};
 use views::text::feature as words;
 
@@ -135,22 +137,36 @@ pub fn reduce(state: &mut State, intent: FeatureIntent) -> Vec<Effect> {
 }
 
 /// Starts an operation on what it was invoked on, with the answers it was given already, in the repository shown,
-/// unless one runs already.
-fn run(state: &mut State, feature: FeatureId, target: Target, preset: Answers) -> Vec<Effect> {
-    if state.operations.running.is_some() {
-        return Vec::new();
-    }
+/// unless one runs already. **Compare branches, tags or commits…** is given the comparisons opened before.
+fn run(state: &mut State, feature: FeatureId, target: Target, mut preset: Answers) -> Vec<Effect> {
     let Some(read) = state.shown_read() else {
         return Vec::new();
     };
+    let repository = (read.folder.clone(), Arc::clone(&read.state));
+    if feature == FeatureId("compare.choose") {
+        let recent = super::compare::recent_of(state, &repository.0);
+        preset.insert(features::compare::RECENT, Answer::Recent(recent));
+    }
+    run_in(state, repository, (feature, target), preset)
+}
+
+/// Starts an operation in a repository as it was last read, unless one runs already.
+pub fn run_in(
+    state: &mut State,
+    (folder, repository): (PathBuf, Arc<RepositoryState>),
+    (feature, target): (FeatureId, Target),
+    preset: Answers,
+) -> Vec<Effect> {
+    if state.operations.running.is_some() {
+        return Vec::new();
+    }
     let context = Context {
-        repository: Arc::clone(&read.state),
+        repository,
         target,
         settings: state.settings.features.clone(),
         // The store reads no clock: the window sets the time when it starts the operation.
         now: model::Timestamp(0),
     };
-    let folder = read.folder.clone();
     state.operations.running = Some(Running { feature, asking: None });
     state.operations.said = None;
     state.is_operation_running = true;
@@ -245,18 +261,12 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
                 found: None,
             });
             let mut effects = reads::asked(state, ReadCause::OperationEnded);
-            for follow_up in after {
-                match (follow_up, state.shown_folder().cloned()) {
-                    (FollowUp::OpenCommitPage(commit), Some(folder)) => {
-                        effects.extend(super::commit_page::open(state, folder, commit));
-                    }
-                    (FollowUp::CopyToClipboard(text), _) => effects.push(Effect::CopyText(text)),
-                    _ => {}
-                }
-            }
+            effects.extend(carry_out(state, after));
+            state.compares.changing = None;
             effects
         }
         Ended::Refused(reason) => {
+            state.compares.changing = None;
             state.operations.said = Some(Said {
                 text: reason.as_str().to_owned(),
                 is_error: true,
@@ -266,7 +276,10 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
             });
             Vec::new()
         }
-        Ended::BackedOut => Vec::new(),
+        Ended::BackedOut => {
+            state.compares.changing = None;
+            Vec::new()
+        }
         Ended::Failed { title, said } => {
             state.operations.said = Some(Said {
                 text: words::failed(&title, &said),
@@ -301,6 +314,25 @@ fn remember_follow_ups(state: &mut State, after: &[FollowUp]) -> Option<String> 
         }
     }
     said
+}
+
+/// What an operation that ran asks of the window after it: a page opened, text on the clipboard, a comparison shown.
+fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
+    let mut effects = Vec::new();
+    for follow_up in after {
+        match (follow_up, state.shown_folder().cloned()) {
+            (FollowUp::OpenCommitPage(commit), Some(folder)) => {
+                effects.extend(super::commit_page::open(state, folder, commit));
+            }
+            (FollowUp::CopyToClipboard(text), _) => effects.push(Effect::CopyText(text)),
+            (FollowUp::OpenComparison(target), _) => effects.extend(super::compare::opened(state, *target)),
+            (FollowUp::CompareInPlace(sides), Some(folder)) => {
+                effects.extend(super::compare::in_place::show(state, folder, *sides));
+            }
+            _ => {}
+        }
+    }
+    effects
 }
 
 /// Once the repository is read again after a pull with `--autostash`, warns when the changes it set aside were left in

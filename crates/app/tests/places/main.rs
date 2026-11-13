@@ -9,6 +9,8 @@ mod bisect;
 mod branches;
 mod changes;
 mod commit_page;
+mod compare;
+mod compare_actions;
 mod diff;
 mod diff_links;
 mod diff_staging;

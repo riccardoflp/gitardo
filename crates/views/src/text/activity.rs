@@ -37,6 +37,8 @@ pub const SHOWING_DETAILS: &str = "Showing the details of a commit";
 pub const OPENING_COMMIT_PAGE: &str = "Opening the page of a commit";
 /// Why the diff of a file is read: a Diff page shows it.
 pub const COMPUTING_DIFF: &str = "Showing the diff of a file";
+/// Why a comparison is read: its page, or the inspector, shows it.
+pub const COMPARING: &str = "Comparing two sides";
 
 /// The title of a read of a repository: `Reading app`.
 #[must_use]

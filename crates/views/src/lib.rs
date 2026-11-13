@@ -19,6 +19,7 @@ mod blocks;
 pub mod branch;
 pub mod changes;
 pub mod commit_page;
+pub mod compare;
 pub mod details;
 pub mod diff;
 pub mod feature;

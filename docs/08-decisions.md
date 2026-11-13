@@ -1056,3 +1056,12 @@ says otherwise):
   **Specified** until its line 3 has a test then; its entries have no date and time, which a pure feature cannot put
   in the local zone. `compare.path-with` is not built: its entry points are the Files and File pages of M6, and it is
   best written with them, on the helpers of `features::compare`. Are these right?
+- **Q-G4** — The comparison page lists the files that differ without their changes: a click opens a file, and **Open
+  in the Diff page** all of them, in the Diff page, so **Show the changes**, the folds, the tree of the files, their
+  context menu (**Compare with…**, which is `details.compare-file-with`) and `Ctrl+F` in the page are not there yet,
+  nor the folding of the two groups of commits; a commit **also in** the other side says so in words, not greyed out.
+  A comparison page and the operations run from it keep the repository of the page as it was last read, so its
+  choices are those of that repository when the window shows another. A page whose side follows a name, or is the
+  working tree, is compared again at every read of its repository, which also moves a branch side that moved. The
+  comparisons opened before are kept in memory, for each repository, not between runs. Selecting another row of the
+  timeline closes the comparison in the inspector. Are these right, and which of the missing parts should come first?

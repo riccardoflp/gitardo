@@ -229,5 +229,6 @@ pub fn details_state<'a>(state: &'a State, selected: Option<SelectedDetails<'a>>
         is_all_files_shown: inspector.is_all_files_shown,
         tree: &inspector.tree,
         folded: &inspector.folded,
+        in_place: super::compare::in_place::in_place_state(state),
     }
 }

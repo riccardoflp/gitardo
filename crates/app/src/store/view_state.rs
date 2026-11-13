@@ -251,6 +251,13 @@ impl ViewData {
                 }),
                 None => Content::Timeline(self.timeline(state)),
             },
+            Some(Page::Compare(id)) => match super::compare::page_state(state, id) {
+                Some(page) => Content::Page(PageHostState {
+                    has_trail: true,
+                    page: PageState::Compare(page),
+                }),
+                None => Content::Timeline(self.timeline(state)),
+            },
             Some(Page::Settings) => Content::Page(PageHostState {
                 has_trail: state.workspace.is_some(),
                 page: PageState::Settings(SettingsPageState {
@@ -281,7 +288,10 @@ impl ViewData {
             Some(Shown::Read(read)) => TimelineState::Repository {
                 rail: Box::new(rail(state, read, self.now)),
                 graph: GraphState::Listed(Box::new(self.history(state, read.state.head.commit.is_none()))),
-                inspector: super::inspector::details_state(state, selected_details(&state.timeline)),
+                inspector: Box::new(super::inspector::details_state(
+                    state,
+                    selected_details(&state.timeline),
+                )),
                 panes: self.panes.sizes,
                 is_rail_hidden: self.panes.is_rail_hidden,
                 bar: state.timeline.shown.as_ref().map(|shown| NarrowedBar {

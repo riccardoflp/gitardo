@@ -62,7 +62,9 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::Search(_)
             | JobKind::ReadDetails { .. }
             | JobKind::ReadCommitPage { .. }
-            | JobKind::ReadDiff { .. } => None,
+            | JobKind::ReadDiff { .. }
+            | JobKind::ReadComparison { .. }
+            | JobKind::ReadInPlace { .. } => None,
         })
         .collect()
 }
@@ -121,35 +123,52 @@ fn answer(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[PathBuf])]
                     folder,
                     read_at: 0,
                 },
-                JobKind::ReadCommits { .. } => Message::CommitsRead {
-                    job,
-                    result: Err(String::from("not read in these tests")),
-                },
-                JobKind::ReadTimeline { .. } => Message::TimelineRead {
-                    job,
-                    result: Ok(CommitPage::default()),
-                },
-                JobKind::Search(_) => Message::Searched {
-                    job,
-                    result: crate::store::search::SearchResult::Matches(Err(String::from("not read in these tests"))),
-                },
-                JobKind::ReadDetails { .. } => Message::DetailsRead {
-                    job,
-                    result: Err(String::from("not read in these tests")),
-                },
-                JobKind::ReadCommitPage { .. } => Message::CommitPageRead {
-                    job,
-                    result: Err(String::from("not read in these tests")),
-                },
-                JobKind::ReadDiff { .. } => Message::DiffRead {
-                    job,
-                    result: crate::work::diff::DiffRead::Failed(String::from("not read in these tests")),
-                },
+                other => not_read(job, &other),
             };
             waiting.extend(reduce(state, message));
         }
     }
     all
+}
+
+/// The answer to a job these tests do not read: a failure, or an empty page of the timeline.
+fn not_read(job: JobId, kind: &JobKind) -> Message {
+    match kind {
+        JobKind::ReadCommits { .. } | JobKind::FindRepositories { .. } | JobKind::ReadRepository { .. } => {
+            Message::CommitsRead {
+                job,
+                result: Err(String::from("not read in these tests")),
+            }
+        }
+        JobKind::ReadTimeline { .. } => Message::TimelineRead {
+            job,
+            result: Ok(CommitPage::default()),
+        },
+        JobKind::Search(_) => Message::Searched {
+            job,
+            result: crate::store::search::SearchResult::Matches(Err(String::from("not read in these tests"))),
+        },
+        JobKind::ReadDetails { .. } => Message::DetailsRead {
+            job,
+            result: Err(String::from("not read in these tests")),
+        },
+        JobKind::ReadCommitPage { .. } => Message::CommitPageRead {
+            job,
+            result: Err(String::from("not read in these tests")),
+        },
+        JobKind::ReadDiff { .. } => Message::DiffRead {
+            job,
+            result: crate::work::diff::DiffRead::Failed(String::from("not read in these tests")),
+        },
+        JobKind::ReadComparison { .. } => Message::ComparisonRead {
+            job,
+            result: Err(String::from("not read in these tests")),
+        },
+        JobKind::ReadInPlace { .. } => Message::InPlaceRead {
+            job,
+            result: Err(String::from("not read in these tests")),
+        },
+    }
 }
 
 /// Opens a folder in a window with no workspace, and answers its jobs.

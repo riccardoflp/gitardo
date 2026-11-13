@@ -45,6 +45,8 @@ pub struct DetailsState<'a> {
     pub tree: &'a [TreeNode],
     /// The directories of the tree folded.
     pub folded: &'a BTreeSet<String>,
+    /// The comparison of two commits shown in place of the card (`compare.in-place`), while it is.
+    pub in_place: Option<crate::compare::InPlaceState<'a>>,
 }
 
 /// The row selected, as the timeline read it.
@@ -124,10 +126,11 @@ pub fn show(state: &DetailsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         "inspector region",
         (card, AccessRole::Complementary, timeline_words::INSPECTOR),
         |ui| {
-            intents = ui.clip(inner, |ui| match state.selected {
-                Some(SelectedDetails::Stash { .. }) => stash(state, ui),
-                Some(_) => rows::card(state, ui, false),
-                None => {
+            intents = ui.clip(inner, |ui| match (&state.in_place, state.selected) {
+                (Some(in_place), _) => crate::compare::in_place(in_place, ui),
+                (None, Some(SelectedDetails::Stash { .. })) => stash(state, ui),
+                (None, Some(_)) => rows::card(state, ui, false),
+                (None, None) => {
                     say(ui, inner, words::NOTHING_SELECTED);
                     Vec::new()
                 }

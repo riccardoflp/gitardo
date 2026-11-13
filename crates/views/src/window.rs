@@ -83,7 +83,7 @@ pub enum TimelineState<'a> {
         /// The commits.
         graph: GraphState<'a>,
         /// The inspector.
-        inspector: DetailsState<'a>,
+        inspector: Box<DetailsState<'a>>,
         /// The sizes of the panes, as dragged.
         panes: PaneSizes,
         /// Whether the branch rail is put away (`graph.toggle-references`).
