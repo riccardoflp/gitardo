@@ -1430,7 +1430,8 @@ answered:
   `${input:…}` is not used until `branch.name-from-format` asks for them. Is this right?
 - **Q276** — `worktree.switch` stays Specified: the question that picks is a list with no box to type in, and its card
   says typing matches the label, the description and the folder. Its description says `<n> not committed` in words where
-  the card has a pencil, since a choice has no icons. Should the pick of Quick search, which has a box, be used?
+  the card has a pencil, since a choice has no icons. Should the pick of Quick search, which has a box, be used? (Built
+  since with a question of its own kind, Q-W7.)
 - **Q277** — `Message::SettingsRead` holds its `Settings` in a `Box`, since the settings of worktrees made it the
   largest message. Is this right?
 - **Q278** — The card of `github.read-pull-requests` named `net::github::…`, a crate that does not exist; the read is
@@ -1486,3 +1487,10 @@ From the cards left over up to M8 (each built with the reading given, until the 
   the working tree, the user's file by its whole path, which the File page reads and saves as it is and leaves out of
   the Changes page. From the settings page it too opens at `worktrees.linkFolders` when that is set. The plan is titled
   *Edit `<path>`* and has no steps unless it makes the repository's file. Are these right?
+- **Q-W7** — `worktree.switch` asks with a new kind of question, `QuestionKind::Search`: the dialog of the window
+  draws a box over the radio buttons, and typing keeps the choices whose label, description or identifier holds what is
+  typed, whatever the case; the identifier of a worktree is its folder, which its description also shows. The dialog
+  keeps the height of every choice while typing, and answers with the choice picked while it is found, or else with the
+  first one found, so `Enter` after typing opens it. The command line answers it as a pick. The choices still have no
+  icons, and no pull request is said until M9 reads them. Is a kind of question of its own right, rather than the pick
+  of Quick search?

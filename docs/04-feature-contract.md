@@ -54,7 +54,7 @@ pub enum Outcome {
 ```rust
 pub struct Question {
     pub key: AnswerKey,
-    pub kind: QuestionKind,   // Text { validate }, Pick { items, allow_custom }, PickMany { items }, Confirm { danger }
+    pub kind: QuestionKind,   // Text { validate }, Pick { items, allow_custom }, Search { items }, PickMany { items }, Confirm { danger }
     pub title: Text,          // "Name of the new branch"
     pub detail: Option<Text>, // Says what will happen with the answer.
     pub default: Option<Answer>,

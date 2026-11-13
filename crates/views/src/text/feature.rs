@@ -39,3 +39,5 @@ pub fn warning(reason: &str) -> String {
         format!("{reason}. {THESE_COMMANDS_RUN}")
     }
 }
+/// What the empty box of a search over the choices of a question shows.
+pub const TYPE_TO_FIND: &str = "Type to find";

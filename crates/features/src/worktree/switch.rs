@@ -39,7 +39,8 @@ pub fn switch(context: &Context, answers: &Answers) -> Outcome {
     }
 }
 
-/// **Switch Worktree**: the worktrees that are not missing, this window's last, then **Create worktree…**.
+/// **Switch Worktree**: the worktrees that are not missing, this window's last, then **Create worktree…**, found by
+/// typing part of their label, of how they stand or of their folder.
 fn question(context: &Context) -> Question {
     let mut worktrees: Vec<&Worktree> = context
         .repository
@@ -63,7 +64,7 @@ fn question(context: &Context) -> Question {
     let default = choices.first().map(|first| Answer::Choice(first.identifier.clone()));
     Question {
         key: PICKED,
-        kind: QuestionKind::Pick { choices },
+        kind: QuestionKind::Search { choices },
         title: Text::from("Switch Worktree"),
         detail: Some(Text::from("The worktree to open")),
         default,
@@ -118,7 +119,7 @@ mod tests {
     #[test]
     fn worktree_switch__the_worktree_of_this_window_is_listed_last_marked_this_window() {
         let asked = question(switch(&with_worktrees(Target::Head), &Answers::new()));
-        let QuestionKind::Pick { choices } = &asked.kind else {
+        let QuestionKind::Search { choices } = &asked.kind else {
             panic!()
         };
         let identifiers: Vec<&str> = choices.iter().map(|choice| choice.identifier.as_str()).collect();

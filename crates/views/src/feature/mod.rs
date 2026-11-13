@@ -83,6 +83,7 @@ pub fn question_view(state: &QuestionState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> 
         QuestionKind::Text { .. }
         | QuestionKind::Secret { .. }
         | QuestionKind::Pick { .. }
+        | QuestionKind::Search { .. }
         | QuestionKind::PickMany { .. } => answer_dialog(state, ui),
         // The dialog of the system answers these, which the window opens in place of one of its own.
         QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => Vec::new(),
@@ -192,36 +193,76 @@ fn answer_body(
         }
         QuestionKind::Pick { choices } | QuestionKind::PickMany { choices } => {
             let is_many = matches!(state.question.kind, QuestionKind::PickMany { .. });
+            let is_on = |choice: &model::contract::Choice| state.picked.contains(&choice.identifier);
+            intents.extend(choice_rows(ui, &mut Area::new(rect), choices.iter(), (&is_on, is_many)));
+        }
+        QuestionKind::Search { choices } => {
             let mut area = Area::new(rect);
-            for choice in choices {
-                let is_on = state.picked.contains(&choice.identifier);
-                let label = choice.label.as_str();
-                let widget = if is_many {
-                    Choice::check_box(label, is_on)
-                } else {
-                    Choice::radio(label, is_on)
-                };
-                let row = area.top(theme.sizes.row_height);
-                if ui.choice(("choice", choice.identifier.as_str()), row, &widget).clicked {
-                    intents.push(Intent::Feature(FeatureIntent::Picked(choice.identifier.clone())));
-                }
-                if let Some(description) = &choice.description {
-                    let line = inset(
-                        area.top(theme.sizes.row_height),
-                        Insets::symmetric(theme.sizes.icon + theme.sizes.spacing.medium, 0.0),
-                    );
-                    let _ = ui.label(
-                        line,
-                        &Label::new(description.as_str())
-                            .kind(TextKind::Detail)
-                            .tone(Tone::Muted),
-                    );
-                }
+            let field = area.top(theme.sizes.control_height);
+            let _gap = area.top(theme.sizes.spacing.medium);
+            if is_opening {
+                let id = ui.id("answer");
+                ui.request_focus(id);
             }
+            let input = InputBox::new(state.typed, words::TYPE_TO_FIND);
+            if let Some(text) = ui.input_box("answer", field, &input).changed_text {
+                intents.push(Intent::Feature(FeatureIntent::Typed(text)));
+            }
+            let chosen = chosen_of(state);
+            let is_on = |choice: &model::contract::Choice| chosen == Some(choice.identifier.as_str());
+            let found = choices.iter().filter(|choice| choice.matches(state.typed));
+            intents.extend(choice_rows(ui, &mut area, found, (&is_on, false)));
         }
         QuestionKind::Confirm { .. } | QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => {}
     }
     intents
+}
+
+/// The choices of a pick, one under the other, each with its description under it: radio buttons, or check boxes for a
+/// question that takes many.
+fn choice_rows<'c>(
+    ui: &mut Ui<'_>,
+    area: &mut Area,
+    choices: impl Iterator<Item = &'c model::contract::Choice>,
+    (is_on, is_many): (&dyn Fn(&model::contract::Choice) -> bool, bool),
+) -> Vec<Intent> {
+    let theme = *ui.theme();
+    let mut intents = Vec::new();
+    for choice in choices {
+        let label = choice.label.as_str();
+        let widget = if is_many {
+            Choice::check_box(label, is_on(choice))
+        } else {
+            Choice::radio(label, is_on(choice))
+        };
+        let row = area.top(theme.sizes.row_height);
+        if ui.choice(("choice", choice.identifier.as_str()), row, &widget).clicked {
+            intents.push(Intent::Feature(FeatureIntent::Picked(choice.identifier.clone())));
+        }
+        if let Some(description) = &choice.description {
+            let line = inset(
+                area.top(theme.sizes.row_height),
+                Insets::symmetric(theme.sizes.icon + theme.sizes.spacing.medium, 0.0),
+            );
+            let _ = ui.label(
+                line,
+                &Label::new(description.as_str())
+                    .kind(TextKind::Detail)
+                    .tone(Tone::Muted),
+            );
+        }
+    }
+    intents
+}
+
+/// The choice a search answers with: the one picked while what is typed finds it, or else the first one found.
+fn chosen_of<'a>(state: &QuestionState<'a>) -> Option<&'a str> {
+    let QuestionKind::Search { choices } = &state.question.kind else {
+        return None;
+    };
+    let mut found = choices.iter().filter(|choice| choice.matches(state.typed));
+    let picked = found.clone().find(|choice| state.picked.contains(&choice.identifier));
+    picked.or_else(|| found.next()).map(|choice| choice.identifier.as_str())
 }
 
 /// The height of the box or of the choices of a question.
@@ -229,15 +270,22 @@ fn answer_height(state: &QuestionState<'_>, ui: &Ui<'_>) -> f32 {
     let sizes = ui.theme().sizes;
     match &state.question.kind {
         QuestionKind::Text { .. } | QuestionKind::Secret { .. } => sizes.control_height + sizes.row_height,
-        QuestionKind::Pick { choices } | QuestionKind::PickMany { choices } => {
-            let rows: usize = choices
-                .iter()
-                .map(|choice| 1 + usize::from(choice.description.is_some()))
-                .sum();
-            crate::line::rows_of(rows) * sizes.row_height
+        QuestionKind::Pick { choices } | QuestionKind::PickMany { choices } => rows_height(choices, sizes.row_height),
+        // The dialog keeps the height of every choice while typing finds fewer.
+        QuestionKind::Search { choices } => {
+            sizes.control_height + sizes.spacing.medium + rows_height(choices, sizes.row_height)
         }
         QuestionKind::Confirm { .. } | QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => 0.0,
     }
+}
+
+/// The height of choices, each with its description under it.
+fn rows_height(choices: &[model::contract::Choice], row_height: f32) -> f32 {
+    let rows: usize = choices
+        .iter()
+        .map(|choice| 1 + usize::from(choice.description.is_some()))
+        .sum();
+    crate::line::rows_of(rows) * row_height
 }
 
 /// The height of a paragraph of the body of a dialog.
@@ -262,6 +310,7 @@ fn can_answer(state: &QuestionState<'_>, problem: Option<&str>) -> bool {
     match &state.question.kind {
         QuestionKind::Text { .. } | QuestionKind::Secret { .. } => problem.is_none(),
         QuestionKind::Pick { .. } => !state.picked.is_empty(),
+        QuestionKind::Search { .. } => chosen_of(state).is_some(),
         QuestionKind::PickMany { .. }
         | QuestionKind::Confirm { .. }
         | QuestionKind::OpenFile(_)
@@ -274,6 +323,7 @@ fn answer_of(state: &QuestionState<'_>) -> Answer {
     match &state.question.kind {
         QuestionKind::Text { .. } | QuestionKind::Secret { .. } => Answer::Text(state.typed.to_owned()),
         QuestionKind::Pick { .. } => Answer::Choice(state.picked.first().cloned().unwrap_or_default()),
+        QuestionKind::Search { .. } => Answer::Choice(chosen_of(state).unwrap_or_default().to_owned()),
         QuestionKind::PickMany { .. } => Answer::Choices(state.picked.to_vec()),
         QuestionKind::Confirm { .. } => Answer::Confirmed,
         QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => Answer::Path(std::path::PathBuf::from(state.typed)),

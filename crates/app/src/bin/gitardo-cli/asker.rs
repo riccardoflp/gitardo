@@ -53,7 +53,7 @@ impl Asker for ArgumentAsker {
 fn answer(kind: &QuestionKind, given: &str) -> Option<Answer> {
     match kind {
         QuestionKind::Text { .. } | QuestionKind::Secret { .. } => Some(Answer::Text(given.to_owned())),
-        QuestionKind::Pick { .. } => Some(Answer::Choice(given.to_owned())),
+        QuestionKind::Pick { .. } | QuestionKind::Search { .. } => Some(Answer::Choice(given.to_owned())),
         QuestionKind::PickMany { .. } => Some(Answer::Choices(
             given
                 .split(',')

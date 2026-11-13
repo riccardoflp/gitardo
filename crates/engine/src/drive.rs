@@ -433,7 +433,7 @@ fn check_answer(question: &Question, answer: &Answer) -> Result<(), EngineError>
         (QuestionKind::Text { validation, .. } | QuestionKind::Secret { validation }, Answer::Text(text)) => {
             validation.problem(text)
         }
-        (QuestionKind::Pick { choices }, Answer::Choice(picked)) => {
+        (QuestionKind::Pick { choices } | QuestionKind::Search { choices }, Answer::Choice(picked)) => {
             (!choices.iter().any(|choice| choice.identifier == *picked))
                 .then(|| Text::from(format!("{picked} is not one of the choices")))
         }

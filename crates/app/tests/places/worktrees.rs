@@ -236,6 +236,54 @@ fn driver_message(driver: &OperationsDriver) -> Message {
 }
 
 #[test]
+fn worktree_switch__typing_part_of_a_folders_path_finds_its_worktree_and_switch_opens_it() {
+    let (repository, login) = with_worktree();
+    let typo = repository
+        .path()
+        .with_file_name("repository.worktrees")
+        .join("fix-typo");
+    let _ = repository.git(&["worktree", "add", "-b", "fix/typo", &typo.to_string_lossy()]);
+    let mut state = showing(repository.path().to_path_buf());
+    let driver = OperationsDriver::new();
+    driver.intent(
+        &mut state,
+        Intent::Feature(FeatureIntent::Run(FeatureId("worktree.switch"), Target::Head)),
+    );
+    assert!(matches!(driver.next(&mut state), Message::FeatureAsks(_)));
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(
+        has(&tree, Role::RadioButton, "fix-typo"),
+        "every worktree is listed before typing"
+    );
+    let (intents, _) = window.draw(&state, &[ui::InputEvent::TextTyped(String::from("feature/LOG"))]);
+    for intent in intents {
+        driver.intent(&mut state, intent);
+    }
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(has(&tree, Role::RadioButton, "feature/login"));
+    assert!(
+        !has(&tree, Role::RadioButton, "fix-typo"),
+        "what is typed is in no part of it"
+    );
+    for intent in window.click(&state, Role::Button, "Switch Worktree") {
+        let effects = run(&mut state, Message::Intent(intent));
+        driver.take(&state, &effects);
+    }
+    let ended = loop {
+        let message = driver_message(&driver);
+        if let Message::FeatureEnded { .. } = &message {
+            break message;
+        }
+    };
+    let effects = run(&mut state, ended);
+    let opened = effects
+        .iter()
+        .any(|effect| matches!(effect, Effect::OpenWindow(opened) if same(opened, &login)));
+    assert!(opened, "{effects:?}");
+}
+
+#[test]
 fn worktree_show_in_graph__a_worktree_on_a_commit_far_down_the_history_is_loaded_and_selected() {
     let repository = super::histories::imported(&super::histories::line(150));
     let first = repository.git(&["rev-list", "--max-parents=0", "HEAD"]);

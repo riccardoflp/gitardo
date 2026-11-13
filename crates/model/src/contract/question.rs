@@ -38,6 +38,12 @@ pub enum QuestionKind {
         /// The choices, in order.
         choices: Vec<Choice>,
     },
+    /// One choice among many, found by typing: a box over the choices keeps those that [`Choice::matches`] what is
+    /// typed.
+    Search {
+        /// The choices, in order.
+        choices: Vec<Choice>,
+    },
     /// Any number of choices, ticked.
     PickMany {
         /// The choices, in order.
@@ -83,6 +89,23 @@ pub struct Choice {
     pub label: Text,
     /// The words beside it: **Stay on the current branch**.
     pub description: Option<Text>,
+}
+
+impl Choice {
+    /// Whether what is typed in the box of a search finds the choice: its label, its description or its identifier
+    /// holds it, whatever the case; nothing typed finds every choice.
+    #[must_use]
+    pub fn matches(&self, typed: &str) -> bool {
+        let typed = typed.trim().to_lowercase();
+        [
+            Some(self.label.as_str()),
+            self.description.as_ref().map(Text::as_str),
+            Some(self.identifier.as_str()),
+        ]
+        .into_iter()
+        .flatten()
+        .any(|text| text.to_lowercase().contains(&typed))
+    }
 }
 
 /// What typed text must be for a question to accept it. A pure rule, so that the box can say what is wrong while the
@@ -172,5 +195,23 @@ fn url_problem(text: &str) -> Option<Text> {
         Some(Text::from("That is not a URL"))
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Choice, Text};
+
+    #[test]
+    fn a_choice_is_found_by_its_label_its_description_or_its_identifier_whatever_the_case() {
+        let choice = Choice {
+            identifier: String::from("/work/app.worktrees/feature/login"),
+            label: Text::from("feature/login"),
+            description: Some(Text::from("2 not committed")),
+        };
+        for typed in ["", "LOGIN", "committed", "app.worktrees", " feature "] {
+            assert!(choice.matches(typed), "{typed}");
+        }
+        assert!(!choice.matches("typo"));
     }
 }

@@ -125,7 +125,7 @@ pub fn question(out: &mut dyn Write, question: &Question) -> io::Result<()> {
             writeln!(out, "  Answer with {key}={example}")?;
         }
         QuestionKind::Secret { .. } => writeln!(out, "  Answer with {key}=<secret>")?,
-        QuestionKind::Pick { choices } | QuestionKind::PickMany { choices } => {
+        QuestionKind::Pick { choices } | QuestionKind::Search { choices } | QuestionKind::PickMany { choices } => {
             writeln!(out, "  Answer with one of:")?;
             for choice in choices {
                 writeln!(out, "    {key}={}  {}", choice.identifier, choice.label)?;
