@@ -223,3 +223,40 @@ fn a_splitter_moves_with_a_drag_within_its_least_sizes_and_a_double_click_resets
     let (answer, _) = window.frame(&click_with(100.0, 50.0, Modifiers::NONE, 2), splitter);
     assert_eq!(answer.size, 200.0);
 }
+
+#[test]
+fn an_input_box_that_hides_what_is_typed_gives_the_text_to_its_view_and_nothing_to_the_clipboard() {
+    let hidden = |text: &str| {
+        let text = text.to_owned();
+        move |ui: &mut Ui<'_>| {
+            let input = InputBox::new(&text, "Token").hidden();
+            ui.input_box("token", Rect::new(10.0, 10.0, 300.0, 26.0), &input)
+        }
+    };
+    let mut window = Window::new(ThemeName::Dark, (400, 100), 1);
+    let _ = window.frame(&[], hidden(""));
+    let _ = window.frame(&click(100.0, 20.0), hidden(""));
+    let (answer, _) = window.frame(&[typed("secret")], hidden(""));
+    assert_eq!(answer.changed_text.as_deref(), Some("secret"));
+    let (_, output) = window.frame(
+        &[shortcut('a', Modifiers::CONTROL), shortcut('c', Modifiers::CONTROL)],
+        hidden("secret"),
+    );
+    assert_eq!(
+        output.clipboard, None,
+        "nothing is copied from a box that hides what is typed"
+    );
+    let mut shown = Window::new(ThemeName::Dark, (400, 100), 1);
+    let plain = |ui: &mut Ui<'_>| {
+        let input = InputBox::new("secret", "Token");
+        ui.input_box("token", Rect::new(10.0, 10.0, 300.0, 26.0), &input)
+    };
+    let _ = shown.frame(&[], plain);
+    let mut dotted = Window::new(ThemeName::Dark, (400, 100), 1);
+    let _ = dotted.frame(&[], hidden("secret"));
+    assert_ne!(
+        shown.frame.to_rgba(),
+        dotted.frame.to_rgba(),
+        "the dots are drawn in place of the text"
+    );
+}

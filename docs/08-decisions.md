@@ -1557,3 +1557,7 @@ From the cards left over up to M8 (each built with the reading given, until the 
 - **Q-X15** — The diff of `commit.draft-message` is read on the thread of the question, with git, before the request;
   a draft refused by the provider or failed is said in the message of the window, as the failure of an operation is.
   Is this right?
+- **Q-Y1** — Q281 is answered in this slice: an input box of the toolkit hides what is typed when its view asks
+  (`InputBox::hidden`), drawing a dot for each character, telling the screen reader the dots, and copying nothing
+  from it; a question of kind `QuestionKind::Secret` asks for such a box. Cutting from it still takes the text out of
+  the box, without putting it on the clipboard. Is this right?

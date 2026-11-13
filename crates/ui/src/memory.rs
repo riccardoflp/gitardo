@@ -33,6 +33,8 @@ pub(crate) struct InputBoxState {
     pub(crate) scroll: f32,
     /// When the text or the caret last changed, so that the caret shows at once and blinks after.
     pub(crate) changed_at: Duration,
+    /// Whether the box hides what is typed, as its view said in the last frame.
+    pub(crate) is_hidden: bool,
 }
 
 /// The state of a scroll area between frames.

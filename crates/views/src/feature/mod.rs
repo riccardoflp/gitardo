@@ -168,28 +168,7 @@ fn answer_body(
     let mut intents = Vec::new();
     match &state.question.kind {
         QuestionKind::Text { .. } | QuestionKind::Secret { .. } => {
-            let placeholder = match &state.question.kind {
-                QuestionKind::Text {
-                    placeholder: Some(placeholder),
-                    ..
-                } => placeholder.as_str(),
-                _ => "",
-            };
-            let mut input = InputBox::new(state.typed, placeholder);
-            if let Some(problem) = problem {
-                input = input.with_message(Message {
-                    text: problem,
-                    severity: Severity::Error,
-                });
-            }
-            if is_opening {
-                let id = ui.id("answer");
-                ui.request_focus(id);
-            }
-            let field = Area::new(rect).top(theme.sizes.control_height);
-            if let Some(text) = ui.input_box("answer", field, &input).changed_text {
-                intents.push(Intent::Feature(FeatureIntent::Typed(text)));
-            }
+            intents.extend(text_box(state, problem, ui, (rect, is_opening)));
         }
         QuestionKind::Pick { choices } | QuestionKind::PickMany { choices } => {
             let is_many = matches!(state.question.kind, QuestionKind::PickMany { .. });
@@ -263,6 +242,39 @@ fn chosen_of<'a>(state: &QuestionState<'a>) -> Option<&'a str> {
     let mut found = choices.iter().filter(|choice| choice.matches(state.typed));
     let picked = found.clone().find(|choice| state.picked.contains(&choice.identifier));
     picked.or_else(|| found.next()).map(|choice| choice.identifier.as_str())
+}
+
+/// The box of a question answered with text: one that hides what is typed for a secret.
+fn text_box(
+    state: &QuestionState<'_>,
+    problem: Option<&str>,
+    ui: &mut Ui<'_>,
+    (rect, is_opening): (Rect, bool),
+) -> Option<Intent> {
+    let placeholder = match &state.question.kind {
+        QuestionKind::Text {
+            placeholder: Some(placeholder),
+            ..
+        } => placeholder.as_str(),
+        _ => "",
+    };
+    let mut input = InputBox::new(state.typed, placeholder);
+    if matches!(state.question.kind, QuestionKind::Secret { .. }) {
+        input = input.hidden();
+    }
+    if let Some(problem) = problem {
+        input = input.with_message(Message {
+            text: problem,
+            severity: Severity::Error,
+        });
+    }
+    if is_opening {
+        let id = ui.id("answer");
+        ui.request_focus(id);
+    }
+    let field = Area::new(rect).top(ui.theme().sizes.control_height);
+    let text = ui.input_box("answer", field, &input).changed_text?;
+    Some(Intent::Feature(FeatureIntent::Typed(text)))
 }
 
 /// The height of the box or of the choices of a question.

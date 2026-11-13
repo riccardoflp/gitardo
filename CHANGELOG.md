@@ -327,3 +327,5 @@
   when something is staged, otherwise from every change with the new files named, in the style of the last 10
   subjects. The answer takes the place of the text of the box; while it is written, the Activity drawer says
   **drafting commit message** and the sparkle becomes a button that stops it, leaving the box as it was.
+- A box that asks for a token hides what is typed in it: a dot stands for each character, and nothing is copied from
+  it.

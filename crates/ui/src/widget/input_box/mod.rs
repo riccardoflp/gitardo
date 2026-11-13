@@ -61,6 +61,9 @@ pub struct InputBox<'text> {
     pub icon: Option<Icon>,
     /// The keys that bring the keyboard to the box, shown at its right end, such as `Ctrl K`.
     pub key_hint: Option<&'text str>,
+    /// Whether what is typed is hidden, as a token is: a dot stands for each character, the screen reader is told the
+    /// dots, and nothing is copied from it.
+    pub is_hidden: bool,
 }
 
 impl<'text> InputBox<'text> {
@@ -73,6 +76,7 @@ impl<'text> InputBox<'text> {
             message: None,
             icon: None,
             key_hint: None,
+            is_hidden: false,
         }
     }
 
@@ -102,6 +106,28 @@ impl<'text> InputBox<'text> {
             ..self
         }
     }
+
+    /// The same box hiding what is typed in it.
+    #[must_use]
+    pub fn hidden(self) -> InputBox<'text> {
+        InputBox {
+            is_hidden: true,
+            ..self
+        }
+    }
+}
+
+/// What a box that hides what is typed shows for each character.
+const HIDDEN: char = '\u{2022}';
+
+/// What a box shows of its text: the text, or a dot for each character when it hides it.
+fn shown_text(state: &InputBoxState) -> std::borrow::Cow<'_, str> {
+    let text = state.line.text();
+    if state.is_hidden {
+        std::borrow::Cow::Owned(text.chars().map(|_| HIDDEN).collect())
+    } else {
+        std::borrow::Cow::Borrowed(text)
+    }
 }
 
 /// What an input box tells its view.
@@ -122,6 +148,7 @@ impl Ui<'_> {
         let (response, events) = self.interact_with_events(id, rect, Sense::CLICK | Sense::DRAG | Sense::FOCUS);
         let mut state = self.memory().input_boxes.remove(&id).unwrap_or_default();
         take_given_text(&mut state, input.text);
+        state.is_hidden = input.is_hidden;
         let style = self.text_style(TextKind::Body);
         let inner = self.inner_rect(rect, input);
         let before = (state.line.text().to_owned(), state.line.selection(), state.line.caret());
@@ -145,7 +172,8 @@ impl Ui<'_> {
         } else {
             AccessRole::TextInput
         };
-        let description = Description::new(role, input.placeholder).value(state.line.text());
+        let shown = shown_text(&state);
+        let description = Description::new(role, input.placeholder).value(&shown);
         self.access_node(id, rect, &description);
         let _ = self.memory().input_boxes.insert(id, state);
         InputBoxResponse {
@@ -206,7 +234,7 @@ impl Ui<'_> {
                     self.claim_key(id, key);
                 }
                 let outcome = keys::apply_key(&mut state.line, key);
-                if let Some(copied) = outcome.copied {
+                if let Some(copied) = outcome.copied.filter(|_| !state.is_hidden) {
                     self.copy_to_clipboard(copied);
                 }
                 return outcome.is_submitted;
@@ -250,28 +278,34 @@ impl Ui<'_> {
         let text = state.line.text();
         let wanted = x - inner.x + state.scroll;
         let boundaries: Vec<usize> = text.char_indices().map(|(at, _)| at).chain([text.len()]).collect();
-        let after = boundaries.partition_point(|at| self.prefix_width(text, *at, style) < wanted);
+        let after = boundaries.partition_point(|at| self.prefix_width(state, *at, style) < wanted);
         let Some(&next) = boundaries.get(after) else {
             return text.len();
         };
         let Some(&previous) = after.checked_sub(1).and_then(|before| boundaries.get(before)) else {
             return next;
         };
-        let to_previous = wanted - self.prefix_width(text, previous, style);
-        let to_next = self.prefix_width(text, next, style) - wanted;
+        let to_previous = wanted - self.prefix_width(state, previous, style);
+        let to_next = self.prefix_width(state, next, style) - wanted;
         if to_previous <= to_next { previous } else { next }
     }
 
-    /// The width of the text before a position.
-    fn prefix_width(&self, text: &str, position: usize, style: TextStyle) -> f32 {
-        self.measure(text.get(..position).unwrap_or_default(), style)
+    /// The width of what the box shows of its text before a position: the dots of the characters before it, in a box
+    /// that hides what is typed.
+    fn prefix_width(&self, state: &InputBoxState, position: usize, style: TextStyle) -> f32 {
+        let before = state.line.text().get(..position).unwrap_or_default();
+        if state.is_hidden {
+            let dots: String = before.chars().map(|_| HIDDEN).collect();
+            self.measure(&dots, style)
+        } else {
+            self.measure(before, style)
+        }
     }
 
     /// Scrolls the text across the least that keeps the caret in sight, and no further than its end.
     fn keep_caret_in_sight(&self, state: &mut InputBoxState, (style, inner): (TextStyle, Rect)) {
-        let text = state.line.text();
-        let caret = self.prefix_width(text, state.line.caret(), style);
-        let whole = self.measure(text, style);
+        let caret = self.prefix_width(state, state.line.caret(), style);
+        let whole = self.prefix_width(state, state.line.text().len(), style);
         let caret_width = self.theme().sizes.border;
         let mut scroll = state.scroll;
         if caret - scroll < 0.0 {
@@ -307,20 +341,20 @@ impl Ui<'_> {
         let inner = self.inner_rect(rect, input);
         let line_height = self.line_height(style);
         let line = place(inner, (inner.width, line_height), (Align::Start, Align::Center));
-        let text = state.line.text();
+        let text = shown_text(state);
         let origin = Point::new(inner.x - state.scroll, line.y);
         self.clip(inner, |ui| {
             let selection = state.line.selection();
             if !selection.is_empty() {
-                let start = ui.prefix_width(text, selection.start, style);
-                let end = ui.prefix_width(text, selection.end, style);
+                let start = ui.prefix_width(state, selection.start, style);
+                let end = ui.prefix_width(state, selection.end, style);
                 let shown = Rect::new(origin.x + start, line.y, end - start, line_height);
                 ui.fill_rect(shown, colors.text_selection);
             }
             let (shown, color) = if text.is_empty() {
                 (input.placeholder, colors.input_placeholder)
             } else {
-                (text, colors.input_foreground)
+                (text.as_ref(), colors.input_foreground)
             };
             let run = TextRun {
                 text: shown,
@@ -378,7 +412,7 @@ impl Ui<'_> {
         let phases = crate::number::steps(since.as_millis(), BLINK.as_millis());
         let next = state.changed_at + BLINK * u32::try_from(phases + 1).unwrap_or(u32::MAX);
         self.request_frame_at(next);
-        let x = origin.x + self.prefix_width(state.line.text(), state.line.caret(), self.text_style(TextKind::Body));
+        let x = origin.x + self.prefix_width(state, state.line.caret(), self.text_style(TextKind::Body));
         let caret = Rect::new(x, origin.y, self.theme().sizes.border, height);
         self.set_caret(caret);
         if phases.is_multiple_of(2) {
