@@ -19,6 +19,7 @@ pub mod diff;
 pub mod file_history;
 pub mod file_view;
 pub mod fixup;
+pub mod github;
 mod history;
 pub mod identity;
 pub mod merge;
@@ -49,7 +50,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 150] = [
+pub const OPERATIONS: [(FeatureId, Operation); 151] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -233,6 +234,8 @@ pub const OPERATIONS: [(FeatureId, Operation); 150] = [
     (FeatureId("blame.reveal-line-commit"), blame::reveal_line_commit),
     (FeatureId("blame.toggle-current-line"), blame::toggle_current_line),
     (FeatureId("blame.toggle-file"), blame::toggle_file),
+    // GitHub.
+    (FeatureId("github.load-pull-requests"), github::load_pull_requests),
 ];
 
 /// The operation of an identifier, when it is built.
