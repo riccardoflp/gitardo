@@ -1,10 +1,12 @@
 //! What new worktrees get from the checkout: the things git ignores there, and what the link and copy patterns take.
 
 mod patterns;
+mod settings;
 
 pub use patterns::{
     CopyInput, LinkInput, PatternTake, SetupPreview, folders_holding_matches, folders_to_link, paths_to_copy,
 };
+pub use settings::{InEffect, Places, SettingSource, SettingsInput, SetupSettings, settings_in_effect};
 
 /// How many files of a folder are counted before its size is said to be more.
 pub const FOLDER_FILES_COUNTED: usize = 5_000;
