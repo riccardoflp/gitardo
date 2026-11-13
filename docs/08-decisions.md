@@ -1048,7 +1048,7 @@ says otherwise):
   the window, so the Undo of a patch of commits at once is in the window only; `gitardo-cli` undoes it one commit at a
   time by the reflog. `patch.am-stopped` is now **Built**: the banner of an operation stopped on a conflict
   (`conflicts.banner`) draws it through `views::patch::am_stopped` while `git am` is under way, and the Merge page
-  names its sides; it takes the `BannerState` of the banner, as no `OperationState` exists (Q-P6). Are these right?
+  names its sides; it takes the `BannerState` of the banner, as no `OperationState` exists (Q240). Are these right?
 - **Q182** — The questions of a side of a comparison are the window's own pick: its choices carry no group heading
   (**Opened before**, **Branches**…), since a choice has none, and a revision typed is checked only once accepted, not
   while typing. The comparisons opened before are given to `compare.choose` by the window before it asks
@@ -1126,7 +1126,7 @@ says otherwise):
   (`model::merge_view::result_line`). A page closed with choices not saved shows them in the File page, not saved, at
   the line of its cursor or of the region gone to. The function of `merge-view.close` is
   `app::store::merge_page::lines::closed`, not a view: a page is closed by the store, which forgets it, and there is
-  nothing for a view to draw (Q-P3).
+  nothing for a view to draw (Q237).
 - **Q196** — The page refuses a file not in conflict with a version on each side with *This file is not in conflict
   with a change on each side.*, without the name of the file, since a notice of the window holds no text of its own;
   the card of `merge-view.page` now says so. Should notices take a text, so that this one, and others, can name what
@@ -1216,7 +1216,7 @@ says otherwise):
   from **Open the file at this revision** on a file of a commit. **Save all** on Changes now runs `changes.save`
   (**Built**), given the texts of the File pages with edits not saved (`Target::FileSaves`); **Save** on a row still
   saves the File page of that file through `file-view.save`, which asks before writing over a file changed on disk
-  (Q-P5). Are these right?
+  (Q239). Are these right?
 - **Q217** — `file-view.save` logs the path on disk, `write C:\…\src\app.rs`, not `write src/app.rs`, since the step
   writes where the path names; is the path from the top of the repository wanted in the log instead?
 - **Q218** — **Open in external editor** refuses with the engine's own words when the command fails to start, and a
@@ -1267,29 +1267,29 @@ says otherwise):
   whole folder. A pencil icon is added to the toolkit for the files not committed. Is this right?
 - **Q234** — The marks of `submodule.status` are drawn as the number then its arrow, `2↑ 1↓`, as its card writes them,
   where the branches of the rail write `↑1 ↓2`. Should they agree, and which way?
-- **Q-P1** — The review of the conflicts opens from a file in conflict on the Changes page by a new icon, a wand
+- **Q235** — The review of the conflicts opens from a file in conflict on the Changes page by a new icon, a wand
   (`Icon::Wand`), drawn only while `conflicts.autoResolve` is on, with *Resolve its conflicts automatically, after
   looking at what is proposed* as its tooltip; the sparkle stays the AI's. Is the wand right, and should it be there
   with `conflicts.autoResolve` off too?
-- **Q-P2** — On the Merge page a click on a line of any column puts the cursor on it, marked with the color of a
+- **Q236** — On the Merge page a click on a line of any column puts the cursor on it, marked with the color of a
   selection; `F4` with no cursor takes the first line of the region gone to (`F7`), or the first line. Taking a side
   does not make its region the one gone to. Is that right?
-- **Q-P3** — The function of `merge-view.close` is `app::store::merge_page::lines::closed`, in the store, not
+- **Q237** — The function of `merge-view.close` is `app::store::merge_page::lines::closed`, in the store, not
   `views::merge_view::close_view`: a page is closed by the store when it leaves the open pages, and nothing is drawn
   for it. A page closed by **Mark as resolved**, or because its file is no longer in conflict, hands nothing over. Is
   that right?
-- **Q-P4** — With choices not saved, `F4`, **Jump to source** and closing the page give the File page the result as
+- **Q238** — With choices not saved, `F4`, **Jump to source** and closing the page give the File page the result as
   one edit not saved, which `Ctrl+Z` there takes back; the Merge page, when it stays open, keeps its own text, so the
   two hold copies that do not follow each other until one is saved and the other reads the disk again. Should the two
   pages share one text instead (Q194)?
-- **Q-P5** — `changes.save` writes every file given without reading it first, as its card asks nothing: **Save all**
+- **Q239** — `changes.save` writes every file given without reading it first, as its card asks nothing: **Save all**
   writes over a file another program changed since its page read it, where **Save** on a row and `Ctrl+S`
   (`file-view.save`) ask **Overwrite** first. Should `changes.save` read the files and ask the same, which needs a
   query that reads several files at once?
-- **Q-P6** — `patch.am-stopped` is the banner of every operation that stopped (`conflicts.banner`), drawn through
+- **Q240** — `patch.am-stopped` is the banner of every operation that stopped (`conflicts.banner`), drawn through
   `views::patch::am_stopped` while `git am` is under way; it adds nothing of its own, since what the card asks of
   the banner, the commands and the names of the sides were already there. Its signature takes `&BannerState`, not an
   `OperationState`, which does not exist. Should the banner of a patch say more, such as the subject of the commit
   that stopped?
-- **Q-P7** — `compare.path-with` is still not built: its entry points are in the Files page, which does not exist
+- **Q241** — `compare.path-with` is still not built: its entry points are in the Files page, which does not exist
   yet. Is it right to leave it for the Files page?
