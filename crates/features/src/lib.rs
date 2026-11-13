@@ -40,6 +40,7 @@ pub mod submodule;
 pub mod sync;
 pub mod tag;
 pub mod undo;
+pub mod worktree;
 pub mod worktree_setup;
 
 #[cfg(test)]
@@ -48,7 +49,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 133] = [
+pub const OPERATIONS: [(FeatureId, Operation); 149] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -182,6 +183,23 @@ pub const OPERATIONS: [(FeatureId, Operation); 133] = [
     (FeatureId("submodule.sync-urls"), submodule::sync_urls),
     (FeatureId("submodule.update-to-latest"), submodule::update_to_latest),
     (FeatureId("submodule.update-to-recorded"), submodule::update_to_recorded),
+    // Worktrees.
+    (FeatureId("worktree.copy-path"), worktree::copy_path),
+    (FeatureId("worktree.create"), worktree::create),
+    (FeatureId("worktree.create-at-commit"), worktree::create_at_commit),
+    (FeatureId("worktree.create-from-branch"), worktree::create_from_branch),
+    (FeatureId("worktree.open"), worktree::open),
+    (FeatureId("worktree.open-in-editor"), worktree::open_in_editor),
+    (FeatureId("worktree.open-in-new-window"), worktree::open_in_new_window),
+    (FeatureId("worktree.open-in-terminal"), worktree::open_in_terminal),
+    (FeatureId("worktree.open-in-worktree"), worktree::open_in_worktree),
+    (FeatureId("worktree.prune"), worktree::prune),
+    (FeatureId("worktree.remove"), worktree::remove),
+    (FeatureId("worktree.rename"), worktree::rename),
+    (FeatureId("worktree.reveal"), worktree::reveal),
+    (FeatureId("worktree.show-in-gitardo"), worktree::show_in_gitardo),
+    (FeatureId("worktree.show-in-graph"), worktree::show_in_graph),
+    (FeatureId("worktree.switch"), worktree::switch),
     // What new worktrees get.
     (
         FeatureId("worktree-setup.bring-into-other-worktrees"),

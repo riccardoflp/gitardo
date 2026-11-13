@@ -244,6 +244,18 @@ pub enum Query {
     CommittedLines(Box<crate::file_history::CommittedLinesQuery>),
     /// Who last changed each line of a file (`blame.read-file`). The answer is [`super::Answer::Blame`].
     Blame(Box<crate::blame::BlameQuery>),
+    /// Whether something is at a path on disk, a file, a folder or a link (`worktree.create`). The answer is
+    /// [`super::Answer::Flag`].
+    PathExists {
+        /// The path.
+        path: std::path::PathBuf,
+    },
+    /// The links in a worktree to folders outside it, which git on Windows would empty when it removes the worktree
+    /// (`worktree.read-folder-links`). The answer is [`super::Answer::Paths`].
+    FolderLinks {
+        /// The top folder of the worktree.
+        worktree: std::path::PathBuf,
+    },
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

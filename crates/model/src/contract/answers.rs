@@ -92,6 +92,8 @@ pub enum Answer {
     CommittedLines(crate::file_history::CommittedLines),
     /// Who last changed each line of a file, or none when git has no blame for it (`blame.read-file`).
     Blame(Option<Vec<Option<crate::blame::BlameLine>>>),
+    /// Paths read: the links in a worktree to folders outside it.
+    Paths(Vec<std::path::PathBuf>),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).
@@ -226,6 +228,15 @@ impl Answers {
         match self.get(key)? {
             Answer::Counts { left, right } => Some((*left, *right)),
             _ => None, // Any other kind of answer is no counts.
+        }
+    }
+
+    /// The paths read under a key.
+    #[must_use]
+    pub fn paths(&self, key: AnswerKey) -> Option<&[std::path::PathBuf]> {
+        match self.get(key)? {
+            Answer::Paths(paths) => Some(paths),
+            _ => None, // Any other kind of answer is no paths.
         }
     }
 

@@ -89,6 +89,14 @@ pub const FILE_BLAME_AGE_RECENT_COLOR: &str = "fileBlame.age.recentColor";
 pub const FILE_BLAME_AGE_OLD_COLOR: &str = "fileBlame.age.oldColor";
 /// `fileBlame.age.oldAfterDays`.
 pub const FILE_BLAME_AGE_OLD_AFTER_DAYS: &str = "fileBlame.age.oldAfterDays";
+/// `terminal.external`.
+pub const EXTERNAL_TERMINAL: &str = "terminal.external";
+/// `worktrees.folder`.
+pub const WORKTREES_FOLDER: &str = "worktrees.folder";
+/// `worktrees.openIn`.
+pub const WORKTREES_OPEN_IN: &str = "worktrees.openIn";
+/// The values of `worktrees.openIn`: where a worktree opens.
+pub const WORKTREES_OPEN_INS: [&str; 3] = ["window", "editor", "terminal"];
 
 /// The default of `font.ui`: the font of the interface that comes with the program.
 pub const INTERFACE_FONT: &str = "Inter";

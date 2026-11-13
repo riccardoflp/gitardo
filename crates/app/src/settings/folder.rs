@@ -30,6 +30,14 @@ pub fn configuration_folder() -> Option<PathBuf> {
     }
 }
 
+/// The home folder of the user, for a `~` at the start of `worktrees.folder`: `%USERPROFILE%` on Windows, `$HOME`
+/// elsewhere; none when the environment does not say.
+#[must_use]
+pub fn home_folder() -> Option<PathBuf> {
+    let name = if cfg!(windows) { "USERPROFILE" } else { "HOME" };
+    env::var_os(name).filter(|value| !value.is_empty()).map(PathBuf::from)
+}
+
 /// The user's settings file, in Gitardo's folder.
 #[must_use]
 pub fn user_settings_file(configuration: &Path) -> PathBuf {

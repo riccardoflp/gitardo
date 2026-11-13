@@ -12,6 +12,7 @@ mod clock;
 mod drive;
 mod error;
 mod history;
+mod held;
 pub mod log;
 mod preview;
 mod queries;

@@ -1,6 +1,28 @@
-//! Worktrees: where a new one goes, and how the views name one.
+//! Worktrees: where a new one goes, how the views name one, what a name typed for one must be, what is done when
+//! Windows holds its folder, the folders left empty after it, and a branch another worktree has.
+
+mod branch_of;
+mod empty_folders;
+mod held;
+mod name;
 
 use std::path::{Path, PathBuf};
+
+pub use branch_of::{OtherWorktreeInput, WorktreeBranch, branch_in_another_worktree};
+pub use empty_folders::{EmptyFoldersInput, remove_empty_folders};
+pub use held::{
+    DELETE_TRIES, DELETING_LEFT, HeldInput, MOVE_TRIES, MOVE_WAIT, Recovery, TRIED_AGAIN, delete_wait,
+    recover_held_folder,
+};
+pub use name::{FolderBase, WorktreeNameRule, is_listed};
+
+/// The answer of `worktree.remove` that says whether the branch goes too: [`KEEP_BRANCH`] or [`DELETE_BRANCH`]. The
+/// entries **Remove worktree…** and **Remove worktree and delete branch…** of the menu of a branch give it.
+pub const REMOVE_BRANCH: crate::contract::AnswerKey = crate::contract::AnswerKey("branch");
+/// The choice that keeps the branch of a worktree removed.
+pub const KEEP_BRANCH: &str = "keep";
+/// The choice that deletes the branch of a worktree removed, if it is merged.
+pub const DELETE_BRANCH: &str = "delete";
 
 /// The folder of the worktrees when `worktrees.folder` is empty.
 pub const DEFAULT_FOLDER: &str = "${repo}.worktrees";
@@ -96,9 +118,16 @@ fn folder_part(part: &str) -> String {
 /// Feature: worktree.folder-path
 #[must_use]
 pub fn folder_path(input: &FolderInput<'_>) -> PathBuf {
-    let folder = worktrees_folder(input.setting, input.main_worktree, input.home);
-    let parts: Vec<String> = input
-        .name
+    folder_in(
+        &worktrees_folder(input.setting, input.main_worktree, input.home),
+        input.name,
+    )
+}
+
+/// The folder a name gives inside the folder of the worktrees, already worked out from the setting.
+#[must_use]
+pub fn folder_in(folder: &str, name: &str) -> PathBuf {
+    let parts: Vec<String> = name
         .replace('\\', "/")
         .split('/')
         .map(folder_part)
@@ -132,81 +161,4 @@ pub fn worktree_label(worktrees_folder: &str, worktree: &Path) -> String {
 
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
-mod tests {
-    use std::path::Path;
-
-    use super::{FolderInput, folder_path, worktree_label, worktrees_folder};
-
-    fn folder(setting: &str, name: &str) -> String {
-        folder_path(&FolderInput {
-            setting,
-            main_worktree: Path::new("/home/someone/code/app"),
-            home: Path::new("/home/someone"),
-            name,
-        })
-        .to_string_lossy()
-        .replace('\\', "/")
-    }
-
-    #[test]
-    fn worktree_folder_path__every_example_of_the_table() {
-        let cases = [
-            ("", "fix-login", "/home/someone/code/app.worktrees/fix-login"),
-            ("", "feature/login", "/home/someone/code/app.worktrees/feature/login"),
-            (
-                "../trees/${repo}",
-                "feature/login",
-                "/home/someone/trees/app/feature/login",
-            ),
-            ("~/wt", "fix: the #42 bug", "/home/someone/wt/fix-the-42-bug"),
-            ("D:/wt", "../escape", "D:/wt/escape"),
-            ("", "...", "/home/someone/code/app.worktrees/worktree"),
-            ("D:\\wt\\", "a", "D:/wt/a"),
-        ];
-        for (setting, name, expected) in cases {
-            assert_eq!(folder(setting, name), expected, "{setting} {name}");
-        }
-    }
-
-    #[test]
-    fn worktree_folder_path__from_another_worktree_it_is_beside_the_main_one() {
-        // The main worktree is given whichever worktree asks: a worktree's own folder is never the base.
-        let from_main = worktrees_folder("", Path::new("/home/someone/code/app"), Path::new("/home/someone"));
-        assert_eq!(from_main, "/home/someone/code/app.worktrees");
-    }
-
-    #[test]
-    fn worktree_folder_path__no_name_leaves_the_folder_of_the_worktrees() {
-        let base = "/home/someone/code/app.worktrees/";
-        for name in [
-            "../../etc",
-            "..",
-            "a/../../b",
-            "/abs/olute",
-            "C:\\x",
-            "~/home",
-            "a/./b",
-            "\u{e9}t\u{e9}/..",
-            "",
-        ] {
-            let found = folder("", name);
-            assert!(found.starts_with(base), "{name} gave {found}");
-            assert!(
-                !found[base.len()..].split('/').any(|part| part == ".." || part == "."),
-                "{name} gave {found}"
-            );
-        }
-        assert_eq!(folder("", &"x".repeat(80)).len(), base.len() + 60);
-    }
-
-    #[test]
-    fn worktree_folder_path__the_label_is_the_path_inside_the_folder_of_the_worktrees() {
-        let worktrees = "D:/Code/App.worktrees";
-        assert_eq!(
-            worktree_label(worktrees, Path::new("d:/code/app.worktrees/feature/login")),
-            "feature/login"
-        );
-        assert_eq!(worktree_label(worktrees, Path::new("D:\\elsewhere\\hotfix")), "hotfix");
-        assert_eq!(worktree_label(worktrees, Path::new("D:/Code/App.worktrees-old/x")), "x");
-    }
-}
+mod tests;

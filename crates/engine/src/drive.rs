@@ -228,6 +228,7 @@ impl Engine {
                 Ok(steps) => steps,
                 Err(mut failure) => {
                     failure.plan = plan.title.to_string();
+                    failure.on_failure = for_the_window(&plan.on_failure, &failure);
                     if matches!(&plan.undo, Undo::Journal(record) if record.holds_after_a_stop()) {
                         let _state_after = self.after_plan(&plan, context);
                     }
@@ -431,4 +432,25 @@ fn check_answer(question: &Question, answer: &Answer) -> Result<(), EngineError>
         }),
         None => Ok(()),
     }
+}
+
+/// The follow-ups of a plan that failed which the window carries out: the operations offered for what was said, those
+/// with no words to look for whatever was said, and any other the window does. What the engine did itself, getting
+/// past the stop or deleting the files of a rebase, is not among them.
+fn for_the_window(on_failure: &[FollowUp], failure: &StepFailure) -> Box<[FollowUp]> {
+    if failure.cancelled {
+        return Box::default();
+    }
+    let said = failure.said.to_lowercase();
+    on_failure
+        .iter()
+        .filter(|follow_up| match follow_up {
+            FollowUp::Recover(_) | FollowUp::DeleteWhenRebaseEnded(_) | FollowUp::Cleanup(_) => false,
+            FollowUp::OfferRun(offer) => {
+                offer.when_said.is_empty() || offer.when_said.iter().any(|words| said.contains(&words.to_lowercase()))
+            }
+            _ => true, // The window carries out the others as it does after a plan.
+        })
+        .cloned()
+        .collect()
 }

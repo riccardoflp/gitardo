@@ -110,6 +110,8 @@ pub enum Validation {
         /// The folders of the submodules, from the root of the repository.
         submodules: Vec<String>,
     },
+    /// The name of a worktree and of its folder, with where the folder goes said while it is typed (`worktree.`).
+    WorktreeName(Box<crate::worktree::WorktreeNameRule>),
 }
 
 impl Validation {
@@ -134,6 +136,23 @@ impl Validation {
             Validation::Required(message) => text.trim().is_empty().then(|| message.clone()),
             Validation::OptionalReferenceName => (!text.trim().is_empty()).then(|| validate_name(text.trim()))?,
             Validation::SubmoduleFolder { submodules } => crate::submodule::folder_problem(text, submodules),
+            Validation::WorktreeName(rule) => rule.problem(text),
+        }
+    }
+
+    /// Something to know about a text the question can accept, said under the box while it is typed: where the
+    /// folder of a worktree goes.
+    #[must_use]
+    pub fn hint(&self, text: &str) -> Option<Text> {
+        match self {
+            Validation::WorktreeName(rule) => rule.hint(text),
+            Validation::Anything
+            | Validation::ReferenceName { .. }
+            | Validation::Url
+            | Validation::NewMessage { .. }
+            | Validation::Required(_)
+            | Validation::OptionalReferenceName
+            | Validation::SubmoduleFolder { .. } => None,
         }
     }
 }

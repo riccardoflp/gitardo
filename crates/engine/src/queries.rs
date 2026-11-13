@@ -62,7 +62,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::ConflictStages { path } => git::read::conflicts::read_stages(git, path).map(Answer::Stages),
         Query::ConflictTexts => git::read::conflicts::read_texts(git, &git::read::conflicts::ConflictFilesRequest)
             .map(Answer::ConflictTexts),
-        Query::FileTexts { paths } => readings::file_texts(paths),
+        Query::FileTexts { .. } | Query::PathExists { .. } | Query::FolderLinks { .. } => readings::on_disk(git, query),
         Query::GitFolder { folder } => git::read::submodule::read_git_folder(git, folder).map(Answer::Path),
         Query::HasFiles { path } => Ok(Answer::Flag(readings::has_files(path))),
         Query::SetupTakes(requests) => setup_takes(git, requests),
@@ -314,6 +314,7 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::FileNames { path } => history::describe_file_names(path),
         Query::CommittedLines(query) => history::describe_committed_lines(query),
         Query::Blame(query) => history::describe_blame(query),
+        Query::PathExists { .. } | Query::FolderLinks { .. } => readings::describe_worktree_reading(query),
     }
 }
 

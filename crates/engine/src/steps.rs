@@ -10,7 +10,7 @@ use std::thread;
 use std::time::Duration;
 
 use git::{CancelToken, Git, GitError};
-use model::contract::Step;
+use model::contract::{FollowUp, Step};
 
 use crate::clock::Clock;
 use crate::log::CommandLog;
@@ -29,6 +29,9 @@ pub struct StepFailure {
     pub cancelled: bool,
     /// The title of the plan it is a step of, as the engine ran it: *Merge feature into main*.
     pub plan: String,
+    /// What the plan has the window do when it fails, past what the engine does itself: the operations offered for
+    /// what git said, such as **Remove anyway**, and a new window opened when the external editor did not start.
+    pub on_failure: Box<[FollowUp]>,
 }
 
 impl fmt::Display for StepFailure {
@@ -79,6 +82,7 @@ impl StepRunner<'_> {
                     said: String::from("Cancelled before it started."),
                     cancelled: true,
                     plan: String::new(),
+                    on_failure: Box::default(),
                 });
             }
             let is_setup = matches!(step, Step::Link { .. } | Step::Copy { .. });
@@ -92,7 +96,13 @@ impl StepRunner<'_> {
                     ran.push(step.log_line());
                     continue;
                 }
-                Err(StepError::Failed(said)) => (said, false),
+                Err(StepError::Failed(said)) => match self.held(step, said) {
+                    Ok(()) => {
+                        ran.push(step.log_line());
+                        continue;
+                    }
+                    Err(said) => (said, false),
+                },
                 Err(StepError::Cancelled) => (String::from("Cancelled."), true),
             };
             self.log.record_failure(self.clock.now(), &said);
@@ -102,6 +112,7 @@ impl StepRunner<'_> {
                 said,
                 cancelled,
                 plan: String::new(),
+                on_failure: Box::default(),
             };
             if is_setup && !cancelled {
                 self.went_on_after.push(failure);
@@ -110,6 +121,42 @@ impl StepRunner<'_> {
             return Err(failure);
         }
         Ok(ran)
+    }
+}
+
+impl StepRunner<'_> {
+    /// Gets past a git step on the folder of a worktree that failed because Windows holds the folder, as
+    /// `worktree.recover-held-folder` says: what git said when it cannot.
+    fn held(&mut self, step: &Step, said: String) -> Result<(), String> {
+        let Step::Git {
+            arguments, directory, ..
+        } = step
+        else {
+            return Err(said);
+        };
+        let words: Vec<String> = arguments
+            .iter()
+            .map(|argument| argument.to_string_lossy().into_owned())
+            .collect();
+        let git = self.git.in_directory(directory);
+        let cancel = self.cancel;
+        let (log, clock) = (&mut *self.log, self.clock);
+        crate::held::recover(
+            &words,
+            said,
+            &mut crate::held::Attempts {
+                is_windows: cfg!(windows),
+                again: &mut || match run_step(&git, step, cancel) {
+                    Ok(()) => Ok(()),
+                    Err(StepError::Failed(said)) => Err(said),
+                    Err(StepError::Cancelled) => Err(String::from("Cancelled.")),
+                },
+                is_listed: &mut |folder| crate::held::is_listed(&git, folder),
+                delete: &mut |folder| delete(folder).map_err(|error| error.to_string()),
+                wait: &mut |milliseconds| thread::sleep(Duration::from_millis(milliseconds)),
+                note: &mut |logged| log.record(clock.now(), logged),
+            },
+        )
     }
 }
 
@@ -142,6 +189,8 @@ fn run_step(git: &Git, step: &Step, cancel: &CancelToken) -> Result<(), StepErro
         Step::Copy { from, to } => setup::copy(from, to).map_err(|error| StepError::failed(&error)),
         Step::Unlink { path } => unlink(path).map_err(StepError::Failed),
         Step::Delete { path } => delete(path).map_err(|error| StepError::failed(&error)),
+        Step::MakeFolder { path } => fs::create_dir_all(path).map_err(|error| StepError::failed(&error)),
+        Step::DeleteEmptyFolder { path } => delete_empty_folder(path).map_err(|error| StepError::failed(&error)),
         Step::Run { command, directory } => run_command(command, directory, cancel),
         // A warning is written to the log before it "runs", and does nothing.
         Step::Warn { .. } => Ok(()),
@@ -168,7 +217,7 @@ fn unlink(path: &Path) -> Result<(), String> {
 }
 
 /// Deletes a file or a folder; what is not there is deleted already (`submodule.remove`, whose clone may be gone).
-fn delete(path: &Path) -> std::io::Result<()> {
+pub(crate) fn delete(path: &Path) -> std::io::Result<()> {
     let metadata = match fs::symlink_metadata(path) {
         Ok(metadata) => metadata,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
@@ -179,6 +228,31 @@ fn delete(path: &Path) -> std::io::Result<()> {
     } else {
         fs::remove_file(path)
     }
+}
+
+/// How many times a folder that is empty is deleted when Windows holds it for a moment, and how long apart.
+const EMPTY_FOLDER_TRIES: (usize, u64) = (20, 100);
+
+/// Deletes a folder when it is empty, and leaves it when it has something in it or is not there
+/// (`worktree.remove-empty-folders`). On Windows an empty folder held for a moment is tried again.
+fn delete_empty_folder(path: &Path) -> std::io::Result<()> {
+    let (tries, wait) = EMPTY_FOLDER_TRIES;
+    for _try in 1..tries {
+        let is_empty = match fs::read_dir(path) {
+            Ok(mut entries) => entries.next().is_none(),
+            // A folder that is not there, or is no folder, has nothing to delete.
+            Err(_) => return Ok(()),
+        };
+        if !is_empty {
+            return Ok(());
+        }
+        match fs::remove_dir(path) {
+            Ok(()) => return Ok(()),
+            Err(_) if cfg!(windows) => thread::sleep(Duration::from_millis(wait)),
+            Err(error) => return Err(error),
+        }
+    }
+    fs::remove_dir(path)
 }
 
 /// Runs a command of the user's through the system's shell, and kills the shell when the plan is cancelled. What the

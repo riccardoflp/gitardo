@@ -44,7 +44,7 @@ pub fn open_external(context: &Context, _answers: &Answers) -> Outcome {
 }
 
 /// A path as the shell takes it as one word: in double quotes when it has a space or a character the shell reads.
-fn quoted(path: &str) -> String {
+pub(crate) fn quoted(path: &str) -> String {
     let is_plain = path
         .chars()
         .all(|character| character.is_alphanumeric() || r"/\:._-+~".contains(character));
@@ -56,7 +56,7 @@ fn quoted(path: &str) -> String {
 }
 
 /// The command that opens a file with the program the system has for its type.
-fn system_opener(path: &str) -> String {
+pub(crate) fn system_opener(path: &str) -> String {
     if cfg!(windows) {
         format!("start \"\" {path}")
     } else if cfg!(target_os = "macos") {

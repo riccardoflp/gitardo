@@ -94,6 +94,7 @@ fn run_feature(
         return Ok(NEEDS_MORE);
     };
     let mut settings = FeatureSettings::default();
+    settings.worktrees.home = app::settings::home_folder().unwrap_or_default();
     if run.plan_choice == PlanChoice::ShowOnly {
         // Every plan is then shown before it runs, and the asker never confirms one.
         settings.command_preview = CommandPreview::All;
@@ -112,6 +113,11 @@ fn run_feature(
         Ok(finished) => finished,
         Err(error) => {
             writeln!(errors, "{error}")?;
+            if let engine::EngineError::Step(failure) = &error {
+                for follow_up in &failure.on_failure {
+                    follow_up_line(out, follow_up)?;
+                }
+            }
             return Ok(FAILED);
         }
     };
@@ -171,6 +177,8 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         FollowUp::ShowBlame(blame) => writeln!(out, "Show the blame of {}", blame.path)?,
         FollowUp::HideBlame(path, _) => writeln!(out, "Hide the blame of {path}")?,
         FollowUp::OpenFile(file) => writeln!(out, "Open {} at line {}", file.blame.path, file.line)?,
+        FollowUp::ShowFolder(folder) => writeln!(out, "Show {} in this window", folder.display())?,
+        FollowUp::OfferRun(offered) => writeln!(out, "Next: {} ({})", offered.label, offered.feature.0)?,
         FollowUp::SelectHead
         | FollowUp::DeleteWhenRebaseEnded(_)
         | FollowUp::EmptyCommitMessage

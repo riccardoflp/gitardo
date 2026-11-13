@@ -25,7 +25,7 @@ use model::refs::SortOrder;
 use render::ThemeName;
 use views::graph::Switches;
 
-pub use folder::{configuration_folder, repository_settings_file, user_settings_file};
+pub use folder::{configuration_folder, home_folder, repository_settings_file, user_settings_file};
 pub use read::{parse, read, read_files};
 pub use rows::{problem_words, setting_rows, theme_value};
 

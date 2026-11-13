@@ -73,6 +73,16 @@ pub enum Step {
         /// The folder it runs in.
         directory: PathBuf,
     },
+    /// Makes a folder and the folders that lead to it, when they are missing.
+    MakeFolder {
+        /// The folder.
+        path: PathBuf,
+    },
+    /// Deletes a folder only when it is empty by then; a folder with something in it, or none, is left as it is.
+    DeleteEmptyFolder {
+        /// The folder.
+        path: PathBuf,
+    },
     /// Writes a warning to the log, and changes nothing: what the steps after it do and why.
     Warn {
         /// The sentence.
@@ -93,7 +103,7 @@ impl Step {
 
     /// The line of the command log for this step, in the fixed form of `log.record`: the git command as it runs, with
     /// the arguments that hold spaces in quotes; `write <path>`; `symlink <folder>`; `copy <path>`; `unlink <path>`;
-    /// `delete <path>`; `run <command>`; and the sentence of a warning.
+    /// `delete <path>`; `mkdir <path>`; `run <command>`; and the sentence of a warning.
     #[must_use]
     pub fn log_line(&self) -> String {
         match self {
@@ -120,7 +130,8 @@ impl Step {
                 format!("{verb} {}", words.join("/"))
             }
             Step::Unlink { path } => format!("unlink {}", path.display()),
-            Step::Delete { path } => format!("delete {}", path.display()),
+            Step::Delete { path } | Step::DeleteEmptyFolder { path } => format!("delete {}", path.display()),
+            Step::MakeFolder { path } => format!("mkdir {}", path.display()),
             Step::Run { command, .. } => format!("run {command}"),
             Step::Warn { words } => words.clone(),
         }
@@ -239,8 +250,13 @@ pub enum FollowUp {
     /// (`merge-view.mark-resolved`).
     CloseMergePage(String),
     /// Open a folder in a new window of Gitardo Desktop, as a repository of its own
-    /// (`submodule.open-in-new-window`).
+    /// (`submodule.open-in-new-window`, `worktree.open-in-new-window`).
     OpenWindow(PathBuf),
+    /// Point the views of this window at another folder: a worktree of the repository (`worktree.show-in-gitardo`) or
+    /// a submodule (`submodule.show-in-gitardo`).
+    ShowFolder(PathBuf),
+    /// Offer another operation beside what is said, on a target of its own and with answers given.
+    OfferRun(Box<OfferedRun>),
     /// When a step failed because git does not clone submodules from a folder on disk, offer the plan again from that
     /// step, allowed for those commands only (`submodule.allow-file-protocol`).
     AllowFileProtocol,
@@ -266,6 +282,22 @@ pub struct FailureOffer {
     pub when: String,
     /// The plan offered, which runs in place of what was left of the one that failed.
     pub plan: Plan,
+}
+
+/// An operation offered beside what is said once a plan ran, or once it failed: **Open in new window** after a worktree
+/// is created, **Remove anyway** after git refused to remove one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OfferedRun {
+    /// The words of its button.
+    pub label: Text,
+    /// The operation.
+    pub feature: FeatureId,
+    /// What it runs on.
+    pub target: super::Target,
+    /// The answers it is given before it asks.
+    pub answers: super::Answers,
+    /// Among the follow-ups of a failure: offered only when what git said holds one of these; any failure when empty.
+    pub when_said: Vec<String>,
 }
 
 #[cfg(test)]

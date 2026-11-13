@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use engine::LogLevel;
 use json::Value;
 use model::changes::OpenOnClick;
-use model::contract::{BlameSettings, CommandPreview, FeatureSettings, OpenIn};
+use model::contract::{BlameSettings, CommandPreview, FeatureSettings, OpenIn, WorktreeOpenIn, WorktreeSettings};
 use model::graph::PageSize;
 use model::refs::SortOrder;
 use render::ThemeName;
@@ -166,6 +166,7 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
                 .boolean(keys::FILE_BLAME_EVERY_FILE, Scope::User)
                 .unwrap_or(defaults.blame.is_on_every_file),
         },
+        worktrees: worktree_settings(lookup),
     }
 }
 
@@ -191,6 +192,23 @@ fn file_blame_look(lookup: &mut Lookup) -> FileBlameLook {
         old_after_days: lookup
             .number(keys::FILE_BLAME_AGE_OLD_AFTER_DAYS, Scope::User)
             .unwrap_or(defaults.old_after_days),
+    }
+}
+
+/// The settings of worktrees: `worktrees.folder`, `worktrees.openIn` and `terminal.external`. The home folder of the
+/// user, for `~`, is set by the window when an operation starts, since reading the settings reads no environment.
+fn worktree_settings(lookup: &mut Lookup) -> WorktreeSettings {
+    WorktreeSettings {
+        folder: lookup
+            .string(keys::WORKTREES_FOLDER, Scope::UserAndRepository)
+            .unwrap_or_default(),
+        open_in: match lookup.choice(keys::WORKTREES_OPEN_IN, &keys::WORKTREES_OPEN_INS) {
+            Some("editor") => WorktreeOpenIn::Editor,
+            Some("terminal") => WorktreeOpenIn::Terminal,
+            _ => WorktreeOpenIn::Window,
+        },
+        terminal: lookup.string(keys::EXTERNAL_TERMINAL, Scope::User).unwrap_or_default(),
+        ..WorktreeSettings::default()
     }
 }
 

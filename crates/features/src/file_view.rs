@@ -5,6 +5,7 @@ mod open_external;
 mod save;
 
 pub use open_external::open_external;
+pub(crate) use open_external::{quoted, system_opener};
 pub use save::{ON_DISK, OVERWRITE, save};
 
 use std::path::{Path, PathBuf};

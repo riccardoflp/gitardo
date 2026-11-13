@@ -27,6 +27,7 @@ mod sync;
 mod sync_all;
 mod tag;
 mod undo;
+mod worktree;
 mod worktree_setup;
 
 use testkit::Repository;

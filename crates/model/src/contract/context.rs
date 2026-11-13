@@ -112,6 +112,8 @@ pub struct FeatureSettings {
     /// The blame of the files and of the line under the cursor (`blame.enabled`, `blame.ignoreWhitespaceAndMoves`,
     /// `fileBlame.everyFile`); their switches are written in `user_settings_file`.
     pub blame: BlameSettings,
+    /// What the operations of worktrees read: their settings, and where the window is.
+    pub worktrees: WorktreeSettings,
 }
 
 /// The settings of the blame the features switch.
@@ -134,6 +136,38 @@ impl Default for BlameSettings {
             is_on_every_file: false,
         }
     }
+}
+
+/// What the operations of worktrees read (`docs/features/12-worktrees.md`): `worktrees.folder`, `worktrees.openIn` and
+/// `terminal.external`, the home folder for `~`, the folder of the window, and whether **Choose What It Gets…** was
+/// offered already.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct WorktreeSettings {
+    /// `worktrees.folder`: where new worktrees go; empty for `${repo}.worktrees`.
+    pub folder: String,
+    /// `worktrees.openIn`: where a worktree opens.
+    pub open_in: WorktreeOpenIn,
+    /// `terminal.external`: the command that opens a terminal in a folder, with `${folder}`; empty for the system's.
+    pub terminal: String,
+    /// The home folder of the user, for a `~` at the start of `worktrees.folder`.
+    pub home: std::path::PathBuf,
+    /// The folder of the window, while the views show another worktree (`worktree.show-in-gitardo`); none while they
+    /// show the window's own.
+    pub window_folder: Option<std::path::PathBuf>,
+    /// Whether **Choose What It Gets…** was offered once, or the page it opens was opened: it is not offered again.
+    pub setup_offered: bool,
+}
+
+/// `worktrees.openIn`: where a worktree opens (`worktree.open`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum WorktreeOpenIn {
+    /// `window`: a new window of Gitardo Desktop.
+    #[default]
+    Window,
+    /// `editor`: the external editor of `editor.external`.
+    Editor,
+    /// `terminal`: a terminal, the one of `terminal.external` or the system's.
+    Terminal,
 }
 
 /// An identity of the setting `identities`: `{ "name", "email", "signingKey"? }`.
@@ -164,6 +198,7 @@ impl Default for FeatureSettings {
             user_settings_file: None,
             trust: crate::worktree_setup::Trust::NotTrusted,
             blame: BlameSettings::default(),
+            worktrees: WorktreeSettings::default(),
         }
     }
 }

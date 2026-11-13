@@ -9,7 +9,7 @@ use git::read::patch::{FormatPatchRequest, PatchCheckRequest, PatchSource, check
 use git::{Git, GitError};
 use model::CommitId;
 use model::compare::{ComparePatch, ComparisonTarget};
-use model::contract::Answer;
+use model::contract::{Answer, Query};
 use model::patch::PatchInput;
 
 /// One patch of commits, oldest first.
@@ -106,5 +106,35 @@ fn source(input: &PatchInput) -> PatchSource {
     match input {
         PatchInput::File(file) => PatchSource::File(PathBuf::from(file)),
         PatchInput::Text(text) => PatchSource::Text(text.clone()),
+    }
+}
+
+/// What is read on disk: the texts of files; whether a path is there, a file, a folder or a link, a path the system
+/// cannot look at being taken as one that is not there, since git says so when it runs; and the links of a worktree to
+/// folders outside it.
+pub(crate) fn on_disk(git: &Git, query: &Query) -> Result<Answer, GitError> {
+    match query {
+        Query::FileTexts { paths } => file_texts(paths),
+        Query::FolderLinks { worktree } => git::read::worktree::read_folder_links(
+            git,
+            &git::read::worktree::FolderLinksRequest {
+                worktree: worktree.clone(),
+            },
+        )
+        .map(Answer::Paths),
+        Query::PathExists { path } => Ok(Answer::Flag(path.symlink_metadata().is_ok())),
+        _ => Ok(Answer::Flag(false)), // The engine sends only these here.
+    }
+}
+
+/// What [`on_disk`] reads for the operations of worktrees, as the log writes it.
+pub(crate) fn describe_worktree_reading(query: &Query) -> String {
+    match query {
+        Query::FolderLinks { worktree } => format!(
+            "git -C {} ls-files --others --directory -z, and with --ignored --exclude-standard",
+            worktree.display()
+        ),
+        Query::PathExists { path } => format!("look for {}", path.display()),
+        _ => String::new(), // The engine sends only these two here.
     }
 }
