@@ -40,7 +40,7 @@ mod tests {
         };
         let text = String::from_utf8(contents.clone()).unwrap();
         assert!(text.contains("\"fileBlame.everyFile\": true"), "{text}");
-        context.settings.blame.user_file = None;
+        context.settings.user_settings_file = None;
         assert!(matches!(every_file(&context, &read), Outcome::Refuse(_)));
     }
 }

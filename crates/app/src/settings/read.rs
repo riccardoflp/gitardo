@@ -165,7 +165,6 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
             is_on_every_file: lookup
                 .boolean(keys::FILE_BLAME_EVERY_FILE, Scope::User)
                 .unwrap_or(defaults.blame.is_on_every_file),
-            user_file: None,
         },
     }
 }

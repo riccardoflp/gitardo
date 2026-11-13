@@ -110,11 +110,11 @@ pub struct FeatureSettings {
     /// (`worktree-setup.command-steps`).
     pub trust: crate::worktree_setup::Trust,
     /// The blame of the files and of the line under the cursor (`blame.enabled`, `blame.ignoreWhitespaceAndMoves`,
-    /// `fileBlame.everyFile`), and the user's settings file, where their switches are written.
+    /// `fileBlame.everyFile`); their switches are written in `user_settings_file`.
     pub blame: BlameSettings,
 }
 
-/// The settings of the blame the features switch, and the file they are written in.
+/// The settings of the blame the features switch.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::struct_excessive_bools, reason = "each is a setting of its own, on or off")]
 pub struct BlameSettings {
@@ -124,8 +124,6 @@ pub struct BlameSettings {
     pub ignores_whitespace: bool,
     /// `fileBlame.everyFile`: every file opened shows its blame.
     pub is_on_every_file: bool,
-    /// The user's settings file; none when the window has no place for it.
-    pub user_file: Option<std::path::PathBuf>,
 }
 
 impl Default for BlameSettings {
@@ -134,7 +132,6 @@ impl Default for BlameSettings {
             is_enabled: true,
             ignores_whitespace: false,
             is_on_every_file: false,
-            user_file: None,
         }
     }
 }

@@ -247,15 +247,6 @@ pub enum FollowUp {
     /// When a step failed and git said these words, offer another plan in its place, asked first as its danger says:
     /// `git submodule deinit --force` once git refused for changes not committed (`submodule.deinitialize`).
     OfferWhenFailed(Box<FailureOffer>),
-}
-
-/// A plan offered in place of one whose step failed, when git said some words.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FailureOffer {
-    /// Words of what git said that call for the offer: `contains local modifications`.
-    pub when: String,
-    /// The plan offered, which runs in place of what was left of the one that failed.
-    pub plan: Plan,
     /// Show the timeline narrowed to the history of a file, of some lines or of a folder; none shows it with no
     /// narrowing (`file-history.file`, `file-history.lines`, `file-history.folder`).
     ShowHistory(Option<Box<crate::file_history::HistoryOf>>),
@@ -266,6 +257,15 @@ pub struct FailureOffer {
     HideBlame(String, Option<crate::CommitId>),
     /// Open a file in a File page at a line, with its blame shown (`blame.previous`).
     OpenFile(Box<crate::blame::FileToOpen>),
+}
+
+/// A plan offered in place of one whose step failed, when git said some words.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FailureOffer {
+    /// Words of what git said that call for the offer: `contains local modifications`.
+    pub when: String,
+    /// The plan offered, which runs in place of what was left of the one that failed.
+    pub plan: Plan,
 }
 
 #[cfg(test)]

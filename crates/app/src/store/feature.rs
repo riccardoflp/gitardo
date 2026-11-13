@@ -15,6 +15,10 @@ use views::text::feature as words;
 
 use super::{Effect, State, reads, search};
 
+mod after_read;
+
+pub use after_read::after_read;
+
 /// What is answered to the operation running.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Reply {
@@ -176,7 +180,6 @@ pub fn run_in(
     }
     let mut settings = state.settings.features.clone();
     settings.user_settings_file.clone_from(&state.user_settings_file);
-    settings.blame.user_file.clone_from(&state.user_settings_file);
     let context = Context {
         repository,
         target,
@@ -383,85 +386,6 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
         }
     }
     effects
-}
-
-/// Once the repository is read again after a pull with `--autostash`, warns when the changes it set aside were left in
-/// a stash, with **Show Stashes** beside the warning.
-fn autostash_left(state: &mut State) {
-    let Some(before) = state.operations.autostash_before.take() else {
-        return;
-    };
-    let notice = state.shown_read().and_then(|read| {
-        model::stash::autostash_left(&model::stash::PullOutcome {
-            had_autostash: true,
-            succeeded: true,
-            stashes_before: &before,
-            stashes_after: &read.state.stashes,
-        })
-    });
-    if let (Some(notice), Some(said)) = (notice, state.operations.said.as_mut()) {
-        notice.message.as_str().clone_into(&mut said.text);
-        said.is_error = false;
-        said.offers_stashes = true;
-    }
-}
-
-/// Once the repository is read again after an answer to a bisect, says the first bad commit when it is found.
-fn bisect_found(state: &mut State) {
-    if !std::mem::take(&mut state.operations.check_bisect) {
-        return;
-    }
-    let found = state.shown_read().and_then(|read| {
-        let bisect = read
-            .state
-            .bisect
-            .as_ref()
-            .filter(|bisect| bisect.remaining == Some(1))?;
-        let bad = bisect.bad.clone()?;
-        let subject = state
-            .timeline
-            .read_rows()
-            .iter()
-            .find_map(|row| row.commit().filter(|commit| commit.id == bad))
-            .map(|commit| commit.subject.clone())
-            .unwrap_or_default();
-        Some((bad, subject))
-    });
-    if let (Some((bad, subject)), Some(said)) = (found, state.operations.said.as_mut()) {
-        said.text = views::text::bisect::first_bad(bad.short(), &subject);
-        said.can_undo = false;
-        said.found = Some(bad);
-    }
-}
-
-/// Once the repository is read again after an operation, the commit it said to select is gone to.
-pub fn after_read(state: &mut State) -> Vec<Effect> {
-    autostash_left(state);
-    bisect_found(state);
-    let Some(selected) = state.operations.select_after_read.take() else {
-        return Vec::new();
-    };
-    let back = std::mem::take(&mut state.operations.select_before_head);
-    let commit = selected.or_else(|| {
-        let head = state.shown_read().and_then(|read| read.state.head.commit.clone())?;
-        Some(before(&state.timeline.rows, head, back))
-    });
-    commit.map(|commit| search::go_to(state, commit)).unwrap_or_default()
-}
-
-/// The commit a number of commits before another, following first parents through the rows read; as far as they go.
-fn before(rows: &[model::graph::Row], mut commit: CommitId, count: usize) -> CommitId {
-    for _ in 0..count {
-        let parent = rows
-            .iter()
-            .find(|row| row.id() == Some(&commit))
-            .and_then(|row| row.parents().first().cloned());
-        match parent {
-            Some(parent) => commit = parent,
-            None => break,
-        }
-    }
-    commit
 }
 
 /// What the window shows of the question asked.

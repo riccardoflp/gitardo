@@ -36,7 +36,7 @@ const NOTHING_TO_UNDO: &str = "Showing who changed a line changes nothing to und
 /// A switch of the blame written in the user's settings file, set to the opposite of what it is, keeping the rest of
 /// the file: `write <user settings.json>`. It is not taken back by Undo: the switch again turns it back.
 fn switch(context: &Context, answers: &Answers, (key, is_on): (&str, bool)) -> Outcome {
-    let Some(file) = context.settings.blame.user_file.clone() else {
+    let Some(file) = context.settings.user_settings_file.clone() else {
         return Outcome::Refuse(Refusal::saying(
             "Gitardo has no settings file of the user to write the switch in.",
         ));
@@ -162,7 +162,7 @@ pub(crate) mod testing {
                 shown,
             })),
         );
-        context.settings.blame.user_file = Some(PathBuf::from("settings.json"));
+        context.settings.user_settings_file = Some(PathBuf::from("settings.json"));
         context
     }
 }
