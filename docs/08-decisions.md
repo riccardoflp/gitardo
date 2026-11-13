@@ -395,7 +395,7 @@ repositories, the settings), each built with the reading given until it is answe
 - **Q44** — `settings.theme` is an operation in `features`, which may not use `crates/json` to write the settings
   file. For now the theme and the fonts are only read (`app::settings`) and applied when the files change; nothing
   writes them. Which crate writes the settings file? (Settled since: `features` writes the settings files with `json`, as
-  `worktree-setup.save` does, and `settings.theme` is built so; Q-W8.)
+  `worktree-setup.save` does, and `settings.theme` is built so; Q292.)
 - **Q45** — What is kept between runs is in `state.json` in Gitardo's configuration folder, beside `settings.json`
   (`%APPDATA%\Gitardo Desktop`, `~/Library/Application Support/Gitardo Desktop`, `$XDG_CONFIG_HOME/gitardo-desktop`
   or `~/.config/gitardo-desktop`); [11-data.md](11-data.md) does not name the file. On Linux, should it be under
@@ -542,7 +542,7 @@ repositories, the settings), each built with the reading given until it is answe
   drawn, and the branches are said after `· in`. Is that the order meant, and is a commit made since then on no branch
   counted as one "lost to a reset"?
 - **Q84** — `search.go-to-commit`, line 3: the history of a file is narrowed by `history.` (M7), so the card stays
-  **Specified** (built since, with the history of a file: Q-W1). The dialog of the window checks each value with `search.read-revision` as it is typed and goes to the
+  **Specified** (built since, with the history of a file: Q285). The dialog of the window checks each value with `search.read-revision` as it is typed and goes to the
   commit itself, as the operation `features::search::go_to_commit` does through the contract: the contract gained
   `Query::Revision`, `Answer::Commit` and `FollowUp::SelectCommit` for it, and `Validation::Anything` stands for the
   check made while typing. Should the window run the operation through the engine once operations run there (M4)?
@@ -646,11 +646,11 @@ the reading given until it is answered:
   chosen are "Write changes in", "Default", "From user settings", and for a value not taken "User settings: not a
   number. The default is used." Line 2 (**Edit in settings.json** opens the file in a File page) waits for the File
   page (M6): the button is shown disabled with the tooltip "Not yet", and the card stays **Specified**. (Built since:
-  the button runs `worktree-setup.edit-settings-file`, Q-W6.)
+  the button runs `worktree-setup.edit-settings-file`, Q290.)
 - **Q107** — `settings.theme`: **Theme…** in the **…** menu opens a picker of the five themes. The theme picked is
   written in the user's file by the store (Q44 is still open), and the window takes it when the watcher reads the file
   again. The picker shows no theme as the user moves through the list, which the card asks. Should it, and should the
-  theme be written only when the picker closes? The card stays **Specified** (Q44). (Built since, Q-W8; moving through the list
+  theme be written only when the picker closes? The card stays **Specified** (Q44). (Built since, Q292; moving through the list
   still shows no theme.)
 - **Q108** — Cards of this slice left **Specified**: `repo.open-folder`, `repo.open-recent` and `repo.select` (Q43);
   `settings.theme` (Q44, Q107); `settings.edit` (Q106); `log.record` (Q101). `repo.read-repositories` is **Built** on
@@ -712,7 +712,7 @@ the reading given until it is answered:
 - **Q118** — Cards of this slice left **Specified**: `branch.create` and `branch.name-from-format` (Q112);
   `branch.pane`, whose top with the branch checked out and **Create branch**, and the **…** of the Worktrees list, are
   not built; `undo.last`, whose lines about a stash, a cherry-pick, a squash merge and conflicts wait for those areas.
-  (`undo.last` is built since: Q-W9.)
+  (`undo.last` is built since: Q293.)
 - **Q119** — The operations on the files of the Changes page (`changes.stage`, `changes.unstage`, `changes.discard`)
   are given their file as a new kind of target, `Target::File(path)`, and the header of the page as `Target::Changes`,
   which is how `changes.discard-all` tells the header (the files of the list, the conflicts left alone) from the draft
@@ -753,7 +753,7 @@ the reading given until it is answered:
   should `repo.read-state` read it, or the commit box when it is empty?); `commit.draft-message` (the AI provider,
   M9). `preview.confirm` has its line on staging a file tested, and stays Specified for its first line, which is not
   of this area. (Both built since: the empty box takes `SQUASH_MSG` after the operation that leaves it, and the
-  first line of `preview.confirm` is tested from the window; Q-W5.)
+  first line of `preview.confirm` is tested from the window; Q289.)
 - **Q123** — `stash.push-file` on a rename that is staged: `git stash push -- <old> <new>` fails, as the old name is no
   longer in the index (`pathspec ... did not match`). The plan first runs `git reset --quiet -- <old name>`, then
   stashes both names; the card says so now. Popping the stash brings both names back, but the rename is no longer
@@ -781,7 +781,7 @@ the reading given until it is answered:
   menu of the draft, left to the slice of the changes; **Show Stashes** after a pull that left its autostash, which
   waits for `stash.pane` (built since, with `stash.autostash-left`: see Q152). So `stash.autostash-left` and `graph.toolbar` (its narrow window line has no test yet) stay
   **Specified**, and so does `undo.last`, whose other lines belong to other slices. (`graph.toolbar` is built since:
-  Q-W2.)
+  Q286.)
 - **Q129** — `tag.push` now asks `model::remote::default` for its remote (Q113), and the menu of the draft runs
   **Stash changes…** and **Stash staged changes…** (`stash.push`, `stash.push-staged`).
 - **Q130** — `diff.line-diff` returns `Result<Vec<Change>, TooComplex>` and takes, beside the two texts, a function
@@ -925,7 +925,7 @@ the reading given until it is answered:
   It stays **Specified** for its lines 4 (`Escape` in the box) and 5 (a bisect). For an older commit, the interactive
   rebase writes its files in `gitardo-rebase-<time>` inside the git folder, not in the temporary folder of the system,
   since `features` reads no environment; that plan is the one `rebase.interactive` will have, and the two should be
-  one when the rebase slice is merged. Right? (Lines 4 and 5 are built since, with the question dialog: Q-W5.)
+  one when the rebase slice is merged. Right? (Lines 4 and 5 are built since, with the question dialog: Q289.)
 - **Q160** — **Edit message…** is in the menu of every commit while no operation is under way, not only where
   `rebase.find-line-before-head` gives a line: the menu does not read git, and the operation refuses a commit off the
   line with the card's words. **Merge into `<branch>`…** has no hint *choose how*: an item of a menu has a shortcut
@@ -937,7 +937,7 @@ the reading given until it is answered:
   two commits**, which runs `compare.with` on the older with the newer as its side already answered, so that the page
   opens with no question. `selection.cherry-pick` stays **Specified** for its line 5 (continued in Gitardo, M6). The
   bar and the menu empty the selection when their cherry-pick is chosen, before the dialog, not once it ran. Right?
-  (Line 5 is built since: Q-W9.)
+  (Line 5 is built since: Q293.)
 - **Q163** — The words chosen without a card: *Finish or abort the `<operation>` first.* for every operation of this
   slice; *Choose a commit first.*; *There is nothing to merge into before the first commit.*; *`<name>` is the commit
   checked out already.*; *There is no squash merge to undo.*; *Nothing is stopped on a commit that changes nothing.*;
@@ -1435,7 +1435,7 @@ answered:
 - **Q276** — `worktree.switch` stays Specified: the question that picks is a list with no box to type in, and its card
   says typing matches the label, the description and the folder. Its description says `<n> not committed` in words where
   the card has a pencil, since a choice has no icons. Should the pick of Quick search, which has a box, be used? (Built
-  since with a question of its own kind, Q-W7.)
+  since with a question of its own kind, Q291.)
 - **Q277** — `Message::SettingsRead` holds its `Settings` in a `Box`, since the settings of worktrees made it the
   largest message. Is this right?
 - **Q278** — The card of `github.read-pull-requests` named `net::github::…`, a crate that does not exist; the read is
@@ -1461,7 +1461,7 @@ answered:
 
 From the cards left over up to M8 (each built with the reading given, until the card says otherwise):
 
-- **Q-W1** — `graph.show-in-graph` is the function every way to a commit already called, `app::store::search::go_to`,
+- **Q285** — `graph.show-in-graph` is the function every way to a commit already called, `app::store::search::go_to`,
   and its card names it now, since what it does is a change of the store and draws nothing of its own. The intent
   `GraphIntent::GoTo` goes through it too, so that **Show in the timeline** and a click on a tag, a stash or a
   worktree in the branch rail, the parents in the inspector, **Show** of the bisect and a side of a comparison now load
@@ -1469,41 +1469,41 @@ From the cards left over up to M8 (each built with the reading given, until the 
   stash not shown in the timeline is then shown with its history alone. The bar of the history of a file or a folder
   says the branches shown after `· in`, dimmed, as `filter.bar` says; the history of some lines does not. Are these
   right?
-- **Q-W2** — `graph.toolbar` in a narrow window: **Sync** keeps the counts beside the icon of **Refresh** and gives up
+- **Q286** — `graph.toolbar` in a narrow window: **Sync** keeps the counts beside the icon of **Refresh** and gives up
   its word (`↓3  ↑2`), the branch filter is its icon and the branch checked out its name without the distance; the
   name of the repository stays in its pill, being a name rather than words. Is that the narrow header meant?
-- **Q-W3** — `graph.date-separators` is built on its derivation, which counts the days in the local time it is given,
+- **Q287** — `graph.date-separators` is built on its derivation, which counts the days in the local time it is given,
   and on the switch that turns it off. The window still gives it an offset of 0 from UTC, until Q58 says how the local
   time zone is read. Is it right to call the card built?
-- **Q-W4** — `diff.open-file` is the title button of a page of one file whose right side is the working tree, between
+- **Q288** — `diff.open-file` is the title button of a page of one file whose right side is the working tree, between
   **Discard changes** and the fold button; a page of several files has no title button for each file yet, as it has
   none of `diff.stage-file`. Should the files of a page of several have a bar of their own with these buttons?
-- **Q-W5** — `commit.create` is built: the commit box empty after a squash merge holds what git prepared in
+- **Q289** — `commit.create` is built: the commit box empty after a squash merge holds what git prepared in
   `SQUASH_MSG`, and **Commit** makes the commit with it. `preview.confirm` is built: with `commandPreview` `off` a
   branch is made at once and a hard reset shows its command and its warning first. `message.edit` is built with the
   question dialog of the window in place of a box in the inspector (Q159): `Escape` in it runs nothing, and while a
   bisect is under way **Edit message…** is not in the menu of a commit and the operation says *End the bisect first.*
   The pencil of the inspector is not drawn, as the inspector has no box to edit a message in. Should the box come with
   the multi-line editor, or is the dialog the box?
-- **Q-W6** — `worktree-setup.edit-settings-file` is built, and **Edit in settings.json** of the settings page runs it
+- **Q290** — `worktree-setup.edit-settings-file` is built, and **Edit in settings.json** of the settings page runs it
   for the file chosen there, since `worktree-setup.page` is not built yet. It ends with a new follow-up,
   `FollowUp::EditFile(path, line)`, which opens a File page to edit: the repository's file by its path from the top of
   the working tree, the user's file by its whole path, which the File page reads and saves as it is and leaves out of
   the Changes page. From the settings page it too opens at `worktrees.linkFolders` when that is set. The plan is titled
   *Edit `<path>`* and has no steps unless it makes the repository's file. Are these right?
-- **Q-W7** — `worktree.switch` asks with a new kind of question, `QuestionKind::Search`: the dialog of the window
+- **Q291** — `worktree.switch` asks with a new kind of question, `QuestionKind::Search`: the dialog of the window
   draws a box over the radio buttons, and typing keeps the choices whose label, description or identifier holds what is
   typed, whatever the case; the identifier of a worktree is its folder, which its description also shows. The dialog
   keeps the height of every choice while typing, and answers with the choice picked while it is found, or else with the
   first one found, so `Enter` after typing opens it. The command line answers it as a pick. The choices still have no
   icons, and no pull request is said until M9 reads them. Is a kind of question of its own right, rather than the pick
   of Quick search?
-- **Q-W8** — `settings.theme` is an operation now: the picker of the themes runs it with the theme picked, and it
+- **Q292** — `settings.theme` is an operation now: the picker of the themes runs it with the theme picked, and it
   writes `theme` in the user's settings file with the rest of the file kept, logged in the Command log as every write;
   with no theme given, as from the command line, it asks among the five. Its title is *Use the theme `<name>`*, and
   Undo says to choose again. The picker still shows no theme while the user moves through it (Q107), since the
   picker of the toolkit says nothing until a choice is made. Should it say which item is under the keyboard?
-- **Q-W9** — `conflicts.continue-operation` of a cherry-pick or a patch reads the newest entry of the journal first;
+- **Q293** — `conflicts.continue-operation` of a cherry-pick or a patch reads the newest entry of the journal first;
   when it is the series a cherry-pick or a patch of Gitardo left as it stopped, the plan that goes on leaves the same
   series, so that one Undo resets with `--keep` to where `HEAD` was before the first commit. Continued from a terminal,
   `HEAD` moved without Gitardo, the entry is dropped and Undo takes back the last commit by the reflog. With these,
