@@ -104,6 +104,13 @@ pub enum Message {
         /// The files that differ, or what git said when the read failed.
         result: Result<Vec<model::state::FileChange>, String>,
     },
+    /// A job that counted the conflicts of the files in conflict is done (`conflicts.banner`).
+    ConflictsCounted {
+        /// The job.
+        job: JobId,
+        /// How many conflicts there are and how many need no choice, or what git said when the read failed.
+        result: Result<model::conflicts::RuleCounts, String>,
+    },
     /// The settings files changed and were read again.
     SettingsRead(Settings),
     /// The watcher of the repository saw changes (`repo.watch-changes`), at a moment counted from when the window
@@ -278,6 +285,11 @@ pub enum JobKind {
         folder: PathBuf,
         /// The two commits.
         request: git::read::compare::FilesRequest,
+    },
+    /// Reads the files in conflict and counts the conflicts the rules resolve (`conflicts.banner`).
+    CountConflicts {
+        /// The top folder of the working tree.
+        folder: PathBuf,
     },
 }
 

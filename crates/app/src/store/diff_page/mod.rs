@@ -154,6 +154,7 @@ pub(super) fn read_file(state: &mut State, id: DiffPageId, file: usize, is_confi
         DiffVersion::WorkingTree => FileVersion::WorkingTree { unsaved: None },
         DiffVersion::Commit { commit, .. } => FileVersion::Commit(commit.clone()),
         DiffVersion::Empty => FileVersion::Absent,
+        DiffVersion::Base => FileVersion::Base,
     };
     let request = DiffRequest {
         left: VersionRequest {

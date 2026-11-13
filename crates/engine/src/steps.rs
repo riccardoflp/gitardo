@@ -26,6 +26,8 @@ pub struct StepFailure {
     pub said: String,
     /// Whether it stopped because the plan was cancelled, not because the step failed.
     pub cancelled: bool,
+    /// The title of the plan it is a step of, as the engine ran it: *Merge feature into main*.
+    pub plan: String,
 }
 
 impl fmt::Display for StepFailure {
@@ -71,6 +73,7 @@ impl StepRunner<'_> {
                     failed: step.log_line(),
                     said: String::from("Cancelled before it started."),
                     cancelled: true,
+                    plan: String::new(),
                 });
             }
             self.log.record(self.clock.now(), step);
@@ -88,6 +91,7 @@ impl StepRunner<'_> {
                 failed: step.log_line(),
                 said,
                 cancelled,
+                plan: String::new(),
             });
         }
         Ok(ran)

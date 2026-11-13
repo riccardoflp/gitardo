@@ -25,6 +25,8 @@ pub enum DiffVersion {
     },
     /// No version: every line of the other side is added, or removed.
     Empty,
+    /// The common ancestor of a file in conflict, which the index keeps as its stage 1 (`:1:<file>`).
+    Base,
 }
 
 impl DiffVersion {
@@ -46,6 +48,7 @@ impl DiffVersion {
             DiffVersion::WorkingTree => words::WORKING_TREE,
             DiffVersion::Commit { name, .. } => name,
             DiffVersion::Empty => words::EMPTY,
+            DiffVersion::Base => words::BASE,
         }
     }
 

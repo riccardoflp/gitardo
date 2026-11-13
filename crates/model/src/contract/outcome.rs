@@ -197,6 +197,15 @@ pub enum Query {
     /// The changes of a comparison as a patch that `git apply` takes, binary files included (`compare.read-patch`).
     /// The answer is [`super::Answer::Contents`].
     ComparePatch(Box<crate::compare::ComparisonTarget>),
+    /// Which versions the index keeps of a file in conflict (`conflicts.read-files`). The answer is
+    /// [`super::Answer::Stages`].
+    ConflictStages {
+        /// The path of the file from the top of the working tree.
+        path: String,
+    },
+    /// The files in conflict, the first 200, each on disk and in the three versions of the index, for the rules that
+    /// resolve conflicts (`conflicts.resolve-by-rules`). The answer is [`super::Answer::ConflictTexts`].
+    ConflictTexts,
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

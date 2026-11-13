@@ -151,10 +151,10 @@ fn serve(
                     engine.run_feature_from(request.feature, operation, given, &mut asker),
                 )
             }
-            None => Ended::Refused(model::contract::Text::from(format!(
-                "{} is not built yet",
-                request.feature.0
-            ))),
+            None => Ended::Refused(
+                model::contract::Text::from(format!("{} is not built yet", request.feature.0)),
+                None,
+            ),
         };
         let ended = with_prepared_message(ended, &request.context);
         let log = engine.take_log(request.level);
@@ -190,15 +190,17 @@ fn ended_of(feature: FeatureId, result: Result<Finished, EngineError>) -> Ended 
             after: plan.after,
             prepared_message: None,
         },
-        Ok(Finished::Refused(refusal)) => Ended::Refused(refusal.message),
+        Ok(Finished::Refused(refusal)) => Ended::Refused(refusal.message, refusal.offer),
         Ok(Finished::BackedOut | Finished::NotConfirmed(_)) => Ended::BackedOut,
         Err(EngineError::Step(failure)) => Ended::Failed {
             title: format!("`{}`", failure.failed),
             said: failure.said,
+            plan: failure.plan,
         },
         Err(error) => Ended::Failed {
             title: feature.0.to_owned(),
             said: error.to_string(),
+            plan: String::new(),
         },
     }
 }

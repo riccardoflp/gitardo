@@ -39,6 +39,8 @@ pub const OPENING_COMMIT_PAGE: &str = "Opening the page of a commit";
 pub const COMPUTING_DIFF: &str = "Showing the diff of a file";
 /// Why a comparison is read: its page, or the inspector, shows it.
 pub const COMPARING: &str = "Comparing two sides";
+/// Why the files in conflict are read: to count the conflicts the rules resolve (`conflicts.banner`).
+pub const COUNTING_CONFLICTS: &str = "Counting the conflicts";
 
 /// The title of a read of a repository: `Reading app`.
 #[must_use]

@@ -69,7 +69,22 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: super::compare::read_in_place(folder, request, cancel),
         },
+        JobKind::CountConflicts { folder } => Message::ConflictsCounted {
+            job: job.id,
+            result: count_conflicts(folder, cancel).map_err(|error| error.to_string()),
+        },
     }
+}
+
+/// How many conflicts the files in conflict have, and how many of them the rules resolve (`conflicts.banner`).
+///
+/// # Errors
+///
+/// What git said when a read failed.
+pub fn count_conflicts(folder: &Path, cancel: &CancelToken) -> Result<model::conflicts::RuleCounts, git::GitError> {
+    let git = Git::new(folder).with_cancel(cancel.clone());
+    let texts = git::read::conflicts::read_texts(&git, &git::read::conflicts::ConflictFilesRequest)?;
+    Ok(features::conflicts::count_by_rules(&texts))
 }
 
 /// What a read of the search gives: the commits found (`search.read-matches`), the commit of a name

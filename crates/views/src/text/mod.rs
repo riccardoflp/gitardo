@@ -6,6 +6,7 @@ pub mod bisect;
 pub mod branch;
 pub mod changes;
 pub mod compare;
+pub mod conflicts;
 pub mod dates;
 pub mod details;
 pub mod diff;

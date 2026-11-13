@@ -75,6 +75,8 @@ pub struct State {
     pub changes: super::changes::Changes,
     /// The interactive rebase page, while it is open (`rebase.todo-page`).
     pub rebase_page: Option<views::rebase::TodoPage>,
+    /// The conflicts the rules resolve, counted in the repository shown (`conflicts.banner`).
+    pub conflicts: super::conflicts::Conflicts,
 }
 
 /// The folders of a window and the repositories found in them.

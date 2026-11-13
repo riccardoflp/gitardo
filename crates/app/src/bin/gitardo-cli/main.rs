@@ -176,6 +176,7 @@ fn report(
                     FollowUp::CompareInPlace(sides) => {
                         writeln!(out, "Compare {} with {}", sides.from.name, sides.to.name)?;
                     }
+                    FollowUp::OpenReview(files) => writeln!(out, "Review {}", files.join(", "))?,
                     FollowUp::SelectHead
                     | FollowUp::DeleteWhenRebaseEnded(_)
                     | FollowUp::EmptyCommitMessage

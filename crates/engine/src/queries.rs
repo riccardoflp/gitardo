@@ -77,6 +77,9 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::Clipboard => Ok(Answer::Clipboard(None)),
         Query::TemporaryFile { extension } => Ok(readings::temporary_file(extension)),
         Query::ComparePatch(target) => readings::compare_patch(git, target),
+        Query::ConflictStages { path } => git::read::conflicts::read_stages(git, path).map(Answer::Stages),
+        Query::ConflictTexts => git::read::conflicts::read_texts(git, &git::read::conflicts::ConflictFilesRequest)
+            .map(Answer::ConflictTexts),
     }
 }
 
@@ -248,6 +251,12 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::Clipboard => String::from("the text of the clipboard"),
         Query::TemporaryFile { extension } => format!("a temporary .{extension} file"),
         Query::ComparePatch(target) => readings::describe_compare_patch(target),
+        Query::ConflictStages { path } => {
+            git::command_line(&git::read::conflicts::stages_arguments(std::slice::from_ref(path)))
+        }
+        Query::ConflictTexts => String::from(
+            "git diff --name-only --diff-filter=U -z, git ls-files --unmerged -z, git cat-file blob <object>, read <file>",
+        ),
     }
 }
 

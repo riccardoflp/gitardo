@@ -109,7 +109,7 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
 }
 
 /// The settings the operations read: `commandPreview`, `branches.format`, `branches.openIn`,
-/// `submodules.updateOnCheckout`, `identities`, `pull.rebase`, `pull.autostash` and `cherryPick.recordOrigin`.
+/// `submodules.updateOnCheckout`, `identities`, `pull.rebase`, `pull.autostash`, `cherryPick.recordOrigin`, `conflicts.autoResolve` and `conflicts.ai`.
 fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
     let defaults = FeatureSettings::default();
     let command_preview = match lookup.choice(keys::COMMAND_PREVIEW, &keys::COMMAND_PREVIEWS) {
@@ -140,6 +140,12 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
         cherry_pick_record_origin: lookup
             .boolean(keys::CHERRY_PICK_RECORD_ORIGIN, Scope::UserAndRepository)
             .unwrap_or(defaults.cherry_pick_record_origin),
+        conflicts_auto_resolve: lookup
+            .boolean(keys::CONFLICTS_AUTO_RESOLVE, Scope::User)
+            .unwrap_or(defaults.conflicts_auto_resolve),
+        conflicts_ai: lookup
+            .boolean(keys::CONFLICTS_AI, Scope::User)
+            .unwrap_or(defaults.conflicts_ai),
     }
 }
 

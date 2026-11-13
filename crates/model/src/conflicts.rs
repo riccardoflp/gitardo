@@ -1,8 +1,12 @@
 //! What the two sides of a conflict are (`conflicts.side-names`): the words that say what **Current** and **Incoming**
-//! are in the operation that stopped, the branch or commit each one is, and the subject of its commit.
+//! are in the operation that stopped, the branch or commit each one is, and the subject of its commit; and what the
+//! operations of the conflicts are given of the files in conflict.
 
+mod files;
 #[cfg(test)]
 mod tests;
+
+pub use files::{ConflictTexts, FileStages, MOST_FILES_LOOKED_INTO, RuleCounts};
 
 use crate::CommitId;
 use crate::state::Operation;

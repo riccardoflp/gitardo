@@ -52,6 +52,8 @@ pub struct ChangesRepository<'a> {
     pub wants_focus: bool,
     /// `changes.openOnClick`: what a click on a file does.
     pub on_click: OpenOnClick,
+    /// The banner of an operation that stopped, over the lists (`conflicts.banner`).
+    pub banner: Option<crate::conflicts::BannerState<'a>>,
 }
 
 /// Something asked of the Changes page, or of the draft of the timeline, which shows its message and **Commit**.
@@ -73,7 +75,8 @@ pub enum ChangesIntent {
 }
 
 /// The Changes page, over the rectangle its caller clipped it to: with no repository, what the timeline says in its
-/// place; otherwise the commit box, the identity, **Conflicts** and **Changes**.
+/// place; otherwise the banner of an operation that stopped, the commit box, the identity, **Conflicts** and
+/// **Changes**.
 ///
 /// Feature: changes.pane
 pub fn pane(state: &ChangesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -87,6 +90,10 @@ pub fn pane(state: &ChangesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut intents = Vec::new();
     ui.region("changes page", (rect, AccessRole::Main, words::PAGE), |ui| {
         let mut area = Area::with_gap(inner, spacing.large);
+        if let Some(banner) = &repository.banner {
+            let top = area.top(crate::filter::bar_height(ui));
+            intents.extend(ui.clip(top, |ui| crate::conflicts::banner_view(banner, ui)));
+        }
         let top = area.top(commit_box::height(ui));
         intents.extend(commit_box::view(repository, ui, top));
         intents.extend(rows::view(repository, ui, area.rest()));

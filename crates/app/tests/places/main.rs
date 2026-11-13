@@ -11,6 +11,7 @@ mod changes;
 mod commit_page;
 mod compare;
 mod compare_actions;
+mod conflicts;
 mod diff;
 mod diff_links;
 mod diff_staging;

@@ -195,3 +195,13 @@
   is read again with the repository, and one with a branch when the branch moves. **Compare with `<current branch>`**
   and **Compare with `<short hash>`, selected before** show the files that differ between the two commits in the
   inspector, with **Swap** and **Open as a page**.
+- An operation stopped on conflicts: a banner over the timeline and the Changes page says which operation is in
+  progress and how many files have conflicts, with **Continue** (once no file is left in conflict), **Skip** (not for a
+  merge) and **Abort**, which asks first; it is also the banner of a rebase stopped to edit or split a commit, whose
+  **Abort** now works. A merge, a cherry-pick or a stash pop that stops on conflicts says so and what to do next, with
+  **Show log**. Each file in conflict on the Changes page has **Mark as resolved** and the two buttons that take the
+  current or the incoming side for the whole file, after asking, Undo marking its conflicts again; a click on its name
+  opens it in the Diff page, the base beside the file when one side deleted it. With the experimental setting
+  `conflicts.autoResolve` on, **Resolve … automatically** writes the conflicts that need no choice in the files after
+  saying what they are, stages the files left with none, offers **Continue** when none is left, and Undo marks the
+  conflicts again. `gitardo-cli` continues, skips, aborts and marks a file resolved.

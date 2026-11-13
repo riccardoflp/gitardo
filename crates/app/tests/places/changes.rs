@@ -260,6 +260,7 @@ fn changes_pane__the_identity_line_reads_name_and_email_or_no_identity_configure
         is_running: false,
         wants_focus: false,
         on_click: model::changes::OpenOnClick::File,
+        banner: None,
     });
     let (_, tree) = window.frame(&[], |ui| views::changes::pane(&page, ui));
     assert!(has(&tree, Role::Button, "No identity configured"));

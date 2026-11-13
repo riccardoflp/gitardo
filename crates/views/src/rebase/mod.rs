@@ -7,7 +7,7 @@ mod menu;
 mod tests;
 mod todo_page;
 
-pub use edit_stop::{EditStopState, edit_stop_view};
+pub use edit_stop::{EditStopState, banner_words, edit_stop_view};
 pub use menu::can_squash;
 pub(crate) use menu::{RewriteMenu, rebase_onto_entry, rewrite_menu};
 pub use todo_page::{TodoPage, TodoPageRow, TodoPageState, todo_page_view};

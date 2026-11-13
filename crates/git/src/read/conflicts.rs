@@ -1,11 +1,15 @@
 //! The files in conflict, and which of the three versions git keeps in the index each of them has.
 
+mod texts;
+
 use std::ffi::OsString;
 
 use model::CommitId;
 
 use crate::read::fields::{arguments, commit_id, unexpected};
 use crate::{Git, GitError};
+
+pub use texts::{blob_arguments, read_stages, read_texts};
 
 /// What is being read, for the errors.
 const WHAT: &str = "the sides of the files in conflict";

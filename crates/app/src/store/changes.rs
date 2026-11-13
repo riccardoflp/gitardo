@@ -213,6 +213,7 @@ impl ChangesData {
             is_running: state.is_operation_running,
             wants_focus: state.changes.wants_focus,
             on_click: state.settings.open_on_click,
+            banner: super::conflicts::banner_state(state, read),
         })
     }
 }

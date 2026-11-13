@@ -76,6 +76,11 @@ pub enum Answer {
     Path(std::path::PathBuf),
     /// The comparisons opened before in the repository, the latest first (`compare.recent`).
     Recent(Vec<crate::compare::RecentComparison>),
+    /// Which versions the index keeps of a file in conflict, or none when it is not in conflict
+    /// (`conflicts.read-files`).
+    Stages(Option<crate::conflicts::FileStages>),
+    /// The files in conflict on disk and in the three versions of the index (`conflicts.resolve-by-rules`).
+    ConflictTexts(Vec<crate::conflicts::ConflictTexts>),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).

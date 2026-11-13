@@ -65,6 +65,10 @@ pub const PULL_AUTOSTASH: &str = "pull.autostash";
 pub const IDENTITIES: &str = "identities";
 /// `cherryPick.recordOrigin`.
 pub const CHERRY_PICK_RECORD_ORIGIN: &str = "cherryPick.recordOrigin";
+/// `conflicts.autoResolve`.
+pub const CONFLICTS_AUTO_RESOLVE: &str = "conflicts.autoResolve";
+/// `conflicts.ai`.
+pub const CONFLICTS_AI: &str = "conflicts.ai";
 
 /// The default of `font.ui`: the font of the interface that comes with the program.
 pub const INTERFACE_FONT: &str = "Inter";

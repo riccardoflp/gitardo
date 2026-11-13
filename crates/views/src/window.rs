@@ -93,8 +93,9 @@ pub enum TimelineState<'a> {
         /// The search box at the top of the timeline, and the bar of a search shown as a list or of the history of a
         /// commit alone, drawn in place of `bar`.
         search: Box<(SearchBox<'a>, Option<ListMode<'a>>)>,
-        /// The banner of a rebase stopped to edit or split a commit, above the commits (`rebase.edit-stop`).
-        stop: Option<crate::rebase::EditStopState<'a>>,
+        /// The banner of an operation that stopped, or of a rebase stopped to edit or split a commit, above the
+        /// commits (`conflicts.banner`, `rebase.edit-stop`).
+        conflicts: Option<crate::conflicts::BannerState<'a>>,
         /// The banner of the bisect under way, above the commits (`bisect.banner`).
         bisect: Option<BisectBanner<'a>>,
     },
@@ -207,12 +208,12 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
 }
 
 /// The bars above the commits, each the height of one: the list mode of the search or what the timeline is narrowed
-/// to, then the banner of a rebase stopped, then that of a bisect.
+/// to, then the banner of an operation stopped, then that of a bisect.
 fn banners(state: &TimelineState<'_>, ui: &mut Ui<'_>, main: &mut Area, intents: &mut Vec<Intent>) {
     let TimelineState::Repository {
         bar,
         search,
-        stop,
+        conflicts,
         bisect,
         ..
     } = state
@@ -226,9 +227,9 @@ fn banners(state: &TimelineState<'_>, ui: &mut Ui<'_>, main: &mut Area, intents:
         let top = main.top(bar_height(ui));
         intents.extend(ui.clip(top, |ui| bar_view(bar, ui)));
     }
-    if let Some(stop) = stop {
+    if let Some(banner) = conflicts {
         let top = main.top(bar_height(ui));
-        intents.extend(ui.clip(top, |ui| crate::rebase::edit_stop_view(stop, ui)));
+        intents.extend(ui.clip(top, |ui| crate::conflicts::banner_view(banner, ui)));
     }
     if let Some(banner) = bisect {
         let top = main.top(bar_height(ui));

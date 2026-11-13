@@ -146,7 +146,7 @@ fn diff_stage_change__a_file_edited_in_another_program_after_the_page_was_drawn_
     let (ended, log) = run(&mut state, intents);
     assert_eq!(
         ended,
-        Ended::Refused("The file changed since the diff was shown. Try again.".into())
+        Ended::Refused("The file changed since the diff was shown. Try again.".into(), None)
     );
     assert_eq!(log, Vec::<String>::new());
     assert_eq!(staged(&repository), "");

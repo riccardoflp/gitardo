@@ -2,6 +2,7 @@
 //! and the plan it returns for the engine to run.
 
 mod answers;
+mod conflict_results;
 mod context;
 mod journal;
 mod outcome;

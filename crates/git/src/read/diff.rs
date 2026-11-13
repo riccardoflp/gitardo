@@ -21,6 +21,8 @@ pub enum FileVersion {
     Index,
     /// A commit.
     Commit(CommitId),
+    /// The common ancestor of a file in conflict, stage 1 of the index (`:1:<path>`).
+    Base,
     /// The working tree: the text a File page holds for the file when it has unsaved edits there, else the disk.
     WorkingTree {
         /// The text of the File page, when it has unsaved edits.
@@ -81,7 +83,7 @@ fn read_version(git: &Git, request: &VersionRequest) -> Result<Option<Vec<u8>>, 
         FileVersion::Absent => Ok(None),
         FileVersion::WorkingTree { unsaved: Some(text) } => Ok(Some(text.clone())),
         FileVersion::WorkingTree { unsaved: None } => read_from_disk(git, &request.path),
-        FileVersion::Index | FileVersion::Commit(_) => match object_name(request) {
+        FileVersion::Index | FileVersion::Base | FileVersion::Commit(_) => match object_name(request) {
             Some(object) => read_unless_missing(git, &blob_arguments(&object), &object),
             None => Ok(None),
         },
@@ -92,6 +94,7 @@ fn read_version(git: &Git, request: &VersionRequest) -> Result<Option<Vec<u8>>, 
 fn object_name(request: &VersionRequest) -> Option<String> {
     match &request.version {
         FileVersion::Index => Some(format!(":0:{}", request.path)),
+        FileVersion::Base => Some(format!(":1:{}", request.path)),
         FileVersion::Commit(commit) => Some(blob_name(commit, &request.path)),
         FileVersion::Absent | FileVersion::WorkingTree { .. } => None,
     }

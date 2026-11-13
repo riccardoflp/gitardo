@@ -64,7 +64,8 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::ReadCommitPage { .. }
             | JobKind::ReadDiff { .. }
             | JobKind::ReadComparison { .. }
-            | JobKind::ReadInPlace { .. } => None,
+            | JobKind::ReadInPlace { .. }
+            | JobKind::CountConflicts { .. } => None,
         })
         .collect()
 }
@@ -165,6 +166,10 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
             result: Err(String::from("not read in these tests")),
         },
         JobKind::ReadInPlace { .. } => Message::InPlaceRead {
+            job,
+            result: Err(String::from("not read in these tests")),
+        },
+        JobKind::CountConflicts { .. } => Message::ConflictsCounted {
             job,
             result: Err(String::from("not read in these tests")),
         },

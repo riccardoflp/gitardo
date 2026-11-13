@@ -39,8 +39,8 @@ pub enum Ended {
         /// (`FollowUp::PreparedMessage`).
         prepared_message: Option<String>,
     },
-    /// It refused to run, and said why.
-    Refused(Text),
+    /// It refused to run, and said why, with what it offers to do instead.
+    Refused(Text, Option<(FeatureId, Text)>),
     /// The user backed out of a question, or did not run the plan shown: nothing ran.
     BackedOut,
     /// A step failed, or a read it needed: what it was, and what git or the system said.
@@ -49,6 +49,8 @@ pub enum Ended {
         title: String,
         /// What was said.
         said: String,
+        /// The title of the plan whose step failed; empty when no plan ran.
+        plan: String,
     },
 }
 
@@ -90,6 +92,11 @@ pub struct Said {
     pub offers_stashes: bool,
     /// The first bad commit a bisect found, named with **Show in the timeline** and **End bisect** beside it.
     pub found: Option<CommitId>,
+    /// What it offers to do next, with the words of its button: **Continue** once no file is left in conflict.
+    pub offer: Option<(FeatureId, String)>,
+    /// The title of the operation that stopped on conflicts and how many files were in conflict, once the repository
+    /// read again has some: the message of `conflicts.stopped` is shown in place of the failure.
+    pub stopped: Option<(String, usize)>,
 }
 
 /// The operations of a window.
@@ -108,6 +115,8 @@ pub struct Operations {
     pub autostash_before: Option<Vec<model::state::Stash>>,
     /// Whether to tell, once the repository is read again after an answer to a bisect, the first bad commit it found.
     pub check_bisect: bool,
+    /// The title of the plan that failed, to tell once the repository is read again whether it stopped on conflicts.
+    pub check_stopped: Option<String>,
 }
 
 /// What is asked of an operation, or answered to it.
@@ -137,8 +146,13 @@ pub fn reduce(state: &mut State, intent: FeatureIntent) -> Vec<Effect> {
 }
 
 /// Starts an operation on what it was invoked on, with the answers it was given already, in the repository shown,
-/// unless one runs already. **Compare branches, tags or commits…** is given the comparisons opened before.
+/// unless one runs already. **Compare branches, tags or commits…** is given the comparisons opened before; **Open
+/// settings**, offered by an operation switched off, opens the settings page.
 fn run(state: &mut State, feature: FeatureId, target: Target, mut preset: Answers) -> Vec<Effect> {
+    if feature == FeatureId("settings.edit") {
+        super::pages::show_page(state, views::page::Page::Settings);
+        return Vec::new();
+    }
     let Some(read) = state.shown_read() else {
         return Vec::new();
     };
@@ -254,25 +268,20 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
             let said = remember_follow_ups(state, &after);
             let is_undo = feature == Some(FeatureId("undo.last"));
             state.operations.said = Some(Said {
-                text: said.unwrap_or_else(|| words::done(title.as_str())),
-                is_error: false,
                 can_undo: can_undo && !is_undo,
-                offers_stashes: false,
-                found: None,
+                offer: offer_of(&after),
+                ..Said::new(said.unwrap_or_else(|| words::done(title.as_str())), false)
             });
             let mut effects = reads::asked(state, ReadCause::OperationEnded);
             effects.extend(carry_out(state, after));
             state.compares.changing = None;
             effects
         }
-        Ended::Refused(reason) => {
+        Ended::Refused(reason, offer) => {
             state.compares.changing = None;
             state.operations.said = Some(Said {
-                text: reason.as_str().to_owned(),
-                is_error: true,
-                can_undo: false,
-                offers_stashes: false,
-                found: None,
+                offer: offer.map(|(feature, label)| (feature, label.as_str().to_owned())),
+                ..Said::new(reason.as_str().to_owned(), true)
             });
             Vec::new()
         }
@@ -280,17 +289,35 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
             state.compares.changing = None;
             Vec::new()
         }
-        Ended::Failed { title, said } => {
-            state.operations.said = Some(Said {
-                text: words::failed(&title, &said),
-                is_error: true,
-                can_undo: false,
-                offers_stashes: false,
-                found: None,
-            });
+        Ended::Failed { title, said, plan } => {
+            state.operations.said = Some(Said::new(words::failed(&title, &said), true));
+            state.operations.check_stopped = Some(plan).filter(|plan| !plan.is_empty());
             reads::asked(state, ReadCause::OperationEnded)
         }
     }
+}
+
+impl Said {
+    /// A sentence alone, with nothing beside it.
+    fn new(text: String, is_error: bool) -> Said {
+        Said {
+            text,
+            is_error,
+            can_undo: false,
+            offers_stashes: false,
+            found: None,
+            offer: None,
+            stopped: None,
+        }
+    }
+}
+
+/// What the last offer among the follow-ups of an operation that ran offers, with the words of its button.
+fn offer_of(after: &[FollowUp]) -> Option<(FeatureId, String)> {
+    after.iter().rev().find_map(|follow_up| match follow_up {
+        FollowUp::Offer(feature, label) => Some((*feature, label.as_str().to_owned())),
+        _ => None,
+    })
 }
 
 /// What the follow-ups of an operation that ran ask the window to remember until the repository is read again, and
@@ -449,5 +476,7 @@ pub fn said_state(state: &State) -> Option<SaidState<'_>> {
         can_undo: said.can_undo,
         offers_stashes: said.offers_stashes,
         found: said.found.as_ref(),
+        offer: said.offer.as_ref().map(|(feature, label)| (*feature, label.as_str())),
+        stopped: super::conflicts::stopped_state(state, said),
     })
 }

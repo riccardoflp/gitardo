@@ -60,9 +60,14 @@ impl GutterButton {
 
 /// The buttons a change offers, from the versions of the page: **+** for a change of the working tree against `HEAD`
 /// or the index that is not staged, **−** for a change staged of the working tree against `HEAD` and for every change
-/// of the index against `HEAD`, neither for a renamed file; **⟲** for a change of the working tree.
+/// of the index against `HEAD`, neither for a renamed file; **⟲** for a change of the working tree. None for a file in
+/// conflict, whose base is on the left.
 fn offered(state: &DiffPageState<'_>, (file, text, change): (usize, &DiffText, usize)) -> Vec<GutterButton> {
     let (left, right) = state.versions;
+    if *left == DiffVersion::Base {
+        // A file in conflict is staged or taken from one side whole, not change by change (`conflicts.`).
+        return Vec::new();
+    }
     let is_renamed = state.files.get(file).is_none_or(|paths| paths.left != paths.right);
     let is_staged = text.is_staged(change);
     let mut buttons = Vec::new();
@@ -191,6 +196,7 @@ fn side_of(version: &DiffVersion) -> DiffSide {
         DiffVersion::Index => DiffSide::Index,
         DiffVersion::WorkingTree => DiffSide::WorkingTree,
         DiffVersion::Commit { commit, .. } => DiffSide::Commit(commit.clone()),
-        DiffVersion::Empty => DiffSide::Empty,
+        // The base of a file in conflict offers no button (`offered`): it is never the side of a change.
+        DiffVersion::Empty | DiffVersion::Base => DiffSide::Empty,
     }
 }

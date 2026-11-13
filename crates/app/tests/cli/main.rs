@@ -11,6 +11,7 @@ mod checkout;
 mod commit;
 mod commits;
 mod compare;
+mod conflicts;
 mod merge;
 mod message;
 mod patch;

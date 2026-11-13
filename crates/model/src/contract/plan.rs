@@ -198,6 +198,8 @@ pub enum FollowUp {
     /// Once the repository is read again, say which commit is the first bad one when a bisect found it
     /// (`bisect.mark`).
     CheckBisect,
+    /// Open the review of the resolutions of these files of the working tree (`review.page`).
+    OpenReview(Vec<String>),
 }
 
 #[cfg(test)]

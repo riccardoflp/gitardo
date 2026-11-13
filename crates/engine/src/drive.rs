@@ -220,7 +220,8 @@ impl Engine {
             Ok(steps) => steps,
             Err(failure) => match self.recover(&plan, context, asker, failure) {
                 Ok(steps) => steps,
-                Err(failure) => {
+                Err(mut failure) => {
+                    failure.plan = plan.title.to_string();
                     if matches!(&plan.undo, Undo::Journal(record) if record.holds_after_a_stop()) {
                         let _state_after = self.after_plan(&plan, context);
                     }

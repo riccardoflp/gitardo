@@ -13,6 +13,7 @@ pub mod commit;
 pub mod commit_page;
 pub mod commits;
 pub mod compare;
+pub mod conflicts;
 pub mod diff;
 pub mod fixup;
 mod history;
@@ -40,7 +41,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 89] = [
+pub const OPERATIONS: [(FeatureId, Operation); 96] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -141,6 +142,17 @@ pub const OPERATIONS: [(FeatureId, Operation); 89] = [
     (FeatureId("compare.with-current"), compare::with_current),
     // The reflog.
     (FeatureId("reflog.browse"), reflog::browse),
+    // Conflicts.
+    (FeatureId("conflicts.abort-operation"), conflicts::abort_operation),
+    (FeatureId("conflicts.continue-operation"), conflicts::continue_operation),
+    (FeatureId("conflicts.mark-resolved"), conflicts::mark_resolved),
+    (
+        FeatureId("conflicts.resolve-automatically"),
+        conflicts::resolve_automatically,
+    ),
+    (FeatureId("conflicts.restore"), conflicts::restore),
+    (FeatureId("conflicts.skip-step"), conflicts::skip_step),
+    (FeatureId("conflicts.take-side"), conflicts::take_side),
 ];
 
 /// The operation of an identifier, when it is built.

@@ -7,6 +7,7 @@
 mod changes;
 mod commit_page;
 pub mod compare;
+mod conflicts;
 mod diff_page;
 pub mod feature;
 mod inspector;
@@ -99,6 +100,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         Message::DiffRead { job, result } => diff_page::diff_read(state, job, result),
         Message::ComparisonRead { job, result } => compare::comparison_read(state, job, result),
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
+        Message::ConflictsCounted { job, result } => conflicts::counted(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, settings),
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
         Message::Wake { at } => reads::wake(state, at),
@@ -132,6 +134,7 @@ fn repository_read(
     let mut effects = if is_shown {
         let mut effects = workspace::repository_read(state, job, folder, (result, read_at));
         effects.extend(feature::after_read(state));
+        effects.extend(conflicts::after_read(state));
         effects
     } else {
         let _thrown_away = state.jobs.remove(&job);
@@ -303,6 +306,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Feature(intent) => feature::reduce(state, intent),
         Intent::Changes(intent) => changes::reduce(state, intent),
         Intent::Rebase(intent) => rebase::reduce(state, intent),
+        Intent::Conflicts(intent) => conflicts::reduce(state, intent),
     }
 }
 

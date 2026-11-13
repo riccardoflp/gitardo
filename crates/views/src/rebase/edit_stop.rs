@@ -30,8 +30,8 @@ pub fn banner_words(stop: &RebaseStop) -> String {
 
 /// The banner of a rebase stopped to edit or split a commit: the icon of a commit (there is no edit icon yet), what it
 /// says, **Continue**, which runs `rebase.edit-stop` or `split.continue`, and **Abort**; no **Skip**, which would throw
-/// away what is not committed and keep the commit anyway. **Abort** is greyed out until the operation that takes a
-/// rebase back comes (`conflicts.abort-operation`).
+/// away what is not committed and keep the commit anyway. **Abort** takes the whole rebase back
+/// (`conflicts.abort-operation`).
 ///
 /// Feature: rebase.edit-stop
 pub fn edit_stop_view(state: &EditStopState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -53,11 +53,10 @@ pub fn edit_stop_view(state: &EditStopState<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
     ui.icon_in(parts.left(theme.sizes.icon), Icon::Commit, Tone::Accent);
     let abort = Button::secondary(words::ABORT)
         .kind(ButtonKind::Outline)
-        .with_tooltip(words::ABORT_LATER)
-        .disabled();
+        .with_tooltip(words::ABORT_TOOLTIP);
     let (width, height) = ui.button_size(&abort);
     let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
-    let _ = ui.button("abort the stop", cell, &abort);
+    let aborted = ui.button("abort the stop", cell, &abort).clicked;
     let tooltip = if state.has_conflicts {
         words::RESOLVE_FIRST
     } else {
@@ -72,6 +71,10 @@ pub fn edit_stop_view(state: &EditStopState<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
     let clicked = ui.button("continue the stop", cell, &continue_button).clicked;
     let said = banner_words(state.stop);
     let _ = ui.label(parts.rest(), &Label::new(&said));
+    if aborted {
+        let abort = FeatureId("conflicts.abort-operation");
+        return vec![Intent::Feature(FeatureIntent::Run(abort, Target::Head))];
+    }
     if !clicked {
         return Vec::new();
     }

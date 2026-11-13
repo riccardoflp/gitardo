@@ -191,6 +191,10 @@ fn words(kind: &JobKind) -> (Text, Text) {
             Text::from(activity::reading(&folder_name(folder))),
             Text::from(activity::COMPARING),
         ),
+        JobKind::CountConflicts { folder } => (
+            Text::from(activity::reading(&folder_name(folder))),
+            Text::from(activity::COUNTING_CONFLICTS),
+        ),
     }
 }
 

@@ -302,7 +302,7 @@ impl ViewData {
                     has_more: state.timeline.has_more,
                 }),
                 search: Box::new((search_view::search_box(state), search_view::list_mode(state))),
-                stop: super::rebase::stop_state(&read.state),
+                conflicts: super::conflicts::banner_state(state, read),
                 bisect: read.state.bisect.as_ref().map(|bisect| views::bisect::BisectBanner {
                     bisect,
                     head: read.state.head.commit.as_ref(),

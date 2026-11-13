@@ -72,6 +72,10 @@ pub struct FeatureSettings {
     pub identities: Vec<IdentityProfile>,
     /// `cherryPick.recordOrigin`: cherry-picks end their message with `(cherry picked from commit …)`, as `-x` does.
     pub cherry_pick_record_origin: bool,
+    /// `conflicts.autoResolve`: offer to resolve the conflicts that need no choice.
+    pub conflicts_auto_resolve: bool,
+    /// `conflicts.ai`: offer to ask the AI provider about the conflicts the rules leave.
+    pub conflicts_ai: bool,
 }
 
 /// An identity of the setting `identities`: `{ "name", "email", "signingKey"? }`.
@@ -96,6 +100,8 @@ impl Default for FeatureSettings {
             pull_autostash: true,
             identities: Vec::new(),
             cherry_pick_record_origin: false,
+            conflicts_auto_resolve: false,
+            conflicts_ai: false,
         }
     }
 }

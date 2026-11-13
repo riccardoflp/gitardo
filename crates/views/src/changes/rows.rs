@@ -1,8 +1,9 @@
-//! The lists of the Changes page: **Conflicts**, each file with no box; then **Changes**, with the box on its header,
-//! the buttons that act on every file, and each file with its box and its buttons; **No changes** when both are empty.
+//! The lists of the Changes page: **Conflicts**, each file with no box and the buttons that resolve it; then **Changes**,
+//! with the box on its header, the buttons that act on every file, and each file with its box and its buttons; **No
+//! changes** when both are empty.
 
 use model::changes::{ChangeRow, FileStatus, OpenAction, OpenInput, OpenOnClick, OpenTarget, StagedBox};
-use model::contract::{FeatureId, Target};
+use model::contract::{Answer, AnswerKey, Answers, FeatureId, Target};
 use model::state::ChangeKind;
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{
@@ -10,6 +11,7 @@ use ui::{
 };
 
 use super::{ChangesIntent, ChangesRepository};
+use crate::conflicts::{OpenFileState, open_file_view};
 use crate::details::{CappedList, FileLayout, FileRow, FilesIntent, FilesOwner, FilesState, directory_row, file_rows};
 use crate::feature::FeatureIntent;
 use crate::intent::Intent;
@@ -87,10 +89,7 @@ fn draw_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, row): (Rect, 
             let _ = ui.label(rect, &Label::new(&said).kind(TextKind::Strong));
             Vec::new()
         }
-        ChangesRow::Conflict(index) => {
-            conflict_row(state, ui, (rect, index));
-            Vec::new()
-        }
+        ChangesRow::Conflict(index) => conflict_row(state, ui, (rect, index)),
         ChangesRow::ChangesHeading => changes_heading(state, ui, rect),
         ChangesRow::File(file @ FileRow::Directory { .. }) => directory_row(ui, rect, (FilesOwner::Changes, &file)),
         ChangesRow::File(FileRow::File(index, depth)) => file_row(state, ui, (rect, index, depth)),
@@ -101,22 +100,42 @@ fn draw_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, row): (Rect, 
     }
 }
 
-/// A file in conflict: its name, with no box, and the buttons that resolve it, which come with the review of the
-/// conflicts.
-fn conflict_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index): (Rect, usize)) {
+/// A file in conflict: its name, with no box, which opens it where it can be resolved (`conflicts.open-file`), and the
+/// buttons that resolve it: **Mark as resolved** (`conflicts.mark-resolved`) and the two sides (`conflicts.take-side`).
+fn conflict_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index): (Rect, usize)) -> Vec<Intent> {
     let Some(file) = state.list.conflicts.get(index) else {
-        return;
+        return Vec::new();
     };
+    let mut intents = Vec::new();
+    let path = file.path.as_str();
     let mut area = Area::with_gap(rect, ui.theme().sizes.spacing.small);
-    for (icon, said) in [
-        (Icon::Check, words::MARK_AS_RESOLVED),
-        (Icon::ArrowDown, words::TAKE_INCOMING),
-        (Icon::ArrowUp, words::TAKE_CURRENT),
+    let take = |side: &str| {
+        let mut answers = Answers::new();
+        answers.insert(AnswerKey("side"), Answer::Choice(side.to_owned()));
+        let feature = FeatureId("conflicts.take-side");
+        Intent::Feature(FeatureIntent::RunWith(
+            feature,
+            Target::File(file.path.clone()),
+            answers,
+        ))
+    };
+    for (icon, said, intent) in [
+        (
+            Icon::Plus,
+            words::MARK_AS_RESOLVED,
+            run("conflicts.mark-resolved", Target::File(file.path.clone())),
+        ),
+        (Icon::ArrowDown, words::TAKE_INCOMING, take("incoming")),
+        (Icon::ArrowUp, words::TAKE_CURRENT, take("current")),
     ] {
-        let _ = icon_button(ui, &mut area, ((said, file.path.as_str()), icon, said), false);
+        if icon_button(ui, &mut area, ((said, path), icon, said), !state.is_running) {
+            intents.push(intent);
+        }
     }
     let start = status_start(ui, area.rest(), ("!", ui.theme().colors.removed, 0));
-    let _ = ui.label(start, &Label::new(&file.path));
+    let opened = OpenFileState { file };
+    intents.extend(ui.clip(start, |ui| open_file_view(&opened, ui)));
+    intents
 }
 
 /// The heading of the changed files: the box that stages or unstages every one, **Changes** and its count, and the

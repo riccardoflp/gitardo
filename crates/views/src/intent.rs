@@ -82,6 +82,8 @@ pub enum Intent {
     Changes(crate::changes::ChangesIntent),
     /// Something asked of the interactive rebase page (`rebase.todo-page`).
     Rebase(crate::rebase::RebaseIntent),
+    /// Something asked of a file in conflict (`conflicts.open-file`).
+    Conflicts(crate::conflicts::ConflictsIntent),
 }
 
 /// What is done with a folder opened while the window shows a workspace.

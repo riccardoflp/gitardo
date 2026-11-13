@@ -14,6 +14,8 @@ pub const INDEX: &str = "Index";
 pub const HEAD: &str = "HEAD";
 /// A side where the file is not.
 pub const EMPTY: &str = "Empty";
+/// The name over the column of the common ancestor of a file in conflict (`conflicts.open-file`).
+pub const BASE: &str = "Base";
 /// The arrow that goes to the previous change.
 pub const PREVIOUS_CHANGE: &str = "Previous change (Shift+F7)";
 /// The arrow that goes to the next change.

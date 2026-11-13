@@ -48,8 +48,8 @@ pub const CONTINUE_TOOLTIP: &str = "Go on with the rebase: the commits after it 
 pub const RESOLVE_FIRST: &str = "Resolve the conflicts and stage the files first";
 /// **Abort** in the banner of a stop.
 pub const ABORT: &str = "Abort";
-/// The tooltip of **Abort** while the operation that takes a rebase back is not there yet.
-pub const ABORT_LATER: &str = "Take the whole rebase back: run git rebase --abort for now";
+/// The tooltip of **Abort** in the banner of a stop (`conflicts.abort-operation`).
+pub const ABORT_TOOLTIP: &str = "Take the whole rebase back";
 
 /// The name of the interactive rebase page in the trail.
 pub const PAGE: &str = "Interactive rebase";

@@ -66,6 +66,10 @@ pub struct SaidState<'a> {
     pub offers_stashes: bool,
     /// The first bad commit a bisect found, which it names: **Show in the timeline** and **End bisect** are beside it.
     pub found: Option<&'a model::CommitId>,
+    /// What it offers to do next, with the words of its button: **Continue**, or **Open settings** after a refusal.
+    pub offer: Option<(FeatureId, &'a str)>,
+    /// The message of an operation that stopped on conflicts, drawn in place of the failure (`conflicts.stopped`).
+    pub stopped: Option<crate::conflicts::StoppedState<'a>>,
 }
 
 /// A question of an operation over the window: its title, what it says will happen, and the box, the choices or the
@@ -341,8 +345,12 @@ fn found_buttons(found: &model::CommitId, parts: &mut Area, ui: &mut Ui<'_>) -> 
 }
 
 /// What was said once an operation ended, across the top of what is under the header, with **Undo** when it can be
-/// taken back and a button that puts it away.
+/// taken back, what it offers next and a button that puts it away; the message of an operation that stopped on
+/// conflicts in its place (`conflicts.stopped`).
 pub fn said_view(state: &SaidState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
+    if let Some(stopped) = &state.stopped {
+        return crate::conflicts::stopped_view(stopped, ui);
+    }
     let rect = ui.current_clip();
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
@@ -360,46 +368,34 @@ pub fn said_view(state: &SaidState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     };
     ui.icon_in(parts.left(theme.sizes.icon), icon, tone);
     let mut intents = Vec::new();
-    let dismiss = Button::secondary(words::DISMISS).kind(ButtonKind::Outline);
-    let (width, height) = ui.button_size(&dismiss);
-    if ui
-        .button(
-            "dismiss said",
-            place(parts.right(width), (width, height), (Align::Start, Align::Center)),
-            &dismiss,
-        )
-        .clicked
-    {
+    if outlined(ui, &mut parts, ("dismiss said", words::DISMISS)) {
         intents.push(Intent::Feature(FeatureIntent::Dismiss));
     }
     if let Some(found) = state.found {
         intents.extend(found_buttons(found, &mut parts, ui));
     }
-    if state.can_undo {
-        let undo = Button::secondary(words::UNDO).kind(ButtonKind::Outline);
-        let (width, height) = ui.button_size(&undo);
-        if ui
-            .button(
-                "undo said",
-                place(parts.right(width), (width, height), (Align::Start, Align::Center)),
-                &undo,
-            )
-            .clicked
-        {
-            intents.push(Intent::Feature(FeatureIntent::Run(
-                FeatureId("undo.last"),
-                Target::Head,
-            )));
-        }
+    if state.can_undo && outlined(ui, &mut parts, ("undo said", words::UNDO)) {
+        intents.push(Intent::Feature(FeatureIntent::Run(
+            FeatureId("undo.last"),
+            Target::Head,
+        )));
     }
-    if state.offers_stashes {
-        let show = Button::secondary(crate::text::stash::SHOW_STASHES).kind(ButtonKind::Outline);
-        let (width, height) = ui.button_size(&show);
-        let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
-        if ui.button("show stashes said", cell, &show).clicked {
-            intents.push(Intent::Rail(crate::intent::RailIntent::ShowStashes));
-        }
+    if let Some((feature, label)) = state.offer
+        && outlined(ui, &mut parts, ("offer said", label))
+    {
+        intents.push(Intent::Feature(FeatureIntent::Run(feature, Target::Head)));
+    }
+    if state.offers_stashes && outlined(ui, &mut parts, ("show stashes said", crate::text::stash::SHOW_STASHES)) {
+        intents.push(Intent::Rail(crate::intent::RailIntent::ShowStashes));
     }
     let _ = ui.label(parts.rest(), &Label::new(state.text));
     intents
+}
+
+/// An outlined button at the right of what is said; says whether it was clicked.
+fn outlined(ui: &mut Ui<'_>, parts: &mut Area, (key, label): (&str, &str)) -> bool {
+    let button = Button::secondary(label).kind(ButtonKind::Outline);
+    let (width, height) = ui.button_size(&button);
+    let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
+    ui.button(key, cell, &button).clicked
 }
