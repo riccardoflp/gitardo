@@ -149,6 +149,7 @@ fn merge_view_read_sides__a_file_added_on_both_sides_has_an_empty_base() {
     assert_eq!(sides.incoming, b"feature\n");
     assert!(String::from_utf8(sides.result).unwrap().contains("<<<<<<<"));
     assert_eq!(sides.operation, Some(Operation::Merge));
+    assert!(sides.has_both_sides);
 }
 
 #[test]

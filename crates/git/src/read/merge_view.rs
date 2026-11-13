@@ -34,6 +34,8 @@ pub struct MergeSides {
     pub result: Vec<u8>,
     /// The operation that stopped on the conflict, for the names of the sides.
     pub operation: Option<Operation>,
+    /// Whether the file is in conflict with a version on each side: the index keeps its stages 2 and 3.
+    pub has_both_sides: bool,
 }
 
 /// The versions the Merge page compares for a file in conflict: the base, the current side and the incoming side from
@@ -69,6 +71,7 @@ pub fn read_sides(git: &Git, request: &MergeSidesRequest) -> Result<MergeSides, 
         incoming,
         result,
         operation: read_operation(&location.git_folder),
+        has_both_sides: has(|file| file.current.is_some()) && has(|file| file.incoming.is_some()),
     })
 }
 
