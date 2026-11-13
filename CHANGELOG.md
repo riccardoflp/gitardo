@@ -340,3 +340,7 @@
   branch. The menu of a branch has **Open pull request #12**, or **Create pull request…** when it has none, and the
   menu of a remote branch **Open pull request #12**. After the first push of a branch, the window says "Pushed
   `<branch>`." with **Create pull request**.
+- A commit of the timeline, a branch label on it, or a branch or a remote branch of the branch rail can be dragged
+  onto a row of the timeline: the rows that take it are outlined as the pointer passes over them, the others show
+  that nothing can be dropped there, and dropping it opens a menu at the pointer to cherry-pick the commit, merge the
+  branch or rebase onto it, or rebase or reset the branch there.

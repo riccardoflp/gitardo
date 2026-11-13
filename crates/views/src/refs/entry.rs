@@ -18,6 +18,7 @@ use super::draw::{Context, DOT, RailReport, indent};
 use super::menu::{EntryCommand, entry_menu, operations};
 use super::rows::{Entry, Marks, worktree_folder};
 use crate::branch::{ReferenceMenus, chosen, open_intent};
+use crate::drag::DragItem;
 use crate::filter::filter_entry_intent;
 use crate::graph::{
     GraphIntent, HoverTarget, HoverWay, PullRequestBadge, draw_pull_request_badge, pull_request_badge_width,
@@ -38,7 +39,7 @@ pub(super) fn entry_row(
     let theme = *ui.theme();
     let name = entry.name();
     let id = ui.id(("entry", list, &name));
-    let response = ui.interact(id, rect, Sense::CLICK);
+    let response = entry_response(ui, ("entry", list, &name), entry, rect);
     let radius = theme.sizes.radius.medium;
     if marks.is_selected && !context.is_icons {
         ui.fill_rounded_rect(rect, radius, theme.colors.list_inactive_selection);
@@ -93,6 +94,27 @@ pub(super) fn entry_row(
         report
             .intents
             .extend(entry_menu_chosen(ui, context.state, entry, menu_key));
+    }
+}
+
+/// What happens to an entry as a widget: a click, and a drag of a branch or a remote branch onto the timeline.
+fn entry_response(ui: &mut Ui<'_>, key: (&str, &RailList, &String), entry: &Entry<'_>, rect: Rect) -> Response {
+    if let Some(item) = drag_item(entry) {
+        return ui
+            .drag_source_carrying(key, rect, &item.label(), &item.payload())
+            .response;
+    }
+    let id = ui.id(key);
+    ui.interact(id, rect, Sense::CLICK)
+}
+
+/// What an entry is dragged onto the timeline as: a branch or a remote branch (`drag.drop`); the others are not
+/// dragged.
+fn drag_item(entry: &Entry<'_>) -> Option<DragItem> {
+    match entry {
+        Entry::Branch(branch) => Some(DragItem::Branch(branch.name.clone())),
+        Entry::Remote(branch) => Some(DragItem::RemoteBranch(branch.name.clone())),
+        Entry::Tag(_) | Entry::Stash(_) | Entry::Worktree(_) | Entry::Submodule(_) => None,
     }
 }
 

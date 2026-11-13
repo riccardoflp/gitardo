@@ -71,6 +71,8 @@ pub struct HistoryState<'a> {
     /// The commit box of the Changes page, whose message and **Commit** the draft shows; and whether an operation
     /// runs, which disables them and the entries of its menu.
     pub commit_box: crate::changes::CommitBox<'a>,
+    /// What was dropped last on a row, for the menu of the drop while it is open (`drag.drop`).
+    pub dropped: Option<&'a crate::drag::Dropped>,
 }
 
 /// What the draft of the uncommitted changes shows and offers.

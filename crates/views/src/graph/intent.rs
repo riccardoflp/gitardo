@@ -48,6 +48,8 @@ pub enum GraphIntent {
     ToggleReferences,
     /// Turn a switch of the timeline on or off, from the **…** menu (`graph.more-menu`).
     Switch(TimelineSwitch, bool),
+    /// Something was dropped on a row, which opened the menu of the drop (`drag.drop`).
+    Dropped(crate::drag::Dropped),
 }
 
 /// A row that can be selected.

@@ -390,6 +390,17 @@ impl<'frame> Ui<'frame> {
         self.memory.interaction.focus = Some(id);
     }
 
+    /// Whether the pointer is about a widget: under it, or, while the main button is held, where it was pressed, even
+    /// on a widget that takes no press, such as a label of a row a drag starts from.
+    #[must_use]
+    pub fn is_pointed_at(&self, response: &Response) -> bool {
+        let interaction = &self.memory.interaction;
+        match interaction.active {
+            Some(_) => interaction.pressed_on == Some(response.id),
+            None => response.hovered,
+        }
+    }
+
     /// Asks for the pointer to have a shape while it is where this frame says.
     pub fn set_cursor(&mut self, cursor: Cursor) {
         self.output.cursor = cursor;

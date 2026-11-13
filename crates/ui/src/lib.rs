@@ -88,7 +88,7 @@ pub use widget::drag::{DragSourceResponse, DropTargetResponse};
 pub use widget::find::{FindResponse, ListSearch, MatchCase};
 pub use widget::input_box::{EditableLine, Extent, InputBox, InputBoxResponse, Message, Movement, Selecting, Severity};
 pub use widget::label::Label;
-pub use widget::list::{List, ListResponse, Reveal, RevealPlace, Row, Selection, SelectionMode, Steering};
+pub use widget::list::{List, ListResponse, Reveal, RevealPlace, Row, RowDrag, Selection, SelectionMode, Steering};
 pub use widget::menu::{MenuAnchor, MenuEntry, MenuItem};
 pub use widget::panel::Axis;
 pub use widget::picker::fuzzy::{self, FuzzyMatch};

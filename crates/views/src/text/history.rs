@@ -21,6 +21,13 @@ pub const COMPARE_TWO: &str = "Compare these two commits";
 /// The name of the bar of a selection, for the screen reader.
 pub const SELECTION_BAR: &str = "Selection";
 
+/// An entry of the menu a drop opens (`drag.drop`): the words of `drag.list-drop-entries`, the names in them without
+/// the marks of code around them, as the other menus say names.
+#[must_use]
+pub fn drop_entry(label: &str) -> String {
+    label.replace('`', "")
+}
+
 /// **Merge into `<current>`** in the menu of a commit, a branch or a remote branch (`merge.into-current`).
 #[must_use]
 pub fn merge_into(current: &str) -> String {

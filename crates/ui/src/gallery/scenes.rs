@@ -124,9 +124,11 @@ fn drag(memory: &mut UiMemory) {
     memory.drag_and_drop = Some(DragAndDrop {
         source,
         label: String::from("main"),
+        payload: String::new(),
         start,
         is_dragging: true,
         dropped_at: None,
+        is_refused: false,
     });
     memory.interaction.active = Some(Active { id: source });
     memory.interaction.pointer = Some(now);

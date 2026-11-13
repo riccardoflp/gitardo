@@ -55,6 +55,8 @@ pub(crate) struct ListState {
     pub(crate) scroll: ScrollAxis,
     /// The number of the last row its view asked to bring into sight, so that each is brought once.
     pub(crate) revealed: Option<u64>,
+    /// The row the main button is held on, while it is, for a drag that starts from it.
+    pub(crate) press: Option<crate::widget::list::RowPress>,
 }
 
 /// The state of an editor of code between frames.

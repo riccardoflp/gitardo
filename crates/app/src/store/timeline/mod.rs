@@ -77,6 +77,8 @@ pub struct Timeline {
     pub is_all_folded: bool,
     /// When the repository was read, in seconds since 1970.
     pub read_at: i64,
+    /// What was dropped last on a row, for the menu of the drop while it is open (`drag.drop`).
+    pub dropped: Option<views::drag::Dropped>,
 }
 
 impl Timeline {
@@ -338,6 +340,10 @@ pub fn reduce_graph(state: &mut State, intent: GraphIntent) -> Vec<Effect> {
             sizes::resize(state, &intent)
         }
         GraphIntent::Switch(switch, is_on) => sizes::switch(state, switch, is_on),
+        GraphIntent::Dropped(dropped) => {
+            state.timeline.dropped = Some(dropped);
+            Vec::new()
+        }
     }
 }
 

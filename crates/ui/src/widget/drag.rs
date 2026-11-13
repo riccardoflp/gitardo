@@ -1,6 +1,8 @@
 //! Drag and drop inside the window: a drag source starts a drag once the pointer pressed on it has moved past a few
 //! pixels, its label then follows the pointer above everything, a drop target lights up while the drag is over it and
-//! is told what was dropped on it when the button is released there, and Escape cancels the drag.
+//! is told what was dropped on it when the button is released there, and Escape cancels the drag. A row of a list
+//! starts a drag through its view ([`Ui::start_drag`]), and a place that does not take what is dragged says so with
+//! the pointer ([`Ui::refuse_drop`]).
 
 use std::hash::Hash;
 
@@ -24,12 +26,16 @@ pub(crate) struct DragAndDrop {
     pub(crate) source: WidgetId,
     /// What follows the pointer while it is dragged.
     pub(crate) label: String,
+    /// What the view says is dragged, which the places it may be dropped on read back.
+    pub(crate) payload: String,
     /// Where the pointer was pressed.
     pub(crate) start: Point,
     /// Whether the pointer moved far enough for this to be a drag rather than a click.
     pub(crate) is_dragging: bool,
     /// Where the button was released in this frame, which drops what is dragged there.
     pub(crate) dropped_at: Option<Point>,
+    /// Whether the pointer is over a place that does not take what is dragged, in this frame.
+    pub(crate) is_refused: bool,
 }
 
 /// What a drag source tells its view.
@@ -56,6 +62,7 @@ pub(crate) fn start_frame(memory: &mut UiMemory, routed: &mut Routed) {
     let Some(drag) = memory.drag_and_drop.as_mut() else {
         return;
     };
+    drag.is_refused = false;
     let escape = routed
         .keys
         .iter()
@@ -86,6 +93,18 @@ pub(crate) fn start_frame(memory: &mut UiMemory, routed: &mut Routed) {
 impl Ui<'_> {
     /// Declares something that can be dragged, with the words that follow the pointer while it is.
     pub fn drag_source(&mut self, key: impl Hash, rect: Rect, label: &str) -> DragSourceResponse {
+        self.drag_source_carrying(key, rect, label, "")
+    }
+
+    /// Declares something that can be dragged, with the words that follow the pointer while it is and what the
+    /// places it is dropped on read back with [`Ui::drag_payload`].
+    pub fn drag_source_carrying(
+        &mut self,
+        key: impl Hash,
+        rect: Rect,
+        label: &str,
+        payload: &str,
+    ) -> DragSourceResponse {
         let id = self.id(key);
         let (response, events) = self.interact_with_events(id, rect, Sense::CLICK | Sense::DRAG);
         let threshold = self.theme().sizes.spacing.small;
@@ -99,9 +118,11 @@ impl Ui<'_> {
                     self.memory().drag_and_drop = Some(DragAndDrop {
                         source: id,
                         label: label.to_owned(),
+                        payload: payload.to_owned(),
                         start: position,
                         is_dragging: false,
                         dropped_at: None,
+                        is_refused: false,
                     });
                 }
                 WidgetEvent::Dragged { position, .. } => {
@@ -119,6 +140,48 @@ impl Ui<'_> {
         DragSourceResponse {
             response,
             is_dragging: self.dragged() == Some(id),
+        }
+    }
+
+    /// Starts a drag of what the widget of a response holds pressed since `start`, such as the row of a list that said
+    /// a drag starts from it ([`crate::ListResponse::drag_start`]): with the words that follow the pointer, and what
+    /// the places it is dropped on read back.
+    pub fn start_drag(&mut self, response: &Response, start: Point, (label, payload): (&str, &str)) {
+        if self
+            .memory_view()
+            .interaction
+            .active
+            .is_none_or(|active| active.id != response.id)
+        {
+            return;
+        }
+        self.memory().drag_and_drop = Some(DragAndDrop {
+            source: response.id,
+            label: label.to_owned(),
+            payload: payload.to_owned(),
+            start,
+            is_dragging: true,
+            dropped_at: None,
+            is_refused: false,
+        });
+    }
+
+    /// What is dragged, as its source said it, while it is dragged and in the frame it is dropped.
+    #[must_use]
+    pub fn drag_payload(&self) -> Option<String> {
+        self.memory_view()
+            .drag_and_drop
+            .as_ref()
+            .filter(|drag| drag.is_dragging)
+            .map(|drag| drag.payload.clone())
+    }
+
+    /// Declares a place that does not take what is dragged now: the pointer says so while it is over it.
+    pub fn refuse_drop(&mut self, rect: Rect) {
+        let visible = rect.intersection(self.current_clip());
+        let is_over = self.pointer().is_some_and(|at| visible.contains(at));
+        if let Some(drag) = self.memory().drag_and_drop.as_mut().filter(|drag| drag.is_dragging) {
+            drag.is_refused |= is_over;
         }
     }
 
@@ -173,19 +236,19 @@ impl Ui<'_> {
             self.memory().drag_and_drop = None;
             return;
         }
-        let Some(label) = self
+        let Some((label, is_refused)) = self
             .memory_view()
             .drag_and_drop
             .as_ref()
             .filter(|drag| drag.is_dragging)
-            .map(|drag| drag.label.clone())
+            .map(|drag| (drag.label.clone(), drag.is_refused))
         else {
             return;
         };
         let Some(pointer) = self.pointer() else {
             return;
         };
-        self.set_cursor(Cursor::Grab);
+        self.set_cursor(if is_refused { Cursor::NotAllowed } else { Cursor::Grab });
         self.drag_image(&label, pointer);
     }
 

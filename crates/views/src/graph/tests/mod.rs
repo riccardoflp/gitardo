@@ -130,6 +130,7 @@ impl Fixture {
             hover: None,
             hover_left_at: None,
             rail_hover: None,
+            dropped: None,
             switches: Switches::DEFAULT,
             graph_width: None,
             now: 0,

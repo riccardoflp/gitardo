@@ -2,6 +2,7 @@
 //! list draws the background of each row, for the pointer, the selection and the keyboard, and the view draws what is
 //! in the row.
 
+mod drag;
 mod keys;
 mod read;
 mod selection;
@@ -10,6 +11,8 @@ mod steer;
 use std::hash::Hash;
 use std::ops::Range;
 
+pub use drag::RowDrag;
+pub(crate) use drag::RowPress;
 pub use keys::SelectionMode;
 pub use selection::Selection;
 pub use steer::{Reveal, RevealPlace, Steering};
@@ -71,6 +74,8 @@ pub struct ListResponse {
     pub context_row: Option<usize>,
     /// The rows in sight.
     pub visible_rows: Range<usize>,
+    /// The row the main button was pressed on, in the frame the pointer moved far enough from the press for a drag.
+    pub drag_start: Option<RowDrag>,
 }
 
 impl ListResponse {
@@ -82,6 +87,7 @@ impl ListResponse {
             activated: None,
             context_row: None,
             visible_rows: 0..0,
+            drag_start: None,
         }
     }
 }
@@ -198,6 +204,7 @@ impl Ui<'_> {
             {
                 continue;
             }
+            outcome.drag_start = outcome.drag_start.or(self.row_drag((rect, list), &mut state, &event));
             self.list_event(rect, list, &mut state, (event, &mut outcome));
         }
         let content = self.glide_list(rect, list, &mut state);

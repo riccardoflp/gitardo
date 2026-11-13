@@ -377,6 +377,7 @@ impl ViewData {
                 github: super::github::shown(state),
             }),
             commit_box: super::changes::commit_box(state),
+            dropped: timeline.dropped.as_ref(),
         }
     }
 }

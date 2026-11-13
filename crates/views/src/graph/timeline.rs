@@ -19,6 +19,7 @@ use super::row::{RowContext, RowReport, draw_row, select_row, selected_row};
 use super::stashes::{stash_intent, stash_menu};
 use super::state::{GraphState, HistoryState, Reading};
 use super::sticky::{sticky_names, sticky_names_drawn};
+use crate::drag::{DropState, Dropped, drop_on_row, drop_view, start_row_drag};
 use crate::intent::Intent;
 use crate::line::INSPECTOR_OVER_BELOW;
 use crate::selection::{Several, bar_height, bar_view, menu_view, open_menu, select_view};
@@ -191,8 +192,10 @@ fn history(
         left_to_view: &LEFT_TO_VIEW,
     };
     let mut report = RowReport::default();
+    let mut dropped = None;
     let response = ui.steered_list(HISTORY_KEY, (rect, &list), &steering, |ui, row| {
         draw_row(ui, context, row, &mut report);
+        dropped = drop_on_row(state, ui, row).or(dropped.take());
     });
     let mut intents = std::mem::take(&mut report.intents);
     let chosen = response.changed_selection.as_ref().and_then(Selection::cursor);
@@ -219,10 +222,31 @@ fn history(
     if let Some(several) = several {
         intents.extend(menu_view(state, several, ui));
     }
+    intents.extend(drags(state, ui, (&response, pointed.as_ref()), dropped));
     for row in response.visible_rows.clone() {
         intents.extend(row_menu(state, ui, row));
     }
     (intents, report, response.visible_rows)
+}
+
+/// The drag started from a row, and what was dropped on one with the menu it opens (`drag.drop`).
+fn drags(
+    state: &HistoryState<'_>,
+    ui: &mut Ui<'_>,
+    (response, pointed): (&ui::ListResponse, Option<&super::commit_menu::PointedLabel>),
+    dropped: Option<Dropped>,
+) -> Vec<Intent> {
+    start_row_drag(state, ui, (response, pointed));
+    let Some(repository) = state.references.map(|menus| menus.repository) else {
+        return Vec::new();
+    };
+    let shown = DropState {
+        dropped: dropped.as_ref().or(state.dropped),
+        repository,
+    };
+    let mut intents = drop_view(&shown, ui);
+    intents.extend(dropped.map(|dropped| Intent::Graph(GraphIntent::Dropped(dropped))));
+    intents
 }
 
 /// The rows the list shows selected: the commits of a selection of several, with the keyboard on the one the

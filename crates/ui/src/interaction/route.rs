@@ -73,6 +73,9 @@ pub(crate) struct Interaction {
     pub(crate) pointer: Option<Point>,
     /// The widget the main button was pressed on, while it is held.
     pub(crate) active: Option<Active>,
+    /// The widget that covers where the main button was pressed, while it is held, even one that takes no press: a
+    /// label of a row a drag starts from.
+    pub(crate) pressed_on: Option<WidgetId>,
     /// The widget another button was pressed on, while it is held.
     pub(crate) other_press: Option<(WidgetId, PointerButton)>,
     /// The widget with the keyboard focus.
@@ -98,6 +101,7 @@ impl Default for Interaction {
         Interaction {
             pointer: None,
             active: None,
+            pressed_on: None,
             other_press: None,
             focus: None,
             focus_visible: false,
@@ -214,6 +218,7 @@ pub(crate) fn route(state: &mut Interaction, events: &[InputEvent], settings: Ro
             InputEvent::FocusLost => {
                 state.window_focused = false;
                 state.active = None;
+                state.pressed_on = None;
                 state.modifiers = Modifiers::NONE;
             }
         }
@@ -248,6 +253,7 @@ fn pressed(state: &mut Interaction, routed: &mut Routed, press: &PointerButtonEv
         state.focus = target.filter(|hit| hit.sense.contains(Sense::FOCUS)).map(|hit| hit.id);
         state.focus_visible = false;
         state.active = target.map(|hit| Active { id: hit.id });
+        state.pressed_on = state.hits.covering(press.position).map(|hit| hit.id);
     } else {
         state.other_press = target.map(|hit| (hit.id, press.button));
     }
@@ -266,6 +272,7 @@ fn pressed(state: &mut Interaction, routed: &mut Routed, press: &PointerButtonEv
 fn released(state: &mut Interaction, routed: &mut Routed, release: &PointerButtonEvent) {
     state.pointer = Some(release.position);
     let holder = if release.button == PointerButton::Primary {
+        state.pressed_on = None;
         state.active.take().map(|active| active.id)
     } else {
         state

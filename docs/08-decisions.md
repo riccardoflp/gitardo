@@ -1584,3 +1584,14 @@ From the cards left over up to M8 (each built with the reading given, until the 
 - **Q316** — The rows of the Worktrees list (`worktree.section`) do not show the pull request of their branch yet: they
   are drawn by the views of `worktree.`, left as they are to keep this slice's edits of shared views small. Should it
   come in a slice of `worktree.`?
+- **Q-D1** — `drag.drop` is built. A row of the timeline is dragged through its list: the list notes the row pressed
+  and says once that a drag starts when the pointer has moved a few pixels, and the timeline then drags the branch or
+  remote branch whose label the button was pressed on, or else the commit of the row; the draft, a stash and a folded
+  row are not dragged. The branch rail drags its branches and remote branches, in every list, Favorites and Recent
+  included; the pointer over them now shows that they can be dragged. What is dragged travels as words the toolkit
+  carries (`commit <hash>`, `branch <name>`, `remote <name>`), and the store keeps what was dropped while its menu is
+  open. A row that does not take what is dragged shows the pointer that forbids, a stash and a folded row included.
+  The entries of the menu are the words of `drag.list-drop-entries` without the marks of code around the names
+  (**Cherry-pick 3f2a1c9 onto main**), as the other menus say names; `rebase.branch-onto` runs on the commit with the
+  answer `branch` given, since `views` does not use `features` for its presets. Pressing a row to drag it selects the
+  row, as a click does. Are these right?

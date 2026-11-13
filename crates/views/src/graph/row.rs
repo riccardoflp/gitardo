@@ -285,7 +285,7 @@ fn hover_label(
 ) {
     let id = ui.id(("label", commit.as_str(), pill.text.as_ref()));
     let response = ui.interact(id, rect, Sense::HOVER);
-    if response.hovered && !pill.is_count {
+    if ui.is_pointed_at(&response) && !pill.is_count {
         report.pointed = Some((commit.clone(), index));
     }
     if let Some(tooltip) = &pill.tooltip {
