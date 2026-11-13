@@ -1,7 +1,8 @@
 //! The update of the submodules that ends a checkout, as `submodule.update-on-checkout` says: with
 //! `submodules.updateOnCheckout` on and submodules on either side, `git submodule update --init --recursive`.
 
-use model::contract::{AnswerKey, Answers, Context, Outcome, Query, Step};
+use model::contract::{AnswerKey, Answers, Context, Outcome, Plan, Query};
+use model::submodule::{CheckoutUpdate, update_on_checkout};
 
 /// Whether what is checked out now has submodules.
 pub(crate) const SUBMODULES_BEFORE: AnswerKey = AnswerKey("submodules-before");
@@ -12,32 +13,27 @@ pub(crate) const SUBMODULES_AFTER: AnswerKey = AnswerKey("submodules-after");
 /// The file that says a commit has submodules.
 const GITMODULES: &str = ".gitmodules";
 
-/// The steps that follow a checkout of `revision`: the update of the submodules, or nothing; or the read that must
-/// come first, as the outcome to return.
-pub(crate) fn update_after_checkout(
-    context: &Context,
-    answers: &Answers,
-    revision: &str,
-) -> Result<Vec<Step>, Box<Outcome>> {
+/// The plan of a checkout of `revision`, ended with the update of the submodules as `submodule.update-on-checkout`
+/// says; or the read that must come first, as the outcome to return.
+pub(crate) fn update_after_checkout(context: &Context, answers: &Answers, revision: &str, checkout: Plan) -> Outcome {
     if !context.settings.update_submodules_on_checkout {
-        return Ok(Vec::new());
+        return Outcome::Run(checkout);
     }
     let has_submodules = match answers.flag(SUBMODULES_BEFORE) {
-        None => return Err(Box::new(read(SUBMODULES_BEFORE, "HEAD"))),
+        None => return read(SUBMODULES_BEFORE, "HEAD"),
         Some(true) => true,
         Some(false) => match answers.flag(SUBMODULES_AFTER) {
-            None => return Err(Box::new(read(SUBMODULES_AFTER, revision))),
+            None => return read(SUBMODULES_AFTER, revision),
             Some(after) => after,
         },
     };
-    Ok(if has_submodules {
-        vec![Step::git(
-            context.repository.folder.clone(),
-            ["submodule", "update", "--init", "--recursive"],
-        )]
-    } else {
-        Vec::new()
-    })
+    Outcome::Run(update_on_checkout(&CheckoutUpdate {
+        checkout: &checkout,
+        is_on: true,
+        has_submodules,
+        folder: &context.repository.folder,
+        submodules: &context.repository.submodules,
+    }))
 }
 
 /// Reads whether a commit has `.gitmodules`.

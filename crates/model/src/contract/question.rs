@@ -103,6 +103,13 @@ pub enum Validation {
     },
     /// Anything but nothing, spaces left out: what is said while it is empty.
     Required(Text),
+    /// Nothing, or a name git takes for a branch (`branch.validate-name`): the branch a submodule follows.
+    OptionalReferenceName,
+    /// A folder inside the repository, from its root, where no submodule is (`submodule.add`).
+    SubmoduleFolder {
+        /// The folders of the submodules, from the root of the repository.
+        submodules: Vec<String>,
+    },
 }
 
 impl Validation {
@@ -125,6 +132,8 @@ impl Validation {
                 }
             }
             Validation::Required(message) => text.trim().is_empty().then(|| message.clone()),
+            Validation::OptionalReferenceName => (!text.trim().is_empty()).then(|| validate_name(text.trim()))?,
+            Validation::SubmoduleFolder { submodules } => crate::submodule::folder_problem(text, submodules),
         }
     }
 }

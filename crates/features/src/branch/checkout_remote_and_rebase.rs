@@ -26,16 +26,12 @@ pub fn checkout_remote_and_rebase(context: &Context, answers: &Answers) -> Outco
         ));
     };
     let argument = ref_argument(RefKind::RemoteBranch, &remote.name, &RefNames::of(&context.repository));
-    let mut steps = vec![Step::git(
+    let steps = vec![Step::git(
         context.repository.folder.clone(),
         ["rebase", "--autostash", argument.as_str(), local.name.as_str()],
     )];
-    match update_after_checkout(context, answers, &local.name) {
-        Ok(update) => steps.extend(update),
-        Err(read) => return *read,
-    }
     let title = format!("Check out {} and rebase it onto {}", local.name, remote.name);
-    Outcome::Run(checkout_plan(title, steps))
+    update_after_checkout(context, answers, &local.name, checkout_plan(title, steps))
 }
 
 #[cfg(test)]

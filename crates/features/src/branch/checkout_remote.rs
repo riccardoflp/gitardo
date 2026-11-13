@@ -145,12 +145,8 @@ fn checkout_steps(context: &Context, commands: &[Vec<&str>]) -> Vec<Step> {
 }
 
 /// Runs the steps under a title, followed by the update of the submodules to what `after` has.
-fn run(context: &Context, answers: &Answers, (after, title): (&str, String), mut steps: Vec<Step>) -> Outcome {
-    match update_after_checkout(context, answers, after) {
-        Ok(update) => steps.extend(update),
-        Err(read) => return *read,
-    }
-    Outcome::Run(checkout_plan(title, steps))
+fn run(context: &Context, answers: &Answers, (after, title): (&str, String), steps: Vec<Step>) -> Outcome {
+    update_after_checkout(context, answers, after, checkout_plan(title, steps))
 }
 
 /// The question asked when each has commits the other has not.

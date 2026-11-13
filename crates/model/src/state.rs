@@ -45,6 +45,8 @@ pub struct RepositoryState {
     pub rebase_stop: Option<crate::rebase::RebaseStop>,
     /// The bisect under way in this worktree, if one is (`bisect.read`).
     pub bisect: Option<crate::bisect::Bisect>,
+    /// The submodules, and theirs, each followed by its own (`submodule.read-list`).
+    pub submodules: Vec<crate::submodule::Submodule>,
 }
 
 impl RepositoryState {

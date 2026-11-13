@@ -157,6 +157,16 @@ fn read_checkout(git: &Git, recorded: Option<&CommitId>) -> Result<Checkout, Git
     })
 }
 
+/// The git folder of the repository of a folder, in full: `git -C <folder> rev-parse --absolute-git-dir`, where the
+/// clones of its submodules are kept under `modules/` (`submodule.remove`).
+///
+/// # Errors
+///
+/// When the folder is not in a repository, or git cannot be started or fails.
+pub fn read_git_folder(git: &Git, folder: &Path) -> Result<PathBuf, GitError> {
+    crate::read::repo::read_location(&git.in_directory(folder)).map(|location| location.git_folder)
+}
+
 /// The commit of a folder in a list of folders and commits.
 fn commit_of(commits: &[(String, CommitId)], folder: &str) -> Option<CommitId> {
     commits

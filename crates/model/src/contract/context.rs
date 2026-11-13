@@ -58,6 +58,8 @@ pub enum Target {
     FileSave(Box<crate::file_view::FileSave>),
     /// A file of the working tree at the line of the cursor of its page (`file-view.open-external`).
     FileAt(crate::file_view::FileAt),
+    /// A submodule, by its folder from the top of the repository: `vendor/a/b` (`submodule.section`).
+    Submodule(String),
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.

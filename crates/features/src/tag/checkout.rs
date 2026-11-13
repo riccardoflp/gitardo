@@ -20,16 +20,12 @@ pub fn checkout(context: &Context, answers: &Answers) -> Outcome {
         return refuse(&format!("The commit of {} is checked out already.", tag.name));
     }
     let argument = ref_argument(RefKind::Tag, &tag.name, &RefNames::of(&context.repository));
-    let mut steps = vec![Step::git(
+    let steps = vec![Step::git(
         context.repository.folder.clone(),
         ["checkout", "--detach", argument.as_str()],
     )];
-    match update_after_checkout(context, answers, &argument) {
-        Ok(update) => steps.extend(update),
-        Err(read) => return *read,
-    }
     let title = format!("Check out tag {} (detached)", tag.name);
-    Outcome::Run(crate::branch::checkout_plan(title, steps))
+    update_after_checkout(context, answers, &argument, crate::branch::checkout_plan(title, steps))
 }
 
 #[cfg(test)]

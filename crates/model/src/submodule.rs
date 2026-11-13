@@ -1,6 +1,19 @@
 //! The submodules of a repository, and where each stands against the commit recorded for it.
 
+mod adding;
+mod checkout_update;
+mod file_protocol;
+mod follow;
+
 use crate::CommitId;
+
+pub use adding::{folder_of_url, folder_problem, typed_folder};
+pub use checkout_update::{
+    CheckoutUpdate, THEN_UPDATED, detached_words, has_changes, lost_commits, uncommitted_words, update_on_checkout,
+};
+pub use file_protocol::{FILE_NOT_ALLOWED, FailedPlan, WHY_ALLOWED, allow_file_protocol};
+pub use follow::follow_changes;
+pub(crate) use follow::is_reference_of_submodule;
 
 /// A submodule, and theirs, as read: what `.gitmodules` says of it, the commit recorded for it, and what it has
 /// checked out.

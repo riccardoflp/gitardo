@@ -24,12 +24,13 @@ pub fn checkout(context: &Context, answers: &Answers) -> Outcome {
         let folder = worktree.folder.display();
         return refuse(&format!("{name} is checked out in the worktree {folder}."));
     }
-    let mut steps = vec![Step::git(context.repository.folder.clone(), ["checkout", name])];
-    match update_after_checkout(context, answers, name) {
-        Ok(update) => steps.extend(update),
-        Err(read) => return *read,
-    }
-    Outcome::Run(checkout_plan(format!("Check out {name}"), steps))
+    let steps = vec![Step::git(context.repository.folder.clone(), ["checkout", name])];
+    update_after_checkout(
+        context,
+        answers,
+        name,
+        checkout_plan(format!("Check out {name}"), steps),
+    )
 }
 
 /// The plan of a checkout: nothing to confirm, taken back by the reflog, and `HEAD` selected after.
@@ -114,7 +115,11 @@ mod tests {
         let after = before.with(SUBMODULES_AFTER, Answer::Flag(true));
         assert_eq!(
             lines(&plan(checkout(&context, &after))),
-            ["git checkout feature", "git submodule update --init --recursive"]
+            [
+                "git checkout feature",
+                model::submodule::THEN_UPDATED,
+                "git submodule update --init --recursive"
+            ]
         );
         let mut off = context.clone();
         off.settings = FeatureSettings {

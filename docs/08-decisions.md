@@ -1224,3 +1224,34 @@ says otherwise):
   revision are two pages. Is that right?
 - **Q221** — **Go to line** with a number past the last line goes to the last line rather than refusing, and `0` to
   the first. Is that right?
+- **Q-U1** — The submodules are read with the state of the repository (`repo.read-state` runs `submodule.read-list`
+  beside its other reads), so that the operations, the Submodules list and **…** see them in their `Context`. Is a
+  read of its own, after the state, wanted instead for repositories with many submodules?
+- **Q-U2** — The offers made after a step fails live in the engine: a plan names them in `on_failure`
+  (`FollowUp::AllowFileProtocol`, and `FollowUp::OfferWhenFailed` with the words git must have said and the plan
+  offered, which `submodule.deinitialize` uses for `--force`). The offer of `submodule.allow-file-protocol` runs the
+  plan again from the step that failed, not from its first step, since the steps before it are done; the card says so
+  now. Is this right?
+- **Q-U3** — A `delete` step whose path is already gone counts as done, so that `submodule.remove` does not fail when
+  git removed the clone itself. A deletion that fails for another reason still stops the plan, where the card of
+  `submodule.remove` says it is only logged. Should the step of that card be allowed to fail?
+- **Q-U4** — A folder with files in it is refused by `submodule.add` once it is chosen, with **`<path>` is not
+  empty.**, rather than while it is typed, since the check of a typed answer cannot read the disk. Is this right?
+- **Q-U5** — `submodule.open-in-terminal` and `submodule.reveal` run one `run` step in the submodule's folder (the
+  cards said no steps; they now give the commands), and the terminal is the system's: `terminal.external` is not read
+  yet. Should it come with the worktree operations that open a terminal too?
+- **Q-U6** — `submodule.open-in-new-window` ends with `FollowUp::OpenWindow`, which the window carries out by starting
+  `gitardo <folder>` again (`Effect::OpenWindow`). The operations of `worktree.` that open a window may want the same
+  follow-up; should they share it?
+- **Q-U7** — `submodule.show-in-gitardo` stays Specified: it needs the banner of `worktree.banner` to show which
+  folder the window shows and to go back. Its entry is in the menu of a submodule, greyed out. Is this right?
+- **Q-U8** — On Windows, `submodule.deinitialize` and `submodule.remove` do not yet run a command again when the folder
+  is held, as their cards say: that retry comes with `worktree.recover-held-folder`. Is this right?
+- **Q-U9** — `submodule.update-on-checkout` is used by `branch.checkout`, its remote and detached forms, the checkout
+  and rebase of a remote branch and `tag.checkout`; not yet by `branch.create` when it checks out, `stash.branch` and
+  `undo.last` of a checkout, which its card lists. Should those come in the same milestone?
+- **Q-U10** — `submodule.update-to-recorded` asks first when the submodule has files not committed too, not only when
+  it has commits on a detached HEAD, since git may stop on them. Is this right?
+- **Q-U11** — The inputs of `update_on_checkout` (`CheckoutUpdate`: the checkout's plan, the setting, whether there are
+  submodules on either side, the folder and the submodules) and of `allow_file_protocol` (`FailedPlan`: the plan, the
+  step that failed and what git said) are structs of their own; the cards name them `input`. Is this right?

@@ -165,6 +165,7 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
             writeln!(out, "Compare {} with {}", sides.from.name, sides.to.name)?;
         }
         FollowUp::OpenReview(files) => writeln!(out, "Review {}", files.join(", "))?,
+        FollowUp::OpenWindow(folder) => writeln!(out, "Open {} in a new window", folder.display())?,
         FollowUp::SelectHead
         | FollowUp::DeleteWhenRebaseEnded(_)
         | FollowUp::EmptyCommitMessage
@@ -173,6 +174,8 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         | FollowUp::Recover(_)
         | FollowUp::PreparedMessage
         | FollowUp::Cleanup(_)
+        | FollowUp::AllowFileProtocol
+        | FollowUp::OfferWhenFailed(_)
         | FollowUp::CheckBisect => {}
     }
     Ok(())

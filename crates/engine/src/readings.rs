@@ -56,6 +56,15 @@ pub(crate) fn file_texts(paths: &[std::path::PathBuf]) -> Result<Answer, GitErro
 
 /// A file in the temporary folder of the system that no other has: `gitardo-<process>-<random>.<extension>`, the random
 /// part from the keys the standard library draws for each hash map, which differ from one call to the next.
+/// Whether something is at a path: a file, or a folder with something in it. A folder that cannot be read counts as
+/// one with something in it, so that nothing is cloned over it.
+pub(crate) fn has_files(path: &std::path::Path) -> bool {
+    match std::fs::read_dir(path) {
+        Ok(mut entries) => entries.next().is_some(),
+        Err(_) => path.exists(),
+    }
+}
+
 pub(crate) fn temporary_file(extension: &str) -> Answer {
     let mut hasher = std::collections::hash_map::RandomState::new().build_hasher();
     hasher.write_u32(std::process::id());

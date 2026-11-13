@@ -249,6 +249,16 @@ impl Engine {
         asker: &mut dyn Asker,
         failure: crate::StepFailure,
     ) -> Result<Vec<String>, crate::StepFailure> {
+        if let Some(offer) = offered_instead(plan, &failure) {
+            if !asker.confirm(&offer) {
+                return Err(failure);
+            }
+            let steps = self.run_plan(&offer)?;
+            let mut all = failure.ran;
+            all.push(failure.failed);
+            all.extend(steps);
+            return Ok(all);
+        }
         let Some(find_operation) = self.find_operation.filter(|_| !failure.cancelled) else {
             return Err(failure);
         };
@@ -362,6 +372,24 @@ impl Engine {
         }
         .run(&plan.steps)
     }
+}
+
+/// The plan a plan whose step failed offers in its place for what git said, asked first: the plan again from that step
+/// with the file protocol allowed (`submodule.allow-file-protocol`), or another plan for some words of git's
+/// (`FollowUp::OfferWhenFailed`). None when the step was cancelled, or nothing is offered for what git said.
+fn offered_instead(plan: &Plan, failure: &StepFailure) -> Option<Plan> {
+    if failure.cancelled {
+        return None;
+    }
+    plan.on_failure.iter().find_map(|follow_up| match follow_up {
+        FollowUp::AllowFileProtocol => model::submodule::allow_file_protocol(&model::submodule::FailedPlan {
+            plan,
+            failed_step: failure.ran.len(),
+            said: &failure.said,
+        }),
+        FollowUp::OfferWhenFailed(offer) if failure.said.contains(&offer.when) => Some(offer.plan.clone()),
+        _ => None, // The other follow-ups get past nothing.
+    })
 }
 
 /// Refuses an answer its question would not accept, so that a caller with no dialog, such as the command line, cannot

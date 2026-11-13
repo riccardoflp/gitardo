@@ -35,12 +35,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
             };
             git::read::reflog::read(git, &request).map(Answer::Positions)
         }
-        Query::Revision { revision } => {
-            let request = RevisionRequest {
-                revision: revision.clone(),
-            };
-            read_revision(git, &request).map(Answer::Commit)
-        }
+        Query::Revision { revision } => commit(git, revision),
         // The engine answers it from its journal before asking git anything.
         Query::Journal => Ok(Answer::Journal(None)),
         Query::Counts { left, right } => {
@@ -81,7 +76,17 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::ConflictTexts => git::read::conflicts::read_texts(git, &git::read::conflicts::ConflictFilesRequest)
             .map(Answer::ConflictTexts),
         Query::FileTexts { paths } => readings::file_texts(paths),
+        Query::GitFolder { folder } => git::read::submodule::read_git_folder(git, folder).map(Answer::Path),
+        Query::HasFiles { path } => Ok(Answer::Flag(readings::has_files(path))),
     }
+}
+
+/// The commit a revision names.
+fn commit(git: &Git, revision: &str) -> Result<Answer, GitError> {
+    let request = RevisionRequest {
+        revision: revision.to_owned(),
+    };
+    read_revision(git, &request).map(Answer::Commit)
 }
 
 /// The remotes of the repository, with their URLs.
@@ -263,6 +268,8 @@ pub(crate) fn describe(query: &Query) -> String {
             .map(|path| format!("read {}", path.display()))
             .collect::<Vec<String>>()
             .join(", "),
+        Query::GitFolder { folder } => format!("git -C {} rev-parse --absolute-git-dir", folder.display()),
+        Query::HasFiles { path } => format!("look in {}", path.display()),
     }
 }
 

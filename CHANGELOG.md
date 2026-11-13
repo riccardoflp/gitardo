@@ -236,3 +236,9 @@
   `${line}` are the file and the line of the cursor.
 - The code on the File and Diff pages in the colors of its language, the whole text colored at once, so that a line in
   a comment of several lines is a comment; changing the theme colors it again.
+- Adding a submodule clones it with its own submodules. Cloning a submodule from a folder on disk, which git refuses
+  unless allowed, is offered again allowed for those commands only, and **Deinitialize** of a submodule with changes
+  offers `--force`.
+- A checkout updates the submodules to the commits it records, as `submodules.updateOnCheckout` says, asking first when
+  a submodule has commits on a detached HEAD that no branch would keep.
+- The submodule operations from `gitardo-cli`, with `--target submodule:<folder>`.

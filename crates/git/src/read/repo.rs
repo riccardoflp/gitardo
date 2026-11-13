@@ -53,8 +53,9 @@ pub struct StateRequest {
 /// none takes a lock.
 ///
 /// While a rebase is under way, where it stopped to edit or to split a commit is read too (`rebase.read-stop`), and
-/// so is the bisect in progress (`bisect.read`). The submodules (`submodule.read-list`) and what
-/// `conflicts.autoResolve` could resolve (`conflicts.resolve-by-rules`) are read by their own cards.
+/// so is the bisect in progress (`bisect.read`). The submodules are read at once with the rest, by their own card
+/// (`submodule.read-list`); what `conflicts.autoResolve` could resolve (`conflicts.resolve-by-rules`) is read by its
+/// own card.
 ///
 /// Feature: repo.read-state
 ///
@@ -91,6 +92,7 @@ struct Parts {
     working_tree: WorkingTree,
     operation: Option<Operation>,
     bisect: Option<model::bisect::Bisect>,
+    submodules: Vec<model::submodule::Submodule>,
 }
 
 /// Runs every read at once, each in a thread of its own, so that the whole takes about as long as the slowest; the
@@ -114,6 +116,10 @@ fn read_parts(git: &Git, location: &Location) -> Result<Parts, GitError> {
             git_folder: location.git_folder.clone(),
         };
         let bisect = scope.spawn(move || crate::read::bisect::read(git, &bisect_request));
+        let submodules_request = crate::read::submodule::SubmoduleListRequest {
+            folder: location.folder.clone(),
+        };
+        let submodules = scope.spawn(move || crate::read::submodule::read_list(git, &submodules_request));
         let operation = operation::read_operation(&location.git_folder);
         Ok(Parts {
             references: joined(references)?,
@@ -129,6 +135,7 @@ fn read_parts(git: &Git, location: &Location) -> Result<Parts, GitError> {
             working_tree: joined(working_tree)?,
             operation,
             bisect: joined(bisect)?,
+            submodules: joined(submodules)?,
         })
     })
 }
@@ -165,6 +172,7 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
         operation: parts.operation,
         rebase_stop: None,
         bisect: parts.bisect,
+        submodules: parts.submodules,
     }
 }
 

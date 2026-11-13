@@ -176,8 +176,14 @@ fn unlink(path: &Path) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// Deletes a file or a folder; what is not there is deleted already (`submodule.remove`, whose clone may be gone).
 fn delete(path: &Path) -> std::io::Result<()> {
-    if fs::symlink_metadata(path)?.is_dir() {
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error),
+    };
+    if metadata.is_dir() {
         fs::remove_dir_all(path)
     } else {
         fs::remove_file(path)

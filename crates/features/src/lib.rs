@@ -34,6 +34,7 @@ pub mod selection;
 pub mod split;
 pub mod squash;
 pub mod stash;
+pub mod submodule;
 pub mod sync;
 pub mod tag;
 pub mod undo;
@@ -44,7 +45,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 100] = [
+pub const OPERATIONS: [(FeatureId, Operation); 113] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -162,6 +163,20 @@ pub const OPERATIONS: [(FeatureId, Operation); 100] = [
     (FeatureId("merge-view.mark-resolved"), merge_view::mark_resolved),
     // The review of the conflicts.
     (FeatureId("review.write"), review::write),
+    // Submodules.
+    (FeatureId("submodule.add"), submodule::add),
+    (FeatureId("submodule.copy-path"), submodule::copy_path),
+    (FeatureId("submodule.copy-url"), submodule::copy_url),
+    (FeatureId("submodule.deinitialize"), submodule::deinitialize),
+    (FeatureId("submodule.initialize"), submodule::initialize),
+    (FeatureId("submodule.open-in-new-window"), submodule::open_in_new_window),
+    (FeatureId("submodule.open-in-terminal"), submodule::open_in_terminal),
+    (FeatureId("submodule.remove"), submodule::remove),
+    (FeatureId("submodule.reveal"), submodule::reveal),
+    (FeatureId("submodule.stage-recorded"), submodule::stage_recorded),
+    (FeatureId("submodule.sync-urls"), submodule::sync_urls),
+    (FeatureId("submodule.update-to-latest"), submodule::update_to_latest),
+    (FeatureId("submodule.update-to-recorded"), submodule::update_to_recorded),
 ];
 
 /// The operation of an identifier, when it is built.

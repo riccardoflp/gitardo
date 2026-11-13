@@ -136,7 +136,7 @@ pub fn watch_changes(change: &Change) -> Option<ReadRequest> {
 }
 
 /// Whether a path may ask for a read at all: not a path with a part named `fsmonitor--daemon`, nor a lock.
-fn is_watched(parts: &[String]) -> bool {
+pub(crate) fn is_watched(parts: &[String]) -> bool {
     let is_daemon = parts.iter().any(|part| part == FSMONITOR_FOLDER);
     let is_lock = parts.last().is_some_and(|name| {
         Path::new(name)
@@ -153,15 +153,13 @@ fn is_git_file_read(parts: &[String]) -> bool {
     match names.as_slice() {
         [name] => GIT_FILES.contains(name),
         ["refs" | "worktrees", _, ..] | ["logs", "refs", "stash"] => true,
-        ["modules", inside @ .., last] if !inside.is_empty() => {
-            *last == "HEAD" || inside.iter().skip(1).any(|part| *part == "refs")
-        }
+        ["modules", ..] => crate::submodule::is_reference_of_submodule(&names),
         _ => false,
     }
 }
 
 /// The names of the folders and the file of a path, with either slash, `.` left out.
-fn parts(path: &Path) -> Vec<String> {
+pub(crate) fn parts(path: &Path) -> Vec<String> {
     path.to_string_lossy()
         .split(['/', '\\'])
         .filter(|part| !part.is_empty() && *part != ".")

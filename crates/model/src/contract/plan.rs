@@ -203,6 +203,24 @@ pub enum FollowUp {
     /// Close the Merge page of a file, by its path from the top of the working tree, showing nothing in its place
     /// (`merge-view.mark-resolved`).
     CloseMergePage(String),
+    /// Open a folder in a new window of Gitardo Desktop, as a repository of its own
+    /// (`submodule.open-in-new-window`).
+    OpenWindow(PathBuf),
+    /// When a step failed because git does not clone submodules from a folder on disk, offer the plan again from that
+    /// step, allowed for those commands only (`submodule.allow-file-protocol`).
+    AllowFileProtocol,
+    /// When a step failed and git said these words, offer another plan in its place, asked first as its danger says:
+    /// `git submodule deinit --force` once git refused for changes not committed (`submodule.deinitialize`).
+    OfferWhenFailed(Box<FailureOffer>),
+}
+
+/// A plan offered in place of one whose step failed, when git said some words.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FailureOffer {
+    /// Words of what git said that call for the offer: `contains local modifications`.
+    pub when: String,
+    /// The plan offered, which runs in place of what was left of the one that failed.
+    pub plan: Plan,
 }
 
 #[cfg(test)]

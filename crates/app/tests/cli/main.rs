@@ -22,6 +22,7 @@ mod remote;
 mod rewrite;
 mod stash;
 mod state;
+mod submodule;
 mod sync;
 mod sync_all;
 mod tag;

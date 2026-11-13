@@ -2,7 +2,7 @@
 //! of the one shown and when it is read.
 
 mod schedule;
-mod watch;
+pub(crate) mod watch;
 
 use std::path::{Path, PathBuf};
 

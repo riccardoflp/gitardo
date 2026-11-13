@@ -212,6 +212,18 @@ pub enum Query {
         /// The files.
         paths: Vec<std::path::PathBuf>,
     },
+    /// The git folder of the repository of a folder, in full (`git -C <folder> rev-parse --absolute-git-dir`), where
+    /// the clones of its submodules are kept (`submodule.remove`). The answer is [`super::Answer::Path`].
+    GitFolder {
+        /// The top folder of the repository.
+        folder: std::path::PathBuf,
+    },
+    /// Whether something is at a path on disk: a file, or a folder with something in it (`submodule.add`). The answer
+    /// is [`super::Answer::Flag`].
+    HasFiles {
+        /// The path.
+        path: std::path::PathBuf,
+    },
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

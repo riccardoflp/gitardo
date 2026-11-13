@@ -130,7 +130,8 @@ Opens a terminal with the submodule's folder as its folder.
 - **Function**: `features::submodule::open_in_terminal(context, answers) -> Outcome`
 - **Entry points**: **Open in terminal** in the context menu of a submodule.
 - **Offered when**: it is initialized.
-- **Plan**: no steps.
+- **Plan**: `run <terminal>` in the submodule's folder: `start "" cmd` on Windows, `open -a Terminal .` on macOS,
+  `x-terminal-emulator` elsewhere.
 - **Danger**: None.
 - **Undo**: Nothing to take back: nothing changes.
 - **After**: the terminal of `terminal.external`, or of the system, opens in the submodule's folder.
@@ -149,7 +150,7 @@ Shows the submodule's folder in the file manager of the system.
 - **Entry points**: **Reveal in File Explorer** on Windows, **Reveal in Finder** on macOS, **Open containing folder**
   elsewhere, in the context menu of a submodule.
 - **Offered when**: it is initialized.
-- **Plan**: no steps.
+- **Plan**: `run start "" <folder>` on Windows, `run open <folder>` on macOS, `run xdg-open <folder>` elsewhere.
 - **Danger**: None.
 - **Undo**: Nothing to take back: nothing changes.
 - **After**: the file manager shows the folder.
@@ -423,8 +424,8 @@ of the computer. When it refuses, Gitardo offers to allow it for those commands 
 - **Uses**: by `submodule.add`, `submodule.update-to-recorded`, `submodule.update-to-latest`, `submodule.initialize`
   and `submodule.update-on-checkout`.
 
-The rules: when a step of one of those plans fails with git's message `transport 'file' not allowed`, the same plan is
-offered again with `-c protocol.file.allow=always` before each of its git commands, its title followed by **from a
+The rules: when a step of one of those plans fails with git's message `transport 'file' not allowed`, the plan is
+offered again from that step on with `-c protocol.file.allow=always` before each of its git commands, its title followed by **from a
 folder on disk**, Confirm, with the reason first in its note: **Git does not clone submodules from folders on disk by
 default, since a repository could point one at any folder of this computer. This allows it for these commands only.**
 Nothing is changed in the configuration of git.

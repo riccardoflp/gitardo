@@ -19,15 +19,12 @@ pub fn checkout_detached(context: &Context, answers: &Answers) -> Outcome {
     if head.commit.as_ref() == Some(commit) {
         return refuse(&format!("{} is checked out already.", commit.short()));
     }
-    let mut steps = vec![Step::git(
+    let steps = vec![Step::git(
         context.repository.folder.clone(),
         ["checkout", "--detach", commit.as_str()],
     )];
-    match update_after_checkout(context, answers, commit.as_str()) {
-        Ok(update) => steps.extend(update),
-        Err(read) => return *read,
-    }
-    Outcome::Run(checkout_plan(format!("Check out {} (detached)", commit.short()), steps))
+    let title = format!("Check out {} (detached)", commit.short());
+    update_after_checkout(context, answers, commit.as_str(), checkout_plan(title, steps))
 }
 
 #[cfg(test)]
