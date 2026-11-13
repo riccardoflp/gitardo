@@ -1584,7 +1584,7 @@ From the cards left over up to M8 (each built with the reading given, until the 
 - **Q316** — The rows of the Worktrees list (`worktree.section`) do not show the pull request of their branch yet: they
   are drawn by the views of `worktree.`, left as they are to keep this slice's edits of shared views small. Should it
   come in a slice of `worktree.`?
-- **Q-D1** — `drag.drop` is built. A row of the timeline is dragged through its list: the list notes the row pressed
+- **Q317** — `drag.drop` is built. A row of the timeline is dragged through its list: the list notes the row pressed
   and says once that a drag starts when the pointer has moved a few pixels, and the timeline then drags the branch or
   remote branch whose label the button was pressed on, or else the commit of the row; the draft, a stash and a folded
   row are not dragged. The branch rail drags its branches and remote branches, in every list, Favorites and Recent
@@ -1595,12 +1595,12 @@ From the cards left over up to M8 (each built with the reading given, until the 
   (**Cherry-pick 3f2a1c9 onto main**), as the other menus say names; `rebase.branch-onto` runs on the commit with the
   answer `branch` given, since `views` does not use `features` for its presets. Pressing a row to drag it selects the
   row, as a click does. Are these right?
-- **Q-D2** — `changes.pane` and `changes.discard-all` are built on what the pages of other milestones now give: a
+- **Q318** — `changes.pane` and `changes.discard-all` are built on what the pages of other milestones now give: a
   click on the name of a file in conflict opens the Merge page (`conflicts.open-file`), **Save all** is on the header
   while a File page has edits not saved, and **Discard all changes** of the header names only what git sees changed,
   so a file that only a File page changed keeps its edits and its file on disk. The lines of Q122 that waited on them
   are answered. Should **Discard all changes** also say, in its warning, that the edits not saved are kept?
-- **Q-D3** — `log.record` is **Built**. Its fourth line is tested against test servers that refuse the secret and
+- **Q319** — `log.record` is **Built**. Its fourth line is tested against test servers that refuse the secret and
   say it back: GitHub, for a token kept and one from git's credential helper, read by the window on its own and from
   **Load pull requests from GitHub**, and the AI provider, for a key, from the sparkle of the commit box. A refused
   read of GitHub is a warning line of the log (Q313); a refused request to the AI provider is said, not logged.
