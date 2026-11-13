@@ -895,43 +895,43 @@ the reading given until it is answered:
   Stashes** beside it. The stashes before the pull are those of the last read before it ended. The line of the card on
   the conflicts banner cannot be tested until `conflicts.banner` (M6): the tests check the files left in conflict
   (`UU a.txt`) and the stash named `autostash` first in the list. Is that enough to call it **Built**?
-- **Q-E1** — The commit operations of M5 are built: `merge.into-current`, `merge.choose-way`, `merge.undo-squash`,
+- **Q153** — The commit operations of M5 are built: `merge.into-current`, `merge.choose-way`, `merge.undo-squash`,
   `cherry-pick.commit`, `cherry-pick.skip-empty`, `revert.commit`, `reset.to-commit` and `selection.select` are
   **Built**. A stop on conflicts is tested as the M4 sync slice did (Q125): the operation fails, and the repository is
   left as git leaves it, since the conflicts banner comes in M6. Is that enough until then?
-- **Q-E2** — A plan whose danger is None shows no reason, so *No conflicts expected.* (`merge.into-current`,
+- **Q154** — A plan whose danger is None shows no reason, so *No conflicts expected.* (`merge.into-current`,
   `cherry-pick.commit`) and *In this order:* with the commits (`selection.cherry-pick`) are not said: the dialog says a
   reason only for Confirm and Destructive. Should a plan carry a note the dialog shows whatever its danger?
-- **Q-E3** — A choice of a pick has a description and no detail, so each way of `merge.choose-way` says *`<command>` ·
+- **Q155** — A choice of a pick has a description and no detail, so each way of `merge.choose-way` says *`<command>` ·
   `<what it does>`* as its description; the card now says so. A squash merge always asks first, with its note, also
   when no conflict is predicted. **Show changes** is not in the message after a squash merge: no operation opens the
   Changes page yet. Are these right?
-- **Q-E4** — The message git prepares after a squash merge is read from `SQUASH_MSG` in the git folder by the thread of
+- **Q156** — The message git prepares after a squash merge is read from `SQUASH_MSG` in the git folder by the thread of
   the operations, once the plan ran, and put in the commit box when its message is empty or only spaces. Right?
-- **Q-E5** — `merge.undo-squash` takes back its entry of the journal (`Undo::TakesBack`), so that an Undo after it
+- **Q157** — `merge.undo-squash` takes back its entry of the journal (`Undo::TakesBack`), so that an Undo after it
   does not find the squash merge again; the card says its Undo is none, which is still true for the user. Right?
-- **Q-E6** — When a cherry-pick or a revert fails, the engine runs its follow-up `cherry-pick.skip-empty` (a new
+- **Q158** — When a cherry-pick or a revert fails, the engine runs its follow-up `cherry-pick.skip-empty` (a new
   `FollowUp::Recover`); when that refuses, because nothing is stopped on an empty commit, the original failure is the
   one shown. The card says it never refuses: it refuses inside the engine, and the user never sees it. A squash merge
   or a series of cherry-picks that stops keeps its entry of the journal, so that Undo still takes it back whole. Right?
-- **Q-E7** — `message.edit` asks for the message with the question dialog of the window, not in a box in the
+- **Q159** — `message.edit` asks for the message with the question dialog of the window, not in a box in the
   inspector, which is not built; and it reads no bisect, since `repo.read-state` does not say whether one is under way.
   It stays **Specified** for its lines 4 (`Escape` in the box) and 5 (a bisect). For an older commit, the interactive
   rebase writes its files in `gitardo-rebase-<time>` inside the git folder, not in the temporary folder of the system,
   since `features` reads no environment; that plan is the one `rebase.interactive` will have, and the two should be
   one when the rebase slice is merged. Right?
-- **Q-E8** — **Edit message…** is in the menu of every commit while no operation is under way, not only where
+- **Q160** — **Edit message…** is in the menu of every commit while no operation is under way, not only where
   `rebase.find-line-before-head` gives a line: the menu does not read git, and the operation refuses a commit off the
   line with the card's words. **Merge into `<branch>`…** has no hint *choose how*: an item of a menu has a shortcut
   and a tooltip, no hint. Right?
-- **Q-E9** — `Cmd`+click selects as `Ctrl`+click on macOS in the timeline only, where the selection reads the keys:
+- **Q161** — `Cmd`+click selects as `Ctrl`+click on macOS in the timeline only, where the selection reads the keys:
   the window does not yet map `Cmd` to `Ctrl` for every shortcut, as `ui::Modifiers::command` says it will. Should it?
-- **Q-E10** — `selection.bar` stays **Specified** for its line 1 (**Squash into one**, from `squash.commits`), and has
+- **Q162** — `selection.bar` stays **Specified** for its line 1 (**Squash into one**, from `squash.commits`), and has
   no **Copy as patch** (`patch.copy`). `selection.menu` stays **Specified** for its lines 1 and 2 (**Compare these two
   commits** waits for the Compare page), and has no **Copy as patch** nor **Save as patch…**. `selection.cherry-pick`
   stays **Specified** for its line 5 (continued in Gitardo, M6). The bar and the menu empty the selection when their
   cherry-pick is chosen, before the dialog, not once it ran. Right?
-- **Q-E11** — The words chosen without a card: *Finish or abort the `<operation>` first.* for every operation of this
+- **Q163** — The words chosen without a card: *Finish or abort the `<operation>` first.* for every operation of this
   slice; *Choose a commit first.*; *There is nothing to merge into before the first commit.*; *`<name>` is the commit
   checked out already.*; *There is no squash merge to undo.*; *Nothing is stopped on a commit that changes nothing.*;
   *There is nothing to cherry-pick onto before the first commit.*; *The message is unchanged.*; the titles *Merge

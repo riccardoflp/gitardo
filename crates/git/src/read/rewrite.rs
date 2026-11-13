@@ -71,7 +71,9 @@ pub fn message_arguments(commit: &model::CommitId) -> Vec<OsString> {
 /// The message [`message_arguments`] printed, without the line breaks at its end.
 #[must_use]
 pub fn parse_message(output: &[u8]) -> String {
-    String::from_utf8_lossy(output).trim_end_matches(['\n', '\r']).to_owned()
+    String::from_utf8_lossy(output)
+        .trim_end_matches(['\n', '\r'])
+        .to_owned()
 }
 
 /// The commit a cherry-pick or a revert stopped on, when nothing is left to do on it: `CHERRY_PICK_HEAD` (or

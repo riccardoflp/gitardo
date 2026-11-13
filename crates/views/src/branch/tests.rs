@@ -252,7 +252,12 @@ fn copy_hash_and_copy_message_are_in_the_menu_of_every_commit() {
             Target::Commit(id('b')),
         )))
     };
-    let at = |label: &str| entries.iter().position(|entry| entry.label == label).unwrap_or(usize::MAX);
+    let at = |label: &str| {
+        entries
+            .iter()
+            .position(|entry| entry.label == label)
+            .unwrap_or(usize::MAX)
+    };
     assert_eq!(chosen(&entries, at("Copy hash")), run("commits.copy-hash"));
     assert_eq!(chosen(&entries, at("Copy message")), run("commits.copy-message"));
     assert_eq!(at("Copy message"), entries.len() - 1, "the copies close the menu");
