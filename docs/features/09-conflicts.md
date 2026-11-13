@@ -85,7 +85,9 @@ Goes on with the operation that stopped, once its conflicts are resolved and sta
   `revert` or `am`. The `-c core.editor=true` keeps the message git prepared rather than opening an editor that cannot
   work here, and is shown in the plan as it runs.
 - **Danger**: None.
-- **Undo**: by the reflog: the commit the operation made is taken back as any commit is.
+- **Undo**: by the reflog: the commit the operation made is taken back as any commit is. A cherry-pick or a patch
+  of several commits started in Gitardo carries its series in the journal (`undo.journal`), so that one Undo takes
+  back every commit of it.
 - **After**: the repository is read again; a stop on the next step shows the banner again and `conflicts.stopped`.
 - **Refuses**: while files are in conflict: *Resolve the conflicts and stage the files first.*
 - **Uses**: `rebase.` and `split.` for what **Continue** does at a stop to edit or split a commit (committing what is

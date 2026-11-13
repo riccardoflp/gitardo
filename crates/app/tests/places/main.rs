@@ -48,6 +48,7 @@ mod review_cards;
 mod review_entry;
 mod review_wiring;
 mod search;
+mod series_continued;
 mod settings_file;
 mod show_in_graph;
 mod speed;

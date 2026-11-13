@@ -1,16 +1,22 @@
 //! `conflicts.continue-operation`: goes on with the operation that stopped, once its conflicts are resolved and staged.
 
-use model::contract::{Answers, Context, Danger, Outcome, Plan, Step, Text, Undo};
+use model::contract::{
+    AnswerKey, Answers, Context, Danger, JournalEntry, Outcome, Plan, Query, Step, Text, Undo, UndoRecord,
+};
 use model::rebase::StopKind;
 use model::state::Operation;
 
 use super::{command, in_progress, noun, refuse};
 
+/// The newest entry of the journal, read before a cherry-pick or a patch goes on.
+const JOURNAL: AnswerKey = AnswerKey("journal");
+
 /// Goes on with the operation in progress: `git -c core.editor=true <operation> --continue`, which keeps the message
 /// git prepared rather than opening an editor. While a rebase is stopped to edit or to split a commit, **Continue** is
 /// that of the stop (`rebase.edit-stop`, `split.continue`), which commits what is left first. A cherry-pick or a revert
 /// that git will not continue because its commit changes nothing on top of `HEAD` skips it
-/// (`cherry-pick.skip-empty`).
+/// (`cherry-pick.skip-empty`). A cherry-pick or a patch of several commits that Gitardo started and that stopped keeps
+/// its series in the journal: going on carries it, so that one Undo takes back every commit of it.
 ///
 /// Feature: conflicts.continue-operation
 #[must_use]
@@ -36,6 +42,11 @@ pub fn continue_operation(context: &Context, answers: &Answers) -> Outcome {
         Operation::CherryPick | Operation::Revert => crate::cherry_pick::skip_when_empty(),
         Operation::Merge | Operation::Rebase | Operation::Patch => Vec::new(),
     };
+    let undo = match (operation, answers.journal(JOURNAL)) {
+        (Operation::CherryPick | Operation::Patch, None) => return Outcome::Read(JOURNAL, Query::Journal),
+        (_, Some(entry)) => series_of(entry),
+        (_, None) => Undo::ByReflog,
+    };
     Outcome::Run(Plan {
         title: Text::from(title),
         steps: vec![Step::git(
@@ -43,18 +54,31 @@ pub fn continue_operation(context: &Context, answers: &Answers) -> Outcome {
             ["-c", "core.editor=true", command(operation), "--continue"],
         )],
         danger: Danger::None,
-        undo: Undo::ByReflog,
+        undo,
         after: Vec::new(),
         on_failure,
     })
 }
 
+/// What Undo takes back once the operation went on: the whole series the newest entry of the journal holds, or the
+/// reflog.
+fn series_of(entry: Option<&JournalEntry>) -> Undo {
+    match entry.map(|entry| &entry.record) {
+        Some(UndoRecord::Series { head_before }) => Undo::Journal(UndoRecord::Series {
+            head_before: head_before.clone(),
+        }),
+        _ => Undo::ByReflog,
+    }
+}
+
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
-    use super::continue_operation;
+    use super::{JOURNAL, continue_operation};
     use crate::testing::{commit, context, lines, plan, state};
-    use model::contract::{Answers, FeatureId, FollowUp, Outcome, Target};
+    use model::contract::{
+        Answer, Answers, FeatureId, FollowUp, JournalEntry, Outcome, Query, Target, Text, Undo, UndoRecord,
+    };
     use model::rebase::{RebaseStop, StopKind};
     use model::state::{ConflictKind, ConflictedFile, Operation, RepositoryState};
 
@@ -88,7 +112,7 @@ mod tests {
     fn plan_of(operation: Operation) -> model::contract::Plan {
         plan(continue_operation(
             &context(stopped(operation), Target::Head),
-            &Answers::new(),
+            &Answers::new().with(JOURNAL, Answer::Journal(None)),
         ))
     }
 
@@ -104,6 +128,32 @@ mod tests {
             plan_of(Operation::Revert).on_failure,
             [FollowUp::Recover(FeatureId("cherry-pick.skip-empty"))]
         );
+    }
+
+    #[test]
+    fn conflicts_continue_operation__a_cherry_pick_of_a_series_carries_the_series_for_undo() {
+        let context = context(stopped(Operation::CherryPick), Target::Head);
+        assert!(matches!(
+            continue_operation(&context, &Answers::new()),
+            Outcome::Read(JOURNAL, Query::Journal)
+        ));
+        let entry = JournalEntry {
+            number: 1,
+            title: Text::from("Cherry-pick 3 commits"),
+            record: UndoRecord::Series {
+                head_before: commit('a'),
+            },
+            head: context.repository.head.clone(),
+        };
+        let answers = Answers::new().with(JOURNAL, Answer::Journal(Some(entry)));
+        let plan = plan(continue_operation(&context, &answers));
+        assert_eq!(
+            plan.undo,
+            Undo::Journal(UndoRecord::Series {
+                head_before: commit('a')
+            })
+        );
+        assert_eq!(plan_of(Operation::CherryPick).undo, Undo::ByReflog);
     }
 
     #[test]

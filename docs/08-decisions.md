@@ -712,6 +712,7 @@ the reading given until it is answered:
 - **Q118** — Cards of this slice left **Specified**: `branch.create` and `branch.name-from-format` (Q112);
   `branch.pane`, whose top with the branch checked out and **Create branch**, and the **…** of the Worktrees list, are
   not built; `undo.last`, whose lines about a stash, a cherry-pick, a squash merge and conflicts wait for those areas.
+  (`undo.last` is built since: Q-W9.)
 - **Q119** — The operations on the files of the Changes page (`changes.stage`, `changes.unstage`, `changes.discard`)
   are given their file as a new kind of target, `Target::File(path)`, and the header of the page as `Target::Changes`,
   which is how `changes.discard-all` tells the header (the files of the list, the conflicts left alone) from the draft
@@ -936,6 +937,7 @@ the reading given until it is answered:
   two commits**, which runs `compare.with` on the older with the newer as its side already answered, so that the page
   opens with no question. `selection.cherry-pick` stays **Specified** for its line 5 (continued in Gitardo, M6). The
   bar and the menu empty the selection when their cherry-pick is chosen, before the dialog, not once it ran. Right?
+  (Line 5 is built since: Q-W9.)
 - **Q163** — The words chosen without a card: *Finish or abort the `<operation>` first.* for every operation of this
   slice; *Choose a commit first.*; *There is nothing to merge into before the first commit.*; *`<name>` is the commit
   checked out already.*; *There is no squash merge to undo.*; *Nothing is stopped on a commit that changes nothing.*;
@@ -1501,3 +1503,10 @@ From the cards left over up to M8 (each built with the reading given, until the 
   with no theme given, as from the command line, it asks among the five. Its title is *Use the theme `<name>`*, and
   Undo says to choose again. The picker still shows no theme while the user moves through it (Q107), since the
   picker of the toolkit says nothing until a choice is made. Should it say which item is under the keyboard?
+- **Q-W9** — `conflicts.continue-operation` of a cherry-pick or a patch reads the newest entry of the journal first;
+  when it is the series a cherry-pick or a patch of Gitardo left as it stopped, the plan that goes on leaves the same
+  series, so that one Undo resets with `--keep` to where `HEAD` was before the first commit. Continued from a terminal,
+  `HEAD` moved without Gitardo, the entry is dropped and Undo takes back the last commit by the reflog. With these,
+  `selection.cherry-pick` and `undo.last` are built; the line of `undo.last` on a terminal's operation after one of
+  Gitardo's is tested with a commit made in a terminal after a cherry-pick. Right?
+
