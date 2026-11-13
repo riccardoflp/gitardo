@@ -856,7 +856,8 @@ Opens the timeline at a commit: loads the history up to it when it is further ba
 leaves it out.
 
 - **Kind**: View
-- **Function**: `views::graph::show_in_graph_view(state: &GoToState, ui) -> Vec<Intent>`
+- **Function**: `app::store::search::go_to(state, commit) -> Vec<Effect>`, which every way to a commit calls: it draws
+  nothing of its own, and the bar it leaves is the one of `filter.bar`
 - **Entry points**: **Show in the timeline** in the menu of a branch, tag or worktree in the branch rail (the
   worktree's commit); a click on a tag, a stash or a worktree in the branch rail; and, from other areas, a step of a
   search, **Go to commit…**, the reflog, the page of a commit (`commit-page.show-in-graph`), the bisect banner.

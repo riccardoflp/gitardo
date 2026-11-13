@@ -274,7 +274,10 @@ pub fn retrace(state: &mut State) {
             };
             Some((trace, TraceStrength::Label))
         }
-        (None, Some(Selected::Commit(commit))) if state.settings.switches.is_on(TimelineSwitch::TraceSelected) => {
+        // Several commits selected bring out no history (`graph.trace-selected`).
+        (None, Some(Selected::Commit(commit)))
+            if timeline.several.len() < 2 && state.settings.switches.is_on(TimelineSwitch::TraceSelected) =>
+        {
             Some((Trace::Around(commit.clone()), TraceStrength::Selected))
         }
         _ => None,
@@ -299,20 +302,19 @@ pub fn reduce_graph(state: &mut State, intent: GraphIntent) -> Vec<Effect> {
         GraphIntent::SelectSeveral { commits, shown } => {
             select(state, Selected::Commit(shown), RevealPlace::Nearest);
             state.timeline.several = commits;
+            retrace(state);
             Vec::new()
         }
         GraphIntent::ClearSelection => {
             state.timeline.several.clear();
+            retrace(state);
             Vec::new()
         }
         GraphIntent::CopyHashes(commits) => {
             let lines: Vec<&str> = commits.iter().map(CommitId::as_str).collect();
             vec![Effect::CopyText(lines.join("\n"))]
         }
-        GraphIntent::GoTo(commit) => {
-            select(state, Selected::Commit(commit), RevealPlace::Center);
-            Vec::new()
-        }
+        GraphIntent::GoTo(commit) => super::search::go_to(state, commit),
         GraphIntent::Open(commit) => match state.timeline.folder.clone() {
             Some(folder) => super::commit_page::open(state, folder, commit),
             None => Vec::new(),
@@ -340,6 +342,11 @@ pub fn reduce_graph(state: &mut State, intent: GraphIntent) -> Vec<Effect> {
 }
 
 /// Selects a row alone and brings it into sight.
+/// Selects a commit shown and scrolls it to the middle of the list, as going to it ends (`graph.show-in-graph`).
+pub fn select_in_middle(state: &mut State, commit: CommitId) {
+    select(state, Selected::Commit(commit), RevealPlace::Center);
+}
+
 fn select(state: &mut State, selected: Selected, place: RevealPlace) {
     let serial = state.timeline.reveal.map_or(1, |(serial, _)| serial + 1);
     state.timeline.several.clear();

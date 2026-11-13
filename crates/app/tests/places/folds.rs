@@ -1,6 +1,8 @@
 //! The merges folded and unfolded, the first parent only, and the history brought out of the selected commit and of a
 //! label, from the store and the window drawn from it.
 
+use std::fmt::Write as _;
+
 use app::persisted::Persisted;
 use app::settings::Settings;
 use app::store::{Message, State};
@@ -214,6 +216,57 @@ fn graph_trace_selected__selecting_the_draft_dims_nothing() {
     assert!(state.timeline.trace.is_some());
     let _effects = ask(&mut state, GraphIntent::Select(Selected::Draft));
     assert!(state.timeline.trace.is_none());
+}
+
+#[test]
+fn graph_trace_selected__with_two_commits_selected_nothing_is_dimmed() {
+    let repository = feature_left_main();
+    let mut state = showing(repository.path().to_path_buf());
+    let feature = commit_of(&state, "Feature 1");
+    let _effects = ask(&mut state, GraphIntent::Select(Selected::Commit(feature.clone())));
+    assert!(state.timeline.trace.is_some());
+    let main = commit_of(&state, "Main 2");
+    let _effects = ask(
+        &mut state,
+        GraphIntent::SelectSeveral {
+            commits: vec![main.clone(), feature],
+            shown: main,
+        },
+    );
+    assert!(state.timeline.trace.is_none());
+    let _effects = ask(&mut state, GraphIntent::ClearSelection);
+    assert!(
+        state.timeline.trace.is_some(),
+        "one commit selected brings its history out again"
+    );
+}
+
+#[test]
+fn graph_date_separators__with_the_setting_off_there_is_no_separator() {
+    let mut stream = String::new();
+    for mark in 1..=3_u64 {
+        let date = testkit::FIRST_COMMIT_TIME + mark * 40 * 86_400;
+        let content = format!("content {mark}\n");
+        write!(
+            stream,
+            "commit refs/heads/main\nmark :{mark}\ncommitter Test Author <author@example.com> {date} +0000\ndata 9\nChange {mark}\nM 644 inline file.txt\ndata {}\n{content}\n",
+            content.len()
+        )
+        .unwrap();
+    }
+    let repository = imported(&stream);
+    let mut state = showing_with(repository.path().to_path_buf(), Settings::default());
+    assert_eq!(
+        state.timeline.layout.separators.len(),
+        2,
+        "the commits are months apart"
+    );
+    let effects = ask(&mut state, GraphIntent::Switch(TimelineSwitch::DateSeparators, false));
+    assert_eq!(
+        written(&effects),
+        Some(("graph.dateSeparators", json::Value::Bool(false)))
+    );
+    assert_eq!(state.timeline.layout.separators, std::collections::BTreeMap::new());
 }
 
 #[test]

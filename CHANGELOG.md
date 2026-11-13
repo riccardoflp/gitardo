@@ -299,3 +299,8 @@
   its files, and leaves no empty folder behind; when git refuses for modified files, **Remove anyway** removes it
   with `--force`. A folder Windows holds for a moment is tried again.
 - The worktree operations from `gitardo-cli`, with `--target worktree:<folder>`.
+- **Show in the timeline** and a click on a tag, a stash or a worktree in the branch rail load the history up to the
+  commit and take away what narrows the timeline when it leaves the commit out, as **Go to commit…** does; a merge
+  folded over the commit unfolds. The bar of the history of a file says the branches it is narrowed to, `· in the
+  local branches`. Several commits selected bring out no history. A narrow window shows **Sync** as its icon and its
+  counts.

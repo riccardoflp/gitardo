@@ -55,7 +55,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`graph.read-commits`](02-graph.md#graphread-commits--read-a-page-of-the-graph) | Read a page of the graph | Read | Built |
 | [`graph.read-position`](02-graph.md#graphread-position--where-a-commit-is-in-the-history-listed) | Where a commit is in the history listed | Read | Built |
 | [`graph.view`](02-graph.md#graphview--the-timeline) | The timeline | View | Built |
-| [`graph.toolbar`](02-graph.md#graphtoolbar--the-header) | The header | View | Specified |
+| [`graph.toolbar`](02-graph.md#graphtoolbar--the-header) | The header | View | Built |
 | [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Specified |
 | [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Built |
 | [`graph.lanes`](02-graph.md#graphlanes--lay-out-the-lines-of-the-graph) | Lay out the lines of the graph | Derivation | Built |
@@ -69,12 +69,12 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`graph.unpushed`](02-graph.md#graphunpushed--commits-not-pushed-yet) | Commits not pushed yet | Derivation | Built |
 | [`graph.trace-history`](02-graph.md#graphtrace-history--the-history-of-a-commit-among-the-rows) | The history of a commit among the rows | Derivation | Built |
 | [`graph.hover-history`](02-graph.md#graphhover-history--the-history-of-a-label-under-the-pointer) | The history of a label under the pointer | View | Built |
-| [`graph.trace-selected`](02-graph.md#graphtrace-selected--the-history-of-the-selected-commit) | The history of the selected commit | View | Specified |
+| [`graph.trace-selected`](02-graph.md#graphtrace-selected--the-history-of-the-selected-commit) | The history of the selected commit | View | Built |
 | [`graph.columns`](02-graph.md#graphcolumns--what-is-shown-with-each-message) | What is shown with each message | View | Built |
-| [`graph.date-separators`](02-graph.md#graphdate-separators--lines-between-days-weeks-and-months) | Lines between days, weeks and months | Derivation | Specified |
+| [`graph.date-separators`](02-graph.md#graphdate-separators--lines-between-days-weeks-and-months) | Lines between days, weeks and months | Derivation | Built |
 | [`graph.first-parent`](02-graph.md#graphfirst-parent--only-the-first-parent-of-merges) | Only the first parent of merges | View | Built |
 | [`graph.fold-rows`](02-graph.md#graphfold-rows--the-rows-of-the-timeline-with-merges-folded) | The rows of the timeline with merges folded | Derivation | Built |
-| [`graph.fold-merge`](02-graph.md#graphfold-merge--fold-the-commits-a-merge-brought-in) | Fold the commits a merge brought in | View | Specified |
+| [`graph.fold-merge`](02-graph.md#graphfold-merge--fold-the-commits-a-merge-brought-in) | Fold the commits a merge brought in | View | Built |
 | [`graph.fold-all`](02-graph.md#graphfold-all--fold-all-merges) | Fold all merges | View | Built |
 | [`graph.lane-tips`](02-graph.md#graphlane-tips--the-branch-each-line-comes-from) | The branch each line comes from | Derivation | Built |
 | [`graph.sticky-branch-names`](02-graph.md#graphsticky-branch-names--branch-names-that-stay-at-the-top) | Branch names that stay at the top | View | Built |
@@ -82,8 +82,8 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`graph.keyboard`](02-graph.md#graphkeyboard--move-through-the-timeline-with-the-keyboard) | Move through the timeline with the keyboard | View | Built |
 | [`graph.uncommitted-row`](02-graph.md#graphuncommitted-row--the-draft-at-the-top-of-the-timeline) | The draft at the top of the timeline | View | Built |
 | [`graph.place-stashes`](02-graph.md#graphplace-stashes--where-the-stashes-go-among-the-commits) | Where the stashes go among the commits | Derivation | Built |
-| [`graph.stashes`](02-graph.md#graphstashes--stashes-in-the-timeline) | Stashes in the timeline | View | Specified |
-| [`graph.show-in-graph`](02-graph.md#graphshow-in-graph--go-to-a-commit-in-the-timeline) | Go to a commit in the timeline | View | Specified |
+| [`graph.stashes`](02-graph.md#graphstashes--stashes-in-the-timeline) | Stashes in the timeline | View | Built |
+| [`graph.show-in-graph`](02-graph.md#graphshow-in-graph--go-to-a-commit-in-the-timeline) | Go to a commit in the timeline | View | Built |
 | [`refs.tree`](02-graph.md#refstree--the-branch-rail) | The branch rail | View | Built |
 | [`refs.filter`](02-graph.md#refsfilter--filter-the-branch-rail-by-name) | Filter the branch rail by name | View | Specified |
 | [`refs.scope-line`](02-graph.md#refsscope-line--the-line-of-the-branches-shown-at-the-top-of-the-branch-rail) | The line of the branches shown, at the top of the branch rail | View | Built |
@@ -103,7 +103,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`search.list-mode`](03-search-and-filter.md#searchlist-mode--only-the-commits-found-as-a-list) | Only the commits found, as a list | View | Built |
 | [`search.go-to-hash`](03-search-and-filter.md#searchgo-to-hash--go-to-a-commit-by-its-hash) | Go to a commit by its hash | View | Built |
 | [`search.read-revision`](03-search-and-filter.md#searchread-revision--the-commit-a-name-stands-for) | The commit a name stands for | Read | Built |
-| [`search.go-to-commit`](03-search-and-filter.md#searchgo-to-commit--go-to-commit) | Go to commit… | Operation | Specified |
+| [`search.go-to-commit`](03-search-and-filter.md#searchgo-to-commit--go-to-commit) | Go to commit… | Operation | Built |
 | [`filter.picker`](03-search-and-filter.md#filterpicker--choose-the-branches-shown) | Choose the branches shown | View | Built |
 | [`filter.label`](03-search-and-filter.md#filterlabel--what-the-branches-shown-are-called) | What the branches shown are called | Derivation | Built |
 | [`filter.preset`](03-search-and-filter.md#filterpreset--all-current-upstream-local-remotes) | All, Current, Upstream, Local, Remotes | Derivation | Built |
@@ -115,7 +115,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`filter.show-too`](03-search-and-filter.md#filtershow-too--show-this-history-too) | Show this history too | Derivation | Built |
 | [`filter.hide`](03-search-and-filter.md#filterhide--hide-this-history) | Hide this history | Derivation | Built |
 | [`filter.show-all`](03-search-and-filter.md#filtershow-all--show-all-branches) | Show all branches | Derivation | Built |
-| [`filter.bar`](03-search-and-filter.md#filterbar--the-bar-of-what-the-timeline-is-narrowed-to) | The bar of what the timeline is narrowed to | View | Specified |
+| [`filter.bar`](03-search-and-filter.md#filterbar--the-bar-of-what-the-timeline-is-narrowed-to) | The bar of what the timeline is narrowed to | View | Built |
 | [`filter.log-arguments`](03-search-and-filter.md#filterlog-arguments--which-history-the-timeline-lists) | Which history the timeline lists | Derivation | Built |
 | [`filter.remember`](03-search-and-filter.md#filterremember--the-branches-shown-remembered-per-repository) | The branches shown, remembered per repository | Derivation | Built |
 

@@ -282,11 +282,18 @@ fn sync_button(
 ) {
     let menu = menu.unwrap_or_default();
     let can_sync = menu.built.first().copied().unwrap_or_default();
-    let words = counts.map_or_else(
-        || words::SYNC.to_owned(),
-        |counts| words::sync_counts(counts.behind, counts.ahead),
-    );
+    // A narrow window keeps the icon of Sync and its counts, and gives up its word.
+    let is_narrow = is_narrow(ui);
+    let words = match (counts, is_narrow) {
+        (Some(counts), false) => words::sync_counts(counts.behind, counts.ahead),
+        (Some(counts), true) => words::counts_only(counts.behind, counts.ahead),
+        (None, false) => words::SYNC.to_owned(),
+        (None, true) => String::new(),
+    };
     let mut button = Button::primary(&words).with_tooltip(words::SYNC_TOOLTIP);
+    if is_narrow {
+        button = button.with_icon(Icon::Refresh);
+    }
     if !can_sync || menu.is_running {
         button = button.disabled();
     }

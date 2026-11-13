@@ -120,6 +120,10 @@ pub fn list_bar(narrowed: &Narrowed<'_>, within: Option<&BranchesShown>, counted
     let what = match narrowed {
         Narrowed::History { history, head } => {
             let (what, mut dimmed) = history_bar(history, *head);
+            // The history of some lines is followed from one commit, so the branches shown do not narrow it.
+            if let (Some(shown), false) = (within, matches!(history, HistoryOf::Lines { .. })) {
+                dimmed.insert(0, format!("in {}", filter::narrowed_to(shown)));
+            }
             dimmed.push(filter::commits_words(counted));
             return (what, format!("\u{b7} {}", dimmed.join(" \u{b7} ")));
         }

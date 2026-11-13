@@ -13,7 +13,7 @@ use super::super::commit_page;
 use super::super::message::{Effect, JobId};
 use super::super::pages;
 use super::super::state::State;
-use super::super::timeline::{load_up_to, reduce_graph, show as show_branches};
+use super::super::timeline::{load_up_to, reduce_graph, select_in_middle, show as show_branches};
 use super::{GoToCommit, cancel, jobs, list};
 
 /// A commit being gone to, and how far it is.
@@ -36,7 +36,12 @@ pub enum Stage {
     AfterList,
 }
 
-/// Goes to a commit: selects it when it is loaded, or loads the history up to it.
+/// Goes to a commit: selects it when it is loaded, unfolding the merge folded over it, or loads the history up to it,
+/// taking away what narrows the timeline when that leaves it out; a commit no branch or tag reaches is shown with its
+/// history alone. Every way to a commit comes here: **Show in the timeline** and a click in the branch rail, a step of
+/// a search, **Go to commit…**, the reflog, the page of a commit and the bisect banner.
+///
+/// Feature: graph.show-in-graph
 pub fn go_to(state: &mut State, commit: CommitId) -> Vec<Effect> {
     let mut effects = forget(state);
     if let Some(shown) = show(state, &commit) {
@@ -80,7 +85,7 @@ fn show(state: &mut State, commit: &CommitId) -> Option<Vec<Effect>> {
     if let Some(merge) = merge {
         effects.extend(reduce_graph(state, GraphIntent::Unfold(merge)));
     }
-    effects.extend(reduce_graph(state, GraphIntent::GoTo(commit.clone())));
+    select_in_middle(state, commit.clone());
     Some(effects)
 }
 

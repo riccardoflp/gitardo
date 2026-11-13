@@ -541,7 +541,7 @@ repositories, the settings), each built with the reading given until it is answe
   drawn, and the branches are said after `· in`. Is that the order meant, and is a commit made since then on no branch
   counted as one "lost to a reset"?
 - **Q84** — `search.go-to-commit`, line 3: the history of a file is narrowed by `history.` (M7), so the card stays
-  **Specified**. The dialog of the window checks each value with `search.read-revision` as it is typed and goes to the
+  **Specified** (built since, with the history of a file: Q-W1). The dialog of the window checks each value with `search.read-revision` as it is typed and goes to the
   commit itself, as the operation `features::search::go_to_commit` does through the contract: the contract gained
   `Query::Revision`, `Answer::Commit` and `FollowUp::SelectCommit` for it, and `Validation::Anything` stands for the
   check made while typing. Should the window run the operation through the engine once operations run there (M4)?
@@ -775,7 +775,8 @@ the reading given until it is answered:
   commands yet); **Add remote…** on a refusal, which the window says without the button; **Stash changes…** in the
   menu of the draft, left to the slice of the changes; **Show Stashes** after a pull that left its autostash, which
   waits for `stash.pane` (built since, with `stash.autostash-left`: see Q152). So `stash.autostash-left` and `graph.toolbar` (its narrow window line has no test yet) stay
-  **Specified**, and so does `undo.last`, whose other lines belong to other slices.
+  **Specified**, and so does `undo.last`, whose other lines belong to other slices. (`graph.toolbar` is built since:
+  Q-W2.)
 - **Q129** — `tag.push` now asks `model::remote::default` for its remote (Q113), and the menu of the draft runs
   **Stash changes…** and **Stash staged changes…** (`stash.push`, `stash.push-staged`).
 - **Q130** — `diff.line-diff` returns `Result<Vec<Change>, TooComplex>` and takes, beside the two texts, a function
@@ -1450,3 +1451,20 @@ answered:
 - **Q284** — `http` goes through a proxy only by `CONNECT`, for `https` addresses, and refuses a proxy whose address is
   `https`; the proxy is `HTTPS_PROXY`, else `http.proxy` of git, with the hosts of `NO_PROXY` reached directly, as
   [the platform](05-platform.md) says. Is that enough?
+
+From the cards left over up to M8 (each built with the reading given, until the card says otherwise):
+
+- **Q-W1** — `graph.show-in-graph` is the function every way to a commit already called, `app::store::search::go_to`,
+  and its card names it now, since what it does is a change of the store and draws nothing of its own. The intent
+  `GraphIntent::GoTo` goes through it too, so that **Show in the timeline** and a click on a tag, a stash or a
+  worktree in the branch rail, the parents in the inspector, **Show** of the bisect and a side of a comparison now load
+  the history up to the commit and take away what narrows the timeline, where they only selected a commit loaded. A
+  stash not shown in the timeline is then shown with its history alone. The bar of the history of a file or a folder
+  says the branches shown after `· in`, dimmed, as `filter.bar` says; the history of some lines does not. Are these
+  right?
+- **Q-W2** — `graph.toolbar` in a narrow window: **Sync** keeps the counts beside the icon of **Refresh** and gives up
+  its word (`↓3  ↑2`), the branch filter is its icon and the branch checked out its name without the distance; the
+  name of the repository stays in its pill, being a name rather than words. Is that the narrow header meant?
+- **Q-W3** — `graph.date-separators` is built on its derivation, which counts the days in the local time it is given,
+  and on the switch that turns it off. The window still gives it an offset of 0 from UTC, until Q58 says how the local
+  time zone is read. Is it right to call the card built?

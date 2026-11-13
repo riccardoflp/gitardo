@@ -94,7 +94,13 @@ pub fn with_count(label: &str, arrow: char, count: u32) -> String {
 /// The words of Sync with the commits to pull, then to push: `↓3 ↑2   Sync`.
 #[must_use]
 pub fn sync_counts(behind: u32, ahead: u32) -> String {
-    format!("\u{2193}{behind}  \u{2191}{ahead}   {SYNC}")
+    format!("{}   {SYNC}", counts_only(behind, ahead))
+}
+
+/// The commits Sync would bring and send, without its word, as a narrow window shows them beside its icon: `↓3 ↑2`.
+#[must_use]
+pub fn counts_only(behind: u32, ahead: u32) -> String {
+    format!("\u{2193}{behind}  \u{2191}{ahead}")
 }
 
 /// What the activity indicator says: the title of what has run longest and for how long, `Reading app (2 s)`.

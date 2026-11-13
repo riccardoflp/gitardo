@@ -41,6 +41,35 @@ fn the_narrow_window_shows_the_rail_as_icons() {
 }
 
 #[test]
+fn graph_toolbar__narrowing_the_window_hides_the_words_of_the_header_keeps_its_icons_and_refresh_stays_in_more() {
+    let (repository, _remote) = repository_with_history();
+    let state = showing(repository.path().to_path_buf());
+    let mut wide = Window::new(ThemeName::Dark, WIDE);
+    let filter_width = |tree: &platform::accesskit::TreeUpdate| {
+        tree.nodes
+            .iter()
+            .find(|(_, node)| {
+                node.label()
+                    .is_some_and(|label| label.starts_with("Branches shown in the timeline"))
+            })
+            .and_then(|(_, node)| node.bounds())
+            .map(|bounds| bounds.x1 - bounds.x0)
+            .unwrap()
+    };
+    let (_, tree) = wide.draw(&state, &[]);
+    let _sync = find(&tree, Role::Button, "↓0  ↑1   Sync");
+    let wide_filter = filter_width(&tree);
+    let mut narrow = Window::new(ThemeName::Dark, NARROW);
+    let (_, tree) = narrow.draw(&state, &[]);
+    let _sync = find(&tree, Role::Button, "↓0  ↑1");
+    assert!(!super::support::says_in(&tree, "Sync"), "Sync gives up its word");
+    assert!(filter_width(&tree) < wide_filter, "the branch filter is its icon alone");
+    let _ = narrow.click(&state, Role::Button, "More");
+    let (_, tree) = narrow.draw(&state, &[]);
+    let _refresh = find(&tree, Role::MenuItem, "Refresh");
+}
+
+#[test]
 fn a_list_kept_aside_opens_with_a_click() {
     let (repository, _remote) = repository_with_history();
     let state = showing(repository.path().to_path_buf());

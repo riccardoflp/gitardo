@@ -26,6 +26,7 @@ mod files_page;
 mod filter;
 mod folds;
 mod go_to;
+mod going_to;
 mod histories;
 mod history;
 mod inspector;
