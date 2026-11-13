@@ -1,4 +1,9 @@
-//! A commit as the lists show it: the graph, a search, the history of a file.
+//! A commit as the lists show it: the graph, a search, the history of a file; and the message of a new commit drafted
+//! by the language model (`commit.draft-message`).
+
+mod draft;
+
+pub use draft::{DraftInput, clean_draft, draft_message};
 
 use crate::{CommitId, Timestamp};
 
