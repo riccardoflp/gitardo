@@ -200,6 +200,9 @@ pub enum FollowUp {
     CheckBisect,
     /// Open the review of the resolutions of these files of the working tree (`review.page`).
     OpenReview(Vec<String>),
+    /// Close the Merge page of a file, by its path from the top of the working tree, showing nothing in its place
+    /// (`merge-view.mark-resolved`).
+    CloseMergePage(String),
 }
 
 #[cfg(test)]

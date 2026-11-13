@@ -50,6 +50,8 @@ pub enum Target {
     Commits(Vec<CommitId>),
     /// A comparison page, or a part of it: a side, or a file (`compare.page`).
     Comparison(Box<crate::compare::ComparisonTarget>),
+    /// The file of a Merge page, with its result when it is not saved (`merge-view.mark-resolved`).
+    MergeResult(Box<crate::merge_view::MergeResolution>),
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.

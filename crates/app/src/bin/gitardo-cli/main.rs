@@ -173,6 +173,7 @@ fn report(
                     FollowUp::OpenComparison(target) => {
                         writeln!(out, "Compare {} with {}", target.first.name, target.second.name)?;
                     }
+                    FollowUp::CloseMergePage(path) => writeln!(out, "Close the Merge page of {path}")?,
                     FollowUp::CompareInPlace(sides) => {
                         writeln!(out, "Compare {} with {}", sides.from.name, sides.to.name)?;
                     }
