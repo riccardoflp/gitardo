@@ -196,7 +196,9 @@ Acceptance:
 The worktrees of the repository, each with how it stands, in **Kept aside** of the branch rail.
 
 - **Kind**: View
-- **Function**: `views::worktree::section(state, ui) -> Vec<Intent>`
+- **Function**: `views::refs::entry::worktree_row(ui, state, entry, rect)`, a row of the branch rail, with
+  `views::worktree::{label, standing, tooltip, open_intent}` and the menus of `views::worktree::worktree_entries`
+  and `list_entries`
 - **Entry points**: **Worktrees** in **Kept aside** of the branch rail, a list that opens in the rail.
 - **Reads**: `worktree.read-list`, the branches with their upstreams (`refs.`), the pull requests (`github.`).
 
@@ -211,7 +213,7 @@ What each row shows:
 - Its tooltip says the same in words: its folder, `<branch> → <upstream>`, how many files are not committed, the pull
   request.
 
-The title of the list has **+** (`worktree.create`) and **…**, which has **Create worktree…**, **Switch worktree…**,
+The title of the list has **…**, which has **Create worktree…**, **Switch worktree…**,
 **Choose what new worktrees get…**, **Bring ignored files into the other worktrees…** while there is another worktree
 that is not missing, and **Prune missing worktrees** while one is missing. A double click on a row opens it as
 `worktree.open` does, except on the current one and on a missing one, where it does nothing. Its context menu is the
@@ -282,7 +284,7 @@ Opens the worktree's folder in the editor that `editor.external` names, for inst
 - **Entry points**: **Open in external editor** in the context menu of a worktree; **Open worktree in external
   editor** in the menu of a branch another worktree has.
 - **Offered when**: `editor.external` is set, and the worktree is not missing.
-- **Plan**: no steps.
+- **Plan**: `run <command>` of `editor.external` with the worktree's folder, in that folder.
 - **Danger**: None.
 - **Undo**: Nothing to take back: nothing changes.
 - **After**: the external editor starts on the folder; when it cannot be started, Gitardo says why.
@@ -302,7 +304,8 @@ Opens a terminal with the worktree as its folder.
 - **Entry points**: **Open in terminal** in the context menu of a worktree; **Open terminal in worktree** in the menu
   of a branch another worktree has.
 - **Offered when**: the worktree is not missing.
-- **Plan**: no steps.
+- **Plan**: `run <command>` of `terminal.external`, or of the system's terminal, in the worktree's
+  folder.
 - **Danger**: None.
 - **Undo**: Nothing to take back: nothing changes.
 - **After**: the terminal of `terminal.external`, or the terminal of the system when it is not set, opens in the
@@ -323,7 +326,8 @@ Shows the worktree's folder in the file manager of the system.
   elsewhere, in the context menu of a worktree; **Reveal worktree in File Explorer**, **Reveal worktree in Finder** or
   **Open folder of worktree** in the menu of a branch another worktree has.
 - **Offered when**: the worktree is not missing.
-- **Plan**: no steps.
+- **Plan**: `run <command>` of the system's file manager on the worktree's folder: `start ""` on Windows,
+  `open` on macOS, `xdg-open` elsewhere.
 - **Danger**: None.
 - **Undo**: Nothing to take back: nothing changes.
 - **After**: the file manager shows the folder.
@@ -380,10 +384,10 @@ Acceptance:
 
 ### `worktree.banner` — The banner of a worktree shown in this window
 
-Says which worktree the views show while it is not the folder of the window, and goes back.
+Says which worktree or submodule the views show while it is not the folder of the window, and goes back.
 
 - **Kind**: View
-- **Function**: `views::worktree::banner(state, ui) -> Vec<Intent>`
+- **Function**: `views::worktree::banner(state: &BannerState, ui) -> Vec<Intent>`
 - **Entry points**: the top of the timeline and of the Changes page, while another worktree or a submodule is
   shown.
 - **After**: **Back to `<name>`** points the views at the repository of the window again.
@@ -467,9 +471,9 @@ Removes a worktree's folder with `git worktree remove`, and its branch too if wa
   the default) or **Remove the worktree and delete `<branch>`** (**Only if it is merged**).
 - **Reads**: on Windows, `worktree.read-folder-links`.
 - **Plan**: on Windows, `unlink <path>` for each link of `worktree.read-folder-links`; then `git worktree remove
-  <folder>`; then `git branch -d <branch>` when the branch goes too; then the deletions of
-  `worktree.remove-empty-folders`. When git refuses because the worktree has modified or untracked files (its message
-  mentions them, or `--force`), Gitardo offers the same plan with `git worktree remove --force <folder>`, Destructive,
+  <folder>`; then the deletions of `worktree.remove-empty-folders`; then `git branch -d <branch>` when the branch goes
+  too, last, so that a branch git keeps leaves nothing else undone. When git refuses because the worktree has modified or untracked files (its message
+  mentions them, or `--force`), Gitardo offers **Remove anyway**, the same plan with `git worktree remove --force <folder>`, Destructive,
   because **This worktree has modified or untracked files. They will be deleted with it.** On Windows, a removal that
   fails because the folder is held goes on as `worktree.recover-held-folder` says.
 - **Danger**: Confirm, because the folder is deleted: **The directory is deleted.** followed by **Its branch and commits
@@ -593,12 +597,13 @@ Git checks a branch out in one worktree at a time, so a branch that another work
 how the branch rail, the timeline and the menus treat it.
 
 - **Kind**: Derivation
-- **Function**: `model::worktree::branch_in_another_worktree(input) -> WorktreeBranch`
+- **Function**: `model::worktree::branch_in_another_worktree(input) -> Option<WorktreeBranch>`, none for a branch
+  no other worktree has
 - **Uses**: by `refs.`, `graph.`, `branch.checkout`, `drag.`.
 
 The rules, for a local branch that a worktree other than the one the views show has checked out:
 
-- It has the worktree's icon instead of the branch's among the local branches, and before the branch's icon on its
+- It has the worktree's icon at the end of its row among the local branches, and before the branch's icon on its
   label in the timeline; its tooltip says which worktree has it.
 - A double click on it opens its worktree as `worktree.open` does, instead of checking it out; on a missing worktree it
   does nothing.
