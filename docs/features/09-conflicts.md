@@ -358,7 +358,7 @@ change twice, or the same lines spaced differently. Every line it writes is a li
 the file: it never makes one up. Anything that is not plainly one of its cases is left exactly as git marked it.
 
 - **Kind**: Derivation
-- **Function**: `model::conflicts::resolve_by_rules(input) -> RuleResolutions`
+- **Function**: `text::conflicts::resolve_by_rules(input: &RulesInput) -> RuleResolutions`
 - **Reads**: none itself. Its input is the text of the file as it is now on disk, and the three versions git keeps:
   `git show :1:<file>` (the base, empty when there is none), `git show :2:<file>` (current) and
   `git show :3:<file>` (incoming). The style of the markers does not matter: the base is always the one of the index.

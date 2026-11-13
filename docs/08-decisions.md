@@ -983,3 +983,44 @@ the reading given until it is answered:
   do not fit beside it: in a narrow timeline **Squash into one** goes first, then **Cherry-pick onto …**, and **Clear
   selection** stays. The menu of the selection still has every entry. Should the bar rather wrap, or show a **More**
   button?
+
+From milestone M6, the rules that resolve conflicts with no choice (each built with the reading given, until the card
+says otherwise):
+
+- **Q-I1** — `conflicts.resolve-by-rules` is `text::conflicts::resolve_by_rules(input: &RulesInput) -> RuleResolutions`,
+  not in `model` as its card said: it uses `text::conflicts::parse_markers` and `text::diff::line_diff`, and `model`
+  may not use `text`. Its input is the file and the three versions of the index as bytes, and `keep_going`, which stops
+  the diffs as `diff.line-diff` does: a file whose diffs are stopped is left alone (`LeftAlone::TooComplex`), and so is
+  one whose base or side is not UTF-8. The stretch of a conflict is none when no anchor is found before another
+  conflict. Is that right?
+- **Q-I2** — Readings of step 5 of the card, each needed by the tests against git: (a) the changes of each side to the
+  stretch are found by a minimal line diff of the stretch alone; the pairing of the whole file (step 1) only finds the
+  anchors. With lines that repeat, the two pairings can differ, and a conflict was then resolved otherwise than from
+  its three parts, which the line about 150 files forbids. (b) A line both sides have alike, where both wrote it in
+  place of lines of the base, stands at the first line of the base both allow, which it then replaces on both sides,
+  else at the first place between lines both allow; standing between lines, it left `5x` against `6y` in a conflict
+  both sides started with `5x`. (c) What is between two such lines is put together once, grouping changes that
+  overlap: two sides with different lines there leave the group to the rules of spaces, with no further search for
+  lines alike. (d) The two sides *met* only in a group where both changed lines differently; a group where both made
+  the same change does not count. (e) Lines kept by both sides are written as the current side has them. Are these
+  right?
+- **Q-I3** — Three checks the card does not list leave a conflict, each found by the files of lines that repeat, where
+  the result had a `}` too many or was resolved from the whole file but not from its parts: (a) in step 4, the stretch
+  with its anchors is found in a side's own file only where the anchors are paired with the same lines of the base as
+  in the file; (b) every line of the stretch outside the markers is kept by both sides from the same line of the base,
+  or written by both in a change of their own: a line one kept and the other wrote is one git took from one side and
+  wrote outside the markers; (c) when git wrote the base between the markers (`diff3`, `zdiff3`), the base of the
+  stretch is the lines of the base both kept above the markers, then that base, then those kept below: else the
+  stretch is paired otherwise than git paired it. Should the card say
+  them in steps 4 and 6?
+- **Q-I4** — The tests merge with `git merge-tree --write-tree`, `merge.conflictStyle` set for each style, every file of
+  a test in one throwaway repository, rather than with `git merge` or `git merge-file -p` for each file as the
+  acceptance lines say: it is the same merge of git without a working tree, hundreds of files in a few processes. A
+  resolution is checked against the merge expected, which is checked against what git writes when it merges the same
+  changes kept apart by a line between each two. The thousands of files of M6's exit run in
+  `conflicts_resolve_by_rules__thousands_of_files_against_git`, ignored by default
+  (`cargo test -p text --test conflict_rules -- --ignored`), since the `cargo xtask fuzz` of
+  [06-testing.md](06-testing.md#conflicts-against-git) does not exist. Two kinds of random files are not made with a
+  collision, because the rules rightly read them another way: different lines both sides add at one place beside a
+  line one side changes, which a diff reads as that change; and a collision beside a line both sides write the same
+  way, which reads as *one side added more of the same*. Should `cargo xtask fuzz` run the ignored test?
