@@ -70,7 +70,9 @@ first, in its own commit, with the reason.
 - **R4.4** Errors are not swallowed. A failure that the program decides to ignore is logged at the debug level with the
   reason it is ignored, in a comment beside it.
 - **R4.5** A failing step stops its plan, and the steps already run are listed with the failure. Nothing goes on as if
-  it had worked.
+  it had worked. The links and copies a worktree gets are the one exception, which their card makes
+  (`worktree-setup.link-and-copy-steps`): the others are still made, and those that failed are said together at the
+  end.
 
 ## 5. Unsafe and the operating system
 
