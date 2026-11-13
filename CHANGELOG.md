@@ -214,3 +214,9 @@
   back and `Ctrl+Y` puts again. The arrows, `F7` and `Shift+F7` go from region to region and round, beside how many
   conflicts are left; the clock shows the base in a fourth column, and the next page opens the same way. **Mark as
   resolved** writes the result and stages it, asking first while git's markers are left, and closes the page.
+- The review of the resolutions of the conflicts, with `conflicts.autoResolve` switched on: **Review the resolutions
+  of the conflicts** in Quick search shows every conflict as a card, with what the rules propose, where each of its
+  lines comes from, what looks wrong in it and what each side changed, or in three columns joined by bands; the files
+  and the filters beside them; a side, or both, chosen instead; the conflicts accepted one by one, by file or all at
+  once; the result shown in the Diff page; and **Write N resolutions**, which writes them as one operation, stages
+  the files left with no conflict and says what it did.

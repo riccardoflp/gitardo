@@ -118,6 +118,13 @@ pub enum Message {
         /// How many conflicts there are and how many need no choice, or what git said when the read failed.
         result: Result<model::conflicts::RuleCounts, String>,
     },
+    /// A job that read the files in conflict for their review is done (`review.page`).
+    ReviewRead {
+        /// The job.
+        job: JobId,
+        /// What was read, or what git said when the read failed.
+        result: Result<Box<crate::work::review::ReviewReadout>, String>,
+    },
     /// The settings files changed and were read again.
     SettingsRead(Settings),
     /// The watcher of the repository saw changes (`repo.watch-changes`), at a moment counted from when the window
@@ -304,6 +311,13 @@ pub enum JobKind {
     CountConflicts {
         /// The top folder of the working tree.
         folder: PathBuf,
+    },
+    /// Reads the files in conflict for their review (`review.page`).
+    ReadReview {
+        /// The folder of the repository.
+        folder: PathBuf,
+        /// Which files.
+        request: crate::work::review::ReviewRequest,
     },
 }
 

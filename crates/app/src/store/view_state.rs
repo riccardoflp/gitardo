@@ -219,6 +219,14 @@ impl ViewData {
         }
     }
 
+    /// A page with its trail when it has something to show, else the timeline.
+    fn page_or_timeline<'a>(&'a self, state: &'a State, page: Option<PageState<'a>>) -> Content<'a> {
+        match page {
+            Some(page) => Content::Page(PageHostState { has_trail: true, page }),
+            None => Content::Timeline(self.timeline(state)),
+        }
+    }
+
     /// What is under the header: the Welcome page while there is no workspace, the page shown, or the timeline.
     fn content<'a>(&'a self, state: &'a State) -> Content<'a> {
         let page = if state.workspace.is_none() {
@@ -241,6 +249,7 @@ impl ViewData {
                     None => Content::Timeline(self.timeline(state)),
                 }
             }
+            Some(Page::Review) => self.page_or_timeline(state, super::review::page_state(state).map(PageState::Review)),
             Some(Page::Settings) => Content::Page(PageHostState {
                 has_trail: state.workspace.is_some(),
                 page: PageState::Settings(SettingsPageState {

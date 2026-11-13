@@ -60,8 +60,8 @@ mod widget;
 /// and the frame buffer and fonts a frame is drawn into), so that the views, which use the toolkit and not `render`
 /// itself, can name them.
 pub use render::{
-    Appearance, Assets, Border, Color, FontFamily, FontWeight, FrameBuffer, Icon, LineCap, Point, Rect, Stroke,
-    TextRun, Theme, ThemeName,
+    Appearance, Assets, Border, Color, FillRule, FontFamily, FontWeight, FrameBuffer, Icon, LineCap, Path, Point, Rect,
+    Stroke, TextRun, Theme, ThemeName,
 };
 
 pub use access::{AccessRole, Description};

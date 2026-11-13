@@ -43,6 +43,8 @@ pub const SHOWING_MERGE: &str = "Showing a file in conflict";
 pub const COMPARING: &str = "Comparing two sides";
 /// Why the files in conflict are read: to count the conflicts the rules resolve (`conflicts.banner`).
 pub const COUNTING_CONFLICTS: &str = "Counting the conflicts";
+/// Why the files in conflict are read for their review (`review.page`).
+pub const REVIEWING_CONFLICTS: &str = "Reviewing the conflicts";
 
 /// The title of a read of a repository: `Reading app`.
 #[must_use]

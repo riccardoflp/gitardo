@@ -16,7 +16,7 @@ use render::ThemeName;
 use views::graph::{Switches, TimelineSwitch};
 
 use super::keys::{self, Scope};
-use super::{FontChoice, ProblemReason, SettingProblem, Settings, SettingsFile, SettingsFiles};
+use super::{ConflictSettings, FontChoice, ProblemReason, SettingProblem, Settings, SettingsFile, SettingsFiles};
 
 /// The settings of the user's file and of the repository's, when a repository is shown. A file that is not there sets
 /// nothing; one that cannot be read or parsed sets nothing and is said as a problem.
@@ -81,6 +81,7 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
     });
     let follows_graph_filter = lookup.boolean(keys::FOLLOW_GRAPH_FILTER, Scope::User);
     let collapse_unchanged = lookup.boolean(keys::COLLAPSE_UNCHANGED, Scope::User);
+    let conflicts = conflict_settings(&mut lookup);
     let open_on_click = match lookup.choice(keys::OPEN_ON_CLICK, &keys::OPEN_ON_CLICKS) {
         Some("diff") => OpenOnClick::Diff,
         _ => OpenOnClick::File,
@@ -102,9 +103,18 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
         follows_graph_filter: follows_graph_filter.unwrap_or(defaults.follows_graph_filter),
         collapse_unchanged: collapse_unchanged.unwrap_or(defaults.collapse_unchanged),
         open_on_click,
+        conflicts,
         read_on_startup: read_on_startup.unwrap_or(defaults.read_on_startup),
         page_size: page_size.map_or(defaults.page_size, |size| PageSize::from_setting(Some(size))),
         problems: lookup.problems,
+    }
+}
+
+/// `conflicts.autoResolve` and `conflicts.ai`, off unless set.
+fn conflict_settings(lookup: &mut Lookup) -> ConflictSettings {
+    ConflictSettings {
+        auto_resolve: lookup.boolean(keys::AUTO_RESOLVE, Scope::User).unwrap_or(false),
+        ai: lookup.boolean(keys::CONFLICTS_AI, Scope::User).unwrap_or(false),
     }
 }
 

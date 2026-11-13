@@ -35,6 +35,7 @@ pub mod page;
 pub mod rebase;
 pub mod refs;
 pub mod repo;
+pub mod review;
 pub mod search;
 mod selection;
 pub mod settings;

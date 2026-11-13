@@ -201,6 +201,10 @@ fn words(kind: &JobKind) -> (Text, Text) {
             Text::from(activity::reading(&folder_name(folder))),
             Text::from(activity::SHOWING_MERGE),
         ),
+        JobKind::ReadReview { folder, .. } => (
+            Text::from(activity::reading(&folder_name(folder))),
+            Text::from(activity::REVIEWING_CONFLICTS),
+        ),
     }
 }
 

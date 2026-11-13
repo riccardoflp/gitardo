@@ -77,6 +77,10 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: count_conflicts(folder, cancel).map_err(|error| error.to_string()),
         },
+        JobKind::ReadReview { folder, request } => Message::ReviewRead {
+            job: job.id,
+            result: super::review::read_review(folder, request, cancel).map(Box::new),
+        },
     }
 }
 

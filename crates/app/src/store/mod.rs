@@ -18,6 +18,7 @@ mod pages;
 mod rail;
 mod reads;
 mod rebase;
+pub mod review;
 pub mod search;
 mod settings_page;
 mod stashes;
@@ -64,6 +65,8 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(merge_page::follow(state));
     effects.extend(compare::prune(state));
     effects.extend(compare::follow(state));
+    effects.extend(review::prune(state));
+    effects.extend(review::follow(state));
     effects.extend(reads::watch(state));
     effects
 }
@@ -104,6 +107,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         Message::DiffRead { job, result } => diff_page::diff_read(state, job, result),
         Message::MergeRead { job, result } => merge_page::merge_read(state, job, result),
         Message::ComparisonRead { job, result } => compare::comparison_read(state, job, result),
+        Message::ReviewRead { job, result } => review::review_read(state, job, result),
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
         Message::ConflictsCounted { job, result } => conflicts::counted(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, settings),
@@ -309,6 +313,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Diff(intent) => diff_page::reduce(state, intent),
         Intent::MergeView(intent) => merge_page::reduce(state, intent),
         Intent::Compare(intent) => compare::reduce(state, intent),
+        Intent::Review(intent) => review::reduce(state, intent),
         Intent::Feature(intent) => feature::reduce(state, intent),
         Intent::Changes(intent) => changes::reduce(state, intent),
         Intent::Rebase(intent) => rebase::reduce(state, intent),

@@ -200,6 +200,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::SwitchIdentity => "Switch identity",
         QuickCommand::ShowCommandLog => "Show Command Log",
         QuickCommand::UndoLastOperation => "Undo Last Operation",
+        QuickCommand::ReviewConflicts => crate::text::review::COMMAND,
         QuickCommand::OpenSettings => "Open Settings",
     }
 }

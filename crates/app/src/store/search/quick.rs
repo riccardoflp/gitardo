@@ -71,6 +71,7 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         QuickCommand::Welcome => vec![Intent::ShowPage(views::page::Page::Welcome)],
         QuickCommand::ShowChanges => vec![Intent::Changes(views::changes::ChangesIntent::Open)],
         QuickCommand::ShowStashes => vec![Intent::Rail(views::RailIntent::ShowStashes)],
+        QuickCommand::ReviewConflicts => return super::super::review::open(state, None),
         _ => Vec::new(),
     };
     intents

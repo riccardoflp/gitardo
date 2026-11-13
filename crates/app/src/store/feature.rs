@@ -261,6 +261,13 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
     let feature = state.operations.running.take().map(|running| running.feature);
     state.is_operation_running = false;
     state.log.append(log);
+    let mut effects = super::review::ended(state, feature, matches!(ended, Ended::Ran { .. }));
+    effects.extend(ended_as_said(state, (ended, feature)));
+    effects
+}
+
+/// What an operation that ended says, and what it asks next.
+fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<FeatureId>)) -> Vec<Effect> {
     match ended {
         Ended::Ran {
             title, after, can_undo, ..

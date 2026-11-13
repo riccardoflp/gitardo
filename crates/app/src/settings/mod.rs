@@ -57,6 +57,8 @@ pub struct Settings {
     pub collapse_unchanged: bool,
     /// `changes.openOnClick`: what a click on a file of the Changes page opens.
     pub open_on_click: OpenOnClick,
+    /// `conflicts.autoResolve` and `conflicts.ai`: who proposes resolutions in the review of the conflicts.
+    pub conflicts: ConflictSettings,
     /// Every value the files set, by key, the repository's file first: what the settings page shows.
     pub values: BTreeMap<String, Vec<(SettingsFile, json::Value)>>,
     /// The values that were not taken, with which key and why, for the settings page to say.
@@ -77,10 +79,20 @@ impl Default for Settings {
             features: FeatureSettings::default(),
             collapse_unchanged: true,
             open_on_click: OpenOnClick::File,
+            conflicts: ConflictSettings::default(),
             values: BTreeMap::new(),
             problems: Vec::new(),
         }
     }
+}
+
+/// Who proposes resolutions in the review of the conflicts.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub struct ConflictSettings {
+    /// `conflicts.autoResolve`: the rules propose.
+    pub auto_resolve: bool,
+    /// `conflicts.ai`: the AI provider may be asked about the conflicts the rules leave.
+    pub ai: bool,
 }
 
 /// The fonts the window is drawn with.

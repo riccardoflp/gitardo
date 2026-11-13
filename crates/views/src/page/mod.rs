@@ -32,6 +32,8 @@ pub enum Page {
     Compare(ComparePageId),
     /// A Merge page (`merge-view.page`).
     Merge(crate::merge_view::MergePageId),
+    /// The review of the resolutions of the conflicts (`review.page`).
+    Review,
 }
 
 impl Page {
@@ -47,6 +49,7 @@ impl Page {
             Page::Rebase => crate::text::rebase::PAGE,
             Page::Compare(_) => crate::text::compare::PAGE,
             Page::Merge(_) => crate::text::merge_view::PAGE,
+            Page::Review => crate::text::review::PAGE,
         }
     }
 }
@@ -70,6 +73,8 @@ pub enum PageState<'a> {
     Compare(CompareState<'a>),
     /// A Merge page, with its title.
     Merge(crate::merge_view::MergePageState<'a>, &'a str),
+    /// The review of the resolutions of the conflicts.
+    Review(crate::review::ReviewState<'a>),
 }
 
 impl PageState<'_> {
@@ -85,6 +90,7 @@ impl PageState<'_> {
             PageState::Rebase(_) => Page::Rebase,
             PageState::Compare(compare) => Page::Compare(compare.id),
             PageState::Merge(merge, _) => Page::Merge(merge.id),
+            PageState::Review(_) => Page::Review,
         }
     }
 
@@ -99,6 +105,7 @@ impl PageState<'_> {
             PageState::Diff(diff) => diff.title,
             PageState::Compare(compare) => compare.title,
             PageState::Merge(_, title) => title,
+            PageState::Review(review) => review.title,
         }
     }
 }
@@ -136,6 +143,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Rebase(rebase) => crate::rebase::todo_page_view(rebase, ui),
         PageState::Compare(compare) => compare_page_view(compare, ui),
         PageState::Merge(merge, _) => crate::merge_view::page_view(merge, ui),
+        PageState::Review(review) => crate::review::page_view(review, ui),
     }));
     intents
 }

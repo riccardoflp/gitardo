@@ -101,11 +101,13 @@ pub enum QuickCommand {
     SwitchIdentity,
     /// **Undo Last Operation** (`undo.last`).
     UndoLastOperation,
+    /// **Review the resolutions of the conflicts** (`review.page`).
+    ReviewConflicts,
 }
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 26] = [
+    pub const ALL: [QuickCommand; 27] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -132,13 +134,14 @@ impl QuickCommand {
         QuickCommand::ApplyPatch,
         QuickCommand::SwitchIdentity,
         QuickCommand::UndoLastOperation,
+        QuickCommand::ReviewConflicts,
     ];
 
     /// Whether what the command runs is built: the others are listed with **Not yet**, and choosing them does
     /// nothing.
     #[must_use]
     pub fn is_built(self) -> bool {
-        self <= QuickCommand::ShowChanges || self == QuickCommand::ShowStashes
+        self <= QuickCommand::ShowChanges || self == QuickCommand::ShowStashes || self == QuickCommand::ReviewConflicts
     }
 
     /// The operation of the catalog the command runs at `HEAD`, for the commands that run one: the window runs it once

@@ -27,6 +27,9 @@ pub enum DiffVersion {
     Empty,
     /// The common ancestor of a file in conflict, which the index keeps as its stage 1 (`:1:<file>`).
     Base,
+    /// The files with the accepted resolutions of their conflicts in place (`review.show-result`): each file's text
+    /// by its path, read from nothing on disk.
+    Resolved(Vec<(String, String)>),
 }
 
 impl DiffVersion {
@@ -49,6 +52,7 @@ impl DiffVersion {
             DiffVersion::Commit { name, .. } => name,
             DiffVersion::Empty => words::EMPTY,
             DiffVersion::Base => words::BASE,
+            DiffVersion::Resolved(_) => crate::text::review::RESULT,
         }
     }
 

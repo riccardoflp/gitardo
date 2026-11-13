@@ -33,6 +33,8 @@ mod patches;
 mod pointer;
 mod rail;
 mod rebase;
+mod review;
+mod review_cards;
 mod search;
 mod show_in_graph;
 mod speed;

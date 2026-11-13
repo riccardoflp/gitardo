@@ -76,6 +76,8 @@ pub enum Intent {
     Diff(crate::diff::DiffIntent),
     /// Something asked of a comparison page or of the comparison in the inspector (`compare.page`, `compare.in-place`).
     Compare(crate::compare::CompareIntent),
+    /// An intent of the review of the conflicts.
+    Review(crate::review::ReviewIntent),
     /// An operation to run, or what is answered to the one running.
     Feature(crate::feature::FeatureIntent),
     /// Something asked of the Changes page or of the commit box of the draft (`changes.pane`).

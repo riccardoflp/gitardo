@@ -64,6 +64,8 @@ pub struct State {
     pub merge_pages: super::merge_page::MergePages,
     /// The comparison pages, the comparisons opened before and the comparison in the inspector.
     pub compares: super::compare::Compares,
+    /// The review of the conflicts (`review.page`).
+    pub reviews: super::review::Reviews,
     /// The reads of the repository shown that changes ask for, and the ones the window starts itself
     /// (`repo.schedule-reads`).
     pub reads: super::reads::Reads,
