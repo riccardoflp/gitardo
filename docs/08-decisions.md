@@ -834,3 +834,37 @@ the reading given until it is answered:
 - **Q139** — `github.detect-remote` is built as a derivation ahead of M9. Its last line, the badges going when the
   remote on GitHub is renamed away from `origin`, is tested on what it decides: the result becomes nothing. The badges
   come with `graph.pull-request-badge`, whose tests will check that they follow it. Is that enough to call it built?
+- **Q140** — A change of a Diff page reaches its operations as `Target::DiffChange`, a `model::diff::DiffChange` with
+  its path, the two versions (`DiffSide`), its lines on each side and their text as the page showed them; the
+  operations read the file again with a new query, `Query::FileVersions` (the file in `HEAD` or the commit compared
+  with, in the index and on disk, answered by `diff.read-sides`), and refuse with *The file changed since the diff was
+  shown. Try again.* when either side no longer has those lines there. An edit elsewhere in the file is no refusal.
+  Is that the check the cards mean?
+- **Q141** — `features` now uses `text` (an edge the architecture draws), for `text::diff::change_patch`. The patch is
+  computed with no time limit, since an operation reads no clock. The last line of a text with no line break is told
+  apart from the same line with one, so that a line added after it also changes it and its patch carries
+  `\ No newline at end of file`. A path with a quote or a control character is written in double quotes, as git does.
+  Are these right?
+- **Q142** — The detail of the plan of `diff.stage-change`, *The patch on standard input changes this part of
+  \<file\> in the index:* with the first `@@` line, is not shown: a `Plan` has no field for it, and the preview shows
+  the patch under its command already. Should `Plan` get a detail, or should the card drop it?
+- **Q143** — Words chosen without a card: *This change is staged already.* and *Nothing of this change is staged.*,
+  now on the cards; *Choose a change of a Diff page.*, *Choose the file of a Diff page.*, *Only a change of the working
+  tree against HEAD or the index can be staged.*, *Only a change of the index or the working tree against HEAD can be
+  unstaged.* and *Only a change of the working tree can be reverted.*, which the window never shows since it offers
+  the buttons only where they apply; the titles **Stage change in \<file\>**, **Unstage change in \<file\>**, **Revert
+  change in \<file\>**, **Stage \<file\>**, **Unstage \<file\>** and **Discard the changes of \<file\>**. Are they
+  right?
+- **Q144** — The buttons of the gutter are drawn on the first row of the band of their change, side by side, 13
+  pixels each since the gutter is as wide as a control, clear of the grip of the line between the sides: **+** or
+  **−**, then **⟲** (the icon **Refresh**). The **−** of a change of the working tree staged already is named by its
+  tooltip, **Staged — unstage this change**. The title buttons **Discard changes** (×), **Stage file** (+) and
+  **Unstage file** (−) are icons beside the fold button of the bar, on a page of one file only: a page of several
+  files has no title buttons for each file yet (Q136). Should the gutter be wider, or the buttons show only on hover?
+- **Q145** — `diff.revert-change` stays **Specified**: its line 3 (`Ctrl+Z` brings the change back, unsaved) needs the
+  editor of the working tree side (`diff.edit`), which is not written. Until then it writes the file at once with
+  `write <file>`, its lines put back in the line endings of the file, the end of the file as the left side has it when
+  the change ends both, and Undo says it does not take it back. Its lines 1 and 2 are tested. Is that enough for now?
+- **Q146** — A Diff page of one file closes when a read finds the file on neither side, as after **Discard changes**
+  of an untracked file; the page shown before it, or the timeline, shows in its place. This holds for any way the file
+  goes, an untracked file deleted by another program included. Is that right?

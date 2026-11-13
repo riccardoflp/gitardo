@@ -1,4 +1,6 @@
-//! The words of the Diff page (`diff.page`, `diff.navigate`, `diff.collapse-unchanged`).
+//! The words of the Diff page (`diff.page`, `diff.navigate`, `diff.collapse-unchanged`), of the buttons of its gutter
+//! (`diff.stage-change`, `diff.unstage-change`, `diff.revert-change`) and of its title buttons (`diff.stage-file`,
+//! `diff.unstage-file`, `diff.discard-file`).
 
 /// The page, for the screen reader.
 pub const PAGE: &str = "Diff";
@@ -46,6 +48,20 @@ pub const CONTINUE: &str = "Continue";
 pub const CANCEL: &str = "Cancel";
 /// The tooltip of a change already in the index.
 pub const STAGED: &str = "Staged";
+/// The **+** button of a change in the gutter.
+pub const STAGE_CHANGE: &str = "Stage this change";
+/// The **−** button of a change in the gutter.
+pub const UNSTAGE_CHANGE: &str = "Unstage this change";
+/// The **−** button of a change of the working tree staged already.
+pub const STAGED_UNSTAGE_CHANGE: &str = "Staged \u{2014} unstage this change";
+/// The **⟲** button of a change in the gutter.
+pub const REVERT_CHANGE: &str = "Revert this change";
+/// The title button that stages the file.
+pub const STAGE_FILE: &str = "Stage file";
+/// The title button that unstages the file.
+pub const UNSTAGE_FILE: &str = "Unstage file";
+/// The title button that discards the changes of the file.
+pub const DISCARD_FILE: &str = "Discard changes";
 
 /// The title of the Diff page of a file: **app.rs (HEAD ↔ Working tree)**.
 #[must_use]

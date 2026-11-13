@@ -232,6 +232,14 @@ pub(super) fn shown(state: &mut State, (id, file): (DiffPageId, usize), result: 
     if page.diffs.get(file) == Some(&diff) {
         return Vec::new();
     }
+    if page.diffs.len() == 1
+        && let FileDiff::Text(text) = &diff
+        && text.sides == (false, false)
+    {
+        // The file is on neither side any more, as after `git clean` of an untracked file: the page closes with it.
+        super::close(state, id);
+        return Vec::new();
+    }
     if let Some(slot) = page.diffs.get_mut(file) {
         *slot = diff;
     }

@@ -8,6 +8,7 @@
 mod bar;
 mod columns;
 mod data;
+mod gutter;
 mod question;
 mod rows;
 mod targets;
@@ -39,6 +40,8 @@ pub struct DiffPageState<'a> {
     pub title: &'a str,
     /// The names over the two columns.
     pub names: (&'a str, &'a str),
+    /// The versions of the two sides, which decide the buttons of the gutter and of the bar.
+    pub versions: (&'a DiffVersion, &'a DiffVersion),
     /// The files, one after the other.
     pub files: &'a [DiffFile],
     /// How far the diff of each file is.

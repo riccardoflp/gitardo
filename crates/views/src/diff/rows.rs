@@ -67,6 +67,16 @@ pub(crate) fn row(ui: &mut Ui<'_>, state: &DiffPageState<'_>, (row, columns): (&
             {
                 let current = current_rows(state, *file, text);
                 sides(ui, text, (aligned, *index, current), (row.rect, columns));
+                let first_of = aligned.change.filter(|change| {
+                    text.aligned
+                        .changes
+                        .get(*change)
+                        .is_some_and(|rows| rows.rows.start == *index)
+                });
+                if let Some(change) = first_of {
+                    let gutter = Rect::new(columns.gutter.x, row.rect.y, columns.gutter.width, row.rect.height);
+                    return super::gutter::change_buttons(ui, state, (*file, text, change), gutter);
+                }
             }
             Vec::new()
         }

@@ -104,6 +104,14 @@ pub enum Query {
         /// The commit.
         commit: CommitId,
     },
+    /// A file in a commit, in the index and on disk (`diff.read-sides`), to check that a change is still where a Diff
+    /// page showed it. The answer is [`super::Answer::FileVersions`].
+    FileVersions {
+        /// The path of the file from the top of the working tree, with `/`.
+        path: String,
+        /// The commit to read it in too: `HEAD`, or the one a page compares with; none for no commit.
+        commit: Option<CommitId>,
+    },
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

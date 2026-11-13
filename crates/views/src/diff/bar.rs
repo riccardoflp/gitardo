@@ -1,10 +1,14 @@
 //! The bar at the top of a Diff page: the arrows that go from change to change with where the current one is among
-//! them (`diff.navigate`), the hint that `F7` goes on to the next file, and the fold button (`diff.collapse-unchanged`).
+//! them (`diff.navigate`), the hint that `F7` goes on to the next file, the fold button (`diff.collapse-unchanged`), and
+//! the title buttons that stage, unstage or discard the file (`diff.stage-file`, `diff.unstage-file`,
+//! `diff.discard-file`).
 
+use model::contract::{FeatureId, Target};
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{Button, ButtonKind, Icon, Key, Label, Modifiers, NamedKey, TextKind, Tone, Ui};
 
-use super::{DiffIntent, DiffPageIntent, DiffPageState};
+use super::{DiffIntent, DiffPageIntent, DiffPageState, DiffVersion};
+use crate::feature::FeatureIntent;
 use crate::intent::Intent;
 use crate::text::diff as words;
 
@@ -20,6 +24,18 @@ pub(crate) fn bar_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent
     let mut intents = Vec::new();
     let fold = parts.right(side);
     intents.extend(ui.clip(fold, |ui| collapse_unchanged_view(state, ui)));
+    for (feature, icon, said) in file_buttons(state) {
+        let cell = place(parts.right(side), (side, side), (Align::Start, Align::Center));
+        let button = Button::icon(icon, said).kind(ButtonKind::Icon);
+        if ui
+            .button(("diff file button", state.id, feature), cell, &button)
+            .clicked
+            && let Some(file) = state.files.first()
+        {
+            let target = Target::File(file.right.clone());
+            intents.push(Intent::Feature(FeatureIntent::Run(FeatureId(feature), target)));
+        }
+    }
     let navigation_width = 2.0 * side + spacing.medium + ui.measure("000 / 000", ui.text_style(TextKind::Detail));
     let navigation = parts.left(navigation_width.min(parts.rest().width));
     intents.extend(ui.clip(navigation, |ui| navigate_view(state, ui)));
@@ -40,6 +56,23 @@ pub(crate) fn bar_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent
     );
     ui.separator(separator, ui::Axis::Horizontal);
     intents
+}
+
+/// The title buttons of a page of one file, from the right: **Discard changes** and **Stage file** when the right side
+/// is the working tree and the left `HEAD` or the index (`diff.discard-file`, `diff.stage-file`), **Unstage file** when
+/// the right side is the index (`diff.unstage-file`). A page of several files has none yet.
+fn file_buttons(state: &DiffPageState<'_>) -> Vec<(&'static str, Icon, &'static str)> {
+    if state.files.len() != 1 {
+        return Vec::new();
+    }
+    match state.versions {
+        (DiffVersion::Head | DiffVersion::Index, DiffVersion::WorkingTree) => vec![
+            ("diff.discard-file", Icon::Close, words::DISCARD_FILE),
+            ("diff.stage-file", Icon::Plus, words::STAGE_FILE),
+        ],
+        (_, DiffVersion::Index) => vec![("diff.unstage-file", Icon::Minus, words::UNSTAGE_FILE)],
+        _ => Vec::new(),
+    }
 }
 
 /// The arrows ▲ and ▼ and **3 / 7** beside them, over the rectangle its caller clipped it to, and the keys `F7` and

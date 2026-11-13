@@ -43,6 +43,8 @@ pub enum Target {
     File(String),
     /// The list of the Changes page: the files changed for git, without the files in conflict, which are apart.
     Changes,
+    /// A change of a Diff page, from a button of its gutter.
+    DiffChange(Box<crate::diff::DiffChange>),
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.

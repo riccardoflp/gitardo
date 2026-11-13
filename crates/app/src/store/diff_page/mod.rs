@@ -227,6 +227,19 @@ pub fn diff_read(state: &mut State, job: JobId, result: DiffRead) -> Vec<Effect>
     Vec::new()
 }
 
+/// Closes a page that is open, and forgets it: the page shown before it, or the timeline, shows in its place.
+pub(super) fn close(state: &mut State, id: DiffPageId) {
+    if let Some(index) = state.pages.open.iter().position(|open| *open == Page::Diff(id)) {
+        let _closed = state.pages.open.remove(index);
+        state.pages.shown = match state.pages.shown {
+            Some(shown) if shown == index => index.checked_sub(1),
+            Some(shown) if shown > index => Some(shown - 1),
+            other => other,
+        };
+    }
+    state.diff_pages.pages.retain(|page| page.id != id);
+}
+
 /// Forgets a page that was not opened, saying why.
 fn refuse(state: &mut State, id: DiffPageId, notice: Option<Notice>) {
     state.diff_pages.pages.retain(|page| page.id != id);
@@ -309,6 +322,7 @@ pub fn page_state(state: &State, id: DiffPageId) -> Option<DiffPageState<'_>> {
         id,
         title: &page.title,
         names: (side_name(&page.target.left, left), side_name(&page.target.right, right)),
+        versions: (&page.target.left, &page.target.right),
         files: &page.target.files,
         diffs: &page.diffs,
         lines: &page.lines,

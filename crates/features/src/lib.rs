@@ -10,6 +10,7 @@ pub mod changes;
 pub mod commit;
 pub mod commit_page;
 pub mod commits;
+pub mod diff;
 pub mod identity;
 pub mod remote;
 pub mod search;
@@ -24,7 +25,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 50] = [
+pub const OPERATIONS: [(FeatureId, Operation); 56] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -79,6 +80,13 @@ pub const OPERATIONS: [(FeatureId, Operation); 50] = [
     (FeatureId("stash.push-file"), stash::push_file),
     (FeatureId("stash.push-staged"), stash::push_staged),
     (FeatureId("stash.undo-drop"), stash::undo_drop),
+    // The Diff page.
+    (FeatureId("diff.discard-file"), diff::discard_file),
+    (FeatureId("diff.revert-change"), diff::revert_change),
+    (FeatureId("diff.stage-change"), diff::stage_change),
+    (FeatureId("diff.stage-file"), diff::stage_file),
+    (FeatureId("diff.unstage-change"), diff::unstage_change),
+    (FeatureId("diff.unstage-file"), diff::unstage_file),
 ];
 
 /// The operation of an identifier, when it is built.

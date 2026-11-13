@@ -4,6 +4,7 @@
 //! changed files follow each other (`diff.navigate`).
 
 mod align;
+mod change;
 mod files;
 mod fold;
 mod scroll;
@@ -15,6 +16,7 @@ mod tests;
 pub use align::{
     AlignInput, AlignedDiff, AlignedRow, ChangeRows, LineChange, LineChangeKind, RowLine, WordMarks, align,
 };
+pub use change::{DiffChange, DiffSide, FileVersions};
 pub use files::{compare_paths, sorted_paths};
 pub use fold::{FOLD_KEEPS, FOLD_LEAST, ShownRow, shown_rows, unchanged_folds};
 pub use scroll::{ScrollInput, scroll_together};

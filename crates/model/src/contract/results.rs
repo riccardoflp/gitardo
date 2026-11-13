@@ -23,6 +23,15 @@ impl Answers {
         }
     }
 
+    /// The versions of a file read under a key.
+    #[must_use]
+    pub fn file_versions(&self, key: AnswerKey) -> Option<&crate::diff::FileVersions> {
+        match self.get(key)? {
+            Answer::FileVersions(versions) => Some(versions),
+            _ => None, // Any other kind of answer is no versions of a file.
+        }
+    }
+
     /// What was read of a stash under a key.
     #[must_use]
     pub fn stash(&self, key: AnswerKey) -> Option<&StashReading> {

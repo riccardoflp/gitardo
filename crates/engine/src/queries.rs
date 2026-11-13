@@ -1,6 +1,7 @@
 //! Answering the queries of features by reading git.
 
 use git::read::branch;
+use git::read::diff::{DiffRequest, FileVersion, VersionRequest, read_sides};
 use git::read::identity::{IdentityRequest, read_identity};
 use git::read::merge::{PredictedConflictsRequest, read_predicted_conflicts};
 use git::read::reflog::{ReflogRequest, read_entries};
@@ -58,6 +59,7 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
             })
         }),
         Query::Message { commit } => message(git, commit),
+        Query::FileVersions { path, commit } => file_versions(git, path, commit.as_ref()),
     }
 }
 
@@ -79,6 +81,29 @@ fn message(git: &Git, commit: &model::CommitId) -> Result<Answer, GitError> {
 /// `git log -1 --format=%B <commit> --`.
 fn message_arguments(commit: &model::CommitId) -> [&str; 5] {
     ["log", "-1", "--format=%B", commit.as_str(), "--"]
+}
+
+/// A file in a commit, in the index and on disk, each none where it is not.
+fn file_versions(git: &Git, path: &str, commit: Option<&model::CommitId>) -> Result<Answer, GitError> {
+    let version = |version: FileVersion| VersionRequest {
+        version,
+        path: path.to_owned(),
+    };
+    let committed = DiffRequest {
+        left: version(commit.cloned().map_or(FileVersion::Absent, FileVersion::Commit)),
+        right: version(FileVersion::Index),
+    };
+    let on_disk = DiffRequest {
+        left: version(FileVersion::Absent),
+        right: version(FileVersion::WorkingTree { unsaved: None }),
+    };
+    let first = read_sides(git, &committed)?;
+    let second = read_sides(git, &on_disk)?;
+    Ok(Answer::FileVersions(model::diff::FileVersions {
+        commit: first.left,
+        index: first.right,
+        working_tree: second.right,
+    }))
 }
 
 /// Whether the files of the working tree are as a commit has them.
@@ -167,5 +192,9 @@ pub(crate) fn describe(query: &Query) -> String {
         ),
         Query::Identity => String::from(r"git config -z --get-regexp ^user\.(name|email)$"),
         Query::Message { commit } => git::command_line(&message_arguments(commit)),
+        Query::FileVersions { path, commit } => match commit {
+            Some(commit) => format!("git show {commit}:{path}, git show :0:{path}, read {path}"),
+            None => format!("git show :0:{path}, read {path}"),
+        },
     }
 }

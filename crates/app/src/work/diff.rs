@@ -95,6 +95,7 @@ pub fn read_diff(folder: &Path, job: &DiffJob, cancel: &CancelToken) -> DiffRead
         folds,
         left,
         right,
+        changes,
     }))
 }
 

@@ -115,9 +115,13 @@ fn start(context: &Context) -> (String, String) {
     match &context.target {
         // A stash, a remote, files, a file and the list of the Changes page are no place to start a branch: it starts at
         // what is checked out.
-        Target::Head | Target::Stash(_) | Target::Remote(_) | Target::Files(_) | Target::File(_) | Target::Changes => {
-            (String::from("HEAD"), String::from("HEAD"))
-        }
+        Target::Head
+        | Target::Stash(_)
+        | Target::Remote(_)
+        | Target::Files(_)
+        | Target::File(_)
+        | Target::Changes
+        | Target::DiffChange(_) => (String::from("HEAD"), String::from("HEAD")),
         Target::Commit(commit) => (commit.to_string(), commit.short().to_owned()),
         Target::Branch(name) => (ref_argument(RefKind::Branch, name, &names), name.clone()),
         Target::RemoteBranch(name) => (ref_argument(RefKind::RemoteBranch, name, &names), name.clone()),

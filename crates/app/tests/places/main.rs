@@ -10,6 +10,7 @@ mod changes;
 mod commit_page;
 mod diff;
 mod diff_links;
+mod diff_staging;
 mod diff_views;
 mod filter;
 mod folds;

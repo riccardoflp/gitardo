@@ -3,7 +3,7 @@
 use std::ops::Range;
 
 use model::CommitId;
-use model::diff::AlignedDiff;
+use model::diff::{AlignedDiff, LineChange};
 
 use crate::text::diff as words;
 
@@ -159,6 +159,8 @@ pub struct DiffText {
     pub left_lines: Vec<Range<usize>>,
     /// Where each line of the right side is in its text.
     pub right_lines: Vec<Range<usize>>,
+    /// The changes, by the lines each takes on each side, in order.
+    pub changes: Vec<LineChange>,
     /// The rows.
     pub aligned: AlignedDiff,
     /// For each change, whether it is in the index already (`diff.staged-changes`); empty when that says nothing.

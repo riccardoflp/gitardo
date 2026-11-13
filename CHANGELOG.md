@@ -96,6 +96,11 @@
   on to the next changed file. Long runs of unchanged lines fold
   (`diff.collapseUnchanged`), the line between the two sides is dragged, and changes already staged are dimmed. A binary
   file or a diff of more than 5 seconds is refused, and a file of more than 100,000 lines asks first.
+- The gutter of the Diff page has buttons on each change: **Stage this change** and **Unstage this change** give the
+  patch of that change alone to `git apply --cached`, and **Revert this change** writes back what the left side has
+  there; a change of a file edited since the page was drawn is refused. The bar of a page of one file has **Stage
+  file**, **Unstage file** and **Discard changes**, which asks first; a page whose untracked file is discarded closes.
+  The page shows what the repository then has without being opened again.
 - The settings page (**Settings** in **…**, or `Ctrl+,`) lists every setting with its description, its value, where
   the value comes from and why a value was not taken. A switch or a choice changes it in the user's file or the
   repository's, keeping the rest of the file. **Theme…** in **…** picks the theme. **Show Command Log** and **Open

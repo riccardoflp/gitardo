@@ -1,7 +1,9 @@
 //! The differences between two texts: the lines that changed (`diff.line-diff`), used by every diff of the application,
-//! and the words that changed within a line paired with another (`diff.word-diff`).
+//! the words that changed within a line paired with another (`diff.word-diff`), and the patch of one change
+//! (`diff.change-patch`).
 
 mod myers;
+mod patch;
 mod words;
 
 #[cfg(test)]
@@ -10,6 +12,7 @@ mod tests;
 use std::collections::HashMap;
 use std::ops::Range;
 
+pub use patch::{ChangeLines, ChangePatchInput, PatchDirection, change_patch};
 pub use words::{WordDiffInput, word_diff};
 
 /// The lines of a text, each without its line break: `\r\n` is read as `\n`, so that a file checked out with other line

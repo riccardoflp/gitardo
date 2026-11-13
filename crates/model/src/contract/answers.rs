@@ -47,6 +47,8 @@ pub enum Answer {
     Stash(crate::stash::StashReading),
     /// Who commits are made as, and the `user.*` keys the repository sets for itself.
     Identity(IdentityKeys),
+    /// A file in a commit, in the index and on disk.
+    FileVersions(crate::diff::FileVersions),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).

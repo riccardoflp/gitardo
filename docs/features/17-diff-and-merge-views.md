@@ -335,7 +335,8 @@ Puts one change of the working tree into the index.
 - **Refuses**: when the file changed since the page was computed: *The file changed since the diff was shown. Try
   again.* When the file is not UTF-8 and the patch has a character above 127: *Staging a change needs UTF-8 text: stage
   the whole file.* When the patch starts at line 0 or 1 and the file starts with a byte order mark: *The first line of a
-  file with a byte order mark cannot be staged as a change: stage the whole file.*
+  file with a byte order mark cannot be staged as a change: stage the whole file.* When no difference between the index
+  and the working tree touches the change: *This change is staged already.*
 - **Settings**: `commandPreview` (with `all`, the plan is shown with the patch next to the command).
 - **Uses**: `diff.change-patch`, `diff.staged-changes`.
 
@@ -363,7 +364,8 @@ Takes one change back out of the index.
 - **Danger**: None.
 - **Undo**: Impossible with **Undo**; **Stage this change** takes it back.
 - **After**: the page is computed again.
-- **Refuses**: as `diff.stage-change`.
+- **Refuses**: as `diff.stage-change`; when no difference between the index and `HEAD` touches the change: *Nothing
+  of this change is staged.*
 
 Acceptance:
 
@@ -491,6 +493,7 @@ Takes the file back to its staged version, or deletes it when it is untracked.
 - **Kind**: Operation
 - **Function**: `features::diff::discard_file(context, answers) -> Outcome`
 - **Entry points**: the title button **Discard changes** of a Diff page.
+- **After**: the page is computed again; a page whose file is then on neither side closes.
 - **Offered when**: the right side is the working tree and the left is `HEAD` or the index.
 - **Plan**: `git restore -- <file>` for a tracked file; `git clean -f -- <file>` for an untracked one.
 - **Danger**: Destructive, because *Unstaged changes to tracked files will be lost.* or *One untracked file will be

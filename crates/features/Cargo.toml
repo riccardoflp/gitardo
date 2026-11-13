@@ -11,3 +11,4 @@ workspace = true
 
 [dependencies]
 model = { path = "../model" }
+text = { path = "../text" }
