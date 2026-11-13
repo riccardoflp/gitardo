@@ -121,10 +121,11 @@ enum RepositoryCommand {
     OpenRecent(usize),
 }
 
-/// The header, over the rectangle its caller clipped it to.
+/// The header, over the rectangle its caller clipped it to: the button of the branch rail, the repository, the branch
+/// checked out, the branch filter, the search box, **Sync** with its menu, and the buttons at its end. In a narrow window
+/// each keeps its icon and gives up its words. `activity.status-bar` fills it further.
 ///
-/// Feature cards that fill it further: `graph.toolbar` (the menu of Sync with **Fetch**, **Pull** and **Push**, and
-/// **Sync** itself, in M4), `activity.status-bar`.
+/// Feature: graph.toolbar
 pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut intents = Vec::new();
     let rect = ui.current_clip();
