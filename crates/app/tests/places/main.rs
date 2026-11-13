@@ -28,6 +28,7 @@ mod file_view_tools;
 mod files_page;
 mod filter;
 mod folds;
+mod github;
 mod go_to;
 mod going_to;
 mod histories;

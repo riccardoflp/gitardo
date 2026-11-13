@@ -215,6 +215,11 @@ impl ViewData {
                     can_stash: features::operation("stash.push").is_some() && !read.working_tree.is_clean(),
                 }),
                 has_submodules: read.is_some_and(|read| !read.submodules.is_empty()),
+                main_remote: if read.is_some() && state.github.repository.is_some() {
+                    views::graph::MainRemote::OnGitHub
+                } else {
+                    views::graph::MainRemote::Elsewhere
+                },
             },
             is_activity_open: state.is_activity_open,
             references: read.map(|_| ReferencesShown {

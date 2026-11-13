@@ -54,6 +54,33 @@ pub fn read_token(git: &Git, request: &TokenRequest) -> Result<Option<Token>, Gi
     Ok(parse_token(&output.stdout))
 }
 
+/// `git config --get http.proxy`: the proxy git goes through, which requests to GitHub go through too when
+/// `HTTPS_PROXY` is not set (`docs/05-platform.md`, Proxies).
+#[must_use]
+pub fn proxy_arguments() -> Vec<OsString> {
+    arguments(&["config", "--get", "http.proxy"])
+}
+
+/// The proxy `git config --get http.proxy` printed; none when it printed nothing.
+#[must_use]
+pub fn parse_proxy(output: &[u8]) -> Option<String> {
+    let text = String::from_utf8_lossy(output);
+    Some(text.trim().to_owned()).filter(|proxy| !proxy.is_empty())
+}
+
+/// The proxy of git's `http.proxy`; none when it is not set, which git says with the exit code 1.
+///
+/// # Errors
+///
+/// When git cannot be started, or is cancelled.
+pub fn read_http_proxy(git: &Git) -> Result<Option<String>, GitError> {
+    let output = git.read_output(&proxy_arguments())?;
+    if !output.is_success() {
+        return Ok(None);
+    }
+    Ok(parse_proxy(&output.stdout))
+}
+
 /// `git credential fill`.
 #[must_use]
 pub fn token_arguments() -> Vec<OsString> {

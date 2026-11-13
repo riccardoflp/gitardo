@@ -329,3 +329,8 @@
   **drafting commit message** and the sparkle becomes a button that stops it, leaving the box as it was.
 - A box that asks for a token hides what is typed in it: a dot stands for each character, and nothing is copied from
   it.
+- **Load pull requests from GitHub** in **…**, when the main remote is on GitHub, and **Sign in to GitHub** in Quick
+  search: the token is the one kept, or the one git's credential helper knows for `github.com`, or one asked for, and
+  it is kept in the credential store of the system. From then on the open pull requests are read again after a fetch,
+  a pull or a push, and after a read of the repository when the last request is more than two minutes old, also after
+  a restart. A token GitHub refuses is taken out of the store, so that the next load asks for one again.

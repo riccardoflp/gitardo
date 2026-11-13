@@ -460,8 +460,8 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | --- | --- | --- | --- |
 | [`github.detect-remote`](15-github.md#githubdetect-remote--the-repository-on-github) | The repository on GitHub | Derivation | Built |
 | [`github.token`](15-github.md#githubtoken--read-the-github-token) | Read the GitHub token | Read | Built |
-| [`github.load-pull-requests`](15-github.md#githubload-pull-requests--load-pull-requests-from-github) | Load pull requests from GitHub | Operation | Specified |
-| [`github.read-pull-requests`](15-github.md#githubread-pull-requests--read-the-open-pull-requests) | Read the open pull requests | Read | Specified |
+| [`github.load-pull-requests`](15-github.md#githubload-pull-requests--load-pull-requests-from-github) | Load pull requests from GitHub | Operation | Built |
+| [`github.read-pull-requests`](15-github.md#githubread-pull-requests--read-the-open-pull-requests) | Read the open pull requests | Read | Built |
 | [`github.open-pull-request`](15-github.md#githubopen-pull-request--open-or-create-the-pull-request-of-a-branch) | Open or create the pull request of a branch | Derivation | Built |
 | [`github.offer-after-push`](15-github.md#githuboffer-after-push--offer-to-create-a-pull-request-after-the-first-push) | Offer to create a pull request after the first push | Derivation | Built |
 

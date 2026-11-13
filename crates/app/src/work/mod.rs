@@ -6,6 +6,7 @@ pub mod blame;
 pub mod compare;
 pub mod diff;
 pub mod file_view;
+pub mod github;
 pub mod jobs;
 pub mod merge_view;
 mod operations;
@@ -194,7 +195,7 @@ fn folder_name(folder: &Path) -> String {
 }
 
 /// The time now, in seconds since 1970.
-fn now() -> Timestamp {
+pub(crate) fn now() -> Timestamp {
     let seconds = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |since| i64::try_from(since.as_secs()).unwrap_or(i64::MAX));

@@ -14,6 +14,7 @@ mod draft;
 pub mod feature;
 pub mod file_page;
 pub mod files_page;
+pub mod github;
 mod inspector;
 mod log_lines;
 mod merge_page;
@@ -134,6 +135,8 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
             Vec::new()
         }
         message @ (Message::AiPiece { .. } | Message::AiAnswered { .. }) => review::ai::reduce(state, message),
+        Message::GitHub(message) => github::reduce(state, message),
+        Message::UrlNotOpened(said) => github::not_opened(state, said),
         Message::CloseRequested { window_size } => {
             let mut effects = workspace::cancel_all(state);
             state.persisted.window_size = window_size.or(state.persisted.window_size);
@@ -160,6 +163,7 @@ fn repository_read(
         let mut effects = workspace::repository_read(state, job, folder, (result, read_at));
         effects.extend(feature::after_read(state));
         effects.extend(conflicts::after_read(state));
+        effects.extend(github::after_read(state, read_at));
         effects
     } else {
         let _thrown_away = state.jobs.remove(&job);
@@ -316,10 +320,8 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
             reduce_view_intent(state, &intent);
             Vec::new()
         }
-        Intent::DismissNotice => {
-            state.notice = None;
-            Vec::new()
-        }
+        Intent::OpenUrl(url) => vec![Effect::OpenUrl(url)],
+        Intent::DismissNotice => dismiss_notice(state),
         Intent::Rail(intent) => rail::reduce_rail(state, intent),
         Intent::Filter(intent) => rail::reduce_filter(state, intent),
         Intent::Graph(intent) => reduce_graph(state, intent),
@@ -336,6 +338,12 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Rebase(intent) => rebase::reduce(state, intent),
         Intent::Conflicts(intent) => conflicts::reduce(state, intent),
     }
+}
+
+/// Puts the notice shown away.
+fn dismiss_notice(state: &mut State) -> Vec<Effect> {
+    state.notice = None;
+    Vec::new()
 }
 
 /// An intent of the timeline; selecting a row there closes the comparison shown in place in the inspector.

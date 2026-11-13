@@ -256,6 +256,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::AddSubmodule => "Add Submodule\u{2026}",
         QuickCommand::ApplyPatch => "Apply Patch\u{2026}",
         QuickCommand::SwitchIdentity => "Switch identity",
+        QuickCommand::SignInToGitHub => super::github::SIGN_IN,
         QuickCommand::ShowCommandLog => "Show Command Log",
         QuickCommand::UndoLastOperation => "Undo Last Operation",
         QuickCommand::ReviewConflicts => crate::text::review::COMMAND,

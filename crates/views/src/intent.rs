@@ -64,6 +64,8 @@ pub enum Intent {
     Filter(FilterIntent),
     /// Put the notice shown away.
     DismissNotice,
+    /// Open an address in the browser of the system: a pull request on GitHub (`github.open-pull-request`).
+    OpenUrl(String),
     /// Something asked of the timeline.
     Graph(GraphIntent),
     /// Something asked of the search, of **Go to commit…** or of Quick search.

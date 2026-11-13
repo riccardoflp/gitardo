@@ -43,7 +43,7 @@ pub use load_more::{AHEAD, LoadMoreState, load_more_view, wants_more};
 pub use marks::{ScrollMarks, mark_positions, scroll_marks_view};
 #[cfg(test)]
 pub(crate) use more_menu::kind_entries;
-pub use more_menu::{MoreMenuState, OperationsMenu, TimelineMenu, more_menu_view};
+pub use more_menu::{MainRemote, MoreMenuState, OperationsMenu, TimelineMenu, more_menu_view};
 pub use panes::{PaneLayout, PaneRects, PaneSizes, RAIL_START, pane_rects, resize_panes_view};
 pub(crate) use row::draw_labels;
 pub use stashes::{StashEntry, StashRow, stash_intent, stash_menu, stashes_view};

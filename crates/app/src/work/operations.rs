@@ -9,11 +9,12 @@ use std::thread::{self, JoinHandle};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use engine::{Activities, Asker, Clock, CommandLog, Engine, EngineError, Finished, LogLevel};
-use git::{CancelToken, Git};
+use git::CancelToken;
 use model::Timestamp;
 use model::contract::{Answer, Answers, Context, FeatureId, FollowUp, Plan, Question, Text, Undo};
 
 use super::Deliver;
+use super::github::GitHubAccess;
 use crate::store::Message;
 use crate::store::feature::{Ended, Reply};
 
@@ -48,6 +49,13 @@ impl Operations {
     /// to `deliver`.
     #[must_use]
     pub fn new(activities: &Activities, deliver: &Deliver) -> Operations {
+        Operations::with_access(activities, deliver, GitHubAccess::system())
+    }
+
+    /// The thread, with the credential store the GitHub token is kept in and the variables git runs with: a test's,
+    /// which keeps the token in memory and git away from the user's configuration.
+    #[must_use]
+    pub fn with_access(activities: &Activities, deliver: &Deliver, access: GitHubAccess) -> Operations {
         let (requests, requested) = mpsc::channel::<Request>();
         let (replies, answers) = mpsc::channel::<Reply>();
         let cancel = CancelToken::new();
@@ -56,7 +64,7 @@ impl Operations {
         let token = cancel.clone();
         let thread = thread::Builder::new()
             .name(String::from("operations"))
-            .spawn(move || serve(&requested, &answers, (&activities, &deliver, &token)))
+            .spawn(move || serve(&requested, &answers, (&activities, &deliver, &token), &access))
             .ok();
         Operations {
             requests: Some(requests),
@@ -116,6 +124,7 @@ fn serve(
     requests: &Receiver<Request>,
     replies: &Receiver<Reply>,
     (activities, deliver, cancel): (&Activities, &Deliver, &CancelToken),
+    access: &GitHubAccess,
 ) {
     let mut engines: HashMap<PathBuf, Engine> = HashMap::new();
     while let Ok(request) = requests.recv() {
@@ -126,10 +135,11 @@ fn serve(
         while replies.try_recv().is_ok() {}
         let engine = engines.entry(request.folder.clone()).or_insert_with(|| {
             let mut engine = Engine::new(
-                Git::new(&request.folder),
+                access.git(&request.folder),
                 CommandLog::new(request.level),
                 Box::new(SystemClock),
             );
+            engine.keep_secrets_in((access.secrets)());
             engine.share_activities(activities.clone());
             engine.find_operations_with(features::operation);
             engine

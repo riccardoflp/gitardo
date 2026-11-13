@@ -197,6 +197,10 @@ pub enum Message {
         /// What it came to.
         result: crate::work::ai::AiResult,
     },
+    /// A job of the pull requests of GitHub is done (`github.read-pull-requests`).
+    GitHub(super::github::GitHubMessage),
+    /// The browser of the system could not open an address: what the system said.
+    UrlNotOpened(String),
     /// The person asked to close the window, whose inside had this size in logical pixels.
     CloseRequested {
         /// The size of the inside of the window.
@@ -449,6 +453,11 @@ pub enum Effect {
         /// Whether it chooses where to save, rather than a file to open.
         is_saving: bool,
     },
+    /// Looks for the repository on GitHub, or reads its pull requests, on a thread of its own
+    /// (`github.read-pull-requests`).
+    GitHub(super::github::GitHubJob),
+    /// Opens an address in the browser of the system: a pull request on GitHub (`github.open-pull-request`).
+    OpenUrl(String),
     /// Closes the window and ends the program.
     Quit,
 }

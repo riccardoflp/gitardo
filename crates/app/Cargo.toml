@@ -33,7 +33,7 @@ ui = { path = "../ui" }
 views = { path = "../views" }
 
 [dev-dependencies]
-# The server of the tests on 127.0.0.1, which answers as an AI provider would.
+# The server of the tests on 127.0.0.1, which answers as an AI provider or api.github.com would.
 http = { path = "../http", features = ["test-server"] }
 testkit = { path = "../testkit" }
 

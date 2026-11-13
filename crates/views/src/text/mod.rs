@@ -15,6 +15,7 @@ pub mod feature;
 pub mod file_view;
 pub mod files;
 pub mod filter;
+pub mod github;
 pub mod header;
 pub mod history;
 pub mod merge_view;

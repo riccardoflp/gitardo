@@ -1561,3 +1561,16 @@ From the cards left over up to M8 (each built with the reading given, until the 
   (`InputBox::hidden`), drawing a dot for each character, telling the screen reader the dots, and copying nothing
   from it; a question of kind `QuestionKind::Secret` asks for such a box. Cutting from it still takes the text out of
   the box, without putting it on the clipboard. Is this right?
+- **Q-Y2** — "Every 120 s while a token is kept" is read as the card says it: after each read of the repository shown,
+  when the last request is more than 120 seconds old, with no timer of its own. A window whose repository is not read
+  for a while does not ask GitHub meanwhile. Is that enough, or should the pull requests have a wake of their own?
+- **Q-Y3** — The window looks for the repository on GitHub with a job of its own (`git remote`, `git remote get-url`)
+  after a read whose remotes have other names, and after an operation that says `FollowUp::ReadPullRequests`, since
+  `RepositoryState` keeps only the names of the remotes. Should the state read keep their URLs instead?
+- **Q-Y4** — The reads of the pull requests run on a thread of the window (`app::work::github`), not on the workers
+  nor through the engine: they read the token from the credential store themselves, never ask git's credential helper,
+  and take the token out of the store when GitHub answers 401. Is a thread of `app` changing the credential store
+  right, or should that go through the engine?
+- **Q-Y5** — A 401 to a read made on its own is kept quiet, as the card says of every error of such a read, with a
+  warning line in the Command log; the token is still taken out of the store, and the badges go away. Should the
+  window say it, as it does after **Load pull requests from GitHub**?

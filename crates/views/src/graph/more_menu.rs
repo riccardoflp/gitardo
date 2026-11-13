@@ -29,6 +29,19 @@ pub struct MoreMenuState {
     pub operations: Option<OperationsMenu>,
     /// Whether the repository has submodules: **Add submodule…** is then in the Submodules list, not here.
     pub has_submodules: bool,
+    /// Where the main remote is: **Load pull requests from GitHub** is offered only on GitHub
+    /// (`github.load-pull-requests`).
+    pub main_remote: MainRemote,
+}
+
+/// Where the main remote of the repository shown is.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum MainRemote {
+    /// On another host, or there is none, or it is not known yet.
+    #[default]
+    Elsewhere,
+    /// On github.com.
+    OnGitHub,
 }
 
 /// What **Branch**, **Stash** and **Undo** may do.
@@ -260,7 +273,8 @@ fn ways_entries(operations: OperationsMenu, has_submodules: bool) -> Vec<MenuEnt
 }
 
 /// The entries of **…**, in the groups of the card: **Refresh**, **Branch**, **Stash** and **Undo**; the entries of the
-/// timeline; the ways to the pages and **Select repository…**; **Switch identity…**; then **Settings** and **Theme…**.
+/// timeline; the ways to the pages and **Select repository…**; **Switch identity…**; **Load pull requests from
+/// GitHub** when the main remote is on GitHub; then **Settings** and **Theme…**.
 fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
     let refresh = MenuItem::new(words::REFRESH, MoreCommand::Refresh).with_icon(Icon::Refresh);
     let mut entries = vec![MenuEntry::Item(if state.can_refresh {
@@ -293,6 +307,14 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
             "identity.switch",
             operations,
         ));
+        if state.main_remote == MainRemote::OnGitHub {
+            entries.push(MenuEntry::Separator);
+            entries.push(operation_item(
+                crate::text::github::LOAD_PULL_REQUESTS,
+                "github.load-pull-requests",
+                operations,
+            ));
+        }
     }
     entries.push(MenuEntry::Separator);
     entries.push(MenuEntry::Item(
@@ -311,7 +333,7 @@ mod tests {
     use model::filter::Kinds;
     use ui::MenuEntry;
 
-    use super::{MoreMenuState, OperationsMenu, TimelineMenu, menu_entries};
+    use super::{MainRemote, MoreMenuState, OperationsMenu, TimelineMenu, menu_entries};
     use crate::graph::intent::Switches;
 
     /// The words of the menu, with `-` for a separator.
@@ -343,6 +365,7 @@ mod tests {
                 can_stash: true,
             }),
             has_submodules: false,
+            main_remote: MainRemote::OnGitHub,
         };
         assert_eq!(
             words(&state),
@@ -377,6 +400,8 @@ mod tests {
                 "Select repository\u{2026}",
                 "-",
                 "Switch identity\u{2026}",
+                "-",
+                "Load pull requests from GitHub",
                 "-",
                 "Settings",
                 "Theme\u{2026}",

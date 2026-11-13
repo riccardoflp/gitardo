@@ -294,6 +294,7 @@ fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<FeatureId>)
                 ..Said::new(said.unwrap_or_else(|| words::done(title.as_str())), false)
             });
             let mut effects = reads::asked(state, ReadCause::OperationEnded);
+            effects.extend(super::github::after_operation(state, &after));
             effects.extend(carry_out(state, after));
             state.compares.changing = None;
             effects

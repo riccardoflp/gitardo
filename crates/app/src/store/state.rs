@@ -89,6 +89,8 @@ pub struct State {
     pub blames: super::blame::Blames,
     /// Another worktree shown in this window, and what the operations of worktrees are told of the window.
     pub worktrees: super::worktrees::Worktrees,
+    /// The pull requests of GitHub of the repository shown, and when they are read again.
+    pub github: super::github::GitHub,
 }
 
 /// The folders of a window and the repositories found in them.

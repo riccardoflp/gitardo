@@ -3,6 +3,7 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 #![allow(clippy::unwrap_used, clippy::panic, reason = "a test that cannot go on fails")]
 
+mod github;
 mod open_folder;
 mod open_recent;
 mod pages;

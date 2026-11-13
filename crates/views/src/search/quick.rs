@@ -101,6 +101,8 @@ pub enum QuickCommand {
     ApplyPatch,
     /// **Switch identity** (`identity.switch`).
     SwitchIdentity,
+    /// **Sign in to GitHub** (`github.load-pull-requests`).
+    SignInToGitHub,
     /// **Undo Last Operation** (`undo.last`).
     UndoLastOperation,
     /// **Review the resolutions of the conflicts** (`review.page`).
@@ -168,6 +170,7 @@ impl QuickCommand {
         QuickCommand::AddSubmodule,
         QuickCommand::ApplyPatch,
         QuickCommand::SwitchIdentity,
+        QuickCommand::SignInToGitHub,
         QuickCommand::UndoLastOperation,
         QuickCommand::ReviewConflicts,
         QuickCommand::ChooseAiModel,
@@ -218,6 +221,7 @@ impl QuickCommand {
             QuickCommand::BrowseReflog => Some("reflog.browse"),
             QuickCommand::ApplyPatch => Some("patch.apply"),
             QuickCommand::SwitchIdentity => Some("identity.switch"),
+            QuickCommand::SignInToGitHub => Some("github.load-pull-requests"),
             QuickCommand::UndoLastOperation => Some("undo.last"),
             QuickCommand::SwitchWorktree => Some("worktree.switch"),
             QuickCommand::CreateWorktree => Some("worktree.create"),

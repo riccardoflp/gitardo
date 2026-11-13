@@ -28,6 +28,7 @@ mod input;
 mod links;
 mod mailbox;
 mod present;
+mod shell;
 mod system;
 mod theme;
 mod timers;
@@ -56,6 +57,7 @@ pub use input::{
 pub use links::link_folder;
 pub use mailbox::{InputSender, Waker};
 pub use present::Frame;
+pub use shell::open_url;
 pub use theme::{Appearance, SystemTheme};
 pub use watch::{WatchDeliver, WatchEvent, Watcher};
 pub use window::{TextInputArea, Visibility, Window, WindowOptions};

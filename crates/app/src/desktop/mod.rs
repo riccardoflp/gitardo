@@ -19,6 +19,7 @@ use crate::persisted::{FILE_NAME, Persisted};
 use crate::settings::{self, SettingsFiles, keys, read_files, user_settings_file};
 use crate::store::{Effect, Message, State, ViewData, reduce};
 use crate::window::{Step, Surface, SurfaceOptions};
+use crate::work::github::{GitHubAccess, GitHubReader};
 use crate::work::{Deliver, Operations, PersistedWriter, SettingWriter, SettingsWatcher, Workers};
 
 /// The timer of the frames of the window.
@@ -99,6 +100,8 @@ struct DesktopWindow {
     operations: Operations,
     /// The questions to the AI provider (`ai.resolve-conflicts`, `commit.draft-message`).
     asking: crate::work::ai::Asking,
+    /// What reads the pull requests of GitHub.
+    github: GitHubReader,
     /// The watcher of the settings files.
     watcher: SettingsWatcher,
     /// The writer of what is kept between runs; none when there is no configuration folder.
@@ -147,6 +150,7 @@ impl DesktopWindow {
             workers: Workers::new(WORKERS, &activities, deliver),
             operations: Operations::new(&activities, deliver),
             asking: crate::work::ai::Asking::new(deliver, &activities, Box::new(engine::SystemSecrets)),
+            github: GitHubReader::new(GitHubAccess::system(), &activities, deliver),
             watcher: SettingsWatcher::new(Arc::clone(deliver)),
             writer: options
                 .configuration
@@ -272,6 +276,13 @@ impl DesktopWindow {
                 question,
                 is_saving,
             } => return Ok(Some(self.choose_file(title, question, is_saving))),
+            Effect::GitHub(job) => self.github.start(job),
+            Effect::OpenUrl(url) => {
+                if let Err(error) = platform::open_url(&url) {
+                    let said = views::text::github::could_not_open(&error.to_string());
+                    return Ok(Some(Followed::Message(Box::new(Message::UrlNotOpened(said)))));
+                }
+            }
             Effect::Quit => return Ok(Some(Followed::Quit)),
         }
         Ok(None)

@@ -245,13 +245,19 @@ pub struct OperationsDriver {
 impl OperationsDriver {
     /// A thread of the operations of its own.
     pub fn new() -> OperationsDriver {
+        OperationsDriver::with_access(app::work::github::GitHubAccess::system())
+    }
+
+    /// A thread of the operations of its own, keeping the GitHub token where the access says and running git with its
+    /// variables.
+    pub fn with_access(access: app::work::github::GitHubAccess) -> OperationsDriver {
         let (sender, said) = std::sync::mpsc::channel();
         let sender = std::sync::Mutex::new(sender);
         let deliver: app::work::Deliver = std::sync::Arc::new(move |message| {
             let _sent = sender.lock().unwrap().send(message);
         });
         OperationsDriver {
-            operations: app::work::Operations::new(&engine::Activities::new(), &deliver),
+            operations: app::work::Operations::with_access(&engine::Activities::new(), &deliver, access),
             said,
         }
     }
