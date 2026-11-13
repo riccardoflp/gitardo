@@ -10,6 +10,7 @@ mod changes;
 mod checkout;
 mod commit;
 mod commits;
+mod compare;
 mod merge;
 mod message;
 mod patch;

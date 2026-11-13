@@ -310,7 +310,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`compare.resolve-revision`](10-compare.md#compareresolve-revision--which-commit-a-revision-is) | Which commit a revision is | Read | Built |
 | [`compare.side-choices`](10-compare.md#compareside-choices--what-a-side-can-be-chosen-from) | What a side can be chosen from | Derivation | Built |
 | [`compare.recent`](10-compare.md#comparerecent--the-comparisons-opened-before) | The comparisons opened before | Derivation | Built |
-| [`compare.choose`](10-compare.md#comparechoose--compare-branches-tags-or-commits) | Compare branches, tags or commits | Operation | Specified |
+| [`compare.choose`](10-compare.md#comparechoose--compare-branches-tags-or-commits) | Compare branches, tags or commits | Operation | Built |
 | [`compare.follow-sides`](10-compare.md#comparefollow-sides--followed-sides-and-fixed-ones) | Followed sides and fixed ones | Derivation | Built |
 | [`compare.initial-mode`](10-compare.md#compareinitial-mode--how-two-sides-are-compared-at-first) | How two sides are compared at first | Derivation | Built |
 | [`compare.read-sides`](10-compare.md#compareread-sides--read-a-comparison) | Read a comparison | Read | Built |
@@ -326,7 +326,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`compare.copy-patch`](10-compare.md#comparecopy-patch--copy-a-comparison-as-a-patch) | Copy a comparison as a patch | Operation | Specified |
 | [`compare.open-on-github`](10-compare.md#compareopen-on-github--open-the-comparison-on-github) | Open the comparison on GitHub | Operation | Specified |
 | [`compare.path-with`](10-compare.md#comparepath-with--compare-a-file-or-a-folder-with-a-branch-tag-or-commit) | Compare a file or a folder with a branch, tag or commit | Operation | Specified |
-| [`compare.with`](10-compare.md#comparewith--compare-with) | Compare with… | Operation | Specified |
+| [`compare.with`](10-compare.md#comparewith--compare-with) | Compare with… | Operation | Built |
 | [`compare.with-current`](10-compare.md#comparewith-current--compare-with-the-current-branch) | Compare with the current branch | Operation | Specified |
 | [`compare.selected-before`](10-compare.md#compareselected-before--compare-two-commits-of-the-timeline) | Compare two commits of the timeline | Operation | Specified |
 | [`compare.read-files`](10-compare.md#compareread-files--read-the-files-that-differ-between-two-commits) | Read the files that differ between two commits | Read | Built |

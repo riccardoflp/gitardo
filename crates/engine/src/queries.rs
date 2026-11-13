@@ -28,6 +28,13 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
             };
             read_entries(git, &request).map(Answer::Reflog)
         }
+        Query::ReflogPositions { reference, count } => {
+            let request = ReflogRequest {
+                reference: reference.clone(),
+                count: *count,
+            };
+            git::read::reflog::read(git, &request).map(Answer::Positions)
+        }
         Query::Revision { revision } => {
             let request = RevisionRequest {
                 revision: revision.clone(),
@@ -202,6 +209,13 @@ fn stash(git: &Git, index: usize) -> Result<Answer, GitError> {
 pub(crate) fn describe(query: &Query) -> String {
     match query {
         Query::Reflog { reference, count } => format!("git log --walk-reflogs --max-count={count} {reference}"),
+        Query::ReflogPositions { reference, count } => {
+            let request = ReflogRequest {
+                reference: reference.clone(),
+                count: *count,
+            };
+            git::command_line(&git::read::reflog::positions_arguments(&request))
+        }
         Query::FilesMatch { commit } => format!("git diff --quiet {commit} --"),
         Query::Revision { revision } => format!("git rev-parse --verify --quiet {revision}^{{commit}}"),
         Query::Journal => String::from("the journal of Undo"),

@@ -12,6 +12,7 @@ pub mod cherry_pick;
 pub mod commit;
 pub mod commit_page;
 pub mod commits;
+pub mod compare;
 pub mod diff;
 pub mod fixup;
 mod history;
@@ -20,6 +21,7 @@ pub mod merge;
 pub mod message;
 pub mod patch;
 pub mod rebase;
+pub mod reflog;
 pub mod remote;
 pub mod reset;
 pub mod revert;
@@ -38,7 +40,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 81] = [
+pub const OPERATIONS: [(FeatureId, Operation); 89] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -129,6 +131,16 @@ pub const OPERATIONS: [(FeatureId, Operation); 81] = [
     (FeatureId("patch.apply"), patch::apply),
     (FeatureId("patch.copy"), patch::copy),
     (FeatureId("patch.save"), patch::save),
+    // Comparisons.
+    (FeatureId("compare.change-side"), compare::change_side),
+    (FeatureId("compare.choose"), compare::choose),
+    (FeatureId("compare.copy-patch"), compare::copy_patch),
+    (FeatureId("compare.selected-before"), compare::selected_before),
+    (FeatureId("compare.take-file"), compare::take_file),
+    (FeatureId("compare.with"), compare::with),
+    (FeatureId("compare.with-current"), compare::with_current),
+    // The reflog.
+    (FeatureId("reflog.browse"), reflog::browse),
 ];
 
 /// The operation of an identifier, when it is built.

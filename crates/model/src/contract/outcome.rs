@@ -36,6 +36,14 @@ pub enum Query {
         /// How many entries, at most.
         count: usize,
     },
+    /// The last positions of a reference in its reflog, newest first, with their selectors and times
+    /// (`reflog.read`). The answer is [`super::Answer::Positions`].
+    ReflogPositions {
+        /// The reference, in full, or `HEAD`.
+        reference: String,
+        /// How many positions, at most.
+        count: usize,
+    },
     /// Whether the files of the working tree are as a commit has them (`git diff --quiet <commit>`). The answer is
     /// [`super::Answer::Flag`].
     FilesMatch {

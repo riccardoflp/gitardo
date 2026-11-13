@@ -24,6 +24,8 @@ pub enum Answer {
     Confirmed,
     /// The entries of a reflog, newest first.
     Reflog(Vec<ReflogEntry>),
+    /// The positions of a reference in its reflog, newest first, with their selectors and times.
+    Positions(Vec<crate::reflog::ReflogPosition>),
     /// The answer of a query that says yes or no.
     Flag(bool),
     /// The commit a name stands for, or none when git knows no commit by it.

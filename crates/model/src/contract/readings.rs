@@ -52,6 +52,15 @@ impl Answers {
         }
     }
 
+    /// The positions of a reference in its reflog, read under a key.
+    #[must_use]
+    pub fn positions(&self, key: AnswerKey) -> Option<&[crate::reflog::ReflogPosition]> {
+        match self.get(key)? {
+            Answer::Positions(positions) => Some(positions),
+            _ => None, // Any other kind of answer is no list of positions.
+        }
+    }
+
     /// The comparisons opened before, given under a key.
     #[must_use]
     pub fn recent_comparisons(&self, key: AnswerKey) -> Option<&[RecentComparison]> {

@@ -178,3 +178,9 @@
   **…** and in Quick search, from a file or from the clipboard, as commits with `git am --3way` or to the working tree
   only with `git apply --3way`, checked first: a patch that does not apply says why and changes nothing, one that will
   stop on conflicts names the files and asks first, and Undo takes back all the commits of a patch at once.
+- Comparisons and the reflog from `gitardo-cli`: choose two branches, tags, commits or the working tree to compare,
+  or a comparison opened before; compare a commit, branch or tag with another or with what is checked out, and two
+  commits with each other. **Compare with…** and **Compare with `<current branch>`** are in the menus of commits,
+  branches, remote branches and tags, and **Compare with `<short hash>`, selected before** in the menu of a commit
+  while another is selected. **Reflog** in **…** and **Browse reflog** in Quick search list where `HEAD` has been, to
+  show an entry in the timeline, make a branch there or check it out.
