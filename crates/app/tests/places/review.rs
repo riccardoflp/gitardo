@@ -1,7 +1,6 @@
 //! The review of the resolutions of the conflicts: the page, opened from Quick search and following the files, the list
 //! of the files and its filters, and accepting one conflict, a file or all of them.
 
-use app::settings::ConflictSettings;
 use app::store::{Message, State};
 use platform::accesskit::{Role, TreeUpdate};
 use render::ThemeName;
@@ -69,10 +68,7 @@ pub fn file<'a>(path: &'a str, (base, main, feature): (&'a str, &'a str, &'a str
 /// A window showing the repository, with the rules switched on, and the review page opened from Quick search.
 pub fn reviewed(repository: &Repository) -> State {
     let mut state = showing(repository.path().to_path_buf());
-    state.settings.conflicts = ConflictSettings {
-        auto_resolve: true,
-        ai: false,
-    };
+    state.settings.features.conflicts_auto_resolve = true;
     open(&mut state);
     state
 }

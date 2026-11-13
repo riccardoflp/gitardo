@@ -13,10 +13,6 @@ pub const FONT_CODE: &str = "font.code";
 pub const FONT_SIZE_KEY: &str = "font.size";
 /// `readOnStartup`.
 pub const READ_ON_STARTUP: &str = "readOnStartup";
-/// `conflicts.autoResolve`.
-pub const AUTO_RESOLVE: &str = "conflicts.autoResolve";
-/// `conflicts.ai`.
-pub const CONFLICTS_AI: &str = "conflicts.ai";
 /// `graph.pageSize`.
 pub const PAGE_SIZE: &str = "graph.pageSize";
 /// `graph.showStashes`.

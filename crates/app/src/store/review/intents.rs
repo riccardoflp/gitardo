@@ -146,7 +146,10 @@ fn resolutions(state: &State) -> Option<Resolutions> {
         .iter()
         .map(|(_, known, kind)| (known.clone(), *kind))
         .collect();
-    let settings = (state.settings.conflicts.auto_resolve, state.settings.conflicts.ai);
+    let settings = (
+        state.settings.features.conflicts_auto_resolve,
+        state.settings.features.conflicts_ai,
+    );
     let files = readout
         .read
         .files

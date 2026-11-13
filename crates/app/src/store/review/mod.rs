@@ -93,13 +93,18 @@ fn title_of(folder: &Path) -> String {
 /// Opens the review page of the repository shown, of some files or of all, or shows it with those files; refuses
 /// while neither `conflicts.autoResolve` nor `conflicts.ai` is on.
 pub fn open(state: &mut State, only: Option<Vec<String>>) -> Vec<Effect> {
-    if !state.settings.conflicts.auto_resolve && !state.settings.conflicts.ai {
+    if !state.settings.features.conflicts_auto_resolve && !state.settings.features.conflicts_ai {
         state.operations.said = Some(Said {
             text: String::from(views::text::review::SWITCHED_OFF),
             is_error: true,
             can_undo: false,
             offers_stashes: false,
             found: None,
+            offer: Some((
+                model::contract::FeatureId("settings.edit"),
+                String::from(views::text::review::OPEN_SETTINGS),
+            )),
+            stopped: None,
         });
         return Vec::new();
     }
@@ -187,7 +192,10 @@ pub fn review_read(state: &mut State, job: JobId, result: Result<Box<ReviewReado
 
 /// Derives again what each card shows.
 fn derive(state: &mut State) {
-    let settings = (state.settings.conflicts.auto_resolve, state.settings.conflicts.ai);
+    let settings = (
+        state.settings.features.conflicts_auto_resolve,
+        state.settings.features.conflicts_ai,
+    );
     let choices = state.reviews.choices.clone();
     if let Some(page) = state.reviews.page.as_mut() {
         let folder = page.folder.clone();
@@ -261,8 +269,8 @@ pub fn page_state(state: &State) -> Option<ReviewState<'_>> {
             .unwrap_or((views::review::EVEN, views::review::EVEN)),
         report: page.report.as_ref(),
         proposers: model::review::Proposers {
-            rules: state.settings.conflicts.auto_resolve,
-            ai: state.settings.conflicts.ai,
+            rules: state.settings.features.conflicts_auto_resolve,
+            ai: state.settings.features.conflicts_ai,
         },
         is_running: state.is_operation_running,
         can_continue: features::operation(intents::CONTINUE).is_some(),

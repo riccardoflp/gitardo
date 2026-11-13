@@ -1150,51 +1150,50 @@ says otherwise):
   card of `merge-view.take-side` says; `Ctrl+Z` and `Ctrl+Y` drop a choice that waits. When the file on disk changes
   while the page is open and has nothing unsaved, the page takes the file as it is now, and `Ctrl+Z` brings back what it
   held before. Are these right?
-- **Q-L1** — `review.side-diff` stays in `model` as its card says, taking the line diff and the word diff of `text` as
+- **Q202** — `review.side-diff` stays in `model` as its card says, taking the line diff and the word diff of `text` as
   functions (as `model::diff::align` takes the word marks), since `model` cannot use `text`; the worker computes the
   two side diffs of every conflict when it reads the review, so a card shows them at once. Is this right?
-- **Q-L2** — `review.write` reads the files again through a new query, `Query::FileTexts` (answered with
+- **Q203** — `review.write` reads the files again through a new query, `Query::FileTexts` (answered with
   `Answer::Files`), since an answer key is fixed and the files are many. Its detail is in `Step::Warn` lines before the
   `write` steps, since a plan has no detail of its own, so the log has it too. Its target is a new
   `Target::Resolutions`, with every file of the page, its text as read and the proposals accepted in it. Its undo is
   the journal's `ConflictsResolved`, which `undo.last` runs as `git checkout --merge -- <file>…`, the command
   `conflicts.restore` runs. Are these right?
-- **Q-L3** — The names of the two sides are read by a new `git::read::review::read_side_names` (the operation, the
+- **Q204** — The names of the two sides are read by a new `git::read::review::read_side_names` (the operation, the
   branch checked out, `HEAD`, the commit brought in, and in a rebase `onto` and `head-name`, in `git am`
   `final-commit`). The slice that builds the banner may read the same; the two should become one when merged. Is this
   right?
-- **Q-L4** — The review page opens only from **Review the resolutions of the conflicts** in Quick search: the
+- **Q205** — The review page opens only from **Review the resolutions of the conflicts** in Quick search: the
   buttons of `conflicts.banner`, the wand and the sparkle of the Changes page and **Review** in the question of
   `conflicts.resolve-automatically` belong to cards not built in this slice, and can open it with
   `store::review::open(state, Some(files))`. With both settings off, the refusal is said where an operation's
-  message is, without **Open settings**, which that message cannot offer yet. `review.page` stays Specified for its
+  message is, with **Open settings** beside it. `review.page` stays Specified for its
   line about the sparkle (the AI). Is this right?
-- **Q-L5** — What is accepted is kept with the page, by file and fingerprint, and forgotten once the page closes or
+- **Q206** — What is accepted is kept with the page, by file and fingerprint, and forgotten once the page closes or
   the accepted resolutions are written; the choices are kept for the window by repository, file and fingerprint; Cards
   or Columns and the widths of the columns, in thousandths of the width, are kept for the window, not between runs.
   The report stays until something is accepted again. Is this right?
-- **Q-L6** — No proposal of the AI exists yet: `review.proposals` is given no answers, and **Ask the AI about the
+- **Q207** — No proposal of the AI exists yet: `review.proposals` is given no answers, and **Ask the AI about the
   rest**, the button with the model's name, **Ask again** and **Ask the AI** are left out until `ai.resolve-conflicts`
   is built; what the cards and the counts say of the AI is built and tested on data. `review.accept-all` is built with
   its line about the AI checked on proposals of the rules only, and `review.card` stays Specified for **Resolve by
   hand** and for a card the AI failed on. Is this right?
-- **Q-L7** — Where the review hands over to a card not built yet, the entry is disabled: **Resolve by hand**
+- **Q208** — Where the review hands over to a card not built yet, the entry is disabled: **Resolve by hand**
   (`merge-view.page`), **Keep it, with these changes** and **Delete it** (`conflicts.take-side`, so
   `review.deleted-card` stays Specified), and **Continue the merge** (`conflicts.continue-operation`, so
   `review.report` stays Specified), which lights up once that operation is registered and then runs it at `HEAD`.
   **Undo** in the report runs `conflicts.restore` once it is registered, else `undo.last`, which puts the conflicts
   back from the journal. The line number of a card, the files under **Also in conflict** and the button that shows a
   deleted file's base (`conflicts.open-file`, `diff.page`) are not clickable yet. Is this right?
-- **Q-L8** — **Edit** in `review.choose` is shown but disabled: the toolkit has no box of several lines yet, and
+- **Q209** — **Edit** in `review.choose` is shown but disabled: the toolkit has no box of several lines yet, and
   `review.choose` stays Specified until it does; the four other choices are built and accepted at once. Should the
   box of several lines come with the File page of M6?
-- **Q-L9** — In `review.columns` the bands are drawn in a gutter on each side of the middle column, and the widths
+- **Q210** — In `review.columns` the bands are drawn in a gutter on each side of the middle column, and the widths
   are dragged with two splitters per conflict, kept for every conflict at once; under 600 pixels the columns stand one
   above the other, without bands. The card stays Specified until its lines about wrapping and about the pointer have
   their tests, which need a way to look at what a frame drew. Is this right?
-- **Q-L10** — `review.show-result` opens the Diff page with a new version, `DiffVersion::Resolved`, holding each
+- **Q211** — `review.show-result` opens the Diff page with a new version, `DiffVersion::Resolved`, holding each
   file's text with the accepted resolutions in place, read as the working tree with that text and named **Resolved as
   accepted**; its lines cannot be staged or reverted. Is this right?
-- **Q-L11** — `conflicts.autoResolve` and `conflicts.ai` are read from the user's settings file into
-  `Settings::conflicts`; the slice of `conflicts.` may read them too, and the two should become one when merged. The
-  toolkit now also names `Path` and `FillRule` for the views, for the bands. Is this right?
+- **Q212** — `conflicts.autoResolve` and `conflicts.ai` are read from the user's settings file once, into
+  `FeatureSettings`, for the banner, the Merge page and the review alike. The toolkit now also names `Path` and `FillRule` for the views, for the bands. Is this right?

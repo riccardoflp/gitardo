@@ -26,14 +26,7 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             found: find_repositories(folders, cancel),
         },
-        JobKind::ReadRepository { folder, request } => Message::RepositoryRead {
-            job: job.id,
-            folder: folder.clone(),
-            result: read_repository(folder, request, cancel)
-                .map(Box::new)
-                .map_err(|error| error.to_string()),
-            read_at: seconds_now(),
-        },
+        JobKind::ReadRepository { folder, request } => repository_read(job, folder, request, cancel),
         JobKind::ReadTimeline { folder, request } => Message::TimelineRead {
             job: job.id,
             result: read_commits(&Git::new(folder).with_cancel(cancel.clone()), request)
@@ -81,6 +74,18 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: super::review::read_review(folder, request, cancel).map(Box::new),
         },
+    }
+}
+
+/// The message of a read of the repository, with when it was read.
+fn repository_read(job: &Job, folder: &Path, request: &TimelineRequest, cancel: &CancelToken) -> Message {
+    Message::RepositoryRead {
+        job: job.id,
+        folder: folder.to_path_buf(),
+        result: read_repository(folder, request, cancel)
+            .map(Box::new)
+            .map_err(|error| error.to_string()),
+        read_at: seconds_now(),
     }
 }
 
