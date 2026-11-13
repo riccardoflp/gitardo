@@ -1070,41 +1070,41 @@ says otherwise):
   M8) and **Load pull requests from GitHub** (M9) are missing. The reflog is **Reflog**, as `reflog.browse` names it,
   not **Browse reflog…** as this card does, and **Settings** and **Theme…** close the menu though the card does not
   list them. Which name should the reflog have?
-- **Q-K1** — The operation `git am` is named **Patch (git am)** in the banner, as its card says, and *patch* inside a
+- **Q185** — The operation `git am` is named **Patch (git am)** in the banner, as its card says, and *patch* inside a
   sentence and a title: **Abort patch**, **Skip this step of the patch**, *the patch can continue*. **Abort** of the
   banner of a stop to edit or split a commit (Q170) now runs `conflicts.abort-operation`, and **Continue** of
   `conflicts.continue-operation` at such a stop hands over to `rebase.edit-stop` or `split.continue`. Are these right?
-- **Q-K2** — **Resolve … automatically** in the banner, and **Resolve automatically** in the message of
+- **Q186** — **Resolve … automatically** in the banner, and **Resolve automatically** in the message of
   `conflicts.stopped`, run `conflicts.resolve-automatically` until `review.page` is there; its question offers
   **Resolve** and **Review**, and **Review** runs nothing and asks the window to open the review of those files
   (`FollowUp::OpenReview`), which nothing carries out yet. The question is the confirmation, so the plan's danger is
   None rather than Confirm: a Confirm plan would be shown a second time. The rules are given no time limit
   (`keep_going` is always yes), since a feature reads no clock; their own limits of size and lines stop them. Should the
   banner open `review.page` once it exists, and how should **Review** hand the files to it?
-- **Q-K3** — **Resolve with AI** is drawn, disabled, in the banner and the message when `conflicts.ai` is on, until
+- **Q187** — **Resolve with AI** is drawn, disabled, in the banner and the message when `conflicts.ai` is on, until
   `ai.resolve-conflicts` is built (M9). `conflicts.restore` stays **Specified** for its third line, the answers of the
   AI provider shown again. Is that right?
-- **Q-K4** — The window counts the conflicts the rules resolve after every read of a repository with files in
+- **Q188** — The window counts the conflicts the rules resolve after every read of a repository with files in
   conflict, on a worker (`git::read::conflicts::read_texts`, the first 200 files), only when `conflicts.autoResolve`
   or `conflicts.ai` is on; the last count stays until the next one replaces it. Both settings are read from the
   user's file only and are off by default. `gitardo-cli` has no switch for them, so `conflicts.resolve-automatically`
   refuses there; its window tests turn the setting on. Is that right?
-- **Q-K5** — `conflicts.stopped` needs the title of the plan whose step failed: the engine's failure of a step now
+- **Q189** — `conflicts.stopped` needs the title of the plan whose step failed: the engine's failure of a step now
   carries it (`StepFailure::plan`), and the window shows the message in place of the failure once the repository read
   again has files in conflict, keeping the count of files of that read. What an operation offers next
   (`FollowUp::Offer`, and the offer of a refusal) is now a button beside what it said: **Continue** after the rules left
   no file in conflict, **Open settings**, which opens the settings page, after a refusal. Are these right?
-- **Q-K6** — `conflicts.open-file` stays **Specified**: a file both sides changed and a file both added should open in
+- **Q190** — `conflicts.open-file` stays **Specified**: a file both sides changed and a file both added should open in
   the Merge and the File pages (`merge-view.`, `file-view.`), which other slices build. Until then they open in the Diff
   page of `HEAD` beside the working tree, with git's markers in it; a file one side deleted opens, as its card says, in
   the Diff page of its base (`DiffVersion::Base`, `:1:<file>`, which offers no button in the gutter) beside the working
   tree. Where it opens is decided by `views::conflicts::open_target(file, operation)`, beside the card's
   `open_file_view`. Once those pages exist, should `open_target` give a page to open rather than a diff, and should the
   line of a review card come in the intent?
-- **Q-K7** — The buttons of a file in conflict on the Changes page are **+** (**Mark as resolved**), then **↓** for the
+- **Q191** — The buttons of a file in conflict on the Changes page are **+** (**Mark as resolved**), then **↓** for the
   incoming side and **↑** for the current one: the set of icons has no left and right arrows for the ← and → of the
   card of `conflicts.take-side`. Should arrows to the left and the right be drawn for them?
-- **Q-K8** — The Undo of a resolution is `conflicts.restore` whether it is run from **Undo** or by itself, so the title
+- **Q192** — The Undo of a resolution is `conflicts.restore` whether it is run from **Undo** or by itself, so the title
   of the Undo of `UndoRecord::ConflictsResolved` changed to **Undo: restore the conflicts of \<file\>**. Its plan says
   `Undo::TakesBack` of the entry it restores, as `stash.undo-drop` does, rather than Impossible: once it ran, Undo
   goes by the reflog again. Is that right?

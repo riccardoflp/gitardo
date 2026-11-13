@@ -45,10 +45,10 @@ Its buttons, from the left:
   tooltip: *Resolve the conflicts that need no choice between the two sides: changes to lines next to each other, the
   same change made by both, differences in spaces or line endings only. Gitardo shows each resolution first, to accept
   all of them or one by one; the other conflicts stay as they are.* It opens `review.page`; until
-  that page is there, it runs `conflicts.resolve-automatically`, whose question offers **Review** (Q-K2).
+  that page is there, it runs `conflicts.resolve-automatically`, whose question offers **Review** (Q186).
 - **Resolve with AI**: only when `conflicts.ai` is on, files are in conflict, and the rules leave at least one conflict
   (or no conflict with markers was counted). It opens `review.page` and asks the AI provider (`ai.resolve-conflicts`);
-  until then it is drawn disabled (Q-K3).
+  until then it is drawn disabled (Q187).
 - **Continue**: while an operation is in progress. Disabled while any file is in conflict, with the tooltip *Resolve the
   conflicts and stage the files first*.
 - **Skip**: while an operation other than a merge is in progress, and not at a stop to edit or split a commit.
