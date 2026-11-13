@@ -174,6 +174,10 @@ pub struct DiffText {
     pub staged: Vec<bool>,
     /// The runs of unchanged rows that fold (`diff.collapse-unchanged`).
     pub folds: Vec<Range<usize>>,
+    /// The colors of the code of each line of the left side, the whole side colored at once (`file-view.highlight`).
+    pub left_colors: Vec<Vec<ui::CodeSpan>>,
+    /// The colors of the code of each line of the right side.
+    pub right_colors: Vec<Vec<ui::CodeSpan>>,
 }
 
 impl DiffText {

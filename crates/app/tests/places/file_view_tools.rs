@@ -13,6 +13,7 @@ use views::feature::FeatureIntent;
 use views::file_view::FileTarget;
 use views::text::file_view as words;
 
+use super::diff::{head_to_working_tree, open as open_diff, shown as diff_shown, text as diff_text};
 use super::file_view::{FILE, key, numbered, open, repository_with, shown, step, text, type_text};
 use super::showing;
 use super::support::{OperationsDriver, Window, says, shortcut, typed};
@@ -262,4 +263,44 @@ fn file_view_highlight__switching_from_the_dark_to_the_light_theme_recolors_an_o
     );
     assert_eq!(pixels_near(&window, dark), 0);
     assert_eq!(text(&state), "fn main() { let answer = 42; }\n");
+}
+
+#[test]
+fn file_view_highlight__a_line_in_a_block_comment_of_10_lines_is_a_comment_also_as_the_first_line_of_a_change() {
+    let mut lines = vec![String::from("/* one")];
+    lines.extend((2..=9).map(|line| format!("   line {line}")));
+    lines.push(String::from("*/ fn main() {}"));
+    let before = lines.join("\n") + "\n";
+    let mut repository = testkit::Repository::new();
+    let _ = repository.commit("Add the app", &[("src/app.rs", before.as_str())]);
+    let after = before.replace("   line 5", "   line five");
+    std::fs::write(repository.path().join("src/app.rs"), &after).unwrap();
+    let mut state = showing(repository.path().to_path_buf());
+    open_diff(&mut state, head_to_working_tree("src/app.rs"));
+    let diff = diff_text(diff_shown(&state));
+    let comment = |colors: &[ui::CodeSpan], line: &str| {
+        colors.len() == 1
+            && colors
+                .first()
+                .is_some_and(|span| span.kind == ui::CodeKind::Comment && span.range == (0..line.len()))
+    };
+    let line = 4;
+    assert_eq!(diff.right_line(line), "   line five");
+    assert!(
+        comment(&diff.right_colors[line], "   line five"),
+        "{:?}",
+        diff.right_colors[line]
+    );
+    assert!(
+        comment(&diff.left_colors[line], "   line 5"),
+        "{:?}",
+        diff.left_colors[line]
+    );
+    let file = repository_with(&before);
+    let mut state = showing(file.path().to_path_buf());
+    open(&mut state, FileTarget::working_tree("src/app.rs"));
+    assert!(
+        comment(&shown(&state).colors.spans[line], "   line 5"),
+        "the File page colors it so too"
+    );
 }

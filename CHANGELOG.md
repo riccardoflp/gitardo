@@ -234,3 +234,5 @@
   to line** with `Ctrl+G`.
 - **Open in external editor** on the File page, with the command of the setting `editor.external`, where `${file}` and
   `${line}` are the file and the line of the cursor.
+- The code on the File and Diff pages in the colors of its language, the whole text colored at once, so that a line in
+  a comment of several lines is a comment; changing the theme colors it again.

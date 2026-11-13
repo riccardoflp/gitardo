@@ -518,7 +518,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`file-view.find`](17-diff-and-merge-views.md#file-viewfind--find) | Find | View | Built |
 | [`file-view.go-to-line`](17-diff-and-merge-views.md#file-viewgo-to-line--go-to-line) | Go to line | View | Built |
 | [`file-view.open-external`](17-diff-and-merge-views.md#file-viewopen-external--open-in-external-editor) | Open in external editor | Operation | Built |
-| [`file-view.highlight`](17-diff-and-merge-views.md#file-viewhighlight--the-colors-of-the-code) | The colors of the code | Derivation | Specified |
+| [`file-view.highlight`](17-diff-and-merge-views.md#file-viewhighlight--the-colors-of-the-code) | The colors of the code | Derivation | Built |
 
 ## Settings
 

@@ -6,7 +6,7 @@ use std::ops::Range;
 
 use model::diff::{AlignedRow, LineChangeKind, RowLine};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Color, Label, Point, Rect, Sense, TextKind, TextRun, Tone, Ui};
+use ui::{CodeKind, CodeSpan, Color, Label, Point, Rect, Sense, TextKind, TextRun, Tone, Ui};
 
 use super::columns::Columns;
 use super::{DiffIntent, DiffPageIntent, DiffPageState, DiffText, FileDiff, PageLine};
@@ -172,12 +172,22 @@ fn sides(
     side(
         ui,
         (left, aligned.left.as_ref()),
-        (|line| text.left_line(line), left_color, colors.removed),
+        (
+            |line| text.left_line(line),
+            &text.left_colors,
+            left_color,
+            colors.removed,
+        ),
     );
     side(
         ui,
         (right, aligned.right.as_ref()),
-        (|line| text.right_line(line), right_color, colors.added),
+        (
+            |line| text.right_line(line),
+            &text.right_colors,
+            right_color,
+            colors.added,
+        ),
     );
     if let Some((_, kind)) = change {
         let color = match kind {
@@ -194,12 +204,12 @@ fn sides(
     }
 }
 
-/// One side of a row: its line number and its text on the color of its change, with the words changed marked; a filler
-/// row, blank and with no number.
+/// One side of a row: its line number and its text in the colors of its code on the color of its change, with the
+/// words changed marked; a filler row, blank and with no number.
 fn side<'text>(
     ui: &mut Ui<'_>,
     (rect, line): (Rect, Option<&RowLine>),
-    (text_of, background, mark): (impl Fn(usize) -> &'text str, Color, Color),
+    (text_of, code_colors, background, mark): (impl Fn(usize) -> &'text str, &[Vec<CodeSpan>], Color, Color),
 ) {
     let colors = ui.theme().colors;
     let Some(line) = line else {
@@ -218,7 +228,6 @@ fn side<'text>(
     let number_rect = Rect::new(number_cell.right() - width, number_cell.y, width, number_cell.height);
     code(ui, number_rect, (&number, colors.muted_foreground));
     let cell = parts.rest();
-    let shown = text_of(line.line).replace('\t', "    ");
     for range in &line.marks {
         let original = text_of(line.line);
         let start = ui.measure(
@@ -238,7 +247,39 @@ fn side<'text>(
         );
         ui.fill_rect(marked, mark.with_alpha(WORD_ALPHA));
     }
-    code(ui, cell, (&shown, colors.foreground));
+    let spans = code_colors.get(line.line).map_or(&[][..], Vec::as_slice);
+    colored_code(ui, cell, (text_of(line.line), spans));
+}
+
+/// A line of code in the colors of its tokens, its tabs as four spaces, cut at the right of a rectangle.
+fn colored_code(ui: &mut Ui<'_>, rect: Rect, (line, spans): (&str, &[CodeSpan])) {
+    let theme = *ui.theme();
+    let style = ui.text_style(TextKind::Code);
+    let mut parts: Vec<(Range<usize>, CodeKind)> = Vec::with_capacity(spans.len() * 2 + 1);
+    let mut at = 0;
+    for span in spans.iter().filter(|span| span.range.end <= line.len()) {
+        if span.range.start < at {
+            continue;
+        }
+        if span.range.start > at {
+            parts.push((at..span.range.start, CodeKind::Plain));
+        }
+        parts.push((span.range.clone(), span.kind));
+        at = span.range.end;
+    }
+    if at < line.len() {
+        parts.push((at..line.len(), CodeKind::Plain));
+    }
+    for (range, kind) in parts {
+        let before = line.get(..range.start).unwrap_or_default().replace('\t', "    ");
+        let x = rect.x + ui.measure(&before, style);
+        if x >= rect.right() {
+            break;
+        }
+        let text = line.get(range).unwrap_or_default().replace('\t', "    ");
+        let color = theme.code.color(kind, theme.colors.foreground);
+        code(ui, Rect::new(x, rect.y, rect.right() - x, rect.height), (&text, color));
+    }
 }
 
 /// Code, in the middle of a rectangle down, cut at its right.

@@ -37,6 +37,15 @@ fn file_view_highlight__fn_a_string_a_comment_and_a_number_of_rust_have_their_ki
 }
 
 #[test]
+fn file_view_highlight__a_file_named_dockerfile_is_colored_and_notes_xyz_is_plain_text() {
+    let text = "FROM rust:1.80 AS build\n# a note\nRUN cargo build\n";
+    assert_eq!(kind_of("Dockerfile", text, "FROM"), Some(TokenKind::Keyword));
+    assert_eq!(kind_of("Dockerfile", text, "# a note"), Some(TokenKind::Comment));
+    assert_eq!(kind_of("Dockerfile", text, "RUN"), Some(TokenKind::Keyword));
+    assert!(tokens("notes.xyz", text).iter().all(Vec::is_empty));
+}
+
+#[test]
 fn the_language_is_told_by_the_name_of_the_file() {
     let cases = [
         ("src/app.tsx", Some(Language::TypeScript)),

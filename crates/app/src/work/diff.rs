@@ -86,7 +86,11 @@ pub fn read_diff(folder: &Path, job: &DiffJob, cancel: &CancelToken) -> DiffRead
         Vec::new()
     };
     let folds = unchanged_folds(&aligned);
+    let left_colors = crate::store::file_page::colors_of(&job.request.left.path, &left);
+    let right_colors = crate::store::file_page::colors_of(&job.request.right.path, &right);
     DiffRead::Text(Box::new(DiffText {
+        left_colors,
+        right_colors,
         sides: has,
         left_lines,
         right_lines,
