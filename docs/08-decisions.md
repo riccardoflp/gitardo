@@ -1510,77 +1510,77 @@ From the cards left over up to M8 (each built with the reading given, until the 
   `selection.cherry-pick` and `undo.last` are built; the line of `undo.last` on a terminal's operation after one of
   Gitardo's is tested with a commit made in a terminal after a cherry-pick. Right?
 
-- **Q-X1** — The card of `ai.ask-conflict` named `ai::read::ask_conflict`, a crate that does not exist; the question is
+- **Q294** — The card of `ai.ask-conflict` named `ai::read::ask_conflict`, a crate that does not exist; the question is
   `engine::ai::ask_conflict(sending, provider, &request, pieces)`, beside the GitHub reads, since it goes over `http`
   and its key comes from `engine::SecretStore`. It returns the answer with the model that wrote it
   (`ConflictReply`), and `pieces` is told each piece of text as it comes. The card says so now. Is this right?
-- **Q-X2** — The address of the provider: for `anthropic`, `ai.endpoint` (default `https://api.anthropic.com`) is the
+- **Q295** — The address of the provider: for `anthropic`, `ai.endpoint` (default `https://api.anthropic.com`) is the
   base, followed by `/v1/messages` and `/v1/models`; for `openai-compatible`, `ai.endpoint` (default
   `https://api.openai.com/v1`) already holds `/v1`, followed by `/chat/completions` and `/models`, as servers of that
   kind are set up. Is this right?
-- **Q-X3** — The requests carry `anthropic-version: 2026-10-21` and `max_tokens` 32000 for `anthropic`, with the effort
+- **Q296** — The requests carry `anthropic-version: 2026-10-21` and `max_tokens` 32000 for `anthropic`, with the effort
   as `output_config.effort`; for `openai-compatible` the effort is `reasoning_effort`, where `xhigh` and `max` are both
   sent as `xhigh`, the most such servers take. Is this right?
-- **Q-X4** — The requests to the AI provider go through `HTTPS_PROXY` and `NO_PROXY` only: git's `http.proxy` is not
+- **Q297** — The requests to the AI provider go through `HTTPS_PROXY` and `NO_PROXY` only: git's `http.proxy` is not
   read for them yet, since the engine has no read of git's configuration at hand there. Should it be?
-- **Q-X5** — The key of the AI provider is kept in the credential store under `ai.<provider>` (`ai.anthropic`,
+- **Q298** — The key of the AI provider is kept in the credential store under `ai.<provider>` (`ai.anthropic`,
   `ai.openai-compatible`); `ai.choose-model` asks for it, as a secret, when the provider wants one and none is kept or
   the one kept is refused, and keeps it with `FollowUp::KeepAiKey` once the choice is written. The card does not say
   where the key comes from the first time. Is this right?
-- **Q-X6** — `ai.choose-model` also refuses with no AI provider set up (*No AI provider is set up.* with **Open
+- **Q299** — `ai.choose-model` also refuses with no AI provider set up (*No AI provider is set up.* with **Open
   settings**), when the user's settings file is not JSON with comments, and with the error of the provider when it
   cannot list its models; the card names only the refusal with no model listed. Is this right?
-- **Q-X7** — `FeatureSettings` holds the AI settings in a `Box`, since they made `Effect` too large for clippy. Is this
+- **Q300** — `FeatureSettings` holds the AI settings in a `Box`, since they made `Effect` too large for clippy. Is this
   right?
-- **Q-X8** — The card of `ai.resolve-conflicts` named `views::ai::resolve_conflicts_view`; the view is
+- **Q301** — The card of `ai.resolve-conflicts` named `views::ai::resolve_conflicts_view`; the view is
   `views::review::resolve_conflicts_view`, the row of the head of the review page that asks (**Ask the AI about the
   rest (N)** and the button with the model's name, or the bar with **Stop** while the AI is asked), beside the other
   views of the page. The questions are asked by `app::work::ai::Asking`, one thread per question, which takes the key
   from the credential store; the store keeps two under way. The card says so now. Is this right?
-- **Q-X9** — The row that asks the AI is a row of its own in the head of the review page, over **Accept all proposed**
+- **Q302** — The row that asks the AI is a row of its own in the head of the review page, over **Accept all proposed**
   and the others, and the bar *Asking the AI: 3 of 5 conflicts answered* takes its place while the AI is asked. Is
   that the place?
-- **Q-X10** — The button with the model's name shows the identifier of `ai.model` (*claude-test · high effort*), and
+- **Q303** — The button with the model's name shows the identifier of `ai.model` (*claude-test · high effort*), and
   **First model of the provider** while it is empty, since the names the provider gives are known only once it is
   asked for its models. Should the page ask the provider for them when it opens?
-- **Q-X11** — With no AI provider set up, the cards say *No AI provider is set up.* with **Ask again** at once, and no
+- **Q304** — With no AI provider set up, the cards say *No AI provider is set up.* with **Ask again** at once, and no
   request is made. Is this right?
-- **Q-X12** — Q187 is answered: **Resolve with AI** is enabled in the banner and in the message, and opens the review
+- **Q305** — Q187 is answered: **Resolve with AI** is enabled in the banner and in the message, and opens the review
   page and asks.
-- **Q-X13** — `merge-view.accept-proposals` stays **Specified** for its second line: the Merge page computes its
+- **Q306** — `merge-view.accept-proposals` stays **Specified** for its second line: the Merge page computes its
   proposals on its own regions with the rules only, and joining the answers kept by `review.fingerprint` to them needs
   the review's reading of the conflicts in the read of the Merge page. Should that come with the next slice of the
   Merge page?
-- **Q-X14** — The Activity drawer cannot cancel what it lists yet, so while the message is drafted the sparkle becomes
+- **Q307** — The Activity drawer cannot cancel what it lists yet, so while the message is drafted the sparkle becomes
   a button (*Stop drafting the message: the box is left as it was*) that stops it, where the card has the sparkle
   disabled and the drawer cancelling. Should the drawer cancel, and the sparkle go back to disabled?
-- **Q-X15** — The diff of `commit.draft-message` is read on the thread of the question, with git, before the request;
+- **Q308** — The diff of `commit.draft-message` is read on the thread of the question, with git, before the request;
   a draft refused by the provider or failed is said in the message of the window, as the failure of an operation is.
   Is this right?
-- **Q-Y1** — Q281 is answered in this slice: an input box of the toolkit hides what is typed when its view asks
+- **Q309** — Q281 is answered in this slice: an input box of the toolkit hides what is typed when its view asks
   (`InputBox::hidden`), drawing a dot for each character, telling the screen reader the dots, and copying nothing
   from it; a question of kind `QuestionKind::Secret` asks for such a box. Cutting from it still takes the text out of
   the box, without putting it on the clipboard. Is this right?
-- **Q-Y2** — "Every 120 s while a token is kept" is read as the card says it: after each read of the repository shown,
+- **Q310** — "Every 120 s while a token is kept" is read as the card says it: after each read of the repository shown,
   when the last request is more than 120 seconds old, with no timer of its own. A window whose repository is not read
   for a while does not ask GitHub meanwhile. Is that enough, or should the pull requests have a wake of their own?
-- **Q-Y3** — The window looks for the repository on GitHub with a job of its own (`git remote`, `git remote get-url`)
+- **Q311** — The window looks for the repository on GitHub with a job of its own (`git remote`, `git remote get-url`)
   after a read whose remotes have other names, and after an operation that says `FollowUp::ReadPullRequests`, since
   `RepositoryState` keeps only the names of the remotes. Should the state read keep their URLs instead?
-- **Q-Y4** — The reads of the pull requests run on a thread of the window (`app::work::github`), not on the workers
+- **Q312** — The reads of the pull requests run on a thread of the window (`app::work::github`), not on the workers
   nor through the engine: they read the token from the credential store themselves, never ask git's credential helper,
   and take the token out of the store when GitHub answers 401. Is a thread of `app` changing the credential store
   right, or should that go through the engine?
-- **Q-Y5** — A 401 to a read made on its own is kept quiet, as the card says of every error of such a read, with a
+- **Q313** — A 401 to a read made on its own is kept quiet, as the card says of every error of such a read, with a
   warning line in the Command log; the token is still taken out of the store, and the badges go away. Should the
   window say it, as it does after **Load pull requests from GitHub**?
-- **Q-Y6** — In the branch rail the badge of a pull request is drawn at the right of the row of a local branch and the
+- **Q314** — In the branch rail the badge of a pull request is drawn at the right of the row of a local branch and the
   pull request is said in its tooltip, but the badge is not a button of its own: a click on it is a click on the row,
   as before. The rows of the remote branches have no badge. Should the rail's badge open the pull request too?
-- **Q-Y7** — **Open pull request #n** and **Create pull request…** come after the merge and rebase entries of a local
+- **Q315** — **Open pull request #n** and **Create pull request…** come after the merge and rebase entries of a local
   branch, before **Rename**; on a remote branch, before **Delete from remote**. A remote branch's link and badge do not
   check that its remote is the main remote, as the card of `github.open-pull-request` says nothing of it. Is that the
   place and the rule wanted?
-- **Q-Y8** — The rows of the Worktrees list (`worktree.section`) do not show the pull request of their branch yet: they
+- **Q316** — The rows of the Worktrees list (`worktree.section`) do not show the pull request of their branch yet: they
   are drawn by the views of `worktree.`, left as they are to keep this slice's edits of shared views small. Should it
   come in a slice of `worktree.`?
