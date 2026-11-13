@@ -37,6 +37,8 @@ pub enum Page {
     Review,
     /// A File page (`file-view.page`).
     File(FilePageId),
+    /// The Files page: the tree of the working tree.
+    Files,
 }
 
 impl Page {
@@ -54,6 +56,7 @@ impl Page {
             Page::Merge(_) => crate::text::merge_view::PAGE,
             Page::Review => crate::text::review::PAGE,
             Page::File(_) => crate::text::file_view::PAGE,
+            Page::Files => crate::text::files::PAGE,
         }
     }
 }
@@ -81,6 +84,8 @@ pub enum PageState<'a> {
     Review(crate::review::ReviewState<'a>),
     /// A File page.
     File(FilePageState<'a>),
+    /// The Files page.
+    Files(crate::files::FilesPageState<'a>),
 }
 
 impl PageState<'_> {
@@ -98,6 +103,7 @@ impl PageState<'_> {
             PageState::Merge(merge, _) => Page::Merge(merge.id),
             PageState::Review(_) => Page::Review,
             PageState::File(file) => Page::File(file.id),
+            PageState::Files(_) => Page::Files,
         }
     }
 
@@ -106,9 +112,11 @@ impl PageState<'_> {
     pub fn title(&self) -> &str {
         match self {
             PageState::Commit(commit) => commit.title,
-            PageState::Welcome(_) | PageState::Settings(_) | PageState::Changes(_) | PageState::Rebase(_) => {
-                self.page().title()
-            }
+            PageState::Welcome(_)
+            | PageState::Settings(_)
+            | PageState::Changes(_)
+            | PageState::Rebase(_)
+            | PageState::Files(_) => self.page().title(),
             PageState::Diff(diff) => diff.title,
             PageState::Compare(compare) => compare.title,
             PageState::Merge(_, title) => title,
@@ -163,6 +171,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Merge(merge, _) => crate::merge_view::page_view(merge, ui),
         PageState::Review(review) => crate::review::page_view(review, ui),
         PageState::File(file) => file_page_view(file, ui),
+        PageState::Files(files) => crate::files::page_view(files, ui),
     }));
     intents
 }

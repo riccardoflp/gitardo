@@ -47,6 +47,10 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         }
         QuickChoice::Command(command) => command,
     };
+    if let (Some(feature), Some(views::page::Page::File(id))) = (command.file_page_operation(), state.page_shown()) {
+        let run = views::blame::BlameIntent::Run(id, model::contract::FeatureId(feature), None);
+        return super::super::reduce(state, Message::Intent(Intent::Blame(run)));
+    }
     if let Some(feature) = command.operation().filter(|_| super::view::is_built(command)) {
         let run = FeatureIntent::Run(model::contract::FeatureId(feature), model::contract::Target::Head);
         return super::super::reduce(state, Message::Intent(Intent::Feature(run)));
@@ -72,6 +76,7 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         QuickCommand::ShowChanges => vec![Intent::Changes(views::changes::ChangesIntent::Open)],
         QuickCommand::ShowStashes => vec![Intent::Rail(views::RailIntent::ShowStashes)],
         QuickCommand::ReviewConflicts => return super::super::review::open(state, None),
+        QuickCommand::ShowFiles => vec![Intent::Files(views::files::FilesPageIntent::Open)],
         _ => Vec::new(),
     };
     intents

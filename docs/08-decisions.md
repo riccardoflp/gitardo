@@ -1332,3 +1332,40 @@ answered:
   titled **Bring ignored files into `<name>`**, a title the card does not give. What failed while the others went on
   is said once at the end, after what the plan says, in the sentence the window shows when the plan ran, not as an
   error, since the rest was made. Are these right?
+- **Q-R1** — The features crate may now use `json`: the switches of the blame (`blame.toggle-current-line`,
+  `blame.ignore-whitespace`, `blame.every-file`) read the user's settings file and write it back with one key changed,
+  keeping its comments, as a `Write` step of their plan. The edge is drawn in `docs/02-architecture.md` and in the rules
+  of `cargo xtask check`. Is that right, rather than a step of the engine that sets a setting?
+- **Q-R2** — A switch of the blame writes the user's settings file through the engine, like any step, and the window
+  reads the settings again when the watcher sees the file change; with no user's settings file (no folder of the
+  configuration), the switch refuses. Is that right?
+- **Q-R3** — The Files page has no card, and none of its entry points is named: it opens from **Show files** in Quick
+  search only. Should it have a card, and a place in the window of its own, such as a button of the header or of the
+  rail?
+- **Q-R4** — The Files page lists the files of the repository shown (`git ls-files --cached --others
+  --exclude-standard`), without the files of its submodules and with no switch to another repository of the workspace,
+  so the third acceptance line of `compare.path-with` (a file of another repository switches the window to it first) is
+  not built, and the card stays **Specified**. Is listing only the repository shown right, and how should a file of
+  another repository be reached?
+- **Q-R5** — The blame of the line of the cursor waits 200 ms, and the blame of a file 400 ms after the last edit,
+  inside the job on the worker, which sleeps in steps and stops when it is cancelled; the store cancels the job when
+  what it was read with changes. Is waiting on the worker, rather than with a timer of the window, right?
+- **Q-R6** — The editor has no word wrap yet (Q213), so the fourth acceptance line of `blame.file` (the column stays
+  when lines wrap) cannot be built, and `blame.file` stays **Specified** until it is.
+- **Q-R7** — The icons have no person, no closed eye and no pin, so the buttons of the blame in the title of the File
+  page are the eye (**Show file blame**), the cross (**Hide file blame**), the funnel and the star; a button on is drawn
+  as a secondary button rather than filled. Should the icons the card names be drawn?
+- **Q-R8** — The themes have no colors for the highlight of the blame, so the lines of the commit of the cursor are on
+  the color of an inactive selection with the color of the text, and the marks of the scroll bar are in the color of the
+  text. Should the themes get colors of their own for it?
+- **Q-R9** — The dates of the blame, in the column and in how long ago, are said in UTC, since the window does not know
+  the offset of the time zone of the person yet. Is that right until it does?
+- **Q-R10** — `FollowUp::SelectCommit` now also shows the timeline when a page is in front, so that **Reveal commit of
+  current line in the timeline** and the link of a hover, run from the File page, show the commit selected. Is that
+  right for every operation that selects a commit?
+- **Q-R11** — The hover of the blame at the end of the line of the cursor has only **Show `<short hash>` in the
+  timeline**, as its card says, and the hover of the column has the three links; **History of the active file** in the
+  **…** menu of the header is not built, since the menu has no place for the File page yet. Are these right?
+- **Q-R12** — The clock beside a file of the inspector runs `file-history.file` on the file of that path in the working
+  tree, also when the commit of the inspector renamed it or it is gone from the working tree. Is running it on the path
+  the commit has right?

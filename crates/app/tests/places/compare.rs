@@ -91,7 +91,7 @@ fn apply(driver: &OperationsDriver, state: &mut State, intents: Vec<Intent>) {
 }
 
 /// The paths of the files a comparison page lists.
-fn files(state: &State) -> Vec<String> {
+pub fn files(state: &State) -> Vec<String> {
     let page = state
         .compares
         .pages

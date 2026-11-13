@@ -12,9 +12,10 @@ use std::ops::Range;
 use model::CommitId;
 use ui::editor::{Buffer, Command, Cursor};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Button, CodeSpan, Icon, Key, Label, Modifiers, NamedKey, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, CodeSpan, Icon, Key, Label, Modifiers, NamedKey, TextKind, Tone, Ui};
 
 use crate::intent::Intent;
+use crate::text::blame as blame_words;
 use crate::text::file_view as words;
 
 pub use edit::edit_view;
@@ -126,6 +127,8 @@ pub struct FilePageState<'a> {
     pub go_to_line: Option<GoToLineState<'a>>,
     /// How many columns a tab goes to.
     pub tab_width: usize,
+    /// The blame the page shows, and the buttons of the blame in its title (`blame.file`, `blame.current-line`).
+    pub blame: crate::blame::PageBlame<'a>,
 }
 
 /// Something asked of the File pages.
@@ -229,6 +232,7 @@ fn bar_view(state: &FilePageState<'_>, ui: &mut Ui<'_>, rect: ui::Rect, intents:
     let spacing = theme.sizes.spacing;
     let inner = inset(rect, Insets::symmetric(spacing.large + spacing.small, spacing.medium));
     let mut parts = Area::with_gap(inner, spacing.medium);
+    intents.extend(blame_buttons(state, ui, &mut parts));
     if !state.is_read_only {
         let external = Button::secondary(words::OPEN_EXTERNAL).with_icon(Icon::File);
         let (width, height) = ui.button_size(&external);
@@ -250,14 +254,77 @@ fn bar_view(state: &FilePageState<'_>, ui: &mut Ui<'_>, rect: ui::Rect, intents:
     ui.separator(line, ui::Axis::Horizontal);
 }
 
+/// The buttons of the blame at the right of the title, while the page shows a file of a repository: the person, or the
+/// closed eye while the file shows its blame, then the funnel and the pin, each filled while its setting is on.
+fn blame_buttons(state: &FilePageState<'_>, ui: &mut Ui<'_>, parts: &mut Area) -> Vec<Intent> {
+    let blame = state.blame;
+    if !blame.can_blame {
+        return Vec::new();
+    }
+    let mut intents = Vec::new();
+    let is_shown = blame.file.is_some();
+    let mut buttons = vec![if is_shown {
+        (Icon::Close, blame_words::HIDE_FILE_BLAME, false, "blame.toggle-file")
+    } else {
+        (Icon::Eye, blame_words::SHOW_FILE_BLAME, false, "blame.toggle-file")
+    }];
+    if is_shown {
+        let funnel = if blame.ignores_whitespace {
+            blame_words::STOP_IGNORING_WHITESPACE
+        } else {
+            blame_words::IGNORE_WHITESPACE
+        };
+        let pin = if blame.is_on_every_file {
+            blame_words::STOP_KEEPING_IN_EVERY_FILE
+        } else {
+            blame_words::KEEP_IN_EVERY_FILE
+        };
+        buttons.push((
+            Icon::Filter,
+            funnel,
+            blame.ignores_whitespace,
+            "blame.ignore-whitespace",
+        ));
+        buttons.push((Icon::Star, pin, blame.is_on_every_file, "blame.every-file"));
+    }
+    let side = ui.theme().sizes.control_height;
+    for (icon, said, is_on, feature) in buttons.into_iter().rev() {
+        let kind = if is_on { ButtonKind::Secondary } else { ButtonKind::Icon };
+        let button = Button::icon(icon, said).kind(kind);
+        let cell = place(parts.right(side), (side, side), (Align::Start, Align::Center));
+        if ui
+            .button(("file blame button", state.id, feature), cell, &button)
+            .clicked
+        {
+            intents.push(blame_intent(state, feature));
+        }
+    }
+    intents
+}
+
+/// What runs an operation of the blame or of the history on the line of the cursor of a page.
+pub(crate) fn blame_intent(state: &FilePageState<'_>, feature: &'static str) -> Intent {
+    Intent::Blame(crate::blame::BlameIntent::Run(
+        state.id,
+        model::contract::FeatureId(feature),
+        None,
+    ))
+}
+
 /// The keys of the page no widget used: `Ctrl+S` saves, `Ctrl+F` finds, `Ctrl+G` (`Cmd+L` on macOS) goes to a line,
-/// `F3` and `Shift+F3` go from match to match, and `Escape` closes the box that finds.
+/// `F3` and `Shift+F3` go from match to match, `Escape` closes the box that finds, and `Alt+B` and `Shift+Alt+B`
+/// (`Ctrl+Alt+B` and `Ctrl+Shift+Alt+B` on macOS) open the commit of the line of the cursor or show it in the timeline.
 fn shortcuts(state: &FilePageState<'_>, ui: &Ui<'_>) -> Vec<Intent> {
     if !matches!(state.shown, FileShown::Text(_)) {
         return Vec::new();
     }
     let mut asked = Vec::new();
+    let mut blamed = Vec::new();
     for key in ui.unclaimed_keys() {
+        if let Some(feature) = blame_key(key) {
+            blamed.push(blame_intent(state, feature));
+            continue;
+        }
         let character = match key.key {
             Key::Character(character) => Some(character.to_ascii_lowercase()),
             Key::Named(_) => None,
@@ -280,7 +347,31 @@ fn shortcuts(state: &FilePageState<'_>, ui: &Ui<'_>) -> Vec<Intent> {
             _ => {}
         }
     }
-    asked.into_iter().map(|intent| page_intent(state, intent)).collect()
+    asked
+        .into_iter()
+        .map(|intent| page_intent(state, intent))
+        .chain(blamed)
+        .collect()
+}
+
+/// The operation of the blame a key runs: `Alt+B` opens the commit of the line of the cursor, `Shift+Alt+B` shows it in
+/// the timeline; with `Ctrl` too on macOS.
+fn blame_key(key: ui::KeyEvent) -> Option<&'static str> {
+    if !matches!(key.key, Key::Character('b' | 'B')) {
+        return None;
+    }
+    let base = if cfg!(target_os = "macos") {
+        Modifiers::ALT | Modifiers::CONTROL
+    } else {
+        Modifiers::ALT
+    };
+    if key.modifiers == base {
+        Some("blame.open-line-commit")
+    } else if key.modifiers == base | Modifiers::SHIFT {
+        Some("blame.reveal-line-commit")
+    } else {
+        None
+    }
 }
 
 /// What a page asks.

@@ -41,6 +41,10 @@ pub const COMPUTING_DIFF: &str = "Showing the diff of a file";
 pub const SHOWING_MERGE: &str = "Showing a file in conflict";
 /// Why the File page reads.
 pub const OPENING_FILE: &str = "Opening a file";
+/// Why the Files page reads.
+pub const LISTING_FILES: &str = "Listing the files";
+/// Why the File page reads the blame of its file (`blame.file`, `blame.current-line`).
+pub const READING_BLAME: &str = "Reading the blame";
 /// Why a comparison is read: its page, or the inspector, shows it.
 pub const COMPARING: &str = "Comparing two sides";
 /// Why the files in conflict are read: to count the conflicts the rules resolve (`conflicts.banner`).

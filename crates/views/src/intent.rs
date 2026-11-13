@@ -90,6 +90,11 @@ pub enum Intent {
     Conflicts(crate::conflicts::ConflictsIntent),
     /// Something asked of the Merge pages (`merge-view.page`).
     MergeView(crate::merge_view::MergeIntent),
+    /// Something asked of the Files page.
+    Files(crate::files::FilesPageIntent),
+    /// An operation of the blame or of the history run on a File page, or the hover of its blame (`blame.file`,
+    /// `blame.current-line`).
+    Blame(crate::blame::BlameIntent),
 }
 
 /// What is done with a folder opened while the window shows a workspace.

@@ -1,6 +1,7 @@
 //! The workers of a window: a small pool of threads that run the jobs the store asks for, each with a token that
 //! cancels it and an entry among the activities, and send back the message of its result.
 
+pub mod blame;
 pub mod compare;
 pub mod diff;
 pub mod file_view;
@@ -177,6 +178,8 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::CountConflicts { folder } => (folder, activity::COUNTING_CONFLICTS),
         JobKind::ReadMerge { folder, .. } => (folder, activity::SHOWING_MERGE),
         JobKind::ReadReview { folder, .. } => (folder, activity::REVIEWING_CONFLICTS),
+        JobKind::ReadFiles { folder } => (folder, activity::LISTING_FILES),
+        JobKind::ReadBlame { folder, .. } => (folder, activity::READING_BLAME),
     };
     (Text::from(activity::reading(&folder_name(folder))), Text::from(cause))
 }

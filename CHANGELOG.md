@@ -265,3 +265,21 @@
   each path and why nothing changed when nothing did; save or remove the settings of a place; bring ignored files into
   a worktree, or into all the other worktrees, without touching what they have, one warning at the end saying what
   failed. Links to folders are junctions on Windows.
+- The Files page, from **Show files** in Quick search: the tree of the files of the working tree, folders folded until
+  clicked, a click on a file opening it in the File page, and in the context menu of a file **Open file**, **Show file
+  history** and **Compare with Branch, Tag or Commit…**, of a folder **Show folder history** and **Compare with…**.
+- The history of a file under every name it had, of the lines selected in the File page (`git log -L`) and of a
+  folder, each narrowing the timeline with a bar that says whose history it is, and **Show all commits** to take the
+  narrowing away. They run from the Files page, from the context menu of the File page, from Quick search, and the
+  history of a file from the clock beside a file of the inspector.
+- **Compare with Branch, Tag or Commit…** on a file or a folder of the Files page opens the comparison of that side
+  with the **Working tree**, narrowed to the file or the folder.
+- The blame in the File page: who last changed the line under the cursor, how long ago and the subject of the commit,
+  dimmed at its end, with a hover that shows the commit in the timeline; **Show file blame** in the title puts the date
+  and author of each line in a column before the text, the bar of each line in the color of its age, the lines of the
+  commit of the cursor brought out with a mark on the scroll bar for each run of them, the lines typed said *Not
+  committed yet* at once, and a hover with **Show in the timeline**, **Open it as a page** and **Blame the file as it
+  was before**. The funnel ignores whitespace and moved lines, the pin keeps the blame in every file, both written in
+  the user's settings; `Alt+B` opens the commit of the line, `Shift+Alt+B` shows it in the timeline, and each has an
+  entry in the context menu of the editor and in Quick search, as do **Toggle inline blame** and **Blame file before
+  commit of current line**.

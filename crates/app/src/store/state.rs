@@ -83,6 +83,10 @@ pub struct State {
     pub rebase_page: Option<views::rebase::TodoPage>,
     /// The conflicts the rules resolve, counted in the repository shown (`conflicts.banner`).
     pub conflicts: super::conflicts::Conflicts,
+    /// The Files page.
+    pub files_page: super::files_page::FilesPage,
+    /// The blame of the File pages (`blame.current-line`, `blame.file`).
+    pub blames: super::blame::Blames,
 }
 
 /// The folders of a window and the repositories found in them.

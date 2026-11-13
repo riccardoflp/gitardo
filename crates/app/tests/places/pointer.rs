@@ -116,7 +116,7 @@ pub fn rows_drawn(tree: &TreeUpdate) -> Vec<Rect> {
     clippy::cast_possible_truncation,
     reason = "a window is far smaller than an f32 counts"
 )]
-fn rect(bounds: platform::accesskit::Rect) -> Rect {
+pub fn rect(bounds: platform::accesskit::Rect) -> Rect {
     Rect::new(
         bounds.x0 as f32,
         bounds.y0 as f32,

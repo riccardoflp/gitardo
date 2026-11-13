@@ -103,11 +103,31 @@ pub enum QuickCommand {
     UndoLastOperation,
     /// **Review the resolutions of the conflicts** (`review.page`).
     ReviewConflicts,
+    /// **Show files**: the Files page.
+    ShowFiles,
+    /// **Show file history** (`file-history.file`), for the File page in front.
+    ShowFileHistory,
+    /// **Show history of selected lines** (`file-history.lines`).
+    ShowLinesHistory,
+    /// **Toggle file blame** (`blame.toggle-file`).
+    ToggleFileBlame,
+    /// **Toggle inline blame** (`blame.toggle-current-line`).
+    ToggleInlineBlame,
+    /// **Open commit of current line as a page** (`blame.open-line-commit`).
+    OpenLineCommit,
+    /// **Reveal commit of current line in the timeline** (`blame.reveal-line-commit`).
+    RevealLineCommit,
+    /// **Blame file before commit of current line** (`blame.previous`).
+    BlamePrevious,
+    /// **Toggle ignoring whitespace and moved lines in blame** (`blame.ignore-whitespace`).
+    ToggleIgnoreWhitespace,
+    /// **Toggle file blame in every file** (`blame.every-file`).
+    ToggleEveryFile,
 }
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 27] = [
+    pub const ALL: [QuickCommand; 37] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -120,6 +140,16 @@ impl QuickCommand {
         QuickCommand::OpenSettings,
         QuickCommand::Welcome,
         QuickCommand::ShowChanges,
+        QuickCommand::ShowFiles,
+        QuickCommand::ShowFileHistory,
+        QuickCommand::ShowLinesHistory,
+        QuickCommand::ToggleFileBlame,
+        QuickCommand::ToggleInlineBlame,
+        QuickCommand::OpenLineCommit,
+        QuickCommand::RevealLineCommit,
+        QuickCommand::BlamePrevious,
+        QuickCommand::ToggleIgnoreWhitespace,
+        QuickCommand::ToggleEveryFile,
         QuickCommand::CreateBranch,
         QuickCommand::Fetch,
         QuickCommand::Push,
@@ -141,7 +171,29 @@ impl QuickCommand {
     /// nothing.
     #[must_use]
     pub fn is_built(self) -> bool {
-        self <= QuickCommand::ShowChanges || self == QuickCommand::ShowStashes || self == QuickCommand::ReviewConflicts
+        self <= QuickCommand::ShowChanges
+            || matches!(
+                self,
+                QuickCommand::ShowStashes | QuickCommand::ReviewConflicts | QuickCommand::ShowFiles
+            )
+    }
+
+    /// The operation of the catalog the command runs on the File page in front: on the line of its cursor, or on the
+    /// file it shows.
+    #[must_use]
+    pub fn file_page_operation(self) -> Option<&'static str> {
+        match self {
+            QuickCommand::ShowFileHistory => Some("file-history.file"),
+            QuickCommand::ShowLinesHistory => Some("file-history.lines"),
+            QuickCommand::ToggleFileBlame => Some("blame.toggle-file"),
+            QuickCommand::ToggleInlineBlame => Some("blame.toggle-current-line"),
+            QuickCommand::OpenLineCommit => Some("blame.open-line-commit"),
+            QuickCommand::RevealLineCommit => Some("blame.reveal-line-commit"),
+            QuickCommand::BlamePrevious => Some("blame.previous"),
+            QuickCommand::ToggleIgnoreWhitespace => Some("blame.ignore-whitespace"),
+            QuickCommand::ToggleEveryFile => Some("blame.every-file"),
+            _ => None,
+        }
     }
 
     /// The operation of the catalog the command runs at `HEAD`, for the commands that run one: the window runs it once
@@ -161,7 +213,7 @@ impl QuickCommand {
             QuickCommand::ApplyPatch => Some("patch.apply"),
             QuickCommand::SwitchIdentity => Some("identity.switch"),
             QuickCommand::UndoLastOperation => Some("undo.last"),
-            _ => None,
+            _ => self.file_page_operation(),
         }
     }
 }

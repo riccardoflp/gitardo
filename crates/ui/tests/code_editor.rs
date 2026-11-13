@@ -32,6 +32,7 @@ impl Page {
     /// A frame with some input: the commands it gives are done, as the page of a file does them.
     fn step(&mut self, events: &[InputEvent]) -> (CodeEditorResponse, FrameOutput) {
         let editor = CodeEditor {
+            gutter: 0,
             name: "app.rs",
             buffer: self.document.buffer(),
             cursor: self.cursor,

@@ -372,6 +372,13 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
             (FollowUp::CompareInPlace(sides), Some(folder)) => {
                 effects.extend(super::compare::in_place::show(state, folder, *sides));
             }
+            (FollowUp::ShowHistory(history), _) => {
+                effects.extend(search::show_history(state, history.map(|history| *history)));
+            }
+            (FollowUp::SelectCommit(_), _) => effects.extend(super::pages::show_timeline(state)),
+            (blamed @ (FollowUp::ShowBlame(_) | FollowUp::HideBlame(..) | FollowUp::OpenFile(_)), _) => {
+                effects.extend(super::blame::carry_out(state, blamed));
+            }
             _ => {}
         }
     }

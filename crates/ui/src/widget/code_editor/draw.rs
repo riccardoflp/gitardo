@@ -22,6 +22,12 @@ pub(crate) fn columns_of(character: char, before: f32, tab_width: usize) -> usiz
     }
 }
 
+/// How many columns the whole text of a line takes, its tabs going to their stops: where a view draws after it.
+#[must_use]
+pub fn code_columns(line: &str, tab_width: usize) -> f32 {
+    columns_to(line, line.len(), tab_width)
+}
+
 /// How many columns the text of a line takes up to a byte.
 fn columns_to(line: &str, end: usize, tab_width: usize) -> f32 {
     let mut columns = 0.0_f32;
@@ -48,14 +54,14 @@ fn shown(part: &str, from: f32, tab_width: usize) -> String {
 }
 
 impl Ui<'_> {
-    /// Draws the lines of an editor in sight, and gives them.
+    /// Draws the lines of an editor in sight, and gives them with where the first of them starts, down.
     pub(crate) fn draw_code(
         &mut self,
         editor: &CodeEditor<'_>,
         layout: Layout,
         state: &CodeEditorState,
         response: &Response,
-    ) -> Range<usize> {
+    ) -> (Range<usize>, f32) {
         let height = f64::from(layout.line_height);
         let offset = state.scroll.offset();
         let count = editor.buffer.line_count();
@@ -83,7 +89,7 @@ impl Ui<'_> {
         if response.has_focus && self.is_window_focused() {
             self.draw_code_caret(editor, layout, (state, first_top + layout.text.y, first));
         }
-        lines
+        (lines, layout.text.y + first_top)
     }
 
     /// The number of a line, right of its column, brighter on the line of the caret.

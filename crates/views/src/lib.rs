@@ -15,6 +15,7 @@
 
 pub mod activity;
 pub mod bisect;
+pub mod blame;
 mod blocks;
 pub mod branch;
 pub mod changes;
@@ -25,6 +26,7 @@ pub mod details;
 pub mod diff;
 pub mod feature;
 pub mod file_view;
+pub mod files;
 pub mod filter;
 pub mod graph;
 mod intent;

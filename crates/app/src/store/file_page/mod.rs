@@ -453,6 +453,7 @@ pub fn page_state(state: &State, id: FilePageId) -> Option<FilePageState<'_>> {
             .as_deref()
             .map(|typed| GoToLineState { typed, line_count }),
         tab_width: TAB_WIDTH,
+        blame: views::blame::PageBlame::default(),
     })
 }
 

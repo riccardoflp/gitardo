@@ -2,6 +2,8 @@
 //! `search.history`, `search.list-mode`, `search.go-to-hash`), **Go to commit…** (`search.go-to-commit`) and Quick search
 //! in the header.
 
+use model::CommitId;
+use model::file_history::{HistoryOf, LineRange};
 use model::filter::BranchesShown;
 use model::search::{BoxMode, SearchMode};
 
@@ -114,8 +116,13 @@ pub fn not_a_commit(typed: &str) -> String {
 /// of `filter.bar`: `Commits by authors matching alice · in the local branches · 2 commits`, `Only the history of
 /// 4b830a6 · on no branch or tag · 3 commits`.
 #[must_use]
-pub fn list_bar(narrowed: &Narrowed<'_>, within: Option<&BranchesShown>, counted: (usize, bool)) -> String {
+pub fn list_bar(narrowed: &Narrowed<'_>, within: Option<&BranchesShown>, counted: (usize, bool)) -> (String, String) {
     let what = match narrowed {
+        Narrowed::History { history, head } => {
+            let (what, mut dimmed) = history_bar(history, *head);
+            dimmed.push(filter::commits_words(counted));
+            return (what, format!("\u{b7} {}", dimmed.join(" \u{b7} ")));
+        }
         Narrowed::Search { mode, text } => {
             let words = match mode {
                 SearchMode::Message => format!("Commits whose message contains {text}"),
@@ -130,7 +137,53 @@ pub fn list_bar(narrowed: &Narrowed<'_>, within: Option<&BranchesShown>, counted
         }
         Narrowed::Commit(short) => format!("Only the history of {short} \u{b7} on no branch or tag"),
     };
-    format!("{what} \u{b7} {}", filter::commits_words(counted))
+    (
+        format!("{what} \u{b7} {}", filter::commits_words(counted)),
+        String::new(),
+    )
+}
+
+/// What the bar of the history of a file, of some lines or of a folder says, then what it adds, dimmed: `History of
+/// src/b.rs`, then `earlier src/a.rs`; `History of lines 4–9 of src/app.rs`, then `lines 5–10 in the editor` and `as
+/// committed in 4b830a6` once another commit is checked out.
+#[must_use]
+pub fn history_bar(history: &HistoryOf, head: Option<&CommitId>) -> (String, Vec<String>) {
+    match history {
+        HistoryOf::File { path, earlier } => {
+            let dimmed = if earlier.is_empty() {
+                Vec::new()
+            } else {
+                vec![format!("earlier {}", earlier.join(", "))]
+            };
+            (format!("History of {path}"), dimmed)
+        }
+        HistoryOf::Lines {
+            path,
+            lines,
+            commit,
+            in_editor,
+        } => {
+            let mut dimmed = Vec::new();
+            if let Some(in_editor) = in_editor.filter(|in_editor| in_editor != lines) {
+                dimmed.push(format!("{} in the editor", lines_words(in_editor)));
+            }
+            if head != Some(commit) {
+                dimmed.push(format!("as committed in {}", commit.short()));
+            }
+            (format!("History of {} of {path}", lines_words(*lines)), dimmed)
+        }
+        HistoryOf::Folder { path } => (format!("History of the folder {path}"), Vec::new()),
+    }
+}
+
+/// Some lines, in words: `line 4`, `lines 4–9`.
+#[must_use]
+pub fn lines_words(lines: LineRange) -> String {
+    if lines.start == lines.end {
+        format!("line {}", lines.start)
+    } else {
+        format!("lines {}\u{2013}{}", lines.start, lines.end)
+    }
 }
 
 /// The title of **Go to commit**.
@@ -202,5 +255,15 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::UndoLastOperation => "Undo Last Operation",
         QuickCommand::ReviewConflicts => crate::text::review::COMMAND,
         QuickCommand::OpenSettings => "Open Settings",
+        QuickCommand::ShowFiles => crate::text::files::COMMAND,
+        QuickCommand::ShowFileHistory => crate::text::blame::SHOW_FILE_HISTORY,
+        QuickCommand::ShowLinesHistory => crate::text::blame::SHOW_LINES_HISTORY,
+        QuickCommand::ToggleFileBlame => crate::text::blame::TOGGLE_FILE_BLAME,
+        QuickCommand::ToggleInlineBlame => crate::text::blame::TOGGLE_INLINE_BLAME,
+        QuickCommand::OpenLineCommit => crate::text::blame::OPEN_LINE_COMMIT,
+        QuickCommand::RevealLineCommit => crate::text::blame::REVEAL_LINE_COMMIT,
+        QuickCommand::BlamePrevious => crate::text::blame::BLAME_BEFORE,
+        QuickCommand::ToggleIgnoreWhitespace => crate::text::blame::TOGGLE_IGNORE_WHITESPACE,
+        QuickCommand::ToggleEveryFile => crate::text::blame::TOGGLE_EVERY_FILE,
     }
 }

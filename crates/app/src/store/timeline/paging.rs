@@ -24,7 +24,7 @@ pub fn read_request(state: &State, pages: usize) -> TimelineRequest {
         shows_stashes: switches.is_on(TimelineSwitch::ShowStashes) && !super::super::search::is_narrowed(state),
         shown: state.timeline.shown.clone(),
         narrowing: super::super::search::narrowing(state),
-        alone: state.search.alone.clone(),
+        alone: super::super::search::alone(state),
     }
 }
 

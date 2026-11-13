@@ -99,11 +99,12 @@ fn read_card(
                 let _ = ui.label(row.rect, &Label::new(&said).kind(TextKind::Detail).tone(Tone::Muted));
             }
             Some(CardRow::Untracked(index)) => {
-                if let Some(file) = untracked.get(*index)
-                    && inspector_file(ui, row, (file, 0, files.layout), ("untracked file", *index))
-                    && let Some(target) = crate::diff::untracked_file(detail, file)
-                {
-                    intents.push(open_diff(target));
+                if let Some(file) = untracked.get(*index) {
+                    match inspector_file(ui, row, (file, 0, files.layout), ("untracked file", *index)) {
+                        Some(Picked::Diff) => intents.extend(crate::diff::untracked_file(detail, file).map(open_diff)),
+                        Some(Picked::History) => intents.push(file_history(file)),
+                        None => {}
+                    }
                 }
             }
             None => {}
@@ -150,12 +151,16 @@ fn file_row(
 ) -> Vec<Intent> {
     match file_row {
         FileRow::Directory { .. } => directory_row(ui, row.rect, (FilesOwner::Inspector, file_row)),
-        FileRow::File(index, depth) => match files.files.get(*index) {
-            Some(file) if inspector_file(ui, row, (file, *depth, files.layout), ("file", *index)) => {
-                vec![open_diff(crate::diff::commit_file(detail, file))]
+        FileRow::File(index, depth) => {
+            let Some(file) = files.files.get(*index) else {
+                return Vec::new();
+            };
+            match inspector_file(ui, row, (file, *depth, files.layout), ("file", *index)) {
+                Some(Picked::Diff) => vec![open_diff(crate::diff::commit_file(detail, file))],
+                Some(Picked::History) => vec![file_history(file)],
+                None => Vec::new(),
             }
-            _ => Vec::new(),
-        },
+        }
     }
 }
 
@@ -164,15 +169,30 @@ pub(crate) fn open_diff(target: crate::diff::DiffTarget) -> Intent {
     Intent::Diff(crate::diff::DiffIntent::Open(Box::new(target)))
 }
 
-/// A file of the inspector: its status, icon and name, lit under the pointer, with the button of its history at its
-/// end and **Compare with…** in its context menu; whether it was clicked, which opens its diff. The history of a file
-/// and the comparison come in later milestones: their entries are shown and cannot be used yet (Q89).
+/// What a file of the inspector was picked for.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Picked {
+    /// A click on it, which opens its diff.
+    Diff,
+    /// Its clock, which shows its history (`file-history.file`).
+    History,
+}
+
+/// What shows the history of a file of the inspector, by its path in the working tree (`file-history.file`).
+fn file_history(file: &FileChange) -> Intent {
+    let run = crate::files::FilesPageIntent::Run(model::contract::FeatureId("file-history.file"), file.path.clone());
+    Intent::Files(run)
+}
+
+/// A file of the inspector: its status, icon and name, lit under the pointer, with the clock of its history at its
+/// end and **Compare with…** in its context menu; what it was picked for. The comparison comes in a later milestone:
+/// its entry is shown and cannot be used yet (Q89).
 fn inspector_file(
     ui: &mut Ui<'_>,
     row: &ui::Row,
     (file, depth, layout): (&FileChange, usize, super::FileLayout),
     key: (&'static str, usize),
-) -> bool {
+) -> Option<Picked> {
     let theme = *ui.theme();
     let response = ui.interact(ui.id(key), row.rect, Sense::CLICK | Sense::HOVER);
     if response.hovered {
@@ -180,16 +200,18 @@ fn inspector_file(
     }
     let rest = file_start(ui, row.rect, (file, depth));
     let mut parts = Area::with_gap(rest, theme.sizes.spacing.small);
-    if response.hovered {
+    let mut picked = response.clicked.then_some(Picked::Diff);
+    // The clock stays while the pointer is on it, which takes the hover from the row.
+    if response.hovered || ui.pointer().is_some_and(|pointer| row.rect.contains(pointer)) {
         let side = theme.sizes.row_height;
-        let history = Button::icon(Icon::Refresh, words::FILE_HISTORY)
-            .kind(ButtonKind::Icon)
-            .disabled();
+        let history = Button::icon(Icon::Clock, words::FILE_HISTORY).kind(ButtonKind::Icon);
         let cell = place(parts.right(side), (side, side), (Align::Start, Align::Center));
-        let _ = ui.button((key.0, key.1, "history"), cell, &history);
+        if ui.button((key.0, key.1, "history"), cell, &history).clicked {
+            picked = Some(Picked::History);
+        }
     }
     file_name(ui, parts.rest(), (file, layout));
     let entries = [MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, ()).disabled())];
     let _ = ui.context_menu((key.0, key.1, "menu"), &response, &entries);
-    response.clicked
+    picked
 }

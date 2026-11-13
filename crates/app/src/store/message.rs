@@ -132,6 +132,20 @@ pub enum Message {
         /// What was read, or what git said when the read failed.
         result: Result<Box<crate::work::review::ReviewReadout>, String>,
     },
+    /// A job that listed the files of the working tree for the Files page is done.
+    FilesRead {
+        /// The job.
+        job: JobId,
+        /// The paths, or what git said when the read failed.
+        result: Result<Vec<String>, String>,
+    },
+    /// A job that read the blame of a File page is done (`blame.current-line`, `blame.file`).
+    BlameRead {
+        /// The job.
+        job: JobId,
+        /// What was read, or what git said, or that it was cancelled.
+        result: Result<crate::work::blame::BlameAnswer, String>,
+    },
     /// The settings files changed and were read again.
     SettingsRead(Settings),
     /// The watcher of the repository saw changes (`repo.watch-changes`), at a moment counted from when the window
@@ -332,6 +346,19 @@ pub enum JobKind {
         folder: PathBuf,
         /// Which files.
         request: crate::work::review::ReviewRequest,
+    },
+    /// Lists the files of the working tree for the Files page.
+    ReadFiles {
+        /// The top folder of the working tree.
+        folder: PathBuf,
+    },
+    /// Reads the blame of the line under the cursor of a File page, or of its file (`blame.current-line`,
+    /// `blame.file`).
+    ReadBlame {
+        /// The top folder of the working tree.
+        folder: PathBuf,
+        /// What is read.
+        job: crate::work::blame::BlameJob,
     },
 }
 

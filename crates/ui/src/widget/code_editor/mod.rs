@@ -11,6 +11,8 @@
 mod draw;
 mod keys;
 
+pub use draw::code_columns;
+
 use std::hash::Hash;
 use std::ops::Range;
 use std::time::Duration;
@@ -58,8 +60,28 @@ pub struct CodeEditor<'a> {
     pub reveal: Option<(u64, usize)>,
     /// Takes the keyboard, once for each number: when its page opens, and when a dialog over it closes.
     pub focus: Option<u64>,
+    /// How many columns of room are kept between the line numbers and the text, for what a view draws beside each
+    /// line, such as the blame of a file; none keeps no room.
+    pub gutter: usize,
     /// How many columns a tab goes to.
     pub tab_width: usize,
+}
+
+/// Where an editor drew its parts, for a view that draws beside its lines or over its scroll bar.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct CodePlaces {
+    /// The room kept between the line numbers and the text, as tall as the editor; empty when none is kept.
+    pub gutter: Rect,
+    /// The text.
+    pub text: Rect,
+    /// The height of a line.
+    pub line_height: f32,
+    /// The width of a column of the font of code.
+    pub advance: f32,
+    /// Where the first line in sight starts, down: above the top of the text when it is scrolled into.
+    pub first_top: f32,
+    /// The track of the scroll bar.
+    pub track: Rect,
 }
 
 /// What an editor tells its view.
@@ -73,6 +95,8 @@ pub struct CodeEditorResponse {
     pub context_menu: Option<Point>,
     /// The lines in sight.
     pub visible_lines: Range<usize>,
+    /// Where its parts are.
+    pub places: CodePlaces,
 }
 
 /// How long the caret shows, and then how long it hides, while it blinks.
@@ -83,6 +107,8 @@ const BLINK: Duration = Duration::from_millis(530);
 pub(crate) struct Layout {
     /// The column of the line numbers.
     pub(crate) numbers: Rect,
+    /// The room kept before the text.
+    pub(crate) gutter: Rect,
     /// The text.
     pub(crate) text: Rect,
     /// The height of a line.
@@ -102,13 +128,14 @@ impl Ui<'_> {
         }
         let sense = Sense::CLICK | Sense::DRAG | Sense::FOCUS | Sense::SCROLL;
         let (response, events) = self.interact_with_events(id, rect, sense);
-        let layout = self.code_layout(rect, editor.buffer);
+        let layout = self.code_layout(rect, editor);
         reveal_asked(&mut state, editor, layout);
         let mut outcome = CodeEditorResponse {
             response,
             commands: Vec::new(),
             context_menu: None,
             visible_lines: 0..0,
+            places: CodePlaces::default(),
         };
         let page = number::index_at(f64::from(layout.text.height), f64::from(layout.line_height)).max(1);
         for event in events {
@@ -124,18 +151,9 @@ impl Ui<'_> {
         if outcome.response.hovered {
             self.set_cursor(PointerShape::Text);
         }
-        outcome.visible_lines = self.draw_code(editor, layout, &state, &outcome.response);
-        let shown: Vec<&str> = outcome
-            .visible_lines
-            .clone()
-            .map(|line| editor.buffer.line(line))
-            .collect();
-        let value = shown.join("\n");
-        self.access_node(
-            id,
-            rect,
-            &Description::new(AccessRole::TextInput, editor.name).value(&value),
-        );
+        let (visible_lines, first_top) = self.draw_code(editor, layout, &state, &outcome.response);
+        self.access_editor((id, rect), editor, visible_lines.clone());
+        outcome.visible_lines = visible_lines;
         let spec = BarSpec {
             axis: Axis::Vertical,
             view: f64::from(layout.text.height),
@@ -143,23 +161,54 @@ impl Ui<'_> {
         };
         let thickness = self.theme().sizes.scrollbar;
         let track = Rect::new(rect.right() - thickness, rect.y, thickness, rect.height);
+        outcome.places = CodePlaces {
+            gutter: layout.gutter,
+            text: layout.text,
+            line_height: layout.line_height,
+            advance: layout.advance,
+            first_top,
+            track,
+        };
         self.scroll_bar(id.with("bar"), track, spec, &mut state.scroll);
         let _ = self.memory().code_editors.insert(id, state);
         outcome
     }
 
+    /// Tells the screen reader of an editor, with the lines in sight as its value.
+    fn access_editor(
+        &mut self,
+        (id, rect): (crate::id::WidgetId, Rect),
+        editor: &CodeEditor<'_>,
+        visible: Range<usize>,
+    ) {
+        let shown: Vec<&str> = visible.map(|line| editor.buffer.line(line)).collect();
+        let value = shown.join("\n");
+        self.access_node(
+            id,
+            rect,
+            &Description::new(AccessRole::TextInput, editor.name).value(&value),
+        );
+    }
+
     /// Where the parts of an editor go over its rectangle: the line numbers as wide as the largest, five digits at
-    /// least.
-    fn code_layout(&self, rect: Rect, buffer: &Buffer) -> Layout {
+    /// least, then the room it keeps before the text, if any.
+    fn code_layout(&self, rect: Rect, editor: &CodeEditor<'_>) -> Layout {
         let theme = self.theme();
         let style = self.text_style(TextKind::Code);
         let advance = self.measure("0000000000", style) / 10.0;
-        let digits = buffer.line_count().to_string().len().max(5);
+        let digits = editor.buffer.line_count().to_string().len().max(5);
         let numbers_width = advance * number::float_of_count(digits) + 2.0 * theme.sizes.spacing.medium;
-        let text_x = rect.x + numbers_width + theme.sizes.spacing.medium;
+        let gutter_width = if editor.gutter == 0 {
+            0.0
+        } else {
+            advance * number::float_of_count(editor.gutter) + 2.0 * theme.sizes.spacing.medium
+        };
+        let gutter = Rect::new(rect.x + numbers_width, rect.y, gutter_width, rect.height);
+        let text_x = gutter.right() + theme.sizes.spacing.medium;
         let text_width = (rect.right() - theme.sizes.scrollbar - text_x).max(0.0);
         Layout {
             numbers: Rect::new(rect.x, rect.y, numbers_width, rect.height),
+            gutter,
             text: Rect::new(text_x, rect.y, text_width, rect.height),
             line_height: self.line_height(style) + 4.0,
             advance,

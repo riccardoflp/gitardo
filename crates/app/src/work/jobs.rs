@@ -78,6 +78,26 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: super::review::read_review(folder, request, cancel).map(Box::new),
         },
+        JobKind::ReadFiles { .. } | JobKind::ReadBlame { .. } => files_read(job, cancel),
+    }
+}
+
+/// The message of a read of the Files page or of a blame.
+fn files_read(job: &Job, cancel: &CancelToken) -> Message {
+    match &job.kind {
+        JobKind::ReadBlame { folder, job: blame } => Message::BlameRead {
+            job: job.id,
+            result: super::blame::read_blame(folder, blame, cancel),
+        },
+        JobKind::ReadFiles { folder } => Message::FilesRead {
+            job: job.id,
+            result: git::read::files::read_files(&Git::new(folder).with_cancel(cancel.clone()))
+                .map_err(|error| error.to_string()),
+        },
+        _ => Message::FilesRead {
+            job: job.id,
+            result: Err(String::from("not a read of files")),
+        },
     }
 }
 

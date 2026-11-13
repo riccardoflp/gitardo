@@ -13,6 +13,7 @@ mod quick;
 pub mod view;
 
 use model::CommitId;
+use model::file_history::HistoryOf;
 use model::search::{BoxMode, Direction, SearchMode, hash_prefix, loaded};
 use views::search::{GoToCommitPurpose, SearchIntent};
 
@@ -21,7 +22,7 @@ use super::state::State;
 
 pub use go_to::{go_to, settle};
 pub use jobs::{SearchJob, SearchResult};
-pub use list::narrowing;
+pub use list::{narrowing, show_history};
 pub use view::SearchView;
 
 /// The search of the timeline, **Go to commit** and Quick search.
@@ -50,6 +51,9 @@ pub struct Search {
     /// The commit whose history alone the timeline lists: a commit gone to on no branch or tag
     /// (`search.go-to-hash`).
     pub alone: Option<CommitId>,
+    /// The history of a file, of some lines or of a folder the timeline is narrowed to (`file-history.file`,
+    /// `file-history.lines`, `file-history.folder`).
+    pub history: Option<HistoryOf>,
     /// The commit being gone to, until it is selected.
     pub going_to: Option<go_to::GoTo>,
     /// **Go to commit**, while it is open.
@@ -152,11 +156,23 @@ fn changed(state: &mut State) -> Vec<Effect> {
     effects
 }
 
-/// Whether a search shown as a list, or the history of a commit alone, narrows the timeline: it then has no draft and
-/// no stashes, and the bar of either takes the place of the bar of the branches shown.
+/// Whether a search shown as a list, the history of a commit alone, or the history of a file, of some lines or of a
+/// folder narrows the timeline: it then has no draft and no stashes, and the bar of each takes the place of the bar of
+/// the branches shown.
 #[must_use]
 pub fn is_narrowed(state: &State) -> bool {
-    state.search.list.is_some() || state.search.alone.is_some()
+    state.search.list.is_some() || state.search.alone.is_some() || state.search.history.is_some()
+}
+
+/// The commit whose history alone the timeline lists, in place of the branches shown: a commit gone to on no branch or
+/// tag, or the commit some lines are followed back from.
+#[must_use]
+pub fn alone(state: &State) -> Option<CommitId> {
+    let search = &state.search;
+    search
+        .alone
+        .clone()
+        .or_else(|| search.history.as_ref().and_then(HistoryOf::alone).cloned())
 }
 
 /// Drops what was found and what was said, and cancels the reads of the search.

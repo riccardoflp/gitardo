@@ -7,6 +7,8 @@
 mod activity;
 mod am_stopped;
 mod bisect;
+mod blame;
+mod blame_file;
 mod branches;
 mod changes;
 mod changes_save;
@@ -20,6 +22,7 @@ mod diff_staging;
 mod diff_views;
 mod file_view;
 mod file_view_tools;
+mod files_page;
 mod filter;
 mod folds;
 mod go_to;

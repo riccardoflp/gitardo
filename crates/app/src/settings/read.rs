@@ -16,7 +16,7 @@ use render::ThemeName;
 use views::graph::{Switches, TimelineSwitch};
 
 use super::keys::{self, Scope};
-use super::{FontChoice, ProblemReason, SettingProblem, Settings, SettingsFile, SettingsFiles};
+use super::{FileBlameLook, FontChoice, ProblemReason, SettingProblem, Settings, SettingsFile, SettingsFiles};
 
 /// The settings of the user's file and of the repository's, when a repository is shown. A file that is not there sets
 /// nothing; one that cannot be read or parsed sets nothing and is said as a problem.
@@ -90,10 +90,12 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
         _ => LogLevel::Info,
     };
     let features = feature_settings(&mut lookup);
+    let file_blame = file_blame_look(&mut lookup);
     let values = written_values(&lookup);
     Settings {
         log_level,
         features,
+        file_blame,
         values,
         theme,
         fonts,
@@ -165,6 +167,31 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
                 .unwrap_or(defaults.blame.is_on_every_file),
             user_file: None,
         },
+    }
+}
+
+/// `fileBlame.format`, `fileBlame.groupLines` and `fileBlame.age.*`, from the user's file.
+fn file_blame_look(lookup: &mut Lookup) -> FileBlameLook {
+    let defaults = FileBlameLook::default();
+    FileBlameLook {
+        format: lookup
+            .string(keys::FILE_BLAME_FORMAT, Scope::User)
+            .unwrap_or(defaults.format),
+        group_lines: lookup
+            .boolean(keys::FILE_BLAME_GROUP_LINES, Scope::User)
+            .unwrap_or(defaults.group_lines),
+        age_enabled: lookup
+            .boolean(keys::FILE_BLAME_AGE_ENABLED, Scope::User)
+            .unwrap_or(defaults.age_enabled),
+        recent_color: lookup
+            .string(keys::FILE_BLAME_AGE_RECENT_COLOR, Scope::User)
+            .unwrap_or(defaults.recent_color),
+        old_color: lookup
+            .string(keys::FILE_BLAME_AGE_OLD_COLOR, Scope::User)
+            .unwrap_or(defaults.old_color),
+        old_after_days: lookup
+            .number(keys::FILE_BLAME_AGE_OLD_AFTER_DAYS, Scope::User)
+            .unwrap_or(defaults.old_after_days),
     }
 }
 

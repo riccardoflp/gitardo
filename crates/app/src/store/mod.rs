@@ -4,6 +4,7 @@
 //!
 //! `reduce` reads no file and runs no git: it is tested without a window.
 
+pub mod blame;
 mod changes;
 mod commit_page;
 pub mod compare;
@@ -11,6 +12,7 @@ mod conflicts;
 mod diff_page;
 pub mod feature;
 pub mod file_page;
+pub mod files_page;
 mod inspector;
 mod log_lines;
 mod merge_page;
@@ -71,6 +73,8 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(compare::follow(state));
     effects.extend(review::prune(state));
     effects.extend(review::follow(state));
+    effects.extend(files_page::follow(state));
+    effects.extend(blame::follow(state));
     effects.extend(reads::watch(state));
     effects
 }
@@ -116,6 +120,8 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         Message::ReviewRead { job, result } => review::review_read(state, job, result),
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
         Message::ConflictsCounted { job, result } => conflicts::counted(state, job, result),
+        Message::FilesRead { job, result } => files_page::files_read(state, job, result),
+        Message::BlameRead { job, result } => blame::blame_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, settings),
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
         Message::Wake { at } => reads::wake(state, at),
@@ -318,7 +324,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::CommitPage(id, intent) => commit_page::reduce_page(state, id, intent),
         Intent::Diff(intent) => diff_page::reduce(state, intent),
         Intent::MergeView(intent) => merge_page::reduce(state, intent),
-        Intent::FileView(intent) => file_page::reduce(state, intent),
+        Intent::FileView(_) | Intent::Files(_) | Intent::Blame(_) => files_page::reduce_file_intent(state, intent),
         Intent::Compare(intent) => compare::reduce(state, intent),
         Intent::Review(intent) => review::reduce(state, intent),
         Intent::Feature(intent) => feature::reduce(state, intent),

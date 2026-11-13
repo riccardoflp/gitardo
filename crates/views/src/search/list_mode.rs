@@ -1,6 +1,9 @@
-//! The commits found shown as a list (`search.list-mode`), or the history of a commit alone (`search.go-to-hash`): the
-//! bar above them that says what they are, as the bar of `filter.bar` does, with **Show all commits**.
+//! The commits found shown as a list (`search.list-mode`), the history of a commit alone (`search.go-to-hash`), or the
+//! history of a file, of some lines or of a folder (`file-history.file`, `file-history.lines`, `file-history.folder`):
+//! the bar above them that says what they are, as the bar of `filter.bar` does, with **Show all commits**.
 
+use model::CommitId;
+use model::file_history::HistoryOf;
 use model::filter::BranchesShown;
 use model::search::SearchMode;
 use ui::layout::{Align, Area, Insets, inset, place};
@@ -22,6 +25,13 @@ pub enum Narrowed<'a> {
     },
     /// The history of a commit on no branch or tag, by its short hash.
     Commit(&'a str),
+    /// The history of a file, of some lines or of a folder.
+    History {
+        /// Whose history.
+        history: &'a HistoryOf,
+        /// The commit checked out now, which the lines followed may no longer be those of.
+        head: Option<&'a CommitId>,
+    },
 }
 
 /// The bar of a search shown as a list, or of the history of a commit alone.
@@ -46,7 +56,7 @@ pub fn list_mode_view(state: &ListMode<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
-    let said = words::list_bar(&state.narrowed, state.within, (state.listed, state.has_more));
+    let (said, dimmed) = words::list_bar(&state.narrowed, state.within, (state.listed, state.has_more));
     let mut intents = Vec::new();
     ui.region("search list bar", (rect, AccessRole::Group, words::LIST_BAR), |ui| {
         ui.fill_rect(rect, theme.colors.card_background);
@@ -68,7 +78,18 @@ pub fn list_mode_view(state: &ListMode<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         if ui.button("show all commits", cell, &button).clicked {
             intents.push(Intent::Search(SearchIntent::ShowAllCommits));
         }
-        let _ = ui.label(parts.rest(), &Label::new(&said));
+        let remaining = parts.rest();
+        let used = ui.label(remaining, &Label::new(&said));
+        if !dimmed.is_empty() {
+            let after = used + spacing.small;
+            let muted = Rect::new(
+                remaining.x + after,
+                remaining.y,
+                (remaining.width - after).max(0.0),
+                remaining.height,
+            );
+            let _ = ui.label(muted, &Label::new(&dimmed).tone(Tone::Muted));
+        }
     });
     intents
 }

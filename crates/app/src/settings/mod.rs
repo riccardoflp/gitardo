@@ -57,6 +57,8 @@ pub struct Settings {
     pub collapse_unchanged: bool,
     /// `changes.openOnClick`: what a click on a file of the Changes page opens.
     pub open_on_click: OpenOnClick,
+    /// `fileBlame.format`, `fileBlame.groupLines` and `fileBlame.age.*`: how the blame beside the lines of a file looks.
+    pub file_blame: FileBlameLook,
     /// Every value the files set, by key, the repository's file first: what the settings page shows.
     pub values: BTreeMap<String, Vec<(SettingsFile, json::Value)>>,
     /// The values that were not taken, with which key and why, for the settings page to say.
@@ -77,6 +79,7 @@ impl Default for Settings {
             features: FeatureSettings::default(),
             collapse_unchanged: true,
             open_on_click: OpenOnClick::File,
+            file_blame: FileBlameLook::default(),
             values: BTreeMap::new(),
             problems: Vec::new(),
         }
@@ -100,6 +103,36 @@ impl Default for FontChoice {
             interface: String::from(keys::INTERFACE_FONT),
             code: String::from(keys::CODE_FONT),
             size: keys::FONT_SIZE,
+        }
+    }
+}
+
+/// How the blame beside the lines of a file looks (`blame.file`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct FileBlameLook {
+    /// `fileBlame.format`: what is said beside each line.
+    pub format: String,
+    /// `fileBlame.groupLines`: a line of the commit of the line above says nothing.
+    pub group_lines: bool,
+    /// `fileBlame.age.enabled`: the bar of each line has the color of its age.
+    pub age_enabled: bool,
+    /// `fileBlame.age.recentColor`: the color of a line just changed.
+    pub recent_color: String,
+    /// `fileBlame.age.oldColor`: the color of a line changed long ago.
+    pub old_color: String,
+    /// `fileBlame.age.oldAfterDays`: after how many days a line has the old color.
+    pub old_after_days: f64,
+}
+
+impl Default for FileBlameLook {
+    fn default() -> FileBlameLook {
+        FileBlameLook {
+            format: String::from(model::blame::DEFAULT_FORMAT),
+            group_lines: true,
+            age_enabled: true,
+            recent_color: String::from(model::blame::RECENT_COLOR),
+            old_color: String::from(model::blame::OLD_COLOR),
+            old_after_days: model::blame::OLD_AFTER_DAYS,
         }
     }
 }

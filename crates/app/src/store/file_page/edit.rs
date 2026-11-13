@@ -79,6 +79,7 @@ pub fn reduce_page(state: &mut State, id: FilePageId, intent: FilePageIntent) ->
 /// Does what the keys and the pointer asked of the text of a page: the colors of its code and its matches follow, and
 /// the Diff pages of the file are read again with the text not saved.
 pub(super) fn edit(state: &mut State, id: FilePageId, commands: &[Command]) -> Vec<Effect> {
+    let is_blamed = crate::store::blame::shows_file(state, id);
     let Some(page) = page_mut(state, id) else {
         return Vec::new();
     };
@@ -87,11 +88,21 @@ pub(super) fn edit(state: &mut State, id: FilePageId, commands: &[Command]) -> V
         return Vec::new();
     };
     let mut changes = Vec::new();
+    let mut blamed_edits = Vec::new();
     for command in commands {
         if is_read_only && command.is_edit() {
             continue;
         }
-        changes.extend(apply(document, &mut page.cursor, command));
+        let before = is_blamed.then(|| document.buffer().text().to_owned());
+        let made = apply(document, &mut page.cursor, command);
+        if let Some(before) = before {
+            blamed_edits.extend(crate::store::blame::line_changes(
+                &before,
+                &made,
+                document.buffer().text(),
+            ));
+        }
+        changes.extend(made);
     }
     match changes.as_slice() {
         [] => return Vec::new(),
@@ -100,6 +111,7 @@ pub(super) fn edit(state: &mut State, id: FilePageId, commands: &[Command]) -> V
     }
     find_again(page);
     let (top, path) = (page.top.clone(), page.path.clone());
+    crate::store::blame::mark_edits(state, id, &blamed_edits);
     crate::store::diff_page::read_file_again(state, &top, &path)
 }
 

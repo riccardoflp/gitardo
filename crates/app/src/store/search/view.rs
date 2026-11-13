@@ -82,18 +82,22 @@ pub fn search_box(state: &State) -> SearchBox<'_> {
     }
 }
 
-/// The bar of a search shown as a list, or of the history of a commit alone, with the branches shown a search is inside
+/// The bar of a search shown as a list, of the history of a commit alone, or of a file, some lines or a folder, with the branches shown a search is inside
 /// and the commits listed; it takes the place of the bar of the branches shown.
 #[must_use]
 pub fn list_mode(state: &State) -> Option<ListMode<'_>> {
     let search = &state.search;
-    let narrowed = match (&search.list, &search.alone) {
-        (Some(asked), _) => Narrowed::Search {
+    let narrowed = match (&search.list, &search.alone, &search.history) {
+        (Some(asked), _, _) => Narrowed::Search {
             mode: asked.mode,
             text: &asked.text,
         },
-        (None, Some(commit)) => Narrowed::Commit(commit.short()),
-        (None, None) => return None,
+        (None, Some(commit), _) => Narrowed::Commit(commit.short()),
+        (None, None, Some(history)) => Narrowed::History {
+            history,
+            head: state.shown_read().and_then(|read| read.state.head.commit.as_ref()),
+        },
+        (None, None, None) => return None,
     };
     let timeline = &state.timeline;
     Some(ListMode {

@@ -9,6 +9,7 @@ use model::repo::name_repositories;
 use model::state::RepositoryState;
 use views::activity::{ActivityState, RunningTask, StatusBarState};
 use views::branch::ReferenceMenus;
+use views::file_view::FilePageState;
 use views::filter::NarrowedBar;
 use views::graph::{
     BranchChip, Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, ReferencesShown, RepositoryEntry,
@@ -56,6 +57,8 @@ pub struct ViewData {
     search: search::SearchView,
     /// The list of the Changes page, while it is open.
     changes: super::changes::ChangesData,
+    /// The blame of the File page in front.
+    blame: super::blame::BlameData,
 }
 
 impl ViewData {
@@ -119,6 +122,7 @@ impl ViewData {
             now,
             search: search::SearchView::new(state),
             changes: super::changes::ChangesData::new(state),
+            blame: super::blame::BlameData::new(state, now),
         }
     }
 
@@ -253,7 +257,11 @@ impl ViewData {
             }
             Some(Page::Review) => self.page_or_timeline(state, super::review::page_state(state).map(PageState::Review)),
             Some(Page::File(id)) => {
-                self.page_or_timeline(state, super::file_page::page_state(state, id).map(PageState::File))
+                let page = super::file_page::page_state(state, id).map(|page| FilePageState {
+                    blame: self.blame.page_blame(state, id),
+                    ..page
+                });
+                self.page_or_timeline(state, page.map(PageState::File))
             }
             Some(Page::Settings) => Content::Page(PageHostState {
                 has_trail: state.workspace.is_some(),
@@ -273,6 +281,10 @@ impl ViewData {
             Some(Page::Changes) => Content::Page(PageHostState {
                 has_trail: true,
                 page: PageState::Changes(self.changes.page_state(state)),
+            }),
+            Some(Page::Files) => Content::Page(PageHostState {
+                has_trail: true,
+                page: PageState::Files(super::files_page::page_state(state)),
             }),
             None => Content::Timeline(self.timeline(state)),
         }

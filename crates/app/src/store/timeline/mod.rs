@@ -170,7 +170,8 @@ fn shows_checked_out(shown: Option<&BranchesShown>, repository: &RepositoryState
 
 /// Takes the rows of a read of the repository shown, of the history of the branches shown: a read that finds the
 /// same rows changes none of them; a new repository starts with nothing selected and the folds kept for it. A search
-/// shown as a list, or the history of a commit alone, has no draft. Says whether the rows changed.
+/// shown as a list, the history of a commit alone, or of a file, some lines or a folder, has no draft. Says whether the
+/// rows changed.
 pub fn take_read(
     state: &mut State,
     (folder, repository): (&Path, &RepositoryState),
@@ -185,7 +186,7 @@ pub fn take_read(
         };
         folds::restore(state, folder);
     }
-    let is_narrowed = state.search.list.is_some() || state.search.alone.is_some();
+    let is_narrowed = super::search::is_narrowed(state);
     let draft = draft_of(repository, &rows).filter(|_| !is_narrowed && shows_checked_out(shown.as_ref(), repository));
     state.timeline.shown = shown;
     let mut all = Vec::with_capacity(rows.len() + 1);
