@@ -6,5 +6,17 @@ edition.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[features]
+# A server on 127.0.0.1 for the tests of the crates that send requests, in the clear or over TLS with the
+# certificate of the tests. Turned on only by their dev-dependencies.
+test-server = ["tls/test-server"]
+
+[dependencies]
+tls = { path = "../tls" }
+
+[dev-dependencies]
+# The server of the tests on 127.0.0.1, which speaks HTTPS with the certificate of the tests.
+tls = { path = "../tls", features = ["test-server"] }
+
 [lints]
 workspace = true

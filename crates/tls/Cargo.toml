@@ -6,5 +6,19 @@ edition.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[features]
+# A server that speaks TLS with the certificate of the tests, so that the tests of the crates above can reach a server
+# on 127.0.0.1 over HTTPS without naming rustls themselves. Turned on only by their dev-dependencies.
+test-server = []
+
+# The libraries of decision D13 (rule R1.5), each with only the features named beside it.
+[dependencies]
+# TLS 1.2 and 1.3, with ring as its cryptography.
+# - std: streams over std::io; tls12: the servers that still speak only TLS 1.2; ring: the cryptography.
+# - Not the default aws-lc-rs, which needs a C compiler and CMake (decision D13); not logging.
+rustls = { version = "=0.23.46", default-features = false, features = ["std", "tls12", "ring"] }
+# The root certificates the system trusts: the certificate store of Windows, the keychain of macOS, the files of Linux.
+rustls-native-certs = "=0.8.5"
+
 [lints]
 workspace = true
