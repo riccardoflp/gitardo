@@ -1064,3 +1064,9 @@ says otherwise):
   working tree, is compared again at every read of its repository, which also moves a branch side that moved. The
   comparisons opened before are kept in memory, for each repository, not between runs. Selecting another row of the
   timeline closes the comparison in the inspector. Are these right, and which of the missing parts should come first?
+- **Q184** — The **…** menu of the header now follows the groups and the order of `graph.more-menu`, with what is built:
+  **Compare branches, tags or commits…** is in it, and **Switch identity…** has a group of its own. The card stays
+  **Specified** while **History of the active file** (`file-history.file`, M7), **Add submodule…** (`submodule.add`,
+  M8) and **Load pull requests from GitHub** (M9) are missing. The reflog is **Reflog**, as `reflog.browse` names it,
+  not **Browse reflog…** as this card does, and **Settings** and **Theme…** close the menu though the card does not
+  list them. Which name should the reflog have?

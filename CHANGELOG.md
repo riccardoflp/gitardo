@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The **…** menu of the header is in the groups of its card, with **Compare branches, tags or commits…** and
+  **Switch identity…** in a group of its own.
 - The documents to build Gitardo Desktop from: the clean room, the product, the architecture, the code rules, the
   contract of a feature, the platforms, testing, the roadmap, the decisions, and the catalog of every feature.
 - The workspace of crates, with the lints of the code rules, and `cargo xtask check`, which refuses a package from

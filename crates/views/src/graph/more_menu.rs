@@ -1,6 +1,7 @@
-//! The **…** menu at the end of the header (`graph.more-menu`), with what is built: **Refresh**; the switches of the
-//! timeline, checked while they are on; **Fold all merges** and **Unfold all merges**; and **Select repository…**
-//! when the workspace has more than one repository.
+//! The **…** menu at the end of the header (`graph.more-menu`), in the groups of its card, with what is built:
+//! **Refresh** and the operations at `HEAD`; the switches of the timeline, checked while they are on, and the folds;
+//! the switches of the rows; the ways to what is not elsewhere in the header; **Switch identity…**; then **Settings**
+//! and **Theme…**.
 
 use model::filter::{Kinds, ReferenceKind};
 use ui::{Button, ButtonKind, Icon, MenuEntry, MenuItem, Ui};
@@ -202,13 +203,12 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
     }
 }
 
-/// **Branch**, **Stash**, **Undo** and **Switch identity…**, each disabled while an operation runs and when it has nothing to work on.
+/// **Branch**, **Stash** and **Undo**, each disabled while an operation runs and when it has nothing to work on.
 fn operation_entries(menu: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
     [
         (words::BRANCH, "branch.create", menu.has_commits),
         (words::STASH, "stash.push", menu.can_stash),
         (words::UNDO, "undo.last", menu.has_commits),
-        (crate::text::changes::SWITCH_IDENTITY, "identity.switch", true),
     ]
     .into_iter()
     .map(|(label, feature, can_run)| {
@@ -222,24 +222,34 @@ fn operation_entries(menu: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand
     .collect()
 }
 
-/// **Manage remotes…**, **Apply patch…** and **Reflog**, which cannot be clicked while an operation runs.
-fn repository_entries(operations: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
-    [
-        (words::MANAGE_REMOTES, "remote.manage"),
-        (crate::text::patch::APPLY_PATCH, "patch.apply"),
-        (crate::text::bisect::REFLOG, "reflog.browse"),
-    ]
-    .into_iter()
-    .map(|(label, feature)| {
-        let item = MenuItem::new(label, MoreCommand::Operation(feature));
-        MenuEntry::Item(if operations.is_running { item.disabled() } else { item })
-    })
-    .collect()
+/// An entry that runs an operation at `HEAD`, which cannot be clicked while an operation runs.
+fn operation_item(
+    label: &'static str,
+    feature: &'static str,
+    operations: OperationsMenu,
+) -> MenuEntry<'static, MoreCommand> {
+    let item = MenuItem::new(label, MoreCommand::Operation(feature));
+    MenuEntry::Item(if operations.is_running { item.disabled() } else { item })
 }
 
-/// The entries of **…**: **Refresh**, **Branch**, **Stash** and **Undo**, the entries of the timeline, **Go to commit…**,
-/// **Clean up branches…**, **Manage remotes…**, **Apply patch…**, **Reflog**, **Select repository**, then **Settings** and
-/// **Theme…**.
+/// The ways to what is not elsewhere in the header, in the order of the card: **Compare branches, tags or commits…**,
+/// **Go to commit…**, **Reflog**, **Clean up branches…**, **Apply patch…** and **Manage remotes…**.
+fn ways_entries(operations: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
+    vec![
+        operation_item(crate::text::compare::COMPARE_BRANCHES, "compare.choose", operations),
+        MenuEntry::Item(MenuItem::new(
+            crate::text::search::GO_TO_COMMIT_ENTRY,
+            MoreCommand::GoToCommit,
+        )),
+        operation_item(crate::text::bisect::REFLOG, "reflog.browse", operations),
+        operation_item(crate::text::branch::CLEAN_UP_BRANCHES, "branch.clean-up", operations),
+        operation_item(crate::text::patch::APPLY_PATCH, "patch.apply", operations),
+        operation_item(words::MANAGE_REMOTES, "remote.manage", operations),
+    ]
+}
+
+/// The entries of **…**, in the groups of the card: **Refresh**, **Branch**, **Stash** and **Undo**; the entries of the
+/// timeline; the ways to the pages and **Select repository…**; **Switch identity…**; then **Settings** and **Theme…**.
 fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
     let refresh = MenuItem::new(words::REFRESH, MoreCommand::Refresh).with_icon(Icon::Refresh);
     let mut entries = vec![MenuEntry::Item(if state.can_refresh {
@@ -253,34 +263,25 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
     if let Some(timeline) = &state.timeline {
         entries.extend(timeline_entries(*timeline));
     }
-    if state.timeline.is_some() || state.can_select_repository {
+    if state.operations.is_some() || state.can_select_repository {
         entries.push(MenuEntry::Separator);
     }
-    if state.timeline.is_some() {
-        entries.push(MenuEntry::Item(MenuItem::new(
-            crate::text::search::GO_TO_COMMIT_ENTRY,
-            MoreCommand::GoToCommit,
-        )));
-        if let Some(operations) = state.operations {
-            let clean_up = MenuItem::new(
-                crate::text::branch::CLEAN_UP_BRANCHES,
-                MoreCommand::Operation("branch.clean-up"),
-            );
-            entries.push(MenuEntry::Item(if operations.is_running {
-                clean_up.disabled()
-            } else {
-                clean_up
-            }));
-        }
-    }
     if let Some(operations) = state.operations {
-        entries.extend(repository_entries(operations));
+        entries.extend(ways_entries(operations));
     }
     if state.can_select_repository {
         entries.push(MenuEntry::Item(MenuItem::new(
             words::SELECT_REPOSITORY,
             MoreCommand::SelectRepository,
         )));
+    }
+    if let Some(operations) = state.operations {
+        entries.push(MenuEntry::Separator);
+        entries.push(operation_item(
+            crate::text::changes::SWITCH_IDENTITY,
+            "identity.switch",
+            operations,
+        ));
     }
     entries.push(MenuEntry::Separator);
     entries.push(MenuEntry::Item(
@@ -291,4 +292,82 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
         MoreCommand::Theme,
     )));
     entries
+}
+
+#[cfg(test)]
+#[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
+mod tests {
+    use model::filter::Kinds;
+    use ui::MenuEntry;
+
+    use super::{MoreMenuState, OperationsMenu, TimelineMenu, menu_entries};
+    use crate::graph::intent::Switches;
+
+    /// The words of the menu, with `-` for a separator.
+    fn words(state: &MoreMenuState) -> Vec<&'static str> {
+        menu_entries(state)
+            .into_iter()
+            .map(|entry| match entry {
+                MenuEntry::Item(item) => item.label,
+                MenuEntry::Submenu { .. } | MenuEntry::Separator => "-",
+            })
+            .collect()
+    }
+
+    #[test]
+    fn graph_more_menu__the_entries_built_are_in_the_groups_and_the_order_of_the_card() {
+        let state = MoreMenuState {
+            can_refresh: true,
+            can_select_repository: true,
+            timeline: Some(TimelineMenu {
+                switches: Switches::DEFAULT,
+                has_merges: true,
+                has_folds: false,
+                is_all_folded: false,
+                kinds: Some(Kinds::ALL),
+            }),
+            operations: Some(OperationsMenu {
+                is_running: false,
+                has_commits: true,
+                can_stash: true,
+            }),
+        };
+        assert_eq!(
+            words(&state),
+            [
+                "Refresh",
+                "Branch",
+                "Stash",
+                "Undo",
+                "-",
+                "Show local branches",
+                "Show remote branches",
+                "Show tags",
+                "Show stashes",
+                "Show only the first parent of merges",
+                "Bring out the history of the selected commit",
+                "Fold all merges",
+                "Unfold all merges",
+                "-",
+                "Show the author",
+                "Show the date",
+                "Show the hash",
+                "Separate the days, weeks and months",
+                "Put a branch and its upstream on one label",
+                "-",
+                "Compare branches, tags or commits\u{2026}",
+                "Go to commit\u{2026}",
+                "Reflog",
+                "Clean up branches\u{2026}",
+                "Apply patch\u{2026}",
+                "Manage remotes\u{2026}",
+                "Select repository\u{2026}",
+                "-",
+                "Switch identity\u{2026}",
+                "-",
+                "Settings",
+                "Theme\u{2026}",
+            ]
+        );
+    }
 }
