@@ -5,29 +5,26 @@
 use std::path::PathBuf;
 
 use model::filter::kinds_shown;
-use model::graph::Row;
 use model::repo::name_repositories;
 use model::state::RepositoryState;
 use views::activity::{ActivityState, RunningTask, StatusBarState};
 use views::branch::ReferenceMenus;
-use views::details::SelectedDetails;
-use views::filter::{BranchPicker, NarrowedBar, PickerOpen};
+use views::filter::NarrowedBar;
 use views::graph::{
     BranchChip, Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, ReferencesShown, RepositoryEntry,
-    RepositoryPill, Selected, SyncCounts, TimelineMenu, ToolbarState, TraceShown,
+    RepositoryPill, SyncCounts, TimelineMenu, ToolbarState, TraceShown,
 };
 use views::log::{LogLine, LogState};
 use views::page::{Page, PageHostState, PageState};
-use views::refs::ReferencesState;
 use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState};
 use views::settings::{SettingRow, SettingsPageState, ThemePickerState};
 use views::welcome::WelcomeState;
 use views::{Content, TimelineState, WindowState};
 
-use super::rail::{favorites, sort_order};
 use super::search::{self, view as search_view};
-use super::state::{Dialog, RepositoryRead, Shown, State};
-use super::timeline::{Timeline, workspace_panes};
+use super::state::{Dialog, Shown, State};
+use super::timeline::workspace_panes;
+use super::view_parts::{branch_picker, rail, selected_details};
 use crate::persisted::{WorkspacePanes, same_folder};
 
 /// The words the views need that the store does not keep.
@@ -373,70 +370,6 @@ fn timeline_menu(state: &State) -> TimelineMenu {
         has_folds: !timeline.folded.is_empty(),
         is_all_folded: timeline.is_all_folded,
         kinds: kinds_shown(timeline.shown.as_ref()),
-    }
-}
-
-/// The branch rail of the repository shown, the ages of its stashes said from a moment in seconds since 1970.
-fn rail<'a>(state: &'a State, read: &'a RepositoryRead, now: i64) -> ReferencesState<'a> {
-    let selected = match &state.timeline.selected {
-        Some(Selected::Commit(commit)) => Some(commit),
-        _ => None,
-    };
-    ReferencesState {
-        repository: &read.state,
-        references: &state.rail.references,
-        lists: &state.rail.lists,
-        branch_colors: &state.timeline.layout.branch_colors,
-        remote_colors: &state.timeline.layout.remote_colors,
-        favorites: favorites(state),
-        recent: &state.rail.recent,
-        submodules: &[],
-        typed: &state.rail.typed,
-        shown: state.timeline.shown.as_ref(),
-        follows_timeline: state.settings.follows_graph_filter,
-        selected,
-        sort: sort_order(state),
-        open_in: state.settings.features.branch_open_in,
-        stashes: views::refs::StashesShown {
-            unfolded: &state.rail.stashes.unfolded,
-            files: &state.rail.stashes.files,
-            is_operation_running: state.is_operation_running,
-            now,
-        },
-    }
-}
-
-/// The branch filter of the header.
-fn branch_picker(state: &State) -> BranchPicker<'_> {
-    BranchPicker {
-        shown: state.timeline.shown.as_ref(),
-        references: &state.rail.references,
-        open: state.rail.picker.as_ref().map(|picker| PickerOpen {
-            typed: &picker.typed,
-            window: picker.window,
-        }),
-        follows_timeline: state.settings.follows_graph_filter,
-    }
-}
-
-/// What the inspector shows of the row selected, as the timeline read it.
-fn selected_details(timeline: &Timeline) -> Option<SelectedDetails<'_>> {
-    let commit = match timeline.selected.as_ref()? {
-        Selected::Draft => return timeline.draft.map(SelectedDetails::Draft),
-        Selected::Commit(commit) => commit,
-    };
-    let row = timeline
-        .layout
-        .shown_of
-        .get(commit)
-        .and_then(|shown| timeline.layout.read_of.get(*shown))
-        .and_then(|read| timeline.rows.get(*read))
-        .filter(|row| row.id() == Some(commit))
-        .or_else(|| timeline.rows.iter().find(|row| row.id() == Some(commit)))?;
-    match row {
-        Row::Commit(commit) => Some(SelectedDetails::Commit(commit)),
-        Row::Stash { commit, index } => Some(SelectedDetails::Stash { commit, index: *index }),
-        Row::Uncommitted { .. } => None,
     }
 }
 

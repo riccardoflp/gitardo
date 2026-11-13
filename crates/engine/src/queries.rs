@@ -57,14 +57,9 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
         Query::Stash { index } => stash(git, *index),
         Query::Identity => identity(git),
         Query::FileVersions { path, commit } => file_versions(git, path, commit.as_ref()),
-        Query::PredictedConflicts { ours, theirs, base } => predicted_conflicts(
-            git,
-            &PredictedConflictsRequest {
-                ours: ours.clone(),
-                theirs: theirs.clone(),
-                base: base.clone(),
-            },
-        ),
+        Query::PredictedConflicts { ours, theirs, base } => {
+            predicted_conflicts(git, &conflicts_request(ours.as_ref(), theirs, base.as_ref()))
+        }
         Query::Commits { revisions } => rewrite::read_commits(git, revisions).map(Answer::Commits),
         Query::LineAfter { commit } => rewrite::read_line_after(git, commit).map(Answer::Commits),
         Query::Message { commit } => rewrite::read_message(git, commit).map(Answer::Message),
@@ -209,13 +204,7 @@ fn stash(git: &Git, index: usize) -> Result<Answer, GitError> {
 pub(crate) fn describe(query: &Query) -> String {
     match query {
         Query::Reflog { reference, count } => format!("git log --walk-reflogs --max-count={count} {reference}"),
-        Query::ReflogPositions { reference, count } => {
-            let request = ReflogRequest {
-                reference: reference.clone(),
-                count: *count,
-            };
-            git::command_line(&git::read::reflog::positions_arguments(&request))
-        }
+        Query::ReflogPositions { reference, count } => describe_positions(reference, *count),
         Query::FilesMatch { commit } => format!("git diff --quiet {commit} --"),
         Query::Revision { revision } => format!("git rev-parse --verify --quiet {revision}^{{commit}}"),
         Query::Journal => String::from("the journal of Undo"),
@@ -239,11 +228,7 @@ pub(crate) fn describe(query: &Query) -> String {
             None => format!("git show :0:{path}, read {path}"),
         },
         Query::PredictedConflicts { ours, theirs, base } => git::command_line(
-            &git::read::merge::predicted_conflicts_arguments(&PredictedConflictsRequest {
-                ours: ours.clone(),
-                theirs: theirs.clone(),
-                base: base.clone(),
-            }),
+            &git::read::merge::predicted_conflicts_arguments(&conflicts_request(ours.as_ref(), theirs, base.as_ref())),
         ),
         Query::Commits { revisions } => git::command_line(&rewrite::commits_arguments(revisions)),
         Query::LineAfter { commit } => git::command_line(&rewrite::line_after_arguments(commit)),
@@ -251,31 +236,67 @@ pub(crate) fn describe(query: &Query) -> String {
         Query::EmptyStop => String::from(
             "git rev-parse -q --verify CHERRY_PICK_HEAD (or REVERT_HEAD), git ls-files -u -z, git diff --quiet HEAD --",
         ),
-        Query::Line { commit } => format!(
-            "{}, {}, git log -z --topo-order --format=%H%x00%P%x00%B HEAD --not {commit}^@ --",
-            git::command_line(&rebase::parents_arguments(commit)),
-            git::command_line(&branch::ancestor_arguments(commit.as_str(), "HEAD"))
-        ),
-        Query::Messages { commits } => commits
-            .iter()
-            .map(|commit| git::command_line(&rebase::message_arguments(commit)))
-            .collect::<Vec<_>>()
-            .join(", "),
+        Query::Line { commit } => describe_line(commit),
+        Query::Messages { commits } => describe_messages(commits),
         Query::Pushed { commit } => {
             git::command_line(&rebase::pushed_arguments(&PushedRequest { commit: commit.clone() }))
         }
         Query::CommitFiles { commit } => git::command_line(&rebase::commit_files_arguments(commit)),
-        Query::FormatPatch { commits } => {
-            let hashes: Vec<&str> = commits.iter().map(model::CommitId::as_str).collect();
-            format!("git format-patch --stdout {}", hashes.join(" "))
-        }
-        Query::PatchCheck { patch } => match patch {
-            model::patch::PatchInput::File(path) => format!("git apply --check --3way -- {}", path.display()),
-            model::patch::PatchInput::Text(_) => String::from("git apply --check --3way"),
-        },
+        Query::FormatPatch { commits } => describe_format_patch(commits),
+        Query::PatchCheck { patch } => describe_patch_check(patch),
         Query::FileContents { path } => format!("read {}", path.display()),
         Query::Clipboard => String::from("the text of the clipboard"),
         Query::TemporaryFile { extension } => format!("a temporary .{extension} file"),
         Query::ComparePatch(target) => readings::describe_compare_patch(target),
+    }
+}
+
+/// What a prediction of the conflicts of a merge reads.
+fn conflicts_request(ours: Option<&String>, theirs: &str, base: Option<&String>) -> PredictedConflictsRequest {
+    PredictedConflictsRequest {
+        ours: ours.cloned(),
+        theirs: theirs.to_owned(),
+        base: base.cloned(),
+    }
+}
+
+/// The command that reads the places of the entries of a reflog.
+fn describe_positions(reference: &str, count: usize) -> String {
+    let request = ReflogRequest {
+        reference: reference.to_owned(),
+        count,
+    };
+    git::command_line(&git::read::reflog::positions_arguments(&request))
+}
+
+/// The commands that read the line of a commit up to `HEAD`.
+fn describe_line(commit: &model::CommitId) -> String {
+    format!(
+        "{}, {}, git log -z --topo-order --format=%H%x00%P%x00%B HEAD --not {commit}^@ --",
+        git::command_line(&rebase::parents_arguments(commit)),
+        git::command_line(&branch::ancestor_arguments(commit.as_str(), "HEAD"))
+    )
+}
+
+/// The commands that read the messages of commits, one each.
+fn describe_messages(commits: &[model::CommitId]) -> String {
+    commits
+        .iter()
+        .map(|commit| git::command_line(&rebase::message_arguments(commit)))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// The command that makes commits one patch.
+fn describe_format_patch(commits: &[model::CommitId]) -> String {
+    let hashes: Vec<&str> = commits.iter().map(model::CommitId::as_str).collect();
+    format!("git format-patch --stdout {}", hashes.join(" "))
+}
+
+/// The command that checks a patch would apply.
+fn describe_patch_check(patch: &model::patch::PatchInput) -> String {
+    match patch {
+        model::patch::PatchInput::File(file) => format!("git apply --check --3way -- {}", file.display()),
+        model::patch::PatchInput::Text(_) => String::from("git apply --check --3way"),
     }
 }

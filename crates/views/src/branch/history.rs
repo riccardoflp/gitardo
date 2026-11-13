@@ -11,8 +11,8 @@ const MARK: AnswerKey = AnswerKey("mark");
 
 use super::ReferenceMenus;
 use super::menu::OperationEntry;
-use crate::text::compare as compare_words;
 use crate::text::bisect as words;
+use crate::text::compare as compare_words;
 use crate::text::patch as patch_words;
 
 /// **Compare with…** and, when it is not at the commit checked out, **Compare with `<current branch>`** (**Compare with

@@ -23,6 +23,7 @@ mod state;
 #[cfg(test)]
 mod tests;
 mod timeline;
+mod view_parts;
 mod view_state;
 mod workspace;
 
@@ -293,12 +294,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         }
         Intent::Rail(intent) => rail::reduce_rail(state, intent),
         Intent::Filter(intent) => rail::reduce_filter(state, intent),
-        Intent::Graph(intent) => {
-            if matches!(intent, views::graph::GraphIntent::Select(_)) {
-                state.compares.in_place = None;
-            }
-            timeline::reduce_graph(state, intent)
-        }
+        Intent::Graph(intent) => reduce_graph(state, intent),
         Intent::Search(intent) => search::reduce(state, intent),
         Intent::Details(intent) => inspector::reduce_details(state, intent),
         Intent::CommitPage(id, intent) => commit_page::reduce_page(state, id, intent),
@@ -308,6 +304,14 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Changes(intent) => changes::reduce(state, intent),
         Intent::Rebase(intent) => rebase::reduce(state, intent),
     }
+}
+
+/// An intent of the timeline; selecting a row there closes the comparison shown in place in the inspector.
+fn reduce_graph(state: &mut State, intent: views::graph::GraphIntent) -> Vec<Effect> {
+    if matches!(intent, views::graph::GraphIntent::Select(_)) {
+        state.compares.in_place = None;
+    }
+    timeline::reduce_graph(state, intent)
 }
 
 /// An intent that changes only what a view shows.

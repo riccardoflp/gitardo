@@ -165,10 +165,8 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
             inspector: details,
             panes,
             is_rail_hidden,
-            bar,
             search,
-            stop,
-            bisect,
+            ..
         } => {
             let is_inspector_over = ui.window().width < INSPECTOR_OVER_BELOW;
             let layout = PaneLayout {
@@ -188,21 +186,7 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
             }
             let main = search_row(&search.0, ui, rects.main, intents);
             let mut main = Area::new(main);
-            if let Some(list) = &search.1 {
-                let top = main.top(bar_height(ui));
-                intents.extend(ui.clip(top, |ui| list_mode_view(list, ui)));
-            } else if let Some(bar) = bar {
-                let top = main.top(bar_height(ui));
-                intents.extend(ui.clip(top, |ui| bar_view(bar, ui)));
-            }
-            if let Some(stop) = stop {
-                let top = main.top(bar_height(ui));
-                intents.extend(ui.clip(top, |ui| crate::rebase::edit_stop_view(stop, ui)));
-            }
-            if let Some(banner) = bisect {
-                let top = main.top(bar_height(ui));
-                intents.extend(ui.clip(top, |ui| banner_view(banner, ui)));
-            }
+            banners(state, ui, &mut main, intents);
             let graph = with_rail_hover(graph, rail_hover);
             intents.extend(ui.clip(main.rest(), |ui| graph_view(&graph, ui)));
             if let Some(column) = rects.inspector {
@@ -219,6 +203,36 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
             ui.fill_rect(rail, theme.colors.rail_background);
             intents.extend(ui.clip(columns.rest(), |ui| no_repository_view(no_repository, ui)));
         }
+    }
+}
+
+/// The bars above the commits, each the height of one: the list mode of the search or what the timeline is narrowed
+/// to, then the banner of a rebase stopped, then that of a bisect.
+fn banners(state: &TimelineState<'_>, ui: &mut Ui<'_>, main: &mut Area, intents: &mut Vec<Intent>) {
+    let TimelineState::Repository {
+        bar,
+        search,
+        stop,
+        bisect,
+        ..
+    } = state
+    else {
+        return;
+    };
+    if let Some(list) = &search.1 {
+        let top = main.top(bar_height(ui));
+        intents.extend(ui.clip(top, |ui| list_mode_view(list, ui)));
+    } else if let Some(bar) = bar {
+        let top = main.top(bar_height(ui));
+        intents.extend(ui.clip(top, |ui| bar_view(bar, ui)));
+    }
+    if let Some(stop) = stop {
+        let top = main.top(bar_height(ui));
+        intents.extend(ui.clip(top, |ui| crate::rebase::edit_stop_view(stop, ui)));
+    }
+    if let Some(banner) = bisect {
+        let top = main.top(bar_height(ui));
+        intents.extend(ui.clip(top, |ui| banner_view(banner, ui)));
     }
 }
 

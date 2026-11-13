@@ -1032,14 +1032,14 @@ says otherwise):
   before a remote one, by its short name; the current side of a rebase with no branch at `onto` is its short hash, and
   its subject is that of `HEAD`; a stash has no subjects; the words are in `model` (`SideRole::words`), not in
   `views/src/text/`, since several pages and the questions to the AI provider use them. Are these right?
-- **Q-G1** — The bisect is read with the state of the repository, as the operation under way is, so the banner and the
+- **Q180** — The bisect is read with the state of the repository, as the operation under way is, so the banner and the
   marks come with every read. `bisect.marks` is not a view of its own: `model::graph::labels` gives the labels `bad`,
   `good` and `skipped` after the others, and `views::bisect::marks_view(mark)` gives the icon each is drawn with (a
   check, an error sign, a minus), so its card's Function line changed. `undo.last` refuses with *End the bisect first.*
   while a bisect is under way. The message that names the first bad commit is the one said once an operation ends, its
   **Undo** left out, with **Show in the timeline** and **End bisect**; once it is put away, the banner still says it,
   with **Show** and **End**. Are these right?
-- **Q-G2** — The files of `patch.save` and `patch.apply` are chosen in the system's dialog (the same as **Open
+- **Q181** — The files of `patch.save` and `patch.apply` are chosen in the system's dialog (the same as **Open
   folder…**), not a dialog of Gitardo's own, so their cards now say so; `gitardo-cli` takes `path=<path>` and
   `file=<path>`, and the text of the clipboard as `clipboard=<text>`. The temporary file of a patch from the clipboard
   is deleted by a step the engine runs after the plan whether it succeeded or not (`FollowUp::Cleanup`), shown in the
@@ -1048,7 +1048,7 @@ says otherwise):
   the window, so the Undo of a patch of commits at once is in the window only; `gitardo-cli` undoes it one commit at a
   time by the reflog. `patch.am-stopped` stays **Specified**: it is the banner of an operation stopped on a conflict
   (`conflicts.banner`, `conflicts.continue-operation`) and the Merge page, which come with M6. Are these right?
-- **Q-G3** — The questions of a side of a comparison are the window's own pick: its choices carry no group heading
+- **Q182** — The questions of a side of a comparison are the window's own pick: its choices carry no group heading
   (**Opened before**, **Branches**…), since a choice has none, and a revision typed is checked only once accepted, not
   while typing. The comparisons opened before are given to `compare.choose` by the window before it asks
   (`Answer::Recent`). `reflog.browse` offers only the actions whose feature is built: **Reset `<branch>` to here…**
@@ -1056,7 +1056,7 @@ says otherwise):
   **Specified** until its line 3 has a test then; its entries have no date and time, which a pure feature cannot put
   in the local zone. `compare.path-with` is not built: its entry points are the Files and File pages of M6, and it is
   best written with them, on the helpers of `features::compare`. Are these right?
-- **Q-G4** — The comparison page lists the files that differ without their changes: a click opens a file, and **Open
+- **Q183** — The comparison page lists the files that differ without their changes: a click opens a file, and **Open
   in the Diff page** all of them, in the Diff page, so **Show the changes**, the folds, the tree of the files, their
   context menu (**Compare with…**, which is `details.compare-file-with`) and `Ctrl+F` in the page are not there yet,
   nor the folding of the two groups of commits; a commit **also in** the other side says so in words, not greyed out.

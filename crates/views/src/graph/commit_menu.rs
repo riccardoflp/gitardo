@@ -146,26 +146,7 @@ pub(super) fn commit_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usiz
     else {
         return Vec::new();
     };
-    let mut operations = Vec::new();
-    let mut groups = Vec::new();
-    let mut rewrite = crate::rebase::RewriteMenu::default();
-    if let Some(menus) = state.references {
-        if let Some(label) = label {
-            let entries = label_entries(state, menus, &(commit.id.clone(), label));
-            groups.push(entries.len());
-            operations.extend(entries);
-        }
-        let entries = commit_entries(menus, &commit.id);
-        groups.push(entries.len());
-        operations.extend(entries);
-        rewrite = crate::rebase::rewrite_menu(menus, state.rows, &commit.id);
-        operations.append(&mut rewrite.operations);
-        let selected_before = match state.selected {
-            Some(super::intent::Selected::Commit(selected)) => Some(selected),
-            _ => None,
-        };
-        operations.extend(history_entries(menus, commit, selected_before));
-    }
+    let (operations, groups, rewrite) = menu_operations(state, commit, label);
     let mut entries = grouped(&operations, &groups);
     if let Some(label) = &rewrite.todo_page {
         if operations.len() == groups.iter().sum::<usize>() && !entries.is_empty() {
@@ -202,6 +183,37 @@ pub(super) fn commit_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usiz
         Some(CommitCommand::TodoPage) => vec![Intent::Rebase(crate::rebase::RebaseIntent::Open(commit.id.clone()))],
         None => Vec::new(),
     }
+}
+
+/// The operations of the menu of a commit, opened on it or on one of its labels: those of the label, those of the
+/// commit, then those that rewrite or compare it; with the sizes of the first groups, and the entry of the interactive
+/// rebase page.
+fn menu_operations(
+    state: &HistoryState<'_>,
+    commit: &Commit,
+    label: Option<usize>,
+) -> (Vec<OperationEntry>, Vec<usize>, crate::rebase::RewriteMenu) {
+    let mut operations = Vec::new();
+    let mut groups = Vec::new();
+    let mut rewrite = crate::rebase::RewriteMenu::default();
+    if let Some(menus) = state.references {
+        if let Some(label) = label {
+            let entries = label_entries(state, menus, &(commit.id.clone(), label));
+            groups.push(entries.len());
+            operations.extend(entries);
+        }
+        let entries = commit_entries(menus, &commit.id);
+        groups.push(entries.len());
+        operations.extend(entries);
+        rewrite = crate::rebase::rewrite_menu(menus, state.rows, &commit.id);
+        operations.append(&mut rewrite.operations);
+        let selected_before = match state.selected {
+            Some(super::intent::Selected::Commit(selected)) => Some(selected),
+            _ => None,
+        };
+        operations.extend(history_entries(menus, commit, selected_before));
+    }
+    (operations, groups, rewrite)
 }
 
 /// **Fold** or **Unfold** at the end of the menu of a merge commit whose branch can be folded, after a separator.
