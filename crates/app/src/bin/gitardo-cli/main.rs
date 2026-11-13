@@ -147,6 +147,37 @@ fn autostash_notice(context: &Context, finished: &Finished, out: &mut dyn Write)
     }
 }
 
+/// The line `gitardo-cli` prints for what the window would do once a plan ran, if any.
+fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
+    match follow_up {
+        FollowUp::Say(words) => writeln!(out, "{words}")?,
+        FollowUp::Offer(feature, label) => writeln!(out, "Next: {label} ({})", feature.0)?,
+        FollowUp::SelectCommit(commit) => writeln!(out, "Select {commit}")?,
+        FollowUp::SelectBeforeHead(count) => writeln!(out, "Select HEAD~{count}")?,
+        FollowUp::OpenCommitPage(commit) => writeln!(out, "Open the page of {commit}")?,
+        FollowUp::CopyToClipboard(text) => writeln!(out, "Copy {text}")?,
+        FollowUp::FillCommitMessage(message) => writeln!(out, "Commit message: {message}")?,
+        FollowUp::OpenComparison(target) => {
+            writeln!(out, "Compare {} with {}", target.first.name, target.second.name)?;
+        }
+        FollowUp::CloseMergePage(path) => writeln!(out, "Close the Merge page of {path}")?,
+        FollowUp::CompareInPlace(sides) => {
+            writeln!(out, "Compare {} with {}", sides.from.name, sides.to.name)?;
+        }
+        FollowUp::OpenReview(files) => writeln!(out, "Review {}", files.join(", "))?,
+        FollowUp::SelectHead
+        | FollowUp::DeleteWhenRebaseEnded(_)
+        | FollowUp::EmptyCommitMessage
+        | FollowUp::ReadPullRequests
+        | FollowUp::CheckAutostash
+        | FollowUp::Recover(_)
+        | FollowUp::PreparedMessage
+        | FollowUp::Cleanup(_)
+        | FollowUp::CheckBisect => {}
+    }
+    Ok(())
+}
+
 fn report(
     finished: &Finished,
     asker: &ArgumentAsker,
@@ -162,32 +193,7 @@ fn report(
                 writeln!(out, "  > {line}")?;
             }
             for follow_up in &plan.after {
-                match follow_up {
-                    FollowUp::Say(words) => writeln!(out, "{words}")?,
-                    FollowUp::Offer(feature, label) => writeln!(out, "Next: {label} ({})", feature.0)?,
-                    FollowUp::SelectCommit(commit) => writeln!(out, "Select {commit}")?,
-                    FollowUp::SelectBeforeHead(count) => writeln!(out, "Select HEAD~{count}")?,
-                    FollowUp::OpenCommitPage(commit) => writeln!(out, "Open the page of {commit}")?,
-                    FollowUp::CopyToClipboard(text) => writeln!(out, "Copy {text}")?,
-                    FollowUp::FillCommitMessage(message) => writeln!(out, "Commit message: {message}")?,
-                    FollowUp::OpenComparison(target) => {
-                        writeln!(out, "Compare {} with {}", target.first.name, target.second.name)?;
-                    }
-                    FollowUp::CloseMergePage(path) => writeln!(out, "Close the Merge page of {path}")?,
-                    FollowUp::CompareInPlace(sides) => {
-                        writeln!(out, "Compare {} with {}", sides.from.name, sides.to.name)?;
-                    }
-                    FollowUp::OpenReview(files) => writeln!(out, "Review {}", files.join(", "))?,
-                    FollowUp::SelectHead
-                    | FollowUp::DeleteWhenRebaseEnded(_)
-                    | FollowUp::EmptyCommitMessage
-                    | FollowUp::ReadPullRequests
-                    | FollowUp::CheckAutostash
-                    | FollowUp::Recover(_)
-                    | FollowUp::PreparedMessage
-                    | FollowUp::Cleanup(_)
-                    | FollowUp::CheckBisect => {}
-                }
+                follow_up_line(out, follow_up)?;
             }
             Ok(DONE)
         }

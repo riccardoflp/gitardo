@@ -104,7 +104,7 @@ fn merge_view_accept_proposals__with_auto_resolve_on_a_conflict_of_lines_next_to
  {
     let repository = stopped_merge(&[(10, "line 10 on main")], &[(11, "line 11 on feature")]);
     let mut state = showing(repository.path().to_path_buf());
-    state.settings.auto_resolve = true;
+    state.settings.features.conflicts_auto_resolve = true;
     open(&mut state);
     let proposal = text(&state).proposals.first().cloned().unwrap();
     assert_eq!(proposal.region, first_conflict(&state));
@@ -123,7 +123,7 @@ fn merge_view_accept_proposals__the_sparkle_accepts_every_proposal_at_once_and_o
         &[(6, "line 6 on feature"), (21, "line 21 on feature")],
     );
     let mut state = showing(repository.path().to_path_buf());
-    state.settings.auto_resolve = true;
+    state.settings.features.conflicts_auto_resolve = true;
     open(&mut state);
     let before = shown(&state).result.clone();
     assert_eq!(text(&state).proposals.len(), 2);

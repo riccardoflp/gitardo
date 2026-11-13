@@ -162,7 +162,7 @@ pub(super) enum Reading {
 
 /// Starts a read of a page, cancelling the one running.
 pub(super) fn start_read(state: &mut State, id: MergePageId, reading: Reading) -> Option<Effect> {
-    let auto_resolve = state.settings.auto_resolve;
+    let auto_resolve = state.settings.features.conflicts_auto_resolve;
     let page = page_mut(state, id)?;
     let unsaved = page.is_unsaved().then(|| page.result.clone());
     let (result, sides) = match reading {
