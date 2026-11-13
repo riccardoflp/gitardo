@@ -926,8 +926,8 @@ the reading given until it is answered:
   and a tooltip, no hint. Right?
 - **Q161** — `Cmd`+click selects as `Ctrl`+click on macOS in the timeline only, where the selection reads the keys:
   the window does not yet map `Cmd` to `Ctrl` for every shortcut, as `ui::Modifiers::command` says it will. Should it?
-- **Q162** — `selection.bar` stays **Specified** for its line 1 (**Squash into one**, from `squash.commits`), and has
-  no **Copy as patch** (`patch.copy`). `selection.menu` stays **Specified** for its lines 1 and 2 (**Compare these two
+- **Q162** — `selection.bar` stays **Specified** for its line 1 (**Squash into one**, from `squash.commits`: built
+  since, with the menu's **Squash N commits into one…**), and has no **Copy as patch** (`patch.copy`). `selection.menu` stays **Specified** for its lines 1 and 2 (**Compare these two
   commits** waits for the Compare page), and has no **Copy as patch** nor **Save as patch…**. `selection.cherry-pick`
   stays **Specified** for its line 5 (continued in Gitardo, M6). The bar and the menu empty the selection when their
   cherry-pick is chosen, before the dialog, not once it ran. Right?
@@ -979,3 +979,7 @@ the reading given until it is answered:
   `Target::Commits(selected)`. The interactive rebase page runs `rebase.interactive` on `Target::Head` with the rows
   under the answer `todo`, and **Continue** of the banner runs `rebase.edit-stop` or `split.continue` on `Target::Head`.
   Is that right?
+- **Q174** — The bar of a selection keeps **N commits selected** whole and leaves out, from the left, the buttons that
+  do not fit beside it: in a narrow timeline **Squash into one** goes first, then **Cherry-pick onto …**, and **Clear
+  selection** stays. The menu of the selection still has every entry. Should the bar rather wrap, or show a **More**
+  button?

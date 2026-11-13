@@ -10,6 +10,10 @@ pub const SELECTION_HINT: &str = "Ctrl+click adds or removes one, Shift+click se
 pub const CLEAR_SELECTION: &str = "Clear selection";
 /// The tooltip of **Cherry-pick onto …** in the bar of a selection.
 pub const CHERRY_PICK_SELECTION_TOOLTIP: &str = "Applies them oldest first, as one operation";
+/// **Squash into one** in the bar of a selection (`squash.commits`).
+pub const SQUASH_INTO_ONE: &str = "Squash into one";
+/// The tooltip of **Squash into one** in the bar of a selection.
+pub const SQUASH_SELECTION_TOOLTIP: &str = "Makes them one commit, with a message you give";
 /// **Copy hashes** in the menu of a selection.
 pub const COPY_HASHES: &str = "Copy hashes";
 /// **Compare these two commits** in the menu of a selection of two.
@@ -57,6 +61,12 @@ pub fn commits_selected(count: usize) -> String {
 #[must_use]
 pub fn cherry_pick_onto(current: &str) -> String {
     format!("Cherry-pick onto {current}")
+}
+
+/// **Squash N commits into one…** in the menu of a selection (`squash.commits`).
+#[must_use]
+pub fn squash_commits_into_one(count: usize) -> String {
+    format!("Squash {count} commits into one\u{2026}")
 }
 
 /// **Cherry-pick N commits onto `<current>`** in the menu of a selection.

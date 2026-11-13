@@ -43,7 +43,13 @@ pub(crate) fn bar_view(state: &HistoryState<'_>, several: &Several, ui: &mut Ui<
         rect.height,
     );
     let mut area = Area::with_gap(inner, theme.sizes.spacing.small);
+    // The count comes first, so that buttons that do not all fit never hide it.
+    let count = words::commits_selected(several.commits.len());
+    let count_width = ui.measure(&count, ui.text_style(TextKind::Body));
+    let _ = ui.label(area.left(count_width), &Label::new(&count));
     let entries = bar_entries(state, several);
+    // A button that does not fit beside the count is left out, from the right: the menu of the selection has them all.
+    let mut room = inner.width - count_width - theme.sizes.spacing.small;
     for (index, entry) in entries.iter().enumerate().rev() {
         let mut button = Button::secondary(&entry.label);
         if let Some(tooltip) = entry.tooltip {
@@ -53,14 +59,15 @@ pub(crate) fn bar_view(state: &HistoryState<'_>, several: &Several, ui: &mut Ui<
             button = button.disabled();
         }
         let (width, height) = ui.button_size(&button);
+        if width > room {
+            continue;
+        }
+        room -= width + theme.sizes.spacing.small;
         let cell = place(area.right(width), (width, height), (Align::Start, Align::Center));
         if ui.button((BAR_KEY, index), cell, &button).clicked {
             intents.extend(entry_intents(entry, several));
         }
     }
-    let count = words::commits_selected(several.commits.len());
-    let count_width = ui.measure(&count, ui.text_style(TextKind::Body));
-    let _ = ui.label(area.left(count_width), &Label::new(&count));
     let _ = ui.label(area.rest(), &Label::new(words::SELECTION_HINT).tone(Tone::Muted));
     intents
 }

@@ -219,10 +219,24 @@ fn offers_cherry_pick(state: &HistoryState<'_>, several: &Several) -> bool {
             .is_some_and(|menus| menus.repository.operation.is_none())
 }
 
+/// Whether `squash.commits` is offered for the commits: two or more that end the line to `HEAD` of the oldest of them,
+/// with none of that line left out, and no operation under way.
+fn offers_squash(state: &HistoryState<'_>, several: &Several) -> bool {
+    state
+        .references
+        .is_some_and(|menus| crate::rebase::can_squash(menus.repository, state.rows, &several.commits))
+}
+
 /// The buttons of the bar, in order, after **N commits selected** and its hint.
 pub(crate) fn bar_entries(state: &HistoryState<'_>, several: &Several) -> Vec<SelectionEntry> {
     let mut entries = Vec::new();
-    // `squash.commits` puts **Squash into one** here, when it is offered for them.
+    if offers_squash(state, several) {
+        entries.push(SelectionEntry::runs(
+            words::SQUASH_INTO_ONE.to_owned(),
+            Some(words::SQUASH_SELECTION_TOOLTIP),
+            "squash.commits",
+        ));
+    }
     if offers_cherry_pick(state, several) {
         entries.push(SelectionEntry::runs(
             words::cherry_pick_onto(current(state)),
@@ -237,7 +251,13 @@ pub(crate) fn bar_entries(state: &HistoryState<'_>, several: &Several) -> Vec<Se
 /// The entries of the menu of a selection, in order, with the place of the separator before **Copy hashes**.
 pub(crate) fn menu_entries(state: &HistoryState<'_>, several: &Several) -> (Vec<SelectionEntry>, usize) {
     let mut entries = Vec::new();
-    // `squash.commits` puts **Squash N commits into one…** here, when it is offered for them.
+    if offers_squash(state, several) {
+        entries.push(SelectionEntry::runs(
+            words::squash_commits_into_one(several.commits.len()),
+            None,
+            "squash.commits",
+        ));
+    }
     if offers_cherry_pick(state, several) {
         entries.push(SelectionEntry::runs(
             words::cherry_pick_commits_onto(several.commits.len(), current(state)),

@@ -145,6 +145,36 @@ fn selection_select__on_macos_cmd_click_does_what_ctrl_click_does_elsewhere() {
 }
 
 #[test]
+fn selection_bar__three_commits_that_follow_one_another_before_head_have_squash_into_one() {
+    let mut fixture = six();
+    fixture.several = several(&["D", "E", "F"]);
+    assert_eq!(
+        bar_labels(&fixture),
+        ["Squash into one", "Cherry-pick onto main", "Clear selection"]
+    );
+    fixture.several = several(&["B", "D", "F"]);
+    assert_eq!(bar_labels(&fixture), ["Cherry-pick onto main", "Clear selection"]);
+    fixture.several = several(&["E", "F"]);
+    let history = fixture.history();
+    let chosen = Several::of(&history).unwrap_or_else(|| panic!("two are selected"));
+    let (entries, _) = menu_entries(&history, &chosen);
+    assert_eq!(
+        entries.first().map(|entry| entry_intents(entry, &chosen)),
+        Some(vec![
+            Intent::Feature(FeatureIntent::Run(
+                FeatureId("squash.commits"),
+                Target::Commits(several(&["E", "F"]))
+            )),
+            Intent::Graph(GraphIntent::ClearSelection),
+        ])
+    );
+    assert_eq!(
+        entries.first().map(|entry| entry.label.as_str()),
+        Some("Squash 2 commits into one\u{2026}")
+    );
+}
+
+#[test]
 fn selection_bar__with_a_merge_commit_among_the_selection_cherry_pick_is_not_there() {
     let mut fixture = Fixture::new(
         rows(&["A: B", "B: C X", "X: C", "C:"]),
