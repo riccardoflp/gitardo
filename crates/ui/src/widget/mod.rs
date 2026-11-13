@@ -4,6 +4,7 @@
 pub(crate) mod badge;
 pub(crate) mod button;
 pub(crate) mod choice;
+pub(crate) mod code_editor;
 pub(crate) mod dialog;
 pub(crate) mod drag;
 pub(crate) mod find;

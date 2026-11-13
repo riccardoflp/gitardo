@@ -55,6 +55,19 @@ pub(crate) struct ListState {
     pub(crate) revealed: Option<u64>,
 }
 
+/// The state of an editor of code between frames.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct CodeEditorState {
+    /// How far the lines are scrolled.
+    pub(crate) scroll: ScrollAxis,
+    /// The number of the last line its view asked to bring to the middle, so that each is brought once.
+    pub(crate) revealed: Option<u64>,
+    /// Where the caret was in the last frame, to keep it in sight when it moves.
+    pub(crate) head: Option<usize>,
+    /// When the caret last moved, which its blink starts from.
+    pub(crate) changed_at: Duration,
+}
+
 /// A drag in progress: where it started and the value it moves, such as the size of a splitter or the offset of a
 /// scroll bar.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -91,6 +104,8 @@ pub struct UiMemory {
     pub(crate) scrolls: HashMap<WidgetId, ScrollState>,
     /// The lists.
     pub(crate) lists: HashMap<WidgetId, ListState>,
+    /// The editors of code.
+    pub(crate) code_editors: HashMap<WidgetId, CodeEditorState>,
     /// The size of the first pane of each splitter that was moved.
     pub(crate) splitters: HashMap<WidgetId, f32>,
     /// The drag in progress of a splitter or a scroll bar.
@@ -185,6 +200,7 @@ impl UiMemory {
         let _ = self.input_boxes.remove(&id);
         let _ = self.scrolls.remove(&id);
         let _ = self.lists.remove(&id);
+        let _ = self.code_editors.remove(&id);
         let _ = self.splitters.remove(&id);
         let _ = self.pickers.remove(&id);
         let _ = self.list_searches.remove(&id);
