@@ -143,9 +143,12 @@ fn serve(
                     replies,
                     preset: &request.preset,
                 };
+                // The answers given before are known from the first call: those of questions are not asked, and the
+                // others, such as the comparisons opened before, are what the window knows that git does not.
+                let given = (&request.context, request.preset.clone());
                 ended_of(
                     request.feature,
-                    engine.run_feature(request.feature, operation, &request.context, &mut asker),
+                    engine.run_feature_from(request.feature, operation, given, &mut asker),
                 )
             }
             None => Ended::Refused(model::contract::Text::from(format!(
@@ -223,6 +226,12 @@ impl Asker for WindowAsker<'_> {
                 Err(_) => return None,
             }
         }
+    }
+
+    /// The clipboard is read on this thread: the system lets any thread of the program read it.
+    fn clipboard(&mut self) -> Option<String> {
+        // A clipboard that cannot be read holds no text the operation could use: it says there is none.
+        platform::Clipboard::new().ok()?.read_text().ok().flatten()
     }
 
     fn confirm(&mut self, plan: &Plan) -> bool {

@@ -42,6 +42,11 @@ impl Asker for ArgumentAsker {
     fn confirm(&mut self, _plan: &Plan) -> bool {
         self.plan_choice == PlanChoice::RunConfirmed
     }
+
+    /// The text of the clipboard is the argument `clipboard=<text>`, since the command line has no window.
+    fn clipboard(&mut self) -> Option<String> {
+        self.answers.get("clipboard").cloned()
+    }
 }
 
 /// What an argument answers to a question of this kind: a confirmation is answered only by `yes`.
@@ -57,6 +62,7 @@ fn answer(kind: &QuestionKind, given: &str) -> Option<Answer> {
                 .collect(),
         )),
         QuestionKind::Confirm { .. } => (given == "yes").then_some(Answer::Confirmed),
+        QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => Some(Answer::Path(std::path::PathBuf::from(given))),
     }
 }
 

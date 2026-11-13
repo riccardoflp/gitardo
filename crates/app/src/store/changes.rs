@@ -96,8 +96,7 @@ pub fn asks(state: &mut State, question: Question) -> Vec<Effect> {
     {
         return vec![Effect::ReplyToFeature(Reply::Answer(Some(Answer::Text(message))))];
     }
-    feature::asks(state, question);
-    Vec::new()
+    feature::asks(state, question)
 }
 
 /// An operation ended: once a commit is made, the message box is emptied and **Amend last commit** unticked; the

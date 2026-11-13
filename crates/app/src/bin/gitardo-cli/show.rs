@@ -102,6 +102,11 @@ pub fn plan(out: &mut dyn Write, plan: &Plan) -> io::Result<()> {
     for step in &plan.steps {
         writeln!(out, "  > {}", step.log_line())?;
     }
+    for follow_up in &plan.after {
+        if let model::contract::FollowUp::Cleanup(step) = follow_up {
+            writeln!(out, "  > {}", step.log_line())?;
+        }
+    }
     Ok(())
 }
 
@@ -126,6 +131,7 @@ pub fn question(out: &mut dyn Write, question: &Question) -> io::Result<()> {
             }
         }
         QuestionKind::Confirm { accept } => writeln!(out, "  Answer {key}=yes to {accept}")?,
+        QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => writeln!(out, "  Answer with {key}=<path>")?,
     }
     Ok(())
 }

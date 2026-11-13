@@ -29,6 +29,7 @@ mod toggle;
 mod toolbar;
 
 pub use columns::{ColumnsState, columns_view};
+pub(crate) use commit_menu::with_compare;
 pub use draft::{
     DraftEntry, UncommittedRow, draft_entries, draft_entry_intent, draft_menu, entry_operation, uncommitted_row_view,
 };

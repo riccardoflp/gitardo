@@ -7,6 +7,7 @@ use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{Button, ButtonKind, Icon, Key, Label, Modifiers, NamedKey, Rect, Tone, Ui};
 
 use crate::activity::{ActivityState, what_is_running_view};
+use crate::bisect::{BisectBanner, banner_view};
 use crate::details::{DetailsState, show};
 use crate::feature::{ConfirmState, QuestionState, SaidState, confirm_view, question_view, said_view};
 use crate::filter::{NarrowedBar, bar_height, bar_view};
@@ -94,6 +95,8 @@ pub enum TimelineState<'a> {
         search: Box<(SearchBox<'a>, Option<ListMode<'a>>)>,
         /// The banner of a rebase stopped to edit or split a commit, above the commits (`rebase.edit-stop`).
         stop: Option<crate::rebase::EditStopState<'a>>,
+        /// The banner of the bisect under way, above the commits (`bisect.banner`).
+        bisect: Option<BisectBanner<'a>>,
     },
     /// No repository to show yet, or none at all: the rail is empty and the timeline says why.
     NoRepository(NoRepositoryState),
@@ -165,6 +168,7 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
             bar,
             search,
             stop,
+            bisect,
         } => {
             let is_inspector_over = ui.window().width < INSPECTOR_OVER_BELOW;
             let layout = PaneLayout {
@@ -194,6 +198,10 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
             if let Some(stop) = stop {
                 let top = main.top(bar_height(ui));
                 intents.extend(ui.clip(top, |ui| crate::rebase::edit_stop_view(stop, ui)));
+            }
+            if let Some(banner) = bisect {
+                let top = main.top(bar_height(ui));
+                intents.extend(ui.clip(top, |ui| banner_view(banner, ui)));
             }
             let graph = with_rail_hover(graph, rail_hover);
             intents.extend(ui.clip(main.rest(), |ui| graph_view(&graph, ui)));

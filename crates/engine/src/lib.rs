@@ -14,6 +14,7 @@ mod error;
 pub mod log;
 mod preview;
 mod queries;
+mod readings;
 mod steps;
 pub mod undo;
 

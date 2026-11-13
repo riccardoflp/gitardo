@@ -309,6 +309,16 @@ pub enum Effect {
     ReplyToFeature(super::feature::Reply),
     /// Puts text on the clipboard of the system: the URL of a remote (`remote.manage`).
     CopyText(String),
+    /// Opens the system's dialog to choose a file to open, or where to save one, for the question of the operation
+    /// running; the path chosen, or none, is its answer.
+    ChooseFile {
+        /// The title of the dialog.
+        title: String,
+        /// Where it starts and which files it shows.
+        question: model::contract::FileQuestion,
+        /// Whether it chooses where to save, rather than a file to open.
+        is_saving: bool,
+    },
     /// Closes the window and ends the program.
     Quit,
 }

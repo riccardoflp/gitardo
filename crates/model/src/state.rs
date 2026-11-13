@@ -43,6 +43,8 @@ pub struct RepositoryState {
     pub operation: Option<Operation>,
     /// Where an interactive rebase stopped to edit or to split a commit, when it did (`rebase.read-stop`).
     pub rebase_stop: Option<crate::rebase::RebaseStop>,
+    /// The bisect under way in this worktree, if one is (`bisect.read`).
+    pub bisect: Option<crate::bisect::Bisect>,
 }
 
 impl RepositoryState {

@@ -35,6 +35,10 @@ pub trait Asker {
     fn ask(&mut self, question: &Question) -> Option<Answer>;
     /// Whether to run a plan the user is shown first: its title, its steps, and its danger.
     fn confirm(&mut self, plan: &Plan) -> bool;
+    /// The text on the clipboard of the system, which only a window can read; none when it holds no text.
+    fn clipboard(&mut self) -> Option<String> {
+        None
+    }
 }
 
 /// How a feature ended.
@@ -154,7 +158,22 @@ impl Engine {
         context: &Context,
         asker: &mut dyn Asker,
     ) -> Result<Finished, EngineError> {
-        let mut answers = Answers::new();
+        self.run_feature_from(feature, operation, (context, Answers::new()), asker)
+    }
+
+    /// Carries a feature to its end as [`Engine::run_feature`] does, with answers it is given before it is first
+    /// called: what the window knows that git does not, such as the comparisons opened before.
+    ///
+    /// # Errors
+    ///
+    /// As [`Engine::run_feature`].
+    pub fn run_feature_from(
+        &mut self,
+        feature: FeatureId,
+        operation: Operation,
+        (context, mut answers): (&Context, Answers),
+        asker: &mut dyn Asker,
+    ) -> Result<Finished, EngineError> {
         for _call in 0..MOST_CALLS {
             match operation(context, &answers) {
                 Outcome::Ask(question) => {
@@ -167,6 +186,7 @@ impl Engine {
                 Outcome::Read(key, Query::Journal) => {
                     answers.insert(key, Answer::Journal(self.journal_entry(context).cloned()));
                 }
+                Outcome::Read(key, Query::Clipboard) => answers.insert(key, Answer::Clipboard(asker.clipboard())),
                 Outcome::Read(key, query) => {
                     let started = Instant::now();
                     let answer = queries::answer(&self.git, &query).map_err(EngineError::Query)?;
@@ -194,7 +214,9 @@ impl Engine {
         let _running = self
             .activities
             .track(plan.title.clone(), Text::from(feature.0), self.clock.now());
-        let steps = match self.run_plan(&plan) {
+        let ran = self.run_plan(&plan);
+        self.clean_up(&plan);
+        let steps = match ran {
             Ok(steps) => steps,
             Err(failure) => match self.recover(&plan, context, asker, failure) {
                 Ok(steps) => steps,
@@ -276,6 +298,26 @@ impl Engine {
                 cancel: &self.cancel,
             }
             .run(&steps);
+        }
+    }
+
+    /// Runs the steps a plan says to run once its own ended, whether they succeeded or not, such as the temporary file
+    /// of a patch deleted. Their failure is logged and goes no further: the plan ended already.
+    fn clean_up(&mut self, plan: &Plan) {
+        let cleanup: Vec<model::contract::Step> = plan
+            .after
+            .iter()
+            .filter_map(|follow_up| match follow_up {
+                model::contract::FollowUp::Cleanup(step) => Some(step.clone()),
+                _ => None, // The other follow-ups are the window's.
+            })
+            .collect();
+        for step in cleanup {
+            // A cleanup that fails is in the log with what the system said; the plan itself ended already.
+            let _cleaned = self.run_plan(&Plan {
+                steps: vec![step],
+                ..plan.clone()
+            });
         }
     }
 

@@ -45,8 +45,11 @@ pub enum Target {
     Changes,
     /// A change of a Diff page, from a button of its gutter.
     DiffChange(Box<crate::diff::DiffChange>),
-    /// Several commits selected in the timeline, in its order: newest first (`selection.select`).
+    /// Several commits: those selected in the timeline, in its order, newest first (`selection.select`), or the
+    /// commit selected before and the one clicked (`compare.selected-before`).
     Commits(Vec<CommitId>),
+    /// A comparison page, or a part of it: a side, or a file (`compare.page`).
+    Comparison(Box<crate::compare::ComparisonTarget>),
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.

@@ -168,3 +168,8 @@
   says what keeps it from starting, and starts the rebase. While a rebase is stopped to edit or split a commit, a banner
   above the timeline says so, with **Continue**. After a squash the commit it made is selected, and after a split the
   commit box holds the message of the commit split.
+- A bisect from the window and from `gitardo-cli`: **Start bisect: this commit is bad** or **…good** and, while one is
+  under way, **Bisect: mark as good** or **…bad** in the menu of a commit; a banner above the commits that says what the
+  bisect needs next, with **Good**, **Bad** and **Skip** for the commit checked out and **End**; the labels `good`,
+  `bad` and `skipped` on the commits marked; and a message that names the first bad commit once it is found, with
+  **Show in the timeline** and **End bisect**. Undo refuses while a bisect is under way.

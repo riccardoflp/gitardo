@@ -64,6 +64,8 @@ pub struct SaidState<'a> {
     pub can_undo: bool,
     /// Whether it warns of a stash a pull left, with **Show Stashes** beside it (`stash.autostash-left`).
     pub offers_stashes: bool,
+    /// The first bad commit a bisect found, which it names: **Show in the timeline** and **End bisect** are beside it.
+    pub found: Option<&'a model::CommitId>,
 }
 
 /// A question of an operation over the window: its title, what it says will happen, and the box, the choices or the
@@ -74,6 +76,8 @@ pub fn question_view(state: &QuestionState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> 
         QuestionKind::Text { .. } | QuestionKind::Pick { .. } | QuestionKind::PickMany { .. } => {
             answer_dialog(state, ui)
         }
+        // The dialog of the system answers these, which the window opens in place of one of its own.
+        QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => Vec::new(),
     }
 }
 
@@ -201,7 +205,7 @@ fn answer_body(
                 }
             }
         }
-        QuestionKind::Confirm { .. } => {}
+        QuestionKind::Confirm { .. } | QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => {}
     }
     intents
 }
@@ -218,7 +222,7 @@ fn answer_height(state: &QuestionState<'_>, ui: &Ui<'_>) -> f32 {
                 .sum();
             crate::line::rows_of(rows) * sizes.row_height
         }
-        QuestionKind::Confirm { .. } => 0.0,
+        QuestionKind::Confirm { .. } | QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => 0.0,
     }
 }
 
@@ -244,7 +248,10 @@ fn can_answer(state: &QuestionState<'_>, problem: Option<&str>) -> bool {
     match &state.question.kind {
         QuestionKind::Text { .. } => problem.is_none(),
         QuestionKind::Pick { .. } => !state.picked.is_empty(),
-        QuestionKind::PickMany { .. } | QuestionKind::Confirm { .. } => true,
+        QuestionKind::PickMany { .. }
+        | QuestionKind::Confirm { .. }
+        | QuestionKind::OpenFile(_)
+        | QuestionKind::SaveFile(_) => true,
     }
 }
 
@@ -255,6 +262,7 @@ fn answer_of(state: &QuestionState<'_>) -> Answer {
         QuestionKind::Pick { .. } => Answer::Choice(state.picked.first().cloned().unwrap_or_default()),
         QuestionKind::PickMany { .. } => Answer::Choices(state.picked.to_vec()),
         QuestionKind::Confirm { .. } => Answer::Confirmed,
+        QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_) => Answer::Path(std::path::PathBuf::from(state.typed)),
     }
 }
 
@@ -309,6 +317,29 @@ pub fn confirm_view(state: &ConfirmState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     }
 }
 
+/// **End bisect** and **Show in the timeline** beside the message that names the first bad commit a bisect found.
+fn found_buttons(found: &model::CommitId, parts: &mut Area, ui: &mut Ui<'_>) -> Vec<Intent> {
+    let mut intents = Vec::new();
+    for (label, intent) in [
+        (
+            crate::text::bisect::END_BISECT,
+            Intent::Feature(FeatureIntent::Run(FeatureId("bisect.end"), Target::Head)),
+        ),
+        (
+            crate::text::bisect::SHOW_IN_TIMELINE,
+            Intent::Graph(crate::graph::GraphIntent::GoTo(found.clone())),
+        ),
+    ] {
+        let button = Button::secondary(label).kind(ButtonKind::Outline);
+        let (width, height) = ui.button_size(&button);
+        let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
+        if ui.button(("said", label), cell, &button).clicked {
+            intents.push(intent);
+        }
+    }
+    intents
+}
+
 /// What was said once an operation ended, across the top of what is under the header, with **Undo** when it can be
 /// taken back and a button that puts it away.
 pub fn said_view(state: &SaidState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -340,6 +371,9 @@ pub fn said_view(state: &SaidState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         .clicked
     {
         intents.push(Intent::Feature(FeatureIntent::Dismiss));
+    }
+    if let Some(found) = state.found {
+        intents.extend(found_buttons(found, &mut parts, ui));
     }
     if state.can_undo {
         let undo = Button::secondary(words::UNDO).kind(ButtonKind::Outline);

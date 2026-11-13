@@ -14,6 +14,7 @@
 #![forbid(unsafe_code)]
 
 pub mod activity;
+pub mod bisect;
 mod blocks;
 pub mod branch;
 pub mod changes;

@@ -28,6 +28,10 @@ pub const FILES_MATCH: AnswerKey = AnswerKey("files-match");
 /// Feature: undo.last
 #[must_use]
 pub fn last(context: &Context, answers: &Answers) -> Outcome {
+    if context.repository.bisect.is_some() {
+        // Undo would move `HEAD` under the bisect, which then tests the wrong commit (`bisect.start`).
+        return Outcome::Refuse(Refusal::saying(crate::bisect::END_FIRST));
+    }
     match answers.journal(JOURNAL) {
         None => return Outcome::Read(JOURNAL, Query::Journal),
         Some(Some(entry)) => return Outcome::Run(super::journal::plan(context, entry)),

@@ -325,6 +325,91 @@ fn cherry_pick_commit__the_menu_of_the_commit_checked_out_has_no_cherry_pick_ent
     );
 }
 
+/// A commit of one parent at a letter, or a merge of two.
+fn commit(at: char, parents: &[char]) -> model::commit::Commit {
+    model::commit::Commit {
+        id: id(at),
+        parents: parents.iter().map(|letter| id(*letter)).collect(),
+        author_name: String::from("Ada"),
+        author_email: String::from("ada@example.com"),
+        author_date: Timestamp(0),
+        subject: String::from("Add a"),
+    }
+}
+
+/// The words of the entries of a commit beyond those of `branch.`, with the commit selected before.
+fn of_history(repository: &RepositoryState, at: &model::commit::Commit, before: Option<char>) -> Vec<String> {
+    let before = before.map(id);
+    labels(&super::history_entries(
+        menus(repository, OpenIn::Checkout),
+        at,
+        before.as_ref(),
+    ))
+}
+
+#[test]
+fn bisect_start__while_a_rebase_is_stopped_neither_entry_is_offered() {
+    let mut repository = repository();
+    let entries = of_history(&repository, &commit('c', &['b']), None);
+    assert!(
+        entries.contains(&String::from("Start bisect: this commit is bad")),
+        "{entries:?}"
+    );
+    assert!(
+        entries.contains(&String::from("Start bisect: this commit is good")),
+        "{entries:?}"
+    );
+    repository.operation = Some(model::state::Operation::Rebase);
+    let entries = of_history(&repository, &commit('c', &['b']), None);
+    assert!(!entries.iter().any(|entry| entry.contains("bisect")), "{entries:?}");
+}
+
+#[test]
+fn bisect_end__once_the_bisect_ended_start_bisect_is_offered_again() {
+    let mut repository = repository();
+    repository.bisect = Some(model::bisect::Bisect {
+        bad: Some(id('e')),
+        good: Vec::new(),
+        skipped: Vec::new(),
+        remaining: None,
+    });
+    let entries = of_history(&repository, &commit('c', &['b']), None);
+    assert!(entries.contains(&String::from("Bisect: mark as good")), "{entries:?}");
+    assert!(
+        !entries.iter().any(|entry| entry.starts_with("Start bisect")),
+        "{entries:?}"
+    );
+    repository.bisect = None;
+    let entries = of_history(&repository, &commit('c', &['b']), None);
+    assert!(
+        entries.contains(&String::from("Start bisect: this commit is bad")),
+        "{entries:?}"
+    );
+}
+
+#[test]
+fn bisect_mark__the_entry_runs_the_mark_with_the_word_it_gives() {
+    let mut repository = repository();
+    repository.bisect = Some(model::bisect::Bisect::default());
+    let entries = super::history_entries(menus(&repository, OpenIn::Checkout), &commit('c', &['b']), None);
+    let index = entries
+        .iter()
+        .position(|entry| entry.label == "Bisect: mark as bad")
+        .unwrap_or(usize::MAX);
+    let answers = model::contract::Answers::new().with(
+        model::contract::AnswerKey("mark"),
+        model::contract::Answer::Choice(String::from("bad")),
+    );
+    assert_eq!(
+        chosen(&entries, index),
+        Some(Intent::Feature(FeatureIntent::RunWith(
+            FeatureId("bisect.mark"),
+            Target::Commit(id('c')),
+            answers
+        )))
+    );
+}
+
 #[test]
 fn merge_into_current__merging_the_commit_or_the_branch_checked_out_is_not_offered() {
     let repository = repository();
@@ -350,6 +435,32 @@ fn merge_into_current__merging_the_commit_or_the_branch_checked_out_is_not_offer
 }
 
 #[test]
+fn patch_copy__a_merge_commit_has_no_entry_to_copy_or_save_it_as_a_patch() {
+    let repository = repository();
+    let entries = of_history(&repository, &commit('c', &['b']), None);
+    assert!(entries.contains(&String::from("Copy as patch")), "{entries:?}");
+    assert!(entries.contains(&String::from("Save as patch…")), "{entries:?}");
+    let entries = of_history(&repository, &commit('c', &['b', 'd']), None);
+    assert!(!entries.iter().any(|entry| entry.contains("patch")), "{entries:?}");
+}
+
+#[test]
+fn compare_selected_before__with_another_commit_selected_the_entry_compares_the_two_in_order() {
+    let repository = repository();
+    let entries = of_history(&repository, &commit('c', &['b']), Some('b'));
+    let short = id('b').short().to_owned();
+    assert!(
+        entries.contains(&format!("Compare with {short}, selected before")),
+        "{entries:?}"
+    );
+    let entries = of_history(&repository, &commit('c', &['b']), Some('c'));
+    assert!(
+        !entries.iter().any(|entry| entry.contains("selected before")),
+        "{entries:?}"
+    );
+}
+
+#[test]
 fn reset_to_commit__every_commit_has_the_reset_entry_the_one_checked_out_included() {
     let mut repository = repository();
     for letter in ['a', 'b', 'c'] {
@@ -366,4 +477,11 @@ fn revert_commit__every_commit_has_the_revert_entry_and_edit_message_waits_for_a
     assert!(commit.contains(&String::from("Revert aaaaaaa")) && commit.contains(&String::from("Edit message\u{2026}")));
     repository.operation = Some(model::state::Operation::Merge);
     assert!(!of_commit(&repository, 'a').contains(&String::from("Edit message\u{2026}")));
+}
+
+#[test]
+fn compare_with_current__offered_unless_the_commit_is_the_one_checked_out() {
+    let repository = repository();
+    assert!(of_history(&repository, &commit('c', &['b']), None).contains(&String::from("Compare with main")));
+    assert!(!of_history(&repository, &commit('a', &[]), None).contains(&String::from("Compare with main")));
 }

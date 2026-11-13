@@ -170,13 +170,21 @@ fn report(
                     FollowUp::OpenCommitPage(commit) => writeln!(out, "Open the page of {commit}")?,
                     FollowUp::CopyToClipboard(text) => writeln!(out, "Copy {text}")?,
                     FollowUp::FillCommitMessage(message) => writeln!(out, "Commit message: {message}")?,
+                    FollowUp::OpenComparison(target) => {
+                        writeln!(out, "Compare {} with {}", target.first.name, target.second.name)?;
+                    }
+                    FollowUp::CompareInPlace(sides) => {
+                        writeln!(out, "Compare {} with {}", sides.from.name, sides.to.name)?;
+                    }
                     FollowUp::SelectHead
                     | FollowUp::DeleteWhenRebaseEnded(_)
                     | FollowUp::EmptyCommitMessage
                     | FollowUp::ReadPullRequests
                     | FollowUp::CheckAutostash
                     | FollowUp::Recover(_)
-                    | FollowUp::PreparedMessage => {}
+                    | FollowUp::PreparedMessage
+                    | FollowUp::Cleanup(_)
+                    | FollowUp::CheckBisect => {}
                 }
             }
             Ok(DONE)

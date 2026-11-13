@@ -16,6 +16,8 @@ use model::contract::{Answer, IdentityKeys, Query};
 use model::remote::{Overwritten, OverwrittenCommit, Remote};
 use model::stash::StashReading;
 
+use crate::readings;
+
 /// The answer of a query, read now.
 pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
     match query {
@@ -66,6 +68,13 @@ pub(crate) fn answer(git: &Git, query: &Query) -> Result<Answer, GitError> {
             rebase::read_pushed(git, &PushedRequest { commit: commit.clone() }).map(Answer::Names)
         }
         Query::CommitFiles { commit } => rebase::read_commit_files(git, commit).map(Answer::Names),
+        Query::FormatPatch { commits } => readings::format_patch(git, commits),
+        Query::PatchCheck { patch } => readings::patch_check(git, patch),
+        Query::FileContents { path } => readings::file_contents(path),
+        // The engine asks the window for it before asking git anything.
+        Query::Clipboard => Ok(Answer::Clipboard(None)),
+        Query::TemporaryFile { extension } => Ok(readings::temporary_file(extension)),
+        Query::ComparePatch(target) => readings::compare_patch(git, target),
     }
 }
 
@@ -242,5 +251,17 @@ pub(crate) fn describe(query: &Query) -> String {
             git::command_line(&rebase::pushed_arguments(&PushedRequest { commit: commit.clone() }))
         }
         Query::CommitFiles { commit } => git::command_line(&rebase::commit_files_arguments(commit)),
+        Query::FormatPatch { commits } => {
+            let hashes: Vec<&str> = commits.iter().map(model::CommitId::as_str).collect();
+            format!("git format-patch --stdout {}", hashes.join(" "))
+        }
+        Query::PatchCheck { patch } => match patch {
+            model::patch::PatchInput::File(path) => format!("git apply --check --3way -- {}", path.display()),
+            model::patch::PatchInput::Text(_) => String::from("git apply --check --3way"),
+        },
+        Query::FileContents { path } => format!("read {}", path.display()),
+        Query::Clipboard => String::from("the text of the clipboard"),
+        Query::TemporaryFile { extension } => format!("a temporary .{extension} file"),
+        Query::ComparePatch(target) => readings::describe_compare_patch(target),
     }
 }

@@ -10,9 +10,11 @@ use super::ReferencesState;
 use super::rows::Entry;
 use crate::branch::{OperationEntry, ReferenceMenus, branch_entries, menu_items, remote_entries, tag_entries};
 use crate::filter::{FilterEntry, filter_entries, filter_entry_words};
+use crate::graph::with_compare;
 use crate::graph::{StashEntry, stash_menu};
 use crate::intent::RailList;
 use crate::text::rail as words;
+use model::contract::Target;
 
 /// What an entry of the menu of a reference does.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -92,9 +94,24 @@ pub(super) fn operations(state: &ReferencesState<'_>, entry: &Entry<'_>) -> Vec<
         open_in: state.open_in,
     };
     match entry {
-        Entry::Branch(branch) => branch_entries(menus, branch),
-        Entry::Remote(remote) => remote_entries(menus, remote),
-        Entry::Tag(tag) => tag_entries(menus, tag),
+        Entry::Branch(branch) => with_compare(
+            menus,
+            branch_entries(menus, branch),
+            &Target::Branch(branch.name.clone()),
+            &branch.commit,
+        ),
+        Entry::Remote(remote) => with_compare(
+            menus,
+            remote_entries(menus, remote),
+            &Target::RemoteBranch(remote.name.clone()),
+            &remote.commit,
+        ),
+        Entry::Tag(tag) => with_compare(
+            menus,
+            tag_entries(menus, tag),
+            &Target::Tag(tag.name.clone()),
+            &tag.commit,
+        ),
         Entry::Stash(_) | Entry::Worktree(_) | Entry::Submodule(_) => Vec::new(),
     }
 }

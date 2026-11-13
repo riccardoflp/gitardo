@@ -14,3 +14,12 @@ pub enum PatchCheck {
         reasons: Vec<String>,
     },
 }
+
+/// A patch to check or apply: in a file, or its text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PatchInput {
+    /// A file that holds it.
+    File(std::path::PathBuf),
+    /// Its text, given to git on its standard input.
+    Text(Vec<u8>),
+}

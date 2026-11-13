@@ -161,6 +161,34 @@ pub enum Query {
         /// The commit.
         commit: CommitId,
     },
+    /// Commits as one patch, oldest first, as `git am` takes it (`patch.read-format-patch`). The answer is
+    /// [`super::Answer::Patch`].
+    FormatPatch {
+        /// The commits, in any order.
+        commits: Vec<CommitId>,
+    },
+    /// What `git apply --check --3way` says of a patch (`patch.check`). The answer is [`super::Answer::PatchCheck`].
+    PatchCheck {
+        /// The patch, in a file or as its text.
+        patch: crate::patch::PatchInput,
+    },
+    /// The bytes of a file. The answer is [`super::Answer::Contents`].
+    FileContents {
+        /// The file.
+        path: std::path::PathBuf,
+    },
+    /// The text on the clipboard of the system, which the window reads, not git. The answer is
+    /// [`super::Answer::Clipboard`].
+    Clipboard,
+    /// A file in the temporary folder of the system, with a name no other file has, not made yet. The answer is
+    /// [`super::Answer::Path`].
+    TemporaryFile {
+        /// The extension of its name, without the dot: `patch`.
+        extension: String,
+    },
+    /// The changes of a comparison as a patch that `git apply` takes, binary files included (`compare.read-patch`).
+    /// The answer is [`super::Answer::Contents`].
+    ComparePatch(Box<crate::compare::ComparisonTarget>),
 }
 
 /// Why a feature does not run, in words for the user, with what may be done instead.

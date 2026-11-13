@@ -62,6 +62,18 @@ pub enum Answer {
     Line(crate::rebase::LineToHead),
     /// The whole messages of commits, in the order asked.
     Messages(Vec<String>),
+    /// Commits as one patch made by `git format-patch`, oldest first (`patch.read-format-patch`).
+    Patch(String),
+    /// What applying a patch with `--3way` would do (`patch.check`).
+    PatchCheck(crate::patch::PatchCheck),
+    /// The bytes of a file, or the changes of a comparison as a patch (`compare.read-patch`).
+    Contents(Vec<u8>),
+    /// The text on the clipboard of the system; none when it holds no text.
+    Clipboard(Option<String>),
+    /// A path: the file chosen in a dialog of the system, or a temporary file.
+    Path(std::path::PathBuf),
+    /// The comparisons opened before in the repository, the latest first (`compare.recent`).
+    Recent(Vec<crate::compare::RecentComparison>),
 }
 
 /// Who commits are made as in a repository, and which of the `user.*` keys it sets for itself (`identity.read`).

@@ -120,11 +120,6 @@ fn parse_target(text: &str) -> Result<Target, String> {
         "commit" => CommitId::parse(name)
             .map(Target::Commit)
             .ok_or_else(|| format!("{name} is not a full commit hash.")),
-        "commits" => name
-            .split(',')
-            .map(|hash| CommitId::parse(hash).ok_or_else(|| format!("{hash} is not a full commit hash.")))
-            .collect::<Result<Vec<_>, _>>()
-            .map(Target::Commits),
         "branch" => Ok(Target::Branch(name.to_owned())),
         "remote-branch" => Ok(Target::RemoteBranch(name.to_owned())),
         "tag" => Ok(Target::Tag(name.to_owned())),
@@ -136,6 +131,11 @@ fn parse_target(text: &str) -> Result<Target, String> {
         "files" => Ok(Target::Files(name.split(',').map(str::to_owned).collect())),
         "file" => Ok(Target::File(name.to_owned())),
         "changes" => Ok(Target::Changes),
+        "commits" => name
+            .split(',')
+            .map(|hash| CommitId::parse(hash).ok_or_else(|| format!("{hash} is not a full commit hash.")))
+            .collect::<Result<Vec<_>, _>>()
+            .map(Target::Commits),
         _ => Err(format!(
             "{kind} is not a kind of target: commit, commits, branch, remote-branch, tag, file, changes, stash, \
              remote or files."

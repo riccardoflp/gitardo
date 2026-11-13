@@ -153,8 +153,7 @@ fn lane_color(context: &RowContext<'_>, index: usize) -> usize {
     context.state.layout.cells.get(index).map_or(0, |cell| cell.color)
 }
 
-/// A commit: the message and the labels over the author and the date, the hash at the end, and the fold arrow of a
-/// merge.
+/// A commit: the message and the labels over the author and the date, the hash at the end, a merge's fold arrow.
 fn commit_row(
     ui: &mut Ui<'_>,
     context: &RowContext<'_>,
@@ -403,6 +402,7 @@ fn pill(label: &Label) -> Pill<'_> {
         LabelKind::RemoteBranch => (&[Icon::Cloud], None),
         LabelKind::Tag => (&[Icon::Tag], None),
         LabelKind::Stash { .. } => (&[Icon::Stash], None),
+        LabelKind::Bisect(mark) => crate::bisect::marks_view(*mark),
     };
     Pill {
         text: Cow::Borrowed(&label.name),

@@ -48,12 +48,13 @@ pub struct StateRequest {
 
 /// Everything the window shows of a repository but its commits: what is checked out, the branches and how far each is
 /// from its upstream, the remote branches, the tags, the stashes, the worktrees with what is not committed in each,
-/// the remotes, who commits are made as, where `HEAD` has been, what is not committed here, and the operation that
-/// stopped half way. The reads run at once, each in a thread of its own, and none takes a lock.
+/// the remotes, who commits are made as, where `HEAD` has been, what is not committed here, the operation that
+/// stopped half way and the bisect under way (`bisect.read`). The reads run at once, each in a thread of its own, and
+/// none takes a lock.
 ///
-/// While a rebase is under way, where it stopped to edit or to split a commit is read too (`rebase.read-stop`). The
-/// submodules (`submodule.read-list`), the bisect in progress (`bisect.start`) and what `conflicts.autoResolve` could
-/// resolve (`conflicts.resolve-by-rules`) are read by their own cards.
+/// While a rebase is under way, where it stopped to edit or to split a commit is read too (`rebase.read-stop`), and
+/// so is the bisect in progress (`bisect.read`). The submodules (`submodule.read-list`) and what
+/// `conflicts.autoResolve` could resolve (`conflicts.resolve-by-rules`) are read by their own cards.
 ///
 /// Feature: repo.read-state
 ///
@@ -89,6 +90,7 @@ struct Parts {
     reflog_subjects: Vec<String>,
     working_tree: WorkingTree,
     operation: Option<Operation>,
+    bisect: Option<model::bisect::Bisect>,
 }
 
 /// Runs every read at once, each in a thread of its own, so that the whole takes about as long as the slowest; the
@@ -108,6 +110,10 @@ fn read_parts(git: &Git, location: &Location) -> Result<Parts, GitError> {
         let identity = scope.spawn(|| identity::read_identity(git));
         let reflog_subjects = scope.spawn(|| reflog_subjects::read_reflog_subjects(git));
         let working_tree = scope.spawn(|| status::read_status(git));
+        let bisect_request = crate::read::bisect::BisectRequest {
+            git_folder: location.git_folder.clone(),
+        };
+        let bisect = scope.spawn(move || crate::read::bisect::read(git, &bisect_request));
         let operation = operation::read_operation(&location.git_folder);
         Ok(Parts {
             references: joined(references)?,
@@ -122,6 +128,7 @@ fn read_parts(git: &Git, location: &Location) -> Result<Parts, GitError> {
             reflog_subjects: joined(reflog_subjects)?,
             working_tree: joined(working_tree)?,
             operation,
+            bisect: joined(bisect)?,
         })
     })
 }
@@ -157,6 +164,7 @@ fn assemble(location: Location, parts: Parts) -> RepositoryState {
         working_tree: parts.working_tree,
         operation: parts.operation,
         rebase_stop: None,
+        bisect: parts.bisect,
     }
 }
 

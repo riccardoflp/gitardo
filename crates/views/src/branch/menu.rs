@@ -5,7 +5,7 @@ use model::CommitId;
 use model::branch::{
     OpenBranchInput, OpenedReference, can_fast_forward, local_name, open, other_worktree, rebase_onto,
 };
-use model::contract::{FeatureId, OpenIn, Target};
+use model::contract::{Answers, FeatureId, OpenIn, Target};
 use model::state::{Branch, RemoteBranch, RepositoryState, Tag};
 use ui::{MenuEntry, MenuItem};
 
@@ -23,14 +23,22 @@ pub(crate) struct OperationEntry {
     pub(crate) label: String,
     /// The operation and what it runs on; none while the operation comes in a later milestone, and it is greyed out.
     pub(crate) run: Option<(FeatureId, Target)>,
+    /// The answers the entry gives the operation before it asks, as **Start bisect: this commit is bad** does.
+    pub(crate) answers: Answers,
 }
 
 impl OperationEntry {
     /// An entry that runs an operation.
-    fn runs(label: impl Into<String>, feature: &'static str, target: Target) -> Self {
+    pub(crate) fn runs(label: impl Into<String>, feature: &'static str, target: Target) -> Self {
+        Self::runs_with(label, feature, target, Answers::new())
+    }
+
+    /// An entry that runs an operation with some of its questions answered.
+    pub(crate) fn runs_with(label: impl Into<String>, feature: &'static str, target: Target, answers: Answers) -> Self {
         OperationEntry {
             label: label.into(),
             run: Some((FeatureId(feature), target)),
+            answers,
         }
     }
 
@@ -39,6 +47,7 @@ impl OperationEntry {
         OperationEntry {
             label: label.into(),
             run: None,
+            answers: Answers::new(),
         }
     }
 }
@@ -257,8 +266,17 @@ pub(crate) fn menu_items<Value>(
 
 /// What the entry at a place asks: its operation, run on its reference.
 pub(crate) fn chosen(entries: &[OperationEntry], index: usize) -> Option<Intent> {
-    let (feature, target) = entries.get(index)?.run.clone()?;
-    Some(Intent::Feature(FeatureIntent::Run(feature, target)))
+    let entry = entries.get(index)?;
+    let (feature, target) = entry.run.clone()?;
+    if entry.answers == Answers::new() {
+        Some(Intent::Feature(FeatureIntent::Run(feature, target)))
+    } else {
+        Some(Intent::Feature(FeatureIntent::RunWith(
+            feature,
+            target,
+            entry.answers.clone(),
+        )))
+    }
 }
 
 /// What a double click on a branch or a remote branch asks, as `branch.open` decides.

@@ -86,6 +86,8 @@ pub struct Said {
     pub can_undo: bool,
     /// Whether it warns of a stash a pull left, with **Show Stashes** beside it (`stash.autostash-left`).
     pub offers_stashes: bool,
+    /// The first bad commit a bisect found, named with **Show in the timeline** and **End bisect** beside it.
+    pub found: Option<CommitId>,
 }
 
 /// The operations of a window.
@@ -102,6 +104,8 @@ pub struct Operations {
     /// The stashes before a pull with `--autostash`, to tell once the repository is read again whether it left one
     /// (`stash.autostash-left`).
     pub autostash_before: Option<Vec<model::state::Stash>>,
+    /// Whether to tell, once the repository is read again after an answer to a bisect, the first bad commit it found.
+    pub check_bisect: bool,
 }
 
 /// What is asked of an operation, or answered to it.
@@ -185,8 +189,16 @@ fn reply(state: &mut State, reply: Reply) -> Vec<Effect> {
     vec![Effect::ReplyToFeature(reply)]
 }
 
-/// The operation running asks a question.
-pub fn asks(state: &mut State, question: Question) {
+/// The operation running asks a question: in a dialog of the window, or, for a file to open or where to save one, in
+/// the dialog of the system.
+pub fn asks(state: &mut State, question: Question) -> Vec<Effect> {
+    if let QuestionKind::OpenFile(file) | QuestionKind::SaveFile(file) = &question.kind {
+        return vec![Effect::ChooseFile {
+            title: question.title.as_str().to_owned(),
+            question: file.clone(),
+            is_saving: matches!(question.kind, QuestionKind::SaveFile(_)),
+        }];
+    }
     let typed = match &question.default {
         Some(Answer::Text(text)) => text.clone(),
         _ => String::new(),
@@ -203,6 +215,7 @@ pub fn asks(state: &mut State, question: Question) {
             picked,
         });
     }
+    Vec::new()
 }
 
 /// The operation running shows its plan before it runs.
@@ -229,6 +242,7 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
                 is_error: false,
                 can_undo: can_undo && !is_undo,
                 offers_stashes: false,
+                found: None,
             });
             let mut effects = reads::asked(state, ReadCause::OperationEnded);
             for follow_up in after {
@@ -248,6 +262,7 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
                 is_error: true,
                 can_undo: false,
                 offers_stashes: false,
+                found: None,
             });
             Vec::new()
         }
@@ -258,6 +273,7 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
                 is_error: true,
                 can_undo: false,
                 offers_stashes: false,
+                found: None,
             });
             reads::asked(state, ReadCause::OperationEnded)
         }
@@ -277,6 +293,7 @@ fn remember_follow_ups(state: &mut State, after: &[FollowUp]) -> Option<String> 
                 state.operations.select_before_head = *count;
             }
             FollowUp::SelectCommit(commit) => state.operations.select_after_read = Some(Some(commit.clone())),
+            FollowUp::CheckBisect => state.operations.check_bisect = true,
             FollowUp::CheckAutostash => {
                 state.operations.autostash_before = state.shown_read().map(|read| read.state.stashes.clone());
             }
@@ -307,9 +324,38 @@ fn autostash_left(state: &mut State) {
     }
 }
 
+/// Once the repository is read again after an answer to a bisect, says the first bad commit when it is found.
+fn bisect_found(state: &mut State) {
+    if !std::mem::take(&mut state.operations.check_bisect) {
+        return;
+    }
+    let found = state.shown_read().and_then(|read| {
+        let bisect = read
+            .state
+            .bisect
+            .as_ref()
+            .filter(|bisect| bisect.remaining == Some(1))?;
+        let bad = bisect.bad.clone()?;
+        let subject = state
+            .timeline
+            .read_rows()
+            .iter()
+            .find_map(|row| row.commit().filter(|commit| commit.id == bad))
+            .map(|commit| commit.subject.clone())
+            .unwrap_or_default();
+        Some((bad, subject))
+    });
+    if let (Some((bad, subject)), Some(said)) = (found, state.operations.said.as_mut()) {
+        said.text = views::text::bisect::first_bad(bad.short(), &subject);
+        said.can_undo = false;
+        said.found = Some(bad);
+    }
+}
+
 /// Once the repository is read again after an operation, the commit it said to select is gone to.
 pub fn after_read(state: &mut State) -> Vec<Effect> {
     autostash_left(state);
+    bisect_found(state);
     let Some(selected) = state.operations.select_after_read.take() else {
         return Vec::new();
     };
@@ -370,5 +416,6 @@ pub fn said_state(state: &State) -> Option<SaidState<'_>> {
         is_error: said.is_error,
         can_undo: said.can_undo,
         offers_stashes: said.offers_stashes,
+        found: said.found.as_ref(),
     })
 }

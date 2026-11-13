@@ -775,7 +775,8 @@ Acceptance:
 The commits marked so far carry a label in the timeline: `good`, `bad` or `skipped`.
 
 - **Kind**: View
-- **Function**: `views::bisect::marks_view(state, ui) -> Vec<Intent>`
+- **Function**: `views::bisect::marks_view(mark) -> (&'static [Icon], Option<String>)`, the icons of the label of a
+  marked commit, which the timeline draws as it draws its other labels (`model::graph::labels` gives them)
 - **Entry points**: the labels of the commits in the timeline, while a bisect is under way.
 - **Offered when**: `bisect.read` gives a bisect.
 - **Uses**: `bisect.read`.

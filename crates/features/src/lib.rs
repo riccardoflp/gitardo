@@ -5,6 +5,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod bisect;
 pub mod branch;
 pub mod changes;
 pub mod cherry_pick;
@@ -36,7 +37,7 @@ mod testing;
 use model::contract::{FeatureId, Operation};
 
 /// The operations of the catalog that are built, by identifier.
-pub const OPERATIONS: [(FeatureId, Operation); 74] = [
+pub const OPERATIONS: [(FeatureId, Operation); 78] = [
     (FeatureId("branch.checkout"), branch::checkout),
     (FeatureId("branch.checkout-detached"), branch::checkout_detached),
     (FeatureId("branch.checkout-remote"), branch::checkout_remote),
@@ -118,6 +119,11 @@ pub const OPERATIONS: [(FeatureId, Operation); 74] = [
     (FeatureId("split.commit"), split::commit),
     (FeatureId("split.continue"), split::continue_split),
     (FeatureId("fixup.commit"), fixup::commit),
+    // Bisect.
+    (FeatureId("bisect.answer"), bisect::answer),
+    (FeatureId("bisect.end"), bisect::end),
+    (FeatureId("bisect.mark"), bisect::mark),
+    (FeatureId("bisect.start"), bisect::start),
 ];
 
 /// The operation of an identifier, when it is built.

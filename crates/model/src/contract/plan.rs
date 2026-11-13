@@ -188,6 +188,16 @@ pub enum FollowUp {
     /// Delete this folder of the files of an interactive rebase once the plan ran, unless the rebase stopped, whose
     /// steps still to run read them: the engine looks for `rebase-merge` in the git folder of the worktree.
     DeleteWhenRebaseEnded(std::path::PathBuf),
+    /// A step the engine runs once the steps of the plan ended, whether they succeeded or not, logged as they are:
+    /// the temporary file of a patch deleted (`patch.apply`).
+    Cleanup(Step),
+    /// Open the comparison page of two sides, or show the one they have (`compare.page`).
+    OpenComparison(Box<crate::compare::ComparisonTarget>),
+    /// Show the comparison of two commits in the inspector, in place of the commit selected (`compare.in-place`).
+    CompareInPlace(Box<crate::compare::InPlaceSides>),
+    /// Once the repository is read again, say which commit is the first bad one when a bisect found it
+    /// (`bisect.mark`).
+    CheckBisect,
 }
 
 #[cfg(test)]

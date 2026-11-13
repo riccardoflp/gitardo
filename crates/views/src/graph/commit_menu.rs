@@ -5,6 +5,7 @@
 use model::CommitId;
 use model::branch::OpenedReference;
 use model::commit::Commit;
+use model::contract::Target;
 use model::graph::{Label, LabelKind};
 use ui::{MenuAnchor, MenuEntry, Ui};
 
@@ -12,8 +13,8 @@ use super::fold::{MergeEntry, merge_menu};
 use super::intent::GraphIntent;
 use super::state::HistoryState;
 use crate::branch::{
-    OperationEntry, ReferenceMenus, branch_entries, chosen, commit_entries, menu_items, open_intent, remote_entries,
-    tag_entries,
+    OperationEntry, ReferenceMenus, branch_entries, chosen, commit_entries, compare_entries, history_entries,
+    menu_items, open_intent, remote_entries, tag_entries,
 };
 use crate::intent::Intent;
 
@@ -61,7 +62,7 @@ pub(super) fn double_click_label(state: &HistoryState<'_>, pointed: Option<&Poin
     let reference = match label.kind {
         LabelKind::Branch { .. } => OpenedReference::Branch(&label.name),
         LabelKind::RemoteBranch => OpenedReference::RemoteBranch(&label.name),
-        LabelKind::Head | LabelKind::Tag | LabelKind::Stash { .. } => return None,
+        LabelKind::Head | LabelKind::Tag | LabelKind::Stash { .. } | LabelKind::Bisect(_) => return None,
     };
     Some(
         state
@@ -100,20 +101,40 @@ fn label_entries(state: &HistoryState<'_>, menus: ReferenceMenus<'_>, pointed: &
             .branches
             .iter()
             .find(|branch| branch.name == label.name)
-            .map(|branch| branch_entries(menus, branch)),
+            .map(|branch| {
+                let target = Target::Branch(branch.name.clone());
+                with_compare(menus, branch_entries(menus, branch), &target, &branch.commit)
+            }),
         LabelKind::RemoteBranch => repository
             .remote_branches
             .iter()
             .find(|remote| remote.name == label.name)
-            .map(|remote| remote_entries(menus, remote)),
-        LabelKind::Tag => repository
-            .tags
-            .iter()
-            .find(|tag| tag.name == label.name)
-            .map(|tag| tag_entries(menus, tag)),
-        LabelKind::Head | LabelKind::Stash { .. } => None,
+            .map(|remote| {
+                let target = Target::RemoteBranch(remote.name.clone());
+                with_compare(menus, remote_entries(menus, remote), &target, &remote.commit)
+            }),
+        LabelKind::Tag => repository.tags.iter().find(|tag| tag.name == label.name).map(|tag| {
+            with_compare(
+                menus,
+                tag_entries(menus, tag),
+                &Target::Tag(tag.name.clone()),
+                &tag.commit,
+            )
+        }),
+        LabelKind::Head | LabelKind::Stash { .. } | LabelKind::Bisect(_) => None,
     }
     .unwrap_or_default()
+}
+
+/// The entries of a reference followed by those that compare it.
+pub(crate) fn with_compare(
+    menus: ReferenceMenus<'_>,
+    mut entries: Vec<OperationEntry>,
+    target: &Target,
+    commit: &CommitId,
+) -> Vec<OperationEntry> {
+    entries.extend(compare_entries(menus, target, commit));
+    entries
 }
 
 /// The menu of a commit while it is open, on the commit or on one of its labels, and what the entry chosen asks.
@@ -139,6 +160,11 @@ pub(super) fn commit_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usiz
         operations.extend(entries);
         rewrite = crate::rebase::rewrite_menu(menus, state.rows, &commit.id);
         operations.append(&mut rewrite.operations);
+        let selected_before = match state.selected {
+            Some(super::intent::Selected::Commit(selected)) => Some(selected),
+            _ => None,
+        };
+        operations.extend(history_entries(menus, commit, selected_before));
     }
     let mut entries = grouped(&operations, &groups);
     if let Some(label) = &rewrite.todo_page {

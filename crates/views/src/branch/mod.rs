@@ -2,6 +2,7 @@
 //! rail and of the timeline, and what a double click on a branch does (`branch.open`). The same reference has the same
 //! entries wherever it is listed or labels its commit.
 
+mod history;
 mod menu;
 #[cfg(test)]
 mod tests;
@@ -9,6 +10,7 @@ mod tests;
 use model::contract::OpenIn;
 use model::state::RepositoryState;
 
+pub(crate) use history::{compare_entries, history_entries};
 pub(crate) use menu::{
     OperationEntry, branch_entries, chosen, commit_entries, menu_items, open_intent, remote_entries, tag_entries,
 };

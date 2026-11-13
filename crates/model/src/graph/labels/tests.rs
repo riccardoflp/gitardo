@@ -139,3 +139,30 @@ fn graph_combine_upstream__with_the_setting_off_each_has_its_label() {
     };
     assert_eq!(names(&state, settings, "B"), ["feature", "origin/feature"]);
 }
+
+#[test]
+fn bisect_marks__after_marking_e_bad_and_a_good_e_says_bad_and_a_good() {
+    let mut state = on_main();
+    state.tags.push(tag("v1.0", "E"));
+    state.bisect = Some(crate::bisect::Bisect {
+        bad: Some(id("E")),
+        good: vec![id("A")],
+        skipped: vec![id("C")],
+        remaining: Some(4),
+    });
+    let settings = GraphSettings::default();
+    assert_eq!(names(&state, settings, "E"), ["v1.0", "bad"]);
+    assert_eq!(names(&state, settings, "A"), ["main", "good"]);
+    assert_eq!(names(&state, settings, "C"), ["skipped"]);
+    let marked = labels(&state, &settings).remove(&id("E")).unwrap_or_default();
+    assert!(matches!(
+        marked.last().map(|label| &label.kind),
+        Some(LabelKind::Bisect(super::BisectMark::Bad))
+    ));
+}
+
+#[test]
+fn bisect_marks__once_the_bisect_ended_the_marks_are_gone() {
+    let state = on_main();
+    assert_eq!(names(&state, GraphSettings::default(), "A"), ["main"]);
+}

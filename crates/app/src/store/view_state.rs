@@ -296,6 +296,11 @@ impl ViewData {
                 }),
                 search: Box::new((search_view::search_box(state), search_view::list_mode(state))),
                 stop: super::rebase::stop_state(&read.state),
+                bisect: read.state.bisect.as_ref().map(|bisect| views::bisect::BisectBanner {
+                    bisect,
+                    head: read.state.head.commit.as_ref(),
+                    is_running: state.is_operation_running,
+                }),
             },
             Some(Shown::NoRepository) => TimelineState::NoRepository(NoRepositoryState::NoRepository),
             Some(Shown::Looking) if state.reads.is_not_read => TimelineState::NoRepository(NoRepositoryState::NotRead),

@@ -52,11 +52,24 @@ pub enum LabelKind {
         /// Its place in the list of stashes.
         index: usize,
     },
+    /// A mark of the bisect under way (`bisect.marks`): it names no line of the graph.
+    Bisect(BisectMark),
+}
+
+/// How a bisect marked a commit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BisectMark {
+    /// Marked good.
+    Good,
+    /// Marked bad.
+    Bad,
+    /// Skipped: it cannot be tested.
+    Skipped,
 }
 
 /// The labels of each commit, in their order on it: `HEAD` when detached; the local branches, the one checked out
 /// first and filled; the remote branches but `<remote>/HEAD` and those a branch's label stands for; the tags, at the
-/// commit they point at; and the stashes made there.
+/// commit they point at; the stashes made there; and the marks of the bisect under way, `bad`, `good` or `skipped`.
 ///
 /// Feature: graph.labels
 #[must_use]
@@ -103,6 +116,22 @@ pub fn labels(state: &RepositoryState, settings: &GraphSettings) -> HashMap<Comm
             &stash.commit,
             label(&name, LabelKind::Stash { index: stash.index }, false),
         );
+    }
+    if let Some(bisect) = &state.bisect {
+        let marks = bisect
+            .bad
+            .iter()
+            .map(|commit| (commit, "bad", BisectMark::Bad))
+            .chain(bisect.good.iter().map(|commit| (commit, "good", BisectMark::Good)))
+            .chain(
+                bisect
+                    .skipped
+                    .iter()
+                    .map(|commit| (commit, "skipped", BisectMark::Skipped)),
+            );
+        for (commit, name, mark) in marks {
+            add(commit, label(name, LabelKind::Bisect(mark), false));
+        }
     }
     labels
 }

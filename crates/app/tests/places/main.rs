@@ -5,6 +5,7 @@
 #![allow(clippy::unwrap_used, clippy::panic, reason = "a test that cannot go on fails")]
 
 mod activity;
+mod bisect;
 mod branches;
 mod changes;
 mod commit_page;

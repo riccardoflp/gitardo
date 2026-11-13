@@ -1032,3 +1032,10 @@ says otherwise):
   before a remote one, by its short name; the current side of a rebase with no branch at `onto` is its short hash, and
   its subject is that of `HEAD`; a stash has no subjects; the words are in `model` (`SideRole::words`), not in
   `views/src/text/`, since several pages and the questions to the AI provider use them. Are these right?
+- **Q-G1** — The bisect is read with the state of the repository, as the operation under way is, so the banner and the
+  marks come with every read. `bisect.marks` is not a view of its own: `model::graph::labels` gives the labels `bad`,
+  `good` and `skipped` after the others, and `views::bisect::marks_view(mark)` gives the icon each is drawn with (a
+  check, an error sign, a minus), so its card's Function line changed. `undo.last` refuses with *End the bisect first.*
+  while a bisect is under way. The message that names the first bad commit is the one said once an operation ends, its
+  **Undo** left out, with **Show in the timeline** and **End bisect**; once it is put away, the banner still says it,
+  with **Show** and **End**. Are these right?

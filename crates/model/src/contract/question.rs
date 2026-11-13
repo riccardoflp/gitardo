@@ -43,6 +43,30 @@ pub enum QuestionKind {
         /// The words of the button that accepts: **Stage all and commit**.
         accept: Text,
     },
+    /// A file to open, chosen in a dialog; the answer is its path.
+    OpenFile(FileQuestion),
+    /// Where to save a file, chosen in a dialog; the answer is its path.
+    SaveFile(FileQuestion),
+}
+
+/// Where a dialog that chooses a file starts, and which files it shows.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileQuestion {
+    /// The folder it opens in.
+    pub folder: std::path::PathBuf,
+    /// The name it proposes, when saving.
+    pub file_name: Option<String>,
+    /// The kinds of files it offers to show, the first one shown at first.
+    pub filters: Vec<FileFilter>,
+}
+
+/// A kind of files a dialog offers to show: **Patches**, `.patch` and `.diff`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileFilter {
+    /// Its name: **Patches**.
+    pub name: Text,
+    /// The extensions of its files, without the dot; none for every file.
+    pub extensions: Vec<String>,
 }
 
 /// One choice of a pick.

@@ -108,3 +108,51 @@ pub struct Comparison {
     /// The files, renames with both names.
     pub files: Vec<FileChange>,
 }
+
+/// A comparison as a feature is invoked on it: its page, one of its sides, or one of its files.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ComparisonTarget {
+    /// The first side.
+    pub first: CompareSide,
+    /// The second side.
+    pub second: CompareSide,
+    /// How they are compared.
+    pub mode: CompareMode,
+    /// The file or folder it is narrowed to, from the top of the repository; none for the whole repository.
+    pub path: Option<String>,
+    /// Where the two diverged, as the page last read it; none when their histories never meet or it is not read yet.
+    pub merge_base: Option<CommitId>,
+    /// The part of the page the feature was invoked on.
+    pub part: ComparisonPart,
+}
+
+/// The part of a comparison page a feature was invoked on.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ComparisonPart {
+    /// The whole page.
+    Whole,
+    /// The button of the first side.
+    FirstSide,
+    /// The button of the second side.
+    SecondSide,
+    /// A file of the page, as it lists it.
+    File(FileChange),
+}
+
+/// A commit and the name a comparison shows it by.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NamedCommit {
+    /// Its name: a branch, a tag, or its short hash.
+    pub name: String,
+    /// The commit.
+    pub commit: CommitId,
+}
+
+/// The two commits of the comparison in the inspector (`compare.in-place`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InPlaceSides {
+    /// The commit it goes from.
+    pub from: NamedCommit,
+    /// The commit it goes to.
+    pub to: NamedCommit,
+}

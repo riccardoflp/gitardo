@@ -3,7 +3,7 @@
 
 use model::CommitId;
 use model::commit::Commit;
-use model::contract::{FeatureId, Target};
+use model::contract::Target;
 use model::graph::Row;
 use model::rebase::{LineBeforeHeadInput, find_line_before_head};
 use model::state::RepositoryState;
@@ -23,10 +23,7 @@ pub(crate) struct RewriteMenu {
 
 /// An entry that runs an operation on a target.
 fn runs(label: impl Into<String>, feature: &'static str, target: Target) -> OperationEntry {
-    OperationEntry {
-        label: label.into(),
-        run: Some((FeatureId(feature), target)),
-    }
+    OperationEntry::runs(label, feature, target)
 }
 
 /// The commits of the rows loaded, stashes and the draft left out.
