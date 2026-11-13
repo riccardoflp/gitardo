@@ -8,7 +8,7 @@ use model::conflicts::RuleCounts;
 use model::rebase::{RebaseStop, StopKind};
 use model::state::{ConflictKind, ConflictedFile, Operation};
 
-use super::{BannerState, StoppedState, open_target};
+use super::{BannerState, OpenAt, StoppedState, open_target};
 use crate::diff::DiffVersion;
 use crate::rebase::EditStopState;
 
@@ -171,11 +171,12 @@ fn conflicted(path: &str, kind: ConflictKind) -> ConflictedFile {
 
 #[test]
 fn conflicts_open_file__a_file_deleted_by_the_branch_merged_opens_its_base_beside_the_working_tree() {
-    let target = open_target(
+    let Some(OpenAt::Diff(target)) = open_target(
         &conflicted("src/app.rs", ConflictKind::DeletedByThem),
         Some(Operation::Merge),
-    )
-    .unwrap();
+    ) else {
+        panic!("a Diff page")
+    };
     assert_eq!(
         target.title.as_deref(),
         Some("app.rs (deleted by the branch being merged, changed by the branch checked out)")
@@ -183,6 +184,17 @@ fn conflicts_open_file__a_file_deleted_by_the_branch_merged_opens_its_base_besid
     assert_eq!(
         (target.left, target.right),
         (DiffVersion::Base, DiffVersion::WorkingTree)
+    );
+}
+
+#[test]
+fn conflicts_open_file__a_file_both_sides_changed_opens_in_the_merge_page() {
+    assert_eq!(
+        open_target(
+            &conflicted("src/app.rs", ConflictKind::BothModified),
+            Some(Operation::Merge)
+        ),
+        Some(OpenAt::Merge(String::from("src/app.rs")))
     );
 }
 

@@ -7,7 +7,7 @@ mod stopped;
 #[cfg(test)]
 mod tests;
 
-pub use open_file::{ConflictsIntent, OpenFileState, open_file_view, open_target};
+pub use open_file::{ConflictsIntent, OpenAt, OpenFileState, open_file_view, open_target};
 pub use stopped::{StoppedState, stopped_view};
 
 use model::conflicts::RuleCounts;

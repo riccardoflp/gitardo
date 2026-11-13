@@ -6,7 +6,7 @@
 use std::path::PathBuf;
 
 use model::conflicts::RuleCounts;
-use views::conflicts::{BannerState, ConflictsIntent, StoppedState, open_target};
+use views::conflicts::{BannerState, ConflictsIntent, OpenAt, StoppedState, open_target};
 
 use super::feature::Said;
 use super::message::{Effect, JobId, JobKind};
@@ -122,7 +122,8 @@ pub fn reduce(state: &mut State, intent: ConflictsIntent) -> Vec<Effect> {
         .find(|file| file.path == path)
         .and_then(|file| open_target(file, repository.operation));
     match target {
-        Some(target) => super::diff_page::open(state, target),
+        Some(OpenAt::Merge(path)) => super::merge_page::open(state, path),
+        Some(OpenAt::Diff(target)) => super::diff_page::open(state, target),
         None => Vec::new(),
     }
 }

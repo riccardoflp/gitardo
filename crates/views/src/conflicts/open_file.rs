@@ -16,6 +16,15 @@ pub enum ConflictsIntent {
     Open(String),
 }
 
+/// Where a file in conflict opens.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum OpenAt {
+    /// The Merge page of the file, by its path from the top of the working tree.
+    Merge(String),
+    /// A Diff page.
+    Diff(DiffTarget),
+}
+
 /// A file in conflict, where its name is drawn.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct OpenFileState<'a> {
@@ -43,11 +52,12 @@ pub fn open_file_view(state: &OpenFileState<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
     }
 }
 
-/// Where a file in conflict opens: a file one side deleted in a Diff page of its base beside the file in the working
-/// tree, titled with what each side did; any other file in a Diff page of what is checked out beside the working tree,
-/// with git's markers in it, until the Merge and File pages are there. A file both sides deleted opens nothing.
+/// Where a file in conflict opens: a file both sides changed in the Merge page; a file one side deleted in a Diff page
+/// of its base beside the file in the working tree, titled with what each side did; a file added on one side or on both
+/// in a Diff page of what is checked out beside the working tree, with git's markers in it, until the File page is
+/// there. A file both sides deleted opens nothing.
 #[must_use]
-pub fn open_target(file: &ConflictedFile, operation: Option<Operation>) -> Option<DiffTarget> {
+pub fn open_target(file: &ConflictedFile, operation: Option<Operation>) -> Option<OpenAt> {
     let names = side_names(&SideNamesInput {
         operation,
         ..SideNamesInput::default()
@@ -55,15 +65,18 @@ pub fn open_target(file: &ConflictedFile, operation: Option<Operation>) -> Optio
     let (current, incoming) = (names.current.role.words(), names.incoming.role.words());
     let deleter_and_keeper = match file.kind {
         ConflictKind::BothDeleted => return None,
+        ConflictKind::BothModified => return Some(OpenAt::Merge(file.path.clone())),
         ConflictKind::DeletedByThem => Some((incoming, current)),
         ConflictKind::DeletedByUs => Some((current, incoming)),
-        ConflictKind::BothModified | ConflictKind::BothAdded | ConflictKind::AddedByUs | ConflictKind::AddedByThem => {
-            None
-        }
+        ConflictKind::BothAdded | ConflictKind::AddedByUs | ConflictKind::AddedByThem => None,
     };
     let paths = DiffFile::same(&file.path);
     let Some((deleter, keeper)) = deleter_and_keeper else {
-        return Some(DiffTarget::file(DiffVersion::Head, DiffVersion::WorkingTree, paths));
+        return Some(OpenAt::Diff(DiffTarget::file(
+            DiffVersion::Head,
+            DiffVersion::WorkingTree,
+            paths,
+        )));
     };
     let name = file.path.rsplit('/').next().unwrap_or(&file.path);
     let mut target = DiffTarget::file(DiffVersion::Base, DiffVersion::WorkingTree, paths);
@@ -72,7 +85,7 @@ pub fn open_target(file: &ConflictedFile, operation: Option<Operation>) -> Optio
         &lower_first(deleter),
         &lower_first(keeper),
     ));
-    Some(target)
+    Some(OpenAt::Diff(target))
 }
 
 /// Words put inside a sentence: their first letter in lower case.

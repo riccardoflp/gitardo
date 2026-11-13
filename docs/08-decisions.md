@@ -1094,13 +1094,12 @@ says otherwise):
   again has files in conflict, keeping the count of files of that read. What an operation offers next
   (`FollowUp::Offer`, and the offer of a refusal) is now a button beside what it said: **Continue** after the rules left
   no file in conflict, **Open settings**, which opens the settings page, after a refusal. Are these right?
-- **Q190** — `conflicts.open-file` stays **Specified**: a file both sides changed and a file both added should open in
-  the Merge and the File pages (`merge-view.`, `file-view.`), which other slices build. Until then they open in the Diff
-  page of `HEAD` beside the working tree, with git's markers in it; a file one side deleted opens, as its card says, in
-  the Diff page of its base (`DiffVersion::Base`, `:1:<file>`, which offers no button in the gutter) beside the working
-  tree. Where it opens is decided by `views::conflicts::open_target(file, operation)`, beside the card's
-  `open_file_view`. Once those pages exist, should `open_target` give a page to open rather than a diff, and should the
-  line of a review card come in the intent?
+- **Q190** — `conflicts.open-file` stays **Specified** until the File page is there: a file both sides changed opens
+  in the Merge page, while a file both sides added, or added on one side, opens in the Diff page of `HEAD` beside the
+  working tree, with git's markers in it; a file one side deleted opens, as its card says, in the Diff page of its base
+  (`DiffVersion::Base`, `:1:<file>`, which offers no button in the gutter) beside the working tree. Where it opens is
+  decided by `views::conflicts::open_target(file, operation) -> Option<OpenAt>`, beside the card's `open_file_view`.
+  Should the line of a review card come in the intent, for the File page to open at it?
 - **Q191** — The buttons of a file in conflict on the Changes page are **+** (**Mark as resolved**), then **↓** for the
   incoming side and **↑** for the current one: the set of icons has no left and right arrows for the ← and → of the
   card of `conflicts.take-side`. Should arrows to the left and the right be drawn for them?

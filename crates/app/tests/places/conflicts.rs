@@ -307,7 +307,22 @@ fn conflicts_open_file__a_file_resolved_meanwhile_opens_nothing() {
         &mut state,
         Intent::Conflicts(ConflictsIntent::Open(CONFLICT_FILE.to_owned())),
     );
-    assert!(matches!(state.page_shown(), Some(Page::Diff(_))));
+    assert!(matches!(state.page_shown(), Some(Page::Merge(_))));
+}
+
+#[test]
+fn conflicts_open_file__a_file_changed_by_both_sides_opens_in_the_merge_page_labelled_current_and_incoming() {
+    let mut repository = Repository::new();
+    repository.conflict();
+    let (mut state, driver) = changes_page(&repository, Settings::default());
+    driver.intent(
+        &mut state,
+        Intent::Conflicts(ConflictsIntent::Open(CONFLICT_FILE.to_owned())),
+    );
+    assert!(matches!(state.page_shown(), Some(Page::Merge(_))));
+    let (_, tree) = Window::new(ThemeName::Dark, WIDE).draw(&state, &[]);
+    assert!(says(&tree, "Current \u{2014} The branch checked out"));
+    assert!(says(&tree, "Incoming \u{2014} The branch being merged"));
 }
 
 #[test]
