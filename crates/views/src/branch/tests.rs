@@ -128,6 +128,7 @@ fn branch_checkout__the_menu_of_a_branch_another_worktree_has_has_its_entries_an
             "Fast-forward to origin/linked",
             "Merge into main",
             "Merge into main\u{2026}",
+            "Rebase main onto this",
             "Rename branch\u{2026}",
         ]
     );

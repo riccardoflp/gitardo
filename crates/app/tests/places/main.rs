@@ -25,6 +25,7 @@ mod operations;
 mod panes;
 mod pointer;
 mod rail;
+mod rebase;
 mod search;
 mod show_in_graph;
 mod speed;

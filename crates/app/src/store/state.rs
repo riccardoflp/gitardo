@@ -71,6 +71,8 @@ pub struct State {
     pub settings_target: views::settings::SettingsTarget,
     /// The Changes page and the commit box (`changes.pane`).
     pub changes: super::changes::Changes,
+    /// The interactive rebase page, while it is open (`rebase.todo-page`).
+    pub rebase_page: Option<views::rebase::TodoPage>,
 }
 
 /// The folders of a window and the repositories found in them.

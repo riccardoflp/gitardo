@@ -169,7 +169,6 @@ fn report(
                     FollowUp::SelectBeforeHead(count) => writeln!(out, "Select HEAD~{count}")?,
                     FollowUp::OpenCommitPage(commit) => writeln!(out, "Open the page of {commit}")?,
                     FollowUp::CopyToClipboard(text) => writeln!(out, "Copy {text}")?,
-                    FollowUp::SelectBeforeHead(count) => writeln!(out, "Select HEAD~{count}")?,
                     FollowUp::FillCommitMessage(message) => writeln!(out, "Commit message: {message}")?,
                     FollowUp::SelectHead
                     | FollowUp::DeleteWhenRebaseEnded(_)

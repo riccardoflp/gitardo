@@ -259,6 +259,13 @@ impl ViewData {
                     has_repository: state.shown_folder().is_some(),
                 }),
             }),
+            Some(Page::Rebase) => match super::rebase::page_state(state) {
+                Some(page) => Content::Page(PageHostState {
+                    has_trail: true,
+                    page: PageState::Rebase(page),
+                }),
+                None => Content::Timeline(self.timeline(state)),
+            },
             Some(Page::Changes) => Content::Page(PageHostState {
                 has_trail: true,
                 page: PageState::Changes(self.changes.page_state(state)),
@@ -288,6 +295,7 @@ impl ViewData {
                     has_more: state.timeline.has_more,
                 }),
                 search: Box::new((search_view::search_box(state), search_view::list_mode(state))),
+                stop: super::rebase::stop_state(&read.state),
             },
             Some(Shown::NoRepository) => TimelineState::NoRepository(NoRepositoryState::NoRepository),
             Some(Shown::Looking) if state.reads.is_not_read => TimelineState::NoRepository(NoRepositoryState::NotRead),

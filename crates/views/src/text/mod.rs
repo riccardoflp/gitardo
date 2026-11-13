@@ -13,6 +13,7 @@ pub mod header;
 pub mod history;
 pub mod pages;
 pub mod rail;
+pub mod rebase;
 pub mod repo;
 pub mod search;
 pub mod settings;

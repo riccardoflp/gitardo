@@ -159,3 +159,11 @@
   split a commit into its changes, unstaged, and continue the split; add the changes to an earlier commit as a fixup;
   and continue a rebase stopped to edit a commit. Each asks first, saying when a commit is pushed already, sets aside
   what is not committed where it can, and is taken back by Undo. `gitardo-cli show` says where a rebase stopped.
+- Rebase and rewriting in the window: **Rebase `<branch>` onto this** in the menu of a commit, a branch and a remote
+  branch; **Squash into the commit before it…**, **Split this commit…**, **Add staged changes to this commit (fixup)**
+  or **Add all changes to this commit (fixup)**, and **Interactive rebase of N commits…** or **Edit this commit
+  (interactive rebase)…** in the menu of a commit. The interactive rebase page lists the commits up to `HEAD`, newest
+  first, to reorder with **Move up**, **Move down** or by dragging, and to pick, reword, edit, squash, fix up or drop,
+  says what keeps it from starting, and starts the rebase. While a rebase is stopped to edit or split a commit, a banner
+  above the timeline says so, with **Continue**. After a squash the commit it made is selected, and after a split the
+  commit box holds the message of the commit split.

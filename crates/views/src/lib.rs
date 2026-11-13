@@ -28,6 +28,7 @@ mod line;
 pub mod log;
 mod number;
 pub mod page;
+pub mod rebase;
 pub mod refs;
 pub mod repo;
 pub mod search;

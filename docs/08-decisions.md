@@ -962,3 +962,20 @@ the reading given until it is answered:
   `FollowUp::FillCommitMessage` (the message of the draft) and `FollowUp::SelectBeforeHead` (the commit as many before
   `HEAD`); `gitardo-cli` prints them. A rebase run from `gitardo-cli` and `gitardo` no longer opens an editor git was
   told of in `GIT_EDITOR` or `GIT_SEQUENCE_EDITOR`, which would wait for no one. Are these right?
+- **Q-F7** — **Abort** of the banner of a stop is greyed out, its tooltip saying to run `git rebase --abort` for now,
+  until `conflicts.abort-operation` (M6) is built. The banner shows the icon of a commit and the rows of the page the
+  icon **…** as their grip, since the icons have no pencil and no grip yet. Should those icons be drawn now?
+- **Q-F8** — `drag.drop` stays **Specified**: the rows of the timeline are a list whose own pointer handling selects,
+  opens and shows the menu of a row, and a drag source over a row takes those clicks away; the list of the toolkit needs
+  rows that can be dragged first, and the branch rail too. `rebase.onto` and `rebase.branch-onto` are **Built** on what
+  their acceptance lines check of the operations: the run, and what `drag.list-drop-entries` offers; the gesture comes
+  with `drag.drop`, which runs `rebase.branch-onto` with the preset `features::rebase::dropped(<branch>)`. Is that
+  right?
+- **Q-F9** — The entries of the menus offer nothing while a merge, rebase, cherry-pick, revert or patch is under way,
+  but are still offered during a bisect: the state of the repository does not read a bisect yet. The fixup and the
+  interactive rebase page look for the line to `HEAD` among the rows loaded only. Is that enough for now?
+- **Q-F10** — **Squash into one** of the selection bar (`selection.bar`, built apart) is offered when
+  `views::rebase::can_squash(repository, rows, selected)` says so, and runs `squash.commits` on
+  `Target::Commits(selected)`. The interactive rebase page runs `rebase.interactive` on `Target::Head` with the rows
+  under the answer `todo`, and **Continue** of the banner runs `rebase.edit-stop` or `split.continue` on `Target::Head`.
+  Is that right?

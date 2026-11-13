@@ -29,6 +29,8 @@ enum CommitCommand {
     Merge(MergeEntry),
     /// **Copy `<upstream>`** on a label a branch shares with its upstream: the name of the upstream on the clipboard.
     CopyUpstream,
+    /// The interactive rebase page, opened on the commit (`rebase.todo-page`).
+    TodoPage,
 }
 
 /// The key of the menu of a row, and of the label on it it was opened on.
@@ -125,15 +127,29 @@ pub(super) fn commit_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usiz
     };
     let mut operations = Vec::new();
     let mut groups = Vec::new();
+    let mut rewrite = crate::rebase::RewriteMenu::default();
     if let Some(menus) = state.references {
         if let Some(label) = label {
             let entries = label_entries(state, menus, &(commit.id.clone(), label));
             groups.push(entries.len());
             operations.extend(entries);
         }
-        operations.extend(commit_entries(menus, &commit.id));
+        let entries = commit_entries(menus, &commit.id);
+        groups.push(entries.len());
+        operations.extend(entries);
+        rewrite = crate::rebase::rewrite_menu(menus, state.rows, &commit.id);
+        operations.append(&mut rewrite.operations);
     }
     let mut entries = grouped(&operations, &groups);
+    if let Some(label) = &rewrite.todo_page {
+        if operations.len() == groups.iter().sum::<usize>() && !entries.is_empty() {
+            entries.push(MenuEntry::Separator);
+        }
+        entries.push(MenuEntry::Item(ui::MenuItem::new(
+            label.as_str(),
+            CommitCommand::TodoPage,
+        )));
+    }
     let merge = merge_menu(
         state.layout.foldable.contains(&commit.id),
         state.folds.folded.contains(&commit.id),
@@ -167,6 +183,7 @@ pub(super) fn commit_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usiz
             }
             Vec::new()
         }
+        Some(CommitCommand::TodoPage) => vec![Intent::Rebase(crate::rebase::RebaseIntent::Open(commit.id.clone()))],
         None => Vec::new(),
     }
 }

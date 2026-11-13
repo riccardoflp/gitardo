@@ -92,6 +92,8 @@ pub enum TimelineState<'a> {
         /// The search box at the top of the timeline, and the bar of a search shown as a list or of the history of a
         /// commit alone, drawn in place of `bar`.
         search: Box<(SearchBox<'a>, Option<ListMode<'a>>)>,
+        /// The banner of a rebase stopped to edit or split a commit, above the commits (`rebase.edit-stop`).
+        stop: Option<crate::rebase::EditStopState<'a>>,
     },
     /// No repository to show yet, or none at all: the rail is empty and the timeline says why.
     NoRepository(NoRepositoryState),
@@ -162,6 +164,7 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
             is_rail_hidden,
             bar,
             search,
+            stop,
         } => {
             let is_inspector_over = ui.window().width < INSPECTOR_OVER_BELOW;
             let layout = PaneLayout {
@@ -187,6 +190,10 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
             } else if let Some(bar) = bar {
                 let top = main.top(bar_height(ui));
                 intents.extend(ui.clip(top, |ui| bar_view(bar, ui)));
+            }
+            if let Some(stop) = stop {
+                let top = main.top(bar_height(ui));
+                intents.extend(ui.clip(top, |ui| crate::rebase::edit_stop_view(stop, ui)));
             }
             let graph = with_rail_hover(graph, rail_hover);
             intents.extend(ui.clip(main.rest(), |ui| graph_view(&graph, ui)));

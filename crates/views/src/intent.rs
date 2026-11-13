@@ -78,6 +78,8 @@ pub enum Intent {
     Feature(crate::feature::FeatureIntent),
     /// Something asked of the Changes page or of the commit box of the draft (`changes.pane`).
     Changes(crate::changes::ChangesIntent),
+    /// Something asked of the interactive rebase page (`rebase.todo-page`).
+    Rebase(crate::rebase::RebaseIntent),
 }
 
 /// What is done with a folder opened while the window shows a workspace.

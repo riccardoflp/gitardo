@@ -25,6 +25,8 @@ pub enum Page {
     Changes,
     /// A Diff page (`diff.page`).
     Diff(DiffPageId),
+    /// The interactive rebase page (`rebase.todo-page`).
+    Rebase,
 }
 
 impl Page {
@@ -37,6 +39,7 @@ impl Page {
             Page::Settings => settings_words::PAGE,
             Page::Changes => crate::text::changes::PAGE,
             Page::Diff(_) => crate::text::diff::PAGE,
+            Page::Rebase => crate::text::rebase::PAGE,
         }
     }
 }
@@ -54,6 +57,8 @@ pub enum PageState<'a> {
     Changes(crate::changes::ChangesState<'a>),
     /// A Diff page.
     Diff(DiffPageState<'a>),
+    /// The interactive rebase page.
+    Rebase(crate::rebase::TodoPageState<'a>),
 }
 
 impl PageState<'_> {
@@ -66,6 +71,7 @@ impl PageState<'_> {
             PageState::Settings(_) => Page::Settings,
             PageState::Changes(_) => Page::Changes,
             PageState::Diff(diff) => Page::Diff(diff.id),
+            PageState::Rebase(_) => Page::Rebase,
         }
     }
 
@@ -74,7 +80,9 @@ impl PageState<'_> {
     pub fn title(&self) -> &str {
         match self {
             PageState::Commit(commit) => commit.title,
-            PageState::Welcome(_) | PageState::Settings(_) | PageState::Changes(_) => self.page().title(),
+            PageState::Welcome(_) | PageState::Settings(_) | PageState::Changes(_) | PageState::Rebase(_) => {
+                self.page().title()
+            }
             PageState::Diff(diff) => diff.title,
         }
     }
@@ -110,6 +118,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Settings(settings) => settings_view(settings, ui),
         PageState::Changes(changes) => crate::changes::pane(changes, ui),
         PageState::Diff(diff) => diff_page_view(diff, ui),
+        PageState::Rebase(rebase) => crate::rebase::todo_page_view(rebase, ui),
     }));
     intents
 }

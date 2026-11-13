@@ -77,6 +77,7 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
         ];
         entries.extend(fast_forward);
         entries.extend(merge_entries(state, &branch.commit, target));
+        entries.extend(crate::rebase::rebase_onto_entry(state, &branch.commit, target()));
         entries.push(OperationEntry::runs(words::RENAME_BRANCH, "branch.rename", target()));
         return entries;
     }
@@ -87,6 +88,7 @@ pub(crate) fn branch_entries(menus: ReferenceMenus<'_>, branch: &Branch) -> Vec<
     entries.push(create);
     entries.extend(fast_forward);
     entries.extend(merge_entries(state, &branch.commit, target));
+    entries.extend(crate::rebase::rebase_onto_entry(state, &branch.commit, target()));
     entries.push(OperationEntry::runs(rail_words::RENAME, "branch.rename", target()));
     entries.push(OperationEntry::runs(rail_words::DELETE, "branch.delete", target()));
     entries
@@ -127,6 +129,7 @@ pub(crate) fn remote_entries(menus: ReferenceMenus<'_>, remote: &RemoteBranch) -
             target(),
         ));
     }
+    entries.extend(crate::rebase::rebase_onto_entry(state, &remote.commit, target()));
     entries.push(OperationEntry::runs(
         words::CREATE_BRANCH_HERE,
         "branch.create",

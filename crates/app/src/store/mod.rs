@@ -14,6 +14,7 @@ mod message;
 mod pages;
 mod rail;
 mod reads;
+mod rebase;
 pub mod search;
 mod settings_page;
 mod stashes;
@@ -78,6 +79,9 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         }
         Message::FeatureEnded { ended, log } => {
             changes::ended(state, &ended);
+            if let feature::Ended::Ran { after, .. } = &ended {
+                rebase::ended(state, after);
+            }
             feature::ended(state, ended, log)
         }
         Message::CommitsRead { job, result } => timeline::commits_read(state, job, result),
@@ -291,6 +295,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Diff(intent) => diff_page::reduce(state, intent),
         Intent::Feature(intent) => feature::reduce(state, intent),
         Intent::Changes(intent) => changes::reduce(state, intent),
+        Intent::Rebase(intent) => rebase::reduce(state, intent),
     }
 }
 
