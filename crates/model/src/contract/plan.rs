@@ -276,6 +276,9 @@ pub enum FollowUp {
     HideBlame(String, Option<crate::CommitId>),
     /// Open a file in a File page at a line, with its blame shown (`blame.previous`).
     OpenFile(Box<crate::blame::FileToOpen>),
+    /// Open a file in a File page to edit it, at a line from 1: by its path from the top of the working tree, or by
+    /// its whole path for a file outside it, such as the user's settings file (`worktree-setup.edit-settings-file`).
+    EditFile(String, usize),
 }
 
 /// A plan offered in place of one whose step failed, when git said some words.

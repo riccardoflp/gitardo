@@ -71,4 +71,4 @@ pub fn save(context: &Context, answers: &Answers) -> Outcome {
 
 #[cfg(test)]
 #[path = "save_tests.rs"]
-mod tests;
+pub(super) mod tests;

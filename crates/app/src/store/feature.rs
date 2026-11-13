@@ -404,6 +404,14 @@ fn carry_out(state: &mut State, after: Vec<FollowUp>) -> Vec<Effect> {
                 effects.extend(search::show_history(state, history.map(|history| *history)));
             }
             (FollowUp::SelectCommit(_), _) => effects.extend(super::pages::show_timeline(state)),
+            (FollowUp::EditFile(path, line), _) => {
+                let target = views::file_view::FileTarget {
+                    path,
+                    revision: None,
+                    line: Some(line),
+                };
+                effects.extend(super::file_page::open(state, target));
+            }
             (blamed @ (FollowUp::ShowBlame(_) | FollowUp::HideBlame(..) | FollowUp::OpenFile(_)), _) => {
                 effects.extend(super::blame::carry_out(state, blamed));
             }

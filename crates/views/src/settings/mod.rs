@@ -1,12 +1,15 @@
 //! The settings page (`settings.edit`) and the picker of the themes (`settings.theme`): every setting with its
 //! description, its value and where it comes from; a switch or a choice changes it in the file chosen at the top.
 
+use model::contract::{FeatureId, Target};
+use model::worktree_setup::{SettingsPlace, SetupSave};
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{
     Availability, Badge, BadgeFill, Button, ButtonKind, Choice, Label, MenuEntry, MenuItem, Picker, PickerAnswer,
     PickerItem, PickerMode, Rect, TextKind, Tone, Ui,
 };
 
+use crate::feature::FeatureIntent;
 use crate::intent::Intent;
 use crate::text::settings::{self as words, SETTINGS, SettingInfo, SettingKind};
 
@@ -97,7 +100,7 @@ pub fn default_rows() -> Vec<SettingRow> {
 }
 
 /// The settings page, over the rectangle its caller clipped it to: the file changes are written in and **Edit in
-/// settings.json**, which waits for the File page; then every setting, with its key, **Experimental** beside the name
+/// settings.json**, which opens it in a File page; then every setting, with its key, **Experimental** beside the name
 /// of an experimental one, its description, where its value comes from or why a value was not taken, and a switch or
 /// a choice for the settings that hold one.
 ///
@@ -141,17 +144,17 @@ fn row_height(ui: &Ui<'_>) -> f32 {
     theme.sizes.row_height * 3.0 + theme.sizes.spacing.large
 }
 
-/// The choice of the file changes are written in, and **Edit in settings.json**, which cannot be clicked yet.
+/// The choice of the file changes are written in, and **Edit in settings.json**, which opens that file in a File page
+/// (`worktree-setup.edit-settings-file`).
 fn target_bar(state: &SettingsPageState<'_>, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
     let theme = *ui.theme();
     let mut parts = Area::with_gap(rect, theme.sizes.spacing.large);
-    let edit = Button::secondary(words::EDIT_IN_FILE)
-        .kind(ButtonKind::Outline)
-        .disabled();
+    let edit = Button::secondary(words::EDIT_IN_FILE).kind(ButtonKind::Outline);
     let (width, height) = ui.button_size(&edit);
     let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
-    let response = ui.button("edit settings file", cell, &edit);
-    ui.tooltip(&response, words::NOT_YET);
+    if ui.button("edit settings file", cell, &edit).clicked {
+        intents.push(edit_file(state.target));
+    }
     let label_width = ui.measure(words::WRITE_IN, ui.text_style(TextKind::Body));
     let _ = ui.label(parts.left(label_width), &Label::new(words::WRITE_IN).tone(Tone::Muted));
     let targets = [
@@ -171,6 +174,21 @@ fn target_bar(state: &SettingsPageState<'_>, ui: &mut Ui<'_>, rect: Rect, intent
             intents.push(Intent::ChooseSettingsFile(target));
         }
     }
+}
+
+/// The intent of **Edit in settings.json**: the operation that opens the file chosen, made first when the repository
+/// has none.
+fn edit_file(target: SettingsTarget) -> Intent {
+    let place = match target {
+        SettingsTarget::User => SettingsPlace::User,
+        SettingsTarget::Repository => SettingsPlace::Repository,
+    };
+    let save = SetupSave {
+        place,
+        ..SetupSave::default()
+    };
+    let feature = FeatureId("worktree-setup.edit-settings-file");
+    Intent::Feature(FeatureIntent::Run(feature, Target::SetupSettings(Box::new(save))))
 }
 
 /// A setting: its key and **Experimental**, its description, where its value comes from, and its control on the right.

@@ -41,8 +41,11 @@ pub fn read_file(folder: &Path, job: &FileJob, cancel: &CancelToken) -> Result<O
     }
 }
 
-/// Where a file of the working tree is on disk.
+/// Where a file of the working tree is on disk; a whole path, such as that of the user's settings file, is itself.
 fn on_disk(folder: &Path, path: &str) -> PathBuf {
+    if Path::new(path).is_absolute() {
+        return PathBuf::from(path);
+    }
     let mut file = folder.to_path_buf();
     file.extend(path.split('/').filter(|part| !part.is_empty()));
     file

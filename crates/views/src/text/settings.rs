@@ -436,8 +436,6 @@ pub const FROM_REPOSITORY: &str = "Repository settings";
 pub const WRITE_IN: &str = "Write changes in";
 /// The button that opens the settings file in a File page.
 pub const EDIT_IN_FILE: &str = "Edit in settings.json";
-/// The tooltip of what opens a page of a later milestone, which cannot be clicked yet.
-pub const NOT_YET: &str = "Not yet";
 /// The tooltip of the control of a setting the repository's file may not set, while changes go to that file.
 pub const USER_ONLY: &str = "Only the user settings can set this";
 /// The picker of the themes (`settings.theme`).

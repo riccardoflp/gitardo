@@ -177,7 +177,12 @@ pub fn open(state: &mut State, target: FileTarget) -> Vec<Effect> {
     }
     let id = FilePageId(state.file_pages.next);
     state.file_pages.next += 1;
-    let name = target.path.rsplit('/').next().unwrap_or(&target.path).to_owned();
+    let name = target
+        .path
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or(&target.path)
+        .to_owned();
     let title = match &target.revision {
         Some(commit) => words::at_revision(&name, commit.short()),
         None => name,
@@ -404,7 +409,8 @@ pub fn unsaved_bytes(state: &State, top: &Path, path: &str) -> Option<Vec<u8>> {
         .map(|document| document.buffer().to_bytes())
 }
 
-/// The paths of the files of a working tree with edits not saved, for the Changes page.
+/// The paths of the files of a working tree with edits not saved, for the Changes page; a file outside it, such as the
+/// user's settings file, is not one of them.
 #[must_use]
 pub fn unsaved_paths(state: &State, top: &Path) -> Vec<String> {
     state
@@ -412,6 +418,7 @@ pub fn unsaved_paths(state: &State, top: &Path) -> Vec<String> {
         .pages
         .iter()
         .filter(|page| page.revision.is_none() && same_folder(&page.top, top) && page.is_unsaved())
+        .filter(|page| !Path::new(&page.path).is_absolute())
         .map(|page| page.path.clone())
         .collect()
 }

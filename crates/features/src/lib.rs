@@ -219,6 +219,10 @@ pub const OPERATIONS: [(FeatureId, Operation); 151] = [
         FeatureId("worktree-setup.link-into-new-worktrees"),
         worktree_setup::link_into_new_worktrees,
     ),
+    (
+        FeatureId("worktree-setup.edit-settings-file"),
+        worktree_setup::edit_settings_file,
+    ),
     (FeatureId("worktree-setup.remove-from"), worktree_setup::remove_from),
     (FeatureId("worktree-setup.save"), worktree_setup::save),
     (FeatureId("worktree-setup.stop-copying"), worktree_setup::stop_copying),

@@ -306,3 +306,5 @@
   counts.
 - **Open file** in the bar of a Diff page whose right side is the working tree opens the File page of the file.
 - **Edit message…** is not in the menu of a commit while a bisect is under way, and says *End the bisect first.*
+- **Edit in settings.json** on the settings page opens the settings file chosen in a File page, making the
+  repository's `.gitardo/settings.json` with `{}` when it is not there.

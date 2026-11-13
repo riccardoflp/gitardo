@@ -644,7 +644,8 @@ the reading given until it is answered:
   repository's file may not set cannot be changed, with the tooltip "Only the user settings can set this". The words
   chosen are "Write changes in", "Default", "From user settings", and for a value not taken "User settings: not a
   number. The default is used." Line 2 (**Edit in settings.json** opens the file in a File page) waits for the File
-  page (M6): the button is shown disabled with the tooltip "Not yet", and the card stays **Specified**.
+  page (M6): the button is shown disabled with the tooltip "Not yet", and the card stays **Specified**. (Built since:
+  the button runs `worktree-setup.edit-settings-file`, Q-W6.)
 - **Q107** — `settings.theme`: **Theme…** in the **…** menu opens a picker of the five themes. The theme picked is
   written in the user's file by the store (Q44 is still open), and the window takes it when the watcher reads the file
   again. The picker shows no theme as the user moves through the list, which the card asks. Should it, and should the
@@ -1479,3 +1480,9 @@ From the cards left over up to M8 (each built with the reading given, until the 
   bisect is under way **Edit message…** is not in the menu of a commit and the operation says *End the bisect first.*
   The pencil of the inspector is not drawn, as the inspector has no box to edit a message in. Should the box come with
   the multi-line editor, or is the dialog the box?
+- **Q-W6** — `worktree-setup.edit-settings-file` is built, and **Edit in settings.json** of the settings page runs it
+  for the file chosen there, since `worktree-setup.page` is not built yet. It ends with a new follow-up,
+  `FollowUp::EditFile(path, line)`, which opens a File page to edit: the repository's file by its path from the top of
+  the working tree, the user's file by its whole path, which the File page reads and saves as it is and leaves out of
+  the Changes page. From the settings page it too opens at `worktrees.linkFolders` when that is set. The plan is titled
+  *Edit `<path>`* and has no steps unless it makes the repository's file. Are these right?

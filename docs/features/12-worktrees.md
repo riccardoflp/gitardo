@@ -1128,7 +1128,8 @@ Opens the settings file of the place chosen on the page, to edit the patterns an
 
 - **Kind**: Operation
 - **Function**: `features::worktree_setup::edit_settings_file(context, answers) -> Outcome`
-- **Entry points**: **Edit in settings file** on `worktree-setup.page`.
+- **Entry points**: **Edit in settings file** on `worktree-setup.page`; **Edit in settings.json** on the settings
+  page (`settings.edit`), for the file chosen there.
 - **Plan**: when the repository's `.gitardo/settings.json` is chosen and is not there yet, `write
   <repository>/.gitardo/settings.json` with an empty object; otherwise no steps.
 - **Danger**: None.
