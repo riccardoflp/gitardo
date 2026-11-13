@@ -12,7 +12,8 @@ patch area.
 Selects several commits of the timeline at once, to act on them together.
 
 - **Kind**: View
-- **Function**: `views::selection::select_view(state, ui) -> Vec<Intent>`
+- **Function**: `views::selection::select_view(state, ui, row) -> Option<Intent>`, for a row the list says was
+  clicked
 - **Entry points**: `Ctrl`+click (`Cmd`+click on macOS) on a row of the timeline adds that commit to the selection, or
   takes it out; `Shift`+click selects every commit between the selected one and the clicked one, both included.
 - **Offered when**: in the timeline, wide or narrow. The draft and the rows of stashes are never part of a selection
@@ -42,7 +43,7 @@ Acceptance:
 A bar above the commits of the timeline counts the commits selected and offers what is done most with them.
 
 - **Kind**: View
-- **Function**: `views::selection::bar_view(state, ui) -> Vec<Intent>`
+- **Function**: `views::selection::bar_view(state, several, ui, rect) -> Vec<Intent>`
 - **Entry points**: shown above the commits of the timeline while two commits or more are selected.
 - **Offered when**: two commits or more are selected.
 - **Uses**: `squash.commits`, `selection.cherry-pick`, `patch.copy`, `rebase.find-line-before-head`.
@@ -72,7 +73,7 @@ Acceptance:
 Right-click on a commit of the selection opens the menu of all of them.
 
 - **Kind**: View
-- **Function**: `views::selection::menu_view(state, ui) -> Vec<Intent>`
+- **Function**: `views::selection::menu_view(state, several, ui) -> Vec<Intent>`
 - **Entry points**: right-click on any commit of a selection of two or more.
 - **Offered when**: two commits or more are selected.
 - **Uses**: `squash.commits`, `selection.cherry-pick`, `compare.selected-before`, `patch.copy`, `patch.save`.
@@ -314,8 +315,8 @@ has the ways to pull.
   offered, and **Merge `<branch>` into `<current branch>`…** in the menu of a branch dropped on the commit checked out.
 - **Offered when**: as `merge.into-current`.
 - **Reads**: `git merge-base --is-ancestor HEAD <ref>` (exit 0: a fast-forward is possible), before asking.
-- **Asks**: a pick titled *Merge `<ref>` into `<current branch>`*, each item with the command as its description and
-  what it does as its detail:
+- **Asks**: a pick titled *Merge `<ref>` into `<current branch>`*, each item with the command and what it does as its
+  description, *`<command>` · `<what it does>`*:
   - **Merge**, `git merge <ref>`: *A fast-forward when one is possible, otherwise a merge commit*;
   - **Merge (no fast-forward)**, `git merge --no-ff <ref>`: *Always a merge commit, even where a fast-forward would do*;
   - **Merge (fast-forward only)**, `git merge --ff-only <ref>`: *`<current>` moves up to `<ref>`, with no merge
