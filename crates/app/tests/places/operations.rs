@@ -8,6 +8,7 @@ use render::ThemeName;
 use views::Intent;
 use views::feature::FeatureIntent;
 
+use super::pointer::{middle, rect};
 use super::support::{OperationsDriver, Window, find, says, says_in, typed};
 use super::{repository_with_history, showing};
 
@@ -43,7 +44,17 @@ fn branch_create__branch_in_the_more_menu_asks_the_name_and_whether_to_check_it_
     for intent in intents {
         driver.intent(&mut state, intent);
     }
-    for intent in window.click(&state, Role::Button, "Create branch") {
+    // The top of the branch rail has a button of the same name: this one is the dialog's.
+    let (_, tree) = window.draw(&state, &[]);
+    let dialog = rect(find(&tree, Role::Dialog, "Create branch").bounds().unwrap());
+    let accept = tree
+        .nodes
+        .iter()
+        .filter(|(_, node)| node.role() == Role::Button && node.label() == Some("Create branch"))
+        .filter_map(|(_, node)| node.bounds().map(rect))
+        .find(|button| button.x >= dialog.x && button.y >= dialog.y && button.bottom() <= dialog.bottom())
+        .unwrap();
+    for intent in window.click_at(&state, middle(accept), 1) {
         driver.intent(&mut state, intent);
     }
     assert_eq!(next_kind(&driver, &mut state), "asks");

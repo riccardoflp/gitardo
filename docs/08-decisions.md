@@ -1699,3 +1699,10 @@ answered:
   the system and 0 (UTC) elsewhere, and in `gitardo-cli`. The Function line returns `Result<FormatName, Outcome>`,
   since the read of the branches at a commit and a refusal are not questions. `branch.create` asks **Use the format**
   first; `worktree.create` still uses only formats without `${input:…}`, in UTC. Right?
+- **Q-R5** — `branch.pane` is built as `views::branch::pane(state: &ReferencesState, ui)`: the state of the rail is
+  that of `refs.tree`, so no `BranchesState` was made. Its top, over the filter box, names the branch checked out with
+  the icon of a branch, or `detached at <short hash>`, and under it has **Create branch** and **Compare**; at the width
+  the rail starts with, **Create branch** is only `+`, with its name as the tooltip, so that both fit. Both are
+  disabled before the first commit. The narrow layout, with only dots and icons, has no top. The header names the
+  branch checked out too, so the top says it twice. The buttons of the top do not wait for an operation running, as
+  the header's **Branch** does. Is this the top the maintainer meant?

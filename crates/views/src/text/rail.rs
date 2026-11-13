@@ -3,6 +3,10 @@
 
 /// The rail, for the screen reader.
 pub const RAIL: &str = "Branches";
+/// The button at the top of the rail that makes a branch at `HEAD` (`branch.pane`).
+pub const CREATE_BRANCH: &str = "Create branch";
+/// The button at the top of the rail that chooses what to compare (`branch.pane`).
+pub const COMPARE: &str = "Compare";
 /// The title of the favorites.
 pub const FAVORITES: &str = "FAVORITES";
 /// The title of the branches checked out last.

@@ -19,7 +19,7 @@ use crate::intent::{Intent, Notice};
 use crate::line::{ICON_RAIL_WIDTH, INSPECTOR_OVER_BELOW, is_narrow};
 use crate::page::Page;
 use crate::page::{PageHostState, host_view};
-use crate::refs::{ReferencesState, rail_view};
+use crate::refs::ReferencesState;
 use crate::repo::{
     NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, no_repository_view, open_folder_question_view,
     repository_picker_view,
@@ -193,7 +193,7 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
             let rects = pane_rects(&layout, theme.sizes.border);
             let mut rail_hover = None;
             if let Some(rail) = rects.rail {
-                let (rail_intents, hover) = ui.clip(rail, |ui| rail_view(references, ui));
+                let (rail_intents, hover) = ui.clip(rail, |ui| crate::branch::pane_view(references, ui));
                 intents.extend(rail_intents);
                 rail_hover = hover;
             }

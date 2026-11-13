@@ -45,6 +45,7 @@ mod merge_actions;
 mod merge_at_line;
 mod new_worktrees;
 mod operations;
+mod pane;
 mod panes;
 mod patches;
 mod pointer;

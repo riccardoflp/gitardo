@@ -4,6 +4,9 @@
 
 mod history;
 mod menu;
+mod pane;
+#[cfg(test)]
+mod pane_tests;
 #[cfg(test)]
 mod tests;
 
@@ -14,6 +17,8 @@ pub(crate) use history::{compare_entries, history_entries};
 pub(crate) use menu::{
     OperationEntry, branch_entries, chosen, commit_entries, menu_items, open_intent, remote_entries, tag_entries,
 };
+pub use pane::pane;
+pub(crate) use pane::pane_view;
 
 /// What the menus of the references and of the commits are made from.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

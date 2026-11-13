@@ -498,7 +498,7 @@ own, and the stashes, worktrees, tags and submodules kept aside, with their cont
 comparison of a reference with the branch checked out.
 
 - **Kind**: View
-- **Function**: `views::branch::pane(state: &BranchesState, ui: &mut Ui) -> Vec<Intent>`
+- **Function**: `views::branch::pane(state: &ReferencesState, ui: &mut Ui) -> Vec<Intent>`
 - **Entry points**: the left of the window; **Show branches** in Quick search shows the branch rail when it was put
   away.
 - **Settings**: `branches.followGraphFilter` (on by default): while the timeline is narrowed to some branches, the
@@ -509,8 +509,9 @@ comparison of a reference with the branch checked out.
 
 What the branch rail shows and does:
 
-- Its top names the branch checked out, and has the buttons **Create branch** (`branch.create` at `HEAD`) and
-  **Compare** (`compare.choose`).
+- Its top names the branch checked out, or `detached at <short hash>`, and has the buttons **Create branch**
+  (`branch.create` at `HEAD`) and **Compare** (`compare.choose`), which cannot be used before the first commit. When
+  the two do not fit side by side, **Create branch** is only its icon, `+`. In the narrow layout there is no top.
 - The lists, their order, their menus, the filter box from 15 branches and tags on, and the cap of 100 entries per
   list with **Show all** are those of `refs.tree`: **Local**, then a heading for each remote (**ORIGIN**) with its
   branches, then **Kept aside** with **Stashes**, **Worktrees**, **Tags** and **Submodules**. The lists of **Kept

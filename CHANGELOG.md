@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The top of the branch rail names the branch checked out, with **Create branch**, at `HEAD`, and **Compare**.
 - **Create branch** with `branches.format` set asks first whether to use the format; with it, the inputs of
   `branches.inputs` are asked in order, each with the value given last in this workspace, a `pattern` is checked while
   typing, `${base}` at a commit is picked among the branches that have it, `${date}` is today in local time, and the
