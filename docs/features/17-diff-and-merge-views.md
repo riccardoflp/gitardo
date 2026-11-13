@@ -809,6 +809,7 @@ read-only.
   `merge-view.close`; **Open the file at this revision** on a file of a commit; **Blame the file as it was before** in
   the blame (`blame.`).
 - **Reads**: the file from the disk; at a revision, `file-view.read-revision`.
+- **Settings**: `editor.wordWrap`.
 - **Uses**: `file-view.read-revision`, `file-view.edit`, `file-view.save`, `file-view.find`, `file-view.go-to-line`,
   `file-view.open-external`, `file-view.highlight`, `blame.` (the blame of the line under the cursor and of the whole
   file, which draw in this page), `file-history.` (the history of the file and of the selected lines, from its context
@@ -818,6 +819,10 @@ read-only.
   is read-only. One page per file and revision: asking again shows it, at the line asked for.
 - The editor has line numbers, the colors of the code, a cursor and selections, and the font and tab width of the
   editor settings. It opens at the line asked for, centered, with the cursor at its start.
+- A line longer than the page is cut at its right edge, or, with `editor.wordWrap` `on`, wraps into rows as wide as
+  the page: after a space between words, inside a word only when the word is longer than the page. Its number, and the
+  blame beside it, stay on its first row; its other rows start in the column of the text. A click on a row puts the
+  cursor on that row, and a selection is drawn on every row it covers.
 - The title buttons: **Open in external editor**; the buttons of the blame; **Open in the Merge page** when the file is
   in conflict with a version on each side.
 - The context menu: cut, copy, paste, **Find**, **Go to line**, and the entries the blame and the file history add.

@@ -127,6 +127,8 @@ pub struct FilePageState<'a> {
     pub go_to_line: Option<GoToLineState<'a>>,
     /// How many columns a tab goes to.
     pub tab_width: usize,
+    /// What the editor does with a line longer than the page: cut it, or wrap it (`editor.wordWrap`).
+    pub wrap: ui::LineWrap,
     /// The blame the page shows, and the buttons of the blame in its title (`blame.file`, `blame.current-line`).
     pub blame: crate::blame::PageBlame<'a>,
 }

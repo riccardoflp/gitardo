@@ -21,6 +21,14 @@ fn settings_read__a_setting_the_repository_sets_comes_before_the_users_for_the_r
 }
 
 #[test]
+fn settings_read__editor_word_wrap_on_wraps_the_lines_of_the_file_page_and_off_cuts_them() {
+    let wrap = |user: &str| parse(Some(user), None).word_wrap;
+    assert_eq!(wrap(r#"{ "editor.wordWrap": "on" }"#), ui::LineWrap::Words);
+    assert_eq!(wrap(r#"{ "editor.wordWrap": "off" }"#), ui::LineWrap::Cut);
+    assert_eq!(wrap("{}"), ui::LineWrap::Cut);
+}
+
+#[test]
 fn settings_read__a_user_setting_the_repository_sets_is_not_taken_and_is_said() {
     let settings = parse(
         Some(r#"{ "theme": "dark" }"#),

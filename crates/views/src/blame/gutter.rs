@@ -36,22 +36,21 @@ pub fn file_view(state: &FileBlameView<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         (places.gutter, AccessRole::Group, words::COLUMN),
         |ui| {
             ui.clip(places.gutter, |ui| {
-                let mut top = places.first_top;
                 for line in state.visible.clone() {
-                    let row = Rect::new(places.gutter.x, top, places.gutter.width, places.line_height);
+                    let (top, height) = state.line_place(line);
+                    let row = Rect::new(places.gutter.x, top, places.gutter.width, height);
                     let text = match &pinned {
                         Some((pinned_line, text)) if *pinned_line == line => text.as_str(),
                         _ => file.texts.get(line).map_or("", String::as_str),
                     };
                     let is_brought_out = caret_commit.is_some() && commit_of(file.lines.get(line)) == caret_commit;
-                    draw_line(ui, row, (&file, line), (text, is_brought_out));
+                    draw_line(ui, (row, places.line_height), (&file, line), (text, is_brought_out));
                     if let Some(asked) = hover_of(ui, state, (row, line)) {
                         intents.push(asked);
                     }
                     if state.blame.hovered == Some(line) {
                         hovered_row = Some(row);
                     }
-                    top += places.line_height;
                 }
             });
         },
@@ -67,8 +66,14 @@ pub fn file_view(state: &FileBlameView<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     intents
 }
 
-/// Draws what is beside a line: its bar, and its text, on the highlight when it is of the commit of the cursor.
-fn draw_line(ui: &mut Ui<'_>, row: Rect, (file, line): (&FileBlame<'_>, usize), (text, is_brought_out): (&str, bool)) {
+/// Draws what is beside a line, as tall as its rows: its bar, and its text on its first row, on the highlight when it is
+/// of the commit of the cursor.
+fn draw_line(
+    ui: &mut Ui<'_>,
+    (row, line_height): (Rect, f32),
+    (file, line): (&FileBlame<'_>, usize),
+    (text, is_brought_out): (&str, bool),
+) {
     let theme = *ui.theme();
     let colors = theme.colors;
     if is_brought_out {
@@ -81,7 +86,7 @@ fn draw_line(ui: &mut Ui<'_>, row: Rect, (file, line): (&FileBlame<'_>, usize), 
         return;
     }
     let left = row.x + BAR_WIDTH + theme.sizes.spacing.medium;
-    let place = Rect::new(left, row.y, (row.right() - left).max(0.0), row.height);
+    let place = Rect::new(left, row.y, (row.right() - left).max(0.0), line_height);
     let tone = if is_brought_out { Tone::Normal } else { Tone::Muted };
     let _ = ui.label(place, &Label::new(text).kind(TextKind::Code).tone(tone));
 }
@@ -106,16 +111,18 @@ fn hover_of(ui: &mut Ui<'_>, state: &FileBlameView<'_>, (row, line): (Rect, usiz
 /// A mark on the scroll bar of a file longer than the page for each run of lines of the commit of the cursor.
 fn scroll_marks(ui: &mut Ui<'_>, state: &FileBlameView<'_>, (file, commit): (&FileBlame<'_>, &model::CommitId)) {
     let places = state.places;
-    let content = crate::number::float_of_count(state.line_count) * places.line_height;
-    if content <= places.text.height || state.line_count == 0 {
+    let rows = state.rows.count();
+    let content = crate::number::float_of_count(rows) * places.line_height;
+    if content <= places.text.height || rows == 0 {
         return;
     }
     let track = places.track;
-    let scale = track.height / crate::number::float_of_count(state.line_count);
+    let scale = track.height / crate::number::float_of_count(rows);
     let color = ui.theme().colors.foreground;
     for run in runs_of(file.lines, commit) {
-        let top = track.y + crate::number::float_of_count(run.start) * scale;
-        let height = (crate::number::float_of_count(run.len()) * scale).max(2.0);
+        let (start, end) = (state.rows.first_row(run.start), state.rows.first_row(run.end));
+        let top = track.y + crate::number::float_of_count(start) * scale;
+        let height = (crate::number::float_of_count(end - start) * scale).max(2.0);
         ui.fill_rect(Rect::new(track.x, top, track.width, height), color);
     }
 }

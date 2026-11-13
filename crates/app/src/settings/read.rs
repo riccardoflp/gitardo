@@ -105,6 +105,7 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
         follows_graph_filter: follows_graph_filter.unwrap_or(defaults.follows_graph_filter),
         collapse_unchanged: collapse_unchanged.unwrap_or(defaults.collapse_unchanged),
         open_on_click,
+        word_wrap: word_wrap(&mut lookup),
         read_on_startup: read_on_startup.unwrap_or(defaults.read_on_startup),
         page_size: page_size.map_or(defaults.page_size, |size| PageSize::from_setting(Some(size))),
         problems: lookup.problems,
@@ -194,6 +195,14 @@ fn ai_settings(lookup: &mut Lookup) -> AiSettings {
         endpoint: lookup.string(keys::AI_ENDPOINT, Scope::User).unwrap_or_default(),
         model: lookup.string(keys::AI_MODEL, Scope::User).unwrap_or_default(),
         effort,
+    }
+}
+
+/// `editor.wordWrap`, from the user's file: whether the File page wraps a line longer than the page.
+fn word_wrap(lookup: &mut Lookup) -> ui::LineWrap {
+    match lookup.choice(keys::WORD_WRAP, &keys::WORD_WRAPS) {
+        Some("on") => ui::LineWrap::Words,
+        _ => ui::LineWrap::Cut,
     }
 }
 

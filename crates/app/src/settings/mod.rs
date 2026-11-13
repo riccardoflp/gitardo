@@ -23,6 +23,7 @@ use model::contract::FeatureSettings;
 use model::graph::PageSize;
 use model::refs::SortOrder;
 use render::ThemeName;
+use ui::LineWrap;
 use views::graph::Switches;
 
 pub use folder::{configuration_folder, home_folder, repository_settings_file, user_settings_file};
@@ -57,6 +58,8 @@ pub struct Settings {
     pub collapse_unchanged: bool,
     /// `changes.openOnClick`: what a click on a file of the Changes page opens.
     pub open_on_click: OpenOnClick,
+    /// `editor.wordWrap`: whether the File page wraps a line longer than the page or cuts it at its right edge.
+    pub word_wrap: LineWrap,
     /// `fileBlame.format`, `fileBlame.groupLines` and `fileBlame.age.*`: how the blame beside the lines of a file looks.
     pub file_blame: FileBlameLook,
     /// Every value the files set, by key, the repository's file first: what the settings page shows.
@@ -79,6 +82,7 @@ impl Default for Settings {
             features: FeatureSettings::default(),
             collapse_unchanged: true,
             open_on_click: OpenOnClick::File,
+            word_wrap: LineWrap::Cut,
             file_blame: FileBlameLook::default(),
             values: BTreeMap::new(),
             problems: Vec::new(),

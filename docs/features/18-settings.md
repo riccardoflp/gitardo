@@ -84,6 +84,7 @@ Acceptance:
 | `ai.model` | `""` | User | The model asked, as the provider names it. Was `conflicts.aiModel`, now used for drafting commit messages too. | `ai.choose-model` |
 | `ai.effort` | `""` | User | How much the model thinks before it answers: empty, `low`, `medium`, `high`, `xhigh` or `max`. Was `conflicts.aiEffort`. | `ai.choose-model` |
 | `editor.external` | `""` | User | **New.** The command that opens a file in another editor, with `${file}` and `${line}`, such as `code --goto ${file}:${line}`. Empty: the system's default program for the file. | `file-view.open-external` |
+| `editor.wordWrap` | `"off"` | User | **New.** `on` wraps a line longer than the File page between its words, or inside a word longer than the page; `off` cuts it at the right edge. | `file-view.page` |
 | `terminal.external` | `""` | User | **New.** The command that opens a terminal in a folder, with `${folder}`. Empty: the system's default terminal. | `worktree.open-in-terminal` |
 | `theme` | `"system"` | User | **New.** `system`, `dark`, `light`, `highContrastDark` or `highContrastLight`. | `settings.theme` |
 | `font.ui`, `font.code`, `font.size` | `"Inter"`, `"JetBrains Mono"`, `13` | User | **New.** The families and the size of the text of the interface and of code: the fonts that come with the program, or the name of a font of the system. | `settings.theme` |

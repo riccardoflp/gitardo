@@ -179,6 +179,52 @@ fn blame_file__typing_says_not_committed_yet_at_once_and_the_blame_is_read_again
     );
 }
 
+/// The colors of the pixels of the window along a band, at a height, from one x to another.
+fn colors_along(window: &Window, y: f32, (from, to): (f32, f32)) -> Vec<render::Color> {
+    let mut colors: Vec<render::Color> = Vec::new();
+    let mut x = from;
+    while x < to {
+        if let Some(color) = pixel(window, (x, y))
+            && !colors.contains(&color)
+        {
+            colors.push(color);
+        }
+        x += 1.0;
+    }
+    colors
+}
+
+#[test]
+fn blame_file__with_word_wrap_on_a_long_line_wraps_with_its_second_part_in_the_text_column_not_under_the_blame() {
+    let mut repository = Repository::new();
+    let _ = repository.commit("Write the lines", &[("src/app.rs", "one\ntwo\nthree\n")]);
+    let long = "the quick brown fox jumps over the lazy dog ".repeat(4);
+    let text = format!("one\n{}\nthree\n", long.trim_end());
+    let _ = repository.commit("Make the second line long", &[("src/app.rs", &text)]);
+    let (mut state, mut window, driver) = page(&repository);
+    state.settings.word_wrap = ui::LineWrap::Words;
+    click(&mut window, &driver, &mut state, words::SHOW_FILE_BLAME);
+    let said = column(&step(&mut window, &mut state, &[]));
+    let [(_, first), (_, second), (_, third)] = said.as_slice() else {
+        panic!("each of the three lines starts a run: {said:?}");
+    };
+    let line_height = second.y - first.y;
+    let rows = (third.y - second.y) / line_height;
+    assert!(
+        rows >= 2.0 && (rows - rows.round()).abs() < 0.01,
+        "the long line takes whole rows, two at least, and the blame of the next line comes after them: {rows}"
+    );
+    // The middle of the second row of the long line: nothing is drawn under the blame, and the text goes on after it.
+    let y = second.y + line_height * 1.5;
+    let under_the_blame = colors_along(&window, y, (second.x, second.right() - 1.0));
+    assert_eq!(under_the_blame.len(), 1, "{under_the_blame:?}");
+    let in_the_text = colors_along(&window, y, (second.right() + 1.0, second.right() + 200.0));
+    assert!(
+        in_the_text.len() > 1,
+        "the second part of the line is drawn in the text column"
+    );
+}
+
 #[test]
 fn blame_file__a_commit_made_in_a_terminal_updates_the_column_without_closing_the_page() {
     let (mut repository, _commits) = three_commits();

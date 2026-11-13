@@ -10,7 +10,7 @@ use std::ops::Range;
 
 use model::blame::BlameLine;
 use model::contract::FeatureId;
-use ui::{CodePlaces, Color};
+use ui::{CodePlaces, CodeRows, Color};
 
 use crate::file_view::FilePageId;
 
@@ -85,6 +85,8 @@ pub struct FileBlameView<'a> {
     pub blame: PageBlame<'a>,
     /// Where the editor drew its parts.
     pub places: CodePlaces,
+    /// The rows the lines of the editor take: a line that wraps takes several, and its blame stays on the first.
+    pub rows: &'a CodeRows,
     /// The lines in sight.
     pub visible: Range<usize>,
     /// The line of the cursor, from 0.
@@ -95,6 +97,21 @@ pub struct FileBlameView<'a> {
     pub caret_text: &'a str,
     /// How many columns a tab goes to.
     pub tab_width: usize,
+}
+
+impl FileBlameView<'_> {
+    /// Where a line in sight starts, down, and how tall all its rows are.
+    fn line_place(&self, line: usize) -> (f32, f32) {
+        let rows_above = self
+            .rows
+            .first_row(line)
+            .saturating_sub(self.rows.first_row(self.visible.start));
+        let height = self.places.line_height;
+        (
+            self.places.first_top + crate::number::float_of_count(rows_above) * height,
+            crate::number::float_of_count(self.rows.rows_in(line)) * height,
+        )
+    }
 }
 
 /// The commit of a line, when it is committed.

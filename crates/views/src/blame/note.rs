@@ -21,9 +21,13 @@ pub fn current_line_view(state: &FileBlameView<'_>, ui: &mut Ui<'_>) -> Vec<Inte
         return Vec::new();
     }
     let places = state.places;
-    let row_index = crate::number::float_of_count(note.line - state.visible.start);
-    let top = places.first_top + row_index * places.line_height;
-    let left = places.text.x + (code_columns(state.caret_text, state.tab_width) + GAP_COLUMNS) * places.advance;
+    // After the end of the line: on its last row, when it wraps.
+    let (line_top, line_height) = state.line_place(note.line);
+    let top = line_top + line_height - places.line_height;
+    let pieces = state.rows.pieces(state.caret_text);
+    let last_piece = pieces.last().and_then(|piece| state.caret_text.get(piece.clone()));
+    let columns = code_columns(last_piece.unwrap_or(state.caret_text), state.tab_width);
+    let left = places.text.x + (columns + GAP_COLUMNS) * places.advance;
     if left >= places.text.right() {
         return Vec::new();
     }

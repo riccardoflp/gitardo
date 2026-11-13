@@ -344,3 +344,6 @@
   onto a row of the timeline: the rows that take it are outlined as the pointer passes over them, the others show
   that nothing can be dropped there, and dropping it opens a menu at the pointer to cherry-pick the commit, merge the
   branch or rebase onto it, or rebase or reset the branch there.
+- With the new setting `editor.wordWrap` set to `on`, the File page wraps a line longer than the page between its
+  words, or inside a word longer than the page; its number and its blame stay on its first row, the other rows start in
+  the column of the text, and a click or a selection follows the rows.

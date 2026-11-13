@@ -1,11 +1,11 @@
 //! Drawing an editor of code: the numbers of the lines in sight, the selection and the marks behind their text, the
-//! text in the colors of its tokens, and the caret.
+//! text in the colors of its tokens, and the caret. A line that wraps is drawn as rows, its number on the first.
 
 use std::ops::Range;
 
 use render::{Border, CodeKind, Color, Point, Rect, TextRun};
 
-use super::{CodeEditor, Layout, blink};
+use super::{CodeEditor, CodeRows, Layout, blink};
 use crate::frame::{TextKind, Ui};
 use crate::interaction::Response;
 use crate::memory::CodeEditorState;
@@ -13,13 +13,7 @@ use crate::number;
 
 /// How many columns a character takes after so many columns: a tab goes to the next stop.
 pub(crate) fn columns_of(character: char, before: f32, tab_width: usize) -> usize {
-    if character == '\t' {
-        let width = tab_width.max(1);
-        let reached = number::index_at(f64::from(before), 1.0);
-        width - reached % width
-    } else {
-        1
-    }
+    editor::columns_of(character, number::index_at(f64::from(before), 1.0), tab_width)
 }
 
 /// How many columns the whole text of a line takes, its tabs going to their stops: where a view draws after it.
@@ -53,22 +47,46 @@ fn shown(part: &str, from: f32, tab_width: usize) -> String {
     text
 }
 
+/// A row of a line as it is drawn: the line, the bytes of it on the row, where the row is, and whether it is the last
+/// row of the line, which takes its line break.
+#[derive(Clone, Debug)]
+struct RowPlace {
+    /// The line, from 0.
+    line: usize,
+    /// The bytes of the line on this row.
+    piece: Range<usize>,
+    /// Where the row is, over the text.
+    rect: Rect,
+    /// Whether it is the last row of its line.
+    is_last: bool,
+}
+
 impl Ui<'_> {
-    /// Draws the lines of an editor in sight, and gives them with where the first of them starts, down.
+    /// Draws the lines of an editor in sight, and gives them with where the first of them starts, down: above the top
+    /// of the text when that line, or the row of it in sight, is scrolled into.
     pub(crate) fn draw_code(
         &mut self,
         editor: &CodeEditor<'_>,
-        layout: Layout,
+        (layout, rows): (Layout, &CodeRows),
         state: &CodeEditorState,
         response: &Response,
     ) -> (Range<usize>, f32) {
         let height = f64::from(layout.line_height);
         let offset = state.scroll.offset();
         let count = editor.buffer.line_count();
-        let first = number::index_at(offset, height).min(count);
-        let shown_count = number::index_at(f64::from(layout.text.height), height) + 2;
-        let lines = first..first.saturating_add(shown_count).min(count);
-        let first_top = number::narrow(number::wide_of_count(first) * height - offset);
+        let first_row = number::index_at(offset, height);
+        let first = if first_row >= rows.count() {
+            count
+        } else {
+            rows.line_at(first_row).0
+        };
+        let shown_rows = number::index_at(f64::from(layout.text.height), height) + 2;
+        let last_row = first_row.saturating_add(shown_rows);
+        let end = (first..count)
+            .find(|line| rows.first_row(*line) >= last_row)
+            .unwrap_or(count);
+        let lines = first..end;
+        let first_top = number::narrow(number::wide_of_count(rows.first_row(first)) * height - offset);
         let whole = Rect::new(
             layout.numbers.x,
             layout.text.y,
@@ -79,15 +97,28 @@ impl Ui<'_> {
         self.clip(whole, |ui| {
             let mut top = layout.text.y + first_top;
             for line in lines.clone() {
-                let row = Rect::new(layout.text.x, top, layout.text.width, layout.line_height);
                 ui.line_number(layout, (line, top), line == caret_line);
-                ui.backgrounds(editor, layout, (line, row));
-                ui.line_text(editor, layout, (line, row));
-                top += layout.line_height;
+                let pieces = rows.pieces(editor.buffer.line(line));
+                let last = pieces.len().saturating_sub(1);
+                for (index, piece) in pieces.into_iter().enumerate() {
+                    let rect = Rect::new(layout.text.x, top, layout.text.width, layout.line_height);
+                    top += layout.line_height;
+                    if rect.bottom() < layout.text.y || rect.y > layout.text.bottom() {
+                        continue;
+                    }
+                    let place = RowPlace {
+                        line,
+                        piece,
+                        rect,
+                        is_last: index == last,
+                    };
+                    ui.backgrounds(editor, layout, &place);
+                    ui.line_text(editor, layout, &place);
+                }
             }
         });
         if response.has_focus && self.is_window_focused() {
-            self.draw_code_caret(editor, layout, (state, first_top + layout.text.y, first));
+            self.draw_code_caret(editor, (layout, rows), (state, first_top + layout.text.y, first));
         }
         (lines, layout.text.y + first_top)
     }
@@ -113,20 +144,20 @@ impl Ui<'_> {
         let _ = self.text(&run);
     }
 
-    /// The parts of a line behind its text: what is selected, and what a search found, the current find outlined.
-    fn backgrounds(&mut self, editor: &CodeEditor<'_>, layout: Layout, (line, row): (usize, Rect)) {
+    /// The parts of a row behind its text: what is selected, and what a search found, the current find outlined.
+    fn backgrounds(&mut self, editor: &CodeEditor<'_>, layout: Layout, place: &RowPlace) {
         let colors = self.theme().colors;
-        let range = editor.buffer.line_range(line);
+        let range = editor.buffer.line_range(place.line);
         let selection = editor.cursor.range();
         if !selection.is_empty() {
-            let _selected = self.span_background(editor, layout, (line, row), (selection, colors.text_selection));
+            let _selected = self.span_background(editor, layout, place, (selection, colors.text_selection));
         }
         let first = editor.marks.partition_point(|mark| mark.end < range.start);
         for (index, mark) in editor.marks.iter().enumerate().skip(first) {
             if mark.start > range.end {
                 break;
             }
-            let rect = self.span_background(editor, layout, (line, row), (mark.clone(), colors.find_match));
+            let rect = self.span_background(editor, layout, place, (mark.clone(), colors.find_match));
             if editor.current_mark == Some(index)
                 && let Some(rect) = rect
             {
@@ -140,54 +171,68 @@ impl Ui<'_> {
         }
     }
 
-    /// Fills the part of a line a range of the text covers, its line break as a column when it covers it too.
+    /// Fills the part of a row a range of the text covers, the line break as a column after the last row of its line
+    /// when the range covers it too.
     fn span_background(
         &mut self,
         editor: &CodeEditor<'_>,
         layout: Layout,
-        (line, row): (usize, Rect),
+        place: &RowPlace,
         (span, color): (Range<usize>, Color),
     ) -> Option<Rect> {
-        let range = editor.buffer.line_range(line);
-        let start = span.start.max(range.start);
-        let end = span.end.min(range.end);
-        let takes_break = span.end > range.end && span.start <= range.end && line + 1 < editor.buffer.line_count();
+        let line_start = editor.buffer.line_range(place.line).start;
+        let row = line_start + place.piece.start..line_start + place.piece.end;
+        let start = span.start.max(row.start);
+        let end = span.end.min(row.end);
+        let has_break = place.is_last && place.line + 1 < editor.buffer.line_count();
+        let takes_break = has_break && span.end > row.end && span.start <= row.end;
         if start > end || (start == end && !takes_break) {
             return None;
         }
-        let text = editor.buffer.line(line);
-        let left = columns_to(text, start - range.start, editor.tab_width);
-        let right = columns_to(text, end - range.start, editor.tab_width) + if takes_break { 1.0 } else { 0.0 };
+        let text = editor
+            .buffer
+            .line(place.line)
+            .get(place.piece.clone())
+            .unwrap_or_default();
+        let left = columns_to(text, start - row.start, editor.tab_width);
+        let right = columns_to(text, end - row.start, editor.tab_width) + if takes_break { 1.0 } else { 0.0 };
         let rect = Rect::new(
             layout.text.x + left * layout.advance,
-            row.y,
+            place.rect.y,
             (right - left) * layout.advance,
-            row.height,
+            place.rect.height,
         );
         self.fill_rect(rect, color);
         Some(rect)
     }
 
-    /// The text of a line, each part in the color of its token, the rest in the color of text.
-    fn line_text(&mut self, editor: &CodeEditor<'_>, layout: Layout, (line, row): (usize, Rect)) {
-        let text = editor.buffer.line(line);
-        if text.is_empty() {
+    /// The text of a row, each part in the color of its token, the rest in the color of text.
+    fn line_text(&mut self, editor: &CodeEditor<'_>, layout: Layout, place: &RowPlace) {
+        let line = editor.buffer.line(place.line);
+        let piece = place.piece.clone();
+        let Some(text) = line.get(piece.clone()).filter(|text| !text.is_empty()) else {
             return;
-        }
+        };
         let theme = *self.theme();
         let plain = theme.colors.foreground;
-        let spans = editor.colors.get(line).map_or(&[][..], Vec::as_slice);
+        let spans = editor.colors.get(place.line).map_or(&[][..], Vec::as_slice);
         let mut parts: Vec<(Range<usize>, CodeKind)> = Vec::with_capacity(spans.len() * 2 + 1);
         let mut at = 0;
         for span in spans {
-            if span.range.end > text.len() || span.range.start < at {
+            if span.range.end > line.len() || span.range.end <= piece.start || span.range.start >= piece.end {
                 continue;
             }
-            if span.range.start > at {
-                parts.push((at..span.range.start, CodeKind::Plain));
+            // The part of the token on this row, from the start of the row; a token over one before it is left plain.
+            let start = span.range.start.max(piece.start) - piece.start;
+            let end = span.range.end.min(piece.end) - piece.start;
+            if start < at {
+                continue;
             }
-            parts.push((span.range.clone(), span.kind));
-            at = span.range.end;
+            if start > at {
+                parts.push((at..start, CodeKind::Plain));
+            }
+            parts.push((start..end, span.kind));
+            at = end;
         }
         if at < text.len() {
             parts.push((at..text.len(), CodeKind::Plain));
@@ -199,14 +244,14 @@ impl Ui<'_> {
             let drawn = shown(part, columns, editor.tab_width);
             let x = layout.text.x + columns * layout.advance;
             columns = columns_to(text, range.end, editor.tab_width);
-            if x > row.right() {
+            if x > place.rect.right() {
                 break;
             }
             let run = TextRun {
                 text: &drawn,
                 style,
                 color: theme.code.color(kind, plain),
-                origin: Point::new(x, row.y + 2.0),
+                origin: Point::new(x, place.rect.y + 2.0),
                 max_width: None,
             };
             let _ = self.text(&run);
@@ -217,17 +262,22 @@ impl Ui<'_> {
     fn draw_code_caret(
         &mut self,
         editor: &CodeEditor<'_>,
-        layout: Layout,
+        (layout, rows): (Layout, &CodeRows),
         (state, top, first): (&CodeEditorState, f32, usize),
     ) {
         let (is_shown, next) = blink(state.changed_at, self.now());
         self.request_frame_at(next);
         let position = editor.buffer.position(editor.cursor.head);
-        let Some(row) = position.line.checked_sub(first) else {
+        if position.line < first {
             return;
-        };
+        }
         let text = editor.buffer.line(position.line);
-        let x = layout.text.x + columns_to(text, position.column, editor.tab_width) * layout.advance;
+        let pieces = rows.pieces(text);
+        let piece_index = editor::row_of(&pieces, position.column);
+        let piece_start = pieces.get(piece_index).map_or(0, |piece| piece.start);
+        let row = rows.first_row(position.line) - rows.first_row(first) + piece_index;
+        let piece = text.get(piece_start..).unwrap_or_default();
+        let x = layout.text.x + columns_to(piece, position.column - piece_start, editor.tab_width) * layout.advance;
         let y = top + number::float_of_count(row) * layout.line_height;
         let caret = Rect::new(x, y, self.theme().sizes.border.max(1.0) * 2.0, layout.line_height);
         if !layout.text.contains(Point::new(x, y)) && y + layout.line_height < layout.text.y {

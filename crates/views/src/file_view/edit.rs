@@ -50,6 +50,7 @@ pub fn edit_view(state: &FilePageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         reveal: text.reveal,
         focus: text.focus,
         tab_width: state.tab_width,
+        wrap: state.wrap,
     };
     let answer = ui.code_editor(("file editor", state.id), rect, &editor);
     let mut commands = answer.commands;
@@ -58,6 +59,7 @@ pub fn edit_view(state: &FilePageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         page: state.id,
         blame: state.blame,
         places: answer.places,
+        rows: &answer.rows,
         visible: answer.visible_lines.clone(),
         caret_line,
         line_count: text.buffer.line_count(),

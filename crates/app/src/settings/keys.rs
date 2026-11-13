@@ -79,6 +79,10 @@ pub const AI_MODEL: &str = "ai.model";
 pub const AI_EFFORT: &str = "ai.effort";
 /// `editor.external`.
 pub const EXTERNAL_EDITOR: &str = "editor.external";
+/// `editor.wordWrap`.
+pub const WORD_WRAP: &str = "editor.wordWrap";
+/// The values of `editor.wordWrap`: lines cut at the right edge, or wrapped at the width of the page.
+pub const WORD_WRAPS: [&str; 2] = ["off", "on"];
 /// `blame.enabled`.
 pub const BLAME_ENABLED: &str = "blame.enabled";
 /// `blame.ignoreWhitespaceAndMoves`.

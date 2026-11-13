@@ -6,18 +6,21 @@
 //! clipboard; Ctrl+V is the application's, which hands the text of the clipboard in as a paste.
 //!
 //! Only the lines in sight are drawn, so that a file of a hundred thousand lines costs a screen of them. A line longer
-//! than the editor is cut at its right edge: there is no scrolling across, and lines are not wrapped.
+//! than the editor is cut at its right edge, or wraps into rows as wide as the editor ([`LineWrap`]); there is no
+//! scrolling across.
 
 mod draw;
 mod keys;
+mod rows;
 
 pub use draw::code_columns;
+pub use rows::{CodeRows, LineWrap};
 
 use std::hash::Hash;
 use std::ops::Range;
 use std::time::Duration;
 
-use editor::{Buffer, Command, Cursor, Position};
+use editor::{Buffer, Command, Cursor, Position, WrapWidth};
 use render::{CodeKind, Point, Rect};
 
 use super::scroll::GLIDE_FRAME;
@@ -65,6 +68,8 @@ pub struct CodeEditor<'a> {
     pub gutter: usize,
     /// How many columns a tab goes to.
     pub tab_width: usize,
+    /// What it does with a line longer than it is wide.
+    pub wrap: LineWrap,
 }
 
 /// Where an editor drew its parts, for a view that draws beside its lines or over its scroll bar.
@@ -97,6 +102,8 @@ pub struct CodeEditorResponse {
     pub visible_lines: Range<usize>,
     /// Where its parts are.
     pub places: CodePlaces,
+    /// The rows its lines take, for a view that draws beside them: a line that wraps takes several.
+    pub rows: CodeRows,
 }
 
 /// How long the caret shows, and then how long it hides, while it blinks.
@@ -129,20 +136,22 @@ impl Ui<'_> {
         let sense = Sense::CLICK | Sense::DRAG | Sense::FOCUS | Sense::SCROLL;
         let (response, events) = self.interact_with_events(id, rect, sense);
         let layout = self.code_layout(rect, editor);
-        reveal_asked(&mut state, editor, layout);
+        let rows = CodeRows::new(editor.buffer, wrap_width(editor, layout));
+        reveal_asked(&mut state, editor, (layout, &rows));
         let mut outcome = CodeEditorResponse {
             response,
             commands: Vec::new(),
             context_menu: None,
             visible_lines: 0..0,
             places: CodePlaces::default(),
+            rows: CodeRows::default(),
         };
         let page = number::index_at(f64::from(layout.text.height), f64::from(layout.line_height)).max(1);
         for event in events {
-            self.code_editor_event((editor, layout, page), &mut state, (event, &mut outcome));
+            self.code_editor_event((editor, layout, page, &rows), &mut state, (event, &mut outcome));
         }
-        self.follow_caret(&mut state, editor, layout);
-        let content = number::wide_of_count(editor.buffer.line_count()) * f64::from(layout.line_height);
+        self.follow_caret(&mut state, editor, (layout, &rows));
+        let content = number::wide_of_count(rows.count()) * f64::from(layout.line_height);
         state.scroll.clamp(content - f64::from(layout.text.height));
         if state.scroll.advance(self.now()) {
             let next = self.now() + GLIDE_FRAME;
@@ -151,7 +160,7 @@ impl Ui<'_> {
         if outcome.response.hovered {
             self.set_cursor(PointerShape::Text);
         }
-        let (visible_lines, first_top) = self.draw_code(editor, layout, &state, &outcome.response);
+        let (visible_lines, first_top) = self.draw_code(editor, (layout, &rows), &state, &outcome.response);
         self.access_editor((id, rect), editor, visible_lines.clone());
         outcome.visible_lines = visible_lines;
         let spec = BarSpec {
@@ -171,6 +180,7 @@ impl Ui<'_> {
         };
         self.scroll_bar(id.with("bar"), track, spec, &mut state.scroll);
         let _ = self.memory().code_editors.insert(id, state);
+        outcome.rows = rows;
         outcome
     }
 
@@ -216,7 +226,7 @@ impl Ui<'_> {
     }
 
     /// Scrolls the least that keeps the caret in sight when it moved since the last frame, and starts its blink again.
-    fn follow_caret(&self, state: &mut CodeEditorState, editor: &CodeEditor<'_>, layout: Layout) {
+    fn follow_caret(&self, state: &mut CodeEditorState, editor: &CodeEditor<'_>, (layout, rows): (Layout, &CodeRows)) {
         if state.head == Some(editor.cursor.head) {
             return;
         }
@@ -226,9 +236,8 @@ impl Ui<'_> {
         if is_first {
             return;
         }
-        let line = editor.buffer.position(editor.cursor.head).line;
         let height = f64::from(layout.line_height);
-        let top = number::wide_of_count(line) * height;
+        let top = number::wide_of_count(caret_row(editor, rows)) * height;
         state.scroll.reveal((top, top + height), f64::from(layout.text.height));
     }
 
@@ -236,7 +245,7 @@ impl Ui<'_> {
     /// moves or edits, and typed or pasted text goes in, unless the editor is read only.
     fn code_editor_event(
         &mut self,
-        (editor, layout, page): (&CodeEditor<'_>, Layout, usize),
+        (editor, layout, page, rows): (&CodeEditor<'_>, Layout, usize, &CodeRows),
         state: &mut CodeEditorState,
         (event, outcome): (WidgetEvent, &mut CodeEditorResponse),
     ) {
@@ -248,7 +257,7 @@ impl Ui<'_> {
                 modifiers,
                 click_count,
             } => {
-                let at = code_position(editor, layout, state, position);
+                let at = code_position(editor, (layout, rows), state, position);
                 let offset = editor.buffer.offset(at);
                 match (button, click_count) {
                     (PointerButton::Primary, 1) => commands.push(Command::PlaceAt(at, modifiers.shift())),
@@ -264,7 +273,7 @@ impl Ui<'_> {
                 }
             }
             WidgetEvent::Dragged { position, .. } => {
-                let at = code_position(editor, layout, state, position);
+                let at = code_position(editor, (layout, rows), state, position);
                 commands.push(Command::PlaceAt(at, true));
             }
             WidgetEvent::Wheel { delta } => state.scroll.scroll_by(f64::from(delta.y), self.now()),
@@ -294,38 +303,69 @@ impl Ui<'_> {
     }
 }
 
+/// The room of a row while the lines of an editor wrap: as many columns as its text has; none while they are cut.
+fn wrap_width(editor: &CodeEditor<'_>, layout: Layout) -> Option<WrapWidth> {
+    match editor.wrap {
+        LineWrap::Cut => None,
+        LineWrap::Words => Some(WrapWidth {
+            columns: number::index_at(f64::from(layout.text.width), f64::from(layout.advance)).max(1),
+            tab_width: editor.tab_width,
+        }),
+    }
+}
+
+/// The row the caret is on, from the first row of the text.
+fn caret_row(editor: &CodeEditor<'_>, rows: &CodeRows) -> usize {
+    let position = editor.buffer.position(editor.cursor.head);
+    let pieces = rows.pieces(editor.buffer.line(position.line));
+    rows.first_row(position.line) + editor::row_of(&pieces, position.column)
+}
+
 /// Brings to the middle the line the view asks for, once for each number it gives.
-fn reveal_asked(state: &mut CodeEditorState, editor: &CodeEditor<'_>, layout: Layout) {
+fn reveal_asked(state: &mut CodeEditorState, editor: &CodeEditor<'_>, (layout, rows): (Layout, &CodeRows)) {
     let Some((serial, line)) = editor.reveal.filter(|(serial, _)| state.revealed != Some(*serial)) else {
         return;
     };
     state.revealed = Some(serial);
     let height = f64::from(layout.line_height);
-    let top = number::wide_of_count(line) * height;
+    let top = number::wide_of_count(rows.first_row(line)) * height;
     state
         .scroll
         .jump((top + height * 0.5 - f64::from(layout.text.height) * 0.5).max(0.0));
     state.head = Some(editor.cursor.head);
 }
 
-/// The place in the text nearest to a point of the window.
-fn code_position(editor: &CodeEditor<'_>, layout: Layout, state: &CodeEditorState, point: Point) -> Position {
+/// The place in the text nearest to a point of the window, on the row of a line under it: past the end of a row that
+/// wraps, the place before its last character, so that the caret stays on that row.
+fn code_position(
+    editor: &CodeEditor<'_>,
+    (layout, rows): (Layout, &CodeRows),
+    state: &CodeEditorState,
+    point: Point,
+) -> Position {
     let y = f64::from(point.y - layout.text.y) + state.scroll.offset();
-    let line = number::index_at(y.max(0.0), f64::from(layout.line_height));
-    let line = line.min(editor.buffer.line_count().saturating_sub(1));
+    let (line, row) = rows.line_at(number::index_at(y.max(0.0), f64::from(layout.line_height)));
     let wanted = ((point.x - layout.text.x) / layout.advance).max(0.0);
     let text = editor.buffer.line(line);
+    let pieces = rows.pieces(text);
+    let piece = pieces.get(row).cloned().unwrap_or(0..text.len());
     let mut columns = 0.0_f32;
-    for (index, character) in text.char_indices() {
+    let mut last = piece.start;
+    for (index, character) in text.get(piece.clone()).unwrap_or_default().char_indices() {
         let width = number::float_of_count(draw::columns_of(character, columns, editor.tab_width));
         if wanted < columns + width * 0.5 {
-            return Position { line, column: index };
+            return Position {
+                line,
+                column: piece.start + index,
+            };
         }
         columns += width;
+        last = piece.start + index;
     }
+    let is_last_row = row + 1 >= pieces.len();
     Position {
         line,
-        column: text.len(),
+        column: if is_last_row { piece.end } else { last },
     }
 }
 
