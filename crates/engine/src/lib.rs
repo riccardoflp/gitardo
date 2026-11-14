@@ -22,6 +22,7 @@ mod readings;
 mod secrets;
 mod setup;
 mod steps;
+mod tasks;
 pub mod undo;
 
 pub use activity::{Activities, ActivityEntry, ActivityGuard};
@@ -32,3 +33,4 @@ pub use log::{CommandLog, LogEntry, LogKind, LogLevel};
 pub use preview::needs_confirmation;
 pub use secrets::{GITHUB_TOKEN, MemorySecrets, SecretStore, SystemSecrets};
 pub use steps::StepFailure;
+pub use tasks::{TaskEvent, TaskRunner, TaskSteps, TaskTalk, TasksFailure};

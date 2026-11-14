@@ -113,15 +113,24 @@ fn commands(commands: &[&str], trust: Trust, after: NoteStart) -> SetupSteps {
     command_steps(&CommandStepsInput {
         commands: &commands,
         worktree: Path::new("tree"),
+        name: "tree",
         trust,
         after,
     })
 }
 
 #[test]
-fn worktree_setup_command_steps__each_command_is_a_run_step_in_the_worktree_after_the_note() {
+fn worktree_setup_command_steps__each_command_is_a_task_in_the_worktree_named_after_it_after_the_note() {
     let steps = commands(&["npm ci", "npm run build"], Trust::Trusted, NoteStart::AfterLinks);
     assert_eq!(lines(&steps), ["run npm ci", "run npm run build"]);
+    assert_eq!(
+        steps.steps.first(),
+        Some(&Step::Task {
+            command: String::from("npm ci"),
+            directory: PathBuf::from("tree"),
+            name: String::from("tree"),
+        })
+    );
     assert_eq!(
         steps.note.as_deref(),
         Some("After that it will run npm ci, then npm run build, in Tasks, in the worktree.")

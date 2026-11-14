@@ -22,6 +22,8 @@ pub struct NewWorktree<'a> {
     pub folder: &'a Path,
     /// What it checks out, by any name git understands: the branch it starts from, or a commit.
     pub commit: &'a str,
+    /// How the views name it, which names the tasks of its commands.
+    pub name: &'a str,
 }
 
 /// The steps that set up a new worktree once `git worktree add` made it, from the folder the views show: first a
@@ -69,6 +71,7 @@ pub fn new_worktree_steps(
     let commands = command_steps(&CommandStepsInput {
         commands: &settings.setup_commands.values,
         worktree: worktree.folder,
+        name: worktree.name,
         trust: context.settings.trust,
         after: if links.note.is_some() {
             NoteStart::AfterLinks
@@ -130,6 +133,7 @@ mod tests {
         let new = NewWorktree {
             folder: &worktree,
             commit: "main",
+            name: "feature",
         };
         let first = new_worktree_steps(&context, &Answers::new(), &new).map_err(|outcome| *outcome);
         let Err(Outcome::Read(key, Query::FileTexts { paths })) = first else {
@@ -168,9 +172,10 @@ mod tests {
         );
         assert_eq!(
             steps.steps.last(),
-            Some(&Step::Run {
+            Some(&Step::Task {
                 command: String::from("npm run build"),
                 directory: worktree.clone(),
+                name: String::from("feature"),
             })
         );
     }
@@ -182,6 +187,7 @@ mod tests {
         let new = NewWorktree {
             folder: &worktree,
             commit: "main",
+            name: "tree",
         };
         let take = SetupPreview {
             linked: vec![String::from("node_modules")],

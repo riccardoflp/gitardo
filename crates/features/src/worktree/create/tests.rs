@@ -172,9 +172,10 @@ fn worktree_create__the_first_worktree_with_nothing_set_offers_choose_what_it_ge
 fn worktree_create__with_commands_set_opening_is_offered_only_once_the_last_command_succeeded() {
     let context = app();
     let setup = Setup {
-        steps: vec![Step::Run {
+        steps: vec![Step::Task {
             command: String::from("npm ci"),
             directory: PathBuf::from("/code/app.worktrees/fix"),
+            name: String::from("fix"),
         }],
         has_commands: true,
         is_set: true,

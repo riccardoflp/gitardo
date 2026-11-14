@@ -86,6 +86,7 @@ pub enum Step {
     Unlink { path: PathBuf },
     Delete { path: PathBuf },
     Run { command: String, directory: PathBuf },
+    Task { command: String, directory: PathBuf, name: String },
 }
 ```
 

@@ -44,9 +44,11 @@ pub(super) fn add(context: &Context, answers: &Answers, addition: Addition) -> R
             addition.folder.display()
         )))));
     }
+    let name = super::label(context, &addition.folder);
     let worktree = NewWorktree {
         folder: &addition.folder,
         commit: &addition.start,
+        name: &name,
     };
     let setup = setup_steps(context, answers, &worktree)?;
     let mut arguments = vec![String::from("worktree"), String::from("add")];

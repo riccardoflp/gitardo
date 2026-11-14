@@ -108,6 +108,8 @@ pub struct CommandStepsInput<'a> {
     pub commands: &'a [String],
     /// The folder of the worktree, where they run.
     pub worktree: &'a Path,
+    /// The worktree as the views name it, which names its tasks in the Activity drawer.
+    pub name: &'a str,
     /// Whether the folder of the window is trusted: only then do they run.
     pub trust: Trust,
     /// Whether the worktree gets links or copies before them, which the note of the commands follows.
@@ -133,8 +135,9 @@ pub enum NoteStart {
     Alone,
 }
 
-/// The commands a new worktree runs once it is created, linked and copied, one `run` step each in the worktree; in a
-/// folder that is not trusted none runs, and the log and Gitardo say why.
+/// The commands a new worktree runs once it is created, linked and copied, one task each in the worktree, named after
+/// it, which the Activity drawer shows as it runs; in a folder that is not trusted none runs, and the log and Gitardo
+/// say why.
 ///
 /// Feature: worktree-setup.command-steps
 #[must_use]
@@ -157,9 +160,10 @@ pub fn command_steps(input: &CommandStepsInput<'_>) -> SetupSteps {
     let steps = input
         .commands
         .iter()
-        .map(|command| Step::Run {
+        .map(|command| Step::Task {
             command: command.clone(),
             directory: input.worktree.to_path_buf(),
+            name: input.name.to_owned(),
         })
         .collect();
     let start = match input.after {

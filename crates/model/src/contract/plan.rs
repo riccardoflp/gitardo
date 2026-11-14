@@ -73,6 +73,17 @@ pub enum Step {
         /// The folder it runs in.
         directory: PathBuf,
     },
+    /// Runs a command of the user's through the system's shell as a task of the Activity drawer
+    /// (`worktree-setup.command-steps`): what it prints is kept and shown as it comes, what it asks can be typed there,
+    /// and what the plan does once it succeeded waits for it.
+    Task {
+        /// The command, as the user wrote it.
+        command: String,
+        /// The folder it runs in.
+        directory: PathBuf,
+        /// The name the drawer gives it: the worktree it runs in, as the views name it.
+        name: String,
+    },
     /// Makes a folder and the folders that lead to it, when they are missing.
     MakeFolder {
         /// The folder.
@@ -103,7 +114,7 @@ impl Step {
 
     /// The line of the command log for this step, in the fixed form of `log.record`: the git command as it runs, with
     /// the arguments that hold spaces in quotes; `write <path>`; `symlink <folder>`; `copy <path>`; `unlink <path>`;
-    /// `delete <path>`; `mkdir <path>`; `run <command>`; and the sentence of a warning.
+    /// `delete <path>`; `mkdir <path>`; `run <command>`, for a task too; and the sentence of a warning.
     #[must_use]
     pub fn log_line(&self) -> String {
         match self {
@@ -132,7 +143,7 @@ impl Step {
             Step::Unlink { path } => format!("unlink {}", path.display()),
             Step::Delete { path } | Step::DeleteEmptyFolder { path } => format!("delete {}", path.display()),
             Step::MakeFolder { path } => format!("mkdir {}", path.display()),
-            Step::Run { command, .. } => format!("run {command}"),
+            Step::Run { command, .. } | Step::Task { command, .. } => format!("run {command}"),
             Step::Warn { words } => words.clone(),
         }
     }

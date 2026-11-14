@@ -7,8 +7,7 @@ use std::time::Instant;
 use git::read::repo::{StateRequest, read_state};
 use git::{CancelToken, Git};
 use model::contract::{
-    Answer, Answers, Context, FeatureId, FollowUp, Operation, Outcome, Plan, Query, Question, QuestionKind, Refusal,
-    Step, Text, Undo,
+    Answer, Answers, Context, FeatureId, FollowUp, Operation, Outcome, Plan, Query, Question, Refusal, Step, Text, Undo,
 };
 use model::state::RepositoryState;
 
@@ -20,9 +19,13 @@ use crate::preview::needs_confirmation;
 use crate::queries;
 use crate::secrets::{SecretStore, SystemSecrets};
 use crate::steps::{StepFailure, StepRunner};
+use crate::tasks::TaskSteps;
 use crate::undo::{Journal, journal_after};
 
+mod answers;
 mod tokens;
+
+use answers::check_answer;
 
 /// How many times a feature may be called before the engine gives up on it: far more than any feature asks.
 const MOST_CALLS: usize = 100;
@@ -59,6 +62,9 @@ pub enum Finished {
         /// The links and copies that failed while the steps after them went on, each with what the system said
         /// (`worktree-setup.link-and-copy-steps`).
         went_on_after: Vec<StepFailure>,
+        /// The steps from the first task on, handed over to be run apart once the others ran
+        /// (`worktree-setup.command-steps`); none when the tasks run in place.
+        waiting: Vec<Step>,
     },
     /// It refused to run, and said why.
     Refused(Refusal),
@@ -81,6 +87,7 @@ pub struct Engine {
     went_on_after: Vec<StepFailure>,
     secrets: Box<dyn SecretStore>,
     http: Option<http::Http>,
+    task_steps: TaskSteps,
 }
 
 impl Engine {
@@ -99,6 +106,7 @@ impl Engine {
             went_on_after: Vec::new(),
             secrets: Box::new(SystemSecrets),
             http: None,
+            task_steps: TaskSteps::InPlace,
         }
     }
 
@@ -118,6 +126,12 @@ impl Engine {
     /// steps failed gets it run. Without it, a failed step is always the end.
     pub fn find_operations_with(&mut self, find_operation: FindOperation) {
         self.find_operation = Some(find_operation);
+    }
+
+    /// Says how the tasks of the plans are run: in place, or handed back with the steps after them in
+    /// [`Finished::Ran`], for a [`crate::TaskRunner`] to run apart.
+    pub fn run_tasks(&mut self, how: TaskSteps) {
+        self.task_steps = how;
     }
 
     /// Takes the token that cancels what the engine runs from now on: the reads of the features and the steps of their
@@ -245,7 +259,12 @@ impl Engine {
         let _running = self
             .activities
             .track(plan.title.clone(), Text::from(feature.0), self.clock.now());
-        let ran = self.run_plan(&plan);
+        let (now, waiting) = crate::tasks::split(&plan.steps, self.task_steps);
+        let waiting = waiting.to_vec();
+        let ran = self.run_plan(&Plan {
+            steps: now.to_vec(),
+            ..plan.clone()
+        });
         let went_on_after = std::mem::take(&mut self.went_on_after);
         self.clean_up(&plan);
         let steps = match ran {
@@ -272,6 +291,7 @@ impl Engine {
             steps,
             state_after,
             went_on_after,
+            waiting,
         })
     }
 
@@ -437,31 +457,6 @@ fn offered_instead(plan: &Plan, failure: &StepFailure) -> Option<Plan> {
         FollowUp::OfferWhenFailed(offer) if failure.said.contains(&offer.when) => Some(offer.plan.clone()),
         _ => None, // The other follow-ups get past nothing.
     })
-}
-
-/// Refuses an answer its question would not accept, so that a caller with no dialog, such as the command line, cannot
-/// give one.
-fn check_answer(question: &Question, answer: &Answer) -> Result<(), EngineError> {
-    let problem = match (&question.kind, answer) {
-        (QuestionKind::Text { validation, .. } | QuestionKind::Secret { validation }, Answer::Text(text)) => {
-            validation.problem(text)
-        }
-        (QuestionKind::Pick { choices } | QuestionKind::Search { choices }, Answer::Choice(picked)) => {
-            (!choices.iter().any(|choice| choice.identifier == *picked))
-                .then(|| Text::from(format!("{picked} is not one of the choices")))
-        }
-        (QuestionKind::Confirm { .. }, Answer::Confirmed)
-        | (QuestionKind::PickMany { .. }, Answer::Choices(_))
-        | (QuestionKind::OpenFile(_) | QuestionKind::SaveFile(_), Answer::Path(_)) => None,
-        _ => Some(Text::from("This is not the kind of answer the question asks for")),
-    };
-    match problem {
-        Some(problem) => Err(EngineError::AnswerRefused {
-            question: question.title.clone(),
-            problem,
-        }),
-        None => Ok(()),
-    }
 }
 
 /// The follow-ups of a plan that failed which the window carries out: the operations offered for what was said, those

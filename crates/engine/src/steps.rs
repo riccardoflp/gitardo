@@ -191,7 +191,10 @@ fn run_step(git: &Git, step: &Step, cancel: &CancelToken) -> Result<(), StepErro
         Step::Delete { path } => delete(path).map_err(|error| StepError::failed(&error)),
         Step::MakeFolder { path } => fs::create_dir_all(path).map_err(|error| StepError::failed(&error)),
         Step::DeleteEmptyFolder { path } => delete_empty_folder(path).map_err(|error| StepError::failed(&error)),
-        Step::Run { command, directory } => run_command(command, directory, cancel),
+        // A task run in place, as `gitardo-cli` runs it, is a command like any other.
+        Step::Run { command, directory } | Step::Task { command, directory, .. } => {
+            run_command(command, directory, cancel)
+        }
         // A warning is written to the log before it "runs", and does nothing.
         Step::Warn { .. } => Ok(()),
     }
@@ -255,22 +258,31 @@ fn delete_empty_folder(path: &Path) -> std::io::Result<()> {
     fs::remove_dir(path)
 }
 
-/// Runs a command of the user's through the system's shell, and kills the shell when the plan is cancelled. What the
-/// shell started itself may outlive it.
-fn run_command(command: &str, directory: &Path, cancel: &CancelToken) -> Result<(), StepError> {
+/// The shell of the system, given a command of the user's to run: `cmd /S /C "<command>"` on Windows, which runs the
+/// command as it was written, its own quotes included, and `sh -c` elsewhere.
+pub(crate) fn shell(command: &str) -> Command {
     #[cfg(windows)]
-    let mut shell = {
+    let shell = {
+        use std::os::windows::process::CommandExt;
         let mut shell = Command::new("cmd");
-        let _ = shell.arg("/C").arg(command);
+        // Given as it is: the quoting of an argument for a program would put a backslash before each quote of the
+        // command, which `cmd` does not take away.
+        let _ = shell.raw_arg(format!("/S /C \"{command}\""));
         shell
     };
     #[cfg(not(windows))]
-    let mut shell = {
+    let shell = {
         let mut shell = Command::new("sh");
         let _ = shell.arg("-c").arg(command);
         shell
     };
-    let mut child = shell
+    shell
+}
+
+/// Runs a command of the user's through the system's shell, and kills the shell when the plan is cancelled. What the
+/// shell started itself may outlive it.
+fn run_command(command: &str, directory: &Path, cancel: &CancelToken) -> Result<(), StepError> {
+    let mut child = shell(command)
         .current_dir(directory)
         .stdin(Stdio::null())
         .stdout(Stdio::null())

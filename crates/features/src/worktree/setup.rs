@@ -30,7 +30,7 @@ pub struct Setup {
 /// The outcome to return first: a read of the settings files, or of what the patterns take for the new worktree.
 pub fn setup_steps(context: &Context, answers: &Answers, worktree: &NewWorktree<'_>) -> Result<Setup, Box<Outcome>> {
     let found = crate::worktree_setup::new_worktree_steps(context, answers, worktree)?;
-    let has_commands = found.steps.iter().any(|step| matches!(step, Step::Run { .. }));
+    let has_commands = found.steps.iter().any(|step| matches!(step, Step::Task { .. }));
     // A pattern or a command in effect always says what it does in a note, even when it takes nothing.
     let is_set = found.note.is_some() || !found.steps.is_empty();
     Ok(Setup {
