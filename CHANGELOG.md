@@ -364,3 +364,6 @@
 - **Open on GitHub** in the comparison page, when the main remote is on GitHub and neither side is the working tree,
   opens the same comparison on github.com: a branch by the name of its upstream there, a tag by its name, anything
   else by its full hash, with `..` for **Everything that differs**.
+- The Merge page proposes what the AI answered in the review page for a conflict still marked: its **✦** names the
+  model, how sure it is, why, and how many lines neither side has, and the sparkle says how many of the proposals are
+  the AI's.

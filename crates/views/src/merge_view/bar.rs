@@ -130,7 +130,7 @@ pub fn accept_proposals_view(state: &MergePageState<'_>, ui: &mut Ui<'_>) -> Vec
     };
     let rect = ui.current_clip();
     let side = ui.theme().sizes.control_height;
-    let marked = text
+    let marked: Vec<&model::merge_view::ProposedBy> = text
         .proposals
         .iter()
         .filter(|proposal| {
@@ -138,14 +138,15 @@ pub fn accept_proposals_view(state: &MergePageState<'_>, ui: &mut Ui<'_>) -> Vec
                 .get(proposal.region)
                 .is_some_and(model::merge_view::Region::is_unresolved)
         })
-        .count();
-    let tooltip = if marked == 0 {
+        .map(|proposal| &proposal.by)
+        .collect();
+    let tooltip = if marked.is_empty() {
         words::NOTHING_PROPOSED.to_owned()
     } else {
-        words::accept_proposals(marked)
+        words::accept_proposals(&marked)
     };
     let button = Button::icon(Icon::Star, &tooltip).kind(ButtonKind::Icon);
-    let button = if marked == 0 { button.disabled() } else { button };
+    let button = if marked.is_empty() { button.disabled() } else { button };
     let cell = place(rect, (side, side), (Align::Start, Align::Center));
     if ui.button(("merge accept proposals", state.id), cell, &button).clicked {
         return vec![asked(state, MergePageIntent::AcceptProposals)];

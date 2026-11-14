@@ -505,7 +505,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`merge-view.three-way`](17-diff-and-merge-views.md#merge-viewthree-way--the-regions-of-a-file-in-conflict) | The regions of a file in conflict | Derivation | Built |
 | [`merge-view.take-side`](17-diff-and-merge-views.md#merge-viewtake-side--accept-a-side-for-a-region) | Accept a side for a region | View | Built |
 | [`merge-view.accept-simple`](17-diff-and-merge-views.md#merge-viewaccept-simple--accept-what-needs-no-choice) | Accept what needs no choice | View | Built |
-| [`merge-view.accept-proposals`](17-diff-and-merge-views.md#merge-viewaccept-proposals--accept-the-proposals) | Accept the proposals | View | Specified |
+| [`merge-view.accept-proposals`](17-diff-and-merge-views.md#merge-viewaccept-proposals--accept-the-proposals) | Accept the proposals | View | Built |
 | [`merge-view.show-base`](17-diff-and-merge-views.md#merge-viewshow-base--show-the-base) | Show the base | View | Built |
 | [`merge-view.navigate`](17-diff-and-merge-views.md#merge-viewnavigate--changes-and-conflicts-left) | Changes and conflicts left | View | Built |
 | [`merge-view.open-at-line`](17-diff-and-merge-views.md#merge-viewopen-at-line--open-the-file-at-this-line) | Open the file at this line | View | Built |

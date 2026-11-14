@@ -12,6 +12,7 @@ use views::feature::FeatureIntent;
 use views::merge_view::MergePageIntent;
 use views::page::Page;
 
+use super::ai::{answer, questions, with_ai};
 use super::diff::press;
 use super::merge::{
     FILE, MERGE, conflicts_at, first_conflict, lines_with, on_disk, open, opened, page_intent, shown, stopped_merge,
@@ -19,7 +20,8 @@ use super::merge::{
 };
 use super::pointer::apply;
 use super::showing;
-use super::support::{OperationsDriver, Window, shortcut};
+use super::support::{OperationsDriver, Window, run, shortcut};
+use views::review::ReviewIntent;
 /// Runs **Mark as resolved** on the page shown, and gives what the operation says first.
 fn mark_resolved(driver: &OperationsDriver, state: &mut State) -> Message {
     let mut window = Window::new(ThemeName::Dark, MERGE);
@@ -114,6 +116,37 @@ fn merge_view_accept_proposals__with_auto_resolve_on_a_conflict_of_lines_next_to
         star.value(),
         Some("Accept the proposal of the rules \u{2014} Changes to lines next to each other")
     );
+}
+
+#[test]
+fn merge_view_accept_proposals__after_the_ai_answered_a_conflict_in_the_review_page_the_merge_page_shows_its_proposal()
+{
+    let repository = conflicts_at(&[10]);
+    let mut state = with_ai(&repository);
+    let ask = Intent::Review(ReviewIntent::ResolveWithAi(None));
+    let asked = questions(&run(&mut state, Message::Intent(ask)));
+    assert_eq!(asked.len(), 1, "the rules leave the conflict to the AI");
+    let _ = run(&mut state, answer(asked[0].id, "line 10 on both"));
+    open(&mut state);
+    let proposal = text(&state).proposals.first().cloned().unwrap();
+    assert_eq!(proposal.region, first_conflict(&state));
+    let (_, tree) = Window::new(ThemeName::Dark, MERGE).draw(&state, &[]);
+    let star = super::support::find(&tree, Role::Button, "Accept the proposal");
+    assert_eq!(
+        star.value(),
+        Some(
+            "Accept the proposal of test-model, with high confidence \u{2014} Kept both. One line is new: neither side \
+             has it."
+        )
+    );
+    assert!(super::support::has(
+        &tree,
+        Role::Button,
+        "Accept what is proposed for the conflict, by the AI"
+    ));
+    let intents = Window::new(ThemeName::Dark, MERGE).click(&state, Role::Button, "Accept the proposal");
+    apply(&mut state, intents);
+    assert_eq!(shown(&state).result, lines_with(&[(10, "line 10 on both")]));
 }
 
 #[test]

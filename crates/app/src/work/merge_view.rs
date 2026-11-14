@@ -2,6 +2,7 @@
 //! computed (`merge-view.three-way`) within the time a page gives it, what each region offers, the choices that need no
 //! thought, and what the rules propose for the conflicts git still marks (`conflicts.resolve-by-rules`).
 
+mod ai;
 #[cfg(test)]
 mod tests;
 
@@ -14,8 +15,9 @@ use git::read::merge_view::{MergeSidesRequest, read_sides};
 use git::{CancelToken, Git};
 use model::diff::LineChange;
 use model::merge_view::{
-    Choice, MarkedBlock, MergeTexts, Proposal, RuleReason, ThreeWayInput, simple_choices, three_way,
+    Choice, MarkedBlock, MergeTexts, Proposal, ProposedBy, RuleReason, ThreeWayInput, simple_choices, three_way,
 };
+use model::review::AiAnswer;
 use model::state::Operation;
 use text::conflicts::{RuleCase, RuleResolutions, RulesInput, parse_markers, resolve_by_rules, split_lines};
 use text::diff::{LineDiffInput, WordDiffInput, line_diff, word_diff};
@@ -53,6 +55,8 @@ pub struct MergeJob {
     pub sides: Option<Arc<MergeSidesText>>,
     /// `conflicts.autoResolve`: whether the rules propose what they can for the conflicts git still marks.
     pub auto_resolve: bool,
+    /// The answers of the AI provider kept for the conflicts of the file, with `conflicts.ai` on; none otherwise.
+    pub answers: Vec<AiAnswer>,
     /// Whether a very large file was asked about and the person went on.
     pub is_confirmed: bool,
     /// The number of the text of the result the regions are for.
@@ -98,7 +102,11 @@ pub fn read_merge(folder: &Path, job: &MergeJob, cancel: &CancelToken) -> MergeR
     };
     let started = Instant::now();
     let keep_going = || started.elapsed() < TIME_LIMIT && !cancel.is_cancelled();
-    let Some(text) = compute(&sides, result, (job.auto_resolve, &keep_going)) else {
+    let proposing = Proposing {
+        rules: job.auto_resolve,
+        answers: &job.answers,
+    };
+    let Some(text) = compute(&sides, result, (&proposing, &keep_going)) else {
         return MergeRead::TooComplex;
     };
     MergeRead::Text {
@@ -146,13 +154,22 @@ fn read_versions(
     Ok((Arc::new(sides), lossy(&read.result), job.result.is_none()))
 }
 
+/// Who proposes what the conflicts git still marks become.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Proposing<'a> {
+    /// `conflicts.autoResolve`: the rules propose what they can.
+    pub rules: bool,
+    /// The answers of the AI provider kept for the conflicts of the file, proposed for those the rules leave.
+    pub answers: &'a [AiAnswer],
+}
+
 /// The regions of a result against the versions of its file, with what each region offers, the choices that need no
-/// thought and what the rules propose; none when a diff takes longer than its time.
+/// thought and what the rules and the AI provider propose; none when a diff takes longer than its time.
 #[must_use]
 pub fn compute(
     sides: &MergeSidesText,
     result: String,
-    (auto_resolve, keep_going): (bool, &dyn Fn() -> bool),
+    (proposing, keep_going): (&Proposing<'_>, &dyn Fn() -> bool),
 ) -> Option<MergeText> {
     let mut text = MergeText {
         base_lines: line_ranges(&sides.base),
@@ -181,11 +198,7 @@ pub fn compute(
     let texts = lines.texts();
     let offers = regions.iter().map(|region| offers_of(region, &texts)).collect();
     let simple = simple_choices(&regions, &texts);
-    let proposals = if auto_resolve {
-        proposals_of(sides, (&text.result, &regions), keep_going)
-    } else {
-        Vec::new()
-    };
+    let proposals = proposals_of(sides, (&text.result, &regions), (proposing, keep_going));
     drop(lines);
     text.regions = regions;
     text.offers = offers;
@@ -236,12 +249,16 @@ fn offers_of(region: &model::merge_view::Region, texts: &MergeTexts<'_>) -> Offe
     }
 }
 
-/// What the rules propose for the conflicts git still marks, each by the region of its conflict.
+/// What the rules propose for the conflicts git still marks, each by the region of its conflict, then the answers of
+/// the AI provider kept for the conflicts the rules leave.
 fn proposals_of(
     sides: &MergeSidesText,
     (result, regions): (&str, &[model::merge_view::Region]),
-    keep_going: &dyn Fn() -> bool,
+    (proposing, keep_going): (&Proposing<'_>, &dyn Fn() -> bool),
 ) -> Vec<Proposal> {
+    if !proposing.rules && proposing.answers.is_empty() {
+        return Vec::new();
+    }
     let resolved = resolve_by_rules(&RulesInput {
         file: result.as_bytes(),
         base: sides.base.as_bytes(),
@@ -249,13 +266,31 @@ fn proposals_of(
         incoming: sides.incoming.as_bytes(),
         keep_going,
     });
+    let mut proposals = if proposing.rules {
+        rule_proposals(&resolved, regions)
+    } else {
+        Vec::new()
+    };
+    let taken: Vec<usize> = proposals.iter().map(|proposal| proposal.region).collect();
+    let answers = ai::AnswersInput {
+        result,
+        regions,
+        resolved: &resolved,
+        answers: proposing.answers,
+    };
+    proposals.extend(ai::proposals(&answers, &taken));
+    proposals
+}
+
+/// What the rules propose, each by the region of its conflict.
+fn rule_proposals(resolved: &RuleResolutions<'_>, regions: &[model::merge_view::Region]) -> Vec<Proposal> {
     let RuleResolutions::LookedInto(conflicts) = resolved else {
         return Vec::new();
     };
     conflicts
-        .into_iter()
+        .iter()
         .filter_map(|conflict| {
-            let resolution = conflict.resolution?;
+            let resolution = conflict.resolution.as_ref()?;
             let region = regions.iter().position(|region| {
                 region.is_unresolved()
                     && region
@@ -270,9 +305,9 @@ fn proposals_of(
                 .collect();
             Some(Proposal {
                 region,
-                replaced: resolution.replaced,
+                replaced: resolution.replaced.clone(),
                 text,
-                reason: reason_of(resolution.case),
+                by: ProposedBy::Rules(reason_of(resolution.case)),
             })
         })
         .collect()

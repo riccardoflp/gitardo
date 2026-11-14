@@ -172,6 +172,7 @@ pub(super) enum Reading {
 /// Starts a read of a page, cancelling the one running.
 pub(super) fn start_read(state: &mut State, id: MergePageId, reading: Reading) -> Option<Effect> {
     let auto_resolve = state.settings.features.conflicts_auto_resolve;
+    let answers = answers_kept(state, id);
     let page = page_mut(state, id)?;
     let unsaved = page.is_unsaved().then(|| page.result.clone());
     let (result, sides) = match reading {
@@ -185,6 +186,7 @@ pub(super) fn start_read(state: &mut State, id: MergePageId, reading: Reading) -
         result,
         sides,
         auto_resolve,
+        answers,
         is_confirmed: reading != Reading::FromDisk,
         generation: page.generation,
     };
@@ -200,6 +202,17 @@ pub(super) fn start_read(state: &mut State, id: MergePageId, reading: Reading) -
     let page = page_mut(state, id)?;
     page.job = Some(job.id);
     Some(Effect::Start(job))
+}
+
+/// The answers of the AI provider the review keeps for the conflicts of the file of a page, with `conflicts.ai` on.
+fn answers_kept(state: &State, id: MergePageId) -> Vec<model::review::AiAnswer> {
+    let page = state.merge_pages.pages.iter().find(|page| page.id == id);
+    match page {
+        Some(page) if state.settings.features.conflicts_ai => {
+            super::review::ai::answers_of(&state.reviews.questions, &page.folder, &page.path)
+        }
+        _ => Vec::new(),
+    }
 }
 
 /// A page by its number.

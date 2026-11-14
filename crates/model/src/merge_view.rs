@@ -121,8 +121,26 @@ pub enum RuleReason {
     NextToEachOther,
 }
 
+/// Who proposes what a conflict becomes, and why.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ProposedBy {
+    /// The rules (`conflicts.resolve-by-rules`), with why they could resolve it.
+    Rules(RuleReason),
+    /// The AI provider, whose answer was kept for the fingerprint of the conflict (`ai.resolve-conflicts`).
+    Ai {
+        /// The model that answered.
+        model: String,
+        /// Why, in its words.
+        reason: String,
+        /// How sure it said it is.
+        confidence: crate::ai::Confidence,
+        /// How many of its lines, trimmed and not empty, neither side nor the base has.
+        new_lines: usize,
+    },
+}
+
 /// What is proposed for a conflict git still marks: the lines of the result it replaces, and what it puts there.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Proposal {
     /// The region of the conflict, by its place.
     pub region: usize,
@@ -130,6 +148,6 @@ pub struct Proposal {
     pub replaced: Range<usize>,
     /// What it puts in their place, each line with what ends it.
     pub text: String,
-    /// Why the rules could resolve it.
-    pub reason: RuleReason,
+    /// Who proposes it, and why.
+    pub by: ProposedBy,
 }

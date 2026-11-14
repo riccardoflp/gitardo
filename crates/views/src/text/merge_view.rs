@@ -1,6 +1,8 @@
 //! The words of the Merge page (`docs/features/17-diff-and-merge-views.md`).
 
-use model::merge_view::RuleReason;
+use std::fmt::Write as _;
+
+use model::merge_view::{ProposedBy, RuleReason};
 
 /// The name of the page.
 pub const PAGE: &str = "Merge";
@@ -93,22 +95,49 @@ pub fn accept_simple(count: usize) -> String {
 /// (`merge-view.open-at-line`).
 pub const JUMP_TO_SOURCE: &str = "Jump to source";
 
-/// The tooltip of the sparkle: **Accept what is proposed for the 2 conflicts, by the rules**.
+/// The tooltip of the sparkle, from who proposes for each conflict still marked: **Accept what is proposed for the 2
+/// conflicts, by the rules**, **…, by the AI**, or **…, 1 of them by the AI**.
 #[must_use]
-pub fn accept_proposals(count: usize) -> String {
+pub fn accept_proposals(proposed: &[&ProposedBy]) -> String {
+    let count = proposed.len();
+    let by_ai = proposed.iter().filter(|by| matches!(by, ProposedBy::Ai { .. })).count();
     let conflicts = if count == 1 {
         String::from("the conflict")
     } else {
         format!("the {count} conflicts")
     };
-    format!("Accept what is proposed for {conflicts}, by the rules")
+    let by = match by_ai {
+        0 => String::from("by the rules"),
+        _ if by_ai == count => String::from("by the AI"),
+        _ => format!("{by_ai} of them by the AI"),
+    };
+    format!("Accept what is proposed for {conflicts}, {by}")
 }
 
-/// The tooltip of **✦** for a proposal of the rules: **Accept the proposal of the rules — Changes to lines next to each
-/// other**.
+/// The tooltip of **✦**: **Accept the proposal of the rules — Changes to lines next to each other**, or **Accept the
+/// proposal of \<model\>, with high confidence — \<reason\> One line is new: neither side has it.**
 #[must_use]
-pub fn rules_proposal(reason: RuleReason) -> String {
-    format!("Accept the proposal of the rules \u{2014} {}", reason_words(reason))
+pub fn proposal_tooltip(by: &ProposedBy) -> String {
+    match by {
+        ProposedBy::Rules(reason) => format!("Accept the proposal of the rules \u{2014} {}", reason_words(*reason)),
+        ProposedBy::Ai {
+            model,
+            reason,
+            confidence,
+            new_lines,
+        } => {
+            let sure = crate::text::review::confidence(*confidence);
+            let mut said = format!("Accept the proposal of {model}, with {sure} confidence \u{2014} {reason}");
+            match new_lines {
+                0 => {}
+                1 => said.push_str(" One line is new: neither side has it."),
+                _ => {
+                    let _ = write!(said, " {new_lines} lines are new: neither side has them.");
+                }
+            }
+            said
+        }
+    }
 }
 
 /// Why the rules could resolve a conflict, as the review page names it.

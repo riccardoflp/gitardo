@@ -309,7 +309,7 @@ fn buttons(
     let offers = text.offers.get(place_of).copied().unwrap_or_default();
     let proposal = text
         .proposal_of(place_of)
-        .map(|(index, proposal)| (index, words::rules_proposal(proposal.reason)));
+        .map(|(index, proposal)| (index, words::proposal_tooltip(&proposal.by)));
     let mut intents = Vec::new();
     let sides = [
         (GutterSide::Current, columns.left, region.kind != RegionKind::Incoming),

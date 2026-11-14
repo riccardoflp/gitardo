@@ -1664,3 +1664,7 @@ answered:
   the window knows of GitHub (`github.detect-remote`) for the repository of the page. Plans may now end in
   `FollowUp::OpenUrl`, which the window opens with `platform::open_url`. It refuses the working tree, the same commit
   and another host, which the card did not list. Is this right?
+- **Q-F3** — Q306 is answered: the Merge page proposes the answers the review keeps for its file (`conflicts.ai` on),
+  each matched to a conflict still marked by `review.fingerprint`, with `review.proposals` making the lines in the
+  endings of the file and counting the new ones; the rules still come first. The answers are taken when the page
+  reads its regions, so an answer that comes while the page is open shows at its next read. Should it show at once?

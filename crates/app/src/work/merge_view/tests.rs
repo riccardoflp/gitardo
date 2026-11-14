@@ -26,7 +26,7 @@ fn text(lines: &[&str]) -> String {
 
 /// The regions of a result against the sides, without proposals.
 fn regions(sides: &MergeSidesText, result: &str) -> MergeText {
-    compute(sides, result.to_owned(), (false, &|| true)).unwrap()
+    compute(sides, result.to_owned(), (&super::Proposing::default(), &|| true)).unwrap()
 }
 
 /// What git writes for the conflict of `B` and `c` against `b` and `C` after `a`.
