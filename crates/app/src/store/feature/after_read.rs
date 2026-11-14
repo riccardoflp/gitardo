@@ -81,7 +81,12 @@ fn run_pending(state: &mut State) -> Option<Vec<Effect>> {
         return None;
     }
     let repository = (read.folder.clone(), std::sync::Arc::clone(&read.state));
-    Some(super::run_in(state, repository, (feature, target), model::contract::Answers::new()))
+    Some(super::run_in(
+        state,
+        repository,
+        (feature, target),
+        model::contract::Answers::new(),
+    ))
 }
 
 /// The commit a number of commits before another, following first parents through the rows read; as far as they go.
