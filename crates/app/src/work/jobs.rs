@@ -70,24 +70,31 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: super::compare::read_in_place(folder, request, cancel),
         },
-        JobKind::CountConflicts { folder } => Message::ConflictsCounted {
-            job: job.id,
-            result: count_conflicts(folder, cancel).map_err(|error| error.to_string()),
-        },
         JobKind::ReadReview { folder, request } => Message::ReviewRead {
             job: job.id,
             result: super::review::read_review(folder, request, cancel).map(Box::new),
         },
-        JobKind::ReadFiles { .. } | JobKind::ReadBlame { .. } => files_read(job, cancel),
+        JobKind::CountConflicts { .. }
+        | JobKind::ReadNewWorktrees { .. }
+        | JobKind::ReadFiles { .. }
+        | JobKind::ReadBlame { .. } => files_read(job, cancel),
     }
 }
 
-/// The message of a read of the Files page or of a blame.
+/// The message of a read of the Files page, of a blame, of the conflicts counted or of the page of new worktrees.
 fn files_read(job: &Job, cancel: &CancelToken) -> Message {
     match &job.kind {
         JobKind::ReadBlame { folder, job: blame } => Message::BlameRead {
             job: job.id,
             result: super::blame::read_blame(folder, blame, cancel),
+        },
+        JobKind::CountConflicts { folder } => Message::ConflictsCounted {
+            job: job.id,
+            result: count_conflicts(folder, cancel).map_err(|error| error.to_string()),
+        },
+        JobKind::ReadNewWorktrees { folder, request } => Message::NewWorktreesRead {
+            job: job.id,
+            result: Box::new(super::new_worktrees::read_setup(folder, request, cancel)),
         },
         JobKind::ReadFiles { folder } => Message::FilesRead {
             job: job.id,

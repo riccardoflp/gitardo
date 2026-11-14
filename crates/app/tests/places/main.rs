@@ -43,6 +43,7 @@ mod log_secrets;
 mod merge;
 mod merge_actions;
 mod merge_at_line;
+mod new_worktrees;
 mod operations;
 mod panes;
 mod patches;

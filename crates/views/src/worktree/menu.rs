@@ -95,6 +95,11 @@ pub(crate) fn list_entries(menus: ReferenceMenus<'_>) -> Vec<OperationEntry> {
     let mut entries = vec![
         OperationEntry::runs(words::CREATE_WORKTREE, "worktree.create", Target::Head),
         OperationEntry::runs(words::SWITCH, "worktree.switch", Target::Head),
+        OperationEntry::runs(
+            crate::text::worktree_setup::MENU_ENTRY,
+            "worktree-setup.page",
+            Target::Head,
+        ),
     ];
     if menus.repository.worktrees.iter().any(|worktree| worktree.is_missing) {
         entries.push(OperationEntry::runs(words::PRUNE, "worktree.prune", Target::Head));

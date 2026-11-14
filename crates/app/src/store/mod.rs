@@ -19,6 +19,7 @@ mod inspector;
 mod log_lines;
 mod merge_page;
 mod message;
+pub mod new_worktrees;
 mod pages;
 mod rail;
 mod reads;
@@ -78,6 +79,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(review::prune(state));
     effects.extend(review::follow(state));
     effects.extend(files_page::follow(state));
+    effects.extend(new_worktrees::follow(state));
     effects.extend(blame::follow(state));
     effects.extend(reads::watch(state));
     effects
@@ -125,6 +127,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
         Message::ConflictsCounted { job, result } => conflicts::counted(state, job, result),
         Message::FilesRead { job, result } => files_page::files_read(state, job, result),
+        Message::NewWorktreesRead { job, result } => new_worktrees::setup_read(state, job, *result),
         Message::BlameRead { job, result } => blame::blame_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, *settings),
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
@@ -184,6 +187,7 @@ fn settings_read(state: &mut State, settings: Settings) -> Vec<Effect> {
     let sorted_before = state.settings.sort_order;
     let changes_reads = settings_page::changes_reads(&state.settings, &settings);
     state.settings = settings;
+    new_worktrees::settings_changed(state);
     state.log.set_level(state.settings.log_level);
     if state.settings.sort_order != sorted_before {
         rail::arrange(state);
@@ -306,10 +310,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
             settings_page::reduce_intent(state, &intent)
         }
         Intent::ShowTimeline => pages::show_timeline(state),
-        Intent::ShowPage(page) => {
-            pages::show_page(state, page);
-            Vec::new()
-        }
+        Intent::ShowPage(page) => pages::show(state, page),
         Intent::NextPage => pages::next_page(state),
         Intent::ClosePage => file_page::close_page(state),
         Intent::ClosePicker
@@ -337,6 +338,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Changes(intent) => changes::reduce(state, intent),
         Intent::Rebase(intent) => rebase::reduce(state, intent),
         Intent::Conflicts(intent) => conflicts::reduce(state, intent),
+        Intent::WorktreeSetup(intent) => new_worktrees::reduce(state, intent),
     }
 }
 

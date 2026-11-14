@@ -9,6 +9,7 @@ pub mod file_view;
 pub mod github;
 pub mod jobs;
 pub mod merge_view;
+pub mod new_worktrees;
 mod operations;
 mod persist;
 mod repository_watch;
@@ -181,6 +182,7 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadMerge { folder, .. } => (folder, activity::SHOWING_MERGE),
         JobKind::ReadReview { folder, .. } => (folder, activity::REVIEWING_CONFLICTS),
         JobKind::ReadFiles { folder } => (folder, activity::LISTING_FILES),
+        JobKind::ReadNewWorktrees { folder, .. } => (folder, activity::LOOKING_AT_IGNORED),
         JobKind::ReadBlame { folder, .. } => (folder, activity::READING_BLAME),
     };
     (Text::from(activity::reading(&folder_name(folder))), Text::from(cause))

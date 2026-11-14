@@ -354,3 +354,8 @@
   a tag, a commit or the working tree, in the Diff page.
 - Comparing a file or a folder of another repository of the workspace with a branch, a tag or a commit shows that
   repository first.
+- The **New Worktrees** page, from Quick search (**Choose What New Worktrees Get…**), from **Choose what new worktrees
+  get…** in the **…** of the Worktrees list and from **Choose What It Gets…** after the first worktree is created: what
+  git ignores here in sections with its size, what is proposed for each and **Link**, **Copy** or **Nothing**, a name
+  in several places as one line, the link and copy patterns with what each takes, the commands to run, and where they
+  are saved, with **Bring into the other worktrees**, **Remove from…** and **Edit in settings file**.

@@ -39,6 +39,8 @@ pub enum Page {
     File(FilePageId),
     /// The Files page: the tree of the working tree.
     Files,
+    /// The page that chooses what new worktrees get (`worktree-setup.page`).
+    NewWorktrees,
 }
 
 impl Page {
@@ -57,6 +59,7 @@ impl Page {
             Page::Review => crate::text::review::PAGE,
             Page::File(_) => crate::text::file_view::PAGE,
             Page::Files => crate::text::files::PAGE,
+            Page::NewWorktrees => crate::text::worktree_setup::PAGE,
         }
     }
 }
@@ -86,6 +89,8 @@ pub enum PageState<'a> {
     File(FilePageState<'a>),
     /// The Files page.
     Files(crate::files::FilesPageState<'a>),
+    /// The page that chooses what new worktrees get, with its title.
+    NewWorktrees(crate::worktree_setup::SetupPageState<'a>, &'a str),
 }
 
 impl PageState<'_> {
@@ -104,6 +109,7 @@ impl PageState<'_> {
             PageState::Review(_) => Page::Review,
             PageState::File(file) => Page::File(file.id),
             PageState::Files(_) => Page::Files,
+            PageState::NewWorktrees(..) => Page::NewWorktrees,
         }
     }
 
@@ -119,7 +125,7 @@ impl PageState<'_> {
             | PageState::Files(_) => self.page().title(),
             PageState::Diff(diff) => diff.title,
             PageState::Compare(compare) => compare.title,
-            PageState::Merge(_, title) => title,
+            PageState::Merge(_, title) | PageState::NewWorktrees(_, title) => title,
             PageState::Review(review) => review.title,
             PageState::File(file) => file.title,
         }
@@ -172,6 +178,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Review(review) => crate::review::page_view(review, ui),
         PageState::File(file) => file_page_view(file, ui),
         PageState::Files(files) => crate::files::page_view(files, ui),
+        PageState::NewWorktrees(setup, _) => crate::worktree_setup::page(setup, ui),
     }));
     intents
 }

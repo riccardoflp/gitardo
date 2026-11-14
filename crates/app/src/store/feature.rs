@@ -169,6 +169,9 @@ fn run(state: &mut State, feature: FeatureId, target: Target, mut preset: Answer
         super::pages::show_page(state, views::page::Page::Settings);
         return Vec::new();
     }
+    if feature == FeatureId("worktree-setup.page") {
+        return super::new_worktrees::open(state);
+    }
     if let Some(effects) = switch_first(state, feature, &target) {
         return effects;
     }

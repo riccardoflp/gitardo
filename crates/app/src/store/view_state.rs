@@ -291,6 +291,10 @@ impl ViewData {
                 has_trail: true,
                 page: PageState::Files(super::files_page::page_state(state)),
             }),
+            Some(Page::NewWorktrees) => Content::Page(PageHostState {
+                has_trail: true,
+                page: PageState::NewWorktrees(super::new_worktrees::page_state(state), &state.new_worktrees.title),
+            }),
             None => Content::Timeline(self.timeline(state)),
         }
     }

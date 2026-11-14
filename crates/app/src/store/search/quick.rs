@@ -77,6 +77,9 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         QuickCommand::ShowStashes => vec![Intent::Rail(views::RailIntent::ShowStashes)],
         QuickCommand::ReviewConflicts => return super::super::review::open(state, None),
         QuickCommand::ShowFiles => vec![Intent::Files(views::files::FilesPageIntent::Open)],
+        QuickCommand::ChooseWhatNewWorktreesGet => {
+            vec![Intent::WorktreeSetup(views::worktree_setup::SetupIntent::Open)]
+        }
         _ => Vec::new(),
     };
     intents

@@ -49,6 +49,7 @@ pub mod text;
 pub mod welcome;
 mod window;
 pub mod worktree;
+pub mod worktree_setup;
 
 pub use intent::{FilterIntent, FolderAnswer, Intent, Notice, RailIntent, RailList, RailLists};
 pub use window::{Content, FeatureDialog, TimelineState, WindowState, view};

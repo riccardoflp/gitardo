@@ -43,6 +43,8 @@ pub const SHOWING_MERGE: &str = "Showing a file in conflict";
 pub const OPENING_FILE: &str = "Opening a file";
 /// Why the Files page reads.
 pub const LISTING_FILES: &str = "Listing the files";
+/// Why the page of new worktrees reads.
+pub const LOOKING_AT_IGNORED: &str = "Looking at what git ignores";
 /// Why the File page reads the blame of its file (`blame.file`, `blame.current-line`).
 pub const READING_BLAME: &str = "Reading the blame";
 /// Why a comparison is read: its page, or the inspector, shows it.

@@ -24,6 +24,12 @@ pub fn show_page(state: &mut State, page: Page) {
     state.pages.shown = Some(index);
 }
 
+/// Shows a page, opening it when it is not open.
+pub fn show(state: &mut State, page: Page) -> Vec<Effect> {
+    show_page(state, page);
+    Vec::new()
+}
+
 /// Shows the timeline in place of the page shown.
 pub fn show_timeline(state: &mut State) -> Vec<Effect> {
     state.pages.shown = None;

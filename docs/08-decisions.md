@@ -1637,3 +1637,19 @@ answered:
   holds a path inside two. Only this operation switches so; the Files page still lists only the repository shown, so
   the switch is reached from operations given such a path. Should the history of a file (`file-history.file`) switch
   in the same way?
+- **Q-S3** — `worktree-setup.page` is built, as the page `Page::NewWorktrees`. It is not an operation of the
+  catalog: the store opens it when an entry runs `worktree-setup.page` (the offer after the first worktree, the
+  message of the Files page entries, the entry of the Worktrees list) and from Quick search. The sections opened or
+  closed by hand are kept for each worktree while the window is open, not in `state.json`; changes not saved are
+  dropped when the page is closed. The page reads the three settings files again each time the window reads its
+  settings or the repository again, so a change of `.vscode/settings.json`, which is not watched, shows at the next
+  read. **Save** compares only the settings file of the place chosen, not VS Code's. A line of the header with nothing
+  set says **Linked now: nothing**, without **from nothing**. **Bring into the other worktrees** is shown disabled
+  while there is no other worktree, and named so. The places of an unfolded name are all listed: only a section stops
+  at 200 lines. Are these right?
+- **Q-S4** — `worktree-setup.command-steps` is left Specified. Its plan steps are built and tested, but four of its
+  five acceptance lines need **Tasks** in the Activity drawer, which Q100 left out: the engine runs a `Run` step with no
+  input and drops what it prints, so a command cannot be watched or answered, and nothing yet waits for the last
+  command before **Open in worktree**. Building it means a column of tasks in the drawer, a command run with its output
+  kept and its input fed from the drawer, and the warning that offers to open the worktree after a failure. Should it be
+  a slice of its own, with the drawer's Tasks column first?

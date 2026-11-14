@@ -97,6 +97,8 @@ pub enum Intent {
     /// An operation of the blame or of the history run on a File page, or the hover of its blame (`blame.file`,
     /// `blame.current-line`).
     Blame(crate::blame::BlameIntent),
+    /// Something asked of the page that chooses what new worktrees get (`worktree-setup.page`).
+    WorktreeSetup(crate::worktree_setup::SetupIntent),
 }
 
 /// What is done with a folder opened while the window shows a workspace.

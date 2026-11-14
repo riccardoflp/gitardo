@@ -70,6 +70,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::ReadInPlace { .. }
             | JobKind::ReadReview { .. }
             | JobKind::ReadFiles { .. }
+            | JobKind::ReadNewWorktrees { .. }
             | JobKind::ReadBlame { .. }
             | JobKind::CountConflicts { .. } => None,
         })
@@ -138,6 +139,25 @@ fn answer(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[PathBuf])]
     all
 }
 
+/// What a list of the files of the Files page, or a read of the page of new worktrees, gives in these tests: nothing.
+fn not_listed(job: JobId, kind: &JobKind) -> Message {
+    if let JobKind::ReadNewWorktrees { .. } = kind {
+        return Message::NewWorktreesRead {
+            job,
+            result: Box::new(crate::work::new_worktrees::SetupReadout {
+                in_effect: model::worktree_setup::settings_in_effect(&model::worktree_setup::SettingsInput::default()),
+                repository: crate::work::new_worktrees::PlaceLists::default(),
+                user: crate::work::new_worktrees::PlaceLists::default(),
+                look: None,
+            }),
+        };
+    }
+    Message::FilesRead {
+        job,
+        result: Err(String::from("not read in these tests")),
+    }
+}
+
 /// The answer to a job these tests do not read: a failure, or an empty page of the timeline.
 fn not_read(job: JobId, kind: &JobKind) -> Message {
     match kind {
@@ -191,10 +211,7 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
             job,
             result: Err(String::from("not read in these tests")),
         },
-        JobKind::ReadFiles { .. } => Message::FilesRead {
-            job,
-            result: Err(String::from("not read in these tests")),
-        },
+        JobKind::ReadFiles { .. } | JobKind::ReadNewWorktrees { .. } => not_listed(job, kind),
         JobKind::ReadBlame { .. } => Message::BlameRead {
             job,
             result: Err(String::from("not read in these tests")),

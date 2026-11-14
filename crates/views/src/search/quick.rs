@@ -111,6 +111,8 @@ pub enum QuickCommand {
     ShowFiles,
     /// **Choose the model that resolves conflicts** (`ai.choose-model`).
     ChooseAiModel,
+    /// **Choose What New Worktrees Get…** (`worktree-setup.page`).
+    ChooseWhatNewWorktreesGet,
     /// **Show file history** (`file-history.file`), for the File page in front.
     ShowFileHistory,
     /// **Show history of selected lines** (`file-history.lines`).
@@ -133,7 +135,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 40] = [
+    pub const ALL: [QuickCommand; 41] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -147,6 +149,7 @@ impl QuickCommand {
         QuickCommand::Welcome,
         QuickCommand::ShowChanges,
         QuickCommand::ShowFiles,
+        QuickCommand::ChooseWhatNewWorktreesGet,
         QuickCommand::ShowFileHistory,
         QuickCommand::ShowLinesHistory,
         QuickCommand::ToggleFileBlame,
@@ -183,7 +186,10 @@ impl QuickCommand {
         self <= QuickCommand::ShowChanges
             || matches!(
                 self,
-                QuickCommand::ShowStashes | QuickCommand::ReviewConflicts | QuickCommand::ShowFiles
+                QuickCommand::ShowStashes
+                    | QuickCommand::ReviewConflicts
+                    | QuickCommand::ShowFiles
+                    | QuickCommand::ChooseWhatNewWorktreesGet
             )
     }
 

@@ -139,6 +139,14 @@ pub enum Message {
         /// The paths, or what git said when the read failed.
         result: Result<Vec<String>, String>,
     },
+    /// A job that read the settings of new worktrees, and what git ignores, for their page is done
+    /// (`worktree-setup.page`).
+    NewWorktreesRead {
+        /// The job.
+        job: JobId,
+        /// What was read.
+        result: Box<crate::work::new_worktrees::SetupReadout>,
+    },
     /// A job that read the blame of a File page is done (`blame.current-line`, `blame.file`).
     BlameRead {
         /// The job.
@@ -369,6 +377,14 @@ pub enum JobKind {
     ReadFiles {
         /// The top folder of the working tree.
         folder: PathBuf,
+    },
+    /// Reads the settings of new worktrees, and what git ignores when the page looks, for their page
+    /// (`worktree-setup.page`).
+    ReadNewWorktrees {
+        /// The top folder of the working tree.
+        folder: PathBuf,
+        /// What is read.
+        request: crate::work::new_worktrees::SetupRequest,
     },
     /// Reads the blame of the line under the cursor of a File page, or of its file (`blame.current-line`,
     /// `blame.file`).
