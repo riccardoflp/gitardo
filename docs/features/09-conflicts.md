@@ -866,7 +866,7 @@ card, accepted at once, without leaving the review.
 - **After**: the choice is accepted and its card stays open, with **Your choice** and its reason: **Only the current
   side**, **Only the incoming side**, **Both sides, the current one first**, **Both sides, the incoming one first**,
   **Written by you**. **Edit** first opens the box of the lines under the choices, in the card; the choice is made
-  when they are used (Q-E8).
+  when they are used (Q343).
 - **Uses**: `review.accept`, `review.write`, `review.proposal-lines`, `review.proposal-warnings`.
 
 Acceptance:

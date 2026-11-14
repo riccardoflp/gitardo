@@ -141,7 +141,7 @@ Which files of the repository have edits typed in one of Gitardo's own editors a
 editable sides of the Diff and Merge pages.
 
 - **Kind**: Derivation
-- **Function**: `model::changes::unsaved(input: &UnsavedInput) -> Vec<String>`, the paths from the top with `/` (Q-E6)
+- **Function**: `model::changes::unsaved(input: &UnsavedInput) -> Vec<String>`, the paths from the top with `/` (Q341)
 - **Reads**: `git check-ignore -z --stdin`, given the candidate paths separated by NUL on standard input; git ends
   with code 1 when none of them is ignored, which means none is.
 - **Uses**: `file-view.page`, `diff.page`, `merge-view.page`.
@@ -185,7 +185,7 @@ Rules:
   on disk on the left and the buffer not saved on the right, editable.
 - **Open all changes in one Diff page** opens one Diff page with the diffs of every file of the list, one after the
   other, each between the last commit and the file on disk, titled **Changes**: a Diff page has one pair of versions
-  for all its files (Q-E7). The rows of files only an editor has changed are left out.
+  for all its files (Q342). The rows of files only an editor has changed are left out.
 
 Acceptance:
 

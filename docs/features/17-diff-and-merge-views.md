@@ -403,7 +403,7 @@ Acceptance:
 The file can be edited where it is shown, when the right side is the working tree.
 
 - **Kind**: View
-- **Function**: `views::diff::edit_view(sides, ui) -> Vec<Intent>`, over the rows the list of the page drew (Q-E1)
+- **Function**: `views::diff::edit_view(sides, ui) -> Vec<Intent>`, over the rows the list of the page drew (Q336)
 - **Entry points**: typing in the right side of a Diff page whose right side is the working tree; `Ctrl+S` (`Cmd+S` on
   macOS) to save.
 - **Uses**: `file-view.edit`, `file-view.save`.

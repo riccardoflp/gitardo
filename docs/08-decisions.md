@@ -1711,37 +1711,37 @@ answered:
   the lines about GitHub are tested against the test server of `github.load-pull-requests`. Renaming `origin` while a
   fork is the other remote makes the fork the main remote until `origin` comes back, as `github.detect-remote` says,
   and the pull requests are read from each in turn. Is a search the pick the card meant?
-- **Q-E1** — `diff.edit` is not the editor of code of the File page laid over the page: the rows of a Diff page have
+- **Q336** — `diff.edit` is not the editor of code of the File page laid over the page: the rows of a Diff page have
   fillers and folds that a text has not. Each side is one widget over the rows the list drew, which places the caret,
   selects and takes the keys, mapped to commands by the same function as the editor of code (`ui::key_commands`); its
   function is `edit_view(sides, ui)`, `sides` being the rows drawn. The bars of the folds stay above it. The caret
   does not blink, and **Paste** in its menu is greyed as in the File page (Q214). Is one widget per side right?
-- **Q-E2** — The text a Diff page edits is that of the File page of the file; with no File page open, a File page out
+- **Q337** — The text a Diff page edits is that of the File page of the file; with no File page open, a File page out
   of sight holds it, kept while it has edits not saved or a Diff page shows the file, and **Open file** shows it.
   Each Diff page keeps a caret of its own, which the edits made elsewhere move. Closing a Diff page with edits not saved
   asks nothing: the edits stay, and the Changes page shows the file with its dot. Should closing ask, as the File
   page does?
-- **Q-E3** — Until the diff is computed again, 200 ms after the last key, the rows follow each edit at once: a line
+- **Q338** — Until the diff is computed again, 200 ms after the last key, the rows follow each edit at once: a line
   edited loses its marks, a line added takes the change of the rows around it when both are of the same change, and
   the buttons of the gutter are not drawn. A diff read while keys are still typed is dropped, and the next one is
   read. Right?
-- **Q-E4** — **Revert this change** in the window does what its plan says without running `diff.revert-change`: the
+- **Q339** — **Revert this change** in the window does what its plan says without running `diff.revert-change`: the
   lines of the change are replaced in the text of the side as one edit, the file is saved with `file-view.save`
   (`write <file>`), and `Ctrl+Z` brings the change back unsaved. The operation stays for the command line, which has no
   text to edit, and the card keeps its function. When the text is not the one the page shows, it says *The file
   changed since the diff was shown. Try again.* Is it right to leave both?
-- **Q-E5** — `F4` and **Jump to source** need a caret: on a page where no line was clicked yet, `F4` does nothing.
+- **Q340** — `F4` and **Jump to source** need a caret: on a page where no line was clicked yet, `F4` does nothing.
   Should it open at the current change, or at the first line?
-- **Q-E6** — `changes.unsaved` gives the paths as strings from the top of the working tree with `/`, as the rest of
+- **Q341** — `changes.unsaved` gives the paths as strings from the top of the working tree with `/`, as the rest of
   the Changes page does, rather than a type of path of its own. A file typed in is listed once git has said whether it
   ignores it, which it is asked on a worker when a file becomes or stops being unsaved and when the repository is read
   again; when git cannot say, none is left out. The editable side of the Merge page is not one of the editors yet, as
   it keeps its own text. Right?
-- **Q-E7** — **Open all changes in one Diff page** opens every file of the list between `HEAD` and the working tree,
+- **Q342** — **Open all changes in one Diff page** opens every file of the list between `HEAD` and the working tree,
   as Q138 offered, rather than each with the pair of versions **Open changes** gives it: a Diff page keeps one pair for
   all its files, and this pair shows every change of a file, what is staged drawn dimmed, and lets the files be edited
   (`diff.edit`). The card says so now. Is one pair right, or should a Diff page take a pair for each file?
-- **Q-E8** — **Edit** on a card of the review opens a box under the choices: an editor of code with no gutter, 3 to 12
+- **Q343** — **Edit** on a card of the review opens a box under the choices: an editor of code with no gutter, 3 to 12
   lines high, with **Use these lines** and **Cancel**; `Ctrl+Enter` and `Escape` work while it has the keyboard. One
   box is open at a time, and it closes with the page. The lines used are kept, like the other choices, by file and
   fingerprint while the window is open, and a choice is accepted when it is made, not when the page is opened again:
