@@ -164,21 +164,26 @@ fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
         ai: Box::new(ai_settings(lookup)),
         user_settings_file: defaults.user_settings_file,
         trust: defaults.trust,
-        blame: BlameSettings {
-            is_enabled: lookup
-                .boolean(keys::BLAME_ENABLED, Scope::User)
-                .unwrap_or(defaults.blame.is_enabled),
-            ignores_whitespace: lookup
-                .boolean(keys::BLAME_IGNORE_WHITESPACE, Scope::User)
-                .unwrap_or(defaults.blame.ignores_whitespace),
-            is_on_every_file: lookup
-                .boolean(keys::FILE_BLAME_EVERY_FILE, Scope::User)
-                .unwrap_or(defaults.blame.is_on_every_file),
-        },
+        blame: blame_settings(lookup, &defaults.blame),
         worktrees: worktree_settings(lookup),
         // The values given last for the inputs and the offset of the local time are the window's, set when an
         // operation starts.
         ..defaults
+    }
+}
+
+/// `blame.enabled`, `blame.ignoreWhitespaceAndMoves` and `fileBlame.everyFile`, from the user's file.
+fn blame_settings(lookup: &mut Lookup, defaults: &BlameSettings) -> BlameSettings {
+    BlameSettings {
+        is_enabled: lookup
+            .boolean(keys::BLAME_ENABLED, Scope::User)
+            .unwrap_or(defaults.is_enabled),
+        ignores_whitespace: lookup
+            .boolean(keys::BLAME_IGNORE_WHITESPACE, Scope::User)
+            .unwrap_or(defaults.ignores_whitespace),
+        is_on_every_file: lookup
+            .boolean(keys::FILE_BLAME_EVERY_FILE, Scope::User)
+            .unwrap_or(defaults.is_on_every_file),
     }
 }
 
