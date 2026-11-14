@@ -52,14 +52,6 @@ impl Workspace {
             }
         })
     }
-
-    /// The text of a file, by its path from the root.
-    pub fn text(&self, relative: &str) -> Option<&str> {
-        self.files
-            .iter()
-            .find(|(file, _)| file.relative == relative)
-            .and_then(|(_, text)| text.as_deref())
-    }
 }
 
 /// Every rule a program can check, without running the tools of the toolchain.

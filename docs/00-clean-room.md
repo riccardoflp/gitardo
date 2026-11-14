@@ -51,9 +51,8 @@ Allowed:
 - the names of the settings, which are the product's interface with its users;
 - published algorithms implemented from their description (Myers' diff, the histogram diff of git's documentation,
   deflate), with the source named in the doc comment of the code;
-- the libraries of `xtask/allowed-packages.txt` ([D20](08-decisions.md#d20--libraries-where-they-serve)), used as
-  dependencies of the crates named there through their public interface and their documentation, never copied into
-  the workspace;
+- the libraries the crates depend on ([D22](08-decisions.md#d22--libraries-with-judgment)), used through their
+  public interface and their documentation, never copied into the workspace;
 - the fonts of [D18](08-decisions.md#d18--the-fonts-come-with-the-program), under their licence, which is kept beside
   them.
 

@@ -2,7 +2,7 @@
 
 A desktop application for Git: the commit graph, the history and the everyday operations of Git, in a window of its own.
 It does everything the Gitardo extension for VS Code does, and is written from scratch in Rust, with the standard
-library and few others: one for TLS, and those of the window, the text and the pixels.
+library and libraries where they serve: for TLS, and for the window, the text and the pixels.
 
 This branch has the documents to build it from, in a clean room: what every feature does, as a function, and the
 rules the code follows. The code has milestone M0 of the [roadmap](docs/07-roadmap.md): the workspace of crates,

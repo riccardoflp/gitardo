@@ -7,12 +7,12 @@ first, in its own commit, with the reason.
 
 ## 1. Dependencies
 
-- **R1.1** A crate may depend on a library from outside the workspace, in `[dependencies]`, `[dev-dependencies]` or
-  `[build-dependencies]`, when [D20](08-decisions.md#d20--libraries-where-they-serve) lets it in: a licence MIT code
-  may use, built by Cargo alone, the fewest features. Every library a manifest names is in
-  `xtask/allowed-packages.txt` with the crates that may use it, and `cargo xtask check` fails on one that is not, or
-  that a crate it does not name uses. Adding a library is a line there, in the commit that first uses it, which says
-  why. A pure crate uses only libraries that do no I/O, start no thread and read no clock.
+- **R1.1** A crate may depend on a library from crates.io, in `[dependencies]`, `[dev-dependencies]` or
+  `[build-dependencies]`, when it does the job better than code written here would, weighed as
+  [D22](08-decisions.md#d22--libraries-with-judgment) says: what it saves against what it brings, whether one already
+  used does the job, whether it is kept up, what it needs to build and run, the fewest features. Its licence is one MIT
+  code may use. The commit that adds it says why. No crate depends on a folder outside the workspace. A pure crate
+  uses only libraries that do no I/O, start no thread and read no clock.
 - **R1.2** No `build.rs` in the crates of the workspace, and no procedural macro written here; those of libraries are
   theirs. `macro_rules!` only where it removes repetition that a function cannot, and never to hide control flow.
 - **R1.3** The edges between crates are those of [02-architecture.md](02-architecture.md#who-may-use-whom). A new edge
@@ -21,11 +21,10 @@ first, in its own commit, with the reason.
 - **R1.5** TLS ([D13](08-decisions.md#d13--one-library-for-tls)): `rustls` with `ring`, and
   `rustls-native-certs`, used by `crates/tls` only, with only the features named there. No type of theirs appears in
   the interface of `crates/tls`, and no other library does TLS or cryptography.
-- **R1.6** The libraries of the window, the text and the pixels
-  ([D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)): `winit`, `softbuffer`, `arboard`,
-  `rfd` and `accesskit_winit` in `crates/platform`, `tiny-skia` and `cosmic-text` in `crates/render`, `accesskit` in
-  `crates/ui` and `crates/platform`. No type of theirs appears in the interface of those crates, but the tree of
-  `accesskit` between `ui` and `platform`.
+- **R1.6** A library is used by the crate whose job it serves, and no type of it appears in that crate's interface, so
+  that replacing it changes one crate: the window, the clipboard and the dialogs in `crates/platform`, shapes and text
+  in `crates/render` ([D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)). Where a type has
+  to cross, as the tree of `accesskit` does between `ui` and `platform`, the code says why.
 
 ## 2. Features are functions
 
@@ -201,7 +200,7 @@ first, in its own commit, with the reason.
 
 | Check | Rules |
 | --- | --- |
-| Every library a manifest names is in `xtask/allowed-packages.txt`, for that crate; no `build.rs` and no procedural macro in the workspace | R1.1, R1.2, R1.5, R1.6 |
+| No dependency on a folder outside the workspace; no `build.rs` and no procedural macro in the workspace | R1.1, R1.2 |
 | The edges between crates are the allowed ones | R1.3 |
 | Every function that says `/// Feature:` has a card, in the crate and with the name the card gives; every card the index marks *Built* or *Seen* has its function and at least as many tests named after it as its acceptance list has lines; every test named `<feature>__…` has a card; the index and the cards list the same features, of the same kinds | R2.1, R2.6 |
 | Pure crates use no I/O, time, threads or environment | R3.1, R3.2 |

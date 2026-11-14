@@ -1,6 +1,6 @@
 # Working on Gitardo Desktop
 
-Gitardo Desktop is a desktop application for Git, written in Rust with few dependencies, in a clean room. This file is
+Gitardo Desktop is a desktop application for Git, written in Rust with libraries where they serve, in a clean room. This file is
 for whoever changes this branch, person or agent. What the program does is in [README.md](README.md) and in
 [docs/](docs/); keep the two apart.
 
@@ -8,13 +8,13 @@ for whoever changes this branch, person or agent. What the program does is in [R
 
 - **Clean room.** Work from the documents in `docs/` and from git's own documentation. Do not open the source of the
   Gitardo extension (`src/` and `test/` of the `main` branch), nor copy the source of any other project. The
-  documentation of the libraries below may be read. When a card is not enough, write the question in [docs/08-decisions.md](docs/08-decisions.md) under
+  documentation of the libraries it uses may be read. When a card is not enough, write the question in [docs/08-decisions.md](docs/08-decisions.md) under
   **Open questions** and stop there. See [docs/00-clean-room.md](docs/00-clean-room.md).
-- **Few dependencies.** The standard library, the crates of this workspace, and only these libraries, each in its
-  crates, at the versions of `xtask/allowed-packages.txt`: TLS (`rustls` with `ring`, `rustls-native-certs`) in
-  `crates/tls` (rule R1.5, decision D13); `winit`, `softbuffer`, `arboard`, `rfd`, `accesskit_winit` in
-  `crates/platform`, `tiny-skia` and `cosmic-text` in `crates/render`, `accesskit` in `crates/ui` (rule R1.6, decision
-  D16). Never add another crate from crates.io, git or a path outside the repository: propose it first.
+- **Libraries with judgment.** A library from crates.io may be added when it does the job better than code written
+  here would, weighed as decision D22 says (what it saves against what it brings, whether it is kept up, what it needs
+  to build), under a licence MIT code may use; the commit that adds it says why. Its types stay in the crate that uses
+  it (rule R1.6), TLS and cryptography stay in `crates/tls` (rule R1.5), and nothing depends on a folder outside the
+  repository.
 - **Every feature is a function**, as [docs/04-feature-contract.md](docs/04-feature-contract.md) says, named after its
   card, with a test for each line of its acceptance list.
 - **The code rules** of [docs/03-code-rules.md](docs/03-code-rules.md) apply to every line. `cargo xtask check` must pass

@@ -1,23 +1,23 @@
 # Architecture
 
 Gitardo Desktop is one Cargo workspace that uses libraries where they serve
-([D20](08-decisions.md#d20--libraries-where-they-serve)): so far TLS, and the libraries of the window, the text and the
+([D22](08-decisions.md#d22--libraries-with-judgment)): so far TLS, and the libraries of the window, the text and the
 pixels. This page says what its crates are, which may use which, how a click becomes a git command, and where
 state lives. The rules for writing the code are in [03-code-rules.md](03-code-rules.md); the operating systems are in
 [05-platform.md](05-platform.md).
 
 ## Dependencies
 
-- A crate depends on crates of this workspace and on the libraries `xtask/allowed-packages.txt` names for it
-  ([D20](08-decisions.md#d20--libraries-where-they-serve)). There is no `build.rs` in the workspace and no procedural
+- A crate depends on crates of this workspace and on the libraries that serve its job, chosen as
+  [D22](08-decisions.md#d22--libraries-with-judgment) says. There is no `build.rs` in the workspace and no procedural
   macro written here; libraries may have theirs.
 - **TLS** ([D13](08-decisions.md#d13--one-library-for-tls)): `crates/tls` depends on `rustls`, with `ring` for its
   cryptography, and on `rustls-native-certs` for the certificates the system trusts.
 - **The window, the text and the pixels** ([D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)):
   `platform` depends on `winit`, `softbuffer`, `arboard`, `rfd` and `accesskit_winit`; `render` on `tiny-skia` and
   `cosmic-text`; `ui` on `accesskit`, for the tree of what is on screen.
-- Their versions are those of `Cargo.lock`. No type of a library leaves the crates the allowlist names for it: the
-  tree of `accesskit`, which `ui` builds and `platform` hands to the system, is named for both.
+- Their versions are those of `Cargo.lock`. No type of a library leaves the crate that uses it
+  ([R1.6](03-code-rules.md)), but the tree of `accesskit`, which `ui` builds and `platform` hands to the system.
 - The Rust standard library is used freely: `std` is the toolchain, not a dependency.
 - What no library covers yet (junctions, killing a tree of processes, the credential store, watching files) is asked
   of the libraries the operating system ships (`kernel32.dll`, `libc`, `Security.framework`) through `extern`
@@ -76,8 +76,8 @@ app ──► views ──► ui ──► render ──► platform
 - `features` edits the settings files its operations write with `json`, so that their comments are kept.
 - `git` runs processes but knows nothing of the UI. `engine` is the only crate that changes the disk or the repository.
 - `platform` is the only crate with `unsafe`. Everything above it sees safe functions.
-- Each crate uses the libraries the allowlist names for it ([D20](08-decisions.md#d20--libraries-where-they-serve));
-  today those are `tls`, `render`, `platform` and `ui`
+- A crate uses the libraries of its own job ([D22](08-decisions.md#d22--libraries-with-judgment)); today those are
+  `tls`, `render`, `platform` and `ui`
   ([D13](08-decisions.md#d13--one-library-for-tls), [D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)).
   The pure crates use only libraries that do no I/O.
 - `testkit` is a `dev-dependency` only.

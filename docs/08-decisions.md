@@ -92,8 +92,9 @@ cards give one and say it is new: the command log keeps 10,000 lines, the journa
 
 ## D13 — One library, for TLS
 
-*Replaces [D5](#d5--https-through-curl). How its libraries are listed and kept in their crate is now
-[D20](#d20--libraries-where-they-serve); why these are the ones for TLS still stands.*
+*Replaces [D5](#d5--https-through-curl). How its libraries are kept in their crate is now
+[D22](#d22--libraries-with-judgment), and the allowlist it speaks of is gone; why these are the ones for TLS, and why
+only `crates/tls` uses them, still stands.*
 
 Gitardo speaks HTTPS itself for two things only: the API of GitHub and the AI provider. Fetching, pulling, pushing and
 cloning, over HTTPS or SSH, are done by the `git` process, which has its own TLS and runs the system's `ssh`; they need
@@ -150,8 +151,8 @@ but `testkit` (a dev-dependency only) and `xtask`; nothing uses `app`.
 ## D16 — Libraries for the window, the text and the pixels
 
 *The maintainer's decision, 2026-11-12. Narrows [D2](#d2--no-dependencies), replaces
-[D4](#d4--our-own-text-rendering), answers Q24, Q25, Q26 and Q28. How its libraries are listed is now
-[D20](#d20--libraries-where-they-serve); which libraries, and why, still stands.*
+[D4](#d4--our-own-text-rendering), answers Q24, Q25, Q26 and Q28. How its libraries are kept in their crates is now
+[D22](#d22--libraries-with-judgment), and the allowlist it speaks of is gone; which libraries, and why, still stands.*
 
 The first version of milestone M2 wrote the window of Windows, the reader and rasterizer of TrueType fonts and the
 rasterizer of shapes here. They worked, but they are the parts where a library gives the most and Gitardo's own code
@@ -259,6 +260,8 @@ instead.
 
 ## D20 — Libraries where they serve
 
+*Replaced by [D22](#d22--libraries-with-judgment), which keeps its reasons and drops the allowlist.*
+
 *The maintainer's decision, 2026-11-12. Replaces [D2](#d2--no-dependencies). [D13](#d13--one-library-for-tls) and
 [D16](#d16--libraries-for-the-window-the-text-and-the-pixels) stay as the reasons for the libraries they name.*
 
@@ -318,6 +321,48 @@ among three drafts, the one with a bar of views.
   branch filter beside it.
 
 The pictures of the drafts are the page *Gitardo Desktop a riquadri*, variant C.
+
+## D22 — Libraries with judgment
+
+*The maintainer's decision, 2026-11-14. Replaces [D20](#d20--libraries-where-they-serve): the allowlist and its check
+are gone. [D13](#d13--one-library-for-tls) and [D16](#d16--libraries-for-the-window-the-text-and-the-pixels) stay as
+the reasons for the libraries they chose.*
+
+The allowlist made every library a stop to ask, and the stop gave little once D20 let libraries in: the choice is still
+worth thinking about, but whoever writes the code makes it, and says why in the commit. Libraries are not to be
+avoided; they are to be chosen. A crate of the workspace may depend on a library from crates.io when it does the job
+better than code written here would.
+
+What to weigh before adding one:
+
+- **What it saves against what it brings.** A library for text, a window or TLS saves years; one for twenty lines
+  that are easy to write saves nothing, and brings its packages, its build time and its updates.
+- **Whether one already used does the job.** Two libraries for the same job is one too many.
+- **Whether it is kept up**: a release in the last year, or small and finished, and more than one person behind it
+  for the parts that matter.
+- **What it needs to build and to run.** A C compiler, CMake or a library installed on the system (WebKitGTK on
+  Linux, for a web view) is a cost to say in the README, next to what the program needs.
+- **The fewest features that work**, named in the `Cargo.toml` that uses it.
+- **Its licence**, the one thing not weighed: MIT code must be able to use it (MIT, Apache-2.0, BSD, ISC, Zlib,
+  Unicode, or MPL-2.0 used unchanged). A library under another licence is not used.
+
+What still holds, because it keeps a library easy to replace rather than because it limits which:
+
+- A library is used by the crate whose job it serves, behind that crate's interface: no type of it appears in the
+  interface, so that replacing it changes that crate only ([R1.6](03-code-rules.md)). Where a type has to cross, as
+  the tree of `accesskit` does between `ui` and `platform`, the code says why.
+- The pure crates (`features`, `model`, `text`, `json`) use only libraries that do no I/O, start no thread and read no
+  clock ([R3](03-code-rules.md)).
+- TLS and cryptography only through `crates/tls` ([D13](#d13--one-library-for-tls), [R1.5](03-code-rules.md)).
+- `git` is run as a program ([D1](#d1--the-git-executable-not-a-library)), and the clean room holds: a library is used
+  through its interface and its documentation, never copied ([00-clean-room.md](00-clean-room.md)).
+- The crates of the workspace still have no build script and no procedural macro of their own
+  ([R1.2](03-code-rules.md)); those of libraries are theirs. No crate depends on a folder outside the workspace.
+- The commit that adds a library says why in its message, and an update that changes what the program does is a
+  commit of its own.
+
+`cargo xtask check` no longer reads a list of libraries. It still fails on a build script or a procedural macro of the
+workspace, and on a dependency on a folder outside it.
 
 ## Open questions
 
@@ -469,7 +514,7 @@ repositories, the settings), each built with the reading given until it is answe
   the reading, rather than leaving them out?
 - **Q58** — `graph.columns` and `graph.date-separators`: dates are said and the days counted in UTC, since the
   program does not read the local time zone yet; the tooltip of a date says `UTC`. Should the local time zone be read
-  (through which library on the allowlist), and the separators counted in it?
+  (through which library), and the separators counted in it?
 - **Q59** — `graph.first-parent`, `graph.fold-all`, `graph.trace-selected`: these are entries of **…**
   (`graph.more-menu`), so their functions are views that turn the entry chosen into the intent; the menu itself is
   drawn by `graph.more-menu`. Is that the shape meant for a card whose only control is a menu entry?
@@ -601,7 +646,7 @@ repositories, the settings), each built with the reading given until it is answe
   as **Go to commit** does, rather than `compare.resolve-revision`, which comes with the comparison page. Is one box for
   both right, and should the store run both through the engine once it shows questions?
 - **Q91** — The lines of a diff are in the colors of their kind (added, removed, context) and in the font of code,
-  but not in the colors of the code: no tokenizer is on the allowlist of D16. Which library, or a highlighter of
+  but not in the colors of the code: no tokenizer is used yet. Which library, or a highlighter of
   Gitardo's own, and from which milestone?
 - **Q92** — The icons of the inspector and of the page come from the icons there are: the eye of a file
   (**Show its changes in this page**) is an arrow down, the list layout a minus, the tree a folder, and **Open as a
@@ -1927,7 +1972,7 @@ From milestone M11 (macOS):
   arrays, dictionaries, bytes, `CFRelease`), `CoreServices` (`FSEvents`), `Security` (the keychain), `libobjc` (with
   `AppKit` linked for its classes) and `libSystem` (`localtime_r`, the queues of `libdispatch`). The `objc2` crates are
   in the build already, through `winit`, `arboard` and `rfd`, but are not used directly. Should `platform` take
-  `objc2-app-kit` and `objc2-core-foundation` instead ([D20](#d20--libraries-where-they-serve))?
+  `objc2-app-kit` and `objc2-core-foundation` instead ([D22](#d22--libraries-with-judgment))?
 - **Q371** — Watching files: one stream of `FSEvents` per folder, each file said (`FileEvents`), a change alone said at
   once (`NoDefer`), with a latency of 50 ms, on a queue of `libdispatch` of its own whose callback sends the changes to
   the thread of the folder. The stream keeps what it sends to through its `retain` and `release`, so that a callback

@@ -72,7 +72,7 @@ Windows are, and nothing else is linked.
 | Links | `std::os::unix::fs::symlink`. |
 | Local time | `localtime_r` of the C library, whose `tm_gmtoff` is how far the local time is from UTC (`${date}` in the names of new branches). |
 | Open, reveal | `xdg-open` run as a process; revealing a file opens its folder. |
-| Credentials | The Secret Service over D-Bus, through a library ([D20](08-decisions.md#d20--libraries-where-they-serve)); until one is chosen, the file `credentials` in the configuration folder (`$XDG_CONFIG_HOME/gitardo-desktop`, or `~/.config/gitardo-desktop`), readable only by the user (mode `0600`, its folder `0700` when Gitardo makes it), and the settings page says so. |
+| Credentials | The Secret Service over D-Bus, through a library ([D22](08-decisions.md#d22--libraries-with-judgment)); until one is chosen, the file `credentials` in the configuration folder (`$XDG_CONFIG_HOME/gitardo-desktop`, or `~/.config/gitardo-desktop`), readable only by the user (mode `0600`, its folder `0700` when Gitardo makes it), and the settings page says so. |
 | Clipboard | `arboard` over X11; on Wayland through XWayland, since its Wayland part is not built. |
 | File dialogs | `rfd` through the desktop's portal (`xdg-desktop-portal`), which falls back to `zenity` when there is no portal. |
 | Fonts of the system | `fontdb`, through `cosmic-text`, reads the usual folders (`/usr/share/fonts`, `/usr/local/share/fonts`, `~/.local/share/fonts`, `~/.fonts`), not the configuration of fontconfig. |
