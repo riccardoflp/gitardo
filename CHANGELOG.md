@@ -12,6 +12,8 @@
   together, the best first: `main`, then `origin/main`, then `maintenance`.
 - With `branches.sortOrder` not set, the branches, the remote branches and the tags are listed by date when Git's own
   `branch.sort` is `-committerdate` or `committerdate`, and by name otherwise.
+- **Open all changes in one Diff page** on the Changes page opens one Diff page titled **Changes** with every changed
+  file, each between the last commit and the file on disk, the changes already staged drawn dimmed.
 - The Changes page leaves out the files with edits not saved that git ignores, that are in a submodule or in another
   worktree inside the repository, and those outside it; git is asked with `git check-ignore` when a file becomes or
   stops being unsaved, and when the repository is read again.

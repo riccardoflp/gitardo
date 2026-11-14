@@ -470,3 +470,28 @@ fn the_stash_buttons_of_the_changes_page_run_the_stash_of_a_file_of_all_changes_
         assert!(intents.contains(&asked), "{button}: {intents:?}");
     }
 }
+
+#[test]
+fn changes_open__open_all_changes_in_one_diff_page_with_three_changed_files_opens_one_diff_page_with_three_files() {
+    let repository = committed();
+    write(&repository, "a.txt", "a, staged\n");
+    let _ = repository.git(&["add", "a.txt"]);
+    write(&repository, "b.txt", "b, changed\n");
+    write(&repository, "c.txt", "new\n");
+    let (mut state, driver) = changes_page(&repository);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    click(
+        &driver,
+        &mut state,
+        &mut window,
+        (Role::Button, "Open all changes in one Diff page"),
+    );
+    let Some(Page::Diff(id)) = state.page_shown() else {
+        panic!("a Diff page is shown, not {:?}", state.page_shown());
+    };
+    assert_eq!(state.diff_pages.pages.len(), 1);
+    let page = state.diff_pages.pages.iter().find(|page| page.id == id).unwrap();
+    let files: Vec<&str> = page.target.files.iter().map(|file| file.right.as_str()).collect();
+    assert_eq!(files, ["a.txt", "b.txt", "c.txt"]);
+    assert_eq!(page.title, "Changes");
+}

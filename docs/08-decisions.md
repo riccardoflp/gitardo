@@ -1737,3 +1737,7 @@ answered:
   ignores it, which it is asked on a worker when a file becomes or stops being unsaved and when the repository is read
   again; when git cannot say, none is left out. The editable side of the Merge page is not one of the editors yet, as
   it keeps its own text. Right?
+- **Q-E7** — **Open all changes in one Diff page** opens every file of the list between `HEAD` and the working tree,
+  as Q138 offered, rather than each with the pair of versions **Open changes** gives it: a Diff page keeps one pair for
+  all its files, and this pair shows every change of a file, what is staged drawn dimmed, and lets the files be edited
+  (`diff.edit`). The card says so now. Is one pair right, or should a Diff page take a pair for each file?

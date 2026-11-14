@@ -29,7 +29,9 @@ pub use data::{
 };
 pub use edit::{DrawnSides, RECOMPUTE_AFTER, edit_view, open_at_line_view};
 pub use question::{LargeDiffQuestion, large_diff_question_view};
-pub use targets::{changes_file, commit_file, commit_files, commit_sides, file_sides, listed_file, untracked_file};
+pub use targets::{
+    changes_file, changes_files, commit_file, commit_files, commit_sides, file_sides, listed_file, untracked_file,
+};
 
 /// The number of a Diff page, unique in its window.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

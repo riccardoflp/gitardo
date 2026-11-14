@@ -89,6 +89,22 @@ pub fn changes_file(request: &PageRequest) -> Option<DiffTarget> {
     Some(DiffTarget::file(version_of(*left)?, version_of(*right)?, file))
 }
 
+/// The Diff page of **Open all changes in one Diff page** on the Changes page: every file of the list between `HEAD`
+/// and the working tree, titled **Changes**; none when the list has no file git sees changed.
+#[must_use]
+pub fn changes_files(rows: &[model::changes::ChangeRow]) -> Option<DiffTarget> {
+    let files: Vec<DiffFile> = model::changes::open_all(rows)
+        .into_iter()
+        .map(|(left, right)| DiffFile { left, right })
+        .collect();
+    (!files.is_empty()).then(|| DiffTarget {
+        left: DiffVersion::Head,
+        right: DiffVersion::WorkingTree,
+        files,
+        title: Some(crate::text::changes::CHANGES.to_owned()),
+    })
+}
+
 /// The version of a side of the Diff page.
 fn version_of(version: OpenVersion) -> Option<DiffVersion> {
     match version {

@@ -184,17 +184,17 @@ Rules:
 - **Compare with the saved file**, on a file that only an editor has changed, opens a Diff page with the file as it is
   on disk on the left and the buffer not saved on the right, editable.
 - **Open all changes in one Diff page** opens one Diff page with the diffs of every file of the list, one after the
-  other, each as **Open changes** would show it, titled **Changes**. The rows of files only an editor has changed are
-  left out.
+  other, each between the last commit and the file on disk, titled **Changes**: a Diff page has one pair of versions
+  for all its files (Q-E7). The rows of files only an editor has changed are left out.
 
 Acceptance:
 
-- [ ] A file partly staged opens with the index on the left and the file on disk on the right.
-- [ ] A file all staged opens with `HEAD` on the left and the index on the right.
-- [ ] With `changes.openOnClick` set to `diff`, a click on a row opens the same Diff page as **Open changes**; with
+- [x] A file partly staged opens with the index on the left and the file on disk on the right.
+- [x] A file all staged opens with `HEAD` on the left and the index on the right.
+- [x] With `changes.openOnClick` set to `diff`, a click on a row opens the same Diff page as **Open changes**; with
       `file`, the File page.
-- [ ] A click on a deleted file opens its Diff page whatever the setting says.
-- [ ] **Open all changes in one Diff page** with three changed files opens one Diff page with three files.
+- [x] A click on a deleted file opens its Diff page whatever the setting says.
+- [x] **Open all changes in one Diff page** with three changed files opens one Diff page with three files.
 
 ### `changes.stage` — Stage a file
 

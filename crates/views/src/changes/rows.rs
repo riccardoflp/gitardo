@@ -186,7 +186,7 @@ fn changes_heading(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -
     {
         intents.push(run("stash.push-staged", Target::Head));
     }
-    let _ = icon_button(ui, &mut area, ("open all", Icon::Eye, words::OPEN_ALL_CHANGES), false);
+    intents.extend(open_all(state, ui, &mut area));
     let (layout, icon, said) = match state.layout {
         FileLayout::List => (FileLayout::Tree, Icon::Folder, words::VIEW_AS_TREE),
         FileLayout::Tree => (FileLayout::List, Icon::Minus, words::VIEW_AS_LIST),
@@ -275,6 +275,19 @@ fn open_page(row: &ChangeRow, action: OpenAction, on_click: OpenOnClick) -> Opti
         return Some(open_file(path));
     }
     let target = crate::diff::changes_file(&request)?;
+    Some(Intent::Diff(crate::diff::DiffIntent::Open(Box::new(target))))
+}
+
+/// **Open all changes in one Diff page**: one Diff page of every changed file (`changes.open`).
+fn open_all(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, area: &mut Area) -> Option<Intent> {
+    let all = crate::diff::changes_files(&state.list.rows);
+    let clicked = icon_button(
+        ui,
+        area,
+        ("open all", Icon::Eye, words::OPEN_ALL_CHANGES),
+        all.is_some(),
+    );
+    let target = all.filter(|_| clicked)?;
     Some(Intent::Diff(crate::diff::DiffIntent::Open(Box::new(target))))
 }
 

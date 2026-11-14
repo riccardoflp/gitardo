@@ -111,6 +111,22 @@ pub fn open(input: &OpenInput<'_>) -> PageRequest {
     }
 }
 
+/// **Open all changes in one Diff page**: the files of the list, each by its path on the left, its old name after a
+/// staged rename, and on the right, all of them between the last commit and the file on disk; the files only an
+/// editor has changed are left out.
+#[must_use]
+pub fn open_all(rows: &[ChangeRow]) -> Vec<(String, String)> {
+    rows.iter()
+        .filter(|row| row.status != FileStatus::Unsaved)
+        .map(|row| {
+            (
+                row.original_path.clone().unwrap_or_else(|| row.path.clone()),
+                row.path.clone(),
+            )
+        })
+        .collect()
+}
+
 /// What **Open changes** shows of a file: the index against the file on disk while some of it is not staged, the last
 /// commit against the index once all of it is.
 fn changes_diff(row: &ChangeRow, is_deleted: bool) -> PageRequest {
