@@ -1781,46 +1781,46 @@ From the slice of the Tasks of the Activity drawer, which answers Q325 and build
   `activity.describe-task` gains that row. Is that wanted?
 From milestone M10 (Linux):
 
-- **Q-L1** — The Linux part of `platform` declares the few functions of the C library it uses (`inotify_init1`,
+- **Q350** — The Linux part of `platform` declares the few functions of the C library it uses (`inotify_init1`,
   `inotify_add_watch`, `inotify_rm_watch`, `poll`) by hand in `crates/platform/src/linux/libc.rs`, as the Windows part
   does for its libraries, with the values of the flags of `x86_64`, `aarch64` and `riscv64`, instead of taking the
   `libc` crate. Is that right, or should `libc` be allowed for `platform`?
-- **Q-L2** — Watching files: inotify watches one folder at a time, so the watcher adds a watch for every folder under
+- **Q351** — Watching files: inotify watches one folder at a time, so the watcher adds a watch for every folder under
   the one watched when it opens (on the thread that asks, before the watcher's thread starts, so that nothing is
   missed), and one for each folder created or moved in, whose contents are then said as changed. Links to folders are
   not followed. A folder beyond `fs.inotify.max_user_watches` is left unwatched without a word, and after an overflow
   every folder is asked for again. Should the window say when folders could not be watched, or watch fewer folders
   (not `.git/objects`, not ignored ones)?
-- **Q-L3** — High contrast is read with `gsettings get org.gnome.desktop.a11y.interface high-contrast` each time a
+- **Q352** — High contrast is read with `gsettings get org.gnome.desktop.a11y.interface high-contrast` each time a
   window gets the keyboard back, as on Windows: a process started on the UI thread at each focus. The time of a double
   click is read once from `org.gnome.desktop.peripherals.mouse double-click` (400 ms without `gsettings`), its distance
   the usual 4 pixels. Is a process at each focus acceptable, or should the reading move off the UI thread?
-- **Q-L4** — Credentials, until a Secret Service library is chosen: the file `credentials` in
+- **Q353** — Credentials, until a Secret Service library is chosen: the file `credentials` in
   `$XDG_CONFIG_HOME/gitardo-desktop` (or `~/.config/gitardo-desktop`), mode `0600`, its folder made `0700`, one line
   per secret (name, tab, secret, with `\\`, `\t`, `\n`, `\r` escaped), written whole beside it and renamed into place.
   `platform` finds the folder itself, by the same rule as `app::settings::configuration_folder`, since it cannot use
   `app`. The settings page and **Choose a model** still say "the credential store of the system": the texts of
   `views` and `features` were not changed in this slice. Should they say, on Linux, that the secret is in a file, and
   should `app` give the folder to `platform` instead?
-- **Q-L5** — Opening an address runs `xdg-open`, with a thread that waits for it so that no ended process stays
+- **Q354** — Opening an address runs `xdg-open`, with a thread that waits for it so that no ended process stays
   behind. Revealing a folder, the terminal and the external editor are unchanged above `platform`: `xdg-open
   <folder>`, `x-terminal-emulator` (Debian and Ubuntu only) unless `terminal.external` is set, and `editor.external`.
   Should the default terminal try others (`gnome-terminal`, `konsole`, `xterm`) when `x-terminal-emulator` is not
   there?
-- **Q-L6** — Clipboard, dialogs and fonts stay with the libraries, as built: `arboard` over X11, and on Wayland through
+- **Q355** — Clipboard, dialogs and fonts stay with the libraries, as built: `arboard` over X11, and on Wayland through
   XWayland, since its Wayland part is not built; `rfd` through the desktop's portal, falling back to `zenity`; the
   fonts of the system for the fallback read by `fontdb` from the usual folders, without the configuration of
   fontconfig. Is that enough for a first Linux release?
-- **Q-L7** — Killing a process tree on cancel is not built on either system: `git` and the commands of the user are
+- **Q356** — Killing a process tree on cancel is not built on either system: `git` and the commands of the user are
   killed alone (`Child::kill`). On Linux the simplest way is a process group of its own for each command
   (`CommandExt::process_group(0)`) and a signal to the group, in `engine` and `git`. Should it come in a slice of its
   own, with job objects on Windows?
-- **Q-L8** — The clippy of Rust 1.100, on Linux, asks for `map_or_default` where the code wrote
+- **Q357** — The clippy of Rust 1.100, on Linux, asks for `map_or_default` where the code wrote
   `.map(…).unwrap_or_default()` (the pedantic `map_unwrap_or`), which the clippy of 1.99 on Windows does not; every
   such place was changed, in a commit of its own, and 1.99 accepts the change. The workspace now names its toolchain,
   1.99.1 with rustfmt and clippy, in `rust-toolchain.toml`, so that every system runs the same clippy; moving to a
   newer Rust is then a commit of its own, with what its clippy asks. Is that right?
-- **Q-L9** — Tests that assumed Windows: the path of the temporary patch of `patch.apply` is quoted only on Windows,
+- **Q358** — Tests that assumed Windows: the path of the temporary patch of `patch.apply` is quoted only on Windows,
   so its test finds it quoted or bare; the helper of the folder-links tests of `git` is for Windows only, as those
   tests are; the `pre-push` hook of an activity test is made executable, without which git on Linux does not run it.
   The tests of `platform` that open real windows, use the clipboard or watch folders, and the test of the demo window,
@@ -1829,7 +1829,7 @@ From milestone M10 (Linux):
   run git with the person's configuration, not the isolated one of `testkit`: on a machine whose git has no identity
   (as a fresh WSL) about twenty of them fail on "Committer identity unknown"; they pass with one. Should those tests
   isolate git as `testkit` does?
-- **Q-L10** — Two snapshots differed on Linux by two pixels each, `commit-page-dark` and `pull-request-badge-dark`, at
+- **Q359** — Two snapshots differed on Linux by two pixels each, `commit-page-dark` and `pull-request-badge-dark`, at
   the right end of a pill whose corners are half its height. The cause: `tiny-skia`, when it clips a cubic curve at
   the edge of the mask it fills (a band of `fill_rounded_rect` that ends inside the curve of a pill, or the clip of a
   view that cuts one), finds where the curve crosses with `cos` and `powf`, which come from the system's C library and
@@ -1842,7 +1842,7 @@ From milestone M10 (Linux):
   `gallery-high-contrast-dark`, `gallery-light-2x`, `gallery-dark-2x`, `gallery-over-light`, `activity-dark-2x`,
   `confirmation-dark-2x`, `dialog-dark-2x`, `drag-dark-2x`, `find-dark-2x`, `menu-dark-2x`, `picker-dark-2x`,
   `pull-dark-2x`. Is growing the area right, rather than turning the curves into lines in `render` before filling?
-- **Q-L11** — `platform::utc_offset`, which came with `branch.name-from-format` while this slice was built, has a
+- **Q360** — `platform::utc_offset`, which came with `branch.name-from-format` while this slice was built, has a
   Windows part only: on Linux `${date}` in the names of new branches is counted in UTC, as Q333 says for every other
   system. The Linux part would declare `localtime_r` of the C library and read `tm_gmtoff`, the same on glibc and musl.
   Should it be built in a slice of its own?
