@@ -1,5 +1,9 @@
 # The clean room
 
+*Replaced by [D40](../08-decisions.md#d40--the-clean-room-ends) on 2026-11-14, when the two apps came into one
+repository to share one engine: the extension's code may now be read. The page stays as the record of how Gitardo
+Desktop was written up to then.*
+
 Gitardo Desktop is written from scratch, in a clean room: from what Gitardo does, never from how the extension does it.
 This page says what that means in practice, for people and for agents.
 

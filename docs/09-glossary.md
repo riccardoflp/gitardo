@@ -94,3 +94,17 @@ titles of the commands in `package.json`, the words of the webviews, and the typ
 | Undo | **Undo Last Operation**: takes back the last operation from the reflog, or from what Gitardo remembered of it. | | | action `undo`, `undoOp`, `Controller.undoable` |
 | what is running | The **Gitardo** item of the status bar while something takes more than half a second, and **Gitardo: Show What Is Running**. | log | | `Activity` |
 | link, copy (into new worktrees) | What a new worktree gets of the ignored folders and files of the repository: a junction or symbolic link, or a copy. | | | `SetupChoice`, `src/git/worktreeSetup.ts` |
+
+## The two apps and the engine
+
+| Term | Means | Not to be confused with | Avoid | In code |
+| --- | --- | --- | --- | --- |
+| Gitardo Desktop | The app with a window of its own, in `rust/`. | the engine | | crate `app` |
+| the extension | The app for VS Code, in `extension/`. | | | `extension/src` |
+| engine | What reads git and runs the features for both apps: the Rust crates without a window. Under the extension it runs as the program `gitardo-engine`, beside the extension host. | Gitardo Desktop | | crates `engine`, `features`, `git`, `model`; binary `gitardo-engine` |
+| host | Whatever shows the engine's work and answers its questions: the window of Gitardo Desktop, or VS Code through the extension. | | | `Asker`, `HostAsker` |
+| host question | A question the engine asks the host for what only the host has: the clipboard, a GitHub token, an answer of a language model, a dialog of files, a secret. | question (asked of the user) | | `host/…` requests |
+| protocol | The messages between the extension and `gitardo-engine`, JSON-RPC over the standard input and output. | | | crate `protocol` |
+| desktop first | The order every feature is built in: the engine and the window of Gitardo Desktop, then the extension. | | | D39 |
+| status (of a card) | Where a feature stands in one app: **Specified**, **Reviewed**, **Built**, **Seen** in the desktop; **Planned**, **Built**, **Seen**, **Differs**, **Host only** in the extension. | | | the columns of `docs/features/README.md` |
+| fallback | The TypeScript `GitOp` an operation already moved to the engine keeps while `src/git` exists, run when the engine's binary is missing. | | | D49 |

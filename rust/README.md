@@ -4,18 +4,19 @@ A desktop application for Git: the commit graph, the history and the everyday op
 It does everything the Gitardo extension for VS Code does, and is written from scratch in Rust, with the standard
 library and libraries where they serve: for TLS, and for the window, the text and the pixels.
 
-This branch has the documents to build it from, in a clean room: what every feature does, as a function, and the
-rules the code follows. The code has milestone M0 of the [roadmap](../docs/desktop/07-roadmap.md): the workspace of crates,
-`cargo xtask check`, the kit of the tests and JSON with comments; and M1: every read of git, what the model derives from
-it, the engine that runs features with its log and the journal of Undo, and the first features, run from a terminal by
-`gitardo-cli`; and M2: a window on Windows, drawn by the program itself, with its own fonts, icons, themes and
-toolkit, shown in `gitardo-demo`. The window does not show a repository yet.
+Its documents say what every feature does, as a function, and the rules the code follows; it was written from them in a
+clean room until its engine became the extension's too. The code has milestone M0 of the
+[roadmap](../docs/desktop/07-roadmap.md): the workspace of crates, `cargo xtask check`, the kit of the tests and JSON
+with comments; and M1: every read of git, what the model derives from it, the engine that runs features with its log and
+the journal of Undo, and the first features, run from a terminal by `gitardo-cli`; and M2: a window on Windows, drawn by
+the program itself, with its own fonts, icons, themes and toolkit, shown in `gitardo-demo`. The window does not show a
+repository yet.
 
 ## The documents
 
 | Document | What it says |
 | --- | --- |
-| [00 — The clean room](../docs/desktop/00-clean-room.md) | How the program is written from behavior, never from the extension's code, and who may read what. |
+| [00 — The clean room](../docs/desktop/00-clean-room.md) | How the program was written from behavior, never from the extension's code, until D40 ended it. |
 | [01 — The product](../docs/desktop/01-product.md) | The window, its panes and pages, and what replaces each thing the extension took from VS Code. |
 | [02 — Architecture](../docs/desktop/02-architecture.md) | The crates, which may use which, how a click becomes a git command, threads, state, drawing. |
 | [03 — Code rules](../docs/desktop/03-code-rules.md) | The numbered rules every line follows, and what `cargo xtask check` enforces. |

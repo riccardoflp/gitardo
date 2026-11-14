@@ -25,6 +25,10 @@ first, in its own commit, with the reason.
   that replacing it changes one crate: the window, the clipboard and the dialogs in `crates/platform`, shapes and text
   in `crates/render` ([D16](../08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)). Where a type has
   to cross, as the tree of `accesskit` does between `ui` and `platform`, the code says why.
+- **R1.7** `serde` and `serde_json` are used by `crates/protocol` and `crates/server` only; `model` and the crates below
+  it stay without them ([D42](../08-decisions.md#d42--the-messages-types-in-a-crate-protocol-with-serde)). A change to a
+  type of `protocol` raises the protocol's minor version when it adds a field or a message, its major version when it
+  changes or removes one ([transition/02-protocol.md](../transition/02-protocol.md)).
 
 ## 2. Features are functions
 

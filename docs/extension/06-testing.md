@@ -139,9 +139,26 @@ by its file and its title. A line with no test says so in **Tested by**. When a 
 it on the card in the same commit. The names of the tests are sentences from the user's side; they do not carry the
 identifier of the card (see [D35](../08-decisions.md#d35--tests-are-named-by-what-the-user-sees)).
 
+## With the engine
+
+From stage 1 of [the transition](../transition/06-roadmap.md) the extension starts `gitardo-engine`. The tests find it
+as the extension does: `gitardo.engine.path` when set, which the test scripts set to `../rust/target/debug/
+gitardo-engine`, built first with `cargo build -p server` and `CARGO_PROFILE_DEV_DEBUG=0`.
+
+- `test/engine.test.ts` (Vitest) starts the binary and checks the protocol: `initialize`, the state of the throwaway
+  repositories against `Repo.state`, cancelling, a restart after a crash.
+- The integration tests of a moved area run each operation through `feature/run`, with a fake host that answers the
+  questions from the test; they keep the same names, so that a card's **Tested by** line still finds them.
+- The scenarios shared with the desktop ([desktop/06-testing.md](../desktop/06-testing.md#scenarios-run-by-both-apps))
+  compare the engine's plan and the final state with the TypeScript `GitOp`'s, operation by operation, until `src/git`
+  is removed.
+- The e2e and UI suites run once with the engine and once with `gitardo.engine.path` naming a missing file, which
+  checks the fallback ([D49](../08-decisions.md#d49--when-the-engines-binary-is-missing-proposed)).
+
 ## What a change runs before it is committed
 
 - Always: `npm run typecheck` and `npm test`.
+- A change in `../rust/` that the extension uses: `cargo xtask check` there, then `npm run test:e2e` here.
 - A change to the documents: `npm run check:docs`.
 - A change to a webview: the preview, in a dark and a light theme.
 - A change to commands, the controller or what VS Code is asked: `npm run test:e2e`.

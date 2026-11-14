@@ -22,6 +22,10 @@ A change that needs to break a rule changes this page first, in its own commit, 
 - **R1.4** The folders use each other as [the architecture](02-architecture.md#who-may-use-whom) draws it: `src/git`
   never imports `vscode` or `src/extension`; `src/shared` imports nothing of the others. *Source: project choice.
   Followed, with the edges marked on that page; no tool checks it.*
+- **R1.5** The extension runs one program besides `git`: `gitardo-engine`, from `bin/<platform>/` of the package or
+  from `gitardo.engine.path`, started and spoken to by `src/engine` only, which imports neither `src/git` nor
+  `src/webview`. *Source: [D41](../08-decisions.md#d41--json-rpc-over-the-standard-input-and-output-one-process-per-window).
+  Not checked by a tool.*
 
 ## R2 — Features
 
@@ -104,6 +108,11 @@ A change that needs to break a rule changes this page first, in its own commit, 
   where git has one. *Source: project choice. Followed.*
 - **R8.5** The version of git a feature needs is said where it is checked (2.40 for `git merge-tree --write-tree`, the
   conflict previews), and without it the feature is skipped, not failed. *Source: README. Followed.*
+- **R8.6** In an area moved to the engine ([transition/06-roadmap.md](../transition/06-roadmap.md)), nothing in
+  `src/extension` or `src/webview` runs git or builds a `GitOp`; the area's `GitOp` in `src/git` is run only as the
+  fallback for a missing binary, and gets no new behavior. *Source:
+  [D39](../08-decisions.md#d39--desktop-first-and-a-status-for-each-app),
+  [D49](../08-decisions.md#d49--when-the-engines-binary-is-missing-proposed). Review.*
 
 ## R9 — User interface
 

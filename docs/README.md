@@ -25,7 +25,7 @@ the extension's documents (`src/git/ops.ts`) is from `extension/`, one in Gitard
 
 | File | Says |
 | --- | --- |
-| [desktop/00-clean-room.md](desktop/00-clean-room.md) | How the program was written from behavior, never from the extension's code, and who may read what. |
+| [desktop/00-clean-room.md](desktop/00-clean-room.md) | How the program was written from behavior, never from the extension's code, until D40 ended it. |
 | [desktop/01-product.md](desktop/01-product.md) | The window, its panes and pages, and what replaces each thing the extension takes from VS Code. |
 | [desktop/02-architecture.md](desktop/02-architecture.md) | The crates, which may use which, how a click becomes a git command, threads, state, drawing. |
 | [desktop/03-code-rules.md](desktop/03-code-rules.md) | The numbered rules every line of Rust follows, and what `cargo xtask check` enforces. |

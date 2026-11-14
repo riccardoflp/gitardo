@@ -3,6 +3,12 @@
 What a feature of Gitardo is in the code, the kinds of feature, how they are named, and the template of a card. The
 catalog in [features/](../features/extension/README.md) is written to this page.
 
+This page holds for the areas not moved to the engine yet. In an area that has moved
+([transition/06-roadmap.md](../transition/06-roadmap.md)), a feature is the engine's, written to
+[Gitardo Desktop's feature contract](../desktop/04-feature-contract.md), and its card is the desktop's, with a status
+for each app; the extension gives it an interface and sends it `feature/run`
+([transition/02-protocol.md](../transition/02-protocol.md)).
+
 ## Why
 
 A feature that changes the repository is built as data, a `GitOp`, before anything runs. The controller can then show

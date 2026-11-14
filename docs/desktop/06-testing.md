@@ -51,11 +51,26 @@ repeat (closing braces, empty lines), changed at random on two branches, merged 
 resolution is right when it is the result git gives if the two sides are merged in a way that does not conflict (the
 same change applied in two steps). Hundreds of cases run in every `cargo test`, thousands in `cargo xtask fuzz`.
 
+## Scenarios run by both apps
+
+While the extension moves onto the engine ([transition/06-roadmap.md](../transition/06-roadmap.md)), each operation of
+an area that moves gets a scenario: a throwaway repository, a target and the answers to the operation's questions,
+written once as JSON in `rust/crates/app/tests/scenarios/`. The scenario runs twice, through `gitardo-cli` and through
+the extension's TypeScript `GitOp`, and the test compares the two plans (the commands, in order) and the two
+repositories after (the references, `HEAD`, the index and the files of the working tree). A difference fails the test
+unless it is one of [transition/04-differences.md](../transition/04-differences.md), named in the scenario. Once the
+area has moved, the scenario runs the engine through `gitardo-engine --stdio` from the extension's tests, and the
+TypeScript side is dropped with `src/git`.
+
+The protocol has its own tests: each type of `rust/crates/protocol` is turned into JSON and back, and every variant of
+every enum of [transition/02-protocol.md](../transition/02-protocol.md) has its JSON written once in a golden file.
+
 ## What a change runs before it is committed
 
 `cargo xtask check`, which is `rustfmt --check`, `clippy` with warnings denied, `cargo test`, and the checks of the
 catalog and of the rules in [03-code-rules.md](03-code-rules.md#what-cargo-xtask-check-checks). A change to a view also
-runs `cargo xtask snapshots`, and someone looks at the images that changed.
+runs `cargo xtask snapshots`, and someone looks at the images that changed. A change to the engine that the extension
+uses also runs the extension's `npm run test:e2e` against the debug binary.
 
 ## What no test reaches
 
