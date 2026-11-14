@@ -1,7 +1,17 @@
+# The extension: its packages, its build and its packages for the Marketplace.
 node_modules/
 dist/
 *.vsix
-.claude/
 
 # The copy of the licence that npm run package makes for vsce, which takes it only from the folder of the extension.
 /extension/LICENSE
+
+# The Rust workspace: what Cargo builds.
+/rust/target/
+
+# What a snapshot that did not match leaves beside its reference.
+*.actual.png
+*.difference.png
+
+# The worktrees and the settings of the sessions of Claude Code.
+.claude/
