@@ -1,13 +1,13 @@
-//! Rules R5.1 and R5.3: `unsafe` only in `crates/platform`, where every block says why it is sound; every other crate
-//! forbids it.
+//! Rules R5.1 and R5.3: `unsafe` only in `crates/platform` and `crates/system`, where every block says why it is
+//! sound; every other crate forbids it.
 
 use super::Workspace;
 use crate::files::has_extension;
 use crate::problem::Problem;
 use crate::source::{code_only, words};
 
-/// The one crate allowed to use `unsafe`.
-const PLATFORM: &str = "crates/platform";
+/// The crates allowed to use `unsafe`: the operating system with and without a window.
+const SYSTEM_CRATES: [&str; 2] = ["crates/platform", "crates/system"];
 
 /// What each crate root of every other crate says.
 const FORBID: &str = "#![forbid(unsafe_code)]";
@@ -16,7 +16,7 @@ const FORBID: &str = "#![forbid(unsafe_code)]";
 pub fn check(workspace: &Workspace) -> Vec<Problem> {
     let mut found = Vec::new();
     for member in &workspace.members {
-        let is_platform = member.folder == PLATFORM;
+        let is_platform = SYSTEM_CRATES.contains(&member.folder.as_str());
         for (file, text) in workspace.rust_files(&member.folder) {
             let code = code_only(text);
             if is_platform {
@@ -31,7 +31,7 @@ pub fn check(workspace: &Workspace) -> Vec<Problem> {
                 found.push(Problem::in_file("R5.1", &file.relative, message));
             }
             for (line, _) in words(&code).into_iter().filter(|(_, word)| *word == "unsafe") {
-                let message = format!("`unsafe` is allowed only in {PLATFORM}.");
+                let message = format!("`unsafe` is allowed only in {}.", SYSTEM_CRATES.join(" and "));
                 found.push(Problem::at_line("R5.1", &file.relative, line, message));
             }
         }

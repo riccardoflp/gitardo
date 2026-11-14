@@ -6,27 +6,31 @@ use crate::workspace::{Origin, UseKind};
 
 /// The crates each crate may use directly, as the picture of "Who may use whom" draws them, with `app` using every
 /// crate below it (decision D15) and `engine` using `model` (decision D14).
-const ALLOWED: [(&str, &[&str]); 16] = [
+const ALLOWED: [(&str, &[&str]); 20] = [
     (
         "app",
         &[
-            "views", "engine", "features", "json", "http", "ui", "editor", "render", "platform", "git", "model",
-            "text", "tls",
+            "views", "engine", "features", "settings", "json", "http", "ui", "editor", "render", "platform", "system",
+            "git", "model", "text", "tls",
         ],
     ),
     ("views", &["ui", "model", "features"]),
     ("ui", &["render", "editor"]),
     ("editor", &["render"]),
     ("render", &["platform"]),
-    ("platform", &[]),
+    ("platform", &["system"]),
+    ("system", &[]),
     ("features", &["model", "text", "json", "git"]),
-    ("engine", &["git", "model", "http", "json", "platform"]),
+    ("engine", &["git", "model", "http", "json", "platform", "system"]),
+    ("settings", &["json", "model"]),
     ("git", &["model", "text"]),
     ("model", &[]),
     ("text", &[]),
     ("json", &[]),
     ("http", &["tls"]),
     ("tls", &[]),
+    ("protocol", &["model", "git", "engine"]),
+    ("server", &["protocol", "engine", "settings", "git", "model", "json"]),
     ("testkit", &[]),
     ("xtask", &[]),
 ];
@@ -104,6 +108,9 @@ mod tests {
             ("json", "testkit", UseKind::Normal, Some(false)),
             ("testkit", "testkit", UseKind::Development, Some(false)),
             ("render", "platform", UseKind::Build, Some(true)),
+            ("engine", "system", UseKind::Normal, Some(true)),
+            ("server", "platform", UseKind::Normal, Some(false)),
+            ("app", "server", UseKind::Normal, Some(false)),
             ("somewhere", "json", UseKind::Normal, None),
         ];
         for (dependent, dependency, use_kind, expected) in cases {

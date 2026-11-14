@@ -1,5 +1,5 @@
 //! Rules R3.1 and R3.2: the pure crates use no files, processes, network, threads, environment or clock; and no
-//! crate but `app` and `platform` reads the time of day.
+//! crate but `app`, `platform` and `server` reads the time of day.
 
 use super::Workspace;
 use crate::problem::Problem;
@@ -12,7 +12,7 @@ const PURE: [&str; 4] = ["crates/model", "crates/text", "crates/features", "crat
 const OUTSIDE: [&str; 5] = ["fs", "process", "net", "thread", "env"];
 
 /// The crates that may read the time of day.
-const CLOCK_READERS: [&str; 2] = ["crates/app", "crates/platform"];
+const CLOCK_READERS: [&str; 3] = ["crates/app", "crates/platform", "crates/server"];
 
 /// The clocks no crate but the readers reads: the time of day.
 const TIME_OF_DAY: &[&str] = &["SystemTime::now"];

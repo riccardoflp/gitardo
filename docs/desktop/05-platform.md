@@ -1,8 +1,9 @@
 # The operating systems
 
-Everything Gitardo Desktop asks of the operating system goes through `crates/platform`, the only crate with `unsafe`.
-This page lists what it asks, and how: through the libraries of the window for most of it, and on each system for the
-rest. Windows comes first (see
+Everything Gitardo Desktop asks of the operating system goes through `crates/platform`, and what the engine asks of it
+without a window (the credential store, links to folders) through `crates/system`, which `platform` uses for the
+bindings they share. They are the only crates with `unsafe`. This page lists what it asks, and how: through the
+libraries of the window for most of it, and on each system for the rest. Windows comes first (see
 [D6](../08-decisions.md#d6--windows-first)); Linux and macOS follow behind the same interface.
 
 ## The interface

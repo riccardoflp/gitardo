@@ -21,7 +21,8 @@ state lives. The rules for writing the code are in [03-code-rules.md](03-code-ru
 - The Rust standard library is used freely: `std` is the toolchain, not a dependency.
 - What no library covers yet (junctions, killing a tree of processes, the credential store, watching files) is asked
   of the libraries the operating system ships (`kernel32.dll`, `libc`, `Security.framework`) through `extern`
-  declarations written here, in `platform`. A library may take over one of them when it is worth the change.
+  declarations written here, in `platform` and in `system`. A library may take over one of them when it is worth the
+  change.
 - One program is run as an external process: `git`, found on the `PATH`, which is what the application is about. It
   does its own networking for fetch, pull, push and clone, over HTTPS or SSH.
 - `rustfmt` and `clippy` come with the toolchain and are used.
@@ -35,14 +36,19 @@ crates/
   ui/         the toolkit: layout, widgets, lists, menus, dialogs, pickers, drag and drop, focus, find in page
   editor/     the text editor: buffer, cursor, selection, undo, wrap, highlighting hooks
   render/     pixels: the frame buffer, shapes and text drawn into it, the fonts of the program, icons, themes
-  platform/   the operating system: windows, input, the frame shown, clipboard, timers, the screen reader, file
-              dialogs, file watching, credentials, open/reveal
+  platform/   the operating system for the window: windows, input, the frame shown, clipboard, timers, the screen
+              reader, file dialogs, file watching, open/reveal
+  system/     the operating system without a window: the credential store, links to folders, and the bindings of the
+              system libraries that `platform` shares
+  settings/   the settings files: where they are, their keys, and what the features read of them
   features/   every operation, as a function that asks questions and returns a plan
   engine/     runs plans: preview, steps, log, undo journal, activity, follow-ups
   git/        git itself: running it, reads and their parsers, repository discovery
   model/      the data of the domain and its derivations: commits, references, lanes, file trees, names, messages
   text/       algorithms on text: diffs, conflict rules, syntax tokenizers, patterns, fuzzy ranking, templates
   json/       JSON and JSON with comments: parse, write, edit in place keeping comments
+  protocol/   the messages between the extension and the engine, with `serde` (D42)
+  server/     the binary `gitardo-engine`: the engine without a window, spoken to over its standard input and output
   http/       HTTP/1.1 requests, chunked bodies, server-sent events for streamed answers, proxies
   tls/        a TLS stream over TCP, with the system's root certificates
   testkit/    for tests only: throwaway repositories, golden files, pixel snapshots, a deterministic random source
@@ -52,30 +58,38 @@ xtask/        the project's own checks and chores: `cargo xtask check`, `cargo x
 ### Who may use whom
 
 ```
-app ──► views ──► ui ──► render ──► platform
+app ──► views ──► ui ──► render ──► platform ──► system
  │        │        ├───► editor ──► render
  │        │        └───► accesskit (D16)
  │        └──────► model, features (identifiers and questions only)
  ├──► engine ──► git ──► model, text
  │       ├─────► model (the plans it runs, the queries it answers)
  │       ├─────► json (the answers of web services)
- │       └─────► http, platform (processes, files, the credential store)
+ │       ├─────► http, system (processes, files, the credential store, links)
+ │       └─────► platform, until `system` takes what it uses
  ├──► features ──► model, text, json, git (types only, never running)
+ ├──► settings ──► json, model (the files read, the settings of the features)
  ├──► json, http ──► tls ──► rustls, rustls-native-certs (D13)
  │   render ──► tiny-skia, cosmic-text (D16)
  │   platform ──► winit, softbuffer, arboard, rfd, accesskit_winit (D16)
- └──► every other crate below it: platform, ui, render, model, git, text (D15)
+ └──► every other crate below it: platform, system, ui, render, model, git, text (D15)
+
+server ──► protocol ──► model, git, engine (the types it converts), serde, serde_json (D42)
+   └─────► engine, settings, git, model, json
 ```
 
-- Nothing depends on `app`, and `app` may use any crate but `testkit` and `xtask`
+- Nothing depends on `app`, and `app` may use any crate but `testkit`, `xtask`, `protocol` and `server`
   ([D15](../08-decisions.md#d15--app-may-use-every-crate-below-it)). Nothing below `views` knows about the places of the window or its pages.
+- Nothing depends on `server`. It and the crates it uses link no library of the window: `system` is what `engine` asks
+  of the operating system, apart from `platform`
+  ([transition/01-engine.md](../transition/01-engine.md#what-the-engine-is)).
 - The types of the feature contract are in `model`
   ([D14](../08-decisions.md#d14--the-types-of-the-contract-are-in-model)).
 - `features`, `model`, `text` and `json` are pure: no I/O, no threads, no clock. They are where most of the code and
   most of the tests are.
 - `features` edits the settings files its operations write with `json`, so that their comments are kept.
 - `git` runs processes but knows nothing of the UI. `engine` is the only crate that changes the disk or the repository.
-- `platform` is the only crate with `unsafe`. Everything above it sees safe functions.
+- `platform` and `system` are the only crates with `unsafe`. Everything above them sees safe functions.
 - A crate uses the libraries of its own job ([D22](../08-decisions.md#d22--libraries-with-judgment)); today those are
   `tls`, `render`, `platform` and `ui`
   ([D13](../08-decisions.md#d13--one-library-for-tls), [D16](../08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)).
@@ -170,6 +184,7 @@ through its token, and the git process it runs is killed.
 | How git output is read | `crates/git/src/read/<what>.rs` |
 | How a place or a page looks or reacts | `crates/views/src/<name>/` |
 | A widget used by several views | `crates/ui/src/widget/` |
-| A setting | `crates/app/src/settings/`, and [features/18-settings.md](../features/18-settings.md) |
+| A setting | `crates/settings/` for its key and what the features read, `crates/app/src/settings/` for the window's, and [features/18-settings.md](../features/18-settings.md) |
 | What runs before an operation, the log, Undo | `crates/engine/` |
-| Something only one operating system needs | `crates/platform/src/<os>/` |
+| Something only one operating system needs | `crates/platform/src/<os>/`, or `crates/system/src/<os>/` when the engine needs it too |
+| A message between the extension and the engine | `crates/protocol/`, `crates/server/`, and [transition/02-protocol.md](../transition/02-protocol.md) |

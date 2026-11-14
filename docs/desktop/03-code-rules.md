@@ -56,8 +56,8 @@ first, in its own commit, with the reason.
 - **R3.1** Pure crates (`model`, `text`, `features`, `json`) have `#![forbid(unsafe_code)]` and use nothing from
   `std::fs`, `std::process`, `std::net`, `std::thread`, `std::env` or `std::time::SystemTime::now`.
   `cargo xtask check` greps for them.
-- **R3.2** Time is a value: `Context::now` and `Clock` passed in. Never `SystemTime::now()` outside `app` and
-  `platform`.
+- **R3.2** Time is a value: `Context::now` and `Clock` passed in. Never `SystemTime::now()` outside `app`,
+  `platform` and `server`.
 - **R3.3** No global mutable state: no `static mut`, no `static` with interior mutability, no lazily initialized
   singletons. What is shared is passed.
 - **R3.4** Output that a person or a test compares is deterministic: no iteration over a `HashMap` or `HashSet` reaches
@@ -82,14 +82,15 @@ first, in its own commit, with the reason.
 
 ## 5. Unsafe and the operating system
 
-- **R5.1** `unsafe` only in `crates/platform`. Every other crate has `#![forbid(unsafe_code)]`.
-- **R5.2** Every `extern` block is in one file per system library (`platform/src/windows/kernel32.rs`), with only the
+- **R5.1** `unsafe` only in `crates/platform` and `crates/system`. Every other crate has `#![forbid(unsafe_code)]`.
+- **R5.2** Every `extern` block is in one file per system library (`system/src/windows/kernel32.rs`), with only the
   functions, types and constants used, each with the name the system documentation gives it. What a library of R1.6
   does (the window, the input, the clipboard) is not asked of the system a second time.
 - **R5.3** Every `unsafe` block is as small as it can be and has a `// SAFETY:` comment saying why each requirement of the
   call holds. Clippy's `undocumented_unsafe_blocks` is denied.
 - **R5.4** Unsafe calls are wrapped at once in safe functions that own what they create (`Drop` releases it) and return
-  `Result`. No raw pointer or handle leaves `platform`.
+  `Result`. No raw pointer or handle leaves `platform` and `system`, but the bindings `system` shares with `platform`,
+  which are for `platform` only.
 
 ## 6. Size and shape
 
@@ -171,7 +172,7 @@ first, in its own commit, with the reason.
 
   ```toml
   [workspace.lints.rust]
-  unsafe_code = "deny"            # allowed again only in crates/platform
+  unsafe_code = "deny"            # allowed again only in crates/platform and crates/system
   missing_docs = "deny"
   unused_results = "deny"
 
@@ -212,7 +213,7 @@ first, in its own commit, with the reason.
 | Every function that says `/// Feature:` has a card, in the crate and with the name the card gives; every card the index marks *Built* or *Seen* has its function and at least as many tests named after it as its acceptance list has lines; every test named `<feature>__…` has a card; the index and the cards list the same features, of the same kinds | R2.1, R2.6 |
 | The status of each card in the extension is a known one, and not ahead of its status in the desktop | R2.7 |
 | Pure crates use no I/O, time, threads or environment | R3.1, R3.2 |
-| `unsafe` appears only under `crates/platform`, each block with `// SAFETY:` | R5.1, R5.3 |
+| `unsafe` appears only under `crates/platform` and `crates/system`, each block with `// SAFETY:` | R5.1, R5.3 |
 | Files are at most 500 lines | R6.2 |
 | `rustfmt --check`, `clippy -- -D warnings`, `cargo test` | R12, R11 |
 | Line endings are LF | R12.3 |
