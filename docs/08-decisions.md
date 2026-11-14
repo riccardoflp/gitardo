@@ -1829,12 +1829,16 @@ From milestone M10 (Linux):
   run git with the person's configuration, not the isolated one of `testkit`: on a machine whose git has no identity
   (as a fresh WSL) about twenty of them fail on "Committer identity unknown"; they pass with one. Should those tests
   isolate git as `testkit` does?
-- **Q-L10** — Two snapshots differ on Linux by two pixels each, `commit-page-dark` and `pull-request-badge-dark`, at
-  the right end of a pill whose corners are half its height. Not re-recorded: the cause is that `tiny-skia`, when it
-  clips a cubic curve at the edge of the mask it fills (a band of `fill_rounded_rect` that ends inside the curve of a
-  pill, or the clip of a view that cuts one), finds where the curve crosses with `cos` and `powf`, which come from the
-  system's C library and differ in the last bit between Windows's and glibc (checked: `mul_add` and `sqrt` agree,
-  `cos`, `sin`, `powf` and `ln` do not). A coordinate a bit off moves one sample of the anti-aliasing. The fix is in
-  `render`, not in this slice: never let the library clip a curve, by filling a small shape over its whole bounds and
-  copying only the rows wanted, or by turning the curves into lines in `render` before filling. Which is wanted? Until
-  then `cargo xtask check` fails on Linux on these two tests, and M10 is not marked done.
+- **Q-L10** — Two snapshots differed on Linux by two pixels each, `commit-page-dark` and `pull-request-badge-dark`, at
+  the right end of a pill whose corners are half its height. The cause: `tiny-skia`, when it clips a cubic curve at
+  the edge of the mask it fills (a band of `fill_rounded_rect` that ends inside the curve of a pill, or the clip of a
+  view that cuts one), finds where the curve crosses with `cos` and `powf`, which come from the system's C library and
+  differ in the last bit between Windows's and glibc (checked: `mul_add` and `sqrt` agree, `cos`, `sin`, `powf` and
+  `ln` do not). `render` now never lets the library clip a curve: the area a mask is rasterized over grows until no
+  curve crosses its edges, and only the pixels wanted are kept. The pictures are then the same on both systems, and
+  nineteen snapshots changed by a few anti-aliased pixels at rounded corners (at most 85 pixels, at most 16 levels of
+  a channel), re-recorded once and looked at: `commit-page-dark`, `commit-page-light`, `commit-page-head-light`,
+  `pull-request-badge-dark`, `gallery-light`, `gallery-dark`, `gallery-high-contrast-light`,
+  `gallery-high-contrast-dark`, `gallery-light-2x`, `gallery-dark-2x`, `gallery-over-light`, `activity-dark-2x`,
+  `confirmation-dark-2x`, `dialog-dark-2x`, `drag-dark-2x`, `find-dark-2x`, `menu-dark-2x`, `picker-dark-2x`,
+  `pull-dark-2x`. Is growing the area right, rather than turning the curves into lines in `render` before filling?
