@@ -28,7 +28,10 @@ are in [docs/](docs/README.md). Keep the three apart.
 
 ## Commands
 
+The extension is in `extension/`; its commands run there.
+
 ```bash
+cd extension
 npm install
 npm run build        # dist/: the extension, the webviews, the Flow Diff, the preview server, the e2e suite
 npm run typecheck    # tsc, over src and test
@@ -40,10 +43,9 @@ npm run preview -- <folder>...   # the webviews in a browser, against the reposi
 npm run package      # a minified build packed into gitardo-<version>.vsix
 ```
 
-`F5` in VS Code launches an Extension Development Host (`.vscode/launch.json`).
+`F5` in VS Code, with the root of the repository open, launches an Extension Development Host (`.vscode/launch.json`).
 
-When this checkout has worktrees of its own under `.claude/worktrees`, a bare `npm test` also collects their tests. Run
-`npx vitest run --exclude '.claude/**' --exclude '**/node_modules/**'` instead.
+`npm test` collects only the tests under `extension/`, so the worktrees under `.claude/worktrees` no longer add theirs.
 
 Which check sees which change, and what was learned the slow way about running them, is in
 [docs/06-testing.md](docs/06-testing.md).

@@ -2,3 +2,6 @@ node_modules/
 dist/
 *.vsix
 .claude/
+
+# The copy of the licence that npm run package makes for vsce, which takes it only from the folder of the extension.
+/extension/LICENSE
