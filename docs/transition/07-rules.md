@@ -23,17 +23,26 @@ needs is written in the commit of that stage, not before.
 | `rust/xtask` | The index's sixth cell is read as the extension's status and checked by R2.7, with three tests (`check/catalog/tests.rs`). |
 | [08-decisions.md](../08-decisions.md) | D37 to D49, and the open questions Q393 to Q406. |
 
+## Written in stage 1
+
+| Page | Change |
+| --- | --- |
+| [desktop/02-architecture.md](../desktop/02-architecture.md) | The picture of the crates gets `system` (Q393), `settings` (Q395), `protocol` and `server`; `engine` no longer uses `platform`. `rust/xtask` checks the new edges (R1.3), lets `system` use `unsafe` (R5.1) and `server` read the clock (R3.2). |
+| [desktop/03-code-rules.md](../desktop/03-code-rules.md) | R5.1, R5.2 and R5.4 name `crates/system` beside `crates/platform`; R3.2 names `server`. |
+| [extension/02-architecture.md](../extension/02-architecture.md) | `src/engine` among the modules and the engine among the containers; the path of a click through `feature/run` waits for stage 2. |
+| [extension/10-security.md](../extension/10-security.md) | The engine as a process: T14 (another binary run as the engine; `gitardo.engine.path` read only from the user's settings) and what it writes, among the input that is not trusted. The host questions that carry a token wait for stage 5. |
+| [extension/06-testing.md](../extension/06-testing.md) | Where the tests find the binary (`GITARDO_ENGINE`, else `../rust/target/debug`), and what `test/engine.test.ts` checks. |
+
 ## Waiting for a stage
 
 | Rule | Stage | What |
 | --- | --- | --- |
-| The edges of the crates | 1 | The picture of [desktop/02-architecture.md](../desktop/02-architecture.md) gets `protocol`, `server` and the crate Q393 decides, before the code (R1.3). |
-| The extension's architecture | 1 | [extension/02-architecture.md](../extension/02-architecture.md) gets `src/engine` and the path of a click through `feature/run`. |
+| The extension's architecture | 2 | [extension/02-architecture.md](../extension/02-architecture.md) gets the path of a click through `feature/run`. |
 | The extension's stored data | 2 | [extension/11-data.md](../extension/11-data.md) says that the settings are sent to the engine, and where the rebase files go when the rebase area moves. |
 | The merge of the cards | 4 | For each area, the extension's cards are merged into the desktop's ones, and the area's file in `features/extension/` is emptied; the card template of the desktop gets an **Extension** line where the interface differs. |
 | The check of the catalog | 4 | `cargo xtask docs`, the part of `cargo xtask check` that reads the documents, takes from `docs/catalog.py` the lines a card's kind needs and the words of the glossary, and `npm run check:docs` calls it; `catalog.py` is removed when the last area is merged ([D46](../08-decisions.md#d46--cargo-xtask-check-checks-the-catalog-of-both-apps)). |
 | The promises of the cards | 4 | The extension's [promises](../extension/04-feature-contract.md#the-promises-every-card-is-checked-against) are compared with the desktop's contract and the ones it lacks are added there. |
-| Security | 1, 5 | [extension/10-security.md](../extension/10-security.md) gets the engine as a process: what it trusts in its standard input, the binary's place in the package, the host questions that carry a token. |
+| Security | 5 | [extension/10-security.md](../extension/10-security.md) gets the host questions that carry a token. |
 | The vsix | 8 | R1.3 of the extension's code rules: `.vscodeignore` lets in `bin/<target>/`. |
 
 ## How the extension is tested with the engine, in short
