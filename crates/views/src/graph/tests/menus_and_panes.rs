@@ -112,6 +112,7 @@ fn panes(width: f32, sizes: PaneSizes) -> PaneLayout {
         is_rail_hidden: false,
         is_inspector_over: false,
         has_inspector: true,
+        gap: 1.0,
     }
 }
 

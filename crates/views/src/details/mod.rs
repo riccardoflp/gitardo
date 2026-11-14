@@ -108,19 +108,10 @@ pub enum DetailsIntent {
 ///
 /// Feature: details.show
 pub fn show(state: &DetailsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
-    let column = ui.current_clip();
+    // The column is the island of the inspector (`graph.islands`): the card is the island itself.
+    let card = ui.current_clip();
     let theme = *ui.theme();
     let padding = theme.sizes.spacing.large + theme.sizes.spacing.small;
-    let card = inset(
-        column,
-        Insets {
-            left: 0.0,
-            top: padding,
-            right: padding,
-            bottom: padding,
-        },
-    );
-    ui.card(card, theme.sizes.radius.large + theme.sizes.spacing.small);
     let inner = inset(card, Insets::symmetric(padding, padding));
     let mut intents = Vec::new();
     ui.region(

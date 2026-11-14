@@ -38,6 +38,7 @@ mod histories;
 mod history;
 mod inspector;
 mod inspector_files;
+mod islands;
 mod jobs;
 mod large_diffs;
 mod log_secrets;

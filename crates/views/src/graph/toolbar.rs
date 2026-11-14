@@ -1,18 +1,14 @@
 //! The header (`graph.toolbar`): the repository with its menu, the branch checked out and how far it is from its
-//! upstream, the branch filter, Quick search, the activity indicator, Sync, the button of the Activity drawer and the **…** menu.
+//! upstream, **Search**, Sync and the **…** menu, in the island at the top of the window (D21).
 
 use std::path::PathBuf;
 
 use ui::layout::{Area, Insets, inset};
-use ui::{
-    AccessRole, Axis, Button, ButtonKind, Description, Icon, Label, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui,
-};
+use ui::{AccessRole, Button, ButtonKind, Description, Icon, Label, MenuEntry, MenuItem, TextKind, Tone, Ui};
 
 use super::more_menu::{MoreMenuState, more_menu_view};
 use super::sync_menu::{SyncWords, sync_entries, sync_intent};
 use super::toggle::{ReferencesShown, toggle_references_view};
-use crate::activity::{StatusBarState, status_bar_view, status_bar_width};
-use crate::filter::{BranchPicker, picker_button_width, picker_view};
 use crate::intent::Intent;
 use crate::line::{control_in, is_narrow};
 use crate::search;
@@ -28,20 +24,14 @@ pub struct ToolbarState<'a> {
     pub repository: RepositoryPill<'a>,
     /// What is checked out, once the repository is read.
     pub branch: Option<BranchChip<'a>>,
-    /// What runs.
-    pub status: StatusBarState<'a>,
     /// How many commits Sync would bring and send, once the repository is read and its branch has an upstream.
     pub sync: Option<SyncCounts>,
     /// What **Sync** and its menu may run, once the repository is read.
     pub sync_menu: Option<SyncMenu>,
     /// What the **…** menu offers.
     pub more: MoreMenuState,
-    /// Whether the Activity drawer is open.
-    pub is_activity_open: bool,
     /// Whether the branch rail is shown, once a repository is: the first button puts it away.
     pub references: Option<ReferencesShown>,
-    /// The branch filter, once a repository is read (`filter.picker`).
-    pub filter: Option<BranchPicker<'a>>,
     /// Quick search.
     pub quick: search::QuickSearchState<'a>,
 }
@@ -122,8 +112,8 @@ enum RepositoryCommand {
 }
 
 /// The header, over the rectangle its caller clipped it to: the button of the branch rail, the repository, the branch
-/// checked out, the branch filter, the search box, **Sync** with its menu, and the buttons at its end. In a narrow window
-/// each keeps its icon and gives up its words. `activity.status-bar` fills it further.
+/// checked out, then at its end **Search**, **Sync** with its menu and **…**. In a narrow window each keeps its icon and
+/// gives up its words.
 ///
 /// Feature: graph.toolbar
 pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -131,16 +121,9 @@ pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
     let theme = *ui.theme();
     ui.fill_rect(rect, theme.colors.header_background);
-    let line = Rect::new(
-        rect.x,
-        rect.bottom() - theme.sizes.border,
-        rect.width,
-        theme.sizes.border,
-    );
-    ui.separator(line, Axis::Horizontal);
     ui.region("header", (rect, AccessRole::Header, words::REPOSITORY_TOOLTIP), |ui| {
         let spacing = theme.sizes.spacing;
-        let inner = inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0));
+        let inner = inset(rect, Insets::symmetric(spacing.medium, 0.0));
         let mut area = Area::with_gap(inner, spacing.large);
         if let Some(references) = &state.references {
             let side = theme.sizes.control_height;
@@ -151,26 +134,11 @@ pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         if let Some(branch) = &state.branch {
             branch_chip(branch, ui, &mut area);
         }
-        if let Some(filter) = &state.filter {
-            let width = picker_button_width(filter, ui);
-            let rect = control_in(ui, area.left(width), width);
-            intents.extend(ui.clip(rect, |ui| picker_view(filter, ui)));
-        }
         more_button(state.more, ui, &mut area, &mut intents);
-        activity_button(state.is_activity_open, ui, &mut area, &mut intents);
         sync_button((state.sync, state.sync_menu), ui, &mut area, &mut intents);
-        // The indicator is declared even while it takes no room, so that it asks for the frame it appears in; it takes
-        // only the room Quick search leaves.
-        let room = area.rest().width - search::SEARCH_LEAST_WIDTH - spacing.large;
-        let width = status_bar_width(&state.status, ui, room);
-        let cell = if width > 0.0 {
-            area.right(width)
-        } else {
-            Rect::new(inner.right(), inner.y, 0.0, inner.height)
-        };
-        intents.extend(ui.clip(cell, |ui| status_bar_view(&state.status, ui)));
-        let middle = area.rest();
-        intents.extend(ui.clip(middle, |ui| search::quick_search_view(&state.quick, ui)));
+        let width = search::search_button_width(ui);
+        let cell = control_in(ui, area.right(width), width);
+        intents.extend(ui.clip(cell, |ui| search::quick_search_view(&state.quick, ui)));
     });
     intents
 }
@@ -322,20 +290,6 @@ fn run(feature: &'static str) -> Intent {
         model::contract::FeatureId(feature),
         model::contract::Target::Head,
     ))
-}
-
-/// The button that opens and closes the Activity drawer.
-fn activity_button(is_open: bool, ui: &mut Ui<'_>, area: &mut Area, intents: &mut Vec<Intent>) {
-    let side = ui.theme().sizes.control_height;
-    let rect = control_in(ui, area.right(side), side);
-    let button = Button::icon(Icon::Info, words::ACTIVITY).kind(ButtonKind::Outline);
-    if ui.button("activity", rect, &button).clicked {
-        intents.push(if is_open {
-            Intent::CloseActivity
-        } else {
-            Intent::OpenActivity
-        });
-    }
 }
 
 /// The **…** button at the end of the header, with its menu.

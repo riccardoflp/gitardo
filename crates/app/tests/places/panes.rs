@@ -184,8 +184,8 @@ fn graph_toggle_references__a_click_hides_the_branch_rail_and_another_brings_it_
     let (_, tree) = window.draw(&state, &[]);
     assert!(!has(&tree, Role::Navigation, "Branches"));
     assert!(
-        bounds(&tree, Role::Main, "Timeline").x < 1.0,
-        "the commits take its room"
+        bounds(&tree, Role::Main, "Timeline").x < 60.0,
+        "the commits take its room, beside the bar of views"
     );
     let intents = window.click(&state, Role::Button, SHOW);
     apply(&mut state, intents);

@@ -69,9 +69,18 @@ fn changes_read_working_tree__golden_awkward_names() {
     check(case, |output| parse_working_tree(output).unwrap());
 }
 
+/// A repository with no identity of its own, which every test repository otherwise has.
+fn with_no_identity() -> Repository {
+    let repository = Repository::new();
+    for key in ["user.name", "user.email"] {
+        let _ = repository.git(&["config", "--unset", key]);
+    }
+    repository
+}
+
 #[test]
 fn identity_read__an_identity_set_only_globally_is_read_and_no_key_is_local() {
-    let repository = Repository::new();
+    let repository = with_no_identity();
     let global = "[user]\n\tname = Zoë Global\n\temail = zoe@example.com\n";
     fs::write(beside(&repository).join("global.gitconfig"), global).unwrap();
     let mut words = vec!["-c", "core.quotepath=false"];
@@ -89,7 +98,7 @@ fn identity_read__an_identity_set_only_globally_is_read_and_no_key_is_local() {
 
 #[test]
 fn identity_read__a_signing_key_set_in_the_repository_is_a_local_key() {
-    let repository = Repository::new();
+    let repository = with_no_identity();
     let _ = repository.git(&["config", "user.signingkey", "ABCD1234"]);
     let _ = repository.git(&["config", "user.name", "Zoë Local"]);
     let read = read_identity(&Git::new(repository.path()), &IdentityRequest).unwrap();
@@ -99,7 +108,7 @@ fn identity_read__a_signing_key_set_in_the_repository_is_a_local_key() {
 
 #[test]
 fn identity_read__nothing_set_anywhere_is_empty_and_no_error() {
-    let repository = Repository::new();
+    let repository = with_no_identity();
     for arguments in [identity_arguments(), local_keys_arguments()] {
         let words: Vec<&str> = arguments.iter().map(|word| word.to_str().unwrap()).collect();
         let output = run(&repository, &words);

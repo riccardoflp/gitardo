@@ -1,5 +1,5 @@
 //! The branch rail, the commits and the inspector side by side, or the inspector over the commits in the narrow layout,
-//! and the lines between them that are dragged to resize them (`graph.resize-panes`, `graph.toggle-references`).
+//! and the gaps between their islands that are dragged to resize them (`graph.resize-panes`, `graph.toggle-references`).
 
 use ui::{Rect, Split, Splitter, Ui};
 
@@ -51,6 +51,8 @@ pub struct PaneLayout {
     pub is_inspector_over: bool,
     /// Whether there is an inspector: over the commits, only while something is selected.
     pub has_inspector: bool,
+    /// The room between two panes: the gap between their islands.
+    pub gap: f32,
 }
 
 /// Where each pane goes.
@@ -123,7 +125,7 @@ pub fn pane_rects(layout: &PaneLayout, line: f32) -> PaneRects {
     let body = layout.body;
     let (rail, rest) = match (layout.is_rail_hidden, layout.icon_rail) {
         (true, _) => (None, body),
-        (false, Some(width)) => split_columns(body, width, 0.0),
+        (false, Some(width)) => split_columns(body, width, line),
         (false, None) => split_columns(body, rail_splitter(layout, line).size.unwrap_or(RAIL_START), line),
     };
     if !layout.has_inspector {
@@ -169,20 +171,21 @@ fn split_columns(rect: Rect, width: f32, line: f32) -> (Option<Rect>, Rect) {
     )
 }
 
-/// The lines between the panes, over the body: dragged, or moved with the arrows, they say the new size; a double
+/// The gaps between the panes, over the body: dragged, or moved with the arrows, they say the new size; a double
 /// click puts a pane back where it starts.
 ///
 /// Feature: graph.resize-panes
 pub fn resize_panes_view(state: &PaneLayout, ui: &mut Ui<'_>) -> Vec<Intent> {
-    let line = ui.theme().sizes.border;
+    let line = state.gap;
     let mut intents = Vec::new();
     let body = state.body;
     let rest = if state.is_rail_hidden || state.icon_rail.is_some() {
         pane_rects(state, line).rail.map_or(body, |rail| {
-            Rect::new(rail.right(), body.y, body.right() - rail.right(), body.height)
+            let start = rail.right() + line;
+            Rect::new(start, body.y, (body.right() - start).max(0.0), body.height)
         })
     } else {
-        let response = ui.splitter("rail line", body, &rail_splitter(state, line));
+        let response = ui.splitter_across("rail line", body, &rail_splitter(state, line), line);
         push_change(
             &mut intents,
             Pane::Rail,
@@ -195,7 +198,7 @@ pub fn resize_panes_view(state: &PaneLayout, ui: &mut Ui<'_>) -> Vec<Intent> {
         return intents;
     }
     if state.is_inspector_over {
-        let response = ui.splitter("inspector over line", rest, &over_splitter(state, rest, line));
+        let response = ui.splitter_across("inspector over line", rest, &over_splitter(state, rest, line), line);
         let size = (rest.height - line - response.size).max(0.0);
         push_change(
             &mut intents,
@@ -204,7 +207,7 @@ pub fn resize_panes_view(state: &PaneLayout, ui: &mut Ui<'_>) -> Vec<Intent> {
             size,
         );
     } else {
-        let response = ui.splitter("inspector line", rest, &inspector_splitter(state, rest, line));
+        let response = ui.splitter_across("inspector line", rest, &inspector_splitter(state, rest, line), line);
         let size = (rest.width - line - response.size).max(0.0);
         push_change(
             &mut intents,

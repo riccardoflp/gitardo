@@ -83,11 +83,15 @@ pub enum Icon {
     PullRequest,
     /// A pull request whose second branch is dotted: a draft.
     DraftPullRequest,
+    /// Two arrows going opposite ways: a comparison of two sides.
+    Compare,
+    /// A line with a beat in it: what is running.
+    Activity,
 }
 
 impl Icon {
     /// Every icon, in the order of the enumeration.
-    pub const ALL: [Icon; 31] = [
+    pub const ALL: [Icon; 33] = [
         Icon::ChevronRight,
         Icon::ChevronDown,
         Icon::Close,
@@ -119,6 +123,8 @@ impl Icon {
         Icon::Wand,
         Icon::PullRequest,
         Icon::DraftPullRequest,
+        Icon::Compare,
+        Icon::Activity,
     ];
 }
 

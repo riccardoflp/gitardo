@@ -202,7 +202,8 @@ Why not a whole toolkit:
 ## D17 — The Timeline: a window of Gitardo's own
 
 *The maintainer's decision, 2026-11-12. Replaces the window of the first version of [01-product.md](01-product.md),
-which was shaped like VS Code, and answers Q27.*
+which was shaped like VS Code, and answers Q27. [D21](#d21--islands-a-bar-of-views-and-a-status-bar) adds a status bar
+and a bar of views, and makes Quick search a button.*
 
 The window is not a copy of an editor's: there is no side bar of folding panes, no row of tabs, no panel and no status
 bar. The history is the window, and everything else opens from it.
@@ -291,6 +292,32 @@ How libraries are kept in their place:
   ([00-clean-room.md](00-clean-room.md)).
 - What is already written here (PNG, deflate, JSON, diffs, HTTP, the file watcher, the credential store) stays until a
   library is worth the change. Each replacement is a commit of its own, and the tests stay as they are.
+
+## D21 — Islands, a bar of views and a status bar
+
+*The maintainer's decision, 2026-11-14. Changes [D17](#d17--the-timeline-a-window-of-gitardos-own) where it said there
+is no status bar and that Quick search is a box of the header; the rest of D17 stays.*
+
+The window was one flat ground with the inspector as its only card, and two boxes of text one above the other (Quick
+search in the header, the search of the timeline) that looked alike and did different things. The maintainer chose,
+among three drafts, the one with a bar of views.
+
+- **Islands.** The header, the branch rail, the timeline and the inspector, or the page shown, are each a rounded card
+  of their own, an **island**, on a ground one step darker in the dark themes and one step deeper in the light ones,
+  with a gap between them. The gap is where the panes are dragged to be resized. In the high contrast themes the
+  islands are told apart by their border.
+- **The bar of views**, a column of icons on the left edge of the window, outside the islands: **Timeline**,
+  **Changes** with the number of changed files, **Files** and **Compare**, then, at its foot, **Activity** and
+  **Settings**. Each shows its place with one click; the one shown is marked. It does not replace the draft, the trail
+  or `Ctrl+Tab`: it is one more way to the same places, always in the same spot.
+- **A status bar**, a line of small text at the foot of the window, outside the islands: what is running on the left,
+  which opens the Activity drawer, as the indicator of the header did; on the right the identity commits are made
+  with, which a click switches, as on the Changes page. Nothing is only there.
+- **Quick search is a button**, **Search** with `Ctrl K` beside it, since the box only ever opened the picker. When the
+  window is narrow it keeps its icon. The one box of text left at the top is the search of the timeline, with the
+  branch filter beside it.
+
+The pictures of the drafts are the page *Gitardo Desktop a riquadri*, variant C.
 
 ## Open questions
 

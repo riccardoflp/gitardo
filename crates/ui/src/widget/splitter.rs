@@ -66,9 +66,15 @@ pub(crate) fn clamp_size(size: f32, length: f32, splitter: &Splitter, line: f32)
 impl Ui<'_> {
     /// Declares a splitter over a rectangle and returns its two panes, for the view to draw in.
     pub fn splitter(&mut self, key: impl Hash, rect: Rect, splitter: &Splitter) -> SplitResponse {
+        let line = self.theme().sizes.border;
+        self.splitter_across(key, rect, splitter, line)
+    }
+
+    /// A splitter whose panes are apart by a gap rather than a line, such as the islands of a window: the gap is
+    /// where it is dragged, and a line lights up in its middle while the pointer or the keyboard is on it.
+    pub fn splitter_across(&mut self, key: impl Hash, rect: Rect, splitter: &Splitter, line: f32) -> SplitResponse {
         let id = self.id(key);
         let theme = *self.theme();
-        let line = theme.sizes.border;
         let length = match splitter.split {
             Split::Columns => rect.width,
             Split::Rows => rect.height,
@@ -85,6 +91,7 @@ impl Ui<'_> {
         }
         let is_changed = (size - before).abs() > f32::EPSILON || is_reset;
         let grip = metrics::splitter_grip(&theme);
+        let grip = grip.max(line);
         let grip_rect = line_rect(rect, splitter.split, size + line * 0.5 - grip * 0.5, grip);
         let sense = if splitter.step > 0.0 {
             Sense::DRAG | Sense::CLICK | Sense::FOCUS
@@ -101,7 +108,8 @@ impl Ui<'_> {
         // The line shows only while the pointer or the keyboard is on it: the parts of the window are told apart by
         // their tones.
         if response.hovered || response.pressed || response.shows_focus {
-            let lit = line_rect(rect, splitter.split, size - line, 3.0 * line);
+            let border = theme.sizes.border;
+            let lit = line_rect(rect, splitter.split, size + line * 0.5 - 1.5 * border, 3.0 * border);
             self.fill_rect(lit, theme.colors.focus_ring);
         }
         let (first, second) = panes(rect, splitter.split, size, line);

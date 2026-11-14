@@ -160,12 +160,7 @@ fn message_box(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -> Ve
 /// The identity commits will be made with, `Name <email>` or **No identity configured**: a click on it switches it
 /// (`identity.switch`).
 fn identity_line(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
-    let said = match (&state.identity.name, &state.identity.email) {
-        (Some(name), Some(email)) => words::identity(name, email),
-        (Some(name), None) => name.clone(),
-        (None, Some(email)) => email.clone(),
-        (None, None) => words::NO_IDENTITY.to_owned(),
-    };
+    let said = words::identity_said(state.identity.name.as_deref(), state.identity.email.as_deref());
     let mut link = Button::secondary(&said).kind(ButtonKind::Icon);
     if state.is_running {
         link = link.disabled();

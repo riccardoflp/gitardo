@@ -1,4 +1,4 @@
-//! What runs: the activity indicator of the header (`activity.status-bar`) and the Activity drawer
+//! What runs: the status bar at the foot of the window (`activity.status-bar`) and the Activity drawer
 //! (`activity.what-is-running`), with the Command log in it (`log.show`).
 
 mod drawer;
@@ -8,9 +8,11 @@ mod tests;
 
 use std::time::Duration;
 
-use ui::layout::{Align, Area, place};
-use ui::{AccessRole, Description, Label, Sense, TextKind, Tone, Ui};
+use model::contract::{FeatureId, Target};
+use ui::layout::{Align, Area, Insets, inset, place};
+use ui::{AccessRole, Button, ButtonKind, Description, Label, Sense, TextKind, Tone, Ui};
 
+use crate::feature::FeatureIntent;
 use crate::intent::Intent;
 use crate::line::is_narrow;
 use crate::text::header;
@@ -38,11 +40,15 @@ pub struct RunningTask {
     pub elapsed: Duration,
 }
 
-/// What the activity indicator of the header shows.
+/// What the status bar shows.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct StatusBarState<'a> {
     /// What runs, the oldest first.
     pub running: &'a [RunningTask],
+    /// The identity commits are made with in the repository shown, once it is read.
+    pub identity: Option<&'a model::state::Identity>,
+    /// Whether an operation runs, while the identity cannot be switched.
+    pub is_running: bool,
 }
 
 /// What has run long enough to be shown, the oldest first.
@@ -50,11 +56,11 @@ fn shown(running: &[RunningTask]) -> impl Iterator<Item = &RunningTask> {
     running.iter().filter(|task| task.elapsed >= SHOWN_AFTER)
 }
 
-/// The width the activity indicator takes in the header out of the room it is given: none while nothing has run for
-/// half a second, its icon alone when the window is narrow or its words would be cut to less than they say, and its words
-/// cut to the room otherwise.
+/// The width the activity indicator takes out of the room it is given: none while nothing has run for half a second,
+/// its icon alone when the window is narrow or its words would be cut to less than they say, and its words cut to the
+/// room otherwise.
 #[must_use]
-pub fn status_bar_width(state: &StatusBarState<'_>, ui: &Ui<'_>, room: f32) -> f32 {
+fn indicator_width(state: &StatusBarState<'_>, ui: &Ui<'_>, room: f32) -> f32 {
     let Some(longest) = shown(state.running).next() else {
         return 0.0;
     };
@@ -87,39 +93,69 @@ pub fn tooltip(running: &[RunningTask]) -> String {
     lines.join("\n")
 }
 
-/// The activity indicator, over the rectangle its caller clipped it to: a spinning icon with the title of what has run
-/// longest and for how long, once it has run for half a second; its tooltip lists everything that runs, and a click
-/// opens the Activity drawer. It asks for the frames that make it appear and its times go on.
+/// The status bar, over the rectangle its caller clipped it to: at its start the activity indicator, a spinning icon
+/// with the title of what has run longest and for how long, once it has run for half a second, whose tooltip lists
+/// everything that runs and whose click opens the Activity drawer; at its end the identity commits are made with, which
+/// a click switches (`identity.switch`), when it fits after the indicator. It asks for the frames that make the
+/// indicator appear and its times go on.
 ///
 /// Feature: activity.status-bar
 pub fn status_bar_view(state: &StatusBarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     ask_for_next_frame(state.running, ui);
-    let rect = ui.current_clip();
-    let Some(longest) = shown(state.running).next() else {
-        return Vec::new();
-    };
     let theme = *ui.theme();
+    let spacing = theme.sizes.spacing;
+    let bar = ui.current_clip();
+    let mut parts = Area::with_gap(inset(bar, Insets::symmetric(spacing.large, 0.0)), spacing.large);
+    let room = parts.rest().width;
+    let width = indicator_width(state, ui, room);
+    let indicator = parts.left(width);
+    let mut intents = Vec::new();
+    if let Some(identity) = state.identity {
+        let said = crate::text::changes::identity_said(identity.name.as_deref(), identity.email.as_deref());
+        let mut link = Button::secondary(&said)
+            .kind(ButtonKind::Icon)
+            .with_tooltip(crate::text::changes::SWITCH_IDENTITY);
+        if state.is_running {
+            link = link.disabled();
+        }
+        let (width, height) = ui.button_size(&link);
+        if width <= parts.rest().width {
+            let cell = place(
+                parts.right(width),
+                (width, height.min(bar.height)),
+                (Align::Start, Align::Center),
+            );
+            if ui.button("status identity", cell, &link).clicked {
+                intents.push(Intent::Feature(FeatureIntent::Run(
+                    FeatureId("identity.switch"),
+                    Target::Head,
+                )));
+            }
+        }
+    }
+    let Some(longest) = shown(state.running).next() else {
+        return intents;
+    };
     let words = header::running(&longest.title, longest.elapsed.as_secs());
-    let mut parts = Area::with_gap(rect, theme.sizes.spacing.medium);
-    let mark = parts.left(theme.sizes.icon);
+    let mut pieces = Area::with_gap(indicator, spacing.medium);
+    let mark = pieces.left(theme.sizes.icon);
     ui.spinner(place(
         mark,
         (mark.width, theme.sizes.icon),
         (Align::Start, Align::Center),
     ));
-    let words_rect = parts.rest();
+    let words_rect = pieces.rest();
     if words_rect.width > 0.0 {
         let _ = ui.label(words_rect, &Label::new(&words).kind(TextKind::Detail).tone(Tone::Muted));
     }
     let id = ui.id("activity indicator");
-    let response = ui.interact(id, rect, Sense::CLICK | Sense::FOCUS);
-    ui.describe(id, rect, &Description::new(AccessRole::Button, &words));
+    let response = ui.interact(id, indicator, Sense::CLICK | Sense::FOCUS);
+    ui.describe(id, indicator, &Description::new(AccessRole::Button, &words));
     ui.tooltip(&response, &tooltip(state.running));
     if response.clicked {
-        vec![Intent::OpenActivity]
-    } else {
-        Vec::new()
+        intents.push(Intent::OpenActivity);
     }
+    intents
 }
 
 /// Asks for the frame at which the indicator appears, or at which its times go on.

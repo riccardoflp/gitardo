@@ -134,3 +134,7 @@ pub const COMBINE_UPSTREAM: &str = "Put a branch and its upstream on one label";
 pub const HIDE_REFERENCES: &str = "Hide the branches, tags and stashes beside the commits";
 /// Its tooltip while the branch rail is put away.
 pub const SHOW_REFERENCES: &str = "Show the branches, tags and stashes beside the commits";
+/// The button of Quick search in the header (`graph.search-button`).
+pub const SEARCH: &str = "Search";
+/// The tooltip of the button of Quick search when it shows its icon alone.
+pub const SEARCH_TOOLTIP: &str = "Search (Ctrl+K)";

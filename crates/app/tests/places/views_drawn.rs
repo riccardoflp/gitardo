@@ -63,7 +63,10 @@ fn graph_toolbar__narrowing_the_window_hides_the_words_of_the_header_keeps_its_i
     let (_, tree) = narrow.draw(&state, &[]);
     let _sync = find(&tree, Role::Button, "↓0  ↑1");
     assert!(!super::support::says_in(&tree, "Sync"), "Sync gives up its word");
-    assert!(filter_width(&tree) < wide_filter, "the branch filter is its icon alone");
+    assert!(
+        filter_width(&tree) <= wide_filter && filter_width(&tree) < 40.0,
+        "the branch filter is its icon alone"
+    );
     let _ = narrow.click(&state, Role::Button, "More");
     let (_, tree) = narrow.draw(&state, &[]);
     let _refresh = find(&tree, Role::MenuItem, "Refresh");
@@ -97,7 +100,7 @@ fn welcome_page__show_the_timeline_comes_back_from_the_page() {
     let (repository, _remote) = repository_with_history();
     let mut state = showing(repository.path().to_path_buf());
     let _ = app::store::reduce(&mut state, app::store::Message::Intent(Intent::ShowPage(Page::Welcome)));
-    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let mut window = Window::new(ThemeName::Dark, (WIDE.0, 720));
     assert_eq!(
         window.click(&state, Role::Button, "Show the timeline"),
         [Intent::ShowTimeline]

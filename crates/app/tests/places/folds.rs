@@ -326,7 +326,10 @@ fn graph_sticky_branch_names__clicking_it_scrolls_to_the_tip_and_selects_it() {
     let _ = super::pointer::wheel(&mut window, &state, middle(list), 600.0);
     let (_, tree) = window.draw(&state, &[]);
     let sticky = said_at(&tree, "feature", list);
-    assert!(sticky.y < rows_drawn(&tree)[1].y, "the name is at the top of the list");
+    assert!(
+        sticky.y < list.y + rows_drawn(&tree)[0].height,
+        "the name is at the top of the list"
+    );
     let intents = click_at(&mut window, &state, middle(sticky), 1);
     assert!(
         intents.contains(&Intent::Graph(GraphIntent::GoTo(tip.clone()))),

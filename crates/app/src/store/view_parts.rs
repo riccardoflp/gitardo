@@ -1,11 +1,13 @@
 //! The parts of the state of the views that are made from the store alone: the branch rail, the branch filter of the
-//! header and what the inspector shows of the row selected.
+//! timeline, what the inspector shows of the row selected and the bar of views.
 
 use model::graph::Row;
 use views::details::SelectedDetails;
 use views::filter::{BranchPicker, PickerOpen};
 use views::graph::Selected;
+use views::page::Page;
 use views::refs::ReferencesState;
+use views::{ViewBarState, ViewShown};
 
 use super::rail::{favorites, sort_order};
 use super::state::{RepositoryRead, State};
@@ -73,5 +75,22 @@ pub(super) fn selected_details(timeline: &Timeline) -> Option<SelectedDetails<'_
         Row::Commit(commit) => Some(SelectedDetails::Commit(commit)),
         Row::Stash { commit, index } => Some(SelectedDetails::Stash { commit, index: *index }),
         Row::Uncommitted { .. } => None,
+    }
+}
+
+/// The bar of views: the place shown, how many files are changed once a repository is read, and whether the Activity
+/// drawer is open.
+pub(super) fn view_bar(state: &State) -> ViewBarState {
+    let shown = match (state.workspace.is_some(), state.page_shown()) {
+        (true, None) => ViewShown::Timeline,
+        (_, Some(Page::Changes)) => ViewShown::Changes,
+        (_, Some(Page::Files)) => ViewShown::Files,
+        (_, Some(Page::Settings)) => ViewShown::Settings,
+        (false, None) | (_, Some(_)) => ViewShown::Other,
+    };
+    ViewBarState {
+        shown,
+        changed_files: state.shown_read().map(|read| read.state.working_tree.file_count()),
+        is_activity_open: state.is_activity_open,
     }
 }

@@ -30,6 +30,7 @@ pub mod settings;
 pub mod stash;
 pub mod submodule;
 pub mod timeline;
+pub mod views;
 pub mod welcome;
 pub mod worktree;
 pub mod worktree_setup;

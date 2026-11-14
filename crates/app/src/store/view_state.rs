@@ -25,7 +25,7 @@ use views::{Content, TimelineState, WindowState};
 use super::search::{self, view as search_view};
 use super::state::{Dialog, Shown, State};
 use super::timeline::workspace_panes;
-use super::view_parts::{branch_picker, rail, selected_details};
+use super::view_parts::{branch_picker, rail, selected_details, view_bar};
 use crate::persisted::{WorkspacePanes, same_folder};
 
 /// The words the views need that the store does not keep.
@@ -144,7 +144,13 @@ impl ViewData {
     #[must_use]
     pub fn window_state<'a>(&'a self, state: &'a State) -> WindowState<'a> {
         WindowState {
+            view_bar: view_bar(state),
             header: self.header(state),
+            status: StatusBarState {
+                running: &self.running,
+                identity: state.shown_read().map(|read| &read.state.identity),
+                is_running: state.is_operation_running,
+            },
             content: self.content(state),
             drawer: state.is_activity_open.then_some(ActivityState {
                 running: &self.running,
@@ -198,7 +204,6 @@ impl ViewData {
                 upstream,
                 folder: &self.folder,
             }),
-            status: StatusBarState { running: &self.running },
             sync: read.map(|_| {
                 let (ahead, behind) = upstream.unwrap_or_default();
                 SyncCounts { behind, ahead }
@@ -229,11 +234,9 @@ impl ViewData {
                     _ => None,
                 },
             },
-            is_activity_open: state.is_activity_open,
             references: read.map(|_| ReferencesShown {
                 is_shown: !self.panes.is_rail_hidden,
             }),
-            filter: read.map(|_| branch_picker(state)),
             quick: self.search.quick(state),
         }
     }
@@ -319,6 +322,7 @@ impl ViewData {
                     selected_details(&state.timeline),
                 )),
                 panes: self.panes.sizes,
+                filter: Box::new(branch_picker(state)),
                 is_rail_hidden: self.panes.is_rail_hidden,
                 bar: state.timeline.shown.as_ref().map(|shown| NarrowedBar {
                     shown,

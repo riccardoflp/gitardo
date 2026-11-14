@@ -158,7 +158,7 @@ There is no GPU code and no system widget.
 ## Long work and cancellation
 
 Everything that may take longer than a frame runs on a worker with an `Activity`: a name in words, a start time and why
-it was asked. The activity indicator of the header shows the activities that have run for more than half a second,
+it was asked. The activity indicator of the status bar shows the activities that have run for more than half a second,
 and the **Activity** drawer lists them. A job that is no longer wanted, such as the read of a page that was closed, is cancelled
 through its token, and the git process it runs is killed.
 

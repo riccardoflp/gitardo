@@ -24,6 +24,7 @@ const HEIGHT: u32 = 200;
 fn backgrounds(colors: &Colors) -> Vec<Color> {
     vec![
         colors.window_background,
+        colors.ground_background,
         colors.header_background,
         colors.rail_background,
         colors.page_background,

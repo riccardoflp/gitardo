@@ -119,7 +119,10 @@ fn blame_file__the_lines_of_the_commit_of_the_cursor_are_brought_out_with_one_ma
         })
         .collect();
     let _ = repository.commit("Shout lines 20 to 30", &[("src/app.rs", &changed.concat())]);
-    let (mut state, mut window, driver) = page(&repository);
+    let (mut state, _, driver) = page(&repository);
+    // Tall enough for line 20 to be drawn under line 5.
+    let mut window = Window::new(ThemeName::Dark, (1000, 720));
+    let _ = step(&mut window, &mut state, &[]);
     click(&mut window, &driver, &mut state, words::SHOW_FILE_BLAME);
     at_line(&mut state, 5);
     let said = column(&step(&mut window, &mut state, &[]));

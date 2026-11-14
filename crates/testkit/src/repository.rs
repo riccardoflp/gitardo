@@ -5,7 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::environment::{CommitDate, Environment, Place};
+use crate::environment::{CommitDate, Environment, IDENTITY_EMAIL, IDENTITY_NAME, Place};
 use crate::folder::TemporaryFolder;
 
 /// The file that [`Repository::conflict`] changes on both sides.
@@ -31,7 +31,8 @@ pub struct Repository {
 
 impl Repository {
     /// Makes an empty repository with `git init -b main`, in a folder of its own under the temporary folder, with
-    /// `core.autocrlf`, `commit.gpgsign` and `tag.gpgsign` turned off in its configuration.
+    /// `core.autocrlf`, `commit.gpgsign` and `tag.gpgsign` turned off in its configuration, and the identity of the
+    /// tests as its own, so that Gitardo reading it sees that identity and not the one of whoever runs the tests.
     ///
     /// # Panics
     ///
@@ -57,6 +58,8 @@ impl Repository {
             ("core.autocrlf", "false"),
             ("commit.gpgsign", "false"),
             ("tag.gpgsign", "false"),
+            ("user.name", IDENTITY_NAME),
+            ("user.email", IDENTITY_EMAIL),
         ] {
             let _ = repository.git(&["config", key, value]);
         }

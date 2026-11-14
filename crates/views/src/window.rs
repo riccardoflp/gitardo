@@ -1,22 +1,25 @@
-//! The whole window: the header at the top; under it the branch rail, the timeline and the inspector, or a page with
-//! its trail; the Activity drawer, the picker of the repositories, the question of an opened folder and a notice over
-//! them. Below about 900 logical pixels the rail shows only icons and the header only its icons; below about 700 the
-//! inspector is not beside the timeline (it opens over it once a commit can be selected).
+//! The whole window (D21): the bar of views on its left edge and the status bar at its foot, on the ground of the
+//! window; beside them the islands: the header at the top, under it the branch rail, the timeline and the inspector, or
+//! a page with its trail; the Activity drawer, the picker of the repositories, the question of an opened folder and a
+//! notice over them. Below about 900 logical pixels the rail shows only icons, the header only its icons and the gaps
+//! between the islands narrow; below about 700 the inspector is not beside the timeline (it opens over it once a
+//! commit can be selected).
 
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{Button, ButtonKind, Icon, Key, Label, Modifiers, NamedKey, Rect, Tone, Ui};
 
-use crate::activity::{ActivityState, what_is_running_view};
+use crate::activity::{ActivityState, StatusBarState, status_bar_view, what_is_running_view};
 use crate::bisect::{BisectBanner, banner_view};
 use crate::details::{DetailsState, show};
 use crate::feature::{ConfirmState, QuestionState, SaidState, confirm_view, question_view, said_view};
-use crate::filter::{NarrowedBar, bar_height, bar_view};
+use crate::filter::{BranchPicker, NarrowedBar, bar_height, bar_view, picker_button_width, picker_view};
 use crate::graph::{
     GraphState, HoverTarget, PaneLayout, PaneSizes, ToolbarState, pane_rects, resize_panes_view, toolbar_view,
     view as graph_view,
 };
 use crate::intent::{Intent, Notice};
-use crate::line::{ICON_RAIL_WIDTH, INSPECTOR_OVER_BELOW, is_narrow};
+use crate::islands::{gap, island};
+use crate::line::{ICON_RAIL_WIDTH, INSPECTOR_OVER_BELOW, control_in, is_narrow};
 use crate::page::Page;
 use crate::page::{PageHostState, host_view};
 use crate::refs::ReferencesState;
@@ -27,12 +30,20 @@ use crate::repo::{
 use crate::search::{GoToCommitDialog, ListMode, SearchBox, go_to_commit_dialog, list_mode_view};
 use crate::settings::{ThemePickerState, theme_picker_view};
 use crate::text::repo as repo_words;
+use crate::view_bar::{VIEW_BAR_WIDTH, ViewBarState, view_bar_view};
+
+/// The room the search box at the top of the timeline keeps before the branch filter beside it gives up its words.
+const SEARCH_BOX_ROOM: f32 = 360.0;
 
 /// Everything the window shows, made from the store of the window for each frame.
 #[derive(Clone, Debug, PartialEq)]
 pub struct WindowState<'a> {
+    /// The bar of views, on the left edge.
+    pub view_bar: ViewBarState,
     /// The header.
     pub header: ToolbarState<'a>,
+    /// The status bar, at the foot.
+    pub status: StatusBarState<'a>,
     /// What is under the header.
     pub content: Content<'a>,
     /// The Activity drawer, while it is open.
@@ -90,6 +101,8 @@ pub enum TimelineState<'a> {
         inspector: Box<DetailsState<'a>>,
         /// The sizes of the panes, as dragged.
         panes: PaneSizes,
+        /// The branch filter, beside the search box at the top of the timeline (`filter.picker`).
+        filter: Box<BranchPicker<'a>>,
         /// Whether the branch rail is put away (`graph.toggle-references`).
         is_rail_hidden: bool,
         /// The bar above the commits, while the timeline is narrowed to some branches (`filter.bar`).
@@ -114,28 +127,59 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut intents = Vec::new();
     let theme = *ui.theme();
     let window = ui.window();
-    ui.fill_rect(window, theme.colors.page_background);
+    ui.fill_rect(window, theme.colors.ground_background);
+    let gap = gap(ui);
+    let bar_height = theme.sizes.control_height + 2.0 * theme.sizes.spacing.medium;
     let mut area = Area::new(window);
-    let top = area.top(theme.sizes.header_height);
-    intents.extend(ui.clip(top, |ui| toolbar_view(&state.header, ui)));
-    let mut body = area.rest();
+    let status = area.bottom(theme.sizes.row_height);
+    let bar = area.left(VIEW_BAR_WIDTH);
+    let bar = inset(
+        bar,
+        Insets {
+            top: gap,
+            ..Insets::all(0.0)
+        },
+    );
+    intents.extend(ui.clip(bar, |ui| view_bar_view(&state.view_bar, ui)));
+    intents.extend(ui.clip(status, |ui| status_bar_view(&state.status, ui)));
+    let islands = inset(
+        area.rest(),
+        Insets {
+            top: gap,
+            right: gap,
+            ..Insets::all(0.0)
+        },
+    );
+    let mut column = Area::with_gap(islands, gap);
+    let top = column.top(bar_height);
+    intents.extend(island(ui, top, |ui| toolbar_view(&state.header, ui)));
+    let mut body = column.rest();
     if let Some(said) = &state.said {
-        let bar = Area::new(body).top(theme.sizes.control_height + 2.0 * theme.sizes.spacing.medium);
-        body = Rect::new(body.x, bar.bottom(), body.width, (body.height - bar.height).max(0.0));
-        intents.extend(ui.clip(bar, |ui| said_view(said, ui)));
+        let mut rows = Area::with_gap(body, gap);
+        let bar = rows.top(bar_height);
+        body = rows.rest();
+        intents.extend(island(ui, bar, |ui| said_view(said, ui)));
     }
     if let Some(notice) = state.notice {
-        let bar = Area::new(body).top(theme.sizes.control_height + 2.0 * theme.sizes.spacing.medium);
-        body = Rect::new(body.x, bar.bottom(), body.width, (body.height - bar.height).max(0.0));
-        notice_bar(notice, ui, bar, &mut intents);
+        let mut rows = Area::with_gap(body, gap);
+        let bar = rows.top(bar_height);
+        body = rows.rest();
+        island(ui, bar, |ui| notice_bar(notice, ui, bar, &mut intents));
     }
     match &state.content {
-        Content::Timeline(timeline) => timeline_with_rail(timeline, ui, body, &mut intents),
-        Content::Page(page) => intents.extend(ui.clip(body, |ui| host_view(page, ui))),
+        Content::Timeline(timeline) => timeline_with_rail(timeline, ui, (body, gap), &mut intents),
+        Content::Page(page) => intents.extend(island(ui, body, |ui| host_view(page, ui))),
     }
     if let Some(drawer) = &state.drawer {
         intents.extend(ui.clip(body, |ui| what_is_running_view(drawer, ui)));
     }
+    dialogs(state, ui, &mut intents);
+    intents.extend(shortcuts(ui, state.drawer.is_some()));
+    intents
+}
+
+/// The dialogs over the window, those that are open.
+fn dialogs(state: &WindowState<'_>, ui: &mut Ui<'_>, intents: &mut Vec<Intent>) {
     if let Some(picker) = &state.picker {
         intents.extend(repository_picker_view(picker, ui));
     }
@@ -162,14 +206,12 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         Some(FeatureDialog::Plan(plan)) => intents.extend(confirm_view(plan, ui)),
         None => {}
     }
-    intents.extend(shortcuts(ui, state.drawer.is_some()));
-    intents
 }
 
-/// The branch rail, the timeline and the inspector, side by side; in a narrow window the rail shows its icons and the
-/// inspector opens over the commits while something is selected.
-fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, intents: &mut Vec<Intent>) {
-    let theme = *ui.theme();
+/// The branch rail, the timeline and the inspector side by side, each an island with a gap between them that resizes
+/// them; in a narrow window the rail shows its icons and the inspector opens over the commits while something is
+/// selected.
+fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, (body, gap): (Rect, f32), intents: &mut Vec<Intent>) {
     let icon_rail = is_narrow(ui).then_some(ICON_RAIL_WIDTH);
     match state {
         TimelineState::Repository {
@@ -179,6 +221,7 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
             panes,
             is_rail_hidden,
             search,
+            filter,
             ..
         } => {
             let is_inspector_over = ui.window().width < INSPECTOR_OVER_BELOW;
@@ -189,32 +232,32 @@ fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, body: Rect, in
                 is_rail_hidden: *is_rail_hidden,
                 is_inspector_over,
                 has_inspector: !is_inspector_over || details.selected.is_some(),
+                gap,
             };
-            let rects = pane_rects(&layout, theme.sizes.border);
+            let rects = pane_rects(&layout, gap);
             let mut rail_hover = None;
             if let Some(rail) = rects.rail {
-                let (rail_intents, hover) = ui.clip(rail, |ui| crate::branch::pane_view(references, ui));
+                let (rail_intents, hover) = island(ui, rail, |ui| crate::branch::pane_view(references, ui));
                 intents.extend(rail_intents);
                 rail_hover = hover;
             }
-            let main = search_row(&search.0, ui, rects.main, intents);
-            let mut main = Area::new(main);
-            banners(state, ui, &mut main, intents);
-            let graph = with_rail_hover(graph, rail_hover);
-            intents.extend(ui.clip(main.rest(), |ui| graph_view(&graph, ui)));
+            island(ui, rects.main, |ui| {
+                let main = search_row((&search.0, filter), ui, rects.main, intents);
+                let mut main = Area::new(main);
+                banners(state, ui, &mut main, intents);
+                let graph = with_rail_hover(graph, rail_hover);
+                intents.extend(ui.clip(main.rest(), |ui| graph_view(&graph, ui)));
+            });
             if let Some(column) = rects.inspector {
-                if is_inspector_over {
-                    ui.fill_rect(column, theme.colors.page_background);
-                }
-                intents.extend(ui.clip(column, |ui| show(details, ui)));
+                intents.extend(island(ui, column, |ui| show(details, ui)));
             }
             intents.extend(resize_panes_view(&layout, ui));
         }
         TimelineState::NoRepository(no_repository) => {
-            let mut columns = Area::new(body);
+            let mut columns = Area::with_gap(body, gap);
             let rail = columns.left(icon_rail.unwrap_or(crate::graph::RAIL_START));
-            ui.fill_rect(rail, theme.colors.rail_background);
-            intents.extend(ui.clip(columns.rest(), |ui| no_repository_view(no_repository, ui)));
+            island(ui, rail, |_| ());
+            intents.extend(island(ui, columns.rest(), |ui| no_repository_view(no_repository, ui)));
         }
     }
 }
@@ -266,15 +309,30 @@ fn with_rail_hover<'a>(graph: &GraphState<'a>, hover: Option<(HoverTarget, std::
     }
 }
 
-/// The search box at the top of the timeline; gives what is left under it, for the bar of what the timeline is
-/// narrowed to and the commits.
-fn search_row(search_box: &SearchBox<'_>, ui: &mut Ui<'_>, main: Rect, intents: &mut Vec<Intent>) -> Rect {
+/// The branch filter and the search box at the top of the timeline; gives what is left under them, for the bar of what
+/// the timeline is narrowed to and the commits.
+fn search_row(
+    (search_box, filter): (&SearchBox<'_>, &BranchPicker<'_>),
+    ui: &mut Ui<'_>,
+    main: Rect,
+    intents: &mut Vec<Intent>,
+) -> Rect {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
     let mut area = Area::new(main);
     let top = area.top(theme.sizes.control_height + 2.0 * spacing.medium);
-    let row = inset(top, Insets::symmetric(spacing.large + spacing.small, spacing.medium));
-    intents.extend(ui.clip(row, |ui| crate::search::box_view(search_box, ui)));
+    let row = inset(top, Insets::symmetric(spacing.medium, spacing.medium));
+    let mut parts = Area::with_gap(row, spacing.medium);
+    // The filter gives up its words where the search box would have less than its room beside them.
+    let words = picker_button_width(filter, ui);
+    let width = if row.width - words < SEARCH_BOX_ROOM {
+        theme.sizes.control_height
+    } else {
+        words
+    };
+    let cell = control_in(ui, parts.left(width), width);
+    intents.extend(ui.clip(cell, |ui| picker_view(filter, ui)));
+    intents.extend(ui.clip(parts.rest(), |ui| crate::search::box_view(search_box, ui)));
     area.rest()
 }
 
@@ -282,7 +340,6 @@ fn search_row(search_box: &SearchBox<'_>, ui: &mut Ui<'_>, main: Rect, intents: 
 fn notice_bar(notice: Notice, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
-    ui.fill_rect(rect, theme.colors.card_background);
     let said = match notice {
         Notice::RecentGone => repo_words::RECENT_GONE,
         Notice::SingleRepository => repo_words::SINGLE_REPOSITORY,

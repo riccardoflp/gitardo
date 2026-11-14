@@ -45,7 +45,11 @@ fn says(tree: &TreeUpdate, words: &str) -> bool {
 
 /// The tree of a frame of the activity indicator, over the top right of the window.
 fn status_bar(window: &mut Window, running: &[RunningTask]) -> TreeUpdate {
-    let state = StatusBarState { running };
+    let state = StatusBarState {
+        running,
+        identity: None,
+        is_running: false,
+    };
     window
         .frame(&[], |ui| {
             ui.clip(Rect::new(600.0, 10.0, 300.0, 28.0), |ui| status_bar_view(&state, ui))
@@ -391,30 +395,52 @@ fn settings_edit__changing_a_value_writes_only_that_key_and_keeps_the_comments()
     );
 }
 
-/// The width of the node of a role and a name in the tree.
-fn width_of(tree: &TreeUpdate, role: Role, name: &str) -> f64 {
-    let bounds = find(tree, role, name).bounds().unwrap();
-    bounds.x1 - bounds.x0
-}
-
 #[test]
-fn activity_status_bar__beside_quick_search_in_a_window_1000_pixels_wide_the_indicator_shows_its_icon_alone() {
+fn activity_status_bar__in_a_window_1000_pixels_wide_a_read_says_what_runs_and_the_identity_is_at_the_end() {
     let (repository, _remote) = repository_with_history();
     let state = showing(repository.path().to_path_buf());
     let running = [task("Reading the history of app", 2_000, None)];
     let data = ViewData::new(&state, running.to_vec(), NOW);
-    let header = |width: u32| {
-        let mut window = Window::new(ThemeName::Dark, (width, 520));
-        let (_, tree) = window.frame(&[], |ui| views::view(&data.window_state(&state), ui));
-        let search = width_of(&tree, Role::SearchInput, "Commits, branches, files, commands");
-        let indicator = width_of(&tree, Role::Button, "Reading the history of app (2 s)");
-        (window, search, indicator)
-    };
-    let (window, search, indicator) = header(1000);
-    assert!(search >= 260.0, "Quick search keeps its room: {search}");
-    assert!(indicator < 30.0, "the indicator shows its icon alone: {indicator}");
+    let mut window = Window::new(ThemeName::Dark, (1000, 520));
+    let (_, tree) = window.frame(&[], |ui| views::view(&data.window_state(&state), ui));
+    let indicator = find(&tree, Role::Button, "Reading the history of app (2 s)")
+        .bounds()
+        .unwrap();
+    assert!(
+        indicator.x1 - indicator.x0 > 100.0,
+        "the indicator says what runs: {indicator:?}"
+    );
+    let identity = find(&tree, Role::Button, "Test Author <author@example.com>")
+        .bounds()
+        .unwrap();
+    assert!(identity.x0 > indicator.x1, "the identity is after what runs");
+    assert!(identity.y0 > 480.0, "both are in the status bar at the foot");
     window.assert_snapshot("header-running-dark");
-    let (_, search, indicator) = header(1200);
-    assert!(search >= 260.0, "Quick search keeps its room: {search}");
-    assert!(indicator > 100.0, "the indicator says what runs: {indicator}");
+    #[allow(clippy::cast_possible_truncation, reason = "the bounds of a window fit in an f32")]
+    let center = ui::Point::new(
+        f64::midpoint(identity.x0, identity.x1) as f32,
+        f64::midpoint(identity.y0, identity.y1) as f32,
+    );
+    let moved = InputEvent::PointerMoved(PointerMove {
+        position: center,
+        modifiers: Modifiers::NONE,
+    });
+    let press = PointerButtonEvent {
+        button: PointerButton::Primary,
+        position: center,
+        modifiers: Modifiers::NONE,
+        click_count: 1,
+    };
+    let _ = window.frame(&[moved], |ui| views::view(&data.window_state(&state), ui));
+    let (intents, _) = window.frame(
+        &[InputEvent::PointerPressed(press), InputEvent::PointerReleased(press)],
+        |ui| views::view(&data.window_state(&state), ui),
+    );
+    assert!(
+        intents.contains(&Intent::Feature(views::feature::FeatureIntent::Run(
+            FeatureId("identity.switch"),
+            Target::Head
+        ))),
+        "{intents:?}"
+    );
 }

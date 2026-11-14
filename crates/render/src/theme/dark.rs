@@ -8,6 +8,7 @@ pub(super) const THEME: Theme = Theme {
     name: ThemeName::Dark,
     colors: Colors {
         window_background: Color::rgb(0x15, 0x16, 0x1A),
+        ground_background: Color::rgb(0x0E, 0x0F, 0x12),
         header_background: Color::rgb(0x15, 0x16, 0x1A),
         rail_background: Color::rgb(0x15, 0x16, 0x1A),
         page_background: Color::rgb(0x15, 0x16, 0x1A),

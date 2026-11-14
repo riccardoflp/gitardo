@@ -36,6 +36,8 @@ pub(crate) fn design(icon: Icon) -> Design {
         Icon::More => dots(&[(3.0, 8.0), (8.0, 8.0), (13.0, 8.0)], 1.25),
         Icon::ArrowUp => lines(&[&[(7.5, 13.5), (7.5, 2.5)], &[(3.0, 7.0), (7.5, 2.5), (12.0, 7.0)]]),
         Icon::ArrowDown => lines(&[&[(7.5, 2.5), (7.5, 13.5)], &[(3.0, 9.0), (7.5, 13.5), (12.0, 9.0)]]),
+        Icon::Compare => compare(),
+        Icon::Activity => activity(),
         Icon::Warning => warning(),
         Icon::Error => with_ring(lines(&[&[(5.5, 5.5), (10.5, 10.5)], &[(10.5, 5.5), (5.5, 10.5)]])),
         Icon::Info => {
@@ -66,6 +68,28 @@ pub(crate) fn design(icon: Icon) -> Design {
         Icon::PullRequest => pull_request(false),
         Icon::DraftPullRequest => pull_request(true),
     }
+}
+
+/// Two arrows one over the other, the upper to the right and the lower to the left.
+fn compare() -> Design {
+    lines(&[
+        &[(2.5, 5.5), (13.5, 5.5)],
+        &[(10.5, 2.5), (13.5, 5.5), (10.5, 8.5)],
+        &[(13.5, 10.5), (2.5, 10.5)],
+        &[(5.5, 7.5), (2.5, 10.5), (5.5, 13.5)],
+    ])
+}
+
+/// A line across with one beat in it, up then down.
+fn activity() -> Design {
+    lines(&[&[
+        (1.5, 8.5),
+        (4.5, 8.5),
+        (6.5, 3.5),
+        (9.5, 12.5),
+        (11.5, 8.5),
+        (14.5, 8.5),
+    ]])
 }
 
 /// A pull request: a branch on the left with a dot at each end, and on the right a dot whose line goes up and comes

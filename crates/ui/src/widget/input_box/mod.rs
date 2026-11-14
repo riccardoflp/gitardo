@@ -266,8 +266,8 @@ impl Ui<'_> {
         )
     }
 
-    /// The width of the box of the keys that reach an input box.
-    fn key_hint_width(&self, keys: &str) -> f32 {
+    /// The width of the box of the keys that reach an input box, or that do what a button does.
+    pub(crate) fn key_hint_width(&self, keys: &str) -> f32 {
         let theme = self.theme();
         self.measure(keys, self.text_style(TextKind::Small))
             + 2.0 * (theme.sizes.spacing.small + theme.sizes.spacing.tiny)
@@ -386,10 +386,18 @@ impl Ui<'_> {
         let Some(keys) = input.key_hint else {
             return;
         };
+        let size = (self.key_hint_width(keys), rect.height);
+        let right = Rect::new(rect.x, rect.y, rect.width - spacing.medium, rect.height);
+        self.key_hint(place(right, size, (Align::End, Align::Center)), keys);
+    }
+
+    /// Draws the box of some keys, such as `Ctrl K`, at the start of a rectangle and in its middle down.
+    pub(crate) fn key_hint(&mut self, rect: Rect, keys: &str) {
+        let theme = *self.theme();
+        let spacing = theme.sizes.spacing;
         let style = self.text_style(TextKind::Small);
         let size = (self.key_hint_width(keys), self.line_height(style) + 2.0 * spacing.tiny);
-        let right = Rect::new(rect.x, rect.y, rect.width - spacing.medium, rect.height);
-        let hint = place(right, size, (Align::End, Align::Center));
+        let hint = place(rect, size, (Align::Start, Align::Center));
         let border = Border {
             width: theme.sizes.border,
             radius: theme.sizes.radius.small,
@@ -399,7 +407,7 @@ impl Ui<'_> {
         let run = TextRun {
             text: keys,
             style,
-            color: muted,
+            color: theme.colors.muted_foreground,
             origin: Point::new(hint.x + spacing.small + spacing.tiny, hint.y + spacing.tiny),
             max_width: None,
         };

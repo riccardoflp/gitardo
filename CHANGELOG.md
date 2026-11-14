@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- The window is made of islands: the header, the branch rail, the timeline, the inspector and the page shown are each
+  a rounded card on a darker ground, with a gap between them that is dragged to resize them.
+- A bar of views on the left edge of the window goes to **Timeline**, **Changes**, with the number of changed files,
+  **Files** and **Compare**, and at its foot opens **Activity** and **Settings**; the place shown is marked.
+- A status bar at the foot of the window says what is running, which opens the Activity drawer, and the identity
+  commits are made with, which a click switches.
+- **Search** in the header opens Quick search, as `Ctrl+K` does, in place of the box of text; the branch filter and the
+  search box are at the top of the timeline.
 - Before the commands of `worktrees.setupCommands` run in a folder that is not trusted, Gitardo asks **Run the
   commands for new worktrees?**, naming the folder, where the commands come from and each of them. **Trust this folder
   and run them** runs them and trusts the folder, and every folder in it, from then on; **Not now** creates the

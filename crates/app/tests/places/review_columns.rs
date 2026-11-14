@@ -11,7 +11,7 @@ use super::review::{NEXT_TO_EACH_OTHER, file, merged, review, reviewed};
 use super::support::Window;
 
 /// The size of the window the columns are drawn in.
-const SIZE: (u32, u32) = (1400, 1000);
+const SIZE: (u32, u32) = (1480, 1000);
 
 /// A line of the current side far longer than its column.
 const LONG: &str = "B, the quick brown fox jumps over the lazy dog and runs on and on past the edge of its column";

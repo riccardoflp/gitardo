@@ -499,7 +499,7 @@ separated by lines:
 The answer is cleaned: spaces and blank lines around it are taken off, and a code fence the model put around it anyway,
 a first line of three backticks with or without a language and a last line of three backticks, is removed. The cleaned
 answer replaces the text of the message box. Nothing is sent until the button is pressed. While the request runs, the
-activity indicator of the header says **drafting commit message** and it can be cancelled there; cancelled or failed,
+activity indicator of the status bar says **drafting commit message** and it can be cancelled there; cancelled or failed,
 the message box is left as it was.
 
 Refuses: "There are no changes to describe." with nothing changed; with `ai.provider` empty, "No AI provider is set

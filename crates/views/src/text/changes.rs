@@ -91,6 +91,18 @@ pub fn identity(name: &str, email: &str) -> String {
     format!("{name} <{email}>")
 }
 
+/// The identity commits are made with, from what of it is set: `Ada <ada@example.com>`, the name or the email alone, or
+/// **No identity configured**.
+#[must_use]
+pub fn identity_said(name: Option<&str>, email: Option<&str>) -> String {
+    match (name, email) {
+        (Some(name), Some(email)) => identity(name, email),
+        (Some(name), None) => name.to_owned(),
+        (None, Some(email)) => email.to_owned(),
+        (None, None) => NO_IDENTITY.to_owned(),
+    }
+}
+
 /// A heading with its count: `Changes 3`.
 #[must_use]
 pub fn with_count(heading: &str, count: usize) -> String {

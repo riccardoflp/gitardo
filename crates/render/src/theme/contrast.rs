@@ -15,6 +15,7 @@ pub(super) const DARK: Theme = Theme {
     name: ThemeName::HighContrastDark,
     colors: Colors {
         window_background: Color::rgb(0x00, 0x00, 0x00),
+        ground_background: Color::rgb(0x00, 0x00, 0x00),
         header_background: Color::rgb(0x00, 0x00, 0x00),
         rail_background: Color::rgb(0x00, 0x00, 0x00),
         page_background: Color::rgb(0x00, 0x00, 0x00),
@@ -93,6 +94,7 @@ pub(super) const LIGHT: Theme = Theme {
     name: ThemeName::HighContrastLight,
     colors: Colors {
         window_background: Color::rgb(0xFF, 0xFF, 0xFF),
+        ground_background: Color::rgb(0xFF, 0xFF, 0xFF),
         header_background: Color::rgb(0xFF, 0xFF, 0xFF),
         rail_background: Color::rgb(0xFF, 0xFF, 0xFF),
         page_background: Color::rgb(0xFF, 0xFF, 0xFF),

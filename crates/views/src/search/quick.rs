@@ -1,24 +1,18 @@
-//! Quick search (`Ctrl+K`, D17): the box in the middle of the header, and the picker it opens of the commands of the
-//! catalog that name Quick search, the branches, remote branches and tags, and the commits loaded.
+//! Quick search (`Ctrl+K`, D17, D21): **Search** in the header, and the picker it opens of the commands of the catalog
+//! that name Quick search, the branches, remote branches and tags, and the commits loaded.
 
 use model::CommitId;
-use ui::layout::{Align, place};
-use ui::{Icon, InputBox, Key, Modifiers, Picker, PickerAnswer, PickerItem, PickerMode, Ui};
+use ui::{Button, Icon, Key, Modifiers, Picker, PickerAnswer, PickerItem, PickerMode, Ui};
 
 use super::SearchIntent;
 use crate::intent::Intent;
 use crate::text::header as header_words;
 use crate::text::search as words;
 
-/// The widest the box of Quick search is.
-const SEARCH_WIDTH: f32 = 420.0;
-/// The room the header keeps for the box of Quick search before what is beside it, the activity indicator, takes more.
-pub(crate) const SEARCH_LEAST_WIDTH: f32 = 260.0;
-
 /// What Quick search shows.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct QuickSearchState<'a> {
-    /// What was typed in the box of the header, which the picker starts from.
+    /// What was typed in the picker, which it starts from when it opens again.
     pub typed: &'a str,
     /// Whether the picker is open.
     pub is_open: bool,
@@ -241,30 +235,37 @@ impl QuickCommand {
     }
 }
 
-/// The box of Quick search in the middle of the rectangle its caller clipped it to, as wide as it can be up to its
-/// widest, and not there when the header has no room for it; with the picker over the window while it is open.
-/// `Ctrl+K` (`Cmd+K` on macOS), a click, `Enter` or a key typed in the box opens the picker.
+/// **Search**: its icon and its word, with the keys `Ctrl K` after it, or its icon alone in a narrow window.
+fn search_button(ui: &Ui<'_>) -> Button<'static> {
+    if crate::line::is_narrow(ui) {
+        Button::icon(Icon::Search, header_words::SEARCH_TOOLTIP).kind(ui::ButtonKind::Secondary)
+    } else {
+        Button::secondary(header_words::SEARCH)
+            .with_icon(Icon::Search)
+            .with_key_hint(header_words::QUICK_SEARCH_KEYS)
+    }
+}
+
+/// The width **Search** takes in the header.
+pub(crate) fn search_button_width(ui: &Ui<'_>) -> f32 {
+    ui.button_size(&search_button(ui)).0
+}
+
+/// **Search** over the rectangle its caller clipped it to, which opens the picker of Quick search with nothing typed,
+/// as `Ctrl+K` (`Cmd+K` on macOS) does anywhere in the window; with the picker over the window while it is open.
+///
+/// Feature: graph.search-button
 pub fn quick_search_view(state: &QuickSearchState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut intents = Vec::new();
-    let opens = |typed: String| Intent::Search(SearchIntent::OpenQuick(typed));
+    let opens = || Intent::Search(SearchIntent::OpenQuick(String::new()));
     if !state.is_open && ui.unclaimed_keys().into_iter().any(is_quick_key) {
-        intents.push(opens(String::new()));
+        intents.push(opens());
     }
     let cell = ui.current_clip();
-    let width = cell.width.min(SEARCH_WIDTH);
-    if width >= ui.theme().sizes.icon * 4.0 {
-        let height = ui.theme().sizes.control_height;
-        let rect = place(cell, (width, height), (Align::Center, Align::Center));
-        let input = InputBox::new(state.typed, header_words::QUICK_SEARCH)
-            .with_icon(Icon::Search)
-            .with_key_hint(header_words::QUICK_SEARCH_KEYS);
-        let typed = ui.input_box("quick search", rect, &input);
-        if !state.is_open {
-            if let Some(text) = typed.changed_text {
-                intents.push(opens(text));
-            } else if typed.response.clicked || typed.is_submitted {
-                intents.push(opens(String::new()));
-            }
+    if !cell.is_empty() {
+        let clicked = ui.button("quick search", cell, &search_button(ui)).clicked;
+        if clicked && !state.is_open {
+            intents.push(opens());
         }
     }
     if state.is_open {

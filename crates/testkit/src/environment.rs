@@ -6,9 +6,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 /// The name and address of the author and committer of every commit a test makes. No real person's.
-const IDENTITY_NAME: &str = "Test Author";
+pub(crate) const IDENTITY_NAME: &str = "Test Author";
 /// The address that goes with [`IDENTITY_NAME`].
-const IDENTITY_EMAIL: &str = "author@example.com";
+pub(crate) const IDENTITY_EMAIL: &str = "author@example.com";
 
 /// The date of the first commit of every test repository, in seconds since 1970-01-01 00:00:00 UTC: it is
 /// 2025-01-01 00:00:00 UTC. Each commit after it is one minute later.

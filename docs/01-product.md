@@ -17,32 +17,42 @@ The window is Gitardo's own, not an editor's ([D17](08-decisions.md#d17--the-tim
 history fills it, and everything else opens from it.
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────────────────┐
-│ ● gitardo ▾   feature/login-page  2 ahead · 12 behind main    [⌕ Quick search       Ctrl K]  │
-│                                                          ◔ Fetching origin  [↓2 ↑1 Sync] [≈] │
-├────────────────┬─────────────────────────────────────────────────────┬───────────────────────┤
-│ YOURS          │ ┌ Draft ─────────────────────────────────────────┐  │ 4b830a6 · 2 hours ago │
-│ ● feature/… ↑2 │ │ ◌ Remember the e-mail of the last login         │  │ Add the login page    │
-│ ● main         │ │   3 files changed · 2 staged   [Review] [Commit]│  │ The page asks for …   │
-│ ● fix/parser   │ └────────────────────────────────────────────────┘  │                       │
-│                │  ●   Add the login page       (feature/login-page)  │ Dana Ruiz             │
-│ ORIGIN         │  │   Dana Ruiz · 2 hours ago                4b830a6 │                       │
-│ ○ origin/main  │  ●   Validate the e-mail before sending it          │ 4 files      +180 −7  │
-│                │ ◉─┤  Merge branch 'fix/parser' into main    (main)   │ src/login/page.rs +84 │
-│ KEPT ASIDE     │ │ ●  Read a section that has no name   (fix/parser)   │ …                     │
-│ Stashes      3 │ ●─┘  …                                              │ [Show the changes]    │
-│ Worktrees    2 │                                                     │ [Cherry-pick]  […]    │
-│ Tags        14 │                                                     │                       │
-└────────────────┴─────────────────────────────────────────────────────┴───────────────────────┘
-  Branch rail       Timeline (the draft at its top)                       Inspector
+┌───┬──────────────────────────────────────────────────────────────────────────────────────────┐
+│ ⑂ │ ╭──────────────────────────────────────────────────────────────────────────────────────╮ │
+│   │ │ ◧  ● gitardo ▾   feature/login-page ↑2 ↓0      [⌕ Search  Ctrl K] [↓2 ↑1 Sync ▾] […] │ │
+│ ◷ │ ╰──────────────────────────────────────────────────────────────────────────────────────╯ │
+│ ▤3│ ╭───────────────╮ ╭────────────────────────────────────────────╮ ╭─────────────────────╮ │
+│ ▣ │ │ YOURS         │ │ [≡ All branches ▾] [⌕ Find by message…   ] │ │ 4b830a6 · 2 hours   │ │
+│ ⇄ │ │ ● feature ↑2  │ │ ┌ Draft ─────────────────────────────────┐ │ │ Add the login page  │ │
+│   │ │ ● main        │ │ │ Remember the e-mail of the last login  │ │ │ The page asks for … │ │
+│   │ │ ● fix/parser  │ │ │ 3 files · 2 staged  [Review] [Commit]  │ │ │                     │ │
+│   │ │               │ │ └────────────────────────────────────────┘ │ │ Dana Ruiz           │ │
+│   │ │ ORIGIN        │ │ ●   Add the login page  (feature/login…)   │ │ 4 files    +180 −7  │ │
+│   │ │ ○ origin/main │ │ ●   Validate the e-mail before sending     │ │ src/login/page.rs   │ │
+│   │ │ KEPT ASIDE    │ │ ◉─┐ Merge branch 'fix/parser' into main    │ │ [Show the changes]  │ │
+│ ⓘ │ │ Stashes     3 │ │ │ ● Read a section that has no name        │ │ [Cherry-pick] […]   │ │
+│ ⚙ │ ╰───────────────╯ ╰────────────────────────────────────────────╯ ╰─────────────────────╯ │
+├───┴──────────────────────────────────────────────────────────────────────────────────────────┤
+│ ◔ Fetching origin (2 s)                                         Dana Ruiz <dana@example.com> │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+ Bar of   Header, then branch rail, timeline (the draft at its top) and inspector, each an island
+ views                                                                          Status bar
 ```
 
+- **Bar of views**: a column of icons on the left edge, outside the islands
+  ([D21](08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)): **Timeline**, **Changes** with the number of
+  changed files, **Files** and **Compare**; at its foot **Activity**, which opens and closes the Activity drawer, and
+  **Settings**. The place shown is marked.
+- **Islands**: the header, the branch rail, the timeline and the inspector, or the page shown, are each a rounded card
+  on a ground one step darker, with a gap between them that is dragged to resize them.
 - **Header**: the **repository** (a menu of the repositories of the workspace and the recent ones), the **branch**
-  checked out with how far it is from its upstream and from the default branch, **Quick search**, the **activity**
-  indicator (what is running, which opens the **Activity** drawer), **Sync**, which shows the commits to pull and to
-  push and, clicked, fetches, pulls and pushes them, with its menu (fetch, pull, push and their other ways), the
-  **Activity** button, and **…** (refresh, branch, stash, undo and the switches of the timeline). It gives up its
-  words for icons when the window is narrow.
+  checked out with how far it is from its upstream, **Search**, the button of **Quick search** with `Ctrl K` beside it,
+  **Sync**, which shows the commits to pull and to push and, clicked, fetches, pulls and pushes them, with its menu
+  (fetch, pull, push and their other ways), and **…** (refresh, branch, stash, undo and the switches of the timeline).
+  It gives up its words for icons when the window is narrow.
+- **Status bar**: a line of small text at the foot of the window: the **activity** indicator on the left (what is
+  running, which opens the **Activity** drawer), and on the right the identity commits are made with, which a click
+  switches.
 - **Branch rail**: the local branches, each with the color of its lane, so that the rail is also the legend of the
   graph; the branches of each remote, under a heading for each remote (**ORIGIN**); **Kept aside**: stashes,
   worktrees, tags and submodules, each a list that opens in the rail. The lists of Kept aside start closed and the
@@ -78,7 +88,10 @@ The cards of the catalog name the places of the window with these words, and onl
 
 | Place | What it is |
 | --- | --- |
-| **Header** | The bar at the top: repository, branch, Quick search, activity, Sync, Activity. |
+| **Bar of views** | The column of icons on the left edge: Timeline, Changes, Files, Compare, Activity, Settings. |
+| **Header** | The island at the top: repository, branch, Search, Sync, **…**. |
+| **Island** | Each rounded card of the window: the header, the branch rail, the timeline, the inspector, a page. |
+| **Status bar** | The line of text at the foot of the window: what is running, the identity commits are made with. |
 | **Branch rail** | The list on the left: local branches, a heading for each remote, and **Kept aside** (stashes, worktrees, tags, submodules). |
 | **Timeline** | The history with its lanes, in the middle. "The graph" is the drawing of its lanes. |
 | **Draft** | The card of the uncommitted changes at the top of the timeline. |
@@ -104,7 +117,7 @@ The cards of the catalog name the places of the window with these words, and onl
 | The command palette | **Quick search** (`Ctrl+K`), which also finds commits, branches and files. |
 | The Source Control view and its list of changes | The **draft** at the top of the timeline, and the **Changes** page it opens. |
 | Output channel **Gitardo** | The **Command log** in the Activity drawer. |
-| Status bar item and **Show What Is Running** | The activity indicator of the header, and the **Activity** drawer it opens. |
+| Status bar item and **Show What Is Running** | The activity indicator of the status bar, and the **Activity** drawer it opens. |
 | `settings.json` of the user | `settings.json` in Gitardo's folder of the user's configuration. |
 | `.vscode/settings.json` of a repository | `.gitardo/settings.json` of the repository, which can be committed to share it. For worktrees, VS Code's `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles` in `.vscode/settings.json` are still read as the fallback the extension has. |
 | Workspace trust | A folder is trusted once the user says so; until then nothing it asks to run is run. |

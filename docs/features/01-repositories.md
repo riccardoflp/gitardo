@@ -2,7 +2,7 @@
 
 How a window finds the repositories of its workspace, which one it shows, what it reads of it, and how it keeps that up
 to date on its own while the repository and its files change, from Gitardo or from anything else. Also what the
-activity indicator of the header says Gitardo is doing, the **Activity** drawer, the **Welcome** page of the first
+activity indicator of the status bar says Gitardo is doing, the **Activity** drawer, the **Welcome** page of the first
 start, and the folders the user trusts to run what they ask.
 
 ### `repo.read-repositories` — Find the repositories of a workspace
@@ -336,7 +336,7 @@ Acceptance:
 
 ### `activity.describe-task` — Say what Gitardo is doing
 
-The words the activity indicator of the header and the **Activity** drawer use for each thing that takes time.
+The words the activity indicator of the status bar and the **Activity** drawer use for each thing that takes time.
 
 - **Kind**: Derivation
 - **Function**: `model::activity::describe_task(task: &Task, now: Instant) -> TaskText`
@@ -361,21 +361,23 @@ Acceptance:
 - [ ] 65 seconds is said as `1 min 5 s`, 59.9 seconds as `59 s`.
 - [ ] A read while the timeline is narrowed to `git log -S foo` is titled `Searching <name>`.
 
-### `activity.status-bar` — What is running, in the header
+### `activity.status-bar` — What is running, in the status bar
 
-The activity indicator of the header says what Gitardo is running, for how long, and why; and the branch of the header
-says how far it is from its upstream.
+The status bar at the foot of the window says what Gitardo is running, for how long, and why, and the identity commits
+are made with; the branch of the header says how far it is from its upstream.
 
 - **Kind**: View
 - **Function**: `views::activity::status_bar_view(state: &StatusBarState, ui) -> Vec<Intent>`
-- **Entry points**: the activity indicator and the branch of the header.
-- **Uses**: `activity.describe-task`, `activity.what-is-running`.
+- **Entry points**: the status bar, and the branch of the header.
+- **Uses**: `activity.describe-task`, `activity.what-is-running`, `identity.switch`.
 
 - While Gitardo has been reading a repository, running an operation, comparing two sides, making a patch or asking
   GitHub for more than half a second, the activity indicator shows a spinning icon with the title of what has run
-  longest and for how long, as `Reading app (2 s)`. What is over sooner never shows, so that it does
-  not flicker. It takes only the room Quick search leaves: where its words would be cut short, and when the window is
-  narrow, it shows its icon alone.
+  longest and for how long, as `Reading app (2 s)`, at the start of the status bar. What is over sooner never shows,
+  so that it does not flicker. Where its words would be cut short it shows its icon alone.
+- The end of the status bar says the identity commits are made with in the repository shown, `Ada
+  <ada@example.com>`, the name or the email alone, or **No identity configured**, when there is room for it after
+  what runs; a click switches it (`identity.switch`), except while an operation runs.
 - Its tooltip lists everything that runs, the oldest first, each with its title, how long it has run and its detail,
   and ends with **Click to open the Activity drawer.** The times go on every half second; the tooltip is
   drawn again only when its text changes.
@@ -388,8 +390,8 @@ Acceptance:
 - [ ] A read of 0.3 s shows nothing; a read of 2 s shows the activity indicator from 0.5 s until it ends.
 - [ ] A fetch and a read at once are both in the tooltip, the fetch first if it started first.
 - [ ] The tooltip of a read asked for by a change says which file changed.
-- [ ] Beside Quick search in a window 1000 pixels wide, the indicator shows its icon alone and Quick search keeps its
-  room; at 1200 pixels it says what runs.
+- [ ] In a window 1000 pixels wide, a read of 2 s says `Reading app (2 s)` in the status bar, and the identity is at
+  its end; a click on the identity asks to switch it.
 - [ ] With `main` two ahead of `origin/main`, the branch of the header says `main ↑2 ↓0`.
 
 ### `activity.what-is-running` — What is running, in the Activity drawer
@@ -398,7 +400,7 @@ Lists what Gitardo is doing now, with the way to the commands it runs.
 
 - **Kind**: View
 - **Function**: `views::activity::what_is_running_view(state: &ActivityState, ui) -> Vec<Intent>`
-- **Entry points**: a click on the activity indicator of the header; the **Activity** button of the header; **Show
+- **Entry points**: a click on the activity indicator of the status bar; **Activity** in the bar of views; **Show
   What Is Running** in Quick search.
 - **Uses**: `activity.describe-task`, `log.show`.
 

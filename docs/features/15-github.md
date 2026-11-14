@@ -135,7 +135,7 @@ When it runs:
   seconds old; never with no token kept.
 
 Only the main remote's repository is asked, and only `api.github.com`. While it runs for more than half a second, the
-activity indicator of the header says **Reading the pull requests from GitHub** (`activity.track`). An error in a
+activity indicator of the status bar says **Reading the pull requests from GitHub** (`activity.track`). An error in a
 request made on its own is kept quiet, with a warning line in the command log; one from `github.load-pull-requests` is
 said. When the result is the same as before, nothing is drawn again. The pull requests known are forgotten when another
 repository is shown.

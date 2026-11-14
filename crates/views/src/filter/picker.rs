@@ -128,7 +128,8 @@ fn button(state: &BranchPicker<'_>, ui: &mut Ui<'_>, rect: Rect) -> bool {
     }
     let tone = if is_pressed { Tone::Accent } else { Tone::Normal };
     let what = label(state.shown);
-    if is_narrow(ui) {
+    // Its icon alone in a narrow window, or where its caller gave it only the room of its icon.
+    if is_narrow(ui) || rect.width <= theme.sizes.control_height {
         let cell = place(
             rect,
             (theme.sizes.icon, theme.sizes.icon),

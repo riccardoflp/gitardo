@@ -41,6 +41,8 @@ pub struct Button<'text> {
     pub dot: Option<Color>,
     /// The icon after the words, such as the chevron of a button that opens a menu.
     pub trailing: Option<Icon>,
+    /// The keys that do what it does, in a small box after its words, such as `Ctrl K`.
+    pub key_hint: Option<&'text str>,
     /// How it looks.
     pub kind: ButtonKind,
     /// Whether it can be used now.
@@ -58,6 +60,7 @@ impl<'text> Button<'text> {
             icon: None,
             dot: None,
             trailing: None,
+            key_hint: None,
             kind: ButtonKind::Primary,
             availability: Availability::Enabled,
             tooltip: None,
@@ -125,6 +128,15 @@ impl<'text> Button<'text> {
         }
     }
 
+    /// The same button with the keys that do what it does after its words.
+    #[must_use]
+    pub fn with_key_hint(self, keys: &'text str) -> Button<'text> {
+        Button {
+            key_hint: Some(keys),
+            ..self
+        }
+    }
+
     /// The same button with a tooltip.
     #[must_use]
     pub fn with_tooltip(self, tooltip: &'text str) -> Button<'text> {
@@ -172,12 +184,14 @@ struct Parts {
     words: f32,
     /// The icon after the words, with the gap before it.
     trailing: f32,
+    /// The box of the keys, with the gap before it.
+    key_hint: f32,
 }
 
 impl Parts {
     /// The width of all the parts.
     fn width(&self) -> f32 {
-        self.dot + self.icon + self.words + self.trailing
+        self.dot + self.icon + self.words + self.key_hint + self.trailing
     }
 }
 
@@ -212,6 +226,7 @@ impl Ui<'_> {
             icon: button.icon.map_or(0.0, |_| then(theme.sizes.icon)),
             words,
             trailing: button.trailing.map_or(0.0, |_| trailing_side(theme) + gap * 0.5),
+            key_hint: button.key_hint.map_or(0.0, |keys| self.key_hint_width(keys) + gap),
         }
     }
 
@@ -294,7 +309,7 @@ impl Ui<'_> {
         if !button.label.is_empty() {
             let style = self.text_style(button.text_kind());
             let line = place(rect, (0.0, self.line_height(style)), (Align::Start, Align::Center));
-            let room = content.right() - x - parts.trailing;
+            let room = content.right() - x - parts.key_hint - parts.trailing;
             let run = TextRun {
                 text: button.label,
                 style,
@@ -303,6 +318,16 @@ impl Ui<'_> {
                 max_width: Some(room.max(0.0)),
             };
             x += self.text(&run);
+        }
+        if let Some(keys) = button.key_hint {
+            let hint = Rect::new(
+                x + theme.sizes.spacing.medium,
+                rect.y,
+                parts.key_hint - theme.sizes.spacing.medium,
+                rect.height,
+            );
+            self.key_hint(hint, keys);
+            x += parts.key_hint;
         }
         if let Some(icon) = button.trailing {
             let side = trailing_side(&theme);

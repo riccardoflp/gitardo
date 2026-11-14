@@ -151,7 +151,7 @@ Acceptance:
 ### `activity.track` — Say what is running
 
 Every read, plan, comparison and request that may take longer than a frame is registered while it runs, with what it is
-in words, when it started and what asked for it, so that the activity indicator of the header (`activity.status-bar`)
+in words, when it started and what asked for it, so that the activity indicator of the status bar (`activity.status-bar`)
 and the **Activity** drawer (`activity.what-is-running`) can say it. The words are those of `activity.describe-task`.
 
 - **Kind**: Operation (of the engine; it has no entry point of its own)
@@ -161,5 +161,5 @@ and the **Activity** drawer (`activity.what-is-running`) can say it. The words a
 
 Acceptance:
 
-- [ ] A plan of a push shows **Pushing main to origin** in the activity indicator of the header while `git push` runs
+- [ ] A plan of a push shows **Pushing main to origin** in the activity indicator of the status bar while `git push` runs
       for more than half a second, and the time it has run.

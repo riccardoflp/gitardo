@@ -65,6 +65,9 @@ pub enum Appearance {
 pub struct Colors {
     /// Behind everything: the window where nothing else is.
     pub window_background: Color,
+    /// The ground the islands of the window stand on, between them and around them (D21): a step darker than the
+    /// islands, or the same in the high contrast themes, where their border tells them apart.
+    pub ground_background: Color,
     /// Behind the header: the repository, the branch, Quick search, Sync.
     pub header_background: Color,
     /// Behind the branch rail on the left.

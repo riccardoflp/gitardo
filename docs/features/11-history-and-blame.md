@@ -490,7 +490,7 @@ What it shows:
   the text, and nothing of the text is drawn under or past the column.
 - While the file shows its blame, the title of the File page has the closed eye (**Hide file blame**) in place of the
   person, the funnel (`blame.ignore-whitespace`) and the pin (`blame.every-file`).
-- While the blame is read the first time on request, the activity indicator of the header says *reading the blame…*.
+- While the blame is read the first time on request, the activity indicator of the status bar says *reading the blame…*.
 
 Acceptance:
 

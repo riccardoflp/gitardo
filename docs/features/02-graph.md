@@ -106,29 +106,29 @@ Acceptance:
 
 ### `graph.toolbar` — The header
 
-What applies to the whole repository, at the top of the window.
+What applies to the whole repository, in the island at the top of the window.
 
 - **Kind**: View
 - **Function**: `views::graph::toolbar_view(state: &ToolbarState, ui) -> Vec<Intent>`
 - **Entry points**: the top of the window.
 - **Uses**: `graph.toggle-references`, `repo.select`, `sync.sync`, `sync.fetch`, `sync.pull`, `sync.pull-with`,
-  `sync.push`, `branch.create`, `stash.push`, `undo.last`, `filter.picker`, `search.box`, `repo.schedule-reads`,
+  `sync.push`, `branch.create`, `stash.push`, `undo.last`, `graph.search-button`, `repo.schedule-reads`,
   `graph.more-menu`.
 
 From left to right: the button that puts the branch rail away (`graph.toggle-references`); the repository menu, which
 names the repository shown and lists the others of the workspace (`repo.select`); the branch checked out, or `detached
 at 3f2a1c9`, or `no commits yet`, with how far it is from its upstream (`activity.status-bar`) and the folder of the
-repository in its tooltip; Quick search; the activity indicator (`activity.status-bar`); **Sync** with the number of
+repository in its tooltip; **Search**, which opens Quick search (`graph.search-button`); **Sync** with the number of
 commits to pull and to push, `↓3 ↑2`, which a click runs: a fetch, a pull, then a push of what is ahead (`sync.sync`),
-and its menu: **Fetch**, **Pull** and its other ways, **Push** and its other ways; **Activity**, which opens the
-Activity drawer; and **…** (`graph.more-menu`), which has **Refresh**, **Branch**, which creates a branch at `HEAD`,
-**Stash**, which stashes all changes, and **Undo**, none of which is a button of the header. The button of the
-branches shown (`filter.picker`) and the search (`search.box`) are at the top of the timeline. Each entry says in its
-tooltip what it runs: **Sync: git fetch, git pull, git push**, **Fetch: git fetch --all --prune**, **Push: git push**,
-**Stash: git stash push --include-untracked**. When the
-window is narrow the header keeps its icons and gives up its words. While an operation runs, the entries that change
-something are disabled. **Branch** and **Undo** are disabled before the first commit, and **Stash** also while there is
-nothing to stash.
+and its menu: **Fetch**, **Pull** and its other ways, **Push** and its other ways; and **…** (`graph.more-menu`), which
+has **Refresh**, **Branch**, which creates a branch at `HEAD`, **Stash**, which stashes all changes, and **Undo**, none
+of which is a button of the header. The button of the branches shown (`filter.picker`) and the search (`search.box`)
+are at the top of the timeline; what is running is in the status bar, and **Activity** in the bar of views
+([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)). Each entry says in its tooltip what it runs:
+**Sync: git fetch, git pull, git push**, **Fetch: git fetch --all --prune**, **Push: git push**, **Stash: git stash
+push --include-untracked**. When the window is narrow the header keeps its icons and gives up its words. While an
+operation runs, the entries that change something are disabled. **Branch** and **Undo** are disabled before the first
+commit, and **Stash** also while there is nothing to stash.
 
 Acceptance:
 
@@ -136,6 +136,73 @@ Acceptance:
 - [ ] Detached at a commit, the header names `detached at <short hash>`.
 - [ ] While a fetch runs, **Sync** itself, and **Pull** and **Push** in its menu, cannot be clicked.
 - [ ] Narrowing the window hides the words of the header and keeps its icons; **Refresh** stays in **…**.
+- [ ] The header has no box of text: the branch filter and the search box are at the top of the timeline.
+
+### `graph.search-button` — The button of Quick search
+
+**Search** in the header opens Quick search, as `Ctrl+K` does.
+
+- **Kind**: View
+- **Function**: `views::search::quick_search_view(state: &QuickSearchState, ui) -> Vec<Intent>`
+- **Entry points**: **Search** in the header; `Ctrl+K` (`Cmd+K` on macOS) anywhere in the window.
+
+A button with the icon of a search, the word **Search** and the keys `Ctrl K` beside it, which opens the picker of
+Quick search with nothing typed. Quick search only ever opened its picker, so it is a button and not a box
+([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)). When the window is narrow it keeps its icon
+alone, with **Search (Ctrl+K)** in its tooltip.
+
+Acceptance:
+
+- [ ] A click on **Search** opens the picker of Quick search with nothing typed.
+- [ ] `Ctrl+K` opens it too, from the timeline or a page.
+- [ ] In a window narrower than 900 pixels the button shows its icon alone.
+
+### `graph.islands` — The islands of the window
+
+The header, the branch rail, the timeline, the inspector and the page shown are each a rounded card on the ground of
+the window.
+
+- **Kind**: View
+- **Function**: `views::island(ui: &mut Ui, rect: Rect, inside: impl FnOnce(&mut Ui) -> R) -> R`
+- **Entry points**: the whole window.
+- **Uses**: `graph.view-bar`, `graph.toolbar`, `activity.status-bar`, `graph.resize-panes`.
+
+The ground is one step darker than the islands in the dark themes and one step deeper in the light ones; each island
+has the radius of a dialog and a border, with a gap of 8 pixels between islands, 4 when the window is narrow. In the
+high contrast themes the ground and the islands are the same and the border tells them apart. The gap between two
+islands is the line that is dragged to resize them (`graph.resize-panes`). The inspector opened over the timeline in a
+narrow window is an island of its own over it. What is drawn in an island stays inside its rounded corners
+([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)).
+
+Acceptance:
+
+- [ ] In the dark theme, the ground between the rail and the timeline is darker than both.
+- [ ] The corners of the inspector are the ground of the window, whatever is drawn in it.
+- [ ] In a window narrower than 900 pixels the gap is 4 pixels.
+
+### `graph.view-bar` — The bar of views
+
+A column of icons on the left edge of the window, each the way to a place of it.
+
+- **Kind**: View
+- **Function**: `views::view_bar_view(state: &ViewBarState, ui) -> Vec<Intent>`
+- **Entry points**: the left edge of the window.
+- **Uses**: `graph.view`, `changes.pane`, `compare.choose`, `activity.what-is-running`, `settings.edit`.
+
+From the top: **Timeline**, which comes back to the timeline (`graph.view`); **Changes**, with the number of changed
+files on it, which opens the Changes page (`changes.pane`); **Files**, which opens the Files page; **Compare**, which
+asks what to compare (`compare.choose`); and at its foot **Activity**, which opens and closes the Activity drawer
+(`activity.what-is-running`), and **Settings**, which opens the settings page (`settings.edit`). The place shown is
+marked with the ground of an island; **Activity** is marked while the drawer is open. Each says its name in its
+tooltip. Before a repository is read only **Activity** and **Settings** can be clicked
+([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)).
+
+Acceptance:
+
+- [ ] With three changed files, **Changes** shows `3`; with none, no number.
+- [ ] A click on **Changes** opens the Changes page and marks **Changes**; a click on **Timeline** comes back.
+- [ ] A click on **Activity** opens the Activity drawer, and another closes it.
+- [ ] With no repository read, **Timeline**, **Changes**, **Files** and **Compare** cannot be clicked.
 
 ### `graph.more-menu` — The … menu of the header
 

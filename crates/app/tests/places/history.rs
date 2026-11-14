@@ -248,7 +248,7 @@ fn selection_bar__clear_selection_leaves_no_commit_selected_together_and_the_bar
             shown: readme,
         }),
     );
-    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let mut window = Window::new(ThemeName::Dark, (1100, WIDE.1));
     let (_, tree) = window.draw(&state, &[]);
     assert!(says(&tree, "2 commits selected"));
     assert!(has(&tree, Role::Button, "Squash into one"));
