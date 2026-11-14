@@ -3,7 +3,7 @@
 use json::Value;
 use model::branch::{BranchInput, InputKind};
 
-use super::ProblemReason;
+use crate::ProblemReason;
 
 /// The inputs of a list of objects `{ "id", "type": "promptString" | "pickString", "description"?, "default"?,
 /// "pattern"?, "options"?, "allowCustom"? }`; an entry with no id, or of another type, is left out.
@@ -11,7 +11,7 @@ use super::ProblemReason;
 /// # Errors
 ///
 /// When the value is not a list.
-pub(super) fn branch_inputs(value: &Value) -> Result<Vec<BranchInput>, ProblemReason> {
+pub(crate) fn branch_inputs(value: &Value) -> Result<Vec<BranchInput>, ProblemReason> {
     let entries = value
         .as_array()
         .ok_or(ProblemReason::WrongType { expected: "a list" })?;

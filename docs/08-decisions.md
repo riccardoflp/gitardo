@@ -2361,18 +2361,23 @@ The questions the cards raised, each naming the cards it would change:
 
 ### Of the transition to one engine, from Q393
 
-Raised while writing [transition/](transition/README.md). Each has a recommendation; none is decided.
+Raised while writing [transition/](transition/README.md). Each has a recommendation; Q393 to Q395 were answered at the
+start of stage 1, as recommended.
 
 - **Q393** — How is `platform` split, so that `engine` and `gitardo-engine` link no window library? `engine` uses only
   `link_folder` and the three functions of the credential store (`crates/engine/Cargo.toml`). Recommended: a new crate
   `system` with those, which `platform` and `engine` both use, since a Cargo feature `window` of `platform` would make
-  the edges of the picture depend on features, which `cargo xtask check` does not read.
+  the edges of the picture depend on features, which `cargo xtask check` does not read. *Answered in stage 1*: the
+  crate `system`, which also holds the bindings of `kernel32.dll` and of `CoreFoundation` that `platform` shares.
 - **Q394** — The framing of the messages: `Content-Length` headers, as the Language Server Protocol, or one JSON per
   line? And does the extension take `vscode-jsonrpc` for it? Recommended: the headers, written in a few lines of the
-  extension's own, no new package.
+  extension's own, no new package. *Answered in stage 1*: the headers, written by hand on both sides.
 - **Q395** — Where do `history_of` and `commits_request` (`crates/app/src/store/timeline/mod.rs`) and the reading of
   the settings (`crates/app/src/settings/read.rs`) go, so that the server uses them? Recommended: into `engine` for the
-  history, and a crate `settings` for the reading of the settings, which the window uses from there.
+  history, and a crate `settings` for the reading of the settings, which the window uses from there. *Answered in
+  stage 1*: `engine::timeline` holds `TimelineRequest`, `history_of` and `commits_request`; the crate `settings` holds
+  the files, the keys, the `Lookup` of the two files and `feature_settings`, and the window reads its own settings
+  (the theme, the fonts, the switches of the timeline) with them.
 - **Q396** — Trust inside VS Code: the desktop asks before running what a folder's `.gitardo/settings.json` asks
   (`trust.ask`); under the extension the settings come from VS Code, which has workspace trust. Recommended: the
   extension sends `trust: "vscode"`, and the engine runs the setup commands of a worktree only in a trusted workspace,

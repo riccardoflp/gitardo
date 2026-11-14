@@ -6,17 +6,16 @@
 //! `commandPreview`, `branches.format` and `submodules.updateOnCheckout`, which the operations read.
 //! Each card that uses another setting adds it to [`keys`]. Every value the files set is kept as written too, for the
 //! settings page (`settings.edit`).
+//!
+//! The files, their keys and what the operations read of them are in the crate `settings`, which the engine uses
+//! without the window; this module reads the window's own settings with it.
 
-mod branch_inputs;
-mod folder;
-pub mod keys;
 mod read;
 mod rows;
 #[cfg(test)]
 mod tests;
 
 use std::collections::BTreeMap;
-use std::path::PathBuf;
 
 use engine::LogLevel;
 use model::changes::OpenOnClick;
@@ -27,7 +26,11 @@ use render::ThemeName;
 use ui::LineWrap;
 use views::graph::Switches;
 
-pub use folder::{configuration_folder, home_folder, repository_settings_file, user_settings_file};
+pub use ::settings::keys;
+pub use ::settings::{
+    ProblemReason, SettingProblem, SettingsFile, SettingsFiles, configuration_folder, home_folder,
+    repository_settings_file, user_settings_file,
+};
 pub use read::{parse, read, read_files};
 pub use rows::{problem_words, setting_rows, theme_value};
 
@@ -140,61 +143,6 @@ impl Default for FileBlameLook {
             old_after_days: model::blame::OLD_AFTER_DAYS,
         }
     }
-}
-
-/// Which file a value comes from.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum SettingsFile {
-    /// The user's `settings.json`.
-    User,
-    /// `.gitardo/settings.json` of the repository.
-    Repository,
-}
-
-/// A value that was not taken.
-#[derive(Clone, Debug, PartialEq)]
-pub struct SettingProblem {
-    /// The key, as written in the file; empty when the whole file could not be read.
-    pub key: String,
-    /// The file it is in.
-    pub file: SettingsFile,
-    /// Why it was not taken.
-    pub reason: ProblemReason,
-}
-
-/// Why a value was not taken.
-#[derive(Clone, Debug, PartialEq)]
-pub enum ProblemReason {
-    /// The file is not JSON with comments: what the parser said.
-    Unreadable(String),
-    /// The value is not of the kind the setting takes, such as a string where a number goes.
-    WrongType {
-        /// What the setting takes: `a number`.
-        expected: &'static str,
-    },
-    /// The value is not one of the choices of the setting.
-    NotAChoice {
-        /// The choices.
-        choices: &'static [&'static str],
-    },
-    /// The number is outside what the setting takes.
-    OutOfRange {
-        /// The least it takes.
-        least: f64,
-        /// The most it takes.
-        most: f64,
-    },
-    /// The setting is read only from the user's file, and the repository's set it.
-    UserOnly,
-}
-
-/// The files the settings of a window are read from.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SettingsFiles {
-    /// The user's file; none when the system does not say where the user's folders are.
-    pub user: Option<PathBuf>,
-    /// The file of the repository shown, when one is shown.
-    pub repository: Option<PathBuf>,
 }
 
 /// The value `branches.sortOrder` is written as.

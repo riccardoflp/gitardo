@@ -169,6 +169,7 @@ dependencies = [
  "model",
  "platform",
  "render",
+ "settings",
  "testkit",
  "text",
  "ui",
@@ -2122,6 +2123,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.10",
+]
+
+[[package]]
+name = "settings"
+version = "0.1.0"
+dependencies = [
+ "json",
+ "model",
 ]
 
 [[package]]

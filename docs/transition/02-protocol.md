@@ -142,10 +142,10 @@ engine see the new values from their next call; one that is asking keeps the sna
 
 `Settings` is a JSON object whose keys are the names of the settings without `gitardo.`: `"graph.pageSize": 500`,
 `"worktrees.linkFolders": ["node_modules/"]`. Those are the keys of Gitardo Desktop's `settings.json` already: the
-desktop names `graph.pageSize` what the extension names `gitardo.graph.pageSize` (`crates/app/src/settings/keys.rs`,
+desktop names `graph.pageSize` what the extension names `gitardo.graph.pageSize` (`crates/settings/src/keys.rs`,
 `extension/package.json`). The engine builds its `FeatureSettings` (`model/src/contract/context.rs`) from that object
-with the code that reads the desktop's `settings.json` today (`crates/app/src/settings/read.rs`), which moves out of
-`app` for it. The extension sends the values already resolved: the workspace's over the user's, the default of each
+with the code that reads the desktop's `settings.json` (`feature_settings` of the crate `settings`, which stage 1 moved
+out of `app` for it). The extension sends the values already resolved: the workspace's over the user's, the default of each
 where none is set, and VS Code's `git.*` setting in place of an unset `gitardo.*` one where D31 says so
 (`git.branchSortOrder`, `git.worktreeSymlinkFolders`, `git.worktreeIncludeFiles`).
 
@@ -222,7 +222,7 @@ inside `feature/run`, and they never reach the extension, but for the host quest
 
 ### The graph
 
-`TimelineRequest` is what the timeline of the desktop asks (`crates/app/src/store/timeline/mod.rs`), which the engine
+`TimelineRequest` is what the timeline of the desktop asks (`crates/engine/src/timeline.rs`), which the engine
 turns into a `CommitsRequest` (`crates/git/src/read/graph/commits.rs`):
 
 ```ts
@@ -243,7 +243,7 @@ Row = { kind: "commit", commit: Commit }
 Commit = { id, parents: CommitId[], authorName, authorEmail, authorDate: Timestamp, subject }
 ```
 
-`history_of` and `commits_request` are in `crates/app` today; they move to the engine with this read, since the
+`history_of` and `commits_request` are in the engine (`engine::timeline`, moved from `crates/app` in stage 1), since the
 extension must not build git's arguments. `skip` makes the next page carry only the new rows, as the extension's
 prefetch does since `ac28e4c` (`gitardo.graph.pageSize`, 500 rows ahead). The lanes stay computed by the webviews
 (`src/shared/graph.ts`) from `parents`. A page of the repository of 56,000 commits answers in less than 300 ms

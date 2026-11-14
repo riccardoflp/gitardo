@@ -23,6 +23,7 @@ mod secrets;
 mod setup;
 mod steps;
 mod tasks;
+pub mod timeline;
 pub mod undo;
 
 pub use activity::{Activities, ActivityEntry, ActivityGuard};

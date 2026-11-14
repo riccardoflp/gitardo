@@ -4,14 +4,14 @@ What each app keeps between runs, side by side, and how the extension keeps what
 features. The rule does not change: a key of the workspace state, a setting, or a file Gitardo leaves in `.git` keeps
 its name and its meaning ([extension/11-data.md](../extension/11-data.md), R14.2 of the extension's code rules). The
 extension's side is [extension/11-data.md](../extension/11-data.md); the desktop's is read from
-`rust/crates/app/src/persisted.rs` and `persisted/`, `rust/crates/app/src/settings/`, and the features that write files.
+`rust/crates/app/src/persisted.rs` and `persisted/`, `rust/crates/settings/` and `rust/crates/app/src/settings/`, and the features that write files.
 
 ## Where each app keeps things
 
 | What | The extension | Gitardo Desktop |
 | --- | --- | --- |
-| Settings of the user | VS Code's user settings, `gitardo.*` | `settings.json` in Gitardo's folder: `%APPDATA%\Gitardo Desktop`, `~/Library/Application Support/Gitardo Desktop`, `$XDG_CONFIG_HOME/gitardo-desktop` (`settings/folder.rs`) |
-| Settings of a repository | `.vscode/settings.json` of the workspace folder, `gitardo.*` | `.gitardo/settings.json` of the repository (`settings/folder.rs`), with `.vscode/settings.json`'s `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles` read as a fallback (`features/src/worktree_setup/files.rs`) |
+| Settings of the user | VS Code's user settings, `gitardo.*` | `settings.json` in Gitardo's folder: `%APPDATA%\Gitardo Desktop`, `~/Library/Application Support/Gitardo Desktop`, `$XDG_CONFIG_HOME/gitardo-desktop` (`settings/src/folder.rs`) |
+| Settings of a repository | `.vscode/settings.json` of the workspace folder, `gitardo.*` | `.gitardo/settings.json` of the repository (`settings/src/folder.rs`), with `.vscode/settings.json`'s `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles` read as a fallback (`features/src/worktree_setup/files.rs`) |
 | Choices of the interface | VS Code's workspace state (7 keys) and each webview's state | `state.json` in Gitardo's folder, one per user, written whole (`persisted.rs`) |
 | Secrets | none: GitHub through VS Code's sign-in, models through VS Code | the credential store of the system: the GitHub token, the key of the AI provider (`system::read_secret`) |
 | Files in `.git` | `rebase-merge/gitardo-split` | `rebase-merge/gitardo-split` (`features/src/split.rs`), `gitardo-rebase-<time>/` (`features/src/message/edit.rs:189`, `rebase.rs:31`) |
@@ -19,7 +19,7 @@ extension's side is [extension/11-data.md](../extension/11-data.md); the desktop
 
 ## Settings
 
-The names coincide already: the desktop's key is the extension's without `gitardo.` (`app/src/settings/keys.rs` against
+The names coincide already: the desktop's key is the extension's without `gitardo.` (`settings/src/keys.rs` against
 `extension/package.json`). 33 keys are in both; 9 are only in the extension and 13 only in the desktop. That is what
 lets the extension send its settings to the engine as they are ([02-protocol.md](02-protocol.md#settings)).
 

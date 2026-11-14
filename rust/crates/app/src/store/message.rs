@@ -4,12 +4,10 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use git::read::details::CommitRequest;
-use git::read::graph::{CommitPage, CommitsRequest, Parents};
+use git::read::graph::{CommitPage, CommitsRequest};
 use model::CommitId;
 use model::commit_page::PatchLines;
 use model::details::CommitDetail;
-use model::filter::BranchesShown;
-use model::graph::PageSize;
 use model::graph::Row;
 use model::repo::{Change, Repository};
 use model::state::RepositoryState;
@@ -262,25 +260,8 @@ pub struct Known {
     pub last: Option<model::CommitId>,
 }
 
-/// How the timeline of a repository is read.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TimelineRequest {
-    /// How many commits a page has.
-    pub page_size: PageSize,
-    /// How many pages are read, from the newest commit.
-    pub pages: usize,
-    /// Which parents are followed (`graph.firstParent`).
-    pub parents: Parents,
-    /// Whether the stashes are placed among the commits (`graph.showStashes`).
-    pub shows_stashes: bool,
-    /// The branches shown, as chosen: the worker checks them against the references it reads (`filter.remember`).
-    pub shown: Option<BranchesShown>,
-    /// What narrows the history further: the arguments of a search shown as a list (`search.list-mode`).
-    pub narrowing: Vec<std::ffi::OsString>,
-    /// The commit whose history alone is listed, in place of the branches shown: a commit gone to that is on no branch
-    /// or tag (`search.go-to-hash`).
-    pub alone: Option<model::CommitId>,
-}
+/// How the timeline of a repository is read: the engine's, which turns it into git's arguments.
+pub use engine::timeline::TimelineRequest;
 
 /// The number of a job, unique in its window.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

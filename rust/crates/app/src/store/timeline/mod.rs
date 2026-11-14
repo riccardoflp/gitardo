@@ -8,16 +8,13 @@ mod paging;
 mod sizes;
 
 use std::collections::HashSet;
-use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use git::read::graph::{CommitsRequest, History, Parents};
 use model::CommitId;
-use model::filter::{BranchesShown, checked, log_arguments};
+use model::filter::BranchesShown;
 use model::graph::{CellTrace, DateTime, Row, Trace};
-use model::refs::References;
 use model::state::RepositoryState;
 use ui::RevealPlace;
 use views::graph::{
@@ -25,8 +22,10 @@ use views::graph::{
     TraceStrength,
 };
 
-use super::message::{Effect, JobId, TimelineRequest};
+use super::message::{Effect, JobId};
+
 use super::state::State;
+pub use engine::timeline::{commits_request, history_of};
 
 pub use narrow::{keep_shown, kept_shown, show, timeline_read};
 pub use paging::{cancel_more, commits_read, known, load_up_to, read_again, read_request};
@@ -92,47 +91,6 @@ impl Timeline {
     #[must_use]
     pub fn read_rows(&self) -> &[Row] {
         self.rows.get(usize::from(self.draft.is_some())..).unwrap_or_default()
-    }
-}
-
-/// The history the timeline lists, in date order, each commit before its parents: the branches shown, checked against
-/// the references the repository has now, as `filter.log-arguments` gives them, with the upstream of the branch
-/// checked out for **Upstream**.
-#[must_use]
-pub fn history_of(repository: &RepositoryState, shown: Option<&BranchesShown>, parents: Parents) -> History {
-    let shown = checked(shown, &References::of(repository));
-    let upstream = repository
-        .branches
-        .iter()
-        .find(|branch| branch.is_checked_out)
-        .and_then(|branch| branch.upstream.as_ref())
-        .map(|upstream| upstream.reference.as_str())
-        .filter(|reference| reference.starts_with("refs/"));
-    History {
-        selection: log_arguments(shown.as_ref(), repository.head.commit.as_ref(), upstream),
-        narrowing: Vec::new(),
-        parents,
-    }
-}
-
-/// What a read of the timeline asks of git, for a repository as read.
-#[must_use]
-pub fn commits_request(repository: &RepositoryState, request: &TimelineRequest) -> CommitsRequest {
-    let mut history = history_of(repository, request.shown.as_ref(), request.parents);
-    if let Some(commit) = &request.alone {
-        history.selection = vec![OsString::from("--date-order"), OsString::from(commit.as_str())];
-    }
-    history.narrowing.clone_from(&request.narrowing);
-    CommitsRequest {
-        history,
-        page_size: request.page_size,
-        pages: request.pages.max(1),
-        skip: 0,
-        stashes: if request.shows_stashes {
-            repository.stashes.clone()
-        } else {
-            Vec::new()
-        },
     }
 }
 

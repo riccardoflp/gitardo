@@ -1,23 +1,17 @@
-//! Reading the settings: the two files, the repository's first for the settings it may set, a value of the wrong kind
-//! left for the default and said as a problem.
+//! Reading the settings of the window: the two files, the repository's first for the settings it may set, a value of
+//! the wrong kind left for the default and said as a problem. What the operations read of them is read by the crate
+//! `settings`, which the engine uses too; the theme, the fonts and the timeline are read here.
 
-use std::io::ErrorKind;
 use std::path::Path;
 
-use std::collections::BTreeMap;
-
+use ::settings::Lookup;
+use ::settings::keys::{self, Scope};
 use engine::LogLevel;
-use json::Value;
-use model::ai::{AiProvider, AiSettings, Effort};
 use model::changes::OpenOnClick;
-use model::contract::{BlameSettings, CommandPreview, FeatureSettings, OpenIn, WorktreeOpenIn, WorktreeSettings};
-use model::graph::PageSize;
-use model::refs::SortOrder;
 use render::ThemeName;
 use views::graph::{Switches, TimelineSwitch};
 
-use super::keys::{self, Scope};
-use super::{FileBlameLook, FontChoice, ProblemReason, SettingProblem, Settings, SettingsFile, SettingsFiles};
+use super::{FileBlameLook, FontChoice, ProblemReason, Settings, SettingsFiles};
 
 /// The settings of the user's file and of the repository's, when a repository is shown. A file that is not there sets
 /// nothing; one that cannot be read or parsed sets nothing and is said as a problem.
@@ -34,29 +28,17 @@ pub fn read(user_file: &Path, repository_file: Option<&Path>) -> Settings {
 /// The settings of the files of a window, the user's left out when the system does not say where it is.
 #[must_use]
 pub fn read_files(files: &SettingsFiles) -> Settings {
-    let mut problems = Vec::new();
-    let user = files
-        .user
-        .as_deref()
-        .and_then(|file| file_text(file, SettingsFile::User, &mut problems));
-    let repository_file = files.repository.as_deref();
-    let repository = repository_file.and_then(|file| file_text(file, SettingsFile::Repository, &mut problems));
-    let mut settings = parse(user.as_deref(), repository.as_deref());
-    problems.append(&mut settings.problems);
-    settings.problems = problems;
-    settings
+    settings_of(Lookup::read(files))
 }
 
 /// The settings of the texts of the two files, without reading anything.
 #[must_use]
 pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
-    let (user, user_problem) = document(user, SettingsFile::User);
-    let (repository, repository_problem) = document(repository, SettingsFile::Repository);
-    let mut lookup = Lookup {
-        user,
-        repository,
-        problems: user_problem.into_iter().chain(repository_problem).collect(),
-    };
+    settings_of(Lookup::parse(user, repository))
+}
+
+/// The settings in force, taken from the two files in the order the settings page lists the problems.
+fn settings_of(mut lookup: Lookup) -> Settings {
     let defaults = Settings::default();
     let theme = lookup
         .choice(keys::THEME, &keys::THEMES)
@@ -68,18 +50,12 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
         code: lookup
             .string(keys::FONT_CODE, Scope::User)
             .unwrap_or(defaults.fonts.code),
-        size: lookup.font_size().unwrap_or(defaults.fonts.size),
+        size: font_size(&mut lookup).unwrap_or(defaults.fonts.size),
     };
     let read_on_startup = lookup.boolean(keys::READ_ON_STARTUP, Scope::UserAndRepository);
-    let page_size = lookup.number(keys::PAGE_SIZE, Scope::UserAndRepository);
+    let page_size = ::settings::page_size(&mut lookup);
     let switches = timeline_switches(&mut lookup);
-    let sort_order = lookup.choice(keys::SORT_ORDER, &keys::SORT_ORDERS).map(|order| {
-        if order == "date" {
-            SortOrder::Date
-        } else {
-            SortOrder::Name
-        }
-    });
+    let sort_order = ::settings::sort_order(&mut lookup);
     let follows_graph_filter = lookup.boolean(keys::FOLLOW_GRAPH_FILTER, Scope::User);
     let collapse_unchanged = lookup.boolean(keys::COLLAPSE_UNCHANGED, Scope::User);
     let open_on_click = match lookup.choice(keys::OPEN_ON_CLICK, &keys::OPEN_ON_CLICKS) {
@@ -90,9 +66,10 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
         Some("debug") => LogLevel::Debug,
         _ => LogLevel::Info,
     };
-    let features = feature_settings(&mut lookup);
+    let features = ::settings::feature_settings(&mut lookup);
     let file_blame = file_blame_look(&mut lookup);
-    let values = written_values(&lookup);
+    let word_wrap = word_wrap(&mut lookup);
+    let values = lookup.written_values();
     Settings {
         log_level,
         features,
@@ -105,110 +82,10 @@ pub fn parse(user: Option<&str>, repository: Option<&str>) -> Settings {
         follows_graph_filter: follows_graph_filter.unwrap_or(defaults.follows_graph_filter),
         collapse_unchanged: collapse_unchanged.unwrap_or(defaults.collapse_unchanged),
         open_on_click,
-        word_wrap: word_wrap(&mut lookup),
+        word_wrap,
         read_on_startup: read_on_startup.unwrap_or(defaults.read_on_startup),
-        page_size: page_size.map_or(defaults.page_size, |size| PageSize::from_setting(Some(size))),
-        problems: lookup.problems,
-    }
-}
-
-/// The settings the operations read: `commandPreview`, `branches.format`, `branches.inputs`, `branches.openIn`,
-/// `submodules.updateOnCheckout`, `identities`, `pull.rebase`, `pull.autostash`, `cherryPick.recordOrigin`,
-/// `conflicts.autoResolve`, `conflicts.ai`, `editor.external`, `blame.enabled`, `blame.ignoreWhitespaceAndMoves` and
-/// `fileBlame.everyFile`.
-fn feature_settings(lookup: &mut Lookup) -> FeatureSettings {
-    let defaults = FeatureSettings::default();
-    let command_preview = match lookup.choice(keys::COMMAND_PREVIEW, &keys::COMMAND_PREVIEWS) {
-        Some("all") => CommandPreview::All,
-        _ => CommandPreview::Off,
-    };
-    FeatureSettings {
-        command_preview,
-        update_submodules_on_checkout: lookup
-            .boolean(keys::UPDATE_SUBMODULES_ON_CHECKOUT, Scope::UserAndRepository)
-            .unwrap_or(defaults.update_submodules_on_checkout),
-        branch_format: lookup
-            .string(keys::BRANCH_FORMAT, Scope::UserAndRepository)
-            .unwrap_or(defaults.branch_format),
-        branch_inputs: lookup
-            .first(
-                (keys::BRANCH_INPUTS, Scope::UserAndRepository),
-                super::branch_inputs::branch_inputs,
-            )
-            .unwrap_or(defaults.branch_inputs),
-        branch_open_in: match lookup.choice(keys::BRANCH_OPEN_IN, &keys::BRANCH_OPEN_INS) {
-            Some("worktree") => OpenIn::Worktree,
-            _ => OpenIn::Checkout,
-        },
-        pull_rebase: lookup
-            .boolean(keys::PULL_REBASE, Scope::UserAndRepository)
-            .unwrap_or(defaults.pull_rebase),
-        pull_autostash: lookup
-            .boolean(keys::PULL_AUTOSTASH, Scope::UserAndRepository)
-            .unwrap_or(defaults.pull_autostash),
-        identities: lookup
-            .first((keys::IDENTITIES, Scope::User), identity_profiles)
-            .unwrap_or(defaults.identities),
-        cherry_pick_record_origin: lookup
-            .boolean(keys::CHERRY_PICK_RECORD_ORIGIN, Scope::UserAndRepository)
-            .unwrap_or(defaults.cherry_pick_record_origin),
-        conflicts_auto_resolve: lookup
-            .boolean(keys::CONFLICTS_AUTO_RESOLVE, Scope::User)
-            .unwrap_or(defaults.conflicts_auto_resolve),
-        conflicts_ai: lookup
-            .boolean(keys::CONFLICTS_AI, Scope::User)
-            .unwrap_or(defaults.conflicts_ai),
-        external_editor: lookup
-            .string(keys::EXTERNAL_EDITOR, Scope::User)
-            .unwrap_or(defaults.external_editor),
-        ai: Box::new(ai_settings(lookup)),
-        user_settings_file: defaults.user_settings_file,
-        trust: defaults.trust,
-        blame: blame_settings(lookup, &defaults.blame),
-        worktrees: worktree_settings(lookup),
-        // The values given last for the inputs and the offset of the local time are the window's, set when an
-        // operation starts.
-        ..defaults
-    }
-}
-
-/// `blame.enabled`, `blame.ignoreWhitespaceAndMoves` and `fileBlame.everyFile`, from the user's file.
-fn blame_settings(lookup: &mut Lookup, defaults: &BlameSettings) -> BlameSettings {
-    BlameSettings {
-        is_enabled: lookup
-            .boolean(keys::BLAME_ENABLED, Scope::User)
-            .unwrap_or(defaults.is_enabled),
-        ignores_whitespace: lookup
-            .boolean(keys::BLAME_IGNORE_WHITESPACE, Scope::User)
-            .unwrap_or(defaults.ignores_whitespace),
-        is_on_every_file: lookup
-            .boolean(keys::FILE_BLAME_EVERY_FILE, Scope::User)
-            .unwrap_or(defaults.is_on_every_file),
-    }
-}
-
-/// The AI provider: `ai.provider`, `ai.endpoint`, `ai.model` and `ai.effort`, from the user's file; a provider or an
-/// effort the settings do not take is said on the settings page and counts as empty.
-fn ai_settings(lookup: &mut Lookup) -> AiSettings {
-    let mut choice = |key: &str, values: &'static [&'static str]| {
-        lookup.first((key, Scope::User), |value| {
-            let text = value
-                .as_str()
-                .ok_or(ProblemReason::WrongType { expected: "a string" })?;
-            if text.is_empty() || values.contains(&text) {
-                Ok(text.to_owned())
-            } else {
-                Err(ProblemReason::NotAChoice { choices: values })
-            }
-        })
-    };
-    let provider = choice(keys::AI_PROVIDER, &AiProvider::VALUES).and_then(|value| AiProvider::from_setting(&value));
-    let effort = choice(keys::AI_EFFORT, &Effort::VALUES).and_then(|value| Effort::from_setting(&value));
-    AiSettings {
-        provider,
-        endpoint: lookup.string(keys::AI_ENDPOINT, Scope::User).unwrap_or_default(),
-        model: lookup.string(keys::AI_MODEL, Scope::User).unwrap_or_default(),
-        effort,
+        page_size,
+        problems: lookup.into_problems(),
     }
 }
 
@@ -245,91 +122,6 @@ fn file_blame_look(lookup: &mut Lookup) -> FileBlameLook {
     }
 }
 
-/// The settings of worktrees: `worktrees.folder`, `worktrees.openIn` and `terminal.external`. The home folder of the
-/// user, for `~`, is set by the window when an operation starts, since reading the settings reads no environment.
-fn worktree_settings(lookup: &mut Lookup) -> WorktreeSettings {
-    WorktreeSettings {
-        folder: lookup
-            .string(keys::WORKTREES_FOLDER, Scope::UserAndRepository)
-            .unwrap_or_default(),
-        open_in: match lookup.choice(keys::WORKTREES_OPEN_IN, &keys::WORKTREES_OPEN_INS) {
-            Some("editor") => WorktreeOpenIn::Editor,
-            Some("terminal") => WorktreeOpenIn::Terminal,
-            _ => WorktreeOpenIn::Window,
-        },
-        terminal: lookup.string(keys::EXTERNAL_TERMINAL, Scope::User).unwrap_or_default(),
-        ..WorktreeSettings::default()
-    }
-}
-
-/// `identities`: each entry with a name and an email that are text, in order; the others are left out.
-fn identity_profiles(value: &Value) -> Result<Vec<model::contract::IdentityProfile>, ProblemReason> {
-    let entries = value
-        .as_array()
-        .ok_or(ProblemReason::WrongType { expected: "a list" })?;
-    Ok(entries
-        .iter()
-        .filter_map(|entry| {
-            let text = |key: &str| entry.get(key).and_then(Value::as_str).map(str::to_owned);
-            Some(model::contract::IdentityProfile {
-                name: text("name")?,
-                email: text("email")?,
-                signing_key: text("signingKey"),
-            })
-        })
-        .collect())
-}
-
-/// Every value the two files set, by key, the repository's first.
-fn written_values(lookup: &Lookup) -> BTreeMap<String, Vec<(SettingsFile, Value)>> {
-    let mut values: BTreeMap<String, Vec<(SettingsFile, Value)>> = BTreeMap::new();
-    let files = [
-        (SettingsFile::Repository, lookup.repository.as_ref()),
-        (SettingsFile::User, lookup.user.as_ref()),
-    ];
-    for (file, document) in files {
-        for member in document.and_then(Value::as_object).unwrap_or_default() {
-            values
-                .entry(member.name.clone())
-                .or_default()
-                .push((file, member.value.clone()));
-        }
-    }
-    values
-}
-
-/// The text of a settings file; none when it is not there, or cannot be read, which is a problem.
-fn file_text(path: &Path, file: SettingsFile, problems: &mut Vec<SettingProblem>) -> Option<String> {
-    match std::fs::read_to_string(path) {
-        Ok(text) => Some(text),
-        Err(error) if error.kind() == ErrorKind::NotFound => None,
-        Err(error) => {
-            problems.push(SettingProblem {
-                key: String::new(),
-                file,
-                reason: ProblemReason::Unreadable(error.to_string()),
-            });
-            None
-        }
-    }
-}
-
-/// The value of a file's text, or the problem of a text that is not JSON with comments.
-fn document(text: Option<&str>, file: SettingsFile) -> (Option<Value>, Option<SettingProblem>) {
-    match text.map(json::parse_with_comments) {
-        None => (None, None),
-        Some(Ok(value)) => (Some(value), None),
-        Some(Err(error)) => (
-            None,
-            Some(SettingProblem {
-                key: String::new(),
-                file,
-                reason: ProblemReason::Unreadable(error.to_string()),
-            }),
-        ),
-    }
-}
-
 /// The theme of a value of `theme`, one of [`keys::THEMES`].
 fn theme_name(value: &str) -> ThemeName {
     match value {
@@ -356,7 +148,7 @@ fn timeline_switches(lookup: &mut Lookup) -> Switches {
             switches = switches.with(switch, is_on);
         }
     }
-    if let Some(columns) = lookup.columns() {
+    if let Some(columns) = columns(lookup) {
         let names = [TimelineSwitch::Author, TimelineSwitch::Date, TimelineSwitch::Hash];
         for (name, switch) in keys::COLUMN_NAMES.iter().zip(names) {
             switches = switches.with(switch, columns.iter().any(|column| column == name));
@@ -365,128 +157,39 @@ fn timeline_switches(lookup: &mut Lookup) -> Switches {
     switches
 }
 
-/// The two files as read, and the problems found in them so far.
-struct Lookup {
-    /// The user's file, when it was read.
-    user: Option<Value>,
-    /// The repository's file, when it was read.
-    repository: Option<Value>,
-    /// The values not taken.
-    problems: Vec<SettingProblem>,
+/// `graph.columns`: the names it lists among `author`, `date` and `hash`; none, which shows all three, when it is not a
+/// list.
+fn columns(lookup: &mut Lookup) -> Option<Vec<String>> {
+    lookup.first((keys::COLUMNS, Scope::User), |value| {
+        value
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(json::Value::as_str)
+                    .map(str::to_owned)
+                    .collect()
+            })
+            .ok_or(ProblemReason::WrongType { expected: "a list" })
+    })
 }
 
-impl Lookup {
-    /// The values of a key, in the order they are tried: the repository's first for a setting it may set, then the
-    /// user's. A setting the repository may not set and does is a problem.
-    fn values(&mut self, key: &str, scope: Scope) -> Vec<(Value, SettingsFile)> {
-        let mut found = Vec::new();
-        if let Some(value) = self.repository.as_ref().and_then(|document| document.get(key)) {
-            match scope {
-                Scope::UserAndRepository => found.push((value.clone(), SettingsFile::Repository)),
-                Scope::User => self.problem(key, SettingsFile::Repository, ProblemReason::UserOnly),
-            }
+/// `font.size`, a number within [`keys::FONT_SIZES`].
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "the size is within 8 and 24 once checked, which an f32 holds exactly enough"
+)]
+fn font_size(lookup: &mut Lookup) -> Option<f32> {
+    let (least, most) = keys::FONT_SIZES;
+    lookup.first((keys::FONT_SIZE_KEY, Scope::User), |value| {
+        let size = value
+            .as_number()
+            .and_then(json::Number::as_f64)
+            .ok_or(ProblemReason::WrongType { expected: "a number" })?;
+        if (least..=most).contains(&size) {
+            Ok(size as f32)
+        } else {
+            Err(ProblemReason::OutOfRange { least, most })
         }
-        if let Some(value) = self.user.as_ref().and_then(|document| document.get(key)) {
-            found.push((value.clone(), SettingsFile::User));
-        }
-        found
-    }
-
-    /// Notes a value not taken.
-    fn problem(&mut self, key: &str, file: SettingsFile, reason: ProblemReason) {
-        self.problems.push(SettingProblem {
-            key: key.to_owned(),
-            file,
-            reason,
-        });
-    }
-
-    /// The first value of a key that a test takes, the others noted as problems with the reason it gives.
-    fn first<T>(
-        &mut self,
-        (key, scope): (&str, Scope),
-        take: impl Fn(&Value) -> Result<T, ProblemReason>,
-    ) -> Option<T> {
-        for (value, file) in self.values(key, scope) {
-            match take(&value) {
-                Ok(taken) => return Some(taken),
-                Err(reason) => self.problem(key, file, reason),
-            }
-        }
-        None
-    }
-
-    /// A string.
-    fn string(&mut self, key: &str, scope: Scope) -> Option<String> {
-        self.first((key, scope), |value| {
-            value
-                .as_str()
-                .map(str::to_owned)
-                .ok_or(ProblemReason::WrongType { expected: "a string" })
-        })
-    }
-
-    /// One of some choices, which the user's file sets.
-    fn choice(&mut self, key: &str, choices: &'static [&'static str]) -> Option<&'static str> {
-        self.first((key, Scope::User), |value| {
-            let text = value
-                .as_str()
-                .ok_or(ProblemReason::WrongType { expected: "a string" })?;
-            choices
-                .iter()
-                .find(|choice| **choice == text)
-                .copied()
-                .ok_or(ProblemReason::NotAChoice { choices })
-        })
-    }
-
-    /// `graph.columns`: the names it lists among `author`, `date` and `hash`; none, which shows all three, when it is
-    /// not a list.
-    fn columns(&mut self) -> Option<Vec<String>> {
-        self.first((keys::COLUMNS, Scope::User), |value| {
-            value
-                .as_array()
-                .map(|items| items.iter().filter_map(Value::as_str).map(str::to_owned).collect())
-                .ok_or(ProblemReason::WrongType { expected: "a list" })
-        })
-    }
-
-    /// A boolean.
-    fn boolean(&mut self, key: &str, scope: Scope) -> Option<bool> {
-        self.first((key, scope), |value| {
-            value.as_bool().ok_or(ProblemReason::WrongType {
-                expected: "true or false",
-            })
-        })
-    }
-
-    /// A number.
-    fn number(&mut self, key: &str, scope: Scope) -> Option<f64> {
-        self.first((key, scope), |value| {
-            value
-                .as_number()
-                .and_then(json::Number::as_f64)
-                .ok_or(ProblemReason::WrongType { expected: "a number" })
-        })
-    }
-
-    /// `font.size`, a number within [`keys::FONT_SIZES`].
-    #[allow(
-        clippy::cast_possible_truncation,
-        reason = "the size is within 8 and 24 once checked, which an f32 holds exactly enough"
-    )]
-    fn font_size(&mut self) -> Option<f32> {
-        let (least, most) = keys::FONT_SIZES;
-        self.first((keys::FONT_SIZE_KEY, Scope::User), |value| {
-            let size = value
-                .as_number()
-                .and_then(json::Number::as_f64)
-                .ok_or(ProblemReason::WrongType { expected: "a number" })?;
-            if (least..=most).contains(&size) {
-                Ok(size as f32)
-            } else {
-                Err(ProblemReason::OutOfRange { least, most })
-            }
-        })
-    }
+    })
 }

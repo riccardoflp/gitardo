@@ -1,0 +1,14 @@
+[package]
+name = "settings"
+description = "The settings of Gitardo: where their files are, their keys, and what the features read of them, for the window and for the engine."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+json = { path = "../json" }
+model = { path = "../model" }
+
+[lints]
+workspace = true

@@ -3,7 +3,7 @@
 
 /// `theme`.
 pub const THEME: &str = "theme";
-/// The values `theme` takes, in the order of [`render::ThemeName`]'s themes: the system's first.
+/// The values `theme` takes, in the order of the themes of `render`: the system's first.
 pub const THEMES: [&str; 5] = ["system", "dark", "light", "highContrastDark", "highContrastLight"];
 /// `font.ui`.
 pub const FONT_INTERFACE: &str = "font.ui";
