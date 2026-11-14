@@ -186,27 +186,23 @@ fn changes_pane__save_all_is_on_the_header_only_while_a_file_has_edits_not_saved
 #[test]
 fn changes_unsaved__a_file_changed_for_git_with_edits_not_saved_has_a_dot_after_its_name_and_save() {
     let repository = committed();
-    std::fs::write(repository.path().join("a.txt"), "a, changed on disk
-").unwrap();
-    let (state, _driver) = edited(&repository, &[("a.txt", "a, typed
-")]);
+    std::fs::write(repository.path().join("a.txt"), "a, changed on disk\n").unwrap();
+    let (state, _driver) = edited(&repository, &[("a.txt", "a, typed\n")]);
     let tree = drawn(&state);
     assert!(says(&tree, views::text::changes::UNSAVED), "the dot");
     assert!(has(&tree, Role::Button, "Save"));
-    assert!(!find(&tree, Role::CheckBox, "a.txt").is_disabled(), "changed for git, it can be staged");
+    let can_be_staged = !find(&tree, Role::CheckBox, "a.txt").is_disabled();
+    assert!(can_be_staged, "changed for git, it can be staged");
 }
 
 #[test]
 fn changes_unsaved__a_file_git_ignores_is_left_out_and_one_it_does_not_is_listed() {
     let mut repository = committed();
-    let _ = repository.commit("Ignore the build", &[(".gitignore", "build/
-")]);
+    let _ = repository.commit("Ignore the build", &[(".gitignore", "build/\n")]);
     std::fs::create_dir_all(repository.path().join("build")).unwrap();
-    std::fs::write(repository.path().join("build/out.txt"), "out
-").unwrap();
-    let (state, _driver) = edited(&repository, &[("build/out.txt", "typed
-"), ("b.txt", "b, typed
-")]);
+    std::fs::write(repository.path().join("build/out.txt"), "out\n").unwrap();
+    let typed = [("build/out.txt", "typed\n"), ("b.txt", "b, typed\n")];
+    let (state, _driver) = edited(&repository, &typed);
     let tree = drawn(&state);
     assert!(has(&tree, Role::CheckBox, "b.txt"));
     assert!(!has(&tree, Role::CheckBox, "build/out.txt"));
