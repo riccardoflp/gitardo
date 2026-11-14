@@ -383,7 +383,7 @@ Deletes a local branch, after saying whether its commits are merged, so that non
 - **Reads**: whether its commits are merged: `git merge-base --is-ancestor refs/heads/<name> <into>`, where `<into>` is
   its upstream, `refs/remotes/<upstream>`, when it has one that is not gone, and `HEAD` otherwise. Code 0 is merged.
 - **Plan**: merged, `git branch -d <name>`; not merged, `git branch -D <name>`. When `git branch -d` still refuses with
-  "not fully merged", the plan with `-D` is offered, and asked, as any plan is.
+  "not fully merged", **Delete anyway** offers the plan with `-D`, which is asked, as any plan is.
 - **Danger**: merged, Confirm, saying "Its commits are merged, so none is lost. Undo brings the branch back."; not
   merged, Destructive, because "This branch is not fully merged. Commits that are only on it will no longer be reachable
   from any branch."
@@ -399,6 +399,8 @@ Acceptance:
 - [ ] Undo right after runs `git branch <name> <hash>` and the branch is back at the same commit.
 - [ ] After another commit, Undo takes back that commit instead.
 - [ ] The branch checked out has no **Delete** entry.
+- [ ] When `git branch -d` says the branch is not fully merged, **Delete anyway** is offered and plans
+      `git branch -D <name>` with the warning.
 
 ### `branch.clean-up` — Clean up branches
 

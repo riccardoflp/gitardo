@@ -2,16 +2,23 @@
 //! knowing.
 
 use model::branch::other_worktree;
-use model::contract::{AnswerKey, Answers, Context, Danger, Outcome, Plan, Query, Step, Text, Undo, UndoRecord};
+use model::contract::{
+    Answer, AnswerKey, Answers, Context, Danger, FeatureId, FollowUp, OfferedRun, Outcome, Plan, Query, Step, Target,
+    Text, Undo, UndoRecord,
+};
 
 use super::target::{local_branch, refuse};
 
 /// Whether the commits of the branch are merged into its upstream, or into `HEAD` when it has none.
 pub const MERGED: AnswerKey = AnswerKey("merged");
 
+/// What git says when `git branch -d` keeps a branch whose commits it finds unmerged.
+const NOT_MERGED_SAID: &str = "not fully merged";
+
 /// Deletes the local branch it was invoked on: with `git branch -d` when its commits are merged into its upstream, or
 /// into `HEAD` when it has none, after a confirmation; with `git branch -D` otherwise, after a warning. Gitardo keeps
-/// the branch and its commit, so that Undo right after creates it again.
+/// the branch and its commit, so that Undo right after creates it again. When git still keeps the branch, saying it is
+/// not fully merged, **Delete anyway** offers the plan with `-D`.
 ///
 /// Feature: branch.delete
 #[must_use]
@@ -61,8 +68,20 @@ pub fn delete(context: &Context, answers: &Answers) -> Outcome {
             commit: branch.commit.clone(),
         }),
         after: Vec::new(),
-        on_failure: Vec::new(),
+        on_failure: if is_merged { delete_anyway(name) } else { Vec::new() },
     })
+}
+
+/// **Delete anyway**, offered when `git branch -d` keeps the branch because it is not fully merged: the same feature,
+/// told the branch is not merged, so that it plans `git branch -D` with its warning.
+fn delete_anyway(name: &str) -> Vec<FollowUp> {
+    vec![FollowUp::OfferRun(Box::new(OfferedRun {
+        label: Text::from("Delete anyway"),
+        feature: FeatureId("branch.delete"),
+        target: Target::Branch(name.to_owned()),
+        answers: Answers::new().with(MERGED, Answer::Flag(false)),
+        when_said: vec![NOT_MERGED_SAID.to_owned()],
+    }))]
 }
 
 #[cfg(test)]
@@ -70,7 +89,7 @@ pub fn delete(context: &Context, answers: &Answers) -> Outcome {
 mod tests {
     use super::{MERGED, delete};
     use crate::testing::{branch, commit, context, lines, plan, state};
-    use model::contract::{Answer, Answers, Danger, Outcome, Query, Target, Undo, UndoRecord};
+    use model::contract::{Answer, Answers, Danger, FollowUp, Outcome, Query, Target, Undo, UndoRecord};
     use model::state::Upstream;
 
     fn on_old(has_upstream: bool) -> model::contract::Context {
@@ -120,6 +139,20 @@ mod tests {
         let plan = plan(delete(&context, &Answers::new().with(MERGED, Answer::Flag(false))));
         assert_eq!(lines(&plan), ["git branch -D old"]);
         assert!(matches!(plan.danger, Danger::Destructive(_)));
+    }
+
+    #[test]
+    fn branch_delete__when_git_still_finds_it_not_fully_merged_delete_anyway_offers_capital_d() {
+        let context = on_old(true);
+        let merged = plan(delete(&context, &Answers::new().with(MERGED, Answer::Flag(true))));
+        let [FollowUp::OfferRun(offered)] = merged.on_failure.as_slice() else {
+            panic!("Delete anyway is offered: {:?}", merged.on_failure)
+        };
+        assert_eq!(offered.label.as_str(), "Delete anyway");
+        assert_eq!(offered.when_said, ["not fully merged"]);
+        let again = plan(delete(&context, &offered.answers));
+        assert_eq!(lines(&again), ["git branch -D old"]);
+        assert!(again.on_failure.is_empty(), "-D has nothing to fall back to");
     }
 
     #[test]
