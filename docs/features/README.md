@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo Desktop, one card each, 409 in all. A card says what the feature does from the user's side,
+Every feature of Gitardo Desktop, one card each, 412 in all. A card says what the feature does from the user's side,
 which function it is, what it asks, what it runs, how it is undone, and what has to be true for it to be done. The
 template and the rules of the cards are in [04-feature-contract.md](../04-feature-contract.md).
 
@@ -18,7 +18,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 36 |
 | [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 30 |
 | [08-stashes.md](08-stashes.md) | Stashes | 14 |
-| [09-conflicts.md](09-conflicts.md) | Conflicts | 35 |
+| [09-conflicts.md](09-conflicts.md) | Conflicts | 38 |
 | [10-compare.md](10-compare.md) | Compare | 24 |
 | [11-history-and-blame.md](11-history-and-blame.md) | History and blame | 30 |
 | [12-worktrees.md](12-worktrees.md) | Worktrees | 45 |
