@@ -99,6 +99,10 @@ The platform layer for X11 and Wayland. Nothing above `platform` changes; the ap
 
 The platform layer for AppKit. Nothing above `platform` changes; the application tests run on each.
 
+Written, and checked by clippy for `aarch64-apple-darwin` from Linux: `platform` and every crate but `tls`, `http`,
+`engine` and `app`, whose `ring` needs the C compiler of Apple to be built. Nothing of it has run yet. The milestone is
+done once `cargo xtask check` passes on a Mac ([Q369](08-decisions.md#open-questions)).
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

@@ -9,13 +9,15 @@ use std::thread::{self, JoinHandle};
 use crate::error::PlatformError;
 
 /// How often the thread of a folder looks whether it is to stop, in milliseconds.
-#[cfg(any(windows, target_os = "linux"))]
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
 const STOP_CHECK: u32 = 100;
 
 // The folder watched, as the system of the program watches it: with `ReadDirectoryChangesW` on Windows, with inotify
-// on Linux.
+// on Linux, with `FSEvents` on macOS.
 #[cfg(target_os = "linux")]
 use crate::linux::DirectoryWatch;
+#[cfg(target_os = "macos")]
+use crate::macos::DirectoryWatch;
 #[cfg(windows)]
 use crate::windows::DirectoryWatch;
 
@@ -90,13 +92,13 @@ impl Drop for Watcher {
 }
 
 /// Opens a folder to watch it.
-#[cfg(any(windows, target_os = "linux"))]
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
 fn open(folder: &std::path::Path) -> Result<DirectoryWatch, PlatformError> {
     DirectoryWatch::open(folder)
 }
 
 /// What the thread of a folder does until it is to stop or the folder is gone.
-#[cfg(any(windows, target_os = "linux"))]
+#[cfg(any(windows, target_os = "linux", target_os = "macos"))]
 fn run(mut watch: DirectoryWatch, folder: &std::path::Path, stop: &AtomicBool, deliver: &WatchDeliver) {
     while !stop.load(Ordering::SeqCst) {
         match watch.wait(STOP_CHECK) {
@@ -116,14 +118,14 @@ fn run(mut watch: DirectoryWatch, folder: &std::path::Path, stop: &AtomicBool, d
     }
 }
 
-/// Watching folders is written for Windows and Linux only so far.
-#[cfg(not(any(windows, target_os = "linux")))]
+/// Watching folders is written for Windows, Linux and macOS only.
+#[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
 fn open(_folder: &std::path::Path) -> Result<(), PlatformError> {
     Err(PlatformError::Unsupported {
         what: "watch folders for changes yet",
     })
 }
 
-/// Watching folders is written for Windows and Linux only so far.
-#[cfg(not(any(windows, target_os = "linux")))]
+/// Watching folders is written for Windows, Linux and macOS only.
+#[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
 fn run(_watch: (), _folder: &std::path::Path, _stop: &AtomicBool, _deliver: &WatchDeliver) {}

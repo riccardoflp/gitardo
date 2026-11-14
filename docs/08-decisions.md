@@ -1888,3 +1888,36 @@ From the slice of the trusted folders, which answers Q348 and builds `trust.is-t
 - **Q368** — `gitardo-cli` is given no trust, so in a folder with commands it asks **Run the commands for new
   worktrees?**, answered with `trust-folder=trust` or `trust-folder=not-now` like any question, and prints
   `Trust <folder>` for the follow-up without keeping it. Right?
+
+From milestone M11 (macOS):
+
+- **Q369** — The macOS part of `platform` is written without a Mac: it is checked by `cargo fmt` and by clippy with
+  `-D warnings` for `aarch64-apple-darwin`, from Linux, over `platform` and every crate that does not need `ring`
+  (all but `tls`, `http`, `engine` and `app`, whose build compiles C with the compiler of Apple). None of it has run,
+  its own tests included, and nothing links it. The roadmap keeps M11 open until `cargo xtask check` passes on a Mac.
+  Should the code stay on the branch until then, or wait for a Mac to be written against?
+- **Q370** — As on Linux, the libraries of the system are declared by hand, one file each: `CoreFoundation` (strings,
+  arrays, dictionaries, bytes, `CFRelease`), `CoreServices` (`FSEvents`), `Security` (the keychain), `libobjc` (with
+  `AppKit` linked for its classes) and `libSystem` (`localtime_r`, the queues of `libdispatch`). The `objc2` crates are
+  in the build already, through `winit`, `arboard` and `rfd`, but are not used directly. Should `platform` take
+  `objc2-app-kit` and `objc2-core-foundation` instead ([D20](#d20--libraries-where-they-serve))?
+- **Q371** — Watching files: one stream of `FSEvents` per folder, each file said (`FileEvents`), a change alone said at
+  once (`NoDefer`), with a latency of 50 ms, on a queue of `libdispatch` of its own whose callback sends the changes to
+  the thread of the folder. The stream keeps what it sends to through its `retain` and `release`, so that a callback
+  late after the watcher is dropped sends into nothing. A folder whose times alone changed is left out, as Q103 says.
+  The paths start with the folder as the system writes it (`/private/var` for `/var`), and are given back from the
+  folder asked. Is a stream per folder right, rather than one stream for every folder of the window?
+- **Q372** — Credentials: a generic password of the keychain of the user, of the service `Gitardo Desktop`, whose
+  account is the name of the secret; writing updates the item, and adds it when there is none. macOS asks the user
+  whether a program may read an item that another program, or another build of the same one, wrote: a build that is
+  not signed may be asked about on each new build. The program is a plain binary: no `.app` bundle, `Info.plist`, icon
+  or signature is made. Should packaging for macOS come with this milestone or with the first release there?
+- **Q373** — High contrast is `accessibilityDisplayShouldIncreaseContrast` of `NSWorkspace`, read at each focus as on
+  the other systems; the time of a double click is `doubleClickInterval` of `NSEvent`, read once (500 ms when it says
+  nothing usable between 1 and 5000 ms); a notch of the wheel is 3 lines, as on Linux. Opening an address runs `open`,
+  with a thread that waits for it, the same code as `xdg-open` on Linux now. Revealing, the terminal and the external
+  editor are unchanged above `platform`. Is that enough?
+- **Q374** — Tests: the tests of the clipboard and of watching folders run on macOS too; those that open windows
+  (`platform/tests/window.rs`, `app/tests/demo`) do not, since `AppKit` runs the event loop on the first thread of the
+  program only, and the tests of Rust run on threads of their own. Should those run on macOS in a test binary of their
+  own without the harness (`harness = false`), whose `main` runs them on the first thread?

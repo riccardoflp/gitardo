@@ -11,8 +11,11 @@
 //! [`Window::present`].
 
 #![allow(unsafe_code)]
-// Until macOS has its part, what only the parts for Windows and Linux use is unused there.
-#![cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code, unused_imports))]
+// On a system without a part of its own, what only the parts of Windows, Linux and macOS use is unused.
+#![cfg_attr(
+    not(any(windows, target_os = "linux", target_os = "macos")),
+    allow(dead_code, unused_imports)
+)]
 
 mod accessibility;
 mod click;
@@ -28,6 +31,8 @@ mod input;
 mod links;
 #[cfg(target_os = "linux")]
 mod linux;
+#[cfg(target_os = "macos")]
+mod macos;
 mod mailbox;
 mod present;
 mod shell;

@@ -80,14 +80,21 @@ Windows are, and nothing else is linked.
 
 ## macOS
 
-The minimum is macOS 12.
+The minimum is macOS 12. What the libraries do not cover is in `crates/platform/src/macos/`, one file for each library
+of the system it declares by hand (`CoreFoundation`, `CoreServices`, `Security`, `libobjc`, `libSystem`), as on the
+other systems.
 
 | Need | Calls |
 | --- | --- |
-| High contrast | `NSWorkspace accessibilityDisplayShouldIncreaseContrast`, through the Objective-C runtime (`libobjc`). |
-| Watching files | `CoreServices`: `FSEventStreamCreate` on the repository. |
+| High contrast | `[[NSWorkspace sharedWorkspace] accessibilityDisplayShouldIncreaseContrast]`, through the Objective-C runtime (`objc_getClass`, `sel_registerName`, `objc_msgSend`). Read again whenever a window gets the keyboard back, as on the other systems. |
+| Double click | `[NSEvent doubleClickInterval]`, read once; 500 ms when it says nothing usable. The distance is the usual 4 pixels, at the scale of the window. |
+| Watching files | `CoreServices`: `FSEventStreamCreate` on each folder, with `kFSEventStreamCreateFlagFileEvents`, `NoDefer` and `WatchRoot`, a latency of 50 ms, on a queue of its own (`dispatch_queue_create`, `FSEventStreamSetDispatchQueue`). The paths are said from the folder as the system writes it, with its links resolved; changes lost (`MustScanSubDirs`, `UserDropped`, `KernelDropped`) are an overflow, and `RootChanged` says the folder is gone. |
+| Links | `std::os::unix::fs::symlink`. |
+| Local time | `localtime_r` of the C library, whose `tm_gmtoff` is how far the local time is from UTC. |
 | Open, reveal | `open` and `open -R` run as a process. |
-| Credentials | `Security`: `SecItemAdd`, `SecItemCopyMatching`, `SecItemDelete` with `kSecClassGenericPassword`. |
+| Credentials | `Security`: `SecItemCopyMatching`, `SecItemUpdate`, `SecItemAdd`, `SecItemDelete` with `kSecClassGenericPassword`, the service `Gitardo Desktop` and the name of the secret as the account. |
+| Clipboard, file dialogs | `arboard` and `rfd`, through `AppKit`. |
+| Terminal, external editor | The terminal is `Terminal.app` opened on the folder (`open -a Terminal`), unless `terminal.external` says another; the editor is `editor.external`. |
 
 ## Text
 

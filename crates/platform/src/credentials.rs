@@ -1,7 +1,7 @@
 //! Secrets kept in the credential store of the system, by name: the GitHub token, the key of the AI provider.
 //! Windows keeps them as generic credentials named `Gitardo Desktop/<name>`; Linux, until Gitardo speaks to the
-//! Secret Service, in a file of the user's configuration folder only the user may read; macOS comes with its milestone
-//! (`docs/05-platform.md`, Credentials).
+//! Secret Service, in a file of the user's configuration folder only the user may read; macOS as generic passwords of
+//! the keychain, of the service `Gitardo Desktop` (`docs/05-platform.md`, Credentials).
 
 use crate::error::PlatformError;
 
@@ -15,7 +15,9 @@ pub fn read_secret(name: &str) -> Result<Option<String>, PlatformError> {
     return crate::windows::read_secret(name);
     #[cfg(target_os = "linux")]
     return crate::linux::read_secret(name);
-    #[cfg(not(any(windows, target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    return crate::macos::read_secret(name);
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     return Err(unsupported(name.is_empty()));
 }
 
@@ -29,7 +31,9 @@ pub fn write_secret(name: &str, secret: &str) -> Result<(), PlatformError> {
     return crate::windows::write_secret(name, secret);
     #[cfg(target_os = "linux")]
     return crate::linux::write_secret(name, secret);
-    #[cfg(not(any(windows, target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    return crate::macos::write_secret(name, secret);
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     return Err(unsupported(name.is_empty() || secret.is_empty()));
 }
 
@@ -43,12 +47,14 @@ pub fn delete_secret(name: &str) -> Result<(), PlatformError> {
     return crate::windows::delete_secret(name);
     #[cfg(target_os = "linux")]
     return crate::linux::delete_secret(name);
-    #[cfg(not(any(windows, target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    return crate::macos::delete_secret(name);
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     return Err(unsupported(name.is_empty()));
 }
 
 /// What a system without a credential store Gitardo speaks to says; what was asked does not change it.
-#[cfg(not(any(windows, target_os = "linux")))]
+#[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
 fn unsupported(_asked: bool) -> PlatformError {
     PlatformError::Unsupported {
         what: "keep secrets in its credential store yet",

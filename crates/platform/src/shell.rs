@@ -11,15 +11,27 @@ use crate::error::PlatformError;
 pub fn open_url(url: &str) -> Result<(), PlatformError> {
     #[cfg(windows)]
     return crate::windows::open_url(url);
-    #[cfg(target_os = "linux")]
-    return crate::linux::open_url(url);
-    #[cfg(not(any(windows, target_os = "linux")))]
-    {
-        let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
-        return std::process::Command::new(opener)
-            .arg(url)
-            .spawn()
-            .map(drop)
-            .map_err(|error| PlatformError::system("open", &error));
-    }
+    #[cfg(target_os = "macos")]
+    return open_with("open", url);
+    #[cfg(not(any(windows, target_os = "macos")))]
+    return open_with("xdg-open", url);
+}
+
+/// Opens an address with a program that hands it to the browser the desktop has for it. The program ends once it
+/// handed the address over; a thread waits for it, so that it does not stay behind as a process that ended unseen.
+#[cfg(not(windows))]
+fn open_with(opener: &'static str, url: &str) -> Result<(), PlatformError> {
+    use std::process::{Command, Stdio};
+    let mut opening = Command::new(opener)
+        .arg(url)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| PlatformError::system(opener, &error))?;
+    let _waiting = std::thread::Builder::new()
+        .name(String::from(opener))
+        .spawn(move || opening.wait())
+        .map_err(|error| PlatformError::system(opener, &error))?;
+    Ok(())
 }

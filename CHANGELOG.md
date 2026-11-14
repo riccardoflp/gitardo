@@ -41,6 +41,9 @@
   settings, folders watched with inotify, addresses opened with `xdg-open`, and the GitHub token and the key of the AI
   provider kept in a file of the configuration folder that only the user may read, until Gitardo speaks to the Secret
   Service. `${date}` in the names of new branches is in the local time there too.
+- macOS, written but not yet run on a Mac: high contrast and the time of a double click read from `AppKit`, folders
+  watched with `FSEvents`, addresses opened with `open`, the GitHub token and the key of the AI provider kept in the
+  keychain, and `${date}` in the names of new branches in the local time.
 - The **…** menu of the header is in the groups of its card, with **Compare branches, tags or commits…** and
   **Switch identity…** in a group of its own.
 - The documents to build Gitardo Desktop from: the clean room, the product, the architecture, the code rules, the

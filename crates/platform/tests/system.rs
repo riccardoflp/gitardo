@@ -2,7 +2,7 @@
 
 // The helpers of these tests fail as the tests do, loudly: clippy allows them what it allows tests.
 #![cfg(test)]
-#![cfg(any(windows, target_os = "linux"))]
+#![cfg(any(windows, target_os = "linux", target_os = "macos"))]
 
 use platform::Clipboard;
 
