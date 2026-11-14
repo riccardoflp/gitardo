@@ -1620,10 +1620,10 @@ From the cards left over up to M8 (each built with the reading given, until the 
   tested by the pixels of the edges of the lines. Is a label for each line and each number right for a screen reader,
   or should a column be one text whose value is its lines?
 
-From the slice of the setup page and of comparing a path (`Q-S`), each built with the reading given until it is
+From the slice of the setup page and of comparing a path, each built with the reading given until it is
 answered:
 
-- **Q-S1** — `details.compare-file-with` is built. The menus give the file and its list as a new target,
+- **Q322** — `details.compare-file-with` is built. The menus give the file and its list as a new target,
   `Target::ListedFile` (the files of a commit, named by its short hash, with its first parent; of a comparison, with
   its two sides; or the uncommitted changes), and the operation opens the Diff page through a new follow-up,
   `FollowUp::OpenFileDiff`, with the two sides and the path. The file is compared under its path on its own side on
@@ -1631,13 +1631,13 @@ answered:
   with**, which the card does not give; a file a root commit deleted, which has no version, is refused with
   **`<name>` has no version to compare here.** The sides of the comparison in the inspector are fixed at their
   commits, named as it names them. The untracked files of a stash are taken from its third parent. Are these right?
-- **Q-S2** — `compare.path-with` is built (Q241, Q252): run on a file or a folder of another repository of the
+- **Q323** — `compare.path-with` is built (Q241, Q252): run on a file or a folder of another repository of the
   workspace, the window first shows that repository, as choosing it in the list of repositories does (the page shown is
   put away), and the operation runs once it is read, its choices those of that repository; the innermost repository
   holds a path inside two. Only this operation switches so; the Files page still lists only the repository shown, so
   the switch is reached from operations given such a path. Should the history of a file (`file-history.file`) switch
   in the same way?
-- **Q-S3** — `worktree-setup.page` is built, as the page `Page::NewWorktrees`. It is not an operation of the
+- **Q324** — `worktree-setup.page` is built, as the page `Page::NewWorktrees`. It is not an operation of the
   catalog: the store opens it when an entry runs `worktree-setup.page` (the offer after the first worktree, the
   message of the Files page entries, the entry of the Worktrees list) and from Quick search. The sections opened or
   closed by hand are kept for each worktree while the window is open, not in `state.json`; changes not saved are
@@ -1647,7 +1647,7 @@ answered:
   set says **Linked now: nothing**, without **from nothing**. **Bring into the other worktrees** is shown disabled
   while there is no other worktree, and named so. The places of an unfolded name are all listed: only a section stops
   at 200 lines. Are these right?
-- **Q-S4** — `worktree-setup.command-steps` is left Specified. Its plan steps are built and tested, but four of its
+- **Q325** — `worktree-setup.command-steps` is left Specified. Its plan steps are built and tested, but four of its
   five acceptance lines need **Tasks** in the Activity drawer, which Q100 left out: the engine runs a `Run` step with no
   input and drops what it prints, so a command cannot be watched or answered, and nothing yet waits for the last
   command before **Open in worktree**. Building it means a column of tasks in the drawer, a command run with its output
