@@ -1842,3 +1842,7 @@ From milestone M10 (Linux):
   `gallery-high-contrast-dark`, `gallery-light-2x`, `gallery-dark-2x`, `gallery-over-light`, `activity-dark-2x`,
   `confirmation-dark-2x`, `dialog-dark-2x`, `drag-dark-2x`, `find-dark-2x`, `menu-dark-2x`, `picker-dark-2x`,
   `pull-dark-2x`. Is growing the area right, rather than turning the curves into lines in `render` before filling?
+- **Q-L11** — `platform::utc_offset`, which came with `branch.name-from-format` while this slice was built, has a
+  Windows part only: on Linux `${date}` in the names of new branches is counted in UTC, as Q333 says for every other
+  system. The Linux part would declare `localtime_r` of the C library and read `tm_gmtoff`, the same on glibc and musl.
+  Should it be built in a slice of its own?
