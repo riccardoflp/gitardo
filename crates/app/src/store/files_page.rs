@@ -102,6 +102,17 @@ fn cancel(state: &mut State) -> Vec<Effect> {
     vec![Effect::Cancel(job)]
 }
 
+/// Takes what a read of the Files page, or of the page of new worktrees, gives.
+pub(super) fn read(state: &mut State, message: super::message::Message) -> Vec<Effect> {
+    match message {
+        super::message::Message::FilesRead { job, result } => files_read(state, job, result),
+        super::message::Message::NewWorktreesRead { job, result } => {
+            super::new_worktrees::setup_read(state, job, *result)
+        }
+        _ => Vec::new(),
+    }
+}
+
 /// Takes the files listed.
 pub fn files_read(state: &mut State, job: JobId, result: Result<Vec<String>, String>) -> Vec<Effect> {
     let _finished = state.jobs.remove(&job);
