@@ -6,6 +6,7 @@
 //! sight; both sides are drawn in the same rows, so they scroll together.
 
 mod bar;
+mod caret;
 mod columns;
 mod data;
 mod edit;
