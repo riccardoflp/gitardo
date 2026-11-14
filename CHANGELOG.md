@@ -361,3 +361,6 @@
   are saved, with **Bring into the other worktrees**, **Remove from…** and **Edit in settings file**.
 - **History of the active file** in **…** shows the history of the file of the File page in front. **Fold all
   merges** and **Unfold all merges** leave **…** while what a search finds is shown as a list.
+- **Open on GitHub** in the comparison page, when the main remote is on GitHub and neither side is the working tree,
+  opens the same comparison on github.com: a branch by the name of its upstream there, a tag by its name, anything
+  else by its full hash, with `..` for **Everything that differs**.

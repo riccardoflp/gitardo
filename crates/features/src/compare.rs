@@ -5,6 +5,7 @@
 mod choose;
 mod copy_patch;
 mod in_place;
+mod open_on_github;
 mod path_with;
 mod take_file;
 mod with;
@@ -12,6 +13,7 @@ mod with;
 pub use choose::choose;
 pub use copy_patch::copy_patch;
 pub use in_place::{selected_before, with_current};
+pub use open_on_github::open_on_github;
 pub use path_with::path_with;
 pub use take_file::take_file;
 pub use with::{change_side, with};

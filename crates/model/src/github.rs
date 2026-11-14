@@ -6,7 +6,7 @@ mod link;
 mod offer;
 mod pulls;
 
-pub use link::{BranchOf, PullLink, PullLinkInput, PullLinkKind, pull_request_link};
+pub use link::{BranchOf, ComparedOnGitHub, PullLink, PullLinkInput, PullLinkKind, comparison_url, pull_request_link};
 pub use offer::{Notice, PushOutcome, offer_after_push};
 pub use pulls::{Checks, HelperAsked, PullRequest, PullRequests, Token};
 
@@ -27,11 +27,16 @@ pub struct GitHubRepo {
 /// Feature: github.detect-remote
 #[must_use]
 pub fn detect_remote(remotes: &[Remote]) -> Option<GitHubRepo> {
-    let main = remotes
+    on_github(main_remote(remotes)?.url.trim())
+}
+
+/// The main remote of a repository: `origin` when there is one, otherwise the first remote listed.
+#[must_use]
+pub fn main_remote(remotes: &[Remote]) -> Option<&Remote> {
+    remotes
         .iter()
         .find(|remote| remote.name == "origin")
-        .or_else(|| remotes.first())?;
-    on_github(main.url.trim())
+        .or_else(|| remotes.first())
 }
 
 /// The owner and the repository of a URL on github.com: `https://github.com/<owner>/<repo>`, with `http`, with a user

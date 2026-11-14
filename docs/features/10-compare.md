@@ -479,11 +479,15 @@ Opens the same comparison on github.com, each side by the name it has there.
 - **Entry points**: **Open on GitHub** in the comparison page (**Compare the two on GitHub, once they are pushed**).
 - **Offered when**: the main remote of the repository is on github.com, neither side is the working tree, and the two
   are not the same commit.
+- **Reads**: the remotes with their URLs (`remote.read-remotes`), for the repository on GitHub of the main remote
+  (`github.detect-remote`) and the name of that remote.
 - **Plan**: no step; it changes nothing.
 - **Danger**: None
 - **Undo**: nothing to undo: it changes nothing.
 - **After**: opens `https://github.com/<owner>/<repository>/compare/<first>...<second>` in the browser of the system,
   with `..` in place of `...` in **Everything that differs**; each part of a name between `/` is encoded for a URL.
+- **Refuses**: when it is not offered: *GitHub does not have the working tree: compare two commits that are pushed.*,
+  *The two sides are the same commit.*, *The main remote of this repository is not on github.com.*
 
 How each side is named there: a followed local branch by the branch of its upstream when that upstream is on the GitHub
 remote and not gone, else by its commit; a followed remote branch of the GitHub remote by its name without the remote;

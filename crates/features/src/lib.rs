@@ -151,6 +151,7 @@ pub const OPERATIONS: [(FeatureId, Operation); 155] = [
     (FeatureId("compare.change-side"), compare::change_side),
     (FeatureId("compare.choose"), compare::choose),
     (FeatureId("compare.copy-patch"), compare::copy_patch),
+    (FeatureId("compare.open-on-github"), compare::open_on_github),
     (FeatureId("compare.path-with"), compare::path_with),
     (FeatureId("compare.selected-before"), compare::selected_before),
     (FeatureId("compare.take-file"), compare::take_file),

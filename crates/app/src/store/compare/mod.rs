@@ -315,5 +315,11 @@ pub fn page_state(state: &State, id: ComparePageId) -> Option<CompareState<'_>> 
         whole_counts: page.target.path.as_ref().and(page.whole),
         is_all_commits_shown: page.is_all_commits_shown,
         now: state.timeline.read_at,
+        is_on_github: state.github.repository.is_some()
+            && state
+                .github
+                .folder
+                .as_ref()
+                .is_some_and(|folder| same_folder(folder, &page.folder)),
     })
 }

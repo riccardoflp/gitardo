@@ -305,3 +305,38 @@ fn compare_in_place__asked_from_the_branch_rail_the_comparison_shows_in_the_insp
     assert_eq!(state.page_shown(), None);
     assert!(has(&drawn(&state), Role::Button, "Close the comparison"));
 }
+
+#[test]
+fn compare_open_on_github__the_button_of_main_and_feature_tracking_origin_on_github_opens_main_three_dots_feature() {
+    let repository = repository();
+    let _ = repository.git(&["remote", "add", "origin", "https://github.com/owner/app.git"]);
+    for branch in ["main", "feature"] {
+        let _ = repository.git(&["update-ref", &format!("refs/remotes/origin/{branch}"), branch]);
+        let _ = repository.git(&["branch", &format!("--set-upstream-to=origin/{branch}"), branch]);
+    }
+    let (mut state, driver) = compared(&repository, ("ref:main", "ref:feature"));
+    assert!(
+        !has(&drawn(&state), Role::Button, "Open on GitHub"),
+        "not before GitHub is known"
+    );
+    let detect = app::store::github::GitHubJob {
+        id: state.github.detecting.unwrap(),
+        folder: state.github.folder.clone().unwrap(),
+        work: app::store::github::GitHubWork::Detect,
+    };
+    let access = app::work::github::GitHubAccess::system();
+    let _ = super::support::run(&mut state, app::work::github::run(&access, &detect));
+    click(&driver, &mut state, "Open on GitHub");
+    let url = String::from("https://github.com/owner/app/compare/main...feature");
+    loop {
+        let message = driver.raw_next();
+        let has_ended = matches!(message, Message::FeatureEnded { .. });
+        let effects = super::support::run(&mut state, message);
+        driver.take(&state, &effects);
+        if has_ended {
+            assert!(effects.contains(&app::store::Effect::OpenUrl(url)), "{effects:?}");
+            break;
+        }
+    }
+    assert_eq!(repository.git(&["status", "--porcelain"]), "", "nothing changes");
+}

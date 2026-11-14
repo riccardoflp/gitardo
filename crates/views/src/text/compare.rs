@@ -48,6 +48,10 @@ pub const OPEN_IN_DIFF: &str = "Open in the Diff page";
 pub const COPY_AS_PATCH: &str = "Copy as patch";
 /// Its tooltip.
 pub const COPY_AS_PATCH_TOOLTIP: &str = "Copy the changes as a patch that git apply takes";
+/// **Open on GitHub** (`compare.open-on-github`).
+pub const OPEN_ON_GITHUB: &str = "Open on GitHub";
+/// Its tooltip.
+pub const OPEN_ON_GITHUB_TOOLTIP: &str = "Compare the two on GitHub, once they are pushed";
 /// **Commits** (`compare.commits`).
 pub const COMMITS: &str = "Commits";
 /// The heading of the commits when they were too many to be matched.

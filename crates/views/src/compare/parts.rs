@@ -1,7 +1,7 @@
 //! The parts of the comparison page that change how it compares: the arrows that swap the sides, the mode, the box
 //! that narrows it, and the commits only in each side.
 
-use model::compare::{COMMIT_LIMIT, CommitSide, CompareMode, CompareView, ComparedCommit};
+use model::compare::{COMMIT_LIMIT, CommitSide, CompareMode, CompareView, ComparedCommit, Side};
 use ui::layout::{Align, Area, place};
 use ui::{Button, ButtonKind, Icon, InputBox, Key, Label, NamedKey, Rect, TextKind, Tone, Ui};
 
@@ -29,7 +29,8 @@ pub fn swap(state: &CompareState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
 }
 
 /// **Since they diverged** and **Everything that differs**, the one shown pressed in, the first disabled when the
-/// histories never meet; then **Open in the Diff page** and **Copy as patch** when files differ.
+/// histories never meet; then **Open in the Diff page** and **Copy as patch** when files differ, and **Open on GitHub**
+/// while it is offered.
 ///
 /// Feature: compare.set-mode
 pub fn set_mode(state: &CompareState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -64,23 +65,45 @@ pub fn set_mode(state: &CompareState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             intents.push(Intent::Compare(CompareIntent::SetMode(state.id, mode)));
         }
     }
-    if view.is_some_and(|view| !view.files.is_empty()) {
+    if let Some(view) = view {
+        actions(state, view, ui, &mut parts, &mut intents);
+    }
+    intents
+}
+
+/// At the right of the modes: **Open in the Diff page** and **Copy as patch** when files differ, then **Open on
+/// GitHub** while it is offered.
+fn actions(state: &CompareState<'_>, view: &CompareView, ui: &mut Ui<'_>, parts: &mut Area, intents: &mut Vec<Intent>) {
+    let mut buttons = Vec::new();
+    if is_on_github(state) {
+        let github = Button::secondary(words::OPEN_ON_GITHUB)
+            .kind(ButtonKind::Outline)
+            .with_tooltip(words::OPEN_ON_GITHUB_TOOLTIP);
+        buttons.push(("open on github", github, CompareIntent::OpenOnGitHub(state.id)));
+    }
+    if !view.files.is_empty() {
         let copy = Button::secondary(words::COPY_AS_PATCH)
             .kind(ButtonKind::Outline)
             .with_tooltip(words::COPY_AS_PATCH_TOOLTIP);
         let open = Button::secondary(words::OPEN_IN_DIFF).kind(ButtonKind::Outline);
-        for (key, button, intent) in [
-            ("copy patch", copy, CompareIntent::CopyPatch(state.id)),
-            ("open all", open, CompareIntent::OpenAll(state.id)),
-        ] {
-            let (width, height) = ui.button_size(&button);
-            let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
-            if ui.button(key, cell, &button).clicked {
-                intents.push(Intent::Compare(intent));
-            }
+        buttons.push(("copy patch", copy, CompareIntent::CopyPatch(state.id)));
+        buttons.push(("open all", open, CompareIntent::OpenAll(state.id)));
+    }
+    for (key, button, intent) in buttons {
+        let (width, height) = ui.button_size(&button);
+        let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
+        if ui.button(key, cell, &button).clicked {
+            intents.push(Intent::Compare(intent));
         }
     }
-    intents
+}
+
+/// Whether **Open on GitHub** is offered: the repository is on GitHub, neither side is the working tree, and the two
+/// are not the same commit.
+#[must_use]
+pub(crate) fn is_on_github(state: &CompareState<'_>) -> bool {
+    let (first, second) = (&state.target.first.side, &state.target.second.side);
+    state.is_on_github && matches!((first, second), (Side::Commit(first), Side::Commit(second)) if first != second)
 }
 
 /// How the button of a mode is drawn: pressed in, filled, when it is the mode shown, as an outline otherwise.

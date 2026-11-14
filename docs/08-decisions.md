@@ -1659,3 +1659,8 @@ answered:
   the menu: it shows the history of the File page in front, and with none it runs `file-history.file` on nothing,
   which says *Open a file of this repository to see its history.* Should it be greyed out instead while no File page
   is in front?
+- **Q-F2** — `compare.open-on-github` reads the remotes itself (`Query::Remotes`) for the repository on GitHub and the
+  name of the main remote, which decides whether an upstream "is on the GitHub remote"; the button is shown from what
+  the window knows of GitHub (`github.detect-remote`) for the repository of the page. Plans may now end in
+  `FollowUp::OpenUrl`, which the window opens with `platform::open_url`. It refuses the working tree, the same commit
+  and another host, which the card did not list. Is this right?

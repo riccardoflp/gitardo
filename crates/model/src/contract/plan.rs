@@ -224,6 +224,8 @@ pub enum FollowUp {
     Offer(FeatureId, Text),
     /// Put this text on the clipboard.
     CopyToClipboard(String),
+    /// Open this address in the browser of the system (`compare.open-on-github`).
+    OpenUrl(String),
     /// Once the repository is read again, say whether the pull left the changes it set aside in a stash
     /// (`stash.autostash-left`).
     CheckAutostash,

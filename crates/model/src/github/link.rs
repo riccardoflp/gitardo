@@ -100,6 +100,36 @@ pub(crate) fn compare_url(repository: &GitHubRepo, branch: &str) -> String {
     )
 }
 
+/// The two sides of a comparison as GitHub knows them, and how they are compared.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ComparedOnGitHub<'a> {
+    /// The first side: a branch on GitHub, a tag, or a full hash.
+    pub first: &'a str,
+    /// The second side.
+    pub second: &'a str,
+    /// **Since they diverged** (`...`) or **Everything that differs** (`..`).
+    pub mode: crate::compare::CompareMode,
+}
+
+/// GitHub's page of a comparison: `https://github.com/<owner>/<repo>/compare/<first>...<second>`, with `..` in place
+/// of `...` for **Everything that differs**; each part of a name between `/` percent-encoded and the `/` kept
+/// (`compare.open-on-github`).
+#[must_use]
+pub fn comparison_url(repository: &GitHubRepo, compared: &ComparedOnGitHub<'_>) -> String {
+    let encoded = |name: &str| -> String { name.split('/').map(percent_encoded).collect::<Vec<_>>().join("/") };
+    let separator = match compared.mode {
+        crate::compare::CompareMode::SinceDiverged => "...",
+        crate::compare::CompareMode::Everything => "..",
+    };
+    format!(
+        "https://github.com/{}/{}/compare/{}{separator}{}",
+        repository.owner,
+        repository.repo,
+        encoded(compared.first),
+        encoded(compared.second)
+    )
+}
+
 /// A part of an address with every byte but letters, digits, `-`, `.`, `_` and `~` written `%XX`.
 fn percent_encoded(part: &str) -> String {
     let mut encoded = String::with_capacity(part.len());

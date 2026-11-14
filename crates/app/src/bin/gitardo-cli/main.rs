@@ -162,6 +162,7 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         FollowUp::SelectBeforeHead(count) => writeln!(out, "Select HEAD~{count}")?,
         FollowUp::OpenCommitPage(commit) => writeln!(out, "Open the page of {commit}")?,
         FollowUp::CopyToClipboard(text) => writeln!(out, "Copy {text}")?,
+        FollowUp::OpenUrl(url) => writeln!(out, "Open {url}")?,
         FollowUp::FillCommitMessage(message) => writeln!(out, "Commit message: {message}")?,
         FollowUp::OpenComparison(target) => {
             writeln!(out, "Compare {} with {}", target.first.name, target.second.name)?;

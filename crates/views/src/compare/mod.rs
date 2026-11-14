@@ -54,6 +54,8 @@ pub struct CompareState<'a> {
     pub is_all_commits_shown: bool,
     /// When the repository was last read, in seconds since 1970: how long ago each commit was made is counted from it.
     pub now: i64,
+    /// Whether the main remote of the repository of the page is on github.com (`compare.open-on-github`).
+    pub is_on_github: bool,
 }
 
 /// What is asked of a comparison page.
@@ -85,6 +87,8 @@ pub enum CompareIntent {
     TakeFile(ComparePageId, usize),
     /// **Copy as patch** (`compare.copy-patch`).
     CopyPatch(ComparePageId),
+    /// **Open on GitHub** (`compare.open-on-github`).
+    OpenOnGitHub(ComparePageId),
     /// The close button of the comparison in the inspector.
     CloseInPlace,
     /// **Swap** in the inspector.
