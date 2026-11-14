@@ -5,7 +5,7 @@
 
 // The helpers of these tests fail as the tests do, loudly: clippy allows them what it allows tests.
 #![cfg(test)]
-#![cfg(windows)]
+#![cfg(any(windows, target_os = "linux"))]
 
 use std::thread;
 use std::time::Duration;
@@ -83,6 +83,14 @@ fn is_redraw(event: &Event<u32>, window: &Window) -> bool {
 
 #[test]
 fn windows_and_their_input_on_the_event_loop_of_the_program() {
+    if cfg!(target_os = "linux")
+        && ["DISPLAY", "WAYLAND_DISPLAY"]
+            .iter()
+            .all(|name| std::env::var_os(name).is_none())
+    {
+        // A Linux without a display server, such as a server, has nowhere to open a window.
+        return;
+    }
     let mut event_loop = Loop::new().unwrap();
     assert_eq!(Loop::new().err(), Some(PlatformError::EventLoopExists));
     delivers_the_message_of_a_waker_from_another_thread(&mut event_loop);
@@ -328,7 +336,16 @@ fn knows_and_changes_its_scale_size_and_place(event_loop: &mut Loop, window: &Wi
         window.size() == expected
     });
     assert!(is_finished, "the sizes were {sizes:?}");
-    assert_eq!(window.position(), Ok(ScreenPosition { x: 40, y: 60 }));
+    if cfg!(windows) {
+        assert_eq!(window.position(), Ok(ScreenPosition { x: 40, y: 60 }));
+    } else {
+        // X11 places a window that was never shown when it is shown, and Wayland never says where a window is.
+        let position = window.position();
+        assert!(
+            matches!(position, Ok(_) | Err(PlatformError::Unsupported { .. })),
+            "{position:?}"
+        );
+    }
 }
 
 fn hands_the_requests_of_a_screen_reader_over_and_takes_a_tree(event_loop: &mut Loop, window: &Window) {

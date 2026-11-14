@@ -302,6 +302,9 @@ fn activity_track__a_plan_of_a_push_shows_in_the_activity_indicator_while_git_pu
     let (repository, _remote) = repository_with_history();
     let hook = repository.path().join(".git/hooks/pre-push");
     std::fs::write(&hook, "#!/bin/sh\nsleep 2\n").unwrap();
+    // Git runs a hook on Linux only when it may be executed; on Windows it runs it as it is.
+    #[cfg(unix)]
+    std::fs::set_permissions(&hook, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
     let context = Context {
         repository: std::sync::Arc::new(
             read_state(

@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 
 use super::kernel32::{self, HANDLE, OVERLAPPED};
 use crate::error::PlatformError;
+use crate::watch::Waited;
 
 /// How many 32-bit words the buffer of the changes holds: 64 KiB, the most the system takes for a folder of the network.
 const BUFFER_WORDS: usize = 16 * 1024;
@@ -18,19 +19,6 @@ const WATCHED: u32 = kernel32::FILE_NOTIFY_CHANGE_FILE_NAME
     | kernel32::FILE_NOTIFY_CHANGE_SIZE
     | kernel32::FILE_NOTIFY_CHANGE_LAST_WRITE
     | kernel32::FILE_NOTIFY_CHANGE_CREATION;
-
-/// What a wait for the changes of a folder gave.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Waited {
-    /// These paths changed, from the folder watched.
-    Changes(Vec<PathBuf>),
-    /// More changed than the system could say: anything may have changed.
-    Overflowed,
-    /// Nothing changed in the time waited.
-    Nothing,
-    /// The folder cannot be watched any more, as when it was deleted.
-    Gone,
-}
 
 /// A handle of the system, closed when dropped.
 struct Handle(HANDLE);

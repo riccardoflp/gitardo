@@ -131,6 +131,7 @@ fn worktree_read_list__parses_recorded_output_with_spaces_and_accents_in_folders
 }
 
 /// The links a worktree has to folders outside it, from its top, with `/`.
+#[cfg(windows)]
 fn folder_links(worktree: &Path) -> Vec<String> {
     let request = FolderLinksRequest {
         worktree: worktree.to_path_buf(),

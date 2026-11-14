@@ -4,7 +4,7 @@
 //! comes fails instead of hanging. `winit` allows one event loop for the life of a program: each test makes the loop
 //! of its own program, and only one of them runs unless the measure is asked for.
 
-#![cfg(windows)]
+#![cfg(any(windows, target_os = "linux"))]
 #![allow(clippy::unwrap_used, reason = "a test that cannot go on fails")]
 
 #[path = "../../src/bin/gitardo-demo/demo.rs"]
@@ -230,6 +230,14 @@ fn typing_and_wheel_stages() -> Vec<Stage> {
 
 #[test]
 fn the_demo_window_is_driven_by_input_and_closes() {
+    if cfg!(target_os = "linux")
+        && ["DISPLAY", "WAYLAND_DISPLAY"]
+            .iter()
+            .all(|name| std::env::var_os(name).is_none())
+    {
+        // A Linux without a display server, such as a server, has nowhere to open a window.
+        return;
+    }
     let mut stages = menu_stages();
     stages.extend(typing_and_wheel_stages());
     stages.push(Stage {

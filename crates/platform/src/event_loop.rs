@@ -322,6 +322,11 @@ impl<M, H: FnMut(&Context<'_>, Event<M>)> ApplicationHandler for Runner<'_, M, H
         };
         shared.show_to_adapter(&event);
         if matches!(event, WindowEvent::RedrawRequested) {
+            if self.state.is_quitting.get() {
+                // A frame asked for while the loop stops, as Wayland asks for the first frame of a window opened just
+                // before, stays asked for, and is handed over in the next run instead of being lost.
+                return;
+            }
             let _ = self.state.redraws.borrow_mut().remove(&id);
             if !shared.is_redraw_asked.replace(false) {
                 // The system asks to paint again what the window showed. When it cannot be shown again, the next

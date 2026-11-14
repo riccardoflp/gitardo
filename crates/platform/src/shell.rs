@@ -11,7 +11,9 @@ use crate::error::PlatformError;
 pub fn open_url(url: &str) -> Result<(), PlatformError> {
     #[cfg(windows)]
     return crate::windows::open_url(url);
-    #[cfg(not(windows))]
+    #[cfg(target_os = "linux")]
+    return crate::linux::open_url(url);
+    #[cfg(not(any(windows, target_os = "linux")))]
     {
         let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
         return std::process::Command::new(opener)

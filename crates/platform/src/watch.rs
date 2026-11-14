@@ -9,8 +9,28 @@ use std::thread::{self, JoinHandle};
 use crate::error::PlatformError;
 
 /// How often the thread of a folder looks whether it is to stop, in milliseconds.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 const STOP_CHECK: u32 = 100;
+
+// The folder watched, as the system of the program watches it: with `ReadDirectoryChangesW` on Windows, with inotify
+// on Linux.
+#[cfg(target_os = "linux")]
+use crate::linux::DirectoryWatch;
+#[cfg(windows)]
+use crate::windows::DirectoryWatch;
+
+/// What a wait for the changes of a folder gave, on every system.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Waited {
+    /// These paths changed, from the folder watched.
+    Changes(Vec<PathBuf>),
+    /// More changed than the system could say: anything may have changed.
+    Overflowed,
+    /// Nothing changed in the time waited.
+    Nothing,
+    /// The folder cannot be watched any more, as when it was deleted.
+    Gone,
+}
 
 /// What changed in a folder watched.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -70,15 +90,14 @@ impl Drop for Watcher {
 }
 
 /// Opens a folder to watch it.
-#[cfg(windows)]
-fn open(folder: &std::path::Path) -> Result<crate::windows::DirectoryWatch, PlatformError> {
-    crate::windows::DirectoryWatch::open(folder)
+#[cfg(any(windows, target_os = "linux"))]
+fn open(folder: &std::path::Path) -> Result<DirectoryWatch, PlatformError> {
+    DirectoryWatch::open(folder)
 }
 
 /// What the thread of a folder does until it is to stop or the folder is gone.
-#[cfg(windows)]
-fn run(mut watch: crate::windows::DirectoryWatch, folder: &std::path::Path, stop: &AtomicBool, deliver: &WatchDeliver) {
-    use crate::windows::Waited;
+#[cfg(any(windows, target_os = "linux"))]
+fn run(mut watch: DirectoryWatch, folder: &std::path::Path, stop: &AtomicBool, deliver: &WatchDeliver) {
     while !stop.load(Ordering::SeqCst) {
         match watch.wait(STOP_CHECK) {
             Waited::Nothing => {}
@@ -97,14 +116,14 @@ fn run(mut watch: crate::windows::DirectoryWatch, folder: &std::path::Path, stop
     }
 }
 
-/// Watching folders is written for Windows only so far.
-#[cfg(not(windows))]
+/// Watching folders is written for Windows and Linux only so far.
+#[cfg(not(any(windows, target_os = "linux")))]
 fn open(_folder: &std::path::Path) -> Result<(), PlatformError> {
     Err(PlatformError::Unsupported {
         what: "watch folders for changes yet",
     })
 }
 
-/// Watching folders is written for Windows only so far.
-#[cfg(not(windows))]
+/// Watching folders is written for Windows and Linux only so far.
+#[cfg(not(any(windows, target_os = "linux")))]
 fn run(_watch: (), _folder: &std::path::Path, _stop: &AtomicBool, _deliver: &WatchDeliver) {}

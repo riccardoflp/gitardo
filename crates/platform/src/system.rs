@@ -1,11 +1,12 @@
 //! The settings of the system the libraries of the window do not read, the same on every system: asked of Windows,
-//! and the usual values elsewhere until their part is written.
+//! of the desktop's `gsettings` on Linux where it has them, and the usual values elsewhere.
 
 use crate::click::ClickLimits;
 #[cfg(not(windows))]
 use crate::geometry::Scale;
 
 /// What a notch of the wheel scrolls when the system says a page: Gitardo scrolls this many lines instead.
+#[cfg(windows)]
 pub(crate) const LINES_FOR_A_PAGE: f32 = 20.0;
 
 /// How far a notch of the wheel scrolls.
@@ -19,6 +20,11 @@ pub(crate) struct WheelSteps {
 
 #[cfg(windows)]
 pub(crate) use crate::windows::{click_limits, is_high_contrast, wheel_steps};
+
+#[cfg(target_os = "linux")]
+use crate::linux::double_click_time;
+#[cfg(target_os = "linux")]
+pub(crate) use crate::linux::is_high_contrast;
 
 /// How far the local time of the computer is from UTC now, in seconds: what `${date}` in the names of new branches is
 /// counted in.
@@ -36,17 +42,24 @@ pub fn utc_offset() -> i64 {
 }
 
 /// Whether high contrast is on: not known yet on this system.
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 pub(crate) fn is_high_contrast() -> bool {
     false
 }
 
-/// How soon and how near the next press must come to make a double click: the usual half second and 4 pixels.
+/// How soon the next press must come to make a double click: the usual half second.
+#[cfg(not(any(windows, target_os = "linux")))]
+fn double_click_time() -> u32 {
+    500
+}
+
+/// How soon and how near the next press must come to make a double click: as soon as the desktop says, and within
+/// the usual 4 pixels.
 #[cfg(not(windows))]
 pub(crate) fn click_limits(scale: Scale) -> ClickLimits {
     let side = i32::try_from(crate::convert::round_to_pixels(4.0 * scale.factor())).unwrap_or(i32::MAX);
     ClickLimits {
-        time: 500,
+        time: double_click_time(),
         width: side,
         height: side,
     }

@@ -11,8 +11,8 @@
 //! [`Window::present`].
 
 #![allow(unsafe_code)]
-// Until the other systems have their part, what only the part for Windows uses is unused elsewhere.
-#![cfg_attr(not(windows), allow(dead_code, unused_imports))]
+// Until macOS has its part, what only the parts for Windows and Linux use is unused there.
+#![cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code, unused_imports))]
 
 mod accessibility;
 mod click;
@@ -26,6 +26,8 @@ mod event_loop;
 mod geometry;
 mod input;
 mod links;
+#[cfg(target_os = "linux")]
+mod linux;
 mod mailbox;
 mod present;
 mod shell;

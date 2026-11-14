@@ -1,6 +1,6 @@
 //! Watching a folder: a file written under it is said, with its whole path, and dropping the watcher stops it.
 
-#![cfg(windows)]
+#![cfg(any(windows, target_os = "linux"))]
 #![allow(clippy::unwrap_used, reason = "a test that cannot go on fails")]
 
 use std::path::PathBuf;

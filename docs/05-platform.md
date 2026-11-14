@@ -60,15 +60,22 @@ The minimum is Windows 10 version 1809. What the libraries do not cover is asked
 
 ## Linux
 
-X11 and Wayland, both through `winit`.
+X11 and Wayland, both through `winit`, which picks Wayland when `WAYLAND_DISPLAY` is set and X11 otherwise. What the
+libraries do not cover is in `crates/platform/src/linux/`; the C library is declared there by hand, as the libraries of
+Windows are, and nothing else is linked.
 
 | Need | Calls |
 | --- | --- |
-| High contrast | `gsettings get org.gnome.desktop.a11y.interface high-contrast` run as a process when present; otherwise not. |
-| Watching files | `inotify_init1`, `inotify_add_watch` from the C library, one watch per folder. |
+| High contrast | `gsettings get org.gnome.desktop.a11y.interface high-contrast` run as a process when present; otherwise not. Read again whenever a window gets the keyboard back, as on Windows. |
+| Double click | `gsettings get org.gnome.desktop.peripherals.mouse double-click`, read once; 400 ms when absent. The distance is the usual 4 pixels, at the scale of the window. |
+| Watching files | `inotify_init1`, `inotify_add_watch`, `inotify_rm_watch` and `poll` from the C library, one watch per folder: every folder under the one watched when it opens, and each folder created or moved in afterwards, whose contents are then said as changed. Links to folders are not followed. A folder over the system's limit of watches (`fs.inotify.max_user_watches`) is not watched. |
 | Links | `std::os::unix::fs::symlink`. |
 | Open, reveal | `xdg-open` run as a process; revealing a file opens its folder. |
-| Credentials | The Secret Service over D-Bus, through a library ([D20](08-decisions.md#d20--libraries-where-they-serve)); until one is chosen, a file in the configuration folder readable only by the user (mode `0600`), and the settings page says so. |
+| Credentials | The Secret Service over D-Bus, through a library ([D20](08-decisions.md#d20--libraries-where-they-serve)); until one is chosen, the file `credentials` in the configuration folder (`$XDG_CONFIG_HOME/gitardo-desktop`, or `~/.config/gitardo-desktop`), readable only by the user (mode `0600`, its folder `0700` when Gitardo makes it), and the settings page says so. |
+| Clipboard | `arboard` over X11; on Wayland through XWayland, since its Wayland part is not built. |
+| File dialogs | `rfd` through the desktop's portal (`xdg-desktop-portal`), which falls back to `zenity` when there is no portal. |
+| Fonts of the system | `fontdb`, through `cosmic-text`, reads the usual folders (`/usr/share/fonts`, `/usr/local/share/fonts`, `~/.local/share/fonts`, `~/.fonts`), not the configuration of fontconfig. |
+| Terminal, external editor | The terminal is `x-terminal-emulator` started in the folder, unless `terminal.external` says another; the editor is `editor.external`. |
 
 ## macOS
 

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use testkit::Repository;
 
@@ -41,8 +41,7 @@ fn commits(repository: &Repository, range: &str) -> String {
 fn ran(out: &str, command: &str, file: &std::path::Path) -> bool {
     let name = file
         .file_name()
-        .map(|name| name.to_string_lossy().into_owned())
-        .unwrap_or_default();
+        .map_or_default(|name| name.to_string_lossy().into_owned());
     out.lines()
         .any(|line| line.contains(&format!("> {command} ")) && line.contains(&name))
 }
@@ -206,8 +205,7 @@ fn patch_apply__from_the_clipboard_writes_a_temporary_file_and_deletes_it_also_w
     };
     let name = temporary
         .file_name()
-        .map(|name| name.to_string_lossy().into_owned())
-        .unwrap_or_default();
+        .map_or_default(|name| name.to_string_lossy().into_owned());
     assert!(
         ended
             .out
@@ -233,10 +231,18 @@ fn patch_apply__from_the_clipboard_writes_a_temporary_file_and_deletes_it_also_w
         failed.out,
         failed.errors
     );
+    // The path of the temporary file: quoted where it has backslashes, as on Windows, and bare elsewhere.
+    let is_temporary = |part: &&str| {
+        part.contains("gitardo-")
+            && Path::new(part)
+                .extension()
+                .is_some_and(|extension| extension == "patch")
+    };
     let quoted = failed
         .errors
         .split('"')
-        .nth(1)
+        .find(is_temporary)
+        .or_else(|| failed.errors.split([' ', '`']).find(is_temporary))
         .unwrap_or_default()
         .replace("\\\\", "\\");
     assert!(quoted.contains("gitardo-"), "{}", failed.errors);

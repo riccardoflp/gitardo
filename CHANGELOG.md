@@ -32,6 +32,10 @@
   shows in the other. **Revert this change** is such an edit, saved at once, and `Ctrl+Z` brings the change back.
 - `F4`, or **Jump to source** in the menu of a side, opens the File page of the file at the line of the caret; on a
   removed line of the left side, at the line above it.
+- Linux, on X11 and Wayland: the window, high contrast and the time of a double click read from the desktop's
+  settings, folders watched with inotify, addresses opened with `xdg-open`, and the GitHub token and the key of the AI
+  provider kept in a file of the configuration folder that only the user may read, until Gitardo speaks to the Secret
+  Service.
 - The **…** menu of the header is in the groups of its card, with **Compare branches, tags or commits…** and
   **Switch identity…** in a group of its own.
 - The documents to build Gitardo Desktop from: the clean room, the product, the architecture, the code rules, the
