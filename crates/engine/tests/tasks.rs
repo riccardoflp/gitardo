@@ -35,7 +35,8 @@ fn asking_command() -> String {
     if cfg!(windows) {
         format!("git -c \"{alias}\" ask")
     } else {
-        format!("git -c '{alias}' ask")
+        // The alias holds single quotes, so `sh` is given it in double quotes, with its `$` kept from `sh`.
+        format!("git -c \"{}\" ask", alias.replace('$', "\\$"))
     }
 }
 
