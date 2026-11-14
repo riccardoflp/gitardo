@@ -70,6 +70,7 @@ Windows are, and nothing else is linked.
 | Double click | `gsettings get org.gnome.desktop.peripherals.mouse double-click`, read once; 400 ms when absent. The distance is the usual 4 pixels, at the scale of the window. |
 | Watching files | `inotify_init1`, `inotify_add_watch`, `inotify_rm_watch` and `poll` from the C library, one watch per folder: every folder under the one watched when it opens, and each folder created or moved in afterwards, whose contents are then said as changed. Links to folders are not followed. A folder over the system's limit of watches (`fs.inotify.max_user_watches`) is not watched. |
 | Links | `std::os::unix::fs::symlink`. |
+| Local time | `localtime_r` of the C library, whose `tm_gmtoff` is how far the local time is from UTC (`${date}` in the names of new branches). |
 | Open, reveal | `xdg-open` run as a process; revealing a file opens its folder. |
 | Credentials | The Secret Service over D-Bus, through a library ([D20](08-decisions.md#d20--libraries-where-they-serve)); until one is chosen, the file `credentials` in the configuration folder (`$XDG_CONFIG_HOME/gitardo-desktop`, or `~/.config/gitardo-desktop`), readable only by the user (mode `0600`, its folder `0700` when Gitardo makes it), and the settings page says so. |
 | Clipboard | `arboard` over X11; on Wayland through XWayland, since its Wayland part is not built. |

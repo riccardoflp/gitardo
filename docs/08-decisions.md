@@ -1844,8 +1844,8 @@ From milestone M10 (Linux):
   `pull-dark-2x`. Is growing the area right, rather than turning the curves into lines in `render` before filling?
 - **Q360** — `platform::utc_offset`, which came with `branch.name-from-format` while this slice was built, has a
   Windows part only: on Linux `${date}` in the names of new branches is counted in UTC, as Q333 says for every other
-  system. The Linux part would declare `localtime_r` of the C library and read `tm_gmtoff`, the same on glibc and musl.
-  Should it be built in a slice of its own?
+  system. Answered by the lead: the Linux part is built so, declaring `localtime_r` of the C library and reading
+  `tm_gmtoff`, the same on glibc and musl; macOS still counts in UTC.
 
 From the slice of the trusted folders, which answers Q348 and builds `trust.is-trusted`, `trust.ask` and
 `trust.manage`:

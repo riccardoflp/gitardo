@@ -34,8 +34,12 @@ pub fn utc_offset() -> i64 {
     {
         crate::windows::utc_offset()
     }
+    #[cfg(target_os = "linux")]
+    {
+        crate::linux::utc_offset()
+    }
     // Elsewhere the local time is UTC until the part of each system is written.
-    #[cfg(not(windows))]
+    #[cfg(not(any(windows, target_os = "linux")))]
     {
         0
     }
