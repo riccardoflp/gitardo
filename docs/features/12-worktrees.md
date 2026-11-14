@@ -230,6 +230,7 @@ Acceptance:
 - [ ] The menu of the main worktree has no **Rename…** and no **Remove…**; the menu of the current one has neither,
       nor **Open in new window**, nor **Show in Gitardo**, nor **Bring ignored files…**.
 - [ ] **Prune missing worktrees** is in the menus only while a worktree is missing.
+- [ ] A worktree whose branch has the open pull request #12 shows its badge, and its tooltip names it.
 
 ### `worktree.open` — Open a worktree where the settings say
 

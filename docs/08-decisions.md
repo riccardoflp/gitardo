@@ -1668,3 +1668,6 @@ answered:
   each matched to a conflict still marked by `review.fingerprint`, with `review.proposals` making the lines in the
   endings of the file and counting the new ones; the rules still come first. The answers are taken when the page
   reads its regions, so an answer that comes while the page is open shows at its next read. Should it show at once?
+- **Q-F4** — Q316 is answered: a row of the Worktrees list draws the badge of the pull request of its branch at its
+  right, after the pencil, and its tooltip adds the line of the badge; a missing worktree has none. The card gains an
+  acceptance line for it. Is this right?

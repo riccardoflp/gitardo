@@ -262,13 +262,38 @@ pub(super) fn entry_tooltip(state: &ReferencesState<'_>, entry: &Entry<'_>, mark
             lines.push(words::stash_tooltip(stash.index, &stash.message));
             lines.push(crate::text::dates::full_date(stash.date.0));
         }
-        Entry::Worktree(worktree) => lines.push(crate::worktree::tooltip(state.repository, worktree)),
+        Entry::Worktree(worktree) => {
+            lines.push(crate::worktree::tooltip(state.repository, worktree));
+            if let Some((_, pull_request)) = worktree_pull_request(state, worktree) {
+                let (number, title) = (pull_request.number, &pull_request.title);
+                lines.push(github_words::badge_tooltip(
+                    number,
+                    title,
+                    pull_request.is_draft,
+                    pull_request.checks,
+                ));
+            }
+        }
         _ => {}
     }
     if marks.is_dimmed {
         lines.push(words::NOT_SHOWN.to_owned());
     }
     lines.join("\n")
+}
+
+/// The branch a worktree has checked out and its open pull request, when it has one; none for a missing worktree.
+pub(super) fn worktree_pull_request<'a>(
+    state: &ReferencesState<'a>,
+    worktree: &Worktree,
+) -> Option<(&'a Branch, &'a model::github::PullRequest)> {
+    let name = worktree.branch.as_deref()?.strip_prefix("refs/heads/")?;
+    let branch = state
+        .repository
+        .branches
+        .iter()
+        .find(|branch| branch.name == name && !worktree.is_missing)?;
+    Some((branch, state.github.of_branch(branch)?))
 }
 
 /// A full name without the prefix of its kind.
@@ -437,6 +462,12 @@ fn worktree_row(ui: &mut Ui<'_>, state: &ReferencesState<'_>, (worktree, marks):
     let shown = Rect::new(rect.x + indent, rect.y, (rect.width - indent).max(0.0), rect.height);
     let mut parts = Area::with_gap(shown, theme.sizes.spacing.small);
     ui.icon_in(parts.left(theme.sizes.icon), Icon::Worktree, Tone::Muted);
+    if let Some((branch, pull_request)) = worktree_pull_request(state, worktree) {
+        let lane = state.branch_colors.get(&branch.name).copied().unwrap_or_default();
+        let badge = PullRequestBadge { pull_request, lane };
+        let width = pull_request_badge_width(ui, &badge);
+        let _ = draw_pull_request_badge(ui, parts.right(width), &badge);
+    }
     if let Some(files) = worktree.uncommitted.filter(|files| *files > 0) {
         let count = files.to_string();
         let width = ui.measure(&count, ui.text_style(TextKind::Small));

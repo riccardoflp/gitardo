@@ -13,7 +13,7 @@ use model::state::{Branch, Head, RepositoryState, Worktree};
 use model::{CommitId, Timestamp};
 
 use super::ReferencesState;
-use super::entry::{entry_tooltip, other_worktree};
+use super::entry::{entry_tooltip, other_worktree, worktree_pull_request};
 use super::rows::{Entry, Marks};
 use crate::intent::RailLists;
 
@@ -113,4 +113,68 @@ fn worktree_branch_in_another_worktree__the_rail_and_the_timeline_mark_it_and_it
         Some(PathBuf::from(LOGIN).as_path()),
         "its label has the worktree icon"
     );
+}
+
+#[test]
+fn worktree_section__a_worktree_whose_branch_has_an_open_pull_request_shows_it_and_says_it_in_its_tooltip() {
+    let mut repository = repository();
+    if let Some(login) = repository
+        .branches
+        .iter_mut()
+        .find(|branch| branch.name == "feature/login")
+    {
+        login.upstream = Some(model::state::Upstream {
+            reference: String::from("refs/remotes/origin/feature/login"),
+            remote: String::from("origin"),
+            remote_branch: String::from("refs/heads/feature/login"),
+            ahead: 0,
+            behind: 0,
+            is_gone: false,
+        });
+    }
+    let on_github = model::github::GitHubRepo {
+        owner: String::from("owner"),
+        repo: String::from("app"),
+    };
+    let pull_request = model::github::PullRequest {
+        number: 12,
+        title: String::from("Add the login"),
+        url: String::from("https://github.com/owner/app/pull/12"),
+        is_draft: false,
+        branch: String::from("feature/login"),
+        checks: Some(model::github::Checks::Failed),
+    };
+    let pull_requests = model::github::PullRequests {
+        by_branch: [(String::from("feature/login"), pull_request)].into_iter().collect(),
+    };
+    let references = References::default();
+    let (lists, colors) = (RailLists::default(), HashMap::new());
+    let state = ReferencesState {
+        repository: &repository,
+        references: &references,
+        lists: &lists,
+        branch_colors: &colors,
+        remote_colors: &colors,
+        favorites: &[],
+        recent: &[],
+        typed: "",
+        shown: None,
+        follows_timeline: true,
+        selected: None,
+        sort: SortOrder::Name,
+        open_in: OpenIn::Checkout,
+        window: crate::worktree::WorktreeWindow::default(),
+        stashes: super::stashes_tests::nothing_unfolded(),
+        github: crate::github::GitHubShown {
+            repository: Some(&on_github),
+            pull_requests: Some(&pull_requests),
+        },
+    };
+    let login = repository.worktrees.get(1).unwrap();
+    let found = worktree_pull_request(&state, login).map(|(_, pull_request)| pull_request.number);
+    assert_eq!(found, Some(12), "its row draws the badge of #12");
+    let said = entry_tooltip(&state, &Entry::Worktree(login), Marks::default());
+    assert!(said.contains("Pull request #12: Add the login"), "{said}");
+    let main = repository.worktrees.first().unwrap();
+    assert_eq!(worktree_pull_request(&state, main).map(|(_, found)| found.number), None);
 }

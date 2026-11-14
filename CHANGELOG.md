@@ -367,3 +367,5 @@
 - The Merge page proposes what the AI answered in the review page for a conflict still marked: its **✦** names the
   model, how sure it is, why, and how many lines neither side has, and the sparkle says how many of the proposals are
   the AI's.
+- A row of the Worktrees list shows the open pull request of its branch, in the color of its checks, and its tooltip
+  names it.
