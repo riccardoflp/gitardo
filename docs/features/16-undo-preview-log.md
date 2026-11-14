@@ -130,6 +130,8 @@ Acceptance:
 - [ ] After a squash merge with nothing committed since, Undo runs `git reset --merge` and the index is clean.
 - [ ] After conflicts resolved by Gitardo, Undo marks them again in every file, staged ones included.
 - [ ] With an operation made in a terminal after one of Gitardo's, Undo takes back the terminal's, by the reflog.
+- [ ] With `submodules.updateOnCheckout` on and submodules in what was checked out before, Undo of a checkout runs
+      `git checkout <from>` and then `git submodule update --init --recursive`.
 
 ### `undo.journal` — Remember what Undo needs
 

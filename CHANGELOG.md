@@ -16,6 +16,8 @@
 - While a bisect is under way, squash, split, fixup, the interactive rebase and cherry-picking several commits are not
   offered, and squash, split and fixup are refused with **End the bisect first.**
 - When `git branch -d` keeps a branch because it is not fully merged, **Delete anyway** offers `git branch -D`.
+- Undo of a checkout updates the submodules afterwards when `submodules.updateOnCheckout` asks for it, as the checkout
+  does.
 - Before the commands of `worktrees.setupCommands` run in a folder that is not trusted, Gitardo asks **Run the
   commands for new worktrees?**, naming the folder, where the commands come from and each of them. **Trust this folder
   and run them** runs them and trusts the folder, and every folder in it, from then on; **Not now** creates the

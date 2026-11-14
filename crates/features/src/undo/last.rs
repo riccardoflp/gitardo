@@ -50,7 +50,13 @@ pub fn last(context: &Context, answers: &Answers) -> Outcome {
         return nothing_to_undo();
     };
     if let Some(checkout) = Checkout::parse(&newest.subject) {
-        return Outcome::Run(checkout.plan(context));
+        // Back on what was checked out before, the submodules go to the commits it records, as after any checkout.
+        return crate::branch::submodules::update_after_checkout(
+            context,
+            answers,
+            checkout.from,
+            checkout.plan(context),
+        );
     }
     let entries = match context.repository.checked_out_branch() {
         Some(branch) => {

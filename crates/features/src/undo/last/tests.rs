@@ -16,10 +16,13 @@ fn no_journal() -> Answers {
     Answers::new().with(JOURNAL, Answer::Journal(None))
 }
 
+/// The reflogs, with no submodules on either side of a checkout taken back.
 fn reflogs(head: Vec<ReflogEntry>, branch: Vec<ReflogEntry>) -> Answers {
-    no_journal()
-        .with(HEAD_REFLOG, Answer::Reflog(head))
-        .with(BRANCH_REFLOG, Answer::Reflog(branch))
+    crate::branch::submodules::none(
+        no_journal()
+            .with(HEAD_REFLOG, Answer::Reflog(head))
+            .with(BRANCH_REFLOG, Answer::Reflog(branch)),
+    )
 }
 
 #[test]
@@ -66,6 +69,38 @@ fn undo_last__takes_a_rebase_back_to_where_the_branch_reflog_had_it() {
     ];
     let plan = plan(last(&context(state(), Target::Head), &reflogs(head, branch)));
     assert_eq!(lines(&plan), [format!("git reset --keep {}", commit('a'))]);
+}
+
+#[test]
+fn undo_last__a_checkout_taken_back_updates_the_submodules_when_the_setting_asks_for_it() {
+    use crate::branch::submodules::{SUBMODULES_AFTER, SUBMODULES_BEFORE};
+    let head = vec![
+        entry('b', "checkout: moving from main to feature"),
+        entry('a', "commit: Fix"),
+    ];
+    let answers = no_journal().with(HEAD_REFLOG, Answer::Reflog(head));
+    let context = context(state(), Target::Head);
+    assert_eq!(
+        last(&context, &answers),
+        Outcome::Read(
+            SUBMODULES_BEFORE,
+            Query::HasFile {
+                revision: String::from("HEAD"),
+                path: String::from(".gitmodules")
+            }
+        )
+    );
+    let answers = answers
+        .with(SUBMODULES_BEFORE, Answer::Flag(false))
+        .with(SUBMODULES_AFTER, Answer::Flag(true));
+    assert_eq!(
+        lines(&plan(last(&context, &answers))),
+        [
+            "git checkout main",
+            model::submodule::THEN_UPDATED,
+            "git submodule update --init --recursive"
+        ]
+    );
 }
 
 #[test]
