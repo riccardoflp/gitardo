@@ -86,6 +86,16 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects
 }
 
+/// An operation ended: the pages that wait on it hear of it, then the store.
+fn feature_ended(state: &mut State, ended: feature::Ended, log: Vec<engine::LogEntry>) -> Vec<Effect> {
+    changes::ended(state, &ended);
+    file_page::ended(state, &ended);
+    if let feature::Ended::Ran { after, .. } = &ended {
+        rebase::ended(state, after);
+    }
+    feature::ended(state, ended, log)
+}
+
 /// Changes the store as a message says.
 fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
     match message {
@@ -104,14 +114,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
             feature::confirms(state, *plan);
             Vec::new()
         }
-        Message::FeatureEnded { ended, log } => {
-            changes::ended(state, &ended);
-            file_page::ended(state, &ended);
-            if let feature::Ended::Ran { after, .. } = &ended {
-                rebase::ended(state, after);
-            }
-            feature::ended(state, ended, log)
-        }
+        Message::FeatureEnded { ended, log } => feature_ended(state, ended, log),
         Message::CommitsRead { job, result } => timeline::commits_read(state, job, result),
         Message::TimelineRead { job, result } => timeline::timeline_read(state, job, result),
         Message::Searched { job, result } => search::searched(state, job, result),
