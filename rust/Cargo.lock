@@ -2157,6 +2157,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "server"
+version = "0.1.0"
+dependencies = [
+ "engine",
+ "git",
+ "model",
+ "protocol",
+ "serde",
+ "serde_json",
+ "testkit",
+]
+
+[[package]]
 name = "settings"
 version = "0.1.0"
 dependencies = [

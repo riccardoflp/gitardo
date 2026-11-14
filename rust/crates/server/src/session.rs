@@ -1,0 +1,324 @@
+//! What the engine knows while it speaks to one extension: the repositories opened, the requests that run and their
+//! tokens, how much the log says, and what runs; and the answer of each method.
+
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::thread;
+use std::time::{Instant, SystemTime};
+
+use engine::{Activities, LogEntry, LogKind, LogLevel};
+use git::read::repo::{StateRequest, read_state};
+use git::{CancelToken, Git, GitError};
+use model::Timestamp;
+use model::contract::Text;
+use model::state::RepositoryState;
+use protocol::messages::{
+    ActivityJson, ActivityParams, CancelParams, ChangedParams, EngineInfo, InitializeParams, InitializeResult,
+    LogEntryJson, LogLineParams, OpenResult, RepositoryParams, StateParams, StateReason, VERSION, is_compatible,
+    methods,
+};
+use protocol::rpc::{ErrorData, RequestId, ResponseError, codes, error_message, notification_message, result_message};
+use protocol::state::StateJson;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use serde_json::Value;
+
+use crate::repository::{Next, Repository};
+
+/// The engine speaking to one extension.
+#[derive(Debug)]
+pub struct Session {
+    /// The messages for the thread that writes the standard output.
+    outgoing: Sender<Value>,
+    /// The repositories opened, by the folder the extension named.
+    repositories: Mutex<HashMap<String, Arc<Repository>>>,
+    /// The requests that run, with the token that cancels each.
+    running: Mutex<HashMap<RequestId, CancelToken>>,
+    /// Whether the log says the reads too.
+    level: Mutex<LogLevel>,
+    /// What runs, in every repository.
+    activities: Activities,
+    /// Whether `shutdown` was asked.
+    is_shut_down: AtomicBool,
+}
+
+/// The value behind a lock, even when a thread that held it panicked: what it guards is plain data, still whole.
+pub fn locked<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+impl Session {
+    /// A session that writes its messages to the given sender.
+    pub fn new(outgoing: Sender<Value>) -> Session {
+        Session {
+            outgoing,
+            repositories: Mutex::new(HashMap::new()),
+            running: Mutex::new(HashMap::new()),
+            level: Mutex::new(LogLevel::Info),
+            activities: Activities::new(),
+            is_shut_down: AtomicBool::new(false),
+        }
+    }
+
+    /// Sends a message; nothing happens once the output is closed.
+    pub fn send(&self, message: Value) {
+        let _sent = self.outgoing.send(message);
+    }
+
+    /// Whether `shutdown` was asked.
+    pub fn is_shut_down(&self) -> bool {
+        self.is_shut_down.load(Ordering::SeqCst)
+    }
+
+    /// Cancels every request that runs.
+    pub fn cancel_all(&self) {
+        for token in locked(&self.running).values() {
+            token.cancel();
+        }
+    }
+
+    /// Answers a request on a thread of its own, with a token that `$/cancel` cancels.
+    pub fn request(self: &Arc<Self>, id: RequestId, method: String, params: Value) {
+        let cancel = CancelToken::new();
+        let _replaced = locked(&self.running).insert(id.clone(), cancel.clone());
+        let session = Arc::clone(self);
+        let _answering = thread::spawn(move || {
+            let outcome = session.answer(&method, params, &cancel);
+            let _done = locked(&session.running).remove(&id);
+            session.send(match outcome {
+                Ok(result) => result_message(&id, result),
+                Err(error) => error_message(Some(&id), &error),
+            });
+        });
+    }
+
+    /// Takes a notification of the extension; one this version does not know is left, as JSON-RPC has it.
+    pub fn notification(self: &Arc<Self>, method: &str, params: Value) {
+        match method {
+            methods::CANCEL => {
+                if let Ok(CancelParams { id }) = parameters::<CancelParams>(params)
+                    && let Some(token) = locked(&self.running).get(&id)
+                {
+                    token.cancel();
+                }
+            }
+            methods::CHANGED => {
+                if let Ok(changed) = parameters::<ChangedParams>(params) {
+                    self.changed(changed);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// The answer of a request.
+    fn answer(&self, method: &str, params: Value, cancel: &CancelToken) -> Result<Value, ResponseError> {
+        match method {
+            methods::INITIALIZE => self.initialize(&parameters(params)?),
+            methods::SHUTDOWN => {
+                self.is_shut_down.store(true, Ordering::SeqCst);
+                Ok(Value::Null)
+            }
+            methods::OPEN => {
+                let RepositoryParams { repository } = parameters(params)?;
+                let folder = PathBuf::from(&repository);
+                let state = self.read(&repository, &folder, "The extension opened it", cancel)?;
+                let _opened = locked(&self.repositories)
+                    .entry(repository)
+                    .or_insert_with(|| Arc::new(Repository::new(folder)));
+                json(&OpenResult { state })
+            }
+            methods::CLOSE => {
+                let RepositoryParams { repository } = parameters(params)?;
+                let closed = locked(&self.repositories)
+                    .remove(&repository)
+                    .ok_or_else(|| not_open(&repository))?;
+                closed.close();
+                Ok(Value::Null)
+            }
+            methods::READ_STATE => {
+                let RepositoryParams { repository } = parameters(params)?;
+                let folder = self.opened(&repository)?.folder().to_path_buf();
+                json(&self.read(&repository, &folder, "The extension asked for it", cancel)?)
+            }
+            _ => Err(ResponseError::new(
+                codes::METHOD_NOT_FOUND,
+                format!("Gitardo's engine has no method named {method}."),
+            )),
+        }
+    }
+
+    /// The answer of `initialize`: the engine's version, or the error of a major version it does not speak.
+    fn initialize(&self, params: &InitializeParams) -> Result<Value, ResponseError> {
+        let answer = InitializeResult {
+            protocol: String::from(VERSION),
+            engine: EngineInfo {
+                version: String::from(env!("CARGO_PKG_VERSION")),
+                git: git_version(),
+            },
+        };
+        if !is_compatible(&params.protocol) {
+            let message = format!(
+                "Gitardo's engine speaks version {VERSION} of the protocol, and the extension version {}.",
+                params.protocol
+            );
+            return Err(ResponseError::new(codes::INVALID_PARAMS, message).with_data(json(&answer)?));
+        }
+        *locked(&self.level) = params.log_level.into();
+        json(&answer)
+    }
+
+    /// A repository opened, or the error of one that is not.
+    fn opened(&self, repository: &str) -> Result<Arc<Repository>, ResponseError> {
+        locked(&self.repositories)
+            .get(repository)
+            .cloned()
+            .ok_or_else(|| not_open(repository))
+    }
+
+    /// Takes the paths the watchers saw change in a repository opened, and starts waiting for the burst to end.
+    fn changed(self: &Arc<Self>, changed: ChangedParams) {
+        let Ok(repository) = self.opened(&changed.repository) else {
+            return;
+        };
+        if !repository.changed(&changed.paths) {
+            return;
+        }
+        let session = Arc::clone(self);
+        let _waiting = thread::spawn(move || {
+            loop {
+                match repository.next() {
+                    Next::Wait(wait) => thread::sleep(wait),
+                    Next::End => break,
+                    Next::Read => session.read_again(&changed.repository, repository.folder()),
+                }
+            }
+        });
+    }
+
+    /// Reads a repository again after its files changed, and sends its state.
+    fn read_again(&self, repository: &str, folder: &Path) {
+        if let Ok(state) = self.read(repository, folder, "Files changed", &CancelToken::new()) {
+            let params = StateParams {
+                repository: repository.to_owned(),
+                state,
+                reason: StateReason::Changed,
+            };
+            if let Ok(params) = json(&params) {
+                self.send(notification_message(methods::STATE, params));
+            }
+        }
+    }
+
+    /// Reads the state of a repository (`repo.read-state`), shown as running while it does, and logged as a read.
+    fn read(
+        &self,
+        repository: &str,
+        folder: &Path,
+        cause: &str,
+        cancel: &CancelToken,
+    ) -> Result<StateJson, ResponseError> {
+        let activity = self
+            .activities
+            .track(Text::from(format!("Reading {repository}")), Text::from(cause), now());
+        self.send_activity();
+        let started = Instant::now();
+        let git = Git::new(folder).with_cancel(cancel.clone());
+        let read = read_state(
+            &git,
+            &StateRequest {
+                folder: folder.to_path_buf(),
+            },
+        );
+        drop(activity);
+        self.send_activity();
+        self.log_read(repository, started.elapsed());
+        read.map(|state: RepositoryState| StateJson::from(&state))
+            .map_err(|error| git_failure(&error))
+    }
+
+    /// Sends what runs now.
+    fn send_activity(&self) {
+        let running = self.activities.running().iter().map(ActivityJson::from).collect();
+        if let Ok(params) = json(&ActivityParams { running }) {
+            self.send(notification_message(methods::ACTIVITY, params));
+        }
+    }
+
+    /// Sends the line of a read, when the log says the reads.
+    fn log_read(&self, repository: &str, took: std::time::Duration) {
+        if *locked(&self.level) != LogLevel::Debug {
+            return;
+        }
+        let entry = LogEntry {
+            time: now(),
+            kind: LogKind::Read(took),
+            line: format!("Read the state of {repository}"),
+        };
+        let params = LogLineParams {
+            repository: Some(repository.to_owned()),
+            entry: LogEntryJson::from(&entry),
+        };
+        if let Ok(params) = json(&params) {
+            self.send(notification_message(methods::LOG_LINE, params));
+        }
+    }
+}
+
+/// The parameters of a message, or the error of parameters that are not the method's.
+fn parameters<T: DeserializeOwned>(params: Value) -> Result<T, ResponseError> {
+    serde_json::from_value(params)
+        .map_err(|error| ResponseError::new(codes::INVALID_PARAMS, format!("The parameters are not right: {error}")))
+}
+
+/// The JSON of a value of the protocol.
+fn json(value: &impl Serialize) -> Result<Value, ResponseError> {
+    serde_json::to_value(value).map_err(|error| {
+        ResponseError::new(
+            codes::INTERNAL_ERROR,
+            format!("The answer could not be written: {error}"),
+        )
+    })
+}
+
+/// The error of a repository that is not open.
+fn not_open(repository: &str) -> ResponseError {
+    ResponseError::new(codes::NOT_OPEN, format!("The repository {repository} is not open."))
+}
+
+/// The error of a read of git that failed or was cancelled.
+fn git_failure(error: &GitError) -> ResponseError {
+    if let GitError::Cancelled { .. } = error {
+        return ResponseError::new(codes::CANCELLED, "The read was cancelled.");
+    }
+    let output = match error {
+        GitError::Failed { stderr, .. } if !stderr.is_empty() => Some(stderr.clone()),
+        _ => None,
+    };
+    let data = ErrorData {
+        output,
+        steps: Vec::new(),
+    };
+    let error = ResponseError::new(codes::GIT_FAILED, error.to_string());
+    match serde_json::to_value(&data) {
+        Ok(data) => error.with_data(data),
+        Err(_) => error,
+    }
+}
+
+/// What `git --version` says; none when git cannot be run.
+fn git_version() -> Option<String> {
+    let said = Git::new(".").run_read(&["--version"]).ok()?;
+    Some(String::from_utf8_lossy(&said).trim().to_owned())
+}
+
+/// The time of day, in seconds since 1970.
+fn now() -> Timestamp {
+    let seconds = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map_or(0, |since| since.as_secs());
+    Timestamp(i64::try_from(seconds).unwrap_or(i64::MAX))
+}

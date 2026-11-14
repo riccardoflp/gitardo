@@ -41,6 +41,7 @@ cargo xtask snapshots       # the view snapshots; --accept takes the new pixels 
 cargo xtask golden --record # records git's output for the golden tests again
 cargo run -p app            # the application
 cargo run -p app --bin gitardo-cli -- <feature> <answers>…   # a feature without a window
+cargo build -p server       # gitardo-engine, which the extension starts: gitardo-engine --stdio
 ```
 
 ## Where to start

@@ -15,6 +15,7 @@ members = [
     "crates/text",
     "crates/json",
     "crates/protocol",
+    "crates/server",
     "crates/settings",
     "crates/http",
     "crates/tls",

@@ -1,0 +1,26 @@
+[package]
+name = "server"
+description = "gitardo-engine: Gitardo's engine without a window, spoken to by the extension for VS Code over its standard input and output."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "gitardo-engine"
+path = "src/main.rs"
+
+# serde and serde_json are used here and in protocol only (rule R1.7): the messages are read and written with them.
+[dependencies]
+engine = { path = "../engine" }
+git = { path = "../git" }
+model = { path = "../model" }
+protocol = { path = "../protocol" }
+serde = "1.0.229"
+serde_json = "1.0.154"
+
+[dev-dependencies]
+testkit = { path = "../testkit" }
+
+[lints]
+workspace = true
