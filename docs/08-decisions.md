@@ -1817,8 +1817,9 @@ From milestone M10 (Linux):
   own, with job objects on Windows?
 - **Q-L8** — The clippy of Rust 1.100, on Linux, asks for `map_or_default` where the code wrote
   `.map(…).unwrap_or_default()` (the pedantic `map_unwrap_or`), which the clippy of 1.99 on Windows does not; every
-  such place was changed, in a commit of its own, and 1.99 accepts the change. Should the workspace name its toolchain
-  in a `rust-toolchain.toml`, so that both systems run the same clippy?
+  such place was changed, in a commit of its own, and 1.99 accepts the change. The workspace now names its toolchain,
+  1.99.1 with rustfmt and clippy, in `rust-toolchain.toml`, so that every system runs the same clippy; moving to a
+  newer Rust is then a commit of its own, with what its clippy asks. Is that right?
 - **Q-L9** — Tests that assumed Windows: the path of the temporary patch of `patch.apply` is quoted only on Windows,
   so its test finds it quoted or bare; the helper of the folder-links tests of `git` is for Windows only, as those
   tests are; the `pre-push` hook of an activity test is made executable, without which git on Linux does not run it.
