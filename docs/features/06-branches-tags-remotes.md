@@ -447,6 +447,8 @@ Acceptance:
 - [ ] The branch checked out is never listed; in a window on a linked worktree, the branch of the main worktree is not
       listed either.
 - [ ] With nothing to clean up, no pick opens and the message says so.
+- [ ] On Windows, the links of a worktree to folders outside it are unlinked before `git worktree remove`, so that the
+      folders they lead to keep their files; the folder of the worktrees it leaves empty is deleted last.
 
 ### `branch.fast-forward` — Fast-forward a branch that is not checked out
 

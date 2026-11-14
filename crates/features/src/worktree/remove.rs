@@ -57,7 +57,7 @@ pub fn remove(context: &Context, answers: &Answers) -> Outcome {
                 return Outcome::Read(
                     LINKS,
                     Query::FolderLinks {
-                        worktree: worktree.folder.clone(),
+                        worktrees: vec![worktree.folder.clone()],
                     },
                 );
             }

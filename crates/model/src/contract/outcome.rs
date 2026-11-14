@@ -270,11 +270,11 @@ pub enum Query {
         /// The key just typed, when one was.
         key: Option<crate::ai::Key>,
     },
-    /// The links in a worktree to folders outside it, which git on Windows would empty when it removes the worktree
-    /// (`worktree.read-folder-links`). The answer is [`super::Answer::Paths`].
+    /// The links in worktrees to folders outside them, which git on Windows would empty when it removes a worktree
+    /// (`worktree.read-folder-links`), for every worktree named. The answer is [`super::Answer::Paths`].
     FolderLinks {
-        /// The top folder of the worktree.
-        worktree: std::path::PathBuf,
+        /// The top folders of the worktrees, one for `worktree.remove`, those picked for `branch.clean-up`.
+        worktrees: Vec<std::path::PathBuf>,
     },
 }
 

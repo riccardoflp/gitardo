@@ -2,20 +2,26 @@
 //! the ones ticked, with the worktrees that have them.
 
 use std::ffi::OsString;
+use std::path::PathBuf;
 
 use model::branch::other_worktree;
 use model::contract::{
     Answer, AnswerKey, Answers, Choice, Context, Danger, Outcome, Plan, Query, Question, QuestionKind, Step, Text, Undo,
 };
 use model::state::{Branch, RepositoryState, Worktree};
+use model::worktree::{EmptyFoldersInput, remove_empty_folders};
 
 use super::target::refuse;
+use crate::worktree::folder_of_worktrees;
 
 /// The local branches merged into `HEAD`.
 pub const MERGED: AnswerKey = AnswerKey("merged");
 
 /// The branches ticked, by their names.
 pub const BRANCHES: AnswerKey = AnswerKey("branches");
+
+/// The links of the worktrees picked to folders outside them, read on Windows, where git would empty those folders.
+pub const LINKS: AnswerKey = AnswerKey("folder links");
 
 /// Lists every local branch merged into `HEAD` or whose upstream was deleted from the remote, but the one checked out
 /// here and the one of the main worktree, ticks the merged ones whose worktree has nothing uncommitted, and deletes
@@ -42,7 +48,21 @@ pub fn clean_up(context: &Context, answers: &Answers) -> Outcome {
     if picked.is_empty() {
         return refuse("No branches selected.");
     }
-    Outcome::Run(plan(context, &picked))
+    let removed: Vec<PathBuf> = picked
+        .iter()
+        .filter_map(|candidate| candidate.worktree)
+        .filter(|worktree| !worktree.is_missing)
+        .map(|worktree| worktree.folder.clone())
+        .collect();
+    let links = if cfg!(windows) && !removed.is_empty() {
+        match answers.paths(LINKS) {
+            Some(links) => links.to_vec(),
+            None => return Outcome::Read(LINKS, Query::FolderLinks { worktrees: removed }),
+        }
+    } else {
+        Vec::new()
+    };
+    Outcome::Run(plan(context, &picked, &links))
 }
 
 /// A branch that may be cleaned up.
@@ -157,23 +177,12 @@ fn folder_name(worktree: &Worktree) -> String {
     )
 }
 
-/// The plan: the missing worktrees pruned, the others removed, then the merged branches deleted with `-d` and the
-/// others with `-D`, each in one command.
-fn plan(context: &Context, picked: &[&Candidate<'_>]) -> Plan {
+/// The plan: the missing worktrees pruned, the others removed as `worktree.remove` removes one, then the merged branches
+/// deleted with `-d` and the others with `-D`, each in one command, then the folders the worktrees leave empty.
+fn plan(context: &Context, picked: &[&Candidate<'_>], links: &[PathBuf]) -> Plan {
     let folder = context.repository.folder.clone();
-    let mut steps = Vec::new();
     let worktrees: Vec<&Worktree> = picked.iter().filter_map(|candidate| candidate.worktree).collect();
-    if worktrees.iter().any(|worktree| worktree.is_missing) {
-        steps.push(Step::git(folder.clone(), ["worktree", "prune"]));
-    }
-    for worktree in worktrees.iter().filter(|worktree| !worktree.is_missing) {
-        let mut arguments: Vec<OsString> = vec!["worktree".into(), "remove".into()];
-        if worktree.uncommitted.unwrap_or(0) > 0 {
-            arguments.push("--force".into());
-        }
-        arguments.push(worktree.folder.clone().into_os_string());
-        steps.push(Step::git(folder.clone(), arguments));
-    }
+    let mut steps = worktree_steps(context, &worktrees, links);
     let names = |is_merged: bool| -> Vec<&str> {
         picked
             .iter()
@@ -188,6 +197,7 @@ fn plan(context: &Context, picked: &[&Candidate<'_>]) -> Plan {
             steps.push(Step::git(folder.clone(), arguments));
         }
     }
+    steps.extend(empty_folder_steps(context, &worktrees));
     let title = Text::from(title(picked.len(), worktrees.len()));
     Plan {
         danger: danger(picked).unwrap_or_else(|| Danger::Confirm(title.clone())),
@@ -199,6 +209,50 @@ fn plan(context: &Context, picked: &[&Candidate<'_>]) -> Plan {
         after: Vec::new(),
         on_failure: Vec::new(),
     }
+}
+
+/// `git worktree prune` when a worktree picked is missing; then, for each of the others, its links to folders outside
+/// it unlinked, so that git on Windows does not empty those folders through them, and `git worktree remove`, with
+/// `--force` when it has files not committed.
+fn worktree_steps(context: &Context, worktrees: &[&Worktree], links: &[PathBuf]) -> Vec<Step> {
+    let folder = &context.repository.folder;
+    let mut steps = Vec::new();
+    if worktrees.iter().any(|worktree| worktree.is_missing) {
+        steps.push(Step::git(folder.clone(), ["worktree", "prune"]));
+    }
+    for worktree in worktrees.iter().filter(|worktree| !worktree.is_missing) {
+        steps.extend(
+            links
+                .iter()
+                .filter(|link| link.starts_with(&worktree.folder))
+                .map(|link| Step::Unlink { path: link.clone() }),
+        );
+        let mut arguments: Vec<OsString> = vec!["worktree".into(), "remove".into()];
+        if worktree.uncommitted.unwrap_or(0) > 0 {
+            arguments.push("--force".into());
+        }
+        arguments.push(worktree.folder.clone().into_os_string());
+        steps.push(Step::git(folder.clone(), arguments));
+    }
+    steps
+}
+
+/// The folders the worktrees removed leave empty in the folder of the worktrees, each deleted once.
+fn empty_folder_steps(context: &Context, worktrees: &[&Worktree]) -> Vec<Step> {
+    let worktrees_folder = folder_of_worktrees(context);
+    let mut steps: Vec<Step> = Vec::new();
+    for worktree in worktrees.iter().filter(|worktree| !worktree.is_missing) {
+        let input = EmptyFoldersInput {
+            worktrees_folder: &worktrees_folder,
+            worktree: &worktree.folder,
+        };
+        for step in remove_empty_folders(&input) {
+            if !steps.contains(&step) {
+                steps.push(step);
+            }
+        }
+    }
+    steps
 }
 
 /// What the plan says it does: `Delete 3 branches and 1 worktree`.

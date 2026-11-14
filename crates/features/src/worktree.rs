@@ -102,7 +102,7 @@ fn main_worktree(context: &Context) -> &Path {
 }
 
 /// The folder of the worktrees, worked out from `worktrees.folder`.
-fn folder_of_worktrees(context: &Context) -> String {
+pub(crate) fn folder_of_worktrees(context: &Context) -> String {
     let settings = &context.settings.worktrees;
     worktrees_folder(&settings.folder, main_worktree(context), &settings.home)
 }

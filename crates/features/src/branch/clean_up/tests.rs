@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 
-use super::{BRANCHES, MERGED, clean_up};
+use super::{BRANCHES, LINKS, MERGED, clean_up};
 use crate::testing::{branch, context, lines, plan, question, state};
 
 fn context_of(state: RepositoryState) -> Context {
     context(state, Target::Head)
 }
-use model::contract::{Answer, Answers, Context, Danger, Outcome, Query, QuestionKind, Target};
+use model::contract::{Answer, Answers, Context, Danger, Outcome, Query, QuestionKind, Step, Target};
 use model::state::{Branch, RepositoryState, Upstream, Worktree};
 
 /// A branch whose upstream was deleted from the remote.
@@ -50,11 +50,14 @@ fn merged(names: &[&str]) -> Answers {
     )
 }
 
+/// The branches ticked, with no links read on Windows.
 fn ticked(answers: Answers, names: &[&str]) -> Answers {
-    answers.with(
-        BRANCHES,
-        Answer::Choices(names.iter().map(|name| (*name).to_owned()).collect()),
-    )
+    answers
+        .with(
+            BRANCHES,
+            Answer::Choices(names.iter().map(|name| (*name).to_owned()).collect()),
+        )
+        .with(LINKS, Answer::Paths(Vec::new()))
 }
 
 /// The choices of the pick, each with its description, and those ticked to start with.
@@ -124,6 +127,44 @@ fn branch_clean_up__removes_the_worktree_of_a_merged_branch_before_deleting_it()
     assert_eq!(lines(&plan), ["git worktree remove app-a", "git branch -d a"]);
     assert_eq!(plan.title.as_str(), "Delete 1 branch and 1 worktree");
     assert!(matches!(plan.danger, Danger::Confirm(_)));
+}
+
+#[test]
+fn branch_clean_up__a_worktree_is_removed_as_worktree_remove_does_its_links_unlinked_first_and_empty_folders_deleted() {
+    let mut state = repository();
+    state.worktrees.push(Worktree {
+        is_main: true,
+        ..worktree("/code/app", "main", 0)
+    });
+    state.worktrees.push(worktree("/code/app.worktrees/feature/a", "a", 0));
+    let context = context(state, Target::Head);
+    let answers = merged(&["main", "a"]).with(BRANCHES, Answer::Choices(vec![String::from("a")]));
+    if cfg!(windows) {
+        assert_eq!(
+            clean_up(&context, &answers),
+            Outcome::Read(
+                LINKS,
+                Query::FolderLinks {
+                    worktrees: vec![PathBuf::from("/code/app.worktrees/feature/a")]
+                }
+            )
+        );
+    }
+    let link = PathBuf::from("/code/app.worktrees/feature/a/node_modules");
+    let plan = plan(clean_up(
+        &context,
+        &answers.with(LINKS, Answer::Paths(vec![link.clone()])),
+    ));
+    let mut expected = vec![
+        "git worktree remove /code/app.worktrees/feature/a",
+        "git branch -d a",
+        "delete /code/app.worktrees/feature",
+    ];
+    if cfg!(windows) {
+        assert_eq!(plan.steps.first(), Some(&Step::Unlink { path: link }));
+        expected.insert(0, "unlink /code/app.worktrees/feature/a/node_modules");
+    }
+    assert_eq!(lines(&plan), expected);
 }
 
 #[test]
