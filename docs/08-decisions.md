@@ -552,6 +552,140 @@ card's identifier, would rename hundreds of tests for a link the card already gi
 No agent pushes, tags or publishes. A release is a commit with the version and the CHANGELOG, a tag, and a package made
 with `npm run package` that the maintainer uploads to the Marketplace. *Reconstructed from AGENTS.md.*
 
+## The decisions of the one repository and the one engine, from D37
+
+*The maintainer's decisions, 2026-11-14, taken when the two apps came into one repository to share one engine. The
+documents of the transition are in [transition/](transition/README.md). D49 is proposed, not taken.*
+
+## D37 — One engine, the Rust one, for both apps
+
+Gitardo Desktop and the extension run the same features on one engine: the Rust crates of `rust/` without a window.
+The extension becomes an interface of VS Code over it: it shows, asks and opens editors, and hands every read and every
+operation of git to the engine ([transition/01-engine.md](transition/01-engine.md)). The TypeScript engine
+(`extension/src/git`) is emptied area by area and removed ([transition/06-roadmap.md](transition/06-roadmap.md)). Two
+engines doing the same features already drift apart ([transition/04-differences.md](transition/04-differences.md)
+counts 54 differences), and the Rust one is the one written from cards with a test per acceptance line. Rejected:
+keeping two engines and a shared catalog (the drift stays); moving the desktop onto the TypeScript engine (a runtime in
+the desktop, and the features rewritten as pure functions anyway). Once an area has moved, [D26](#d26--an-operation-is-a-gitop-built-before-it-runs)
+and [D28](#d28--undo-reads-the-reflog-and-remembers-only-what-it-cannot-tell) no longer hold for it: an operation is a
+feature of the engine, and Undo is the engine's journal.
+
+## D38 — One repository: `rust/`, `extension/`, and the documents at the root
+
+The branch `main-merge`, from `main`, holds both apps: the Rust workspace in `rust/`, the extension in `extension/`,
+and at the root only what both share or what must be there: `AGENTS.md` and `CLAUDE.md`, `README.md`, `docs/` with
+one catalog, `SECURITY.md`, `LICENSE`, `.gitignore`, `.gitattributes`, `.github/`, `.vscode/`. The history of
+`main-desktop` came in whole through a branch that moved its files into `rust/` and a merge with
+`--allow-unrelated-histories`, so `git log --follow` reaches the first commit of each file. Until stage 1 of the
+roadmap, commits on `main-desktop` come in with a plain `git merge main-desktop`, which follows the moves by itself
+(tried once: `-Xsubtree=rust` loses the move of the documents and must not be used); after it, the work is done only
+here. `main` and `main-desktop` stay as they are. Rejected: two repositories with the engine as a package (the desktop
+first rule needs one commit for both); `engine/` and `vscode/` as names (the folder holds the whole desktop, not only
+the engine).
+
+## D39 — Desktop first, and a status for each app
+
+A feature is built first in the engine and the window of Gitardo Desktop, with its card, its tests and
+`rust/CHANGELOG.md`; then in the extension, with its interface, its tests and `extension/CHANGELOG.md`. A card has a
+status for each app; it may be Built in the desktop and Planned in the extension, never Built in the extension while
+not in the desktop, unless a decision says why for that card. A feature that only VS Code can host (the Agents window,
+the Repositories view of Source Control) has an extension card marked Host only, and needs no desktop card. Rejected:
+the extension first, since it has the users (the engine would then be written after the fact, as the TypeScript one
+was); both at once in every commit (each change twice as large, and the window's tests and VS Code's run on different
+machines).
+
+## D40 — The clean room ends
+
+*Replaces the rule of [desktop/00-clean-room.md](desktop/00-clean-room.md), which stays as the record of how the
+desktop was written.*
+
+The desktop was written from the documents, never from the extension's code. With one engine for both, the extension's
+code is read to move its behavior, and its differences are found by reading both
+([transition/04-differences.md](transition/04-differences.md)). What stays: no code of another project is copied, the
+libraries are used through their interface and their documentation ([D22](#d22--libraries-with-judgment)), and a
+behavior moves into the engine through its card and its tests, not by translating TypeScript line by line.
+
+## D41 — JSON-RPC over the standard input and output, one process per window
+
+The extension starts `gitardo-engine --stdio`, one process for its extension host (one per window of VS Code, and on
+the remote machine with Remote SSH, WSL or a container), with one `Engine` per repository opened in it. The messages
+are JSON-RPC 2.0, framed as the Language Server Protocol frames them; both sides send requests, since the engine asks
+the questions of a feature ([transition/02-protocol.md](transition/02-protocol.md)). Rejected: a library loaded into
+Node (N-API: a crash of the engine takes the extension host down, and one binary per Node ABI); WebAssembly (no
+processes, so no `git`); a process per repository (twice the memory for a workspace of many repositories, and the
+journal of a worktree apart from its repository's); a socket (a port to protect, and nothing gained over pipes).
+
+## D42 — The messages' types in a crate `protocol`, with `serde`
+
+The types of the messages are in `rust/crates/protocol`, with `serde` and `serde_json`, converted from and to those of
+`model`, and versioned `major.minor`. `model` stays without `serde`: a change to the contract changes the protocol only
+where `protocol` says so, and the window does not compile JSON code it does not use. Rejected: `serde` on the types of
+`model` (every rename in `model` would change the protocol silently); a JSON written by hand with `crates/json` (every
+type twice, by hand, for some 150 types).
+
+## D43 — The extension sends the settings; the host answers what only it has
+
+The extension sends the settings at `initialize` and again whenever one changes, resolved (the workspace's over the
+user's, defaults, the `git.*` fallbacks of [D31](#d31--settings-are-gitardo-and-vs-codes-git-settings-are-read-when-gitardos-are-not-set)),
+under the names of the desktop's `settings.json`, which are the extension's without `gitardo.`. The engine reads no
+settings file while it runs under the extension, and a feature that writes a setting asks the extension to write it.
+The engine asks the extension, as host questions, what only VS Code has: the clipboard, a GitHub token from VS Code's
+sign-in, an answer of a language model, the dialogs of files, the secrets. Under the extension,
+[D10](#d10--the-ai-provider-is-configured-not-discovered) and [D11](#d11--github-through-gits-credentials) give way to
+VS Code's language models and sign-in. Rejected: the engine asking for each setting when it needs it (a round trip in
+the middle of every feature, and a `Context` that changes while a feature runs); the engine reading VS Code's
+`settings.json` (it cannot see the user's profile, the remote, or the defaults).
+
+## D44 — One catalog, the desktop's, with a status for each app
+
+The catalog is `docs/features/`, with a column for each app in its index. The extension's 184 cards stay in
+`docs/features/extension/` as the source of each area until the stage of the roadmap that moves the area merges them
+into the desktop's cards; their identifiers become aliases, listed at the end of the index. Rejected: the extension's
+catalog as the base (181 cards, written after the code, against 415 written before it); merging every card now (the
+merge is the work of each stage, with the code of the area in front of it).
+
+## D45 — Where the two apps differ, the engine wins, but for what is decided otherwise
+
+Each difference of [transition/04-differences.md](transition/04-differences.md) is a bug, a choice, or a line of the
+CHANGELOG. A bug is fixed on whichever side it is, in the engine when both have it. A choice is decided case by case,
+with an option of the engine where the host must differ. Otherwise the engine's behavior is the one both apps get, and
+each difference the extension's users will see is a line of its CHANGELOG in the release that moves the area.
+
+## D46 — `cargo xtask check` checks the catalog of both apps
+
+The checks of the catalog are xtask's: it reads `docs/` at the root, the cards of both apps and their statuses, and
+fails when an extension status is ahead of the desktop's ([D39](#d39--desktop-first-and-a-status-for-each-app)).
+`npm run check:docs` calls it. `docs/catalog.py` checks the extension's cards until the parts of it that xtask lacks
+(the lines a card's kind needs, the words of the glossary) are ported, then it is removed. Rejected: two checkers for
+one catalog.
+
+## D47 — A README and a CHANGELOG for each app, and a short one at the root
+
+`extension/README.md` is the page of the Marketplace and stays as it is, links and images included, with `vsce
+package --baseContentUrl` and `--baseImagesUrl` pointing into `extension/`; `extension/CHANGELOG.md` is the
+extension's, `rust/CHANGELOG.md` the desktop's. The root `README.md` is short: the two apps and where each lives.
+`LICENSE` stays at the root and `npm run package` copies it into `extension/` for `vsce`, which takes it only from
+there.
+
+## D48 — macOS on GitHub Actions
+
+The engine and the desktop are built and checked on macOS (`macos-14`, both targets) by GitHub Actions, which closes M11
+of the desktop's roadmap, needing no Mac at hand. Until that runs, the extension on macOS has no binary and uses its
+TypeScript code for everything, as on any platform with no binary ([D49](#d49--when-the-engines-binary-is-missing-proposed)).
+
+## D49 — When the engine's binary is missing (proposed)
+
+*Proposed by the agent that wrote the transition's documents; the maintainer had no preference.*
+
+While `extension/src/git` is there, every operation runs in TypeScript when the binary is missing or does not start,
+those already moved included: their `GitOp` is kept as the fallback until `src/git` is removed. The output channel
+says once **Gitardo's engine is not available on this system, so Gitardo uses its older code.** That is what keeps
+macOS working until [D48](#d48--macos-on-github-actions) gives it a binary. `src/git` is removed only once every target
+has its binary (stage 10 of the roadmap, after the pipeline of stage 9); from then on, every view says **Gitardo's
+engine is not available on this system.** with **Show the log**, and nothing else. The extension never downloads a
+binary. Rejected: an operation already moved refusing at once when the binary is missing (it would take features away
+from macOS for the whole transition).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -2224,3 +2358,57 @@ The questions the cards raised, each naming the cards it would change:
   moves the others. Name them by their commit instead? `stash.apply`, `stash.pop`, `stash.drop`.
 - **Q392** — The message drafted by the language model is not shown as running, and a message typed in the box is kept
   only once the Changes view has been opened. `commit.draft-message`, `commit.box`, `activity.track`.
+
+### Of the transition to one engine, from Q393
+
+Raised while writing [transition/](transition/README.md). Each has a recommendation; none is decided.
+
+- **Q393** — How is `platform` split, so that `engine` and `gitardo-engine` link no window library? `engine` uses only
+  `link_folder` and the three functions of the credential store (`crates/engine/Cargo.toml`). Recommended: a new crate
+  `system` with those, which `platform` and `engine` both use, since a Cargo feature `window` of `platform` would make
+  the edges of the picture depend on features, which `cargo xtask check` does not read.
+- **Q394** — The framing of the messages: `Content-Length` headers, as the Language Server Protocol, or one JSON per
+  line? And does the extension take `vscode-jsonrpc` for it? Recommended: the headers, written in a few lines of the
+  extension's own, no new package.
+- **Q395** — Where do `history_of` and `commits_request` (`crates/app/src/store/timeline/mod.rs`) and the reading of
+  the settings (`crates/app/src/settings/read.rs`) go, so that the server uses them? Recommended: into `engine` for the
+  history, and a crate `settings` for the reading of the settings, which the window uses from there.
+- **Q396** — Trust inside VS Code: the desktop asks before running what a folder's `.gitardo/settings.json` asks
+  (`trust.ask`); under the extension the settings come from VS Code, which has workspace trust. Recommended: the
+  extension sends `trust: "vscode"`, and the engine runs the setup commands of a worktree only in a trusted workspace,
+  asking nothing of its own ([W5](transition/04-differences.md#w5-who-decides-that-the-setup-commands-may-run)).
+- **Q397** — The Commits view of the extension (`Repo.branchLog`) has no read in the engine. Recommended: a card
+  `branch.read-log` in the desktop first, made of `graph.read-commits` and `graph.unpushed`, and a view of it in the
+  desktop only if it earns one.
+- **Q398** — Three reads are done in `crates/app` and not in the engine: the common git folder of a worktree, the
+  message git prepared (`SQUASH_MSG`), and the diff given to the AI for a commit message. Recommended: a Read card for
+  each in the engine, the window using them from there.
+- **Q399** — A feature that writes a setting under the extension (`worktree-setup.save`, the toggles of the graph):
+  recommended a new follow-up `WriteSetting { key, value, target }` that the window carries out by writing its
+  `settings.json` and the extension with `WorkspaceConfiguration.update`, in place of the steps that write the file.
+- **Q400** — The extension's `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` against the desktop's
+  `ai.model` and `ai.effort`. Recommended: the extension keeps its keys and sends them as `ai.*`; a `gitardo.ai.*`
+  pair only if a second use of AI needs another model.
+- **Q401** — The extension has `gitardo.worktrees.branchFormat` and `gitardo.worktrees.inputs` beside
+  `gitardo.branches.format` and `gitardo.branches.inputs`; the desktop has only the second pair. Recommended: the
+  engine reads the worktree's pair first for a new worktree's branch, and the desktop gets the two keys.
+- **Q402** — Reverting one change of a diff: the engine writes the file (`diff/revert_change.rs`), the extension edits
+  the open document so that Ctrl+Z works and edits not saved are kept
+  ([A5](transition/04-differences.md#a5-revert-one-change-in-a-diff)). Recommended: under the extension the plan
+  gives the new text in a follow-up and the extension applies it to the document; the engine only checks that the
+  change is still where it was shown.
+- **Q403** — Undo right after an operation it cannot take back, and Undo while an operation is stopped
+  ([D7, D8](transition/04-differences.md#d7-undo-takes-back-the-operation-before-one-it-cannot-see-on-both-sides)).
+  Recommended, before stage 3: the journal records that the last plan cannot be undone until `HEAD` moves, and
+  `undo.last` refuses while a merge, rebase, cherry-pick, revert or patch is stopped, but for a squash merge and a
+  resolution of conflicts.
+- **Q404** — The engine's log keeps neither git's output under a step that succeeded nor what was given on standard
+  input ([D11](transition/04-differences.md#d11-the-log-keeps-no-output-of-commands-that-succeeded-nor-what-was-given-on-standard-input)).
+  Recommended: log both, the output at `info` (push hints and autostash messages are read there), the input at
+  `debug`.
+- **Q405** — After git refuses to delete a branch or remove a worktree, the engine offers **Delete anyway** and
+  **Remove anyway**, while the extension asked the forced variant at once, and the engine's `submodule.deinitialize`
+  still asks at once (B3, W7). Recommended: the engine's offer after the failure, for all three.
+- **Q406** — The lanes of the graph: computed by the webviews from the rows (`src/shared/graph.ts`), or sent with the
+  rows by the engine, which has the same derivation for the window? Recommended: the webviews until stage 7, then
+  measured both ways on the large repository.

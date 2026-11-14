@@ -18,6 +18,7 @@ the extension's documents (`src/git/ops.ts`) is from `extension/`, one in Gitard
 | [09-glossary.md](09-glossary.md) | Each word of the product with one meaning, what it is not, the words to avoid, its name in the code. |
 | [features/](features/README.md) | The catalog of Gitardo Desktop: one file per area, one card per feature, and its index. Checked by `cargo xtask check`. |
 | [features/extension/](features/extension/README.md) | The extension's cards, for the areas that have them, and their index. Checked by `npm run check:docs`. |
+| [transition/](transition/README.md) | The move to one engine, the Rust one, for both apps: the engine, the protocol, the map, the differences, stored data, the roadmap, the rules that change. |
 | [catalog.py](catalog.py) | The check of the extension's cards, run by `npm run check:docs`. |
 
 ## Gitardo Desktop
