@@ -146,6 +146,18 @@ Every feature has an identifier, `area.action`, lower case, with words joined by
 `cargo xtask check` fails when a card has no function, a function no card, or a card no test. The catalog and the code
 cannot drift apart.
 
+## Its status in each app
+
+A card is one feature for both apps ([D44](../08-decisions.md#d44--one-catalog-the-desktops-with-a-status-for-each-app)),
+with a status for each in the index of the catalog: **Desktop** is Specified, Reviewed, Built or Seen, as above;
+**Extension** is Planned, Built, Seen, Differs (with the entries of
+[transition/04-differences.md](../transition/04-differences.md) it differs by) or Host only (VS Code does it, or only
+the window has it). The feature is built in the desktop first and in the extension after
+([D39](../08-decisions.md#d39--desktop-first-and-a-status-for-each-app)): a card is never Built, Seen or Differs in the
+extension while it is Specified or Reviewed in the desktop, and `cargo xtask check` says so. The function is the same
+for both apps; what the extension adds is its interface, which a card's **Extension** line says when it differs from
+the window's.
+
 ## The card
 
 Each card in [features/](../features/README.md) follows this template. Leave out a line that does not apply rather than

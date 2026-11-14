@@ -25,8 +25,11 @@ pub struct IndexRow {
     pub identifier: String,
     /// The kind the index gives.
     pub kind: String,
-    /// The status: `Specified`, `Reviewed`, `Built` or `Seen`.
+    /// The status in Gitardo Desktop: `Specified`, `Reviewed`, `Built` or `Seen`.
     pub status: String,
+    /// The status in the extension, from the column after the desktop's: `Planned`, `Built`, `Seen`, `Differs (A5)`
+    /// or `Host only`; none when the index has no such column.
+    pub extension: Option<String>,
     /// The line of the row.
     pub line: usize,
 }
@@ -107,6 +110,10 @@ pub fn parse_index(text: &str) -> Vec<IndexRow> {
             identifier: identifier.to_owned(),
             kind: (*kind).to_owned(),
             status: (*status).to_owned(),
+            extension: cells
+                .get(5)
+                .filter(|cell| !cell.is_empty())
+                .map(|cell| (*cell).to_owned()),
             line: index + 1,
         });
     }

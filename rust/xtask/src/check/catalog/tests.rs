@@ -17,6 +17,7 @@ fn row(identifier: &str, status: &str) -> IndexRow {
         identifier: identifier.to_owned(),
         kind: String::from("Operation"),
         status: status.to_owned(),
+        extension: None,
         line: 3,
     }
 }
@@ -166,5 +167,43 @@ fn refuses_an_unknown_status() {
         messages(&catalog)
             .iter()
             .any(|message| message.contains("has the status Done"))
+    );
+}
+
+#[test]
+fn passes_the_statuses_of_the_extension_behind_the_desktop() {
+    let mut catalog = built_catalog();
+    for cell in ["Planned", "Built", "Seen", "Differs (A5, D7)", "Host only"] {
+        catalog.index[0].extension = Some(cell.to_owned());
+        assert!(messages(&catalog).is_empty(), "{cell}: {:?}", messages(&catalog));
+    }
+}
+
+#[test]
+fn refuses_an_unknown_status_in_the_extension() {
+    let mut catalog = built_catalog();
+    catalog.index[0].extension = Some(String::from("Done"));
+    assert!(
+        messages(&catalog)
+            .iter()
+            .any(|message| message.contains("has the status Done in the extension"))
+    );
+}
+
+#[test]
+fn refuses_a_card_built_in_the_extension_before_the_desktop() {
+    let mut catalog = built_catalog();
+    catalog.index[0].status = String::from("Specified");
+    catalog.index[0].extension = Some(String::from("Differs (B3)"));
+    assert!(
+        messages(&catalog)
+            .iter()
+            .any(|message| message.contains("is Differs in the extension and Specified in Gitardo Desktop"))
+    );
+    catalog.index[0].extension = Some(String::from("Planned"));
+    assert!(
+        !messages(&catalog)
+            .iter()
+            .any(|message| message.contains("the desktop comes first"))
     );
 }

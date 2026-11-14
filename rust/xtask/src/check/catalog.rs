@@ -1,6 +1,7 @@
 //! Rules R2.1 and R2.6: the catalog and the code name each other. Every function that says it is a feature has a
 //! card, of the crate and name the card gives; every card the index marks built has its function, and at least as many
-//! tests named after it as its acceptance list has lines; the index and the cards agree.
+//! tests named after it as its acceptance list has lines; the index and the cards agree. Rule R2.7: no card is further
+//! on in the extension than in Gitardo Desktop.
 
 use std::collections::BTreeMap;
 
@@ -20,6 +21,13 @@ const STATUSES: [&str; 4] = ["Specified", "Reviewed", "Built", "Seen"];
 
 /// The statuses that say the code of a card is written.
 const BUILT: [&str; 2] = ["Built", "Seen"];
+
+/// The statuses a card can have in the extension. `Differs` is followed by the entries of the differences it differs
+/// by: `Differs (A5, D7)`.
+const EXTENSION_STATUSES: [&str; 5] = ["Planned", "Built", "Seen", "Differs", "Host only"];
+
+/// The statuses that say the extension has the feature, which it may have only once the desktop has it.
+const EXTENSION_HAS: [&str; 3] = ["Built", "Seen", "Differs"];
 
 /// What the check reads, gathered from the documents and the code.
 pub struct Catalog {
@@ -78,6 +86,38 @@ pub fn problems(catalog: &Catalog) -> Vec<Problem> {
     found.extend(function_problems(catalog));
     found.extend(built_problems(catalog));
     found.extend(test_problems(catalog));
+    found.extend(extension_problems(catalog));
+    found
+}
+
+/// The status of a row in the extension without the entries of a difference: `Differs` for `Differs (A5)`.
+fn extension_status(cell: &str) -> &str {
+    cell.split(" (").next().unwrap_or(cell).trim()
+}
+
+fn extension_problems(catalog: &Catalog) -> Vec<Problem> {
+    let mut found = Vec::new();
+    for row in &catalog.index {
+        let Some(cell) = &row.extension else {
+            continue;
+        };
+        let status = extension_status(cell);
+        let message = if !EXTENSION_STATUSES.contains(&status) {
+            format!(
+                "{} has the status {cell} in the extension, which is not one of {}.",
+                row.identifier,
+                EXTENSION_STATUSES.join(", ")
+            )
+        } else if EXTENSION_HAS.contains(&status) && !BUILT.contains(&row.status.as_str()) {
+            format!(
+                "{} is {status} in the extension and {} in Gitardo Desktop: the desktop comes first.",
+                row.identifier, row.status
+            )
+        } else {
+            continue;
+        };
+        found.push(Problem::at_line("R2.7", INDEX, row.line, message));
+    }
     found
 }
 

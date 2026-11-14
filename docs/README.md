@@ -16,8 +16,8 @@ the extension's documents (`src/git/ops.ts`) is from `extension/`, one in Gitard
 | --- | --- |
 | [08-decisions.md](08-decisions.md) | The decisions (D1, …) with why and what was rejected, and the open questions (Q1, …), of both apps, with how their numbers were joined. |
 | [09-glossary.md](09-glossary.md) | Each word of the product with one meaning, what it is not, the words to avoid, its name in the code. |
-| [features/](features/README.md) | The catalog of Gitardo Desktop: one file per area, one card per feature, and its index. Checked by `cargo xtask check`. |
-| [features/extension/](features/extension/README.md) | The extension's cards, for the areas that have them, and their index. Checked by `npm run check:docs`. |
+| [features/](features/README.md) | The catalog: one file per area, one card per feature, and its index with the status of each card in each app. Checked by `cargo xtask check`. |
+| [features/extension/](features/extension/README.md) | The extension's cards, kept as the source of each area until it is merged into the catalog. Checked by `npm run check:docs`. |
 | [transition/](transition/README.md) | The move to one engine, the Rust one, for both apps: the engine, the protocol, the map, the differences, stored data, the roadmap, the rules that change. |
 | [catalog.py](catalog.py) | The check of the extension's cards, run by `npm run check:docs`. |
 
@@ -60,6 +60,7 @@ At the root of the repository: [AGENTS.md](../AGENTS.md) (with `CLAUDE.md` point
 ## Keeping them true
 
 A change a user can see changes its card, its app's README and its app's CHANGELOG in the same commit.
-`cargo xtask check`, in `rust/`, fails when a card of `features/` and the Rust code do not name each other.
+`cargo xtask check`, in `rust/`, fails when a card of `features/` and the Rust code do not name each other, or when a
+card is further on in the extension than in the desktop.
 `npm run check:docs`, in `extension/`, fails when a card of `features/extension/` lacks the lines its kind needs, when an
 identifier written in the extension's documents names no card, or when a word the glossary says to avoid is used.
