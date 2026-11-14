@@ -59,6 +59,17 @@ fn split_commit__an_older_commit_stops_a_rebase_and_writes_gitardo_split() {
 }
 
 #[test]
+fn split_commit__is_refused_while_a_bisect_is_under_way() {
+    let mut state = state();
+    state.bisect = Some(model::bisect::Bisect::default());
+    let context = context(state, Target::Commit(id('a')));
+    let Outcome::Refuse(refusal) = commit(&context, &Answers::new()) else {
+        panic!("refused")
+    };
+    assert_eq!(refusal.message.as_str(), "End the bisect first.");
+}
+
+#[test]
 fn split_commit__refuses_a_merge_and_the_first_commit() {
     let context = context(state(), Target::Commit(id('a')));
     let mut merge = line_of("89", &[]);

@@ -228,12 +228,12 @@ fn current<'a>(state: &HistoryState<'a>) -> &'a str {
 }
 
 /// Whether `selection.cherry-pick` is offered for the commits: none of them is a merge, and no merge, rebase,
-/// cherry-pick, revert or patch is under way.
+/// cherry-pick, revert, patch or bisect is under way.
 fn offers_cherry_pick(state: &HistoryState<'_>, several: &Several) -> bool {
     !several.has_merge
         && state
             .references
-            .is_some_and(|menus| menus.repository.operation.is_none())
+            .is_some_and(|menus| menus.repository.operation.is_none() && menus.repository.bisect.is_none())
 }
 
 /// Whether `squash.commits` is offered for the commits: two or more that end the line to `HEAD` of the oldest of them,

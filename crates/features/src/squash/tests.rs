@@ -68,6 +68,16 @@ fn squash_commits__b_c_and_d_become_one_commit_selected_under_e() {
 }
 
 #[test]
+fn squash_commits__is_refused_while_a_bisect_is_under_way() {
+    let mut state = at_e();
+    state.bisect = Some(model::bisect::Bisect::default());
+    let Outcome::Refuse(refusal) = commits(&context(state, selected("432")), &answered("Add the login page")) else {
+        panic!("refused")
+    };
+    assert_eq!(refusal.message.as_str(), "End the bisect first.");
+}
+
+#[test]
 fn squash_commits__b_and_d_without_c_are_refused() {
     let context = context(at_e(), selected("24"));
     let Outcome::Refuse(refusal) = commits(&context, &answered("Squashed")) else {

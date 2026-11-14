@@ -117,6 +117,22 @@ fn rebase_todo_page__the_menu_of_the_third_commit_under_head_opens_the_page_on_t
 }
 
 #[test]
+fn rebase_todo_page__while_a_bisect_is_under_way_no_commit_is_rewritten_from_its_menu() {
+    let rows = line();
+    let mut bisecting = repository('e');
+    bisecting.bisect = Some(model::bisect::Bisect::default());
+    assert!(!offers(
+        &bisecting,
+        &rows,
+        'c',
+        "Interactive rebase of 3 commits\u{2026}"
+    ));
+    assert!(!offers(&bisecting, &rows, 'e', words::EDIT_THIS_COMMIT));
+    assert!(!offers(&bisecting, &rows, 'e', words::SQUASH_INTO_PREVIOUS));
+    assert!(!offers(&bisecting, &rows, 'e', words::SPLIT_THIS_COMMIT));
+}
+
+#[test]
 fn squash_into_previous__on_head_whose_parent_is_not_a_merge_the_entry_is_there() {
     let rows = line();
     let squash = (String::from(words::SQUASH_INTO_PREVIOUS), Some("squash.into-previous"));

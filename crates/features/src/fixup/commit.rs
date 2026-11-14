@@ -114,6 +114,17 @@ mod tests {
     }
 
     #[test]
+    fn fixup_commit__is_refused_while_a_bisect_is_under_way() {
+        let mut state = state();
+        state.working_tree.staged.push(modified("a.txt"));
+        state.bisect = Some(model::bisect::Bisect::default());
+        let Outcome::Refuse(refusal) = commit(&context(state, Target::Commit(id('b'))), &based(Some('c'))) else {
+            panic!("refused")
+        };
+        assert_eq!(refusal.message.as_str(), "End the bisect first.");
+    }
+
+    #[test]
     fn fixup_commit__refuses_with_no_change() {
         let Outcome::Refuse(refusal) = commit(&context(state(), Target::Commit(id('b'))), &Answers::new()) else {
             panic!("refused")

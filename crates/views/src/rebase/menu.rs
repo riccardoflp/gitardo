@@ -53,7 +53,7 @@ pub(crate) fn rebase_onto_entry(
 /// The entries of a commit that rebase and rewrite it: **Rebase `<current>` onto this**; then, when the commit has a
 /// line to `HEAD` among the rows loaded, **Squash into the commit before it…** when its parent has one too, **Split
 /// this commit…** when it has one parent, the fixup when it is not the commit checked out and there are changes and no
-/// conflict, and the interactive rebase page. None while an operation is under way.
+/// conflict, and the interactive rebase page. None while an operation or a bisect is under way.
 pub(crate) fn rewrite_menu(menus: ReferenceMenus<'_>, rows: &[Row], commit: &CommitId) -> RewriteMenu {
     let repository = menus.repository;
     let target = || Target::Commit(commit.clone());
@@ -63,7 +63,7 @@ pub(crate) fn rewrite_menu(menus: ReferenceMenus<'_>, rows: &[Row], commit: &Com
         .head
         .commit
         .as_ref()
-        .filter(|_| repository.operation.is_none())
+        .filter(|_| repository.operation.is_none() && repository.bisect.is_none())
     else {
         return menu;
     };
@@ -114,7 +114,7 @@ pub fn can_squash(repository: &RepositoryState, rows: &[Row], selected: &[Commit
     let Some(head) = repository.head.commit.as_ref() else {
         return false;
     };
-    if selected.len() < 2 || repository.operation.is_some() {
+    if selected.len() < 2 || repository.operation.is_some() || repository.bisect.is_some() {
         return false;
     }
     let commits = loaded(rows);

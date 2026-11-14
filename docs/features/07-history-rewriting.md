@@ -516,6 +516,7 @@ Acceptance:
 - [ ] Setting every row to **Drop** shows the first message and disables **Start rebase**.
 - [ ] **Cancel** closes the page and runs nothing.
 - [ ] **Start rebase** closes the page and calls `rebase.interactive` with the rows oldest first.
+- [ ] While a bisect is under way, no commit offers the page, nor squashing into the commit before it, nor splitting.
 
 ### `rebase.build-todo-list` — The todo list of an interactive rebase
 
@@ -769,6 +770,7 @@ Acceptance:
 - [ ] Closing the box runs nothing.
 - [ ] With a file modified and not committed, the squash runs and the file is modified again after it.
 - [ ] One Undo puts the branch back on `E`.
+- [ ] While a bisect is under way, it is not offered, and it is refused with *End the bisect first.*
 
 ### `squash.into-previous` — Squash a commit into the commit before it
 
@@ -833,6 +835,7 @@ Acceptance:
 - [ ] Splitting the second commit under `HEAD` stops the rebase with that commit's changes unstaged, `gitardo-split` in
       `rebase-merge`, and the banner text above.
 - [ ] The entry is not on a merge commit nor on the root commit.
+- [ ] While a bisect is under way, the entry is not there, and the split is refused with *End the bisect first.*
 
 ### `split.continue` — Continue a split
 
@@ -894,7 +897,8 @@ it again.
   rebase stops with conflicts.* The title is *Add staged changes to `<short>`* or *Add all changes to `<short>`*.
 - **Undo**: by the reflog of the branch (`undo.last`).
 - **After**: when the changes do not fit, the rebase stops with conflicts like any other.
-- **Refuses**: *Finish or abort the `<operation>` first.*; with no change, *There are no changes to add to that commit.*
+- **Refuses**: *Finish or abort the `<operation>` first.*; *End the bisect first.*; with no change, *There are no
+  changes to add to that commit.*
 - **Uses**: `rebase.find-line-before-head`, `conflicts.continue-operation`, `undo.last`.
 
 Acceptance:
@@ -905,6 +909,7 @@ Acceptance:
       starts with `git add --all`.
 - [ ] On the commit checked out, the entry is not there.
 - [ ] On the root commit the rebase runs with `--root`.
+- [ ] While a bisect is under way, the entry is not there, and the fixup is refused with *End the bisect first.*
 
 ### `drag.list-drop-entries` — What a drop offers
 

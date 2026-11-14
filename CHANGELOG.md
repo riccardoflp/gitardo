@@ -13,6 +13,8 @@
 - **Clean up branches** removes a worktree as **Remove worktree** does: on Windows its links to folders outside it are
   unlinked first, so that `git worktree remove` no longer empties the folders they lead to, and the folders it leaves
   empty are deleted.
+- While a bisect is under way, squash, split, fixup, the interactive rebase and cherry-picking several commits are not
+  offered, and squash, split and fixup are refused with **End the bisect first.**
 - Before the commands of `worktrees.setupCommands` run in a folder that is not trusted, Gitardo asks **Run the
   commands for new worktrees?**, naming the folder, where the commands come from and each of them. **Trust this folder
   and run them** runs them and trusts the folder, and every folder in it, from then on; **Not now** creates the

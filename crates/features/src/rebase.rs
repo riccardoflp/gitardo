@@ -30,9 +30,16 @@ pub const PUSHED: AnswerKey = AnswerKey("pushed");
 /// messages, from its start until it ends.
 pub const FILES_FOLDER: &str = "gitardo-rebase";
 
-/// The refusal while an operation is stopped half way, which a rewrite would get in the way of.
+/// The refusal while an operation is stopped half way, which a rewrite would get in the way of, or while a bisect is
+/// under way, which would then test commits that are no longer there.
 pub(crate) fn refuse_under_way(context: &Context) -> Option<Outcome> {
-    let operation = context.repository.operation?;
+    let Some(operation) = context.repository.operation else {
+        return context
+            .repository
+            .bisect
+            .is_some()
+            .then(|| refuse(crate::bisect::END_FIRST));
+    };
     let name = match operation {
         Operation::Merge => "merge",
         Operation::Rebase => "rebase",

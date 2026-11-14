@@ -206,6 +206,15 @@ fn selection_bar__while_a_rebase_is_stopped_cherry_pick_is_not_there() {
 }
 
 #[test]
+fn selection_bar__while_a_bisect_is_under_way_neither_squash_nor_cherry_pick_is_there() {
+    let mut state = repository("A", &[("main", "A")]);
+    state.bisect = Some(model::bisect::Bisect::default());
+    let mut fixture = Fixture::new(rows(&["A: B", "B: C", "C:"]), &state, Some(Selected::Commit(id("A"))));
+    fixture.several = several(&["B", "C"]);
+    assert_eq!(bar_labels(&fixture), ["Copy as patch", "Clear selection"]);
+}
+
+#[test]
 fn selection_bar__clear_selection_empties_the_selection_of_several() {
     let mut fixture = six();
     fixture.several = several(&["A", "C"]);
