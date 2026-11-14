@@ -32,6 +32,9 @@ pub struct MoreMenuState {
     /// Where the main remote is: **Load pull requests from GitHub** is offered only on GitHub
     /// (`github.load-pull-requests`).
     pub main_remote: MainRemote,
+    /// The File page in front, whose history **History of the active file** shows; with none, the operation says to
+    /// open a file (`file-history.file`).
+    pub active_file: Option<crate::file_view::FilePageId>,
 }
 
 /// Where the main remote of the repository shown is.
@@ -66,8 +69,19 @@ pub struct TimelineMenu {
     pub has_folds: bool,
     /// Whether every merge is folded.
     pub is_all_folded: bool,
+    /// How the timeline is drawn: the folds are offered only while it has its lines.
+    pub drawn: GraphDrawn,
     /// The kinds of references the timeline shows; none while the branch filter chose otherwise (`filter.kinds`).
     pub kinds: Option<Kinds>,
+}
+
+/// How the timeline is drawn.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GraphDrawn {
+    /// With the lines of the graph.
+    WithLines,
+    /// As a list of what a search finds, where nothing is folded.
+    AsList,
 }
 
 /// What an item of the menu does.
@@ -85,6 +99,8 @@ pub(crate) enum MoreCommand {
     Kind(ReferenceKind),
     /// **Go to commit…** (`search.go-to-commit`).
     GoToCommit,
+    /// **History of the active file** (`file-history.file`).
+    ActiveFileHistory,
     /// **Settings** (`settings.edit`).
     Settings,
     /// **Theme…** (`settings.theme`).
@@ -118,7 +134,7 @@ fn switch_item(switches: Switches, switch: TimelineSwitch) -> MenuEntry<'static,
 }
 
 /// The entries of the timeline, in the order of the card: the switches of what is listed and brought out, the folds,
-/// then the switches of what each row shows.
+/// while the graph has its lines, then the switches of what each row shows.
 fn timeline_entries(menu: TimelineMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
     let mut entries = vec![MenuEntry::Separator];
     entries.extend(kind_entries(menu.kinds));
@@ -129,15 +145,17 @@ fn timeline_entries(menu: TimelineMenu) -> Vec<MenuEntry<'static, MoreCommand>> 
     ] {
         entries.push(switch_item(menu.switches, switch));
     }
-    let fold = MenuItem::new(words::FOLD_ALL, MoreCommand::FoldAll(FoldAllEntry::Fold));
-    let fold = match (menu.is_all_folded, menu.has_merges) {
-        (true, _) => fold.with_icon(Icon::Check),
-        (false, true) => fold,
-        (false, false) => fold.disabled(),
-    };
-    let unfold = MenuItem::new(words::UNFOLD_ALL, MoreCommand::FoldAll(FoldAllEntry::Unfold));
-    entries.push(MenuEntry::Item(fold));
-    entries.push(MenuEntry::Item(if menu.has_folds { unfold } else { unfold.disabled() }));
+    if menu.drawn == GraphDrawn::WithLines {
+        let fold = MenuItem::new(words::FOLD_ALL, MoreCommand::FoldAll(FoldAllEntry::Fold));
+        let fold = match (menu.is_all_folded, menu.has_merges) {
+            (true, _) => fold.with_icon(Icon::Check),
+            (false, true) => fold,
+            (false, false) => fold.disabled(),
+        };
+        let unfold = MenuItem::new(words::UNFOLD_ALL, MoreCommand::FoldAll(FoldAllEntry::Unfold));
+        entries.push(MenuEntry::Item(fold));
+        entries.push(MenuEntry::Item(if menu.has_folds { unfold } else { unfold.disabled() }));
+    }
     entries.push(MenuEntry::Separator);
     for switch in [
         TimelineSwitch::Author,
@@ -188,6 +206,7 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
         Some(MoreCommand::SelectRepository) => vec![Intent::PickRepository],
         Some(MoreCommand::Kind(kind)) => vec![Intent::Filter(FilterIntent::SwitchKind(kind))],
         Some(MoreCommand::GoToCommit) => vec![Intent::Search(crate::search::SearchIntent::GoToCommit)],
+        Some(MoreCommand::ActiveFileHistory) => vec![active_file_history(state.active_file)],
         Some(MoreCommand::Settings) => vec![Intent::ShowPage(crate::page::Page::Settings)],
         Some(MoreCommand::Theme) => vec![Intent::PickTheme],
         Some(MoreCommand::Operation(feature)) => vec![Intent::Feature(crate::feature::FeatureIntent::Run(
@@ -215,6 +234,19 @@ pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
             fold_all_view(&state, ui)
         }
         None => Vec::new(),
+    }
+}
+
+/// **History of the active file**: the history of the file of the File page in front, or, with none, the operation
+/// on nothing, which says to open a file.
+fn active_file_history(active_file: Option<crate::file_view::FilePageId>) -> Intent {
+    let feature = model::contract::FeatureId("file-history.file");
+    match active_file {
+        Some(page) => Intent::Blame(crate::blame::BlameIntent::Run(page, feature, None)),
+        None => Intent::Feature(crate::feature::FeatureIntent::Run(
+            feature,
+            model::contract::Target::Head,
+        )),
     }
 }
 
@@ -248,7 +280,7 @@ fn operation_item(
 }
 
 /// The ways to what is not elsewhere in the header, in the order of the card: **Compare branches, tags or commits…**,
-/// **Go to commit…**, **Reflog**, **Clean up branches…**, **Apply patch…**, **Manage remotes…** and, while the
+/// **Go to commit…**, **History of the active file**, **Reflog**, **Clean up branches…**, **Apply patch…**, **Manage remotes…** and, while the
 /// repository has no submodule, **Add submodule…**.
 fn ways_entries(operations: OperationsMenu, has_submodules: bool) -> Vec<MenuEntry<'static, MoreCommand>> {
     let mut entries = vec![
@@ -257,6 +289,11 @@ fn ways_entries(operations: OperationsMenu, has_submodules: bool) -> Vec<MenuEnt
             crate::text::search::GO_TO_COMMIT_ENTRY,
             MoreCommand::GoToCommit,
         )),
+        MenuEntry::Item(if operations.is_running {
+            MenuItem::new(words::ACTIVE_FILE_HISTORY, MoreCommand::ActiveFileHistory).disabled()
+        } else {
+            MenuItem::new(words::ACTIVE_FILE_HISTORY, MoreCommand::ActiveFileHistory)
+        }),
         operation_item(crate::text::bisect::REFLOG, "reflog.browse", operations),
         operation_item(crate::text::branch::CLEAN_UP_BRANCHES, "branch.clean-up", operations),
         operation_item(crate::text::patch::APPLY_PATCH, "patch.apply", operations),
@@ -329,103 +366,4 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
 
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
-mod tests {
-    use model::filter::Kinds;
-    use ui::MenuEntry;
-
-    use super::{MainRemote, MoreMenuState, OperationsMenu, TimelineMenu, menu_entries};
-    use crate::graph::intent::Switches;
-
-    /// The words of the menu, with `-` for a separator.
-    fn words(state: &MoreMenuState) -> Vec<&'static str> {
-        menu_entries(state)
-            .into_iter()
-            .map(|entry| match entry {
-                MenuEntry::Item(item) => item.label,
-                MenuEntry::Submenu { .. } | MenuEntry::Separator => "-",
-            })
-            .collect()
-    }
-
-    #[test]
-    fn graph_more_menu__the_entries_built_are_in_the_groups_and_the_order_of_the_card() {
-        let state = MoreMenuState {
-            can_refresh: true,
-            can_select_repository: true,
-            timeline: Some(TimelineMenu {
-                switches: Switches::DEFAULT,
-                has_merges: true,
-                has_folds: false,
-                is_all_folded: false,
-                kinds: Some(Kinds::ALL),
-            }),
-            operations: Some(OperationsMenu {
-                is_running: false,
-                has_commits: true,
-                can_stash: true,
-            }),
-            has_submodules: false,
-            main_remote: MainRemote::OnGitHub,
-        };
-        assert_eq!(
-            words(&state),
-            [
-                "Refresh",
-                "Branch",
-                "Stash",
-                "Undo",
-                "-",
-                "Show local branches",
-                "Show remote branches",
-                "Show tags",
-                "Show stashes",
-                "Show only the first parent of merges",
-                "Bring out the history of the selected commit",
-                "Fold all merges",
-                "Unfold all merges",
-                "-",
-                "Show the author",
-                "Show the date",
-                "Show the hash",
-                "Separate the days, weeks and months",
-                "Put a branch and its upstream on one label",
-                "-",
-                "Compare branches, tags or commits\u{2026}",
-                "Go to commit\u{2026}",
-                "Reflog",
-                "Clean up branches\u{2026}",
-                "Apply patch\u{2026}",
-                "Manage remotes\u{2026}",
-                "Add submodule\u{2026}",
-                "Select repository\u{2026}",
-                "-",
-                "Switch identity\u{2026}",
-                "-",
-                "Load pull requests from GitHub",
-                "-",
-                "Settings",
-                "Theme\u{2026}",
-            ]
-        );
-    }
-
-    #[test]
-    fn graph_more_menu__add_submodule_is_not_in_the_menu_of_a_repository_with_submodules() {
-        let operations = OperationsMenu {
-            is_running: false,
-            has_commits: true,
-            can_stash: false,
-        };
-        let with = MoreMenuState {
-            operations: Some(operations),
-            has_submodules: true,
-            ..MoreMenuState::default()
-        };
-        assert!(!words(&with).contains(&"Add submodule\u{2026}"));
-        let without = MoreMenuState {
-            has_submodules: false,
-            ..with
-        };
-        assert!(words(&without).contains(&"Add submodule\u{2026}"));
-    }
-}
+mod tests;

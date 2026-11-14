@@ -62,6 +62,8 @@ pub const BRANCH: &str = "Branch";
 pub const STASH: &str = "Stash";
 /// **Manage remotes…** in **…** (`remote.manage`).
 pub const MANAGE_REMOTES: &str = "Manage remotes\u{2026}";
+/// **History of the active file** in **…**: the history of the file of the File page in front (`file-history.file`).
+pub const ACTIVE_FILE_HISTORY: &str = "History of the active file";
 /// **Undo** in **…**: take back the last operation.
 pub const UNDO: &str = "Undo";
 /// **Select repository…** in the **…** menu (`repo.select`).

@@ -220,6 +220,11 @@ impl ViewData {
                 } else {
                     views::graph::MainRemote::Elsewhere
                 },
+                active_file: match state.page_shown() {
+                    Some(Page::File(page)) => Some(page),
+                    // Every other page, and the timeline, shows no file of its own.
+                    _ => None,
+                },
             },
             is_activity_open: state.is_activity_open,
             references: read.map(|_| ReferencesShown {
@@ -406,6 +411,11 @@ fn timeline_menu(state: &State) -> TimelineMenu {
         has_folds: !timeline.folded.is_empty(),
         is_all_folded: timeline.is_all_folded,
         kinds: kinds_shown(timeline.shown.as_ref()),
+        drawn: if state.search.list.is_none() {
+            views::graph::GraphDrawn::WithLines
+        } else {
+            views::graph::GraphDrawn::AsList
+        },
     }
 }
 

@@ -226,6 +226,30 @@ fn graph_columns__unchecking_show_the_date_removes_the_dates_and_writes_the_colu
 }
 
 #[test]
+fn graph_more_menu__unchecking_show_the_hash_takes_the_hashes_out_and_writes_author_and_date() {
+    let (repository, _remote) = repository_with_history();
+    let mut state = showing_with(repository.path().to_path_buf(), Settings::default());
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let _ = window.draw(&state, &[]);
+    let with_hashes = window.frame.to_rgba();
+    let _ = window.click(&state, Role::Button, "More");
+    let intents = window.click(&state, Role::MenuItem, "Show the hash");
+    let effects: Vec<Effect> = intents
+        .into_iter()
+        .flat_map(|intent| run(&mut state, Message::Intent(intent)))
+        .collect();
+    assert!(!state.settings.switches.is_on(TimelineSwitch::Hash));
+    let columns = json::Value::Array(vec![
+        json::Value::String("author".into()),
+        json::Value::String("date".into()),
+    ]);
+    assert_eq!(written(&effects), Some(("graph.columns", columns)));
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let _ = window.draw(&state, &[]);
+    assert_ne!(window.frame.to_rgba(), with_hashes, "the hashes are taken out");
+}
+
+#[test]
 fn graph_load_more__after_a_page_is_added_the_selected_commit_and_the_scroll_position_are_as_they_were() {
     let repository = imported(&line(150));
     let mut state = showing_with(repository.path().to_path_buf(), pages_of_100());

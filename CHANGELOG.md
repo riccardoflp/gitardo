@@ -359,3 +359,5 @@
   git ignores here in sections with its size, what is proposed for each and **Link**, **Copy** or **Nothing**, a name
   in several places as one line, the link and copy patterns with what each takes, the commands to run, and where they
   are saved, with **Bring into the other worktrees**, **Remove from…** and **Edit in settings file**.
+- **History of the active file** in **…** shows the history of the file of the File page in front. **Fold all
+  merges** and **Unfold all merges** leave **…** while what a search finds is shown as a list.

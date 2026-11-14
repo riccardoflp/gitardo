@@ -1653,3 +1653,9 @@ answered:
   command before **Open in worktree**. Building it means a column of tasks in the drawer, a command run with its output
   kept and its input fed from the drawer, and the warning that offers to open the worktree after a failure. Should it be
   a slice of its own, with the drawer's Tasks column first?
+- **Q-F1** — The card of `graph.more-menu` named **Browse reflog…** where the card of `reflog.browse` says
+  **Reflog**; the menu keeps **Reflog**, and the card says so now, with **Settings** and **Theme…** as its seventh
+  group, as the cards of `settings.edit` and `settings.theme` place them. **History of the active file** is always in
+  the menu: it shows the history of the File page in front, and with none it runs `file-history.file` on nothing,
+  which says *Open a file of this repository to see its history.* Should it be greyed out instead while no File page
+  is in front?

@@ -56,7 +56,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`graph.read-position`](02-graph.md#graphread-position--where-a-commit-is-in-the-history-listed) | Where a commit is in the history listed | Read | Built |
 | [`graph.view`](02-graph.md#graphview--the-timeline) | The timeline | View | Built |
 | [`graph.toolbar`](02-graph.md#graphtoolbar--the-header) | The header | View | Built |
-| [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Specified |
+| [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Built |
 | [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Built |
 | [`graph.lanes`](02-graph.md#graphlanes--lay-out-the-lines-of-the-graph) | Lay out the lines of the graph | Derivation | Built |
 | [`graph.fit-width`](02-graph.md#graphfit-width--how-wide-the-graph-is-drawn) | How wide the graph is drawn | Derivation | Built |

@@ -156,12 +156,13 @@ In this order, separated in groups:
 3. **Show the author**, **Show the date**, **Show the hash** (`graph.columns`); **Separate the days, weeks and months**
    (`graph.date-separators`); **Put a branch and its upstream on one label** (`graph.combine-upstream`).
 4. **Compare branches, tags or commits…** (`compare.choose`), **Go to commit…** (`search.go-to-commit`), **History of
-   the active file** (`file-history.file`), **Browse reflog…** (`reflog.browse`), **Clean up branches…**
-   (`branch.clean-up`), **Apply patch…** (`patch.apply`), **Manage remotes…** (`remote.manage`), **Add submodule…**
-   (`submodule.add`) while the repository has no submodule (the Submodules list has it otherwise), **Select
-   repository…** (`repo.select`) when it is offered.
+   the active file** (`file-history.file`) of the File page in front, which says to open a file when none is,
+   **Reflog** (`reflog.browse`), **Clean up branches…** (`branch.clean-up`), **Apply patch…** (`patch.apply`),
+   **Manage remotes…** (`remote.manage`), **Add submodule…** (`submodule.add`) while the repository has no submodule
+   (the Submodules list has it otherwise), **Select repository…** (`repo.select`) when it is offered.
 5. **Switch identity…** (`identity.switch`).
 6. **Load pull requests from GitHub** (`github.load-pull-requests`), when the main remote is on GitHub.
+7. **Settings** (`settings.edit`), **Theme…** (`settings.theme`).
 
 The switches are checked while they are on, and write their setting in the user's settings file, which every window
 follows.
