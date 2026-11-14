@@ -167,11 +167,10 @@ pub fn highlight_again(
     let mut old_start = removed_end
         .checked_sub(1)
         .and_then(|before| tokens.get(before))
-        .map(|line| line.end)
-        .unwrap_or_default();
+        .map_or_default(|line| line.end);
     let after: Vec<LineTokens> = tokens.split_off(removed_end);
     tokens.truncate(start);
-    let mut state = tokens.last().map(|line| line.end).unwrap_or_default();
+    let mut state = tokens.last().map_or_default(|line| line.end);
     for line in start..start + replaced.added {
         let colored = highlight_line(language, &line_of(line), state);
         state = colored.end;

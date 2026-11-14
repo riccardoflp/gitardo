@@ -61,12 +61,7 @@ fn log_record__a_key_the_ai_provider_refuses_appears_neither_in_the_log_nor_in_w
         Some(format!("Bearer {KEY}")),
         "the key was sent"
     );
-    let said = state
-        .operations
-        .said
-        .as_ref()
-        .map(|said| said.text.clone())
-        .unwrap_or_default();
+    let said = state.operations.said.as_ref().map_or_default(|said| said.text.clone());
     assert!(!said.is_empty() && !said.contains(KEY), "{said}");
     assert!(
         logged(&state).iter().all(|line| !line.contains(KEY)),

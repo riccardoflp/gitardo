@@ -47,8 +47,7 @@ fn switch(context: &Context, answers: &Answers, (key, is_on): (&str, bool)) -> O
     let text = files
         .first()
         .and_then(Option::as_deref)
-        .map(String::from_utf8_lossy)
-        .unwrap_or_default();
+        .map_or_default(String::from_utf8_lossy);
     let path = [json::Key::Member(key.to_owned())];
     let Ok(changed) = json::set_value(&text, &path, &json::Value::Bool(!is_on)) else {
         let said = format!("The user's settings file is not JSON with comments, so {key} cannot be written in it.");

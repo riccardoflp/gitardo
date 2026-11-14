@@ -172,11 +172,7 @@ fn gutter_button(
 /// and their text.
 fn diff_change(state: &DiffPageState<'_>, (file, text, change): (usize, &DiffText, usize)) -> DiffChange {
     let (left, right) = state.versions;
-    let path = state
-        .files
-        .get(file)
-        .map(|paths| paths.right.clone())
-        .unwrap_or_default();
+    let path = state.files.get(file).map_or_default(|paths| paths.right.clone());
     let lines = text.changes.get(change).cloned().unwrap_or(model::diff::LineChange {
         left: 0..0,
         right: 0..0,

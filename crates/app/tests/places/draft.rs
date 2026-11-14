@@ -55,8 +55,7 @@ fn message_box(state: &State) -> String {
         .persisted
         .commit_messages
         .first()
-        .map(|kept| kept.message.clone())
-        .unwrap_or_default()
+        .map_or_default(|kept| kept.message.clone())
 }
 
 /// A repository with `a.txt` and `b.txt` committed.

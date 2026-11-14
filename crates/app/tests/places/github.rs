@@ -291,12 +291,7 @@ fn log_record__a_token_github_refuses_and_says_back_never_appears_in_the_log_kep
         lines.iter().all(|line| !line.contains("token-from-helper")),
         "{lines:?}"
     );
-    let said = state
-        .operations
-        .said
-        .as_ref()
-        .map(|said| said.text.clone())
-        .unwrap_or_default();
+    let said = state.operations.said.as_ref().map_or_default(|said| said.text.clone());
     assert!(!said.is_empty() && !said.contains("token-from-helper"), "{said}");
 }
 

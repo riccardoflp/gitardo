@@ -101,7 +101,7 @@ fn base_of(context: &Context, worktree: &Worktree, old_label: &str) -> FolderBas
     if is_listed(&[inside.folder_for(old_label)], &worktree.folder) {
         inside
     } else {
-        FolderBase::Beside(worktree.folder.parent().map(Path::to_path_buf).unwrap_or_default())
+        FolderBase::Beside(worktree.folder.parent().map_or_default(Path::to_path_buf))
     }
 }
 

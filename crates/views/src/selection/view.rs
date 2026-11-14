@@ -127,6 +127,5 @@ pub(crate) fn menu_view(state: &HistoryState<'_>, several: &Several, ui: &mut Ui
     }
     ui.menu(MENU_KEY, &items)
         .and_then(|index| entries.get(index))
-        .map(|entry| entry_intents(entry, several))
-        .unwrap_or_default()
+        .map_or_default(|entry| entry_intents(entry, several))
 }

@@ -42,14 +42,12 @@ fn several(names: &[&str]) -> Vec<CommitId> {
 /// The labels of the buttons of the bar of a fixture whose selection of several is set.
 fn bar_labels(fixture: &Fixture) -> Vec<String> {
     let history = fixture.history();
-    Several::of(&history)
-        .map(|chosen| {
-            bar_entries(&history, &chosen)
-                .into_iter()
-                .map(|entry| entry.label)
-                .collect()
-        })
-        .unwrap_or_default()
+    Several::of(&history).map_or_default(|chosen| {
+        bar_entries(&history, &chosen)
+            .into_iter()
+            .map(|entry| entry.label)
+            .collect()
+    })
 }
 
 #[test]
@@ -261,15 +259,13 @@ fn selection_menu__copy_hashes_with_three_selected_copies_them_newest_first() {
 /// The words of the menu of a fixture whose selection of several is set.
 fn menu_labels(fixture: &Fixture) -> Vec<String> {
     let history = fixture.history();
-    Several::of(&history)
-        .map(|chosen| {
-            menu_entries(&history, &chosen)
-                .0
-                .into_iter()
-                .map(|entry| entry.label)
-                .collect()
-        })
-        .unwrap_or_default()
+    Several::of(&history).map_or_default(|chosen| {
+        menu_entries(&history, &chosen)
+            .0
+            .into_iter()
+            .map(|entry| entry.label)
+            .collect()
+    })
 }
 
 #[test]

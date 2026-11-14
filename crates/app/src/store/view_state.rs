@@ -76,8 +76,7 @@ impl ViewData {
         let roots = state
             .workspace
             .as_ref()
-            .map(|workspace| workspace.folders.clone())
-            .unwrap_or_default();
+            .map_or_default(|workspace| workspace.folders.clone());
         let folders: Vec<PathBuf> = state.repositories().iter().map(|found| found.folder.clone()).collect();
         let shown = state.shown_folder();
         let repositories: Vec<RepositoryEntry> = name_repositories(&roots, &folders)
@@ -106,7 +105,7 @@ impl ViewData {
             recent,
             repositories,
             name,
-            folder: shown.map(|folder| display(folder)).unwrap_or_default(),
+            folder: shown.map_or_default(|folder| display(folder)),
             question_folder,
             running,
             finished: Vec::new(),

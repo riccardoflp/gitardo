@@ -135,8 +135,7 @@ fn repository_name(state: &State, folder: &Path) -> String {
     let roots: Vec<PathBuf> = state
         .workspace
         .as_ref()
-        .map(|workspace| workspace.folders.clone())
-        .unwrap_or_default();
+        .map_or_default(|workspace| workspace.folders.clone());
     name_repositories(&roots, &[folder.to_path_buf()])
         .into_iter()
         .next()

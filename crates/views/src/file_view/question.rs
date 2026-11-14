@@ -46,7 +46,5 @@ pub fn close_question_view(state: &CloseQuestion<'_>, ui: &mut Ui<'_>) -> Vec<In
         Some(_) => Some(CloseAnswer::Cancel),
         None => None,
     };
-    answer
-        .map(|answer| vec![Intent::FileView(FileViewIntent::AnswerClose(answer))])
-        .unwrap_or_default()
+    answer.map_or_default(|answer| vec![Intent::FileView(FileViewIntent::AnswerClose(answer))])
 }

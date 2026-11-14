@@ -13,7 +13,7 @@ pub fn label_parts(shown: Option<&BranchesShown>) -> (String, Option<usize>) {
         Some(BranchesShown::Upstream) => (String::from("Current and upstream"), None),
         Some(BranchesShown::Kinds(kinds)) => (String::from(kinds_words(*kinds)), None),
         Some(BranchesShown::References(names)) => {
-            let first = names.first().map(|name| short_name(name)).unwrap_or_default();
+            let first = names.first().map_or_default(|name| short_name(name));
             let more = names.len().saturating_sub(1);
             (first.to_owned(), (more > 0).then_some(more))
         }

@@ -114,7 +114,7 @@ pub fn read_setup(folder: &Path, request: &SetupRequest, cancel: &CancelToken) -
         vs_code: file(folder.join(".vscode").join("settings.json")),
     };
     let in_effect = files.in_effect();
-    let user = files.user.as_ref().map(PlaceLists::of).unwrap_or_default();
+    let user = files.user.as_ref().map_or_default(PlaceLists::of);
     let look = request.is_look.then(|| {
         let patterns = request
             .patterns

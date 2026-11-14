@@ -31,14 +31,12 @@ pub fn ticked(shown: Option<&BranchesShown>, references: &References) -> Vec<Str
             .map(|branch| ReferenceKind::Local.full_name(&branch.name))
             .into_iter()
             .collect(),
-        Some(BranchesShown::Upstream) => checked_out
-            .map(|branch| {
-                let upstream = branch.upstream.as_ref().map(|upstream| upstream.reference.clone());
-                std::iter::once(ReferenceKind::Local.full_name(&branch.name))
-                    .chain(upstream)
-                    .collect()
-            })
-            .unwrap_or_default(),
+        Some(BranchesShown::Upstream) => checked_out.map_or_default(|branch| {
+            let upstream = branch.upstream.as_ref().map(|upstream| upstream.reference.clone());
+            std::iter::once(ReferenceKind::Local.full_name(&branch.name))
+                .chain(upstream)
+                .collect()
+        }),
         Some(BranchesShown::References(names)) => names.clone(),
     }
 }

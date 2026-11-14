@@ -112,20 +112,12 @@ fn of_worktree(repository: &RepositoryState, window: WorktreeWindow<'static>, fo
         .worktrees
         .iter()
         .find(|worktree| worktree.folder == Path::new(folder));
-    labels(
-        &worktree
-            .map(|worktree| worktree_entries(menus(repository, window), worktree))
-            .unwrap_or_default(),
-    )
+    labels(&worktree.map_or_default(|worktree| worktree_entries(menus(repository, window), worktree)))
 }
 
 fn of_branch(repository: &RepositoryState, window: WorktreeWindow<'static>, name: &str) -> Vec<String> {
     let branch = repository.branches.iter().find(|branch| branch.name == name);
-    labels(
-        &branch
-            .map(|branch| branch_entries(menus(repository, window), branch))
-            .unwrap_or_default(),
-    )
+    labels(&branch.map_or_default(|branch| branch_entries(menus(repository, window), branch)))
 }
 
 #[test]

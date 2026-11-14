@@ -28,7 +28,7 @@ pub(crate) fn room(step: &Step) -> Room {
     }
     let depth = made.components().count();
     let top = destination.ancestors().nth(depth);
-    let mut folder = top.map(Path::to_path_buf).unwrap_or_default();
+    let mut folder = top.map_or_default(Path::to_path_buf);
     for part in made.components().take(depth.saturating_sub(1)) {
         folder.push(part);
         let Ok(metadata) = fs::symlink_metadata(&folder) else {

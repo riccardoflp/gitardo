@@ -103,8 +103,7 @@ pub fn open(state: &mut State, folder: PathBuf, commit: CommitId) -> Vec<Effect>
     let row = state.timeline.rows.iter().find(|row| row.id() == Some(&commit));
     let subject = row
         .and_then(model::graph::Row::commit)
-        .map(|row| row.subject.clone())
-        .unwrap_or_default();
+        .map_or_default(|row| row.subject.clone());
     let is_stash = matches!(row, Some(model::graph::Row::Stash { .. }));
     state.commit_pages.pages.push(CommitPage {
         id,

@@ -40,7 +40,7 @@ pub(crate) fn recover(arguments: &[String], said: String, attempts: &mut Attempt
         match recover_held_folder(&input) {
             Recovery::Fail => return Err(said),
             Recovery::ReadListed => {
-                let folder = arguments.last().map(PathBuf::from).unwrap_or_default();
+                let folder = arguments.last().map_or_default(PathBuf::from);
                 is_listed = Some((attempts.is_listed)(&folder));
             }
             Recovery::TryAgain { wait, note } => {

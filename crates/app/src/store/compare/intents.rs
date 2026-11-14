@@ -34,7 +34,7 @@ pub fn reduce(state: &mut State, intent: CompareIntent) -> Vec<Effect> {
             Vec::new()
         }
         CompareIntent::Narrow(id) => {
-            let typed = page_mut(state, id).map(|page| page.typed.clone()).unwrap_or_default();
+            let typed = page_mut(state, id).map_or_default(|page| page.typed.clone());
             narrow(state, id, narrowed_path(&typed))
         }
         CompareIntent::ResetPath(id) => {

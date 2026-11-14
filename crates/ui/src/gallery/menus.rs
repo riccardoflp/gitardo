@@ -182,7 +182,7 @@ pub(super) fn branch_menu() -> [MenuEntry<'static, MenuCommand>; 5] {
 
 /// Does what a command chosen in a menu asks; the row is the commit, or the branch of the rail, the menu was opened on.
 pub(super) fn run_command(ui: &mut Ui<'_>, command: MenuCommand, row: Option<usize>, intents: &mut Vec<GalleryIntent>) {
-    let hash = row.map(data::short_hash).unwrap_or_default();
+    let hash = row.map_or_default(data::short_hash);
     let intent = match command {
         MenuCommand::Open(overlay) => GalleryIntent::Open(overlay),
         MenuCommand::Find => {

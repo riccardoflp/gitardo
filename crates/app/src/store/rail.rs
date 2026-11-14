@@ -78,8 +78,7 @@ pub fn arrange(state: &mut State) {
 pub fn favorites(state: &State) -> &[String] {
     state
         .shown_folder()
-        .map(|folder| favorites_of(&state.persisted.favorites, folder))
-        .unwrap_or_default()
+        .map_or_default(|folder| favorites_of(&state.persisted.favorites, folder))
 }
 
 /// What the branch rail is asked.

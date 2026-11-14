@@ -126,8 +126,7 @@ impl DesktopWindow {
         let persisted = options
             .configuration
             .as_ref()
-            .map(|folder| Persisted::read(&folder.join(FILE_NAME)))
-            .unwrap_or_default();
+            .map_or_default(|folder| Persisted::read(&folder.join(FILE_NAME)));
         let user_file = options.configuration.as_deref().map(user_settings_file);
         let settings = read_files(&SettingsFiles {
             user: user_file.clone(),

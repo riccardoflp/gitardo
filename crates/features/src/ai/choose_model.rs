@@ -203,8 +203,7 @@ fn written(files: &[Option<Vec<u8>>], model: Option<&str>, effort: Option<Effort
     let text = files
         .first()
         .and_then(Option::as_deref)
-        .map(String::from_utf8_lossy)
-        .unwrap_or_default();
+        .map_or_default(String::from_utf8_lossy);
     let set = |text: &str, key: &str, value: Option<&str>| {
         let path = [json::Key::Member(key.to_owned())];
         match value {

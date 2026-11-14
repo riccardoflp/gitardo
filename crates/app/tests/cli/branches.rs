@@ -108,8 +108,7 @@ fn branch_fast_forward__pulls_in_the_worktree_that_has_the_branch() {
         repository
             .path()
             .file_name()
-            .map(|name| name.to_string_lossy().into_owned())
-            .unwrap_or_default()
+            .map_or_default(|name| name.to_string_lossy().into_owned())
     ));
     let folder_text = folder.to_string_lossy().into_owned();
     let _added = repository.git(&["worktree", "add", "--quiet", &folder_text, "feature"]);
@@ -172,8 +171,7 @@ fn branch_clean_up__removes_the_worktree_of_a_merged_branch_first() {
         repository
             .path()
             .file_name()
-            .map(|name| name.to_string_lossy().into_owned())
-            .unwrap_or_default()
+            .map_or_default(|name| name.to_string_lossy().into_owned())
     ));
     let folder_text = folder.to_string_lossy().into_owned();
     let _added = repository.git(&["worktree", "add", "--quiet", &folder_text, "a"]);

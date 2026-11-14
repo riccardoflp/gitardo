@@ -273,7 +273,7 @@ fn draw_piece(
 
 /// A line of code with no bar, numbered or not.
 fn plain_line(ui: &mut Ui<'_>, (row, gutter): (Rect, f32), (number, text, color): (Option<usize>, &str, ui::Color)) {
-    let number = number.map(|number| number.to_string()).unwrap_or_default();
+    let number = number.map_or_default(|number| number.to_string());
     code_line(
         ui,
         row,

@@ -32,8 +32,7 @@ pub struct RepositoryShown {
 pub fn favorites_of<'a>(list: &'a [RepositoryFavorites], folder: &Path) -> &'a [String] {
     list.iter()
         .find(|favorites| same_folder(&favorites.folder, folder))
-        .map(|favorites| favorites.references.as_slice())
-        .unwrap_or_default()
+        .map_or_default(|favorites| favorites.references.as_slice())
 }
 
 /// The choice kept for a repository, when one is.

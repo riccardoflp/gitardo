@@ -69,7 +69,7 @@ fn listed(context: &Context, answers: &Answers) -> (Vec<(String, String)>, Vec<S
     let choices = choices
         .into_iter()
         .map(|choice| {
-            let description = choice.description.map(|text| text.to_string()).unwrap_or_default();
+            let description = choice.description.map_or_default(|text| text.to_string());
             (choice.identifier, description)
         })
         .collect();

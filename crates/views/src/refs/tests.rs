@@ -228,7 +228,7 @@ fn refs_tree__clicking_a_stash_goes_to_the_stash_in_the_timeline_without_narrowi
     let rail = Rail::new(&["main"], &[], &[]);
     let state = rail.state();
     let stash = rail.repository.stashes.first().map(Entry::Stash);
-    let intents = stash.map(|stash| click_intents(&state, &stash)).unwrap_or_default();
+    let intents = stash.map_or_default(|stash| click_intents(&state, &stash));
     assert_eq!(intents, [Intent::Graph(GraphIntent::GoTo(id("stash")))]);
 }
 

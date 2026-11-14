@@ -70,8 +70,7 @@ fn new_page(state: &State, commit: &CommitId) -> Option<TodoPage> {
             let subject = commits
                 .iter()
                 .find(|each| each.id == id)
-                .map(|each| each.subject.clone())
-                .unwrap_or_default();
+                .map_or_default(|each| each.subject.clone());
             (id, subject)
         })
         .collect();

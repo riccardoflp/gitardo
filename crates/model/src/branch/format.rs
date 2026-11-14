@@ -154,8 +154,7 @@ pub fn repository_name(state: &RepositoryState) -> String {
         .find(|worktree| worktree.is_main)
         .map_or(state.folder.as_path(), |worktree| worktree.folder.as_path());
     main.file_name()
-        .map(|name| name.to_string_lossy().into_owned())
-        .unwrap_or_default()
+        .map_or_default(|name| name.to_string_lossy().into_owned())
 }
 
 /// A day as `${date}` writes it, `2026-10-15`, from a moment seen `utc_offset` seconds from UTC.

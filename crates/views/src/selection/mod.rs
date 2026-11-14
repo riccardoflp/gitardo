@@ -100,8 +100,7 @@ pub(crate) fn clicked(state: &HistoryState<'_>, place: usize, click: Click) -> O
                 .shown_of
                 .get(alone)
                 .and_then(|place| commit_at(state, *place))
-                .map(|row| vec![row.id.clone()])
-                .unwrap_or_default(),
+                .map_or_default(|row| vec![row.id.clone()]),
             Some(Selected::Draft) | None => Vec::new(),
         }
     } else {

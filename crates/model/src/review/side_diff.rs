@@ -79,7 +79,7 @@ pub struct SideDiff {
 #[must_use]
 pub fn side_diff(input: &SideDiffInput<'_>) -> SideDiff {
     let lines = input.file.lines();
-    let text = |index: usize| lines.get(index).map(|(line, _)| (*line).to_owned()).unwrap_or_default();
+    let text = |index: usize| lines.get(index).map_or_default(|(line, _)| (*line).to_owned());
     let conflict = input.conflict;
     let (file_lines, rows, is_compared) = if let Some(stretch) = &conflict.stretch {
         let side = match input.side {
@@ -160,13 +160,13 @@ fn changed(input: &SideDiffInput<'_>, (base, side): (&[&str], &[&str]), change: 
     for (index, line) in removed.iter().enumerate() {
         rows.push(SideRow::Removed {
             text: (*line).to_owned(),
-            words: marks.get(index).map(|(left, _)| left.clone()).unwrap_or_default(),
+            words: marks.get(index).map_or_default(|(left, _)| left.clone()),
         });
     }
     for (index, line) in added.iter().enumerate() {
         rows.push(SideRow::Added {
             text: (*line).to_owned(),
-            words: marks.get(index).map(|(_, right)| right.clone()).unwrap_or_default(),
+            words: marks.get(index).map_or_default(|(_, right)| right.clone()),
         });
     }
 }

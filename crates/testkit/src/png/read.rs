@@ -130,8 +130,8 @@ impl Header {
         // The length is checked: every field is there.
         let number = |start: usize| data.get(start..start + 4).and_then(|bytes| bytes.try_into().ok());
         let byte = |index: usize| data.get(index).copied().unwrap_or_default();
-        let width = number(0).map(u32::from_be_bytes).unwrap_or_default();
-        let height = number(4).map(u32::from_be_bytes).unwrap_or_default();
+        let width = number(0).map_or_default(u32::from_be_bytes);
+        let height = number(4).map_or_default(u32::from_be_bytes);
         let (bit_depth, colour_type) = (byte(8), byte(9));
         let (compression, filter, interlace) = (byte(10), byte(11), byte(12));
         if width == 0 || height == 0 || width > LARGEST_SIDE || height > LARGEST_SIDE {

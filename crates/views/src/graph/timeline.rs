@@ -253,7 +253,7 @@ fn drags(
 /// inspector shows, or the row selected alone.
 fn steered_selection(state: &HistoryState<'_>, selected: Option<usize>, several: Option<&Several>) -> Selection {
     let Some(several) = several else {
-        return selected.map(Selection::single).unwrap_or_default();
+        return selected.map_or_default(Selection::single);
     };
     let rows = several
         .commits

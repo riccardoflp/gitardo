@@ -103,8 +103,7 @@ impl TimelineLayout {
         let tips = lane_tips(&cells, &named);
         let separators = input
             .separators_at
-            .map(|now| date_separators(&shown_dates(input.rows, &folded), now))
-            .unwrap_or_default();
+            .map_or_default(|now| date_separators(&shown_dates(input.rows, &folded), now));
         let shown_of = inputs
             .iter()
             .enumerate()

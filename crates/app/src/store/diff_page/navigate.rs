@@ -165,12 +165,7 @@ fn go_to_file(state: &mut State, id: DiffPageId, (direction, at): (Direction, Du
     let Some(page) = state.diff_pages.pages.iter().find(|page| page.id == id) else {
         return Vec::new();
     };
-    let path = page
-        .target
-        .files
-        .first()
-        .map(|file| file.right.clone())
-        .unwrap_or_default();
+    let path = page.target.files.first().map_or_default(|file| file.right.clone());
     let from = page
         .going
         .as_ref()

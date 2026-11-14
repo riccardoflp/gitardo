@@ -106,8 +106,7 @@ pub fn recent_of(state: &State, folder: &Path) -> Vec<RecentComparison> {
         .recent
         .iter()
         .find(|(known, _)| same_folder(known, folder))
-        .map(|(_, recent)| recent.clone())
-        .unwrap_or_default()
+        .map_or_default(|(_, recent)| recent.clone())
 }
 
 /// Remembers a comparison just opened, swapped or narrowed as the latest of its repository.

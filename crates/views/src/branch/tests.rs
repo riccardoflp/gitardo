@@ -106,11 +106,7 @@ fn labels(entries: &[OperationEntry]) -> Vec<String> {
 /// The entries of a local branch of the repository, by its name.
 fn of_branch(repository: &RepositoryState, open_in: OpenIn, name: &str) -> Vec<String> {
     let branch = repository.branches.iter().find(|branch| branch.name == name);
-    labels(
-        &branch
-            .map(|branch| branch_entries(menus(repository, open_in), branch))
-            .unwrap_or_default(),
-    )
+    labels(&branch.map_or_default(|branch| branch_entries(menus(repository, open_in), branch)))
 }
 
 #[test]
@@ -206,11 +202,7 @@ fn branch_checkout_remote_and_rebase__the_entry_is_there_only_when_the_branch_ha
     let mut repository = repository();
     let of_remote = |repository: &RepositoryState, name: &str| {
         let remote = repository.remote_branches.iter().find(|remote| remote.name == name);
-        labels(
-            &remote
-                .map(|remote| remote_entries(menus(repository, OpenIn::Checkout), remote))
-                .unwrap_or_default(),
-        )
+        labels(&remote.map_or_default(|remote| remote_entries(menus(repository, OpenIn::Checkout), remote)))
     };
     let rebase = String::from("Check out topic and rebase it onto this");
     assert!(of_remote(&repository, "origin/topic").contains(&rebase));
@@ -286,10 +278,7 @@ fn branch_delete__the_branch_checked_out_has_no_delete_entry() {
 /// The entries of a tag of the repository, by its name.
 fn of_tag(repository: &RepositoryState, name: &str) -> Vec<String> {
     let tag = repository.tags.iter().find(|tag| tag.name == name);
-    labels(
-        &tag.map(|tag| tag_entries(menus(repository, OpenIn::Checkout), tag))
-            .unwrap_or_default(),
-    )
+    labels(&tag.map_or_default(|tag| tag_entries(menus(repository, OpenIn::Checkout), tag)))
 }
 
 #[test]

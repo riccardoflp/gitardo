@@ -189,8 +189,7 @@ fn first_pattern(patterns: &[PatternTake], path: &str) -> String {
     patterns
         .iter()
         .find(|take| takes(&take.paths, path))
-        .map(|take| take.pattern.clone())
-        .unwrap_or_default()
+        .map_or_default(|take| take.pattern.clone())
 }
 
 /// Whether a path is a folder, or inside it.

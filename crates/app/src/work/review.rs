@@ -248,7 +248,7 @@ pub(crate) fn changes_between(left: &[&str], right: &[&str]) -> Vec<LineChange> 
         right,
         keep_going: &keep_going,
     })
-    .map(|changes| {
+    .map_or_default(|changes| {
         changes
             .iter()
             .map(|change| LineChange {
@@ -257,5 +257,4 @@ pub(crate) fn changes_between(left: &[&str], right: &[&str]) -> Vec<LineChange> 
             })
             .collect()
     })
-    .unwrap_or_default()
 }

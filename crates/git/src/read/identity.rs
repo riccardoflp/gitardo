@@ -33,9 +33,7 @@ pub struct IdentityState {
 pub fn read_identity(git: &Git, _request: &IdentityRequest) -> Result<IdentityState, GitError> {
     let identity = read_or_nothing(git, &identity_arguments())?
         .map_or_else(|| Ok(Identity::default()), |output| parse_identity(&output))?;
-    let local_keys = read_or_nothing(git, &local_keys_arguments())?
-        .map(|output| parse_local_keys(&output))
-        .unwrap_or_default();
+    let local_keys = read_or_nothing(git, &local_keys_arguments())?.map_or_default(|output| parse_local_keys(&output));
     Ok(IdentityState { identity, local_keys })
 }
 

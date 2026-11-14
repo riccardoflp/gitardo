@@ -129,8 +129,7 @@ impl Ui<'_> {
         self.memory()
             .lists
             .get(&id)
-            .map(|state| state.selection.clone())
-            .unwrap_or_default()
+            .map_or_default(|state| state.selection.clone())
     }
 
     /// Declares a list over a rectangle, and calls `draw_row` for each row in sight.
@@ -374,7 +373,7 @@ impl Ui<'_> {
     /// Notes a row for the screen reader, named by the text find in page sees in it, and opens it for what the view
     /// draws in it.
     fn describe_row(&mut self, list: WidgetId, row: &Row, search: Option<&ListSearch<'_>>, cursor: Option<usize>) {
-        let name = search.map(|search| (search.row_text)(row.index)).unwrap_or_default();
+        let name = search.map_or_default(|search| (search.row_text)(row.index));
         let id = list.with(("row", row.index));
         let description = Description::new(AccessRole::ListItem, &name).selected(row.is_selected);
         self.access_row((list, id), row.rect, &description);

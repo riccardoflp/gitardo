@@ -55,7 +55,7 @@ mod tests {
         rows.iter()
             .map(|row| match row {
                 Row::Stash { index, .. } => format!("stash@{{{index}}}"),
-                other => other.id().map(|id| id.short().to_owned()).unwrap_or_default(),
+                other => other.id().map_or_default(|id| id.short().to_owned()),
             })
             .collect()
     }

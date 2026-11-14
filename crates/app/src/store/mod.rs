@@ -275,8 +275,7 @@ fn answer_open_folder(state: &mut State, answer: FolderAnswer) -> Vec<Effect> {
             let mut folders = state
                 .workspace
                 .as_ref()
-                .map(|workspace| workspace.folders.clone())
-                .unwrap_or_default();
+                .map_or_default(|workspace| workspace.folders.clone());
             if !folders.iter().any(|known| persisted::same_folder(known, &folder)) {
                 folders.push(folder);
             }

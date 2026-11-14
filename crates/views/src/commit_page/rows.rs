@@ -150,8 +150,7 @@ impl Page<'_> {
                 .patch(*file)
                 .and_then(|patch| patch.hunks.get(*hunk))
                 .and_then(|hunk| hunk.lines.get(*line))
-                .map(|line| line.text.clone())
-                .unwrap_or_default(),
+                .map_or_default(|line| line.text.clone()),
             _ => String::new(),
         }
     }
@@ -162,8 +161,7 @@ impl Page<'_> {
             .detail
             .files
             .get(file)
-            .map(|file| file.path.clone())
-            .unwrap_or_default()
+            .map_or_default(|file| file.path.clone())
     }
 
     /// Draws a row, and the block it starts, and gives what was asked.
@@ -171,34 +169,30 @@ impl Page<'_> {
         let is_first = drawn.note(row);
         let block = |start: usize| block_top(row, start, is_first, self.height);
         match self.rows.get(row.index).copied() {
-            Some(PageRow::Head) => block(0)
-                .map(|top| {
-                    head::draw_head(
-                        ui,
-                        &PageHead {
-                            state: self.state,
-                            data: self.data,
-                        },
-                        top,
-                    )
-                })
-                .unwrap_or_default(),
-            Some(PageRow::Changes(start)) => block(start).map(|top| head::changes(ui, self, top)).unwrap_or_default(),
+            Some(PageRow::Head) => block(0).map_or_default(|top| {
+                head::draw_head(
+                    ui,
+                    &PageHead {
+                        state: self.state,
+                        data: self.data,
+                    },
+                    top,
+                )
+            }),
+            Some(PageRow::Changes(start)) => block(start).map_or_default(|top| head::changes(ui, self, top)),
             Some(PageRow::DiffHeader(file, start)) => {
                 drawn.header(
                     file,
                     row.rect.y - crate::number::float_of_count(row.index - start) * self.height,
                 );
-                block(start)
-                    .map(|top| diff::header(ui, self, (file, self.block(top, HEADER_ROWS))))
-                    .unwrap_or_default()
+                block(start).map_or_default(|top| diff::header(ui, self, (file, self.block(top, HEADER_ROWS))))
             }
-            Some(PageRow::Note(file, start)) => block(start)
-                .map(|top| diff::note(ui, self, (Some(file), self.block(top, NOTE_ROWS))))
-                .unwrap_or_default(),
-            Some(PageRow::Unmatched(start)) => block(start)
-                .map(|top| diff::note(ui, self, (None, self.block(top, NOTE_ROWS))))
-                .unwrap_or_default(),
+            Some(PageRow::Note(file, start)) => {
+                block(start).map_or_default(|top| diff::note(ui, self, (Some(file), self.block(top, NOTE_ROWS))))
+            }
+            Some(PageRow::Unmatched(start)) => {
+                block(start).map_or_default(|top| diff::note(ui, self, (None, self.block(top, NOTE_ROWS))))
+            }
             Some(other) => diff::simple_row(ui, self, (row, other)),
             None => Vec::new(),
         }

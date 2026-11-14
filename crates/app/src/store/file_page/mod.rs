@@ -46,7 +46,7 @@ pub fn reduce(state: &mut State, intent: FileViewIntent) -> Vec<Effect> {
                 .iter()
                 .find(|page| page.revision.is_none() && page.path == path && page.is_unsaved())
                 .map(|page| page.id);
-            found.map(|id| edit::save(state, id, false)).unwrap_or_default()
+            found.map_or_default(|id| edit::save(state, id, false))
         }
         FileViewIntent::SaveAll => save_all::save_all(state),
         FileViewIntent::AnswerClose(answer) => answer_close(state, answer),

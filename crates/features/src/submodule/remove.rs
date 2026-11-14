@@ -35,8 +35,7 @@ pub fn remove(context: &Context, answers: &Answers) -> Outcome {
     ];
     let deleted = clone
         .as_ref()
-        .map(|clone| format!(" Gitardo then deletes its clone in {}.", clone.display()))
-        .unwrap_or_default();
+        .map_or_default(|clone| format!(" Gitardo then deletes its clone in {}.", clone.display()));
     steps.extend(clone.map(|path| Step::Delete { path }));
     let warning = format!(
         "Its folder is deleted, with the changes and the commits in it that are not pushed.{deleted} The removal is \

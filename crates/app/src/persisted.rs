@@ -106,10 +106,7 @@ impl Persisted {
             favorites: list(&document, "favorites", rail::repository_favorites),
             branches_shown: list(&document, "branchesShown", rail::repository_shown),
             search_as_list: document.get("searchAsList").and_then(Value::as_bool).unwrap_or(false),
-            file_layouts: document
-                .get("fileLayouts")
-                .map(layouts::file_layouts)
-                .unwrap_or_default(),
+            file_layouts: document.get("fileLayouts").map_or_default(layouts::file_layouts),
             commit_messages: list(&document, "commitMessages", changes::repository_message),
             merge_shows_base: document.get("mergeShowsBase").and_then(Value::as_bool).unwrap_or(false),
             branch_inputs: list(&document, "branchInputs", inputs::workspace_inputs),
@@ -179,9 +176,7 @@ impl Persisted {
     /// What the file at a path holds; what a first start has when it is not there or cannot be read.
     #[must_use]
     pub fn read(path: &Path) -> Persisted {
-        std::fs::read_to_string(path)
-            .map(|text| Persisted::from_text(&text))
-            .unwrap_or_default()
+        std::fs::read_to_string(path).map_or_default(|text| Persisted::from_text(&text))
     }
 
     /// Puts a workspace first among the recent ones, with the repository shown in it, keeping [`MOST_RECENT`].

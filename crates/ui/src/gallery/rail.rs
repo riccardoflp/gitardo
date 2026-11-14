@@ -108,15 +108,12 @@ fn title(ui: &mut Ui<'_>, rect: Rect, text: &str) {
 
 /// The name of a branch of the rail, as find in page and the screen reader see it.
 fn branch_text(row: usize) -> String {
-    BRANCHES
-        .get(row)
-        .map(|branch| branch.name.to_owned())
-        .unwrap_or_default()
+    BRANCHES.get(row).map_or_default(|branch| branch.name.to_owned())
 }
 
 /// The name of a remote branch, as find in page and the screen reader see it.
 fn remote_text(row: usize) -> String {
-    REMOTES.get(row).map(|(name, _)| (*name).to_owned()).unwrap_or_default()
+    REMOTES.get(row).map_or_default(|(name, _)| (*name).to_owned())
 }
 
 /// Your branches: a list with the dot of each lane, the name, and how it stands; a double click or Enter switches to

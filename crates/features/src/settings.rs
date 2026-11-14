@@ -47,8 +47,7 @@ pub fn theme(context: &Context, answers: &Answers) -> Outcome {
         .first()
         .cloned()
         .flatten()
-        .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
-        .unwrap_or_default();
+        .map_or_default(|bytes| String::from_utf8_lossy(&bytes).into_owned());
     let path = [Key::Member(String::from("theme"))];
     let after = match json::set_value(&before, &path, &Value::String(value.to_owned())) {
         Ok(after) => after,

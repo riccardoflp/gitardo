@@ -237,7 +237,7 @@ pub(super) fn status_error(head: &Head, body: &[u8], provider: &Provider, chosen
         (404, Some(model)) => AiError::ModelMissing(model.to_owned()),
         _ => AiError::Status {
             line: head.status_line(),
-            message: parse(body).map(|answer| error_message(&answer)).unwrap_or_default(),
+            message: parse(body).map_or_default(|answer| error_message(&answer)),
         },
     }
 }

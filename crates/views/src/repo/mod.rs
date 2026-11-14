@@ -107,8 +107,7 @@ pub fn repository_picker_view(state: &RepositoryPickerState<'_>, ui: &mut Ui<'_>
         Some(PickerAnswer::Chose(index)) => state
             .repositories
             .get(index)
-            .map(|repository| vec![Intent::SelectRepository(repository.folder.clone())])
-            .unwrap_or_default(),
+            .map_or_default(|repository| vec![Intent::SelectRepository(repository.folder.clone())]),
         Some(PickerAnswer::Cancelled | PickerAnswer::ChoseMany(_)) => vec![Intent::ClosePicker],
         None => Vec::new(),
     }
@@ -151,7 +150,5 @@ pub fn open_folder_question_view(state: &OpenFolderQuestion<'_>, ui: &mut Ui<'_>
         Some(2) => Some(FolderAnswer::Replace),
         Some(_) | None => None,
     };
-    answer
-        .map(|answer| vec![Intent::AnswerOpenFolder(answer)])
-        .unwrap_or_default()
+    answer.map_or_default(|answer| vec![Intent::AnswerOpenFolder(answer)])
 }

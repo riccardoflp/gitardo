@@ -76,9 +76,8 @@ pub fn read_answer(reply: &str) -> Result<ConflictAnswer, AnswerError> {
             "The language model answered with conflict markers in its resolution.",
         ));
     }
-    let reason = last_pair(reply, "reason")
-        .map(|reason| reason.split_whitespace().collect::<Vec<_>>().join(" "))
-        .unwrap_or_default();
+    let reason =
+        last_pair(reply, "reason").map_or_default(|reason| reason.split_whitespace().collect::<Vec<_>>().join(" "));
     if reason.is_empty() {
         return Err(AnswerError::new("The language model gave no reason."));
     }

@@ -173,8 +173,7 @@ fn files(ui: &mut Ui<'_>, area: &mut Area, row: usize) {
     let file_text = |index: usize| {
         changed
             .get(index)
-            .map(|file| format!("{} +{} \u{2212}{}", file.path, file.added, file.removed))
-            .unwrap_or_default()
+            .map_or_default(|file| format!("{} +{} \u{2212}{}", file.path, file.added, file.removed))
     };
     let search = ListSearch {
         row_text: &file_text,

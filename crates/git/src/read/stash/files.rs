@@ -46,8 +46,7 @@ pub fn read_files(git: &Git, request: &StashRef) -> Result<StashFiles, GitError>
     }
     let changed = parse_name_only(&git.run_read(&stash_changes_arguments(request))?);
     let untracked = read_unless_missing(git, &stash_untracked_arguments(request), &untracked_commit(request))?
-        .map(|output| parse_name_only(&output))
-        .unwrap_or_default();
+        .map_or_default(|output| parse_name_only(&output));
     Ok(StashFiles { changed, untracked })
 }
 

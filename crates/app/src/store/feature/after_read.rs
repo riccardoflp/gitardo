@@ -43,8 +43,7 @@ fn bisect_found(state: &mut State) {
             .read_rows()
             .iter()
             .find_map(|row| row.commit().filter(|commit| commit.id == bad))
-            .map(|commit| commit.subject.clone())
-            .unwrap_or_default();
+            .map_or_default(|commit| commit.subject.clone());
         Some((bad, subject))
     });
     if let (Some((bad, subject)), Some(said)) = (found, state.operations.said.as_mut()) {
@@ -69,7 +68,7 @@ pub fn after_read(state: &mut State) -> Vec<Effect> {
         let head = state.shown_read().and_then(|read| read.state.head.commit.clone())?;
         Some(before(&state.timeline.rows, head, back))
     });
-    commit.map(|commit| search::go_to(state, commit)).unwrap_or_default()
+    commit.map_or_default(|commit| search::go_to(state, commit))
 }
 
 /// The operation on a file of another repository, once the window shows that repository (`compare.path-with`); it is
