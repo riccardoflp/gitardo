@@ -1850,15 +1850,15 @@ From milestone M10 (Linux):
 From the slice of the trusted folders, which answers Q348 and builds `trust.is-trusted`, `trust.ask` and
 `trust.manage`:
 
-- **Q-U1** — Trusting a folder trusts every folder in it, and the folder checked is that of the repository the
+- **Q361** — Trusting a folder trusts every folder in it, and the folder checked is that of the repository the
   operation runs in, as the window shows it. A worktree in `${repo}.worktrees` is beside the repository, not in it, so
   a window that shows it is asked about it on its own, although it shares the repository's git folder. Its checkout
   may hold another `.gitardo/settings.json`, from a branch someone else wrote, which is why it was left so. Should a
   worktree be trusted with the main worktree of its repository?
-- **Q-U2** — The commands of the user's own settings file are held back in a folder not trusted too, as
+- **Q362** — The commands of the user's own settings file are held back in a folder not trusted too, as
   `worktree-setup.command-steps` said before (**in a trusted folder only**); the question then says they come from
   **your settings**. The folder does not ask for those: should the user's own commands run without asking?
-- **Q-U3** — What else a folder asks for: among the settings a repository's `.gitardo/settings.json` may set, only
+- **Q363** — What else a folder asks for: among the settings a repository's `.gitardo/settings.json` may set, only
   `worktrees.setupCommands` runs a program, and it is the only one held back. Others act on what the repository says
   without running anything of its own: `worktrees.folder` (where new worktrees go, possibly outside the repository),
   `worktrees.linkFolders` and `worktrees.copyFiles` (links and copies of what git ignores, into the new worktree only),
@@ -1868,23 +1868,23 @@ From the slice of the trusted folders, which answers Q348 and builds `trust.is-t
   `graph.pageSize`, `branches.format`, `branches.inputs`, `pull.rebase`, `pull.autostash`, `cherryPick.recordOrigin`)
   run nothing. Should `worktrees.folder` from the repository's file be held to a folder beside the repository, or
   `submodules.updateOnCheckout` from it be asked, until the folder is trusted?
-- **Q-U4** — The answer is kept in `state.json` under `trustedFolders`, a list of the folders as the system writes them,
+- **Q364** — The answer is kept in `state.json` under `trustedFolders`, a list of the folders as the system writes them,
   never cut as the recent ones are (this branch has no `11-data.md`: the module comment of `app::persisted` names the
   key, and the cards say it). The folder is trusted by a follow-up, `FollowUp::TrustFolder`, among those of the plan on
   success and on failure alike, which the window carries out as soon as the operation ends, before what follows the
   plan waits for its tasks; **Trusted folders…** takes folders out with `FollowUp::ForgetTrustedFolders`. A plan shown
   by `commandPreview` and not run trusts nothing, nor does backing out of a later question. Should the folder be
   trusted as soon as the question is answered instead?
-- **Q-U5** — `trust.ask` is a function of `features` that the operations making worktrees call through
+- **Q365** — `trust.ask` is a function of `features` that the operations making worktrees call through
   `worktree-setup.command-steps`, `ask(context, answers, asked) -> Result<Trust, Box<Outcome>>`, not an operation of its
   own: its card says **Operation** with a note, and it is not among `OPERATIONS`. Is that the kind it should have?
-- **Q-U6** — **Trusted folders…** is in Quick search only: a pick of the folders trusted, each ticked, in the order they
+- **Q366** — **Trusted folders…** is in Quick search only: a pick of the folders trusted, each ticked, in the order they
   were trusted; with none unticked it says **The trusted folders are unchanged.** The Settings page, which lists the
   settings of the files, has no section for them, and no command trusts a folder before something would run in it.
   Should the Settings page list them, and should **Trust this folder** be offered in Quick search?
-- **Q-U7** — Each window reads `state.json` when it starts and writes it whole, as for the other keys: a folder trusted
+- **Q367** — Each window reads `state.json` when it starts and writes it whole, as for the other keys: a folder trusted
   in one window is not trusted in another window already open until that one starts again, and the window that writes
   last wins. Is that enough?
-- **Q-U8** — `gitardo-cli` is given no trust, so in a folder with commands it asks **Run the commands for new
+- **Q368** — `gitardo-cli` is given no trust, so in a folder with commands it asks **Run the commands for new
   worktrees?**, answered with `trust-folder=trust` or `trust-folder=not-now` like any question, and prints
   `Trust <folder>` for the follow-up without keeping it. Right?
