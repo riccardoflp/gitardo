@@ -1653,21 +1653,21 @@ answered:
   command before **Open in worktree**. Building it means a column of tasks in the drawer, a command run with its output
   kept and its input fed from the drawer, and the warning that offers to open the worktree after a failure. Should it be
   a slice of its own, with the drawer's Tasks column first?
-- **Q-F1** — The card of `graph.more-menu` named **Browse reflog…** where the card of `reflog.browse` says
+- **Q326** — The card of `graph.more-menu` named **Browse reflog…** where the card of `reflog.browse` says
   **Reflog**; the menu keeps **Reflog**, and the card says so now, with **Settings** and **Theme…** as its seventh
   group, as the cards of `settings.edit` and `settings.theme` place them. **History of the active file** is always in
   the menu: it shows the history of the File page in front, and with none it runs `file-history.file` on nothing,
   which says *Open a file of this repository to see its history.* Should it be greyed out instead while no File page
   is in front?
-- **Q-F2** — `compare.open-on-github` reads the remotes itself (`Query::Remotes`) for the repository on GitHub and the
+- **Q327** — `compare.open-on-github` reads the remotes itself (`Query::Remotes`) for the repository on GitHub and the
   name of the main remote, which decides whether an upstream "is on the GitHub remote"; the button is shown from what
   the window knows of GitHub (`github.detect-remote`) for the repository of the page. Plans may now end in
   `FollowUp::OpenUrl`, which the window opens with `platform::open_url`. It refuses the working tree, the same commit
   and another host, which the card did not list. Is this right?
-- **Q-F3** — Q306 is answered: the Merge page proposes the answers the review keeps for its file (`conflicts.ai` on),
+- **Q328** — Q306 is answered: the Merge page proposes the answers the review keeps for its file (`conflicts.ai` on),
   each matched to a conflict still marked by `review.fingerprint`, with `review.proposals` making the lines in the
   endings of the file and counting the new ones; the rules still come first. The answers are taken when the page
   reads its regions, so an answer that comes while the page is open shows at its next read. Should it show at once?
-- **Q-F4** — Q316 is answered: a row of the Worktrees list draws the badge of the pull request of its branch at its
+- **Q329** — Q316 is answered: a row of the Worktrees list draws the badge of the pull request of its branch at its
   right, after the pencil, and its tooltip adds the line of the badge; a missing worktree has none. The card gains an
   acceptance line for it. Is this right?
