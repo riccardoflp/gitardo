@@ -142,11 +142,13 @@ identifier of the card (see [D35](../08-decisions.md#d35--tests-are-named-by-wha
 ## With the engine
 
 From stage 1 of [the transition](../transition/06-roadmap.md) the extension starts `gitardo-engine`. The tests find it
-as the extension does: `gitardo.engine.path` when set, which the test scripts set to `../rust/target/debug/
-gitardo-engine`, built first with `cargo build -p server` and `CARGO_PROFILE_DEV_DEBUG=0`.
+at `../rust/target/debug/gitardo-engine`, built first with `cargo build -p server` and `CARGO_PROFILE_DEV_DEBUG=0`, or
+where the environment variable `GITARDO_ENGINE` says; without it they are skipped, and the run says why. Inside VS Code
+the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts will set from stage 2.
 
 - `test/engine.test.ts` (Vitest) starts the binary and checks the protocol: `initialize`, the state of the throwaway
-  repositories against `Repo.state`, cancelling, a restart after a crash.
+  repositories against `Repo.state`, a burst of changes, cancelling, the restarts after the engine is killed, and the
+  settings sent.
 - The integration tests of a moved area run each operation through `feature/run`, with a fake host that answers the
   questions from the test; they keep the same names, so that a card's **Tested by** line still finds them.
 - The scenarios shared with the desktop ([desktop/06-testing.md](../desktop/06-testing.md#scenarios-run-by-both-apps))

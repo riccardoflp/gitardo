@@ -71,12 +71,14 @@ flowchart TB
 | Webviews | `dist/webview.js` (classic script), one page per view or tab, picked by `data-view` | `postMessage`, typed in `src/shared/protocol.ts` |
 | Flow pages | `dist/flow/main.js`, `dist/flow/merge.js` (ES modules, split in chunks) | `postMessage` (`src/flow/diff/protocol.ts`, `mergeProtocol.ts`) |
 | git | a child process per command, `GIT_TERMINAL_PROMPT=0`, no shell | arguments, standard input, output |
+| Gitardo's engine | `gitardo-engine --stdio`, one process per window, from `bin/<platform>-<arch>/` of the package or the development setting `gitardo.engine.path`; started the first time a repository is found, and started again after an exit as [transition/01-engine.md](../transition/01-engine.md#when-something-goes-wrong) says | JSON-RPC 2.0 on its standard input and output, framed with `Content-Length` ([transition/02-protocol.md](../transition/02-protocol.md)) |
 
 ## Modules
 
 | Path | What is there |
 | --- | --- |
 | `src/git` | Git itself, with no VS Code in it: running it (`exec.ts`), finding the repositories of a folder (`discover.ts`), reading a repository (`repo.ts`), parsing what git prints (`parse.ts`), the commands of each operation (`ops.ts`), the conflicts that need no choice (`conflicts.ts`), what is proposed for each conflict (`review.ts`), what new worktrees get (`worktreeSetup.ts`), the lines of a range (`lines.ts`), GitHub URLs and the pull requests query (`github.ts`). |
+| `src/engine` | Gitardo's engine, from stage 1 of [the transition](../transition/06-roadmap.md): finding the binary (`binary.ts`), the framing (`framing.ts`), requests, notifications and `$/cancel` (`connection.ts`), the messages (`messages.ts`), the settings sent under the desktop's names (`settings.ts`), the process and its restarts (`client.ts`), and the engine of a window, with VS Code's settings and output channel (`vscode.ts`). In stage 1 no view uses it: the tests compare its state with `Repo.state`. |
 | `src/shared` | What the extension and the webviews both use: the messages between them (`protocol.ts`), the lanes of the graph (`graph.ts`), the tree of files (`tree.ts`), how references are named (`refs.ts`) and messages shown (`message.ts`), the branches shown (`scope.ts`), the blame's format (`blameFormat.ts`), the prompts of the language model (`commitPrompt.ts`, `conflictPrompt.ts`), proposals (`resolution.ts`), submodules' status, file icons, JSON with comments. |
 | `src/extension` | VS Code: activation and commands (`extension.ts`), the `Controller` that owns the state and every webview (`controller.ts`), what an action asks and which operation it becomes (`actions.ts`), blame of the line and of the file (`blame.ts`, `fileBlame.ts`), the content of the diffs (`content.ts`), what is running (`activity.ts`), the review of conflicts (`conflictReview.ts`), GitHub sign-in (`github.ts`), the language model (`ai.ts`), file icons, the worktree settings and Explorer commands. |
 | `src/webview` | The React UI of every view and tab, in one bundle. `main.tsx` picks the component from the `data-view` the host writes on the page. `menus.ts` has every context menu and `act()`. |
@@ -110,6 +112,8 @@ flowchart TB
   `src/flow/webview/columns.ts` and `languages.ts`. *Marked: these work because the code is pure, but nothing keeps it
   so; see [RS3](13-risks.md).*
 - `src/flow` uses `src/git`, `src/shared` and two modules of `src/extension` (`content.ts`, `answers.ts`).
+- `src/engine` uses only Node, and `vscode` in `vscode.ts` alone, so that the tests drive the rest; it imports neither
+  `src/git` nor `src/webview` (rule R1.5). *Followed; no tool checks it.*
 - `src/extension` uses all of the above.
 
 ## From a click to git

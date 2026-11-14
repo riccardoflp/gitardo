@@ -38,6 +38,7 @@ names, `.gitmodules`, hooks, `.vscode/settings.json`), the answers of GitHub, an
 | T11 | Spoofing | An answer that is not GitHub's says where a pull request is, and its URL is opened. | `src/extension/controller.ts`, `openPullRequest` | HTTPS to `api.github.com` with the system's certificates; the URL is opened by VS Code's `openExternal`, which asks before leaving for a host the user has not trusted | Mitigated by VS Code |
 | T12 | Information disclosure | The messages of an interactive rebase stay in the temporary folder after the rebase stopped or was cancelled. | `interactiveRebase` | None yet | Open ([RS7](13-risks.md)) |
 | T13 | Tampering | The nonce of the webviews' Content Security Policy is made with `Math.random`, not a cryptographic source. | `Controller.html` | The webview loads only the extension's own files; no content of a repository is a script | Accepted |
+| T14 | Tampering, Elevation | Another program runs as Gitardo's engine: a binary put in the package's `bin/`, or one that `gitardo.engine.path` names. | `src/engine/binary.ts` | The binary in `bin/` is the package's own, and changing it needs the rights that change the extension; `gitardo.engine.path`, a setting for development, is read only from the user's own settings, never from a workspace's `.vscode/settings.json` | Mitigated |
 
 ## What we do about it
 
@@ -61,6 +62,7 @@ input), a line of a card's acceptance, or a decision. The threats that are open 
 | What git prints | Parsed from machine-readable formats where git has one (R8.4). |
 | Conflicted files | Read, compared and written only as text; the rules give up on very large ones. |
 | Settings of the workspace | Read only in a trusted workspace; the setup commands are said before they run. |
+| What Gitardo's engine writes | Read as framed JSON-RPC messages; a message that cannot be read is said in the log and dropped; what it writes on its standard error is copied into the log as text. The engine reads its standard input only from the extension that started it. |
 | GitHub's answers | Parsed as JSON into the pull requests of the branches; a failure is a warning in the log. |
 | The language model's answers | Shown as proposals; written only once the user accepts them. |
 

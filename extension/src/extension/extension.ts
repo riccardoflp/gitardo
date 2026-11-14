@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { FlowDiff } from '../flow/flowDiff';
 import { discoverRepos } from '../git/discover';
+import { WindowEngine } from '../engine/vscode';
 import type { RepoState, SyncAction, ViewKind } from '../shared/protocol';
 import { chooseConflictModel } from './ai';
 import { SHOW_ACTIVITY } from './activity';
@@ -28,6 +29,10 @@ export interface GitardoApi {
 
 export function activate(context: vscode.ExtensionContext): GitardoApi {
   const log = vscode.window.createOutputChannel('Gitardo', { log: true });
+  // Gitardo's engine, started the first time a repository is found. No view uses it yet: the views still read through
+  // src/git, and the tests compare the two.
+  const engine = new WindowEngine(context, log);
+  context.subscriptions.push(engine);
   const controller = new Controller(context.extensionUri, log, context.workspaceState);
   const blameSource = new BlameSource(log);
   const fileBlame = new FileBlame(blameSource, {
@@ -89,6 +94,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
   // for now, since no view may be open to read one, and again when the folders of the workspace change. A repository
   // made later shows them as soon as a view reads it.
   const hasRepository = (has: boolean) => {
+    if (has) engine.start();
     if (has) status.show();
     else status.hide();
     void vscode.commands.executeCommand('setContext', 'gitardo.hasRepository', has);
