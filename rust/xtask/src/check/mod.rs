@@ -1,5 +1,5 @@
-//! `cargo xtask check`: the rules of `docs/03-code-rules.md` that a program can check, then rustfmt, clippy and the
-//! tests.
+//! `cargo xtask check`: the rules of `docs/desktop/03-code-rules.md` that a program can check, then rustfmt, clippy
+//! and the tests.
 
 mod catalog;
 mod edges;
@@ -13,7 +13,7 @@ use std::io::Write;
 use std::path::Path;
 
 use crate::error::Error;
-use crate::files::{SourceFile, read_text, workspace_files};
+use crate::files::{SourceFile, document_files, read_text, workspace_files};
 use crate::problem::Problem;
 use crate::workspace::{Member, members};
 
@@ -21,16 +21,17 @@ use crate::workspace::{Member, members};
 pub struct Workspace {
     /// The members of the workspace.
     pub members: Vec<Member>,
-    /// Every file of the workspace, with its text when it is text the project writes.
+    /// Every file of the workspace and every document of the repository, with its text when it is text the project
+    /// writes.
     pub files: Vec<(SourceFile, Option<String>)>,
 }
 
 impl Workspace {
-    /// Reads the members and the files of the workspace at `root`.
+    /// Reads the members and the files of the workspace at `root`, and the documents of the repository around it.
     pub fn read(root: &Path) -> Result<Self, Error> {
         let members = members(root)?;
         let mut files = Vec::new();
-        for file in workspace_files(root)? {
+        for file in workspace_files(root)?.into_iter().chain(document_files(root)?) {
             let text = if crate::files::is_text(&file) {
                 Some(read_text(&file.path)?)
             } else {

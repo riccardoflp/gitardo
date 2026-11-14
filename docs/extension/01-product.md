@@ -3,7 +3,7 @@
 Gitardo is a VS Code extension for working with git: a commit graph of every branch, the history of files and lines,
 and the everyday operations, from staging to interactive rebase, conflicts and worktrees, each shown as the exact git
 commands it runs. It is for people who use git every day in VS Code and want to see what a command will do before it
-does it. What it does is told to users in the [README](../README.md), which is also its page on the Marketplace; this
+does it. What it does is told to users in the [README](../../extension/README.md), which is also its page on the Marketplace; this
 page is the map of the product for whoever changes it.
 
 ## Who it is for
@@ -44,10 +44,10 @@ page is the map of the product for whoever changes it.
 - **The Gitardo output channel**: the log of every command run.
 - **The walkthrough** *Get started with Gitardo* (`media/walkthrough/`), which VS Code opens once after installing.
 
-Each of these is described for users in the README: [Graph](../README.md#graph), [Side bar](../README.md#side-bar),
-[A commit in an editor tab](../README.md#a-commit-in-an-editor-tab), [Compare](../README.md#compare),
-[Worktrees](../README.md#worktrees), [Conflicts](../README.md#conflicts), [Flow Diff](../README.md#flow-diff),
-[Flow Merge](../README.md#flow-merge).
+Each of these is described for users in the README: [Graph](../../extension/README.md#graph), [Side bar](../../extension/README.md#side-bar),
+[A commit in an editor tab](../../extension/README.md#a-commit-in-an-editor-tab), [Compare](../../extension/README.md#compare),
+[Worktrees](../../extension/README.md#worktrees), [Conflicts](../../extension/README.md#conflicts), [Flow Diff](../../extension/README.md#flow-diff),
+[Flow Merge](../../extension/README.md#flow-merge).
 
 ## What a user can count on
 
@@ -73,7 +73,7 @@ can have its own: `gitardo.worktrees.linkFolders`, `gitardo.worktrees.copyFiles`
 Where VS Code's Git extension has a setting for the same thing, Gitardo reads it when its own is not set
 (`git.branchSortOrder`, `git.worktreeSymlinkFolders`, `git.worktreeIncludeFiles`).
 
-Every setting, with the cards that read it, is in [features/18-settings.md](features/18-settings.md).
+Every setting, with the cards that read it, is in [features/18-settings.md](../features/extension/18-settings.md).
 
 ## What Gitardo does not do
 

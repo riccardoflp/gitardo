@@ -1,7 +1,7 @@
 # Architecture
 
 Gitardo Desktop is one Cargo workspace that uses libraries where they serve
-([D22](08-decisions.md#d22--libraries-with-judgment)): so far TLS, and the libraries of the window, the text and the
+([D22](../08-decisions.md#d22--libraries-with-judgment)): so far TLS, and the libraries of the window, the text and the
 pixels. This page says what its crates are, which may use which, how a click becomes a git command, and where
 state lives. The rules for writing the code are in [03-code-rules.md](03-code-rules.md); the operating systems are in
 [05-platform.md](05-platform.md).
@@ -9,11 +9,11 @@ state lives. The rules for writing the code are in [03-code-rules.md](03-code-ru
 ## Dependencies
 
 - A crate depends on crates of this workspace and on the libraries that serve its job, chosen as
-  [D22](08-decisions.md#d22--libraries-with-judgment) says. There is no `build.rs` in the workspace and no procedural
+  [D22](../08-decisions.md#d22--libraries-with-judgment) says. There is no `build.rs` in the workspace and no procedural
   macro written here; libraries may have theirs.
-- **TLS** ([D13](08-decisions.md#d13--one-library-for-tls)): `crates/tls` depends on `rustls`, with `ring` for its
+- **TLS** ([D13](../08-decisions.md#d13--one-library-for-tls)): `crates/tls` depends on `rustls`, with `ring` for its
   cryptography, and on `rustls-native-certs` for the certificates the system trusts.
-- **The window, the text and the pixels** ([D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)):
+- **The window, the text and the pixels** ([D16](../08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)):
   `platform` depends on `winit`, `softbuffer`, `arboard`, `rfd` and `accesskit_winit`; `render` on `tiny-skia` and
   `cosmic-text`; `ui` on `accesskit`, for the tree of what is on screen.
 - Their versions are those of `Cargo.lock`. No type of a library leaves the crate that uses it
@@ -68,17 +68,17 @@ app ──► views ──► ui ──► render ──► platform
 ```
 
 - Nothing depends on `app`, and `app` may use any crate but `testkit` and `xtask`
-  ([D15](08-decisions.md#d15--app-may-use-every-crate-below-it)). Nothing below `views` knows about the places of the window or its pages.
+  ([D15](../08-decisions.md#d15--app-may-use-every-crate-below-it)). Nothing below `views` knows about the places of the window or its pages.
 - The types of the feature contract are in `model`
-  ([D14](08-decisions.md#d14--the-types-of-the-contract-are-in-model)).
+  ([D14](../08-decisions.md#d14--the-types-of-the-contract-are-in-model)).
 - `features`, `model`, `text` and `json` are pure: no I/O, no threads, no clock. They are where most of the code and
   most of the tests are.
 - `features` edits the settings files its operations write with `json`, so that their comments are kept.
 - `git` runs processes but knows nothing of the UI. `engine` is the only crate that changes the disk or the repository.
 - `platform` is the only crate with `unsafe`. Everything above it sees safe functions.
-- A crate uses the libraries of its own job ([D22](08-decisions.md#d22--libraries-with-judgment)); today those are
+- A crate uses the libraries of its own job ([D22](../08-decisions.md#d22--libraries-with-judgment)); today those are
   `tls`, `render`, `platform` and `ui`
-  ([D13](08-decisions.md#d13--one-library-for-tls), [D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)).
+  ([D13](../08-decisions.md#d13--one-library-for-tls), [D16](../08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)).
   The pure crates use only libraries that do no I/O.
 - `testkit` is a `dev-dependency` only.
 
@@ -147,7 +147,7 @@ There is no GPU code and no system widget.
 
 - `render` draws shapes (rectangles, rounded rectangles, lines, circles, Bézier curves for the lines of the graph) with
   `tiny-skia`, text with `cosmic-text` in the fonts that come with the program
-  ([D18](08-decisions.md#d18--the-fonts-come-with-the-program)), and icons from paths of its own.
+  ([D18](../08-decisions.md#d18--the-fonts-come-with-the-program)), and icons from paths of its own.
 - `ui` lays out and draws widgets with `render`. It redraws only what changed: each frame records what each part of the
   window drew, and only the parts that differ from the last frame are drawn again and sent to the window. It also
   builds the tree of what is on screen for the screen reader.
@@ -170,6 +170,6 @@ through its token, and the git process it runs is killed.
 | How git output is read | `crates/git/src/read/<what>.rs` |
 | How a place or a page looks or reacts | `crates/views/src/<name>/` |
 | A widget used by several views | `crates/ui/src/widget/` |
-| A setting | `crates/app/src/settings/`, and [features/18-settings.md](features/18-settings.md) |
+| A setting | `crates/app/src/settings/`, and [features/18-settings.md](../features/18-settings.md) |
 | What runs before an operation, the log, Undo | `crates/engine/` |
 | Something only one operating system needs | `crates/platform/src/<os>/` |

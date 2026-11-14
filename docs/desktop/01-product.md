@@ -3,7 +3,7 @@
 Gitardo Desktop is a desktop application for Git: a commit graph, history and the everyday operations of Git, in one
 window, written in Rust, with libraries where they serve. It does what the Gitardo extension for VS Code does, feature for feature,
 in a window of its own. This page says what that window is made of, and how each thing the extension borrowed from
-VS Code is done here instead. The features themselves are in the [catalog](features/README.md).
+VS Code is done here instead. The features themselves are in the [catalog](../features/README.md).
 
 ## Who it is for
 
@@ -13,7 +13,7 @@ again in a terminal, and what is done in a terminal shows in it at once.
 
 ## The window
 
-The window is Gitardo's own, not an editor's ([D17](08-decisions.md#d17--the-timeline-a-window-of-gitardos-own)): the
+The window is Gitardo's own, not an editor's ([D17](../08-decisions.md#d17--the-timeline-a-window-of-gitardos-own)): the
 history fills it, and everything else opens from it.
 
 ```
@@ -40,7 +40,7 @@ history fills it, and everything else opens from it.
 ```
 
 - **Bar of views**: a column of icons on the left edge, outside the islands
-  ([D21](08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)): **Timeline**, **Changes** with the number of
+  ([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)): **Timeline**, **Changes** with the number of
   changed files, **Files** and **Compare**; at its foot **Activity**, which opens and closes the Activity drawer, and
   **Settings**. The place shown is marked.
 - **Islands**: the header, the branch rail, the timeline and the inspector, or the page shown, are each a rounded card
@@ -137,7 +137,7 @@ Everything else the extension does, Gitardo Desktop does the same way, with the 
 ## Settings
 
 The settings of the extension keep their names without the `gitardo.` prefix: `gitardo.graph.pageSize` is
-`graph.pageSize`. They are listed, with their defaults, in [features/18-settings.md](features/18-settings.md). The user's
+`graph.pageSize`. They are listed, with their defaults, in [features/18-settings.md](../features/18-settings.md). The user's
 file comes first unless the repository's file sets the same key; the settings that the extension read only from the
 user's file stay so.
 

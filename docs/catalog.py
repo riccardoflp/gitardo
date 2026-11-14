@@ -9,7 +9,11 @@ had there.
 
 Usage:
     python catalog.py <docs folder> [--features features] [--index] [--fix-eol] [--ignore a.b,c.d]
-                      [--glossary path]
+                      [--glossary path] [--documents path...] [--known folder...]
+
+The references and the words are checked in the Markdown of the docs folder and of the folder above it, unless
+`--documents` names the files and folders to check instead. `--known` names the folders of other catalogs, whose
+cards may be referenced without being cards of this one.
 
 The glossary is the first `*glossary*.md` of the docs folder, unless `--glossary` names another. Its table needs a
 column headed `Avoid`, with the words to avoid comma separated; the first column is the term to use instead.
@@ -220,6 +224,8 @@ def main() -> int:
     parser.add_argument("--fix-eol", action="store_true", help="turn CRLF into LF in every Markdown file")
     parser.add_argument("--ignore", default="", help="identifiers that look like cards but are not, comma separated")
     parser.add_argument("--glossary", type=Path, help="the glossary, when it is not the docs folder's *glossary*.md")
+    parser.add_argument("--documents", nargs="+", type=Path, help="the Markdown files and folders to check")
+    parser.add_argument("--known", nargs="+", type=Path, default=[], help="the folders of other catalogs")
     arguments = parser.parse_args()
 
     docs: Path = arguments.docs.resolve()
@@ -253,12 +259,19 @@ def main() -> int:
 
     prefixes = {card["id"].split(".")[0] for card in cards}
     ignored = {item.strip() for item in arguments.ignore.split(",") if item.strip()}
-    documents = [path for path in docs.rglob("*.md") if path.name != "README.md" or path.parent != features]
-    root = docs.parent
-    documents += [path for path in root.glob("*.md") if path not in documents]
+    if arguments.documents:
+        documents = []
+        for path in (path.resolve() for path in arguments.documents):
+            documents += sorted(path.rglob("*.md")) if path.is_dir() else [path]
+        documents = [path for path in documents if path.name != "README.md" or path.parent != features]
+    else:
+        documents = [path for path in docs.rglob("*.md") if path.name != "README.md" or path.parent != features]
+        root = docs.parent
+        documents += [path for path in root.glob("*.md") if path not in documents]
+    known = {card["id"] for folder in arguments.known for card in find_cards(folder.resolve())}
     ignored |= declared_names(documents)
     for identifier, places in sorted(find_references(documents, prefixes).items()):
-        if identifier not in seen and identifier not in ignored:
+        if identifier not in seen and identifier not in ignored and identifier not in known:
             print(f"DANGLING {identifier}: {', '.join(places[:5])}{' ...' if len(places) > 5 else ''}")
             problems += 1
 

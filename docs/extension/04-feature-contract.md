@@ -1,7 +1,7 @@
 # The feature contract
 
 What a feature of Gitardo is in the code, the kinds of feature, how they are named, and the template of a card. The
-catalog in [features/](features/README.md) is written to this page.
+catalog in [features/](../features/extension/README.md) is written to this page.
 
 ## Why
 
@@ -52,7 +52,7 @@ An operation goes through four places. Every new operation follows the same path
 The target for new code and for code that is changed anyway is the same shape with the questions kept apart from the
 plan: a function of `src/git/ops.ts` that takes everything it needs as arguments and returns the `GitOp`, so that an
 integration test can run it on a throwaway repository without VS Code. That is how most of `ops.ts` is written already.
-Moving the questions out of `resolveAction` into data is not planned: see [D4](08-decisions.md#d4--an-operation-is-a-gitop-built-before-it-runs).
+Moving the questions out of `resolveAction` into data is not planned: see [D26](../08-decisions.md#d26--an-operation-is-a-gitop-built-before-it-runs).
 
 Reads and Derivations already have this shape: a `Repo` method builds the arguments and a function of `parse.ts` turns
 what git prints into data, which `test/git.test.ts` checks on recorded output.
@@ -67,8 +67,8 @@ for code that is changed anyway (R7.4 in the [code rules](03-code-rules.md)).
 ## The areas
 
 Each area has a file in `features/`, the prefixes of its identifiers, and whether its cards are written. Which areas
-have cards, and why the others do not yet, is [D11](08-decisions.md#d11--cards-first-for-the-areas-where-a-mistake-costs).
-An area without cards is still described for users in the [README](../README.md); its cards are written the first time
+have cards, and why the others do not yet, is [D33](../08-decisions.md#d33--cards-first-for-the-areas-where-a-mistake-costs).
+An area without cards is still described for users in the [README](../../extension/README.md); its cards are written the first time
 the area is changed after this page.
 
 | File | Area | Prefixes | Cards |
@@ -148,7 +148,7 @@ that applies as an acceptance line. Where the code does otherwise, the line ends
    whose name is also a pattern to git is passed as `:(literal)<name>`. A branch that shares its name with a tag or a
    remote branch is named `refs/heads/<name>` where the short name would mean the other one.
 4. **It asks before losing work.** An operation of the list in the README's
-   [Command preview](../README.md#command-preview) asks first whatever `gitardo.commandPreview` says: with a warning
+   [Command preview](../../extension/README.md#command-preview) asks first whatever `gitardo.commandPreview` says: with a warning
    (`danger`) when it can lose work, with a question (`confirm`) when it rewrites history or moves a branch in a way
    that is easy to take back. A card and that list agree; an operation that can lose work and is not on the list, or
    asks with a question where it can lose work, differs.

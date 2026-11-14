@@ -1,5 +1,5 @@
 //! The proxy requests go through: `HTTPS_PROXY` (or `https_proxy`), otherwise git's `http.proxy`, and the hosts of
-//! `NO_PROXY` reached directly (`docs/05-platform.md`, Proxies).
+//! `NO_PROXY` reached directly (`docs/desktop/05-platform.md`, Proxies).
 
 use crate::error::Error;
 use crate::url::{Scheme, Url};

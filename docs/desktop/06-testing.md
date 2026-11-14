@@ -2,7 +2,7 @@
 
 Every line of every card's acceptance list is a test. This page says what kinds of tests there are, where they live and
 how they run, with the standard test harness of Rust, and a testing library where one serves, as
-[D22](08-decisions.md#d22--libraries-with-judgment) says.
+[D22](../08-decisions.md#d22--libraries-with-judgment) says.
 
 ## The kinds, from cheapest to most real
 

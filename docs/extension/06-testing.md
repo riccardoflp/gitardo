@@ -28,13 +28,13 @@ npm run package      # a minified build packed into gitardo-<version>.vsix
 | `npm run test:ui` | Builds, then uses the extension in a real VS Code window, with real clicks and keys, saving screenshots: see below. |
 | `npm run package` | Makes a minified build and packs it into `gitardo-<version>.vsix`. It leaves the minified build in `dist/`; `npm run build` brings the development one back. |
 | `npm run test:vsix` | Packages, then runs the end-to-end tests on what the `.vsix` contains instead of on this folder. |
-| `npm run check:docs` | Runs `python docs/catalog.py docs`: every card has the lines its kind needs, every identifier written in the documents names a card, and no document uses a word the glossary says to avoid. Needs Python 3. |
+| `npm run check:docs` | Runs `docs/catalog.py` on the extension's cards (`docs/features/extension`) and documents: every card has the lines its kind needs, every identifier written in them names a card of either catalog, and none of them uses a word the glossary says to avoid. Needs Python 3. |
 | `npm run preview -- <folder>...` | Serves the webview at `http://localhost:5174` against the repositories found in the folders, read-only, to work on the UI without an Extension Host. Add `?view=changes`, `commits`, `branches` or `stashes` for a view of the side bar, `?view=worktreeSetup` for the tab that chooses what new worktrees get, `?view=commit&commit=<revision>` for the tab of a commit, `?view=compare&from=<revision>&to=<revision>` for the tab of a comparison, and `?theme=light` for the light theme, and `--port=<number>` before the folders to serve a second one beside it. |
 
 `F5` in VS Code launches an Extension Development Host with Gitardo loaded (`.vscode/launch.json`).
 
-When this checkout has worktrees of its own under `.claude/worktrees`, a bare `npm test` also collects their tests. Run
-`npx vitest run --exclude '.claude/**' --exclude '**/node_modules/**'` instead.
+The commands run in `extension/`. `npm test` there collects only the extension's tests, so the worktrees under
+`.claude/worktrees` at the root of the repository no longer add theirs.
 
 ## The kinds, from cheapest to most real
 
@@ -137,7 +137,7 @@ times slower, in proportion to the rows. That build, and `npm run package`, leav
 Each acceptance line of a card is checked by one of the kinds above, and the card's **Tested by** line names the test
 by its file and its title. A line with no test says so in **Tested by**. When a change adds a test for a line, it names
 it on the card in the same commit. The names of the tests are sentences from the user's side; they do not carry the
-identifier of the card (see [D13](08-decisions.md#d13--tests-are-named-by-what-the-user-sees)).
+identifier of the card (see [D35](../08-decisions.md#d35--tests-are-named-by-what-the-user-sees)).
 
 ## What a change runs before it is committed
 

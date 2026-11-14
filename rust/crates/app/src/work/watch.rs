@@ -2,8 +2,8 @@
 //! and reads the settings again when either changed, so that a change applies without restarting (`settings.read`).
 //!
 //! It compares the time each file was changed and its length, which costs two small calls to the system each time.
-//! The watcher of the repository's files (`repo.watch-changes`, `docs/02-architecture.md`, Threads) replaces it once
-//! it exists.
+//! The watcher of the repository's files (`repo.watch-changes`, `docs/desktop/02-architecture.md`, Threads) replaces
+//! it once it exists.
 
 use std::fs;
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};

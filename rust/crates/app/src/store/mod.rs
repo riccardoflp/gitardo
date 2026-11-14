@@ -1,6 +1,6 @@
-//! The store of a window (`docs/02-architecture.md`, State): what the window shows, changed only by [`reduce`], which
-//! takes a [`Message`] and gives the [`Effect`]s the outside carries out after it: jobs on the workers, the folder
-//! dialog, the file of what is kept between runs, the settings files to watch.
+//! The store of a window (`docs/desktop/02-architecture.md`, State): what the window shows, changed only by
+//! [`reduce`], which takes a [`Message`] and gives the [`Effect`]s the outside carries out after it: jobs on the
+//! workers, the folder dialog, the file of what is kept between runs, the settings files to watch.
 //!
 //! `reduce` reads no file and runs no git: it is tested without a window.
 

@@ -1,7 +1,7 @@
 //! Secrets kept in the credential store of the system, by name: the GitHub token, the key of the AI provider.
 //! Windows keeps them as generic credentials named `Gitardo Desktop/<name>`; Linux, until Gitardo speaks to the
 //! Secret Service, in a file of the user's configuration folder only the user may read; macOS as generic passwords of
-//! the keychain, of the service `Gitardo Desktop` (`docs/05-platform.md`, Credentials).
+//! the keychain, of the service `Gitardo Desktop` (`docs/desktop/05-platform.md`, Credentials).
 
 use crate::error::PlatformError;
 

@@ -1481,7 +1481,7 @@
     "package": "node esbuild.mjs --production && vsce package --no-dependencies --baseContentUrl https://github.com/riccardoflp/gitardo/blob/HEAD --baseImagesUrl https://github.com/riccardoflp/gitardo/raw/HEAD/extension",
     "test:vsix": "npm run package && node test/e2e/run.mjs --vsix",
     "preview": "node dist/dev-server.js",
-    "check:docs": "python ../docs/catalog.py ../docs"
+    "check:docs": "python ../docs/catalog.py ../docs --features features/extension --known ../docs/features --documents ../docs/extension ../docs/features/extension ../docs/README.md ../AGENTS.md ../README.md ../SECURITY.md README.md CHANGELOG.md"
   },
   "devDependencies": {
     "@shikijs/engine-javascript": "^4.2.0",

@@ -1,6 +1,6 @@
-//! The operations run from the window (`docs/02-architecture.md`, From a click to git): the one running, the question
-//! it asks or the plan it shows first (`preview.confirm`), and what is said once it ended. The engine runs it on a
-//! thread of its own; the store only keeps what the window shows of it, and says what the user answered.
+//! The operations run from the window (`docs/desktop/02-architecture.md`, From a click to git): the one running, the
+//! question it asks or the plan it shows first (`preview.confirm`), and what is said once it ended. The engine runs it
+//! on a thread of its own; the store only keeps what the window shows of it, and says what the user answered.
 
 use std::path::PathBuf;
 use std::sync::Arc;

@@ -55,7 +55,7 @@ pub fn read_token(git: &Git, request: &TokenRequest) -> Result<Option<Token>, Gi
 }
 
 /// `git config --get http.proxy`: the proxy git goes through, which requests to GitHub go through too when
-/// `HTTPS_PROXY` is not set (`docs/05-platform.md`, Proxies).
+/// `HTTPS_PROXY` is not set (`docs/desktop/05-platform.md`, Proxies).
 #[must_use]
 pub fn proxy_arguments() -> Vec<OsString> {
     arguments(&["config", "--get", "http.proxy"])

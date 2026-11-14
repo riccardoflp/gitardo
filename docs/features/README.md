@@ -1,253 +1,535 @@
 # The catalog of features
 
-Every feature, one card each, 181 in all. The template and the rules of the cards are in the
-feature contract. This index is written by `catalog.py --index`: change a status here in the commit that
-earns it, and run the script again after adding or renaming a card; the statuses are kept. A card with a
-**Differs** line is *Differs*; when the line goes, it becomes *Documented*.
+Every feature of Gitardo Desktop, one card each, 415 in all. A card says what the feature does from the user's side,
+which function it is, what it asks, what it runs, how it is undone, and what has to be true for it to be done. The
+template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
+
+**Status**: *Specified* once the card is complete; *Reviewed* once someone who did not write it has read it and its
+questions are answered; *Built* once its function and the tests of its acceptance list pass `cargo xtask check`;
+*Seen* once it has been used in the application as the card says. Change the status here in the commit that earns it.
 
 | File | Area | Cards |
 | --- | --- | --- |
-| [01-repositories.md](01-repositories.md) | Repositories | 2 |
+| [01-repositories.md](01-repositories.md) | Repositories | 17 |
+| [02-graph.md](02-graph.md) | Graph | 41 |
+| [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
+| [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 19 |
-| [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 25 |
-| [07-merge-and-rewrite.md](07-merge-and-rewrite.md) | Merge, rebase and rewriting history | 28 |
-| [08-stashes.md](08-stashes.md) | Stashes | 12 |
-| [09-conflicts.md](09-conflicts.md) | Conflicts | 31 |
-| [12-worktrees.md](12-worktrees.md) | Worktrees | 38 |
-| [13-submodules.md](13-submodules.md) | Submodules | 17 |
-| [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 8 |
-| [18-settings.md](18-settings.md) | Settings | 1 |
+| [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 36 |
+| [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 30 |
+| [08-stashes.md](08-stashes.md) | Stashes | 14 |
+| [09-conflicts.md](09-conflicts.md) | Conflicts | 38 |
+| [10-compare.md](10-compare.md) | Compare | 24 |
+| [11-history-and-blame.md](11-history-and-blame.md) | History and blame | 30 |
+| [12-worktrees.md](12-worktrees.md) | Worktrees | 45 |
+| [13-submodules.md](13-submodules.md) | Submodules | 20 |
+| [14-patches.md](14-patches.md) | Patches | 7 |
+| [15-github.md](15-github.md) | GitHub | 6 |
+| [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 6 |
+| [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 39 |
+| [18-settings.md](18-settings.md) | Settings | 3 |
 
 ## Repositories
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`repo.select`](01-repositories.md#reposelect--choose-the-repository-shown) | Choose the repository shown | View | Documented |
-| [`repo.follow-source-control`](01-repositories.md#repofollow-source-control--follow-the-repositories-view-of-vs-code) | Follow the Repositories view of VS Code | View | Documented |
+| [`repo.read-repositories`](01-repositories.md#reporead-repositories--find-the-repositories-of-a-workspace) | Find the repositories of a workspace | Read | Built |
+| [`repo.name-repositories`](01-repositories.md#reponame-repositories--name-the-repositories-in-lists) | Name the repositories in lists | Derivation | Built |
+| [`repo.open-folder`](01-repositories.md#repoopen-folder--open-a-folder) | Open a folder | Operation | Built |
+| [`repo.open-recent`](01-repositories.md#repoopen-recent--open-a-recent-workspace) | Open a recent workspace | Operation | Built |
+| [`repo.select`](01-repositories.md#reposelect--choose-the-repository-shown) | Choose the repository shown | Operation | Built |
+| [`repo.owner-of-file`](01-repositories.md#repoowner-of-file--the-repository-a-file-is-in) | The repository a file is in | Derivation | Built |
+| [`repo.no-repository`](01-repositories.md#repono-repository--no-repository-in-the-workspace) | No repository in the workspace | View | Built |
+| [`repo.read-state`](01-repositories.md#reporead-state--read-the-state-of-the-repository) | Read the state of the repository | Read | Built |
+| [`repo.watch-changes`](01-repositories.md#repowatch-changes--which-changes-ask-for-a-read) | Which changes ask for a read | Derivation | Built |
+| [`repo.schedule-reads`](01-repositories.md#reposchedule-reads--read-again-when-something-changed) | Read again when something changed | Derivation | Built |
+| [`activity.describe-task`](01-repositories.md#activitydescribe-task--say-what-gitardo-is-doing) | Say what Gitardo is doing | Derivation | Built |
+| [`activity.status-bar`](01-repositories.md#activitystatus-bar--what-is-running-in-the-status-bar) | What is running, in the status bar | View | Built |
+| [`activity.what-is-running`](01-repositories.md#activitywhat-is-running--what-is-running-in-the-activity-drawer) | What is running, in the Activity drawer | View | Built |
+| [`welcome.page`](01-repositories.md#welcomepage--the-welcome-page) | The Welcome page | View | Built |
+| [`trust.is-trusted`](01-repositories.md#trustis-trusted--whether-a-folder-is-trusted) | Whether a folder is trusted | Derivation | Built |
+| [`trust.ask`](01-repositories.md#trustask--ask-whether-to-trust-a-folder-before-running-what-it-asks) | Ask whether to trust a folder before running what it asks | Operation | Built |
+| [`trust.manage`](01-repositories.md#trustmanage--see-the-trusted-folders-and-stop-trusting-some) | See the trusted folders and stop trusting some | Operation | Built |
+
+## Graph
+
+| Feature | Title | Kind | Status |
+| --- | --- | --- | --- |
+| [`graph.read-commits`](02-graph.md#graphread-commits--read-a-page-of-the-graph) | Read a page of the graph | Read | Built |
+| [`graph.read-position`](02-graph.md#graphread-position--where-a-commit-is-in-the-history-listed) | Where a commit is in the history listed | Read | Built |
+| [`graph.view`](02-graph.md#graphview--the-timeline) | The timeline | View | Built |
+| [`graph.toolbar`](02-graph.md#graphtoolbar--the-header) | The header | View | Built |
+| [`graph.search-button`](02-graph.md#graphsearch-button--the-button-of-quick-search) | The button of Quick search | View | Built |
+| [`graph.islands`](02-graph.md#graphislands--the-islands-of-the-window) | The islands of the window | View | Built |
+| [`graph.view-bar`](02-graph.md#graphview-bar--the-bar-of-views) | The bar of views | View | Built |
+| [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Built |
+| [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Built |
+| [`graph.lanes`](02-graph.md#graphlanes--lay-out-the-lines-of-the-graph) | Lay out the lines of the graph | Derivation | Built |
+| [`graph.fit-width`](02-graph.md#graphfit-width--how-wide-the-graph-is-drawn) | How wide the graph is drawn | Derivation | Built |
+| [`graph.resize-graph`](02-graph.md#graphresize-graph--give-the-graph-less-room-or-more) | Give the graph less room or more | View | Built |
+| [`graph.resize-panes`](02-graph.md#graphresize-panes--resize-the-branch-rail-and-the-inspector) | Resize the branch rail and the inspector | View | Built |
+| [`graph.toggle-references`](02-graph.md#graphtoggle-references--put-the-branch-rail-away) | Put the branch rail away | View | Built |
+| [`graph.labels`](02-graph.md#graphlabels--the-labels-of-each-commit) | The labels of each commit | Derivation | Built |
+| [`graph.combine-upstream`](02-graph.md#graphcombine-upstream--a-branch-and-its-upstream-on-one-label) | A branch and its upstream on one label | Derivation | Built |
+| [`graph.pull-request-badge`](02-graph.md#graphpull-request-badge--pull-request-on-a-label) | Pull request on a label | View | Built |
+| [`graph.unpushed`](02-graph.md#graphunpushed--commits-not-pushed-yet) | Commits not pushed yet | Derivation | Built |
+| [`graph.trace-history`](02-graph.md#graphtrace-history--the-history-of-a-commit-among-the-rows) | The history of a commit among the rows | Derivation | Built |
+| [`graph.hover-history`](02-graph.md#graphhover-history--the-history-of-a-label-under-the-pointer) | The history of a label under the pointer | View | Built |
+| [`graph.trace-selected`](02-graph.md#graphtrace-selected--the-history-of-the-selected-commit) | The history of the selected commit | View | Built |
+| [`graph.columns`](02-graph.md#graphcolumns--what-is-shown-with-each-message) | What is shown with each message | View | Built |
+| [`graph.date-separators`](02-graph.md#graphdate-separators--lines-between-days-weeks-and-months) | Lines between days, weeks and months | Derivation | Built |
+| [`graph.first-parent`](02-graph.md#graphfirst-parent--only-the-first-parent-of-merges) | Only the first parent of merges | View | Built |
+| [`graph.fold-rows`](02-graph.md#graphfold-rows--the-rows-of-the-timeline-with-merges-folded) | The rows of the timeline with merges folded | Derivation | Built |
+| [`graph.fold-merge`](02-graph.md#graphfold-merge--fold-the-commits-a-merge-brought-in) | Fold the commits a merge brought in | View | Built |
+| [`graph.fold-all`](02-graph.md#graphfold-all--fold-all-merges) | Fold all merges | View | Built |
+| [`graph.lane-tips`](02-graph.md#graphlane-tips--the-branch-each-line-comes-from) | The branch each line comes from | Derivation | Built |
+| [`graph.sticky-branch-names`](02-graph.md#graphsticky-branch-names--branch-names-that-stay-at-the-top) | Branch names that stay at the top | View | Built |
+| [`graph.scroll-marks`](02-graph.md#graphscroll-marks--marks-beside-the-scroll-bar) | Marks beside the scroll bar | View | Built |
+| [`graph.keyboard`](02-graph.md#graphkeyboard--move-through-the-timeline-with-the-keyboard) | Move through the timeline with the keyboard | View | Built |
+| [`graph.uncommitted-row`](02-graph.md#graphuncommitted-row--the-draft-at-the-top-of-the-timeline) | The draft at the top of the timeline | View | Built |
+| [`graph.place-stashes`](02-graph.md#graphplace-stashes--where-the-stashes-go-among-the-commits) | Where the stashes go among the commits | Derivation | Built |
+| [`graph.stashes`](02-graph.md#graphstashes--stashes-in-the-timeline) | Stashes in the timeline | View | Built |
+| [`graph.show-in-graph`](02-graph.md#graphshow-in-graph--go-to-a-commit-in-the-timeline) | Go to a commit in the timeline | View | Built |
+| [`refs.tree`](02-graph.md#refstree--the-branch-rail) | The branch rail | View | Built |
+| [`refs.filter`](02-graph.md#refsfilter--filter-the-branch-rail-by-name) | Filter the branch rail by name | View | Built |
+| [`refs.scope-line`](02-graph.md#refsscope-line--the-line-of-the-branches-shown-at-the-top-of-the-branch-rail) | The line of the branches shown, at the top of the branch rail | View | Built |
+| [`refs.sort`](02-graph.md#refssort--sort-the-branches-and-tags) | Sort the branches and tags | Derivation | Built |
+| [`refs.recent`](02-graph.md#refsrecent--the-branches-checked-out-last) | The branches checked out last | Derivation | Built |
+| [`refs.favorite`](02-graph.md#refsfavorite--add-a-branch-to-favorites) | Add a branch to favorites | View | Built |
+
+## Search and filter
+
+| Feature | Title | Kind | Status |
+| --- | --- | --- | --- |
+| [`search.box`](03-search-and-filter.md#searchbox--the-search-box) | The search box | View | Built |
+| [`search.loaded`](03-search-and-filter.md#searchloaded--find-among-the-loaded-commits) | Find among the loaded commits | Derivation | Built |
+| [`search.read-matches`](03-search-and-filter.md#searchread-matches--search-the-whole-history) | Search the whole history | Read | Built |
+| [`search.history`](03-search-and-filter.md#searchhistory--find-in-the-whole-history) | Find in the whole history | View | Built |
+| [`search.step`](03-search-and-filter.md#searchstep--step-through-the-matches) | Step through the matches | Derivation | Built |
+| [`search.list-mode`](03-search-and-filter.md#searchlist-mode--only-the-commits-found-as-a-list) | Only the commits found, as a list | View | Built |
+| [`search.go-to-hash`](03-search-and-filter.md#searchgo-to-hash--go-to-a-commit-by-its-hash) | Go to a commit by its hash | View | Built |
+| [`search.read-revision`](03-search-and-filter.md#searchread-revision--the-commit-a-name-stands-for) | The commit a name stands for | Read | Built |
+| [`search.go-to-commit`](03-search-and-filter.md#searchgo-to-commit--go-to-commit) | Go to commit… | Operation | Built |
+| [`filter.picker`](03-search-and-filter.md#filterpicker--choose-the-branches-shown) | Choose the branches shown | View | Built |
+| [`filter.label`](03-search-and-filter.md#filterlabel--what-the-branches-shown-are-called) | What the branches shown are called | Derivation | Built |
+| [`filter.preset`](03-search-and-filter.md#filterpreset--all-current-upstream-local-remotes) | All, Current, Upstream, Local, Remotes | Derivation | Built |
+| [`filter.tick`](03-search-and-filter.md#filtertick--tick-the-branches-to-show) | Tick the branches to show | Derivation | Built |
+| [`filter.rank-names`](03-search-and-filter.md#filterrank-names--which-names-match-best) | Which names match best | Derivation | Built |
+| [`filter.list-too`](03-search-and-filter.md#filterlist-too--filter-the-list-of-branches-too) | Filter the list of branches too | View | Built |
+| [`filter.kinds`](03-search-and-filter.md#filterkinds--show-local-branches-remote-branches-tags) | Show local branches, remote branches, tags | Derivation | Built |
+| [`filter.show-only`](03-search-and-filter.md#filtershow-only--show-only-this-history) | Show only this history | Derivation | Built |
+| [`filter.show-too`](03-search-and-filter.md#filtershow-too--show-this-history-too) | Show this history too | Derivation | Built |
+| [`filter.hide`](03-search-and-filter.md#filterhide--hide-this-history) | Hide this history | Derivation | Built |
+| [`filter.show-all`](03-search-and-filter.md#filtershow-all--show-all-branches) | Show all branches | Derivation | Built |
+| [`filter.bar`](03-search-and-filter.md#filterbar--the-bar-of-what-the-timeline-is-narrowed-to) | The bar of what the timeline is narrowed to | View | Built |
+| [`filter.log-arguments`](03-search-and-filter.md#filterlog-arguments--which-history-the-timeline-lists) | Which history the timeline lists | Derivation | Built |
+| [`filter.remember`](03-search-and-filter.md#filterremember--the-branches-shown-remembered-per-repository) | The branches shown, remembered per repository | Derivation | Built |
+
+## Details, commits and the page of a commit
+
+| Feature | Title | Kind | Status |
+| --- | --- | --- | --- |
+| [`details.read-commit`](04-details-and-commit-page.md#detailsread-commit--read-the-details-of-a-commit) | Read the details of a commit | Read | Built |
+| [`details.show`](04-details-and-commit-page.md#detailsshow--details-of-the-selected-commit) | Details of the selected commit | View | Built |
+| [`details.message-title`](04-details-and-commit-page.md#detailsmessage-title--the-title-of-a-message) | The title of a message | Derivation | Built |
+| [`details.message-unwrap`](04-details-and-commit-page.md#detailsmessage-unwrap--lines-of-a-message-put-back-together) | Lines of a message put back together | Derivation | Built |
+| [`details.show-more`](04-details-and-commit-page.md#detailsshow-more--show-more-of-a-long-message) | Show more of a long message | View | Built |
+| [`details.file-tree`](04-details-and-commit-page.md#detailsfile-tree--files-as-a-tree-of-directories) | Files as a tree of directories | Derivation | Built |
+| [`details.show-all-files`](04-details-and-commit-page.md#detailsshow-all-files--the-first-300-files-and-show-all) | The first 300 files, and Show all | View | Built |
+| [`details.compare-file-with`](04-details-and-commit-page.md#detailscompare-file-with--compare-a-file-with-a-branch-tag-or-commit) | Compare a file with a branch, tag or commit | Operation | Built |
+| [`details.stash`](04-details-and-commit-page.md#detailsstash--details-of-a-stash) | Details of a stash | View | Built |
+| [`commits.copy-hash`](04-details-and-commit-page.md#commitscopy-hash--copy-the-hash-of-a-commit) | Copy the hash of a commit | Operation | Built |
+| [`commits.copy-message`](04-details-and-commit-page.md#commitscopy-message--copy-the-message-of-a-commit) | Copy the message of a commit | Operation | Built |
+| [`commit-page.open`](04-details-and-commit-page.md#commit-pageopen--open-a-commit-as-a-page) | Open a commit as a page | Operation | Built |
+| [`commit-page.read-patch`](04-details-and-commit-page.md#commit-pageread-patch--read-the-lines-a-commit-changed) | Read the lines a commit changed | Read | Built |
+| [`commit-page.diff-lines`](04-details-and-commit-page.md#commit-pagediff-lines--the-lines-of-each-diff-and-how-many-are-sent) | The lines of each diff, and how many are sent | Derivation | Built |
+| [`commit-page.view`](04-details-and-commit-page.md#commit-pageview--the-page-of-a-commit) | The page of a commit | View | Built |
+| [`commit-page.initial-folds`](04-details-and-commit-page.md#commit-pageinitial-folds--which-diffs-start-folded) | Which diffs start folded | Derivation | Built |
+| [`commit-page.show-in-graph`](04-details-and-commit-page.md#commit-pageshow-in-graph--show-a-commit-in-the-timeline) | Show a commit in the timeline | View | Built |
 
 ## Changes and commit
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`changes.view`](05-changes-and-commit.md#changesview--the-changes-view) | The Changes view | View | Documented |
-| [`changes.stage`](05-changes-and-commit.md#changesstage--stage-a-file) | Stage a file | Operation | Documented |
-| [`changes.unstage`](05-changes-and-commit.md#changesunstage--unstage-a-file) | Unstage a file | Operation | Documented |
-| [`changes.stage-all`](05-changes-and-commit.md#changesstage-all--stage-all-changes) | Stage all changes | Operation | Documented |
-| [`changes.unstage-all`](05-changes-and-commit.md#changesunstage-all--unstage-all-changes) | Unstage all changes | Operation | Differs |
-| [`changes.stage-hunk`](05-changes-and-commit.md#changesstage-hunk--stage-or-unstage-one-change-of-a-file) | Stage or unstage one change of a file | Operation | Documented |
-| [`changes.discard`](05-changes-and-commit.md#changesdiscard--discard-the-changes-of-a-file) | Discard the changes of a file | Operation | Documented |
-| [`changes.discard-all`](05-changes-and-commit.md#changesdiscard-all--discard-all-changes) | Discard all changes | Operation | Documented |
-| [`changes.open`](05-changes-and-commit.md#changesopen--open-a-file-or-its-diff) | Open a file or its diff | View | Documented |
-| [`changes.open-all`](05-changes-and-commit.md#changesopen-all--open-all-changes-in-one-editor) | Open all changes in one editor | View | Documented |
-| [`changes.layout`](05-changes-and-commit.md#changeslayout--list-the-files-or-show-them-as-a-tree) | List the files or show them as a tree | View | Documented |
-| [`changes.unsaved`](05-changes-and-commit.md#changesunsaved--files-with-edits-not-saved) | Files with edits not saved | View | Documented |
-| [`changes.save`](05-changes-and-commit.md#changessave--save-a-file-from-the-changes-view) | Save a file from the Changes view | View | Documented |
-| [`changes.compare-with-saved`](05-changes-and-commit.md#changescompare-with-saved--compare-with-the-saved-file) | Compare with the saved file | View | Documented |
-| [`commit.box`](05-changes-and-commit.md#commitbox--the-commit-box) | The commit box | View | Documented |
-| [`commit.create`](05-changes-and-commit.md#commitcreate--commit) | Commit | Operation | Documented |
-| [`commit.amend`](05-changes-and-commit.md#commitamend--amend-the-last-commit) | Amend the last commit | Operation | Documented |
-| [`commit.start-message`](05-changes-and-commit.md#commitstart-message--the-message-the-box-starts-from) | The message the box starts from | View | Documented |
-| [`commit.draft-message`](05-changes-and-commit.md#commitdraft-message--draft-the-message-with-the-language-model) | Draft the message with the language model | Read | Documented |
+| [`changes.pane`](05-changes-and-commit.md#changespane--the-changes-page) | The Changes page | View | Built |
+| [`changes.read-working-tree`](05-changes-and-commit.md#changesread-working-tree--read-what-is-not-committed) | Read what is not committed | Read | Built |
+| [`changes.list`](05-changes-and-commit.md#changeslist--one-list-of-the-changed-files) | One list of the changed files | Derivation | Built |
+| [`changes.unsaved`](05-changes-and-commit.md#changesunsaved--files-with-edits-not-saved) | Files with edits not saved | Derivation | Built |
+| [`changes.open`](05-changes-and-commit.md#changesopen--what-a-file-of-the-changes-page-opens) | What a file of the Changes page opens | Derivation | Built |
+| [`changes.stage`](05-changes-and-commit.md#changesstage--stage-a-file) | Stage a file | Operation | Built |
+| [`changes.unstage`](05-changes-and-commit.md#changesunstage--unstage-a-file) | Unstage a file | Operation | Built |
+| [`changes.stage-all`](05-changes-and-commit.md#changesstage-all--stage-all-changes) | Stage all changes | Operation | Built |
+| [`changes.unstage-all`](05-changes-and-commit.md#changesunstage-all--unstage-all-changes) | Unstage all changes | Operation | Built |
+| [`changes.discard`](05-changes-and-commit.md#changesdiscard--discard-the-changes-of-a-file) | Discard the changes of a file | Operation | Built |
+| [`changes.discard-all`](05-changes-and-commit.md#changesdiscard-all--discard-all-changes) | Discard all changes | Operation | Built |
+| [`changes.save`](05-changes-and-commit.md#changessave--save-a-file-or-all-of-them) | Save a file, or all of them | Operation | Built |
+| [`changes.pathspec`](05-changes-and-commit.md#changespathspec--a-file-named-as-itself) | A file named as itself | Derivation | Built |
+| [`commit.create`](05-changes-and-commit.md#commitcreate--commit) | Commit | Operation | Built |
+| [`commit.amend`](05-changes-and-commit.md#commitamend--amend-the-last-commit) | Amend the last commit | Operation | Built |
+| [`commit.draft-message`](05-changes-and-commit.md#commitdraft-message--draft-the-commit-message) | Draft the commit message | Derivation | Built |
+| [`identity.read`](05-changes-and-commit.md#identityread--read-the-identity) | Read the identity | Read | Built |
+| [`identity.switch`](05-changes-and-commit.md#identityswitch--switch-identity) | Switch identity | Operation | Built |
+| [`identity.use-global`](05-changes-and-commit.md#identityuse-global--use-the-global-identity-again) | Use the global identity again | Operation | Built |
 
 ## Branches, tags, remotes and sync
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`branch.checkout`](06-branches-tags-remotes.md#branchcheckout--check-out-a-branch) | Check out a branch | Operation | Documented |
-| [`branch.checkout-remote`](06-branches-tags-remotes.md#branchcheckout-remote--check-out-a-remote-branch-in-the-local-branch-of-its-name) | Check out a remote branch in the local branch of its name | Operation | Documented |
-| [`branch.checkout-detached`](06-branches-tags-remotes.md#branchcheckout-detached--check-out-a-commit-or-a-tag-detached) | Check out a commit or a tag, detached | Operation | Documented |
-| [`branch.create`](06-branches-tags-remotes.md#branchcreate--create-a-branch) | Create a branch | Operation | Differs |
-| [`branch.name-format`](06-branches-tags-remotes.md#branchname-format--name-a-new-branch-from-a-format) | Name a new branch from a format | Derivation | Documented |
-| [`branch.rename`](06-branches-tags-remotes.md#branchrename--rename-a-branch) | Rename a branch | Operation | Differs |
-| [`branch.delete`](06-branches-tags-remotes.md#branchdelete--delete-a-branch) | Delete a branch | Operation | Documented |
-| [`branch.delete-remote`](06-branches-tags-remotes.md#branchdelete-remote--delete-a-branch-from-its-remote) | Delete a branch from its remote | Operation | Differs |
-| [`branch.favorite`](06-branches-tags-remotes.md#branchfavorite--mark-a-branch-as-a-favorite) | Mark a branch as a favorite | View | Documented |
-| [`branch.cleanup`](06-branches-tags-remotes.md#branchcleanup--clean-up-branches) | Clean up branches | Operation | Differs |
-| [`branch.sort`](06-branches-tags-remotes.md#branchsort--list-branches-and-tags-by-name-or-by-date) | List branches and tags by name or by date | Derivation | Documented |
-| [`tag.create`](06-branches-tags-remotes.md#tagcreate--create-a-tag) | Create a tag | Operation | Differs |
-| [`tag.push`](06-branches-tags-remotes.md#tagpush--push-a-tag) | Push a tag | Operation | Documented |
-| [`tag.delete`](06-branches-tags-remotes.md#tagdelete--delete-a-tag) | Delete a tag | Operation | Differs |
-| [`remote.manage`](06-branches-tags-remotes.md#remotemanage--list-the-remotes-and-choose-what-to-do-with-one) | List the remotes and choose what to do with one | View | Documented |
-| [`remote.add`](06-branches-tags-remotes.md#remoteadd--add-a-remote) | Add a remote | Operation | Documented |
-| [`remote.fetch`](06-branches-tags-remotes.md#remotefetch--fetch-one-remote) | Fetch one remote | Operation | Differs |
-| [`remote.change-url`](06-branches-tags-remotes.md#remotechange-url--change-the-url-of-a-remote) | Change the URL of a remote | Operation | Documented |
-| [`remote.rename`](06-branches-tags-remotes.md#remoterename--rename-a-remote) | Rename a remote | Operation | Documented |
-| [`remote.remove`](06-branches-tags-remotes.md#remoteremove--remove-a-remote) | Remove a remote | Operation | Documented |
-| [`sync.fetch`](06-branches-tags-remotes.md#syncfetch--fetch-every-remote) | Fetch every remote | Operation | Differs |
-| [`sync.pull`](06-branches-tags-remotes.md#syncpull--pull-in-one-of-four-ways) | Pull, in one of four ways | Operation | Documented |
-| [`sync.push`](06-branches-tags-remotes.md#syncpush--push-the-branch-checked-out) | Push the branch checked out | Operation | Differs |
-| [`sync.push-force`](06-branches-tags-remotes.md#syncpush-force--force-push-with-or-without-a-lease) | Force push, with or without a lease | Operation | Documented |
-| [`sync.fast-forward`](06-branches-tags-remotes.md#syncfast-forward--fast-forward-a-branch-that-is-not-checked-out) | Fast-forward a branch that is not checked out | Operation | Differs |
+| [`branch.checkout`](06-branches-tags-remotes.md#branchcheckout--check-out-a-branch) | Check out a branch | Operation | Built |
+| [`branch.open`](06-branches-tags-remotes.md#branchopen--what-a-double-click-on-a-branch-does) | What a double click on a branch does | Derivation | Built |
+| [`branch.checkout-remote`](06-branches-tags-remotes.md#branchcheckout-remote--check-out-a-remote-branch) | Check out a remote branch | Operation | Built |
+| [`branch.checkout-remote-and-rebase`](06-branches-tags-remotes.md#branchcheckout-remote-and-rebase--check-out-a-branch-and-rebase-it-onto-its-remote-branch) | Check out a branch and rebase it onto its remote branch | Operation | Built |
+| [`branch.checkout-detached`](06-branches-tags-remotes.md#branchcheckout-detached--check-out-a-commit) | Check out a commit | Operation | Built |
+| [`branch.create`](06-branches-tags-remotes.md#branchcreate--create-a-branch) | Create a branch | Operation | Built |
+| [`branch.format-name`](06-branches-tags-remotes.md#branchformat-name--expand-the-format-of-branch-names) | Expand the format of branch names | Derivation | Built |
+| [`branch.name-from-format`](06-branches-tags-remotes.md#branchname-from-format--ask-for-the-parts-of-the-format) | Ask for the parts of the format | Derivation | Built |
+| [`branch.validate-name`](06-branches-tags-remotes.md#branchvalidate-name--what-git-does-not-take-as-a-name) | What git does not take as a name | Derivation | Built |
+| [`branch.ref-argument`](06-branches-tags-remotes.md#branchref-argument--a-branch-named-in-full-when-it-has-a-namesake) | A branch named in full when it has a namesake | Derivation | Built |
+| [`branch.rename`](06-branches-tags-remotes.md#branchrename--rename-a-branch) | Rename a branch | Operation | Built |
+| [`branch.delete`](06-branches-tags-remotes.md#branchdelete--delete-a-branch) | Delete a branch | Operation | Built |
+| [`branch.clean-up`](06-branches-tags-remotes.md#branchclean-up--clean-up-branches) | Clean up branches | Operation | Built |
+| [`branch.fast-forward`](06-branches-tags-remotes.md#branchfast-forward--fast-forward-a-branch-that-is-not-checked-out) | Fast-forward a branch that is not checked out | Operation | Built |
+| [`branch.pane`](06-branches-tags-remotes.md#branchpane--the-branch-rail-its-buttons-and-its-comparison) | The branch rail, its buttons and its comparison | View | Built |
+| [`tag.create`](06-branches-tags-remotes.md#tagcreate--create-a-tag) | Create a tag | Operation | Built |
+| [`tag.push`](06-branches-tags-remotes.md#tagpush--push-a-tag) | Push a tag | Operation | Built |
+| [`tag.delete`](06-branches-tags-remotes.md#tagdelete--delete-a-tag) | Delete a tag | Operation | Built |
+| [`tag.checkout`](06-branches-tags-remotes.md#tagcheckout--check-out-a-tag) | Check out a tag | Operation | Built |
+| [`remote.read-remotes`](06-branches-tags-remotes.md#remoteread-remotes--read-the-remotes) | Read the remotes | Read | Built |
+| [`remote.default`](06-branches-tags-remotes.md#remotedefault--the-remote-a-new-upstream-or-a-tag-goes-to) | The remote a new upstream or a tag goes to | Derivation | Built |
+| [`remote.manage`](06-branches-tags-remotes.md#remotemanage--manage-remotes) | Manage remotes | Operation | Built |
+| [`remote.fetch`](06-branches-tags-remotes.md#remotefetch--fetch-one-remote) | Fetch one remote | Operation | Built |
+| [`remote.set-url`](06-branches-tags-remotes.md#remoteset-url--change-the-url-of-a-remote) | Change the URL of a remote | Operation | Built |
+| [`remote.rename`](06-branches-tags-remotes.md#remoterename--rename-a-remote) | Rename a remote | Operation | Built |
+| [`remote.remove`](06-branches-tags-remotes.md#remoteremove--remove-a-remote) | Remove a remote | Operation | Built |
+| [`remote.add`](06-branches-tags-remotes.md#remoteadd--add-a-remote) | Add a remote | Operation | Built |
+| [`remote.delete-branch`](06-branches-tags-remotes.md#remotedelete-branch--delete-a-branch-from-its-remote) | Delete a branch from its remote | Operation | Built |
+| [`sync.fetch`](06-branches-tags-remotes.md#syncfetch--fetch) | Fetch | Operation | Built |
+| [`sync.pull`](06-branches-tags-remotes.md#syncpull--pull) | Pull | Operation | Built |
+| [`sync.pull-with`](06-branches-tags-remotes.md#syncpull-with--pull-one-way-or-another) | Pull one way or another | Operation | Built |
+| [`sync.push`](06-branches-tags-remotes.md#syncpush--push) | Push | Operation | Built |
+| [`sync.sync`](06-branches-tags-remotes.md#syncsync--sync-with-the-upstream) | Sync with the upstream | Operation | Built |
+| [`sync.read-overwritten`](06-branches-tags-remotes.md#syncread-overwritten--read-what-a-force-push-would-overwrite) | Read what a force push would overwrite | Read | Built |
+| [`sync.push-force-with-lease`](06-branches-tags-remotes.md#syncpush-force-with-lease--push-with---force-with-lease) | Push with `--force-with-lease` | Operation | Built |
+| [`sync.push-force`](06-branches-tags-remotes.md#syncpush-force--push-with---force) | Push with `--force` | Operation | Built |
 
-## Merge, rebase and rewriting history
+## History rewriting
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`merge.into-current`](07-merge-and-rewrite.md#mergeinto-current--merge-into-the-current-branch) | Merge into the current branch | Operation | Documented |
-| [`merge.choose-way`](07-merge-and-rewrite.md#mergechoose-way--choose-the-way-to-merge) | Choose the way to merge | Operation | Documented |
-| [`merge.squash`](07-merge-and-rewrite.md#mergesquash--squash-merge) | Squash merge | Operation | Documented |
-| [`merge.preview-conflicts`](07-merge-and-rewrite.md#mergepreview-conflicts--say-which-files-will-conflict) | Say which files will conflict | Read | Documented |
-| [`rebase.onto`](07-merge-and-rewrite.md#rebaseonto--rebase-onto-a-commit-or-a-branch) | Rebase onto a commit or a branch | Operation | Documented |
-| [`rebase.interactive`](07-merge-and-rewrite.md#rebaseinteractive--interactive-rebase) | Interactive rebase | Operation | Differs |
-| [`rebase.editor`](07-merge-and-rewrite.md#rebaseeditor--the-interactive-rebase-editor) | The interactive rebase editor | View | Documented |
-| [`rebase.todo`](07-merge-and-rewrite.md#rebasetodo--the-todo-list-of-an-interactive-rebase) | The todo list of an interactive rebase | Derivation | Documented |
-| [`rebase.edit-stop`](07-merge-and-rewrite.md#rebaseedit-stop--stop-to-edit-a-commit) | Stop to edit a commit | Read | Documented |
-| [`cherry-pick.one`](07-merge-and-rewrite.md#cherry-pickone--cherry-pick-a-commit) | Cherry-pick a commit | Operation | Differs |
-| [`cherry-pick.many`](07-merge-and-rewrite.md#cherry-pickmany--cherry-pick-several-commits) | Cherry-pick several commits | Operation | Differs |
-| [`revert.commit`](07-merge-and-rewrite.md#revertcommit--revert-a-commit) | Revert a commit | Operation | Documented |
-| [`reset.to`](07-merge-and-rewrite.md#resetto--reset-the-current-branch-to-a-commit) | Reset the current branch to a commit | Operation | Documented |
-| [`rewrite.reword`](07-merge-and-rewrite.md#rewritereword--edit-the-message-of-a-commit) | Edit the message of a commit | Operation | Differs |
-| [`rewrite.message-box`](07-merge-and-rewrite.md#rewritemessage-box--the-box-that-edits-a-message) | The box that edits a message | View | Documented |
-| [`rewrite.squash`](07-merge-and-rewrite.md#rewritesquash--squash-commits-into-one) | Squash commits into one | Operation | Differs |
-| [`rewrite.squash-message`](07-merge-and-rewrite.md#rewritesquash-message--the-message-of-squashed-commits) | The message of squashed commits | Derivation | Documented |
-| [`rewrite.split`](07-merge-and-rewrite.md#rewritesplit--split-a-commit) | Split a commit | Operation | Differs |
-| [`rewrite.split-rest`](07-merge-and-rewrite.md#rewritesplit-rest--commit-what-is-left-of-a-split-and-continue) | Commit what is left of a split and continue | Operation | Documented |
-| [`rewrite.split-left`](07-merge-and-rewrite.md#rewritesplit-left--what-is-left-of-a-commit-being-split) | What is left of a commit being split | Derivation | Documented |
-| [`rewrite.fixup`](07-merge-and-rewrite.md#rewritefixup--add-changes-to-an-earlier-commit-fixup) | Add changes to an earlier commit (fixup) | Operation | Documented |
-| [`rewrite.reach`](07-merge-and-rewrite.md#rewritereach--which-commits-a-rewrite-can-reach) | Which commits a rewrite can reach | Derivation | Documented |
-| [`rewrite.pushed-warning`](07-merge-and-rewrite.md#rewritepushed-warning--warn-that-a-rewritten-commit-is-pushed) | Warn that a rewritten commit is pushed | Read | Documented |
-| [`rewrite.drag-and-drop`](07-merge-and-rewrite.md#rewritedrag-and-drop--drag-and-drop-onto-a-row-of-the-graph) | Drag and drop onto a row of the graph | View | Documented |
-| [`bisect.start`](07-merge-and-rewrite.md#bisectstart--start-a-bisect) | Start a bisect | Operation | Documented |
-| [`bisect.mark`](07-merge-and-rewrite.md#bisectmark--mark-the-commit-tested) | Mark the commit tested | Operation | Documented |
-| [`bisect.end`](07-merge-and-rewrite.md#bisectend--end-the-bisect) | End the bisect | Operation | Documented |
-| [`bisect.banner`](07-merge-and-rewrite.md#bisectbanner--the-bisect-banner) | The bisect banner | View | Documented |
+| [`selection.select`](07-history-rewriting.md#selectionselect--select-several-commits) | Select several commits | View | Built |
+| [`selection.bar`](07-history-rewriting.md#selectionbar--the-bar-of-a-selection-of-several-commits) | The bar of a selection of several commits | View | Built |
+| [`selection.menu`](07-history-rewriting.md#selectionmenu--the-context-menu-of-a-selection-of-several-commits) | The context menu of a selection of several commits | View | Built |
+| [`selection.cherry-pick`](07-history-rewriting.md#selectioncherry-pick--cherry-pick-several-commits) | Cherry-pick several commits | Operation | Built |
+| [`cherry-pick.commit`](07-history-rewriting.md#cherry-pickcommit--cherry-pick-a-commit) | Cherry-pick a commit | Operation | Built |
+| [`cherry-pick.skip-empty`](07-history-rewriting.md#cherry-pickskip-empty--get-past-a-commit-that-changes-nothing) | Get past a commit that changes nothing | Operation | Built |
+| [`revert.commit`](07-history-rewriting.md#revertcommit--revert-a-commit) | Revert a commit | Operation | Built |
+| [`reset.to-commit`](07-history-rewriting.md#resetto-commit--reset-the-current-branch-to-a-commit) | Reset the current branch to a commit | Operation | Built |
+| [`merge.read-predicted-conflicts`](07-history-rewriting.md#mergeread-predicted-conflicts--predict-the-conflicts-of-a-merge) | Predict the conflicts of a merge | Read | Built |
+| [`merge.into-current`](07-history-rewriting.md#mergeinto-current--merge-into-the-current-branch) | Merge into the current branch | Operation | Built |
+| [`merge.choose-way`](07-history-rewriting.md#mergechoose-way--merge-into-the-current-branch-choosing-how) | Merge into the current branch, choosing how | Operation | Built |
+| [`merge.undo-squash`](07-history-rewriting.md#mergeundo-squash--take-back-a-squash-merge) | Take back a squash merge | Operation | Built |
+| [`rebase.onto`](07-history-rewriting.md#rebaseonto--rebase-the-current-branch-onto-a-commit-or-a-branch) | Rebase the current branch onto a commit or a branch | Operation | Built |
+| [`rebase.branch-onto`](07-history-rewriting.md#rebasebranch-onto--rebase-another-local-branch-onto-a-commit) | Rebase another local branch onto a commit | Operation | Built |
+| [`rebase.find-line-before-head`](07-history-rewriting.md#rebasefind-line-before-head--the-line-of-commits-an-interactive-rebase-can-rewrite) | The line of commits an interactive rebase can rewrite | Derivation | Built |
+| [`rebase.read-pushed`](07-history-rewriting.md#rebaseread-pushed--where-a-commit-was-pushed) | Where a commit was pushed | Read | Built |
+| [`rebase.todo-page`](07-history-rewriting.md#rebasetodo-page--the-interactive-rebase-page) | The interactive rebase page | View | Built |
+| [`rebase.build-todo-list`](07-history-rewriting.md#rebasebuild-todo-list--the-todo-list-of-an-interactive-rebase) | The todo list of an interactive rebase | Derivation | Built |
+| [`rebase.interactive`](07-history-rewriting.md#rebaseinteractive--run-an-interactive-rebase) | Run an interactive rebase | Operation | Built |
+| [`rebase.read-stop`](07-history-rewriting.md#rebaseread-stop--where-an-interactive-rebase-stopped-to-change-a-commit) | Where an interactive rebase stopped to change a commit | Read | Built |
+| [`rebase.edit-stop`](07-history-rewriting.md#rebaseedit-stop--the-banner-of-a-rebase-stopped-to-edit-a-commit) | The banner of a rebase stopped to edit a commit | View | Built |
+| [`message.edit`](07-history-rewriting.md#messageedit--edit-a-commit-message) | Edit a commit message | Operation | Built |
+| [`squash.join-messages`](07-history-rewriting.md#squashjoin-messages--the-message-of-commits-squashed-into-one) | The message of commits squashed into one | Derivation | Built |
+| [`squash.commits`](07-history-rewriting.md#squashcommits--squash-commits-into-one) | Squash commits into one | Operation | Built |
+| [`squash.into-previous`](07-history-rewriting.md#squashinto-previous--squash-a-commit-into-the-commit-before-it) | Squash a commit into the commit before it | Operation | Built |
+| [`split.commit`](07-history-rewriting.md#splitcommit--split-a-commit) | Split a commit | Operation | Built |
+| [`split.continue`](07-history-rewriting.md#splitcontinue--continue-a-split) | Continue a split | Operation | Built |
+| [`fixup.commit`](07-history-rewriting.md#fixupcommit--add-changes-to-an-earlier-commit) | Add changes to an earlier commit | Operation | Built |
+| [`drag.list-drop-entries`](07-history-rewriting.md#draglist-drop-entries--what-a-drop-offers) | What a drop offers | Derivation | Built |
+| [`drag.drop`](07-history-rewriting.md#dragdrop--drag-a-commit-or-a-branch-onto-the-timeline) | Drag a commit or a branch onto the timeline | View | Built |
 
 ## Stashes
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`stash.push`](08-stashes.md#stashpush--stash-all-changes) | Stash all changes | Operation | Differs |
-| [`stash.push-staged`](08-stashes.md#stashpush-staged--stash-only-the-staged-changes) | Stash only the staged changes | Operation | Differs |
-| [`stash.push-files`](08-stashes.md#stashpush-files--stash-some-files) | Stash some files | Operation | Differs |
-| [`stash.preview`](08-stashes.md#stashpreview--what-applying-a-stash-would-stop-on) | What applying a stash would stop on | Read | Documented |
-| [`stash.apply`](08-stashes.md#stashapply--apply-a-stash) | Apply a stash | Operation | Differs |
-| [`stash.pop`](08-stashes.md#stashpop--pop-a-stash) | Pop a stash | Operation | Differs |
-| [`stash.drop`](08-stashes.md#stashdrop--drop-a-stash) | Drop a stash | Operation | Documented |
-| [`stash.branch`](08-stashes.md#stashbranch--create-a-branch-from-a-stash) | Create a branch from a stash | Operation | Documented |
-| [`stash.list`](08-stashes.md#stashlist--the-stashes-of-a-repository) | The stashes of a repository | Read | Documented |
-| [`stash.contents`](08-stashes.md#stashcontents--what-a-stash-holds) | What a stash holds | Read | Documented |
-| [`stash.view`](08-stashes.md#stashview--the-stashes-view) | The Stashes view | View | Documented |
-| [`stash.graph`](08-stashes.md#stashgraph--stashes-in-the-graph-and-its-references) | Stashes in the graph and its references | View | Documented |
+| [`stash.read-list`](08-stashes.md#stashread-list--read-the-stashes) | Read the stashes | Read | Built |
+| [`stash.read-files`](08-stashes.md#stashread-files--read-what-a-stash-changes) | Read what a stash changes | Read | Built |
+| [`stash.pane`](08-stashes.md#stashpane--the-stashes-list) | The Stashes list | View | Built |
+| [`stash.push`](08-stashes.md#stashpush--stash-all-changes) | Stash all changes | Operation | Built |
+| [`stash.push-staged`](08-stashes.md#stashpush-staged--stash-the-staged-changes) | Stash the staged changes | Operation | Built |
+| [`stash.push-file`](08-stashes.md#stashpush-file--stash-a-file-or-the-files-ticked) | Stash a file, or the files ticked | Operation | Built |
+| [`stash.preview`](08-stashes.md#stashpreview--what-applying-a-stash-would-stop-on) | What applying a stash would stop on | Derivation | Built |
+| [`stash.apply`](08-stashes.md#stashapply--apply-a-stash) | Apply a stash | Operation | Built |
+| [`stash.pop`](08-stashes.md#stashpop--pop-a-stash) | Pop a stash | Operation | Built |
+| [`stash.drop`](08-stashes.md#stashdrop--drop-a-stash) | Drop a stash | Operation | Built |
+| [`stash.undo-drop`](08-stashes.md#stashundo-drop--undo-a-stash-dropped) | Undo a stash dropped | Operation | Built |
+| [`stash.branch`](08-stashes.md#stashbranch--create-a-branch-from-a-stash) | Create a branch from a stash | Operation | Built |
+| [`stash.in-graph`](08-stashes.md#stashin-graph--stashes-in-the-timeline) | Stashes in the timeline | Derivation | Built |
+| [`stash.autostash-left`](08-stashes.md#stashautostash-left--the-stash-a-pull-leaves) | The stash a pull leaves | Derivation | Built |
 
 ## Conflicts
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`operation.banner`](09-conflicts.md#operationbanner--the-banner-of-an-operation-under-way) | The banner of an operation under way | View | Documented |
-| [`operation.stopped`](09-conflicts.md#operationstopped--what-a-stop-on-conflicts-says) | What a stop on conflicts says | View | Documented |
-| [`operation.continue`](09-conflicts.md#operationcontinue--continue-the-operation-under-way) | Continue the operation under way | Operation | Documented |
-| [`operation.skip`](09-conflicts.md#operationskip--skip-the-step-the-operation-stopped-on) | Skip the step the operation stopped on | Operation | Differs |
-| [`operation.abort`](09-conflicts.md#operationabort--abort-the-operation-under-way) | Abort the operation under way | Operation | Documented |
-| [`conflict.open`](09-conflicts.md#conflictopen--open-a-file-in-conflict) | Open a file in conflict | View | Documented |
-| [`conflict.open-deleted`](09-conflicts.md#conflictopen-deleted--show-a-file-one-side-deleted-as-a-diff-of-what-it-was) | Show a file one side deleted as a diff of what it was | View | Documented |
-| [`conflict.sides`](09-conflicts.md#conflictsides--name-the-two-sides-of-a-conflict) | Name the two sides of a conflict | Derivation | Documented |
-| [`conflict.take-side`](09-conflicts.md#conflicttake-side--take-a-whole-file-from-one-side) | Take a whole file from one side | Operation | Differs |
-| [`conflict.mark-resolved`](09-conflicts.md#conflictmark-resolved--mark-a-file-as-resolved) | Mark a file as resolved | Operation | Documented |
-| [`conflict.files-read`](09-conflicts.md#conflictfiles-read--read-the-files-in-conflict) | Read the files in conflict | Read | Documented |
-| [`conflict.markers`](09-conflicts.md#conflictmarkers--find-the-conflicts-git-marked-in-a-file) | Find the conflicts git marked in a file | Derivation | Documented |
-| [`conflict.rule-separate`](09-conflicts.md#conflictrule-separate--changes-to-lines-next-to-each-other) | Changes to lines next to each other | Derivation | Documented |
-| [`conflict.rule-same`](09-conflicts.md#conflictrule-same--the-same-change-on-both-sides) | The same change on both sides | Derivation | Documented |
-| [`conflict.rule-whitespace`](09-conflicts.md#conflictrule-whitespace--spaces-or-line-endings-only) | Spaces or line endings only | Derivation | Documented |
-| [`conflict.rule-one-side`](09-conflicts.md#conflictrule-one-side--a-change-on-one-side-only) | A change on one side only | Derivation | Documented |
-| [`conflict.rules-guard`](09-conflicts.md#conflictrules-guard--when-the-rules-leave-a-conflict-as-git-marked-it) | When the rules leave a conflict as git marked it | Derivation | Documented |
-| [`conflict.resolve-rules`](09-conflicts.md#conflictresolve-rules--resolve-the-conflicts-that-need-no-choice) | Resolve the conflicts that need no choice | Operation | Documented |
-| [`conflict.review`](09-conflicts.md#conflictreview--the-review-of-the-resolutions) | The review of the resolutions | View | Documented |
-| [`conflict.review-files`](09-conflicts.md#conflictreview-files--the-files-of-the-review-and-its-filters) | The files of the review and its filters | View | Documented |
-| [`conflict.review-card`](09-conflicts.md#conflictreview-card--a-conflict-in-the-review) | A conflict in the review | View | Documented |
-| [`conflict.review-columns`](09-conflicts.md#conflictreview-columns--a-conflict-in-three-columns) | A conflict in three columns | View | Documented |
-| [`conflict.proposal-lines`](09-conflicts.md#conflictproposal-lines--where-the-lines-of-a-proposal-come-from) | Where the lines of a proposal come from | Derivation | Documented |
-| [`conflict.proposal-warnings`](09-conflicts.md#conflictproposal-warnings--what-looks-like-a-mistake-in-a-proposal) | What looks like a mistake in a proposal | Derivation | Documented |
-| [`conflict.choose`](09-conflicts.md#conflictchoose--choose-a-side-or-write-the-lines-in-the-review) | Choose a side, or write the lines, in the review | View | Documented |
-| [`conflict.accept`](09-conflicts.md#conflictaccept--accept-a-proposed-resolution) | Accept a proposed resolution | View | Documented |
-| [`conflict.show-result`](09-conflicts.md#conflictshow-result--show-the-result-of-the-accepted-resolutions) | Show the result of the accepted resolutions | View | Documented |
-| [`conflict.write`](09-conflicts.md#conflictwrite--write-the-accepted-resolutions) | Write the accepted resolutions | Operation | Differs |
-| [`conflict.deleted-card`](09-conflicts.md#conflictdeleted-card--a-file-deleted-on-one-side-in-the-review) | A file deleted on one side, in the review | View | Documented |
-| [`conflict.resolve-ai`](09-conflicts.md#conflictresolve-ai--ask-the-ai-how-to-resolve-conflicts) | Ask the AI how to resolve conflicts | Read | Documented |
-| [`conflict.choose-model`](09-conflicts.md#conflictchoose-model--choose-the-model-that-resolves-conflicts) | Choose the model that resolves conflicts | Operation | Documented |
-| [`conflict.ai-prompt`](09-conflicts.md#conflictai-prompt--the-question-sent-to-the-model-about-a-conflict) | The question sent to the model about a conflict | Derivation | Documented |
-| [`conflict.ai-answer`](09-conflicts.md#conflictai-answer--read-the-models-answer-as-a-proposal) | Read the model's answer as a proposal | Derivation | Documented |
-| [`conflict.restore`](09-conflicts.md#conflictrestore--mark-the-conflicts-again) | Mark the conflicts again | Operation | Documented |
+| [`conflicts.banner`](09-conflicts.md#conflictsbanner--the-banner-of-an-operation-that-stopped) | The banner of an operation that stopped | View | Built |
+| [`conflicts.continue-operation`](09-conflicts.md#conflictscontinue-operation--continue) | Continue | Operation | Built |
+| [`conflicts.skip-step`](09-conflicts.md#conflictsskip-step--skip) | Skip | Operation | Built |
+| [`conflicts.abort-operation`](09-conflicts.md#conflictsabort-operation--abort) | Abort | Operation | Built |
+| [`conflicts.stopped`](09-conflicts.md#conflictsstopped--the-message-when-an-operation-stops-on-conflicts) | The message when an operation stops on conflicts | View | Built |
+| [`conflicts.read-files`](09-conflicts.md#conflictsread-files--the-files-in-conflict-and-their-sides) | The files in conflict and their sides | Read | Built |
+| [`conflicts.side-names`](09-conflicts.md#conflictsside-names--what-the-two-sides-are) | What the two sides are | Derivation | Built |
+| [`conflicts.open-file`](09-conflicts.md#conflictsopen-file--open-a-file-in-conflict) | Open a file in conflict | View | Built |
+| [`conflicts.mark-resolved`](09-conflicts.md#conflictsmark-resolved--mark-as-resolved) | Mark as resolved | Operation | Built |
+| [`conflicts.take-side`](09-conflicts.md#conflictstake-side--take-the-current-side-take-the-incoming-side) | Take the current side, take the incoming side | Operation | Built |
+| [`conflicts.parse-markers`](09-conflicts.md#conflictsparse-markers--the-conflicts-git-marked-in-a-file) | The conflicts git marked in a file | Derivation | Built |
+| [`conflicts.resolve-by-rules`](09-conflicts.md#conflictsresolve-by-rules--the-conflicts-that-need-no-choice) | The conflicts that need no choice | Derivation | Built |
+| [`conflicts.resolve-automatically`](09-conflicts.md#conflictsresolve-automatically--resolve-conflicts-automatically) | Resolve conflicts automatically | Operation | Built |
+| [`conflicts.restore`](09-conflicts.md#conflictsrestore--undo-a-resolution) | Undo a resolution | Operation | Built |
+| [`review.page`](09-conflicts.md#reviewpage--the-review-of-the-resolutions) | The review of the resolutions | View | Built |
+| [`review.file-list`](09-conflicts.md#reviewfile-list--the-files-and-the-filters) | The files and the filters | View | Built |
+| [`review.card`](09-conflicts.md#reviewcard--a-conflict-as-a-card) | A conflict, as a card | View | Built |
+| [`review.side-diff`](09-conflicts.md#reviewside-diff--what-a-side-changed-of-the-base) | What a side changed of the base | Derivation | Built |
+| [`review.fingerprint`](09-conflicts.md#reviewfingerprint--the-same-conflict-wherever-it-is) | The same conflict, wherever it is | Derivation | Built |
+| [`review.proposals`](09-conflicts.md#reviewproposals--what-is-proposed-for-each-conflict) | What is proposed for each conflict | Derivation | Built |
+| [`review.proposal-lines`](09-conflicts.md#reviewproposal-lines--where-the-lines-of-a-proposal-come-from) | Where the lines of a proposal come from | Derivation | Built |
+| [`review.proposal-warnings`](09-conflicts.md#reviewproposal-warnings--what-looks-like-a-mistake-in-a-proposal) | What looks like a mistake in a proposal | Derivation | Built |
+| [`review.choose`](09-conflicts.md#reviewchoose--choose-a-side-or-write-the-lines) | Choose a side, or write the lines | View | Built |
+| [`review.accept`](09-conflicts.md#reviewaccept--accept) | Accept | View | Built |
+| [`review.accept-file`](09-conflicts.md#reviewaccept-file--accept-the-file) | Accept the file | View | Built |
+| [`review.accept-all`](09-conflicts.md#reviewaccept-all--accept-all-proposed) | Accept all proposed | View | Built |
+| [`review.clear`](09-conflicts.md#reviewclear--clear) | Clear | View | Built |
+| [`review.write`](09-conflicts.md#reviewwrite--write-the-resolutions) | Write the resolutions | Operation | Built |
+| [`review.report`](09-conflicts.md#reviewreport--what-was-written) | What was written | View | Built |
+| [`review.columns`](09-conflicts.md#reviewcolumns--columns) | Columns | View | Built |
+| [`review.show-result`](09-conflicts.md#reviewshow-result--show-the-result) | Show the result | View | Built |
+| [`review.deleted-card`](09-conflicts.md#reviewdeleted-card--a-file-deleted-on-one-side) | A file deleted on one side | View | Built |
+| [`ai.resolve-conflicts`](09-conflicts.md#airesolve-conflicts--resolve-conflicts-with-ai) | Resolve conflicts with AI | View | Built |
+| [`ai.ask-conflict`](09-conflicts.md#aiask-conflict--one-question-about-one-conflict) | One question about one conflict | Read | Built |
+| [`ai.conflict-question`](09-conflicts.md#aiconflict-question--what-is-sent-about-a-conflict) | What is sent about a conflict | Derivation | Built |
+| [`ai.read-answer`](09-conflicts.md#airead-answer--the-answer-read) | The answer, read | Derivation | Built |
+| [`ai.trim-answer`](09-conflicts.md#aitrim-answer--the-lines-around-the-conflict-written-again) | The lines around the conflict, written again | Derivation | Built |
+| [`ai.choose-model`](09-conflicts.md#aichoose-model--choose-the-model-that-resolves-conflicts) | Choose the model that resolves conflicts | Operation | Built |
+
+## Compare
+
+| Feature | Title | Kind | Status |
+| --- | --- | --- | --- |
+| [`compare.resolve-revision`](10-compare.md#compareresolve-revision--which-commit-a-revision-is) | Which commit a revision is | Read | Built |
+| [`compare.side-choices`](10-compare.md#compareside-choices--what-a-side-can-be-chosen-from) | What a side can be chosen from | Derivation | Built |
+| [`compare.recent`](10-compare.md#comparerecent--the-comparisons-opened-before) | The comparisons opened before | Derivation | Built |
+| [`compare.choose`](10-compare.md#comparechoose--compare-branches-tags-or-commits) | Compare branches, tags or commits | Operation | Built |
+| [`compare.follow-sides`](10-compare.md#comparefollow-sides--followed-sides-and-fixed-ones) | Followed sides and fixed ones | Derivation | Built |
+| [`compare.initial-mode`](10-compare.md#compareinitial-mode--how-two-sides-are-compared-at-first) | How two sides are compared at first | Derivation | Built |
+| [`compare.read-sides`](10-compare.md#compareread-sides--read-a-comparison) | Read a comparison | Read | Built |
+| [`compare.read-patch`](10-compare.md#compareread-patch--read-the-lines-of-a-comparison) | Read the lines of a comparison | Read | Built |
+| [`compare.page`](10-compare.md#comparepage--the-comparison-page) | The comparison page | View | Built |
+| [`compare.summary`](10-compare.md#comparesummary--how-far-apart-and-what-merging-would-do) | How far apart, and what merging would do | Derivation | Built |
+| [`compare.change-side`](10-compare.md#comparechange-side--choose-another-side) | Choose another side | Operation | Built |
+| [`compare.swap`](10-compare.md#compareswap--swap-the-two-sides) | Swap the two sides | View | Built |
+| [`compare.set-mode`](10-compare.md#compareset-mode--since-they-diverged-or-everything-that-differs) | Since they diverged, or everything that differs | View | Built |
+| [`compare.narrow-to-path`](10-compare.md#comparenarrow-to-path--narrow-a-comparison-to-a-file-or-a-folder) | Narrow a comparison to a file or a folder | View | Built |
+| [`compare.commits`](10-compare.md#comparecommits--the-commits-only-in-each-side) | The commits only in each side | View | Built |
+| [`compare.take-file`](10-compare.md#comparetake-file--take-the-version-of-the-second-side) | Take the version of the second side | Operation | Built |
+| [`compare.copy-patch`](10-compare.md#comparecopy-patch--copy-a-comparison-as-a-patch) | Copy a comparison as a patch | Operation | Built |
+| [`compare.open-on-github`](10-compare.md#compareopen-on-github--open-the-comparison-on-github) | Open the comparison on GitHub | Operation | Built |
+| [`compare.path-with`](10-compare.md#comparepath-with--compare-a-file-or-a-folder-with-a-branch-tag-or-commit) | Compare a file or a folder with a branch, tag or commit | Operation | Built |
+| [`compare.with`](10-compare.md#comparewith--compare-with) | Compare with… | Operation | Built |
+| [`compare.with-current`](10-compare.md#comparewith-current--compare-with-the-current-branch) | Compare with the current branch | Operation | Built |
+| [`compare.selected-before`](10-compare.md#compareselected-before--compare-two-commits-of-the-timeline) | Compare two commits of the timeline | Operation | Built |
+| [`compare.read-files`](10-compare.md#compareread-files--read-the-files-that-differ-between-two-commits) | Read the files that differ between two commits | Read | Built |
+| [`compare.in-place`](10-compare.md#comparein-place--the-comparison-in-the-inspector) | The comparison in the inspector | View | Built |
+
+## History and blame
+
+| Feature | Title | Kind | Status |
+| --- | --- | --- | --- |
+| [`file-history.read-names`](11-history-and-blame.md#file-historyread-names--the-names-a-file-had) | The names a file had | Read | Built |
+| [`file-history.file`](11-history-and-blame.md#file-historyfile--show-the-history-of-a-file) | Show the history of a file | Operation | Built |
+| [`file-history.read-committed-lines`](11-history-and-blame.md#file-historyread-committed-lines--the-lines-as-the-commit-checked-out-has-them) | The lines as the commit checked out has them | Read | Built |
+| [`file-history.map-lines`](11-history-and-blame.md#file-historymap-lines--map-lines-of-a-file-as-it-is-to-the-file-as-committed) | Map lines of a file as it is to the file as committed | Derivation | Built |
+| [`file-history.lines`](11-history-and-blame.md#file-historylines--show-the-history-of-some-lines) | Show the history of some lines | Operation | Built |
+| [`file-history.folder`](11-history-and-blame.md#file-historyfolder--show-the-history-of-a-folder) | Show the history of a folder | Operation | Built |
+| [`blame.read-line`](11-history-and-blame.md#blameread-line--who-last-changed-one-line) | Who last changed one line | Read | Built |
+| [`blame.current-line`](11-history-and-blame.md#blamecurrent-line--the-blame-of-the-line-under-the-cursor) | The blame of the line under the cursor | View | Built |
+| [`blame.toggle-current-line`](11-history-and-blame.md#blametoggle-current-line--toggle-the-blame-of-the-line-under-the-cursor) | Toggle the blame of the line under the cursor | Operation | Built |
+| [`blame.open-line-commit`](11-history-and-blame.md#blameopen-line-commit--open-the-commit-of-the-current-line) | Open the commit of the current line | Operation | Built |
+| [`blame.reveal-line-commit`](11-history-and-blame.md#blamereveal-line-commit--show-the-commit-of-the-current-line-in-the-timeline) | Show the commit of the current line in the timeline | Operation | Built |
+| [`blame.read-file`](11-history-and-blame.md#blameread-file--who-last-changed-each-line-of-a-file) | Who last changed each line of a file | Read | Built |
+| [`blame.format-line`](11-history-and-blame.md#blameformat-line--what-is-said-beside-each-line) | What is said beside each line | Derivation | Built |
+| [`blame.age-color`](11-history-and-blame.md#blameage-color--the-color-of-the-age-of-a-line) | The color of the age of a line | Derivation | Built |
+| [`blame.pick-pinned-line`](11-history-and-blame.md#blamepick-pinned-line--the-commit-named-on-the-first-line-in-sight) | The commit named on the first line in sight | Derivation | Built |
+| [`blame.mark-edited-lines`](11-history-and-blame.md#blamemark-edited-lines--lines-typed-are-not-committed-yet) | Lines typed are not committed yet | Derivation | Built |
+| [`blame.file`](11-history-and-blame.md#blamefile--the-blame-beside-the-lines-of-a-file) | The blame beside the lines of a file | View | Built |
+| [`blame.toggle-file`](11-history-and-blame.md#blametoggle-file--show-or-hide-the-blame-of-a-file) | Show or hide the blame of a file | Operation | Built |
+| [`blame.previous`](11-history-and-blame.md#blameprevious--blame-the-file-as-it-was-before-a-commit) | Blame the file as it was before a commit | Operation | Built |
+| [`blame.ignore-whitespace`](11-history-and-blame.md#blameignore-whitespace--ignore-whitespace-and-moved-lines-in-the-blame) | Ignore whitespace and moved lines in the blame | Operation | Built |
+| [`blame.every-file`](11-history-and-blame.md#blameevery-file--show-the-blame-in-every-file) | Show the blame in every file | Operation | Built |
+| [`reflog.read`](11-history-and-blame.md#reflogread--where-head-has-been) | Where `HEAD` has been | Read | Built |
+| [`reflog.browse`](11-history-and-blame.md#reflogbrowse--browse-the-reflog) | Browse the reflog | Operation | Built |
+| [`bisect.read`](11-history-and-blame.md#bisectread--the-bisect-under-way) | The bisect under way | Read | Built |
+| [`bisect.start`](11-history-and-blame.md#bisectstart--start-a-bisect-from-a-commit) | Start a bisect from a commit | Operation | Built |
+| [`bisect.mark`](11-history-and-blame.md#bisectmark--mark-a-commit-good-or-bad) | Mark a commit good or bad | Operation | Built |
+| [`bisect.answer`](11-history-and-blame.md#bisectanswer--answer-for-the-commit-being-tested) | Answer for the commit being tested | Operation | Built |
+| [`bisect.banner`](11-history-and-blame.md#bisectbanner--the-banner-of-a-bisect) | The banner of a bisect | View | Built |
+| [`bisect.marks`](11-history-and-blame.md#bisectmarks--the-marks-of-a-bisect-in-the-timeline) | The marks of a bisect in the timeline | View | Built |
+| [`bisect.end`](11-history-and-blame.md#bisectend--end-the-bisect) | End the bisect | Operation | Built |
 
 ## Worktrees
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`worktree.section`](12-worktrees.md#worktreesection--the-worktrees-section) | The Worktrees section | View | Documented |
-| [`worktree.folder`](12-worktrees.md#worktreefolder--where-a-new-worktree-goes) | Where a new worktree goes | Derivation | Documented |
-| [`worktree.branch-name`](12-worktrees.md#worktreebranch-name--the-name-a-format-makes) | The name a format makes | Derivation | Documented |
-| [`worktree.create`](12-worktrees.md#worktreecreate--create-a-worktree) | Create a worktree | Operation | Differs |
-| [`worktree.create-for-branch`](12-worktrees.md#worktreecreate-for-branch--create-a-worktree-for-a-branch) | Create a worktree for a branch | Operation | Differs |
-| [`worktree.create-at-commit`](12-worktrees.md#worktreecreate-at-commit--create-a-worktree-at-a-commit) | Create a worktree at a commit | Operation | Differs |
-| [`worktree.open-in-worktree`](12-worktrees.md#worktreeopen-in-worktree--open-a-branch-in-a-worktree-made-for-it) | Open a branch in a worktree made for it | Operation | Differs |
-| [`worktree.open`](12-worktrees.md#worktreeopen--open-a-worktree) | Open a worktree | View | Documented |
-| [`worktree.open-terminal`](12-worktrees.md#worktreeopen-terminal--open-a-terminal-in-a-worktree) | Open a terminal in a worktree | View | Documented |
-| [`worktree.reveal`](12-worktrees.md#worktreereveal--show-a-worktree-in-the-file-manager) | Show a worktree in the file manager | View | Documented |
-| [`worktree.copy-path`](12-worktrees.md#worktreecopy-path--copy-the-path-of-a-worktree) | Copy the path of a worktree | View | Documented |
-| [`worktree.show-in-graph`](12-worktrees.md#worktreeshow-in-graph--show-what-a-worktree-has-checked-out-in-the-graph) | Show what a worktree has checked out in the graph | View | Documented |
-| [`worktree.switch`](12-worktrees.md#worktreeswitch--switch-worktree) | Switch worktree | View | Documented |
-| [`worktree.show-here`](12-worktrees.md#worktreeshow-here--show-another-worktree-in-this-window) | Show another worktree in this window | View | Documented |
-| [`worktree.select`](12-worktrees.md#worktreeselect--choose-the-worktree-shown) | Choose the worktree shown | View | Documented |
-| [`worktree.banner`](12-worktrees.md#worktreebanner--the-worktree-banner) | The worktree banner | View | Documented |
-| [`worktree.rename`](12-worktrees.md#worktreerename--rename-a-worktree) | Rename a worktree | Operation | Differs |
-| [`worktree.remove`](12-worktrees.md#worktreeremove--remove-a-worktree) | Remove a worktree | Operation | Differs |
-| [`worktree.prune`](12-worktrees.md#worktreeprune--prune-missing-worktrees) | Prune missing worktrees | Operation | Differs |
-| [`worktree.branch-elsewhere`](12-worktrees.md#worktreebranch-elsewhere--the-branch-another-worktree-has) | The branch another worktree has | View | Documented |
-| [`setup.source`](12-worktrees.md#setupsource--which-settings-apply) | Which settings apply | Derivation | Documented |
-| [`setup.folders-to-link`](12-worktrees.md#setupfolders-to-link--the-folders-a-pattern-links) | The folders a pattern links | Read | Documented |
-| [`setup.paths-to-copy`](12-worktrees.md#setuppaths-to-copy--the-files-a-pattern-copies) | The files a pattern copies | Read | Documented |
-| [`setup.link-and-copy`](12-worktrees.md#setuplink-and-copy--link-and-copy-into-a-new-worktree) | Link and copy into a new worktree | Operation | Differs |
-| [`setup.commands`](12-worktrees.md#setupcommands--run-commands-in-a-new-worktree) | Run commands in a new worktree | Operation | Documented |
-| [`setup.propose-commands`](12-worktrees.md#setuppropose-commands--the-commands-proposed) | The commands proposed | Derivation | Documented |
-| [`setup.scan`](12-worktrees.md#setupscan--what-git-ignores-here) | What git ignores here | Read | Documented |
-| [`setup.classify`](12-worktrees.md#setupclassify--what-is-proposed-for-each) | What is proposed for each | Derivation | Documented |
-| [`setup.choose`](12-worktrees.md#setupchoose--the-patterns-a-choice-writes) | The patterns a choice writes | Derivation | Documented |
-| [`setup.preview`](12-worktrees.md#setuppreview--what-the-patterns-take) | What the patterns take | Read | Documented |
-| [`setup.page`](12-worktrees.md#setuppage--the-tab-of-what-new-worktrees-get) | The tab of what new worktrees get | View | Documented |
-| [`setup.save`](12-worktrees.md#setupsave--save-what-new-worktrees-get) | Save what new worktrees get | Operation | Differs |
-| [`setup.offer`](12-worktrees.md#setupoffer--the-offer-to-choose-what-new-worktrees-get) | The offer to choose what new worktrees get | View | Documented |
-| [`setup.bring-ignored`](12-worktrees.md#setupbring-ignored--bring-ignored-files-into-worktrees-that-exist) | Bring ignored files into worktrees that exist | Operation | Differs |
-| [`setup.explorer-link`](12-worktrees.md#setupexplorer-link--link-into-new-worktrees-from-the-explorer) | Link into new worktrees from the Explorer | Operation | Differs |
-| [`setup.explorer-copy`](12-worktrees.md#setupexplorer-copy--copy-into-new-worktrees-from-the-explorer) | Copy into new worktrees from the Explorer | Operation | Differs |
-| [`setup.explorer-stop`](12-worktrees.md#setupexplorer-stop--stop-linking-or-copying-into-new-worktrees) | Stop linking or copying into new worktrees | Operation | Differs |
-| [`setup.explorer-change`](12-worktrees.md#setupexplorer-change--what-became-of-what-was-chosen-in-the-explorer) | What became of what was chosen in the Explorer | Derivation | Documented |
+| [`worktree.read-list`](12-worktrees.md#worktreeread-list--read-the-worktrees-and-how-they-stand) | Read the worktrees and how they stand | Read | Built |
+| [`worktree.folder-path`](12-worktrees.md#worktreefolder-path--where-a-new-worktree-goes) | Where a new worktree goes | Derivation | Built |
+| [`worktree.create`](12-worktrees.md#worktreecreate--create-a-worktree) | Create a worktree | Operation | Built |
+| [`worktree.create-from-branch`](12-worktrees.md#worktreecreate-from-branch--put-a-branch-in-a-new-worktree) | Put a branch in a new worktree | Operation | Built |
+| [`worktree.create-at-commit`](12-worktrees.md#worktreecreate-at-commit--create-a-worktree-at-a-commit) | Create a worktree at a commit | Operation | Built |
+| [`worktree.section`](12-worktrees.md#worktreesection--the-worktrees-list) | The Worktrees list | View | Built |
+| [`worktree.open`](12-worktrees.md#worktreeopen--open-a-worktree-where-the-settings-say) | Open a worktree where the settings say | Operation | Built |
+| [`worktree.open-in-new-window`](12-worktrees.md#worktreeopen-in-new-window--open-a-worktree-in-a-new-window) | Open a worktree in a new window | Operation | Built |
+| [`worktree.open-in-editor`](12-worktrees.md#worktreeopen-in-editor--open-a-worktree-in-the-external-editor) | Open a worktree in the external editor | Operation | Built |
+| [`worktree.open-in-terminal`](12-worktrees.md#worktreeopen-in-terminal--open-a-terminal-in-a-worktree) | Open a terminal in a worktree | Operation | Built |
+| [`worktree.reveal`](12-worktrees.md#worktreereveal--reveal-a-worktree-in-the-file-manager) | Reveal a worktree in the file manager | Operation | Built |
+| [`worktree.show-in-graph`](12-worktrees.md#worktreeshow-in-graph--show-the-commit-of-a-worktree-in-the-timeline) | Show the commit of a worktree in the timeline | Operation | Built |
+| [`worktree.show-in-gitardo`](12-worktrees.md#worktreeshow-in-gitardo--show-another-worktree-in-this-window) | Show another worktree in this window | Operation | Built |
+| [`worktree.banner`](12-worktrees.md#worktreebanner--the-banner-of-a-worktree-shown-in-this-window) | The banner of a worktree shown in this window | View | Built |
+| [`worktree.rename`](12-worktrees.md#worktreerename--rename-a-worktree) | Rename a worktree | Operation | Built |
+| [`worktree.copy-path`](12-worktrees.md#worktreecopy-path--copy-the-path-of-a-worktree) | Copy the path of a worktree | Operation | Built |
+| [`worktree.remove`](12-worktrees.md#worktreeremove--remove-a-worktree) | Remove a worktree | Operation | Built |
+| [`worktree.prune`](12-worktrees.md#worktreeprune--prune-missing-worktrees) | Prune missing worktrees | Operation | Built |
+| [`worktree.read-folder-links`](12-worktrees.md#worktreeread-folder-links--read-the-links-to-folders-outside-a-worktree) | Read the links to folders outside a worktree | Read | Built |
+| [`worktree.recover-held-folder`](12-worktrees.md#worktreerecover-held-folder--get-past-a-folder-that-windows-holds) | Get past a folder that Windows holds | Derivation | Built |
+| [`worktree.remove-empty-folders`](12-worktrees.md#worktreeremove-empty-folders--leave-no-empty-folders-behind) | Leave no empty folders behind | Derivation | Built |
+| [`worktree.branch-in-another-worktree`](12-worktrees.md#worktreebranch-in-another-worktree--the-branch-of-another-worktree) | The branch of another worktree | Derivation | Built |
+| [`worktree.open-in-worktree`](12-worktrees.md#worktreeopen-in-worktree--open-a-branch-in-a-worktree-of-its-own) | Open a branch in a worktree of its own | Operation | Built |
+| [`worktree.switch`](12-worktrees.md#worktreeswitch--switch-worktree) | Switch worktree | Operation | Built |
+| [`worktree-setup.settings-in-effect`](12-worktrees.md#worktree-setupsettings-in-effect--what-new-worktrees-get-as-set) | What new worktrees get, as set | Derivation | Built |
+| [`worktree-setup.folders-to-link`](12-worktrees.md#worktree-setupfolders-to-link--the-folders-to-link) | The folders to link | Derivation | Built |
+| [`worktree-setup.paths-to-copy`](12-worktrees.md#worktree-setuppaths-to-copy--the-files-and-folders-to-copy) | The files and folders to copy | Derivation | Built |
+| [`worktree-setup.link-and-copy-steps`](12-worktrees.md#worktree-setuplink-and-copy-steps--linking-and-copying-into-a-new-worktree) | Linking and copying into a new worktree | Derivation | Built |
+| [`worktree-setup.command-steps`](12-worktrees.md#worktree-setupcommand-steps--commands-in-a-new-worktree) | Commands in a new worktree | Derivation | Built |
+| [`worktree-setup.read-ignored`](12-worktrees.md#worktree-setupread-ignored--read-what-git-ignores-with-its-size) | Read what git ignores, with its size | Read | Built |
+| [`worktree-setup.propose`](12-worktrees.md#worktree-setuppropose--what-is-proposed-for-what-git-ignores) | What is proposed for what git ignores | Derivation | Built |
+| [`worktree-setup.propose-commands`](12-worktrees.md#worktree-setuppropose-commands--commands-proposed-from-lock-files) | Commands proposed from lock files | Derivation | Built |
+| [`worktree-setup.read-what-patterns-take`](12-worktrees.md#worktree-setupread-what-patterns-take--ask-git-what-the-patterns-take) | Ask git what the patterns take | Read | Built |
+| [`worktree-setup.page`](12-worktrees.md#worktree-setuppage--choose-what-new-worktrees-get) | Choose what new worktrees get | View | Built |
+| [`worktree-setup.choose`](12-worktrees.md#worktree-setupchoose--choose-what-a-line-gets) | Choose what a line gets | Derivation | Built |
+| [`worktree-setup.save`](12-worktrees.md#worktree-setupsave--save-what-new-worktrees-get) | Save what new worktrees get | Operation | Built |
+| [`worktree-setup.remove-from`](12-worktrees.md#worktree-setupremove-from--remove-the-settings-of-new-worktrees-from-a-place) | Remove the settings of new worktrees from a place | Operation | Built |
+| [`worktree-setup.edit-settings-file`](12-worktrees.md#worktree-setupedit-settings-file--edit-the-settings-of-new-worktrees-in-their-file) | Edit the settings of new worktrees in their file | Operation | Built |
+| [`worktree-setup.link-into-new-worktrees`](12-worktrees.md#worktree-setuplink-into-new-worktrees--link-a-folder-into-new-worktrees) | Link a folder into new worktrees | Operation | Built |
+| [`worktree-setup.copy-into-new-worktrees`](12-worktrees.md#worktree-setupcopy-into-new-worktrees--copy-a-file-or-a-folder-into-new-worktrees) | Copy a file or a folder into new worktrees | Operation | Built |
+| [`worktree-setup.stop-linking`](12-worktrees.md#worktree-setupstop-linking--stop-linking-a-folder-into-new-worktrees) | Stop linking a folder into new worktrees | Operation | Built |
+| [`worktree-setup.stop-copying`](12-worktrees.md#worktree-setupstop-copying--stop-copying-into-new-worktrees) | Stop copying into new worktrees | Operation | Built |
+| [`worktree-setup.explain-change`](12-worktrees.md#worktree-setupexplain-change--why-a-choice-from-the-files-page-changes-nothing) | Why a choice from the Files page changes nothing | Derivation | Built |
+| [`worktree-setup.bring-into-worktree`](12-worktrees.md#worktree-setupbring-into-worktree--bring-ignored-files-into-a-worktree) | Bring ignored files into a worktree | Operation | Built |
+| [`worktree-setup.bring-into-other-worktrees`](12-worktrees.md#worktree-setupbring-into-other-worktrees--bring-ignored-files-into-the-other-worktrees) | Bring ignored files into the other worktrees | Operation | Built |
 
 ## Submodules
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`submodule.read`](13-submodules.md#submoduleread--what-is-read-of-each-submodule) | What is read of each submodule | Read | Documented |
-| [`submodule.status`](13-submodules.md#submodulestatus--where-a-submodule-stands) | Where a submodule stands | Derivation | Documented |
-| [`submodule.section`](13-submodules.md#submodulesection--the-submodules-section) | The Submodules section | View | Documented |
-| [`submodule.open-window`](13-submodules.md#submoduleopen-window--open-a-submodule-in-a-new-window) | Open a submodule in a new window | View | Documented |
-| [`submodule.terminal`](13-submodules.md#submoduleterminal--open-a-terminal-in-a-submodule) | Open a terminal in a submodule | View | Documented |
-| [`submodule.reveal`](13-submodules.md#submodulereveal--reveal-a-submodule-in-the-file-manager) | Reveal a submodule in the file manager | View | Documented |
-| [`submodule.show-in-gitardo`](13-submodules.md#submoduleshow-in-gitardo--show-a-submodule-in-gitardo) | Show a submodule in Gitardo | View | Documented |
-| [`submodule.copy`](13-submodules.md#submodulecopy--copy-the-path-or-the-url-of-a-submodule) | Copy the path or the URL of a submodule | View | Documented |
-| [`submodule.add`](13-submodules.md#submoduleadd--add-a-submodule) | Add a submodule | Operation | Differs |
-| [`submodule.initialize`](13-submodules.md#submoduleinitialize--initialize-a-submodule) | Initialize a submodule | Operation | Differs |
-| [`submodule.update`](13-submodules.md#submoduleupdate--update-a-submodule-to-the-recorded-commit) | Update a submodule to the recorded commit | Operation | Differs |
-| [`submodule.update-remote`](13-submodules.md#submoduleupdate-remote--update-a-submodule-to-the-latest-of-its-branch) | Update a submodule to the latest of its branch | Operation | Differs |
-| [`submodule.record`](13-submodules.md#submodulerecord--stage-the-commit-of-a-submodule-as-the-recorded-one) | Stage the commit of a submodule as the recorded one | Operation | Differs |
-| [`submodule.sync`](13-submodules.md#submodulesync--synchronize-the-urls-of-the-submodules) | Synchronize the URLs of the submodules | Operation | Differs |
-| [`submodule.deinit`](13-submodules.md#submoduledeinit--deinitialize-a-submodule) | Deinitialize a submodule | Operation | Differs |
-| [`submodule.remove`](13-submodules.md#submoduleremove--remove-a-submodule) | Remove a submodule | Operation | Differs |
-| [`submodule.update-on-checkout`](13-submodules.md#submoduleupdate-on-checkout--update-the-submodules-after-a-checkout) | Update the submodules after a checkout | Operation | Documented |
+| [`submodule.read-list`](13-submodules.md#submoduleread-list--read-the-submodules-and-where-they-stand) | Read the submodules and where they stand | Read | Built |
+| [`submodule.status`](13-submodules.md#submodulestatus--where-a-submodule-stands) | Where a submodule stands | Derivation | Built |
+| [`submodule.section`](13-submodules.md#submodulesection--the-submodules-list) | The Submodules list | View | Built |
+| [`submodule.open-in-new-window`](13-submodules.md#submoduleopen-in-new-window--open-a-submodule-in-a-new-window) | Open a submodule in a new window | Operation | Built |
+| [`submodule.open-in-terminal`](13-submodules.md#submoduleopen-in-terminal--open-a-terminal-in-a-submodule) | Open a terminal in a submodule | Operation | Built |
+| [`submodule.reveal`](13-submodules.md#submodulereveal--reveal-a-submodule-in-the-file-manager) | Reveal a submodule in the file manager | Operation | Built |
+| [`submodule.show-in-gitardo`](13-submodules.md#submoduleshow-in-gitardo--show-a-submodule-in-this-window) | Show a submodule in this window | Operation | Built |
+| [`submodule.update-to-recorded`](13-submodules.md#submoduleupdate-to-recorded--update-a-submodule-to-the-recorded-commit) | Update a submodule to the recorded commit | Operation | Built |
+| [`submodule.stage-recorded`](13-submodules.md#submodulestage-recorded--stage-the-commit-of-a-submodule-as-the-recorded-one) | Stage the commit of a submodule as the recorded one | Operation | Built |
+| [`submodule.update-to-latest`](13-submodules.md#submoduleupdate-to-latest--update-a-submodule-to-the-latest-of-its-branch) | Update a submodule to the latest of its branch | Operation | Built |
+| [`submodule.initialize`](13-submodules.md#submoduleinitialize--initialize-a-submodule) | Initialize a submodule | Operation | Built |
+| [`submodule.deinitialize`](13-submodules.md#submoduledeinitialize--deinitialize-a-submodule) | Deinitialize a submodule | Operation | Built |
+| [`submodule.remove`](13-submodules.md#submoduleremove--remove-a-submodule) | Remove a submodule | Operation | Built |
+| [`submodule.copy-path`](13-submodules.md#submodulecopy-path--copy-the-path-of-a-submodule) | Copy the path of a submodule | Operation | Built |
+| [`submodule.copy-url`](13-submodules.md#submodulecopy-url--copy-the-url-of-a-submodule) | Copy the URL of a submodule | Operation | Built |
+| [`submodule.add`](13-submodules.md#submoduleadd--add-a-submodule) | Add a submodule | Operation | Built |
+| [`submodule.sync-urls`](13-submodules.md#submodulesync-urls--synchronize-the-urls-of-the-submodules) | Synchronize the URLs of the submodules | Operation | Built |
+| [`submodule.allow-file-protocol`](13-submodules.md#submoduleallow-file-protocol--clone-a-submodule-from-a-folder-on-disk) | Clone a submodule from a folder on disk | Derivation | Built |
+| [`submodule.update-on-checkout`](13-submodules.md#submoduleupdate-on-checkout--update-the-submodules-after-a-checkout) | Update the submodules after a checkout | Derivation | Built |
+| [`submodule.follow-changes`](13-submodules.md#submodulefollow-changes--follow-what-happens-in-the-submodules) | Follow what happens in the submodules | Derivation | Built |
+
+## Patches
+
+| Feature | Title | Kind | Status |
+| --- | --- | --- | --- |
+| [`patch.read-format-patch`](14-patches.md#patchread-format-patch--read-commits-as-one-patch) | Read commits as one patch | Read | Built |
+| [`patch.count-commits`](14-patches.md#patchcount-commits--how-many-commits-a-patch-has) | How many commits a patch has | Derivation | Built |
+| [`patch.copy`](14-patches.md#patchcopy--copy-as-patch) | Copy as patch | Operation | Built |
+| [`patch.save`](14-patches.md#patchsave--save-as-patch) | Save as patch… | Operation | Built |
+| [`patch.check`](14-patches.md#patchcheck--check-a-patch-before-applying-it) | Check a patch before applying it | Read | Built |
+| [`patch.apply`](14-patches.md#patchapply--apply-a-patch) | Apply a patch | Operation | Built |
+| [`patch.am-stopped`](14-patches.md#patcham-stopped--a-patch-that-stopped-on-a-conflict) | A patch that stopped on a conflict | View | Built |
+
+## GitHub
+
+| Feature | Title | Kind | Status |
+| --- | --- | --- | --- |
+| [`github.detect-remote`](15-github.md#githubdetect-remote--the-repository-on-github) | The repository on GitHub | Derivation | Built |
+| [`github.token`](15-github.md#githubtoken--read-the-github-token) | Read the GitHub token | Read | Built |
+| [`github.load-pull-requests`](15-github.md#githubload-pull-requests--load-pull-requests-from-github) | Load pull requests from GitHub | Operation | Built |
+| [`github.read-pull-requests`](15-github.md#githubread-pull-requests--read-the-open-pull-requests) | Read the open pull requests | Read | Built |
+| [`github.open-pull-request`](15-github.md#githubopen-pull-request--open-or-create-the-pull-request-of-a-branch) | Open or create the pull request of a branch | Derivation | Built |
+| [`github.offer-after-push`](15-github.md#githuboffer-after-push--offer-to-create-a-pull-request-after-the-first-push) | Offer to create a pull request after the first push | Derivation | Built |
 
 ## Undo, command preview and the log
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`preview.ask`](16-undo-preview-log.md#previewask--show-the-exact-commands-before-an-operation-runs) | Show the exact commands before an operation runs | Operation | Documented |
-| [`preview.fallback`](16-undo-preview-log.md#previewfallback--offer-the-other-way-when-git-refuses) | Offer the other way when git refuses | Operation | Documented |
-| [`log.write`](16-undo-preview-log.md#logwrite--write-every-command-and-its-output-to-the-log) | Write every command and its output to the log | Operation | Documented |
-| [`log.show`](16-undo-preview-log.md#logshow--show-the-command-log) | Show the command log | View | Documented |
-| [`log.report-failure`](16-undo-preview-log.md#logreport-failure--say-why-an-operation-failed) | Say why an operation failed | View | Documented |
-| [`undo.last`](16-undo-preview-log.md#undolast--undo-the-last-operation) | Undo the last operation | Operation | Differs |
-| [`activity.track`](16-undo-preview-log.md#activitytrack--show-what-is-running-in-the-status-bar) | Show what is running in the status bar | View | Documented |
-| [`activity.show`](16-undo-preview-log.md#activityshow--list-what-is-running) | List what is running | View | Documented |
+| [`preview.confirm`](16-undo-preview-log.md#previewconfirm--show-the-commands-before-they-run) | Show the commands before they run | View | Built |
+| [`log.record`](16-undo-preview-log.md#logrecord--log-every-command-that-changes-something) | Log every command that changes something | Operation | Built |
+| [`log.show`](16-undo-preview-log.md#logshow--show-the-command-log) | Show the command log | View | Built |
+| [`undo.last`](16-undo-preview-log.md#undolast--undo-the-last-operation) | Undo the last operation | Operation | Built |
+| [`undo.journal`](16-undo-preview-log.md#undojournal--remember-what-undo-needs) | Remember what Undo needs | Derivation | Built |
+| [`activity.track`](16-undo-preview-log.md#activitytrack--say-what-is-running) | Say what is running | Operation | Built |
+
+## Diff, Merge and File pages
+
+| Feature | Title | Kind | Status |
+| --- | --- | --- | --- |
+| [`diff.page`](17-diff-and-merge-views.md#diffpage--the-diff-page) | The Diff page | View | Built |
+| [`diff.read-sides`](17-diff-and-merge-views.md#diffread-sides--the-two-versions-of-a-file) | The two versions of a file | Read | Built |
+| [`diff.line-diff`](17-diff-and-merge-views.md#diffline-diff--the-lines-that-changed) | The lines that changed | Derivation | Built |
+| [`diff.word-diff`](17-diff-and-merge-views.md#diffword-diff--the-words-that-changed-in-a-line) | The words that changed in a line | Derivation | Built |
+| [`diff.align`](17-diff-and-merge-views.md#diffalign--the-two-sides-kept-level) | The two sides kept level | Derivation | Built |
+| [`diff.scroll-together`](17-diff-and-merge-views.md#diffscroll-together--the-two-sides-scroll-together) | The two sides scroll together | Derivation | Built |
+| [`diff.resize-sides`](17-diff-and-merge-views.md#diffresize-sides--making-one-side-wider) | Making one side wider | View | Built |
+| [`diff.navigate`](17-diff-and-merge-views.md#diffnavigate--the-previous-and-the-next-change) | The previous and the next change | View | Built |
+| [`diff.collapse-unchanged`](17-diff-and-merge-views.md#diffcollapse-unchanged--folding-unchanged-lines) | Folding unchanged lines | View | Built |
+| [`diff.staged-changes`](17-diff-and-merge-views.md#diffstaged-changes--which-changes-are-in-the-index-already) | Which changes are in the index already | Derivation | Built |
+| [`diff.change-patch`](17-diff-and-merge-views.md#diffchange-patch--the-patch-of-one-change) | The patch of one change | Derivation | Built |
+| [`diff.stage-change`](17-diff-and-merge-views.md#diffstage-change--stage-this-change) | Stage this change | Operation | Built |
+| [`diff.unstage-change`](17-diff-and-merge-views.md#diffunstage-change--unstage-this-change) | Unstage this change | Operation | Built |
+| [`diff.revert-change`](17-diff-and-merge-views.md#diffrevert-change--revert-this-change) | Revert this change | Operation | Built |
+| [`diff.edit`](17-diff-and-merge-views.md#diffedit--editing-the-working-tree-side) | Editing the working tree side | View | Built |
+| [`diff.open-at-line`](17-diff-and-merge-views.md#diffopen-at-line--open-the-file-at-this-line) | Open the file at this line | View | Built |
+| [`diff.open-file`](17-diff-and-merge-views.md#diffopen-file--open-file) | Open file | View | Built |
+| [`diff.stage-file`](17-diff-and-merge-views.md#diffstage-file--stage-file) | Stage file | Operation | Built |
+| [`diff.unstage-file`](17-diff-and-merge-views.md#diffunstage-file--unstage-file) | Unstage file | Operation | Built |
+| [`diff.discard-file`](17-diff-and-merge-views.md#diffdiscard-file--discard-changes) | Discard changes | Operation | Built |
+| [`merge-view.page`](17-diff-and-merge-views.md#merge-viewpage--the-merge-page) | The Merge page | View | Built |
+| [`merge-view.read-sides`](17-diff-and-merge-views.md#merge-viewread-sides--the-versions-of-a-file-in-conflict) | The versions of a file in conflict | Read | Built |
+| [`merge-view.three-way`](17-diff-and-merge-views.md#merge-viewthree-way--the-regions-of-a-file-in-conflict) | The regions of a file in conflict | Derivation | Built |
+| [`merge-view.take-side`](17-diff-and-merge-views.md#merge-viewtake-side--accept-a-side-for-a-region) | Accept a side for a region | View | Built |
+| [`merge-view.accept-simple`](17-diff-and-merge-views.md#merge-viewaccept-simple--accept-what-needs-no-choice) | Accept what needs no choice | View | Built |
+| [`merge-view.accept-proposals`](17-diff-and-merge-views.md#merge-viewaccept-proposals--accept-the-proposals) | Accept the proposals | View | Built |
+| [`merge-view.show-base`](17-diff-and-merge-views.md#merge-viewshow-base--show-the-base) | Show the base | View | Built |
+| [`merge-view.navigate`](17-diff-and-merge-views.md#merge-viewnavigate--changes-and-conflicts-left) | Changes and conflicts left | View | Built |
+| [`merge-view.open-at-line`](17-diff-and-merge-views.md#merge-viewopen-at-line--open-the-file-at-this-line) | Open the file at this line | View | Built |
+| [`merge-view.mark-resolved`](17-diff-and-merge-views.md#merge-viewmark-resolved--mark-as-resolved) | Mark as resolved | Operation | Built |
+| [`merge-view.close`](17-diff-and-merge-views.md#merge-viewclose--closing-with-unsaved-changes) | Closing with unsaved changes | View | Built |
+| [`file-view.page`](17-diff-and-merge-views.md#file-viewpage--the-file-page) | The File page | View | Built |
+| [`file-view.read-revision`](17-diff-and-merge-views.md#file-viewread-revision--a-file-at-a-revision) | A file at a revision | Read | Built |
+| [`file-view.edit`](17-diff-and-merge-views.md#file-viewedit--editing-a-file) | Editing a file | View | Built |
+| [`file-view.save`](17-diff-and-merge-views.md#file-viewsave--save) | Save | Operation | Built |
+| [`file-view.find`](17-diff-and-merge-views.md#file-viewfind--find) | Find | View | Built |
+| [`file-view.go-to-line`](17-diff-and-merge-views.md#file-viewgo-to-line--go-to-line) | Go to line | View | Built |
+| [`file-view.open-external`](17-diff-and-merge-views.md#file-viewopen-external--open-in-external-editor) | Open in external editor | Operation | Built |
+| [`file-view.highlight`](17-diff-and-merge-views.md#file-viewhighlight--the-colors-of-the-code) | The colors of the code | Derivation | Built |
 
 ## Settings
 
 | Feature | Title | Kind | Status |
 | --- | --- | --- | --- |
-| [`settings.read`](18-settings.md#settingsread--read-the-settings-when-they-are-needed) | Read the settings when they are needed | Read | Documented |
+| [`settings.read`](18-settings.md#settingsread--read-the-settings) | Read the settings | Read | Built |
+| [`settings.edit`](18-settings.md#settingsedit--open-the-settings-page) | Open the settings page | View | Built |
+| [`settings.theme`](18-settings.md#settingstheme--choose-the-theme-and-the-fonts) | Choose the theme and the fonts | Operation | Built |

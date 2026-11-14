@@ -13,7 +13,7 @@ A change that needs to break a rule changes this page first, in its own commit, 
 
 - **R1.1** The extension needs only VS Code (1.100 or later, `engines.vscode`) and `git` on the `PATH` at run time.
   Libraries from npm are bundled by esbuild into `dist/`; nothing is installed beside the extension. *Source: project
-  choice ([D2](08-decisions.md#d2--run-the-git-executable-never-a-library)). Followed.*
+  choice ([D24](../08-decisions.md#d24--run-the-git-executable-never-a-library)). Followed.*
 - **R1.2** A new runtime dependency is proposed first, with what it costs in the size of the package. *Source:
   AGENTS.md, "an idea beyond what was asked is proposed first". Review.*
 - **R1.3** Every file the extension needs at run time is let into the package in `.vscodeignore`; `npm run test:vsix`
@@ -33,12 +33,12 @@ A change that needs to break a rule changes this page first, in its own commit, 
   `test/integration.test.ts` can run its commands on a throwaway repository. *Source: project choice. Followed for most
   operations; target for the few built inside `Controller`.*
 - **R2.3** An operation that can lose work or rewrite history sets `danger`, and is in the README's list under
-  [Command preview](../README.md#command-preview). *Source: README. Review.*
+  [Command preview](../../extension/README.md#command-preview). *Source: README. Review.*
 - **R2.4** What the reflog cannot take back, the operation records for **Undo** in `Controller.action`. *Source: project
-  choice ([D6](08-decisions.md#d6--undo-reads-the-reflog-and-remembers-only-what-it-cannot-tell)). Review.*
+  choice ([D28](../08-decisions.md#d28--undo-reads-the-reflog-and-remembers-only-what-it-cannot-tell)). Review.*
 - **R2.5** A visible change updates its card in `docs/features/` in the same commit, when its area has cards, and
   writes the cards of its area when it has none yet. *Source: project choice
-  ([D11](08-decisions.md#d11--cards-first-for-the-areas-where-a-mistake-costs)). Review; `docs/catalog.py` finds
+  ([D33](../08-decisions.md#d33--cards-first-for-the-areas-where-a-mistake-costs)). Review; `docs/catalog.py` finds
   identifiers that no longer have a card.*
 
 ## R3 — Purity
@@ -75,7 +75,7 @@ A change that needs to break a rule changes this page first, in its own commit, 
 
 - **R6.1** Names are words, not abbreviations: `entry`, `listed`, `shown`, not `e`, `lst`, `vis`. *Source: AGENTS.md.
   Followed.*
-- **R6.2** The words of the [glossary](09-glossary.md), with the name its **In code** column gives, and never a word of
+- **R6.2** The words of the [glossary](../09-glossary.md), with the name its **In code** column gives, and never a word of
   its **Avoid** column, in the code, the UI text and the documents. *Source: Domain-Driven Design's ubiquitous language.
   Enforced for the documents by `docs/catalog.py`; review for the code.*
 
@@ -186,4 +186,4 @@ Each rule answers a threat of the [security page](10-security.md).
 | `npm run check:docs` | `docs/catalog.py`: cards, identifiers, glossary words | R6.2, R2.5 |
 
 Everything else is checked by review. There is no linter and no formatter in the project; adding them is not planned
-([D12](08-decisions.md#d12--no-linter-no-formatter)).
+([D34](../08-decisions.md#d34--no-linter-no-formatter)).

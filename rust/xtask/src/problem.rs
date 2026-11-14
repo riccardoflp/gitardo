@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-/// Something in the workspace that breaks a rule of `docs/03-code-rules.md`.
+/// Something in the workspace that breaks a rule of `docs/desktop/03-code-rules.md`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Problem {
     /// The number of the rule it breaks: `R1.1`.

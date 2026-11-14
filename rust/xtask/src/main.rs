@@ -19,7 +19,7 @@ use std::process::ExitCode;
 const USAGE: &str = "Usage: cargo xtask <command>
 
 Commands:
-  check    rustfmt, clippy, the tests, and the rules of docs/03-code-rules.md that a program can check";
+  check    rustfmt, clippy, the tests, and the rules of docs/desktop/03-code-rules.md that a program can check";
 
 fn main() -> ExitCode {
     let command = std::env::args().nth(1);

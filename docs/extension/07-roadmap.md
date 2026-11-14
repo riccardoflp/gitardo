@@ -3,7 +3,7 @@
 Gitardo is released and works; this roadmap is not the plan of its features, which the maintainer decides one at a
 time. It is the order in which the gaps the documents found are dealt with, and in which the documents themselves are
 completed. Each milestone ends with something a person can check. The reasons are in [the risks](13-risks.md); the
-open questions in [the decisions](08-decisions.md#open-questions).
+open questions in [the decisions](../08-decisions.md#open-questions).
 
 ## M0 — The documents (done)
 
@@ -12,14 +12,14 @@ quality, risks), the cards of the areas where a mistake costs (`changes`, `commi
 `merge`, `rebase`, `cherry-pick`, `revert`, `reset`, `rewrite`, `bisect`, `stash`, `conflict`, `operation`,
 `worktree`, `setup`, `submodule`, `undo`, `preview`, `log`, `activity`, `settings`), and `npm run check:docs`.
 
-Exit: `npm run check:docs` says *no problems*; every card's status in the [index](features/README.md) is *Documented*
+Exit: `npm run check:docs` says *no problems*; every card's status in the [index](../features/extension/README.md) is *Documented*
 or *Differs*.
 
 ## M1 — The open questions
 
-Answer Q1 to Q5 and the questions the cards raised (Q6 onwards). Each answer is a decision, a change to a card, or a
+Answer Q375 to Q379 and the questions the cards raised (Q380 onwards). Each answer is a decision, a change to a card, or a
 change to the README; where the README and the code disagree (RS17), one of them is fixed. Decide whether
-`npm run check:docs` joins `npm test` (Q4, RS19).
+`npm run check:docs` joins `npm test` (Q378, RS19).
 
 Exit: no open question older than this milestone; RS17 and RS19 removed or turned into decisions.
 

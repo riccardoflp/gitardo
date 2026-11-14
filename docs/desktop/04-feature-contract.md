@@ -1,7 +1,7 @@
 # Every feature is a function
 
 This is the contract every feature of Gitardo Desktop follows, and the template of the cards in
-[features/](features/README.md). Read it before you write a card or the code of one.
+[features/](../features/README.md). Read it before you write a card or the code of one.
 
 ## Why
 
@@ -104,7 +104,7 @@ from `Plan::danger`:
 | `off` | runs | asks, showing the steps | asks, showing the steps and the reason in a warning |
 | `all` | asks, showing the steps | asks | asks with the warning |
 
-The list of what is `Destructive` is in [16-undo-preview-log.md](features/16-undo-preview-log.md). A card that marks an
+The list of what is `Destructive` is in [16-undo-preview-log.md](../features/16-undo-preview-log.md). A card that marks an
 operation destructive says why.
 
 ## Reads in detail
@@ -148,7 +148,7 @@ cannot drift apart.
 
 ## The card
 
-Each card in [features/](features/README.md) follows this template. Leave out a line that does not apply rather than
+Each card in [features/](../features/README.md) follows this template. Leave out a line that does not apply rather than
 writing "none", except **Undo** and **Danger** on an operation, which are always said.
 
 ````markdown

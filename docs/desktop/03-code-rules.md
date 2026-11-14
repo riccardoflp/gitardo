@@ -9,7 +9,7 @@ first, in its own commit, with the reason.
 
 - **R1.1** A crate may depend on a library from crates.io, in `[dependencies]`, `[dev-dependencies]` or
   `[build-dependencies]`, when it does the job better than code written here would, weighed as
-  [D22](08-decisions.md#d22--libraries-with-judgment) says: what it saves against what it brings, whether one already
+  [D22](../08-decisions.md#d22--libraries-with-judgment) says: what it saves against what it brings, whether one already
   used does the job, whether it is kept up, what it needs to build and run, the fewest features. Its licence is one MIT
   code may use. The commit that adds it says why. No crate depends on a folder outside the workspace. A pure crate
   uses only libraries that do no I/O, start no thread and read no clock.
@@ -18,12 +18,12 @@ first, in its own commit, with the reason.
 - **R1.3** The edges between crates are those of [02-architecture.md](02-architecture.md#who-may-use-whom). A new edge
   changes that picture first.
 - **R1.4** External programs: only `git`, only through `crates/git`.
-- **R1.5** TLS ([D13](08-decisions.md#d13--one-library-for-tls)): `rustls` with `ring`, and
+- **R1.5** TLS ([D13](../08-decisions.md#d13--one-library-for-tls)): `rustls` with `ring`, and
   `rustls-native-certs`, used by `crates/tls` only, with only the features named there. No type of theirs appears in
   the interface of `crates/tls`, and no other library does TLS or cryptography.
 - **R1.6** A library is used by the crate whose job it serves, and no type of it appears in that crate's interface, so
   that replacing it changes one crate: the window, the clipboard and the dialogs in `crates/platform`, shapes and text
-  in `crates/render` ([D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)). Where a type has
+  in `crates/render` ([D16](../08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)). Where a type has
   to cross, as the tree of `accesskit` does between `ui` and `platform`, the code says why.
 
 ## 2. Features are functions
@@ -115,7 +115,7 @@ first, in its own commit, with the reason.
   behaves so, the card it implements.
 - **R8.3** An algorithm from a publication names it: `/// Myers, "An O(ND) Difference Algorithm and Its Variations", 1986.`
 - **R8.4** No commented-out code, no `TODO` without the number of an open question in
-  [08-decisions.md](08-decisions.md).
+  [08-decisions.md](../08-decisions.md).
 - **R8.5** A change a user can see changes its card in the same commit. A card is never behind the code.
 
 ## 9. Git

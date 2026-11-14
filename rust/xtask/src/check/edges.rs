@@ -1,4 +1,4 @@
-//! Rule R1.3: a crate depends only on the crates the picture of `docs/02-architecture.md` lets it use.
+//! Rule R1.3: a crate depends only on the crates the picture of `docs/desktop/02-architecture.md` lets it use.
 
 use super::Workspace;
 use crate::problem::Problem;
@@ -73,11 +73,14 @@ pub fn check(workspace: &Workspace) -> Vec<Problem> {
             let message = match is_allowed(edge) {
                 Some(true) => continue,
                 Some(false) => format!(
-                    "{} may not use {}: the picture of docs/02-architecture.md has no such edge. Change the picture \
-                     first, in its own commit.",
+                    "{} may not use {}: the picture of docs/desktop/02-architecture.md has no such edge. Change the \
+                     picture first, in its own commit.",
                     member.name, used.name
                 ),
-                None => format!("{} is not in the picture of docs/02-architecture.md.", member.name),
+                None => format!(
+                    "{} is not in the picture of docs/desktop/02-architecture.md.",
+                    member.name
+                ),
             };
             found.push(Problem::at_line("R1.3", &manifest, dependency.line, message));
         }

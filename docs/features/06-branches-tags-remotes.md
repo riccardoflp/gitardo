@@ -1,1045 +1,1031 @@
 # Branches, tags, remotes and sync
 
-Checking out, creating, renaming and deleting branches, the remote branches and the tags; the branch cleanup, the
-favorites and the order branches are listed in; the remotes of the repository; and fetching, pulling, pushing and
-fast-forwarding a branch that is not checked out. Each operation here is a `GitOp` built in `src/git/ops.ts` and run by
-`Controller.run`, shown first when it can lose work and logged command by command. What is offered where is decided in
-`src/webview/menus.ts`; the sync operations come from the toolbar of the graph, the titles of the Commits and Gitardo
-Graph views and the Command Palette, and go through `Controller.sync` rather than `Controller.action`.
+Checking out, creating, renaming, deleting and cleaning up branches; bringing a branch that is not checked out up to its
+upstream; the format that names new branches; tags; the branch rail as a whole; the remotes of a repository;
+and fetch, pull and push with their variants, and the sync that does all three in one click. Merging and rebasing are
+in `merge.` and `rebase.`; worktrees, which a branch is often opened in, are in `worktree.`; the pull requests of GitHub
+are in `github.`.
 
 ### `branch.checkout` — Check out a branch
 
-Switches the working tree to a local branch, from its context menu or with a double click where it is listed or on its
-label in the graph.
+Switches the working tree to a local branch.
 
 - **Kind**: Operation
-- **Function**: `checkoutOp('branch', ref)` in `src/git/ops.ts`.
-- **Entry points**: **Check out `<branch>`** in the context menu of a local branch, in the references tree, in the
-  Branches view and on its label in the graph; a double click on the branch in those places, in the **Recent** and
-  **Favorites** sections too (`openBranch` in `src/webview/menus.ts`).
-- **Offered when**: the branch is not checked out here and no other worktree has it. For a branch another worktree has,
-  the menu offers that worktree's entries instead and a double click opens it (`worktree.open`); when its folder is
-  missing, a double click does nothing. With `gitardo.branches.openIn` set to `worktree`, **Open in worktree** comes
-  first and a double click opens the branch in a worktree made for it instead (`worktree.open`).
-- **Plan**: `> git checkout <branch>`, by its short name: git takes the branch over a tag of the same name. Then, when
-  the repository has submodules here or at the branch, `> git submodule update --init --recursive`
-  (`submodule.update-on-checkout`).
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`); Confirm when updating the submodules would leave
-  commits that no branch has (`submodule.update-on-checkout`).
-- **Undo**: from the reflog: its entry `checkout: moving from <previous> to <branch>` becomes `git checkout <previous>`,
-  or `git checkout --detach <hash>` when `HEAD` was detached, asked as **Undo checkout: go back to `<previous>`?**, and
-  followed by the update of the submodules (`undo.last`).
-- **Refuses**: git refuses when files not committed would be overwritten: **Check out `<branch>` failed.** and git's
-  `error:` line, with **Show Log**.
-- **Settings**: `gitardo.branches.openIn`, `gitardo.submodules.updateOnCheckout`, `gitardo.commandPreview`.
-- **Uses**: `preview.ask`, `log.write`, `submodule.update-on-checkout`, `undo.last`.
-- **Implemented in**: `Action` case `checkout` with `target: 'branch'` (`src/shared/protocol.ts:493`); `resolveAction`
-  case `checkout` and `updatingSubmodules` (`src/extension/actions.ts:233`, `:883`); `checkoutOp`
-  (`src/git/ops.ts:195`); `branchMenu` and `openBranch` (`src/webview/menus.ts:301`, `:367`); `RefsTree.tsx` and the
-  label menus of `App.tsx`.
-- **Tested by**: `test/git.test.ts`, *checks out branches, remote branches and detached commits differently*, *refuses
-  names that git could read as options*; `test/awkward.test.ts`, *means the branch when a tag has the same name*;
-  `test/menus.test.ts`, *checks out a branch without a worktree, or opens it in one made for it, first as a double
-  click does*, *opens the worktree of a branch instead of checking it out, and removes it instead of deleting the
-  branch*, *checks out a branch on a double click, or opens it in a worktree, and does nothing for the one checked out*;
-  `test/integration.test.ts`, *undoes commits, checkouts, resets and rebases*; `test/e2e/suite.ts`, *updates the
-  submodules after a checkout, cloning from a folder on disk once allowed, unless the settings say not to*.
+- **Function**: `features::branch::checkout(context, answers) -> Outcome`
+- **Entry points**: **Check out `<branch>`** in the context menu of a local branch, in the timeline and in the branch
+  rail beside it; a double click on a local branch, as `branch.open` decides.
+- **Offered when**: the branch is not the one checked out, and no other worktree has it checked out. Where another
+  worktree has it, its menu opens that worktree instead (`worktree.open`).
+- **Plan**: `git checkout <branch>`; then, as an operation of its own that the confirmation shows with it, the update of
+  the submodules (`submodule.update-on-checkout`).
+- **Danger**: None, or Confirm when the update of the submodules would leave commits behind (see
+  `submodule.update-on-checkout`).
+- **Undo**: By the reflog: Undo checks out again what was checked out before (`undo.last`).
+- **Settings**: `branches.openIn`, through `branch.open`; `submodules.updateOnCheckout`.
+- **Uses**: `branch.open`, `submodule.update-on-checkout`, `worktree.open`.
+
+The branch is given by its bare name: `git checkout refs/heads/<branch>` would leave `HEAD` detached. Git refuses when
+files not committed would be overwritten, and says which; the working tree is then as it was.
 
 Acceptance:
 
-- [ ] **Check out feature** on the branch `feature` runs `git checkout feature`, through `Controller.run`, and the log
-      has `> git checkout feature`.
-- [ ] With `gitardo.commandPreview` `off` and no submodules, nothing is asked; with `all`, **Check out feature?** shows
-      `git checkout feature` before it runs.
-- [ ] With a tag also called `release`, checking out the branch `release` leaves `HEAD` on the branch, not detached at
-      the tag.
-- [ ] A branch named `-x` is refused with **"-x" is not a valid name.** and git is not run.
-- [ ] The menu of the branch checked out has no **Check out** entry, and a double click on it does nothing.
-- [ ] The menu of a branch another worktree has offers **Open worktree in new window** and no **Check out** entry; a
-      double click opens that worktree.
-- [ ] With submodules, the question and the log have `git submodule update --init --recursive` after the checkout.
-- [ ] **Undo** right after it asks **Undo checkout: go back to main?** and runs `git checkout main`.
+- [ ] Double clicking `feature` in the branch rail runs `git checkout feature`, and the label of `feature` is the filled
+      one after.
+- [ ] With `branches.openIn` set to `worktree`, the double click runs `worktree.open-in-worktree` and no checkout.
+- [ ] The menu of the branch that is checked out has no **Check out** entry.
+- [ ] The menu of a branch another worktree has checked out has the entries of that worktree and no **Check out**.
+- [ ] With a submodule in the repository and `submodules.updateOnCheckout` on, the checkout is followed by
+      `git submodule update --init --recursive`; with it off, by nothing.
+- [ ] Undo right after goes back to the branch checked out before.
 
-### `branch.checkout-remote` — Check out a remote branch in the local branch of its name
+### `branch.open` — What a double click on a branch does
 
-Starts working on a remote branch: in a new local branch that tracks it, or in the local branch of its name when there
-is one, brought up to it by a fast-forward, or with its own commits rebased onto it if the user chooses.
+Decides what a double click on a local or a remote branch does, wherever it is listed or labels its commit, and which
+entry comes first in its context menu.
+
+- **Kind**: Derivation
+- **Function**: `model::branch::open(input: &OpenBranchInput) -> Option<Intent>`
+- **Entry points**: a double click on a branch or a remote branch in the branch rail, in its **Recent** and
+  **Favorites** lists too, and on its label in the timeline.
+- **Settings**: `branches.openIn`: `checkout` (the default) or `worktree`.
+- **Uses**: `branch.checkout`, `branch.checkout-remote`, `worktree.open`, `worktree.open-in-worktree`.
+
+Rules, for a local branch:
+
+- Checked out here: nothing.
+- Checked out in another worktree: that worktree opens (`worktree.open`), since git checks it out nowhere else; when
+  that worktree's folder is missing, nothing.
+- Otherwise, with `branches.openIn` set to `checkout`: `branch.checkout`; set to `worktree`: `worktree.open-in-worktree`,
+  which makes a worktree for it first when it has none.
+
+For a remote branch, the local branch of its name (the remote branch without its remote) decides:
+
+- Checked out in another worktree: that worktree opens, or nothing when its folder is missing.
+- Otherwise, with `checkout`: `branch.checkout-remote`; with `worktree`: `worktree.open-in-worktree` on a local branch
+  that tracks it.
+
+In the context menu, the entry of what a double click does comes first: **Check out** then **Open in worktree** with
+`checkout`, the other way round with `worktree`. Both are there whatever the setting says.
+
+Acceptance:
+
+- [ ] A double click on the branch checked out does nothing.
+- [ ] With `branches.openIn` set to `worktree`, a double click on `feature` opens its worktree, and the menu of
+      `feature` starts with **Open in worktree**.
+- [ ] A double click on `origin/feature` while another worktree has `feature` opens that worktree, whatever the setting.
+- [ ] A double click on a branch whose worktree's folder was deleted does nothing.
+
+### `branch.checkout-remote` — Check out a remote branch
+
+Checks out a remote branch in the local branch of its name: a new one that tracks it, or the one there is, brought up
+to it.
 
 - **Kind**: Operation
-- **Function**: `checkoutRemote(ref, rebase, state, repo)` in `src/extension/actions.ts`, which builds
-  `checkoutOp('remote', ref)` or `checkoutLocalOp(remote, local, rebase)` of `src/git/ops.ts`.
-- **Entry points**: in the context menu of a remote branch, **Check out as local branch** when no local branch has its
-  name, **Check out `<branch>`** when one has, and **Check out `<branch>` and rebase it onto this**; a double click on
-  the remote branch in the references tree, the Branches view or on its label in the graph (`openRemoteBranch`).
-- **Offered when**: no other worktree has the local branch of its name; when one has, the menu offers that worktree's
-  entries and a double click opens it (`worktree.open`). **Check out `<branch>` and rebase it onto this** is offered
-  when the local branch follows this remote branch, is not checked out, and each has commits the other has not, as of
-  the last fetch. With `gitardo.branches.openIn` set to `worktree`, **Open in worktree** comes first and a double click
-  opens it in a worktree instead.
-- **Asks**: when the local branch and the remote branch each have commits the other has not and the rebase was not
-  chosen from the menu, a picker titled **`<branch>` has `<n>` commits that `<remote branch>` has not, which has `<m>`
-  commits of its own** (**1 commit** when one), with **Check out `<branch>` and rebase it onto `<remote branch>`**
-  (**Replay its `<n>` commits on top**) and **Check out `<branch>` as it is** (**Leave the two apart**).
-- **Reads**: `git rev-list --left-right --count refs/heads/<branch>...<remote branch> --`, for how the two stand.
+- **Function**: `features::branch::checkout_remote(context, answers) -> Outcome`
+- **Entry points**: **Check out as local branch** in the context menu of a remote branch with no local branch of its
+  name, **Check out `<name>`** when there is one; a double click on a remote branch, as `branch.open` decides.
+- **Offered when**: no other worktree has the local branch of its name checked out; when one has, its menu and a double
+  click open that worktree instead (`worktree.open`).
+- **Reads**: when a local branch has its name, how the two stand:
+  `git rev-list --left-right --count refs/heads/<name>...<remote branch> --`, the commits each has that the other has
+  not.
+- **Asks**: only when each has commits the other has not, a pick titled **`<name>` has N commits that `<remote branch>`
+  has not, which has M commits of its own**: **Check out `<name>` and rebase it onto `<remote branch>`**, described
+  **Replay its N commits on top**, or **Check out `<name>` as it is**, described **Leave the two apart**.
 - **Plan**:
-  - no local branch of its name: `> git checkout --track <remote branch>`;
-  - a local branch with nothing of its own and behind: `> git checkout <branch>` then
-    `> git merge --ff-only <remote branch>` (only the merge when it is checked out already), titled **Check out
-    `<branch>` and fast-forward it to `<remote branch>`**;
-  - a local branch not behind, or kept as it is: `> git checkout <branch>`;
-  - rebased: `> git rebase --autostash <remote branch> <branch>`, titled **Check out `<branch>` and rebase it onto
-    `<remote branch>`**; git checks the branch out first and sets aside what is not committed meanwhile.
-  - then, with submodules, `> git submodule update --init --recursive` (`submodule.update-on-checkout`).
-  The remote branch is named `refs/remotes/<remote branch>` when a branch or a tag shares its name; the local branch is
-  always given by its short name, as git would otherwise check out its commit detached.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`); Confirm when the submodules would leave commits
-  no branch has.
-- **Undo**: from the reflog (`undo.last`). After `--track` or a plain checkout, **Undo** goes back to the branch checked
-  out before; the new local branch stays. After the fast-forward, **Undo** moves the branch back to where it was, with
-  `git reset --keep <previous>`, and stays on it. After the rebase, **Undo** moves the branch back to its commits before
-  the rebase, with `git reset --keep <previous>`.
-- **After**: when the local branch is checked out already and is not behind, nothing runs and **`<branch>` is checked
-  out already, with everything `<remote branch>` has.** is said. When the user keeps a branch that is checked out
-  already as it is, nothing runs.
-- **Refuses**: when the worktree that has the branch is missing: **The worktree of `<branch>` is missing from `<path>`:
-  prune the worktrees to free the branch.** When another worktree has it, that worktree opens instead and nothing runs.
-- **Settings**: `gitardo.branches.openIn`, `gitardo.submodules.updateOnCheckout`.
-- **Uses**: `preview.ask`, `log.write`, `submodule.update-on-checkout`, `worktree.open`, `undo.last`.
-- **Implemented in**: `Action` case `checkout` with `target: 'remote'` and `rebase` (`src/shared/protocol.ts:493`);
-  `resolveAction` case `checkout`, `checkoutRemote` (`src/extension/actions.ts:233`, `:691`); `checkoutOp`,
-  `checkoutLocalOp`, `withoutRemote` (`src/git/ops.ts:195`, `:213`, `:744`); `remoteBranchMenu` and `openRemoteBranch`
-  (`src/webview/menus.ts:387`, `:380`).
-- **Tested by**: `test/git.test.ts`, *checks out branches, remote branches and detached commits differently*, *checks
-  out a remote branch in the local branch of its name, brought up to it*; `test/integration.test.ts`, *checks out a
-  remote branch in the local branch of its name, fast-forwarded to it or with its own commits rebased onto it*;
-  `test/menus.test.ts`, *checks out the local branch of its name, and offers to rebase it when each has commits the
-  other has not*, *checks out a branch on a double click, or opens it in a worktree, and does nothing for the one
-  checked out*, *opens the worktree that has the local branch of its name, instead of checking it out*. The picker of
-  `checkoutRemote`: *none*.
+  - No local branch of its name: `git checkout --track <remote branch>`, which makes the local branch `<name>`
+    following it.
+  - The local branch has nothing of its own and is behind: `git checkout <name>`, unless it is checked out already,
+    then `git merge --ff-only <remote branch>`.
+  - The local branch has commits of its own and nothing to take, or it is chosen **as it is**:
+    `git checkout <name>`.
+  - Chosen to rebase: `git rebase --autostash <remote branch> <name>`, which checks the branch out first and puts aside
+    what is not committed while it rebases.
+  - Then the update of the submodules (`submodule.update-on-checkout`).
+- **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
+- **Undo**: By the reflog: Undo checks out again what was checked out before, or, after the fast-forward or the rebase,
+  moves the branch back (`undo.last`).
+- **After**: when the local branch is checked out already and has everything the remote branch has, nothing runs and
+  Gitardo says "`<name>` is checked out already, with everything `<remote branch>` has."
+- **Refuses**: when the worktree that has the local branch is missing: "The worktree of `<name>` is missing from
+  `<path>`: prune the worktrees to free the branch."
+- **Settings**: `branches.openIn`, through `branch.open`; `submodules.updateOnCheckout`.
+- **Uses**: `branch.open`, `branch.ref-argument`, `submodule.update-on-checkout`, `worktree.open`, `rebase.`.
+
+The name of the local branch is the remote branch's without its remote, the longest remote name that matches first:
+`origin/feature/login` gives `feature/login`, and with remotes `a` and `a/b`, `a/b/x` gives `x`. A remote branch that
+has a namesake is named in full, `refs/remotes/<remote>/<name>`.
 
 Acceptance:
 
-- [ ] With no local `dev`, **Check out as local branch** on `origin/dev` runs `git checkout --track origin/dev`.
-- [ ] With a local `dev` 2 commits behind `origin/dev` and none of its own, **Check out dev** runs `git checkout dev`
-      and `git merge --ff-only origin/dev`; what is not committed is still in the files afterwards.
-- [ ] The same with `dev` checked out already runs only `git merge --ff-only origin/dev`.
-- [ ] With `dev` checked out and nothing on `origin/dev` it lacks, nothing runs and **dev is checked out already, with
-      everything origin/dev has.** is said.
-- [ ] With `dev` 1 ahead and 2 behind, a double click on `origin/dev` asks **dev has 1 commit that origin/dev has not,
-      which has 2 commits of its own**; **Check out dev as it is** runs `git checkout dev` alone.
-- [ ] **Check out dev and rebase it onto this** runs `git rebase --autostash origin/dev dev` without the picker, and
-      afterwards `dev` has its own commit on top of the 2 of `origin/dev`.
-- [ ] Each of these runs as one `GitOp` through `Controller.run`, and the log has its commands as shown.
-- [ ] With another worktree on `dev`, the menu of `origin/dev` has no **Check out** entry and a double click opens the
-      worktree; with that worktree's folder gone, neither is offered, and the action asked anyway refuses with **The
-      worktree of dev is missing from …** before git runs.
-- [ ] With a tag also called `origin/dev`, the commands name `refs/remotes/origin/dev`.
-- [ ] **Undo** right after a fast-forward moves `dev` back to its commit before it, and leaves `dev` checked out.
+- [ ] With no local `feature`, checking out `origin/feature` runs `git checkout --track origin/feature`, and `feature`
+      follows `origin/feature` after.
+- [ ] With a local `feature` two commits behind and nothing of its own, it runs `git checkout feature` and
+      `git merge --ff-only origin/feature`.
+- [ ] With `feature` checked out and behind, it runs only `git merge --ff-only origin/feature`.
+- [ ] With `feature` one commit ahead and two behind, it asks; **as it is** runs `git checkout feature`, the rebase runs
+      `git rebase --autostash origin/feature feature`.
+- [ ] With `feature` checked out, ahead and behind, **as it is** runs nothing.
+- [ ] With `feature` checked out and level with `origin/feature`, nothing runs and the message says so.
 
-### `branch.checkout-detached` — Check out a commit or a tag, detached
+### `branch.checkout-remote-and-rebase` — Check out a branch and rebase it onto its remote branch
 
-Puts the working tree on a commit or a tag without a branch, to look at it or build it.
+Checks out the local branch of a remote branch's name and replays its own commits on top of the remote branch, in one
+step.
 
 - **Kind**: Operation
-- **Function**: `checkoutOp('detached', ref)` in `src/git/ops.ts`.
-- **Entry points**: **Check out commit (detached)** in the context menu of a commit in the graph and in the Commits
-  view; **Check out tag (detached)** in the context menu of a tag; **Check out (detached)** for a position picked in
-  **Gitardo: Browse Reflog**.
-- **Offered when**: the commit, or the commit of the tag, is not the one checked out.
-- **Plan**: `> git checkout --detach <hash>`, or `> git checkout --detach <tag>`, the tag as `refs/tags/<tag>` when a
-  branch or a remote branch shares its name; then, with submodules, `> git submodule update --init --recursive`.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`); Confirm when the submodules would leave commits
-  no branch has.
-- **Undo**: from the reflog: `checkout: moving from <previous> to <hash or tag>` becomes `git checkout <previous>`,
-  asked as **Undo checkout: go back to `<previous>`?** (`undo.last`).
-- **Refuses**: git refuses when files not committed would be overwritten, as for `branch.checkout`.
-- **Settings**: `gitardo.submodules.updateOnCheckout`.
-- **Uses**: `preview.ask`, `log.write`, `submodule.update-on-checkout`, `undo.last`.
-- **Implemented in**: `Action` case `checkout` with `target: 'detached'` (`src/shared/protocol.ts:493`);
-  `resolveAction` case `checkout` (`src/extension/actions.ts:233`); `checkoutOp` (`src/git/ops.ts:195`);
-  `commitMenu`, `logMenu`, `tagMenu` (`src/webview/menus.ts:187`, `:249`, `:433`); `Controller.browseReflog`.
-- **Tested by**: `test/git.test.ts`, *checks out branches, remote branches and detached commits differently*;
-  `test/awkward.test.ts`, *means the branch when a tag has the same name*.
+- **Function**: `features::branch::checkout_remote_and_rebase(context, answers) -> Outcome`
+- **Entry points**: **Check out `<name>` and rebase it onto this** in the context menu of a remote branch.
+- **Offered when**: the local branch `<name>` follows this remote branch, the upstream is not gone, each has commits the
+  other has not as of the last fetch, the local branch is not checked out (there, `rebase.` rebases what is checked
+  out), and no other worktree has it.
+- **Plan**: `git rebase --autostash <remote branch> <name>`, then the update of the submodules
+  (`submodule.update-on-checkout`).
+- **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
+- **Undo**: By the reflog: Undo moves the branch back to where it was before the rebase (`undo.last`).
+- **On failure**: when the rebase stops on a conflict, the conflicts open as for any rebase (`conflicts.`).
+- **Uses**: `branch.checkout-remote`, `submodule.update-on-checkout`.
 
 Acceptance:
 
-- [ ] **Check out commit (detached)** on a commit runs `git checkout --detach <full hash>` and the toolbar then says
-      **detached at `<short hash>`**.
-- [ ] **Check out tag (detached)** on `v1` runs `git checkout --detach v1`; with a branch also called `v1`, it runs
-      `git checkout --detach refs/tags/v1` and `HEAD` is at the tag's commit.
-- [ ] Neither entry is offered on the commit checked out.
-- [ ] **Undo** right after it runs `git checkout <branch before>` after asking.
+- [ ] With `feature` following `origin/feature`, one commit ahead and two behind, the entry is there and runs
+      `git rebase --autostash origin/feature feature`; `feature` is checked out after, its commit on top.
+- [ ] The entry is not there when `feature` is only behind, or is checked out.
+
+### `branch.checkout-detached` — Check out a commit
+
+Checks out a commit on a detached `HEAD`, to look at it or build it.
+
+- **Kind**: Operation
+- **Function**: `features::branch::checkout_detached(context, answers) -> Outcome`
+- **Entry points**: **Check out commit (detached)** in the context menu of a commit in the timeline, narrowed or not.
+- **Offered when**: the commit is not the one checked out.
+- **Plan**: `git checkout --detach <hash>`, then the update of the submodules (`submodule.update-on-checkout`).
+- **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
+- **Undo**: By the reflog: Undo checks out again what was checked out before (`undo.last`).
+- **Uses**: `submodule.update-on-checkout`.
+
+Acceptance:
+
+- [ ] On a commit that is not `HEAD` it runs `git checkout --detach <full hash>`, and the header says
+      **detached at `<short hash>`** after.
+- [ ] The menu of the commit checked out has no such entry.
 
 ### `branch.create` — Create a branch
 
-Makes a new branch at the commit checked out, at a branch, a tag or a commit, and checks it out or not, as chosen.
+Makes a new branch at a commit, a branch or a tag, and checks it out or not.
 
 - **Kind**: Operation
-- **Function**: `createBranchOp(name, at, checkout)` in `src/git/ops.ts`; the name comes from `newBranchName(at, state,
-  repo, memory)` in `src/extension/actions.ts`.
-- **Entry points**: **Branch** in the toolbar of the graph (tooltip **Branch: create a branch at HEAD**),
-  **Gitardo: Create Branch…** in the Command Palette and on the title of the Branches view, all at `HEAD`; **Create
-  branch here…** in the context menu of a commit (graph and Commits view), a local branch and a tag; **Create branch
-  here…** for a position picked in **Gitardo: Browse Reflog**.
-- **Offered when**: always in the menus; the toolbar button is disabled before the first commit and while an operation
-  runs.
+- **Function**: `features::branch::create(context, answers) -> Outcome`
+- **Entry points**: **Branch** in the **…** menu of the header, whose tooltip is **Branch: create a branch at HEAD**;
+  **Create branch…** in Quick search, at `HEAD`; **Create branch here…** in the context menu of a commit in the
+  timeline, narrowed or not, of a local branch and of a tag; the button **Create branch** at the top of the
+  branch rail.
+- **Offered when**: there is a commit: **Branch** in the header is disabled before the first one.
 - **Asks**:
-  1. With `gitardo.branches.format` set (or the older `gitardo.worktrees.branchFormat`), a picker titled **Create
-     branch**: **Use the format** (the format as its description) or **Type a branch name**. Then, for the format, what
-     `branch.name-format` asks, and an input box titled **Create branch** with the prompt **Name of the new branch** and
-     the name the format made, to change.
-  2. Without a format, or with **Type a branch name**: an input box titled **Create branch**, placeholder
-     **feature/my-change**.
-  3. A picker titled **Create branch `<name>`**: **Create and check out**, or **Create only** (**Stay on the current
-     branch**).
-  The name is checked as it is typed: **Enter a name**, **That is not a valid Git ref name** (a name starting with `-`,
-  `.` or `/`, ending with `/`, `.` or `.lock`, or with a space, `~`, `^`, `:`, `?`, `*`, `[`, `\`, `..` or `@{`), **A
-  branch with that name already exists**. Escape at any step does nothing.
-- **Plan**: `> git checkout -b <name> <at>` to check it out, `> git branch <name> <at>` otherwise. `<at>` is `HEAD`,
-  the commit's hash, or the branch or tag, named `refs/heads/<name>` or `refs/tags/<name>` when something else shares
-  its name. Checked out, with submodules, then `> git submodule update --init --recursive`.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`); Confirm when checking it out would leave
-  commits in the submodules that no branch has.
-- **Undo**: checked out: from the reflog, **Undo** goes back to the branch checked out before; the new branch stays.
-  Created only: nothing moves `HEAD`, so **Undo** right after it takes back the operation before it, as it says in its
-  question; the new branch stays.
-- **Refuses**: a name that starts with `-` is refused twice, by the input box and by the builder (**"-D" is not a valid
-  name.**). An invalid pattern in an input of the format: see `branch.name-format`.
-- **Settings**: `gitardo.branches.format`, `gitardo.branches.inputs` (or, where they are not set,
-  `gitardo.worktrees.branchFormat` and `gitardo.worktrees.inputs`), `gitardo.submodules.updateOnCheckout`.
-- **Uses**: `branch.name-format`, `preview.ask`, `log.write`, `submodule.update-on-checkout`, `undo.last`.
-- **Implemented in**: `Action` case `createBranch` (`src/shared/protocol.ts:494`); `resolveAction` case `createBranch`,
-  `newBranchName`, `askName`, `nameProblem` (`src/extension/actions.ts:238`, `:1286`, `:98`, `:93`); `createBranchOp`,
-  `refNameProblem` (`src/git/ops.ts:231`, `:82`); the toolbar button (`src/webview/Toolbar.tsx:380`); the command
-  `gitardo.createBranch` (`src/extension/extension.ts:194`); `commitMenu`, `logMenu`, `branchMenu`, `tagMenu`
-  (`src/webview/menus.ts:188`, `:250`, `:332`, `:436`).
-- **Tested by**: `test/git.test.ts`, *creates branches and tags at a given commit*, *refuses names that git could read
-  as options*, *validates ref names before git sees them*; `test/integration.test.ts`, *creates, renames, merges and
-  deletes branches*, *undoes commits, checkouts, resets and rebases*; `test/e2e/suite.ts`, *asks for names and options
-  with input boxes and pickers*, *names a new branch from the format, at the branch checked out, a tag or a commit, or
-  as it is typed*; `test/e2e/ui.mjs`, *the context menu of a commit opens where it was clicked, and creates a branch
-  through the real prompts*.
-- **Differs**: **Undo** right after it takes back the operation before it, which Gitardo does not warn of: see
-  `undo.last`.
+  1. With `branches.format` set: a pick titled **Create branch**, **Use the format** (the format beside it), which is
+     where the pick starts, or **Type a branch name**. With the format, the questions of `branch.name-from-format`,
+     and then the name it makes, in the input box **Name of the new branch**, to change or keep.
+  2. Without a format, or after **Type a branch name**: the name, in an input box titled **Create branch** with the
+     placeholder `feature/my-change`.
+  3. A pick titled **Create branch `<name>`**: **Create and check out**, or **Create only**, described **Stay on the
+     current branch**.
+
+  The name is checked while it is typed: `branch.validate-name`, and "A branch with that name already exists".
+- **Plan**: `git checkout -b <name> <start>` to check it out, then the update of the submodules
+  (`submodule.update-on-checkout`); `git branch <name> <start>` to create it only. `<start>` is `HEAD` from the
+  header and Quick search, the full hash on a commit, and the branch or the tag as `branch.ref-argument` names it.
+- **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
+- **Undo**: Checked out: by the reflog, Undo goes back to what was checked out before; the branch stays, and
+  `branch.delete` removes it with nothing lost. Created only: Undo does not take it back, since nothing moved `HEAD`;
+  `branch.delete` does.
+- **Settings**: `branches.format`, `branches.inputs` (see `branch.format-name`); `submodules.updateOnCheckout`.
+- **Uses**: `branch.name-from-format`, `branch.validate-name`, `branch.ref-argument`, `submodule.update-on-checkout`.
+
+A new branch has no upstream until its first push (`sync.push`).
 
 Acceptance:
 
-- [ ] **Create branch here…** on a commit, `fix` typed and **Create only**, runs `git branch fix <hash>`; the branch
-      checked out does not change.
-- [ ] The same with **Create and check out** runs `git checkout -b fix <hash>` and `fix` is checked out.
-- [ ] From the toolbar the command is `git checkout -b <name> HEAD` or `git branch <name> HEAD`.
-- [ ] On a branch `release` that shares its name with a tag, the command ends with `refs/heads/release`.
-- [ ] Typing `-D`, `a b`, `a..b` or `x.lock` keeps the input box open with **That is not a valid Git ref name**;
-      typing the name of an existing branch keeps it open with **A branch with that name already exists**.
-- [ ] Escape on the name or on the choice runs nothing.
-- [ ] It runs through `Controller.run` and the log has the command as shown.
-- [ ] **Undo** right after **Create and check out** asks to go back to the branch before and runs `git checkout
-      <branch before>`; the new branch is still there.
+- [ ] From the header, with no format, typing `fix/login` and **Create and check out** runs
+      `git checkout -b fix/login HEAD`.
+- [ ] On a commit, **Create only** runs `git branch <name> <full hash>` and leaves the branch checked out as it was.
+- [ ] On the branch `release` when a tag `release` also exists, it runs `git branch <name> refs/heads/release`.
+- [ ] Typing `main` when `main` exists shows "A branch with that name already exists" and the box cannot be accepted.
+- [ ] Typing `bad name` shows "That is not a valid Git ref name".
+- [ ] With a format set, the first question is the pick between **Use the format** and **Type a branch name**.
+- [ ] Backing out of any question runs nothing.
 
-### `branch.name-format` — Name a new branch from a format
+### `branch.format-name` — Expand the format of branch names
 
-Turns the convention of `gitardo.branches.format` and the answers to its inputs into the name of a new branch, for
-**Create branch…** and for creating a worktree.
+Makes the name of a new branch from `branches.format` and the values of its parts, and says what is wrong with a format
+before anything is asked.
 
 - **Kind**: Derivation
-- **Function**: `expandFormat(format, values)`, `formatInputs(format)`, `formatProblem(format, defined)` and
-  `withoutRemote(ref, remotes)` in `src/git/ops.ts`; the questions in `nameFromFormat`, `askInput` and `commitBase` of
-  `src/extension/actions.ts`.
-- **Entry points**: `branch.create` and `worktree.create`, when a format is set and **Use the format** is picked.
-- **Asks**: each `${input:<id>}` in the order the format first has it, once each:
-  - `promptString`: an input box with the input's `description` (or its `id`) as prompt, the value used last (or its
-    `default`) filled in; empty is refused with **Enter a value**, and with a `pattern`, a value that does not match
-    with **It has to match `<pattern>`**.
-  - `pickString`: a picker of its `options`, the value used last first (marked **Used last** when it is not one of the
-    options), and with `allowCustom` a last entry **Type another value…** that opens an input box.
-  - `${base}` at a commit: a picker titled **Create branch: what ${base} is**, with the branches at the commit
-    (**Branch at this commit**), the short hash (**This commit**), and up to 50 branches that have it (**Branch that
-    has this commit**), each remote branch by its name without its remote.
-- **Reads**: `git for-each-ref --contains <hash> --format=%(refname) refs/heads refs/remotes`, for `${base}` at a
-  commit.
-- **Settings**: `gitardo.branches.format`, `gitardo.branches.inputs`; `gitardo.worktrees.branchFormat` and
-  `gitardo.worktrees.inputs` where those are not set. The values used last are kept in the workspace state under
-  `worktreeInputs`.
-- **Implemented in**: `branchFormat`, `nameFromFormat`, `askInput`, `commitBase`, `newBranchName`
-  (`src/extension/actions.ts:1033`, `:1251`, `:1212`, `:1316`, `:1286`); `formatInputs`, `formatProblem`,
-  `expandFormat`, `withoutRemote` (`src/git/ops.ts:719`, `:725`, `:737`, `:744`).
-- **Tested by**: `test/git.test.ts`, *names branches from a format, with inputs, the base without its remote, the
-  repository and the date*; `test/e2e/suite.ts`, *names a new branch from the format, at the branch checked out, a tag
-  or a commit, or as it is typed*, *names the branch of a new worktree from the format, asking for its inputs, or as it
-  is typed*.
+- **Function**: `model::branch::format_name(format: &str, values: &FormatValues) -> String`, with
+  `model::branch::format_problem(format: &str, inputs: &[BranchInput]) -> Option<Text>`
+- **Settings**: `branches.format`, such as `PRJ-${input:ticket}-${input:kind}-${base}`; `branches.inputs`, a list of
+  `{ "id", "type": "promptString" | "pickString", "description"?, "default"?, "pattern"?, "options"?, "allowCustom"? }`.
+  Both can be set in the repository's `.gitardo/settings.json`, for everyone who works on it.
+- **Uses**: by `branch.name-from-format`.
 
-Rules of the result:
+Rules:
 
-- Inputs: the format, the ids defined in the inputs, and the values: `base`, `repo` (the name of the folder of the main
-  worktree), `date` (today, `YYYY-MM-DD`, local time) and one value per input.
-- Every `${…}` is replaced: `${input:<id>}` by its value, `${base}`, `${repo}` and `${date}` by theirs. Text outside
-  `${…}` is kept as it is.
-- `${base}` is the branch or tag the branch starts from, without its remote; from `HEAD`, the branch checked out (or the
-  commit, chosen as above, when `HEAD` is detached); a name given as `refs/heads/…`, `refs/remotes/…` or `refs/tags/…`
-  is matched by its short name.
-- A format that names an input that the inputs do not define, or a `${…}` that is not one of the four, is refused
-  before anything is asked: **The format uses `${input:kind}`, which gitardo.branches.inputs does not define. Change it
-  in the settings.**, or **The format uses `${branch}`, which is not one of ${base}, ${repo}, ${date} or
-  ${input:<id>}. Change it in the settings.**
-- A `pattern` that is not a regular expression is refused: **The pattern of the input `<id>` in gitardo.branches.inputs
-  is not a valid regular expression.**
-- The name made is offered in an input box to change, and checked as a typed name is.
-- Worked examples:
-  - `PRJ-${input:ticket}-${input:kind}-${base}` with ticket `123`, kind `feat`, base `feature/login` →
-    `PRJ-123-feat-feature/login`.
-  - `${repo}/${date}` in the folder `app` on 15 October 2026 → `app/2026-10-15`.
-  - base `origin/feature/login` with the remote `origin` → `feature/login`; `team/fork/fix` with the remotes `team` and
-    `team/fork` → `fix` (the longest remote that matches); `main` → `main`.
-  - `formatInputs('PRJ-${input:ticket}-${input:kind}-${base}-${input:ticket}')` → `ticket`, `kind`.
+- `${input:<id>}` is the value given for the input `<id>`, wherever it appears, as many times as it appears.
+- `${base}` is the branch the new one starts from, without its remote: `origin/feature/login` gives `feature/login`, the
+  longest remote name that matches taken off. What it is, is said by `branch.name-from-format`.
+- `${repo}` is the name of the folder of the main worktree of the repository, whichever worktree the window shows.
+- `${date}` is today in the local time of the computer, as `2026-10-15`.
+- The rest of the format is kept as it is written.
+- Problems, said before anything is asked, with "Change it in the settings." after them: a `${…}` that is none of
+  these, "The format uses `${x}`, which is not one of `${base}`, `${repo}`, `${date}` or `${input:<id>}`."; an input
+  that `branches.inputs` does not define, "The format uses `${input:x}`, which `branches.inputs` does not define."
 
 Acceptance:
 
-- [ ] With the format `${input:kind}/${base}-${input:ticket}`, kind `feat`, ticket `1`, from the toolbar on `main`,
-      the name proposed is `feat/main-1`.
-- [ ] On the tag `v1`, with the ticket used last proposed and kept, the name is `fix/v1-1`.
-- [ ] At a commit, picking **This commit** gives `${base}` its short hash.
-- [ ] A ticket `abc` against the pattern `^\d+$` is refused with **It has to match ^\d+$**.
-- [ ] With only `gitardo.worktrees.branchFormat` set to `old-${input:ticket}` and its inputs, the name is `old-3` for
-      ticket `3`.
+- [ ] `PRJ-${input:ticket}-${input:kind}-${base}` with ticket `123`, kind `fix` and base `origin/feature/login` makes
+      `PRJ-123-fix-feature/login`.
+- [ ] `${repo}/${date}` in the worktree `app.worktrees/x` of the repository `app` on 15 October 2026 makes
+      `app/2026-10-15`.
+- [ ] `${user}` in the format is a problem that names `${user}`; `${input:ticket}` with no input `ticket` defined is a
+      problem that names it.
+- [ ] A format with no `${…}` makes itself.
+
+### `branch.name-from-format` — Ask for the parts of the format
+
+What is asked, in order, to fill the format of branch names in, and the values proposed; the name it makes is then
+shown, to change or keep, by the feature that asked.
+
+- **Kind**: Derivation
+- **Function**: `model::branch::name_from_format(input: &FormatAsking, answers: &Answers) -> Result<FormatName, Outcome>`,
+  which gives the name once every part is known, with the values given; until then the next question, the read of the
+  branches that have a commit, or why the format is refused
+- **Entry points**: the questions of `branch.create` and of `worktree.create` after **Use the format**.
+- **Reads**: for `${base}` at a commit, the branches that have it:
+  `git for-each-ref --contains <hash> --format=%(refname) refs/heads refs/remotes`, leaving out `…/HEAD`.
+- **Settings**: `branches.format`, `branches.inputs`.
+- **Uses**: `branch.format-name`.
+
+Rules:
+
+- A format with a problem (`branch.format-name`) is refused before any question.
+- The inputs are asked in the order they first appear in the format, each once, with the description of the input as
+  the prompt, or its id when it has none.
+- `promptString`: an input box, filled with the value proposed. It cannot be empty, and when the input has a `pattern`,
+  a regular expression, what is typed must match it: "It has to match `<pattern>`". A pattern that is not a valid
+  regular expression is refused: "The pattern of the input `<id>` in `branches.inputs` is not a valid regular
+  expression."
+- `pickString`: a pick of its `options`, the value proposed first. A value proposed that is not among the options is
+  listed first, described **Used last**, only when the input has `allowCustom`. With `allowCustom`, the last entry,
+  **Type another value…**, opens an input box that cannot be left empty.
+- The value proposed is the one used last for that input, in this workspace, or the input's `default` before any was
+  used. The values given are remembered once all the inputs of the format have been answered and the plan of the
+  feature that asked runs.
+- `${base}`, only when the format has it: from the header and Quick search, the branch checked out; on a branch, that
+  branch; on a remote branch, its name without its remote; on a tag, the tag. A branch or a tag named in full because
+  of a namesake is matched by its short name.
+- `${base}` at a commit, and on a detached `HEAD`, is asked in a pick titled **Create branch: what ${base} is**: the
+  branches at that commit, described **Branch at this commit**; the commit itself, as its short hash, described **This
+  commit**; then the other branches that have it, described **Branch that has this commit**. Remote branches are listed
+  without their remote, each name once, and no more than 50 of them.
+- Backing out of any question stops it: nothing is made.
+
+Acceptance:
+
+- [ ] `${input:a}-${input:a}` asks `a` once.
+- [ ] With `"pattern": "^\d+$"`, typing `12a` cannot be accepted.
+- [ ] The second time, the input box starts with the value given the first time.
+- [ ] A `pickString` with `allowCustom` whose last value was typed lists that value first with **Used last**.
+- [ ] From the header on `main`, `${base}` is `main` and nothing is asked for it.
+- [ ] On a commit that `main` points at and `feature` contains, the pick lists `main`, then the short hash, then
+      `feature`.
+- [ ] A format without `${base}` asks nothing about it, also at a commit.
+
+### `branch.validate-name` — What git does not take as a name
+
+Says, while a name is typed, what keeps it from being a branch, a tag or a remote. Git has the final say; this catches
+the common mistakes early.
+
+- **Kind**: Derivation
+- **Function**: `model::branch::validate_name(name: &str) -> Option<Text>`
+- **Uses**: in `branch.create`, `branch.rename`, `tag.create`, `remote.add`, `remote.rename`, `stash.branch`,
+  `worktree.create`.
+
+Rules:
+
+- An empty name: "Enter a name".
+- A name that starts with `-`, `.` or `/`; has a space or another white space, `~`, `^`, `:`, `?`, `*`, `[` or `\`;
+  has `..` or `@{`; ends with `/` or `.`; or ends with `.lock`: "That is not a valid Git ref name".
+- Anything else: no problem. Each question adds the names already taken: "A branch with that name already exists",
+  "A tag with that name already exists", "A remote with that name already exists".
+
+Acceptance:
+
+- [ ] `feature/login`, `v1.0.0` and `fix-123` have no problem.
+- [ ] `-x`, `.x`, `a..b`, `a b`, `a:b`, `a@{1}`, `x/`, `x.lock` each have "That is not a valid Git ref name".
+- [ ] `` (empty) has "Enter a name".
+
+### `branch.ref-argument` — A branch named in full when it has a namesake
+
+How a branch, a remote branch or a tag is named to git where git expects a commit, so that a namesake is not taken for
+it.
+
+- **Kind**: Derivation
+- **Function**: `model::branch::ref_argument(kind: RefKind, name: &str, refs: &RefNames) -> String`
+
+Rules:
+
+- When the name is used by more than one of the local branches, the remote branches and the tags, it is given in full:
+  `refs/heads/<name>`, `refs/remotes/<name>` or `refs/tags/<name>`. Of a branch and a tag both called `release`, git
+  takes the tag, whichever was meant, and refuses some commands as ambiguous.
+- Otherwise the short name is given.
+- It is used where a branch starts a new one, is merged, rebased onto, compared, pushed, and where a tag or a remote
+  branch is checked out. A local branch that is checked out is always given by its bare name to `git checkout`.
+
+Acceptance:
+
+- [ ] With a branch `release` and a tag `release`, the branch is `refs/heads/release` and the tag `refs/tags/release`.
+- [ ] With a local `main` and a remote `origin/main`, the branch is `main`: their names differ.
+- [ ] Pushing `release` with a tag of that name runs `git push origin refs/heads/release`.
 
 ### `branch.rename` — Rename a branch
 
-Gives a local branch another name; git keeps its upstream and its reflog.
+Gives a local branch another name.
 
 - **Kind**: Operation
-- **Function**: `renameBranchOp(from, to)` in `src/git/ops.ts`.
-- **Entry points**: **Rename…** in the context menu of a local branch, **Rename branch…** when another worktree has it.
-- **Offered when**: always, the branch checked out included.
-- **Asks**: an input box titled **Rename branch `<name>`**, with the name filled in and checked as for
-  `branch.create`; the name as it was is refused as **A branch with that name already exists**.
-- **Plan**: `> git branch -m <old> <new>`.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`).
-- **Undo**: Gitardo remembers nothing to rename it back; **Undo** works from the reflog of `HEAD`, which a rename of a
-  branch that is not checked out does not change, so it takes back the operation before.
-- **After**: a favorite under the old name is no longer listed: favorites are kept by full name.
-- **Uses**: `preview.ask`, `log.write`.
-- **Implemented in**: `Action` case `renameBranch` (`src/shared/protocol.ts:495`); `resolveAction` case `renameBranch`
-  (`src/extension/actions.ts:250`); `renameBranchOp` (`src/git/ops.ts:236`); `branchMenu` (`src/webview/menus.ts:334`).
-- **Tested by**: `test/integration.test.ts`, *creates, renames, merges and deletes branches*.
-- **Differs**: **Undo** right after it takes back the operation before it, which Gitardo does not warn of: see
-  `undo.last`.
+- **Function**: `features::branch::rename(context, answers) -> Outcome`
+- **Entry points**: **Rename…** in the context menu of a local branch; **Rename branch…** when another worktree has it
+  checked out, beside **Rename worktree…** (`worktree.rename`).
+- **Asks**: the new name, in an input box titled **Rename branch `<name>`**, starting from the name it has; checked by
+  `branch.validate-name` and "A branch with that name already exists".
+- **Plan**: `git branch -m <old> <new>`.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo: renaming it back does.
+- **Uses**: `branch.validate-name`.
+
+Git renames the branch's configuration with it, its upstream included; the upstream keeps its own name.
 
 Acceptance:
 
-- [ ] **Rename…** on `feature`, `done` typed, runs `git branch -m feature done`, and the branch is listed as `done`
-      with the same commit.
-- [ ] Typing a name starting with `-` keeps the input box open with **That is not a valid Git ref name**.
-- [ ] It runs through `Controller.run` and the log has `> git branch -m feature done`.
+- [ ] Renaming `feature` to `feature/login` runs `git branch -m feature feature/login`, and the branch rail lists
+      `feature/login` with the same upstream after.
+- [ ] Accepting the box with the old name unchanged is refused by the box: that name is taken.
+- [ ] Renaming the branch checked out keeps it checked out.
 
 ### `branch.delete` — Delete a branch
 
-Deletes a local branch after asking, saying whether its commits are merged so that none is lost; **Undo** brings it
-back.
+Deletes a local branch, after saying whether its commits are merged, so that none is lost without knowing.
 
 - **Kind**: Operation
-- **Function**: `deleteBranchOp(name, force)` in `src/git/ops.ts`.
+- **Function**: `features::branch::delete(context, answers) -> Outcome`
 - **Entry points**: **Delete** in the context menu of a local branch.
-- **Offered when**: the branch is not checked out here and no other worktree has it (that one offers **Remove worktree
-  and delete branch…**, `worktree.remove`).
-- **Reads**: `git merge-base --is-ancestor refs/heads/<name> <into>`, where `<into>` is `refs/remotes/<upstream>` when
-  the branch has an upstream that is not gone, `HEAD` otherwise: the same rule `git branch -d` follows.
-- **Asks**: always: merged, **Delete branch `<name>`?** with **Its commits are merged, so none is lost. Undo brings the
-  branch back.**; not merged, the warning **Delete branch `<name>` (force)?** with **This branch is not fully merged.
-  Commits that are only on it will no longer be reachable from any branch.**
-- **Plan**: merged, `> git branch -d <name>`; not merged, `> git branch -D <name>`. When `-d` is refused with *not fully
-  merged* after all, the forced delete is offered and asked as above.
-- **Danger**: Confirm when its commits are merged; Destructive when they are not, because commits only on it are no
-  longer reachable from a branch.
-- **Undo**: Gitardo remembers the branch's name and commit: **Undo** asks **Undo: restore branch `<name>`?** and runs
-  `git branch <name> <hash>`, as long as no other operation ran through `Controller.action` and nothing moved `HEAD`
-  since. Its upstream is not set again.
-- **Refuses**: a name that starts with `-`: **"-x" is not a valid name.**
-- **Uses**: `preview.ask`, `log.write`, `undo.last`.
-- **Implemented in**: `Action` case `deleteBranch` (`src/shared/protocol.ts:496`); `resolveAction` case
-  `deleteBranch` (`src/extension/actions.ts:255`); `Repo.isMergedForDelete` (`src/git/repo.ts:221`); `deleteBranchOp`
-  and `restoreBranchOp` (`src/git/ops.ts:241`, `:969`); `Controller.action`, which runs the fallback and records the
-  restore (`src/extension/controller.ts:1698`); `branchMenu` (`src/webview/menus.ts:336`).
-- **Tested by**: `test/git.test.ts`, *asks before deleting a branch, and only treats the forced delete as dangerous*;
-  `test/integration.test.ts`, *creates, renames, merges and deletes branches*, *restores a deleted branch and a dropped
-  stash*, *lists what a stash changes and took along, and knows which branches delete without forcing*;
-  `test/awkward.test.ts`, *means the branch when a tag has the same name*; `test/menus.test.ts`, *opens the worktree of
-  a branch instead of checking it out, and removes it instead of deleting the branch*; `test/e2e/suite.ts`, *undoes the
-  last commit, and restores a deleted branch*, *offers the forced delete when git refuses an unmerged branch*, *asks
-  before applying a stash, saying what it would stop on, and before deleting a tag or a merged branch*.
+- **Offered when**: the branch is not checked out here, and no other worktree has it checked out; there, **Remove
+  worktree and delete branch…** does both (`worktree.remove`).
+- **Reads**: whether its commits are merged: `git merge-base --is-ancestor refs/heads/<name> <into>`, where `<into>` is
+  its upstream, `refs/remotes/<upstream>`, when it has one that is not gone, and `HEAD` otherwise. Code 0 is merged.
+- **Plan**: merged, `git branch -d <name>`; not merged, `git branch -D <name>`. When `git branch -d` still refuses with
+  "not fully merged", **Delete anyway** offers the plan with `-D`, which is asked, as any plan is.
+- **Danger**: merged, Confirm, saying "Its commits are merged, so none is lost. Undo brings the branch back."; not
+  merged, Destructive, because "This branch is not fully merged. Commits that are only on it will no longer be reachable
+  from any branch."
+- **Undo**: Gitardo remembers the branch and its commit: Undo right after, while nothing else has moved `HEAD`, asks and
+  runs `git branch <name> <hash>`. Its upstream is not set again.
+- **Uses**: `undo.last`, `worktree.remove`.
 
 Acceptance:
 
-- [ ] **Delete** on a merged branch `topic` asks **Delete branch topic?**, whose detail says **none is lost** and ends
-      with `git branch -d topic`, whatever `gitardo.commandPreview` says.
-- [ ] **Delete** on a branch with commits of its own asks once, with a warning, **Delete branch feature (force)?**,
-      whose detail says **not fully merged** and ends with `git branch -D feature`.
-- [ ] Cancelling either runs nothing and the branch is still there.
-- [ ] Deleting the branch `release` while a tag `release` exists leaves the tag.
-- [ ] **Undo** right after it asks **Undo: restore branch topic?** and the branch is back at the same commit.
-- [ ] The branch checked out, and a branch another worktree has, have no **Delete** entry.
-- [ ] It runs through `Controller.run` and the log has the command that ran.
+- [ ] A branch merged into its upstream is deleted with `git branch -d`, after a confirmation that says it is merged.
+- [ ] A branch with no upstream and a commit that `HEAD` does not have is deleted with `git branch -D`, after the
+      warning, also with `commandPreview` set to `off`.
+- [ ] Undo right after runs `git branch <name> <hash>` and the branch is back at the same commit.
+- [ ] After another commit, Undo takes back that commit instead.
+- [ ] The branch checked out has no **Delete** entry.
+- [ ] When `git branch -d` says the branch is not fully merged, **Delete anyway** is offered and plans
+      `git branch -D <name>` with the warning.
 
-### `branch.delete-remote` — Delete a branch from its remote
+### `branch.clean-up` — Clean up branches
 
-Deletes a branch on the remote, for everyone, after a warning.
+Lists the local branches that are done with, merged or left without their upstream, and deletes the ones ticked, with
+the worktrees that have them.
 
 - **Kind**: Operation
-- **Function**: `deleteRemoteBranchOp(name, state)` in `src/git/ops.ts`.
-- **Entry points**: **Delete from remote** in the context menu of a remote branch; **Delete `<branch>` from
-  `<remote>`** under the entries of a branch whose label in the graph stands for its upstream too
-  (`gitardo.graph.combineUpstream`).
-- **Offered when**: always on a remote branch.
-- **Plan**: `> git push <remote> --delete <branch>`. The remote is the longest remote name that starts the remote
-  branch's name, so that remotes with slashes in their names are found.
-- **Danger**: Destructive, because the branch is deleted on the remote for everyone: **Delete `<branch>` from
-  `<remote>`?** with **This deletes the branch on the remote for everyone.**
-- **Undo**: Not possible: the branch is gone from the remote, and Gitardo remembers nothing to push it again; **Undo**
-  right after it takes back the operation before.
-- **Refuses**: a remote branch whose name starts with no known remote: **Cannot tell which remote `<name>` belongs
-  to.**
-- **Uses**: `preview.ask`, `log.write`.
-- **Implemented in**: `Action` case `deleteRemoteBranch` (`src/shared/protocol.ts:499`); `resolveAction` case
-  `deleteRemoteBranch` (`src/extension/actions.ts:265`); `deleteRemoteBranchOp` (`src/git/ops.ts:294`);
-  `remoteBranchMenu` and `upstreamEntries` (`src/webview/menus.ts:423`, `:358`).
-- **Tested by**: `test/git.test.ts`, *finds the remote of a remote branch even when names contain slashes*.
-- **Differs**: the branch is passed to git by its short name (`src/git/ops.ts:301`), not as `refs/heads/<branch>`: on a
-  remote that also has a tag of that name, git refuses the push as matching more than one.
+- **Function**: `features::branch::clean_up(context, answers) -> Outcome`
+- **Entry points**: **Clean up branches** in Quick search; **Clean up branches…** in the **…** menu of the header.
+- **Reads**: the branches merged into what is checked out, `git branch --merged HEAD --format=%(refname:short)`; the
+  branches whose upstream is gone, and the worktrees with how many files each has not committed, from the state of the
+  repository (`repo.read-state`).
+- **Asks**: a pick of several, titled **Clean up branches**, with the placeholder **Branches to delete, with their
+  worktrees**. Listed: every local branch that is merged into `HEAD` or whose upstream was deleted from the remote,
+  except the one checked out here and the one of the main worktree when this window is another worktree. Each says
+  why, **merged into `<branch>`** or **upstream is gone, not merged**, and, when another worktree has it, **with its
+  worktree `<name>`**, followed by **N files not committed** when it has some, or **with its missing worktree**.
+  Ticked to start with: the merged branches whose worktree, if any, has nothing uncommitted.
+- **Plan**, in this order:
+  1. `git worktree prune`, when a worktree picked is missing.
+  2. For each other worktree picked, the steps of `worktree.remove`: on Windows, `unlink <path>` for each link to a
+     folder outside it, then `git worktree remove <path>`, with `--force` when it has files not committed, and
+     `delete <path>` for what Windows kept from being deleted.
+  3. `git branch -d <merged…>`, the merged branches in one command.
+  4. `git branch -D <not merged…>`, the others in one command.
+  5. `delete <folder>` for each folder of the worktrees left empty.
+- **Danger**: Confirm; Destructive when a branch picked is not merged ("Not merged into the current branch, so their
+  commits may become unreachable: `<branches>`") or a worktree picked has files not committed ("These worktrees have
+  files not committed, which are deleted with them: `<paths>`").
+- **Undo**: Impossible: the reflog keeps no record of deleted branches, and Gitardo takes back only a branch deleted on
+  its own (`branch.delete`). The command log has each command.
+- **Refuses**: when no branch is merged or has lost its upstream, before asking anything: "No local branches are merged
+  or have lost their upstream."; when the pick is accepted with nothing ticked: "No branches selected."
+- **Uses**: `worktree.remove`, `worktree.prune`.
+
+The title of the plan counts what goes: "Delete 3 branches and 1 worktree".
 
 Acceptance:
 
-- [ ] **Delete from remote** on `team/fork/feature/x`, with the remotes `team` and `team/fork`, runs `git push
-      team/fork --delete feature/x`.
-- [ ] It always asks first, with a warning, whatever `gitardo.commandPreview` says; cancelling runs nothing.
-- [ ] `other/main` with no remote `other` is refused with **Cannot tell which remote other/main belongs to.**
-- [ ] It runs through `Controller.run` and the log has the command as shown.
-- [ ] A branch `release` whose remote also has a tag `release` is deleted as `refs/heads/release`. (differs)
+- [ ] With `a` merged and `b` whose upstream is gone and not merged, both are listed, `a` ticked and `b` not.
+- [ ] Ticking both runs `git branch -d a` and `git branch -D b`, after a warning that names `b`.
+- [ ] A merged branch checked out in another worktree with no changes is ticked, and its worktree is removed with
+      `git worktree remove <path>` before `git branch -d`.
+- [ ] A worktree with 2 files not committed is listed with **2 files not committed**, unticked, and ticking it adds
+      `--force` and the warning.
+- [ ] The branch checked out is never listed; in a window on a linked worktree, the branch of the main worktree is not
+      listed either.
+- [ ] With nothing to clean up, no pick opens and the message says so.
+- [ ] On Windows, the links of a worktree to folders outside it are unlinked before `git worktree remove`, so that the
+      folders they lead to keep their files; the folder of the worktrees it leaves empty is deleted last.
 
-### `branch.favorite` — Mark a branch as a favorite
+### `branch.fast-forward` — Fast-forward a branch that is not checked out
 
-Keeps the branches the user goes back to most in a short list above the others, for each repository.
+Brings a local branch up to its upstream without switching to it: the files and the branch checked out are not touched.
+
+- **Kind**: Operation
+- **Function**: `features::branch::fast_forward(context, answers) -> Outcome`
+- **Entry points**: **Fast-forward to `<upstream>`** in the context menu of a local branch.
+- **Offered when**: the branch is not checked out here; it has an upstream that is not gone; it has no commits of its
+  own as of the last fetch; and, when another worktree has it checked out, that worktree's folder is there and it has
+  no file not committed. It is offered however far behind the last fetch says it is: the fetch finds out.
+- **Plan**:
+  - Checked out nowhere: `git fetch <remote> refs/heads/<remote branch>:refs/heads/<branch>`, which fetches the
+    upstream and moves the branch to it in one step. Both are named in full, so that a tag of the same name is not
+    taken for either. A branch that follows another local branch has `.` for its remote, and is fetched from this
+    repository the same way.
+  - Checked out in another worktree:
+    `git -C <worktree> pull --ff-only --no-rebase --no-autostash <remote> refs/heads/<remote branch>`, so that its
+    files move with it. It never rebases or puts anything aside, whatever `pull.rebase` and the configuration of git
+    say.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo, which follows what is checked out here; the branch's own reflog has where it was
+  (`reflog.`).
+- **On failure**: git refuses when the remote branch has moved in a way that is not a fast-forward since the last
+  fetch, and says why; nothing changes.
+- **Refuses**: when the branch no longer meets the conditions above: "`<branch>` cannot be fast-forwarded: it needs an
+  upstream, no commits of its own, and not to be checked out here or in a worktree with changes not committed."
+
+For a branch with commits of its own, check it out and pull.
+
+Acceptance:
+
+- [ ] `feature`, behind `origin/feature` and with nothing of its own, runs
+      `git fetch origin refs/heads/feature:refs/heads/feature`, and points at the commit of `origin/feature` after, with
+      the files of the working tree unchanged.
+- [ ] A branch `main` that follows `origin/trunk` runs `git fetch origin refs/heads/trunk:refs/heads/main`.
+- [ ] A branch with one commit of its own has no such entry.
+- [ ] A branch checked out in another worktree with no changes runs the `git -C <worktree> pull --ff-only …` command,
+      and that worktree's files are at the new commit after.
+- [ ] A branch checked out in another worktree with a file not committed has no such entry.
+- [ ] When the remote branch was force-pushed since the last fetch, git's refusal is shown and the branch has not
+      moved.
+
+### `branch.pane` — The branch rail, its buttons and its comparison
+
+The branch rail as one place, the legend and the filter of the timeline: its top, with the branch checked out and its
+buttons; the recent branches and the favorites, the local branches, the branches of each remote under a heading of its
+own, and the stashes, worktrees, tags and submodules kept aside, with their context menus (`refs.tree`); and the
+comparison of a reference with the branch checked out.
 
 - **Kind**: View
-- **Function**: `favoriteEntry(ref, state, name)` in `src/webview/menus.ts`, and `Controller.setFavorite(ref,
-  favorite)` and `Controller.favorites(state)` in `src/extension/controller.ts`.
-- **Entry points**: **Add to favorites** and **Remove from favorites** in the context menu of a local branch and of a
-  remote branch; **Add `<remote branch>` to favorites** under the entries of a branch whose label stands for its
-  upstream too.
-- **Offered when**: always; the entry says **Remove** when the branch is a favorite.
-- **Plan**: no git command: the list of full names (`refs/heads/<name>`, `refs/remotes/<name>`) of each repository is
-  written to the workspace state under `gitardo.favorites`, and the views are sent the state at once.
-- **After**: the **Favorites** section of the references tree and of the Branches view lists them in the order they
-  were marked; each also carries a star where it is listed with the others.
-- **Uses**: nothing of the repository.
-- **Implemented in**: `WebviewMessage` `setFavorite` (`src/shared/protocol.ts:736`); `Controller.onMessage` case
-  `setFavorite`, `setFavorite`, `favorites` (`src/extension/controller.ts:2226`, `:623`, `:616`); `favoriteEntry`,
-  `branchMenu`, `remoteBranchMenu`, `upstreamEntries` (`src/webview/menus.ts:110`); the **Favorites** section of
-  `RefsTree.tsx`.
-- **Tested by**: `test/e2e/suite.ts`, *lists the branches checked out last, and remembers the favorites of each
-  repository*.
+- **Function**: `views::branch::pane(state: &ReferencesState, ui: &mut Ui) -> Vec<Intent>`
+- **Entry points**: the left of the window; **Show branches** in Quick search shows the branch rail when it was put
+  away.
+- **Settings**: `branches.followGraphFilter` (on by default): while the timeline is narrowed to some branches, the
+  branch rail lists only those; off, it lists them all, the ones the timeline leaves out dimmed. `branches.sortOrder`.
+- **Uses**: `refs.tree`, `filter.list-too`, `branch.create`, `compare.with-current`,
+  `compare.choose`, `worktree.create`, `worktree.switch`, `worktree-setup.page`,
+  `worktree-setup.bring-into-other-worktrees`, `worktree.prune`, `graph.show-in-graph`, `graph.hover-history`.
+
+What the branch rail shows and does:
+
+- Its top names the branch checked out, or `detached at <short hash>`, and has the buttons **Create branch**
+  (`branch.create` at `HEAD`) and **Compare** (`compare.choose`), which cannot be used before the first commit. When
+  the two do not fit side by side, **Create branch** is only its icon, `+`. In the narrow layout there is no top.
+- The lists, their order, their menus, the filter box from 15 branches and tags on, and the cap of 100 entries per
+  list with **Show all** are those of `refs.tree`: **Local**, then a heading for each remote (**ORIGIN**) with its
+  branches, then **Kept aside** with **Stashes**, **Worktrees**, **Tags** and **Submodules**. The lists of **Kept
+  aside** are closed when the window opens and the others open; the ones opened or closed stay so until it is closed.
+- The title of the **Worktrees** list has **+**, which creates a worktree (`worktree.create`), and **…**, with
+  **Switch worktree…**, **Choose what new worktrees get…**, **Bring ignored files into the other worktrees…**
+  and, when a worktree is missing, **Prune missing worktrees**.
+- A click on a branch narrows the timeline to its history and selects its tip; a second click on it brings the whole
+  history back (`refs.tree`). A click on a tag, a stash or a worktree still selects its commit in the timeline
+  (`graph.show-in-graph`). Neither opens a page. **Show in the timeline** in the context menu of a reference shows the
+  whole timeline at it (`graph.show-in-graph`).
+- Resting the pointer on a branch, a tag or a worktree brings out its history in the timeline while it is shown
+  (`graph.hover-history`), until the pointer leaves it.
+- **Compare with `<current branch>`** in the menu of a reference shows the comparison in the inspector
+  (`compare.in-place`), with a button that swaps its sides and one that closes it.
+- When the repository shown changes, what was selected and compared goes.
 
 Acceptance:
 
-- [ ] **Add to favorites** on `feature` and on `origin/main` makes the favorites `refs/heads/feature`,
-      `refs/remotes/origin/main`, in that order, and the views are told without the repository being read again.
-- [ ] A favorite naming a branch that is not there is not listed.
-- [ ] Another repository of the workspace has its own favorites, and switching back shows the first ones again.
-- [ ] A branch deleted is no longer a favorite; the others stay.
-- [ ] Nothing is run in git and nothing is written to the log.
-
-### `branch.cleanup` — Clean up branches
-
-Deletes, in one go, the local branches that are merged into the current one or whose upstream is gone, with the
-worktrees that have them.
-
-- **Kind**: Operation
-- **Function**: `Controller.cleanupBranches()` in `src/extension/controller.ts`, which builds
-  `cleanupBranchesOp(merged, unmerged, worktrees)` of `src/git/ops.ts`.
-- **Entry points**: **Gitardo: Clean Up Branches** in the Command Palette and in the **…** of the Branches view;
-  **Clean up branches…** in the **…** menu of the toolbar of the graph.
-- **Reads**: `git branch --merged HEAD --format=%(refname:short)`, and the state: upstreams gone, worktrees and their
-  files not committed.
-- **Asks**:
-  1. A picker of several, titled **Clean up branches**, placeholder **Branches to delete, with their worktrees**. It
-     lists every local branch merged into `HEAD` or whose upstream is gone, except the branch checked out and the branch
-     of the main worktree. Each says why, **merged into `<current branch>`** or **upstream is gone, not merged**, and,
-     when a worktree has it, **with its worktree `<worktree>`**, with **`<n>` files not committed** (**1 file not
-     committed**) when it has some, or **with its missing worktree**. Merged branches whose worktree has nothing
-     uncommitted are ticked; the others are not.
-  2. The question of the operation: always asked, **Delete `<n>` branches?** (**Delete 1 branch?**), with **and `<m>`
-     worktrees** when worktrees go too; a warning when it includes a branch not merged or a worktree with files not
-     committed, saying **Not merged into the current branch, so their commits may become unreachable: `<names>`** and
-     **These worktrees have files not committed, which are deleted with them: `<paths>`**.
-- **Plan**, in this order: `> git worktree prune` when a worktree picked is missing; for each other worktree picked,
-  `> git worktree remove <path>`, with `--force` when it has files not committed; `> git branch -d <merged…>`;
-  `> git branch -D <not merged…>`. Before the commands: `git.close <path>` for each worktree VS Code's Git extension has
-  open, and on Windows `unlink <path>` for each link to a folder outside it; when Windows holds a folder, `delete
-  <path>`; afterwards, the folder of the worktrees is removed when it was left empty.
-- **Danger**: Confirm, because branches are deleted; Destructive when a branch is not merged or a worktree has files
-  not committed.
-- **Undo**: Gitardo remembers nothing of a cleanup: **Undo** does not bring the branches back, and right after it takes
-  back the operation before.
-- **Refuses**: with nothing to list, **Gitardo: no local branches are merged or have lost their upstream.**; nothing
-  picked, nothing runs. Git refuses `-d` for a branch whose upstream does not have its commits, even when `HEAD` has
-  them, and the commands after that one do not run.
-- **Uses**: `preview.ask`, `log.write`, `worktree.remove`.
-- **Implemented in**: `UiCommand` `cleanupBranches` (`src/shared/protocol.ts:650`); `Controller.command` and
-  `Controller.cleanupBranches` (`src/extension/controller.ts:1385`, `:1472`); `Repo.mergedBranches`
-  (`src/git/repo.ts:909`); `cleanupBranchesOp` (`src/git/ops.ts:267`); `closeInVSCodeGit`, `recoverHeldWorktree`,
-  `removeEmptyParents` (`src/extension/actions.ts`), `unlinkFolderLinks` (`src/git/worktreeSetup.ts`); the command
-  `gitardo.cleanupBranches` (`src/extension/extension.ts:162`); the **…** menu of `Toolbar.tsx`.
-- **Tested by**: `test/git.test.ts`, *deletes merged branches safely and asks before forcing the others*, *removes the
-  worktrees of the branches it cleans up first, forcing only the ones with files not committed*;
-  `test/integration.test.ts`, *finds the branches that are safe to clean up and deletes them*, *cleans up branches
-  together with their worktrees, with files not committed or missing*; `test/e2e/suite.ts`, *cleans up merged branches
-  from a picker, with their worktrees*.
-- **Differs**: **Undo** right after it takes back the operation before it, which Gitardo does not warn of: see
-  `undo.last`.
-
-Acceptance:
-
-- [ ] With `done` merged and `wip` not, the picker lists both, `done` ticked and `wip` not; the branch checked out is
-      not listed.
-- [ ] Picking `done` and `wip` asks, with a warning naming `wip`, and runs `git branch -d done` then `git branch -D
-      wip`.
-- [ ] Picking only `done` asks **Delete 1 branch?** as a question, not a warning, whatever `gitardo.commandPreview`
-      says.
-- [ ] A merged branch `merged` with a worktree is listed **merged into main · with its worktree merged**, ticked; the
-      worktree is removed with `git worktree remove <path>` before `git branch -d merged`, and its folder is gone.
-- [ ] A worktree with 1 file not committed is unticked; picked, it is removed with `--force` after the warning.
-- [ ] A worktree whose folder is gone is pruned with `git worktree prune` rather than removed.
-- [ ] `--all` as a branch name is refused with **"--all" is not a valid name.**
-- [ ] With nothing to list, **Gitardo: no local branches are merged or have lost their upstream.** is said and nothing
-      runs.
-- [ ] It runs as one `GitOp` through `Controller.run`; the log has each command and each `git.close`, `unlink` and
-      `delete` line.
-
-### `branch.sort` — List branches and tags by name or by date
-
-Orders the local branches, the remote branches and the tags the same way everywhere they are listed: by name, or the
-one committed to last first.
-
-- **Kind**: Derivation
-- **Function**: `sortRefs(refs, sort)` in `src/shared/refs.ts`; `branchSort()` in `src/extension/controller.ts`, which
-  reads the settings.
-- **Entry points**: **Sort by name** and **Sort by date** in the **…** on the title of the **Local**, **Remotes** and
-  **Tags** sections of the references tree and of the Branches view, the one in use ticked; the setting
-  `gitardo.branches.sortOrder`.
-- **Plan**: no git command. The menu writes `gitardo.branches.sortOrder` to the user settings; the views are sent the
-  state in the new order when the setting changes.
-- **Settings**: `gitardo.branches.sortOrder` (`name` or `date`); while it is not set, VS Code's `git.branchSortOrder`
-  set to `committerdate` means `date`, and anything else means `name`.
-- **Implemented in**: `sortRefs` (`src/shared/refs.ts:19`); `branchSort` and its use when the state is sent
-  (`src/extension/controller.ts:216`, `:434`); `Controller.onMessage` case `setBranchSort`
-  (`src/extension/controller.ts:2214`); `sorting` in `src/webview/RefsTree.tsx`; the date of each reference,
-  `%(creatordate:unix)` in `REF_FORMAT` (`src/git/parse.ts:22`).
-- **Tested by**: `test/git.test.ts`, *sorts refs by kind, reads tracking info and peels annotated tags*, *keeps the
-  order of the names among branches committed to at the same time*; `test/integration.test.ts`, *points annotated tags
-  at their commit*. `branchSort` and its fallback: *none*.
-
-Rules of the result:
-
-- Inputs: the branches, remote branches and tags as `git for-each-ref` lists them (by name), each with its date: the
-  date of its commit, or for a tag made with a message, when the tag was made; and the order, `name` or `date`.
-- `name`: the lists are returned as they are.
-- `date`: each list is ordered by date, latest first; references of the same date keep the order of their names. The
-  lists given are not changed.
-- The three lists are always ordered the same way.
-- Worked examples:
-  - branches `a` (date 5), `b` (9), `c` (5), by `date` → `b`, `a`, `c`; by `name` → `a`, `b`, `c`.
-  - tags `v1` (1), `v2` (2), by `date` → `v2`, `v1`.
-  - `gitardo.branches.sortOrder` not set and `git.branchSortOrder` `committerdate` → `date`; neither set → `name`.
-
-Acceptance:
-
-- [ ] **Sort by date** in the menu of **Local** sets `gitardo.branches.sortOrder` to `date` in the user settings, and
-      the Local, Remotes and Tags sections, the Branches view and the pickers of branches list the latest first.
-- [ ] With the setting not set and `git.branchSortOrder` set to `alphabetically`, they are listed by name.
-- [ ] Nothing runs in git and nothing is written to the log.
+- [ ] The top of the branch rail reads the name of the branch checked out, and **Create branch** there asks for the
+      name of a branch at `HEAD`.
+- [ ] With the timeline narrowed to `main`, the branch rail lists only `main` among the local branches; with
+      `branches.followGraphFilter` off it lists all of them, the others dimmed.
+- [ ] A click on `feature` narrows the timeline to its history and selects its tip, and opens no page; a second click
+      brings the whole history back.
+- [ ] Every list of **Kept aside** is closed when the window opens, and the others are open.
+- [ ] The **…** of the Worktrees list has **Prune missing worktrees** only while a worktree's folder is missing.
 
 ### `tag.create` — Create a tag
 
-Makes a tag at a commit, with a message (annotated) or without (lightweight).
+Puts a tag on a commit: a lightweight one, or an annotated one with a message.
 
 - **Kind**: Operation
-- **Function**: `createTagOp(name, at, message)` in `src/git/ops.ts`.
-- **Entry points**: **Create tag here…** in the context menu of a commit in the graph and in the Commits view.
+- **Function**: `features::tag::create(context, answers) -> Outcome`
+- **Entry points**: **Create tag here…** in the context menu of a commit in the timeline, narrowed or not.
 - **Asks**:
-  1. An input box titled **Create tag**, placeholder **v1.0.0**, checked as a branch name is, and **A tag with that name
-     already exists**.
-  2. An input box titled **Create tag `<name>`** with the prompt **Message for an annotated tag. Leave empty for a
-     lightweight tag.** Escape cancels; the message is trimmed.
-- **Plan**: with a message, `> git tag -a <name> -m "<message>" <hash>`; without, `> git tag <name> <hash>`.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`).
-- **Undo**: Not taken back: a tag does not move `HEAD`, and Gitardo remembers nothing; **Undo** right after it takes
-  back the operation before. `tag.delete` removes it.
-- **Refuses**: a name starting with `-`, by the input box and by the builder.
-- **Uses**: `preview.ask`, `log.write`.
-- **Implemented in**: `Action` case `createTag` (`src/shared/protocol.ts:563`); `resolveAction` case `createTag`
-  (`src/extension/actions.ts:501`); `createTagOp` (`src/git/ops.ts:535`); `commitMenu`, `logMenu`
-  (`src/webview/menus.ts:189`, `:251`).
-- **Tested by**: `test/git.test.ts`, *creates branches and tags at a given commit*; `test/integration.test.ts`, *points
-  annotated tags at their commit*; `test/e2e/suite.ts`, *asks for names and options with input boxes and pickers*.
-- **Differs**: **Undo** right after it takes back the operation before it, which Gitardo does not warn of: see
-  `undo.last`.
+  1. The name, in an input box titled **Create tag** with the placeholder `v1.0.0`; checked by `branch.validate-name`
+     and "A tag with that name already exists".
+  2. The message, in an input box titled **Create tag `<name>`**, with the prompt **Message for an annotated tag. Leave
+     empty for a lightweight tag.**
+- **Plan**: with a message, `git tag -a <name> -m <message> <hash>`; without, `git tag <name> <hash>`. The message
+  without the spaces around it.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo, since nothing moved `HEAD`: `tag.delete` deletes it.
+- **Uses**: `branch.validate-name`.
 
 Acceptance:
 
-- [ ] `v1` with the message `First release` runs `git tag -a v1 -m "First release" <hash>`, and the tag is listed at
-      that commit.
-- [ ] `light` with an empty message runs `git tag light <hash>`.
-- [ ] Escape on either input box runs nothing.
-- [ ] The name of an existing tag keeps the input box open with **A tag with that name already exists**.
-- [ ] It runs through `Controller.run` and the log has the command as shown, the message quoted.
+- [ ] Name `v1.0.0` and an empty message run `git tag v1.0.0 <hash>`.
+- [ ] Name `v1.0.0` and the message `First release` run `git tag -a v1.0.0 -m "First release" <hash>`, and the tag is
+      dated when it was made.
+- [ ] Backing out of the message box runs nothing; leaving it empty and accepting makes a lightweight tag.
 
 ### `tag.push` — Push a tag
 
-Sends a tag to the default remote.
+Sends a tag to the remote.
 
 - **Kind**: Operation
-- **Function**: `pushTagOp(name, state)` in `src/git/ops.ts`.
+- **Function**: `features::tag::push(context, answers) -> Outcome`
 - **Entry points**: **Push tag** in the context menu of a tag.
 - **Offered when**: the repository has a remote.
-- **Plan**: `> git push <remote> refs/tags/<name>`, to `origin` when there is one, else to the first remote; the tag is
-  named in full, so that a branch of the same name is not pushed instead.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`).
-- **Undo**: Not possible: the remote has the tag, and `tag.delete` deletes it only here.
-- **Refuses**: with no remote, **This repository has no remote.**
-- **Uses**: `preview.ask`, `log.write`.
-- **Implemented in**: `Action` case `pushTag` (`src/shared/protocol.ts:565`); `resolveAction` case `pushTag`
-  (`src/extension/actions.ts:514`); `pushTagOp` and `defaultRemote` (`src/git/ops.ts:551`, `:94`); `tagMenu`
-  (`src/webview/menus.ts:443`).
-- **Tested by**: *none*.
+- **Plan**: `git push <remote> refs/tags/<name>`, where `<remote>` is the one of `remote.default`.
+- **Danger**: None.
+- **Undo**: Impossible: a push changes the remote, which Undo does not take back.
+- **Refuses**: "This repository has no remote." when the last remote was removed since the menu was drawn.
+- **Uses**: `remote.default`.
 
 Acceptance:
 
-- [ ] **Push tag** on `v1` with the remotes `origin` and `backup` runs `git push origin refs/tags/v1`, titled **Push
-      tag v1 to origin**.
-- [ ] With only the remote `upstream`, it runs `git push upstream refs/tags/v1`.
-- [ ] A repository without a remote has no **Push tag** entry.
-- [ ] It runs through `Controller.run` and the log has the command as shown.
+- [ ] Pushing `v1.0.0` with remotes `upstream` and `origin` runs `git push origin refs/tags/v1.0.0`.
+- [ ] With the remotes `a` and `b` only, it pushes to `a`.
+- [ ] A repository with no remote has no **Push tag** entry.
 
 ### `tag.delete` — Delete a tag
 
-Deletes a tag from this repository, after a warning that the remotes keep it.
+Deletes a tag from this repository; a remote that has it keeps it.
 
 - **Kind**: Operation
-- **Function**: `deleteTagOp(name, hash)` in `src/git/ops.ts`.
+- **Function**: `features::tag::delete(context, answers) -> Outcome`
 - **Entry points**: **Delete** in the context menu of a tag.
-- **Asks**: always, with a warning: **Delete tag `<name>`?** with **The tag, on `<short hash>`, is deleted from this
-  repository, with its message if it has one. A remote that has it keeps it.**
-- **Plan**: `> git tag -d <name>`.
-- **Danger**: Destructive, because a tag with a message is gone with its message.
-- **Undo**: Gitardo remembers nothing to make it again: **Undo** right after it takes back the operation before.
-- **Uses**: `preview.ask`, `log.write`.
-- **Implemented in**: `Action` case `deleteTag` (`src/shared/protocol.ts:564`); `resolveAction` case `deleteTag`
-  (`src/extension/actions.ts:511`); `deleteTagOp` (`src/git/ops.ts:541`); `tagMenu` (`src/webview/menus.ts:444`).
-- **Tested by**: `test/git.test.ts`, *warns before deleting a tag that it stays on the remotes*; `test/e2e/suite.ts`,
-  *asks before applying a stash, saying what it would stop on, and before deleting a tag or a merged branch*.
-- **Differs**: **Undo** right after it takes back the operation before it, which Gitardo does not warn of: see
-  `undo.last`.
+- **Plan**: `git tag -d <name>`.
+- **Danger**: Destructive, because the tag and its message, if it has one, are gone from this repository: "The tag, on
+  `<short hash>`, is deleted from this repository, with its message if it has one. A remote that has it keeps it."
+- **Undo**: Impossible: the reflog keeps no record of tags, and Gitardo does not remember deleted ones.
 
 Acceptance:
 
-- [ ] **Delete** on `v1` asks **Delete tag v1?**, as a warning, whatever `gitardo.commandPreview` says; the detail
-      names the tag's commit by its short hash and ends with `git tag -d v1`.
-- [ ] Cancelling runs nothing and the tag is still there.
-- [ ] After it, a remote that had `v1` still has it.
-- [ ] It runs through `Controller.run` and the log has `> git tag -d v1`.
+- [ ] Deleting `v1.0.0` asks, also with `commandPreview` set to `off`, then runs `git tag -d v1.0.0`.
+- [ ] The tag is still on the remote after: no push runs.
 
-### `remote.manage` — List the remotes and choose what to do with one
+### `tag.checkout` — Check out a tag
 
-Lists the remotes with their URLs, and leads to fetching, changing the URL of, renaming, copying the URL of or removing
-one, or adding another.
-
-- **Kind**: View
-- **Function**: `Controller.manageRemotes(add)` in `src/extension/controller.ts`.
-- **Entry points**: **Gitardo: Manage Remotes** in the Command Palette and in the **…** of the Branches view; **Manage
-  remotes…** in the **…** menu of the toolbar of the graph; **Add Remote…** after a fetch, pull or push in a repository
-  without a remote, which goes straight to `remote.add`.
-- **Asks**:
-  1. A picker titled **Remotes of `<repository>`**, placeholder **Pick a remote to fetch, rename, repoint or remove
-     it**: each remote with its URL as description (searched too), then **Add remote…**.
-  2. For a remote, a picker titled **`<name>`: `<url>`**: **Fetch** (described `git fetch --prune <name>`), **Change
-     URL…**, **Rename…**, **Copy URL**, **Remove** (**Deletes its remote-tracking branches here**).
-- **Reads**: `git remote` and `git remote get-url <name>` for each.
-- **After**: when an operation ran, the remote that pull requests are read from is found again, and the repository is
-  read again. **Copy URL** puts the URL on the clipboard and runs nothing.
-- **Uses**: `remote.add`, `remote.fetch`, `remote.change-url`, `remote.rename`, `remote.remove`.
-- **Implemented in**: `UiCommand` `remotes` (`src/shared/protocol.ts:656`); `Controller.command` and
-  `Controller.manageRemotes` (`src/extension/controller.ts:1385`, `:1929`); `Repo.remotes` (`src/git/repo.ts:925`);
-  the command `gitardo.remotes` (`src/extension/extension.ts:181`); the **…** menu of `Toolbar.tsx`.
-- **Tested by**: `test/e2e/suite.ts`, *adds, renames and removes a remote, and offers to add one when there is none*.
-
-Acceptance:
-
-- [ ] **Gitardo: Manage Remotes** lists each remote with its URL, then **Add remote…**.
-- [ ] Picking a remote offers **Fetch**, **Change URL…**, **Rename…**, **Copy URL** and **Remove**, in that order.
-- [ ] **Copy URL** writes the URL to the clipboard and nothing to the log.
-- [ ] Escape at either picker runs nothing.
-
-### `remote.add` — Add a remote
-
-Adds a remote by name and URL.
+Checks out the commit of a tag on a detached `HEAD`.
 
 - **Kind**: Operation
-- **Function**: `remoteAddOp(name, url)` in `src/git/ops.ts`.
-- **Entry points**: **Add remote…** in `remote.manage`; **Add Remote…** in the warning **Gitardo: this repository has
-  no remote.** after a fetch, pull or push.
-- **Asks**: an input box titled **Add remote**, prompt **Name of the remote**, with `origin` filled in when there is no
-  remote yet; then an input box titled **Add remote `<name>`**, prompt **URL of the remote repository**, placeholder
-  **https://github.com/owner/repository.git**. The name is checked as a branch name is, and **A remote with that name
-  already exists**; the URL with **Enter a URL** and, when it starts with `-`, **That is not a URL**. The URL is
-  trimmed.
-- **Plan**: `> git remote add <name> <url>`.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`).
-- **Undo**: Not taken back by **Undo**; `remote.remove` removes it.
-- **Refuses**: a name or URL starting with `-`, also in the builder: **"`<name>`" is not a valid name for a remote.**,
-  **"`<url>`" is not a valid name.**
-- **Uses**: `remote.manage`, `preview.ask`, `log.write`.
-- **Implemented in**: `Controller.manageRemotes` (`src/extension/controller.ts:1929`); `Controller.sync`, which offers
-  it (`src/extension/controller.ts:1583`); `remoteAddOp`, `remoteName` (`src/git/ops.ts:141`, `:135`).
-- **Tested by**: `test/integration.test.ts`, *adds, repoints, renames, fetches and removes remotes*;
-  `test/e2e/suite.ts`, *adds, renames and removes a remote, and offers to add one when there is none*.
+- **Function**: `features::tag::checkout(context, answers) -> Outcome`
+- **Entry points**: **Check out tag (detached)** in the context menu of a tag.
+- **Offered when**: the commit of the tag is not the one checked out.
+- **Plan**: `git checkout --detach <tag>`, the tag as `branch.ref-argument` names it, then the update of the submodules
+  (`submodule.update-on-checkout`).
+- **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
+- **Undo**: By the reflog: Undo checks out again what was checked out before (`undo.last`).
+- **Uses**: `branch.ref-argument`, `submodule.update-on-checkout`.
 
 Acceptance:
 
-- [ ] `backup` and `https://example.invalid/backup.git` run `git remote add backup https://example.invalid/backup.git`,
-      and the log has it.
-- [ ] In a repository without a remote, the name box starts with `origin`.
-- [ ] `--upload-pack=x` as the name or as the URL is refused and git is not run.
-- [ ] It runs through `Controller.run`.
+- [ ] Checking out `v1.0.0` runs `git checkout --detach v1.0.0`; with a branch also called `v1.0.0`,
+      `git checkout --detach refs/tags/v1.0.0`.
+- [ ] A tag on the commit checked out has no such entry.
+
+### `remote.read-remotes` — Read the remotes
+
+The remotes of the repository, each with the URL it is fetched from.
+
+- **Kind**: Read
+- **Function**: `git::read::remote::read_remotes(git: &Git, request: &RemotesRequest) -> Result<Vec<Remote>, GitError>`
+- **Reads**: `git remote`, then `git remote get-url <name>` for each, in the order git lists them.
+
+Acceptance:
+
+- [ ] A repository with `origin` and `upstream` gives both with their URLs.
+- [ ] A repository with no remote gives an empty list and no error.
+- [ ] A URL changed with `insteadOf` in the configuration comes back as git uses it.
+
+### `remote.default` — The remote a new upstream or a tag goes to
+
+- **Kind**: Derivation
+- **Function**: `model::remote::default(remotes: &[RemoteName]) -> Option<RemoteName>`
+- **Uses**: in `sync.push` for a branch with no upstream, and in `tag.push`.
+
+Rules: `origin` when the repository has a remote of that name; otherwise the first remote git lists; none when there is
+no remote.
+
+Acceptance:
+
+- [ ] `upstream`, `origin` gives `origin`; `a`, `b` gives `a`; no remote gives none.
+
+### `remote.manage` — Manage remotes
+
+Lists the remotes with their URLs, to fetch one alone, change its URL, rename it, copy its URL or remove it, or to add
+another.
+
+- **Kind**: Operation
+- **Function**: `features::remote::manage(context, answers) -> Outcome`
+- **Entry points**: **Manage remotes** in Quick search; **Manage remotes…** in the **…** menu of the header.
+- **Reads**: `remote.read-remotes`.
+- **Asks**:
+  1. A pick titled **Remotes of `<repository>`**, with the placeholder **Pick a remote to fetch, rename, repoint or
+     remove it**: each remote with its URL beside it, which the typed text also matches, then **Add remote…**. It is a
+     pick with a box to type in, as `worktree.switch` has.
+  2. On a remote, a pick titled **`<name>`: `<url>`**: **Fetch** (described `git fetch --prune <name>`),
+     **Change URL…**, **Rename…**, **Copy URL** and **Remove** (described **Deletes its remote-tracking branches
+     here**).
+  3. Then the questions of the feature chosen.
+- **Plan**: that of `remote.fetch`, `remote.set-url`, `remote.rename`, `remote.remove` or `remote.add`. **Copy URL**
+  puts the URL on the clipboard and runs nothing.
+- **Danger**: that of the feature chosen.
+- **Undo**: that of the feature chosen.
+- **After**: once something ran, the remote of GitHub is worked out again (`github.detect-remote`) and the repository
+  is read again.
+- **Uses**: `remote.read-remotes`, `remote.fetch`, `remote.set-url`, `remote.rename`, `remote.remove`, `remote.add`,
+  `github.detect-remote`.
+
+Acceptance:
+
+- [ ] With `origin` and `upstream`, the first pick lists both with their URLs and **Add remote…** last.
+- [ ] **Copy URL** on `origin` puts its URL on the clipboard and logs nothing.
+- [ ] Typing `github` in the first pick finds a remote by its URL.
+- [ ] Renaming `origin` to `github` and back makes the pull requests be read again from the right repository.
 
 ### `remote.fetch` — Fetch one remote
 
-Fetches a single remote, pruning its remote branches that are gone.
-
 - **Kind**: Operation
-- **Function**: `fetchRemoteOp(name)` in `src/git/ops.ts`.
-- **Entry points**: **Fetch** for a remote in `remote.manage`.
-- **Plan**: `> git fetch --prune <name>`.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`).
-- **Undo**: Nothing to take back on the local branches: **Undo** right after it takes back the operation before.
-- **Uses**: `remote.manage`, `preview.ask`, `log.write`.
-- **Implemented in**: `Controller.manageRemotes` (`src/extension/controller.ts:1929`); `fetchRemoteOp`
-  (`src/git/ops.ts:162`).
-- **Tested by**: `test/integration.test.ts`, *adds, repoints, renames, fetches and removes remotes*.
-- **Differs**: **Undo** right after it takes back the operation before it, which Gitardo does not warn of: see
-  `undo.last`.
+- **Function**: `features::remote::fetch(context, answers) -> Outcome`
+- **Entry points**: **Fetch** in the pick of `remote.manage`.
+- **Plan**: `git fetch --prune <name>`.
+- **Danger**: None.
+- **Undo**: Impossible: a fetch only moves the remote-tracking branches, which Undo does not take back.
 
 Acceptance:
 
-- [ ] **Fetch** on `upstream` runs `git fetch --prune upstream` through `Controller.run`, and the log has it.
+- [ ] Fetching `upstream` runs `git fetch --prune upstream`, and its branches deleted on the remote are gone from the
+      branch rail after.
 
-### `remote.change-url` — Change the URL of a remote
-
-Points a remote at another URL.
+### `remote.set-url` — Change the URL of a remote
 
 - **Kind**: Operation
-- **Function**: `remoteSetUrlOp(name, url)` in `src/git/ops.ts`.
-- **Entry points**: **Change URL…** for a remote in `remote.manage`.
-- **Asks**: an input box titled **Change the URL of `<name>`** with the URL filled in, checked as for `remote.add`.
-- **Plan**: `> git remote set-url <name> <url>`; nothing when the URL is the same.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`).
-- **Undo**: Not taken back by **Undo**; changing the URL again sets it back.
-- **Uses**: `remote.manage`, `preview.ask`, `log.write`.
-- **Implemented in**: `Controller.manageRemotes` (`src/extension/controller.ts:1929`); `remoteSetUrlOp`
-  (`src/git/ops.ts:145`).
-- **Tested by**: `test/integration.test.ts`, *adds, repoints, renames, fetches and removes remotes*.
+- **Function**: `features::remote::set_url(context, answers) -> Outcome`
+- **Entry points**: **Change URL…** in the pick of `remote.manage`.
+- **Asks**: the URL, in an input box titled **Change the URL of `<name>`** with the prompt **URL of the remote
+  repository**, starting from the one it has; it cannot be empty or start with `-`: "Enter a URL", "That is not a URL".
+- **Plan**: `git remote set-url <name> <url>`, the URL without the spaces around it. Nothing runs when it is unchanged.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo: changing it back does.
 
 Acceptance:
 
-- [ ] A new URL for `origin` runs `git remote set-url origin <url>`, and a push then goes to it.
-- [ ] The same URL, or Escape, runs nothing.
+- [ ] Changing `origin` to `git@github.com:owner/app.git` runs `git remote set-url origin git@github.com:owner/app.git`.
+- [ ] Accepting the URL unchanged runs nothing.
 
 ### `remote.rename` — Rename a remote
 
-Gives a remote another name; git renames its remote branches and the upstreams that follow them.
-
 - **Kind**: Operation
-- **Function**: `remoteRenameOp(from, to)` in `src/git/ops.ts`.
-- **Entry points**: **Rename…** for a remote in `remote.manage`.
-- **Asks**: an input box titled **Rename remote `<name>`** with the name filled in, checked as for `remote.add`; the
-  name as it was runs nothing.
-- **Plan**: `> git remote rename <old> <new>`.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`).
-- **Undo**: Not taken back by **Undo**; renaming it again does.
-- **Uses**: `remote.manage`, `preview.ask`, `log.write`.
-- **Implemented in**: `Controller.manageRemotes` (`src/extension/controller.ts:1929`); `remoteRenameOp`
-  (`src/git/ops.ts:149`).
-- **Tested by**: `test/integration.test.ts`, *adds, repoints, renames, fetches and removes remotes*;
-  `test/e2e/suite.ts`, *adds, renames and removes a remote, and offers to add one when there is none*.
+- **Function**: `features::remote::rename(context, answers) -> Outcome`
+- **Entry points**: **Rename…** in the pick of `remote.manage`.
+- **Asks**: the new name, in an input box titled **Rename remote `<name>`**, starting from the name it has; checked by
+  `branch.validate-name` and "A remote with that name already exists", its own name excepted.
+- **Plan**: `git remote rename <old> <new>`. Nothing runs when it is unchanged.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo: renaming it back does.
+- **Uses**: `branch.validate-name`.
+
+Git renames its remote-tracking branches and the upstreams that name it.
 
 Acceptance:
 
-- [ ] Renaming `origin` to `upstream` runs `git remote rename origin upstream`; the remote branches are then
-      `upstream/…` and `main` follows `upstream/main`.
-- [ ] A name taken by another remote keeps the input box open with **A remote with that name already exists**.
+- [ ] Renaming `origin` to `github` runs `git remote rename origin github`, and `origin/main` is `github/main` after,
+      the upstream of `main` included.
 
 ### `remote.remove` — Remove a remote
 
-Removes a remote from this repository, after a warning; nothing changes on the remote.
-
 - **Kind**: Operation
-- **Function**: `remoteRemoveOp(name)` in `src/git/ops.ts`.
-- **Entry points**: **Remove** for a remote in `remote.manage`.
-- **Asks**: always, with a warning: **Remove remote `<name>`?** with **Its remote-tracking branches (`<name>`/…) are
-  deleted from this repository, and local branches that follow them lose their upstream. Nothing changes on the remote
-  itself.**
-- **Plan**: `> git remote remove <name>`.
-- **Danger**: Destructive, because its remote branches go and local branches lose their upstream.
-- **Undo**: Not possible from Gitardo: the remote and the upstreams are gone from the configuration; `remote.add` and a
-  fetch bring the remote branches back, not the upstreams.
-- **Uses**: `remote.manage`, `preview.ask`, `log.write`.
-- **Implemented in**: `Controller.manageRemotes` (`src/extension/controller.ts:1929`); `remoteRemoveOp`
-  (`src/git/ops.ts:153`).
-- **Tested by**: `test/integration.test.ts`, *adds, repoints, renames, fetches and removes remotes*;
-  `test/e2e/suite.ts`, *adds, renames and removes a remote, and offers to add one when there is none*.
+- **Function**: `features::remote::remove(context, answers) -> Outcome`
+- **Entry points**: **Remove** in the pick of `remote.manage`.
+- **Plan**: `git remote remove <name>`.
+- **Danger**: Destructive, because "Its remote-tracking branches (`<name>`/…) are deleted from this repository, and
+  local branches that follow them lose their upstream. Nothing changes on the remote itself."
+- **Undo**: Impossible: `remote.add` adds it again, and a fetch brings its branches back, but not the upstreams.
 
 Acceptance:
 
-- [ ] **Remove** on `mirror` asks **Remove remote mirror?** as a warning, whatever `gitardo.commandPreview` says.
-- [ ] Run, the repository has no remote `mirror`, no remote branch under it, and a branch that followed it has no
-      upstream.
-- [ ] It runs through `Controller.run` and the log has `> git remote remove mirror`.
+- [ ] Removing `upstream` asks, also with `commandPreview` set to `off`, then runs `git remote remove upstream`.
+- [ ] A local branch that followed `upstream/main` has no upstream after.
 
-### `sync.fetch` — Fetch every remote
-
-Brings what every remote has, and drops the remote branches deleted there.
+### `remote.add` — Add a remote
 
 - **Kind**: Operation
-- **Function**: `syncOp('fetch', state)` in `src/git/ops.ts`, run by `Controller.sync(action)`.
-- **Entry points**: **Fetch** in the toolbar of the graph (tooltip **Fetch: git fetch --all --prune**);
-  **Gitardo: Fetch** in the Command Palette and as a button on the titles of the Commits and Gitardo Graph views.
-- **Offered when**: the toolbar is wide enough for its buttons (not in a narrow panel), and no operation runs.
-- **Plan**: `> git fetch --all --prune`.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`).
-- **Undo**: Nothing to take back on the local branches: **Undo** right after it takes back the operation before.
-- **After**: the pull requests are read again from GitHub when the user signed in.
-- **Refuses**: in a repository without a remote, nothing runs and **Gitardo: this repository has no remote.** offers
-  **Add Remote…** (`remote.add`).
-- **Uses**: `preview.ask`, `log.write`, `activity.track`.
-- **Implemented in**: `SyncAction` `fetch` (`src/shared/protocol.ts:328`); `WebviewMessage` `sync` and
-  `Controller.onMessage` (`src/extension/controller.ts:2368`); `Controller.sync` (`src/extension/controller.ts:1583`);
-  `syncOp` (`src/git/ops.ts:107`); the toolbar button (`src/webview/Toolbar.tsx:355`); the commands `gitardo.fetch`
-  (`src/extension/extension.ts:254`).
-- **Tested by**: `test/integration.test.ts`, *pulls with a rebase*; `test/e2e/suite.ts`, *pushes, fetches and pulls
-  with a rebase against the remote*.
-- **Differs**: **Undo** right after it takes back the operation before it, which Gitardo does not warn of: see
-  `undo.last`.
+- **Function**: `features::remote::add(context, answers) -> Outcome`
+- **Entry points**: **Add remote…** in the pick of `remote.manage`; **Add remote…** on the warning "This repository has
+  no remote.", which fetch, pull and push show in a repository without any remote instead of failing.
+- **Asks**:
+  1. The name, in an input box titled **Add remote** with the prompt **Name of the remote**, starting from `origin`
+     when the repository has no remote and empty otherwise; checked by `branch.validate-name` and "A remote with that
+     name already exists".
+  2. The URL, in an input box titled **Add remote `<name>`** with the prompt **URL of the remote repository** and the
+     placeholder `https://github.com/owner/repository.git`; it cannot be empty or start with `-`.
+- **Plan**: `git remote add <name> <url>`.
+- **Danger**: None.
+- **Undo**: Not taken back by Undo: `remote.remove` does.
+- **After**: the remote of GitHub is worked out again (`github.detect-remote`); nothing is fetched until asked.
+- **Uses**: `branch.validate-name`, `github.detect-remote`.
 
 Acceptance:
 
-- [ ] **Fetch** runs `git fetch --all --prune` through `Controller.run`, and the log has it.
-- [ ] After a fetch, a branch whose remote has new commits shows how far behind it is.
-- [ ] In a repository without a remote, nothing runs and the warning offers **Add Remote…**.
+- [ ] In a repository with no remote, **Push** shows "This repository has no remote." with **Add remote…**, whose name
+      box starts with `origin`.
+- [ ] Adding `origin` with `https://github.com/owner/app.git` runs
+      `git remote add origin https://github.com/owner/app.git`, and **Load pull requests from GitHub** is then in the
+      **…** menu.
+- [ ] A URL that starts with `-` cannot be accepted.
 
-### `sync.pull` — Pull, in one of four ways
+### `remote.delete-branch` — Delete a branch from its remote
 
-Brings the commits of the upstream into the branch checked out, merged or with the local commits put on top, and with
-the changes not committed set aside and put back, or not, as the settings or the menu choose.
+Deletes a branch on the remote, for everyone.
 
 - **Kind**: Operation
-- **Function**: `syncOp(action, state)` for `pull`, `pullRebase`, `pullAutostash` and `pullRebaseAutostash` in
-  `src/git/ops.ts`; `pullAction(rebase, autostash)` picks the one of the button; `Controller.sync(action)` runs it.
-- **Entry points**: **Pull** in the toolbar of the graph, with the number of commits the branch is behind; the menu
-  **More pull options** beside it: **Pull**, **Pull (rebase)**, **Pull (autostash)**, **Pull (rebase, autostash)**, the
-  one of the button marked **default**. **Gitardo: Pull** (the button), **Gitardo: Pull (No Options)**, **Gitardo: Pull
-  (Rebase)**, **Gitardo: Pull (Autostash)**, **Gitardo: Pull (Rebase, Autostash)** in the Command Palette; on the
-  titles of the Commits and Gitardo Graph views, **Pull** as a button and the four others in their **…**.
-- **Offered when**: the toolbar is wide enough for its buttons, and no operation runs.
-- **Plan**: one of `> git pull`, `> git pull --rebase`, `> git pull --autostash`, `> git pull --rebase --autostash`,
-  titled **Pull**, **Pull (rebase)**, **Pull (autostash)**, **Pull (rebase, autostash)**. The button runs
-  `--rebase` unless `gitardo.pull.rebase` is `false`, and `--autostash` unless `gitardo.pull.autostash` is `false`; its
-  tooltip says the command, as **Pull: git pull --rebase --autostash**. **Gitardo: Pull (No Options)** is always
-  `git pull`.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`).
-- **Undo**: from the reflog of the branch: **Undo** moves the branch back to where it was before the pull, with `git
-  reset --keep <previous>`, or `--mixed` when the files already match it (`undo.last`).
-- **After**: with `--autostash`, when git kept the stash it made because the changes no longer fit on what came in, the
-  warning **Gitardo: pulled, but your changes do not fit on what came in. They are in conflict in the files, and whole
-  in the stash "`<message>`": resolve the conflicts, then drop the stash.** with **Show Stashes**, which opens the
-  Stashes view. The pull requests are read again. When the pull stops on a conflict: **`<title>` stopped: …**, as for
-  any operation with conflicts (`conflict.review`).
-- **Refuses**: without a remote, nothing runs and **Gitardo: this repository has no remote.** offers **Add Remote…**.
-  Without `--autostash`, git refuses a pull that would touch a file with changes not committed: **`<title>` failed.**
-  and git's line, with **Show Log**.
-- **Settings**: `gitardo.pull.rebase` (default on), `gitardo.pull.autostash` (default on).
-- **Uses**: `preview.ask`, `log.write`, `activity.track`, `undo.last`, `stash.drop`, `conflict.review`.
-- **Implemented in**: `SyncAction` and `PullAction` (`src/shared/protocol.ts:328`, `:340`); `RepoState.defaultPull`;
-  `Controller.defaultPull`, `Controller.pull`, `Controller.sync` (`src/extension/controller.ts:1573`, `:1579`,
-  `:1583`); `syncOp`, `pullAction` (`src/git/ops.ts:107`, `:101`); `PULL_VARIANTS` and the Pull button
-  (`src/webview/Toolbar.tsx:38`, `:360`); the commands (`src/extension/extension.ts:254`, `:255`).
-- **Tested by**: `test/integration.test.ts`, *pulls with a rebase*, *pulls with changes that are not committed set
-  aside and put back, and keeps them in a stash when they no longer fit*; `test/e2e/suite.ts`, *pushes, fetches and
-  pulls with a rebase against the remote*, *pulls with the changes that are not committed set aside, and says when they
-  do not fit on what came in*, *the Pull button pulls the way the settings choose: with a rebase and the changes set
-  aside, unless told otherwise*; `test/e2e/ui.mjs`, *the button beside Pull lists the ways to pull, with and without
-  setting changes aside*.
+- **Function**: `features::remote::delete_branch(context, answers) -> Outcome`
+- **Entry points**: **Delete from remote** in the context menu of a remote branch; **Delete `<branch>` from `<remote>`**
+  at the end of the menu of a label that a branch shares with its upstream in the timeline (`graph.labels`).
+- **Plan**: `git push <remote> --delete <branch>`. The remote is the longest name among the remotes that the remote
+  branch starts with followed by `/`; the branch is the rest.
+- **Danger**: Destructive, because "This deletes the branch on the remote for everyone."
+- **Undo**: Impossible: a push changes the remote, which Undo does not take back.
+- **Refuses**: "Cannot tell which remote `<name>` belongs to." when no remote matches.
+- **Uses**: `graph.labels`.
 
 Acceptance:
 
-- [ ] With both settings on (the default), **Pull** runs `git pull --rebase --autostash` and its tooltip is **Pull: git
-      pull --rebase --autostash**.
-- [ ] `gitardo.pull.rebase` `false` makes the button run `git pull --autostash`; both `false`, `git pull`;
-      `gitardo.pull.autostash` alone `false`, `git pull --rebase`.
-- [ ] The menu beside the button lists the four ways in the order **Pull**, **Pull (rebase)**, **Pull (autostash)**,
-      **Pull (rebase, autostash)**, with **default** on the one of the button, whatever the settings.
-- [ ] **Gitardo: Pull (No Options)** runs `git pull` whatever the settings.
-- [ ] After a pull with a rebase, the local commit is on top of the one that came in, with no merge commit.
-- [ ] With a change not committed in a file the pull does not touch, **Pull (autostash)** leaves the change in the file
-      and no stash.
-- [ ] With a change where the pull changes the file too, **Pull (rebase, autostash)** leaves the file in conflict, a
-      stash named `autostash`, and the warning with **Show Stashes**.
-- [ ] Each runs through `Controller.run`, and the log has the command, as `> git pull --rebase --autostash`.
-- [ ] **Undo** right after a pull puts the branch back on its commit before the pull.
+- [ ] On `origin/feature/login` it asks, also with `commandPreview` set to `off`, then runs
+      `git push origin --delete feature/login`, and `origin/feature/login` is gone after.
+- [ ] With remotes `a` and `a/b`, deleting `a/b/x` runs `git push a/b --delete x`.
 
-### `sync.push` — Push the branch checked out
+### `sync.fetch` — Fetch
 
-Sends the commits of the branch checked out to its upstream, or, the first time, to the default remote, setting the
+Brings what every remote has, and forgets the remote branches deleted there.
+
+- **Kind**: Operation
+- **Function**: `features::sync::fetch(context, answers) -> Outcome`
+- **Entry points**: **Fetch** in the menu of **Sync** in the header, whose tooltip is **Fetch: git fetch --all
+  --prune**; **Fetch** in Quick search. **Sync** fetches first too (`sync.sync`).
+- **Plan**: `git fetch --all --prune`.
+- **Danger**: None.
+- **Undo**: Impossible: a fetch only moves the remote-tracking branches, which Undo does not take back.
+- **After**: the pull requests are read again from GitHub when the token is known (`github.read-pull-requests`).
+- **Refuses**: in a repository with no remote, nothing runs: "This repository has no remote." with **Add remote…**
+  (`remote.add`).
+- **Uses**: `remote.add`, `github.read-pull-requests`.
+
+Acceptance:
+
+- [ ] **Fetch** runs `git fetch --all --prune`, and a branch deleted on the remote is gone from the remote branches
+      after.
+- [ ] The ahead and behind counts of the branches are those of the new remote branches after.
+
+### `sync.pull` — Pull
+
+Brings what the upstream has into the branch checked out, the way the settings choose.
+
+- **Kind**: Operation
+- **Function**: `features::sync::pull(context, answers) -> Outcome`
+- **Entry points**: **Pull** in the menu of **Sync** in the header, which has the number of commits to pull when there
+  are some, and whose tooltip says the command it runs, **Pull: git pull --rebase --autostash**; **Pull** in Quick
+  search. **Sync** pulls the same way after its fetch (`sync.sync`).
+- **Plan**: `git pull`, with `--rebase` when `pull.rebase` is on and `--autostash` when `pull.autostash` is on:
+  `git pull --rebase --autostash` with both on, as they are by default.
+- **Danger**: None.
+- **Undo**: By the reflog: Undo moves the branch back to where it was before the pull (`undo.last`).
+- **After**: the pull requests are read again from GitHub when the token is known. With `--autostash`, when the changes
+  that were set aside no longer fit on what came in, `stash.autostash-left` says so.
+- **On failure**: when the pull stops on a conflict, the conflicts open as for any merge or rebase (`conflicts.`); git
+  puts the changes it set aside back by itself once the merge or the rebase is finished or given up.
+- **Refuses**: in a repository with no remote: "This repository has no remote." with **Add remote…** (`remote.add`).
+- **Settings**: `pull.rebase` (on by default) adds `--rebase`, putting the commits not pushed on top of what comes in
+  instead of merging the two; `pull.autostash` (on by default) adds `--autostash`, setting the changes that are not
+  committed aside before the pull and putting them back after. One that is off leaves its option out, and with it the
+  choice to the configuration of git.
+- **Uses**: `stash.autostash-left`, `remote.add`, `github.read-pull-requests`.
+
+Acceptance:
+
+- [ ] With both settings on by default, **Pull** runs `git pull --rebase --autostash`, and its tooltip says so.
+- [ ] With `pull.rebase` off, it runs `git pull --autostash`; with both off, `git pull`.
+- [ ] With a file modified and the upstream ahead on other files, the pull succeeds and the file is still modified
+      after; untracked files are not touched.
+- [ ] Undo right after a pull that brought commits moves the branch back to where it was.
+
+### `sync.pull-with` — Pull one way or another
+
+Pulls in one of the four ways, whatever the settings say **Pull** does.
+
+- **Kind**: Operation
+- **Function**: `features::sync::pull_with(context, answers) -> Outcome`
+- **Entry points**: the other ways to pull, in the menu of **Sync** in the header, which lists **Pull** (`git pull`),
+  **Pull (rebase)** (`git pull --rebase`), **Pull (autostash)** (`git pull --autostash`) and **Pull (rebase,
+  autostash)** (`git pull --rebase --autostash`), the one of **Pull** marked **default**; in Quick search, **Pull (no
+  options)**, which is `git pull` alone, **Pull (rebase)**, **Pull (autostash)** and **Pull (rebase, autostash)**.
+- **Plan**: the command of the way chosen.
+- **Danger**: None.
+- **Undo**: By the reflog, as `sync.pull`.
+- **After**: as `sync.pull`.
+- **On failure**: as `sync.pull`.
+- **Refuses**: as `sync.pull`.
+- **Uses**: `sync.pull`, `stash.autostash-left`.
+
+Acceptance:
+
+- [ ] **Pull (no options)** runs `git pull` even with `pull.rebase` and `pull.autostash` on.
+- [ ] With `pull.rebase` off, the menu marks **Pull (autostash)** as the default.
+
+### `sync.push` — Push
+
+Sends the commits of the branch checked out to its upstream, or, for its first push, to the remote, making that its
 upstream.
 
 - **Kind**: Operation
-- **Function**: `syncOp('push', state)` in `src/git/ops.ts`, run by `Controller.sync(action)`.
-- **Entry points**: **Push** in the toolbar of the graph (tooltip **Push: git push**), with the number of commits the
-  branch is ahead; **Push** in the menu **More push options** beside it, marked **default**; **Gitardo: Push** in the
-  Command Palette and as a button on the titles of the Commits and Gitardo Graph views.
-- **Offered when**: the toolbar is wide enough for its buttons, and no operation runs.
+- **Function**: `features::sync::push(context, answers) -> Outcome`
+- **Entry points**: **Push** in the menu of **Sync** in the header, which has the number of commits to push when there
+  are some, and whose tooltip is **Push: git push**; **Push** in Quick search. **Sync** pushes the same way after its
+  pull (`sync.sync`).
 - **Plan**:
-  - with an upstream of the same name: `> git push <remote> <branch>`;
-  - with an upstream of another name: `> git push <remote> <branch>:<upstream branch>`;
-  - without an upstream: `> git push --set-upstream <remote> <branch>`, to `origin` when there is one, else to the
-    first remote.
-  The branch is named `refs/heads/<branch>` when a tag or a remote branch shares its name.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`).
-- **Undo**: Not possible: what the remote has cannot be taken back from here. **Undo** right after it takes back the
-  last change of `HEAD`, which may be a commit that was just pushed; it says so in its question.
-- **After**: the first push of a branch, when the main remote is on GitHub and the branch has no pull request yet:
-  **Pushed `<branch>`.** with **Create Pull Request**, which opens GitHub's page to create one. The pull requests are
-  read again.
-- **Refuses**: on a detached `HEAD`, **Gitardo: Cannot push: HEAD is detached. Check out a branch first.**; without a
-  remote, nothing runs and **Gitardo: this repository has no remote.** offers **Add Remote…**. A push the remote
-  refuses, as when it has commits the branch has not: **Push `<branch>` failed.** and git's line.
-- **Uses**: `preview.ask`, `log.write`, `activity.track`, `remote.add`.
-- **Implemented in**: `SyncAction` `push` (`src/shared/protocol.ts:328`); `Controller.sync`
-  (`src/extension/controller.ts:1583`); `syncOp`, `defaultRemote` (`src/git/ops.ts:107`, `:94`); `refArg`
-  (`src/shared/refs.ts:9`); `PUSH_VARIANTS` and the Push button (`src/webview/Toolbar.tsx:45`, `:370`); the command
-  `gitardo.push` (`src/extension/extension.ts:254`).
-- **Tested by**: `test/git.test.ts`, *pushes to the upstream of the current branch*, *spells out the remote branch when
-  its name differs*, *sets the upstream on the first push*, *names the branch in full when a tag is called the same,
-  which git would not tell apart*, *refuses to push without a branch or a remote*; `test/awkward.test.ts`, *means the
-  branch when a tag has the same name*; `test/e2e/suite.ts`, *pushes, fetches and pulls with a rebase against the
-  remote*, *adds, renames and removes a remote, and offers to add one when there is none*.
-- **Differs**: **Undo** right after it takes back the operation before it, which Gitardo does not warn of: see
-  `undo.last`.
+  - With an upstream of the same name: `git push <remote> <branch>`.
+  - With an upstream of another name: `git push <remote> <branch>:<upstream branch>`.
+  - With no upstream: `git push --set-upstream <remote> <branch>`, to the remote of `remote.default`.
+  - The branch is named as `branch.ref-argument` names it: `refs/heads/<branch>` when a tag or a remote branch has its
+    name.
+- **Danger**: None.
+- **Undo**: Impossible: a push changes the remote, which Undo does not take back.
+- **After**: the pull requests are read again from GitHub when the token is known; after the first push of a branch,
+  `github.offer-after-push`.
+- **Refuses**: on a detached `HEAD`: "Cannot push: HEAD is detached. Check out a branch first."; in a repository with no
+  remote: "This repository has no remote." with **Add remote…** (`remote.add`).
+- **Uses**: `branch.ref-argument`, `remote.default`, `github.offer-after-push`, `github.read-pull-requests`.
 
 Acceptance:
 
-- [ ] `work` following `up/work` pushes with `git push up work`; following `up/main`, with `git push up work:main`.
-- [ ] `work` with no upstream pushes with `git push --set-upstream origin work`, and afterwards follows `origin/work`.
-- [ ] With a tag `work`, the commands are `git push --set-upstream origin refs/heads/work` and `git push up
-      refs/heads/work:main`, and the remote's `refs/heads/work` gets the branch's commit.
-- [ ] On a detached `HEAD` nothing runs and the error says **HEAD is detached**.
-- [ ] In a repository without a remote, nothing runs and **Gitardo: this repository has no remote.** offers **Add
-      Remote…**.
-- [ ] It runs through `Controller.run`; with `gitardo.commandPreview` `off` nothing is asked, and the log has the
-      command as shown.
+- [ ] `main` following `origin/main` runs `git push origin main`.
+- [ ] `local` following `origin/remote-name` runs `git push origin local:remote-name`.
+- [ ] A new branch `feature` with no upstream runs `git push --set-upstream origin feature`, and follows
+      `origin/feature` after.
+- [ ] `release` with a tag `release` runs `git push origin refs/heads/release`.
+- [ ] On a detached `HEAD` nothing runs and the message says why.
 
-### `sync.push-force` — Force push, with or without a lease
+### `sync.sync` — Sync with the upstream
 
-Replaces the remote branch with the branch checked out, after a warning that lists the commits of the remote branch
-that would be overwritten.
+Fetches, pulls what the upstream has, then pushes what the branch checked out has ahead of it: in one click, what the
+counts on **Sync** promise.
 
 - **Kind**: Operation
-- **Function**: `syncOp('pushForceWithLease' | 'pushForce', state)` in `src/git/ops.ts`; the list of commits is added by
-  `Controller.sync(action)` with `Repo.commitsOnlyIn(theirs, limit)`.
-- **Entry points**: **Push (force with lease)** and **Push (force)** in the menu **More push options** beside **Push**
-  in the toolbar; **Gitardo: Push (Force with Lease)** and **Gitardo: Push (Force)** in the Command Palette and in the
-  **…** of the Commits and Gitardo Graph views.
-- **Reads**: `git log --max-count=11 --format=%h %s HEAD..<upstream>`: the commits of the remote branch, as of the last
-  fetch, that the branch has not.
-- **Asks**: always, with a warning: **Push `<branch>` (--force-with-lease)?** or **Push `<branch>` (--force)?**. With
-  an upstream that is not gone, the detail starts with **These commits on `<upstream>` are not in `<branch>` and will be
-  overwritten:** and up to 10 of them as `<short hash> <subject>`, then **…and more** when there are more; or **As of
-  the last fetch, every commit on `<upstream>` is also in `<branch>`.**
-- **Plan**: as `sync.push`, with `--force-with-lease` or `--force` right after `push`: `> git push --force-with-lease
-  <remote> <branch>`, `> git push --force --set-upstream origin <branch>`.
-- **Danger**: Destructive, because the commits listed are lost from the remote branch.
-- **Undo**: Not possible from Gitardo: the overwritten commits are only where they were fetched or made.
-- **Refuses**: as `sync.push`; with `--force-with-lease`, git refuses when the remote branch moved since the last
-  fetch: **Push `<branch>` (--force-with-lease) failed.** and git's line.
-- **Uses**: `preview.ask`, `log.write`, `sync.push`.
-- **Implemented in**: `SyncAction` `pushForceWithLease`, `pushForce` (`src/shared/protocol.ts:328`); `FORCE_FLAGS` and
-  `syncOp` (`src/git/ops.ts:88`, `:107`); `Controller.sync` and `LOST_COMMITS_SHOWN`
-  (`src/extension/controller.ts:1583`, `:91`); `Repo.commitsOnlyIn` (`src/git/repo.ts:1043`); `PUSH_VARIANTS`
-  (`src/webview/Toolbar.tsx:45`); the commands (`src/extension/extension.ts:254`).
-- **Tested by**: `test/git.test.ts`, *marks force pushes as dangerous*; `test/e2e/suite.ts`, *warns about what a force
-  push overwrites*.
+- **Function**: `features::sync::sync(context, answers) -> Outcome`
+- **Entry points**: a click on **Sync** in the header (`graph.toolbar`), which shows beforehand the commits to pull and
+  to push as of the last fetch, `↓2 ↑1`, and whose tooltip is **Sync: git fetch, git pull, git push**; **Sync** in
+  Quick search. **Fetch**, **Pull** and its other ways, **Push** and its other ways stay in the menu of **Sync**.
+- **Asks**: when the branch has no upstream, a confirmation, "`<branch>` has no upstream. Publish it to `<remote>`?",
+  with **Publish branch**, `<remote>` being the one of `remote.default`.
+- **Plan**, in this order:
+  - `git fetch --all --prune`, as `sync.fetch`;
+  - the pull of `sync.pull`, as the settings of how to pull say: `git pull --rebase --autostash` with both on, as they
+    are by default;
+  - the push of `sync.push`, `git push <remote> <branch>` (with `:<upstream branch>` when the names differ, and the
+    branch named as `branch.ref-argument` names it), only when the branch has commits to push;
+  - with no upstream, after the confirmation, only the first push of `sync.push`:
+    `git push --set-upstream <remote> <branch>`.
+- **Danger**: None, as for a pull and a push: the plan is shown first only when `commandPreview` asks for it.
+- **Undo**: By the reflog, as `sync.pull`: Undo moves the branch back to where it was before the pull (`undo.last`).
+  The push is not taken back, as for `sync.push`, nor the fetch, as for `sync.fetch`; a sync that pulled nothing leaves
+  nothing for Undo to take back.
+- **After**: as `sync.pull` and `sync.push`: the pull requests are read again from GitHub when the token is known,
+  `stash.autostash-left` says when the changes set aside no longer fit, and after the first push of a branch
+  `github.offer-after-push`. The counts on **Sync** are read again with the rest of the state.
+- **On failure**: no step after the one that failed runs. A fetch that fails (no network, a remote that refuses) stops
+  the sync before the pull. A pull that stops on a conflict opens the conflicts as `sync.pull` does (`conflicts.banner`),
+  and the push does not run. A pull that git refuses because what comes in would overwrite changes not committed stops
+  the sync before the push. A push that the remote refuses, because its branch moved since the fetch, keeps what the
+  pull brought, and says what git said.
+- **Refuses**: what a pull and a push refuse: on a detached `HEAD`, "Cannot sync: HEAD is detached. Check out a branch
+  first."; in a repository with no remote, "This repository has no remote." with **Add remote…** (`remote.add`); with
+  `pull.rebase` on and `pull.autostash` off, while a tracked file has changes, staged or not, which would stop the pull:
+  "Commit or stash the changes first: the pull cannot rebase over them."
+- **Settings**: `pull.rebase` and `pull.autostash`, for the pull, as `sync.pull`; `commandPreview`.
+- **Uses**: `sync.fetch`, `sync.pull`, `sync.push`, `remote.default`, `branch.ref-argument`, `remote.add`,
+  `stash.autostash-left`, `conflicts.banner`, `github.read-pull-requests`, `github.offer-after-push`, `undo.last`.
 
 Acceptance:
 
-- [ ] After the last commit was amended, **Push (force with lease)** asks once, with a warning, whatever
-      `gitardo.commandPreview` says; the detail says **will be overwritten:** followed by the hash and subject of the
-      commit as it was, and ends with `git push --force-with-lease origin main`.
-- [ ] Cancelling runs nothing; **Run** pushes and the branch is then neither ahead nor behind its upstream.
-- [ ] With 12 commits only on the remote branch, the detail lists 10 and **…and more**.
-- [ ] With nothing only on the remote branch, the detail says **As of the last fetch, every commit on origin/main is
-      also in main.**
-- [ ] **Push (force)** on a branch without an upstream runs `git push --force --set-upstream origin <branch>`.
-- [ ] The log has the command as shown, with no flag added.
+- [ ] With `main` one commit ahead of `origin/main` and two behind, **Sync** shows `↓2 ↑1`, and a click runs
+      `git fetch --all --prune`, `git pull --rebase --autostash` and `git push origin main`, in that order; `main` and
+      `origin/main` are at the same commit after.
+- [ ] With nothing to push, the plan has the fetch and the pull and no push.
+- [ ] With `commandPreview` set to `all`, the commands are shown before any of them runs, and declining runs nothing;
+      with `off`, they run at once.
+- [ ] A branch `feature` with no upstream asks to publish it, and **Publish branch** runs only
+      `git push --set-upstream origin feature`; `feature` follows `origin/feature` after.
+- [ ] With `pull.rebase` on, `pull.autostash` off and a tracked file modified, nothing runs and the message says why.
+- [ ] When the pull stops on a conflict, the conflicts banner shows, the push does not run, and `origin/main` on the
+      remote is where it was.
+- [ ] On a detached `HEAD` nothing runs and the message says why.
+- [ ] Undo right after a sync that pulled two commits and pushed one moves `main` back to where it was before the pull;
+      the remote branch stays where the push put it.
 
-### `sync.fast-forward` — Fast-forward a branch that is not checked out
+### `sync.read-overwritten` — Read what a force push would overwrite
 
-Brings a local branch up to its upstream without switching to it: the files and the branch checked out are not
-touched. A branch that another worktree has checked out is pulled in that worktree instead.
+The commits of the upstream that the branch checked out does not have, as of the last fetch: what a force push throws
+away.
+
+- **Kind**: Read
+- **Function**: `git::read::sync::read_overwritten(git: &Git, request: &OverwrittenRequest) -> Result<Overwritten, GitError>`
+- **Reads**: `git log --max-count=11 --format=%h%x00%s%x00 HEAD..<upstream>`, the short hash and the subject of each,
+  newest first; 11 to tell whether there are more than the 10 shown.
+
+Acceptance:
+
+- [ ] With the upstream two commits ahead, it gives those two, newest first.
+- [ ] With 15 commits only on the upstream, it gives 10 and says there are more.
+- [ ] With nothing only on the upstream, it gives none.
+
+### `sync.push-force-with-lease` — Push with `--force-with-lease`
+
+Replaces the remote branch with the branch checked out, unless the remote branch has moved since the last fetch.
 
 - **Kind**: Operation
-- **Function**: `fastForwardOp(name, state)` in `src/git/ops.ts`; `canFastForward(branch, state)` in
-  `src/shared/refs.ts` decides when it is offered.
-- **Entry points**: **Fast-forward to `<upstream>`** in the context menu of a local branch, in the references tree, the
-  Branches view and on its label in the graph.
-- **Offered when**: the branch is not checked out here, has an upstream that is not gone, and has no commits of its own
-  as of the last fetch (whether it is behind is not required: the fetch finds out). When another worktree has it: only
-  while that worktree's folder is there and nothing is uncommitted in it.
-- **Plan**:
-  - not checked out anywhere: `> git fetch <remote> refs/heads/<remote branch>:refs/heads/<branch>`, titled
-    **Fast-forward `<branch>` to `<upstream>`**; without a `+`, git refuses anything but a fast-forward. An upstream
-    that is a local branch fetches from `.`, this repository.
-  - checked out in another worktree: `> git -C <worktree> pull --ff-only --no-rebase --no-autostash <remote>
-    refs/heads/<remote branch>`, titled **Fast-forward `<branch>` to `<upstream>` in its worktree**, whatever
-    `gitardo.pull.rebase` and `gitardo.pull.autostash` say.
-- **Danger**: None (asked only when `gitardo.commandPreview` is `all`).
-- **Undo**: Not taken back: `HEAD` of this window does not move, so **Undo** right after it takes back the operation
-  before.
-- **Refuses**: when the conditions above do not hold, **`<branch>` cannot be fast-forwarded: it needs an upstream, no
-  commits of its own, and not to be checked out here or in a worktree with changes not committed.**; when the remote
-  moved in a way that is not a fast-forward, git refuses: **Fast-forward `<branch>` to `<upstream>` failed.** and git's
-  line, and the branch stays where it was.
-- **Uses**: `preview.ask`, `log.write`.
-- **Implemented in**: `Action` case `fastForward` (`src/shared/protocol.ts:498`); `resolveAction` case `fastForward`
-  (`src/extension/actions.ts:262`); `fastForwardOp` (`src/git/ops.ts:172`); `canFastForward` and `worktreeOf`
-  (`src/shared/refs.ts:74`, `:64`); `branchMenu` (`src/webview/menus.ts:319`).
-- **Tested by**: `test/git.test.ts`, *fetches the remote branch of the upstream into the branch, named in full*,
-  *fetches from this repository when the upstream is a local branch*, *is offered for a branch with no commits of its
-  own, even when the last fetch saw nothing new*, *is not offered for what git would refuse or what Pull already does*,
-  *pulls a branch that another worktree has checked out in that worktree, only while nothing is uncommitted there*;
-  `test/integration.test.ts`, *fast-forwards a branch that is not checked out, and refuses one with commits of its
-  own*, *fast-forwards a branch that another worktree has checked out in that worktree, only while nothing is
-  uncommitted there*; `test/e2e/suite.ts`, *fast-forwards a branch that is not checked out to what its upstream has on
-  the remote*.
-- **Differs**: **Undo** right after it takes back the operation before it, which Gitardo does not warn of: see
-  `undo.last`.
+- **Function**: `features::sync::push_force_with_lease(context, answers) -> Outcome`
+- **Entry points**: **Push (force with lease)** among the other ways to push, in the menu of **Sync**, and in Quick
+  search.
+- **Reads**: `sync.read-overwritten`, when the branch has an upstream that is not gone.
+- **Plan**: `git push --force-with-lease <remote> <branch>`, with `:<upstream branch>` and `--set-upstream` as for
+  `sync.push`.
+- **Danger**: Destructive, because the commits only the remote branch has are lost for everyone. The warning lists them:
+  "These commits on `<upstream>` are not in `<branch>` and will be overwritten:" with up to 10 lines `<hash> <subject>`
+  and "…and more" after them when there are more; or "As of the last fetch, every commit on `<upstream>` is also in
+  `<branch>`."
+- **Undo**: Impossible: a push changes the remote, which Undo does not take back.
+- **On failure**: git refuses when the remote branch is not where the last fetch saw it, and says why; nothing is
+  overwritten.
+- **After**: as `sync.push`.
+- **Refuses**: as `sync.push`.
+- **Uses**: `sync.push`, `sync.read-overwritten`.
 
 Acceptance:
 
-- [ ] **Fast-forward to up/main** on `feature` runs `git fetch up refs/heads/main:refs/heads/feature`, and `feature` is
-      then at the commit of `up/main`.
-- [ ] Afterwards the branch checked out, `HEAD` and the files, a change not committed included, are as they were.
-- [ ] With the upstream `main` of this repository, the command is `git fetch . refs/heads/main:refs/heads/feature`.
-- [ ] It is not offered for the branch checked out, a branch without an upstream, one whose upstream is gone, or one
-      with a commit of its own.
-- [ ] When the remote branch moved in a way that is not a fast-forward, git refuses and `feature` stays on its commit.
-- [ ] With a clean worktree on `feature`, it runs `git -C <worktree> pull --ff-only --no-rebase --no-autostash up
-      refs/heads/main`, and the worktree's files have what came in.
-- [ ] With 1 file not committed in that worktree, it is not offered, and asked anyway it refuses with **feature cannot
-      be fast-forwarded: …** before git runs.
-- [ ] It runs through `Controller.run`, and the log has the command as shown.
+- [ ] After a rebase of a pushed branch, it asks with the list of the commits the remote has and the branch has not,
+      also with `commandPreview` set to `off`, then runs `git push --force-with-lease origin <branch>`.
+- [ ] When someone pushed to the remote branch since the last fetch, git refuses and the remote branch is unchanged.
+
+### `sync.push-force` — Push with `--force`
+
+Replaces the remote branch with the branch checked out, whatever it has.
+
+- **Kind**: Operation
+- **Function**: `features::sync::push_force(context, answers) -> Outcome`
+- **Entry points**: **Push (force)** among the other ways to push, in the menu of **Sync**, and in Quick search.
+- **Reads**: `sync.read-overwritten`, when the branch has an upstream that is not gone.
+- **Plan**: `git push --force <remote> <branch>`, with `:<upstream branch>` and `--set-upstream` as for `sync.push`.
+- **Danger**: Destructive, because the commits only the remote branch has are lost for everyone; the warning lists them
+  as for `sync.push-force-with-lease`, as of the last fetch.
+- **Undo**: Impossible: a push changes the remote, which Undo does not take back.
+- **After**: as `sync.push`.
+- **Refuses**: as `sync.push`.
+- **Uses**: `sync.push`, `sync.read-overwritten`.
+
+Acceptance:
+
+- [ ] It asks with the list of the commits that will be overwritten, then runs `git push --force origin <branch>`.
+- [ ] With 12 commits only on the remote, the warning lists 10 and "…and more".

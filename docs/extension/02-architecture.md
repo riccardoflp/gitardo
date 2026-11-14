@@ -10,7 +10,7 @@ The extension needs VS Code and the `git` executable on the `PATH`, nothing else
 bundled by esbuild into `dist/` (React, the Codicons font, shiki for the colors of code, Monaco for the Flow Diff) and
 listed in `package.json`; nothing is installed on the user's machine, and `npm run package` packs with
 `--no-dependencies`. Git is run as a program, never through a library: what Gitardo does is what `git` does, and the
-user can run the same commands (see [D2](08-decisions.md#d2--run-the-git-executable-never-a-library)).
+user can run the same commands (see [D24](../08-decisions.md#d24--run-the-git-executable-never-a-library)).
 
 ## Context
 

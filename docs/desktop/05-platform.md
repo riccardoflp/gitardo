@@ -3,7 +3,7 @@
 Everything Gitardo Desktop asks of the operating system goes through `crates/platform`, the only crate with `unsafe`.
 This page lists what it asks, and how: through the libraries of the window for most of it, and on each system for the
 rest. Windows comes first (see
-[D6](08-decisions.md#d6--windows-first)); Linux and macOS follow behind the same interface.
+[D6](../08-decisions.md#d6--windows-first)); Linux and macOS follow behind the same interface.
 
 ## The interface
 
@@ -29,7 +29,7 @@ rest. Windows comes first (see
 ## What the libraries do
 
 The window and what comes with it are the same on every system, through the libraries of
-[D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels), used by `platform` only:
+[D16](../08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels), used by `platform` only:
 
 | Need | Library |
 | --- | --- |
@@ -72,7 +72,7 @@ Windows are, and nothing else is linked.
 | Links | `std::os::unix::fs::symlink`. |
 | Local time | `localtime_r` of the C library, whose `tm_gmtoff` is how far the local time is from UTC (`${date}` in the names of new branches). |
 | Open, reveal | `xdg-open` run as a process; revealing a file opens its folder. |
-| Credentials | The Secret Service over D-Bus, through a library ([D22](08-decisions.md#d22--libraries-with-judgment)); until one is chosen, the file `credentials` in the configuration folder (`$XDG_CONFIG_HOME/gitardo-desktop`, or `~/.config/gitardo-desktop`), readable only by the user (mode `0600`, its folder `0700` when Gitardo makes it), and the settings page says so. |
+| Credentials | The Secret Service over D-Bus, through a library ([D22](../08-decisions.md#d22--libraries-with-judgment)); until one is chosen, the file `credentials` in the configuration folder (`$XDG_CONFIG_HOME/gitardo-desktop`, or `~/.config/gitardo-desktop`), readable only by the user (mode `0600`, its folder `0700` when Gitardo makes it), and the settings page says so. |
 | Clipboard | `arboard` over X11; on Wayland through XWayland, since its Wayland part is not built. |
 | File dialogs | `rfd` through the desktop's portal (`xdg-desktop-portal`), which falls back to `zenity` when there is no portal. |
 | Fonts of the system | `fontdb`, through `cosmic-text`, reads the usual folders (`/usr/share/fonts`, `/usr/local/share/fonts`, `~/.local/share/fonts`, `~/.fonts`), not the configuration of fontconfig. |
@@ -99,7 +99,7 @@ other systems.
 ## Text
 
 Text is drawn by `render` with `cosmic-text`, in the fonts that come with the program
-([D18](08-decisions.md#d18--the-fonts-come-with-the-program)), the same way on every system, so that the snapshots of
+([D18](../08-decisions.md#d18--the-fonts-come-with-the-program)), the same way on every system, so that the snapshots of
 the views are the same everywhere.
 
 - **Fonts**: Inter for the interface, JetBrains Mono for hashes and code, in `crates/render/fonts/` with their licence.
@@ -112,7 +112,7 @@ the views are the same everywhere.
 ## HTTP
 
 Gitardo speaks HTTPS itself only to the API of GitHub and to the AI provider; git does its own networking. The decision
-is [D13](08-decisions.md#d13--one-library-for-tls).
+is [D13](../08-decisions.md#d13--one-library-for-tls).
 
 - **`crates/tls`** opens a TLS stream over `std::net::TcpStream` with `rustls` and `ring`, TLS 1.2 or 1.3, checking the
   server's certificate against the root certificates the system trusts, read by `rustls-native-certs` (the certificate

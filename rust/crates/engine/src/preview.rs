@@ -1,4 +1,4 @@
-//! When a plan is shown to the user before it runs (`docs/04-feature-contract.md`, "Danger and confirmation").
+//! When a plan is shown to the user before it runs (`docs/desktop/04-feature-contract.md`, "Danger and confirmation").
 
 use model::contract::{CommandPreview, Danger};
 

@@ -1,5 +1,5 @@
-//! The contract every feature follows (`docs/04-feature-contract.md`): what it is given, what it asks, what it reads,
-//! and the plan it returns for the engine to run.
+//! The contract every feature follows (`docs/desktop/04-feature-contract.md`): what it is given, what it asks, what it
+//! reads, and the plan it returns for the engine to run.
 
 mod answers;
 mod conflict_results;

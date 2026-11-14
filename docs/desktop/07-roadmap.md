@@ -34,9 +34,9 @@ Exit: `gitardo-cli state` on a repository of 50,000 commits prints its state in 
 ## M2 — Pixels
 
 A window that draws, on Windows, in the look of the Timeline
-([D17](08-decisions.md#d17--the-timeline-a-window-of-gitardos-own)).
+([D17](../08-decisions.md#d17--the-timeline-a-window-of-gitardos-own)).
 
-- `platform` on the libraries of [D16](08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels): window,
+- `platform` on the libraries of [D16](../08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels): window,
   input, input methods, frame presentation, HiDPI, clipboard, file dialogs, timers, waking the loop, the screen reader.
 - `render`: frame buffer, shapes with `tiny-skia`, text with `cosmic-text` in the fonts of the program, icons, themes.
 - `ui`: layout, text, buttons, boxes, lists that draw only the rows in sight, scroll, splitters, menus, tooltips,
@@ -101,7 +101,7 @@ The platform layer for AppKit. Nothing above `platform` changes; the application
 
 Written, and checked by clippy for `aarch64-apple-darwin` from Linux: `platform` and every crate but `tls`, `http`,
 `engine` and `app`, whose `ring` needs the C compiler of Apple to be built. Nothing of it has run yet. The milestone is
-done once `cargo xtask check` passes on a Mac ([Q369](08-decisions.md#open-questions)).
+done once `cargo xtask check` passes on a Mac ([Q369](../08-decisions.md#open-questions)).
 
 ## Before a release
 

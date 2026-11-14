@@ -1,269 +1,167 @@
 # Undo, command preview and the log
 
-What every operation gets from the machinery that runs it: the question before it with its exact commands, the log of
-what ran, what is offered when git refuses, what is said when it fails, **Undo** afterwards, and the item of the status
-bar while something takes time. The features of the other areas name these cards rather than repeating them.
+What every operation goes through: the preview of its commands, the log of what ran, and Undo. These are the engine's
+features; the operations of the other files only say, on their cards, what their plan is, how dangerous it is and what
+Undo needs.
 
-### `preview.ask` — Show the exact commands before an operation runs
+### `preview.confirm` — Show the commands before they run
 
-Before an operation changes anything, Gitardo can show the commands it will run and the files it will write, and wait
-for the user to agree. It does so for every operation when the user asked for it, and always for those that can lose
-work or rewrite history.
+Before a plan runs, the engine decides from `commandPreview` and the plan's danger whether to show it, and waits for the
+user's answer.
 
-- **Kind**: Operation
-- **Function**: `Controller.run(op, options)` and `Controller.describe(repo, op)` in `src/extension/controller.ts`.
-- **Entry points**: every operation of every area; the setting `gitardo.commandPreview`.
-- **Offered when**: `gitardo.commandPreview` is `all`, or the operation has `danger` or `confirm`, and the operation
-  was not asked already by the feature itself (`asked`: the confirmation of **Resolve Conflicts Automatically**, and the
-  `then` of an operation, which is said along with it).
-- **Asks**: a modal dialog titled with the operation's title and a question mark, *Create branch feature/x?*, with one
-  button, **Run**, and VS Code's **Cancel**. A warning dialog when the operation has `danger`, an information dialog
-  otherwise. Its detail is the operation's `note`, if any, then:
-  - with no files to write: *Gitardo will run in `<root>`:* followed by the commands, one per line;
-  - with files to write: *Gitardo will write in `<root>`:* followed by the files, then *and then run:* and the
-    commands;
-  - with a `then`: the commands followed by *and once that is done:* and the commands of the `then`;
-  - with neither commands nor files: only the `note`.
-- **Plan**: none of its own: it decides whether the plan of the operation runs.
-- **Danger**: None: it is the question itself.
-- **Undo**: Nothing to undo: cancelling runs nothing.
-- **Settings**: `gitardo.commandPreview`: `off` (default) asks only before `danger` and `confirm` operations; `all`
-  asks before every operation that changes the repository or a remote, staging included.
-- **Uses**: `log.write`.
-- **Implemented in**: `Controller.run` (`src/extension/controller.ts`), `formatCommand` (`src/git/exec.ts`), the
-  `danger`, `confirm` and `note` fields set by the builders of `src/git/ops.ts` and the cases of `resolveAction`.
-- **Tested by**: `test/e2e/suite.ts`, *stages and commits without asking when the preview is off*, *shows the exact
-  commands and waits when the preview is on*; `test/e2e/ui.mjs`, the step where, with the command preview on, the dialog
-  shows the exact command and **Cancel** runs nothing.
+- **Kind**: View
+- **Function**: `views::feature::confirm_view(state: &ConfirmState, ui) -> Vec<Intent>`
+- **Entry points**: every operation, through the engine, which decides with `engine::needs_confirmation`.
+- **Asks**: one dialog with the plan's title, its steps exactly as they will be logged, the data passed on standard
+  input or through a file beside the step that takes it (the patch of `git apply --cached`, the todo list of an
+  interactive rebase, a patch from the clipboard), the reason when the plan is destructive, and **Run** and **Cancel**.
+  **Run** is the default only when the plan is not destructive.
+- **Plan**: none of its own: on **Run**, the plan it was given runs unchanged.
+- **Danger**: None
+- **Undo**: Nothing to undo: **Cancel** runs nothing.
+- **Settings**: `commandPreview` (`off` or `all`).
+
+The table of when it asks is in [04-feature-contract.md](../desktop/04-feature-contract.md#danger-and-confirmation). With
+`commandPreview` set to `off`, a plan is shown first when it is `Destructive` or `Confirm`. These are destructive, and
+every card of them says so: force push, hard reset, discarding changes, applying, popping or dropping a stash,
+deleting a branch or a tag, deleting a remote branch, removing a remote, removing a worktree, aborting an operation,
+undo, interactive rebase, squash, split, fixup, branch cleanup, a merge, cherry-pick or patch predicted to conflict,
+resolving conflicts automatically, and taking one side of a file in conflict.
 
 Acceptance:
 
-- [ ] With `gitardo.commandPreview` `off`, staging a file runs `git add` without a dialog.
-- [ ] With `gitardo.commandPreview` `all`, staging a file shows a dialog whose detail is *Gitardo will run in
-      `<root>`:* and the `git add` command, and nothing runs until **Run** is pressed.
-- [ ] **Cancel** runs no command and writes nothing to the log.
-- [ ] A `danger` operation, such as a hard reset, shows a warning dialog whatever the setting.
-- [ ] The commands in the dialog are, character for character, the commands written to the log and run, as
-      `formatCommand` writes them: an argument with characters other than letters, digits, `_` and `@%+=:,./-` is
-      quoted.
-- [ ] An operation that writes files lists them before the commands, under *Gitardo will write in `<root>`:*.
-- [ ] An operation asked for while another runs does nothing: `Controller.run` returns without asking or running.
+- [ ] With `commandPreview` `off`, creating a branch runs without a dialog, and a hard reset shows its command and a
+      warning first.
+- [ ] With `commandPreview` `all`, staging a file shows `git add -- :(literal)<path>` before it runs.
+- [ ] **Cancel** runs nothing and logs nothing.
+- [ ] The steps shown are byte for byte the lines the log then has, in the same order.
+- [ ] Staging a change in the Diff page shows the patch given on standard input beside the command.
 
-### `preview.fallback` — Offer the other way when git refuses
+### `log.record` — Log every command that changes something
 
-When git refuses an operation in a way the operation foresaw, typically because it would need to be forced, Gitardo
-offers the forced variant instead of only reporting the failure: deleting a branch that is not merged, removing a
-worktree with changes.
+Every step of every plan is written to the command log before it starts, and its result after.
 
-- **Kind**: Operation
-- **Function**: `Controller.runWithFallback(op, asked)` in `src/extension/controller.ts`; the `fallback` field of
-  `GitOp` (`{ when: RegExp; op: GitOp }`), set by the builders of `src/git/ops.ts`.
-- **Entry points**: every operation whose builder sets a `fallback`.
-- **Offered when**: the first operation failed and what git printed matches the fallback's `when`.
-- **Asks**: the fallback is asked as any operation is (`preview.ask`), with its own title, commands and danger.
-- **Plan**: the commands of the fallback.
-- **Danger**: the fallback's own, usually Destructive, because it is the forced variant.
-- **Undo**: what the fallback's own card says.
-- **Refuses**: when git's message does not match `when`, the failure is reported as any failure (`log.report-failure`).
-- **Uses**: `preview.ask`, `log.report-failure`.
-- **Implemented in**: `Controller.runWithFallback`, called by `Controller.action`.
-- **Tested by**: `test/e2e/suite.ts`, the steps that delete a branch that is not merged; *none* for the matching itself.
+- **Kind**: Operation (of the engine; it has no entry point of its own)
+- **Function**: `engine::log::record(step, result)`
+- **Plan**: the lines are, by step: the git command as it runs (arguments quoted where they hold spaces), `write <path>`,
+  `symlink <folder>`, `copy <path>`, `unlink <path>`, `delete <path>`, `run <command>`. A failed step is followed by
+  what git or the system said.
+- **Danger**: None
+- **Undo**: Not applicable.
+- **Settings**: `log.level` (`info` or `debug`): at `debug`, the reads are logged too, with how long each took.
 
 Acceptance:
 
-- [ ] The first attempt runs without its failure being shown (`silent`), and its error is written to the log.
-- [ ] When git's output matches `when`, the fallback is asked with its own dialog, and **Cancel** leaves the repository
-      as the first attempt left it.
-- [ ] When it does not match, the user sees the failure of the first attempt, once.
-
-### `log.write` — Write every command and its output to the log
-
-Every command Gitardo runs to change something, and everything it does itself, is written to the **Gitardo** output
-channel as it happens, so that the user can see and repeat it.
-
-- **Kind**: Operation
-- **Function**: the body of `Controller.run` in `src/extension/controller.ts`, writing to the `LogOutputChannel` made
-  in `src/extension/extension.ts`.
-- **Entry points**: every operation.
-- **Plan**: for each command, a line `> git <arguments>` as `formatCommand` writes it, then *standard input:* and the
-  input when the command reads one, then what git printed; for each file the operation writes, `> write <path>`; the
-  lines the operation's `prepare`, `recover` and `finish` write themselves (`symlink`, `copy`, `run`, `unlink`,
-  `delete`, `git.close`); an error as an error line.
-- **Danger**: None: it changes nothing.
-- **Undo**: Nothing to undo.
-- **After**: reads of the repository (`git log`, `git status` and the like) are written at the debug level, which the
-  channel shows only when its level is set to Debug.
-- **Implemented in**: `Controller.run`; `Repo`'s constructor gets the debug level of the log for the reads; `Activity` writes there too.
-- **Tested by**: `test/e2e/suite.ts`, the steps that compare the logged lines with the commands shown, for instance
-  `> git pull --autostash` and `> git fetch origin refs/heads/lagging:refs/heads/lagging`.
-
-Acceptance:
-
-- [ ] Each command run by an operation appears in the channel as `> git …`, before its output.
-- [ ] A command fed a patch on its standard input is followed by *standard input:* and the patch.
-- [ ] Files written by the operation appear as `> write <path>` before the commands.
-- [ ] When a command fails, what git printed is written as an error, and no later command of the operation runs.
-- [ ] A read never appears at the default level of the channel.
+- [ ] Every command that changes the repository or a remote is in the log, exactly as it ran.
+- [ ] Reads (`git log`, `git status` and the like) are not in the log at `info`, and are at `debug`.
+- [ ] A step that fails has its error under it, and the steps after it are not run nor logged.
+- [ ] A token or a key never appears in the log, also when a request to GitHub or to the AI provider fails.
 
 ### `log.show` — Show the command log
 
-**Gitardo: Show Command Log** opens the **Gitardo** output channel.
+The **Command log** in the Activity drawer lists what the log recorded, newest last, and follows it as it grows.
 
 - **Kind**: View
-- **Function**: the `gitardo.showLog` command in `src/extension/extension.ts`, which calls `log.show()`.
-- **Entry points**: **Gitardo: Show Command Log** in the Command Palette; **Show Log** on the message of a failure;
-  **Show the commands Gitardo runs** in the list of what is running.
-- **Implemented in**: `src/extension/extension.ts`; `Controller.reportFailure`; `Activity`.
-- **Tested by**: `test/e2e/suite.ts`, *registers every command it contributes*.
+- **Function**: `views::log::log_view(state, ui) -> Vec<Intent>`
+- **Entry points**: the Activity drawer; **Show Command Log** in Quick search; **Show the commands Gitardo runs** under
+  what is running, in the same drawer.
+- **Settings**: `log.level`.
 
 Acceptance:
 
-- [ ] **Gitardo: Show Command Log** shows the Output panel with the **Gitardo** channel selected.
-
-### `log.report-failure` — Say why an operation failed
-
-When an operation fails, Gitardo says so in one line with what git said that matters, or, when the operation stopped on
-conflicts, how many files have them and what to do next.
-
-- **Kind**: View
-- **Function**: `Controller.reportFailure(op, error)` in `src/extension/controller.ts`.
-- **Entry points**: the end of every operation that failed and has no matching fallback.
-- **After**:
-  - With files in conflict: a warning *`<title>` stopped: 1 file has conflicts. Resolve them, then continue or abort
-    the `<operation>`.* (*N files have conflicts*; *stage the files* when no operation is under way, as after a stash
-    that did not apply cleanly), followed by *Gitardo can resolve the conflict automatically.*, *all N conflicts* or
-    *N of the M conflicts* when the rules can, and the buttons **Resolve Automatically** (when the rules can),
-    **Resolve with AI** (when `gitardo.conflicts.ai` is on and some conflict is left to it) and **Show Log**.
-  - Otherwise: an error *`<title>` failed. `<line>`* where the line is the first that git starts with `error:` or
-    `fatal:`, or else its first line, with **Show Log**.
-- **Settings**: `gitardo.conflicts.autoResolve`, `gitardo.conflicts.ai`.
-- **Uses**: `conflict.resolve-rules`, `conflict.resolve-ai`, `log.show`.
-- **Implemented in**: `Controller.reportFailure`.
-- **Tested by**: `test/e2e/suite.ts`, the steps of a merge that stops on conflicts with the automatic resolution on.
-
-Acceptance:
-
-- [ ] A push refused by the remote shows *Push failed. error: failed to push some refs to …* with **Show Log**.
-- [ ] A merge that stops on conflicts in two files shows *Merge … stopped: 2 files have conflicts. Resolve them, then
-      continue or abort the merge.*
-- [ ] **Resolve Automatically** is offered only when the rules can resolve at least one conflict, and with
-      `gitardo.conflicts.autoResolve` off it is never run (`conflict.resolve-rules`).
+- [ ] Opening it shows the commands of the session, each with the time it started.
+- [ ] Text can be selected and copied.
+- [ ] It keeps the last 10,000 lines and says how many were dropped.
 
 ### `undo.last` — Undo the last operation
 
-**Undo** takes back the last commit, amend, checkout, merge, pull, rebase or reset, including those made from a
-terminal, by reading the reflog. Right after an operation the reflog cannot take back, it takes it back from what
-Gitardo remembered: a branch deleted, a stash dropped, conflicts resolved, a squash merge, a series of commits made by
-one cherry-pick or one patch, the split of the last commit. Undoing twice redoes.
+**Undo** takes back the last commit, amend, checkout, merge, pull, rebase or reset, also one made from a terminal, by
+reading the reflog; and the last operation Gitardo made that the reflog does not see, from its own journal. It always
+shows what it is about to do first. Undoing twice redoes.
 
 - **Kind**: Operation
-- **Function**: `undoOp(info, branch)` in `src/git/ops.ts`, from `Repo.undoInfo(branch, working)` in
-  `src/git/repo.ts`; or the operation remembered in `Controller.undoable`: `restoreBranchOp`, `restoreStashOp`,
-  `restoreConflictsOp`, `undoSquashOp`, or `undoOp` of a series.
-- **Entry points**: **Undo** in the toolbar of the graph; **Gitardo: Undo Last Operation** in the Command Palette; the
-  **…** of the headers of the Commits view and the Gitardo Graph; **Undo** on the messages after resolving conflicts, a
-  squash merge and a split.
-- **Asks**: always, with the operation's title and note (`confirm`), or a warning for restoring conflicts (`danger`).
-- **Reads**: the top entry of the reflog of `HEAD`, to tell whether what Gitardo remembered is still the last thing that
-  happened; the last two entries of the reflog of `HEAD`, and of the current branch's own reflog; whether the files
-  already look like the commit to go back to (`git diff --quiet <previous>`).
-- **Plan**, by what the reflog's last entry is:
-  - a checkout (`checkout: moving from <from> to …`): `> git checkout <from>`, or `> git checkout --detach <hash>` when
-    it came from a detached `HEAD`, followed by the update of submodules when that is on;
-  - a commit or an amend: `> git reset --soft <previous>`: the changes of the commit stay staged;
-  - anything else, when there are changes and the files already look like `<previous>`: `> git reset --mixed
-    <previous>`;
-  - anything else: `> git reset --keep <previous>`, which git refuses if it would overwrite uncommitted changes;
-  - remembered: a deleted branch, `> git branch <name> <hash>`; a dropped stash, `> git stash store -m <message>
-    <hash>`; resolved conflicts, `> git checkout --merge -- <files>`; a squash merge, `> git reset --merge`; a series,
-    `> git reset --keep <before>`; the split of the last commit, `> git reset --mixed <the commit>`.
-- **Danger**: Confirm, because it moves a branch or `HEAD`; Destructive for restoring conflicts, because what was
-  changed in those files since is lost.
-- **Undo**: Undoing again takes back the undo, by the same rules: the reset or checkout it made is the reflog's last
-  entry. A restored branch or stash is not removed again by a second undo.
-- **Refuses**: while an operation is under way, *Finish or abort the `<operation>` first.*; during a bisect, *End the
-  bisect first.*; with no reflog, or a branch with fewer than two entries, *There is nothing to undo.* Each as an error
-  message prefixed with *Gitardo:*.
-- **After**: what Gitardo remembered is forgotten once undone, or as soon as another operation succeeds, another
-  repository is shown, or the window is reloaded.
-- **Uses**: `preview.ask`, `log.write`, `submodule.update-on-checkout`.
-- **Implemented in**: action `undo` (`src/shared/protocol.ts`); its case in `resolveAction` (`src/extension/actions.ts`);
-  `Repo.undoInfo` (`src/git/repo.ts`); `undoOp`, `undoSquashOp`, `restoreBranchOp`, `restoreStashOp`,
-  `restoreConflictsOp` (`src/git/ops.ts`); `Controller.action`, which runs the remembered operation when the reflog's
-  top entry is the one recorded with it, and records it after the operations listed above.
-- **Tested by**: `test/integration.test.ts`, *undoes commits, checkouts, resets and rebases*, *merges as git does by
-  default, always with a merge commit, as a fast-forward only, or as a squash, and undoes each*, *undoes a squash merge
-  that stopped on conflicts, which leaves no merge to abort*, *splits the last commit by taking its changes out of it,
-  which undo puts back*, *undoes a whole series of cherry-picks by aborting it*; `test/e2e/suite.ts`, *undoes the last
-  commit, and restores a deleted branch*.
-- **Differs**: right after an operation that leaves no entry in the reflog of `HEAD` or of the branch, and that Gitardo
-  remembers nothing of, **Undo** takes back the operation before it; its question names that operation, but nothing
-  says it is not the last one: after
-  a stash, a push, a fetch, a tag, a remote, a branch created without checking it out or renamed, a branch cleanup, a
-  fast-forward of another branch, any operation on a worktree or a submodule. After a stash it can reset the last
-  commit with `--soft`. The cause is `Repo.undoInfo` (`src/git/repo.ts:1053`), which reads only the reflog, and
-  `Controller.action` (`src/extension/controller.ts:1689`), which forgets what it remembered after every operation
-  and records nothing for these. Also, any operation through `Controller.action`, staging a file included, forgets a
-  branch deleted or a stash dropped just before, while one run by `Controller.runIn` (the Flow Diff) or outside
-  `Controller.action` (sync, branch cleanup, remotes) does not.
+- **Function**: `features::undo::last(context, answers) -> Outcome`
+- **Entry points**: **Undo** in the **…** menu of the header; **Undo Last Operation** in Quick search; the **Undo** of
+  the messages that follow an operation.
+- **Offered when**: the journal has an entry, or the reflog of `HEAD` has a previous position.
+- **Reads**: the journal of Gitardo's own operations for this repository; the last two entries of the reflog of `HEAD`
+  and, when a branch is checked out, of `refs/heads/<branch>` (a rebase moves `HEAD` many times but the branch once, so
+  the branch's own reflog says where it was before); `git diff --quiet <previous>` when there are uncommitted changes;
+  the state of the repository, to make sure nothing happened since the operation in the journal.
+- **Plan**: the steps the journal entry or the reflog entry calls for:
+  - the last entry of the reflog of `HEAD` is `checkout: moving from <from> to …`: `git checkout <from>`, or
+    `git checkout --detach <hash>` when `<from>` is a commit, then the submodule update when
+    `submodules.updateOnCheckout` asks for it;
+  - otherwise the branch (or `HEAD`) goes back to its previous position with `git reset --<mode> <previous>`, where the
+    mode is `--soft` when the entry undone is a commit or an amend (`commit: …`, `commit (amend): …`), so that its
+    changes stay staged; `--mixed` when there are uncommitted changes and the files already are as `<previous>` has
+    them (after a soft or mixed reset), so that only `HEAD` and the index go back; and `--keep` otherwise, which git
+    refuses when it would overwrite uncommitted changes;
+  - a split of the last commit: `git reset --mixed <the commit that was split>`, since the commit may have added files
+    that are untracked now;
+  - a branch deleted in Gitardo: `git branch <name> <commit it was at>`;
+  - a stash dropped in Gitardo: `git stash store -m <message> <commit of the stash>`;
+  - conflicts resolved by Gitardo: `git checkout --merge -- <files>`;
+  - a squash merge, until something is committed: `git reset --merge`;
+  - a cherry-pick of several commits or a patch applied as commits, also continued in Gitardo after a conflict:
+    `git reset --keep <HEAD before it>`, all of it at once;
+  - a squash, or a split of an older commit: `git reset --keep <HEAD before it>`.
+
+  A branch restored this way does not get its upstream back; the dialog says so.
+- **Danger**: Destructive, because it moves a branch or rewrites files; the dialog says what it takes back in words
+  (*Undo the commit "Fix the parser"*) and the commands.
+- **Undo**: Undo again redoes what was undone, by the same means.
+- **After**: selects the commit `HEAD` is at, and says what was undone.
+- **Refuses**: when there is nothing to undo, *Nothing to undo*; when the journal entry no longer matches the
+  repository (something happened since), it falls back to the reflog; when uncommitted changes are in the way of
+  `--keep`, *Undo would overwrite changes that are not committed: commit or stash them first*.
 
 Acceptance:
 
-- [ ] After a commit, **Undo** runs `git reset --soft <the commit before it>`, and the commit's changes are staged.
-- [ ] After `git checkout feature` in a terminal, **Undo** runs `git checkout main` when `main` was checked out before.
-- [ ] After a rebase of `feature`, **Undo** moves `feature` back to where its own reflog had it before the rebase, not to
-      an intermediate `HEAD` of the rebase.
-- [ ] After deleting the branch `old` in Gitardo, **Undo** runs `git branch old <its hash>`; after any other operation in
-      between, it does not.
-- [ ] After dropping a stash in Gitardo, **Undo** runs `git stash store -m <its message> <its hash>`.
-- [ ] After a squash merge, **Undo** runs `git reset --merge`, also when the squash stopped on conflicts.
-- [ ] After a cherry-pick of three commits in one operation, **Undo** takes back all three, also when it stopped and
-      was continued in Gitardo; continued from a terminal, it takes back the last commit only.
-- [ ] During a merge that stopped, **Undo** says *Finish or abort the merge first.* and runs nothing.
-- [ ] **Undo** always asks first, whatever `gitardo.commandPreview` says.
-- [ ] **Undo** twice in a row after a commit leaves the commit as it was.
-- [ ] Right after a stash, a push or a tag, **Undo** says there is nothing it can take back, rather than taking back the
-      operation before (differs).
+- [ ] After a commit made in a terminal, Undo resets to its parent with `--soft`, and the changes are staged.
+- [ ] After a rebase of the checked out branch, Undo resets the branch to where its own reflog had it before the
+      rebase, with `--keep`.
+- [ ] After `git checkout feature` from `main`, Undo runs `git checkout main`.
+- [ ] Undo after Undo puts the commit back.
+- [ ] After deleting a branch in Gitardo, Undo creates it again at the same commit.
+- [ ] After dropping a stash in Gitardo, Undo puts it back in the list with its message.
+- [ ] After a cherry-pick of three commits that stopped on a conflict and was continued in Gitardo, one Undo takes back
+      all three.
+- [ ] After a squash merge with nothing committed since, Undo runs `git reset --merge` and the index is clean.
+- [ ] After conflicts resolved by Gitardo, Undo marks them again in every file, staged ones included.
+- [ ] With an operation made in a terminal after one of Gitardo's, Undo takes back the terminal's, by the reflog.
+- [ ] With `submodules.updateOnCheckout` on and submodules in what was checked out before, Undo of a checkout runs
+      `git checkout <from>` and then `git submodule update --init --recursive`.
 
-### `activity.track` — Show what is running in the status bar
+### `undo.journal` — Remember what Undo needs
 
-While Gitardo has been reading a repository, running an operation, comparing two sides or asking GitHub for more than
-half a second, **Gitardo** with a spinning icon shows in the status bar, with what each of those is in its tooltip.
+The engine keeps, for each repository, a journal of what each plan said Undo would need: the commit a branch was at,
+the commit of a stash, the files whose conflicts were resolved, the `HEAD` before a series. It is kept in memory, and
+an entry is dropped once the repository moves on in a way that entry does not account for.
 
-- **Kind**: View
-- **Function**: `Activity.start(title, detail)` and `Activity.track(title, work)` in `src/extension/activity.ts`.
-- **Entry points**: the status bar item **Gitardo Activity**, beside the item that opens the graph.
-- **Offered when**: something has been running for 500 ms; it goes when the last thing ends.
-- **After**: the tooltip lists each thing, oldest first, in bold with how long it has run, then its detail: what asked
-  for a read (such as a file that changed) and how many times in a row the repository was read because something
-  changed during each read. It ends with *Click to see what Gitardo is doing in a list.*
-- **Implemented in**: `src/extension/activity.ts`; `Controller.load` (reads), `Controller.run` (operations),
-  `Controller.refreshPulls` (GitHub), the comparisons.
-- **Tested by**: *none* found by name; the status bar item is reached by `test/e2e/suite.ts` only through the commands.
+- **Kind**: Derivation
+- **Function**: `engine::undo::journal_after(journal, plan, state_before, state_after) -> Journal`
+- **Danger**: None
+- **Undo**: Not applicable.
 
 Acceptance:
 
-- [ ] A read that ends within 500 ms never shows the item.
-- [ ] An operation that runs for two seconds shows **Gitardo** with a spinning icon after half a second, with its title
-      in the tooltip, and the item goes when it ends.
+- [ ] An entry is dropped when `HEAD` has moved since by something the entry did not do.
+- [ ] The journal keeps at most 50 entries per repository. (A number of Gitardo Desktop's own: the extension keeps
+      what it needs in memory only. Whether entries survive a restart is open question Q4.)
 
-### `activity.show` — List what is running
+### `activity.track` — Say what is running
 
-A click on the item, or **Gitardo: Show What Is Running**, lists the same as the tooltip, kept up to date while it is
-open, with the way to the commands Gitardo runs in its log.
+Every read, plan, comparison and request that may take longer than a frame is registered while it runs, with what it is
+in words, when it started and what asked for it, so that the activity indicator of the status bar (`activity.status-bar`)
+and the **Activity** drawer (`activity.what-is-running`) can say it. The words are those of `activity.describe-task`.
 
-- **Kind**: View
-- **Function**: the `gitardo.showActivity` command (`SHOW_ACTIVITY`), handled by `Activity` in
-  `src/extension/activity.ts`.
-- **Entry points**: the status bar item; **Gitardo: Show What Is Running** in the Command Palette.
-- **Uses**: `log.show`.
-- **Implemented in**: `src/extension/activity.ts`.
-- **Tested by**: `test/e2e/suite.ts`, *registers every command it contributes*.
+- **Kind**: Operation (of the engine; it has no entry point of its own)
+- **Function**: `engine::activity::track(description, cause) -> ActivityGuard`, which ends the entry when dropped.
+- **Danger**: None
+- **Undo**: Not applicable.
 
 Acceptance:
 
-- [ ] The list is titled **Gitardo**, with the placeholder *What Gitardo is doing now*.
-- [ ] With nothing running, it lists **Nothing is running now**, *Gitardo is not reading or changing anything*.
-- [ ] With a read running, it lists the read with its time (*3 s*, *1 min 5 s*), counted again every second while the
-      list is open.
-- [ ] Its last entry, **Show the commands Gitardo runs**, opens the **Gitardo** output channel.
+- [ ] A plan of a push shows **Pushing main to origin** in the activity indicator of the status bar while `git push` runs
+      for more than half a second, and the time it has run.

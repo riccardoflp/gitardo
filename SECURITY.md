@@ -19,4 +19,4 @@ Gitardo runs git and, when you ask, a language model and GitHub, with your right
 anything that lets a repository, a remote, GitHub or a model's answer make Gitardo do what you did not ask: run a
 command or an option you did not choose, change or delete your work without asking, show content that runs script in
 its views, or send your token or your code somewhere. What Gitardo protects and what it does not is described in
-[docs/10-security.md](docs/10-security.md).
+[docs/10-security.md](docs/extension/10-security.md).

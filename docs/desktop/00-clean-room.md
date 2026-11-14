@@ -32,7 +32,7 @@ Running the extension to see what it does is allowed on both sides: behavior is 
 ## When the specification is not enough
 
 The implementation side does not guess and does not look at the extension's source. It writes the question in
-[08-decisions.md](08-decisions.md) under **Open questions**, with the identifier of the card. The specification side
+[08-decisions.md](../08-decisions.md) under **Open questions**, with the identifier of the card. The specification side
 answers by changing the card (behavior, not code), and the question moves to the decisions with its answer.
 
 ## What counts as copying
@@ -51,14 +51,14 @@ Allowed:
 - the names of the settings, which are the product's interface with its users;
 - published algorithms implemented from their description (Myers' diff, the histogram diff of git's documentation,
   deflate), with the source named in the doc comment of the code;
-- the libraries the crates depend on ([D22](08-decisions.md#d22--libraries-with-judgment)), used through their
+- the libraries the crates depend on ([D22](../08-decisions.md#d22--libraries-with-judgment)), used through their
   public interface and their documentation, never copied into the workspace;
-- the fonts of [D18](08-decisions.md#d18--the-fonts-come-with-the-program), under their licence, which is kept beside
+- the fonts of [D18](../08-decisions.md#d18--the-fonts-come-with-the-program), under their licence, which is kept beside
   them.
 
 ## How a feature goes through the room
 
-1. **Specified.** Its card in [features/](features/README.md) has every line of the template and its acceptance list.
+1. **Specified.** Its card in [features/](../features/README.md) has every line of the template and its acceptance list.
 2. **Reviewed.** Someone who did not write the card reads it and asks what is unclear. The answers go in the card.
 3. **Built.** The function named by the card is written, with a test for each line of its acceptance list.
 4. **Checked.** `cargo xtask check` passes: the card, the function and the tests name each other.

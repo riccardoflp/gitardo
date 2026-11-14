@@ -1,78 +1,112 @@
 # Settings
 
-Every setting of Gitardo, with its default and the cards that read it. They are VS Code settings, declared in
-`package.json` under `contributes.configuration` with their descriptions, which are what the Settings editor shows; the
-naming is in [01-product.md](../01-product.md#settings). A setting whose area has no cards yet names the area.
+Every setting of Gitardo Desktop, with its default, what it changes, and the card that uses it. The settings are read
+from two files, both JSON with comments:
 
-### `settings.read` — Read the settings when they are needed
+- the user's, `settings.json` in Gitardo's configuration folder (`%APPDATA%\Gitardo Desktop` on Windows,
+  `~/.config/gitardo-desktop` on Linux, `~/Library/Application Support/Gitardo Desktop` on macOS);
+- the repository's, `.gitardo/settings.json` at its top, which can be committed to share it with everyone who works on
+  it. Only the settings marked **Repository** below are read from there, and they come before the user's.
 
-Gitardo reads a setting at the moment it is used, not once at start, so a change in the Settings editor applies to the
-next read of the repository, the next operation or the next view drawn, without reloading the window.
+The settings of the extension keep their names without the `gitardo.` prefix. The ones marked **New** are Gitardo
+Desktop's own, for what VS Code used to provide.
+
+### `settings.read` — Read the settings
 
 - **Kind**: Read
-- **Function**: `vscode.workspace.getConfiguration('gitardo')`, called where each setting is used; the three settings
-  of scope `resource` are read for the folder of the repository (`getConfiguration('gitardo', root)`).
-- **Reads**: VS Code's user, workspace and folder settings; for `gitardo.branches.sortOrder`,
-  `gitardo.worktrees.linkFolders` and `gitardo.worktrees.copyFiles`, VS Code's `git.branchSortOrder`,
-  `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles` while Gitardo's are not set.
-- **Implemented in**: `src/extension/controller.ts` (`graphColumns`, `branchSort`, `pageSize`, `Controller.load`, which
-  puts the settings the views need into the state), `src/extension/actions.ts`, `src/extension/worktreeSettings.ts`,
-  `src/extension/blame.ts`, `src/extension/fileBlame.ts`.
-- **Tested by**: `test/e2e/suite.ts`, the steps that change a setting and check the views and the commands.
+- **Function**: `app::settings::read(user_file, repository_file) -> Settings`
+- **Uses**: the parser of JSON with comments in `crates/json`.
 
 Acceptance:
 
-- [ ] Turning `gitardo.graph.showStashes` off in the Settings editor takes the stashes out of an open graph without a
-      reload.
-- [ ] Setting `gitardo.commandPreview` to `all` makes the next operation ask, without a reload.
+- [ ] A setting the repository's file sets comes before the user's, for the settings marked **Repository**.
+- [ ] A value of the wrong type is ignored, the default is used, and the settings page says which key and why.
+- [ ] A change to either file is applied without restarting, within a second.
 
-## The settings
+### `settings.edit` — Open the settings page
 
-| Setting | Default | Scope | What it does | Cards |
+A page that lists every setting with its description, its value and where it comes from, and changes it in the file
+the user chooses, keeping the file's comments and order.
+
+- **Kind**: View
+- **Function**: `views::settings::settings_view(state, ui) -> Vec<Intent>`
+- **Entry points**: **Settings** in the **…** menu of the header; **Open Settings** in Quick search; `Ctrl+,`.
+
+Acceptance:
+
+- [ ] Changing a value writes only that key, and the rest of the file, comments included, is unchanged.
+- [ ] **Edit in settings.json** opens the file in a File page.
+- [ ] A setting marked experimental says so beside its name.
+
+## The list
+
+| Setting | Default | Scope | What it does | Card |
 | --- | --- | --- | --- | --- |
-| `gitardo.commandPreview` | `off` | window | `off`: asks only before what can lose work; `all`: shows the commands of every operation first. | `preview.ask`, and every operation |
-| `gitardo.identities` | `[]` | window | Names and emails to choose from with **Gitardo: Switch Identity**, saved in the repository's configuration. | Repositories and identities (no cards yet); `commit.box` |
-| `gitardo.blame.enabled` | `true` | window | Who last changed the line under the cursor, at its end. | History and blame (no cards yet) |
-| `gitardo.blame.ignoreWhitespaceAndMoves` | `false` | window | `git blame -w -M`, for the line and the file. | History and blame (no cards yet) |
-| `gitardo.fileBlame.everyFile` | `false` | window | The blame of a file beside its lines in every file opened. | History and blame (no cards yet) |
-| `gitardo.fileBlame.format` | `${date} ${author:20}` | window | What the blame of a file says beside each line. | History and blame (no cards yet) |
-| `gitardo.fileBlame.groupLines` | `true` | window | The commit said once for lines that follow each other. | History and blame (no cards yet) |
-| `gitardo.fileBlame.age.enabled` | `true` | window | A bar in the color of the line's age. | History and blame (no cards yet) |
-| `gitardo.fileBlame.age.recentColor` | `#e5534b` | window | The color of a line just changed. | History and blame (no cards yet) |
-| `gitardo.fileBlame.age.oldColor` | `#316dca` | window | The color of a line changed long ago. | History and blame (no cards yet) |
-| `gitardo.fileBlame.age.oldAfterDays` | `730` | window | After how many days a line is old. | History and blame (no cards yet) |
-| `gitardo.changes.openOnClick` | `file` | window | What a click on a file of the Changes view opens: the file or its diff. | `changes.open` |
-| `gitardo.scm.stashButtons` | `true` | window | The stash buttons in VS Code's own Source Control view. | `stash.push`, `stash.push-staged`, `stash.push-files` |
-| `gitardo.pull.autostash` | `true` | window | **Pull** adds `--autostash`. | `sync.pull` |
-| `gitardo.pull.rebase` | `true` | window | **Pull** adds `--rebase`. | `sync.pull` |
-| `gitardo.submodules.updateOnCheckout` | `true` | window | A checkout is followed by `git submodule update --init --recursive`. | `submodule.update-on-checkout`, `branch.checkout`, `branch.checkout-remote`, `branch.checkout-detached`, `branch.create`, `stash.branch` |
-| `gitardo.cherryPick.recordOrigin` | `false` | window | Cherry-picks end their message with the commit they come from (`-x`). | `cherry-pick.one`, `cherry-pick.many` |
-| `gitardo.branches.openIn` | `checkout` | window | What a double click on a local branch does: check it out, or open it in a worktree. | `branch.checkout`, `worktree.open-in-worktree` |
-| `gitardo.readOnStartup` | `true` | window | Read the repository when VS Code starts. | Repositories and identities (no cards yet) |
-| `gitardo.graph.pageSize` | `1000` | window | How many commits the graph reads at a time, from 100 to 10,000. | Graph (no cards yet) |
-| `gitardo.graph.showStashes` | `true` | window | The stashes in the graph. Written by the toolbar's menu, in the user settings. | `stash.graph` |
-| `gitardo.graph.columns` | `["author", "date", "hash"]` | window | What is shown beside each message. | Graph (no cards yet) |
-| `gitardo.graph.dateSeparators` | `true` | window | The lines that name yesterday, this week, each month. Written by the toolbar's menu. | Graph (no cards yet) |
-| `gitardo.graph.combineUpstream` | `true` | window | A branch and its upstream on one label while at the same commit. Written by the toolbar's menu. | Graph (no cards yet); `branch.delete-remote` |
-| `gitardo.graph.firstParent` | `false` | window | Follow only the first parent of merges. | Graph (no cards yet) |
-| `gitardo.graph.traceSelected` | `true` | window | Bring out the history of the selected commit. | Graph (no cards yet) |
-| `gitardo.branches.sortOrder` | not set | window | `name` or `date`; not set, VS Code's `git.branchSortOrder` decides, and by name without it. Written by the sections' menu. | `branch.sort` |
-| `gitardo.branches.followGraphFilter` | `true` | window | The references list only the branches shown. Written by the switch above the references. | Search and filter (no cards yet) |
-| `gitardo.branches.format` | `""` | window | A format for the names of new branches. | `branch.name-format`, `branch.create`, `worktree.branch-name`, `worktree.create` |
-| `gitardo.branches.inputs` | `[]` | window | What each `${input:<id>}` of the format asks. | `branch.name-format`, `branch.create`, `worktree.branch-name`, `worktree.create` |
-| `gitardo.worktrees.openIn` | `window` | window | Where a worktree opens: a new window or the Agents window. | `worktree.open`, `worktree.open-in-worktree`, `worktree.switch` |
-| `gitardo.worktrees.folder` | `${repo}.worktrees` | window | Where new worktrees go. | `worktree.folder`, `worktree.create` |
-| `gitardo.worktrees.linkFolders` | `[]` | resource | Ignored folders linked into each new worktree. Falls back to `git.worktreeSymlinkFolders`. | `setup.link-and-copy`, `setup.source`, `setup.page`, `setup.save`, `setup.explorer-link` |
-| `gitardo.worktrees.copyFiles` | `[]` | resource | Ignored files copied into each new worktree. Falls back to `git.worktreeIncludeFiles`. | `setup.link-and-copy`, `setup.source`, `setup.page`, `setup.save`, `setup.explorer-copy` |
-| `gitardo.worktrees.setupCommands` | `[]` | resource | Commands run in a terminal in each new worktree. | `setup.commands`, `setup.page`, `setup.save` |
-| `gitardo.worktrees.branchFormat` | `""` | window | The older name of `gitardo.branches.format`, read while that one is not set. Has no description, so the Settings editor shows it bare. | `branch.name-format` |
-| `gitardo.worktrees.inputs` | `[]` | window | The older name of `gitardo.branches.inputs`, read while that one is empty. | `branch.name-format` |
-| `gitardo.conflicts.autoResolve` | `false` | window | Experimental: offer the rules for conflicts that need no choice. | `conflict.resolve-rules`, `conflict.review`, `operation.banner`, `log.report-failure` |
-| `gitardo.conflicts.ai` | `false` | window | Experimental: offer the language model for the conflicts the rules leave. | `conflict.resolve-ai`, `conflict.review`, `log.report-failure` |
-| `gitardo.conflicts.aiModel` | `""` | window | The model asked; empty for the first VS Code has. | `conflict.choose-model`, `conflict.resolve-ai` |
-| `gitardo.conflicts.aiEffort` | `""` | window | How much the model thinks before it answers. | `conflict.choose-model`, `conflict.resolve-ai` |
-| `gitardo.flowDiff.collapseUnchanged` | `true` | window | The Flow Diff folds long runs of unchanged lines. | The Flow Diff and the Flow Merge (no cards yet) |
+| `commandPreview` | `"off"` | User | When the commands are shown before they run: `off` for the ones that can lose work, `all` for everything that changes something. | `preview.confirm` |
+| `identities` | `[]` | User | Names, emails and optional signing keys to choose from when switching identity. | `identity.switch` |
+| `readOnStartup` | `true` | User, Repository | Read the repository when the window opens, before the timeline is shown. | `repo.read-state` |
+| `graph.pageSize` | `1000` | User, Repository | How many commits the timeline reads at a time. | `graph.load-more` |
+| `graph.showStashes` | `true` | User | Show the stashes in the timeline. | `graph.stashes` |
+| `graph.columns` | `["author","date","hash"]` | User | What is shown beside the message of each commit. | `graph.columns` |
+| `graph.dateSeparators` | `true` | User | The lines of yesterday, this week, last week and each month. | `graph.date-separators` |
+| `graph.combineUpstream` | `true` | User | A branch and its upstream of the same name share one label while at the same commit. | `graph.labels` |
+| `graph.firstParent` | `false` | User | Follow only the first parent of merges. | `graph.first-parent` |
+| `graph.traceSelected` | `true` | User | Bring out the history of the selected commit. | `graph.trace-selected` |
+| `branches.sortOrder` | not set | User | `name` or `date`, for branches, remote branches and tags everywhere they are listed. Not set: by name, or by date when Git's `branch.sort` is `-committerdate` or `committerdate`. | `refs.sort` |
+| `branches.followGraphFilter` | `true` | User | The branch rail lists only the branches the timeline is narrowed to. | `filter.list-too` |
+| `branches.format` | `""` | User, Repository | A format for the names of new branches and worktrees. | `branch.format-name` |
+| `branches.inputs` | `[]` | User, Repository | What the `${input:<id>}` of the format asks for. | `branch.format-name` |
+| `branches.openIn` | `"checkout"` | User | What a double click on a local branch does: `checkout` or `worktree`. | `branch.checkout` |
+| `pull.rebase` | `true` | User, Repository | **Pull** adds `--rebase`. | `sync.pull` |
+| `pull.autostash` | `true` | User, Repository | **Pull** adds `--autostash`. | `sync.pull` |
+| `cherryPick.recordOrigin` | `false` | User, Repository | Cherry-picks end their message with `(cherry picked from commit …)`, as `-x` does. | `cherry-pick.commit` |
+| `submodules.updateOnCheckout` | `true` | User, Repository | After a checkout, update the submodules to the commits it records. | `submodule.update-on-checkout` |
+| `changes.openOnClick` | `"file"` | User | What a click on a file of the Changes page opens: `file` or `diff`. | `changes.open` |
+| `worktrees.openIn` | `"window"` | User | Where a worktree opens: `window` (a new window of Gitardo Desktop), `editor` (the external editor) or `terminal`. **New** values: the extension had `window` and `agents`. | `worktree.open` |
+| `worktrees.folder` | `"${repo}.worktrees"` | User, Repository | Where new worktrees go. | `worktree.create` |
+| `worktrees.linkFolders` | `[]` | User, Repository | Ignored folders to link into new worktrees, in `.gitignore` syntax. | `worktree-setup.link-and-copy-steps` |
+| `worktrees.copyFiles` | `[]` | User, Repository | Ignored files and folders to copy into new worktrees, in `.gitignore` syntax. | `worktree-setup.link-and-copy-steps` |
+| `worktrees.setupCommands` | `[]` | User, Repository | Commands to run in each new worktree, in Tasks of the Activity drawer, in a trusted folder only. | `worktree-setup.command-steps` |
+| `conflicts.autoResolve` | `false` | User | **Experimental.** Offer to resolve the conflicts that need no choice. | `conflicts.resolve-by-rules` |
+| `conflicts.ai` | `false` | User | **Experimental.** Offer to ask the AI provider about the conflicts the rules leave. | `ai.resolve-conflicts` |
+| `blame.enabled` | `true` | User | The blame of the line under the cursor, at its end, in the File page. | `blame.current-line` |
+| `blame.ignoreWhitespaceAndMoves` | `false` | User | Blame with `-w -M`. | `blame.ignore-whitespace` |
+| `fileBlame.everyFile` | `false` | User | Show the blame beside the lines of every file opened. | `blame.every-file` |
+| `fileBlame.format` | `"${date} ${author:20}"` | User | What the blame says beside each line. | `blame.format-line` |
+| `fileBlame.groupLines` | `true` | User | Say the commit once for the lines of it that follow each other. | `blame.file` |
+| `fileBlame.age.enabled` | `true` | User | The bar in the color of the age of each line. | `blame.age-color` |
+| `fileBlame.age.recentColor` | `"#e5534b"` | User | The color of a line just changed. | `blame.age-color` |
+| `fileBlame.age.oldColor` | `"#316dca"` | User | The color of a line changed long ago. | `blame.age-color` |
+| `fileBlame.age.oldAfterDays` | `730` | User | After how many days a line has the old color. | `blame.age-color` |
+| `diff.collapseUnchanged` | `true` | User | The Diff page folds long runs of unchanged lines, keeping 3 around each change. Was `flowDiff.collapseUnchanged`. | `diff.collapse-unchanged` |
+| `ai.provider` | `""` | User | **New.** The kind of HTTP interface of the language model: `anthropic` or `openai-compatible`. Empty: no AI. | `ai.choose-model` |
+| `ai.endpoint` | `""` | User | **New.** The base URL of the provider; empty for the provider's own. | `ai.choose-model` |
+| `ai.model` | `""` | User | The model asked, as the provider names it. Was `conflicts.aiModel`, now used for drafting commit messages too. | `ai.choose-model` |
+| `ai.effort` | `""` | User | How much the model thinks before it answers: empty, `low`, `medium`, `high`, `xhigh` or `max`. Was `conflicts.aiEffort`. | `ai.choose-model` |
+| `editor.external` | `""` | User | **New.** The command that opens a file in another editor, with `${file}` and `${line}`, such as `code --goto ${file}:${line}`. Empty: the system's default program for the file. | `file-view.open-external` |
+| `editor.wordWrap` | `"off"` | User | **New.** `on` wraps a line longer than the File page between its words, or inside a word longer than the page; `off` cuts it at the right edge. | `file-view.page` |
+| `terminal.external` | `""` | User | **New.** The command that opens a terminal in a folder, with `${folder}`. Empty: the system's default terminal. | `worktree.open-in-terminal` |
+| `theme` | `"system"` | User | **New.** `system`, `dark`, `light`, `highContrastDark` or `highContrastLight`. | `settings.theme` |
+| `font.ui`, `font.code`, `font.size` | `"Inter"`, `"JetBrains Mono"`, `13` | User | **New.** The families and the size of the text of the interface and of code: the fonts that come with the program, or the name of a font of the system. | `settings.theme` |
+| `log.level` | `"info"` | User | **New.** `info` logs what changes something; `debug` logs the reads too. | `log.record` |
 
-Settings of VS Code's Git extension that Gitardo reads: `git.branchSortOrder`, `git.worktreeSymlinkFolders`,
-`git.worktreeIncludeFiles`; and that it writes, when the user asks on the page of what new worktrees get:
-`git.worktreeSymlinkFolders`, `git.worktreeIncludeFiles`.
+Settings of the extension that have no place here: `gitardo.scm.stashButtons` (VS Code's list of changes),
+`gitardo.worktrees.branchFormat` and `gitardo.worktrees.inputs` (old names of `branches.format` and `branches.inputs`,
+which Gitardo Desktop does not read).
+
+### `settings.theme` — Choose the theme and the fonts
+
+- **Kind**: Operation
+- **Function**: `features::settings::theme(context, answers) -> Outcome`
+- **Entry points**: **Theme…** in the **…** menu of the header and in Quick search; the settings page.
+- **Asks**: the theme, from the five of `theme`, shown as the user moves through the list.
+- **Plan**: `write <settings file>` with the key changed.
+- **Danger**: None
+- **Undo**: Choosing again.
+- **Settings**: `theme`, `font.ui`, `font.code`, `font.size`.
+
+Acceptance:
+
+- [ ] With `system`, the window follows the system when it switches between dark and light, without restarting.
+- [ ] Every place of the window and every page is drawn with the tokens of the theme chosen, and the snapshots of each
+      theme are those of the reference.

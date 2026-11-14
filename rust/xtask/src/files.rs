@@ -5,10 +5,11 @@ use std::path::{Path, PathBuf};
 
 use crate::error::Error;
 
-/// A file of the workspace, with its path from the root of the workspace written with `/`.
+/// A file of the workspace, or a document of the repository, with its path written with `/`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceFile {
-    /// Where it is, from the root of the workspace, with `/` between folders on every system.
+    /// Where it is, with `/` between folders on every system: from the root of the workspace for its own files
+    /// (`crates/…`), from the root of the repository for the documents (`docs/…`).
     pub relative: String,
     /// Where it is on the disk.
     pub path: PathBuf,
@@ -25,6 +26,25 @@ const TEXT_NAMES: [&str; 2] = [".gitattributes", ".gitignore"];
 pub fn workspace_files(root: &Path) -> Result<Vec<SourceFile>, Error> {
     let mut found = Vec::new();
     collect(root, "", &mut found)?;
+    found.sort_by(|first, second| first.relative.cmp(&second.relative));
+    Ok(found)
+}
+
+/// The folder of the documents, at the root of the repository, one folder above the workspace (`rust/`).
+const DOCUMENTS: &str = "docs";
+
+/// Every file of the documents of the repository that holds the workspace at `root`, sorted and named from the root of
+/// the repository (`docs/features/…`), as the cards and the comments of the code name them; none when there is no
+/// such folder.
+pub fn document_files(root: &Path) -> Result<Vec<SourceFile>, Error> {
+    let Some(folder) = root.parent().map(|repository| repository.join(DOCUMENTS)) else {
+        return Ok(Vec::new());
+    };
+    if !folder.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut found = Vec::new();
+    collect(&folder, &format!("{DOCUMENTS}/"), &mut found)?;
     found.sort_by(|first, second| first.relative.cmp(&second.relative));
     Ok(found)
 }

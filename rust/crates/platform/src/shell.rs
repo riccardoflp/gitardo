@@ -1,4 +1,4 @@
-//! Opening an address in the browser of the system (`docs/05-platform.md`, Shell): `ShellExecuteW` on Windows,
+//! Opening an address in the browser of the system (`docs/desktop/05-platform.md`, Shell): `ShellExecuteW` on Windows,
 //! `open` on macOS and `xdg-open` elsewhere.
 
 use crate::error::PlatformError;

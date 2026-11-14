@@ -1,5 +1,5 @@
 //! What can go wrong with a request, in words the user can act on. No message carries a header's value, the body of
-//! a request or the password of a proxy (`docs/05-platform.md`, Secrets).
+//! a request or the password of a proxy (`docs/desktop/05-platform.md`, Secrets).
 
 use std::fmt;
 
