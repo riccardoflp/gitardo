@@ -831,7 +831,7 @@ links and copies made.
 - **Kind**: Derivation
 - **Function**: `model::worktree_setup::command_steps(input) -> SetupSteps`
 - **Settings**: `worktrees.setupCommands`.
-- **Uses**: `worktree-setup.settings-in-effect`; by `worktree.create`, `worktree.create-from-branch`,
+- **Uses**: `worktree-setup.settings-in-effect`, `trust.ask`; by `worktree.create`, `worktree.create-from-branch`,
   `worktree.create-at-commit`, `worktree.open-in-worktree`.
 
 The rules:
@@ -844,7 +844,8 @@ The rules:
   line, with no `&&` between them, which Windows PowerShell does not know.
 - One that fails or is stopped stops those after it, and Gitardo says which: **`<command>` failed with exit code `<n>`
   in `<worktree>`, so the `<k>` commands after it did not run.**, or **did not finish** for one stopped.
-- They run only in a trusted folder. Otherwise none runs, the log says **The commands of worktrees.setupCommands did not
+- They run only in a trusted folder (`trust.is-trusted`); in another, Gitardo asks first whether to trust it
+  (`trust.ask`). With **Not now**, none runs, the log says **The commands of worktrees.setupCommands did not
   run: this folder is not trusted.**, and Gitardo says **The commands for new worktrees did not run in `<worktree>`:
   this folder is not trusted.**
 - Other operations do not wait for them. What the operation does once it succeeded, such as opening the worktree, waits

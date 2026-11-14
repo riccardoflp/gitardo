@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo Desktop, one card each, 406 in all. A card says what the feature does from the user's side,
+Every feature of Gitardo Desktop, one card each, 409 in all. A card says what the feature does from the user's side,
 which function it is, what it asks, what it runs, how it is undone, and what has to be true for it to be done. The
 template and the rules of the cards are in [04-feature-contract.md](../04-feature-contract.md).
 
@@ -10,7 +10,7 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 
 | File | Area | Cards |
 | --- | --- | --- |
-| [01-repositories.md](01-repositories.md) | Repositories | 14 |
+| [01-repositories.md](01-repositories.md) | Repositories | 17 |
 | [02-graph.md](02-graph.md) | Graph | 38 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
@@ -47,6 +47,9 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`activity.status-bar`](01-repositories.md#activitystatus-bar--what-is-running-in-the-header) | What is running, in the header | View | Built |
 | [`activity.what-is-running`](01-repositories.md#activitywhat-is-running--what-is-running-in-the-activity-drawer) | What is running, in the Activity drawer | View | Built |
 | [`welcome.page`](01-repositories.md#welcomepage--the-welcome-page) | The Welcome page | View | Built |
+| [`trust.is-trusted`](01-repositories.md#trustis-trusted--whether-a-folder-is-trusted) | Whether a folder is trusted | Derivation | Specified |
+| [`trust.ask`](01-repositories.md#trustask--ask-whether-to-trust-a-folder-before-running-what-it-asks) | Ask whether to trust a folder before running what it asks | Operation | Specified |
+| [`trust.manage`](01-repositories.md#trustmanage--see-the-trusted-folders-and-stop-trusting-some) | See the trusted folders and stop trusting some | Operation | Specified |
 
 ## Graph
 

@@ -2,8 +2,8 @@
 
 How a window finds the repositories of its workspace, which one it shows, what it reads of it, and how it keeps that up
 to date on its own while the repository and its files change, from Gitardo or from anything else. Also what the
-activity indicator of the header says Gitardo is doing, the **Activity** drawer, and the **Welcome** page of the first
-start.
+activity indicator of the header says Gitardo is doing, the **Activity** drawer, the **Welcome** page of the first
+start, and the folders the user trusts to run what they ask.
 
 ### `repo.read-repositories` — Find the repositories of a workspace
 
@@ -450,3 +450,85 @@ Acceptance:
 - [ ] **Welcome** in Quick search shows it again, with the steps done ticked.
 - [ ] Opening a commit with a double click in the timeline ticks **Open a commit, compare two branches**.
 - [ ] A workspace opened from the page is listed first the next time.
+
+## Trusted folders
+
+A folder is trusted once the user says so; until then nothing it asks to run is run
+([01-product.md](../01-product.md)). What a folder asks to run is, so far, the commands of `worktrees.setupCommands`
+(`worktree-setup.command-steps`). Gitardo asks whether to trust a folder when it would run something, never before, and
+keeps the answer in the window's stored state, `state.json` beside the user's `settings.json`, under `trustedFolders`:
+the list of the folders trusted, as the system writes them. Every window reads it when it starts an operation.
+
+### `trust.is-trusted` — Whether a folder is trusted
+
+- **Kind**: Derivation
+- **Function**: `model::trust::is_trusted(folder: &Path, trusted: &[PathBuf]) -> Trust`
+
+A folder is trusted when it is one of the folders trusted, or inside one: trusting a folder trusts every folder in it,
+such as the repositories and the submodules it holds, and not the folder that holds it. Names are compared whole, and
+as the system compares them: on Windows the case and the slashes do not count. The folder checked is that of the
+repository the operation runs in, as the window shows it.
+
+Acceptance:
+
+- [ ] A folder the user trusted is trusted, and a folder never trusted is not.
+- [ ] A folder inside a trusted folder is trusted, and the folder that holds a trusted folder is not.
+- [ ] Trusting `/work/app` does not trust `/work/app-old`.
+- [ ] On Windows, trusting `c:/work/app` trusts `C:\Work\App`.
+
+### `trust.ask` — Ask whether to trust a folder before running what it asks
+
+When an operation would run what a folder asks and the folder is not trusted, Gitardo asks first, so that a repository
+just cloned runs nothing from its `.gitardo/settings.json` before the user has read it.
+
+- **Kind**: Operation (a question that the operations which would run what a folder asks put before their plan)
+- **Function**: `features::trust::ask(context, answers, asked: &TrustAsked) -> Result<Trust, Box<Outcome>>`
+- **Offered when**: the folder of the repository is not trusted (`trust.is-trusted`) and there is something to run;
+  otherwise it asks nothing and gives the trust the window has.
+- **Asks**: **Run the commands for new worktrees?**, with **`<folder>` is not trusted, and worktrees.setupCommands in
+  `<where>` asks to run `<command>`, then `<command>`. Trust it only if you trust who wrote them.**, `<where>` being
+  **its .gitardo/settings.json** or **your settings**; a pick of:
+  - **Trust this folder and run them**: **What `<folder>` and the folders in it ask to run is run from now on.**
+  - **Not now** (default): **Create the worktree without running them.**
+- **Plan**: none of its own. With **Trust this folder and run them**, the operation's plan runs the commands, and its
+  follow-ups, on success and on failure alike, add the folder to the folders trusted
+  (`FollowUp::TrustFolder`), which the window keeps at once, without waiting for the commands. With **Not now**, the
+  plan is the one of a folder not trusted: no command runs, and the log and Gitardo say so.
+- **Danger**: None.
+- **Undo**: **Trusted folders…** in Quick search (`trust.manage`) stops trusting it.
+- **Uses**: `trust.is-trusted`; by `worktree.create`, `worktree.create-from-branch`, `worktree.create-at-commit` and
+  `worktree.open-in-worktree`, through `worktree-setup.command-steps`.
+
+Escape backs out of the operation, as with any of its questions: no worktree is created.
+
+Acceptance:
+
+- [ ] In a folder not trusted, with `["npm ci", "npm run build"]`, creating a worktree asks first, naming the folder,
+      where the commands come from and both commands, with **Not now** proposed.
+- [ ] **Trust this folder and run them** runs both commands in Tasks, and the folder is trusted from then on: the next
+      worktree asks nothing.
+- [ ] **Not now** creates the worktree with its links and copies, runs no command, trusts nothing, and the next
+      worktree asks again.
+- [ ] In a trusted folder, or with no command to run, nothing is asked.
+
+### `trust.manage` — See the trusted folders and stop trusting some
+
+- **Kind**: Operation
+- **Function**: `features::trust::manage(context, answers) -> Outcome`
+- **Entry points**: **Trusted folders…** in Quick search.
+- **Asks**: **Trusted folders**, with **What a trusted folder and the folders in it ask to run is run. Untick a folder
+  to stop trusting it.**: the folders trusted, in the order they were trusted, each ticked.
+- **Plan**: no step. Its follow-up takes the folders unticked out of the folders trusted
+  (`FollowUp::ForgetTrustedFolders`), and Gitardo says **`<folder>` is no longer trusted.**, or **`<n>` folders are
+  no longer trusted.**; with none unticked, **The trusted folders are unchanged.**
+- **Danger**: None.
+- **Undo**: none: the folder is trusted again the next time Gitardo asks (`trust.ask`).
+- **Refuses**: with no folder trusted, **No folder is trusted.**
+- **Uses**: `trust.ask`.
+
+Acceptance:
+
+- [ ] **Trusted folders…** in Quick search lists the folders trusted, each ticked.
+- [ ] A folder unticked is no longer trusted, in this window and in `state.json`, and the folders still ticked stay
+      trusted.
+- [ ] With no folder trusted, it says **No folder is trusted.** and asks nothing.
