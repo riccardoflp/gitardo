@@ -111,6 +111,8 @@ pub enum QuickCommand {
     ShowFiles,
     /// **Choose the model that resolves conflicts** (`ai.choose-model`).
     ChooseAiModel,
+    /// **Trusted folders…** (`trust.manage`).
+    TrustedFolders,
     /// **Choose What New Worktrees Get…** (`worktree-setup.page`).
     ChooseWhatNewWorktreesGet,
     /// **Show file history** (`file-history.file`), for the File page in front.
@@ -135,7 +137,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 41] = [
+    pub const ALL: [QuickCommand; 42] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -177,6 +179,7 @@ impl QuickCommand {
         QuickCommand::UndoLastOperation,
         QuickCommand::ReviewConflicts,
         QuickCommand::ChooseAiModel,
+        QuickCommand::TrustedFolders,
     ];
 
     /// Whether what the command runs is built: the others are listed with **Not yet**, and choosing them does
@@ -232,6 +235,7 @@ impl QuickCommand {
             QuickCommand::SwitchWorktree => Some("worktree.switch"),
             QuickCommand::CreateWorktree => Some("worktree.create"),
             QuickCommand::ChooseAiModel => Some("ai.choose-model"),
+            QuickCommand::TrustedFolders => Some("trust.manage"),
             _ => self.file_page_operation(),
         }
     }

@@ -33,6 +33,7 @@ pub mod tasks;
 #[cfg(test)]
 mod tests;
 mod timeline;
+mod trust;
 mod view_parts;
 mod view_state;
 mod workspace;

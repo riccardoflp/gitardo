@@ -47,9 +47,9 @@ questions are answered; *Built* once its function and the tests of its acceptanc
 | [`activity.status-bar`](01-repositories.md#activitystatus-bar--what-is-running-in-the-header) | What is running, in the header | View | Built |
 | [`activity.what-is-running`](01-repositories.md#activitywhat-is-running--what-is-running-in-the-activity-drawer) | What is running, in the Activity drawer | View | Built |
 | [`welcome.page`](01-repositories.md#welcomepage--the-welcome-page) | The Welcome page | View | Built |
-| [`trust.is-trusted`](01-repositories.md#trustis-trusted--whether-a-folder-is-trusted) | Whether a folder is trusted | Derivation | Specified |
-| [`trust.ask`](01-repositories.md#trustask--ask-whether-to-trust-a-folder-before-running-what-it-asks) | Ask whether to trust a folder before running what it asks | Operation | Specified |
-| [`trust.manage`](01-repositories.md#trustmanage--see-the-trusted-folders-and-stop-trusting-some) | See the trusted folders and stop trusting some | Operation | Specified |
+| [`trust.is-trusted`](01-repositories.md#trustis-trusted--whether-a-folder-is-trusted) | Whether a folder is trusted | Derivation | Built |
+| [`trust.ask`](01-repositories.md#trustask--ask-whether-to-trust-a-folder-before-running-what-it-asks) | Ask whether to trust a folder before running what it asks | Operation | Built |
+| [`trust.manage`](01-repositories.md#trustmanage--see-the-trusted-folders-and-stop-trusting-some) | See the trusted folders and stop trusting some | Operation | Built |
 
 ## Graph
 

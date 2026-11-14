@@ -263,6 +263,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::OpenSettings => "Open Settings",
         QuickCommand::ShowFiles => crate::text::files::COMMAND,
         QuickCommand::ChooseAiModel => "Choose the model that resolves conflicts",
+        QuickCommand::TrustedFolders => "Trusted folders\u{2026}",
         QuickCommand::ChooseWhatNewWorktreesGet => crate::text::worktree_setup::COMMAND,
         QuickCommand::ShowFileHistory => crate::text::blame::SHOW_FILE_HISTORY,
         QuickCommand::ShowLinesHistory => crate::text::blame::SHOW_LINES_HISTORY,

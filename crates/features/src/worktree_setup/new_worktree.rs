@@ -11,6 +11,7 @@ use model::worktree_setup::{
 };
 
 use super::files::{patterns_of, read_files};
+use crate::trust::TrustAsked;
 
 /// The key of what the patterns take for the new worktree.
 pub const NEW_WORKTREE_TAKE: AnswerKey = AnswerKey("worktree-setup-new-worktree-take");
@@ -29,11 +30,12 @@ pub struct NewWorktree<'a> {
 /// The steps that set up a new worktree once `git worktree add` made it, from the folder the views show: first a
 /// warning with the note of what follows (the patterns and where from, then the commands), then the links and the
 /// copies (`worktree-setup.link-and-copy-steps`), then the commands, or the warning that they did not run in a folder
-/// that is not trusted (`worktree-setup.command-steps`). `said` is what Gitardo says once the plan ran, for a
-/// `FollowUp::Say`.
+/// that is not trusted (`worktree-setup.command-steps`), which is asked first whether to trust it (`trust.ask`).
+/// `said` is what Gitardo says once the plan ran, for a `FollowUp::Say`.
 ///
-/// It reads the settings files, then what the patterns take for the worktree's commit, through the outcomes it gives
-/// back to be returned by the operation that calls it; call it again with the same answers until it gives the steps.
+/// It reads the settings files, asks whether to trust the folder, then reads what the patterns take for the worktree's
+/// commit, through the outcomes it gives back to be returned by the operation that calls it; call it again with the
+/// same answers until it gives the steps.
 ///
 /// # Errors
 ///
@@ -44,6 +46,11 @@ pub fn new_worktree_steps(
     worktree: &NewWorktree<'_>,
 ) -> Result<SetupSteps, Box<Outcome>> {
     let settings = read_files(context, answers)?.in_effect();
+    let asked = TrustAsked {
+        commands: &settings.setup_commands.values,
+        source: settings.setup_commands.source,
+    };
+    let trust = crate::trust::ask(context, answers, &asked)?;
     let patterns = patterns_of(&settings);
     let empty = SetupPreview::default();
     let take = if patterns.link.is_empty() && patterns.copy.is_empty() {
@@ -72,7 +79,7 @@ pub fn new_worktree_steps(
         commands: &settings.setup_commands.values,
         worktree: worktree.folder,
         name: worktree.name,
-        trust: context.settings.trust,
+        trust,
         after: if links.note.is_some() {
             NoteStart::AfterLinks
         } else {
@@ -103,6 +110,7 @@ mod tests {
 
     use super::{NEW_WORKTREE_TAKE, NewWorktree, new_worktree_steps};
     use crate::testing::{context, state};
+    use crate::trust::TRUST;
     use crate::worktree_setup::files::SETTINGS_FILES;
 
     const SETTINGS: &str = r#"{
@@ -193,7 +201,8 @@ mod tests {
             linked: vec![String::from("node_modules")],
             ..SetupPreview::default()
         };
-        let steps = new_worktree_steps(&context, &answers_with(SETTINGS, take), &new).unwrap();
+        let not_now = answers_with(SETTINGS, take).with(TRUST, Answer::Choice(String::from("not-now")));
+        let steps = new_worktree_steps(&context, &not_now, &new).unwrap();
         let lines = lines(&steps.steps);
         assert_eq!(
             lines.get(1..),

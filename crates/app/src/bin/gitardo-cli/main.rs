@@ -191,6 +191,12 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         FollowUp::OfferRun(offered) => writeln!(out, "Next: {} ({})", offered.label, offered.feature.0)?,
         FollowUp::KeepGitHubToken(_) => writeln!(out, "Keep the GitHub token in the credential store")?,
         FollowUp::KeepAiKey(..) => writeln!(out, "Keep the key of the AI provider in the credential store")?,
+        FollowUp::TrustFolder(folder) => writeln!(out, "Trust {}", folder.display())?,
+        FollowUp::ForgetTrustedFolders(folders) => {
+            for folder in folders {
+                writeln!(out, "Stop trusting {}", folder.display())?;
+            }
+        }
         FollowUp::SelectHead
         | FollowUp::DeleteWhenRebaseEnded(_)
         | FollowUp::EmptyCommitMessage

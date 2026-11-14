@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Before the commands of `worktrees.setupCommands` run in a folder that is not trusted, Gitardo asks **Run the
+  commands for new worktrees?**, naming the folder, where the commands come from and each of them. **Trust this folder
+  and run them** runs them and trusts the folder, and every folder in it, from then on; **Not now** creates the
+  worktree without running them, and asks again the next time. The folders trusted are kept in `state.json`, and
+  **Trusted folders…** in Quick search lists them and stops trusting those unticked.
 - The commands of `worktrees.setupCommands` run in **Tasks**, in the Activity drawer, which opens on them: one after
   the other, each named after its worktree, with what they print shown as it comes, a box that answers what the one
   running asks, and **Stop**. Other operations do not wait for them; opening the new worktree, or the offer to open it,

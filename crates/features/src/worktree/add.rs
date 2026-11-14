@@ -70,7 +70,7 @@ pub(super) fn add(context: &Context, answers: &Answers, addition: Addition) -> R
 /// **Open in external editor** while `editor.external` is set, and **Open in terminal**, the one `worktrees.openIn`
 /// names first; and, while nothing is set for new worktrees, **Choose What It Gets…** the first time. They follow the
 /// commands of the setup, since they come only once the plan succeeded; when a command fails, opening is offered all
-/// the same.
+/// the same. A folder the user has just trusted is trusted whether the plan succeeds or not (`trust.ask`).
 pub(super) fn created(context: &Context, folder: &Path, setup: &Setup) -> (Vec<FollowUp>, Vec<FollowUp>) {
     let mut after = vec![FollowUp::Say(Text::from(format!(
         "Worktree created in `{}`",
@@ -86,7 +86,11 @@ pub(super) fn created(context: &Context, folder: &Path, setup: &Setup) -> (Vec<F
             Target::Head,
         ));
     }
-    let on_failure = if setup.has_commands { opens } else { Vec::new() };
+    let mut on_failure = if setup.has_commands { opens } else { Vec::new() };
+    if let Some(folder) = &setup.trusts {
+        after.insert(0, FollowUp::TrustFolder(folder.clone()));
+        on_failure.insert(0, FollowUp::TrustFolder(folder.clone()));
+    }
     (after, on_failure)
 }
 

@@ -300,6 +300,10 @@ pub enum FollowUp {
     EditFile(String, usize),
     /// Open the Diff page of a file between two sides (`details.compare-file-with`).
     OpenFileDiff(Box<crate::compare::FileSides>),
+    /// Trust this folder from now on, at once, whether the plan succeeded or not (`trust.ask`).
+    TrustFolder(PathBuf),
+    /// Stop trusting these folders (`trust.manage`).
+    ForgetTrustedFolders(Vec<PathBuf>),
 }
 
 /// A plan offered in place of one whose step failed, when git said some words.

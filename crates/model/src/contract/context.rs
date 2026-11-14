@@ -123,6 +123,8 @@ pub struct FeatureSettings {
     /// Whether the user trusts the folder of the window, so that the commands it asks to run are run
     /// (`worktree-setup.command-steps`).
     pub trust: crate::worktree_setup::Trust,
+    /// The folders the user trusts, in the order they were trusted (`trust.manage`).
+    pub trusted_folders: Vec<std::path::PathBuf>,
     /// The blame of the files and of the line under the cursor (`blame.enabled`, `blame.ignoreWhitespaceAndMoves`,
     /// `fileBlame.everyFile`); their switches are written in `user_settings_file`.
     pub blame: BlameSettings,
@@ -215,6 +217,7 @@ impl Default for FeatureSettings {
             ai: Box::default(),
             user_settings_file: None,
             trust: crate::worktree_setup::Trust::NotTrusted,
+            trusted_folders: Vec::new(),
             blame: BlameSettings::default(),
             worktrees: WorktreeSettings::default(),
         }

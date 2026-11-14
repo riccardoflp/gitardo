@@ -18,6 +18,9 @@ pub struct Setup {
     /// What Gitardo says once the plan ran, when the setup leaves something undone, such as commands not run in a
     /// folder that is not trusted.
     pub said: Option<String>,
+    /// The folder the user has just trusted to run them (`trust.ask`), which the follow-ups add to the folders
+    /// trusted.
+    pub trusts: Option<std::path::PathBuf>,
 }
 
 /// What a new worktree gets: the steps of [`crate::worktree_setup::new_worktree_steps`], or what must be read before
@@ -38,5 +41,6 @@ pub fn setup_steps(context: &Context, answers: &Answers, worktree: &NewWorktree<
         has_commands,
         is_set,
         said: found.said,
+        trusts: crate::trust::trusted_by_answer(context, answers),
     })
 }

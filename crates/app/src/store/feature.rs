@@ -228,6 +228,7 @@ pub fn run_in(
         settings.branch_values = inputs_of(&state.persisted.branch_inputs, &workspace.folders);
     }
     super::worktrees::settings_of(state, &mut settings.worktrees);
+    super::trust::settings_of(state, &folder, &mut settings);
     let context = Context {
         repository,
         target,
@@ -317,6 +318,7 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
     state.is_operation_running = false;
     state.log.append(log);
     let mut effects = super::review::ended(state, feature, matches!(ended, Ended::Ran { .. }));
+    effects.extend(super::trust::keep(state, &ended));
     match super::tasks::hold(state, ended) {
         Ok(held) => effects.extend(held),
         Err(ended) => effects.extend(ended_as_said(state, (*ended, feature))),

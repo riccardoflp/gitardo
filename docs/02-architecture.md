@@ -137,7 +137,7 @@ and send back results.
   generation number to know what changed. The commits of the graph are kept apart from the rest, so that a read that
   finds the same commits does not rebuild the graph.
 - **Persisted state** (sizes, folds, favorites, the branches the graph is narrowed to, recent comparisons, the choices
-  of each page) is written to one file per user, keyed by repository path, a moment after it changes and when the
+  of each page, the folders trusted) is written to one file per user, keyed by repository path, a moment after it changes and when the
   window closes.
 
 ## Drawing

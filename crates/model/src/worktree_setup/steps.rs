@@ -6,6 +6,7 @@ use std::path::Path;
 
 use super::{SetupPreview, SetupSettings};
 use crate::contract::Step;
+pub use crate::trust::Trust;
 
 /// Steps for a new worktree, with the note the plan says them with.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -114,16 +115,6 @@ pub struct CommandStepsInput<'a> {
     pub trust: Trust,
     /// Whether the worktree gets links or copies before them, which the note of the commands follows.
     pub after: NoteStart,
-}
-
-/// Whether the user has trusted the folder of the window, so that the commands it asks to run are run.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Trust {
-    /// Not trusted: nothing it asks to run is run.
-    #[default]
-    NotTrusted,
-    /// Trusted.
-    Trusted,
 }
 
 /// How the note of the commands starts.

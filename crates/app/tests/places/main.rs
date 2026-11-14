@@ -69,6 +69,7 @@ mod support;
 mod sync_stash;
 mod tasks;
 mod timeline;
+mod trust;
 mod views_drawn;
 mod watch;
 mod worktrees;

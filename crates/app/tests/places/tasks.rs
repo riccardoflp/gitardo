@@ -12,7 +12,6 @@ use app::store::tasks::{TaskEffect, TaskMessage, Waiting};
 use app::store::{Effect, Message, State, ViewData};
 use model::contract::{Answer, Answers, FeatureId, FollowUp, Step, Target, Text};
 use model::tasks::{TaskEnd, TaskStatus};
-use model::worktree_setup::Trust;
 use platform::accesskit::Role;
 use render::ThemeName;
 use testkit::Repository;
@@ -99,7 +98,7 @@ fn with_commands(commands: &[&str]) -> (Repository, State) {
     std::fs::create_dir_all(&folder).unwrap();
     std::fs::write(folder.join("settings.json"), settings).unwrap();
     let mut state = showing(repository.path().to_path_buf());
-    state.settings.features.trust = Trust::Trusted;
+    state.persisted.trusted_folders.push(repository.path().to_path_buf());
     (repository, state)
 }
 

@@ -4,7 +4,8 @@
 //! folds of each repository ([`timeline`]); the favorites and the branches shown of each repository ([`rail`]).
 //! folds of each repository ([`timeline`]); how the files are laid out in the inspector, in the pages of commits and in
 //! the Changes page ([`layouts`]); the message of the commit box of each repository ([`changes`]); the values given last
-//! for the inputs of the format of branch names in each workspace ([`inputs`]).
+//! for the inputs of the format of branch names in each workspace ([`inputs`]); the folders the user trusts
+//! ([`trust`]).
 //!
 //! The file is JSON, written whole each time. A file that cannot be read gives what a first start has.
 
@@ -17,6 +18,7 @@ pub mod inputs;
 pub mod layouts;
 pub mod rail;
 pub mod timeline;
+pub mod trust;
 
 pub use changes::RepositoryMessage;
 pub use layouts::FileLayouts;
@@ -62,6 +64,8 @@ pub struct Persisted {
     pub merge_shows_base: bool,
     /// The values given last for the inputs of `branches.format`, by workspace (`branch.name-from-format`).
     pub branch_inputs: Vec<inputs::WorkspaceInputs>,
+    /// The folders the user trusts, in the order they were trusted (`trust.ask`, `trust.manage`).
+    pub trusted_folders: Vec<PathBuf>,
 }
 
 /// A workspace opened before.
@@ -110,6 +114,7 @@ impl Persisted {
             commit_messages: list(&document, "commitMessages", changes::repository_message),
             merge_shows_base: document.get("mergeShowsBase").and_then(Value::as_bool).unwrap_or(false),
             branch_inputs: list(&document, "branchInputs", inputs::workspace_inputs),
+            trusted_folders: trust::trusted_folders(&document),
         }
     }
 
@@ -169,6 +174,9 @@ impl Persisted {
                 "branchInputs",
                 Value::Array(self.branch_inputs.iter().map(inputs::inputs_value).collect()),
             ));
+        }
+        if !self.trusted_folders.is_empty() {
+            members.push(member("trustedFolders", trust::folders_value(&self.trusted_folders)));
         }
         json::to_pretty_text(&Value::Object(members))
     }

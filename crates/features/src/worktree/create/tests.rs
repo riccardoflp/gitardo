@@ -180,6 +180,7 @@ fn worktree_create__with_commands_set_opening_is_offered_only_once_the_last_comm
         has_commands: true,
         is_set: true,
         said: None,
+        trusts: None,
     };
     let (after, on_failure) = created(&context, &PathBuf::from("/code/app.worktrees/fix"), &setup);
     // What follows a plan comes only once all its steps, the commands last, succeeded.
