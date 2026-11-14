@@ -1605,7 +1605,7 @@ From the cards left over up to M8 (each built with the reading given, until the 
   **Load pull requests from GitHub**, and the AI provider, for a key, from the sparkle of the commit box. A refused
   read of GitHub is a warning line of the log (Q313); a refused request to the AI provider is said, not logged.
   Should a failed request to the AI provider be written to the Command log too?
-- **Q-W1** — Word wrap in the File page (Q213, Q254) is switched by a new setting, `editor.wordWrap`, `off` by default
+- **Q320** — Word wrap in the File page (Q213, Q254) is switched by a new setting, `editor.wordWrap`, `off` by default
   as in VS Code, and with it `blame.file` is built (Q254). It has no button, key or entry of a menu yet; should it have
   one, such as `Alt+Z` or an entry of the context menu of the editor? Lines are wrapped in columns of the font of code
   (`editor::wrap_line`): after a space or a tab, which stay at the end of the row they close even past its width, and
@@ -1614,7 +1614,7 @@ From the cards left over up to M8 (each built with the reading given, until the 
   file of a few megabytes is measured as too slow? The arrows up and down, `Home`, `End` and Page Up and Down still go
   by lines of the file, not by rows, and a click past the end of a row that is not the last of its line puts the
   cursor before the row's last character, so that it stays on that row. Should the arrows go by rows, as VS Code's do?
-- **Q-W2** — `review.columns` is built (Q210): its lines wrap with the same `editor::wrap_line`, between words, the
+- **Q321** — `review.columns` is built (Q210): its lines wrap with the same `editor::wrap_line`, between words, the
   spaces at the end of a row left out, and each line of a column, and its number on its first row, is told to the
   screen reader as a label where it is drawn, which is also how its tests find them; the outline the pointer draws is
   tested by the pixels of the edges of the lines. Is a label for each line and each number right for a screen reader,
