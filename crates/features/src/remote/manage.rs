@@ -70,9 +70,10 @@ fn remote_question(context: &Context, remotes: &[Remote]) -> Question {
         .map(|remote| choice(&remote.name, &remote.name, Some(remote.url.clone())))
         .collect();
     choices.push(choice(ADD, "Add remote\u{2026}", None));
+    // Typed text finds a remote by its name or by its URL.
     Question {
         key: REMOTE,
-        kind: QuestionKind::Pick { choices },
+        kind: QuestionKind::Search { choices },
         title: Text::from(format!("Remotes of `{repository}`")),
         detail: Some(Text::from("Pick a remote to fetch, rename, repoint or remove it")),
         default: None,
@@ -147,8 +148,8 @@ mod tests {
     fn remote_manage__lists_the_remotes_with_their_urls_and_add_remote_last() {
         let asked = question(manage(&context(state(), Target::Head), &read()));
         assert_eq!(asked.title.as_str(), "Remotes of `repository`");
-        let QuestionKind::Pick { choices } = asked.kind else {
-            panic!("a remote is picked")
+        let QuestionKind::Search { choices } = asked.kind else {
+            panic!("a remote is found by typing")
         };
         let listed: Vec<(&str, Option<&str>)> = choices
             .iter()
@@ -167,6 +168,20 @@ mod tests {
                 ("Add remote\u{2026}", None)
             ]
         );
+    }
+
+    #[test]
+    fn remote_manage__typing_github_finds_a_remote_by_its_url() {
+        let asked = question(manage(&context(state(), Target::Head), &read()));
+        let QuestionKind::Search { choices } = asked.kind else {
+            panic!("a remote is found by typing")
+        };
+        let found: Vec<&str> = choices
+            .iter()
+            .filter(|choice| choice.matches("github"))
+            .map(|choice| choice.label.as_str())
+            .collect();
+        assert_eq!(found, ["origin"]);
     }
 
     #[test]

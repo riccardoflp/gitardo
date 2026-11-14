@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Manage remotes…** finds a remote by its name or its URL as they are typed.
 - The top of the branch rail names the branch checked out, with **Create branch**, at `HEAD`, and **Compare**.
 - **Create branch** with `branches.format` set asks first whether to use the format; with it, the inputs of
   `branches.inputs` are asked in order, each with the value given last in this workspace, a `pattern` is checked while

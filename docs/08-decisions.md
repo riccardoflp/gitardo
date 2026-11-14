@@ -1706,3 +1706,8 @@ answered:
   disabled before the first commit. The narrow layout, with only dots and icons, has no top. The header names the
   branch checked out too, so the top says it twice. The buttons of the top do not wait for an operation running, as
   the header's **Branch** does. Is this the top the maintainer meant?
+- **Q-R6** — `remote.manage` and `remote.add` are built now that the pull requests are read in the window: the first
+  pick of `remote.manage` is a search (`QuestionKind::Search`, Q291), which finds a remote by its name or its URL;
+  the lines about GitHub are tested against the test server of `github.load-pull-requests`. Renaming `origin` while a
+  fork is the other remote makes the fork the main remote until `origin` comes back, as `github.detect-remote` says,
+  and the pull requests are read from each in turn. Is a search the pick the card meant?

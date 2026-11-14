@@ -660,7 +660,8 @@ another.
 - **Reads**: `remote.read-remotes`.
 - **Asks**:
   1. A pick titled **Remotes of `<repository>`**, with the placeholder **Pick a remote to fetch, rename, repoint or
-     remove it**: each remote with its URL beside it, which the typed text also matches, then **Add remote…**.
+     remove it**: each remote with its URL beside it, which the typed text also matches, then **Add remote…**. It is a
+     pick with a box to type in, as `worktree.switch` has.
   2. On a remote, a pick titled **`<name>`: `<url>`**: **Fetch** (described `git fetch --prune <name>`),
      **Change URL…**, **Rename…**, **Copy URL** and **Remove** (described **Deletes its remote-tracking branches
      here**).
