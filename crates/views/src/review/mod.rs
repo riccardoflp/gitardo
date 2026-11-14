@@ -15,6 +15,7 @@ mod head;
 mod lines;
 #[cfg(test)]
 mod tests;
+mod write_box;
 
 use model::conflicts::SideNames;
 use model::review::{
@@ -29,6 +30,7 @@ pub use decide::{accept_view, choose_view};
 pub use deleted::{DeletedState, deleted_card_view};
 pub use files::file_list_view;
 pub use head::{FileState, accept_all_view, accept_file_view, clear_view, page_view, report_view, show_result_view};
+pub use write_box::WritingBox;
 
 /// The thousandths of the width each side column takes before a band is dragged (`review.columns`).
 pub const EVEN: u32 = 333;
@@ -294,6 +296,8 @@ pub struct ReviewState<'a> {
     pub proposers: model::review::Proposers,
     /// Whether an operation runs.
     pub is_running: bool,
+    /// The box **Edit** opened on a card, while it is open (`review.choose`).
+    pub writing: Option<WritingBox<'a>>,
     /// Whether **Continue the …** can run.
     pub can_continue: bool,
     /// While the AI is asked: how many of the conflicts asked about came to an end, and how many were asked about.
@@ -406,6 +410,12 @@ pub enum ReviewIntent {
     Write,
     /// Put back the conflicts of the files written (`review.report`).
     Undo,
+    /// What the keys and the pointer asked of the lines written in the box of **Edit** (`review.choose`).
+    WriteLines(Vec<ui::editor::Command>),
+    /// **Use these lines**: the lines written become the choice of their conflict.
+    UseLines,
+    /// **Cancel**: the box closes, and nothing is chosen.
+    CancelLines,
     /// Continue the operation (`review.report`).
     Continue,
     /// Ask the AI provider about one conflict, or about each that has nothing proposed (`ai.resolve-conflicts`).

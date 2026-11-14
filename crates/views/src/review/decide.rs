@@ -205,11 +205,7 @@ pub fn choose_view(state: &CardState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     );
     for kind in &card.choices {
         let button = Button::secondary(words::choice(*kind));
-        let button = if state.is_running || *kind == model::review::ChoiceKind::Written {
-            button.disabled()
-        } else {
-            button
-        };
+        let button = if state.is_running { button.disabled() } else { button };
         let (width, height) = ui.button_size(&button);
         let cell = place(area.left(width), (width, height), (Align::Start, Align::Center));
         if ui.button(("choice", words::choice(*kind)), cell, &button).clicked {

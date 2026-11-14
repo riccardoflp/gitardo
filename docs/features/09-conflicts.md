@@ -865,25 +865,26 @@ card, accepted at once, without leaving the review.
 - **Undo**: **Drop your choice** brings back what was proposed before, not accepted; nothing was written.
 - **After**: the choice is accepted and its card stays open, with **Your choice** and its reason: **Only the current
   side**, **Only the incoming side**, **Both sides, the current one first**, **Both sides, the incoming one first**,
-  **Written by you**.
+  **Written by you**. **Edit** first opens the box of the lines under the choices, in the card; the choice is made
+  when they are used (Q-E8).
 - **Uses**: `review.accept`, `review.write`, `review.proposal-lines`, `review.proposal-warnings`.
 
 Acceptance:
 
-- [ ] A choice takes the place of the proposal of the rules or of the AI for that conflict, and is accepted at once;
+- [x] A choice takes the place of the proposal of the rules or of the AI for that conflict, and is accepted at once;
       choosing changes no file and runs nothing.
-- [ ] The choice of the shape the proposal already has is not offered: a proposal that keeps both sides, the current
+- [x] The choice of the shape the proposal already has is not offered: a proposal that keeps both sides, the current
       one first, offers **Current only**, **Incoming only** and **Both, incoming first**.
-- [ ] **Current only** on a conflict whose sides are `"version": "1.2.1"` and `"version": "1.3.0"` proposes the first,
+- [x] **Current only** on a conflict whose sides are `"version": "1.2.1"` and `"version": "1.3.0"` proposes the first,
       **Incoming only** the second; **Both, current first** proposes the lines of the current side then those of the
       incoming one, each ending its line, in the line endings of the file.
-- [ ] **Edit** opens the lines in the card, from what is proposed, or from the two sides one after the other when
+- [x] **Edit** opens the lines in the card, from what is proposed, or from the two sides one after the other when
       nothing is; **Use these lines** or `Ctrl`+`Enter` takes them, **Cancel** or `Escape` leaves them. Lines neither
       side has are counted as new.
-- [ ] The language model is not asked about a conflict with a choice, by **Ask the AI about the rest** or otherwise.
-- [ ] A choice is kept while the window is open, by file and fingerprint of the conflict: also when the page is closed,
+- [x] The language model is not asked about a conflict with a choice, by **Ask the AI about the rest** or otherwise.
+- [x] A choice is kept while the window is open, by file and fingerprint of the conflict: also when the page is closed,
       and when **Undo** marks the conflict again; it is gone once the conflict is edited.
-- [ ] Written, a choice counts in the question as **(chosen by you)**, or **1 chosen by you** among others.
+- [x] Written, a choice counts in the question as **(chosen by you)**, or **1 chosen by you** among others.
 
 ### `review.accept` — Accept
 

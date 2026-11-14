@@ -34,11 +34,14 @@ pub static NO_SIDES: SideNames = SideNames {
 /// How many lines of the file are shown before and after.
 const AROUND: usize = 3;
 
+/// A choice made on a conflict, with the lines written for it when it is **Edit**.
+pub type Chosen = (Fingerprinted, ChoiceKind, Vec<String>);
+
 /// What is known of the conflicts of the page besides what was read: the choices made, the questions to the AI
 /// provider and their answers, and where the AI stands on each conflict.
 pub struct Known<'a> {
     /// The choices made, by file and fingerprint.
-    pub choices: &'a [(Fingerprinted, ChoiceKind)],
+    pub choices: &'a [Chosen],
     /// The questions to the AI provider and their answers.
     pub questions: &'a super::ai::Questions,
     /// Where the AI stands on each conflict it was asked about.
@@ -48,7 +51,7 @@ pub struct Known<'a> {
 /// The proposal of each conflict of a file: the choice made on it, else what the rules or the AI propose.
 pub fn file_proposals(
     file: &ReviewFile,
-    (choices, answers): (&[(Fingerprinted, ChoiceKind)], &[AiAnswer]),
+    (choices, answers): (&[Chosen], &[AiAnswer]),
     (rules, ai): (bool, bool),
 ) -> Vec<Option<Proposal>> {
     let proposed = proposals(&ProposalsInput {
@@ -62,9 +65,9 @@ pub fn file_proposals(
         .map(|(conflict, proposal)| {
             let chosen_kind = choices
                 .iter()
-                .find(|((path, fingerprint), _)| *path == file.path && *fingerprint == conflict.fingerprint)
-                .map(|(_, kind)| *kind);
-            chosen_kind.map_or(proposal, |kind| Some(chosen(file, conflict, kind, &[])))
+                .find(|((path, fingerprint), _, _)| *path == file.path && *fingerprint == conflict.fingerprint)
+                .map(|(_, kind, lines)| (*kind, lines));
+            chosen_kind.map_or(proposal, |(kind, lines)| Some(chosen(file, conflict, kind, lines)))
         })
         .collect()
 }

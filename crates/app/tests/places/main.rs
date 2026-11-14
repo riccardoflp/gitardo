@@ -54,6 +54,7 @@ mod rail;
 mod rebase;
 mod review;
 mod review_cards;
+mod review_choose;
 mod review_columns;
 mod review_entry;
 mod review_wiring;

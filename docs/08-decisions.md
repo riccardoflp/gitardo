@@ -1741,3 +1741,9 @@ answered:
   as Q138 offered, rather than each with the pair of versions **Open changes** gives it: a Diff page keeps one pair for
   all its files, and this pair shows every change of a file, what is staged drawn dimmed, and lets the files be edited
   (`diff.edit`). The card says so now. Is one pair right, or should a Diff page take a pair for each file?
+- **Q-E8** — **Edit** on a card of the review opens a box under the choices: an editor of code with no gutter, 3 to 12
+  lines high, with **Use these lines** and **Cancel**; `Ctrl+Enter` and `Escape` work while it has the keyboard. One
+  box is open at a time, and it closes with the page. The lines used are kept, like the other choices, by file and
+  fingerprint while the window is open, and a choice is accepted when it is made, not when the page is opened again:
+  after closing and opening the page, the choice is proposed again but waits to be accepted. Should a choice stay
+  accepted across closing the page?

@@ -29,6 +29,8 @@ pub struct CardState<'a> {
     pub is_running: bool,
     /// Whether the AI provider may be asked about it (`conflicts.ai`).
     pub can_ask: bool,
+    /// The box of **Edit**, when it is open on this card.
+    pub writing: Option<super::WritingBox<'a>>,
 }
 
 impl CardState<'_> {
@@ -68,6 +70,8 @@ enum Piece<'a> {
     Columns,
     /// The choices.
     Choices,
+    /// The box of **Edit**, under the choices.
+    Writing,
     /// The heading of a side.
     SideHeading(Which),
     /// A line of a side around its changes.
@@ -117,6 +121,9 @@ fn pieces<'a>(state: &CardState<'a>) -> Vec<Piece<'a>> {
         pieces.push(Piece::NothingProposed);
     }
     pieces.push(Piece::Choices);
+    if state.writing.is_some() {
+        pieces.push(Piece::Writing);
+    }
     if state.layout == Layout::Cards && (card.shown.is_sides_shown || card.proposal.is_none()) {
         for (which, diff) in [
             (Which::Current, &card.side_diffs.0),
@@ -143,6 +150,10 @@ fn piece_height(state: &CardState<'_>, ui: &Ui<'_>, (piece, width): (Piece<'_>, 
     let sizes = ui.theme().sizes;
     match piece {
         Piece::Choices | Piece::Bottom | Piece::Folded => sizes.control_height,
+        Piece::Writing => state
+            .writing
+            .as_ref()
+            .map_or(0.0, |writing| super::write_box::height(writing, ui)),
         Piece::Columns => super::columns::height(state, ui, width),
         _ => sizes.row_height,
     }
@@ -234,6 +245,11 @@ fn draw_piece(
         }
         Piece::Columns => intents.extend(ui.clip(row, |ui| super::columns::columns_view(state, ui))),
         Piece::Choices => intents.extend(ui.clip(row, |ui| choose_view(state, ui))),
+        Piece::Writing => {
+            if let Some(writing) = &state.writing {
+                intents.extend(ui.clip(row, |ui| super::write_box::write_box_view(state, writing, ui)));
+            }
+        }
         Piece::SideHeading(which) => {
             let side = match which {
                 Which::Current => &state.sides.current,

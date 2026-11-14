@@ -5,6 +5,7 @@
 pub mod ai;
 mod cards;
 mod intents;
+mod lines;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -22,6 +23,7 @@ use crate::persisted::same_folder;
 use crate::work::review::{ReviewReadout, ReviewRequest};
 
 pub use intents::{ended, reduce};
+pub use lines::{LinesBox, box_state, written_of};
 
 /// A conflict by its file and its fingerprint, which stays the same while the file is read again.
 pub type Fingerprinted = (String, String);
@@ -33,6 +35,12 @@ pub struct Reviews {
     pub page: Option<ReviewPage>,
     /// The choices made, by repository, file and fingerprint of the conflict.
     pub choices: Vec<(PathBuf, Fingerprinted, ChoiceKind)>,
+    /// The lines written for the conflicts whose choice is **Edit**, the same way.
+    pub written: Vec<(PathBuf, Fingerprinted, Vec<String>)>,
+    /// The box **Edit** opened on a card, while it is open.
+    pub lines: Option<LinesBox>,
+    /// How many times a box was opened, which gives each the keyboard once.
+    pub opened: u64,
     /// Cards or Columns, kept when the page is opened again.
     pub layout: Layout,
     /// The widths of the current and incoming columns, in thousandths, once a band was dragged.
@@ -199,21 +207,30 @@ pub fn review_read(state: &mut State, job: JobId, result: Result<Box<ReviewReado
     if asks { ai::ask(state, None) } else { Vec::new() }
 }
 
+/// The choices made in the repository of the page, each with the lines written for it.
+fn chosen(state: &State) -> Vec<cards::Chosen> {
+    let Some(folder) = state.reviews.page.as_ref().map(|page| &page.folder) else {
+        return Vec::new();
+    };
+    state
+        .reviews
+        .choices
+        .iter()
+        .filter(|(known, _, _)| same_folder(known, folder))
+        .map(|(_, key, kind)| (key.clone(), *kind, written_of(state, key).to_vec()))
+        .collect()
+}
+
 /// Derives again what each card shows.
 fn derive(state: &mut State) {
     let settings = (
         state.settings.features.conflicts_auto_resolve,
         state.settings.features.conflicts_ai,
     );
-    let choices = state.reviews.choices.clone();
+    let choices = chosen(state);
     let questions = &state.reviews.questions;
     if let Some(page) = state.reviews.page.as_mut() {
         let folder = page.folder.clone();
-        let choices: Vec<(Fingerprinted, ChoiceKind)> = choices
-            .into_iter()
-            .filter(|(known, _, _)| same_folder(known, &folder))
-            .map(|(_, key, kind)| (key, kind))
-            .collect();
         let known = cards::Known {
             choices: &choices,
             questions,
@@ -288,6 +305,7 @@ pub fn page_state(state: &State) -> Option<ReviewState<'_>> {
             ai: state.settings.features.conflicts_ai,
         },
         is_running: state.is_operation_running,
+        writing: box_state(state),
         can_continue: features::operation(intents::CONTINUE).is_some(),
         asking: (state.reviews.questions.total > 0)
             .then_some((state.reviews.questions.answered, state.reviews.questions.total)),

@@ -12,6 +12,9 @@
   together, the best first: `main`, then `origin/main`, then `maintenance`.
 - With `branches.sortOrder` not set, the branches, the remote branches and the tags are listed by date when Git's own
   `branch.sort` is `-committerdate` or `committerdate`, and by name otherwise.
+- **Edit** on a card of the review of the conflicts opens a box with the lines proposed, or the two sides one after the
+  other when nothing is; **Use these lines** or `Ctrl+Enter` makes them the choice of the conflict, **Cancel** or
+  `Escape` closes it.
 - **Open all changes in one Diff page** on the Changes page opens one Diff page titled **Changes** with every changed
   file, each between the last commit and the file on disk, the changes already staged drawn dimmed.
 - The Changes page leaves out the files with edits not saved that git ignores, that are in a submodule or in another

@@ -23,6 +23,20 @@ pub const RESTORE: &str = "conflicts.restore";
 /// The operation that takes one side of a whole file.
 pub const TAKE_SIDE: &str = "conflicts.take-side";
 
+/// A choice put in place of what is proposed for a conflict, accepted at once, its card unfolded.
+fn record_choice(state: &mut State, key: &ConflictKey, kind: model::review::ChoiceKind) {
+    let Some(folder) = state.reviews.page.as_ref().map(|page| page.folder.clone()) else {
+        return;
+    };
+    let known = fingerprinted(key);
+    state.reviews.choices.retain(|(_, choice, _)| *choice != known);
+    state.reviews.choices.push((folder, known, kind));
+    if let Some(page) = state.reviews.page.as_mut() {
+        accept(page, key);
+        let _ = page.folds.insert(fingerprinted(key), false);
+    }
+}
+
 /// A conflict by its file and fingerprint.
 fn fingerprinted(key: &ConflictKey) -> Fingerprinted {
     (key.path.clone(), key.fingerprint.clone())
@@ -42,21 +56,22 @@ pub fn reduce(state: &mut State, intent: ReviewIntent) -> Vec<Effect> {
         ReviewIntent::ResolveWithAi(only) => return super::ai::resolve_with_ai(state, only),
         ReviewIntent::Layout(layout) => state.reviews.layout = layout,
         ReviewIntent::Widths(widths) => state.reviews.widths = widths,
-        ReviewIntent::Choose(key, kind) => {
-            let Some(folder) = state.reviews.page.as_ref().map(|page| page.folder.clone()) else {
-                return Vec::new();
-            };
-            let known = fingerprinted(&key);
-            state.reviews.choices.retain(|(_, choice, _)| *choice != known);
-            state.reviews.choices.push((folder, known, kind));
-            if let Some(page) = state.reviews.page.as_mut() {
-                accept(page, &key);
-                let _ = page.folds.insert(fingerprinted(&key), false);
+        ReviewIntent::Choose(key, model::review::ChoiceKind::Written) => super::lines::open_box(state, &key),
+        ReviewIntent::Choose(key, kind) => record_choice(state, &key, kind),
+        ReviewIntent::WriteLines(commands) => {
+            super::lines::write_lines(state, &commands);
+            return Vec::new();
+        }
+        ReviewIntent::CancelLines => state.reviews.lines = None,
+        ReviewIntent::UseLines => {
+            if let Some(key) = super::lines::use_lines(state) {
+                record_choice(state, &key, model::review::ChoiceKind::Written);
             }
         }
         ReviewIntent::DropChoice(key) => {
             let known = fingerprinted(&key);
             state.reviews.choices.retain(|(_, choice, _)| *choice != known);
+            state.reviews.written.retain(|(_, written, _)| *written != known);
             if let Some(page) = state.reviews.page.as_mut() {
                 let _ = page.accepted.remove(&known);
             }
@@ -147,11 +162,11 @@ fn acceptable(page: &ReviewPage, path: Option<&str>) -> Vec<ConflictKey> {
 fn resolutions(state: &State) -> Option<Resolutions> {
     let page = state.reviews.page.as_ref()?;
     let readout = page.readout.as_deref()?;
-    let choices: Vec<(Fingerprinted, model::review::ChoiceKind)> = state
+    let choices: Vec<super::cards::Chosen> = state
         .reviews
         .choices
         .iter()
-        .map(|(_, known, kind)| (known.clone(), *kind))
+        .map(|(_, known, kind)| (known.clone(), *kind, super::written_of(state, known).to_vec()))
         .collect();
     let settings = (
         state.settings.features.conflicts_auto_resolve,

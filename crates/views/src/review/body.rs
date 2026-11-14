@@ -47,6 +47,7 @@ fn blocks<'a>(state: &ReviewState<'a>) -> Vec<Block<'a>> {
                 widths: state.widths,
                 is_running: state.is_running,
                 can_ask: state.proposers.ai,
+                writing: state.writing.filter(|writing| *writing.key == card.key),
             })
         }));
     }
