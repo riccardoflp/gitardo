@@ -42,7 +42,7 @@ A request that fails answers with a JSON-RPC error:
 
 | Code | Name | When |
 | --- | --- | --- |
-| -32700, -32600, -32601, -32602 | JSON-RPC's own | Not JSON, not a request, no such method, wrong parameters |
+| -32700, -32600, -32601, -32602, -32603 | JSON-RPC's own | Not JSON, not a request, no such method, wrong parameters, an answer the engine could not write (a bug) |
 | 1 | `notOpen` | The repository was not opened, or was closed |
 | 2 | `gitFailed` | A read of git failed (`EngineError::Query`, `GitError`) |
 | 3 | `stepFailed` | A step of a plan failed (`EngineError::Step`), with what ran before it |

@@ -1,0 +1,22 @@
+[package]
+name = "protocol"
+description = "The messages between the extension for VS Code and Gitardo's engine: JSON-RPC 2.0, with the JSON form of the types of model and engine."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# serde and serde_json are used here and in server only (rule R1.7, decision D42): the messages are many and plain,
+# and deriving their JSON is what serde does best; serde_json writes and reads it with no other library.
+[dependencies]
+engine = { path = "../engine" }
+git = { path = "../git" }
+model = { path = "../model" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+testkit = { path = "../testkit" }

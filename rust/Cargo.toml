@@ -14,6 +14,7 @@ members = [
     "crates/model",
     "crates/text",
     "crates/json",
+    "crates/protocol",
     "crates/settings",
     "crates/http",
     "crates/tls",

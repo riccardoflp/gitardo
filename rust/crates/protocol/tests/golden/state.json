@@ -1,0 +1,107 @@
+{
+  "folder": "/work/app",
+  "gitFolder": "/work/app/.git",
+  "head": {
+    "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "branch": "refs/heads/main"
+  },
+  "branches": [
+    {
+      "name": "main",
+      "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "upstream": {
+        "reference": "refs/remotes/origin/main",
+        "remote": "origin",
+        "remoteBranch": "main",
+        "ahead": 1,
+        "behind": 2,
+        "isGone": false
+      },
+      "isCheckedOut": true,
+      "date": 1700000000
+    }
+  ],
+  "remoteBranches": [
+    {
+      "name": "origin/main",
+      "remote": "origin",
+      "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "date": 1699000000
+    }
+  ],
+  "tags": [
+    {
+      "name": "v1.0",
+      "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "date": 1699000000
+    }
+  ],
+  "stashes": [
+    {
+      "commit": "cccccccccccccccccccccccccccccccccccccccc",
+      "index": 0,
+      "message": "On main: half a fix",
+      "date": 1700000100
+    }
+  ],
+  "worktrees": [
+    {
+      "folder": "/work/app",
+      "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "branch": "main",
+      "isMain": true,
+      "isCurrent": true,
+      "isMissing": false,
+      "uncommitted": null
+    },
+    {
+      "folder": "/work/app-fix",
+      "commit": null,
+      "branch": null,
+      "isMain": false,
+      "isCurrent": false,
+      "isMissing": true,
+      "uncommitted": 3
+    }
+  ],
+  "remotes": [
+    "origin"
+  ],
+  "identity": {
+    "name": "Ada Lovelace",
+    "email": "ada@example.com"
+  },
+  "branchSort": "-committerdate",
+  "reflogSubjects": [
+    "merge feature: Merge made by the 'ort' strategy."
+  ],
+  "workingTree": {
+    "staged": [
+      {
+        "path": "src/new.rs",
+        "originalPath": "src/old.rs",
+        "kind": "renamed"
+      }
+    ],
+    "unstaged": [
+      {
+        "path": "README.md",
+        "originalPath": null,
+        "kind": "modified"
+      }
+    ],
+    "untracked": [
+      "notes.txt"
+    ],
+    "conflicted": [
+      {
+        "path": "Cargo.lock",
+        "kind": "bothModified"
+      }
+    ]
+  },
+  "operation": "merge",
+  "rebaseStop": null,
+  "bisect": null,
+  "submodules": []
+}
