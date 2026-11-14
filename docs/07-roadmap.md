@@ -90,9 +90,14 @@ Exit: the fuzz tests of the conflict rules pass thousands of cases against git.
 - `tls` with the one library of the exception, `http` written here, proxies, credentials of the system.
 - Areas: `github.`, `ai.`, and drafting a commit message with the AI.
 
-## M10 — Linux, then M11 — macOS
+## M10 — Linux (done)
 
-The platform layer for X11, then for AppKit. Nothing above `platform` changes; the application tests run on each.
+The platform layer for X11 and Wayland. Nothing above `platform` changes; the application tests run on each:
+`cargo xtask check` passes on Windows and on Linux, with the toolchain of `rust-toolchain.toml`.
+
+## M11 — macOS
+
+The platform layer for AppKit. Nothing above `platform` changes; the application tests run on each.
 
 ## Before a release
 
