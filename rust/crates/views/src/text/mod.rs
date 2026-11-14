@@ -1,0 +1,48 @@
+//! The words of the window, one module per area, so that they can be read in one place and translated later (rule
+//! R10.2). Where a card says the words, they are the card's, word for word.
+
+pub mod activity;
+pub mod bisect;
+pub mod blame;
+pub mod branch;
+pub mod changes;
+pub mod compare;
+pub mod conflicts;
+pub mod dates;
+pub mod details;
+pub mod diff;
+pub mod feature;
+pub mod file_view;
+pub mod files;
+pub mod filter;
+pub mod github;
+pub mod header;
+pub mod history;
+pub mod merge_view;
+pub mod pages;
+pub mod patch;
+pub mod rail;
+pub mod rebase;
+pub mod repo;
+pub mod review;
+pub mod search;
+pub mod settings;
+pub mod stash;
+pub mod submodule;
+pub mod timeline;
+pub mod views;
+pub mod welcome;
+pub mod worktree;
+pub mod worktree_setup;
+
+/// The name of the program, in the title bar of its window.
+pub const PROGRAM: &str = "Gitardo Desktop";
+
+/// The title of the window: the repository shown, then the program.
+#[must_use]
+pub fn window_title(repository: Option<&str>) -> String {
+    match repository {
+        Some(name) => format!("{name} \u{2014} {PROGRAM}"),
+        None => PROGRAM.to_owned(),
+    }
+}

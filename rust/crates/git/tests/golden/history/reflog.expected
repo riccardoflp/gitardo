@@ -1,0 +1,92 @@
+[
+    ReflogPosition {
+        commit: CommitId(
+            "be07f72bb85548ec99389818a13bbfd76591de5f",
+        ),
+        subject: "commit: Fix: the parser",
+        selector: "HEAD@{0}",
+        time: Timestamp(
+            1735689840,
+        ),
+    },
+    ReflogPosition {
+        commit: CommitId(
+            "dbd74e4620681f9899b8c9dedf3b8a5f99164ea1",
+        ),
+        subject: "reset: moving to HEAD~1",
+        selector: "HEAD@{1}",
+        time: Timestamp(
+            1735689780,
+        ),
+    },
+    ReflogPosition {
+        commit: CommitId(
+            "51ce33f9608f05b1fb971fdc7c56d010d8eafb5c",
+        ),
+        subject: "commit: Zoë's commit",
+        selector: "HEAD@{2}",
+        time: Timestamp(
+            1735689840,
+        ),
+    },
+    ReflogPosition {
+        commit: CommitId(
+            "dbd74e4620681f9899b8c9dedf3b8a5f99164ea1",
+        ),
+        subject: "merge feature/é: Merge made by the 'ort' strategy.",
+        selector: "HEAD@{3}",
+        time: Timestamp(
+            1735689780,
+        ),
+    },
+    ReflogPosition {
+        commit: CommitId(
+            "ae3c8b5f0570473c681cd61f551c0bf45540f3be",
+        ),
+        subject: "commit: Add the lexer",
+        selector: "HEAD@{4}",
+        time: Timestamp(
+            1735689720,
+        ),
+    },
+    ReflogPosition {
+        commit: CommitId(
+            "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+        ),
+        subject: "checkout: moving from feature/é to main",
+        selector: "HEAD@{5}",
+        time: Timestamp(
+            1735689600,
+        ),
+    },
+    ReflogPosition {
+        commit: CommitId(
+            "011c32936254fcfed6f4e570698b4864966ee3b0",
+        ),
+        subject: "commit: Change [the] parser with a tab: é",
+        selector: "HEAD@{6}",
+        time: Timestamp(
+            1735689660,
+        ),
+    },
+    ReflogPosition {
+        commit: CommitId(
+            "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+        ),
+        subject: "checkout: moving from main to feature/é",
+        selector: "HEAD@{7}",
+        time: Timestamp(
+            1735689600,
+        ),
+    },
+    ReflogPosition {
+        commit: CommitId(
+            "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+        ),
+        subject: "commit (initial): Add the parser",
+        selector: "HEAD@{8}",
+        time: Timestamp(
+            1735689600,
+        ),
+    },
+]

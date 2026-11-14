@@ -1,0 +1,96 @@
+[
+    Commit {
+        id: CommitId(
+            "aa547061fa360b6e29ae5e1aa0208c3badebd64f",
+        ),
+        parents: [
+            CommitId(
+                "0a6acb9aef363020f654e900692dc24cee74abe0",
+            ),
+            CommitId(
+                "474f7fb92e7f453e53a4363f48036f073a2cdb08",
+            ),
+            CommitId(
+                "1ab4d7c4873af23dac7960ea6224d844b70d0b35",
+            ),
+        ],
+        author_name: "Test Author",
+        author_email: "author@example.com",
+        author_date: Timestamp(
+            1735689840,
+        ),
+        subject: "Merge branches 'left' and 'right'",
+    },
+    Commit {
+        id: CommitId(
+            "11f73fc5311c281028ad5abd42c16d186c26704c",
+        ),
+        parents: [],
+        author_name: "Test Author",
+        author_email: "author@example.com",
+        author_date: Timestamp(
+            1735689840,
+        ),
+        subject: "Start again",
+    },
+    Commit {
+        id: CommitId(
+            "0a6acb9aef363020f654e900692dc24cee74abe0",
+        ),
+        parents: [
+            CommitId(
+                "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+            ),
+        ],
+        author_name: "Test Author",
+        author_email: "author@example.com",
+        author_date: Timestamp(
+            1735689780,
+        ),
+        subject: "-leading dash, 解析",
+    },
+    Commit {
+        id: CommitId(
+            "1ab4d7c4873af23dac7960ea6224d844b70d0b35",
+        ),
+        parents: [
+            CommitId(
+                "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+            ),
+        ],
+        author_name: "Test Author",
+        author_email: "author@example.com",
+        author_date: Timestamp(
+            1735689720,
+        ),
+        subject: "Change\ton right: café [draft]",
+    },
+    Commit {
+        id: CommitId(
+            "474f7fb92e7f453e53a4363f48036f073a2cdb08",
+        ),
+        parents: [
+            CommitId(
+                "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+            ),
+        ],
+        author_name: "Test Author",
+        author_email: "author@example.com",
+        author_date: Timestamp(
+            1735689660,
+        ),
+        subject: "Change\ton left: café [draft]",
+    },
+    Commit {
+        id: CommitId(
+            "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+        ),
+        parents: [],
+        author_name: "Test Author",
+        author_email: "author@example.com",
+        author_date: Timestamp(
+            1735689600,
+        ),
+        subject: "Add the parser",
+    },
+]

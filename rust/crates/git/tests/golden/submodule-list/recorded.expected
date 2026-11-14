@@ -1,0 +1,8 @@
+[
+    (
+        "vendor/a b",
+        CommitId(
+            "c14a3d3334b17079a7b3e3621aedaffbc5fe6795",
+        ),
+    ),
+]

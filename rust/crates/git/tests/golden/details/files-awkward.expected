@@ -1,0 +1,79 @@
+[
+    FileChange {
+        path: "-leading-dash.txt",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "accentué.txt",
+        original_path: None,
+        kind: Modified,
+    },
+    FileChange {
+        path: "copy.txt",
+        original_path: Some(
+            "renamed from.txt",
+        ),
+        kind: Renamed,
+    },
+    FileChange {
+        path: "deleted.txt",
+        original_path: None,
+        kind: Deleted,
+    },
+    FileChange {
+        path: "empty.txt",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "image.bin",
+        original_path: None,
+        kind: Modified,
+    },
+    FileChange {
+        path: "link",
+        original_path: None,
+        kind: TypeChanged,
+    },
+    FileChange {
+        path: "no newline.txt",
+        original_path: None,
+        kind: Modified,
+    },
+    FileChange {
+        path: "pages/[id].tsx",
+        original_path: None,
+        kind: Modified,
+    },
+    FileChange {
+        path: "q\"uote.txt",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "renamed to.txt",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "script.sh",
+        original_path: None,
+        kind: Modified,
+    },
+    FileChange {
+        path: "sub",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "tab\tname.txt",
+        original_path: None,
+        kind: Added,
+    },
+    FileChange {
+        path: "with space.txt",
+        original_path: None,
+        kind: Modified,
+    },
+]

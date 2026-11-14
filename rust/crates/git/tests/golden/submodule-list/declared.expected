@@ -1,0 +1,18 @@
+[
+    DeclaredSubmodule {
+        name: "vendor/a b",
+        folder: "vendor/a b",
+        url: Some(
+            "<folder>/first library",
+        ),
+        branch: None,
+    },
+    DeclaredSubmodule {
+        name: "lib",
+        folder: "lib",
+        url: Some(
+            "<folder>/second",
+        ),
+        branch: None,
+    },
+]

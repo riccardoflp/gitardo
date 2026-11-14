@@ -1,0 +1,15 @@
+[package]
+name = "model"
+description = "The data of Gitardo Desktop and what is derived from it: commits, references, lanes, file trees, names and messages."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+# Regular expressions for the `pattern` of the inputs of `branches.inputs` (`branch.name-from-format`): no I/O, no
+# thread, no clock. Only the Unicode tables of `\d`, `\w` and `\s` are taken.
+regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-perl"] }
+
+[lints]
+workspace = true

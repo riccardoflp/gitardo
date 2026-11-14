@@ -1,0 +1,5 @@
+# The toolchain of the workspace, the same on every system, so that rustfmt and clippy say the same everywhere.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

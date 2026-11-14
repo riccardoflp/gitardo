@@ -1,0 +1,41 @@
+[package]
+name = "app"
+description = "Gitardo Desktop: the windows, the event loop, the store, the settings and what is kept between runs."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+default-run = "gitardo"
+
+[[bin]]
+name = "gitardo"
+path = "src/main.rs"
+
+[[bin]]
+name = "gitardo-cli"
+path = "src/bin/gitardo-cli/main.rs"
+
+[[bin]]
+name = "gitardo-demo"
+path = "src/bin/gitardo-demo/main.rs"
+
+[dependencies]
+engine = { path = "../engine" }
+features = { path = "../features" }
+git = { path = "../git" }
+http = { path = "../http" }
+json = { path = "../json" }
+model = { path = "../model" }
+platform = { path = "../platform" }
+render = { path = "../render" }
+text = { path = "../text" }
+ui = { path = "../ui" }
+views = { path = "../views" }
+
+[dev-dependencies]
+# The server of the tests on 127.0.0.1, which answers as an AI provider or api.github.com would.
+http = { path = "../http", features = ["test-server"] }
+testkit = { path = "../testkit" }
+
+[lints]
+workspace = true

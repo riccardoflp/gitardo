@@ -1,0 +1,54 @@
+//! `changes.discard`: takes one file back to the last commit, staged changes included, or deletes it when it is
+//! untracked.
+
+use model::contract::{Answers, Context, Danger, Outcome, Refusal, Step, Text};
+
+use super::files::{
+    NEVER_COMMITTED, NOTHING_TO_DISCARD, UNSTAGED_WARNING, back_to_last_commit_warning, is_staged, is_unstaged,
+    is_untracked, plan, staged_names, target_file, untracked_warning, with_files,
+};
+
+/// Discards the changes of a file of the Changes page, after a warning that says what is lost: with nothing of it
+/// staged, `git restore -- <path>`, or `git clean -f -- <path>` for an untracked file; with some of it staged,
+/// `git restore --source=HEAD --staged --worktree -- <path>`, with the old name of a rename; before the first commit, a
+/// staged file is deleted with `git rm -r --force --quiet -- <path>`.
+///
+/// Feature: changes.discard
+#[must_use]
+pub fn discard(context: &Context, _answers: &Answers) -> Outcome {
+    let path = match target_file(context) {
+        Ok(path) => path,
+        Err(refusal) => return Outcome::Refuse(refusal),
+    };
+    let repository = &context.repository;
+    let tree = &repository.working_tree;
+    let folder = repository.folder.clone();
+    let (step, warning): (Step, String) = if is_staged(tree, path) {
+        let step = if repository.has_commit() {
+            with_files(
+                folder,
+                &["restore", "--source=HEAD", "--staged", "--worktree"],
+                staged_names(tree, path),
+            )
+        } else {
+            with_files(folder, &["rm", "-r", "--force", "--quiet"], [path])
+        };
+        (step, back_to_last_commit_warning(1))
+    } else if is_unstaged(tree, path) {
+        (with_files(folder, &["restore"], [path]), UNSTAGED_WARNING.to_owned())
+    } else if is_untracked(tree, path) {
+        (with_files(folder, &["clean", "-f"], [path]), untracked_warning(1))
+    } else {
+        return Outcome::Refuse(Refusal::saying(NOTHING_TO_DISCARD));
+    };
+    Outcome::Run(plan(
+        format!("Discard the changes of {path}"),
+        vec![step],
+        Danger::Destructive(Text::from(warning)),
+        NEVER_COMMITTED,
+    ))
+}
+
+#[cfg(test)]
+#[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
+mod tests;

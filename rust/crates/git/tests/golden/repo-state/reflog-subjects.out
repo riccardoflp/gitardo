@@ -1,0 +1,7 @@
+checkout: moving from main to 705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b
+reset: moving to HEAD~1
+merge feature/é: Merge made by the 'ort' strategy.
+checkout: moving from feature/é to main
+commit: Change [the] parser
+checkout: moving from main to feature/é
+commit (initial): Add the parser

@@ -1,0 +1,25 @@
+CommitHeader {
+    id: CommitId(
+        "490ae0977a4ba7074216cb225d7a02091243c18c",
+    ),
+    parents: [
+        CommitId(
+            "b49b51b5aa2cdd0fb9a21fbe5d54ed0ab9ed701f",
+        ),
+    ],
+    author: Signature {
+        name: "Test Author",
+        email: "author@example.com",
+        date: Timestamp(
+            1735689660,
+        ),
+    },
+    committer: Signature {
+        name: "Test Author",
+        email: "author@example.com",
+        date: Timestamp(
+            1735689660,
+        ),
+    },
+    message: "Change every file: [draft] é\n\nA body with\ta tab, and \"quotes\".\n\nCo-Authored-By: Zoë <zoe@example.com>",
+}

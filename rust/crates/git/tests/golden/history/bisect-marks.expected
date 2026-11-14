@@ -1,0 +1,18 @@
+Bisect {
+    bad: Some(
+        CommitId(
+            "eafbff6cf509485b9769400a99ae21131ed915f3",
+        ),
+    ),
+    good: [
+        CommitId(
+            "f4bbdbbb546cb1c6f81c75600b28275d128afed6",
+        ),
+    ],
+    skipped: [
+        CommitId(
+            "12453e564608f5b3b00eb2f0d203bf8d0bfd9243",
+        ),
+    ],
+    remaining: None,
+}

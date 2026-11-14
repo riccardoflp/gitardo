@@ -1,0 +1,244 @@
+Files(
+    [
+        FilePatch {
+            path: "accentué.txt",
+            original_path: None,
+            kind: Added,
+            hunks: [
+                Hunk {
+                    header: "@@ -0,0 +1 @@",
+                    lines: [
+                        DiffLine {
+                            kind: Added,
+                            text: "1",
+                            before: None,
+                            after: Some(
+                                1,
+                            ),
+                        },
+                    ],
+                },
+            ],
+            added: 1,
+            removed: 0,
+            is_binary: false,
+            is_past_limit: false,
+        },
+        FilePatch {
+            path: "deleted.txt",
+            original_path: None,
+            kind: Added,
+            hunks: [
+                Hunk {
+                    header: "@@ -0,0 +1 @@",
+                    lines: [
+                        DiffLine {
+                            kind: Added,
+                            text: "1",
+                            before: None,
+                            after: Some(
+                                1,
+                            ),
+                        },
+                    ],
+                },
+            ],
+            added: 1,
+            removed: 0,
+            is_binary: false,
+            is_past_limit: false,
+        },
+        FilePatch {
+            path: "image.bin",
+            original_path: None,
+            kind: Added,
+            hunks: [],
+            added: 0,
+            removed: 0,
+            is_binary: true,
+            is_past_limit: false,
+        },
+        FilePatch {
+            path: "link",
+            original_path: None,
+            kind: Added,
+            hunks: [
+                Hunk {
+                    header: "@@ -0,0 +1 @@",
+                    lines: [
+                        DiffLine {
+                            kind: Added,
+                            text: "target",
+                            before: None,
+                            after: Some(
+                                1,
+                            ),
+                        },
+                    ],
+                },
+            ],
+            added: 1,
+            removed: 0,
+            is_binary: false,
+            is_past_limit: false,
+        },
+        FilePatch {
+            path: "no newline.txt",
+            original_path: None,
+            kind: Added,
+            hunks: [
+                Hunk {
+                    header: "@@ -0,0 +1,2 @@",
+                    lines: [
+                        DiffLine {
+                            kind: Added,
+                            text: "a",
+                            before: None,
+                            after: Some(
+                                1,
+                            ),
+                        },
+                        DiffLine {
+                            kind: Added,
+                            text: "b",
+                            before: None,
+                            after: Some(
+                                2,
+                            ),
+                        },
+                        DiffLine {
+                            kind: NoNewline,
+                            text: " No newline at end of file",
+                            before: None,
+                            after: None,
+                        },
+                    ],
+                },
+            ],
+            added: 2,
+            removed: 0,
+            is_binary: false,
+            is_past_limit: false,
+        },
+        FilePatch {
+            path: "pages/[id].tsx",
+            original_path: None,
+            kind: Added,
+            hunks: [
+                Hunk {
+                    header: "@@ -0,0 +1 @@",
+                    lines: [
+                        DiffLine {
+                            kind: Added,
+                            text: "1",
+                            before: None,
+                            after: Some(
+                                1,
+                            ),
+                        },
+                    ],
+                },
+            ],
+            added: 1,
+            removed: 0,
+            is_binary: false,
+            is_past_limit: false,
+        },
+        FilePatch {
+            path: "renamed from.txt",
+            original_path: None,
+            kind: Added,
+            hunks: [
+                Hunk {
+                    header: "@@ -0,0 +1,4 @@",
+                    lines: [
+                        DiffLine {
+                            kind: Added,
+                            text: "one",
+                            before: None,
+                            after: Some(
+                                1,
+                            ),
+                        },
+                        DiffLine {
+                            kind: Added,
+                            text: "two",
+                            before: None,
+                            after: Some(
+                                2,
+                            ),
+                        },
+                        DiffLine {
+                            kind: Added,
+                            text: "three",
+                            before: None,
+                            after: Some(
+                                3,
+                            ),
+                        },
+                        DiffLine {
+                            kind: Added,
+                            text: "four",
+                            before: None,
+                            after: Some(
+                                4,
+                            ),
+                        },
+                    ],
+                },
+            ],
+            added: 4,
+            removed: 0,
+            is_binary: false,
+            is_past_limit: false,
+        },
+        FilePatch {
+            path: "script.sh",
+            original_path: None,
+            kind: Added,
+            hunks: [
+                Hunk {
+                    header: "@@ -0,0 +1 @@",
+                    lines: [
+                        DiffLine {
+                            kind: Added,
+                            text: "echo",
+                            before: None,
+                            after: Some(
+                                1,
+                            ),
+                        },
+                    ],
+                },
+            ],
+            added: 1,
+            removed: 0,
+            is_binary: false,
+            is_past_limit: false,
+        },
+        FilePatch {
+            path: "with space.txt",
+            original_path: None,
+            kind: Added,
+            hunks: [
+                Hunk {
+                    header: "@@ -0,0 +1 @@",
+                    lines: [
+                        DiffLine {
+                            kind: Added,
+                            text: "1",
+                            before: None,
+                            after: Some(
+                                1,
+                            ),
+                        },
+                    ],
+                },
+            ],
+            added: 1,
+            removed: 0,
+            is_binary: false,
+            is_past_limit: false,
+        },
+    ],
+)

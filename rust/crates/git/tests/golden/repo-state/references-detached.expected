@@ -1,0 +1,38 @@
+References {
+    branches: [
+        Branch {
+            name: "feature",
+            commit: CommitId(
+                "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+            ),
+            upstream: None,
+            is_checked_out: false,
+            date: Timestamp(
+                1735689600,
+            ),
+        },
+        Branch {
+            name: "main",
+            commit: CommitId(
+                "3951918bbff4cf3af07247ba3eeb5e7de07a9841",
+            ),
+            upstream: None,
+            is_checked_out: false,
+            date: Timestamp(
+                1735689660,
+            ),
+        },
+    ],
+    remote_branches: [],
+    tags: [
+        Tag {
+            name: "v0.1.0",
+            commit: CommitId(
+                "705fe6ef472ac8ed4c6b6b1917feb57fdfeb691b",
+            ),
+            date: Timestamp(
+                1735689600,
+            ),
+        },
+    ],
+}

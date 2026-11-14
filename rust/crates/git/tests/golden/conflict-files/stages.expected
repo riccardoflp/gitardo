@@ -1,0 +1,56 @@
+[
+    ConflictFile {
+        path: "with\ttab.txt",
+        base: Some(
+            StageEntry {
+                mode: "100644",
+                object: CommitId(
+                    "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d",
+                ),
+            },
+        ),
+        current: Some(
+            StageEntry {
+                mode: "100644",
+                object: CommitId(
+                    "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d",
+                ),
+            },
+        ),
+        incoming: Some(
+            StageEntry {
+                mode: "100644",
+                object: CommitId(
+                    "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d",
+                ),
+            },
+        ),
+    },
+    ConflictFile {
+        path: "with\nline break.txt",
+        base: Some(
+            StageEntry {
+                mode: "100644",
+                object: CommitId(
+                    "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d",
+                ),
+            },
+        ),
+        current: Some(
+            StageEntry {
+                mode: "100644",
+                object: CommitId(
+                    "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d",
+                ),
+            },
+        ),
+        incoming: Some(
+            StageEntry {
+                mode: "100644",
+                object: CommitId(
+                    "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d",
+                ),
+            },
+        ),
+    },
+]

@@ -1,0 +1,17 @@
+[package]
+name = "render"
+description = "The pixels of Gitardo Desktop: the frame buffer, shapes, anti-aliasing, fonts and glyphs, icons and themes."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+testkit = { path = "../testkit" }
+
+[dependencies]
+tiny-skia = { version = "=0.12.0", default-features = false, features = ["std", "simd"] }
+cosmic-text = { version = "=0.19.0", default-features = false, features = ["std", "swash"] }

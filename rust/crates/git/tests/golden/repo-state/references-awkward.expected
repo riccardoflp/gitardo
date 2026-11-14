@@ -1,0 +1,131 @@
+References {
+    branches: [
+        Branch {
+            name: "-leading-dash",
+            commit: CommitId(
+                "f0ed92f5be77ba8cc0b6320c106a9186d8bc18e4",
+            ),
+            upstream: None,
+            is_checked_out: false,
+            date: Timestamp(
+                1735689600,
+            ),
+        },
+        Branch {
+            name: "caffè",
+            commit: CommitId(
+                "f0ed92f5be77ba8cc0b6320c106a9186d8bc18e4",
+            ),
+            upstream: None,
+            is_checked_out: false,
+            date: Timestamp(
+                1735689600,
+            ),
+        },
+        Branch {
+            name: "feature",
+            commit: CommitId(
+                "f0ed92f5be77ba8cc0b6320c106a9186d8bc18e4",
+            ),
+            upstream: Some(
+                Upstream {
+                    reference: "refs/remotes/origin/feature",
+                    remote: "origin",
+                    remote_branch: "refs/heads/feature",
+                    ahead: 0,
+                    behind: 0,
+                    is_gone: true,
+                },
+            ),
+            is_checked_out: false,
+            date: Timestamp(
+                1735689600,
+            ),
+        },
+        Branch {
+            name: "fix/with]bracket",
+            commit: CommitId(
+                "f0ed92f5be77ba8cc0b6320c106a9186d8bc18e4",
+            ),
+            upstream: None,
+            is_checked_out: false,
+            date: Timestamp(
+                1735689600,
+            ),
+        },
+        Branch {
+            name: "main",
+            commit: CommitId(
+                "d229469c802b5e0a8b188b3706045bbdcd8b4c51",
+            ),
+            upstream: Some(
+                Upstream {
+                    reference: "refs/remotes/origin/main",
+                    remote: "origin",
+                    remote_branch: "refs/heads/main",
+                    ahead: 2,
+                    behind: 1,
+                    is_gone: false,
+                },
+            ),
+            is_checked_out: true,
+            date: Timestamp(
+                1735689780,
+            ),
+        },
+        Branch {
+            name: "origin/main",
+            commit: CommitId(
+                "f0ed92f5be77ba8cc0b6320c106a9186d8bc18e4",
+            ),
+            upstream: None,
+            is_checked_out: false,
+            date: Timestamp(
+                1735689600,
+            ),
+        },
+        Branch {
+            name: "release",
+            commit: CommitId(
+                "f0ed92f5be77ba8cc0b6320c106a9186d8bc18e4",
+            ),
+            upstream: None,
+            is_checked_out: false,
+            date: Timestamp(
+                1735689600,
+            ),
+        },
+    ],
+    remote_branches: [
+        RemoteBranch {
+            name: "origin/main",
+            remote: "origin",
+            commit: CommitId(
+                "393352657527e0842a9e320d3cf3bc8bf704f716",
+            ),
+            date: Timestamp(
+                1735689660,
+            ),
+        },
+    ],
+    tags: [
+        Tag {
+            name: "release",
+            commit: CommitId(
+                "f0ed92f5be77ba8cc0b6320c106a9186d8bc18e4",
+            ),
+            date: Timestamp(
+                1735689600,
+            ),
+        },
+        Tag {
+            name: "v1.0.0",
+            commit: CommitId(
+                "f0ed92f5be77ba8cc0b6320c106a9186d8bc18e4",
+            ),
+            date: Timestamp(
+                1735689660,
+            ),
+        },
+    ],
+}

@@ -1,0 +1,9 @@
+WorkingTree {
+    staged: [],
+    unstaged: [],
+    untracked: [
+        "notes.txt",
+        "src/parser.rs",
+    ],
+    conflicted: [],
+}

@@ -1,0 +1,16 @@
+[package]
+name = "git"
+description = "Git itself: running it, the reads and their parsers, and finding repositories."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+model = { path = "../model" }
+
+[dev-dependencies]
+testkit = { path = "../testkit" }

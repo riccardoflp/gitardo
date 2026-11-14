@@ -1,0 +1,104 @@
+diff --git a/-leading-dash.txt b/-leading-dash.txt
+new file mode 100644
+index 0000000..3e75765
+--- /dev/null
++++ b/-leading-dash.txt
+@@ -0,0 +1 @@
++new
+diff --git a/accentué.txt b/accentué.txt
+index d00491f..0cfbf08 100644
+--- a/accentué.txt
++++ b/accentué.txt
+@@ -1 +1 @@
+-1
++2
+diff --git a/renamed from.txt b/copy.txt
+similarity index 100%
+rename from renamed from.txt
+rename to copy.txt
+diff --git a/deleted.txt b/deleted.txt
+deleted file mode 100644
+index d00491f..0000000
+--- a/deleted.txt
++++ /dev/null
+@@ -1 +0,0 @@
+-1
+diff --git a/empty.txt b/empty.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/image.bin b/image.bin
+index 8352675..6d5b70e 100644
+Binary files a/image.bin and b/image.bin differ
+diff --git a/link b/link
+deleted file mode 100644
+index eb5a316..0000000
+--- a/link
++++ /dev/null
+@@ -1 +0,0 @@
+-target
+diff --git a/link b/link
+new file mode 120000
+index 0000000..1de5659
+--- /dev/null
++++ b/link
+@@ -0,0 +1 @@
++target
+\ No newline at end of file
+diff --git a/no newline.txt b/no newline.txt
+index 0a207c0..817f660 100644
+--- a/no newline.txt	
++++ b/no newline.txt	
+@@ -1,2 +1,2 @@
+ a
+-b
+\ No newline at end of file
++c
+\ No newline at end of file
+diff --git a/pages/[id].tsx b/pages/[id].tsx
+index d00491f..0cfbf08 100644
+--- a/pages/[id].tsx
++++ b/pages/[id].tsx
+@@ -1 +1 @@
+-1
++2
+diff --git "a/q\"uote.txt" "b/q\"uote.txt"
+new file mode 100644
+index 0000000..b39eb90
+--- /dev/null
++++ "b/q\"uote.txt"
+@@ -0,0 +1 @@
++quote
+diff --git a/renamed to.txt b/renamed to.txt
+new file mode 100644
+index 0000000..f384549
+--- /dev/null
++++ b/renamed to.txt	
+@@ -0,0 +1,4 @@
++one
++two
++three
++four
+diff --git a/script.sh b/script.sh
+old mode 100644
+new mode 100755
+diff --git a/sub b/sub
+new file mode 160000
+index 0000000..b49b51b
+--- /dev/null
++++ b/sub
+@@ -0,0 +1 @@
++Subproject commit b49b51b5aa2cdd0fb9a21fbe5d54ed0ab9ed701f
+diff --git "a/tab\tname.txt" "b/tab\tname.txt"
+new file mode 100644
+index 0000000..8cc35a3
+--- /dev/null
++++ "b/tab\tname.txt"
+@@ -0,0 +1 @@
++tab
+diff --git a/with space.txt b/with space.txt
+index d00491f..0cfbf08 100644
+--- a/with space.txt	
++++ b/with space.txt	
+@@ -1 +1 @@
+-1
++2

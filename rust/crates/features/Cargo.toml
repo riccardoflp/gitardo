@@ -1,0 +1,15 @@
+[package]
+name = "features"
+description = "Every operation of Gitardo Desktop, as a function that asks questions and returns a plan."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+json = { path = "../json" }
+model = { path = "../model" }
+text = { path = "../text" }

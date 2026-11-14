@@ -1,0 +1,23 @@
+WorkingTree {
+    staged: [],
+    unstaged: [],
+    untracked: [],
+    conflicted: [
+        ConflictedFile {
+            path: "added.txt",
+            kind: BothAdded,
+        },
+        ConflictedFile {
+            path: "both.txt",
+            kind: BothModified,
+        },
+        ConflictedFile {
+            path: "deleted by them.txt",
+            kind: DeletedByThem,
+        },
+        ConflictedFile {
+            path: "deleted by us.txt",
+            kind: DeletedByUs,
+        },
+    ],
+}

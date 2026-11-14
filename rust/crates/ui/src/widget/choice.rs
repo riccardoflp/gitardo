@@ -1,0 +1,270 @@
+//! Choices: check boxes, radio buttons and toggle switches, each a mark followed by its label. The view holds whether
+//! each is on, and turns it when the widget says it was clicked.
+
+use std::hash::Hash;
+
+use render::{Border, Icon, Point, Rect, Theme};
+
+use super::label::Label;
+use super::{Availability, Tone, metrics};
+use crate::access::{AccessRole, Description};
+use crate::frame::Ui;
+use crate::interaction::{Response, Sense};
+use crate::layout::{Align, place};
+
+/// What kind of mark a choice has.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ChoiceKind {
+    /// A square with a check mark: one of several things that can each be on.
+    CheckBox,
+    /// A circle with a dot: one of several choices of which one is on.
+    Radio,
+    /// A switch: a setting that applies at once.
+    Toggle,
+}
+
+/// A check box, a radio button or a toggle switch, with its label.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Choice<'text> {
+    /// What kind of mark it has.
+    pub kind: ChoiceKind,
+    /// The words after the mark.
+    pub label: &'text str,
+    /// Whether it is on.
+    pub is_on: bool,
+    /// Whether a check box is half ticked, with a dash: some of what it stands for is on.
+    pub is_mixed: bool,
+    /// Whether its label is drawn after the mark; when not, the label is only its name for the screen reader, the row
+    /// it is on saying what it is.
+    pub is_label_shown: bool,
+    /// Whether it can be used now.
+    pub availability: Availability,
+}
+
+impl<'text> Choice<'text> {
+    /// A check box.
+    #[must_use]
+    pub fn check_box(label: &'text str, is_on: bool) -> Choice<'text> {
+        Choice {
+            kind: ChoiceKind::CheckBox,
+            label,
+            is_on,
+            is_mixed: false,
+            is_label_shown: true,
+            availability: Availability::Enabled,
+        }
+    }
+
+    /// A check box half ticked, with a dash: some of what it stands for is on.
+    #[must_use]
+    pub fn half_ticked(label: &'text str) -> Choice<'text> {
+        Choice {
+            is_mixed: true,
+            ..Choice::check_box(label, true)
+        }
+    }
+
+    /// A radio button.
+    #[must_use]
+    pub fn radio(label: &'text str, is_on: bool) -> Choice<'text> {
+        Choice {
+            kind: ChoiceKind::Radio,
+            ..Choice::check_box(label, is_on)
+        }
+    }
+
+    /// A toggle switch.
+    #[must_use]
+    pub fn toggle(label: &'text str, is_on: bool) -> Choice<'text> {
+        Choice {
+            kind: ChoiceKind::Toggle,
+            ..Choice::check_box(label, is_on)
+        }
+    }
+
+    /// The same choice with its label not drawn: only the screen reader hears it.
+    #[must_use]
+    pub fn label_hidden(self) -> Choice<'text> {
+        Choice {
+            is_label_shown: false,
+            ..self
+        }
+    }
+
+    /// The same choice, disabled.
+    #[must_use]
+    pub fn disabled(self) -> Choice<'text> {
+        Choice {
+            availability: Availability::Disabled,
+            ..self
+        }
+    }
+}
+
+impl Ui<'_> {
+    /// Draws a check box, a radio button or a toggle switch with its label, and says whether it was clicked: on the
+    /// mark or on the label, or with Space while it has the focus.
+    pub fn choice(&mut self, key: impl Hash, rect: Rect, choice: &Choice<'_>) -> Response {
+        let id = self.id(key);
+        let is_enabled = choice.availability == Availability::Enabled;
+        let sense = if is_enabled {
+            Sense::CLICK | Sense::FOCUS
+        } else {
+            Sense::HOVER
+        };
+        let response = self.interact(id, rect, sense);
+        let theme = *self.theme();
+        let mark_width = match choice.kind {
+            ChoiceKind::CheckBox | ChoiceKind::Radio => metrics::mark_side(&theme),
+            ChoiceKind::Toggle => metrics::toggle_width(&theme),
+        };
+        let side = metrics::mark_side(&theme);
+        let mark = place(rect, (mark_width, side), (Align::Start, Align::Center));
+        let state = MarkState {
+            is_on: choice.is_on || choice.is_mixed,
+            is_enabled,
+            is_lit: is_enabled && (response.hovered || response.pressed),
+        };
+        match choice.kind {
+            ChoiceKind::CheckBox => self.check_mark(mark, state, choice.is_mixed),
+            ChoiceKind::Radio => self.radio_mark(mark, state),
+            ChoiceKind::Toggle => self.toggle_mark(mark, state),
+        }
+        let gap = theme.sizes.spacing.medium;
+        let text = Rect::new(
+            mark.right() + gap,
+            rect.y,
+            (rect.right() - mark.right() - gap).max(0.0),
+            rect.height,
+        );
+        let tone = if is_enabled { Tone::Normal } else { Tone::Disabled };
+        let label = Label {
+            has_tooltip_when_cut: false,
+            ..Label::new(choice.label).tone(tone)
+        };
+        if choice.is_label_shown {
+            let _ = self.draw_label(text, &label);
+        }
+        if response.shows_focus {
+            let radius = match choice.kind {
+                ChoiceKind::CheckBox => theme.sizes.radius.small,
+                ChoiceKind::Radio | ChoiceKind::Toggle => mark.height,
+            };
+            self.focus_ring(mark.inset(-theme.sizes.spacing.tiny), radius);
+        }
+        let role = match choice.kind {
+            ChoiceKind::CheckBox => AccessRole::CheckBox,
+            ChoiceKind::Radio => AccessRole::RadioButton,
+            ChoiceKind::Toggle => AccessRole::Switch,
+        };
+        let description = Description::new(role, choice.label)
+            .on(choice.is_on)
+            .mixed(choice.is_mixed)
+            .disabled(!is_enabled);
+        self.access_node(id, rect, &description);
+        response
+    }
+
+    /// The square of a check box, filled with a check mark when on, or a dash when half ticked.
+    fn check_mark(&mut self, mark: Rect, state: MarkState, is_mixed: bool) {
+        let theme = *self.theme();
+        let radius = theme.sizes.radius.small;
+        let colors = mark_colors(&theme, state);
+        self.fill_rounded_rect(mark, radius, colors.fill);
+        if !state.is_on || colors.edge != colors.fill {
+            let width = theme.sizes.border;
+            self.border(
+                mark,
+                Border {
+                    width,
+                    radius,
+                    color: colors.edge,
+                },
+            );
+        }
+        if state.is_on {
+            let icon = if is_mixed { Icon::Minus } else { Icon::Check };
+            self.icon(icon, Point::new(mark.x, mark.y), mark.height, colors.dot);
+        }
+    }
+
+    /// The circle of a radio button, with a dot when on.
+    fn radio_mark(&mut self, mark: Rect, state: MarkState) {
+        let theme = *self.theme();
+        let colors = mark_colors(&theme, state);
+        let center = mark.center();
+        let radius = mark.height * 0.5;
+        self.fill_circle(center, radius, colors.edge);
+        self.fill_circle(center, radius - theme.sizes.border, colors.fill);
+        if state.is_on {
+            self.fill_circle(center, radius * 0.4, colors.dot);
+        }
+    }
+
+    /// The track of a toggle switch, with its knob at the right when on and at the left when off.
+    fn toggle_mark(&mut self, mark: Rect, state: MarkState) {
+        let theme = *self.theme();
+        let colors = mark_colors(&theme, state);
+        let radius = mark.height * 0.5;
+        self.fill_rounded_rect(mark, radius, colors.edge);
+        self.fill_rounded_rect(mark.inset(theme.sizes.border), radius, colors.fill);
+        let inset = theme.sizes.spacing.tiny + theme.sizes.border;
+        let knob_radius = radius - inset;
+        let x = if state.is_on {
+            mark.right() - radius
+        } else {
+            mark.x + radius
+        };
+        self.fill_circle(Point::new(x, mark.center().y), knob_radius, colors.dot);
+    }
+}
+
+/// Whether a mark is on, can be used, and is under the pointer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct MarkState {
+    /// On.
+    is_on: bool,
+    /// Can be used.
+    is_enabled: bool,
+    /// Under the pointer or pressed.
+    is_lit: bool,
+}
+
+/// The colors of a mark: its edge, what fills it, and its check, dot or knob.
+struct MarkColors {
+    /// The edge.
+    edge: render::Color,
+    /// Inside the edge.
+    fill: render::Color,
+    /// The check mark, the dot or the knob.
+    dot: render::Color,
+}
+
+/// The colors of a mark in a state.
+fn mark_colors(theme: &Theme, state: MarkState) -> MarkColors {
+    let colors = &theme.colors;
+    if !state.is_enabled {
+        return MarkColors {
+            edge: colors.disabled_foreground,
+            fill: colors.input_background,
+            dot: colors.disabled_foreground,
+        };
+    }
+    match (state.is_on, state.is_lit) {
+        (true, false) => MarkColors {
+            edge: colors.button_background,
+            fill: colors.button_background,
+            dot: colors.button_foreground,
+        },
+        (true, true) => MarkColors {
+            edge: colors.button_hover,
+            fill: colors.button_hover,
+            dot: colors.button_foreground,
+        },
+        (false, is_lit) => MarkColors {
+            edge: if is_lit { colors.focus_ring } else { colors.input_border },
+            fill: colors.input_background,
+            dot: colors.muted_foreground,
+        },
+    }
+}

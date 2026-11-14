@@ -1,0 +1,8 @@
+Identity {
+    name: Some(
+        "Zoë [Example]",
+    ),
+    email: Some(
+        "zoe@example.com",
+    ),
+}

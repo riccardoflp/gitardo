@@ -1,0 +1,43 @@
+WorkingTree {
+    staged: [
+        FileChange {
+            path: "accentué.txt",
+            original_path: None,
+            kind: Modified,
+        },
+        FileChange {
+            path: "deleted.txt",
+            original_path: None,
+            kind: Deleted,
+        },
+        FileChange {
+            path: "pages/[id].tsx",
+            original_path: None,
+            kind: Modified,
+        },
+        FileChange {
+            path: "renamed to.txt",
+            original_path: Some(
+                "renamed from.txt",
+            ),
+            kind: Renamed,
+        },
+    ],
+    unstaged: [
+        FileChange {
+            path: "pages/[id].tsx",
+            original_path: None,
+            kind: Modified,
+        },
+        FileChange {
+            path: "with space.txt",
+            original_path: None,
+            kind: Modified,
+        },
+    ],
+    untracked: [
+        "-new.txt",
+        "new folder/[draft].md",
+    ],
+    conflicted: [],
+}
