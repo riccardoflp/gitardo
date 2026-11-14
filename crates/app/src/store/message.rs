@@ -214,6 +214,8 @@ pub enum Message {
     },
     /// A job of the pull requests of GitHub is done (`github.read-pull-requests`).
     GitHub(super::github::GitHubMessage),
+    /// A task of the Activity drawer started, printed or ended (`worktree-setup.command-steps`).
+    Task(super::tasks::TaskMessage),
     /// The browser of the system could not open an address: what the system said.
     UrlNotOpened(String),
     /// The person asked to close the window, whose inside had this size in logical pixels.
@@ -486,6 +488,8 @@ pub enum Effect {
     /// Looks for the repository on GitHub, or reads its pull requests, on a thread of its own
     /// (`github.read-pull-requests`).
     GitHub(super::github::GitHubJob),
+    /// Runs, answers or stops the tasks of the Activity drawer (`worktree-setup.command-steps`).
+    Tasks(super::tasks::TaskEffect),
     /// Opens an address in the browser of the system: a pull request on GitHub (`github.open-pull-request`).
     OpenUrl(String),
     /// Closes the window and ends the program.

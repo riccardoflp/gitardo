@@ -45,6 +45,8 @@ pub enum Ended {
         /// The message git prepared for the next commit, read from the git folder when the plan asked for it
         /// (`FollowUp::PreparedMessage`).
         prepared_message: Option<String>,
+        /// The steps handed over from the first task on, which what follows waits for (`worktree-setup.command-steps`).
+        waiting: Option<Box<super::tasks::Waiting>>,
     },
     /// It refused to run, and said why, with what it offers to do instead.
     Refused(Text, Option<(FeatureId, Text)>),
@@ -301,10 +303,11 @@ pub fn asks(state: &mut State, question: Question) -> Vec<Effect> {
 }
 
 /// The operation running shows its plan before it runs.
-pub fn confirms(state: &mut State, plan: Plan) {
+pub fn confirms(state: &mut State, plan: Plan) -> Vec<Effect> {
     if let Some(running) = state.operations.running.as_mut() {
         running.asking = Some(Asking::Plan(plan));
     }
+    Vec::new()
 }
 
 /// The operation running ended: its lines go to the Command log, what it says is said, and the repository is read
@@ -314,12 +317,15 @@ pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect>
     state.is_operation_running = false;
     state.log.append(log);
     let mut effects = super::review::ended(state, feature, matches!(ended, Ended::Ran { .. }));
-    effects.extend(ended_as_said(state, (ended, feature)));
+    match super::tasks::hold(state, ended) {
+        Ok(held) => effects.extend(held),
+        Err(ended) => effects.extend(ended_as_said(state, (*ended, feature))),
+    }
     effects
 }
 
 /// What an operation that ended says, and what it asks next.
-fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<FeatureId>)) -> Vec<Effect> {
+pub(super) fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<FeatureId>)) -> Vec<Effect> {
     match ended {
         Ended::Ran {
             title, after, can_undo, ..
@@ -386,7 +392,7 @@ impl Said {
     }
 
     /// A sentence alone, with nothing beside it.
-    fn new(text: String, is_error: bool) -> Said {
+    pub(super) fn new(text: String, is_error: bool) -> Said {
         Said {
             text,
             is_error,

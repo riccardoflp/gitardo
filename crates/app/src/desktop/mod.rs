@@ -20,7 +20,7 @@ use crate::settings::{self, SettingsFiles, keys, read_files, user_settings_file}
 use crate::store::{Effect, Message, State, ViewData, reduce};
 use crate::window::{Step, Surface, SurfaceOptions};
 use crate::work::github::{GitHubAccess, GitHubReader};
-use crate::work::{Deliver, Operations, PersistedWriter, SettingWriter, SettingsWatcher, Workers};
+use crate::work::{Deliver, Operations, PersistedWriter, SettingWriter, SettingsWatcher, TaskRunners, Workers};
 
 /// The timer of the frames of the window.
 const FRAME_TIMER: TimerId = TimerId(1);
@@ -102,6 +102,8 @@ struct DesktopWindow {
     asking: crate::work::ai::Asking,
     /// What reads the pull requests of GitHub.
     github: GitHubReader,
+    /// The commands of new worktrees, in the Tasks of the Activity drawer.
+    tasks: TaskRunners,
     /// The watcher of the settings files.
     watcher: SettingsWatcher,
     /// The writer of what is kept between runs; none when there is no configuration folder.
@@ -151,6 +153,7 @@ impl DesktopWindow {
             operations: Operations::new(&activities, deliver),
             asking: crate::work::ai::Asking::new(deliver, &activities, Box::new(engine::SystemSecrets)),
             github: GitHubReader::new(GitHubAccess::system(), &activities, deliver),
+            tasks: TaskRunners::new(&activities, deliver),
             watcher: SettingsWatcher::new(Arc::clone(deliver)),
             writer: options
                 .configuration
@@ -215,6 +218,9 @@ impl DesktopWindow {
                 self.workers.finished(*job);
                 waiting.extend(self.reads.finished(*job));
             }
+            if let Message::Task(crate::store::tasks::TaskMessage::Ended { batch, .. }) = &message {
+                self.tasks.finished(*batch);
+            }
             for effect in reduce(&mut self.state, message) {
                 match self.carry_out(effect)? {
                     Some(Followed::Message(next)) => waiting.push_back(*next),
@@ -277,6 +283,7 @@ impl DesktopWindow {
                 is_saving,
             } => return Ok(Some(self.choose_file(title, question, is_saving))),
             Effect::GitHub(job) => self.github.start(job),
+            Effect::Tasks(asked) => self.tasks_asked(asked),
             Effect::OpenUrl(url) => {
                 if let Err(error) = platform::open_url(&url) {
                     let said = views::text::github::could_not_open(&error.to_string());
@@ -286,6 +293,16 @@ impl DesktopWindow {
             Effect::Quit => return Ok(Some(Followed::Quit)),
         }
         Ok(None)
+    }
+
+    /// Runs, answers or stops the tasks of the Activity drawer.
+    fn tasks_asked(&mut self, asked: crate::store::tasks::TaskEffect) {
+        use crate::store::tasks::TaskEffect;
+        match asked {
+            TaskEffect::Run { batch, steps } => self.tasks.run(batch, steps, self.state.settings.log_level),
+            TaskEffect::Answer { batch, line } => self.tasks.answer(batch, line),
+            TaskEffect::Stop(batch) => self.tasks.stop(batch),
+        }
     }
 
     /// Opens the system's dialog to choose a file to open or a path to save to, for the question of an operation, and

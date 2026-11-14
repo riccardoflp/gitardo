@@ -1747,3 +1747,35 @@ answered:
   fingerprint while the window is open, and a choice is accepted when it is made, not when the page is opened again:
   after closing and opening the page, the choice is proposed again but waits to be accepted. Should a choice stay
   accepted across closing the page?
+
+From the slice of the Tasks of the Activity drawer, which answers Q325 and builds `worktree-setup.command-steps`:
+
+- **Q-T1** — A command of a new worktree is a step of its own, `Step::Task { command, directory, name }`, logged
+  `run <command>` as `Run` is. In the window the engine runs a plan up to its first task and hands that task and the
+  steps after it back (`Finished::Ran::waiting`, `TaskSteps::HandedOver`); a thread of their own runs them one after
+  the other (`engine::TaskRunner`), with what they print sent to the window every 50 ms at most and the lines typed in
+  the drawer given to the task running. `gitardo-cli` still runs them in place, unseen. What the plan does once it
+  succeeded (its offers, `OpenWindow`) is held by the store until the last task exits with 0; meanwhile only its
+  sentence is said, and the drawer opens on the tasks. A step after the tasks that fails, such as the external
+  editor of **Open in worktree**, is said as the failure of a plan, with its own follow-ups. Is this the split the
+  card meant?
+- **Q-T2** — The **Tasks** column: the words **TASKS**, **waits**, **did not run**, **exit code `<n>`**,
+  **stopped**, **could not start**, **Nothing printed yet**, **Stop** (with the tooltip "Stop this command; the commands
+  after it do not run") and the box **Answer `<command>`, then press Enter**, which no card gave. It shows the last four
+  tasks, keeps the last five runs of commands and the last 5,000 lines of each task, leaves out the colors and the moves
+  of a terminal, writes a line again after a carriage return, and shows a line typed as a terminal would, followed by a
+  line feed (`\n` on every system) to the task. The drawer is 380 pixels high while it shows the tasks, against 280.
+  Are these the column and the words?
+- **Q-T3** — The warning of a command that failed says **so the command after it did not run.** when one did not run,
+  and ends at the worktree when none did, where the card's sentence says **the `<k>` commands**; a shell that could not
+  start says **`<command>` could not be started in `<worktree>`: `<what the system said>`**. Right?
+- **Q-T4** — On Windows a command of the user's, a task or a `Run` step, now runs as `cmd /S /C "<command>"` given as
+  it is, since the quoting of an argument put a backslash before each of its own quotes, which `cmd` keeps. **Stop**
+  kills the shell only, as cancelling a plan does: what the shell started, such as `node`, may outlive it, until the
+  platform can kill a tree of processes. Should that come with this?
+- **Q-T5** — The commands run only in a trusted folder, and no folder can be trusted yet (`Trust::NotTrusted` is
+  always given to the features): in the window they never run until trusted folders are built (roadmap M8). The tests
+  set the trust themselves. Should trusted folders be the next slice?
+- **Q-T6** — Each task is among the activities while it runs, titled `Running <command> in <worktree>` with **A
+  command of a new worktree, in Tasks** as its detail, so that the header and **What is running** show it; the table of
+  `activity.describe-task` gains that row. Is that wanted?

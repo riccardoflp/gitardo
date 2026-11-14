@@ -23,6 +23,45 @@ pub const COMMAND_LOG: &str = "Command log";
 /// What the Command log says before anything was logged.
 pub const LOG_EMPTY: &str = "No command has run yet";
 
+/// The title of the column of the tasks, the commands of new worktrees (`worktree-setup.command-steps`).
+pub const TASKS_COLUMN: &str = "TASKS";
+/// The tasks, as the screen reader says their list.
+pub const TASKS: &str = "Tasks";
+/// What the output of a task says before it printed anything.
+pub const NOTHING_PRINTED: &str = "Nothing printed yet";
+/// The button that stops the task running, and those after it.
+pub const STOP_TASK: &str = "Stop";
+/// The tooltip of **Stop**.
+pub const STOP_TASK_TOOLTIP: &str = "Stop this command; the commands after it do not run";
+/// What a task waiting for those before it says.
+pub const TASK_WAITS: &str = "waits";
+/// What a task that did not run says.
+pub const TASK_DID_NOT_RUN: &str = "did not run";
+/// What a task stopped says.
+pub const TASK_STOPPED: &str = "stopped";
+/// What a task whose shell could not start says.
+pub const TASK_NOT_STARTED: &str = "could not start";
+/// Why a task runs, as the activity indicator says it.
+pub const RUNNING_IN_TASKS: &str = "A command of a new worktree, in Tasks";
+
+/// What a task that exited with a code other than 0 says: `exit code 1`.
+#[must_use]
+pub fn exit_code(code: i32) -> String {
+    format!("exit code {code}")
+}
+
+/// What the box under the output of the task running says while it is empty: `Answer npm ci, then press Enter`.
+#[must_use]
+pub fn answer_task(command: &str) -> String {
+    format!("Answer {command}, then press Enter")
+}
+
+/// The title of a task running, as the activity indicator says it: `Running npm ci in fix`.
+#[must_use]
+pub fn running_task(command: &str, name: &str) -> String {
+    format!("Running {command} in {name}")
+}
+
 /// What asks for the search for the repositories: a workspace opened, or looked at again.
 pub const OPENING_WORKSPACE: &str = "Opening the workspace";
 /// What asks for a read of a repository: it was chosen, or is read again.

@@ -1,9 +1,11 @@
 //! The Activity drawer (`activity.what-is-running`): a card over the bottom of what is under the header, with what runs
-//! and what ran a moment ago, and the Command log beside them once it is asked for (`log.show`).
+//! and what ran a moment ago, the Command log beside them once it is asked for (`log.show`), and the Tasks once a new
+//! worktree runs commands (`worktree-setup.command-steps`).
 
 use ui::layout::{Align, Area, Insets, Size, columns, inset, place};
 use ui::{AccessRole, Button, ButtonKind, Icon, Label, Layer, Rect, Sense, TextKind, Tone, Ui};
 
+use super::tasks::{TasksState, tasks_column};
 use super::{RunningTask, ask_for_next_frame};
 use crate::intent::Intent;
 use crate::log::{LogState, log_view};
@@ -11,6 +13,8 @@ use crate::text::activity as words;
 
 /// The highest the drawer is.
 const HEIGHT: f32 = 280.0;
+/// The highest the drawer is while it shows the Tasks, whose output needs the room.
+const HEIGHT_WITH_TASKS: f32 = 380.0;
 /// The most of the height of what is under the header the drawer takes.
 const MOST_OF_HEIGHT: f32 = 0.6;
 
@@ -23,11 +27,14 @@ pub struct ActivityState<'a> {
     pub finished: &'a [RunningTask],
     /// The Command log, once **Show the commands Gitardo runs** was clicked.
     pub log: Option<LogState<'a>>,
+    /// The Tasks, once a new worktree ran commands.
+    pub tasks: Option<TasksState<'a>>,
 }
 
-/// The rectangle of the drawer: along the bottom of the rectangle given, with a margin around it.
-fn drawer_rect(area: Rect, margin: f32) -> Rect {
-    let height = HEIGHT.min(area.height * MOST_OF_HEIGHT);
+/// The rectangle of the drawer: along the bottom of the rectangle given, with a margin around it, at most as high as
+/// `highest`.
+fn drawer_rect(area: Rect, margin: f32, highest: f32) -> Rect {
+    let height = highest.min(area.height * MOST_OF_HEIGHT);
     Rect::new(
         area.x + margin,
         area.bottom() - margin - height,
@@ -38,8 +45,8 @@ fn drawer_rect(area: Rect, margin: f32) -> Rect {
 
 /// The Activity drawer, over the bottom of the rectangle its caller clipped it to: its title and the button that
 /// closes it; what runs, each with its title, how long it has run and its detail, or that nothing runs; what ran a
-/// moment ago; **Show the commands Gitardo runs**, which shows the Command log beside them. The times go on while it is
-/// open.
+/// moment ago; **Show the commands Gitardo runs**, which shows the Command log beside them; then the Tasks, once a new
+/// worktree ran commands. The times go on while it is open.
 ///
 /// Feature: activity.what-is-running
 pub fn what_is_running_view(state: &ActivityState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -47,7 +54,12 @@ pub fn what_is_running_view(state: &ActivityState<'_>, ui: &mut Ui<'_>) -> Vec<I
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
     let margin = spacing.large + spacing.small;
-    let rect = drawer_rect(ui.current_clip(), margin);
+    let highest = if state.tasks.is_some() {
+        HEIGHT_WITH_TASKS
+    } else {
+        HEIGHT
+    };
+    let rect = drawer_rect(ui.current_clip(), margin, highest);
     ask_for_next_frame(state.running, ui);
     ui.layer(Layer::Popup, |ui| {
         ui.floating_card(rect, theme.sizes.radius.large + spacing.small);
@@ -58,13 +70,25 @@ pub fn what_is_running_view(state: &ActivityState<'_>, ui: &mut Ui<'_>) -> Vec<I
             |ui| {
                 let mut area = Area::with_gap(inset(rect, Insets::all(margin)), spacing.large);
                 title_bar(ui, area.top(theme.sizes.control_height), &mut intents);
-                match &state.log {
-                    Some(log) => {
+                match (&state.log, &state.tasks) {
+                    (Some(log), Some(tasks)) => {
+                        let sizes = [Size::Fill(1.0), Size::Fill(1.4), Size::Fill(1.4)];
+                        let [running, log_column, tasks_rect] = columns(area.rest(), margin, sizes);
+                        running_column(state, ui, running, &mut intents);
+                        log_column_view(log, ui, log_column, &mut intents);
+                        tasks_column(tasks, ui, tasks_rect, &mut intents);
+                    }
+                    (Some(log), None) => {
                         let [running, log_column] = columns(area.rest(), margin, [Size::Fill(1.0), Size::Fill(1.4)]);
                         running_column(state, ui, running, &mut intents);
                         log_column_view(log, ui, log_column, &mut intents);
                     }
-                    None => running_column(state, ui, area.rest(), &mut intents),
+                    (None, Some(tasks)) => {
+                        let [running, tasks_rect] = columns(area.rest(), margin, [Size::Fill(1.0), Size::Fill(1.6)]);
+                        running_column(state, ui, running, &mut intents);
+                        tasks_column(tasks, ui, tasks_rect, &mut intents);
+                    }
+                    (None, None) => running_column(state, ui, area.rest(), &mut intents),
                 }
             },
         );

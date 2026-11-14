@@ -836,7 +836,9 @@ links and copies made.
 
 The rules:
 
-- Each command is a `Run` step in the worktree, `run <command>` in the log, after the links and copies.
+- Each command is a `Task` step in the worktree, named after it, `run <command>` in the log, after the links and
+  copies. The engine runs the steps of the plan before the first task, then hands that task and the steps after it to
+  **Tasks**, which runs them apart.
 - They run one after the other in **Tasks**, in the Activity drawer, each as a task named after the worktree's folder,
   with the shell of the system, so that what they print is seen and what they ask can be answered. One command to a
   line, with no `&&` between them, which Windows PowerShell does not know.

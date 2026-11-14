@@ -15,6 +15,7 @@ mod persist;
 mod repository_watch;
 pub mod review;
 mod setting_writer;
+mod tasks;
 mod watch;
 
 use std::collections::HashMap;
@@ -38,6 +39,7 @@ pub use operations::Operations;
 pub use persist::PersistedWriter;
 pub use repository_watch::{RepositoryWatch, change_of, common_git_folder};
 pub use setting_writer::SettingWriter;
+pub use tasks::TaskRunners;
 pub use watch::{SettingsWatcher, WATCH_INTERVAL};
 
 /// Where the messages of the workers go: into the event loop of the window, which it wakes up.

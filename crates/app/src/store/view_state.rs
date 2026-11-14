@@ -59,6 +59,8 @@ pub struct ViewData {
     changes: super::changes::ChangesData,
     /// The blame of the File page in front.
     blame: super::blame::BlameData,
+    /// The rows of the Tasks of the Activity drawer, while it is open.
+    task_rows: Vec<views::activity::TaskRow>,
 }
 
 impl ViewData {
@@ -123,6 +125,7 @@ impl ViewData {
             search: search::SearchView::new(state),
             changes: super::changes::ChangesData::new(state),
             blame: super::blame::BlameData::new(state, now),
+            task_rows: state.tasks.rows_while(state.is_activity_open),
         }
     }
 
@@ -151,6 +154,7 @@ impl ViewData {
                     lines: &self.log_lines,
                     dropped: state.log.dropped(),
                 }),
+                tasks: state.tasks.view(&self.task_rows),
             }),
             theme_picker: (state.dialog == Some(Dialog::ThemePicker)).then_some(ThemePickerState {
                 current: crate::settings::theme_value(state.settings.theme),

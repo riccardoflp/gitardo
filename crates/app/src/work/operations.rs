@@ -110,7 +110,7 @@ impl Drop for Operations {
 }
 
 /// The system's clock.
-struct SystemClock;
+pub(super) struct SystemClock;
 
 impl Clock for SystemClock {
     fn now(&self) -> Timestamp {
@@ -144,6 +144,8 @@ fn serve(
             engine.keep_secrets_in((access.secrets)());
             engine.share_activities(activities.clone());
             engine.find_operations_with(features::operation);
+            // The commands of a new worktree run in the Tasks of the drawer, which other operations do not wait for.
+            engine.run_tasks(engine::TaskSteps::HandedOver);
             engine
         });
         engine.cancel_with(cancel.clone());
@@ -197,12 +199,21 @@ fn with_prepared_message(mut ended: Ended, context: &Context) -> Ended {
 fn ended_of(feature: FeatureId, result: Result<Finished, EngineError>) -> Ended {
     match result {
         Ok(Finished::Ran {
-            plan, went_on_after, ..
+            plan,
+            went_on_after,
+            waiting,
+            ..
         }) => Ended::Ran {
             can_undo: !matches!(plan.undo, Undo::Impossible(_)),
             title: plan.title,
             after: said_with_failures(plan.after, &went_on_after),
             prepared_message: None,
+            waiting: (!waiting.is_empty()).then(|| {
+                Box::new(crate::store::tasks::Waiting {
+                    steps: waiting,
+                    on_failure: plan.on_failure,
+                })
+            }),
         },
         Ok(Finished::Refused(refusal)) => Ended::Refused(refusal.message, refusal.offer),
         Ok(Finished::BackedOut | Finished::NotConfirmed(_)) => Ended::BackedOut,

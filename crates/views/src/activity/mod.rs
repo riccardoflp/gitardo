@@ -2,6 +2,7 @@
 //! (`activity.what-is-running`), with the Command log in it (`log.show`).
 
 mod drawer;
+mod tasks;
 #[cfg(test)]
 mod tests;
 
@@ -15,6 +16,7 @@ use crate::line::is_narrow;
 use crate::text::header;
 
 pub use drawer::{ActivityState, what_is_running_view};
+pub use tasks::{TaskId, TaskIntent, TaskRow, TasksState};
 
 /// How long something runs before the activity indicator shows it, so that what is over sooner does not flicker.
 const SHOWN_AFTER: Duration = Duration::from_millis(500);

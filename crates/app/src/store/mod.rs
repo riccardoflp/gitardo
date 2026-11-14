@@ -29,6 +29,7 @@ pub mod search;
 mod settings_page;
 mod stashes;
 mod state;
+pub mod tasks;
 #[cfg(test)]
 mod tests;
 mod timeline;
@@ -110,10 +111,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
             read_at,
         } => repository_read(state, job, &folder, (result, read_at)),
         Message::FeatureAsks(question) => changes::asks(state, *question),
-        Message::FeatureConfirms(plan) => {
-            feature::confirms(state, *plan);
-            Vec::new()
-        }
+        Message::FeatureConfirms(plan) => feature::confirms(state, *plan),
         Message::FeatureEnded { ended, log } => feature_ended(state, ended, log),
         Message::CommitsRead { job, result } => timeline::commits_read(state, job, result),
         Message::TimelineRead { job, result } => timeline::timeline_read(state, job, result),
@@ -143,6 +141,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         }
         message @ (Message::AiPiece { .. } | Message::AiAnswered { .. }) => review::ai::reduce(state, message),
         Message::GitHub(message) => github::reduce(state, message),
+        Message::Task(message) => tasks::reduce_message(state, message),
         Message::UrlNotOpened(said) => github::not_opened(state, said),
         Message::CloseRequested { window_size } => {
             let mut effects = workspace::cancel_all(state);
@@ -347,6 +346,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Rebase(intent) => rebase::reduce(state, intent),
         Intent::Conflicts(intent) => conflicts::reduce(state, intent),
         Intent::WorktreeSetup(intent) => new_worktrees::reduce(state, intent),
+        Intent::Tasks(intent) => tasks::reduce(state, intent),
     }
 }
 

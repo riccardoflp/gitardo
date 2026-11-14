@@ -119,6 +119,7 @@ fn activity_what_is_running__when_the_fetch_ends_the_drawer_says_nothing_is_runn
             running: &[],
             finished: &finished,
             log: None,
+            tasks: None,
         },
     );
     assert!(says(&tree, "Nothing is running now"), "{}", "Nothing is running now");

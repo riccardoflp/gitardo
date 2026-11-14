@@ -67,6 +67,7 @@ mod stashes;
 mod submodules;
 mod support;
 mod sync_stash;
+mod tasks;
 mod timeline;
 mod views_drawn;
 mod watch;

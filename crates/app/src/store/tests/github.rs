@@ -103,6 +103,7 @@ fn github_read_pull_requests__a_push_that_succeeded_is_followed_by_a_request_eve
         after: vec![FollowUp::ReadPullRequests],
         can_undo: false,
         prepared_message: None,
+        waiting: None,
     };
     let effects = reduce(
         &mut state,
@@ -127,6 +128,7 @@ fn github_offer_after_push__the_first_push_of_a_branch_says_pushed_with_create_p
         after: vec![FollowUp::ReadPullRequests],
         can_undo: false,
         prepared_message: None,
+        waiting: None,
     };
     let _effects = reduce(
         &mut state,

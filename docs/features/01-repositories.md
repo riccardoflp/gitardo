@@ -349,6 +349,7 @@ The words the activity indicator of the header and the **Activity** drawer use f
 | A comparison | `Comparing <from> ↔ <to>` | |
 | A patch being made | `Making a patch of <commits>` | |
 | The pull requests | `Reading the pull requests from GitHub` | |
+| A command of a new worktree, in Tasks | `Running <command> in <worktree>` | `A command of a new worktree, in Tasks` |
 
 `<name>` is the one `repo.name-repositories` gives. How long it has run is said in whole seconds, `12 s`, and from a
 minute on as `1 min 5 s`.
@@ -405,6 +406,13 @@ The drawer lists each thing that runs, with its title, how long it has run and i
 second while it is open, and the list following what starts and ends. With nothing running it says **Nothing is running
 now** and "Gitardo is not reading or changing anything". Under the list, **Show the commands Gitardo runs** shows the
 Command log of the drawer. Opening the drawer while it is open leaves it as it is.
+
+Once a new worktree has run commands (`worktree-setup.command-steps`), the drawer, higher, has **Tasks** at its right:
+a row for each of the latest commands, with its worktree and how it stands (a spinner while it runs, **waits**, a
+check, **exit code `<n>`**, **stopped**, **did not run**); below, what the task shown printed, following its end, the
+colors of a terminal left out; a click on a row shows what that one printed. While the task shown runs, a box under
+its output answers what it asks, `Enter` giving it the line typed, and **Stop** stops it, so that those after it do
+not run.
 
 Acceptance:
 
