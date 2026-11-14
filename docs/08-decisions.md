@@ -1671,25 +1671,25 @@ answered:
 - **Q329** — Q316 is answered: a row of the Worktrees list draws the badge of the pull request of its branch at its
   right, after the pencil, and its tooltip adds the line of the badge; a missing worktree has none. The card gains an
   acceptance line for it. Is this right?
-- **Q-R1** — `repo.open-folder`, `repo.open-recent` and `repo.select` are built as cards of the store, not features,
+- **Q330** — `repo.open-folder`, `repo.open-recent` and `repo.select` are built as cards of the store, not features,
   as the lead decided for Q43: their Function lines name `app::store::open_folder`, `app::store::open_recent` and
   `app::store::workspace::select`, which reduce them, and their acceptance lines are tests of the store. The system's
   folder dialog is the platform's (`platform::FileDialog`), shown for `Effect::ChooseFolder`. Can the maintainer
   confirm that the workspace stays out of the feature contract?
-- **Q-R2** — `refs.sort` is built on the lead's answer to Q9: with `branches.sortOrder` not set, the branches sort by
+- **Q331** — `refs.sort` is built on the lead's answer to Q9: with `branches.sortOrder` not set, the branches sort by
   name, unless Git's `branch.sort` of the repository shown is `-committerdate` or `committerdate`, which give the order
   by date (`model::refs::order_in_force`). `branch.sort` is read with the state of the repository, by
   `git config --get branch.sort` in a thread of its own (`RepositoryState::branch_sort`). `committerdate`, the oldest
   first for git, gives the order by date too, the latest first, as the lead said. Should other keys of `branch.sort`,
   such as `-creatordate`, give the order by date as well?
-- **Q-R3** — `refs.filter` is built on the lead's answer to Q66: while something is typed in the branch rail, one list
+- **Q332** — `refs.filter` is built on the lead's answer to Q66: while something is typed in the branch rail, one list
   of the matches of every list (local, each remote, stashes, worktrees, tags, submodules) takes the place of the lists,
   the best first, under a title **MATCHES** with `<matches> of <all>`, a word the card did not give; **Favorites** and
   **Recent** give no entry, since their branches are among the local ones. Each entry keeps the row and the menu of its
   list. The branch filter (`filter.picker`) lists its matches the same way, without the headings **Local**,
   **Remotes** and **Tags**. Line 3 of `refs.filter` now says that a match of a closed list is shown while text is
   typed. In the narrow layout, where there is no box, nothing changed. Is this the list the maintainer meant?
-- **Q-R4** — `branch.name-from-format` is built on the lead's answer to Q112. The `regex` crate checks `pattern`, in
+- **Q333** — `branch.name-from-format` is built on the lead's answer to Q112. The `regex` crate checks `pattern`, in
   `model` (a new dependency there, `regex` already being allowed for `text`); a pattern that is not one accepts what
   is typed, and is refused before any question. A format with more than ten inputs is refused too, since the answers
   come back by the place of the input (`input1` to `input10`). The values given last are kept by workspace in the
@@ -1699,14 +1699,14 @@ answered:
   the system and 0 (UTC) elsewhere, and in `gitardo-cli`. The Function line returns `Result<FormatName, Outcome>`,
   since the read of the branches at a commit and a refusal are not questions. `branch.create` asks **Use the format**
   first; `worktree.create` still uses only formats without `${input:…}`, in UTC. Right?
-- **Q-R5** — `branch.pane` is built as `views::branch::pane(state: &ReferencesState, ui)`: the state of the rail is
+- **Q334** — `branch.pane` is built as `views::branch::pane(state: &ReferencesState, ui)`: the state of the rail is
   that of `refs.tree`, so no `BranchesState` was made. Its top, over the filter box, names the branch checked out with
   the icon of a branch, or `detached at <short hash>`, and under it has **Create branch** and **Compare**; at the width
   the rail starts with, **Create branch** is only `+`, with its name as the tooltip, so that both fit. Both are
   disabled before the first commit. The narrow layout, with only dots and icons, has no top. The header names the
   branch checked out too, so the top says it twice. The buttons of the top do not wait for an operation running, as
   the header's **Branch** does. Is this the top the maintainer meant?
-- **Q-R6** — `remote.manage` and `remote.add` are built now that the pull requests are read in the window: the first
+- **Q335** — `remote.manage` and `remote.add` are built now that the pull requests are read in the window: the first
   pick of `remote.manage` is a search (`QuestionKind::Search`, Q291), which finds a remote by its name or its URL;
   the lines about GitHub are tested against the test server of `github.load-pull-requests`. Renaming `origin` while a
   fork is the other remote makes the fork the main remote until `origin` comes back, as `github.detect-remote` says,
