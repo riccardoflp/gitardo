@@ -1,0 +1,13 @@
+[package]
+name = "system"
+description = "The operating system without a window, as Gitardo's engine needs it: the credential store and links to folders, with the bindings of the system libraries that platform shares."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# No library: what this crate asks of the system is declared by hand, one file per system library (rule R5.2).
+[dependencies]
+
+[lints]
+workspace = true

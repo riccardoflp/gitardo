@@ -4,7 +4,7 @@
 use super::core_foundation::{CFTypeRef, kCFBooleanTrue};
 use super::objects::{self, Owned};
 use super::security as sec;
-use crate::error::PlatformError;
+use crate::error::SystemError;
 
 /// The service every secret of Gitardo is kept under.
 const SERVICE: &str = "Gitardo Desktop";
@@ -17,7 +17,7 @@ struct Item {
 
 impl Item {
     /// The item kept under a name.
-    fn named(name: &str) -> Result<Item, PlatformError> {
+    fn named(name: &str) -> Result<Item, SystemError> {
         Ok(Item {
             service: objects::string(SERVICE)?,
             account: objects::string(name)?,
@@ -25,7 +25,7 @@ impl Item {
     }
 
     /// The pairs of a query that finds the item, with more pairs after them.
-    fn query(&self, more: &[(CFTypeRef, CFTypeRef)]) -> Result<Owned, PlatformError> {
+    fn query(&self, more: &[(CFTypeRef, CFTypeRef)]) -> Result<Owned, SystemError> {
         let mut pairs = vec![
             (sec::kSecClass, sec::kSecClassGenericPassword),
             (sec::kSecAttrService, self.service.get()),
@@ -37,15 +37,15 @@ impl Item {
 }
 
 /// What the keychain said, as an error.
-fn refused(call: &'static str, status: sec::OSStatus) -> PlatformError {
-    PlatformError::System {
+fn refused(call: &'static str, status: sec::OSStatus) -> SystemError {
+    SystemError::System {
         call,
         details: format!("the keychain said {status}"),
     }
 }
 
 /// The secret kept under a name; none when there is none.
-pub(crate) fn read_secret(name: &str) -> Result<Option<String>, PlatformError> {
+pub(crate) fn read_secret(name: &str) -> Result<Option<String>, SystemError> {
     let item = Item::named(name)?;
     let query = item.query(&[
         (sec::kSecReturnData, kCFBooleanTrue),
@@ -66,11 +66,11 @@ pub(crate) fn read_secret(name: &str) -> Result<Option<String>, PlatformError> {
     };
     String::from_utf8(objects::bytes_of(&found))
         .map(Some)
-        .map_err(|error| PlatformError::system("reading a secret of the keychain", &error))
+        .map_err(|error| SystemError::system("reading a secret of the keychain", &error))
 }
 
 /// Keeps a secret under a name, in place of what was kept there.
-pub(crate) fn write_secret(name: &str, secret: &str) -> Result<(), PlatformError> {
+pub(crate) fn write_secret(name: &str, secret: &str) -> Result<(), SystemError> {
     let item = Item::named(name)?;
     let value = objects::data(secret.as_bytes())?;
     let query = item.query(&[])?;
@@ -94,7 +94,7 @@ pub(crate) fn write_secret(name: &str, secret: &str) -> Result<(), PlatformError
 }
 
 /// Takes the secret kept under a name out of the keychain; nothing happens when there is none.
-pub(crate) fn delete_secret(name: &str) -> Result<(), PlatformError> {
+pub(crate) fn delete_secret(name: &str) -> Result<(), SystemError> {
     let item = Item::named(name)?;
     let query = item.query(&[])?;
     // SAFETY: the dictionary is alive for the call.

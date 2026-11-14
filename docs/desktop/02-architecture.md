@@ -65,8 +65,7 @@ app ──► views ──► ui ──► render ──► platform ──► s
  ├──► engine ──► git ──► model, text
  │       ├─────► model (the plans it runs, the queries it answers)
  │       ├─────► json (the answers of web services)
- │       ├─────► http, system (processes, files, the credential store, links)
- │       └─────► platform, until `system` takes what it uses
+ │       └─────► http, system (processes, files, the credential store, links)
  ├──► features ──► model, text, json, git (types only, never running)
  ├──► settings ──► json, model (the files read, the settings of the features)
  ├──► json, http ──► tls ──► rustls, rustls-native-certs (D13)

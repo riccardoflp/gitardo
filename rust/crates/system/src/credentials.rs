@@ -3,14 +3,14 @@
 //! Secret Service, in a file of the user's configuration folder only the user may read; macOS as generic passwords of
 //! the keychain, of the service `Gitardo Desktop` (`docs/desktop/05-platform.md`, Credentials).
 
-use crate::error::PlatformError;
+use crate::error::SystemError;
 
 /// The secret kept under a name, such as `github.com`; none when nothing is kept there.
 ///
 /// # Errors
 ///
 /// When the store cannot be read, or the system has none Gitardo speaks to yet.
-pub fn read_secret(name: &str) -> Result<Option<String>, PlatformError> {
+pub fn read_secret(name: &str) -> Result<Option<String>, SystemError> {
     #[cfg(windows)]
     return crate::windows::read_secret(name);
     #[cfg(target_os = "linux")]
@@ -26,7 +26,7 @@ pub fn read_secret(name: &str) -> Result<Option<String>, PlatformError> {
 /// # Errors
 ///
 /// When the store refuses it, or the system has none Gitardo speaks to yet.
-pub fn write_secret(name: &str, secret: &str) -> Result<(), PlatformError> {
+pub fn write_secret(name: &str, secret: &str) -> Result<(), SystemError> {
     #[cfg(windows)]
     return crate::windows::write_secret(name, secret);
     #[cfg(target_os = "linux")]
@@ -42,7 +42,7 @@ pub fn write_secret(name: &str, secret: &str) -> Result<(), PlatformError> {
 /// # Errors
 ///
 /// When the store refuses it, or the system has none Gitardo speaks to yet.
-pub fn delete_secret(name: &str) -> Result<(), PlatformError> {
+pub fn delete_secret(name: &str) -> Result<(), SystemError> {
     #[cfg(windows)]
     return crate::windows::delete_secret(name);
     #[cfg(target_os = "linux")]
@@ -55,8 +55,8 @@ pub fn delete_secret(name: &str) -> Result<(), PlatformError> {
 
 /// What a system without a credential store Gitardo speaks to says; what was asked does not change it.
 #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
-fn unsupported(_asked: bool) -> PlatformError {
-    PlatformError::Unsupported {
+fn unsupported(_asked: bool) -> SystemError {
+    SystemError::Unsupported {
         what: "keep secrets in its credential store yet",
     }
 }

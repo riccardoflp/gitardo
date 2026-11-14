@@ -1,9 +1,11 @@
-//! The operating system, as Gitardo Desktop sees it: windows, input, clipboard, timers, file watching, dialogs, credentials, opening and revealing.
+//! The operating system, as the window of Gitardo Desktop sees it: windows, input, clipboard, timers, file watching,
+//! dialogs, opening and revealing. What the engine asks of the system without a window, the credential store and the
+//! links to folders, is in the crate `system`, whose bindings of the system libraries this crate uses too.
 //!
 //! The window, its input, the clipboard, the dialogs and the screen reader come from the libraries of decision D16
 //! (`winit`, `softbuffer`, `arboard`, `rfd`, `accesskit_winit`), none of whose types appear here but the tree of
 //! `accesskit`, re-exported as [`accesskit`] for the screen reader. What they do not cover is asked of the system,
-//! and this is the one crate allowed to use `unsafe` for it (rule R5.1).
+//! and this crate and `system` are the ones allowed to use `unsafe` for it (rule R5.1).
 //!
 //! A program makes one [`EventLoop`] and calls [`EventLoop::run`] with a handler that gets every [`Event`] with a
 //! [`Context`]: it opens its [`Window`]s on [`Event::Started`], and then gets the input of each window, the messages
@@ -21,14 +23,12 @@ mod accessibility;
 mod click;
 mod clipboard;
 mod convert;
-mod credentials;
 mod dialog;
 mod error;
 mod event;
 mod event_loop;
 mod geometry;
 mod input;
-mod links;
 #[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "macos")]
@@ -51,7 +51,6 @@ pub use accesskit;
 
 pub use accessibility::AccessibilityRequest;
 pub use clipboard::Clipboard;
-pub use credentials::{delete_secret, read_secret, write_secret};
 pub use dialog::{FileDialog, FileFilter};
 pub use error::PlatformError;
 pub use event::{Cursor, Event, TimerId, WindowId};
@@ -61,7 +60,6 @@ pub use input::{
     InputEvent, Key, KeyEvent, Modifiers, NamedKey, PointerButton, PointerButtonEvent, PointerMove, WheelDelta,
     WheelEvent,
 };
-pub use links::link_folder;
 pub use mailbox::{InputSender, Waker};
 pub use present::Frame;
 pub use shell::open_url;

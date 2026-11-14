@@ -1,4 +1,4 @@
-//! The functions, types and constants of `advapi32.dll` that Gitardo Desktop asks for itself, with the names the
+//! The functions, types and constants of `advapi32.dll` that Gitardo asks for itself, with the names the
 //! Windows documentation gives them: the credential store.
 
 #![allow(

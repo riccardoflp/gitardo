@@ -4,7 +4,7 @@
 use core::ffi::c_void;
 
 use super::advapi32;
-use crate::error::PlatformError;
+use crate::error::SystemError;
 
 /// What every credential of Gitardo is named with, before its own name.
 const PREFIX: &str = "Gitardo Desktop/";
@@ -29,7 +29,7 @@ fn target(name: &str) -> Vec<u16> {
 }
 
 /// The secret kept under a name; none when there is none.
-pub(crate) fn read_secret(name: &str) -> Result<Option<String>, PlatformError> {
+pub(crate) fn read_secret(name: &str) -> Result<Option<String>, SystemError> {
     let target = target(name);
     let mut credential = core::ptr::null_mut();
     // SAFETY: the name is ended by a NUL and lives through the call; the store writes a pointer it allocated into
@@ -40,7 +40,7 @@ pub(crate) fn read_secret(name: &str) -> Result<Option<String>, PlatformError> {
         if error.raw_os_error() == Some(advapi32::ERROR_NOT_FOUND) {
             return Ok(None);
         }
-        return Err(PlatformError::system("CredReadW", &error));
+        return Err(SystemError::system("CredReadW", &error));
     }
     let credential = Read(credential);
     // SAFETY: the read succeeded, so the pointer is a credential the store allocated, valid until it is freed, and its
@@ -55,15 +55,15 @@ pub(crate) fn read_secret(name: &str) -> Result<Option<String>, PlatformError> {
     };
     String::from_utf8(bytes)
         .map(Some)
-        .map_err(|error| PlatformError::system("CredReadW", &error))
+        .map_err(|error| SystemError::system("CredReadW", &error))
 }
 
 /// Keeps a secret under a name, in place of what was kept there.
-pub(crate) fn write_secret(name: &str, secret: &str) -> Result<(), PlatformError> {
+pub(crate) fn write_secret(name: &str, secret: &str) -> Result<(), SystemError> {
     let mut target = target(name);
     let mut user: Vec<u16> = "Gitardo Desktop".encode_utf16().chain(Some(0)).collect();
     let mut blob = secret.as_bytes().to_vec();
-    let size = u32::try_from(blob.len()).map_err(|error| PlatformError::system("CredWriteW", &error))?;
+    let size = u32::try_from(blob.len()).map_err(|error| SystemError::system("CredWriteW", &error))?;
     let credential = advapi32::CREDENTIALW {
         Flags: 0,
         Type: advapi32::CRED_TYPE_GENERIC,
@@ -85,20 +85,20 @@ pub(crate) fn write_secret(name: &str, secret: &str) -> Result<(), PlatformError
     // a NUL, and the blob is as long as its size says; the store copies what it keeps.
     let written = unsafe { advapi32::CredWriteW(&raw const credential, 0) };
     if written == 0 {
-        return Err(PlatformError::system("CredWriteW", &std::io::Error::last_os_error()));
+        return Err(SystemError::system("CredWriteW", &std::io::Error::last_os_error()));
     }
     Ok(())
 }
 
 /// Takes the secret kept under a name out of the store; nothing happens when there is none.
-pub(crate) fn delete_secret(name: &str) -> Result<(), PlatformError> {
+pub(crate) fn delete_secret(name: &str) -> Result<(), SystemError> {
     let target = target(name);
     // SAFETY: the name is ended by a NUL and lives through the call.
     let deleted = unsafe { advapi32::CredDeleteW(target.as_ptr(), advapi32::CRED_TYPE_GENERIC, 0) };
     if deleted == 0 {
         let error = std::io::Error::last_os_error();
         if error.raw_os_error() != Some(advapi32::ERROR_NOT_FOUND) {
-            return Err(PlatformError::system("CredDeleteW", &error));
+            return Err(SystemError::system("CredDeleteW", &error));
         }
     }
     Ok(())

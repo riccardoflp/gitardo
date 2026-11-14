@@ -44,6 +44,15 @@ impl PlatformError {
     }
 }
 
+impl From<::system::SystemError> for PlatformError {
+    fn from(error: ::system::SystemError) -> PlatformError {
+        match error {
+            ::system::SystemError::System { call, details } => PlatformError::System { call, details },
+            ::system::SystemError::Unsupported { what } => PlatformError::Unsupported { what },
+        }
+    }
+}
+
 impl fmt::Display for PlatformError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

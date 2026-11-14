@@ -11,7 +11,7 @@ use std::io::{ErrorKind, Write};
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
-use crate::error::PlatformError;
+use crate::error::SystemError;
 
 /// The name of Gitardo's folder under the configuration folder of the user, as the settings name it.
 const FOLDER_NAME: &str = "gitardo-desktop";
@@ -21,22 +21,22 @@ const FILE_NAME: &str = "credentials";
 const HEADER: &str = "# The secrets of Gitardo Desktop, readable only by this user. Do not share this file.";
 
 /// The secret kept under a name; none when there is none.
-pub(crate) fn read_secret(name: &str) -> Result<Option<String>, PlatformError> {
+pub(crate) fn read_secret(name: &str) -> Result<Option<String>, SystemError> {
     read_from(&file()?, name)
 }
 
 /// Keeps a secret under a name, in place of what was kept there.
-pub(crate) fn write_secret(name: &str, secret: &str) -> Result<(), PlatformError> {
+pub(crate) fn write_secret(name: &str, secret: &str) -> Result<(), SystemError> {
     write_to(&file()?, name, Some(secret))
 }
 
 /// Takes the secret kept under a name out of the file; nothing happens when there is none.
-pub(crate) fn delete_secret(name: &str) -> Result<(), PlatformError> {
+pub(crate) fn delete_secret(name: &str) -> Result<(), SystemError> {
     write_to(&file()?, name, None)
 }
 
 /// The file of the secrets, from the environment.
-fn file() -> Result<PathBuf, PlatformError> {
+fn file() -> Result<PathBuf, SystemError> {
     let variable = |name: &str| {
         std::env::var_os(name)
             .filter(|value| !value.is_empty())
@@ -45,13 +45,13 @@ fn file() -> Result<PathBuf, PlatformError> {
     variable("XDG_CONFIG_HOME")
         .or_else(|| variable("HOME").map(|home| home.join(".config")))
         .map(|folder| folder.join(FOLDER_NAME).join(FILE_NAME))
-        .ok_or(PlatformError::Unsupported {
+        .ok_or(SystemError::Unsupported {
             what: "say where the user's configuration folder is: neither XDG_CONFIG_HOME nor HOME is set",
         })
 }
 
 /// The secret kept under a name in a file of secrets.
-fn read_from(path: &Path, name: &str) -> Result<Option<String>, PlatformError> {
+fn read_from(path: &Path, name: &str) -> Result<Option<String>, SystemError> {
     Ok(entries(path)?
         .into_iter()
         .find(|(kept, _)| kept == name)
@@ -59,7 +59,7 @@ fn read_from(path: &Path, name: &str) -> Result<Option<String>, PlatformError> {
 }
 
 /// Keeps a secret under a name in a file of secrets, or takes it out when there is none.
-fn write_to(path: &Path, name: &str, secret: Option<&str>) -> Result<(), PlatformError> {
+fn write_to(path: &Path, name: &str, secret: Option<&str>) -> Result<(), SystemError> {
     let mut entries = entries(path)?;
     let before = entries.len();
     entries.retain(|(kept, _)| kept != name);
@@ -76,15 +76,15 @@ fn write_to(path: &Path, name: &str, secret: Option<&str>) -> Result<(), Platfor
         text.push_str(&escape(secret));
         text.push('\n');
     }
-    replace(path, &text).map_err(|error| PlatformError::system("writing the file of the secrets", &error))
+    replace(path, &text).map_err(|error| SystemError::system("writing the file of the secrets", &error))
 }
 
 /// The names and secrets of a file of secrets; none when it is not there.
-fn entries(path: &Path) -> Result<Vec<(String, String)>, PlatformError> {
+fn entries(path: &Path) -> Result<Vec<(String, String)>, SystemError> {
     let text = match fs::read_to_string(path) {
         Ok(text) => text,
         Err(error) if error.kind() == ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(error) => return Err(PlatformError::system("reading the file of the secrets", &error)),
+        Err(error) => return Err(SystemError::system("reading the file of the secrets", &error)),
     };
     Ok(text
         .lines()

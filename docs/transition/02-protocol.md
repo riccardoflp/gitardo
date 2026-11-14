@@ -400,8 +400,8 @@ Each answers `null` when the user backs out or the host cannot.
 | `host/languageModels` | — | `{ models: { id, name }[] }` | `Query::AiModels`, `ai::list_models` |
 | `host/openFile` | `FileQuestion` | `{ paths: string[] }` | `QuestionKind::OpenFile` |
 | `host/saveFile` | `FileQuestion` | `{ path: string \| null }` | `QuestionKind::SaveFile` |
-| `host/secret` | `{ name }` | `{ value: string \| null }` | `platform::read_secret` |
-| `host/storeSecret` | `{ name, value: string \| null }` | `null` | `platform::write_secret`, `delete_secret` |
+| `host/secret` | `{ name }` | `{ value: string \| null }` | `system::read_secret` |
+| `host/storeSecret` | `{ name, value: string \| null }` | `null` | `system::write_secret`, `delete_secret` |
 
 `LanguageModelRequest = { purpose: "commitMessage" | "conflict", model: string | null, effort: "low" | "medium" |
 "high", system: string, messages: { role: "user" | "assistant", text: string }[], stream: boolean }`. The prompt and

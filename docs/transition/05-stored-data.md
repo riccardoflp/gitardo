@@ -13,7 +13,7 @@ extension's side is [extension/11-data.md](../extension/11-data.md); the desktop
 | Settings of the user | VS Code's user settings, `gitardo.*` | `settings.json` in Gitardo's folder: `%APPDATA%\Gitardo Desktop`, `~/Library/Application Support/Gitardo Desktop`, `$XDG_CONFIG_HOME/gitardo-desktop` (`settings/folder.rs`) |
 | Settings of a repository | `.vscode/settings.json` of the workspace folder, `gitardo.*` | `.gitardo/settings.json` of the repository (`settings/folder.rs`), with `.vscode/settings.json`'s `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles` read as a fallback (`features/src/worktree_setup/files.rs`) |
 | Choices of the interface | VS Code's workspace state (7 keys) and each webview's state | `state.json` in Gitardo's folder, one per user, written whole (`persisted.rs`) |
-| Secrets | none: GitHub through VS Code's sign-in, models through VS Code | the credential store of the system: the GitHub token, the key of the AI provider (`platform::read_secret`) |
+| Secrets | none: GitHub through VS Code's sign-in, models through VS Code | the credential store of the system: the GitHub token, the key of the AI provider (`system::read_secret`) |
 | Files in `.git` | `rebase-merge/gitardo-split` | `rebase-merge/gitardo-split` (`features/src/split.rs`), `gitardo-rebase-<time>/` (`features/src/message/edit.rs:189`, `rebase.rs:31`) |
 | Temporary files | `<temp>/gitardo-rebase-*/`, `<temp>/gitardo-<uuid>.patch`, `<temp>/gitardo-worktree-*/` | `<temp>/gitardo-<process>-<random>.<extension>` (`engine/src/readings.rs:72`) |
 

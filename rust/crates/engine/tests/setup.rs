@@ -171,10 +171,10 @@ fn makes_nothing_under_a_link_of_the_worktree_and_copies_links_as_links() {
     let (repository, worktree) = repository_and_worktree();
     let store = repository.path().parent().unwrap().join("store");
     fs::create_dir_all(&store).unwrap();
-    platform::link_folder(&worktree.join("config"), &store).unwrap();
+    system::link_folder(&worktree.join("config"), &store).unwrap();
     write(repository.path(), "config/local.json", "{}\n");
     write(repository.path(), "tools/real/run.txt", "run\n");
-    platform::link_folder(
+    system::link_folder(
         &repository.path().join("tools").join("current"),
         &repository.path().join("tools/real"),
     )

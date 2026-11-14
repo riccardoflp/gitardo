@@ -7,6 +7,7 @@ members = [
     "crates/editor",
     "crates/render",
     "crates/platform",
+    "crates/system",
     "crates/features",
     "crates/engine",
     "crates/git",

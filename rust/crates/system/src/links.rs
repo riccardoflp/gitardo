@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use crate::error::PlatformError;
+use crate::error::SystemError;
 
 /// Makes `link` a link to the folder `target`: a junction on Windows, which needs no rights, and a symbolic link
 /// elsewhere. Nothing may be at `link` yet.
@@ -11,11 +11,11 @@ use crate::error::PlatformError;
 /// # Errors
 ///
 /// When something is at `link` already, its folder is not there, or the system refuses.
-pub fn link_folder(link: &Path, target: &Path) -> Result<(), PlatformError> {
+pub fn link_folder(link: &Path, target: &Path) -> Result<(), SystemError> {
     #[cfg(windows)]
     return crate::windows::make_junction(link, target);
     #[cfg(not(windows))]
-    return std::os::unix::fs::symlink(target, link).map_err(|error| PlatformError::system("symlink", &error));
+    return std::os::unix::fs::symlink(target, link).map_err(|error| SystemError::system("symlink", &error));
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-//! The functions and constants of the `Security` framework that Gitardo Desktop asks for itself, with the names Apple's
+//! The functions and constants of the `Security` framework that Gitardo asks for itself, with the names Apple's
 //! documentation gives them: generic passwords in the keychain of the user.
 
 #![allow(

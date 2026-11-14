@@ -7,7 +7,7 @@ use std::os::windows::ffi::OsStrExt;
 use std::path::{Component, Path, PathBuf, Prefix};
 
 use super::kernel32;
-use crate::error::PlatformError;
+use crate::error::SystemError;
 
 /// The bytes of the header of a reparse point before its data: its tag, the length of its data and a reserved word.
 const HEADER_BYTES: usize = 8;
@@ -28,11 +28,11 @@ impl Drop for Handle {
 
 /// Makes `link` a junction to the folder `target`: an empty folder is made at `link`, and the junction set on it. The
 /// target is made absolute; the folder made is taken away again when the system refuses the junction.
-pub(crate) fn make_junction(link: &Path, target: &Path) -> Result<(), PlatformError> {
+pub(crate) fn make_junction(link: &Path, target: &Path) -> Result<(), SystemError> {
     let target =
-        std::path::absolute(target).map_err(|error| PlatformError::system("the folder of a junction", &error))?;
+        std::path::absolute(target).map_err(|error| SystemError::system("the folder of a junction", &error))?;
     let buffer = reparse_buffer(&target)?;
-    fs::create_dir(link).map_err(|error| PlatformError::system("a folder for a junction", &error))?;
+    fs::create_dir(link).map_err(|error| SystemError::system("a folder for a junction", &error))?;
     let set = set_reparse_point(link, buffer);
     if set.is_err() {
         // The empty folder is taken away so that nothing is left where the junction was to be; when it cannot be, the
@@ -46,10 +46,10 @@ pub(crate) fn make_junction(link: &Path, target: &Path) -> Result<(), PlatformEr
 /// the length of the data, the place and length of the name the system follows (`\??\C:\folder`) and of the name it
 /// prints (`C:\folder`), then both names in UTF-16, each ended by a NUL. It is in 16-bit words, aligned as the system
 /// asks.
-fn reparse_buffer(target: &Path) -> Result<Vec<u16>, PlatformError> {
+fn reparse_buffer(target: &Path) -> Result<Vec<u16>, SystemError> {
     let printed: Vec<u16> = plain_path(target).as_os_str().encode_wide().collect();
     let substitute: Vec<u16> = "\\??\\".encode_utf16().chain(printed.iter().copied()).collect();
-    let too_long = || PlatformError::Unsupported { what: TOO_LONG };
+    let too_long = || SystemError::Unsupported { what: TOO_LONG };
     let substitute_bytes = u16::try_from(substitute.len() * 2).map_err(|_| too_long())?;
     let printed_bytes = u16::try_from(printed.len() * 2).map_err(|_| too_long())?;
     let data_bytes = NAMES_HEADER_BYTES + usize::from(substitute_bytes) + 2 + usize::from(printed_bytes) + 2;
@@ -87,7 +87,7 @@ fn plain_path(path: &Path) -> PathBuf {
 }
 
 /// Sets the reparse point of a junction on the empty folder `link`.
-fn set_reparse_point(link: &Path, mut buffer: Vec<u16>) -> Result<(), PlatformError> {
+fn set_reparse_point(link: &Path, mut buffer: Vec<u16>) -> Result<(), SystemError> {
     let name: Vec<u16> = link.as_os_str().encode_wide().chain(Some(0)).collect();
     // SAFETY: `name` ends with a NUL and lives for the call; the other arguments are flags and null pointers the
     // documentation allows.
@@ -106,7 +106,7 @@ fn set_reparse_point(link: &Path, mut buffer: Vec<u16>) -> Result<(), PlatformEr
         return Err(last_error("CreateFileW"));
     }
     let handle = Handle(handle);
-    let size = u32::try_from(buffer.len() * 2).map_err(|_| PlatformError::Unsupported { what: TOO_LONG })?;
+    let size = u32::try_from(buffer.len() * 2).map_err(|_| SystemError::Unsupported { what: TOO_LONG })?;
     let mut returned = 0_u32;
     // SAFETY: the handle is open for writing; `buffer` holds `size` bytes laid out as `REPARSE_DATA_BUFFER` and lives
     // for the call, which only reads it; there is no output buffer, and the call is not overlapped.
@@ -129,8 +129,8 @@ fn set_reparse_point(link: &Path, mut buffer: Vec<u16>) -> Result<(), PlatformEr
 }
 
 /// The error the system says it last had on this thread.
-fn last_error(call: &'static str) -> PlatformError {
+fn last_error(call: &'static str) -> SystemError {
     // SAFETY: the call has no arguments and only reads the error of this thread.
     let code = unsafe { kernel32::GetLastError() };
-    PlatformError::system(call, &std::io::Error::from_raw_os_error(code.cast_signed()))
+    SystemError::system(call, &std::io::Error::from_raw_os_error(code.cast_signed()))
 }

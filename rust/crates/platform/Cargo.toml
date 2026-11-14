@@ -1,6 +1,6 @@
 [package]
 name = "platform"
-description = "The operating system, as Gitardo Desktop sees it: windows, input, clipboard, timers, file watching, dialogs, credentials, opening and revealing."
+description = "The operating system, as the window of Gitardo Desktop sees it: windows, input, clipboard, timers, file watching, dialogs, opening and revealing."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,6 +9,8 @@ publish.workspace = true
 # The libraries of decision D16 (rule R1.6). Each takes only the features named beside it; the rest are turned off.
 # Every feature below matters only on Linux: on Windows and macOS these libraries use the system's own interfaces.
 [dependencies]
+# The bindings of the system libraries this crate shares with the engine's part of the system.
+system = { path = "../system" }
 # The tree of what is on screen, as plain data: it has no default features, and needs none.
 accesskit = "=0.25.2"
 # The screen reader, through the window. The release made for winit 0.30.

@@ -5,7 +5,7 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use platform::PlatformError;
+use system::SystemError;
 
 /// The name the GitHub token is kept under.
 pub const GITHUB_TOKEN: &str = "github.com";
@@ -17,21 +17,21 @@ pub trait SecretStore: Send {
     /// # Errors
     ///
     /// When the store cannot be read.
-    fn read(&self, name: &str) -> Result<Option<String>, PlatformError>;
+    fn read(&self, name: &str) -> Result<Option<String>, SystemError>;
 
     /// Keeps a secret under a name, in place of what was kept there.
     ///
     /// # Errors
     ///
     /// When the store refuses it.
-    fn write(&self, name: &str, secret: &str) -> Result<(), PlatformError>;
+    fn write(&self, name: &str, secret: &str) -> Result<(), SystemError>;
 
     /// Takes the secret kept under a name out of the store.
     ///
     /// # Errors
     ///
     /// When the store refuses it.
-    fn delete(&self, name: &str) -> Result<(), PlatformError>;
+    fn delete(&self, name: &str) -> Result<(), SystemError>;
 }
 
 /// The credential store of the system.
@@ -39,16 +39,16 @@ pub trait SecretStore: Send {
 pub struct SystemSecrets;
 
 impl SecretStore for SystemSecrets {
-    fn read(&self, name: &str) -> Result<Option<String>, PlatformError> {
-        platform::read_secret(name)
+    fn read(&self, name: &str) -> Result<Option<String>, SystemError> {
+        system::read_secret(name)
     }
 
-    fn write(&self, name: &str, secret: &str) -> Result<(), PlatformError> {
-        platform::write_secret(name, secret)
+    fn write(&self, name: &str, secret: &str) -> Result<(), SystemError> {
+        system::write_secret(name, secret)
     }
 
-    fn delete(&self, name: &str) -> Result<(), PlatformError> {
-        platform::delete_secret(name)
+    fn delete(&self, name: &str) -> Result<(), SystemError> {
+        system::delete_secret(name)
     }
 }
 
@@ -65,11 +65,11 @@ impl MemorySecrets {
 }
 
 impl SecretStore for MemorySecrets {
-    fn read(&self, name: &str) -> Result<Option<String>, PlatformError> {
+    fn read(&self, name: &str) -> Result<Option<String>, SystemError> {
         Ok(self.0.lock().unwrap_or_else(PoisonError::into_inner).get(name).cloned())
     }
 
-    fn write(&self, name: &str, secret: &str) -> Result<(), PlatformError> {
+    fn write(&self, name: &str, secret: &str) -> Result<(), SystemError> {
         let _before = self
             .0
             .lock()
@@ -78,7 +78,7 @@ impl SecretStore for MemorySecrets {
         Ok(())
     }
 
-    fn delete(&self, name: &str) -> Result<(), PlatformError> {
+    fn delete(&self, name: &str) -> Result<(), SystemError> {
         let _before = self.0.lock().unwrap_or_else(PoisonError::into_inner).remove(name);
         Ok(())
     }

@@ -67,7 +67,7 @@ pub(crate) fn link(from: &Path, to: &Path) -> io::Result<()> {
     if let Some(folder) = from.parent() {
         fs::create_dir_all(folder)?;
     }
-    platform::link_folder(from, to).map_err(io::Error::other)
+    system::link_folder(from, to).map_err(io::Error::other)
 }
 
 /// Copies a file, or a folder with all it has, keeping the links it meets as links.
@@ -104,7 +104,7 @@ fn copy_link(from: &Path, to: &Path, metadata: &fs::Metadata) -> io::Result<()> 
             let absolute = from
                 .parent()
                 .map_or_else(|| target.clone(), |folder| folder.join(&target));
-            return platform::link_folder(to, &absolute).map_err(io::Error::other);
+            return system::link_folder(to, &absolute).map_err(io::Error::other);
         }
         std::os::windows::fs::symlink_file(&target, to)
     }

@@ -14,7 +14,7 @@ git = { path = "../git" }
 http = { path = "../http" }
 json = { path = "../json" }
 model = { path = "../model" }
-platform = { path = "../platform" }
+system = { path = "../system" }
 
 [dev-dependencies]
 # The server of the tests on 127.0.0.1, which answers for api.github.com over TLS.

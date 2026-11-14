@@ -710,7 +710,7 @@ dependencies = [
  "http",
  "json",
  "model",
- "platform",
+ "system",
  "testkit",
 ]
 
@@ -1715,6 +1715,7 @@ dependencies = [
  "arboard",
  "rfd",
  "softbuffer",
+ "system",
  "winit",
 ]
 
@@ -2332,6 +2333,10 @@ checksum = "8eab9a99a024a169fe8a903cf9d4a3b3601109bcc13bd9e3c6fff259138626c4"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "system"
+version = "0.1.0"
 
 [[package]]
 name = "tempfile"

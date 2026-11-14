@@ -18,11 +18,11 @@ libraries of the window for most of it, and on each system for the rest. Windows
 | Event loop | One `EventLoop` per program, on the UI thread, for every window it opens; `run(handler)` gives the handler a `Context` and each event: first `Event::Started`, where windows are opened, then the events of each window, tagged with it, and the messages another thread sends (`Waker`). The `Context` quits the loop and starts and stops timers (`start_timer`, `stop_timer`) for blinking carets, delayed reads and animations. |
 | Clipboard | Read and write text. |
 | Files | Watching folders for changes (`Watcher`), the configuration and state folders of the user, the temporary folder, the trash. |
-| Links | `make_folder_link(from, to)`: a junction on Windows, a symbolic link elsewhere; `unlink_folder_link`. |
+| Links | `link_folder(link, target)`: a junction on Windows, a symbolic link elsewhere; in `system`, for the engine. |
 | Shell | Open a URL in the browser, reveal a path in the file manager, open a path in the external editor or a terminal. |
 | Dialogs | Choose a folder, choose a file to open, choose where to save. Everything else is drawn by Gitardo. |
 | Screen readers | The tree of what is on screen, built by `ui`, given to the system; what the screen reader asks for (a click, the focus) comes back as input. |
-| Credentials | Read, write and delete a secret by name in the system's credential store. |
+| Credentials | Read, write and delete a secret by name in the system's credential store: in `system`, for the engine. |
 | Fonts | The fonts of the program are in `render`; `platform` gives the paths of the system's font files, for the fallback and for the settings `font.ui` and `font.code`. |
 | Theme | Whether the system is dark or light, high contrast, and a notification when it changes. |
 | Processes | Running `git` uses `std::process`, which is enough; `platform` only adds killing a whole process tree on cancel. |
@@ -53,7 +53,7 @@ The minimum is Windows 10 version 1809. What the libraries do not cover is asked
 | --- | --- |
 | High contrast | `user32`: `SystemParametersInfoW(SPI_GETHIGHCONTRAST)`; `winit` says when the system's settings change. |
 | Watching files | `kernel32`: `ReadDirectoryChangesW` with `FILE_NOTIFY_CHANGE_*` on the repository and on its `.git` folder, in overlapped mode on the watcher thread. |
-| Junctions | `CreateFileW` with `FILE_FLAG_OPEN_REPARSE_POINT` and `DeviceIoControl(FSCTL_SET_REPARSE_POINT)`; reading one with `FSCTL_GET_REPARSE_POINT`. Junctions need no rights, unlike symbolic links. |
+| Junctions | `CreateFileW` with `FILE_FLAG_OPEN_REPARSE_POINT` and `DeviceIoControl(FSCTL_SET_REPARSE_POINT)`. Junctions need no rights, unlike symbolic links. |
 | Open, reveal | `shell32`: `ShellExecuteW` for URLs and folders; `SHOpenFolderAndSelectItems` to reveal a file. |
 | Credentials | `advapi32`: `CredReadW`, `CredWriteW`, `CredDeleteW`, `CredFree`, with `CRED_TYPE_GENERIC` and the target `Gitardo Desktop/<name>`. |
 | Killing a process tree | `CreateJobObjectW`, `AssignProcessToJobObject`, `TerminateJobObject`. |
