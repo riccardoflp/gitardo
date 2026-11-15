@@ -12,6 +12,7 @@ import {
   AiMethod,
   type AskedConflict,
   type ConflictAnswerResult,
+  type DiscoveredRepository,
   type DraftResult,
   type LanguageModelInfo,
   type LanguageModelRequest,
@@ -175,6 +176,17 @@ export class EngineClient {
     const { state } = await connection.request<{ state: RepositoryState }>(Method.open, { repository }, signal);
     this.opened.add(repository);
     return state;
+  }
+
+  /**
+   * The repositories the folders of a workspace give access to, in their order: the one each folder is in and those
+   * directly inside it, each followed by its submodules checked out, with the git folder each shares with its worktrees
+   * (`repository/discover`, from 1.7, `repo.read-repositories`). No repository is opened for it.
+   */
+  async discover(folders: string[], signal?: AbortSignal): Promise<DiscoveredRepository[]> {
+    const connection = await this.ready();
+    const { repositories } = await connection.request<{ repositories: DiscoveredRepository[] }>(Method.discover, { folders }, signal);
+    return repositories;
   }
 
   /** Closes a repository opened. */

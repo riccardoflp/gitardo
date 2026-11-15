@@ -10,7 +10,7 @@ import type { ChangeKind, FileChange, Operation, RepositoryState } from '../shar
 export type { CommitDetail, Signature, Submodule } from '../shared/state';
 
 /** The version of the protocol the extension speaks. */
-export const PROTOCOL = '1.6';
+export const PROTOCOL = '1.7';
 
 /** The names of the methods. */
 export const Method = {
@@ -32,6 +32,7 @@ export const Method = {
   settingsChanged: 'settings/changed',
   journalLast: 'journal/last',
   journalRecord: 'journal/record',
+  discover: 'repository/discover',
 } as const;
 
 /** What the extension says of itself in `initialize`. */
@@ -89,8 +90,10 @@ export type Target =
   // The targets of the conflicts, from 1.3.
   | { kind: 'resolutions'; files: FileResolutions[] }
   | { kind: 'mergeResult'; path: string; unsaved: string | null; marked: number }
-  // Area 6 of stage 4, from 1.6: a comparison page as a whole.
-  | ComparisonTarget;
+  // Area 6 of stage 4, from 1.6: a comparison page as a whole, or one of its files from 1.7.
+  | ComparisonTarget
+  // From 1.7: a change of a diff, which the Flow Diff stages or unstages.
+  | DiffChangeTarget;
 
 /** The resolutions accepted in a file of the review, and the text they were made from (`FileResolutions` of `model`). */
 export interface FileResolutions {
@@ -603,6 +606,32 @@ export interface ComparisonTarget {
   mode: 'sinceDiverged' | 'everything';
   path: string | null;
   mergeBase: string | null;
+  /** The file of the comparison it was invoked on, from 1.7 (`compare.take-file`); the whole comparison without it. */
+  file?: FileChange;
+}
+
+/** A side of a diff, as a change of it names it. */
+export type DiffSideTarget = { kind: 'head' } | { kind: 'index' } | { kind: 'workingTree' } | { kind: 'commit'; commit: string } | { kind: 'empty' };
+
+/** A change of a diff: the lines it replaces on the left, from 0 with the end out, and those it puts there from the right. */
+export interface DiffChangeTarget {
+  kind: 'diffChange';
+  path: string;
+  left: DiffSideTarget;
+  right: DiffSideTarget;
+  leftLines: { start: number; end: number };
+  rightLines: { start: number; end: number };
+  leftText: string[];
+  rightText: string[];
+}
+
+/** A repository found in the folders of a workspace (`repository/discover`, from 1.7). */
+export interface DiscoveredRepository {
+  folder: string;
+  /** The repository it is a submodule of, when it is one. */
+  superproject: string | null;
+  /** The git folder its worktrees share, where the references are; null when git could not say. */
+  commonFolder: string | null;
 }
 
 /** A setting a feature leaves for the extension to write in the user's settings, by the desktop's name; null removes it. */
