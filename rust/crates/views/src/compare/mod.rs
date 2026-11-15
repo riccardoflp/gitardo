@@ -48,8 +48,6 @@ pub struct CompareState<'a> {
     pub is_reading: bool,
     /// What is typed in the box that narrows it.
     pub typed_path: &'a str,
-    /// How many commits only in the first and in the second side the comparison counted before it was narrowed.
-    pub whole_counts: Option<(usize, usize)>,
     /// Whether **Show all N commits…** was clicked.
     pub is_all_commits_shown: bool,
     /// When the repository was last read, in seconds since 1970: how long ago each commit was made is counted from it.

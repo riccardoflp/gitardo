@@ -71,8 +71,6 @@ pub struct ComparePage {
     pub job: Option<JobId>,
     /// What is typed in the box that narrows it.
     pub typed: String,
-    /// How many commits only in the first and in the second side the last read of the whole repository counted.
-    pub whole: Option<(usize, usize)>,
     /// Whether **Show all N commits…** was clicked.
     pub is_all_commits_shown: bool,
 }
@@ -189,7 +187,6 @@ pub fn open_page(
         target,
         read: PageRead::Comparing,
         job: None,
-        whole: None,
         is_all_commits_shown: false,
     });
     super::pages::show_page(state, Page::Compare(id));
@@ -236,9 +233,6 @@ pub fn comparison_read(state: &mut State, job: JobId, result: Result<Box<Compari
             let ComparisonRead { first, second, view } = *read;
             page.target.first = first;
             page.target.second = second;
-            if page.target.path.is_none() {
-                page.whole = Some((view.only_in_first, view.only_in_second));
-            }
             page.read = PageRead::Read(Box::new(view));
         }
         Err(error) => {
@@ -311,7 +305,6 @@ pub fn page_state(state: &State, id: ComparePageId) -> Option<CompareState<'_>> 
         },
         is_reading: page.job.is_some(),
         typed_path: &page.typed,
-        whole_counts: page.target.path.as_ref().and(page.whole),
         is_all_commits_shown: page.is_all_commits_shown,
         now: state.timeline.read_at,
         is_on_github: state.github.repository.is_some()

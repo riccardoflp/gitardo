@@ -211,25 +211,19 @@ pub fn commits(state: &CompareState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let _ = ui.label(column.top(line), &Label::new(heading).kind(TextKind::Strong));
     let (first, second) = (&state.target.first.name, &state.target.second.name);
     let path = state.target.path.as_deref();
-    for (side, name, other, count, whole) in [
-        (
-            CommitSide::Second,
-            second,
-            first,
-            view.only_in_second,
-            state.whole_counts.map(|(_, second)| second),
-        ),
-        (
-            CommitSide::First,
-            first,
-            second,
-            view.only_in_first,
-            state.whole_counts.map(|(first, _)| first),
-        ),
+    for (side, name, other, whole) in [
+        (CommitSide::Second, second, first, view.only_in_second),
+        (CommitSide::First, first, second, view.only_in_first),
     ] {
         let read: Vec<&ComparedCommit> = view.commits.iter().filter(|commit| commit.side == side).collect();
         let also = read.iter().filter(|commit| commit.is_also_in_other_side).count();
-        let heading = words::only_in(name, (count, whole), path, (also, other));
+        // The counts are of the whole sides (Q407): narrowed, the commits read are the ones that change the path.
+        let counted = if path.is_some() {
+            (read.len(), Some(whole))
+        } else {
+            (whole, None)
+        };
+        let heading = words::only_in(name, counted, path, (also, other));
         let _ = ui.label(column.top(line), &Label::new(&heading).tone(Tone::Muted));
         let (listed, has_more, is_cut) = group(state, view, side);
         if is_cut {

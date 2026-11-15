@@ -109,7 +109,6 @@ fn swap(state: &mut State, id: ComparePageId) -> Vec<Effect> {
         return Vec::new();
     };
     std::mem::swap(&mut page.target.first, &mut page.target.second);
-    page.whole = page.whole.map(|(first, second)| (second, first));
     page.title = title_of(&page.target);
     let (folder, target) = (page.folder.clone(), page.target.clone());
     remember(state, &folder, &target);
