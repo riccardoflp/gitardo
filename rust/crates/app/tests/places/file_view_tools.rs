@@ -157,10 +157,13 @@ fn file_view_find__an_invalid_regular_expression_says_so_and_marks_nothing() {
     assert!(super::support::says_in(&tree, words::INVALID_PATTERN));
 }
 
+/// The letter of Go to line with Ctrl: G, and L on macOS, as its card says.
+const GO_TO_LINE: char = if cfg!(target_os = "macos") { 'l' } else { 'g' };
+
 #[test]
 fn file_view_go_to_line__ctrl_g_and_120_put_the_cursor_at_the_start_of_line_120_centered() {
     let (_repository, mut state, mut window) = page_of(&numbered(300));
-    let _ = step(&mut window, &mut state, &[shortcut('g', Modifiers::CONTROL)]);
+    let _ = step(&mut window, &mut state, &[shortcut(GO_TO_LINE, Modifiers::CONTROL)]);
     assert_eq!(shown(&state).go_to_line.as_deref(), Some("1"));
     let _ = step(&mut window, &mut state, &[]);
     let _ = step(
@@ -183,7 +186,7 @@ fn file_view_go_to_line__ctrl_g_and_120_put_the_cursor_at_the_start_of_line_120_
 #[test]
 fn file_view_go_to_line__typing_abc_is_refused_while_typed() {
     let (_repository, mut state, mut window) = page_of(&numbered(300));
-    let _ = step(&mut window, &mut state, &[shortcut('g', Modifiers::CONTROL)]);
+    let _ = step(&mut window, &mut state, &[shortcut(GO_TO_LINE, Modifiers::CONTROL)]);
     let _ = step(&mut window, &mut state, &[]);
     let _ = step(
         &mut window,
