@@ -44,7 +44,9 @@ first, in its own commit, with the reason.
 - **R2.5** A read is split into `<what>_arguments(request)`, which builds the git arguments, and
   `parse_<what>(output)`, which parses them. Both are pure; only `read_<what>` runs git.
 - **R2.6** Every line of a card's acceptance list has a test whose name starts with the feature's identifier
-  (`branch_create__…`). `cargo xtask check` matches cards, functions and tests. Rust does not count the double
+  (`branch_create__…`). `cargo xtask check` matches cards, functions and tests. A line that starts with `Extension:`
+  is the extension's, tested by the extension's own tests ([extension/06-testing.md](../extension/06-testing.md)),
+  and is not counted here. Rust does not count the double
   underscore as snake case, so a module of such tests says
   `#![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]`.
 - **R2.7** A card's status in the extension, the column after the desktop's in the index of the catalog, is one of

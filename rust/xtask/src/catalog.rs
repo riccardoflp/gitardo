@@ -86,7 +86,10 @@ fn read_card_line(card: &mut Card, line: &str, in_acceptance: bool) -> bool {
     } else if line.trim() == "Acceptance:" {
         return true;
     } else if in_acceptance && (line.starts_with("- [ ]") || line.starts_with("- [x]")) {
-        card.acceptance += 1;
+        // A line of the extension is tested by the extension's tests, not by the workspace's (rule R2.6).
+        if !line.get(5..).unwrap_or_default().trim_start().starts_with("Extension:") {
+            card.acceptance += 1;
+        }
     } else if !(line.trim().is_empty() || line.starts_with(char::is_whitespace)) {
         // A line that is neither blank nor the continuation of an item ends the list.
         return false;

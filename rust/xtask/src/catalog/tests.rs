@@ -16,6 +16,7 @@ Acceptance:
 - [ ] The branch is made.
 - [ ] A name git refuses is refused
       while it is typed.
+- [ ] Extension: the extension's own line, which its tests check.
 
 Rules after the list:
 
