@@ -9,7 +9,7 @@ use model::contract::{
 use model::state::Worktree;
 use model::worktree_setup::{LinkAndCopyInput, SetupPreview, SetupSettings, TakeRequest, link_and_copy_steps};
 
-use super::files::{patterns_of, read_files};
+use super::files::{patterns_of, settings_given};
 
 /// The key of what the patterns take for each worktree.
 const TAKES: AnswerKey = AnswerKey("worktree-setup-bring-takes");
@@ -88,8 +88,8 @@ fn same_folder(one: &Path, other: &Path) -> bool {
 
 /// The plan that links and copies into each worktree in turn.
 fn bring(context: &Context, answers: &Answers, worktrees: &[&Worktree], title: &str) -> Outcome {
-    let settings = match read_files(context, answers) {
-        Ok(files) => files.in_effect(),
+    let settings = match settings_given(context, answers) {
+        Ok(settings) => settings,
         Err(outcome) => return *outcome,
     };
     let patterns = patterns_of(&settings);

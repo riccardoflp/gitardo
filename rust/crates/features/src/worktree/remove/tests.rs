@@ -48,7 +48,10 @@ fn worktree_remove__a_refusal_for_changes_offers_force_as_destructive_and_nothin
     assert!(offer.when_said.iter().any(|said| said == "modified or untracked"));
     assert_eq!(offer.target, Target::Worktree(LOGIN.into()));
     let answers = offer.answers.clone().with(LINKS, Answer::Paths(Vec::new()));
-    assert_eq!(answers.flag(FORCE), Some(true));
+    assert!(
+        answers.is_confirmed(FORCE),
+        "the extension sends it back as an answer confirmed"
+    );
     let forced = plan(remove(&on_login(), &answers));
     assert_eq!(
         git_lines(&forced)[0],

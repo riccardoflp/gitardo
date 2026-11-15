@@ -14,7 +14,7 @@ pub use model::worktree::{DELETE_BRANCH, KEEP_BRANCH};
 
 /// Whether the branch goes too: [`KEEP_BRANCH`] or [`DELETE_BRANCH`].
 pub const BRANCH: AnswerKey = model::worktree::REMOVE_BRANCH;
-/// Given as true by **Remove anyway**: `git worktree remove --force`.
+/// Confirmed by **Remove anyway**: `git worktree remove --force`.
 pub const FORCE: AnswerKey = AnswerKey("force");
 /// The links to folders outside the worktree, read on Windows.
 const LINKS: AnswerKey = AnswerKey("folder links");
@@ -65,7 +65,7 @@ pub fn remove(context: &Context, answers: &Answers) -> Outcome {
     } else {
         Vec::new()
     };
-    let is_forced = answers.flag(FORCE) == Some(true);
+    let is_forced = answers.is_confirmed(FORCE);
     Outcome::Run(plan(
         context,
         worktree,
@@ -147,7 +147,7 @@ fn plan(
             None => String::from("The directory is deleted. Its branch and commits stay in the repository."),
         }))
     };
-    let mut answers = Answers::new().with(FORCE, Answer::Flag(true));
+    let mut answers = Answers::new().with(FORCE, Answer::Confirmed);
     answers = answers.with(
         BRANCH,
         Answer::Choice(if branch.is_some() { DELETE_BRANCH } else { KEEP_BRANCH }.to_owned()),

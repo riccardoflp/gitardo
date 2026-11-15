@@ -147,6 +147,12 @@ impl Answers {
         self.0.get(&key)
     }
 
+    /// Every answer with its key, in the order of the keys: what an operation offered is given before it asks, sent to
+    /// the extension with the offer.
+    pub fn iter(&self) -> impl Iterator<Item = (AnswerKey, &Answer)> {
+        self.0.iter().map(|(key, answer)| (*key, answer))
+    }
+
     /// The text typed for a key, when the answer is text.
     #[must_use]
     pub fn text(&self, key: AnswerKey) -> Option<&str> {

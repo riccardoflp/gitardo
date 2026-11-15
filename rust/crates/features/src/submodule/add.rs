@@ -67,7 +67,14 @@ pub fn add(context: &Context, answers: &Answers) -> Outcome {
             },
             Step::git(
                 top,
-                ["submodule", "update", "--init", "--recursive", "--", folder.as_str()],
+                [
+                    "submodule",
+                    "update",
+                    "--init",
+                    "--recursive",
+                    "--",
+                    super::literal(&folder).as_str(),
+                ],
             ),
         ],
         danger: Danger::None,
@@ -202,6 +209,15 @@ mod tests {
     fn submodule_add__a_second_command_initializes_its_own_submodules() {
         let plan = plan(add(&context(state(), Target::Head), &answered("vendor/lib", "")));
         assert_eq!(lines(&plan)[1], "git submodule update --init --recursive -- vendor/lib");
+    }
+
+    #[test]
+    fn submodule_add__a_folder_git_could_read_as_a_pattern_is_updated_by_its_literal_name() {
+        let plan = plan(add(&context(state(), Target::Head), &answered("lib[1]", "")));
+        assert_eq!(
+            lines(&plan)[1],
+            "git submodule update --init --recursive -- :(literal)lib[1]"
+        );
     }
 
     #[test]

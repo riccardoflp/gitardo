@@ -50,6 +50,18 @@ pub enum FollowUpJson {
         /// The words of the button.
         label: String,
     },
+    /// An operation is offered with its button, on a target and with answers given before it asks: **Open in new
+    /// window** once a worktree is made, **Remove anyway** once git refused to remove one.
+    OfferRun {
+        /// The words of the button.
+        label: String,
+        /// The feature.
+        feature: String,
+        /// What it runs on.
+        target: super::question::TargetJson,
+        /// The answers it is given, by the key of each question.
+        answers: std::collections::BTreeMap<String, super::question::AnswerJson>,
+    },
     /// Text is copied to the clipboard.
     CopyToClipboard {
         /// The text.
@@ -102,6 +114,20 @@ fn path_of(path: &Path) -> String {
     path.to_string_lossy().into_owned()
 }
 
+/// The JSON of an operation offered; none when its target or one of its answers does not cross yet.
+fn offer_run(offer: &model::contract::OfferedRun) -> Option<FollowUpJson> {
+    let mut answers = std::collections::BTreeMap::new();
+    for (key, answer) in offer.answers.iter() {
+        let _given = answers.insert(key.0.to_owned(), super::question::AnswerJson::of(answer)?);
+    }
+    Some(FollowUpJson::OfferRun {
+        label: text_of(&offer.label),
+        feature: offer.feature.0.to_owned(),
+        target: super::question::TargetJson::of(&offer.target)?,
+        answers,
+    })
+}
+
 impl FollowUpJson {
     /// The JSON of a follow-up that is the extension's to carry out; none for the engine's own and for those not
     /// moved yet.
@@ -127,6 +153,7 @@ impl FollowUpJson {
                 feature: feature.0.to_owned(),
                 label: text_of(label),
             },
+            FollowUp::OfferRun(offer) => offer_run(offer)?,
             FollowUp::CopyToClipboard(text) => FollowUpJson::CopyToClipboard { text: text.clone() },
             FollowUp::OpenUrl(url) => FollowUpJson::OpenUrl { url: url.clone() },
             FollowUp::OpenReview(paths) => FollowUpJson::OpenReview { paths: paths.clone() },

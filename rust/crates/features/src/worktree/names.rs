@@ -1,8 +1,8 @@
 //! The questions the operations that make worktrees share: the format of branch names or a name typed, and the name
 //! of the new branch and of the folder, checked while it is typed.
 
-use model::branch::{FormatValues, day_of, format_name, format_problem, repository_name};
-use model::contract::{Answer, AnswerKey, Choice, Context, Question, QuestionKind, Text, Validation};
+use model::branch::{BaseOf, FormatAsking, FormatName, FormatValues, day_of, name_from_format, repository_name};
+use model::contract::{Answer, AnswerKey, Answers, Choice, Context, Outcome, Question, QuestionKind, Text, Validation};
 use model::worktree::{FolderBase, WorktreeNameRule};
 
 use super::{folder_of_worktrees, taken_folders};
@@ -21,28 +21,39 @@ pub(super) fn choice(identifier: &str, label: &str, description: Option<String>)
     }
 }
 
-/// The format of `branches.format`, when it is set and makes a name from what Gitardo knows: `${base}`, `${repo}` and
-/// `${date}`. A format with `${input:…}` waits for `branch.name-from-format`, which asks for them, and is not used.
+/// The format of `branches.format`, when it is set.
 pub(super) fn format_of(context: &Context) -> Option<&str> {
     let format = context.settings.branch_format.trim();
-    let is_usable = !format.is_empty() && !format.contains("${input:") && format_problem(format, &[]).is_none();
-    is_usable.then_some(format)
+    (!format.is_empty()).then_some(format)
 }
 
-/// The name the format makes, `${base}` being a branch, a remote branch with its remote left out, or a short hash.
-pub(super) fn formatted(context: &Context, format: &str, base: &str) -> String {
+/// The name the format makes, through `branch.name-from-format`: it asks each `${input:…}` in turn, with the values
+/// used last, and what `${base}` is at a commit; `${base}` known is a branch, a remote branch whose remote is left out,
+/// or a short hash. `title` is the title of the questions.
+///
+/// # Errors
+///
+/// The question or the read that comes first, or the refusal of a format that cannot make a name.
+pub(super) fn formatted(
+    context: &Context,
+    answers: &Answers,
+    (format, base, title): (&str, BaseOf, &str),
+) -> Result<FormatName, Box<Outcome>> {
     let state = &context.repository;
-    format_name(
+    let asking = FormatAsking {
         format,
-        &FormatValues {
-            base: base.to_owned(),
+        inputs: &context.settings.branch_inputs,
+        used: &context.settings.branch_values,
+        base,
+        values: FormatValues {
             remotes: state.remotes.clone(),
             repository: repository_name(state),
-            // The store gives the moment the operation started; the day is the day in UTC.
-            date: day_of(context.now, 0),
+            date: day_of(context.now, context.settings.utc_offset),
             ..FormatValues::default()
         },
-    )
+        title,
+    };
+    name_from_format(&asking, answers)
 }
 
 /// **Use the format** or the other way, the format first and the default.

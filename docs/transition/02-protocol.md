@@ -6,10 +6,13 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.2** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.3** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
-for Undo: `journal/last` and `journal/record`. The rest is not built yet.
+for Undo: `journal/last` and `journal/record`. Version 1.3 adds what the worktrees needed in stage 4 (area 5): the
+follow-up `offerRun`, with its target and answers; a `confirmed` answer in `answers` that the feature reads without
+asking it; and the follow-ups of a step that failed in the error's `data.followUps`, which the engine wrote
+`follow_ups` until then. The rest is not built yet.
 
 ## Transport
 
@@ -69,7 +72,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.2",
+  protocol: "1.3",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -279,7 +282,8 @@ its start to its answer, questions included; a second is answered `busy`, and th
 as `Controller.run` does today while `this.running` is set (`controller.ts:2421`). The engine of each repository lives
 on a thread of its own (`crates/server/src/repository.rs`), which takes one feature at a time.
 
-An answer in `answers` answers the question of its key without asking it, once. `inputs` is what the desktop keeps in
+An answer in `answers` answers the question of its key without asking it, once. A `confirmed` answer is also read by a
+feature that never asks it: **Remove anyway** sends `force` so (1.3). `inputs` is what the desktop keeps in
 the workspace's file and the extension in its workspace state: the engine reads it as `FeatureSettings::branch_values`,
 the defaults of the questions of `branches.format`, and a plan that used them ends with `RememberInputs`.
 
@@ -337,8 +341,13 @@ the follow-ups that are the host's to carry out, in their order. The engine keep
 object with a `kind` and the fields of its variant. Stage 2 sends `say`, `selectHead`, `selectCommit`,
 `selectBeforeHead`, `openCommitPage`, `emptyCommitMessage`, `preparedMessage`, `fillCommitMessage`,
 `readPullRequests`, `offer`, `copyToClipboard`, `openUrl`, `openReview`, `closeMergePage`, `openWindow`, `showFolder`,
-`rememberInputs` and `editFile` (`crates/protocol/src/feature/follow_up.rs`); the others are sent from the stage that
-moves their features.
+`rememberInputs` and `editFile` (`crates/protocol/src/feature/follow_up.rs`); 1.3 adds `offerRun`; the others are sent
+from the stage that moves their features.
+
+`offerRun` is `{ kind: "offerRun", label, feature, target: Target, answers: Record<string, Answer> }`: a button named
+`label` that runs `feature` on `target` with `answers` given, as **Remove anyway** after git refuses a worktree with
+changes, or **Choose What It Gets…** (`worktree-setup.page`) after a worktree is made. An offer whose target or answers
+cannot cross (an answer of the engine's own reads, such as a flag) is left out.
 
 | `FollowUp` | Carried out by | In the extension |
 | --- | --- | --- |

@@ -182,8 +182,8 @@ fn branch_name_question(context: &Context, branch: &str, (old_label, typed): (&s
     }
 }
 
-/// The folders that lead to the new place made when it is in another folder, `git worktree move`, `git branch -m`
-/// when the branch is renamed, then the folders left empty deleted.
+/// The folders that lead to the new place made when it is in another folder, `git worktree move`, the folders left
+/// empty deleted, then `git branch -m` when the branch is renamed.
 fn plan(
     context: &Context,
     worktree: &Worktree,
@@ -202,14 +202,15 @@ fn plan(
     }
     let (old, new) = (worktree.folder.to_string_lossy(), new_folder.to_string_lossy());
     steps.push(Step::git(directory.clone(), ["worktree", "move", &old, &new]));
-    if let Some((branch, name)) = branch.filter(|(branch, name)| branch != name) {
-        steps.push(Step::git(directory, ["branch", "-m", branch, name]));
-    }
+    // The folders left empty go before the branch is renamed, so that a rename git refuses leaves none behind.
     if let FolderBase::Worktrees(trees) = base {
         steps.extend(remove_empty_folders(&EmptyFoldersInput {
             worktrees_folder: trees,
             worktree: &worktree.folder,
         }));
+    }
+    if let Some((branch, name)) = branch.filter(|(branch, name)| branch != name) {
+        steps.push(Step::git(directory, ["branch", "-m", branch, name]));
     }
     Plan {
         title: Text::from(format!(

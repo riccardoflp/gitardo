@@ -1,7 +1,7 @@
 //! `worktree.open-in-worktree`: works on a branch in its own worktree, with nothing asked: the worktree is made if it
 //! is not there yet, and opens.
 
-use model::branch::{local_name, other_worktree};
+use model::branch::{RefKind, RefNames, local_name, other_worktree, ref_argument};
 use model::contract::{Answers, Context, Outcome, Refusal, Target};
 use model::worktree::folder_in;
 
@@ -11,7 +11,7 @@ use super::{folder_of_worktrees, label, opening};
 /// Opens the worktree of the branch invoked on, a local branch or the local branch of a remote branch, where
 /// `worktrees.openIn` says; when no worktree has it, makes one first in the folder named after it, `git worktree add
 /// <folder> <branch>`, or `git worktree add --track -b <branch> <folder> <remote>/<branch>` for a remote branch with
-/// no local branch of its name, followed by what new worktrees get. It opens once all that succeeded; when a command of
+/// no local branch of its name, in full when a namesake would make its short name ambiguous, followed by what new worktrees get. It opens once all that succeeded; when a command of
 /// the setup fails, opening is offered all the same. Nothing is asked.
 ///
 /// Feature: worktree.open-in-worktree
@@ -50,7 +50,7 @@ pub fn open_in_worktree(context: &Context, answers: &Answers) -> Outcome {
                 String::from("-b"),
                 local.to_owned(),
                 path,
-                remote.to_owned(),
+                ref_argument(RefKind::RemoteBranch, remote, &RefNames::of(state)),
             ],
             remote.to_owned(),
         ),
@@ -121,6 +121,19 @@ mod tests {
         assert_eq!(
             lines(&plan),
             ["git worktree add --track -b fix /code/app.worktrees/fix origin/fix"]
+        );
+    }
+
+    #[test]
+    fn worktree_open_in_worktree__a_remote_branch_whose_short_name_a_namesake_takes_is_given_in_full() {
+        let mut context = with_fix(false);
+        let mut state = (*context.repository).clone();
+        state.tags.push(crate::testing::tag("origin/fix", 'a'));
+        context.repository = Arc::new(state);
+        let plan = plan(open_in_worktree(&context, &not_there()));
+        assert_eq!(
+            lines(&plan),
+            ["git worktree add --track -b fix /code/app.worktrees/fix refs/remotes/origin/fix"]
         );
     }
 

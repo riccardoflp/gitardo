@@ -119,6 +119,38 @@ impl TryFrom<TargetJson> for Target {
     }
 }
 
+impl TargetJson {
+    /// The JSON of a target, as the extension sends it back with `feature/run`; none for the kinds that come with the
+    /// areas that use them.
+    #[must_use]
+    pub fn of(target: &Target) -> Option<TargetJson> {
+        let path = |path: &std::path::Path| path.to_string_lossy().into_owned();
+        Some(match target {
+            Target::Head => TargetJson::Head,
+            Target::Commit(commit) => TargetJson::Commit {
+                commit: commit.as_str().to_owned(),
+            },
+            Target::Branch(name) => TargetJson::Branch { name: name.clone() },
+            Target::RemoteBranch(name) => TargetJson::RemoteBranch { name: name.clone() },
+            Target::Tag(name) => TargetJson::Tag { name: name.clone() },
+            Target::Stash(index) => TargetJson::Stash { index: *index },
+            Target::Remote(name) => TargetJson::Remote { name: name.clone() },
+            Target::Files(paths) => TargetJson::Files { paths: paths.clone() },
+            Target::File(file) => TargetJson::File { path: file.clone() },
+            Target::Changes => TargetJson::Changes,
+            Target::Commits(commits) => TargetJson::Commits {
+                commits: commits.iter().map(|commit| commit.as_str().to_owned()).collect(),
+            },
+            Target::Submodule(folder) => TargetJson::Submodule { path: folder.clone() },
+            Target::Worktree(folder) => TargetJson::Worktree { folder: path(folder) },
+            Target::Path(where_it_is) => TargetJson::Path {
+                path: path(where_it_is),
+            },
+            _ => return None, // The kinds with a structure of their own come with their areas.
+        })
+    }
+}
+
 /// An answer a person gives. The other kinds of `Answer` are the engine's own readings and never cross.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]

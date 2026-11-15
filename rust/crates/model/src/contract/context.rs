@@ -172,6 +172,10 @@ pub struct WorktreeSettings {
     pub window_folder: Option<std::path::PathBuf>,
     /// Whether **Choose What It Gets…** was offered once, or the page it opens was opened: it is not offered again.
     pub setup_offered: bool,
+    /// What new worktrees get as the host gives it, inside VS Code, from its settings `gitardo.worktrees.linkFolders`,
+    /// `copyFiles` and `setupCommands` (`host` `"vscode"`); none in the desktop, which reads its settings files
+    /// (`worktree-setup.settings-in-effect`).
+    pub setup: Option<crate::worktree_setup::SetupSettings>,
 }
 
 /// `worktrees.openIn`: where a worktree opens (`worktree.open`).

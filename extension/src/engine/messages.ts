@@ -4,7 +4,7 @@
  */
 
 /** The version of the protocol the extension speaks. */
-export const PROTOCOL = '1.2';
+export const PROTOCOL = '1.3';
 
 /** The names of the methods. */
 export const Method = {

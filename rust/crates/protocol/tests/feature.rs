@@ -157,3 +157,54 @@ fn a_target_and_an_answer_read_from_json_become_those_of_the_engine() {
         Some(String::from("Taken"))
     );
 }
+
+#[test]
+fn an_operation_offered_crosses_with_its_target_and_answers_and_one_that_cannot_is_left_out() {
+    use model::contract::{Answers, FeatureId, OfferedRun};
+    let offer = |target: Target, answers: Answers| {
+        FollowUp::OfferRun(Box::new(OfferedRun {
+            label: Text::from("Remove anyway"),
+            feature: FeatureId("worktree.remove"),
+            target,
+            answers,
+            when_said: vec![String::from("modified or untracked")],
+        }))
+    };
+    let remove_anyway = offer(
+        Target::Worktree(PathBuf::from("/code/app.worktrees/login")),
+        Answers::new().with(AnswerKey("force"), Answer::Confirmed),
+    );
+    assert_eq!(
+        serde_json::to_value(FollowUpJson::all_of(&[remove_anyway])).unwrap(),
+        json!([{
+            "kind": "offerRun",
+            "label": "Remove anyway",
+            "feature": "worktree.remove",
+            "target": { "kind": "worktree", "folder": "/code/app.worktrees/login" },
+            "answers": { "force": { "kind": "confirmed" } }
+        }])
+    );
+    // An answer that is a reading of the engine's does not cross, nor does the offer that needs it.
+    let flagged = offer(
+        Target::Head,
+        Answers::new().with(AnswerKey("force"), Answer::Flag(true)),
+    );
+    assert_eq!(FollowUpJson::all_of(&[flagged]), []);
+}
+
+#[test]
+fn the_follow_ups_of_a_step_that_failed_are_written_follow_ups_as_the_protocol_says() {
+    let data = protocol::rpc::ErrorData {
+        output: Some(String::from("fatal: contains modified or untracked files")),
+        steps: Vec::new(),
+        follow_ups: FollowUpJson::all_of(&[FollowUp::SelectHead]),
+    };
+    assert_eq!(
+        serde_json::to_value(&data).unwrap(),
+        json!({
+            "output": "fatal: contains modified or untracked files",
+            "steps": [],
+            "followUps": [{ "kind": "selectHead" }]
+        })
+    );
+}

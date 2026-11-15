@@ -109,6 +109,38 @@ fn the_answers_given_with_feature_run_are_not_asked() {
 }
 
 #[test]
+fn a_confirmed_answer_given_is_read_without_being_asked_as_remove_anyway_gives_force() {
+    let repository = repository();
+    let worktree = repository.path().with_file_name("changed");
+    let worktree_text = worktree.to_string_lossy().into_owned();
+    let _added = repository.git(&["worktree", "add", "--quiet", "--detach", &worktree_text]);
+    std::fs::write(
+        worktree.join("a.txt"),
+        "changed
+",
+    )
+    .unwrap();
+    let mut engine = opened(&repository, &json!({}));
+    let id = engine.send(
+        "feature/run",
+        &json!({
+            "repository": folder(&repository),
+            "feature": "worktree.remove",
+            "target": { "kind": "worktree", "folder": worktree_text },
+            "answers": { "force": { "kind": "confirmed" } }
+        }),
+    );
+    let finished = engine.answer_asked(id, |request| {
+        assert_eq!(request["method"], json!("feature/confirm"), "{request}");
+        json!({ "run": true })
+    });
+    assert_eq!(finished["result"]["kind"], json!("ran"), "{finished}");
+    let steps = finished["result"]["plan"]["steps"].to_string();
+    assert!(steps.contains("--force"), "{steps}");
+    assert!(!worktree.exists());
+}
+
+#[test]
 fn question_validate_refuses_a_name_with_a_space_and_a_name_taken_with_the_engines_sentences() {
     let repository = repository();
     let mut engine = opened(&repository, &json!({}));

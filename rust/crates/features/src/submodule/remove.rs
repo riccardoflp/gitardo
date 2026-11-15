@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use model::contract::{AnswerKey, Answers, Context, Danger, Outcome, Plan, Query, Step, Text, Undo};
+use model::contract::{AnswerKey, Answers, Context, Danger, FollowUp, Outcome, Plan, Query, Step, Text, Undo};
 
 use super::{submodule_step, target_submodule};
 
@@ -12,7 +12,8 @@ pub const GIT_FOLDER: AnswerKey = AnswerKey("git-folder");
 
 /// Runs `git [-C <parent>] submodule deinit --force -- <path>`, then `git [-C <parent>] rm --force -- <path>`, then
 /// deletes its clone, `<git directory>/modules/<name>`, when its name keeps it inside `modules`: a name that leads out
-/// of it is no clone to delete. Destructive, and asked first with a warning.
+/// of it is no clone to delete, and a clone that cannot be deleted is said in the log and stops nothing. Destructive,
+/// and asked first with a warning.
 ///
 /// Feature: submodule.remove
 #[must_use]
@@ -29,14 +30,19 @@ pub fn remove(context: &Context, answers: &Answers) -> Outcome {
         return Outcome::Read(GIT_FOLDER, Query::GitFolder { folder: parent });
     };
     let clone = clone_folder(git_folder, &submodule.name);
-    let mut steps = vec![
+    let steps = vec![
         submodule_step(context, submodule, &["submodule", "deinit", "--force"]),
         submodule_step(context, submodule, &["rm", "--force"]),
     ];
     let deleted = clone
         .as_ref()
         .map_or_default(|clone| format!(" Gitardo then deletes its clone in {}.", clone.display()));
-    steps.extend(clone.map(|path| Step::Delete { path }));
+    // The clone is deleted once the submodule is removed and the removal staged: a clone that cannot be deleted is said
+    // in the log and stops nothing.
+    let after = clone
+        .map(|path| FollowUp::Cleanup(Step::Delete { path }))
+        .into_iter()
+        .collect();
     let warning = format!(
         "Its folder is deleted, with the changes and the commits in it that are not pushed.{deleted} The removal is \
          staged along with .gitmodules: commit them to record it."
@@ -48,7 +54,7 @@ pub fn remove(context: &Context, answers: &Answers) -> Outcome {
         undo: Undo::Impossible(Text::from(
             "Cannot be undone: its clone is deleted. What was pushed of it can be added again.",
         )),
-        after: Vec::new(),
+        after,
         on_failure: Vec::new(),
     })
 }
@@ -80,7 +86,7 @@ fn on_disk_folder(top: &Path, folder: &str) -> PathBuf {
 mod tests {
     use std::path::PathBuf;
 
-    use model::contract::{Answer, Answers, Danger, Outcome, Query};
+    use model::contract::{Answer, Answers, Danger, FollowUp, Outcome, Query, Step};
 
     use super::{GIT_FOLDER, remove};
     use crate::submodule::testing::{lib, nested, on};
@@ -106,13 +112,21 @@ mod tests {
         let clone = PathBuf::from("repository/.git").join("modules").join("lib");
         assert_eq!(
             lines(&plan),
-            [
-                String::from("git submodule deinit --force -- lib"),
-                String::from("git rm --force -- lib"),
-                format!("delete {}", clone.display()),
-            ]
+            ["git submodule deinit --force -- lib", "git rm --force -- lib"]
         );
+        assert_eq!(plan.after, [FollowUp::Cleanup(Step::Delete { path: clone })]);
         assert!(matches!(plan.danger, Danger::Destructive(_)));
+    }
+
+    #[test]
+    fn submodule_remove__a_clone_that_cannot_be_deleted_is_said_in_the_log_and_stops_nothing() {
+        // The clone goes once the plan succeeded, as a cleanup, whose failure the log says without failing the plan.
+        let plan = plan(remove(&on(lib()), &read("repository/.git")));
+        assert!(plan.steps.iter().all(|step| !matches!(step, Step::Delete { .. })));
+        assert!(matches!(
+            plan.after.as_slice(),
+            [FollowUp::Cleanup(Step::Delete { .. })]
+        ));
     }
 
     #[test]
@@ -139,7 +153,7 @@ mod tests {
             escaping.name = name.to_owned();
             let plan = plan(remove(&on(escaping), &read("repository/.git")));
             assert_eq!(lines(&plan).len(), 2, "{name}: {:?}", lines(&plan));
-            assert!(lines(&plan).iter().all(|line| !line.starts_with("delete")));
+            assert_eq!(plan.after, [], "{name}: no clone to delete");
         }
     }
 }

@@ -82,8 +82,9 @@ pub struct ErrorData {
     pub output: Option<String>,
     /// The steps that ran before the error, as the log wrote them.
     pub steps: Vec<String>,
-    /// What the extension offers for a step that failed, such as **Delete anyway**.
-    #[serde(default)]
+    /// What the extension offers for a step that failed, such as **Delete anyway**, written `followUps` as the
+    /// protocol says.
+    #[serde(default, rename = "followUps")]
     pub follow_ups: Vec<crate::feature::FollowUpJson>,
 }
 
