@@ -809,7 +809,8 @@ Deletes a branch on the remote, for everyone.
 - **Entry points**: **Delete from remote** in the context menu of a remote branch; **Delete `<branch>` from `<remote>`**
   at the end of the menu of a label that a branch shares with its upstream in the timeline (`graph.labels`).
 - **Plan**: `git push <remote> --delete <branch>`. The remote is the longest name among the remotes that the remote
-  branch starts with followed by `/`; the branch is the rest.
+  branch starts with followed by `/`; the branch is the rest, named `refs/heads/<branch>` when a tag has its name,
+  since the remote would find the short name ambiguous and refuse the push.
 - **Danger**: Destructive, because "This deletes the branch on the remote for everyone."
 - **Undo**: Impossible: a push changes the remote, which Undo does not take back.
 - **Refuses**: "Cannot tell which remote `<name>` belongs to." when no remote matches.
@@ -820,6 +821,8 @@ Acceptance:
 - [ ] On `origin/feature/login` it asks, also with `commandPreview` set to `off`, then runs
       `git push origin --delete feature/login`, and `origin/feature/login` is gone after.
 - [ ] With remotes `a` and `a/b`, deleting `a/b/x` runs `git push a/b --delete x`.
+- [ ] With a tag `release`, deleting `origin/release` runs `git push origin --delete refs/heads/release`, and the tag is
+      still on the remote after.
 
 ### `sync.fetch` — Fetch
 

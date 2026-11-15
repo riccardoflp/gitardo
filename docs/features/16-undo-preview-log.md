@@ -124,7 +124,8 @@ before it. It always shows what it is about to do first. With nothing in the jou
 
   A branch restored this way does not get its upstream back; the dialog says so.
 - **Danger**: Destructive, because it moves a branch or rewrites files; the dialog says what it takes back in words
-  (*Undo the commit "Fix the parser"*) and the commands.
+  (*Undo the commit "Fix the parser"*) and the commands. A branch deleted or a stash dropped in Gitardo is only
+  confirmed, since making it again loses nothing.
 - **Undo**: it takes its entry out of the journal, so that Undo again takes back the operation before; with nothing
   in the journal, Undo again redoes what was undone, by the reflog.
 - **After**: selects the commit `HEAD` is at, and says what was undone.
@@ -142,7 +143,8 @@ Acceptance:
       rebase, with `--keep`.
 - [ ] After `git checkout feature` from `main`, Undo runs `git checkout main`.
 - [ ] Undo after Undo puts the commit back.
-- [ ] After deleting a branch in Gitardo, Undo creates it again at the same commit.
+- [ ] After deleting a branch in Gitardo, Undo creates it again at the same commit, after a confirmation that is not a
+      warning.
 - [ ] After dropping a stash in Gitardo, Undo puts it back in the list with its message.
 - [ ] After a cherry-pick of three commits that stopped on a conflict and was continued in Gitardo, one Undo takes back
       all three.
