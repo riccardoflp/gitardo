@@ -436,7 +436,6 @@ export type Action =
   | { kind: 'submoduleSync' }
   /** Opens the folder of a submodule in a new window. */
   | { kind: 'submoduleOpen'; path: string }
-  | { kind: 'stageHunk' | 'unstageHunk' | 'discardHunk'; path: string; patch: string }
   | { kind: 'cherryPick'; hash: string; isMerge: boolean }
   /** Several commits in one go, in any order: they are applied oldest first. */
   | { kind: 'cherryPickMany'; hashes: string[] }

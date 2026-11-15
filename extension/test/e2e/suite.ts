@@ -8,14 +8,13 @@ import * as vscode from 'vscode';
 import { CONFLICT, INDEX, contentUri } from '../../src/extension/content';
 import type { GitardoApi } from '../../src/extension/extension';
 import { type DiffDescriptor, describeDiff } from '../../src/flow/sides';
-import { git } from '../../src/git/exec';
+import { git } from '../git';
 import { samePath } from '../../src/shared/paths';
-import { Repo } from '../../src/git/repo';
 import { WORKTREE, type CompareMode, type CompareSide, type Filter, type HostMessage, type RebaseStep, type RepoState, type ViewKind, type WebviewMessage } from '../../src/shared/protocol';
 import type { ConflictReview } from '../../src/shared/resolution';
 import { subjectAndBody } from '../../src/shared/message';
 import { recentBranches } from '../../src/shared/refs';
-import { CHANGE_LETTERS, checkedOutBranch } from '../../src/shared/state';
+import { CHANGE_LETTERS, type ChangeKind, checkedOutBranch, type FileChange } from '../../src/shared/state';
 
 /** The parts of the controller that are private to everyone but these tests. */
 interface Internals {
@@ -193,6 +192,37 @@ export async function run(): Promise<void> {
     );
     assert.ok(contributed.length >= 20);
   });
+
+  // Without Gitardo's engine for the system the extension reads and runs nothing (D49): every view says so, with a
+  // button that shows the log, and so does every command that needs the engine. That is all there is to check.
+  if (!internals.engine?.running) {
+    await step('says in every view that the engine is not available, with a button that shows the log', async () => {
+      for (const name of ['Graph', 'Changes', 'Commits', 'SideGraph', 'Branches', 'Stashes']) await vscode.commands.executeCommand(`gitardo.open${name}`);
+      await until('the webviews', () => kinds().join() === 'branches,changes,commits,graph,sideGraph,stashes');
+      await until('the views told there is no engine', () =>
+        posted.some((message) => message.type === 'state' && message.state === null && message.engineMissing === true),
+      );
+      assert.equal(internals.state, null);
+      assert.ok(!posted.some((message) => message.type === 'state' && message.state !== null));
+      // The button of the views.
+      await fromWebview({ type: 'command', command: 'showLog' });
+    });
+
+    await step('says it, with Show the log, for the commands that need the engine', async () => {
+      const said: { text: string; items: string[] }[] = [];
+      ui.showErrorMessage = ((text: string, ...items: string[]) => {
+        said.push({ text, items });
+        return Promise.resolve(undefined);
+      }) as never;
+      for (const command of ['gitardo.fetch', 'gitardo.undo', 'gitardo.createBranch']) {
+        said.length = 0;
+        await vscode.commands.executeCommand(command);
+        await until(`what ${command} says`, () => said.length > 0);
+        assert.deepEqual(said[0], { text: "Gitardo: Gitardo's engine is not available on this system.", items: ['Show the log'] });
+      }
+    });
+    return;
+  }
 
   await step('reads the first repository when VS Code starts, before any of its views is open', async () => {
     assert.equal(internals.views.size, 0);
@@ -2090,7 +2120,15 @@ export async function run(): Promise<void> {
   await step('opens all the changes between two commits in one editor', async () => {
     const from = state().rows.at(-1)!.hash;
     const to = state().head.commit!;
-    const { files } = (await new Repo(app).compare(from, to))!;
+    // The files git says differ, as the engine lists them.
+    const named: Record<string, ChangeKind> = { A: 'added', M: 'modified', D: 'deleted', T: 'typeChanged' };
+    const files: FileChange[] = (await git(app, ['diff', '--name-status', '--no-renames', from, to])).stdout
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [letter, file] = line.split('\t');
+        return { path: file, originalPath: null, kind: named[letter[0]] };
+      });
     assert.ok(files.length > 1);
     await fromWebview({ type: 'openChanges', source: { kind: 'commit', hash: to, parent: from }, files, title: 'Everything since the start' });
     const tab = await until('the editor with all the changes', () => vscode.window.tabGroups.activeTabGroup.activeTab);

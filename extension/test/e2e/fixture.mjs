@@ -86,7 +86,8 @@ export function isolated(temp) {
 /**
  * The setting that points the throwaway profile at Gitardo's engine, which is read from the user settings only: the
  * debug binary of `../rust/target/debug` (or `GITARDO_ENGINE`), unless `--no-engine` asks for a file that is not there,
- * which checks the fallback to the TypeScript operations; with `--packed`, none, for the engine of the vsix under test.
+ * which checks that the views and commands say the engine is not there (D49); with `--packed`, none, for the engine of
+ * the vsix under test.
  * `said` is what was chosen, to be printed.
  */
 export function engineSetting(temp, options) {

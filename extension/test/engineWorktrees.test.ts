@@ -1,10 +1,9 @@
 /**
  * The scenarios of the fifth area moved to Gitardo's engine in stage 4 of `docs/transition/06-roadmap.md`: worktrees,
- * what new worktrees get, and submodules. Each operation runs as the `GitOp` the extension ran until now in one copy of
- * a repository and as the engine's feature, with the target and answers `engineRuns` gives it, in the other; the two
- * repositories after must be the same, and so must the commands, but where `docs/transition/04-differences.md` says why
- * not. A worktree's folder is beside the repository, so the paths of the two copies are compared from the folder that
- * holds each.
+ * what new worktrees get, and submodules. Each operation runs through the engine's feature, with the target and
+ * answers `engineRuns` gives it, and must run the commands it ran when it was a `GitOp` of the extension, but where
+ * `docs/transition/04-differences.md` says why not. A worktree's folder is beside the repository, so its paths are
+ * written from the folder that holds the repository.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -14,31 +13,14 @@ import type { EngineError } from '../src/engine/connection';
 import { engineRuns } from '../src/engine/actions';
 import type { Answer, Finished, Plan, Question, Step, Target } from '../src/engine/messages';
 import { engineSettings } from '../src/engine/settings';
-import { git } from '../src/git/exec';
-import {
-  type GitOp,
-  submoduleAddOp,
-  submoduleDeinitOp,
-  submoduleRecordOp,
-  submoduleRemoveOp,
-  submoduleSyncOp,
-  submoduleUpdateOp,
-  worktreeAddOp,
-  worktreeDir,
-  worktreeMoveOp,
-  worktreePruneOp,
-  worktreeRemoveOp,
-  worktreeTrackOp,
-} from '../src/git/ops';
-import { Repo } from '../src/git/repo';
-import { setUpWorktree } from '../src/git/worktreeSetup';
 import type { Action, RepoState } from '../src/shared/protocol';
-import { built, cleanUpAfterEach, client, commitFile, folder, memoryLog, repository, snapshot } from './engine/harness';
+import { git } from './git';
+import { built, cleanUpAfterEach, client, commitFile, engineState, folder, memoryLog, repository, snapshot } from './engine/harness';
 
 cleanUpAfterEach();
 
-// Git clones submodules from folders on disk only when told it may; both paths are told so here, and the engine's
-// retry with the file protocol allowed has tests of its own.
+// Git clones submodules from folders on disk only when told it may; the tests tell it so, and the engine's retry with
+// the file protocol allowed has tests of its own.
 const allowed = process.env.GIT_ALLOW_PROTOCOL;
 beforeAll(() => {
   process.env.GIT_ALLOW_PROTOCOL = 'file';
@@ -48,31 +30,19 @@ afterAll(() => {
   else process.env.GIT_ALLOW_PROTOCOL = allowed;
 });
 
-/** What the extension reads of a repository, for the `GitOp`s and for `engineRuns`. */
+/** What the extension reads of a repository through the engine, for `engineRuns`. */
 async function state(root: string): Promise<RepoState> {
-  return new Repo((await Repo.discover(root))!).state(10);
+  return engineState(root);
 }
 
-/** The folder a new worktree named `name` gets in the folder of the worktrees beside `root`, as the extension writes it. */
-const worktreeOf = (root: string, name: string) => worktreeDir(root, '', name);
+/** The folder a new worktree named `name` gets in the folder of the worktrees beside `root`, as the engine writes it. */
+const worktreeOf = (root: string, name: string) => `${path.dirname(root).split(path.sep).join('/')}/${path.basename(root)}.worktrees/${name}`;
 
-/**
- * Two copies of a repository made by `setup`, with the worktrees it made beside it: the folder that holds the
- * repository is copied whole, and git is told where the worktrees of the copy are.
- */
-async function twins(setup: (root: string) => Promise<void>): Promise<[string, string]> {
+/** A repository made by `setup`, with the worktrees it made beside it. */
+async function made(setup: (root: string) => Promise<void>): Promise<string> {
   const root = await repository();
   await setup(root);
-  const copy = path.join(folder(), 'repo');
-  fs.cpSync(path.dirname(root), path.dirname(copy), { recursive: true, verbatimSymlinks: true });
-  const listed = (await git(root, ['worktree', 'list', '--porcelain'])).stdout
-    .split('\n')
-    .filter((line) => line.startsWith('worktree '))
-    .map((line) => path.join(path.dirname(copy), path.relative(path.dirname(root), line.slice('worktree '.length))))
-    .filter((worktree) => path.resolve(worktree) !== path.resolve(copy));
-  const present = listed.filter((worktree) => fs.existsSync(worktree));
-  if (present.length) await git(copy, ['worktree', 'repair', ...present]);
-  return [root, copy];
+  return root;
 }
 
 /** A path, or an argument that is one, from the folder that holds `root`, with forward slashes. */
@@ -103,17 +73,13 @@ async function worktreesOf(root: string): Promise<string[]> {
     .map((line) => fromParent(line, root));
 }
 
-/** What a scenario compares: the repository, its worktrees, and what is in the folder of the worktrees. */
-async function everything(root: string): Promise<Record<string, unknown>> {
+/** What is in the folder of the worktrees beside a repository, but what git keeps in each worktree. */
+function worktreeFolders(root: string): string[] | null {
   const worktrees = path.join(path.dirname(root), 'repo.worktrees');
-  const folders = fs.existsSync(worktrees) ? fs.readdirSync(worktrees, { recursive: true, encoding: 'utf8' }).filter((entry) => !entry.split(/[\\/]/).includes('.git')) : null;
-  return { ...(await snapshot(root)), worktrees: await worktreesOf(root), folders: folders?.map((entry) => entry.split(path.sep).join('/')).sort() ?? null };
-}
-
-/** Runs a `GitOp` as `Controller.run` does, but for its hooks, and gives its commands from the folder that holds `root`. */
-async function runOp(root: string, op: GitOp): Promise<string[]> {
-  for (const args of op.commands) await git(root, args);
-  return op.commands.map((args) => commandLine(args, root));
+  const folders = fs.existsSync(worktrees)
+    ? fs.readdirSync(worktrees, { recursive: true, encoding: 'utf8' }).filter((entry) => !entry.split(/[\\/]/).includes('.git'))
+    : null;
+  return folders?.map((entry) => entry.split(path.sep).join('/')).sort() ?? null;
 }
 
 /**
@@ -181,87 +147,70 @@ const withSubmodule = (source: string) => async (root: string) => {
   await git(root, ['commit', '--quiet', '-m', 'Add lib']);
 };
 
-/** The submodule `lib` as the `GitOp`s of submodules take it. */
-async function lib(root: string) {
-  const submodule = (await state(root)).submodules.find((each) => each.folder === 'lib');
-  if (!submodule) throw new Error('lib is not a submodule');
-  return submodule;
-}
-
-describe.skipIf(!built)('Worktrees, through the engine and as GitOps', { timeout: 60_000 }, () => {
+describe.skipIf(!built)('Worktrees, through the engine', { timeout: 60_000 }, () => {
   it('creates a worktree on a new branch from the branch checked out', async () => {
-    const [one, other] = await twins(async () => {});
-    const typescript = await runOp(one, worktreeAddOp(worktreeOf(one, 'feature'), 'main', 'feature', false));
-    const engine = await runAction(other, { kind: 'worktreeAdd' }, { name: text('feature') });
-    expect(engine.lines).toEqual(typescript);
-    expect(typescript).toEqual(['git worktree add --no-track -b feature <parent>/repo.worktrees/feature main']);
-    expect(await everything(other)).toEqual(await everything(one));
+    const root = await made(async () => {});
+    const engine = await runAction(root, { kind: 'worktreeAdd' }, { name: text('feature') });
+    expect(engine.lines).toEqual(['git worktree add --no-track -b feature <parent>/repo.worktrees/feature main']);
+    expect(await worktreesOf(root)).toEqual(expect.arrayContaining(['worktree <parent>/repo.worktrees/feature', 'branch refs/heads/feature']));
   });
 
   it('creates a worktree for a branch, named after it', async () => {
-    const [one, other] = await twins(topic);
-    const typescript = await runOp(one, worktreeAddOp(worktreeOf(one, 'topic'), 'topic', null, false));
-    const engine = await runAction(other, { kind: 'worktreeAdd', ref: 'topic', isBranch: true });
-    expect(engine.lines).toEqual(typescript);
-    expect(await everything(other)).toEqual(await everything(one));
+    const root = await made(topic);
+    const engine = await runAction(root, { kind: 'worktreeAdd', ref: 'topic', isBranch: true });
+    expect(engine.lines).toEqual(['git worktree add <parent>/repo.worktrees/topic topic']);
+    expect(await worktreesOf(root)).toEqual(expect.arrayContaining(['worktree <parent>/repo.worktrees/topic', 'branch refs/heads/topic']));
   });
 
   it('creates a worktree at a commit, on a new branch', async () => {
-    const [one, other] = await twins(topic);
-    const commit = (await git(one, ['rev-parse', 'topic~1'])).stdout.trim();
-    const typescript = await runOp(one, worktreeAddOp(worktreeOf(one, 'spike'), commit, 'spike', true));
-    const engine = await runAction(other, { kind: 'worktreeAdd', ref: commit, isBranch: false }, { name: text('spike') });
-    expect(engine.lines).toEqual(typescript);
-    expect(await everything(other)).toEqual(await everything(one));
+    const root = await made(topic);
+    const commit = (await git(root, ['rev-parse', 'topic~1'])).stdout.trim();
+    const engine = await runAction(root, { kind: 'worktreeAdd', ref: commit, isBranch: false }, { name: text('spike') });
+    expect(engine.lines).toEqual([`git worktree add --no-track -b spike <parent>/repo.worktrees/spike ${commit}`]);
+    expect((await git(root, ['rev-parse', 'spike'])).stdout.trim()).toBe(commit);
   });
 
   it('removes a worktree and its branch, and deletes the folders it leaves empty before the branch (W8)', async () => {
-    const [one, other] = await twins(async (root) => {
-      await git(root, ['worktree', 'add', '--quiet', '-b', 'team/feature', worktreeOf(root, 'team/feature'), 'main']);
+    const root = await made(async (setup) => {
+      await git(setup, ['worktree', 'add', '--quiet', '-b', 'team/feature', worktreeOf(setup, 'team/feature'), 'main']);
     });
-    const dir = (root: string) => worktreeOf(root, 'team/feature');
-    const typescript = await runOp(one, worktreeRemoveOp(dir(one), false, 'team/feature'));
-    // The `GitOp`'s hook deletes the folders inside the folder of the worktrees that are left empty.
-    fs.rmdirSync(path.dirname(dir(one)));
-    const engine = await runAction(other, { kind: 'worktreeRemove', path: dir(other), deleteBranch: true });
-    expect(engine.lines).toEqual([typescript[0], 'delete <parent>/repo.worktrees/team', typescript[1]]);
-    expect(await everything(other)).toEqual(await everything(one));
+    const engine = await runAction(root, { kind: 'worktreeRemove', path: worktreeOf(root, 'team/feature'), deleteBranch: true });
+    expect(engine.lines).toEqual(['git worktree remove <parent>/repo.worktrees/team/feature', 'delete <parent>/repo.worktrees/team', 'git branch -d team/feature']);
+    expect(worktreeFolders(root)).toEqual([]);
+    expect((await git(root, ['branch', '--list', 'team/feature'])).stdout).toBe('');
   });
 
   it('renames a worktree and its branch', async () => {
-    const [one, other] = await twins(withWorktree);
-    const typescript = await runOp(one, worktreeMoveOp(worktreeOf(one, 'feature'), worktreeOf(one, 'better'), { from: 'feature', to: 'better' }));
+    const root = await made(withWorktree);
     const engine = await runAction(
-      other,
-      { kind: 'worktreeRename', path: worktreeOf(other, 'feature') },
+      root,
+      { kind: 'worktreeRename', path: worktreeOf(root, 'feature') },
       { 'new name': text('better'), 'rename branch': choice('rename'), 'branch name': text('better') },
     );
-    expect(engine.lines).toEqual(typescript);
-    expect(await everything(other)).toEqual(await everything(one));
+    expect(engine.lines).toEqual(['git worktree move <parent>/repo.worktrees/feature <parent>/repo.worktrees/better', 'git branch -m feature better']);
+    expect(await worktreesOf(root)).toEqual(expect.arrayContaining(['worktree <parent>/repo.worktrees/better', 'branch refs/heads/better']));
   });
 
   it('prunes the worktrees whose folders are gone', async () => {
-    const [one, other] = await twins(async (root) => {
-      await withWorktree(root);
-      fs.rmSync(worktreeOf(root, 'feature'), { recursive: true, force: true });
+    const root = await made(async (setup) => {
+      await withWorktree(setup);
+      fs.rmSync(worktreeOf(setup, 'feature'), { recursive: true, force: true });
     });
-    const typescript = await runOp(one, worktreePruneOp());
-    const engine = await runAction(other, { kind: 'worktreePrune' });
-    expect(engine.lines).toEqual(typescript);
-    expect(await everything(other)).toEqual(await everything(one));
+    const engine = await runAction(root, { kind: 'worktreePrune' });
+    expect(engine.lines).toEqual(['git worktree prune']);
+    expect((await worktreesOf(root)).filter((line) => line.startsWith('worktree '))).toHaveLength(1);
   });
 
   it('opens a remote branch in a new worktree, on a local branch that tracks it', async () => {
-    const [one, other] = await twins(async (root) => {
-      await git(root, ['branch', 'fix']);
-      await git(root, ['remote', 'add', 'origin', root]);
-      await git(root, ['fetch', '--quiet', 'origin']);
-      await git(root, ['branch', '-D', 'fix']);
+    const root = await made(async (setup) => {
+      await git(setup, ['branch', 'fix']);
+      await git(setup, ['remote', 'add', 'origin', setup]);
+      await git(setup, ['fetch', '--quiet', 'origin']);
+      await git(setup, ['branch', '-D', 'fix']);
     });
-    const typescript = await runOp(one, worktreeTrackOp(worktreeOf(one, 'fix'), 'fix', 'origin/fix'));
-    const engine = await runAction(other, { kind: 'openInWorktree', name: 'origin/fix', remote: true });
-    expect(engine.lines).toEqual(typescript);
-    expect(await everything(other)).toEqual(await everything(one));
+    const engine = await runAction(root, { kind: 'openInWorktree', name: 'origin/fix', remote: true });
+    expect(engine.lines).toEqual(['git worktree add --track -b fix <parent>/repo.worktrees/fix origin/fix']);
+    expect((await git(root, ['rev-parse', '--abbrev-ref', 'fix@{upstream}'])).stdout.trim()).toBe('origin/fix');
   });
 
   it('brings what git ignores into a worktree: the folders linked, the files copied', async () => {
@@ -274,22 +223,15 @@ describe.skipIf(!built)('Worktrees, through the engine and as GitOps', { timeout
       fs.writeFileSync(path.join(root, '.env'), 'KEY=value\n');
       await withWorktree(root);
     };
-    const [one, other] = await twins(ignored);
-    const patterns = { link: ['node_modules'], copy: ['.env'] };
-    const failures = await setUpWorktree(one, worktreeOf(one, 'feature'), patterns, { info: () => {}, warn: () => {}, error: () => {} } as never);
-    expect(failures).toEqual([]);
-    const settings = engineSettings({ 'worktrees.linkFolders': patterns.link, 'worktrees.copyFiles': patterns.copy }, new Set(), {}, 0);
-    await runAction(other, { kind: 'worktreeSetUp', path: worktreeOf(other, 'feature') }, {}, client(memoryLog(), settings));
-    const inWorktree = (root: string) => {
-      const worktree = worktreeOf(root, 'feature');
-      return {
-        linked: fs.lstatSync(path.join(worktree, 'node_modules')).isSymbolicLink(),
-        package: fs.readFileSync(path.join(worktree, 'node_modules', 'left-pad', 'index.js'), 'utf8'),
-        env: fs.readFileSync(path.join(worktree, '.env'), 'utf8'),
-      };
-    };
-    expect(inWorktree(other)).toEqual(inWorktree(one));
-    expect(inWorktree(other)).toEqual({ linked: true, package: 'pad\n', env: 'KEY=value\n' });
+    const root = await made(ignored);
+    const settings = engineSettings({ 'worktrees.linkFolders': ['node_modules'], 'worktrees.copyFiles': ['.env'] }, new Set(), {}, 0);
+    await runAction(root, { kind: 'worktreeSetUp', path: worktreeOf(root, 'feature') }, {}, client(memoryLog(), settings));
+    const worktree = worktreeOf(root, 'feature');
+    expect({
+      linked: fs.lstatSync(path.join(worktree, 'node_modules')).isSymbolicLink(),
+      package: fs.readFileSync(path.join(worktree, 'node_modules', 'left-pad', 'index.js'), 'utf8'),
+      env: fs.readFileSync(path.join(worktree, '.env'), 'utf8'),
+    }).toEqual({ linked: true, package: 'pad\n', env: 'KEY=value\n' });
   });
 
   it('offers Remove anyway when git refuses a worktree with changes, and removes it forced when clicked (W7)', async () => {
@@ -345,14 +287,13 @@ describe.skipIf(!built)('Worktrees, through the engine and as GitOps', { timeout
   );
 });
 
-describe.skipIf(!built)('Submodules, through the engine and as GitOps', { timeout: 60_000 }, () => {
+describe.skipIf(!built)('Submodules, through the engine', { timeout: 60_000 }, () => {
   it('adds a submodule and checks out its own submodules', async () => {
     const source = await library();
-    const [one, other] = await twins(async () => {});
-    const typescript = await runOp(one, submoduleAddOp(source, 'lib', ''));
-    const engine = await runAction(other, { kind: 'submoduleAdd' }, { url: text(source), folder: text('lib'), branch: text('') });
-    expect(engine.lines).toEqual(typescript);
-    expect(await snapshot(other)).toEqual(await snapshot(one));
+    const root = await made(async () => {});
+    const engine = await runAction(root, { kind: 'submoduleAdd' }, { url: text(source), folder: text('lib'), branch: text('') });
+    expect(engine.lines).toEqual([commandLine(['submodule', 'add', '--', source, 'lib'], root), 'git submodule update --init --recursive -- lib']);
+    expect(fs.readFileSync(path.join(root, 'lib', 'lib.txt'), 'utf8')).toBe('one\n');
   });
 
   it('updates a submodule to the recorded commit, initializes one that is not, and to the last commit of its branch', async () => {
@@ -362,71 +303,64 @@ describe.skipIf(!built)('Submodules, through the engine and as GitOps', { timeou
       await commitFile(source, 'lib.txt', 'two\n', 'Library again');
       await git(path.join(root, 'lib'), ['pull', '--quiet', 'origin', 'main']);
     };
-    const [one, other] = await twins(moved);
-    const recorded = await runOp(one, submoduleUpdateOp(await lib(one), false));
-    const engineRecorded = await runAction(other, { kind: 'submoduleUpdate', path: 'lib' });
-    expect(engineRecorded.lines).toEqual(recorded);
-    expect(await snapshot(other)).toEqual(await snapshot(one));
+    const root = await made(moved);
+    const recorded = (await git(root, ['ls-tree', 'HEAD', 'lib'])).stdout.split(/\s+/)[2];
+    const at = async () => (await git(path.join(root, 'lib'), ['rev-parse', 'HEAD'])).stdout.trim();
+    const engineRecorded = await runAction(root, { kind: 'submoduleUpdate', path: 'lib' });
+    expect(engineRecorded.lines).toEqual(['git submodule update --init --recursive -- lib']);
+    expect(await at()).toBe(recorded);
 
-    const latest = await runOp(one, submoduleUpdateOp(await lib(one), true));
-    const engineLatest = await runAction(other, { kind: 'submoduleUpdate', path: 'lib', remote: true });
-    expect(engineLatest.lines).toEqual(latest);
-    expect(await snapshot(other)).toEqual(await snapshot(one));
+    const engineLatest = await runAction(root, { kind: 'submoduleUpdate', path: 'lib', remote: true });
+    expect(engineLatest.lines).toEqual(['git submodule update --init --remote -- lib', 'git -C lib submodule update --init --recursive']);
+    expect(await at()).toBe((await git(source, ['rev-parse', 'HEAD'])).stdout.trim());
 
-    for (const root of [one, other]) await git(root, ['submodule', 'deinit', '--quiet', '--force', '--', 'lib']);
-    const initialized = await runOp(one, submoduleUpdateOp(await lib(one), false));
-    const engineInitialized = await runAction(other, { kind: 'submoduleUpdate', path: 'lib' });
+    await git(root, ['submodule', 'deinit', '--quiet', '--force', '--', 'lib']);
+    const engineInitialized = await runAction(root, { kind: 'submoduleUpdate', path: 'lib' });
     expect(engineInitialized.finished.map((each) => each.kind === 'ran' && each.plan.title)).toEqual([expect.stringMatching(/^Initialize/)]);
-    expect(engineInitialized.lines).toEqual(initialized);
-    expect(await snapshot(other)).toEqual(await snapshot(one));
+    expect(engineInitialized.lines).toEqual(['git submodule update --init --recursive -- lib']);
+    expect(await at()).toBe(recorded);
   });
 
   it('stages the commit a submodule is on as the one recorded', async () => {
     const source = await library();
-    const [one, other] = await twins(async (root) => {
-      await withSubmodule(source)(root);
-      await commitFile(path.join(root, 'lib'), 'lib.txt', 'local\n', 'Library here');
+    const root = await made(async (setup) => {
+      await withSubmodule(source)(setup);
+      await commitFile(path.join(setup, 'lib'), 'lib.txt', 'local\n', 'Library here');
     });
-    const typescript = await runOp(one, submoduleRecordOp(await lib(one), (await lib(one)).checkout!.commit!));
-    const engine = await runAction(other, { kind: 'submoduleRecord', path: 'lib' });
-    expect(engine.lines).toEqual(typescript);
-    expect(await snapshot(other)).toEqual(await snapshot(one));
+    const engine = await runAction(root, { kind: 'submoduleRecord', path: 'lib' });
+    expect(engine.lines).toEqual(['git add -- lib']);
+    const on = (await git(path.join(root, 'lib'), ['rev-parse', 'HEAD'])).stdout.trim();
+    expect((await git(root, ['ls-files', '--stage', '--', 'lib'])).stdout).toContain(on);
   });
 
   it('deinitializes a submodule', async () => {
     const source = await library();
-    const [one, other] = await twins(withSubmodule(source));
-    const typescript = await runOp(one, submoduleDeinitOp(await lib(one)));
-    const engine = await runAction(other, { kind: 'submoduleDeinit', path: 'lib' });
-    expect(engine.lines).toEqual(typescript);
-    expect(await snapshot(other)).toEqual(await snapshot(one));
+    const root = await made(withSubmodule(source));
+    const before = await snapshot(root);
+    const engine = await runAction(root, { kind: 'submoduleDeinit', path: 'lib' });
+    expect(engine.lines).toEqual(['git submodule deinit -- lib']);
+    expect(fs.readdirSync(path.join(root, 'lib'))).toEqual([]);
+    expect((await snapshot(root)).index).toEqual(before.index);
   });
 
   it('removes a submodule, and deletes its clone in the git directory after (S6)', async () => {
     const source = await library();
-    const [one, other] = await twins(withSubmodule(source));
-    const clone = (root: string) => path.join(root, '.git', 'modules', 'lib');
-    const typescript = await runOp(one, submoduleRemoveOp(await lib(one), clone(one)));
-    // The `GitOp`'s hook deletes the clone once git removed the submodule.
-    fs.rmSync(clone(one), { recursive: true, force: true });
-    const engine = await runAction(other, { kind: 'submoduleRemove', path: 'lib' });
-    expect(engine.lines).toEqual(typescript);
-    expect(fs.existsSync(clone(other))).toBe(false);
-    expect(await snapshot(other)).toEqual(await snapshot(one));
+    const root = await made(withSubmodule(source));
+    const engine = await runAction(root, { kind: 'submoduleRemove', path: 'lib' });
+    expect(engine.lines).toEqual(['git submodule deinit --force -- lib', 'git rm --force -- lib']);
+    expect(fs.existsSync(path.join(root, '.git', 'modules', 'lib'))).toBe(false);
+    expect(fs.existsSync(path.join(root, 'lib'))).toBe(false);
   });
 
   it('synchronizes the URLs of the submodules', async () => {
     const source = await library();
-    const [one, other] = await twins(async (root) => {
-      await withSubmodule(source)(root);
-      await git(root, ['config', '-f', '.gitmodules', 'submodule.lib.url', `${source}/`]);
-      await git(root, ['commit', '--quiet', '-am', 'Move lib']);
+    const root = await made(async (setup) => {
+      await withSubmodule(source)(setup);
+      await git(setup, ['config', '-f', '.gitmodules', 'submodule.lib.url', `${source}/`]);
+      await git(setup, ['commit', '--quiet', '-am', 'Move lib']);
     });
-    const typescript = await runOp(one, submoduleSyncOp());
-    const engine = await runAction(other, { kind: 'submoduleSync' });
-    expect(engine.lines).toEqual(typescript);
-    const url = async (root: string) => (await git(root, ['config', 'submodule.lib.url'])).stdout.trim();
-    expect(await url(other)).toEqual(await url(one));
-    expect(await snapshot(other)).toEqual(await snapshot(one));
+    const engine = await runAction(root, { kind: 'submoduleSync' });
+    expect(engine.lines).toEqual(['git submodule sync --recursive']);
+    expect((await git(root, ['config', 'submodule.lib.url'])).stdout.trim()).toBe(`${source}/`);
   });
 });

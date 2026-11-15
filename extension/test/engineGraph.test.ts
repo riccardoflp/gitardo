@@ -1,24 +1,26 @@
 /**
- * The reads of the graph of stage 7 of `docs/transition/06-roadmap.md`: the rows of the graph read by the engine and
- * by `git log` in `Repo`, compared row by row with the lines laid out from them, page after page as the graph asks for
- * them; and the position of a commit and the matches of a search, against `Repo.position` and `Repo.matches`.
+ * The reads of the graph of stage 7 of `docs/transition/06-roadmap.md`: the rows of the graph read by the engine,
+ * compared with what `git log` lists of the same history, page after page as the graph asks for them; and the position
+ * of a commit and the matches of a search, against where `git log` lists the commit and what it finds.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { EngineClient } from '../src/engine/client';
-import { EngineGraph, historyOf, matchesOnEngine, positionOnEngine } from '../src/engine/graph';
+import { type CommitsReader, EngineGraph, graphState, historyOf, matchesOnEngine, positionOnEngine } from '../src/engine/graph';
 import type { Timeline } from '../src/engine/messages';
-import { git } from '../src/git/exec';
-import { type CommitsReader, Repo } from '../src/git/repo';
+import { Reads } from '../src/engine/reads';
 import type { Filter, RepoState, Scope, Search } from '../src/shared/protocol';
+import { git } from './git';
 import { built, cleanUpAfterEach, client, commitFile, repository } from './engine/harness';
 
 cleanUpAfterEach();
 
-/** What the graph draws of each row: the commit, the stash it is, and its lines. */
-const rowsOf = (state: RepoState) =>
-  state.rows.map(({ hash, parents, author, email, date, subject, stash, graph }) => ({ hash, parents, author, email, date, subject, stash, graph }));
+/** What a commit of the graph is, as `git log` says it too. */
+const commitsOf = (state: RepoState) =>
+  state.rows
+    .filter((row) => row.author && row.stash === undefined)
+    .map(({ hash, parents, author, email, date, subject }) => ({ hash, parents, author, email, date, subject }));
 
 /** The full id of a revision. */
 async function id(root: string, revision: string): Promise<string> {
@@ -108,31 +110,95 @@ interface Asked {
   firstParent?: boolean;
 }
 
-/** The state read by `git log` here and the state read with the engine's rows, for the same graph. */
-async function both(root: string, limit: number, asked: Asked, reader: CommitsReader): Promise<[RepoState, RepoState]> {
-  const repo = new Repo(root);
-  repo.firstParent = asked.firstParent ?? false;
-  const args = [limit, asked.filter ?? null, asked.scope ?? null, false, asked.stashes ?? true] as const;
-  return [await repo.state(...args), await repo.state(...args, reader)];
+/**
+ * What `git log` is told to list the history a graph shows: by date, from the branches, remote branches and tags and
+ * what is checked out, or from what the scope or a `ref` filter names; a search and the history of a file narrow it.
+ */
+async function gitSelection(root: string, asked: Asked, search?: Search): Promise<string[]> {
+  const { filter, scope } = asked;
+  const args = ['--date-order'];
+  if (asked.firstParent) args.push('--first-parent');
+  for (const text of [filter, search]) {
+    if (text?.kind === 'message') args.push('--fixed-strings', '--regexp-ignore-case', `--grep=${text.query}`);
+    if (text?.kind === 'author') args.push('--fixed-strings', '--regexp-ignore-case', `--author=${text.query}`);
+    if (text?.kind === 'pickaxe') args.push(`-S${text.query}`);
+    if (text?.kind === 'regex') args.push(`-G${text.query}`);
+  }
+  // The history of a file or of lines is connected by the nearest commits listed, which git gives as their parents.
+  if (filter?.kind === 'path' || filter?.kind === 'lines') args.push('--parents');
+  const head = (await git(root, ['rev-parse', '--verify', '--quiet', 'HEAD']).catch(() => null))?.stdout.trim();
+  if (filter?.kind === 'ref') args.push(filter.ref);
+  else if (filter?.kind === 'lines') args.push('--no-patch', `-L${filter.start},${filter.end}:${filter.path}`, filter.commit);
+  else if (scope?.kind === 'current') {
+    if (head) args.push('HEAD');
+    const upstream = scope.upstream ? (await git(root, ['rev-parse', '--symbolic-full-name', '@{upstream}']).catch(() => null))?.stdout.trim() : '';
+    if (upstream?.startsWith('refs/')) args.push(upstream);
+  } else if (scope?.kind === 'refs') args.push('--ignore-missing', ...scope.refs);
+  else {
+    const kinds = scope?.kind === 'kinds' ? scope.kinds : ['branch', 'remote', 'tag'];
+    if (kinds.includes('branch')) args.push('--branches');
+    if (kinds.includes('remote')) args.push('--remotes');
+    if (kinds.includes('tag')) args.push('--tags');
+    if (head) args.push('HEAD');
+  }
+  if (filter?.kind === 'path') {
+    // A file is followed under the names it had before; a folder is not.
+    const names = filter.folder
+      ? [filter.path]
+      : [
+          filter.path,
+          ...(await git(root, ['log', '--follow', '--name-only', '--format=', '--', filter.path])).stdout
+            .split('\n')
+            .filter((name) => name && name !== filter.path),
+        ];
+    args.push('--', ...new Set(names.map((name) => `:(literal)${name}`)));
+  }
+  return args;
 }
 
-/** Reads a graph with `git log` and with the engine, page after page of `pageSize`, and compares every row each time. */
+/** The commits `git log` lists of a graph, as many as `limit`, as the graph shows them, and whether there are more. */
+async function gitLog(root: string, limit: number, asked: Asked) {
+  const format = '%H%x01%P%x01%an%x01%ae%x01%at%x01%s%x02';
+  const selection = await gitSelection(root, asked);
+  const out = (await git(root, ['log', `--format=${format}`, `--max-count=${limit + 1}`, ...selection]).catch(() => ({ stdout: '' }))).stdout;
+  const commits = out
+    .split('\x02')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const [hash, parents, author, email, date, subject] = entry.split('\x01');
+      // With --parents git writes the parents after the commit too.
+      const listed = parents ? parents.split(' ') : [];
+      // The other parents of a merge are not followed when the graph follows the first parent only.
+      return { hash, parents: asked.firstParent ? listed.slice(0, 1) : listed, author, email, date: Number(date), subject };
+    });
+  return { commits: commits.slice(0, limit), hasMore: commits.length > limit };
+}
+
+/** The state of a graph read with the engine's rows, as the controller reads it. */
+async function engineGraphState(engine: EngineClient, root: string, limit: number, asked: Asked, reader: CommitsReader): Promise<RepoState> {
+  const parts = await new Reads(() => engine).parts({ root });
+  const state = { limit, filter: asked.filter ?? null, scope: asked.scope ?? null, stashes: asked.stashes ?? true, firstParent: asked.firstParent ?? false };
+  return graphState(engine, root, parts, state, reader);
+}
+
+/** Reads a graph with the engine page after page of `pageSize`, and compares every commit each time with `git log`. */
 async function compare(root: string, asked: Asked, pages = 1, pageSize = 100, engine = client()): Promise<number[]> {
   const graph = new EngineGraph();
   const skips = counting(engine);
   const reader: CommitsReader = (reading) => graph.commits(engine, root, reading, pageSize);
   for (let page = 1; page <= pages; page++) {
-    const [plain, viaEngine] = await both(root, page * pageSize, asked, reader);
+    const viaEngine = await engineGraphState(engine, root, page * pageSize, asked, reader);
+    const plain = await gitLog(root, page * pageSize, asked);
     const what = `${JSON.stringify(asked)}, ${page * pageSize} commits`;
-    expect(rowsOf(viaEngine), what).toEqual(rowsOf(plain));
+    expect(commitsOf(viaEngine), what).toEqual(plain.commits);
     expect(viaEngine.hasMore, what).toBe(plain.hasMore);
-    expect(viaEngine.filter, what).toEqual(plain.filter);
   }
   return skips;
 }
 
-describe.skipIf(!built)('the graph read by the engine and by the extension', { timeout: 120_000 }, () => {
-  it('lists the same rows with the same lines in every way the graph can show a small repository', async () => {
+describe.skipIf(!built)('the graph read by the engine', { timeout: 120_000 }, () => {
+  it('lists the commits git lists in every way the graph can show a small repository', async () => {
     const root = await small();
     const engine = client();
     const ways: Asked[] = [
@@ -157,13 +223,31 @@ describe.skipIf(!built)('the graph read by the engine and by the extension', { t
     for (const asked of ways) await compare(root, asked, 1, 100, engine);
   });
 
-  it('lists the same rows page after page, each next page read from the last row the graph has', async () => {
+  it('places the stashes above the commits they were made on, the newest first', async () => {
+    const root = await small();
+    const engine = client();
+    const state = await engineGraphState(engine, root, 100, {}, (reading) => new EngineGraph().commits(engine, root, reading, 100));
+    const stashes = state.rows.filter((row) => row.stash !== undefined);
+    expect(stashes.map((row) => [row.stash, row.subject])).toEqual([
+      ['stash@{0}', 'On main: Second'],
+      ['stash@{1}', 'On main: First'],
+    ]);
+    for (const stash of stashes) {
+      const above = state.rows.findIndex((row) => row.hash === stash.parents[0]);
+      expect(above).toBeGreaterThan(state.rows.indexOf(stash));
+    }
+  });
+
+  it('lists the commits git lists page after page, each next page read from the last row the graph has', async () => {
     const root = await history(330);
     for (const asked of [{}, { firstParent: true }, { scope: { kind: 'refs', refs: ['refs/heads/keep'] } } satisfies Asked]) {
       const skips = await compare(root, asked, 5);
       // The first page from the newest commit, then each from the last commit of the pages before.
       expect(skips[0], JSON.stringify(asked)).toBe(0);
-      expect(skips.slice(1).every((skip) => skip > 0), `${JSON.stringify(asked)}: ${skips}`).toBe(true);
+      expect(
+        skips.slice(1).every((skip) => skip > 0),
+        `${JSON.stringify(asked)}: ${skips}`,
+      ).toBe(true);
     }
   });
 
@@ -183,11 +267,11 @@ describe.skipIf(!built)('the graph read by the engine and by the extension', { t
     const engine = client();
     const graph = new EngineGraph();
     const reader: CommitsReader = (asked) => graph.commits(engine, root, asked, 100);
-    await both(root, 100, {}, reader);
+    await engineGraphState(engine, root, 100, {}, reader);
     await commitFile(root, 'new.txt', 'new\n', 'A new commit');
     const skips = counting(engine);
-    const [plain, viaEngine] = await both(root, 200, {}, reader);
-    expect(rowsOf(viaEngine)).toEqual(rowsOf(plain));
+    const viaEngine = await engineGraphState(engine, root, 200, {}, reader);
+    expect(commitsOf(viaEngine)).toEqual((await gitLog(root, 200, {})).commits);
     expect(skips).toEqual([0]);
 
     const empty = await repository(false);
@@ -196,7 +280,7 @@ describe.skipIf(!built)('the graph read by the engine and by the extension', { t
     await compare(empty, { scope: { kind: 'current' } }, 1, 100, engine);
   });
 
-  it('lists two stashes of the same second on one commit the newest first, where Repo lists the older first', async () => {
+  it('lists two stashes of the same second on one commit the newest first', async () => {
     const root = await repository();
     for (const message of ['Older', 'Newer']) {
       fs.writeFileSync(path.join(root, 'a.txt'), `${message}\n`);
@@ -204,20 +288,16 @@ describe.skipIf(!built)('the graph read by the engine and by the extension', { t
     }
     const [older, newer] = [await id(root, 'stash@{1}'), await id(root, 'stash@{0}')];
     const dates = (await git(root, ['log', '--no-walk=unsorted', '--format=%at', older, newer])).stdout.split('\n').filter(Boolean);
-    // Made in two seconds, the two are listed alike, as the test of every way the graph shows a repository finds.
+    // Made in two seconds, the two are listed apart by their dates, as the test of the stashes finds.
     if (dates[0] !== dates[1]) return;
-    const graph = new EngineGraph();
     const engine = client();
-    const [plain, viaEngine] = await both(root, 100, {}, (asked) => graph.commits(engine, root, asked, 100));
-    const stashes = (state: RepoState) => state.rows.flatMap((row) => row.stash ?? []);
-    expect(stashes(viaEngine)).toEqual(['stash@{0}', 'stash@{1}']);
-    expect(stashes(plain)).toEqual(['stash@{1}', 'stash@{0}']);
+    const viaEngine = await engineGraphState(engine, root, 100, {}, (asked) => new EngineGraph().commits(engine, root, asked, 100));
+    expect(viaEngine.rows.flatMap((row) => row.stash ?? [])).toEqual(['stash@{0}', 'stash@{1}']);
   });
 
-  it('finds a commit where Repo.position finds it, and the matches Repo.matches finds', async () => {
+  it('finds a commit where git lists it, and the matches git finds', async () => {
     const root = await history(120);
     const engine = client();
-    const repo = new Repo(root);
     const head = await id(root, 'HEAD');
     const searches: Search[] = [
       { kind: 'message', query: 'parser' },
@@ -225,22 +305,26 @@ describe.skipIf(!built)('the graph read by the engine and by the extension', { t
       { kind: 'pickaxe', query: 'Change 3' },
     ];
     for (const firstParent of [false, true]) {
-      repo.firstParent = firstParent;
       for (const [filter, scope] of [
         [null, null],
         [null, { kind: 'current' }],
         [{ kind: 'path', path: 'src/file3.txt' }, null],
         [{ kind: 'ref', ref: 'keep' }, null],
       ] as [Filter | null, Scope | null][]) {
+        const asked = { filter, scope, firstParent };
         const listed = historyOf(engine, root, filter, scope, head, firstParent);
+        const all = (await git(root, ['log', '--format=%H', ...(await gitSelection(root, asked))])).stdout.split('\n').filter(Boolean);
         for (const revision of ['HEAD~40', 'side/50', 'keep~2', 'main~100']) {
           const commit = await id(root, revision);
           const what = `${revision} in ${JSON.stringify([filter, scope, firstParent])}`;
-          expect(await positionOnEngine(engine, root, commit, await listed), what).toBe(await repo.position(commit, filter, scope));
+          expect(await positionOnEngine(engine, root, commit, await listed), what).toBe(all.indexOf(commit));
         }
         for (const search of searches) {
           const what = `${JSON.stringify(search)} in ${JSON.stringify([filter, scope, firstParent])}`;
-          expect(await matchesOnEngine(engine, root, search, await listed), what).toEqual(await repo.matches(search, filter, 5000, scope));
+          const found = (await git(root, ['log', '--format=%H', '--max-count=5001', ...(await gitSelection(root, asked, search))])).stdout
+            .split('\n')
+            .filter(Boolean);
+          expect(await matchesOnEngine(engine, root, search, await listed), what).toEqual({ hashes: found.slice(0, 5000), more: found.length > 5000 });
         }
       }
     }

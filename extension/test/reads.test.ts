@@ -1,16 +1,15 @@
 /**
- * The module the extension reads through (`src/engine/reads.ts`, stage 5): each read asked with Gitardo's engine and
- * without it, where `Repo` answers, on the same throwaway repositories. The views must get the same either way.
+ * The module the extension reads through (`src/engine/reads.ts`, stage 5): each read asked of Gitardo's engine, on
+ * throwaway repositories, against what git itself says of them; and, with no engine, every read refused with
+ * `EngineMissing`, as stage 10 of `docs/transition/06-roadmap.md` leaves the extension no other way to read.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { EngineClient } from '../src/engine/client';
-import { Reads } from '../src/engine/reads';
-import { git } from '../src/git/exec';
-import { Repo } from '../src/git/repo';
-import { previewSetup, proposedCommands, scanIgnored } from '../src/git/worktreeSetup';
+import { EngineMissing, Reads } from '../src/engine/reads';
 import { WORKTREE } from '../src/shared/protocol';
+import { git } from './git';
 import { built, cleanUpAfterEach, client, commitFile, folder, memoryLog, repository } from './engine/harness';
 
 cleanUpAfterEach();
@@ -20,12 +19,14 @@ async function id(root: string, revision: string): Promise<string> {
   return (await git(root, ['rev-parse', revision])).stdout.trim();
 }
 
-/** The reads with the engine, the reads without it, the repository read, and the log of the first. */
-async function both(root: string) {
-  const log = memoryLog();
-  const engine = client();
-  const repo = new Repo((await Repo.discover(root))!);
-  return { withEngine: new Reads(() => engine, log), without: new Reads(), repo, log };
+/** What git says, line by line. */
+async function lines(root: string, args: string[]): Promise<string[]> {
+  return (await git(root, args)).stdout.split('\n').filter(Boolean);
+}
+
+/** The reads of a repository through the engine. */
+function readsOf(root: string) {
+  return { reads: new Reads(() => client()), repo: { root } };
 }
 
 /** A repository with branches that diverged, a tag of each kind, a remote, two stashes, a worktree and changes not committed. */
@@ -79,85 +80,62 @@ async function conflicted(): Promise<string> {
   return root;
 }
 
-describe.skipIf(!built)('the reads of the extension with the engine and without it', { timeout: 60_000 }, () => {
-  it('read the same state but the commits, the same details, lines and comparisons', async () => {
+describe.skipIf(!built)('the reads of the extension through the engine', { timeout: 60_000 }, () => {
+  it('read the state, the details, the lines and the comparisons git says', async () => {
     const root = await busy();
-    const { withEngine, without, repo, log } = await both(root);
-    const same = async <T>(read: (reads: Reads) => Promise<T>) => {
-      const [engine, typescript] = await Promise.all([read(withEngine), read(without)]);
-      expect(engine).toEqual(typescript);
-      return engine;
-    };
-    await same((reads) => reads.parts(repo));
-    for (const revision of ['main', 'feature~1', 'v1.1', 'HEAD', 'stash@{1}', 'stash@{5}', 'no-such-branch', '']) await same((reads) => reads.resolve(repo, revision));
-    const [head, stash, feature] = [await id(root, 'HEAD'), await id(root, 'stash@{1}'), await id(root, 'feature')];
-    for (const hash of [head, head.slice(0, 8), stash, WORKTREE, 'not-a-commit']) await same((reads) => reads.commitDetail(repo, hash));
-    const detail = (await repo.commitDetail(head))!;
-    await same((reads) => reads.commitPatch(repo, detail, 20_000));
-    await same((reads) => reads.working(repo));
-    await same((reads) => reads.ignored(repo, ['a.txt', 'run.log', 'node_modules/x', 'missing.log']));
-    await same((reads) => reads.compare(repo, feature, head));
-    for (const [from, to, mode] of [
-      [feature, head, 'diverged'],
-      [feature, head, 'direct'],
-      [head, WORKTREE, 'direct'],
-      [WORKTREE, feature, 'direct'],
-    ] as const) {
-      const found = await same((reads) => reads.compareSides(repo, from, to, mode, null));
-      await same((reads) => reads.comparePatch(repo, found!.files, found!.since, to, 20_000, null));
-      if (from !== WORKTREE) await same((reads) => reads.compareText(repo, found!.since, to, null));
-    }
-    // R6: from the working tree, git's -R names the sides b/ and a/ in the extension's patch, a/ and b/ in the engine's.
-    const unprefixed = (patch: string) => patch.replace(/^(diff --git|---|\+\+\+) [ab]\/(\S+)(?: [ab]\/(\S+))?/gm, '$1 $2 $3');
-    const [engineText, typescriptText] = await Promise.all([withEngine.compareText(repo, WORKTREE, feature), without.compareText(repo, WORKTREE, feature)]);
-    expect(unprefixed(engineText)).toEqual(unprefixed(typescriptText));
-    expect(engineText).toContain('diff --git a/');
-    await same((reads) => reads.compareSides(repo, feature, head, 'direct', 'c.txt'));
-    await same((reads) => reads.branchLog(repo, 2));
-    await same((reads) => reads.branchLog(repo, 10));
-    // Of a line not committed, the editors show only that it is not: git's author, time and summary for it are not read.
-    const shown = (lines: Awaited<ReturnType<Reads['blame']>>) => lines?.map((line) => (line.committed ? line : { hash: line.hash, committed: false }));
-    await same(async (reads) => shown(await reads.blame(repo, 'a.txt', { contents: 'one\ntyped\n' })));
-    await same((reads) => reads.blame(repo, 'a.txt', { revision: feature }));
-    await same((reads) => reads.blame(repo, 'never.txt'));
-    for (const line of [1, 2]) {
-      const [engine, typescript] = await Promise.all([withEngine.blameLine(repo, 'a.txt', line), without.blameLine(repo, 'a.txt', line)]);
-      // R4: the engine gives the version before for one line too, which Repo.blameLine leaves out.
-      const [one] = shown(engine && [{ ...engine, previous: undefined }]) ?? [];
-      expect(one).toEqual(shown(typescript && [{ ...typescript, previous: undefined }])?.[0]);
-    }
-    await same((reads) => reads.remotes(repo));
-    await same((reads) => reads.reflog(repo, 'HEAD', 5));
-    await same((reads) => reads.committedLines(repo, 'a.txt', { start: 2, end: 2 }, 'zero\none\ntwo\n'));
-    await same((reads) => reads.committedLines(repo, 'a.txt', { start: 1, end: 1 }, 'new\none\ntwo\n'));
-    await same((reads) => reads.committedLines(repo, 'never.txt', { start: 1, end: 1 }, 'x\n'));
-    for (const [revision, file] of [
-      [feature, 'c.txt'],
-      [feature, 'b.txt'],
-      [':0', 'staged.txt'],
-      ['', 'a.txt'],
-    ]) {
-      await same((reads) => reads.show(repo, revision, file));
-    }
-    await same((reads) => reads.squashMessage(repo));
-    await same((reads) => reads.commonDir(repo));
-    expect(log.lines.filter((line) => line.startsWith('warn'))).toEqual([]);
+    const { reads, repo } = readsOf(root);
+    const parts = await reads.parts(repo);
+    expect(parts.head.commit).toBe(await id(root, 'HEAD'));
+    expect(parts.branches.map((branch) => branch.name).sort()).toEqual(await lines(root, ['for-each-ref', '--format=%(refname:short)', 'refs/heads']));
+    expect(parts.tags.map((tag) => tag.name).sort()).toEqual(['v1.0', 'v1.1']);
+    expect(parts.stashes).toHaveLength(2);
+    expect(parts.workingTree.untracked.sort()).toEqual(['new.txt']);
+    for (const revision of ['main', 'feature~1', 'v1.1', 'HEAD', 'stash@{1}'])
+      expect(await reads.resolve(repo, revision), revision).toBe(await id(root, `${revision}^{commit}`));
+    for (const revision of ['stash@{5}', 'no-such-branch', '']) expect(await reads.resolve(repo, revision), revision).toBeNull();
+    const [head, feature] = [await id(root, 'HEAD'), await id(root, 'feature')];
+    expect((await reads.commitDetail(repo, head.slice(0, 8)))?.id).toBe(head);
+    expect(await reads.commitDetail(repo, 'not-a-commit')).toBeNull();
+    const detail = (await reads.commitDetail(repo, head))!;
+    expect((await reads.commitPatch(repo, detail))?.map((file) => file.file.path)).toEqual(['b.txt']);
+    expect([...(await reads.ignored(repo, ['a.txt', 'run.log', 'node_modules/x', 'missing.log']))].sort()).toEqual([
+      'missing.log',
+      'node_modules/x',
+      'run.log',
+    ]);
+    expect((await reads.compare(repo, feature, head))?.files.map((file) => file.path).sort()).toEqual(
+      await lines(root, ['diff', '--name-only', feature, head]),
+    );
+    const since = (await reads.compareSides(repo, feature, head, 'diverged'))!;
+    expect(since.since).toBe((await git(root, ['merge-base', feature, head])).stdout.trim());
+    expect(await reads.compareText(repo, since.since, head)).toBe((await git(root, ['diff', '--no-color', since.since, head])).stdout);
+    // From the working tree, the patch names the sides a/ and b/ (R6).
+    expect(await reads.compareText(repo, WORKTREE, feature)).toContain('diff --git a/');
+    expect((await reads.branchLog(repo, 2)).commits.map((commit) => commit.hash)).toEqual(await lines(root, ['log', '-n', '2', '--format=%H']));
+    expect((await reads.blame(repo, 'a.txt', { revision: feature }))?.map((line) => line.hash)).toEqual([await id(root, 'feature~1')]);
+    expect(await reads.blame(repo, 'never.txt')).toBeNull();
+    expect((await reads.blameLine(repo, 'a.txt', 2, { contents: 'one\ntyped\n' }))?.committed).toBe(false);
+    expect((await reads.remotes(repo)).map((remote) => remote.name)).toEqual(['origin']);
+    expect((await reads.reflog(repo, 'HEAD', 5)).map((entry) => entry.hash)).toEqual(await lines(root, ['reflog', '-n', '5', '--format=%H', 'HEAD']));
+    expect(await reads.show(repo, feature, 'c.txt')).toBe('c\n');
+    expect(await reads.show(repo, ':0', 'staged.txt')).toBe('staged\n');
+    expect(await reads.squashMessage(repo)).toBeNull();
+    const common = (await git(root, ['rev-parse', '--path-format=absolute', '--git-common-dir'])).stdout.trim();
+    expect(path.resolve(await reads.commonDir(repo))).toBe(path.resolve(common));
   });
 
-  it('read the same conflicts, their sides and the state that says what the rules resolve', async () => {
+  it('read the conflicts, their sides and the stages git has', async () => {
     const root = await conflicted();
-    const { withEngine, without, repo, log } = await both(root);
-    const same = async <T>(read: (reads: Reads) => Promise<T>) => expect(await read(withEngine)).toEqual(await read(without));
-    await same((reads) => reads.parts(repo, true));
-    await same((reads) => reads.conflicted(repo));
-    for (const file of ['c.txt', 'gone.txt', 'a.txt']) await same((reads) => reads.conflictStages(repo, file));
-    await same((reads) => reads.conflictSides(repo));
-    await same((reads) => reads.conflictVersions(repo, 'c.txt'));
-    for (const stage of [':1', ':2', ':3']) await same((reads) => reads.show(repo, stage, 'c.txt'));
-    expect(log.lines.filter((line) => line.startsWith('warn'))).toEqual([]);
+    const { reads, repo } = readsOf(root);
+    expect((await reads.conflicted(repo)).sort()).toEqual(await lines(root, ['diff', '--name-only', '--diff-filter=U']));
+    expect(await reads.conflictStages(repo, 'c.txt')).toEqual([1, 2, 3]);
+    expect(await reads.conflictStages(repo, 'gone.txt')).toEqual([1, 2]);
+    expect(await reads.conflictStages(repo, 'a.txt')).toEqual([]);
+    expect((await reads.conflictSides(repo)).names).toEqual(['main', 'incoming']);
+    for (const stage of [1, 2, 3]) expect(await reads.show(repo, `:${stage}`, 'c.txt')).toBe((await git(root, ['show', `:${stage}:c.txt`])).stdout);
   });
 
-  it('read the same submodules and bisect in the state', async () => {
+  it('read the submodules and the bisect of the state', async () => {
     const inside = await repository();
     const root = await repository();
     await git(root, ['-c', 'protocol.file.allow=always', 'submodule', 'add', '--quiet', inside, 'libs/inside']);
@@ -167,52 +145,45 @@ describe.skipIf(!built)('the reads of the extension with the engine and without 
     await git(root, ['bisect', 'start']);
     await git(root, ['bisect', 'bad']);
     await git(root, ['bisect', 'good', 'HEAD~2']);
-    const { withEngine, without, repo } = await both(root);
-    expect(await withEngine.parts(repo)).toEqual(await without.parts(repo));
+    const { reads, repo } = readsOf(root);
+    const parts = await reads.parts(repo);
+    expect(parts.submodules.map((submodule) => submodule.folder)).toEqual(['libs/inside']);
+    expect(parts.bisect).not.toBeNull();
   });
 
-  it('read the same state before the first commit, and with a detached head and a worktree whose folder is gone', async () => {
+  it('read the state before the first commit, and with a detached head and a worktree whose folder is gone', async () => {
     const empty = await repository(false);
     fs.writeFileSync(path.join(empty, 'new.txt'), 'new\n');
-    const first = await both(empty);
-    expect(await first.withEngine.parts(first.repo)).toEqual(await first.without.parts(first.repo));
+    const first = readsOf(empty);
+    expect((await first.reads.parts(first.repo)).head.commit).toBeNull();
     const root = await repository();
     await git(root, ['worktree', 'add', '--quiet', '-b', 'gone', path.join(path.dirname(root), 'gone')]);
     fs.rmSync(path.join(path.dirname(root), 'gone'), { recursive: true, force: true });
     await git(root, ['checkout', '--quiet', '--detach']);
-    const second = await both(root);
-    expect(await second.withEngine.parts(second.repo)).toEqual(await second.without.parts(second.repo));
+    const second = readsOf(root);
+    const parts = await second.reads.parts(second.repo);
+    expect(parts.head.branch).toBeNull();
+    expect(parts.worktrees.some((worktree) => worktree.isMissing)).toBe(true);
   });
 
-  it('read the same of what new worktrees get', async () => {
-    const root = await repository();
-    await commitFile(root, '.gitignore', 'node_modules/\n.env\n*.local\n', 'Ignore');
-    await commitFile(root, 'package.json', '{ "packageManager": "pnpm@9.1.0" }\n', 'Add the package');
-    await commitFile(root, 'pnpm-lock.yaml', 'lockfileVersion: 9\n', 'Lock');
-    fs.mkdirSync(path.join(root, 'node_modules', 'left-pad'), { recursive: true });
-    fs.writeFileSync(path.join(root, 'node_modules', 'left-pad', 'index.js'), 'module.exports = 1;\n');
-    fs.writeFileSync(path.join(root, '.env'), 'KEY=1\n');
-    fs.writeFileSync(path.join(root, 'settings.local'), 'x\n');
-    const { withEngine, without } = await both(root);
-    const same = async <T>(read: (reads: Reads) => Promise<T>) => expect(await read(withEngine)).toEqual(await read(without));
-    await same((reads) => reads.setupIgnored(root, () => scanIgnored(root)));
-    await same((reads) => reads.setupCommands(root, () => proposedCommands(root)));
-    const patterns = { link: ['node_modules'], copy: ['.env', '*.local'] };
-    await same((reads) => reads.setupPreview(root, patterns, () => previewSetup(root, patterns)));
-  });
-
-  it('read the pull requests in TypeScript when the engine has no token', async () => {
+  it('read nothing of GitHub when the engine has no token', async () => {
     const root = await repository();
     await git(root, ['remote', 'add', 'origin', 'git@github.com:owner/app.git']);
-    const { withEngine } = await both(root);
-    const pulls = { main: { number: 1, title: 'Fix', url: 'https://github.com/owner/app/pull/1', draft: false, checks: null } };
-    expect(await withEngine.pullRequests(root, 'origin', async () => pulls)).toEqual(pulls);
+    const { reads } = readsOf(root);
+    expect(await reads.pullRequests(root, 'origin')).toEqual({});
+  });
+});
+
+describe('the reads of the extension without the engine', () => {
+  it('are refused with EngineMissing, which the views turn into the sentence that says so (D49)', async () => {
+    const reads = new Reads();
+    expect(reads.available).toBe(false);
+    expect(() => reads.client()).toThrow(EngineMissing);
+    await expect(reads.parts({ root: folder() })).rejects.toBeInstanceOf(EngineMissing);
+    await expect(reads.resolve({ root: folder() }, 'main')).rejects.toBeInstanceOf(EngineMissing);
   });
 
-  it('read in TypeScript, and say so in the log, when the engine cannot be started', async () => {
-    const root = await busy();
-    const repo = new Repo((await Repo.discover(root))!);
-    const log = memoryLog();
+  it('say the binary cannot be started when it is not there', async () => {
     const missing = new EngineClient({
       binary: path.join(folder(), 'no-such-engine'),
       clientVersion: '0.0.0-test',
@@ -220,10 +191,6 @@ describe.skipIf(!built)('the reads of the extension with the engine and without 
       logLevel: () => 'info',
       log: memoryLog(),
     });
-    const reads = new Reads(() => missing, log);
-    expect(await reads.parts(repo)).toEqual(await repo.parts());
-    expect(await reads.resolve(repo, 'main')).toBe(await repo.resolve('main'));
-    expect(log.lines.some((line) => line.startsWith('warn') && line.includes('could not read the state'))).toBe(true);
-    expect(log.lines.some((line) => line.startsWith('debug Read the state in TypeScript'))).toBe(true);
+    await expect(new Reads(() => missing).parts({ root: folder() })).rejects.toThrow();
   });
 });

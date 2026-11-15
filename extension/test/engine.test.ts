@@ -1,25 +1,20 @@
 /**
  * The extension's client against `gitardo-engine`, built by `cargo build -p server` in `../rust`: the acceptance lines of
- * stages 1 and 2 of `docs/transition/06-roadmap.md` that need the extension. The state the engine reads is compared with the
- * one `Repo.state` reads in the same throwaway repositories. Skipped, with the reason, when the binary is not built;
+ * stages 1 and 2 of `docs/transition/06-roadmap.md` that need the extension. The state the engine reads is compared with
+ * what git itself says of the same throwaway repositories. Skipped, with the reason, when the binary is not built;
  * `GITARDO_ENGINE` names another one.
  */
 import { execFileSync, spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { EngineClient } from '../src/engine/client';
 import { Connection, EngineError, ErrorCode } from '../src/engine/connection';
 import { type Answer, PROTOCOL } from '../src/engine/messages';
 import { engineSettings } from '../src/engine/settings';
 import { answering, built, binary, choice, cleanUpAfterEach, client, commitFile, folder, memoryLog, repository, text } from './engine/harness';
-import { recordOf, type UndoRecord } from '../src/engine/journal';
 import { targetOf } from '../src/engine/target';
-import { git } from '../src/git/exec';
-import { commitOp, deleteBranchOp, type GitOp, mergeOp, splitHeadOp, stashOp } from '../src/git/ops';
-import { Repo } from '../src/git/repo';
-import type { RepoState, RepositoryState } from '../src/shared/protocol';
-import { headAt, tagAt } from './states';
+import type { RepositoryState } from '../src/shared/protocol';
+import { git } from './git';
 
 cleanUpAfterEach();
 
@@ -29,52 +24,129 @@ function samePath(named: string): string {
   return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
-const byPath = <T extends { path: string }>(files: T[]) => [...files].sort((one, other) => one.path.localeCompare(other.path));
 const byName = <T extends { name: string }>(refs: T[]) => [...refs].sort((one, other) => one.name.localeCompare(other.name));
 
+/** The paths of a list, in one order. */
+const paths = (files: Array<{ path: string }>) => files.map((file) => file.path).sort();
+
 /**
- * The parts of a state that the engine reads and `Repo.state` reads too, in the same shape (stage 6), as both sides
- * can be compared by: the folders as the system names them, and the lists in one order. `Repo.state` adds the parts
- * that are the extension's, which are left out.
+ * The parts of a state that git says too, as both sides can be compared by: the folders as the system names them, the
+ * references by their names and commits, and the files changed by their paths, in one order.
  */
 function comparable(state: RepositoryState) {
   return {
     folder: samePath(state.folder),
     gitFolder: samePath(state.gitFolder),
     head: state.head,
-    branches: byName(state.branches),
-    remoteBranches: byName(state.remoteBranches),
-    tags: byName(state.tags),
-    stashes: state.stashes,
-    worktrees: state.worktrees.map((worktree) => ({ ...worktree, folder: samePath(worktree.folder) })),
+    branches: byName(state.branches).map((branch) => ({
+      name: branch.name,
+      commit: branch.commit,
+      upstream: branch.upstream && {
+        reference: branch.upstream.reference,
+        ahead: branch.upstream.ahead,
+        behind: branch.upstream.behind,
+        isGone: branch.upstream.isGone,
+      },
+    })),
+    remoteBranches: byName(state.remoteBranches).map(({ name, commit }) => ({ name, commit })),
+    tags: byName(state.tags).map(({ name, commit }) => ({ name, commit })),
+    stashes: state.stashes.map(({ commit, index }) => ({ commit, index })),
+    worktrees: state.worktrees.map((worktree) => ({
+      folder: samePath(worktree.folder),
+      commit: worktree.commit,
+      branch: worktree.branch,
+      isMissing: worktree.isMissing,
+    })),
     remotes: [...state.remotes].sort(),
-    identity: state.identity,
-    branchSort: state.branchSort,
-    reflogSubjects: state.reflogSubjects,
-    workingTree: {
-      staged: byPath(state.workingTree.staged),
-      unstaged: byPath(state.workingTree.unstaged),
-      untracked: [...state.workingTree.untracked].sort(),
-      conflicted: byPath(state.workingTree.conflicted),
-    },
-    operation: state.operation,
-    rebaseStop: state.rebaseStop,
-    bisect: state.bisect,
-    submodules: state.submodules,
-  } satisfies Record<keyof RepositoryState, unknown>;
+    staged: paths(state.workingTree.staged),
+    unstaged: paths(state.workingTree.unstaged),
+    untracked: [...state.workingTree.untracked].sort(),
+    conflicted: paths(state.workingTree.conflicted),
+    merging: state.operation === 'merge',
+  };
 }
 
-/** Opens a repository in the engine and reads it with `Repo.state`, and says whether the two read the same. */
+/** What git itself says of the parts of a repository that `comparable` keeps of a state. */
+async function fromGit(root: string): Promise<ReturnType<typeof comparable>> {
+  const out = async (args: string[]) => (await git(root, args)).stdout.trim();
+  const lines = async (args: string[]) => (await out(args)).split('\n').filter(Boolean);
+  const fields = async (args: string[]) => (await lines(args)).map((line) => line.split('\u0001'));
+  const commit = await out(['rev-parse', '-q', '--verify', 'HEAD']).catch(() => '');
+  const branch = await out(['symbolic-ref', '-q', 'HEAD']).catch(() => '');
+  const branches = await fields([
+    'for-each-ref',
+    '--format=%(refname:short)\u0001%(objectname)\u0001%(upstream)\u0001%(upstream:track,nobracket)',
+    'refs/heads',
+  ]);
+  const count = (track: string, word: string) => Number(new RegExp(`${word} (\\d+)`).exec(track)?.[1] ?? 0);
+  const remoteBranches = await fields(['for-each-ref', '--format=%(refname:short)\u0001%(objectname)\u0001%(symref)', 'refs/remotes']);
+  const tags = await fields(['for-each-ref', '--format=%(refname:short)\u0001%(objectname)\u0001%(*objectname)', 'refs/tags']);
+  const stashes = await lines(['stash', 'list', '--format=%H']);
+  const worktrees: Array<ReturnType<typeof comparable>['worktrees'][number]> = [];
+  for (const block of (await out(['worktree', 'list', '--porcelain'])).split('\n\n')) {
+    const entry = Object.fromEntries(block.split('\n').map((line) => [line.split(' ')[0], line.slice(line.indexOf(' ') + 1)]));
+    const folder = entry.worktree.split('/').join(path.sep);
+    worktrees.push({
+      folder: samePath(folder),
+      // A worktree on a branch with no commit yet is at no commit, which git writes as zeros.
+      commit: entry.HEAD && !/^0+$/.test(entry.HEAD) ? entry.HEAD : null,
+      branch: entry.branch ?? null,
+      isMissing: 'prunable' in entry || !fs.existsSync(folder),
+    });
+  }
+  const status = (await git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all'])).stdout.split('\0');
+  const staged: string[] = [];
+  const unstaged: string[] = [];
+  const untracked: string[] = [];
+  const conflicted: string[] = [];
+  for (let index = 0; index < status.length; index++) {
+    const entry = status[index];
+    if (!entry) continue;
+    const [x, y, file] = [entry[0], entry[1], entry.slice(3)];
+    // A rename names the path it had next.
+    if (x === 'R' || x === 'C') index++;
+    if (x === '?') untracked.push(file);
+    else if (x === 'U' || y === 'U' || (x === 'A' && y === 'A') || (x === 'D' && y === 'D')) conflicted.push(file);
+    else {
+      if (x !== ' ') staged.push(file);
+      if (y !== ' ') unstaged.push(file);
+    }
+  }
+  return {
+    folder: samePath(await out(['rev-parse', '--show-toplevel'])),
+    gitFolder: samePath(await out(['rev-parse', '--absolute-git-dir'])),
+    head: { commit: commit || null, branch: branch || null },
+    branches: branches
+      .map(([name, hash, upstream, track]) => ({
+        name,
+        commit: hash,
+        upstream: upstream ? { reference: upstream, ahead: count(track, 'ahead'), behind: count(track, 'behind'), isGone: track === 'gone' } : null,
+      }))
+      .sort((one, other) => one.name.localeCompare(other.name)),
+    remoteBranches: remoteBranches
+      .filter(([, , symref]) => !symref)
+      .map(([name, hash]) => ({ name, commit: hash }))
+      .sort((one, other) => one.name.localeCompare(other.name)),
+    tags: tags.map(([name, hash, peeled]) => ({ name, commit: peeled || hash })).sort((one, other) => one.name.localeCompare(other.name)),
+    stashes: stashes.map((hash, index) => ({ commit: hash, index })),
+    worktrees,
+    remotes: (await lines(['remote'])).sort(),
+    staged: staged.sort(),
+    unstaged: unstaged.sort(),
+    untracked: untracked.sort(),
+    conflicted: conflicted.sort(),
+    merging: fs.existsSync(path.join(await out(['rev-parse', '--absolute-git-dir']), 'MERGE_HEAD')),
+  };
+}
+
+/** Opens a repository in the engine, and says whether what it read is what git says. */
 async function compare(root: string): Promise<void> {
-  const engine = client();
-  const read = await engine.open(root);
-  const discovered = (await Repo.discover(root))!;
-  const extension = await new Repo(discovered).state(10);
-  expect(comparable(read)).toEqual(comparable(extension));
+  const read = await client().open(root);
+  expect(comparable(read)).toEqual(await fromGit(root));
 }
 
 describe.skipIf(!built)('gitardo-engine from the extension', { timeout: 60_000 }, () => {
-  describe('reads the same state as Repo.state', () => {
+  describe('reads the state git says', () => {
     it('in a repository with no commits yet and a file not tracked', async () => {
       const root = await repository(false);
       fs.writeFileSync(path.join(root, 'new.txt'), 'new\n');
@@ -374,92 +446,23 @@ describe('the settings sent to the engine', () => {
   });
 });
 
-/**
- * Runs a `GitOp` as `Controller.run` does, then tells the engine's journal about it as `Controller.recordInJournal`
- * does: with `record` when the operation says what Undo needs of it, else with what the states before and after tell.
- */
-async function ranInTypeScript(engine: EngineClient, root: string, op: GitOp, record?: UndoRecord): Promise<number | null> {
-  const read = async () => new Repo((await Repo.discover(root))!).state(10);
-  const before = await read();
-  let failure: unknown;
-  for (const [index, args] of op.commands.entries()) {
-    try {
-      await git(root, args, { input: index === op.commands.length - 1 ? op.input : undefined });
-    } catch (stopped) {
-      failure = stopped;
-      break;
-    }
-  }
-  const after = await read();
-  const told = record ?? recordOf(before, after);
-  const number = told ? await engine.journalRecord(root, op.title, told, before.head, after.head) : null;
-  if (failure && !record) return null;
-  return number;
-}
-
-/** Runs **Undo** as the toolbar does once the engine runs: `feature/run` of `undo.last`, its plan confirmed. */
-async function undo(engine: EngineClient, root: string) {
+/** Runs **Undo** as the toolbar does: `feature/run` of `undo.last`, its plan confirmed. */
+async function undo(engine: ReturnType<typeof client>, root: string) {
   const { finished } = await engine.runFeature({ repository: root, feature: 'undo.last', target: { kind: 'head' } }, answering({}));
   return finished;
 }
 
 const head = async (root: string) => (await git(root, ['rev-parse', 'HEAD'])).stdout.trim();
 
-describe.skipIf(!built)('Undo through gitardo-engine, of operations run by either', { timeout: 60_000 }, () => {
-  it('takes back a branch created by the engine, then one deleted in TypeScript, from the journal', async () => {
+describe.skipIf(!built)('Undo through gitardo-engine', { timeout: 60_000 }, () => {
+  it('takes back a branch the engine created, from its journal', async () => {
     const root = await repository();
-    await git(root, ['branch', 'old']);
-    const commit = await head(root);
     const engine = client();
-    const number = await ranInTypeScript(engine, root, deleteBranchOp('old'), { kind: 'branchDeleted', name: 'old', commit });
-    expect(number).toEqual(expect.any(Number));
     const asker = answering({ name: text('spike'), mode: choice('only') });
     expect((await engine.runFeature({ repository: root, feature: 'branch.create', target: { kind: 'head' } }, asker)).finished.kind).toBe('ran');
     expect(await engine.journalLast(root)).toMatchObject({ title: 'Create branch spike at HEAD', undoable: true });
-
     expect((await undo(engine, root)).kind).toBe('ran');
     expect((await git(root, ['branch', '--list', 'spike'])).stdout.trim()).toBe('');
-    expect((await undo(engine, root)).kind).toBe('ran');
-    expect((await git(root, ['rev-parse', 'old'])).stdout.trim()).toBe(commit);
-  });
-
-  it('takes back a commit made in TypeScript, then the stash dropped in TypeScript before it', async () => {
-    const root = await repository();
-    fs.writeFileSync(path.join(root, 'a.txt'), 'changed\n');
-    await git(root, ['stash', 'push', '-m', 'half a fix']);
-    const stash = (await git(root, ['rev-parse', 'stash@{0}'])).stdout.trim();
-    const engine = client();
-    const { message } = (await new Repo((await Repo.discover(root))!).state(10)).stashes[0];
-    await ranInTypeScript(engine, root, stashOp('drop', 'stash@{0}'), { kind: 'stashDropped', message, commit: stash });
-    const before = await head(root);
-    fs.writeFileSync(path.join(root, 'b.txt'), 'b\n');
-    await ranInTypeScript(engine, root, commitOp('Add b', false, true));
-
-    expect((await undo(engine, root)).kind).toBe('ran');
-    expect(await head(root)).toBe(before);
-    expect((await undo(engine, root)).kind).toBe('ran');
-    expect((await git(root, ['rev-parse', 'stash@{0}'])).stdout.trim()).toBe(stash);
-  });
-
-  it('says right after a push that it cannot take it back, and takes back nothing', async () => {
-    const remote = await repository();
-    const root = path.join(folder(), 'clone');
-    await git(path.dirname(root), ['clone', '--quiet', remote, root]);
-    await git(root, ['config', 'user.name', 'Gitardo Test']);
-    await git(root, ['config', 'user.email', 'test@gitardo.invalid']);
-    await git(root, ['config', 'commit.gpgsign', 'false']);
-    await git(remote, ['checkout', '--quiet', '--detach']);
-    await commitFile(root, 'b.txt', 'b\n', 'Add b');
-    const engine = client();
-    await ranInTypeScript(engine, root, { title: 'Push main to origin', commands: [['push', 'origin', 'main']] });
-    const pushed = await head(root);
-    expect(await engine.journalLast(root)).toMatchObject({ title: 'Push main to origin', undoable: false });
-
-    expect(await undo(engine, root)).toMatchObject({
-      kind: 'refused',
-      message: '"Push main to origin" cannot be undone. It changed the remote branches, which Undo does not take back.',
-    });
-    expect(await head(root)).toBe(pushed);
   });
 
   it('refuses during a merge stopped on conflicts with the sentence of the engine', async () => {
@@ -468,84 +471,17 @@ describe.skipIf(!built)('Undo through gitardo-engine, of operations run by eithe
     await commitFile(root, 'a.txt', 'other\n', 'Other');
     await git(root, ['checkout', '--quiet', 'main']);
     await commitFile(root, 'a.txt', 'main\n', 'Main');
-    const engine = client();
-    await ranInTypeScript(engine, root, mergeOp('other', 'main'));
-    expect(await undo(engine, root)).toMatchObject({ kind: 'refused', message: 'Finish or abort the merge first.' });
-  });
-
-  it('takes back whole a squash merge, a split and a resolution of conflicts', async () => {
-    const root = await repository();
-    await git(root, ['checkout', '--quiet', '-b', 'other']);
-    await commitFile(root, 'b.txt', 'b\n', 'Add b');
-    await commitFile(root, 'c.txt', 'c\n', 'Add c');
-    await git(root, ['checkout', '--quiet', 'main']);
-    const engine = client();
-    await ranInTypeScript(engine, root, mergeOp('other', 'main', 'squash'), { kind: 'squashMerge' });
-    expect((await undo(engine, root)).kind).toBe('ran');
-    expect((await git(root, ['status', '--porcelain'])).stdout.trim()).toBe('');
-
-    await commitFile(root, 'd.txt', 'd\n', 'Add d');
-    const split = await head(root);
-    await ranInTypeScript(engine, root, splitHeadOp(split), { kind: 'splitLast', commit: split });
-    expect((await undo(engine, root)).kind).toBe('ran');
-    expect(await head(root)).toBe(split);
-    expect((await git(root, ['status', '--porcelain'])).stdout.trim()).toBe('');
-
-    await commitFile(root, 'a.txt', 'main\n', 'Main');
-    await git(root, ['checkout', '--quiet', 'other']);
-    await commitFile(root, 'a.txt', 'other\n', 'Other');
-    await git(root, ['checkout', '--quiet', 'main']);
     await git(root, ['merge', 'other']).catch(() => null);
-    fs.writeFileSync(path.join(root, 'a.txt'), 'both\n');
-    const resolve: GitOp = { title: 'Resolve the conflicts of a.txt', commands: [['add', '--', 'a.txt']] };
-    await ranInTypeScript(engine, root, resolve, { kind: 'conflictsResolved', files: ['a.txt'] });
-    expect((await undo(engine, root)).kind).toBe('ran');
-    expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toContain('<<<<<<<');
+    expect(await undo(client(), root)).toMatchObject({ kind: 'refused', message: 'Finish or abort the merge first.' });
   });
 
-  it('goes by the reflog once the engine restarted, its journal empty', async () => {
+  it('goes by the reflog for a commit made outside Gitardo, its journal empty', async () => {
     const root = await repository();
     const first = await head(root);
-    const before = client();
-    fs.writeFileSync(path.join(root, 'b.txt'), 'b\n');
-    await ranInTypeScript(before, root, commitOp('Add b', false, true));
-    await ranInTypeScript(before, root, { title: 'Create tag v1', commands: [['tag', 'v1']] });
-    expect(await before.journalLast(root)).toMatchObject({ undoable: false });
-    await before.dispose();
-
+    await commitFile(root, 'b.txt', 'b\n', 'Add b');
     const engine = client();
     expect(await engine.journalLast(root)).toBeNull();
     expect((await undo(engine, root)).kind).toBe('ran');
     expect(await head(root)).toBe(first);
-  });
-});
-
-describe('what the journal is told of an operation run in TypeScript', () => {
-  const state = (changes: Partial<RepoState>) =>
-    ({
-      head: headAt('a'.repeat(40), 'main'),
-      branches: [],
-      remoteBranches: [],
-      tags: [],
-      stashes: [],
-      worktrees: [],
-      remotes: [],
-      submodules: [],
-      ...changes,
-    }) as unknown as RepoState;
-
-  it('is a move of HEAD for the reflog, the references it changed with a reason, and nothing when only files changed', () => {
-    expect(recordOf(state({}), state({ head: headAt('b'.repeat(40), 'main') }))).toEqual({ kind: 'reflog' });
-    expect(recordOf(state({}), state({ head: headAt('a'.repeat(40)) }))).toEqual({ kind: 'reflog' });
-    expect(recordOf(state({}), state({ tags: [tagAt('v1', 'a'.repeat(40))] }))).toEqual({
-      kind: 'notUndoable',
-      reason: 'It changed the tags, which Undo does not take back.',
-    });
-    const stashed = { commit: 'c'.repeat(40), index: 0, message: 'm', date: 0 };
-    expect(recordOf(state({}), state({ remotes: ['origin'], stashes: [stashed] }))).toEqual({
-      kind: 'notUndoable',
-      reason: 'It changed the stashes and remotes, which Undo does not take back.',
-    });
-    expect(recordOf(state({}), state({ changes: 3 }))).toBeNull();
   });
 });

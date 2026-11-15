@@ -1,7 +1,7 @@
 /**
  * What the tests of Gitardo's engine share: the debug binary, throwaway repositories, a client that logs to memory, an
- * asker that answers from the test, and, for the scenarios of the areas moved to the engine, a way to run the same
- * operation as a `GitOp` and as a feature and to compare what each left.
+ * asker that answers from the test, a way to run a feature with its questions answered, and the state of a repository
+ * as the extension reads it through the engine.
  */
 
 import * as fs from 'node:fs';
@@ -10,10 +10,12 @@ import * as path from 'node:path';
 import { afterEach } from 'vitest';
 import { binaryName } from '../../src/engine/binary';
 import { EngineClient, type EngineLog, type EngineOptions, type FeatureAsker } from '../../src/engine/client';
+import { EngineGraph, graphState } from '../../src/engine/graph';
 import type { Answer, Finished, Plan, Question, Settings, Target } from '../../src/engine/messages';
+import { Reads } from '../../src/engine/reads';
 import { engineSettings } from '../../src/engine/settings';
-import { git, writeFiles } from '../../src/git/exec';
-import type { GitOp } from '../../src/git/ops';
+import type { RepoState } from '../../src/shared/protocol';
+import { git } from '../git';
 
 export const binary = process.env.GITARDO_ENGINE ?? path.resolve(__dirname, '../../../rust/target/debug', binaryName());
 export const built = fs.existsSync(binary);
@@ -104,27 +106,11 @@ export const text = (value: string) => (): Answer => ({ kind: 'text', text: valu
 export const choice = (identifier: string) => (): Answer => ({ kind: 'choice', identifier });
 export const confirmed = () => (): Answer => ({ kind: 'confirmed' });
 
-/** Two copies of a repository made by `setup`, one for each path of a scenario. */
-export async function twins(setup: (root: string) => Promise<void>): Promise<[string, string]> {
-  const root = await repository();
-  await setup(root);
-  const copy = path.join(folder(), 'repo');
-  fs.cpSync(root, copy, { recursive: true });
-  return [root, copy];
-}
-
-/** A command as the engine writes the line of a step (`Step::log_line`), so that the two paths are compared by argument. */
+/** A command as the engine writes the line of a step (`Step::log_line`), for a test to say the line it expects. */
 export function stepLine(args: string[]): string {
   const quoted = (argument: string) =>
     argument === '' || /[\s"\\]/.test(argument) ? `"${argument.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"` : argument;
   return ['git', ...args.map(quoted)].join(' ');
-}
-
-/** Runs a `GitOp` as `Controller.run` does, and gives its commands as the engine would write their lines. */
-export async function runGitOp(root: string, op: GitOp): Promise<string[]> {
-  if (op.writes?.length) await writeFiles(root, op.writes);
-  for (const [index, args] of op.commands.entries()) await git(root, args, { input: index === op.commands.length - 1 ? op.input : undefined });
-  return op.commands.map(stepLine);
 }
 
 /** Runs a feature through the engine, its questions answered by key, and gives how it ended and the lines of its steps. */
@@ -139,7 +125,7 @@ export async function runFeature(
 }
 
 /**
- * What a scenario compares of a repository once an operation ran: what `HEAD` and every reference point at, the
+ * What a test compares of a repository before and after an operation: what `HEAD` and every reference point at, the
  * stashes with their messages, `git status`, and the contents of every file of the working tree but `.git`.
  */
 export async function snapshot(root: string): Promise<Record<string, unknown>> {
@@ -164,4 +150,12 @@ export async function snapshot(root: string): Promise<Record<string, unknown>> {
     status: await out(['status', '--porcelain=v1', '--untracked-files=all']),
     contents,
   };
+}
+
+/** The state of a repository as the controller reads it through the engine, with the first `limit` commits of the graph. */
+export async function engineState(root: string, limit = 10): Promise<RepoState> {
+  const engine = client();
+  const reads = new Reads(() => engine);
+  const asked = { limit, filter: null, scope: null, stashes: true, firstParent: false };
+  return graphState(engine, root, await reads.parts({ root }), asked, (graph) => new EngineGraph().commits(engine, root, graph, limit));
 }

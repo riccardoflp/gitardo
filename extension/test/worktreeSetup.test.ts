@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { proposeCommands } from '../src/git/worktreeSetup';
 import {
   choose,
   chooseAll,
@@ -164,52 +163,5 @@ describe('what new worktrees get of what git ignores', () => {
     expect(sizeText(1536)).toBe('1.5 KB');
     expect(sizeText(340 * 1024 * 1024)).toBe('340 MB');
     expect(sizeText(3 * 1024 ** 3)).toBe('3.0 GB');
-  });
-});
-
-describe('the commands proposed for new worktrees', () => {
-  const commands = (files: string[], packageManager?: string) => proposeCommands(files, packageManager).map((proposal) => proposal.command);
-
-  it('proposes the command that installs what each lock file locks', () => {
-    expect(proposeCommands(['package-lock.json', 'package.json'])).toEqual([{ command: 'npm ci', file: 'package-lock.json' }]);
-    expect(commands(['npm-shrinkwrap.json'])).toEqual(['npm ci']);
-    expect(commands(['pnpm-lock.yaml'])).toEqual(['pnpm install --frozen-lockfile']);
-    expect(commands(['yarn.lock'])).toEqual(['yarn install --frozen-lockfile']);
-    expect(commands(['bun.lockb'])).toEqual(['bun install']);
-    expect(commands(['bun.lock'])).toEqual(['bun install']);
-    expect(commands(['Cargo.lock'])).toEqual(['cargo fetch']);
-    expect(commands(['go.mod'])).toEqual(['go mod download']);
-    expect(commands(['uv.lock'])).toEqual(['uv sync --locked']);
-    expect(commands(['poetry.lock'])).toEqual(['poetry install']);
-    expect(commands(['Gemfile.lock'])).toEqual(['bundle install']);
-    // No command installs it into an environment of the worktree's own, whatever the shell and the Python.
-    expect(commands(['requirements.txt'])).toEqual([]);
-    expect(commands(['package.json', 'README.md'])).toEqual([]);
-  });
-
-  it('says it with --immutable for Yarn 2 and later', () => {
-    expect(commands(['yarn.lock', '.yarnrc.yml'])).toEqual(['yarn install --immutable']);
-    expect(commands(['yarn.lock'], 'yarn@4.5.0')).toEqual(['yarn install --immutable']);
-    expect(commands(['yarn.lock'], 'yarn@1.22.22')).toEqual(['yarn install --frozen-lockfile']);
-    // A .yarnrc.yml is no lock file.
-    expect(commands(['.yarnrc.yml'])).toEqual([]);
-  });
-
-  it('proposes one package manager of JavaScript: the one package.json names, or else npm last', () => {
-    expect(commands(['package-lock.json', 'pnpm-lock.yaml'])).toEqual(['pnpm install --frozen-lockfile']);
-    expect(commands(['package-lock.json', 'yarn.lock', 'bun.lockb'])).toEqual(['yarn install --frozen-lockfile']);
-    expect(commands(['package-lock.json', 'pnpm-lock.yaml'], 'npm@10.8.0')).toEqual(['npm ci']);
-    // Named, but with no lock file of its own: the lock files say it.
-    expect(commands(['package-lock.json'], 'pnpm@9.0.0')).toEqual(['npm ci']);
-  });
-
-  it('proposes one command for each kind of project, and one for Python', () => {
-    expect(commands(['go.mod', 'Gemfile.lock', 'package-lock.json', 'Cargo.lock', 'poetry.lock', 'uv.lock'])).toEqual([
-      'npm ci',
-      'uv sync --locked',
-      'cargo fetch',
-      'go mod download',
-      'bundle install',
-    ]);
   });
 });

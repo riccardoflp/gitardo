@@ -91,21 +91,6 @@ export function choiceProposal(text: string, conflict: Conflict, choice: Choice)
   };
 }
 
-/** How many lines around a conflict the language model is shown. */
-const ASKED_AROUND = 40;
-
-/** What the language model is shown of a conflict: what is in it and the lines around it. */
-export function questionParts(text: string, conflict: Conflict): { before: string; after: string; ours: string; theirs: string; base: string | null } {
-  const lines = linesOf(text);
-  return {
-    before: lines.slice(Math.max(0, conflict.from - ASKED_AROUND), conflict.from).join(''),
-    after: lines.slice(conflict.to, conflict.to + ASKED_AROUND).join(''),
-    ours: conflict.ours,
-    theirs: conflict.theirs,
-    base: conflict.stretch?.base ?? null,
-  };
-}
-
 /**
  * What each side of a conflict changed of the base, with the lines of the file around it. The stretch can take some
  * lines of the file before the markers and after them, which both sides have: they are found again in the file, for

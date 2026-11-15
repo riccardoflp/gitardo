@@ -119,6 +119,39 @@ try {
       };
     })()`);
 
+  // Without Gitardo's engine for the system the extension reads and runs nothing (D49): the views say so with a button
+  // that shows the log, and so do the commands that need the engine. That is all there is to look at.
+  if (engine.said === 'without the engine') {
+    const sentence = "Gitardo's engine is not available on this system.";
+    await step('says in the graph that the engine is not available, with a button that shows the log', async () => {
+      await command('Gitardo: Show Graph');
+      const graph = await webview('graph');
+      await until('the sentence', () => graph.evaluate(`document.querySelector('.empty')?.textContent.includes(${JSON.stringify(sentence)}) ?? false`));
+      await shot('no-engine');
+      const button = await graph.evaluate(`(() => {
+        const rect = [...document.querySelectorAll('.empty button')].find((button) => button.textContent === 'Show the log')?.getBoundingClientRect();
+        return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : null;
+      })()`);
+      assert(button, 'the graph has Show the log');
+      await mouse(graph.frame.x + button.x, graph.frame.y + button.y);
+      await until('the log', () => page.evaluate(`[...document.querySelectorAll('.panel .title')].some((title) => title.textContent.includes('Output'))`));
+    });
+    await step('says it, with Show the log, when Fetch is run', async () => {
+      await command('Gitardo: Fetch');
+      await until('the notification', () =>
+        page.evaluate(
+          `[...document.querySelectorAll('.notification-list-item-message')].some((message) => message.textContent.includes(${JSON.stringify(sentence)}))`,
+        ),
+      );
+      await shot('no-engine-command');
+      assert(
+        await page.evaluate(`[...document.querySelectorAll('.notification-list-item .monaco-button')].some((button) => button.textContent === 'Show the log')`),
+        'the notification has Show the log',
+      );
+    });
+    await finish();
+  }
+
   await step('the graph shows in the panel, with icons, in the colors of the theme', async () => {
     await command('Gitardo: Show Graph');
     const graph = await webview('graph');
@@ -339,8 +372,8 @@ try {
       const open = await prompt();
       return open?.items?.includes('Create only') ? open : null;
     });
-    // The engine writes the name between backticks, as the desktop does; the TypeScript fallback without them.
-    assert(pick.title.replaceAll('`', '') === 'Create branch from-ui', `title: ${pick.title}`);
+    // The engine writes the name between backticks, as the desktop does.
+    assert(pick.title === 'Create branch `from-ui`', `title: ${pick.title}`);
     await shot('quick-pick');
     await clickText('.quick-input-list .monaco-list-row', 'Create only');
     await until('the label of the new branch', () =>
@@ -2007,28 +2040,16 @@ try {
     };
     assert((await rows()) === null, 'no section without submodules');
 
-    // The engine asks in the desktop's words, with the question in the title; the TypeScript fallback titles each box
-    // "Add submodule" and asks in its message (E5 of the differences).
+    // The engine asks in the desktop's words, with the question in the title (E5 of the differences).
     const asked = (open) => `${open?.title ?? ''}\n${open?.message ?? ''}`;
     await command('Gitardo: Add Submodule…');
-    const first = await until('the prompt for the URL', async () => {
-      const open = await prompt();
-      return open?.title === 'Add submodule' || open?.title?.startsWith('URL of the repository') ? open : null;
-    });
-    const fallback = first.title === 'Add submodule';
+    await until('the prompt for the URL', async () => (await prompt())?.title?.startsWith('URL of the repository'));
     await type(lib);
     await key('Enter');
     await until('the prompt for the folder', async () => asked(await prompt()).includes('Folder to clone it in'));
-    if (fallback) {
-      // Named after the repository, which is taken here by a folder of the app: the box says so while it is typed. The
-      // engine checks that the folder is empty once it is answered, and says where it goes once, for the name proposed.
-      await key('End');
-      await type('/');
-      await until('the folder refused', async () => (await prompt())?.message.includes(`${path.join(app, 'lib')} is not empty`));
-    }
+    // The folder named after the repository is taken here by a folder of the app: another one is typed.
     await key('A', CTRL);
     await type('vendor/lib');
-    if (fallback) await until('where it goes', async () => (await prompt())?.message.includes(`In ${path.join(app, 'vendor', 'lib')}`));
     await shot('submodule-folder');
     await key('Enter');
     await until('the prompt for the branch', async () => asked(await prompt()).includes('Branch it follows'));
@@ -2103,10 +2124,10 @@ try {
       })()`);
       await mouse(graph.frame.x + at.x, graph.frame.y + at.y);
     };
-    // The title the engine gives, or the one of the TypeScript fallback where its words differ.
-    const confirm = async (...titles) => {
+    /** The warning the engine shows before it discards, with its title. */
+    const confirm = async (title) => {
       const dialog = await until('the warning', async () => ((await prompt())?.kind === 'dialog' ? prompt() : null));
-      assert(titles.some((title) => dialog.text.includes(`${title}?`)), `dialog: ${JSON.stringify(dialog)}`);
+      assert(dialog.text.includes(`${title}?`), `dialog: ${JSON.stringify(dialog)}`);
       return dialog;
     };
 
@@ -2131,7 +2152,7 @@ try {
     await until('two ticked', () => graph.evaluate(`document.querySelector('.detail h3 .grow').textContent.includes(', 2 selected')`));
     await shot('changes-ticked');
     await graph.click('.detail h3 button[title="Discard all changes in 2 selected files…"]');
-    const dialog = await confirm('Discard the changes of 2 files', 'Discard all changes in 2 files');
+    const dialog = await confirm('Discard the changes of 2 files');
     assert(/git clean -f -- one\.txt two\.txt\s*$/.test(dialog.text) && dialog.text.includes('2 untracked files will be deleted'), `dialog: ${dialog.text}`);
     await clickText('.monaco-dialog-box .monaco-button', 'Run');
     await until('the two gone', async () => !(await names()).some((name) => name === 'one.txt' || name === 'two.txt'));
@@ -2151,7 +2172,7 @@ try {
     // The button of a file discards its staged change too.
     await press('a.txt', '.pick');
     await press('a.txt', 'button[title="Discard all changes in this file, staged too…"]');
-    await confirm('Discard the changes of a.txt', 'Discard all changes in a.txt');
+    await confirm('Discard the changes of a.txt');
     await clickText('.monaco-dialog-box .monaco-button', 'Run');
     await until('a gone', async () => !(await names()).includes('a.txt'));
     assert(fs.readFileSync(path.join(app, 'a.txt'), 'utf8') === a && !git(app, 'diff', '--cached', '--name-only').toString().trim(), 'a.txt is back to its commit');

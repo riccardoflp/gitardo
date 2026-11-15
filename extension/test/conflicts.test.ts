@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { applyReplacements, conflictCount, diff, diffBackward, merge, resolveConflicts } from '../src/shared/conflicts';
+import { type GitError, git } from './git';
 
 /** Lines as they are in a file: each with its line break. */
 const lines = (...texts: string[]) => texts.map((text) => `${text}\n`);
@@ -444,5 +448,183 @@ describe('the resolution of each conflict, to look at before it is written', () 
     const close = [...conflict(['A'], ['B']), ...conflict(['C'], ['D'], ['c'])];
     const found = resolveConflicts(file(...close), file('x', 'c')).conflicts;
     expect(found.map((each) => each.stretch)).toEqual([null, { base: file('c'), ours: file('C'), theirs: file('D') }]);
+  });
+});
+
+describe('conflicts as git marks them', { timeout: 120_000 }, () => {
+  // Files as git's merge-file puts them together, in a folder of their own: no repository is needed.
+  let root: string;
+  beforeAll(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-conflicts-'));
+  });
+  afterAll(() => fs.rmSync(root, { recursive: true, force: true }));
+  const text = (...texts: string[]) => texts.map((line) => `${line}\n`).join('');
+
+  it('agrees with what the two sides did, on conflicts marked by git in each of its styles', async () => {
+    // Numbers that are the same each time.
+    let seed = 99;
+    const next = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    const file = (name: string, lines: string[]) => fs.writeFileSync(path.join(root, name), text(...lines));
+    let [files, conflicts, resolved, whole] = [0, 0, 0, 0];
+
+    for (let round = 0; round < 120; round++) {
+      const base = Array.from({ length: 12 + Math.floor(next() * 30) }, (_, index) => `line ${index}`);
+      const [ours, theirs, expected]: string[][] = [[], [], []];
+      // Each line is left alone, changed or removed by one side, or by both the same way; then a line may be added after it.
+      base.forEach((line, index) => {
+        const roll = next();
+        const [mine, other] =
+          roll < 0.7
+            ? [line, line]
+            : roll < 0.8
+              ? [`${line} ours`, line]
+              : roll < 0.9
+                ? [line, `${line} theirs`]
+                : roll < 0.93
+                  ? [null, line]
+                  : roll < 0.96
+                    ? [line, null]
+                    : roll < 0.99
+                      ? [`${line} both`, `${line} both`]
+                      : [null, null];
+        if (mine !== null) ours.push(mine);
+        if (other !== null) theirs.push(other);
+        if (mine !== null && other !== null) expected.push(mine === line ? other : mine);
+        const added = next();
+        if (added < 0.03) [ours, expected].forEach((list) => list.push(`added ${index} ours`));
+        else if (added < 0.06) [theirs, expected].forEach((list) => list.push(`added ${index} theirs`));
+        else if (added < 0.09) [ours, theirs, expected].forEach((list) => list.push(`added ${index} both`));
+      });
+      file('base', base);
+      file('ours', ours);
+      file('theirs', theirs);
+
+      const style = ['--merge', '--diff3', '--zdiff3'][round % 3];
+      // It exits with the number of conflicts it marked.
+      const marked = await git(root, ['merge-file', '-p', style, 'ours', 'base', 'theirs']).then(
+        (result) => result.stdout,
+        (error: unknown) => (error as GitError).result.stdout,
+      );
+      const result = resolveConflicts(marked, text(...base), { ours: text(...ours), theirs: text(...theirs) });
+      const left = result.conflicts.filter((conflict) => !conflict.resolution).length;
+      if (!result.conflicts.length) continue;
+      files++;
+      conflicts += result.conflicts.length;
+      resolved += result.conflicts.length - left;
+      const context = `${style}\n${marked}\n--- base\n${text(...base)}`;
+      if (left) {
+        // What is left is as git wrote it, and what was resolved around it is what the two sides did there.
+        expect(result.text.match(/^<<<<<<< /gm), context).toHaveLength(left);
+        const again = resolveConflicts(result.text, text(...base));
+        expect(again.text, context).toBe(result.text);
+      } else {
+        whole++;
+        expect(result.text, context).toBe(text(...expected));
+      }
+    }
+    // Most of what a model like this makes is changes side by side.
+    expect(files).toBeGreaterThan(60);
+    expect(resolved).toBeGreaterThan(conflicts / 2);
+    expect(whole).toBeGreaterThan(files / 4);
+  });
+
+  it('is never bolder than the lines git says were there before, in files full of lines that repeat', async () => {
+    // Braces and empty lines can be paired with the ones of the base in more than one way, and git made its choice.
+    // Told to, it writes in each conflict the lines that were there before: a conflict resolved from the whole file,
+    // where those have to be found, must resolve from them too, and to the same lines.
+    let seed = 4242;
+    const next = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    const common = ['}', '', '  return x;', '{', 'end'];
+    const some = () => common[Math.floor(next() * common.length)];
+    const file = (name: string, lines: string[]) => fs.writeFileSync(path.join(root, name), text(...lines));
+    let [blocks, both, cautious] = [0, 0, 0];
+
+    for (let round = 0; round < 150; round++) {
+      const base = Array.from({ length: 10 + Math.floor(next() * 25) }, (_, index) => (next() < 0.45 ? some() : `line ${index}`));
+      const [ours, theirs]: string[][] = [[], []];
+      base.forEach((line, index) => {
+        const roll = next();
+        const [mine, other] =
+          roll < 0.7
+            ? [line, line]
+            : roll < 0.8
+              ? [`${line} ours${index}`, line]
+              : roll < 0.9
+                ? [line, `${line} theirs${index}`]
+                : roll < 0.93
+                  ? [null, line]
+                  : roll < 0.96
+                    ? [line, null]
+                    : roll < 0.99
+                      ? [`${line} both${index}`, `${line} both${index}`]
+                      : [null, null];
+        if (mine !== null) ours.push(mine);
+        if (other !== null) theirs.push(other);
+        const added = next();
+        const what = next() < 0.5 ? some() : `added ${index}`;
+        if (added < 0.03) ours.push(what);
+        else if (added < 0.06) theirs.push(what);
+        else if (added < 0.09) [ours, theirs].forEach((list) => list.push(what));
+      });
+      file('base', base);
+      file('ours', ours);
+      file('theirs', theirs);
+      const marked = await git(root, ['merge-file', '-p', '--diff3', 'ours', 'base', 'theirs']).then(
+        (result) => result.stdout,
+        (error: unknown) => (error as GitError).result.stdout,
+      );
+
+      // Each conflict resolved from the three parts git wrote of it.
+      const reference: string[] = [];
+      const decided: boolean[] = [];
+      let part: 'out' | 'ours' | 'base' | 'theirs' = 'out';
+      let parts: Record<'ours' | 'base' | 'theirs', string[]> = { ours: [], base: [], theirs: [] };
+      let block: string[] = [];
+      for (const line of marked.split(/(?<=\n)/)) {
+        if (part === 'out' && line.startsWith('<<<<<<< ')) {
+          part = 'ours';
+          parts = { ours: [], base: [], theirs: [] };
+          block = [line];
+        } else if (part === 'out') {
+          reference.push(line);
+        } else {
+          block.push(line);
+          if (part === 'ours' && line.startsWith('||||||| ')) part = 'base';
+          else if (part === 'base' && line === '=======\n') part = 'theirs';
+          else if (part === 'theirs' && line.startsWith('>>>>>>> ')) {
+            const merged = merge(parts.base, parts.ours, parts.theirs);
+            decided.push(merged !== null);
+            reference.push(...(merged ? merged.lines : block));
+            part = 'out';
+          } else parts[part].push(line);
+        }
+      }
+
+      const result = resolveConflicts(marked, text(...base), { ours: text(...ours), theirs: text(...theirs) });
+      const context = `${marked}\n--- base\n${text(...base)}`;
+      expect(result.conflicts, context).toHaveLength(decided.length);
+      let agree = true;
+      result.conflicts.forEach((conflict, index) => {
+        blocks++;
+        if (conflict.resolution) {
+          expect(decided[index], `conflict ${index + 1} of\n${context}`).toBe(true);
+          both++;
+        } else if (decided[index]) {
+          agree = false;
+          cautious++;
+        }
+      });
+      if (agree) expect(result.text, context).toBe(reference.join(''));
+    }
+    // Caution has a price, which is not most of what could be resolved.
+    expect(blocks).toBeGreaterThan(150);
+    expect(both).toBeGreaterThan(blocks / 2);
+    expect(cautious).toBeLessThan(both / 4);
   });
 });
