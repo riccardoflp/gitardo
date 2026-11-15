@@ -23,6 +23,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - Rebasing a branch that another worktree has checked out now says to rebase it there, before git runs.
 - The todo list and messages of an interactive rebase, a squash, a split or a new message for an older commit are now written into the repository's git folder only once you agree, each listed in the log, and are removed once the rebase ends, also after it stopped.
 - The rebase editor is now refused while a bisect is under way, as rewording, squashing and splitting already were.
+- Adding changes to an earlier commit is refused during a bisect: end the bisect first.
 - Once the bisect has found the first bad commit, **Good**, **Bad** and **Skip** say so instead of running git again, and **End bisect** says that no bisect is in progress when none is.
 - Cherry-picking several commits asks **Cherry-pick 2 commits onto main**, with the command but not the list of the commits, and **Undo** names it so; a patch of one commit is applied **as 1 commit**.
 - A merge that cannot be a fast-forward only, a patch of a merge commit and a patch that does not apply are said as warnings, with git's reasons in the message itself; what a squash merge and a split of the last commit say after has no buttons.

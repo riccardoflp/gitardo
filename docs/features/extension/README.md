@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature, one card each, 151 in all. The template and the rules of the cards are in the
+Every feature, one card each, 123 in all. The template and the rules of the cards are in the
 feature contract. This index is written by `catalog.py --index`: change a status here in the commit that
 earns it, and run the script again after adding or renaming a card; the statuses are kept. A card with a
 **Differs** line is *Differs*; when the line goes, it becomes *Documented*.
@@ -9,7 +9,6 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | --- | --- | --- |
 | [01-repositories.md](01-repositories.md) | Repositories | 2 |
 | [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 24 |
-| [07-merge-and-rewrite.md](07-merge-and-rewrite.md) | Merge, rebase and rewriting history | 28 |
 | [09-conflicts.md](09-conflicts.md) | Conflicts | 34 |
 | [12-worktrees.md](12-worktrees.md) | Worktrees | 38 |
 | [13-submodules.md](13-submodules.md) | Submodules | 17 |
@@ -51,39 +50,6 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | [`sync.push`](06-branches-tags-remotes.md#syncpush--push-the-branch-checked-out) | Push the branch checked out | Operation | Differs |
 | [`sync.push-force`](06-branches-tags-remotes.md#syncpush-force--force-push-with-or-without-a-lease) | Force push, with or without a lease | Operation | Documented |
 | [`sync.fast-forward`](06-branches-tags-remotes.md#syncfast-forward--fast-forward-a-branch-that-is-not-checked-out) | Fast-forward a branch that is not checked out | Operation | Differs |
-
-## Merge, rebase and rewriting history
-
-| Feature | Title | Kind | Status |
-| --- | --- | --- | --- |
-| [`merge.into-current`](07-merge-and-rewrite.md#mergeinto-current--merge-into-the-current-branch) | Merge into the current branch | Operation | Documented |
-| [`merge.choose-way`](07-merge-and-rewrite.md#mergechoose-way--choose-the-way-to-merge) | Choose the way to merge | Operation | Documented |
-| [`merge.squash`](07-merge-and-rewrite.md#mergesquash--squash-merge) | Squash merge | Operation | Documented |
-| [`merge.preview-conflicts`](07-merge-and-rewrite.md#mergepreview-conflicts--say-which-files-will-conflict) | Say which files will conflict | Read | Documented |
-| [`rebase.onto`](07-merge-and-rewrite.md#rebaseonto--rebase-onto-a-commit-or-a-branch) | Rebase onto a commit or a branch | Operation | Documented |
-| [`rebase.interactive`](07-merge-and-rewrite.md#rebaseinteractive--interactive-rebase) | Interactive rebase | Operation | Differs |
-| [`rebase.editor`](07-merge-and-rewrite.md#rebaseeditor--the-interactive-rebase-editor) | The interactive rebase editor | View | Documented |
-| [`rebase.todo`](07-merge-and-rewrite.md#rebasetodo--the-todo-list-of-an-interactive-rebase) | The todo list of an interactive rebase | Derivation | Documented |
-| [`rebase.edit-stop`](07-merge-and-rewrite.md#rebaseedit-stop--stop-to-edit-a-commit) | Stop to edit a commit | Read | Documented |
-| [`cherry-pick.one`](07-merge-and-rewrite.md#cherry-pickone--cherry-pick-a-commit) | Cherry-pick a commit | Operation | Differs |
-| [`cherry-pick.many`](07-merge-and-rewrite.md#cherry-pickmany--cherry-pick-several-commits) | Cherry-pick several commits | Operation | Differs |
-| [`revert.commit`](07-merge-and-rewrite.md#revertcommit--revert-a-commit) | Revert a commit | Operation | Documented |
-| [`reset.to`](07-merge-and-rewrite.md#resetto--reset-the-current-branch-to-a-commit) | Reset the current branch to a commit | Operation | Documented |
-| [`rewrite.reword`](07-merge-and-rewrite.md#rewritereword--edit-the-message-of-a-commit) | Edit the message of a commit | Operation | Differs |
-| [`rewrite.message-box`](07-merge-and-rewrite.md#rewritemessage-box--the-box-that-edits-a-message) | The box that edits a message | View | Documented |
-| [`rewrite.squash`](07-merge-and-rewrite.md#rewritesquash--squash-commits-into-one) | Squash commits into one | Operation | Differs |
-| [`rewrite.squash-message`](07-merge-and-rewrite.md#rewritesquash-message--the-message-of-squashed-commits) | The message of squashed commits | Derivation | Documented |
-| [`rewrite.split`](07-merge-and-rewrite.md#rewritesplit--split-a-commit) | Split a commit | Operation | Differs |
-| [`rewrite.split-rest`](07-merge-and-rewrite.md#rewritesplit-rest--commit-what-is-left-of-a-split-and-continue) | Commit what is left of a split and continue | Operation | Documented |
-| [`rewrite.split-left`](07-merge-and-rewrite.md#rewritesplit-left--what-is-left-of-a-commit-being-split) | What is left of a commit being split | Derivation | Documented |
-| [`rewrite.fixup`](07-merge-and-rewrite.md#rewritefixup--add-changes-to-an-earlier-commit-fixup) | Add changes to an earlier commit (fixup) | Operation | Documented |
-| [`rewrite.reach`](07-merge-and-rewrite.md#rewritereach--which-commits-a-rewrite-can-reach) | Which commits a rewrite can reach | Derivation | Documented |
-| [`rewrite.pushed-warning`](07-merge-and-rewrite.md#rewritepushed-warning--warn-that-a-rewritten-commit-is-pushed) | Warn that a rewritten commit is pushed | Read | Documented |
-| [`rewrite.drag-and-drop`](07-merge-and-rewrite.md#rewritedrag-and-drop--drag-and-drop-onto-a-row-of-the-graph) | Drag and drop onto a row of the graph | View | Documented |
-| [`bisect.start`](07-merge-and-rewrite.md#bisectstart--start-a-bisect) | Start a bisect | Operation | Documented |
-| [`bisect.mark`](07-merge-and-rewrite.md#bisectmark--mark-the-commit-tested) | Mark the commit tested | Operation | Documented |
-| [`bisect.end`](07-merge-and-rewrite.md#bisectend--end-the-bisect) | End the bisect | Operation | Documented |
-| [`bisect.banner`](07-merge-and-rewrite.md#bisectbanner--the-bisect-banner) | The bisect banner | View | Documented |
 
 ## Conflicts
 

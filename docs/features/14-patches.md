@@ -71,6 +71,10 @@ another branch.
 - **Refuses**: when git made fewer commits than were chosen: **Git makes no patch of a merge commit.**, followed by
   **: leave the merges out of the selection** for several.
 - **Uses**: `patch.read-format-patch`, `patch.count-commits`.
+- **Extension**: **Copy as patch** in the context menu of a commit, or of several selected, in the graph posts
+  `formatPatch`, which runs it with the commits; the patch goes on VS Code's clipboard (the follow-up
+  `copyToClipboard`), and a merge among them is refused with a warning. Without the engine, the controller runs `git
+  format-patch` itself, says *Gitardo: copied N commits as a patch.*, and the refusal is an error.
 
 Acceptance:
 
@@ -98,6 +102,8 @@ Saves the same patch as **Copy as patch** to a file the user chooses.
 - **Undo**: impossible: the file saved is outside what Undo takes back; delete it to take it back.
 - **Refuses**: as `patch.copy`.
 - **Uses**: `patch.read-format-patch`, `patch.count-commits`.
+- **Extension**: **Save as patch…** in the same menus posts `formatPatch` with `save`, which runs it; the place is asked
+  in VS Code's save dialog.
 
 Acceptance:
 
@@ -176,6 +182,11 @@ author and message, or to the working tree only, its changes staged and nothing 
     with the first 15 reasons of git and **…and K more**. Nothing is changed.
 - **Settings**: `commandPreview`.
 - **Uses**: `patch.count-commits`, `patch.check`, `patch.am-stopped`, `undo.last`, `preview.confirm`.
+- **Extension**: **Gitardo: Apply Patch…** in the Command Palette (`gitardo.applyPatch`) posts `applyPatch`, which runs
+  it on `HEAD`: the controller reads VS Code's clipboard first, with `vscode.env.clipboard.readText()`, and gives its
+  text as the answer `clipboard`, which the engine reads in place of a clipboard of its own. A patch that does not apply
+  is refused with a warning that has git's reasons in it. Without the engine, `applyPatchOp` of `src/git/ops.ts` runs
+  the same commands, and the reasons are in the detail of the warning.
 
 Acceptance:
 
@@ -191,6 +202,9 @@ Acceptance:
 - [ ] A patch that will conflict names the files and asks first, also with `commandPreview` set to `off`.
 - [ ] **As commits** with staged changes is refused before git runs.
 - [ ] Undo right after a patch of three commits takes back the three at once.
+- [ ] Extension: from the clipboard, a patch of two commits made by **Copy as patch** applied **As commits** makes the
+      two commits, and the log has `write <temporary file>` and `git am --3way <temporary file>`; right after, **Undo**
+      asks **Undo "Apply the patch in the clipboard as 2 commits"?** and takes back both.
 
 ### `patch.am-stopped` — A patch that stopped on a conflict
 

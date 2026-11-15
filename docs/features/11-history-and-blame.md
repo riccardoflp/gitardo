@@ -657,6 +657,8 @@ Acceptance:
 - **Reads**: the file `BISECT_START` in the git directory of the worktree; `git for-each-ref --format=%(refname)
   %(objectname) refs/bisect`; with a bad commit and at least one good one,
   `git rev-list --count <bad> --not <good>…`.
+- **Extension**: `Repo.bisect()` (`src/git/repo.ts`) reads the same refs and count, with `GIT_OPTIONAL_LOCKS=0`, into
+  `RepoState.bisect`.
 
 Rules:
 
@@ -670,6 +672,8 @@ Acceptance:
 - [ ] With `A→B→C→D→E`, `A` good and `E` bad, the count is 4.
 - [ ] With only a bad commit marked, there is no count.
 - [ ] With no `BISECT_START`, there is no bisect, even if `refs/bisect/*` are left.
+- [ ] Extension: the refs `refs/bisect/bad bbb`, `refs/bisect/good-aaa aaa`, `refs/bisect/good-ccc ccc` and
+      `refs/bisect/skip-ddd ddd` read as good `aaa` and `ccc`, bad `bbb`, skipped `ddd`.
 
 ### `bisect.start` — Start a bisect from a commit
 
@@ -687,12 +691,19 @@ Starts finding the commit that broke something, from a commit known to be broken
   goes back to where it started.
 - **After**: the banner of `bisect.banner` asks for the other mark.
 - **Uses**: `bisect.banner`, `bisect.mark`, `bisect.end`.
+- **Extension**: **Start bisect: this commit is bad** and **Start bisect: this commit is good** in the context menu of a
+  commit in the graph and the Gitardo Graph post `bisect` with the mark and the commit, which runs it while no bisect is
+  under way, and `bisect.mark` during one, the mark given as the answer `mark`. Without the engine, `bisectOp` of
+  `src/git/ops.ts`, which does not refuse while another operation is under way.
 
 Acceptance:
 
 - [ ] **Start bisect: this commit is bad** on `E` runs `git bisect start` and `git bisect bad <E>`, and the banner says
       *Bisect: mark a good commit to begin*.
 - [ ] While a rebase is stopped, neither entry is offered.
+- [ ] Extension: **Start bisect: this commit is bad** on `1a2b3c4` runs `git bisect start` and `git bisect bad <hash>`,
+      both in the log, and the commit carries the label **bad**.
+- [ ] Extension: **Undo** during the bisect says *End the bisect first.* and runs nothing.
 
 ### `bisect.mark` — Mark a commit good or bad
 
@@ -710,12 +721,16 @@ While a bisect is under way, marks any commit of the timeline.
 - **After**: when a single commit is left that can be the first bad one, the message *Bisect: the first bad commit is
   `<short>` "`<subject>`".* with **Show in the timeline** and **End bisect**.
 - **Uses**: `bisect.read`, `bisect.end`.
+- **Extension**: **Bisect: mark as good** and **Bisect: mark as bad** in the context menu of any commit during a bisect.
+  The message that names the first bad commit, with **Show in the graph** and **End bisect**, is shown by
+  `Controller.reportBisect` (`src/extension/controller.ts`) once the repository is read again.
 
 Acceptance:
 
 - [ ] With `E` marked bad, **Bisect: mark as good** on `A` runs `git bisect good <A>`, and git checks out a commit
       between them.
 - [ ] Marking the last commit left says which is the first bad one, with the two buttons.
+- [ ] Extension: **Bisect: mark as bad** on a commit runs `git bisect bad <hash>`.
 
 ### `bisect.answer` — Answer for the commit being tested
 
@@ -727,17 +742,20 @@ The banner's **Good**, **Bad** and **Skip** mark the commit git checked out to t
   this commit cannot be tested*) in the banner of `bisect.banner`.
 - **Offered when**: a bisect is under way, a good and a bad commit are marked, and the first bad one is not found yet.
   The buttons are disabled while an operation runs.
+- **Asks**: when no button gave the answer, **Mark the commit being tested**: **This commit is good**, **This commit
+  is bad** or **Skip this commit**.
 - **Plan**: `git bisect good`, `git bisect bad` or `git bisect skip`, with no commit: the one checked out. The title is
   *Bisect: this commit is good* (*bad*, *skipped*).
 - **Danger**: None.
 - **Undo**: not by Undo (*End the bisect first.*).
 - **After**: git checks out the next commit to test, and the banner counts again; when a single commit is left, the
   message of `bisect.mark`.
-- **Asks**: when no button gave the answer, **Mark the commit being tested**: **This commit is good**, **This commit
-  is bad** or **Skip this commit**.
 - **Refuses**: with no bisect under way, *No bisect is in progress.*; once one commit is left, *The bisect found the
   first bad commit already.*
 - **Uses**: `bisect.read`, `bisect.banner`.
+- **Extension**: **Good**, **Bad** and **Skip** in the banner post `bisect` with the mark and no commit, which runs it
+  with the mark as the answer `answer`. **Skip** with a commit, which no view posts, runs `bisectOp` of
+  `src/git/ops.ts`, as every mark does without the engine.
 
 Acceptance:
 
@@ -745,6 +763,8 @@ Acceptance:
 - [ ] **Skip** runs `git bisect skip`, and the commit gets the mark *skipped* in the timeline.
 - [ ] The answer that leaves one commit shows *Bisect: the first bad commit is …* with **Show in the timeline** and
       **End bisect**.
+- [ ] Extension: once one commit is left, **Good** says *The bisect found the first bad commit already.* and git does
+      not run.
 
 ### `bisect.banner` — The banner of a bisect
 
@@ -755,6 +775,8 @@ Says what the bisect needs next, and takes the answer for the commit checked out
 - **Entry points**: above the commits of the timeline, while a bisect is under way.
 - **Offered when**: `bisect.read` gives a bisect.
 - **Uses**: `bisect.read`, `bisect.answer`, `bisect.end`.
+- **Extension**: `BisectBanner` (`src/webview/BisectBanner.tsx`), in the Graph view, in the panel or an editor tab, and
+  in the Changes view, not in the Gitardo Graph; **Show** selects the commit in the Graph view only.
 
 What it says, after a search icon:
 
@@ -772,6 +794,8 @@ Acceptance:
       one*.
 - [ ] Once found, **Good**, **Bad** and **Skip** are gone, and **Show** selects the commit.
 - [ ] Without a bisect, there is no banner.
+- [ ] Extension: with only a bad commit marked, the banner says *Bisect: mark a good commit to begin* and has **End**
+      only.
 
 ### `bisect.marks` — The marks of a bisect in the timeline
 
@@ -783,6 +807,7 @@ The commits marked so far carry a label in the timeline: `good`, `bad` or `skipp
 - **Entry points**: the labels of the commits in the timeline, while a bisect is under way.
 - **Offered when**: `bisect.read` gives a bisect.
 - **Uses**: `bisect.read`.
+- **Extension**: the labels **good**, **bad** and **skipped** in the graph (`src/webview/labels.ts`).
 
 Rules:
 
@@ -811,8 +836,13 @@ Goes back to where the bisect started.
   started again.
 - **After**: the banner and the marks are gone; what was checked out before the bisect is checked out.
 - **Uses**: `bisect.banner`, `undo.last`.
+- **Extension**: **End** in the banner, **End bisect** in the message that names the first bad commit, and **Gitardo:
+  End Bisect** in the Command Palette (`gitardo.bisectReset`) post `bisectReset`, which runs it. Without the engine,
+  `bisectResetOp` of `src/git/ops.ts` runs `git bisect reset` whether a bisect is under way or not.
 
 Acceptance:
 
 - [ ] Started on `main`, **End** runs `git bisect reset` and `main` is checked out again.
 - [ ] After **End**, **Start bisect: …** is offered again in the context menu of a commit.
+- [ ] Extension: **Gitardo: End Bisect** in the Command Palette does what **End** does; with no bisect under way it says
+      *No bisect is in progress.*

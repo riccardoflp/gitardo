@@ -412,7 +412,7 @@ Each answers `null` when the user backs out or the host cannot.
 
 | Method | Params | Result | Stands for, in the engine |
 | --- | --- | --- | --- |
-| `host/clipboard` | — | `{ text: string \| null }` | `Asker::clipboard`, `Query::Clipboard` |
+| `host/clipboard` | — | `{ text: string \| null }` | `Asker::clipboard`, `Query::Clipboard`; not sent: the extension gives the text as the answer `clipboard` instead (stage 4, area 3) |
 | `host/githubToken` | `{ host: string, ask: boolean }` | `{ token: string \| null }` | `Query::GitHubToken`, `github::read_token` and the credential store |
 | `host/languageModel` | `LanguageModelRequest` | `{ text: string } \| { refused: string }` | `ai::ask`, `ai::ask_conflict` over HTTP |
 | `host/languageModels` | — | `{ models: { id, name }[] }` | `Query::AiModels`, `ai::list_models` |
@@ -442,7 +442,7 @@ its requests through the writer of standard output, waiting for their answers:
 | --- | --- | --- |
 | `ask(&Question) -> Option<Answer>` | `feature/ask`, waits for its answer | by `QuestionKind`, below |
 | `confirm(&Plan) -> bool` | `feature/confirm`, waits | the modal dialog of today, with the plan's commands (`gitardo.commandPreview`) |
-| `clipboard() -> Option<String>` | `host/clipboard`, waits | `vscode.env.clipboard.readText()` |
+| `clipboard() -> Option<String>` | the text answer `clipboard` given with `feature/run`, taken once; none without it | `vscode.env.clipboard.readText()`, read by the controller before it runs **Apply patch** |
 
 The answers given in `feature/run` are taken first: a question whose key has one is not sent. A question has `key`,
 `kind`, `title`, `detail`, `default`. In VS Code:
