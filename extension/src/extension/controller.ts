@@ -79,7 +79,7 @@ import { fetchPulls, githubSession } from './github';
 import { editSetupJson, savePatterns, saveSetup, setupChangeText, setupPatterns, worktreeSetupInfo } from './worktreeSettings';
 import { EngineError, ErrorCode } from '../engine/connection';
 import { type EngineRun, engineRuns, syncRuns } from '../engine/actions';
-import type { FollowUp, OfferedRun, Plan, Target } from '../engine/messages';
+import type { FileResolutions, FollowUp, OfferedRun, Plan, Target } from '../engine/messages';
 import { type HostHooks, VscodeAsker, type WindowEngine } from '../engine/vscode';
 import { headOf, recordOf, type UndoRecord } from '../engine/journal';
 
@@ -514,7 +514,7 @@ export class Controller implements vscode.Disposable {
       const host = {
         attach: (webview: vscode.Webview, kind: ViewKind, data: Record<string, string>) => this.attach(webview, kind, data),
         post: (message: HostMessage, webview: vscode.Webview) => this.post(message, webview),
-        write: (on: Repo, op: GitOp, files: string[]) => this.writeResolutions(on, op, files),
+        write: (on: Repo, op: GitOp, files: string[], resolutions: FileResolutions[]) => this.writeResolutions(on, op, files, resolutions),
         settings: () => ({ rules: this.autoResolve(), ai: this.resolveWithAI() }),
       };
       const tab: ConflictReviewTab = new ConflictReviewTab(host, repo, wanted, () => {
@@ -562,7 +562,11 @@ export class Controller implements vscode.Disposable {
   }
 
   /** Writes resolutions of conflicts, with the way back, and says what is left. */
-  private async writeResolutions(repo: Repo, op: GitOp, files: string[]): Promise<boolean> {
+  private async writeResolutions(repo: Repo, op: GitOp, files: string[], resolutions: FileResolutions[]): Promise<boolean> {
+    // Conflicts (stage 4, area 4): the engine writes them, and its journal keeps how Undo puts the conflicts back.
+    let written = false;
+    const runs: EngineRun[] = [{ feature: 'review.write', target: { kind: 'resolutions', files: resolutions } }];
+    if (await this.runOnEngine(runs, repo, {}, () => (written = true))) return written;
     const top = (await repo.reflog('HEAD', 1).catch(() => []))[0];
     const before = this.state;
     if (!(await this.run(op, { repo, recorded: true })).ok) return false;
@@ -1682,6 +1686,14 @@ export class Controller implements vscode.Disposable {
     if (!state || !repo) return;
     // The operations of the areas moved to the engine are its own: their TypeScript is only for an engine that is not
     // there. Undo is the engine's too, which takes back the newest operation whichever of the two ran it.
+    // A key binding, or a view drawn before the setting changed, can still ask for it: said here, where the engine would
+    // offer a page of settings the extension does not have.
+    if (action.kind === 'resolveConflicts' && !this.autoResolve()) {
+      void vscode.window
+        .showInformationMessage('Gitardo: resolving conflicts automatically is experimental, and it is switched off in the settings.', 'Open Settings')
+        .then((choice) => choice && vscode.commands.executeCommand('workbench.action.openSettings', 'gitardo.conflicts.autoResolve'));
+      return;
+    }
     const runs = engineRuns(action, state);
     // Area 3. The clipboard is VS Code's: the text of a patch in it is read here and given to the engine. A bisect says
     // once it ran whether the commit it was looking for is found, which the engine leaves to the window.
@@ -1694,13 +1706,6 @@ export class Controller implements vscode.Disposable {
       }
     }
     if (runs && (await this.runOnEngine(runs, repo))) return;
-    // A key binding, or a view drawn before the setting changed, can still ask for it.
-    if (action.kind === 'resolveConflicts' && !this.autoResolve()) {
-      void vscode.window
-        .showInformationMessage('Gitardo: resolving conflicts automatically is experimental, and it is switched off in the settings.', 'Open Settings')
-        .then((choice) => choice && vscode.commands.executeCommand('workbench.action.openSettings', 'gitardo.conflicts.autoResolve'));
-      return;
-    }
     try {
       const top = (await repo.reflog('HEAD', 1))[0];
       const reflogTop = top ? `${top.hash} ${top.subject}` : '';
@@ -1813,7 +1818,7 @@ export class Controller implements vscode.Disposable {
    * the output channel, and the follow-ups it leaves carried out here; false when there is no engine to run it, and the
    * operation of TypeScript is to run in its place.
    */
-  private async runOnEngine(runs: EngineRun[], repo: Repo, hooks: HostHooks = {}): Promise<boolean> {
+  private async runOnEngine(runs: EngineRun[], repo: Repo, hooks: HostHooks = {}, ran?: () => void): Promise<boolean> {
     const client = this.engine?.running;
     if (!client) return false;
     for (const { feature, target, answers } of runs) {
@@ -1843,7 +1848,7 @@ export class Controller implements vscode.Disposable {
       const { finished, followUps } = result ?? { finished: undefined, followUps: [] };
       if (finished?.kind === 'ran') {
         this.undoable = undefined;
-        await this.followUpsBeforeRead(followUps);
+        await this.followUpsBeforeRead(followUps, { feature, target, repo });
       }
       await this.refresh();
       // Said once the repository is read again, which tells whether it stopped on conflicts.
@@ -1852,6 +1857,7 @@ export class Controller implements vscode.Disposable {
       if (finished?.kind !== 'ran') return true;
       this.followUpsAfterRead(followUps);
     }
+    ran?.();
     return true;
   }
 
@@ -1885,11 +1891,11 @@ export class Controller implements vscode.Disposable {
   }
 
   /** Carries out what a plan of the engine leaves for the host before the repository is read again. */
-  private async followUpsBeforeRead(followUps: FollowUp[]): Promise<void> {
-    for (const followUp of followUps) {
+  private async followUpsBeforeRead(followUps: FollowUp[], run: { feature: string; target: Target; repo: Repo }): Promise<void> {
+    for (const [index, followUp] of followUps.entries()) {
       switch (followUp.kind) {
         case 'say':
-          void vscode.window.showInformationMessage(`Gitardo: ${String(followUp.text)}`);
+          this.say(String(followUp.text), followUps.slice(index + 1), run);
           break;
         case 'rememberInputs': {
           const last = this.memento.get<Record<string, string>>(LAST_INPUTS, {});
@@ -1930,6 +1936,25 @@ export class Controller implements vscode.Disposable {
     }
   }
 
+  /**
+   * A message of a plan of the engine, with a button for each feature offered right after it, run on the same target.
+   * Resolving automatically keeps the **Undo** it had beside them (stage 4, area 4).
+   */
+  private say(text: string, rest: FollowUp[], run: { feature: string; target: Target; repo: Repo }): void {
+    const offers: { feature: string; label: string }[] = [];
+    for (const next of rest) {
+      if (next.kind !== 'offer') break;
+      offers.push({ feature: String(next.feature), label: String(next.label) });
+    }
+    const undo = run.feature === 'conflicts.resolve-automatically' ? ['Undo'] : [];
+    const words = text.startsWith('Gitardo ') ? text : `Gitardo: ${text}`;
+    void vscode.window.showInformationMessage(words, ...offers.map((offer) => offer.label), ...undo).then((choice) => {
+      const offer = offers.find((each) => each.label === choice);
+      if (offer) void this.runOnEngine([{ feature: offer.feature, target: run.target }], run.repo);
+      if (choice === 'Undo') void this.action({ kind: 'undo' });
+    });
+  }
+
   /** Carries out what a plan of the engine leaves for the host once the repository was read again: what to select. */
   private followUpsAfterRead(followUps: FollowUp[]): void {
     for (const followUp of followUps) {
@@ -1940,6 +1965,8 @@ export class Controller implements vscode.Disposable {
         void git(this.state.root, ['rev-parse', `HEAD~${count}`]).then((result) => this.show(result.stdout.trim()));
       }
       if (followUp.kind === 'openCommitPage') void this.openCommit(String(followUp.commit));
+      // Conflicts (stage 4, area 4): **Review** of resolving automatically.
+      if (followUp.kind === 'openReview') void this.reviewConflicts(Array.isArray(followUp.paths) ? (followUp.paths as string[]) : undefined);
     }
   }
 
@@ -2639,8 +2666,11 @@ export class Controller implements vscode.Disposable {
   }
 
   /** Runs an operation that another part of Gitardo, such as the Flow Diff, made for a repository: not always the one shown. */
-  async runIn(root: string, op: GitOp): Promise<boolean> {
+  async runIn(root: string, op: GitOp, runs?: EngineRun[]): Promise<boolean> {
     const repo = this.repo && samePath(this.repo.root, root) ? this.repo : new Repo(root, (command) => this.log.debug(command));
+    // The runs of the engine that take the place of the operation, when it is there: true once they all ran.
+    let ran = false;
+    if (runs && (await this.runOnEngine(runs, repo, {}, () => (ran = true)))) return ran;
     return (await this.run(op, { repo })).ok;
   }
 

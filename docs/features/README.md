@@ -278,19 +278,19 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`conflicts.banner`](09-conflicts.md#conflictsbanner--the-banner-of-an-operation-that-stopped) | The banner of an operation that stopped | View | Built | Built |
-| [`conflicts.continue-operation`](09-conflicts.md#conflictscontinue-operation--continue) | Continue | Operation | Built | Differs (D1, D12) |
-| [`conflicts.skip-step`](09-conflicts.md#conflictsskip-step--skip) | Skip | Operation | Built | Differs (D2, D12) |
+| [`conflicts.continue-operation`](09-conflicts.md#conflictscontinue-operation--continue) | Continue | Operation | Built | Built |
+| [`conflicts.skip-step`](09-conflicts.md#conflictsskip-step--skip) | Skip | Operation | Built | Built |
 | [`conflicts.abort-operation`](09-conflicts.md#conflictsabort-operation--abort) | Abort | Operation | Built | Built |
 | [`conflicts.stopped`](09-conflicts.md#conflictsstopped--the-message-when-an-operation-stops-on-conflicts) | The message when an operation stops on conflicts | View | Built | Built |
 | [`conflicts.read-files`](09-conflicts.md#conflictsread-files--the-files-in-conflict-and-their-sides) | The files in conflict and their sides | Read | Built | Built |
 | [`conflicts.side-names`](09-conflicts.md#conflictsside-names--what-the-two-sides-are) | What the two sides are | Derivation | Built | Built |
 | [`conflicts.open-file`](09-conflicts.md#conflictsopen-file--open-a-file-in-conflict) | Open a file in conflict | View | Built | Built |
 | [`conflicts.mark-resolved`](09-conflicts.md#conflictsmark-resolved--mark-as-resolved) | Mark as resolved | Operation | Built | Built |
-| [`conflicts.take-side`](09-conflicts.md#conflictstake-side--take-the-current-side-take-the-incoming-side) | Take the current side, take the incoming side | Operation | Built | Differs (D6) |
+| [`conflicts.take-side`](09-conflicts.md#conflictstake-side--take-the-current-side-take-the-incoming-side) | Take the current side, take the incoming side | Operation | Built | Built |
 | [`conflicts.parse-markers`](09-conflicts.md#conflictsparse-markers--the-conflicts-git-marked-in-a-file) | The conflicts git marked in a file | Derivation | Built | Built |
 | [`conflicts.resolve-by-rules`](09-conflicts.md#conflictsresolve-by-rules--the-conflicts-that-need-no-choice) | The conflicts that need no choice | Derivation | Built | Built |
-| [`conflicts.resolve-automatically`](09-conflicts.md#conflictsresolve-automatically--resolve-conflicts-automatically) | Resolve conflicts automatically | Operation | Built | Differs (D3) |
-| [`conflicts.restore`](09-conflicts.md#conflictsrestore--undo-a-resolution) | Undo a resolution | Operation | Built | Differs (D9) |
+| [`conflicts.resolve-automatically`](09-conflicts.md#conflictsresolve-automatically--resolve-conflicts-automatically) | Resolve conflicts automatically | Operation | Built | Built |
+| [`conflicts.restore`](09-conflicts.md#conflictsrestore--undo-a-resolution) | Undo a resolution | Operation | Built | Built |
 | [`review.page`](09-conflicts.md#reviewpage--the-review-of-the-resolutions) | The review of the resolutions | View | Built | Built |
 | [`review.file-list`](09-conflicts.md#reviewfile-list--the-files-and-the-filters) | The files and the filters | View | Built | Built |
 | [`review.card`](09-conflicts.md#reviewcard--a-conflict-as-a-card) | A conflict, as a card | View | Built | Built |
@@ -304,7 +304,7 @@ earns it.
 | [`review.accept-file`](09-conflicts.md#reviewaccept-file--accept-the-file) | Accept the file | View | Built | Built |
 | [`review.accept-all`](09-conflicts.md#reviewaccept-all--accept-all-proposed) | Accept all proposed | View | Built | Built |
 | [`review.clear`](09-conflicts.md#reviewclear--clear) | Clear | View | Built | Built |
-| [`review.write`](09-conflicts.md#reviewwrite--write-the-resolutions) | Write the resolutions | Operation | Built | Differs (D4, D5) |
+| [`review.write`](09-conflicts.md#reviewwrite--write-the-resolutions) | Write the resolutions | Operation | Built | Built |
 | [`review.report`](09-conflicts.md#reviewreport--what-was-written) | What was written | View | Built | Built |
 | [`review.columns`](09-conflicts.md#reviewcolumns--columns) | Columns | View | Built | Built |
 | [`review.show-result`](09-conflicts.md#reviewshow-result--show-the-result) | Show the result | View | Built | Built |
@@ -550,40 +550,6 @@ catalog it is an alias of ([D44](../08-decisions.md#d44--one-catalog-the-desktop
 | --- | --- | --- |
 | `repo.select` ([card](extension/01-repositories.md#reposelect--choose-the-repository-shown)) | `repo.select` | |
 | `repo.follow-source-control` ([card](extension/01-repositories.md#repofollow-source-control--follow-the-repositories-view-of-vs-code)) | — | Host only |
-| `operation.banner` ([card](extension/09-conflicts.md#operationbanner--the-banner-of-an-operation-under-way)) | `conflicts.banner` | |
-| `operation.stopped` ([card](extension/09-conflicts.md#operationstopped--what-a-stop-on-conflicts-says)) | `conflicts.stopped` | |
-| `operation.continue` ([card](extension/09-conflicts.md#operationcontinue--continue-the-operation-under-way)) | `conflicts.continue-operation` | |
-| `operation.skip` ([card](extension/09-conflicts.md#operationskip--skip-the-step-the-operation-stopped-on)) | `conflicts.skip-step` | |
-| `operation.abort` ([card](extension/09-conflicts.md#operationabort--abort-the-operation-under-way)) | `conflicts.abort-operation` | |
-| `conflict.open` ([card](extension/09-conflicts.md#conflictopen--open-a-file-in-conflict)) | `conflicts.open-file` | VS Code's merge editor in place of the Merge page |
-| `conflict.open-deleted` ([card](extension/09-conflicts.md#conflictopen-deleted--show-a-file-one-side-deleted-as-a-diff-of-what-it-was)) | `conflicts.open-file` | VS Code's diff editor in place of the Diff page |
-| `conflict.sides` ([card](extension/09-conflicts.md#conflictsides--name-the-two-sides-of-a-conflict)) | `conflicts.side-names` | |
-| `conflict.take-side` ([card](extension/09-conflicts.md#conflicttake-side--take-a-whole-file-from-one-side)) | `conflicts.take-side` | |
-| `conflict.mark-resolved` ([card](extension/09-conflicts.md#conflictmark-resolved--mark-a-file-as-resolved)) | `conflicts.mark-resolved` | |
-| `conflict.files-read` ([card](extension/09-conflicts.md#conflictfiles-read--read-the-files-in-conflict)) | `conflicts.read-files` | |
-| `conflict.markers` ([card](extension/09-conflicts.md#conflictmarkers--find-the-conflicts-git-marked-in-a-file)) | `conflicts.parse-markers` | |
-| `conflict.rule-separate` ([card](extension/09-conflicts.md#conflictrule-separate--changes-to-lines-next-to-each-other)) | `conflicts.resolve-by-rules` | One of its rules |
-| `conflict.rule-same` ([card](extension/09-conflicts.md#conflictrule-same--the-same-change-on-both-sides)) | `conflicts.resolve-by-rules` | One of its rules |
-| `conflict.rule-whitespace` ([card](extension/09-conflicts.md#conflictrule-whitespace--spaces-or-line-endings-only)) | `conflicts.resolve-by-rules` | One of its rules |
-| `conflict.rule-one-side` ([card](extension/09-conflicts.md#conflictrule-one-side--a-change-on-one-side-only)) | `conflicts.resolve-by-rules` | One of its rules |
-| `conflict.rules-guard` ([card](extension/09-conflicts.md#conflictrules-guard--when-the-rules-leave-a-conflict-as-git-marked-it)) | `conflicts.resolve-by-rules` | What it leaves as git marked it |
-| `conflict.resolve-rules` ([card](extension/09-conflicts.md#conflictresolve-rules--resolve-the-conflicts-that-need-no-choice)) | `conflicts.resolve-automatically` | |
-| `conflict.review` ([card](extension/09-conflicts.md#conflictreview--the-review-of-the-resolutions)) | `review.page` | |
-| `conflict.review-files` ([card](extension/09-conflicts.md#conflictreview-files--the-files-of-the-review-and-its-filters)) | `review.file-list` | |
-| `conflict.review-card` ([card](extension/09-conflicts.md#conflictreview-card--a-conflict-in-the-review)) | `review.card`, `review.proposals`, `review.side-diff` | |
-| `conflict.review-columns` ([card](extension/09-conflicts.md#conflictreview-columns--a-conflict-in-three-columns)) | `review.columns` | |
-| `conflict.proposal-lines` ([card](extension/09-conflicts.md#conflictproposal-lines--where-the-lines-of-a-proposal-come-from)) | `review.proposal-lines` | |
-| `conflict.proposal-warnings` ([card](extension/09-conflicts.md#conflictproposal-warnings--what-looks-like-a-mistake-in-a-proposal)) | `review.proposal-warnings` | |
-| `conflict.choose` ([card](extension/09-conflicts.md#conflictchoose--choose-a-side-or-write-the-lines-in-the-review)) | `review.choose` | |
-| `conflict.accept` ([card](extension/09-conflicts.md#conflictaccept--accept-a-proposed-resolution)) | `review.accept`, `review.accept-file`, `review.accept-all`, `review.clear` | |
-| `conflict.show-result` ([card](extension/09-conflicts.md#conflictshow-result--show-the-result-of-the-accepted-resolutions)) | `review.show-result` | |
-| `conflict.write` ([card](extension/09-conflicts.md#conflictwrite--write-the-accepted-resolutions)) | `review.write`, `review.report` | |
-| `conflict.deleted-card` ([card](extension/09-conflicts.md#conflictdeleted-card--a-file-deleted-on-one-side-in-the-review)) | `review.deleted-card` | |
-| `conflict.resolve-ai` ([card](extension/09-conflicts.md#conflictresolve-ai--ask-the-ai-how-to-resolve-conflicts)) | `ai.resolve-conflicts`, `ai.ask-conflict` | VS Code's language models in place of the AI provider |
-| `conflict.choose-model` ([card](extension/09-conflicts.md#conflictchoose-model--choose-the-model-that-resolves-conflicts)) | `ai.choose-model` | VS Code's language models in place of the AI provider |
-| `conflict.ai-prompt` ([card](extension/09-conflicts.md#conflictai-prompt--the-question-sent-to-the-model-about-a-conflict)) | `ai.conflict-question` | |
-| `conflict.ai-answer` ([card](extension/09-conflicts.md#conflictai-answer--read-the-models-answer-as-a-proposal)) | `ai.read-answer`, `ai.trim-answer` | |
-| `conflict.restore` ([card](extension/09-conflicts.md#conflictrestore--mark-the-conflicts-again)) | `conflicts.restore` | |
 | `worktree.section` ([card](extension/12-worktrees.md#worktreesection--the-worktrees-section)) | `worktree.section` | |
 | `worktree.folder` ([card](extension/12-worktrees.md#worktreefolder--where-a-new-worktree-goes)) | `worktree.folder-path` | |
 | `worktree.branch-name` ([card](extension/12-worktrees.md#worktreebranch-name--the-name-a-format-makes)) | `branch.format-name`, `branch.name-from-format` | For a worktree |

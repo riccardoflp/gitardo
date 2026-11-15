@@ -6,7 +6,8 @@ use model::state::Operation;
 use super::{command, in_progress, noun, refuse};
 
 /// Skips the step the operation stopped on: `git <operation> --skip`. A merge has no steps; a rebase stopped to edit
-/// or split a commit is not skipped, which would throw away what is not committed and keep the commit anyway.
+/// or split a commit is not skipped, which would throw away what is not committed and keep the commit anyway. It asks
+/// first while files are staged, changed or in conflict, since git throws away what was resolved in the step.
 ///
 /// Feature: conflicts.skip-step
 #[must_use]
@@ -32,13 +33,22 @@ pub fn skip_step(context: &Context, _answers: &Answers) -> Outcome {
         }
         Operation::Merge | Operation::Patch => (Vec::new(), Vec::new()),
     };
+    // Git puts the files back as they were before the step, so what was resolved or changed in it is lost.
+    let working_tree = &context.repository.working_tree;
+    let has_changes =
+        !(working_tree.staged.is_empty() && working_tree.unstaged.is_empty() && working_tree.conflicted.is_empty());
+    let danger = if has_changes {
+        Danger::Confirm(Text::from("What was resolved in this step is thrown away."))
+    } else {
+        Danger::None
+    };
     Outcome::Run(Plan {
         title: Text::from(format!("Skip this step of the {}", noun(operation))),
         steps: vec![Step::git(
             context.repository.folder.clone(),
             [command(operation), "--skip"],
         )],
-        danger: Danger::None,
+        danger,
         undo: Undo::ByReflog,
         after,
         on_failure,
@@ -50,9 +60,9 @@ pub fn skip_step(context: &Context, _answers: &Answers) -> Outcome {
 mod tests {
     use super::skip_step;
     use crate::testing::{commit, context, lines, plan, state};
-    use model::contract::{Answers, Outcome, Target};
+    use model::contract::{Answers, Danger, Outcome, Target};
     use model::rebase::{RebaseStop, StopKind};
-    use model::state::Operation;
+    use model::state::{ConflictKind, ConflictedFile, Operation};
 
     fn during(operation: Operation) -> model::contract::Context {
         let mut state = state();
@@ -67,6 +77,30 @@ mod tests {
         assert_eq!(picked.title.as_str(), "Skip this step of the cherry-pick");
         let am = plan(skip_step(&during(Operation::Patch), &Answers::new()));
         assert_eq!(lines(&am), ["git am --skip"]);
+    }
+
+    #[test]
+    fn conflicts_skip_step__it_asks_first_while_what_was_resolved_in_the_step_would_be_thrown_away() {
+        let clean = plan(skip_step(&during(Operation::Rebase), &Answers::new()));
+        assert_eq!(clean.danger, Danger::None);
+        let mut resolved = state();
+        resolved.operation = Some(Operation::CherryPick);
+        resolved.working_tree.staged.push(crate::testing::modified("a.txt"));
+        let asked = plan(skip_step(&context(resolved, Target::Head), &Answers::new()));
+        assert_eq!(
+            asked.danger,
+            Danger::Confirm("What was resolved in this step is thrown away.".into())
+        );
+        let mut in_conflict = state();
+        in_conflict.operation = Some(Operation::Patch);
+        in_conflict.working_tree.conflicted.push(ConflictedFile {
+            path: String::from("b.txt"),
+            kind: ConflictKind::BothModified,
+        });
+        assert!(matches!(
+            plan(skip_step(&context(in_conflict, Target::Head), &Answers::new())).danger,
+            Danger::Confirm(_)
+        ));
     }
 
     #[test]

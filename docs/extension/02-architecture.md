@@ -161,7 +161,9 @@ newest entry, from `journal/last` (`RepoState.undo`). `Controller.undoable` is o
 
 Anything that changes the repository is a `GitOp` or a plan of the engine, also what Gitardo does itself rather than
 git (`writes`, `prepare`, `finish`): that is how it gets the preview, the log and Undo. The Flow Diff runs its index writes through
-`Controller.runIn` for the same reason. Reads go through `Repo` and never take locks (`GIT_OPTIONAL_LOCKS=0`).
+`Controller.runIn` for the same reason, and the Flow Merge its **Mark as resolved**, which it hands the runs of the
+engine that take the place of the `GitOp` (`merge-view.mark-resolved`). From stage 4 (area 4) the review of the
+conflicts writes what is accepted with `review.write`, its target built by `src/engine/resolutions.ts`. Reads go through `Repo` and never take locks (`GIT_OPTIONAL_LOCKS=0`).
 
 ## State
 

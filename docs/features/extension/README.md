@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature, one card each, 99 in all. The template and the rules of the cards are in the
+Every feature, one card each, 65 in all. The template and the rules of the cards are in the
 feature contract. This index is written by `catalog.py --index`: change a status here in the commit that
 earns it, and run the script again after adding or renaming a card; the statuses are kept. A card with a
 **Differs** line is *Differs*; when the line goes, it becomes *Documented*.
@@ -8,7 +8,6 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | File | Area | Cards |
 | --- | --- | --- |
 | [01-repositories.md](01-repositories.md) | Repositories | 2 |
-| [09-conflicts.md](09-conflicts.md) | Conflicts | 34 |
 | [12-worktrees.md](12-worktrees.md) | Worktrees | 38 |
 | [13-submodules.md](13-submodules.md) | Submodules | 17 |
 | [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 7 |
@@ -21,45 +20,6 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | [`repo.select`](01-repositories.md#reposelect--choose-the-repository-shown) | Choose the repository shown | View | Documented |
 | [`repo.follow-source-control`](01-repositories.md#repofollow-source-control--follow-the-repositories-view-of-vs-code) | Follow the Repositories view of VS Code | View | Documented |
 
-
-## Conflicts
-
-| Feature | Title | Kind | Status |
-| --- | --- | --- | --- |
-| [`operation.banner`](09-conflicts.md#operationbanner--the-banner-of-an-operation-under-way) | The banner of an operation under way | View | Documented |
-| [`operation.stopped`](09-conflicts.md#operationstopped--what-a-stop-on-conflicts-says) | What a stop on conflicts says | View | Documented |
-| [`operation.continue`](09-conflicts.md#operationcontinue--continue-the-operation-under-way) | Continue the operation under way | Operation | Documented |
-| [`operation.skip`](09-conflicts.md#operationskip--skip-the-step-the-operation-stopped-on) | Skip the step the operation stopped on | Operation | Differs |
-| [`operation.abort`](09-conflicts.md#operationabort--abort-the-operation-under-way) | Abort the operation under way | Operation | Documented |
-| [`conflict.open`](09-conflicts.md#conflictopen--open-a-file-in-conflict) | Open a file in conflict | View | Documented |
-| [`conflict.open-deleted`](09-conflicts.md#conflictopen-deleted--show-a-file-one-side-deleted-as-a-diff-of-what-it-was) | Show a file one side deleted as a diff of what it was | View | Documented |
-| [`conflict.sides`](09-conflicts.md#conflictsides--name-the-two-sides-of-a-conflict) | Name the two sides of a conflict | Derivation | Documented |
-| [`conflict.take-side`](09-conflicts.md#conflicttake-side--take-a-whole-file-from-one-side) | Take a whole file from one side | Operation | Differs |
-| [`conflict.mark-resolved`](09-conflicts.md#conflictmark-resolved--mark-a-file-as-resolved) | Mark a file as resolved | Operation | Documented |
-| [`conflict.files-read`](09-conflicts.md#conflictfiles-read--read-the-files-in-conflict) | Read the files in conflict | Read | Documented |
-| [`conflict.markers`](09-conflicts.md#conflictmarkers--find-the-conflicts-git-marked-in-a-file) | Find the conflicts git marked in a file | Derivation | Documented |
-| [`conflict.rule-separate`](09-conflicts.md#conflictrule-separate--changes-to-lines-next-to-each-other) | Changes to lines next to each other | Derivation | Documented |
-| [`conflict.rule-same`](09-conflicts.md#conflictrule-same--the-same-change-on-both-sides) | The same change on both sides | Derivation | Documented |
-| [`conflict.rule-whitespace`](09-conflicts.md#conflictrule-whitespace--spaces-or-line-endings-only) | Spaces or line endings only | Derivation | Documented |
-| [`conflict.rule-one-side`](09-conflicts.md#conflictrule-one-side--a-change-on-one-side-only) | A change on one side only | Derivation | Documented |
-| [`conflict.rules-guard`](09-conflicts.md#conflictrules-guard--when-the-rules-leave-a-conflict-as-git-marked-it) | When the rules leave a conflict as git marked it | Derivation | Documented |
-| [`conflict.resolve-rules`](09-conflicts.md#conflictresolve-rules--resolve-the-conflicts-that-need-no-choice) | Resolve the conflicts that need no choice | Operation | Documented |
-| [`conflict.review`](09-conflicts.md#conflictreview--the-review-of-the-resolutions) | The review of the resolutions | View | Documented |
-| [`conflict.review-files`](09-conflicts.md#conflictreview-files--the-files-of-the-review-and-its-filters) | The files of the review and its filters | View | Documented |
-| [`conflict.review-card`](09-conflicts.md#conflictreview-card--a-conflict-in-the-review) | A conflict in the review | View | Documented |
-| [`conflict.review-columns`](09-conflicts.md#conflictreview-columns--a-conflict-in-three-columns) | A conflict in three columns | View | Documented |
-| [`conflict.proposal-lines`](09-conflicts.md#conflictproposal-lines--where-the-lines-of-a-proposal-come-from) | Where the lines of a proposal come from | Derivation | Documented |
-| [`conflict.proposal-warnings`](09-conflicts.md#conflictproposal-warnings--what-looks-like-a-mistake-in-a-proposal) | What looks like a mistake in a proposal | Derivation | Documented |
-| [`conflict.choose`](09-conflicts.md#conflictchoose--choose-a-side-or-write-the-lines-in-the-review) | Choose a side, or write the lines, in the review | View | Documented |
-| [`conflict.accept`](09-conflicts.md#conflictaccept--accept-a-proposed-resolution) | Accept a proposed resolution | View | Documented |
-| [`conflict.show-result`](09-conflicts.md#conflictshow-result--show-the-result-of-the-accepted-resolutions) | Show the result of the accepted resolutions | View | Documented |
-| [`conflict.write`](09-conflicts.md#conflictwrite--write-the-accepted-resolutions) | Write the accepted resolutions | Operation | Differs |
-| [`conflict.deleted-card`](09-conflicts.md#conflictdeleted-card--a-file-deleted-on-one-side-in-the-review) | A file deleted on one side, in the review | View | Documented |
-| [`conflict.resolve-ai`](09-conflicts.md#conflictresolve-ai--ask-the-ai-how-to-resolve-conflicts) | Ask the AI how to resolve conflicts | Read | Documented |
-| [`conflict.choose-model`](09-conflicts.md#conflictchoose-model--choose-the-model-that-resolves-conflicts) | Choose the model that resolves conflicts | Operation | Documented |
-| [`conflict.ai-prompt`](09-conflicts.md#conflictai-prompt--the-question-sent-to-the-model-about-a-conflict) | The question sent to the model about a conflict | Derivation | Documented |
-| [`conflict.ai-answer`](09-conflicts.md#conflictai-answer--read-the-models-answer-as-a-proposal) | Read the model's answer as a proposal | Derivation | Documented |
-| [`conflict.restore`](09-conflicts.md#conflictrestore--mark-the-conflicts-again) | Mark the conflicts again | Operation | Documented |
 
 ## Worktrees
 

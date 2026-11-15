@@ -259,7 +259,7 @@ fn branch_delete_told_a_branch_is_merged_that_git_keeps_offers_delete_anyway_wit
     let ran = run(&mut engine, &offer["answers"]);
     assert_eq!(ran["result"]["kind"], json!("ran"), "{ran}");
     assert_eq!(ran["result"]["plan"]["danger"]["kind"], json!("destructive"), "{ran}");
-    assert!(repository.git(&["branch", "--list", "spike"]).trim().is_empty());
+    assert_eq!(repository.git(&["branch", "--list", "spike"]).trim(), "");
 }
 
 #[test]

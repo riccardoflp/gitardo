@@ -5,17 +5,23 @@
 mod follow_up;
 mod plan;
 mod question;
+mod resolutions;
+mod target;
 
 use std::collections::BTreeMap;
 
 pub use follow_up::FollowUpJson;
 pub use plan::{DangerJson, FinishedJson, OfferJson, PlanJson, StepJson, UndoJson, WentOnAfterJson};
 pub use question::{
-    AnswerJson, ChoiceJson, FileFilterJson, FileQuestionJson, NotACommit, QuestionJson, QuestionKindJson, TargetJson,
-    ValidationJson,
+    AnswerJson, ChoiceJson, FileFilterJson, FileQuestionJson, QuestionJson, QuestionKindJson, ValidationJson,
+};
+pub use resolutions::{
+    ConfidenceJson, FileResolutionsJson, MergeResultJson, ProposalJson, ProposalSourceJson, ResolutionChoiceJson,
+    RuleCaseJson,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+pub use target::{NotACommit, TargetJson};
 
 use crate::rpc::RequestId;
 

@@ -24,6 +24,15 @@ resolutions, at the top of the timeline and of the Changes page.
   `conflicts.ai` whether **Resolve with AI** is there.
 - **Uses**: `conflicts.continue-operation`, `conflicts.skip-step`, `conflicts.abort-operation`, `review.page`,
   `ai.resolve-conflicts`, `rebase.` (the stop to edit a commit), `split.` (the stop to split one).
+- **Extension**: `OperationBanner` in `src/webview/OperationBanner.tsx`, above the graph in the panel and in its editor
+  tab (not in the Gitardo Graph of the side bar, where the Changes view right above says it) and at the top of the
+  Changes view, with `resolvableConflicts(state, path?)` for the count. What it shows is read in TypeScript, until the
+  reads move to the engine (stage 5 of the roadmap): `Repo.operation()` (the marker files `rebase-apply/applying`,
+  `rebase-merge`, `rebase-apply`, `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, `sequencer/todo` in the git
+  directory, in that order) and `Repo.rebaseStop()` (the `amend`, `done` and `gitardo-split` files of
+  `.git/rebase-merge`), in `Repo.state` of `src/git/repo.ts`. The settings are `gitardo.conflicts.autoResolve` (the
+  count and the wand button) and `gitardo.conflicts.ai` (the sparkle button). **Continue**, **Skip** and **Abort** run
+  in Gitardo's engine, as their cards say; the wand and the sparkle open the review.
 
 What it says, in this order of precedence:
 
@@ -70,6 +79,16 @@ Acceptance:
 - [ ] At a stop to edit a commit, the banner shows the edit text with the subject, offers **Continue** and **Abort**,
       and no **Skip**.
 - [ ] Once the last file in conflict is staged, **Continue** becomes enabled without reopening anything.
+- [ ] Extension: a rebase stopped with no file in conflict says only **Rebase in progress**.
+- [ ] Extension: a rebase stopped to split a commit says **Splitting "Add b and c": commit its changes in as many
+      commits as you like, then Continue.**
+- [ ] Extension: a pick further on that stopped with conflicts, after an `edit` earlier in the same rebase, is not
+      taken for an edit stop: the banner says **Rebase in progress · 1 file has conflicts**.
+- [ ] Extension: **Resolve with AI** shows only with `gitardo.conflicts.ai` on, files in conflict, and some conflict the
+      rules leave (always, when the rules are off); it opens the review and asks the model.
+- [ ] Extension: on an edit or split stop the tooltip of **Continue** is **Go on with the rebase: the commits after it
+      are made again on top**.
+- [ ] Extension: every button is disabled while an operation runs.
 
 ### `conflicts.continue-operation` — Continue
 
@@ -92,6 +111,16 @@ Goes on with the operation that stopped, once its conflicts are resolved and sta
 - **Refuses**: while files are in conflict: *Resolve the conflicts and stage the files first.*
 - **Uses**: `rebase.` and `split.` for what **Continue** does at a stop to edit or split a commit (committing what is
   left first); `cherry-pick.` for the commit skipped because it changes nothing.
+- **Extension**: **Continue** in the banner of the graph and of the Changes view, **Continue** in the message that
+  follows `conflicts.resolve-automatically` when no file is left in conflict, and **Continue the merge** in the report
+  of `review.write` and on the empty review. When the rebase did not stop to edit or split a commit, it sends
+  `feature/run` of `conflicts.continue-operation` to Gitardo's engine (`Controller.runOnEngine` in
+  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`). The stops to edit and to split a commit stay
+  in TypeScript, as the rewriting area has them: `refuseUncommitted(state)` first at an edit stop, `continueSplit(stop,
+  state, repo)` in `src/extension/actions.ts` at a split stop, which asks **"\<subject\>" is not all committed yet: 1
+  file of it is still changed.** with **Commit What Is Left** and **Go Back to Committing**, and builds
+  `splitRestOp(paths, message)`. When the engine's binary is missing, `continueOp(operation)` of `src/git/ops.ts` runs
+  in its place, with `recover: skipEmptyPicks(root)`, as before (D49).
 
 When git refuses to continue a cherry-pick or a revert because the commit it stopped on changes nothing on top of `HEAD`
 (no file is in conflict, and the index and the working tree are as `HEAD`), Gitardo runs `git cherry-pick --skip` (or
@@ -106,6 +135,18 @@ Acceptance:
 - [ ] A cherry-pick whose conflicts were resolved by keeping what `HEAD` has goes on with `git cherry-pick --skip`, and
       the log has the line that says the commit changes nothing on top of HEAD.
 - [ ] While a file is in conflict, the outcome is a refusal and no git command runs.
+- [ ] Extension: with the engine, **Continue** of a merge whose only file was staged as resolved runs in the engine, and
+      the merge commit has 2 parents.
+- [ ] Extension: the command shown with `gitardo.commandPreview` set to `all` is the one that runs, `-c
+      core.editor=true` in sight, and no editor opens for the message.
+- [ ] Extension: an empty pick is not skipped while a tracked file has a change of the user's: the continue fails and
+      the change stays.
+- [ ] Extension: at an edit stop with `b.txt` changed and not committed, it refuses with **Some changes are not
+      committed: amend the commit with them, commit them, or stash them, then continue.** and runs nothing; untracked
+      files do not stop it.
+- [ ] Extension: at a split stop with 1 file of the commit left, **Commit What Is Left** commits it with the message of
+      the split commit, body included, and the rebase ends; **Go Back to Committing** or Escape runs nothing.
+- [ ] Extension: right after a continue that stopped again, **Undo** says **Finish or abort the rebase first.**
 
 ### `conflicts.skip-step` — Skip
 
@@ -117,9 +158,15 @@ Leaves out the commit or patch the operation stopped on and goes on with the nex
 - **Offered when**: a rebase, cherry-pick, revert or `git am` is in progress, and the rebase did not stop to edit or
   split a commit (skipping there would throw away what is not committed and keep the commit anyway).
 - **Plan**: `git <operation> --skip`. Title: **Skip this step of the \<operation\>**.
-- **Danger**: None.
-- **Undo**: by the reflog.
+- **Danger**: Confirm whenever the working tree has staged, unstaged or conflicted files, because `--skip` throws away
+  the changes of the step, conflicts already resolved included: *What was resolved in this step is thrown away.* None
+  when the working tree is clean: then nothing is lost.
+- **Undo**: by the reflog. What the skipped step had resolved is not brought back.
 - **Refuses**: during a merge: *A merge has no steps to skip.*
+- **Extension**: **Skip** in the banner sends `feature/run` of `conflicts.skip-step` to Gitardo's engine
+  (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), whose question
+  is asked through `VscodeAsker` in `src/engine/vscode.ts`. When the engine's binary is missing, `skipOp(operation)` of
+  `src/git/ops.ts` runs in its place, with `recover: skipEmptyPicks(root)`, as before (D49).
 
 Acceptance:
 
@@ -127,6 +174,12 @@ Acceptance:
       picked.
 - [ ] During a merge, no **Skip** is offered and the function refuses with *A merge has no steps to skip.*
 - [ ] At a stop to edit a commit in an interactive rebase, **Skip** is not offered.
+- [ ] With a file of the step staged as resolved, **Skip** asks first with *What was resolved in this step is thrown
+      away.*, whatever `commandPreview` says; with the working tree clean it runs without a question.
+- [ ] Extension: a rebase of `main` onto `other` stopped on its only commit, skipped, ends with no operation, `main`
+      checked out and at the commit of `other`.
+- [ ] Extension: a patch applied as 2 commits that stops on the first, skipped, ends with only the second applied and
+      no change left.
 
 ### `conflicts.abort-operation` — Abort
 
@@ -141,6 +194,11 @@ Takes the repository back to how it was before the operation started.
   resolved will be lost.*
 - **Undo**: Impossible: what was resolved and not committed is thrown away, and git keeps no copy of it.
 - **After**: the banner goes away; the series of cherry-picks remembered for Undo is forgotten.
+- **Extension**: **Abort** in the banner sends `feature/run` of `conflicts.abort-operation` to Gitardo's engine
+  (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), whose warning is
+  asked through `VscodeAsker` in `src/engine/vscode.ts`; the series of cherry-picks the extension remembers
+  (`Controller.series`) is forgotten. When the engine's binary is missing, `abortOp(operation)` of `src/git/ops.ts`
+  runs in its place, as before (D49).
 
 Acceptance:
 
@@ -148,6 +206,11 @@ Acceptance:
       before the merge.
 - [ ] During `git am`, the command is `git am --abort`.
 - [ ] With `commandPreview` set to `off`, **Abort** still asks before it runs.
+- [ ] Extension: a series of 2 cherry-picks that stopped on the second, aborted, leaves `HEAD` where it was before the
+      first, and the file the first added gone.
+- [ ] Extension: a patch applied with `git am` that stopped, aborted, leaves `HEAD` where it was and the patch file as
+      it was.
+- [ ] Extension: Escape or closing the question runs nothing.
 
 ### `conflicts.stopped` — The message when an operation stops on conflicts
 
@@ -161,6 +224,10 @@ Says that an operation stopped on conflicts, what to do next, and offers the res
   first `error:` or `fatal:` line of git with **Show log**.
 - **Settings**: `conflicts.autoResolve`, `conflicts.ai`.
 - **Uses**: `conflicts.resolve-automatically`, `ai.resolve-conflicts`, `log.`.
+- **Extension**: `Controller.reportFailure(op, error)` in `src/extension/controller.ts`, shown when an operation fails
+  and, once the repository is read again, a file is in conflict (not for a `silent` run, whose fallback reports
+  itself). It is a VS Code warning message whose buttons are **Resolve Automatically**, **Resolve with AI** and **Show
+  Log**; the settings are `gitardo.conflicts.autoResolve` and `gitardo.conflicts.ai`.
 
 Its text is *\<title of the operation\> stopped: 2 files have conflicts. Resolve them, then continue or abort the
 merge.* With no operation left to continue, *then stage the files.* When the rules resolve some conflicts it adds
@@ -176,6 +243,14 @@ Acceptance:
 - [ ] With `conflicts.autoResolve` on and 2 of 3 conflicts resolvable, the text ends with *Gitardo can resolve 2 of the
       3 conflicts automatically.* and **Resolve automatically** is offered.
 - [ ] With both settings off, the only button is **Show log**.
+- [ ] Extension: with `gitardo.conflicts.ai` on too and a conflict left by the rules, it offers **Resolve
+      Automatically**, **Resolve with AI** and **Show Log**, in that order; with the rules off and the AI on, **Resolve
+      with AI** and **Show Log**.
+- [ ] Extension: **Resolve Automatically** runs `conflicts.resolve-automatically` for every file, which asks first;
+      **Resolve with AI** opens the review and asks the model; **Show Log** shows the log.
+- [ ] Extension: any operation that fails while files are in conflict shows this message, also when what failed is not
+      a stop on conflicts, such as `conflicts.resolve-automatically` refused because a file changed: what git or Gitardo
+      said is then only in the log.
 
 ### `conflicts.read-files` — The files in conflict and their sides
 
@@ -186,6 +261,13 @@ Which files are in conflict, and which of the three versions git keeps in the in
 - **Plan**: none; it runs `git diff --name-only --diff-filter=U -z` for the list, and
   `git ls-files --unmerged -z -- <file>` for the stages of one file: each record is `<mode> <object> <stage>\t<path>`,
   stage 1 being the common ancestor (the base), 2 the current side and 3 the incoming side.
+- **Extension**: read by the extension itself, in TypeScript, until the reads move to the engine (stage 5 of the
+  roadmap): `Repo.conflicted()`, `Repo.conflictStages(file)`, `Repo.conflictPlans(files)` and
+  `Repo.deletedConflicts(files)` in `src/git/repo.ts`, with `git show :1:<file>`, `:2:<file>` and `:3:<file>` and the
+  file on disk for the plans, every command with `GIT_OPTIONAL_LOCKS=0`. Each read of the repository reads the plans
+  only while `gitardo.conflicts.autoResolve` is on; the review reads them whenever it is open (`ConflictReviewTab.read`
+  in `src/extension/conflictReview.ts`). The limits are those of `conflicts.resolve-by-rules` (`CONFLICT_BYTES`,
+  `CONFLICT_FILES`).
 
 What the stages say about a file:
 
@@ -202,6 +284,15 @@ Acceptance:
 - [ ] A file deleted on `feature` and changed on `main`, after `git merge feature`, has stages 1 and 2.
 - [ ] A file named `pages/[id].tsx` is asked about as `:(literal)pages/[id].tsx`.
 - [ ] Parsing is tested on recorded output, with a path that contains a tab and one that contains a newline.
+- [ ] Extension: with `gitardo.conflicts.autoResolve` off, a read of the repository reads none of the files in
+      conflict: `conflictFiles` is empty.
+- [ ] Extension: with it on, a file with 3 conflicts of which 2 need no choice is listed as `{ conflicts: 3,
+      resolvable: ['separate', 'whitespace'] }`.
+- [ ] Extension: not read line by line: a file larger than 2 MB, a symbolic link, a file with a NUL byte, a file whose
+      bytes do not read back the same as UTF-8 (such as Latin-1), a file without `<<<<<<<`, and the files past the
+      first 200 in conflict.
+- [ ] Extension: a file whose index has the base and one side only is a file deleted on one side, with the base and the
+      side that kept it, unless either is binary or larger than 2 MB.
 
 ### `conflicts.side-names` — What the two sides are
 
@@ -216,6 +307,11 @@ of `conflicts.take-side` all say the sides this way.
   that points at it (not one ending in `/HEAD`); `.git/rebase-merge/onto` and `head-name` (or `.git/rebase-apply/…`)
   in a rebase; `git log -1 --format=%s <ref> --` for subjects; the first line of `.git/rebase-apply/final-commit` for
   the subject of a patch.
+- **Extension**: `CONFLICT_SIDES` in `src/git/ops.ts`, with `Repo.conflictNames()`, `Repo.conflictSubjects()` and
+  `Repo.patchSubject()` in `src/git/repo.ts`, read by the extension itself, in TypeScript, with `GIT_OPTIONAL_LOCKS=0`,
+  until the reads move to the engine (stage 5 of the roadmap). They name the sides in VS Code's merge editor, in the
+  diff of a file one side deleted, in the review and in the question to the language model; the question of
+  `conflicts.take-side` is the engine's.
 
 | Operation | Current | Incoming |
 | --- | --- | --- |
@@ -240,6 +336,7 @@ Acceptance:
 - [ ] In a cherry-pick of `3f2a1c9…`, the incoming side is named `3f2a1c9` and the current side is the branch.
 - [ ] In a detached `HEAD` with no branch at it, the current side is the 7-character hash.
 - [ ] After `git stash pop` with conflicts, the words are **Your files** and **The changes being applied**, with no names.
+- [ ] Extension: a patch applied with `git am` that stopped has the subjects **main change** and **other change**.
 
 ### `conflicts.open-file` — Open a file in conflict
 
@@ -252,6 +349,15 @@ Opens a file in conflict where it can be resolved by hand, which depends on what
 - **Offered when**: the file is in conflict (`conflicts.read-files`); a file no longer in conflict is not opened.
 - **Reads**: `conflicts.read-files` for its stages.
 - **Uses**: `merge-view.page`, `diff.page`, `file-view.page`, `conflicts.side-names`.
+- **Extension**: a click on a file of the **Conflicts** group of the Changes view (`Controller.openDiff({ kind:
+  'conflict' }, file)` in `src/extension/controller.ts`), the diff button of `review.deleted-card`, and the line of a
+  card in the review (`Controller.openConflict`). A file with stages 1, 2 and 3 opens in VS Code's merge editor
+  (`openMergeEditor(root, file, operation)` in `src/flow/merge.ts`, VS Code's internal `_open.mergeEditor` command),
+  titled **Merging: \<name\>**, with the base from `:1`, **Current** from `:2` and **Incoming** from `:3`; never the
+  Flow Merge, which is reached from the button of the merge editor. A file one side deleted opens in VS Code's diff
+  editor (`Controller.openDeletedConflict`), `:1:<file>` on the left and the file on disk on the right; any other file
+  in a plain editor, with its markers. The stages are read by the extension itself (`Repo.conflictStages`), until the
+  reads move to the engine (stage 5 of the roadmap).
 
 | Stages | Opens |
 | --- | --- |
@@ -266,6 +372,17 @@ Acceptance:
       **app.rs (deleted by the branch being merged, changed by the branch checked out)**, the base on the left.
 - [ ] A file both sides added opens in the File page; from a review card it opens at the line of the conflict.
 - [ ] Clicking a file that was resolved meanwhile opens nothing.
+- [ ] Extension: a file with all three stages opens in the merge editor, titled **Merging: b.txt**, each side described
+      as `conflicts.side-names` names it; in a rebase, **Current** is described as **What the branch is being rebased
+      onto** and **Incoming** as **Your commit being replayed**.
+- [ ] Extension: when the merge editor cannot be opened, the log warns **Could not open the merge editor: \<error\>**
+      and the file opens in a plain editor.
+- [ ] Extension: a click opens the merge editor, never the Flow Merge.
+- [ ] Extension: in a merge where `main` deleted `gone.txt` and `other` changed it, the diff editor opens `:1:gone.txt`
+      on the left and the file on disk on the right, titled **gone.txt (deleted by the branch checked out, changed by
+      the branch being merged)**; where the incoming side deleted it, **deleted by the branch being merged, changed by
+      the branch checked out**.
+- [ ] Extension: a file both sides added (stages 2 and 3, no base) opens in a plain editor, with its markers.
 
 ### `conflicts.mark-resolved` — Mark as resolved
 
@@ -282,6 +399,12 @@ Tells git that a file's conflicts are resolved, by staging it.
   again only by `conflicts.restore` after a resolution Gitardo wrote.
 - **After**: the file leaves the **Conflicts** group; once none is left, **Continue** in the banner is enabled.
 - **Uses**: `merge-view.mark-resolved`, which asks first when markers are left; this one does not look into the file.
+- **Extension**: the button **Mark as resolved** of a file in the **Conflicts** group of the Changes view
+  (`act({ kind: 'stage', paths: [file.path] })` in `ChangesApp.tsx`). Staging a single file in conflict sends
+  `feature/run` of `conflicts.mark-resolved` to Gitardo's engine (`Controller.runOnEngine` in
+  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`). When the engine's binary is missing,
+  `stageOp([path])` of `src/git/ops.ts` runs in its place, as before (D49). The Flow Merge's **Mark as Resolved** is
+  `merge-view.mark-resolved`.
 
 Acceptance:
 
@@ -289,6 +412,12 @@ Acceptance:
 - [ ] A file whose name is a pattern to git is passed as `:(literal)<name>`.
 - [ ] A file deleted on one side and kept by the user is staged with its content; the file disappears from the
       Conflicts group.
+- [ ] Extension: from the Changes view it asks nothing about markers left in the file: a file staged with `<<<<<<<` in
+      it is staged with them.
+- [ ] Extension: while files are in conflict, staging all from the Changes view names the other files one by one, so
+      that no file in conflict is marked as resolved with `git add --all`.
+- [ ] Extension: right after it, **Undo** refuses with **Finish or abort the merge first.** while the operation is under
+      way.
 
 ### `conflicts.take-side` — Take the current side, take the incoming side
 
@@ -305,13 +434,21 @@ when that side deleted it.
 - **Plan**: when that side has the file (stage 2 for current, 3 for incoming):
   `git checkout --ours -- <file>` (or `--theirs`) then `git add -- <file>`, titled **Take the current side of
   \<file\>**; when it does not: `git rm -- <file>`, titled **Delete \<file\>, as the current side did**.
-- **Danger**: Confirm, because the whole file becomes one side. The question says *The current side is the branch
-  checked out. The whole file becomes what that side has: the changes the other side made to it are left out.*, or for
-  a deletion *The incoming side is the branch being merged, which has no such file. The changes the other side made to it
-  are left out.*
+- **Danger**: Destructive when the file on disk has a line that neither side nor the base has, other than git's marker
+  lines: what was typed in it would be lost, and the question is a warning. Confirm otherwise, because the whole file
+  becomes one side. The question says *The current side is the branch checked out. The whole file becomes what that
+  side has: the changes the other side made to it are left out.*, or for a deletion *The incoming side is the branch
+  being merged, which has no such file. The changes the other side made to it are left out.*
 - **Undo**: when git still had both sides (stages 2 and 3), `conflicts.restore` of that file marks its conflicts again.
   A file one side deleted cannot be marked again by git: Impossible.
 - **Refuses**: *\<file\> is not in conflict.* when it has no stages.
+- **Extension**: the buttons of a file in the **Conflicts** group of the Changes view, with the same tooltips, and
+  **Keep it, with these changes** and **Delete it** on `review.deleted-card`. They send `feature/run` of
+  `conflicts.take-side` to Gitardo's engine, with the file as the target and the side (`current` or `incoming`, from the
+  extension's `ours` or `theirs`) as the answer (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns`
+  in `src/engine/actions.ts`); its question is asked through `VscodeAsker` in `src/engine/vscode.ts`. When the engine's
+  binary is missing, `takeSideOp(file, side, stages, operation)` of `src/git/ops.ts` runs in its place, as before (D49),
+  and `Controller.action` sets Undo to `restoreConflictsOp([path])` when stages 2 and 3 were there.
 
 Acceptance:
 
@@ -321,6 +458,16 @@ Acceptance:
 - [ ] **Take the incoming side** on a file the branch being merged deleted runs `git rm -- <file>`.
 - [ ] Undo after taking a side of a file with both sides runs `git checkout --merge -- <file>` and the markers are back.
 - [ ] Undo after deleting a file one side deleted is not offered for it.
+- [ ] A file in conflict with a line typed in it that neither side nor the base has asks with a warning, whatever
+      `commandPreview` says; the same file with only git's lines and markers in it asks the question of a Confirm.
+- [ ] Extension: after taking the incoming side of `a.txt`, the log has `> git checkout --theirs -- a.txt` and
+      `> git add -- a.txt`, and `a.txt` is what the incoming side has and is no longer in conflict.
+- [ ] Extension: taking the current side of `gone.txt`, which the current side deleted, asks **Delete gone.txt, as the
+      current side did?**, runs `git rm -- gone.txt`, and the file is gone and resolved; taking the incoming side of the
+      same file, in the merge started again, keeps it as the incoming side has it.
+- [ ] Extension: **Undo** right after taking a side of `d.txt` asks **Undo: restore the conflicts of d.txt?** and marks
+      its conflicts again.
+- [ ] Extension: a file named `pages/[id].tsx` is passed as `:(literal)pages/[id].tsx`.
 
 ### `conflicts.parse-markers` — The conflicts git marked in a file
 
@@ -329,6 +476,9 @@ whatever names git wrote after the markers.
 
 - **Kind**: Derivation
 - **Function**: `text::conflicts::parse_markers(text: &str) -> Option<Vec<MarkedConflict>>`
+- **Extension**: `blocks(lines)`, `marks` and `conflictCount(text)` in `src/git/conflicts.ts`, in TypeScript, for the
+  review and the counts of the banner, which stay in the extension; `resolveConflicts` returns no conflict when the
+  markers do not pair up.
 
 Rules:
 
@@ -353,6 +503,11 @@ Acceptance:
 - [ ] A conflict with two `=======` lines is found and marked broken.
 - [ ] A file that ends after `=======` with no `>>>>>>>` gives none.
 - [ ] A file with CRLF line endings is parsed as the same file with LF.
+- [ ] Extension: `a`, `<<<<<<< HEAD`, `ours`, `>>>>>>> feature`, `b` → no conflicts.
+- [ ] Extension: a side with a line `=======` of its own, under a title → that conflict is left, the next one in the
+      file is still resolved.
+- [ ] Extension: `<<<<<<<HEAD`, `=======`, `>>>>>>>x`, `<<<<<<<<< nine`, `=====` → no conflicts.
+- [ ] Extension: a file with 3 conflicts counts 3; with 2 of them replaced, 1.
 
 ### `conflicts.resolve-by-rules` — The conflicts that need no choice
 
@@ -368,6 +523,11 @@ the file: it never makes one up. Anything that is not plainly one of its cases i
   `git show :3:<file>` (incoming). The style of the markers does not matter: the base is always the one of the index.
 - **Settings**: none here; whether it is used at all is `conflicts.autoResolve`, decided by its callers.
 - **Uses**: `conflicts.parse-markers`, `diff.line-diff` (the same minimal line diff).
+- **Extension**: `merge(base, ours, theirs)` and `resolveConflicts(text, base, sides)` in `src/git/conflicts.ts`, in
+  TypeScript (`weave`, `refine`, `mergeWith`, `settle`, `plan`, `MAX_LINES`, `MAX_EDITS`), with the cases `separate`,
+  `same`, `whitespace` and `oneSide` of `Resolution` and their words in `RESOLUTIONS` of `src/shared/resolution.ts`.
+  They propose in the review and count for the banner, which stay in the extension; what is written from them is
+  written by the engine (`conflicts.resolve-automatically`, `review.write`).
 
 Its output, for each conflict of `conflicts.parse-markers`: whether it is resolved; when it is, the case, and the lines of
 the file it replaces (from a first line to a last, which can take some lines around the markers) with the lines to put
@@ -499,6 +659,25 @@ Acceptance:
       the rules are given only the three parts git wrote between its markers (current, base, incoming).
 - [ ] The base is read with `git show :1:<file>` whatever style the markers are written in; with no stage 1 (both
       added) the base is empty.
+- [ ] Extension: base `a, b, c`, current `A, b, c`, incoming `a, B, c` → `A, B, c`; base `a, b`, current `a, new, b`,
+      incoming `a, B` → `a, new, B`; base `a, b`, current `new, A, b`, incoming `new, a, B` → `new, A, B`, the new line
+      once.
+- [ ] Extension: in `function b()`, a conflict of `ONE();`/`two();` against `one();`/`TWO();` after a `function a()`
+      with the same lines → `ONE();`, `TWO();`.
+- [ ] Extension: base `a`, current `a, new`, incoming `a, new` → `a, new`; base empty, current `new`, incoming `new` →
+      `new`.
+- [ ] Extension: base `x=1`, current `x = 2`, incoming `x  =  2` → `x = 2`; incoming `x=2` or `x = 3` → left to a
+      person.
+- [ ] Extension: base `a, b`, current `a  ` and `b` with a tab after it, incoming `A, B` → `A, B`; current `  a, b`,
+      incoming `A, b` → left to a person.
+- [ ] Extension: a whole file both sides added, `a = 1` against `  a = 1  ` → `a = 1`.
+- [ ] Extension: base `a, b, c`, current `A, B, c`, incoming `A, b, c` → `A, B, c`; current `a, B, c`, incoming
+      `B, c` → `B, c`.
+- [ ] Extension: base `a, b, c`, current `a, new, b, c`, incoming `A, B, c` → left; base `end, end`, current `end`,
+      incoming `END, end` → left.
+- [ ] Extension: two conflicts with only `new in both` between them → both left; with the base line `mid` between
+      them → both resolved.
+- [ ] Extension: markers written by hand around changes two lines apart, which git merges by itself → left.
 
 ### `conflicts.resolve-automatically` — Resolve conflicts automatically
 
@@ -522,7 +701,9 @@ look at each one first.
 - **Plan**: a `write <file>` step for each file with at least one conflict resolved, with the text the rules make of it;
   then `git add -- <file>…` with the files left with no conflict. Files that still have conflicts keep the markers of
   those and stay unstaged.
-- **Danger**: Confirm, because it writes files: the question above is the confirmation, whatever `commandPreview` says.
+- **Danger**: Confirm, because it writes files: the question above is the confirmation, whatever `commandPreview` says,
+  and **Review** is one of its answers. No second confirmation is asked after **Resolve**, also with `commandPreview`
+  set to `all`.
 - **Undo**: `conflicts.restore` of the files written.
 - **After**: a message *Gitardo resolved conflicts in 2 files. No file is left in conflict: the merge can continue.*
   with **Continue** and **Undo**, or *… 1 file still has conflicts to resolve by hand.* with **Undo**.
@@ -533,6 +714,17 @@ look at each one first.
   and no file at all is written.
 - **Settings**: `conflicts.autoResolve`.
 - **Uses**: `conflicts.resolve-by-rules`, `conflicts.restore`, `review.page`, `conflicts.continue-operation`.
+- **Extension**: **Gitardo: Resolve Conflicts Automatically** in the Command Palette (shown while
+  `gitardo.conflicts.autoResolve` is on) and **Resolve Automatically** in the message of `conflicts.stopped`. The check
+  of `gitardo.conflicts.autoResolve` stays in TypeScript, at the start of `Controller.action`, and refuses with
+  **Gitardo: resolving conflicts automatically is experimental, and it is switched off in the settings.** and **Open
+  Settings**; then it sends `feature/run` of `conflicts.resolve-automatically` to Gitardo's engine
+  (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`). Its question,
+  with a detail of several lines and the two answers **Resolve** and **Review**, is a modal of VS Code through
+  `VscodeAsker` in `src/engine/vscode.ts`; **Review** opens the review (the follow-up `openReview`), and the message
+  after it is one message with **Continue**, when it offers it, and **Undo**. When the engine's binary is missing,
+  `resolveConflictsOp(plans)` of `src/git/ops.ts` runs in its place, with `Controller.confirmWrites` and
+  `Controller.reportResolved`, as before (D49).
 
 What was typed in a file since git stopped is kept, since the rules work on the file as it is now; a conflict right
 beside lines changed by hand is left alone (step 4 of the rules).
@@ -546,6 +738,17 @@ Acceptance:
       changed.
 - [ ] With `conflicts.autoResolve` off, the command in Quick search refuses with the message and **Open settings**.
 - [ ] After it ran with no file left in conflict during a merge, the message offers **Continue** and **Undo**.
+- [ ] With `commandPreview` set to `all`, **Resolve** writes at once: no second question is shown after the one above.
+- [ ] Extension: the question lists the files written before the command, and the files and command are the ones that
+      run; Escape writes nothing.
+- [ ] Extension: with the setting off, from the palette or a key, it says the sentence above and runs nothing; the
+      files stay as git left them.
+- [ ] Extension: a file checked out with Windows line endings is written with them, and is staged with the
+      repository's.
+- [ ] Extension: when the write fails because a file changed, the message shown is the one of `conflicts.stopped`, and
+      the reason is only in the log.
+- [ ] Extension: **Undo** right after asks **Undo: restore the conflicts of 2 files?** with `git checkout --merge --
+      c.txt d.txt`.
 
 ### `conflicts.restore` — Undo a resolution
 
@@ -565,6 +768,11 @@ took one side of them.
 - **Undo**: Impossible: what the files had is not kept.
 - **After**: the answers of the AI provider for those conflicts are still there and show again on the same conflicts
   (`ai.resolve-conflicts`).
+- **Extension**: **Undo** in the toolbar, in the message that follows `conflicts.resolve-automatically` and in the
+  report of `review.write`. With the engine, Undo is `undo.last` in the engine, whose journal records
+  `conflictsResolved` for the files written or the side taken. When the engine's binary is missing,
+  `restoreConflictsOp(files)` of `src/git/ops.ts` runs in its place, as before (D49), set as Undo by
+  `Controller.action` and `Controller.writeResolutions`.
 
 Acceptance:
 
@@ -572,6 +780,10 @@ Acceptance:
       `git checkout --merge -- <first> <second>`, and both files are in conflict again with all their markers.
 - [ ] Undo asks first with the warning, also with `commandPreview` set to `off`.
 - [ ] After Undo, a conflict the AI had answered shows the same proposal without asking again.
+- [ ] Extension: the markers are as git writes them now: in a merge or a rebase, the lines between them are the same as
+      when git stopped, though the names after `<<<<<<<` and `>>>>>>>` may differ.
+- [ ] Extension: a name that is also a pattern is passed as `:(literal)<name>`.
+- [ ] Extension: any other operation run from Gitardo since makes **Undo** go back to the reflog.
 
 ### `review.page` — The review of the resolutions
 
@@ -595,6 +807,15 @@ accepted or not, and written. Nothing is written until the user writes what was 
 - **Uses**: `review.file-list`, `review.card`, `review.columns`, `review.proposals`, `review.proposal-lines`,
   `review.proposal-warnings`, `review.choose`, `review.accept`, `review.accept-file`, `review.accept-all`, `review.clear`, `review.write`, `review.report`, `review.show-result`,
   `review.deleted-card`, `ai.resolve-conflicts`, `ai.choose-model`.
+- **Extension**: an editor tab, `ConflictsApp()` in `src/webview/ConflictsApp.tsx`, with the host side
+  `ConflictReviewTab` in `src/extension/conflictReview.ts`, opened by `Controller.reviewConflicts(paths?, ai?)`; its
+  data is made by `reviewFiles(plans, rules, asked)` in `src/git/review.ts`. It is opened by **Gitardo: Review the
+  Resolutions of the Conflicts** and **Gitardo: Resolve Conflicts with AI** in the Command Palette, the wand and
+  sparkle buttons of the banner and of a file in the Changes view, **Review** in the question of
+  `conflicts.resolve-automatically`, and **Resolve with AI** in the message of `conflicts.stopped`. The review, its
+  proposals and what it reads stay in the extension, in TypeScript, until the reads move to the engine (stage 5 of the
+  roadmap); only `review.write` runs in the engine. It is read again whenever the repository is read again, the settings
+  of `gitardo.conflicts` change, or the models of VS Code change.
 
 The page is **Conflicts · \<repository folder name\>**; there is one per window, and asking for it again shows it (with
 other files when asked for other files). Its head says **Conflicts of the merge** (of the rebase, …) and, under it,
@@ -618,6 +839,19 @@ Acceptance:
 - [ ] Staging a file from the Changes page while the review is open removes that file's cards.
 - [ ] Editing one conflict of a file by hand keeps the acceptance of the file's other conflicts.
 - [ ] With both settings off, the command in Quick search refuses with the message.
+- [ ] Extension: the tab is titled **Conflicts · app** for a repository in the folder `app`; asked again, the tab
+      already open is shown, of the files asked for.
+- [ ] Extension: its heading is **Conflicts of the merge**, and under it **3 conflicts in 2 files: 2 proposed by the
+      rules, 1 with nothing proposed. Nothing is written until you write what you accepted.**, followed by **1 file
+      deleted on one side and changed on the other** where there is one.
+- [ ] Extension: opening it writes nothing: the files keep every marker until `review.write`.
+- [ ] Extension: while it reads it says **Reading the files in conflict…**; when it cannot, **Gitardo could not read
+      the files in conflict. \<error\>**.
+- [ ] Extension: with no file in conflict it says **No file is in conflict: the merge can continue.** with **Continue
+      the merge**.
+- [ ] Extension: under the conflicts it says **The rules resolve a conflict only where no choice is needed, and every
+      line they write is a line of one of the two sides.** with the rules on, and **The AI proposes the rest from the
+      lines around each conflict: look at what it writes before you accept it.** with the AI on.
 
 ### `review.file-list` — The files and the filters
 
@@ -627,6 +861,10 @@ and the page to some of the conflicts.
 - **Kind**: View
 - **Function**: `views::review::file_list_view(state, ui) -> Vec<Intent>`
 - **Entry points**: the left part of `review.page`.
+- **Extension**: `FileList(props)` and `FileState(props)` in `src/webview/ConflictsApp.tsx` (`FILTERS`, `shows`), over
+  the conflicts in a narrow tab; the file chosen and the filter are kept with `saveUiState` while the tab is hidden. A
+  click on a file under **Also in conflict** opens it as `conflicts.open-file` does in VS Code: the merge editor, or a
+  plain editor.
 
 - Each file has how many of its conflicts are accepted and a mark: a tick when all are (*Every conflict of it is
   accepted*), a yellow dot when some have nothing proposed. A click on a file shows its conflicts alone; **All files**
@@ -648,6 +886,11 @@ Acceptance:
 - [ ] Accepting a conflict while **Not accepted** is on folds it and leaves it in view; choosing **All** and **Not
       accepted** again hides it.
 - [ ] A binary file in conflict is listed under **Also in conflict** and has no card.
+- [ ] Extension: each file shows `accepted/total` with a tick when all are accepted, a filled dot when some have
+      nothing proposed (**2 conflicts have nothing proposed**), an empty circle otherwise.
+- [ ] Extension: with no conflict left under the filter, the page says **No conflict is left to show here.** with
+      **Show every conflict**.
+- [ ] Extension: the file chosen and the filter are kept while the tab is hidden.
 
 ### `review.card` — A conflict, as a card
 
@@ -661,6 +904,13 @@ from beside the buttons that decide.
 - **Uses**: `review.side-diff`, `review.proposals`, `review.proposal-lines`, `review.proposal-warnings`,
   `review.choose`, `file-view.highlight`, `merge-view.page` (**Resolve by hand**), `conflicts.open-file`,
   `ai.resolve-conflicts`.
+- **Extension**: `Conflict(props)`, `Composition`, `Warnings`, `Source`, `Editor` and `AskingState` in
+  `src/webview/ConflictCard.tsx`; `Code`, `Changes`, `numbering` and `PART` in `src/webview/conflictCode.tsx`;
+  `conflictChanges(lines, conflict)`, `rulesProposal(conflict)` and the `region` of `reviewFiles` in
+  `src/git/review.ts`; `sideChanges` in `src/webview/sideChanges.ts`. **Line 2** opens the file at that line
+  (`Controller.openConflict(repo, file, line, editor)`); **Resolve by hand** opens the file in the Flow Merge, and the
+  button beside it opens it in VS Code's merge editor. Where the proposal comes from reads **AI · Chosen model · high
+  confidence**, with the name of the language model of VS Code.
 
 - Its title is **Conflict at line N**; the line number opens the file at that line (*Open the file at this line*).
 - Its heading says in a sentence what the proposal does with the two sides (`review.proposal-lines`), the names of the
@@ -718,6 +968,11 @@ Acceptance:
 - [ ] **Accept** folds the card to one line that starts with the first line of the resolution.
 - [ ] **Resolve by hand** opens the Merge page of the file, scrolled to that conflict.
 - [ ] A card the AI failed on shows the error and **Ask again**.
+- [ ] Extension: **Resolve by hand** opens the file in the Flow Merge; the button beside it opens it in the merge
+      editor; nothing opens for a file no longer in conflict.
+- [ ] Extension: where the base cannot be told, each side shows its lines between the markers as they are, numbered
+      from the line of the conflict; the base is numbered from where its lines are in the file.
+- [ ] Extension: a proposal that deletes the lines says **Nothing: the lines are deleted**.
 
 ### `review.side-diff` — What a side changed of the base
 
@@ -726,6 +981,8 @@ What one side of a conflict changed of the base, as a diff shows it, numbered as
 - **Kind**: Derivation
 - **Function**: `model::review::side_diff(input) -> SideDiff`
 - **Uses**: the stretch of `conflicts.resolve-by-rules`, `diff.line-diff`, `diff.word-diff`.
+- **Extension**: `sideChanges` in `src/webview/sideChanges.ts` and `Changes` in `src/webview/conflictCode.tsx`, in
+  TypeScript, with up to 3 lines of the file before and after, numbered as with that side in place of the conflict.
 
 - The lines compared are those of the stretch: from where the two sides are known to be at the same place before the
   conflict to where they are again after it, as the base has them and as the side has them.
@@ -751,6 +1008,8 @@ back).
 
 - **Kind**: Derivation
 - **Function**: `text::conflicts::fingerprint(lines: &[&str]) -> Fingerprint`
+- **Extension**: `fingerprint(text, conflict)` in `src/git/review.ts`, in TypeScript; the answers of the AI and the
+  choices are kept by file and fingerprint in `src/extension/answers.ts` while VS Code runs.
 
 The lines of the conflict from its first marker to its last, each without what ends it, with what follows `<<<<<<<`,
 `|||||||` or `>>>>>>>` taken away, joined with LF, hashed with SHA-1; the key is the first 16 hexadecimal digits. On a
@@ -770,6 +1029,9 @@ Which proposal a conflict has, if any, and the lines of the file it takes the pl
 - **Function**: `model::review::proposals(input) -> Vec<Option<Proposal>>`
 - **Settings**: `conflicts.autoResolve` (the rules propose), `conflicts.ai`.
 - **Uses**: `conflicts.resolve-by-rules`, `review.fingerprint`, the answers of `ai.resolve-conflicts`.
+- **Extension**: `reviewFiles(plans, rules, asked)`, `rulesProposal(conflict)`, `answerProposal(text, conflict,
+  answer)` and `choiceProposal(text, conflict, choice)` in `src/git/review.ts`, with `newLineCount` in
+  `src/shared/resolution.ts`, in TypeScript; the settings are `gitardo.conflicts.autoResolve` and `gitardo.conflicts.ai`.
 
 - The rules come first: a conflict they resolve has their proposal, from **Rules**, with the case as its reason (first
   letter in upper case), no confidence, no new lines, replacing the lines the rules replace (which can be more than
@@ -797,6 +1059,8 @@ that a card can say it in a sentence and in colors.
 
 - **Kind**: Derivation
 - **Function**: `model::review::proposal_lines(sides: Sides, proposed: &[&str]) -> ProposalLines`
+- **Extension**: `proposalLines(ours, theirs, proposed, base)`, `summarize(ours, theirs, proposed, origins)` and
+  `sameLines(a, b)` in `src/shared/proposalLines.ts`, in TypeScript, used by the cards, the columns and the warnings.
 
 - The inputs are the lines each side has where the proposal goes, the proposal, and the base when it is known. Two lines
   are the same when they differ only in the spaces at their ends.
@@ -828,6 +1092,9 @@ and a JSON file that would no longer be JSON.
 - **Kind**: Derivation
 - **Function**: `model::review::proposal_warnings(input: WarningInput) -> Vec<ProposalWarning>`
 - **Uses**: `review.proposal-lines`.
+- **Extension**: `repeatedKeys(proposed, origins)` in `src/shared/proposalLines.ts` and `jsonCheck(plan)` in
+  `src/git/review.ts`, in TypeScript, called by `reviewFiles`; `Warnings` in `src/webview/ConflictCard.tsx` and
+  `unwarned` in `ConflictsApp` show them.
 
 - A name is what a line gives a value with `:` or `=`, after its indentation and the words that declare a variable
   (`const`, `let`, `var`, `pub`, `export`, `readonly`, …), in quotes or not: a key of JSON or YAML, a property, a
@@ -868,6 +1135,10 @@ card, accepted at once, without leaving the review.
   **Written by you**. **Edit** first opens the box of the lines under the choices, in the card; the choice is made
   when they are used (Q343).
 - **Uses**: `review.accept`, `review.write`, `review.proposal-lines`, `review.proposal-warnings`.
+- **Extension**: `Conflict(props)` and `Editor` in `src/webview/ConflictCard.tsx` and `pick` of `ConflictsApp()`; the
+  message `chooseResolution` and `ConflictReviewTab.choose(ref, choice)` in `src/extension/conflictReview.ts`;
+  `choiceProposal` in `src/git/review.ts` and `choiceText(choice, ours, theirs)` in `src/shared/proposalLines.ts`. The
+  choices are kept in the store `choices` of `src/extension/answers.ts` while VS Code runs.
 
 Acceptance:
 
@@ -894,12 +1165,19 @@ Takes the proposal of one conflict, to be written with the others.
 - **Function**: `views::review::accept_view(state, ui) -> Vec<Intent>`
 - **Entry points**: **Accept** on a card; **Accepted** on the same card takes it back.
 - **Offered when**: the conflict has a proposal.
+- **Extension**: `accept(ids, on, open)` and `unwarned(file)` of `ConflictsApp()` in `src/webview/ConflictsApp.tsx`;
+  the `accepted` state is kept with `saveUiState` by file and key (`<index>:<fingerprint>`). The same holds for
+  `review.accept-file`, `review.accept-all` and `review.clear`.
 
 Acceptance:
 
 - [ ] **Accept** marks the card **Accepted**, folds it, and adds 1 to the count of **Write N resolutions**.
 - [ ] **Accepted** takes it back, unfolds it, and the count goes down by 1.
 - [ ] A conflict with nothing proposed has no **Accept**.
+- [ ] Extension: accepting changes no file and runs nothing.
+- [ ] Extension: an acceptance whose proposal is gone, written or edited since, is forgotten.
+- [ ] Extension: the text of a proposal is changed in the tab only by `review.choose`, which makes it a choice of the
+      user.
 
 ### `review.accept-file` — Accept the file
 
@@ -917,6 +1195,8 @@ Acceptance:
       3 accepted, with a yellow dot.
 - [ ] When every conflict of the file is accepted, the file folds to its name.
 - [ ] A proposal of the file with a warning (`review.proposal-warnings`) is left out.
+- [ ] Extension: the heading of a file says **1 of 2 conflicts proposed**, or **All 2 conflicts are accepted**; **Accept
+      the file** is disabled when there are no proposals left to accept.
 
 ### `review.accept-all` — Accept all proposed
 
@@ -945,6 +1225,7 @@ Takes back every acceptance.
 Acceptance:
 
 - [ ] After accepting 4 conflicts, **Clear** leaves none accepted, unfolds them, and **Write N resolutions** is disabled.
+- [ ] Extension: **Clear** shows only when something is accepted.
 
 ### `review.write` — Write the resolutions
 
@@ -962,12 +1243,24 @@ Writes the accepted resolutions in the files as one operation, and stages the fi
   the rules)* (or *by the AI*, or *1 by the AI*), then *1 conflict will be left to resolve by hand, with the markers as
   they are.* or *No conflict will be left.*, and, when any came from the AI, *2 of them were written by a language model:
   look at them before you commit.* (*All of them were …*). The log has the detail with the `write` lines.
+- **Asks**: nothing, unless `commandPreview` is `all`: then its own confirmation, with the title of the plan, the lines
+  of its detail and **Write**, before it reads the files again; a file saved while the question was open is then
+  refused as changed. Nothing is shown again after the answer.
 - **Danger**: None: what is written was looked at and accepted on the page.
 - **Undo**: `conflicts.restore` of the files written.
 - **After**: `review.report` takes the place of the buttons.
 - **Refuses**: *No resolution is accepted.*; *src/app.rs has changed since it was read, so nothing was written. Try
   again.*, and then the page reads the files again.
 - **Uses**: `review.proposals`, `conflicts.restore`, `review.report`.
+- **Extension**: **Write 2 resolutions** (or **Write 1 resolution**) at the top of the review tab, **Write the
+  accepted**, disabled, while nothing is accepted. `ConflictReviewTab.write(refs)` in
+  `src/extension/conflictReview.ts` sends `feature/run` of `review.write` to Gitardo's engine with a `resolutions`
+  target (protocol 1.3): the files and the accepted proposals with the text each was made from
+  (`Controller.runOnEngine` in `src/extension/controller.ts`). The engine's journal records `conflictsResolved` for
+  Undo, and its log has a `write <full path>` line for each file. The confirmation is asked through `VscodeAsker` in
+  `src/engine/vscode.ts`. When the engine's binary is missing, `writeResolutionsOp(files)` of `src/git/ops.ts` runs in
+  its place through `Controller.writeResolutions(repo, op, files)`, which sets Undo to `restoreConflictsOp(files)`, as
+  before (D49).
 
 Acceptance:
 
@@ -977,6 +1270,16 @@ Acceptance:
       warning about the language model.
 - [ ] Changing `a.rs` on disk after accepting and before writing writes nothing and says which file changed.
 - [ ] Two accepted proposals of the same file that would replace the same lines are refused, and nothing is written.
+- [ ] With `commandPreview` set to `all`, the confirmation is asked before the files are read again: saving `a.rs`
+      while it is open and then answering **Write** writes nothing and says `a.rs` changed; no other question follows.
+- [ ] With `commandPreview` off, it writes without a question.
+- [ ] Extension: only the accepted resolutions are written: a conflict not accepted keeps its markers, and its file
+      stays unstaged.
+- [ ] Extension: after **Accept all proposed** and **Write 2 resolutions** for `c.txt` and `d.txt`, the report says
+      **Wrote the resolutions of 2 conflicts in 2 files.** and **1 file was left with no conflict, and staged. 1
+      conflict is left to resolve.**
+- [ ] Extension: **Undo** in that report asks **Undo: restore the conflicts of 2 files?** with `git checkout --merge --
+      c.txt d.txt` and **Run**, and the conflicts are marked again, also in `d.txt`, which was staged.
 
 ### `review.report` — What was written
 
@@ -986,6 +1289,9 @@ Says what the last write did, in place of the buttons, with the way back and the
 - **Function**: `views::review::report_view(state, ui) -> Vec<Intent>`
 - **Entry points**: shown on `review.page` after `review.write` succeeded, until something is asked of the AI again.
 - **Uses**: `conflicts.restore`, `conflicts.continue-operation`.
+- **Extension**: `Report` in `src/webview/ConflictsApp.tsx`; **Undo** is Undo of the extension (`undo.last` in the
+  engine), as long as the review is of the repository the views show and nothing else happened since. The answers of
+  the AI are kept.
 
 It reads *Wrote the resolutions of 4 conflicts in 2 files, 1 from the AI.* (*all from the AI* when all were), then
 *1 file was left with no conflict, and staged.*, then one of *No file is left in conflict: the merge can continue.*,
@@ -1011,6 +1317,9 @@ side.
   proposed and the incoming side, joined by bands*) beside **Cards** (*Show the two sides of each conflict over what is
   proposed, with the lines around it*) at the top of `review.page`.
 - **Uses**: `diff.resize-sides` (the same dragging), `file-view.highlight`.
+- **Extension**: `Columns(props)` and `Bands(props)` in `src/webview/ConflictColumns.tsx`, with `ORIGIN_CLASS`, and the
+  `widths` and `Resizer` the Flow Merge uses (`src/flow/webview/columns.ts`); the choice of **Columns** and the widths
+  are kept with `saveUiState`.
 
 - Each column has the lines the proposal takes the place of: what is between the markers and the lines around them the
   rules take too.
@@ -1037,6 +1346,9 @@ Acceptance:
 - [ ] The pointer on a proposed line outlines it and the line of the side it is joined to.
 - [ ] Dragging a band in one conflict changes the widths of every conflict; reopening the page keeps Columns and the
       widths.
+- [ ] Extension: the middle column is labelled **Proposed**, **Accepted** or **Nothing proposed yet**.
+- [ ] Extension: conflicts whose sides multiply to more than 250,000 lines are shown without bands.
+- [ ] Extension: a double click on a band makes the widths even.
 
 ### `review.show-result` — Show the result
 
@@ -1048,6 +1360,9 @@ Shows each file beside what the accepted resolutions make of it, before anything
   `review.page`.
 - **Offered when**: something is accepted.
 - **Uses**: `diff.page`, which shows several files one after the other in one page.
+- **Extension**: `ConflictReviewTab.preview(refs)` in `src/extension/conflictReview.ts` (the message
+  `previewResolutions`, `proposalUri`, `applyReplacements`) opens one multi-file diff editor of VS Code titled
+  **Conflicts resolved as accepted**.
 
 Acceptance:
 
@@ -1066,6 +1381,10 @@ of the side that kept it, or goes.
 - **Reads**: `git show :1:<file>` and the version of the side that kept it (`:2:` or `:3:`); a file not text (with a NUL
   byte) or larger than 2 MB has no card and is listed under **Also in conflict**.
 - **Uses**: `conflicts.take-side`, `diff.page`, `diff.line-diff`.
+- **Extension**: `DeletedFile({ file, sides, busy })` in `src/webview/ConflictCard.tsx`, with `fileRows` from
+  `src/webview/conflictCode.tsx`, and the data of `Repo.deletedConflicts` (`DeletedConflict` in
+  `src/shared/resolution.ts`). Its two buttons run `conflicts.take-side` in the engine; the diff button opens VS Code's
+  diff editor, as `conflicts.open-file` does for such a file.
 
 - It says which side did what, with the words of `conflicts.side-names`, and shows what the side that kept the file
   changed of it, as a diff, with the lines between the changes left out (*Lines left out here*). *This side changed
@@ -1082,6 +1401,10 @@ Acceptance:
 - [ ] **Delete it** asks and runs `git rm -- <file>`; **Keep it, with these changes** asks and runs
       `git checkout --ours -- <file>` and `git add -- <file>`.
 - [ ] The card is not shown under the **From the AI** filter.
+- [ ] Extension: the heading says **Deleted by the current side (main), changed by the incoming side (other)**.
+- [ ] Extension: the diff shows up to 3 unchanged lines around each change, numbered, and **N lines that did not
+      change** in place of the rest.
+- [ ] Extension: neither choice can be taken back with **Undo**.
 
 ### `ai.resolve-conflicts` — Resolve conflicts with AI
 
@@ -1101,6 +1424,15 @@ proposal to accept or not.
 - **Settings**: `conflicts.ai`, `ai.provider`, `ai.endpoint`, `ai.model`, `ai.effort`.
 - **Uses**: `review.page`, `ai.ask-conflict`, `ai.conflict-question`, `ai.read-answer`, `ai.trim-answer`,
   `review.proposals`.
+- **Extension**: asks the language model chosen in VS Code, not an AI provider: `ConflictReviewTab.ask(refs?)`, `next`
+  and `stop` in `src/extension/conflictReview.ts` (`AT_ONCE` = 2, `SEND_EVERY` = 120 ms), with `askResolution(question,
+  token, onText)` and `conflictModel` in `src/extension/ai.ts`; the answers are kept in `src/extension/answers.ts` while
+  VS Code runs. It stays in the extension, in TypeScript: the engine has no host question to the language model of
+  VS Code yet (`host/languageModel`, area 6). Its entry points add **Gitardo: Resolve Conflicts with AI** in the Command
+  Palette and the sparkle on a file in the Changes view, tooltip **Resolve with AI, after looking at what is
+  proposed**. The settings are `gitardo.conflicts.ai`, `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort`;
+  with the first off it says **Gitardo: resolving conflicts with AI is experimental, and it is switched off in the
+  settings.** with **Open Settings**.
 
 - Every entry point opens `review.page` (of that file, from a file's sparkle) and asks about each conflict that has
   nothing proposed; **Ask the AI** on a card asks about that one, and **Ask again** asks again, its answer taking the
@@ -1130,6 +1462,18 @@ Acceptance:
 - [ ] With no AI provider set up, each card says so and offers **Ask again**.
 - [ ] Closing and reopening the review page shows the answers again without asking.
 - [ ] Editing a line inside an answered conflict drops its answer from the card.
+- [ ] Extension: a card waiting says **Waiting for its turn…**; then **The AI is reading the conflict…**; then **The AI
+      is writing a resolution…** with the lines of the answer as they come.
+- [ ] Extension: a bar over the page says **Asking the AI: 1 of 2 conflicts answered**, with **Stop**.
+- [ ] Extension: with no model, a question fails with **The AI could not propose a resolution: No language model is
+      available in VS Code. Install an extension that provides one, such as GitHub Copilot.**; with the chosen model
+      gone, **The model chosen to resolve conflicts, test-chosen, is not available in VS Code: choose another one.**,
+      and no other model is asked.
+- [ ] Extension: with `gitardo.conflicts.ai` off, asking says the sentence above with **Open Settings**, and nothing is
+      sent.
+- [ ] Extension: an answer becomes a proposal of the AI, with its model, reason and confidence; nothing is written
+      until it is accepted and written with `review.write`.
+- [ ] Extension: the answers are kept until VS Code is closed, while nobody edits their conflict, and after **Undo**.
 
 ### `ai.ask-conflict` — One question about one conflict
 
@@ -1142,6 +1486,12 @@ Sends the AI provider the question about one conflict and returns its answer as 
   credential store of the system; the answer is streamed, and each piece is passed on as it comes.
 - **Settings**: `ai.provider`, `ai.endpoint`, `ai.model`, `ai.effort`.
 - **Uses**: `ai.conflict-question`, `ai.read-answer`, `ai.trim-answer`.
+- **Extension**: `askResolution(question, token, onText)` in `src/extension/ai.ts` sends the question to a language
+  model of VS Code (`vscode.lm.selectChatModels()`): the one of `gitardo.conflicts.aiModel`, or the first, with
+  `reasoningEffort` set to `gitardo.conflicts.aiEffort` when it is set. The request carries the justification
+  **Gitardo sends the conflicts of the merge, and the lines around them, to the model to propose how to resolve
+  them.** It stays in the extension: the engine has no host question to the language model of VS Code yet
+  (`host/languageModel`, area 6).
 
 Acceptance:
 
@@ -1149,6 +1499,8 @@ Acceptance:
       of a streamed answer arrive in order before the whole answer.
 - [ ] With `ai.effort` set to `high`, the request carries the provider's setting for high effort; with it empty, none.
 - [ ] Cancelling the question closes the request and returns no answer.
+- [ ] Extension: the model chosen in `gitardo.conflicts.aiModel` is asked, not the first one, with `reasoningEffort`
+      set to the value of `gitardo.conflicts.aiEffort` when it is set.
 
 ### `ai.conflict-question` — What is sent about a conflict
 
@@ -1157,6 +1509,8 @@ The text of the question about one conflict.
 - **Kind**: Derivation
 - **Function**: `model::ai::conflict_question(input) -> String`
 - **Uses**: `conflicts.side-names`, the stretch of `conflicts.resolve-by-rules`.
+- **Extension**: `buildConflictPrompt(question)` in `src/shared/conflictPrompt.ts` (`cut`, `part`, `MAX_PART_CHARS`),
+  with `questionParts(text, conflict)` in `src/git/review.ts` (`ASKED_AROUND`), in TypeScript.
 
 It says, in order:
 
@@ -1185,6 +1539,11 @@ Acceptance:
 - [ ] A merge of `feature` into `main` says *"Current" is the branch checked out, in the commit "Fix the parser".*
 - [ ] Without a base, there is no `<base>` part at all.
 - [ ] A `<before>` of 15,000 characters is sent as `…` and its last 12,000 characters.
+- [ ] Extension: for `src/cart.ts`, with the current side's subject **Take the discount off** and none for the incoming
+      side, the question has **"Current" is the branch checked out, in the commit "Take the discount off".** and
+      **"Incoming" is the branch being merged.**
+- [ ] Extension: it has **The lines before and after it can hold other conflicts, with their markers: those are
+      resolved**.
 
 ### `ai.read-answer` — The answer, read
 
@@ -1192,6 +1551,8 @@ Reads the reply of the model into the lines of a resolution, a reason and a conf
 
 - **Kind**: Derivation
 - **Function**: `model::ai::read_answer(reply: &str) -> Result<ConflictAnswer, AnswerError>`
+- **Extension**: `parseConflictAnswer(answer)` and `partialResolution(answer)` in `src/shared/conflictPrompt.ts`, in
+  TypeScript; `askResolution` in `src/extension/ai.ts` adds the model's name.
 
 - The resolution is the text between the last `<resolution>` and the `</resolution>` after it, from the line after the
   opening tag to the last line break before the closing one. None: *The language model did not answer with a
@@ -1211,6 +1572,10 @@ Acceptance:
 - [ ] An empty resolution reads as no lines (the conflict's lines are deleted).
 - [ ] A resolution containing `=======` is refused with the message.
 - [ ] A streamed piece ending in `</resol` shows the lines before it without `</resol`.
+- [ ] Extension: `Here it is.`, then a resolution of 1 line, `<confidence> High </confidence>` and a reason over 2
+      lines → that line, the reason **Both changes kept.**, confidence high.
+- [ ] Extension: an empty resolution and `<confidence>sure</confidence>` → no lines, the default reason, confidence
+      medium.
 
 ### `ai.trim-answer` — The lines around the conflict, written again
 
@@ -1219,6 +1584,8 @@ sent, only what stands in place of the conflict is kept.
 
 - **Kind**: Derivation
 - **Function**: `model::ai::trim_answer(answer: ConflictAnswer, input: &TrimInput) -> Result<ConflictAnswer, AnswerError>`
+- **Extension**: `fitResolution(answer, question)` in `src/shared/conflictPrompt.ts` and `answerProposal(text, conflict,
+  answer)` in `src/git/review.ts`, in TypeScript.
 
 - A **significant** line has a letter, digit or underscore in it and is not a conflict marker: a brace or an empty line
   anchors nothing. Lines are compared without spaces at their ends.
@@ -1244,6 +1611,11 @@ Acceptance:
 - [ ] An answer that repeats two lines of its own that are also in `<before>`, but has a line before them that was not
       sent, is left whole.
 - [ ] An answer that is only the lines around fails with the message.
+- [ ] Extension: an answer that writes again the 9 lines before the conflict and the 7 after it → only the line in place
+      of the conflict.
+- [ ] Extension: an answer `  const rate = 2;`, the 2 lines before the conflict, `    sum += rate;` → left as it is.
+- [ ] Extension: in a file with Windows line endings, the answer `ours`, `new line` → `ours\r\nnew line\r\n`; at the
+      very end of a file whose last marker has no line break → `ours\nnew line`.
 
 ### `ai.choose-model` — Choose the model that resolves conflicts
 
@@ -1267,6 +1639,14 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
 - **Refuses**: when the provider lists no model: *No language model is available from the AI provider. Set one up in the
   settings.*
 - **Settings**: `ai.provider`, `ai.endpoint`, `ai.model`, `ai.effort`.
+- **Extension**: **Gitardo: Choose the Model That Resolves Conflicts** in the Command Palette and the button with the
+  model's name at the top of the review, while `gitardo.conflicts.ai` is on. `chooseConflictModel()` in
+  `src/extension/ai.ts` picks among the language models of VS Code (**The first model of VS Code**, then each model,
+  described **\<vendor\> · \<family\>**, and **As the model is set up in VS Code** for the effort), and writes
+  `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` in the user settings of VS Code. It is not a `GitOp`
+  and runs no feature of the engine: nothing is written to the log, and it does not change what **Undo** does. With no
+  model, it warns **Gitardo: no language model is available in VS Code. Install an extension that provides one, such
+  as GitHub Copilot.** The review then names **\<id\>, not available** when the chosen one is gone.
 
 Acceptance:
 
@@ -1275,3 +1655,9 @@ Acceptance:
 - [ ] Choosing **The first model of the provider** and **As the model is set up** removes both settings.
 - [ ] Cancelling either question writes nothing.
 - [ ] Each AI proposal written after the change names the new model.
+- [ ] Extension: with two models, the first pick offers **$(check) The first model of VS Code**, **First model**,
+      **Chosen model**; the second **$(check) As the model is set up in VS Code**, **Low**, **Medium**, **High**,
+      **Extra high**, **Max**.
+- [ ] Extension: choosing **Chosen model** then **High** sets `gitardo.conflicts.aiModel` to `test-chosen` and
+      `gitardo.conflicts.aiEffort` to `high`.
+- [ ] Extension: it is not a `GitOp`: nothing is written to the log, and it does not change what **Undo** does.

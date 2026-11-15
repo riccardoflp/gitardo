@@ -6,6 +6,8 @@ import { samePath } from '../git/parse';
 import type { ConflictPlan, Repo } from '../git/repo';
 import { fingerprint, questionParts, reviewFiles } from '../git/review';
 import { partialResolution } from '../shared/conflictPrompt';
+import type { FileResolutions } from '../engine/messages';
+import { engineResolutions } from '../engine/resolutions';
 import type { HostMessage, Operation, ViewKind } from '../shared/protocol';
 import type { Asking, Choice, ConflictRef, ConflictReview, DeletedConflict, Proposal, ReviewReport } from '../shared/resolution';
 import { askResolution, conflictModelName } from './ai';
@@ -21,8 +23,11 @@ const SEND_EVERY = 120;
 export interface ReviewHost {
   attach(webview: vscode.Webview, kind: ViewKind, data: Record<string, string>): vscode.Disposable;
   post(message: HostMessage, webview: vscode.Webview): void;
-  /** Runs an operation that writes resolutions, with Undo to put back the conflicts of these files. */
-  write(repo: Repo, op: GitOp, paths: string[]): Promise<boolean>;
+  /**
+   * Writes resolutions, with Undo to put back the conflicts of these files: `review.write` of the engine on
+   * `resolutions`, or the operation when there is no engine; true once they are written.
+   */
+  write(repo: Repo, op: GitOp, paths: string[], resolutions: FileResolutions[]): Promise<boolean>;
   /** Whether the rules propose resolutions, and whether the language model can be asked. */
   settings(): { rules: boolean; ai: boolean };
 }
@@ -192,7 +197,7 @@ export class ConflictReviewTab implements vscode.Disposable {
     }
     const written = files.filter((file) => file.proposals.length);
     const staged = op.commands.length ? op.commands[0].length - 2 : 0;
-    if (!(await this.host.write(this.repo, op, written.map((file) => file.path)))) return this.reload();
+    if (!(await this.host.write(this.repo, op, written.map((file) => file.path), engineResolutions(files)))) return this.reload();
     const all = written.flatMap((file) => file.proposals);
     this.report = { resolved: all.length, files: written.length, staged, fromAI: all.filter((proposal) => proposal.source === 'ai').length };
     await this.reload();

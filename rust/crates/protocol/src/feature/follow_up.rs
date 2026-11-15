@@ -6,7 +6,8 @@ use std::path::Path;
 use model::contract::{FollowUp, OfferedRun, Text};
 use serde::{Deserialize, Serialize};
 
-use super::question::{AnswerJson, TargetJson};
+use super::question::AnswerJson;
+use super::target::TargetJson;
 
 /// A follow-up the extension carries out (`FollowUp` of `model`). The engine keeps those that are its own, and the ones
 /// whose views have not moved yet come with their areas.

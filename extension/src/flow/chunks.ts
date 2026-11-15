@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { EngineRun } from '../engine/actions';
 import { type GitOp, stageOp, unstageOp } from '../git/ops';
 import { Repo } from '../git/repo';
 import { stagePatch, unstagePatch } from './diff/chunkPatch';
@@ -13,7 +14,8 @@ export type ChunkActionKind = 'revertChunk' | 'stageChunk' | 'unstageChunk';
  * Runs a git operation in a repository the way Gitardo runs its own: logged, shown first when the user asked for
  * that, and followed by a refresh. Resolves to whether it ran and succeeded; a failure has already been reported.
  */
-export type RunOp = (root: string, op: GitOp) => Promise<boolean>;
+/** Runs an operation in a repository, or the runs of the engine that take its place when the engine is there. */
+export type RunOp = (root: string, op: GitOp, runs?: EngineRun[]) => Promise<boolean>;
 
 /** Host-side handlers for the per-chunk gutter buttons. */
 export class ChunkActions {

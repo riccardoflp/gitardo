@@ -51,7 +51,8 @@ pub mod methods {
 }
 
 /// The version of the protocol the engine speaks: 1.1 added the messages of the features (stage 2), 1.2 those of the
-/// journal (stage 3), 1.3 the operations offered with their target and answers, such as **Delete anyway** (stage 4).
+/// journal (stage 3), 1.3 those of stage 4: the operations offered with their target and answers, such as **Delete
+/// anyway**, and the targets of the conflicts.
 pub const VERSION: &str = "1.3";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.

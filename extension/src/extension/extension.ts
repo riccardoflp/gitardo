@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     reveal: (hash) => controller.reveal(hash),
   });
   // What it stages and unstages runs as Gitardo's own operations, and what Gitardo reads again may have moved it.
-  const flowDiff = new FlowDiff(context.extensionUri, (root, op) => controller.runIn(root, op));
+  const flowDiff = new FlowDiff(context.extensionUri, (root, op, runs) => controller.runIn(root, op, runs));
   // The repository shown and the one selected in VS Code's Repositories view follow each other.
   const sourceControl = new SourceControlSelection((root) => controller.followSourceControl(root), log);
   void sourceControl.start();

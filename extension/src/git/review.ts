@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { ConflictAnswer } from '../shared/conflictPrompt';
 import { choiceText, proposalLines, repeatedKeys } from '../shared/proposalLines';
 import {
+  CHOSEN,
   RESOLUTIONS,
   newLineCount,
   type Asking,
@@ -75,15 +76,6 @@ export function answerProposal(text: string, conflict: Conflict, answer: Answer)
     ...(answer.model ? { model: answer.model } : {}),
   };
 }
-
-/** What each choice of the review is called, where the proposal says why. */
-const CHOSEN: Record<Choice['kind'], string> = {
-  current: 'Only the current side',
-  incoming: 'Only the incoming side',
-  'current-first': 'Both sides, the current one first',
-  'incoming-first': 'Both sides, the incoming one first',
-  edited: 'Written by you',
-};
 
 /** What the user chose in the review, as the lines it replaces in the file: the markers and what is between them. */
 export function choiceProposal(text: string, conflict: Conflict, choice: Choice): Proposal {

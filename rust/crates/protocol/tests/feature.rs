@@ -183,5 +183,44 @@ fn an_operation_offered_crosses_with_its_target_and_answers_and_not_when_one_can
     let flag: AnswerJson = serde_json::from_value(json!({ "kind": "flag", "value": false })).unwrap();
     assert_eq!(Answer::from(flag), Answer::Flag(false));
     // A reading of the engine that cannot cross would make the operation run otherwise than offered.
-    assert!(FollowUpJson::all_of(&[offered(Answer::Names(Vec::new()))]).is_empty());
+    assert_eq!(FollowUpJson::all_of(&[offered(Answer::Names(Vec::new()))]), Vec::new());
+}
+
+#[test]
+fn the_targets_of_the_conflicts_read_from_json_become_those_of_the_engine() {
+    let resolutions = json!({
+        "kind": "resolutions",
+        "files": [{
+            "path": "e.txt",
+            "text": "a\n<<<<<<< HEAD\nb\n=======\nB\n>>>>>>> aside\nc\n",
+            "conflicts": 1,
+            "accepted": [{
+                "source": { "kind": "ai", "model": "Chosen model", "reason": "Both", "confidence": "high" },
+                "from": 1,
+                "to": 6,
+                "text": "b and B\n",
+                "newLines": 1
+            }]
+        }]
+    });
+    let target: TargetJson = serde_json::from_value(resolutions).unwrap();
+    round_trip(&target);
+    let Ok(Target::Resolutions(read)) = Target::try_from(target) else {
+        panic!("the resolutions")
+    };
+    let file = read.files.first().unwrap();
+    assert_eq!(file.resolved().unwrap(), "a\nb and B\nc\n");
+    assert_eq!(file.sources(), (0, 1, 0));
+
+    let merge: TargetJson =
+        serde_json::from_value(json!({ "kind": "mergeResult", "path": "b.txt", "unsaved": null, "marked": 1 }))
+            .unwrap();
+    round_trip(&merge);
+    let Ok(Target::MergeResult(result)) = Target::try_from(merge) else {
+        panic!("the file of a Merge page")
+    };
+    assert_eq!(
+        (result.path.as_str(), result.unsaved, result.marked),
+        ("b.txt", None, 1)
+    );
 }

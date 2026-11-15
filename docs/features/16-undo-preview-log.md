@@ -26,7 +26,9 @@ The table of when it asks is in [04-feature-contract.md](../desktop/04-feature-c
 every card of them says so: force push, hard reset, discarding changes, applying, popping or dropping a stash,
 deleting a branch or a tag, deleting a remote branch, removing a remote, removing a worktree, aborting an operation,
 undo, interactive rebase, squash, split, fixup, branch cleanup, a merge, cherry-pick or patch predicted to conflict,
-resolving conflicts automatically, and taking one side of a file in conflict.
+and taking one side of a file in conflict when the file has lines typed in it that neither side nor the base has, which
+would be lost. Resolving conflicts automatically is asked by its own question, which is its confirmation whatever
+`commandPreview` says; skipping a step of an operation asks first whenever the working tree has changes.
 
 Acceptance:
 

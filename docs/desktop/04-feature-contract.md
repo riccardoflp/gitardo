@@ -99,10 +99,14 @@ feature to change anything. In particular, no feature calls `std::fs` or `std::p
 The engine, not the feature, decides whether to show the plan before running it, from the setting `commandPreview` and
 from `Plan::danger`:
 
-| `commandPreview` | `Danger::None` | `Danger::Confirm` | `Danger::Destructive` |
-| --- | --- | --- | --- |
-| `off` | runs | asks, showing the steps | asks, showing the steps and the reason in a warning |
-| `all` | asks, showing the steps | asks | asks with the warning |
+| `commandPreview` | `Danger::None` | `Danger::Agreed` | `Danger::Confirm` | `Danger::Destructive` |
+| --- | --- | --- | --- | --- |
+| `off` | runs | runs | asks, showing the steps | asks, showing the steps and the reason in a warning |
+| `all` | asks, showing the steps | runs | asks | asks with the warning |
+
+`Danger::Agreed` is a plan nothing of which can be lost and that the user agreed to in the feature's own question,
+which said what it writes and runs: **Resolve** of `conflicts.resolve-automatically`, and `review.write` once it asked
+its plan with `commandPreview` set to `all`. It is not shown a second time.
 
 The list of what is `Destructive` is in [16-undo-preview-log.md](../features/16-undo-preview-log.md). A card that marks an
 operation destructive says why.

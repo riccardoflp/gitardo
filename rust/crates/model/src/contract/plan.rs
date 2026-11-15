@@ -190,6 +190,9 @@ fn quoted(argument: &str) -> String {
 pub enum Danger {
     /// Nothing can be lost.
     None,
+    /// Nothing can be lost, and the user agreed to it in the feature's own question, which was its confirmation: it is
+    /// not shown again, whatever `commandPreview` says.
+    Agreed,
     /// The user is asked first, for this reason.
     Confirm(Text),
     /// Work can be lost: the user is asked first, with this reason as a warning.

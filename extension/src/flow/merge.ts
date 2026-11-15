@@ -15,6 +15,7 @@ import { bounds, type MergeModel, type MergeProposal } from './diff/mergeModel';
 import type { MergeHostMessage, MergeWebviewMessage } from './diff/mergeProtocol';
 import { minimalReplace, offsetToPosition } from './diff/textEdit';
 import type { RunOp } from './chunks';
+import type { EngineRun } from '../engine/actions';
 import type { DiffEngine } from './engine';
 import { inRepository } from './sides';
 import type { ThemeService } from './theme';
@@ -164,7 +165,15 @@ export class FlowMerge implements vscode.Disposable {
       if (choice !== mark) return;
     }
     if (document.isDirty && !(await document.save())) return;
-    if (await this.runOp(repoRoot, stageOp([file]))) panel.close();
+    // With the engine, `merge-view.mark-resolved` on the file saved, the question about the markers answered above.
+    const runs: EngineRun[] = [
+      {
+        feature: 'merge-view.mark-resolved',
+        target: { kind: 'mergeResult', path: file, unsaved: null, marked: left },
+        answers: left > 0 ? { 'mark anyway': { kind: 'confirmed' } } : undefined,
+      },
+    ];
+    if (await this.runOp(repoRoot, stageOp([file]), runs)) panel.close();
   }
 
   private active(): MergePanel | undefined {

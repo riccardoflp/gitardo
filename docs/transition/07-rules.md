@@ -84,6 +84,16 @@ needs is written in the commit of that stage, not before.
 | [transition/04-differences.md](04-differences.md) | C1 and C7 checked and found not seen; C4 and C6 fixed; C2, C3, C5, C8, C9 and A6 in the CHANGELOG; the pairs of the area run both ways. |
 | [extension/06-testing.md](../extension/06-testing.md) | `test/engineHistory.test.ts`. |
 
+## Written in stage 4, area 4 (conflicts)
+
+| Page | Change |
+| --- | --- |
+| [features/09-conflicts.md](../features/09-conflicts.md), [17-diff-and-merge-views.md](../features/17-diff-and-merge-views.md), [16-undo-preview-log.md](../features/16-undo-preview-log.md) | The extension's cards of the conflicts, the review and the questions to the AI merged, each with its **Extension** line and acceptance lines; `features/extension/09` emptied; Skip asks first, taking a side warns when typed lines are lost, and the `preview.confirm` paragraph agrees with the cards. |
+| [desktop/04-feature-contract.md](../desktop/04-feature-contract.md) | **Danger and confirmation**: `Danger::Agreed`, a plan agreed to in the feature's own question, never shown again. |
+| [transition/02-protocol.md](02-protocol.md) | Version 1.3: the targets `resolutions` and `mergeResult`, and `Danger::Agreed` sent as `none`. |
+| [transition/04-differences.md](04-differences.md) | D2, D3 and D4 fixed, D6 decided, D1 and D5 in the CHANGELOG; the pairs of the area not reached before, checked. |
+| [extension/02-architecture.md](../extension/02-architecture.md) | `src/engine/resolutions.ts`, and the Flow Diff and Flow Merge handed the runs of the engine with their `GitOp`. |
+
 ## Written in stages 8 and 9
 
 | Page | Change |

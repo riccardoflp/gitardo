@@ -160,9 +160,11 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
   repository, `runGitOp` and `runFeature`, and `snapshot`, what a repository is compared by.
 - From stage 4, each moved area has its scenario test, `test/engine<Area>.test.ts` (`engineChanges.test.ts` for the
   changes, the commit and the stashes; `engineHistory.test.ts` for merge, rebase, cherry-pick, revert, reset, the
-  rewriting, bisect and the patches): each operation runs as its `GitOp` in one copy and, with the target and answers
-  `engineRuns` (`src/engine/actions.ts`) gives it, as the engine's feature in the other; the commands and the
-  repositories after must be the same, but where [04-differences.md](../transition/04-differences.md) says why not.
+  rewriting, bisect and the patches; `engineConflicts.test.ts` for the conflicts, whose review's write takes its
+  target from the review as `src/engine/resolutions.ts` builds it): each operation runs as its `GitOp` in one copy
+  and, with the target and answers `engineRuns` (`src/engine/actions.ts`) gives it, as the engine's feature in the
+  other; the commands and the repositories after must be the same, but where
+  [04-differences.md](../transition/04-differences.md) says why not.
   `engineBranches.test.ts`, for the branches, tags, remotes, identity and sync, gives each copy a bare repository
   beside it as `origin`, cloned by a colleague who pushes, so that fetches and pushes reach only folders the test made,
   and fixes the dates of the commits so that the two copies get the same hashes.

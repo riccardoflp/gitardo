@@ -26,7 +26,8 @@ pub const AGAIN: AnswerKey = AnswerKey("again");
 
 /// Resolves the conflicts that need no choice in every file in conflict (`conflicts.resolve-by-rules`): it says first
 /// how many each file has and why, then writes the files and stages those left with no conflict. **Review** opens the
-/// review of the same files and writes nothing; a file changed since it was read is not written, nor any other.
+/// review of the same files and writes nothing; a file changed since it was read is not written, nor any other. The
+/// question is the confirmation: neither answer is shown again before it runs, whatever `commandPreview` says.
 ///
 /// Feature: conflicts.resolve-automatically
 #[must_use]
@@ -153,7 +154,7 @@ fn review_plan(files: &[FileResolution]) -> Plan {
     Plan {
         title: Text::from("Review the resolutions"),
         steps: Vec::new(),
-        danger: Danger::None,
+        danger: Danger::Agreed,
         undo: Undo::Impossible(Text::from("Nothing was written.")),
         after: vec![FollowUp::OpenReview(
             files
@@ -231,7 +232,8 @@ fn write_plan(context: &Context, title: &str, (written, staged): (&[&FileResolut
     Plan {
         title: Text::from(title.trim_end_matches('?')),
         steps,
-        danger: Danger::None,
+        // The question said what is written and run: it was the confirmation, whatever `commandPreview` says.
+        danger: Danger::Agreed,
         undo: Undo::Journal(UndoRecord::ConflictsResolved {
             files: written.iter().map(|file| file.path.clone()).collect(),
         }),

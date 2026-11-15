@@ -1,10 +1,10 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 
 use model::ai::Confidence;
-use model::contract::{Answer, Answers, Outcome, Step, Target, Undo, UndoRecord};
+use model::contract::{Answer, Answers, CommandPreview, Danger, Outcome, Step, Target, Undo, UndoRecord};
 use model::review::{ChoiceKind, FileLine, FileResolutions, Proposal, ProposalSource, Resolutions, RuleCase};
 
-use super::{FILES, write};
+use super::{FILES, WRITE, write};
 use crate::testing::{context, plan, state};
 
 /// A file of two conflicts, `<<<<<<< HEAD / X / ======= / Y / >>>>>>> f`, each with an unchanged line around it.
@@ -178,5 +178,47 @@ fn review_choose__a_choice_written_counts_as_chosen_by_you() {
     assert_eq!(
         detail(&written(&among)).first().map(String::as_str),
         Some("a.rs: 2 of 2 conflicts (1 by the rules, 1 chosen by you)")
+    );
+}
+
+#[test]
+fn review_write__with_every_plan_shown_it_asks_first_then_reads_the_files_again_and_shows_nothing_more() {
+    let resolutions = two_files(RULES);
+    let mut context = context(state(), Target::Resolutions(Box::new(resolutions.clone())));
+    context.settings.command_preview = CommandPreview::All;
+    let Outcome::Ask(question) = write(&context, &Answers::new()) else {
+        panic!("asked first")
+    };
+    assert_eq!(question.key, WRITE);
+    assert_eq!(question.title.as_str(), "Write the resolutions of 3 conflicts?");
+    let detail = question
+        .detail
+        .as_ref()
+        .map(model::contract::Text::as_str)
+        .unwrap_or_default();
+    assert!(detail.starts_with("a.rs: 2 of 2 conflicts (by the rules)"), "{detail}");
+    assert!(detail.ends_with("git add -- a.rs"), "{detail}");
+    let confirmed = Answers::new().with(WRITE, Answer::Confirmed);
+    assert!(matches!(write(&context, &confirmed), Outcome::Read(FILES, _)));
+    let on_disk = vec![Some(TEXT.as_bytes().to_vec()), Some(TEXT.as_bytes().to_vec())];
+    let ran = plan(write(&context, &confirmed.clone().with(FILES, Answer::Files(on_disk))));
+    assert_eq!(ran.danger, Danger::Agreed);
+}
+
+#[test]
+fn review_write__a_file_saved_while_its_question_was_open_is_not_written_over() {
+    let resolutions = two_files(RULES);
+    let mut context = context(state(), Target::Resolutions(Box::new(resolutions.clone())));
+    context.settings.command_preview = CommandPreview::All;
+    let saved = vec![Some(TEXT.as_bytes().to_vec()), Some(b"saved meanwhile\n".to_vec())];
+    let answers = Answers::new()
+        .with(WRITE, Answer::Confirmed)
+        .with(FILES, Answer::Files(saved));
+    let Outcome::Refuse(refusal) = write(&context, &answers) else {
+        panic!("refused")
+    };
+    assert_eq!(
+        refusal.message.as_str(),
+        "b.rs has changed since it was read, so nothing was written. Try again."
     );
 }

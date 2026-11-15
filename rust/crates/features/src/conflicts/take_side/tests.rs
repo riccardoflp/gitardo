@@ -1,6 +1,6 @@
-use super::{SIDE, STAGES, take_side};
+use super::{SIDE, STAGES, TEXTS, take_side};
 use crate::testing::{context, lines, plan, state};
-use model::conflicts::FileStages;
+use model::conflicts::{ConflictTexts, FileStages};
 use model::contract::{Answer, Answers, Danger, Outcome, Query, Target, Undo, UndoRecord};
 use model::state::Operation;
 
@@ -20,9 +20,22 @@ fn stages(has_current: bool, has_incoming: bool) -> FileStages {
 }
 
 fn taking(side: &str, stages: FileStages) -> Answers {
+    with_file(side, stages, "<<<<<<< HEAD\nours\n=======\ntheirs\n>>>>>>> feature\n")
+}
+
+/// The answers once the side is chosen and the stages and the texts read, with the file on disk as given.
+fn with_file(side: &str, stages: FileStages, file: &str) -> Answers {
+    let texts = ConflictTexts {
+        path: String::from("src/app.rs"),
+        file: Some(file.as_bytes().to_vec()),
+        base: Some(b"base\n".to_vec()),
+        current: Some(b"ours\n".to_vec()),
+        incoming: Some(b"theirs\n".to_vec()),
+    };
     Answers::new()
         .with(SIDE, Answer::Choice(side.to_owned()))
         .with(STAGES, Answer::Stages(Some(stages)))
+        .with(TEXTS, Answer::ConflictTexts(vec![texts]))
 }
 
 #[test]
@@ -119,4 +132,34 @@ fn a_file_that_is_not_in_conflict_is_refused() {
         panic!("refused")
     };
     assert_eq!(refusal.message.as_str(), "src/app.rs is not in conflict.");
+}
+
+#[test]
+fn conflicts_take_side__lines_typed_in_the_file_make_it_a_warning() {
+    let context = during(Operation::Merge);
+    let read = take_side(
+        &context,
+        &Answers::new()
+            .with(SIDE, Answer::Choice(String::from("current")))
+            .with(STAGES, Answer::Stages(Some(stages(true, true)))),
+    );
+    assert!(matches!(read, Outcome::Read(TEXTS, Query::ConflictTexts)));
+    let typed = plan(take_side(
+        &context,
+        &with_file("incoming", stages(true, true), "ours\nboth, typed by hand\n"),
+    ));
+    let Danger::Destructive(reason) = &typed.danger else {
+        panic!("warns: {:?}", typed.danger)
+    };
+    assert!(
+        reason
+            .as_str()
+            .ends_with("src/app.rs has lines that neither side has, typed in it since git stopped: they are lost too.")
+    );
+    // Lines of the sides and git's markers only, however they are arranged, are no reason to warn.
+    let kept = plan(take_side(
+        &context,
+        &with_file("incoming", stages(true, true), "ours\ntheirs\n"),
+    ));
+    assert!(matches!(kept.danger, Danger::Confirm(_)));
 }

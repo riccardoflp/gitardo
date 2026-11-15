@@ -3,7 +3,7 @@
 use std::ffi::OsString;
 
 use model::changes::pathspec;
-use model::conflicts::{FileStages, SideNamesInput, SideRole, side_names};
+use model::conflicts::{ConflictTexts, FileStages, SideNamesInput, SideRole, side_names};
 use model::contract::{
     AnswerKey, Answers, Choice, Context, Danger, Outcome, Plan, Query, Question, QuestionKind, Step, Text, Undo,
     UndoRecord,
@@ -16,6 +16,12 @@ pub const SIDE: AnswerKey = AnswerKey("side");
 
 /// The versions the index keeps of the file.
 pub const STAGES: AnswerKey = AnswerKey("stages");
+
+/// The files in conflict with their sides, to tell whether lines were typed in the file.
+const TEXTS: AnswerKey = AnswerKey("texts");
+
+/// How the lines of git's markers start.
+const MARKERS: [&str; 4] = ["<<<<<<<", "|||||||", "=======", ">>>>>>>"];
 
 /// The two sides, as the choices of [`SIDE`] name them.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -35,7 +41,8 @@ impl Taken {
 }
 
 /// Makes a file in conflict what one side has: `git checkout --ours -- <file>` (or `--theirs`) then `git add`, or
-/// `git rm` when that side deleted it. It asks first, since the changes the other side made to it are left out. Undo
+/// `git rm` when that side deleted it. It asks first, since the changes the other side made to it are left out, and
+/// warns when the file has lines that neither side nor the base has, which were typed in it and are lost too. Undo
 /// marks its conflicts again when git still had both sides.
 ///
 /// Feature: conflicts.take-side
@@ -54,7 +61,31 @@ pub fn take_side(context: &Context, answers: &Answers) -> Outcome {
         Some(None) => return refuse(&format!("{path} is not in conflict.")),
         Some(Some(stages)) => stages,
     };
-    Outcome::Run(plan(context, (path, stages), taken))
+    let Some(texts) = answers.conflict_texts(TEXTS) else {
+        return Outcome::Read(TEXTS, Query::ConflictTexts);
+    };
+    let typed = texts.iter().find(|text| text.path == path).is_some_and(has_typed_lines);
+    Outcome::Run(plan(context, (path, stages, typed), taken))
+}
+
+/// Whether the file on disk has a line that is in none of the base and the two sides and is not one of git's markers:
+/// a line typed in it since git stopped.
+fn has_typed_lines(texts: &ConflictTexts) -> bool {
+    let lines_of = |bytes: Option<&[u8]>| -> Vec<String> {
+        bytes.map_or_else(Vec::new, |bytes| {
+            model::review::split_lines(&String::from_utf8_lossy(bytes))
+                .into_iter()
+                .map(|(line, _)| line.to_owned())
+                .collect()
+        })
+    };
+    let known: std::collections::HashSet<String> = [&texts.base, &texts.current, &texts.incoming]
+        .into_iter()
+        .flat_map(|side| lines_of(side.as_deref()))
+        .collect();
+    lines_of(texts.file.as_deref())
+        .iter()
+        .any(|line| !known.contains(line) && !MARKERS.iter().any(|marker| line.starts_with(marker)))
 }
 
 /// Which side to take, when the button did not say.
@@ -79,7 +110,7 @@ fn side_question(path: &str) -> Question {
 }
 
 /// The plan of a side taken.
-fn plan(context: &Context, (path, stages): (&str, &FileStages), taken: Taken) -> Plan {
+fn plan(context: &Context, (path, stages, typed): (&str, &FileStages, bool), taken: Taken) -> Plan {
     let folder = context.repository.folder.clone();
     let words = |list: &[&str]| -> Vec<OsString> {
         let mut arguments: Vec<OsString> = list.iter().map(OsString::from).collect();
@@ -124,10 +155,17 @@ fn plan(context: &Context, (path, stages): (&str, &FileStages), taken: Taken) ->
             "{path} was deleted by one side, so git cannot mark its conflicts again."
         )))
     };
+    let danger = if typed {
+        Danger::Destructive(Text::from(format!(
+            "{reason} {path} has lines that neither side has, typed in it since git stopped: they are lost too."
+        )))
+    } else {
+        Danger::Confirm(Text::from(reason))
+    };
     Plan {
         title: Text::from(title),
         steps,
-        danger: Danger::Confirm(Text::from(reason)),
+        danger,
         undo,
         after: Vec::new(),
         on_failure: Vec::new(),
