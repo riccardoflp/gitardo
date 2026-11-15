@@ -44,10 +44,15 @@ pub mod methods {
     pub const QUESTION_VALIDATE: &str = "question/validate";
     /// Every setting, whenever one changes.
     pub const SETTINGS_CHANGED: &str = "settings/changed";
+    /// The newest entry of the journal, for the label of Undo.
+    pub const JOURNAL_LAST: &str = "journal/last";
+    /// An operation the extension ran, recorded for Undo.
+    pub const JOURNAL_RECORD: &str = "journal/record";
 }
 
-/// The version of the protocol the engine speaks: 1.1 added the messages of the features (stage 2).
-pub const VERSION: &str = "1.1";
+/// The version of the protocol the engine speaks: 1.1 added the messages of the features (stage 2), 1.2 those of the
+/// journal (stage 3).
+pub const VERSION: &str = "1.2";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]

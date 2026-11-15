@@ -6,9 +6,10 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.1** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.2** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
-`feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. The rest is not built yet.
+`feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
+for Undo: `journal/last` and `journal/record`. The rest is not built yet.
 
 ## Transport
 
@@ -68,7 +69,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.1",
+  protocol: "1.2",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -377,10 +378,13 @@ moves their features.
 
 From the extension, only while some operations still run in TypeScript
 ([06-roadmap.md](06-roadmap.md#stage-3--undo-in-the-engine)): `{ repository, title: string, record: UndoRecord | null,
-head: CommitId | null }` → `{ number }`. The extension tells the engine what it ran, with what its `GitOp` remembered
-(`writes`, the dropped stash, the deleted branch) converted to an `UndoRecord`, or `null` when the reflog is enough.
-**Undo** is then always `feature/run` of `undo.last`, and finds the newest operation whichever of the two ran it. The
-request goes away with `src/git`.
+before: Head, after: Head }` → `{ number: number | null }`, `before` and `after` being what was checked out around the
+operation. The extension tells the engine what it ran, with what its `GitOp` remembered (the dropped stash, the deleted
+branch) converted to an `UndoRecord`: `{ kind: "reflog" }` when it moved `HEAD`, `{ kind: "notUndoable", reason }`
+when it changed a reference Undo does not take back, or `null` when it changed only files and the index, which adds
+nothing (`number` is then `null`). The entries before are dropped first when `before` is not what the newest entry
+left. **Undo** is then always `feature/run` of `undo.last`, and finds the newest operation whichever of the two ran it.
+The request goes away with `src/git`.
 
 ## The log and the activity
 
@@ -504,11 +508,12 @@ The fields are those of `model`; this section says only what the JSON adds or le
   path }`, `{ kind: "deleteEmptyFolder", path }`, `{ kind: "warn", text }`, each with a `line` too: the line the
   engine logs for it (`Step::log_line`). The extension shows them only, in the confirmation and in the log, by that
   line.
-- **`JournalEntry`** (`model/src/contract/journal.rs`): `{ number, title, head: CommitId | null }`; the record stays
-  in the engine.
-- **`UndoRecord`**, sent only in `journal/record`: `{ kind: "branchDeleted", name, commit }`, `{ kind: "stashDropped",
-  commit, message }`, `{ kind: "conflictsResolved", … }`, `{ kind: "squashMerge", … }`, `{ kind: "series", records }`,
-  `{ kind: "splitLast", … }`, the fields of each from `journal.rs` at stage 3.
+- **`JournalEntry`** (`protocol/src/journal.rs`): `{ number, title, undoable: boolean, head: Head }`; `undoable` is
+  false for an operation Undo cannot take back. The record stays in the engine.
+- **`UndoRecord`** (`protocol/src/journal.rs`), sent only in `journal/record`: `{ kind: "reflog" }`, `{ kind:
+  "notUndoable", reason }`, `{ kind: "branchCreated", name }`, `{ kind: "branchDeleted", name, commit }`, `{ kind:
+  "stashDropped", message, commit }`, `{ kind: "conflictsResolved", files: string[] }`, `{ kind: "squashMerge" }`, `{
+  kind: "series", headBefore }`, `{ kind: "splitLast", commit }`; each commit a full id.
 
 The protocol's own tests round-trip each type through JSON and check that every variant of every enum above has its
 JSON form ([07-rules.md](07-rules.md)).

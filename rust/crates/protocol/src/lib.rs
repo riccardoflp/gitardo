@@ -9,6 +9,7 @@
 #![forbid(unsafe_code)]
 
 pub mod feature;
+pub mod journal;
 pub mod messages;
 pub mod rpc;
 pub mod state;
