@@ -64,6 +64,15 @@ impl Asker for HostAsker<'_> {
         answer.map(Answer::from)
     }
 
+    /// The text of the clipboard of VS Code, which the extension reads itself before it runs a feature that may need
+    /// it, and gives as the text answered under `clipboard`; none when it gave none.
+    fn clipboard(&mut self) -> Option<String> {
+        match self.given.remove(features::patch::CLIPBOARD.0) {
+            Some(AnswerJson::Text { text }) => Some(text),
+            _ => None, // Any other answer is no text of the clipboard.
+        }
+    }
+
     fn confirm(&mut self, plan: &Plan) -> bool {
         let params = ConfirmParams {
             run: self.run.clone(),

@@ -1279,6 +1279,8 @@ export class Controller implements vscode.Disposable {
    */
   private async formatPatch(repo: Repo, hashes: unknown, save: boolean): Promise<void> {
     if (!Array.isArray(hashes) || !hashes.length || !hashes.every(isHash)) return;
+    // Area 3: the engine makes the patch, and puts it on the clipboard or in the file the save dialog chose.
+    if (await this.runOnEngine([{ feature: save ? 'patch.save' : 'patch.copy', target: { kind: 'commits', commits: hashes } }], repo)) return;
     const short = (hash: string) => hash.slice(0, 7);
     const commits = hashes.length === 1 ? short(hashes[0]) : `${hashes.length} commits`;
     try {
@@ -1681,6 +1683,16 @@ export class Controller implements vscode.Disposable {
     // The operations of the areas moved to the engine are its own: their TypeScript is only for an engine that is not
     // there. Undo is the engine's too, which takes back the newest operation whichever of the two ran it.
     const runs = engineRuns(action, state);
+    // Area 3. The clipboard is VS Code's: the text of a patch in it is read here and given to the engine. A bisect says
+    // once it ran whether the commit it was looking for is found, which the engine leaves to the window.
+    if (runs && this.engine?.running && (action.kind === 'applyPatch' || action.kind === 'bisect')) {
+      const first = runs[0];
+      if (action.kind === 'applyPatch' && first) first.answers = { clipboard: { kind: 'text', text: await vscode.env.clipboard.readText() } };
+      if (await this.runOnEngine(runs, repo)) {
+        if (action.kind === 'bisect') this.reportBisect();
+        return;
+      }
+    }
     if (runs && (await this.runOnEngine(runs, repo))) return;
     // A key binding, or a view drawn before the setting changed, can still ask for it.
     if (action.kind === 'resolveConflicts' && !this.autoResolve()) {
@@ -1811,21 +1823,17 @@ export class Controller implements vscode.Disposable {
       this.operations++;
       this.post({ type: 'busy', title: feature });
       let result: Awaited<ReturnType<typeof client.runFeature>> | undefined;
+      const asker = new VscodeAsker(client, repo.root, hooks);
+      let failed: unknown;
       try {
         const inputs = this.memento.get<Record<string, string>>(LAST_INPUTS, {});
-        result = await client.runFeature({ repository: repo.root, feature, target, answers, inputs }, new VscodeAsker(client, repo.root, hooks));
+        result = await client.runFeature({ repository: repo.root, feature, target, answers, inputs }, asker);
       } catch (failure) {
         if (!(failure instanceof EngineError && (failure.code === ErrorCode.busy || failure.code === ErrorCode.cancelled))) {
           const data = failure instanceof EngineError ? (failure.data as { output?: string | null; followUps?: FollowUp[] } | undefined) : undefined;
           const said = data?.output?.trim();
           if (said) this.log.error(said);
-          // What the plan offers once git refused it, such as **Delete anyway**, is a button on the error (area 2).
-          const offers = (data?.followUps ?? []).filter((followUp): followUp is OfferedRun => followUp.kind === 'offerRun');
-          void vscode.window.showErrorMessage(`Gitardo: ${errorText(failure)}`, ...offers.map((offer) => offer.label), 'Show Log').then((choice) => {
-            const offer = offers.find((each) => each.label === choice);
-            if (offer) void this.runOnEngine([{ feature: offer.feature, target: offer.target, answers: offer.answers }], repo);
-            else if (choice) this.log.show();
-          });
+          failed = failure;
         }
       } finally {
         // The repository is read once the run is over: nothing is read while an operation runs.
@@ -1838,6 +1846,8 @@ export class Controller implements vscode.Disposable {
         await this.followUpsBeforeRead(followUps);
       }
       await this.refresh();
+      // Said once the repository is read again, which tells whether it stopped on conflicts.
+      if (failed !== undefined) this.reportEngineFailure(failed, asker.confirmed, repo);
       if (finished?.kind === 'refused') this.offerAfterRefusal(finished.message, finished.offer, target, repo);
       if (finished?.kind !== 'ran') return true;
       this.followUpsAfterRead(followUps);
@@ -1850,6 +1860,27 @@ export class Controller implements vscode.Disposable {
     const items = offer ? [offer.label] : [];
     void vscode.window.showWarningMessage(`Gitardo: ${message}`, ...items).then((choice) => {
       if (offer && choice === offer.label) void this.runOnEngine([{ feature: offer.feature, target }], repo);
+    });
+  }
+
+  /**
+   * Says that a step of the engine failed: as a merge, a rebase, a cherry-pick, a revert or a patch of TypeScript says it
+   * stopped when files are left in conflict, with the title of the plan confirmed, and with the engine's words
+   * otherwise (area 3), with a button for each operation the plan offers once git refused it, such as **Delete anyway**
+   * (area 2).
+   */
+  private reportEngineFailure(failure: unknown, title: string | undefined, repo: Repo): void {
+    const operation = this.state?.operation;
+    if (failure instanceof EngineError && failure.code === ErrorCode.stepFailed && this.state?.working.conflicts.length) {
+      this.reportFailure({ title: title ?? `The ${operation ?? 'operation'}` }, errorText(failure));
+      return;
+    }
+    const data = failure instanceof EngineError ? (failure.data as { followUps?: FollowUp[] } | undefined) : undefined;
+    const offers = (data?.followUps ?? []).filter((followUp): followUp is OfferedRun => followUp.kind === 'offerRun');
+    void vscode.window.showErrorMessage(`Gitardo: ${errorText(failure)}`, ...offers.map((offer) => offer.label), 'Show Log').then((choice) => {
+      const offer = offers.find((each) => each.label === choice);
+      if (offer) void this.runOnEngine([{ feature: offer.feature, target: offer.target, answers: offer.answers }], repo);
+      else if (choice) this.log.show();
     });
   }
 
@@ -1883,6 +1914,15 @@ export class Controller implements vscode.Disposable {
         // Branches, tags and remotes (stage 4, area 2): a fetch, a pull, a push or a remote changed.
         case 'readPullRequests':
           void this.refreshPulls(true);
+          break;
+        // The commit box of the Changes view, after a squash merge and a split (area 3).
+        case 'preparedMessage': {
+          const prepared = (await this.repo?.squashMessage().catch(() => null))?.trim();
+          if (prepared) this.post({ type: 'commitMessage', message: prepared });
+          break;
+        }
+        case 'fillCommitMessage':
+          if (String(followUp.message)) this.post({ type: 'commitMessage', message: String(followUp.message) });
           break;
         default:
           break;
@@ -2718,7 +2758,7 @@ export class Controller implements vscode.Disposable {
     return `${note}Gitardo will write in ${repo.root}:\n\n${files}${commands ? `\n\nand then run:\n\n${commands}` : ''}`;
   }
 
-  private reportFailure(op: GitOp, error: string): void {
+  private reportFailure(op: Pick<GitOp, 'title'>, error: string): void {
     const showLog = (choice?: string) => choice && this.log.show();
     const conflicts = this.state?.working.conflicts.length ?? 0;
     if (this.state && conflicts) {

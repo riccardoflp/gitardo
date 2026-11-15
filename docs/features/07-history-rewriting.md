@@ -125,6 +125,13 @@ operation to continue, skip or abort.
   `(cherry picked from commit <hash>)`.
 - **Uses**: `cherry-pick.skip-empty`, `conflicts.continue-operation`, `conflicts.skip-step`, `conflicts.abort-operation`, `undo.last`,
   `undo.journal`.
+- **Extension**: **Cherry-pick onto `<current>`** in the bar above the graph that counts the selected commits (tooltip
+  *Applies them oldest first, as one operation*) and **Cherry-pick N commits onto `<current>`** in the context menu of
+  the selection, the commits selected with `Ctrl`+click (`Cmd` on macOS) and `Shift`+click (`selectionMenu` in
+  `src/webview/menus.ts`, the bar in `src/webview/App.tsx`). The action `cherryPickMany` runs it with the commits in the
+  order of the rows of the graph, newest first (`engineRuns` in `src/engine/actions.ts`). Without the engine,
+  `cherryPickManyOp` of `src/git/ops.ts` runs the same command, titled **Cherry-pick N commits** with the commits listed
+  *In this order:*, and `Controller.action` remembers the series for Undo.
 
 Acceptance:
 
@@ -135,6 +142,14 @@ Acceptance:
       where it was.
 - [ ] After a stop on the second commit, resolved and continued in Gitardo, one Undo takes back all three.
 - [ ] After a stop that was continued from a terminal, Undo takes back only the last commit.
+- [ ] Extension: selecting *Pick two*, then *Pick one* (older), and choosing **Cherry-pick onto main** runs `git
+      cherry-pick <one> <two>`, and the branch ends with *Pick one*, then *Pick two*.
+- [ ] Extension: the bar and the menu offer nothing to cherry-pick when a merge commit is selected, while an operation
+      is under way, or during a bisect.
+- [ ] Extension: with `gitardo.commandPreview` set to `all`, the question is **Cherry-pick 2 commits onto main?** and
+      ends with `git cherry-pick <one> <two>`; right after, **Undo** asks **Undo "Cherry-pick 2 commits onto main"?**
+      and runs `git reset --keep <before>`.
+- [ ] Extension: **Abort** while the series is stopped leaves `HEAD` where it was before it.
 
 ### `cherry-pick.commit` — Cherry-pick a commit
 
@@ -156,6 +171,12 @@ Applies the changes of one commit onto what is checked out, as a new commit, aft
   stops on conflicts, the conflicts banner and the Changes page show them.
 - **Settings**: `cherryPick.recordOrigin` adds `-x`, also for a commit dropped on the one checked out.
 - **Uses**: `merge.read-predicted-conflicts`, `cherry-pick.skip-empty`, `conflicts.continue-operation`, `undo.last`.
+- **Extension**: **Cherry-pick `<short>`** in the context menu of a commit in the graph and the Gitardo Graph, also on a
+  merge and while an operation is under way (`commitMenu` in `src/webview/menus.ts`); **Cherry-pick `<short>` onto
+  `<current>`** for a commit dropped on the commit checked out or on the row of the uncommitted changes; **Cherry-pick**
+  for a position chosen in the list of the reflog (`Controller.browseReflog`). The action `cherryPick` runs it on the
+  commit. The setting is `gitardo.cherryPick.recordOrigin`. Without the engine, `cherryPickOp` of `src/git/ops.ts`, with
+  `skipEmptyPicks`, runs the same command and gives a merge commit no prediction of conflicts.
 
 Acceptance:
 
@@ -166,6 +187,10 @@ Acceptance:
 - [ ] Picking a merge commit runs `git cherry-pick -m 1 <hash>` and predicts nothing.
 - [ ] With Git older than 2.40, the prediction is skipped and the pick runs as with no conflict predicted.
 - [ ] Undo after a pick resets the branch to the commit it was at before.
+- [ ] Extension: with `gitardo.cherryPick.recordOrigin` on, the new message ends with `(cherry picked from commit
+      <hash>)`; off, it is the message picked.
+- [ ] Extension: while a merge is stopped, **Cherry-pick** says *Finish or abort the merge first.* and git does not run.
+- [ ] Extension: dropping a commit anywhere but on the commit checked out or the uncommitted changes offers nothing.
 
 ### `cherry-pick.skip-empty` — Get past a commit that changes nothing
 
@@ -213,12 +238,20 @@ Makes a new commit that takes back the changes of a commit.
 - **Undo**: by the reflog (`undo.last`): the branch goes back to the commit before the revert.
 - **After**: when it stops on conflicts, the conflicts banner shows **Continue**, **Skip** and **Abort**.
 - **Uses**: `conflicts.continue-operation`, `cherry-pick.skip-empty`, `undo.last`.
+- **Extension**: **Revert `<short>`** in the context menu of a commit in the graph, the Gitardo Graph and the Commits
+  view (`commitMenu`, `logMenu` in `src/webview/menus.ts`), also while an operation is under way. The action `revert`
+  runs it on the commit; without the engine, `revertOp` of `src/git/ops.ts` runs the same command.
 
 Acceptance:
 
 - [ ] Reverting a commit with one parent runs `git revert --no-edit <hash>`.
 - [ ] Reverting a merge commit runs `git revert --no-edit -m 1 <hash>`.
 - [ ] The new commit's subject is `Revert "<subject of the commit>"`.
+- [ ] Extension: **Revert 1a2b3c4** runs `git revert --no-edit <hash>` and no editor opens; right after it, **Undo**
+      asks, then runs `git reset --keep <previous>`.
+- [ ] Extension: while a cherry-pick is stopped, **Revert** says *Finish or abort the cherry-pick first.*
+- [ ] Extension: reverting a commit whose changes are taken back already fails with git's *nothing to commit*, and
+      nothing is left under way.
 
 ### `reset.to-commit` — Reset the current branch to a commit
 
@@ -238,6 +271,11 @@ Moves the branch checked out (or `HEAD` when detached) to a commit, keeping the 
 - **Undo**: by the reflog (`undo.last`): the branch goes back to the commit it was at. What a hard reset threw away of
   the changes not committed is not brought back.
 - **Uses**: `undo.last`.
+- **Extension**: **Reset `<current>` to here…** in the context menu of a commit in the graph and the Gitardo Graph
+  (every commit, the one checked out included), in the Commits view (every commit but the one checked out) and in the
+  list of the reflog; **Reset `<name>` to `<short>`…** for the current branch dropped on another commit. The action
+  `reset` runs it on the commit, and the mode is picked in a quick pick. Without the engine, `resetOp` of
+  `src/git/ops.ts`, titled `Reset <current> to <short> (<mode>)`.
 
 Acceptance:
 
@@ -246,6 +284,8 @@ Acceptance:
 - [ ] Closing the pick runs nothing.
 - [ ] Every commit of the timeline, narrowed to the branch checked out or not, has the reset entry in its context
       menu, the commit checked out included.
+- [ ] Extension: **Soft** leaves the changes of the commits after it staged and **Mixed** unstaged; right after a hard
+      reset, **Undo** brings the commits back with `git reset --keep <previous>`.
 
 ### `merge.read-predicted-conflicts` — Predict the conflicts of a merge
 
@@ -257,6 +297,9 @@ Works out, without touching the index or the working tree, which files a merge w
 - **Reads**: `git merge-tree --write-tree --no-messages --name-only -z [--merge-base=<base>] <ours> <theirs>`, where
   `<ours>` is `HEAD` unless the request says otherwise, and `<base>` is given for a cherry-pick (the parent of the
   commit picked).
+- **Extension**: the engine reads it for the merges and the cherry-pick it runs. Without the engine,
+  `Repo.conflictsWith` (`src/git/repo.ts`), with `GIT_OPTIONAL_LOCKS=0` and not written to the log at the info level,
+  put in the question by `withConflictPreview` (`src/extension/actions.ts`).
 
 Rules:
 
@@ -274,6 +317,8 @@ Acceptance:
 - [ ] Output `<tree>\0` with exit code 0 gives an empty list.
 - [ ] Exit code 128 gives "cannot tell".
 - [ ] 20 paths are said as 15 lines and *…and 5 more*.
+- [ ] Extension: for a branch `other` that changes `a.txt` where `HEAD` changed it too, the prediction is `a.txt`, and
+      the working tree, the index and `HEAD` are as they were.
 
 ### `merge.into-current` — Merge into the current branch
 
@@ -296,6 +341,14 @@ when one is possible, otherwise a merge commit.
 - **After**: when it stops on conflicts, the conflicts banner shows **Continue** and **Abort** (a merge has no step to
   skip).
 - **Uses**: `merge.read-predicted-conflicts`, `merge.choose-way`, `conflicts.continue-operation`, `conflicts.abort-operation`, `undo.last`.
+- **Extension**: **Merge into `<current>`** in the context menu of a commit, of a local branch (its label in the graph,
+  the references, the Branches view) and of a remote branch, also while an operation is under way, and **Merge `<name>`
+  into `<current>`** in the menu of a branch dropped on the commit checked out, not while one is (`mergeEntries` and
+  `integrate` in `src/webview/menus.ts`). The action `merge` with no way, or the way `default`, runs it (`engineRuns` in
+  `src/engine/actions.ts`); when it stops on conflicts, the message is *Merge `<name>` into `<current>` stopped: N files
+  have conflicts. Resolve them, then continue or abort the merge.* (`reportEngineFailure` in
+  `src/extension/controller.ts`). Without the engine, `mergeOp` of `src/git/ops.ts` runs the same command and refuses a
+  ref that starts with `-`, *"`<ref>`" is not a valid name.*
 
 Acceptance:
 
@@ -303,6 +356,13 @@ Acceptance:
 - [ ] With a tag also called `feature`, it runs `git merge refs/heads/feature`.
 - [ ] Merging the commit checked out is not offered.
 - [ ] A merge predicted to conflict in `src/a.rs` asks first and names that file.
+- [ ] Extension: **Merge into main** in the menu of the branch `feature` runs `git merge feature`, logged as `> git
+      merge feature`; with `gitardo.commandPreview` set to `all`, the question **Merge feature into main?** says *No
+      conflicts expected.*
+- [ ] Extension: a merge that will conflict in `a.txt` is asked first whatever the setting, and once it stopped, the
+      message says *Merge feature into main stopped: 1 file has conflicts.*
+- [ ] Extension: right after a merge that moved `main`, **Undo** asks, then runs `git reset --keep <previous>`; while
+      the merge is stopped, **Undo** says *Finish or abort the merge first.*
 
 ### `merge.choose-way` — Merge into the current branch, choosing how
 
@@ -340,6 +400,13 @@ has the ways to pull.
   `<current>` has not, *`<current>` already has every commit of `<ref>`.*; otherwise *`<current>` cannot be
   fast-forwarded to `<ref>`: it has commits that `<ref>` has not. Merge it another way, or rebase `<current>` onto it.*
 - **Uses**: `merge.read-predicted-conflicts`, `merge.undo-squash`, `undo.journal`.
+- **Extension**: **Merge into `<current>`…**, with the hint *choose how*, right after **Merge into `<current>`** in the
+  same menus, and **Merge `<name>` into `<current>`…** in the drop menu. The action `merge` with the way `ask` runs it,
+  and the way is picked in a quick pick; a view that names the way gives it as the answer `way` (`noFastForward` as
+  `no-ff`, `fastForwardOnly` as `ff-only`, `squash`). A fast-forward only that is not possible is refused with a
+  warning. After a squash, the message has no buttons, and the commit box of the Changes view gets the message git
+  prepared (the follow-up `preparedMessage`). Without the engine, `mergeOp` of `src/git/ops.ts` with the way, the
+  refusal is an error, and the message after a squash has **Show Changes** and **Undo** (`Controller.reportSquashed`).
 
 Acceptance:
 
@@ -351,6 +418,13 @@ Acceptance:
       text of `.git/SQUASH_MSG` when it was empty.
 - [ ] After **Merge (squash)**, a draft whose message already had text keeps it.
 - [ ] Closing the pick runs nothing.
+- [ ] Extension: the quick pick offers **Merge**, **Merge (no fast-forward)**, **Merge (fast-forward only)** and **Merge
+      (squash)** in this order, each with its `git merge` command in its description; `Escape` runs nothing.
+- [ ] Extension: **Merge (squash)** of `feature` stages the changes, moves no branch, and an empty commit box gets the
+      message git prepared; **Undo** right after, also once a file was staged, asks **Undo "Merge feature into main
+      (squash)"?** and runs `git reset --merge`.
+- [ ] Extension: **Merge (fast-forward only)** when `main` has a commit of its own says *main cannot be fast-forwarded
+      to feature: …* without running git.
 
 ### `merge.undo-squash` — Take back a squash merge
 
@@ -368,12 +442,17 @@ the index and the working tree.
   was staged since. Changes that are not staged stay.* The title is *Undo "Merge `<ref>` into `<current>` (squash)"*.
 - **Undo**: none: what it took out can be staged again only by merging again.
 - **Uses**: `undo.last`, `undo.journal`.
+- **Extension**: **Undo** in the toolbar right after a squash merge, which `undo.last` finds in the journal. Without the
+  engine, `undoSquashOp` of `src/git/ops.ts`, which `Controller.action` remembers until another operation runs or the
+  reflog of `HEAD` moves.
 
 Acceptance:
 
 - [ ] Right after a squash merge, Undo runs `git reset --merge` and nothing is staged after it.
 - [ ] After a squash merge that stopped on conflicts, Undo runs `git reset --merge` and no file is left in conflict.
 - [ ] After a squash merge and a commit, Undo takes back the commit by the reflog instead.
+- [ ] Extension: after a squash merge and a file staged, **Undo** runs `git reset --merge`, and nothing is staged after
+      it.
 
 ### `rebase.onto` — Rebase the current branch onto a commit or a branch
 
@@ -394,6 +473,10 @@ Makes the commits of the branch checked out again on top of another commit, bran
 - **After**: when it stops on conflicts, the conflicts banner shows **Continue**, **Skip** and **Abort**.
 - **Refuses**: nothing of its own; when git refuses (changes not committed), git's words are shown.
 - **Uses**: `conflicts.continue-operation`, `conflicts.skip-step`, `conflicts.abort-operation`, `undo.last`.
+- **Extension**: **Rebase `<current>` onto this** in the context menu of a commit, a local branch and a remote branch,
+  where **Merge into `<current>`** is; **Rebase `<current>` onto `<name>`** and **Rebase `<current>` onto `<short>`** in
+  the drop menu (`integrate` and `dropMenu` in `src/webview/menus.ts`). The action `rebase` with no branch runs it.
+  Without the engine, `rebaseOp` of `src/git/ops.ts`, which refuses a name that starts with `-`.
 
 Acceptance:
 
@@ -401,6 +484,11 @@ Acceptance:
 - [ ] Dropping `main` (checked out) on commit `abc1234` and choosing **Rebase main onto abc1234** runs
       `git rebase <full hash>`.
 - [ ] Undo after a clean rebase puts the branch back on the commit its reflog had before the rebase.
+- [ ] Extension: **Rebase main onto this** on the branch `feature` runs `git rebase feature`, logged as `> git rebase
+      feature`, without a question while `gitardo.commandPreview` is `off`.
+- [ ] Extension: with changes not committed, git refuses and its failure is shown with **Show Log**; nothing changed.
+- [ ] Extension: right after a rebase of three commits, one **Undo** runs `git reset --keep <previous>` and the three
+      commits are as they were.
 
 ### `rebase.branch-onto` — Rebase another local branch onto a commit
 
@@ -411,16 +499,29 @@ Rebases a local branch that is not checked out onto the commit it is dropped on;
 - **Entry points**: **Rebase `<branch>` onto `<short hash>`** in the menu of a local branch, not checked out, dropped on
   another commit (`drag.drop`).
 - **Offered when**: the branch is local, is not at the commit it is dropped on, and no other worktree has it checked out.
+- **Asks**: when no branch is given, which one, from the local branches not checked out here and not at the commit; a
+  branch another worktree has checked out is in the list, described *checked out in another worktree*, and refused when
+  picked.
 - **Plan**: `git rebase <onto> <branch>`.
 - **Danger**: None.
 - **Undo**: by the reflog (`undo.last`). After it, `<branch>` is the branch checked out, as git leaves it.
+- **Refuses**: *`<branch>` is checked out: rebase it onto `<short>` instead.*; *`<branch>` is checked out in another
+  worktree: rebase it there.*
 - **Uses**: `drag.drop`, `undo.last`.
+- **Extension**: **Rebase `<name>` onto `<short>`** in the drop menu, for another local branch dropped on another
+  commit, not for one another worktree has checked out (`dropMenu` in `src/webview/menus.ts`). The action `rebase` with
+  a branch runs it on the commit, the branch given as the answer `branch`. Without the engine, `rebaseOp(onto, current,
+  branch)` of `src/git/ops.ts`, and git refuses a branch checked out elsewhere with its own words.
 
 Acceptance:
 
 - [ ] Dropping `feature` (not checked out) on `abc1234` offers only **Rebase feature onto abc1234**, which runs
       `git rebase <full hash> feature`.
 - [ ] A branch that another worktree has checked out is not accepted by any row other than its own.
+- [ ] Extension: dropping the local branch `topic`, not checked out, on `1a2b3c4` offers **Rebase topic onto 1a2b3c4**,
+      which runs `git rebase <full hash> topic`; `topic` is checked out afterwards.
+- [ ] Extension: a branch another worktree has checked out offers no rebase when dropped on a commit; asked to rebase
+      it, the engine says *topic is checked out in another worktree: rebase it there.* before git runs.
 
 ### `rebase.find-line-before-head` — The line of commits an interactive rebase can rewrite
 
@@ -431,6 +532,11 @@ form a single line without merges. It decides where the interactive rebase, **Ed
 - **Kind**: Derivation
 - **Function**: `model::rebase::find_line_before_head(input) -> Option<Vec<CommitId>>`
 - **Uses**: the commits of the timeline as loaded, each with its parents.
+- **Extension**: in the views, `rebaseRange(hash, state)`, `canReword(hash, state)` and `canSquash(rows, state)` of
+  `src/webview/menus.ts` decide what the menus offer: `canReword` is false on the row of the uncommitted changes and
+  during an operation or a bisect, and true on `HEAD`, a merge or not. Without the engine, the host checks again with
+  `Repo.lineAfter(hash)` (`src/git/repo.ts`, with `GIT_OPTIONAL_LOCKS=0`) and `squashRange`
+  (`src/extension/actions.ts`).
 
 Rules:
 
@@ -450,6 +556,8 @@ Acceptance:
 
 - [ ] Each example above holds.
 - [ ] A commit further down than the rows loaded gives nothing.
+- [ ] Extension: with the rows `e` → `d` → `c` → `b` (a merge) → `a`, `canSquash` is true for `e, d` and for `d, c`, and
+      false for `e, c`, for `c, b`, for `e` alone and during a rebase.
 
 ### `rebase.read-pushed` — Where a commit was pushed
 
@@ -461,6 +569,9 @@ will have to be force pushed.
 - **Entry points**: none: used by `message.edit`, `squash.commits`, `squash.into-previous` and `split.commit`.
 - **Reads**: `git for-each-ref --contains <hash> --format=%(refname:short) refs/remotes`, leaving out the names that end
   in `/HEAD` and the ones with no `/`.
+- **Extension**: the engine reads it for `message.edit`, `squash.commits` and `split.commit`. Without the engine,
+  `Repo.remoteBranchesWith(hash)` (`src/git/repo.ts`) and `warnIfPushed` (`src/extension/actions.ts`), with the same
+  note. Neither reads it for the fixup, the rebase editor, `rebase.onto` or the reset.
 
 Rules:
 
@@ -473,6 +584,8 @@ Acceptance:
 - [ ] A commit on `origin/main` and `origin/feature` gives both, and the note names both.
 - [ ] A commit on five remote branches is said as three names and *and 2 more*.
 - [ ] A commit on no remote branch gives nothing and adds no note.
+- [ ] Extension: rewording the last commit after it was pushed to `origin/reword` asks, even with
+      `gitardo.commandPreview` set to `off`, with the note above.
 
 ### `rebase.todo-page` — The interactive rebase page
 
@@ -486,6 +599,10 @@ drop each one before the rebase starts.
 - **Offered when**: `rebase.find-line-before-head` gives a line for the commit, and no merge, rebase, cherry-pick,
   revert, patch or bisect is under way.
 - **Uses**: `rebase.find-line-before-head`, `rebase.interactive`.
+- **Extension**: a dialog over the Graph view, `RebaseEditor` (`src/webview/RebaseEditor.tsx`), opened by **Interactive
+  rebase of N commits…** or **Edit this commit (interactive rebase)…** in the context menu of a commit in the graph or
+  the Gitardo Graph. **Start rebase** posts the action `rebaseInteractive` with the steps oldest first, the base, and
+  each subject reworded with `keepBody`.
 
 What it shows:
 
@@ -517,6 +634,11 @@ Acceptance:
 - [ ] **Cancel** closes the page and runs nothing.
 - [ ] **Start rebase** closes the page and calls `rebase.interactive` with the rows oldest first.
 - [ ] While a bisect is under way, no commit offers the page, nor squashing into the commit before it, nor splitting.
+- [ ] Extension: on the third commit below `HEAD` of a line without merges, the menu has **Interactive rebase of 3
+      commits…**, and on `HEAD` **Edit this commit (interactive rebase)…**; neither below a merge, while an operation is
+      under way, or during a bisect.
+- [ ] Extension: the dialog lists the commits newest first, all **Pick**, and **Start rebase** is disabled until
+      something changes.
 
 ### `rebase.build-todo-list` — The todo list of an interactive rebase
 
@@ -525,6 +647,9 @@ and the files of the new messages.
 
 - **Kind**: Derivation
 - **Function**: `model::rebase::build_todo_list(steps: &[TodoStep], folder: &str) -> Result<TodoList, Text>`
+- **Extension**: `todoRows` (`src/engine/actions.ts`) writes the steps of the rebase editor as the rows of
+  `rebase.interactive`: `<action> <full hash>`, and for a reword its new subject, from which the engine builds this
+  list. Without the engine, `rebaseTodo(steps, messageFile)` of `src/git/ops.ts` builds the same list.
 
 Rules:
 
@@ -559,6 +684,8 @@ Acceptance:
 - [ ] The example above gives exactly that text and that file.
 - [ ] A reword whose message is given whole (not only a subject) writes that message alone.
 - [ ] `drop A`, `drop B` is refused with the first message; `drop A`, `squash B` with the second.
+- [ ] Extension: the steps `pick A`, `reword B` with the subject *Add two, new* and `fixup C` are written as the rows
+      `pick A`, `reword B Add two, new` and `fixup C`, one a line.
 
 ### `rebase.interactive` — Run an interactive rebase
 
@@ -587,6 +714,12 @@ copy the prepared one over it, since no editor can be typed into.
 - **Refuses**: as `rebase.build-todo-list`; when git refuses to start (changes not committed and no `--autostash`),
   git's words are shown.
 - **Uses**: `rebase.build-todo-list`, `rebase.read-stop`, `rebase.edit-stop`, `conflicts.continue-operation`, `undo.last`.
+- **Extension**: **Start rebase** in the dialog of the rebase editor posts `rebaseInteractive`, which runs it on `HEAD`
+  with the rows as the answer `todo`, unless a reword gives a whole message, which the rows cannot say (`engineRuns` in
+  `src/engine/actions.ts`). Without the engine, or for such a reword, `interactiveRebase` of `src/extension/actions.ts`
+  writes the todo list and the messages into `gitardo-rebase-XXXXXX` in the temporary folder of the system while the
+  question is built, with no `write` line in the log, removes the folder only after a rebase that ended in one go, and
+  does not refuse while a bisect is under way.
 
 Acceptance:
 
@@ -598,6 +731,10 @@ Acceptance:
 - [ ] A list whose oldest commit is the root runs `git rebase -i --root`.
 - [ ] The confirmation shows the todo list before anything runs.
 - [ ] After a clean rebase the `gitardo-rebase` folder is gone; after a stop it is there.
+- [ ] Extension: the todo list and the message files are written into `<git folder>/gitardo-rebase` once the user
+      agrees, each with a `write` line in the log, and the folder is gone once the rebase ends.
+- [ ] Extension: while a bisect is under way, the rebase of the rebase editor is refused with *End the bisect first.*
+- [ ] Extension: with a file changed and not committed, git refuses and nothing is rewritten.
 
 ### `rebase.read-stop` — Where an interactive rebase stopped to change a commit
 
@@ -608,6 +745,8 @@ Tells a stop to edit a commit, or to split one, from a stop on a conflict, and n
 - **Entry points**: none: read with the state of the repository while a rebase is under way.
 - **Reads**: in the git directory of the worktree, `rebase-merge/amend`, `rebase-merge/done` and
   `rebase-merge/gitardo-split`; `git log -1 --format=%s <hash> --` for the subject.
+- **Extension**: `Repo.rebaseStop()` (`src/git/repo.ts`) reads it into `RepoState.rebaseStop`, by the same rules, with
+  `GIT_OPTIONAL_LOCKS=0`.
 
 Rules:
 
@@ -635,6 +774,9 @@ While an interactive rebase is stopped right after a commit marked **Edit**, the
 - **Entry points**: the banner above the timeline, in place of the banner of an operation in progress.
 - **Offered when**: `rebase.read-stop` gives an edit.
 - **Uses**: `rebase.read-stop`, `conflicts.continue-operation`, `conflicts.abort-operation`.
+- **Extension**: the banner of the Graph view, in the panel or an editor tab, and of the Changes view (`OperationBanner`
+  in `src/webview/OperationBanner.tsx`). **Continue** is the action `continue`, which refuses as above with
+  `refuseUncommitted` (`src/extension/actions.ts`).
 
 What it shows:
 
@@ -658,6 +800,10 @@ Acceptance:
 - [ ] The banner has **Continue** and **Abort**, and no **Skip**.
 - [ ] **Continue** with a file modified and not committed is refused with the message above, and git is not run.
 - [ ] **Continue** after amending the commit makes the commits after it again on top.
+- [ ] Extension: **Continue** with nothing changed goes on as well; a commit made at the stop stays between the edited
+      one and the ones after.
+- [ ] Extension: a later step of the same rebase that stops on a conflict shows `Rebase in progress · N files have
+      conflicts`, not the text of the edit.
 
 ### `message.edit` — Edit a commit message
 
@@ -686,7 +832,9 @@ after it again.
   - an older commit: `rebase.interactive` with `--autostash` and the steps `reword <hash>` with the whole message, then
     `pick` for each commit after it, oldest first. The title is *Edit the message of `<short hash>`*, and the note *`<short
     hash>` gets the new message, and the commit after it is made again on top of it, with new hashes.* (or *the N commits
-    after it are*), with *Changes that are not committed are set aside and put back.* when there are some.
+    after it are*), with *Changes that are not committed are set aside and put back.* when there are some. Its files
+    go into `<git folder>/gitardo-rebase`, as for `rebase.interactive`, deleted once no rebase is under way, also when it
+    stopped on a commit made again after it.
 - **Danger**: for the last commit, None; for an older one, Confirm (a rewrite of history). Both become Confirm when the
   commit is pushed, with the note of `rebase.read-pushed` first.
 - **Undo**: by the reflog (`undo.last`): an amend is taken back with `git reset --soft` to the commit before it; a rebase
@@ -697,6 +845,13 @@ after it again.
   message.*; an older commit with no line to `HEAD`, *`<short hash>` is not on the line of commits before HEAD without
   merges: its message cannot be changed by a rebase from here.*
 - **Uses**: `rebase.find-line-before-head`, `rebase.read-pushed`, `rebase.interactive`, `undo.last`.
+- **Extension**: the pencil beside the message in the details of the Graph view, tooltip **Edit message**, and **Edit
+  message…** in the context menu of a commit open the box `MessageEditor` (`src/webview/Detail.tsx`), labelled *Commit
+  message*, from 3 to 12 lines high as the text grows; saving the text unchanged with the keys closes it as **Cancel**
+  does, so the engine's *The message is unchanged.* is not reached from VS Code. The action `reword` runs it on the
+  commit with the message as the answer `message`. Without the engine, `rewordHeadOp` of `src/git/ops.ts` for the last
+  commit, and `interactiveRebase` for an older one, whose todo list and message file are written in the temporary folder
+  of the system before the question.
 
 Acceptance:
 
@@ -707,6 +862,15 @@ Acceptance:
 - [ ] A commit on `origin/main` asks first and says the branch will have to be force pushed.
 - [ ] `Escape` in the box leaves the message as it was and runs nothing.
 - [ ] While a bisect is under way, neither the pencil nor **Edit message…** is offered.
+- [ ] Saving for an older commit when a commit made again after it stops on a conflict leaves
+      `<git folder>/gitardo-rebase` until the rebase is continued to its end or aborted, then deletes it.
+- [ ] Extension: saving *Reword three, new* on the last commit runs `git commit --amend --only --allow-empty -F -` with
+      that message on standard input, without a question while `gitardo.commandPreview` is `off`; a file staged before
+      stays staged and out of the commit.
+- [ ] Extension: right after rewording the last commit, **Undo** runs `git reset --soft <previous>` and the old message
+      is back; after rewording an older one, **Undo** runs `git reset --keep <previous>`.
+- [ ] Extension: the pencil opens a box with the message *Subject*, an empty line and *Body*, the cursor after *Body*;
+      **Save** is disabled while the text is the message as it was, and while it is empty.
 
 ### `squash.join-messages` — The message of commits squashed into one
 
@@ -714,6 +878,8 @@ Puts together the message of the commit that several become.
 
 - **Kind**: Derivation
 - **Function**: `model::squash::join_messages(subject: &str, messages: &[&str]) -> String`
+- **Extension**: without the engine, `squashMessage(subject, messages)` and `splitMessage(message)` of `src/git/ops.ts`
+  give the same message.
 
 Rules:
 
@@ -730,6 +896,8 @@ Acceptance:
 
 - [ ] The example above holds.
 - [ ] Three messages with no body and a new subject give the subject and the three messages, separated by blank lines.
+- [ ] Extension: `splitMessage` of *Subject*, a line break, *still subject*, a blank line, *Body*, a blank line and
+      *More* gives the subject *Subject still subject* and the body *Body*, a blank line, *More*.
 
 ### `squash.commits` — Squash commits into one
 
@@ -761,6 +929,11 @@ Makes one commit of several that follow one another before `HEAD`, with the chan
   one.*
 - **Uses**: `rebase.find-line-before-head`, `squash.join-messages`, `rebase.read-pushed`, `rebase.interactive`,
   `undo.last`.
+- **Extension**: **Squash into one** in the bar above the graph that counts the selected commits (tooltip *Makes them
+  one commit, with a message you give*), **Squash N commits into one…** in the context menu of the selection, and
+  **Squash into the commit before it…** in the context menu of a single commit post the action `squash` with the
+  commits, which runs it; the subject is asked in an input box. Without the engine, `squashRange` and
+  `interactiveRebase` of `src/extension/actions.ts`, whose files are written before the question.
 
 Acceptance:
 
@@ -771,6 +944,10 @@ Acceptance:
 - [ ] With a file modified and not committed, the squash runs and the file is modified again after it.
 - [ ] One Undo puts the branch back on `E`.
 - [ ] While a bisect is under way, it is not offered, and it is refused with *End the bisect first.*
+- [ ] Extension: selecting *Add b*, *Add c* and *Add d* and choosing **Squash into one** with the subject *Add b, c and
+      d* makes one commit whose message is the subject, then their messages, oldest first; the commit after them is made
+      again on top of it, and the commit they became is selected.
+- [ ] Extension: pushed commits are asked with the warning of the force push.
 
 ### `squash.into-previous` — Squash a commit into the commit before it
 
@@ -784,12 +961,15 @@ The same as squashing two commits, from the context menu of the newer one.
 - **Asks**, **Reads**, **Plan**, **Danger**, **Undo**, **After**, **Refuses**: as `squash.commits` with the commit and
   its parent.
 - **Uses**: `squash.commits`.
+- **Extension**: **Squash into the commit before it…** posts `squash` with the commit and its parent, which runs
+  `squash.commits`, whose plan is the same, rather than this feature.
 
 Acceptance:
 
 - [ ] On `HEAD` whose parent is not a merge, the entry is there and makes one commit of the two.
 - [ ] On the root commit, the entry is not there.
 - [ ] On a commit whose parent is a merge, the entry is not there.
+- [ ] Extension: **Squash into the commit before it…** on `e`, whose parent `d` is on the line, squashes `d` and `e`.
 
 ### `split.commit` — Split a commit
 
@@ -826,6 +1006,11 @@ wanted.
   on the line of commits before HEAD without merges: it cannot be split by a rebase from here.*
 - **Uses**: `rebase.find-line-before-head`, `rebase.read-pushed`, `rebase.interactive`, `rebase.read-stop`,
   `split.continue`, `undo.last`, `undo.journal`.
+- **Extension**: **Split this commit…** in the context menu of a commit in the graph and the Gitardo Graph posts
+  `split`, which runs it; the commit box of the Changes view gets the message of the commit (the follow-up
+  `fillCommitMessage`), and after a split of the last commit the message has no button: **Undo** in the toolbar takes
+  the split back. Without the engine, `splitHeadOp` or `splitRebaseOp` of `src/git/ops.ts` around `interactiveRebase`,
+  and `Controller.reportSplit`, whose message has **Undo**.
 
 Acceptance:
 
@@ -836,6 +1021,11 @@ Acceptance:
       `rebase-merge`, and the banner text above.
 - [ ] The entry is not on a merge commit nor on the root commit.
 - [ ] While a bisect is under way, the entry is not there, and the split is refused with *End the bisect first.*
+- [ ] Extension: **Split this commit…** on the last commit asks **Split `<short>`?**, runs `git reset --mixed HEAD~`,
+      and says *The changes of "`<subject>`" are in the working tree, unstaged: commit them in as many commits as you
+      like.*; right after, **Undo** runs `git reset --mixed <hash>`, and nothing is left changed.
+- [ ] Extension: on an older commit, the question says *the commit after it is made again on top*, the banner says
+      *Splitting "`<subject>`": …*, and the commit box holds the whole message of the commit.
 
 ### `split.continue` — Continue a split
 
@@ -867,6 +1057,9 @@ or commit what is left of them as one more commit.
   part of the split: commit or stash them, then continue.* (or *N files have changes…*); **Go back to committing** runs
   nothing.
 - **Uses**: `rebase.read-stop`, `conflicts.continue-operation`.
+- **Extension**: **Continue** in the banner is the action `continue`, which runs `continueSplit` of
+  `src/extension/actions.ts`, with the buttons **Commit What Is Left** and **Go Back to Committing**, and `splitLeft` of
+  `src/git/ops.ts` for what is left.
 
 Acceptance:
 
@@ -876,6 +1069,8 @@ Acceptance:
       left** commits it with the commit's message, then continues.
 - [ ] With a file not part of the commit modified, **Continue** is refused and names it.
 - [ ] An untracked file not part of the commit does not keep it from continuing.
+- [ ] Extension: **Commit What Is Left** runs `git add --all -- c.txt`, `git commit --quiet -m <message of the commit>`
+      and `git -c core.editor=true rebase --continue`.
 
 ### `fixup.commit` — Add changes to an earlier commit
 
@@ -900,6 +1095,8 @@ it again.
 - **Refuses**: *Finish or abort the `<operation>` first.*; *End the bisect first.*; with no change, *There are no
   changes to add to that commit.*
 - **Uses**: `rebase.find-line-before-head`, `conflicts.continue-operation`, `undo.last`.
+- **Extension**: the entries of the context menu of a commit in the graph (`commitMenu` in `src/webview/menus.ts`) post
+  `fixup`, which runs it. Without the engine, `fixupOp` of `src/git/ops.ts`, which does not refuse during a bisect.
 
 Acceptance:
 
@@ -910,6 +1107,9 @@ Acceptance:
 - [ ] On the commit checked out, the entry is not there.
 - [ ] On the root commit the rebase runs with `--root`.
 - [ ] While a bisect is under way, the entry is not there, and the fixup is refused with *End the bisect first.*
+- [ ] Extension: with `b.txt` staged and `later.txt` untracked, **Add staged changes to this commit (fixup)** on *Add b*
+      asks, even with `gitardo.commandPreview` set to `off`; then *Add b* has the new `b.txt`, and `later.txt` is still
+      there.
 
 ### `drag.list-drop-entries` — What a drop offers
 
@@ -917,6 +1117,8 @@ Decides which rows of the timeline accept what is dragged, and what dropping it 
 
 - **Kind**: Derivation
 - **Function**: `model::drag::list_drop_entries(input: &DropInput) -> Vec<DropEntry>`
+- **Extension**: `dropMenu(source, target, state)` of `src/webview/menus.ts` gives the same entries; the row of the
+  uncommitted changes is a checked-out row too.
 
 Rules (an empty list means the row does not accept the drop):
 
@@ -942,6 +1144,7 @@ Acceptance:
 - [ ] `feature` dragged onto the commit checked out on `main` gives the three entries, merge first.
 - [ ] `main`, checked out, dragged onto `abc1234` gives the rebase and the reset.
 - [ ] Any drag while a rebase is stopped gives an empty list.
+- [ ] Extension: a branch that another worktree has checked out, dropped on another commit, offers nothing.
 
 ### `drag.drop` — Drag a commit or a branch onto the timeline
 
@@ -954,6 +1157,9 @@ rebase or reset.
   branch of the branch rail, onto a row of the timeline.
 - **Uses**: `drag.list-drop-entries`, `cherry-pick.commit`, `merge.into-current`, `merge.choose-way`, `rebase.onto`,
   `rebase.branch-onto`, `reset.to-commit`.
+- **Extension**: in the Graph view, a commit row (not the uncommitted changes, not a stash), the label of a local or
+  remote branch on a row, or a branch of the references beside the graph, dragged onto a row (`startDrag` and `dragging`
+  in `src/webview/drag.ts`); the entries run as the same entries of the context menus.
 
 | Drag | Onto | Offers |
 | --- | --- | --- |
@@ -978,3 +1184,6 @@ Acceptance:
       merges and the rebase.
 - [ ] Dropping the current branch on another commit and choosing **Reset … to …** asks soft, mixed or hard.
 - [ ] Dropping on a row that does not accept the drop opens no menu.
+- [ ] Extension: dropping the local branch `feature` on the commit checked out on `main` offers exactly **Merge feature
+      into main**, **Merge feature into main…** and **Rebase main onto feature**.
+- [ ] Extension: while an operation is under way, no drop offers anything.

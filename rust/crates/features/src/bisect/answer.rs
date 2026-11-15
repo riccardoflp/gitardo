@@ -1,6 +1,6 @@
 //! `bisect.answer`: the banner's **Good**, **Bad** and **Skip**, which mark the commit git checked out to test.
 
-use model::contract::{AnswerKey, Answers, Context, FollowUp, Outcome, Refusal};
+use model::contract::{AnswerKey, Answers, Choice, Context, FollowUp, Outcome, Question, QuestionKind, Refusal, Text};
 
 use super::{bisect_plan, bisect_under_way};
 
@@ -17,21 +17,46 @@ pub fn answer(context: &Context, answers: &Answers) -> Outcome {
         Ok(bisect) => bisect,
         Err(refusal) => return *refusal,
     };
+    if bisect.remaining == Some(1) {
+        return Outcome::Refuse(Refusal::saying("The bisect found the first bad commit already."));
+    }
     let (word, said) = match answers.choice(ANSWER) {
         Some("good") => ("good", "good"),
         Some("bad") => ("bad", "bad"),
         Some("skip") => ("skip", "skipped"),
-        _ => return Outcome::Refuse(Refusal::saying("Answer good, bad or skip.")),
+        // The banner gives its button as the answer; the extension gives it to this question.
+        _ => return Outcome::Ask(question()),
     };
-    if bisect.remaining == Some(1) {
-        return Outcome::Refuse(Refusal::saying("The bisect found the first bad commit already."));
-    }
     Outcome::Run(bisect_plan(
         context,
         format!("Bisect: this commit is {said}"),
         &[&["bisect", word]],
         vec![FollowUp::CheckBisect],
     ))
+}
+
+/// The question of what the commit being tested is, which the button of the banner answers.
+fn question() -> Question {
+    Question {
+        key: ANSWER,
+        kind: QuestionKind::Pick {
+            choices: [
+                ("good", "This commit is good"),
+                ("bad", "This commit is bad"),
+                ("skip", "Skip this commit"),
+            ]
+            .into_iter()
+            .map(|(identifier, label)| Choice {
+                identifier: identifier.to_owned(),
+                label: Text::from(label),
+                description: None,
+            })
+            .collect(),
+        },
+        title: Text::from("Mark the commit being tested"),
+        detail: None,
+        default: None,
+    }
 }
 
 #[cfg(test)]
@@ -65,6 +90,23 @@ mod tests {
             panic!("refused without a bisect")
         };
         assert_eq!(refusal.message.as_str(), "No bisect is in progress.");
+    }
+
+    #[test]
+    fn bisect_answer__asks_what_the_commit_is_when_no_button_answered_it_and_refuses_once_the_first_bad_one_is_found() {
+        let context = bisecting(Some(marked(Some('e'), &['1'], Some(4))), Target::Head);
+        let Outcome::Ask(question) = answer(&context, &Answers::new()) else {
+            panic!("a question")
+        };
+        assert_eq!(question.key, ANSWER);
+        let found = bisecting(Some(marked(Some('e'), &['1'], Some(1))), Target::Head);
+        let Outcome::Refuse(refusal) = answer(&found, &Answers::new()) else {
+            panic!("refused once found")
+        };
+        assert_eq!(
+            refusal.message.as_str(),
+            "The bisect found the first bad commit already."
+        );
     }
 
     #[test]

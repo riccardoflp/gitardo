@@ -64,8 +64,9 @@ Gitardo writes VS Code settings only when the user changes the same thing from i
 | File | Holds | Lives |
 | --- | --- | --- |
 | `.git/rebase-merge/gitardo-split` (of the worktree) | The hash of a commit being split by an interactive rebase | Until the rebase ends: git deletes the folder with it |
-| `<temp>/gitardo-rebase-*/` | The todo list and the messages of an interactive rebase, written while the operation is built, before the question | Deleted when the rebase ends in the same command (`onSuccess` in `interactiveRebase`); left in the temporary folder when the rebase stops, fails or is cancelled at the question (see [RS7](13-risks.md)) |
-| `<temp>/gitardo-<uuid>.patch` | A patch from the clipboard, for `git am` or `git apply` | Deleted once applied |
+| `<git folder>/gitardo-rebase/` (of the worktree) | The todo list and the messages of an interactive rebase, a squash, a split or a new message for an older commit, when Gitardo's engine runs them: written as steps of the plan, once the user agreed | Deleted by the engine once no rebase is under way in the worktree, after the rebase ended in the same command or after it stopped and was continued to its end or aborted; written over by the next rebase when a delete failed |
+| `<temp>/gitardo-rebase-*/` | The same, when the extension runs them itself, without the engine: written while the operation is built, before the question | Deleted when the rebase ends in the same command (`onSuccess` in `interactiveRebase`); left in the temporary folder when the rebase stops, fails or is cancelled at the question (see [RS7](13-risks.md)) |
+| `<temp>/gitardo-<uuid>.patch` | A patch from the clipboard, for `git am` or `git apply`; the engine writes it with a step of its plan, from the text of VS Code's clipboard that the extension gives as the answer `clipboard` | Deleted once applied, whether git succeeded or not |
 | `<temp>/gitardo-worktree-*/` | The patterns given to `git ls-files` while looking for ignored entries | Deleted after |
 | A file the user chooses | A patch saved with **Save as patch…** | The user's |
 
@@ -93,3 +94,5 @@ share the workspace state: the last to write a key wins, and nothing merges two 
 - The names of the settings, `gitardo.*`, and their meanings.
 - The keys of the workspace state above.
 - The name of `gitardo-split`, which a rebase stopped by an older version may still have in its folder.
+- The name of `gitardo-rebase` in the git folder, which a rebase the engine stopped still reads, and which the desktop
+  writes too.

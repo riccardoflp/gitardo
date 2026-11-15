@@ -129,6 +129,7 @@ Four things cut across areas and are best decided once:
   `git -c sequence.editor=true rebase -i --autosquash --autostash <hash>^|--root` (`fixup/commit.rs:36-56`;
   `extension/src/git/ops.ts:1034-1046`), and both confirm.
 - **Verdict**: **CHANGELOG**: "Adding changes to an earlier commit is refused during a bisect: end the bisect first."
+- **In the CHANGELOG in stage 4** (area 3), where the fixup moved to the engine.
 
 ### A7. Stage all / unstage all / commit amend refuse up front
 
@@ -382,6 +383,10 @@ Four things cut across areas and are best decided once:
   (`features/src/cherry_pick/skip_empty.rs`).
 - Verdict: **CHANGELOG**. "A revert of a commit whose changes are already taken back is now skipped, with a warning in
   the log, instead of stopping."
+- **Checked in stage 4** (area 3): no difference. Git leaves no stop to skip after a single revert whose changes are
+  taken back already: it fails with *nothing to commit* and leaves no `REVERT_HEAD`, so `cherry-pick.skip-empty` finds
+  nothing and the engine fails with git's words, as the extension does (`extension/test/engineHistory.test.ts`). The
+  skip applies to a series, as for `cherry-pick`. Not in the CHANGELOG.
 
 ### C2. Cherry-pick, revert and bisect are refused before git runs while another operation is under way
 
@@ -396,6 +401,7 @@ Four things cut across areas and are best decided once:
   that name; used in `bisect/start.rs` and `bisect/mark.rs`).
 - Verdict: **CHANGELOG**. "Cherry-pick, revert and bisect now say *Finish or abort the … first* while a merge, a rebase
   or another operation is under way, instead of passing on git's error."
+- **In the CHANGELOG in stage 4** (area 3).
 
 ### C3. A squash merge's Undo outlives the next operation in the engine
 
@@ -412,6 +418,8 @@ Four things cut across areas and are best decided once:
 - Verdict: **Merged into D9** (CHANGELOG). "Undo after a squash merge takes it back even after other operations that do not move
   HEAD, such as staging a file." `undo.last` reads the journal before the reflog
   (`rust/crates/features/src/undo/last.rs:35-38`), so the squash merge is what it takes back.
+- **In the CHANGELOG in stage 4** (area 3), checked with a file staged after the squash merge and after one that
+  stopped on conflicts (`extension/test/engineHistory.test.ts`).
 
 ### C4. Rebase of a branch held by another worktree, refused before git runs
 
@@ -423,6 +431,11 @@ Four things cut across areas and are best decided once:
   (`features/src/rebase/branch_onto.rs`, fn `branch_onto`).
 - Verdict: **CHANGELOG**. "Rebasing a branch that another worktree has checked out now says to rebase it there,
   before git runs."
+- **Fixed in stage 4** (area 3) and **in the CHANGELOG**. The refusal could not be reached through the protocol: the
+  extension gives the branch dropped as the answer of the question, and the list of the question left out a branch
+  held by another worktree, so the engine refused *No other local branch can be rebased onto …* or the answer was not
+  one of the choices. The list now keeps such a branch, described *checked out in another worktree*, and the answer
+  is refused with the words above (`features/src/rebase/branch_onto.rs`).
 
 ## Rewriting (reword, squash, split)
 
@@ -441,6 +454,7 @@ Four things cut across areas and are best decided once:
 - Verdict: **CHANGELOG**. "The todo list and messages of an interactive rebase, a squash or a split are now written
   into the repository's git folder only once you agree, each listed in the log and the question, and are removed once
   the rebase ends."
+- **In the CHANGELOG in stage 4** (area 3); where the files go is in `docs/extension/11-data.md`.
 
 ### C6. Editing an older commit's message can leave its folder behind in `.git`
 
@@ -453,6 +467,9 @@ Four things cut across areas and are best decided once:
   `DeleteWhenRebaseEnded` follow-up covers that case (`rebase.rs:128-136`).
 - Verdict: **Bug (engine)**. Build `message.edit` on `rewrite_plan`, or give it the same `DeleteWhenRebaseEnded`
   follow-ups.
+- **Fixed in stage 4** (area 3): `rebase_plan` is built on `rewrite_plan`, so its files go into
+  `<git folder>/gitardo-rebase`, with no `Step::Delete`, and `DeleteWhenRebaseEnded` after success and after a stop
+  (`features/src/message/edit.rs`); in the desktop's CHANGELOG.
 
 ### C7. The message box refuses a message left as it was
 
@@ -463,6 +480,9 @@ Four things cut across areas and are best decided once:
   unchanged.* (`model/src/contract/question.rs:158-166`).
 - Verdict: **CHANGELOG**. "Editing a commit's message now refuses a message that is the same as before." This is minor;
   the extension's box may already prevent it in the view, which was not checked.
+- **Checked in stage 4** (area 3): no one sees it. The box of the extension's view cancels a message left as it was
+  instead of sending it (`extension/src/webview/Detail.tsx`, `MessageEditor`), so the engine's refusal is never
+  reached from the extension. Not in the CHANGELOG.
 
 ### C8. Interactive rebase is refused while a bisect or an operation is under way
 
@@ -474,6 +494,7 @@ Four things cut across areas and are best decided once:
   not name each commit from the oldest up to `HEAD` once (`interactive.rs:47-70`).
 - Verdict: **CHANGELOG**. "Interactive rebase is now refused while a bisect is under way, as rewording, squashing and
   splitting already were." The extension's gap is an inconsistency with its own siblings, which the engine fixes.
+- **In the CHANGELOG in stage 4** (area 3).
 
 ## Bisect and patches
 
@@ -488,6 +509,10 @@ Four things cut across areas and are best decided once:
   `bisect_under_way`). `bisect.start` refuses *A bisect is under way already.* (`bisect/start.rs`).
 - Verdict: **CHANGELOG**. "Once the bisect has found the first bad commit, Good, Bad and Skip say so instead of running
   git again."
+- **In the CHANGELOG in stage 4** (area 3), with **End bisect** when none is under way. `bisect.answer` read its
+  answer without asking, so the answer the extension gives could not reach it; it now asks **Mark the commit being
+  tested** when no button answered, and refuses once the first bad commit is found before asking
+  (`features/src/bisect/answer.rs`).
 
 ## Conflicts
 
@@ -1024,7 +1049,10 @@ plain wording, or a message where the extension was silent.
 
 ### Merge, rebase, cherry-pick, revert, reset, rewriting, bisect, patches
 
-These pairs matched in plan, questions, danger, refusals and undo, apart from wording of titles:
+These pairs matched in plan, questions, danger, refusals and undo, apart from wording of titles. In stage 4 (area 3)
+each was run both ways on twin repositories by `extension/test/engineHistory.test.ts`, which found them the same once
+C4, C6 and the bisect answer were fixed; the titles that differ are in the extension's CHANGELOG (*Cherry-pick 2
+commits onto main*, *as 1 commit*), and so are the refusals said as warnings with git's reasons in the message.
 
 - `merge` default and `mode: 'ask'` against `merge.into-current` and `merge.choose-way`. Same four ways, labels and
   descriptions; the same fast-forward-only refusal before git with both messages; the same conflict-preview text
@@ -1151,11 +1179,17 @@ These pairs matched in plan, questions, danger, refusals and undo, apart from wo
 ### Merge, rebase, cherry-pick, revert, reset, rewriting, bisect, patches
 
 - The interactive rebase editor's own rules (`rebase.editor`, `rebase.todo`) and drag-and-drop on the graph
-  (`rewrite.drag-and-drop`).
+  (`rewrite.drag-and-drop`). **Reached in stage 4** (area 3) as far as the rows go: the extension's editor sends its
+  steps, which `todoRows` in `extension/src/engine/actions.ts` writes as the rows of `rebase.interactive`. A reword
+  that gives a whole message, which the rows cannot say, still runs as the extension's `GitOp`. The editor's own rules
+  and the drag-and-drop are the host's and were not compared.
 - Whether `undo.last` prefers the journal over the reflog when both have something (it affects C3; it belongs to the
-  undo area).
+  undo area). **Reached in stage 4** (area 3): it does, for a squash merge, a series of cherry-picks, a patch of
+  commits and a split of the last commit (`extension/test/engineHistory.test.ts`).
 - The view-side checks of the extension's message box (C7) and the commit-box fill after a split
-  (`reportSplit`, `controller.ts:1701`, against `FollowUp::FillCommitMessage`).
+  (`reportSplit`, `controller.ts:1701`, against `FollowUp::FillCommitMessage`). **Reached in stage 4** (area 3): the
+  box cancels an unchanged message (C7), and `fillCommitMessage` gives the box the whole message of the commit split,
+  as `reportSplit` did.
 
 ### Conflicts; undo, preview and log
 

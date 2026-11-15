@@ -23,15 +23,18 @@ pub fn branch_onto(context: &Context, answers: &Answers) -> Outcome {
     };
     let state = &context.repository;
     let Some(name) = answers.choice(BRANCH) else {
+        // A branch another worktree has checked out stays in the list, so that the extension, which gives the branch
+        // dropped as the answer of this question, hears why it is refused.
         let choices: Vec<Choice> = state
             .branches
             .iter()
             .filter(|branch| !branch.is_checked_out && branch.commit != *onto)
-            .filter(|branch| other_worktree(state, &branch.name).is_none())
             .map(|branch| Choice {
                 identifier: branch.name.clone(),
                 label: Text::from(branch.name.as_str()),
-                description: None,
+                description: other_worktree(state, &branch.name)
+                    .is_some()
+                    .then(|| Text::from("checked out in another worktree")),
             })
             .collect();
         if choices.is_empty() {
@@ -110,6 +113,35 @@ mod tests {
         });
         let context = context(state, Target::Commit(commit('b')));
         assert!(matches!(branch_onto(&context, &dropped("feature")), Outcome::Refuse(_)));
-        assert!(matches!(branch_onto(&context, &Answers::new()), Outcome::Refuse(_)));
+    }
+
+    #[test]
+    fn rebase_branch_onto__lists_a_branch_another_worktree_has_so_that_answering_it_says_why_it_is_refused() {
+        let mut state = state();
+        state.branches.push(branch("feature", 'c', false));
+        state.worktrees.push(Worktree {
+            folder: std::path::PathBuf::from("elsewhere"),
+            commit: Some(commit('c')),
+            branch: Some(String::from("refs/heads/feature")),
+            is_main: false,
+            is_current: false,
+            is_missing: false,
+            uncommitted: Some(0),
+        });
+        let context = context(state, Target::Commit(commit('b')));
+        let QuestionKind::Pick { choices } = question(branch_onto(&context, &Answers::new())).kind else {
+            panic!("a pick")
+        };
+        assert_eq!(
+            choices.first().map(|choice| choice.identifier.as_str()),
+            Some("feature")
+        );
+        let Outcome::Refuse(refusal) = branch_onto(&context, &dropped("feature")) else {
+            panic!("a refusal")
+        };
+        assert_eq!(
+            refusal.message.as_str(),
+            "feature is checked out in another worktree: rebase it there."
+        );
     }
 }

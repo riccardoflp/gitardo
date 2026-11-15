@@ -443,3 +443,6 @@
   refuses the push as ambiguous and the tag stays.
 - **Undo** of a branch deleted in Gitardo asks with a confirmation, not a warning: making the branch again loses
   nothing.
+- **Edit message…** on an older commit removes the files of its rebase from the git folder once the rebase ends, also
+  when it stopped on a conflict in a commit made again after it; they were left behind before.
+- **Apply patch** with a patch of one commit says **Apply `<name>` as 1 commit**, as it says **as 2 commits** for two.

@@ -62,6 +62,9 @@ export interface HostHooks {
  * text the engine checks as it is typed, a pick in a quick pick, a confirmation and the plan in a modal dialog.
  */
 export class VscodeAsker implements FeatureAsker {
+  /** The title of the plan last confirmed, which says what stopped when a step of it fails. */
+  confirmed: string | undefined;
+
   constructor(
     private readonly client: EngineClient,
     private readonly repository: string,
@@ -135,6 +138,7 @@ export class VscodeAsker implements FeatureAsker {
     const reason = plan.danger.kind === 'none' ? '' : `${plan.danger.reason}\n\n`;
     const detail = `${reason}Gitardo will run in ${this.repository}:\n\n${plan.steps.map((step) => step.line).join('\n')}`;
     if ((await ask(`${plan.title}?`, { modal: true, detail }, 'Run')) !== 'Run') return false;
+    this.confirmed = plan.title;
     await this.hooks.confirmed?.(plan);
     return true;
   }

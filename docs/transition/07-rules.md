@@ -74,6 +74,16 @@ needs is written in the commit of that stage, not before.
 | [extension/06-testing.md](../extension/06-testing.md) | The scenario test of the area, with a bare repository beside each copy as its remote. |
 | [extension/02-architecture.md](../extension/02-architecture.md) | `HostHooks`: choices of the host in a pick of the engine, and what the host does once a plan is confirmed; `offerRun` as a button on the error. |
 
+## Written in stage 4, area 3 (merge, rebase, cherry-pick, revert, reset, rewriting, bisect, patches)
+
+| Page | Change |
+| --- | --- |
+| [features/07-history-rewriting.md](../features/07-history-rewriting.md), [11-history-and-blame.md](../features/11-history-and-blame.md), [14-patches.md](../features/14-patches.md) | The extension's cards of the area merged, each with its **Extension** line and acceptance lines; `features/extension/07-merge-and-rewrite.md` emptied; `message.edit` deletes its rebase files once the rebase ends; `rebase.branch-onto` lists a branch held by another worktree; `bisect.answer` asks when no button answered. |
+| [extension/11-data.md](../extension/11-data.md) | Where the engine leaves the files of a rebase: `<git folder>/gitardo-rebase`, deleted once no rebase is under way; `gitardo-split` in `rebase-merge` as before; the patch of the clipboard written by the engine from the answer `clipboard`. |
+| [transition/02-protocol.md](02-protocol.md) | The answer `clipboard` given with `feature/run`, which answers the engine's read of the clipboard. |
+| [transition/04-differences.md](04-differences.md) | C1 and C7 checked and found not seen; C4 and C6 fixed; C2, C3, C5, C8, C9 and A6 in the CHANGELOG; the pairs of the area run both ways. |
+| [extension/06-testing.md](../extension/06-testing.md) | `test/engineHistory.test.ts`. |
+
 ## Written in stages 8 and 9
 
 | Page | Change |
@@ -86,7 +96,6 @@ needs is written in the commit of that stage, not before.
 
 | Rule | Stage | What |
 | --- | --- | --- |
-| The extension's stored data | 4 | [extension/11-data.md](../extension/11-data.md) says where the rebase files go when the rebase area moves. |
 | The merge of the cards | 4 | For each area, the extension's cards are merged into the desktop's ones, and the area's file in `features/extension/` is emptied; the card template of the desktop gets an **Extension** line where the interface differs. |
 | The check of the catalog | 4 | `cargo xtask docs`, the part of `cargo xtask check` that reads the documents, takes from `docs/catalog.py` the lines a card's kind needs and the words of the glossary, and `npm run check:docs` calls it; `catalog.py` is removed when the last area is merged ([D46](../08-decisions.md#d46--cargo-xtask-check-checks-the-catalog-of-both-apps)). |
 | The promises of the cards | 4 | The extension's [promises](../extension/04-feature-contract.md#the-promises-every-card-is-checked-against) are compared with the desktop's contract and the ones it lacks are added there. |

@@ -227,30 +227,30 @@ earns it.
 | [`selection.bar`](07-history-rewriting.md#selectionbar--the-bar-of-a-selection-of-several-commits) | The bar of a selection of several commits | View | Built | Built |
 | [`selection.menu`](07-history-rewriting.md#selectionmenu--the-context-menu-of-a-selection-of-several-commits) | The context menu of a selection of several commits | View | Built | Built |
 | [`selection.cherry-pick`](07-history-rewriting.md#selectioncherry-pick--cherry-pick-several-commits) | Cherry-pick several commits | Operation | Built | Built |
-| [`cherry-pick.commit`](07-history-rewriting.md#cherry-pickcommit--cherry-pick-a-commit) | Cherry-pick a commit | Operation | Built | Differs (C2) |
+| [`cherry-pick.commit`](07-history-rewriting.md#cherry-pickcommit--cherry-pick-a-commit) | Cherry-pick a commit | Operation | Built | Built |
 | [`cherry-pick.skip-empty`](07-history-rewriting.md#cherry-pickskip-empty--get-past-a-commit-that-changes-nothing) | Get past a commit that changes nothing | Operation | Built | Differs (D12) |
-| [`revert.commit`](07-history-rewriting.md#revertcommit--revert-a-commit) | Revert a commit | Operation | Built | Differs (C1, C2) |
+| [`revert.commit`](07-history-rewriting.md#revertcommit--revert-a-commit) | Revert a commit | Operation | Built | Built |
 | [`reset.to-commit`](07-history-rewriting.md#resetto-commit--reset-the-current-branch-to-a-commit) | Reset the current branch to a commit | Operation | Built | Built |
 | [`merge.read-predicted-conflicts`](07-history-rewriting.md#mergeread-predicted-conflicts--predict-the-conflicts-of-a-merge) | Predict the conflicts of a merge | Read | Built | Built |
 | [`merge.into-current`](07-history-rewriting.md#mergeinto-current--merge-into-the-current-branch) | Merge into the current branch | Operation | Built | Built |
-| [`merge.choose-way`](07-history-rewriting.md#mergechoose-way--merge-into-the-current-branch-choosing-how) | Merge into the current branch, choosing how | Operation | Built | Differs (D9) |
-| [`merge.undo-squash`](07-history-rewriting.md#mergeundo-squash--take-back-a-squash-merge) | Take back a squash merge | Operation | Built | Differs (D9) |
+| [`merge.choose-way`](07-history-rewriting.md#mergechoose-way--merge-into-the-current-branch-choosing-how) | Merge into the current branch, choosing how | Operation | Built | Built |
+| [`merge.undo-squash`](07-history-rewriting.md#mergeundo-squash--take-back-a-squash-merge) | Take back a squash merge | Operation | Built | Built |
 | [`rebase.onto`](07-history-rewriting.md#rebaseonto--rebase-the-current-branch-onto-a-commit-or-a-branch) | Rebase the current branch onto a commit or a branch | Operation | Built | Built |
-| [`rebase.branch-onto`](07-history-rewriting.md#rebasebranch-onto--rebase-another-local-branch-onto-a-commit) | Rebase another local branch onto a commit | Operation | Built | Differs (C4) |
+| [`rebase.branch-onto`](07-history-rewriting.md#rebasebranch-onto--rebase-another-local-branch-onto-a-commit) | Rebase another local branch onto a commit | Operation | Built | Built |
 | [`rebase.find-line-before-head`](07-history-rewriting.md#rebasefind-line-before-head--the-line-of-commits-an-interactive-rebase-can-rewrite) | The line of commits an interactive rebase can rewrite | Derivation | Built | Built |
 | [`rebase.read-pushed`](07-history-rewriting.md#rebaseread-pushed--where-a-commit-was-pushed) | Where a commit was pushed | Read | Built | Built |
 | [`rebase.todo-page`](07-history-rewriting.md#rebasetodo-page--the-interactive-rebase-page) | The interactive rebase page | View | Built | Built |
 | [`rebase.build-todo-list`](07-history-rewriting.md#rebasebuild-todo-list--the-todo-list-of-an-interactive-rebase) | The todo list of an interactive rebase | Derivation | Built | Built |
-| [`rebase.interactive`](07-history-rewriting.md#rebaseinteractive--run-an-interactive-rebase) | Run an interactive rebase | Operation | Built | Differs (C5, C8) |
+| [`rebase.interactive`](07-history-rewriting.md#rebaseinteractive--run-an-interactive-rebase) | Run an interactive rebase | Operation | Built | Built |
 | [`rebase.read-stop`](07-history-rewriting.md#rebaseread-stop--where-an-interactive-rebase-stopped-to-change-a-commit) | Where an interactive rebase stopped to change a commit | Read | Built | Built |
 | [`rebase.edit-stop`](07-history-rewriting.md#rebaseedit-stop--the-banner-of-a-rebase-stopped-to-edit-a-commit) | The banner of a rebase stopped to edit a commit | View | Built | Built |
-| [`message.edit`](07-history-rewriting.md#messageedit--edit-a-commit-message) | Edit a commit message | Operation | Built | Differs (C5, C6, C7) |
+| [`message.edit`](07-history-rewriting.md#messageedit--edit-a-commit-message) | Edit a commit message | Operation | Built | Built |
 | [`squash.join-messages`](07-history-rewriting.md#squashjoin-messages--the-message-of-commits-squashed-into-one) | The message of commits squashed into one | Derivation | Built | Built |
-| [`squash.commits`](07-history-rewriting.md#squashcommits--squash-commits-into-one) | Squash commits into one | Operation | Built | Differs (C5) |
-| [`squash.into-previous`](07-history-rewriting.md#squashinto-previous--squash-a-commit-into-the-commit-before-it) | Squash a commit into the commit before it | Operation | Built | Differs (C5) |
-| [`split.commit`](07-history-rewriting.md#splitcommit--split-a-commit) | Split a commit | Operation | Built | Differs (C5) |
+| [`squash.commits`](07-history-rewriting.md#squashcommits--squash-commits-into-one) | Squash commits into one | Operation | Built | Built |
+| [`squash.into-previous`](07-history-rewriting.md#squashinto-previous--squash-a-commit-into-the-commit-before-it) | Squash a commit into the commit before it | Operation | Built | Built |
+| [`split.commit`](07-history-rewriting.md#splitcommit--split-a-commit) | Split a commit | Operation | Built | Built |
 | [`split.continue`](07-history-rewriting.md#splitcontinue--continue-a-split) | Continue a split | Operation | Built | Built |
-| [`fixup.commit`](07-history-rewriting.md#fixupcommit--add-changes-to-an-earlier-commit) | Add changes to an earlier commit | Operation | Built | Differs (A6) |
+| [`fixup.commit`](07-history-rewriting.md#fixupcommit--add-changes-to-an-earlier-commit) | Add changes to an earlier commit | Operation | Built | Built |
 | [`drag.list-drop-entries`](07-history-rewriting.md#draglist-drop-entries--what-a-drop-offers) | What a drop offers | Derivation | Built | Built |
 | [`drag.drop`](07-history-rewriting.md#dragdrop--drag-a-commit-or-a-branch-onto-the-timeline) | Drag a commit or a branch onto the timeline | View | Built | Built |
 
@@ -373,12 +373,12 @@ earns it.
 | [`reflog.read`](11-history-and-blame.md#reflogread--where-head-has-been) | Where `HEAD` has been | Read | Built | Built |
 | [`reflog.browse`](11-history-and-blame.md#reflogbrowse--browse-the-reflog) | Browse the reflog | Operation | Built | Built |
 | [`bisect.read`](11-history-and-blame.md#bisectread--the-bisect-under-way) | The bisect under way | Read | Built | Built |
-| [`bisect.start`](11-history-and-blame.md#bisectstart--start-a-bisect-from-a-commit) | Start a bisect from a commit | Operation | Built | Differs (C2, C9) |
-| [`bisect.mark`](11-history-and-blame.md#bisectmark--mark-a-commit-good-or-bad) | Mark a commit good or bad | Operation | Built | Differs (C2) |
-| [`bisect.answer`](11-history-and-blame.md#bisectanswer--answer-for-the-commit-being-tested) | Answer for the commit being tested | Operation | Built | Differs (C9) |
+| [`bisect.start`](11-history-and-blame.md#bisectstart--start-a-bisect-from-a-commit) | Start a bisect from a commit | Operation | Built | Built |
+| [`bisect.mark`](11-history-and-blame.md#bisectmark--mark-a-commit-good-or-bad) | Mark a commit good or bad | Operation | Built | Built |
+| [`bisect.answer`](11-history-and-blame.md#bisectanswer--answer-for-the-commit-being-tested) | Answer for the commit being tested | Operation | Built | Built |
 | [`bisect.banner`](11-history-and-blame.md#bisectbanner--the-banner-of-a-bisect) | The banner of a bisect | View | Built | Built |
 | [`bisect.marks`](11-history-and-blame.md#bisectmarks--the-marks-of-a-bisect-in-the-timeline) | The marks of a bisect in the timeline | View | Built | Built |
-| [`bisect.end`](11-history-and-blame.md#bisectend--end-the-bisect) | End the bisect | Operation | Built | Differs (C9) |
+| [`bisect.end`](11-history-and-blame.md#bisectend--end-the-bisect) | End the bisect | Operation | Built | Built |
 
 ## Worktrees
 
@@ -550,34 +550,6 @@ catalog it is an alias of ([D44](../08-decisions.md#d44--one-catalog-the-desktop
 | --- | --- | --- |
 | `repo.select` ([card](extension/01-repositories.md#reposelect--choose-the-repository-shown)) | `repo.select` | |
 | `repo.follow-source-control` ([card](extension/01-repositories.md#repofollow-source-control--follow-the-repositories-view-of-vs-code)) | — | Host only |
-| `merge.into-current` ([card](extension/07-merge-and-rewrite.md#mergeinto-current--merge-into-the-current-branch)) | `merge.into-current` | |
-| `merge.choose-way` ([card](extension/07-merge-and-rewrite.md#mergechoose-way--choose-the-way-to-merge)) | `merge.choose-way` | |
-| `merge.squash` ([card](extension/07-merge-and-rewrite.md#mergesquash--squash-merge)) | `merge.choose-way`, `merge.undo-squash` | The squash way and its Undo |
-| `merge.preview-conflicts` ([card](extension/07-merge-and-rewrite.md#mergepreview-conflicts--say-which-files-will-conflict)) | `merge.read-predicted-conflicts` | |
-| `rebase.onto` ([card](extension/07-merge-and-rewrite.md#rebaseonto--rebase-onto-a-commit-or-a-branch)) | `rebase.onto`, `rebase.branch-onto` | |
-| `rebase.interactive` ([card](extension/07-merge-and-rewrite.md#rebaseinteractive--interactive-rebase)) | `rebase.interactive` | |
-| `rebase.editor` ([card](extension/07-merge-and-rewrite.md#rebaseeditor--the-interactive-rebase-editor)) | `rebase.todo-page` | |
-| `rebase.todo` ([card](extension/07-merge-and-rewrite.md#rebasetodo--the-todo-list-of-an-interactive-rebase)) | `rebase.build-todo-list` | |
-| `rebase.edit-stop` ([card](extension/07-merge-and-rewrite.md#rebaseedit-stop--stop-to-edit-a-commit)) | `rebase.read-stop`, `rebase.edit-stop` | |
-| `cherry-pick.one` ([card](extension/07-merge-and-rewrite.md#cherry-pickone--cherry-pick-a-commit)) | `cherry-pick.commit`, `cherry-pick.skip-empty` | |
-| `cherry-pick.many` ([card](extension/07-merge-and-rewrite.md#cherry-pickmany--cherry-pick-several-commits)) | `selection.cherry-pick` | |
-| `revert.commit` ([card](extension/07-merge-and-rewrite.md#revertcommit--revert-a-commit)) | `revert.commit` | |
-| `reset.to` ([card](extension/07-merge-and-rewrite.md#resetto--reset-the-current-branch-to-a-commit)) | `reset.to-commit` | |
-| `rewrite.reword` ([card](extension/07-merge-and-rewrite.md#rewritereword--edit-the-message-of-a-commit)) | `message.edit` | |
-| `rewrite.message-box` ([card](extension/07-merge-and-rewrite.md#rewritemessage-box--the-box-that-edits-a-message)) | `message.edit` | The box it asks with |
-| `rewrite.squash` ([card](extension/07-merge-and-rewrite.md#rewritesquash--squash-commits-into-one)) | `squash.commits`, `squash.into-previous` | |
-| `rewrite.squash-message` ([card](extension/07-merge-and-rewrite.md#rewritesquash-message--the-message-of-squashed-commits)) | `squash.join-messages` | |
-| `rewrite.split` ([card](extension/07-merge-and-rewrite.md#rewritesplit--split-a-commit)) | `split.commit` | |
-| `rewrite.split-rest` ([card](extension/07-merge-and-rewrite.md#rewritesplit-rest--commit-what-is-left-of-a-split-and-continue)) | `split.continue` | |
-| `rewrite.split-left` ([card](extension/07-merge-and-rewrite.md#rewritesplit-left--what-is-left-of-a-commit-being-split)) | `split.continue` | What it reads of the split |
-| `rewrite.fixup` ([card](extension/07-merge-and-rewrite.md#rewritefixup--add-changes-to-an-earlier-commit-fixup)) | `fixup.commit` | |
-| `rewrite.reach` ([card](extension/07-merge-and-rewrite.md#rewritereach--which-commits-a-rewrite-can-reach)) | `rebase.find-line-before-head` | |
-| `rewrite.pushed-warning` ([card](extension/07-merge-and-rewrite.md#rewritepushed-warning--warn-that-a-rewritten-commit-is-pushed)) | `rebase.read-pushed` | |
-| `rewrite.drag-and-drop` ([card](extension/07-merge-and-rewrite.md#rewritedrag-and-drop--drag-and-drop-onto-a-row-of-the-graph)) | `drag.drop`, `drag.list-drop-entries` | |
-| `bisect.start` ([card](extension/07-merge-and-rewrite.md#bisectstart--start-a-bisect)) | `bisect.start` | |
-| `bisect.mark` ([card](extension/07-merge-and-rewrite.md#bisectmark--mark-the-commit-tested)) | `bisect.mark`, `bisect.answer` | |
-| `bisect.end` ([card](extension/07-merge-and-rewrite.md#bisectend--end-the-bisect)) | `bisect.end` | |
-| `bisect.banner` ([card](extension/07-merge-and-rewrite.md#bisectbanner--the-bisect-banner)) | `bisect.banner` | |
 | `operation.banner` ([card](extension/09-conflicts.md#operationbanner--the-banner-of-an-operation-under-way)) | `conflicts.banner` | |
 | `operation.stopped` ([card](extension/09-conflicts.md#operationstopped--what-a-stop-on-conflicts-says)) | `conflicts.stopped` | |
 | `operation.continue` ([card](extension/09-conflicts.md#operationcontinue--continue-the-operation-under-way)) | `conflicts.continue-operation` | |

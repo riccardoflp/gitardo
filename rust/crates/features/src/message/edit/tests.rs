@@ -57,7 +57,7 @@ fn message_edit__an_older_commit_is_reworded_by_one_rebase_with_autostash() {
         .with(PUSHED, Answer::Names(Vec::new()));
     let plan = plan(edit(&context, &answers));
     let lines = lines(&plan);
-    assert_eq!(lines.len(), 4, "{lines:?}");
+    assert_eq!(lines.len(), 3, "{lines:?}");
     assert!(lines[2].starts_with("git -c \"sequence.editor=cp "), "{}", lines[2]);
     assert!(lines[2].ends_with(&format!("-c core.editor=true rebase -i --autostash {}", commit('a'))));
     let Some(model::contract::Step::Write { contents, .. }) = plan.steps.get(1) else {
@@ -66,7 +66,7 @@ fn message_edit__an_older_commit_is_reworded_by_one_rebase_with_autostash() {
     let todo = String::from_utf8_lossy(contents);
     assert!(todo.starts_with(&format!("pick {}\nexec git commit --amend -F", commit('b'))));
     assert!(todo.ends_with(&format!("pick {}\npick {}\n", commit('c'), commit('d'))));
-    assert_eq!(plan.after, [FollowUp::SelectBeforeHead(2)]);
+    assert_eq!(plan.after.first(), Some(&FollowUp::SelectBeforeHead(2)));
     let Danger::Confirm(note) = plan.danger else {
         panic!("a rewrite asks first")
     };
@@ -75,6 +75,32 @@ fn message_edit__an_older_commit_is_reworded_by_one_rebase_with_autostash() {
         "bbbbbbb gets the new message, and the 2 commits after it are made again on top of it, with new hashes.\n\n\
          Changes that are not committed are set aside and put back."
     );
+}
+
+#[test]
+fn message_edit__the_files_of_the_rebase_are_deleted_once_it_ended_also_after_it_stopped() {
+    let mut state = state();
+    state.head.commit = Some(commit('c'));
+    let context = context(state, Target::Commit(commit('b')));
+    let answers = typed("New words")
+        .with(BEFORE_HEAD, Answer::Flag(true))
+        .with(EDITED, Answer::Commits(vec![row(commit('b'), commit('a'))]))
+        .with(LINE, Answer::Commits(vec![row(commit('c'), commit('b'))]))
+        .with(PUSHED, Answer::Names(Vec::new()));
+    let plan = plan(edit(&context, &answers));
+    let folder = std::path::PathBuf::from("repository/.git").join(crate::rebase::FILES_FOLDER);
+    assert!(
+        plan.steps
+            .iter()
+            .all(|step| !matches!(step, model::contract::Step::Delete { .. })),
+        "no step deletes the folder before the rebase ended"
+    );
+    assert!(
+        plan.after.contains(&FollowUp::DeleteWhenRebaseEnded(folder.clone())),
+        "{:?}",
+        plan.after
+    );
+    assert_eq!(plan.on_failure, [FollowUp::DeleteWhenRebaseEnded(folder)]);
 }
 
 #[test]

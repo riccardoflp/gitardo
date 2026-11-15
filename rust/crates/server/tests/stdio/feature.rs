@@ -261,3 +261,31 @@ fn branch_delete_told_a_branch_is_merged_that_git_keeps_offers_delete_anyway_wit
     assert_eq!(ran["result"]["plan"]["danger"]["kind"], json!("destructive"), "{ran}");
     assert!(repository.git(&["branch", "--list", "spike"]).trim().is_empty());
 }
+
+#[test]
+fn patch_apply_from_the_clipboard_takes_its_text_from_the_answer_clipboard_that_the_extension_read() {
+    let repository = repository();
+    let patch = repository.git(&["format-patch", "--stdout", "-1", "HEAD"]);
+    let _reset = repository.git(&["reset", "--quiet", "--hard", "HEAD~1"]);
+    let mut engine = opened(&repository, &json!({}));
+    let id = engine.send(
+        "feature/run",
+        &json!({
+            "repository": folder(&repository),
+            "feature": "patch.apply",
+            "target": { "kind": "head" },
+            "answers": {
+                "from": { "kind": "choice", "identifier": "clipboard" },
+                "clipboard": { "kind": "text", "text": patch },
+                "as": { "kind": "choice", "identifier": "commits" }
+            }
+        }),
+    );
+    let finished = engine.answer_asked(id, |request| panic!("asked {request}"));
+    assert_eq!(finished["result"]["kind"], json!("ran"), "{finished}");
+    assert_eq!(
+        finished["result"]["plan"]["title"],
+        json!("Apply the patch in the clipboard as 1 commit")
+    );
+    assert_eq!(repository.git(&["log", "-1", "--format=%s"]).trim(), "Change a");
+}
