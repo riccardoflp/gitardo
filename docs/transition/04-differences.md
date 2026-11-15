@@ -1269,6 +1269,22 @@ What the extension still did in TypeScript when stage 10 began, against what the
   which the TypeScript code gave; **Undo** in the toolbar takes them back. Seen in the code, not confirmed in a window.
 - **Failures** read *Gitardo: \<the engine's words\>*, not *\<title\> failed. \<git's line\>*, unless files are left in
   conflict.
+- **Continue at a split with files of the commit left** (`split.continue`): the extension asked in a dialog with
+  **Commit What Is Left** and **Go Back to Committing**; the engine's pick, whose detail is one line, is shown as a
+  quick pick with the question as its title and **Commit what is left** first (`src/engine/vscode.ts:102`). Same
+  choices, same default. Found by the end-to-end suite.
+- **A refusal of the engine**, such as **Continue** at an edit stop with changes not committed (`rebase.edit-stop`), is
+  a warning, *Gitardo: \<the reason\>*, where the extension showed an error.
+
+### X6. The stashes read while the last one goes
+
+- **Feature**: `stash.read-list`, and `repo.read-state`, which reads the stashes with the rest.
+- **Extension**: did not show it; its TypeScript reads ran at other times.
+- **Engine**: when the last stash is dropped, or a pull takes back the changes it set aside, while the stashes are read,
+  `refs/stash` is gone between git's check and its read: `git stash list` fails with `bad revision 'refs/stash'`, and
+  the read failed with it, logged as an error. Found by the end-to-end suite.
+- **Verdict**: **Bug (engine)**, fixed in stage 10: such a read has no stash (`read_stashes` in
+  `rust/crates/git/src/read/repo/stashes.rs`).
 
 ## Summary
 
@@ -1291,7 +1307,8 @@ Entries marked **Merged into …** are not counted again.
 | Reads of the graph (R8) | 0 | 0 | 0 | 1 | 1 |
 | Found by the end-to-end suite (E1–E5) | 1 | 1 | 0 | 3 | 5 |
 | AI and GitHub (G2–G6; G1 not seen by users) | 0 | 0 | 3 | 2 | 5 |
-| **Total** | **6** | **20** | **12** | **31** | **69** |
+| Stage 10 (X1–X6; X5 counted once) | 0 | 1 | 2 | 3 | 6 |
+| **Total** | **6** | **21** | **14** | **34** | **75** |
 
 Of the 19 engine bugs, five are in the extension too, so whichever side wins they get fixed in the engine: A2 (Unstage
 all during an operation), B7 (remote branch by its short name), D2 (Skip without asking), D7 (Undo after what it cannot

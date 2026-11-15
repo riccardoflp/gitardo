@@ -6,6 +6,8 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 ### Changed
 
+- The stashes are read without an error when the last one goes while they are read, as when it is dropped or a pull takes back the changes it set aside.
+
 - **Create branch…** is run by Gitardo's engine when the extension has it for your system: the name is checked as you type in the engine's words, the commands are in the log as the others are, with `>` before them, and the new branch is selected in the graph once it is checked out. Without the engine, Gitardo creates the branch as before.
 - **Undo** is run by Gitardo's engine when the extension has it, and takes back the newest of Gitardo's operations, whichever ran it. It now remembers up to 50 of them, for as long as nothing moves HEAD from outside Gitardo: staging a file no longer makes it forget a branch deleted or a stash dropped, and undoing again brings back the one before. Right after an operation it cannot take back, a push, a fetch, a tag, a stash or a worktree, it says so instead of taking back the one before it, and the tooltip of **Undo** names the operation it would take back.
 - **Undo** now asks with a warning, says in words what it takes back, and selects the commit HEAD is at once done. A branch created without checking it out is deleted by **Undo**.

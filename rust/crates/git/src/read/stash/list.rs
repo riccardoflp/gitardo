@@ -2,7 +2,7 @@
 
 use model::state::Stash;
 
-use crate::read::repo::{parse_stashes, stashes_arguments};
+use crate::read::repo::read_stashes;
 use crate::{Git, GitError};
 
 /// Which repository: the one git runs in.
@@ -18,7 +18,7 @@ pub struct StashListRequest;
 ///
 /// When git cannot be started, fails, or prints a stash this does not understand.
 pub fn read_list(git: &Git, _request: &StashListRequest) -> Result<Vec<Stash>, GitError> {
-    parse_stashes(&git.run_read(&stashes_arguments())?)
+    read_stashes(git)
 }
 
 #[cfg(test)]

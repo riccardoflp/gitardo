@@ -37,7 +37,7 @@ pub use repositories::{
     RepositoriesRequest, parse_submodule_paths, parse_top_level, read_repositories, submodule_paths_arguments,
     top_level_arguments,
 };
-pub use stashes::{parse_stashes, stashes_arguments};
+pub use stashes::{parse_stashes, read_stashes, stashes_arguments};
 pub use status::{parse_status, status_arguments, worktree_status_arguments};
 
 pub(crate) use location::read_location;

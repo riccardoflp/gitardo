@@ -22,6 +22,8 @@ Acceptance:
 
 - [ ] Two stashes are returned newest first, as `stash@{0}` and `stash@{1}`, with their messages and dates.
 - [ ] A repository with no stash returns none, and no error.
+- [ ] When the last stash goes while git reads them, so that git says `bad revision 'refs/stash'`, none is returned,
+      and no error; any other failure of git is an error.
 - [ ] A message with spaces, colons and quotes is returned whole.
 - [ ] Extension: after `git stash push -m "work in progress"` on `main` in a terminal, the Stashes view lists
       `stash@{0}` as `On main: work in progress` without a refresh.

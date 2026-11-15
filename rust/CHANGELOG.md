@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The stashes are read without an error when the last one goes while git reads them, as when it is dropped or a
+  pull takes back the changes it set aside: there are none.
 - **Skip** of a step of a rebase, a cherry-pick, a revert or a patch asks first while files are staged, changed or in
   conflict: *What was resolved in this step is thrown away.*
 - **Take the current side** and **Take the incoming side** warn, rather than ask, when the file has lines neither side

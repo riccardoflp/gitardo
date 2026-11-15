@@ -30,9 +30,25 @@ pub fn parse_stashes(output: &[u8]) -> Result<Vec<Stash>, GitError> {
         .collect()
 }
 
-/// The stashes of the repository.
-pub(super) fn read_stashes(git: &Git) -> Result<Vec<Stash>, GitError> {
-    parse_stashes(&git.run_read(&stashes_arguments())?)
+/// The stashes of the repository. When the last stash goes while git reads them, as when one is dropped or a pull sets
+/// the changes aside and takes them back, `refs/stash` is gone between git's check and its read: there are none.
+///
+/// # Errors
+///
+/// When git cannot be started, fails for another reason, or prints a stash this does not understand.
+pub fn read_stashes(git: &Git) -> Result<Vec<Stash>, GitError> {
+    match git.run_read(&stashes_arguments()) {
+        Ok(output) => parse_stashes(&output),
+        Err(error) if stash_went_away(&error) => Ok(Vec::new()),
+        Err(error) => Err(error),
+    }
+}
+
+/// Whether git failed because `refs/stash` was there when it looked and gone when it read it.
+fn stash_went_away(error: &GitError) -> bool {
+    error
+        .stderr()
+        .is_some_and(|said| said.contains("bad revision 'refs/stash'"))
 }
 
 /// One stash, from its four fields. The message is what is between the second field and the last, whatever it holds.
@@ -60,7 +76,19 @@ fn stash(record: &str) -> Result<Stash, GitError> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_stashes;
+    use super::{parse_stashes, stash_went_away};
+    use crate::GitError;
+
+    #[test]
+    fn a_stash_gone_while_git_reads_it_is_no_stash_and_another_failure_is_one() {
+        let failed = |stderr: &str| GitError::Failed {
+            command: "git stash list".to_owned(),
+            code: Some(128),
+            stderr: stderr.to_owned(),
+        };
+        assert!(stash_went_away(&failed("fatal: bad revision 'refs/stash'\n")));
+        assert!(!stash_went_away(&failed("fatal: not a git repository\n")));
+    }
 
     #[test]
     fn refuses_a_stash_without_its_place_in_the_list() {
