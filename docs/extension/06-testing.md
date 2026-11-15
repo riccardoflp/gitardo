@@ -144,7 +144,8 @@ identifier of the card (see [D35](../08-decisions.md#d35--tests-are-named-by-wha
 From stage 1 of [the transition](../transition/06-roadmap.md) the extension starts `gitardo-engine`. The tests find it
 at `../rust/target/debug/gitardo-engine`, built first with `cargo build -p server` and `CARGO_PROFILE_DEV_DEBUG=0`, or
 where the environment variable `GITARDO_ENGINE` says; without it they are skipped, and the run says why. Inside VS Code
-the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts will set from stage 2.
+the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts set to the same binary
+(`engineSetting` in `test/e2e/fixture.mjs`); `npm run test:e2e -- --no-engine` sets it to a file that is not there.
 
 - `test/engine.test.ts` (Vitest) starts the binary and checks the protocol: `initialize`, the state of the throwaway
   repositories against `Repo.state`, a burst of changes, cancelling, the restarts after the engine is killed, and the
@@ -154,12 +155,21 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
   `journal/record` as `Controller.recordInJournal` does, and takes them back with `feature/run` of `undo.last`, newest
   first, together with the engine's own plans, across a restart of the engine too.
 - The integration tests of a moved area run each operation through `feature/run`, with a fake host that answers the
-  questions from the test; they keep the same names, so that a card's **Tested by** line still finds them.
+  questions from the test; they keep the same names, so that a card's **Tested by** line still finds them. What they
+  share is `test/engine/harness.ts`: throwaway repositories, an asker that answers by key, `twins` for two copies of a
+  repository, `runGitOp` and `runFeature`, and `snapshot`, what a repository is compared by.
+- From stage 4, each moved area has its scenario test, `test/engine<Area>.test.ts` (`engineChanges.test.ts` for the
+  changes, the commit and the stashes): each operation runs as its `GitOp` in one copy and, with the target and answers
+  `engineRuns` (`src/engine/actions.ts`) gives it, as the engine's feature in the other; the commands and the
+  repositories after must be the same, but where [04-differences.md](../transition/04-differences.md) says why not.
 - The scenarios shared with the desktop ([desktop/06-testing.md](../desktop/06-testing.md#scenarios-run-by-both-apps))
   compare the engine's plan and the final state with the TypeScript `GitOp`'s, operation by operation, until `src/git`
   is removed.
 - The e2e and UI suites run once with the engine and once with `gitardo.engine.path` naming a missing file, which
-  checks the fallback ([D49](../08-decisions.md#d49--when-the-engines-binary-is-missing-proposed)).
+  checks the fallback ([D49](../08-decisions.md#d49--when-the-engines-binary-is-missing-proposed)). A step that sees
+  a difference between the two paths is written to hold on both, as the one that names a branch from the format at a
+  commit does (B10). The commands the engine runs are logged as a `GitOp`'s are, `> ` before them, so a step reads the
+  log the same way on both paths.
 
 ## What a change runs before it is committed
 

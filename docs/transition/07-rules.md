@@ -54,12 +54,20 @@ needs is written in the commit of that stage, not before.
 | [transition/04-differences.md](04-differences.md) | D7 and D8 fixed; D9 and D10 in the extension's CHANGELOG. |
 | [extension/02-architecture.md](../extension/02-architecture.md) | Every `GitOp` recorded with `journal/record`, and **Undo** through `feature/run`. |
 
+## Written in stage 4, area 1 (changes and commit, stashes)
+
+| Page | Change |
+| --- | --- |
+| [features/05-changes-and-commit.md](../features/05-changes-and-commit.md), [08-stashes.md](../features/08-stashes.md), [02-graph.md](../features/02-graph.md), [17-diff-and-merge-views.md](../features/17-diff-and-merge-views.md) | The extension's cards of the area merged, each with its **Extension** line and acceptance lines; `features/extension/05` and `08` emptied; stage, unstage and discard take the files ticked. |
+| [transition/04-differences.md](04-differences.md) | A1, A2, A7, A8, A9 and A12 fixed or in the CHANGELOG; B10 found by the e2e suite with the engine. |
+| [extension/02-architecture.md](../extension/02-architecture.md) | A step of the engine logged as the command of a `GitOp`. |
+| [extension/06-testing.md](../extension/06-testing.md) | The harness and the scenario test of an area; the e2e and UI suites with the engine and without. |
+
 ## Waiting for a stage
 
 | Rule | Stage | What |
 | --- | --- | --- |
 | The extension's stored data | 4 | [extension/11-data.md](../extension/11-data.md) says where the rebase files go when the rebase area moves. |
-| The e2e and UI suites with the engine | 2 | Not done in stage 2: `test/e2e/run.mjs` and `test/e2e/ui.mjs` set `gitardo.engine.path`, and run once with the binary and once with a missing file ([extension/06-testing.md](../extension/06-testing.md#with-the-engine)). |
 | The merge of the cards | 4 | For each area, the extension's cards are merged into the desktop's ones, and the area's file in `features/extension/` is emptied; the card template of the desktop gets an **Extension** line where the interface differs. |
 | The check of the catalog | 4 | `cargo xtask docs`, the part of `cargo xtask check` that reads the documents, takes from `docs/catalog.py` the lines a card's kind needs and the words of the glossary, and `npm run check:docs` calls it; `catalog.py` is removed when the last area is merged ([D46](../08-decisions.md#d46--cargo-xtask-check-checks-the-catalog-of-both-apps)). |
 | The promises of the cards | 4 | The extension's [promises](../extension/04-feature-contract.md#the-promises-every-card-is-checked-against) are compared with the desktop's contract and the ones it lacks are added there. |

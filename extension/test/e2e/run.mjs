@@ -1,4 +1,4 @@
-// Runs the end-to-end suite inside a real VS Code: node test/e2e/run.mjs [--vsix] [path to the VS Code executable]
+// Runs the end-to-end suite inside a real VS Code: node test/e2e/run.mjs [--vsix] [--no-engine] [path to the VS Code executable]
 // VS Code starts as a separate instance with its own throwaway profile, so the one you work in is not touched.
 // With --vsix the extension under test is what the packaged .vsix contains, rather than this folder.
 
@@ -6,7 +6,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { createWorkspace, environment, findCode, isolated, remove, source } from './fixture.mjs';
+import { createWorkspace, engineSetting, environment, findCode, isolated, remove, source } from './fixture.mjs';
 
 const TIMEOUT = 240_000;
 const options = process.argv.slice(2).filter((argument) => argument.startsWith('--'));
@@ -37,6 +37,11 @@ function unpackVsix() {
 const extension = options.includes('--vsix') ? unpackVsix() : source;
 const { workspace } = createWorkspace(temp);
 const results = path.join(temp, 'results.json');
+const engine = engineSetting(temp, options);
+const userSettings = path.join(temp, 'user-data', 'User', 'settings.json');
+fs.mkdirSync(path.dirname(userSettings), { recursive: true });
+fs.writeFileSync(userSettings, JSON.stringify(engine.settings, null, 2));
+console.log(`Testing ${engine.said}`);
 
 const child = spawn(
   findCode(codePath),

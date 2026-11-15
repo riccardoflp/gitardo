@@ -83,6 +83,18 @@ export function isolated(temp) {
   ];
 }
 
+/**
+ * The setting that points the throwaway profile at Gitardo's engine, which is read from the user settings only: the
+ * debug binary of `../rust/target/debug` (or `GITARDO_ENGINE`), unless `--no-engine` asks for a file that is not there,
+ * which checks the fallback to the TypeScript operations. `said` is what was chosen, to be printed.
+ */
+export function engineSetting(temp, options) {
+  const name = process.platform === 'win32' ? 'gitardo-engine.exe' : 'gitardo-engine';
+  const built = process.env.GITARDO_ENGINE ?? path.resolve(source, '..', 'rust', 'target', 'debug', name);
+  const engine = options.includes('--no-engine') || !fs.existsSync(built) ? path.join(temp, 'no-engine', name) : built;
+  return { settings: { 'gitardo.engine.path': engine }, said: fs.existsSync(engine) ? `with the engine ${engine}` : 'without the engine' };
+}
+
 /** The environment for VS Code, without the variable that would make it run as plain Node when started from an Electron app. */
 export function environment(extra = {}) {
   const env = { ...process.env, ...extra };

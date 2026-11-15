@@ -6,7 +6,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { sleep, until } from './cdp.mjs';
-import { createWorkspace, git, remove, source } from './fixture.mjs';
+import { createWorkspace, engineSetting, git, remove, source } from './fixture.mjs';
 import { CTRL, SHIFT, startWindow } from './window.mjs';
 
 const options = process.argv.slice(2).filter((argument) => argument.startsWith('--'));
@@ -18,7 +18,9 @@ const HEIGHT = 950;
 
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-ui-'));
 const { workspace, app, lib } = createWorkspace(temp);
-const window = await startWindow({ workspace, temp, out, codePath, width: WIDTH, height: HEIGHT });
+const engine = engineSetting(temp, options);
+console.log(`Testing ${engine.said}`);
+const window = await startWindow({ workspace, temp, out, codePath, settings: engine.settings, width: WIDTH, height: HEIGHT });
 const { shot, setting, mouse, drag, clickText, key, type, prompt, command, webview, problems } = window;
 
 /** Opens the sections of the references that are closed: they all are when VS Code starts, and new ones start closed. */
@@ -337,7 +339,8 @@ try {
       const open = await prompt();
       return open?.items?.includes('Create only') ? open : null;
     });
-    assert(pick.title === 'Create branch from-ui', `title: ${pick.title}`);
+    // The engine writes the name between backticks, as the desktop does; the TypeScript fallback without them.
+    assert(pick.title.replaceAll('`', '') === 'Create branch from-ui', `title: ${pick.title}`);
     await shot('quick-pick');
     await clickText('.quick-input-list .monaco-list-row', 'Create only');
     await until('the label of the new branch', () =>
@@ -2090,9 +2093,10 @@ try {
       })()`);
       await mouse(graph.frame.x + at.x, graph.frame.y + at.y);
     };
-    const confirm = async (title) => {
+    // The title the engine gives, or the one of the TypeScript fallback where its words differ.
+    const confirm = async (...titles) => {
       const dialog = await until('the warning', async () => ((await prompt())?.kind === 'dialog' ? prompt() : null));
-      assert(dialog.text.includes(`${title}?`), `dialog: ${JSON.stringify(dialog)}`);
+      assert(titles.some((title) => dialog.text.includes(`${title}?`)), `dialog: ${JSON.stringify(dialog)}`);
       return dialog;
     };
 
@@ -2117,7 +2121,7 @@ try {
     await until('two ticked', () => graph.evaluate(`document.querySelector('.detail h3 .grow').textContent.includes(', 2 selected')`));
     await shot('changes-ticked');
     await graph.click('.detail h3 button[title="Discard all changes in 2 selected files…"]');
-    const dialog = await confirm('Discard all changes in 2 files');
+    const dialog = await confirm('Discard the changes of 2 files', 'Discard all changes in 2 files');
     assert(/git clean -f -- one\.txt two\.txt\s*$/.test(dialog.text) && dialog.text.includes('2 untracked files will be deleted'), `dialog: ${dialog.text}`);
     await clickText('.monaco-dialog-box .monaco-button', 'Run');
     await until('the two gone', async () => !(await names()).some((name) => name === 'one.txt' || name === 'two.txt'));
@@ -2127,7 +2131,7 @@ try {
     // Ticked, a file is stashed alone.
     await press('b.txt', '.pick');
     await graph.click('.detail h3 button[title="Stash 1 selected file…"]');
-    await until('the prompt for the message', async () => (await prompt())?.title === 'Stash b.txt');
+    await until('the prompt for the message', async () => (await prompt())?.title?.replaceAll('`', '') === 'Stash b.txt');
     await type('Only b');
     await key('Enter');
     await until('b stashed', async () => !(await names()).includes('b.txt'));
@@ -2137,7 +2141,7 @@ try {
     // The button of a file discards its staged change too.
     await press('a.txt', '.pick');
     await press('a.txt', 'button[title="Discard all changes in this file, staged too…"]');
-    await confirm('Discard all changes in a.txt');
+    await confirm('Discard the changes of a.txt', 'Discard all changes in a.txt');
     await clickText('.monaco-dialog-box .monaco-button', 'Run');
     await until('a gone', async () => !(await names()).includes('a.txt'));
     assert(fs.readFileSync(path.join(app, 'a.txt'), 'utf8') === a && !git(app, 'diff', '--cached', '--name-only').toString().trim(), 'a.txt is back to its commit');

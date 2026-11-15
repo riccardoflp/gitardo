@@ -358,8 +358,13 @@ export async function run(): Promise<void> {
       const next = typed.shift();
       return Promise.resolve(next === KEEP ? options.value : next);
     }) as never;
+    // The engine asks what ${base} is after the inputs, the extension before them (B10 of the differences): each pick
+    // takes the first label still to pick that the picker shows.
     let picks: (string | RegExp)[] = [];
-    choose = (items) => byLabel(picks.shift()!)(items);
+    choose = (items) => {
+      const index = picks.findIndex((label) => items.some((item) => (typeof label === 'string' ? item.label === label : label.test(item.label))));
+      return byLabel(picks.splice(Math.max(index, 0), 1)[0])(items);
+    };
     const made: string[] = [];
     const created = (name: string) => {
       made.push(name);
