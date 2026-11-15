@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { FlowDiff } from '../flow/flowDiff';
 import { discoverRepos } from '../git/discover';
+import { reads } from '../engine/reads';
 import { WindowEngine } from '../engine/vscode';
 import type { RepoState, SyncAction, ViewKind } from '../shared/protocol';
 import { chooseConflictModel } from './ai';
@@ -9,6 +10,7 @@ import { BlameAnnotator, BlameSource } from './blame';
 import { GitContentProvider, SCHEME } from './content';
 import { Controller } from './controller';
 import { FileBlame } from './fileBlame';
+import { githubSession } from './github';
 import { SourceControlSelection } from './sourceControlSelection';
 import { showSetupInMenus } from './worktreeSettings';
 
@@ -30,9 +32,10 @@ export interface GitardoApi {
 export function activate(context: vscode.ExtensionContext): GitardoApi {
   const log = vscode.window.createOutputChannel('Gitardo', { log: true });
   // Gitardo's engine, started the first time a repository is found. It runs the operations of the areas moved to it,
-  // Create branch first; the views still read through src/git, and the tests compare the two.
-  const engine = new WindowEngine(context, log);
+  // and answers the reads of the views but the graph's commits; src/git does both when it is not there (D49).
+  const engine = new WindowEngine(context, log, async (ask) => (await githubSession(ask))?.accessToken ?? null);
   context.subscriptions.push(engine);
+  reads.use(() => engine.running, log);
   const controller = new Controller(context.extensionUri, log, context.workspaceState);
   controller.useEngine(engine);
   const blameSource = new BlameSource(log);

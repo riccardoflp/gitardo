@@ -83,6 +83,7 @@ import type { FileResolutions, Finished, FollowUp, OfferedRun, Plan, Step, Targe
 import { type HostHooks, VscodeAsker, type WindowEngine } from '../engine/vscode';
 import { runSetupCommands } from './worktreeCommands';
 import { headOf, recordOf, type UndoRecord } from '../engine/journal';
+import { reads } from '../engine/reads';
 
 /** How many commits the graph reads at a time, unless the settings ask for another number between the two after it. */
 const PAGE_SIZE = 1000;
@@ -531,11 +532,11 @@ export class Controller implements vscode.Disposable {
 
   /** Opens a file in conflict where it is resolved by hand: the Flow Merge, the merge editor of VS Code, or the file itself at a line. */
   private async openConflict(repo: Repo, file: string, line: number, editor: 'flowMerge' | 'mergeEditor' | 'text'): Promise<void> {
-    if (typeof file !== 'string' || !(await repo.conflicted()).includes(file)) return;
+    if (typeof file !== 'string' || !(await reads.conflicted(repo)).includes(file)) return;
     const uri = vscode.Uri.file(path.join(repo.root, file));
     try {
       if (editor === 'flowMerge') return void (await vscode.commands.executeCommand('gitardo.openInFlowMerge', uri));
-      const stages = await repo.conflictStages(file);
+      const stages = await reads.conflictStages(repo, file);
       // The merge editor needs all three sides: a file both sides added has no base.
       if (editor === 'mergeEditor' && [1, 2, 3].every((stage) => stages.includes(stage))) {
         return await openMergeEditor(repo.root, file, await repo.operation().catch(() => null));
@@ -582,16 +583,24 @@ export class Controller implements vscode.Disposable {
     const resolve = this.autoResolve();
     const stashes = vscode.workspace.getConfiguration('gitardo').get('graph.showStashes') !== false;
     repo.firstParent = vscode.workspace.getConfiguration('gitardo').get('graph.firstParent') === true;
-    if (!this.filter) return repo.state(this.limit, null, this.scope, resolve, stashes);
+    // Stage 5: what the views show but the commits comes from Gitardo's engine when it is there, from Repo when not.
+    // The commits of the graph are read after it by Repo, from what it says.
+    const parts = await reads.parts(repo, resolve);
+    if (!this.filter) return repo.withCommits(parts, this.limit, null, this.scope, stashes);
     try {
-      return await repo.state(this.limit, this.filter, this.scope, resolve, stashes);
+      return await repo.withCommits(parts, this.limit, this.filter, this.scope, stashes);
     } catch (error) {
       this.filter = null;
       const text = error instanceof GitError ? error.result.stderr.trim() : errorText(error);
       this.log.error(text);
       void vscode.window.showErrorMessage(`Gitardo: the search failed. ${text.split('\n')[0]}`);
-      return repo.state(this.limit, null, this.scope, resolve, stashes);
+      return repo.withCommits(parts, this.limit, null, this.scope, stashes);
     }
+  }
+
+  /** The state of a repository the views may not show, with one commit only: for choosing among its branches. */
+  private async stateOf(repo: Repo): Promise<RepoState> {
+    return repo.withCommits(await reads.parts(repo), 1);
   }
 
   /** Narrows the graph to the history of some branches, or shows them all again. What the filter does is left to it. */
@@ -704,7 +713,7 @@ export class Controller implements vscode.Disposable {
     const selected = { start: Math.min(selection.start.line + 1, count), end: Math.min(last + 1, count) };
     // A file renamed in the index has its old name in the commit checked out.
     const committedAs = this.state?.working.staged.find((change) => change.path === file)?.oldPath ?? file;
-    const found = await repo.committedLines(committedAs, selected, document.getText());
+    const found = await reads.committedLines(repo, committedAs, selected, document.getText());
     if (found === 'file') {
       void vscode.window.showInformationMessage(`Gitardo: ${path.posix.basename(file)} is in no commit yet, so its lines have no history.`);
       return;
@@ -819,7 +828,7 @@ export class Controller implements vscode.Disposable {
   private async goTo(revision: unknown, asker: vscode.Webview): Promise<void> {
     const repo = this.repo;
     if (!repo || typeof revision !== 'string' || !revision.trim()) return;
-    const hash = await repo.resolve(revision.trim());
+    const hash = await reads.resolve(repo, revision.trim());
     if (!hash) {
       // A few characters can be the start of more than one hash, which git refuses to choose between.
       void vscode.window.showWarningMessage(`Gitardo: "${revision.trim()}" is not a commit of this repository, or is the start of several.`);
@@ -839,7 +848,7 @@ export class Controller implements vscode.Disposable {
       hash = repo && (await this.askRevision(repo, 'Open commit'))?.hash;
     }
     if (!repo || !isHash(hash)) return;
-    const detail = await repo.commitDetail(hash).catch(() => null);
+    const detail = await reads.commitDetail(repo, hash).catch(() => null);
     if (!detail) {
       void vscode.window.showWarningMessage(`Gitardo: ${hash.slice(0, 7)} is not a commit of this repository.`);
       return;
@@ -913,7 +922,12 @@ export class Controller implements vscode.Disposable {
     if (!tab || tab.panel.webview !== webview) return;
     const { root } = tab.repo;
     try {
-      if (rescan || !tab.entries) [tab.entries, tab.proposed] = await Promise.all([scanIgnored(root), proposedCommands(root)]);
+      if (rescan || !tab.entries) {
+        [tab.entries, tab.proposed] = await Promise.all([
+          reads.setupIgnored(root, () => scanIgnored(root)),
+          reads.setupCommands(root, () => proposedCommands(root)),
+        ]);
+      }
       // The other worktrees can be given what applies only while the views show this repository, which that runs in.
       const state = this.state && samePath(this.state.root, root) ? this.state : null;
       const others = state?.worktrees.filter((worktree) => !worktree.prunable && !samePath(worktree.path, root)).length ?? 0;
@@ -1118,7 +1132,7 @@ export class Controller implements vscode.Disposable {
   /** Opens a comparison opened before, its branches where they are now. */
   private async openRecent(recent: RecentComparison, repo: Repo): Promise<void> {
     const now = async (ref: ComparedRef): Promise<ComparedRef> =>
-      ref.hash === WORKTREE || ref.hash.startsWith(ref.name) ? ref : { name: ref.name, hash: (await repo.resolve(ref.name)) ?? ref.hash };
+      ref.hash === WORKTREE || ref.hash.startsWith(ref.name) ? ref : { name: ref.name, hash: (await reads.resolve(repo, ref.name)) ?? ref.hash };
     await this.openCompare(await now(recent.from), await now(recent.to), repo, recent.path ?? null);
   }
 
@@ -1161,7 +1175,7 @@ export class Controller implements vscode.Disposable {
     if (ref.hash === WORKTREE) return { name: WORKTREE_SIDE.name, hash: WORKTREE, live: true };
     const name = typeof ref.name === 'string' && ref.name ? ref.name : ref.hash.slice(0, 7);
     // A name that git reads as another commit, a tag that has the name of a branch, stands for the one chosen.
-    const live = !ref.hash.startsWith(name) && (await repo.resolve(name)) === ref.hash;
+    const live = !ref.hash.startsWith(name) && (await reads.resolve(repo, name)) === ref.hash;
     return { name, hash: ref.hash, live };
   }
 
@@ -1196,7 +1210,7 @@ export class Controller implements vscode.Disposable {
     try {
       for (const side of [tab.from, tab.to]) {
         if (!side.live || side.hash === WORKTREE) continue;
-        const hash = await repo.resolve(side.name);
+        const hash = await reads.resolve(repo, side.name);
         if (!hash) side.gone = true;
         else {
           side.hash = hash;
@@ -1211,14 +1225,14 @@ export class Controller implements vscode.Disposable {
       panel.title = compareTitle(from, to, path);
       // What the user changed shows a wait until it is compared; the working tree compared again as it changes does not.
       if (again) this.post({ type: 'loading', what: 'filter' }, webview);
-      const found = await this.activity.track(`Comparing ${panel.title}`, () => repo.compareSides(from.hash, to.hash, mode, path));
+      const found = await this.activity.track(`Comparing ${panel.title}`, () => reads.compareSides(repo, from.hash, to.hash, mode, path));
       // The sides changed again meanwhile: the answer for them is the one to send, and the end of any wait.
       if (tab.shown !== key || !open()) return;
       this.post({ type: 'loading', what: null }, webview);
       if (!found) return this.post({ type: 'compareView', view: null, error: 'These are not commits of this repository.' }, webview);
       tab.since = found.since;
       this.post({ type: 'compareView', view: { from: { ...from }, to: { ...to }, mode, ...found } }, webview);
-      const patch = await repo.comparePatch(found.files, found.since, to.hash, PATCH_LINES, path).catch(() => null);
+      const patch = await reads.comparePatch(repo, found.files, found.since, to.hash, PATCH_LINES, path).catch(() => null);
       if (tab.shown === key && open()) this.post({ type: 'comparePatch', since: found.since, to: to.hash, patch }, webview);
     } catch (error) {
       tab.shown = undefined;
@@ -1232,7 +1246,7 @@ export class Controller implements vscode.Disposable {
   /** Lets the user choose one side of a comparison again, in its tab. */
   private async pickCompareSide(tab: CompareTab, which: 'from' | 'to'): Promise<void> {
     // The branches to choose from are of the repository of the tab, which the other views may no longer show.
-    const state = this.state && samePath(this.state.root, tab.repo.root) ? this.state : await tab.repo.state(1).catch(() => null);
+    const state = this.state && samePath(this.state.root, tab.repo.root) ? this.state : await this.stateOf(tab.repo).catch(() => null);
     if (!state) return;
     const other = which === 'from' ? tab.to : tab.from;
     const title = which === 'from' ? `Compare with ${other.name}` : `Compare ${other.name} with`;
@@ -1268,7 +1282,7 @@ export class Controller implements vscode.Disposable {
   /** Copies the changes of a comparison as a patch that `git apply` takes. */
   private async copyComparePatch(tab: CompareTab): Promise<void> {
     if (!tab.since) return;
-    const text = await tab.repo.compareText(tab.since, tab.to.hash, tab.path).catch(() => '');
+    const text = await reads.compareText(tab.repo, tab.since, tab.to.hash, tab.path).catch(() => '');
     if (!text) {
       void vscode.window.showInformationMessage('Gitardo: there are no changes to copy.');
       return;
@@ -1391,12 +1405,12 @@ export class Controller implements vscode.Disposable {
         title,
         prompt: 'A commit hash, or anything else git understands: HEAD~3, v1.0^, main@{yesterday}',
         validateInput: async (value) =>
-          !value.trim() || (await repo.resolve(value.trim())) ? undefined : 'Git does not know a commit by this name in this repository.',
+          !value.trim() || (await reads.resolve(repo, value.trim())) ? undefined : 'Git does not know a commit by this name in this repository.',
       })
     )?.trim();
     if (!revision) return;
     // The box can be accepted before the last check has come back.
-    const hash = await repo.resolve(revision);
+    const hash = await reads.resolve(repo, revision);
     if (!hash) {
       void vscode.window.showWarningMessage(`Gitardo: "${revision}" is not a commit of this repository.`);
       return;
@@ -1464,7 +1478,7 @@ export class Controller implements vscode.Disposable {
   private async browseReflog(): Promise<void> {
     const state = await this.requireState();
     if (!state || !this.repo) return;
-    const entries = await this.repo.reflog('HEAD', REFLOG_ENTRIES);
+    const entries = await reads.reflog(this.repo, 'HEAD', REFLOG_ENTRIES);
     const entry = await vscode.window.showQuickPick(
       entries.map((item) => ({
         label: item.subject,
@@ -1585,7 +1599,11 @@ export class Controller implements vscode.Disposable {
       const session = await githubSession(prompt);
       if (!session) return;
       this.pullsAt = Date.now();
-      const pulls = await this.activity.track('Reading the pull requests from GitHub', () => fetchPulls(github, session.accessToken));
+      // The engine reads them when it is there, asking VS Code for the same session (`host/githubToken`).
+      const root = this.repo?.root;
+      const fetched = () => fetchPulls(github, session.accessToken);
+      const read = () => (root ? reads.pullRequests(root, this.githubRemote, fetched) : fetched());
+      const pulls = await this.activity.track('Reading the pull requests from GitHub', read);
       if (github !== this.github || JSON.stringify(pulls) === JSON.stringify(this.pulls)) return;
       this.pulls = pulls;
       if (this.state) this.setState({ ...this.state, pulls });
@@ -1998,7 +2016,7 @@ export class Controller implements vscode.Disposable {
           break;
         // The commit box of the Changes view, after a squash merge and a split (area 3).
         case 'preparedMessage': {
-          const prepared = (await this.repo?.squashMessage().catch(() => null))?.trim();
+          const prepared = (this.repo && (await reads.squashMessage(this.repo).catch(() => null)))?.trim();
           if (prepared) this.post({ type: 'commitMessage', message: prepared });
           break;
         }
@@ -2169,7 +2187,7 @@ export class Controller implements vscode.Disposable {
       .flatMap((file) => inside(file) ?? [])
       .filter((file) => !others.some((other) => file === other || file.startsWith(`${other}/`)))
       .sort();
-    const ignored = await repo.ignored(paths).catch(() => new Set<string>());
+    const ignored = await reads.ignored(repo, paths).catch(() => new Set<string>());
     return paths.filter((file) => !ignored.has(file));
   }
 
@@ -2227,7 +2245,7 @@ export class Controller implements vscode.Disposable {
     this.repo = repo;
     // The commits of the repository before stay in the views until those of this one come.
     await this.reload('filter', async () => {
-      this.watch(root, await repo.commonDir());
+      this.watch(root, await reads.commonDir(repo));
       await this.detectGitHub(repo);
       await this.refresh();
     });
@@ -2235,7 +2253,7 @@ export class Controller implements vscode.Disposable {
 
   /** Works out whether the main remote is a repository on GitHub. */
   private async detectGitHub(repo: Repo): Promise<void> {
-    const remotes = await repo.remotes();
+    const remotes = await reads.remotes(repo);
     const main = remotes.find((remote) => remote.name === 'origin') ?? remotes[0];
     const github = main ? parseGitHubRemote(main.url) : null;
     this.githubRemote = github ? main.name : null;
@@ -2609,7 +2627,7 @@ export class Controller implements vscode.Disposable {
         if (!repo) return;
         const patterns = { link: cleanPatterns(message.patterns?.link), copy: cleanPatterns(message.patterns?.copy) };
         try {
-          const preview = await previewSetup(repo.root, patterns);
+          const preview = await reads.setupPreview(repo.root, patterns, () => previewSetup(repo.root, patterns));
           return this.post({ type: 'worktreeSetupPreview', patterns: message.patterns, preview }, webview);
         } catch (error) {
           return this.post({ type: 'worktreeSetupPreview', patterns: message.patterns, preview: null, error: errorText(error) }, webview);
@@ -2656,16 +2674,16 @@ export class Controller implements vscode.Disposable {
         return this.reload('more');
       case 'getLog': {
         const limit = Math.min(Math.max(Math.trunc(Number(message.limit)) || 1, 1), LOG_LIMIT);
-        const log = await this.repo?.branchLog(limit).catch(() => null);
+        const log = this.repo && (await reads.branchLog(this.repo, limit).catch(() => null));
         return log ? this.post({ type: 'log', log }, webview) : undefined;
       }
       case 'getDetail': {
-        const detail = (await repo?.commitDetail(message.hash).catch(() => null)) ?? null;
+        const detail = (repo && (await reads.commitDetail(repo, message.hash).catch(() => null))) ?? null;
         return this.post({ type: 'detail', hash: message.hash, detail }, webview);
       }
       case 'getPatch': {
-        const detail = await repo?.commitDetail(message.hash).catch(() => null);
-        const patch = (detail && (await repo?.commitPatch(detail, PATCH_LINES).catch(() => null))) ?? null;
+        const detail = repo && (await reads.commitDetail(repo, message.hash).catch(() => null));
+        const patch = (repo && detail && (await reads.commitPatch(repo, detail, PATCH_LINES).catch(() => null))) ?? null;
         return this.post({ type: 'patch', hash: message.hash, patch }, webview);
       }
       case 'openCommit':
@@ -2709,7 +2727,7 @@ export class Controller implements vscode.Disposable {
       case 'trace':
         return this.trace(message.hash);
       case 'getComparison': {
-        const comparison = await this.repo?.compare(message.from, message.to).catch(() => null);
+        const comparison = this.repo && (await reads.compare(this.repo, message.from, message.to).catch(() => null));
         return comparison ? this.post({ type: 'comparison', comparison }, webview) : undefined;
       }
       case 'selectRepo':
@@ -2975,7 +2993,7 @@ export class Controller implements vscode.Disposable {
       case 'conflict': {
         // The merge editor needs all three sides. A file one side deleted shows what the other changed of it; one both
         // sides added, or both deleted, opens as it is.
-        const stages = await repo.conflictStages(file.path);
+        const stages = await reads.conflictStages(repo, file.path);
         if ([1, 2, 3].every((stage) => stages.includes(stage))) {
           try {
             // Not part of the documented API, hence the fallback.

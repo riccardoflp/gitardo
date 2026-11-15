@@ -171,7 +171,9 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
 - From stage 5, `test/engineReads.test.ts` asks each read of version 1.4 of the protocol through the typed methods of
   `EngineClient`, and compares the answer with what `Repo` (or `worktreeSetup.ts`, `conflicts.ts` and `github.ts`)
   reads of the same throwaway repositories; where they differ, [04-differences.md](../transition/04-differences.md)
-  says why, under **Reads (stage 5)**.
+  says why, under **Reads (stage 5)**. `test/reads.test.ts` asks the reads as the views ask them, through
+  `src/engine/reads.ts`, once with the engine and once without, and checks that the views get the same; and with the
+  binary missing, that each read is the TypeScript one, logged.
 - The scenarios shared with the desktop ([desktop/06-testing.md](../desktop/06-testing.md#scenarios-run-by-both-apps))
   compare the engine's plan and the final state with the TypeScript `GitOp`'s, operation by operation, until `src/git`
   is removed.

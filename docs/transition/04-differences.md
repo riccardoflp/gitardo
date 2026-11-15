@@ -1033,6 +1033,33 @@ inside `unlinkFolderLinks` as it removes them (`extension/src/git/worktreeSetup.
 `github.read-pull-requests`, of which only the repository found on GitHub (`parseGitHubRemote`) and the answer without
 a token are compared, since GitHub is not asked offline.
 
+Moving the views onto these reads (`extension/src/engine/reads.ts`, tested by `extension/test/reads.test.ts`) found
+two more, which compare the reads as the views ask them.
+
+### R6. The names of the sides in a patch from the working tree
+
+- **Feature**: `compare.read-patch`, the patch to copy; extension `Repo.compareText`, for **Copy patch** of a
+  comparison whose first side is the working tree.
+- **Extension**: `git diff -R <second>`, in which git names the sides `b/` and `a/`, the other way round from every
+  other patch (`extension/src/git/repo.ts`, `diffSides`).
+- **Engine**: the sides named `a/` and `b/`; the lines are the same.
+- **Verdict**: **CHANGELOG**. `git apply` takes both. "The patch copied from a comparison that starts at the working
+  tree names its sides `a/` and `b/`, as every other patch does."
+
+### R7. A comparison narrowed to a path, or from the working tree since they diverged
+
+- **Feature**: `compare.read-sides`; extension `Repo.compareSides`.
+- **Extension**: how many commits each side has, and what a merge would do, are those of the whole sides, also when
+  the comparison is narrowed to a path; from the working tree in **Since they diverged**, the files are compared from
+  the merge base of `HEAD` and the other side (`extension/src/git/repo.ts`, `compareSides`).
+- **Engine**: narrowed, it counts only the commits that change the path, as its card says, and so asks no merge when
+  one side has none of them; from the working tree, the files are compared with the other side whatever the mode
+  (`git diff -R <second>`).
+- **Verdict**: **Choice** ([Q407](../08-decisions.md#open-questions)). Until it is decided, the extension reads these
+  two cases in TypeScript, and every other comparison from the engine. Recommended: what the extension does today,
+  which is what the tab of a comparison says (the sides' distance in its header, the files since the merge base in
+  **Since they diverged**); the engine's card changes to it.
+
 ## Found by the end-to-end suite once the areas were merged
 
 The areas of stage 4 were built side by side, each without the end-to-end suite, which starts VS Code. Run on the
@@ -1093,9 +1120,9 @@ Entries marked **Merged into …** are not counted again.
 | Undo, preview and log (D7–D12) | 0 | 2 | 1 | 3 | 6 |
 | Worktrees and their setup (W1–W12; W11 merged) | 1 | 5 | 2 | 3 | 11 |
 | Submodules (S1–S6) | 1 | 4 | 0 | 1 | 6 |
-| Reads (R1; R2–R5 not seen by users) | 0 | 1 | 0 | 0 | 1 |
+| Reads (R1, R6, R7; R2–R5 not seen by users) | 0 | 1 | 1 | 1 | 3 |
 | Found by the end-to-end suite (E1–E4) | 1 | 1 | 0 | 2 | 4 |
-| **Total** | **6** | **20** | **8** | **26** | **60** |
+| **Total** | **6** | **20** | **9** | **27** | **62** |
 
 Of the 19 engine bugs, five are in the extension too, so whichever side wins they get fixed in the engine: A2 (Unstage
 all during an operation), B7 (remote branch by its short name), D2 (Skip without asking), D7 (Undo after what it cannot

@@ -112,6 +112,9 @@ needs is written in the commit of that stage, not before.
 | [transition/04-differences.md](04-differences.md) | **Reads (stage 5)**: R1 fixed, R2 to R5 the same answer in another shape, and the three reads with no read of the extension to compare with. |
 | [extension/06-testing.md](../extension/06-testing.md) | `test/engineReads.test.ts`, each read of the engine against the extension's. |
 | [extension/10-security.md](../extension/10-security.md) | T2 and the secrets: the GitHub token asked by the engine with `host/githubToken`, done from **Waiting for a stage**. |
+| [extension/02-architecture.md](../extension/02-architecture.md) | **Where the reads come from**: the views read through `src/engine/reads.ts`, the engine's read turned into the view's shape by `shapes.ts`, `Repo` when the engine is not there, fails, or cannot answer what the view asks; the state's parts from `repo.read-state`, the commits of the graph still from `Repo.withCommits`; `src/flow` uses `src/engine/reads.ts`, and `src/engine` uses `src/shared`. |
+| [extension/06-testing.md](../extension/06-testing.md) | `test/reads.test.ts`, the reads as the views ask them, with the engine and without. |
+| [transition/04-differences.md](04-differences.md), [08-decisions.md](../08-decisions.md), `extension/CHANGELOG.md` | R6 in the CHANGELOG; R7 a choice, Q407, read in TypeScript until it is decided. |
 
 ## Written in stages 8 and 9
 

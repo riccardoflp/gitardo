@@ -51,6 +51,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - Creating a worktree with `gitardo.branches.format` set asks for the inputs of the format after what the new branch starts from, and at a commit asks what `${base}` is among the branches at it, its short hash and the branches that have it; from a detached HEAD, `${base}` is its short hash.
 - Renaming the main worktree, and **Open in worktree** on the branch checked out in this window, are refused with a warning before git runs.
 - Bringing ignored files into a worktree lists only what it brings, not what the worktree had already.
+- The patch copied from a comparison that starts at the working tree names its sides `a/` and `b/`, as every other patch does.
 
 ## 0.11.0 - 2026-11-12
 

@@ -121,6 +121,7 @@ export class EngineClient {
   private connection?: Connection;
   private started?: Promise<InitializeResult>;
   private readonly opened = new Set<string>();
+  private readonly openings = new Map<string, Promise<EngineState>>();
   private readonly exits: number[] = [];
   private readonly stateHandlers = new Set<(repository: string, state: EngineState) => void>();
   /** The askers of the runs waiting for their answer, by the id of their `feature/run`. */
@@ -169,9 +170,26 @@ export class EngineClient {
     return connection.request<EngineState>(Method.readState, { repository }, signal);
   }
 
-  /** Opens a repository unless it is open. */
+  /** Opens a repository unless it is open, once for the reads that ask at the same time. */
   async ensureOpen(repository: string): Promise<void> {
-    if (!this.opened.has(repository)) await this.open(repository);
+    if (this.opened.has(repository)) return;
+    await this.opening(repository);
+  }
+
+  /** The state of a repository as it is now: the one read as it opens, when it was not open yet (`repo.read-state`). */
+  async currentState(repository: string, signal?: AbortSignal): Promise<EngineState> {
+    if (this.opened.has(repository)) return this.readState(repository, signal);
+    return this.opening(repository);
+  }
+
+  /** The opening of a repository under way, shared by those who ask while it runs. */
+  private opening(repository: string): Promise<EngineState> {
+    let opening = this.openings.get(repository);
+    if (!opening) {
+      opening = this.open(repository).finally(() => this.openings.delete(repository));
+      this.openings.set(repository, opening);
+    }
+    return opening;
   }
 
   /**

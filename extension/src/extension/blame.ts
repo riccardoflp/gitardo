@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { Repo, type BlameOptions } from '../git/repo';
+import { reads } from '../engine/reads';
 import { ago } from '../shared/blameFormat';
 import { revisionOf } from './content';
 
@@ -110,7 +111,7 @@ export class BlameAnnotator implements vscode.Disposable {
     if (!found) return clear();
 
     const line = selection.active.line;
-    const blame = await found.repo.blameLine(found.file, line + 1, this.source.options(document, found)).catch(() => null);
+    const blame = await reads.blameLine(found.repo, found.file, line + 1, this.source.options(document, found)).catch(() => null);
     if (request !== this.request) return;
     if (!blame) return clear();
 

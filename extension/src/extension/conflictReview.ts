@@ -7,6 +7,7 @@ import type { ConflictPlan, Repo } from '../git/repo';
 import { fingerprint, questionParts, reviewFiles } from '../git/review';
 import { partialResolution } from '../shared/conflictPrompt';
 import type { FileResolutions } from '../engine/messages';
+import { reads } from '../engine/reads';
 import { engineResolutions } from '../engine/resolutions';
 import type { HostMessage, Operation, ViewKind } from '../shared/protocol';
 import type { Asking, Choice, ConflictRef, ConflictReview, DeletedConflict, Proposal, ReviewReport } from '../shared/resolution';
@@ -112,14 +113,14 @@ export class ConflictReviewTab implements vscode.Disposable {
 
   private async read(): Promise<void> {
     try {
-      const conflicted = await this.repo.conflicted();
+      const conflicted = await reads.conflicted(this.repo);
       const files = this.paths ? conflicted.filter((file) => this.paths?.includes(file)) : conflicted;
       this.plans = await this.repo.conflictPlans(files);
       const unmarked = files.filter((file) => !this.plans.some((plan) => plan.path === file));
       this.deleted = await this.repo.deletedConflicts(unmarked);
       this.others = unmarked.filter((file) => !this.deleted.some((each) => each.path === file));
       this.operation = await this.repo.operation().catch(() => null);
-      [this.names, this.subjects] = await Promise.all([this.repo.conflictNames(), this.repo.conflictSubjects()]);
+      ({ names: this.names, subjects: this.subjects } = await reads.conflictSides(this.repo));
       this.conflicted = conflicted.length;
       this.model = this.host.settings().ai ? await conflictModelName() : null;
       this.error = undefined;
@@ -277,7 +278,7 @@ export class ConflictReviewTab implements vscode.Disposable {
       const conflict = plan?.conflicts.find((each) => fingerprint(plan.text, each) === job.print);
       if (!plan || !conflict) throw new Error('The conflict is no longer in the file.');
       const [current, incoming] = CONFLICT_SIDES[this.operation ?? 'none'];
-      const [oursSubject, theirsSubject] = await this.repo.conflictSubjects();
+      const [oursSubject, theirsSubject] = (await reads.conflictSides(this.repo)).subjects;
       const question = { path: plan.path, oursLabel: current, theirsLabel: incoming, oursSubject, theirsSubject, ...questionParts(plan.text, conflict) };
       this.asking.set(id, { state: 'thinking', text: '' });
       this.schedule();

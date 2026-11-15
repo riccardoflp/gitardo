@@ -2422,3 +2422,9 @@ start of stage 1, as recommended.
 - **Q406** — The lanes of the graph: computed by the webviews from the rows (`src/shared/graph.ts`), or sent with the
   rows by the engine, which has the same derivation for the window? Recommended: the webviews until stage 7, then
   measured both ways on the large repository.
+- **Q407** — A comparison narrowed to a path counts, in the engine, only the commits that change it, and asks no merge
+  when one side has none; from the working tree in **Since they diverged**, the engine compares the files with the
+  other side, the extension from the merge base
+  ([R7](transition/04-differences.md#r7-a-comparison-narrowed-to-a-path-or-from-the-working-tree-since-they-diverged)).
+  Recommended: what the extension does, and `compare.read-sides` changed to it; until then the extension reads those
+  two cases in TypeScript.

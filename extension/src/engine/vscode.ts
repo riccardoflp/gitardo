@@ -176,6 +176,8 @@ export class WindowEngine implements vscode.Disposable {
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly log: vscode.LogOutputChannel,
+    /** The token of the user's GitHub session in VS Code, which the engine asks to read the pull requests. */
+    private readonly githubToken?: (ask: boolean) => Promise<string | null>,
   ) {}
 
   /** Starts the engine the first time; the output channel says once when there is no binary for this system. */
@@ -199,6 +201,7 @@ export class WindowEngine implements vscode.Disposable {
       settings: () => readSettings(this.context.extension),
       logLevel: () => (this.log.logLevel <= vscode.LogLevel.Debug ? 'debug' : 'info'),
       log: this.log,
+      githubToken: this.githubToken,
     });
     this.client = client;
     // The features see the new values from their next run.

@@ -99,10 +99,10 @@ export interface EngineState {
     untracked: string[];
     conflicted: Array<{ path: string; kind: string }>;
   };
-  operation: string | null;
-  rebaseStop: unknown;
-  bisect: unknown;
-  submodules: unknown[];
+  operation: MergeSides['operation'];
+  rebaseStop: { kind: 'edit' | 'split'; commit: string; subject: string } | null;
+  bisect: { bad: string | null; good: string[]; skipped: string[]; remaining: number | null } | null;
+  submodules: Submodule[];
 }
 
 /** A file changed in the working tree or the index. */
