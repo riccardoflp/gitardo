@@ -11,11 +11,13 @@ pub struct Owned(cf::CFTypeRef);
 
 impl Owned {
     /// Takes an object the system made or copied for the caller; none when it gave nothing.
+    #[must_use]
     pub fn take(object: cf::CFTypeRef) -> Option<Owned> {
         (!object.is_null()).then_some(Owned(object))
     }
 
     /// The object, for a call that borrows it while this value is alive.
+    #[must_use]
     pub fn get(&self) -> cf::CFTypeRef {
         self.0
     }
@@ -42,6 +44,10 @@ fn refused(call: &'static str) -> SystemError {
 }
 
 /// A string of `CoreFoundation` with the text.
+///
+/// # Errors
+///
+/// When `CFStringCreateWithBytes` makes no object, or the count is too large for it.
 pub fn string(text: &str) -> Result<Owned, SystemError> {
     let count = length(text.len())?;
     let (bytes, utf8) = (text.as_ptr(), cf::kCFStringEncodingUTF8);
@@ -51,6 +57,10 @@ pub fn string(text: &str) -> Result<Owned, SystemError> {
 }
 
 /// Bytes kept by `CoreFoundation`, copied from these.
+///
+/// # Errors
+///
+/// When `CFDataCreate` makes no object, or the count is too large for it.
 pub fn data(bytes: &[u8]) -> Result<Owned, SystemError> {
     let count = length(bytes.len())?;
     // SAFETY: the bytes are alive for the call, and the count says how many there are; the object copies them.
@@ -59,6 +69,7 @@ pub fn data(bytes: &[u8]) -> Result<Owned, SystemError> {
 }
 
 /// The bytes of an object of bytes, copied out of it.
+#[must_use]
 pub fn bytes_of(data: &Owned) -> Vec<u8> {
     // SAFETY: the object is alive while `data` is, and is bytes, as the caller asked the keychain for.
     let (start, count) = unsafe { (cf::CFDataGetBytePtr(data.get()), cf::CFDataGetLength(data.get())) };
@@ -74,6 +85,10 @@ pub fn bytes_of(data: &Owned) -> Vec<u8> {
 }
 
 /// An array of objects, which it retains.
+///
+/// # Errors
+///
+/// When `CFArrayCreate` makes no object, or the count is too large for it.
 pub fn array(values: &[&Owned]) -> Result<Owned, SystemError> {
     let pointers: Vec<*const c_void> = values.iter().map(|value| value.get()).collect();
     let count = length(pointers.len())?;
@@ -91,6 +106,10 @@ pub fn array(values: &[&Owned]) -> Result<Owned, SystemError> {
 }
 
 /// A dictionary of keys and values, which it retains.
+///
+/// # Errors
+///
+/// When `CFDictionaryCreate` makes no object, or the count is too large for it.
 pub fn dictionary(pairs: &[(cf::CFTypeRef, cf::CFTypeRef)]) -> Result<Owned, SystemError> {
     let keys: Vec<*const c_void> = pairs.iter().map(|(key, _)| *key).collect();
     let values: Vec<*const c_void> = pairs.iter().map(|(_, value)| *value).collect();
