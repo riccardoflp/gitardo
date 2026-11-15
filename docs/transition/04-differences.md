@@ -1033,6 +1033,49 @@ inside `unlinkFolderLinks` as it removes them (`extension/src/git/worktreeSetup.
 `github.read-pull-requests`, of which only the repository found on GitHub (`parseGitHubRemote`) and the answer without
 a token are compared, since GitHub is not asked offline.
 
+## Found by the end-to-end suite once the areas were merged
+
+The areas of stage 4 were built side by side, each without the end-to-end suite, which starts VS Code. Run on the
+branch that joins them, with the engine, it found what follows.
+
+### E1. A failed step the plan gets past is logged as an error
+
+- **Feature**: `log.record`, with `conflicts.continue-operation` and `cherry-pick.skip-empty`; extension
+  `skipEmptyPicks` in `recover` (`extension/src/git/ops.ts:1219-1240`).
+- **Extension**: what git said when a cherry-pick it was asked to continue changes nothing is logged as a warning, and
+  `git cherry-pick --skip` runs after it.
+- **Engine**: the same steps, but what git said stayed a `Failure` of the log once `recover` got past it
+  (`engine/src/drive.rs`, `recover`), which the extension shows as an error.
+- Verdict: **Bug (engine)**, fixed: `CommandLog::got_past_failure` makes it a warning when a recovery or an operation
+  offered in its place ran; acceptance line and test `log_record__a_failure_the_plan_got_past_is_written_as_a_warning`.
+
+### E2. Renaming the main worktree, and Open in worktree on the branch checked out here
+
+- **Feature**: `worktree.rename`, `worktree.open-in-worktree`; extension `worktreeRename`, `openInWorktree`
+  (`extension/src/extension/actions.ts`).
+- **Extension**: git's error, shown as an error (*cannot move the main worktree*), and an error of the extension's
+  own for a branch checked out in this window.
+- **Engine**: refused before git runs, shown as a warning, as every refusal of the engine is.
+- Verdict: **CHANGELOG**. "Renaming the main worktree, and **Open in worktree** on the branch checked out in this window,
+  are refused with a warning before git runs."
+
+### E3. What a worktree has already is not said when ignored files are brought into it
+
+- **Feature**: `worktree-setup.bring-into-worktree`; extension `bringIgnored` (`extension/src/git/worktreeSetup.ts:292`,
+  `307`).
+- **Extension**: logs *node_modules is in the worktree already.* for each folder or file the worktree has.
+- **Engine**: plans only what the worktree lacks, and says nothing of the rest.
+- Verdict: **CHANGELOG**. "Bringing ignored files into a worktree lists only what it brings, not what the worktree had
+  already."
+
+### E4. The main worktree let go of in VS Code's Git before its rename is refused
+
+- **Feature**: `worktree.rename`; extension `Controller.letGoInVSCodeGit` (area 5).
+- **Extension, with the engine**: VS Code's Git extension closed the worktree before `feature/run`, so that Windows
+  lets it move; for the main worktree, which the engine then refuses to move, the repository stayed closed in VS Code's
+  Git, and its diffs could no longer be served.
+- Verdict: **Bug (extension)**, fixed: the main worktree is never closed, since git neither moves nor removes it.
+
 ## Summary
 
 Entries marked **Merged into …** are not counted again.
@@ -1051,7 +1094,8 @@ Entries marked **Merged into …** are not counted again.
 | Worktrees and their setup (W1–W12; W11 merged) | 1 | 5 | 2 | 3 | 11 |
 | Submodules (S1–S6) | 1 | 4 | 0 | 1 | 6 |
 | Reads (R1; R2–R5 not seen by users) | 0 | 1 | 0 | 0 | 1 |
-| **Total** | **5** | **19** | **8** | **24** | **56** |
+| Found by the end-to-end suite (E1–E4) | 1 | 1 | 0 | 2 | 4 |
+| **Total** | **6** | **20** | **8** | **26** | **60** |
 
 Of the 19 engine bugs, five are in the extension too, so whichever side wins they get fixed in the engine: A2 (Unstage
 all during an operation), B7 (remote branch by its short name), D2 (Skip without asking), D7 (Undo after what it cannot

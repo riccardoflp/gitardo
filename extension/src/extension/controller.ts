@@ -1872,7 +1872,11 @@ export class Controller implements vscode.Disposable {
    * move, empty or delete, which Windows refuses while the extension watches them.
    */
   private async letGoInVSCodeGit(action: Action, state: RepoState): Promise<void> {
-    if (action.kind === 'worktreeRemove' || action.kind === 'worktreeRename') await closeInVSCodeGit([action.path], this.log);
+    if (action.kind === 'worktreeRemove' || action.kind === 'worktreeRename') {
+      // Git never moves nor removes the main worktree, which the engine refuses: VS Code's Git keeps it open.
+      const main = state.worktrees.some((worktree) => worktree.main && samePath(worktree.path, action.path));
+      if (!main) await closeInVSCodeGit([action.path], this.log);
+    }
     if (action.kind === 'submoduleDeinit' || action.kind === 'submoduleRemove') {
       const path = action.path;
       const inside = state.submodules.filter((each) => each.head !== null && (each.path === path || each.path.startsWith(`${path}/`)));

@@ -327,6 +327,7 @@ impl Engine {
                 return Err(failure);
             }
             let steps = self.run_plan(&offer)?;
+            self.log.got_past_failure();
             let mut all = failure.ran;
             all.push(failure.failed);
             all.extend(steps);
@@ -344,6 +345,7 @@ impl Engine {
             };
             match self.run_feature(feature, operation, context, asker) {
                 Ok(Finished::Ran { steps, .. }) => {
+                    self.log.got_past_failure();
                     let mut all = failure.ran;
                     all.push(failure.failed);
                     all.extend(steps);

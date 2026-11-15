@@ -104,6 +104,19 @@ impl CommandLog {
         });
     }
 
+    /// Makes what git said under the newest step that failed a warning: the plan got past that step, as a cherry-pick
+    /// that changes nothing is skipped, and nothing failed in the end.
+    pub fn got_past_failure(&mut self) {
+        if let Some(entry) = self
+            .entries
+            .iter_mut()
+            .rev()
+            .find(|entry| entry.kind == LogKind::Failure)
+        {
+            entry.kind = LogKind::Warning;
+        }
+    }
+
     /// Writes a warning, whatever the level: what went wrong beside a plan that still ran, such as a token that could
     /// not be kept.
     pub fn record_warning(&mut self, time: Timestamp, line: String) {
@@ -162,6 +175,7 @@ impl CommandLog {
 }
 
 #[cfg(test)]
+#[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
     use super::{CommandLog, LogKind, LogLevel, MOST_LINES};
     use model::Timestamp;
@@ -187,6 +201,20 @@ mod tests {
         let mut debug = CommandLog::new(LogLevel::Debug);
         debug.record_read(Timestamp(7), String::from("git status"), Duration::from_millis(3));
         assert_eq!(debug.entries().count(), 1);
+    }
+
+    #[test]
+    fn log_record__a_failure_the_plan_got_past_is_written_as_a_warning() {
+        let mut log = CommandLog::new(LogLevel::Info);
+        log.record(
+            Timestamp(1),
+            &Step::git(PathBuf::from("."), ["cherry-pick", "--continue"]),
+        );
+        log.record_failure(Timestamp(2), "The previous cherry-pick is now empty");
+        log.record(Timestamp(3), &Step::git(PathBuf::from("."), ["cherry-pick", "--skip"]));
+        log.got_past_failure();
+        let kinds: Vec<&LogKind> = log.entries().map(|entry| &entry.kind).collect();
+        assert_eq!(kinds, vec![&LogKind::Step, &LogKind::Warning, &LogKind::Step]);
     }
 
     #[test]

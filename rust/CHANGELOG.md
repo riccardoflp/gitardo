@@ -467,3 +467,5 @@
   worktree is.
 - Adding a submodule in a folder whose name git could read as a pattern updates that folder only.
 - Removing a submodule whose clone cannot be deleted afterwards says so in the log and is not a failure.
+- What git said under a step that Gitardo got past, as a cherry-pick that changes nothing is skipped, is a warning
+  of the log, not an error.

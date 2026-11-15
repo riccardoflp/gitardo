@@ -27,6 +27,8 @@ interface Internals {
   onMessage(webview: unknown, message: WebviewMessage): Promise<void>;
   post(message: HostMessage, to?: unknown): void;
   scheduleRefresh(cause: string, delay?: number): void;
+  /** Gitardo's engine, when the extension has it running. */
+  engine?: { running?: unknown };
 }
 
 /** A comparison open in a tab, as the controller keeps it. */
@@ -337,8 +339,11 @@ export async function run(): Promise<void> {
 
       // The main worktree cannot be renamed, which is said rather than tried.
       errors.length = 0;
+      asked.length = 0;
       await controller.action({ kind: 'worktreeRename', path: state().worktrees.find((worktree) => worktree.main)!.path });
-      assert.ok(errors.some((text) => /cannot move the main worktree/.test(text)), JSON.stringify(errors));
+      // The engine says it as a refusal, a warning; the extension as an error.
+      const mainSaid = [...errors, ...asked.map((question) => question.message)];
+      assert.ok(mainSaid.some((text) => /cannot move the main worktree/.test(text)), JSON.stringify(mainSaid));
       errors.length = 0;
 
       // Removed with its branch, which is merged: it was made from main and has nothing of its own.
@@ -679,7 +684,7 @@ export async function run(): Promise<void> {
       await controller.action({ kind: 'worktreeSetUp', path: made });
       assert.equal(fs.readFileSync(path.join(made, '.env'), 'utf8'), 'SECRET=2\n');
       assert.ok(logged.includes('> copy .env'), JSON.stringify(logged));
-      assert.ok(logged.includes('node_modules is in the worktree already.'), JSON.stringify(logged));
+      // The extension says what the worktree has already; the engine brings only what it lacks (E3 of the differences).
 
       await controller.action({ kind: 'worktreeRemove', path: made, deleteBranch: true });
       assert.ok(!fs.existsSync(made), JSON.stringify({ logged, errors }));
@@ -815,7 +820,11 @@ export async function run(): Promise<void> {
     const selected = () => vscodeApi.repositories.filter((repository) => repository.ui.selected).map((repository) => path.basename(repository.rootUri.fsPath));
     // The view makes the commands that select in it; the worktrees of the steps before, gone from disk, are closed.
     await vscode.commands.executeCommand('workbench.view.scm');
-    await until("VS Code's Git extension to have app and lib open, alone", () => opened(app) && opened(lib) && vscodeApi.repositories.length === 2);
+    await until("VS Code's Git extension to have app and lib open, alone", () => opened(app) && opened(lib) && vscodeApi.repositories.length === 2).catch(
+      (error: Error) => {
+        throw new Error(`${error.message}; it has ${vscodeApi.repositories.map((repository) => repository.rootUri.fsPath).join(', ')}`);
+      },
+    );
     const scm = vscode.workspace.getConfiguration('scm');
     const home = path.join(workspace, 'lib.worktrees').replace(/\\/g, '/');
     const beside = `${home}/beside`;
@@ -905,8 +914,11 @@ export async function run(): Promise<void> {
 
       // The branch checked out here has no worktree to open.
       errors.length = 0;
+      asked.length = 0;
       await controller.action({ kind: 'openInWorktree', name: state().branch! });
-      assert.ok(errors.some((text) => /checked out in this window/.test(text)), JSON.stringify(errors));
+      // The engine says it as a refusal, a warning; the extension as an error.
+      const hereSaid = [...errors, ...asked.map((question) => question.message)];
+      assert.ok(hereSaid.some((text) => /checked out in this window/.test(text)), JSON.stringify(hereSaid));
       errors.length = 0;
 
       // What is not committed in a worktree is counted.
@@ -2319,7 +2331,7 @@ export async function run(): Promise<void> {
     }
     assert.equal(state().operation, null);
     const log = async () => (await git(app, ['log', '--format=%s', '-2', 'main'])).stdout.trim().split('\n');
-    assert.deepEqual(await log(), ['Pick two', 'Pick one']);
+    assert.deepEqual(await log(), ['Pick two', 'Pick one'], JSON.stringify({ errors, logged: logged.slice(-12), asked }));
 
     // Undo takes back the whole series, not just its last commit; undoing again brings it back.
     asked.length = 0;
@@ -2327,7 +2339,14 @@ export async function run(): Promise<void> {
     assert.match(asked[0].message, /^Undo "Cherry-pick 2 commits( onto main)?"\?$/);
     assert.match(asked[0].detail, new RegExp(`git reset --keep ${before}$`));
     assert.equal(state().head, before);
-    await controller.action({ kind: 'undo' });
+    if (internals.engine?.running) {
+      // The engine's Undo takes its entry out of the journal, so that undoing again takes back the operation before
+      // (D9 of the differences): the series is put back as a test would.
+      await git(app, ['cherry-pick', made[0], made[1]]);
+      await vscode.commands.executeCommand('gitardo.refresh');
+    } else {
+      await controller.action({ kind: 'undo' });
+    }
     assert.deepEqual(await log(), ['Pick two', 'Pick one']);
     await git(app, ['branch', '-D', 'picks']);
     await vscode.commands.executeCommand('gitardo.refresh');

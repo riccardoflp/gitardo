@@ -57,6 +57,8 @@ Acceptance:
 - [ ] Every command that changes the repository or a remote is in the log, exactly as it ran.
 - [ ] Reads (`git log`, `git status` and the like) are not in the log at `info`, and are at `debug`.
 - [ ] A step that fails has its error under it, and the steps after it are not run nor logged.
+- [ ] A step that fails and that the plan gets past, as a cherry-pick that changes nothing is skipped, has what git said
+  under it as a warning, not as an error.
 - [ ] A token or a key never appears in the log, also when a request to GitHub or to the AI provider fails.
 
 ### `log.show` — Show the command log
