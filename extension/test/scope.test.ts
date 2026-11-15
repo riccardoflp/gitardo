@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { Branch, NamedRef } from '../src/shared/protocol';
+import type { Branch, RemoteBranch } from '../src/shared/protocol';
+import { branchAt, headAt, remoteAt, upstreamOf } from './states';
 import { MAX_SCOPE_REFS, kindsScope, pruneScope, scopeChoices, scopeKinds, scopeLabel, scopeRefName, scopeRefs, toggleScopeRef } from '../src/shared/scope';
 
-const branch = (name: string, current = false): Branch => ({ name, hash: 'a'.repeat(40), current });
-const named = (name: string): NamedRef => ({ name, hash: 'b'.repeat(40) });
+const branch = (name: string, current = false): Branch => branchAt(name, 'a'.repeat(40), { isCheckedOut: current });
+const named = (name: string): RemoteBranch => remoteAt(name, 'b'.repeat(40));
 
 const state = {
-  branch: 'main',
+  head: headAt('a'.repeat(40), 'main'),
   branches: [branch('feature'), branch('main', true)],
   remoteBranches: [named('origin/main')],
   tags: [named('v1.0'), named('main')],
@@ -56,8 +57,8 @@ describe('the branches the graph is narrowed to', () => {
 
   it('says which references a scope shows', () => {
     expect(scopeRefs({ kind: 'current' }, state)).toEqual(['refs/heads/main']);
-    expect(scopeRefs({ kind: 'current' }, { ...state, branch: null })).toEqual([]);
-    const upstream = { name: 'origin/main', remote: 'origin', branch: 'main', ahead: 1, behind: 0, gone: false };
+    expect(scopeRefs({ kind: 'current' }, { ...state, head: headAt('a'.repeat(40)) })).toEqual([]);
+    const upstream = upstreamOf('origin/main', { ahead: 1 });
     const tracking = { ...state, branches: [branch('feature'), { ...branch('main', true), upstream }] };
     expect(scopeRefs({ kind: 'current', upstream: true }, tracking)).toEqual(['refs/heads/main', 'refs/remotes/origin/main']);
     expect(scopeRefs({ kind: 'current', upstream: true }, state)).toEqual(['refs/heads/main']);

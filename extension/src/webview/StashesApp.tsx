@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CommitDetail, DiffSource, RepoState, Stash } from '../shared/protocol';
+import { stashName } from '../shared/state';
 import { useMenu } from './ContextMenu';
 import { ActionButtons, FileRow } from './FileRow';
 import { Icon } from './Icon';
@@ -27,7 +28,7 @@ export function StashesApp() {
         setState(message.state);
         setLoaded(true);
         // A stash never changes, so what was read of the ones still there holds; the others are gone.
-        const hashes = new Set(message.state?.stashes.map((stash) => stash.hash));
+        const hashes = new Set(message.state?.stashes.map((stash) => stash.commit));
         setOpen((current) => Object.fromEntries(Object.entries(current).filter(([hash]) => hashes.has(hash))));
       } else if (message.type === 'detail') {
         if (message.hash in openRef.current) setOpen((current) => ({ ...current, [message.hash]: message.detail }));
@@ -42,29 +43,30 @@ export function StashesApp() {
   if (!state) return <Placeholder loaded={loaded} />;
 
   const toggle = (stash: Stash) => {
-    if (stash.hash in open) {
-      const { [stash.hash]: _closed, ...rest } = open;
+    if (stash.commit in open) {
+      const { [stash.commit]: _closed, ...rest } = open;
       setOpen(rest);
     } else {
-      setOpen({ ...open, [stash.hash]: null });
-      post({ type: 'getDetail', hash: stash.hash });
+      setOpen({ ...open, [stash.commit]: null });
+      post({ type: 'getDetail', hash: stash.commit });
     }
   };
 
   const files = (stash: Stash, detail: CommitDetail) => {
-    const source: DiffSource = { kind: 'commit', hash: stash.hash, parent: detail.parents[0] ?? null };
-    // Git keeps the untracked files a stash took in a commit of their own, with nothing before it.
-    const untracked: DiffSource | null = detail.untracked ? { kind: 'commit', hash: detail.untracked.hash, parent: null } : null;
+    const source: DiffSource = { kind: 'commit', hash: stash.commit, parent: detail.parents[0] ?? null };
+    // Git keeps the untracked files a stash took in a commit of their own, with nothing before it: its third parent.
+    const third = detail.parents[2];
+    const untracked: DiffSource | null = third && detail.untrackedFiles.length ? { kind: 'commit', hash: third, parent: null } : null;
     return (
       <div className="stash-files">
         {detail.files.map((file) => (
           <FileRow key={file.path} file={file} onOpen={() => post({ type: 'openDiff', source, file })} />
         ))}
         {untracked &&
-          detail.untracked!.files.map((file) => (
+          detail.untrackedFiles.map((file) => (
             <FileRow key={`?${file.path}`} file={file} onOpen={() => post({ type: 'openDiff', source: untracked, file })} />
           ))}
-        {!detail.files.length && !detail.untracked?.files.length && <p className="none muted">No files</p>}
+        {!detail.files.length && !detail.untrackedFiles.length && <p className="none muted">No files</p>}
       </div>
     );
   };
@@ -77,29 +79,30 @@ export function StashesApp() {
         </p>
       )}
       {state.stashes.map((stash) => {
-        const unfolded = stash.hash in open;
-        const detail = open[stash.hash];
+        const name = stashName(stash);
+        const unfolded = stash.commit in open;
+        const detail = open[stash.commit];
         return (
-          <section key={stash.hash}>
+          <section key={stash.commit}>
             <div className="file stash" onContextMenu={(event) => openMenu(event, stashMenu(stash))}>
               <button
                 className="twist"
                 onClick={() => toggle(stash)}
                 aria-expanded={unfolded}
-                aria-label={`${unfolded ? 'Hide' : 'Show'} the files of ${stash.ref}`}
+                aria-label={`${unfolded ? 'Hide' : 'Show'} the files of ${name}`}
               >
                 <Icon name={unfolded ? 'chevron-down' : 'chevron-right'} />
               </button>
-              <button className="file-open" title={`${stash.ref}: ${stash.message}\n${fullDate(stash.date)}`} onClick={() => toggle(stash)}>
+              <button className="file-open" title={`${name}: ${stash.message}\n${fullDate(stash.date)}`} onClick={() => toggle(stash)}>
                 <span className="name">{stash.message}</span>
                 <span className="dir">{relativeTime(stash.date)}</span>
               </button>
               {!busy && (
                 <ActionButtons
                   actions={[
-                    { icon: 'git-stash-apply', title: 'Apply: bring the changes back and keep the stash', run: () => act({ kind: 'stashApply', ref: stash.ref }) },
-                    { icon: 'git-stash-pop', title: 'Pop: bring the changes back and drop the stash', run: () => act({ kind: 'stashPop', ref: stash.ref }) },
-                    { icon: 'trash', title: 'Drop…', run: () => act({ kind: 'stashDrop', ref: stash.ref }) },
+                    { icon: 'git-stash-apply', title: 'Apply: bring the changes back and keep the stash', run: () => act({ kind: 'stashApply', ref: name }) },
+                    { icon: 'git-stash-pop', title: 'Pop: bring the changes back and drop the stash', run: () => act({ kind: 'stashPop', ref: name }) },
+                    { icon: 'trash', title: 'Drop…', run: () => act({ kind: 'stashDrop', ref: name }) },
                   ]}
                 />
               )}

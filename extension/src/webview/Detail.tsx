@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { said } from '../shared/message';
+import { said, subjectAndBody } from '../shared/message';
 import { WORKTREE, type CommitDetail, type DiffSource, type FileChange, type FilesLayout } from '../shared/protocol';
 import { fileTree } from '../shared/tree';
 import { FILES_LIMIT, useCapped } from './Capped';
-import { ActionButtons, Check, FileRow, type FileAction } from './FileRow';
+import { ActionButtons, Check, FileRow, type FileAction, type FileMark } from './FileRow';
 import { FileTree, toggled } from './FileTree';
 import { useMenu } from './ContextMenu';
 import { Icon } from './Icon';
@@ -14,8 +14,11 @@ import { loadUiState, post, saveUiState } from './vscode';
 interface Props {
   hash: string;
   detail: CommitDetail | null;
-  /** For the changes that are not committed: whether they can be stashed, and all discarded at once. */
-  changes?: { stash: boolean; discardAll: boolean };
+  /**
+   * For the changes that are not committed: whether they can be stashed, and all discarded at once, and the marks of
+   * their files that git does not track or that are in conflict.
+   */
+  changes?: { stash: boolean; discardAll: boolean; marks: ReadonlyMap<string, FileMark> };
   /** Whether the message of the commit can be changed from here, and whether it is being changed. */
   reword?: boolean;
   editing?: boolean;
@@ -27,7 +30,7 @@ interface Props {
 const NONE: ReadonlySet<string> = new Set();
 
 /** A file renamed is passed with its old name, which git needs to put it back or set it aside. */
-const pathsOf = (file: FileChange) => (file.oldPath ? [file.path, file.oldPath] : [file.path]);
+const pathsOf = (file: FileChange) => (file.originalPath ? [file.path, file.originalPath] : [file.path]);
 
 /**
  * What a message says under its title. A long one shows its first lines, which leaves the files in sight, and
@@ -117,7 +120,12 @@ function MessageEditor({ message, onSave, onCancel }: { message: string; onSave(
 export function Detail({ hash, detail, changes, reword, editing, onEditing, onJump, onClose }: Props) {
   const openMenu = useMenu();
   const worktree = hash === WORKTREE;
-  const message = useMemo(() => (detail ? said(detail.subject, detail.body) : null), [detail]);
+  // The subject is the first paragraph of the message, made one line, and the body what follows it.
+  const parts = useMemo(() => (detail ? subjectAndBody(detail.message) : null), [detail]);
+  const message = useMemo(() => (parts ? said(parts.subject, parts.body) : null), [parts]);
+  const id = detail?.id ?? hash;
+  const author = detail?.author ?? null;
+  const committer = detail?.committer ?? null;
   const source: DiffSource = worktree
     ? { kind: 'worktree' }
     : { kind: 'commit', hash, parent: detail?.parents[0] ?? null };
@@ -152,7 +160,7 @@ export function Detail({ hash, detail, changes, reword, editing, onEditing, onJu
     const history = { icon: 'history', title: 'Show the history of this file', run: () => post({ type: 'setFilter', filter: { kind: 'path', path: file.path } }) };
     if (!worktree) return [history];
     return [
-      file.status !== '?' && history,
+      changes?.marks.get(file.path) !== 'untracked' && history,
       changes?.stash && { icon: 'git-stash', title: 'Stash this file…', run: () => act({ kind: 'stashPush', paths: pathsOf(file) }) },
       { icon: 'discard', title: 'Discard all changes in this file, staged too…', run: () => act({ kind: 'discardChanges', paths: pathsOf(file) }) },
     ].filter((action): action is FileAction => Boolean(action));
@@ -178,6 +186,7 @@ export function Detail({ hash, detail, changes, reword, editing, onEditing, onJu
     <FileRow
       key={file.path}
       file={file}
+      mark={worktree ? changes?.marks.get(file.path) : undefined}
       depth={depth}
       onOpen={() => post({ type: 'openDiff', source, file })}
       actions={fileActions(file)}
@@ -214,7 +223,7 @@ export function Detail({ hash, detail, changes, reword, editing, onEditing, onJu
           {editing && !worktree ? (
             <MessageEditor
               key={hash}
-              message={detail.body ? `${detail.subject}\n\n${detail.body}` : detail.subject}
+              message={parts?.body ? `${parts.subject}\n\n${parts.body}` : (parts?.subject ?? '')}
               onSave={(text) => {
                 act({ kind: 'reword', hash, message: text });
                 onEditing?.(false);
@@ -229,15 +238,19 @@ export function Detail({ hash, detail, changes, reword, editing, onEditing, onJu
           )}
           {!worktree && (
             <dl>
-              <dt>Author</dt>
-              <dd title={detail.email}>{detail.author}</dd>
-              <dt>Date</dt>
-              <dd>{fullDate(detail.date)}</dd>
-              {(detail.committer !== detail.author || detail.commitDate !== detail.date) && (
+              {author && (
+                <>
+                  <dt>Author</dt>
+                  <dd title={author.email}>{author.name}</dd>
+                  <dt>Date</dt>
+                  <dd>{fullDate(author.date)}</dd>
+                </>
+              )}
+              {committer && (committer.name !== author?.name || committer.date !== author?.date) && (
                 <>
                   <dt>Committer</dt>
-                  <dd title={detail.committerEmail}>
-                    {detail.committer}, {fullDate(detail.commitDate)}
+                  <dd title={committer.email}>
+                    {committer.name}, {fullDate(committer.date)}
                   </dd>
                 </>
               )}
@@ -246,9 +259,9 @@ export function Detail({ hash, detail, changes, reword, editing, onEditing, onJu
                 <button
                   className="link mono"
                   title="Copy full hash"
-                  onClick={() => post({ type: 'copy', text: detail.hash })}
+                  onClick={() => post({ type: 'copy', text: id })}
                 >
-                  {shortHash(detail.hash)} <Icon name="copy" />
+                  {shortHash(id)} <Icon name="copy" />
                 </button>
               </dd>
               {detail.parents.length > 0 && (
@@ -312,7 +325,7 @@ export function Detail({ hash, detail, changes, reword, editing, onEditing, onJu
                     type: 'openChanges',
                     source,
                     files: detail.files,
-                    title: worktree ? 'Uncommitted changes' : `${shortHash(detail.hash)} ${detail.subject}`,
+                    title: worktree ? 'Uncommitted changes' : `${shortHash(id)} ${parts?.subject}`,
                   })
                 }
               >
@@ -328,17 +341,18 @@ export function Detail({ hash, detail, changes, reword, editing, onEditing, onJu
             )}
             {moreFiles}
           </div>
-          {detail.untracked && (
+          {/* A stash keeps the untracked files it took in its third parent. */}
+          {detail.parents[2] && detail.untrackedFiles.length > 0 && (
             <>
               <h3>
-                {detail.untracked.files.length} untracked {detail.untracked.files.length === 1 ? 'file' : 'files'}
+                {detail.untrackedFiles.length} untracked {detail.untrackedFiles.length === 1 ? 'file' : 'files'}
               </h3>
               <div className="files">
-                {detail.untracked.files.map((file) => (
+                {detail.untrackedFiles.map((file) => (
                   <FileRow
                     key={file.path}
                     file={file}
-                    onOpen={() => post({ type: 'openDiff', source: { kind: 'commit', hash: detail.untracked!.hash, parent: null }, file })}
+                    onOpen={() => post({ type: 'openDiff', source: { kind: 'commit', hash: detail.parents[2], parent: null }, file })}
                   />
                 ))}
               </div>

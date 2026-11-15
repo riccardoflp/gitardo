@@ -304,7 +304,7 @@ async function main() {
     const [copy, copyFrom] = one('copy');
     const commands = setup.workspace.commands ?? setup.user.commands;
     const commandsFrom: SetupSource = setup.workspace.commands ? 'workspace' : setup.user.commands ? 'user' : 'none';
-    const others = (await repo.state(1)).worktrees.filter((worktree) => !worktree.prunable && !samePath(worktree.path, repo!.root)).length;
+    const others = (await repo.state(1)).worktrees.filter((worktree) => !worktree.isMissing && !samePath(worktree.folder, repo!.root)).length;
     const info = {
       root: repo.root,
       entries: await scanIgnored(repo.root),
@@ -324,9 +324,9 @@ async function main() {
     repo.firstParent = firstParent;
     const read = await repo.state(limit, filter, scope, true, showStashes);
     scope = read.scope;
-    worktrees = read.worktrees.filter((worktree) => !worktree.prunable).map((worktree) => worktree.path);
+    worktrees = read.worktrees.filter((worktree) => !worktree.isMissing).map((worktree) => worktree.folder);
     const away = inRoots(read.root) ? null : home;
-    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', branchesFollowScope, branchSort, traceSelected, graphColumns, dateSeparators, combineUpstream, resolveWithAI: true, home: away } }];
+    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', branchesFollowScope, sortOrder: branchSort, traceSelected, graphColumns, dateSeparators, combineUpstream, resolveWithAI: true, home: away } }];
   }
 
   /** `light` for a page in the light theme, which can have other file icons. */

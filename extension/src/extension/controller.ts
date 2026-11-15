@@ -29,7 +29,7 @@ import {
   type GitOp,
   type IdentityProfile,
 } from '../git/ops';
-import { allChanges, samePath } from '../git/parse';
+import { changedPaths, samePath } from '../git/parse';
 import { type CommitsReader, Repo, isHash } from '../git/repo';
 import { changeSetup, previewSetup, proposedCommands, scanIgnored, unlinkFolderLinks } from '../git/worktreeSetup';
 import { GRAPH_COLUMNS, WORKTREE, showsGraph } from '../shared/protocol';
@@ -44,6 +44,8 @@ import {
   type SetupTarget,
 } from '../shared/worktreeSetup';
 import { submoduleFolder } from '../shared/submodules';
+import { subjectAndBody } from '../shared/message';
+import { checkedOutBranch, operationName, stashName, upstreamBranch, upstreamName, worktreeBranch } from '../shared/state';
 import { Activity } from './activity';
 import { FileIcons } from './fileIcons';
 import type {
@@ -82,7 +84,7 @@ import { type EngineRun, engineRuns, syncRuns } from '../engine/actions';
 import type { FileResolutions, Finished, FollowUp, OfferedRun, Plan, Step, Target } from '../engine/messages';
 import { type HostHooks, VscodeAsker, type WindowEngine } from '../engine/vscode';
 import { runSetupCommands } from './worktreeCommands';
-import { headOf, recordOf, type UndoRecord } from '../engine/journal';
+import { recordOf, type UndoRecord } from '../engine/journal';
 import { reads } from '../engine/reads';
 import { EngineGraph, historyOf, matchesOnEngine, positionOnEngine } from '../engine/graph';
 // Area 6 of stage 4: AI and GitHub through the engine.
@@ -475,7 +477,7 @@ export class Controller implements vscode.Disposable {
           worktreesRoot: worktreesFolder(state),
           openBranches: vscode.workspace.getConfiguration('gitardo').get('branches.openIn') === 'worktree' ? 'worktree' : 'checkout',
           branchesFollowScope: vscode.workspace.getConfiguration('gitardo').get('branches.followGraphFilter') !== false,
-          branchSort: sort,
+          sortOrder: sort,
           traceSelected: vscode.workspace.getConfiguration('gitardo').get('graph.traceSelected') !== false,
           graphColumns: graphColumns(),
           dateSeparators: vscode.workspace.getConfiguration('gitardo').get('graph.dateSeparators') !== false,
@@ -674,7 +676,7 @@ export class Controller implements vscode.Disposable {
     const client = this.engine?.running;
     if (client && isHash(hash)) {
       try {
-        const history = await historyOf(client, repo.root, filter, scope, this.state?.head ?? null, repo.firstParent);
+        const history = await historyOf(client, repo.root, filter, scope, this.state?.head.commit ?? null, repo.firstParent);
         return await positionOnEngine(client, repo.root, hash, history);
       } catch (error) {
         // As `Repo.position`, whose git may fail: a history git cannot list has no commit in it.
@@ -690,7 +692,7 @@ export class Controller implements vscode.Disposable {
     const client = this.engine?.running;
     if (client) {
       try {
-        const history = await historyOf(client, repo.root, filter, scope, this.state?.head ?? null, repo.firstParent);
+        const history = await historyOf(client, repo.root, filter, scope, this.state?.head.commit ?? null, repo.firstParent);
         return await matchesOnEngine(client, repo.root, search, history);
       } catch (error) {
         if (error instanceof EngineError && error.code === ErrorCode.gitFailed) throw error;
@@ -811,7 +813,7 @@ export class Controller implements vscode.Disposable {
     const count = Math.max(1, document.lineAt(document.lineCount - 1).text === '' ? document.lineCount - 1 : document.lineCount);
     const selected = { start: Math.min(selection.start.line + 1, count), end: Math.min(last + 1, count) };
     // A file renamed in the index has its old name in the commit checked out.
-    const committedAs = this.state?.working.staged.find((change) => change.path === file)?.oldPath ?? file;
+    const committedAs = this.state?.workingTree.staged.find((change) => change.path === file)?.originalPath ?? file;
     const found = await reads.committedLines(repo, committedAs, selected, document.getText());
     if (found === 'file') {
       void vscode.window.showInformationMessage(`Gitardo: ${path.posix.basename(file)} is in no commit yet, so its lines have no history.`);
@@ -876,8 +878,8 @@ export class Controller implements vscode.Disposable {
       .filter((file) => file && !file.startsWith('..') && !path.isAbsolute(file));
     if (!files.length) return;
     // A renamed file is stashed with the name it had, or git would leave half of the rename behind.
-    const before = new Map([...state.working.staged, ...state.working.unstaged].map((change) => [change.path, change.oldPath]));
-    const paths = [...new Set(files.flatMap((file) => [file, before.get(file)]).filter((file) => file !== undefined))];
+    const before = new Map([...state.workingTree.staged, ...state.workingTree.unstaged].map((change) => [change.path, change.originalPath]));
+    const paths = [...new Set(files.flatMap((file) => [file, before.get(file)]).filter((file) => typeof file === 'string'))];
     return this.action({ kind: 'stashPush', paths });
   }
 
@@ -952,12 +954,14 @@ export class Controller implements vscode.Disposable {
       void vscode.window.showWarningMessage(`Gitardo: ${hash.slice(0, 7)} is not a commit of this repository.`);
       return;
     }
-    const key = `${repo.root}\n${detail.hash}`;
+    const commit = detail.id ?? hash;
+    const key = `${repo.root}\n${commit}`;
     const open = this.commitTabs.get(key);
     if (open) return open.reveal();
 
-    const subject = detail.subject.length > TITLE_LENGTH ? `${detail.subject.slice(0, TITLE_LENGTH).trimEnd()}…` : detail.subject;
-    const panel = vscode.window.createWebviewPanel('gitardo.commit', `${detail.hash.slice(0, 7)} ${subject}`, vscode.ViewColumn.Active, {
+    const { subject: whole } = subjectAndBody(detail.message);
+    const subject = whole.length > TITLE_LENGTH ? `${whole.slice(0, TITLE_LENGTH).trimEnd()}…` : whole;
+    const panel = vscode.window.createWebviewPanel('gitardo.commit', `${commit.slice(0, 7)} ${subject}`, vscode.ViewColumn.Active, {
       retainContextWhenHidden: true,
       // The search of VS Code, for a word among the changes.
       enableFindWidget: true,
@@ -965,7 +969,7 @@ export class Controller implements vscode.Disposable {
     const layout = this.memento.get<FilesLayout>(FILES_KEY, 'tree');
     // Kept at hand: a panel that is closed no longer says which webview was its own.
     const { webview } = panel;
-    const attachment = this.attach(webview, 'commit', { commit: detail.hash, root: repo.root, files: layout });
+    const attachment = this.attach(webview, 'commit', { commit, root: repo.root, files: layout });
     this.pinned.set(webview, repo);
     this.commitTabs.set(key, panel);
     panel.onDidDispose(() => {
@@ -1029,7 +1033,7 @@ export class Controller implements vscode.Disposable {
       }
       // The other worktrees can be given what applies only while the views show this repository, which that runs in.
       const state = this.state && samePath(this.state.root, root) ? this.state : null;
-      const others = state?.worktrees.filter((worktree) => !worktree.prunable && !samePath(worktree.path, root)).length ?? 0;
+      const others = state?.worktrees.filter((worktree) => !worktree.isMissing && !samePath(worktree.folder, root)).length ?? 0;
       this.post({ type: 'worktreeSetup', info: { ...worktreeSetupInfo(root, others, tab.proposed), entries: tab.entries } }, webview);
     } catch (error) {
       this.log.error(errorText(error));
@@ -1148,9 +1152,10 @@ export class Controller implements vscode.Disposable {
     await this.selectRepo(repo.root);
     const { state } = this;
     if (!state || !samePath(state.root, repo.root)) return;
-    const deleted = file.status === 'D';
+    const deleted = file.kind === 'deleted';
+    const head = state.head.commit;
     let at: ComparedRef | undefined;
-    if (source?.kind === 'worktree') at = !deleted ? WORKTREE_SIDE : state.head ? { name: state.branch ?? 'HEAD', hash: state.head } : undefined;
+    if (source?.kind === 'worktree') at = !deleted ? WORKTREE_SIDE : head ? { name: checkedOutBranch(state) ?? 'HEAD', hash: head } : undefined;
     else if (source?.kind === 'commit') {
       const hash = deleted ? source.parent : source.hash;
       const named = deleted ? names?.parent : names?.hash;
@@ -1370,9 +1375,9 @@ export class Controller implements vscode.Disposable {
     if (to.hash === WORKTREE || typeof file?.path !== 'string' || !file.path) return;
     // What is not committed in the file is lost: when that cannot be told, it is assumed.
     const state = this.state && samePath(this.state.root, repo.root) ? this.state : null;
-    const changed = !state || allChanges(state.working).some((change) => change.path === file.path);
+    const changed = !state || changedPaths(state.workingTree).includes(file.path);
     try {
-      await this.run(takeFileOp(file.path, to.name, to.hash, file.status === 'D', changed), { repo });
+      await this.run(takeFileOp(file.path, to.name, to.hash, file.kind === 'deleted', changed), { repo });
     } catch (error) {
       void vscode.window.showErrorMessage(`Gitardo: ${errorText(error)}`);
     }
@@ -1435,7 +1440,7 @@ export class Controller implements vscode.Disposable {
     const there = (side: CompareSide) => {
       if (!side.live || side.gone) return side.hash;
       const branch = state.branches.find((candidate) => candidate.name === side.name);
-      if (branch) return branch.upstream && !branch.upstream.gone && branch.upstream.remote === githubRemote ? branch.upstream.branch : side.hash;
+      if (branch) return branch.upstream && !branch.upstream.isGone && branch.upstream.remote === githubRemote ? upstreamBranch(branch.upstream) : side.hash;
       const prefix = `${githubRemote}/`;
       if (side.name.startsWith(prefix) && state.remoteBranches.some((ref) => ref.name === side.name)) return side.name.slice(prefix.length);
       if (state.tags.some((tag) => tag.name === side.name)) return side.name;
@@ -1461,11 +1466,11 @@ export class Controller implements vscode.Disposable {
   ): Promise<ComparedRef | RecentComparison | undefined> {
     const { other, worktree, recent = [] } = options;
     type Item = vscode.QuickPickItem & { ref?: ComparedRef; recent?: RecentComparison };
-    const group = (label: string, refs: { name: string; hash: string }[], icon: string): Item[] =>
+    const group = (label: string, refs: { name: string; commit: string }[], icon: string): Item[] =>
       refs.length
         ? [
             { label, kind: vscode.QuickPickItemKind.Separator },
-            ...refs.map((ref) => ({ label: `$(${icon}) ${ref.name}`, description: ref.hash.slice(0, 7), ref: { name: ref.name, hash: ref.hash } })),
+            ...refs.map((ref) => ({ label: `$(${icon}) ${ref.name}`, description: ref.commit.slice(0, 7), ref: { name: ref.name, hash: ref.commit } })),
           ]
         : [];
     const items: Item[] = recent.length
@@ -1476,9 +1481,10 @@ export class Controller implements vscode.Disposable {
         ]
       : [];
     items.push({ label: '$(edit) Enter a hash or a revision…', description: 'such as 1a2b3c4 or HEAD~3', alwaysShow: true });
-    if (state.head) {
-      const name = state.branch ?? 'HEAD';
-      items.push({ label: `$(target) ${name}`, description: `${state.head.slice(0, 7)} · checked out`, ref: { name, hash: state.head } });
+    const head = state.head.commit;
+    if (head) {
+      const name = checkedOutBranch(state) ?? 'HEAD';
+      items.push({ label: `$(target) ${name}`, description: `${head.slice(0, 7)} · checked out`, ref: { name, hash: head } });
     }
     if (worktree && other?.hash !== WORKTREE) {
       items.push({ label: `$(files) ${WORKTREE_SIDE.name}`, description: 'with the changes not committed', ref: WORKTREE_SIDE });
@@ -1486,7 +1492,7 @@ export class Controller implements vscode.Disposable {
     items.push(
       ...group(
         'Branches',
-        state.branches.filter((branch) => !branch.current),
+        state.branches.filter((branch) => !branch.isCheckedOut),
         'git-branch',
       ),
       ...group('Remote branches', state.remoteBranches, 'cloud'),
@@ -1546,21 +1552,21 @@ export class Controller implements vscode.Disposable {
     if (!state) return;
     const create = { label: '$(add) Create worktree…', path: '', current: false };
     const worktrees = state.worktrees
-      .filter((worktree) => !worktree.prunable)
+      .filter((worktree) => !worktree.isMissing)
       .map((worktree) => {
         const { ahead, pull } = worktreeStatus(worktree, state);
         const description = [
-          [worktree.branch ?? `detached at ${worktree.hash.slice(0, 7)}`, ahead].filter(Boolean).join(' '),
-          worktree.changes ? `$(edit) ${worktree.changes}` : undefined,
+          [worktreeBranch(worktree) ?? `detached at ${(worktree.commit ?? '0000000').slice(0, 7)}`, ahead].filter(Boolean).join(' '),
+          worktree.uncommitted ? `$(edit) ${worktree.uncommitted}` : undefined,
           pull && `$(git-pull-request) #${pull.number}`,
-          worktree.current && 'this window',
+          worktree.isCurrent && 'this window',
         ];
         return {
-          label: `$(${worktree.main ? 'home' : 'worktree'}) ${worktreeLabel(worktree.path, state.worktreesRoot)}`,
+          label: `$(${worktree.isMain ? 'home' : 'worktree'}) ${worktreeLabel(worktree.folder, state.worktreesRoot)}`,
           description: description.filter(Boolean).join(' · '),
-          detail: worktree.path,
-          path: worktree.path,
-          current: worktree.current,
+          detail: worktree.folder,
+          path: worktree.folder,
+          current: worktree.isCurrent,
         };
       });
     // The one open here is listed last: it is where the user already is.
@@ -1596,7 +1602,7 @@ export class Controller implements vscode.Disposable {
       [
         { label: 'Show in the graph', run: () => this.reveal(hash) },
         { label: 'Create branch here…', run: () => this.action({ kind: 'createBranch', at: hash }) },
-        { label: `Reset ${state.branch ?? 'HEAD'} to here…`, run: () => this.action({ kind: 'reset', hash }) },
+        { label: `Reset ${checkedOutBranch(state) ?? 'HEAD'} to here…`, run: () => this.action({ kind: 'reset', hash }) },
         { label: 'Check out (detached)', run: () => this.action({ kind: 'checkout', target: 'detached', ref: hash }) },
         { label: 'Cherry-pick', run: () => this.action({ kind: 'cherryPick', hash, isMerge: false }) },
       ],
@@ -1614,7 +1620,7 @@ export class Controller implements vscode.Disposable {
     const merged = new Set(await this.repo.mergedBranches());
     // A branch that another worktree has goes with that worktree, except the main one, which git cannot remove.
     const candidates = state.branches.filter(
-      (branch) => !branch.current && !worktreeOf(branch.name, state)?.main && (merged.has(branch.name) || branch.upstream?.gone),
+      (branch) => !branch.isCheckedOut && !worktreeOf(branch.name, state)?.isMain && (merged.has(branch.name) || branch.upstream?.isGone),
     );
     if (!candidates.length) {
       void vscode.window.showInformationMessage('Gitardo: no local branches are merged or have lost their upstream.');
@@ -1623,13 +1629,13 @@ export class Controller implements vscode.Disposable {
     const picked = await vscode.window.showQuickPick(
       candidates.map((branch) => {
         const worktree = worktreeOf(branch.name, state);
-        const dirty = !!worktree?.changes;
-        const why = merged.has(branch.name) ? `merged into ${state.branch ?? 'HEAD'}` : 'upstream is gone, not merged';
+        const dirty = !!worktree?.uncommitted;
+        const why = merged.has(branch.name) ? `merged into ${checkedOutBranch(state) ?? 'HEAD'}` : 'upstream is gone, not merged';
         const where =
           worktree &&
-          (worktree.prunable
+          (worktree.isMissing
             ? 'with its missing worktree'
-            : `with its worktree ${worktreeLabel(worktree.path, state.worktreesRoot)}${dirty ? `, ${changesText(worktree.changes)}` : ''}`);
+            : `with its worktree ${worktreeLabel(worktree.folder, state.worktreesRoot)}${dirty ? `, ${changesText(worktree.uncommitted)}` : ''}`);
         return {
           label: branch.name,
           description: [why, where].filter(Boolean).join(' · '),
@@ -1643,7 +1649,7 @@ export class Controller implements vscode.Disposable {
     );
     if (!picked?.length) return;
     const names = (wanted: boolean) => picked.filter((item) => merged.has(item.branch.name) === wanted).map((item) => item.branch.name);
-    const worktrees = picked.flatMap(({ worktree }) => (worktree ? [{ path: worktree.path, dirty: !!worktree.changes, prunable: worktree.prunable }] : []));
+    const worktrees = picked.flatMap(({ worktree }) => (worktree ? [{ path: worktree.folder, dirty: !!worktree.uncommitted, prunable: worktree.isMissing }] : []));
     const op = cleanupBranchesOp(names(true), names(false), worktrees);
     if (worktrees.length) {
       op.prepare = async (log) => {
@@ -1816,14 +1822,15 @@ export class Controller implements vscode.Disposable {
     }
     try {
       const op = syncOp(action, state);
-      const upstream = state.branches.find((branch) => branch.current)?.upstream;
-      if (op.danger && upstream && !upstream.gone) {
+      const upstream = state.branches.find((branch) => branch.isCheckedOut)?.upstream;
+      if (op.danger && upstream && !upstream.isGone) {
         // A force push replaces the remote branch: say which of its commits are not in the local one.
-        const lost = await this.repo!.commitsOnlyIn(upstream.name, LOST_COMMITS_SHOWN + 1);
+        const name = upstreamName(upstream);
+        const lost = await this.repo!.commitsOnlyIn(name, LOST_COMMITS_SHOWN + 1);
         const more = lost.length > LOST_COMMITS_SHOWN ? '\n…and more' : '';
         op.note = lost.length
-          ? `These commits on ${upstream.name} are not in ${state.branch} and will be overwritten:\n${lost.slice(0, LOST_COMMITS_SHOWN).join('\n')}${more}`
-          : `As of the last fetch, every commit on ${upstream.name} is also in ${state.branch}.`;
+          ? `These commits on ${name} are not in ${checkedOutBranch(state)} and will be overwritten:\n${lost.slice(0, LOST_COMMITS_SHOWN).join('\n')}${more}`
+          : `As of the last fetch, every commit on ${name} is also in ${checkedOutBranch(state)}.`;
       }
       const result = await this.run(op);
       if (!result.ok) return;
@@ -1848,9 +1855,9 @@ export class Controller implements vscode.Disposable {
         .then((choice) => choice && vscode.commands.executeCommand('gitardo.openStashes'));
     }
     // The first push of a branch is the natural moment to open a pull request for it: it had no upstream, and has one now.
-    const branch = before.branch;
-    const hadUpstream = before.branches.some((each) => each.current && each.upstream);
-    const hasUpstream = this.state?.branches.some((each) => each.current && each.name === branch && each.upstream);
+    const branch = checkedOutBranch(before);
+    const hadUpstream = before.branches.some((each) => each.isCheckedOut && each.upstream);
+    const hasUpstream = this.state?.branches.some((each) => each.isCheckedOut && each.name === branch && each.upstream);
     if ((action.startsWith('push') || action === 'sync') && branch && !hadUpstream && hasUpstream && this.github && !this.pulls[branch]) {
       const choice = await vscode.window.showInformationMessage(`Pushed ${branch}.`, 'Create Pull Request');
       if (choice) await this.openPullRequest(branch);
@@ -1909,7 +1916,7 @@ export class Controller implements vscode.Disposable {
       // A commit given a new message, or made of several, is made again with the ones after it: the new one is that many
       // before HEAD.
       const after =
-        action.kind === 'reword' && action.hash !== state.head
+        action.kind === 'reword' && action.hash !== state.head.commit
           ? ((await repo.lineAfter(action.hash))?.length ?? 0)
           : action.kind === 'squash'
             ? ((await squashRange(action.hashes, state, repo).catch(() => null))?.after.length ?? 0)
@@ -1924,16 +1931,16 @@ export class Controller implements vscode.Disposable {
       // What Undo needs of it beyond what the states before and after it tell, for the engine's journal.
       let record: UndoRecord | undefined;
       // A patch applied as commits makes them one after the other too, and is taken back as a whole like such a cherry-pick.
-      const making = action.kind === 'cherryPickMany' ? 'cherry-pick' : action.kind === 'applyPatch' && op.commands[0]?.[0] === 'am' ? 'am' : null;
-      if (making && state.head && (result.ok || this.state?.operation === making)) {
-        this.series = { before: state.head, branch: state.branch, title: op.title };
+      const making = action.kind === 'cherryPickMany' ? 'cherryPick' : action.kind === 'applyPatch' && op.commands[0]?.[0] === 'am' ? 'patch' : null;
+      if (making && state.head.commit && (result.ok || this.state?.operation === making)) {
+        this.series = { before: state.head.commit, branch: checkedOutBranch(state), title: op.title };
       }
       // A squash merge moves no branch, so the reflog cannot take it back: Gitardo remembers how, also when it stopped
       // on conflicts. Git leaves the message of its commit while its changes wait to be committed.
       const squashed = action.kind === 'merge' && isSquashMerge(ran) ? await repo.squashMessage() : null;
       const undoSquash = { reflogTop, op: undoSquashOp(ran.title) };
       if (!result.ok) {
-        if (squashed !== null && this.state?.working.conflicts.length) {
+        if (squashed !== null && this.state?.workingTree.conflicted.length) {
           this.undoable = undoSquash;
           record = { kind: 'squashMerge' };
         }
@@ -1949,22 +1956,22 @@ export class Controller implements vscode.Disposable {
       this.undoable = undefined;
       // The reflog would take back a reset with a mixed reset only while every file is tracked, and the commit may
       // have added files, which are untracked now: its files are all there, so a mixed reset to it is what undoes it.
-      if (action.kind === 'split' && action.hash === state.head) {
+      if (action.kind === 'split' && action.hash === state.head.commit) {
         const now = (await repo.reflog('HEAD', 1))[0];
         const info = { kind: 'move', previous: action.hash, subject: op.title, mode: 'mixed' } as const;
-        if (now) this.undoable = { reflogTop: `${now.hash} ${now.subject}`, op: undoOp(info, state.branch) };
+        if (now) this.undoable = { reflogTop: `${now.hash} ${now.subject}`, op: undoOp(info, checkedOutBranch(state)) };
         record = { kind: 'splitLast', commit: action.hash };
       }
-      if (action.kind === 'split') await this.reportSplit(repo, action.hash, action.hash === state.head);
+      if (action.kind === 'split') await this.reportSplit(repo, action.hash, action.hash === state.head.commit);
       const branch = action.kind === 'deleteBranch' && state.branches.find((candidate) => candidate.name === action.name);
-      const stash = action.kind === 'stashDrop' && state.stashes.find((candidate) => candidate.ref === action.ref);
+      const stash = action.kind === 'stashDrop' && state.stashes.find((candidate) => stashName(candidate) === action.ref);
       if (branch) {
-        this.undoable = { reflogTop, op: restoreBranchOp(branch.name, branch.hash) };
-        record = { kind: 'branchDeleted', name: branch.name, commit: branch.hash };
+        this.undoable = { reflogTop, op: restoreBranchOp(branch.name, branch.commit) };
+        record = { kind: 'branchDeleted', name: branch.name, commit: branch.commit };
       }
       if (stash) {
-        this.undoable = { reflogTop, op: restoreStashOp(stash.message, stash.hash) };
-        record = { kind: 'stashDropped', message: stash.message, commit: stash.hash };
+        this.undoable = { reflogTop, op: restoreStashOp(stash.message, stash.commit) };
+        record = { kind: 'stashDropped', message: stash.message, commit: stash.commit };
       }
       if (squashed !== null) {
         this.undoable = undoSquash;
@@ -2055,12 +2062,12 @@ export class Controller implements vscode.Disposable {
   private async letGoInVSCodeGit(action: Action, state: RepoState): Promise<void> {
     if (action.kind === 'worktreeRemove' || action.kind === 'worktreeRename') {
       // Git never moves nor removes the main worktree, which the engine refuses: VS Code's Git keeps it open.
-      const main = state.worktrees.some((worktree) => worktree.main && samePath(worktree.path, action.path));
+      const main = state.worktrees.some((worktree) => worktree.isMain && samePath(worktree.folder, action.path));
       if (!main) await closeInVSCodeGit([action.path], this.log);
     }
     if (action.kind === 'submoduleDeinit' || action.kind === 'submoduleRemove') {
       const path = action.path;
-      const inside = state.submodules.filter((each) => each.head !== null && (each.path === path || each.path.startsWith(`${path}/`)));
+      const inside = state.submodules.filter((each) => each.checkout?.commit && (each.folder === path || each.folder.startsWith(`${path}/`)));
       await closeInVSCodeGit(
         inside.map((each) => submoduleFolder(each, state)),
         this.log,
@@ -2133,8 +2140,8 @@ export class Controller implements vscode.Disposable {
    */
   private reportEngineFailure(failure: unknown, title: string | undefined, repo: Repo): void {
     const operation = this.state?.operation;
-    if (failure instanceof EngineError && failure.code === ErrorCode.stepFailed && this.state?.working.conflicts.length) {
-      this.reportFailure({ title: title ?? `The ${operation ?? 'operation'}` }, errorText(failure));
+    if (failure instanceof EngineError && failure.code === ErrorCode.stepFailed && this.state?.workingTree.conflicted.length) {
+      this.reportFailure({ title: title ?? `The ${operation ? operationName(operation) : 'operation'}` }, errorText(failure));
       return;
     }
     const data = failure instanceof EngineError ? (failure.data as { followUps?: FollowUp[] } | undefined) : undefined;
@@ -2218,9 +2225,9 @@ export class Controller implements vscode.Disposable {
   /** Carries out what a plan of the engine leaves for the host once the repository was read again: what to select. */
   private followUpsAfterRead(followUps: FollowUp[]): void {
     for (const followUp of followUps) {
-      if (followUp.kind === 'selectHead' && this.state?.head) this.show(this.state.head);
+      if (followUp.kind === 'selectHead' && this.state?.head.commit) this.show(this.state.head.commit);
       if (followUp.kind === 'selectCommit') this.show(String(followUp.commit));
-      if (followUp.kind === 'selectBeforeHead' && this.state?.head) {
+      if (followUp.kind === 'selectBeforeHead' && this.state?.head.commit) {
         const count = Number(followUp.count);
         void git(this.state.root, ['rev-parse', `HEAD~${count}`]).then((result) => this.show(result.stdout.trim()));
       }
@@ -2255,11 +2262,11 @@ export class Controller implements vscode.Disposable {
   /** Says what is left to do after conflicts were resolved, and offers the way back. */
   private reportResolved(written: number): void {
     const operation = this.state?.operation;
-    const left = this.state?.working.conflicts.length ?? 0;
+    const left = this.state?.workingTree.conflicted.length ?? 0;
     const files = written === 1 ? '1 file' : `${written} files`;
     const rest = left
       ? `${left === 1 ? '1 file still has' : `${left} files still have`} conflicts to resolve by hand.`
-      : `No file is left in conflict${operation ? `: the ${operation} can continue` : ''}.`;
+      : `No file is left in conflict${operation ? `: the ${operationName(operation)} can continue` : ''}.`;
     const buttons = !left && operation ? ['Continue', 'Undo'] : ['Undo'];
     void vscode.window.showInformationMessage(`Gitardo resolved conflicts in ${files}. ${rest}`, ...buttons).then((choice) => {
       if (choice === 'Undo') void this.action({ kind: 'undo' });
@@ -2273,7 +2280,7 @@ export class Controller implements vscode.Disposable {
    */
   private reportSquashed(message: string): void {
     if (message.trim()) this.post({ type: 'commitMessage', message: message.trim() });
-    const branch = this.state?.branch ?? 'HEAD';
+    const branch = (this.state && checkedOutBranch(this.state)) ?? 'HEAD';
     const text = `Gitardo: the changes are staged, and nothing is committed yet. Commit them to make them one commit on ${branch}.`;
     void vscode.window.showInformationMessage(text, 'Show Changes', 'Undo').then((choice) => {
       if (choice === 'Show Changes') void vscode.commands.executeCommand('gitardo.changes.focus');
@@ -2299,7 +2306,7 @@ export class Controller implements vscode.Disposable {
   private reportBisect(): void {
     const bisect = this.state?.bisect;
     const bad = bisect?.bad;
-    if (!bad || bisect.suspects !== 1) return;
+    if (!bad || bisect.remaining !== 1) return;
     const subject = this.state?.rows.find((row) => row.hash === bad)?.subject;
     void vscode.window
       .showInformationMessage(`Bisect: the first bad commit is ${bad.slice(0, 7)}${subject ? ` "${subject}"` : ''}.`, 'Show in the graph', 'End bisect')
@@ -2347,8 +2354,8 @@ export class Controller implements vscode.Disposable {
       return relative && !relative.startsWith('..') && !path.isAbsolute(relative) ? relative.replace(/\\/g, '/') : null;
     };
     const others = [
-      ...state.submodules.map((submodule) => submodule.path),
-      ...state.worktrees.filter((worktree) => !worktree.current).flatMap((worktree) => inside(worktree.path) ?? []),
+      ...state.submodules.map((submodule) => submodule.folder),
+      ...state.worktrees.filter((worktree) => !worktree.isCurrent).flatMap((worktree) => inside(worktree.folder) ?? []),
     ];
     const paths = files
       .flatMap((file) => inside(file) ?? [])
@@ -2537,8 +2544,8 @@ export class Controller implements vscode.Disposable {
     // A worktree of it, or one of its submodules initialized since the repositories of the workspace were looked for.
     const folder = !state
       ? undefined
-      : (state.worktrees.find((each) => samePath(each.path, root) && !each.prunable)?.path ??
-        state.submodules.filter((each) => each.head).map((each) => submoduleFolder(each, state)).find((each) => samePath(each, root)));
+      : (state.worktrees.find((each) => samePath(each.folder, root) && !each.isMissing)?.folder ??
+        state.submodules.filter((each) => each.checkout?.commit).map((each) => submoduleFolder(each, state)).find((each) => samePath(each, root)));
     if (folder) {
       // The way back is the repository of the workspace that was shown, or the one that was before another worktree.
       this.home = this.repos.find((each) => shown && samePath(each.root, shown)) ?? this.home;
@@ -2607,7 +2614,8 @@ export class Controller implements vscode.Disposable {
         typeof (profile as IdentityProfile)?.name === 'string' && typeof (profile as IdentityProfile)?.email === 'string',
     );
     const localKeys = await repo.localIdentityKeys();
-    const { name, email } = state.identity;
+    const name = state.identity.name ?? '';
+    const email = state.identity.email ?? '';
 
     const ask = async (): Promise<GitOp | undefined> => {
       const newName = await vscode.window.showInputBox({ title: 'Commit as', prompt: 'Name', value: name });
@@ -3017,7 +3025,7 @@ export class Controller implements vscode.Disposable {
     const told = record ?? recordOf(before, after);
     if (!told) return;
     try {
-      await client.journalRecord(repo.root, title, told, headOf(before), headOf(after));
+      await client.journalRecord(repo.root, title, told, before.head, after.head);
       // Its label is the operation just told.
       const undo = await this.newestInJournal(repo.root);
       if (this.state === after) this.setState({ ...after, undo });
@@ -3052,12 +3060,12 @@ export class Controller implements vscode.Disposable {
 
   private reportFailure(op: Pick<GitOp, 'title'>, error: string): void {
     const showLog = (choice?: string) => choice && this.log.show();
-    const conflicts = this.state?.working.conflicts.length ?? 0;
+    const conflicts = this.state?.workingTree.conflicted.length ?? 0;
     if (this.state && conflicts) {
       const { operation } = this.state;
       const files = conflicts === 1 ? '1 file has conflicts' : `${conflicts} files have conflicts`;
       // Without an operation to continue, as after a stash that did not apply cleanly, staging the files is all there is to do.
-      const then = operation ? `continue or abort the ${operation}` : 'stage the files';
+      const then = operation ? `continue or abort the ${operationName(operation)}` : 'stage the files';
       const marked = this.state.conflictFiles.reduce((sum, file) => sum + file.conflicts, 0);
       const resolvable = this.state.conflictFiles.reduce((sum, file) => sum + file.resolvable.length, 0);
       // The ones that need no choice between the two sides are a click away.
@@ -3081,10 +3089,10 @@ export class Controller implements vscode.Disposable {
 
   /** The two versions of a file that a diff of `source` puts side by side, and what to call the pair. */
   private sides(repo: Repo, source: DiffSource, file: FileChange): { left: vscode.Uri; right: vscode.Uri; label: string } | null {
-    const added = file.status === 'A' || file.status === '?';
-    const deleted = file.status === 'D';
-    const before = file.oldPath ?? file.path;
-    const head = this.state?.head ?? '';
+    const added = file.kind === 'added';
+    const deleted = file.kind === 'deleted';
+    const before = file.originalPath ?? file.path;
+    const head = this.state?.head.commit ?? '';
     const onDisk = vscode.Uri.file(path.join(repo.root, file.path));
     const at = (ref: string, filePath = file.path) => contentUri(repo.root, ref, filePath);
     // The index and HEAD as VS Code's Git extension serves them, when it has the repository: its own commands, such as
@@ -3114,8 +3122,9 @@ export class Controller implements vscode.Disposable {
         return { left: added ? at('') : inGit('~'), right: deleted ? at('') : onDisk, label: 'Working Tree' };
       case 'change': {
         // The file as git lists it on that side: added to the index and changed since is `A` there, `M` here.
-        const working = repo === this.repo ? this.state?.working : undefined;
-        const unstaged = working?.unstaged.find((each) => each.path === file.path);
+        const working = repo === this.repo ? this.state?.workingTree : undefined;
+        // An untracked file is all in the working tree.
+        const unstaged = working?.unstaged.find((each) => each.path === file.path) ?? (working?.untracked.includes(file.path) ? file : undefined);
         if (unstaged || !working) return this.sides(repo, { kind: 'unstaged' }, unstaged ?? file);
         return this.sides(repo, { kind: 'staged' }, working.staged.find((each) => each.path === file.path) ?? file);
       }
@@ -3138,7 +3147,7 @@ export class Controller implements vscode.Disposable {
   /** A file of the working tree in its editor. A deleted one is not there to open: its diff shows what it was. */
   private async openFile(file: FileChange, repo = this.repo): Promise<void> {
     if (!repo) return;
-    if (file.status === 'D') return this.openDiff({ kind: 'change' }, file, repo);
+    if (file.kind === 'deleted') return this.openDiff({ kind: 'change' }, file, repo);
     await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(path.join(repo.root, file.path)));
   }
 

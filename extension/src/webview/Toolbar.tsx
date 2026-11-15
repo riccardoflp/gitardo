@@ -84,7 +84,7 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
   const [only, setOnly] = useState(() => loadUiState({ searchOnly: false }).searchOnly);
   const input = useRef<HTMLInputElement>(null);
   const openMenu = useMenu();
-  const upstream = state.branches.find((branch) => branch.current)?.upstream;
+  const upstream = state.branches.find((branch) => branch.isCheckedOut)?.upstream;
   const sync = (action: SyncAction) => post({ type: 'sync', action });
   // What the button runs, among the ways to pull: the settings choose it.
   const pull = PULL_VARIANTS.find(({ action }) => action === state.defaultPull) ?? PULL_VARIANTS[0];
@@ -379,7 +379,7 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
 
       <button
         className="button"
-        disabled={!!busy || !state.head}
+        disabled={!!busy || !state.head.commit}
         onClick={() => act({ kind: 'createBranch', at: 'HEAD' })}
         title="Branch: create a branch at HEAD"
         aria-label="Branch"
@@ -389,7 +389,7 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
       </button>
       <button
         className="button"
-        disabled={!!busy || !state.changes || !state.head}
+        disabled={!!busy || !state.changes || !state.head.commit}
         onClick={() => act({ kind: 'stashPush' })}
         title="Stash: git stash push --include-untracked"
         aria-label="Stash"
@@ -400,7 +400,7 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
 
       <button
         className="button"
-        disabled={!!busy || !state.head}
+        disabled={!!busy || !state.head.commit}
         onClick={() => act({ kind: 'undo' })}
         title={
           state.undo

@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { Branch, PullRequest, RepoState } from '../src/shared/protocol';
 import { buildLabels } from '../src/webview/labels';
+import { branchAt, headAt, remoteAt, upstreamOf, worktreeAt } from './states';
 
 const pull = (number: number): PullRequest => ({ number, title: `Change ${number}`, url: `https://github.com/o/r/pull/${number}`, draft: false, checks: 'success' });
-const upstream = (name: string) => ({ name, remote: 'origin', branch: name.slice('origin/'.length), ahead: 0, behind: 0, gone: false });
 
 const state = (overrides: Partial<RepoState>) =>
   ({
-    head: 'aaa',
-    branch: 'main',
+    head: headAt('aaa', 'main'),
     branches: [],
     remoteBranches: [],
     tags: [],
@@ -23,15 +22,15 @@ const state = (overrides: Partial<RepoState>) =>
   }) as Partial<RepoState> as RepoState;
 
 describe('the labels of the commits in the graph', () => {
-  const feature: Branch = { name: 'feature', hash: 'bbb', current: false, upstream: upstream('origin/feature') };
+  const feature: Branch = branchAt('feature', 'bbb', { upstream: upstreamOf('origin/feature') });
 
   it('puts the pull request of a branch on its label, once, where the local branch tracks the remote one', () => {
     const labels = buildLabels(
       state({
         branches: [feature],
         remoteBranches: [
-          { name: 'origin/feature', hash: 'bbb' },
-          { name: 'origin/other', hash: 'ccc' },
+          remoteAt('origin/feature', 'bbb'),
+          remoteAt('origin/other', 'ccc'),
         ],
         pulls: { feature: pull(7), other: pull(9) },
       }),
@@ -45,23 +44,23 @@ describe('the labels of the commits in the graph', () => {
 
   it('has no pull request where the repository is not on GitHub, or the branch was never pushed', () => {
     const pulls = { feature: pull(7) };
-    const remoteBranches = [{ name: 'origin/feature', hash: 'ccc' }];
-    expect(buildLabels(state({ branches: [{ ...feature, upstream: undefined }], pulls })).get('bbb')?.[0].pull).toBeUndefined();
+    const remoteBranches = [remoteAt('origin/feature', 'ccc')];
+    expect(buildLabels(state({ branches: [{ ...feature, upstream: null }], pulls })).get('bbb')?.[0].pull).toBeUndefined();
     expect(buildLabels(state({ remoteBranches, pulls, github: null })).get('ccc')?.[0].pull).toBeUndefined();
   });
 
   it('gives a branch and its upstream one label at the same commit, and one each once they part', () => {
-    const remoteBranches = [{ name: 'origin/feature', hash: 'bbb' }];
-    const worktrees = [{ path: 'C:/work/feature', branch: 'feature', current: false }] as RepoState['worktrees'];
+    const remoteBranches = [remoteAt('origin/feature', 'bbb')];
+    const worktrees = [worktreeAt('C:/work/feature', 'feature')];
     const together = buildLabels(state({ branches: [feature], remoteBranches, worktrees }));
     expect(together.get('bbb')).toEqual([expect.objectContaining({ kind: 'branch', name: 'feature', worktree: 'C:/work/feature', remote: 'origin/feature' })]);
-    const apart = buildLabels(state({ branches: [{ ...feature, hash: 'ccc' }], remoteBranches }));
+    const apart = buildLabels(state({ branches: [{ ...feature, commit: 'ccc' }], remoteBranches }));
     expect(apart.get('ccc')).toEqual([expect.objectContaining({ kind: 'branch', remote: undefined })]);
     expect(apart.get('bbb')).toEqual([expect.objectContaining({ kind: 'remote', name: 'origin/feature' })]);
   });
 
   it('gives a branch and its upstream a label each when the settings keep them apart', () => {
-    const remoteBranches = [{ name: 'origin/feature', hash: 'bbb' }];
+    const remoteBranches = [remoteAt('origin/feature', 'bbb')];
     const labels = buildLabels(state({ branches: [feature], remoteBranches, combineUpstream: false }));
     expect(labels.get('bbb')?.map((label) => [label.kind, label.name, label.remote])).toEqual([
       ['branch', 'feature', undefined],
@@ -70,10 +69,10 @@ describe('the labels of the commits in the graph', () => {
   });
 
   it('keeps the label of an upstream of another name, and of another remote', () => {
-    const renamed: Branch = { ...feature, upstream: { ...upstream('origin/feature'), name: 'origin/other', branch: 'other' } };
+    const renamed: Branch = { ...feature, upstream: upstreamOf('origin/other') };
     const remoteBranches = [
-      { name: 'origin/other', hash: 'bbb' },
-      { name: 'fork/feature', hash: 'bbb' },
+      remoteAt('origin/other', 'bbb'),
+      remoteAt('fork/feature', 'bbb'),
     ];
     const labels = buildLabels(state({ branches: [renamed], remoteBranches, remotes: ['origin', 'fork'] }));
     expect(labels.get('bbb')?.map((label) => [label.kind, label.name, label.remote])).toEqual([

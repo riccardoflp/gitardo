@@ -88,6 +88,7 @@ import { setupCommands, setupPatterns } from './worktreeSettings';
 import type { Action, MergeMode, RebaseStep, RebaseStop, RepoState, Submodule, Worktree } from '../shared/protocol';
 import { isHome, refArg, worktreeOf } from '../shared/refs';
 import { submoduleFolder } from '../shared/submodules';
+import { checkedOutBranch, operationName, worktreeBranch } from '../shared/state';
 
 /** What is wrong with a name for a new branch or tag, as the input box says it. */
 function nameProblem(state: RepoState, kind: 'branch' | 'tag'): (name: string) => string | undefined {
@@ -139,7 +140,7 @@ async function withStashPreview(op: GitOp, ref: string, state: RepoState, repo: 
   const count = (n: number) => (n === 1 ? '1 file' : `${n} files`);
   const notes = [op.note];
   const { changed, untracked } = await repo.stashFiles(ref);
-  const dirty = new Set([...state.working.staged, ...state.working.unstaged].filter((file) => file.status !== '?').map((file) => file.path));
+  const dirty = new Set([...state.workingTree.staged, ...state.workingTree.unstaged].map((file) => file.path));
   const touched = changed.filter((file) => dirty.has(file));
   if (touched.length) {
     const have = touched.length === 1 ? '1 file it changes has' : `${touched.length} files it changes have`;
@@ -190,7 +191,7 @@ async function applyPatch(state: RepoState, repo: Repo): Promise<GitOp | undefin
   if (!/^(diff --git |--- \S)/m.test(patch.text)) throw new Error(patch.file ? `${patch.name} has no patch in it.` : 'There is no patch in the clipboard.');
 
   const commits = patchCommits(patch.text);
-  const onto = state.branch ?? 'HEAD';
+  const onto = checkedOutBranch(state) ?? 'HEAD';
   let asCommits = false;
   if (commits) {
     const made = commits === 1 ? 'its commit' : `its ${commits} commits`;
@@ -206,9 +207,9 @@ async function applyPatch(state: RepoState, repo: Repo): Promise<GitOp | undefin
     if (choice === undefined) return;
     asCommits = choice;
   }
-  if (asCommits && state.operation) throw new Error(`Finish or abort the ${state.operation} first.`);
+  if (asCommits && state.operation) throw new Error(`Finish or abort the ${operationName(state.operation)} first.`);
   // Git would start, refuse at once and be left half way, waiting to be aborted.
-  if (asCommits && state.working.staged.length) {
+  if (asCommits && state.workingTree.staged.length) {
     throw new Error('git am applies patches only while nothing is staged: commit or unstage the staged changes first.');
   }
 
@@ -227,7 +228,7 @@ async function applyPatch(state: RepoState, repo: Repo): Promise<GitOp | undefin
 }
 
 export async function resolveAction(action: Action, state: RepoState, repo: Repo, memory: vscode.Memento): Promise<GitOp | undefined> {
-  const hasHead = state.head !== null;
+  const hasHead = state.head.commit !== null;
 
   switch (action.kind) {
     case 'checkout': {
@@ -255,7 +256,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
     case 'deleteBranch': {
       // Git would refuse a branch that is not merged and want it forced: that is what is asked, once.
       const upstream = state.branches.find((branch) => branch.name === action.name)?.upstream;
-      const merged = await repo.isMergedForDelete(action.name, upstream && !upstream.gone ? `refs/remotes/${upstream.name}` : null);
+      const merged = await repo.isMergedForDelete(action.name, upstream && !upstream.isGone ? upstream.reference : null);
       return deleteBranchOp(action.name, !merged);
     }
 
@@ -269,19 +270,19 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
       return merge(action.ref, action.mode ?? 'default', state, repo);
 
     case 'rebase':
-      return rebaseOp(action.onto, state.branch, action.branch);
+      return rebaseOp(action.onto, checkedOutBranch(state), action.branch);
 
     case 'rebaseInteractive':
       return interactiveRebase(action.steps, action.base, state, repo);
 
     case 'reword': {
-      if (state.operation) throw new Error(`Finish or abort the ${state.operation} first.`);
+      if (state.operation) throw new Error(`Finish or abort the ${operationName(state.operation)} first.`);
       if (state.bisect) throw new Error('End the bisect first.');
       const message = action.message.trim();
       if (!message) throw new Error('Enter a message.');
       const short = action.hash.slice(0, 7);
       let op: GitOp;
-      if (action.hash === state.head) {
+      if (action.hash === state.head.commit) {
         op = rewordHeadOp(message);
       } else {
         // The commits after it are made again on top of it, which a merge among them would undo.
@@ -292,14 +293,14 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
         op = await interactiveRebase(steps, parent, state, repo, true);
         op.title = `Edit the message of ${short}`;
         const commits = after.length === 1 ? 'the commit after it is' : `the ${after.length} commits after it are`;
-        const aside = state.working.staged.length || state.working.unstaged.length ? ' Changes that are not committed are set aside and put back.' : '';
+        const aside = state.workingTree.staged.length || state.workingTree.unstaged.length ? ' Changes that are not committed are set aside and put back.' : '';
         op.note = `${short} gets the new message, and ${commits} made again on top of it, with new hashes.${aside}`;
       }
       return warnIfPushed(op, action.hash, repo);
     }
 
     case 'squash': {
-      if (state.operation) throw new Error(`Finish or abort the ${state.operation} first.`);
+      if (state.operation) throw new Error(`Finish or abort the ${operationName(state.operation)} first.`);
       if (state.bisect) throw new Error('End the bisect first.');
       const { oldest, squashed, after } = await squashRange(action.hashes, state, repo);
       const messages = await Promise.all([oldest, ...squashed].map((hash) => repo.commitMessage(hash)));
@@ -323,22 +324,22 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
       const op = await interactiveRebase(steps, parent, state, repo, true);
       op.title = `Squash ${count} commits`;
       const commits = !after.length ? '' : after.length === 1 ? ' The commit after them is made again on top of it.' : ` The ${after.length} commits after them are made again on top of it.`;
-      const aside = state.working.staged.length || state.working.unstaged.length ? ' Changes that are not committed are set aside and put back.' : '';
+      const aside = state.workingTree.staged.length || state.workingTree.unstaged.length ? ' Changes that are not committed are set aside and put back.' : '';
       op.note = `${[oldest, ...squashed].map((hash) => hash.slice(0, 7)).join(', ')} become one commit, with the changes of them all.${commits}${aside}`;
       return warnIfPushed(op, oldest, repo);
     }
 
     case 'split': {
-      if (state.operation) throw new Error(`Finish or abort the ${state.operation} first.`);
+      if (state.operation) throw new Error(`Finish or abort the ${operationName(state.operation)} first.`);
       if (state.bisect) throw new Error('End the bisect first.');
       if (!isHash(action.hash)) throw new Error(`"${action.hash}" is not a commit.`);
       const short = action.hash.slice(0, 7);
       const parents =(await git(repo.root, ['rev-list', '--parents', '-n', '1', action.hash])).stdout.trim().split(' ').slice(1);
       if (parents.length > 1) throw new Error(`${short} is a merge: it cannot be split.`);
       if (!parents.length) throw new Error(`${short} is the first commit, with nothing before it to take its changes back to: it cannot be split.`);
-      const dirty = state.working.staged.length > 0 || state.working.unstaged.some((file) => file.status !== '?');
+      const dirty = state.workingTree.staged.length > 0 || state.workingTree.unstaged.length > 0;
       let op: GitOp;
-      if (action.hash === state.head) {
+      if (action.hash === state.head.commit) {
         op = splitHeadOp(action.hash);
         op.note = [
           `The changes of ${short} go back into the working tree, unstaged, and the branch goes back to the commit before it: commit them in as many commits as you like.`,
@@ -366,7 +367,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
     }
 
     case 'cherryPickMany': {
-      if (state.operation) throw new Error(`Finish or abort the ${state.operation} first.`);
+      if (state.operation) throw new Error(`Finish or abort the ${operationName(state.operation)} first.`);
       // The graph lists commits newest first, and a commit must be picked after the ones it builds on.
       const wanted = new Set(action.hashes);
       const rows = state.rows.filter((row) => wanted.has(row.hash)).reverse();
@@ -385,12 +386,12 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
       return applyPatch(state, repo);
 
     case 'undo': {
-      if (state.operation) throw new Error(`Finish or abort the ${state.operation} first.`);
+      if (state.operation) throw new Error(`Finish or abort the ${operationName(state.operation)} first.`);
       // Every step of a bisect is a checkout: undoing one would fight with it.
       if (state.bisect) throw new Error('End the bisect first.');
-      const info = await repo.undoInfo(state.branch, state.working);
+      const info = await repo.undoInfo(checkedOutBranch(state), state.workingTree);
       if (!info) throw new Error('There is nothing to undo.');
-      const op = undoOp(info, state.branch);
+      const op = undoOp(info, checkedOutBranch(state));
       return info.kind === 'checkout' ? updatingSubmodules(op, info.from, state, repo) : op;
     }
 
@@ -399,7 +400,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
 
     case 'worktreeRemove': {
       const worktree = findWorktree(action.path, state);
-      if (isHome(worktree.path, state)) throw new Error('This worktree is the folder open in this window: remove it from another one.');
+      if (isHome(worktree.folder, state)) throw new Error('This worktree is the folder open in this window: remove it from another one.');
       const leaveNoEmptyFolders = (op: GitOp): GitOp => {
         op.prepare = async (log) => {
           await closeInVSCodeGit([action.path], log);
@@ -411,7 +412,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
         return op;
       };
       // Its branch can go with it, unless another worktree has it checked out too, which git does not allow anyway.
-      const branch = worktree.branch;
+      const branch = worktreeBranch(worktree);
       if (!branch || action.deleteBranch === false) return leaveNoEmptyFolders(worktreeRemoveOp(action.path));
       if (action.deleteBranch) return leaveNoEmptyFolders(worktreeRemoveOp(action.path, false, branch));
       const deleteBranch = await pick(`Remove worktree ${path.basename(action.path)}`, [
@@ -447,8 +448,9 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
     }
     case 'submoduleRecord': {
       const submodule = findSubmodule(action.path, state);
-      if (!submodule.head) throw new Error(`${submodule.path} is not initialized.`);
-      return submoduleRecordOp(submodule, submodule.head);
+      const head = submodule.checkout?.commit;
+      if (!head) throw new Error(`${submodule.folder} is not initialized.`);
+      return submoduleRecordOp(submodule, head);
     }
     case 'submoduleDeinit':
       return lettingGoOf(submoduleDeinitOp(findSubmodule(action.path, state)), findSubmodule(action.path, state), state);
@@ -456,7 +458,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
       const submodule = findSubmodule(action.path, state);
       // Its clone is in the git directory of the repository that has it, under its name, which comes from .gitmodules:
       // a name that leads out of there is no clone to delete.
-      const modules = path.join(await repo.gitDirAt(submodule.parent), 'modules');
+      const modules = path.join(await repo.gitDirAt(submodule.parent ?? ''), 'modules');
       const gitDir = path.resolve(modules, submodule.name);
       const exists = gitDir.startsWith(modules + path.sep) && fs.existsSync(gitDir);
       const op = lettingGoOf(submoduleRemoveOp(submodule, exists ? gitDir : null), submodule, state);
@@ -476,7 +478,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
       return submoduleSyncOp();
     case 'submoduleOpen': {
       const submodule = findSubmodule(action.path, state);
-      if (!submodule.head) throw new Error(`${submodule.path} is not initialized: update it first.`);
+      if (!submodule.checkout?.commit) throw new Error(`${submodule.folder} is not initialized: update it first.`);
       await openWorktree(submoduleFolder(submodule, state), 'window');
       return;
     }
@@ -490,12 +492,12 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
       return revertOp(action.hash, action.isMerge);
 
     case 'reset': {
-      const mode = await pick<ResetMode>(`Reset ${state.branch ?? 'HEAD'} to ${action.hash.slice(0, 7)}`, [
+      const mode = await pick<ResetMode>(`Reset ${checkedOutBranch(state) ?? 'HEAD'} to ${action.hash.slice(0, 7)}`, [
         { label: 'Soft', description: 'Keep all changes, staged', value: 'soft' },
         { label: 'Mixed', description: 'Keep all changes, unstaged', value: 'mixed' },
         { label: 'Hard', description: 'Discard all changes', value: 'hard' },
       ]);
-      return mode ? resetOp(action.hash, mode, state.branch) : undefined;
+      return mode ? resetOp(action.hash, mode, checkedOutBranch(state)) : undefined;
     }
 
     case 'createTag': {
@@ -509,7 +511,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
     }
 
     case 'deleteTag':
-      return deleteTagOp(action.name, state.tags.find((tag) => tag.name === action.name)?.hash);
+      return deleteTagOp(action.name, state.tags.find((tag) => tag.name === action.name)?.commit);
 
     case 'pushTag':
       return pushTagOp(action.name, state);
@@ -544,7 +546,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
     case 'stage':
       return stageOp(action.paths);
     case 'resolveConflicts': {
-      const files = state.working.conflicts.map((file) => file.path);
+      const files = state.workingTree.conflicted.map((file) => file.path);
       return resolveConflictsOp(await repo.conflictPlans(action.paths ? files.filter((file) => action.paths?.includes(file)) : files));
     }
     case 'takeSide':
@@ -556,23 +558,23 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
     case 'unstageAll':
       return unstageAllOp(hasHead);
     case 'discard':
-      return discardOp(action.paths, state.working);
+      return discardOp(action.paths, state.workingTree);
     case 'discardAll':
       return discardOp(
-        state.working.unstaged.map((file) => file.path),
-        state.working,
+        [...state.workingTree.unstaged.map((file) => file.path), ...state.workingTree.untracked],
+        state.workingTree,
       );
     case 'discardChanges':
       // Going back to the last commit in the middle of a merge or a rebase would leave it to commit nothing.
-      if (!action.paths && state.operation) throw new Error(`Abort the ${state.operation} to discard all of it.`);
-      return discardChangesOp(action.paths ?? null, state.working, hasHead);
+      if (!action.paths && state.operation) throw new Error(`Abort the ${operationName(state.operation)} to discard all of it.`);
+      return discardChangesOp(action.paths ?? null, state.workingTree, hasHead);
 
     case 'commit': {
       const message = action.message.trim();
       let stageAll = false;
       // An amend with nothing staged is fine: it only rewords or re-dates the last commit.
-      if (!action.amend && !state.working.staged.length) {
-        if (!state.working.unstaged.length) throw new Error('There are no changes to commit.');
+      if (!action.amend && !state.workingTree.staged.length) {
+        if (!state.workingTree.unstaged.length) throw new Error('There are no changes to commit.');
         const choice = await vscode.window.showWarningMessage(
           'There are no staged changes. Stage all changes and commit them?',
           { modal: true },
@@ -585,8 +587,8 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
     }
 
     case 'fixup': {
-      if (state.operation) throw new Error(`Finish or abort the ${state.operation} first.`);
-      const { staged, unstaged } = state.working;
+      if (state.operation) throw new Error(`Finish or abort the ${operationName(state.operation)} first.`);
+      const { staged, unstaged } = state.workingTree;
       if (!staged.length && !unstaged.length) throw new Error('There are no changes to add to that commit.');
       return fixupOp(action.hash, action.isRoot, staged.length === 0);
     }
@@ -613,7 +615,7 @@ export async function resolveAction(action: Action, state: RepoState, repo: Repo
  * before git runs when what is checked out has commits of its own; the other ways say first which files will conflict.
  */
 async function merge(ref: string, asked: MergeMode | 'ask', state: RepoState, repo: Repo): Promise<GitOp | undefined> {
-  const current = state.branch ?? 'HEAD';
+  const current = checkedOutBranch(state) ?? 'HEAD';
   const name = /^[0-9a-f]{40,64}$/.test(ref) ? ref.slice(0, 7) : ref;
   const forward = await repo.canFastForwardTo(ref);
   const details: Record<MergeMode, string> = {
@@ -626,7 +628,7 @@ async function merge(ref: string, asked: MergeMode | 'ask', state: RepoState, re
   const mode =
     asked === 'ask'
       ? await pick(
-          mergeOp(ref, state.branch).title,
+          mergeOp(ref, checkedOutBranch(state)).title,
           modes.map((value) => {
             const { flags, name: way } = MERGE_MODES[value];
             return { label: way ? `Merge (${way})` : 'Merge', description: formatCommand(['merge', ...flags, name]), detail: details[value], value };
@@ -634,7 +636,7 @@ async function merge(ref: string, asked: MergeMode | 'ask', state: RepoState, re
         )
       : asked;
   if (!mode) return;
-  const op = mergeOp(ref, state.branch, mode);
+  const op = mergeOp(ref, checkedOutBranch(state), mode);
   if (mode === 'fastForwardOnly') {
     if (!forward) {
       // Git would refuse it, unless there is nothing to bring in.
@@ -654,8 +656,8 @@ async function merge(ref: string, asked: MergeMode | 'ask', state: RepoState, re
  * are not staged, and would fold staged ones into the commit without a word: the user is told what to do instead.
  */
 function refuseUncommitted(state: RepoState): void {
-  const { staged, unstaged } = state.working;
-  if (staged.length || unstaged.some((file) => file.status !== '?')) {
+  const { staged, unstaged } = state.workingTree;
+  if (staged.length || unstaged.length) {
     throw new Error('Some changes are not committed: amend the commit with them, commit them, or stash them, then continue.');
   }
 }
@@ -665,7 +667,7 @@ function refuseUncommitted(state: RepoState): void {
  * committed as one more commit, with the message the commit had, or left for the user to go back to committing.
  */
 async function continueSplit(stop: RebaseStop, state: RepoState, repo: Repo): Promise<GitOp | undefined> {
-  const { left, others } = splitLeft(await repo.changedPaths(stop.hash), state.working);
+  const { left, others } = splitLeft(await repo.changedPaths(stop.commit), state.workingTree);
   if (others.length) {
     const files = others.length === 1 ? `${others[0]} has changes` : `${others.length} files have changes`;
     throw new Error(`${files} that are not committed and are not part of the split: commit or stash them, then continue.`);
@@ -680,7 +682,7 @@ async function continueSplit(stop: RebaseStop, state: RepoState, repo: Repo): Pr
     'Go Back to Committing',
   );
   if (choice !== commit) return;
-  return { ...splitRestOp(left, await repo.commitMessage(stop.hash)), recover: skipEmptyPicks(state.root) };
+  return { ...splitRestOp(left, await repo.commitMessage(stop.commit)), recover: skipEmptyPicks(state.root) };
 }
 
 /**
@@ -695,12 +697,12 @@ async function checkoutRemote(ref: string, rebase: boolean, state: RepoState, re
   if (!branch) return checkoutOp('remote', ref);
   // Git checks it out nowhere but in the worktree that has it, which opens instead, to work on it there.
   const worktree = worktreeOf(name, state);
-  if (worktree?.prunable) throw new Error(`The worktree of ${name} is missing from ${worktree.path}: prune the worktrees to free the branch.`);
+  if (worktree?.isMissing) throw new Error(`The worktree of ${name} is missing from ${worktree.folder}: prune the worktrees to free the branch.`);
   if (worktree) {
-    await openWorktree(worktree.path, openIn(state));
+    await openWorktree(worktree.folder, openIn(state));
     return;
   }
-  const local = { name, current: branch.current, ...(await repo.divergence(`refs/heads/${name}`, ref)) };
+  const local = { name, current: branch.isCheckedOut, ...(await repo.divergence(`refs/heads/${name}`, ref)) };
   if (rebase || !local.ahead || !local.behind) {
     if (local.current && !local.behind) {
       void vscode.window.showInformationMessage(`${name} is checked out already, with everything ${remote} has.`);
@@ -750,11 +752,11 @@ export async function openWorktree(dir: string, where: 'window' | 'agents'): Pro
 async function openInWorktree(name: string, remote: boolean, state: RepoState): Promise<GitOp | undefined> {
   const branch = remote ? withoutRemote(name, state.remotes) : name;
   const where = openIn(state);
-  const existing = state.worktrees.find((worktree) => worktree.branch === branch);
+  const existing = state.worktrees.find((worktree) => worktreeBranch(worktree) === branch);
   if (existing) {
-    if (existing.current) throw new Error(`${branch} is checked out in this window.`);
-    if (existing.prunable) throw new Error(`The worktree of ${branch} is missing from ${existing.path}: prune the worktrees to free the branch.`);
-    await openWorktree(existing.path, where);
+    if (existing.isCurrent) throw new Error(`${branch} is checked out in this window.`);
+    if (existing.isMissing) throw new Error(`The worktree of ${branch} is missing from ${existing.folder}: prune the worktrees to free the branch.`);
+    await openWorktree(existing.folder, where);
     return;
   }
   const { main, folder } = worktreesHome(state);
@@ -835,7 +837,7 @@ export function setUpExistingOp(state: RepoState, dir?: string): GitOp {
   if (!note) throw new Error('New worktrees get nothing yet: choose what they get first.');
   const dirs = dir
     ? [dir]
-    : state.worktrees.filter((worktree) => !worktree.prunable && !samePath(worktree.path, state.root)).map((worktree) => worktree.path);
+    : state.worktrees.filter((worktree) => !worktree.isMissing && !samePath(worktree.folder, state.root)).map((worktree) => worktree.folder);
   if (!dirs.length) throw new Error('There are no other worktrees to bring it into.');
   if (dirs.some((each) => samePath(each, state.root))) throw new Error('This is the checkout it comes from.');
   const which = dirs.length === 1 ? path.basename(dirs[0]) : `${dirs.length} worktrees`;
@@ -843,7 +845,7 @@ export function setUpExistingOp(state: RepoState, dir?: string): GitOp {
 }
 
 function findSubmodule(folder: string, state: RepoState): Submodule {
-  const submodule = state.submodules.find((candidate) => candidate.path === folder);
+  const submodule = state.submodules.find((candidate) => candidate.folder === folder);
   if (!submodule) throw new Error(`${folder} is no longer a submodule of this repository.`);
   return submodule;
 }
@@ -853,14 +855,15 @@ function findSubmodule(folder: string, state: RepoState): Submodule {
  * branch has then, and its changes, which git carries along or stops for. `named` says which submodule it is about.
  */
 function submoduleRisks(submodule: Submodule, named: boolean): { lost: string[]; changes: string[] } {
-  const it = named ? submodule.path : 'It';
+  const it = named ? submodule.folder : 'It';
   const lost: string[] = [];
   const changes: string[] = [];
-  if (submodule.ahead && !submodule.headBranch) {
-    const commits = submodule.ahead === 1 ? '1 commit' : `${submodule.ahead} commits`;
+  const ahead = submodule.checkout?.distance?.ahead;
+  if (ahead && !submodule.checkout?.branch) {
+    const commits = ahead === 1 ? '1 commit' : `${ahead} commits`;
     lost.push(`${it} has ${commits} after the recorded one on a detached HEAD: no branch will have them. Create a branch in it first to keep them.`);
   }
-  if (submodule.changes) changes.push(`${it} has changes that are not committed: git keeps them, or stops if they are in the way.`);
+  if (submodule.checkout?.uncommitted) changes.push(`${it} has changes that are not committed: git keeps them, or stops if they are in the way.`);
   return { lost, changes };
 }
 
@@ -912,7 +915,7 @@ async function interactiveRebase(steps: RebaseStep[], base: string | null, state
   }
   const todo = rebaseTodo(steps, messageFile);
   fs.writeFileSync(file('todo'), todo);
-  const op = rebaseInteractiveOp(base, file('todo'), todo, state.branch, autostash);
+  const op = rebaseInteractiveOp(base, file('todo'), todo, checkedOutBranch(state), autostash);
   // If the rebase stops half way the files are still needed, so they are only removed after a clean finish. A stop
   // to edit a commit is no failure: the rebase is still there.
   const rebasing = path.join(await repo.gitDirAt(''), 'rebase-merge');
@@ -969,7 +972,7 @@ async function addSubmodule(state: RepoState): Promise<GitOp | undefined> {
     })
   )?.trim();
   if (!url) return;
-  const taken = new Set(state.submodules.filter((each) => !each.parent).map((each) => each.path));
+  const taken = new Set(state.submodules.filter((each) => !each.parent).map((each) => each.folder));
   const typed = await vscode.window.showInputBox({
     title,
     prompt: 'Folder to clone it in, from the root of the repository',
@@ -1000,7 +1003,7 @@ async function addSubmodule(state: RepoState): Promise<GitOp | undefined> {
 }
 
 function findWorktree(dir: string, state: RepoState): Worktree {
-  const worktree = state.worktrees.find((candidate) => candidate.path === dir);
+  const worktree = state.worktrees.find((candidate) => candidate.folder === dir);
   if (!worktree) throw new Error(`${dir} is no longer a worktree of this repository.`);
   return worktree;
 }
@@ -1039,7 +1042,7 @@ function branchFormat(): { format: string; inputs: BranchInput[] } {
 
 /** Where new worktrees go, as `gitardo.worktrees.folder` says, with `~` for the home folder. */
 function worktreesHome(state: RepoState): { main: string; folder: string } {
-  const main = state.worktrees.find((worktree) => worktree.main)?.path ?? state.root;
+  const main = state.worktrees.find((worktree) => worktree.isMain)?.folder ?? state.root;
   const setting = vscode.workspace.getConfiguration('gitardo').get<string>('worktrees.folder', '');
   return { main, folder: setting.trim().replace(/^~(?=[\\/]|$)/, os.homedir()) };
 }
@@ -1151,7 +1154,7 @@ export function recoverHeldWorktree(root: string): (args: string[], error: GitEr
     if (args[1] === 'remove' && /failed to delete '/.test(error.message)) {
       const dir = args[args.length - 1];
       const { stdout } = await git(root, ['worktree', 'list', '--porcelain'], { readOnly: true });
-      if (parseWorktrees(stdout, root).some((worktree) => samePath(worktree.path, dir))) return false;
+      if (parseWorktrees(stdout, root).some((worktree) => samePath(worktree.folder, dir))) return false;
       log.warn(`${said}: Windows held the folder. It is no longer a worktree, and Gitardo deletes what is left of it.`);
       log.info(`> delete ${dir}`);
       try {
@@ -1173,8 +1176,8 @@ export function recoverHeldWorktree(root: string): (args: string[], error: GitEr
  * while. Git checks and writes its index only once the folder is gone, so running it again is safe.
  */
 function lettingGoOf(op: GitOp, submodule: Submodule, state: RepoState): GitOp {
-  const inside = state.submodules.filter((each) => each.path === submodule.path || each.path.startsWith(`${submodule.path}/`));
-  op.prepare = (log) => closeInVSCodeGit(inside.filter((each) => each.head !== null).map((each) => submoduleFolder(each, state)), log);
+  const inside = state.submodules.filter((each) => each.folder === submodule.folder || each.folder.startsWith(`${submodule.folder}/`));
+  op.prepare = (log) => closeInVSCodeGit(inside.filter((each) => each.checkout?.commit).map((each) => submoduleFolder(each, state)), log);
   op.recover = async (args, error, log) => {
     if (process.platform !== 'win32' || !/could not remove|Permission denied|Device or resource busy/.test(error.message)) return false;
     log.warn(`${error.message.split('\n')[0]}: Windows holds the folder, so it is tried again.`);
@@ -1296,7 +1299,7 @@ async function newBranchName(at: string, state: RepoState, repo: Repo, memory: v
 
   let base = '';
   if (/\$\{base\}/.test(format)) {
-    const ref = at === 'HEAD' ? (state.branches.find((branch) => branch.current)?.name ?? state.head ?? at) : at;
+    const ref = at === 'HEAD' ? (state.branches.find((branch) => branch.isCheckedOut)?.name ?? state.head.commit ?? at) : at;
     // A ref git is given in full, when something else has its name, is matched by its short name.
     const named = (prefix: string, list: { name: string }[]) => {
       const name = ref.startsWith(prefix) ? ref.slice(prefix.length) : ref;
@@ -1315,7 +1318,7 @@ async function newBranchName(at: string, state: RepoState, repo: Repo, memory: v
 /** What `${base}` is for a worktree made at a commit: the commit, or one of the branches that have it. */
 async function commitBase(hash: string, title: string, state: RepoState, repo: Repo): Promise<string | undefined> {
   const short = hash.slice(0, 7);
-  const at = new Set([...state.branches, ...state.remoteBranches].filter((ref) => ref.hash === hash).map((ref) => ref.name));
+  const at = new Set([...state.branches, ...state.remoteBranches].filter((ref) => ref.commit === hash).map((ref) => ref.name));
   const names = (await repo.branchesContaining(hash)).map((ref) =>
     ref.startsWith('refs/heads/') ? ref.slice(11) : ref.slice(13),
   );
@@ -1378,15 +1381,15 @@ async function addWorktree(
   let base = ref;
   let baseName = ref ?? '';
   if (!base) {
-    const current = state.branches.find((branch) => branch.current);
+    const current = state.branches.find((branch) => branch.isCheckedOut);
     const picked = await pick(`${title} from`, [
       ...(current
         ? [{ label: current.name, description: 'Checked out', value: { arg: refArg('branch', current.name, state), name: current.name } }]
-        : state.head
-          ? [{ label: 'HEAD', description: 'Detached', value: { arg: state.head, name: state.head.slice(0, 7) } }]
+        : state.head.commit
+          ? [{ label: 'HEAD', description: 'Detached', value: { arg: state.head.commit, name: state.head.commit.slice(0, 7) } }]
           : []),
       ...state.branches
-        .filter((branch) => !branch.current)
+        .filter((branch) => !branch.isCheckedOut)
         .map((branch) => ({ label: branch.name, value: { arg: refArg('branch', branch.name, state), name: branch.name } })),
       ...state.remoteBranches.map((remote) => ({
         label: remote.name,
@@ -1459,9 +1462,9 @@ async function addWorktree(
  * go, its name is its path from there, slashes and all; anywhere else, the name of its folder where it is.
  */
 async function renameWorktree(worktree: Worktree, state: RepoState): Promise<GitOp | undefined> {
-  if (worktree.main) throw new Error('Git cannot move the main worktree, the folder the repository was created in.');
-  if (worktree.current || isHome(worktree.path, state)) throw new Error('This worktree is the folder open in this window: rename it from another one.');
-  const dir = worktree.path.replace(/\\/g, '/');
+  if (worktree.isMain) throw new Error('Git cannot move the main worktree, the folder the repository was created in.');
+  if (worktree.isCurrent || isHome(worktree.folder, state)) throw new Error('This worktree is the folder open in this window: rename it from another one.');
+  const dir = worktree.folder.replace(/\\/g, '/');
   const { main, folder } = worktreesHome(state);
   const home = worktreesRoot(main, folder);
   const inside = dir.toLowerCase().startsWith(`${home.toLowerCase()}/`);
@@ -1486,8 +1489,8 @@ async function renameWorktree(worktree: Worktree, state: RepoState): Promise<Git
   if (fs.existsSync(to)) throw new Error(`${to} already exists.`);
 
   let branch: { from: string; to: string } | undefined;
-  if (worktree.branch) {
-    const from = worktree.branch;
+  const from = worktreeBranch(worktree);
+  if (from) {
     const rename = await pick(`Rename worktree ${old} to ${renamed}`, [
       { label: `Rename the branch ${from} too`, value: true },
       { label: `Keep the branch ${from}`, value: false },
@@ -1501,10 +1504,10 @@ async function renameWorktree(worktree: Worktree, state: RepoState): Promise<Git
       if (next !== from) branch = { from, to: next };
     }
   }
-  const op = worktreeMoveOp(worktree.path, to, branch);
+  const op = worktreeMoveOp(worktree.folder, to, branch);
   // Git moves a worktree into a folder that is there already.
   op.prepare = async (log) => {
-    await closeInVSCodeGit([worktree.path], log);
+    await closeInVSCodeGit([worktree.folder], log);
     fs.mkdirSync(path.dirname(to), { recursive: true });
   };
   op.recover = recoverHeldWorktree(state.root);

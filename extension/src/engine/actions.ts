@@ -7,6 +7,7 @@
 
 import type { Action, MergeMode, PullAction, RebaseStep, RepoState, SyncAction } from '../shared/protocol';
 import { isHome } from '../shared/refs';
+import { worktreeBranch } from '../shared/state';
 import type { Answer, Target } from './messages';
 import { targetOf } from './target';
 
@@ -37,10 +38,10 @@ const text = (value: string): Answer => ({ kind: 'text', text: value });
  */
 export function engineRuns(
   action: Action,
-  state: Pick<RepoState, 'branches' | 'remoteBranches' | 'tags'> & Partial<Pick<RepoState, 'bisect' | 'rows' | 'working' | 'rebaseStop' | 'worktrees' | 'submodules' | 'home'>>,
+  state: Pick<RepoState, 'branches' | 'remoteBranches' | 'tags'> & Partial<Pick<RepoState, 'bisect' | 'rows' | 'workingTree' | 'rebaseStop' | 'worktrees' | 'submodules' | 'home'>>,
 ): EngineRun[] | null {
   // Conflicts (stage 4, area 4): staging the one file in conflict, from its row in the Changes view, marks it resolved.
-  if (action.kind === 'stage' && action.paths.length === 1 && state.working?.conflicts.some((file) => file.path === action.paths[0])) {
+  if (action.kind === 'stage' && action.paths.length === 1 && state.workingTree?.conflicted.some((file) => file.path === action.paths[0])) {
     return [{ feature: 'conflicts.mark-resolved', target: { kind: 'file', path: action.paths[0] } }];
   }
   switch (action.kind) {
@@ -148,7 +149,7 @@ export function engineRuns(
     // Conflicts (stage 4, area 4).
     case 'resolveConflicts': {
       // The engine resolves every file in conflict: some of them only stay with TypeScript.
-      const conflicted = state.working?.conflicts.map((file) => file.path) ?? [];
+      const conflicted = state.workingTree?.conflicted.map((file) => file.path) ?? [];
       if (action.paths && conflicted.some((path) => !action.paths?.includes(path))) return null;
       return [{ feature: 'conflicts.resolve-automatically', target: { kind: 'head' } }];
     }
@@ -191,15 +192,15 @@ export function engineRuns(
     case 'openInWorktree': {
       // A branch with a worktree only opens it, where gitardo.worktrees.openIn says, the Agents window included.
       const branch = action.remote ? null : action.name;
-      if (branch && state.worktrees?.some((worktree) => worktree.branch === branch && !worktree.current)) return null;
+      if (branch && state.worktrees?.some((worktree) => worktreeBranch(worktree) === branch && !worktree.isCurrent)) return null;
       const target: Target = action.remote ? { kind: 'remoteBranch', name: action.name } : { kind: 'branch', name: action.name };
       return [{ feature: 'worktree.open-in-worktree', target }];
     }
     case 'submoduleAdd':
       return [{ feature: 'submodule.add', target: { kind: 'head' } }];
     case 'submoduleUpdate': {
-      const submodule = state.submodules?.find((each) => each.path === action.path);
-      const feature = action.remote ? 'submodule.update-to-latest' : submodule && !submodule.head ? 'submodule.initialize' : 'submodule.update-to-recorded';
+      const submodule = state.submodules?.find((each) => each.folder === action.path);
+      const feature = action.remote ? 'submodule.update-to-latest' : submodule && !submodule.checkout?.commit ? 'submodule.initialize' : 'submodule.update-to-recorded';
       return [{ feature, target: { kind: 'submodule', path: action.path } }];
     }
     case 'submoduleRecord':

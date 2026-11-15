@@ -1,7 +1,8 @@
 /**
  * Where the extension's reads come from (stage 5 of `docs/transition/06-roadmap.md`): Gitardo's engine when it is
- * there, each read of version 1.4 of the protocol in the shape the views take today, and the extension's own read in
- * TypeScript when the engine is not there or could not answer (D49). The callers, the controller and the providers, do
+ * there, each read of version 1.4 of the protocol in the shape the views take, and the extension's own read in
+ * TypeScript when the engine is not there or could not answer (D49). The state and the details of a commit are the
+ * engine's shapes, which `Repo` reads too (stage 6): they come back as the engine wrote them. The callers, the controller and the providers, do
  * not ask which of the two answered. Each read is timed in the log: the engine's by the engine (`LogKind::Read`), the
  * TypeScript ones here.
  *
@@ -20,19 +21,13 @@ import {
   blameLine,
   blameLines,
   branchLog,
-  commitDetail,
   comparedSides,
   conflictFiles,
-  engineFileChange,
-  fileChange,
   filePatches,
   ignoredEntry,
-  operation,
   pullRequests,
   reflogEntry,
-  repoParts,
   setupPreview,
-  workingState,
 } from './shapes';
 import {
   WORKTREE,
@@ -45,8 +40,9 @@ import {
   type Operation,
   type PullRequest,
   type RepoParts,
-  type WorkingState,
+  type WorkingTree,
 } from '../shared/protocol';
+import { uncommittedDetail } from '../shared/state';
 import type { CommandProposal, IgnoredEntry, SetupPatterns, SetupPreview } from '../shared/worktreeSetup';
 
 /** The lines of a commit or of a comparison sent to a view at most, as the engine cuts them (`LINE_LIMIT`). */
@@ -94,7 +90,7 @@ export interface TypeScriptReads {
   resolve(revision: string): Promise<string | null>;
   commitDetail(hash: string): Promise<CommitDetail | null>;
   commitPatch(detail: CommitDetail, limit: number): Promise<FilePatch[] | null>;
-  working(): Promise<WorkingState>;
+  working(): Promise<WorkingTree>;
   ignored(paths: string[]): Promise<Set<string>>;
   conflicted(): Promise<string[]>;
   conflictStages(file: string): Promise<number[]>;
@@ -174,7 +170,7 @@ export class Reads {
       async (client) => {
         const state = await client.currentState(repo.root);
         const conflicts = resolve && state.workingTree.conflicted.length ? conflictFiles(await client.conflictRules(repo.root, null)) : [];
-        return repoParts(state, conflicts);
+        return { ...state, conflictFiles: conflicts };
       },
       () => repo.parts(resolve),
     );
@@ -193,7 +189,7 @@ export class Reads {
       return this.read(
         'the uncommitted changes',
         repo.root,
-        async (client) => uncommittedDetail(workingState(await client.workingTree(repo.root))),
+        async (client) => uncommittedDetail(await client.workingTree(repo.root)),
         () => repo.commitDetail(hash),
       );
     }
@@ -203,8 +199,8 @@ export class Reads {
       repo.root,
       async (client) => {
         const commit = FULL_ID.test(hash) ? hash : await client.searchRevision(repo.root, hash);
-        const read = commit && (await client.details(repo.root, { commit }));
-        return read ? commitDetail(read) : null;
+        const read = commit ? await client.details(repo.root, { commit }) : null;
+        return read?.id && read.author && read.committer ? read : null;
       },
       () => repo.commitDetail(hash),
     );
@@ -212,18 +208,19 @@ export class Reads {
 
   /** What a commit changed in each of its files, no more than `limit` lines of them; null when they do not match its files. */
   commitPatch(repo: TypeScriptReads, detail: CommitDetail, limit: number): Promise<FilePatch[] | null> {
-    const asked = FULL_ID.test(detail.hash) && limit === ENGINE_LINES;
+    const commit = detail.id;
+    const asked = commit !== null && FULL_ID.test(commit) && limit === ENGINE_LINES;
     return this.read(
       'the lines of a commit',
       repo.root,
-      asked ? async (client) => filePatches(await client.commitPatch(repo.root, detail.hash, null)) : null,
+      asked ? async (client) => filePatches(await client.commitPatch(repo.root, commit, null)) : null,
       () => repo.commitPatch(detail, limit),
     );
   }
 
   /** What is not committed, as `git status` splits it. */
-  working(repo: TypeScriptReads): Promise<WorkingState> {
-    return this.read('the working tree', repo.root, async (client) => workingState(await client.workingTree(repo.root)), () => repo.working());
+  working(repo: TypeScriptReads): Promise<WorkingTree> {
+    return this.read('the working tree', repo.root, (client) => client.workingTree(repo.root), () => repo.working());
   }
 
   /** Those of these files that git ignores. */
@@ -283,7 +280,7 @@ export class Reads {
           base: textOf(sides.base),
           ours: textOf(sides.current),
           theirs: textOf(sides.incoming),
-          operation: operation(sides.operation),
+          operation: sides.operation,
         };
       },
       async () => {
@@ -303,7 +300,7 @@ export class Reads {
     return this.read(
       'the files of a comparison',
       repo.root,
-      asked ? async (client) => ({ from, to, files: (await client.compareFiles(repo.root, from, to)).map(fileChange) }) : null,
+      asked ? async (client) => ({ from, to, files: await client.compareFiles(repo.root, from, to) }) : null,
       () => repo.compare(from, to),
     );
   }
@@ -338,7 +335,7 @@ export class Reads {
       repo.root,
       first && second && limit === ENGINE_LINES
         ? async (client) => {
-            const request = { first, second, mode: 'everything', path, mergeBase: null, files: files.map(engineFileChange), form: 'lines' } as const;
+            const request = { first, second, mode: 'everything', path, mergeBase: null, files, form: 'lines' } as const;
             return filePatches(await client.comparePatch(repo.root, request));
           }
         : null,
@@ -528,25 +525,6 @@ export class Reads {
       inTypeScript,
     );
   }
-}
-
-/** The uncommitted changes as the details of a commit, as the row above the commits stands for them. */
-function uncommittedDetail(working: WorkingState): CommitDetail {
-  const byPath = new Map<string, FileChange>();
-  for (const file of [...working.conflicts, ...working.staged, ...working.unstaged]) if (!byPath.has(file.path)) byPath.set(file.path, file);
-  return {
-    hash: WORKTREE,
-    parents: [],
-    author: '',
-    email: '',
-    date: 0,
-    committer: '',
-    committerEmail: '',
-    commitDate: 0,
-    subject: 'Uncommitted changes',
-    body: '',
-    files: [...byPath.values()],
-  };
 }
 
 /** The reads of this window: `extension.ts` gives them its engine when it starts. */

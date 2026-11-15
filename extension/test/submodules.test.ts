@@ -66,23 +66,20 @@ describe('submodule parsers', () => {
 
 describe('submodule operations', () => {
   const nested: Submodule = {
-    path: 'vendor/lib/inner',
+    folder: 'vendor/lib/inner',
     parent: 'vendor/lib',
     name: 'inner',
-    url: '',
+    url: null,
     branch: null,
     recorded: 'a'.repeat(40),
     staged: null,
-    head: 'b'.repeat(40),
-    headBranch: null,
-    ahead: 1,
-    behind: 0,
-    changes: 0,
+    checkout: { commit: 'b'.repeat(40), branch: null, uncommitted: 0, distance: { ahead: 1, behind: 0 } },
   };
+  const checkout = nested.checkout!;
 
   it('runs the commands about a submodule inside another from that one', () => {
     expect(submoduleUpdateOp(nested, false).commands).toEqual([['-C', 'vendor/lib', 'submodule', 'update', '--init', '--recursive', '--', 'inner']]);
-    expect(submoduleRecordOp(nested, nested.head!).commands).toEqual([['-C', 'vendor/lib', 'add', '--', 'inner']]);
+    expect(submoduleRecordOp(nested, checkout.commit!).commands).toEqual([['-C', 'vendor/lib', 'add', '--', 'inner']]);
     expect(submoduleRemoveOp(nested, null).commands).toEqual([
       ['-C', 'vendor/lib', 'submodule', 'deinit', '--force', '--', 'inner'],
       ['-C', 'vendor/lib', 'rm', '--force', '--', 'inner'],
@@ -123,11 +120,11 @@ describe('submodule operations', () => {
   it('says where a submodule stands, and how deep it is', () => {
     expect(submoduleStatus(nested)).toBe('ahead');
     expect(submoduleStatusText(nested)).toBe('1 commit ahead of the recorded commit aaaaaaa');
-    expect(submoduleStatus({ ...nested, ahead: 2, behind: 3 })).toBe('diverged');
-    expect(submoduleStatus({ ...nested, ahead: null, behind: null })).toBe('unknown');
-    expect(submoduleStatus({ ...nested, head: null })).toBe('uninitialized');
+    expect(submoduleStatus({ ...nested, checkout: { ...checkout, distance: { ahead: 2, behind: 3 } } })).toBe('diverged');
+    expect(submoduleStatus({ ...nested, checkout: { ...checkout, distance: null } })).toBe('unknown');
+    expect(submoduleStatus({ ...nested, checkout: null })).toBe('uninitialized');
     expect(submoduleStatus({ ...nested, recorded: null })).toBe('added');
-    const outer = { ...nested, path: 'vendor/lib', parent: '' };
+    const outer = { ...nested, folder: 'vendor/lib', parent: null };
     expect(submoduleDepth(nested, [outer, nested])).toBe(1);
     expect(submoduleDepth(outer, [outer, nested])).toBe(0);
     expect(submoduleFolder(nested, { root: 'C:/repos/app' })).toBe('C:/repos/app/vendor/lib/inner');
@@ -164,7 +161,7 @@ const init = async (dir: string) => {
   await git(dir, ['config', 'commit.gpgsign', 'false']);
 };
 const submodules = async () => (await repo.state(10)).submodules;
-const one = async (folder: string) => (await submodules()).find((each) => each.path === folder)!;
+const one = async (folder: string) => (await submodules()).find((each) => each.folder === folder)!;
 
 beforeEach(async () => {
   base = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-sub-')));
@@ -193,40 +190,40 @@ describe('submodules of a real repository', { timeout: 60_000 }, () => {
   it('adds a submodule with the ones inside it, and follows it against the commit recorded for it', async () => {
     await run(submoduleAddOp(lib, 'vendor/lib', ''));
     const added = await one('vendor/lib');
-    expect(added).toMatchObject({ parent: '', name: 'vendor/lib', url: lib, recorded: null, headBranch: 'main', changes: 0 });
-    expect(added.staged).toBe(added.head);
+    expect(added).toMatchObject({ parent: null, name: 'vendor/lib', url: lib, recorded: null, checkout: { branch: 'main', uncommitted: 0 } });
+    expect(added.staged).toBe(added.checkout?.commit);
     expect(submoduleStatus(added)).toBe('added');
     // The one inside it is cloned too, and listed after it.
-    expect((await submodules()).map((each) => [each.path, each.parent])).toEqual([
-      ['vendor/lib', ''],
+    expect((await submodules()).map((each) => [each.folder, each.parent])).toEqual([
+      ['vendor/lib', null],
       ['vendor/lib/inner', 'vendor/lib'],
     ]);
     expect(submoduleStatus(await one('vendor/lib/inner'))).toBe('synced');
 
     await git(app, ['commit', '-m', 'add lib']);
-    const recorded = (await one('vendor/lib')).head!;
-    expect(await one('vendor/lib')).toMatchObject({ recorded, staged: null, ahead: 0, behind: 0 });
+    const recorded = (await one('vendor/lib')).checkout!.commit!;
+    expect(await one('vendor/lib')).toMatchObject({ recorded, staged: null, checkout: { distance: { ahead: 0, behind: 0 } } });
 
     // A commit made in it puts it ahead of the commit recorded.
     const folder = path.join(app, 'vendor/lib');
     const next = await commit(folder, 'lib.txt', 'two\n', 'lib two');
-    expect(await one('vendor/lib')).toMatchObject({ head: next, ahead: 1, behind: 0 });
+    expect(await one('vendor/lib')).toMatchObject({ checkout: { commit: next, distance: { ahead: 1, behind: 0 } } });
 
     // Staging it records that commit once committed.
     await run(submoduleRecordOp(await one('vendor/lib'), next));
     expect(await one('vendor/lib')).toMatchObject({ recorded, staged: next });
     await git(app, ['commit', '-m', 'move lib']);
-    expect(await one('vendor/lib')).toMatchObject({ recorded: next, staged: null, ahead: 0 });
+    expect(await one('vendor/lib')).toMatchObject({ recorded: next, staged: null, checkout: { distance: { ahead: 0 } } });
 
     // Back on an earlier commit, it is behind; an update brings it to the recorded one.
     await git(folder, ['checkout', '--detach', recorded]);
-    expect(await one('vendor/lib')).toMatchObject({ headBranch: null, ahead: 0, behind: 1 });
+    expect(await one('vendor/lib')).toMatchObject({ checkout: { branch: null, distance: { ahead: 0, behind: 1 } } });
     await run(submoduleUpdateOp(await one('vendor/lib'), false));
-    expect(await one('vendor/lib')).toMatchObject({ head: next, ahead: 0, behind: 0 });
+    expect(await one('vendor/lib')).toMatchObject({ checkout: { commit: next, distance: { ahead: 0, behind: 0 } } });
 
     // A file changed in it is counted.
     fs.writeFileSync(path.join(folder, 'lib.txt'), 'changed\n');
-    expect((await one('vendor/lib')).changes).toBe(1);
+    expect((await one('vendor/lib')).checkout?.uncommitted).toBe(1);
   });
 
   it('deinitializes a submodule, initializes it again, and removes it with its clone', async () => {
@@ -238,7 +235,7 @@ describe('submodules of a real repository', { timeout: 60_000 }, () => {
     expect(submoduleStatus(gone)).toBe('uninitialized');
     expect(gone.recorded).not.toBeNull();
     // What was inside it is not listed while it is not initialized.
-    expect((await submodules()).map((each) => each.path)).toEqual(['vendor/lib']);
+    expect((await submodules()).map((each) => each.folder)).toEqual(['vendor/lib']);
 
     await run(submoduleUpdateOp(gone, false));
     expect(submoduleStatus(await one('vendor/lib'))).toBe('synced');
@@ -249,7 +246,7 @@ describe('submodules of a real repository', { timeout: 60_000 }, () => {
     await run(submoduleRemoveOp(await one('vendor/lib'), gitDir));
     expect(await submodules()).toEqual([]);
     expect(fs.existsSync(path.join(app, 'vendor/lib'))).toBe(false);
-    const staged = (await repo.state(10)).working.staged.map((file) => file.path).sort();
+    const staged = (await repo.state(10)).workingTree.staged.map((file) => file.path).sort();
     expect(staged).toEqual(['.gitmodules', 'vendor/lib']);
   });
 
@@ -265,7 +262,7 @@ describe('submodules of a real repository', { timeout: 60_000 }, () => {
     await git(app, ['update-index', '--cacheinfo', `160000,${elsewhere},vendor/lib`]);
     await git(app, ['commit', '-m', 'point lib elsewhere']);
     const lost = await one('vendor/lib');
-    expect(lost).toMatchObject({ recorded: elsewhere, ahead: null, behind: null });
+    expect(lost).toMatchObject({ recorded: elsewhere, checkout: { distance: null } });
     expect(submoduleStatus(lost)).toBe('unknown');
   });
 
@@ -287,7 +284,7 @@ describe('submodules of a real repository', { timeout: 60_000 }, () => {
     await git(other, ['checkout', 'with-lib']);
     expect(submoduleStatus(await one('vendor/lib'))).toBe('uninitialized');
     await run(submodulesUpdateOp());
-    expect(await one('vendor/lib')).toMatchObject({ head: recorded, ahead: 0, behind: 0 });
+    expect(await one('vendor/lib')).toMatchObject({ checkout: { commit: recorded, distance: { ahead: 0, behind: 0 } } });
     expect(submoduleStatus(await one('vendor/lib/inner'))).toBe('synced');
   });
 

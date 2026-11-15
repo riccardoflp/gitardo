@@ -1,16 +1,19 @@
 import type {
   Bisect,
   Branch,
+  ChangeKind,
   Commit,
   CompareCommit,
+  ConflictKind,
   FileChange,
   FileHunks,
   FilePatch,
   Hunk,
   Identity,
-  NamedRef,
+  RemoteBranch,
   Stash,
-  WorkingState,
+  Tag,
+  WorkingTree,
   Worktree,
 } from '../shared/protocol';
 
@@ -45,8 +48,8 @@ export function parseLog(out: string): Commit[] {
 
 export interface Refs {
   branches: Branch[];
-  remoteBranches: NamedRef[];
-  tags: NamedRef[];
+  remoteBranches: RemoteBranch[];
+  tags: Tag[];
 }
 
 /** Parses `git for-each-ref --format=REF_FORMAT`. */
@@ -57,24 +60,29 @@ export function parseRefs(out: string): Refs {
     const [refname, hash, peeled, upstream, remote, remoteRef, track, head, created] = line.split(FIELD);
     const date = Number(created) || 0;
     if (refname.startsWith('refs/heads/')) {
-      const branch: Branch = { name: refname.slice('refs/heads/'.length), hash, date, current: head === '*' };
-      if (upstream) {
-        branch.upstream = {
-          name: upstream.replace(/^refs\/(remotes|heads)\//, ''),
-          remote,
-          branch: remoteRef.replace(/^refs\/heads\//, ''),
-          ahead: Number(/ahead (\d+)/.exec(track)?.[1] ?? 0),
-          behind: Number(/behind (\d+)/.exec(track)?.[1] ?? 0),
-          gone: track.includes('gone'),
-        };
-      }
-      refs.branches.push(branch);
+      refs.branches.push({
+        name: refname.slice('refs/heads/'.length),
+        commit: hash,
+        upstream: upstream
+          ? {
+              reference: upstream,
+              remote,
+              remoteBranch: remoteRef,
+              ahead: Number(/ahead (\d+)/.exec(track)?.[1] ?? 0),
+              behind: Number(/behind (\d+)/.exec(track)?.[1] ?? 0),
+              isGone: track.includes('gone'),
+            }
+          : null,
+        isCheckedOut: head === '*',
+        date,
+      });
     } else if (refname.startsWith('refs/remotes/')) {
       const name = refname.slice('refs/remotes/'.length);
-      if (!name.endsWith('/HEAD')) refs.remoteBranches.push({ name, hash, date });
+      // The remote is the part before the first slash until `withRemotes` knows the names of the remotes.
+      if (!name.endsWith('/HEAD')) refs.remoteBranches.push({ name, remote: name.split('/')[0], commit: hash, date });
     } else if (refname.startsWith('refs/tags/')) {
       // Annotated tags point at a tag object; the commit is the peeled hash.
-      refs.tags.push({ name: refname.slice('refs/tags/'.length), hash: peeled || hash, date });
+      refs.tags.push({ name: refname.slice('refs/tags/'.length), commit: peeled || hash, date });
     }
   }
   return refs;
@@ -83,8 +91,8 @@ export function parseRefs(out: string): Refs {
 /** Parses `git stash list -z --format=STASH_FORMAT`. */
 export function parseStashes(out: string): Stash[] {
   return records(out).map((record) => {
-    const [hash, ref, message, date] = record.split(FIELD);
-    return { hash, ref, message, date: Number(date) };
+    const [commit, name, message, date] = record.split(FIELD);
+    return { commit, index: Number(/\{(\d+)\}/.exec(name)?.[1] ?? 0), message, date: Number(date) };
   });
 }
 
@@ -101,15 +109,17 @@ export function parseWorktrees(out: string, root: string): Worktree[] {
     }
     const path = fields.get('worktree');
     if (!path || fields.has('bare')) continue;
+    const head = fields.get('HEAD') ?? '';
     worktrees.push({
-      path,
-      hash: fields.get('HEAD') ?? '',
-      branch: fields.get('branch')?.replace(/^refs\/heads\//, '') ?? null,
-      current: samePath(path, root),
+      folder: path,
+      // Forty zeros before its first commit.
+      commit: head && !/^0+$/.test(head) ? head : null,
+      branch: fields.get('branch') ?? null,
       // Git lists the main worktree first. In a bare repository that is the repository itself, skipped above.
-      main: index === 0,
-      prunable: fields.has('prunable'),
-      changes: null,
+      isMain: index === 0,
+      isCurrent: samePath(path, root),
+      isMissing: fields.has('prunable'),
+      uncommitted: null,
     });
   }
   return worktrees;
@@ -148,7 +158,7 @@ export function parsePatch(files: FileChange[], out: string, limit: number): Fil
   const patches: FilePatch[] = [];
   for (const file of files) {
     // A file that became a link, or the other way round, is printed as one deleted and one added.
-    const own = parts.slice(next, (next += file.status === 'T' ? 2 : 1)).map(parseHunks);
+    const own = parts.slice(next, (next += file.kind === 'typeChanged' ? 2 : 1)).map(parseHunks);
     if (!own.length) return null;
     const hunks = own.flatMap((part) => part.hunks);
     let added = 0;
@@ -211,7 +221,7 @@ export function linesPatch(file: FileHunks, hunk: Hunk, picked: ReadonlySet<numb
 
 /** Parses `git config --get-regexp` for `user.name` and `user.email`. As for git, the last value of a setting wins. */
 export function parseIdentity(out: string): Identity {
-  const identity: Identity = { name: '', email: '' };
+  const identity: Identity = { name: null, email: null };
   for (const line of out.split('\n')) {
     const match = /^user\.(name|email) (.*)$/.exec(line);
     if (match) identity[match[1] as keyof Identity] = match[2];
@@ -363,6 +373,19 @@ export function parseBlame(out: string): BlameLine[] {
   return lines;
 }
 
+/** The kind of change of each letter git gives one; another letter, such as `U` of a file in conflict, is a change. */
+const CHANGE_KINDS: Record<string, ChangeKind> = {
+  A: 'added',
+  M: 'modified',
+  D: 'deleted',
+  R: 'renamed',
+  C: 'copied',
+  T: 'typeChanged',
+};
+
+/** The kind of change of the letter git gives it. */
+export const changeKind = (letter: string): ChangeKind => CHANGE_KINDS[letter] ?? 'modified';
+
 /** Parses the `-z --name-status` output of `git diff` and `git diff-tree`. */
 export function parseNameStatus(out: string): FileChange[] {
   const tokens = out.split('\0');
@@ -372,77 +395,94 @@ export function parseNameStatus(out: string): FileChange[] {
     if (!status) continue;
     const code = status[0];
     if (code === 'R' || code === 'C') {
-      const oldPath = tokens[i++];
-      files.push({ status: code, path: tokens[i++], oldPath });
+      const originalPath = tokens[i++];
+      files.push({ path: tokens[i++], originalPath, kind: changeKind(code) });
     } else {
-      files.push({ status: code, path: tokens[i++] });
+      files.push({ path: tokens[i++], originalPath: null, kind: changeKind(code) });
     }
   }
   return files;
 }
 
-const CONFLICT_CODES = new Set(['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU']);
+/** What each side did to a file in conflict, by the two letters of `git status`. */
+const CONFLICT_KINDS: Record<string, ConflictKind> = {
+  DD: 'bothDeleted',
+  AU: 'addedByUs',
+  UD: 'deletedByThem',
+  UA: 'addedByThem',
+  DU: 'deletedByUs',
+  AA: 'bothAdded',
+  UU: 'bothModified',
+};
 
 /** Parses `git status --porcelain=v1 -z`. A file changed in both the index and the working tree appears in both lists. */
-export function parseStatus(out: string): WorkingState {
+export function parseStatus(out: string): WorkingTree {
   const tokens = out.split('\0');
-  const working: WorkingState = { staged: [], unstaged: [], conflicts: [] };
+  const working: WorkingTree = { staged: [], unstaged: [], untracked: [], conflicted: [] };
   for (let i = 0; i < tokens.length; i++) {
     const entry = tokens[i];
     if (entry.length < 4) continue;
     const [index, worktree] = entry;
     const path = entry.slice(3);
     // A rename lists the new path first, then the old one as a separate token.
-    const oldPath = index === 'R' || index === 'C' ? tokens[++i] : undefined;
+    const originalPath = index === 'R' || index === 'C' ? tokens[++i] : null;
+    const conflict = CONFLICT_KINDS[index + worktree];
 
-    if (index === '?') working.unstaged.push({ status: '?', path });
-    else if (CONFLICT_CODES.has(index + worktree)) working.conflicts.push({ status: 'U', path });
+    if (index === '?') working.untracked.push(path);
+    else if (conflict) working.conflicted.push({ path, kind: conflict });
     else {
-      if (index !== ' ') working.staged.push(oldPath ? { status: index, path, oldPath } : { status: index, path });
-      if (worktree !== ' ') working.unstaged.push({ status: worktree, path });
+      if (index !== ' ') working.staged.push({ path, originalPath, kind: changeKind(index) });
+      if (worktree !== ' ') working.unstaged.push({ path, originalPath: null, kind: changeKind(worktree) });
     }
   }
   return working;
 }
 
-/** Every changed file once, for views that do not care about the index. */
-export function allChanges(working: WorkingState): FileChange[] {
-  const byPath = new Map<string, FileChange>();
-  for (const file of [...working.conflicts, ...working.staged, ...working.unstaged]) {
-    if (!byPath.has(file.path)) byPath.set(file.path, file);
-  }
-  return [...byPath.values()];
+/** Every file that is not committed, each once, the files in conflict first: as many as the row of the changes says. */
+export function changedPaths(working: WorkingTree): string[] {
+  return [...new Set([...working.conflicted.map((file) => file.path), ...working.staged.map((file) => file.path), ...working.unstaged.map((file) => file.path), ...working.untracked])];
 }
 
-/** A changed file as the Changes view lists it: what it is next to HEAD, and how much of that is staged. */
+/**
+ * A changed file as the Changes view lists it: what it is next to HEAD, how much of that is staged, and whether git
+ * does not track it, which the view marks `?`.
+ */
 export interface WorkingChange {
   file: FileChange;
   staged: 'all' | 'some' | 'none';
+  untracked: boolean;
 }
 
 /** A file with changes both in the index and in the working tree, as the working tree is next to HEAD. */
 function againstHead(staged: FileChange, unstaged: FileChange): FileChange {
   // Taken out of the index, and still on disk: HEAD has it, and so does the working tree.
-  if (staged.status === 'D') return { status: 'M', path: staged.path };
+  if (staged.kind === 'deleted') return { path: staged.path, originalPath: null, kind: 'modified' };
   // Deleted from disk since it was staged. A file added to the index only was never in HEAD: it stays an addition.
-  if (unstaged.status === 'D' && staged.status !== 'A') return { ...staged, status: 'D' };
+  if (unstaged.kind === 'deleted' && staged.kind !== 'added') return { ...staged, kind: 'deleted' };
   return staged;
 }
 
-/** The staged and the unstaged files in one list, each once, in the order of their paths. Files in conflict are left out. */
-export function workingChanges(working: WorkingState): WorkingChange[] {
-  const unstaged = new Map(working.unstaged.map((file) => [file.path, file]));
+/**
+ * The staged, the unstaged and the untracked files in one list, each once, in the order of their paths. Files in
+ * conflict are left out.
+ */
+export function workingChanges(working: WorkingTree): WorkingChange[] {
+  // An untracked file is a file the working tree added. One the index deleted can be untracked too, left on disk.
+  const unstaged = new Map<string, WorkingChange>([
+    ...working.unstaged.map((file): [string, WorkingChange] => [file.path, { file, staged: 'none', untracked: false }]),
+    ...working.untracked.map((path): [string, WorkingChange] => [path, { file: { path, originalPath: null, kind: 'added' }, staged: 'none', untracked: true }]),
+  ]);
   const changes: WorkingChange[] = [];
   for (const file of working.staged) {
     const rest = unstaged.get(file.path);
     if (!rest) {
-      changes.push({ file, staged: 'all' });
+      changes.push({ file, staged: 'all', untracked: false });
       continue;
     }
     unstaged.delete(file.path);
-    changes.push({ file: againstHead(file, rest), staged: 'some' });
+    changes.push({ file: againstHead(file, rest.file), staged: 'some', untracked: false });
   }
-  for (const file of unstaged.values()) changes.push({ file, staged: 'none' });
+  changes.push(...unstaged.values());
   return changes.sort((one, other) => (one.file.path < other.file.path ? -1 : one.file.path > other.file.path ? 1 : 0));
 }
 

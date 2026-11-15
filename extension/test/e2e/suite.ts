@@ -13,6 +13,9 @@ import { samePath } from '../../src/git/parse';
 import { Repo } from '../../src/git/repo';
 import { WORKTREE, type CompareMode, type CompareSide, type Filter, type HostMessage, type RebaseStep, type RepoState, type ViewKind, type WebviewMessage } from '../../src/shared/protocol';
 import type { ConflictReview } from '../../src/shared/resolution';
+import { subjectAndBody } from '../../src/shared/message';
+import { recentBranches } from '../../src/shared/refs';
+import { CHANGE_LETTERS, checkedOutBranch } from '../../src/shared/state';
 
 /** The parts of the controller that are private to everyone but these tests. */
 interface Internals {
@@ -204,7 +207,7 @@ export async function run(): Promise<void> {
     await until('the graph webview to say it is ready', () => received.some((incoming) => incoming.type === 'ready'));
     await until('the repository state', () => internals.state);
     assert.equal(state().name, 'app');
-    assert.equal(state().branch, 'main');
+    assert.equal(checkedOutBranch(state()), 'main');
     assert.deepEqual(subjects(), ['Add feature', 'Change a', 'Add b', 'Add a']);
     assert.deepEqual(
       state().repos.map((repo) => repo.name),
@@ -236,7 +239,7 @@ export async function run(): Promise<void> {
   await step('stages and commits without asking when the preview is off', async () => {
     asked.length = 0;
     await controller.action({ kind: 'stageAll' });
-    assert.deepEqual(state().working.staged, [{ status: 'A', path: 'outside.txt' }]);
+    assert.deepEqual(state().workingTree.staged, [{ kind: 'added', path: 'outside.txt', originalPath: null }]);
     await controller.action({ kind: 'commit', message: 'Add a file', amend: false });
     assert.equal(subjects()[0], 'Add a file');
     assert.equal(state().changes, 0);
@@ -253,7 +256,7 @@ export async function run(): Promise<void> {
       // Declined: nothing runs.
       answer = () => undefined;
       await controller.action({ kind: 'stage', paths: ['a.txt'] });
-      assert.equal(state().working.staged.length, 0);
+      assert.equal(state().workingTree.staged.length, 0);
       assert.equal(asked.length, 1);
       assert.equal(asked[0].message, 'Stage a.txt?');
       assert.match(asked[0].detail, /git add -- a\.txt$/);
@@ -262,7 +265,7 @@ export async function run(): Promise<void> {
       assert.ok(!logged.includes('> git add -- a.txt'), 'nothing ran while the question was open');
       answer = run;
       await controller.action({ kind: 'stage', paths: ['a.txt'] });
-      assert.equal(state().working.staged.length, 1);
+      assert.equal(state().workingTree.staged.length, 1);
       // What was shown is what ran, and what the log says ran.
       assert.ok(logged.includes('> git add -- a.txt'));
       await controller.action({ kind: 'unstageAll' });
@@ -288,7 +291,7 @@ export async function run(): Promise<void> {
     inputs = ['topic'];
     choose = byLabel('Create only');
     await controller.action({ kind: 'createBranch', at: 'HEAD' });
-    assert.ok(state().branches.some((branch) => branch.name === 'topic' && !branch.current));
+    assert.ok(state().branches.some((branch) => branch.name === 'topic' && !branch.isCheckedOut));
 
     inputs = ['v1', 'First release'];
     await controller.action({ kind: 'createTag', at: 'HEAD' });
@@ -313,14 +316,14 @@ export async function run(): Promise<void> {
       inputs = ['agents/first'];
       choose = byLabel('main');
       await controller.action({ kind: 'worktreeAdd' });
-      const created = state().worktrees.find((worktree) => worktree.branch === 'agents/first');
+      const created = state().worktrees.find((worktree) => worktree.branch === 'refs/heads/agents/first');
       assert.ok(created, JSON.stringify(state().worktrees));
       // A folder in a folder, as the name of the branch has it.
-      assert.equal(created.path.toLowerCase(), `${home}/agents/first`.toLowerCase());
+      assert.equal(created.folder.toLowerCase(), `${home}/agents/first`.toLowerCase());
       // The views name it by its path from there.
       assert.equal(state().worktreesRoot?.toLowerCase(), home.toLowerCase());
-      assert.ok(!created.main && !created.current);
-      assert.ok(state().worktrees.find((worktree) => worktree.current)?.main);
+      assert.ok(!created.isMain && !created.isCurrent);
+      assert.ok(state().worktrees.find((worktree) => worktree.isCurrent)?.isMain);
       // It offers to open it, in the Agents window where VS Code has one, and this first time to choose what new worktrees get.
       const offer = await until('the offer to open it', () => asked.find((question) => /^Worktree created in /.test(question.message)));
       assert.deepEqual(offer.items, [...(state().agentsWindow ? ['Open in Agents Window'] : []), 'Open in New Window', 'Choose What It Gets…']);
@@ -329,18 +332,18 @@ export async function run(): Promise<void> {
       // backticks, the extension without.
       inputs = ['agents-two', 'agents-two'];
       choose = byLabel(/^Rename the branch `?agents\/first`? too$/);
-      await controller.action({ kind: 'worktreeRename', path: created.path });
-      const renamed = state().worktrees.find((worktree) => worktree.branch === 'agents-two');
+      await controller.action({ kind: 'worktreeRename', path: created.folder });
+      const renamed = state().worktrees.find((worktree) => worktree.branch === 'refs/heads/agents-two');
       assert.ok(renamed, JSON.stringify(state().worktrees));
-      assert.equal(renamed.path.toLowerCase(), `${home}/agents-two`.toLowerCase());
-      assert.ok(!fs.existsSync(created.path));
+      assert.equal(renamed.folder.toLowerCase(), `${home}/agents-two`.toLowerCase());
+      assert.ok(!fs.existsSync(created.folder));
       // The folder that held only it went with it.
       assert.ok(!fs.existsSync(`${home}/agents`));
 
       // The main worktree cannot be renamed, which is said rather than tried.
       errors.length = 0;
       asked.length = 0;
-      await controller.action({ kind: 'worktreeRename', path: state().worktrees.find((worktree) => worktree.main)!.path });
+      await controller.action({ kind: 'worktreeRename', path: state().worktrees.find((worktree) => worktree.isMain)!.folder });
       // The engine says it as a refusal, a warning; the extension as an error.
       const mainSaid = [...errors, ...asked.map((question) => question.message)];
       assert.ok(mainSaid.some((text) => /cannot move the main worktree/.test(text)), JSON.stringify(mainSaid));
@@ -349,10 +352,10 @@ export async function run(): Promise<void> {
       // Removed with its branch, which is merged: it was made from main and has nothing of its own.
       choose = byLabel(/and delete `?agents-two/);
       answer = run;
-      await controller.action({ kind: 'worktreeRemove', path: renamed.path });
+      await controller.action({ kind: 'worktreeRemove', path: renamed.folder });
       assert.equal(state().worktrees.length, 1);
       assert.equal(state().branches.length, branches);
-      assert.ok(!fs.existsSync(renamed.path));
+      assert.ok(!fs.existsSync(renamed.folder));
     } finally {
       answer = () => undefined;
       fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
@@ -381,7 +384,7 @@ export async function run(): Promise<void> {
     const created = (name: string) => {
       made.push(name);
       assert.ok(
-        state().branches.some((branch) => branch.name === name && !branch.current),
+        state().branches.some((branch) => branch.name === name && !branch.isCheckedOut),
         JSON.stringify(state().branches.map((branch) => branch.name)),
       );
     };
@@ -408,10 +411,10 @@ export async function run(): Promise<void> {
       created('fix/v1-1');
 
       // At a commit, the commit or one of the branches that have it.
-      const short = state().head!.slice(0, 7);
+      const short = state().head.commit!.slice(0, 7);
       picks = ['Use the format', short, 'feat', 'Create only'];
       typed = ['2', KEEP];
-      await controller.action({ kind: 'createBranch', at: state().head! });
+      await controller.action({ kind: 'createBranch', at: state().head.commit! });
       created(`feat/${short}-2`);
 
       // Or the name is typed, as without a format.
@@ -476,9 +479,9 @@ export async function run(): Promise<void> {
       picks = ['Use the format', 'main', 'fix'];
       typed = ['123', KEEP];
       await controller.action({ kind: 'worktreeAdd' });
-      const made = state().worktrees.find((worktree) => worktree.branch === 'PRJ-123-fix-main');
+      const made = state().worktrees.find((worktree) => worktree.branch === 'refs/heads/PRJ-123-fix-main');
       assert.ok(made, JSON.stringify(state().worktrees));
-      assert.equal(made.path.toLowerCase(), `${home}/PRJ-123-fix-main`.toLowerCase());
+      assert.equal(made.folder.toLowerCase(), `${home}/PRJ-123-fix-main`.toLowerCase());
 
       // From a remote branch, ${base} has no remote; the ticket used last is proposed, and a kind can be typed.
       picks = ['Use the format', 'origin/main', 'Type another value…'];
@@ -486,7 +489,7 @@ export async function run(): Promise<void> {
       typed = [KEEP, 'hotfix', KEEP];
       await controller.action({ kind: 'worktreeAdd' });
       assert.equal(proposed[0], '123');
-      assert.ok(state().worktrees.some((worktree) => worktree.branch === 'PRJ-123-hotfix-main'), JSON.stringify(state().worktrees));
+      assert.ok(state().worktrees.some((worktree) => worktree.branch === 'refs/heads/PRJ-123-hotfix-main'), JSON.stringify(state().worktrees));
 
       // A typed ticket that is not a number is refused.
       errors.length = 0;
@@ -497,18 +500,18 @@ export async function run(): Promise<void> {
       errors.length = 0;
 
       // At a commit, ${base} is the commit or one of the branches that have it.
-      const head = state().head!;
+      const head = state().head.commit!;
       picks = ['Use the format', head.slice(0, 7), 'feat'];
       typed = ['7', KEEP];
       await controller.action({ kind: 'worktreeAdd', ref: head, isBranch: false });
-      assert.ok(state().worktrees.some((worktree) => worktree.branch === `PRJ-7-feat-${head.slice(0, 7)}`), JSON.stringify(state().worktrees));
+      assert.ok(state().worktrees.some((worktree) => worktree.branch === `refs/heads/PRJ-7-feat-${head.slice(0, 7)}`), JSON.stringify(state().worktrees));
       assert.ok(titles.includes(`Create worktree at ${head.slice(0, 7)}: what \${base} is`), JSON.stringify(titles));
 
       // Or the name is typed, as without a format.
       picks = ['Type a branch name', 'main'];
       typed = ['typed/name'];
       await controller.action({ kind: 'worktreeAdd' });
-      assert.ok(state().worktrees.some((worktree) => worktree.branch === 'typed/name'), JSON.stringify(state().worktrees));
+      assert.ok(state().worktrees.some((worktree) => worktree.branch === 'refs/heads/typed/name'), JSON.stringify(state().worktrees));
 
       // On a branch, the branch itself, in a folder of its name, or a new branch from the format.
       await git(app, ['branch', 'side/work']);
@@ -516,15 +519,15 @@ export async function run(): Promise<void> {
       picks = [/^Use the branch `?side\/work`?$/];
       typed = [KEEP];
       await controller.action({ kind: 'worktreeAdd', ref: 'side/work', isBranch: true });
-      const side = state().worktrees.find((worktree) => worktree.branch === 'side/work');
+      const side = state().worktrees.find((worktree) => worktree.branch === 'refs/heads/side/work');
       assert.ok(side, JSON.stringify(state().worktrees));
-      assert.equal(side.path.toLowerCase(), `${home}/side/work`.toLowerCase());
+      assert.equal(side.folder.toLowerCase(), `${home}/side/work`.toLowerCase());
 
       // Removed from the menu of its branch, which says whether the branch goes too: here it stays, without a question.
       answer = run;
       picks = [];
-      await controller.action({ kind: 'worktreeRemove', path: side.path, deleteBranch: false });
-      assert.ok(!state().worktrees.some((worktree) => worktree.branch === 'side/work'));
+      await controller.action({ kind: 'worktreeRemove', path: side.folder, deleteBranch: false });
+      assert.ok(!state().worktrees.some((worktree) => worktree.branch === 'refs/heads/side/work'));
       assert.ok(state().branches.some((branch) => branch.name === 'side/work'));
       assert.ok(!fs.existsSync(`${home}/side`), 'the folder that held only it went too');
       answer = () => undefined;
@@ -568,7 +571,7 @@ export async function run(): Promise<void> {
       inputs = ['linked/one'];
       choose = byLabel('main');
       await controller.action({ kind: 'worktreeAdd' });
-      made = state().worktrees.find((worktree) => worktree.branch === 'linked/one')?.path;
+      made = state().worktrees.find((worktree) => worktree.branch === 'refs/heads/linked/one')?.folder;
       assert.ok(made, JSON.stringify(state().worktrees));
       // After git made it, each one said in the log as it is made.
       const steps = logged.filter((line) => line.startsWith('> '));
@@ -596,7 +599,7 @@ export async function run(): Promise<void> {
       const unlinked = process.platform === 'win32' ? [`> unlink ${made}/node_modules`] : [];
       assert.deepEqual(removal, [`> git.close ${made}`, ...unlinked, `> git worktree remove ${made}`].map((line) => line.toLowerCase()));
       assert.ok(!openInGit());
-      assert.ok(!state().worktrees.some((worktree) => worktree.branch === 'linked/one'));
+      assert.ok(!state().worktrees.some((worktree) => worktree.branch === 'refs/heads/linked/one'));
       assert.ok(!fs.existsSync(made), JSON.stringify({ logged, errors }));
       assert.equal(fs.readFileSync(path.join(app, 'node_modules/pkg/index.js'), 'utf8'), 'module\n');
       assert.equal(state().branches.length, branches);
@@ -667,7 +670,7 @@ export async function run(): Promise<void> {
       inputs = ['setup/one'];
       choose = byLabel('main');
       await controller.action({ kind: 'worktreeAdd' });
-      made = state().worktrees.find((worktree) => worktree.branch === 'setup/one')?.path;
+      made = state().worktrees.find((worktree) => worktree.branch === 'refs/heads/setup/one')?.folder;
       assert.ok(made, JSON.stringify(state().worktrees));
       assert.deepEqual(
         logged.filter((line) => line.startsWith('> ') && !line.startsWith('> git ')),
@@ -780,20 +783,20 @@ export async function run(): Promise<void> {
     try {
       await controller.selectRepo(dir);
       assert.ok(same(state().root, dir), state().root);
-      assert.equal(state().branch, 'shown/one');
+      assert.equal(checkedOutBranch(state()), 'shown/one');
       assert.deepEqual(state().home, back);
       // The window's own folder is listed as another worktree, which is neither renamed nor removed from here.
-      const window = state().worktrees.find((worktree) => same(worktree.path, app));
-      assert.ok(window && !window.current);
+      const window = state().worktrees.find((worktree) => same(worktree.folder, app));
+      assert.ok(window && !window.isCurrent);
       errors.length = 0;
-      await controller.action({ kind: 'worktreeRemove', path: window.path, deleteBranch: false });
+      await controller.action({ kind: 'worktreeRemove', path: window.folder, deleteBranch: false });
       assert.ok(errors.some((text) => /folder open in this window/.test(text)), JSON.stringify(errors));
       errors.length = 0;
 
       // What is done in the views is done in that worktree.
       fs.writeFileSync(path.join(dir, 'shown.txt'), 'shown\n');
       await vscode.commands.executeCommand('gitardo.refresh');
-      assert.deepEqual(state().working.unstaged.map((file) => file.path), ['shown.txt']);
+      assert.deepEqual(state().workingTree.unstaged.map((file) => file.path), ['shown.txt']);
       await controller.action({ kind: 'stage', paths: ['shown.txt'] });
       assert.equal((await git(dir, ['diff', '--cached', '--name-only'])).stdout.trim(), 'shown.txt');
       assert.equal((await git(app, ['diff', '--cached', '--name-only'])).stdout.trim(), '');
@@ -859,7 +862,7 @@ export async function run(): Promise<void> {
       await git(lib, ['worktree', 'add', '-b', 'beside', beside]);
       await controller.selectRepo(beside);
       assert.ok(samePath(state().root, beside), state().root);
-      assert.equal(state().branch, 'beside');
+      assert.equal(checkedOutBranch(state()), 'beside');
       assert.ok(state().home && samePath(state().home!.root, lib), JSON.stringify(state().home));
     } finally {
       await scm.update('repositories.selectionMode', undefined, vscode.ConfigurationTarget.Workspace);
@@ -884,7 +887,7 @@ export async function run(): Promise<void> {
       opened.push((args[0] as vscode.Uri).fsPath.replace(/\\/g, '/').toLowerCase());
       return Promise.resolve();
     };
-    const head = state().head!;
+    const head = state().head.commit!;
     try {
       await git(app, ['push', 'origin', `${head}:refs/heads/remote/only`]);
       await vscode.commands.executeCommand('gitardo.refresh');
@@ -893,9 +896,9 @@ export async function run(): Promise<void> {
       // A local branch: its worktree is made, named after it, and opened.
       asked.length = 0;
       await controller.action({ kind: 'openInWorktree', name: 'merged' });
-      const merged = state().worktrees.find((worktree) => worktree.branch === 'merged');
+      const merged = state().worktrees.find((worktree) => worktree.branch === 'refs/heads/merged');
       assert.ok(merged, JSON.stringify(state().worktrees));
-      assert.equal(merged.path.toLowerCase(), `${home}/merged`.toLowerCase());
+      assert.equal(merged.folder.toLowerCase(), `${home}/merged`.toLowerCase());
       await until('the worktree to open', () => opened.includes(`${home}/merged`.toLowerCase()));
       assert.equal(asked.length, 0, JSON.stringify(asked));
 
@@ -907,24 +910,24 @@ export async function run(): Promise<void> {
 
       // A remote branch: a local branch by its name tracks it there.
       await controller.action({ kind: 'openInWorktree', name: 'origin/remote/only', remote: true });
-      const remote = state().worktrees.find((worktree) => worktree.branch === 'remote/only');
+      const remote = state().worktrees.find((worktree) => worktree.branch === 'refs/heads/remote/only');
       assert.ok(remote, JSON.stringify(state().worktrees));
-      assert.equal(remote.path.toLowerCase(), `${home}/remote/only`.toLowerCase());
-      assert.equal(state().branches.find((branch) => branch.name === 'remote/only')?.upstream?.name, 'origin/remote/only');
+      assert.equal(remote.folder.toLowerCase(), `${home}/remote/only`.toLowerCase());
+      assert.equal(state().branches.find((branch) => branch.name === 'remote/only')?.upstream?.reference, 'refs/remotes/origin/remote/only');
 
       // The branch checked out here has no worktree to open.
       errors.length = 0;
       asked.length = 0;
-      await controller.action({ kind: 'openInWorktree', name: state().branch! });
+      await controller.action({ kind: 'openInWorktree', name: checkedOutBranch(state())! });
       // The engine says it as a refusal, a warning; the extension as an error.
       const hereSaid = [...errors, ...asked.map((question) => question.message)];
       assert.ok(hereSaid.some((text) => /checked out in this window/.test(text)), JSON.stringify(hereSaid));
       errors.length = 0;
 
       // What is not committed in a worktree is counted.
-      fs.writeFileSync(path.join(merged.path, 'new.txt'), 'new\n');
+      fs.writeFileSync(path.join(merged.folder, 'new.txt'), 'new\n');
       await vscode.commands.executeCommand('gitardo.refresh');
-      assert.equal(state().worktrees.find((worktree) => worktree.branch === 'merged')?.changes, 1);
+      assert.equal(state().worktrees.find((worktree) => worktree.branch === 'refs/heads/merged')?.uncommitted, 1);
 
       // Switch Worktree lists them all with how they stand, the one of this window last, and creates another from there.
       opened.length = 0;
@@ -949,8 +952,8 @@ export async function run(): Promise<void> {
       choose = () => undefined;
       // Each removal makes the views refresh, which runs `git status` in the other worktrees: on Windows a folder that a process
       // runs in cannot be deleted, so a removal can fail. What it leaves is deleted with retries and pruned below.
-      for (const worktree of state().worktrees.filter((each) => !each.main)) {
-        await git(app, ['worktree', 'remove', '--force', worktree.path]).catch(() => undefined);
+      for (const worktree of state().worktrees.filter((each) => !each.isMain)) {
+        await git(app, ['worktree', 'remove', '--force', worktree.folder]).catch(() => undefined);
       }
       fs.rmSync(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
       await git(app, ['worktree', 'prune']);
@@ -963,7 +966,7 @@ export async function run(): Promise<void> {
   });
 
   await step('serves file contents at a commit and in the index, and opens diffs', async () => {
-    const head = state().head!;
+    const head = state().head.commit!;
     const at = async (ref: string) => (await vscode.workspace.openTextDocument(contentUri(state().root, ref, 'a.txt'))).getText();
     assert.equal(await at(head), 'one\ntwo\n');
     assert.equal(await at(state().rows.at(-1)!.hash), 'one\n');
@@ -977,7 +980,7 @@ export async function run(): Promise<void> {
     await until("the repository in VS Code's Git", () =>
       vscodeGit.isActive && vscodeGit.exports.getAPI(1).repositories.some((repository) => samePath(repository.rootUri.fsPath, app)),
     );
-    await fromWebview({ type: 'openDiff', source: { kind: 'change' }, file: { status: 'M', path: 'a.txt' } });
+    await fromWebview({ type: 'openDiff', source: { kind: 'change' }, file: { kind: 'modified', path: 'a.txt', originalPath: null } });
     const tab = await until('the diff editor', () => vscode.window.tabGroups.activeTabGroup.activeTab);
     assert.ok(tab.input instanceof vscode.TabInputTextDiff, 'a diff editor is open');
     assert.deepEqual([tab.input.original.scheme, JSON.parse(tab.input.original.query).ref], ['git', 'HEAD']);
@@ -987,8 +990,8 @@ export async function run(): Promise<void> {
 
     // With changes not staged, the index against the file: VS Code's Stage Selected Ranges stages the lines selected.
     write('a.txt', 'one\ntwo\nstaged\nnot staged\n');
-    await until('the change read', () => state().working.unstaged.some((file) => file.path === 'a.txt'));
-    await fromWebview({ type: 'openDiff', source: { kind: 'change' }, file: { status: 'M', path: 'a.txt' } });
+    await until('the change read', () => state().workingTree.unstaged.some((file) => file.path === 'a.txt'));
+    await fromWebview({ type: 'openDiff', source: { kind: 'change' }, file: { kind: 'modified', path: 'a.txt', originalPath: null } });
     const unstaged = await until('the diff editor', () => vscode.window.tabGroups.activeTabGroup.activeTab);
     assert.ok(unstaged.input instanceof vscode.TabInputTextDiff, 'a diff editor is open');
     assert.deepEqual([unstaged.input.original.scheme, JSON.parse(unstaged.input.original.query).ref], ['git', '~']);
@@ -1011,16 +1014,16 @@ export async function run(): Promise<void> {
 
     // A click in the changes view opens the file, or its diff when the settings say so; the button of the row, the file.
     const active = () => until('an editor', () => vscode.window.tabGroups.activeTabGroup.activeTab);
-    await fromWebview({ type: 'openChange', file: { status: 'M', path: 'a.txt' } });
+    await fromWebview({ type: 'openChange', file: { kind: 'modified', path: 'a.txt', originalPath: null } });
     const opened = await active();
     assert.ok(opened.input instanceof vscode.TabInputText && opened.input.uri.fsPath === path.join(app, 'a.txt'), 'the file is open');
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     await vscode.workspace.getConfiguration('gitardo').update('changes.openOnClick', 'diff', vscode.ConfigurationTarget.Global);
     try {
-      await fromWebview({ type: 'openChange', file: { status: 'M', path: 'a.txt' } });
+      await fromWebview({ type: 'openChange', file: { kind: 'modified', path: 'a.txt', originalPath: null } });
       assert.ok((await active()).input instanceof vscode.TabInputTextDiff, 'its diff is open');
       await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-      await fromWebview({ type: 'openFile', file: { status: 'M', path: 'a.txt' } });
+      await fromWebview({ type: 'openFile', file: { kind: 'modified', path: 'a.txt', originalPath: null } });
       assert.ok((await active()).input instanceof vscode.TabInputText, 'the button opens the file');
     } finally {
       await vscode.workspace.getConfiguration('gitardo').update('changes.openOnClick', undefined, vscode.ConfigurationTarget.Global);
@@ -1042,7 +1045,7 @@ export async function run(): Promise<void> {
     const diffTabs = () => vscode.window.tabGroups.all.flatMap((group) => group.tabs).filter((tab) => tab.input instanceof vscode.TabInputTextDiff);
     write('a.txt', 'one\ntwo\nthree\n');
     try {
-      await fromWebview({ type: 'openDiff', source: { kind: 'worktree' }, file: { status: 'M', path: 'a.txt' } });
+      await fromWebview({ type: 'openDiff', source: { kind: 'worktree' }, file: { kind: 'modified', path: 'a.txt', originalPath: null } });
       await until('the diff editor', () => diffTabs().length === 1);
 
       await vscode.commands.executeCommand('gitardo.openInFlowDiff');
@@ -1092,12 +1095,12 @@ export async function run(): Promise<void> {
     await fromWebview({ type: 'getDetail', hash: newest.hash });
     const detail = posted.find((outgoing) => outgoing.type === 'detail');
     assert.ok(detail?.type === 'detail' && detail.detail);
-    assert.deepEqual(detail.detail.files, [{ status: 'A', path: 'outside.txt' }]);
+    assert.deepEqual(detail.detail.files, [{ kind: 'added', path: 'outside.txt', originalPath: null }]);
 
     await fromWebview({ type: 'getComparison', from: state().rows.at(-1)!.hash, to: older.hash });
     const comparison = posted.find((outgoing) => outgoing.type === 'comparison');
     assert.ok(comparison?.type === 'comparison');
-    assert.ok(comparison.comparison.files.some((file) => file.path === 'b.txt' && file.status === 'A'));
+    assert.ok(comparison.comparison.files.some((file) => file.path === 'b.txt' && file.kind === 'added'));
   });
 
   await step('gives the commits of the graph to the views that show it, and spares the others', async () => {
@@ -1155,8 +1158,8 @@ export async function run(): Promise<void> {
   };
 
   await step('compares branches, tags and typed revisions in a tab of their own, which follows the branches as they move', async () => {
-    const head = state().head!;
-    const hashOf = (name: string) => state().branches.find((branch) => branch.name === name)!.hash;
+    const head = state().head.commit!;
+    const hashOf = (name: string) => state().branches.find((branch) => branch.name === name)!.commit;
     const tag = state().tags[0];
     const revParse = async (revision: string) => (await git(app, ['rev-parse', revision])).stdout.trim();
 
@@ -1284,10 +1287,10 @@ export async function run(): Promise<void> {
     // "Compare with…" in a menu gives one side; a hash that is typed is named by its short form, and stays that commit.
     choose = byLabel(/Enter a hash/);
     inputs = [parent];
-    await internals.onMessage(view('sideGraph'), { type: 'compare', from: { name: tag.name, hash: tag.hash } });
+    await internals.onMessage(view('sideGraph'), { type: 'compare', from: { name: tag.name, hash: tag.commit } });
     await until('the tab', () => tabs().length === 2);
     assert.deepEqual(compared(), {
-      from: { name: 'v1', hash: tag.hash, live: true },
+      from: { name: 'v1', hash: tag.commit, live: true },
       to: { name: parent.slice(0, 7), hash: parent, live: false },
       mode: 'direct',
     });
@@ -1330,7 +1333,7 @@ export async function run(): Promise<void> {
   });
 
   await step('compares a file with the working tree from the Explorer, takes it from the other side, copies a patch, opens GitHub and the comparisons opened before', async () => {
-    const hashOf = (name: string) => state().branches.find((branch) => branch.name === name)!.hash;
+    const hashOf = (name: string) => state().branches.find((branch) => branch.name === name)!.commit;
     const show = async (revision: string) => (await git(app, ['show', revision])).stdout;
     const original = fs.readFileSync(path.join(app, 'a.txt'), 'utf8');
 
@@ -1371,7 +1374,7 @@ export async function run(): Promise<void> {
     await internals.onMessage(tab.panel.webview, { type: 'swapCompare' });
     asked.length = 0;
     answer = run;
-    await internals.onMessage(tab.panel.webview, { type: 'takeCompareFile', file: { status: 'M', path: 'a.txt' } });
+    await internals.onMessage(tab.panel.webview, { type: 'takeCompareFile', file: { kind: 'modified', path: 'a.txt', originalPath: null } });
     answer = () => undefined;
     assert.deepEqual(
       asked.map((question) => question.message),
@@ -1385,7 +1388,7 @@ export async function run(): Promise<void> {
     // The working tree has no version to give.
     await internals.onMessage(tab.panel.webview, { type: 'swapCompare' });
     asked.length = 0;
-    await internals.onMessage(tab.panel.webview, { type: 'takeCompareFile', file: { status: 'M', path: 'a.txt' } });
+    await internals.onMessage(tab.panel.webview, { type: 'takeCompareFile', file: { kind: 'modified', path: 'a.txt', originalPath: null } });
     assert.equal(asked.length, 0);
     await closeAll();
 
@@ -1472,28 +1475,28 @@ export async function run(): Promise<void> {
 
       // The branch on the left, the file of the commit on the right.
       choose = picking('$(git-branch) feature');
-      await fromWebview({ type: 'compareFile', source, file: { status: 'M', path: 'a.txt' } });
+      await fromWebview({ type: 'compareFile', source, file: { kind: 'modified', path: 'a.txt', originalPath: null } });
       assert.deepEqual(titles, [`Compare a.txt of ${short} with`]);
       assert.deepEqual(diffs, [[feature, change, `a.txt (feature ↔ ${short})`]]);
 
       // The working tree stays on the right, where the file can be edited.
       diffs.length = 0;
       choose = picking('$(files) Working tree');
-      await fromWebview({ type: 'compareFile', source, file: { status: 'M', path: 'a.txt' } });
+      await fromWebview({ type: 'compareFile', source, file: { kind: 'modified', path: 'a.txt', originalPath: null } });
       assert.deepEqual(diffs, [[change, 'a.txt', `a.txt (${short} ↔ Working tree)`]]);
 
       // A file the commit deleted, as it was before.
       diffs.length = 0;
       choose = picking('$(git-branch) feature');
-      await fromWebview({ type: 'compareFile', source, file: { status: 'D', path: 'a.txt' } });
+      await fromWebview({ type: 'compareFile', source, file: { kind: 'deleted', path: 'a.txt', originalPath: null } });
       assert.deepEqual(diffs, [[feature, parent, `a.txt (feature ↔ ${parent.slice(0, 7)})`]]);
 
       // A file of a comparison, as its second side has it, called by the name of the side; deleted, by the first.
       diffs.length = 0;
       titles.length = 0;
       const names = { hash: 'to', parent: 'from' };
-      await fromWebview({ type: 'compareFile', source: { kind: 'commit', hash: change, parent }, file: { status: 'M', path: 'a.txt' }, names });
-      await fromWebview({ type: 'compareFile', source: { kind: 'commit', hash: change, parent }, file: { status: 'D', path: 'a.txt' }, names });
+      await fromWebview({ type: 'compareFile', source: { kind: 'commit', hash: change, parent }, file: { kind: 'modified', path: 'a.txt', originalPath: null }, names });
+      await fromWebview({ type: 'compareFile', source: { kind: 'commit', hash: change, parent }, file: { kind: 'deleted', path: 'a.txt', originalPath: null }, names });
       assert.deepEqual(titles, ['Compare a.txt of to with', 'Compare a.txt of from with']);
       assert.deepEqual(diffs, [
         [feature, change, 'a.txt (feature ↔ to)'],
@@ -1502,7 +1505,7 @@ export async function run(): Promise<void> {
 
       // A file of the changes not committed: the working tree is not offered as the other side.
       diffs.length = 0;
-      await fromWebview({ type: 'compareFile', source: { kind: 'worktree' }, file: { status: 'M', path: 'a.txt' } });
+      await fromWebview({ type: 'compareFile', source: { kind: 'worktree' }, file: { kind: 'modified', path: 'a.txt', originalPath: null } });
       assert.ok(!offered.includes('$(files) Working tree'));
       assert.deepEqual(diffs, [[feature, 'a.txt', 'a.txt (feature ↔ Working tree)']]);
     } finally {
@@ -1566,7 +1569,7 @@ export async function run(): Promise<void> {
       write('lines.txt', 'one\nTWO\n');
       await git(app, ['commit', '-am', 'Change two']);
       await vscode.commands.executeCommand('gitardo.refresh');
-      const head = state().head!;
+      const head = state().head.commit!;
       const editor = await vscode.window.showTextDocument(vscode.Uri.file(path.join(app, 'lines.txt')));
 
       // The line of the cursor.
@@ -1661,8 +1664,8 @@ export async function run(): Promise<void> {
     await git(app, ['checkout', '-q', 'feature']);
     await git(app, ['checkout', '-q', 'main']);
     await vscode.commands.executeCommand('gitardo.refresh');
-    assert.equal(state().recentBranches[0], 'feature');
-    assert.ok(!state().recentBranches.includes('main'), `recent: ${state().recentBranches}`);
+    assert.equal(recentBranches(state())[0], 'feature');
+    assert.ok(!recentBranches(state()).includes('main'), `recent: ${recentBranches(state())}`);
 
     // A favorite is told to the views at once, with the rows they already have, and only a branch that is there is one.
     assert.deepEqual(state().favorites, []);
@@ -1716,7 +1719,7 @@ export async function run(): Promise<void> {
     );
     assert.equal(log.hasMore, false);
     assert.equal(log.upstream, 'origin/main');
-    assert.equal(state().branches.find((branch) => branch.current)!.upstream!.ahead, 2);
+    assert.equal(state().branches.find((branch) => branch.isCheckedOut)!.upstream!.ahead, 2);
     assert.deepEqual(log.unpushed, history.slice(0, 2));
 
     // What the graph is narrowed to is nothing to them.
@@ -1737,14 +1740,14 @@ export async function run(): Promise<void> {
     await internals.onMessage(view('commits'), { type: 'getDetail', hash: first.hash });
     const detail = posted.find((outgoing) => outgoing.type === 'detail');
     assert.ok(detail?.type === 'detail' && detail.detail);
-    assert.deepEqual(detail.detail.files, [{ status: 'A', path: 'a.txt' }]);
+    assert.deepEqual(detail.detail.files, [{ kind: 'added', path: 'a.txt', originalPath: null }]);
     assert.deepEqual(errors, []);
   });
 
   await step('pushes, fetches and pulls with a rebase against the remote', async () => {
-    assert.equal(state().branches.find((branch) => branch.current)!.upstream!.ahead, 2);
+    assert.equal(state().branches.find((branch) => branch.isCheckedOut)!.upstream!.ahead, 2);
     await controller.sync('push');
-    assert.equal(state().branches.find((branch) => branch.current)!.upstream!.ahead, 0);
+    assert.equal(state().branches.find((branch) => branch.isCheckedOut)!.upstream!.ahead, 0);
     assert.deepEqual((await branchLog()).unpushed, []);
     await controller.sync('fetch');
     await controller.sync('pullRebase');
@@ -1752,7 +1755,7 @@ export async function run(): Promise<void> {
   });
 
   await step('pulls with the changes that are not committed set aside, and says when they do not fit on what came in', async () => {
-    const start = state().head!;
+    const start = state().head.commit!;
     const stashes = state().stashes.length;
     const remote = path.join(workspace, '..', 'remote.git');
     const other = path.join(workspace, '..', 'other');
@@ -1798,12 +1801,12 @@ export async function run(): Promise<void> {
       await git(app, ['push', '--force', 'origin', `${start}:main`]);
       await vscode.commands.executeCommand('gitardo.refresh');
     }
-    assert.equal(state().head, start);
-    assert.equal(state().branches.find((branch) => branch.current)!.upstream!.ahead, 0);
+    assert.equal(state().head.commit, start);
+    assert.equal(state().branches.find((branch) => branch.isCheckedOut)!.upstream!.ahead, 0);
   });
 
   await step('fast-forwards a branch that is not checked out to what its upstream has on the remote', async () => {
-    const start = state().head!;
+    const start = state().head.commit!;
     const remote = path.join(workspace, '..', 'remote.git');
     const other = path.join(workspace, '..', 'fast-forward');
     await git(app, ['push', 'origin', `${start}:refs/heads/lagging`]);
@@ -1820,9 +1823,9 @@ export async function run(): Promise<void> {
       logged.length = 0;
       await controller.action({ kind: 'fastForward', name: 'lagging' });
       assert.ok(logged.includes('> git fetch origin refs/heads/lagging:refs/heads/lagging'), logged.join('\n'));
-      assert.equal(state().branches.find((branch) => branch.name === 'lagging')!.hash, theirs);
-      assert.equal(state().branch, 'main');
-      assert.equal(state().head, start);
+      assert.equal(state().branches.find((branch) => branch.name === 'lagging')!.commit, theirs);
+      assert.equal(checkedOutBranch(state()), 'main');
+      assert.equal(state().head.commit, start);
       assert.deepEqual(errors, []);
     } finally {
       await git(app, ['branch', '-D', 'lagging']);
@@ -1879,13 +1882,13 @@ export async function run(): Promise<void> {
     assert.match(asked[0].detail, /git push --force-with-lease origin main$/);
     answer = run;
     await controller.sync('pushForceWithLease');
-    assert.deepEqual(state().branches.find((branch) => branch.current)!.upstream, {
-      name: 'origin/main',
+    assert.deepEqual(state().branches.find((branch) => branch.isCheckedOut)!.upstream, {
+      reference: 'refs/remotes/origin/main',
       remote: 'origin',
-      branch: 'main',
+      remoteBranch: 'refs/heads/main',
       ahead: 0,
       behind: 0,
-      gone: false,
+      isGone: false,
     });
   });
 
@@ -1896,7 +1899,7 @@ export async function run(): Promise<void> {
     answer = run;
     await controller.action({ kind: 'undo' });
     assert.notEqual(subjects()[1], 'To be undone');
-    assert.deepEqual(state().working.staged, [{ status: 'A', path: 'undo.txt' }]);
+    assert.deepEqual(state().workingTree.staged, [{ kind: 'added', path: 'undo.txt', originalPath: null }]);
     await controller.action({ kind: 'unstageAll' });
     await controller.action({ kind: 'discardAll' });
 
@@ -2086,7 +2089,7 @@ export async function run(): Promise<void> {
 
   await step('opens all the changes between two commits in one editor', async () => {
     const from = state().rows.at(-1)!.hash;
-    const to = state().head!;
+    const to = state().head.commit!;
     const { files } = (await new Repo(app).compare(from, to))!;
     assert.ok(files.length > 1);
     await fromWebview({ type: 'openChanges', source: { kind: 'commit', hash: to, parent: from }, files, title: 'Everything since the start' });
@@ -2120,11 +2123,11 @@ export async function run(): Promise<void> {
     await until('the page to ask for the changes', () => received.some((incoming) => incoming.type === 'getPatch' && incoming.hash === hash));
     const detail = await until('the details', () => told('detail', webview)[0]);
     assert.ok(detail.type === 'detail' && detail.detail);
-    assert.deepEqual([detail.detail.subject, detail.detail.parents], ['Change a', [parent]]);
+    assert.deepEqual([subjectAndBody(detail.detail.message).subject, detail.detail.parents], ['Change a', [parent]]);
     const patch = await until('the changes', () => told('patch', webview)[0]);
     assert.ok(patch.type === 'patch' && patch.patch);
     assert.deepEqual(
-      patch.patch.map((file) => [file.file.status, file.file.path, file.added, file.removed, file.hunks?.[0].lines]),
+      patch.patch.map((file) => [CHANGE_LETTERS[file.file.kind], file.file.path, file.added, file.removed, file.hunks?.[0].lines]),
       [['M', 'a.txt', 1, 0, [' one', '+two']]],
     );
     // It is told the state as well, for the labels of its commit.
@@ -2155,8 +2158,8 @@ export async function run(): Promise<void> {
     addressed.length = 0;
     await internals.onMessage(webview, { type: 'getDetail', hash });
     const [again] = told('detail', webview);
-    assert.ok(again.type === 'detail' && again.detail?.subject === 'Change a');
-    await internals.onMessage(webview, { type: 'openDiff', source: { kind: 'commit', hash, parent }, file: { status: 'M', path: 'a.txt' } });
+    assert.ok(again.type === 'detail' && again.detail && subjectAndBody(again.detail.message).subject === 'Change a');
+    await internals.onMessage(webview, { type: 'openDiff', source: { kind: 'commit', hash, parent }, file: { kind: 'modified', path: 'a.txt', originalPath: null } });
     const diff = await until('the diff editor', () => {
       const active = vscode.window.tabGroups.activeTabGroup.activeTab;
       return active?.input instanceof vscode.TabInputTextDiff ? active.input : undefined;
@@ -2227,7 +2230,7 @@ export async function run(): Promise<void> {
     await controller.action({ kind: 'stashPush', paths: ['a.txt'] });
     assert.equal(state().stashes.length, 1);
     assert.match(state().stashes[0].message, /only a$/);
-    assert.deepEqual(state().working.unstaged, [{ status: '?', path: 'keep.txt' }]);
+    assert.deepEqual([state().workingTree.unstaged, state().workingTree.untracked], [[], ['keep.txt']]);
     assert.equal(fs.readFileSync(path.join(app, 'a.txt'), 'utf8'), 'one\ntwo\n');
 
     // Asked first, with what it would stop on.
@@ -2263,7 +2266,7 @@ export async function run(): Promise<void> {
       await vscode.commands.executeCommand('gitardo.scmStashFile', file(app, 'a.txt'));
       assert.deepEqual(stashed(), ['> git stash push --include-untracked -m "from the list" -- a.txt']);
       assert.equal(state().stashes.length, 1);
-      assert.deepEqual(state().working.unstaged, [{ status: '?', path: 'keep.txt' }]);
+      assert.deepEqual([state().workingTree.unstaged, state().workingTree.untracked], [[], ['keep.txt']]);
       await pop();
       assert.equal(state().changes, 2);
 
@@ -2282,8 +2285,8 @@ export async function run(): Promise<void> {
       inputs = ['staged'];
       await vscode.commands.executeCommand('gitardo.scmStashStaged', { resourceStates: [file(app, 'a.txt')] });
       assert.deepEqual(stashed(), ['> git stash push --staged -m staged']);
-      assert.deepEqual(state().working.staged, []);
-      assert.deepEqual(state().working.unstaged, [{ status: '?', path: 'keep.txt' }]);
+      assert.deepEqual(state().workingTree.staged, []);
+      assert.deepEqual([state().workingTree.unstaged, state().workingTree.untracked], [[], ['keep.txt']]);
       await pop();
       assert.equal(state().changes, 2);
 
@@ -2318,8 +2321,8 @@ export async function run(): Promise<void> {
     }
     await git(app, ['checkout', 'main']);
     await vscode.commands.executeCommand('gitardo.refresh');
-    assert.equal(state().branch, 'main');
-    const before = state().head!;
+    assert.equal(checkedOutBranch(state()), 'main');
+    const before = state().head.commit!;
 
     await vscode.workspace.getConfiguration('gitardo').update('commandPreview', 'all', vscode.ConfigurationTarget.Global);
     try {
@@ -2342,7 +2345,7 @@ export async function run(): Promise<void> {
     await controller.action({ kind: 'undo' });
     assert.match(asked[0].message, /^Undo "Cherry-pick 2 commits( onto main)?"\?$/);
     assert.match(asked[0].detail, new RegExp(`git reset --keep ${before}$`));
-    assert.equal(state().head, before);
+    assert.equal(state().head.commit, before);
     if (internals.engine?.running) {
       // The engine's Undo takes its entry out of the journal, so that undoing again takes back the operation before
       // (D9 of the differences): the series is put back as a test would.
@@ -2357,7 +2360,7 @@ export async function run(): Promise<void> {
   });
 
   await step('continues a series of cherry-picks past a conflict resolved by keeping what the branch has', async () => {
-    const before = state().head!;
+    const before = state().head.commit!;
     await git(app, ['checkout', '-b', 'clashing']);
     const made: string[] = [];
     for (const [name, content] of [['clash', 'theirs'], ['after', 'after']]) {
@@ -2375,7 +2378,7 @@ export async function run(): Promise<void> {
       answer = run;
       await controller.action({ kind: 'cherryPickMany', hashes: made });
       assert.equal(state().operation, 'cherry-pick');
-      assert.deepEqual(state().working.conflicts.map((file) => file.path), ['clash.txt']);
+      assert.deepEqual(state().workingTree.conflicted.map((file) => file.path), ['clash.txt']);
       const failed = errors.length;
 
       // Keeping main's side leaves the first commit with nothing to commit: continuing skips it and picks the next.
@@ -2393,7 +2396,7 @@ export async function run(): Promise<void> {
   });
 
   await step('merges in the way chosen, refuses a fast-forward only that cannot be one, and undoes a squash, which moves no branch', async () => {
-    const before = state().head!;
+    const before = state().head.commit!;
     await git(app, ['checkout', '-b', 'merging']);
     write('merge-way.txt', 'merged\n');
     await git(app, ['add', '--all']);
@@ -2412,17 +2415,17 @@ export async function run(): Promise<void> {
       choose = way('Merge (fast-forward only)');
       await controller.action({ kind: 'merge', ref: 'merging', mode: 'ask' });
       assert.deepEqual(offered, ['Merge', 'Merge (no fast-forward)', 'Merge (fast-forward only)', 'Merge (squash)']);
-      assert.equal(state().head, tip);
+      assert.equal(state().head.commit, tip);
       await controller.action({ kind: 'undo' });
-      assert.equal(state().head, before);
+      assert.equal(state().head.commit, before);
 
       // The changes are staged, the commit box is given the message git prepared, and Undo takes them out again.
       asked.length = 0;
       posted.length = 0;
       choose = way('Merge (squash)');
       await controller.action({ kind: 'merge', ref: 'merging', mode: 'ask' });
-      assert.equal(state().head, before);
-      assert.deepEqual(state().working.staged, [{ status: 'A', path: 'merge-way.txt' }]);
+      assert.equal(state().head.commit, before);
+      assert.deepEqual(state().workingTree.staged, [{ kind: 'added', path: 'merge-way.txt', originalPath: null }]);
       assert.ok(asked.some((question) => /the changes are staged, and nothing is committed yet/i.test(question.message)), JSON.stringify(asked));
       const message = posted.find((outgoing) => outgoing.type === 'commitMessage');
       assert.ok(message?.type === 'commitMessage' && message.message.includes('Add a file to merge'), JSON.stringify(message));
@@ -2430,7 +2433,7 @@ export async function run(): Promise<void> {
       await controller.action({ kind: 'undo' });
       assert.equal(asked[0].message, 'Undo "Merge merging into main (squash)"?');
       assert.match(asked[0].detail, /git reset --merge$/);
-      assert.equal(state().head, before);
+      assert.equal(state().head.commit, before);
       assert.equal(state().changes, 0);
       assert.ok(!fs.existsSync(path.join(app, 'merge-way.txt')));
 
@@ -2439,7 +2442,7 @@ export async function run(): Promise<void> {
       await git(app, ['add', '--all']);
       await git(app, ['commit', '-m', 'Add a file of main']);
       await vscode.commands.executeCommand('gitardo.refresh');
-      const own = state().head!;
+      const own = state().head.commit!;
       errors.length = 0;
       logged.length = 0;
       asked.length = 0;
@@ -2448,12 +2451,12 @@ export async function run(): Promise<void> {
       const said = [...errors, ...asked.map((question) => question.message)];
       assert.ok(said.some((text) => /main cannot be fast-forwarded to merging/.test(text)), JSON.stringify(said));
       assert.ok(!logged.some((line) => line.startsWith('> git merge --ff-only')), JSON.stringify(logged));
-      assert.equal(state().head, own);
+      assert.equal(state().head.commit, own);
 
       await controller.action({ kind: 'merge', ref: 'merging', mode: 'noFastForward' });
       assert.deepEqual(state().rows[0].parents, [own, tip]);
       await controller.action({ kind: 'undo' });
-      assert.equal(state().head, own);
+      assert.equal(state().head.commit, own);
     } finally {
       choose = () => undefined;
       await git(app, ['reset', '--hard', before]);
@@ -2463,7 +2466,7 @@ export async function run(): Promise<void> {
   });
 
   await step('records the commit a cherry-pick was picked from when the settings ask', async () => {
-    const before = state().head!;
+    const before = state().head.commit!;
     await git(app, ['checkout', '-b', 'origins']);
     write('origin.txt', 'origin\n');
     await git(app, ['add', '--all']);
@@ -2528,7 +2531,7 @@ export async function run(): Promise<void> {
   });
 
   await step('applies a patch from the clipboard as commits, which undo takes back together, and refuses one that does not apply', async () => {
-    const before = state().head!;
+    const before = state().head.commit!;
     const subject = state().rows.find((row) => row.hash === before)!.subject;
     await git(app, ['checkout', '-b', 'patched']);
     write('patched.txt', 'one\n');
@@ -2563,7 +2566,7 @@ export async function run(): Promise<void> {
       asked.length = 0;
       await controller.action({ kind: 'undo' });
       assert.equal(asked[0].message, 'Undo "Apply the patch in the clipboard as 2 commits"?');
-      assert.equal(state().head, before);
+      assert.equal(state().head.commit, before);
 
       // A file the patch adds is there already: it is refused, and nothing changes.
       write('patched.txt', 'local\n');
@@ -2575,7 +2578,7 @@ export async function run(): Promise<void> {
       // The engine gives git's reasons in the message itself, after the sentence.
       assert.ok(asked[0].message.replace(/^Gitardo: /, '').startsWith('The patch in the clipboard does not apply, so nothing was changed.'), asked[0].message);
       assert.match(`${asked[0].message}\n${asked[0].detail}`, /patched\.txt/);
-      assert.equal(state().head, before);
+      assert.equal(state().head.commit, before);
       assert.equal(state().operation, null);
       assert.equal(fs.readFileSync(path.join(app, 'patched.txt'), 'utf8'), 'local\n');
     } finally {
@@ -2587,7 +2590,7 @@ export async function run(): Promise<void> {
   });
 
   await step('stops applying a patch from a file on a conflict, says so first, and aborts it', async () => {
-    const before = state().head!;
+    const before = state().head.commit!;
     await git(app, ['checkout', '-b', 'clashing-patch']);
     write('a.txt', 'patched\n');
     await git(app, ['commit', '-am', 'Patch a']);
@@ -2610,7 +2613,7 @@ export async function run(): Promise<void> {
       assert.match(asked[0].detail, /git am --3way \S*clash\.patch"?$/);
       assert.equal(state().operation, 'am');
       assert.deepEqual(
-        state().working.conflicts.map((change) => change.path),
+        state().workingTree.conflicted.map((change) => change.path),
         ['a.txt'],
       );
       const stopped = /^Apply clash\.patch as 1 commit stopped: 1 file has conflicts\. Resolve them, then continue or abort the am\./;
@@ -2646,8 +2649,8 @@ export async function run(): Promise<void> {
     answer = () => undefined;
     await controller.action({ kind: 'bisect', mark: 'bad', hash: rows[0].hash });
     await controller.action({ kind: 'bisect', mark: 'good', hash: rows.at(-1)!.hash });
-    assert.ok(state().bisect?.suspects);
-    for (let guard = 0; state().bisect!.suspects! > 1 && guard < 10; guard++) {
+    assert.ok(state().bisect?.remaining);
+    for (let guard = 0; state().bisect!.remaining! > 1 && guard < 10; guard++) {
       // "Bad" from the commit that added b.txt onwards.
       const bad = fs.existsSync(path.join(app, 'b.txt'));
       await controller.action({ kind: 'bisect', mark: bad ? 'bad' : 'good' });
@@ -2657,7 +2660,7 @@ export async function run(): Promise<void> {
     assert.ok(asked.some((question) => /first bad commit is \w{7} "Add b"/.test(question.message)));
     await vscode.commands.executeCommand('gitardo.bisectReset');
     assert.equal(state().bisect, null);
-    assert.equal(state().branch, 'main');
+    assert.equal(checkedOutBranch(state()), 'main');
   });
 
   await step('stops on a conflicting merge, says so first, opens the merge editor and aborts cleanly', async () => {
@@ -2670,10 +2673,10 @@ export async function run(): Promise<void> {
     await controller.action({ kind: 'merge', ref: 'feature' });
     assert.match(asked[0].detail, /stop with conflicts in 1 file:\nb\.txt/);
     assert.equal(state().operation, 'merge');
-    assert.deepEqual(state().working.conflicts, [{ status: 'U', path: 'b.txt' }]);
+    assert.deepEqual(state().workingTree.conflicted.map((file) => file.path), ['b.txt']);
     assert.ok(asked.some((question) => /Merge feature into main stopped: 1 file has conflicts/.test(question.message)));
 
-    await fromWebview({ type: 'openDiff', source: { kind: 'conflict' }, file: state().working.conflicts[0] });
+    await fromWebview({ type: 'openDiff', source: { kind: 'conflict' }, file: { path: state().workingTree.conflicted[0].path, originalPath: null, kind: 'modified' } });
     const tab = await until('the merge editor', () => vscode.window.tabGroups.activeTabGroup.activeTab);
     // The stable API has no type for a merge editor: its tab is recognised by not being a plain text editor on the file.
     assert.ok(!(tab.input instanceof vscode.TabInputText), `a merge editor is open, not a text editor (${tab.label})`);
@@ -2702,7 +2705,7 @@ export async function run(): Promise<void> {
     const mergeTabs = () => vscode.window.tabGroups.all.flatMap((group) => group.tabs).filter((tab) => /^Merging: b\.txt/.test(tab.label));
     const panels = () => flowDiff.merge.all() as unknown as Panel[];
     const openMergeEditor = async () => {
-      await fromWebview({ type: 'openDiff', source: { kind: 'conflict' }, file: state().working.conflicts[0] });
+      await fromWebview({ type: 'openDiff', source: { kind: 'conflict' }, file: { path: state().workingTree.conflicted[0].path, originalPath: null, kind: 'modified' } });
       await until('the merge editor', () => mergeTabs().length === 1);
       // As it opens, the merge editor writes its own start of the result in the file, without saving it.
       await until('the merge editor to start the result', () => document()?.isDirty && document()?.getText() === 'bee\n');
@@ -2812,7 +2815,7 @@ export async function run(): Promise<void> {
       await until('the question about the markers', () => asked.length > 0);
       assert.match(asked[0].message, /b\.txt still has a conflict marked by git\. Mark it as resolved all the same/);
       assert.equal(panels().length, 1, 'not resolved without an answer');
-      assert.deepEqual(state().working.conflicts, [{ status: 'U', path: 'b.txt' }]);
+      assert.deepEqual(state().workingTree.conflicted.map((file) => file.path), ['b.txt']);
       // An edit and the button right after it, as the page sends them: the edit is in the file before it is saved.
       answer = run;
       sendTo({ type: 'edit', text: 'bee\nmain\nfeature\n' });
@@ -2820,7 +2823,7 @@ export async function run(): Promise<void> {
       await until('the page closed', () => panels().length === 0);
       assert.equal(fs.readFileSync(file, 'utf8'), 'bee\nmain\nfeature\n');
       assert.equal(document()?.isDirty ?? false, false);
-      await until('the file staged', () => state().working.conflicts.length === 0);
+      await until('the file staged', () => state().workingTree.conflicted.length === 0);
       assert.equal(state().operation, 'merge');
     } finally {
       await vscode.commands.executeCommand('workbench.action.closeAllEditors');
@@ -2932,7 +2935,7 @@ export async function run(): Promise<void> {
       assert.equal(read('d.txt'), 'ONE\nTWO\n');
       const left = '<<<<<<< HEAD\nnine, ours\n=======\nnine, theirs\n>>>>>>> beside\n';
       assert.equal(read('c.txt'), lines({ 2: 'two, theirs', 3: 'three, ours', 9: 'LEFT' }).replace('LEFT\n', left));
-      assert.deepEqual(state().working.conflicts, [{ status: 'U', path: 'c.txt' }]);
+      assert.deepEqual(state().workingTree.conflicted.map((file) => file.path), ['c.txt']);
       assert.deepEqual(state().conflictFiles, [{ path: 'c.txt', conflicts: 1, resolvable: [] }]);
       const done = asked.find((question) => question.message.startsWith('Gitardo resolved conflicts'));
       assert.equal(done?.message, 'Gitardo resolved conflicts in 2 files. 1 file still has conflicts to resolve by hand.');
@@ -2945,7 +2948,7 @@ export async function run(): Promise<void> {
       assert.equal(asked[0].message, 'Undo: restore the conflicts of 2 files?');
       assert.match(asked[0].detail, /git checkout --merge -- c\.txt d\.txt$/);
       assert.deepEqual(state().conflictFiles, both);
-      assert.deepEqual(state().working.staged, []);
+      assert.deepEqual(state().workingTree.staged, []);
 
       // A whole file for one side, which can be taken back the same way.
       asked.length = 0;
@@ -2954,7 +2957,7 @@ export async function run(): Promise<void> {
       assert.match(asked[0].detail, /The incoming side is the branch being merged\./);
       assert.match(asked[0].detail, /git checkout --theirs -- d\.txt\ngit add -- d\.txt$/);
       assert.equal(read('d.txt'), 'one\nTWO\n');
-      assert.deepEqual(state().working.conflicts, [{ status: 'U', path: 'c.txt' }]);
+      assert.deepEqual(state().workingTree.conflicted.map((file) => file.path), ['c.txt']);
       await controller.action({ kind: 'undo' });
       assert.deepEqual(state().conflictFiles, both);
 
@@ -2968,7 +2971,7 @@ export async function run(): Promise<void> {
       const whole = asked.find((question) => question.message.startsWith('Gitardo resolved conflicts'));
       assert.equal(whole?.message, 'Gitardo resolved conflicts in 1 file. No file is left in conflict: the merge can continue.');
       assert.deepEqual(whole?.items, ['Continue', 'Undo']);
-      assert.deepEqual(state().working.conflicts, []);
+      assert.deepEqual(state().workingTree.conflicted, []);
 
       // With nothing to resolve it says so and asks nothing: as an error without the engine, as its refusal with it.
       asked.length = 0;
@@ -3135,7 +3138,7 @@ export async function run(): Promise<void> {
       await internals.onMessage(tab, { type: 'writeResolutions', accepted: [{ path: 'e.txt', key: rules.key }, { path: 'e.txt', key: ai.key }] });
       assert.deepEqual(commandsLogged(), ['> write e.txt', '> git add -- e.txt']);
       assert.equal(read('e.txt'), lines({ 2: 'two, theirs', 3: 'three, ours', 9: 'nine, ours and theirs' }));
-      assert.deepEqual(state().working.conflicts, []);
+      assert.deepEqual(state().workingTree.conflicted, []);
       const after = await until('the report', () => lastReview()?.report && lastReview());
       assert.deepEqual(after.report, { resolved: 2, files: 1, staged: 1, fromAI: 1 });
       assert.equal(after.conflicted, 0);
@@ -3145,7 +3148,7 @@ export async function run(): Promise<void> {
       await controller.action({ kind: 'undo' });
       const unnamed = (text: string) => text.replace(/^(<{7}|>{7}) .*$/gm, '$1');
       assert.equal(unnamed(read('e.txt')), unnamed(marked));
-      assert.equal(state().working.conflicts.length, 1);
+      assert.equal(state().workingTree.conflicted.length, 1);
 
       // Without the model chosen, or without any, asking says why it could not.
       models = [first];
@@ -3397,7 +3400,7 @@ export async function run(): Promise<void> {
       await fromWebview({ type: 'save', paths: ['first.txt'] });
       await told('first.txt saved', ['second.txt']);
       assert.equal(fs.readFileSync(path.join(app, 'first.txt'), 'utf8'), 'edited\n1\n');
-      await until('first.txt changed on disk', () => state().working.unstaged.some((file) => file.path === 'first.txt'));
+      await until('first.txt changed on disk', () => state().workingTree.unstaged.some((file) => file.path === 'first.txt'));
 
       for (const file of ['second.txt', 'notes.log']) {
         await vscode.window.showTextDocument(vscode.Uri.file(path.join(app, file)));
@@ -3524,9 +3527,9 @@ export async function run(): Promise<void> {
   });
 
   await step('updates the submodules after a checkout, cloning from a folder on disk once allowed, unless the settings say not to', async () => {
-    const home = state().branch!;
+    const home = checkedOutBranch(state())!;
     const config = vscode.workspace.getConfiguration('gitardo');
-    const submodule = () => state().submodules.find((each) => each.path === 'vendor/lib');
+    const submodule = () => state().submodules.find((each) => each.folder === 'vendor/lib');
     // Two branches that record two commits of lib, made in a terminal without cloning it: here there is no submodule yet.
     const first = (await git(lib, ['rev-parse', 'HEAD'])).stdout.trim();
     fs.writeFileSync(path.join(lib, 'two.txt'), 'two\n');
@@ -3554,21 +3557,21 @@ export async function run(): Promise<void> {
       // The refusal is logged, as every failure of git is.
       assert.ok(errors.slice(before).every((text) => text.includes("transport 'file' not allowed")), errors.slice(before).join('\n'));
       errors.length = before;
-      assert.equal(state().branch, 'with-lib');
+      assert.equal(checkedOutBranch(state()), 'with-lib');
       // The engine offers the rest of the checkout again under its own title, the extension the update alone (stage 4,
       // area 2).
       assert.equal(asked.length, 1, JSON.stringify(asked));
       assert.match(asked[0].message, /^(Update the submodules|Check out with-lib) from a folder on disk\?$/);
       assert.ok(logged.includes('> git checkout with-lib'), logged.join('\n'));
       assert.ok(logged.includes('> git -c protocol.file.allow=always submodule update --init --recursive'), logged.join('\n'));
-      assert.deepEqual([submodule()?.head, submodule()?.ahead, submodule()?.behind], [first, 0, 0]);
+      assert.deepEqual([submodule()?.checkout?.commit, submodule()?.checkout?.distance?.ahead, submodule()?.checkout?.distance?.behind], [first, 0, 0]);
 
       // Switched off, the submodule stays on what it had, one behind what the other branch records.
       await config.update('submodules.updateOnCheckout', false, vscode.ConfigurationTarget.Global);
       logged.length = 0;
       await controller.action({ kind: 'checkout', target: 'branch', ref: 'with-lib-2' });
       assert.ok(!logged.some((line) => line.includes('submodule update')), logged.join('\n'));
-      assert.deepEqual([submodule()?.recorded, submodule()?.head, submodule()?.behind], [second, first, 1]);
+      assert.deepEqual([submodule()?.recorded, submodule()?.checkout?.commit, submodule()?.checkout?.distance?.behind], [second, first, 1]);
     } finally {
       answer = () => undefined;
       await config.update('submodules.updateOnCheckout', undefined, vscode.ConfigurationTarget.Global);
@@ -3588,7 +3591,7 @@ export async function run(): Promise<void> {
   });
 
   await step('changes the message of the last commit, of an older one after asking, and warns when it is pushed', async () => {
-    const home = state().branch!;
+    const home = checkedOutBranch(state())!;
     const message = async (ref: string) => (await git(app, ['log', '-1', '--format=%B', ref])).stdout.trimEnd();
     await git(app, ['checkout', '-b', 'reword']);
     for (const [file, text] of [['one', 'Reword one\n\nIts body.'], ['two', 'Reword two\n\nKept under the new subject.'], ['three', 'Reword three']]) {
@@ -3603,10 +3606,10 @@ export async function run(): Promise<void> {
       await git(app, ['add', 'three.txt']);
       asked.length = 0;
       answer = run;
-      await controller.action({ kind: 'reword', hash: state().head!, message: 'Reword three, new\n\nWith a body now.' });
+      await controller.action({ kind: 'reword', hash: state().head.commit!, message: 'Reword three, new\n\nWith a body now.' });
       assert.equal(asked.length, 0, JSON.stringify(asked));
       assert.equal(await message('HEAD'), 'Reword three, new\n\nWith a body now.');
-      assert.deepEqual(state().working.staged, [{ status: 'M', path: 'three.txt' }]);
+      assert.deepEqual(state().workingTree.staged, [{ kind: 'modified', path: 'three.txt', originalPath: null }]);
 
       // An older one is asked first, and the changes not committed come back after.
       const one = (await git(app, ['rev-parse', 'HEAD~2'])).stdout.trim();
@@ -3625,7 +3628,7 @@ export async function run(): Promise<void> {
       const two = (await git(app, ['rev-parse', 'HEAD~1'])).stdout.trim();
       const steps: RebaseStep[] = [
         { action: 'reword', hash: two, message: 'Reword two, new', keepBody: true },
-        { action: 'pick', hash: state().head! },
+        { action: 'pick', hash: state().head.commit! },
       ];
       // The interactive rebase does not set the changes aside on its own.
       await git(app, ['stash', 'push', '--quiet']);
@@ -3636,7 +3639,7 @@ export async function run(): Promise<void> {
       await git(app, ['push', '--quiet', 'origin', 'reword']);
       await controller.refresh();
       asked.length = 0;
-      await controller.action({ kind: 'reword', hash: state().head!, message: 'Reword three, again' });
+      await controller.action({ kind: 'reword', hash: state().head.commit!, message: 'Reword three, again' });
       assert.equal(asked.length, 1);
       assert.ok(asked[0].detail.includes('is pushed already, on origin/reword'), asked[0].detail);
       assert.equal(await message('HEAD'), 'Reword three, again');
@@ -3651,7 +3654,7 @@ export async function run(): Promise<void> {
   });
 
   await step('asks before applying a stash, saying what it would stop on, and before deleting a tag or a merged branch', async () => {
-    const start = state().head!;
+    const start = state().head.commit!;
     const apply = async () => {
       asked.length = 0;
       await controller.action({ kind: 'stashApply', ref: 'stash@{0}' });
@@ -3729,7 +3732,7 @@ export async function run(): Promise<void> {
   });
 
   await step('stops an interactive rebase to edit a commit, and goes on once what was changed is committed', async () => {
-    const home = state().branch!;
+    const home = checkedOutBranch(state())!;
     await git(app, ['checkout', '-b', 'edit-stop']);
     for (const name of ['one', 'two']) {
       write(`edit-${name}.txt`, `${name}\n`);
@@ -3749,7 +3752,7 @@ export async function run(): Promise<void> {
         ],
       });
       assert.equal(state().operation, 'rebase');
-      assert.deepEqual(state().rebaseStop, { kind: 'edit', hash: one, subject: 'Edit one' });
+      assert.deepEqual(state().rebaseStop, { kind: 'edit', commit: one, subject: 'Edit one' });
 
       // What is changed and not committed is in the way, which is said rather than tried.
       write('edit-one.txt', 'one, changed\n');
@@ -3778,7 +3781,7 @@ export async function run(): Promise<void> {
   });
 
   await step('splits the last commit and an older one, commits what is left on Continue, and undoes each split whole', async () => {
-    const home = state().branch!;
+    const home = checkedOutBranch(state())!;
     const rev = async (ref: string) => (await git(app, ['rev-parse', ref])).stdout.trim();
     await git(app, ['checkout', '-b', 'split']);
     const commit = async (message: string, ...files: string[]) => {
@@ -3806,11 +3809,11 @@ export async function run(): Promise<void> {
           'The changes of "Add split three and four" are in the working tree, unstaged: commit them in as many commits as you like.',
         ],
       );
-      assert.equal(state().head, older);
+      assert.equal(state().head.commit, older);
       assert.equal(state().operation, null);
       assert.deepEqual(drafted(), ['Add split three and four']);
       await controller.action({ kind: 'undo' });
-      assert.equal(state().head, last);
+      assert.equal(state().head.commit, last);
       assert.equal(state().changes, 0);
 
       // An older one: a rebase that stops there, with a banner of its own.
@@ -3818,8 +3821,8 @@ export async function run(): Promise<void> {
       posted.length = 0;
       await controller.action({ kind: 'split', hash: older });
       assert.ok(asked[0].detail.includes('the commit after it is made again on top'), asked[0].detail);
-      assert.equal(state().head, start);
-      assert.deepEqual(state().rebaseStop, { kind: 'split', hash: older, subject: 'Add split one and two' });
+      assert.equal(state().head.commit, start);
+      assert.deepEqual(state().rebaseStop, { kind: 'split', commit: older, subject: 'Add split one and two' });
       assert.deepEqual(drafted(), ['Add split one and two\n\nIn one go.']);
       await git(app, ['add', 'split-one.txt']);
       await git(app, ['commit', '-m', 'Add split one']);
@@ -3843,7 +3846,7 @@ export async function run(): Promise<void> {
       // One undo takes back the whole split.
       answer = run;
       await controller.action({ kind: 'undo' });
-      assert.equal(state().head, last);
+      assert.equal(state().head.commit, last);
     } finally {
       answer = () => undefined;
       await git(app, ['rebase', '--abort']).catch(() => undefined);

@@ -1,7 +1,11 @@
 import type { SyntaxTheme } from '../flow/diff/protocol';
 import type { FileIconTheme } from './fileIcons';
 import type { Choice, ConflictRef, ConflictReview } from './resolution';
+import type { CommitDetail, FileChange, RepositoryState } from './state';
 import type { SetupPatterns, SetupPreview, SetupTarget, WorktreeSetupInfo } from './worktreeSetup';
+
+// The state and the details of a commit are the engine's shapes, from stage 6.
+export type * from './state';
 
 /** Pseudo-hash of the row that stands for uncommitted changes. */
 export const WORKTREE = 'WORKTREE';
@@ -35,93 +39,6 @@ export interface Row extends Commit {
   graph: GraphRow;
   /** The name of the stash the row is, `stash@{0}`, when it is one rather than a commit of the history. */
   stash?: string;
-}
-
-export interface Upstream {
-  name: string;
-  remote: string;
-  branch: string;
-  ahead: number;
-  behind: number;
-  gone: boolean;
-}
-
-export interface Branch {
-  name: string;
-  hash: string;
-  /** When the commit it points at was committed, in seconds. */
-  date?: number;
-  current: boolean;
-  upstream?: Upstream;
-}
-
-export interface NamedRef {
-  name: string;
-  hash: string;
-  /** When the commit it points at was committed, or for an annotated tag when the tag was made, in seconds. */
-  date?: number;
-}
-
-export interface Stash {
-  ref: string;
-  hash: string;
-  message: string;
-  date: number;
-}
-
-export interface Worktree {
-  path: string;
-  hash: string;
-  branch: string | null;
-  current: boolean;
-  /** The one the repository was cloned or created in, which git cannot move or remove. */
-  main: boolean;
-  /** Its directory is gone, so `git worktree prune` would forget it. */
-  prunable: boolean;
-  /** How many of its files are not committed: staged, not staged or untracked. Null when they could not be read. */
-  changes: number | null;
-}
-
-/** A submodule of the repository, or of one of its submodules. */
-export interface Submodule {
-  /** Its folder from the root of the repository shown, with forward slashes. */
-  path: string;
-  /** The folder of the submodule it is in, from the same root: empty for one of the repository itself. */
-  parent: string;
-  /** Its name in `.gitmodules`, which is usually its path. */
-  name: string;
-  url: string;
-  /** The branch `.gitmodules` says it follows, which an update from its remote goes to. */
-  branch: string | null;
-  /** The commit the repository that has it records for it in HEAD. Null when it is added but not committed yet. */
-  recorded: string | null;
-  /** The commit staged for it, when that is not the one recorded. */
-  staged: string | null;
-  /** The commit checked out in it. Null when it is not initialized: its folder has no repository. */
-  head: string | null;
-  /** The branch checked out in it, or null on a detached HEAD. */
-  headBranch: string | null;
-  /**
-   * The commits it has checked out that the recorded one has not, and the other way round. Null when that cannot be
-   * told: the recorded commit is not in it, which a fetch in it would bring.
-   */
-  ahead: number | null;
-  behind: number | null;
-  /** How many of its files are not committed. Null when they could not be read. */
-  changes: number | null;
-}
-
-export interface FileChange {
-  status: string;
-  path: string;
-  oldPath?: string;
-}
-
-/** The working tree split the way `git status` reports it. Untracked files are in `unstaged` with the status `?`. */
-export interface WorkingState {
-  staged: FileChange[];
-  unstaged: FileChange[];
-  conflicts: FileChange[];
 }
 
 /**
@@ -170,25 +87,10 @@ export type Loading = 'filter' | 'more';
 /** A search that git runs, in the whole history rather than in the commits that are loaded. */
 export type Search = Extract<Filter, { query: string }>;
 
-/** A `git bisect` in progress. HEAD is the commit git wants tested next. */
-export interface Bisect {
-  good: string[];
-  bad: string | null;
-  skipped: string[];
-  /** How many commits can still be the first bad one, counting `bad` itself. Null until both a good and a bad commit are known. */
-  suspects: number | null;
-}
-
 /** One of the repositories of the workspace. */
 export interface RepoInfo {
   root: string;
   name: string;
-}
-
-/** Who git will record as the author of a commit made here. Empty strings when nothing is configured. */
-export interface Identity {
-  name: string;
-  email: string;
 }
 
 export interface PullRequest {
@@ -214,50 +116,32 @@ export interface ConflictFile {
   resolvable: Resolution[];
 }
 
-/** A multi-step git operation that stopped and waits for the user. */
-export type Operation = 'merge' | 'rebase' | 'cherry-pick' | 'revert' | 'am';
-
 /**
- * Where an interactive rebase stopped for the user to change a commit rather than on a conflict: to edit it, or to
- * split it, with its changes taken out of it into the working tree. `hash` is the commit as the rebase made it, or
- * the commit being split.
+ * What the views show of a repository but its commits: the state as `repo.read-state` of Gitardo's engine reads it, or
+ * as `Repo` reads it in its shape when the engine is not there, with the files in conflict whose conflicts the rules
+ * resolve. The commits of the graph are read after it, from what it says.
  */
-export interface RebaseStop {
-  kind: 'edit' | 'split';
-  hash: string;
-  subject: string;
-}
-
-export interface RepoState {
-  root: string;
-  name: string;
-  head: string | null;
-  branch: string | null;
-  branches: Branch[];
-  remoteBranches: NamedRef[];
-  tags: NamedRef[];
-  stashes: Stash[];
-  worktrees: Worktree[];
-  /** Its submodules and theirs, each after the one it is in. */
-  submodules: Submodule[];
-  remotes: string[];
-  rows: Row[];
-  hasMore: boolean;
-  /** Number of files with uncommitted changes. */
-  changes: number;
-  working: WorkingState;
+export interface RepoParts extends RepositoryState {
   /** The files in conflict that have the markers of git in them, with what can be resolved of each without a choice. */
   conflictFiles: ConflictFile[];
-  operation: Operation | null;
-  /** Set while a rebase waits for the user to edit a commit, or to split one. */
-  rebaseStop: RebaseStop | null;
-  bisect: Bisect | null;
-  identity: Identity;
+}
+
+/**
+ * What the views are sent of a repository: its state as the engine reads it (`RepositoryState`, field for field), and
+ * what the extension adds to it: the rows of the graph, what it is narrowed to, the settings that the views follow,
+ * the pull requests, the repositories of the workspace and what Undo takes back.
+ */
+export interface RepoState extends RepoParts {
+  /** The repository, as the extension knows it: the folder of `git rev-parse --show-toplevel`. */
+  root: string;
+  name: string;
+  rows: Row[];
+  hasMore: boolean;
+  /** How many files are not committed, each once. */
+  changes: number;
   filter: Filter | null;
   /** The branches the graph is narrowed to, without the ones that are no longer there. Null when it shows them all. */
   scope: Scope | null;
-  /** The local branches that were checked out last, the latest first, without the one that is checked out now. */
-  recentBranches: string[];
   /** The branches and remote branches the user marked as favorites, by their full names, in the order they were marked. */
   favorites: string[];
   /** What the Pull button runs, which the settings choose. The menu beside it has every way to pull. */
@@ -296,8 +180,11 @@ export interface RepoState {
    * to, as the settings say. When not, they are all listed, and the ones the graph leaves out are dimmed.
    */
   branchesFollowScope: boolean;
-  /** How the branches, remote branches and tags are listed everywhere, as the settings say: by name, or the latest first. */
-  branchSort: BranchSort;
+  /**
+   * How the branches, remote branches and tags are listed everywhere, as the settings say: by name, or the latest first.
+   * `gitardo.branches.sortOrder`; `branchSort` is git's own setting, as the engine reads it.
+   */
+  sortOrder: BranchSort;
   /** Whether a language model can be asked how to resolve the conflicts, as the settings say. */
   resolveWithAI: boolean;
   /**
@@ -306,30 +193,6 @@ export interface RepoState {
    */
   home: RepoInfo | null;
 }
-
-/**
- * What the views show of a repository but its commits: what `repo.read-state` of Gitardo's engine reads, and what
- * `Repo` reads when the engine is not there. The commits of the graph are read after it, from what it says.
- */
-export type RepoParts = Pick<
-  RepoState,
-  | 'head'
-  | 'branch'
-  | 'branches'
-  | 'remoteBranches'
-  | 'tags'
-  | 'stashes'
-  | 'worktrees'
-  | 'submodules'
-  | 'remotes'
-  | 'working'
-  | 'conflictFiles'
-  | 'operation'
-  | 'rebaseStop'
-  | 'bisect'
-  | 'identity'
-  | 'recentBranches'
->;
 
 /** The commits of what is checked out, for the view that lists them apart from the graph. */
 export interface BranchLog {
@@ -342,16 +205,6 @@ export interface BranchLog {
   unpushed: string[] | null;
   /** What they are not in: the upstream of the branch, by its short name. Null when it is every remote branch. */
   upstream: string | null;
-}
-
-export interface CommitDetail extends Commit {
-  committer: string;
-  committerEmail: string;
-  commitDate: number;
-  body: string;
-  files: FileChange[];
-  /** For a stash made with its untracked files: those files, and the commit inside the stash that holds them. */
-  untracked?: { hash: string; files: FileChange[] };
 }
 
 export type SyncAction =

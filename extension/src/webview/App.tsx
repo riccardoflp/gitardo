@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import { mergedCommits } from '../shared/graph';
 import { WORKTREE, type CommitDetail, type Comparison, type Loading, type RepoState, type Row, type Search } from '../shared/protocol';
+import { checkedOutBranch, stashName } from '../shared/state';
 import { BisectBanner } from './BisectBanner';
 import { CommitList, useTrace, type Label, type SelectMode } from './CommitList';
 import { buildLabels, unpushedOf } from './labels';
 import { Compare } from './Compare';
 import { useMenu } from './ContextMenu';
 import { Detail } from './Detail';
+import { workingMarks } from './FileRow';
 import { FilterBar } from './FilterBar';
 import { Icon } from './Icon';
 import { OperationBanner } from './OperationBanner';
@@ -327,7 +329,7 @@ export function App({ compact = false }: { compact?: boolean }) {
     const before = selected;
     select(row.hash);
     // A stash is applied, popped or dropped, as where it is listed; it is no commit to rebase or cherry-pick.
-    const stash = row.stash !== undefined && state.stashes.find((candidate) => candidate.ref === row.stash);
+    const stash = row.stash !== undefined && state.stashes.find((candidate) => stashName(candidate) === row.stash);
     if (stash) return openMenu(event, stashMenu(stash));
     openMenu(
       event,
@@ -413,7 +415,7 @@ export function App({ compact = false }: { compact?: boolean }) {
               }}
             >
               <Icon name="git-commit" />
-              Cherry-pick onto {state.branch ?? 'HEAD'}
+              Cherry-pick onto {checkedOutBranch(state) ?? 'HEAD'}
             </button>
           )}
           {canFormatPatch(markedRows) && (
@@ -448,7 +450,7 @@ export function App({ compact = false }: { compact?: boolean }) {
         )}
         <CommitList
           rows={state.rows}
-          empty={state.filter ? 'No commits found' : state.head ? 'No commits to show' : 'No commits yet'}
+          empty={state.filter ? 'No commits found' : state.head.commit ? 'No commits to show' : 'No commits yet'}
           hasMore={state.hasMore}
           loading={loading}
           labels={labels}
@@ -476,7 +478,7 @@ export function App({ compact = false }: { compact?: boolean }) {
           unpushed={unpushed}
           traceSelected={state.traceSelected}
           columns={state.graphColumns}
-          head={state.head}
+          head={state.head.commit}
           dateSeparators={state.dateSeparators}
           folded={connected ? folded : NONE}
           onFold={connected ? fold : undefined}
@@ -507,7 +509,7 @@ export function App({ compact = false }: { compact?: boolean }) {
             <Detail
               hash={selected}
               detail={detail}
-              changes={{ stash: state.head !== null, discardAll: !state.operation }}
+              changes={{ stash: state.head.commit !== null, discardAll: !state.operation, marks: workingMarks(state.workingTree) }}
               reword={canReword(selected, state)}
               editing={editing === selected}
               onEditing={(on) => setEditing(on ? selected : null)}
@@ -516,7 +518,7 @@ export function App({ compact = false }: { compact?: boolean }) {
             />
           )
         )}
-        {rebase && <RebaseEditor range={rebase} branch={state.branch} onClose={() => setRebase(null)} />}
+        {rebase && <RebaseEditor range={rebase} branch={checkedOutBranch(state)} onClose={() => setRebase(null)} />}
       </div>
     </div>
   );

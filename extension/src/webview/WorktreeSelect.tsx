@@ -1,12 +1,13 @@
 import type { RepoState } from '../shared/protocol';
 import { worktreeLabel } from '../shared/refs';
+import { checkedOutBranch, worktreeBranch, type Worktree } from '../shared/state';
 import { useMenu } from './ContextMenu';
 import { Icon } from './Icon';
 import { post } from './vscode';
 
 /** What a worktree has checked out, as the toolbar says it. */
-function checkedOut(worktree: { branch: string | null; hash: string }): string {
-  return worktree.branch ?? (worktree.hash ? `detached at ${worktree.hash.slice(0, 7)}` : 'no commits yet');
+function checkedOut(worktree: Worktree): string {
+  return worktreeBranch(worktree) ?? (worktree.commit ? `detached at ${worktree.commit.slice(0, 7)}` : 'no commits yet');
 }
 
 /**
@@ -16,8 +17,9 @@ function checkedOut(worktree: { branch: string | null; hash: string }): string {
 export function WorktreeSelect({ state, disabled }: { state: RepoState; disabled: boolean }) {
   const openMenu = useMenu();
   // Those whose folder is there.
-  const worktrees = state.worktrees.filter((worktree) => !worktree.prunable);
-  const name = state.branch ?? (state.head ? `detached at ${state.head.slice(0, 7)}` : 'no commits yet');
+  const worktrees = state.worktrees.filter((worktree) => !worktree.isMissing);
+  const head = state.head.commit;
+  const name = checkedOutBranch(state) ?? (head ? `detached at ${head.slice(0, 7)}` : 'no commits yet');
   if (worktrees.length < 2) {
     return (
       <span className="current" title={state.root}>
@@ -26,7 +28,7 @@ export function WorktreeSelect({ state, disabled }: { state: RepoState; disabled
       </span>
     );
   }
-  const shown = worktrees.find((worktree) => worktree.current);
+  const shown = worktrees.find((worktree) => worktree.isCurrent);
   return (
     <button
       className="current pick"
@@ -38,21 +40,21 @@ export function WorktreeSelect({ state, disabled }: { state: RepoState; disabled
         openMenu(
           event,
           worktrees.map((worktree) => {
-            const folder = worktreeLabel(worktree.path, state.worktreesRoot);
+            const folder = worktreeLabel(worktree.folder, state.worktreesRoot);
             return {
               label: checkedOut(worktree),
               // The folder, unless it is named as the branch is, as the worktrees Gitardo makes are.
-              hint: folder === worktree.branch ? undefined : folder,
+              hint: folder === worktreeBranch(worktree) ? undefined : folder,
               checked: worktree === shown,
               run: () => {
-                if (worktree !== shown) post({ type: 'selectRepo', root: worktree.path });
+                if (worktree !== shown) post({ type: 'selectRepo', root: worktree.folder });
               },
             };
           }),
         )
       }
     >
-      <Icon name={shown?.main === false ? 'worktree' : 'git-branch'} />
+      <Icon name={shown?.isMain === false ? 'worktree' : 'git-branch'} />
       <span className="name">{name}</span>
       <Icon name="chevron-down" />
     </button>

@@ -1,5 +1,6 @@
 import type { RepoState } from '../shared/protocol';
 import { worktreeLabel } from '../shared/refs';
+import { checkedOutBranch } from '../shared/state';
 import { Icon } from './Icon';
 import { post } from './vscode';
 
@@ -7,7 +8,8 @@ import { post } from './vscode';
 export function WorktreeBanner({ state, busy }: { state: RepoState; busy: boolean }) {
   const { home } = state;
   if (!home) return null;
-  const on = state.branch ? ` on ${state.branch}` : '';
+  const branch = checkedOutBranch(state);
+  const on = branch ? ` on ${branch}` : '';
   return (
     <div className="banner worktree" role="status">
       <Icon name="worktree" />

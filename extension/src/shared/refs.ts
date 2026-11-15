@@ -1,4 +1,5 @@
-import type { Branch, BranchSort, NamedRef, PullRequest, RepoState, Worktree } from './protocol';
+import type { Branch, BranchSort, PullRequest, RepoState, RepositoryState, Worktree } from './protocol';
+import { checkedOutBranch, upstreamName, worktreeBranch } from './state';
 
 const KINDS = { branch: 'refs/heads/', remote: 'refs/remotes/', tag: 'refs/tags/' } as const;
 
@@ -18,7 +19,7 @@ export function refArg(kind: keyof typeof KINDS, name: string, state: RepoState)
  */
 export function sortRefs<T extends Pick<RepoState, 'branches' | 'remoteBranches' | 'tags'>>(refs: T, sort: BranchSort): T {
   if (sort === 'name') return refs;
-  const latest = <R extends NamedRef>(list: R[]) => [...list].sort((one, other) => (other.date ?? 0) - (one.date ?? 0));
+  const latest = <R extends { date: number }>(list: R[]) => [...list].sort((one, other) => other.date - one.date);
   return { ...refs, branches: latest(refs.branches), remoteBranches: latest(refs.remoteBranches), tags: latest(refs.tags) };
 }
 
@@ -62,7 +63,7 @@ export function isHome(dir: string, state: { home?: RepoState['home'] }): boolea
 
 /** The other worktree that has a branch checked out, where it is to be worked on: git checks it out nowhere else. */
 export function worktreeOf(branch: string, state: RepoState): Worktree | undefined {
-  return state.worktrees.find((worktree) => worktree.branch === branch && !worktree.current);
+  return state.worktrees.find((worktree) => worktreeBranch(worktree) === branch && !worktree.isCurrent);
 }
 
 /**
@@ -73,9 +74,9 @@ export function worktreeOf(branch: string, state: RepoState): Worktree | undefin
  */
 export function canFastForward(branch: Branch, state: RepoState): boolean {
   const upstream = branch.upstream;
-  if (branch.current || !upstream || upstream.gone || upstream.ahead > 0) return false;
+  if (branch.isCheckedOut || !upstream || upstream.isGone || upstream.ahead > 0) return false;
   const worktree = worktreeOf(branch.name, state);
-  return !worktree || (!worktree.prunable && worktree.changes === 0);
+  return !worktree || (!worktree.isMissing && worktree.uncommitted === 0);
 }
 
 /** `feature/x` for `origin/feature/x`: the name a remote-tracking branch has on its remote. */
@@ -87,7 +88,7 @@ export function nameOnRemote(ref: string, state: RepoState): string | null {
 /** The name a local branch was pushed under, when it has been pushed to a repository on GitHub. */
 export function pushedName(branch: Branch, state: RepoState): string | null {
   const upstream = branch.upstream;
-  return state.github && upstream && !upstream.gone ? nameOnRemote(upstream.name, state) : null;
+  return state.github && upstream && !upstream.isGone ? nameOnRemote(upstreamName(upstream), state) : null;
 }
 
 /** The open pull request of a branch on GitHub, by the name the branch has there. */
@@ -107,7 +108,7 @@ export function pullTitle(pull: PullRequest): string {
 export function upstreamHint(branch: Branch): string | undefined {
   const upstream = branch.upstream;
   if (!upstream) return undefined;
-  if (upstream.gone) return 'gone';
+  if (upstream.isGone) return 'gone';
   return [upstream.ahead && `↑${upstream.ahead}`, upstream.behind && `↓${upstream.behind}`].filter(Boolean).join(' ') || undefined;
 }
 
@@ -120,7 +121,8 @@ export function changesText(changes: number | null): string | undefined {
 
 /** What is known of a worktree beyond its folder: its branch and how it stands against its upstream, and its pull request. */
 export function worktreeStatus(worktree: Worktree, state: RepoState): { branch?: Branch; ahead?: string; pull?: PullRequest } {
-  const branch = worktree.branch === null ? undefined : state.branches.find((candidate) => candidate.name === worktree.branch);
+  const name = worktreeBranch(worktree);
+  const branch = name === null ? undefined : state.branches.find((candidate) => candidate.name === name);
   if (!branch) return {};
   return { branch, ahead: upstreamHint(branch), pull: pullOf(pushedName(branch, state), state) };
 }
@@ -131,11 +133,13 @@ export const RECENT_BRANCHES = 5;
 /**
  * The local branches that were checked out last, the latest first, from the subjects of the reflog of HEAD, which
  * come with the latest first too. The one checked out now is left out: it is where the others are looked for from.
+ * Worked out here from the state the engine reads, by the extension and by the views alike.
  */
-export function recentBranches(subjects: string, branches: string[], current: string | null, limit = RECENT_BRANCHES): string[] {
-  const known = new Set(branches);
+export function recentBranches(state: Pick<RepositoryState, 'reflogSubjects' | 'branches' | 'head'>, limit = RECENT_BRANCHES): string[] {
+  const known = new Set(state.branches.map((branch) => branch.name));
+  const current = checkedOutBranch(state);
   const recent: string[] = [];
-  for (const subject of subjects.split('\n')) {
+  for (const subject of state.reflogSubjects) {
     const moved = /^checkout: moving from (\S+) to (\S+)$/.exec(subject);
     if (!moved) continue;
     // Arrived at before it was left for the other: the one moved to is the more recent of the two.

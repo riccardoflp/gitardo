@@ -1,9 +1,9 @@
-import type { RepoState } from '../shared/protocol';
+import type { Operation, RepoState } from '../shared/protocol';
 import { Icon } from './Icon';
 import { act } from './menus';
 import { post } from './vscode';
 
-const NAMES = { merge: 'Merge', rebase: 'Rebase', 'cherry-pick': 'Cherry-pick', revert: 'Revert', am: 'Patch (git am)' };
+const NAMES: Record<Operation, string> = { merge: 'Merge', rebase: 'Rebase', cherryPick: 'Cherry-pick', revert: 'Revert', patch: 'Patch (git am)' };
 
 const RESOLVE_TITLE =
   'Resolve the conflicts that need no choice between the two sides: changes to lines next to each other, the same change made by both, ' +
@@ -25,7 +25,7 @@ export function resolvableConflicts(state: RepoState, path?: string): [resolvabl
  */
 export function OperationBanner({ state, busy }: { state: RepoState; busy: boolean }) {
   const { operation, rebaseStop } = state;
-  const conflicts = state.working.conflicts.length;
+  const conflicts = state.workingTree.conflicted.length;
   if (!operation && !conflicts) return null;
   const [resolvable, marked] = resolvableConflicts(state);
   // Nothing is counted while the rules are switched off.

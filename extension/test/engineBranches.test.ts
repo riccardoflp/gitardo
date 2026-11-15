@@ -182,7 +182,7 @@ describe.skipIf(!built)('Branches and tags, through the engine and as GitOps', {
     const detached = await scenario(
       branched,
       async (read, at) => checkoutOp('detached', await hashOf(at.root, 'topic')),
-      (read) => engineRuns({ kind: 'checkout', target: 'detached', ref: read.branches.find((branch) => branch.name === 'topic')!.hash }, read),
+      (read) => engineRuns({ kind: 'checkout', target: 'detached', ref: read.branches.find((branch) => branch.name === 'topic')!.commit }, read),
     );
     expect(detached.engine).toEqual(detached.typescript);
     const tag = await scenario(branched, () => checkoutOp('detached', 'v1'), action({ kind: 'checkout', target: 'detached', ref: 'v1' }));
@@ -292,7 +292,7 @@ describe.skipIf(!built)('Branches and tags, through the engine and as GitOps', {
       expect(engine).toEqual(typescript);
       expect(await everything(other)).toEqual(await everything(one));
     }
-    const deleted = await scenario(branched, (read) => deleteTagOp('v1', read.tags[0]?.hash), action({ kind: 'deleteTag', name: 'v1' }));
+    const deleted = await scenario(branched, (read) => deleteTagOp('v1', read.tags[0]?.commit), action({ kind: 'deleteTag', name: 'v1' }));
     expect(deleted.engine).toEqual(['git tag -d v1']);
     expect(deleted.engine).toEqual(deleted.typescript);
     const pushed = await scenario(branched, (read) => pushTagOp('v1', read), action({ kind: 'pushTag', name: 'v1' }));

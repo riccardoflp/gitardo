@@ -112,7 +112,7 @@ export function FilterBar({ state }: { state: RepoState }) {
     <div className="filterbar" role="status">
       <Icon name={filter ? 'filter' : 'list-filter'} />
       <span className="grow">
-        {filter ? describe(filter, state.head) : <>Only the history of {branches(scope!)}</>}
+        {filter ? describe(filter, state.head.commit) : <>Only the history of {branches(scope!)}</>}
         {filter && scope && <span className="muted"> · in {branches(scope)}</span>}
         <span className="muted">
           {' · '}

@@ -5,9 +5,10 @@ import { shortHash } from './util';
 
 /** Shown while a bisect is in progress: says what git needs next and takes the answer for the commit that is checked out. */
 export function BisectBanner({ state, busy, onShow }: { state: RepoState; busy: boolean; onShow?(hash: string): void }) {
-  const { bisect, head } = state;
+  const { bisect } = state;
+  const head = state.head.commit;
   if (!bisect) return null;
-  const { good, bad, suspects } = bisect;
+  const { good, bad, remaining: suspects } = bisect;
   const found = suspects === 1 && bad !== null;
   const waiting = !bad ? 'mark a bad commit to begin' : !good.length ? 'mark a good commit to begin' : null;
   const answer = (mark: 'good' | 'bad' | 'skip') => () => act({ kind: 'bisect', mark });

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { BranchLog, Commit, CommitDetail, DiffSource, RepoState } from '../shared/protocol';
+import { checkedOutBranch, upstreamName } from '../shared/state';
 import { useMenu } from './ContextMenu';
 import { ActionButtons, FileRow } from './FileRow';
 import { Icon } from './Icon';
@@ -21,10 +22,10 @@ type Open = Record<string, CommitDetail | null>;
 const logKey = (state: RepoState) =>
   [
     state.root,
-    state.head,
-    state.branch,
-    state.branches.find((branch) => branch.current)?.upstream?.name,
-    ...state.remoteBranches.map((branch) => `${branch.name} ${branch.hash}`),
+    state.head.commit,
+    checkedOutBranch(state),
+    state.branches.find((branch) => branch.isCheckedOut)?.upstream?.reference,
+    ...state.remoteBranches.map((branch) => `${branch.name} ${branch.commit}`),
   ].join('\n');
 
 const count = (number: number, more: boolean) => `${number}${more ? '+' : ''} ${number === 1 && !more ? 'commit' : 'commits'}`;
@@ -32,14 +33,15 @@ const count = (number: number, more: boolean) => `${number}${more ? '+' : ''} ${
 /** What the line above the commits says: how many are left to push, how many to pull, and against what. */
 function summary(state: RepoState, log: BranchLog): string {
   if (!log.unpushed) return 'No remote to push to';
-  const upstream = state.branches.find((branch) => branch.current)?.upstream;
+  const upstream = state.branches.find((branch) => branch.isCheckedOut)?.upstream;
   // As many as were asked for: there may be others further back.
   const waiting = count(log.unpushed.length, log.hasMore && log.unpushed.length === log.commits.length);
   if (!log.upstream) {
-    const why = state.branch ? `${state.branch} has no upstream` : 'no branch is checked out';
+    const branch = checkedOutBranch(state);
+    const why = branch ? `${branch} has no upstream` : 'no branch is checked out';
     return log.unpushed.length ? `${waiting} on no remote branch: ${why}` : `Everything is on a remote branch: ${why}`;
   }
-  const behind = upstream && !upstream.gone && upstream.behind ? `, ${count(upstream.behind, false)} to pull` : '';
+  const behind = upstream && !upstream.isGone && upstream.behind ? `, ${count(upstream.behind, false)} to pull` : '';
   return log.unpushed.length ? `${waiting} to push to ${log.upstream}${behind}` : `Everything is pushed to ${log.upstream}${behind}`;
 }
 

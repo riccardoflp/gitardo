@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import type { MergeMode, Operation, RebaseStep, RepoState, PullAction, SyncAction, WorkingState } from '../shared/protocol';
+import type { MergeMode, Operation, RebaseStep, RepoState, PullAction, SyncAction, WorkingTree } from '../shared/protocol';
+import { OPERATION_COMMANDS, upstreamBranch, upstreamName } from '../shared/state';
 import { canFastForward, refArg, worktreeOf } from '../shared/refs';
 import { RESOLUTIONS, type Proposal } from '../shared/resolution';
 import { applyReplacements, conflictCount } from './conflicts';
@@ -112,7 +113,7 @@ export function syncOp(action: SyncAction, state: RepoState): GitOp {
   if (action === 'pullAutostash') return { title: 'Pull (autostash)', commands: [['pull', '--autostash']] };
   if (action === 'pullRebaseAutostash') return { title: 'Pull (rebase, autostash)', commands: [['pull', '--rebase', '--autostash']] };
 
-  const branch = state.branches.find((candidate) => candidate.current);
+  const branch = state.branches.find((candidate) => candidate.isCheckedOut);
   if (!branch) throw new Error('Cannot push: HEAD is detached. Check out a branch first.');
 
   const args = ['push'];
@@ -123,7 +124,8 @@ export function syncOp(action: SyncAction, state: RepoState): GitOp {
   const source = refArg('branch', branch.name, state);
   const upstream = branch.upstream;
   if (upstream) {
-    args.push(upstream.remote, upstream.branch === branch.name ? source : `${source}:${upstream.branch}`);
+    const onRemote = upstreamBranch(upstream);
+    args.push(upstream.remote, onRemote === branch.name ? source : `${source}:${onRemote}`);
   } else {
     args.push('--set-upstream', defaultRemote(state), source);
   }
@@ -176,7 +178,9 @@ export function fastForwardOp(name: string, state: RepoState): GitOp {
       `${name} cannot be fast-forwarded: it needs an upstream, no commits of its own, and not to be checked out here or in a worktree with changes not committed.`,
     );
   }
-  const { remote, branch: source, name: upstream } = branch.upstream;
+  const { remote } = branch.upstream;
+  const source = upstreamBranch(branch.upstream);
+  const upstream = upstreamName(branch.upstream);
   // A branch that follows another local branch has `.` for its remote, this repository, which git fetches from as well.
   const from = remote === '.' ? remote : remoteName(remote);
   const worktree = worktreeOf(name, state);
@@ -184,7 +188,7 @@ export function fastForwardOp(name: string, state: RepoState): GitOp {
     // Whatever the settings say about pulling, this neither rebases nor puts anything aside.
     return {
       title: `Fast-forward ${name} to ${upstream} in its worktree`,
-      commands: [['-C', worktree.path, 'pull', '--ff-only', '--no-rebase', '--no-autostash', from, `refs/heads/${arg(source)}`]],
+      commands: [['-C', worktree.folder, 'pull', '--ff-only', '--no-rebase', '--no-autostash', from, `refs/heads/${arg(source)}`]],
     };
   }
   // In full, so that a tag called the same is not taken for either branch.
@@ -446,12 +450,13 @@ export function splitRebaseOp(rebase: GitOp, hash: string, gitDir: string): GitO
  * The files of a commit being split that are not committed yet, and the other changes that are not committed, which
  * git would refuse to continue with. Untracked files are left out of the others: git goes on with them there.
  */
-export function splitLeft(paths: string[], working: WorkingState): { left: string[]; others: string[] } {
+export function splitLeft(paths: string[], working: WorkingTree): { left: string[]; others: string[] } {
   const ofCommit = new Set(paths);
   const changed = [...working.staged, ...working.unstaged];
-  const left = changed.filter((file) => ofCommit.has(file.path) || (file.oldPath !== undefined && ofCommit.has(file.oldPath)));
-  const others = changed.filter((file) => !left.includes(file) && file.status !== '?');
-  return { left: [...new Set(left.map((file) => file.path))], others: [...new Set(others.map((file) => file.path))] };
+  const untracked = working.untracked.filter((file) => ofCommit.has(file));
+  const left = changed.filter((file) => ofCommit.has(file.path) || (file.originalPath !== null && ofCommit.has(file.originalPath)));
+  const others = changed.filter((file) => !left.includes(file));
+  return { left: [...new Set([...left.map((file) => file.path), ...untracked])], others: [...new Set(others.map((file) => file.path))] };
 }
 
 /** Commits what is left of a commit being split as one more commit, with `message`, and goes on with the rebase. */
@@ -613,8 +618,8 @@ export function unstageAllOp(hasHead: boolean): GitOp {
 }
 
 /** Discards unstaged changes: tracked files go back to their staged version, untracked files are deleted. */
-export function discardOp(paths: string[], working: WorkingState): GitOp {
-  const untracked = new Set(working.unstaged.filter((file) => file.status === '?').map((file) => file.path));
+export function discardOp(paths: string[], working: WorkingTree): GitOp {
+  const untracked = new Set(working.untracked);
   const restore = paths.filter((file) => !untracked.has(file));
   const remove = paths.filter((file) => untracked.has(file));
   const commands: string[][] = [];
@@ -638,14 +643,19 @@ export function discardOp(paths: string[], working: WorkingState): GitOp {
  * null. A file added since is deleted as well. Before the first commit there is nothing to go back to, so the staged
  * files are deleted with the rest.
  */
-export function discardChangesOp(paths: string[] | null, working: WorkingState, hasHead: boolean): GitOp {
-  const changed = [...working.conflicts, ...working.staged, ...working.unstaged];
+export function discardChangesOp(paths: string[] | null, working: WorkingTree, hasHead: boolean): GitOp {
+  const changed = [
+    ...working.conflicted.map((file) => ({ path: file.path, originalPath: null })),
+    ...working.staged,
+    ...working.unstaged,
+    ...working.untracked.map((file) => ({ path: file, originalPath: null })),
+  ];
   // A file taken out of the index and left on disk is untracked too, but HEAD has it to go back to.
   const staged = new Set(working.staged.map((file) => file.path));
-  const untracked = new Set(working.unstaged.filter((file) => file.status === '?' && !staged.has(file.path)).map((file) => file.path));
+  const untracked = new Set(working.untracked.filter((file) => !staged.has(file)));
   const wanted = paths && new Set(paths);
   const files = new Set(
-    changed.filter((file) => !wanted || wanted.has(file.path) || (file.oldPath && wanted.has(file.oldPath))).map((file) => file.path),
+    changed.filter((file) => !wanted || wanted.has(file.path) || (file.originalPath && wanted.has(file.originalPath))).map((file) => file.path),
   );
   const restore = [...files].filter((file) => !untracked.has(file));
   const remove = [...files].filter((file) => untracked.has(file));
@@ -824,16 +834,16 @@ export function worktreePruneOp(): GitOp {
 
 /** A submodule as its operations need it: its folder from the root, and the folder of the repository that has it. */
 export interface SubmoduleAt {
-  path: string;
-  parent: string;
+  folder: string;
+  parent: string | null;
 }
 
 /**
  * Where a command about a submodule runs, and what it calls the submodule there: one inside another submodule is
  * managed from that one, by its path from it.
  */
-function inParent({ path, parent }: SubmoduleAt): { at: string[]; inner: string } {
-  return parent ? { at: ['-C', parent], inner: path.slice(parent.length + 1) } : { at: [], inner: path };
+function inParent({ folder, parent }: SubmoduleAt): { at: string[]; inner: string } {
+  return parent ? { at: ['-C', parent], inner: folder.slice(parent.length + 1) } : { at: [], inner: folder };
 }
 
 /** The name a repository is cloned under: the last part of its URL or path, without `.git`. */
@@ -883,15 +893,15 @@ export function submoduleUpdateOp(submodule: SubmoduleAt, remote: boolean): GitO
   const { at, inner } = inParent(submodule);
   if (!remote) {
     return allowingDisk((allow) => ({
-      title: `Update ${submodule.path} to the recorded commit`,
+      title: `Update ${submodule.folder} to the recorded commit`,
       commands: [[...allow, ...at, 'submodule', 'update', '--init', '--recursive', '--', pathspec(inner)]],
     }));
   }
   return allowingDisk((allow) => ({
-    title: `Update ${submodule.path} to its remote branch`,
+    title: `Update ${submodule.folder} to its remote branch`,
     commands: [
       [...allow, ...at, 'submodule', 'update', '--init', '--remote', '--', pathspec(inner)],
-      [...allow, '-C', submodule.path, 'submodule', 'update', '--init', '--recursive'],
+      [...allow, '-C', submodule.folder, 'submodule', 'update', '--init', '--recursive'],
     ],
     note: 'Stage the submodule afterwards to record the commit it is on now.',
   }));
@@ -909,7 +919,7 @@ export function submodulesUpdateOp(): GitOp {
 export function submoduleRecordOp(submodule: SubmoduleAt, head: string): GitOp {
   const { at, inner } = inParent(submodule);
   return {
-    title: `Stage ${submodule.path} at ${short(head)}`,
+    title: `Stage ${submodule.folder} at ${short(head)}`,
     commands: [[...at, 'add', '--', pathspec(inner)]],
     note: 'Commit it to record that commit for the submodule.',
   };
@@ -921,14 +931,14 @@ export function submoduleDeinitOp(submodule: SubmoduleAt, force = false): GitOp 
   const command = [...at, 'submodule', 'deinit', ...(force ? ['--force'] : []), '--', pathspec(inner)];
   if (force) {
     return {
-      title: `Deinitialize ${submodule.path} (force)`,
+      title: `Deinitialize ${submodule.folder} (force)`,
       commands: [command],
       danger: true,
       note: 'The submodule has changes that are not committed: they will be lost. Its commits stay in its clone in the git directory.',
     };
   }
   return {
-    title: `Deinitialize ${submodule.path}`,
+    title: `Deinitialize ${submodule.folder}`,
     commands: [command],
     confirm: true,
     note: 'Its folder is emptied, and it stays in .gitmodules and in the commits: update it to get it back. Its commits stay in its clone in the git directory.',
@@ -944,7 +954,7 @@ export function submoduleDeinitOp(submodule: SubmoduleAt, force = false): GitOp 
 export function submoduleRemoveOp(submodule: SubmoduleAt, gitDir: string | null): GitOp {
   const { at, inner } = inParent(submodule);
   return {
-    title: `Remove submodule ${submodule.path}`,
+    title: `Remove submodule ${submodule.folder}`,
     commands: [
       [...at, 'submodule', 'deinit', '--force', '--', pathspec(inner)],
       [...at, 'rm', '--force', '--', pathspec(inner)],
@@ -1095,9 +1105,9 @@ export function clearIdentityOp(localKeys: string[]): GitOp {
 export const CONFLICT_SIDES: Record<Operation | 'none', [current: string, incoming: string]> = {
   merge: ['The branch checked out', 'The branch being merged'],
   rebase: ['What the branch is being rebased onto', 'Your commit being replayed'],
-  'cherry-pick': ['The branch checked out', 'The commit being picked'],
+  cherryPick: ['The branch checked out', 'The commit being picked'],
   revert: ['The branch checked out', 'The state before the reverted commit'],
-  am: ['The branch checked out', 'The patch being applied'],
+  patch: ['The branch checked out', 'The patch being applied'],
   none: ['Your files', 'The changes being applied'],
 };
 
@@ -1207,7 +1217,8 @@ export function takeSideOp(file: string, side: 'ours' | 'theirs', stages: number
 
 /** Continuing would open an editor for the commit message, which cannot work here, so the prepared message is kept as is. */
 export function continueOp(operation: Operation): GitOp {
-  return { title: `Continue ${operation}`, commands: [['-c', 'core.editor=true', operation, '--continue']] };
+  const command = OPERATION_COMMANDS[operation];
+  return { title: `Continue ${command}`, commands: [['-c', 'core.editor=true', command, '--continue']] };
 }
 
 /**
@@ -1255,14 +1266,16 @@ async function stoppedEmpty(root: string, operation: 'cherry-pick' | 'revert'): 
 
 export function skipOp(operation: Operation): GitOp {
   if (operation === 'merge') throw new Error('A merge has no steps to skip.');
-  return { title: `Skip this step of the ${operation}`, commands: [[operation, '--skip']] };
+  const command = OPERATION_COMMANDS[operation];
+  return { title: `Skip this step of the ${command}`, commands: [[command, '--skip']] };
 }
 
 export function abortOp(operation: Operation): GitOp {
+  const command = OPERATION_COMMANDS[operation];
   return {
-    title: `Abort ${operation}`,
-    commands: [[operation, '--abort']],
+    title: `Abort ${command}`,
+    commands: [[command, '--abort']],
     danger: true,
-    note: `This goes back to the state before the ${operation} started. Conflicts you already resolved will be lost.`,
+    note: `This goes back to the state before the ${command} started. Conflicts you already resolved will be lost.`,
   };
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Branch, RepoState, Row, Worktree } from '../src/shared/protocol';
 import { changesText, upstreamHint, worktreeOf, worktreeStatus } from '../src/shared/refs';
+import { branchAt, headAt, remoteAt, upstreamOf, workingTreeOf } from './states';
 
 // The menus post what is chosen to the extension; here they are only read.
 const posted = vi.hoisted(() => [] as unknown[]);
@@ -10,20 +11,19 @@ const { branchMenu, canFormatPatch, canReword, canSquash, changesMenu, commitMen
 );
 
 const worktree = (overrides: Partial<Worktree>): Worktree => ({
-  path: 'C:/prj/app',
-  hash: 'aaa',
-  branch: 'main',
-  current: true,
-  main: true,
-  prunable: false,
-  changes: 0,
+  folder: 'C:/prj/app',
+  commit: 'aaa',
+  branch: 'refs/heads/main',
+  isMain: true,
+  isCurrent: true,
+  isMissing: false,
+  uncommitted: 0,
   ...overrides,
 });
 
 const state = (worktrees: Worktree[], branches: Branch[], agentsWindow = true, openBranches: RepoState['openBranches'] = 'checkout') =>
   ({
-    head: 'aaa',
-    branch: 'main',
+    head: headAt('aaa', 'main'),
     branches,
     remoteBranches: [],
     tags: [],
@@ -42,11 +42,11 @@ const labels = (entries: ReturnType<typeof branchMenu>) =>
   entries.flatMap((entry) => (entry && entry !== 'separator' ? [entry.label] : []));
 
 describe('menus of branches that a worktree has', () => {
-  const main: Branch = { name: 'main', hash: 'aaa', current: true };
-  const login: Branch = { name: 'feature/login', hash: 'bbb', current: false };
-  const plain: Branch = { name: 'plain', hash: 'ccc', current: false };
+  const main: Branch = branchAt('main', 'aaa', { isCheckedOut: true });
+  const login: Branch = branchAt('feature/login', 'bbb', { isCheckedOut: false });
+  const plain: Branch = branchAt('plain', 'ccc', { isCheckedOut: false });
   const here = worktree({});
-  const there = worktree({ path: 'C:/prj/app.worktrees/feature/login', hash: 'bbb', branch: 'feature/login', current: false, main: false });
+  const there = worktree({ folder: 'C:/prj/app.worktrees/feature/login', commit: 'bbb', branch: 'refs/heads/feature/login', isCurrent: false, isMain: false });
   const repo = state([here, there], [main, login, plain]);
 
   it('finds the other worktree that has a branch, and not this one', () => {
@@ -67,8 +67,8 @@ describe('menus of branches that a worktree has', () => {
     const entries = branchMenu(login, repo, () => {});
     for (const entry of entries) if (entry && entry !== 'separator' && entry.label.startsWith('Remove worktree')) entry.run();
     expect(posted).toEqual([
-      { type: 'action', action: { kind: 'worktreeRemove', path: there.path, deleteBranch: false } },
-      { type: 'action', action: { kind: 'worktreeRemove', path: there.path, deleteBranch: true } },
+      { type: 'action', action: { kind: 'worktreeRemove', path: there.folder, deleteBranch: false } },
+      { type: 'action', action: { kind: 'worktreeRemove', path: there.folder, deleteBranch: true } },
     ]);
   });
 
@@ -89,8 +89,8 @@ describe('menus of branches that a worktree has', () => {
   });
 
   it('opens the main worktree from another one, which cannot be removed', () => {
-    const elsewhere = state([worktree({ current: false }), worktree({ ...there, current: true })], [{ ...main, current: false }, { ...login, current: true }], false);
-    const menu = labels(branchMenu({ ...main, current: false }, elsewhere, () => {}));
+    const elsewhere = state([worktree({ isCurrent: false }), worktree({ ...there, isCurrent: true })], [{ ...main, isCheckedOut: false }, { ...login, isCheckedOut: true }], false);
+    const menu = labels(branchMenu({ ...main, isCheckedOut: false }, elsewhere, () => {}));
     expect(menu[0]).toBe('Open worktree in new window');
     expect(menu.some((label) => /Remove worktree|Rename worktree/.test(label))).toBe(false);
   });
@@ -112,22 +112,22 @@ describe('menus of branches that a worktree has', () => {
     posted.length = 0;
     const show = worktreeMenu(there, repo).find((entry) => entry && entry !== 'separator' && entry.label === 'Show in Gitardo');
     if (show && show !== 'separator') show.run();
-    expect(posted).toEqual([{ type: 'selectRepo', root: there.path }]);
+    expect(posted).toEqual([{ type: 'selectRepo', root: there.folder }]);
 
     // Seen from the worktree of feature/login, the folder of the window is a worktree like another, but its own.
-    const window = worktree({ path: 'C:/prj/feature', branch: 'feature', current: false, main: false });
-    const shown = { ...state([worktree({}), { ...there, current: true }, window], [main, login]), home: { root: 'C:\\prj\\feature', name: 'feature' } } as RepoState;
+    const window = worktree({ folder: 'C:/prj/feature', branch: 'refs/heads/feature', isCurrent: false, isMain: false });
+    const shown = { ...state([worktree({}), { ...there, isCurrent: true }, window], [main, login]), home: { root: 'C:\\prj\\feature', name: 'feature' } } as RepoState;
     expect(labels(worktreeMenu(window, shown))).not.toEqual(expect.arrayContaining(['Rename…']));
     expect(labels(worktreeMenu(window, shown))).not.toContain('Remove…');
-    expect(labels(branchMenu({ name: 'feature', hash: 'aaa', current: false }, shown, () => {}))).not.toContain('Remove worktree…');
+    expect(labels(branchMenu(branchAt('feature', 'aaa', { isCheckedOut: false }), shown, () => {}))).not.toContain('Remove worktree…');
   });
 });
 
 describe('menus of remote branches', () => {
-  const upstream = { name: 'origin/feature', remote: 'origin', branch: 'feature', ahead: 1, behind: 2, gone: false };
-  const main: Branch = { name: 'main', hash: 'aaa', current: true };
-  const feature: Branch = { name: 'feature', hash: 'bbb', current: false, upstream };
-  const ref = { name: 'origin/feature', hash: 'ccc' };
+  const upstream = upstreamOf('origin/feature', { ahead: 1, behind: 2 });
+  const main: Branch = branchAt('main', 'aaa', { isCheckedOut: true });
+  const feature: Branch = branchAt('feature', 'bbb', { isCheckedOut: false, upstream });
+  const ref = remoteAt('origin/feature', 'ccc');
   const repo = (branches: Branch[], openBranches: RepoState['openBranches'] = 'checkout') =>
     ({ ...state([worktree({})], branches, true, openBranches), remoteBranches: [ref], remotes: ['origin'] }) as RepoState;
 
@@ -161,7 +161,7 @@ describe('menus of remote branches', () => {
   });
 
   it('opens the worktree that has the local branch of its name, instead of checking it out', () => {
-    const there = worktree({ path: 'C:/prj/app.worktrees/feature', hash: 'bbb', branch: 'feature', current: false, main: false });
+    const there = worktree({ folder: 'C:/prj/app.worktrees/feature', commit: 'bbb', branch: 'refs/heads/feature', isCurrent: false, isMain: false });
     const repoThere = { ...repo([main, feature]), worktrees: [worktree({}), there] } as RepoState;
     const menu = labels(remoteBranchMenu(ref, repoThere, () => {}));
     expect(menu.slice(0, 2)).toEqual(['Open worktree in Agents Window', 'Open worktree in new window']);
@@ -171,26 +171,26 @@ describe('menus of remote branches', () => {
     openRemoteBranch(ref, repoThere)?.();
     openRemoteBranch(ref, { ...repoThere, openBranches: 'worktree' })?.();
     expect(posted).toEqual([
-      { type: 'action', action: { kind: 'worktreeOpen', path: there.path } },
-      { type: 'action', action: { kind: 'worktreeOpen', path: there.path } },
+      { type: 'action', action: { kind: 'worktreeOpen', path: there.folder } },
+      { type: 'action', action: { kind: 'worktreeOpen', path: there.folder } },
     ]);
     // Its folder is gone: there is nothing to open, and the double click opens the commit.
-    const missing = { ...repoThere, worktrees: [worktree({}), { ...there, prunable: true }] } as RepoState;
+    const missing = { ...repoThere, worktrees: [worktree({}), { ...there, isMissing: true }] } as RepoState;
     expect(openRemoteBranch(ref, missing)).toBeUndefined();
   });
 });
 
 describe('the status of a worktree', () => {
-  const upstream = { name: 'origin/feature/login', remote: 'origin', branch: 'feature/login', ahead: 2, behind: 1, gone: false };
-  const login: Branch = { name: 'feature/login', hash: 'bbb', current: false, upstream };
-  const there = worktree({ path: 'C:/prj/app.worktrees/feature/login', hash: 'bbb', branch: 'feature/login', current: false, main: false, changes: 3 });
+  const upstream = upstreamOf('origin/feature/login', { ahead: 2, behind: 1 });
+  const login: Branch = branchAt('feature/login', 'bbb', { isCheckedOut: false, upstream });
+  const there = worktree({ folder: 'C:/prj/app.worktrees/feature/login', commit: 'bbb', branch: 'refs/heads/feature/login', isCurrent: false, isMain: false, uncommitted: 3 });
   const pull = { number: 12, title: 'Login', url: '', draft: false, checks: null };
 
   it('says how its branch stands against its upstream and what is not committed', () => {
     expect(upstreamHint(login)).toBe('↑2 ↓1');
     expect(upstreamHint({ ...login, upstream: { ...upstream, ahead: 0, behind: 0 } })).toBeUndefined();
-    expect(upstreamHint({ ...login, upstream: { ...upstream, gone: true } })).toBe('gone');
-    expect(upstreamHint({ ...login, upstream: undefined })).toBeUndefined();
+    expect(upstreamHint({ ...login, upstream: { ...upstream, isGone: true } })).toBe('gone');
+    expect(upstreamHint({ ...login, upstream: null })).toBeUndefined();
     expect([changesText(null), changesText(0), changesText(1), changesText(3)]).toEqual([
       undefined,
       'Nothing to commit',
@@ -207,24 +207,24 @@ describe('the status of a worktree', () => {
 });
 
 describe('menu of the changes that are not committed', () => {
-  const file = (status: string, path: string) => ({ status, path });
-  const changes = (working: RepoState['working'], more: Partial<RepoState> = {}) =>
-    labels(changesMenu({ ...state([], []), working, ...more } as RepoState));
+  const file = (path: string) => ({ path, originalPath: null, kind: 'modified' as const });
+  const changes = (workingTree: RepoState['workingTree'], more: Partial<RepoState> = {}) =>
+    labels(changesMenu({ ...state([], []), workingTree, ...more } as RepoState));
 
   it('stashes, stages, unstages and discards them all, as far as there is something to', () => {
-    expect(changes({ staged: [file('M', 'a.txt')], unstaged: [file('?', 'b.txt')], conflicts: [] })).toEqual([
+    expect(changes(workingTreeOf({ staged: [file('a.txt')], untracked: ['b.txt'] }))).toEqual([
       'Stash changes…',
       'Stash staged changes…',
       'Stage all changes',
       'Unstage all changes',
       'Discard all changes…',
     ]);
-    expect(changes({ staged: [], unstaged: [file('M', 'a.txt')], conflicts: [] })).toEqual(['Stash changes…', 'Stage all changes', 'Discard all changes…']);
+    expect(changes(workingTreeOf({ unstaged: [file('a.txt')] }))).toEqual(['Stash changes…', 'Stage all changes', 'Discard all changes…']);
   });
 
   it('leaves out stashing before the first commit, staging over conflicts, and discarding during a merge', () => {
-    expect(changes({ staged: [], unstaged: [file('?', 'a.txt')], conflicts: [] }, { head: null })).toEqual(['Stage all changes', 'Discard all changes…']);
-    expect(changes({ staged: [file('M', 'a.txt')], unstaged: [file('M', 'c.txt')], conflicts: [file('U', 'c.txt')] }, { operation: 'merge' })).toEqual([
+    expect(changes(workingTreeOf({ untracked: ['a.txt'] }), { head: headAt(null) })).toEqual(['Stage all changes', 'Discard all changes…']);
+    expect(changes(workingTreeOf({ staged: [file('a.txt')], unstaged: [file('c.txt')], conflicted: [{ path: 'c.txt', kind: 'bothModified' }] }), { operation: 'merge' })).toEqual([
       'Stash changes…',
       'Stash staged changes…',
       'Unstage all changes',
@@ -235,14 +235,14 @@ describe('menu of the changes that are not committed', () => {
 describe('changing the message of a commit', () => {
   const row = (hash: string, parents: string[]): Row => ({ hash, parents, author: '', email: '', date: 0, subject: hash, graph: [] as never });
   const rows = [row('d', ['c']), row('c', ['b']), row('b', ['a', 'x']), row('a', [])];
-  const repo = (more: Partial<RepoState> = {}) => ({ ...state([], []), head: 'd', rows, working: { staged: [], unstaged: [], conflicts: [] }, bisect: null, ...more }) as RepoState;
+  const repo = (more: Partial<RepoState> = {}) => ({ ...state([], []), head: headAt('d', 'main'), rows, workingTree: workingTreeOf(), bisect: null, ...more }) as RepoState;
   const tools = { selected: null, onInteractiveRebase: () => {}, onCompare: () => {}, onEditMessage: () => {} };
 
   it('is offered on the commits down to the first merge, and not while something else is going on', () => {
     expect(['d', 'c', 'b', 'a'].map((hash) => canReword(hash, repo()))).toEqual([true, true, false, false]);
     expect(canReword('d', repo({ operation: 'merge' }))).toBe(false);
     // The last commit is amended, merge or not.
-    expect(canReword('b', repo({ head: 'b', rows: rows.slice(2) }))).toBe(true);
+    expect(canReword('b', repo({ head: headAt('b', 'main'), rows: rows.slice(2) }))).toBe(true);
     expect(labels(commitMenu(rows[1], repo(), tools))).toContain('Edit message…');
     expect(labels(commitMenu(rows[2], repo(), tools))).not.toContain('Edit message…');
   });
@@ -251,7 +251,7 @@ describe('changing the message of a commit', () => {
 describe('squashing commits', () => {
   const row = (hash: string, parents: string[]): Row => ({ hash, parents, author: '', email: '', date: 0, subject: hash, graph: [] as never });
   const rows = [row('e', ['d']), row('d', ['c']), row('c', ['b']), row('b', ['a', 'x']), row('a', [])];
-  const repo = (more: Partial<RepoState> = {}) => ({ ...state([], []), head: 'e', rows, working: { staged: [], unstaged: [], conflicts: [] }, bisect: null, ...more }) as RepoState;
+  const repo = (more: Partial<RepoState> = {}) => ({ ...state([], []), head: headAt('e', 'main'), rows, workingTree: workingTreeOf(), bisect: null, ...more }) as RepoState;
   const tools = { selected: null, onInteractiveRebase: () => {}, onCompare: () => {}, onEditMessage: () => {} };
   const pick = (...hashes: string[]) => rows.filter((each) => hashes.includes(each.hash));
 
@@ -276,8 +276,8 @@ describe('squashing commits', () => {
 });
 
 describe('ways to merge', () => {
-  const main: Branch = { name: 'main', hash: 'aaa', current: true };
-  const feature: Branch = { name: 'feature', hash: 'bbb', current: false };
+  const main: Branch = branchAt('main', 'aaa', { isCheckedOut: true });
+  const feature: Branch = branchAt('feature', 'bbb', { isCheckedOut: false });
   const repo = { ...state([worktree({})], [main, feature]), rows: [] } as unknown as RepoState;
   const choose = (entries: ReturnType<typeof branchMenu>, label: string) => {
     posted.length = 0;
@@ -305,7 +305,7 @@ describe('ways to merge', () => {
 describe('commits as a patch', () => {
   const row = (hash: string, parents: string[]): Row => ({ hash, parents, author: '', email: '', date: 0, subject: hash, graph: [] as never });
   const rows = [row('d', ['c']), row('c', ['b', 'x']), row('b', ['a']), row('a', [])];
-  const repo = { ...state([], []), head: 'd', rows, working: { staged: [], unstaged: [], conflicts: [] }, bisect: null } as RepoState;
+  const repo = { ...state([], []), head: headAt('d', 'main'), rows, workingTree: workingTreeOf(), bisect: null } as RepoState;
   const tools = { selected: null, onInteractiveRebase: () => {}, onCompare: () => {}, onEditMessage: () => {} };
 
   it('is offered for commits that are not merges, the first one included', () => {

@@ -30,7 +30,7 @@ async function main() {
       (result) =>
         `${result.rows.length} rows, ${kb(result)} (rows ${kb(result.rows)}), ` +
         `widest ${Math.max(...result.rows.map((row) => laneCount(row.graph)))} lanes, ` +
-        `${result.branches.length} branches, ${result.tags.length} tags, ${result.working.unstaged.length + result.working.staged.length} changes`,
+        `${result.branches.length} branches, ${result.tags.length} tags, ${result.workingTree.unstaged.length + result.workingTree.staged.length + result.workingTree.untracked.length} changes`,
     );
     if (limit === 1000) {
       const commit = state.rows.find((row) => row.parents.length === 1)!;

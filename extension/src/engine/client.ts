@@ -7,6 +7,7 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { Connection, ENDED, EngineError, ErrorCode } from './connection';
 import type { Head, JournalEntry, UndoRecord } from './journal';
+import type { FileChange, RepositoryState } from '../shared/state';
 import {
   AiMethod,
   type AskedConflict,
@@ -29,8 +30,6 @@ import {
   type ConfirmParams,
   type ConflictFile,
   type ConflictProposals,
-  type EngineFileChange,
-  type EngineState,
   type FeatureRunParams,
   type Finished,
   type FollowUp,
@@ -140,9 +139,9 @@ export class EngineClient {
   private connection?: Connection;
   private started?: Promise<InitializeResult>;
   private readonly opened = new Set<string>();
-  private readonly openings = new Map<string, Promise<EngineState>>();
+  private readonly openings = new Map<string, Promise<RepositoryState>>();
   private readonly exits: number[] = [];
-  private readonly stateHandlers = new Set<(repository: string, state: EngineState) => void>();
+  private readonly stateHandlers = new Set<(repository: string, state: RepositoryState) => void>();
   /** The askers of the runs waiting for their answer, by the id of their `feature/run`. */
   private readonly askers = new Map<number, FeatureAsker>();
   /** The follow-ups of the runs, sent before their answers. */
@@ -171,9 +170,9 @@ export class EngineClient {
   }
 
   /** Opens a repository, and gives its state; it is opened again after a restart. */
-  async open(repository: string, signal?: AbortSignal): Promise<EngineState> {
+  async open(repository: string, signal?: AbortSignal): Promise<RepositoryState> {
     const connection = await this.ready();
-    const { state } = await connection.request<{ state: EngineState }>(Method.open, { repository }, signal);
+    const { state } = await connection.request<{ state: RepositoryState }>(Method.open, { repository }, signal);
     this.opened.add(repository);
     return state;
   }
@@ -186,9 +185,9 @@ export class EngineClient {
   }
 
   /** Reads the state of a repository opened. */
-  async readState(repository: string, signal?: AbortSignal): Promise<EngineState> {
+  async readState(repository: string, signal?: AbortSignal): Promise<RepositoryState> {
     const connection = await this.ready();
-    return connection.request<EngineState>(Method.readState, { repository }, signal);
+    return connection.request<RepositoryState>(Method.readState, { repository }, signal);
   }
 
   /** Opens a repository unless it is open, once for the reads that ask at the same time. */
@@ -198,13 +197,13 @@ export class EngineClient {
   }
 
   /** The state of a repository as it is now: the one read as it opens, when it was not open yet (`repo.read-state`). */
-  async currentState(repository: string, signal?: AbortSignal): Promise<EngineState> {
+  async currentState(repository: string, signal?: AbortSignal): Promise<RepositoryState> {
     if (this.opened.has(repository)) return this.readState(repository, signal);
     return this.opening(repository);
   }
 
   /** The opening of a repository under way, shared by those who ask while it runs. */
-  private opening(repository: string): Promise<EngineState> {
+  private opening(repository: string): Promise<RepositoryState> {
     let opening = this.openings.get(repository);
     if (!opening) {
       opening = this.open(repository).finally(() => this.openings.delete(repository));
@@ -278,7 +277,7 @@ export class EngineClient {
   }
 
   /** What is not committed (`changes.read-working-tree`). */
-  workingTree(repository: string, signal?: AbortSignal): Promise<EngineState['workingTree']> {
+  workingTree(repository: string, signal?: AbortSignal): Promise<RepositoryState['workingTree']> {
     return this.read(ReadMethod.workingTree, repository, {}, signal);
   }
 
@@ -323,14 +322,14 @@ export class EngineClient {
   }
 
   /** The files that differ between two commits (`compare.read-files`). */
-  compareFiles(repository: string, from: string, to: string, signal?: AbortSignal): Promise<EngineFileChange[]> {
+  compareFiles(repository: string, from: string, to: string, signal?: AbortSignal): Promise<FileChange[]> {
     return this.read(ReadMethod.compareFiles, repository, { from, to }, signal);
   }
 
   /** The lines that differ in a comparison, in some of its files, as lines or as text (`compare.read-patch`). */
   comparePatch(
     repository: string,
-    request: CompareRequest & { mergeBase: string | null; files: EngineFileChange[]; form: 'lines' | 'text' },
+    request: CompareRequest & { mergeBase: string | null; files: FileChange[]; form: 'lines' | 'text' },
     signal?: AbortSignal,
   ): Promise<Patch> {
     return this.read(ReadMethod.comparePatch, repository, request, signal);
@@ -376,7 +375,7 @@ export class EngineClient {
   }
 
   /** The identity commits are made with, and the keys of it the repository sets (`identity.read`). */
-  identity(repository: string, signal?: AbortSignal): Promise<{ identity: EngineState['identity']; localKeys: string[] }> {
+  identity(repository: string, signal?: AbortSignal): Promise<{ identity: RepositoryState['identity']; localKeys: string[] }> {
     return this.read(ReadMethod.identity, repository, {}, signal);
   }
 
@@ -501,7 +500,7 @@ export class EngineClient {
   }
 
   /** Calls a handler with each state the engine sends after files changed; disposing it stops that. */
-  onState(handler: (repository: string, state: EngineState) => void): {
+  onState(handler: (repository: string, state: RepositoryState) => void): {
     dispose(): void;
   } {
     this.stateHandlers.add(handler);

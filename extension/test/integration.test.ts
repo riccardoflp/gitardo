@@ -72,7 +72,8 @@ import { hunkPatch, linesPatch } from '../src/git/parse';
 import { Repo } from '../src/git/repo';
 import { changeSetup, foldersToLink, previewSetup, proposedCommands, scanIgnored, setUpWorktree, unlinkFolderLinks } from '../src/git/worktreeSetup';
 import { WORKTREE, type CompareCommit, type Filter, type RebaseStep, type RepoState, type Scope } from '../src/shared/protocol';
-import { canFastForward } from '../src/shared/refs';
+import { canFastForward, recentBranches } from '../src/shared/refs';
+import { CHANGE_LETTERS, checkedOutBranch, stashName } from '../src/shared/state';
 
 // Runs the real commands against a throwaway repository, the way the extension does.
 
@@ -104,8 +105,8 @@ const subjects = async () => (await state()).rows.map((row) => row.subject);
 const mainSubjects = async () => (await git(root, ['log', '--format=%s', 'main'])).stdout.trim().split('\n');
 const undo = async () => {
   const current = await state();
-  const info = await repo.undoInfo(current.branch, current.working);
-  if (info) await run(undoOp(info, current.branch));
+  const info = await repo.undoInfo(checkedOutBranch(current), current.workingTree);
+  if (info) await run(undoOp(info, checkedOutBranch(current)));
   return info;
 };
 const write = (file: string, content: string) => fs.writeFileSync(path.join(root, file), content);
@@ -114,7 +115,7 @@ const state = () => repo.state(100);
 const commitAll = async (message: string) => {
   await run(stageAllOp());
   await run(commitOp(message, false, false));
-  return (await state()).head!;
+  return (await state()).head.commit!;
 };
 
 /** Leaves `main` and `other` with different content on the same line of the same file. */
@@ -145,21 +146,21 @@ afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
 
 describe('against a real repository', { timeout: 60_000 }, () => {
   it('stages, unstages and commits in a repository with no commits yet', async () => {
-    expect(await state()).toMatchObject({ head: null, branch: 'main', rows: [], changes: 0, operation: null });
+    expect(await state()).toMatchObject({ head: { commit: null, branch: 'refs/heads/main' }, rows: [], changes: 0, operation: null });
 
     write('a.txt', 'one\n');
-    expect((await state()).working.unstaged).toEqual([{ status: '?', path: 'a.txt' }]);
+    expect((await state()).workingTree.untracked).toEqual(['a.txt']);
 
     await run(stageOp(['a.txt']));
-    expect((await state()).working.staged).toEqual([{ status: 'A', path: 'a.txt' }]);
+    expect((await state()).workingTree.staged).toEqual([{ kind: 'added', path: 'a.txt', originalPath: null }]);
 
     await run(unstageOp(['a.txt'], false));
-    expect((await state()).working).toEqual({ staged: [], unstaged: [{ status: '?', path: 'a.txt' }], conflicts: [] });
+    expect((await state()).workingTree).toEqual({ staged: [], unstaged: [], untracked: ['a.txt'], conflicted: [] });
 
     const head = await commitAll('First commit');
     const after = await state();
     expect(after.rows.map((row) => row.subject)).toEqual(['First commit']);
-    expect(after.branches).toMatchObject([{ name: 'main', hash: head, current: true }]);
+    expect(after.branches).toMatchObject([{ name: 'main', commit: head, isCheckedOut: true }]);
     expect(after.changes).toBe(0);
   });
 
@@ -182,10 +183,10 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     write('new.txt', 'untracked\n');
 
     const dirty = await state();
-    expect(dirty.rows[0]).toMatchObject({ hash: WORKTREE, parents: [dirty.head] });
+    expect(dirty.rows[0]).toMatchObject({ hash: WORKTREE, parents: [dirty.head.commit] });
     expect(dirty.changes).toBe(2);
 
-    await run(discardOp(['a.txt', 'new.txt'], dirty.working));
+    await run(discardOp(['a.txt', 'new.txt'], dirty.workingTree));
     expect((await state()).changes).toBe(0);
     expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('one\n');
     expect(exists('new.txt')).toBe(false);
@@ -209,11 +210,11 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
     // One file goes back whole, its staged change too; the rename with both of its names.
     let dirty = await state();
-    await run(discardChangesOp(['a.txt'], dirty.working, true));
+    await run(discardChangesOp(['a.txt'], dirty.workingTree, true));
     expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('one\n');
     dirty = await state();
-    const renamed = dirty.working.staged.find((file) => file.status === 'R')!;
-    const op = discardChangesOp([renamed.path, renamed.oldPath!, 'untracked.txt'], dirty.working, true);
+    const renamed = dirty.workingTree.staged.find((file) => file.kind === 'renamed')!;
+    const op = discardChangesOp([renamed.path, renamed.originalPath!, 'untracked.txt'], dirty.workingTree, true);
     expect(op.title).toBe('Discard all changes in 2 files');
     expect(op.danger).toBe(true);
     await run(op);
@@ -221,7 +222,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
     // All at once, untracked folders included.
     dirty = await state();
-    const all = discardChangesOp(null, dirty.working, true);
+    const all = discardChangesOp(null, dirty.workingTree, true);
     expect(all.commands).toEqual([
       ['restore', '--source=HEAD', '--staged', '--worktree', '--', '.'],
       ['clean', '-f', '-d', '--', '.'],
@@ -230,14 +231,14 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await run(all);
     expect((await state()).changes).toBe(0);
     expect([exists('added.txt'), exists('folder'), fs.readFileSync(path.join(root, 'b.txt'), 'utf8')]).toEqual([false, false, 'bee\n']);
-    expect(() => discardChangesOp(null, { staged: [], unstaged: [], conflicts: [] }, true)).toThrow('There is nothing to discard.');
+    expect(() => discardChangesOp(null, { staged: [], unstaged: [], untracked: [], conflicted: [] }, true)).toThrow('There is nothing to discard.');
   });
 
   it('discards everything before the first commit, staged files too', async () => {
     write('a.txt', 'one\n');
     await git(root, ['add', 'a.txt']);
     write('b.txt', 'two\n');
-    const op = discardChangesOp(null, (await state()).working, false);
+    const op = discardChangesOp(null, (await state()).workingTree, false);
     expect(op.commands[0]).toEqual(['rm', '-r', '--force', '--quiet', '--', '.']);
     await run(op);
     expect([exists('a.txt'), exists('b.txt')]).toEqual([false, false]);
@@ -248,11 +249,11 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await commitAll('Add file');
     await git(root, ['mv', 'old.txt', 'new.txt']);
 
-    const [renamed] = (await state()).working.staged;
-    expect(renamed).toEqual({ status: 'R', path: 'new.txt', oldPath: 'old.txt' });
+    const [renamed] = (await state()).workingTree.staged;
+    expect(renamed).toEqual({ kind: 'renamed', path: 'new.txt', originalPath: 'old.txt' });
 
-    await run(unstageOp([renamed.path, renamed.oldPath!], true));
-    expect((await state()).working.staged).toEqual([]);
+    await run(unstageOp([renamed.path, renamed.originalPath!], true));
+    expect((await state()).workingTree.staged).toEqual([]);
   });
 
   it('discards a file taken out of the index and left on disk back to HEAD, rather than deleting it', async () => {
@@ -261,7 +262,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await git(root, ['rm', '--cached', '--quiet', 'a.txt']);
     write('a.txt', 'changed\n');
 
-    await run(discardChangesOp(['a.txt'], (await state()).working, true));
+    await run(discardChangesOp(['a.txt'], (await state()).workingTree, true));
     expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('one\n');
     expect((await state()).changes).toBe(0);
   });
@@ -271,7 +272,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await commitAll('First commit');
 
     await run(createBranchOp('feature', 'HEAD', true));
-    expect((await state()).branch).toBe('feature');
+    expect(checkedOutBranch(await state())).toBe('feature');
     write('b.txt', 'feature\n');
     const tip = await commitAll('Feature work');
 
@@ -279,7 +280,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await expect(run(deleteBranchOp('feature', false))).rejects.toThrow(/not fully merged/);
 
     await run(mergeOp('feature', 'main'));
-    expect(await state()).toMatchObject({ branch: 'main', head: tip });
+    expect(await state()).toMatchObject({ head: { commit: tip, branch: 'refs/heads/main' } });
 
     await run(renameBranchOp('feature', 'done'));
     await run(deleteBranchOp('done', false));
@@ -290,7 +291,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await divergent();
 
     await expect(run(mergeOp('other', 'main'))).rejects.toThrow();
-    expect(await state()).toMatchObject({ operation: 'merge', working: { conflicts: [{ status: 'U', path: 'a.txt' }] } });
+    expect(await state()).toMatchObject({ operation: 'merge', workingTree: { conflicted: [{ path: 'a.txt' }] } });
     expect(await repo.conflictNames()).toEqual(['main', 'other']);
 
     await run(abortOp('merge'));
@@ -299,7 +300,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await expect(run(mergeOp('other', 'main'))).rejects.toThrow();
     write('a.txt', 'resolved\n');
     await run(stageOp(['a.txt']));
-    expect((await state()).working.conflicts).toEqual([]);
+    expect((await state()).workingTree.conflicted).toEqual([]);
     await run(continueOp('merge'));
 
     const merged = await state();
@@ -312,12 +313,12 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     const other = await divergent();
 
     await expect(run(rebaseOp('other', 'main'))).rejects.toThrow();
-    expect(await state()).toMatchObject({ operation: 'rebase', branch: null });
+    expect(await state()).toMatchObject({ operation: 'rebase', head: { branch: null } });
     // The current side is what the branch is rebased onto, and the incoming side is the branch being rebased.
     expect(await repo.conflictNames()).toEqual(['other', 'main']);
 
     await run(skipOp('rebase'));
-    expect(await state()).toMatchObject({ operation: null, branch: 'main', head: other });
+    expect(await state()).toMatchObject({ operation: null, head: { commit: other, branch: 'refs/heads/main' } });
   });
 
   it('cherry-picks, reverts and resets', async () => {
@@ -331,14 +332,14 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await run(cherryPickOp(picked, false));
     expect(exists('b.txt')).toBe(true);
     const afterPick = await state();
-    expect(afterPick.rows.find((row) => row.hash === afterPick.head)).toMatchObject({ subject: 'Feature work', parents: [first] });
+    expect(afterPick.rows.find((row) => row.hash === afterPick.head.commit)).toMatchObject({ subject: 'Feature work', parents: [first] });
 
-    await run(revertOp(afterPick.head!, false));
+    await run(revertOp(afterPick.head.commit!, false));
     expect(exists('b.txt')).toBe(false);
-    expect((await repo.commitDetail((await state()).head!))!.subject).toBe('Revert "Feature work"');
+    expect((await repo.commitDetail((await state()).head.commit!))!.message).toMatch(/^Revert "Feature work"\n/);
 
     await run(resetOp(first, 'hard', 'main'));
-    expect((await state()).head).toBe(first);
+    expect((await state()).head.commit).toBe(first);
   });
 
   it('records the commit a cherry-pick was picked from only when asked, for one commit and for several', async () => {
@@ -356,7 +357,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect(cherryPickOp(one, false).commands).toEqual([['cherry-pick', one]]);
     expect(cherryPickOp(one, true, true).commands).toEqual([['cherry-pick', '-x', '-m', '1', one]]);
     await run(cherryPickOp(one, false, true));
-    expect(await repo.commitMessage((await state()).head!)).toBe(`Add b\n\n(cherry picked from commit ${one})`);
+    expect(await repo.commitMessage((await state()).head.commit!)).toBe(`Add b\n\n(cherry picked from commit ${one})`);
 
     await run(cherryPickManyOp([two, three], true));
     // The branch picked from has commits of the same time: what main has is asked of git, not of the rows.
@@ -366,7 +367,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
     await run(resetOp(first, 'hard', 'main'));
     await run(cherryPickManyOp([two, three]));
-    expect(await repo.commitMessage((await state()).head!)).toBe('Add d');
+    expect(await repo.commitMessage((await state()).head.commit!)).toBe('Add d');
   });
 
   it('merges as git does by default, always with a merge commit, as a fast-forward only, or as a squash, and undoes each', async () => {
@@ -386,15 +387,15 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     const merged = await state();
     expect(merged.rows[0]).toMatchObject({ parents: [base, tip] });
     expect(await undo()).toMatchObject({ kind: 'move', previous: base });
-    expect(await state()).toMatchObject({ head: base, changes: 0 });
+    expect(await state()).toMatchObject({ head: { commit: base }, changes: 0 });
 
     await run(mergeOp('feature', 'main', 'fastForwardOnly'));
-    expect((await state()).head).toBe(tip);
+    expect((await state()).head.commit).toBe(tip);
     expect(await undo()).toMatchObject({ kind: 'move', previous: base });
-    expect((await state()).head).toBe(base);
+    expect((await state()).head.commit).toBe(base);
 
     await run(mergeOp('feature', 'main'));
-    expect((await state()).head).toBe(tip);
+    expect((await state()).head.commit).toBe(tip);
     await undo();
 
     // A squash stages the changes and commits nothing, so the reflog has nothing to take back: it is undone by itself.
@@ -402,13 +403,13 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect(isSquashMerge(squash)).toBe(true);
     expect(isSquashMerge(mergeOp('feature', 'main'))).toBe(false);
     await run(squash);
-    expect(await state()).toMatchObject({ head: base, operation: null, working: { staged: [{ status: 'A', path: 'b.txt' }] } });
+    expect(await state()).toMatchObject({ head: { commit: base }, operation: null, workingTree: { staged: [{ kind: 'added', path: 'b.txt', originalPath: null }] } });
     expect(await repo.squashMessage()).toContain('Feature work');
     write('c.txt', 'not staged\n');
     await run(undoSquashOp(squash.title));
     expect(exists('b.txt')).toBe(false);
     expect(exists('c.txt')).toBe(true);
-    expect(await state()).toMatchObject({ head: base, working: { staged: [] } });
+    expect(await state()).toMatchObject({ head: { commit: base }, workingTree: { staged: [] } });
     expect(await repo.squashMessage()).toBeNull();
     fs.rmSync(path.join(root, 'c.txt'));
 
@@ -417,21 +418,21 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     const own = await commitAll('Main work');
     expect(await repo.canFastForwardTo('feature')).toBe(false);
     await expect(run(mergeOp('feature', 'main', 'fastForwardOnly'))).rejects.toThrow();
-    expect((await state()).head).toBe(own);
+    expect((await state()).head.commit).toBe(own);
     await run(mergeOp('feature', 'main'));
     expect((await state()).rows[0]).toMatchObject({ parents: [own, tip] });
   });
 
   it('undoes a squash merge that stopped on conflicts, which leaves no merge to abort', async () => {
     const other = await divergent();
-    const head = (await state()).head;
+    const head = (await state()).head.commit;
     const squash = mergeOp('other', 'main', 'squash');
     await expect(run(squash)).rejects.toThrow();
-    expect(await state()).toMatchObject({ head, operation: null, working: { conflicts: [{ status: 'U', path: 'a.txt' }] } });
+    expect(await state()).toMatchObject({ head: { commit: head }, operation: null, workingTree: { conflicted: [{ path: 'a.txt' }] } });
     expect(await repo.squashMessage()).toContain(other);
 
     await run(undoSquashOp(squash.title));
-    expect(await state()).toMatchObject({ head, changes: 0, working: { conflicts: [] } });
+    expect(await state()).toMatchObject({ head: { commit: head }, changes: 0, workingTree: { conflicted: [] } });
     expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('main\n');
   });
 
@@ -444,10 +445,10 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await run(stashPushOp('work in progress'));
     const stashed = await state();
     expect(stashed.changes).toBe(0);
-    expect(stashed.stashes).toMatchObject([{ ref: 'stash@{0}', message: 'On main: work in progress' }]);
+    expect(stashed.stashes).toMatchObject([{ index: 0, message: 'On main: work in progress' }]);
     // Stashes have their own list; their commits must stay out of the graph.
     expect(stashed.rows).toHaveLength(1);
-    expect((await repo.commitDetail(stashed.stashes[0].hash))!.files).toEqual([{ status: 'M', path: 'a.txt' }]);
+    expect((await repo.commitDetail(stashed.stashes[0].commit))!.files).toEqual([{ kind: 'modified', path: 'a.txt', originalPath: null }]);
 
     await run(stashOp('pop', 'stash@{0}'));
     expect(await state()).toMatchObject({ changes: 2, stashes: [] });
@@ -460,8 +461,8 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await run(createTagOp('light', 'HEAD', ''));
     const { tags, branches } = await state();
     expect(tags).toMatchObject([
-      { name: 'light', hash: head },
-      { name: 'v1', hash: head },
+      { name: 'light', commit: head },
+      { name: 'v1', commit: head },
     ]);
     // When they were made, to list them by date.
     const now = Date.now() / 1000;
@@ -487,7 +488,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
     const staged = await repo.hunks('a.txt', true);
     await run(hunkOp('unstageHunk', 'a.txt', hunkPatch(staged, staged.hunks[0])));
-    expect((await state()).working.staged).toEqual([]);
+    expect((await state()).workingTree.staged).toEqual([]);
 
     const again = await repo.hunks('a.txt', false);
     await run(hunkOp('discardHunk', 'a.txt', hunkPatch(again, again.hunks[1])));
@@ -507,7 +508,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await run(checkoutOp('branch', 'main'));
     expect(await repo.conflictsWith('clean')).toEqual([]);
     expect(await repo.conflictsWith(clean, `${clean}^`)).toEqual([]);
-    expect(await state()).toMatchObject({ changes: 0, operation: null, branch: 'main' });
+    expect(await state()).toMatchObject({ changes: 0, operation: null, head: { branch: 'refs/heads/main' } });
 
     expect(await repo.commitsOnlyIn('other', 10)).toEqual([`${other.slice(0, 7)} other change`]);
     expect(await repo.commitsOnlyIn('main', 10)).toEqual([]);
@@ -521,30 +522,30 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     write('a.txt', 'two\n');
     const second = await commitAll('Second commit');
     expect(await undo()).toMatchObject({ kind: 'move', previous: first, mode: 'soft' });
-    expect(await state()).toMatchObject({ head: first, working: { staged: [{ status: 'M', path: 'a.txt' }] } });
+    expect(await state()).toMatchObject({ head: { commit: first }, workingTree: { staged: [{ kind: 'modified', path: 'a.txt', originalPath: null }] } });
     // Undoing the undo brings the commit back.
     expect(await undo()).toMatchObject({ kind: 'move', previous: second });
-    expect(await state()).toMatchObject({ head: second, changes: 0 });
+    expect(await state()).toMatchObject({ head: { commit: second }, changes: 0 });
 
     await run(resetOp(first, 'hard', 'main'));
     expect(await undo()).toMatchObject({ previous: second, mode: 'keep' });
-    expect((await state()).head).toBe(second);
+    expect((await state()).head.commit).toBe(second);
 
     await run(resetOp(first, 'mixed', 'main'));
     expect(await undo()).toMatchObject({ previous: second, mode: 'mixed' });
-    expect(await state()).toMatchObject({ head: second, changes: 0 });
+    expect(await state()).toMatchObject({ head: { commit: second }, changes: 0 });
 
     await run(createBranchOp('side', first, true));
     expect(await undo()).toEqual({ kind: 'checkout', from: 'main' });
-    expect((await state()).branch).toBe('main');
+    expect(checkedOutBranch(await state())).toBe('main');
 
     await run(checkoutOp('branch', 'side'));
     write('b.txt', 'side\n');
     const side = await commitAll('Side commit');
     await run(rebaseOp('main', 'side'));
-    expect((await state()).head).not.toBe(side);
+    expect((await state()).head.commit).not.toBe(side);
     expect(await undo()).toMatchObject({ kind: 'move', previous: side });
-    expect(await state()).toMatchObject({ head: side, branch: 'side' });
+    expect(await state()).toMatchObject({ head: { commit: side, branch: 'refs/heads/side' } });
   });
 
   it('restores a deleted branch and a dropped stash', async () => {
@@ -558,10 +559,10 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     write('a.txt', 'two\n');
     await run(stashPushOp('keep me'));
     const [stash] = (await state()).stashes;
-    await run(stashOp('drop', stash.ref));
+    await run(stashOp('drop', stashName(stash)));
     expect((await state()).stashes).toEqual([]);
-    await run(restoreStashOp(stash.message, stash.hash));
-    expect((await state()).stashes).toMatchObject([{ hash: stash.hash, message: 'On main: keep me' }]);
+    await run(restoreStashOp(stash.message, stash.commit));
+    expect((await state()).stashes).toMatchObject([{ commit: stash.commit, message: 'On main: keep me' }]);
   });
 
   it('lists what a stash changes and took along, and knows which branches delete without forcing', async () => {
@@ -596,15 +597,15 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     write('c.txt', 'staged\n');
     await run(stageOp(['c.txt']));
     await run(rewordHeadOp('Add c, reworded\n\n# Not a comment.\n'));
-    expect(await repo.commitMessage((await state()).head!)).toBe('Add c, reworded\n\n# Not a comment.');
-    expect((await state()).working.staged).toEqual([{ status: 'M', path: 'c.txt' }]);
+    expect(await repo.commitMessage((await state()).head.commit!)).toBe('Add c, reworded\n\n# Not a comment.');
+    expect((await state()).workingTree.staged).toEqual([{ kind: 'modified', path: 'c.txt', originalPath: null }]);
 
     // The line after b, which a rebase makes again, and nothing for a commit that is not before HEAD.
-    const head = (await state()).head!;
+    const head = (await state()).head.commit!;
     expect(await repo.lineAfter(hashes.base)).toEqual([head, hashes.b]);
     expect(await repo.lineAfter(head)).toEqual([]);
     await git(root, ['commit', '--allow-empty', '-m', 'Elsewhere', '--quiet']);
-    const elsewhere = (await state()).head!;
+    const elsewhere = (await state()).head.commit!;
     await git(root, ['reset', '--soft', 'HEAD~1']);
     expect(await repo.lineAfter(elsewhere)).toBeNull();
     expect(await repo.remoteBranchesWith(hashes.b)).toEqual([]);
@@ -652,15 +653,15 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await run(rebaseInteractiveOp(hashes.base, file('todo'), todo, 'main'));
     fs.rmSync(dir, { recursive: true, force: true });
 
-    expect(await state()).toMatchObject({ operation: null, branch: 'main', changes: 0 });
+    expect(await state()).toMatchObject({ operation: null, head: { branch: 'refs/heads/main' }, changes: 0 });
     expect(await subjects()).toEqual(['Add b and d', 'Add c', 'Add base']);
-    const top = await repo.commitDetail((await state()).head!);
-    expect(top).toMatchObject({ body: 'Reworded.', files: [{ status: 'A', path: 'b.txt' }, { status: 'A', path: 'd.txt' }] });
+    const top = await repo.commitDetail((await state()).head.commit!);
+    expect(top).toMatchObject({ message: 'Add b and d\n\nReworded.', files: [{ kind: 'added', path: 'b.txt', originalPath: null }, { kind: 'added', path: 'd.txt', originalPath: null }] });
     expect(exists('e.txt')).toBe(false);
 
     // One undo takes back the whole rebase.
     await undo();
-    expect((await state()).head).toBe(hashes.e);
+    expect((await state()).head.commit).toBe(hashes.e);
   });
 
   it('squashes commits into one under a new message, makes the ones after them again and keeps what is not committed', async () => {
@@ -716,19 +717,19 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       { action: 'edit', hash: hashes.c },
       { action: 'pick', hash: hashes.d },
     ]);
-    expect(await state()).toMatchObject({ operation: 'rebase', rebaseStop: { kind: 'edit', hash: hashes.b, subject: 'Add b' } });
+    expect(await state()).toMatchObject({ operation: 'rebase', rebaseStop: { kind: 'edit', commit: hashes.b, subject: 'Add b' } });
     // Amended, the commit is still the one the rebase stopped at.
     write('b.txt', 'b amended\n');
     await run(commitOp('', true, true));
-    expect((await state()).rebaseStop).toMatchObject({ hash: hashes.b });
+    expect((await state()).rebaseStop).toMatchObject({ commit: hashes.b });
     await run(continueOp('rebase'));
     const c = (await line())[2];
-    expect(await state()).toMatchObject({ operation: 'rebase', rebaseStop: { kind: 'edit', hash: c, subject: 'Add c' } });
+    expect(await state()).toMatchObject({ operation: 'rebase', rebaseStop: { kind: 'edit', commit: c, subject: 'Add c' } });
     // A commit made after it goes in before the ones that follow.
     write('extra.txt', 'extra\n');
     await commitAll('Add extra');
     await run(continueOp('rebase'));
-    expect(await state()).toMatchObject({ operation: null, rebaseStop: null, branch: 'main', changes: 0 });
+    expect(await state()).toMatchObject({ operation: null, rebaseStop: null, head: { branch: 'refs/heads/main' }, changes: 0 });
     expect(await subjects()).toEqual(['Add d', 'Add extra', 'Add c', 'Add b', 'Add base']);
     expect(fs.readFileSync(path.join(root, 'b.txt'), 'utf8')).toBe('b amended\n');
 
@@ -738,7 +739,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       { action: 'edit', hash: before[3] },
       { action: 'pick', hash: before[4] },
     ]);
-    expect((await state()).rebaseStop).toMatchObject({ kind: 'edit', hash: before[3], subject: 'Add extra' });
+    expect((await state()).rebaseStop).toMatchObject({ kind: 'edit', commit: before[3], subject: 'Add extra' });
     await run(continueOp('rebase'));
     expect(await state()).toMatchObject({ operation: null, rebaseStop: null });
     expect(await line()).toEqual(before);
@@ -752,7 +753,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await run(commitOp('', true, true));
     await expect(run(continueOp('rebase'))).rejects.toThrow();
     expect(await state()).toMatchObject({ operation: 'rebase', rebaseStop: null });
-    expect((await state()).working.conflicts.map((each) => each.path)).toEqual(['c.txt']);
+    expect((await state()).workingTree.conflicted.map((each) => each.path)).toEqual(['c.txt']);
     await run(abortOp('rebase'));
     expect(await line()).toEqual(before);
     fs.rmSync(dir, { recursive: true, force: true });
@@ -768,15 +769,15 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     const op = splitHeadOp(both);
     expect(op).toMatchObject({ title: `Split ${both.slice(0, 7)}`, commands: [['reset', '--mixed', 'HEAD~']], confirm: true });
     await run(op);
-    expect(await state()).toMatchObject({ head: base, operation: null, rebaseStop: null });
-    expect((await state()).working.unstaged).toEqual([
-      { status: 'M', path: 'a.txt' },
-      { status: '?', path: 'b.txt' },
+    expect(await state()).toMatchObject({ head: { commit: base }, operation: null, rebaseStop: null });
+    expect((await state()).workingTree.unstaged).toEqual([
+      { kind: 'modified', path: 'a.txt', originalPath: null },
     ]);
+    expect((await state()).workingTree.untracked).toEqual(['b.txt']);
     // Right after, a mixed reset to it makes it the commit it was, also with the file it added untracked now: that is
     // the undo Gitardo keeps for it.
     await run(undoOp({ kind: 'move', previous: both, subject: op.title, mode: 'mixed' }, 'main'));
-    expect(await state()).toMatchObject({ head: both, changes: 0 });
+    expect(await state()).toMatchObject({ head: { commit: both }, changes: 0 });
 
     await run(op);
     await run(stageOp(['a.txt']));
@@ -816,32 +817,32 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     fs.rmSync(dir, { recursive: true, force: true });
 
     expect(await state()).toMatchObject({
-      head: hashes.base,
+      head: { commit: hashes.base },
       operation: 'rebase',
-      rebaseStop: { kind: 'split', hash: hashes.bc, subject: 'Add b and c' },
+      rebaseStop: { kind: 'split', commit: hashes.bc, subject: 'Add b and c' },
     });
     // What was not committed is set aside until the end, and the commit after it is not made yet.
     expect(exists('d.txt')).toBe(false);
     const paths = await repo.changedPaths(hashes.bc);
-    expect(splitLeft(paths, (await state()).working)).toEqual({ left: ['b.txt', 'c.txt'], others: [] });
+    expect(splitLeft(paths, (await state()).workingTree)).toEqual({ left: ['b.txt', 'c.txt'], others: [] });
 
     await run(stageOp(['b.txt']));
     await run(commitOp('Add b', false, false));
-    expect((await state()).rebaseStop).toMatchObject({ kind: 'split', hash: hashes.bc });
+    expect((await state()).rebaseStop).toMatchObject({ kind: 'split', commit: hashes.bc });
     // A change to a file the commit did not touch is in the way of going on.
     write('base.txt', 'changed\n');
-    expect(splitLeft(paths, (await state()).working)).toEqual({ left: ['c.txt'], others: ['base.txt'] });
+    expect(splitLeft(paths, (await state()).workingTree)).toEqual({ left: ['c.txt'], others: ['base.txt'] });
     write('base.txt', 'base\n');
 
     await run(splitRestOp(['c.txt'], await repo.commitMessage(hashes.bc)));
-    expect(await state()).toMatchObject({ operation: null, rebaseStop: null, branch: 'main' });
+    expect(await state()).toMatchObject({ operation: null, rebaseStop: null, head: { branch: 'refs/heads/main' } });
     expect(await subjects()).toEqual(['Uncommitted changes (1)', 'Add d', 'Add b and c', 'Add b', 'Add base']);
     expect(await repo.commitMessage((await state()).rows[2].hash)).toBe('Add b and c\n\nTwo files at once.');
     expect(fs.readFileSync(path.join(root, 'd.txt'), 'utf8')).toBe('not committed\n');
 
     // One undo takes back the whole split, and leaves what is not committed.
     await undo();
-    expect((await state()).head).toBe(hashes.d);
+    expect((await state()).head.commit).toBe(hashes.d);
     expect(await subjects()).toEqual(['Uncommitted changes (1)', 'Add d', 'Add b and c', 'Add base']);
     expect(fs.readFileSync(path.join(root, 'd.txt'), 'utf8')).toBe('not committed\n');
   });
@@ -854,8 +855,8 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
     await run(worktreeAddOp(dir, 'feature', null, false));
     expect((await state()).worktrees).toMatchObject([
-      { current: true, branch: 'main', changes: 0 },
-      { current: false, branch: 'feature', prunable: false, changes: 0 },
+      { isCurrent: true, branch: 'refs/heads/main', uncommitted: 0 },
+      { isCurrent: false, branch: 'refs/heads/feature', isMissing: false, uncommitted: 0 },
     ]);
 
     // What is not committed is counted in each worktree, untracked files in new folders one by one.
@@ -865,7 +866,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     fs.writeFileSync(path.join(dir, 'new', 'one.txt'), '1\n');
     fs.writeFileSync(path.join(dir, 'new', 'two.txt'), '2\n');
     write('here.txt', 'here\n');
-    expect((await state()).worktrees.map((worktree) => worktree.changes)).toEqual([1, 4]);
+    expect((await state()).worktrees.map((worktree) => worktree.uncommitted)).toEqual([1, 4]);
     const remove = worktreeRemoveOp(dir);
     const refusal = await run(remove).then(
       () => '',
@@ -884,8 +885,8 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await run(worktreeAddOp(dir, 'main', 'feature/login', false));
     let worktrees = (await state()).worktrees;
     expect(worktrees).toMatchObject([
-      { main: true, current: true, branch: 'main' },
-      { main: false, current: false, branch: 'feature/login', path: dir },
+      { isMain: true, isCurrent: true, branch: 'refs/heads/main' },
+      { isMain: false, isCurrent: false, branch: 'refs/heads/feature/login', folder: dir },
     ]);
     // In a folder in a folder, as git made them.
     expect(dir).toBe(`${root}.worktrees/feature/login`);
@@ -894,7 +895,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     const moved = worktreeDir(root, '', 'auth');
     await run(worktreeMoveOp(dir, moved, { from: 'feature/login', to: 'auth' }));
     worktrees = (await state()).worktrees;
-    expect(worktrees[1]).toMatchObject({ path: moved, branch: 'auth' });
+    expect(worktrees[1]).toMatchObject({ folder: moved, branch: 'refs/heads/auth' });
     expect(fs.existsSync(dir)).toBe(false);
 
     await run(worktreeRemoveOp(moved, false, 'auth'));
@@ -1051,17 +1052,16 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     const second = await commitAll('Second commit\n\nWith a body.');
 
     expect(await repo.commitDetail(second)).toMatchObject({
-      hash: second,
+      id: second,
       parents: [first],
-      subject: 'Second commit',
-      body: 'With a body.',
-      author: 'Gitardo Test',
+      message: 'Second commit\n\nWith a body.',
+      author: { name: 'Gitardo Test' },
       files: [
-        { status: 'M', path: 'a.txt' },
-        { status: 'A', path: 'b.txt' },
+        { kind: 'modified', path: 'a.txt', originalPath: null },
+        { kind: 'added', path: 'b.txt', originalPath: null },
       ],
     });
-    expect((await repo.commitDetail(first))!.files).toEqual([{ status: 'A', path: 'a.txt' }]);
+    expect((await repo.commitDetail(first))!.files).toEqual([{ kind: 'added', path: 'a.txt', originalPath: null }]);
 
     write('a.txt', 'three\n');
     await run(stageOp(['a.txt']));
@@ -1263,15 +1263,15 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     fs.writeFileSync(path.join(done, 'dirty.txt'), 'not committed\n');
     fs.rmSync(lost, { recursive: true, force: true });
     const worktrees = (await state()).worktrees;
-    expect(worktrees.map((worktree) => [worktree.branch, worktree.changes, worktree.prunable])).toEqual([
-      ['main', 0, false],
-      ['done', 1, false],
-      ['lost', null, true],
+    expect(worktrees.map((worktree) => [worktree.branch, worktree.uncommitted, worktree.isMissing])).toEqual([
+      ['refs/heads/main', 0, false],
+      ['refs/heads/done', 1, false],
+      ['refs/heads/lost', null, true],
     ]);
 
     await run(cleanupBranchesOp(['done', 'lost'], [], [
-      { path: worktrees[1].path, dirty: true, prunable: false },
-      { path: worktrees[2].path, dirty: false, prunable: true },
+      { path: worktrees[1].folder, dirty: true, prunable: false },
+      { path: worktrees[2].folder, dirty: false, prunable: true },
     ]));
     const after = await state();
     expect(after.worktrees).toHaveLength(1);
@@ -1347,21 +1347,21 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect(() => bisectOp('skip', undefined, false)).toThrow(/No bisect/);
 
     await run(bisectOp('bad', hashes[5], false));
-    expect((await state()).bisect).toEqual({ good: [], bad: hashes[5], skipped: [], suspects: null });
+    expect((await state()).bisect).toEqual({ good: [], bad: hashes[5], skipped: [], remaining: null });
     await run(bisectOp('good', hashes[0], true));
     let bisect = (await state()).bisect!;
-    expect(bisect).toMatchObject({ good: [hashes[0]], bad: hashes[5], suspects: 5 });
+    expect(bisect).toMatchObject({ good: [hashes[0]], bad: hashes[5], remaining: 5 });
 
     // Answer for whatever commit git checks out, until one suspect is left.
-    for (let step = 0; bisect.suspects! > 1 && step < 10; step++) {
+    for (let step = 0; bisect.remaining! > 1 && step < 10; step++) {
       const broken = fs.readFileSync(path.join(root, 'a.txt'), 'utf8').startsWith('broken');
       await run(bisectOp(broken ? 'bad' : 'good', undefined, true));
       bisect = (await state()).bisect!;
     }
-    expect(bisect).toMatchObject({ bad: hashes[3], suspects: 1 });
+    expect(bisect).toMatchObject({ bad: hashes[3], remaining: 1 });
 
     await run(bisectResetOp());
-    expect(await state()).toMatchObject({ bisect: null, branch: 'main', head: hashes[5] });
+    expect(await state()).toMatchObject({ bisect: null, head: { commit: hashes[5], branch: 'refs/heads/main' } });
   });
 
   it('switches the identity of the repository and back to the inherited one', async () => {
@@ -1377,7 +1377,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect((await repo.localIdentityKeys()).sort()).toEqual(['user.email', 'user.name']);
     write('a.txt', 'one\n');
     const hash = await commitAll('As home');
-    expect(await repo.commitDetail(hash)).toMatchObject({ author: 'Home Me', email: 'me@home.example' });
+    expect(await repo.commitDetail(hash)).toMatchObject({ author: { name: 'Home Me', email: 'me@home.example' } });
 
     await run(clearIdentityOp(await repo.localIdentityKeys()));
     expect(await repo.localIdentityKeys()).toEqual([]);
@@ -1386,7 +1386,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
   it('shows only what one branch can reach, and compares two commits', async () => {
     const other = await divergent();
-    const main = (await state()).head!;
+    const main = (await state()).head.commit!;
 
     const only = await repo.state(100, { kind: 'ref', ref: 'other' });
     expect(only.rows.map((row) => row.subject)).toEqual(['other change', 'base']);
@@ -1399,8 +1399,8 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       from: other,
       to: next,
       files: [
-        { status: 'M', path: 'a.txt' },
-        { status: 'A', path: 'new.txt' },
+        { kind: 'modified', path: 'a.txt', originalPath: null },
+        { kind: 'added', path: 'new.txt', originalPath: null },
       ],
     });
     expect((await repo.compare(main, main))!.files).toEqual([]);
@@ -1431,7 +1431,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     // What the other branch changed since it left main, as a pull request shows it.
     const { commits, ...diverged } = (await repo.compareSides(main, other, 'diverged'))!;
     // Both changed a.txt: merging the other branch into main would conflict there.
-    expect(diverged).toEqual({ base, since: base, ahead: 1, behind: 2, matched: true, conflicts: ['a.txt'], path: null, files: [{ status: 'M', path: 'a.txt' }] });
+    expect(diverged).toEqual({ base, since: base, ahead: 1, behind: 2, matched: true, conflicts: ['a.txt'], path: null, files: [{ kind: 'modified', path: 'a.txt', originalPath: null }] });
     expect(sides(commits)).toEqual(apart);
     const patch = await repo.comparePatch(diverged.files, base, other, 1000);
     expect(patch!.map((file) => [file.file.path, file.added, file.removed, file.hunks?.[0].lines])).toEqual([['a.txt', 1, 1, ['-base', '+other']]]);
@@ -1444,8 +1444,8 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       ahead: 1,
       behind: 2,
       files: [
-        { status: 'M', path: 'a.txt' },
-        { status: 'D', path: 'b.txt' },
+        { kind: 'modified', path: 'a.txt', originalPath: null },
+        { kind: 'deleted', path: 'b.txt', originalPath: null },
       ],
     });
     // A commit the other already has changed nothing since they diverged, and nothing is merged with a merge commit.
@@ -1467,9 +1467,9 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       ahead: 1,
       behind: 3,
       files: [
-        { status: 'D', path: 'a.txt' },
-        { status: 'D', path: 'b.txt' },
-        { status: 'A', path: 'c.txt' },
+        { kind: 'deleted', path: 'a.txt', originalPath: null },
+        { kind: 'deleted', path: 'b.txt', originalPath: null },
+        { kind: 'added', path: 'c.txt', originalPath: null },
       ],
     });
     expect(await repo.mergeBase(main, alone)).toBeNull();
@@ -1488,7 +1488,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     write('a.txt', 'main\n');
     await commitAll('main change');
     await git(root, ['cherry-pick', picked]);
-    const main = (await state()).head!;
+    const main = (await state()).head.commit!;
 
     const { commits, matched } = (await repo.compareSides(main, other, 'diverged'))!;
     expect(matched).toBe(true);
@@ -1518,10 +1518,10 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     const theirs = (await repo.compareSides(other, WORKTREE, 'direct'))!;
     expect(theirs).toMatchObject({ since: other, ahead: 1, behind: 1, conflicts: null, path: null });
     expect(theirs.files).toEqual([
-      { status: 'M', path: 'a.txt' },
-      { status: 'A', path: 'notes.txt' },
-      { status: 'M', path: 'src/x.txt' },
-      { status: 'D', path: 'src/y.txt' },
+      { kind: 'modified', path: 'a.txt', originalPath: null },
+      { kind: 'added', path: 'notes.txt', originalPath: null },
+      { kind: 'modified', path: 'src/x.txt', originalPath: null },
+      { kind: 'deleted', path: 'src/y.txt', originalPath: null },
     ]);
     expect(theirs.commits.map((commit) => [commit.side, commit.subject]).sort()).toEqual([
       ['from', 'other change'],
@@ -1531,7 +1531,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect(lines![0].hunks?.[0].lines).toEqual(['-base', '+local']);
     // The other way round, as the other branch has them.
     const mine = (await repo.compareSides(WORKTREE, other, 'direct'))!;
-    expect(mine.files.map((file) => [file.status, file.path])).toEqual([
+    expect(mine.files.map((file) => [CHANGE_LETTERS[file.kind], file.path])).toEqual([
       ['M', 'a.txt'],
       ['D', 'notes.txt'],
       ['M', 'src/x.txt'],
@@ -1585,7 +1585,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     write('c.txt', 'c\n');
     await commitAll('add c');
     await git(root, ['merge', '--no-ff', '--no-edit', 'other']);
-    const merge = (await state()).head!;
+    const merge = (await state()).head.commit!;
     expect(await repo.formatPatch([merge])).toBe('');
     expect(subjectsOf(await repo.formatPatch([third, merge]))).toEqual(['[PATCH] change a']);
     expect(await repo.formatPatch(['--stdout'])).toBe('');
@@ -1627,8 +1627,8 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await runPrepared(onFiles);
     expect(fs.existsSync(saved)).toBe(true);
     const current = await state();
-    expect(current.head).toBe(base);
-    expect(current.working.staged.map((file) => file.path).sort()).toEqual(['a.txt', 'b.txt']);
+    expect(current.head.commit).toBe(base);
+    expect(current.workingTree.staged.map((file) => file.path).sort()).toEqual(['a.txt', 'b.txt']);
     expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('one\ntwo\n');
   });
 
@@ -1649,7 +1649,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     const before = await state();
     expect((await repo.checkPatch({ text })).errors.join('\n')).toMatch(/a\.txt/);
     expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('local\n');
-    expect(await state()).toMatchObject({ head: before.head, operation: null, working: before.working });
+    expect(await state()).toMatchObject({ head: { commit: before.head.commit }, operation: null, workingTree: before.workingTree });
   });
 
   it('stops applying a patch as commits on a conflict, to be continued, skipped or aborted', async () => {
@@ -1658,21 +1658,21 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     write('c.txt', 'sea\n');
     const third = await commitAll('add c');
     await run(checkoutOp('branch', 'main'));
-    const head = (await state()).head;
+    const head = (await state()).head.commit;
     const text = await repo.formatPatch([other, third]);
     const apply = () => runPrepared(applyPatchOp({ name: 'the patch in the clipboard', text }, true, 'main'));
 
     await expect(apply()).rejects.toThrow();
     let current = await state();
-    expect(current.operation).toBe('am');
-    expect(current.working.conflicts.map((file) => file.path)).toEqual(['a.txt']);
+    expect(current.operation).toBe('patch');
+    expect(current.workingTree.conflicted.map((file) => file.path)).toEqual(['a.txt']);
     expect(await repo.conflictSubjects()).toEqual(['main change', 'other change']);
     expect(await repo.conflictStages('a.txt')).toEqual([1, 2, 3]);
-    await run(abortOp('am'));
-    expect(await state()).toMatchObject({ operation: null, head, changes: 0 });
+    await run(abortOp('patch'));
+    expect(await state()).toMatchObject({ operation: null, head: { commit: head }, changes: 0 });
 
     await expect(apply()).rejects.toThrow();
-    await run(skipOp('am'));
+    await run(skipOp('patch'));
     expect(await state()).toMatchObject({ operation: null, changes: 0 });
     expect(await mainSubjects()).toEqual(['add c', 'main change', 'base']);
     await run(resetOp(head!, 'hard', 'main'));
@@ -1680,7 +1680,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await expect(apply()).rejects.toThrow();
     write('a.txt', 'resolved\n');
     await run(stageOp(['a.txt']));
-    await run(continueOp('am'));
+    await run(continueOp('patch'));
     current = await state();
     expect(current.operation).toBeNull();
     expect(await mainSubjects()).toEqual(['add c', 'other change', 'main change', 'base']);
@@ -1713,21 +1713,21 @@ describe('against a real repository', { timeout: 60_000 }, () => {
   it('lists the branches that were checked out last, without the one that is checked out', async () => {
     write('a.txt', 'one\n');
     await commitAll('first');
-    expect((await state()).recentBranches).toEqual([]);
+    expect(recentBranches(await state())).toEqual([]);
     await run(createBranchOp('feature', 'HEAD', true));
     await run(createBranchOp('fix', 'HEAD', true));
-    expect((await state()).recentBranches).toEqual(['feature', 'main']);
+    expect(recentBranches(await state())).toEqual(['feature', 'main']);
     await run(checkoutOp('branch', 'main'));
-    expect((await state()).recentBranches).toEqual(['fix', 'feature']);
+    expect(recentBranches(await state())).toEqual(['fix', 'feature']);
     // A branch that is deleted is not one to go back to.
     await run(deleteBranchOp('fix', true));
-    expect((await state()).recentBranches).toEqual(['feature']);
+    expect(recentBranches(await state())).toEqual(['feature']);
     expect((await state()).favorites).toEqual([]);
   });
 
   it('narrows the graph to the branches chosen, and what is searched and found with it', async () => {
     const other = await divergent();
-    const main = (await state()).head!;
+    const main = (await state()).head.commit!;
     await git(root, ['tag', 'v1', other]);
     // A commit only a tag reaches.
     const tagged = (await git(root, ['commit-tree', 'HEAD^{tree}', '-p', 'HEAD', '-m', 'Tagged only'])).stdout.trim();
@@ -1799,7 +1799,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
   it('says how far back a commit is, and which commits a search finds', async () => {
     const other = await divergent();
-    const main = (await state()).head!;
+    const main = (await state()).head.commit!;
     write('notes.txt', 'remember the milk\n');
     const notes = await commitAll('Add notes');
     const all = (await state()).rows.map((row) => row.hash);
@@ -1886,7 +1886,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       await git(root, ['remote', 'add', 'origin', remote]);
       await run(syncOp('push', await state()));
       // Someone else pushes a commit, while this clone makes one of its own.
-      const base = (await state()).head!;
+      const base = (await state()).head.commit!;
       write('theirs.txt', 'theirs\n');
       await commitAll('Their commit');
       await git(root, ['push', 'origin', 'main']);
@@ -1930,10 +1930,10 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       await run(fastForwardOp('feature', before));
 
       const after = await state();
-      expect(after.branches.find((branch) => branch.name === 'feature')!.hash).toBe(theirs);
-      expect(after.remoteBranches.find((branch) => branch.name === 'origin/feature')!.hash).toBe(theirs);
-      expect(after.branch).toBe('main');
-      expect(after.head).toBe(base);
+      expect(after.branches.find((branch) => branch.name === 'feature')!.commit).toBe(theirs);
+      expect(after.remoteBranches.find((branch) => branch.name === 'origin/feature')!.commit).toBe(theirs);
+      expect(checkedOutBranch(after)).toBe('main');
+      expect(after.head.commit).toBe(base);
       expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('not committed\n');
       expect(exists('theirs.txt')).toBe(false);
 
@@ -1953,7 +1953,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       // Had the menu been opened before that commit, git still says no.
       const stale = { ...ahead, branches: ahead.branches.map((branch) => ({ ...branch, upstream: branch.upstream && { ...branch.upstream, ahead: 0 } })) };
       await expect(run(fastForwardOp('feature', stale))).rejects.toThrow(/non-fast-forward|rejected/);
-      expect((await state()).branches.find((branch) => branch.name === 'feature')!.hash).toBe(mine);
+      expect((await state()).branches.find((branch) => branch.name === 'feature')!.commit).toBe(mine);
     } finally {
       fs.rmSync(remote, { recursive: true, force: true });
       fs.rmSync(elsewhere, { recursive: true, force: true });
@@ -1988,10 +1988,10 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       expect(canFastForward(feature(before), before)).toBe(true);
       await run(fastForwardOp('feature', before));
       const after = await state();
-      expect(feature(after).hash).toBe(theirs);
-      expect(after.worktrees.find((worktree) => worktree.branch === 'feature')).toMatchObject({ hash: theirs, changes: 0 });
+      expect(feature(after).commit).toBe(theirs);
+      expect(after.worktrees.find((worktree) => worktree.branch === 'refs/heads/feature')).toMatchObject({ commit: theirs, uncommitted: 0 });
       expect(fs.readFileSync(path.join(dir, 'theirs.txt'), 'utf8')).toBe('theirs.txt\n');
-      expect(after.head).toBe(base);
+      expect(after.head.commit).toBe(base);
       expect(exists('theirs.txt')).toBe(false);
 
       // With a change not committed in that worktree, it is not offered, and git is not asked.
@@ -2000,7 +2000,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       const dirty = await state();
       expect(canFastForward(feature(dirty), dirty)).toBe(false);
       expect(() => fastForwardOp('feature', dirty)).toThrow(/cannot be fast-forwarded/);
-      expect(feature(await state()).hash).toBe(theirs);
+      expect(feature(await state()).commit).toBe(theirs);
     } finally {
       await git(root, ['worktree', 'remove', '--force', dir]).catch(() => undefined);
       fs.rmSync(dir, { recursive: true, force: true });
@@ -2018,7 +2018,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       write(file, `${file}\n`);
       await run(stageOp([file]));
       await run(commitOp(message, false, false));
-      return (await state()).head!;
+      return (await state()).head.commit!;
     };
     /** Someone else pushes a commit to feature. */
     const theirs = async (file: string) => {
@@ -2031,7 +2031,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     };
     const local = async () => ({
       name: 'feature',
-      current: (await state()).branch === 'feature',
+      current: checkedOutBranch(await state()) === 'feature',
       ...(await repo.divergence('refs/heads/feature', 'origin/feature')),
     });
     try {
@@ -2045,7 +2045,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       write('a.txt', 'not committed\n');
       expect(await local()).toMatchObject({ ahead: 0, behind: 1 });
       await run(checkoutLocalOp('origin/feature', await local()));
-      expect(await state()).toMatchObject({ branch: 'feature', head: first });
+      expect(await state()).toMatchObject({ head: { commit: first, branch: 'refs/heads/feature' } });
       expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('not committed\n');
 
       // With a commit of its own and one more of theirs, its own is replayed on top, what is not committed set aside meanwhile.
@@ -2054,7 +2054,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       await theirs('second.txt');
       expect(await local()).toMatchObject({ ahead: 1, behind: 1 });
       await run(checkoutLocalOp('origin/feature', await local(), true));
-      expect((await state()).branch).toBe('feature');
+      expect(checkedOutBranch(await state())).toBe('feature');
       const rows = (await state()).rows.filter((row) => row.hash !== WORKTREE);
       expect(rows.map((row) => row.subject).slice(0, 4)).toEqual(['Mine', 'Their second.txt', 'Their first.txt', 'base']);
       expect(await local()).toMatchObject({ ahead: 1, behind: 0 });
@@ -2075,7 +2075,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       await run(syncOp('push', await state()));
       /** Someone else changes a file and pushes, and this clone is put back where it was. */
       const theirs = async (file: string, content: string, message: string) => {
-        const mine = (await state()).head!;
+        const mine = (await state()).head.commit!;
         write(file, content);
         await commitAll(message);
         await git(root, ['push', 'origin', 'main']);
@@ -2176,7 +2176,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
     await run(stashPushOp('just two', { paths: ['a.txt', 'new.txt'] }));
     let current = await state();
-    expect(current.working.unstaged).toEqual([{ status: 'M', path: 'b.txt' }]);
+    expect(current.workingTree.unstaged).toEqual([{ kind: 'modified', path: 'b.txt', originalPath: null }]);
     expect(exists('new.txt')).toBe(false);
     expect(current.stashes[0].message).toContain('just two');
     await run(stashOp('pop', 'stash@{0}'));
@@ -2185,8 +2185,9 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await run(stageOp(['a.txt']));
     await run(stashPushOp('', { staged: true }));
     current = await state();
-    expect(current.working.staged).toEqual([]);
-    expect(current.working.unstaged.map((file) => file.path).sort()).toEqual(['b.txt', 'new.txt']);
+    expect(current.workingTree.staged).toEqual([]);
+    expect(current.workingTree.unstaged.map((file) => file.path)).toEqual(['b.txt']);
+    expect(current.workingTree.untracked).toEqual(['new.txt']);
     expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('one\n');
     await run(stashOp('pop', 'stash@{0}'));
     expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('two\n');
@@ -2208,8 +2209,8 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
     await expect(run(cherryPickManyOp([first, second, third]))).rejects.toThrow();
     let current = await state();
-    expect(current.operation).toBe('cherry-pick');
-    expect(current.working.conflicts.map((file) => file.path)).toEqual(['a.txt']);
+    expect(current.operation).toBe('cherryPick');
+    expect(current.workingTree.conflicted.map((file) => file.path)).toEqual(['a.txt']);
     expect(exists('b.txt')).toBe(true);
     expect(exists('c.txt')).toBe(false);
 
@@ -2224,10 +2225,10 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await run(stageOp(['a.txt']));
     await git(root, ['commit', '--no-edit']);
     current = await state();
-    expect(current.operation).toBe('cherry-pick');
-    expect(current.working.conflicts).toEqual([]);
+    expect(current.operation).toBe('cherryPick');
+    expect(current.workingTree.conflicted).toEqual([]);
 
-    await run(continueOp('cherry-pick'));
+    await run(continueOp('cherryPick'));
     current = await state();
     expect(current.operation).toBeNull();
     expect((await git(root, ['log', '--format=%s', 'main'])).stdout.trim().split('\n')).toEqual([
@@ -2255,23 +2256,23 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     const pick = (op: GitOp) => ({ ...op, recover: skipEmptyPicks(root) });
 
     await expect(run(pick(cherryPickManyOp([first, second, third])))).rejects.toThrow();
-    expect((await state()).working.conflicts.map((file) => file.path)).toEqual(['a.txt']);
+    expect((await state()).workingTree.conflicted.map((file) => file.path)).toEqual(['a.txt']);
 
     // Keeping main's side leaves the commit with nothing to commit: git refuses to continue until it is skipped.
-    await run(takeSideOp('a.txt', 'ours', await repo.conflictStages('a.txt'), 'cherry-pick'));
-    await expect(run(continueOp('cherry-pick'))).rejects.toThrow(/now empty/);
+    await run(takeSideOp('a.txt', 'ours', await repo.conflictStages('a.txt'), 'cherryPick'));
+    await expect(run(continueOp('cherryPick'))).rejects.toThrow(/now empty/);
 
     // Continuing skips it, picks the next one, and stops on the conflict of the one after.
-    await run(pick(continueOp('cherry-pick'))).catch(() => undefined);
+    await run(pick(continueOp('cherryPick'))).catch(() => undefined);
     let current = await state();
-    expect(current.operation).toBe('cherry-pick');
-    expect(current.working.conflicts.map((file) => file.path)).toEqual(['a.txt']);
+    expect(current.operation).toBe('cherryPick');
+    expect(current.workingTree.conflicted.map((file) => file.path)).toEqual(['a.txt']);
     expect(exists('b.txt')).toBe(true);
     expect(logged.some((line) => line.includes(`${first.slice(0, 7)} changes nothing`))).toBe(true);
 
     write('a.txt', 'resolved\n');
     await run(stageOp(['a.txt']));
-    await run(pick(continueOp('cherry-pick')));
+    await run(pick(continueOp('cherryPick')));
     current = await state();
     expect(current.operation).toBeNull();
     expect(await mainSubjects()).toEqual(['change a again', 'add b', 'main change', 'base']);
@@ -2306,8 +2307,8 @@ describe('against a real repository', { timeout: 60_000 }, () => {
 
     await expect(run(cherryPickOp(first, false))).rejects.toThrow();
     write('a.txt', 'mine\n');
-    await expect(run({ ...continueOp('cherry-pick'), recover: skipEmptyPicks(root) })).rejects.toThrow();
-    expect((await state()).operation).toBe('cherry-pick');
+    await expect(run({ ...continueOp('cherryPick'), recover: skipEmptyPicks(root) })).rejects.toThrow();
+    expect((await state()).operation).toBe('cherryPick');
     expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toBe('mine\n');
   });
 
@@ -2324,10 +2325,10 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     const before = await commitAll('main change');
 
     await expect(run(cherryPickManyOp([first, second]))).rejects.toThrow();
-    await run(abortOp('cherry-pick'));
+    await run(abortOp('cherryPick'));
     const current = await state();
     expect(current.operation).toBeNull();
-    expect(current.head).toBe(before);
+    expect(current.head.commit).toBe(before);
     expect(exists('b.txt')).toBe(false);
   });
 
@@ -2359,16 +2360,16 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     await run(stashPushOp('with a new file'));
 
     const [stash] = (await state()).stashes;
-    const detail = (await repo.commitDetail(stash.hash))!;
-    expect(detail.files).toEqual([{ status: 'M', path: 'a.txt' }]);
-    expect(detail.untracked?.files).toEqual([{ status: 'A', path: 'new.txt' }]);
-    expect(await repo.show(detail.untracked!.hash, 'new.txt')).toBe('new\n');
+    const detail = (await repo.commitDetail(stash.commit))!;
+    expect(detail.files).toEqual([{ kind: 'modified', path: 'a.txt', originalPath: null }]);
+    expect(detail.untrackedFiles).toEqual([{ kind: 'added', path: 'new.txt', originalPath: null }]);
+    expect(await repo.show(detail.parents[2], 'new.txt')).toBe('new\n');
 
     // With tracked changes only, git still makes the commit for untracked files, with nothing in it.
     await run(stashOp('pop', 'stash@{0}'));
     fs.rmSync(path.join(root, 'new.txt'));
     await run(stashPushOp(''));
-    expect((await repo.commitDetail((await state()).stashes[0].hash))!.untracked).toBeUndefined();
+    expect((await repo.commitDetail((await state()).stashes[0].commit))!.untrackedFiles).toEqual([]);
   });
 
   it('follows only the first parent of each merge when asked, leaving out what the merge brought', async () => {
@@ -2393,10 +2394,10 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     write('new.txt', 'new\n');
     await run(stashPushOp('with a new file'));
     const [stash] = (await state()).stashes;
-    const main = (await state()).head!;
+    const main = (await state()).head.commit!;
 
     const rows = (await repo.state(100, null, null, false, true)).rows;
-    const at = rows.findIndex((row) => row.hash === stash.hash);
+    const at = rows.findIndex((row) => row.hash === stash.commit);
     expect(rows[at]).toMatchObject({ stash: 'stash@{0}', parents: [main], subject: 'On main: with a new file' });
     expect(at).toBeLessThan(rows.findIndex((row) => row.hash === main));
     // The commits that keep its index and its untracked files are not shown: the stash stands for them.
@@ -2408,7 +2409,7 @@ describe('against a real repository', { timeout: 60_000 }, () => {
     expect((await repo.state(100)).rows.some((row) => row.stash)).toBe(false);
     // Nor on a branch that does not have its commit, nor among what a search finds.
     const shown = async (scope: Scope | null, filter: Filter | null = null) =>
-      (await repo.state(100, filter, scope, false, true)).rows.some((row) => row.hash === stash.hash);
+      (await repo.state(100, filter, scope, false, true)).rows.some((row) => row.hash === stash.commit);
     expect(await shown({ kind: 'refs', refs: ['refs/heads/other'] })).toBe(false);
     expect(await shown({ kind: 'current' })).toBe(true);
     expect(await shown(null, { kind: 'message', query: 'with a new file' })).toBe(false);
@@ -2430,14 +2431,14 @@ describe('against a real repository', { timeout: 60_000 }, () => {
       let current = await state();
       expect(current.remotes).toEqual(['upstream']);
       expect(current.remoteBranches.map((branch) => branch.name)).toEqual(['upstream/main']);
-      expect(current.branches[0].upstream?.name).toBe('upstream/main');
+      expect(current.branches[0].upstream?.reference).toBe('refs/remotes/upstream/main');
 
       await run(fetchRemoteOp('upstream'));
       await run(remoteRemoveOp('upstream'));
       current = await state();
       expect(current.remotes).toEqual([]);
       expect(current.remoteBranches).toEqual([]);
-      expect(current.branches[0].upstream).toBeUndefined();
+      expect(current.branches[0].upstream).toBeNull();
 
       expect(() => remoteAddOp('--upload-pack=x', bare)).toThrow();
       expect(() => remoteAddOp('origin', '--upload-pack=x')).toThrow();

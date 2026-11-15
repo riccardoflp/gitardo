@@ -467,7 +467,7 @@ describe.skipIf(!built)('Bisect, through the engine and as GitOps', { timeout: 6
     const marked = await runEngine(other, await runsOf(other, { kind: 'bisect', mark: 'good', hash: good }));
     expect(marked.lines).toEqual([`git bisect good ${good}`]);
     expect(await head(other)).toBe(await head(one));
-    for (let guard = 0; guard < 5 && (await state(other)).bisect?.suspects !== 1; guard++) {
+    for (let guard = 0; guard < 5 && (await state(other)).bisect?.remaining !== 1; guard++) {
       await runOp(one, bisectOp('bad', undefined, true));
       const answered = await runEngine(other, await runsOf(other, { kind: 'bisect', mark: 'bad' }));
       expect(answered.lines, JSON.stringify([answered, (await state(other)).bisect])).toEqual(['git bisect bad']);

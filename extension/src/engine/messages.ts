@@ -1,8 +1,13 @@
 /**
  * The messages of the protocol with `gitardo-engine` that stages 1 to 5 and 7 built, as the crate `protocol` writes them
  * (`rust/crates/protocol/src/messages.rs`, `state.rs`, `feature/`, `journal.rs` and `reads/`,
- * `docs/transition/02-protocol.md`).
+ * `docs/transition/02-protocol.md`). The state of a repository and the details of a commit are in `src/shared/state.ts`,
+ * which the views take as they are (stage 6).
  */
+
+import type { ChangeKind, FileChange, Operation, RepositoryState } from '../shared/state';
+
+export type { CommitDetail, Signature, Submodule } from '../shared/state';
 
 /** The version of the protocol the extension speaks. */
 export const PROTOCOL = '1.6';
@@ -48,74 +53,10 @@ export interface InitializeResult {
 /** The settings, by the desktop's names: the extension's without `gitardo.`. */
 export type Settings = Record<string, unknown>;
 
-/** The state of a repository, as the engine reads it (`repo.read-state`). */
-export interface EngineState {
-  folder: string;
-  gitFolder: string;
-  head: { commit: string | null; branch: string | null };
-  branches: Array<{
-    name: string;
-    commit: string;
-    upstream: {
-      reference: string;
-      remote: string;
-      remoteBranch: string;
-      ahead: number;
-      behind: number;
-      isGone: boolean;
-    } | null;
-    isCheckedOut: boolean;
-    date: number;
-  }>;
-  remoteBranches: Array<{
-    name: string;
-    remote: string;
-    commit: string;
-    date: number;
-  }>;
-  tags: Array<{ name: string; commit: string; date: number }>;
-  stashes: Array<{
-    commit: string;
-    index: number;
-    message: string;
-    date: number;
-  }>;
-  worktrees: Array<{
-    folder: string;
-    commit: string | null;
-    branch: string | null;
-    isMain: boolean;
-    isCurrent: boolean;
-    isMissing: boolean;
-    uncommitted: number | null;
-  }>;
-  remotes: string[];
-  identity: { name: string | null; email: string | null };
-  branchSort: string | null;
-  reflogSubjects: string[];
-  workingTree: {
-    staged: EngineFileChange[];
-    unstaged: EngineFileChange[];
-    untracked: string[];
-    conflicted: Array<{ path: string; kind: string }>;
-  };
-  operation: MergeSides['operation'];
-  rebaseStop: { kind: 'edit' | 'split'; commit: string; subject: string } | null;
-  bisect: { bad: string | null; good: string[]; skipped: string[]; remaining: number | null } | null;
-  submodules: Submodule[];
-}
-
-/** A file changed in the working tree or the index. */
-export interface EngineFileChange {
-  path: string;
-  originalPath: string | null;
-  kind: 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'typeChanged';
-}
-
 /** The notification of a state read again after files changed. */
 export interface StateParams {
   repository: string;
-  state: EngineState;
+  state: RepositoryState;
   reason: 'changed' | 'ran' | 'opened';
 }
 
@@ -331,24 +272,6 @@ export interface Bytes {
 /** Which commit `read/details.read-commit` is asked for: one by its full id, a stash by its place, or the changes. */
 export type CommitAsked = { commit: string } | { stash: number } | { uncommitted: true };
 
-/** Who made a commit, and when, in seconds since 1970. */
-export interface Signature {
-  name: string;
-  email: string;
-  date: number;
-}
-
-/** The details of a commit, a stash or the uncommitted changes (`CommitDetail`). */
-export interface CommitDetail {
-  id: string | null;
-  parents: string[];
-  author: Signature | null;
-  committer: Signature | null;
-  message: string;
-  files: EngineFileChange[];
-  untrackedFiles: EngineFileChange[];
-}
-
 /** A line of a hunk, numbered on each side it is on. */
 export interface DiffLine {
   kind: 'context' | 'added' | 'removed' | 'noNewline';
@@ -361,7 +284,7 @@ export interface DiffLine {
 export interface FilePatch {
   path: string;
   originalPath: string | null;
-  kind: EngineFileChange['kind'];
+  kind: ChangeKind;
   hunks: Array<{ header: string; lines: DiffLine[] }>;
   added: number;
   removed: number;
@@ -398,7 +321,7 @@ export interface CompareView {
   mergeBase: string | null;
   onlyInFirst: number;
   onlyInSecond: number;
-  files: EngineFileChange[];
+  files: FileChange[];
   commits: ComparedCommit[];
   merge: { kind: 'notAsked' } | { kind: 'clean' } | { kind: 'conflicts'; files: string[] } | { kind: 'unknown' };
 }
@@ -429,7 +352,7 @@ export interface MergeSides {
   current: Bytes;
   incoming: Bytes;
   result: Bytes;
-  operation: 'merge' | 'rebase' | 'cherryPick' | 'revert' | 'patch' | null;
+  operation: Operation | null;
   hasBothSides: boolean;
 }
 
@@ -489,23 +412,6 @@ export interface ReflogPosition {
   subject: string;
   selector: string;
   time: number;
-}
-
-/** A submodule, as `submodule.read-list` reads it. */
-export interface Submodule {
-  name: string;
-  folder: string;
-  parent: string | null;
-  url: string | null;
-  branch: string | null;
-  recorded: string | null;
-  staged: string | null;
-  checkout: {
-    commit: string | null;
-    branch: string | null;
-    uncommitted: number;
-    distance: { ahead: number; behind: number } | null;
-  } | null;
 }
 
 /** Something git ignores in a checkout, with its size on disk. */

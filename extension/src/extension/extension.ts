@@ -4,6 +4,7 @@ import { discoverRepos } from '../git/discover';
 import { reads } from '../engine/reads';
 import { WindowEngine } from '../engine/vscode';
 import type { RepoState, SyncAction, ViewKind } from '../shared/protocol';
+import { checkedOutBranch } from '../shared/state';
 import { answerLanguageModel, languageModels } from './ai';
 import { SHOW_ACTIVITY } from './activity';
 import { BlameAnnotator, BlameSource } from './blame';
@@ -233,7 +234,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
       COMMITS_VIEW,
       // What its commits are of: the branch, and the repository when there are several.
       sideView('commits', (state) => {
-        const branch = state.branch ?? (state.head ? `detached at ${state.head.slice(0, 7)}` : undefined);
+        const branch = checkedOutBranch(state) ?? (state.head.commit ? `detached at ${state.head.commit.slice(0, 7)}` : undefined);
         return state.repos.length > 1 ? [state.name, branch].filter(Boolean).join(' · ') : branch;
       }),
       webviewOptions,
@@ -246,7 +247,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     ),
     vscode.window.registerWebviewViewProvider(
       BRANCHES_VIEW,
-      sideView('branches', (state) => state.branch ?? (state.head ? `detached at ${state.head.slice(0, 7)}` : undefined)),
+      sideView('branches', (state) => checkedOutBranch(state) ?? (state.head.commit ? `detached at ${state.head.commit.slice(0, 7)}` : undefined)),
       webviewOptions,
     ),
     vscode.window.registerWebviewViewProvider(

@@ -20,7 +20,7 @@ const commits = (count: number) => `${count} ${count === 1 ? 'commit' : 'commits
 
 /** The files a comparison lists, to tell whether the lines sent for them still fit. */
 const listed = (view: CompareView | null | undefined) =>
-  view ? `${view.path}\n${view.files.map((file) => `${file.status} ${file.oldPath ?? ''} ${file.path}`).join('\n')}` : '';
+  view ? `${view.path}\n${view.files.map((file) => `${file.kind} ${file.originalPath ?? ''} ${file.path}`).join('\n')}` : '';
 
 /** What a side is: a branch, a remote branch, a tag, another revision, or a commit. */
 function sideIcon(side: CompareSide, state: RepoState | null): string {
@@ -209,7 +209,7 @@ function PathFilter({ path }: { path: string | null }) {
 /** Makes the file in the working tree what the second side has. */
 const takeAction = (file: FileChange, to: CompareSide) => ({
   icon: 'arrow-circle-down',
-  title: file.status === 'D' ? `Delete it from the working tree, as ${to.name} has no such file` : `Take the version of ${to.name} into the working tree`,
+  title: file.kind === 'deleted' ? `Delete it from the working tree, as ${to.name} has no such file` : `Take the version of ${to.name} into the working tree`,
   run: () => post({ type: 'takeCompareFile', file }),
 });
 

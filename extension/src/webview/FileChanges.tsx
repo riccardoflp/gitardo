@@ -131,7 +131,7 @@ function FileDiff({ entry, open, onToggle, onOpen, actions, onMenu }: DiffProps)
   if (open && patch) {
     if (patch.binary) body = <p className="muted diff-note">Binary file. {inEditor}</p>;
     else if (!patch.hunks) body = <p className="muted diff-note">Too long to show with the others. {inEditor}</p>;
-    else if (!patch.hunks.length) body = <p className="muted diff-note">{file.status === 'R' ? 'Renamed, with no change to its text.' : 'No change to its text.'}</p>;
+    else if (!patch.hunks.length) body = <p className="muted diff-note">{file.kind === 'renamed' ? 'Renamed, with no change to its text.' : 'No change to its text.'}</p>;
     else body = <Lines hunks={patch.hunks} colors={colors} />;
   }
   return (

@@ -6,13 +6,13 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { Bytes, DiffLine, EngineFileChange } from '../src/engine/messages';
+import type { Bytes, DiffLine } from '../src/engine/messages';
 import { resolveConflicts } from '../src/git/conflicts';
 import { git } from '../src/git/exec';
 import { parseGitHubRemote } from '../src/git/github';
 import { Repo } from '../src/git/repo';
 import { previewSetup, proposedCommands, scanIgnored } from '../src/git/worktreeSetup';
-import { type FileChange, WORKTREE } from '../src/shared/protocol';
+import { WORKTREE } from '../src/shared/protocol';
 import { built, cleanUpAfterEach, client, commitFile, folder, repository } from './engine/harness';
 
 cleanUpAfterEach();
@@ -22,20 +22,6 @@ const text = (bytes: Bytes | null) => (bytes ? Buffer.from(bytes.base64, 'base64
 
 /** Bytes as they travel. */
 const bytesOf = (value: string): Bytes => ({ base64: Buffer.from(value, 'utf8').toString('base64') });
-
-/** The kind of change the engine names for a status letter of git, as the extension keeps it. */
-const KINDS: Record<string, EngineFileChange['kind']> = {
-  A: 'added',
-  M: 'modified',
-  D: 'deleted',
-  R: 'renamed',
-  C: 'copied',
-  T: 'typeChanged',
-  '?': 'added',
-};
-
-/** A file change of the extension as the engine writes it. */
-const asEngine = (change: FileChange): EngineFileChange => ({ path: change.path, originalPath: change.oldPath ?? null, kind: KINDS[change.status[0]] });
 
 /** A line of a hunk of the engine as the extension keeps it: its sign, then its text. */
 const signed = (line: DiffLine) => ({ context: ' ', added: '+', removed: '-', noNewline: '\\' })[line.kind] + line.text;
@@ -88,26 +74,23 @@ describe.skipIf(!built)('the reads of the engine and of the extension', { timeou
     const repo = new Repo(root);
     const engine = client();
     const head = await id(root, 'HEAD');
+    // Both in the engine's shape (stage 6), field for field.
     const [detail, read] = await Promise.all([engine.details(root, { commit: head }), repo.commitDetail(head)]);
-    expect(detail?.id).toBe(read?.hash);
-    expect(detail?.parents).toEqual(read?.parents);
-    expect([detail?.author?.name, detail?.author?.email, detail?.author?.date]).toEqual([read?.author, read?.email, read?.date]);
-    expect([detail?.committer?.name, detail?.committer?.date]).toEqual([read?.committer, read?.commitDate]);
-    expect(detail?.message).toBe([read?.subject, read?.body].filter(Boolean).join('\n\n'));
-    expect(detail?.files).toEqual(read?.files.map(asEngine));
+    expect(detail).toEqual(read);
 
+    // The view lists the uncommitted changes in the order of the working tree, the engine by path: the same files.
     fs.writeFileSync(path.join(root, 'a.txt'), 'edited\n');
     fs.writeFileSync(path.join(root, 'new.txt'), 'new\n');
     const changes = await engine.details(root, { uncommitted: true });
     const working = await repo.commitDetail(WORKTREE);
-    expect(changes?.files.map((file) => file.path).sort()).toEqual(working?.files.map((file) => file.path).sort());
+    const byPath = <T extends { path: string }>(files: T[] = []) => [...files].sort((one, other) => one.path.localeCompare(other.path));
+    expect({ ...changes, files: byPath(changes?.files) }).toEqual({ ...working, files: byPath(working?.files) });
 
     await git(root, ['stash', 'push', '--include-untracked', '-m', 'Both']);
     const stash = await id(root, 'stash@{0}');
     const [stashed, kept] = await Promise.all([engine.details(root, { stash: 0 }), repo.commitDetail(stash)]);
     expect(stashed?.id).toBe(stash);
-    expect(stashed?.files).toEqual(kept?.files.map(asEngine));
-    expect(stashed?.untrackedFiles).toEqual(kept?.untracked?.files.map(asEngine) ?? []);
+    expect(stashed).toEqual(kept);
     expect(await engine.details(root, { stash: 1 })).toBeNull();
   });
 
@@ -142,9 +125,7 @@ describe.skipIf(!built)('the reads of the engine and of the extension', { timeou
     const repo = new Repo(root);
     const engine = client();
     const [tree, working] = await Promise.all([engine.workingTree(root), repo.working()]);
-    expect(tree.staged).toEqual(working.staged.map(asEngine));
-    expect(tree.unstaged).toEqual(working.unstaged.filter((file) => file.status !== '?').map(asEngine));
-    expect(tree.untracked).toEqual(working.unstaged.filter((file) => file.status === '?').map((file) => file.path));
+    expect(tree).toEqual(working);
     const paths = ['a.txt', 'run.log', 'kept.log', 'missing.log'];
     expect(new Set(await engine.ignored(root, paths))).toEqual(await repo.ignored(paths));
   });
@@ -226,13 +207,13 @@ describe.skipIf(!built)('the reads of the engine and of the extension', { timeou
     const request = { first: { kind: 'commit', commit: feature }, second: { kind: 'commit', commit: main }, mode: 'sinceDiverged', path: null } as const;
     const [view, read] = await Promise.all([engine.compareSides(root, request), repo.compareSides(feature, main, 'diverged')]);
     expect(view.mergeBase).toBe(read?.base);
-    expect(view.files).toEqual(read?.files.map(asEngine));
+    expect(view.files).toEqual(read?.files);
     const sides = (commits: Array<{ side: string; id?: string; hash?: string }>) => commits.map((commit) => [commit.side, commit.id ?? commit.hash]);
     expect(sides(view.commits).map(([side, commit]) => [side === 'first' ? 'from' : 'to', commit])).toEqual(sides(read?.commits ?? []));
     expect([view.onlyInFirst, view.onlyInSecond]).toEqual([read?.behind, read?.ahead]);
 
     const files = await engine.compareFiles(root, feature, main);
-    expect(files).toEqual((await repo.compare(feature, main))?.files.map(asEngine));
+    expect(files).toEqual((await repo.compare(feature, main))?.files);
 
     const patch = await engine.comparePatch(root, { ...request, mergeBase: view.mergeBase, files: view.files, form: 'lines' });
     const lines = await repo.comparePatch(read!.files, read!.since, main, 10_000);
@@ -319,12 +300,7 @@ describe.skipIf(!built)('the reads of the engine and of the extension', { timeou
     await git(root, ['-c', 'protocol.file.allow=always', 'submodule', 'add', '--quiet', inside, 'libs/inside']);
     await git(root, ['commit', '--quiet', '-m', 'Add the submodule']);
     const [listed, read] = await Promise.all([client().submodules(root), new Repo(root).submodules()]);
-    expect(listed.map((each) => [each.name, each.folder, each.parent ?? '', each.url, each.branch, each.recorded, each.staged])).toEqual(
-      read.map((each) => [each.name, each.path, each.parent, each.url, each.branch, each.recorded, each.staged]),
-    );
-    expect(listed.map((each) => [each.checkout?.commit ?? null, each.checkout?.branch ?? null, each.checkout?.uncommitted ?? null])).toEqual(
-      read.map((each) => [each.head, each.headBranch, each.changes]),
-    );
+    expect(listed).toEqual(read);
   });
 
   it('the reads of worktree-setup read what scanIgnored, previewSetup and proposedCommands read', async () => {

@@ -17,6 +17,7 @@ import {
   type Filter,
   type Operation,
   type RebaseStop,
+  type RemoteBranch,
   type RepoParts,
   type RepoState,
   type Row,
@@ -24,10 +25,11 @@ import {
   type Search,
   type Stash,
   type Submodule,
-  type WorkingState,
+  type SubmoduleCheckout,
+  type WorkingTree,
   type Worktree,
 } from '../shared/protocol';
-import { subjectAndBody } from '../shared/message';
+import { stashName, uncommittedDetail } from '../shared/state';
 import { REF_KINDS, SCOPE_PREFIXES, pruneScope, scopeKinds } from '../shared/scope';
 import type { DeletedConflict } from '../shared/resolution';
 import { resolveConflicts, type Conflict } from './conflicts';
@@ -41,8 +43,7 @@ import {
   REF_FORMAT,
   STASH_FORMAT,
   REFLOG_FORMAT,
-  allChanges,
-  recentBranches,
+  changedPaths,
   parseBisectRefs,
   parseBlame,
   parseBlameLine,
@@ -79,8 +80,16 @@ export interface ConflictPlan {
   conflicts: Conflict[];
 }
 
-/** How far back in the moves of HEAD the branches checked out last are looked for. */
+/** How far back in the moves of HEAD the branches checked out last are looked for, as far as the engine looks. */
 const RECENT_MOVES = 300;
+
+/** Each remote branch with the remote it belongs to: the longest of the remotes its name starts with, as the engine has it. */
+function withRemotes(branches: RemoteBranch[], remotes: string[]): RemoteBranch[] {
+  return branches.map((branch) => {
+    const remote = remotes.filter((name) => branch.name.startsWith(`${name}/`)).sort((one, other) => other.length - one.length)[0];
+    return remote ? { ...branch, remote } : branch;
+  });
+}
 /** Larger files in conflict are left to the user. */
 const CONFLICT_BYTES = 2 * 1024 * 1024;
 /** No more files in conflict than this are read to see what can be resolved. */
@@ -266,7 +275,7 @@ export class Repo {
     return (await this.read(['log', '-1', '--format=%B', hash])).trimEnd();
   }
 
-  async working(): Promise<WorkingState> {
+  async working(): Promise<WorkingTree> {
     return parseStatus(await this.read(['status', '--porcelain=v1', '-z', '--untracked-files=all']));
   }
 
@@ -293,16 +302,16 @@ export class Repo {
   /** The operation that stopped half way, if any. */
   async operation(): Promise<Operation | null> {
     // `git am` keeps its patches where a rebase of old kept its own, and marks the folder as its own.
-    if (await this.hasMarker(path.join('rebase-apply', 'applying'))) return 'am';
+    if (await this.hasMarker(path.join('rebase-apply', 'applying'))) return 'patch';
     // A rebase replays commits by cherry-picking, so its markers must be checked first.
     if (await this.hasMarker('rebase-merge', 'rebase-apply')) return 'rebase';
     if (await this.hasMarker('MERGE_HEAD')) return 'merge';
-    if (await this.hasMarker('CHERRY_PICK_HEAD')) return 'cherry-pick';
+    if (await this.hasMarker('CHERRY_PICK_HEAD')) return 'cherryPick';
     if (await this.hasMarker('REVERT_HEAD')) return 'revert';
     // Between two commits of a series there is no such marker, only the list of what is left to do.
     if (await this.hasMarker('sequencer/todo')) {
       const todo = fs.readFileSync(path.join(this.gitDir!, 'sequencer', 'todo'), 'utf8');
-      return todo.startsWith('revert') ? 'revert' : 'cherry-pick';
+      return todo.startsWith('revert') ? 'revert' : 'cherryPick';
     }
     return null;
   }
@@ -319,10 +328,10 @@ export class Repo {
     const last = /^(?:edit|e)\s+([0-9a-f]+)/.exec(done.split('\n').filter((line) => line.trim() && !line.startsWith('#')).pop() ?? '');
     const splitting = split.trim();
     const kind = last && isHash(splitting) && splitting.startsWith(last[1]) ? 'split' : 'edit';
-    const hash = kind === 'split' ? splitting : amend.trim();
-    if (!last || !isHash(hash)) return null;
-    const subject = (await this.read(['log', '-1', '--format=%s', hash, '--'], true)).trim();
-    return { kind, hash, subject };
+    const commit = kind === 'split' ? splitting : amend.trim();
+    if (!last || !isHash(commit)) return null;
+    const subject = (await this.read(['log', '-1', '--format=%s', commit, '--'], true)).trim();
+    return { kind, commit, subject };
   }
 
   /** The paths of the files a commit changes, both names of a file it renames. */
@@ -339,9 +348,9 @@ export class Repo {
     for (const change of parseNameStatus(out.replaceAll('\n', ''))) {
       // `--follow` also goes on into the file this one was copied from, or just resembled when it was added.
       // That is another file with its own history, so the search ends where this one first appeared.
-      if (change.status === 'C' || change.status === 'A') break;
+      if (change.kind === 'copied' || change.kind === 'added') break;
       names.add(change.path);
-      if (change.oldPath) names.add(change.oldPath);
+      if (change.originalPath) names.add(change.originalPath);
     }
     return [...names];
   }
@@ -358,11 +367,11 @@ export class Repo {
    * between them. Null where there is no such commit.
    */
   async conflictSubjects(): Promise<[ours: string | null, theirs: string | null]> {
-    const incoming = { merge: 'MERGE_HEAD', 'cherry-pick': 'CHERRY_PICK_HEAD', revert: 'REVERT_HEAD', rebase: 'REBASE_HEAD' };
+    const incoming = { merge: 'MERGE_HEAD', cherryPick: 'CHERRY_PICK_HEAD', revert: 'REVERT_HEAD', rebase: 'REBASE_HEAD' };
     const operation = await this.operation().catch(() => null);
     const subject = async (ref: string) => (await this.read(['log', '-1', '--format=%s', ref, '--'], true)).trim() || null;
     // A patch being applied is no commit yet: its message is in a file of its own.
-    if (operation === 'am') return [await subject('HEAD'), this.patchSubject()];
+    if (operation === 'patch') return [await subject('HEAD'), this.patchSubject()];
     return [await subject('HEAD'), operation ? await subject(incoming[operation]) : null];
   }
 
@@ -388,9 +397,9 @@ export class Repo {
       const head = rebase('head-name');
       return [onto ? await named(onto) : null, head ? head.replace(/^refs\/heads\//, '') : await named('REBASE_HEAD')];
     }
-    const incoming = { merge: 'MERGE_HEAD', 'cherry-pick': 'CHERRY_PICK_HEAD', revert: 'REVERT_HEAD' };
+    const incoming = { merge: 'MERGE_HEAD', cherryPick: 'CHERRY_PICK_HEAD', revert: 'REVERT_HEAD' };
     if (operation === 'merge') return [current, await named(incoming.merge)];
-    if (operation === 'cherry-pick' || operation === 'revert') {
+    if (operation === 'cherryPick' || operation === 'revert') {
       const hash = (await this.read(['rev-parse', '--verify', '-q', `${incoming[operation]}^{commit}`], true)).trim();
       return [current, isHash(hash) ? hash.slice(0, 7) : null];
     }
@@ -476,7 +485,7 @@ export class Repo {
       const count = (await this.read(['rev-list', '--count', marks.bad, '--not', ...marks.good], true)).trim();
       if (count) suspects = Number(count);
     }
-    return { ...marks, suspects };
+    return { ...marks, remaining: suspects };
   }
 
   /** The `user.*` settings this repository has of its own, rather than inheriting them. */
@@ -587,11 +596,11 @@ export class Repo {
   private async worktreeChanges(worktrees: Worktree[], here: number): Promise<Worktree[]> {
     return Promise.all(
       worktrees.map(async (worktree) => {
-        if (worktree.current) return { ...worktree, changes: here };
-        if (worktree.prunable) return worktree;
+        if (worktree.isCurrent) return { ...worktree, uncommitted: here };
+        if (worktree.isMissing) return worktree;
         try {
-          const { stdout } = await git(worktree.path, ['status', '--porcelain', '--untracked-files=all'], { readOnly: true });
-          return { ...worktree, changes: stdout.split('\n').filter(Boolean).length };
+          const { stdout } = await git(worktree.folder, ['status', '--porcelain', '--untracked-files=all'], { readOnly: true });
+          return { ...worktree, uncommitted: stdout.split('\n').filter(Boolean).length };
         } catch {
           return worktree;
         }
@@ -623,36 +632,34 @@ export class Repo {
         const commit = recorded.get(entry.path) ?? null;
         const inIndex = staged.get(entry.path) ?? null;
         const submodule: Submodule = {
-          path: folder,
-          parent,
           name: entry.name,
-          url: entry.url,
+          folder,
+          parent: parent || null,
+          url: entry.url || null,
           branch: entry.branch,
           recorded: commit,
           staged: inIndex && inIndex !== commit ? inIndex : null,
-          head: null,
-          headBranch: null,
-          ahead: null,
-          behind: null,
-          changes: null,
+          checkout: null,
         };
         // Without a repository of its own, git would run in the one around it.
         if (!fs.existsSync(path.join(this.root, folder, '.git'))) return [submodule];
+        let checkout: SubmoduleCheckout;
         try {
           const status = parseBranchStatus(await this.read([...at(folder), 'status', '--porcelain=v2', '--branch', '-z', '--untracked-files=all']));
-          submodule.head = status.head;
-          submodule.headBranch = status.branch;
-          submodule.changes = status.changes;
+          checkout = { commit: status.head, branch: status.branch, uncommitted: status.changes, distance: null };
         } catch {
           return [submodule];
         }
-        if (commit && submodule.head === commit) {
-          submodule.ahead = 0;
-          submodule.behind = 0;
-        } else if (commit && submodule.head) {
+        submodule.checkout = checkout;
+        if (commit && checkout.commit === commit) {
+          checkout.distance = { ahead: 0, behind: 0 };
+        } else if (commit && checkout.commit) {
           // Fails when the recorded commit is not in it yet.
-          const counts = (await this.read([...at(folder), 'rev-list', '--left-right', '--count', `${commit}...${submodule.head}`, '--'], true)).trim();
-          if (counts) [submodule.behind, submodule.ahead] = counts.split(/\s+/).map(Number);
+          const counts = (await this.read([...at(folder), 'rev-list', '--left-right', '--count', `${commit}...${checkout.commit}`, '--'], true)).trim();
+          if (counts) {
+            const [behind, ahead] = counts.split(/\s+/).map(Number);
+            checkout.distance = { ahead, behind };
+          }
         }
         return [submodule, ...(await this.submodules(folder, depth + 1))];
       }),
@@ -681,7 +688,7 @@ export class Repo {
    * With `resolve`, the files with conflicts are read to say which of the conflicts need no choice between the two sides.
    */
   async parts(resolve = false): Promise<RepoParts> {
-    const [refsOut, headOut, branchOut, stashOut, worktreeOut, remoteOut, identityOut, movesOut, working, operation, bisect, submodules] = await Promise.all([
+    const [refsOut, headOut, branchOut, stashOut, worktreeOut, remoteOut, identityOut, movesOut, sortOut, working, operation, bisect, submodules] = await Promise.all([
       this.read(['for-each-ref', `--format=${REF_FORMAT}`]),
       this.read(['rev-parse', '--verify', '--quiet', 'HEAD'], true),
       // Asked in full: the short form of a branch that shares its name with a tag is `heads/<name>`.
@@ -691,41 +698,43 @@ export class Repo {
       this.read(['remote']),
       this.read(['config', '--get-regexp', '^user\\.(name|email)$'], true),
       // Where HEAD has been, for the branches that were checked out last. There is none before the first commit.
-      this.read(['reflog', `--max-count=${RECENT_MOVES}`, '--format=%gs', 'HEAD'], true),
+      this.read(['reflog', `--max-count=${RECENT_MOVES}`, '--format=%gs', 'HEAD', '--'], true),
+      this.read(['config', '--get', 'branch.sort'], true),
       this.working(),
       this.operation(),
       this.bisect(),
       this.submodules(),
     ]);
-    const head = headOut.trim() || null;
     const rebaseStop = operation === 'rebase' ? await this.rebaseStop() : null;
-    const changes = allChanges(working);
-    const plans = resolve && working.conflicts.length ? await this.conflictPlans(working.conflicts.map((file) => file.path)) : [];
+    const changed = changedPaths(working);
+    const plans = resolve && working.conflicted.length ? await this.conflictPlans(working.conflicted.map((file) => file.path)) : [];
     const refs = parseRefs(refsOut);
-    const branch = branchOut.trim().replace(/^refs\/heads\//, '') || null;
+    const remotes = remoteOut.split('\n').filter(Boolean);
+    // `hasMarker` has read where git's files are for this worktree.
+    this.gitDir ??= (await this.read(['rev-parse', '--absolute-git-dir'])).trim();
     return {
-      head,
-      branch,
-      ...refs,
+      folder: this.root,
+      gitFolder: this.gitDir,
+      head: { commit: headOut.trim() || null, branch: branchOut.trim() || null },
+      branches: refs.branches,
+      remoteBranches: withRemotes(refs.remoteBranches, remotes),
+      tags: refs.tags,
       stashes: parseStashes(stashOut),
-      worktrees: await this.worktreeChanges(parseWorktrees(worktreeOut, this.root), changes.length),
+      worktrees: await this.worktreeChanges(parseWorktrees(worktreeOut, this.root), changed.length),
+      remotes,
+      identity: parseIdentity(identityOut),
+      branchSort: sortOut.trim() || null,
+      reflogSubjects: movesOut.split('\n').filter(Boolean),
+      workingTree: working,
+      operation,
+      rebaseStop,
+      bisect,
       submodules,
-      remotes: remoteOut.split('\n').filter(Boolean),
-      working,
       conflictFiles: plans.map((plan) => ({
         path: plan.path,
         conflicts: plan.conflicts.length,
         resolvable: plan.conflicts.flatMap((conflict) => conflict.resolution ?? []),
       })),
-      operation,
-      rebaseStop,
-      bisect,
-      identity: parseIdentity(identityOut),
-      recentBranches: recentBranches(
-        movesOut,
-        refs.branches.map((each) => each.name),
-        branch,
-      ),
     };
   }
 
@@ -741,8 +750,8 @@ export class Repo {
     stashes = false,
     reader?: CommitsReader,
   ): Promise<RepoState> {
-    const { head } = parts;
-    const changes = allChanges(parts.working);
+    const head = parts.head.commit;
+    const changes = changedPaths(parts.workingTree);
     // A branch chosen for the graph may have been deleted since.
     const shown = pruneScope(scope, parts);
 
@@ -802,7 +811,7 @@ export class Repo {
       combineUpstream: true,
       traceSelected: true,
       branchesFollowScope: true,
-      branchSort: 'name',
+      sortOrder: 'name',
       resolveWithAI: false,
       home: null,
     };
@@ -888,7 +897,7 @@ export class Repo {
    * they are left out, as the stash stands for them.
    */
   private async withStashes(commits: Commit[], stashes: Stash[]): Promise<Listed[]> {
-    const names = new Map(stashes.map((stash) => [stash.hash, stash.ref]));
+    const names = new Map(stashes.map((stash) => [stash.commit, stashName(stash)]));
     const found = parseLog(await this.read(['log', '--no-walk=unsorted', '-z', `--format=${LOG_FORMAT}`, ...names.keys(), '--'], true));
     const listed: Listed[] = [...commits];
     // The newest first: the stashes made on the same commit are listed as they were made.
@@ -1010,59 +1019,40 @@ export class Repo {
     return this.read(staged ? ['diff', '--cached', '--no-color', '--no-ext-diff'] : ['diff', '--no-color', '--no-ext-diff'], true);
   }
 
-  /** Details of a commit, with the files it changed relative to its first parent. */
+  /**
+   * Details of a commit, with the files it changed relative to its first parent, as the engine reads them
+   * (`details.read-commit`); for `WORKTREE`, the uncommitted changes, with no id and no author.
+   */
   async commitDetail(hash: string): Promise<CommitDetail | null> {
     if (hash === WORKTREE) {
-      const files = allChanges(await this.working());
-      return {
-        hash,
-        parents: [],
-        author: '',
-        email: '',
-        date: 0,
-        committer: '',
-        committerEmail: '',
-        commitDate: 0,
-        subject: 'Uncommitted changes',
-        body: '',
-        files,
-      };
+      return uncommittedDetail(await this.working());
     }
     if (!isHash(hash)) return null;
 
     const meta = await this.read(['show', '--no-patch', `--format=${DETAIL_FORMAT}`, hash], true);
-    const [full, parentList, author, email, date, committer, committerEmail, commitDate, ...message] = meta.split('\x1f');
+    const [full, parentList, author, email, date, committer, committerEmail, commitDate, ...message] = meta.replace(/^\n/, '').split('\x1f');
     if (!full) return null;
     const parents = parentList ? parentList.split(' ') : [];
-    const { subject, body } = subjectAndBody(message.join('\x1f'));
 
     const rootFiles = (commit: string) => this.read(['diff-tree', '--root', '--no-commit-id', '-r', '--name-status', '-z', commit]);
     const files = parents.length ? await this.read(['diff', '--name-status', '-z', '-M', parents[0], full]) : await rootFiles(full);
 
-    // A stash keeps the untracked files it took in a commit of their own, with no parent, as its third parent.
-    let untracked: CommitDetail['untracked'];
+    // A stash keeps the untracked files it took in a commit of their own, with no parent, as its third parent. The
+    // commit is there even when there was nothing untracked to take.
+    let untrackedFiles: FileChange[] = [];
     if (parents.length === 3) {
       const third = await this.read(['show', '--no-patch', '--format=%P%x1f%s', parents[2]], true);
-      if (third.startsWith('\x1funtracked files on ')) {
-        // The commit is there even when there was nothing untracked to take.
-        const taken = parseNameStatus(await rootFiles(parents[2]));
-        if (taken.length) untracked = { hash: parents[2], files: taken };
-      }
+      if (third.startsWith('\x1funtracked files on ')) untrackedFiles = parseNameStatus(await rootFiles(parents[2]));
     }
 
     return {
-      hash: full,
+      id: full,
       parents,
-      author,
-      email,
-      date: Number(date),
-      committer,
-      committerEmail,
-      commitDate: Number(commitDate),
-      subject,
-      body,
+      author: { name: author, email, date: Number(date) },
+      committer: { name: committer, email: committerEmail, date: Number(commitDate) },
+      message: message.join('\x1f').replace(/\n+$/, ''),
       files: parseNameStatus(files),
-      untracked,
+      untrackedFiles,
     };
   }
 
@@ -1071,11 +1061,12 @@ export class Repo {
    * lists, in the same order, and no more than `limit` of them. Null when the two do not match.
    */
   async commitPatch(detail: CommitDetail, limit: number): Promise<FilePatch[] | null> {
-    if (!isHash(detail.hash)) return null;
+    const commit = detail.id;
+    if (!isHash(commit)) return null;
     const [parent] = detail.parents;
     // The same two commands that list the files, asked for the lines this time.
-    if (parent) return this.comparePatch(detail.files, parent, detail.hash, limit);
-    return parsePatch(detail.files, await this.read(['diff-tree', '--root', '--no-commit-id', '-r', '-p', ...PLAIN_DIFF, detail.hash]), limit);
+    if (parent) return this.comparePatch(detail.files, parent, commit, limit);
+    return parsePatch(detail.files, await this.read(['diff-tree', '--root', '--no-commit-id', '-r', '-p', ...PLAIN_DIFF, commit]), limit);
   }
 
   /** The unstaged diff of a file, or its staged diff, split into hunks. */
@@ -1128,7 +1119,7 @@ export class Repo {
   }
 
   /** Works out how to take back the last thing that moved HEAD, whoever did it. Returns null when there is nothing to undo. */
-  async undoInfo(branch: string | null, working: WorkingState): Promise<UndoInfo | null> {
+  async undoInfo(branch: string | null, working: WorkingTree): Promise<UndoInfo | null> {
     const head = await this.reflog('HEAD', 2);
     if (!head.length) return null;
     const checkout = /^checkout: moving from (\S+) to /.exec(head[0].subject);
@@ -1140,7 +1131,7 @@ export class Repo {
     const [{ subject }, { hash: previous }] = log;
 
     let mode: 'soft' | 'mixed' | 'keep';
-    const dirty = working.staged.length > 0 || working.unstaged.some((file) => file.status !== '?');
+    const dirty = working.staged.length > 0 || working.unstaged.length > 0;
     if (/^commit(?: \(amend\))?: /.test(subject)) mode = 'soft';
     // After a soft or mixed reset the files already look like `previous`: only HEAD and the index need to go back.
     else if (dirty && (await this.query(['diff', '--quiet', previous])).code === 0) mode = 'mixed';

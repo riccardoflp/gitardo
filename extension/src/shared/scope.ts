@@ -1,6 +1,7 @@
 import type { RefKind, RepoState, Scope } from './protocol';
+import { checkedOutBranch, upstreamName } from './state';
 
-type Refs = Pick<RepoState, 'branch' | 'branches' | 'remoteBranches' | 'tags'>;
+type Refs = Pick<RepoState, 'head' | 'branches' | 'remoteBranches' | 'tags'>;
 
 /** A branch, remote branch or tag there is to choose: `ref` is its full name, which is what a scope is made of. */
 export interface ScopeChoice {
@@ -24,7 +25,7 @@ export const SCOPE_PREFIXES = ['refs/heads/', 'refs/remotes/', 'refs/tags/'];
 /** Every branch, remote branch and tag of the repository, in the order they are listed everywhere else. */
 export function scopeChoices(state: Refs): ScopeChoice[] {
   return [
-    ...state.branches.map((branch) => ({ ref: `refs/heads/${branch.name}`, name: branch.name, kind: 'branch' as const, current: branch.current })),
+    ...state.branches.map((branch) => ({ ref: `refs/heads/${branch.name}`, name: branch.name, kind: 'branch' as const, current: branch.isCheckedOut })),
     ...state.remoteBranches.map((ref) => ({ ref: `refs/remotes/${ref.name}`, name: ref.name, kind: 'remote' as const, current: false })),
     ...state.tags.map((tag) => ({ ref: `refs/tags/${tag.name}`, name: tag.name, kind: 'tag' as const, current: false })),
   ];
@@ -63,9 +64,10 @@ export function scopeKinds(scope: Scope | null): RefKind[] | null {
 export function scopeRefs(scope: Scope, state: Refs): string[] {
   if (scope.kind === 'refs') return scope.refs;
   if (scope.kind === 'kinds') return scopeChoices(state).flatMap((choice) => (scope.kinds.includes(choice.kind) ? [choice.ref] : []));
-  if (!state.branch) return [];
-  const upstream = scope.upstream && state.branches.find((branch) => branch.name === state.branch)?.upstream;
-  return upstream ? [`refs/heads/${state.branch}`, `refs/remotes/${upstream.name}`] : [`refs/heads/${state.branch}`];
+  const branch = checkedOutBranch(state);
+  if (!branch) return [];
+  const upstream = scope.upstream && state.branches.find((each) => each.name === branch)?.upstream;
+  return upstream ? [`refs/heads/${branch}`, `refs/remotes/${upstreamName(upstream)}`] : [`refs/heads/${branch}`];
 }
 
 /** The scope with a reference added, or taken out if it is there: no scope, and so all the history, when none is left. */

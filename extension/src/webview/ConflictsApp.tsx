@@ -6,6 +6,7 @@ import { plural } from './conflictCode';
 import { FileIcon } from './FileIcon';
 import { Icon } from './Icon';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
+import { operationName } from '../shared/state';
 
 /**
  * What the page remembers while it is hidden: the conflicts whose proposal was accepted, by file and key, whether
@@ -56,7 +57,7 @@ function Report({ review }: { review: ConflictReview }) {
         </strong>{' '}
         {report.staged ? `${plural(report.staged, 'file was', 'files were')} left with no conflict, and staged. ` : ''}
         {done
-          ? `No file is left in conflict${review.operation ? `: the ${review.operation} can continue` : ''}.`
+          ? `No file is left in conflict${review.operation ? `: the ${operationName(review.operation)} can continue` : ''}.`
           : left
             ? `${plural(left, 'conflict is', 'conflicts are')} left to resolve.`
             : `${plural(review.conflicted, 'file is', 'files are')} still in conflict.`}
@@ -66,9 +67,9 @@ function Report({ review }: { review: ConflictReview }) {
         Undo
       </button>
       {done && review.operation && (
-        <button className="button primary" title={`Commit what is staged and go on with the ${review.operation}`} onClick={() => post({ type: 'action', action: { kind: 'continue' } })}>
+        <button className="button primary" title={`Commit what is staged and go on with the ${review.operation && operationName(review.operation)}`} onClick={() => post({ type: 'action', action: { kind: 'continue' } })}>
           <Icon name="debug-continue" />
-          Continue the {review.operation}
+          Continue the {operationName(review.operation)}
         </button>
       )}
     </div>
@@ -327,7 +328,7 @@ export function ConflictsApp() {
       <header className="conflicts-head">
         <h1>
           Conflicts
-          {review.operation && <span className="muted"> of the {review.operation}</span>}
+          {review.operation && <span className="muted"> of the {operationName(review.operation)}</span>}
         </h1>
         <p className="muted">
           {said.length ? `${said.join('; ')}. Nothing is written until you write what you accepted.` : 'No conflict with markers to look at here.'}
@@ -535,11 +536,11 @@ export function ConflictsApp() {
           {!review.files.length && !review.deleted.length && !review.others.length && !review.report && (
             <div className="empty-review">
               <Icon name="pass" />
-              <p>No file is in conflict{review.operation ? `: the ${review.operation} can continue` : ''}.</p>
+              <p>No file is in conflict{review.operation ? `: the ${operationName(review.operation)} can continue` : ''}.</p>
               {review.operation && (
                 <button className="button primary" onClick={() => post({ type: 'action', action: { kind: 'continue' } })}>
                   <Icon name="debug-continue" />
-                  Continue the {review.operation}
+                  Continue the {operationName(review.operation)}
                 </button>
               )}
             </div>

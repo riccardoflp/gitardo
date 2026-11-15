@@ -10,15 +10,16 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { EngineClient } from '../src/engine/client';
 import { Connection, EngineError, ErrorCode } from '../src/engine/connection';
-import { type Answer, type EngineState, PROTOCOL } from '../src/engine/messages';
+import { type Answer, PROTOCOL } from '../src/engine/messages';
 import { engineSettings } from '../src/engine/settings';
 import { answering, built, binary, choice, cleanUpAfterEach, client, commitFile, folder, memoryLog, repository, text } from './engine/harness';
-import { headOf, recordOf, type UndoRecord } from '../src/engine/journal';
+import { recordOf, type UndoRecord } from '../src/engine/journal';
 import { targetOf } from '../src/engine/target';
 import { git } from '../src/git/exec';
 import { commitOp, deleteBranchOp, type GitOp, mergeOp, splitHeadOp, stashOp } from '../src/git/ops';
 import { Repo } from '../src/git/repo';
-import type { RepoState } from '../src/shared/protocol';
+import type { RepoState, RepositoryState } from '../src/shared/protocol';
+import { headAt, tagAt } from './states';
 
 cleanUpAfterEach();
 
@@ -28,117 +29,39 @@ function samePath(named: string): string {
   return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
-const LETTERS: Record<string, string> = {
-  added: 'A',
-  modified: 'M',
-  deleted: 'D',
-  renamed: 'R',
-  copied: 'C',
-  typeChanged: 'T',
-};
 const byPath = <T extends { path: string }>(files: T[]) => [...files].sort((one, other) => one.path.localeCompare(other.path));
 const byName = <T extends { name: string }>(refs: T[]) => [...refs].sort((one, other) => one.name.localeCompare(other.name));
 
-/** What the engine read, in the shape `Repo.state` gives it. */
-function asRepoState(state: EngineState) {
+/**
+ * The parts of a state that the engine reads and `Repo.state` reads too, in the same shape (stage 6), as both sides
+ * can be compared by: the folders as the system names them, and the lists in one order. `Repo.state` adds the parts
+ * that are the extension's, which are left out.
+ */
+function comparable(state: RepositoryState) {
   return {
-    head: state.head.commit,
-    branch: state.head.branch?.replace(/^refs\/heads\//, '') ?? null,
-    branches: byName(
-      state.branches.map((branch) => ({
-        name: branch.name,
-        hash: branch.commit,
-        current: branch.isCheckedOut,
-        ...(branch.upstream && {
-          upstream: {
-            name: branch.upstream.reference.replace(/^refs\/remotes\//, ''),
-            remote: branch.upstream.remote,
-            // git's configuration names it in full, and Repo.state by its short name.
-            branch: branch.upstream.remoteBranch.replace(/^refs\/heads\//, ''),
-            ahead: branch.upstream.ahead,
-            behind: branch.upstream.behind,
-            gone: branch.upstream.isGone,
-          },
-        }),
-      })),
-    ),
-    remoteBranches: byName(
-      state.remoteBranches.map((branch) => ({
-        name: branch.name,
-        hash: branch.commit,
-      })),
-    ),
-    tags: byName(state.tags.map((tag) => ({ name: tag.name, hash: tag.commit }))),
-    stashes: state.stashes.map((stash) => ({
-      ref: `stash@{${stash.index}}`,
-      hash: stash.commit,
-      message: stash.message,
-      date: stash.date,
-    })),
-    worktrees: state.worktrees.map((worktree) => ({
-      path: samePath(worktree.folder),
-      // `git worktree list` says forty zeros before the first commit, where the engine says none.
-      hash: worktree.commit ?? '0'.repeat(40),
-      branch: worktree.branch?.replace(/^refs\/heads\//, '') ?? null,
-      current: worktree.isCurrent,
-      main: worktree.isMain,
-      prunable: worktree.isMissing,
-      changes: worktree.uncommitted,
-    })),
-    working: {
-      staged: byPath(
-        state.workingTree.staged.map((file) => ({
-          status: LETTERS[file.kind],
-          path: file.path,
-          ...(file.originalPath && { oldPath: file.originalPath }),
-        })),
-      ),
-      unstaged: byPath([
-        ...state.workingTree.unstaged.map((file) => ({
-          status: LETTERS[file.kind],
-          path: file.path,
-        })),
-        ...state.workingTree.untracked.map((file) => ({
-          status: '?',
-          path: file,
-        })),
-      ]),
-      conflicts: byPath(
-        state.workingTree.conflicted.map((file) => ({
-          status: 'U',
-          path: file.path,
-        })),
-      ),
-    },
-  };
-}
-
-/** What `Repo.state` read, cut to what the engine reads in stage 1. */
-function cut(state: RepoState) {
-  return {
+    folder: samePath(state.folder),
+    gitFolder: samePath(state.gitFolder),
     head: state.head,
-    branch: state.branch,
-    branches: byName(
-      state.branches.map(({ name, hash, current, upstream }) => ({
-        name,
-        hash,
-        current,
-        ...(upstream && { upstream }),
-      })),
-    ),
-    remoteBranches: byName(state.remoteBranches.map(({ name, hash }) => ({ name, hash }))),
-    tags: byName(state.tags.map(({ name, hash }) => ({ name, hash }))),
+    branches: byName(state.branches),
+    remoteBranches: byName(state.remoteBranches),
+    tags: byName(state.tags),
     stashes: state.stashes,
-    worktrees: state.worktrees.map((worktree) => ({
-      ...worktree,
-      path: samePath(worktree.path),
-    })),
-    working: {
-      staged: byPath(state.working.staged),
-      unstaged: byPath(state.working.unstaged),
-      conflicts: byPath(state.working.conflicts),
+    worktrees: state.worktrees.map((worktree) => ({ ...worktree, folder: samePath(worktree.folder) })),
+    remotes: [...state.remotes].sort(),
+    identity: state.identity,
+    branchSort: state.branchSort,
+    reflogSubjects: state.reflogSubjects,
+    workingTree: {
+      staged: byPath(state.workingTree.staged),
+      unstaged: byPath(state.workingTree.unstaged),
+      untracked: [...state.workingTree.untracked].sort(),
+      conflicted: byPath(state.workingTree.conflicted),
     },
-  };
+    operation: state.operation,
+    rebaseStop: state.rebaseStop,
+    bisect: state.bisect,
+    submodules: state.submodules,
+  } satisfies Record<keyof RepositoryState, unknown>;
 }
 
 /** Opens a repository in the engine and reads it with `Repo.state`, and says whether the two read the same. */
@@ -147,7 +70,7 @@ async function compare(root: string): Promise<void> {
   const read = await engine.open(root);
   const discovered = (await Repo.discover(root))!;
   const extension = await new Repo(discovered).state(10);
-  expect(asRepoState(read)).toEqual(cut(extension));
+  expect(comparable(read)).toEqual(comparable(extension));
 }
 
 describe.skipIf(!built)('gitardo-engine from the extension', { timeout: 60_000 }, () => {
@@ -257,7 +180,7 @@ describe.skipIf(!built)('gitardo-engine from the extension', { timeout: 60_000 }
     const root = await repository();
     const engine = client();
     await engine.open(root);
-    const states: EngineState[] = [];
+    const states: RepositoryState[] = [];
     engine.onState((repository, state) => repository === root && states.push(state));
     for (let round = 0; round < 10; round++) {
       fs.writeFileSync(path.join(root, 'b.txt'), `${round}\n`);
@@ -469,7 +392,7 @@ async function ranInTypeScript(engine: EngineClient, root: string, op: GitOp, re
   }
   const after = await read();
   const told = record ?? recordOf(before, after);
-  const number = told ? await engine.journalRecord(root, op.title, told, headOf(before), headOf(after)) : null;
+  const number = told ? await engine.journalRecord(root, op.title, told, before.head, after.head) : null;
   if (failure && !record) return null;
   return number;
 }
@@ -600,8 +523,7 @@ describe.skipIf(!built)('Undo through gitardo-engine, of operations run by eithe
 describe('what the journal is told of an operation run in TypeScript', () => {
   const state = (changes: Partial<RepoState>) =>
     ({
-      head: 'a'.repeat(40),
-      branch: 'main',
+      head: headAt('a'.repeat(40), 'main'),
       branches: [],
       remoteBranches: [],
       tags: [],
@@ -613,22 +535,17 @@ describe('what the journal is told of an operation run in TypeScript', () => {
     }) as unknown as RepoState;
 
   it('is a move of HEAD for the reflog, the references it changed with a reason, and nothing when only files changed', () => {
-    expect(recordOf(state({}), state({ head: 'b'.repeat(40) }))).toEqual({ kind: 'reflog' });
-    expect(recordOf(state({}), state({ branch: null }))).toEqual({ kind: 'reflog' });
-    expect(recordOf(state({}), state({ tags: [{ name: 'v1', hash: 'a'.repeat(40) }] }))).toEqual({
+    expect(recordOf(state({}), state({ head: headAt('b'.repeat(40), 'main') }))).toEqual({ kind: 'reflog' });
+    expect(recordOf(state({}), state({ head: headAt('a'.repeat(40)) }))).toEqual({ kind: 'reflog' });
+    expect(recordOf(state({}), state({ tags: [tagAt('v1', 'a'.repeat(40))] }))).toEqual({
       kind: 'notUndoable',
       reason: 'It changed the tags, which Undo does not take back.',
     });
-    const stashed = { ref: 'stash@{0}', hash: 'c'.repeat(40), message: 'm', date: 0 };
+    const stashed = { commit: 'c'.repeat(40), index: 0, message: 'm', date: 0 };
     expect(recordOf(state({}), state({ remotes: ['origin'], stashes: [stashed] }))).toEqual({
       kind: 'notUndoable',
       reason: 'It changed the stashes and remotes, which Undo does not take back.',
     });
     expect(recordOf(state({}), state({ changes: 3 }))).toBeNull();
-  });
-
-  it('names the branch by its full name, and none when detached', () => {
-    expect(headOf({ head: 'a'.repeat(40), branch: 'main' })).toEqual({ commit: 'a'.repeat(40), branch: 'refs/heads/main' });
-    expect(headOf({ head: 'a'.repeat(40), branch: null })).toEqual({ commit: 'a'.repeat(40), branch: null });
   });
 });

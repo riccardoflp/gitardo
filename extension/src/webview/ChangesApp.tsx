@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { workingChanges, type WorkingChange } from '../git/parse';
 import type { FileChange, FilesLayout, RepoState } from '../shared/protocol';
+import { checkedOutBranch } from '../shared/state';
 import { fileTree } from '../shared/tree';
 import { BisectBanner } from './BisectBanner';
 import { FILES_LIMIT, useCapped } from './Capped';
@@ -14,7 +15,7 @@ import { act } from './menus';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
 /** A staged rename covers two paths: unstaging only the new one would leave the deletion of the old one staged. */
-const pathsOf = (file: FileChange) => (file.oldPath ? [file.path, file.oldPath] : [file.path]);
+const pathsOf = (file: FileChange) => (file.originalPath ? [file.path, file.originalPath] : [file.path]);
 
 /** A diff as VS Code's list of changes opens it: what is not staged yet, or what is, when all of the file is. */
 const SOURCE = { kind: 'change' } as const;
@@ -23,7 +24,7 @@ const SOURCE = { kind: 'change' } as const;
  * A file of the list: a change git sees, or one only an editor has, not saved yet (`staged` null), which git sees
  * nothing of until it is saved.
  */
-type Listed = WorkingChange | { file: FileChange; staged: null };
+type Listed = WorkingChange | { file: FileChange; staged: null; untracked: false };
 
 /** Where a file of the list is, for the tree. Stable, so that the tree is not made again at every render. */
 const changePath = (change: Listed) => change.file.path;
@@ -95,7 +96,8 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
   }, [message]);
 
   const { identity } = state;
-  const changes = state.working.staged.length + state.working.unstaged.length;
+  const { staged, unstaged, untracked } = state.workingTree;
+  const changes = staged.length + unstaged.length + untracked.length;
   const canCommit = !busy && (amend || (message.trim() !== '' && changes > 0));
   const commit = () => canCommit && act({ kind: 'commit', message, amend });
 
@@ -104,7 +106,7 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
       <textarea
         value={message}
         rows={3}
-        placeholder={`Message (Ctrl+Enter to commit on ${state.branch ?? 'detached HEAD'})`}
+        placeholder={`Message (Ctrl+Enter to commit on ${checkedOutBranch(state) ?? 'detached HEAD'})`}
         aria-label="Commit message"
         onChange={(event) => setMessage(event.target.value)}
         onKeyDown={(event) => event.key === 'Enter' && (event.ctrlKey || event.metaKey) && commit()}
@@ -124,7 +126,7 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
           <Icon name={drafting ? 'loading' : 'sparkle'} spin={drafting} />
         </button>
         <label title="Replace the last commit instead of adding a new one. Leave the message empty to keep it.">
-          <input type="checkbox" checked={amend} disabled={!state.head} onChange={(event) => setAmend(event.target.checked)} />
+          <input type="checkbox" checked={amend} disabled={!state.head.commit} onChange={(event) => setAmend(event.target.checked)} />
           Amend last commit
         </label>
       </div>
@@ -134,7 +136,7 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
         onClick={() => post({ type: 'command', command: 'switchIdentity' })}
       >
         <Icon name="account" />
-        <span className="grow">{identity.name || identity.email ? `${identity.name} <${identity.email}>` : 'No identity configured'}</span>
+        <span className="grow">{identity.name || identity.email ? `${identity.name ?? ''} <${identity.email ?? ''}>` : 'No identity configured'}</span>
       </button>
     </div>
   );
@@ -164,13 +166,15 @@ export function ChangesApp() {
     return stop;
   }, []);
 
-  const working = state?.working;
+  const working = state?.workingTree;
   const changes = useMemo(() => (working ? workingChanges(working) : []), [working]);
   const isUnsaved = useMemo(() => new Set(unsaved), [unsaved]);
   // The files not saved that git sees no change in join the list, in the order of the paths.
   const listed = useMemo(() => {
-    const known = new Set([...(working?.conflicts ?? []), ...changes.map((change) => change.file)].map((file) => file.path));
-    const others = unsaved.filter((path) => !known.has(path)).map((path): Listed => ({ file: { status: '', path }, staged: null }));
+    const known = new Set([...(working?.conflicted ?? []), ...changes.map((change) => change.file)].map((file) => file.path));
+    const others = unsaved
+      .filter((path) => !known.has(path))
+      .map((path): Listed => ({ file: { path, originalPath: null, kind: 'modified' }, staged: null, untracked: false }));
     if (!others.length) return changes;
     return [...changes, ...others].sort((one, other) => (one.file.path < other.file.path ? -1 : one.file.path > other.file.path ? 1 : 0));
   }, [unsaved, changes, working]);
@@ -187,7 +191,9 @@ export function ChangesApp() {
     );
   }
 
-  const { staged, conflicts } = state.working;
+  const { staged } = state.workingTree;
+  // A file in conflict is listed as a change to it, marked `U`.
+  const conflicts = state.workingTree.conflicted.map((file): FileChange => ({ path: file.path, originalPath: null, kind: 'modified' }));
   const switchLayout = () => {
     const wanted = layout === 'tree' ? 'list' : 'tree';
     setLayout(wanted);
@@ -230,6 +236,7 @@ export function ChangesApp() {
               <FileRow
                 key={file.path}
                 file={file}
+                mark="conflict"
                 unsaved={isUnsaved.has(file.path)}
                 onOpen={() => post({ type: 'openDiff', source: { kind: 'conflict' }, file })}
                 actions={[
@@ -281,7 +288,7 @@ export function ChangesApp() {
                 act(staged.length ? { kind: 'discardChanges', paths: changes.flatMap((change) => pathsOf(change.file)) } : { kind: 'discardAll' }),
             },
           ]}
-          row={({ file, staged: done }, depth) => {
+          row={({ file, staged: done, untracked: notTracked }, depth) => {
             const save = { icon: 'save', title: 'Save', run: () => post({ type: 'save', paths: [file.path] }) };
             // Only its editor has changed it: there is nothing for git to stage, stash or discard until it is saved.
             if (done === null) {
@@ -289,6 +296,7 @@ export function ChangesApp() {
                 <FileRow
                   key={file.path}
                   file={file}
+                  mark="unchanged"
                   depth={depth}
                   unsaved
                   onOpen={() => post({ type: 'openFile', file })}
@@ -307,6 +315,7 @@ export function ChangesApp() {
               <FileRow
                 key={file.path}
                 file={file}
+                mark={notTracked ? 'untracked' : undefined}
                 depth={depth}
                 unsaved={isUnsaved.has(file.path)}
                 // The file, or its diff: as the settings say.
@@ -318,7 +327,7 @@ export function ChangesApp() {
                 pickVerb={done === 'all' ? 'Unstage' : 'Stage'}
                 pickTitle={PICK_TITLES[done]}
                 actions={[
-                  ...(file.status === 'D' ? [] : [{ icon: 'go-to-file', title: 'Open File', run: () => post({ type: 'openFile', file }) }]),
+                  ...(file.kind === 'deleted' ? [] : [{ icon: 'go-to-file', title: 'Open File', run: () => post({ type: 'openFile', file }) }]),
                   { icon: 'git-compare', title: 'Open Changes', run: () => post({ type: 'openDiff', source: SOURCE, file }) },
                   ...(isUnsaved.has(file.path) ? [save] : []),
                   { icon: 'git-stash', title: 'Stash this file…', run: () => act({ kind: 'stashPush', paths: pathsOf(file) }) },

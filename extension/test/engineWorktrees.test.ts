@@ -183,7 +183,7 @@ const withSubmodule = (source: string) => async (root: string) => {
 
 /** The submodule `lib` as the `GitOp`s of submodules take it. */
 async function lib(root: string) {
-  const submodule = (await state(root)).submodules.find((each) => each.path === 'lib');
+  const submodule = (await state(root)).submodules.find((each) => each.folder === 'lib');
   if (!submodule) throw new Error('lib is not a submodule');
   return submodule;
 }
@@ -387,7 +387,7 @@ describe.skipIf(!built)('Submodules, through the engine and as GitOps', { timeou
       await withSubmodule(source)(root);
       await commitFile(path.join(root, 'lib'), 'lib.txt', 'local\n', 'Library here');
     });
-    const typescript = await runOp(one, submoduleRecordOp(await lib(one), (await lib(one)).head!));
+    const typescript = await runOp(one, submoduleRecordOp(await lib(one), (await lib(one)).checkout!.commit!));
     const engine = await runAction(other, { kind: 'submoduleRecord', path: 'lib' });
     expect(engine.lines).toEqual(typescript);
     expect(await snapshot(other)).toEqual(await snapshot(one));

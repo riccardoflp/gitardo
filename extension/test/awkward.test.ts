@@ -25,6 +25,7 @@ import {
 import { hunkPatch } from '../src/git/parse';
 import { Repo } from '../src/git/repo';
 import { laneCount } from '../src/shared/graph';
+import { subjectAndBody } from '../src/shared/message';
 import { refArg } from '../src/shared/refs';
 
 // Repositories that are not like the tidy ones of the other tests: names that mean something to git or to a shell,
@@ -49,7 +50,7 @@ const state = () => repo.state(100);
 const commitAll = async (message: string) => {
   await run(stageAllOp());
   await run(commitOp(message, false, false));
-  return (await state()).head!;
+  return (await state()).head.commit!;
 };
 const paths = (files: { path: string }[]) => files.map((file) => file.path).sort();
 
@@ -75,7 +76,7 @@ afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
 describe('awkward repositories', { timeout: 60_000 }, () => {
   it('shows what is waiting for the first commit, in a repository that has none', async () => {
     let before = await state();
-    expect(before).toMatchObject({ head: null, branch: 'main', rows: [], changes: 0 });
+    expect(before).toMatchObject({ head: { commit: null, branch: 'refs/heads/main' }, rows: [], changes: 0 });
 
     write('first file.txt', 'hello\n');
     before = await state();
@@ -91,25 +92,25 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
 
   it('stages, unstages, cuts into hunks, discards and stashes files whatever their names', async () => {
     for (const name of NAMES) write(name, 'one\n');
-    expect(paths((await state()).working.unstaged)).toEqual([...NAMES].sort());
+    expect([...(await state()).workingTree.untracked].sort()).toEqual([...NAMES].sort());
     await commitAll('Add awkward files');
 
-    const detail = await repo.commitDetail((await state()).head!);
+    const detail = await repo.commitDetail((await state()).head.commit!);
     expect(paths(detail!.files)).toEqual([...NAMES].sort());
 
     for (const name of NAMES) write(name, 'one\ntwo\n');
     for (const name of NAMES) {
       await run(stageOp([name]));
-      expect(paths((await state()).working.staged), name).toEqual([name]);
+      expect(paths((await state()).workingTree.staged), name).toEqual([name]);
       expect(await repo.show(':0', name), name).toBe('one\ntwo\n');
       expect((await repo.hunks(name, true)).hunks, name).toHaveLength(1);
       await run(unstageOp([name], true));
-      expect((await state()).working.staged, name).toEqual([]);
+      expect((await state()).workingTree.staged, name).toEqual([]);
 
       const hunks = await repo.hunks(name, false);
       expect(hunks.hunks, name).toHaveLength(1);
       await run(hunkOp('stageHunk', name, hunkPatch(hunks, hunks.hunks[0])));
-      expect(paths((await state()).working.staged), name).toEqual([name]);
+      expect(paths((await state()).workingTree.staged), name).toEqual([name]);
       await run(unstageOp([name], true));
 
       expect((await repo.blameLine(name, 1))?.summary, name).toBe('Add awkward files');
@@ -117,11 +118,11 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     }
 
     await run(stashPushOp('one file', { paths: ['pages/[id].txt'] }));
-    expect(paths((await state()).working.unstaged)).toEqual(NAMES.filter((name) => name !== 'pages/[id].txt').sort());
+    expect(paths((await state()).workingTree.unstaged)).toEqual(NAMES.filter((name) => name !== 'pages/[id].txt').sort());
     await run(stashOp('pop', 'stash@{0}'));
 
     for (const name of NAMES) {
-      await run(discardOp([name], (await state()).working));
+      await run(discardOp([name], (await state()).workingTree));
       expect(read(name), name).toBe('one\n');
     }
     expect((await state()).changes).toBe(0);
@@ -136,10 +137,10 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     write('pages/n.txt', 'untracked\n');
 
     await run(stageOp(['pages/[id].txt']));
-    expect(paths((await state()).working.staged)).toEqual(['pages/[id].txt']);
+    expect(paths((await state()).workingTree.staged)).toEqual(['pages/[id].txt']);
     expect((await repo.hunks('pages/[id].txt', true)).hunks).toHaveLength(1);
     await run(unstageOp(['pages/[id].txt'], true));
-    expect((await state()).working.staged).toEqual([]);
+    expect((await state()).workingTree.staged).toEqual([]);
 
     expect((await repo.hunks('pages/[id].txt', false)).hunks).toHaveLength(1);
 
@@ -148,7 +149,7 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     await run(stashOp('pop', 'stash@{0}'));
 
     // The one that loses work if it reaches further than it was asked to.
-    await run(discardOp(['pages/[id].txt', 'pages/[new].txt'], (await state()).working));
+    await run(discardOp(['pages/[id].txt', 'pages/[new].txt'], (await state()).workingTree));
     expect(read('pages/[id].txt')).toBe('one\n');
     expect(read('pages/i.txt')).toBe('changed\n');
     expect(read('pages/d.txt')).toBe('changed\n');
@@ -176,22 +177,22 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     fs.rmSync(path.join(root, 'added-then-deleted.txt'));
     fs.writeFileSync(path.join(root, 'image.bin'), Buffer.from([9, 9, 0, 9]));
 
-    const { working } = await state();
+    const { workingTree: working } = await state();
     expect(working.staged).toEqual(
       expect.arrayContaining([
-        { status: 'R', path: 'renamed-to.txt', oldPath: 'renamed-from.txt' },
-        { status: 'M', path: 'both.txt' },
-        { status: 'D', path: 'staged-gone.txt' },
-        { status: 'A', path: 'added-then-deleted.txt' },
+        { kind: 'renamed', path: 'renamed-to.txt', originalPath: 'renamed-from.txt' },
+        { kind: 'modified', path: 'both.txt', originalPath: null },
+        { kind: 'deleted', path: 'staged-gone.txt', originalPath: null },
+        { kind: 'added', path: 'added-then-deleted.txt', originalPath: null },
       ]),
     );
     expect(working.unstaged).toEqual(
       expect.arrayContaining([
-        { status: 'M', path: 'renamed-to.txt' },
-        { status: 'M', path: 'both.txt' },
-        { status: 'D', path: 'gone.txt' },
-        { status: 'D', path: 'added-then-deleted.txt' },
-        { status: 'M', path: 'image.bin' },
+        { kind: 'modified', path: 'renamed-to.txt', originalPath: null },
+        { kind: 'modified', path: 'both.txt', originalPath: null },
+        { kind: 'deleted', path: 'gone.txt', originalPath: null },
+        { kind: 'deleted', path: 'added-then-deleted.txt', originalPath: null },
+        { kind: 'modified', path: 'image.bin', originalPath: null },
       ]),
     );
     expect((await repo.hunks('image.bin', false)).binary).toBe(true);
@@ -213,12 +214,12 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
 
     await run(checkoutOp('detached', first));
     let now = await state();
-    expect(now).toMatchObject({ head: first, branch: null });
+    expect(now).toMatchObject({ head: { commit: first, branch: null } });
     expect(now.rows.map((row) => row.subject)).toEqual(['Third', 'Second', 'First']);
     write('a.txt', 'detached\n');
     const loose = await commitAll('On no branch');
     now = await state();
-    expect(now.head).toBe(loose);
+    expect(now.head.commit).toBe(loose);
     // A commit that no branch has still shows, for as long as it is the one checked out.
     expect(now.rows.find((row) => row.hash === loose)).toMatchObject({ subject: 'On no branch', parents: [first] });
     await run(checkoutOp('branch', 'main'));
@@ -229,11 +230,11 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     const cut = new Repo((await Repo.discover(shallow))!);
     const cutState = await cut.state(100);
     expect(cutState.rows.map((row) => row.subject)).toEqual(['Third']);
-    expect(cutState.head).toBe(third);
+    expect(cutState.head.commit).toBe(third);
     const detail = await cut.commitDetail(third);
-    expect(detail).toMatchObject({ subject: 'Third' });
+    expect(detail).toMatchObject({ message: 'Third' });
     // Nothing to compare it with: every file it has counts as added.
-    expect(detail!.files).toEqual([{ status: 'A', path: 'a.txt' }]);
+    expect(detail!.files).toEqual([{ kind: 'added', path: 'a.txt', originalPath: null }]);
     expect((await cut.blameLine('a.txt', 1))?.summary).toBe('Third');
   });
 
@@ -280,8 +281,8 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     await commitAll('On main');
 
     const now = await state();
-    expect(now.branches.find((branch) => branch.name === 'release')?.hash).toBe(onBranch);
-    expect(now.tags.find((tag) => tag.name === 'release')?.hash).toBe(first);
+    expect(now.branches.find((branch) => branch.name === 'release')?.commit).toBe(onBranch);
+    expect(now.tags.find((tag) => tag.name === 'release')?.commit).toBe(first);
 
     expect(refArg('branch', 'release', now)).toBe('refs/heads/release');
     expect(refArg('tag', 'release', now)).toBe('refs/tags/release');
@@ -293,9 +294,9 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     expect(read('a.txt')).toBe('two\n');
 
     await run(checkoutOp('detached', refArg('tag', 'release', now)));
-    expect((await state()).head).toBe(first);
+    expect((await state()).head.commit).toBe(first);
     await run(checkoutOp('branch', 'release'));
-    expect(await state()).toMatchObject({ branch: 'release', head: onBranch });
+    expect(await state()).toMatchObject({ head: { commit: onBranch, branch: 'refs/heads/release' } });
 
     // A push by the short name is refused, as it could be either.
     const remote = path.join(dir, 'remote.git');
@@ -305,11 +306,11 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     expect(push.commands).toEqual([['push', '--set-upstream', 'origin', 'refs/heads/release']]);
     await run(push);
     expect((await git(remote, ['rev-parse', 'refs/heads/release'])).stdout.trim()).toBe(onBranch);
-    expect((await state()).branches.find((branch) => branch.current)?.upstream).toMatchObject({ name: 'origin/release', ahead: 0 });
+    expect((await state()).branches.find((branch) => branch.isCheckedOut)?.upstream).toMatchObject({ reference: 'refs/remotes/origin/release', ahead: 0 });
     write('a.txt', 'three\n');
     await commitAll('More on the branch');
     await run(syncOp('push', await state()));
-    expect((await git(remote, ['rev-parse', 'refs/heads/release'])).stdout.trim()).toBe((await state()).head);
+    expect((await git(remote, ['rev-parse', 'refs/heads/release'])).stdout.trim()).toBe((await state()).head.commit);
 
     await run(checkoutOp('branch', 'main'));
     await run(rebaseOp(refArg('branch', 'release', await state()), 'main'));
@@ -332,8 +333,8 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     const now = await state();
     expect(now.rows.map((row) => row.subject)).toEqual(['', subject]);
     const detail = await repo.commitDetail(now.rows[1].hash);
-    expect(detail!.subject).toBe(subject);
-    expect(detail!.body.trim()).toBe(body.trim());
+    expect(subjectAndBody(detail!.message).subject).toBe(subject);
+    expect(subjectAndBody(detail!.message).body).toBe(body.trim());
     expect((await repo.state(100, { kind: 'message', query: 'café 日本語' })).rows).toHaveLength(1);
   });
 
@@ -347,7 +348,7 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     write('a.txt', 'one\n');
     await commitAll('First');
     await git(root, ['-c', 'protocol.file.allow=always', 'submodule', '--quiet', 'add', `file://${library.replaceAll('\\', '/')}`, 'vendor/lib']);
-    expect(paths((await state()).working.staged)).toEqual(['.gitmodules', 'vendor/lib']);
+    expect(paths((await state()).workingTree.staged)).toEqual(['.gitmodules', 'vendor/lib']);
     const added = await commitAll('Add the library');
     expect(paths((await repo.commitDetail(added))!.files)).toEqual(['.gitmodules', 'vendor/lib']);
 
@@ -356,18 +357,18 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     await git(inside, ['-c', 'user.name=Gitardo Test', '-c', 'user.email=test@gitardo.invalid', 'commit', '--quiet', '-am', 'Library moves on']);
 
     const now = await state();
-    expect(now.working.unstaged).toEqual([{ status: 'M', path: 'vendor/lib' }]);
+    expect(now.workingTree.unstaged).toEqual([{ kind: 'modified', path: 'vendor/lib', originalPath: null }]);
     const hunks = await repo.hunks('vendor/lib', false);
     expect(hunks.hunks).toHaveLength(1);
     expect(hunks.hunks[0].lines.join('\n')).toMatch(/-Subproject commit \w+\n\+Subproject commit \w+/);
     await run(stageOp(['vendor/lib']));
-    expect((await state()).working.staged).toEqual([{ status: 'M', path: 'vendor/lib' }]);
+    expect((await state()).workingTree.staged).toEqual([{ kind: 'modified', path: 'vendor/lib', originalPath: null }]);
 
     // In the tab of a commit a submodule is one file with two lines, however git is set up to print it.
     await git(root, ['config', 'diff.submodule', 'log']);
     const moved = await commitAll('Move the library on');
     const patch = await repo.commitPatch((await repo.commitDetail(moved))!, 1000);
-    expect(patch).toMatchObject([{ file: { status: 'M', path: 'vendor/lib' }, added: 1, removed: 1, binary: false }]);
+    expect(patch).toMatchObject([{ file: { kind: 'modified', path: 'vendor/lib', originalPath: null }, added: 1, removed: 1, binary: false }]);
     expect(patch![0].hunks![0].lines.join('\n')).toMatch(/^-Subproject commit \w+\n\+Subproject commit \w+$/);
   });
 
@@ -392,7 +393,7 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     // The first commit of all: every file is added, and none is taken for the copy of another.
     const added = await repo.commitPatch((await repo.commitDetail(first))!, 10_000);
     expect(added!.map((file) => file.file)).toEqual((await repo.commitDetail(first))!.files);
-    expect(added!.every((file) => file.file.status === 'A' && file.removed === 0)).toBe(true);
+    expect(added!.every((file) => file.file.kind === 'added' && file.removed === 0)).toBe(true);
     expect(added!.find((file) => file.file.path === 'logo.bin')).toMatchObject({ binary: true, added: 0, hunks: [] });
     expect(added!.find((file) => file.file.path === 'città/日本語.txt')).toMatchObject({ added: 3, hunks: [{ lines: ['+one', '+two', '+three'] }] });
 
@@ -409,17 +410,17 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     expect(patch.map((file) => file.file)).toEqual(detail.files);
     for (const name of NAMES) {
       expect(patch.find((file) => file.file.path === name), name).toMatchObject({
-        file: { status: 'M' },
+        file: { kind: 'modified' },
         added: 2,
         removed: 1,
         binary: false,
         hunks: [{ header: '@@ -1,3 +1,4 @@', lines: [' one', '-two', '+2', ' three', '+four'] }],
       });
     }
-    expect(patch.find((file) => file.file.path === 'logo.bin')).toMatchObject({ file: { status: 'M' }, binary: true, hunks: [] });
-    expect(patch.find((file) => file.file.path === 'gone.txt')).toMatchObject({ file: { status: 'D' }, added: 0, removed: 1 });
-    expect(patch.find((file) => file.file.path === 'new name.txt')).toMatchObject({ file: { status: 'R', oldPath: 'old name.txt' }, added: 0, removed: 0, hunks: [] });
-    expect(patch.find((file) => file.file.path === 'empty.txt')).toMatchObject({ file: { status: 'A' }, added: 0, removed: 0, hunks: [] });
+    expect(patch.find((file) => file.file.path === 'logo.bin')).toMatchObject({ file: { kind: 'modified' }, binary: true, hunks: [] });
+    expect(patch.find((file) => file.file.path === 'gone.txt')).toMatchObject({ file: { kind: 'deleted' }, added: 0, removed: 1 });
+    expect(patch.find((file) => file.file.path === 'new name.txt')).toMatchObject({ file: { kind: 'renamed', originalPath: 'old name.txt' }, added: 0, removed: 0, hunks: [] });
+    expect(patch.find((file) => file.file.path === 'empty.txt')).toMatchObject({ file: { kind: 'added' }, added: 0, removed: 0, hunks: [] });
 
     // With room for a few lines only, the first files are sent whole and the others counted.
     const few = (await repo.commitPatch(detail, 12))!;
@@ -439,8 +440,8 @@ describe('awkward repositories', { timeout: 60_000 }, () => {
     await commitAll('Main');
     await run(mergeOp('feature', 'main'));
 
-    const detail = (await repo.commitDetail((await state()).head!))!;
+    const detail = (await repo.commitDetail((await state()).head.commit!))!;
     expect(detail.parents).toHaveLength(2);
-    expect(await repo.commitPatch(detail, 1000)).toMatchObject([{ file: { status: 'A', path: 'b.txt' }, added: 1, removed: 0 }]);
+    expect(await repo.commitPatch(detail, 1000)).toMatchObject([{ file: { kind: 'added', path: 'b.txt', originalPath: null }, added: 1, removed: 0 }]);
   });
 });

@@ -42,7 +42,7 @@ const commitAll = async (message: string) => {
   await run(stageAllOp());
   await run(commitOp(message, false, false));
 };
-const plans = async () => repo.conflictPlans((await state()).working.conflicts.map((file) => file.path));
+const plans = async () => repo.conflictPlans((await state()).workingTree.conflicted.map((file) => file.path));
 /** The markers without what they say the sides are: git names them after the operation, and after nothing when it marks them again. */
 const unnamed = (content: string) => content.replace(/^([<>|]{7}) .*$/gm, '$1');
 
@@ -89,7 +89,7 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     expect(read('a.txt')).toContain('<<<<<<< HEAD');
     expect((await state()).conflictFiles).toEqual([{ path: 'a.txt', conflicts: 1, resolvable: ['separate'] }]);
     // Unless asked, the files in conflict are not read at all.
-    expect(await repo.state(100)).toMatchObject({ working: { conflicts: [{ path: 'a.txt' }] }, conflictFiles: [] });
+    expect(await repo.state(100)).toMatchObject({ workingTree: { conflicted: [{ path: 'a.txt' }] }, conflictFiles: [] });
 
     const op = resolveConflictsOp(await plans());
     expect(op).toMatchObject({ title: 'Resolve the conflict automatically', commands: [['add', '--', 'a.txt']], confirm: true });
@@ -98,7 +98,7 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     await run(op);
 
     expect(read('a.txt')).toBe(BESIDE);
-    expect(await state()).toMatchObject({ operation: 'merge', conflictFiles: [], working: { conflicts: [], staged: [{ status: 'M', path: 'a.txt' }] } });
+    expect(await state()).toMatchObject({ operation: 'merge', conflictFiles: [], workingTree: { conflicted: [], staged: [{ kind: 'modified', path: 'a.txt' }] } });
     await run(continueOp('merge'));
     expect(await state()).toMatchObject({ operation: null, changes: 0 });
     expect((await state()).rows[0].parents).toHaveLength(2);
@@ -111,18 +111,18 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     await run(resolveConflictsOp(await plans()));
     expect(read('a.txt')).toBe(BESIDE);
     await run(continueOp('rebase'));
-    expect(await state()).toMatchObject({ operation: null, changes: 0, branch: 'main' });
+    expect(await state()).toMatchObject({ operation: null, changes: 0, head: { branch: 'refs/heads/main' } });
 
     // The same change of `three`, picked onto a branch that changed `two` in a way of its own.
-    const picked = (await state()).head!;
+    const picked = (await state()).head.commit!;
     await git(root, ['checkout', '-B', 'again', 'other^']);
     write('a.txt', BASE.replace('two', 'Two'));
     await commitAll('two, another way');
     await expect(run(cherryPickOp(picked, false))).rejects.toThrow();
-    expect(await state()).toMatchObject({ operation: 'cherry-pick', conflictFiles: [{ path: 'a.txt', conflicts: 1, resolvable: ['separate'] }] });
+    expect(await state()).toMatchObject({ operation: 'cherryPick', conflictFiles: [{ path: 'a.txt', conflicts: 1, resolvable: ['separate'] }] });
     await run(resolveConflictsOp(await plans()));
     expect(read('a.txt')).toBe(text('one', 'Two', 'THREE', 'four', 'five'));
-    await run(continueOp('cherry-pick'));
+    await run(continueOp('cherryPick'));
     expect(await state()).toMatchObject({ operation: null, changes: 0 });
 
     // And changes put away before the line above them was changed.
@@ -135,7 +135,7 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     expect(await state()).toMatchObject({ operation: null, conflictFiles: [{ path: 'a.txt', conflicts: 1, resolvable: ['separate'] }] });
     await run(resolveConflictsOp(await plans()));
     expect(read('a.txt')).toBe(text('one', 'Two', 'THREE!', 'four', 'five'));
-    expect((await state()).working.conflicts).toEqual([]);
+    expect((await state()).workingTree.conflicted).toEqual([]);
   });
 
   it('resolves what it can of a file and leaves the rest marked, and unstaged', async () => {
@@ -168,7 +168,7 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     expect(before).toMatch(marked);
     expect(read('b.txt')).toBe(BESIDE);
     const after = await state();
-    expect(after.working.conflicts.map((file) => file.path)).toEqual(['a.txt', 'c.txt']);
+    expect(after.workingTree.conflicted.map((file) => file.path)).toEqual(['a.txt', 'c.txt']);
     expect(after.conflictFiles).toEqual([
       { path: 'a.txt', conflicts: 1, resolvable: [] },
       { path: 'c.txt', conflicts: 1, resolvable: [] },
@@ -178,7 +178,7 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
 
     // Only the files asked for.
     await run(restoreConflictsOp(['a.txt', 'b.txt']));
-    expect((await state()).working.conflicts.map((file) => file.path)).toEqual(['a.txt', 'b.txt', 'c.txt']);
+    expect((await state()).workingTree.conflicted.map((file) => file.path)).toEqual(['a.txt', 'b.txt', 'c.txt']);
     const only = resolveConflictsOp(await repo.conflictPlans(['b.txt']));
     expect(only).toMatchObject({ title: 'Resolve the conflict automatically', commands: [['add', '--', 'b.txt']] });
   });
@@ -220,7 +220,7 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     expect(op.note).toBe('c.txt: 1 of 1 conflict (by the AI)\n\n1 conflict will be left to resolve by hand, with the markers as they are.\n\nAll of them were written by a language model: look at them before you commit.');
     await run(op);
     expect(read('c.txt')).toBe(BASE.replace('one', 'ours and theirs'));
-    expect((await state()).working.conflicts.map((file) => file.path)).toEqual(['b.txt']);
+    expect((await state()).workingTree.conflicted.map((file) => file.path)).toEqual(['b.txt']);
     expect(() => writeResolutionsOp(files.map((file) => ({ ...file, proposals: [] })))).toThrow('No resolution is accepted.');
     // A file changed since the proposals were made is not written.
     write('b.txt', `${read('b.txt')}typed\n`);
@@ -291,13 +291,13 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
       await expect(run(start)).rejects.toThrow();
       const marked = read('a.txt');
       await run(resolveConflictsOp(await plans()));
-      expect((await state()).working.conflicts).toEqual([]);
+      expect((await state()).workingTree.conflicted).toEqual([]);
 
       const restore = restoreConflictsOp(['a.txt']);
       expect(restore).toMatchObject({ title: 'Undo: restore the conflicts of a.txt', commands: [['checkout', '--merge', '--', 'a.txt']], danger: true });
       await run(restore);
       expect(unnamed(read('a.txt'))).toBe(unnamed(marked));
-      expect(await state()).toMatchObject({ working: { conflicts: [{ path: 'a.txt' }], staged: [] }, conflictFiles: [{ path: 'a.txt', conflicts: 1 }] });
+      expect(await state()).toMatchObject({ workingTree: { conflicted: [{ path: 'a.txt' }], staged: [] }, conflictFiles: [{ path: 'a.txt', conflicts: 1 }] });
       await git(root, [(await state()).operation!, '--abort']);
     }
   });
@@ -323,7 +323,7 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     expect(incoming.note).toContain('The incoming side is the branch being merged.');
     await run(incoming);
     expect(read('a.txt')).toBe(theirs);
-    expect((await state()).working.conflicts.map((file) => file.path)).toEqual(['gone.txt']);
+    expect((await state()).workingTree.conflicted.map((file) => file.path)).toEqual(['gone.txt']);
 
     await run(restoreConflictsOp(['a.txt']));
     expect(read('a.txt')).toContain('<<<<<<<');
@@ -335,14 +335,14 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     expect(deleted).toMatchObject({ title: 'Delete gone.txt, as the current side did', commands: [['rm', '--', 'gone.txt']], confirm: true });
     await run(deleted);
     expect(fs.existsSync(path.join(root, 'gone.txt'))).toBe(false);
-    expect((await state()).working.conflicts).toEqual([]);
+    expect((await state()).workingTree.conflicted).toEqual([]);
 
     // The other way round, in the same merge started again.
     await git(root, ['merge', '--abort']);
     await expect(run(mergeOp('other', 'main'))).rejects.toThrow();
     await run(takeSideOp('gone.txt', 'theirs', await repo.conflictStages('gone.txt'), 'merge'));
     expect(read('gone.txt')).toBe(theirs);
-    expect((await state()).working.conflicts.map((file) => file.path)).toEqual(['a.txt']);
+    expect((await state()).workingTree.conflicted.map((file) => file.path)).toEqual(['a.txt']);
 
     expect(() => takeSideOp('a.txt', 'ours', [], 'merge')).toThrow('not in conflict');
     expect(takeSideOp('a.txt', 'ours', [1, 2, 3], 'rebase').note).toContain('The current side is what the branch is being rebased onto.');
@@ -359,7 +359,7 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     expect(read('a.txt')).toBe(windows(BESIDE));
     // What is staged has the line endings of the repository.
     expect(await repo.show(':0', 'a.txt')).toBe(BESIDE);
-    expect((await state()).working.conflicts).toEqual([]);
+    expect((await state()).workingTree.conflicted).toEqual([]);
   });
 
   it('leaves alone the files it cannot read as text, and writes nothing over a file that changed in the meantime', async () => {
@@ -375,7 +375,7 @@ describe('conflicts of a real repository', { timeout: 120_000 }, () => {
     await commitAll('latin, main');
 
     await expect(run(mergeOp('other', 'main'))).rejects.toThrow();
-    expect((await state()).working.conflicts.map((file) => file.path)).toEqual(['a.txt', 'b.bin', 'latin.txt']);
+    expect((await state()).workingTree.conflicted.map((file) => file.path)).toEqual(['a.txt', 'b.bin', 'latin.txt']);
     // The file in another encoding has markers, but could not be written back byte for byte.
     expect(fs.readFileSync(path.join(root, 'latin.txt'), 'latin1')).toContain('<<<<<<<');
     expect((await state()).conflictFiles).toEqual([{ path: 'a.txt', conflicts: 1, resolvable: ['separate'] }]);

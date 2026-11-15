@@ -116,7 +116,7 @@ const danger = (finished: Finished): Plan['danger'] | null => (finished.kind ===
 
 describe.skipIf(!built)('Conflicts, through the engine and as GitOps', { timeout: 60_000 }, () => {
   it('resolves automatically what needs no choice, and its question is its confirmation (D3)', async () => {
-    const files = (read: RepoState) => read.working.conflicts.map((file) => file.path);
+    const files = (read: RepoState) => read.workingTree.conflicted.map((file) => file.path);
     const ran = await scenario(merging, async (read, repo) => resolveConflictsOp(await repo.conflictPlans(files(read))), mapped({ kind: 'resolveConflicts' }), {
       resolve: choice('resolve'),
     });

@@ -51,7 +51,7 @@ import {
 import { compareRangeUrl, compareUrl, mapPulls, parseGitHubRemote } from '../src/git/github';
 import { buildPrompt, cleanMessage } from '../src/shared/commitPrompt';
 import {
-  allChanges,
+  changedPaths,
   hunkPatch,
   linesPatch,
   parseBisectRefs,
@@ -68,11 +68,11 @@ import {
   parseRefs,
   parseStatus,
   parseWorktrees,
-  recentBranches,
   workingChanges,
 } from '../src/git/parse';
-import type { Branch, RepoState, Upstream, WorkingState, Worktree } from '../src/shared/protocol';
-import { byMatch, canFastForward, sortRefs } from '../src/shared/refs';
+import type { Branch, FileChange, RepoState, Upstream, Worktree } from '../src/shared/protocol';
+import { byMatch, canFastForward, recentBranches, sortRefs } from '../src/shared/refs';
+import { branchAt, headAt, upstreamOf, workingTreeOf } from './states';
 
 const F = '\x1f';
 
@@ -113,15 +113,15 @@ describe('parsers', () => {
     );
     expect(refs.branches[0]).toEqual({
       name: 'main',
-      hash: 'aaa',
+      commit: 'aaa',
       date: 1700000000,
-      current: true,
-      upstream: { name: 'origin/main', remote: 'origin', branch: 'main', ahead: 3, behind: 2, gone: false },
+      isCheckedOut: true,
+      upstream: { reference: 'refs/remotes/origin/main', remote: 'origin', remoteBranch: 'refs/heads/main', ahead: 3, behind: 2, isGone: false },
     });
-    expect(refs.branches[1].upstream?.gone).toBe(true);
-    expect(refs.branches[2].upstream).toBeUndefined();
-    expect(refs.remoteBranches).toEqual([{ name: 'origin/main', hash: 'ddd', date: 1690000000 }]);
-    expect(refs.tags).toEqual([{ name: 'v1', hash: 'eee', date: 1680000000 }]);
+    expect(refs.branches[1].upstream?.isGone).toBe(true);
+    expect(refs.branches[2].upstream).toBeNull();
+    expect(refs.remoteBranches).toEqual([{ name: 'origin/main', remote: 'origin', commit: 'ddd', date: 1690000000 }]);
+    expect(refs.tags).toEqual([{ name: 'v1', commit: 'eee', date: 1680000000 }]);
 
     // By date the latest come first; by name they stay as git lists them.
     expect(sortRefs(refs, 'date').branches.map((branch) => branch.name)).toEqual(['main', 'local', 'old']);
@@ -131,14 +131,14 @@ describe('parsers', () => {
   it('keeps the order of the names among branches committed to at the same time', () => {
     const refs = {
       branches: [
-        { name: 'a', hash: '1', date: 5, current: false },
-        { name: 'b', hash: '2', date: 9, current: false },
-        { name: 'c', hash: '3', date: 5, current: true },
+        branchAt('a', '1', { date: 5 }),
+        branchAt('b', '2', { date: 9 }),
+        branchAt('c', '3', { date: 5, isCheckedOut: true }),
       ],
       remoteBranches: [],
       tags: [
-        { name: 'v1', hash: '4', date: 1 },
-        { name: 'v2', hash: '5', date: 2 },
+        { name: 'v1', commit: '4', date: 1 },
+        { name: 'v2', commit: '5', date: 2 },
       ],
     };
     const sorted = sortRefs(refs, 'date');
@@ -156,9 +156,9 @@ describe('parsers', () => {
 
   it('parses name-status output with renames', () => {
     expect(parseNameStatus('M\0a.ts\0R087\0old name.ts\0new name.ts\0A\0b.ts\0')).toEqual([
-      { status: 'M', path: 'a.ts' },
-      { status: 'R', path: 'new name.ts', oldPath: 'old name.ts' },
-      { status: 'A', path: 'b.ts' },
+      { kind: 'modified', path: 'a.ts', originalPath: null },
+      { kind: 'renamed', path: 'new name.ts', originalPath: 'old name.ts' },
+      { kind: 'added', path: 'b.ts', originalPath: null },
     ]);
   });
 
@@ -166,22 +166,22 @@ describe('parsers', () => {
     const working = parseStatus(' M a.ts\0R  new.ts\0old.ts\0?? c d.ts\0D  e.ts\0MM both.ts\0UU clash.ts\0AA twice.ts\0');
     expect(working).toEqual({
       staged: [
-        { status: 'R', path: 'new.ts', oldPath: 'old.ts' },
-        { status: 'D', path: 'e.ts' },
-        { status: 'M', path: 'both.ts' },
+        { kind: 'renamed', path: 'new.ts', originalPath: 'old.ts' },
+        { kind: 'deleted', path: 'e.ts', originalPath: null },
+        { kind: 'modified', path: 'both.ts', originalPath: null },
       ],
       unstaged: [
-        { status: 'M', path: 'a.ts' },
-        { status: '?', path: 'c d.ts' },
-        { status: 'M', path: 'both.ts' },
+        { kind: 'modified', path: 'a.ts', originalPath: null },
+        { kind: 'modified', path: 'both.ts', originalPath: null },
       ],
-      conflicts: [
-        { status: 'U', path: 'clash.ts' },
-        { status: 'U', path: 'twice.ts' },
+      untracked: ['c d.ts'],
+      conflicted: [
+        { path: 'clash.ts', kind: 'bothModified' },
+        { path: 'twice.ts', kind: 'bothAdded' },
       ],
     });
     // A file changed in both the index and the working tree still counts once.
-    expect(allChanges(working).map((file) => file.path)).toEqual(['clash.ts', 'twice.ts', 'new.ts', 'e.ts', 'both.ts', 'a.ts', 'c d.ts']);
+    expect(changedPaths(working)).toEqual(['clash.ts', 'twice.ts', 'new.ts', 'e.ts', 'both.ts', 'a.ts', 'c d.ts']);
   });
 
   it('lists staged and unstaged files together, each with how much of it is staged and what it is next to HEAD', () => {
@@ -189,29 +189,29 @@ describe('parsers', () => {
       [' M a.ts', 'R  new.ts', 'old.ts', '?? c d.ts', 'D  e.ts', 'MM both.ts', 'UU clash.ts', 'AM added.ts', 'MD gone.ts', 'D  kept.ts', '?? kept.ts', 'AD never.ts', ''].join('\0'),
     );
     expect(workingChanges(working)).toEqual([
-      { file: { status: 'M', path: 'a.ts' }, staged: 'none' },
-      { file: { status: 'A', path: 'added.ts' }, staged: 'some' },
-      { file: { status: 'M', path: 'both.ts' }, staged: 'some' },
-      { file: { status: '?', path: 'c d.ts' }, staged: 'none' },
-      { file: { status: 'D', path: 'e.ts' }, staged: 'all' },
+      { file: { kind: 'modified', path: 'a.ts', originalPath: null }, staged: 'none', untracked: false },
+      { file: { kind: 'added', path: 'added.ts', originalPath: null }, staged: 'some', untracked: false },
+      { file: { kind: 'modified', path: 'both.ts', originalPath: null }, staged: 'some', untracked: false },
+      { file: { kind: 'added', path: 'c d.ts', originalPath: null }, staged: 'none', untracked: true },
+      { file: { kind: 'deleted', path: 'e.ts', originalPath: null }, staged: 'all', untracked: false },
       // Deleted from disk after it was staged: HEAD has it, the working tree does not.
-      { file: { status: 'D', path: 'gone.ts' }, staged: 'some' },
+      { file: { kind: 'deleted', path: 'gone.ts', originalPath: null }, staged: 'some', untracked: false },
       // Taken out of the index and left on disk: both HEAD and the working tree have it.
-      { file: { status: 'M', path: 'kept.ts' }, staged: 'some' },
-      { file: { status: 'A', path: 'never.ts' }, staged: 'some' },
-      { file: { status: 'R', path: 'new.ts', oldPath: 'old.ts' }, staged: 'all' },
+      { file: { kind: 'modified', path: 'kept.ts', originalPath: null }, staged: 'some', untracked: false },
+      { file: { kind: 'added', path: 'never.ts', originalPath: null }, staged: 'some', untracked: false },
+      { file: { kind: 'renamed', path: 'new.ts', originalPath: 'old.ts' }, staged: 'all', untracked: false },
     ]);
   });
 
   it('parses worktrees and marks the current one', () => {
     const out = 'worktree C:/prj/app\nHEAD aaa\nbranch refs/heads/main\n\nworktree C:/prj/app-fix\nHEAD bbb\ndetached\n\n';
     expect(parseWorktrees(`${out}worktree C:/prj/gone\nHEAD ccc\nbranch refs/heads/x\nprunable gitdir file points to non-existent location\n\n`, 'c:/prj/app')).toEqual([
-      { path: 'C:/prj/app', hash: 'aaa', branch: 'main', current: true, main: true, prunable: false, changes: null },
-      { path: 'C:/prj/app-fix', hash: 'bbb', branch: null, current: false, main: false, prunable: false, changes: null },
-      { path: 'C:/prj/gone', hash: 'ccc', branch: 'x', current: false, main: false, prunable: true, changes: null },
+      { folder: 'C:/prj/app', commit: 'aaa', branch: 'refs/heads/main', isMain: true, isCurrent: true, isMissing: false, uncommitted: null },
+      { folder: 'C:/prj/app-fix', commit: 'bbb', branch: null, isMain: false, isCurrent: false, isMissing: false, uncommitted: null },
+      { folder: 'C:/prj/gone', commit: 'ccc', branch: 'refs/heads/x', isMain: false, isCurrent: false, isMissing: true, uncommitted: null },
     ]);
     // A bare repository is listed first, and has no main worktree.
-    expect(parseWorktrees(`worktree C:/prj/app.git\nbare\n\n${out}`, 'c:/prj/app-fix').map((worktree) => worktree.main)).toEqual([false, false]);
+    expect(parseWorktrees(`worktree C:/prj/app.git\nbare\n\n${out}`, 'c:/prj/app-fix').map((worktree) => worktree.isMain)).toEqual([false, false]);
   });
 
   it('cuts a file diff into hunks that are each a complete patch', () => {
@@ -270,11 +270,11 @@ describe('parsers', () => {
       '\\ No newline at end of file',
       '',
     ].join('\n');
-    const files = [
-      { status: 'M', path: 'a.txt' },
-      { status: 'M', path: 'logo.png' },
-      { status: 'R', path: 'new.txt', oldPath: 'old.txt' },
-      { status: 'A', path: 'z.txt' },
+    const files: FileChange[] = [
+      { kind: 'modified', path: 'a.txt', originalPath: null },
+      { kind: 'modified', path: 'logo.png', originalPath: null },
+      { kind: 'renamed', path: 'new.txt', originalPath: 'old.txt' },
+      { kind: 'added', path: 'z.txt', originalPath: null },
     ];
     const patch = parsePatch(files, diff, 1000)!;
     expect(patch.map((file) => [file.file.path, file.added, file.removed, file.binary, file.hunks?.length])).toEqual([
@@ -297,7 +297,7 @@ describe('parsers', () => {
 
     // A diff of other files than the ones listed is not guessed at.
     expect(parsePatch(files.slice(1), diff, 1000)).toBeNull();
-    expect(parsePatch([...files, { status: 'A', path: 'more.txt' }], diff, 1000)).toBeNull();
+    expect(parsePatch([...files, { kind: 'added', path: 'more.txt', originalPath: null }], diff, 1000)).toBeNull();
     expect(parsePatch([], '', 1000)).toEqual([]);
   });
 
@@ -329,8 +329,8 @@ describe('parsers', () => {
     ].join('\n');
     const patch = parsePatch(
       [
-        { status: 'T', path: 'link' },
-        { status: 'M', path: 'z.txt' },
+        { kind: 'typeChanged', path: 'link', originalPath: null },
+        { kind: 'modified', path: 'z.txt', originalPath: null },
       ],
       diff,
       1000,
@@ -354,26 +354,33 @@ describe('recent branches', () => {
     'checkout: moving from old to gone',
   ].join('\n');
 
+  // The moves of HEAD as the engine reads them, the latest first, with the branches there are and the one checked out.
+  const state = (subjects: string, names: string[], current: string | null) => ({
+    reflogSubjects: subjects ? subjects.split('\n') : [],
+    branches: names.map((name) => branchAt(name, 'a'.repeat(40))),
+    head: headAt('a'.repeat(40), current),
+  });
+
   it('are the ones checked out last, the latest first, without the current one and the ones that are gone', () => {
-    expect(recentBranches(moves, ['feature', 'fix', 'main', 'old', 'never'], 'main')).toEqual(['feature', 'fix', 'old']);
+    expect(recentBranches(state(moves, ['feature', 'fix', 'main', 'old', 'never'], 'main'))).toEqual(['feature', 'fix', 'old']);
   });
 
   it('count the one just left when no branch is checked out, and stop at the limit', () => {
-    expect(recentBranches(moves, ['feature', 'fix', 'main', 'old'], null)).toEqual(['main', 'feature', 'fix', 'old']);
-    expect(recentBranches(moves, ['feature', 'fix', 'main', 'old'], null, 2)).toEqual(['main', 'feature']);
-    expect(recentBranches('', ['main'], 'main')).toEqual([]);
+    expect(recentBranches(state(moves, ['feature', 'fix', 'main', 'old'], null))).toEqual(['main', 'feature', 'fix', 'old']);
+    expect(recentBranches(state(moves, ['feature', 'fix', 'main', 'old'], null), 2)).toEqual(['main', 'feature']);
+    expect(recentBranches(state('', ['main'], 'main'))).toEqual([]);
   });
 });
 
 describe('syncOp', () => {
   const state = (branch: Partial<Branch> | null, remotes = ['origin'], tags: string[] = []): RepoState =>
     ({
-      branches: branch ? [{ name: 'work', hash: 'aaa', current: true, ...branch }] : [],
+      branches: branch ? [branchAt('work', 'aaa', { isCheckedOut: true, ...branch })] : [],
       remoteBranches: [],
-      tags: tags.map((name) => ({ name, hash: 'bbb' })),
+      tags: tags.map((name) => ({ name, commit: 'bbb', date: 0 })),
       remotes,
     }) as Partial<RepoState> as RepoState;
-  const upstream = (branch: string) => ({ name: `up/${branch}`, remote: 'up', branch, ahead: 0, behind: 0, gone: false });
+  const upstream = (branch: string) => upstreamOf(`up/${branch}`);
 
   it('pushes to the upstream of the current branch', () => {
     expect(syncOp('push', state({ upstream: upstream('work') })).commands).toEqual([['push', 'up', 'work']]);
@@ -409,20 +416,12 @@ describe('syncOp', () => {
 });
 
 describe('fast-forward', () => {
-  const upstream = (overrides: Partial<Upstream> = {}): Upstream => ({
-    name: 'up/main',
-    remote: 'up',
-    branch: 'main',
-    ahead: 0,
-    behind: 2,
-    gone: false,
-    ...overrides,
-  });
+  const upstream = (overrides: Partial<Upstream> = {}): Upstream => upstreamOf('up/main', { behind: 2, ...overrides });
   const state = (branch: Partial<Branch>, worktrees: Partial<Worktree>[] = []): RepoState =>
     ({
       branches: [
-        { name: 'work', hash: 'aaa', current: true },
-        { name: 'feature', hash: 'bbb', current: false, ...branch },
+        branchAt('work', 'aaa', { isCheckedOut: true }),
+        branchAt('feature', 'bbb', branch),
       ],
       worktrees,
     }) as Partial<RepoState> as RepoState;
@@ -441,7 +440,7 @@ describe('fast-forward', () => {
   });
 
   it('fetches from this repository when the upstream is a local branch', () => {
-    const local = upstream({ name: 'main', remote: '.' });
+    const local = upstream({ reference: 'refs/heads/main', remote: '.' });
     expect(fastForwardOp('feature', state({ upstream: local })).commands).toEqual([['fetch', '.', 'refs/heads/main:refs/heads/feature']]);
   });
 
@@ -453,24 +452,24 @@ describe('fast-forward', () => {
   it('is not offered for what git would refuse or what Pull already does', () => {
     expect(offered({})).toBe(false);
     expect(offered({ upstream: upstream({ ahead: 1 }) })).toBe(false);
-    expect(offered({ upstream: upstream({ gone: true }) })).toBe(false);
-    expect(offered({ current: true, upstream: upstream() })).toBe(false);
+    expect(offered({ upstream: upstream({ isGone: true }) })).toBe(false);
+    expect(offered({ isCheckedOut: true, upstream: upstream() })).toBe(false);
     expect(() => fastForwardOp('feature', state({ upstream: upstream({ ahead: 1 }) }))).toThrow(/cannot be fast-forwarded/);
     expect(() => fastForwardOp('missing', state({ upstream: upstream() }))).toThrow(/cannot be fast-forwarded/);
   });
 
   it('pulls a branch that another worktree has checked out in that worktree, only while nothing is uncommitted there', () => {
-    const clean: Partial<Worktree> = { path: 'C:/work/feature', branch: 'feature', current: false, prunable: false, changes: 0 };
+    const clean: Partial<Worktree> = { folder: 'C:/work/feature', branch: 'refs/heads/feature', isCurrent: false, isMissing: false, uncommitted: 0 };
     expect(offered({ upstream: upstream() }, [clean])).toBe(true);
-    expect(offered({ upstream: upstream() }, [{ ...clean, changes: 2 }])).toBe(false);
-    expect(offered({ upstream: upstream() }, [{ ...clean, changes: null }])).toBe(false);
-    expect(offered({ upstream: upstream() }, [{ ...clean, prunable: true }])).toBe(false);
+    expect(offered({ upstream: upstream() }, [{ ...clean, uncommitted: 2 }])).toBe(false);
+    expect(offered({ upstream: upstream() }, [{ ...clean, uncommitted: null }])).toBe(false);
+    expect(offered({ upstream: upstream() }, [{ ...clean, isMissing: true }])).toBe(false);
     expect(offered({ upstream: upstream({ ahead: 1 }) }, [clean])).toBe(false);
     expect(fastForwardOp('feature', state({ upstream: upstream() }, [clean]))).toMatchObject({
       title: 'Fast-forward feature to up/main in its worktree',
       commands: [['-C', 'C:/work/feature', 'pull', '--ff-only', '--no-rebase', '--no-autostash', 'up', 'refs/heads/main']],
     });
-    expect(() => fastForwardOp('feature', state({ upstream: upstream() }, [{ ...clean, changes: 1 }]))).toThrow(/cannot be fast-forwarded/);
+    expect(() => fastForwardOp('feature', state({ upstream: upstream() }, [{ ...clean, uncommitted: 1 }]))).toThrow(/cannot be fast-forwarded/);
   });
 });
 
@@ -558,7 +557,7 @@ describe('operations', () => {
       ['add', '--', 'src/app.ts', ':(literal)pages/[id].tsx', ':(literal)what?.md'],
     ]);
     expect(unstageOp(['a*.ts'], true).commands).toEqual([['restore', '--staged', '--', ':(literal)a*.ts']]);
-    const working = { staged: [], unstaged: [{ status: '?' as const, path: '[new].ts' }], conflicts: [] };
+    const working = workingTreeOf({ untracked: ['[new].ts'] });
     expect(discardOp(['[id].ts', '[new].ts'], working).commands).toEqual([
       ['restore', '--', ':(literal)[id].ts'],
       ['clean', '-f', '--', ':(literal)[new].ts'],
@@ -569,14 +568,7 @@ describe('operations', () => {
   });
 
   it('restores tracked files and deletes untracked ones when discarding', () => {
-    const working: WorkingState = {
-      staged: [],
-      unstaged: [
-        { status: 'M', path: 'a.ts' },
-        { status: '?', path: 'new.ts' },
-      ],
-      conflicts: [],
-    };
+    const working = workingTreeOf({ unstaged: [{ kind: 'modified', path: 'a.ts', originalPath: null }], untracked: ['new.ts'] });
     const op = discardOp(['a.ts', 'new.ts'], working);
     expect(op.commands).toEqual([
       ['restore', '--', 'a.ts'],
@@ -597,7 +589,7 @@ describe('operations', () => {
 
   it('continues, skips and aborts the operation in progress', () => {
     expect(continueOp('rebase').commands).toEqual([['-c', 'core.editor=true', 'rebase', '--continue']]);
-    expect(skipOp('cherry-pick').commands).toEqual([['cherry-pick', '--skip']]);
+    expect(skipOp('cherryPick').commands).toEqual([['cherry-pick', '--skip']]);
     expect(() => skipOp('merge')).toThrow();
     expect(abortOp('merge')).toMatchObject({ commands: [['merge', '--abort']], danger: true });
   });
@@ -794,7 +786,7 @@ describe('identity and bisect', () => {
 
   it('reads the name and email git would use, the last value winning', () => {
     expect(parseIdentity('user.name Global Me\nuser.email me@x.io\nuser.name Local Me\n')).toEqual({ name: 'Local Me', email: 'me@x.io' });
-    expect(parseIdentity('')).toEqual({ name: '', email: '' });
+    expect(parseIdentity('')).toEqual({ name: null, email: null });
   });
 
   it('builds the commands that set and clear the identity of a repository', () => {

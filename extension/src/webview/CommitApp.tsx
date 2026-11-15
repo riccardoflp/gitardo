@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { said } from '../shared/message';
+import { said, subjectAndBody } from '../shared/message';
 import type { CommitDetail, DiffSource, FilePatch, FilesLayout, RepoState } from '../shared/protocol';
 import { buildLabels } from './labels';
 import { BackToTop } from './BackToTop';
@@ -45,11 +45,16 @@ export function CommitApp({ hash, root, layout: remembered }: Props) {
   if (detail === undefined) return <div className="empty">Loading the commit…</div>;
   if (!detail) return <div className="empty">This commit is not in the repository any more.</div>;
 
-  const source: DiffSource = { kind: 'commit', hash: detail.hash, parent: detail.parents[0] ?? null };
-  const title = `${shortHash(detail.hash)} ${detail.subject}`;
-  const message = said(detail.subject, detail.body);
+  const id = detail.id ?? hash;
+  const { author, committer } = detail;
+  const source: DiffSource = { kind: 'commit', hash: id, parent: detail.parents[0] ?? null };
+  const { subject, body } = subjectAndBody(detail.message);
+  const title = `${shortHash(id)} ${subject}`;
+  const message = said(subject, body);
+  // A stash keeps the untracked files it took in its third parent.
+  const untracked = detail.parents[2] && detail.untrackedFiles.length ? detail.parents[2] : null;
   // The labels are those of the repository the other views show, which may be another by now.
-  const labels = state?.root === root ? (buildLabels(state).get(detail.hash) ?? []) : [];
+  const labels = state?.root === root ? (buildLabels(state).get(id) ?? []) : [];
   const choose = (wanted: FilesLayout) => {
     setLayout(wanted);
     post({ type: 'setFilesLayout', layout: wanted });
@@ -72,24 +77,28 @@ export function CommitApp({ hash, root, layout: remembered }: Props) {
           )}
           {message.text && <pre className="body">{message.text}</pre>}
           <dl>
-            <dt>Author</dt>
-            <dd>
-              {detail.author} <span className="muted">&lt;{detail.email}&gt;</span>
-            </dd>
-            <dt>Date</dt>
-            <dd>{fullDate(detail.date)}</dd>
-            {(detail.committer !== detail.author || detail.commitDate !== detail.date) && (
+            {author && (
+              <>
+                <dt>Author</dt>
+                <dd>
+                  {author.name} <span className="muted">&lt;{author.email}&gt;</span>
+                </dd>
+                <dt>Date</dt>
+                <dd>{fullDate(author.date)}</dd>
+              </>
+            )}
+            {committer && (committer.name !== author?.name || committer.date !== author?.date) && (
               <>
                 <dt>Committer</dt>
                 <dd>
-                  {detail.committer} <span className="muted">&lt;{detail.committerEmail}&gt;</span>, {fullDate(detail.commitDate)}
+                  {committer.name} <span className="muted">&lt;{committer.email}&gt;</span>, {fullDate(committer.date)}
                 </dd>
               </>
             )}
             <dt>Commit</dt>
             <dd>
-              <button className="link mono" title="Copy the hash" onClick={() => post({ type: 'copy', text: detail.hash })}>
-                {detail.hash} <Icon name="copy" />
+              <button className="link mono" title="Copy the hash" onClick={() => post({ type: 'copy', text: id })}>
+                {id} <Icon name="copy" />
               </button>
             </dd>
             {detail.parents.length > 0 && (
@@ -106,7 +115,7 @@ export function CommitApp({ hash, root, layout: remembered }: Props) {
             )}
           </dl>
           <div className="commit-actions">
-            <button className="button" onClick={() => post({ type: 'reveal', hash: detail.hash })}>
+            <button className="button" onClick={() => post({ type: 'reveal', hash: id })}>
               <Icon name="git-commit" />
               Show in the graph
             </button>
@@ -131,17 +140,17 @@ export function CommitApp({ hash, root, layout: remembered }: Props) {
           shown={diffs}
           onShown={setDiffs}
         >
-          {detail.untracked && (
+          {untracked && (
             <>
               <h2>
-                {detail.untracked.files.length} untracked {detail.untracked.files.length === 1 ? 'file' : 'files'}
+                {detail.untrackedFiles.length} untracked {detail.untrackedFiles.length === 1 ? 'file' : 'files'}
               </h2>
               <div className="files">
-                {detail.untracked.files.map((file) => (
+                {detail.untrackedFiles.map((file) => (
                   <FileRow
                     key={file.path}
                     file={file}
-                    onOpen={() => post({ type: 'openDiff', source: { kind: 'commit', hash: detail.untracked!.hash, parent: null }, file })}
+                    onOpen={() => post({ type: 'openDiff', source: { kind: 'commit', hash: untracked, parent: null }, file })}
                   />
                 ))}
               </div>

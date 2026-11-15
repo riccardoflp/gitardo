@@ -10,8 +10,8 @@ import type { RepoState } from '../shared/protocol';
  * It describes the staged changes, or all changes when nothing is staged, as the Commit button would commit them.
  */
 export async function draftCommitMessage(repo: Repo, state: RepoState, token: vscode.CancellationToken): Promise<string> {
-  const { staged, unstaged } = state.working;
-  if (!staged.length && !unstaged.length) throw new Error('There are no changes to describe.');
+  const { staged, unstaged, untracked: notTracked } = state.workingTree;
+  if (!staged.length && !unstaged.length && !notTracked.length) throw new Error('There are no changes to describe.');
 
   const [model] = await vscode.lm.selectChatModels();
   if (!model) {
@@ -20,7 +20,7 @@ export async function draftCommitMessage(repo: Repo, state: RepoState, token: vs
 
   const useStaged = staged.length > 0;
   const diff = await repo.diffText(useStaged);
-  const untracked = useStaged ? [] : unstaged.filter((file) => file.status === '?').map((file) => file.path);
+  const untracked = useStaged ? [] : notTracked;
   const subjects = (await repo.state(10)).rows.filter((row) => row.author).map((row) => row.subject);
 
   const messages = [vscode.LanguageModelChatMessage.User(buildPrompt(diff, untracked, subjects))];

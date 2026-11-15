@@ -122,13 +122,13 @@ describe.skipIf(!built)('Changes and commit, through the engine and as GitOps', 
   });
 
   it('discards a file with nothing staged, the files ticked with their staged changes, and all changes', async () => {
-    const one = await scenario(changed, (read) => discardOp(['a.txt'], read.working), { kind: 'discard', paths: ['a.txt'] });
+    const one = await scenario(changed, (read) => discardOp(['a.txt'], read.workingTree), { kind: 'discard', paths: ['a.txt'] });
     expect(one.engine).toEqual(one.typescript);
-    await scenario(changed, (read) => discardChangesOp(['a.txt', 'c.txt', 'new.txt'], read.working, true), {
+    await scenario(changed, (read) => discardChangesOp(['a.txt', 'c.txt', 'new.txt'], read.workingTree, true), {
       kind: 'discardChanges',
       paths: ['a.txt', 'c.txt', 'new.txt'],
     });
-    await scenario(changed, (read) => discardChangesOp(null, read.working, true), { kind: 'discardChanges' });
+    await scenario(changed, (read) => discardChangesOp(null, read.workingTree, true), { kind: 'discardChanges' });
   });
 
   it('commits what is staged, asks to stage all when nothing is, and amends', async () => {
