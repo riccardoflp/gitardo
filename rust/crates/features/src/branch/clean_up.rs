@@ -20,7 +20,8 @@ pub const MERGED: AnswerKey = AnswerKey("merged");
 /// The branches ticked, by their names.
 pub const BRANCHES: AnswerKey = AnswerKey("branches");
 
-/// The links of the worktrees picked to folders outside them, read on Windows, where git would empty those folders.
+/// The links of the worktrees picked to folders outside them, which git on Windows would empty and git elsewhere would
+/// refuse when it does not ignore them.
 pub const LINKS: AnswerKey = AnswerKey("folder links");
 
 /// Lists every local branch merged into `HEAD` or whose upstream was deleted from the remote, but the one checked out
@@ -54,13 +55,13 @@ pub fn clean_up(context: &Context, answers: &Answers) -> Outcome {
         .filter(|worktree| !worktree.is_missing)
         .map(|worktree| worktree.folder.clone())
         .collect();
-    let links = if cfg!(windows) && !removed.is_empty() {
+    let links = if removed.is_empty() {
+        Vec::new()
+    } else {
         match answers.paths(LINKS) {
             Some(links) => links.to_vec(),
             None => return Outcome::Read(LINKS, Query::FolderLinks { worktrees: removed }),
         }
-    } else {
-        Vec::new()
     };
     Outcome::Run(plan(context, &picked, &links))
 }
@@ -212,7 +213,8 @@ fn plan(context: &Context, picked: &[&Candidate<'_>], links: &[PathBuf]) -> Plan
 }
 
 /// `git worktree prune` when a worktree picked is missing; then, for each of the others, its links to folders outside
-/// it unlinked, so that git on Windows does not empty those folders through them, and `git worktree remove`, with
+/// it unlinked, so that git on Windows does not empty those folders through them and git elsewhere does not refuse a
+/// link it does not ignore, and `git worktree remove`, with
 /// `--force` when it has files not committed.
 fn worktree_steps(context: &Context, worktrees: &[&Worktree], links: &[PathBuf]) -> Vec<Step> {
     let folder = &context.repository.folder;

@@ -10,7 +10,7 @@ fn on_login() -> Context {
     with_worktrees(Target::Worktree(LOGIN.into()))
 }
 
-/// The answers, with no links read on Windows.
+/// The answers, with no links read.
 fn with(choice: &str) -> Answers {
     Answers::new()
         .with(BRANCH, Answer::Choice(choice.to_owned()))
@@ -71,19 +71,15 @@ fn worktree_remove__the_links_to_outside_folders_are_unlinked_before_git_removes
         &context,
         &Answers::new().with(BRANCH, Answer::Choice(KEEP_BRANCH.to_owned())),
     );
-    if cfg!(windows) {
-        assert!(
-            matches!(asked, Outcome::Read(LINKS, Query::FolderLinks { .. })),
-            "{asked:?}"
-        );
-    }
+    assert!(
+        matches!(asked, Outcome::Read(LINKS, Query::FolderLinks { .. })),
+        "{asked:?}"
+    );
     let link = PathBuf::from(format!("{LOGIN}/node_modules"));
     let answers = with(KEEP_BRANCH).with(LINKS, Answer::Paths(vec![link.clone()]));
     let plan = plan(remove(&context, &answers));
-    if cfg!(windows) {
-        assert_eq!(plan.steps[0], Step::Unlink { path: link });
-        assert_eq!(lines(&plan)[1], "git worktree remove /code/app.worktrees/feature/login");
-    }
+    assert_eq!(plan.steps[0], Step::Unlink { path: link });
+    assert_eq!(lines(&plan)[1], "git worktree remove /code/app.worktrees/feature/login");
 }
 
 #[test]

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- On macOS and Linux too, removing a worktree, also when cleaning up branches, takes out of it first its links to
+  folders outside it, each an `unlink <path>` step: git no longer refuses a worktree whose `node_modules` link is left
+  out by `node_modules/` in `.gitignore`, a pattern for folders only.
 - The stashes are read without an error when the last one goes while git reads them, as when it is dropped or a
   pull takes back the changes it set aside: there are none.
 - **Skip** of a step of a rebase, a cherry-pick, a revert or a patch asks first while files are staged, changed or in

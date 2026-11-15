@@ -6,6 +6,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 ### Changed
 
+- On macOS and Linux too, **Remove…** and **Gitardo: Clean Up Branches** take out of a worktree its links to folders outside it before removing it, with an `unlink <path>` line for each: git no longer refuses a worktree whose `node_modules` link is left out by `node_modules/` in `.gitignore`.
 - The stashes are read without an error when the last one goes while they are read, as when it is dropped or a pull takes back the changes it set aside.
 
 - **Create branch…** is run by Gitardo's engine when the extension has it for your system: the name is checked as you type in the engine's words, the commands are in the log as the others are, with `>` before them, and the new branch is selected in the graph once it is checked out. Without the engine, Gitardo creates the branch as before.

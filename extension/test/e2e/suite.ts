@@ -630,8 +630,11 @@ export async function run(): Promise<void> {
       const removal = logged
         .filter((line) => /^> (git\.close|unlink|git worktree remove) /.test(line))
         .map((line) => line.replace(/\\/g, '/').toLowerCase());
-      const unlinked = process.platform === 'win32' ? [`> unlink ${made}/node_modules`] : [];
-      assert.deepEqual(removal, [`> git.close ${made}`, ...unlinked, `> git worktree remove ${made}`].map((line) => line.toLowerCase()));
+      // Elsewhere than Windows git would refuse the worktree for the link, which `node_modules/` does not ignore.
+      assert.deepEqual(
+        removal,
+        [`> git.close ${made}`, `> unlink ${made}/node_modules`, `> git worktree remove ${made}`].map((line) => line.toLowerCase()),
+      );
       assert.ok(!openInGit());
       assert.ok(!state().worktrees.some((worktree) => worktree.branch === 'refs/heads/linked/one'));
       assert.ok(!fs.existsSync(made), JSON.stringify({ logged, errors }));

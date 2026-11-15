@@ -130,28 +130,38 @@ fn worktree_remove__a_branch_not_merged_is_kept_and_git_says_so() {
     );
 }
 
-#[cfg(windows)]
+/// Makes `link` a link to the folder `target`: a junction on Windows, which needs no rights, a symbolic link elsewhere.
+fn link_folder(link: &Path, target: &Path) {
+    #[cfg(windows)]
+    {
+        // `mklink` takes a forward slash for the start of an option.
+        let windows_path = |path: &Path| path.to_string_lossy().replace('/', "\\");
+        let made = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(windows_path(link))
+            .arg(windows_path(target))
+            .output();
+        match made {
+            Ok(output) => assert!(output.status.success(), "{output:?}"),
+            Err(error) => panic!("could not run mklink: {error}"),
+        }
+    }
+    #[cfg(not(windows))]
+    if let Err(error) = std::os::unix::fs::symlink(target, link) {
+        panic!("could not link {}: {error}", link.display());
+    }
+}
+
 #[test]
-fn worktree_remove__a_junction_to_the_windows_folder_is_unlinked_first_and_its_files_kept() {
+fn worktree_remove__a_link_to_the_windows_folder_is_unlinked_first_and_its_files_kept() {
     let mut repository = repository();
-    let _ignored = repository.commit("Ignore the modules", &[(".gitignore", "node_modules\n")]);
+    // With the `/`, a pattern is for folders only, and git does not take a symbolic link for one: unlinked first, it
+    // does not stop `git worktree remove`.
+    let _ignored = repository.commit("Ignore the modules", &[(".gitignore", "node_modules/\n")]);
     fs::create_dir_all(repository.path().join("node_modules")).unwrap();
     crate::write(&repository, "node_modules/left-pad.js", "module");
     let folder = added(&repository, "feature/login");
-    let link = folder.join("node_modules");
-    let output = std::process::Command::new("cmd")
-        .args(["/C", "mklink", "/J"])
-        .arg(link.to_string_lossy().replace('/', "\\"))
-        .arg(
-            repository
-                .path()
-                .join("node_modules")
-                .to_string_lossy()
-                .replace('/', "\\"),
-        )
-        .output()
-        .unwrap();
-    assert!(output.status.success(), "{output:?}");
+    link_folder(&folder.join("node_modules"), &repository.path().join("node_modules"));
     let target = on(&folder);
     let ended = cli_done(
         &repository,

@@ -1,4 +1,5 @@
-//! The links in a worktree to folders outside it, which git on Windows would empty when it removes the worktree.
+//! The links in a worktree to folders outside it, taken out before git removes the worktree: on Windows git would empty
+//! the folders they lead to, and elsewhere it refuses a worktree with a link it does not ignore.
 
 use std::ffi::OsString;
 use std::fs;
@@ -6,10 +7,6 @@ use std::path::{Path, PathBuf};
 
 use crate::read::fields::arguments;
 use crate::{Git, GitError};
-
-/// Whether removing a worktree goes through a junction into the folder it links to: on Windows it does, and git
-/// deletes what is there; elsewhere git removes the link, not what it leads to.
-const REMOVAL_FOLLOWS_LINKS: bool = cfg!(windows);
 
 /// Which worktree to look into.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,7 +18,9 @@ pub struct FolderLinksRequest {
 /// The links in a worktree to folders outside it, in full, so that they are taken out before the worktree is removed.
 /// Only what git does not track is looked at: the files and folders it does not know and those it ignores. A link
 /// is kept when it leads to a folder outside the worktree; a folder is looked into without going past a link. On
-/// systems other than Windows it is nothing, and nothing runs.
+/// Windows git would go through such a link and delete what the folder it leads to holds; elsewhere a link that a
+/// pattern for folders such as `node_modules/` does not ignore is a file git does not track, and `git worktree remove`
+/// refuses the worktree.
 ///
 /// Feature: worktree.read-folder-links
 ///
@@ -29,9 +28,6 @@ pub struct FolderLinksRequest {
 ///
 /// When git cannot be started or fails. A file or a folder that cannot be looked at is passed over.
 pub fn read_folder_links(git: &Git, request: &FolderLinksRequest) -> Result<Vec<PathBuf>, GitError> {
-    if !REMOVAL_FOLLOWS_LINKS {
-        return Ok(Vec::new());
-    }
     let git = git.in_directory(&request.worktree);
     let mut entries = Vec::new();
     for words in folder_links_arguments() {

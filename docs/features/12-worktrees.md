@@ -654,9 +654,8 @@ Removes a worktree's folder with `git worktree remove`, and its branch too if wa
 - **Offered when**: the worktree is not the main worktree, not the one the views show and not the folder of the window.
 - **Asks**: when it has a branch and the entry did not say: **Remove the worktree** (**Keep the branch `<branch>`**,
   the default) or **Remove the worktree and delete `<branch>`** (**Only if it is merged**).
-- **Reads**: on Windows, `worktree.read-folder-links`.
-- **Plan**: on Windows, `unlink <path>` for each link of `worktree.read-folder-links`; then `git worktree remove
-  <folder>`; then the deletions of `worktree.remove-empty-folders`; then `git branch -d <branch>` when the branch goes
+- **Reads**: `worktree.read-folder-links`.
+- **Plan**: `unlink <path>` for each link of `worktree.read-folder-links`; then `git worktree remove <folder>`; then the deletions of `worktree.remove-empty-folders`; then `git branch -d <branch>` when the branch goes
   too, last, so that a branch git keeps leaves nothing else undone. When git refuses because the worktree has modified or untracked files (its message
   mentions them, or `--force`), Gitardo offers **Remove anyway**, the same plan with `git worktree remove --force <folder>`, Destructive,
   because **This worktree has modified or untracked files. They will be deleted with it.** On Windows, a removal that
@@ -687,8 +686,9 @@ Acceptance:
 - [ ] On a worktree with a modified file, git's refusal is followed by an offer with `--force`, shown as destructive,
       and nothing is deleted until it is accepted.
 - [ ] A branch that is not merged is kept by `git branch -d`, and git's message is shown.
-- [ ] On Windows, a worktree with a junction `node_modules` to the window's folder is removed with `unlink
-      <folder>/node_modules` first, and the window's `node_modules` keeps all its files.
+- [ ] A worktree with a link `node_modules` to the window's folder, a junction on Windows, is removed with `unlink
+      <folder>/node_modules` first, and the window's `node_modules` keeps all its files; elsewhere than Windows, a
+      `.gitignore` that says `node_modules/` does not stop the removal.
 - [ ] Removing `feature/login`, the only worktree in `feature`, leaves no folder `feature` behind.
 - [ ] Extension: removing a clean worktree with its merged branch `agents-two` asks first, then runs, in the engine,
       `git worktree remove <folder>` and `git branch -d agents-two`; the worktree, the branch and the folder are gone.
@@ -700,13 +700,14 @@ Acceptance:
 - [ ] Extension: **Remove…** on a worktree whose folder is gone is refused with *The folder of this worktree is missing
       from `<folder>`: prune the worktrees to forget it.*, and nothing runs.
 - [ ] Extension: the log has, in this order, `> git.close <folder>` (when VS Code's Git extension had it open), the
-      `unlink` lines on Windows, then `git worktree remove <folder>`; after it, VS Code's Git extension no longer has it.
-- [ ] Extension: on Windows, before git runs, every link in the worktree to a folder outside it, such as the folders the
+      `unlink` lines, then `git worktree remove <folder>`; after it, VS Code's Git extension no longer has it.
+- [ ] Extension: before git runs, every link in the worktree to a folder outside it, such as the folders the
       setup linked, is taken out (`worktree.read-folder-links`): the folders they lead to, in the checkout they come
       from, keep every file; a link that cannot be taken out stops the removal before git runs.
 - [ ] Extension: on Windows, when git said `failed to delete '<folder>'` and no longer lists the worktree, what is left
       of the folder is deleted as `worktree.recover-held-folder` says, and the branch is deleted after it.
-- [ ] Extension: elsewhere than Windows, no `unlink` line is written.
+- [ ] Extension: elsewhere than Windows, a link `node_modules` that the exclude file ignores as `node_modules/` is
+      unlinked first, and the worktree is removed.
 - [ ] Extension: removing `side/work` with **Remove worktree…** from its branch asks no picker and keeps the branch; the
       folder `side` that held only it is gone.
 - [ ] Extension: removing the folder of the window while the views show another worktree is refused, and nothing
@@ -743,14 +744,15 @@ Acceptance:
 ### `worktree.read-folder-links` — Read the links to folders outside a worktree
 
 On Windows, git deletes what is inside a junction when it removes a worktree: the folder it links to, in the folder the
-link came from. This read finds those links, so that they are taken out first.
+link came from. Elsewhere, a symbolic link that a pattern for folders such as `node_modules/` does not ignore is a file
+git does not track, and `git worktree remove` refuses the worktree. This read finds those links, so that they are taken
+out first.
 
 - **Kind**: Read
 - **Function**: `git::read::worktree::read_folder_links(git, request) -> Result<Vec<PathBuf>, GitError>`
-- **Reads**: only on Windows, in the worktree: `git ls-files --others --directory -z` and
+- **Reads**: in the worktree: `git ls-files --others --directory -z` and
   `git ls-files --others --ignored --exclude-standard --directory -z`. Each entry that is a link is kept when it leads
-  to a folder outside the worktree; each entry that is a folder is looked into, without going past a link. Elsewhere it
-  returns nothing: git removes a link there, not what it leads to.
+  to a folder outside the worktree; each entry that is a folder is looked into, without going past a link.
 - **Uses**: by `worktree.remove` and `branch.clean-up`.
 - **Extension**: read by the engine, in the plan of `worktree.remove`, which the extension runs there.
 
@@ -760,7 +762,7 @@ Acceptance:
       both.
 - [ ] A link to a folder inside the worktree, a link to a file and a link to nothing are not returned.
 - [ ] Tracked files are not looked into.
-- [ ] On macOS and Linux it returns nothing and runs nothing.
+- [ ] On macOS and Linux, a symbolic link to a folder outside the worktree is returned, as a junction is on Windows.
 
 ### `worktree.recover-held-folder` — Get past a folder that Windows holds
 

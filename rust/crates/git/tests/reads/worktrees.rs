@@ -131,7 +131,6 @@ fn worktree_read_list__parses_recorded_output_with_spaces_and_accents_in_folders
 }
 
 /// The links a worktree has to folders outside it, from its top, with `/`.
-#[cfg(windows)]
 fn folder_links(worktree: &Path) -> Vec<String> {
     let request = FolderLinksRequest {
         worktree: worktree.to_path_buf(),
@@ -146,7 +145,6 @@ fn folder_links(worktree: &Path) -> Vec<String> {
         .collect()
 }
 
-#[cfg(windows)]
 #[test]
 fn worktree_read_folder_links__junctions_to_folders_outside_are_returned_nested_ones_too() {
     let mut repository = Repository::new();
@@ -165,7 +163,6 @@ fn worktree_read_folder_links__junctions_to_folders_outside_are_returned_nested_
     );
 }
 
-#[cfg(windows)]
 #[test]
 fn worktree_read_folder_links__links_inside_to_a_file_or_to_nothing_are_not_returned() {
     let mut repository = Repository::new();
@@ -178,11 +175,13 @@ fn worktree_read_folder_links__links_inside_to_a_file_or_to_nothing_are_not_retu
     let file = beside(&repository).join("file.txt");
     fs::write(&file, "1\n").unwrap();
     // A link to a file needs a right Windows gives only to some accounts; without it, that case is not made.
+    #[cfg(windows)]
     let _ = std::os::windows::fs::symlink_file(&file, repository.path().join("to a file"));
+    #[cfg(not(windows))]
+    std::os::unix::fs::symlink(&file, repository.path().join("to a file")).unwrap();
     assert_eq!(folder_links(repository.path()), Vec::<String>::new());
 }
 
-#[cfg(windows)]
 #[test]
 fn worktree_read_folder_links__tracked_files_are_not_looked_into() {
     let mut repository = Repository::new();
@@ -193,21 +192,9 @@ fn worktree_read_folder_links__tracked_files_are_not_looked_into() {
     let _ = repository.git(&["add", "--", "src"]);
     let tracked = repository.git(&["ls-files", "--", "src"]);
     if tracked.contains("src/modules") {
-        // Git tracks the junction as a link: it is not looked at, being tracked.
+        // Git tracks the link as a link: it is not looked at, being tracked.
         assert_eq!(folder_links(repository.path()), Vec::<String>::new());
     } else {
         assert_eq!(folder_links(repository.path()), ["src/modules"]);
     }
-}
-
-#[cfg(not(windows))]
-#[test]
-fn worktree_read_folder_links__elsewhere_it_returns_nothing_and_runs_nothing() {
-    let repository = Repository::new();
-    let gone = beside(&repository).join("no such folder");
-    let request = FolderLinksRequest { worktree: gone.clone() };
-    assert_eq!(
-        read_folder_links(&Git::new(&gone), &request).unwrap(),
-        Vec::<PathBuf>::new()
-    );
 }

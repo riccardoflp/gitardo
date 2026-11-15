@@ -531,7 +531,7 @@ the worktrees that have them.
   Ticked to start with: the merged branches whose worktree, if any, has nothing uncommitted.
 - **Plan**, in this order:
   1. `git worktree prune`, when a worktree picked is missing.
-  2. For each other worktree picked, the steps of `worktree.remove`: on Windows, `unlink <path>` for each link to a
+  2. For each other worktree picked, the steps of `worktree.remove`: `unlink <path>` for each link to a
      folder outside it, then `git worktree remove <path>`, with `--force` when it has files not committed, and
      `delete <path>` for what Windows kept from being deleted.
   3. `git branch -d <merged…>`, the merged branches in one command.
@@ -559,7 +559,7 @@ Acceptance:
 - [ ] The branch checked out is never listed; in a window on a linked worktree, the branch of the main worktree is not
       listed either.
 - [ ] With nothing to clean up, no pick opens and the message says so.
-- [ ] On Windows, the links of a worktree to folders outside it are unlinked before `git worktree remove`, so that the
+- [ ] The links of a worktree to folders outside it are unlinked before `git worktree remove`, so that the
       folders they lead to keep their files; the folder of the worktrees it leaves empty is deleted last.
 - [ ] Extension: a merged branch `merged` with a worktree is listed as **merged into main, with its worktree merged**,
       ticked; the worktree is removed with `git worktree remove <path>` before `git branch -d merged`, and its folder is

@@ -16,7 +16,7 @@ pub use model::worktree::{DELETE_BRANCH, KEEP_BRANCH};
 pub const BRANCH: AnswerKey = model::worktree::REMOVE_BRANCH;
 /// Given as true by **Remove anyway**: `git worktree remove --force`.
 pub const FORCE: AnswerKey = AnswerKey("force");
-/// The links to folders outside the worktree, read on Windows.
+/// The links to folders outside the worktree.
 const LINKS: AnswerKey = AnswerKey("folder links");
 
 /// What `--force` deletes.
@@ -24,8 +24,8 @@ const FORCED: &str = "This worktree has modified or untracked files. They will b
 /// Among git's words when it refuses a worktree with changes.
 const CHANGES_SAID: [&str; 2] = ["modified or untracked", "--force"];
 
-/// Removes the worktree invoked on: on Windows the links it has to folders outside it first, which git would empty;
-/// then `git worktree remove`, with `--force` when **Remove anyway** asked it after git refused a worktree with
+/// Removes the worktree invoked on: the links it has to folders outside it first, which git on Windows would empty and
+/// git elsewhere would refuse when it does not ignore them; then `git worktree remove`, with `--force` when **Remove anyway** asked it after git refused a worktree with
 /// changes; then the folders left empty; then `git branch -d` when the branch goes too, which keeps a branch that is not
 /// merged and says so. The main worktree, the one the views show and the folder of the window are not removed.
 ///
@@ -50,20 +50,16 @@ pub fn remove(context: &Context, answers: &Answers) -> Outcome {
             Some(choice) => choice == DELETE_BRANCH,
         },
     };
-    let links = if cfg!(windows) {
-        match answers.paths(LINKS) {
-            Some(links) => links.to_vec(),
-            None => {
-                return Outcome::Read(
-                    LINKS,
-                    Query::FolderLinks {
-                        worktrees: vec![worktree.folder.clone()],
-                    },
-                );
-            }
+    let links = match answers.paths(LINKS) {
+        Some(links) => links.to_vec(),
+        None => {
+            return Outcome::Read(
+                LINKS,
+                Query::FolderLinks {
+                    worktrees: vec![worktree.folder.clone()],
+                },
+            );
         }
-    } else {
-        Vec::new()
     };
     let is_forced = answers.flag(FORCE) == Some(true);
     Outcome::Run(plan(
