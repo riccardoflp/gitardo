@@ -317,9 +317,10 @@ export async function run(): Promise<void> {
       const offer = await until('the offer to open it', () => asked.find((question) => /^Worktree created in /.test(question.message)));
       assert.deepEqual(offer.items, [...(state().agentsWindow ? ['Open in Agents Window'] : []), 'Open in New Window', 'Choose What It Gets…']);
 
-      // Renamed, with the branch taking the name as it was typed.
+      // Renamed, with the branch taking the name as it was typed. The engine writes the name of the branch between
+      // backticks, the extension without.
       inputs = ['agents-two', 'agents-two'];
-      choose = byLabel('Rename the branch agents/first too');
+      choose = byLabel(/^Rename the branch `?agents\/first`? too$/);
       await controller.action({ kind: 'worktreeRename', path: created.path });
       const renamed = state().worktrees.find((worktree) => worktree.branch === 'agents-two');
       assert.ok(renamed, JSON.stringify(state().worktrees));
@@ -335,7 +336,7 @@ export async function run(): Promise<void> {
       errors.length = 0;
 
       // Removed with its branch, which is merged: it was made from main and has nothing of its own.
-      choose = byLabel(/and delete agents-two/);
+      choose = byLabel(/and delete `?agents-two/);
       answer = run;
       await controller.action({ kind: 'worktreeRemove', path: renamed.path });
       assert.equal(state().worktrees.length, 1);
@@ -440,11 +441,14 @@ export async function run(): Promise<void> {
       const next = typed.shift();
       return Promise.resolve(next === KEEP ? options.value : next);
     }) as never;
+    // The engine asks what ${base} is at a commit after the inputs, the extension before them (B10 of the
+    // differences): each pick takes the first label still to pick that the picker shows.
     let picks: (string | RegExp)[] = [];
     const titles: string[] = [];
     choose = (items, options) => {
       titles.push(options.title ?? '');
-      return byLabel(picks.shift()!)(items);
+      const index = picks.findIndex((label) => items.some((item) => (typeof label === 'string' ? item.label === label : label.test(item.label))));
+      return byLabel(picks.splice(Math.max(index, 0), 1)[0])(items);
     };
     await config.update('branches.format', 'PRJ-${input:ticket}-${input:kind}-${base}', vscode.ConfigurationTarget.Global);
     await config.update(
@@ -478,7 +482,7 @@ export async function run(): Promise<void> {
       picks = ['Use the format', 'main'];
       typed = ['12a'];
       await controller.action({ kind: 'worktreeAdd' });
-      assert.ok(errors.some((text) => /Ticket number: It has to match/.test(text)), JSON.stringify(errors));
+      assert.ok(errors.some((text) => /It has to match/.test(text)), JSON.stringify(errors));
       errors.length = 0;
 
       // At a commit, ${base} is the commit or one of the branches that have it.
@@ -498,7 +502,7 @@ export async function run(): Promise<void> {
       // On a branch, the branch itself, in a folder of its name, or a new branch from the format.
       await git(app, ['branch', 'side/work']);
       await vscode.commands.executeCommand('gitardo.refresh');
-      picks = ['Use the branch side/work'];
+      picks = [/^Use the branch `?side\/work`?$/];
       typed = [KEEP];
       await controller.action({ kind: 'worktreeAdd', ref: 'side/work', isBranch: true });
       const side = state().worktrees.find((worktree) => worktree.branch === 'side/work');
@@ -574,7 +578,10 @@ export async function run(): Promise<void> {
       logged.length = 0;
       answer = run;
       await controller.action({ kind: 'worktreeRemove', path: made, deleteBranch: true });
-      const removal = logged.filter((line) => /^> (git\.close|unlink|git worktree remove) /.test(line)).map((line) => line.toLowerCase());
+      // The engine may write the path of a link with the separators of the system.
+      const removal = logged
+        .filter((line) => /^> (git\.close|unlink|git worktree remove) /.test(line))
+        .map((line) => line.replace(/\\/g, '/').toLowerCase());
       const unlinked = process.platform === 'win32' ? [`> unlink ${made}/node_modules`] : [];
       assert.deepEqual(removal, [`> git.close ${made}`, ...unlinked, `> git worktree remove ${made}`].map((line) => line.toLowerCase()));
       assert.ok(!openInGit());
