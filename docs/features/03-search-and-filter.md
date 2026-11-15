@@ -442,31 +442,30 @@ Acceptance:
 - [ ] For `fix`, `feature/x` is left out.
 - [ ] `a/main` and `b/main` keep their order.
 
-### `filter.list-too` — Filter the list of branches too
+### `filter.list-too` — The branches the timeline leaves out, dimmed in the branch rail
 
-Chooses what the branch rail lists while the timeline is narrowed: only the branches it shows, or all of them, with
-the ones it leaves out dimmed.
+The branch rail lists what its own filter lists, whatever the timeline shows; the branches the timeline leaves out are
+dimmed there, and one of them can be added to the timeline from its row.
 
 - **Kind**: View
-- **Function**: `views::filter::list_too_view(state: &ListToo, ui) -> Vec<Intent>`
-- **Entry points**: **Filter the list of branches too** at the bottom of the branch filter, with its tooltip **In the
-  branch rail: only the branches the timeline shows, or all of them with the others dimmed**; the button of the line at
-  the top of the branch rail (`refs.scope-line`).
-- **Settings**: `branches.followGraphFilter` (on by default). Changing it writes the setting in the user's settings
-  file.
-- **Uses**: `refs.scope-line`, `filter.show-too`.
+- **Function**: `views::filter::list_too_view(state: &ListToo, ui) -> Vec<Intent>`: the eye at the end of a dimmed row
+- **Entry points**: the rows of the branch rail while the timeline is narrowed.
+- **Uses**: `filter.show-too`, `refs.list-filter`.
+- **Extension**: until phase 3 of M13, **Filter the list of branches too** at the bottom of the branch filter and the
+  switch above the references set `gitardo.branches.followGraphFilter`, and with it on the references list only the
+  branches the graph shows.
 
-On, the branch rail lists only the branches, remote branches and tags the timeline shows. Off, it lists them all, and
-the ones the timeline leaves out are dimmed, each with an eye at the end of its row, under the pointer, that adds its
-history to the timeline. Either way the branch rail lists everything while the timeline is not narrowed. The branch rail
-lists only the branches that are shown, unless it is set to list them all, so one that is not shown is added from its
-label in the timeline or from the branch filter.
+While the timeline is narrowed, a branch, a remote branch or a tag of the rail that the timeline leaves out is dimmed,
+says **Not shown in the timeline** in its tooltip, and has an eye at the end of its row, under the pointer, that adds
+its history to the timeline (`filter.show-too`). The timeline's branch filter has no **Filter the list of branches
+too**: what the rail lists is chosen in its own filter (`refs.list-filter`), and `branches.followGraphFilter` is not
+read ([D51](../08-decisions.md#d51--the-branch-rail-has-a-filter-of-its-own)).
 
 Acceptance:
 
-- [ ] Narrowed to `main`, on: the Local section lists `main` alone.
-- [ ] Off: it lists every branch, all but `main` dimmed, and the eye on `feature` adds `feature` to the timeline.
-- [ ] Unticking it in the branch filter sets `branches.followGraphFilter` to false in the user's settings.
+- [ ] Narrowed to `main`: the Local section lists every branch, all but `main` dimmed.
+- [ ] The eye on `feature` adds `feature` to the timeline.
+- [ ] The branch filter of the timeline has no **Filter the list of branches too**.
 
 ### `filter.kinds` — Show local branches, remote branches, tags
 

@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 428 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 430 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -18,7 +18,7 @@ earns it.
 | File | Area | Cards |
 | --- | --- | --- |
 | [01-repositories.md](01-repositories.md) | Repositories | 27 |
-| [02-graph.md](02-graph.md) | Graph | 41 |
+| [02-graph.md](02-graph.md) | Graph | 43 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 21 |
@@ -109,7 +109,9 @@ earns it.
 | [`graph.show-in-graph`](02-graph.md#graphshow-in-graph--go-to-a-commit-in-the-timeline) | Go to a commit in the timeline | View | Built | Built |
 | [`refs.tree`](02-graph.md#refstree--the-branch-rail) | The branch rail | View | Built | Built |
 | [`refs.filter`](02-graph.md#refsfilter--filter-the-branch-rail-by-name) | Filter the branch rail by name | View | Built | Built |
-| [`refs.scope-line`](02-graph.md#refsscope-line--the-line-of-the-branches-shown-at-the-top-of-the-branch-rail) | The line of the branches shown, at the top of the branch rail | View | Built | Built |
+| [`refs.scope-line`](02-graph.md#refsscope-line--the-line-of-what-the-branch-rail-lists) | The line of what the branch rail lists | View | Built | Built |
+| [`refs.list-filter`](02-graph.md#refslist-filter--choose-what-the-branch-rail-lists) | Choose what the branch rail lists | View | Specified | Planned |
+| [`refs.listed`](02-graph.md#refslisted--which-references-the-branch-rail-lists) | Which references the branch rail lists | Derivation | Specified | Planned |
 | [`refs.sort`](02-graph.md#refssort--sort-the-branches-and-tags) | Sort the branches and tags | Derivation | Built | Built |
 | [`refs.recent`](02-graph.md#refsrecent--the-branches-checked-out-last) | The branches checked out last | Derivation | Built | Built |
 | [`refs.favorite`](02-graph.md#refsfavorite--add-a-branch-to-favorites) | Add a branch to favorites | View | Built | Built |
@@ -132,7 +134,7 @@ earns it.
 | [`filter.preset`](03-search-and-filter.md#filterpreset--all-current-upstream-local-remotes) | All, Current, Upstream, Local, Remotes | Derivation | Built | Built |
 | [`filter.tick`](03-search-and-filter.md#filtertick--tick-the-branches-to-show) | Tick the branches to show | Derivation | Built | Built |
 | [`filter.rank-names`](03-search-and-filter.md#filterrank-names--which-names-match-best) | Which names match best | Derivation | Built | Built |
-| [`filter.list-too`](03-search-and-filter.md#filterlist-too--filter-the-list-of-branches-too) | Filter the list of branches too | View | Built | Built |
+| [`filter.list-too`](03-search-and-filter.md#filterlist-too--the-branches-the-timeline-leaves-out-dimmed-in-the-branch-rail) | The branches the timeline leaves out, dimmed in the branch rail | View | Built | Built |
 | [`filter.kinds`](03-search-and-filter.md#filterkinds--show-local-branches-remote-branches-tags) | Show local branches, remote branches, tags | Derivation | Built | Built |
 | [`filter.show-only`](03-search-and-filter.md#filtershow-only--show-only-this-history) | Show only this history | Derivation | Built | Built |
 | [`filter.show-too`](03-search-and-filter.md#filtershow-too--show-this-history-too) | Show this history too | Derivation | Built | Built |

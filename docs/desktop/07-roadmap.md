@@ -134,6 +134,24 @@ nothing changed in it; a window 400 logical pixels wide still reaches every tab;
 `gitardo.repositories.keepOpen` on, the extension shows a repository chosen again as it was left; every card of the
 phase passes its tests, and the snapshots of the island match.
 
+## M13 — The branch rail's own filter
+
+The branch rail lists what its own filter says, and a click on a branch narrows only the timeline
+([D51](../08-decisions.md#d51--the-branch-rail-has-a-filter-of-its-own)). Built in three phases, each one commit or
+more, each ending with its cards built and their tests passing; the extension comes last.
+
+1. **The rail lists every branch.** A click on a branch narrows the timeline and leaves the rail as it was, the
+   branches the timeline leaves out dimmed; `branches.followGraphFilter` is no longer read, and **Filter the list of
+   branches too** leaves the timeline's branch filter. Cards: `refs.tree`, `branch.pane`, `filter.list-too`.
+2. **The filter of the rail.** Its button at the top of the rail, its picker, the line of what it lists, remembered
+   per repository apart from the timeline's. Cards: `refs.list-filter`, `refs.listed`, `refs.scope-line`.
+3. **The extension.** The same in the references beside the graph of the extension, and
+   `gitardo.branches.followGraphFilter` no longer read. Cards: the same, in the extension.
+
+Exit: a click on any branch of the rail never takes another out of it; the filter of the rail and the timeline's never
+change each other, in either app; each repository keeps its own choice of both after the window opens again; every card
+of the phase passes its tests, and the snapshots of the rail match.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

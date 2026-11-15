@@ -719,6 +719,25 @@ and would crowd the island); tabs in the extension (VS Code has the list and the
 the repository menu of the header beside the tabs (two ways to do one thing); operations in several tabs at once (one
 at a time keeps the log, the undo and the questions in one order; see Q409).
 
+## D51 — The branch rail has a filter of its own
+
+*Asked by the maintainer: a click on a branch of the rail hid every other branch of it; the details proposed by the
+agent.*
+
+The branch rail lists what its own filter says, never what the timeline is narrowed to. A click on a branch narrows
+the timeline to its history and selects its tip, as before, and the rail keeps listing every branch it listed, the ones
+the timeline leaves out dimmed, each with the eye that adds its history to the timeline. The rail's filter is a button
+of its own at the top of the rail, with the picker of the timeline's branch filter (the presets, the branches ticked one
+by one, the kinds of references) over the rail alone: the two filters never change each other, and each is remembered
+per repository apart from the other. `branches.followGraphFilter`, and `gitardo.branches.followGraphFilter` in the
+extension, are no longer read, and **Filter the list of branches too** leaves the timeline's branch filter. The line at
+the top of the rail says what the rail's own filter lists. Desktop first, then the extension, in milestone M13 of
+[the roadmap](desktop/07-roadmap.md#m13--the-branch-rails-own-filter).
+
+Rejected: keeping `branches.followGraphFilter` with `false` as its default (two ways to do one thing, and a click still
+hides branches for whoever had it on); one filter shared by the rail and the timeline (what the maintainer asked
+against); a rail that follows the timeline until its own filter is used (the rail would still change under a click).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374

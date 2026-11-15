@@ -628,16 +628,18 @@ comparison of a reference with the branch checked out.
 - **Function**: `views::branch::pane(state: &ReferencesState, ui: &mut Ui) -> Vec<Intent>`
 - **Entry points**: the left of the window; **Show branches** in Quick search shows the branch rail when it was put
   away.
-- **Settings**: `branches.followGraphFilter` (on by default): while the timeline is narrowed to some branches, the
-  branch rail lists only those; off, it lists them all, the ones the timeline leaves out dimmed. `branches.sortOrder`.
-- **Uses**: `refs.tree`, `filter.list-too`, `branch.create`, `compare.with-current`,
+- **Settings**: `branches.sortOrder`.
+- **Extension**: until phase 3 of M13, while the graph is narrowed to some branches the references list only those, as
+  long as `gitardo.branches.followGraphFilter` is on.
+- **Uses**: `refs.tree`, `refs.list-filter`, `filter.list-too`, `branch.create`, `compare.with-current`,
   `compare.choose`, `worktree.create`, `worktree.switch`, `worktree-setup.page`,
   `worktree-setup.bring-into-other-worktrees`, `worktree.prune`, `graph.show-in-graph`, `graph.hover-history`.
 
 What the branch rail shows and does:
 
-- Its top names the branch checked out, or `detached at <short hash>`, and has the buttons **Create branch**
-  (`branch.create` at `HEAD`) and **Compare** (`compare.choose`), which cannot be used before the first commit. When
+- Its top names the branch checked out, or `detached at <short hash>`, with the button of the rail's own filter
+  (`refs.list-filter`), and has the buttons **Create branch** (`branch.create` at `HEAD`) and **Compare**
+  (`compare.choose`), which cannot be used before the first commit. When
   the two do not fit side by side, **Create branch** is only its icon, `+`. In the narrow layout there is no top.
 - The lists, their order, their menus, the filter box from 15 branches and tags on, and the cap of 100 entries per
   list with **Show all** are those of `refs.tree`: **Local**, then a heading for each remote (**ORIGIN**) with its
@@ -646,8 +648,8 @@ What the branch rail shows and does:
 - The title of the **Worktrees** list has **+**, which creates a worktree (`worktree.create`), and **…**, with
   **Switch worktree…**, **Choose what new worktrees get…**, **Bring ignored files into the other worktrees…**
   and, when a worktree is missing, **Prune missing worktrees**.
-- A click on a branch narrows the timeline to its history and selects its tip; a second click on it brings the whole
-  history back (`refs.tree`). A click on a tag, a stash or a worktree still selects its commit in the timeline
+- A click on a branch narrows the timeline to its history and selects its tip, and the rail keeps listing what it
+  listed; a second click on it brings the whole history back (`refs.tree`). A click on a tag, a stash or a worktree still selects its commit in the timeline
   (`graph.show-in-graph`). Neither opens a page. **Show in the timeline** in the context menu of a reference shows the
   whole timeline at it (`graph.show-in-graph`).
 - Resting the pointer on a branch, a tag or a worktree brings out its history in the timeline while it is shown
@@ -660,8 +662,7 @@ Acceptance:
 
 - [ ] The top of the branch rail reads the name of the branch checked out, and **Create branch** there asks for the
       name of a branch at `HEAD`.
-- [ ] With the timeline narrowed to `main`, the branch rail lists only `main` among the local branches; with
-      `branches.followGraphFilter` off it lists all of them, the others dimmed.
+- [ ] With the timeline narrowed to `main`, the branch rail lists every local branch, the others dimmed.
 - [ ] A click on `feature` narrows the timeline to its history and selects its tip, and opens no page; a second click
       brings the whole history back.
 - [ ] Every list of **Kept aside** is closed when the window opens, and the others are open.

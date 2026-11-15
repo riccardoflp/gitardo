@@ -3,8 +3,8 @@
 The timeline: the commits of every branch, remote branch and tag with their lines and labels, read a page at a time
 while scrolling; how the lines are laid out; what stands out under the pointer and around the selected commit; the
 merges folded into one row; the draft of the uncommitted changes and the stashes among the commits; the header above
-them; and the branch rail beside them, with its lists, its filter box, the recent and favorite branches and the way to a
-reference's commit. The search is in [03-search-and-filter.md](03-search-and-filter.md) (`search.`), and so are the
+them; and the branch rail beside them, with its lists, its own filter and its filter box, the recent and favorite branches
+and the way to a reference's commit. The search is in [03-search-and-filter.md](03-search-and-filter.md) (`search.`), and so are the
 branches the timeline is narrowed to (`filter.`); the selected commit in the inspector is `details.`, several commits
 selected together `selection.`, drag and drop `drag.`, fetch, pull and push `sync.`, and what is done to a stash
 `stash.`.
@@ -1001,8 +1001,10 @@ worktrees, the tags and the submodules: in lists that fold, on the left of the w
 - The branch checked out, and the worktree of this window, are marked as current; the references at the selected
   commit are marked as selected.
 - A click on a branch or a remote branch narrows the timeline to its history and selects its tip
-  (`filter.show-only`); a second click on it brings the whole history back (`filter.show-all`). A click on a tag, stash
-  or worktree still goes to its commit (`graph.show-in-graph`), without narrowing anything. A double click on a branch
+  (`filter.show-only`); a second click on it brings the whole history back (`filter.show-all`). The rail itself does
+  not change: it keeps listing what its own filter lists (`refs.list-filter`), the branches the timeline leaves out
+  dimmed (`filter.list-too`). A click on a tag, stash or worktree still goes to its commit (`graph.show-in-graph`),
+  without narrowing anything. A double click on a branch
   opens it as `branch.open` says; on a remote branch, checks it out (`branch.open`); on a worktree or a submodule,
   opens it in a new window. Resting the pointer on one brings out its history (`graph.hover-history`). Branches can be
   dragged onto the timeline (`drag.drop`).
@@ -1018,6 +1020,8 @@ Acceptance:
 - [ ] A branch one ahead and two behind its upstream says `↑1 ↓2`; one whose upstream is gone says `gone`.
 - [ ] Clicking a stash in the branch rail selects the stash in the timeline.
 - [ ] The checked-out branch, 150th by name, is listed after the first 100.
+- [ ] A click on `feature` narrows the timeline to its history, and the rail still lists `main` and every other local
+      branch, `main` dimmed.
 
 ### `refs.filter` — Filter the branch rail by name
 
@@ -1045,30 +1049,80 @@ Acceptance:
 - [ ] A match of a closed list is shown while the box has text, and the list is closed again when it is emptied.
 - [ ] `Escape` empties the box.
 
-### `refs.scope-line` — The line of the branches shown, at the top of the branch rail
+### `refs.scope-line` — The line of what the branch rail lists
 
-While the timeline is narrowed to some branches, the branch rail lists only those, under a line that says what they are
-narrowed to.
+While the filter of the branch rail lists less than everything, a line at the top of the rail says what it lists.
 
 - **Kind**: View
 - **Function**: `views::refs::scope_line_view(state: &ScopeLine, ui) -> Vec<Intent>`
-- **Entry points**: the top of the branch rail, while the timeline is narrowed to some branches.
-- **Settings**: `branches.followGraphFilter` (on by default).
-- **Uses**: `filter.list-too`, `filter.show-all`, `filter.show-too`.
+- **Entry points**: the top of the branch rail, while its own filter lists less than everything (`refs.list-filter`).
+- **Uses**: `refs.list-filter`, `filter.label`.
+- **Extension**: until phase 3 of M13, the line follows the graph's filter while `gitardo.branches.followGraphFilter`
+  is on, as it did before [D51](../08-decisions.md#d51--the-branch-rail-has-a-filter-of-its-own).
 
-The line says what the timeline is narrowed to, as the button of the branch filter does (`Current branch`, `main +2`).
-Its button lists all the references instead, with those the timeline leaves out dimmed, and back (`filter.list-too`);
-its **Show all** shows all the branches again (`filter.show-all`). While all are listed, a dimmed one says **Not shown
-in the timeline** in its tooltip, and has an eye at the end of its row, under the pointer, that adds its history to the
-timeline (`filter.show-too`). The lists have only the branches, remote branches and tags shown while the line follows
-the timeline; stashes, worktrees and submodules are always listed.
+The line says what the rail lists, as the button of its filter does (`Local`, `main +2`), and its **Show all** lists
+everything again: the filter of the rail goes back to all. What the timeline is narrowed to is never said here: the
+bar above the timeline says it (`filter.bar`). Stashes, worktrees and submodules are always listed.
 
 Acceptance:
 
-- [ ] Narrowed to `main` and `feature`, the Local list has only those two, under a line saying `main +1`.
-- [ ] The button of the line lists every branch, the others dimmed, and sets `branches.followGraphFilter` to false.
-- [ ] The eye on a dimmed `fix` adds `fix` to the branches shown.
-- [ ] **Show all** takes the line away and lists everything.
+- [ ] With the filter of the rail on `main` and `feature`, the Local list has only those two, under a line saying
+      `main +1`.
+- [ ] **Show all** on the line takes it away and lists everything, and the timeline shows what it showed.
+- [ ] Narrowing the timeline to `main` shows no line, and the rail lists every branch.
+
+### `refs.list-filter` — Choose what the branch rail lists
+
+The branch rail's own filter: which branches, remote branches and tags it lists, apart from what the timeline shows.
+
+- **Kind**: View
+- **Function**: `views::refs::list_filter_view(state: &ListFilterState, ui) -> Vec<Intent>`
+- **Entry points**: the button with the funnel at the top of the branch rail, beside the name of the branch checked out
+  (`branch.pane`), and in the narrow layout at the top of its icons; **Filter the Branch Rail** in Quick search.
+- **Uses**: `filter.picker`, `filter.preset`, `filter.tick`, `filter.kinds`, `filter.rank-names`, `filter.label`,
+  `refs.listed`, `refs.scope-line`.
+- **Extension**: until phase 3 of M13, the references have no filter of their own.
+
+The button opens the picker of the timeline's branch filter (`filter.picker`) titled **Branches listed**, over the rail
+alone: the presets **All**, **Current**, **Upstream**, **Local** and **Remotes**, the box that finds a branch, the
+branches ticked one by one, and **Show local branches**, **Show remote branches** and **Show tags**. What is chosen
+changes only what the rail lists, as `refs.listed` says: the timeline keeps what it shows, and what is chosen in the
+timeline's filter changes nothing here. The button is pressed in while the rail lists less than everything, its tooltip
+says what it lists (`filter.label`), and so does the line at the top of the rail (`refs.scope-line`).
+
+Acceptance:
+
+- [ ] **Local** in the filter of the rail lists no remote branch in the rail, and the timeline still shows every branch.
+- [ ] Ticking `main` and `feature` lists only those two among the local branches, and the timeline is not narrowed.
+- [ ] Narrowing the timeline to `main` from its branch filter leaves the filter of the rail as it was, and the rail
+      lists every branch.
+- [ ] The button is pressed in while the rail lists less than everything, and its tooltip says what it lists.
+
+### `refs.listed` — Which references the branch rail lists
+
+What the branch rail lists from the choice of its own filter, and that choice kept for each repository.
+
+- **Kind**: Derivation
+- **Function**: `model::filter::rail::listed(choice: &Choice, references: &References) -> Listed`
+- **Uses**: `filter.preset`, `filter.tick`, `filter.kinds`, `filter.remember`.
+- **Extension**: until phase 3 of M13, the references list what the graph shows while
+  `gitardo.branches.followGraphFilter` is on.
+
+- **All** lists every branch, remote branch and tag; **Current** the branch checked out and its upstream; **Upstream**
+  the branch checked out, its upstream and the branch it was made from when git says so, as `filter.preset` says;
+  **Local** the local branches; **Remotes** the remote branches; the branches ticked, those alone, among the kinds shown.
+- A branch ticked that is gone is no longer listed, and the others still are.
+- The choice is remembered for each repository, apart from the timeline's (`filter.remember`), in the window's stored
+  state, and is the one in use when the repository is shown again or the window opens again.
+- The stashes, the worktrees and the submodules are always listed; **Favorites** and **Recent** list only the branches
+  the choice lists.
+
+Acceptance:
+
+- [ ] **All** lists every branch, remote branch and tag.
+- [ ] **Current** lists the branch checked out and its upstream.
+- [ ] With `main` and `old` ticked and `old` deleted, the rail lists `main`.
+- [ ] The choice of `api` is in use when the window opens again, and `web` keeps its own.
 
 ### `refs.sort` — Sort the branches and tags
 
