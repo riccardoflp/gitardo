@@ -57,20 +57,7 @@ fn repository() -> RepositoryState {
             commit: Some(commit('a')),
             branch: Some(String::from("refs/heads/main")),
         },
-        branches: vec![Branch {
-            name: String::from("main"),
-            commit: commit('a'),
-            upstream: Some(Upstream {
-                reference: String::from("refs/remotes/origin/main"),
-                remote: String::from("origin"),
-                remote_branch: String::from("refs/heads/main"),
-                ahead: 1,
-                behind: 2,
-                is_gone: false,
-            }),
-            is_checked_out: true,
-            date: Timestamp(1_700_000_000),
-        }],
+        branches: vec![branch()],
         remote_branches: vec![RemoteBranch {
             name: String::from("origin/main"),
             remote: String::from("origin"),
@@ -88,15 +75,7 @@ fn repository() -> RepositoryState {
             message: String::from("On main: half a fix"),
             date: Timestamp(1_700_000_100),
         }],
-        worktrees: vec![Worktree {
-            folder: PathBuf::from("/work/app"),
-            commit: Some(commit('a')),
-            branch: Some(String::from("refs/heads/main")),
-            is_main: true,
-            is_current: true,
-            is_missing: false,
-            uncommitted: Some(3),
-        }],
+        worktrees: vec![worktree()],
         remotes: vec![String::from("origin")],
         identity: Identity {
             name: Some(String::from("Ada Lovelace")),
@@ -104,15 +83,7 @@ fn repository() -> RepositoryState {
         },
         branch_sort: Some(String::from("-committerdate")),
         reflog_subjects: vec![String::from("checkout: moving from feature to main")],
-        working_tree: WorkingTree {
-            staged: vec![renamed("src/new.rs", "src/old.rs")],
-            unstaged: vec![renamed("docs/new.md", "docs/old.md")],
-            untracked: vec![String::from("notes.txt")],
-            conflicted: vec![ConflictedFile {
-                path: String::from("Cargo.lock"),
-                kind: ConflictKind::BothModified,
-            }],
-        },
+        working_tree: working_tree(),
         operation: Some(Operation::Rebase),
         rebase_stop: Some(RebaseStop {
             kind: StopKind::Edit,
@@ -125,21 +96,70 @@ fn repository() -> RepositoryState {
             skipped: vec![commit('1')],
             remaining: Some(4),
         }),
-        submodules: vec![Submodule {
-            name: String::from("inner"),
-            folder: String::from("vendor/lib/inner"),
-            parent: Some(String::from("vendor/lib")),
-            url: Some(String::from("https://example.com/inner.git")),
-            branch: Some(String::from("main")),
-            recorded: Some(commit('2')),
-            staged: Some(commit('3')),
-            checkout: Some(Checkout {
-                commit: Some(commit('4')),
-                branch: Some(String::from("main")),
-                uncommitted: 1,
-                distance: Some(Distance { ahead: 1, behind: 0 }),
-            }),
+        submodules: vec![submodule()],
+    }
+}
+
+/// The branch checked out, which follows its remote branch.
+fn branch() -> Branch {
+    Branch {
+        name: String::from("main"),
+        commit: commit('a'),
+        upstream: Some(Upstream {
+            reference: String::from("refs/remotes/origin/main"),
+            remote: String::from("origin"),
+            remote_branch: String::from("refs/heads/main"),
+            ahead: 1,
+            behind: 2,
+            is_gone: false,
+        }),
+        is_checked_out: true,
+        date: Timestamp(1_700_000_000),
+    }
+}
+
+/// The one worktree, with its commit, its branch and its count of what is not committed.
+fn worktree() -> Worktree {
+    Worktree {
+        folder: PathBuf::from("/work/app"),
+        commit: Some(commit('a')),
+        branch: Some(String::from("refs/heads/main")),
+        is_main: true,
+        is_current: true,
+        is_missing: false,
+        uncommitted: Some(3),
+    }
+}
+
+/// A rename staged, a rename not staged, a file not tracked and a conflict.
+fn working_tree() -> WorkingTree {
+    WorkingTree {
+        staged: vec![renamed("src/new.rs", "src/old.rs")],
+        unstaged: vec![renamed("docs/new.md", "docs/old.md")],
+        untracked: vec![String::from("notes.txt")],
+        conflicted: vec![ConflictedFile {
+            path: String::from("Cargo.lock"),
+            kind: ConflictKind::BothModified,
         }],
+    }
+}
+
+/// A submodule of a submodule, with a branch to follow, a commit staged and a checkout that is one commit ahead.
+fn submodule() -> Submodule {
+    Submodule {
+        name: String::from("inner"),
+        folder: String::from("vendor/lib/inner"),
+        parent: Some(String::from("vendor/lib")),
+        url: Some(String::from("https://example.com/inner.git")),
+        branch: Some(String::from("main")),
+        recorded: Some(commit('2')),
+        staged: Some(commit('3')),
+        checkout: Some(Checkout {
+            commit: Some(commit('4')),
+            branch: Some(String::from("main")),
+            uncommitted: 1,
+            distance: Some(Distance { ahead: 1, behind: 0 }),
+        }),
     }
 }
 
@@ -168,5 +188,8 @@ fn the_state_with_every_part_filled_is_written_as_the_extension_reads_it() {
 
 #[test]
 fn the_details_of_a_commit_with_every_part_filled_are_written_as_the_extension_reads_them() {
-    assert_golden(golden("commit-detail-filled.json"), pretty(&CommitDetailJson::from(&detail())));
+    assert_golden(
+        golden("commit-detail-filled.json"),
+        pretty(&CommitDetailJson::from(&detail())),
+    );
 }
