@@ -244,29 +244,8 @@ impl DesktopWindow {
             Effect::Cancel(job) => self.workers.cancel(job),
             Effect::Ask(question) => self.asking.ask(*question),
             Effect::StopAsking(asks) => self.asking.stop(&asks),
-            Effect::ChooseFolder => {
-                let dialog = FileDialog {
-                    title: String::from(views::text::repo::CHOOSE_FOLDER),
-                    ..FileDialog::default()
-                };
-                let folder = dialog.choose_folder(self.surface.window());
-                return Ok(Some(Followed::Message(Box::new(Message::FolderChosen(folder)))));
-            }
-            Effect::ChooseWorkspaceFile => {
-                let dialog = FileDialog {
-                    title: String::from(views::text::repo::CHOOSE_WORKSPACE_FILE),
-                    filters: vec![platform::FileFilter {
-                        name: String::from(views::text::repo::WORKSPACE_FILES),
-                        extensions: vec![String::from("code-workspace")],
-                    }],
-                    ..FileDialog::default()
-                };
-                let chosen = dialog.choose_file(self.surface.window()).map(|file| {
-                    let text = std::fs::read_to_string(&file).map_err(|error| error.to_string());
-                    (file, text)
-                });
-                return Ok(Some(Followed::Message(Box::new(Message::WorkspaceFileChosen(chosen)))));
-            }
+            Effect::ChooseFolder => return Ok(Some(self.choose_folder())),
+            Effect::ChooseWorkspaceFile => return Ok(Some(self.choose_workspace_file())),
             Effect::WritePersisted(persisted) => {
                 if let Some(writer) = &self.writer {
                     writer.write(persisted);
@@ -307,6 +286,34 @@ impl DesktopWindow {
             Effect::Quit => return Ok(Some(Followed::Quit)),
         }
         Ok(None)
+    }
+
+    /// The system's folder dialog, for **Open folder…** (`repo.open-folder`), and the folder chosen.
+    fn choose_folder(&self) -> Followed {
+        let dialog = FileDialog {
+            title: String::from(views::text::repo::CHOOSE_FOLDER),
+            ..FileDialog::default()
+        };
+        let folder = dialog.choose_folder(self.surface.window());
+        Followed::Message(Box::new(Message::FolderChosen(folder)))
+    }
+
+    /// The system's dialog for opening a file, showing the workspace files of VS Code (`repo.open-code-workspace`),
+    /// and the file chosen with its text, or why it could not be read.
+    fn choose_workspace_file(&self) -> Followed {
+        let dialog = FileDialog {
+            title: String::from(views::text::repo::CHOOSE_WORKSPACE_FILE),
+            filters: vec![platform::FileFilter {
+                name: String::from(views::text::repo::WORKSPACE_FILES),
+                extensions: vec![String::from("code-workspace")],
+            }],
+            ..FileDialog::default()
+        };
+        let chosen = dialog.choose_file(self.surface.window()).map(|file| {
+            let text = std::fs::read_to_string(&file).map_err(|error| error.to_string());
+            (file, text)
+        });
+        Followed::Message(Box::new(Message::WorkspaceFileChosen(chosen)))
     }
 
     /// Runs, answers or stops the tasks of the Activity drawer.

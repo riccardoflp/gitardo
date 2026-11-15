@@ -69,17 +69,7 @@ impl ViewData {
     /// The words of a state, with what is running and the moment the dates are said from, in seconds since 1970.
     #[must_use]
     pub fn new(state: &State, running: Vec<RunningTask>, now: i64) -> ViewData {
-        let recent = state
-            .persisted
-            .recent
-            .iter()
-            .map(|workspace| {
-                workspace.file.as_ref().and_then(|file| file.file_stem()).map_or_else(
-                    || folder_list(&workspace.folders),
-                    |name| name.to_string_lossy().into_owned(),
-                )
-            })
-            .collect();
+        let recent = super::pages::recent_names(state);
         let roots = state
             .workspace
             .as_ref()
@@ -450,15 +440,6 @@ fn head_name(repository: &RepositoryState) -> HeadName<'_> {
 /// A folder as the window writes it.
 fn display(folder: &std::path::Path) -> String {
     folder.display().to_string()
-}
-
-/// The folders of a workspace, on one line.
-fn folder_list(folders: &[PathBuf]) -> String {
-    folders
-        .iter()
-        .map(|folder| display(folder))
-        .collect::<Vec<_>>()
-        .join(", ")
 }
 
 /// The place among the ways to pull of the menu of **Sync** of the way **Pull** takes, as the settings say.

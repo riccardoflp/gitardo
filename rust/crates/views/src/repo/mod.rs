@@ -166,7 +166,10 @@ pub fn tabs_picker_view(state: &TabsPickerState<'_>, ui: &mut Ui<'_>) -> Vec<Int
         query: "",
         checked,
     };
-    match (ui.picker(("tabs picker", state.kind == TabsPickerKind::Choose), &picker), state.kind) {
+    match (
+        ui.picker(("tabs picker", state.kind == TabsPickerKind::Choose), &picker),
+        state.kind,
+    ) {
         (Some(PickerAnswer::ChoseMany(chosen)), _) => vec![Intent::TabsChosen(Some(chosen))],
         (Some(PickerAnswer::Cancelled), TabsPickerKind::Choose) => vec![Intent::TabsChosen(None)],
         (Some(PickerAnswer::Chose(index)), _) => state

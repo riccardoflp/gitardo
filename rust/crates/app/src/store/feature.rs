@@ -17,9 +17,11 @@ use super::{Effect, State, reads, search};
 use crate::persisted::inputs::{inputs_of, remember_inputs};
 
 mod after_read;
+mod said;
 mod shown;
 
 pub use after_read::after_read;
+pub use said::Said;
 pub use shown::{plan_shown, question_state, said_state};
 
 /// What is answered to the operation running.
@@ -90,31 +92,6 @@ pub enum Asking {
     },
     /// The plan, before it runs.
     Plan(Plan),
-}
-
-/// What was said once an operation ended.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Said {
-    /// The sentence.
-    pub text: String,
-    /// Whether it says the operation failed or was refused.
-    pub is_error: bool,
-    /// Whether **Undo** is offered beside it.
-    pub can_undo: bool,
-    /// Whether it warns of a stash a pull left, with **Show Stashes** beside it (`stash.autostash-left`).
-    pub offers_stashes: bool,
-    /// The first bad commit a bisect found, named with **Show in the timeline** and **End bisect** beside it.
-    pub found: Option<CommitId>,
-    /// What it offers to do next, with the words of its button: **Continue** once no file is left in conflict.
-    pub offer: Option<(FeatureId, String)>,
-    /// The title of the operation that stopped on conflicts and how many files were in conflict, once the repository
-    /// read again has some: the message of `conflicts.stopped` is shown in place of the failure.
-    pub stopped: Option<(String, usize)>,
-    /// The operations offered beside it, each with its button: **Open in new window**, **Remove anyway**.
-    pub runs: Vec<model::contract::OfferedRun>,
-    /// The words of a button that opens an address in the browser, and the address: **Create pull request** after the
-    /// first push of a branch (`github.offer-after-push`).
-    pub link: Option<(String, String)>,
 }
 
 /// The operations of a window.
@@ -389,29 +366,6 @@ pub(super) fn ended_as_said(state: &mut State, (ended, feature): (Ended, Option<
             let mut effects = reads::asked(state, ReadCause::OperationEnded);
             effects.extend(carry_out(state, on_failure));
             effects
-        }
-    }
-}
-
-impl Said {
-    /// A failure said alone, with nothing beside it: a new window that could not be opened.
-    #[must_use]
-    pub fn error(text: String) -> Said {
-        Said::new(text, true)
-    }
-
-    /// A sentence alone, with nothing beside it.
-    pub(super) fn new(text: String, is_error: bool) -> Said {
-        Said {
-            text,
-            is_error,
-            can_undo: false,
-            offers_stashes: false,
-            found: None,
-            offer: None,
-            stopped: None,
-            runs: Vec::new(),
-            link: None,
         }
     }
 }

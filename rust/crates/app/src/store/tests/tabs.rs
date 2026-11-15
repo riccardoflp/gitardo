@@ -101,7 +101,7 @@ fn repo_choose_tabs__a_repository_with_two_submodules_opens_one_tab_and_asks_not
     let effects = reduce(&mut state, Message::RepositoriesFound { job, found });
     assert_eq!(state.dialog, None, "nothing is asked");
     let _read = answer(&mut state, effects, &[]);
-    assert_eq!(tab_folders(&state), [app.clone()]);
+    assert_eq!(tab_folders(&state), std::slice::from_ref(&app));
     assert_eq!(timeline_folder(&state), Some(app));
 }
 

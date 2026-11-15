@@ -87,3 +87,28 @@ fn tick(state: &mut State, step: usize) -> Option<Effect> {
     *done = true;
     Some(Effect::WritePersisted(state.persisted.clone()))
 }
+
+/// The recent workspaces as the Welcome page lists them: each by its folders, or by the name of the workspace file of
+/// VS Code it was opened from (`repo.open-code-workspace`).
+pub(super) fn recent_names(state: &State) -> Vec<String> {
+    state
+        .persisted
+        .recent
+        .iter()
+        .map(|workspace| {
+            workspace.file.as_ref().and_then(|file| file.file_stem()).map_or_else(
+                || folder_list(&workspace.folders),
+                |name| name.to_string_lossy().into_owned(),
+            )
+        })
+        .collect()
+}
+
+/// The folders of a workspace, on one line.
+fn folder_list(folders: &[std::path::PathBuf]) -> String {
+    folders
+        .iter()
+        .map(|folder| folder.display().to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
+}

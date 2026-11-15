@@ -315,20 +315,37 @@ fn answer_open_folder(state: &mut State, answer: FolderAnswer) -> Vec<Effect> {
     }
 }
 
-/// What a view returned.
-fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
+/// What a view asked of the workspace: a folder, a workspace file or a recent workspace to open, a repository to show.
+fn reduce_workspace_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
     match intent {
         Intent::OpenFolder => {
             state.dialog = None;
             vec![Effect::ChooseFolder]
         }
-        Intent::AnswerOpenFolder(answer) => answer_open_folder(state, answer),
-        Intent::OpenRecent(index) => open_recent(state, index),
-        Intent::SelectRepository(folder) => tabs::show_repository(state, &folder),
         Intent::OpenWorkspaceFile => {
             state.dialog = None;
             vec![Effect::ChooseWorkspaceFile]
         }
+        Intent::AnswerOpenFolder(answer) => answer_open_folder(state, answer),
+        Intent::OpenRecent(index) => open_recent(state, index),
+        Intent::SelectRepository(folder) => tabs::show_repository(state, &folder),
+        Intent::PickRepository => {
+            workspace::pick_repository(state);
+            Vec::new()
+        }
+        _ => Vec::new(),
+    }
+}
+
+/// What a view returned.
+fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
+    match intent {
+        Intent::OpenFolder
+        | Intent::AnswerOpenFolder(_)
+        | Intent::OpenRecent(_)
+        | Intent::SelectRepository(_)
+        | Intent::OpenWorkspaceFile
+        | Intent::PickRepository => reduce_workspace_intent(state, intent),
         Intent::SwitchTab(_)
         | Intent::OpenTab(_)
         | Intent::PickTabToOpen
@@ -336,10 +353,6 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         | Intent::CloseTab(_)
         | Intent::CloseOtherTabs(_)
         | Intent::CloseTabShown => tabs::reduce(state, intent),
-        Intent::PickRepository => {
-            workspace::pick_repository(state);
-            Vec::new()
-        }
         Intent::ReadRepository => {
             state.reads.is_not_read = false;
             look_again(state, false)

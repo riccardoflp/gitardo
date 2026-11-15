@@ -178,9 +178,8 @@ fn wanted(state: &State, job: JobId, found: &Found) -> Wanted {
                 Wanted::Open(open)
             }
         }
-        Some(None) => Wanted::Open(own),
         None if own.len() > 1 => Wanted::Asked(own),
-        None => Wanted::Open(own),
+        Some(None) | None => Wanted::Open(own),
     }
 }
 

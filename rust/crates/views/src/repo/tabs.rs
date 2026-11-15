@@ -45,11 +45,11 @@ pub struct TabEntry {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum OpenCommand {
     /// Opens a repository with no tab, by its place among them.
-    OpenTab(usize),
+    Repository(usize),
     /// **Open folder…**.
-    OpenFolder,
+    Folder,
     /// **Open workspace file…**.
-    OpenWorkspaceFile,
+    WorkspaceFile,
 }
 
 /// What an entry of the menu of a tab does.
@@ -94,7 +94,11 @@ pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
 }
 
 /// One tab, and what a click on it, on its **×**, a middle click or its menu asked.
-fn tab_button((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, (cell, padding, close): (Rect, f32, f32)) -> Vec<Intent> {
+fn tab_button(
+    (index, tab): (usize, &TabEntry),
+    ui: &mut Ui<'_>,
+    (cell, padding, close): (Rect, f32, f32),
+) -> Vec<Intent> {
     let theme = *ui.theme();
     let radius = theme.sizes.radius.medium;
     let id = ui.id(("tab", index, &tab.folder));
@@ -175,24 +179,24 @@ fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, area: &mut Area, i
     let mut entries: Vec<MenuEntry<'_, OpenCommand>> = not_open
         .iter()
         .enumerate()
-        .map(|(index, entry)| MenuEntry::Item(MenuItem::new(entry.name.as_str(), OpenCommand::OpenTab(index))))
+        .map(|(index, entry)| MenuEntry::Item(MenuItem::new(entry.name.as_str(), OpenCommand::Repository(index))))
         .collect();
     if !entries.is_empty() {
         entries.push(MenuEntry::Separator);
     }
     entries.push(MenuEntry::Item(
-        MenuItem::new(header::OPEN_FOLDER, OpenCommand::OpenFolder).with_icon(Icon::Folder),
+        MenuItem::new(header::OPEN_FOLDER, OpenCommand::Folder).with_icon(Icon::Folder),
     ));
     entries.push(MenuEntry::Item(MenuItem::new(
         words::OPEN_WORKSPACE_FILE,
-        OpenCommand::OpenWorkspaceFile,
+        OpenCommand::WorkspaceFile,
     )));
     match ui.menu_button(OPEN_MENU, rect, &button, &entries) {
-        Some(OpenCommand::OpenTab(index)) => {
+        Some(OpenCommand::Repository(index)) => {
             intents.extend(not_open.get(index).map(|entry| Intent::OpenTab(entry.folder.clone())));
         }
-        Some(OpenCommand::OpenFolder) => intents.push(Intent::OpenFolder),
-        Some(OpenCommand::OpenWorkspaceFile) => intents.push(Intent::OpenWorkspaceFile),
+        Some(OpenCommand::Folder) => intents.push(Intent::OpenFolder),
+        Some(OpenCommand::WorkspaceFile) => intents.push(Intent::OpenWorkspaceFile),
         None => {}
     }
 }

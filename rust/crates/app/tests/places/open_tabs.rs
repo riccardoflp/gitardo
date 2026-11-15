@@ -117,8 +117,15 @@ fn repo_close_tab__the_x_of_the_tab_shown_a_middle_click_and_the_menu_of_a_tab_a
     assert_eq!(count(&tree, words::CLOSE_TAB), 1, "only the tab shown has its ×");
     let docs = middle(bounds(&tree, Role::Button, "docs"));
     let (_, tree) = window.draw(&state, &[moved(docs)]);
-    assert_eq!(count(&tree, words::CLOSE_TAB), 2, "the tab under the pointer has its × too");
-    assert_eq!(window.click(&state, Role::Button, words::CLOSE_TAB), [Intent::CloseTab(1)]);
+    assert_eq!(
+        count(&tree, words::CLOSE_TAB),
+        2,
+        "the tab under the pointer has its × too"
+    );
+    assert_eq!(
+        window.click(&state, Role::Button, words::CLOSE_TAB),
+        [Intent::CloseTab(1)]
+    );
     assert_eq!(
         button_at(&mut window, &state, docs, PointerButton::Middle),
         [Intent::CloseTab(2)]
