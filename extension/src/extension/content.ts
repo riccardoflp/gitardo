@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { Repo } from '../git/repo';
+import { reads } from '../engine/reads';
 
 export const SCHEME = 'gitardo';
 
@@ -58,6 +59,6 @@ export class GitContentProvider implements vscode.TextDocumentContentProvider {
     if (!ref) return '';
     if (ref === PROPOSAL) return proposals.get(`${root}\n${uri.path.slice(1)}`) ?? '';
     // The path is the name of the file, but for the URIs whose tab says more than the name.
-    return new Repo(root).show(ref, file ?? uri.path.slice(1));
+    return reads.show(new Repo(root), ref, file ?? uri.path.slice(1));
   }
 }

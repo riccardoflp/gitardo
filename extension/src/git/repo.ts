@@ -17,6 +17,7 @@ import {
   type Filter,
   type Operation,
   type RebaseStop,
+  type RepoParts,
   type RepoState,
   type Row,
   type Scope,
@@ -639,6 +640,14 @@ export class Repo {
    * sides. With `stashes`, the stashes are among the commits.
    */
   async state(limit: number, filter: Filter | null = null, scope: Scope | null = null, resolve = false, stashes = false): Promise<RepoState> {
+    return this.withCommits(await this.parts(resolve), limit, filter, scope, stashes);
+  }
+
+  /**
+   * What the views show of the repository but its commits, which Gitardo's engine reads in its place when it is there.
+   * With `resolve`, the files with conflicts are read to say which of the conflicts need no choice between the two sides.
+   */
+  async parts(resolve = false): Promise<RepoParts> {
     const [refsOut, headOut, branchOut, stashOut, worktreeOut, remoteOut, identityOut, movesOut, working, operation, bisect, submodules] = await Promise.all([
       this.read(['for-each-ref', `--format=${REF_FORMAT}`]),
       this.read(['rev-parse', '--verify', '--quiet', 'HEAD'], true),
@@ -661,8 +670,38 @@ export class Repo {
     const plans = resolve && working.conflicts.length ? await this.conflictPlans(working.conflicts.map((file) => file.path)) : [];
     const refs = parseRefs(refsOut);
     const branch = branchOut.trim().replace(/^refs\/heads\//, '') || null;
+    return {
+      head,
+      branch,
+      ...refs,
+      stashes: parseStashes(stashOut),
+      worktrees: await this.worktreeChanges(parseWorktrees(worktreeOut, this.root), changes.length),
+      submodules,
+      remotes: remoteOut.split('\n').filter(Boolean),
+      working,
+      conflictFiles: plans.map((plan) => ({
+        path: plan.path,
+        conflicts: plan.conflicts.length,
+        resolvable: plan.conflicts.flatMap((conflict) => conflict.resolution ?? []),
+      })),
+      operation,
+      rebaseStop,
+      bisect,
+      identity: parseIdentity(identityOut),
+      recentBranches: recentBranches(
+        movesOut,
+        refs.branches.map((each) => each.name),
+        branch,
+      ),
+    };
+  }
+
+  /** The state of the repository from what `parts` read, with the commits of the graph read after it. */
+  async withCommits(parts: RepoParts, limit: number, filter: Filter | null = null, scope: Scope | null = null, stashes = false): Promise<RepoState> {
+    const { head } = parts;
+    const changes = allChanges(parts.working);
     // A branch chosen for the graph may have been deleted since.
-    const shown = pruneScope(scope, { ...refs, branch });
+    const shown = pruneScope(scope, parts);
 
     const { args, names } = await this.selection(filter, head, shown);
     // A search can be one git refuses, such as an invalid regular expression: that must be reported, not shown as no results.
@@ -671,7 +710,7 @@ export class Repo {
     if (hasMore) commits.length = limit;
     // The other parents of a merge are not followed: a line to them would lead nowhere.
     if (this.firstParent) for (const commit of commits) commit.parents.length = Math.min(commit.parents.length, 1);
-    const stashList = parseStashes(stashOut);
+    const stashList = parts.stashes;
     // Not among the results of a search, nor in the history of a file or of a commit, which they are no part of.
     const listed: Listed[] = stashes && !filter && stashList.length ? await this.withStashes(commits, stashList) : commits;
 
@@ -701,33 +740,12 @@ export class Repo {
     return {
       root: this.root,
       name: path.basename(this.root),
-      head,
-      branch,
-      ...refs,
-      stashes: stashList,
-      worktrees: await this.worktreeChanges(parseWorktrees(worktreeOut, this.root), changes.length),
-      submodules,
-      remotes: remoteOut.split('\n').filter(Boolean),
+      ...parts,
       rows,
       hasMore,
       changes: changes.length,
-      working,
-      conflictFiles: plans.map((plan) => ({
-        path: plan.path,
-        conflicts: plan.conflicts.length,
-        resolvable: plan.conflicts.flatMap((conflict) => conflict.resolution ?? []),
-      })),
-      operation,
-      rebaseStop,
-      bisect,
-      identity: parseIdentity(identityOut),
       filter: filter?.kind === 'path' && names.length > 1 ? { ...filter, renamedFrom: names.slice(1) } : filter,
       scope: shown,
-      recentBranches: recentBranches(
-        movesOut,
-        refs.branches.map((each) => each.name),
-        branch,
-      ),
       favorites: [],
       defaultPull: 'pullRebaseAutostash',
       repos: [],

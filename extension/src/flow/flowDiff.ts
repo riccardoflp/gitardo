@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { discardOp, stageOp, unstageOp } from '../git/ops';
 import { Repo } from '../git/repo';
+import { reads } from '../engine/reads';
 import { buildModel, refreshPanel } from './build';
 import { ChunkActions, type RunOp } from './chunks';
 import { DiffEngine } from './engine';
@@ -139,7 +140,7 @@ export class FlowDiff implements vscode.Disposable {
    */
   private async openAdjacentFile(panel: DiffPanel, direction: 'next' | 'prev'): Promise<void> {
     const { descriptor } = panel;
-    const working = await new Repo(descriptor.repoRoot).working().catch(() => null);
+    const working = await reads.working(new Repo(descriptor.repoRoot)).catch(() => null);
     const files = working ? (changedFiles(descriptor, working) ?? []).sort(compare) : [];
     const current = descriptor.path;
     // files after the current one in the given direction, then wrapping around

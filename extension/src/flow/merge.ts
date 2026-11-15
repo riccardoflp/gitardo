@@ -16,6 +16,7 @@ import type { MergeHostMessage, MergeWebviewMessage } from './diff/mergeProtocol
 import { minimalReplace, offsetToPosition } from './diff/textEdit';
 import type { RunOp } from './chunks';
 import type { EngineRun } from '../engine/actions';
+import { reads } from '../engine/reads';
 import type { DiffEngine } from './engine';
 import { inRepository } from './sides';
 import type { ThemeService } from './theme';
@@ -205,14 +206,12 @@ export class FlowMerge implements vscode.Disposable {
    * Resolves to whether it was closed.
    */
   private async leaveMergeEditor(tab: vscode.Tab & { input: { result: vscode.Uri } }, descriptor: MergeDescriptor): Promise<boolean> {
-    const repo = new Repo(descriptor.repoRoot);
-    const stages = await repo.conflictStages(descriptor.path).catch(() => [] as number[]);
+    const versions = await reads.conflictVersions(new Repo(descriptor.repoRoot), descriptor.path).catch(() => null);
     // Not a file in conflict any more: the merge editor stays, and opening the Flow Merge says why it cannot.
-    if (!stages.includes(2) || !stages.includes(3)) return true;
+    if (!versions?.hasBothSides) return true;
     const document = vscode.workspace.textDocuments.find((each) => samePath(each.uri.fsPath, tab.input.result.fsPath));
     if (document?.isDirty) {
-      const stage = (number: number) => (stages.includes(number) ? repo.show(`:${number}`, descriptor.path).catch(() => '') : Promise.resolve(''));
-      const [base, ours, theirs] = await Promise.all([stage(1), stage(2), stage(3)]);
+      const { base, ours, theirs } = versions;
       const untouched = normalizeEol(document.getText()) === mergeEditorStart(base, ours, theirs, DIFF_TIMEOUT_MS);
       if (!untouched) {
         const discard = 'Discard and Open';
@@ -243,7 +242,7 @@ export class FlowMerge implements vscode.Disposable {
     if (!panel) return;
     const { repoRoot, path: file } = panel.descriptor;
     const repo = new Repo(repoRoot);
-    const stages = await repo.conflictStages(file).catch(() => [] as number[]);
+    const stages = await reads.conflictStages(repo, file).catch(() => [] as number[]);
     // What was chosen here and not saved is not lost: the merge editor saves the file as it opens it. Where markers of
     // git are left in it, it then starts its own result again from the base, without saving that.
     try {
@@ -464,16 +463,14 @@ async function buildMerge(
   unlessInputKey?: string,
 ): Promise<{ model: MergeModel; inputKey: string } | undefined> {
   const tell = (message: string) => interactive && void vscode.window.showInformationMessage(`Flow Merge: ${message}`);
-  const repo = new Repo(descriptor.repoRoot);
-  const stages = await repo.conflictStages(descriptor.path).catch(() => [] as number[]);
-  if (!stages.includes(2) || !stages.includes(3)) {
+  // Both sides added the file: there is no base, which is the same as an empty one.
+  const versions = await reads.conflictVersions(new Repo(descriptor.repoRoot), descriptor.path).catch(() => null);
+  if (!versions?.hasBothSides) {
     tell(`${descriptor.path} is not in conflict with a change on each side.`);
     return undefined;
   }
-  // Both sides added the file: there is no base, which is the same as an empty one.
-  const stage = (number: number) => (stages.includes(number) ? repo.show(`:${number}`, descriptor.path).catch(() => '') : Promise.resolve(''));
   const document = await Promise.resolve(vscode.workspace.openTextDocument(fileUri(descriptor))).catch(() => undefined);
-  const [base, ours, theirs, operation] = await Promise.all([stage(1), stage(2), stage(3), repo.operation().catch(() => null)]);
+  const { base, ours, theirs, operation } = versions;
   const result = document?.getText() ?? '';
   const languageId = document?.languageId ?? 'plaintext';
 

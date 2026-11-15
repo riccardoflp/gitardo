@@ -52,6 +52,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - Renaming the main worktree, and **Open in worktree** on the branch checked out in this window, are refused with a warning before git runs.
 - Bringing ignored files into a worktree lists only what it brings, not what the worktree had already.
 - Adding a submodule asks in the words of Gitardo's desktop, and says that a folder is not empty once it is entered rather than while it is typed.
+- The patch copied from a comparison that starts at the working tree names its sides `a/` and `b/`, as every other patch does.
 
 ## 0.11.0 - 2026-11-12
 

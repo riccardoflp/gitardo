@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { git } from '../git/exec';
 import { samePath } from '../git/parse';
 import { Repo } from '../git/repo';
+import { reads } from '../engine/reads';
 import { INDEX, SCHEME, contentUri } from '../extension/content';
 
 /** A version of a file, on one side of a diff. */
@@ -109,12 +110,15 @@ export async function readVersion(d: DiffDescriptor, side: 'left' | 'right'): Pr
     }
     case 'index':
     case 'commit': {
-      const object = `${version.kind === 'index' ? '' : version.ref}:${file}`;
-      try {
-        return (await git(d.repoRoot, ['show', object], { readOnly: true })).stdout;
-      } catch {
-        return undefined;
-      }
+      const revision = version.kind === 'index' ? '' : version.ref;
+      const inTypeScript = async () => {
+        try {
+          return (await git(d.repoRoot, ['show', `${revision}:${file}`], { readOnly: true })).stdout;
+        } catch {
+          return undefined;
+        }
+      };
+      return reads.fileAt(d.repoRoot, revision, file, inTypeScript).catch(() => undefined);
     }
   }
 }
@@ -154,7 +158,7 @@ export async function describeDiff(original: vscode.Uri, modified: vscode.Uri): 
   const uncommitted = right.version.kind === 'worktree' || right.version.kind === 'index';
   if (uncommitted && left.version.kind === 'none') left.version = HEAD;
   if (uncommitted && left.version.kind === 'commit' && /^[0-9a-f]{40,64}$/.test(left.version.ref)) {
-    const head = await new Repo(left.root).resolve('HEAD').catch(() => null);
+    const head = await reads.resolve(new Repo(left.root), 'HEAD').catch(() => null);
     if (head === left.version.ref) left.version = HEAD;
   }
   return {

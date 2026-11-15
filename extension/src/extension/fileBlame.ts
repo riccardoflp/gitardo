@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { BlameLine } from '../git/parse';
 import type { Repo } from '../git/repo';
+import { reads } from '../engine/reads';
 import { DEFAULT_AGE, DEFAULT_FORMAT, ageColor, blameLabels, parseFormat, type AgeColors, type FormatPart } from '../shared/blameFormat';
 import { ignoresWhitespace, type Blamable, type BlameSource } from './blame';
 import { SCHEME, revisionUri } from './content';
@@ -277,7 +278,7 @@ export class FileBlame implements vscode.Disposable {
     }
     const lines =
       this.shown.get(editor.document.uri.toString())?.lines ??
-      (await found.repo.blame(found.file, this.source.options(editor.document, found)).catch(() => null));
+      (await reads.blame(found.repo, found.file, this.source.options(editor.document, found)).catch(() => null));
     const line = lines?.[editor.selection.active.line];
     if (line?.committed) return { line, found };
     void vscode.window.showInformationMessage(line ? 'Gitardo: this line is not committed yet.' : 'Gitardo: this line is in no commit.');
@@ -357,7 +358,7 @@ export class FileBlame implements vscode.Disposable {
 
   private async read(document: vscode.TextDocument): Promise<{ lines: BlameLine[]; root: string } | null> {
     const found = await this.source.of(document);
-    const lines = found && (await found.repo.blame(found.file, this.source.options(document, found)));
+    const lines = found && (await reads.blame(found.repo, found.file, this.source.options(document, found)));
     return lines ? { lines, root: found.repo.root } : null;
   }
 
