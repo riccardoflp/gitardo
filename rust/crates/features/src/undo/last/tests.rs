@@ -236,3 +236,67 @@ fn undo_last__marks_resolved_conflicts_again_in_every_file() {
         ["git checkout --merge -- a.txt :(literal)pages/[id].tsx"]
     );
 }
+
+#[test]
+fn undo_last__deletes_a_branch_created_and_not_checked_out() {
+    let record = UndoRecord::BranchCreated {
+        name: String::from("spike"),
+    };
+    assert_eq!(journal_lines(record), ["git branch -D spike"]);
+}
+
+#[test]
+fn undo_last__refuses_with_its_reason_what_it_cannot_take_back_rather_than_the_operation_before() {
+    let record = UndoRecord::NotUndoable {
+        reason: Text::from("A push changes the remote, which Undo does not take back."),
+    };
+    let Outcome::Refuse(refusal) = last(&context(state(), Target::Head), &journal(record)) else {
+        panic!("a push is not taken back")
+    };
+    assert_eq!(
+        refusal.message.as_str(),
+        "\"Cherry-pick 3 commits\" cannot be undone. A push changes the remote, which Undo does not take back."
+    );
+}
+
+#[test]
+fn undo_last__a_move_the_journal_kept_goes_by_the_reflog_and_takes_its_entry_back() {
+    let answers = reflogs(
+        vec![entry('c', "commit: Fix the parser"), entry('a', "commit: First")],
+        vec![entry('c', "commit: Fix the parser"), entry('a', "commit: First")],
+    )
+    .with(
+        JOURNAL,
+        Answer::Journal(Some(JournalEntry {
+            number: 9,
+            title: Text::from("Commit"),
+            record: UndoRecord::Reflog,
+            head: state().head,
+        })),
+    );
+    let plan = plan(last(&context(state(), Target::Head), &answers));
+    assert_eq!(lines(&plan), [format!("git reset --soft {}", commit('a'))]);
+    assert_eq!(plan.undo, Undo::TakesBack(9));
+}
+
+#[test]
+fn undo_last__refuses_while_an_operation_is_under_way_but_for_a_squash_merge_or_resolved_conflicts() {
+    let mut stopped = state();
+    stopped.operation = Some(model::state::Operation::Merge);
+    let context = context(stopped, Target::Head);
+    let Outcome::Refuse(refusal) = last(&context, &no_journal()) else {
+        panic!("Undo waits for the merge to end")
+    };
+    assert_eq!(refusal.message.as_str(), "Finish or abort the merge first.");
+    let Outcome::Refuse(_) = last(&context, &journal(UndoRecord::Reflog)) else {
+        panic!("a move is not taken back mid-merge")
+    };
+    assert!(matches!(
+        last(&context, &journal(UndoRecord::SquashMerge)),
+        Outcome::Run(_)
+    ));
+    let resolved = UndoRecord::ConflictsResolved {
+        files: vec![String::from("a.txt")],
+    };
+    assert!(matches!(last(&context, &journal(resolved)), Outcome::Run(_)));
+}

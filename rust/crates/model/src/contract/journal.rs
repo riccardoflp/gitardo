@@ -6,9 +6,22 @@ use crate::state::Head;
 
 use super::Text;
 
-/// What a plan leaves for Undo, when the reflog is not enough to take it back.
+/// What a plan leaves for Undo: how it is taken back, or why it is not.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UndoRecord {
+    /// A move of `HEAD` or of the branch checked out: Undo takes it back by the reflog (`undo.last`).
+    Reflog,
+    /// What Undo cannot take back, a push, a fetch, a tag, a stash or a worktree: Undo refuses with the reason, rather
+    /// than take back the operation before it, until `HEAD` moves.
+    NotUndoable {
+        /// Why, as the plan says it.
+        reason: Text,
+    },
+    /// A branch was created and not checked out: Undo deletes it.
+    BranchCreated {
+        /// Its name, without `refs/heads/`.
+        name: String,
+    },
     /// A branch was deleted: Undo creates it again at the same commit, without its upstream.
     BranchDeleted {
         /// Its name, without `refs/heads/`.

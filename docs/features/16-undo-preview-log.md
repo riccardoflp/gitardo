@@ -75,16 +75,19 @@ Acceptance:
 
 ### `undo.last` — Undo the last operation
 
-**Undo** takes back the last commit, amend, checkout, merge, pull, rebase or reset, also one made from a terminal, by
-reading the reflog; and the last operation Gitardo made that the reflog does not see, from its own journal. It always
-shows what it is about to do first. Undoing twice redoes.
+**Undo** takes back the newest operation of Gitardo, as its journal keeps it: a commit, amend, checkout, merge, pull,
+rebase or reset by the reflog, and what the reflog does not see from the journal itself. With nothing in the journal,
+after a commit made in a terminal for one, it takes back the last move of the reflog. When the newest operation is
+one it cannot take back, a push, a fetch, a tag, a stash or a worktree, it says so rather than take back the one
+before it. It always shows what it is about to do first. With nothing in the journal, undoing twice redoes.
 
 - **Kind**: Operation
 - **Function**: `features::undo::last(context, answers) -> Outcome`
 - **Entry points**: **Undo** in the **…** menu of the header; **Undo Last Operation** in Quick search; the **Undo** of
   the messages that follow an operation.
 - **Offered when**: the journal has an entry, or the reflog of `HEAD` has a previous position.
-- **Reads**: the journal of Gitardo's own operations for this repository; the last two entries of the reflog of `HEAD`
+- **Reads**: the newest entry of the journal of Gitardo's own operations for this repository; the last two entries of
+  the reflog of `HEAD`
   and, when a branch is checked out, of `refs/heads/<branch>` (a rebase moves `HEAD` many times but the branch once, so
   the branch's own reflog says where it was before); `git diff --quiet <previous>` when there are uncommitted changes;
   the state of the repository, to make sure nothing happened since the operation in the journal.
@@ -100,6 +103,7 @@ shows what it is about to do first. Undoing twice redoes.
   - a split of the last commit: `git reset --mixed <the commit that was split>`, since the commit may have added files
     that are untracked now;
   - a branch deleted in Gitardo: `git branch <name> <commit it was at>`;
+  - a branch created in Gitardo and not checked out: `git branch -D <name>`;
   - a stash dropped in Gitardo: `git stash store -m <message> <commit of the stash>`;
   - conflicts resolved by Gitardo: `git checkout --merge -- <files>`;
   - a squash merge, until something is committed: `git reset --merge`;
@@ -110,11 +114,15 @@ shows what it is about to do first. Undoing twice redoes.
   A branch restored this way does not get its upstream back; the dialog says so.
 - **Danger**: Destructive, because it moves a branch or rewrites files; the dialog says what it takes back in words
   (*Undo the commit "Fix the parser"*) and the commands.
-- **Undo**: Undo again redoes what was undone, by the same means.
+- **Undo**: it takes its entry out of the journal, so that Undo again takes back the operation before; with nothing
+  in the journal, Undo again redoes what was undone, by the reflog.
 - **After**: selects the commit `HEAD` is at, and says what was undone.
-- **Refuses**: when there is nothing to undo, *Nothing to undo*; when the journal entry no longer matches the
-  repository (something happened since), it falls back to the reflog; when uncommitted changes are in the way of
-  `--keep`, *Undo would overwrite changes that are not committed: commit or stash them first*.
+- **Refuses**: when there is nothing to undo, *Nothing to undo*; when the newest operation cannot be taken back,
+  *"`<its title>`" cannot be undone.* and the reason its plan gave; while a merge, a rebase, a cherry-pick, a revert or a
+  patch is under way, *Finish or abort the `<operation>` first.*, but for a squash merge or a resolution of conflicts,
+  which are taken back from where they stopped; when the journal no longer matches the repository (something happened
+  since), it falls back to the reflog; when uncommitted changes are in the way of `--keep`, *Undo would overwrite
+  changes that are not committed: commit or stash them first*.
 
 Acceptance:
 
@@ -132,21 +140,35 @@ Acceptance:
 - [ ] With an operation made in a terminal after one of Gitardo's, Undo takes back the terminal's, by the reflog.
 - [ ] With `submodules.updateOnCheckout` on and submodules in what was checked out before, Undo of a checkout runs
       `git checkout <from>` and then `git submodule update --init --recursive`.
+- [ ] A branch deleted, then a branch created only: Undo deletes the new branch, and Undo again creates the deleted one.
+- [ ] A stash dropped, then a commit: Undo takes back the commit, then the drop.
+- [ ] Right after a push, Undo says it cannot take back the push, and takes back nothing.
+- [ ] During a merge stopped on conflicts, Undo refuses with *Finish or abort the merge first.*
 
 ### `undo.journal` — Remember what Undo needs
 
-The engine keeps, for each repository, a journal of what each plan said Undo would need: the commit a branch was at,
-the commit of a stash, the files whose conflicts were resolved, the `HEAD` before a series. It is kept in memory, and
-an entry is dropped once the repository moves on in a way that entry does not account for.
+The engine keeps, for each repository, a journal of Gitardo's operations, newest last, each with what Undo needs of
+it: a move of `HEAD` the reflog takes back, the commit a branch was at, a branch created, the commit of a stash, the
+files whose conflicts were resolved, the `HEAD` before a series, or why it cannot be taken back. It holds while `HEAD`
+is what the newest entry left, and is emptied once `HEAD` moves by something Gitardo did not do. An operation that
+cannot be taken back and changed only files and the index (staging, a save, a discard) adds nothing, and Undo goes
+past it. It is kept in memory: a new engine starts with an empty journal, and Undo then goes by the reflog.
 
 - **Kind**: Derivation
-- **Function**: `engine::undo::journal_after(journal, plan, state_before, state_after) -> Journal`
+- **Function**: `engine::undo::journal_after(journal, plan, state_before, state_after) -> Journal`, and
+  `engine::undo::journal_recorded(journal, title, record, before, after) -> Journal` for an operation the extension ran
+  itself (`journal/record`).
 - **Danger**: None
 - **Undo**: Not applicable.
 
 Acceptance:
 
-- [ ] An entry is dropped when `HEAD` has moved since by something the entry did not do.
+- [ ] The entries are dropped when `HEAD` has moved since by something Gitardo did not do.
+- [ ] A move of `HEAD` by Gitardo is an entry on top of the ones before, and once Undo took it back, the one before it
+      holds again.
+- [ ] A plan that cannot be taken back is an entry with its reason once a reference changed, and nothing when only
+      files and the index did.
+- [ ] An operation the extension ran is recorded with what it says Undo needs.
 - [ ] The journal keeps at most 50 entries per repository. (A number of Gitardo Desktop's own: the extension keeps
       what it needs in memory only. Whether entries survive a restart is open question Q4.)
 

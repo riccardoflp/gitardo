@@ -5,7 +5,9 @@ use crate::branch::submodules::{SUBMODULES_AFTER, SUBMODULES_BEFORE, none};
 use crate::testing::{branch, commit, context, lines, plan, question, state, tag};
 use model::Timestamp;
 use model::branch::{BranchInput, INPUTS, InputKind};
-use model::contract::{Answer, Answers, Context, FollowUp, Outcome, Query, QuestionKind, Target, Text, Undo};
+use model::contract::{
+    Answer, Answers, Context, FollowUp, Outcome, Query, QuestionKind, Target, Text, Undo, UndoRecord,
+};
 
 /// The name and the mode answered, and neither side of the checkout with submodules.
 fn answered(name: &str, mode: &str) -> Answers {
@@ -84,7 +86,13 @@ fn branch_create__on_a_commit_creates_only_at_its_full_hash() {
     let context = context(state(), Target::Commit(commit('b')));
     let plan = plan(create(&context, &answered("spike", CREATE_ONLY)));
     assert_eq!(lines(&plan), [format!("git branch spike {}", commit('b'))]);
-    assert!(matches!(plan.undo, Undo::Impossible(_)));
+    // Undo deletes it, from the journal, since nothing moved HEAD.
+    assert_eq!(
+        plan.undo,
+        Undo::Journal(UndoRecord::BranchCreated {
+            name: String::from("spike")
+        })
+    );
 }
 
 #[test]

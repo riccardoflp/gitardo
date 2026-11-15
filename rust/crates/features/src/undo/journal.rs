@@ -43,6 +43,9 @@ fn what_and_arguments(entry: &JournalEntry) -> (String, Vec<OsString>) {
             format!("the deletion of branch {name}"),
             words(&["branch", name, commit.as_str()]),
         ),
+        UndoRecord::BranchCreated { name } => {
+            (format!("the creation of branch {name}"), words(&["branch", "-D", name]))
+        }
         UndoRecord::StashDropped { message, commit } => (
             format!("the drop of the stash \"{message}\""),
             words(&["stash", "store", "-m", message, commit.as_str()]),
@@ -64,6 +67,7 @@ fn what_and_arguments(entry: &JournalEntry) -> (String, Vec<OsString>) {
         UndoRecord::SplitLast { commit } => (
             format!("the split of {}", commit.short()),
             words(&["reset", "--mixed", commit.as_str()]),
-        ),
+        ), // `undo.last` takes these back by the reflog, or refuses: never here.
+        UndoRecord::Reflog | UndoRecord::NotUndoable { .. } => (format!("\"{}\"", entry.title), Vec::new()),
     }
 }

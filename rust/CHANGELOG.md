@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Undo** keeps up to 50 of Gitardo's operations, newest last, for as long as nothing moves `HEAD` from outside
+  Gitardo, and undoing again takes back the one before. Right after an operation it cannot take back, a push, a fetch,
+  a tag, a stash or a worktree, it says so instead of taking back the one before it; staging, saving or discarding
+  changes leaves nothing to take back, and Undo goes past them.
+- **Undo** refuses while a merge, a rebase, a cherry-pick, a revert or a patch is under way, *Finish or abort the merge
+  first.*, but for a squash merge or conflicts resolved, which it takes back from where they stopped.
+- **Undo** deletes a branch created without checking it out.
 - The window is made of islands: the header, the branch rail, the timeline, the inspector and the page shown are each
   a rounded card on a darker ground, with a gap between them that is dragged to resize them.
 - A bar of views on the left edge of the window goes to **Timeline**, **Changes**, with the number of changed files,

@@ -210,8 +210,7 @@ Makes a new branch at a commit, a branch or a tag, and checks it out or not.
   header and Quick search, the full hash on a commit, and the branch or the tag as `branch.ref-argument` names it.
 - **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
 - **Undo**: Checked out: by the reflog, Undo goes back to what was checked out before; the branch stays, and
-  `branch.delete` removes it with nothing lost. Created only: Undo does not take it back, since nothing moved `HEAD`;
-  `branch.delete` does.
+  `branch.delete` removes it with nothing lost. Created only: from the journal, Undo deletes it.
 - **Settings**: `branches.format`, `branches.inputs` (see `branch.format-name`); `submodules.updateOnCheckout`.
 - **Uses**: `branch.name-from-format`, `branch.validate-name`, `branch.ref-argument`, `submodule.update-on-checkout`.
 

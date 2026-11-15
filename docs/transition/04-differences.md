@@ -536,6 +536,9 @@ Four things cut across areas and are best decided once:
   `tag/create.rs:44`) leaves nothing in the journal (`engine/src/undo.rs:67-80` adds only `Undo::Journal`), and
   `undo::last` then goes to the reflog (`features/src/undo/last.rs:35-78`); after a stash push the last commit would be
   reset `--soft` (`last.rs:131-133`).
+- **Fixed in stage 3**: the journal is a stack of Gitardo's operations, each plan that cannot be taken back an entry
+  with its reason once a reference changed, and `undo.last` refuses with it (`engine/src/undo.rs`,
+  `features/src/undo/last.rs`); the extension records its own operations with `journal/record`.
 - Verdict: **Bug (engine)**, shared. The journal should also record "the last plan cannot be undone" (its reason)
   until `HEAD` moves, and `undo.last` should refuse with that reason, or at least say the reflog entry is not the last
   operation. No option needed. A13 (stashes) and W11 (worktrees, setup, submodules) found the same, and so did the
@@ -552,6 +555,8 @@ Four things cut across areas and are best decided once:
   kept by `holds_after_a_stop`, `model/src/contract/journal.rs:50-52`, `engine/src/drive.rs:277-279`), which leaves the
   sequencer of the cherry-pick behind. After a take-side of a file one side deleted (`Undo::Impossible`,
   `take_side.rs:123-125`) the next Undo goes to the reflog mid-merge for the same reason.
+- **Fixed in stage 3**: `undo.last` refuses with *Finish or abort the `<operation>` first.* unless the newest entry
+  is a squash merge or a resolution of conflicts.
 - Verdict: **Bug (engine)**. Refuse as the extension does while `repository.operation` is set, unless the newest journal
   entry is a squash merge or a resolution of conflicts (which are meant to be taken back mid-operation); a stopped
   series is better taken back by **Abort**. No option needed.

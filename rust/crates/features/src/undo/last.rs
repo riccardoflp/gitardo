@@ -6,7 +6,8 @@
 
 use model::CommitId;
 use model::contract::{
-    AnswerKey, Answers, Context, Danger, FollowUp, Outcome, Plan, Query, ReflogEntry, Refusal, Step, Text, Undo,
+    AnswerKey, Answers, Context, Danger, FollowUp, JournalEntry, Outcome, Plan, Query, ReflogEntry, Refusal, Step,
+    Text, Undo, UndoRecord,
 };
 
 /// The newest entry of the engine's journal that still holds.
@@ -21,9 +22,12 @@ pub const BRANCH_REFLOG: AnswerKey = AnswerKey("branch-reflog");
 /// Whether the files of the working tree are as the previous position has them.
 pub const FILES_MATCH: AnswerKey = AnswerKey("files-match");
 
-/// Takes back the last operation of Gitardo the reflog does not see, as the journal keeps it, or else the last move of
-/// `HEAD` or of the branch checked out, as their reflogs say; showing what it is about to do first. Undoing twice
-/// redoes.
+/// Takes back the newest operation of Gitardo, as the engine's journal keeps it: what the reflog does not see from the
+/// journal, a move of `HEAD` by the reflog; or, with nothing in the journal, the last move of `HEAD` or of the branch
+/// checked out, as their reflogs say, also one made from a terminal. It refuses, rather than take back the operation
+/// before it, when the newest one cannot be taken back, and while a merge, a rebase, a cherry-pick, a revert or a patch
+/// is under way, but for a squash merge or a resolution of conflicts, which are taken back from where they stopped.
+/// Showing what it is about to do first. With nothing in the journal, undoing twice redoes.
 ///
 /// Feature: undo.last
 #[must_use]
@@ -32,11 +36,40 @@ pub fn last(context: &Context, answers: &Answers) -> Outcome {
         // Undo would move `HEAD` under the bisect, which then tests the wrong commit (`bisect.start`).
         return Outcome::Refuse(Refusal::saying(crate::bisect::END_FIRST));
     }
-    match answers.journal(JOURNAL) {
-        None => return Outcome::Read(JOURNAL, Query::Journal),
-        Some(Some(entry)) => return Outcome::Run(super::journal::plan(context, entry)),
-        Some(None) => {} // Nothing in the journal: the reflogs say what to undo.
+    let Some(newest) = answers.journal(JOURNAL) else {
+        return Outcome::Read(JOURNAL, Query::Journal);
+    };
+    let mid_operation = matches!(
+        newest.map(|entry| &entry.record),
+        Some(UndoRecord::SquashMerge | UndoRecord::ConflictsResolved { .. })
+    );
+    if !mid_operation && let Some(refusal) = crate::history::refuse_under_way(context) {
+        return refusal;
     }
+    match newest {
+        Some(JournalEntry {
+            record: UndoRecord::NotUndoable { reason },
+            title,
+            ..
+        }) => Outcome::Refuse(Refusal::saying(&format!("\"{title}\" cannot be undone. {reason}"))),
+        Some(JournalEntry {
+            record: UndoRecord::Reflog,
+            number,
+            ..
+        }) => match by_reflog(context, answers) {
+            Outcome::Run(plan) => Outcome::Run(Plan {
+                undo: Undo::TakesBack(*number),
+                ..plan
+            }),
+            other => other,
+        },
+        Some(entry) => Outcome::Run(super::journal::plan(context, entry)),
+        None => by_reflog(context, answers),
+    }
+}
+
+/// Takes back the last move of `HEAD` or of the branch checked out, as their reflogs say.
+fn by_reflog(context: &Context, answers: &Answers) -> Outcome {
     let Some(head) = answers.reflog(HEAD_REFLOG) else {
         return Outcome::Read(
             HEAD_REFLOG,

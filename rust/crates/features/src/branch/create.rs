@@ -6,7 +6,7 @@ use model::branch::{
 };
 use model::contract::{
     Answer, AnswerKey, Answers, Choice, Context, Danger, FollowUp, Outcome, Plan, Question, QuestionKind, Step, Target,
-    Text, Undo, Validation,
+    Text, Undo, UndoRecord, Validation,
 };
 
 use super::submodules::update_after_checkout;
@@ -176,10 +176,11 @@ fn plan(context: &Context, name: &str, mode: Mode, start: &str, start_words: &st
             Undo::ByReflog,
             vec![FollowUp::SelectHead],
         ),
-        Mode::CreateOnly => {
-            let reason = Text::from("Undo does not take it back, since nothing moved HEAD.");
-            (vec!["branch", name, start], Undo::Impossible(reason), Vec::new())
-        }
+        Mode::CreateOnly => (
+            vec!["branch", name, start],
+            Undo::Journal(UndoRecord::BranchCreated { name: name.to_owned() }),
+            Vec::new(),
+        ),
     };
     Plan {
         title: Text::from(format!("Create branch {name} at {start_words}")),
