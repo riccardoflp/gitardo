@@ -449,3 +449,22 @@ pub struct PreparedMessageResult {
     /// The message git prepared; none when no squash merge waits.
     pub message: Option<String>,
 }
+
+/// The parameters of the host question `host/githubToken`.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitHubTokenParams {
+    /// The host whose token is asked: `github.com`.
+    pub host: String,
+    /// Whether the user may be asked to sign in; a read never asks.
+    pub ask: bool,
+}
+
+/// The answer of the host question `host/githubToken`.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitHubTokenResult {
+    /// The token; none when VS Code has none, or the user backed out.
+    #[serde(default)]
+    pub token: Option<String>,
+}

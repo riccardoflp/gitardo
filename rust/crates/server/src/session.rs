@@ -18,9 +18,9 @@ use model::contract::Text;
 use model::state::RepositoryState;
 use protocol::feature::{FeatureRunParams, SettingsParams, ValidateParams};
 use protocol::messages::{
-    ActivityJson, ActivityParams, CancelParams, ChangedParams, EngineInfo, InitializeParams, InitializeResult,
-    LogEntryJson, LogLineParams, OpenResult, RepositoryParams, StateParams, StateReason, VERSION, is_compatible,
-    methods,
+    ActivityJson, ActivityParams, CancelParams, ChangedParams, EngineInfo, HostAbilities, InitializeParams,
+    InitializeResult, LogEntryJson, LogLineParams, OpenResult, RepositoryParams, StateParams, StateReason, VERSION,
+    is_compatible, methods,
 };
 use protocol::rpc::{ErrorData, RequestId, ResponseError, codes, error_message, notification_message, result_message};
 use protocol::state::StateJson;
@@ -50,6 +50,8 @@ pub struct Session {
     asked: Outgoing,
     /// The settings, by the desktop's names, from `initialize` and `settings/changed`.
     settings: Mutex<Map<String, Value>>,
+    /// The host questions the extension said at `initialize` that it answers.
+    host: Mutex<HostAbilities>,
 }
 
 /// The value behind a lock, even when a thread that held it panicked: what it guards is plain data, still whole.
@@ -69,6 +71,7 @@ impl Session {
             is_shut_down: AtomicBool::new(false),
             asked: Outgoing::default(),
             settings: Mutex::new(Map::new()),
+            host: Mutex::new(HostAbilities::default()),
         }
     }
 
@@ -80,6 +83,11 @@ impl Session {
     /// The settings of the features, as the extension sent them.
     pub fn feature_settings(&self) -> FeatureSettings {
         crate::settings::feature_settings(&locked(&self.settings))
+    }
+
+    /// The host questions the extension answers.
+    pub fn host(&self) -> HostAbilities {
+        *locked(&self.host)
     }
 
     /// How much the log says.
@@ -158,6 +166,7 @@ impl Session {
             methods::JOURNAL_LAST => crate::journal::last(self, &parameters(params)?),
             methods::JOURNAL_RECORD => crate::journal::record(self, parameters(params)?),
             methods::INITIALIZE => self.initialize(&parameters(params)?),
+            read if crate::reads::is_read(read) => crate::reads::answer(self, read, params, cancel),
             methods::SHUTDOWN => {
                 self.is_shut_down.store(true, Ordering::SeqCst);
                 Ok(Value::Null)
@@ -209,6 +218,7 @@ impl Session {
         }
         *locked(&self.level) = params.log_level.into();
         locked(&self.settings).clone_from(&params.settings);
+        *locked(&self.host) = params.host;
         json(&answer)
     }
 
@@ -286,7 +296,7 @@ impl Session {
         );
         drop(activity);
         self.send_activity();
-        self.log_read(repository, started.elapsed());
+        self.log_read(repository, format!("Read the state of {repository}"), started.elapsed());
         read.map(|state: RepositoryState| StateJson::from(&state))
             .map_err(|error| git_failure(&error))
     }
@@ -299,15 +309,15 @@ impl Session {
         }
     }
 
-    /// Sends the line of a read, when the log says the reads.
-    fn log_read(&self, repository: &str, took: std::time::Duration) {
+    /// Sends the line of a read with how long it took, when the log says the reads.
+    pub fn log_read(&self, repository: &str, line: String, took: std::time::Duration) {
         if *locked(&self.level) != LogLevel::Debug {
             return;
         }
         let entry = LogEntry {
             time: now(),
             kind: LogKind::Read(took),
-            line: format!("Read the state of {repository}"),
+            line,
         };
         self.send_log(repository, vec![entry]);
     }
@@ -332,7 +342,7 @@ impl Session {
 }
 
 /// The parameters of a message, or the error of parameters that are not the method's.
-fn parameters<T: DeserializeOwned>(params: Value) -> Result<T, ResponseError> {
+pub(crate) fn parameters<T: DeserializeOwned>(params: Value) -> Result<T, ResponseError> {
     serde_json::from_value(params)
         .map_err(|error| ResponseError::new(codes::INVALID_PARAMS, format!("The parameters are not right: {error}")))
 }

@@ -29,10 +29,10 @@ pub use files::{
     NamesParams, NamesResult, PreviousVersionJson, VersionJson,
 };
 pub use repository::{
-    ChecksJson, CommandProposalJson, CommandsResult, CommonFolderResult, IdentityKeysJson, IgnoredEntryJson,
-    IgnoredHowJson, IgnoredKindJson, PathStatusJson, PathsParams, PathsResult, PatternTakeJson, PreparedMessageResult,
-    PullRequestJson, PullRequestsJson, PullRequestsParams, ReflogParams, ReflogPositionJson, RemoteJson,
-    SetupPreviewJson, SetupTakesParams, TakeRequestJson, TrackedJson, WorktreeParams,
+    ChecksJson, CommandProposalJson, CommandsResult, CommonFolderResult, GitHubTokenParams, GitHubTokenResult,
+    IdentityKeysJson, IgnoredEntryJson, IgnoredHowJson, IgnoredKindJson, PathStatusJson, PathsParams, PathsResult,
+    PatternTakeJson, PreparedMessageResult, PullRequestJson, PullRequestsJson, PullRequestsParams, ReflogParams,
+    ReflogPositionJson, RemoteJson, SetupPreviewJson, SetupTakesParams, TakeRequestJson, TrackedJson, WorktreeParams,
 };
 
 use model::CommitId;
@@ -141,6 +141,9 @@ pub mod methods {
         COMMON_FOLDER,
         PREPARED_MESSAGE,
     ];
+
+    /// The host question `read/github.read-pull-requests` asks: the token of GitHub that VS Code keeps.
+    pub const HOST_GITHUB_TOKEN: &str = "host/githubToken";
 }
 
 /// A commit as its full id.
