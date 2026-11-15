@@ -1059,7 +1059,10 @@ two more, which compare the reads as the views ask them.
 - **Verdict**: **Choice** ([Q407](../08-decisions.md#open-questions)). Until it is decided, the extension reads these
   two cases in TypeScript, and every other comparison from the engine. Recommended: what the extension does today,
   which is what the tab of a comparison says (the sides' distance in its header, the files since the merge base in
-  **Since they diverged**); the engine's card changes to it.
+  **Since they diverged**); the engine's card changes to it. **Fixed in stage 10** as recommended:
+  `compare.read-sides` counts the whole sides, asks the merge of the whole sides, and compares the working tree from
+  the merge base in **Since they diverged**, with an acceptance line and a test for each; the desktop's CHANGELOG says
+  it.
 
 ## The views on the engine's shapes (stage 6)
 

@@ -2431,4 +2431,5 @@ start of stage 1, as recommended.
   other side, the extension from the merge base
   ([R7](transition/04-differences.md#r7-a-comparison-narrowed-to-a-path-or-from-the-working-tree-since-they-diverged)).
   Recommended: what the extension does, and `compare.read-sides` changed to it; until then the extension reads those
-  two cases in TypeScript.
+  two cases in TypeScript. *Taken as recommended in stage 10, to be confirmed: `compare.read-sides` counts the whole
+  sides and compares the working tree from the merge base, and the extension reads every comparison from the engine.*

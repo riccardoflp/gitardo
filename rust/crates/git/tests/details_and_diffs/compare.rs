@@ -236,7 +236,40 @@ fn compare_read_sides__narrowed_to_a_file_only_that_file_and_the_commits_that_ch
     assert_eq!(paths(&view), ["src/app.rs"]);
     let subjects: Vec<&str> = view.commits.iter().map(|commit| commit.subject.as_str()).collect();
     assert_eq!(subjects, ["Fix the app: [draft] é", "Fix the app: [draft] é"]);
-    assert_eq!((view.only_in_first, view.only_in_second), (1, 1));
+}
+
+#[test]
+fn compare_read_sides__narrowed_how_far_apart_the_sides_are_and_what_a_merge_would_do_are_of_the_whole_sides() {
+    let (repository, _) = diverged_repository();
+    let mut comparison = request(&repository, "main", "feature", CompareMode::SinceDiverged);
+    comparison.path = Some(String::from("pages/i.tsx"));
+    let view = read_sides(&git_in(&repository), &comparison).unwrap();
+    assert_eq!((view.only_in_first, view.only_in_second), (2, 3));
+    assert_eq!(view.merge, MergeOutlook::Conflicts(vec![String::from("shared.txt")]));
+}
+
+#[test]
+fn compare_read_sides__from_the_working_tree_since_they_diverged_the_files_are_those_the_second_changed() {
+    let (repository, _) = diverged_repository();
+    let comparison = CompareRequest {
+        first: Side::WorkingTree,
+        second: Side::Commit(commit(&repository, "feature")),
+        mode: CompareMode::SinceDiverged,
+        path: None,
+    };
+    let view = read_sides(&git_in(&repository), &comparison).unwrap();
+    assert_eq!(
+        paths(&view),
+        ["pages/[id].tsx", "pages/i.tsx", "shared.txt", "src/app.rs"]
+    );
+    let everything = CompareRequest {
+        mode: CompareMode::Everything,
+        ..comparison
+    };
+    assert_eq!(
+        paths(&read_sides(&git_in(&repository), &everything).unwrap()),
+        ["pages/[id].tsx", "pages/i.tsx", "shared.txt"]
+    );
 }
 
 #[test]

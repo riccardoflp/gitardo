@@ -469,3 +469,6 @@
 - Removing a submodule whose clone cannot be deleted afterwards says so in the log and is not a failure.
 - What git said under a step that Gitardo got past, as a cherry-pick that changes nothing is skipped, is a warning
   of the log, not an error.
+- A comparison narrowed to a file or a folder says how far apart the whole sides are, and what merging them would do,
+  as one that is not narrowed does; from the working tree in **Since they diverged**, its files are those the other
+  side changed since the two diverged.

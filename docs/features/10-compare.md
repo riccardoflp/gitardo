@@ -182,14 +182,17 @@ Everything the comparison page shows of two sides, except the lines of the files
   `<since>` the merge base in **Since they diverged** when there is one and the first side otherwise, and
   `-- :(literal)<path>` at the end of each command when the comparison is narrowed, a bare `--` when it is not:
   - `git merge-base <ours> <theirs>`: where they diverged, none when their histories never meet;
-  - `git rev-list --left-right --count <theirs>...<ours> --`: how many commits each has that the other has not;
+  - `git rev-list --left-right --count <theirs>...<ours> --`: how many commits each has that the other has not, always
+    of the whole sides, also when the comparison is narrowed, as the header of the page says how far apart they are;
   - the files: `git diff --name-status -z -M <since> <second>`; when the second side is the working tree,
-    `git diff --name-status -z -M <since>`; when the first is, `git diff --name-status -z -M -R <second>`;
+    `git diff --name-status -z -M <since>`; when the first is, `git diff --name-status -z -M -R <second>`, but in
+    **Since they diverged** with a merge base `git diff --name-status -z -M <merge base> <second>`, the files the
+    second side changed since then;
   - the commits: `git log --left-right --max-count=2000 --format=<side mark, hash, author name, author date, subject,
     separated by %x1f, each record ended by %x1e> <ours>...<theirs>`;
   - when the two sides have 2,000 commits or fewer between them: `git rev-list --cherry-mark <ours>...<theirs>`; a
     commit it marks with `=` has its change on the other side too, and is **also in** that side;
-  - when neither side is the working tree and each has commits the other has not:
+  - when neither side is the working tree and each has commits the other has not, counted on the whole sides:
     `git merge-tree --write-tree --no-messages --name-only -z <ours> <theirs>`, whose records after the first are the
     files that would conflict; an exit code other than 0 or 1, as with a git older than 2.40 or unrelated histories,
     means it cannot be told.
@@ -205,6 +208,9 @@ Acceptance:
 - [ ] A commit cherry-picked from one side to the other is marked **also in**.
 - [ ] With more than 2,000 commits between them, no commit is marked and the newest 2,000 are returned.
 - [ ] Narrowed to `src/app.rs`, only that file and the commits that change it are returned.
+- [ ] Narrowed to a file, how many commits each side has and what a merge would do are those of the whole sides.
+- [ ] From the working tree in **Since they diverged**, the files are those the second side changed since the merge
+      base.
 - [ ] A file named `pages/[id].tsx` narrows to that file only.
 
 ### `compare.read-patch` — Read the lines of a comparison

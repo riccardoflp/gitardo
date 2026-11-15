@@ -70,11 +70,17 @@ pub fn merge_base_arguments(revisions: &Revisions) -> Vec<OsString> {
         .collect()
 }
 
-/// `git rev-list --left-right --count <theirs>...<ours>`: how many commits each has that the other has not.
+/// `git rev-list --left-right --count <theirs>...<ours> --`: how many commits each has that the other has not, the
+/// whole sides also when the comparison is narrowed, as its header says how far apart the two are.
 #[must_use]
 pub fn counts_arguments(revisions: &Revisions) -> Vec<OsString> {
     let range = revisions.symmetric(Order::SecondThenFirst);
-    revisions.narrowed(&["rev-list", "--left-right", "--count", &range])
+    let mut arguments: Vec<OsString> = ["rev-list", "--left-right", "--count", &range]
+        .into_iter()
+        .map(OsString::from)
+        .collect();
+    arguments.extend(pathspec(None));
+    arguments
 }
 
 /// `git log --left-right --max-count=2000` of `<ours>...<theirs>`, each record its side mark, hash, author's name and
@@ -118,7 +124,8 @@ pub fn merge_tree_arguments(revisions: &Revisions) -> Vec<OsString> {
 }
 
 /// `git diff --name-status -z -M` of the files that differ: from `<since>` to the second side, `<since>` alone when the
-/// second side is the working tree, and `-R <second>` when the first is.
+/// second side is the working tree, and `-R <second>` when the first is, but in **Since they diverged**, where the files
+/// are those the second side changed since the merge base.
 #[must_use]
 pub fn compare_files_arguments(request: &CompareRequest, merge_base: Option<&CommitId>) -> Vec<OsString> {
     let mut arguments: Vec<OsString> = ["diff", "--name-status", "-z", "-M"]
@@ -133,7 +140,8 @@ pub fn compare_files_arguments(request: &CompareRequest, merge_base: Option<&Com
 /// Everything the comparison page shows of two sides but the lines of the files: where they diverged, how many commits
 /// each has that the other has not, the files that differ as the mode says, the commits only in each (newest first, at
 /// most 2,000, those whose change is also on the other side marked when there are 2,000 or fewer), and what merging them
-/// would do. A comparison narrowed to a path reads only what touches it.
+/// would do. A comparison narrowed to a path reads only the files and the commits that touch it: how far apart the two
+/// sides are, and what merging them would do, are of the whole sides.
 ///
 /// Feature: compare.read-sides
 ///
@@ -172,7 +180,10 @@ pub fn read_sides(git: &Git, request: &CompareRequest) -> Result<CompareView, Gi
 /// The revisions git is given for the files that differ, as [`compare_files_arguments`] says.
 pub(super) fn range(request: &CompareRequest, merge_base: Option<&CommitId>) -> Vec<String> {
     match (&request.first, &request.second) {
-        (Side::WorkingTree, Side::Commit(second)) => vec![String::from("-R"), second.to_string()],
+        (Side::WorkingTree, Side::Commit(second)) => match (request.mode, merge_base) {
+            (CompareMode::SinceDiverged, Some(base)) => vec![base.to_string(), second.to_string()],
+            _ => vec![String::from("-R"), second.to_string()],
+        },
         (Side::WorkingTree, Side::WorkingTree) => Vec::new(),
         (Side::Commit(first), second) => {
             let since = match (request.mode, merge_base) {
