@@ -5,12 +5,14 @@ use model::contract::{
 };
 
 use super::target_stash;
+use crate::branch::submodules::update_after_checkout;
 
 /// The name typed for the new branch.
 pub const NAME: AnswerKey = AnswerKey("name");
 
 /// Asks the name of the branch, refusing while typing a name git does not take or a branch has, then runs
-/// `git stash branch <name> stash@{N}`, which drops the stash once it applied cleanly.
+/// `git stash branch <name> stash@{N}`, which drops the stash once it applied cleanly, and updates the submodules as
+/// `submodule.update-on-checkout` says, since the branch is checked out.
 ///
 /// Feature: stash.branch
 #[must_use]
@@ -41,7 +43,9 @@ pub fn branch(context: &Context, answers: &Answers) -> Outcome {
             default: None,
         });
     };
-    Outcome::Run(Plan {
+    // The branch starts at the commit the stash was made on, its first parent.
+    let start = format!("{stash_name}^");
+    let plan = Plan {
         title: Text::from(format!("Create branch `{name}` from {stash_name}")),
         steps: vec![Step::git(
             context.repository.folder.clone(),
@@ -51,15 +55,17 @@ pub fn branch(context: &Context, answers: &Answers) -> Outcome {
         undo: Undo::ByReflog,
         after: vec![model::contract::FollowUp::SelectHead],
         on_failure: Vec::new(),
-    })
+    };
+    update_after_checkout(context, answers, &start, plan)
 }
 
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
     use super::{NAME, branch};
+    use crate::branch::submodules::{SUBMODULES_AFTER, SUBMODULES_BEFORE, none};
     use crate::testing::{context, lines, plan, question, stash, state};
-    use model::contract::{Answer, Answers, QuestionKind, Target};
+    use model::contract::{Answer, Answers, Outcome, Query, QuestionKind, Target};
 
     fn on_stash() -> model::contract::Context {
         let mut state = state();
@@ -71,10 +77,26 @@ mod tests {
     fn stash_branch__makes_the_branch_from_the_stash() {
         let asked = question(branch(&on_stash(), &Answers::new()));
         assert_eq!(asked.title.as_str(), "Create branch from stash@{0}");
-        let answers = Answers::new().with(NAME, Answer::Text(String::from("rescue")));
+        let answers = none(Answers::new().with(NAME, Answer::Text(String::from("rescue"))));
         assert_eq!(
             lines(&plan(branch(&on_stash(), &answers))),
             ["git stash branch rescue stash@{0}"]
+        );
+    }
+
+    #[test]
+    fn stash_branch__where_the_commit_of_the_stash_has_submodules_it_ends_with_their_update() {
+        let answers = Answers::new()
+            .with(NAME, Answer::Text(String::from("rescue")))
+            .with(SUBMODULES_BEFORE, Answer::Flag(false));
+        let Outcome::Read(key, Query::HasFile { revision, .. }) = branch(&on_stash(), &answers) else {
+            panic!("whether the commit of the stash has submodules is read")
+        };
+        assert_eq!((key, revision.as_str()), (SUBMODULES_AFTER, "stash@{0}^"));
+        let plan = plan(branch(&on_stash(), &answers.with(SUBMODULES_AFTER, Answer::Flag(true))));
+        assert_eq!(
+            lines(&plan).last().map(String::as_str),
+            Some("git submodule update --init --recursive")
         );
     }
 

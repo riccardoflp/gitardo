@@ -43,6 +43,7 @@ Four things cut across areas and are best decided once:
    (`rust/crates/features/src/undo/last.rs:35-38`), which settles the question C3 left open.
 3. **The submodules after a checkout that is not called a checkout** (S2): `branch.create` with check out and
    `stash.branch` do not update the submodules in the engine, though their cards say so. A10 and B1 are this one.
+   Fixed in stage 2.
 4. **The fallback after git refuses** (B3, W7): the engine offers **Delete anyway** and **Remove anyway** on the
    failure (`FollowUp::OfferRun`), where the extension asked the forced variant at once; `submodule.deinitialize` in
    the engine still asks at once (`FollowUp::OfferWhenFailed`). Either is fine, but the engine should pick one.
@@ -173,7 +174,7 @@ Four things cut across areas and are best decided once:
   `checkout_remote_and_rebase.rs:8`, `tag/checkout.rs:6`, `undo/last.rs:62`). The desktop card says it is followed by
   the update of the submodules (`docs/features/08-stashes.md:304-306`).
 - **Verdict**: **Merged into S2** (Bug (engine)): the code does not do what its card says. Add `update_after_checkout`
-  to `stash.branch`.
+  to `stash.branch`. **Fixed in stage 2**, with S2.
 
 ### A11. Undo of a stash dropped: how long, and how many
 
@@ -229,7 +230,7 @@ Four things cut across areas and are best decided once:
   `checkout_remote_and_rebase.rs`, `tag/checkout.rs` and `undo/last.rs`, and by nothing in `branch/create.rs` (grep
   over `crates/features/src`). The desktop card itself asks for the update (`docs/features/06-branches-tags-remotes.md:195-198`).
 - Verdict: **Merged into S2** (Bug (engine)). The plan does not do what its own card says. `create.rs` should call
-  `update_after_checkout(context, answers, &start, plan)` in `Mode::CheckOut`. (The same grep shows that `stash.branch`
+  `update_after_checkout(context, answers, &start, plan)` in `Mode::CheckOut`. **Fixed in stage 2**, with S2. (The same grep shows that `stash.branch`
   does not call it either, while the extension's `stashBranch` updates the submodules (`actions.ts:541`). That one is
   for the stash area.)
 
@@ -782,6 +783,8 @@ Four things cut across areas and are best decided once:
   (`features/stash/branch.rs:44-46`). The desktop card says both use it (`docs/features/13-submodules.md:452-453`).
 - **Verdict**: **Bug (engine)**: wrap the two plans in `update_after_checkout`, as the card says. A10 and B1 found
   the same.
+- **Fixed in stage 2**: `branch.create` with **Create and check out** and `stash.branch` end with
+  `update_after_checkout` (`features/branch/create.rs`, `features/stash/branch.rs`), with a test each.
 
 ### S3. No retry on Windows when a submodule folder is held
 

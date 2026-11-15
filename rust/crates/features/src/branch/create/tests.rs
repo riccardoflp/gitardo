@@ -1,15 +1,19 @@
 use std::collections::BTreeMap;
 
 use super::{CHECK_OUT, CREATE_ONLY, MODE, NAME, TYPE_NAME, USE_FORMAT, WAY, create};
+use crate::branch::submodules::{SUBMODULES_AFTER, SUBMODULES_BEFORE, none};
 use crate::testing::{branch, commit, context, lines, plan, question, state, tag};
 use model::Timestamp;
 use model::branch::{BranchInput, INPUTS, InputKind};
-use model::contract::{Answer, Answers, Context, FollowUp, QuestionKind, Target, Text, Undo};
+use model::contract::{Answer, Answers, Context, FollowUp, Outcome, Query, QuestionKind, Target, Text, Undo};
 
+/// The name and the mode answered, and neither side of the checkout with submodules.
 fn answered(name: &str, mode: &str) -> Answers {
-    Answers::new()
-        .with(NAME, Answer::Text(name.to_owned()))
-        .with(MODE, Answer::Choice(mode.to_owned()))
+    none(
+        Answers::new()
+            .with(NAME, Answer::Text(name.to_owned()))
+            .with(MODE, Answer::Choice(mode.to_owned())),
+    )
 }
 
 #[test]
@@ -25,6 +29,54 @@ fn branch_create__from_the_toolbar_checks_out_a_new_branch_at_head() {
     let plan = plan(create(&context, &answered("fix/login", CHECK_OUT)));
     assert_eq!(lines(&plan), ["git checkout -b fix/login HEAD"]);
     assert_eq!(plan.undo, Undo::ByReflog);
+    assert_eq!(plan.after, [FollowUp::SelectHead]);
+}
+
+#[test]
+fn branch_create__checked_out_where_there_are_submodules_it_ends_with_their_update() {
+    let context = context(state(), Target::Commit(commit('b')));
+    let named = Answers::new()
+        .with(NAME, Answer::Text(String::from("fix")))
+        .with(MODE, Answer::Choice(CHECK_OUT.to_owned()));
+    let Outcome::Read(key, Query::HasFile { revision, path }) = create(&context, &named) else {
+        panic!("whether HEAD has submodules is read first")
+    };
+    assert_eq!(
+        (key, revision.as_str(), path.as_str()),
+        (SUBMODULES_BEFORE, "HEAD", ".gitmodules")
+    );
+    let before = named.with(SUBMODULES_BEFORE, Answer::Flag(false));
+    let Outcome::Read(key, Query::HasFile { revision, .. }) = create(&context, &before) else {
+        panic!("then whether the start of the branch has them")
+    };
+    assert_eq!((key, revision), (SUBMODULES_AFTER, commit('b').to_string()));
+    let plan = plan(create(&context, &before.with(SUBMODULES_AFTER, Answer::Flag(true))));
+    let lines = lines(&plan);
+    assert_eq!(
+        lines.first().map(String::as_str),
+        Some(format!("git checkout -b fix {}", commit('b')).as_str())
+    );
+    assert_eq!(
+        lines.last().map(String::as_str),
+        Some("git submodule update --init --recursive")
+    );
+}
+
+#[test]
+fn branch_create__with_the_update_of_submodules_off_or_created_only_nothing_is_read_and_nothing_updated() {
+    let mut off = context(state(), Target::Head);
+    off.settings.update_submodules_on_checkout = false;
+    let named = |mode: &str| {
+        Answers::new()
+            .with(NAME, Answer::Text(String::from("fix")))
+            .with(MODE, Answer::Choice(mode.to_owned()))
+    };
+    assert_eq!(
+        lines(&plan(create(&off, &named(CHECK_OUT)))),
+        ["git checkout -b fix HEAD"]
+    );
+    let on = context(state(), Target::Head);
+    assert_eq!(lines(&plan(create(&on, &named(CREATE_ONLY)))), ["git branch fix HEAD"]);
 }
 
 #[test]
@@ -143,13 +195,15 @@ fn branch_create__with_the_format_the_name_it_makes_is_proposed_and_the_inputs_a
     assert_eq!(name.default, Some(Answer::Text(String::from("12-main"))));
     let plan = plan(create(
         &context,
-        &answers
-            .with(NAME, Answer::Text(String::from("12-main")))
-            .with(MODE, Answer::Choice(CHECK_OUT.to_owned())),
+        &none(
+            answers
+                .with(NAME, Answer::Text(String::from("12-main")))
+                .with(MODE, Answer::Choice(CHECK_OUT.to_owned())),
+        ),
     ));
     assert_eq!(lines(&plan), ["git checkout -b 12-main HEAD"]);
     let remembered: BTreeMap<String, String> = [(String::from("ticket"), String::from("12"))].into();
-    assert_eq!(plan.after, [FollowUp::RememberInputs(remembered)]);
+    assert_eq!(plan.after, [FollowUp::SelectHead, FollowUp::RememberInputs(remembered)]);
 }
 
 #[test]

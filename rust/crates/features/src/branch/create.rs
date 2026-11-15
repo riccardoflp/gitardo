@@ -9,6 +9,8 @@ use model::contract::{
     Text, Undo, Validation,
 };
 
+use super::submodules::update_after_checkout;
+
 /// The name typed for the new branch.
 pub const NAME: AnswerKey = AnswerKey("name");
 
@@ -33,7 +35,7 @@ pub const CREATE_ONLY: &str = "only";
 /// Makes a new branch where the user invoked it: at `HEAD` from the toolbar and the palette, at a commit, a branch
 /// or a tag from its menu. With `branches.format` set, asks first whether to use it, and then the parts of the format
 /// (`branch.name-from-format`) and the name it makes, to change or keep; otherwise the name is typed. Then whether to
-/// check the branch out.
+/// check the branch out, which ends with the update of the submodules (`submodule.update-on-checkout`).
 ///
 /// Feature: branch.create
 #[must_use]
@@ -59,11 +61,15 @@ pub fn create(context: &Context, answers: &Answers) -> Outcome {
         Some(CHECK_OUT) => Mode::CheckOut,
         Some(_) => Mode::CreateOnly,
     };
-    let mut plan = plan(context, name, mode);
+    let (start, start_words) = start(context);
+    let mut plan = plan(context, name, mode, &start, &start_words);
     if let Some(formatted) = from_format {
         plan.after.push(FollowUp::RememberInputs(formatted.inputs));
     }
-    Outcome::Run(plan)
+    match mode {
+        Mode::CheckOut => update_after_checkout(context, answers, &start, plan),
+        Mode::CreateOnly => Outcome::Run(plan),
+    }
 }
 
 /// What the questions of the format are made from: the inputs, the values used last in this workspace, what `${base}`
@@ -162,14 +168,17 @@ fn mode_question(name: &str) -> Question {
     }
 }
 
-/// `git checkout -b <name> <start>` or `git branch <name> <start>`.
-fn plan(context: &Context, name: &str, mode: Mode) -> Plan {
-    let (start, start_words) = start(context);
-    let (arguments, undo) = match mode {
-        Mode::CheckOut => (vec!["checkout", "-b", name, &start], Undo::ByReflog),
+/// `git checkout -b <name> <start>`, with the new branch selected after, or `git branch <name> <start>`.
+fn plan(context: &Context, name: &str, mode: Mode, start: &str, start_words: &str) -> Plan {
+    let (arguments, undo, after) = match mode {
+        Mode::CheckOut => (
+            vec!["checkout", "-b", name, start],
+            Undo::ByReflog,
+            vec![FollowUp::SelectHead],
+        ),
         Mode::CreateOnly => {
             let reason = Text::from("Undo does not take it back, since nothing moved HEAD.");
-            (vec!["branch", name, &start], Undo::Impossible(reason))
+            (vec!["branch", name, start], Undo::Impossible(reason), Vec::new())
         }
     };
     Plan {
@@ -177,7 +186,7 @@ fn plan(context: &Context, name: &str, mode: Mode) -> Plan {
         steps: vec![Step::git(context.repository.folder.clone(), arguments)],
         danger: Danger::None,
         undo,
-        after: Vec::new(),
+        after,
         on_failure: Vec::new(),
     }
 }

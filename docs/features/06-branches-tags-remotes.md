@@ -193,7 +193,7 @@ Makes a new branch at a commit, a branch or a tag, and checks it out or not.
 
   The name is checked while it is typed: `branch.validate-name`, and "A branch with that name already exists".
 - **Plan**: `git checkout -b <name> <start>` to check it out, then the update of the submodules
-  (`submodule.update-on-checkout`); `git branch <name> <start>` to create it only. `<start>` is `HEAD` from the
+  (`submodule.update-on-checkout`), and the new branch is selected; `git branch <name> <start>` to create it only. `<start>` is `HEAD` from the
   header and Quick search, the full hash on a commit, and the branch or the tag as `branch.ref-argument` names it.
 - **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
 - **Undo**: Checked out: by the reflog, Undo goes back to what was checked out before; the branch stays, and
@@ -213,6 +213,9 @@ Acceptance:
 - [ ] Typing `main` when `main` exists shows "A branch with that name already exists" and the box cannot be accepted.
 - [ ] Typing `bad name` shows "That is not a valid Git ref name".
 - [ ] With a format set, the first question is the pick between **Use the format** and **Type a branch name**.
+- [ ] **Create and check out** where the start of the branch or `HEAD` has submodules, with
+      `submodules.updateOnCheckout` on, ends with `git submodule update --init --recursive`; with it off, or with
+      **Create only**, nothing is read and nothing is updated.
 - [ ] Backing out of any question runs nothing.
 
 ### `branch.format-name` — Expand the format of branch names

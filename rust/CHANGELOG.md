@@ -16,6 +16,9 @@
 - While a bisect is under way, squash, split, fixup, the interactive rebase and cherry-picking several commits are not
   offered, and squash, split and fixup are refused with **End the bisect first.**
 - When `git branch -d` keeps a branch because it is not fully merged, **Delete anyway** offers `git branch -D`.
+- Creating a branch and checking it out, and creating a branch from a stash, update the submodules afterwards when
+  `submodules.updateOnCheckout` asks for it, as a checkout does; the new branch checked out is selected in the
+  timeline.
 - Undo of a checkout updates the submodules afterwards when `submodules.updateOnCheckout` asks for it, as the checkout
   does.
 - Before the commands of `worktrees.setupCommands` run in a folder that is not trusted, Gitardo asks **Run the
