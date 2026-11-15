@@ -1,4 +1,4 @@
-//! The reads of version 1.3, from stage 5 of the transition: every `read/<card>` of `docs/transition/02-protocol.md`
+//! The reads of version 1.4, from stage 5 of the transition: every `read/<card>` of `docs/transition/02-protocol.md`
 //! (Reads) but the graph's, each with its parameters and its answer, and the conversion of the engine's types to their
 //! JSON. A read never changes the repository; the server answers each on a thread of its own.
 //!
@@ -7,6 +7,7 @@
 
 mod bytes;
 mod commits;
+mod compare;
 mod conflicts;
 mod files;
 mod repository;
@@ -14,9 +15,12 @@ mod repository;
 pub use bytes::{BytesJson, NotBase64};
 pub use commits::{
     BranchLogJson, BranchLogParams, CommitAskedJson, CommitDetailJson, CommitDetailParams, CommitJson,
-    CommitPatchParams, CompareFilesParams, CompareModeJson, ComparePatchParams, CompareSidesParams, CompareViewJson,
-    ComparedCommitJson, ComparisonSideJson, DiffLineJson, FilePatchJson, HunkJson, LineKindJson, MergeOutlookJson,
-    PatchFormJson, PatchJson, RevisionParams, RevisionResult, SignatureJson,
+    CommitPatchParams, DiffLineJson, FilePatchJson, HunkJson, LineKindJson, PatchJson, RevisionParams, RevisionResult,
+    SignatureJson,
+};
+pub use compare::{
+    CompareFilesParams, CompareModeJson, ComparePatchParams, CompareSidesParams, CompareViewJson, ComparedCommitJson,
+    ComparisonSideJson, MergeOutlookJson, PatchFormJson,
 };
 pub use conflicts::{
     ConflictFileJson, ConflictProposalsJson, LeftAloneJson, MergeSidesJson, MergeSidesParams, ProposalJson,
@@ -106,7 +110,7 @@ pub mod methods {
     /// `commit.prepared-message`: the message git prepared.
     pub const PREPARED_MESSAGE: &str = "read/commit.prepared-message";
 
-    /// Every read of version 1.3, in the order of the table of the protocol.
+    /// Every read of version 1.4, in the order of the table of the protocol.
     pub const ALL: [&str; 32] = [
         SEARCH_REVISION,
         DETAILS_COMMIT,

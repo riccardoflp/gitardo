@@ -32,7 +32,9 @@ const ALLOWED: [(&str, &[&str]); 20] = [
     ("protocol", &["model", "git", "engine", "text"]),
     (
         "server",
-        &["protocol", "engine", "features", "settings", "git", "model", "json", "text", "http"],
+        &[
+            "protocol", "engine", "features", "settings", "git", "model", "json", "text", "http",
+        ],
     ),
     ("testkit", &[]),
     ("xtask", &[]),
