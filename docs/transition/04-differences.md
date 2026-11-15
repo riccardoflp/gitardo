@@ -3,7 +3,8 @@
 This lists, for every pair of [the map](03-map.md), where the extension's operation and the engine's
 feature differ: the plan (commands, flags, order), the questions, the danger, the refusals, Undo, and what is offered
 after or when git refuses. Reads and views are left out, but for the reads stage 5 compared, under
-[Reads (stage 5)](#reads-stage-5). Each difference gets a verdict:
+[Reads (stage 5)](#reads-stage-5), and those of the graph stage 7 compared, under
+[Reads of the graph (stage 7)](#reads-of-the-graph-stage-7). Each difference gets a verdict:
 
 - **Bug (extension)**: the extension is wrong and the engine is right; the move fixes it, and the entry gives the
   CHANGELOG line.
@@ -1033,6 +1034,25 @@ inside `unlinkFolderLinks` as it removes them (`extension/src/git/worktreeSetup.
 `github.read-pull-requests`, of which only the repository found on GitHub (`parseGitHubRemote`) and the answer without
 a token are compared, since GitHub is not asked offline.
 
+## Reads of the graph (stage 7)
+
+Stage 7 asked the three reads of the graph of version 1.5 of [the protocol](02-protocol.md#the-graph) of the engine and
+of `Repo` against the same throwaway repositories, the rows with the lines laid out from them, page after page, in
+every way the graph can be shown: the branches shown, the first parents, the history of a file, a folder or some lines,
+a branch alone and the searches shown as a list (`extension/test/engineGraph.test.ts`). They answer the same but for
+R6.
+
+### R6. Two stashes made in the same second on one commit
+
+- **Feature**: `graph.place-stashes`, by `graph.read-commits`; extension `Repo.withStashes`.
+- **Extension**: the stashes are sorted by date, newest first, and each is put above the commits it is not older than;
+  two of the same second keep the order of `git stash list`, so the second goes above the first: `stash@{1}` above
+  `stash@{0}` (`extension/src/git/repo.ts`, `withStashes`).
+- **Engine**: `stash@{0}` above `stash@{1}`, as the card says, "the newest first" (`model::graph::place_stashes`).
+- **Verdict**: **CHANGELOG**: the engine is right and wins (D45). A second is what git keeps of the date, so this is
+  only seen with stashes made by a script or one right after the other. The line of the extension's CHANGELOG is the
+  one of stage 7 on the graph read by the engine.
+
 ## Found by the end-to-end suite once the areas were merged
 
 The areas of stage 4 were built side by side, each without the end-to-end suite, which starts VS Code. Run on the
@@ -1094,8 +1114,9 @@ Entries marked **Merged into …** are not counted again.
 | Worktrees and their setup (W1–W12; W11 merged) | 1 | 5 | 2 | 3 | 11 |
 | Submodules (S1–S6) | 1 | 4 | 0 | 1 | 6 |
 | Reads (R1; R2–R5 not seen by users) | 0 | 1 | 0 | 0 | 1 |
+| Reads of the graph (R6) | 0 | 0 | 0 | 1 | 1 |
 | Found by the end-to-end suite (E1–E4) | 1 | 1 | 0 | 2 | 4 |
-| **Total** | **6** | **20** | **8** | **26** | **60** |
+| **Total** | **6** | **20** | **8** | **27** | **61** |
 
 Of the 19 engine bugs, five are in the extension too, so whichever side wins they get fixed in the engine: A2 (Unstage
 all during an operation), B7 (remote branch by its short name), D2 (Skip without asking), D7 (Undo after what it cannot

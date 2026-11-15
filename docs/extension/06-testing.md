@@ -172,6 +172,11 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
   `EngineClient`, and compares the answer with what `Repo` (or `worktreeSetup.ts`, `conflicts.ts` and `github.ts`)
   reads of the same throwaway repositories; where they differ, [04-differences.md](../transition/04-differences.md)
   says why, under **Reads (stage 5)**.
+- From stage 7, `test/engineGraph.test.ts` reads the graph as `Repo.state` does, once with `git log` and once through
+  the engine (`src/engine/graph.ts`), and compares the rows and the lines laid out from them, in every way the graph
+  can be shown, page after page with each next page read from the last row with `skip`, with a stash that makes the
+  pages be read whole again, and the positions and matches against `Repo.position` and `Repo.matches`; R6 of
+  [04-differences.md](../transition/04-differences.md#reads-of-the-graph-stage-7) is its own test.
 - The scenarios shared with the desktop ([desktop/06-testing.md](../desktop/06-testing.md#scenarios-run-by-both-apps))
   compare the engine's plan and the final state with the TypeScript `GitOp`'s, operation by operation, until `src/git`
   is removed.

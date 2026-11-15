@@ -51,6 +51,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - Creating a worktree with `gitardo.branches.format` set asks for the inputs of the format after what the new branch starts from, and at a commit asks what `${base}` is among the branches at it, its short hash and the branches that have it; from a detached HEAD, `${base}` is its short hash.
 - Renaming the main worktree, and **Open in worktree** on the branch checked out in this window, are refused with a warning before git runs.
 - Bringing ignored files into a worktree lists only what it brings, not what the worktree had already.
+- The commits of the graph, where a commit is in it and what a search finds are read by Gitardo's engine when the extension has it, a page at a time as before, the next pages from the last commit read; a read that another takes the place of, such as a page scrolled past, is cancelled. Without the engine, Gitardo reads them as before. Two stashes made in the same second on one commit are listed the newest first.
 
 ## 0.11.0 - 2026-11-12
 

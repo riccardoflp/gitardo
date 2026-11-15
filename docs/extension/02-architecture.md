@@ -165,6 +165,12 @@ git (`writes`, `prepare`, `finish`): that is how it gets the preview, the log an
 engine that take the place of the `GitOp` (`merge-view.mark-resolved`). From stage 4 (area 4) the review of the
 conflicts writes what is accepted with `review.write`, its target built by `src/engine/resolutions.ts`. Reads go through `Repo` and never take locks (`GIT_OPTIONAL_LOCKS=0`).
 
+From stage 7 the rows of the graph, the position of a commit and the matches of a search are read by the engine while
+it runs (`src/engine/graph.ts`): `Repo.state` is given a reader of its commits (`CommitsReader`) and lays out the lines
+from their parents as before, the next pages are asked with `skip` from the last row read, and a read that another
+takes the place of is cancelled. Without the engine, or when it fails otherwise than with git's error, `Repo` reads
+them with `git log` (D49).
+
 ## State
 
 - **The state of the repository** is one `RepoState`, read by `Repo.state()` and kept by the `Controller`

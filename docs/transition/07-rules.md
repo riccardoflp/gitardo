@@ -121,6 +121,16 @@ needs is written in the commit of that stage, not before.
 | [extension/06-testing.md](../extension/06-testing.md) | `npm run package` makes the universal vsix and one per target whose engine it finds; `npm run test:vsix` tests the vsix of this computer with its engine. |
 | `.github/workflows/check.yml` | The pipeline: `cargo xtask check` and the desktop on Windows, Linux and macOS (both targets of the Mac), the engine of the seven targets, the extension's checks and its e2e suite with the engine and without on the three systems, and the vsix of every target, all as artifacts; it publishes nothing. |
 
+## Written in stage 7 (the graph reads)
+
+| Page | Change |
+| --- | --- |
+| [transition/02-protocol.md](02-protocol.md) | Version 1.5: `read/graph.read-commits`, `read/graph.read-position` and `read/search.read-matches`, with `BranchesShown`, `Narrowing` (a search shown as a list among them), `SearchMode` and `Row` written out, the matches with `hasMore`, and how the extension asks the next pages with `skip`. |
+| [desktop/06-testing.md](../desktop/06-testing.md), `rust/xtask` | `cargo xtask perf <folder>`, the reads of the graph timed in the release engine, and the numbers of stage 7's own run. |
+| [transition/04-differences.md](04-differences.md) | **Reads of the graph (stage 7)**: R6, two stashes of the same second, in the CHANGELOG. |
+| [extension/02-architecture.md](../extension/02-architecture.md) | `src/engine/graph.ts` and `CommitsReader`: the graph read by the engine, `git log` as the fallback. |
+| [extension/06-testing.md](../extension/06-testing.md) | `test/engineGraph.test.ts`, the rows, pages, lines, positions and matches of the engine against `Repo`'s. |
+
 ## Waiting for a stage
 
 | Rule | Stage | What |
