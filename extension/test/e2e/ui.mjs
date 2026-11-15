@@ -2007,21 +2007,31 @@ try {
     };
     assert((await rows()) === null, 'no section without submodules');
 
+    // The engine asks in the desktop's words, with the question in the title; the TypeScript fallback titles each box
+    // "Add submodule" and asks in its message (E5 of the differences).
+    const asked = (open) => `${open?.title ?? ''}\n${open?.message ?? ''}`;
     await command('Gitardo: Add Submodule…');
-    await until('the prompt for the URL', async () => (await prompt())?.title === 'Add submodule');
+    const first = await until('the prompt for the URL', async () => {
+      const open = await prompt();
+      return open?.title === 'Add submodule' || open?.title?.startsWith('URL of the repository') ? open : null;
+    });
+    const fallback = first.title === 'Add submodule';
     await type(lib);
     await key('Enter');
-    // Named after the repository, which is taken here by a folder of the app: the box says so while it is typed.
-    await until('the prompt for the folder', async () => (await prompt())?.message.includes('Folder to clone it in'));
-    await key('End');
-    await type('/');
-    await until('the folder refused', async () => (await prompt())?.message.includes(`${path.join(app, 'lib')} is not empty`));
+    await until('the prompt for the folder', async () => asked(await prompt()).includes('Folder to clone it in'));
+    if (fallback) {
+      // Named after the repository, which is taken here by a folder of the app: the box says so while it is typed. The
+      // engine checks that the folder is empty once it is answered, and says where it goes once, for the name proposed.
+      await key('End');
+      await type('/');
+      await until('the folder refused', async () => (await prompt())?.message.includes(`${path.join(app, 'lib')} is not empty`));
+    }
     await key('A', CTRL);
     await type('vendor/lib');
-    await until('where it goes', async () => (await prompt())?.message.includes(`In ${path.join(app, 'vendor', 'lib')}`));
+    if (fallback) await until('where it goes', async () => (await prompt())?.message.includes(`In ${path.join(app, 'vendor', 'lib')}`));
     await shot('submodule-folder');
     await key('Enter');
-    await until('the prompt for the branch', async () => (await prompt())?.message.includes('Branch it follows'));
+    await until('the prompt for the branch', async () => asked(await prompt()).includes('Branch it follows'));
     await key('Enter');
     // Git refuses to clone from a folder on disk: allowing it is asked first.
     const dialog = await until('the question', async () => ((await prompt())?.kind === 'dialog' ? prompt() : null));

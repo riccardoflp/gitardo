@@ -1076,6 +1076,18 @@ branch that joins them, with the engine, it found what follows.
   Git, and its diffs could no longer be served.
 - Verdict: **Bug (extension)**, fixed: the main worktree is never closed, since git neither moves nor removes it.
 
+### E5. The questions of adding a submodule, and when the folder is checked
+
+- **Feature**: `submodule.add`; extension `addSubmodule` (`extension/src/extension/actions.ts:961`, area 5).
+- **Extension**: titles each box *Add submodule*, asks in its message, refuses a folder that is not empty while it is
+  typed, and says where the folder goes as it changes.
+- **Engine**: asks in the desktop's words, with the question in the title (*URL of the repository, or its path on
+  disk*, *Folder to clone it in, from the root of the repository*), checks while typed only that the folder is inside
+  the repository and has no submodule, refuses a folder that is not empty once it is answered, and says where it goes
+  once, for the name proposed.
+- Verdict: **CHANGELOG**. "Adding a submodule asks in the words of Gitardo's desktop, and says that a folder is not
+  empty once it is entered rather than while it is typed."
+
 ## Summary
 
 Entries marked **Merged into …** are not counted again.
@@ -1094,8 +1106,8 @@ Entries marked **Merged into …** are not counted again.
 | Worktrees and their setup (W1–W12; W11 merged) | 1 | 5 | 2 | 3 | 11 |
 | Submodules (S1–S6) | 1 | 4 | 0 | 1 | 6 |
 | Reads (R1; R2–R5 not seen by users) | 0 | 1 | 0 | 0 | 1 |
-| Found by the end-to-end suite (E1–E4) | 1 | 1 | 0 | 2 | 4 |
-| **Total** | **6** | **20** | **8** | **26** | **60** |
+| Found by the end-to-end suite (E1–E5) | 1 | 1 | 0 | 3 | 5 |
+| **Total** | **6** | **20** | **8** | **27** | **61** |
 
 Of the 19 engine bugs, five are in the extension too, so whichever side wins they get fixed in the engine: A2 (Unstage
 all during an operation), B7 (remote branch by its short name), D2 (Skip without asking), D7 (Undo after what it cannot
