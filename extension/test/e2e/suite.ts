@@ -796,7 +796,7 @@ export async function run(): Promise<void> {
       // What is done in the views is done in that worktree.
       fs.writeFileSync(path.join(dir, 'shown.txt'), 'shown\n');
       await vscode.commands.executeCommand('gitardo.refresh');
-      assert.deepEqual(state().workingTree.unstaged.map((file) => file.path), ['shown.txt']);
+      assert.deepEqual(state().workingTree.untracked, ['shown.txt']);
       await controller.action({ kind: 'stage', paths: ['shown.txt'] });
       assert.equal((await git(dir, ['diff', '--cached', '--name-only'])).stdout.trim(), 'shown.txt');
       assert.equal((await git(app, ['diff', '--cached', '--name-only'])).stdout.trim(), '');
@@ -2377,7 +2377,7 @@ export async function run(): Promise<void> {
     try {
       answer = run;
       await controller.action({ kind: 'cherryPickMany', hashes: made });
-      assert.equal(state().operation, 'cherry-pick');
+      assert.equal(state().operation, 'cherryPick');
       assert.deepEqual(state().workingTree.conflicted.map((file) => file.path), ['clash.txt']);
       const failed = errors.length;
 
@@ -2611,7 +2611,7 @@ export async function run(): Promise<void> {
       assert.equal(asked[0].message, 'Apply clash.patch as 1 commit?');
       assert.match(asked[0].detail, /stop with conflicts in 1 file:\na\.txt/);
       assert.match(asked[0].detail, /git am --3way \S*clash\.patch"?$/);
-      assert.equal(state().operation, 'am');
+      assert.equal(state().operation, 'patch');
       assert.deepEqual(
         state().workingTree.conflicted.map((change) => change.path),
         ['a.txt'],
