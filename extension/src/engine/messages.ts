@@ -1,10 +1,10 @@
 /**
- * The messages of the protocol with `gitardo-engine` that stages 1, 2 and 3 built, as the crate `protocol` writes them
+ * The messages of the protocol with `gitardo-engine` that stages 1 to 4 built, as the crate `protocol` writes them
  * (`rust/crates/protocol/src/messages.rs`, `state.rs`, `feature/` and `journal.rs`, `docs/transition/02-protocol.md`).
  */
 
 /** The version of the protocol the extension speaks. */
-export const PROTOCOL = '1.2';
+export const PROTOCOL = '1.3';
 
 /** The names of the methods. */
 export const Method = {
@@ -151,7 +151,9 @@ export type Answer =
   | { kind: 'choice'; identifier: string }
   | { kind: 'choices'; identifiers: string[] }
   | { kind: 'confirmed' }
-  | { kind: 'path'; path: string };
+  | { kind: 'path'; path: string }
+  /** Only in the answers of an operation offered (`offerRun`), sent back as they came. */
+  | { kind: 'flag'; value: boolean };
 
 /** What typed text must be; sent back as it came in `question/validate`. */
 export type Validation = { kind: string } & Record<string, unknown>;
@@ -209,7 +211,12 @@ export type FollowUp =
   | { kind: 'selectCommit'; commit: string }
   | { kind: 'selectBeforeHead'; count: number }
   | { kind: 'rememberInputs'; values: Record<string, string> }
+  /** An operation offered with a button, run on its own target with the answers given (1.3). */
+  | { kind: 'offerRun'; label: string; feature: string; target: Target; answers: Record<string, Answer> }
   | ({ kind: string } & Record<string, unknown>);
+
+/** An operation a plan offers with a button. */
+export type OfferedRun = Extract<FollowUp, { kind: 'offerRun' }>;
 
 /** How a feature ended: the answer of `feature/run`. */
 export type Finished =

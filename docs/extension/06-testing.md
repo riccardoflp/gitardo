@@ -162,6 +162,9 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
   changes, the commit and the stashes): each operation runs as its `GitOp` in one copy and, with the target and answers
   `engineRuns` (`src/engine/actions.ts`) gives it, as the engine's feature in the other; the commands and the
   repositories after must be the same, but where [04-differences.md](../transition/04-differences.md) says why not.
+  `engineBranches.test.ts`, for the branches, tags, remotes, identity and sync, gives each copy a bare repository
+  beside it as `origin`, cloned by a colleague who pushes, so that fetches and pushes reach only folders the test made,
+  and fixes the dates of the commits so that the two copies get the same hashes.
 - The scenarios shared with the desktop ([desktop/06-testing.md](../desktop/06-testing.md#scenarios-run-by-both-apps))
   compare the engine's plan and the final state with the TypeScript `GitOp`'s, operation by operation, until `src/git`
   is removed.

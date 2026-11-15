@@ -18,6 +18,13 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - At a commit, **Create branch** with a format asks for its inputs first and then what `${base}` is.
 - Gitardo comes in a package for each system, with its engine in it: Windows and Linux on x64 and Arm, Alpine Linux on x64, macOS on Intel and Apple silicon. The package with no engine in it works as before, on its TypeScript code.
 - The questions and confirmations of the operations Gitardo's engine runs use the words of Gitardo's desktop: a name between backticks, as in **Create branch \`topic\`**, and a few titles worded otherwise, such as **Discard the changes of 2 files**.
+- Checking out a branch, a remote branch, a commit or a tag, renaming, deleting, fast-forwarding and cleaning up branches, creating, deleting and pushing tags, deleting a branch from its remote, **Fetch**, every way to pull and push, **Manage Remotes** and **Switch Identity** are run by Gitardo's engine when the extension has it, with the same commands as before, and without the engine as before.
+- New: **Sync** fetches, pulls the way **Pull** does and pushes when the branch is ahead, in one click; a branch with no upstream is published after asking. It is in the menu beside **Push** and in the Command Palette as **Gitardo: Sync**, and needs Gitardo's engine.
+- When git refuses to delete a branch it finds not fully merged, Gitardo now shows git's refusal with **Delete anyway**, instead of going straight to the forced delete.
+- **Undo** of a deleted branch asks as a question rather than a warning, and says the branch does not get its upstream back.
+- **Delete from remote** names the branch as `refs/heads/<branch>` when a tag has its name, which git would otherwise refuse as matching more than one.
+- Checking out a local branch as it is, from its remote branch, now updates the submodules to what that branch records.
+- **Clean up branches** joins what it says of a branch with commas, the warning that a repository has no remote offers **Add remote…**, and a checkout whose submodules git refuses to clone from a folder on disk asks to run the rest of the checkout again from a folder on disk.
 
 ## 0.11.0 - 2026-11-12
 

@@ -63,6 +63,17 @@ needs is written in the commit of that stage, not before.
 | [extension/02-architecture.md](../extension/02-architecture.md) | A step of the engine logged as the command of a `GitOp`. |
 | [extension/06-testing.md](../extension/06-testing.md) | The harness and the scenario test of an area; the e2e and UI suites with the engine and without. |
 
+## Written in stage 4, area 2 (branches, tags, remotes, identity, sync)
+
+| Page | Change |
+| --- | --- |
+| [transition/02-protocol.md](02-protocol.md) | Version 1.3: the follow-up `offerRun` with its feature, target and answers, the answer `flag`, the flags given to a feature from its first call, and `followUps` written in camel case in the data of `stepFailed`. |
+| [features/06-branches-tags-remotes.md](../features/06-branches-tags-remotes.md), [02-graph.md](../features/02-graph.md), [05-changes-and-commit.md](../features/05-changes-and-commit.md) | The extension's cards of the area merged, each with its **Extension** line and acceptance lines, `identity.switch` and `sync.sync` included; `features/extension/06` removed. `remote.delete-branch` names the branch in full when a tag has its name. |
+| [features/16-undo-preview-log.md](../features/16-undo-preview-log.md) | The Undo of a deleted branch asks with a confirmation, not a warning. |
+| [transition/04-differences.md](04-differences.md) | B2 and B7 fixed; B3 and B8 in the CHANGELOG; B5, B6 and B9 decided as recommended, to be confirmed; the wordings the e2e steps found. |
+| [extension/06-testing.md](../extension/06-testing.md) | The scenario test of the area, with a bare repository beside each copy as its remote. |
+| [extension/02-architecture.md](../extension/02-architecture.md) | `HostHooks`: choices of the host in a pick of the engine, and what the host does once a plan is confirmed; `offerRun` as a button on the error. |
+
 ## Written in stages 8 and 9
 
 | Page | Change |

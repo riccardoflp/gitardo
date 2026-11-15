@@ -165,6 +165,12 @@
         "category": "Gitardo"
       },
       {
+        "command": "gitardo.sync",
+        "title": "Sync",
+        "category": "Gitardo",
+        "icon": "$(sync)"
+      },
+      {
         "command": "gitardo.showLog",
         "title": "Show Command Log",
         "category": "Gitardo"
@@ -796,6 +802,11 @@
           "command": "gitardo.pushForce",
           "when": "view == gitardo.commits || view == gitardo.sideGraph",
           "group": "1_sync@6"
+        },
+        {
+          "command": "gitardo.sync",
+          "when": "view == gitardo.commits || view == gitardo.sideGraph",
+          "group": "1_sync@7"
         },
         {
           "command": "gitardo.undo",

@@ -18,14 +18,17 @@ pub(super) fn plan(context: &Context, entry: &JournalEntry) -> Plan {
     }
     let (what, arguments) = what_and_arguments(entry);
     let title = Text::from(format!("Undo {what}"));
-    let warning = match entry.record {
-        UndoRecord::BranchDeleted { .. } => Text::from(format!("{title}. The branch does not get its upstream back.")),
-        _ => title.clone(), // Nothing more to say than what it takes back.
+    // Making a deleted branch again loses nothing, so it is only confirmed; the others move or delete what is there.
+    let danger = match entry.record {
+        UndoRecord::BranchDeleted { .. } => Danger::Confirm(Text::from(format!(
+            "{title}. The branch does not get its upstream back."
+        ))),
+        _ => Danger::Destructive(title.clone()), // Nothing more to say than what it takes back.
     };
     Plan {
         title,
         steps: vec![Step::git(context.repository.folder.clone(), arguments)],
-        danger: Danger::Destructive(warning),
+        danger,
         undo: Undo::TakesBack(entry.number),
         after: vec![
             FollowUp::SelectHead,

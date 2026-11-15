@@ -1,14 +1,15 @@
 //! `feature/run` and `question/validate`: a feature of the catalog carried to its end in a repository opened, its
 //! questions asked of the extension, and the text of a question checked while it is typed.
 
-use std::sync::Arc;
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::{Arc, Mutex, PoisonError};
 
 use engine::{EngineError, Finished};
 use git::read::repo::{StateRequest, read_state};
 use git::{CancelToken, Git};
-use model::contract::{Context, Target, Validation};
+use model::contract::{Answer, AnswerKey, Answers, Context, Target, Validation};
 use protocol::feature::{
-    FeatureRunParams, FinishedJson, FollowUpJson, FollowUpsParams, ValidateParams, ValidateResult,
+    AnswerJson, FeatureRunParams, FinishedJson, FollowUpJson, FollowUpsParams, ValidateParams, ValidateResult,
 };
 use protocol::messages::methods;
 use protocol::rpc::{ErrorData, RequestId, ResponseError, codes, notification_message};
@@ -43,13 +44,14 @@ pub fn run(
         settings,
         now: now(),
     };
-    let (asking, run, given, token) = (Arc::clone(session), id.clone(), params.answers, cancel.clone());
+    let (known, given) = known_before(params.answers);
+    let (asking, run, token) = (Arc::clone(session), id.clone(), cancel.clone());
     let finished = repository
         .with_engine(move |engine| {
             engine.state_read(Arc::clone(&context.repository));
             engine.cancel_with(token.clone());
             let mut asker = HostAsker::new(&asking, run, given, token);
-            let finished = engine.run_feature(feature, operation, &context, &mut asker);
+            let finished = engine.run_feature_from(feature, operation, (&context, known), &mut asker);
             (finished, engine.take_log(asking.log_level()))
         })
         .map_err(|_busy| ResponseError::new(codes::BUSY, "Another operation runs in this repository."))?;
@@ -75,6 +77,36 @@ pub fn run(
             Err(engine_failure(&error))
         }
     }
+}
+
+/// The answers given in `feature/run` split in two: the yes or no an operation offered was told (`flag`), known from
+/// the first call as the window of the desktop knows it, since no question asks it; and the answers of questions,
+/// which answer them when they are asked and are checked then.
+fn known_before(given: BTreeMap<String, AnswerJson>) -> (Answers, BTreeMap<String, AnswerJson>) {
+    let mut known = Answers::new();
+    let mut asked = BTreeMap::new();
+    for (key, answer) in given {
+        match answer {
+            AnswerJson::Flag { value } => known.insert(AnswerKey(static_key(&key)), Answer::Flag(value)),
+            answer => {
+                let _replaced = asked.insert(key, answer);
+            }
+        }
+    }
+    (known, asked)
+}
+
+/// The key of an answer given, as the engine names its keys, which live as long as it does: each key is kept once, so
+/// the few the features have are all that is ever kept.
+fn static_key(key: &str) -> &'static str {
+    static KEYS: Mutex<BTreeSet<&'static str>> = Mutex::new(BTreeSet::new());
+    let mut keys = KEYS.lock().unwrap_or_else(PoisonError::into_inner);
+    if let Some(kept) = keys.get(key) {
+        return kept;
+    }
+    let kept: &'static str = Box::leak(key.to_owned().into_boxed_str());
+    let _new = keys.insert(kept);
+    kept
 }
 
 /// The answer of `question/validate`: what is wrong with the text, or nothing.

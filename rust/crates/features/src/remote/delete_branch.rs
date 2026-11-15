@@ -3,7 +3,8 @@
 use model::contract::{Answers, Context, Danger, Outcome, Plan, Refusal, Step, Target, Text, Undo};
 
 /// Deletes the remote branch it was invoked on from its remote: `git push <remote> --delete <branch>`, the remote being
-/// the longest name among the remotes that the remote branch starts with.
+/// the longest name among the remotes that the remote branch starts with. The branch is named `refs/heads/<branch>`
+/// when a tag has its name, since the remote would find the name ambiguous and refuse the push.
 ///
 /// Feature: remote.delete-branch
 #[must_use]
@@ -16,11 +17,17 @@ pub fn delete_branch(context: &Context, _answers: &Answers) -> Outcome {
             "Cannot tell which remote `{name}` belongs to."
         )));
     };
+    let is_ambiguous = context.repository.tags.iter().any(|tag| tag.name == branch);
+    let argument = if is_ambiguous {
+        format!("refs/heads/{branch}")
+    } else {
+        branch.to_owned()
+    };
     Outcome::Run(Plan {
         title: Text::from(format!("Delete {branch} from {remote}")),
         steps: vec![Step::git(
             context.repository.folder.clone(),
-            ["push", remote, "--delete", branch],
+            ["push", remote, "--delete", argument.as_str()],
         )],
         danger: Danger::Destructive(Text::from("This deletes the branch on the remote for everyone.")),
         undo: Undo::Impossible(Text::from(crate::sync::PUSH_UNDO)),
@@ -33,7 +40,7 @@ pub fn delete_branch(context: &Context, _answers: &Answers) -> Outcome {
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
     use super::delete_branch;
-    use crate::testing::{context, lines, plan, state};
+    use crate::testing::{context, lines, plan, state, tag};
     use model::contract::{Answers, Danger, Outcome, Target};
 
     fn deleted(remotes: &[&str], remote_branch: &str) -> Outcome {
@@ -54,6 +61,16 @@ mod tests {
     fn remote_delete_branch__the_longest_remote_the_name_starts_with_is_taken() {
         let plan = plan(deleted(&["a", "a/b"], "a/b/x"));
         assert_eq!(lines(&plan), ["git push a/b --delete x"]);
+    }
+
+    #[test]
+    fn remote_delete_branch__a_branch_a_tag_has_the_name_of_is_named_in_full() {
+        let mut state = state();
+        state.remotes = vec![String::from("origin")];
+        state.tags.push(tag("release", 'b'));
+        let target = Target::RemoteBranch(String::from("origin/release"));
+        let plan = plan(delete_branch(&context(state, target), &Answers::new()));
+        assert_eq!(lines(&plan), ["git push origin --delete refs/heads/release"]);
     }
 
     #[test]

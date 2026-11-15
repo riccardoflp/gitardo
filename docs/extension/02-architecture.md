@@ -142,11 +142,16 @@ steps 2 and 3 are the engine's:
    and the `GitOp` runs as above (D49).
 2. `EngineClient.runFeature` sends `feature/run`. While it runs, the engine asks with `feature/ask` and
    `feature/confirm`, and `VscodeAsker` (`src/engine/vscode.ts`) answers with VS Code's input boxes, quick picks and
-   dialogs; an input box checks its text with `question/validate` as it is typed.
+   dialogs; an input box checks its text with `question/validate` as it is typed. What only VS Code can add is given
+   as `HostHooks`: choices of its own at the end of a pick, such as **Edit the list of identities…**, and what it does
+   once a plan is confirmed and before its steps, such as having VS Code's Git close the worktrees **Clean up
+   branches** removes.
 3. The engine runs the plan and logs each step, which comes back as `log/line` and goes to the **Gitardo** output
    channel as the command of a `GitOp` does, `> ` before it; a failure, a warning or a read has `[engine]` before it. `feature/followUps` comes before the answer, and `runOnEngine` carries out the
    follow-ups that are the extension's: a message, the inputs of the format remembered in `worktreeInputs`, the new
-   `HEAD` selected in the graph once the repository is read again.
+   `HEAD` selected in the graph once the repository is read again, the pull requests read again after a fetch, a pull
+   or a push. An operation offered with the failure of a step, such as **Delete anyway**, is a button on the error,
+   which sends `feature/run` with the feature, target and answers the engine gave (`offerRun`).
 
 From stage 3, **Undo** is the engine's too: `feature/run` of `undo.last`, which takes back the newest entry of the
 engine's journal. Every `GitOp` that still runs in TypeScript is told to that journal once it ran, with

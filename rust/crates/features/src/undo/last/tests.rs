@@ -195,10 +195,31 @@ fn undo_last__creates_a_deleted_branch_again_at_its_commit() {
         [format!("git branch feature {}", commit('b'))]
     );
     let plan = plan(last(&context(state(), Target::Head), &journal(record)));
-    let Danger::Destructive(warning) = plan.danger else {
-        panic!("undo is destructive")
+    let Danger::Confirm(reason) = plan.danger else {
+        panic!("making the branch again is only confirmed")
     };
-    assert!(warning.as_str().contains("does not get its upstream back"), "{warning}");
+    assert!(reason.as_str().contains("does not get its upstream back"), "{reason}");
+}
+
+#[test]
+fn undo_last__a_deleted_branch_or_a_dropped_stash_is_confirmed_and_the_rest_warned_of() {
+    let branch = UndoRecord::BranchDeleted {
+        name: String::from("feature"),
+        commit: commit('b'),
+    };
+    let stash = UndoRecord::StashDropped {
+        message: String::from("On main: try this"),
+        commit: commit('c'),
+    };
+    for record in [branch, stash] {
+        let plan = plan(last(&context(state(), Target::Head), &journal(record)));
+        assert!(matches!(plan.danger, Danger::Confirm(_)), "{:?}", plan.danger);
+    }
+    let created = UndoRecord::BranchCreated {
+        name: String::from("spike"),
+    };
+    let plan = plan(last(&context(state(), Target::Head), &journal(created)));
+    assert!(matches!(plan.danger, Danger::Destructive(_)), "{:?}", plan.danger);
 }
 
 #[test]

@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature, one card each, 151 in all. The template and the rules of the cards are in the
+Every feature, one card each, 127 in all. The template and the rules of the cards are in the
 feature contract. This index is written by `catalog.py --index`: change a status here in the commit that
 earns it, and run the script again after adding or renaming a card; the statuses are kept. A card with a
 **Differs** line is *Differs*; when the line goes, it becomes *Documented*.
@@ -8,7 +8,6 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | File | Area | Cards |
 | --- | --- | --- |
 | [01-repositories.md](01-repositories.md) | Repositories | 2 |
-| [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 24 |
 | [07-merge-and-rewrite.md](07-merge-and-rewrite.md) | Merge, rebase and rewriting history | 28 |
 | [09-conflicts.md](09-conflicts.md) | Conflicts | 34 |
 | [12-worktrees.md](12-worktrees.md) | Worktrees | 38 |
@@ -22,35 +21,6 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | --- | --- | --- | --- |
 | [`repo.select`](01-repositories.md#reposelect--choose-the-repository-shown) | Choose the repository shown | View | Documented |
 | [`repo.follow-source-control`](01-repositories.md#repofollow-source-control--follow-the-repositories-view-of-vs-code) | Follow the Repositories view of VS Code | View | Documented |
-
-## Branches, tags, remotes and sync
-
-| Feature | Title | Kind | Status |
-| --- | --- | --- | --- |
-| [`branch.checkout`](06-branches-tags-remotes.md#branchcheckout--check-out-a-branch) | Check out a branch | Operation | Documented |
-| [`branch.checkout-remote`](06-branches-tags-remotes.md#branchcheckout-remote--check-out-a-remote-branch-in-the-local-branch-of-its-name) | Check out a remote branch in the local branch of its name | Operation | Documented |
-| [`branch.checkout-detached`](06-branches-tags-remotes.md#branchcheckout-detached--check-out-a-commit-or-a-tag-detached) | Check out a commit or a tag, detached | Operation | Documented |
-| [`branch.name-format`](06-branches-tags-remotes.md#branchname-format--name-a-new-branch-from-a-format) | Name a new branch from a format | Derivation | Documented |
-| [`branch.rename`](06-branches-tags-remotes.md#branchrename--rename-a-branch) | Rename a branch | Operation | Differs |
-| [`branch.delete`](06-branches-tags-remotes.md#branchdelete--delete-a-branch) | Delete a branch | Operation | Documented |
-| [`branch.delete-remote`](06-branches-tags-remotes.md#branchdelete-remote--delete-a-branch-from-its-remote) | Delete a branch from its remote | Operation | Differs |
-| [`branch.favorite`](06-branches-tags-remotes.md#branchfavorite--mark-a-branch-as-a-favorite) | Mark a branch as a favorite | View | Documented |
-| [`branch.cleanup`](06-branches-tags-remotes.md#branchcleanup--clean-up-branches) | Clean up branches | Operation | Differs |
-| [`branch.sort`](06-branches-tags-remotes.md#branchsort--list-branches-and-tags-by-name-or-by-date) | List branches and tags by name or by date | Derivation | Documented |
-| [`tag.create`](06-branches-tags-remotes.md#tagcreate--create-a-tag) | Create a tag | Operation | Differs |
-| [`tag.push`](06-branches-tags-remotes.md#tagpush--push-a-tag) | Push a tag | Operation | Documented |
-| [`tag.delete`](06-branches-tags-remotes.md#tagdelete--delete-a-tag) | Delete a tag | Operation | Differs |
-| [`remote.manage`](06-branches-tags-remotes.md#remotemanage--list-the-remotes-and-choose-what-to-do-with-one) | List the remotes and choose what to do with one | View | Documented |
-| [`remote.add`](06-branches-tags-remotes.md#remoteadd--add-a-remote) | Add a remote | Operation | Documented |
-| [`remote.fetch`](06-branches-tags-remotes.md#remotefetch--fetch-one-remote) | Fetch one remote | Operation | Differs |
-| [`remote.change-url`](06-branches-tags-remotes.md#remotechange-url--change-the-url-of-a-remote) | Change the URL of a remote | Operation | Documented |
-| [`remote.rename`](06-branches-tags-remotes.md#remoterename--rename-a-remote) | Rename a remote | Operation | Documented |
-| [`remote.remove`](06-branches-tags-remotes.md#remoteremove--remove-a-remote) | Remove a remote | Operation | Documented |
-| [`sync.fetch`](06-branches-tags-remotes.md#syncfetch--fetch-every-remote) | Fetch every remote | Operation | Differs |
-| [`sync.pull`](06-branches-tags-remotes.md#syncpull--pull-in-one-of-four-ways) | Pull, in one of four ways | Operation | Documented |
-| [`sync.push`](06-branches-tags-remotes.md#syncpush--push-the-branch-checked-out) | Push the branch checked out | Operation | Differs |
-| [`sync.push-force`](06-branches-tags-remotes.md#syncpush-force--force-push-with-or-without-a-lease) | Force push, with or without a lease | Operation | Documented |
-| [`sync.fast-forward`](06-branches-tags-remotes.md#syncfast-forward--fast-forward-a-branch-that-is-not-checked-out) | Fast-forward a branch that is not checked out | Operation | Differs |
 
 ## Merge, rebase and rewriting history
 

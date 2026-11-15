@@ -47,6 +47,8 @@ const PUSH_VARIANTS: { action: SyncAction; label: string }[] = [
   { action: 'push', label: 'Push' },
   { action: 'pushForceWithLease', label: 'Push (force with lease)' },
   { action: 'pushForce', label: 'Push (force)' },
+  // Fetch, pull and push in one click, as Gitardo's desktop has it (stage 4, area 2).
+  { action: 'sync', label: 'Sync: fetch, pull, push' },
 ];
 
 /** `loaded` highlights matches among the commits on screen; the others ask git to search the whole history. */

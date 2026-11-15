@@ -240,6 +240,7 @@ Four things cut across areas and are best decided once:
   `update_after_checkout(context, answers, &start, plan)` in `Mode::CheckOut`. **Fixed in stage 2**, with S2. (The same grep shows that `stash.branch`
   does not call it either, while the extension's `stashBranch` updates the submodules (`actions.ts:541`). That one is
   for the stash area.)
+- **Fixed in stage 2**, with S2; **Create and check out** has run in the engine since stage 4 (area 1).
 
 ### B2. Checking out a local branch "as it is" reads `.gitmodules` at the wrong revision in the extension
 
@@ -251,6 +252,7 @@ Four things cut across areas and are best decided once:
   (`rust/crates/features/src/branch/checkout_remote.rs:79-87`).
 - Verdict: **Bug (extension)**. The move fixes it. CHANGELOG: "Checking out a local branch as it is, from its remote
   branch, now updates the submodules to what that branch records."
+- **Fixed in stage 4** (area 2), with the remote checkout run by the engine; in the extension's CHANGELOG.
 
 ### B3. "Delete anyway" is offered after the failure instead of asked at once
 
@@ -264,6 +266,9 @@ Four things cut across areas and are best decided once:
   are titled "Delete branch `<name>`", with no "(force)" (`delete.rs:63`).
 - Verdict: **CHANGELOG**. "When git refuses to delete a branch it finds not fully merged, Gitardo now shows git's
   refusal with **Delete anyway**, instead of going straight to the forced delete."
+- **In the CHANGELOG in stage 4** (area 2). The error has **Delete anyway** beside **Show Log**: the `offerRun`
+  follow-up of protocol 1.3 carries the feature, its target and the answer `merged` told `false`, which the server now
+  gives the feature from its first call.
 
 ### B4. How long Undo keeps a deleted branch
 
@@ -277,6 +282,7 @@ Four things cut across areas and are best decided once:
   back the deleted branches one after the other.
 - Verdict: **Merged into D9** (CHANGELOG). "Undo brings back a deleted branch as long as nothing has moved HEAD, even after other
   operations, and several deleted branches can be brought back one after the other."
+- **In the CHANGELOG in stage 3**, with D9; the branches are deleted by the engine since stage 4 (area 2).
 
 ### B5. The Undo of a deleted branch is a warning in the engine
 
@@ -287,6 +293,9 @@ Four things cut across areas and are best decided once:
 - Verdict: **Choice**. I recommend `Danger::Confirm` for `BranchDeleted` and `StashDropped`: making a branch again
   loses nothing. The danger of `ConflictsResolved` can stay Destructive. No option is needed. (This belongs to the undo
   area too.)
+- **Decided in stage 4 (area 2), as recommended; to be confirmed by the maintainer.** `BranchDeleted` is
+  `Danger::Confirm`, saying the branch does not get its upstream back; `StashDropped` already was, and the other records
+  stay Destructive (`rust/crates/features/src/undo/journal.rs`). In both CHANGELOGs.
 
 ### B6. A remote branch whose local branch is in another worktree
 
@@ -298,6 +307,9 @@ Four things cut across areas and are best decided once:
 - Verdict: **Choice**. I recommend that the extension's menu and double click go through `branch.open` and
   `worktree.open`, as the desktop does. Users then see no change, and no engine option is needed. Only a caller that
   bypasses `branch.open` would meet the refusal.
+- **Decided in stage 4 (area 2), as recommended; to be confirmed by the maintainer.** Nothing changed: the extension's
+  menus and double click already open the worktree that has the local branch (`openBranch` and `openRemoteBranch` in
+  `extension/src/webview/menus.ts`), so only a caller that goes past them meets the refusal.
 
 ### B10. At a commit, the format asks what `${base}` is last
 
@@ -321,6 +333,9 @@ Four things cut across areas and are best decided once:
   (`rust/crates/features/src/remote/delete_branch.rs:21-24`).
 - Verdict: **Bug (engine)**. The bug is on both sides, and the engine's copy is the one that will remain. It should
   pass `refs/heads/<branch>`.
+- **Fixed in stage 4** (area 2): the branch is passed as `refs/heads/<branch>` when a tag of the repository has its
+  name, and by its short name otherwise (`delete_branch.rs`, test
+  `remote_delete_branch__a_branch_a_tag_has_the_name_of_is_named_in_full`). In both CHANGELOGs.
 
 ### B8. Sync: fetch, pull and push in one click (desktop only)
 
@@ -335,6 +350,10 @@ Four things cut across areas and are best decided once:
   - Danger is `None`, Undo is by the reflog, and it is followed by the autostash check (`sync.rs:74-81`).
 - Verdict: **CHANGELOG**. "New: **Sync** fetches, pulls the way **Pull** does and pushes when the branch is ahead, in
   one click; a branch with no upstream is published after asking."
+- **In the CHANGELOG in stage 4** (area 2). Given to the extension at the smallest entry point that matches the desktop:
+  **Sync: fetch, pull, push** in the menu beside **Push**, and **Gitardo: Sync** in the Command Palette and the **…** of
+  the Commits and Gitardo Graph views. It has no TypeScript operation: without the engine it says it needs it and runs
+  nothing.
 
 ### B9. Switch identity: "Edit the list of identities…"
 
@@ -346,6 +365,9 @@ Four things cut across areas and are best decided once:
 - Verdict: **Choice**. I recommend keeping it as a host entry. That needs either an engine option for an extra choice
   that the host handles, or a separate command in the extension's palette. Otherwise the CHANGELOG line is "**Edit the
   list of identities…** is no longer in the identity pick: open the setting `gitardo.identities` instead."
+- **Decided in stage 4 (area 2), as recommended; to be confirmed by the maintainer.** Kept as a host entry with no
+  engine option: the extension adds **Edit the list of identities…** at the end of the engine's pick
+  (`HostHooks.choices` in `extension/src/engine/vscode.ts`) and opens the setting itself. Users see no change.
 
 ## Merge, rebase, cherry-pick, revert, reset
 
@@ -988,6 +1010,14 @@ plain wording, or a message where the extension was silent.
 - **Identity:** `identity.switch` and `identity.use-global` (`config user.name`, `user.email`, `user.signingkey`, or
   `--unset-all user.signingkey` when the profile has no key; unset in the order name, email, signingkey; the same
   refusal when nothing is local).
+- **Found in stage 4** (area 2), by the scenario tests and the e2e steps made to hold on both paths, with the same
+  commands: the engine joins what **Clean up branches** says of a branch with commas (**merged into main, with its
+  worktree merged**) where the extension wrote ` · `; it writes **This repository has no remote.** and **Add remote…**
+  where the extension wrote **this repository has no remote.** and **Add Remote…**; when git refuses to clone a
+  submodule from a folder on disk after a checkout, it asks to run the rest of the checkout again under the checkout's
+  own title (**Check out `<branch>` from a folder on disk?**) where the extension asked **Update the submodules from a
+  folder on disk?**; and it refuses a detached checkout of the commit or tag checked out already, which the menus do
+  not offer.
 - **Undo after operations that do not move `HEAD`** (push, fetch, tags, rename, fast-forward): on both sides Undo
   falls back on the reflog and takes back the operation before. The extension cards mark this as **Differs**; it is not
   a difference between the two implementations (`rust/crates/features/src/undo/last.rs:30-76`).
@@ -1112,7 +1142,9 @@ These pairs matched in plan, questions, danger, refusals and undo, apart from wo
 - The reflog Undo of a pull or checkout (`undo.last` reset modes) belongs to the undo area.
 - `github.offer-after-push` and `stash.autostash-left` were compared from their desktop cards
   (`docs/features/15-github.md:187-209`, `docs/features/08-stashes.md:367-395`), not from the app code that carries out
-  `FollowUp::CheckAutostash`.
+  `FollowUp::CheckAutostash`. In stage 4 (area 2) the extension does both itself after a fetch, a pull, a push or
+  **Sync** on either path, from the state read before and after (`Controller.afterSync`), since the server does not
+  send `checkAutostash`.
 - `Validation::Url` of `remote.add` was not compared line by line with the extension's URL check
   (`controller.ts:1946`).
 

@@ -765,6 +765,12 @@ Sets the name and email that commits are made with in this repository, from a pr
 - **Function**: `features::identity::switch(context, answers) -> Outcome`
 - **Entry points**: **Switch identity** in Quick search; **Switch identity…** in the **…** menu of the header; a click
   on the identity under the commit box in the Changes page.
+- **Extension**: **Gitardo: Switch Identity** in the Command Palette, **Switch identity…** in the **…** menu of the
+  toolbar of the graph, and a click on the identity under the commit box of the Changes view. Each sends `feature/run` of `identity.switch` to Gitardo's engine (`Controller.runOnEngine` in
+  `src/extension/controller.ts`, `Controller.switchIdentity`); the pick is a quick pick, and the name and
+  email input boxes. **Edit the list of identities…** is added to the pick by the extension, which opens the settings at
+  `gitardo.identities` and runs nothing (`HostHooks.choices`, B9). When the engine's binary is missing,
+  `Controller.switchIdentity` asks the same in TypeScript, as before (D49).
 - **Asks**:
   1. A pick, titled **Commit in `<repository>` as**, with the identity used now as its placeholder
      (**Now: `Name <email>`**, or **No identity is configured**): each profile of `identities`, with its email beside
@@ -797,6 +803,9 @@ Acceptance:
 - [ ] The global configuration is never written: no command has `--global`.
 - [ ] The identity under the commit box shows the new one once the repository is read again.
 - [ ] **Use the global identity** is not in the pick when the repository has no `user.*` key of its own.
+- [ ] Extension: **Gitardo: Switch Identity**, **Enter a name and email…**, `Other Me` and `other@gitardo.invalid` make
+      them the identity of the repository.
+- [ ] Extension: **Edit the list of identities…** opens the settings at `gitardo.identities` and runs nothing.
 
 ### `identity.use-global` — Use the global identity again
 

@@ -119,7 +119,40 @@ impl TryFrom<TargetJson> for Target {
     }
 }
 
-/// An answer a person gives. The other kinds of `Answer` are the engine's own readings and never cross.
+impl TargetJson {
+    /// The JSON of a target, for an operation the extension is offered to run; none for the kinds that come with the
+    /// areas that use them.
+    #[must_use]
+    pub fn of(target: &Target) -> Option<TargetJson> {
+        let path = |path: &std::path::Path| path.to_string_lossy().into_owned();
+        Some(match target {
+            Target::Head => TargetJson::Head,
+            Target::Commit(commit) => TargetJson::Commit {
+                commit: commit.as_str().to_owned(),
+            },
+            Target::Branch(name) => TargetJson::Branch { name: name.clone() },
+            Target::RemoteBranch(name) => TargetJson::RemoteBranch { name: name.clone() },
+            Target::Tag(name) => TargetJson::Tag { name: name.clone() },
+            Target::Stash(index) => TargetJson::Stash { index: *index },
+            Target::Remote(name) => TargetJson::Remote { name: name.clone() },
+            Target::Files(paths) => TargetJson::Files { paths: paths.clone() },
+            Target::File(file) => TargetJson::File { path: file.clone() },
+            Target::Changes => TargetJson::Changes,
+            Target::Commits(commits) => TargetJson::Commits {
+                commits: commits.iter().map(|commit| commit.as_str().to_owned()).collect(),
+            },
+            Target::Submodule(folder) => TargetJson::Submodule { path: folder.clone() },
+            Target::Worktree(folder) => TargetJson::Worktree { folder: path(folder) },
+            Target::Path(where_it_is) => TargetJson::Path {
+                path: path(where_it_is),
+            },
+            _ => return None,
+        })
+    }
+}
+
+/// An answer a person gives, or a yes or no an operation offered is given before it runs. The other kinds of `Answer`
+/// are the engine's own readings and never cross.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum AnswerJson {
@@ -145,6 +178,12 @@ pub enum AnswerJson {
         /// Where it is.
         path: String,
     },
+    /// Yes or no, as an operation offered is told what the engine found before it was offered: **Delete anyway** is
+    /// told the branch is not merged.
+    Flag {
+        /// Yes or no.
+        value: bool,
+    },
 }
 
 impl From<AnswerJson> for Answer {
@@ -155,6 +194,7 @@ impl From<AnswerJson> for Answer {
             AnswerJson::Choices { identifiers } => Answer::Choices(identifiers),
             AnswerJson::Confirmed => Answer::Confirmed,
             AnswerJson::Path { path } => Answer::Path(PathBuf::from(path)),
+            AnswerJson::Flag { value } => Answer::Flag(value),
         }
     }
 }
@@ -175,6 +215,7 @@ impl AnswerJson {
             Answer::Path(path) => AnswerJson::Path {
                 path: path.to_string_lossy().into_owned(),
             },
+            Answer::Flag(value) => AnswerJson::Flag { value: *value },
             _ => return None,
         })
     }

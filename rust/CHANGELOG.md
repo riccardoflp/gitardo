@@ -439,3 +439,7 @@
   the AI's.
 - A row of the Worktrees list shows the open pull request of its branch, in the color of its checks, and its tooltip
   names it.
+- **Delete from remote** names the branch `refs/heads/<branch>` when a tag has its name, so that the remote no longer
+  refuses the push as ambiguous and the tag stays.
+- **Undo** of a branch deleted in Gitardo asks with a confirmation, not a warning: making the branch again loses
+  nothing.

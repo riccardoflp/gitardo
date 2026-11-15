@@ -175,7 +175,7 @@ earns it.
 | [`commit.amend`](05-changes-and-commit.md#commitamend--amend-the-last-commit) | Amend the last commit | Operation | Built | Built |
 | [`commit.draft-message`](05-changes-and-commit.md#commitdraft-message--draft-the-commit-message) | Draft the commit message | Derivation | Built | Built |
 | [`identity.read`](05-changes-and-commit.md#identityread--read-the-identity) | Read the identity | Read | Built | Built |
-| [`identity.switch`](05-changes-and-commit.md#identityswitch--switch-identity) | Switch identity | Operation | Built | Differs (B9) |
+| [`identity.switch`](05-changes-and-commit.md#identityswitch--switch-identity) | Switch identity | Operation | Built | Built |
 | [`identity.use-global`](05-changes-and-commit.md#identityuse-global--use-the-global-identity-again) | Use the global identity again | Operation | Built | Built |
 
 ## Branches, tags, remotes and sync
@@ -184,7 +184,7 @@ earns it.
 | --- | --- | --- | --- | --- |
 | [`branch.checkout`](06-branches-tags-remotes.md#branchcheckout--check-out-a-branch) | Check out a branch | Operation | Built | Built |
 | [`branch.open`](06-branches-tags-remotes.md#branchopen--what-a-double-click-on-a-branch-does) | What a double click on a branch does | Derivation | Built | Built |
-| [`branch.checkout-remote`](06-branches-tags-remotes.md#branchcheckout-remote--check-out-a-remote-branch) | Check out a remote branch | Operation | Built | Differs (B2, B6) |
+| [`branch.checkout-remote`](06-branches-tags-remotes.md#branchcheckout-remote--check-out-a-remote-branch) | Check out a remote branch | Operation | Built | Built |
 | [`branch.checkout-remote-and-rebase`](06-branches-tags-remotes.md#branchcheckout-remote-and-rebase--check-out-a-branch-and-rebase-it-onto-its-remote-branch) | Check out a branch and rebase it onto its remote branch | Operation | Built | Built |
 | [`branch.checkout-detached`](06-branches-tags-remotes.md#branchcheckout-detached--check-out-a-commit) | Check out a commit | Operation | Built | Built |
 | [`branch.create`](06-branches-tags-remotes.md#branchcreate--create-a-branch) | Create a branch | Operation | Built | Built |
@@ -193,7 +193,7 @@ earns it.
 | [`branch.validate-name`](06-branches-tags-remotes.md#branchvalidate-name--what-git-does-not-take-as-a-name) | What git does not take as a name | Derivation | Built | Built |
 | [`branch.ref-argument`](06-branches-tags-remotes.md#branchref-argument--a-branch-named-in-full-when-it-has-a-namesake) | A branch named in full when it has a namesake | Derivation | Built | Built |
 | [`branch.rename`](06-branches-tags-remotes.md#branchrename--rename-a-branch) | Rename a branch | Operation | Built | Built |
-| [`branch.delete`](06-branches-tags-remotes.md#branchdelete--delete-a-branch) | Delete a branch | Operation | Built | Differs (B3, D9) |
+| [`branch.delete`](06-branches-tags-remotes.md#branchdelete--delete-a-branch) | Delete a branch | Operation | Built | Built |
 | [`branch.clean-up`](06-branches-tags-remotes.md#branchclean-up--clean-up-branches) | Clean up branches | Operation | Built | Built |
 | [`branch.fast-forward`](06-branches-tags-remotes.md#branchfast-forward--fast-forward-a-branch-that-is-not-checked-out) | Fast-forward a branch that is not checked out | Operation | Built | Built |
 | [`branch.pane`](06-branches-tags-remotes.md#branchpane--the-branch-rail-its-buttons-and-its-comparison) | The branch rail, its buttons and its comparison | View | Built | Built |
@@ -209,12 +209,12 @@ earns it.
 | [`remote.rename`](06-branches-tags-remotes.md#remoterename--rename-a-remote) | Rename a remote | Operation | Built | Built |
 | [`remote.remove`](06-branches-tags-remotes.md#remoteremove--remove-a-remote) | Remove a remote | Operation | Built | Built |
 | [`remote.add`](06-branches-tags-remotes.md#remoteadd--add-a-remote) | Add a remote | Operation | Built | Built |
-| [`remote.delete-branch`](06-branches-tags-remotes.md#remotedelete-branch--delete-a-branch-from-its-remote) | Delete a branch from its remote | Operation | Built | Differs (B7) |
+| [`remote.delete-branch`](06-branches-tags-remotes.md#remotedelete-branch--delete-a-branch-from-its-remote) | Delete a branch from its remote | Operation | Built | Built |
 | [`sync.fetch`](06-branches-tags-remotes.md#syncfetch--fetch) | Fetch | Operation | Built | Built |
 | [`sync.pull`](06-branches-tags-remotes.md#syncpull--pull) | Pull | Operation | Built | Built |
 | [`sync.pull-with`](06-branches-tags-remotes.md#syncpull-with--pull-one-way-or-another) | Pull one way or another | Operation | Built | Built |
 | [`sync.push`](06-branches-tags-remotes.md#syncpush--push) | Push | Operation | Built | Built |
-| [`sync.sync`](06-branches-tags-remotes.md#syncsync--sync-with-the-upstream) | Sync with the upstream | Operation | Built | Planned |
+| [`sync.sync`](06-branches-tags-remotes.md#syncsync--sync-with-the-upstream) | Sync with the upstream | Operation | Built | Built |
 | [`sync.read-overwritten`](06-branches-tags-remotes.md#syncread-overwritten--read-what-a-force-push-would-overwrite) | Read what a force push would overwrite | Read | Built | Built |
 | [`sync.push-force-with-lease`](06-branches-tags-remotes.md#syncpush-force-with-lease--push-with---force-with-lease) | Push with `--force-with-lease` | Operation | Built | Built |
 | [`sync.push-force`](06-branches-tags-remotes.md#syncpush-force--push-with---force) | Push with `--force` | Operation | Built | Built |
@@ -550,30 +550,6 @@ catalog it is an alias of ([D44](../08-decisions.md#d44--one-catalog-the-desktop
 | --- | --- | --- |
 | `repo.select` ([card](extension/01-repositories.md#reposelect--choose-the-repository-shown)) | `repo.select` | |
 | `repo.follow-source-control` ([card](extension/01-repositories.md#repofollow-source-control--follow-the-repositories-view-of-vs-code)) | — | Host only |
-| `branch.checkout` ([card](extension/06-branches-tags-remotes.md#branchcheckout--check-out-a-branch)) | `branch.checkout` | |
-| `branch.checkout-remote` ([card](extension/06-branches-tags-remotes.md#branchcheckout-remote--check-out-a-remote-branch-in-the-local-branch-of-its-name)) | `branch.checkout-remote`, `branch.checkout-remote-and-rebase` | |
-| `branch.checkout-detached` ([card](extension/06-branches-tags-remotes.md#branchcheckout-detached--check-out-a-commit-or-a-tag-detached)) | `branch.checkout-detached`, `tag.checkout` | |
-| `branch.name-format` ([card](extension/06-branches-tags-remotes.md#branchname-format--name-a-new-branch-from-a-format)) | `branch.format-name`, `branch.name-from-format` | |
-| `branch.rename` ([card](extension/06-branches-tags-remotes.md#branchrename--rename-a-branch)) | `branch.rename` | |
-| `branch.delete` ([card](extension/06-branches-tags-remotes.md#branchdelete--delete-a-branch)) | `branch.delete` | |
-| `branch.delete-remote` ([card](extension/06-branches-tags-remotes.md#branchdelete-remote--delete-a-branch-from-its-remote)) | `remote.delete-branch` | |
-| `branch.favorite` ([card](extension/06-branches-tags-remotes.md#branchfavorite--mark-a-branch-as-a-favorite)) | `refs.favorite` | |
-| `branch.cleanup` ([card](extension/06-branches-tags-remotes.md#branchcleanup--clean-up-branches)) | `branch.clean-up` | |
-| `branch.sort` ([card](extension/06-branches-tags-remotes.md#branchsort--list-branches-and-tags-by-name-or-by-date)) | `refs.sort` | |
-| `tag.create` ([card](extension/06-branches-tags-remotes.md#tagcreate--create-a-tag)) | `tag.create` | |
-| `tag.push` ([card](extension/06-branches-tags-remotes.md#tagpush--push-a-tag)) | `tag.push` | |
-| `tag.delete` ([card](extension/06-branches-tags-remotes.md#tagdelete--delete-a-tag)) | `tag.delete` | |
-| `remote.manage` ([card](extension/06-branches-tags-remotes.md#remotemanage--list-the-remotes-and-choose-what-to-do-with-one)) | `remote.manage` | |
-| `remote.add` ([card](extension/06-branches-tags-remotes.md#remoteadd--add-a-remote)) | `remote.add` | |
-| `remote.fetch` ([card](extension/06-branches-tags-remotes.md#remotefetch--fetch-one-remote)) | `remote.fetch` | |
-| `remote.change-url` ([card](extension/06-branches-tags-remotes.md#remotechange-url--change-the-url-of-a-remote)) | `remote.set-url` | |
-| `remote.rename` ([card](extension/06-branches-tags-remotes.md#remoterename--rename-a-remote)) | `remote.rename` | |
-| `remote.remove` ([card](extension/06-branches-tags-remotes.md#remoteremove--remove-a-remote)) | `remote.remove` | |
-| `sync.fetch` ([card](extension/06-branches-tags-remotes.md#syncfetch--fetch-every-remote)) | `sync.fetch` | |
-| `sync.pull` ([card](extension/06-branches-tags-remotes.md#syncpull--pull-in-one-of-four-ways)) | `sync.pull`, `sync.pull-with` | |
-| `sync.push` ([card](extension/06-branches-tags-remotes.md#syncpush--push-the-branch-checked-out)) | `sync.push` | |
-| `sync.push-force` ([card](extension/06-branches-tags-remotes.md#syncpush-force--force-push-with-or-without-a-lease)) | `sync.push-force-with-lease`, `sync.push-force` | |
-| `sync.fast-forward` ([card](extension/06-branches-tags-remotes.md#syncfast-forward--fast-forward-a-branch-that-is-not-checked-out)) | `branch.fast-forward` | |
 | `merge.into-current` ([card](extension/07-merge-and-rewrite.md#mergeinto-current--merge-into-the-current-branch)) | `merge.into-current` | |
 | `merge.choose-way` ([card](extension/07-merge-and-rewrite.md#mergechoose-way--choose-the-way-to-merge)) | `merge.choose-way` | |
 | `merge.squash` ([card](extension/07-merge-and-rewrite.md#mergesquash--squash-merge)) | `merge.choose-way`, `merge.undo-squash` | The squash way and its Undo |

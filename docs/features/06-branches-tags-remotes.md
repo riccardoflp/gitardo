@@ -14,6 +14,13 @@ Switches the working tree to a local branch.
 - **Function**: `features::branch::checkout(context, answers) -> Outcome`
 - **Entry points**: **Check out `<branch>`** in the context menu of a local branch, in the timeline and in the branch
   rail beside it; a double click on a local branch, as `branch.open` decides.
+- **Extension**: **Check out `<branch>`** in the context menu of a local branch in the references tree, the Branches
+  view and on its label in the graph; a double click there and in **Recent** and **Favorites** (`branch.open`). Each
+  sends `feature/run` of `branch.checkout` to Gitardo's engine (`Controller.runOnEngine` in
+  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), with the branch as its target; the plan is
+  shown in a modal dialog when it asks first or `gitardo.commandPreview` is `all` (`VscodeAsker` in
+  `src/engine/vscode.ts`). The settings are `gitardo.submodules.updateOnCheckout` and `gitardo.commandPreview`. When the
+  engine's binary is missing, `checkoutOp('branch', ref)` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: the branch is not the one checked out, and no other worktree has it checked out. Where another
   worktree has it, its menu opens that worktree instead (`worktree.open`).
 - **Plan**: `git checkout <branch>`; then, as an operation of its own that the confirmation shows with it, the update of
@@ -37,6 +44,16 @@ Acceptance:
 - [ ] With a submodule in the repository and `submodules.updateOnCheckout` on, the checkout is followed by
       `git submodule update --init --recursive`; with it off, by nothing.
 - [ ] Undo right after goes back to the branch checked out before.
+- [ ] Extension: **Check out feature** on the branch `feature` runs `git checkout feature` in the engine, and the
+      **Gitardo** output channel has `> git checkout feature`.
+- [ ] Extension: with `gitardo.commandPreview` `off` and no submodules, nothing is asked; with `all`, **Check out
+      feature?** shows `git checkout feature` before it runs.
+- [ ] Extension: the menu of the branch checked out has no **Check out** entry, and a double click on it does nothing.
+- [ ] Extension: with submodules and `gitardo.submodules.updateOnCheckout` on, the log has `git submodule update --init
+      --recursive` after the checkout; a submodule cloned from a folder on disk is asked first, and the update runs
+      again with `-c protocol.file.allow=always`.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, `checkoutOp` runs, as do the other operations of this
+      file with their `GitOp`.
 
 ### `branch.open` — What a double click on a branch does
 
@@ -47,6 +64,10 @@ entry comes first in its context menu.
 - **Function**: `model::branch::open(input: &OpenBranchInput) -> Option<Intent>`
 - **Entry points**: a double click on a branch or a remote branch in the branch rail, in its **Recent** and
   **Favorites** lists too, and on its label in the timeline.
+- **Extension**: the same choice, made in `openBranch` and `openRemoteBranch` of `src/webview/menus.ts` for a double
+  click in the references tree, the Branches view and on a label of the graph, and in the menus, which offer the entries
+  of the other worktree in place of **Check out**; `gitardo.branches.openIn` is the setting. The checkout it leads to is
+  sent to the engine as its card says; opening a worktree stays the extension's.
 - **Settings**: `branches.openIn`: `checkout` (the default) or `worktree`.
 - **Uses**: `branch.checkout`, `branch.checkout-remote`, `worktree.open`, `worktree.open-in-worktree`.
 
@@ -74,6 +95,10 @@ Acceptance:
       `feature` starts with **Open in worktree**.
 - [ ] A double click on `origin/feature` while another worktree has `feature` opens that worktree, whatever the setting.
 - [ ] A double click on a branch whose worktree's folder was deleted does nothing.
+- [ ] Extension: the menu of a branch another worktree has offers **Open worktree in new window** and no **Check out**
+      entry; a double click opens that worktree.
+- [ ] Extension: with another worktree on `dev`, the menu of `origin/dev` has no **Check out** entry and a double click
+      opens that worktree.
 
 ### `branch.checkout-remote` — Check out a remote branch
 
@@ -84,6 +109,13 @@ to it.
 - **Function**: `features::branch::checkout_remote(context, answers) -> Outcome`
 - **Entry points**: **Check out as local branch** in the context menu of a remote branch with no local branch of its
   name, **Check out `<name>`** when there is one; a double click on a remote branch, as `branch.open` decides.
+- **Extension**: in the context menu of a remote branch, **Check out as local branch** when no local branch has its name
+  and **Check out `<branch>`** when one has; a double click on it in the references tree, the Branches view or on its
+  label in the graph (`branch.open`). Each sends `feature/run` of `branch.checkout-remote` to Gitardo's engine
+  (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), with the remote
+  branch as its target; its question is a quick pick. The menu and the double click open the worktree that has the local
+  branch instead, so the engine's refusal is met only by a caller that goes past them (B6). When the engine's binary is
+  missing, `checkoutLocalOp` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: no other worktree has the local branch of its name checked out; when one has, its menu and a double
   click open that worktree instead (`worktree.open`).
 - **Reads**: when a local branch has its name, how the two stand:
@@ -127,6 +159,12 @@ Acceptance:
       `git rebase --autostash origin/feature feature`.
 - [ ] With `feature` checked out, ahead and behind, **as it is** runs nothing.
 - [ ] With `feature` checked out and level with `origin/feature`, nothing runs and the message says so.
+- [ ] Extension: with no local `dev`, **Check out as local branch** on `origin/dev` runs `git checkout --track
+      origin/dev`.
+- [ ] Extension: with a local `dev` 2 commits behind `origin/dev` and none of its own, **Check out dev** runs `git
+      checkout dev` and `git merge --ff-only origin/dev`.
+- [ ] Extension: with `dev` 1 ahead and 2 behind, a double click on `origin/dev` asks in a quick pick, and **Check out
+      dev as it is** runs `git checkout dev` alone, followed by the update of the submodules that `dev` records.
 
 ### `branch.checkout-remote-and-rebase` — Check out a branch and rebase it onto its remote branch
 
@@ -136,6 +174,12 @@ step.
 - **Kind**: Operation
 - **Function**: `features::branch::checkout_remote_and_rebase(context, answers) -> Outcome`
 - **Entry points**: **Check out `<name>` and rebase it onto this** in the context menu of a remote branch.
+- **Extension**: **Check out `<branch>` and rebase it onto this** in the context menu of a remote branch, offered when
+  the local branch follows it, is not checked out, and each has commits the other has not; the choice **Check out
+  `<branch>` and rebase it onto `<remote branch>`** in the question of `branch.checkout-remote`. Each sends
+  `feature/run` of `branch.checkout-remote-and-rebase` to Gitardo's engine (`Controller.runOnEngine` in
+  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`). When the engine's binary is missing,
+  `checkoutLocalOp` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: the local branch `<name>` follows this remote branch, the upstream is not gone, each has commits the
   other has not as of the last fetch, the local branch is not checked out (there, `rebase.` rebases what is checked
   out), and no other worktree has it.
@@ -151,6 +195,8 @@ Acceptance:
 - [ ] With `feature` following `origin/feature`, one commit ahead and two behind, the entry is there and runs
       `git rebase --autostash origin/feature feature`; `feature` is checked out after, its commit on top.
 - [ ] The entry is not there when `feature` is only behind, or is checked out.
+- [ ] Extension: **Check out dev and rebase it onto this** runs `git rebase --autostash origin/dev dev` without a
+      question, and afterwards `dev` has its own commit on top of those of `origin/dev`.
 
 ### `branch.checkout-detached` — Check out a commit
 
@@ -159,6 +205,11 @@ Checks out a commit on a detached `HEAD`, to look at it or build it.
 - **Kind**: Operation
 - **Function**: `features::branch::checkout_detached(context, answers) -> Outcome`
 - **Entry points**: **Check out commit (detached)** in the context menu of a commit in the timeline, narrowed or not.
+- **Extension**: **Check out commit (detached)** in the context menu of a commit in the graph and in the Commits view,
+  and **Check out (detached)** for a position picked in **Gitardo: Browse Reflog**. Each sends `feature/run` of
+  `branch.checkout-detached` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`,
+  `engineRuns` in `src/engine/actions.ts`), with the commit as its target. When the engine's binary is missing,
+  `checkoutOp('detached', ref)` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: the commit is not the one checked out.
 - **Plan**: `git checkout --detach <hash>`, then the update of the submodules (`submodule.update-on-checkout`).
 - **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
@@ -170,6 +221,9 @@ Acceptance:
 - [ ] On a commit that is not `HEAD` it runs `git checkout --detach <full hash>`, and the header says
       **detached at `<short hash>`** after.
 - [ ] The menu of the commit checked out has no such entry.
+- [ ] Extension: **Check out commit (detached)** on a commit runs `git checkout --detach <full hash>` and the toolbar
+      then says **detached at `<short hash>`**.
+- [ ] Extension: neither entry is offered on the commit checked out.
 
 ### `branch.create` — Create a branch
 
@@ -283,6 +337,11 @@ shown, to change or keep, by the feature that asked.
   which gives the name once every part is known, with the values given; until then the next question, the read of the
   branches that have a commit, or why the format is refused
 - **Entry points**: the questions of `branch.create` and of `worktree.create` after **Use the format**.
+- **Extension**: the questions are VS Code's input boxes and quick picks, asked by the engine for `branch.create`; for
+  `worktree.create`, which is not moved yet, `nameFromFormat`, `askInput` and `commitBase` of `src/extension/actions.ts`
+  ask them in TypeScript. The settings are `gitardo.branches.format` and `gitardo.branches.inputs`, or
+  `gitardo.worktrees.branchFormat` and `gitardo.worktrees.inputs` where those are not set; the values used last are kept
+  in the workspace state under `worktreeInputs`.
 - **Reads**: for `${base}` at a commit, the branches that have it:
   `git for-each-ref --contains <hash> --format=%(refname) refs/heads refs/remotes`, leaving out `…/HEAD`.
 - **Settings**: `branches.format`, `branches.inputs`.
@@ -322,6 +381,10 @@ Acceptance:
 - [ ] On a commit that `main` points at and `feature` contains, the pick lists `main`, then the short hash, then
       `feature`.
 - [ ] A format without `${base}` asks nothing about it, also at a commit.
+- [ ] Extension: with the format `${input:kind}/${base}-${input:ticket}`, kind `feat`, ticket `1`, from the toolbar on
+      `main`, the name proposed is `feat/main-1`.
+- [ ] Extension: with only `gitardo.worktrees.branchFormat` set to `old-${input:ticket}` and its inputs, the name is
+      `old-3` for ticket `3`.
 
 ### `branch.validate-name` — What git does not take as a name
 
@@ -378,6 +441,11 @@ Gives a local branch another name.
 - **Function**: `features::branch::rename(context, answers) -> Outcome`
 - **Entry points**: **Rename…** in the context menu of a local branch; **Rename branch…** when another worktree has it
   checked out, beside **Rename worktree…** (`worktree.rename`).
+- **Extension**: **Rename…** in the context menu of a local branch, **Rename branch…** when another worktree has it.
+  Each sends `feature/run` of `branch.rename` to Gitardo's engine (`Controller.runOnEngine` in
+  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`); the name is asked in an input box, checked
+  with `question/validate` as it is typed. When the engine's binary is missing, `renameBranchOp` of `src/git/ops.ts`
+  runs in its place, as before (D49).
 - **Asks**: the new name, in an input box titled **Rename branch `<name>`**, starting from the name it has; checked by
   `branch.validate-name` and "A branch with that name already exists".
 - **Plan**: `git branch -m <old> <new>`.
@@ -393,6 +461,8 @@ Acceptance:
       `feature/login` with the same upstream after.
 - [ ] Accepting the box with the old name unchanged is refused by the box: that name is taken.
 - [ ] Renaming the branch checked out keeps it checked out.
+- [ ] Extension: **Rename…** on `feature`, `done` typed, runs `git branch -m feature done` in the engine, and the branch
+      is listed as `done` with the same commit.
 
 ### `branch.delete` — Delete a branch
 
@@ -401,6 +471,13 @@ Deletes a local branch, after saying whether its commits are merged, so that non
 - **Kind**: Operation
 - **Function**: `features::branch::delete(context, answers) -> Outcome`
 - **Entry points**: **Delete** in the context menu of a local branch.
+- **Extension**: **Delete** in the context menu of a local branch that is not checked out and that no other worktree has
+  (that one offers **Remove worktree and delete branch…**, `worktree.remove`). Each sends `feature/run` of
+  `branch.delete` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
+  `src/engine/actions.ts`); the confirmation is a modal dialog, a warning when the branch is not merged. When git still
+  finds it not fully merged, the error has **Delete anyway** beside **Show Log**, the `offerRun` follow-up of protocol
+  1.3, which runs `branch.delete` again told it is not merged. When the engine's binary is missing, `deleteBranchOp` of
+  `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: the branch is not checked out here, and no other worktree has it checked out; there, **Remove
   worktree and delete branch…** does both (`worktree.remove`).
 - **Reads**: whether its commits are merged: `git merge-base --is-ancestor refs/heads/<name> <into>`, where `<into>` is
@@ -424,6 +501,15 @@ Acceptance:
 - [ ] The branch checked out has no **Delete** entry.
 - [ ] When `git branch -d` says the branch is not fully merged, **Delete anyway** is offered and plans
       `git branch -D <name>` with the warning.
+- [ ] Extension: **Delete** on a merged branch `topic` asks **Delete branch topic?**, whose detail says **none is lost**
+      and ends with `git branch -d topic`, whatever `gitardo.commandPreview` says.
+- [ ] Extension: **Delete** on a branch with commits of its own asks once, with a warning, **Delete branch feature?**,
+      whose detail says **not fully merged** and ends with `git branch -D feature`.
+- [ ] Extension: when `git branch -d` is refused with *not fully merged*, the error offers **Delete anyway**, which asks
+      with the warning and runs `git branch -D <name>`.
+- [ ] Extension: **Undo** right after it asks, as a question and not a warning, and the branch is back at the same
+      commit.
+- [ ] Extension: the branch checked out, and a branch another worktree has, have no **Delete** entry.
 
 ### `branch.clean-up` — Clean up branches
 
@@ -433,6 +519,13 @@ the worktrees that have them.
 - **Kind**: Operation
 - **Function**: `features::branch::clean_up(context, answers) -> Outcome`
 - **Entry points**: **Clean up branches** in Quick search; **Clean up branches…** in the **…** menu of the header.
+- **Extension**: **Gitardo: Clean Up Branches** in the Command Palette and in the **…** of the Branches view; **Clean up
+  branches…** in the **…** menu of the toolbar of the graph. Each sends `feature/run` of `branch.clean-up` to Gitardo's
+  engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.cleanupBranches`); the pick
+  is a quick pick of several, the merged branches ticked. Once the plan is confirmed, and before its steps, VS Code's
+  Git extension is told to close each worktree the plan removes (`git.close`), which Windows would not let git delete
+  otherwise (`HostHooks.confirmed`, `Controller.closeRemoved`). When the engine's binary is missing, `cleanupBranchesOp`
+  of `src/git/ops.ts` runs in its place, as before (D49).
 - **Reads**: the branches merged into what is checked out, `git branch --merged HEAD --format=%(refname:short)`; the
   branches whose upstream is gone, and the worktrees with how many files each has not committed, from the state of the
   repository (`repo.read-state`).
@@ -474,6 +567,10 @@ Acceptance:
 - [ ] With nothing to clean up, no pick opens and the message says so.
 - [ ] On Windows, the links of a worktree to folders outside it are unlinked before `git worktree remove`, so that the
       folders they lead to keep their files; the folder of the worktrees it leaves empty is deleted last.
+- [ ] Extension: a merged branch `merged` with a worktree is listed as **merged into main, with its worktree merged**,
+      ticked; the worktree is removed with `git worktree remove <path>` before `git branch -d merged`, and its folder is
+      gone.
+- [ ] Extension: with nothing to list, the engine says so and nothing runs.
 
 ### `branch.fast-forward` — Fast-forward a branch that is not checked out
 
@@ -482,6 +579,11 @@ Brings a local branch up to its upstream without switching to it: the files and 
 - **Kind**: Operation
 - **Function**: `features::branch::fast_forward(context, answers) -> Outcome`
 - **Entry points**: **Fast-forward to `<upstream>`** in the context menu of a local branch.
+- **Extension**: **Fast-forward to `<upstream>`** in the context menu of a local branch, in the references tree, the
+  Branches view and on its label in the graph, offered as `canFastForward` in `src/shared/refs.ts` decides. Each sends
+  `feature/run` of `branch.fast-forward` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`,
+  `engineRuns` in `src/engine/actions.ts`), with the branch as its target. When the engine's binary is missing,
+  `fastForwardOp` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: the branch is not checked out here; it has an upstream that is not gone; it has no commits of its
   own as of the last fetch; and, when another worktree has it checked out, that worktree's folder is there and it has
   no file not committed. It is offered however far behind the last fetch says it is: the fetch finds out.
@@ -516,6 +618,10 @@ Acceptance:
 - [ ] A branch checked out in another worktree with a file not committed has no such entry.
 - [ ] When the remote branch was force-pushed since the last fetch, git's refusal is shown and the branch has not
       moved.
+- [ ] Extension: **Fast-forward to up/main** on `feature` runs `git fetch up refs/heads/main:refs/heads/feature` in the
+      engine, and the branch checked out, `HEAD` and the files are as they were.
+- [ ] Extension: with a clean worktree on `feature`, it runs `git -C <worktree> pull --ff-only --no-rebase
+      --no-autostash up refs/heads/main`.
 
 ### `branch.pane` — The branch rail, its buttons and its comparison
 
@@ -574,6 +680,10 @@ Puts a tag on a commit: a lightweight one, or an annotated one with a message.
 - **Kind**: Operation
 - **Function**: `features::tag::create(context, answers) -> Outcome`
 - **Entry points**: **Create tag here…** in the context menu of a commit in the timeline, narrowed or not.
+- **Extension**: **Create tag here…** in the context menu of a commit in the graph and in the Commits view. Each sends
+  `feature/run` of `tag.create` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`,
+  `engineRuns` in `src/engine/actions.ts`), with the commit as its target; the name and the message are asked in input
+  boxes. When the engine's binary is missing, `createTagOp` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Asks**:
   1. The name, in an input box titled **Create tag** with the placeholder `v1.0.0`; checked by `branch.validate-name`
      and "A tag with that name already exists".
@@ -591,6 +701,9 @@ Acceptance:
 - [ ] Name `v1.0.0` and the message `First release` run `git tag -a v1.0.0 -m "First release" <hash>`, and the tag is
       dated when it was made.
 - [ ] Backing out of the message box runs nothing; leaving it empty and accepting makes a lightweight tag.
+- [ ] Extension: `v1` with the message `First release` runs `git tag -a v1 -m "First release" <hash>`, and the tag is
+      listed at that commit.
+- [ ] Extension: Escape on either input box runs nothing.
 
 ### `tag.push` — Push a tag
 
@@ -599,6 +712,10 @@ Sends a tag to the remote.
 - **Kind**: Operation
 - **Function**: `features::tag::push(context, answers) -> Outcome`
 - **Entry points**: **Push tag** in the context menu of a tag.
+- **Extension**: **Push tag** in the context menu of a tag, offered when the repository has a remote. Each sends
+  `feature/run` of `tag.push` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`,
+  `engineRuns` in `src/engine/actions.ts`), with the tag as its target. When the engine's binary is missing, `pushTagOp`
+  of `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: the repository has a remote.
 - **Plan**: `git push <remote> refs/tags/<name>`, where `<remote>` is the one of `remote.default`.
 - **Danger**: None.
@@ -611,6 +728,8 @@ Acceptance:
 - [ ] Pushing `v1.0.0` with remotes `upstream` and `origin` runs `git push origin refs/tags/v1.0.0`.
 - [ ] With the remotes `a` and `b` only, it pushes to `a`.
 - [ ] A repository with no remote has no **Push tag** entry.
+- [ ] Extension: **Push tag** on `v1` with the remotes `origin` and `backup` runs `git push origin refs/tags/v1`, and
+      the remote then has the tag.
 
 ### `tag.delete` — Delete a tag
 
@@ -619,6 +738,10 @@ Deletes a tag from this repository; a remote that has it keeps it.
 - **Kind**: Operation
 - **Function**: `features::tag::delete(context, answers) -> Outcome`
 - **Entry points**: **Delete** in the context menu of a tag.
+- **Extension**: **Delete** in the context menu of a tag. Each sends `feature/run` of `tag.delete` to Gitardo's engine
+  (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), with the tag as
+  its target; the warning is a modal dialog. When the engine's binary is missing, `deleteTagOp` of `src/git/ops.ts` runs
+  in its place, as before (D49).
 - **Plan**: `git tag -d <name>`.
 - **Danger**: Destructive, because the tag and its message, if it has one, are gone from this repository: "The tag, on
   `<short hash>`, is deleted from this repository, with its message if it has one. A remote that has it keeps it."
@@ -628,6 +751,8 @@ Acceptance:
 
 - [ ] Deleting `v1.0.0` asks, also with `commandPreview` set to `off`, then runs `git tag -d v1.0.0`.
 - [ ] The tag is still on the remote after: no push runs.
+- [ ] Extension: **Delete** on `to-delete` asks **Delete tag to-delete?** as a warning, whose detail says **A remote
+      that has it keeps it.**, and the tag is gone once it runs.
 
 ### `tag.checkout` — Check out a tag
 
@@ -636,6 +761,10 @@ Checks out the commit of a tag on a detached `HEAD`.
 - **Kind**: Operation
 - **Function**: `features::tag::checkout(context, answers) -> Outcome`
 - **Entry points**: **Check out tag (detached)** in the context menu of a tag.
+- **Extension**: **Check out tag (detached)** in the context menu of a tag. Each sends `feature/run` of `tag.checkout`
+  to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
+  `src/engine/actions.ts`), with the tag as its target. When the engine's binary is missing, `checkoutOp('detached',
+  ref)` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: the commit of the tag is not the one checked out.
 - **Plan**: `git checkout --detach <tag>`, the tag as `branch.ref-argument` names it, then the update of the submodules
   (`submodule.update-on-checkout`).
@@ -648,6 +777,8 @@ Acceptance:
 - [ ] Checking out `v1.0.0` runs `git checkout --detach v1.0.0`; with a branch also called `v1.0.0`,
       `git checkout --detach refs/tags/v1.0.0`.
 - [ ] A tag on the commit checked out has no such entry.
+- [ ] Extension: **Check out tag (detached)** on `v1` runs `git checkout --detach v1`; with a branch also called `v1`,
+      `git checkout --detach refs/tags/v1`.
 
 ### `remote.read-remotes` — Read the remotes
 
@@ -684,6 +815,12 @@ another.
 - **Kind**: Operation
 - **Function**: `features::remote::manage(context, answers) -> Outcome`
 - **Entry points**: **Manage remotes** in Quick search; **Manage remotes…** in the **…** menu of the header.
+- **Extension**: **Gitardo: Manage Remotes** in the Command Palette and in the **…** of the Branches view; **Manage
+  remotes…** in the **…** menu of the toolbar of the graph. Each sends `feature/run` of `remote.manage` to Gitardo's
+  engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.manageRemotes`); its picks
+  are quick picks, the remotes searched by name and URL. Once something ran, the remote that pull requests are read from
+  is found again (`Controller.detectGitHub`). When the engine's binary is missing, `Controller.manageRemotes` asks the
+  same in TypeScript, as before (D49).
 - **Reads**: `remote.read-remotes`.
 - **Asks**:
   1. A pick titled **Remotes of `<repository>`**, with the placeholder **Pick a remote to fetch, rename, repoint or
@@ -708,12 +845,17 @@ Acceptance:
 - [ ] **Copy URL** on `origin` puts its URL on the clipboard and logs nothing.
 - [ ] Typing `github` in the first pick finds a remote by its URL.
 - [ ] Renaming `origin` to `github` and back makes the pull requests be read again from the right repository.
+- [ ] Extension: **Gitardo: Manage Remotes**, **Add remote…**, `backup` and `https://example.invalid/backup.git` run
+      `git remote add backup https://example.invalid/backup.git`, and the log has it.
+- [ ] Extension: picking `backup`, **Rename…** and `mirror` renames it; **Remove** on `mirror` asks **Remove remote
+      mirror?** as a warning.
 
 ### `remote.fetch` — Fetch one remote
 
 - **Kind**: Operation
 - **Function**: `features::remote::fetch(context, answers) -> Outcome`
 - **Entry points**: **Fetch** in the pick of `remote.manage`.
+- **Extension**: in the pick of **Gitardo: Manage Remotes**, run by the engine with it.
 - **Plan**: `git fetch --prune <name>`.
 - **Danger**: None.
 - **Undo**: Impossible: a fetch only moves the remote-tracking branches, which Undo does not take back.
@@ -722,12 +864,14 @@ Acceptance:
 
 - [ ] Fetching `upstream` runs `git fetch --prune upstream`, and its branches deleted on the remote are gone from the
       branch rail after.
+- [ ] Extension: **Fetch** on `upstream` runs `git fetch --prune upstream`, and the log has it.
 
 ### `remote.set-url` — Change the URL of a remote
 
 - **Kind**: Operation
 - **Function**: `features::remote::set_url(context, answers) -> Outcome`
 - **Entry points**: **Change URL…** in the pick of `remote.manage`.
+- **Extension**: in the pick of **Gitardo: Manage Remotes**, run by the engine with it.
 - **Asks**: the URL, in an input box titled **Change the URL of `<name>`** with the prompt **URL of the remote
   repository**, starting from the one it has; it cannot be empty or start with `-`: "Enter a URL", "That is not a URL".
 - **Plan**: `git remote set-url <name> <url>`, the URL without the spaces around it. Nothing runs when it is unchanged.
@@ -744,6 +888,7 @@ Acceptance:
 - **Kind**: Operation
 - **Function**: `features::remote::rename(context, answers) -> Outcome`
 - **Entry points**: **Rename…** in the pick of `remote.manage`.
+- **Extension**: in the pick of **Gitardo: Manage Remotes**, run by the engine with it.
 - **Asks**: the new name, in an input box titled **Rename remote `<name>`**, starting from the name it has; checked by
   `branch.validate-name` and "A remote with that name already exists", its own name excepted.
 - **Plan**: `git remote rename <old> <new>`. Nothing runs when it is unchanged.
@@ -763,6 +908,7 @@ Acceptance:
 - **Kind**: Operation
 - **Function**: `features::remote::remove(context, answers) -> Outcome`
 - **Entry points**: **Remove** in the pick of `remote.manage`.
+- **Extension**: in the pick of **Gitardo: Manage Remotes**, run by the engine with it.
 - **Plan**: `git remote remove <name>`.
 - **Danger**: Destructive, because "Its remote-tracking branches (`<name>`/…) are deleted from this repository, and
   local branches that follow them lose their upstream. Nothing changes on the remote itself."
@@ -772,6 +918,7 @@ Acceptance:
 
 - [ ] Removing `upstream` asks, also with `commandPreview` set to `off`, then runs `git remote remove upstream`.
 - [ ] A local branch that followed `upstream/main` has no upstream after.
+- [ ] Extension: run, the repository has no remote `mirror`, and a branch that followed it has no upstream.
 
 ### `remote.add` — Add a remote
 
@@ -779,6 +926,11 @@ Acceptance:
 - **Function**: `features::remote::add(context, answers) -> Outcome`
 - **Entry points**: **Add remote…** in the pick of `remote.manage`; **Add remote…** on the warning "This repository has
   no remote.", which fetch, pull and push show in a repository without any remote instead of failing.
+- **Extension**: **Add remote…** in the pick of **Gitardo: Manage Remotes**; **Add remote…** on the warning that the
+  repository has no remote, after a fetch, a pull, a push or **Sync**. Each sends `feature/run` of `remote.add` to
+  Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.manageRemotes`);
+  the name and URL are asked in input boxes. When the engine's binary is missing, `remoteAddOp` of `src/git/ops.ts` runs
+  in its place, as before (D49).
 - **Asks**:
   1. The name, in an input box titled **Add remote** with the prompt **Name of the remote**, starting from `origin`
      when the repository has no remote and empty otherwise; checked by `branch.validate-name` and "A remote with that
@@ -799,6 +951,8 @@ Acceptance:
       `git remote add origin https://github.com/owner/app.git`, and **Load pull requests from GitHub** is then in the
       **…** menu.
 - [ ] A URL that starts with `-` cannot be accepted.
+- [ ] Extension: in a repository without a remote, **Push** runs nothing and warns **This repository has no remote.**
+      with **Add remote…**, which asks the name with `origin` filled in.
 
 ### `remote.delete-branch` — Delete a branch from its remote
 
@@ -808,8 +962,14 @@ Deletes a branch on the remote, for everyone.
 - **Function**: `features::remote::delete_branch(context, answers) -> Outcome`
 - **Entry points**: **Delete from remote** in the context menu of a remote branch; **Delete `<branch>` from `<remote>`**
   at the end of the menu of a label that a branch shares with its upstream in the timeline (`graph.labels`).
+- **Extension**: **Delete from remote** in the context menu of a remote branch; **Delete `<branch>` from `<remote>`**
+  under the entries of a branch whose label in the graph stands for its upstream too (`gitardo.graph.combineUpstream`).
+  Each sends `feature/run` of `remote.delete-branch` to Gitardo's engine (`Controller.runOnEngine` in
+  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), with the remote branch as its target. When
+  the engine's binary is missing, `deleteRemoteBranchOp` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Plan**: `git push <remote> --delete <branch>`. The remote is the longest name among the remotes that the remote
-  branch starts with followed by `/`; the branch is the rest.
+  branch starts with followed by `/`; the branch is the rest, named `refs/heads/<branch>` when a tag has its name,
+  since the remote would find the short name ambiguous and refuse the push.
 - **Danger**: Destructive, because "This deletes the branch on the remote for everyone."
 - **Undo**: Impossible: a push changes the remote, which Undo does not take back.
 - **Refuses**: "Cannot tell which remote `<name>` belongs to." when no remote matches.
@@ -820,6 +980,10 @@ Acceptance:
 - [ ] On `origin/feature/login` it asks, also with `commandPreview` set to `off`, then runs
       `git push origin --delete feature/login`, and `origin/feature/login` is gone after.
 - [ ] With remotes `a` and `a/b`, deleting `a/b/x` runs `git push a/b --delete x`.
+- [ ] With a tag `release`, deleting `origin/release` runs `git push origin --delete refs/heads/release`, and the tag is
+      still on the remote after.
+- [ ] Extension: **Delete from remote** on `origin/release`, whose repository has a tag `release`, runs `git push origin
+      --delete refs/heads/release` after the warning, and the remote keeps its tag.
 
 ### `sync.fetch` — Fetch
 
@@ -829,6 +993,12 @@ Brings what every remote has, and forgets the remote branches deleted there.
 - **Function**: `features::sync::fetch(context, answers) -> Outcome`
 - **Entry points**: **Fetch** in the menu of **Sync** in the header, whose tooltip is **Fetch: git fetch --all
   --prune**; **Fetch** in Quick search. **Sync** fetches first too (`sync.sync`).
+- **Extension**: **Fetch** in the toolbar of the graph (tooltip **Fetch: git fetch --all --prune**); **Gitardo: Fetch**
+  in the Command Palette and as a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run`
+  of `sync.fetch` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
+  `src/engine/actions.ts`) through `Controller.sync` and `syncRuns`; the pull requests are read again after it
+  (`readPullRequests`). When the engine's binary is missing, `syncOp('fetch', state)` of `src/git/ops.ts` runs in its
+  place, as before (D49).
 - **Plan**: `git fetch --all --prune`.
 - **Danger**: None.
 - **Undo**: Impossible: a fetch only moves the remote-tracking branches, which Undo does not take back.
@@ -842,6 +1012,8 @@ Acceptance:
 - [ ] **Fetch** runs `git fetch --all --prune`, and a branch deleted on the remote is gone from the remote branches
       after.
 - [ ] The ahead and behind counts of the branches are those of the new remote branches after.
+- [ ] Extension: **Fetch** runs `git fetch --all --prune` in the engine, and the log has it.
+- [ ] Extension: in a repository without a remote, nothing runs and the warning offers **Add remote…**.
 
 ### `sync.pull` — Pull
 
@@ -852,6 +1024,14 @@ Brings what the upstream has into the branch checked out, the way the settings c
 - **Entry points**: **Pull** in the menu of **Sync** in the header, which has the number of commits to pull when there
   are some, and whose tooltip says the command it runs, **Pull: git pull --rebase --autostash**; **Pull** in Quick
   search. **Sync** pulls the same way after its fetch (`sync.sync`).
+- **Extension**: **Pull** in the toolbar of the graph, with the number of commits the branch is behind, its tooltip the
+  command the settings make, as **Pull: git pull --rebase --autostash**; **Gitardo: Pull** in the Command Palette and as
+  a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run` of `sync.pull` to Gitardo's
+  engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`) through
+  `Controller.sync` and `syncRuns`. The settings are `gitardo.pull.rebase` and `gitardo.pull.autostash`. The warning
+  that the changes set aside do not fit on what came in, with **Show Stashes**, is said by the extension from the
+  stashes read after the pull (`Controller.afterSync`), on both paths. When the engine's binary is missing,
+  `syncOp(action, state)` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Plan**: `git pull`, with `--rebase` when `pull.rebase` is on and `--autostash` when `pull.autostash` is on:
   `git pull --rebase --autostash` with both on, as they are by default.
 - **Danger**: None.
@@ -874,6 +1054,10 @@ Acceptance:
 - [ ] With a file modified and the upstream ahead on other files, the pull succeeds and the file is still modified
       after; untracked files are not touched.
 - [ ] Undo right after a pull that brought commits moves the branch back to where it was.
+- [ ] Extension: with both settings on, **Pull** runs `git pull --rebase --autostash`; `gitardo.pull.rebase` `false`,
+      `git pull --autostash`; both `false`, `git pull`.
+- [ ] Extension: with a change where the pull changes the file too, **Pull (rebase, autostash)** leaves the file in
+      conflict, a stash named `autostash`, and the warning with **Show Stashes**.
 
 ### `sync.pull-with` — Pull one way or another
 
@@ -885,6 +1069,12 @@ Pulls in one of the four ways, whatever the settings say **Pull** does.
   **Pull (rebase)** (`git pull --rebase`), **Pull (autostash)** (`git pull --autostash`) and **Pull (rebase,
   autostash)** (`git pull --rebase --autostash`), the one of **Pull** marked **default**; in Quick search, **Pull (no
   options)**, which is `git pull` alone, **Pull (rebase)**, **Pull (autostash)** and **Pull (rebase, autostash)**.
+- **Extension**: the menu **More pull options** beside **Pull** in the toolbar: **Pull**, **Pull (rebase)**, **Pull
+  (autostash)**, **Pull (rebase, autostash)**, the one of the button marked **default**; **Gitardo: Pull (No Options)**,
+  **Gitardo: Pull (Rebase)**, **Gitardo: Pull (Autostash)** and **Gitardo: Pull (Rebase, Autostash)** in the Command
+  Palette and in the **…** of the Commits and Gitardo Graph views. Each other than the way of the button sends
+  `feature/run` of `sync.pull-with` with its way as the answer `way` (`syncRuns` in `src/engine/actions.ts`). When the
+  engine's binary is missing, `syncOp(action, state)` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Plan**: the command of the way chosen.
 - **Danger**: None.
 - **Undo**: By the reflog, as `sync.pull`.
@@ -897,6 +1087,9 @@ Acceptance:
 
 - [ ] **Pull (no options)** runs `git pull` even with `pull.rebase` and `pull.autostash` on.
 - [ ] With `pull.rebase` off, the menu marks **Pull (autostash)** as the default.
+- [ ] Extension: **Gitardo: Pull (No Options)** runs `git pull` whatever the settings.
+- [ ] Extension: the menu beside the button lists the four ways in that order, with **default** on the one of the
+      button.
 
 ### `sync.push` — Push
 
@@ -908,6 +1101,14 @@ upstream.
 - **Entry points**: **Push** in the menu of **Sync** in the header, which has the number of commits to push when there
   are some, and whose tooltip is **Push: git push**; **Push** in Quick search. **Sync** pushes the same way after its
   pull (`sync.sync`).
+- **Extension**: **Push** in the toolbar of the graph (tooltip **Push: git push**), with the number of commits the
+  branch is ahead; **Push** in the menu **More push options** beside it, marked **default**; **Gitardo: Push** in the
+  Command Palette and as a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run` of
+  `sync.push` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
+  `src/engine/actions.ts`) through `Controller.sync`. After the first push of a branch, when the main remote is on
+  GitHub and the branch has no pull request, **Pushed `<branch>`.** offers **Create Pull Request**
+  (`Controller.afterSync`). When the engine's binary is missing, `syncOp('push', state)` of `src/git/ops.ts` runs in its
+  place, as before (D49).
 - **Plan**:
   - With an upstream of the same name: `git push <remote> <branch>`.
   - With an upstream of another name: `git push <remote> <branch>:<upstream branch>`.
@@ -930,6 +1131,9 @@ Acceptance:
       `origin/feature` after.
 - [ ] `release` with a tag `release` runs `git push origin refs/heads/release`.
 - [ ] On a detached `HEAD` nothing runs and the message says why.
+- [ ] Extension: `work` with no upstream pushes with `git push --set-upstream origin work`, and afterwards follows
+      `origin/work`.
+- [ ] Extension: on a detached `HEAD` nothing runs and the error says **HEAD is detached**.
 
 ### `sync.sync` — Sync with the upstream
 
@@ -941,6 +1145,12 @@ counts on **Sync** promise.
 - **Entry points**: a click on **Sync** in the header (`graph.toolbar`), which shows beforehand the commits to pull and
   to push as of the last fetch, `↓2 ↑1`, and whose tooltip is **Sync: git fetch, git pull, git push**; **Sync** in
   Quick search. **Fetch**, **Pull** and its other ways, **Push** and its other ways stay in the menu of **Sync**.
+- **Extension**: **Sync: fetch, pull, push** in the menu **More push options** beside **Push** in the toolbar of the
+  graph; **Gitardo: Sync** (`gitardo.sync`) in the Command Palette and in the **…** of the Commits and Gitardo Graph
+  views. Each sends `feature/run` of `sync.sync` to Gitardo's engine (`Controller.runOnEngine` in
+  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`) through `Controller.sync` and `syncRuns`. It
+  has no TypeScript operation: when the engine's binary is missing, it says that Sync needs the engine, and that Fetch,
+  Pull and Push work, and runs nothing.
 - **Asks**: when the branch has no upstream, a confirmation, "`<branch>` has no upstream. Publish it to `<remote>`?",
   with **Publish branch**, `<remote>` being the one of `remote.default`.
 - **Plan**, in this order:
@@ -987,6 +1197,11 @@ Acceptance:
 - [ ] On a detached `HEAD` nothing runs and the message says why.
 - [ ] Undo right after a sync that pulled two commits and pushed one moves `main` back to where it was before the pull;
       the remote branch stays where the push put it.
+- [ ] Extension: with `main` 1 commit behind and 1 ahead of `origin/main`, **Gitardo: Sync** runs `git fetch --all
+      --prune`, `git pull --rebase --autostash` and `git push origin main`, and `main` is then neither ahead nor behind.
+- [ ] Extension: on a branch with no upstream it asks whether to publish it, and runs `git push --set-upstream origin
+      <branch>`.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, it runs nothing and says that it needs the engine.
 
 ### `sync.read-overwritten` — Read what a force push would overwrite
 
@@ -1012,6 +1227,12 @@ Replaces the remote branch with the branch checked out, unless the remote branch
 - **Function**: `features::sync::push_force_with_lease(context, answers) -> Outcome`
 - **Entry points**: **Push (force with lease)** among the other ways to push, in the menu of **Sync**, and in Quick
   search.
+- **Extension**: **Push (force with lease)** in the menu **More push options** beside **Push** in the toolbar;
+  **Gitardo: Push (Force with Lease)** in the Command Palette and in the **…** of the Commits and Gitardo Graph views.
+  Each sends `feature/run` of `sync.push-force-with-lease` to Gitardo's engine (`Controller.runOnEngine` in
+  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`); the warning is a modal dialog. When the
+  engine's binary is missing, `syncOp('pushForceWithLease', state)` of `src/git/ops.ts` runs in its place, as before
+  (D49).
 - **Reads**: `sync.read-overwritten`, when the branch has an upstream that is not gone.
 - **Plan**: `git push --force-with-lease <remote> <branch>`, with `:<upstream branch>` and `--set-upstream` as for
   `sync.push`.
@@ -1031,6 +1252,10 @@ Acceptance:
 - [ ] After a rebase of a pushed branch, it asks with the list of the commits the remote has and the branch has not,
       also with `commandPreview` set to `off`, then runs `git push --force-with-lease origin <branch>`.
 - [ ] When someone pushed to the remote branch since the last fetch, git refuses and the remote branch is unchanged.
+- [ ] Extension: after the last commit was amended, it asks once, with a warning, whatever `gitardo.commandPreview`
+      says; the detail says **will be overwritten:** followed by the hash and subject of the commit as it was, and ends
+      with `git push --force-with-lease origin main`.
+- [ ] Extension: cancelling runs nothing; **Run** pushes and the branch is then neither ahead nor behind its upstream.
 
 ### `sync.push-force` — Push with `--force`
 
@@ -1039,6 +1264,11 @@ Replaces the remote branch with the branch checked out, whatever it has.
 - **Kind**: Operation
 - **Function**: `features::sync::push_force(context, answers) -> Outcome`
 - **Entry points**: **Push (force)** among the other ways to push, in the menu of **Sync**, and in Quick search.
+- **Extension**: **Push (force)** in the menu **More push options** beside **Push** in the toolbar; **Gitardo: Push
+  (Force)** in the Command Palette and in the **…** of the Commits and Gitardo Graph views. Each sends `feature/run` of
+  `sync.push-force` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
+  `src/engine/actions.ts`). When the engine's binary is missing, `syncOp('pushForce', state)` of `src/git/ops.ts` runs
+  in its place, as before (D49).
 - **Reads**: `sync.read-overwritten`, when the branch has an upstream that is not gone.
 - **Plan**: `git push --force <remote> <branch>`, with `:<upstream branch>` and `--set-upstream` as for `sync.push`.
 - **Danger**: Destructive, because the commits only the remote branch has are lost for everyone; the warning lists them
@@ -1052,3 +1282,5 @@ Acceptance:
 
 - [ ] It asks with the list of the commits that will be overwritten, then runs `git push --force origin <branch>`.
 - [ ] With 12 commits only on the remote, the warning lists 10 and "…and more".
+- [ ] Extension: **Push (force)** on a branch without an upstream runs `git push --force --set-upstream origin
+      <branch>`.

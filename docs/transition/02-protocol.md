@@ -6,10 +6,20 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.2** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.3** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. The rest is not built yet.
+
+Version 1.3 adds what area 2 of stage 4 (branches, tags, remotes) needed to offer an operation after git refused one:
+the follow-up `offerRun { label, feature, target: Target, answers: Record<string, Answer> }`, sent after a plan and in
+`data.followUps` of `stepFailed`, and the answer `{ kind: "flag", value: boolean }`, which only an `offerRun` carries,
+so that **Delete anyway** runs `branch.delete` told the branch is not merged. A `flag` given in `feature/run` is known
+from the first call, as the desktop's window gives what it knows, since no question asks it; the other answers given
+still answer their questions when asked. An `offerRun` whose target or one of whose answers has no JSON yet is not
+sent, since it would run otherwise than offered. The extension shows its `label` as a button on the message and, when
+it is clicked, sends `feature/run` with that `feature`, `target` and `answers`. The data of an error is written in camel
+case, `followUps`, as this page always said; before 1.3 the server wrote `follow_ups`.
 
 ## Transport
 
@@ -69,7 +79,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.2",
+  protocol: "1.3",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -337,8 +347,8 @@ the follow-ups that are the host's to carry out, in their order. The engine keep
 object with a `kind` and the fields of its variant. Stage 2 sends `say`, `selectHead`, `selectCommit`,
 `selectBeforeHead`, `openCommitPage`, `emptyCommitMessage`, `preparedMessage`, `fillCommitMessage`,
 `readPullRequests`, `offer`, `copyToClipboard`, `openUrl`, `openReview`, `closeMergePage`, `openWindow`, `showFolder`,
-`rememberInputs` and `editFile` (`crates/protocol/src/feature/follow_up.rs`); the others are sent from the stage that
-moves their features.
+`rememberInputs` and `editFile` (`crates/protocol/src/feature/follow_up.rs`); version 1.3 adds `offerRun`; the others
+are sent from the stage that moves their features.
 
 | `FollowUp` | Carried out by | In the extension |
 | --- | --- | --- |
@@ -497,8 +507,9 @@ The fields are those of `model`; this section says only what the JSON adds or le
   `{ kind: "worktreeName", branches, emptyName, worktrees, beside, takenFolders }`, `{ kind: "pattern", pattern }`.
   **`FileQuestion`**: `{ folder: string | null, fileName: string | null, filters: { name, extensions }[] }`.
 - **`Answer`** (`model/src/contract/answers.rs`): only the kinds a person gives travel to the engine: `text`,
-  `choice`, `choices`, `confirmed`, `path`. The other kinds are answers of the engine's own queries and never cross,
-  except in `answers` of an `OfferedRun`, which the extension sends back as it received them.
+  `choice`, `choices`, `confirmed`, `path`, and `flag { value }` (1.3) in the `answers` of an `offerRun`, which the
+  extension sends back as it received them. The other kinds are answers of the engine's own queries and never cross;
+  an `offerRun` that would need one is not sent.
 - **`Plan`** (`model/src/contract/plan.rs`): `{ title, steps: Step[], danger: "none" | { kind: "confirm", reason } |
   { kind: "destructive", reason }, undo: "byReflog" | { kind: "impossible", reason } | { kind: "journal" } | {
   kind: "takesBack", number }, after: FollowUp[] }`. The `UndoRecord` of `journal` stays in the engine.

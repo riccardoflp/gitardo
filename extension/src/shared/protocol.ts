@@ -339,7 +339,9 @@ export type SyncAction =
   | 'pullRebaseAutostash'
   | 'push'
   | 'pushForceWithLease'
-  | 'pushForce';
+  | 'pushForce'
+  /** Fetch, the pull of the settings, and the push when the branch is ahead, in one click: only with the engine. */
+  | 'sync';
 
 /** The ways to pull. */
 export type PullAction = Extract<SyncAction, `pull${string}`>;
