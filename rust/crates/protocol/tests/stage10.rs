@@ -84,7 +84,10 @@ fn a_change_of_a_diff_is_read_with_its_sides_lines_and_text() {
     let Target::DiffChange(change) = Target::try_from(target).unwrap() else {
         panic!("not a change of a diff");
     };
-    assert_eq!((change.left.clone(), change.right.clone()), (DiffSide::Head, DiffSide::WorkingTree));
+    assert_eq!(
+        (change.left.clone(), change.right.clone()),
+        (DiffSide::Head, DiffSide::WorkingTree)
+    );
     assert_eq!((change.left_lines.clone(), change.right_lines.clone()), (2..3, 2..4));
     assert_eq!(change.right_text, ["new", "more"]);
     let commit: TargetJson = serde_json::from_value(json!({

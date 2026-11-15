@@ -194,7 +194,9 @@ impl TryFrom<TargetJson> for Target {
                 mode: mode.into(),
                 path,
                 merge_base: merge_base.as_deref().map(commit).transpose()?,
-                part: file.as_ref().map_or(ComparisonPart::Whole, |file| ComparisonPart::File(file.into())),
+                part: file
+                    .as_ref()
+                    .map_or(ComparisonPart::Whole, |file| ComparisonPart::File(file.into())),
             })),
             TargetJson::DiffChange(change) => Target::DiffChange(Box::new(change.try_into()?)),
         })

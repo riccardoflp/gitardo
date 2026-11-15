@@ -104,8 +104,8 @@ pub enum FollowUpJson {
         label: String,
         /// The feature it runs.
         feature: String,
-        /// What it runs on.
-        target: TargetJson,
+        /// What it runs on, boxed for it is the largest of the follow-ups by far.
+        target: Box<TargetJson>,
         /// The answers it is given before it asks, by their keys.
         answers: BTreeMap<String, AnswerJson>,
     },
@@ -137,7 +137,7 @@ fn offer_run(offered: &OfferedRun) -> Option<FollowUpJson> {
     Some(FollowUpJson::OfferRun {
         label: text_of(&offered.label),
         feature: offered.feature.0.to_owned(),
-        target: TargetJson::of(&offered.target)?,
+        target: Box::new(TargetJson::of(&offered.target)?),
         answers,
     })
 }

@@ -11,6 +11,7 @@ mod target;
 
 use std::collections::BTreeMap;
 
+pub use diff_change::{DiffChangeJson, DiffSideJson, LinesJson};
 pub use follow_up::FollowUpJson;
 pub use plan::{DangerJson, FinishedJson, OfferJson, PlanJson, StepJson, UndoJson, WentOnAfterJson};
 pub use question::{
@@ -20,7 +21,6 @@ pub use resolutions::{
     ConfidenceJson, FileResolutionsJson, MergeResultJson, ProposalJson, ProposalSourceJson, ResolutionChoiceJson,
     RuleCaseJson,
 };
-pub use diff_change::{DiffChangeJson, DiffSideJson, LinesJson};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 pub use target::{NotACommit, TargetJson};
