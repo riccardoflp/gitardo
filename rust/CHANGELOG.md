@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Go to commit** and the other places a name of a commit is typed find nothing for a place past the end of a
+  reflog, such as `stash@{3}` with two stashes, instead of failing.
 - **Undo** keeps up to 50 of Gitardo's operations, newest last, for as long as nothing moves `HEAD` from outside
   Gitardo, and undoing again takes back the one before. Right after an operation it cannot take back, a push, a fetch,
   a tag, a stash or a worktree, it says so instead of taking back the one before it; staging, saving or discarding

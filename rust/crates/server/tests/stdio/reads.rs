@@ -301,3 +301,32 @@ fn the_common_folder_and_the_message_git_prepared() {
     let message = result(&mut engine, &repository, "read/commit.prepared-message", Value::Null);
     assert_eq!(message["message"], json!("Squashed commit of feature"));
 }
+
+#[test]
+fn a_stash_past_the_last_and_a_place_past_the_end_of_the_reflog_are_null_not_errors() {
+    let repository = repository();
+    std::fs::write(repository.path().join("a.txt"), "edited\n").unwrap();
+    let _ = repository.git(&["stash", "push", "--quiet"]);
+    let mut engine = opened(&repository);
+    let first = result(
+        &mut engine,
+        &repository,
+        "read/details.read-commit",
+        json!({ "stash": 0 }),
+    );
+    assert_eq!(first["id"], json!(id(&repository, "stash@{0}")));
+    let past = result(
+        &mut engine,
+        &repository,
+        "read/details.read-commit",
+        json!({ "stash": 1 }),
+    );
+    assert_eq!(past, Value::Null);
+    let place = result(
+        &mut engine,
+        &repository,
+        "read/search.read-revision",
+        json!({ "revision": "HEAD@{99}" }),
+    );
+    assert_eq!(place["commit"], Value::Null);
+}

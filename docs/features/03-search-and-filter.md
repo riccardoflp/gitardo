@@ -251,7 +251,9 @@ The commit that a hash, a branch, a tag or anything else git understands stands 
 - **Uses**: by `search.go-to-hash`, `search.go-to-commit`, `commit-page.open`, `compare.choose`.
 
 Git answers with the full hash of the commit; with nothing for a name it does not know, for an abbreviated hash that
-starts more than one object, and for a name of something that is not a commit and does not lead to one.
+starts more than one object, and for a name of something that is not a commit and does not lead to one. For a place
+in a reflog past its end, such as `stash@{3}` with two stashes, git fails rather than saying nothing: that is no commit
+either.
 
 Acceptance:
 
@@ -259,6 +261,7 @@ Acceptance:
 - [ ] An annotated tag gives the commit it points at.
 - [ ] `--all` gives none and runs nothing.
 - [ ] The hash of a blob gives none.
+- [ ] `stash@{1}` with one stash and `HEAD@{99}` give none, not an error.
 
 ### `search.go-to-commit` — Go to commit…
 
