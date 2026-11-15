@@ -17,7 +17,7 @@ workspace.
   picker titled `Repository shown in Gitardo`.
 - **Offered when**: the workspace has two repositories or more; **Gitardo: Select Repository** also while the views
   show a worktree that is not in the workspace.
-- **Uses**: `worktree.show-here`, `repo.follow-source-control`.
+- **Uses**: `worktree.show-in-gitardo`, `repo.follow-source-control`.
 - **Implemented in**: `RepoSelect`, used by `Toolbar` (`src/webview/Toolbar.tsx`) and `ChangesApp`
   (`src/webview/ChangesApp.tsx`); `selectRepo`, `pickRepo` and `open` in `src/extension/controller.ts`. The choice is
   kept in the workspace state under `gitardo.repository`.
@@ -31,7 +31,7 @@ Acceptance:
 - [ ] Choosing another repository points the graph, the Changes view, the Commits view and the Branches view at it,
   and the next time the workspace opens, it is the one shown.
 - [ ] While the views show a worktree that is not in the workspace, the repository it is of stays chosen in the list;
-  the worktree is chosen with `worktree.select`.
+  the worktree is chosen with the branch in the toolbar of the graph (`worktree.show-in-gitardo`).
 - [ ] The list is disabled while an operation runs.
 
 ### `repo.follow-source-control` — Follow the Repositories view of VS Code
@@ -45,7 +45,7 @@ selected there too.
   Gitardo and `select` for Gitardo to the view; `Controller.followSourceControl(root)` and the event
   `Controller.onDidChooseRepo` in `src/extension/controller.ts`.
 - **Entry points**: a click on a repository in the Repositories view, or on the changes of one; whatever chooses the
-  repository shown in Gitardo (`repo.select`, `worktree.select`, `worktree.show-here`, `submodule.show-in-gitardo`,
+  repository shown in Gitardo (`repo.select`, `worktree.show-in-gitardo`, `submodule.show-in-gitardo`,
   **Show File History** of a file of another repository).
 - **Offered when**: VS Code's Git extension is enabled. Gitardo to the view, also only while
   `scm.repositories.selectionMode` is `single` and the view has the repositories of Git alone.
@@ -53,7 +53,7 @@ selected there too.
   its API; `scm.repositories.selectionMode`.
 - **Plan**: none in git. Selecting in the view runs the view's own command for the repository,
   `workbench.scm.action.toggleRepositoryVisibility.scm<n>`: VS Code gives extensions no other way to select there.
-- **Uses**: `repo.select`, `worktree.show-here`.
+- **Uses**: `repo.select`, `worktree.show-in-gitardo`.
 - **Implemented in**: `SourceControlSelection`, made and started in `activate` (`src/extension/extension.ts`);
   `followSourceControl`, `worktreeOwner` and `onDidChooseRepo` in `src/extension/controller.ts`.
 - **Tested by**: `test/e2e/suite.ts`, step "follows the repository selected in VS Code's Repositories view, selects
@@ -63,7 +63,7 @@ Acceptance:
 
 - [ ] Clicking a repository in the Repositories view, or its changes, shows it in Gitardo, whether the view lists one
   repository at a time or several.
-- [ ] A worktree the view lists, of a repository of the workspace, is shown as `worktree.show-here` shows it; a
+- [ ] A worktree the view lists, of a repository of the workspace, is shown as `worktree.show-in-gitardo` shows it; a
   repository that is neither in the workspace nor a worktree of one of its repositories is not followed.
 - [ ] A repository VS Code has just opened, onto which it may move Source Control on its own, is not followed for 1.5
   seconds; nor is anything before Gitardo has looked for the repositories of the workspace, so the view makes Gitardo

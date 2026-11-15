@@ -63,6 +63,14 @@ needs is written in the commit of that stage, not before.
 | [extension/02-architecture.md](../extension/02-architecture.md) | A step of the engine logged as the command of a `GitOp`. |
 | [extension/06-testing.md](../extension/06-testing.md) | The harness and the scenario test of an area; the e2e and UI suites with the engine and without. |
 
+## Written in stage 4, area 5 (worktrees and their setup, submodules)
+
+| Page | Change |
+| --- | --- |
+| [features/12-worktrees.md](../features/12-worktrees.md), [13-submodules.md](../features/13-submodules.md) | The extension's cards of the area merged, each with its **Extension** line and acceptance lines; `features/extension/12` and `13` emptied, and the identifiers of the area in `features/extension/18-settings.md` and `01-repositories.md` changed to the desktop's. |
+| [transition/02-protocol.md](02-protocol.md) | Version 1.3: the follow-up `offerRun` with its target and answers, a `confirmed` answer read by a feature that never asks it, `followUps` in the data of `stepFailed` as it was always written here. |
+| [transition/04-differences.md](04-differences.md) | W1–W3, W9, W10, S3, S4 and S6 fixed; W4 and W5 decided as recommended, to be confirmed; W6–W8, S1 and S5 in the CHANGELOG; W11 left to D7; W12 waiting for `WriteSetting` (Q399). |
+
 ## Waiting for a stage
 
 | Rule | Stage | What |

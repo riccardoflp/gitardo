@@ -650,6 +650,9 @@ Four things cut across areas and are best decided once:
 - **Verdict**: **Bug (engine)**. The code does less than its own card; a team format such as
   `PRJ-${input:ticket}-${base}` would silently stop being offered for worktrees. Fix by asking through
   `branch.name-from-format`, as the card says.
+- **Fixed in stage 4** (area 5): the three features that make a worktree ask the format through
+  `branch.name-from-format`, its inputs after the start, and keep them (`features/worktree/names.rs`, `formatted`), with
+  a test each.
 
 ### W2. The `${base}` picker of a worktree at a commit lacks the branches that contain it
 
@@ -661,6 +664,8 @@ Four things cut across areas and are best decided once:
   (`docs/features/12-worktrees.md:170-173`).
 - **Verdict**: **Bug (engine)**: the code is behind its card. Add the `branch::read_containing` read (map row 2a
   `branchesContaining`).
+- **Fixed in stage 4** (area 5): `${base}` of the commit read with `branch::read_containing`, the branches at the commit
+  first, then the short hash, then those that have it (`features/worktree/create_at_commit.rs`), with a test.
 
 ### W3. `${base}` for a worktree started from a detached HEAD
 
@@ -670,6 +675,8 @@ Four things cut across areas and are best decided once:
   (`features/worktree/create.rs:20`, `:44-45`, `:82`).
 - **Verdict**: **Bug (engine)**, minor: use the short hash of `HEAD` as `${base}`, as for a commit in
   `worktree.create-at-commit`.
+- **Fixed in stage 4** (area 5): the short hash of a detached `HEAD` is its `${base}` (`features/worktree/create.rs`,
+  `base_of_start`), with a test.
 
 ### W4. Where the settings of new worktrees are read and saved
 
@@ -688,6 +695,12 @@ Four things cut across areas and are best decided once:
   Recommendation: an engine option where the host supplies the settings in effect and the places to write them (the
   extension passing VS Code's configuration), so that `gitardo.worktrees.*` in VS Code settings keeps working. An engine
   option is needed.
+- **Decided in stage 4** (area 5), as recommended; to be confirmed by the maintainer. Through the settings rather than
+  a new method: with `host` `vscode`, the engine takes `worktrees.linkFolders`, `copyFiles` and `setupCommands` from the
+  settings the extension sends (`extension/src/engine/settings.ts`, with the `git.*` fallbacks) and reads no file
+  (`server/src/settings.rs`, `features/worktree_setup/files.rs`, `settings_given`). Writing them stays in the
+  extension, in VS Code's settings, until `WriteSetting` (Q399): under VS Code the engine refuses `worktree-setup.save`,
+  the Explorer's entries and the others that write its own files.
 
 ### W5. Who decides that the setup commands may run
 
@@ -698,6 +711,10 @@ Four things cut across areas and are best decided once:
   follow-up (`features/worktree_setup/new_worktree.rs:48-53`; `features/worktree/add.rs:89-93`).
 - **Verdict**: **Choice**. Recommendation: inside VS Code, let the host answer trust from workspace trust (an engine
   option, "trust given by the host"), so no second trust question appears; keep `trust.ask` for the desktop.
+- **Decided in stage 4** (area 5), as recommended; to be confirmed by the maintainer. With `trust` `vscode` the
+  engine takes the folder as trusted and asks nothing (`server/src/settings.rs`); with `host.terminal` it hands the
+  setup commands over in `waiting`, and the extension runs them in VS Code's terminals, which run nothing in a
+  workspace not trusted (`extension/src/extension/controller.ts`, `worktreeMade`).
 
 ### W6. Removing a worktree whose folder is gone
 
@@ -709,6 +726,7 @@ Four things cut across areas and are best decided once:
   (`features/worktree.rs:77-85`, used at `features/worktree/remove.rs:76-80`); it also refuses the main worktree itself
   (`remove.rs:81-85`), which the extension leaves to git.
 - **Verdict**: **CHANGELOG**: "Removing a worktree whose folder is gone now says to prune the worktrees instead."
+- **In the CHANGELOG** in stage 4 (area 5), with **Remove** run by the engine.
 
 ### W7. The forced removal after git refuses a worktree with changes
 
@@ -722,6 +740,9 @@ Four things cut across areas and are best decided once:
   (`features/submodule/deinitialize.rs:47`, `engine/src/drive.rs:447-460`): the engine is not consistent with itself.
 - **Verdict**: **CHANGELOG**: "When git refuses to remove a worktree with changes, the message now has a Remove anyway
   button instead of asking at once." Consider `OfferWhenFailed` here for consistency with deinitialize.
+- **In the CHANGELOG** in stage 4 (area 5). The engine offers **Remove anyway** on the failure, as it is: the
+  follow-up `offerRun` is now sent in the error's `data.followUps` (protocol 1.3), and the extension shows it as a
+  button beside **Show Log**. `submodule.deinitialize` keeps asking at once (`OfferWhenFailed`), as the extension did.
 
 ### W8. Folders left empty when the branch of a removed worktree is kept
 
@@ -733,6 +754,7 @@ Four things cut across areas and are best decided once:
   (`features/worktree/remove.rs:126-139`).
 - **Verdict**: **Bug (extension)**, fixed by the move. CHANGELOG: "A folder left empty by removing a worktree now goes even when its branch is kept for not
   being merged."
+- **Fixed in stage 4** (area 5), with **Remove** run by the engine; in the CHANGELOG.
 
 ### W9. Folders left empty when renaming a worktree and its branch fails half way
 
@@ -744,6 +766,8 @@ Four things cut across areas and are best decided once:
   failed step (`features/worktree/rename.rs:203-213`).
 - **Verdict**: **Bug (engine)**, present in both: put the empty-folder steps right after `git worktree move`, as
   `worktree.remove` does.
+- **Fixed in stage 4** (area 5): the empty folders go right after `git worktree move`, before `git branch -m`
+  (`features/worktree/rename.rs`), with a test.
 
 ### W10. A remote branch opened in a worktree is passed by its short name
 
@@ -754,6 +778,8 @@ Four things cut across areas and are best decided once:
 - **Engine**: passes `remote.to_owned()` as typed (`features/worktree/open_in_worktree.rs:46-55`), while
   `worktree.create` does use `ref_argument` for the same case (`features/worktree/create.rs:110-122`).
 - **Verdict**: **Bug (engine)**, minor: use `ref_argument(RefKind::RemoteBranch, …)` here too.
+- **Fixed in stage 4** (area 5): `ref_argument(RefKind::RemoteBranch, …)` (`features/worktree/open_in_worktree.rs`),
+  with a test.
 
 ### W11. Undo right after an operation that Undo does not take back
 
@@ -768,6 +794,7 @@ Four things cut across areas and are best decided once:
   it takes back the operation before, the same as the extension.
 - **Verdict**: **Merged into D7** (Bug (engine)), shared with the extension (promise 5). Cross-cutting, probably decided once in the
   Undo area: the journal could keep a "not undoable" marker that makes `undo.last` refuse or warn.
+- Left to the Undo area, as D7 says.
 
 ### W12. Saving what new worktrees get is now a logged plan
 
@@ -779,6 +806,8 @@ Four things cut across areas and are best decided once:
   `features/worktree_setup/give.rs:189-190`).
 - **Verdict**: **CHANGELOG**: "Saving what new worktrees get, from the page or the Explorer, now goes into the log of
   Gitardo." (Depends on W4 for where it is written.)
+- **Not moved in stage 4** (area 5): saving what new worktrees get stays in the extension, in VS Code's settings,
+  until `WriteSetting` (Q399, W4); the line goes into the CHANGELOG with that move.
 
 ## Submodules
 
@@ -794,6 +823,7 @@ Four things cut across areas and are best decided once:
   `engine/src/drive.rs:447-456`).
 - **Verdict**: **Bug (extension)**, fixed by the move. CHANGELOG: "Allowing a submodule to be cloned from a folder on
   disk now runs again only the commands that had not run."
+- **In the CHANGELOG** in stage 4 (area 5), with the submodule operations run by the engine.
 
 ### S2. No submodule update after creating and checking out a branch, or after a branch from a stash
 
@@ -822,6 +852,9 @@ Four things cut across areas and are best decided once:
   (`docs/features/13-submodules.md:288`, `:314-315`).
 - **Verdict**: **Bug (engine)**: extend `recover_held_folder` to `submodule deinit` and `rm` of a submodule. It matters
   most inside VS Code, whose Git extension watches the submodule folders.
+- **Fixed in stage 4** (area 5): `recover_held_folder` tries `git submodule deinit` and `git rm` again on Windows
+  while the folder is held, as it does `git worktree move` and `remove` (`model/src/worktree/held.rs`), with a test
+  each.
 
 ### S4. The folder of a new submodule is not a literal pathspec
 
@@ -831,6 +864,7 @@ Four things cut across areas and are best decided once:
 - **Engine**: passes the folder as typed (`features/submodule/add.rs:70`), although `submodule.rs` has `literal()` for
   the other submodule commands (`features/submodule.rs:123-130`).
 - **Verdict**: **Bug (engine)**, minor (rule R9.2): use `literal(folder)` in that step.
+- **Fixed in stage 4** (area 5): `literal(folder)` in the update step (`features/submodule/add.rs`), with a test.
 
 ### S5. Refusals added where there is nothing to do
 
@@ -845,6 +879,7 @@ Four things cut across areas and are best decided once:
   (`features/submodule/update_to_latest.rs`, via `initialized`, `features/submodule.rs` `initialized`).
 - **Verdict**: **CHANGELOG**: "Updating or staging a submodule that is already on its recorded commit now says so
   instead of running git; update a submodule before taking it to the latest of its branch."
+- **In the CHANGELOG** in stage 4 (area 5), with the submodule operations run by the engine.
 
 ### S6. A clone that cannot be deleted fails the removal of a submodule
 
@@ -856,6 +891,8 @@ Four things cut across areas and are best decided once:
   the log and stops nothing" (`docs/features/13-submodules.md:313-314`).
 - **Verdict**: **Bug (engine)**, minor: the plan reports a failure after the submodule was removed and staged. Make the
   delete a step that goes on after failing, as links and copies do.
+- **Fixed in stage 4** (area 5): the clone is deleted by a `Cleanup` follow-up, run once the plan succeeded, whose
+  failure is only said in the log (`features/submodule/remove.rs`), with a test.
 
 ### Host-only, noted
 

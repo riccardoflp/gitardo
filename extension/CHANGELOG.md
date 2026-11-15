@@ -17,6 +17,13 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - Before a stash is applied, files in conflict count as changes git refuses to touch, and no conflicts are predicted for a stash git will refuse.
 - At a commit, **Create branch** with a format asks for its inputs first and then what `${base}` is.
 - The questions and confirmations of the operations Gitardo's engine runs use the words of Gitardo's desktop: a name between backticks, as in **Create branch \`topic\`**, and a few titles worded otherwise, such as **Discard the changes of 2 files**.
+- Creating, removing, renaming and pruning worktrees, **Open in worktree**, bringing what git ignores into worktrees, and adding, updating, initializing, staging, deinitializing, removing and synchronizing submodules are run by Gitardo's engine when the extension has it, with the same commands as before, and without the engine as before. What new worktrees get still comes from `gitardo.worktrees.linkFolders`, `copyFiles` and `setupCommands`, and the setup commands still run in a terminal of this window, only in a trusted workspace.
+- Removing a worktree whose folder is gone now says to prune the worktrees instead.
+- When git refuses to remove a worktree with changes, the message now has a **Remove anyway** button instead of asking at once.
+- A folder left empty by removing a worktree now goes even when its branch is kept for not being merged, and one left empty by renaming a worktree goes even when renaming its branch fails.
+- Allowing a submodule to be cloned from a folder on disk now runs again only the commands that had not run.
+- Updating or staging a submodule that is already on its recorded commit now says so instead of running git; update a submodule before taking it to the latest of its branch.
+- Creating a worktree with `gitardo.branches.format` set asks for the inputs of the format after what the new branch starts from, and at a commit asks what `${base}` is among the branches at it, its short hash and the branches that have it; from a detached HEAD, `${base}` is its short hash.
 
 ## 0.11.0 - 2026-11-12
 

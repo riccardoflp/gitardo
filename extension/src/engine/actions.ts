@@ -6,6 +6,7 @@
  */
 
 import type { Action, RepoState } from '../shared/protocol';
+import { isHome } from '../shared/refs';
 import type { Answer, Target } from './messages';
 import { targetOf } from './target';
 
@@ -34,7 +35,10 @@ const text = (value: string): Answer => ({ kind: 'text', text: value });
  * The runs of the engine that take the place of an action, in order, each ended before the next starts; none when the
  * action is not one the engine runs yet.
  */
-export function engineRuns(action: Action, state: Pick<RepoState, 'branches' | 'remoteBranches' | 'tags'>): EngineRun[] | null {
+export function engineRuns(
+  action: Action,
+  state: Pick<RepoState, 'branches' | 'remoteBranches' | 'tags'> & Partial<Pick<RepoState, 'worktrees' | 'submodules' | 'home'>>,
+): EngineRun[] | null {
   switch (action.kind) {
     // Branches.
     case 'createBranch':
@@ -79,7 +83,54 @@ export function engineRuns(action: Action, state: Pick<RepoState, 'branches' | '
       return [{ feature, target: { kind: 'stash', index } }];
     }
 
+    // Worktrees and what new worktrees get, submodules (area 5). Opening a worktree or a submodule in a window, a
+    // terminal or the file manager stays VS Code's, and so does the folder of this window, which only the extension
+    // knows and refuses to remove or rename.
+    case 'worktreeAdd':
+      if (!action.ref) return [{ feature: 'worktree.create', target: { kind: 'head' } }];
+      return action.isBranch
+        ? [{ feature: 'worktree.create-from-branch', target: { kind: 'branch', name: action.ref } }]
+        : [{ feature: 'worktree.create-at-commit', target: { kind: 'commit', commit: action.ref } }];
+    case 'worktreeRemove': {
+      if (isHome(action.path, state)) return null;
+      const answers = action.deleteBranch === undefined ? undefined : { branch: choiceOf(action.deleteBranch ? 'delete' : 'keep') };
+      return [{ feature: 'worktree.remove', target: { kind: 'worktree', folder: action.path }, answers }];
+    }
+    case 'worktreeRename':
+      return isHome(action.path, state) ? null : [{ feature: 'worktree.rename', target: { kind: 'worktree', folder: action.path } }];
+    case 'worktreePrune':
+      return [{ feature: 'worktree.prune', target: { kind: 'head' } }];
+    case 'worktreeSetUp':
+      return action.path
+        ? [{ feature: 'worktree-setup.bring-into-worktree', target: { kind: 'worktree', folder: action.path } }]
+        : [{ feature: 'worktree-setup.bring-into-other-worktrees', target: { kind: 'head' } }];
+    case 'openInWorktree': {
+      // A branch with a worktree only opens it, where gitardo.worktrees.openIn says, the Agents window included.
+      const branch = action.remote ? null : action.name;
+      if (branch && state.worktrees?.some((worktree) => worktree.branch === branch && !worktree.current)) return null;
+      const target: Target = action.remote ? { kind: 'remoteBranch', name: action.name } : { kind: 'branch', name: action.name };
+      return [{ feature: 'worktree.open-in-worktree', target }];
+    }
+    case 'submoduleAdd':
+      return [{ feature: 'submodule.add', target: { kind: 'head' } }];
+    case 'submoduleUpdate': {
+      const submodule = state.submodules?.find((each) => each.path === action.path);
+      const feature = action.remote ? 'submodule.update-to-latest' : submodule && !submodule.head ? 'submodule.initialize' : 'submodule.update-to-recorded';
+      return [{ feature, target: { kind: 'submodule', path: action.path } }];
+    }
+    case 'submoduleRecord':
+      return [{ feature: 'submodule.stage-recorded', target: { kind: 'submodule', path: action.path } }];
+    case 'submoduleDeinit':
+      return [{ feature: 'submodule.deinitialize', target: { kind: 'submodule', path: action.path } }];
+    case 'submoduleRemove':
+      return [{ feature: 'submodule.remove', target: { kind: 'submodule', path: action.path } }];
+    case 'submoduleSync':
+      return [{ feature: 'submodule.sync-urls', target: { kind: 'head' } }];
+
     default:
       return null;
   }
 }
+
+/** The answer that picks a choice. */
+const choiceOf = (identifier: string): Answer => ({ kind: 'choice', identifier });

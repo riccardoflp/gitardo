@@ -55,7 +55,7 @@ export function worktreeLabel(dir: string, root: string | null): string {
 }
 
 /** The worktree that is the folder of this window, while the views show another worktree of its repository. */
-export function isHome(dir: string, state: RepoState): boolean {
+export function isHome(dir: string, state: { home?: RepoState['home'] }): boolean {
   const same = (path: string) => path.replace(/\\/g, '/').toLowerCase();
   return !!state.home && same(dir) === same(state.home.root);
 }

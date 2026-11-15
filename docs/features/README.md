@@ -386,9 +386,9 @@ earns it.
 | --- | --- | --- | --- | --- |
 | [`worktree.read-list`](12-worktrees.md#worktreeread-list--read-the-worktrees-and-how-they-stand) | Read the worktrees and how they stand | Read | Built | Built |
 | [`worktree.folder-path`](12-worktrees.md#worktreefolder-path--where-a-new-worktree-goes) | Where a new worktree goes | Derivation | Built | Built |
-| [`worktree.create`](12-worktrees.md#worktreecreate--create-a-worktree) | Create a worktree | Operation | Built | Differs (W1, W3) |
-| [`worktree.create-from-branch`](12-worktrees.md#worktreecreate-from-branch--put-a-branch-in-a-new-worktree) | Put a branch in a new worktree | Operation | Built | Differs (W1) |
-| [`worktree.create-at-commit`](12-worktrees.md#worktreecreate-at-commit--create-a-worktree-at-a-commit) | Create a worktree at a commit | Operation | Built | Differs (W1, W2) |
+| [`worktree.create`](12-worktrees.md#worktreecreate--create-a-worktree) | Create a worktree | Operation | Built | Built |
+| [`worktree.create-from-branch`](12-worktrees.md#worktreecreate-from-branch--put-a-branch-in-a-new-worktree) | Put a branch in a new worktree | Operation | Built | Built |
+| [`worktree.create-at-commit`](12-worktrees.md#worktreecreate-at-commit--create-a-worktree-at-a-commit) | Create a worktree at a commit | Operation | Built | Built |
 | [`worktree.section`](12-worktrees.md#worktreesection--the-worktrees-list) | The Worktrees list | View | Built | Built |
 | [`worktree.open`](12-worktrees.md#worktreeopen--open-a-worktree-where-the-settings-say) | Open a worktree where the settings say | Operation | Built | Built |
 | [`worktree.open-in-new-window`](12-worktrees.md#worktreeopen-in-new-window--open-a-worktree-in-a-new-window) | Open a worktree in a new window | Operation | Built | Built |
@@ -398,21 +398,21 @@ earns it.
 | [`worktree.show-in-graph`](12-worktrees.md#worktreeshow-in-graph--show-the-commit-of-a-worktree-in-the-timeline) | Show the commit of a worktree in the timeline | Operation | Built | Built |
 | [`worktree.show-in-gitardo`](12-worktrees.md#worktreeshow-in-gitardo--show-another-worktree-in-this-window) | Show another worktree in this window | Operation | Built | Built |
 | [`worktree.banner`](12-worktrees.md#worktreebanner--the-banner-of-a-worktree-shown-in-this-window) | The banner of a worktree shown in this window | View | Built | Built |
-| [`worktree.rename`](12-worktrees.md#worktreerename--rename-a-worktree) | Rename a worktree | Operation | Built | Differs (W9) |
+| [`worktree.rename`](12-worktrees.md#worktreerename--rename-a-worktree) | Rename a worktree | Operation | Built | Built |
 | [`worktree.copy-path`](12-worktrees.md#worktreecopy-path--copy-the-path-of-a-worktree) | Copy the path of a worktree | Operation | Built | Built |
-| [`worktree.remove`](12-worktrees.md#worktreeremove--remove-a-worktree) | Remove a worktree | Operation | Built | Differs (W6, W7, W8) |
+| [`worktree.remove`](12-worktrees.md#worktreeremove--remove-a-worktree) | Remove a worktree | Operation | Built | Built |
 | [`worktree.prune`](12-worktrees.md#worktreeprune--prune-missing-worktrees) | Prune missing worktrees | Operation | Built | Built |
 | [`worktree.read-folder-links`](12-worktrees.md#worktreeread-folder-links--read-the-links-to-folders-outside-a-worktree) | Read the links to folders outside a worktree | Read | Built | Built |
 | [`worktree.recover-held-folder`](12-worktrees.md#worktreerecover-held-folder--get-past-a-folder-that-windows-holds) | Get past a folder that Windows holds | Derivation | Built | Built |
 | [`worktree.remove-empty-folders`](12-worktrees.md#worktreeremove-empty-folders--leave-no-empty-folders-behind) | Leave no empty folders behind | Derivation | Built | Built |
 | [`worktree.branch-in-another-worktree`](12-worktrees.md#worktreebranch-in-another-worktree--the-branch-of-another-worktree) | The branch of another worktree | Derivation | Built | Built |
-| [`worktree.open-in-worktree`](12-worktrees.md#worktreeopen-in-worktree--open-a-branch-in-a-worktree-of-its-own) | Open a branch in a worktree of its own | Operation | Built | Differs (W10) |
+| [`worktree.open-in-worktree`](12-worktrees.md#worktreeopen-in-worktree--open-a-branch-in-a-worktree-of-its-own) | Open a branch in a worktree of its own | Operation | Built | Built |
 | [`worktree.switch`](12-worktrees.md#worktreeswitch--switch-worktree) | Switch worktree | Operation | Built | Built |
-| [`worktree-setup.settings-in-effect`](12-worktrees.md#worktree-setupsettings-in-effect--what-new-worktrees-get-as-set) | What new worktrees get, as set | Derivation | Built | Differs (W4) |
+| [`worktree-setup.settings-in-effect`](12-worktrees.md#worktree-setupsettings-in-effect--what-new-worktrees-get-as-set) | What new worktrees get, as set | Derivation | Built | Built |
 | [`worktree-setup.folders-to-link`](12-worktrees.md#worktree-setupfolders-to-link--the-folders-to-link) | The folders to link | Derivation | Built | Built |
 | [`worktree-setup.paths-to-copy`](12-worktrees.md#worktree-setuppaths-to-copy--the-files-and-folders-to-copy) | The files and folders to copy | Derivation | Built | Built |
-| [`worktree-setup.link-and-copy-steps`](12-worktrees.md#worktree-setuplink-and-copy-steps--linking-and-copying-into-a-new-worktree) | Linking and copying into a new worktree | Derivation | Built | Differs (W4) |
-| [`worktree-setup.command-steps`](12-worktrees.md#worktree-setupcommand-steps--commands-in-a-new-worktree) | Commands in a new worktree | Derivation | Built | Differs (W4, W5) |
+| [`worktree-setup.link-and-copy-steps`](12-worktrees.md#worktree-setuplink-and-copy-steps--linking-and-copying-into-a-new-worktree) | Linking and copying into a new worktree | Derivation | Built | Built |
+| [`worktree-setup.command-steps`](12-worktrees.md#worktree-setupcommand-steps--commands-in-a-new-worktree) | Commands in a new worktree | Derivation | Built | Built |
 | [`worktree-setup.read-ignored`](12-worktrees.md#worktree-setupread-ignored--read-what-git-ignores-with-its-size) | Read what git ignores, with its size | Read | Built | Built |
 | [`worktree-setup.propose`](12-worktrees.md#worktree-setuppropose--what-is-proposed-for-what-git-ignores) | What is proposed for what git ignores | Derivation | Built | Built |
 | [`worktree-setup.propose-commands`](12-worktrees.md#worktree-setuppropose-commands--commands-proposed-from-lock-files) | Commands proposed from lock files | Derivation | Built | Built |
@@ -427,8 +427,8 @@ earns it.
 | [`worktree-setup.stop-linking`](12-worktrees.md#worktree-setupstop-linking--stop-linking-a-folder-into-new-worktrees) | Stop linking a folder into new worktrees | Operation | Built | Differs (W4, W12) |
 | [`worktree-setup.stop-copying`](12-worktrees.md#worktree-setupstop-copying--stop-copying-into-new-worktrees) | Stop copying into new worktrees | Operation | Built | Differs (W4, W12) |
 | [`worktree-setup.explain-change`](12-worktrees.md#worktree-setupexplain-change--why-a-choice-from-the-files-page-changes-nothing) | Why a choice from the Files page changes nothing | Derivation | Built | Built |
-| [`worktree-setup.bring-into-worktree`](12-worktrees.md#worktree-setupbring-into-worktree--bring-ignored-files-into-a-worktree) | Bring ignored files into a worktree | Operation | Built | Differs (W4) |
-| [`worktree-setup.bring-into-other-worktrees`](12-worktrees.md#worktree-setupbring-into-other-worktrees--bring-ignored-files-into-the-other-worktrees) | Bring ignored files into the other worktrees | Operation | Built | Differs (W4) |
+| [`worktree-setup.bring-into-worktree`](12-worktrees.md#worktree-setupbring-into-worktree--bring-ignored-files-into-a-worktree) | Bring ignored files into a worktree | Operation | Built | Built |
+| [`worktree-setup.bring-into-other-worktrees`](12-worktrees.md#worktree-setupbring-into-other-worktrees--bring-ignored-files-into-the-other-worktrees) | Bring ignored files into the other worktrees | Operation | Built | Built |
 
 ## Submodules
 
@@ -441,18 +441,18 @@ earns it.
 | [`submodule.open-in-terminal`](13-submodules.md#submoduleopen-in-terminal--open-a-terminal-in-a-submodule) | Open a terminal in a submodule | Operation | Built | Built |
 | [`submodule.reveal`](13-submodules.md#submodulereveal--reveal-a-submodule-in-the-file-manager) | Reveal a submodule in the file manager | Operation | Built | Built |
 | [`submodule.show-in-gitardo`](13-submodules.md#submoduleshow-in-gitardo--show-a-submodule-in-this-window) | Show a submodule in this window | Operation | Built | Built |
-| [`submodule.update-to-recorded`](13-submodules.md#submoduleupdate-to-recorded--update-a-submodule-to-the-recorded-commit) | Update a submodule to the recorded commit | Operation | Built | Differs (S5) |
-| [`submodule.stage-recorded`](13-submodules.md#submodulestage-recorded--stage-the-commit-of-a-submodule-as-the-recorded-one) | Stage the commit of a submodule as the recorded one | Operation | Built | Differs (S5) |
-| [`submodule.update-to-latest`](13-submodules.md#submoduleupdate-to-latest--update-a-submodule-to-the-latest-of-its-branch) | Update a submodule to the latest of its branch | Operation | Built | Differs (S5) |
+| [`submodule.update-to-recorded`](13-submodules.md#submoduleupdate-to-recorded--update-a-submodule-to-the-recorded-commit) | Update a submodule to the recorded commit | Operation | Built | Built |
+| [`submodule.stage-recorded`](13-submodules.md#submodulestage-recorded--stage-the-commit-of-a-submodule-as-the-recorded-one) | Stage the commit of a submodule as the recorded one | Operation | Built | Built |
+| [`submodule.update-to-latest`](13-submodules.md#submoduleupdate-to-latest--update-a-submodule-to-the-latest-of-its-branch) | Update a submodule to the latest of its branch | Operation | Built | Built |
 | [`submodule.initialize`](13-submodules.md#submoduleinitialize--initialize-a-submodule) | Initialize a submodule | Operation | Built | Built |
-| [`submodule.deinitialize`](13-submodules.md#submoduledeinitialize--deinitialize-a-submodule) | Deinitialize a submodule | Operation | Built | Differs (S3) |
-| [`submodule.remove`](13-submodules.md#submoduleremove--remove-a-submodule) | Remove a submodule | Operation | Built | Differs (S3, S6) |
+| [`submodule.deinitialize`](13-submodules.md#submoduledeinitialize--deinitialize-a-submodule) | Deinitialize a submodule | Operation | Built | Built |
+| [`submodule.remove`](13-submodules.md#submoduleremove--remove-a-submodule) | Remove a submodule | Operation | Built | Built |
 | [`submodule.copy-path`](13-submodules.md#submodulecopy-path--copy-the-path-of-a-submodule) | Copy the path of a submodule | Operation | Built | Built |
 | [`submodule.copy-url`](13-submodules.md#submodulecopy-url--copy-the-url-of-a-submodule) | Copy the URL of a submodule | Operation | Built | Built |
-| [`submodule.add`](13-submodules.md#submoduleadd--add-a-submodule) | Add a submodule | Operation | Built | Differs (S1, S4) |
+| [`submodule.add`](13-submodules.md#submoduleadd--add-a-submodule) | Add a submodule | Operation | Built | Built |
 | [`submodule.sync-urls`](13-submodules.md#submodulesync-urls--synchronize-the-urls-of-the-submodules) | Synchronize the URLs of the submodules | Operation | Built | Built |
-| [`submodule.allow-file-protocol`](13-submodules.md#submoduleallow-file-protocol--clone-a-submodule-from-a-folder-on-disk) | Clone a submodule from a folder on disk | Derivation | Built | Differs (S1) |
-| [`submodule.update-on-checkout`](13-submodules.md#submoduleupdate-on-checkout--update-the-submodules-after-a-checkout) | Update the submodules after a checkout | Derivation | Built | Differs (S2) |
+| [`submodule.allow-file-protocol`](13-submodules.md#submoduleallow-file-protocol--clone-a-submodule-from-a-folder-on-disk) | Clone a submodule from a folder on disk | Derivation | Built | Built |
+| [`submodule.update-on-checkout`](13-submodules.md#submoduleupdate-on-checkout--update-the-submodules-after-a-checkout) | Update the submodules after a checkout | Derivation | Built | Built |
 | [`submodule.follow-changes`](13-submodules.md#submodulefollow-changes--follow-what-happens-in-the-submodules) | Follow what happens in the submodules | Derivation | Built | Built |
 
 ## Patches
@@ -636,61 +636,6 @@ catalog it is an alias of ([D44](../08-decisions.md#d44--one-catalog-the-desktop
 | `conflict.ai-prompt` ([card](extension/09-conflicts.md#conflictai-prompt--the-question-sent-to-the-model-about-a-conflict)) | `ai.conflict-question` | |
 | `conflict.ai-answer` ([card](extension/09-conflicts.md#conflictai-answer--read-the-models-answer-as-a-proposal)) | `ai.read-answer`, `ai.trim-answer` | |
 | `conflict.restore` ([card](extension/09-conflicts.md#conflictrestore--mark-the-conflicts-again)) | `conflicts.restore` | |
-| `worktree.section` ([card](extension/12-worktrees.md#worktreesection--the-worktrees-section)) | `worktree.section` | |
-| `worktree.folder` ([card](extension/12-worktrees.md#worktreefolder--where-a-new-worktree-goes)) | `worktree.folder-path` | |
-| `worktree.branch-name` ([card](extension/12-worktrees.md#worktreebranch-name--the-name-a-format-makes)) | `branch.format-name`, `branch.name-from-format` | For a worktree |
-| `worktree.create` ([card](extension/12-worktrees.md#worktreecreate--create-a-worktree)) | `worktree.create` | |
-| `worktree.create-for-branch` ([card](extension/12-worktrees.md#worktreecreate-for-branch--create-a-worktree-for-a-branch)) | `worktree.create-from-branch` | |
-| `worktree.create-at-commit` ([card](extension/12-worktrees.md#worktreecreate-at-commit--create-a-worktree-at-a-commit)) | `worktree.create-at-commit` | |
-| `worktree.open-in-worktree` ([card](extension/12-worktrees.md#worktreeopen-in-worktree--open-a-branch-in-a-worktree-made-for-it)) | `worktree.open-in-worktree` | |
-| `worktree.open` ([card](extension/12-worktrees.md#worktreeopen--open-a-worktree)) | `worktree.open`, `worktree.open-in-new-window` | The Agents window is host only |
-| `worktree.open-terminal` ([card](extension/12-worktrees.md#worktreeopen-terminal--open-a-terminal-in-a-worktree)) | `worktree.open-in-terminal` | |
-| `worktree.reveal` ([card](extension/12-worktrees.md#worktreereveal--show-a-worktree-in-the-file-manager)) | `worktree.reveal` | |
-| `worktree.copy-path` ([card](extension/12-worktrees.md#worktreecopy-path--copy-the-path-of-a-worktree)) | `worktree.copy-path` | |
-| `worktree.show-in-graph` ([card](extension/12-worktrees.md#worktreeshow-in-graph--show-what-a-worktree-has-checked-out-in-the-graph)) | `worktree.show-in-graph` | |
-| `worktree.switch` ([card](extension/12-worktrees.md#worktreeswitch--switch-worktree)) | `worktree.switch` | |
-| `worktree.show-here` ([card](extension/12-worktrees.md#worktreeshow-here--show-another-worktree-in-this-window)) | `worktree.show-in-gitardo` | |
-| `worktree.select` ([card](extension/12-worktrees.md#worktreeselect--choose-the-worktree-shown)) | `worktree.show-in-gitardo` | Its entry from the branch in the toolbar |
-| `worktree.banner` ([card](extension/12-worktrees.md#worktreebanner--the-worktree-banner)) | `worktree.banner` | |
-| `worktree.rename` ([card](extension/12-worktrees.md#worktreerename--rename-a-worktree)) | `worktree.rename` | |
-| `worktree.remove` ([card](extension/12-worktrees.md#worktreeremove--remove-a-worktree)) | `worktree.remove`, `worktree.recover-held-folder`, `worktree.remove-empty-folders` | |
-| `worktree.prune` ([card](extension/12-worktrees.md#worktreeprune--prune-missing-worktrees)) | `worktree.prune` | |
-| `worktree.branch-elsewhere` ([card](extension/12-worktrees.md#worktreebranch-elsewhere--the-branch-another-worktree-has)) | `worktree.branch-in-another-worktree` | |
-| `setup.source` ([card](extension/12-worktrees.md#setupsource--which-settings-apply)) | `worktree-setup.settings-in-effect` | |
-| `setup.folders-to-link` ([card](extension/12-worktrees.md#setupfolders-to-link--the-folders-a-pattern-links)) | `worktree-setup.folders-to-link` | |
-| `setup.paths-to-copy` ([card](extension/12-worktrees.md#setuppaths-to-copy--the-files-a-pattern-copies)) | `worktree-setup.paths-to-copy` | |
-| `setup.link-and-copy` ([card](extension/12-worktrees.md#setuplink-and-copy--link-and-copy-into-a-new-worktree)) | `worktree-setup.link-and-copy-steps` | |
-| `setup.commands` ([card](extension/12-worktrees.md#setupcommands--run-commands-in-a-new-worktree)) | `worktree-setup.command-steps` | VS Code's tasks in place of the Tasks of the drawer |
-| `setup.propose-commands` ([card](extension/12-worktrees.md#setuppropose-commands--the-commands-proposed)) | `worktree-setup.propose-commands` | |
-| `setup.scan` ([card](extension/12-worktrees.md#setupscan--what-git-ignores-here)) | `worktree-setup.read-ignored` | |
-| `setup.classify` ([card](extension/12-worktrees.md#setupclassify--what-is-proposed-for-each)) | `worktree-setup.propose` | |
-| `setup.choose` ([card](extension/12-worktrees.md#setupchoose--the-patterns-a-choice-writes)) | `worktree-setup.choose` | |
-| `setup.preview` ([card](extension/12-worktrees.md#setuppreview--what-the-patterns-take)) | `worktree-setup.read-what-patterns-take` | |
-| `setup.page` ([card](extension/12-worktrees.md#setuppage--the-tab-of-what-new-worktrees-get)) | `worktree-setup.page` | |
-| `setup.save` ([card](extension/12-worktrees.md#setupsave--save-what-new-worktrees-get)) | `worktree-setup.save`, `worktree-setup.remove-from`, `worktree-setup.edit-settings-file` | |
-| `setup.offer` ([card](extension/12-worktrees.md#setupoffer--the-offer-to-choose-what-new-worktrees-get)) | `worktree.create` | The offer once a worktree is created |
-| `setup.bring-ignored` ([card](extension/12-worktrees.md#setupbring-ignored--bring-ignored-files-into-worktrees-that-exist)) | `worktree-setup.bring-into-worktree`, `worktree-setup.bring-into-other-worktrees` | |
-| `setup.explorer-link` ([card](extension/12-worktrees.md#setupexplorer-link--link-into-new-worktrees-from-the-explorer)) | `worktree-setup.link-into-new-worktrees` | The Explorer menu in place of the Files page |
-| `setup.explorer-copy` ([card](extension/12-worktrees.md#setupexplorer-copy--copy-into-new-worktrees-from-the-explorer)) | `worktree-setup.copy-into-new-worktrees` | The Explorer menu in place of the Files page |
-| `setup.explorer-stop` ([card](extension/12-worktrees.md#setupexplorer-stop--stop-linking-or-copying-into-new-worktrees)) | `worktree-setup.stop-linking`, `worktree-setup.stop-copying` | The Explorer menu in place of the Files page |
-| `setup.explorer-change` ([card](extension/12-worktrees.md#setupexplorer-change--what-became-of-what-was-chosen-in-the-explorer)) | `worktree-setup.explain-change` | |
-| `submodule.read` ([card](extension/13-submodules.md#submoduleread--what-is-read-of-each-submodule)) | `submodule.read-list` | |
-| `submodule.status` ([card](extension/13-submodules.md#submodulestatus--where-a-submodule-stands)) | `submodule.status` | |
-| `submodule.section` ([card](extension/13-submodules.md#submodulesection--the-submodules-section)) | `submodule.section` | |
-| `submodule.open-window` ([card](extension/13-submodules.md#submoduleopen-window--open-a-submodule-in-a-new-window)) | `submodule.open-in-new-window` | |
-| `submodule.terminal` ([card](extension/13-submodules.md#submoduleterminal--open-a-terminal-in-a-submodule)) | `submodule.open-in-terminal` | |
-| `submodule.reveal` ([card](extension/13-submodules.md#submodulereveal--reveal-a-submodule-in-the-file-manager)) | `submodule.reveal` | |
-| `submodule.show-in-gitardo` ([card](extension/13-submodules.md#submoduleshow-in-gitardo--show-a-submodule-in-gitardo)) | `submodule.show-in-gitardo` | |
-| `submodule.copy` ([card](extension/13-submodules.md#submodulecopy--copy-the-path-or-the-url-of-a-submodule)) | `submodule.copy-path`, `submodule.copy-url` | |
-| `submodule.add` ([card](extension/13-submodules.md#submoduleadd--add-a-submodule)) | `submodule.add`, `submodule.allow-file-protocol` | |
-| `submodule.initialize` ([card](extension/13-submodules.md#submoduleinitialize--initialize-a-submodule)) | `submodule.initialize` | |
-| `submodule.update` ([card](extension/13-submodules.md#submoduleupdate--update-a-submodule-to-the-recorded-commit)) | `submodule.update-to-recorded` | |
-| `submodule.update-remote` ([card](extension/13-submodules.md#submoduleupdate-remote--update-a-submodule-to-the-latest-of-its-branch)) | `submodule.update-to-latest` | |
-| `submodule.record` ([card](extension/13-submodules.md#submodulerecord--stage-the-commit-of-a-submodule-as-the-recorded-one)) | `submodule.stage-recorded` | |
-| `submodule.sync` ([card](extension/13-submodules.md#submodulesync--synchronize-the-urls-of-the-submodules)) | `submodule.sync-urls` | |
-| `submodule.deinit` ([card](extension/13-submodules.md#submoduledeinit--deinitialize-a-submodule)) | `submodule.deinitialize` | |
-| `submodule.remove` ([card](extension/13-submodules.md#submoduleremove--remove-a-submodule)) | `submodule.remove` | |
-| `submodule.update-on-checkout` ([card](extension/13-submodules.md#submoduleupdate-on-checkout--update-the-submodules-after-a-checkout)) | `submodule.update-on-checkout` | |
 | `preview.ask` ([card](extension/16-undo-preview-log.md#previewask--show-the-exact-commands-before-an-operation-runs)) | `preview.confirm` | |
 | `preview.fallback` ([card](extension/16-undo-preview-log.md#previewfallback--offer-the-other-way-when-git-refuses)) | `branch.delete`, `worktree.remove`, `submodule.deinitialize`, `submodule.allow-file-protocol` | The offers after a refusal, inside these cards |
 | `log.write` ([card](extension/16-undo-preview-log.md#logwrite--write-every-command-and-its-output-to-the-log)) | `log.record` | |
