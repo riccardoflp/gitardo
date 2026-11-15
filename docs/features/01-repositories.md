@@ -1,9 +1,10 @@
 # Repositories
 
 How a window finds the repositories of its workspace, which one it shows, what it reads of it, and how it keeps that up
-to date on its own while the repository and its files change, from Gitardo or from anything else. Also what the
-activity indicator of the status bar says Gitardo is doing, the **Activity** drawer, the **Welcome** page of the first
-start, and the folders the user trusts to run what they ask.
+to date on its own while the repository and its files change, from Gitardo or from anything else. The tabs of the
+repositories a window of Gitardo Desktop keeps open, and what each keeps while another is shown. Also what the activity
+indicator of the status bar says Gitardo is doing, the **Activity** drawer, the **Welcome** page of the first start,
+and the folders the user trusts to run what they ask.
 
 ### `repo.read-repositories` — Find the repositories of a workspace
 
@@ -468,6 +469,337 @@ Acceptance:
 - [ ] **Welcome** in Quick search shows it again, with the steps done ticked.
 - [ ] Opening a commit with a double click in the timeline ticks **Open a commit, compare two branches**.
 - [ ] A workspace opened from the page is listed first the next time.
+
+## Repository tabs
+
+Gitardo Desktop keeps several repositories open in one window, each in a **tab** of the island above the header, and
+shows one at a time ([D50](../08-decisions.md#d50--repository-tabs-and-what-each-repository-keeps)). A tab holds a
+repository with its worktrees and its submodules (`repo.group-tabs`). What is below the island is the tab's: the
+header, the branch rail, the timeline, the inspector, the pages and the Changes page. What is around it is the
+window's: the bar of views, the Activity drawer with the Command log and the Tasks, the status bar, the settings and
+the dialogs. The tabs take the place of the repository menu of the header, which is gone.
+
+The extension has no tabs: VS Code's views have the list of `repo.select` for that. It keeps what each repository
+showed in the same way, behind the same setting, off by default there (`repo.keep-open`).
+
+### `repo.tabs` — The tabs of the repositories open
+
+The island at the top of the window: a tab for each repository open, the one shown marked, and **+** to open another.
+
+- **Kind**: View
+- **Function**: `views::repo::tabs_view(state: &TabsState, ui: &mut Ui) -> Vec<Intent>`
+- **Entry points**: the island of tabs, above the header. `Ctrl+1` to `Ctrl+8` show the tab at that place and
+  `Ctrl+9` the last one; `Ctrl+PageDown` and `Ctrl+PageUp` the next tab and the one before, going round. On macOS
+  `Cmd+1` to `Cmd+9`, `Cmd+Shift+]` and `Cmd+Shift+[`.
+- **Offered when**: a workspace is open, even with a single tab, so that **+** is there.
+- **Uses**: `repo.switch-tab`, `repo.open-tab`, `repo.close-tab`, `repo.group-tabs`, `repo.name-repositories`.
+
+A tab shows:
+
+- the name of its repository, from `repo.name-repositories`, and, while it shows one of its worktrees or submodules,
+  ` › ` and the name of that one, as `repo.group-tabs` says;
+- a **▾** when its repository has worktrees or submodules, which opens the menu of `repo.group-tabs`;
+- a spinner while an operation runs in it, whichever tab is shown;
+- a **×** on the tab shown and on the one under the pointer.
+
+Its tooltip is the folder of what it shows. Its context menu has **Close tab** and **Close other tabs**
+(`repo.close-tab`). A middle click closes it.
+
+The island is one row, and it fits the width of the window:
+
+- Each tab is as wide as its name, up to 200 logical pixels; a longer name is cut at its start with `…`, so that the
+  name of the repository's own folder stays.
+- When the tabs do not fit, each gets narrower, down to 96 logical pixels; those that still do not fit are listed in
+  **… N** at the end of the island, `N` being how many, in their order. The tab shown is never among them: it takes
+  the place of the last tab that fits.
+- Below 480 logical pixels the island is a single button, the name of the tab shown with a chevron, which lists every
+  tab and **Open a repository…**.
+
+Acceptance:
+
+- [ ] A window with the tabs `api`, `web` and `docs`, `web` shown, draws three tabs with `web` marked and **+** after
+      them.
+- [ ] Clicking `docs` shows it; `Ctrl+1` shows `api`; `Ctrl+PageDown` from `docs` shows `api`.
+- [ ] With eight tabs in a window 900 logical pixels wide, the tabs that do not fit are listed in **… N**, with their
+      number, and the tab shown is never among them.
+- [ ] Below 480 logical pixels the island is one button with the name of the tab shown, whose list has every tab and
+      **Open a repository…**.
+- [ ] A name longer than its tab is cut at its start with `…`, and the tooltip has the whole folder.
+- [ ] A tab whose repository runs an operation shows a spinner while another tab is shown.
+- [ ] The snapshots of the island, wide, narrow and as one button, in every theme, at 100 % and 200 %, match.
+
+### `repo.open-tab` — Open a repository in a tab
+
+Opens a repository of the workspace, or of a folder added to it, in a tab of its own.
+
+- **Kind**: Operation
+- **Function**: `app::store::tabs::open_tab(state: &mut State, folder: &Path) -> Vec<Effect>`, a function of the
+  store (Q43)
+- **Entry points**: **+** in the island of tabs, whose menu lists the repositories of the workspace that are not open,
+  then **Open folder…** and **Open workspace file…**; **Open a repository…** in the list of the island when it is one
+  button; **Open Repository in a Tab** in Quick search.
+- **Asks**: the repository, when it was not chosen in the menu, in Gitardo's picker titled **Open a repository in a
+  tab**: the repositories of the workspace that are not open, each by its name with its folder under it.
+- **Reads**: `repo.read-state` and the first page of commits, for its first read; `repo.read-repositories` for a
+  folder added.
+- **Plan**: no step: nothing runs in a repository.
+- **Danger**: None.
+- **Undo**: nothing in a repository changes; `repo.close-tab` closes the tab again.
+- **After**: the new tab is placed after the tab shown and is shown, saying **Loading repository…** until its first
+  read is there. The tabs open are remembered with the workspace. A repository open already has its tab shown, and no
+  second one opens. A repository that `repo.group-tabs` puts in the group of a tab open is shown in that tab. A folder
+  added with **Open folder…** goes to the workspace, and its repositories are offered as `repo.choose-tabs` says.
+- **Uses**: `repo.read-state`, `repo.open-folder`, `repo.open-code-workspace`, `repo.choose-tabs`,
+  `repo.group-tabs`.
+
+Acceptance:
+
+- [ ] In a workspace of `api`, `web` and `docs` with only `api` open, **+** lists `web` and `docs`; choosing `web`
+      opens it after `api` and shows it.
+- [ ] Opening a repository that is open already shows its tab and opens no other.
+- [ ] Opening a worktree of `api` that is a folder of the workspace shows it in the tab of `api`.
+- [ ] The tabs open are the same once the window is closed and opened again.
+
+### `repo.choose-tabs` — Choose the repositories a workspace opens
+
+When a workspace with several repositories is opened for the first time, says which of them open in tabs: all of
+them, or the ones the user keeps checked.
+
+- **Kind**: Operation
+- **Function**: `app::store::tabs::choose_tabs(state: &mut State, chosen: &[PathBuf]) -> Vec<Effect>`, a function of
+  the store (Q43)
+- **Entry points**: `repo.open-folder` and `repo.open-code-workspace`, once the repositories of the folders opened
+  are found; **Open folder…** in the menu of **+**.
+- **Offered when**: the folders opened hold more than one repository that would have a tab of its own
+  (`repo.group-tabs`: worktrees and submodules do not count), and the workspace was not opened before. A workspace
+  opened before opens the tabs it had (`repo.open-recent`).
+- **Asks**: the repositories, in Gitardo's picker of many titled **Repositories to open in tabs**: each by its name
+  with its folder under it, in the order they were found, all checked. `Enter` opens the ones checked.
+- **Plan**: no step: nothing runs in a repository.
+- **Danger**: None.
+- **Undo**: nothing in a repository changes; `repo.open-tab` opens later one that was not chosen, `repo.close-tab`
+  closes one.
+- **After**: a tab for each repository chosen, in that order, and the first shown. The tab shown is read first, the
+  others as `repo.watch-hidden` says.
+- **Refuses**: nothing checked, or `Escape`: nothing opens, and the window stays as it was.
+- **Uses**: `repo.read-repositories`, `repo.group-tabs`, `repo.open-tab`, `repo.watch-hidden`.
+
+Acceptance:
+
+- [ ] Opening a folder that holds eight repositories asks which to open, all checked; `Enter` opens eight tabs and
+      shows the first.
+- [ ] Unchecking all but `api` and `web` opens those two tabs.
+- [ ] A folder that is one repository with two submodules opens one tab and asks nothing.
+- [ ] `Escape` opens nothing and leaves the window as it was.
+- [ ] A workspace opened before opens the tabs it had, without asking.
+
+### `repo.open-code-workspace` — Open a workspace file of VS Code
+
+Opens the folders a `.code-workspace` file of VS Code lists, so that the window shows the repositories of a workspace
+the user already has in VS Code.
+
+- **Kind**: Operation
+- **Function**: `app::store::open_code_workspace(state: &mut State, file: Option<PathBuf>) -> Vec<Effect>`, a
+  function of the store (Q43); its folders read by `model::repo::code_workspace_folders(text: &str, file: &Path) ->
+  Result<Vec<PathBuf>, String>`
+- **Entry points**: **Open workspace file…** on the Welcome page, in the menu of **+** and in Quick search.
+- **Asks**:
+  1. The file, in the system's dialog for opening a file, showing the `.code-workspace` files.
+  2. When the window already shows a workspace: **Replace the workspace** or **Add to the workspace** (default:
+     replace), as `repo.open-folder` asks.
+- **Reads**: the file; `repo.read-repositories` for its folders.
+- **Plan**: no step: nothing runs in a repository.
+- **Danger**: None.
+- **Undo**: nothing in a repository changes; the workspace before is among the recent ones.
+- **After**: as `repo.open-folder`, then `repo.choose-tabs`. The workspace is among the recent ones of the Welcome
+  page, named after the file.
+- **Refuses**:
+  - a file that names no folders: "This file names no folders.";
+  - a file whose folders are all gone: "None of the folders of this workspace is there any more."
+- **Uses**: `repo.open-folder`, `repo.choose-tabs`, `repo.read-repositories`.
+
+The folders are the `path` of each entry of `folders`, in their order: a relative path is from the folder of the file.
+The file may have comments and trailing commas, as VS Code allows; its other keys are not read.
+
+Acceptance:
+
+- [ ] A file `work/all.code-workspace` with `"folders": [{ "path": "api" }, { "path": "../web" }]` opens `work/api`
+      and `web`, in that order.
+- [ ] Comments and a trailing comma in the file are no error.
+- [ ] A file with no `folders` is refused with "This file names no folders."
+- [ ] The workspace opened is the first of the recent workspaces on the Welcome page, named `all`.
+
+### `repo.close-tab` — Close a tab
+
+Takes a repository out of the window. Nothing in the repository changes.
+
+- **Kind**: Operation
+- **Function**: `app::store::tabs::close_tab(state: &mut State, index: usize) -> Vec<Effect>`, a function of the
+  store (Q43)
+- **Entry points**: the **×** of a tab; a middle click on it; **Close tab** and **Close other tabs** in its context
+  menu; **Close Tab** in Quick search, for the tab shown.
+- **Asks**: for a page of the tab with edits not saved, what closing that page asks.
+- **Plan**: no step: nothing runs in a repository.
+- **Danger**: None.
+- **Undo**: nothing in a repository changes; **+** opens the repository again, with a first read.
+- **After**: the tab to its right is shown, or the one to its left when it was the last; closing the only tab shows the
+  Welcome page. The repository is no longer watched, its pages are closed, and what it kept is forgotten, but for what
+  is kept between runs anyway (the message of the commit box, the branches shown, the folds, the favorites). The tabs
+  open are remembered without it.
+- **Refuses**: a tab where an operation runs: "Gitardo: wait for `<title>` to end before closing this tab."
+- **Uses**: `repo.switch-tab`, `welcome.page`.
+
+Acceptance:
+
+- [ ] Closing `web`, between `api` and `docs`, shows `docs`.
+- [ ] Closing the tab on the right end shows the one on its left; closing the only tab shows the Welcome page.
+- [ ] Closing a tab where an operation runs is refused with that sentence; closing another tab meanwhile is not.
+- [ ] A tab closed is not there once the window is closed and opened again.
+- [ ] **Close other tabs** on `web` leaves `web` alone.
+
+### `repo.switch-tab` — Show another tab
+
+Shows the repository of another tab, as it was left.
+
+- **Kind**: Operation
+- **Function**: `app::store::tabs::switch_tab(state: &mut State, index: usize) -> Vec<Effect>`, a function of the
+  store (Q43)
+- **Entry points**: a click on a tab, the keys and the **… N** menu of `repo.tabs`; **Go to Repository…** in Quick
+  search, which lists the tabs; and whatever shows a repository of another tab: a file of it chosen for its history or
+  its blame (`repo.owner-of-file`).
+- **Offered when**: the window has two tabs or more.
+- **Plan**: no step: nothing runs in a repository.
+- **Danger**: None.
+- **Undo**: nothing in a repository changes; showing the other tab again goes back.
+- **After**: what is below the island is the tab's: what it showed when it was left, as `repo.keep-open` says, read
+  again when it is out of date (`repo.watch-hidden`). The tab shown is remembered with the workspace, and is the one
+  shown the next time it opens.
+- **Refuses**: nothing; showing the tab shown already reads nothing.
+- **Uses**: `repo.keep-open`, `repo.watch-hidden`, `repo.owner-of-file`.
+
+While an operation runs, tabs can still be switched, and what the other tabs show can be looked at, searched and
+opened. The tab of the operation shows a spinner, and is shown again before the operation asks a question or shows its
+plan to confirm. A window runs one operation at a time: another one started meanwhile, in any tab, is refused with
+"Gitardo: `<title>` is running in `<repository>`. Try again once it ends."
+
+Acceptance:
+
+- [ ] Showing `web` from `api` and then `api` again shows `api` as `repo.keep-open` says.
+- [ ] Showing the tab that is shown already reads nothing.
+- [ ] While a pull runs in `api`, `web` can be shown, scrolled and searched, and the tab of `api` shows a spinner.
+- [ ] A question the operation of `api` asks while `web` is shown is asked once `api` is shown again.
+- [ ] Starting a commit in `web` while a pull runs in `api` is refused with that sentence.
+- [ ] **Show File History** of a file of `web`, chosen while `api` is shown, shows the tab of `web`.
+- [ ] The tab shown is the one shown when the window opens again.
+
+### `repo.keep-open` — Keep what each repository showed
+
+What a repository keeps while another is shown, so that coming back to it finds it as it was, at once.
+
+- **Kind**: Derivation
+- **Function**: `app::store::tabs::kept_on_leaving(view: RepositoryView, keep_open: bool) -> RepositoryView`
+- **Settings**: `repositories.keepOpen`: `true` in Gitardo Desktop; `gitardo.repositories.keepOpen`, `false`, in the
+  extension.
+- **Uses**: by `repo.switch-tab`, `repo.group-tabs` and, in the extension, `repo.select`; `repo.watch-hidden`.
+- **Extension**: with `gitardo.repositories.keepOpen` on, the repository left by the list of `repo.select`, by VS
+  Code's Repositories view (`repo.follow-source-control`) or by **Show in Gitardo** keeps, in memory, the scroll of
+  the graph, the commit selected and its details, the search, the branch filter, the references with their sections
+  open or closed, and the message of the Changes view; the engine keeps its state as last read. Coming back shows that
+  at once, and reads again behind it when it changed meanwhile. The list of `repo.select` puts the worktrees and the
+  submodules of a repository under it, indented, as `repo.group-tabs` groups them. With the setting off, choosing
+  another repository is as it was before it.
+
+With the setting on, a repository keeps everything it showed: the commits read, with their pages; the scroll of the
+timeline; the commit selected and the inspector; the search and the branch filter; the branch rail, its lists open or
+closed and its scroll; the pages open, the one shown, their trails and their scrolls; the Changes page with the
+message of the commit box; the comparison in the inspector. With it off, a repository keeps only what is kept between
+runs anyway (the branches shown, the folds, the favorites, the message of the commit box): coming back to it is a first
+read, nothing searched and nothing selected.
+
+Between runs, the tabs open and the one shown are kept, with what was kept between runs before; the rest starts again.
+
+Acceptance:
+
+- [ ] With the setting on, a commit selected and the timeline scrolled to it in `api`, then `web` shown and searched:
+      coming back to `api` shows the same commit selected at the same place, and `web`, shown again, still has its
+      search.
+- [ ] With the setting on, coming back to a tab shows what it kept at once, with no **Loading repository…**.
+- [ ] With the setting on, the page of a commit open in `api` is open again in `api` with its trail, and is not in
+      `web`.
+- [ ] With the setting off, coming back to `api` shows its first page of commits, its own branches shown, nothing
+      selected and nothing searched.
+- [ ] Turning the setting off forgets at once what the tabs not shown kept.
+- [ ] Extension: with `gitardo.repositories.keepOpen` on, choosing `web` in the list and then `api` again shows `api`
+      with the commit it had selected, at the same scroll.
+- [ ] Extension: with the setting off, its default, coming back to `api` shows it as choosing a repository did before.
+- [ ] Extension: the list of `repo.select` puts a worktree of `api` and a submodule of `api` under `api`, indented.
+
+### `repo.group-tabs` — Worktrees and submodules in the tab of their repository
+
+Which repositories share a tab: a repository, its worktrees and its submodules are one tab, and the **▾** of the tab
+chooses which of them it shows.
+
+- **Kind**: Derivation
+- **Function**: `model::repo::group_tabs(repositories: &[TabMember]) -> Vec<TabGroup>`
+- **Entry points**: the **▾** of a tab, which lists the group: the repository itself, its other worktrees, each by its
+  branch or `detached at <short>`, then its submodules, each by its path, a submodule's own submodules indented under
+  it. The one the tab shows has a check. Choosing another shows it in the tab, as `worktree.show-in-gitardo` and
+  `submodule.show-in-gitardo` do.
+- **Uses**: `repo.common-folder`, `repo.keep-open`, `worktree.show-in-gitardo`, `submodule.show-in-gitardo`.
+
+The rules:
+
+- A worktree is in the group of the repository whose common git folder it shares (`repo.common-folder`), whether it is
+  a folder of the workspace or not.
+- A submodule is in the group of the repository around it, and so is a submodule of a submodule.
+- A repository of the workspace that is neither is a group of its own, and so a tab of its own.
+- Each member of a group keeps what it showed apart from the others, as `repo.keep-open` says.
+- The tab is named after its repository; while it shows another member, after ` › `: the branch of a worktree, or the
+  name of its folder when it is detached, as in `api › feature/login`; the path of a submodule, as in `api › lib/core`.
+- Which member a tab shows is kept while the window is open; when the window opens again each tab shows its
+  repository, as `worktree.show-in-gitardo` says.
+
+Acceptance:
+
+- [ ] With `api` and its worktree `api-login`, on `feature/login`, both folders of the workspace, there is one tab
+      `api`, whose **▾** lists `api` and `feature/login`.
+- [ ] A submodule `lib/core` of `api` is listed in the **▾** of `api`, and has no tab of its own.
+- [ ] Choosing `feature/login` in the **▾** names the tab `api › feature/login` and shows that worktree; choosing `api`
+      again shows `api` as it was left.
+- [ ] Two repositories that share no common git folder and neither of which is in the other are two tabs.
+- [ ] The tab of a repository with no other worktree and no submodule has no **▾**.
+
+### `repo.watch-hidden` — Keep the tabs not shown up to date
+
+How the repositories of the tabs not shown follow their changes without reading at every one of them.
+
+- **Kind**: Derivation
+- **Function**: `model::repo::schedule_hidden(tab: &HiddenTab, event: &ReadEvent) -> (HiddenTab, Vec<ReadAction>)`
+- **Settings**: `repositories.keepOpen`.
+- **Uses**: `repo.watch-changes`, `repo.schedule-reads`, `repo.keep-open`, `activity.describe-task`.
+- **Extension**: with `gitardo.repositories.keepOpen` on, the repositories the extension keeps follow these rules, the
+  window of VS Code taking the place of the tab shown.
+
+The rules:
+
+- Every tab open has its files watched as `repo.watch-changes` says, shown or not.
+- A change in a tab not shown reads nothing: it marks the tab out of date, with the last change.
+- A tab out of date that is shown shows what it kept at once, and is read again at once, as **Refresh** does, the
+  activity indicator saying why.
+- With the setting on, once the tab shown has its first read after the workspace opens, the other tabs are read one
+  after the other, so that each is there when it is first shown. With it off, a tab is read when it is shown, and a
+  tab not shown has no watcher.
+- A read of a tab not shown never runs at the same time as an operation or as a read of the tab shown: it waits for
+  them.
+
+Acceptance:
+
+- [ ] A commit made in a terminal in `web` while `api` is shown reads nothing; showing `web` then shows the commit
+      after one read.
+- [ ] With the setting on, opening a workspace of eight tabs reads the tab shown first, then the seven others, one at a
+      time.
+- [ ] A tab not shown in which nothing changed is shown with no read.
+- [ ] While an operation runs in `api`, no other tab is read.
 
 ## Trusted folders
 

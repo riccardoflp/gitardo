@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 419 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 428 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -17,7 +17,7 @@ earns it.
 
 | File | Area | Cards |
 | --- | --- | --- |
-| [01-repositories.md](01-repositories.md) | Repositories | 18 |
+| [01-repositories.md](01-repositories.md) | Repositories | 27 |
 | [02-graph.md](02-graph.md) | Graph | 41 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
@@ -55,6 +55,15 @@ earns it.
 | [`activity.status-bar`](01-repositories.md#activitystatus-bar--what-is-running-in-the-status-bar) | What is running, in the status bar | View | Built | Built |
 | [`activity.what-is-running`](01-repositories.md#activitywhat-is-running--what-is-running-in-the-activity-drawer) | What is running, in the Activity drawer | View | Built | Built |
 | [`welcome.page`](01-repositories.md#welcomepage--the-welcome-page) | The Welcome page | View | Built | Host only |
+| [`repo.tabs`](01-repositories.md#repotabs--the-tabs-of-the-repositories-open) | The tabs of the repositories open | View | Specified | Host only |
+| [`repo.open-tab`](01-repositories.md#repoopen-tab--open-a-repository-in-a-tab) | Open a repository in a tab | Operation | Specified | Host only |
+| [`repo.choose-tabs`](01-repositories.md#repochoose-tabs--choose-the-repositories-a-workspace-opens) | Choose the repositories a workspace opens | Operation | Specified | Host only |
+| [`repo.open-code-workspace`](01-repositories.md#repoopen-code-workspace--open-a-workspace-file-of-vs-code) | Open a workspace file of VS Code | Operation | Specified | Host only |
+| [`repo.close-tab`](01-repositories.md#repoclose-tab--close-a-tab) | Close a tab | Operation | Specified | Host only |
+| [`repo.switch-tab`](01-repositories.md#reposwitch-tab--show-another-tab) | Show another tab | Operation | Specified | Host only |
+| [`repo.keep-open`](01-repositories.md#repokeep-open--keep-what-each-repository-showed) | Keep what each repository showed | Derivation | Specified | Planned |
+| [`repo.group-tabs`](01-repositories.md#repogroup-tabs--worktrees-and-submodules-in-the-tab-of-their-repository) | Worktrees and submodules in the tab of their repository | Derivation | Specified | Planned |
+| [`repo.watch-hidden`](01-repositories.md#repowatch-hidden--keep-the-tabs-not-shown-up-to-date) | Keep the tabs not shown up to date | Derivation | Specified | Planned |
 | [`trust.is-trusted`](01-repositories.md#trustis-trusted--whether-a-folder-is-trusted) | Whether a folder is trusted | Derivation | Built | Host only |
 | [`trust.ask`](01-repositories.md#trustask--ask-whether-to-trust-a-folder-before-running-what-it-asks) | Ask whether to trust a folder before running what it asks | Operation | Built | Host only |
 | [`trust.manage`](01-repositories.md#trustmanage--see-the-trusted-folders-and-stop-trusting-some) | See the trusted folders and stop trusting some | Operation | Built | Host only |

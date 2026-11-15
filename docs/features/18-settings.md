@@ -45,6 +45,7 @@ Acceptance:
 | `commandPreview` | `"off"` | User | When the commands are shown before they run: `off` for the ones that can lose work, `all` for everything that changes something. | `preview.confirm` |
 | `identities` | `[]` | User | Names, emails and optional signing keys to choose from when switching identity. | `identity.switch` |
 | `readOnStartup` | `true` | User, Repository | Read the repository when the window opens, before the timeline is shown. | `repo.read-state` |
+| `repositories.keepOpen` | `true` | User | Each repository keeps what it showed while another is shown, and the tabs not shown are read in the background. `gitardo.repositories.keepOpen` in the extension, where it is `false` by default. | `repo.keep-open` |
 | `graph.pageSize` | `1000` | User, Repository | How many commits the timeline reads at a time. | `graph.load-more` |
 | `graph.showStashes` | `true` | User | Show the stashes in the timeline. | `graph.stashes` |
 | `graph.columns` | `["author","date","hash"]` | User | What is shown beside the message of each commit. | `graph.columns` |

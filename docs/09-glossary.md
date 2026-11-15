@@ -39,7 +39,7 @@ titles of the commands in `package.json`, the words of the webviews, and the typ
 
 | Term | Means | Not to be confused with | Avoid | In code |
 | --- | --- | --- | --- | --- |
-| repository | A git repository of the workspace; Gitardo shows one at a time. | worktree | | `Repo`, `RepoState` |
+| repository | A git repository of the workspace; Gitardo shows one at a time, and Gitardo Desktop keeps several open, each in a tab. | worktree | | `Repo`, `RepoState` |
 | working tree | The files of the repository on disk, with what is not committed. | worktree | working directory, working copy | `WorkingState` |
 | index | What is staged: the next commit as it stands. | working tree | | `WorkingState.staged` |
 | untracked file | A file of the working tree that git does not track and does not ignore. | ignored file | | status `?` |
@@ -105,6 +105,7 @@ titles of the commands in `package.json`, the words of the webviews, and the typ
 | host | Whatever shows the engine's work and answers its questions: the window of Gitardo Desktop, or VS Code through the extension. | | | `Asker`, `HostAsker` |
 | host question | A question the engine asks the host for what only the host has: the clipboard, a GitHub token, an answer of a language model, a dialog of files, a secret. | question (asked of the user) | | `host/…` requests |
 | protocol | The messages between the extension and `gitardo-engine`, JSON-RPC over the standard input and output. | | | crate `protocol` |
+| tab (of a repository) | In Gitardo Desktop, a repository open in the window, with its worktrees and its submodules, in the island of tabs above the header; one is shown at a time, and each keeps what it showed. | page, tab of a commit | | `app::store::tabs`, `repo.tabs` |
 | desktop first | The order every feature is built in: the engine and the window of Gitardo Desktop, then the extension. | | | D39 |
 | status (of a card) | Where a feature stands in one app: **Specified**, **Reviewed**, **Built**, **Seen** in the desktop; **Planned**, **Built**, **Seen**, **Differs**, **Host only** in the extension. | | | the columns of `docs/features/README.md` |
 | fallback | What the extension ran in TypeScript when the engine's binary was missing, until stage 10 removed `src/git`; since then, without the engine, it says so with **Show the log**. Also what an operation offers when git refuses it, such as **Delete anyway**. | | | D49, `offerRun` |

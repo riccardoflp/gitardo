@@ -19,7 +19,10 @@ history fills it, and everything else opens from it.
 ```
 ┌───┬──────────────────────────────────────────────────────────────────────────────────────────┐
 │ ⑂ │ ╭──────────────────────────────────────────────────────────────────────────────────────╮ │
-│   │ │ ◧  ● gitardo ▾   feature/login-page ↑2 ↓0      [⌕ Search  Ctrl K] [↓2 ↑1 Sync ▾] […] │ │
+│   │ │ [gitardo ▾ ×] [api] [web] [infra] [docs]                                   [… 3] [+] │ │
+│   │ ╰──────────────────────────────────────────────────────────────────────────────────────╯ │
+│   │ ╭──────────────────────────────────────────────────────────────────────────────────────╮ │
+│   │ │ ◧  feature/login-page ↑2 ↓0                    [⌕ Search  Ctrl K] [↓2 ↑1 Sync ▾] […] │ │
 │ ◷ │ ╰──────────────────────────────────────────────────────────────────────────────────────╯ │
 │ ▤3│ ╭───────────────╮ ╭────────────────────────────────────────────╮ ╭─────────────────────╮ │
 │ ▣ │ │ YOURS         │ │ [≡ All branches ▾] [⌕ Find by message…   ] │ │ 4b830a6 · 2 hours   │ │
@@ -35,7 +38,7 @@ history fills it, and everything else opens from it.
 ├───┴──────────────────────────────────────────────────────────────────────────────────────────┤
 │ ◔ Fetching origin (2 s)                                         Dana Ruiz <dana@example.com> │
 └──────────────────────────────────────────────────────────────────────────────────────────────┘
- Bar of   Header, then branch rail, timeline (the draft at its top) and inspector, each an island
+ Bar of   Tabs, header, then branch rail, timeline (the draft at its top) and inspector, each an island
  views                                                                          Status bar
 ```
 
@@ -43,13 +46,18 @@ history fills it, and everything else opens from it.
   ([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)): **Timeline**, **Changes** with the number of
   changed files, **Files** and **Compare**; at its foot **Activity**, which opens and closes the Activity drawer, and
   **Settings**. The place shown is marked.
-- **Islands**: the header, the branch rail, the timeline and the inspector, or the page shown, are each a rounded card
-  on a ground one step darker, with a gap between them that is dragged to resize them.
-- **Header**: the **repository** (a menu of the repositories of the workspace and the recent ones), the **branch**
-  checked out with how far it is from its upstream, **Search**, the button of **Quick search** with `Ctrl K` beside it,
-  **Sync**, which shows the commits to pull and to push and, clicked, fetches, pulls and pushes them, with its menu
-  (fetch, pull, push and their other ways), and **…** (refresh, branch, stash, undo and the switches of the timeline).
-  It gives up its words for icons when the window is narrow.
+- **Tabs**: the island at the top, a tab for each repository open, the one shown marked, its worktrees and submodules
+  in the **▾** of its tab, and **+** to open another (milestone M12,
+  [D50](../08-decisions.md#d50--repository-tabs-and-what-each-repository-keeps)). Everything under it is the tab's,
+  and is kept while another tab is shown. A narrow window narrows the tabs, lists those that do not fit in **… N**,
+  and at last makes the island one button.
+- **Islands**: the tabs, the header, the branch rail, the timeline and the inspector, or the page shown, are each a
+  rounded card on a ground one step darker, with a gap between them that is dragged to resize them.
+- **Header**: the **repository** (a menu of the repositories of the workspace and the recent ones, until the tabs of
+  M12 take its place), the **branch** checked out with how far it is from its upstream, **Search**, the button of
+  **Quick search** with `Ctrl K` beside it, **Sync**, which shows the commits to pull and to push and, clicked, fetches,
+  pulls and pushes them, with its menu (fetch, pull, push and their other ways), and **…** (refresh, branch, stash,
+  undo and the switches of the timeline). It gives up its words for icons when the window is narrow.
 - **Status bar**: a line of small text at the foot of the window: the **activity** indicator on the left (what is
   running, which opens the **Activity** drawer), and on the right the identity commits are made with, which a click
   switches.
@@ -79,8 +87,9 @@ history fills it, and everything else opens from it.
   command of the catalog that names Quick search among its entry points is there by name.
 
 A window shows one **workspace**: one or more folders, each of which may hold repositories. **Open folder…** adds or
-replaces them, and the recent workspaces are listed on the welcome page. A worktree or a submodule opened "in a new
-window" is a new window of Gitardo Desktop on that folder.
+replaces them, a `.code-workspace` file of VS Code gives them too, and the recent workspaces are listed on the welcome
+page. The repositories of the workspace the user chooses are open in tabs, all of them or some. A worktree or a
+submodule opened "in a new window" is a new window of Gitardo Desktop on that folder.
 
 ### The names of the places
 
@@ -89,8 +98,9 @@ The cards of the catalog name the places of the window with these words, and onl
 | Place | What it is |
 | --- | --- |
 | **Bar of views** | The column of icons on the left edge: Timeline, Changes, Files, Compare, Activity, Settings. |
-| **Header** | The island at the top: repository, branch, Search, Sync, **…**. |
-| **Island** | Each rounded card of the window: the header, the branch rail, the timeline, the inspector, a page. |
+| **Tabs** | The island at the top: a tab for each repository open, **… N** and **+**. |
+| **Header** | The island under the tabs: branch, Search, Sync, **…**. |
+| **Island** | Each rounded card of the window: the tabs, the header, the branch rail, the timeline, the inspector, a page. |
 | **Status bar** | The line of text at the foot of the window: what is running, the identity commits are made with. |
 | **Branch rail** | The list on the left: local branches, a heading for each remote, and **Kept aside** (stashes, worktrees, tags, submodules). |
 | **Timeline** | The history with its lanes, in the middle. "The graph" is the drawing of its lanes. |

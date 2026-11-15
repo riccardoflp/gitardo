@@ -103,6 +103,37 @@ Written, and checked by clippy for `aarch64-apple-darwin` from Linux: `platform`
 `engine` and `app`, whose `ring` needs the C compiler of Apple to be built. Nothing of it has run yet. The milestone is
 done once `cargo xtask check` passes on a Mac ([Q369](../08-decisions.md#open-questions)).
 
+## M12 — Repository tabs
+
+Several repositories open in one window, each in a tab, each keeping what it showed
+([D50](../08-decisions.md#d50--repository-tabs-and-what-each-repository-keeps)). Built in six phases, each one commit
+or more, each ending with its cards built and their tests passing; the extension comes last.
+
+1. **The state of each repository.** The store of `app` is split in two: what is the window's (the workspace, the
+   settings, the dialogs, the Activity drawer, the Command log, the operation running) and what is a repository's (the
+   timeline, the search, the inspector, the pages, the Changes page, the branch rail, the reads). The island of tabs
+   replaces the repository menu of the header. Cards: `repo.tabs` (wide only), `repo.switch-tab`, `repo.keep-open`.
+2. **Opening and closing tabs.** **+**, the picker of the repositories a workspace opens, the tabs kept with the
+   recent workspaces, the workspace files of VS Code. Cards: `repo.open-tab`, `repo.choose-tabs`, `repo.close-tab`,
+   `repo.open-code-workspace`.
+3. **Worktrees and submodules in their tab.** Cards: `repo.group-tabs`.
+4. **The tabs not shown**, watched and read when shown or in the background, and the operations while tabs are
+   switched. Cards: `repo.watch-hidden`, and the lines of `repo.switch-tab` about operations.
+5. **A narrow window.** The tabs narrowed, **… N**, the island as one button, the keys. Cards: the rest of `repo.tabs`.
+6. **The extension.** `gitardo.repositories.keepOpen`, what each webview keeps, the list of repositories grouped.
+   Cards: `repo.keep-open`, `repo.group-tabs` and `repo.watch-hidden` in the extension.
+
+The cards built before that change with it, in the phase that changes them, their acceptance lines and tests together:
+`repo.select` (its entry points in the desktop are the tabs, and the menu of the header is gone), `repo.open-folder`
+and `repo.open-recent` (they ask which repositories to open, and open the tabs a workspace had), `repo.schedule-reads`
+(one schedule for each tab), `worktree.show-in-gitardo` and `submodule.show-in-gitardo` (in the tab of their
+repository), and the views of the header.
+
+Exit: a workspace of eight repositories opens in eight tabs; showing each one after the first takes no read when
+nothing changed in it; a window 400 logical pixels wide still reaches every tab; with
+`gitardo.repositories.keepOpen` on, the extension shows a repository chosen again as it was left; every card of the
+phase passes its tests, and the snapshots of the island match.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

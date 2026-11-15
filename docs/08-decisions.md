@@ -692,6 +692,33 @@ every view says **Gitardo's engine is not available on this system.** with a **S
 command that needs the engine shows the same sentence with **Show the log**; the extension reads and runs nothing.
 There is no universal vsix any more: one vsix per target, each with its engine, and a release waits for all of them.
 
+## D50 — Repository tabs, and what each repository keeps
+
+*Asked by the maintainer, who works on eight repositories of one workspace at once; the details proposed by the agent
+and approved.*
+
+A window of Gitardo Desktop keeps several repositories open, each in a tab of an island of its own above the header,
+and shows one at a time ([the cards of the tabs](features/01-repositories.md#repository-tabs)). A tab is opened for
+each repository the user opens: a workspace with several asks which of them to open, all checked, so that the eight
+can be opened at once or only some. A worktree and a submodule are in the tab of their repository, chosen with the
+**▾** of the tab, not in tabs of their own. Everything below the island is the tab's and is kept while another tab is
+shown, behind the setting `repositories.keepOpen`, on by default; with it off, the tabs stay and a repository left is
+forgotten, as choosing a repository did before. The repository menu of the header is gone. The tabs not shown stay
+watched, and are read again once they are shown; a window still runs one operation at a time, and tabs can be switched
+while it runs. The island fits a narrow window by narrowing its tabs, then listing those that do not fit in **… N**,
+then becoming one button. A `.code-workspace` file of VS Code can be opened, for its folders.
+
+The extension keeps its list of repositories and gets no tabs: it gets the same keeping, behind
+`gitardo.repositories.keepOpen`, off by default there, and its list groups the worktrees and the submodules under
+their repository. Desktop first ([D39](#d39--desktop-first-and-a-status-for-each-app)), in milestone M12 of
+[the roadmap](desktop/07-roadmap.md#m12--repository-tabs).
+
+Rejected: an island for each repository (it does not fit a narrow window); a tab for each repository found, submodules
+included (too many, and not the ones the user chose); tabs for worktrees and submodules (they are the same project,
+and would crowd the island); tabs in the extension (VS Code has the list and the Repositories view for that); keeping
+the repository menu of the header beside the tabs (two ways to do one thing); operations in several tabs at once (one
+at a time keeps the log, the undo and the questions in one order; see Q409).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -2439,3 +2466,22 @@ start of stage 1, as recommended.
   Recommended: what the extension does, and `compare.read-sides` changed to it; until then the extension reads those
   two cases in TypeScript. *Taken as recommended in stage 10, to be confirmed: `compare.read-sides` counts the whole
   sides and compares the working tree from the merge base, and the extension reads every comparison from the engine.*
+
+### Of the repository tabs, from Q408
+
+Questions of milestone M12 ([D50](#d50--repository-tabs-and-what-each-repository-keeps)), with their cards.
+
+- **Q408** — A sign on each tab for what waits there: how many files changed, the commits to pull and to push, a
+  conflict or an operation stopped half way (`repo.tabs`). Proposed to the maintainer, not decided; nothing of it is in
+  the cards until it is.
+- **Q409** — Operations in several tabs at the same time: each repository already has its engine on a thread of its
+  own in `gitardo-engine`, but the window has one Command log, one Undo and one dialog at a time
+  (`repo.switch-tab`). Recommended: one at a time in M12, as the card says, and asked again once it is used.
+- **Q410** — How much a window may keep: eight tabs of large repositories with many pages of commits each. Recommended:
+  everything, measured by `cargo xtask perf` with eight tabs of the large repository; if it is too much, the commits
+  beyond the first page of a tab not shown for ten minutes are dropped and read again when it is shown.
+- **Q411** — Moving a tab by dragging it, and moving it into a window of its own (`repo.tabs`). Recommended: dragging
+  within the island in M12 if it costs little, no moving between windows.
+- **Q412** — In the extension, where each webview keeps what a repository showed (`repo.keep-open`): in its own state
+  (`vscode.setState`), by the folder of the repository, or in the extension host. Recommended: each webview, in memory,
+  by folder, the host keeping only the message of the Changes view.
