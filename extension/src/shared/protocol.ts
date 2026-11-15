@@ -307,6 +307,30 @@ export interface RepoState {
   home: RepoInfo | null;
 }
 
+/**
+ * What the views show of a repository but its commits: what `repo.read-state` of Gitardo's engine reads, and what
+ * `Repo` reads when the engine is not there. The commits of the graph are read after it, from what it says.
+ */
+export type RepoParts = Pick<
+  RepoState,
+  | 'head'
+  | 'branch'
+  | 'branches'
+  | 'remoteBranches'
+  | 'tags'
+  | 'stashes'
+  | 'worktrees'
+  | 'submodules'
+  | 'remotes'
+  | 'working'
+  | 'conflictFiles'
+  | 'operation'
+  | 'rebaseStop'
+  | 'bisect'
+  | 'identity'
+  | 'recentBranches'
+>;
+
 /** The commits of what is checked out, for the view that lists them apart from the graph. */
 export interface BranchLog {
   /** The repository they are of. */

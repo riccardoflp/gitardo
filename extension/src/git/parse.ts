@@ -275,27 +275,8 @@ export function parseReflog(out: string): ReflogEntry[] {
     });
 }
 
-/** How many branches are listed as checked out recently. */
-export const RECENT_BRANCHES = 5;
-
-/**
- * The local branches that were checked out last, the latest first, from the subjects of the reflog of HEAD, which
- * come with the latest first too. The one checked out now is left out: it is where the others are looked for from.
- */
-export function recentBranches(subjects: string, branches: string[], current: string | null, limit = RECENT_BRANCHES): string[] {
-  const known = new Set(branches);
-  const recent: string[] = [];
-  for (const subject of subjects.split('\n')) {
-    const moved = /^checkout: moving from (\S+) to (\S+)$/.exec(subject);
-    if (!moved) continue;
-    // Arrived at before it was left for the other: the one moved to is the more recent of the two.
-    for (const name of [moved[2], moved[1]]) {
-      if (name !== current && known.has(name) && !recent.includes(name)) recent.push(name);
-    }
-    if (recent.length >= limit) break;
-  }
-  return recent.slice(0, limit);
-}
+// Moved to src/shared/refs.ts, where the engine's state is turned into the views' too (stage 5).
+export { RECENT_BRANCHES, recentBranches } from '../shared/refs';
 
 export interface BlameLine {
   hash: string;
