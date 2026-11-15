@@ -10,6 +10,7 @@
 mod asker;
 mod feature;
 mod framing;
+mod journal;
 mod outgoing;
 mod repository;
 mod session;

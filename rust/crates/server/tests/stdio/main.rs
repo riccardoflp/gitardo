@@ -6,4 +6,5 @@
 
 mod feature;
 mod harness;
+mod journal;
 mod repository;

@@ -155,6 +155,8 @@ impl Session {
         match method {
             methods::FEATURE_RUN => crate::feature::run(self, id, parameters::<FeatureRunParams>(params)?, cancel),
             methods::QUESTION_VALIDATE => crate::feature::validate(parameters::<ValidateParams>(params)?),
+            methods::JOURNAL_LAST => crate::journal::last(self, &parameters(params)?),
+            methods::JOURNAL_RECORD => crate::journal::record(self, parameters(params)?),
             methods::INITIALIZE => self.initialize(&parameters(params)?),
             methods::SHUTDOWN => {
                 self.is_shut_down.store(true, Ordering::SeqCst);
