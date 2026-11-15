@@ -1742,7 +1742,7 @@ export class Controller implements vscode.Disposable {
       return false;
     }
     for (const { feature, target, answers } of runs) {
-      // As for a GitOp, one operation at a time; the engine would answer busy anyway.
+      // One operation at a time; the engine would answer busy anyway.
       if (this.running) return true;
       this.running = true;
       this.operations++;

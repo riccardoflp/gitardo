@@ -658,7 +658,7 @@ export class EngineClient {
     if (typeof entry.kind === 'object') this.options.log.debug(`[engine] ${entry.line}${where}, ${entry.kind.milliseconds} ms`);
     else if (entry.kind === 'failure') this.options.log.error(`[engine] ${entry.line}${where}`);
     else if (entry.kind === 'warning') this.options.log.warn(`[engine] ${entry.line}${where}`);
-    // A step is logged as the extension logs the commands of a `GitOp`, so that the log reads the same on both paths.
+    // A step is logged as a command, `> ` before it, as the log has always shown them.
     else if (entry.kind === 'step') this.options.log.info(`> ${entry.line}`);
     else this.options.log.info(`[engine] ${entry.line}${where}`);
   }

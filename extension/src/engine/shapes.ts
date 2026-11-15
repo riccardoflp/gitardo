@@ -38,7 +38,7 @@ export interface ShownReflogEntry {
   date: number;
 }
 
-/** What the tab of a comparison shows but its sides and its mode, as `Repo.compareSides` reads it. */
+/** What the tab of a comparison shows but its sides and its mode. */
 export type ComparedSides = Omit<CompareView, 'from' | 'to' | 'mode'>;
 
 /** The id git gives the lines that are in no commit yet. */
@@ -87,7 +87,7 @@ export function filePatches(patch: Patch): FilePatch[] | null {
   return patch.kind === 'files' ? patch.files.map(filePatch) : null;
 }
 
-/** A comparison as its tab shows it. `since` is where its files are compared from, as `Repo.compareSides` says it. */
+/** A comparison as its tab shows it. `since` is where its files are compared from: the merge base since they diverged. */
 export function comparedSides(view: EngineCompareView, from: string, mode: CompareMode, path: string | null, limit: number): ComparedSides {
   const ahead = view.onlyInSecond;
   const behind = view.onlyInFirst;
