@@ -30,7 +30,7 @@ jobs:
           - system: Linux
             os: ubuntu-latest
           - system: macOS
-            os: macos-14
+            os: macos-latest
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -57,6 +57,13 @@ jobs:
             ~/.cargo/git
             rust/target
           key: workspace-${{ runner.os }}-${{ hashFiles('rust/Cargo.lock', 'rust/rust-toolchain.toml') }}
+      # The runners have no identity of their own for the commits the tests make, and Windows' git turns line endings
+      # into CRLF on checkout, which the tests' repositories must not.
+      - name: Git for the tests
+        run: |
+          git config --global user.name "Gitardo tests"
+          git config --global user.email "tests@gitardo.invalid"
+          git config --global core.autocrlf false
       - name: cargo xtask check
         run: cargo xtask check
       # Both targets of the Mac are built, which with the check above closes M11 of the desktop (D48).
@@ -97,10 +104,10 @@ jobs:
             os: ubuntu-24.04-arm
           - target: darwin-x64
             triple: x86_64-apple-darwin
-            os: macos-14
+            os: macos-latest
           - target: darwin-arm64
             triple: aarch64-apple-darwin
-            os: macos-14
+            os: macos-latest
           - target: alpine-x64
             triple: x86_64-unknown-linux-musl
             os: ubuntu-latest
@@ -147,7 +154,7 @@ jobs:
           - system: Linux
             os: ubuntu-latest
           - system: macOS
-            os: macos-14
+            os: macos-latest
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -167,7 +174,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libnss3 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2t64
+          sudo apt-get install -y xvfb libnss3 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2t64             libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev             libfontconfig1-dev libdbus-1-dev pkg-config
       - uses: actions/cache@v4
         with:
           path: |
@@ -175,10 +182,18 @@ jobs:
             ~/.cargo/git
             rust/target
           key: extension-${{ runner.os }}-${{ hashFiles('rust/Cargo.lock', 'rust/rust-toolchain.toml') }}
-      # The tests find the debug binary at ../rust/target/debug (docs/extension/06-testing.md, With the engine).
-      - name: gitardo-engine, the debug build the tests use
+      # The runners have no identity of their own for the commits the tests make, and Windows' git turns line endings
+      # into CRLF on checkout, which the tests' repositories must not.
+      - name: Git for the tests
+        run: |
+          git config --global user.name "Gitardo tests"
+          git config --global user.email "tests@gitardo.invalid"
+          git config --global core.autocrlf false
+      # The tests find the debug binaries at ../rust/target/debug (docs/extension/06-testing.md, With the engine):
+      # gitardo-engine, and gitardo-cli, which one test runs a feature through to compare.
+      - name: gitardo-engine and gitardo-cli, the debug builds the tests use
         working-directory: rust
-        run: cargo build -p server
+        run: cargo build -p server -p app --bin gitardo-engine --bin gitardo-cli
       - run: npm ci
       - run: npm run typecheck
       - run: npx vitest run
