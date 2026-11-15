@@ -141,6 +141,11 @@ impl Answers {
         let _replaced = self.0.insert(key, answer);
     }
 
+    /// Every answer with its key, in the order of the keys.
+    pub fn iter(&self) -> impl Iterator<Item = (&AnswerKey, &Answer)> {
+        self.0.iter()
+    }
+
     /// The answer under a key.
     #[must_use]
     pub fn get(&self, key: AnswerKey) -> Option<&Answer> {

@@ -1,9 +1,12 @@
 //! The JSON of the follow-ups that are the extension's to carry out once a feature ran.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
-use model::contract::{FollowUp, Text};
+use model::contract::{FollowUp, OfferedRun, Text};
 use serde::{Deserialize, Serialize};
+
+use super::question::{AnswerJson, TargetJson};
 
 /// A follow-up the extension carries out (`FollowUp` of `model`). The engine keeps those that are its own, and the ones
 /// whose views have not moved yet come with their areas.
@@ -83,7 +86,7 @@ pub enum FollowUpJson {
     /// The values given for the inputs of the format of branch names are kept, for the next time.
     RememberInputs {
         /// The values, by the identifier of each input.
-        values: std::collections::BTreeMap<String, String>,
+        values: BTreeMap<String, String>,
     },
     /// A file opens in an editor at a line.
     EditFile {
@@ -91,6 +94,18 @@ pub enum FollowUpJson {
         path: String,
         /// The line, from 1.
         line: usize,
+    },
+    /// An operation is offered with a button, on a target of its own and with answers given: **Delete anyway** after
+    /// git kept a branch it found not fully merged.
+    OfferRun {
+        /// The words of the button.
+        label: String,
+        /// The feature it runs.
+        feature: String,
+        /// What it runs on.
+        target: TargetJson,
+        /// The answers it is given before it asks, by their keys.
+        answers: BTreeMap<String, AnswerJson>,
     },
 }
 
@@ -100,6 +115,22 @@ fn text_of(text: &Text) -> String {
 
 fn path_of(path: &Path) -> String {
     path.to_string_lossy().into_owned()
+}
+
+/// The JSON of an operation offered; none when its target or one of its answers cannot cross, since it would then run
+/// otherwise than offered.
+fn offer_run(offered: &OfferedRun) -> Option<FollowUpJson> {
+    let answers = offered
+        .answers
+        .iter()
+        .map(|(key, answer)| Some((key.0.to_owned(), AnswerJson::of(answer)?)))
+        .collect::<Option<BTreeMap<_, _>>>()?;
+    Some(FollowUpJson::OfferRun {
+        label: text_of(&offered.label),
+        feature: offered.feature.0.to_owned(),
+        target: TargetJson::of(&offered.target)?,
+        answers,
+    })
 }
 
 impl FollowUpJson {
@@ -142,6 +173,7 @@ impl FollowUpJson {
                 path: path.clone(),
                 line: *line,
             },
+            FollowUp::OfferRun(offered) => offer_run(offered)?,
             _ => return None,
         })
     }
