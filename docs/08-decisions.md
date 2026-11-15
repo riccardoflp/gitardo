@@ -670,8 +670,9 @@ there.
 ## D48 — macOS on GitHub Actions
 
 The engine and the desktop are built and checked on macOS (`macos-14`, both targets) by GitHub Actions, which closes M11
-of the desktop's roadmap, needing no Mac at hand. Until that runs, the extension on macOS has no binary and uses its
-TypeScript code for everything, as on any platform with no binary ([D49](#d49--when-the-engines-binary-is-missing-proposed)).
+of the desktop's roadmap, needing no Mac at hand. Until stage 10 the extension on a platform with no binary used its
+TypeScript code for everything; since then it says that the engine is not there
+([D49](#d49--when-the-engines-binary-is-missing-proposed)).
 
 ## D49 — When the engine's binary is missing (proposed)
 
@@ -685,6 +686,11 @@ has its binary (stage 10 of the roadmap, after the pipeline of stage 9); from th
 engine is not available on this system.** with **Show the log**, and nothing else. The extension never downloads a
 binary. Rejected: an operation already moved refusing at once when the binary is missing (it would take features away
 from macOS for the whole transition).
+
+Since stage 10 `extension/src/git` is gone, and the fallback with it: when the binary is missing or does not start,
+every view says **Gitardo's engine is not available on this system.** with a **Show the log** button, and every
+command that needs the engine shows the same sentence with **Show the log**; the extension reads and runs nothing.
+There is no universal vsix any more: one vsix per target, each with its engine, and a release waits for all of them.
 
 ## Open questions
 

@@ -59,8 +59,8 @@ written once as JSON in `rust/crates/app/tests/scenarios/`. The scenario runs tw
 the extension's TypeScript `GitOp`, and the test compares the two plans (the commands, in order) and the two
 repositories after (the references, `HEAD`, the index and the files of the working tree). A difference fails the test
 unless it is one of [transition/04-differences.md](../transition/04-differences.md), named in the scenario. Once the
-area has moved, the scenario runs the engine through `gitardo-engine --stdio` from the extension's tests, and the
-TypeScript side is dropped with `src/git`.
+area has moved, the scenario runs the engine through `gitardo-engine --stdio` from the extension's tests; since stage
+10 the TypeScript side is gone with `src/git`, and the extension's scenarios check the engine alone.
 
 The protocol has its own tests: each type of `rust/crates/protocol` is turned into JSON and back, and every variant of
 every enum of [transition/02-protocol.md](../transition/02-protocol.md) has its JSON written once in a golden file.

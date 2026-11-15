@@ -7,7 +7,7 @@ which is also its page on the Marketplace, and [Gitardo Desktop](../rust/README.
 way in.
 
 Some documents hold for both apps and are here; the others were written for one app and are in its folder. A path in
-the extension's documents (`src/git/ops.ts`) is from `extension/`, one in Gitardo Desktop's (`crates/engine`) from
+the extension's documents (`src/engine/reads.ts`) is from `extension/`, one in Gitardo Desktop's (`crates/engine`) from
 `rust/`.
 
 ## For both apps

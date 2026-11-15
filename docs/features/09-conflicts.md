@@ -26,12 +26,11 @@ resolutions, at the top of the timeline and of the Changes page.
   `ai.resolve-conflicts`, `rebase.` (the stop to edit a commit), `split.` (the stop to split one).
 - **Extension**: `OperationBanner` in `src/webview/OperationBanner.tsx`, above the graph in the panel and in its editor
   tab (not in the Gitardo Graph of the side bar, where the Changes view right above says it) and at the top of the
-  Changes view, with `resolvableConflicts(state, path?)` for the count. What it shows is read in TypeScript, until the
-  reads move to the engine (stage 5 of the roadmap): `Repo.operation()` (the marker files `rebase-apply/applying`,
-  `rebase-merge`, `rebase-apply`, `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, `sequencer/todo` in the git
-  directory, in that order) and `Repo.rebaseStop()` (the `amend`, `done` and `gitardo-split` files of
-  `.git/rebase-merge`), in `Repo.state` of `src/git/repo.ts`. The settings are `gitardo.conflicts.autoResolve` (the
-  count and the wand button) and `gitardo.conflicts.ai` (the sparkle button). **Continue**, **Skip** and **Abort** run
+  Changes view, with `resolvableConflicts(state, path?)` for the count. What it shows is read by the engine: the
+  operation and the stop of a rebase come with the state (`repo.read-state`, through `reads.parts` in
+  `src/engine/reads.ts`), and the counts with `conflicts.resolve-by-rules` when `gitardo.conflicts.autoResolve` is on.
+  The settings are `gitardo.conflicts.autoResolve` (the count and the wand button) and `gitardo.conflicts.ai` (the
+  sparkle button). **Continue**, **Skip** and **Abort** run
   in Gitardo's engine, as their cards say; the wand and the sparkle open the review.
 
 What it says, in this order of precedence:
@@ -113,14 +112,10 @@ Goes on with the operation that stopped, once its conflicts are resolved and sta
   left first); `cherry-pick.` for the commit skipped because it changes nothing.
 - **Extension**: **Continue** in the banner of the graph and of the Changes view, **Continue** in the message that
   follows `conflicts.resolve-automatically` when no file is left in conflict, and **Continue the merge** in the report
-  of `review.write` and on the empty review. When the rebase did not stop to edit or split a commit, it sends
-  `feature/run` of `conflicts.continue-operation` to Gitardo's engine (`Controller.runOnEngine` in
-  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`). The stops to edit and to split a commit stay
-  in TypeScript, as the rewriting area has them: `refuseUncommitted(state)` first at an edit stop, `continueSplit(stop,
-  state, repo)` in `src/extension/actions.ts` at a split stop, which asks **"\<subject\>" is not all committed yet: 1
-  file of it is still changed.** with **Commit What Is Left** and **Go Back to Committing**, and builds
-  `splitRestOp(paths, message)`. When the engine's binary is missing, `continueOp(operation)` of `src/git/ops.ts` runs
-  in its place, with `recover: skipEmptyPicks(root)`, as before (D49).
+  of `review.write` and on the empty review. It sends `feature/run` of `conflicts.continue-operation` to Gitardo's
+  engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), at a
+  stop to edit or to split a commit too: the engine goes on as the stop says, as the rewriting area has it. When the
+  engine's binary is missing, it says so (D49).
 
 When git refuses to continue a cherry-pick or a revert because the commit it stopped on changes nothing on top of `HEAD`
 (no file is in conflict, and the index and the working tree are as `HEAD`), Gitardo runs `git cherry-pick --skip` (or
@@ -165,8 +160,7 @@ Leaves out the commit or patch the operation stopped on and goes on with the nex
 - **Refuses**: during a merge: *A merge has no steps to skip.*
 - **Extension**: **Skip** in the banner sends `feature/run` of `conflicts.skip-step` to Gitardo's engine
   (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), whose question
-  is asked through `VscodeAsker` in `src/engine/vscode.ts`. When the engine's binary is missing, `skipOp(operation)` of
-  `src/git/ops.ts` runs in its place, with `recover: skipEmptyPicks(root)`, as before (D49).
+  is asked through `VscodeAsker` in `src/engine/vscode.ts`. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -196,9 +190,7 @@ Takes the repository back to how it was before the operation started.
 - **After**: the banner goes away; the series of cherry-picks remembered for Undo is forgotten.
 - **Extension**: **Abort** in the banner sends `feature/run` of `conflicts.abort-operation` to Gitardo's engine
   (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), whose warning is
-  asked through `VscodeAsker` in `src/engine/vscode.ts`; the series of cherry-picks the extension remembers
-  (`Controller.series`) is forgotten. When the engine's binary is missing, `abortOp(operation)` of `src/git/ops.ts`
-  runs in its place, as before (D49).
+  asked through `VscodeAsker` in `src/engine/vscode.ts`. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -224,9 +216,9 @@ Says that an operation stopped on conflicts, what to do next, and offers the res
   first `error:` or `fatal:` line of git with **Show log**.
 - **Settings**: `conflicts.autoResolve`, `conflicts.ai`.
 - **Uses**: `conflicts.resolve-automatically`, `ai.resolve-conflicts`, `log.`.
-- **Extension**: `Controller.reportFailure(op, error)` in `src/extension/controller.ts`, shown when an operation fails
-  and, once the repository is read again, a file is in conflict (not for a `silent` run, whose fallback reports
-  itself). It is a VS Code warning message whose buttons are **Resolve Automatically**, **Resolve with AI** and **Show
+- **Extension**: `Controller.reportFailure(op, error)` in `src/extension/controller.ts`, shown by
+  `Controller.reportEngineFailure` when a step of the engine fails and, once the repository is read again, a file is
+  in conflict. It is a VS Code warning message whose buttons are **Resolve Automatically**, **Resolve with AI** and **Show
   Log**; the settings are `gitardo.conflicts.autoResolve` and `gitardo.conflicts.ai`.
 
 Its text is *\<title of the operation\> stopped: 2 files have conflicts. Resolve them, then continue or abort the
@@ -261,13 +253,13 @@ Which files are in conflict, and which of the three versions git keeps in the in
 - **Plan**: none; it runs `git diff --name-only --diff-filter=U -z` for the list, and
   `git ls-files --unmerged -z -- <file>` for the stages of one file: each record is `<mode> <object> <stage>\t<path>`,
   stage 1 being the common ancestor (the base), 2 the current side and 3 the incoming side.
-- **Extension**: read by the extension itself, in TypeScript, until the reads move to the engine (stage 5 of the
-  roadmap): `Repo.conflicted()`, `Repo.conflictStages(file)`, `Repo.conflictPlans(files)` and
-  `Repo.deletedConflicts(files)` in `src/git/repo.ts`, with `git show :1:<file>`, `:2:<file>` and `:3:<file>` and the
-  file on disk for the plans, every command with `GIT_OPTIONAL_LOCKS=0`. Each read of the repository reads the plans
-  only while `gitardo.conflicts.autoResolve` is on; the review reads them whenever it is open (`ConflictReviewTab.read`
-  in `src/extension/conflictReview.ts`). The limits are those of `conflicts.resolve-by-rules` (`CONFLICT_BYTES`,
-  `CONFLICT_FILES`).
+- **Extension**: read by the engine: `reads.conflicted(repo)` and `reads.conflictStages(repo, file)` in
+  `src/engine/reads.ts`, and `conflictPlans(reads, repo, files)` and `deletedConflicts(reads, repo, files)` in
+  `src/engine/conflictPlans.ts`, which take the sides from the engine (`reads.conflictVersions`,
+  `merge-view.read-sides`) and the file on disk for the plans. Each read of the repository counts what the rules
+  resolve only while `gitardo.conflicts.autoResolve` is on (`reads.parts`, with `conflicts.resolve-by-rules`); the
+  review reads the plans whenever it is open (`ConflictReviewTab.read` in `src/extension/conflictReview.ts`). The
+  limits are those of `conflicts.resolve-by-rules` (`CONFLICT_BYTES`, `CONFLICT_FILES`).
 
 What the stages say about a file:
 
@@ -307,11 +299,10 @@ of `conflicts.take-side` all say the sides this way.
   that points at it (not one ending in `/HEAD`); `.git/rebase-merge/onto` and `head-name` (or `.git/rebase-apply/…`)
   in a rebase; `git log -1 --format=%s <ref> --` for subjects; the first line of `.git/rebase-apply/final-commit` for
   the subject of a patch.
-- **Extension**: `CONFLICT_SIDES` in `src/git/ops.ts`, with `Repo.conflictNames()`, `Repo.conflictSubjects()` and
-  `Repo.patchSubject()` in `src/git/repo.ts`, read by the extension itself, in TypeScript, with `GIT_OPTIONAL_LOCKS=0`,
-  until the reads move to the engine (stage 5 of the roadmap). They name the sides in VS Code's merge editor, in the
-  diff of a file one side deleted, in the review and in the question to the language model; the question of
-  `conflicts.take-side` is the engine's.
+- **Extension**: `CONFLICT_SIDES` in `src/shared/conflicts.ts` for the words, with the names and the subjects read by
+  the engine (`reads.conflictSides(repo)` in `src/engine/reads.ts`, `read/conflicts.side-names`). They name the sides
+  in VS Code's merge editor, in the diff of a file one side deleted and in the review; the questions of
+  `conflicts.take-side` and to the language model are the engine's.
 
 | Operation | Current | Incoming |
 | --- | --- | --- |
@@ -356,8 +347,8 @@ Opens a file in conflict where it can be resolved by hand, which depends on what
   titled **Merging: \<name\>**, with the base from `:1`, **Current** from `:2` and **Incoming** from `:3`; never the
   Flow Merge, which is reached from the button of the merge editor. A file one side deleted opens in VS Code's diff
   editor (`Controller.openDeletedConflict`), `:1:<file>` on the left and the file on disk on the right; any other file
-  in a plain editor, with its markers. The stages are read by the extension itself (`Repo.conflictStages`), until the
-  reads move to the engine (stage 5 of the roadmap).
+  in a plain editor, with its markers. The stages are read by the engine (`reads.conflictStages` in
+  `src/engine/reads.ts`).
 
 | Stages | Opens |
 | --- | --- |
@@ -402,9 +393,8 @@ Tells git that a file's conflicts are resolved, by staging it.
 - **Extension**: the button **Mark as resolved** of a file in the **Conflicts** group of the Changes view
   (`act({ kind: 'stage', paths: [file.path] })` in `ChangesApp.tsx`). Staging a single file in conflict sends
   `feature/run` of `conflicts.mark-resolved` to Gitardo's engine (`Controller.runOnEngine` in
-  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`). When the engine's binary is missing,
-  `stageOp([path])` of `src/git/ops.ts` runs in its place, as before (D49). The Flow Merge's **Mark as Resolved** is
-  `merge-view.mark-resolved`.
+  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`). When the engine's binary is missing, it says
+  so (D49). The Flow Merge's **Mark as Resolved** is `merge-view.mark-resolved`.
 
 Acceptance:
 
@@ -447,8 +437,7 @@ when that side deleted it.
   `conflicts.take-side` to Gitardo's engine, with the file as the target and the side (`current` or `incoming`, from the
   extension's `ours` or `theirs`) as the answer (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns`
   in `src/engine/actions.ts`); its question is asked through `VscodeAsker` in `src/engine/vscode.ts`. When the engine's
-  binary is missing, `takeSideOp(file, side, stages, operation)` of `src/git/ops.ts` runs in its place, as before (D49),
-  and `Controller.action` sets Undo to `restoreConflictsOp([path])` when stages 2 and 3 were there.
+  binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -476,9 +465,9 @@ whatever names git wrote after the markers.
 
 - **Kind**: Derivation
 - **Function**: `text::conflicts::parse_markers(text: &str) -> Option<Vec<MarkedConflict>>`
-- **Extension**: `blocks(lines)`, `marks` and `conflictCount(text)` in `src/git/conflicts.ts`, in TypeScript, for the
-  review and the counts of the banner, which stay in the extension; `resolveConflicts` returns no conflict when the
-  markers do not pair up.
+- **Extension**: `blocks(lines)`, `marks` and `conflictCount(text)` in `src/shared/conflicts.ts`, in TypeScript, for the
+  review and the Flow Merge, which stay in the extension; the counts of the banner are the engine's
+  (`conflicts.resolve-by-rules`). `resolveConflicts` returns no conflict when the markers do not pair up.
 
 Rules:
 
@@ -523,11 +512,12 @@ the file: it never makes one up. Anything that is not plainly one of its cases i
   `git show :3:<file>` (incoming). The style of the markers does not matter: the base is always the one of the index.
 - **Settings**: none here; whether it is used at all is `conflicts.autoResolve`, decided by its callers.
 - **Uses**: `conflicts.parse-markers`, `diff.line-diff` (the same minimal line diff).
-- **Extension**: `merge(base, ours, theirs)` and `resolveConflicts(text, base, sides)` in `src/git/conflicts.ts`, in
+- **Extension**: `merge(base, ours, theirs)` and `resolveConflicts(text, base, sides)` in `src/shared/conflicts.ts`, in
   TypeScript (`weave`, `refine`, `mergeWith`, `settle`, `plan`, `MAX_LINES`, `MAX_EDITS`), with the cases `separate`,
   `same`, `whitespace` and `oneSide` of `Resolution` and their words in `RESOLUTIONS` of `src/shared/resolution.ts`.
-  They propose in the review and count for the banner, which stay in the extension; what is written from them is
-  written by the engine (`conflicts.resolve-automatically`, `review.write`).
+  They propose in the review, on the sides the engine reads (`conflictPlans` in `src/engine/conflictPlans.ts`); the
+  counts of the banner are the engine's (`read/conflicts.resolve-by-rules`, through `reads.parts`), and what is written
+  from them is written by the engine (`conflicts.resolve-automatically`, `review.write`).
 
 Its output, for each conflict of `conflicts.parse-markers`: whether it is resolved; when it is, the case, and the lines of
 the file it replaces (from a first line to a last, which can take some lines around the markers) with the lines to put
@@ -722,9 +712,8 @@ look at each one first.
   (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`). Its question,
   with a detail of several lines and the two answers **Resolve** and **Review**, is a modal of VS Code through
   `VscodeAsker` in `src/engine/vscode.ts`; **Review** opens the review (the follow-up `openReview`), and the message
-  after it is one message with **Continue**, when it offers it, and **Undo**. When the engine's binary is missing,
-  `resolveConflictsOp(plans)` of `src/git/ops.ts` runs in its place, with `Controller.confirmWrites` and
-  `Controller.reportResolved`, as before (D49).
+  after it is one message with **Continue**, when it offers it, and **Undo**. When the engine's binary is missing, it
+  says so (D49).
 
 What was typed in a file since git stopped is kept, since the rules work on the file as it is now; a conflict right
 beside lines changed by hand is left alone (step 4 of the rules).
@@ -769,10 +758,8 @@ took one side of them.
 - **After**: the answers of the AI provider for those conflicts are still there and show again on the same conflicts
   (`ai.resolve-conflicts`).
 - **Extension**: **Undo** in the toolbar, in the message that follows `conflicts.resolve-automatically` and in the
-  report of `review.write`. With the engine, Undo is `undo.last` in the engine, whose journal records
-  `conflictsResolved` for the files written or the side taken. When the engine's binary is missing,
-  `restoreConflictsOp(files)` of `src/git/ops.ts` runs in its place, as before (D49), set as Undo by
-  `Controller.action` and `Controller.writeResolutions`.
+  report of `review.write`. Undo is `undo.last` in the engine, whose journal records `conflictsResolved` for the files
+  written or the side taken. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -809,13 +796,14 @@ accepted or not, and written. Nothing is written until the user writes what was 
   `review.deleted-card`, `ai.resolve-conflicts`, `ai.choose-model`.
 - **Extension**: an editor tab, `ConflictsApp()` in `src/webview/ConflictsApp.tsx`, with the host side
   `ConflictReviewTab` in `src/extension/conflictReview.ts`, opened by `Controller.reviewConflicts(paths?, ai?)`; its
-  data is made by `reviewFiles(plans, rules, asked)` in `src/git/review.ts`. It is opened by **Gitardo: Review the
+  data is made by `reviewFiles(plans, rules, asked)` in `src/shared/review.ts`. It is opened by **Gitardo: Review the
   Resolutions of the Conflicts** and **Gitardo: Resolve Conflicts with AI** in the Command Palette, the wand and
   sparkle buttons of the banner and of a file in the Changes view, **Review** in the question of
-  `conflicts.resolve-automatically`, and **Resolve with AI** in the message of `conflicts.stopped`. The review, its
-  proposals and what it reads stay in the extension, in TypeScript, until the reads move to the engine (stage 5 of the
-  roadmap); only `review.write` runs in the engine. It is read again whenever the repository is read again, the settings
-  of `gitardo.conflicts` change, or the models of VS Code change.
+  `conflicts.resolve-automatically`, and **Resolve with AI** in the message of `conflicts.stopped`. The review and its
+  proposals stay in the extension, in TypeScript; what it reads is read by the engine (`ConflictReviewTab.read`, with
+  `reads` of `src/engine/reads.ts` and `conflictPlans` of `src/engine/conflictPlans.ts`), and `review.write` runs in the
+  engine. It is read again whenever the repository is read again, the settings of `gitardo.conflicts` change, or the
+  models of VS Code change.
 
 The page is **Conflicts · \<repository folder name\>**; there is one per window, and asking for it again shows it (with
 other files when asked for other files). Its head says **Conflicts of the merge** (of the rebase, …) and, under it,
@@ -907,7 +895,7 @@ from beside the buttons that decide.
 - **Extension**: `Conflict(props)`, `Composition`, `Warnings`, `Source`, `Editor` and `AskingState` in
   `src/webview/ConflictCard.tsx`; `Code`, `Changes`, `numbering` and `PART` in `src/webview/conflictCode.tsx`;
   `conflictChanges(lines, conflict)`, `rulesProposal(conflict)` and the `region` of `reviewFiles` in
-  `src/git/review.ts`; `sideChanges` in `src/webview/sideChanges.ts`. **Line 2** opens the file at that line
+  `src/shared/review.ts`; `sideChanges` in `src/webview/sideChanges.ts`. **Line 2** opens the file at that line
   (`Controller.openConflict(repo, file, line, editor)`); **Resolve by hand** opens the file in the Flow Merge, and the
   button beside it opens it in VS Code's merge editor. Where the proposal comes from reads **AI · Chosen model · high
   confidence**, with the name of the language model of VS Code.
@@ -1008,7 +996,7 @@ back).
 
 - **Kind**: Derivation
 - **Function**: `text::conflicts::fingerprint(lines: &[&str]) -> Fingerprint`
-- **Extension**: `fingerprint(text, conflict)` in `src/git/review.ts`, in TypeScript; the answers of the AI and the
+- **Extension**: `fingerprint(text, conflict)` in `src/shared/review.ts`, in TypeScript; the answers of the AI and the
   choices are kept by file and fingerprint in `src/extension/answers.ts` while VS Code runs.
 
 The lines of the conflict from its first marker to its last, each without what ends it, with what follows `<<<<<<<`,
@@ -1030,7 +1018,7 @@ Which proposal a conflict has, if any, and the lines of the file it takes the pl
 - **Settings**: `conflicts.autoResolve` (the rules propose), `conflicts.ai`.
 - **Uses**: `conflicts.resolve-by-rules`, `review.fingerprint`, the answers of `ai.resolve-conflicts`.
 - **Extension**: `reviewFiles(plans, rules, asked)`, `rulesProposal(conflict)`, `answerProposal(text, conflict,
-  answer)` and `choiceProposal(text, conflict, choice)` in `src/git/review.ts`, with `newLineCount` in
+  answer)` and `choiceProposal(text, conflict, choice)` in `src/shared/review.ts`, with `newLineCount` in
   `src/shared/resolution.ts`, in TypeScript; the settings are `gitardo.conflicts.autoResolve` and `gitardo.conflicts.ai`.
 
 - The rules come first: a conflict they resolve has their proposal, from **Rules**, with the case as its reason (first
@@ -1093,7 +1081,7 @@ and a JSON file that would no longer be JSON.
 - **Function**: `model::review::proposal_warnings(input: WarningInput) -> Vec<ProposalWarning>`
 - **Uses**: `review.proposal-lines`.
 - **Extension**: `repeatedKeys(proposed, origins)` in `src/shared/proposalLines.ts` and `jsonCheck(plan)` in
-  `src/git/review.ts`, in TypeScript, called by `reviewFiles`; `Warnings` in `src/webview/ConflictCard.tsx` and
+  `src/shared/review.ts`, in TypeScript, called by `reviewFiles`; `Warnings` in `src/webview/ConflictCard.tsx` and
   `unwarned` in `ConflictsApp` show them.
 
 - A name is what a line gives a value with `:` or `=`, after its indentation and the words that declare a variable
@@ -1137,8 +1125,8 @@ card, accepted at once, without leaving the review.
 - **Uses**: `review.accept`, `review.write`, `review.proposal-lines`, `review.proposal-warnings`.
 - **Extension**: `Conflict(props)` and `Editor` in `src/webview/ConflictCard.tsx` and `pick` of `ConflictsApp()`; the
   message `chooseResolution` and `ConflictReviewTab.choose(ref, choice)` in `src/extension/conflictReview.ts`;
-  `choiceProposal` in `src/git/review.ts` and `choiceText(choice, ours, theirs)` in `src/shared/proposalLines.ts`. The
-  choices are kept in the store `choices` of `src/extension/answers.ts` while VS Code runs.
+  `choiceProposal` in `src/shared/review.ts` and `choiceText(choice, ours, theirs)` in `src/shared/proposalLines.ts`.
+  The choices are kept in the store `choices` of `src/extension/answers.ts` while VS Code runs.
 
 Acceptance:
 
@@ -1253,14 +1241,12 @@ Writes the accepted resolutions in the files as one operation, and stages the fi
   again.*, and then the page reads the files again.
 - **Uses**: `review.proposals`, `conflicts.restore`, `review.report`.
 - **Extension**: **Write 2 resolutions** (or **Write 1 resolution**) at the top of the review tab, **Write the
-  accepted**, disabled, while nothing is accepted. `ConflictReviewTab.write(refs)` in
-  `src/extension/conflictReview.ts` sends `feature/run` of `review.write` to Gitardo's engine with a `resolutions`
-  target (protocol 1.3): the files and the accepted proposals with the text each was made from
-  (`Controller.runOnEngine` in `src/extension/controller.ts`). The engine's journal records `conflictsResolved` for
-  Undo, and its log has a `write <full path>` line for each file. The confirmation is asked through `VscodeAsker` in
-  `src/engine/vscode.ts`. When the engine's binary is missing, `writeResolutionsOp(files)` of `src/git/ops.ts` runs in
-  its place through `Controller.writeResolutions(repo, op, files)`, which sets Undo to `restoreConflictsOp(files)`, as
-  before (D49).
+  accepted**, disabled, while nothing is accepted. `ConflictReviewTab.write(refs)` in `src/extension/conflictReview.ts`
+  sends `feature/run` of `review.write` to Gitardo's engine with a `resolutions` target (protocol 1.3): the files and
+  the accepted proposals with the text each was made from (`Controller.runOnEngine` in `src/extension/controller.ts`).
+  The engine's journal records `conflictsResolved` for Undo, and its log has a `write <full path>` line for each file.
+  The confirmation is asked through `VscodeAsker` in `src/engine/vscode.ts`. When the engine's binary is missing, it
+  says so (D49).
 
 Acceptance:
 
@@ -1382,9 +1368,10 @@ of the side that kept it, or goes.
   byte) or larger than 2 MB has no card and is listed under **Also in conflict**.
 - **Uses**: `conflicts.take-side`, `diff.page`, `diff.line-diff`.
 - **Extension**: `DeletedFile({ file, sides, busy })` in `src/webview/ConflictCard.tsx`, with `fileRows` from
-  `src/webview/conflictCode.tsx`, and the data of `Repo.deletedConflicts` (`DeletedConflict` in
-  `src/shared/resolution.ts`). Its two buttons run `conflicts.take-side` in the engine; the diff button opens VS Code's
-  diff editor, as `conflicts.open-file` does for such a file.
+  `src/webview/conflictCode.tsx`, and the data of `deletedConflicts` in `src/engine/conflictPlans.ts`
+  (`DeletedConflict` in `src/shared/resolution.ts`), from the sides the engine reads. Its two buttons run
+  `conflicts.take-side` in the engine; the diff button opens VS Code's diff editor, as `conflicts.open-file` does for
+  such a file.
 
 - It says which side did what, with the words of `conflicts.side-names`, and shows what the side that kept the file
   changed of it, as a diff, with the lines between the changes left out (*Lines left out here*). *This side changed
@@ -1425,15 +1412,14 @@ proposal to accept or not.
 - **Uses**: `review.page`, `ai.ask-conflict`, `ai.conflict-question`, `ai.read-answer`, `ai.trim-answer`,
   `review.proposals`.
 - **Extension**: asks the language model chosen in VS Code, not an AI provider: `ConflictReviewTab.ask(refs?)`, `next`
-  and `stop` in `src/extension/conflictReview.ts` (`AT_ONCE` = 2, `SEND_EVERY` = 120 ms), with `askResolution(question,
-  token, onText)` and `conflictModel` in `src/extension/ai.ts` without the engine; the answers are kept in
-  `src/extension/answers.ts` while VS Code runs. The review stays in the extension; with the engine, each question is
-  `ai.ask-conflict` of the engine (`askOnEngine` in `src/extension/conflictReview.ts`), and the answer shows as it
-  comes. Its entry points add **Gitardo: Resolve Conflicts with AI** in the Command
-  Palette and the sparkle on a file in the Changes view, tooltip **Resolve with AI, after looking at what is
-  proposed**. The settings are `gitardo.conflicts.ai`, `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort`;
-  with the first off it says **Gitardo: resolving conflicts with AI is experimental, and it is switched off in the
-  settings.** with **Open Settings**.
+  and `stop` in `src/extension/conflictReview.ts` (`AT_ONCE` = 2, `SEND_EVERY` = 120 ms); the answers are kept in
+  `src/extension/answers.ts` while VS Code runs. The review stays in the extension; each question is `ai.ask-conflict`
+  of the engine (`askOnEngine` in `src/extension/conflictReview.ts`), which `answerLanguageModel` in
+  `src/extension/ai.ts` sends to VS Code's model, and the answer shows as it comes. Its entry points add **Gitardo:
+  Resolve Conflicts with AI** in the Command Palette and the sparkle on a file in the Changes view, tooltip **Resolve
+  with AI, after looking at what is proposed**. The settings are `gitardo.conflicts.ai`, `gitardo.conflicts.aiModel`
+  and `gitardo.conflicts.aiEffort`; with the first off it says **Gitardo: resolving conflicts with AI is experimental,
+  and it is switched off in the settings.** with **Open Settings**.
 
 - Every entry point opens `review.page` (of that file, from a file's sparkle) and asks about each conflict that has
   nothing proposed; **Ask the AI** on a card asks about that one, and **Ask again** asks again, its answer taking the
@@ -1495,8 +1481,7 @@ Sends the AI provider the question about one conflict and returns its answer as 
   to `gitardo.conflicts.aiEffort` when it is set, the text shown in the review as it comes; then it reads and trims the
   answer. The request carries the justification **Gitardo sends the conflicts of the merge, and the lines around them,
   to the model to propose how to resolve them.** A model that is not there fails with *The model chosen to resolve
-  conflicts, \<id\>, is not available in VS Code: choose another one.* Without the engine, `askResolution(question,
-  token, onText)` in `src/extension/ai.ts` asks it in TypeScript.
+  conflicts, \<id\>, is not available in VS Code: choose another one.*
 
 Acceptance:
 
@@ -1514,10 +1499,8 @@ The text of the question about one conflict.
 - **Kind**: Derivation
 - **Function**: `model::ai::conflict_question(input) -> String`
 - **Uses**: `conflicts.side-names`, the stretch of `conflicts.resolve-by-rules`.
-- **Extension**: the engine's, through `ai.ask-conflict`; without the engine, `buildConflictPrompt(question)` in
-  `src/shared/conflictPrompt.ts` (`cut`, `part`, `MAX_PART_CHARS`), with `questionParts(text, conflict)` in
-  `src/git/review.ts` (`ASKED_AROUND`), in TypeScript, whose task is worded otherwise and whose parts of the file are
-  the same (G1).
+- **Extension**: the engine's, through `ai.ask-conflict`: the extension only sends the question the engine writes to
+  VS Code's model.
 
 It says, in order:
 
@@ -1559,8 +1542,7 @@ Reads the reply of the model into the lines of a resolution, a reason and a conf
 - **Kind**: Derivation
 - **Function**: `model::ai::read_answer(reply: &str) -> Result<ConflictAnswer, AnswerError>`
 - **Extension**: the engine's, through `ai.ask-conflict`, with the name of the model VS Code answered with;
-  `partialResolution(answer)` in `src/shared/conflictPrompt.ts` shows the answer as it comes; without the engine,
-  `parseConflictAnswer(answer)` there, and `askResolution` in `src/extension/ai.ts` adds the model's name.
+  `partialResolution(answer)` in `src/shared/conflictPrompt.ts` shows the answer as it comes.
 
 - The resolution is the text between the last `<resolution>` and the `</resolution>` after it, from the line after the
   opening tag to the last line break before the closing one. None: *The language model did not answer with a
@@ -1593,8 +1575,7 @@ sent, only what stands in place of the conflict is kept.
 - **Kind**: Derivation
 - **Function**: `model::ai::trim_answer(answer: ConflictAnswer, input: &TrimInput) -> Result<ConflictAnswer, AnswerError>`
 - **Extension**: the engine's, through `ai.ask-conflict`; `answerProposal(text, conflict, answer)` in
-  `src/git/review.ts` makes the proposal of the lines it gives. Without the engine, `fitResolution(answer, question)`
-  in `src/shared/conflictPrompt.ts`.
+  `src/shared/review.ts` makes the proposal of the lines it gives.
 
 - A **significant** line has a letter, digit or underscore in it and is not a conflict marker: a brace or an empty line
   anchors nothing. Lines are compared without spaces at their ends.
@@ -1656,10 +1637,8 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
   the desktop's picks (G2); the extension writes the two `writeSetting` as `gitardo.conflicts.aiModel` and
   `gitardo.conflicts.aiEffort` in the user settings of VS Code. Nothing changes in the repository, and **Undo** still
   takes back what it did before. With no model, it warns **Gitardo: No language model is available in VS Code.
-  Install an extension that provides one, such as GitHub Copilot.** Without the engine, `chooseConflictModel()` in
-  `src/extension/ai.ts` picks in TypeScript (**The first model of VS Code**, then each model, described **\<vendor\> ·
-  \<family\>**, and **As the model is set up in VS Code** for the effort). The review then names **\<id\>, not
-  available** when the chosen one is gone.
+  Install an extension that provides one, such as GitHub Copilot.** When the engine's binary is missing, it says so
+  (D49). The review then names **\<id\>, not available** when the chosen one is gone.
 
 Acceptance:
 
@@ -1668,12 +1647,13 @@ Acceptance:
 - [ ] Choosing **The first model of the provider** and **As the model is set up** removes both settings.
 - [ ] Cancelling either question writes nothing.
 - [ ] Each AI proposal written after the change names the new model.
-- [ ] Extension: with two models and the engine, the first pick offers **The first model of the provider**, **First
-      model**, **Chosen model**; the second **As the model is set up**, **Low**, **Medium**, **High**, **Extra high**,
-      **Max**; without the engine, **$(check) The first model of VS Code** and **$(check) As the model is set up in VS
-      Code** in their places.
+- [ ] Extension: with two models, the first pick offers **The first model of the provider**, **First model**,
+      **Chosen model**; the second **As the model is set up**, **Low**, **Medium**, **High**, **Extra high**, **Max**.
+      Without the engine's binary, it says **Gitardo's engine is not available on this system.** with **Show the log**,
+      and writes no setting.
 - [ ] Extension: choosing **Chosen model** and **High** writes `gitardo.conflicts.aiModel` and
       `gitardo.conflicts.aiEffort` in the user settings, from the engine's `writeSetting`.
 - [ ] Extension: choosing **Chosen model** then **High** sets `gitardo.conflicts.aiModel` to `test-chosen` and
       `gitardo.conflicts.aiEffort` to `high`.
-- [ ] Extension: it is not a `GitOp`: nothing is written to the log, and it does not change what **Undo** does.
+- [ ] Extension: it changes nothing in the repository: nothing is written to the log, and it does not change what
+      **Undo** does.

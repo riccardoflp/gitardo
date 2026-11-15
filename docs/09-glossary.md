@@ -61,14 +61,14 @@ titles of the commands in `package.json`, the words of the webviews, and the typ
 | submodule | A repository inside this one, at a commit this one records. | worktree | | `Submodule` |
 | recorded commit | The commit of a submodule that the repository around it records. | | | |
 | initialize, deinitialize (a submodule) | Clone a submodule and check out its recorded commit; empty its folder while keeping it in `.gitmodules`. | remove (a submodule) | | `git submodule init`, `deinit` |
-| operation | Something Gitardo runs that changes the repository, a remote or files: one `GitOp`, shown, logged and undone as one. | operation under way | | `GitOp` |
+| operation | Something Gitardo runs that changes the repository, a remote or files: one plan of the engine, shown, logged and undone as one. | operation under way | | `feature/run`, `Controller.runOnEngine` |
 | operation under way | A merge, rebase, cherry-pick, revert or `git am` that git stopped, waiting for **Continue**, **Skip** or **Abort**. | operation | | `Operation`, `RepoState.operation` |
-| series | Several commits made by one operation: a cherry-pick of several commits, or a patch applied as commits. **Undo** takes it back whole. | | | `Controller.series` |
-| todo list | The steps of an interactive rebase: pick, reword, edit, squash, fixup or drop for each commit. | | | `RebaseStep`, `rebaseTodo` |
+| series | Several commits made by one operation: a cherry-pick of several commits, or a patch applied as commits. **Undo** takes it back whole. | | | the engine's journal |
+| todo list | The steps of an interactive rebase: pick, reword, edit, squash, fixup or drop for each commit. | | | `RebaseStep`, `todoRows` |
 | current side, incoming side | The two sides of a conflict: what was checked out, and what the operation under way brings. What each is depends on the operation (for a rebase, the current side is the branch rebased onto). | side (of a comparison) | | `CONFLICT_SIDES` |
 | base | What the lines of a conflict were before either side changed them. | | | index stage 1 |
 | conflict | A part of a file that two sides changed differently, marked by git with `<<<<<<<`. | | | `Conflict`, `ConflictFile` |
-| conflict that needs no choice | A conflict whose sides change the same text the same way, or differ only in whitespace, or change different lines that git still marked: the rules can resolve it. | | auto-resolve | `Resolution`, `src/git/conflicts.ts` |
+| conflict that needs no choice | A conflict whose sides change the same text the same way, or differ only in whitespace, or change different lines that git still marked: the rules can resolve it. | | auto-resolve | `Resolution`, `src/shared/conflicts.ts` |
 | proposal | What is proposed for one conflict, by the rules or by the language model, waiting in the review to be accepted. | resolution (what is written) | | `Proposal` |
 | choice (in the review) | A side, both sides, or lines written by hand, that the user put in place of a proposal in the review: a proposal of its own, **Your choice**. | proposal (of the rules or the AI) | | `Choice`, `choices` |
 | take a side | Resolve a whole file with the version of one side of the operation under way. | | | action `takeSide` |
@@ -89,11 +89,11 @@ titles of the commands in `package.json`, the words of the webviews, and the typ
 
 | Term | Means | Not to be confused with | Avoid | In code |
 | --- | --- | --- | --- | --- |
-| command preview | The question that shows the exact commands before they run, for every operation when `gitardo.commandPreview` is `all`, and always for those that can lose work. | | | `Controller.run`, `describe` |
+| command preview | The question that shows the exact commands before they run, for every operation when `gitardo.commandPreview` is `all`, and always for those that can lose work. | | | `VscodeAsker.confirm` |
 | log | The **Gitardo** output channel: every command run, what Gitardo did itself, and errors. | reflog | | `log` in `extension.ts` |
-| Undo | **Undo Last Operation**: takes back the last operation from the reflog, or from what Gitardo remembered of it. | | | action `undo`, `undoOp`, `Controller.undoable` |
+| Undo | **Undo Last Operation**: takes back the last operation from the reflog, or from what Gitardo remembered of it. | | | action `undo`, `undo.last` |
 | what is running | The **Gitardo** item of the status bar while something takes more than half a second, and **Gitardo: Show What Is Running**. | log | | `Activity` |
-| link, copy (into new worktrees) | What a new worktree gets of the ignored folders and files of the repository: a junction or symbolic link, or a copy. | | | `SetupChoice`, `src/git/worktreeSetup.ts` |
+| link, copy (into new worktrees) | What a new worktree gets of the ignored folders and files of the repository: a junction or symbolic link, or a copy. | | | `SetupChoice`, `src/shared/worktreeSetup.ts` |
 
 ## The two apps and the engine
 
@@ -107,4 +107,4 @@ titles of the commands in `package.json`, the words of the webviews, and the typ
 | protocol | The messages between the extension and `gitardo-engine`, JSON-RPC over the standard input and output. | | | crate `protocol` |
 | desktop first | The order every feature is built in: the engine and the window of Gitardo Desktop, then the extension. | | | D39 |
 | status (of a card) | Where a feature stands in one app: **Specified**, **Reviewed**, **Built**, **Seen** in the desktop; **Planned**, **Built**, **Seen**, **Differs**, **Host only** in the extension. | | | the columns of `docs/features/README.md` |
-| fallback | The TypeScript `GitOp` an operation already moved to the engine keeps while `src/git` exists, run when the engine's binary is missing. | | | D49 |
+| fallback | What the extension ran in TypeScript when the engine's binary was missing, until stage 10 removed `src/git`; since then, without the engine, it says so with **Show the log**. Also what an operation offers when git refuses it, such as **Delete anyway**. | | | D49, `offerRun` |

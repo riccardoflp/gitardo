@@ -21,11 +21,8 @@ Worktrees list, the picker of **Switch worktree…** and the rules about branche
   `git -C <folder> status --porcelain=v2 -z --untracked-files=all`, whose entries are counted: staged, not staged and
   untracked alike. The count of the worktree the views show is the count of the Changes page, read already.
 - **Uses**: `repo.read-state`.
-- **Extension**: read by the extension itself, in TypeScript, each time the views read the repository: `Repo.state` in
-  `src/git/repo.ts` runs `git worktree list --porcelain`, parsed by `parseWorktrees` in `src/git/parse.ts`, and
-  `Repo.worktreeChanges` counts the files of each other worktree that is not missing with
-  `git status --porcelain --untracked-files=all`, all with `GIT_OPTIONAL_LOCKS=0`, until the reads move to the engine
-  (stage 5 of the roadmap).
+- **Extension**: read by the engine with the state of the repository, each time the views read it: `Reads.parts` in
+  `src/engine/reads.ts` asks for `repo.read-state`, whose worktrees and counts the views show as they come.
 
 Acceptance:
 
@@ -53,9 +50,8 @@ branch, slashes and all.
 - **Settings**: `worktrees.folder`, `${repo}.worktrees` by default.
 - **Extension**: the folder of a new worktree is the engine's, from `gitardo.worktrees.folder` as the extension sends
   it (`src/engine/settings.ts`), and the box of the name says **In `<folder>`** as the engine checks it with
-  `question/validate` (`VscodeAsker` in `src/engine/vscode.ts`). The views name the rows of the worktrees with
-  `worktreesRoot(main, folder)` of `src/git/ops.ts`, given them by `worktreesFolder` in `src/extension/actions.ts`; and
-  `worktreeDir` and `worktreeFolderName` there make the folder when the engine's binary is missing (D49).
+  `question/validate` (`VscodeAsker` in `src/engine/vscode.ts`). The views name the rows of the worktrees by their
+  path from the folder `worktreesFolder` in `src/extension/actions.ts` gives them, by the same rules.
 
 The rules:
 
@@ -137,12 +133,11 @@ Makes a new worktree on a new branch, from a branch the user picks, in the folde
   (`VscodeAsker` in `src/engine/vscode.ts`). The format and its inputs are `gitardo.branches.format` and
   `gitardo.branches.inputs`, or, where they are not set, `gitardo.worktrees.branchFormat` and
   `gitardo.worktrees.inputs`, sent by `src/engine/settings.ts`. What follows the worktree made is the extension's
-  (`Controller.worktreeMade`): the engine hands the commands of `worktree-setup.command-steps` over in `waiting`, and the
-  extension runs them in VS Code's terminals; once they have all succeeded, the message **Worktree created in
-  `<folder>`** has **Open in Agents Window** (where VS Code has it) and **Open in New Window** in place of the
-  desktop's three, and **Choose What It Gets…** while the engine offers it, once for the workspace (workspace state
-  `SETUP_OFFERED`). When the engine's binary is missing, `worktreeAddOp` of `src/git/ops.ts`, built by `addWorktree` and
-  given what new worktrees get by `withSetup` in `src/extension/actions.ts`, runs in its place, as before (D49).
+  (`Controller.worktreeMade`): the engine hands the commands of `worktree-setup.command-steps` over in `waiting`, and
+  the extension runs them in VS Code's terminals; once they have all succeeded, the message **Worktree created in
+  `<folder>`** has **Open in Agents Window** (where VS Code has it) and **Open in New Window** in place of the desktop's
+  three, and **Choose What It Gets…** while the engine offers it, once for the workspace (workspace state
+  `SETUP_OFFERED`). When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -172,8 +167,8 @@ Acceptance:
       What It Gets…**, which opens the tab, the first time only in the workspace; with patterns saved, it is not
       offered.
 - [ ] Extension: right after it, **Undo** says it is not taken back, rather than taking back the operation before it.
-- [ ] Extension: with `gitardo.engine.path` naming a missing file, `worktreeAddOp` runs, as do the other operations of
-      this file with their `GitOp`.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, it says **Gitardo's engine is not available on this
+      system.** with **Show the log**, and nothing is created, as for the other operations of this file.
 
 ### `worktree.create-from-branch` — Put a branch in a new worktree
 
@@ -205,8 +200,7 @@ Puts a local branch in a worktree of its own, or, with a format of branch names,
   `worktree.create-from-branch` on the branch to Gitardo's engine (`worktreeAdd` with `isBranch` in `engineRuns` of
   `src/engine/actions.ts`, run by `Controller.runOnEngine`), its questions asked in VS Code's pickers and input boxes
   (`VscodeAsker`), and what follows is as in `worktree.create` (`Controller.worktreeMade`). When the engine's binary is
-  missing, `worktreeAddOp` of `src/git/ops.ts`, built by `addWorktree` in `src/extension/actions.ts`, runs in its place,
-  as before (D49).
+  missing, it says so (D49).
 
 Acceptance:
 
@@ -252,8 +246,7 @@ Makes a worktree at a commit of the timeline, on a new branch made there, or on 
   `src/webview/menus.ts`). It sends `feature/run` of `worktree.create-at-commit` on the commit to Gitardo's engine
   (`worktreeAdd` with a commit in `engineRuns` of `src/engine/actions.ts`, run by `Controller.runOnEngine`), its
   questions asked in VS Code's pickers and input boxes (`VscodeAsker`), and what follows is as in `worktree.create`
-  (`Controller.worktreeMade`). When the engine's binary is missing, `worktreeAddOp` of `src/git/ops.ts`, built by
-  `addWorktree` and `commitBase` in `src/extension/actions.ts`, runs in its place, as before (D49).
+  (`Controller.worktreeMade`). When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -280,7 +273,7 @@ The worktrees of the repository, each with how it stands, in **Kept aside** of t
 - **Reads**: `worktree.read-list`, the branches with their upstreams (`refs.`), the pull requests (`github.`).
 - **Extension**: the **Worktrees** section of the references beside the graph and of the Branches view (the
   `worktrees` section of `RefsTree` in `src/webview/RefsTree.tsx`, with `worktreeLabel` and `worktreeStatus` of
-  `src/shared/refs.ts`), drawn in TypeScript from what `Repo.state` read (`worktree.read-list`). Its title has **+**
+  `src/shared/refs.ts`), drawn in TypeScript from what the engine read (`worktree.read-list`). Its title has **+**
   (*Create worktree…*) and **…** (*More actions for worktrees*, `worktreesMenu` in `src/webview/menus.ts`), and a right
   click on the title opens the same menu as **…**. Its rows and menus are those of this list, the operations sent to
   Gitardo's engine as their cards say; the double click opens a worktree where `gitardo.worktrees.openIn` says.
@@ -429,7 +422,7 @@ Opens a terminal with the worktree as its folder.
 - **Settings**: `terminal.external`.
 - **Extension**: **Open in terminal** in the context menu of a worktree; **Open terminal in worktree** in that of a
   branch another worktree has (`worktreeOpenEntries` in `src/webview/menus.ts`). Done by the extension itself, in
-  TypeScript: the case `worktreeTerminal` of `resolveAction` in `src/extension/actions.ts` opens a terminal of this
+  TypeScript: the case `worktreeTerminal` of `hostAction` in `src/extension/actions.ts` opens a terminal of this
   VS Code window, nothing sent to the engine; `terminal.external` has no place there.
 
 Acceptance:
@@ -455,7 +448,7 @@ Shows the worktree's folder in the file manager of the system.
 - **After**: the file manager shows the folder.
 - **Extension**: the same entries, in the context menu of a worktree beside the graph and in the Branches view, and in
   that of a branch another worktree has (`REVEAL` and `worktreeOpenEntries` in `src/webview/menus.ts`). Done by the
-  extension itself, in TypeScript: the case `worktreeReveal` of `resolveAction` in `src/extension/actions.ts` runs
+  extension itself, in TypeScript: the case `worktreeReveal` of `hostAction` in `src/extension/actions.ts` runs
   VS Code's `revealFileInOS`, nothing sent to the engine.
 
 Acceptance:
@@ -605,10 +598,8 @@ Gives a worktree's folder another name with `git worktree move`, and its branch 
   `src/engine/actions.ts`, run by `Controller.runOnEngine`), its questions asked in VS Code's input boxes and pickers
   (`VscodeAsker`). Before it, `Controller.letGoInVSCodeGit` has VS Code's Git extension close the worktree
   (`closeInVSCodeGit` in `src/extension/actions.ts`, `> git.close <folder>` in the log), which Windows would otherwise
-  hold. The folder open in this window is not sent to the engine, which does not know it: the TypeScript operation
-  refuses it. When the engine's binary is missing, `worktreeMoveOp` of `src/git/ops.ts`, built by `renameWorktree`
-  with `recoverHeldWorktree` and `removeEmptyParents` in `src/extension/actions.ts`, runs in its place, as before
-  (D49).
+  hold. The folder open in this window is not sent to the engine, which does not know it: `hostAction` in
+  `src/extension/actions.ts` refuses it. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -680,15 +671,14 @@ Removes a worktree's folder with `git worktree remove`, and its branch too if wa
 - **Extension**: **Remove…** in the context menu of a worktree, beside the graph and in the Branches view; **Remove
   worktree…** and **Remove worktree and delete branch…** in that of a branch another worktree has (`worktreeMenu`,
   `branchMenu` in `src/webview/menus.ts`), which give the answer `branch` (`keep` or `delete`). It sends `feature/run`
-  of `worktree.remove` on the worktree to Gitardo's engine (`worktreeRemove` in `engineRuns` of
-  `src/engine/actions.ts`, run by `Controller.runOnEngine`), its question and its danger asked in VS Code's picker and
-  modal dialog (`VscodeAsker`). Before it, `Controller.letGoInVSCodeGit` has VS Code's Git extension close the worktree
+  of `worktree.remove` on the worktree to Gitardo's engine (`worktreeRemove` in `engineRuns` of `src/engine/actions.ts`,
+  run by `Controller.runOnEngine`), its question and its danger asked in VS Code's picker and modal dialog
+  (`VscodeAsker`). Before it, `Controller.letGoInVSCodeGit` has VS Code's Git extension close the worktree
   (`closeInVSCodeGit` in `src/extension/actions.ts`, `> git.close <folder>` in the log). The folder open in this window
-  is not sent to the engine, which does not know it: the TypeScript operation refuses it. When git refuses a worktree
-  with changes, the engine's offer **Remove anyway** comes in the error's `data.followUps`, and the extension shows it
-  as a button of the error message beside **Show Log**. When the engine's binary is missing, `worktreeRemoveOp` of
-  `src/git/ops.ts` runs in its place, with `closeInVSCodeGit`, `unlinkFolderLinks` of `src/git/worktreeSetup.ts`,
-  `recoverHeldWorktree` and `removeEmptyParents`, as before (D49).
+  is not sent to the engine, which does not know it: `hostAction` in `src/extension/actions.ts` refuses it. When git
+  refuses a worktree with changes, the engine's offer **Remove anyway** comes in the error's `data.followUps`, and the
+  extension shows it as a button of the error message beside **Show Log**. When the engine's binary is missing, it says
+  so (D49).
 
 Acceptance:
 
@@ -739,8 +729,7 @@ Has git forget the worktrees whose folders are gone, which frees their branches.
   section, beside the graph and in the Branches view (`worktreeMenu`, `worktreesMenu` in `src/webview/menus.ts`). It
   sends `feature/run` of `worktree.prune` to Gitardo's engine (`worktreePrune` in `engineRuns` of
   `src/engine/actions.ts`, run by `Controller.runOnEngine`), its plan shown first only when `gitardo.commandPreview` is
-  `all` (`VscodeAsker`). When the engine's binary is missing, `worktreePruneOp` of `src/git/ops.ts` runs in its place,
-  as before (D49).
+  `all` (`VscodeAsker`). When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -763,8 +752,7 @@ link came from. This read finds those links, so that they are taken out first.
   to a folder outside the worktree; each entry that is a folder is looked into, without going past a link. Elsewhere it
   returns nothing: git removes a link there, not what it leads to.
 - **Uses**: by `worktree.remove` and `branch.clean-up`.
-- **Extension**: read by the engine, in the plan of `worktree.remove`, which the extension runs there; `unlinkFolderLinks`
-  in `src/git/worktreeSetup.ts` reads the same, in TypeScript, only for an engine whose binary is missing (D49).
+- **Extension**: read by the engine, in the plan of `worktree.remove`, which the extension runs there.
 
 Acceptance:
 
@@ -784,8 +772,7 @@ left it. A move or a removal that fails for that is not left half done.
 - **Uses**: by `worktree.rename`, `worktree.remove` and `branch.clean-up`.
 - **Extension**: carried out by the engine in the plans of `worktree.rename` and `worktree.remove` the extension runs
   there, after `Controller.letGoInVSCodeGit` had VS Code's Git extension close the worktree, which is what holds it
-  most often inside VS Code. `recoverHeldWorktree` and `removeFolder` in `src/extension/actions.ts` do the same in
-  TypeScript only for an engine whose binary is missing (D49).
+  most often inside VS Code.
 
 The rules, only on Windows:
 
@@ -818,8 +805,7 @@ After a worktree is moved or removed, the folders that held only it go too, up t
 - **Function**: `model::worktree::remove_empty_folders(input) -> Vec<Step>`
 - **Uses**: by `worktree.rename`, `worktree.remove` and `branch.clean-up`.
 - **Extension**: steps of the engine's plans of `worktree.rename`, right after `git worktree move`, and of
-  `worktree.remove`, right after `git worktree remove`, both before git touches the branch; `removeEmptyParents` in
-  `src/extension/actions.ts`, run once every command succeeded, is only for an engine whose binary is missing (D49).
+  `worktree.remove`, right after `git worktree remove`, both before git touches the branch.
 
 The rules: from the folder that held the worktree upwards, each folder inside the folder of the worktrees gets a step
 `delete <folder>` that deletes it only when it is empty by then, and the first one that is not empty ends it. The folder
@@ -916,16 +902,14 @@ Works on a branch in its own worktree, with nothing asked: the worktree is made 
 - **Uses**: `worktree.folder-path`, `worktree.open`, `worktree-setup.link-and-copy-steps`,
   `worktree-setup.command-steps`.
 - **Extension**: **Open in worktree** in the context menu of a local branch and of a remote branch, among the
-  references, in the Branches view and on its label in the graph; a double click on them while
-  `gitardo.branches.openIn` is `worktree` (`branchMenu`, `remoteBranchMenu`, `openBranch`, `openRemoteBranch` in
-  `src/webview/menus.ts`). It sends `feature/run` of `worktree.open-in-worktree` on the branch or the remote branch to
-  Gitardo's engine (`openInWorktree` in `engineRuns` of `src/engine/actions.ts`, run by `Controller.runOnEngine`). A
-  local branch that another worktree has already is not sent: the extension opens that worktree itself, where
-  `gitardo.worktrees.openIn` says, the Agents window included. Once the engine made the worktree and the commands of
-  `worktree-setup.command-steps` the extension runs in VS Code's terminals have all succeeded, `Controller.worktreeMade`
-  opens it where `gitardo.worktrees.openIn` says. When the engine's binary is missing, `worktreeAddOp` or
-  `worktreeTrackOp` of `src/git/ops.ts`, built by `openInWorktree` in `src/extension/actions.ts`, runs in its place, as
-  before (D49).
+  references, in the Branches view and on its label in the graph; a double click on them while `gitardo.branches.openIn`
+  is `worktree` (`branchMenu`, `remoteBranchMenu`, `openBranch`, `openRemoteBranch` in `src/webview/menus.ts`). It sends
+  `feature/run` of `worktree.open-in-worktree` on the branch or the remote branch to Gitardo's engine (`openInWorktree`
+  in `engineRuns` of `src/engine/actions.ts`, run by `Controller.runOnEngine`). A local branch that another worktree has
+  already is not sent: the extension opens that worktree itself, where `gitardo.worktrees.openIn` says, the Agents
+  window included. Once the engine made the worktree and the commands of `worktree-setup.command-steps` the extension
+  runs in VS Code's terminals have all succeeded, `Controller.worktreeMade` opens it where `gitardo.worktrees.openIn`
+  says. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -971,7 +955,7 @@ Lists the worktrees with their branches and how they stand, and opens the one pi
 - **Extension**: **Gitardo: Switch Worktree…** (`gitardo.switchWorktree`) in the Command Palette and in the **…** of
   the Branches view; **Switch worktree…** in the **…** of the Worktrees section. Done by the extension itself, in
   TypeScript: `Controller.switchWorktree()` in `src/extension/controller.ts` shows VS Code's picker, titled `Switch
-  Worktree`, *The worktree to open*, from what `Repo.state` read, and opens the one picked as `worktree.open` does;
+  Worktree`, *The worktree to open*, from the state the engine read, and opens the one picked as `worktree.open` does;
   **Create worktree…** runs `worktree.create` in the engine.
 
 Acceptance:
@@ -1043,10 +1027,9 @@ extension works them out, so that the same patterns give the same folders.
   the patterns> -z`; whether git ignores a folder, and whether the patterns name it as a folder, `git check-ignore
   --no-index -z --stdin` in the checkout and in an empty repository whose excludes file is the patterns.
 - **Extension**: what a new worktree, or one that gets ignored files brought in, is given is worked out by the engine,
-  in the plans the extension runs there. The tab of what new worktrees get, and the Explorer's entries, work it out in
-  TypeScript, until the reads move to the engine: `foldersToLink(root, patterns)` in `src/git/worktreeSetup.ts`, the
-  same reads with `GIT_OPTIONAL_LOCKS=0`, the empty repository made in a temporary folder with `core.excludesFile` set
-  to the patterns and removed after.
+  in the plans the extension runs there. The tab of what new worktrees get, and the Explorer's entries, ask the engine
+  for it too, with `worktree-setup.read-what-patterns-take` (`Reads.setupPreview` and `Reads.setupTakes` in
+  `src/engine/reads.ts`).
 
 The rules: a folder is linked when it holds a file that git ignores and that the patterns match, git ignores the folder
 itself, the patterns name it as a folder, and git ignores it whole or it is inside a folder git ignores whole. Of those,
@@ -1083,9 +1066,8 @@ Which files and folders of the checkout a new worktree gets as copies, from the 
   --no-empty-directory`; what the patterns match, `git ls-files --others --ignored --exclude-from=<file of the patterns>
   -z`; what the worktree has from its commit, `git ls-tree -r -z --name-only <commit>`.
 - **Extension**: worked out by the engine in the plans the extension runs there. The tab of what new worktrees get and
-  the Explorer's entries work it out in TypeScript, until the reads move to the engine: `pathsToCopy(root, worktree,
-  patterns, linked)` in `src/git/worktreeSetup.ts`, which asks the worktree what it has with `git ls-files -z`, all
-  with `GIT_OPTIONAL_LOCKS=0`.
+  the Explorer's entries ask the engine for it too, with `worktree-setup.read-what-patterns-take` (`Reads.setupPreview`
+  and `Reads.setupTakes` in `src/engine/reads.ts`).
 
 The rules: the files git ignores that the patterns match are copied, except what is inside a folder that is linked, and
 except what clashes with what the worktree has from its commit: a file of that path, a folder it has files in, or a path
@@ -1123,12 +1105,10 @@ What a new worktree gets of what git ignores in the folder the views show, as st
   `worktree.create`, `worktree.create-from-branch`, `worktree.create-at-commit`, `worktree.open-in-worktree`,
   `worktree-setup.bring-into-worktree`, `worktree-setup.bring-into-other-worktrees`.
 - **Extension**: steps of the engine's plans that the extension runs there for every way of creating a worktree and for
-  **Bring ignored files…**, the patterns being `gitardo.worktrees.linkFolders` and `gitardo.worktrees.copyFiles`, or
-  VS Code's `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles`, as the extension sends them
+  **Bring ignored files…**, the patterns being `gitardo.worktrees.linkFolders` and `gitardo.worktrees.copyFiles`, or VS
+  Code's `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles`, as the extension sends them
   (`worktree-setup.settings-in-effect`); the note is shown with the plan when `gitardo.commandPreview` is `all`
-  (`VscodeAsker`). When the engine's binary is missing, `setUpWorktree`, `linkFolder` and `copyPath` of
-  `src/git/worktreeSetup.ts`, run as the `finish` that `withSetup` in `src/extension/actions.ts` gives the operation,
-  do it in its place, as before (D49).
+  (`VscodeAsker`). When the engine's binary is missing, it says so (D49).
 
 The rules:
 
@@ -1185,8 +1165,7 @@ links and copies made.
   this window shown without taking the focus, the next only once the last ended with exit code 0. Trust is VS Code's:
   the extension sends `trust` `vscode`, so the engine asks no trust question, and the commands run only in a trusted
   workspace. A command that fails, or a workspace not trusted, is said in a warning with **Open in Agents Window**
-  (where VS Code has it) and **Open in New Window**. When the engine's binary is missing, the `finish` that `withSetup`
-  in `src/extension/actions.ts` gives the operation runs them the same way (D49).
+  (where VS Code has it) and **Open in New Window**. When the engine's binary is missing, it says so (D49).
 
 The rules:
 
@@ -1243,9 +1222,10 @@ What git ignores in the folder the views show, as the page that chooses what new
   bytes; a folder's files and bytes, without following links, counting at most 5,000 files and saying when it has more;
   a link is not looked into.
 - **Uses**: `worktree-setup.propose` for what each entry is and what is proposed for it.
-- **Extension**: read by the extension itself, in TypeScript, for the tab of what new worktrees get, until the reads
-  move to the engine: `scanIgnored(root)` and `measure` in `src/git/worktreeSetup.ts`, with `GIT_OPTIONAL_LOCKS=0`, read
-  by `Controller.sendSetup` when the tab opens and on **Look again**.
+- **Extension**: read by the engine for the tab of what new worktrees get: `Reads.setupIgnored` in
+  `src/engine/reads.ts`, asked by `Controller.sendSetup` when the tab opens and on **Look again**, which looks on disk
+  whether a link leads to a folder, as the engine does not say, and adds what is proposed for each entry
+  (`ignoredEntry` in `src/engine/shapes.ts`).
 
 Acceptance:
 
@@ -1309,9 +1289,8 @@ The commands proposed for new worktrees from the lock files the repository commi
 - **Reads**: the files committed at the top among those below,
   `git ls-files -z -- ':(top,literal)<file>'…`, and `packageManager` of `package.json` when a JavaScript lock file is
   there.
-- **Extension**: worked out in TypeScript for the tab of what new worktrees get, until the reads move to the engine:
-  `proposeCommands(files, packageManager)` in `src/git/worktreeSetup.ts` (`JAVASCRIPT`, `OTHERS`, `PROPOSING_FILES`),
-  given the files and `packageManager` by `proposedCommands(root)`.
+- **Extension**: worked out by the engine for the tab of what new worktrees get: `Reads.setupCommands` in
+  `src/engine/reads.ts`, asked by `Controller.sendSetup` with `worktree-setup.read-ignored`.
 
 The rules:
 
@@ -1350,9 +1329,9 @@ What the link and copy patterns of the page take from the folder the views show,
   for a worktree that has nothing of them yet; then, for each link pattern alone, how many folders it links, and for
   each copy pattern alone, how many files or folders it copies with the links of all the patterns in place.
 - **Uses**: by `worktree-setup.page`, when the page opens and at **Look again**.
-- **Extension**: read by the extension itself, in TypeScript, for the tab of what new worktrees get, until the reads
-  move to the engine: `previewSetup(root, patterns)` in `src/git/worktreeSetup.ts`, asked by the message
-  `previewWorktreeSetup`, whose case in `Controller.onMessage` cleans the patterns first.
+- **Extension**: read by the engine for the tab of what new worktrees get: `Reads.setupPreview` in
+  `src/engine/reads.ts`, asked by the message `previewWorktreeSetup`, whose case in `Controller.onMessage` cleans the
+  patterns first.
 
 Acceptance:
 
@@ -1380,10 +1359,10 @@ saves the patterns and the commands.
   `worktree-setup.edit-settings-file`, `worktree-setup.bring-into-other-worktrees`.
 - **Extension**: an editor tab, `WorktreeSetupApp` in `src/webview/WorktreeSetupApp.tsx` (view kind `worktreeSetup`),
   opened by `Controller.openWorktreeSetup()` and fed by `Controller.sendSetup` and `worktreeSetupInfo` in
-  `src/extension/worktreeSettings.ts`, all in TypeScript: what it reads is read by the extension
-  (`worktree-setup.read-ignored`, `worktree-setup.propose`, `worktree-setup.propose-commands`,
-  `worktree-setup.read-what-patterns-take`), until the reads move to the engine. Its entries: **Gitardo: Choose What
-  New Worktrees Get…** (`gitardo.worktreeSetup`) in the Command Palette and in the **…** of the Branches view; **Choose
+  `src/extension/worktreeSettings.ts`: what it reads is read by the engine (`worktree-setup.read-ignored`,
+  `worktree-setup.propose-commands`, `worktree-setup.read-what-patterns-take`), and what is proposed is worked out in
+  TypeScript (`worktree-setup.propose`). Its entries: **Gitardo: Choose What New Worktrees Get…**
+  (`gitardo.worktreeSetup`) in the Command Palette and in the **…** of the Branches view; **Choose
   what new worktrees get…** in the **…** of the Worktrees section; **Choose What It Gets…** after a worktree is created;
   **Choose What New Worktrees Get…** in the messages of the Explorer's entries. One tab at a time, for the repository
   the views show: a tab open for it is brought forward, one open for another repository is closed. **Save in** offers
@@ -1637,12 +1616,11 @@ Has new worktrees link a folder of the checkout, chosen in the Files page, by th
   selected, not in the Command Palette (`gitardo.linkIntoWorktrees` in `package.json`, `explorer/context`, group
   `z_gitardo_worktrees@1`, while the path is not in the context key `gitardo.linkedIntoWorktrees`). Done by the
   extension itself, in TypeScript, in VS Code's settings: `Controller.setUpFromExplorer('link', uris)` in
-  `src/extension/controller.ts`, with `changeSetup` of `src/git/worktreeSetup.ts` and `savePatterns` of
-  `src/extension/worktreeSettings.ts`, writes `gitardo.worktrees.linkFolders` where it is set now, the workspace folder
-  or the user's settings, and where it is not set in the workspace folder (the user's when the repository is in no
-  folder of the workspace), with VS Code's progress *Gitardo: looking at what git ignores* in the status bar meanwhile.
-  It is not a plan: nothing of it is shown first or written to the log (W12). The engine refuses this feature under
-  VS Code, as it refuses `worktree-setup.save`. The folder of a repository itself counts as in none.
+  `src/extension/controller.ts`, with `changeSetup` and `savePatterns` of `src/extension/worktreeSettings.ts`, writes
+  `gitardo.worktrees.linkFolders` where it is set now, the workspace folder or the user's settings, and where it is
+  not set in the workspace folder (the user's when the repository is in no folder of the workspace), with VS Code's
+  progress *Gitardo: looking at what git ignores* in the status bar meanwhile. It is not a plan: nothing of it is shown
+  first or written to the log (W12). The engine refuses this feature under VS Code, as it refuses `worktree-setup.save`. The folder of a repository itself counts as in none.
 
 Acceptance:
 
@@ -1778,10 +1756,12 @@ patterns out, and the sentence that says it.
 - **Kind**: Derivation
 - **Function**: `model::worktree_setup::explain_change(input) -> SetupChange`
 - **Uses**: `worktree-setup.folders-to-link`, `worktree-setup.paths-to-copy`; by the four Files page entries.
-- **Extension**: worked out in TypeScript for the four entries of VS Code's Explorer: `changeSetup(root, entry, choice,
-  patterns)` in `src/git/worktreeSetup.ts`, with `chooseByPath` in `src/shared/worktreeSetup.ts` and `setupChangeText`
-  in `src/extension/worktreeSettings.ts`; when the patterns do not give it what was chosen, `git ls-files -z --
-  :(literal)<path>` and `git ls-files --others --ignored --exclude-standard -z -- :(literal)<path>` say why.
+- **Extension**: worked out in TypeScript for the four entries of VS Code's Explorer, from what the engine reads:
+  `changeSetup(root, entry, choice, patterns)` and `setupChangeText` in `src/extension/worktreeSettings.ts`, with
+  `chooseByPath` in `src/shared/worktreeSetup.ts`, ask the engine what the patterns take before and after
+  (`worktree-setup.read-what-patterns-take`, `Reads.setupTakes` in `src/engine/reads.ts`); when the patterns do not
+  give it what was chosen, `read/worktree-setup.explain-change` (`Reads.pathStatuses`) says whether git tracks or
+  ignores it.
 
 The rules, for **Link** or **Copy**:
 
@@ -1831,8 +1811,7 @@ Gives a worktree that is there already what new worktrees get, without touching 
   worktree to Gitardo's engine (`worktreeSetUp` with a `path` in `engineRuns` of `src/engine/actions.ts`, run by
   `Controller.runOnEngine`), the patterns being those the extension sends (`worktree-setup.settings-in-effect`), its
   danger asked in a modal dialog whatever `gitardo.commandPreview` says (`VscodeAsker`). When the engine's binary is
-  missing, `setUpExistingOp(state, dir)` of `src/extension/actions.ts`, whose `finish` runs `setUpWorktree`, runs in
-  its place, as before (D49).
+  missing, it says so (D49).
 
 Acceptance:
 
@@ -1867,9 +1846,8 @@ Gives every other worktree of the repository what new worktrees get, without tou
   (`worktreesMenu` in `src/webview/menus.ts`); **Bring into the other worktree** (or *other <n> worktrees*) in the tab
   of what new worktrees get (`WorktreeSetupApp`). Each sends `feature/run` of
   `worktree-setup.bring-into-other-worktrees` to Gitardo's engine (`worktreeSetUp` with no `path` in `engineRuns` of
-  `src/engine/actions.ts`, run by `Controller.runOnEngine`), its danger asked in a modal dialog (`VscodeAsker`). When the
-  engine's binary is missing, `setUpExistingOp(state)` of `src/extension/actions.ts` runs in its place, as before
-  (D49).
+  `src/engine/actions.ts`, run by `Controller.runOnEngine`), its danger asked in a modal dialog (`VscodeAsker`). When
+  the engine's binary is missing, it says so (D49).
 
 Acceptance:
 

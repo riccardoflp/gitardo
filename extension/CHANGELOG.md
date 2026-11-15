@@ -58,6 +58,8 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - Choosing the model that resolves conflicts offers the models as Gitardo Desktop does: **The first model of the provider**, then each model, and **As the model is set up** for how much it thinks.
 - Closing GitHub's sign-in that **Sign in to GitHub** opens says nothing.
 - Opening on GitHub a comparison of a commit with itself says the two sides are the same commit.
+- Without Gitardo's engine for its system, Gitardo says so instead of running on its TypeScript code: every view says **Gitardo's engine is not available on this system.** with **Show the log**, and so does every command that needs the engine. Gitardo is published as one package per system, each with its engine.
+- Staging or unstaging a change in the Flow Diff of a file with unsaved edits says the file changed since the diff was shown; save it first.
 
 ## 0.11.0 - 2026-11-12
 

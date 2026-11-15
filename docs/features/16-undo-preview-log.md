@@ -89,17 +89,13 @@ before it. It always shows what it is about to do first. With nothing in the jou
 - **Function**: `features::undo::last(context, answers) -> Outcome`
 - **Entry points**: **Undo** in the **…** menu of the header; **Undo Last Operation** in Quick search; the **Undo** of
   the messages that follow an operation.
-- **Extension**: **Undo** in the toolbar of the graph, whose tooltip names the newest operation of the journal
-  (*Undo "Commit"*, or *"Push main to origin" cannot be undone*, from `journal/last`); **Gitardo: Undo Last
-  Operation** in the Command Palette and in the **…** of the headers of the Commits view and the Gitardo Graph; the
-  **Undo** of the messages after resolving conflicts, a squash merge and a split. Each sends `feature/run` of
-  `undo.last` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`), its plan always shown in
-  a modal dialog first (`VscodeAsker` in `src/engine/vscode.ts`). Every operation that still runs in TypeScript is told
-  to the engine's journal once it ran, with `journal/record` (`Controller.recordInJournal`): what Undo needs of it, as
-  it remembered it (a branch deleted, a stash dropped, conflicts resolved, a squash merge, a series, the split of the
-  last commit), or what the states before and after it tell (`recordOf` in `src/engine/journal.ts`). When the
-  engine's binary is missing, the extension takes back what it remembered itself (`Controller.undoable`) and otherwise
-  the reflog (`undoOp` of `src/git/ops.ts`, from `Repo.undoInfo`), as before (D49).
+- **Extension**: **Undo** in the toolbar of the graph, whose tooltip names the newest operation of the journal (*Undo
+  "Commit"*, or *"Push main to origin" cannot be undone*, from `journal/last`); **Gitardo: Undo Last Operation** in the
+  Command Palette and in the **…** of the headers of the Commits view and the Gitardo Graph; the **Undo** of the
+  message after resolving conflicts automatically (`Controller.say`). Each sends `feature/run` of `undo.last` to
+  Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`), its plan always shown in a modal dialog
+  first (`VscodeAsker` in `src/engine/vscode.ts`). Every operation is the engine's, so its journal has them all. When
+  the engine's binary is missing, it says so (D49).
 - **Offered when**: the journal has an entry, or the reflog of `HEAD` has a previous position.
 - **Reads**: the newest entry of the journal of Gitardo's own operations for this repository; the last two entries of
   the reflog of `HEAD`
@@ -161,12 +157,12 @@ Acceptance:
 - [ ] A stash dropped, then a commit: Undo takes back the commit, then the drop.
 - [ ] Right after a push, Undo says it cannot take back the push, and takes back nothing.
 - [ ] During a merge stopped on conflicts, Undo refuses with *Finish or abort the merge first.*
-- [ ] Extension: a branch deleted in TypeScript, then a branch created by the engine: **Undo** removes the new branch,
-      and **Undo** again restores the deleted one, from the journal.
-- [ ] Extension: a stash dropped in TypeScript, then a commit made in TypeScript: **Undo** takes back the commit, then
-      the drop.
-- [ ] Extension: a squash merge, a resolution of conflicts and a split of the last commit run in TypeScript are each
-      taken back whole.
+- [ ] Extension: a branch deleted, then a branch created: **Undo** removes the new branch, and **Undo** again restores
+      the deleted one, from the journal.
+- [ ] Extension: a stash dropped, then a commit made: **Undo** takes back the commit, then the drop.
+- [ ] Extension: a squash merge, a resolution of conflicts and a split of the last commit are each taken back whole.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, **Undo** shows **Gitardo's engine is not available
+      on this system.** with **Show the log**, and runs nothing.
 - [ ] Extension: once the engine restarted, its journal is empty and **Undo** goes by the reflog, as after a reload.
 - [ ] Extension: **Undo** always asks first, whatever `gitardo.commandPreview` says.
 
@@ -180,9 +176,7 @@ cannot be taken back and changed only files and the index (staging, a save, a di
 past it. It is kept in memory: a new engine starts with an empty journal, and Undo then goes by the reflog.
 
 - **Kind**: Derivation
-- **Function**: `engine::undo::journal_after(journal, plan, state_before, state_after) -> Journal`, and
-  `engine::undo::journal_recorded(journal, title, record, before, after) -> Journal` for an operation the extension ran
-  itself (`journal/record`).
+- **Function**: `engine::undo::journal_after(journal, plan, state_before, state_after) -> Journal`
 - **Danger**: None
 - **Undo**: Not applicable.
 
@@ -193,7 +187,6 @@ Acceptance:
       holds again.
 - [ ] A plan that cannot be taken back is an entry with its reason once a reference changed, and nothing when only
       files and the index did.
-- [ ] An operation the extension ran is recorded with what it says Undo needs.
 - [ ] The journal keeps at most 50 entries per repository. (A number of Gitardo Desktop's own: the extension keeps
       what it needs in memory only. Whether entries survive a restart is open question Q4.)
 

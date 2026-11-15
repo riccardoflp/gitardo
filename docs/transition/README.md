@@ -17,4 +17,4 @@ move; the stage in progress is the first one of [06-roadmap.md](06-roadmap.md) n
 
 The decisions are D37 to D49 and the questions Q393 to Q407 in [08-decisions.md](../08-decisions.md). Paths in these
 pages are from the root of the repository, or from `rust/` and `extension/` where they name crates (`crates/engine`)
-or the extension's sources (`src/git/ops.ts`).
+or the extension's sources (`src/engine/reads.ts`).

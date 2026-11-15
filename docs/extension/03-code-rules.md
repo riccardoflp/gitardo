@@ -19,27 +19,31 @@ A change that needs to break a rule changes this page first, in its own commit, 
 - **R1.3** Every file the extension needs at run time is let into the package in `.vscodeignore`, the engine's
   `bin/<target>/` too; `npm run test:vsix` runs the end-to-end suite on what the package holds. *Source: AGENTS.md. Enforced by `npm run test:vsix` for what the
   suite reaches.*
-- **R1.4** The folders use each other as [the architecture](02-architecture.md#who-may-use-whom) draws it: `src/git`
-  never imports `vscode` or `src/extension`; `src/shared` imports nothing of the others. *Source: project choice.
-  Followed, with the edges marked on that page; no tool checks it.*
-- **R1.5** The extension runs one program besides `git`: `gitardo-engine`, from `bin/<platform>/` of the package or
-  from `gitardo.engine.path`, started and spoken to by `src/engine` only, which imports neither `src/git` nor
-  `src/webview`. *Source: [D41](../08-decisions.md#d41--json-rpc-over-the-standard-input-and-output-one-process-per-window).
-  Not checked by a tool.*
+- **R1.4** The folders use each other as [the architecture](02-architecture.md#who-may-use-whom) draws it:
+  `src/shared` imports nothing of the others, and no file of `src` runs `git`; there is no `src/git` (stage 10 of
+  [the transition](../transition/06-roadmap.md)). *Source: project choice. Followed, with the edges marked on that
+  page; no tool checks the imports, and `grep -rn child_process src` finds `src/engine/client.ts` alone.*
+- **R1.5** The extension runs one program: `gitardo-engine`, from `bin/<platform>/` of the package or from
+  `gitardo.engine.path`, started and spoken to by `src/engine` only, which does not import `src/webview`. Git is the
+  engine's to run. *Source:
+  [D41](../08-decisions.md#d41--json-rpc-over-the-standard-input-and-output-one-process-per-window). Not checked by a
+  tool.*
 
 ## R2 — Features
 
-- **R2.1** Everything that changes the repository, a remote or a file of the repository is a `GitOp`, run by
-  `Controller.run` or `Controller.runIn`, also what Gitardo does itself (`writes`, `prepare`, `finish`). *Source:
-  AGENTS.md, "From a click to git". Followed; checked per card by
+- **R2.1** Everything that changes the repository, a remote or a file of the repository is a feature of the engine,
+  sent with `feature/run` by `Controller.runOnEngine` (or `Controller.runIn`, which hands it there), also what Gitardo
+  does itself rather than git. *Source: AGENTS.md, "From a click to git". Followed; checked per card by
   [the promises](04-feature-contract.md#the-promises-every-card-is-checked-against).*
-- **R2.2** An operation is built by a function of `src/git/ops.ts` that takes what it needs as arguments, so that
-  `test/integration.test.ts` can run its commands on a throwaway repository. *Source: project choice. Followed for most
-  operations; target for the few built inside `Controller`.*
+- **R2.2** The features an action of a view runs, with their target and answers, are worked out by `engineRuns` of
+  `src/engine/actions.ts` from the action and the state alone, so that the tests check them without VS Code; what an
+  operation runs is the engine's, tested in `rust/` and by the scenarios of `test/engine*.test.ts` on throwaway
+  repositories. *Source: project choice. Followed.*
 - **R2.3** An operation that can lose work or rewrite history sets `danger`, and is in the README's list under
   [Command preview](../../extension/README.md#command-preview). *Source: README. Review.*
-- **R2.4** What the reflog cannot take back, the operation records for **Undo** in `Controller.action`. *Source: project
-  choice ([D28](../08-decisions.md#d28--undo-reads-the-reflog-and-remembers-only-what-it-cannot-tell)). Review.*
+- **R2.4** What the reflog cannot take back is recorded for **Undo** in the engine's journal, by the feature that ran.
+  *Source: project choice ([D28](../08-decisions.md#d28--undo-reads-the-reflog-and-remembers-only-what-it-cannot-tell)).
+  Review.*
 - **R2.5** A visible change updates its card in `docs/features/` in the same commit, when its area has cards, and
   writes the cards of its area when it has none yet. *Source: project choice
   ([D33](../08-decisions.md#d33--cards-first-for-the-areas-where-a-mistake-costs)). Review; `docs/catalog.py` finds
@@ -47,20 +51,20 @@ A change that needs to break a rule changes this page first, in its own commit, 
 
 ## R3 — Purity
 
-- **R3.1** `src/git/parse.ts`, `src/shared` and the Derivations of `src/git` (`conflicts.ts`, `review.ts`) read no
-  files, run no process and use no clock, so that they run in the webviews and in the tests. *Source: project choice.
-  Followed.*
-- **R3.2** Reads never take git's optional locks: `git()` with `readOnly`, which sets `GIT_OPTIONAL_LOCKS=0`. *Source:
-  `src/git/exec.ts`. Followed.*
+- **R3.1** `src/shared`, the Derivations among them (`conflicts.ts`, `review.ts`), reads no files, runs no process and
+  uses no clock, so that it runs in the webviews and in the tests. *Source: project choice. Followed.*
+- **R3.2** Reads never take git's optional locks: the engine's reads run git with `GIT_OPTIONAL_LOCKS=0`. *Source:
+  R9.3 of the desktop's [code rules](../desktop/03-code-rules.md). Followed.*
 
 ## R4 — Errors
 
-- **R4.1** What git prints when it fails reaches the user: the error message names the operation, and the log has the
-  whole output. *Source: `Controller.reportFailure`. Followed.*
-- **R4.2** Errors are `Error` objects with a sentence for the user (`GitError` for git); no string is thrown. *Source:
-  project choice. Followed: no `throw` of a string in `src`.*
-- **R4.3** An operation's `finish` must not throw, and `cleanup` failing is logged as a warning, never shown as the
-  operation failing. *Source: `src/git/ops.ts`, `GitOp`. Followed.*
+- **R4.1** What git prints when it fails reaches the user: the error message says the engine's words, and the log has
+  the whole output. *Source: `Controller.reportEngineFailure`, `Controller.reportFailure`. Followed.*
+- **R4.2** Errors are `Error` objects with a sentence for the user (`EngineError` for the engine's); no string is
+  thrown. *Source: project choice. Followed: no `throw` of a string in `src`.*
+- **R4.3** What follows an operation in VS Code (its follow-ups, a message, a read again) must not throw once the
+  engine has run it: a failure there is logged as a warning, never shown as the operation failing. *Source:
+  `Controller.runOnEngine`. Followed.*
 - **R4.4** Nothing is swallowed without a reason in a comment or a line in the log. *Source: project choice. Review.*
 
 ## R5 — Size and shape
@@ -68,8 +72,7 @@ A change that needs to break a rule changes this page first, in its own commit, 
 - **R5.1** A module does what its name says; no `utils` grows into a second home. *Source: project choice. Followed,
   but for `src/webview/util.ts`, which is small.*
 - **R5.2** A file over about 1,000 lines is split along a line the reader sees, when it is changed anyway.
-  *Source: project choice. Target: `controller.ts` (2,600 lines), `actions.ts` (1,500), `ops.ts` (1,300) and
-  `repo.ts` (1,100) are over it; see [RS1](13-risks.md).*
+  *Source: project choice. Target: `controller.ts` (2,700 lines) is over it; see [RS1](13-risks.md).*
 - **R5.3** Types carry meaning: unions of string literals (`MergeMode`, `ResetMode`, `Operation`), not bare strings or
   booleans that switch behavior. *Source: project choice. Followed.*
 - **R5.4** A `switch` on a union handles every case. *Source: project choice. Review: `tsc` checks it only where the
@@ -96,22 +99,25 @@ A change that needs to break a rule changes this page first, in its own commit, 
 
 ## R8 — Running git
 
-- **R8.1** Git runs with `spawn`, its arguments as a list, never through a shell. *Source: CWE-88; `src/git/exec.ts`.
-  Followed: `git()` is the only caller of `spawn` in `src`.*
-- **R8.2** The commands shown and logged are the commands that run: `git()` adds no flag, and a command that would open
-  an editor carries the flag that prevents it in sight (`--no-edit`, `-c core.editor=true`). `GIT_TERMINAL_PROMPT=0`
-  is the one thing set besides, in the environment. *Source: README, Command preview. Followed.*
-- **R8.3** A name that becomes an argument is refused when it starts with `-` (`arg()` in `ops.ts`); a file whose name is
-  a pattern is passed as `:(literal)<name>`; a branch that shares its name with a tag or a remote branch is
-  `refs/heads/<name>`. *Source: CWE-88; README, Command preview. Followed; checked per card.*
+- **R8.1** The extension runs no git: the engine does, its arguments as a list, never through a shell, and the
+  extension starts the engine with `spawn` and its arguments as a list. *Source: CWE-88; stage 10 of
+  [the transition](../transition/06-roadmap.md). Followed: `EngineClient` in `src/engine/client.ts` is the only caller
+  of `spawn` in `src`.*
+- **R8.2** The commands shown and logged are the commands that run: the plan the engine shows is the plan it runs, a
+  command that would open an editor carries the flag that prevents it in sight (`--no-edit`, `-c core.editor=true`).
+  *Source: README, Command preview. Followed, by the engine.*
+- **R8.3** A name that becomes an argument is refused when it starts with `-`; a file whose name is a pattern is passed
+  as `:(literal)<name>`; a branch that shares its name with a tag or a remote branch is `refs/heads/<name>`: the
+  engine's checks, which the extension's targets do not get around (`refArg` of `src/shared/refs.ts` names a reference
+  in full where a menu could mean two). *Source: CWE-88; README, Command preview. Followed; checked per card.*
 - **R8.4** What git prints is parsed from machine-readable formats (`--format` with separators, `-z`, `--porcelain`)
-  where git has one. *Source: project choice. Followed.*
+  where git has one, by the engine. *Source: project choice. Followed.*
 - **R8.5** The version of git a feature needs is said where it is checked (2.40 for `git merge-tree --write-tree`, the
   conflict previews), and without it the feature is skipped, not failed. *Source: README. Followed.*
-- **R8.6** In an area moved to the engine ([transition/06-roadmap.md](../transition/06-roadmap.md)), nothing in
-  `src/extension` or `src/webview` runs git or builds a `GitOp`; the area's `GitOp` in `src/git` is run only as the
-  fallback for a missing binary, and gets no new behavior. *Source:
-  [D39](../08-decisions.md#d39--desktop-first-and-a-status-for-each-app),
+- **R8.6** Every area is the engine's ([transition/06-roadmap.md](../transition/06-roadmap.md)): nothing in `src`
+  runs git or builds its commands, and new behavior goes into the engine first. Without the engine's binary, a view
+  or a command says **Gitardo's engine is not available on this system.** with **Show the log**, and runs nothing else.
+  *Source: [D39](../08-decisions.md#d39--desktop-first-and-a-status-for-each-app),
   [D49](../08-decisions.md#d49--when-the-engines-binary-is-missing-proposed). Review.*
 
 ## R9 — User interface

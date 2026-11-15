@@ -657,8 +657,8 @@ Acceptance:
 - **Reads**: the file `BISECT_START` in the git directory of the worktree; `git for-each-ref --format=%(refname)
   %(objectname) refs/bisect`; with a bad commit and at least one good one,
   `git rev-list --count <bad> --not <good>…`.
-- **Extension**: `Repo.bisect()` (`src/git/repo.ts`) reads the same refs and count, with `GIT_OPTIONAL_LOCKS=0`, into
-  `RepoState.bisect`.
+- **Extension**: the engine reads it with the state of the repository (`repo.read-state`, asked by `Reads.parts` in
+  `src/engine/reads.ts`), and the extension shows it as `bisect` of `RepoState`.
 
 Rules:
 
@@ -693,8 +693,8 @@ Starts finding the commit that broke something, from a commit known to be broken
 - **Uses**: `bisect.banner`, `bisect.mark`, `bisect.end`.
 - **Extension**: **Start bisect: this commit is bad** and **Start bisect: this commit is good** in the context menu of a
   commit in the graph and the Gitardo Graph post `bisect` with the mark and the commit, which runs it while no bisect is
-  under way, and `bisect.mark` during one, the mark given as the answer `mark`. Without the engine, `bisectOp` of
-  `src/git/ops.ts`, which does not refuse while another operation is under way.
+  under way, and `bisect.mark` during one, the mark given as the answer `mark`. When the engine's binary is missing, it
+  says so (D49).
 
 Acceptance:
 
@@ -754,8 +754,8 @@ The banner's **Good**, **Bad** and **Skip** mark the commit git checked out to t
   first bad commit already.*
 - **Uses**: `bisect.read`, `bisect.banner`.
 - **Extension**: **Good**, **Bad** and **Skip** in the banner post `bisect` with the mark and no commit, which runs it
-  with the mark as the answer `answer`. **Skip** with a commit, which no view posts, runs `bisectOp` of
-  `src/git/ops.ts`, as every mark does without the engine.
+  with the mark as the answer `answer`. **Skip** with a commit, which no view posts, runs nothing (`engineRuns` in
+  `src/engine/actions.ts`).
 
 Acceptance:
 
@@ -837,8 +837,8 @@ Goes back to where the bisect started.
 - **After**: the banner and the marks are gone; what was checked out before the bisect is checked out.
 - **Uses**: `bisect.banner`, `undo.last`.
 - **Extension**: **End** in the banner, **End bisect** in the message that names the first bad commit, and **Gitardo:
-  End Bisect** in the Command Palette (`gitardo.bisectReset`) post `bisectReset`, which runs it. Without the engine,
-  `bisectResetOp` of `src/git/ops.ts` runs `git bisect reset` whether a bisect is under way or not.
+  End Bisect** in the Command Palette (`gitardo.bisectReset`) post `bisectReset`, which runs it. When the engine's
+  binary is missing, it says so (D49).
 
 Acceptance:
 

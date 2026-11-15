@@ -20,7 +20,7 @@ Switches the working tree to a local branch.
   `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), with the branch as its target; the plan is
   shown in a modal dialog when it asks first or `gitardo.commandPreview` is `all` (`VscodeAsker` in
   `src/engine/vscode.ts`). The settings are `gitardo.submodules.updateOnCheckout` and `gitardo.commandPreview`. When the
-  engine's binary is missing, `checkoutOp('branch', ref)` of `src/git/ops.ts` runs in its place, as before (D49).
+  engine's binary is missing, it says so (D49).
 - **Offered when**: the branch is not the one checked out, and no other worktree has it checked out. Where another
   worktree has it, its menu opens that worktree instead (`worktree.open`).
 - **Plan**: `git checkout <branch>`; then, as an operation of its own that the confirmation shows with it, the update of
@@ -52,8 +52,8 @@ Acceptance:
 - [ ] Extension: with submodules and `gitardo.submodules.updateOnCheckout` on, the log has `git submodule update --init
       --recursive` after the checkout; a submodule cloned from a folder on disk is asked first, and the update runs
       again with `-c protocol.file.allow=always`.
-- [ ] Extension: with `gitardo.engine.path` naming a missing file, `checkoutOp` runs, as do the other operations of this
-      file with their `GitOp`.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, **Check out** shows **Gitardo's engine is not
+      available on this system.** with **Show the log**, and nothing of this file runs.
 
 ### `branch.open` — What a double click on a branch does
 
@@ -115,7 +115,7 @@ to it.
   (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), with the remote
   branch as its target; its question is a quick pick. The menu and the double click open the worktree that has the local
   branch instead, so the engine's refusal is met only by a caller that goes past them (B6). When the engine's binary is
-  missing, `checkoutLocalOp` of `src/git/ops.ts` runs in its place, as before (D49).
+  missing, it says so (D49).
 - **Offered when**: no other worktree has the local branch of its name checked out; when one has, its menu and a double
   click open that worktree instead (`worktree.open`).
 - **Reads**: when a local branch has its name, how the two stand:
@@ -178,8 +178,8 @@ step.
   the local branch follows it, is not checked out, and each has commits the other has not; the choice **Check out
   `<branch>` and rebase it onto `<remote branch>`** in the question of `branch.checkout-remote`. Each sends
   `feature/run` of `branch.checkout-remote-and-rebase` to Gitardo's engine (`Controller.runOnEngine` in
-  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`). When the engine's binary is missing,
-  `checkoutLocalOp` of `src/git/ops.ts` runs in its place, as before (D49).
+  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`). When the engine's binary is missing, it says
+  so (D49).
 - **Offered when**: the local branch `<name>` follows this remote branch, the upstream is not gone, each has commits the
   other has not as of the last fetch, the local branch is not checked out (there, `rebase.` rebases what is checked
   out), and no other worktree has it.
@@ -208,8 +208,8 @@ Checks out a commit on a detached `HEAD`, to look at it or build it.
 - **Extension**: **Check out commit (detached)** in the context menu of a commit in the graph and in the Commits view,
   and **Check out (detached)** for a position picked in **Gitardo: Browse Reflog**. Each sends `feature/run` of
   `branch.checkout-detached` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`,
-  `engineRuns` in `src/engine/actions.ts`), with the commit as its target. When the engine's binary is missing,
-  `checkoutOp('detached', ref)` of `src/git/ops.ts` runs in its place, as before (D49).
+  `engineRuns` in `src/engine/actions.ts`), with the commit as its target. When the engine's binary is missing, it says
+  so (D49).
 - **Offered when**: the commit is not the one checked out.
 - **Plan**: `git checkout --detach <hash>`, then the update of the submodules (`submodule.update-on-checkout`).
 - **Danger**: None, or Confirm when the update of the submodules would leave commits behind.
@@ -235,18 +235,16 @@ Makes a new branch at a commit, a branch or a tag, and checks it out or not.
   **Create branch…** in Quick search, at `HEAD`; **Create branch here…** in the context menu of a commit in the
   timeline, narrowed or not, of a local branch and of a tag; the button **Create branch** at the top of the
   branch rail.
-- **Extension**: **Branch** in the toolbar of the graph (tooltip **Branch: create a branch at HEAD**), **Gitardo:
-  Create Branch…** in the Command Palette and on the title of the Branches view, all at `HEAD`; **Create branch
-  here…** in the context menu of a commit (graph and Commits view), of a local branch, of a tag, and of a position
-  picked in **Gitardo: Browse Reflog**. Each sends `feature/run` of `branch.create` to Gitardo's engine
-  (`Controller.runOnEngine` in `src/extension/controller.ts`, the target from `targetOf` in `src/engine/target.ts`);
-  its questions are VS Code's input boxes and quick picks, the name checked with `question/validate` as it is typed,
-  and the plan shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker` in
-  `src/engine/vscode.ts`). The settings are `gitardo.branches.format` and `gitardo.branches.inputs`, or, where they
-  are empty, `gitardo.worktrees.branchFormat` and `gitardo.worktrees.inputs`, as before
-  (`src/engine/settings.ts`); the inputs used last are kept in the workspace state `worktreeInputs`. When the
-  engine's binary is missing, `createBranchOp` of `src/git/ops.ts` runs in its place, as before, and the output
-  channel says the engine is missing (D49).
+- **Extension**: **Branch** in the toolbar of the graph (tooltip **Branch: create a branch at HEAD**), **Gitardo: Create
+  Branch…** in the Command Palette and on the title of the Branches view, all at `HEAD`; **Create branch here…** in the
+  context menu of a commit (graph and Commits view), of a local branch, of a tag, and of a position picked in **Gitardo:
+  Browse Reflog**. Each sends `feature/run` of `branch.create` to Gitardo's engine (`Controller.runOnEngine` in
+  `src/extension/controller.ts`, the target from `targetOf` in `src/engine/target.ts`); its questions are VS Code's
+  input boxes and quick picks, the name checked with `question/validate` as it is typed, and the plan shown in a modal
+  dialog when `gitardo.commandPreview` is `all` (`VscodeAsker` in `src/engine/vscode.ts`). The settings are
+  `gitardo.branches.format` and `gitardo.branches.inputs`, or, where they are empty, `gitardo.worktrees.branchFormat`
+  and `gitardo.worktrees.inputs`, as before (`src/engine/settings.ts`); the inputs used last are kept in the workspace
+  state `worktreeInputs`. When the engine's binary is missing, it says so (D49).
 - **Offered when**: there is a commit: **Branch** in the header is disabled before the first one.
 - **Asks**:
   1. With `branches.format` set: a pick titled **Create branch**, **Use the format** (the format beside it), which is
@@ -288,8 +286,8 @@ Acceptance:
 - [ ] In the extension, with `gitardo.branches.format` set, the name is proposed from the format and the inputs given
       are remembered in `worktreeInputs`.
 - [ ] In the extension, **Undo** right after **Create and check out** goes back to the branch before, by the reflog.
-- [ ] In the extension, with `gitardo.engine.path` naming a missing file, the TypeScript operation runs and the output
-      channel says the engine is missing.
+- [ ] In the extension, with `gitardo.engine.path` naming a missing file, **Create branch here…** shows **Gitardo's
+      engine is not available on this system.** with **Show the log**, and no branch is created.
 - [ ] The same answers through `gitardo-cli` and through the extension give the same plan and the same repository.
 
 ### `branch.format-name` — Expand the format of branch names
@@ -337,9 +335,8 @@ shown, to change or keep, by the feature that asked.
   which gives the name once every part is known, with the values given; until then the next question, the read of the
   branches that have a commit, or why the format is refused
 - **Entry points**: the questions of `branch.create` and of `worktree.create` after **Use the format**.
-- **Extension**: the questions are VS Code's input boxes and quick picks, asked by the engine for `branch.create`; for
-  `worktree.create`, which is not moved yet, `nameFromFormat`, `askInput` and `commitBase` of `src/extension/actions.ts`
-  ask them in TypeScript. The settings are `gitardo.branches.format` and `gitardo.branches.inputs`, or
+- **Extension**: the questions are VS Code's input boxes and quick picks, asked by the engine for `branch.create` and
+  for `worktree.create`. The settings are `gitardo.branches.format` and `gitardo.branches.inputs`, or
   `gitardo.worktrees.branchFormat` and `gitardo.worktrees.inputs` where those are not set; the values used last are kept
   in the workspace state under `worktreeInputs`.
 - **Reads**: for `${base}` at a commit, the branches that have it:
@@ -444,8 +441,7 @@ Gives a local branch another name.
 - **Extension**: **Rename…** in the context menu of a local branch, **Rename branch…** when another worktree has it.
   Each sends `feature/run` of `branch.rename` to Gitardo's engine (`Controller.runOnEngine` in
   `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`); the name is asked in an input box, checked
-  with `question/validate` as it is typed. When the engine's binary is missing, `renameBranchOp` of `src/git/ops.ts`
-  runs in its place, as before (D49).
+  with `question/validate` as it is typed. When the engine's binary is missing, it says so (D49).
 - **Asks**: the new name, in an input box titled **Rename branch `<name>`**, starting from the name it has; checked by
   `branch.validate-name` and "A branch with that name already exists".
 - **Plan**: `git branch -m <old> <new>`.
@@ -476,8 +472,7 @@ Deletes a local branch, after saying whether its commits are merged, so that non
   `branch.delete` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
   `src/engine/actions.ts`); the confirmation is a modal dialog, a warning when the branch is not merged. When git still
   finds it not fully merged, the error has **Delete anyway** beside **Show Log**, the `offerRun` follow-up of protocol
-  1.3, which runs `branch.delete` again told it is not merged. When the engine's binary is missing, `deleteBranchOp` of
-  `src/git/ops.ts` runs in its place, as before (D49).
+  1.3, which runs `branch.delete` again told it is not merged. When the engine's binary is missing, it says so (D49).
 - **Offered when**: the branch is not checked out here, and no other worktree has it checked out; there, **Remove
   worktree and delete branch…** does both (`worktree.remove`).
 - **Reads**: whether its commits are merged: `git merge-base --is-ancestor refs/heads/<name> <into>`, where `<into>` is
@@ -521,11 +516,10 @@ the worktrees that have them.
 - **Entry points**: **Clean up branches** in Quick search; **Clean up branches…** in the **…** menu of the header.
 - **Extension**: **Gitardo: Clean Up Branches** in the Command Palette and in the **…** of the Branches view; **Clean up
   branches…** in the **…** menu of the toolbar of the graph. Each sends `feature/run` of `branch.clean-up` to Gitardo's
-  engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.cleanupBranches`); the pick
-  is a quick pick of several, the merged branches ticked. Once the plan is confirmed, and before its steps, VS Code's
-  Git extension is told to close each worktree the plan removes (`git.close`), which Windows would not let git delete
-  otherwise (`HostHooks.confirmed`, `Controller.closeRemoved`). When the engine's binary is missing, `cleanupBranchesOp`
-  of `src/git/ops.ts` runs in its place, as before (D49).
+  engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.cleanupBranches`); the pick is a quick
+  pick of several, the merged branches ticked. Once the plan is confirmed, and before its steps, VS Code's Git extension
+  is told to close each worktree the plan removes (`git.close`), which Windows would not let git delete otherwise
+  (`HostHooks.confirmed`, `Controller.closeRemoved`). When the engine's binary is missing, it says so (D49).
 - **Reads**: the branches merged into what is checked out, `git branch --merged HEAD --format=%(refname:short)`; the
   branches whose upstream is gone, and the worktrees with how many files each has not committed, from the state of the
   repository (`repo.read-state`).
@@ -582,8 +576,8 @@ Brings a local branch up to its upstream without switching to it: the files and 
 - **Extension**: **Fast-forward to `<upstream>`** in the context menu of a local branch, in the references tree, the
   Branches view and on its label in the graph, offered as `canFastForward` in `src/shared/refs.ts` decides. Each sends
   `feature/run` of `branch.fast-forward` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`,
-  `engineRuns` in `src/engine/actions.ts`), with the branch as its target. When the engine's binary is missing,
-  `fastForwardOp` of `src/git/ops.ts` runs in its place, as before (D49).
+  `engineRuns` in `src/engine/actions.ts`), with the branch as its target. When the engine's binary is missing, it says
+  so (D49).
 - **Offered when**: the branch is not checked out here; it has an upstream that is not gone; it has no commits of its
   own as of the last fetch; and, when another worktree has it checked out, that worktree's folder is there and it has
   no file not committed. It is offered however far behind the last fetch says it is: the fetch finds out.
@@ -709,7 +703,7 @@ Puts a tag on a commit: a lightweight one, or an annotated one with a message.
 - **Extension**: **Create tag here…** in the context menu of a commit in the graph and in the Commits view. Each sends
   `feature/run` of `tag.create` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`,
   `engineRuns` in `src/engine/actions.ts`), with the commit as its target; the name and the message are asked in input
-  boxes. When the engine's binary is missing, `createTagOp` of `src/git/ops.ts` runs in its place, as before (D49).
+  boxes. When the engine's binary is missing, it says so (D49).
 - **Asks**:
   1. The name, in an input box titled **Create tag** with the placeholder `v1.0.0`; checked by `branch.validate-name`
      and "A tag with that name already exists".
@@ -740,8 +734,8 @@ Sends a tag to the remote.
 - **Entry points**: **Push tag** in the context menu of a tag.
 - **Extension**: **Push tag** in the context menu of a tag, offered when the repository has a remote. Each sends
   `feature/run` of `tag.push` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`,
-  `engineRuns` in `src/engine/actions.ts`), with the tag as its target. When the engine's binary is missing, `pushTagOp`
-  of `src/git/ops.ts` runs in its place, as before (D49).
+  `engineRuns` in `src/engine/actions.ts`), with the tag as its target. When the engine's binary is missing, it says so
+  (D49).
 - **Offered when**: the repository has a remote.
 - **Plan**: `git push <remote> refs/tags/<name>`, where `<remote>` is the one of `remote.default`.
 - **Danger**: None.
@@ -766,8 +760,7 @@ Deletes a tag from this repository; a remote that has it keeps it.
 - **Entry points**: **Delete** in the context menu of a tag.
 - **Extension**: **Delete** in the context menu of a tag. Each sends `feature/run` of `tag.delete` to Gitardo's engine
   (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), with the tag as
-  its target; the warning is a modal dialog. When the engine's binary is missing, `deleteTagOp` of `src/git/ops.ts` runs
-  in its place, as before (D49).
+  its target; the warning is a modal dialog. When the engine's binary is missing, it says so (D49).
 - **Plan**: `git tag -d <name>`.
 - **Danger**: Destructive, because the tag and its message, if it has one, are gone from this repository: "The tag, on
   `<short hash>`, is deleted from this repository, with its message if it has one. A remote that has it keeps it."
@@ -789,8 +782,7 @@ Checks out the commit of a tag on a detached `HEAD`.
 - **Entry points**: **Check out tag (detached)** in the context menu of a tag.
 - **Extension**: **Check out tag (detached)** in the context menu of a tag. Each sends `feature/run` of `tag.checkout`
   to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
-  `src/engine/actions.ts`), with the tag as its target. When the engine's binary is missing, `checkoutOp('detached',
-  ref)` of `src/git/ops.ts` runs in its place, as before (D49).
+  `src/engine/actions.ts`), with the tag as its target. When the engine's binary is missing, it says so (D49).
 - **Offered when**: the commit of the tag is not the one checked out.
 - **Plan**: `git checkout --detach <tag>`, the tag as `branch.ref-argument` names it, then the update of the submodules
   (`submodule.update-on-checkout`).
@@ -843,10 +835,9 @@ another.
 - **Entry points**: **Manage remotes** in Quick search; **Manage remotes…** in the **…** menu of the header.
 - **Extension**: **Gitardo: Manage Remotes** in the Command Palette and in the **…** of the Branches view; **Manage
   remotes…** in the **…** menu of the toolbar of the graph. Each sends `feature/run` of `remote.manage` to Gitardo's
-  engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.manageRemotes`); its picks
-  are quick picks, the remotes searched by name and URL. Once something ran, the remote that pull requests are read from
-  is found again (`Controller.detectGitHub`). When the engine's binary is missing, `Controller.manageRemotes` asks the
-  same in TypeScript, as before (D49).
+  engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.manageRemotes`); its picks are quick
+  picks, the remotes searched by name and URL. Once something ran, the remote that pull requests are read from is found
+  again (`Controller.detectGitHub`). When the engine's binary is missing, it says so (D49).
 - **Reads**: `remote.read-remotes`.
 - **Asks**:
   1. A pick titled **Remotes of `<repository>`**, with the placeholder **Pick a remote to fetch, rename, repoint or
@@ -954,9 +945,8 @@ Acceptance:
   no remote.", which fetch, pull and push show in a repository without any remote instead of failing.
 - **Extension**: **Add remote…** in the pick of **Gitardo: Manage Remotes**; **Add remote…** on the warning that the
   repository has no remote, after a fetch, a pull, a push or **Sync**. Each sends `feature/run` of `remote.add` to
-  Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.manageRemotes`);
-  the name and URL are asked in input boxes. When the engine's binary is missing, `remoteAddOp` of `src/git/ops.ts` runs
-  in its place, as before (D49).
+  Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `Controller.manageRemotes`); the name and
+  URL are asked in input boxes. When the engine's binary is missing, it says so (D49).
 - **Asks**:
   1. The name, in an input box titled **Add remote** with the prompt **Name of the remote**, starting from `origin`
      when the repository has no remote and empty otherwise; checked by `branch.validate-name` and "A remote with that
@@ -992,7 +982,7 @@ Deletes a branch on the remote, for everyone.
   under the entries of a branch whose label in the graph stands for its upstream too (`gitardo.graph.combineUpstream`).
   Each sends `feature/run` of `remote.delete-branch` to Gitardo's engine (`Controller.runOnEngine` in
   `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`), with the remote branch as its target. When
-  the engine's binary is missing, `deleteRemoteBranchOp` of `src/git/ops.ts` runs in its place, as before (D49).
+  the engine's binary is missing, it says so (D49).
 - **Plan**: `git push <remote> --delete <branch>`. The remote is the longest name among the remotes that the remote
   branch starts with followed by `/`; the branch is the rest, named `refs/heads/<branch>` when a tag has its name,
   since the remote would find the short name ambiguous and refuse the push.
@@ -1023,8 +1013,7 @@ Brings what every remote has, and forgets the remote branches deleted there.
   in the Command Palette and as a button on the titles of the Commits and Gitardo Graph views. Each sends `feature/run`
   of `sync.fetch` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
   `src/engine/actions.ts`) through `Controller.sync` and `syncRuns`; the pull requests are read again after it
-  (`readPullRequests`). When the engine's binary is missing, `syncOp('fetch', state)` of `src/git/ops.ts` runs in its
-  place, as before (D49).
+  (`readPullRequests`). When the engine's binary is missing, it says so (D49).
 - **Plan**: `git fetch --all --prune`.
 - **Danger**: None.
 - **Undo**: Impossible: a fetch only moves the remote-tracking branches, which Undo does not take back.
@@ -1056,8 +1045,8 @@ Brings what the upstream has into the branch checked out, the way the settings c
   engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`) through
   `Controller.sync` and `syncRuns`. The settings are `gitardo.pull.rebase` and `gitardo.pull.autostash`. The warning
   that the changes set aside do not fit on what came in, with **Show Stashes**, is said by the extension from the
-  stashes read after the pull (`Controller.afterSync`), on both paths. When the engine's binary is missing,
-  `syncOp(action, state)` of `src/git/ops.ts` runs in its place, as before (D49).
+  stashes read after the pull (`Controller.afterSync`), on both paths. When the engine's binary is missing, it says so
+  (D49).
 - **Plan**: `git pull`, with `--rebase` when `pull.rebase` is on and `--autostash` when `pull.autostash` is on:
   `git pull --rebase --autostash` with both on, as they are by default.
 - **Danger**: None.
@@ -1100,7 +1089,7 @@ Pulls in one of the four ways, whatever the settings say **Pull** does.
   **Gitardo: Pull (Rebase)**, **Gitardo: Pull (Autostash)** and **Gitardo: Pull (Rebase, Autostash)** in the Command
   Palette and in the **…** of the Commits and Gitardo Graph views. Each other than the way of the button sends
   `feature/run` of `sync.pull-with` with its way as the answer `way` (`syncRuns` in `src/engine/actions.ts`). When the
-  engine's binary is missing, `syncOp(action, state)` of `src/git/ops.ts` runs in its place, as before (D49).
+  engine's binary is missing, it says so (D49).
 - **Plan**: the command of the way chosen.
 - **Danger**: None.
 - **Undo**: By the reflog, as `sync.pull`.
@@ -1133,8 +1122,7 @@ upstream.
   `sync.push` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
   `src/engine/actions.ts`) through `Controller.sync`. After the first push of a branch, when the main remote is on
   GitHub and the branch has no pull request, **Pushed `<branch>`.** offers **Create Pull Request**
-  (`Controller.afterSync`). When the engine's binary is missing, `syncOp('push', state)` of `src/git/ops.ts` runs in its
-  place, as before (D49).
+  (`Controller.afterSync`). When the engine's binary is missing, it says so (D49).
 - **Plan**:
   - With an upstream of the same name: `git push <remote> <branch>`.
   - With an upstream of another name: `git push <remote> <branch>:<upstream branch>`.
@@ -1174,9 +1162,8 @@ counts on **Sync** promise.
 - **Extension**: **Sync: fetch, pull, push** in the menu **More push options** beside **Push** in the toolbar of the
   graph; **Gitardo: Sync** (`gitardo.sync`) in the Command Palette and in the **…** of the Commits and Gitardo Graph
   views. Each sends `feature/run` of `sync.sync` to Gitardo's engine (`Controller.runOnEngine` in
-  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`) through `Controller.sync` and `syncRuns`. It
-  has no TypeScript operation: when the engine's binary is missing, it says that Sync needs the engine, and that Fetch,
-  Pull and Push work, and runs nothing.
+  `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`) through `Controller.sync` and `syncRuns`.
+  When the engine's binary is missing, it says so (D49), and runs nothing.
 - **Asks**: when the branch has no upstream, a confirmation, "`<branch>` has no upstream. Publish it to `<remote>`?",
   with **Publish branch**, `<remote>` being the one of `remote.default`.
 - **Plan**, in this order:
@@ -1227,7 +1214,8 @@ Acceptance:
       --prune`, `git pull --rebase --autostash` and `git push origin main`, and `main` is then neither ahead nor behind.
 - [ ] Extension: on a branch with no upstream it asks whether to publish it, and runs `git push --set-upstream origin
       <branch>`.
-- [ ] Extension: with `gitardo.engine.path` naming a missing file, it runs nothing and says that it needs the engine.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, it runs nothing and shows **Gitardo's engine is not
+      available on this system.** with **Show the log**.
 
 ### `sync.read-overwritten` — Read what a force push would overwrite
 
@@ -1257,8 +1245,7 @@ Replaces the remote branch with the branch checked out, unless the remote branch
   **Gitardo: Push (Force with Lease)** in the Command Palette and in the **…** of the Commits and Gitardo Graph views.
   Each sends `feature/run` of `sync.push-force-with-lease` to Gitardo's engine (`Controller.runOnEngine` in
   `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`); the warning is a modal dialog. When the
-  engine's binary is missing, `syncOp('pushForceWithLease', state)` of `src/git/ops.ts` runs in its place, as before
-  (D49).
+  engine's binary is missing, it says so (D49).
 - **Reads**: `sync.read-overwritten`, when the branch has an upstream that is not gone.
 - **Plan**: `git push --force-with-lease <remote> <branch>`, with `:<upstream branch>` and `--set-upstream` as for
   `sync.push`.
@@ -1293,8 +1280,7 @@ Replaces the remote branch with the branch checked out, whatever it has.
 - **Extension**: **Push (force)** in the menu **More push options** beside **Push** in the toolbar; **Gitardo: Push
   (Force)** in the Command Palette and in the **…** of the Commits and Gitardo Graph views. Each sends `feature/run` of
   `sync.push-force` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
-  `src/engine/actions.ts`). When the engine's binary is missing, `syncOp('pushForce', state)` of `src/git/ops.ts` runs
-  in its place, as before (D49).
+  `src/engine/actions.ts`). When the engine's binary is missing, it says so (D49).
 - **Reads**: `sync.read-overwritten`, when the branch has an upstream that is not gone.
 - **Plan**: `git push --force <remote> <branch>`, with `:<upstream branch>` and `--set-upstream` as for `sync.push`.
 - **Danger**: Destructive, because the commits only the remote branch has are lost for everyone; the warning lists them

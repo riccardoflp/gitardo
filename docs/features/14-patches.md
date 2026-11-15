@@ -73,8 +73,8 @@ another branch.
 - **Uses**: `patch.read-format-patch`, `patch.count-commits`.
 - **Extension**: **Copy as patch** in the context menu of a commit, or of several selected, in the graph posts
   `formatPatch`, which runs it with the commits; the patch goes on VS Code's clipboard (the follow-up
-  `copyToClipboard`), and a merge among them is refused with a warning. Without the engine, the controller runs `git
-  format-patch` itself, says *Gitardo: copied N commits as a patch.*, and the refusal is an error.
+  `copyToClipboard`), and a merge among them is refused with a warning. When the engine's binary is missing, it says so
+  (D49).
 
 Acceptance:
 
@@ -185,8 +185,7 @@ author and message, or to the working tree only, its changes staged and nothing 
 - **Extension**: **Gitardo: Apply Patch…** in the Command Palette (`gitardo.applyPatch`) posts `applyPatch`, which runs
   it on `HEAD`: the controller reads VS Code's clipboard first, with `vscode.env.clipboard.readText()`, and gives its
   text as the answer `clipboard`, which the engine reads in place of a clipboard of its own. A patch that does not apply
-  is refused with a warning that has git's reasons in it. Without the engine, `applyPatchOp` of `src/git/ops.ts` runs
-  the same commands, and the reasons are in the detail of the warning.
+  is refused with a warning that has git's reasons in it. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 

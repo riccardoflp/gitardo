@@ -11,27 +11,23 @@ for the user to agree. It does so for every operation when the user asked for it
 work or rewrite history.
 
 - **Kind**: Operation
-- **Function**: `Controller.run(op, options)` and `Controller.describe(repo, op)` in `src/extension/controller.ts`.
+- **Function**: `VscodeAsker.confirm(plan)` in `src/engine/vscode.ts`, which the engine calls, through
+  `Controller.runOnEngine` in `src/extension/controller.ts`, for a plan it wants confirmed.
 - **Entry points**: every operation of every area; the setting `gitardo.commandPreview`.
-- **Offered when**: `gitardo.commandPreview` is `all`, or the operation has `danger` or `confirm`, and the operation
-  was not asked already by the feature itself (`asked`: the confirmation of **Resolve Conflicts Automatically**, and the
-  `then` of an operation, which is said along with it).
-- **Asks**: a modal dialog titled with the operation's title and a question mark, *Create branch feature/x?*, with one
-  button, **Run**, and VS Code's **Cancel**. A warning dialog when the operation has `danger`, an information dialog
-  otherwise. Its detail is the operation's `note`, if any, then:
-  - with no files to write: *Gitardo will run in `<root>`:* followed by the commands, one per line;
-  - with files to write: *Gitardo will write in `<root>`:* followed by the files, then *and then run:* and the
-    commands;
-  - with a `then`: the commands followed by *and once that is done:* and the commands of the `then`;
-  - with neither commands nor files: only the `note`.
+- **Offered when**: the engine asks it: `gitardo.commandPreview` is `all`, or the plan's danger asks for a
+  confirmation, and the feature did not ask already.
+- **Asks**: a modal dialog titled with the plan's title and a question mark, *Create branch feature/x?*, with one
+  button, **Run**, and VS Code's **Cancel**. A warning dialog when the plan is destructive, an information dialog
+  otherwise. Its detail is the reason of the plan's danger, if any, then *Gitardo will run in `<root>`:* followed by
+  the lines of its steps, one per line, as the engine writes them.
 - **Plan**: none of its own: it decides whether the plan of the operation runs.
 - **Danger**: None: it is the question itself.
 - **Undo**: Nothing to undo: cancelling runs nothing.
 - **Settings**: `gitardo.commandPreview`: `off` (default) asks only before `danger` and `confirm` operations; `all`
   asks before every operation that changes the repository or a remote, staging included.
 - **Uses**: `log.write`.
-- **Implemented in**: `Controller.run` (`src/extension/controller.ts`), `formatCommand` (`src/git/exec.ts`), the
-  `danger`, `confirm` and `note` fields set by the builders of `src/git/ops.ts` and the cases of `resolveAction`.
+- **Implemented in**: `VscodeAsker` (`src/engine/vscode.ts`) and `Controller.runOnEngine`; the plans, their danger
+  and the lines of their steps are the engine's.
 - **Tested by**: `test/e2e/suite.ts`, *stages and commits without asking when the preview is off*, *shows the exact
   commands and waits when the preview is on*; `test/e2e/ui.mjs`, the step where, with the command preview on, the dialog
   shows the exact command and **Cancel** runs nothing.
@@ -43,11 +39,10 @@ Acceptance:
       `<root>`:* and the `git add` command, and nothing runs until **Run** is pressed.
 - [ ] **Cancel** runs no command and writes nothing to the log.
 - [ ] A `danger` operation, such as a hard reset, shows a warning dialog whatever the setting.
-- [ ] The commands in the dialog are, character for character, the commands written to the log and run, as
-      `formatCommand` writes them: an argument with characters other than letters, digits, `_` and `@%+=:,./-` is
-      quoted.
-- [ ] An operation that writes files lists them before the commands, under *Gitardo will write in `<root>`:*.
-- [ ] An operation asked for while another runs does nothing: `Controller.run` returns without asking or running.
+- [ ] The commands in the dialog are, character for character, the lines of the steps written to the log and run, as
+      the engine writes them.
+- [ ] An operation asked for while another runs does nothing: `Controller.runOnEngine` returns without asking or
+      running.
 
 ### `preview.fallback` — Offer the other way when git refuses
 
@@ -56,25 +51,28 @@ offers the forced variant instead of only reporting the failure: deleting a bran
 worktree with changes.
 
 - **Kind**: Operation
-- **Function**: `Controller.runWithFallback(op, asked)` in `src/extension/controller.ts`; the `fallback` field of
-  `GitOp` (`{ when: RegExp; op: GitOp }`), set by the builders of `src/git/ops.ts`.
-- **Entry points**: every operation whose builder sets a `fallback`.
-- **Offered when**: the first operation failed and what git printed matches the fallback's `when`.
-- **Asks**: the fallback is asked as any operation is (`preview.ask`), with its own title, commands and danger.
-- **Plan**: the commands of the fallback.
-- **Danger**: the fallback's own, usually Destructive, because it is the forced variant.
-- **Undo**: what the fallback's own card says.
-- **Refuses**: when git's message does not match `when`, the failure is reported as any failure (`log.report-failure`).
+- **Function**: the operations the engine offers when a step of its plan fails (the follow-ups `offerRun` of the
+  failure), shown as buttons of the error message by `Controller.reportEngineFailure` in
+  `src/extension/controller.ts`, and the one it offers with a refusal, shown by `Controller.offerAfterRefusal`.
+- **Entry points**: every feature of the engine that offers one, such as **Delete anyway** for a branch not merged.
+- **Offered when**: the engine says so: git refused the first plan in a way the feature foresaw.
+- **Asks**: the offered operation runs on the engine as any operation does, asked as `preview.ask` says, with its own
+  title, commands and danger.
+- **Plan**: the engine's plan of the offered operation.
+- **Danger**: the offered operation's own, usually Destructive, because it is the forced variant.
+- **Undo**: what the offered operation's own card says.
+- **Refuses**: when nothing is offered, the failure is reported as any failure (`log.report-failure`).
 - **Uses**: `preview.ask`, `log.report-failure`.
-- **Implemented in**: `Controller.runWithFallback`, called by `Controller.action`.
+- **Implemented in**: `Controller.reportEngineFailure` and `Controller.offerAfterRefusal`, after
+  `Controller.runOnEngine`.
 - **Tested by**: `test/e2e/suite.ts`, the steps that delete a branch that is not merged; *none* for the matching itself.
 
 Acceptance:
 
-- [ ] The first attempt runs without its failure being shown (`silent`), and its error is written to the log.
-- [ ] When git's output matches `when`, the fallback is asked with its own dialog, and **Cancel** leaves the repository
-      as the first attempt left it.
-- [ ] When it does not match, the user sees the failure of the first attempt, once.
+- [ ] What git printed when the first plan failed is written to the log.
+- [ ] When the engine offers an operation, the error message has its button, which runs it with its own dialog, and
+      **Cancel** leaves the repository as the first attempt left it.
+- [ ] When nothing is offered, the user sees the failure of the first attempt, once.
 
 ### `log.write` — Write every command and its output to the log
 
@@ -82,18 +80,20 @@ Every command Gitardo runs to change something, and everything it does itself, i
 channel as it happens, so that the user can see and repeat it.
 
 - **Kind**: Operation
-- **Function**: the body of `Controller.run` in `src/extension/controller.ts`, writing to the `LogOutputChannel` made
-  in `src/extension/extension.ts`.
+- **Function**: `EngineClient.logLine` in `src/engine/client.ts`, which writes the lines the engine logs to the
+  `LogOutputChannel` made in `src/extension/extension.ts`.
 - **Entry points**: every operation.
-- **Plan**: for each command, a line `> git <arguments>` as `formatCommand` writes it, then *standard input:* and the
-  input when the command reads one, then what git printed; for each file the operation writes, `> write <path>`; the
-  lines the operation's `prepare`, `recover` and `finish` write themselves (`symlink`, `copy`, `run`, `unlink`,
-  `delete`, `git.close`); an error as an error line.
+- **Plan**: for each step of a plan, a line `> <step>` as the engine writes it: `> git <arguments>`, then *standard
+  input:* and the input when the command reads one, `> write <path>` for a file written, and the steps that are not
+  git (`symlink`, `copy`, `run`, `unlink`, `delete`); the other lines of the engine after `[engine]`; what git printed
+  when a step failed, and an error as an error line; `> git.close <folder>` when VS Code's Git extension lets go of a
+  folder (`closeInVSCodeGit` in `src/extension/actions.ts`).
 - **Danger**: None: it changes nothing.
 - **Undo**: Nothing to undo.
 - **After**: reads of the repository (`git log`, `git status` and the like) are written at the debug level, which the
   channel shows only when its level is set to Debug.
-- **Implemented in**: `Controller.run`; `Repo`'s constructor gets the debug level of the log for the reads; `Activity` writes there too.
+- **Implemented in**: `EngineClient.logLine`; `WindowEngine.start` (`src/engine/vscode.ts`) tells the engine the level
+  of the channel, so that it logs the reads only at the debug level; `Activity` writes there too.
 - **Tested by**: `test/e2e/suite.ts`, the steps that compare the logged lines with the commands shown, for instance
   `> git pull --autostash` and `> git fetch origin refs/heads/lagging:refs/heads/lagging`.
 
@@ -126,24 +126,25 @@ When an operation fails, Gitardo says so in one line with what git said that mat
 conflicts, how many files have them and what to do next.
 
 - **Kind**: View
-- **Function**: `Controller.reportFailure(op, error)` in `src/extension/controller.ts`.
-- **Entry points**: the end of every operation that failed and has no matching fallback.
+- **Function**: `Controller.reportEngineFailure(failure, title, repo)` in `src/extension/controller.ts`, which hands a
+  step that failed with files left in conflict to `Controller.reportFailure(op, error)`.
+- **Entry points**: the end of every operation that failed.
 - **After**:
   - With files in conflict: a warning *`<title>` stopped: 1 file has conflicts. Resolve them, then continue or abort
     the `<operation>`.* (*N files have conflicts*; *stage the files* when no operation is under way, as after a stash
     that did not apply cleanly), followed by *Gitardo can resolve the conflict automatically.*, *all N conflicts* or
     *N of the M conflicts* when the rules can, and the buttons **Resolve Automatically** (when the rules can),
     **Resolve with AI** (when `gitardo.conflicts.ai` is on and some conflict is left to it) and **Show Log**.
-  - Otherwise: an error *`<title>` failed. `<line>`* where the line is the first that git starts with `error:` or
-    `fatal:`, or else its first line, with **Show Log**.
+  - Otherwise: an error *Gitardo:* followed by the engine's words of why it failed, with a button for each operation
+    the engine offers in its place and **Show Log**.
 - **Settings**: `gitardo.conflicts.autoResolve`, `gitardo.conflicts.ai`.
 - **Uses**: `conflict.resolve-rules`, `conflict.resolve-ai`, `log.show`.
-- **Implemented in**: `Controller.reportFailure`.
+- **Implemented in**: `Controller.reportEngineFailure` and `Controller.reportFailure`.
 - **Tested by**: `test/e2e/suite.ts`, the steps of a merge that stops on conflicts with the automatic resolution on.
 
 Acceptance:
 
-- [ ] A push refused by the remote shows *Push failed. error: failed to push some refs to …* with **Show Log**.
+- [ ] A push refused by the remote shows *Gitardo:* and the engine's words of why, with **Show Log**.
 - [ ] A merge that stops on conflicts in two files shows *Merge … stopped: 2 files have conflicts. Resolve them, then
       continue or abort the merge.*
 - [ ] **Resolve Automatically** is offered only when the rules can resolve at least one conflict, and with
@@ -151,8 +152,8 @@ Acceptance:
 
 ### `activity.track` — Show what is running in the status bar
 
-While Gitardo has been reading a repository, running an operation, comparing two sides or asking GitHub for more than
-half a second, **Gitardo** with a spinning icon shows in the status bar, with what each of those is in its tooltip.
+While Gitardo has been reading a repository, comparing two sides or asking GitHub for more than half a second,
+**Gitardo** with a spinning icon shows in the status bar, with what each of those is in its tooltip.
 
 - **Kind**: View
 - **Function**: `Activity.start(title, detail)` and `Activity.track(title, work)` in `src/extension/activity.ts`.
@@ -161,15 +162,15 @@ half a second, **Gitardo** with a spinning icon shows in the status bar, with wh
 - **After**: the tooltip lists each thing, oldest first, in bold with how long it has run, then its detail: what asked
   for a read (such as a file that changed) and how many times in a row the repository was read because something
   changed during each read. It ends with *Click to see what Gitardo is doing in a list.*
-- **Implemented in**: `src/extension/activity.ts`; `Controller.load` (reads), `Controller.run` (operations),
-  `Controller.refreshPulls` (GitHub), the comparisons.
+- **Implemented in**: `src/extension/activity.ts`; `Controller.load` (reads), `Controller.refreshPulls` (GitHub), the
+  comparisons. An operation run by the engine is not tracked there: the views show it as busy.
 - **Tested by**: *none* found by name; the status bar item is reached by `test/e2e/suite.ts` only through the commands.
 
 Acceptance:
 
 - [ ] A read that ends within 500 ms never shows the item.
-- [ ] An operation that runs for two seconds shows **Gitardo** with a spinning icon after half a second, with its title
-      in the tooltip, and the item goes when it ends.
+- [ ] A read of the repository that runs for two seconds shows **Gitardo** with a spinning icon after half a second,
+      with its title in the tooltip, and the item goes when it ends.
 
 ### `activity.show` — List what is running
 

@@ -230,6 +230,13 @@ Acceptance:
 - The integration tests of the extension that tested `src/git` are either moved to the engine's tests, where the same
   case is not there yet, or deleted, one by one, with the reason in the commit.
 
+**Done** on the branch `stage-10`, not merged yet. What the extension still read or ran in TypeScript went into the
+engine first, as version 1.7 of [the protocol](02-protocol.md): `repository/discover`, the `diffChange` target of the
+Flow Diff's changes, a file of a comparison by its second side; `journal/record` is gone. What runs no git moved to
+`extension/src/shared`. `scripts/package.mjs` makes one vsix per target and no universal one, and a release waits for
+all of them. The e2e and UI suites check without the engine only the sentence with **Show the log**; they were changed
+but not run on the branch.
+
 ## The first step, for the session that starts it
 
 Stage 1, desktop first, once the documents are approved. What that session needs:

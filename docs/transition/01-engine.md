@@ -92,9 +92,10 @@ Plans run in the engine: the steps, the log, the journal of Undo, the follow-ups
 sends: each line of the log as it comes, in the **Gitardo** output channel; what is running, in the status bar; the
 follow-ups that are about VS Code (select a commit, open a tab, copy, open a URL), carried out by the extension.
 
-While some operations still run in TypeScript, the engine's journal must know about them, or Undo takes back the wrong
-one: the extension tells the engine, with `journal/record`, what it remembered of each operation it ran itself, and
-**Undo** always runs in the engine ([06-roadmap.md](06-roadmap.md#stage-3--undo-in-the-engine)).
+While some operations still ran in TypeScript, the engine's journal had to know about them, or Undo would take back the
+wrong one: the extension told the engine, with `journal/record`, what it remembered of each operation it ran itself,
+and **Undo** always ran in the engine ([06-roadmap.md](06-roadmap.md#stage-3--undo-in-the-engine)). Since stage 10
+every operation is the engine's, and `journal/record` is gone.
 
 ### Cancelling
 
@@ -108,10 +109,9 @@ process it runs is killed. An operation whose steps have started is not cancelle
   [desktop's rule R4.3](../desktop/03-code-rules.md), and what git printed as its data, for the log.
 - **A feature that refuses** is not an error: its answer says so, with the refusal's words and its offer.
 - **The binary is missing or does not start** (a platform with no build yet, macOS until D48, a binary blocked by an
-  antivirus): while `src/git` is there, every operation runs in TypeScript, the moved ones too, whose `GitOp` stays as
-  the fallback; the output channel says it once. `src/git` is removed only once every target has its binary; from then
-  on the views say **Gitardo's engine is not available on this system.**, with **Show the log**, and nothing else (D49,
-  proposed).
+  antivirus): until stage 10 every operation ran in TypeScript then, the moved ones too, whose `GitOp` stayed as the
+  fallback. Since stage 10, which removed `src/git`, the views say **Gitardo's engine is not available on this
+  system.**, with **Show the log**, and so does every command that needs the engine, and nothing else (D49, proposed).
 - **The engine exits or crashes**: the extension starts it again once and reopens the repositories; the operation that
   was running is said as failed, with what the engine wrote on its standard error. A third exit within five minutes
   stops the restarts until the window is reloaded.

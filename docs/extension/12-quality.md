@@ -38,11 +38,11 @@ page; they are targets to keep, not limits a test enforces.
 | QA5 | Any view but the two graphs is open | It is never sent the commits | 0 rows in its `state` messages | `test/e2e/suite.ts`, the views are sent only what they show |
 | QA6 | A refresh finds the same history | The commits already sent are not sent again | only the uncommitted row and new rows | `Controller.post`; *none* by name |
 | QA7 | A commit with a huge diff is opened in a tab | The tab opens; files past 20,000 lines say so and link to the diff editor; a file over 800 lines, and every file after 5,000 lines shown, starts folded | 20,000 / 800 / 5,000 lines | README, *A commit in an editor tab*; *none* by name |
-| QA8 | Two branches far apart are compared | The newest 2,000 commits on each side are listed, and not looked for on the other side beyond that | 2,000 commits | `COMPARE_COMMITS`, `CHERRY_COMMITS` in `src/git/repo.ts` |
+| QA8 | Two branches far apart are compared | The newest 2,000 commits on each side are listed, and not looked for on the other side beyond that | 2,000 commits | the engine's `compare.read-sides` |
 | QA9 | A section of the references has more than 100 entries | It lists 100 and **Show all** | 100 entries; a filter box from 15 references | README, *Graph* |
 | QA10 | Something runs for less than half a second | The status bar does not flicker | shown after 500 ms | `SHOWN_AFTER` in `src/extension/activity.ts` |
 | QA11 | Files keep changing in the working tree | The repository is read once per burst | 400 ms after `.git` changes, 1 s after the working tree's | `REFRESH_DELAY`, `WORKTREE_REFRESH_DELAY` in `src/extension/controller.ts` |
-| QA12 | The resolution of conflicts is worked out on a large file | It gives up rather than hang | 50,000 lines, 1,500 edits | `MAX_LINES`, `MAX_EDITS` in `src/git/conflicts.ts`; `test/conflicts.test.ts` |
+| QA12 | The resolution of conflicts is worked out on a large file | It gives up rather than hang | 50,000 lines, 1,500 edits | `MAX_LINES`, `MAX_EDITS` in `src/shared/conflicts.ts`; `test/conflicts.test.ts` |
 | QA13 | Every view in each of the five default themes | Buttons have a shape against the panel; labels in the color of their line | screenshots | `npm run test:ui` |
 | QA14 | Any operation that can lose work, with `gitardo.commandPreview` `off` | It asks first | 100% of the list in the README's Command preview | the cards' Danger lines; `test/e2e/suite.ts` for some |
 

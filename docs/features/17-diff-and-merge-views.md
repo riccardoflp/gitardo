@@ -323,14 +323,14 @@ Puts one change of the working tree into the index.
 - **Function**: `features::diff::stage_change(context, answers) -> Outcome`
 - **Entry points**: the **+** button (**Stage this change**) on the band of a change in the gutter.
 - **Extension**: the stage button in the gutter of the Flow Diff on a change, offered while the Flow Diff shows a file
-  against `HEAD` or the index without a rename (`canStage` in `src/flow/sides.ts`). It still runs in TypeScript:
-  `chunkOp` of `src/flow/chunks.ts`, through `Controller.runIn`, with this plan, its patch written to the log after
-  `standard input:`, and the whole file staged with `git add -- <file>` for an untracked one. The protocol has no target
-  for one change of a diff, so nothing of it is sent to Gitardo's engine yet: it moves there with the rest of the Flow
-  Diff, which no area of stage 4 of the roadmap names. The actions `stageHunk`, `unstageHunk` and `discardHunk`, which
-  `resolveAction` (`src/extension/actions.ts`) turns into the `GitOp` `hunkOp` of `src/git/ops.ts`, are posted by no
-  view. Ranges staged in VS Code's own diff editor (**Stage Selected Ranges**) are VS Code's, not Gitardo's: the
-  Changes view shows their result.
+  against `HEAD` or the index without a rename (`canStage` in `src/flow/sides.ts`). `ChunkActions` in
+  `src/flow/chunks.ts` sends `diff.stage-change` to the engine with a `diffChange` target (`changeTarget`: the path,
+  the two sides, the lines of the change on each and their text), through the `runOp` the Flow Diff is given, which is
+  `Controller.runIn` and so `Controller.runOnEngine`. The engine checks the change against the file on disk: a file with
+  unsaved edits in VS Code is refused with *The file changed since the diff was shown. Try again.*, where the extension
+  used to stage against the text in the editor. When the engine's binary is missing, it says so (D49). Ranges staged in
+  VS Code's own diff editor (**Stage Selected Ranges**) are VS Code's, not Gitardo's: the Changes view shows their
+  result.
 - **Offered when**: the right side is the working tree and the left is `HEAD` or the index, the file is not renamed, and
   the change is not staged.
 - **Reads**: the index and the working tree again, to check the change is where the page says (`diff.read-sides`).
@@ -357,12 +357,14 @@ Acceptance:
 - [ ] Editing the file in another program between drawing and clicking refuses with the message and stages nothing.
 - [ ] Stage on an untracked file runs `git add -- <file>`.
 - [ ] Extension: in the Flow Diff of `a.txt` against `HEAD`, the stage button of its first change runs
-      `git apply --cached --unidiff-zero --whitespace=nowarn -` through `Controller.runIn`, and the log has that line
-      and the patch after `standard input:`; the Changes view then shows `a.txt` half ticked.
+      `diff.stage-change` on the engine, the log has `git apply --cached --unidiff-zero --whitespace=nowarn -` and the
+      patch after `standard input:`, and the Changes view then shows `a.txt` half ticked.
+- [ ] Extension: with unsaved edits to `a.txt` in VS Code, the stage button of a change is refused with *The file
+      changed since the diff was shown. Try again.*, and the index is unchanged.
 - [ ] Extension: with `gitardo.commandPreview` set to `all`, *Stage change in a.txt?* shows the command and the note
       with the `@@` line of the change before it runs.
-- [ ] Extension: on a file whose encoding is not UTF-8, a change with a character past ASCII is refused with *… chunk
-      staging needs UTF-8 text, this file is \<encoding\> — stage the whole file*, and the index is unchanged.
+- [ ] Extension: on a file whose encoding is not UTF-8, a change with a character past ASCII is refused with *Staging a
+      change needs UTF-8 text: stage the whole file.*, and the index is unchanged.
 
 ### `diff.unstage-change` — Unstage this change
 
@@ -373,8 +375,9 @@ Takes one change back out of the index.
 - **Entry points**: the **−** button (**Unstage this change**) on a staged change of the working tree against `HEAD`
   (its tooltip **Staged — unstage this change**), and on every change of the index against `HEAD`.
 - **Extension**: the unstage button in the gutter of the Flow Diff on a change already staged, drawn dimmed: as
-  `diff.stage-change` says, `chunkOp` of `src/flow/chunks.ts` through `Controller.runIn`, not yet the engine; a change
-  of a file that `HEAD` does not have is unstaged whole, `git restore --staged -- <file>`.
+  `diff.stage-change` says, `ChunkActions` sends `diff.unstage-change` with a `diffChange` target through
+  `Controller.runOnEngine`, and the engine refuses a change of a file with unsaved edits; a change of a file that `HEAD`
+  does not have is unstaged whole, `git restore --staged -- <file>`.
 - **Offered when**: the file is not renamed and the change is staged.
 - **Reads**: the index and `HEAD` again, to check the change is where the page says.
 - **Plan**: `git apply --cached --unidiff-zero --whitespace=nowarn -` with the patch of `diff.change-patch` towards
@@ -794,8 +797,7 @@ Saves the file and stages it, which tells git that its conflicts are resolved, a
   itself about the markers left, **shapes.ts still has a conflict marked by git. Mark it as resolved all the same, with
   the markers in it?**; then it sends `feature/run` of `merge-view.mark-resolved` to Gitardo's engine with a
   `mergeResult` target (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
-  `src/engine/actions.ts`), which stages the file. When the engine's binary is missing, `stageOp([path])` of
-  `src/git/ops.ts` runs in its place, as before (D49).
+  `src/engine/actions.ts`), which stages the file. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 

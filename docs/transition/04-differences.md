@@ -1226,6 +1226,50 @@ same answer; the model chosen and the effort reach the model the same. What diff
 - **Verdict**: **Choice**, open. Recommended: a plan with no step and no danger is never confirmed, on both apps; an
   engine change, not an option.
 
+## Stage 10 (`src/git` removed)
+
+What the extension still did in TypeScript when stage 10 began, against what the engine does in its place.
+
+### X1. A change of the Flow Diff in a file with unsaved edits
+
+- **Feature**: `diff.stage-change`, `diff.unstage-change`.
+- **Extension**: the patch of the change was made from the text in the editor, saved first.
+- **Engine**: the change is sent with its lines and their text (`Target::DiffChange`), and the engine compares them with
+  the file on disk: a file with unsaved edits is refused with *The file changed since the diff was shown. Try again.*
+- **Verdict**: **CHANGELOG**. "Staging or unstaging a change in the Flow Diff of a file with unsaved edits says the
+  file changed since the diff was shown; save it first." Recommended to confirm.
+
+### X2. What the extension does without the engine
+
+- **Feature**: every one.
+- **Extension**: ran its own TypeScript operations and reads (D49).
+- **Engine**: none to run; the views say **Gitardo's engine is not available on this system.** with **Show the log**,
+  and a command that needs the engine shows *Gitardo: Gitardo's engine is not available on this system.* with **Show
+  the log**.
+- **Verdict**: **CHANGELOG**, as D49 decided.
+
+### X3. A checkout of a reference of another kind than the menu said
+
+- **Feature**: `branch.checkout`, `tag.checkout`, `branch.checkout-remote`.
+- **Extension**: an action naming, say, a tag as a branch fell back to `checkoutOp`, which checked out whatever git
+  took the name for.
+- **Engine**: `engineRuns` gives no feature for it, and nothing runs. No menu posts such an action.
+- **Verdict**: **Choice**, recommended as built: nothing runs.
+
+### X4. The commit message drafted from the subjects of the last commits
+
+- **Feature**: `commit.draft-message`.
+- **Extension**: took the subjects of the commits the graph showed, filtered or not.
+- **Engine**: takes the last 10 subjects of the history, whatever the graph is filtered by.
+- **Verdict**: **Choice**, recommended as built: the request is the engine's, as Gitardo Desktop sends it.
+
+### X5. Smaller ones
+
+- **Messages after a squash merge and a split**: with the engine they have no **Show changes** and **Undo** buttons,
+  which the TypeScript code gave; **Undo** in the toolbar takes them back. Seen in the code, not confirmed in a window.
+- **Failures** read *Gitardo: \<the engine's words\>*, not *\<title\> failed. \<git's line\>*, unless files are left in
+  conflict.
+
 ## Summary
 
 Entries marked **Merged into …** are not counted again.

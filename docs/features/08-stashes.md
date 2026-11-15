@@ -13,10 +13,10 @@ The stashes of the repository, newest first, as the branch rail and the timeline
 - **Function**: `git::read::stash::read_list(git: &Git, request: &StashListRequest) -> Result<Vec<Stash>, GitError>`
 - **Reads**: `git stash list -z --format=%H%x1f%gd%x1f%gs%x1f%at`: the hash of each stash, its name (`stash@{0}`), its
   message and its date.
-- **Extension**: read by the extension itself, in TypeScript, each time it reads the repository: `Repo.state` in
-  `src/git/repo.ts` runs the same command with `GIT_OPTIONAL_LOCKS=0`, and `parseStashes` in `src/git/parse.ts` makes
-  the `Stash` of `src/shared/protocol.ts`, until the reads move to the engine (stage 5 of the roadmap). The repository
-  is read again when `logs/refs/stash` changes in the git directory, also from a terminal.
+- **Extension**: read by the engine with the state of the repository (`repo.read-state`, asked by `reads.parts` in
+  `src/engine/reads.ts`) each time the extension reads the repository, into the `Stash` of `src/shared/state.ts`; the
+  graph places them among its commits with the engine's graph read (`graphState` in `src/engine/graph.ts`). The
+  repository is read again when `logs/refs/stash` changes in the git directory, also from a terminal.
 
 Acceptance:
 
@@ -37,11 +37,9 @@ The files a stash changes, and the untracked files it took along, for what apply
   - `git ls-tree -r -z --name-only <stash>^3`: the untracked files it took along; a stash made without them has no third
     parent, which is no error.
 - **Refuses**: a name that is not of the form `stash@{N}`: **"`<name>`" is not a stash.**
-- **Extension**: what a stash holds is read by the extension itself, in TypeScript, as the details of a commit:
-  `Repo.commitDetail(hash)` in `src/git/repo.ts` runs `git diff --name-status -z -M <first parent> <stash>`, and, when
-  the stash has a third parent with no parent of its own whose subject starts with `untracked files on`,
-  `git diff-tree --root --no-commit-id -r --name-status -z <third parent>`, into `CommitDetail.untracked`; with
-  `GIT_OPTIONAL_LOCKS=0`. The details of the graph and the tab of a commit show those files under **1 untracked file**
+- **Extension**: what a stash holds is read by the engine as the details of a commit (`details.read-commit`, asked by
+  `reads.commitDetail` in `src/engine/reads.ts`), the untracked files it took along in `CommitDetail.untrackedFiles`
+  (`src/shared/state.ts`). The details of the graph and the tab of a commit show those files under **1 untracked file**
   or **N untracked files**, the Stashes view with no heading; an untracked file opens as a diff against nothing. What
   applying a stash would stop on is read by the engine, in the plan of `stash.apply` and `stash.pop`.
 
@@ -72,7 +70,7 @@ Lists the stashes, in **Kept aside** of the branch rail; each unfolds to the fil
   and **Show Stashes** in the warning that a pull with `--autostash` kept the changes in a stash show it, and its
   title has **Stash Changes** (`stash.push`). Its rows, buttons and context menu are those of this list, the
   operations sent to Gitardo's engine as their cards say; a file of a stash opens in VS Code's diff editor. What it
-  shows is read in TypeScript (`stash.read-list`, `stash.read-files`).
+  shows is read by the engine (`stash.read-list`, `stash.read-files`).
 - **Reads**: `stash.read-list`; `details.read-commit` for a stash unfolded.
 - **Uses**: `stash.push`, `stash.apply`, `stash.pop`, `stash.drop`, `stash.branch`, the Diff page (`diff.page`).
 
@@ -125,8 +123,7 @@ Sets every change aside, staged or not, untracked files included, and leaves the
   the views then show (`Controller.stashFromScm`). Each sends `feature/run` of `stash.push` to Gitardo's engine
   (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`); the message is
   asked in VS Code's input box, and the plan shown in a modal dialog when `gitardo.commandPreview` is `all`
-  (`VscodeAsker` in `src/engine/vscode.ts`). When the engine's binary is missing, `stashPushOp` of `src/git/ops.ts`
-  runs in its place, as before (D49).
+  (`VscodeAsker` in `src/engine/vscode.ts`). When the engine's binary is missing, it says so (D49).
 - **Offered when**: there is a commit (git has nothing to stash onto before the first one); **Stash** in the header also
   needs changes, and is disabled while Gitardo is running an operation.
 - **Asks**: **Stash changes**, an input box with the prompt **Optional message. Untracked files are stashed too.**,
@@ -153,8 +150,8 @@ Acceptance:
       for a message, and runs nothing.
 - [ ] Extension: right after it, **Undo** says it cannot take the stash back, rather than taking back the operation
       before it.
-- [ ] Extension: with `gitardo.engine.path` naming a missing file, `stashPushOp` runs, as do the other operations of
-      this file with their `GitOp`.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, **Gitardo: Stash Changes** shows **Gitardo's engine
+      is not available on this system.** with **Show the log**, and nothing of this file runs.
 
 ### `stash.push-staged` — Stash the staged changes
 
@@ -164,12 +161,12 @@ Sets aside only what is staged; the rest stays where it is.
 - **Function**: `features::stash::push_staged(context, answers) -> Outcome`
 - **Entry points**: **Stash only the staged changes…** on the header of the list in the Changes page; **Stash staged
   changes…** in the context menu of the draft.
-- **Extension**: **Stash staged changes…** in the context menu of the uncommitted changes row of the graph; **Stash
-  only the staged changes…** on the header of **Changes** in the Changes view; **Stash Only the Staged Changes…** on
-  the **Staged Changes** group of VS Code's own list of changes, as a button and in its context menu, while
+- **Extension**: **Stash staged changes…** in the context menu of the uncommitted changes row of the graph; **Stash only
+  the staged changes…** on the header of **Changes** in the Changes view; **Stash Only the Staged Changes…** on the
+  **Staged Changes** group of VS Code's own list of changes, as a button and in its context menu, while
   `gitardo.scm.stashButtons` is on (`Controller.stashFromScm`). Each sends `feature/run` of `stash.push-staged` to
   Gitardo's engine (`Controller.runOnEngine`, `engineRuns`), its message asked in VS Code's input box (`VscodeAsker`).
-  When the engine's binary is missing, `stashPushOp` of `src/git/ops.ts` runs in its place, as before (D49).
+  When the engine's binary is missing, it says so (D49).
 - **Offered when**: there is a commit and something is staged.
 - **Asks**: **Stash staged changes**, an input box with the prompt **Optional message. Only what is staged is stashed;
   the rest stays where it is.**, empty by default.
@@ -201,12 +198,12 @@ Sets aside every change to one file, or to the files chosen, staged or not.
 - **Extension**: **Stash this file…** on each file of the Changes view and of the uncommitted changes in the details;
   **Stash 1 selected file…** or **Stash N selected files…** above the files of the uncommitted changes in the details,
   while some are ticked; **Stash This File…** on each file of the **Staged Changes**, **Changes** and **Untracked
-  Changes** groups of VS Code's own list of changes, as a button and in the context menu, for every file selected
-  there, while `gitardo.scm.stashButtons` is on (`Controller.stashFromScm`, which leaves out files outside the
-  repository and runs in the repository of the first file, which the views then show). Each sends `feature/run` of
-  `stash.push-file` to Gitardo's engine on the files given, a renamed file with both its names (`engineRuns`, run by
+  Changes** groups of VS Code's own list of changes, as a button and in the context menu, for every file selected there,
+  while `gitardo.scm.stashButtons` is on (`Controller.stashFromScm`, which leaves out files outside the repository and
+  runs in the repository of the first file, which the views then show). Each sends `feature/run` of `stash.push-file` to
+  Gitardo's engine on the files given, a renamed file with both its names (`engineRuns`, run by
   `Controller.runOnEngine`), its message asked in VS Code's input box (`VscodeAsker`). When the engine's binary is
-  missing, `stashPushOp` of `src/git/ops.ts` runs in its place, as before (D49).
+  missing, it says so (D49).
 - **Offered when**: there is a commit; not on a file whose changes are only unsaved edits in Gitardo's editor.
 - **Asks**: **Stash `<file>`**, or **Stash N files**, an input box with the prompt **Optional message. Every change to
   the file is stashed, staged or not.**, empty by default.
@@ -244,8 +241,7 @@ committed, the changed files it would refuse to touch, and the untracked files i
 - **Function**: `model::stash::preview(input: &StashPreviewInput) -> StashPreview`
 - **Extension**: the engine's plans of `stash.apply` and `stash.pop` carry it, and the extension shows it in the note
   of their modal dialog (`VscodeAsker` in `src/engine/vscode.ts`): files in conflict count as files with changes, and
-  nothing is said of conflicts for a stash git will refuse. `withStashPreview` in `src/extension/actions.ts`, with
-  `Repo.stashFiles` and `Repo.conflictsWith` of `src/git/repo.ts`, is only for an engine whose binary is missing (D49).
+  nothing is said of conflicts for a stash git will refuse. When the engine's binary is missing, it says so (D49).
 
 Rules:
 
@@ -296,8 +292,8 @@ Brings the changes of a stash back into the files, and keeps the stash.
   **Apply: bring the changes back and keep the stash**). Each sends `feature/run` of `stash.apply` to Gitardo's engine,
   the stash by its index in `stash@{N}` (`stashIndex` and `engineRuns` in `src/engine/actions.ts`, run by
   `Controller.runOnEngine`), its plan always shown in a modal dialog first (`VscodeAsker`). A name that is not
-  `stash@{N}` is not sent to the engine: the TypeScript operation refuses it. When the engine's binary is missing,
-  `stashOp('apply', …)` of `src/git/ops.ts` runs in its place, with `withStashPreview`, as before (D49).
+  `stash@{N}` is not sent to the engine, and nothing runs. When the engine's binary is missing, it
+  says so (D49).
 - **Reads**: `stash.read-files`, the conflicts by `git merge-tree` as `stash.preview` says, the state of the working
   tree.
 - **Plan**: `git stash apply stash@{N}`, titled **Apply stash@{N}**, with the note **Its changes go into the files, and
@@ -333,9 +329,8 @@ Brings the changes of a stash back into the files, and drops the stash once they
 - **Extension**: **Pop** in the context menu of a stash in the Stashes view, in the Stashes section of the references
   beside the graph and on its row in the graph; the second button on the row of a stash in the Stashes view (tooltip
   **Pop: bring the changes back and drop the stash**). Each sends `feature/run` of `stash.pop` to Gitardo's engine, as
-  **Apply** sends `stash.apply`, its plan always shown in a modal dialog first (`VscodeAsker`). When the engine's
-  binary is missing, `stashOp('pop', …)` of `src/git/ops.ts` runs in its place, with `withStashPreview`, as before
-  (D49).
+  **Apply** sends `stash.apply`, its plan always shown in a modal dialog first (`VscodeAsker`). When the engine's binary
+  is missing, it says so (D49).
 - **Reads**: as `stash.apply`.
 - **Plan**: `git stash pop stash@{N}`, titled **Pop stash@{N}**, with the note **Its changes go into the files, and it
   is dropped once they are in without conflicts: with conflicts it stays.** followed by `stash.preview`.
@@ -365,12 +360,11 @@ Deletes a stash and the changes it holds.
 - **Entry points**: **Drop…** on the row and **Drop** in the context menu of a stash in the Stashes list of the branch
   rail; **Drop** in the context menu of its row in the timeline.
 - **Extension**: **Drop**, marked as an entry that loses work, in the context menu of a stash in the Stashes view, in
-  the Stashes section of the references beside the graph and on its row in the graph; the **Drop…** button on the row
-  of a stash in the Stashes view. Each sends `feature/run` of `stash.drop` to Gitardo's engine, the stash by its index
+  the Stashes section of the references beside the graph and on its row in the graph; the **Drop…** button on the row of
+  a stash in the Stashes view. Each sends `feature/run` of `stash.drop` to Gitardo's engine, the stash by its index
   (`engineRuns` in `src/engine/actions.ts`, run by `Controller.runOnEngine`), its warning always asked in a modal
-  warning dialog (`VscodeAsker`); the engine's journal keeps what `stash.undo-drop` needs, and **Undo** is the
-  engine's (`undo.last`). When the engine's binary is missing, `stashOp('drop', …)` of `src/git/ops.ts` runs in its
-  place, and **Undo** takes it back from what `Controller.undoable` remembered (`restoreStashOp`), as before (D49).
+  warning dialog (`VscodeAsker`); the engine's journal keeps what `stash.undo-drop` needs, and **Undo** is the engine's
+  (`undo.last`). When the engine's binary is missing, it says so (D49).
 - **Plan**: `git stash drop stash@{N}`, titled **Drop stash@{N}**, with the note **The stashed changes will be
   deleted.**
 - **Danger**: Destructive, because the changes of the stash are deleted and no reference keeps them.
@@ -428,10 +422,9 @@ with what came after.
 - **Extension**: **Create branch from stash…** in the context menu of a stash in the Stashes view, in the Stashes
   section of the references beside the graph and on its row in the graph. It sends `feature/run` of `stash.branch` to
   Gitardo's engine, the stash by its index (`engineRuns` in `src/engine/actions.ts`, run by `Controller.runOnEngine`);
-  the name is asked in VS Code's input box, checked by the engine with `question/validate` as it is typed
-  (`VscodeAsker` in `src/engine/vscode.ts`), and the update of the submodules follows as here, by
-  `gitardo.submodules.updateOnCheckout`. When the engine's binary is missing, `stashBranchOp` of `src/git/ops.ts` runs
-  in its place, with `updatingSubmodules` of `src/extension/actions.ts`, as before (D49).
+  the name is asked in VS Code's input box, checked by the engine with `question/validate` as it is typed (`VscodeAsker`
+  in `src/engine/vscode.ts`), and the update of the submodules follows as here, by
+  `gitardo.submodules.updateOnCheckout`. When the engine's binary is missing, it says so (D49).
 - **Asks**: **Create branch from stash@{N}**: the name of the branch, refused while typing when git does not accept it
   as a branch name (`branch.validate-name`) or when **A branch with that name already exists**.
 - **Plan**: `git stash branch <name> stash@{N}`, titled **Create branch `<name>` from stash@{N}**; followed by the update

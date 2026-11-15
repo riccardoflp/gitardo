@@ -5,14 +5,15 @@ are the ones of this folder. Paths here are from `extension/`.
 
 ## Ground rules
 
-- **The engine is being moved in.** The areas whose operations run in the engine are listed in
-  [the roadmap](../docs/transition/06-roadmap.md); in those, an entry sends `feature/run` to `gitardo-engine`, and its
-  `GitOp` in `src/git/ops.ts` is only the fallback for a missing binary
-  ([D49](../docs/08-decisions.md#d49--when-the-engines-binary-is-missing-proposed)). Do not add behavior to a `GitOp`
-  of a moved area: add it to the engine, desktop first, then use it here.
-- In an area not moved yet, everything that changes the repository is a `GitOp` run by the `Controller`, so that it is
-  shown, logged and undone like the rest ([the feature contract](../docs/extension/04-feature-contract.md)); a new
-  feature is not started here before it is in the engine ([D39](../docs/08-decisions.md#d39--desktop-first-and-a-status-for-each-app)).
+- **The extension runs no git.** Everything that reads or changes the repository is Gitardo's engine,
+  `gitardo-engine`: a read is a `read/<card>` request (`src/engine/reads.ts`), an operation a `feature/run` sent by
+  `Controller.runOnEngine`, so that it is shown, logged and undone like the rest
+  ([the feature contract](../docs/extension/04-feature-contract.md)). Without the binary for the system, the views and
+  the commands say so, with **Show the log**, and nothing else
+  ([D49](../docs/08-decisions.md#d49--when-the-engines-binary-is-missing-proposed)).
+- A new feature, or new behavior of one, goes into the engine first, desktop first, and is then used here
+  ([D39](../docs/08-decisions.md#d39--desktop-first-and-a-status-for-each-app)); what runs no git, such as what the
+  views draw, stays in `src/shared` and `src/webview`.
 - A change a user can see goes into `README.md` (the page of the Marketplace), into the **Unreleased** section of
   `CHANGELOG.md`, and into its card, in the same commit: the desktop's card in `../docs/features/` once its area is
   merged, else the extension's in `../docs/features/extension/`.

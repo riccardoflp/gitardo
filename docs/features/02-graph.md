@@ -901,8 +901,8 @@ The stashes are in the timeline too, each above the commit it was made on, as lo
 - **Kind**: View
 - **Function**: `views::graph::stashes_view(state: &StashRows, ui) -> Vec<Intent>`
 - **Entry points**: **Show stashes** in the **…** menu; the context menu of a stash row.
-- **Extension**: the stashes in the graph, placed by the extension itself, in TypeScript (`Repo.withStashes` in
-  `src/git/repo.ts`), each above the commit it was made on, labeled `stash@{N}`; the **Stashes** section of the
+- **Extension**: the stashes in the graph, placed by the engine's read of the graph (`graphState` in
+  `src/engine/graph.ts`), each above the commit it was made on, labeled `stash@{N}`; the **Stashes** section of the
   references beside the graph, one entry per stash named by its message, with the tooltip `stash@{N}: <message>`,
   where a click selects its row (the Branches view has no such section); **Show stashes** in the **…** menu of the
   toolbar, ticked while they are shown, which writes `gitardo.graph.showStashes` for the user. The context menu of a
@@ -1081,8 +1081,8 @@ Branches, remote branches and tags are listed by name, or the one committed to l
 - **Extension**: **Sort by name** and **Sort by date** in the **…** on the title of the **Local**, **Remotes** and
   **Tags** sections of the references tree and of the Branches view, the one in use ticked. The order is the setting
   `gitardo.branches.sortOrder`, written to the user settings; while it is not set, VS Code's `git.branchSortOrder` set
-  to `committerdate` means `date`. `sortRefs` in `src/shared/refs.ts` sorts, in TypeScript, until the reads move to the
-  engine.
+  to `committerdate` means `date`. `sortRefs` in `src/shared/refs.ts` sorts, in TypeScript, the references the engine
+  read.
 - **Settings**: `branches.sortOrder`: `name` or `date`; not set, by name, or by date when Git's own `branch.sort` is
   `-committerdate` or `committerdate` (`model::refs::order_in_force`).
 - **Reads**: Git's `branch.sort`, with the state of the repository (`repo.read-state`).

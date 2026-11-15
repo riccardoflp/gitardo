@@ -3,65 +3,52 @@
 What a feature of Gitardo is in the code, the kinds of feature, how they are named, and the template of a card. The
 catalog in [features/](../features/extension/README.md) is written to this page.
 
-This page holds for the areas not moved to the engine yet. In an area that has moved
-([transition/06-roadmap.md](../transition/06-roadmap.md)), a feature is the engine's, written to
-[Gitardo Desktop's feature contract](../desktop/04-feature-contract.md), and its card is the desktop's, with a status
-for each app; the extension gives it an interface and sends it `feature/run`
-([transition/02-protocol.md](../transition/02-protocol.md)).
+Since stage 10 of [the transition](../transition/06-roadmap.md) every area has moved: a feature that reads or changes
+the repository is the engine's, written to [Gitardo Desktop's feature contract](../desktop/04-feature-contract.md), and
+its card is the desktop's, with a status for each app; the extension gives it an interface, sends it `feature/run` or
+asks its read ([transition/02-protocol.md](../transition/02-protocol.md)), and runs no git of its own. What follows is
+what the extension adds around them.
 
 ## Why
 
-A feature that changes the repository is built as data, a `GitOp`, before anything runs. The controller can then show
-it first, log it command by command, keep what **Undo** needs and read the repository again, the same way for every
-feature (see [From a click to git](02-architecture.md#from-a-click-to-git)). The features are many; that machinery is
-written once. The cards hold the features to it: a card says what the feature asks, what it runs, how dangerous it is
-and how it is taken back, and the reviewer checks the code against those lines.
+A feature that changes the repository is a plan of the engine, built as data before anything runs. The engine can then
+show it first, log it command by command, keep what **Undo** needs, and the extension reads the repository again, the
+same way for every feature (see [From a click to git](02-architecture.md#from-a-click-to-git)). The features are many;
+that machinery is written once. The cards hold the features to it: a card says what the feature asks, what it runs, how
+dangerous it is and how it is taken back, and the reviewer checks the code against those lines.
 
 ## The kinds
 
 | Kind | What it is | Where it lives today |
 | --- | --- | --- |
-| **Operation** | Something the user does that changes the repository, a remote, the working tree or a file Gitardo writes. Asks what it needs, then becomes a `GitOp`. Runs nothing itself. | A case of `Action` (`src/shared/protocol.ts`), its case in `resolveAction` (`src/extension/actions.ts`), and the function of `src/git/ops.ts` that builds its `GitOp`. A few are methods of `Controller` that build a `GitOp` themselves. |
-| **Read** | Asks git, GitHub or the language model something and returns data. Changes nothing, takes no lock. | A method of `Repo` (`src/git/repo.ts`) and the parser of what git prints (`src/git/parse.ts`). |
+| **Operation** | Something the user does that changes the repository, a remote, the working tree or a file Gitardo writes. A feature of the engine; the extension asks its questions with VS Code. | A case of `Action` (`src/shared/protocol.ts`), the features `engineRuns` gives it (`src/engine/actions.ts`), run by `Controller.runOnEngine`; what is VS Code's alone is `hostAction` (`src/extension/actions.ts`). |
+| **Read** | Asks git, GitHub or the language model something and returns data. Changes nothing, takes no lock. | A read of the engine, asked by a method of `Reads` (`src/engine/reads.ts`), in the view's shape by `src/engine/shapes.ts`. |
 | **View** | What a view, a tab or a page shows and what the user can do there. Posts messages, changes nothing itself. | A React component in `src/webview` (or the Flow Diff's in `src/flow/webview`), and its entries in `src/webview/menus.ts`. |
-| **Derivation** | Turns data into other data: the lanes of the graph, the tree of files, the name of a reference, what the rules propose for a conflict. | A function of `src/shared` or `src/git` with no I/O. |
+| **Derivation** | Turns data into other data: the lanes of the graph, the tree of files, the name of a reference, what the rules propose for a conflict. | A function of `src/shared` with no I/O. |
 
 A feature the user sees is usually one Operation or View plus the Reads and Derivations it uses; its card names them.
 
 ## An operation, as it is built today
 
-An operation goes through four places. Every new operation follows the same path, and a card names each of them.
+An operation goes through four places, and a card names each of them.
 
 1. **The action.** A case of `Action` in `src/shared/protocol.ts`, with what the view knows: the commit, the branch, the
    file. The view posts it with `act()` (`src/webview/menus.ts`).
-2. **The questions.** Its case in `resolveAction` (`src/extension/actions.ts`) asks what the action does not carry, with
-   VS Code's input boxes, pickers and dialogs, reads what it needs through `Repo`, refuses with a message when it cannot
-   go on, and returns the `GitOp`, or nothing when the user cancelled.
-3. **The plan.** A function of `src/git/ops.ts` builds the `GitOp`: its `title`, its `commands` exactly as they run, and
-   what it may also have:
+2. **The features.** `engineRuns` (`src/engine/actions.ts`) gives the features of the engine that run it, with their
+   `Target` and the answers the action already carries; an action that is none of them runs nothing. What is VS
+   Code's alone, such as opening a folder in a window, is done by `hostAction` (`src/extension/actions.ts`).
+3. **The questions and the plan.** `Controller.runOnEngine` sends `feature/run`; the engine asks what the action does
+   not carry, and `VscodeAsker` (`src/engine/vscode.ts`) asks it with VS Code's input boxes, pickers and dialogs. The
+   engine builds the plan, its steps exactly as they run, its danger and what it says, refuses with a message when it
+   cannot go on, and asks first when `gitardo.commandPreview` or the danger says so.
+4. **The run.** The engine runs the plan, logs each step to the **Gitardo** output channel through `log/line`, keeps
+   what **Undo** needs in its journal, and hands the extension its follow-ups; the extension reads the repository
+   again. Without the engine, the command says **Gitardo's engine is not available on this system.** with **Show the
+   log** (D49).
 
-   | Field | Means |
-   | --- | --- |
-   | `danger` | It can lose work: always asked first, with a warning, whatever `gitardo.commandPreview` says. |
-   | `confirm` | Always asked first, as a question rather than a warning. |
-   | `note` | What the question says before the commands. |
-   | `input` | What the last command reads on its standard input, such as a patch. |
-   | `writes` | Files Gitardo writes before the commands, all or none, each only if it is still what it was read as. |
-   | `fallback` | What to offer when git refuses with a given message, typically the forced variant. |
-   | `then` | An operation of its own that runs once this one succeeded, said along with it (the submodules after a checkout). |
-   | `prepare`, `recover`, `finish`, `cleanup`, `onSuccess` | What Gitardo does itself before, during and after the commands, each saying in the log what it does. |
-
-4. **The run.** `Controller.action` hands the `GitOp` to `Controller.run`, which asks first when it must, runs the
-   commands, logs them, reads the repository again, and then records what **Undo** needs when the reflog alone cannot
-   take it back.
-
-The target for new code and for code that is changed anyway is the same shape with the questions kept apart from the
-plan: a function of `src/git/ops.ts` that takes everything it needs as arguments and returns the `GitOp`, so that an
-integration test can run it on a throwaway repository without VS Code. That is how most of `ops.ts` is written already.
-Moving the questions out of `resolveAction` into data is not planned: see [D26](../08-decisions.md#d26--an-operation-is-a-gitop-built-before-it-runs).
-
-Reads and Derivations already have this shape: a `Repo` method builds the arguments and a function of `parse.ts` turns
-what git prints into data, which `test/git.test.ts` checks on recorded output.
+The commands of an operation are tested in the engine, in `rust/`, and the extension's side by the scenarios of
+`test/engine*.test.ts`, on throwaway repositories. Derivations are functions of `src/shared` with no I/O, tested on
+their own.
 
 ## Identifiers
 
@@ -109,8 +96,8 @@ are always said, and **Tested by**, which says *none* when nothing tests it.
 What it is for, in one or two sentences, from the user's side.
 
 - **Kind**: Operation | Read | View | Derivation
-- **Function**: the function that builds its `GitOp` (or the `Repo` method, the component, the derivation), with its
-  file: `createBranchOp(name, at, checkout)` in `src/git/ops.ts`.
+- **Function**: the feature of the engine it runs (or the read, the component, the derivation), with where the
+  extension sends it: `branch.create`, from `engineRuns` in `src/engine/actions.ts`.
 - **Entry points**: where the user finds it, with the words on screen: the context menu of a branch, **Gitardo: Create
   Branch…** in the Command Palette, a key.
 - **Offered when**: the conditions under which the entry points show it.
@@ -124,8 +111,8 @@ What it is for, in one or two sentences, from the user's side.
 - **Refuses**: when, and what it says.
 - **Settings**: the settings that change what it does.
 - **Uses**: other features, reads and derivations, by identifier.
-- **Implemented in**: every place it is, as it is now: the `Action` case, the case of `resolveAction`, the builder, the
-  menu entry, what `Controller.action` does after it.
+- **Implemented in**: every place it is, as it is now: the `Action` case, its case in `engineRuns`, the menu entry,
+  what `Controller.runOnEngine` does with its follow-ups.
 - **Tested by**: the tests, by file and title, or *none*.
 - **Differs**: where the code does not do what this card says, with the file and line. Only when it applies.
 
@@ -144,9 +131,10 @@ These are what Gitardo promises for every operation, and what a reviewer reads a
 that applies as an acceptance line. Where the code does otherwise, the line ends with `(differs)` and the card has a
 **Differs** line.
 
-1. **It runs as a `GitOp`.** Everything that changes the repository, a remote or a file goes through `Controller.run`
-   (or `Controller.runIn`): it is shown first when `gitardo.commandPreview` is `all` or the operation is `danger` or
-   `confirm`, and each command and each thing Gitardo does itself is written to the **Gitardo** output channel.
+1. **It runs as a plan of the engine.** Everything that changes the repository, a remote or a file goes through
+   `Controller.runOnEngine` (or `Controller.runIn`, which hands it there): it is shown first when
+   `gitardo.commandPreview` is `all` or the plan has a danger, and each command and each thing Gitardo does itself is
+   written to the **Gitardo** output channel.
 2. **What is shown is what runs.** The commands in the question and in the log are the ones that run, with no flag
    added after. A command that would open an editor carries the flag that prevents it, in sight (`--no-edit`,
    `-c core.editor=true`).

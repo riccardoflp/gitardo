@@ -23,7 +23,7 @@ npm run package      # gitardo-<target>-<version>.vsix for each engine built
 | `npm run build` | Bundles the extension, the webview and the preview server into `dist/`. |
 | `npm run watch` | Rebuilds on change. |
 | `npm run typecheck` | Type-checks with `tsc`. |
-| `npm test` | Runs the tests with Vitest. The integration tests run the real commands against throwaway repositories, and resolve conflicts marked by git itself, hundreds of them made at random. |
+| `npm test` | Runs the tests with Vitest. The scenarios run the engine's features against throwaway repositories (skipped, and said, when the engine is not built), and the conflicts are resolved as marked by git itself, hundreds of them made at random. |
 | `npm run test:e2e` | Builds, then runs the end-to-end tests inside a real VS Code: see below. |
 | `npm run test:ui` | Builds, then uses the extension in a real VS Code window, with real clicks and keys, saving screenshots: see below. |
 | `npm run package` | Makes a minified build and packs it (`scripts/package.mjs`) into `gitardo-<target>-<version>.vsix` for each of the seven targets whose engine it finds, holding `bin/<target>/gitardo-engine` only; there is no universal vsix, since without its engine Gitardo only says so (D49), and a release waits for the vsix of every target. The engines are looked for in the folder `--binaries` names, laid out by target as the pipeline does, then in `../rust/target/<triple>/release/`, and for this computer in `../rust/target/release/`. `--target <target>` makes that one only, `--every-target` fails when an engine is missing. It prints the size of each, for the release notes. It leaves the minified build in `dist/`; `npm run build` brings the development one back. |
@@ -42,14 +42,15 @@ The commands run in `extension/`. `npm test` there collects only the extension's
 | --- | --- | --- | --- |
 | Types | That the code holds together | `src`, `test` | `npm run typecheck` |
 | Unit | Parsers on recorded git output, the lanes of the graph, the rules of conflicts, the blame's format, messages, menus, folds, the tree of files, the Flow Diff's diffs | `test/*.test.ts`, `test/flow/*.test.ts` | `npm test` |
-| Integration | Operations: their commands run on throwaway repositories, and what the repository is after | `test/integration.test.ts`, `test/submodules.test.ts`, `test/awkward.test.ts`, `test/conflicts.test.ts`, `test/resolve.test.ts` | `npm test` |
+| Integration | Operations and reads through the engine, on throwaway repositories, and what the repository is after | `test/engine*.test.ts`, `test/reads.test.ts`, `test/review.test.ts`, `test/conflicts.test.ts` | `npm test`, with the engine built |
 | Preview | What a webview shows, against a real repository, in a browser | `src/dev/server.ts` | `node dist/dev-server.js --port=<n> <folder>` |
 | End to end | Commands, the controller and what VS Code is asked, inside a real VS Code with stubbed dialogs | `test/e2e/suite.ts` | `npm run test:e2e`, `npm run test:vsix` |
 | Window | What only a real window shows: context menus, real dialogs, clicks at coordinates, themes, the Content Security Policy | `test/e2e/ui.mjs` | `npm run test:ui` |
 | Performance | Times on a large repository; numbers to read, not a test | `test/perf` | by hand, below |
 
-1. `npm run typecheck` and `npm test` for anything in `src/git` or `src/shared`. Integration tests make real
-   repositories in a temporary folder: add one when an operation changes.
+1. `npm run typecheck` and `npm test` for anything in `src/engine` or `src/shared`. The scenarios of the engine make
+   real repositories in a temporary folder: add one when what the extension sends the engine changes; an operation
+   itself is tested in the engine, in `rust/`.
 2. The preview, for anything a webview shows: `node dist/dev-server.js --port=<n> <folder>` and open
    `http://localhost:<n>/?view=<kind>`. Views: `graph`, `changes`, `commits`, `sideGraph`, `branches`, `stashes`,
    `worktreeSetup`, `commit&commit=<revision>`, `compare&from=<revision>&to=<revision>`. Add `&theme=light` for the
@@ -59,13 +60,12 @@ The commands run in `extension/`. `npm test` there collects only the extension's
 
 ## Throwaway repositories
 
-The integration tests make each repository with `git init --initial-branch=main` in a temporary folder, with the
-identity `Gitardo Test <test@gitardo.invalid>` and signing off (`git config commit.gpgsign false`), run the commands of the operation exactly as
-`Controller.run` would (the last one with the operation's standard input), and check the repository afterwards.
-
-`test/awkward.test.ts` is the other half: file names with spaces, accents, brackets and leading dashes, a repository
-with no commits, a detached `HEAD`, a shallow clone, several root commits, a merge of three parents, a branch and a tag
-of the same name, a submodule.
+The scenarios make each repository with `git init --initial-branch=main` in a temporary folder, with the identity
+`Gitardo Test <test@gitardo.invalid>` and signing off (`git config commit.gpgsign false`), run the engine's feature with
+the target and answers `engineRuns` gives it, as `Controller.runOnEngine` would, and check the repository afterwards
+with git's own output (`test/git.ts`, git for the tests, which the extension itself never runs). The awkward
+repositories (names with spaces, accents, brackets and leading dashes, no commits, a detached `HEAD`, a shallow clone,
+several roots, a branch and a tag of the same name, a submodule) are the engine's tests, in `rust/`.
 
 ## End-to-end tests
 
@@ -148,51 +148,46 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
 (`engineSetting` in `test/e2e/fixture.mjs`); `npm run test:e2e -- --no-engine` sets it to a file that is not there.
 
 - `test/engine.test.ts` (Vitest) starts the binary and checks the protocol: `initialize`, the state of the throwaway
-  repositories against `Repo.state`, a burst of changes, cancelling, the restarts after the engine is killed, and the
-  settings sent. From stage 2 it runs `branch.create` through `feature/run` with an asker that answers from the test,
-  checks the name with `question/validate`, and runs the same answers through `gitardo-cli`, comparing the plans and
-  the repositories after. From stage 3 it runs `GitOp`s as `Controller.run` does, tells the journal of each with
-  `journal/record` as `Controller.recordInJournal` does, and takes them back with `feature/run` of `undo.last`, newest
-  first, together with the engine's own plans, across a restart of the engine too.
-- The integration tests of a moved area run each operation through `feature/run`, with a fake host that answers the
-  questions from the test; they keep the same names, so that a card's **Tested by** line still finds them. What they
-  share is `test/engine/harness.ts`: throwaway repositories, an asker that answers by key, `twins` for two copies of a
-  repository, `runGitOp` and `runFeature`, and `snapshot`, what a repository is compared by.
-- From stage 4, each moved area has its scenario test, `test/engine<Area>.test.ts` (`engineChanges.test.ts` for the
-  changes, the commit and the stashes; `engineHistory.test.ts` for merge, rebase, cherry-pick, revert, reset, the
-  rewriting, bisect and the patches; `engineConflicts.test.ts` for the conflicts, whose review's write takes its
-  target from the review as `src/engine/resolutions.ts` builds it): each operation runs as its `GitOp` in one copy
-  and, with the target and answers `engineRuns` (`src/engine/actions.ts`) gives it, as the engine's feature in the
-  other; the commands and the repositories after must be the same, but where
-  [04-differences.md](../transition/04-differences.md) says why not.
-  `engineBranches.test.ts`, for the branches, tags, remotes, identity and sync, gives each copy a bare repository
-  beside it as `origin`, cloned by a colleague who pushes, so that fetches and pushes reach only folders the test made,
-  and fixes the dates of the commits so that the two copies get the same hashes.
-- From stage 5, `test/engineReads.test.ts` asks each read of version 1.4 of the protocol through the typed methods of
-  `EngineClient`, and compares the answer with what `Repo` (or `worktreeSetup.ts`, `conflicts.ts` and `github.ts`)
-  reads of the same throwaway repositories; where they differ, [04-differences.md](../transition/04-differences.md)
-  says why, under **Reads (stage 5)**. `test/reads.test.ts` asks the reads as the views ask them, through
-  `src/engine/reads.ts`, once with the engine and once without, and checks that the views get the same; and with the
-  binary missing, that each read is the TypeScript one, logged.
-- From stage 7, `test/engineGraph.test.ts` reads the graph as `Repo.state` does, once with `git log` and once through
-  the engine (`src/engine/graph.ts`), and compares the rows and the lines laid out from them, in every way the graph
-  can be shown, page after page with each next page read from the last row with `skip`, with a stash that makes the
-  pages be read whole again, and the positions and matches against `Repo.position` and `Repo.matches`; R8 of
-  [04-differences.md](../transition/04-differences.md#reads-of-the-graph-stage-7) is its own test.
-- `test/engineAi.test.ts`, for the AI and GitHub (stage 4, area 6), answers the engine's host questions with a fake
-  language model, which keeps what it was asked: the draft of a commit message and the question about a conflict are
-  sent the request the TypeScript writes, `buildPrompt` and `buildConflictPrompt`, the same answer gives the same
-  message and the same lines, cancelling a read cancels the question to the model, and choosing the model leaves the
-  two settings as `writeSetting`. Where they differ, [04-differences.md](../transition/04-differences.md) says why,
-  under **AI and GitHub**.
-- The scenarios shared with the desktop ([desktop/06-testing.md](../desktop/06-testing.md#scenarios-run-by-both-apps))
-  compare the engine's plan and the final state with the TypeScript `GitOp`'s, operation by operation, until `src/git`
-  is removed.
-- The e2e and UI suites run once with the engine and once with `gitardo.engine.path` naming a missing file, which
-  checks the fallback ([D49](../08-decisions.md#d49--when-the-engines-binary-is-missing-proposed)). A step that sees
-  a difference between the two paths is written to hold on both, as the one that names a branch from the format at a
-  commit does (B10). The commands the engine runs are logged as a `GitOp`'s are, `> ` before them, so a step reads the
-  log the same way on both paths.
+  repositories against what git itself lists (`for-each-ref`, `worktree list`, `status`), a burst of changes,
+  cancelling, the restarts after the engine is killed, and the settings sent. It runs `branch.create` through
+  `feature/run` with an asker that answers from the test, checks the name with `question/validate`, and runs the same
+  answers through `gitardo-cli`, comparing the plans and the repositories after. It takes operations back with
+  `feature/run` of `undo.last`, newest first, across a restart of the engine too, and after a commit made outside
+  Gitardo by the reflog.
+- The scenarios run each operation through `feature/run`, with a fake host that answers the questions from the test;
+  they keep the names they had, so that a card's **Tested by** line still finds them. What they share is
+  `test/engine/harness.ts`: throwaway repositories, an asker that answers by key, `runFeature`, `engineState`, the
+  state as the views read it, and `snapshot`, what a repository is compared by.
+- Each area has its scenario test, `test/engine<Area>.test.ts` (`engineChanges.test.ts` for the changes, the commit
+  and the stashes; `engineHistory.test.ts` for merge, rebase, cherry-pick, revert, reset, the rewriting, bisect and the
+  patches; `engineConflicts.test.ts` for the conflicts, whose review's write takes its target from the review as
+  `src/engine/resolutions.ts` builds it; `engineWorktrees.test.ts` for worktrees, what new worktrees get and
+  submodules): each operation runs, with the target and answers `engineRuns` (`src/engine/actions.ts`) gives it, as
+  the engine's feature, and the commands it ran and the repository after are checked line by line. Until stage 10 they
+  were compared with the TypeScript `GitOp` in a second copy; the lines they now expect are the ones both gave, but
+  where [04-differences.md](../transition/04-differences.md) says why not. `engineBranches.test.ts`, for the branches,
+  tags, remotes, identity and sync, gives the repository a bare one beside it as `origin`, cloned by a colleague who
+  pushes, so that fetches and pushes reach only folders the test made.
+- `test/engineReads.test.ts` asks each read of the protocol through the typed methods of `EngineClient`, and checks the
+  answer against what git itself prints of the same throwaway repositories (`git show`, `git diff`, `git blame
+  --line-porcelain`, …). `test/reads.test.ts` asks the reads as the views ask them, through `src/engine/reads.ts`,
+  against git's own output, and, with the binary missing, checks that each read throws `EngineMissing`.
+- `test/engineGraph.test.ts` reads the graph through the engine (`src/engine/graph.ts`), in every way the graph can be
+  shown, page after page with each next page read from the last row with `skip`, with a stash that makes the pages be
+  read whole again, and checks the rows, the positions and the matches against `git log` with the same arguments; R8
+  of [04-differences.md](../transition/04-differences.md#reads-of-the-graph-stage-7) is its own test.
+- `test/engineAi.test.ts`, for the AI and GitHub, answers the engine's host questions with a fake language model,
+  which keeps what it was asked: what the draft of a commit message and the question about a conflict send the model,
+  what the same answer gives, that cancelling a read cancels the question to the model, and that choosing the model
+  leaves the two settings as `writeSetting`.
+- `test/engineWithoutGit.test.ts` checks what version 1.7 of the protocol added for the extension to run no git: the
+  repositories of the workspace's folders (`repository/discover`), a file of a comparison taken from its second side,
+  and a change of the Flow Diff staged and unstaged with the `diffChange` target, or refused when the file no longer
+  has it.
+- The e2e and UI suites run once with the engine and once with `gitardo.engine.path` naming a missing file
+  ([D49](../08-decisions.md#d49--when-the-engines-binary-is-missing-proposed)): without the engine they check only that
+  the views say **Gitardo's engine is not available on this system.** with **Show the log**, and that a few commands
+  (**Fetch**, **Undo**, **Create Branch…**) say it too, and stop there.
 
 ## The engine's shapes
 
@@ -210,9 +205,10 @@ engine writes, not against a schema, with no dependency added:
   side, or a value of another kind (a number for a string, a list for an object), is a type error there.
 
 What it cannot see: the strings an enumeration has, since TypeScript reads every string of a JSON file as `string`, and
-which fields may be null, since none is null in the files. The values are compared by the tests that read the same
-repositories both ways: `test/engine.test.ts` compares every field of the engine's state with `Repo.state`'s, and
-`test/engineReads.test.ts` the details of a commit, of a stash and of the uncommitted changes with `Repo.commitDetail`'s.
+which fields may be null, since none is null in the files. The values are checked by the tests that read the same
+repositories with git: `test/engine.test.ts` checks the engine's state against what git lists, and
+`test/engineReads.test.ts` the details of a commit, of a stash and of the uncommitted changes against `git show` and
+`git diff`.
 
 ## What a change runs before it is committed
 

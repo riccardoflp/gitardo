@@ -129,9 +129,8 @@ operation to continue, skip or abort.
   *Applies them oldest first, as one operation*) and **Cherry-pick N commits onto `<current>`** in the context menu of
   the selection, the commits selected with `Ctrl`+click (`Cmd` on macOS) and `Shift`+click (`selectionMenu` in
   `src/webview/menus.ts`, the bar in `src/webview/App.tsx`). The action `cherryPickMany` runs it with the commits in the
-  order of the rows of the graph, newest first (`engineRuns` in `src/engine/actions.ts`). Without the engine,
-  `cherryPickManyOp` of `src/git/ops.ts` runs the same command, titled **Cherry-pick N commits** with the commits listed
-  *In this order:*, and `Controller.action` remembers the series for Undo.
+  order of the rows of the graph, newest first (`engineRuns` in `src/engine/actions.ts`). When the engine's binary is
+  missing, it says so (D49).
 
 Acceptance:
 
@@ -175,8 +174,7 @@ Applies the changes of one commit onto what is checked out, as a new commit, aft
   merge and while an operation is under way (`commitMenu` in `src/webview/menus.ts`); **Cherry-pick `<short>` onto
   `<current>`** for a commit dropped on the commit checked out or on the row of the uncommitted changes; **Cherry-pick**
   for a position chosen in the list of the reflog (`Controller.browseReflog`). The action `cherryPick` runs it on the
-  commit. The setting is `gitardo.cherryPick.recordOrigin`. Without the engine, `cherryPickOp` of `src/git/ops.ts`, with
-  `skipEmptyPicks`, runs the same command and gives a merge commit no prediction of conflicts.
+  commit. The setting is `gitardo.cherryPick.recordOrigin`. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -240,7 +238,7 @@ Makes a new commit that takes back the changes of a commit.
 - **Uses**: `conflicts.continue-operation`, `cherry-pick.skip-empty`, `undo.last`.
 - **Extension**: **Revert `<short>`** in the context menu of a commit in the graph, the Gitardo Graph and the Commits
   view (`commitMenu`, `logMenu` in `src/webview/menus.ts`), also while an operation is under way. The action `revert`
-  runs it on the commit; without the engine, `revertOp` of `src/git/ops.ts` runs the same command.
+  runs it on the commit. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -274,8 +272,8 @@ Moves the branch checked out (or `HEAD` when detached) to a commit, keeping the 
 - **Extension**: **Reset `<current>` to here…** in the context menu of a commit in the graph and the Gitardo Graph
   (every commit, the one checked out included), in the Commits view (every commit but the one checked out) and in the
   list of the reflog; **Reset `<name>` to `<short>`…** for the current branch dropped on another commit. The action
-  `reset` runs it on the commit, and the mode is picked in a quick pick. Without the engine, `resetOp` of
-  `src/git/ops.ts`, titled `Reset <current> to <short> (<mode>)`.
+  `reset` runs it on the commit, and the mode is picked in a quick pick. When the engine's binary is missing, it says so
+  (D49).
 
 Acceptance:
 
@@ -297,9 +295,7 @@ Works out, without touching the index or the working tree, which files a merge w
 - **Reads**: `git merge-tree --write-tree --no-messages --name-only -z [--merge-base=<base>] <ours> <theirs>`, where
   `<ours>` is `HEAD` unless the request says otherwise, and `<base>` is given for a cherry-pick (the parent of the
   commit picked).
-- **Extension**: the engine reads it for the merges and the cherry-pick it runs. Without the engine,
-  `Repo.conflictsWith` (`src/git/repo.ts`), with `GIT_OPTIONAL_LOCKS=0` and not written to the log at the info level,
-  put in the question by `withConflictPreview` (`src/extension/actions.ts`).
+- **Extension**: the engine reads it for the merges and the cherry-pick it runs; the extension does not read it.
 
 Rules:
 
@@ -347,8 +343,7 @@ when one is possible, otherwise a merge commit.
   `integrate` in `src/webview/menus.ts`). The action `merge` with no way, or the way `default`, runs it (`engineRuns` in
   `src/engine/actions.ts`); when it stops on conflicts, the message is *Merge `<name>` into `<current>` stopped: N files
   have conflicts. Resolve them, then continue or abort the merge.* (`reportEngineFailure` in
-  `src/extension/controller.ts`). Without the engine, `mergeOp` of `src/git/ops.ts` runs the same command and refuses a
-  ref that starts with `-`, *"`<ref>`" is not a valid name.*
+  `src/extension/controller.ts`). When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -405,8 +400,7 @@ has the ways to pull.
   and the way is picked in a quick pick; a view that names the way gives it as the answer `way` (`noFastForward` as
   `no-ff`, `fastForwardOnly` as `ff-only`, `squash`). A fast-forward only that is not possible is refused with a
   warning. After a squash, the message has no buttons, and the commit box of the Changes view gets the message git
-  prepared (the follow-up `preparedMessage`). Without the engine, `mergeOp` of `src/git/ops.ts` with the way, the
-  refusal is an error, and the message after a squash has **Show Changes** and **Undo** (`Controller.reportSquashed`).
+  prepared (the follow-up `preparedMessage`). When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -442,9 +436,8 @@ the index and the working tree.
   was staged since. Changes that are not staged stay.* The title is *Undo "Merge `<ref>` into `<current>` (squash)"*.
 - **Undo**: none: what it took out can be staged again only by merging again.
 - **Uses**: `undo.last`, `undo.journal`.
-- **Extension**: **Undo** in the toolbar right after a squash merge, which `undo.last` finds in the journal. Without the
-  engine, `undoSquashOp` of `src/git/ops.ts`, which `Controller.action` remembers until another operation runs or the
-  reflog of `HEAD` moves.
+- **Extension**: **Undo** in the toolbar right after a squash merge, which `undo.last` finds in the journal. When the
+  engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -476,7 +469,7 @@ Makes the commits of the branch checked out again on top of another commit, bran
 - **Extension**: **Rebase `<current>` onto this** in the context menu of a commit, a local branch and a remote branch,
   where **Merge into `<current>`** is; **Rebase `<current>` onto `<name>`** and **Rebase `<current>` onto `<short>`** in
   the drop menu (`integrate` and `dropMenu` in `src/webview/menus.ts`). The action `rebase` with no branch runs it.
-  Without the engine, `rebaseOp` of `src/git/ops.ts`, which refuses a name that starts with `-`.
+  When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -510,8 +503,8 @@ Rebases a local branch that is not checked out onto the commit it is dropped on;
 - **Uses**: `drag.drop`, `undo.last`.
 - **Extension**: **Rebase `<name>` onto `<short>`** in the drop menu, for another local branch dropped on another
   commit, not for one another worktree has checked out (`dropMenu` in `src/webview/menus.ts`). The action `rebase` with
-  a branch runs it on the commit, the branch given as the answer `branch`. Without the engine, `rebaseOp(onto, current,
-  branch)` of `src/git/ops.ts`, and git refuses a branch checked out elsewhere with its own words.
+  a branch runs it on the commit, the branch given as the answer `branch`. When the engine's binary is missing, it says
+  so (D49).
 
 Acceptance:
 
@@ -534,9 +527,8 @@ form a single line without merges. It decides where the interactive rebase, **Ed
 - **Uses**: the commits of the timeline as loaded, each with its parents.
 - **Extension**: in the views, `rebaseRange(hash, state)`, `canReword(hash, state)` and `canSquash(rows, state)` of
   `src/webview/menus.ts` decide what the menus offer: `canReword` is false on the row of the uncommitted changes and
-  during an operation or a bisect, and true on `HEAD`, a merge or not. Without the engine, the host checks again with
-  `Repo.lineAfter(hash)` (`src/git/repo.ts`, with `GIT_OPTIONAL_LOCKS=0`) and `squashRange`
-  (`src/extension/actions.ts`).
+  during an operation or a bisect, and true on `HEAD`, a merge or not. The engine works it out again for the feature it
+  runs.
 
 Rules:
 
@@ -569,9 +561,8 @@ will have to be force pushed.
 - **Entry points**: none: used by `message.edit`, `squash.commits`, `squash.into-previous` and `split.commit`.
 - **Reads**: `git for-each-ref --contains <hash> --format=%(refname:short) refs/remotes`, leaving out the names that end
   in `/HEAD` and the ones with no `/`.
-- **Extension**: the engine reads it for `message.edit`, `squash.commits` and `split.commit`. Without the engine,
-  `Repo.remoteBranchesWith(hash)` (`src/git/repo.ts`) and `warnIfPushed` (`src/extension/actions.ts`), with the same
-  note. Neither reads it for the fixup, the rebase editor, `rebase.onto` or the reset.
+- **Extension**: the engine reads it for `message.edit`, `squash.commits` and `split.commit`, not for the fixup, the
+  rebase editor, `rebase.onto` or the reset; the extension does not read it.
 
 Rules:
 
@@ -649,7 +640,7 @@ and the files of the new messages.
 - **Function**: `model::rebase::build_todo_list(steps: &[TodoStep], folder: &str) -> Result<TodoList, Text>`
 - **Extension**: `todoRows` (`src/engine/actions.ts`) writes the steps of the rebase editor as the rows of
   `rebase.interactive`: `<action> <full hash>`, and for a reword its new subject, from which the engine builds this
-  list. Without the engine, `rebaseTodo(steps, messageFile)` of `src/git/ops.ts` builds the same list.
+  list.
 
 Rules:
 
@@ -715,11 +706,9 @@ copy the prepared one over it, since no editor can be typed into.
   git's words are shown.
 - **Uses**: `rebase.build-todo-list`, `rebase.read-stop`, `rebase.edit-stop`, `conflicts.continue-operation`, `undo.last`.
 - **Extension**: **Start rebase** in the dialog of the rebase editor posts `rebaseInteractive`, which runs it on `HEAD`
-  with the rows as the answer `todo`, unless a reword gives a whole message, which the rows cannot say (`engineRuns` in
-  `src/engine/actions.ts`). Without the engine, or for such a reword, `interactiveRebase` of `src/extension/actions.ts`
-  writes the todo list and the messages into `gitardo-rebase-XXXXXX` in the temporary folder of the system while the
-  question is built, with no `write` line in the log, removes the folder only after a rebase that ended in one go, and
-  does not refuse while a bisect is under way.
+  with the rows as the answer `todo` (`todoRows` and `engineRuns` in `src/engine/actions.ts`). A reword that gives a
+  whole message, which the rows cannot say, runs nothing; the rebase editor gives only a new subject (`keepBody`). When
+  the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -745,8 +734,8 @@ Tells a stop to edit a commit, or to split one, from a stop on a conflict, and n
 - **Entry points**: none: read with the state of the repository while a rebase is under way.
 - **Reads**: in the git directory of the worktree, `rebase-merge/amend`, `rebase-merge/done` and
   `rebase-merge/gitardo-split`; `git log -1 --format=%s <hash> --` for the subject.
-- **Extension**: `Repo.rebaseStop()` (`src/git/repo.ts`) reads it into `RepoState.rebaseStop`, by the same rules, with
-  `GIT_OPTIONAL_LOCKS=0`.
+- **Extension**: the engine reads it with the state of the repository (`repo.read-state`, asked by `Reads.parts` in
+  `src/engine/reads.ts`), and the extension shows it as `rebaseStop` of `RepoState`.
 
 Rules:
 
@@ -775,8 +764,8 @@ While an interactive rebase is stopped right after a commit marked **Edit**, the
 - **Offered when**: `rebase.read-stop` gives an edit.
 - **Uses**: `rebase.read-stop`, `conflicts.continue-operation`, `conflicts.abort-operation`.
 - **Extension**: the banner of the Graph view, in the panel or an editor tab, and of the Changes view (`OperationBanner`
-  in `src/webview/OperationBanner.tsx`). **Continue** is the action `continue`, which refuses as above with
-  `refuseUncommitted` (`src/extension/actions.ts`).
+  in `src/webview/OperationBanner.tsx`). **Continue** is the action `continue`, which runs
+  `conflicts.continue-operation`; the engine hands over to this and refuses as above.
 
 What it shows:
 
@@ -849,9 +838,7 @@ after it again.
   message…** in the context menu of a commit open the box `MessageEditor` (`src/webview/Detail.tsx`), labelled *Commit
   message*, from 3 to 12 lines high as the text grows; saving the text unchanged with the keys closes it as **Cancel**
   does, so the engine's *The message is unchanged.* is not reached from VS Code. The action `reword` runs it on the
-  commit with the message as the answer `message`. Without the engine, `rewordHeadOp` of `src/git/ops.ts` for the last
-  commit, and `interactiveRebase` for an older one, whose todo list and message file are written in the temporary folder
-  of the system before the question.
+  commit with the message as the answer `message`. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -878,8 +865,7 @@ Puts together the message of the commit that several become.
 
 - **Kind**: Derivation
 - **Function**: `model::squash::join_messages(subject: &str, messages: &[&str]) -> String`
-- **Extension**: without the engine, `squashMessage(subject, messages)` and `splitMessage(message)` of `src/git/ops.ts`
-  give the same message.
+- **Extension**: the engine's, for `squash.commits`; the extension does not work it out.
 
 Rules:
 
@@ -896,8 +882,6 @@ Acceptance:
 
 - [ ] The example above holds.
 - [ ] Three messages with no body and a new subject give the subject and the three messages, separated by blank lines.
-- [ ] Extension: `splitMessage` of *Subject*, a line break, *still subject*, a blank line, *Body*, a blank line and
-      *More* gives the subject *Subject still subject* and the body *Body*, a blank line, *More*.
 
 ### `squash.commits` — Squash commits into one
 
@@ -932,8 +916,7 @@ Makes one commit of several that follow one another before `HEAD`, with the chan
 - **Extension**: **Squash into one** in the bar above the graph that counts the selected commits (tooltip *Makes them
   one commit, with a message you give*), **Squash N commits into one…** in the context menu of the selection, and
   **Squash into the commit before it…** in the context menu of a single commit post the action `squash` with the
-  commits, which runs it; the subject is asked in an input box. Without the engine, `squashRange` and
-  `interactiveRebase` of `src/extension/actions.ts`, whose files are written before the question.
+  commits, which runs it; the subject is asked in an input box. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -1009,8 +992,7 @@ wanted.
 - **Extension**: **Split this commit…** in the context menu of a commit in the graph and the Gitardo Graph posts
   `split`, which runs it; the commit box of the Changes view gets the message of the commit (the follow-up
   `fillCommitMessage`), and after a split of the last commit the message has no button: **Undo** in the toolbar takes
-  the split back. Without the engine, `splitHeadOp` or `splitRebaseOp` of `src/git/ops.ts` around `interactiveRebase`,
-  and `Controller.reportSplit`, whose message has **Undo**.
+  the split back. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 
@@ -1057,9 +1039,8 @@ or commit what is left of them as one more commit.
   part of the split: commit or stash them, then continue.* (or *N files have changes…*); **Go back to committing** runs
   nothing.
 - **Uses**: `rebase.read-stop`, `conflicts.continue-operation`.
-- **Extension**: **Continue** in the banner is the action `continue`, which runs `continueSplit` of
-  `src/extension/actions.ts`, with the buttons **Commit What Is Left** and **Go Back to Committing**, and `splitLeft` of
-  `src/git/ops.ts` for what is left.
+- **Extension**: **Continue** in the banner is the action `continue`, which runs `conflicts.continue-operation`; the
+  engine hands over to this, and its dialog is asked with VS Code's (`VscodeAsker` in `src/engine/vscode.ts`).
 
 Acceptance:
 
@@ -1096,7 +1077,7 @@ it again.
   changes to add to that commit.*
 - **Uses**: `rebase.find-line-before-head`, `conflicts.continue-operation`, `undo.last`.
 - **Extension**: the entries of the context menu of a commit in the graph (`commitMenu` in `src/webview/menus.ts`) post
-  `fixup`, which runs it. Without the engine, `fixupOp` of `src/git/ops.ts`, which does not refuse during a bisect.
+  `fixup`, which runs it. When the engine's binary is missing, it says so (D49).
 
 Acceptance:
 

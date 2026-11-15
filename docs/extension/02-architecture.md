@@ -6,11 +6,14 @@ shaped; this page is the frame around it.
 
 ## What "no dependencies at run time" means
 
-The extension needs VS Code and the `git` executable on the `PATH`, nothing else at run time. What it uses from npm is
-bundled by esbuild into `dist/` (React, the Codicons font, shiki for the colors of code, Monaco for the Flow Diff) and
-listed in `package.json`; nothing is installed on the user's machine, and `npm run package` packs with
-`--no-dependencies`. Git is run as a program, never through a library: what Gitardo does is what `git` does, and the
-user can run the same commands (see [D24](../08-decisions.md#d24--run-the-git-executable-never-a-library)).
+The extension needs VS Code, the `git` executable on the `PATH`, and Gitardo's engine, `gitardo-engine`, which its vsix
+holds for its system (one vsix per target), nothing else at run time. What it uses from npm is bundled by esbuild into
+`dist/` (React, the Codicons font, shiki for the colors of code, Monaco for the Flow Diff) and listed in
+`package.json`; nothing is installed on the user's machine, and `npm run package` packs with `--no-dependencies`. The
+extension runs no git itself: the engine does, as a program, never through a library, so that what Gitardo does is
+what `git` does, and the user can run the same commands
+(see [D24](../08-decisions.md#d24--run-the-git-executable-never-a-library)). Without the engine for its system, the
+extension says so and does nothing else ([D49](../08-decisions.md#d49--when-the-engines-binary-is-missing-proposed)).
 
 ## Context
 
@@ -21,6 +24,7 @@ of GitHub and of the language model are input, never instructions (see [10-secur
 flowchart LR
   user([Person: a developer in VS Code])
   gitardo[Gitardo<br/>VS Code extension, TypeScript]
+  engine[Gitardo's engine<br/>gitardo-engine, Rust, in the vsix]
   vscode[VS Code<br/>the host: views, editors, settings, sign-in, language models]
   git[git<br/>the executable on the PATH, 2.40 or later]
   subgraph untrusted [Not trusted]
@@ -31,11 +35,12 @@ flowchart LR
   user -->|clicks, keys, commands| vscode
   vscode -->|commands, messages of the webviews| gitardo
   gitardo -->|views, dialogs, editors, output channel| vscode
-  gitardo -->|runs commands, reads their output| git
+  gitardo -->|JSON-RPC: reads, features, answers| engine
+  engine -->|runs commands, reads their output| git
   git -->|reads and writes| repo
-  gitardo -->|reads files, writes resolutions and setup files| repo
-  gitardo -->|open pull requests, with the user's GitHub session| github
-  gitardo -->|a conflict or a diff, when the user asks| model
+  engine -->|reads files, writes resolutions and setup files| repo
+  engine -->|open pull requests, with the user's GitHub session| github
+  gitardo -->|the engine's question about a conflict or a diff, when the user asks| model
 ```
 
 ## Containers
@@ -45,7 +50,7 @@ The pieces that run apart. All of them are started by VS Code; none listens on a
 ```mermaid
 flowchart TB
   subgraph host [Extension host: Node.js]
-    ext[dist/extension.js<br/>activation, commands, the Controller, git, the Flow Diff host]
+    ext[dist/extension.js<br/>activation, commands, the Controller, the Flow Diff host]
     worker[dist/flowWorker.js<br/>worker thread: computes the diffs of the Flow Diff]
   end
   subgraph webviews [Webviews: one browser page each]
@@ -53,6 +58,7 @@ flowchart TB
     hl[dist/highlight/<br/>shiki, loaded only when changes are shown]
     flow[dist/flow/<br/>Monaco: the Flow Diff and the Flow Merge]
   end
+  engine[gitardo-engine<br/>one process per window]
   git[git child processes]
   state[(VS Code workspace state<br/>favorites, branches shown, recent comparisons…)]
   ext -->|postMessage: HostMessage| ui
@@ -60,7 +66,8 @@ flowchart TB
   ext -->|postMessage| flow
   ext -->|postMessage: two texts| worker
   ui -.->|imports on demand| hl
-  ext -->|spawn, arguments as a list| git
+  ext -->|JSON-RPC on standard input and output| engine
+  engine -->|spawn, arguments as a list| git
   ext -->|Memento get and update| state
 ```
 
@@ -70,16 +77,15 @@ flowchart TB
 | Flow Diff worker | `dist/flowWorker.js`, a `worker_threads` Worker of the host | messages (`src/flow/diff/protocol.ts`) |
 | Webviews | `dist/webview.js` (classic script), one page per view or tab, picked by `data-view` | `postMessage`, typed in `src/shared/protocol.ts` |
 | Flow pages | `dist/flow/main.js`, `dist/flow/merge.js` (ES modules, split in chunks) | `postMessage` (`src/flow/diff/protocol.ts`, `mergeProtocol.ts`) |
-| git | a child process per command, `GIT_TERMINAL_PROMPT=0`, no shell | arguments, standard input, output |
+| git | a child process of the engine per command, `GIT_TERMINAL_PROMPT=0`, no shell | arguments, standard input, output |
 | Gitardo's engine | `gitardo-engine --stdio`, one process per window, from `bin/<platform>-<arch>/` of the package or the development setting `gitardo.engine.path`; started the first time a repository is found, and started again after an exit as [transition/01-engine.md](../transition/01-engine.md#when-something-goes-wrong) says | JSON-RPC 2.0 on its standard input and output, framed with `Content-Length` ([transition/02-protocol.md](../transition/02-protocol.md)) |
 
 ## Modules
 
 | Path | What is there |
 | --- | --- |
-| `src/git` | Git itself, with no VS Code in it: running it (`exec.ts`), finding the repositories of a folder (`discover.ts`), reading a repository (`repo.ts`), parsing what git prints (`parse.ts`), the commands of each operation (`ops.ts`), the conflicts that need no choice (`conflicts.ts`), what is proposed for each conflict (`review.ts`), what new worktrees get (`worktreeSetup.ts`), the lines of a range (`lines.ts`), GitHub URLs and the pull requests query (`github.ts`). |
-| `src/engine` | Gitardo's engine, from stage 1 of [the transition](../transition/06-roadmap.md): finding the binary (`binary.ts`), the framing (`framing.ts`), requests, notifications and `$/cancel` (`connection.ts`), the messages (`messages.ts`), the settings sent under the desktop's names (`settings.ts`), the process, its restarts and the features it runs (`client.ts`), the target of a feature from what a menu names (`target.ts`), and the engine of a window, with VS Code's settings, output channel, and the input boxes, picks and dialogs its features ask with (`vscode.ts`). From stage 2, `Controller.runOnEngine` sends it **Create branch…** (`branch.create`), and runs the `GitOp` when the binary is missing. From stage 5, the views read through it: `reads.ts` asks the engine's read and turns its answer into the shape the view had (`shapes.ts`), or reads with `Repo` when the engine is not there (see [Where the reads come from](#where-the-reads-come-from)). From stage 6 the state and the details of a commit are the engine's shapes and are not converted. |
-| `src/shared` | What the extension and the webviews both use: the messages between them (`protocol.ts`), the lanes of the graph (`graph.ts`), the tree of files (`tree.ts`), how references are named (`refs.ts`) and messages shown (`message.ts`), the branches shown (`scope.ts`), the blame's format (`blameFormat.ts`), the prompts of the language model (`commitPrompt.ts`, `conflictPrompt.ts`), proposals (`resolution.ts`), submodules' status, file icons, JSON with comments. |
+| `src/engine` | Gitardo's engine, which reads and changes the repository for the extension: finding the binary (`binary.ts`), the framing (`framing.ts`), requests, notifications and `$/cancel` (`connection.ts`), the messages (`messages.ts`), the settings sent under the desktop's names (`settings.ts`), the process, its restarts and the features it runs (`client.ts`), the features an action of a view becomes (`actions.ts`, `engineRuns`) and their target (`target.ts`), every read a view makes (`reads.ts`, with the engine's answer in the view's shape by `shapes.ts`), the graph's rows (`graph.ts`), the files in conflict as the review works on them (`conflictPlans.ts`), the resolutions it writes (`resolutions.ts`), and the engine of a window, with VS Code's settings, output channel, and the input boxes, picks and dialogs its features ask with (`vscode.ts`). |
+| `src/shared` | What the extension and the webviews both use, none of it running git: the messages between them (`protocol.ts`), the engine's state and details of a commit (`state.ts`), the lanes of the graph (`graph.ts`), the tree of files (`tree.ts`), how references are named (`refs.ts`) and messages shown (`message.ts`), the branches shown (`scope.ts`), the blame's format (`blameFormat.ts`), the conflicts that need no choice (`conflicts.ts`) and the review of the others (`review.ts`, `resolution.ts`, `proposalLines.ts`, `conflictPrompt.ts`), what new worktrees get (`worktreeSetup.ts`), the rows of the changes (`changes.ts`), paths (`paths.ts`), GitHub URLs (`github.ts`), submodules' status, file icons, JSON with comments. |
 | `src/extension` | VS Code: activation and commands (`extension.ts`), the `Controller` that owns the state and every webview (`controller.ts`), what an action asks and which operation it becomes (`actions.ts`), blame of the line and of the file (`blame.ts`, `fileBlame.ts`), the content of the diffs (`content.ts`), what is running (`activity.ts`), the review of conflicts (`conflictReview.ts`), GitHub sign-in (`github.ts`), the language model (`ai.ts`), file icons, the worktree settings and Explorer commands. |
 | `src/webview` | The React UI of every view and tab, in one bundle. `main.tsx` picks the component from the `data-view` the host writes on the page. `menus.ts` has every context menu and `act()`. |
 | `src/webview/highlight` | The colors of the code in the changes of a commit or a comparison, with shiki: a bundle of its own, imported only when changes are shown. |
@@ -97,25 +103,22 @@ flowchart TB
            ╱    │     ╲         │
          flow   │      ╲        │
          │  ╲   │       ╲       │
-         │   git ──────▶ shared ◀──── webview ── ─ ─▶ flow/webview, flow/diff   (marked)
-         │              ▲                  └ ─ ─ ─▶ git/parse                   (marked)
+         │   engine ───▶ shared ◀──── webview ── ─ ─▶ flow/webview, flow/diff   (marked)
+         │              ▲
          └──────────────┘
-  dev ──▶ git, shared, extension/fileIconTheme
+  dev ──▶ engine, shared, extension/fileIconTheme
 ```
 
-- `src/git` uses only `src/shared` and Node. It never imports `vscode`, so that it runs in the tests and in the preview
-  server. *Followed: no file of `src/git` imports `vscode`; no tool checks it.*
 - `src/shared` uses nothing of the others, but for one type: `protocol.ts` imports `SyntaxTheme` from
   `src/flow/diff/protocol.ts`. *Marked: a type of the Flow Diff that both use; it belongs in `src/shared`.*
 - `src/webview` uses `src/shared`. It also uses pure code of other folders, bundled into the page:
-  `src/git/parse.ts` (`workingChanges`, in `ChangesApp.tsx`), `src/flow/diff/computeDiff.ts` (the side changes),
-  `src/flow/webview/columns.ts` and `languages.ts`. *Marked: these work because the code is pure, but nothing keeps it
-  so; see [RS3](13-risks.md).*
-- `src/flow` uses `src/git`, `src/shared`, two modules of `src/extension` (`content.ts`, `answers.ts`) and
-  `src/engine/reads.ts`, through which it reads.
+  `src/flow/diff/computeDiff.ts` (the side changes), `src/flow/webview/columns.ts` and `languages.ts`. *Marked: these
+  work because the code is pure, but nothing keeps it so; see [RS3](13-risks.md).*
+- `src/flow` uses `src/engine`, `src/shared` and two modules of `src/extension` (`content.ts`, `answers.ts`): it reads
+  through `src/engine/reads.ts` and runs the engine's features through the `Controller`.
 - `src/engine` uses only Node and `src/shared`, and `vscode` in `vscode.ts` alone, so that the tests drive the rest; it
-  imports neither `src/git` nor `src/webview` (rule R1.5): `reads.ts` is handed `Repo` as an object with the reads it
-  has (`TypeScriptReads`), or a function that reads. *Followed; no tool checks it.*
+  never imports `src/webview` (rule R1.5). *Followed; no tool checks it.*
+- No file of `src/` runs `git`, nor any other program but the engine (rule R1.4).
 - `src/extension` uses all of the above.
 
 ## From a click to git
@@ -123,92 +126,68 @@ flowchart TB
 1. The webview posts a `WebviewMessage` (`src/shared/protocol.ts`). An operation on the repository is
    `{ type: 'action', action }`, posted by `act()` in `src/webview/menus.ts`. A command of the Command Palette calls the
    `Controller` directly from `extension.ts`.
-2. `Controller.onMessage` handles it. An action goes to `Controller.action`, which reads the top of the reflog, and
-   hands the action to `resolveAction` in `src/extension/actions.ts`. That asks what it needs (names, choices,
-   confirmations of its own) and returns a `GitOp`, built in `src/git/ops.ts`, or nothing when the user cancelled.
-3. `Controller.run` runs the `GitOp`: it shows the exact commands first when `gitardo.commandPreview` asks for that or
-   when the operation can lose work (`danger`, `confirm`), logs each command to the **Gitardo** output channel, runs
-   them one after the other with `git()` of `src/git/exec.ts`, and stops at the first that fails. When git refuses in
-   the way the operation's `fallback` is for, the fallback is asked and run instead.
-4. The repository is read again and a `HostMessage` of type `state` goes to the views. Only the views that show the
-   graph are sent its commits (`showsGraph`), and only the commits they do not have yet.
-5. Back in `Controller.action`, what **Undo** needs is recorded when the reflog cannot take the operation back: a deleted
-   branch, a dropped stash, conflicts resolved, a squash merge, a series of cherry-picks or of commits of a patch, a
-   split of the last commit.
-
-In an area moved to the engine (from stage 2 of [the transition](../transition/06-roadmap.md), **Create branch…**),
-steps 2 and 3 are the engine's:
-
-1. `Controller.action` hands the action to `Controller.runOnEngine`, with the feature's identifier and its `Target`
-   (`targetOf` in `src/engine/target.ts`). With no engine running (no binary, or stopped for good), it returns false
-   and the `GitOp` runs as above (D49).
-2. `EngineClient.runFeature` sends `feature/run`. While it runs, the engine asks with `feature/ask` and
-   `feature/confirm`, and `VscodeAsker` (`src/engine/vscode.ts`) answers with VS Code's input boxes, quick picks and
+2. `Controller.onMessage` handles it. An action goes to `Controller.action`. What is VS Code's alone, such as opening a
+   worktree in a window, a terminal or the Explorer, is done there by `hostAction` (`src/extension/actions.ts`), and
+   runs no git. Any other action becomes the features of the engine that run it, with their `Target`
+   (`engineRuns` in `src/engine/actions.ts`, `targetOf` in `src/engine/target.ts`); an action that is none of them runs
+   nothing. With no engine running (no binary, or stopped for good), the command says **Gitardo's engine is not
+   available on this system.** with **Show the log** (`sayEngineMissing`, D49), and nothing runs.
+3. `Controller.runOnEngine` runs them one at a time: `EngineClient.runFeature` sends `feature/run`. While it runs,
+   the engine asks with `feature/ask` and `feature/confirm`, and `VscodeAsker` (`src/engine/vscode.ts`) answers with VS Code's input boxes, quick picks and
    dialogs; an input box checks its text with `question/validate` as it is typed. What only VS Code can add is given
    as `HostHooks`: choices of its own at the end of a pick, such as **Edit the list of identities…**, and what it does
    once a plan is confirmed and before its steps, such as having VS Code's Git close the worktrees **Clean up
    branches** removes.
-3. The engine runs the plan and logs each step, which comes back as `log/line` and goes to the **Gitardo** output
-   channel as the command of a `GitOp` does, `> ` before it; a failure, a warning or a read has `[engine]` before it. `feature/followUps` comes before the answer, and `runOnEngine` carries out the
-   follow-ups that are the extension's: a message, the inputs of the format remembered in `worktreeInputs`, the new
-   `HEAD` selected in the graph once the repository is read again, the pull requests read again after a fetch, a pull
-   or a push. An operation offered with the failure of a step, such as **Delete anyway**, is a button on the error,
-   which sends `feature/run` with the feature, target and answers the engine gave (`offerRun`).
+4. The engine runs the plan and logs each step, which comes back as `log/line` and goes to the **Gitardo** output
+   channel, `> ` before a command; a failure, a warning or a read has `[engine]` before it. `feature/followUps` comes
+   before the answer, and `runOnEngine` carries out the follow-ups that are the extension's: a message, the inputs of
+   the format remembered in `worktreeInputs`, the new `HEAD` selected in the graph once the repository is read again,
+   the pull requests read again after a fetch, a pull or a push. An operation offered with the failure of a step, such
+   as **Delete anyway**, is a button on the error, which sends `feature/run` with the feature, target and answers the
+   engine gave (`offerRun`).
+5. The repository is read again and a `HostMessage` of type `state` goes to the views. Only the views that show the
+   graph are sent its commits (`showsGraph`), and only the commits they do not have yet.
 
-From stage 3, **Undo** is the engine's too: `feature/run` of `undo.last`, which takes back the newest entry of the
-engine's journal. Every `GitOp` that still runs in TypeScript is told to that journal once it ran, with
-`journal/record` (`Controller.recordInJournal`): what Undo needs of it, as `Controller.action` remembered it, or what
-the states read before and after it tell (`recordOf` in `src/engine/journal.ts`). The tooltip of **Undo** names the
-newest entry, from `journal/last` (`RepoState.undo`). `Controller.undoable` is only for an engine that is not there.
+**Undo** is the engine's too: `feature/run` of `undo.last`, which takes back the newest entry of the engine's journal,
+where every feature the engine ran is. The tooltip of **Undo** names the newest entry, from `journal/last`
+(`RepoState.undo`).
 
-Anything that changes the repository is a `GitOp` or a plan of the engine, also what Gitardo does itself rather than
-git (`writes`, `prepare`, `finish`): that is how it gets the preview, the log and Undo. The Flow Diff runs its index writes through
-`Controller.runIn` for the same reason, and the Flow Merge its **Mark as resolved**, which it hands the runs of the
-engine that take the place of the `GitOp` (`merge-view.mark-resolved`). From stage 4 (area 4) the review of the
-conflicts writes what is accepted with `review.write`, its target built by `src/engine/resolutions.ts`. Reads never take locks (`GIT_OPTIONAL_LOCKS=0`), in `Repo` as in the
-engine.
+Anything that changes the repository is a plan of the engine, also what Gitardo does itself rather than git (the
+writes of a resolution, of a rebase's todo list): that is how it gets the preview, the log and Undo. The Flow Diff
+runs its stage, unstage and discard through `Controller.runIn`, which hands them to `runOnEngine` (`changes.stage`,
+`diff.stage-change` with a `diffChange` target, …), and the Flow Merge its **Mark as resolved**
+(`merge-view.mark-resolved`). The review of the conflicts writes what is accepted with `review.write`, its target built
+by `src/engine/resolutions.ts`. Reads never take locks (`GIT_OPTIONAL_LOCKS=0`).
 
 ## Where the reads come from
 
-From stage 5 of [the transition](../transition/06-roadmap.md), what a view reads comes from the engine's reads of
-[the protocol](../transition/02-protocol.md#reads) when the engine is there, and from `Repo` when it is not (D49). The
-choice is made in one place, `src/engine/reads.ts`: the `reads` of the window, given the running engine at activation
-(`reads.use`), has a method for each read a view makes, which asks the engine and, where the view's shape is not the engine's, turns
-its answer into it (`src/engine/shapes.ts`). `Repo` reads instead when:
-
-- no engine is running (no binary, or stopped for good); the read is logged at `debug` with how long it took, as the
-  engine logs its own;
-- the engine fails to read (an `EngineError` other than a cancel), logged as a warning;
-- the engine's read cannot answer what the view asks: a comparison narrowed to a path, or from the working tree since
-  they diverged ([R7](../transition/04-differences.md#r7-a-comparison-narrowed-to-a-path-or-from-the-working-tree-since-they-diverged)),
-  the lines of a commit with a cap other than the engine's 20,000 or a short id, the blame of a line at a revision,
-  the pull requests with no token or no repository on GitHub.
+Everything a view reads comes from the engine's reads of [the protocol](../transition/02-protocol.md#reads), in one
+place, `src/engine/reads.ts`: the `reads` of the window, given the running engine at activation (`reads.use`), has a
+method for each read a view makes, which asks the engine and, where the view's shape is not the engine's, turns its
+answer into it (`src/engine/shapes.ts`). With no engine running, `reads.available` is false and `reads.client()`
+throws `EngineMissing`: the views get a `state` message with `engineMissing` and say **Gitardo's engine is not
+available on this system.** with **Show the log** (`Placeholder` of `src/webview/Placeholder.tsx`, D49). The folders
+of the workspace are searched for repositories with `repository/discover` (`reads.discover`).
 
 The state's parts (`RepoParts`: `HEAD`, branches, tags, stashes, worktrees, submodules, remotes, the working tree,
 the operation and its stop, bisect, the identity, the last moves of `HEAD`) come from `repo.read-state`, read once
-per burst of changes as before, and the files the rules resolve from `conflicts.resolve-by-rules`; the commits of the
-graph, and what they are filtered and scoped by, are still read by `Repo.withCommits` (stage 7). The GitHub token is
-given to the engine by `githubSession`, when it asks with `host/githubToken`.
+per burst of changes, and the files the rules resolve from `conflicts.resolve-by-rules`. The GitHub token is given to
+the engine by `githubSession`, when it asks with `host/githubToken`. The review of the conflicts reads the text of each
+file and its sides with `conflictPlans` (`src/engine/conflictPlans.ts`), and works out what needs no choice with
+`resolveConflicts` of `src/shared/conflicts.ts`.
 
-What still reads with `Repo` whatever the engine: the reads inside a `GitOp` or an action of an area not moved, the
-review of the conflicts (`conflictPlans`, which needs the text of each side), the owner of a worktree among every
-repository of the workspace (`commonDir`, which would open each in the engine), the operation under way read alone,
-the AI's commit message (the graph's rows), and the preview server.
-
-From stage 7 the rows of the graph, the position of a commit and the matches of a search are read by the engine while
-it runs (`src/engine/graph.ts`): `Repo.state` is given a reader of its commits (`CommitsReader`) and lays out the lines
-from their parents as before, the next pages are asked with `skip` from the last row read, and a read that another
-takes the place of is cancelled. Without the engine, or when it fails otherwise than with git's error, `Repo` reads
-them with `git log` (D49).
+The rows of the graph, the position of a commit and the matches of a search are read by the engine
+(`src/engine/graph.ts`): `graphState` puts the parts and the rows together and lays out the lines from their parents
+(`src/shared/graph.ts`), the next pages are asked with `skip` from the last row read, and a read that another takes the
+place of is cancelled.
 
 ### The views' shapes
 
 From stage 6 the state of a repository and the details of a commit are the engine's types, field for field:
 `src/shared/state.ts` writes them as `repo.read-state` and `details.read-commit` answer (`RepositoryState`,
 `CommitDetail` and what they are made of: `Head`, `Branch`, `Worktree`, `WorkingTree`, `FileChange`, `Submodule`, …),
-and the extension, the webviews and the preview server read those fields. `Repo` and `src/git/parse.ts` produce the
-same shapes when the engine is not there, so the views cannot tell which read they got. What the views show that the
-engine does not write is worked out from those fields where it is shown, with the helpers beside the types:
+and the extension, the webviews and the preview server read those fields. What the views show that the engine does not
+write is worked out from those fields where it is shown, with the helpers beside the types:
 
 - the branch checked out by its short name, `checkedOutBranch`, from `head.branch`, which is the full name
   (`refs/heads/main`), and that of a worktree, `worktreeBranch`;
@@ -234,17 +213,18 @@ against the JSON the engine writes ([06-testing.md](06-testing.md#the-engines-sh
 
 - **The state of the repository** is one `RepoState`, the engine's `RepositoryState` with what the extension adds,
   kept by the `Controller` (`setState`). `Controller.readState` reads its parts with `reads.parts` (`repo.read-state`
-  of the engine, or `Repo.parts`), then the commits of the graph with `Repo.withCommits`. The webviews get it in `state` messages and change nothing of it themselves.
+  of the engine), then the commits of the graph with `graphState`. The webviews get it in `state` messages and change
+  nothing of it themselves.
 - **One repository at a time**: the `Controller` shows one repository of the workspace, chosen in the toolbar's list or
   remembered from the last time. A tab of a commit or a comparison stays with the repository it was opened for.
-- **One operation at a time**: while `Controller.run` runs one (`running`), another is refused and nothing is read; the
-  read that was under way is let finish and dropped.
+- **One operation at a time**: while `Controller.runOnEngine` runs one (`running`), another is refused and nothing is
+  read; the read that was under way is let finish and dropped.
 - **Reads follow the files**: file system watchers on `.git` (its `HEAD`, `index`, `refs`, `logs/refs/stash`,
   `worktrees`, `modules`, …) and on the working tree schedule a read, once per burst of changes. A read that started
   before an operation ended is dropped and followed by another.
 - **What is kept between runs** is in VS Code's workspace state and in each webview's own state: see
-  [11-data.md](11-data.md). What **Undo** remembers beyond the reflog is kept only in memory, until something else
-  happens or the window is reloaded.
+  [11-data.md](11-data.md). What **Undo** remembers beyond the reflog is the engine's journal, kept in its memory, until
+  the window is reloaded.
 
 ## Adding to the UI
 
@@ -269,16 +249,15 @@ is. Nothing a user starts can be cancelled once its commands run; a question can
 
 | You want to change | Look in |
 | --- | --- |
-| The commands an operation runs | `src/git/ops.ts` |
-| What an operation asks, and when it refuses | `src/extension/actions.ts`, `resolveAction` |
+| The commands an operation runs, what it asks, when it refuses, what Undo does | the engine, in `../rust` (its card in `docs/features/`), desktop first |
+| Which feature of the engine an action of a view runs | `engineRuns` in `src/engine/actions.ts`, `src/engine/target.ts` |
+| What an action does in VS Code alone | `hostAction` in `src/extension/actions.ts` |
 | When a menu entry is offered | `src/webview/menus.ts` |
-| What Undo does | `undoOp` and the `restore…Op` builders in `src/git/ops.ts`, the `undo` case of `resolveAction`, and the end of `Controller.action` |
-| The question before an operation, and the log | `Controller.run` and `Controller.describe` in `src/extension/controller.ts` |
-| What is read from git, and how it is parsed | `src/git/repo.ts`, `src/git/parse.ts` |
-| Whether a view reads through the engine or `Repo`, and the engine's answer in the view's shape | `src/engine/reads.ts`, `src/engine/shapes.ts` |
+| The questions of the engine in VS Code, and the log | `VscodeAsker` in `src/engine/vscode.ts`, `Controller.runOnEngine` in `src/extension/controller.ts` |
+| What a view reads, and the engine's answer in the view's shape | `src/engine/reads.ts`, `src/engine/shapes.ts` |
 | The engine's state and details of a commit, as the views read them, and what is worked out from them | `src/shared/state.ts` |
 | The lanes of the graph | `src/shared/graph.ts` |
-| The rules for conflicts | `src/git/conflicts.ts`, `src/git/review.ts` |
+| The rules for conflicts, and the review | `src/shared/conflicts.ts`, `src/shared/review.ts`, `src/engine/conflictPlans.ts` |
 | A command of the Command Palette, a setting | `package.json` (`contributes`) and `src/extension/extension.ts` |
 | The look of a view | the component in `src/webview`, and `src/webview/styles.css` |
 | Which repository is shown, and VS Code's Repositories view | `Controller.selectRepo` in `src/extension/controller.ts`, `src/extension/sourceControlSelection.ts` |

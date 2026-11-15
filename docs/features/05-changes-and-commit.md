@@ -173,7 +173,7 @@ editable sides of the Diff and Merge pages.
 - **Uses**: `file-view.page`, `diff.page`, `merge-view.page`.
 - **Extension**: the files of VS Code's text documents with edits not saved, worked out by the extension itself
   (`Controller.checkUnsaved` and `Controller.unsavedIn` in `src/extension/controller.ts`) by the same rules, with
-  `git check-ignore -z --stdin` run by `Repo.ignored` (`src/git/repo.ts`) without taking locks, and told to the Changes
+  the files git ignores asked of the engine (`reads.ignored` in `src/engine/reads.ts`), and told to the Changes
   view with an `unsaved` message. It is worked out again at each edit, at each editor closed or saved and at each read
   of the repository, and sent only when the list changed.
 
@@ -262,10 +262,9 @@ Puts the changes of a file, or of several files given at once, in the index, for
   stage all of it*); **Mark as resolved** on a file in conflict there; ticking the header box while files are in
   conflict, which gives the files not all staged. Each sends `feature/run` of `changes.stage` to Gitardo's engine
   (`Controller.runOnEngine` in `src/extension/controller.ts`), on the one file or on the files given (`engineRuns` in
-  `src/engine/actions.ts`); the plan is shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker`
-  in `src/engine/vscode.ts`). **Stage File** in the title of the Flow Diff is `diff.stage-file`, still the `GitOp`
-  `stageOp` run by `Controller.runIn`. When the engine's binary is missing, `stageOp` of `src/git/ops.ts` runs in its
-  place, as before (D49).
+  `src/engine/actions.ts`); the plan is shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker` in
+  `src/engine/vscode.ts`). **Stage File** in the title of the Flow Diff sends `changes.stage` on its file, through
+  `Controller.runIn` (`src/flow/flowDiff.ts`). When the engine's binary is missing, it says so (D49).
 - **Offered when**: the file is changed for git; the box of a file that only an editor has changed is disabled.
 - **Plan**: `git add -- <path>`, with the path as `changes.pathspec` writes it. Several files given at once
   (`Target::Files`) are added by one command, `git add -- <path>…`, titled **Stage N files**.
@@ -292,8 +291,8 @@ Acceptance:
 - [ ] Extension: before the first commit, ticking `a.txt` runs `git add -- a.txt` and lists it as added.
 - [ ] Extension: **Undo** right after staging does not unstage the file, and staging does not make **Undo** forget a
       branch deleted just before.
-- [ ] Extension: with `gitardo.engine.path` naming a missing file, the output channel says once that the engine was
-      not found, and ticking a box runs `stageOp`, as do the other operations of this file with their `GitOp`.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, the Changes view says **Gitardo's engine is not
+      available on this system.** with **Show the log**, and nothing of this file runs.
 
 ### `changes.unstage` — Unstage a file
 
@@ -302,13 +301,13 @@ Takes the changes of a file, or of several files given at once, out of the index
 - **Kind**: Operation
 - **Function**: `features::changes::unstage(context, answers) -> Outcome`
 - **Entry points**: unticking the box of a file that is ticked, in the Changes page.
-- **Extension**: unticking the ticked box of a file in the Changes view (titled *Staged: click to unstage*), which
-  gives both names of a staged rename; unticking the header box while files are in conflict, which gives the files
-  staged. Each sends `feature/run` of `changes.unstage` to Gitardo's engine (`Controller.runOnEngine`), on the one file
-  or on the files given (`engineRuns` in `src/engine/actions.ts`), its plan shown in a modal dialog when
-  `gitardo.commandPreview` is `all` (`VscodeAsker`). **Unstage File** in the title of the Flow Diff is
-  `diff.unstage-file`, still the `GitOp` `unstageOp` run by `Controller.runIn`. When the engine's binary is missing,
-  `unstageOp` of `src/git/ops.ts` runs in its place, as before (D49).
+- **Extension**: unticking the ticked box of a file in the Changes view (titled *Staged: click to unstage*), which gives
+  both names of a staged rename; unticking the header box while files are in conflict, which gives the files staged.
+  Each sends `feature/run` of `changes.unstage` to Gitardo's engine (`Controller.runOnEngine`), on the one file or on
+  the files given (`engineRuns` in `src/engine/actions.ts`), its plan shown in a modal dialog when
+  `gitardo.commandPreview` is `all` (`VscodeAsker`). **Unstage File** in the title of the Flow Diff sends
+  `changes.unstage` on its file, through `Controller.runIn` (`src/flow/flowDiff.ts`). When the engine's binary is
+  missing, it says so (D49).
 - **Plan**: `git restore --staged -- <path>`; for a staged rename, both names: `git restore --staged -- <new> <old>`.
   Before the first commit there is no `HEAD` to restore the index from: `git rm --cached -r -- <path>`. Several files
   given at once (`Target::Files`) are restored by one command, `git restore --staged -- <path>…`, a staged rename with
@@ -345,8 +344,8 @@ Stages every change at once.
   no file is in conflict, and **Stage all changes** in the context menu of the uncommitted changes row of the graph,
   send `feature/run` of `changes.stage-all` to Gitardo's engine on the changes (`Controller.runOnEngine`, `engineRuns`
   in `src/engine/actions.ts`); while files are in conflict the header box sends `changes.stage` with the files not all
-  staged. The plan is shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker`). When the
-  engine's binary is missing, `stageAllOp` of `src/git/ops.ts` runs in its place, as before (D49).
+  staged. The plan is shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's
+  binary is missing, it says so (D49).
 - **Offered when**: in the context menu of the row, while some change is not staged and no file is in conflict.
 - **Plan**: `git add --all`. While files are in conflict, which `--all` would take as resolved, markers and all, every
   other file that is not all staged is named instead: `git add -- <path>…`.
@@ -374,13 +373,12 @@ Takes everything out of the index; the files on disk are not touched.
 - **Entry points**: unticking the box on the header of the list in the Changes page, when it is ticked; **Unstage all
   changes** in the context menu of the draft in the timeline.
 - **Extension**: unticking the ticked header box of **Changes** in the Changes view (titled *All staged: click to
-  unstage all changes*) while no file is in conflict, and **Unstage all changes** in the context menu of the
-  uncommitted changes row of the graph, offered while something is staged, also while files are in conflict, send
-  `feature/run` of `changes.unstage-all` to Gitardo's engine on the changes (`Controller.runOnEngine`, `engineRuns` in
+  unstage all changes*) while no file is in conflict, and **Unstage all changes** in the context menu of the uncommitted
+  changes row of the graph, offered while something is staged, also while files are in conflict, send `feature/run` of
+  `changes.unstage-all` to Gitardo's engine on the changes (`Controller.runOnEngine`, `engineRuns` in
   `src/engine/actions.ts`): neither ends a merge or a cherry-pick any more. While files are in conflict the header box
   sends `changes.unstage` with the files staged, both names of a rename. The plan is shown in a modal dialog when
-  `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing, `unstageAllOp` of
-  `src/git/ops.ts` runs in its place, as before, `git reset` included (D49).
+  `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing, it says so (D49).
 - **Offered when**: in the context menu of the row, while something is staged.
 - **Plan**: `git reset`; before the first commit, `git rm --cached -r -- .`. While files are in conflict, whose conflicts
   `git reset` would forget, or while a merge, a rebase, a cherry-pick, a revert or a patch is under way, which
@@ -414,14 +412,13 @@ given at once are discarded together.
 - **Function**: `features::changes::discard(context, answers) -> Outcome`
 - **Entry points**: **Discard changes** on a file of the Changes page.
 - **Extension**: **Discard changes** on a file of the Changes view, which gives the file alone when nothing of it is
-  staged and the file with both names of a rename otherwise; **Discard all changes in this file, staged too…** on a
-  file of the uncommitted changes in the details of the graph; **Discard all changes in 1 selected file…** or
-  **Discard all changes in N selected files…** above those files, once some are ticked. Each sends `feature/run` of
-  `changes.discard` to Gitardo's engine (`Controller.runOnEngine`), on the one file or on the files given (the actions
-  `discard` and `discardChanges` in `engineRuns`, `src/engine/actions.ts`); its warning is always asked, in a modal
-  warning dialog (`VscodeAsker`). **Discard Changes** in the title of the Flow Diff is `diff.discard-file`, still the
-  `GitOp` `discardOp` run by `Controller.runIn`. When the engine's binary is missing, `discardOp` and
-  `discardChangesOp` of `src/git/ops.ts` run in its place, as before (D49).
+  staged and the file with both names of a rename otherwise; **Discard all changes in this file, staged too…** on a file
+  of the uncommitted changes in the details of the graph; **Discard all changes in 1 selected file…** or **Discard all
+  changes in N selected files…** above those files, once some are ticked. Each sends `feature/run` of `changes.discard`
+  to Gitardo's engine (`Controller.runOnEngine`), on the one file or on the files given (the actions `discard` and
+  `discardChanges` in `engineRuns`, `src/engine/actions.ts`); its warning is always asked, in a modal warning dialog
+  (`VscodeAsker`). **Discard Changes** in the title of the Flow Diff sends `changes.discard` on its file, through
+  `Controller.runIn` (`src/flow/flowDiff.ts`). When the engine's binary is missing, it says so (D49).
 - **Offered when**: the file is changed for git.
 - **Plan**:
   - Nothing of it staged: `git restore -- <path>` for a tracked file, `git clean -f -- <path>` for an untracked one.
@@ -470,14 +467,14 @@ Takes every changed file back to the last commit, staged changes included, and d
 - **Function**: `features::changes::discard_all(context, answers) -> Outcome`
 - **Entry points**: **Discard all changes** on the header of the list in the Changes page; **Discard all changes…** in
   the context menu of the draft in the timeline.
-- **Extension**: **Discard all changes…** in the context menu of the uncommitted changes row of the graph, and above
-  the files of the uncommitted changes in the details while none is ticked, both offered while no operation is under
-  way, send `feature/run` of `changes.discard-all` to Gitardo's engine on the whole working tree, as from the draft;
+- **Extension**: **Discard all changes…** in the context menu of the uncommitted changes row of the graph, and above the
+  files of the uncommitted changes in the details while none is ticked, both offered while no operation is under way,
+  send `feature/run` of `changes.discard-all` to Gitardo's engine on the whole working tree, as from the draft;
   **Discard all changes** on the header of **Changes** in the Changes view sends it on the files of the list when
   nothing is staged, and `changes.discard` with every file of the list, both names of a rename, when something is (the
-  actions `discardChanges` and `discardAll` in `engineRuns`, `src/engine/actions.ts`, run by
-  `Controller.runOnEngine`). The warning is always asked, in a modal warning dialog (`VscodeAsker`). When the engine's
-  binary is missing, `discardChangesOp` and `discardOp` of `src/git/ops.ts` run in its place, as before (D49).
+  actions `discardChanges` and `discardAll` in `engineRuns`, `src/engine/actions.ts`, run by `Controller.runOnEngine`).
+  The warning is always asked, in a modal warning dialog (`VscodeAsker`). When the engine's binary is missing, it says
+  so (D49).
 - **Offered when**: in the context menu of the row, while no merge, rebase, cherry-pick, revert or `git am` is in
   progress: there, **Abort** is what goes back.
 - **Plan**, from the header of the Changes page, which acts on the files of its list and leaves the files in conflict
@@ -588,14 +585,11 @@ Makes a commit of what is staged, with the message of the commit box.
   `src/engine/actions.ts`, run by `Controller.runOnEngine`). The question when nothing is staged is a modal warning
   dialog with **Stage all and commit** (`VscodeAsker` in `src/engine/vscode.ts`), and the plan is shown in a modal
   dialog when `gitardo.commandPreview` is `all`; once it ran, the engine's follow-up `emptyCommitMessage` empties the
-  commit box (the message `committed`). The message the box starts from is the extension's own: after a squash merge,
-  what `.git/SQUASH_MSG` says (`Repo.squashMessage`), with the message *Gitardo: the changes are staged, and nothing
-  is committed yet. Commit them to make them one commit on main.* and **Show Changes** and **Undo**; after a split,
-  the message of the commit split (`Repo.commitMessage`), with *The changes of "\<subject\>" are in the working tree,
-  unstaged: commit them in as many commits as you like.* and **Undo** after a split of the last commit; both posted as
-  `commitMessage` by `Controller.reportSquashed` and `Controller.reportSplit` (`src/extension/controller.ts`), which
-  still run in TypeScript with the merge and the split. When the engine's binary is missing, `commitOp` of
-  `src/git/ops.ts` runs in its place, as before (D49).
+  commit box (the message `committed`). The message the box starts from comes from the engine's follow-ups, posted as
+  `commitMessage` by `Controller.followUpsBeforeRead` (`src/extension/controller.ts`): after a squash merge,
+  `preparedMessage`, for which the extension reads what `.git/SQUASH_MSG` says (`reads.squashMessage`,
+  `commit.prepared-message`); after a split, `fillCommitMessage`, with the message of the commit split. When the
+  engine's binary is missing, it says so (D49).
 - **Offered when**: **Amend last commit** is not ticked, the message is not empty and something is changed; otherwise
   the button is disabled.
 - **Asks**: when nothing is staged and some change is not: a confirmation, "There are no staged changes. Stage all
@@ -652,7 +646,7 @@ Replaces the last commit with one that has the staged changes too, and the new m
   sends `feature/run` of `commit.amend` to Gitardo's engine with the message typed, empty to keep the one the commit
   has, as the answer `message` (`engineRuns` in `src/engine/actions.ts`, run by `Controller.runOnEngine`); the plan is
   shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing,
-  `commitOp` of `src/git/ops.ts` runs in its place, as before (D49).
+  it says so (D49).
 - **Offered when**: there is a commit: the box **Amend last commit** is disabled before the first one. Nothing needs to
   be staged.
 - **Plan**: `git commit --amend -m <message>`; with the message box empty, `git commit --amend --no-edit`, which keeps
@@ -712,11 +706,11 @@ Asks the AI provider to write the commit message from the changes, and puts its 
   (`commit.read-draft-diff`), writes the request and cleans the answer, and asks VS Code's language models in place of
   the AI provider with `host/languageModel`, which `answerLanguageModel` in `src/extension/ai.ts` sends to the first
   model `vscode.lm.selectChatModels()` gives, with no effort, and with the justification *Gitardo sends your uncommitted
-  changes to the model to draft a commit message.* (G3: not the model of `gitardo.conflicts.aiModel`). Without the
-  engine, `draftCommitMessage` in `src/extension/ai.ts` drafts it in TypeScript the same way (`buildPrompt`,
-  `cleanMessage` and `MAX_DIFF_CHARS` in `src/shared/commitPrompt.ts`, the diff read by `Repo.diffText`). The status
-  bar says *Gitardo: drafting commit message* while it runs. With no model, it refuses with *Gitardo: No language
-  model is available in VS Code. Install an extension that provides one, such as GitHub Copilot.*
+  changes to the model to draft a commit message.* (G3: not the model of `gitardo.conflicts.aiModel`). The engine drafts
+  it; the extension only sends the request the engine wrote to VS Code's model and gives the answer back. When the
+  engine's binary is missing, it says so (D49). The status bar says *Gitardo: drafting commit message* while it runs.
+  With no model, it refuses with *Gitardo: No language model is available in VS Code. Install an extension that
+  provides one, such as GitHub Copilot.*
 - **Offered when**: something is changed; the button is disabled while a draft is being written.
 - **Reads**: the staged changes, `git diff --cached --no-color --no-ext-diff`, when something is staged; otherwise all
   changes, `git diff --no-color --no-ext-diff`, with the paths of the untracked files; and the subjects of the last 10
@@ -759,8 +753,8 @@ Acceptance:
 - [ ] Extension: nothing is sent to a model until the sparkle button is pressed.
 - [ ] Extension: with no model in VS Code, the error above is shown and the box keeps what it had.
 - [ ] Extension: nothing in the repository changes, and nothing is written to the log of operations.
-- [ ] Extension: with the engine, the request VS Code's model is sent is the one the extension's TypeScript writes for
-      the same changes, and the same answer gives the same message.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, the sparkle button shows **Gitardo's engine is not
+      available on this system.** with **Show the log**, sends nothing to a model and leaves the box as it was.
 
 ### `commit.read-draft-diff` — The diff a draft is written from
 
@@ -772,8 +766,7 @@ it, and of every change of the tracked files otherwise (Q398).
 - **Reads**: `git diff --cached --no-color --no-ext-diff` when `is_staged`, `git diff --no-color --no-ext-diff`
   otherwise, as git prints it, bytes that are not UTF-8 replaced. An untracked file is in neither; the draft names
   those apart.
-- **Extension**: the engine reads it for `read/commit.draft-message`; the extension read it with `Repo.diffText`
-  (`src/git/repo.ts`), the same commands.
+- **Extension**: the engine reads it for `read/commit.draft-message`; the extension does not read it.
 
 Acceptance:
 
@@ -807,11 +800,11 @@ Sets the name and email that commits are made with in this repository, from a pr
 - **Entry points**: **Switch identity** in Quick search; **Switch identity…** in the **…** menu of the header; a click
   on the identity under the commit box in the Changes page.
 - **Extension**: **Gitardo: Switch Identity** in the Command Palette, **Switch identity…** in the **…** menu of the
-  toolbar of the graph, and a click on the identity under the commit box of the Changes view. Each sends `feature/run` of `identity.switch` to Gitardo's engine (`Controller.runOnEngine` in
-  `src/extension/controller.ts`, `Controller.switchIdentity`); the pick is a quick pick, and the name and
-  email input boxes. **Edit the list of identities…** is added to the pick by the extension, which opens the settings at
-  `gitardo.identities` and runs nothing (`HostHooks.choices`, B9). When the engine's binary is missing,
-  `Controller.switchIdentity` asks the same in TypeScript, as before (D49).
+  toolbar of the graph, and a click on the identity under the commit box of the Changes view. Each sends `feature/run`
+  of `identity.switch` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`,
+  `Controller.switchIdentity`); the pick is a quick pick, and the name and email input boxes. **Edit the list of
+  identities…** is added to the pick by the extension, which opens the settings at `gitardo.identities` and runs nothing
+  (`HostHooks.choices`, B9). When the engine's binary is missing, it says so (D49).
 - **Asks**:
   1. A pick, titled **Commit in `<repository>` as**, with the identity used now as its placeholder
      (**Now: `Name <email>`**, or **No identity is configured**): each profile of `identities`, with its email beside

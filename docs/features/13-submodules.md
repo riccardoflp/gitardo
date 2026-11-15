@@ -29,11 +29,9 @@ branch, how far apart the two are and how many of its files are not committed.
     commit is not in it, and then how far apart they are is not known.
   - then the same in each initialized submodule, for the submodules it has, down to five levels.
   - All of it with `GIT_OPTIONAL_LOCKS=0`.
-- **Extension**: read by the extension itself, in TypeScript, each time it reads the repository:
-  `Repo.submodules(parent, depth)` in `src/git/repo.ts`, called by `Repo.state`, runs the same commands with
-  `GIT_OPTIONAL_LOCKS=0`, as deep as `SUBMODULE_DEPTH` says, and `parseGitmodules`, `parseGitlinks` and
-  `parseBranchStatus` in `src/git/parse.ts` make the `Submodule` of `src/shared/protocol.ts`, until the reads move to
-  the engine (stage 5 of the roadmap). The repository is read again when `HEAD` or the references of a clone in
+- **Extension**: read by the engine with the state of the repository (`repo.read-state`, asked by `reads.parts` in
+  `src/engine/reads.ts`) each time the extension reads the repository, into the `Submodule` of `src/shared/state.ts`.
+  The repository is read again when `HEAD` or the references of a clone in
   `.git/modules` change (`submodule.follow-changes`).
 
 Acceptance:
@@ -60,11 +58,11 @@ has checked out.
 
 - **Kind**: Derivation
 - **Function**: `model::submodule::status(input) -> SubmoduleStatus`
-- **Extension**: worked out by the extension itself, in TypeScript, from the `Submodule` it read
+- **Extension**: worked out by the extension itself, in TypeScript, from the `Submodule` the engine read
   (`submodule.read-list`): `submoduleStatus(submodule)` and `submoduleStatusText(submodule)` in
   `src/shared/submodules.ts`, the icon by `submoduleBadge` in `src/webview/RefsTree.tsx` (codicons: `circle-slash`,
   `diff-added`, `warning`, `arrow-swap`, `arrow-up`, `arrow-down`, `pass-filled`), and how deep a submodule is, for its
-  indent, by `submoduleDepth`, until the reads move to the engine (stage 5 of the roadmap).
+  indent, by `submoduleDepth`.
 
 The rules, the first that applies:
 
@@ -101,7 +99,8 @@ The submodules of the repository in the branch rail, under **Kept aside**, each 
   closed when VS Code starts, as every section; its context menu is `submoduleMenu(submodule, state)` in
   `src/webview/menus.ts`, with **Deinitialize…** and **Remove…** marked as entries that lose work, and the **+** on
   its title is **Add submodule…**. Its rows, tooltips and menu are those of this list, the operations sent to Gitardo's
-  engine as their cards say; what it shows is read in TypeScript (`submodule.read-list`, `submodule.status`).
+  engine as their cards say; what it shows is read by the engine (`submodule.read-list`) and worked out in
+  TypeScript (`submodule.status`).
 - **Offered when**: the repository has submodules; otherwise the list is not there.
 - **Reads**: `submodule.read-list`.
 - **Uses**: `submodule.status`.
@@ -145,7 +144,7 @@ Opens the submodule's folder in a new window of Gitardo Desktop, as a repository
 - **Kind**: Operation
 - **Function**: `features::submodule::open_in_new_window(context, answers) -> Outcome`
 - **Entry points**: **Open in new window** in the context menu of a submodule; a double click on it.
-- **Extension**: stays in the extension, in TypeScript: the `submoduleOpen` case of `resolveAction` in
+- **Extension**: stays in the extension, in TypeScript: the `submoduleOpen` case of `hostAction` in
   `src/extension/actions.ts` opens the folder in a new VS Code window with `openWorktree(folder, 'window')`
   (`vscode.openFolder`); no git runs, nothing is asked or logged. From a view drawn before, it refuses one not
   initialized, **`<folder>` is not initialized: update it first.**, and a path that is no longer a submodule,
@@ -170,7 +169,7 @@ Opens a terminal with the submodule's folder as its folder.
 - **Kind**: Operation
 - **Function**: `features::submodule::open_in_terminal(context, answers) -> Outcome`
 - **Entry points**: **Open in terminal** in the context menu of a submodule.
-- **Extension**: stays in the extension, in TypeScript: the `worktreeTerminal` case of `resolveAction` in
+- **Extension**: stays in the extension, in TypeScript: the `worktreeTerminal` case of `hostAction` in
   `src/extension/actions.ts`, given the folder of the submodule, opens a VS Code terminal named after the last part of
   that folder, in it, and shows it; no git runs.
 - **Offered when**: it is initialized.
@@ -194,7 +193,7 @@ Shows the submodule's folder in the file manager of the system.
 - **Function**: `features::submodule::reveal(context, answers) -> Outcome`
 - **Entry points**: **Reveal in File Explorer** on Windows, **Reveal in Finder** on macOS, **Open containing folder**
   elsewhere, in the context menu of a submodule.
-- **Extension**: stays in the extension, in TypeScript: the `worktreeReveal` case of `resolveAction` in
+- **Extension**: stays in the extension, in TypeScript: the `worktreeReveal` case of `hostAction` in
   `src/extension/actions.ts` runs VS Code's `revealFileInOS` on the folder; the name of the entry is `REVEAL` in
   `src/webview/menus.ts`.
 - **Offered when**: it is initialized.
@@ -249,9 +248,7 @@ Checks out in the submodule the commit the repository records for it, and in its
   `src/extension/controller.ts`), its plan shown in a modal dialog first when it is Confirm or `gitardo.commandPreview`
   is `all` (`VscodeAsker` in `src/engine/vscode.ts`). From a view drawn before, the engine refuses a submodule with no
   recorded commit, **No commit is recorded for `<folder>` yet.**, and one on its recorded commit, **`<folder>` is on the
-  recorded commit already.** When the engine's binary is missing, `updateSubmodule(submodule)` of
-  `src/extension/actions.ts`, with `submoduleRisks` and `submoduleUpdateOp(submodule, false)` of `src/git/ops.ts`, runs
-  in its place, as before (D49).
+  recorded commit already.** When the engine's binary is missing, it says so (D49).
 - **Offered when**: a commit is recorded for it and it is ahead, behind, both, or does not have that commit.
 - **Plan**: `git [-C <parent>] submodule update --init --recursive -- <folder>`, which brings the recorded commit in
   when it does not have it. When git refuses to clone from a folder on disk, as `submodule.allow-file-protocol`.
@@ -282,8 +279,8 @@ Acceptance:
       the recorded commit already.* and runs nothing.
 - [ ] Extension: right after it, **Undo** says it does not take it back, rather than taking back the operation before
       it.
-- [ ] Extension: with `gitardo.engine.path` naming a missing file, `submoduleUpdateOp` runs, as do the other operations
-      of this file with their `GitOp`.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, it shows **Gitardo's engine is not available on
+      this system.** with **Show the log**, and nothing of this file runs.
 
 ### `submodule.stage-recorded` — Stage the commit of a submodule as the recorded one
 
@@ -298,8 +295,8 @@ repository.
   section. It sends `feature/run` of `submodule.stage-recorded` to Gitardo's engine on the submodule by its path
   (`submoduleRecord` in `engineRuns`, run by `Controller.runOnEngine`), its plan shown in a modal dialog first when
   `gitardo.commandPreview` is `all` (`VscodeAsker`). From a view drawn before, the engine refuses one not initialized
-  and one on its recorded commit, **`<folder>` is on the recorded commit already.** When the engine's binary is
-  missing, `submoduleRecordOp(submodule, head)` of `src/git/ops.ts` runs in its place, as before (D49).
+  and one on its recorded commit, **`<folder>` is on the recorded commit already.** When the engine's binary is missing,
+  it says so (D49).
 - **Offered when**: it is initialized and is ahead, behind, both, or does not have the recorded commit.
 - **Plan**: `git [-C <parent>] add -- <folder>`. The plan's note: **Commit it to record that commit for the submodule.**
 - **Danger**: None.
@@ -336,7 +333,7 @@ commit records.
   on the submodule by its path (`submoduleUpdate` with `remote` in `engineRuns`, run by `Controller.runOnEngine`), its
   plan shown in a modal dialog first when `gitardo.commandPreview` is `all` (`VscodeAsker`). From a view drawn before,
   the engine refuses one not initialized, **`<folder>` is not initialized: update it first.** When the engine's binary
-  is missing, `submoduleUpdateOp(submodule, true)` of `src/git/ops.ts` runs in its place, as before (D49).
+  is missing, it says so (D49).
 - **Offered when**: it is initialized.
 - **Plan**: `git [-C <parent>] submodule update --init --remote -- <folder>`, then `git -C <folder> submodule update
   --init --recursive`. The plan's note: **Stage the submodule afterwards to record the commit it is on now.** When git
@@ -369,9 +366,7 @@ Clones a submodule that is not initialized and checks out the commit recorded fo
 - **Extension**: **Initialize** in the context menu of a submodule in the Submodules section. It sends `feature/run` of
   `submodule.initialize` to Gitardo's engine on the submodule by its path (`submoduleUpdate` in `engineRuns`, for a
   submodule with no commit checked out, run by `Controller.runOnEngine`), its plan shown in a modal dialog first when
-  `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing, `updateSubmodule(submodule)`
-  of `src/extension/actions.ts`, with `submoduleUpdateOp(submodule, false)` of `src/git/ops.ts`, runs in its place, as
-  before (D49).
+  `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing, it says so (D49).
 - **Offered when**: it is not initialized.
 - **Plan**: `git [-C <parent>] submodule update --init --recursive -- <folder>`. When git refuses to clone from a folder
   on disk, as `submodule.allow-file-protocol`.
@@ -406,11 +401,10 @@ Empties the submodule's folder and forgets it locally; it stays in `.gitmodules`
   inside it, that it has open, since Windows refuses to empty a folder it watches (`Controller.letGoInVSCodeGit` in
   `src/extension/controller.ts`, `closeInVSCodeGit` in `src/extension/actions.ts`, which runs `git.close` and logs
   `> git.close <folder>`); then it sends `feature/run` of `submodule.deinitialize` to Gitardo's engine on the submodule
-  by its path (`submoduleDeinit` in `engineRuns`, run by `Controller.runOnEngine`), its question always asked in a
-  modal dialog (`VscodeAsker`), and the forced variant, **Deinitialize `<folder>`, losing its changes**, asked at once
-  with a warning when git refuses. On Windows the engine runs a command again while the folder is held
-  (`worktree.recover-held-folder`). When the engine's binary is missing, `lettingGoOf(submoduleDeinitOp(submodule),
-  submodule, state)` of `src/extension/actions.ts` and `src/git/ops.ts` runs in its place, as before (D49).
+  by its path (`submoduleDeinit` in `engineRuns`, run by `Controller.runOnEngine`), its question always asked in a modal
+  dialog (`VscodeAsker`), and the forced variant, **Deinitialize `<folder>`, losing its changes**, asked at once with a
+  warning when git refuses. On Windows the engine runs a command again while the folder is held
+  (`worktree.recover-held-folder`). When the engine's binary is missing, it says so (D49).
 - **Offered when**: it is initialized.
 - **Plan**: `git [-C <parent>] submodule deinit -- <folder>`. When git refuses because the submodule has local
   modifications, Gitardo offers `git [-C <parent>] submodule deinit --force -- <folder>`, Destructive, because **The
@@ -456,9 +450,7 @@ directory; the removal is staged, ready to commit.
   `submodule.remove` to Gitardo's engine on the submodule by its path (`submoduleRemove` in `engineRuns`, run by
   `Controller.runOnEngine`), its warning always asked in a modal warning dialog (`VscodeAsker`). The engine deletes the
   clone once the plan succeeded, and a clone it cannot delete is only said in the log; on Windows it runs a command
-  again while the folder is held. When the engine's binary is missing, `lettingGoOf(submoduleRemoveOp(submodule,
-  gitDir), submodule, state)`, with the `finish` of the `submoduleRemove` case of `resolveAction` in
-  `src/extension/actions.ts` that deletes the clone, runs in its place, as before (D49).
+  again while the folder is held. When the engine's binary is missing, it says so (D49).
 - **Reads**: the git directory of the repository that has it, `git [-C <parent>] rev-parse --absolute-git-dir`, for its
   clone in `modules/<name>`, named as `.gitmodules` names it.
 - **Plan**: `git [-C <parent>] submodule deinit --force -- <folder>`, then `git [-C <parent>] rm --force -- <folder>`,
@@ -542,15 +534,13 @@ Clones a repository into a folder of this one as a submodule, with its own submo
 - **Function**: `features::submodule::add(context, answers) -> Outcome`
 - **Entry points**: the **+** on the title of the Submodules list; **Add submodule…** in the **…** menu of the header
   while the repository has none; Quick search, **Add Submodule…**.
-- **Extension**: the **+** on the title of the Submodules section, **Add submodule…**, while there are submodules;
-  **Add submodule…** in the **…** menu of the toolbar of the graph while there are none; **Add Submodule…** in the
-  **…** menu on the title of the Branches view; **Gitardo: Add Submodule…** (`gitardo.addSubmodule`) in the Command
-  Palette. Each sends `feature/run` of `submodule.add` to Gitardo's engine (`submoduleAdd` in `engineRuns` of
-  `src/engine/actions.ts`, run by `Controller.runOnEngine` in `src/extension/controller.ts`); the three questions are
-  VS Code's input boxes, each checked with `question/validate` as it is typed, and the plan is shown in a modal dialog
-  when `gitardo.commandPreview` is `all` (`VscodeAsker` in `src/engine/vscode.ts`). When the engine's binary is
-  missing, `addSubmodule(state)` of `src/extension/actions.ts`, with `submoduleAddOp` and `allowingDisk` of
-  `src/git/ops.ts`, runs in its place, as before (D49).
+- **Extension**: the **+** on the title of the Submodules section, **Add submodule…**, while there are submodules; **Add
+  submodule…** in the **…** menu of the toolbar of the graph while there are none; **Add Submodule…** in the **…** menu
+  on the title of the Branches view; **Gitardo: Add Submodule…** (`gitardo.addSubmodule`) in the Command Palette. Each
+  sends `feature/run` of `submodule.add` to Gitardo's engine (`submoduleAdd` in `engineRuns` of `src/engine/actions.ts`,
+  run by `Controller.runOnEngine` in `src/extension/controller.ts`); the three questions are VS Code's input boxes, each
+  checked with `question/validate` as it is typed, and the plan is shown in a modal dialog when `gitardo.commandPreview`
+  is `all` (`VscodeAsker` in `src/engine/vscode.ts`). When the engine's binary is missing, it says so (D49).
 - **Asks**:
   1. **URL of the repository, or its path on disk**, with `https://github.com/owner/repo.git` as a placeholder; refused
      while typed: **Enter a URL** when empty, **That is not a URL** when it starts with `-`.
@@ -593,8 +583,8 @@ Acceptance:
 - [ ] Extension: the submodules inside the one added are cloned and listed under it.
 - [ ] Extension: right after it, **Undo** says it does not take it back, rather than taking back the operation before
       it.
-- [ ] Extension: with `gitardo.engine.path` naming a missing file, `submoduleAddOp` runs, as do the other operations of
-      this file with their `GitOp`.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, **Add submodule…** shows **Gitardo's engine is not
+      available on this system.** with **Show the log**, and nothing of this file runs.
 
 ### `submodule.sync-urls` — Synchronize the URLs of the submodules
 
@@ -606,8 +596,7 @@ Copies the URLs of `.gitmodules` to the configuration of the submodules, and of 
 - **Extension**: **Synchronize URLs from .gitmodules** in the context menu of any submodule in the Submodules section.
   It sends `feature/run` of `submodule.sync-urls` to Gitardo's engine, for every submodule whichever menu it was chosen
   from (`submoduleSync` in `engineRuns`, run by `Controller.runOnEngine`), its plan shown in a modal dialog first when
-  `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing, `submoduleSyncOp()` of
-  `src/git/ops.ts` runs in its place, as before (D49).
+  `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing, it says so (D49).
 - **Plan**: `git submodule sync --recursive`.
 - **Danger**: None.
 - **Undo**: Not taken back by Undo: the URLs it replaced are not kept.
@@ -630,9 +619,8 @@ of the computer. When it refuses, Gitardo offers to allow it for those commands 
 - **Uses**: by `submodule.add`, `submodule.update-to-recorded`, `submodule.update-to-latest`, `submodule.initialize`
   and `submodule.update-on-checkout`.
 - **Extension**: the engine offers it on the failure of the plans it runs for the extension, and the extension asks
-  it in a modal dialog, always, as Confirm (`VscodeAsker` in `src/engine/vscode.ts`). For an update after a checkout
-  still run in TypeScript, and when the engine's binary is missing (D49), `allowingDisk` of `src/git/ops.ts` offers the
-  whole operation again with `-c protocol.file.allow=always`, as before.
+  it in a modal dialog, always, as Confirm (`VscodeAsker` in `src/engine/vscode.ts`). When the engine's binary is
+  missing, it says so (D49).
 
 The rules: when a step of one of those plans fails with git's message `transport 'file' not allowed`, the plan is
 offered again from that step on with `-c protocol.file.allow=always` before each of its git commands, its title followed by **from a
@@ -671,13 +659,9 @@ them to what that commit records once the checkout is done.
   `stash.branch` and `undo.last` of a checkout.
 - **Extension**: the setting is `gitardo.submodules.updateOnCheckout`, sent to the engine as
   `submodules.updateOnCheckout` (`src/engine/settings.ts`). The engine adds the update to the plans it runs for the
-  extension: `branch.create` with **Create and check out**, `stash.branch` and `undo.last`. The checkouts still run in TypeScript (`branch.checkout`,
-  `branch.checkout-remote`, `branch.checkout-detached`) get it from `updatingSubmodules(op, to, state, repo)` in
-  `src/extension/actions.ts`, which sets the `then` of the checkout to `submodulesUpdateOp()` of `src/git/ops.ts`, with
-  `submoduleRisks(submodule, true)` for what it leaves behind and `Repo.hasSubmodulesAt(to)` for a commit that has a
-  `.gitmodules`, run by `Controller.runWithFallback(ran.then, true)` once the checkout succeeded; the question of the
-  checkout says it after **and once that is done:** (`Controller.describe`), and a failure says **Update the
-  submodules failed.** with the first error line of git.
+  extension: `branch.checkout`, `branch.checkout-remote`, `branch.checkout-remote-and-rebase`,
+  `branch.checkout-detached`, `tag.checkout`, `branch.create` with **Create and check out**, `stash.branch` and
+  `undo.last`. When the engine's binary is missing, it says so (D49).
 
 The rules:
 
@@ -708,7 +692,7 @@ Acceptance:
 - [ ] Extension: with `gitardo.submodules.updateOnCheckout` off, checking out `with-lib-2` runs no `submodule update`,
       and `vendor/lib` is one commit behind what `with-lib-2` records.
 - [ ] Extension: with `gitardo.commandPreview` at `all`, the question of the checkout lists `git submodule update
-      --init --recursive` after **and once that is done:**, and nothing else runs.
+      --init --recursive` after the checkout's command, and **Cancel** runs nothing.
 - [ ] Extension: a submodule with 1 commit after its recorded one on a detached `HEAD` makes the checkout ask first,
       even with `gitardo.commandPreview` at `off`, saying **`<folder>` has 1 commit after the recorded one on a detached
       HEAD**.

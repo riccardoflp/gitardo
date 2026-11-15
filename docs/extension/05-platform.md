@@ -30,8 +30,9 @@ Windows, macOS and Linux. VS Code for the Web is not supported: there is no `git
 
 ## What is asked of git
 
-Everything Gitardo reads or does goes through `git()` of `src/git/exec.ts`: a child process per command, with
-`GIT_TERMINAL_PROMPT=0` so that git never waits for a password it cannot be given, and `GIT_OPTIONAL_LOCKS=0` for reads.
+Everything Gitardo reads or does is run by its engine, `gitardo-engine`, which runs git: a child process per command,
+with `GIT_TERMINAL_PROMPT=0` so that git never waits for a password it cannot be given, and `GIT_OPTIONAL_LOCKS=0` for
+reads. The extension itself runs no git.
 Credentials for remotes are git's own (its credential helper, SSH agent); Gitardo neither asks for nor sees them.
 
 ## Windows

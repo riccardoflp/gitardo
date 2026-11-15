@@ -155,6 +155,19 @@ needs is written in the commit of that stage, not before.
 | [extension/06-testing.md](../extension/06-testing.md) | `npm run package` makes the universal vsix and one per target whose engine it finds; `npm run test:vsix` tests the vsix of this computer with its engine. |
 | `.github/workflows/check.yml` | The pipeline: `cargo xtask check` and the desktop on Windows, Linux and macOS (both targets of the Mac), the engine of the seven targets, the extension's checks and its e2e suite with the engine and without on the three systems, and the vsix of every target, all as artifacts; it publishes nothing. |
 
+## Written in stage 10 (`src/git` removed)
+
+| Page | Change |
+| --- | --- |
+| [transition/02-protocol.md](02-protocol.md) | Version 1.7: `repository/discover`, `Target::DiffChange`, `file` of a comparison's target; `journal/record` removed. |
+| [08-decisions.md](../08-decisions.md) | D49: since stage 10 the fallback is the sentence with **Show the log** alone, and there is no universal vsix; D48 says so too. |
+| [extension/02-architecture.md](../extension/02-architecture.md) | No `src/git`: the engine in the context and the containers, `src/engine` and `src/shared` as they are now, a click through `hostAction`, `engineRuns` and `runOnEngine`, every read from the engine, and **Where things are**. |
+| [extension/03-code-rules.md](../extension/03-code-rules.md) | R1.4, R1.5, R2.1, R2.2, R2.4, R3.1, R3.2, R4.1 to R4.3, R5.2, R8.1 to R8.4 and R8.6 without `src/git`; R12.2: a release waits for the vsix of every target. |
+| [extension/06-testing.md](../extension/06-testing.md) | The scenarios run the engine alone and check against git's own output; the e2e and UI suites without the engine check the sentence only; `npm run package` makes no universal vsix. |
+| `extension/AGENTS.md` | The ground rules: the extension runs no git, and new behavior goes into the engine first. |
+| [features/](../features/README.md) | Every card's fallback of D49 is the sentence; what read or ran in TypeScript names the engine's read or feature. |
+| [transition/04-differences.md](04-differences.md) | **Stage 10 (`src/git` removed)**: X1 to X5, what changed for the user once the TypeScript code was gone. |
+
 ## Waiting for a stage
 
 | Rule | Stage | What |
