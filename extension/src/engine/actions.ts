@@ -5,7 +5,7 @@
  * engine is not there (D49).
  */
 
-import type { Action, RepoState } from '../shared/protocol';
+import type { Action, MergeMode, RebaseStep, RepoState } from '../shared/protocol';
 import type { Answer, Target } from './messages';
 import { targetOf } from './target';
 
@@ -34,7 +34,10 @@ const text = (value: string): Answer => ({ kind: 'text', text: value });
  * The runs of the engine that take the place of an action, in order, each ended before the next starts; none when the
  * action is not one the engine runs yet.
  */
-export function engineRuns(action: Action, state: Pick<RepoState, 'branches' | 'remoteBranches' | 'tags'>): EngineRun[] | null {
+export function engineRuns(
+  action: Action,
+  state: Pick<RepoState, 'branches' | 'remoteBranches' | 'tags'> & Partial<Pick<RepoState, 'bisect' | 'rows'>>,
+): EngineRun[] | null {
   switch (action.kind) {
     // Branches.
     case 'createBranch':
@@ -79,7 +82,74 @@ export function engineRuns(action: Action, state: Pick<RepoState, 'branches' | '
       return [{ feature, target: { kind: 'stash', index } }];
     }
 
+    // Merge, rebase, cherry-pick, revert, reset, rewriting, bisect and patches (area 3).
+    case 'merge':
+      if (!action.mode || action.mode === 'default') return [{ feature: 'merge.into-current', target: targetOf(action.ref, state) }];
+      if (action.mode === 'ask') return [{ feature: 'merge.choose-way', target: targetOf(action.ref, state) }];
+      return [{ feature: 'merge.choose-way', target: targetOf(action.ref, state), answers: { way: choice(MERGE_WAYS[action.mode]) } }];
+    case 'rebase':
+      // A branch dropped on a commit is rebased onto that commit; git checks it out first.
+      if (action.branch) return [{ feature: 'rebase.branch-onto', target: targetOf(action.onto, state), answers: { branch: choice(action.branch) } }];
+      return [{ feature: 'rebase.onto', target: targetOf(action.onto, state) }];
+    case 'rebaseInteractive': {
+      const todo = todoRows(action.steps);
+      return todo === null ? null : [{ feature: 'rebase.interactive', target: { kind: 'head' }, answers: { todo: text(todo) } }];
+    }
+    case 'reword':
+      return [{ feature: 'message.edit', target: { kind: 'commit', commit: action.hash }, answers: { message: text(action.message) } }];
+    case 'squash':
+      return [{ feature: 'squash.commits', target: { kind: 'commits', commits: action.hashes } }];
+    case 'split':
+      return [{ feature: 'split.commit', target: { kind: 'commit', commit: action.hash } }];
+    case 'fixup':
+      return [{ feature: 'fixup.commit', target: { kind: 'commit', commit: action.hash } }];
+    case 'cherryPick':
+      return [{ feature: 'cherry-pick.commit', target: { kind: 'commit', commit: action.hash } }];
+    case 'cherryPickMany':
+      return [{ feature: 'selection.cherry-pick', target: { kind: 'commits', commits: newestFirst(action.hashes, state.rows) } }];
+    case 'revert':
+      return [{ feature: 'revert.commit', target: { kind: 'commit', commit: action.hash } }];
+    case 'reset':
+      return [{ feature: 'reset.to-commit', target: { kind: 'commit', commit: action.hash } }];
+    case 'applyPatch':
+      // The text of the clipboard is given by the controller, which reads it: the engine cannot.
+      return [{ feature: 'patch.apply', target: { kind: 'head' } }];
+    case 'bisect':
+      // The banner marks the commit being tested; a menu marks the commit it is on, starting a bisect when none is.
+      if (!action.hash) return [{ feature: 'bisect.answer', target: { kind: 'head' }, answers: { answer: choice(action.mark) } }];
+      if (action.mark === 'skip') return null;
+      return [
+        { feature: state.bisect ? 'bisect.mark' : 'bisect.start', target: { kind: 'commit', commit: action.hash }, answers: { mark: choice(action.mark) } },
+      ];
+    case 'bisectReset':
+      return [{ feature: 'bisect.end', target: { kind: 'head' } }];
+
     default:
       return null;
   }
+}
+
+/** The choice of an answer. */
+const choice = (identifier: string): Answer => ({ kind: 'choice', identifier });
+
+/** The way of `merge.choose-way` for each way the views name. */
+const MERGE_WAYS: Record<Exclude<MergeMode, 'default'>, string> = { noFastForward: 'no-ff', fastForwardOnly: 'ff-only', squash: 'squash' };
+
+/**
+ * The rows of the rebase editor as `rebase.interactive` reads them, oldest first: the action, the full hash, and for a
+ * reword the new subject, under which the body of the commit stays. None when a reword gives a whole message, which
+ * the engine's rows cannot say.
+ */
+export function todoRows(steps: RebaseStep[]): string | null {
+  if (steps.some((step) => step.action === 'reword' && !step.keepBody)) return null;
+  const row = (step: RebaseStep) =>
+    step.action === 'reword' ? `reword ${step.hash} ${(step.message ?? '').replace(/[\r\n]+/g, ' ').trim()}` : `${step.action} ${step.hash}`;
+  return `${steps.map(row).join('\n')}\n`;
+}
+
+/** Commits in the order of the graph, newest first, as `selection.cherry-pick` takes them, whatever order they were selected in. */
+function newestFirst(hashes: string[], rows: RepoState['rows'] | undefined): string[] {
+  const order = new Map((rows ?? []).map((row, index) => [row.hash, index]));
+  if (!hashes.every((hash) => order.has(hash))) return hashes;
+  return [...hashes].sort((one, other) => order.get(one)! - order.get(other)!);
 }

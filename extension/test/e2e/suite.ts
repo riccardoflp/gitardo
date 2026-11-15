@@ -2291,8 +2291,9 @@ export async function run(): Promise<void> {
       asked.length = 0;
       answer = run;
       await controller.action({ kind: 'cherryPickMany', hashes: [made[1], made[0]] });
-      assert.equal(asked[0].message, 'Cherry-pick 2 commits?');
-      assert.match(asked[0].detail, /In this order:\n\w{7} Pick one\n\w{7} Pick two\n/);
+      // The engine names the branch they are picked onto, and lists the commands only (area 3 of stage 4).
+      assert.match(asked[0].message, /^Cherry-pick 2 commits( onto main)?\?$/);
+      if (!asked[0].message.includes('onto')) assert.match(asked[0].detail, /In this order:\n\w{7} Pick one\n\w{7} Pick two\n/);
       assert.ok(asked[0].detail.endsWith(`git cherry-pick ${made[0]} ${made[1]}`));
     } finally {
       await vscode.workspace.getConfiguration('gitardo').update('commandPreview', undefined, vscode.ConfigurationTarget.Global);
@@ -2304,7 +2305,7 @@ export async function run(): Promise<void> {
     // Undo takes back the whole series, not just its last commit; undoing again brings it back.
     asked.length = 0;
     await controller.action({ kind: 'undo' });
-    assert.equal(asked[0].message, 'Undo "Cherry-pick 2 commits"?');
+    assert.match(asked[0].message, /^Undo "Cherry-pick 2 commits( onto main)?"\?$/);
     assert.match(asked[0].detail, new RegExp(`git reset --keep ${before}$`));
     assert.equal(state().head, before);
     await controller.action({ kind: 'undo' });
@@ -2380,7 +2381,7 @@ export async function run(): Promise<void> {
       await controller.action({ kind: 'merge', ref: 'merging', mode: 'ask' });
       assert.equal(state().head, before);
       assert.deepEqual(state().working.staged, [{ status: 'A', path: 'merge-way.txt' }]);
-      assert.ok(asked.some((question) => /the changes are staged, and nothing is committed yet/.test(question.message)), JSON.stringify(asked));
+      assert.ok(asked.some((question) => /the changes are staged, and nothing is committed yet/i.test(question.message)), JSON.stringify(asked));
       const message = posted.find((outgoing) => outgoing.type === 'commitMessage');
       assert.ok(message?.type === 'commitMessage' && message.message.includes('Add a file to merge'), JSON.stringify(message));
       asked.length = 0;
@@ -2399,8 +2400,11 @@ export async function run(): Promise<void> {
       const own = state().head!;
       errors.length = 0;
       logged.length = 0;
+      asked.length = 0;
       await controller.action({ kind: 'merge', ref: 'merging', mode: 'fastForwardOnly' });
-      assert.ok(errors.some((text) => /main cannot be fast-forwarded to merging/.test(text)), JSON.stringify(errors));
+      // The engine says it as a refusal, a warning; the extension as an error.
+      const said = [...errors, ...asked.map((question) => question.message)];
+      assert.ok(said.some((text) => /main cannot be fast-forwarded to merging/.test(text)), JSON.stringify(said));
       assert.ok(!logged.some((line) => line.startsWith('> git merge --ff-only')), JSON.stringify(logged));
       assert.equal(state().head, own);
 
@@ -2447,8 +2451,8 @@ export async function run(): Promise<void> {
     await fromWebview({ type: 'formatPatch', hashes });
     assert.deepEqual(made(await vscode.env.clipboard.readText()), hashes);
     assert.deepEqual(
-      asked.map((question) => question.message),
-      ['Gitardo: copied 2 commits as a patch.'],
+      asked.map((question) => question.message.toLowerCase()),
+      ['gitardo: copied 2 commits as a patch.'],
     );
 
     const file = path.join(workspace, 'picks.patch');
@@ -2465,11 +2469,15 @@ export async function run(): Promise<void> {
       assert.deepEqual(made(fs.readFileSync(file, 'utf8')), hashes.slice(1));
       // Git makes no patch of a merge: nothing is written, and the user is told why.
       errors.length = 0;
+      asked.length = 0;
       const merge = state().rows.find((row) => row.parents.length > 1 && !row.stash);
       if (merge) {
         await fromWebview({ type: 'formatPatch', hashes: [merge.hash], save: true });
         assert.equal(offered.length, 1);
-        assert.deepEqual(errors, ['Gitardo: git makes no patch of a merge commit.']);
+        // The engine says it as a refusal, a warning; the extension as an error.
+        const said = [...errors, ...asked.map((question) => question.message)];
+        assert.equal(said.length, 1, JSON.stringify(said));
+        assert.match(said[0], /^Gitardo: git makes no patch of a merge commit/i);
       }
     } finally {
       ui.showSaveDialog = showSaveDialog;
@@ -2522,8 +2530,9 @@ export async function run(): Promise<void> {
       answer = () => undefined;
       await vscode.commands.executeCommand('gitardo.applyPatch');
       assert.equal(asked.length, 1);
-      assert.equal(asked[0].message, 'The patch in the clipboard does not apply, so nothing was changed.');
-      assert.match(asked[0].detail, /patched\.txt/);
+      // The engine gives git's reasons in the message itself, after the sentence.
+      assert.ok(asked[0].message.replace(/^Gitardo: /, '').startsWith('The patch in the clipboard does not apply, so nothing was changed.'), asked[0].message);
+      assert.match(`${asked[0].message}\n${asked[0].detail}`, /patched\.txt/);
       assert.equal(state().head, before);
       assert.equal(state().operation, null);
       assert.equal(fs.readFileSync(path.join(app, 'patched.txt'), 'utf8'), 'local\n');
@@ -3734,7 +3743,8 @@ export async function run(): Promise<void> {
       answer = run;
       await controller.action({ kind: 'split', hash: last });
       assert.deepEqual(
-        asked.map((question) => question.message),
+        // What the engine says after a plan starts with the name of Gitardo.
+        asked.map((question) => question.message.replace(/^Gitardo: /, '')),
         [
           `Split ${last.slice(0, 7)}?`,
           'The changes of "Add split three and four" are in the working tree, unstaged: commit them in as many commits as you like.',

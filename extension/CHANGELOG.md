@@ -17,6 +17,15 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - Before a stash is applied, files in conflict count as changes git refuses to touch, and no conflicts are predicted for a stash git will refuse.
 - At a commit, **Create branch** with a format asks for its inputs first and then what `${base}` is.
 - The questions and confirmations of the operations Gitardo's engine runs use the words of Gitardo's desktop: a name between backticks, as in **Create branch \`topic\`**, and a few titles worded otherwise, such as **Discard the changes of 2 files**.
+- Merging, rebasing, cherry-picking, reverting, resetting, editing a message, squashing, the fixup, splitting, the rebase editor, bisect, and copying, saving and applying patches are run by Gitardo's engine when the extension has it, with the same commands as before, and without the engine as before.
+- Cherry-pick, revert and bisect now say *Finish or abort the … first* while a merge, a rebase or another operation is under way, instead of passing on git's error.
+- **Undo** after a squash merge takes it back even after other operations that do not move HEAD, such as staging a file.
+- Rebasing a branch that another worktree has checked out now says to rebase it there, before git runs.
+- The todo list and messages of an interactive rebase, a squash, a split or a new message for an older commit are now written into the repository's git folder only once you agree, each listed in the log, and are removed once the rebase ends, also after it stopped.
+- The rebase editor is now refused while a bisect is under way, as rewording, squashing and splitting already were.
+- Once the bisect has found the first bad commit, **Good**, **Bad** and **Skip** say so instead of running git again, and **End bisect** says that no bisect is in progress when none is.
+- Cherry-picking several commits asks **Cherry-pick 2 commits onto main**, with the command but not the list of the commits, and **Undo** names it so; a patch of one commit is applied **as 1 commit**.
+- A merge that cannot be a fast-forward only, a patch of a merge commit and a patch that does not apply are said as warnings, with git's reasons in the message itself; what a squash merge and a split of the last commit say after has no buttons.
 
 ## 0.11.0 - 2026-11-12
 
