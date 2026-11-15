@@ -16,7 +16,8 @@ const TIMEOUT = 360_000;
 const options = process.argv.slice(2).filter((argument) => argument.startsWith('--'));
 const [codePath] = process.argv.slice(2).filter((argument) => !argument.startsWith('--'));
 
-const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-e2e-'));
+// By its real name, as git prints it: macOS's /var is a link to /private/var, and Windows may give a short name.
+const temp = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-e2e-')));
 
 /** Unpacks the .vsix, which is a zip archive, and returns the folder of the extension inside it. */
 function unpackVsix() {
@@ -57,8 +58,11 @@ const child = spawn(
     `--extensionTestsPath=${path.join(extension, 'dist', 'e2e.js')}`,
     ...isolated(temp),
   ],
-  { env: environment({ GITARDO_E2E_RESULTS: results }), stdio: 'ignore' },
+  { env: environment({ GITARDO_E2E_RESULTS: results }), stdio: ['ignore', 'ignore', 'pipe'] },
 );
+// What VS Code says on its standard error, shown only when it ran no step, as when it could not start.
+const said = [];
+child.stderr.on('data', (chunk) => said.push(chunk));
 
 const timer = setTimeout(() => {
   console.error(`Timed out after ${TIMEOUT / 1000}s.`);
@@ -73,6 +77,7 @@ child.on('exit', (code) => {
     if (!step.ok) console.log(step.error.replace(/^/gm, '        '));
   }
   const failed = steps.filter((step) => !step.ok).length;
+  if (!steps.length) console.log(Buffer.concat(said).toString('utf8').split('\n').slice(-40).join('\n'));
   console.log(`\n${steps.length - failed} passed, ${failed} failed (VS Code exited with code ${code})`);
   remove(temp);
   process.exit(steps.length && !failed && code === 0 ? 0 : 1);

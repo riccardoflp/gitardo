@@ -175,6 +175,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libnss3 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2t64             libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev libgl1-mesa-dev             libfontconfig1-dev libdbus-1-dev pkg-config
+          # Ubuntu's AppArmor refuses the namespaces the sandbox of Electron makes, and VS Code is killed as it starts.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - uses: actions/cache@v4
         with:
           path: |

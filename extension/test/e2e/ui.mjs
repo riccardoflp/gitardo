@@ -16,7 +16,8 @@ const TIMEOUT = 360_000;
 const WIDTH = 1500;
 const HEIGHT = 950;
 
-const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-ui-'));
+// By its real name, as git prints it: macOS's /var is a link to /private/var, and Windows may give a short name.
+const temp = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-ui-')));
 const { workspace, app, lib } = createWorkspace(temp);
 const engine = engineSetting(temp, options);
 console.log(`Testing ${engine.said}`);
