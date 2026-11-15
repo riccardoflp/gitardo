@@ -7,9 +7,11 @@
 
 #![forbid(unsafe_code)]
 
+mod ai;
 mod asker;
 mod feature;
 mod framing;
+mod host;
 mod journal;
 mod outgoing;
 mod reads;

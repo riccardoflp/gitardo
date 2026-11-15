@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.5** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.6** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -42,6 +42,14 @@ Version 1.5 adds what stage 7 built: the three reads of the graph, `read/graph.r
 gives it, with two additions to what 1.4 guessed: a `narrowing` may be a search shown as a list (`{ kind: "search",
 mode, text }`), as the desktop's timeline lists one, and the answer of `read/search.read-matches` says whether the
 search found more than the 5,000 commits it gives (`hasMore`).
+
+Version 1.6 adds what area 6 of stage 4 (AI and GitHub) built: the host questions `host/languageModel` and
+`host/languageModels` as [Host questions](#host-questions) now write them, without `system`, `stream` and
+`host/languageModelPart`; the reads `read/commit.draft-message` and `read/ai.ask-conflict`, which ask them; the
+follow-up `writeSetting { key, value }` (Q399), which `ai.choose-model` leaves under the extension in place of writing
+the user's settings file; and the target `comparison`, a comparison page as a whole, for `compare.open-on-github`.
+`host/githubToken` is asked by a feature too, with `ask: true`, for `github.load-pull-requests`. The engine sends
+`$/cancel` for a question it asked of the extension and no longer waits for.
 
 ## Transport
 
@@ -128,7 +136,9 @@ stops there ([01-engine.md](01-engine.md#starting)).
 ### `$/cancel`
 
 Notification, either way: `{ id }`, the id of a request. A read is stopped, its git process killed, and it answers
-`cancelled`. A question asked of the extension and cancelled by the engine is closed by the extension. An operation
+`cancelled`. A question asked of the extension and cancelled by the engine is closed by the extension: from 1.6 the
+engine sends `$/cancel` with the id of its question when the request it was asked for is cancelled, and the extension
+stops what it does for it, a language model's answer first. An operation
 whose steps have started is not stopped; the request is ignored.
 
 ## Repositories
@@ -248,6 +258,8 @@ change the repository and run at the same time as each other and as an operation
 | `read/branch.read-log` | `{ count: number }` | `{ commits: Commit[], hasMore, unpushed: CommitId[] \| null, upstream: string \| null }` | `branch.read-log` |
 | `read/repo.common-folder` | — | `{ folder: string }` | `repo.common-folder` |
 | `read/commit.prepared-message` | — | `{ message: string \| null }` | `commit.prepared-message` |
+| `read/commit.draft-message` | `{ subjects: string[] }` | `{ kind: "drafted", message } \| { kind: "failed", message }` | `commit.draft-message` (1.6) |
+| `read/ai.ask-conflict` | `{ path, lines: string[], conflict: { start, end, current: string[], incoming: string[], base: string[] \| null } }` | `{ kind: "answered", model, lines: string[], reason, confidence } \| { kind: "failed", message, stopsTheRest }` | `ai.ask-conflict` (1.6) |
 
 The three reads at the end had no desktop card: the map found them read in `crates/app` or not at all
 ([03-map.md](03-map.md#3-gaps-extension-side)). Stage 5 made each a card of the engine, desktop first (D39), before the
@@ -259,6 +271,18 @@ runs, and is logged as `LogKind::Read` with how long it took, as `Read <method> 
 parameters name a commit by anything but its full id answers `-32602`; one whose git fails answers `gitFailed`.
 `read/github.read-pull-requests` asks the extension `host/githubToken` with `{ host: "github.com", ask: false }` when
 it said `host.githubToken` at `initialize`, and reads nothing without a token.
+
+The two reads of 1.6 ask a language model of VS Code. `read/commit.draft-message` reads the working tree, the diff
+of `commit.read-draft-diff` and, when nothing is staged, the untracked files, writes the request of
+`commit.draft-message` with the subjects the extension gives, asks VS Code's first model with `host/languageModel`
+(`model` and `effort` null, as the extension asked it), and cleans the answer; with nothing changed it answers
+`failed` with *There are no changes to describe.* without asking. `read/ai.ask-conflict` is the question about one
+conflict of the review, which stays in the extension: the extension gives the file's lines and the conflict, `base`
+the base as far as it knows it; the engine reads the names of the two sides (`conflicts.side-names`), writes the
+question (`ai.conflict-question`), asks the model of `ai.model` with the effort of `ai.effort`, then reads and trims
+the answer (`ai.read-answer`, `ai.trim-answer`). Both give `read` in `host/languageModel`, the id of the read, so that
+the extension shows the answer as it comes where the read was asked; a model that fails or refuses is a `failed`
+answer, in the host's words; cancelled, the read answers `cancelled`.
 
 The reads a feature asks for itself (`Outcome::Read` with a `Query`) are not in this list: the engine answers them
 inside `feature/run`, and they never reach the extension, but for the host questions.
@@ -426,7 +450,7 @@ cannot cross (an answer of the engine's own reads, such as a list of names) is l
 | `EditFile` | extension | an editor of that file at that line |
 | `OpenFileDiff` | extension | VS Code's diff editor or the Flow Diff |
 | `TrustFolder`, `ForgetTrustedFolders` | not sent | VS Code's workspace trust (Q396) |
-| `WriteSetting` (new, Q399) | extension | `WorkspaceConfiguration.update`, in the user's or the workspace's settings |
+| `WriteSetting` (1.6, Q399) | extension | `WorkspaceConfiguration.update` in the user's settings, `{ key, value }` by the desktop's name, `value` null to remove it; `ai.model` and `ai.effort` are `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` (Q400) |
 
 ## Undo and the journal
 
@@ -474,23 +498,33 @@ Each answers `null` when the user backs out or the host cannot.
 | --- | --- | --- | --- |
 | `host/clipboard` | — | `{ text: string \| null }` | `Asker::clipboard`, `Query::Clipboard`; not sent: the extension gives the text as the answer `clipboard` instead (stage 4, area 3) |
 | `host/githubToken` | `{ host: string, ask: boolean }` | `{ token: string \| null }` | `Query::GitHubToken`, `github::read_token` and the credential store |
-| `host/languageModel` | `LanguageModelRequest` | `{ text: string } \| { refused: string }` | `ai::ask`, `ai::ask_conflict` over HTTP |
-| `host/languageModels` | — | `{ models: { id, name }[] }` | `Query::AiModels`, `ai::list_models` |
+| `host/languageModel` | `LanguageModelRequest` | `{ text: string, model: string } \| { refused: string }` | `ai::LanguageModel::ask`, over HTTP in the desktop (`ai::ProviderModel`) |
+| `host/languageModels` | `{}` | `{ models: { id, name }[] }` | `Host::language_models`, `Query::AiModels`, `ai::list_models` |
 | `host/openFile` | `FileQuestion` | `{ paths: string[] }` | `QuestionKind::OpenFile` |
 | `host/saveFile` | `FileQuestion` | `{ path: string \| null }` | `QuestionKind::SaveFile` |
 | `host/secret` | `{ name }` | `{ value: string \| null }` | `system::read_secret` |
 | `host/storeSecret` | `{ name, value: string \| null }` | `null` | `system::write_secret`, `delete_secret` |
 
 `LanguageModelRequest = { purpose: "commitMessage" | "conflict", model: string | null, effort: "low" | "medium" |
-"high", system: string, messages: { role: "user" | "assistant", text: string }[], stream: boolean }`. The prompt and
-the reading of the answer stay in the engine (`crates/engine/src/ai.rs`): the extension only sends the messages to
-`vscode.lm` and gives back the text. When `stream` is on, the extension sends `host/languageModelPart` notifications
-`{ request: id, text }` as parts arrive, for the commit box to fill as it does now.
+"high" | "xhigh" | "max" | null, messages: { role: "user" | "assistant", text: string }[], read: id | null }`
+(1.6). `model` is the id of the model, null for VS Code's first; `effort` goes as `configuration.reasoningEffort` of
+the request, null for as the model is set up; `purpose` chooses the justification VS Code shows. `read` is the id of
+the extension's read the question is asked for, null when a feature asks: the extension shows the text as it comes
+where that read was asked, and answers with the whole text and the name of the model. `refused` is why it could not
+ask, in the extension's words: no model, the model chosen not there, or the model refused. The prompt and the reading
+of the answer stay in the engine (`crates/engine/src/ai.rs`). Before 1.6 this page had a `system` text, a `stream`
+flag and `host/languageModelPart` notifications: VS Code's models take no system message, and the parts are the
+extension's to show, so 1.6 has none of them.
 
-The engine today calls the AI provider and GitHub itself (`ai.rs`, `github.rs`, `drive.rs:228-234`). Running under the
-extension, the `Engine` gets a host for those, as it gets a `SecretStore` with `keep_secrets_in`: one function that
-the server gives, which asks the extension, and that the desktop leaves at the HTTP of today. That is the only change
-the protocol asks of `engine`, beside separating `platform` (Q393).
+The engine calls the AI provider and GitHub itself in the desktop (`ai.rs`, `github.rs`). Running under the
+extension, the `Engine` gets a host for those (`engine::Host`, given with `Engine::ask_host_with`, as it gets a
+`SecretStore` with `keep_secrets_in`): the server's `HostQuestions` (`crates/server/src/host.rs`) asks the extension
+`host/githubToken`, `host/languageModels` and `host/languageModel`, and the desktop gives none and keeps the HTTP. Under
+a host, no token or key is kept in the credential store (`KeepGitHubToken`, `KeepAiKey`), the user backing out of
+signing in to GitHub backs out of the feature, and the features that ask a model do it through
+`engine::ai::LanguageModel`, which the provider and the host both are. `FeatureSettings.uses_host_models` tells
+`ai.choose-model` that the models are the host's: it needs no provider or key, and leaves `writeSetting` for the two
+settings.
 
 ## How the Asker is translated
 
@@ -550,7 +584,10 @@ The fields are those of `model`; this section says only what the JSON adds or le
   `fileSave`, `fileSaves`, `fileAt`, `setupSettings`, `lines`, `lineOfFile`, `listedFile`, each with the fields of its
   type in `model`, built with the stage that moves the area that uses it. Built in 1.3: `{ kind: "resolutions", files:
   FileResolutions[] }` and `{ kind: "mergeResult", path, unsaved: string | null, marked }` (the text not saved, or
-  `null` when the file on disk is the result; how many conflicts git still marks in it).
+  `null` when the file on disk is the result; how many conflicts git still marks in it). Built in 1.6: `{ kind:
+  "comparison", first: CompareSide, second: CompareSide, mode: "sinceDiverged" | "everything", path: string | null,
+  mergeBase: CommitId | null }`, a comparison page as a whole, each side `{ name, side: { kind: "commit", commit } |
+  { kind: "workingTree" }, isFollowed, isGone }`.
 - **`FileResolutions`** (`model/src/review/resolutions.rs`, 1.3): `{ path, text, conflicts, accepted: Proposal[] }`:
   the text the proposals were made from, which the file must still have to be written, and how many conflicts it has.
   **`Proposal`**: `{ source, from, to, text, newLines }`, the lines `from` to `to` of the file (from 0, `to` left out)

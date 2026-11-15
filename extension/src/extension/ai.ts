@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import type { Repo } from '../git/repo';
 import { buildPrompt, cleanMessage } from '../shared/commitPrompt';
 import { buildConflictPrompt, fitResolution, parseConflictAnswer, type ConflictAnswer, type ConflictQuestion } from '../shared/conflictPrompt';
+import type { LanguageModelInfo, LanguageModelRequest, LanguageModelResult } from '../engine/messages';
 import type { RepoState } from '../shared/protocol';
 
 /**
@@ -112,4 +113,56 @@ export async function askResolution(question: ConflictQuestion, token: vscode.Ca
     onText(text);
   }
   return { ...fitResolution(parseConflictAnswer(text), question), model: model.name };
+}
+
+// Area 6 of stage 4: what the engine asks of VS Code's language models, `host/languageModel` and
+// `host/languageModels`. The prompts and the reading of the answers are the engine's; only the sending is here.
+
+/** What VS Code shows the user when it asks whether Gitardo may use a model, by what the question is for. */
+const JUSTIFICATIONS: Record<LanguageModelRequest['purpose'], string> = {
+  commitMessage: 'Gitardo sends your uncommitted changes to the model to draft a commit message.',
+  conflict: 'Gitardo sends the conflicts of the merge, and the lines around them, to the model to propose how to resolve them.',
+};
+
+/** The language models of VS Code, in its order, as the engine lists them. */
+export async function languageModels(): Promise<LanguageModelInfo[]> {
+  return (await vscode.lm.selectChatModels()).map((model) => ({ id: model.id, name: model.name }));
+}
+
+/**
+ * Asks a language model of VS Code a question of the engine: the model of `request.model`, or the first VS Code has,
+ * with the effort as the configuration of the request. `onText` is given the whole answer so far as it comes. What
+ * keeps it from asking is said in the words the extension said it with before the engine asked.
+ */
+export async function answerLanguageModel(
+  request: LanguageModelRequest,
+  onText: ((text: string) => void) | undefined,
+  signal: AbortSignal,
+): Promise<LanguageModelResult> {
+  const models = await vscode.lm.selectChatModels();
+  if (!models.length) return { refused: 'No language model is available in VS Code. Install an extension that provides one, such as GitHub Copilot.' };
+  const model = request.model ? models.find((each) => each.id === request.model) : models[0];
+  if (!model) return { refused: `The model chosen to resolve conflicts, ${request.model}, is not available in VS Code: choose another one.` };
+  const messages = request.messages.map((message) =>
+    message.role === 'user' ? vscode.LanguageModelChatMessage.User(message.text) : vscode.LanguageModelChatMessage.Assistant(message.text),
+  );
+  const options = {
+    justification: JUSTIFICATIONS[request.purpose],
+    ...(request.effort ? { configuration: { reasoningEffort: request.effort } } : {}),
+  } as vscode.LanguageModelChatRequestOptions;
+  const source = new vscode.CancellationTokenSource();
+  const cancel = () => source.cancel();
+  signal.addEventListener('abort', cancel, { once: true });
+  try {
+    const response = await model.sendRequest(messages, options, source.token);
+    let text = '';
+    for await (const chunk of response.text) {
+      text += chunk;
+      onText?.(text);
+    }
+    return { text, model: model.name };
+  } finally {
+    signal.removeEventListener('abort', cancel);
+    source.dispose();
+  }
 }

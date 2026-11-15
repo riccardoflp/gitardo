@@ -9,7 +9,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach } from 'vitest';
 import { binaryName } from '../../src/engine/binary';
-import { EngineClient, type EngineLog, type FeatureAsker } from '../../src/engine/client';
+import { EngineClient, type EngineLog, type EngineOptions, type FeatureAsker } from '../../src/engine/client';
 import type { Answer, Finished, Plan, Question, Settings, Target } from '../../src/engine/messages';
 import { engineSettings } from '../../src/engine/settings';
 import { git, writeFiles } from '../../src/git/exec';
@@ -63,9 +63,16 @@ export function memoryLog(): EngineLog & { lines: string[] } {
   return { lines, info: keep('info'), warn: keep('warn'), error: keep('error'), debug: keep('debug') };
 }
 
-/** A client of the debug binary, ended after the test. */
-export function client(log = memoryLog(), settings: Settings = engineSettings({}, new Set(), {}, 0)): EngineClient {
-  const started = new EngineClient({ binary, clientVersion: '0.0.0-test', settings: () => settings, logLevel: () => 'info', log });
+/**
+ * A client of the debug binary, ended after the test; `host` answers the engine's questions to VS Code's sign-in and
+ * language models in its place (area 6 of stage 4).
+ */
+export function client(
+  log = memoryLog(),
+  settings: Settings = engineSettings({}, new Set(), {}, 0),
+  host: Pick<EngineOptions, 'githubToken' | 'languageModel' | 'languageModels'> = {},
+): EngineClient {
+  const started = new EngineClient({ binary, clientVersion: '0.0.0-test', settings: () => settings, logLevel: () => 'info', log, ...host });
   clients.push(started);
   return started;
 }

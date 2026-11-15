@@ -8,7 +8,10 @@ use http::{Cancel, Http, Proxies};
 use json::Value;
 use model::ai::{AiModels, AiProvider, AiSettings, Effort, Key};
 
-use super::{AiError, ConflictRequest, Provider, Sending, ask_conflict, list_models, models_answer};
+use super::{
+    AiError, Asked, ConflictReply, ConflictRequest, LanguageModel, Provider, ProviderModel, Purpose, Sending,
+    ask_conflict, draft, list_models, models_answer,
+};
 
 /// The events of the Messages API that write a text in pieces.
 fn anthropic_stream(pieces: &[&str]) -> String {
@@ -79,6 +82,16 @@ fn body_of(server: &TestServer, index: usize) -> Value {
     json::parse(std::str::from_utf8(&received[index].body).unwrap()).unwrap()
 }
 
+/// The question about a conflict asked of the provider over HTTP.
+fn asked(
+    sending: Sending<'_>,
+    provider: &Provider,
+    request: &ConflictRequest,
+    pieces: &mut dyn FnMut(&str),
+) -> Result<ConflictReply, AiError> {
+    ask_conflict(&mut ProviderModel { sending, provider }, request, pieces)
+}
+
 #[test]
 fn ai_ask_conflict__the_request_is_the_question_and_the_pieces_come_in_order_before_the_answer() {
     let server = TestServer::plain(vec![events_answer(&anthropic_stream(&REPLY))]);
@@ -86,7 +99,7 @@ fn ai_ask_conflict__the_request_is_the_question_and_the_pieces_come_in_order_bef
     let http = http();
     let cancel = Cancel::new();
     let mut seen = Vec::new();
-    let reply = ask_conflict(
+    let reply = asked(
         Sending {
             http: &http,
             cancel: &cancel,
@@ -128,7 +141,7 @@ fn ai_ask_conflict__high_effort_is_sent_as_the_provider_says_and_no_effort_when_
         http: &http,
         cancel: &cancel,
     };
-    let ask = |provider: &Provider| ask_conflict(sending, provider, &conflict_request("Q"), &mut |_| {}).unwrap();
+    let ask = |provider: &Provider| asked(sending, provider, &conflict_request("Q"), &mut |_| {}).unwrap();
     let _high = ask(&provider_at(&server, AiProvider::Anthropic, "m", Some(Effort::High)));
     let _empty = ask(&provider_at(&server, AiProvider::Anthropic, "m", None));
     let chat = ask(&provider_at(
@@ -179,7 +192,7 @@ fn ai_ask_conflict__cancelling_closes_the_request_and_returns_no_answer() {
     let http = http();
     let cancel = Cancel::new();
     let mut seen = 0;
-    let asked = ask_conflict(
+    let asked = asked(
         Sending {
             http: &http,
             cancel: &cancel,
@@ -215,10 +228,10 @@ fn ai_choose_model__each_answer_names_the_model_asked_or_the_first_the_provider_
         cancel: &cancel,
     };
     let chosen = provider_at(&server, AiProvider::Anthropic, "model-b", None);
-    let reply = ask_conflict(sending, &chosen, &conflict_request("Q"), &mut |_| {}).unwrap();
+    let reply = asked(sending, &chosen, &conflict_request("Q"), &mut |_| {}).unwrap();
     assert_eq!(reply.model, "model-b");
     let first = provider_at(&server, AiProvider::Anthropic, "", None);
-    let reply = ask_conflict(sending, &first, &conflict_request("Q"), &mut |_| {}).unwrap();
+    let reply = asked(sending, &first, &conflict_request("Q"), &mut |_| {}).unwrap();
     assert_eq!(reply.model, "model-a");
     assert_eq!(
         server.received()[1].request_line(),
@@ -257,7 +270,7 @@ fn a_model_the_provider_does_not_have_is_said_by_its_name() {
     let http = http();
     let cancel = Cancel::new();
     let provider = provider_at(&server, AiProvider::Anthropic, "gone", None);
-    let asked = ask_conflict(
+    let asked = asked(
         Sending {
             http: &http,
             cancel: &cancel,
@@ -273,4 +286,75 @@ fn a_model_the_provider_does_not_have_is_said_by_its_name() {
             "The model chosen to resolve conflicts, gone, is not available: choose another one."
         ))
     );
+}
+
+/// A language model that answers with what it is given, as the host's models answer the server.
+struct Answering {
+    /// The answer, in pieces.
+    pieces: Vec<&'static str>,
+    /// What it was asked, with what for.
+    asked: Vec<(Purpose, String)>,
+}
+
+impl LanguageModel for Answering {
+    fn models(&mut self) -> Result<Vec<model::ai::AiModel>, AiError> {
+        Ok(Vec::new())
+    }
+
+    fn ask(
+        &mut self,
+        purpose: Purpose,
+        request: &model::ai::AiRequest,
+        pieces: &mut dyn FnMut(&str),
+    ) -> Result<Asked, AiError> {
+        self.asked.push((purpose, request.prompt.clone()));
+        for piece in &self.pieces {
+            pieces(piece);
+        }
+        Ok(Asked {
+            model: String::from("Host model"),
+            text: self.pieces.concat(),
+        })
+    }
+}
+
+#[test]
+fn commit_draft_message__any_language_model_is_asked_and_its_answer_cleaned() {
+    let mut model = Answering {
+        pieces: vec!["```text\n", "Add the parser\n", "```"],
+        asked: Vec::new(),
+    };
+    let subjects = [String::from("Fix the reader")];
+    let input = model::commit::DraftInput {
+        diff: "+a\n",
+        new_files: &[],
+        subjects: &subjects,
+    };
+    let mut seen = 0;
+    let message = draft(&mut model, &input, &mut |_| seen += 1).unwrap();
+    assert_eq!(message, "Add the parser");
+    assert_eq!(seen, 3);
+    assert_eq!(model.asked.len(), 1);
+    assert_eq!(model.asked[0].0, Purpose::CommitMessage);
+    assert_eq!(model.asked[0].1, model::commit::draft_message(&input).prompt);
+}
+
+#[test]
+fn ai_ask_conflict__any_language_model_is_asked_and_its_answer_read_and_trimmed() {
+    let mut model = Answering {
+        pieces: vec![
+            "<resolution>\nstart();\nbefore();\nboth();\n</resolution>",
+            "<reason>Kept both.</reason>",
+        ],
+        asked: Vec::new(),
+    };
+    let request = ConflictRequest {
+        before: vec![String::from("start();"), String::from("before();")],
+        ..conflict_request("Q")
+    };
+    let reply = ask_conflict(&mut model, &request, &mut |_| {}).unwrap();
+    assert_eq!(model.asked, [(Purpose::Conflict, String::from("Q"))]);
+    assert_eq!(reply.model, "Host model");
+    assert_eq!(reply.answer.lines, ["both();"]);
+    assert_eq!(reply.answer.reason, "Kept both.");
 }

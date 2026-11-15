@@ -146,3 +146,55 @@ fn no_model_listed_and_no_provider_are_refused() {
     unset.settings.ai.provider = None;
     assert!(matches!(choose_model(&unset, &none), Outcome::Refuse(_)));
 }
+
+#[test]
+fn ai_choose_model__under_a_host_with_models_no_provider_is_needed_and_the_host_writes_the_two_settings() {
+    let mut context = context(state(), Target::Head);
+    context.settings.uses_host_models = true;
+    let asked = choose_model(&context, &Answers::new());
+    assert!(
+        matches!(asked, Outcome::Read(key, Query::AiModels { .. }) if key == MODELS),
+        "{asked:?}"
+    );
+    let answers = Answers::new()
+        .with(MODELS, listed())
+        .with(MODEL, Answer::Choice(String::from("model:model-b")))
+        .with(EFFORT, Answer::Choice(String::from("high")));
+    let plan = plan(choose_model(&context, &answers));
+    assert!(plan.steps.is_empty(), "no settings file is written: {plan:?}");
+    let written: Vec<_> = plan
+        .after
+        .iter()
+        .map(|follow_up| match follow_up {
+            FollowUp::WriteSetting(setting) => (setting.key.as_str(), setting.value.as_deref()),
+            other => panic!("only settings written: {other:?}"),
+        })
+        .collect();
+    assert_eq!(
+        written,
+        [("ai.model", Some("\"model-b\"")), ("ai.effort", Some("\"high\""))]
+    );
+    let first = Answers::new()
+        .with(MODELS, listed())
+        .with(MODEL, Answer::Choice(String::from(FIRST_MODEL)))
+        .with(EFFORT, Answer::Choice(String::from(AS_SET_UP)));
+    let removed = plan_of_settings(&choose_model(&context, &first));
+    assert_eq!(
+        removed,
+        [(String::from("ai.model"), None), (String::from("ai.effort"), None)]
+    );
+}
+
+/// The settings a plan has the host write.
+fn plan_of_settings(outcome: &Outcome) -> Vec<(String, Option<String>)> {
+    let Outcome::Run(plan) = outcome else {
+        panic!("runs: {outcome:?}");
+    };
+    plan.after
+        .iter()
+        .filter_map(|follow_up| match follow_up {
+            FollowUp::WriteSetting(setting) => Some((setting.key.clone(), setting.value.clone())),
+            _ => None,
+        })
+        .collect()
+}

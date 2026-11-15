@@ -192,6 +192,10 @@ fn follow_up_line(out: &mut dyn Write, follow_up: &FollowUp) -> io::Result<()> {
         FollowUp::KeepGitHubToken(_) => writeln!(out, "Keep the GitHub token in the credential store")?,
         FollowUp::KeepAiKey(..) => writeln!(out, "Keep the key of the AI provider in the credential store")?,
         FollowUp::TrustFolder(folder) => writeln!(out, "Trust {}", folder.display())?,
+        FollowUp::WriteSetting(written) => match &written.value {
+            Some(value) => writeln!(out, "Set {} to {value}", written.key)?,
+            None => writeln!(out, "Remove {}", written.key)?,
+        },
         FollowUp::ForgetTrustedFolders(folders) => {
             for folder in folders {
                 writeln!(out, "Stop trusting {}", folder.display())?;

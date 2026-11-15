@@ -4,7 +4,7 @@
 use model::ai::{AiModel, AiModels, Effort, Key};
 use model::contract::{
     Answer, AnswerKey, Answers, Choice, Context, Danger, FeatureId, FollowUp, Outcome, Plan, Query, Question,
-    QuestionKind, Refusal, Step, Text, Undo, Validation,
+    QuestionKind, Refusal, SettingWritten, Step, Text, Undo, Validation,
 };
 
 /// The models listed with the key kept.
@@ -30,23 +30,18 @@ const MODEL_PREFIX: &str = "model:";
 
 /// Lists the models of the provider, asking for its key when it wants one; asks which one resolves conflicts, then
 /// how much it thinks; and writes `ai.model` and `ai.effort` in the user's settings file, removing each for the first
-/// model and for as the model is set up.
+/// model and for as the model is set up. Under a host that has its own models (`uses_host_models`), they are the
+/// host's, no provider or key is needed, and the host writes the two settings (`FollowUp::WriteSetting`).
 ///
 /// Feature: ai.choose-model
 #[must_use]
 pub fn choose_model(context: &Context, answers: &Answers) -> Outcome {
     let settings = &context.settings.ai;
-    let Some(provider) = settings.provider else {
-        return Outcome::Refuse(Refusal {
-            message: Text::from("No AI provider is set up."),
-            offer: Some((FeatureId("settings.edit"), Text::from("Open settings"))),
-        });
-    };
-    let Some(file) = context.settings.user_settings_file.clone() else {
-        return Outcome::Refuse(Refusal::saying(
-            "Gitardo has no settings file of the user to write the model in.",
-        ));
-    };
+    let hosted = context.settings.uses_host_models;
+    if let Some(refused) = refused_first(context) {
+        return Outcome::Refuse(refused);
+    }
+    let file = context.settings.user_settings_file.clone();
     let typed = answers.text(KEY).map(|key| Key(key.trim().to_owned()));
     let models = match listed(context, answers, typed.as_ref()) {
         Ok(models) => models,
@@ -63,35 +58,87 @@ pub fn choose_model(context: &Context, answers: &Answers) -> Outcome {
     let Some(effort) = answers.choice(EFFORT) else {
         return Outcome::Ask(effort_question(settings.effort));
     };
+    let model = model.strip_prefix(MODEL_PREFIX);
+    let effort = Effort::from_setting(effort);
+    let name = model_name(&models, first, model);
+    let plan = |steps: Vec<Step>, after: Vec<FollowUp>| {
+        Outcome::Run(Plan {
+            title: Text::from(format!("Resolve conflicts with {name}")),
+            steps,
+            danger: Danger::None,
+            undo: Undo::Impossible(Text::from("Choosing again sets them back.")),
+            after,
+            on_failure: Vec::new(),
+        })
+    };
+    let Some(file) = file.filter(|_| !hosted) else {
+        return plan(Vec::new(), settings_written(model, effort));
+    };
     let Some(files) = answers.files(SETTINGS) else {
         return Outcome::Read(SETTINGS, Query::FileTexts { paths: vec![file] });
     };
-    let model = model.strip_prefix(MODEL_PREFIX);
-    let Some(written) = written(files, model, Effort::from_setting(effort)) else {
+    let Some(written) = written(files, model, effort) else {
         return Outcome::Refuse(Refusal::saying(
             "The user's settings file is not JSON with comments, so the model cannot be written in it.",
         ));
     };
-    let name = model.map_or(first.name.as_str(), |id| {
+    let keys = settings
+        .provider
+        .zip(typed)
+        .map(|(provider, key)| FollowUp::KeepAiKey(provider, key));
+    plan(
+        vec![Step::Write {
+            path: file,
+            contents: written.into_bytes(),
+        }],
+        keys.into_iter().collect(),
+    )
+}
+
+/// Why the models cannot be chosen at all: no AI provider is set up, or no settings file of the user can be written;
+/// under a host that has its own models, neither is needed.
+fn refused_first(context: &Context) -> Option<Refusal> {
+    if context.settings.uses_host_models {
+        return None;
+    }
+    if context.settings.ai.provider.is_none() {
+        return Some(Refusal {
+            message: Text::from("No AI provider is set up."),
+            offer: Some((FeatureId("settings.edit"), Text::from("Open settings"))),
+        });
+    }
+    context
+        .settings
+        .user_settings_file
+        .is_none()
+        .then(|| Refusal::saying("Gitardo has no settings file of the user to write the model in."))
+}
+
+/// The name of the model chosen, as its provider lists it: the first's for the first model, the id of one not listed.
+fn model_name<'a>(models: &'a [AiModel], first: &'a AiModel, chosen: Option<&'a str>) -> &'a str {
+    chosen.map_or(first.name.as_str(), |id| {
         models
             .iter()
             .find(|listed| listed.id == id)
             .map_or(id, |listed| listed.name.as_str())
-    });
-    Outcome::Run(Plan {
-        title: Text::from(format!("Resolve conflicts with {name}")),
-        steps: vec![Step::Write {
-            path: file,
-            contents: written.into_bytes(),
-        }],
-        danger: Danger::None,
-        undo: Undo::Impossible(Text::from("Choosing again sets them back.")),
-        after: typed
-            .into_iter()
-            .map(|key| FollowUp::KeepAiKey(provider, key))
-            .collect(),
-        on_failure: Vec::new(),
     })
+}
+
+/// The two settings the host writes: `ai.model`, removed for the first model, and `ai.effort`, removed for as the model
+/// is set up.
+fn settings_written(model: Option<&str>, effort: Option<Effort>) -> Vec<FollowUp> {
+    vec![
+        setting_written("ai.model", model),
+        setting_written("ai.effort", effort.map(Effort::setting)),
+    ]
+}
+
+/// A setting for the host to write, its value as a JSON string, or removed.
+fn setting_written(key: &str, value: Option<&str>) -> FollowUp {
+    FollowUp::WriteSetting(Box::new(SettingWritten {
+        key: key.to_owned(),
+        value: value.map(|value| json::to_compact_text(&json::Value::String(value.to_owned()))),
+    }))
 }
 
 /// The models listed, with the key kept or, when the provider wants one, with the key typed; or what to do first.

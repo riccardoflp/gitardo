@@ -101,6 +101,17 @@ needs is written in the commit of that stage, not before.
 | [features/12-worktrees.md](../features/12-worktrees.md), [13-submodules.md](../features/13-submodules.md) | The extension's cards of the area merged, each with its **Extension** line and acceptance lines; `features/extension/12` and `13` emptied, and the identifiers of the area in `features/extension/18-settings.md` and `01-repositories.md` changed to the desktop's. |
 | [transition/02-protocol.md](02-protocol.md) | Version 1.3: `offerRun` for **Remove anyway**, given `force` as a `flag`, and for **Choose What It Gets…**; `host.terminal`, the setup commands of a new worktree handed over in `waiting`. |
 | [transition/04-differences.md](04-differences.md) | W1–W3, W9, W10, S3, S4 and S6 fixed; W4 and W5 decided as recommended, to be confirmed; W6–W8, S1 and S5 in the CHANGELOG; W11 left to D7; W12 waiting for `WriteSetting` (Q399). |
+## Written in stage 4, area 6 (AI and GitHub)
+
+| Page | Change |
+| --- | --- |
+| [transition/02-protocol.md](02-protocol.md) | Version 1.6: `read/commit.draft-message` and `read/ai.ask-conflict`; the host questions `host/languageModel` and `host/languageModels`, said at `initialize` as `languageModel`, and `host/githubToken` with `ask` for **Sign in to GitHub**; `$/cancel` sent by the engine for a host question it no longer waits for; the follow-up `writeSetting` and the target `comparison`. |
+| [features/05-changes-and-commit.md](../features/05-changes-and-commit.md), [09-conflicts.md](../features/09-conflicts.md), [10-compare.md](../features/10-compare.md), [15-github.md](../features/15-github.md) | The card `commit.read-draft-diff`, desktop first (Q398); the **Extension** lines of the cards of the AI and of GitHub, run or asked through the engine, with the TypeScript as fallback; no card of the area is left to the extension alone. |
+| [08-decisions.md](../08-decisions.md) | Q398 answered; Q399 built for `ai.choose-model` (`WriteSetting`). |
+| [transition/04-differences.md](04-differences.md) | G1 the engine's; G2 and G3 decided, to be confirmed; G4 and G5 in the CHANGELOG; G6 open. |
+| [extension/06-testing.md](../extension/06-testing.md) | `test/engineAi.test.ts`, with a fake language model. |
+| [extension/10-security.md](../extension/10-security.md) | T2, T3 and the secrets: what reaches the model through the engine, and the token asked with `ask` only to sign in. |
+
 ## Written in stage 5 (the engine's reads)
 
 | Page | Change |

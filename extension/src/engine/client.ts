@@ -8,6 +8,13 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import { Connection, ENDED, EngineError, ErrorCode } from './connection';
 import type { Head, JournalEntry, UndoRecord } from './journal';
 import {
+  AiMethod,
+  type AskedConflict,
+  type ConflictAnswerResult,
+  type DraftResult,
+  type LanguageModelInfo,
+  type LanguageModelRequest,
+  type LanguageModelResult,
   type Answer,
   type AskParams,
   type BlameLine,
@@ -89,6 +96,14 @@ export interface EngineOptions {
    * engine is told the host does not answer `host/githubToken`, and reads no pull requests.
    */
   githubToken?: (ask: boolean) => Promise<string | null>;
+  // Area 6 of stage 4: VS Code's language models, for the engine's questions to a model.
+  /**
+   * Asks a language model of VS Code; `onText` is given the whole answer so far as it comes, when a read of this client
+   * asked for it. Without it the engine is told the host does not answer `host/languageModel`.
+   */
+  languageModel?: (request: LanguageModelRequest, onText: ((text: string) => void) | undefined, signal: AbortSignal) => Promise<LanguageModelResult>;
+  /** The language models of VS Code, in its order. */
+  languageModels?: () => Promise<LanguageModelInfo[]>;
 }
 
 /** Who answers the questions of a feature run: in the extension, VS Code's input boxes, picks and dialogs. */
@@ -132,6 +147,8 @@ export class EngineClient {
   private readonly askers = new Map<number, FeatureAsker>();
   /** The follow-ups of the runs, sent before their answers. */
   private readonly followUps = new Map<number, FollowUp[]>();
+  /** Where the answer of a language model is shown as it comes, by the id of the read that asked for it (area 6). */
+  private readonly modelText = new Map<number, (text: string) => void>();
   private stopping = false;
   private current: EngineStatus = 'stopped';
 
@@ -431,6 +448,34 @@ export class EngineClient {
     return this.read(ReadMethod.searchMatches, repository, { text, mode, timeline }, signal);
   }
 
+  // Area 6 of stage 4: the reads that ask a language model of VS Code.
+
+  /** The draft of a commit message from the changes, matching the style of these subjects (`commit.draft-message`). */
+  draftMessage(repository: string, subjects: string[], signal?: AbortSignal): Promise<DraftResult> {
+    return this.read(AiMethod.draftMessage, repository, { subjects }, signal);
+  }
+
+  /**
+   * The question about one conflict of the review, asked of the model of `gitardo.conflicts.aiModel` (`ai.ask-conflict`);
+   * `onText` is given the whole answer so far as it comes.
+   */
+  async askConflict(
+    repository: string,
+    question: { path: string; lines: string[]; conflict: AskedConflict },
+    onText: (text: string) => void,
+    signal?: AbortSignal,
+  ): Promise<ConflictAnswerResult> {
+    const connection = await this.ready();
+    await this.ensureOpen(repository);
+    const { id, answer } = connection.send<ConflictAnswerResult>(AiMethod.askConflict, { ...question, repository }, signal);
+    this.modelText.set(id, onText);
+    try {
+      return await answer;
+    } finally {
+      this.modelText.delete(id);
+    }
+  }
+
   /** A read of a repository, opened first when it is not. */
   private async read<T>(method: string, repository: string, params: object, signal?: AbortSignal): Promise<T> {
     const connection = await this.ready();
@@ -523,6 +568,14 @@ export class EngineClient {
       const { ask } = params as { host: string; ask: boolean };
       return { token: this.options.githubToken ? await this.options.githubToken(ask) : null };
     });
+    // Area 6 of stage 4: the engine's questions to VS Code's language models.
+    connection.onRequest(AiMethod.languageModel, async (params, signal) => {
+      const request = params as LanguageModelRequest;
+      if (!this.options.languageModel) return { refused: 'This window of VS Code asks no language model.' };
+      const onText = typeof request.read === 'number' ? this.modelText.get(request.read) : undefined;
+      return this.options.languageModel(request, onText, signal);
+    });
+    connection.onRequest(AiMethod.languageModels, async () => ({ models: this.options.languageModels ? await this.options.languageModels() : [] }));
     connection.on(Method.state, (params) => {
       const { repository, state } = params as StateParams;
       for (const handler of this.stateHandlers) handler(repository, state);
@@ -537,7 +590,7 @@ export class EngineClient {
       protocol: PROTOCOL,
       client: { name: 'gitardo-vscode', version: this.options.clientVersion },
       settings: this.options.settings(),
-      host: { terminal: true, githubToken: this.options.githubToken !== undefined },
+      host: { terminal: true, githubToken: this.options.githubToken !== undefined, languageModel: this.options.languageModel !== undefined },
       logLevel: this.options.logLevel(),
     };
     try {

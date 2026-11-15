@@ -51,3 +51,11 @@ export function engineSettings(values: Record<string, unknown>, unset: ReadonlyS
   settings.utcOffsetMinutes = utcOffsetMinutes;
   return settings;
 }
+
+/**
+ * The extension's key of a setting the engine names by the desktop's name, as a follow-up `writeSetting` names it
+ * (area 6 of stage 4): `ai.model` is `conflicts.aiModel`.
+ */
+export function extensionKey(desktopKey: string): string {
+  return Object.entries(RENAMED).find(([, desktop]) => desktop === desktopKey)?.[0] ?? desktopKey;
+}

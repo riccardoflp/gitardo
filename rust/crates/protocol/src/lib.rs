@@ -8,6 +8,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod ai;
 pub mod feature;
 pub mod journal;
 pub mod messages;

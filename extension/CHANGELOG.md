@@ -54,6 +54,10 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - Adding a submodule asks in the words of Gitardo's desktop, and says that a folder is not empty once it is entered rather than while it is typed.
 - The patch copied from a comparison that starts at the working tree names its sides `a/` and `b/`, as every other patch does.
 - The commits of the graph, where a commit is in it and what a search finds are read by Gitardo's engine when the extension has it, a page at a time as before, the next pages from the last commit read; a read that another takes the place of, such as a page scrolled past, is cancelled. Without the engine, Gitardo reads them as before. Two stashes made in the same second on one commit are listed the newest first.
+- Drafting the commit message, asking the AI about conflicts, choosing the model that resolves them, **Sign in to GitHub**, loading the pull requests and **Open on GitHub** in the Compare tab are run by Gitardo's engine when the extension has it: the engine writes what the language model is asked, and the extension sends it to the model of VS Code, as before.
+- Choosing the model that resolves conflicts offers the models as Gitardo Desktop does: **The first model of the provider**, then each model, and **As the model is set up** for how much it thinks.
+- Closing GitHub's sign-in that **Sign in to GitHub** opens says nothing.
+- Opening on GitHub a comparison of a commit with itself says the two sides are the same commit.
 
 ## 0.11.0 - 2026-11-12
 

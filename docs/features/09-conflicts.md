@@ -1426,9 +1426,10 @@ proposal to accept or not.
   `review.proposals`.
 - **Extension**: asks the language model chosen in VS Code, not an AI provider: `ConflictReviewTab.ask(refs?)`, `next`
   and `stop` in `src/extension/conflictReview.ts` (`AT_ONCE` = 2, `SEND_EVERY` = 120 ms), with `askResolution(question,
-  token, onText)` and `conflictModel` in `src/extension/ai.ts`; the answers are kept in `src/extension/answers.ts` while
-  VS Code runs. It stays in the extension, in TypeScript: the engine has no host question to the language model of
-  VS Code yet (`host/languageModel`, area 6). Its entry points add **Gitardo: Resolve Conflicts with AI** in the Command
+  token, onText)` and `conflictModel` in `src/extension/ai.ts` without the engine; the answers are kept in
+  `src/extension/answers.ts` while VS Code runs. The review stays in the extension; with the engine, each question is
+  `ai.ask-conflict` of the engine (`askOnEngine` in `src/extension/conflictReview.ts`), and the answer shows as it
+  comes. Its entry points add **Gitardo: Resolve Conflicts with AI** in the Command
   Palette and the sparkle on a file in the Changes view, tooltip **Resolve with AI, after looking at what is
   proposed**. The settings are `gitardo.conflicts.ai`, `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort`;
   with the first off it says **Gitardo: resolving conflicts with AI is experimental, and it is switched off in the
@@ -1480,18 +1481,22 @@ Acceptance:
 Sends the AI provider the question about one conflict and returns its answer as it comes.
 
 - **Kind**: Read
-- **Function**: `engine::ai::ask_conflict(sending, provider, &request, pieces) -> Result<ConflictReply, AiError>`
+- **Function**: `engine::ai::ask_conflict(model: &mut dyn LanguageModel, &request, pieces) -> Result<ConflictReply, AiError>`,
+  the model the AI provider over HTTP in the desktop (`engine::ai::ProviderModel`)
 - **Reads**: an HTTP request to the AI provider of `ai.provider` at `ai.endpoint`, with the model of `ai.model` (or the
   first model the provider lists when it is empty) and the effort of `ai.effort` when it is set, the key taken from the
   credential store of the system; the answer is streamed, and each piece is passed on as it comes.
 - **Settings**: `ai.provider`, `ai.endpoint`, `ai.model`, `ai.effort`.
 - **Uses**: `ai.conflict-question`, `ai.read-answer`, `ai.trim-answer`.
-- **Extension**: `askResolution(question, token, onText)` in `src/extension/ai.ts` sends the question to a language
-  model of VS Code (`vscode.lm.selectChatModels()`): the one of `gitardo.conflicts.aiModel`, or the first, with
-  `reasoningEffort` set to `gitardo.conflicts.aiEffort` when it is set. The request carries the justification
-  **Gitardo sends the conflicts of the merge, and the lines around them, to the model to propose how to resolve
-  them.** It stays in the extension: the engine has no host question to the language model of VS Code yet
-  (`host/languageModel`, area 6).
+- **Extension**: `read/ai.ask-conflict` of the engine, asked by the review with the file's lines and the conflict
+  (`EngineClient.askConflict`): the engine reads the names of the sides, writes the question, and asks it with
+  `host/languageModel`, which `answerLanguageModel` in `src/extension/ai.ts` sends to a language model of VS Code
+  (`vscode.lm.selectChatModels()`): the one of `gitardo.conflicts.aiModel`, or the first, with `reasoningEffort` set
+  to `gitardo.conflicts.aiEffort` when it is set, the text shown in the review as it comes; then it reads and trims the
+  answer. The request carries the justification **Gitardo sends the conflicts of the merge, and the lines around them,
+  to the model to propose how to resolve them.** A model that is not there fails with *The model chosen to resolve
+  conflicts, \<id\>, is not available in VS Code: choose another one.* Without the engine, `askResolution(question,
+  token, onText)` in `src/extension/ai.ts` asks it in TypeScript.
 
 Acceptance:
 
@@ -1509,8 +1514,10 @@ The text of the question about one conflict.
 - **Kind**: Derivation
 - **Function**: `model::ai::conflict_question(input) -> String`
 - **Uses**: `conflicts.side-names`, the stretch of `conflicts.resolve-by-rules`.
-- **Extension**: `buildConflictPrompt(question)` in `src/shared/conflictPrompt.ts` (`cut`, `part`, `MAX_PART_CHARS`),
-  with `questionParts(text, conflict)` in `src/git/review.ts` (`ASKED_AROUND`), in TypeScript.
+- **Extension**: the engine's, through `ai.ask-conflict`; without the engine, `buildConflictPrompt(question)` in
+  `src/shared/conflictPrompt.ts` (`cut`, `part`, `MAX_PART_CHARS`), with `questionParts(text, conflict)` in
+  `src/git/review.ts` (`ASKED_AROUND`), in TypeScript, whose task is worded otherwise and whose parts of the file are
+  the same (G1).
 
 It says, in order:
 
@@ -1551,8 +1558,9 @@ Reads the reply of the model into the lines of a resolution, a reason and a conf
 
 - **Kind**: Derivation
 - **Function**: `model::ai::read_answer(reply: &str) -> Result<ConflictAnswer, AnswerError>`
-- **Extension**: `parseConflictAnswer(answer)` and `partialResolution(answer)` in `src/shared/conflictPrompt.ts`, in
-  TypeScript; `askResolution` in `src/extension/ai.ts` adds the model's name.
+- **Extension**: the engine's, through `ai.ask-conflict`, with the name of the model VS Code answered with;
+  `partialResolution(answer)` in `src/shared/conflictPrompt.ts` shows the answer as it comes; without the engine,
+  `parseConflictAnswer(answer)` there, and `askResolution` in `src/extension/ai.ts` adds the model's name.
 
 - The resolution is the text between the last `<resolution>` and the `</resolution>` after it, from the line after the
   opening tag to the last line break before the closing one. None: *The language model did not answer with a
@@ -1584,8 +1592,9 @@ sent, only what stands in place of the conflict is kept.
 
 - **Kind**: Derivation
 - **Function**: `model::ai::trim_answer(answer: ConflictAnswer, input: &TrimInput) -> Result<ConflictAnswer, AnswerError>`
-- **Extension**: `fitResolution(answer, question)` in `src/shared/conflictPrompt.ts` and `answerProposal(text, conflict,
-  answer)` in `src/git/review.ts`, in TypeScript.
+- **Extension**: the engine's, through `ai.ask-conflict`; `answerProposal(text, conflict, answer)` in
+  `src/git/review.ts` makes the proposal of the lines it gives. Without the engine, `fitResolution(answer, question)`
+  in `src/shared/conflictPrompt.ts`.
 
 - A **significant** line has a letter, digit or underscore in it and is not a conflict marker: a brace or an empty line
   anchors nothing. Lines are compared without spaces at their ends.
@@ -1633,20 +1642,24 @@ Chooses which model of the AI provider is asked about conflicts, and how much it
   ignores it.*): **As the model is set up**, **Low**, **Medium**, **High**, **Extra high** or **Max**, the current
   choice ticked.
 - **Plan**: one `write <settings.json>` step that sets `ai.model` (removed for the first model) and `ai.effort`
-  (`low`, `medium`, `high`, `xhigh`, `max`, or removed) in the user's settings file.
+  (`low`, `medium`, `high`, `xhigh`, `max`, or removed) in the user's settings file. Under a host whose models they are
+  (`uses_host_models`, the extension): the host's models, no provider and no key needed, no step, and the two settings
+  left to the host with the follow-up `WriteSetting`.
 - **Danger**: None.
 - **Undo**: Impossible with **Undo**: choosing again sets them back.
 - **Refuses**: when the provider lists no model: *No language model is available from the AI provider. Set one up in the
   settings.*
 - **Settings**: `ai.provider`, `ai.endpoint`, `ai.model`, `ai.effort`.
 - **Extension**: **Gitardo: Choose the Model That Resolves Conflicts** in the Command Palette and the button with the
-  model's name at the top of the review, while `gitardo.conflicts.ai` is on. `chooseConflictModel()` in
-  `src/extension/ai.ts` picks among the language models of VS Code (**The first model of VS Code**, then each model,
-  described **\<vendor\> · \<family\>**, and **As the model is set up in VS Code** for the effort), and writes
-  `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` in the user settings of VS Code. It is not a `GitOp`
-  and runs no feature of the engine: nothing is written to the log, and it does not change what **Undo** does. With no
-  model, it warns **Gitardo: no language model is available in VS Code. Install an extension that provides one, such
-  as GitHub Copilot.** The review then names **\<id\>, not available** when the chosen one is gone.
+  model's name at the top of the review, while `gitardo.conflicts.ai` is on. `Controller.chooseConflictModel()` runs
+  `ai.choose-model` of the engine, which lists the language models of VS Code with `host/languageModels` and asks with
+  the desktop's picks (G2); the extension writes the two `writeSetting` as `gitardo.conflicts.aiModel` and
+  `gitardo.conflicts.aiEffort` in the user settings of VS Code. Nothing changes in the repository, and **Undo** still
+  takes back what it did before. With no model, it warns **Gitardo: No language model is available in VS Code.
+  Install an extension that provides one, such as GitHub Copilot.** Without the engine, `chooseConflictModel()` in
+  `src/extension/ai.ts` picks in TypeScript (**The first model of VS Code**, then each model, described **\<vendor\> ·
+  \<family\>**, and **As the model is set up in VS Code** for the effort). The review then names **\<id\>, not
+  available** when the chosen one is gone.
 
 Acceptance:
 
@@ -1655,9 +1668,12 @@ Acceptance:
 - [ ] Choosing **The first model of the provider** and **As the model is set up** removes both settings.
 - [ ] Cancelling either question writes nothing.
 - [ ] Each AI proposal written after the change names the new model.
-- [ ] Extension: with two models, the first pick offers **$(check) The first model of VS Code**, **First model**,
-      **Chosen model**; the second **$(check) As the model is set up in VS Code**, **Low**, **Medium**, **High**,
-      **Extra high**, **Max**.
+- [ ] Extension: with two models and the engine, the first pick offers **The first model of the provider**, **First
+      model**, **Chosen model**; the second **As the model is set up**, **Low**, **Medium**, **High**, **Extra high**,
+      **Max**; without the engine, **$(check) The first model of VS Code** and **$(check) As the model is set up in VS
+      Code** in their places.
+- [ ] Extension: choosing **Chosen model** and **High** writes `gitardo.conflicts.aiModel` and
+      `gitardo.conflicts.aiEffort` in the user settings, from the engine's `writeSetting`.
 - [ ] Extension: choosing **Chosen model** then **High** sets `gitardo.conflicts.aiModel` to `test-chosen` and
       `gitardo.conflicts.aiEffort` to `high`.
 - [ ] Extension: it is not a `GitOp`: nothing is written to the log, and it does not change what **Undo** does.

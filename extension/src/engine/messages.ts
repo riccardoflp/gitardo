@@ -5,7 +5,7 @@
  */
 
 /** The version of the protocol the extension speaks. */
-export const PROTOCOL = '1.5';
+export const PROTOCOL = '1.6';
 
 /** The names of the methods. */
 export const Method = {
@@ -147,7 +147,9 @@ export type Target =
   | { kind: 'path'; path: string }
   // The targets of the conflicts, from 1.3.
   | { kind: 'resolutions'; files: FileResolutions[] }
-  | { kind: 'mergeResult'; path: string; unsaved: string | null; marked: number };
+  | { kind: 'mergeResult'; path: string; unsaved: string | null; marked: number }
+  // Area 6 of stage 4, from 1.6: a comparison page as a whole.
+  | ComparisonTarget;
 
 /** The resolutions accepted in a file of the review, and the text they were made from (`FileResolutions` of `model`). */
 export interface FileResolutions {
@@ -626,4 +628,80 @@ export interface CommitPage {
 export interface Matches {
   commits: string[];
   hasMore: boolean;
+}
+
+// Area 6 of stage 4, AI and GitHub, from 1.6 (`rust/crates/protocol/src/ai.rs`): the questions to VS Code's language
+// models, the two reads that ask them, the setting a feature leaves for the extension to write, and the comparison a
+// feature is run on.
+
+/** The names of the methods of area 6. */
+export const AiMethod = {
+  languageModel: 'host/languageModel',
+  languageModels: 'host/languageModels',
+  draftMessage: 'read/commit.draft-message',
+  askConflict: 'read/ai.ask-conflict',
+} as const;
+
+/** A question of the engine to a language model of VS Code (`host/languageModel`). */
+export interface LanguageModelRequest {
+  /** What it is for, which says the justification VS Code shows. */
+  purpose: 'commitMessage' | 'conflict';
+  /** The id of the model; null for the first VS Code has. */
+  model: string | null;
+  /** How much the model thinks, as `ai.effort` names it; null for as the model is set up. */
+  effort: string | null;
+  messages: Array<{ role: 'user' | 'assistant'; text: string }>;
+  /** The id of the extension's read it is asked for, where the answer is shown as it comes; null when a feature asks. */
+  read: number | string | null;
+}
+
+/** The answer of `host/languageModel`: the whole text and the name of the model, or why it could not be asked. */
+export type LanguageModelResult = { text: string; model: string } | { refused: string };
+
+/** A language model of VS Code, as `host/languageModels` lists it. */
+export interface LanguageModelInfo {
+  id: string;
+  name: string;
+}
+
+/** The answer of `read/commit.draft-message`. */
+export type DraftResult = { kind: 'drafted'; message: string } | { kind: 'failed'; message: string };
+
+/** A conflict of the review, as `read/ai.ask-conflict` takes it: its lines in the file from 0, `end` left out, and its sides. */
+export interface AskedConflict {
+  start: number;
+  end: number;
+  current: string[];
+  incoming: string[];
+  base: string[] | null;
+}
+
+/** The answer of `read/ai.ask-conflict`: the resolution read and trimmed, or why there is none. */
+export type ConflictAnswerResult =
+  | { kind: 'answered'; model: string; lines: string[]; reason: string; confidence: 'high' | 'medium' | 'low' }
+  | { kind: 'failed'; message: string; stopsTheRest: boolean };
+
+/** A side of a comparison page, as a target names it. */
+export interface CompareSideTarget {
+  name: string;
+  side: { kind: 'commit'; commit: string } | { kind: 'workingTree' };
+  isFollowed: boolean;
+  isGone: boolean;
+}
+
+/** A comparison page as a whole (`compare.open-on-github`). */
+export interface ComparisonTarget {
+  kind: 'comparison';
+  first: CompareSideTarget;
+  second: CompareSideTarget;
+  mode: 'sinceDiverged' | 'everything';
+  path: string | null;
+  mergeBase: string | null;
+}
+
+/** A setting a feature leaves for the extension to write in the user's settings, by the desktop's name; null removes it. */
+export interface WriteSettingFollowUp {
+  kind: 'writeSetting';
+  key: string;
+  value: unknown;
 }

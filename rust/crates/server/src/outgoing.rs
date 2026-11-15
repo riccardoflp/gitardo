@@ -1,5 +1,7 @@
-//! The requests the engine sends the extension while a feature runs (`feature/ask`, `feature/confirm`), each waited
-//! for until its answer comes, the request it belongs to is cancelled, or the extension is gone.
+//! The requests the engine sends the extension while a feature runs (`feature/ask`, `feature/confirm`) or a read or a
+//! feature needs the host (`host/githubToken`, `host/languageModel`, `host/languageModels`), each waited for until its
+//! answer comes, the request it belongs to is cancelled, or the extension is gone. A request cancelled is cancelled in
+//! the extension too, with `$/cancel`, so that a language model stops answering what no one waits for.
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -8,7 +10,8 @@ use std::sync::mpsc::{self, RecvTimeoutError, Sender};
 use std::time::Duration;
 
 use git::CancelToken;
-use protocol::rpc::{RequestId, ResponseError, request_message};
+use protocol::messages::{CancelParams, methods};
+use protocol::rpc::{RequestId, ResponseError, notification_message, request_message};
 use serde_json::Value;
 
 use crate::session::locked;
@@ -35,14 +38,14 @@ pub enum NoAnswer {
 }
 
 impl Outgoing {
-    /// Sends a request with `send` and waits for its answer.
+    /// Sends a request with `send` and waits for its answer; when `cancel` is cancelled first, sends `$/cancel` for it.
     ///
     /// # Errors
     ///
     /// When `cancel` is cancelled first, the extension answers with an error, or the input ends.
     pub fn ask(
         &self,
-        send: impl FnOnce(Value),
+        send: impl Fn(Value),
         method: &str,
         params: Value,
         cancel: &CancelToken,
@@ -63,6 +66,11 @@ impl Outgoing {
             }
         };
         let _done = locked(&self.waiting).remove(&id);
+        if matches!(answer, Err(NoAnswer::Cancelled))
+            && let Ok(params) = serde_json::to_value(CancelParams { id })
+        {
+            send(notification_message(methods::CANCEL, params));
+        }
         answer
     }
 

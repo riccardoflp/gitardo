@@ -707,15 +707,16 @@ Asks the AI provider to write the commit message from the changes, and puts its 
 - **Entry points**: the sparkle button beside **Commit** in the Changes page, and not in the draft, whose tooltip says
   **Draft a message from the changes with the AI provider**.
 - **Extension**: the sparkle button of the commit box of the Changes view, titled *Draft a message from the changes
-  with the language model set up in VS Code*. The extension drafts the message itself, in TypeScript
-  (`Controller.draftMessage` in `src/extension/controller.ts`, `draftCommitMessage` in `src/extension/ai.ts`), with
-  VS Code's language models in place of the AI provider: the first model `vscode.lm.selectChatModels()` gives, asked
-  with the justification *Gitardo sends your uncommitted changes to the model to draft a commit message.* The request
-  and the cleaning of the answer are these (`buildPrompt`, `cleanMessage` and `MAX_DIFF_CHARS` in
-  `src/shared/commitPrompt.ts`), the diff read by `Repo.diffText` (`src/git/repo.ts`), and the subjects are those of
-  the graph. The status bar says *Gitardo: drafting commit message* while it runs. With no model, it refuses with
-  *Gitardo: No language model is available in VS Code. Install an extension that provides one, such as GitHub
-  Copilot.*
+  with the language model set up in VS Code*. `Controller.draftMessage` in `src/extension/controller.ts` asks the
+  engine `read/commit.draft-message` with the subjects of the graph: the engine reads the changes and the diff
+  (`commit.read-draft-diff`), writes the request and cleans the answer, and asks VS Code's language models in place of
+  the AI provider with `host/languageModel`, which `answerLanguageModel` in `src/extension/ai.ts` sends to the first
+  model `vscode.lm.selectChatModels()` gives, with no effort, and with the justification *Gitardo sends your uncommitted
+  changes to the model to draft a commit message.* (G3: not the model of `gitardo.conflicts.aiModel`). Without the
+  engine, `draftCommitMessage` in `src/extension/ai.ts` drafts it in TypeScript the same way (`buildPrompt`,
+  `cleanMessage` and `MAX_DIFF_CHARS` in `src/shared/commitPrompt.ts`, the diff read by `Repo.diffText`). The status
+  bar says *Gitardo: drafting commit message* while it runs. With no model, it refuses with *Gitardo: No language
+  model is available in VS Code. Install an extension that provides one, such as GitHub Copilot.*
 - **Offered when**: something is changed; the button is disabled while a draft is being written.
 - **Reads**: the staged changes, `git diff --cached --no-color --no-ext-diff`, when something is staged; otherwise all
   changes, `git diff --no-color --no-ext-diff`, with the paths of the untracked files; and the subjects of the last 10
@@ -758,6 +759,27 @@ Acceptance:
 - [ ] Extension: nothing is sent to a model until the sparkle button is pressed.
 - [ ] Extension: with no model in VS Code, the error above is shown and the box keeps what it had.
 - [ ] Extension: nothing in the repository changes, and nothing is written to the log of operations.
+- [ ] Extension: with the engine, the request VS Code's model is sent is the one the extension's TypeScript writes for
+      the same changes, and the same answer gives the same message.
+
+### `commit.read-draft-diff` — The diff a draft is written from
+
+The diff `commit.draft-message` sends to the model: of what is staged when something is, as **Commit** would commit
+it, and of every change of the tracked files otherwise (Q398).
+
+- **Kind**: Read
+- **Function**: `git::read::commit::read_draft_diff(git: &Git, request: &DraftDiffRequest) -> Result<String, GitError>`
+- **Reads**: `git diff --cached --no-color --no-ext-diff` when `is_staged`, `git diff --no-color --no-ext-diff`
+  otherwise, as git prints it, bytes that are not UTF-8 replaced. An untracked file is in neither; the draft names
+  those apart.
+- **Extension**: the engine reads it for `read/commit.draft-message`; the extension read it with `Repo.diffText`
+  (`src/git/repo.ts`), the same commands.
+
+Acceptance:
+
+- [ ] With `a.txt` staged and `b.txt` changed and not staged, the staged diff has `a.txt` and not `b.txt`.
+- [ ] With nothing staged, the diff has `a.txt` and `b.txt`, and not the untracked `new.txt`.
+- [ ] With `color.diff` set to `always` and `diff.external` set to a program, the diff has no colors and is git's own.
 
 ### `identity.read` — Read the identity
 

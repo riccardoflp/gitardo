@@ -56,6 +56,11 @@ Finds the token that `api.github.com` is asked with, without asking the user any
 
 The token never appears in the command log, in a message or in an error, and is not written to any file.
 
+- **Extension**: under the extension the token is VS Code's sign-in to GitHub, not the credential store nor
+  `git credential fill`: the engine asks it with `host/githubToken`, which `githubToken` in `src/extension/github.ts`
+  answers with the session of `vscode.authentication.getSession('github', ['repo'])`, silently, or, with `ask` set,
+  which only `github.load-pull-requests` does, after VS Code's sign-in. Without the engine, `githubSession` there.
+
 Acceptance:
 
 - [ ] With a token kept in the credential store, it gives it without running git.
@@ -89,6 +94,11 @@ keeps that token for the next times.
 - **Refuses**: when the main remote is not on GitHub, as Quick search may still ask: "The main remote of this
   repository is not on github.com."
 - **Uses**: `github.detect-remote`, `github.token`, `github.read-pull-requests`, `graph.pull-request-badge`.
+- **Extension**: **Sign in to GitHub**, in the **…** menu of the graph and in Quick search, runs it on the engine,
+  whose token is VS Code's sign-in to GitHub (`host/githubToken` with `ask` set, `githubToken` in
+  `src/extension/github.ts`): VS Code asks the user to sign in, and no box asks for a token. Backing out of the sign-in
+  backs out of the feature, with no message (G4). VS Code keeps the session; nothing is kept in the credential store.
+  Without the engine, `Controller.refreshPulls` signs in and reads them in TypeScript (`fetchPulls`).
 
 Acceptance:
 
@@ -116,6 +126,10 @@ of its branch.
   direction: DESC})`, and of each its `number`, `title`, `url`, `isDraft`, `headRefName`, `headRepositoryOwner { login }`
   and `commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }`.
 - **Uses**: `github.token`, `github.detect-remote`, `activity.track`.
+- **Extension**: the engine's `read/github.read-pull-requests`, asked by `Controller.refreshPulls` when the repository
+  is read and its main remote is on GitHub, only once VS Code has a session for GitHub, so that nothing asks the user
+  to sign in; the checks become the badges' colors. Without the engine, `fetchPulls` in `src/extension/github.ts` and
+  `mapPulls` in `src/git/github.ts`, the same query.
 
 Rules of the result:
 
@@ -165,6 +179,9 @@ Opens the pull request of a branch in the browser, or GitHub's page to create on
   that upstream has on its remote is the name looked up. For a remote branch: only when a pull request is known for its
   name without its remote; there is no **Create pull request…** on a remote branch.
 - **Uses**: `github.read-pull-requests`, `github.detect-remote`.
+- **Extension**: the same entries in the graph's menus and its badges; `Controller.openPullRequest` derives the
+  address in TypeScript, from the pull requests the engine read, with `compareUrl` in `src/git/github.ts`, and opens it
+  with `vscode.env.openExternal`. It changes nothing and runs no git, so it needs no feature of the engine.
 
 Rules:
 
@@ -192,6 +209,9 @@ The first push of a branch is when a pull request is usually wanted: Gitardo off
 - **Function**: `model::github::offer_after_push(input: &PushOutcome) -> Option<Notice>`
 - **Entry points**: after `sync.push`, `sync.push-force-with-lease` or `sync.push-force`.
 - **Uses**: `github.open-pull-request`, `github.detect-remote`.
+- **Extension**: `Controller.afterSync` derives it in TypeScript once a push, of the engine or of a `GitOp`, gave the
+  branch its upstream, and says **Pushed \<branch\>.** with **Create Pull Request**, which opens the address of
+  `github.open-pull-request`.
 
 Rules:
 

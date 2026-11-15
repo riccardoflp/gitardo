@@ -4,6 +4,7 @@
 
 #![cfg(test)]
 
+mod ai;
 mod feature;
 mod harness;
 mod journal;

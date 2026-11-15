@@ -4,13 +4,13 @@ import { discoverRepos } from '../git/discover';
 import { reads } from '../engine/reads';
 import { WindowEngine } from '../engine/vscode';
 import type { RepoState, SyncAction, ViewKind } from '../shared/protocol';
-import { chooseConflictModel } from './ai';
+import { answerLanguageModel, languageModels } from './ai';
 import { SHOW_ACTIVITY } from './activity';
 import { BlameAnnotator, BlameSource } from './blame';
 import { GitContentProvider, SCHEME } from './content';
 import { Controller } from './controller';
 import { FileBlame } from './fileBlame';
-import { githubSession } from './github';
+import { githubToken } from './github';
 import { SourceControlSelection } from './sourceControlSelection';
 import { showSetupInMenus } from './worktreeSettings';
 
@@ -32,8 +32,9 @@ export interface GitardoApi {
 export function activate(context: vscode.ExtensionContext): GitardoApi {
   const log = vscode.window.createOutputChannel('Gitardo', { log: true });
   // Gitardo's engine, started the first time a repository is found. It runs the operations of the areas moved to it,
-  // and answers the reads of the views but the graph's commits; src/git does both when it is not there (D49).
-  const engine = new WindowEngine(context, log, async (ask) => (await githubSession(ask))?.accessToken ?? null);
+  // and answers the reads of the views; src/git does both when it is not there (D49).
+  // Area 6 of stage 4: the engine asks VS Code's sign-in to GitHub and its language models.
+  const engine = new WindowEngine(context, log, { githubToken, languageModel: answerLanguageModel, languageModels });
   context.subscriptions.push(engine);
   reads.use(() => engine.running, log);
   const controller = new Controller(context.extensionUri, log, context.workspaceState);
@@ -206,7 +207,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     command('gitardo.resolveConflicts', () => controller.action({ kind: 'resolveConflicts' })),
     command('gitardo.reviewConflicts', () => controller.reviewConflicts()),
     command('gitardo.resolveConflictsWithAI', () => controller.reviewConflicts(undefined, true)),
-    command('gitardo.chooseConflictModel', () => chooseConflictModel()),
+    command('gitardo.chooseConflictModel', () => controller.chooseConflictModel()),
     // The views that list commits put the cursor in their search box at Ctrl+F by themselves. While one of them has the
     // keyboard the key is bound to this, for VS Code to run something other than the search of the editor behind them.
     command('gitardo.find', () => {}),

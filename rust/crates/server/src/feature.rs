@@ -16,6 +16,7 @@ use protocol::rpc::{ErrorData, RequestId, ResponseError, codes, notification_mes
 use serde_json::Value;
 
 use crate::asker::HostAsker;
+use crate::host::HostQuestions;
 use crate::session::{Session, git_failure, json, now};
 
 /// Runs a feature for `feature/run` of this id, on the thread of the repository's engine: its answer, or the error of
@@ -57,6 +58,9 @@ pub fn run(
             engine.state_read(Arc::clone(&context.repository));
             engine.cancel_with(token.clone());
             engine.run_tasks(tasks);
+            if let Some(host) = host_questions(&asking, &token, &context) {
+                engine.ask_host_with(host);
+            }
             let mut asker = HostAsker::new(&asking, run, given, token);
             let finished = engine.run_feature_from(feature, operation, (&context, known), &mut asker);
             (finished, engine.take_log(asking.log_level()))
@@ -84,6 +88,15 @@ pub fn run(
             Err(engine_failure(&error))
         }
     }
+}
+
+/// Area 6 of stage 4: the questions a feature asks of the extension in place of the credential store and the AI
+/// provider, when it said it answers them: the token of GitHub and the language models are VS Code's.
+fn host_questions(session: &Arc<Session>, cancel: &CancelToken, context: &Context) -> Option<Box<dyn engine::Host>> {
+    let host = session.host();
+    let ai = (*context.settings.ai).clone();
+    let questions = HostQuestions::new(Arc::clone(session), cancel.clone(), None, ai);
+    (host.github_token || host.language_model).then(|| Box::new(questions) as Box<dyn engine::Host>)
 }
 
 /// The answers given in `feature/run` split in two: the yes or no an operation offered was told (`flag`), known from

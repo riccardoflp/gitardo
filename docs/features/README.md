@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 418 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 419 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -21,7 +21,7 @@ earns it.
 | [02-graph.md](02-graph.md) | Graph | 41 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
-| [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 20 |
+| [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 21 |
 | [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 37 |
 | [07-history-rewriting.md](07-history-rewriting.md) | History rewriting | 30 |
 | [08-stashes.md](08-stashes.md) | Stashes | 14 |
@@ -176,6 +176,7 @@ earns it.
 | [`commit.amend`](05-changes-and-commit.md#commitamend--amend-the-last-commit) | Amend the last commit | Operation | Built | Built |
 | [`commit.prepared-message`](05-changes-and-commit.md#commitprepared-message--the-message-git-prepared) | The message git prepared | Read | Built | Built |
 | [`commit.draft-message`](05-changes-and-commit.md#commitdraft-message--draft-the-commit-message) | Draft the commit message | Derivation | Built | Built |
+| [`commit.read-draft-diff`](05-changes-and-commit.md#commitread-draft-diff--the-diff-a-draft-is-written-from) | The diff a draft is written from | Read | Built | Built |
 | [`identity.read`](05-changes-and-commit.md#identityread--read-the-identity) | Read the identity | Read | Built | Built |
 | [`identity.switch`](05-changes-and-commit.md#identityswitch--switch-identity) | Switch identity | Operation | Built | Built |
 | [`identity.use-global`](05-changes-and-commit.md#identityuse-global--use-the-global-identity-again) | Use the global identity again | Operation | Built | Built |
@@ -317,7 +318,7 @@ earns it.
 | [`ai.conflict-question`](09-conflicts.md#aiconflict-question--what-is-sent-about-a-conflict) | What is sent about a conflict | Derivation | Built | Built |
 | [`ai.read-answer`](09-conflicts.md#airead-answer--the-answer-read) | The answer, read | Derivation | Built | Built |
 | [`ai.trim-answer`](09-conflicts.md#aitrim-answer--the-lines-around-the-conflict-written-again) | The lines around the conflict, written again | Derivation | Built | Built |
-| [`ai.choose-model`](09-conflicts.md#aichoose-model--choose-the-model-that-resolves-conflicts) | Choose the model that resolves conflicts | Operation | Built | Built |
+| [`ai.choose-model`](09-conflicts.md#aichoose-model--choose-the-model-that-resolves-conflicts) | Choose the model that resolves conflicts | Operation | Built | Differs (G2, G6) |
 
 ## Compare
 
@@ -340,7 +341,7 @@ earns it.
 | [`compare.commits`](10-compare.md#comparecommits--the-commits-only-in-each-side) | The commits only in each side | View | Built | Built |
 | [`compare.take-file`](10-compare.md#comparetake-file--take-the-version-of-the-second-side) | Take the version of the second side | Operation | Built | Built |
 | [`compare.copy-patch`](10-compare.md#comparecopy-patch--copy-a-comparison-as-a-patch) | Copy a comparison as a patch | Operation | Built | Built |
-| [`compare.open-on-github`](10-compare.md#compareopen-on-github--open-the-comparison-on-github) | Open the comparison on GitHub | Operation | Built | Built |
+| [`compare.open-on-github`](10-compare.md#compareopen-on-github--open-the-comparison-on-github) | Open the comparison on GitHub | Operation | Built | Differs (G5) |
 | [`compare.path-with`](10-compare.md#comparepath-with--compare-a-file-or-a-folder-with-a-branch-tag-or-commit) | Compare a file or a folder with a branch, tag or commit | Operation | Built | Built |
 | [`compare.with`](10-compare.md#comparewith--compare-with) | Compare with… | Operation | Built | Built |
 | [`compare.with-current`](10-compare.md#comparewith-current--compare-with-the-current-branch) | Compare with the current branch | Operation | Built | Built |
@@ -476,7 +477,7 @@ earns it.
 | --- | --- | --- | --- | --- |
 | [`github.detect-remote`](15-github.md#githubdetect-remote--the-repository-on-github) | The repository on GitHub | Derivation | Built | Built |
 | [`github.token`](15-github.md#githubtoken--read-the-github-token) | Read the GitHub token | Read | Built | Host only |
-| [`github.load-pull-requests`](15-github.md#githubload-pull-requests--load-pull-requests-from-github) | Load pull requests from GitHub | Operation | Built | Built |
+| [`github.load-pull-requests`](15-github.md#githubload-pull-requests--load-pull-requests-from-github) | Load pull requests from GitHub | Operation | Built | Differs (G4) |
 | [`github.read-pull-requests`](15-github.md#githubread-pull-requests--read-the-open-pull-requests) | Read the open pull requests | Read | Built | Built |
 | [`github.open-pull-request`](15-github.md#githubopen-pull-request--open-or-create-the-pull-request-of-a-branch) | Open or create the pull request of a branch | Derivation | Built | Built |
 | [`github.offer-after-push`](15-github.md#githuboffer-after-push--offer-to-create-a-pull-request-after-the-first-push) | Offer to create a pull request after the first push | Derivation | Built | Built |

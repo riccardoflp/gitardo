@@ -1,12 +1,13 @@
-//! `branch.read-log`, `repo.common-folder` and `commit.prepared-message` against throwaway repositories: the reads
-//! the extension did in TypeScript that became cards of the engine in stage 5 of the transition (Q397, Q398).
+//! `branch.read-log`, `repo.common-folder`, `commit.prepared-message` and `commit.read-draft-diff` against throwaway
+//! repositories: the reads the extension did in TypeScript, or the window of the desktop did itself, that became cards
+//! of the engine in stages 4 and 5 of the transition (Q397, Q398).
 
 use std::fs;
 use std::path::PathBuf;
 
 use git::Git;
 use git::read::branch::{BranchLogRequest, read_log};
-use git::read::commit::{PreparedMessageRequest, read_prepared_message};
+use git::read::commit::{DraftDiffRequest, PreparedMessageRequest, read_draft_diff, read_prepared_message};
 use git::read::repo::{CommonFolderRequest, read_common_folder};
 use testkit::{Remote, Repository};
 
@@ -186,4 +187,44 @@ fn commit_prepared_message__an_empty_message_is_none() {
         read_prepared_message(&Git::new(repository.path()), &PreparedMessageRequest).unwrap(),
         None
     );
+}
+
+/// A repository with `a.txt` staged, `b.txt` changed and not staged, and `new.txt` untracked.
+fn changed_three_ways() -> Repository {
+    let mut repository = Repository::new();
+    let _ = repository.commit("First", &[("a.txt", "1\n"), ("b.txt", "1\n")]);
+    write(&repository, "a.txt", "2\n");
+    let _ = repository.git(&["add", "a.txt"]);
+    write(&repository, "b.txt", "2\n");
+    write(&repository, "new.txt", "new\n");
+    repository
+}
+
+#[test]
+fn commit_read_draft_diff__with_something_staged_only_the_staged_changes() {
+    let repository = changed_three_ways();
+    let staged = read_draft_diff(&Git::new(repository.path()), &DraftDiffRequest { is_staged: true }).unwrap();
+    assert!(staged.contains("a/a.txt"), "{staged}");
+    assert!(!staged.contains("b.txt"), "{staged}");
+}
+
+#[test]
+fn commit_read_draft_diff__with_nothing_staged_every_change_of_the_tracked_files() {
+    let repository = changed_three_ways();
+    let _ = repository.git(&["reset", "--quiet"]);
+    let all = read_draft_diff(&Git::new(repository.path()), &DraftDiffRequest { is_staged: false }).unwrap();
+    assert!(all.contains("a/a.txt") && all.contains("a/b.txt"), "{all}");
+    assert!(!all.contains("new.txt"), "an untracked file is not in the diff: {all}");
+}
+
+#[test]
+fn commit_read_draft_diff__no_color_and_no_external_diff_even_when_the_user_set_them_up() {
+    let mut repository = Repository::new();
+    let _ = repository.commit("First", &[("a.txt", "1\n")]);
+    let _ = repository.git(&["config", "color.diff", "always"]);
+    let _ = repository.git(&["config", "diff.external", "no-such-program"]);
+    write(&repository, "a.txt", "2\n");
+    let diff = read_draft_diff(&Git::new(repository.path()), &DraftDiffRequest::default()).unwrap();
+    assert!(diff.contains("+2"), "{diff}");
+    assert!(!diff.contains('\u{1b}'), "{diff}");
 }
