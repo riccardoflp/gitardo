@@ -13,12 +13,18 @@ The stashes of the repository, newest first, as the branch rail and the timeline
 - **Function**: `git::read::stash::read_list(git: &Git, request: &StashListRequest) -> Result<Vec<Stash>, GitError>`
 - **Reads**: `git stash list -z --format=%H%x1f%gd%x1f%gs%x1f%at`: the hash of each stash, its name (`stash@{0}`), its
   message and its date.
+- **Extension**: read by the extension itself, in TypeScript, each time it reads the repository: `Repo.state` in
+  `src/git/repo.ts` runs the same command with `GIT_OPTIONAL_LOCKS=0`, and `parseStashes` in `src/git/parse.ts` makes
+  the `Stash` of `src/shared/protocol.ts`, until the reads move to the engine (stage 5 of the roadmap). The repository
+  is read again when `logs/refs/stash` changes in the git directory, also from a terminal.
 
 Acceptance:
 
 - [ ] Two stashes are returned newest first, as `stash@{0}` and `stash@{1}`, with their messages and dates.
 - [ ] A repository with no stash returns none, and no error.
 - [ ] A message with spaces, colons and quotes is returned whole.
+- [ ] Extension: after `git stash push -m "work in progress"` on `main` in a terminal, the Stashes view lists
+      `stash@{0}` as `On main: work in progress` without a refresh.
 
 ### `stash.read-files` — Read what a stash changes
 
@@ -31,12 +37,24 @@ The files a stash changes, and the untracked files it took along, for what apply
   - `git ls-tree -r -z --name-only <stash>^3`: the untracked files it took along; a stash made without them has no third
     parent, which is no error.
 - **Refuses**: a name that is not of the form `stash@{N}`: **"`<name>`" is not a stash.**
+- **Extension**: what a stash holds is read by the extension itself, in TypeScript, as the details of a commit:
+  `Repo.commitDetail(hash)` in `src/git/repo.ts` runs `git diff --name-status -z -M <first parent> <stash>`, and, when
+  the stash has a third parent with no parent of its own whose subject starts with `untracked files on`,
+  `git diff-tree --root --no-commit-id -r --name-status -z <third parent>`, into `CommitDetail.untracked`; with
+  `GIT_OPTIONAL_LOCKS=0`. The details of the graph and the tab of a commit show those files under **1 untracked file**
+  or **N untracked files**, the Stashes view with no heading; an untracked file opens as a diff against nothing. What
+  applying a stash would stop on is read by the engine, in the plan of `stash.apply` and `stash.pop`.
 
 Acceptance:
 
 - [ ] A stash of two changed files and one untracked file returns the two and the one apart.
 - [ ] A stash made without `--include-untracked` returns no untracked files.
 - [ ] `main` as a stash name is refused before git runs.
+- [ ] Extension: a stash of `a.txt` changed and `new.txt` untracked lists `a.txt` as `M` among its files, and
+      `new.txt` as `A` among its untracked files, whose content is `new.txt` as it was.
+- [ ] Extension: a stash made with tracked changes only has no untracked files, and no heading for them.
+- [ ] Extension: selecting in the graph a stash that took `new.txt` shows its files and **1 untracked file** with
+      `new.txt` under it.
 
 ### `stash.pane` — The Stashes list
 
@@ -48,6 +66,13 @@ Lists the stashes, in **Kept aside** of the branch rail; each unfolds to the fil
 - **Entry points**: the **Stashes** list in **Kept aside** of the branch rail; Quick search: **Show Stashes**, which
   opens the list and shows it, with the branch rail and its filter box emptied; **Show Stashes** in the message of
   `stash.autostash-left`.
+- **Extension**: the **Stashes** view of the Source Control side bar (`StashesApp` in `src/webview/StashesApp.tsx`,
+  the view `gitardo.stashes`), folded at first, its header counting the stashes (`sideView('stashes', …)` in
+  `src/extension/extension.ts`), and nothing when there are none; **Gitardo: Show Stashes** (`gitardo.openStashes`)
+  and **Show Stashes** in the warning that a pull with `--autostash` kept the changes in a stash show it, and its
+  title has **Stash Changes** (`stash.push`). Its rows, buttons and context menu are those of this list, the
+  operations sent to Gitardo's engine as their cards say; a file of a stash opens in VS Code's diff editor. What it
+  shows is read in TypeScript (`stash.read-list`, `stash.read-files`).
 - **Reads**: `stash.read-list`; `details.read-commit` for a stash unfolded.
 - **Uses**: `stash.push`, `stash.apply`, `stash.pop`, `stash.drop`, `stash.branch`, the Diff page (`diff.page`).
 
@@ -77,6 +102,9 @@ Acceptance:
 - [ ] The buttons of the rows are not there while Gitardo is running an operation.
 - [ ] With no stash, the list says how to make one.
 - [ ] A stash dropped from elsewhere leaves the list when the repository is read again.
+- [ ] Extension: with the stash `Put aside`, made with the untracked file `new.txt`, the view lists one row whose name
+      has `Put aside`, its header says `1`, and unfolded it lists `new.txt`.
+- [ ] Extension: with no stash, the header of the view has no count.
 
 ### `stash.push` — Stash all changes
 
@@ -88,6 +116,17 @@ Sets every change aside, staged or not, untracked files included, and leaves the
   button on the title of the Stashes list; **Stash all changes…** on the header of the list in the Changes page;
   **Stash changes…** in the context menu of the draft; **Stash all changes…** above the files of the draft in the
   inspector when none is ticked; Quick search: **Stash Changes**.
+- **Extension**: **Stash changes…** in the context menu of the uncommitted changes row of the graph; **Stash** in the
+  toolbar of the graph (tooltip **Stash: git stash push --include-untracked**); **Stash all changes…** above the files
+  of the uncommitted changes in the details while none is ticked, and on the header of **Changes** in the Changes view;
+  **Stash Changes** on the title of the Stashes view; **Gitardo: Stash Changes** in the Command Palette; **Stash All
+  Changes…** on the **Changes** group of VS Code's own list of changes in the Source Control view, as a button and in
+  its context menu, while `gitardo.scm.stashButtons` is on, run in the repository of the first file of the group, which
+  the views then show (`Controller.stashFromScm`). Each sends `feature/run` of `stash.push` to Gitardo's engine
+  (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in `src/engine/actions.ts`); the message is
+  asked in VS Code's input box, and the plan shown in a modal dialog when `gitardo.commandPreview` is `all`
+  (`VscodeAsker` in `src/engine/vscode.ts`). When the engine's binary is missing, `stashPushOp` of `src/git/ops.ts`
+  runs in its place, as before (D49).
 - **Offered when**: there is a commit (git has nothing to stash onto before the first one); **Stash** in the header also
   needs changes, and is disabled while Gitardo is running an operation.
 - **Asks**: **Stash changes**, an input box with the prompt **Optional message. Untracked files are stashed too.**,
@@ -103,6 +142,19 @@ Acceptance:
 - [ ] A message typed becomes the message of the stash; with none, git names it `WIP on <branch>: …`.
 - [ ] Escape in the box stashes nothing.
 - [ ] Before the first commit, the entries are not offered.
+- [ ] Extension: with `a.txt` changed and `new.txt` untracked on `main`, stashing with the message `work in progress`
+      runs `git stash push --include-untracked -m "work in progress"` in the engine, written to the **Gitardo** output
+      channel, leaves nothing uncommitted, and lists `stash@{0}` as `On main: work in progress`.
+- [ ] Extension: with `gitardo.commandPreview` at `off` it does not ask; with `all`, the command is shown first.
+- [ ] Extension: **Stash All Changes…** on the **Changes** group of VS Code's list of changes runs
+      `git stash push --include-untracked`, untracked files included; with `gitardo.scm.stashButtons` off it is not
+      there.
+- [ ] Extension: **Gitardo: Stash Changes** with nothing to stash says *There are no changes to stash.* before asking
+      for a message, and runs nothing.
+- [ ] Extension: right after it, **Undo** says it cannot take the stash back, rather than taking back the operation
+      before it.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, `stashPushOp` runs, as do the other operations of
+      this file with their `GitOp`.
 
 ### `stash.push-staged` — Stash the staged changes
 
@@ -112,6 +164,12 @@ Sets aside only what is staged; the rest stays where it is.
 - **Function**: `features::stash::push_staged(context, answers) -> Outcome`
 - **Entry points**: **Stash only the staged changes…** on the header of the list in the Changes page; **Stash staged
   changes…** in the context menu of the draft.
+- **Extension**: **Stash staged changes…** in the context menu of the uncommitted changes row of the graph; **Stash
+  only the staged changes…** on the header of **Changes** in the Changes view; **Stash Only the Staged Changes…** on
+  the **Staged Changes** group of VS Code's own list of changes, as a button and in its context menu, while
+  `gitardo.scm.stashButtons` is on (`Controller.stashFromScm`). Each sends `feature/run` of `stash.push-staged` to
+  Gitardo's engine (`Controller.runOnEngine`, `engineRuns`), its message asked in VS Code's input box (`VscodeAsker`).
+  When the engine's binary is missing, `stashPushOp` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: there is a commit and something is staged.
 - **Asks**: **Stash staged changes**, an input box with the prompt **Optional message. Only what is staged is stashed;
   the rest stays where it is.**, empty by default.
@@ -126,6 +184,11 @@ Acceptance:
 
 - [ ] With one file staged and another changed, only the staged one is stashed; the other is still changed.
 - [ ] The entry is not there while nothing is staged.
+- [ ] Extension: with `a.txt` staged and `b.txt` changed and not staged, the message `staged` runs
+      `git stash push --staged -m staged` in the engine, leaves `a.txt` as the last commit has it, and leaves `b.txt`
+      and the untracked files changed.
+- [ ] Extension: right after it, **Undo** says it cannot take the stash back, rather than taking back the operation
+      before it.
 
 ### `stash.push-file` — Stash a file, or the files ticked
 
@@ -135,6 +198,15 @@ Sets aside every change to one file, or to the files chosen, staged or not.
 - **Function**: `features::stash::push_file(context, answers) -> Outcome`
 - **Entry points**: **Stash this file…** on the row of a file in the Changes page and in the inspector while the draft
   is selected; **Stash N selected files…** above the files of the draft in the inspector, while some are ticked.
+- **Extension**: **Stash this file…** on each file of the Changes view and of the uncommitted changes in the details;
+  **Stash 1 selected file…** or **Stash N selected files…** above the files of the uncommitted changes in the details,
+  while some are ticked; **Stash This File…** on each file of the **Staged Changes**, **Changes** and **Untracked
+  Changes** groups of VS Code's own list of changes, as a button and in the context menu, for every file selected
+  there, while `gitardo.scm.stashButtons` is on (`Controller.stashFromScm`, which leaves out files outside the
+  repository and runs in the repository of the first file, which the views then show). Each sends `feature/run` of
+  `stash.push-file` to Gitardo's engine on the files given, a renamed file with both its names (`engineRuns`, run by
+  `Controller.runOnEngine`), its message asked in VS Code's input box (`VscodeAsker`). When the engine's binary is
+  missing, `stashPushOp` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: there is a commit; not on a file whose changes are only unsaved edits in Gitardo's editor.
 - **Asks**: **Stash `<file>`**, or **Stash N files**, an input box with the prompt **Optional message. Every change to
   the file is stashed, staged or not.**, empty by default.
@@ -153,6 +225,15 @@ Acceptance:
 - [ ] Ticking two files in the inspector and stashing stashes those two only.
 - [ ] Stashing `pages/[id].tsx` leaves `pages/i.tsx` and `pages/d.tsx` as they were.
 - [ ] Stashing a staged rename stashes both its old and its new name.
+- [ ] Extension: **Stash This File…** on `a.txt` in VS Code's list of changes, with the message `from the list`, runs
+      `git stash push --include-untracked -m "from the list" -- a.txt` in the engine, and `keep.txt`, untracked, stays.
+- [ ] Extension: stashing `a.txt` and the untracked `new.txt` together leaves `b.txt` changed and `new.txt` gone, and
+      popping the stash brings `new.txt` back.
+- [ ] Extension: a file of another repository of the workspace is stashed in that repository, which the views then
+      show.
+- [ ] Extension: **Stash this file…** on a file whose rename is staged stashes both its names, rather than failing.
+- [ ] Extension: right after it, **Undo** says it cannot take the stash back, rather than taking back the operation
+      before it.
 
 ### `stash.preview` — What applying a stash would stop on
 
@@ -161,6 +242,10 @@ committed, the changed files it would refuse to touch, and the untracked files i
 
 - **Kind**: Derivation
 - **Function**: `model::stash::preview(input: &StashPreviewInput) -> StashPreview`
+- **Extension**: the engine's plans of `stash.apply` and `stash.pop` carry it, and the extension shows it in the note
+  of their modal dialog (`VscodeAsker` in `src/engine/vscode.ts`): files in conflict count as files with changes, and
+  nothing is said of conflicts for a stash git will refuse. `withStashPreview` in `src/extension/actions.ts`, with
+  `Repo.stashFiles` and `Repo.conflictsWith` of `src/git/repo.ts`, is only for an engine whose binary is missing (D49).
 
 Rules:
 
@@ -193,6 +278,10 @@ Acceptance:
 - [ ] An untracked file of the stash created again in the working tree is named.
 - [ ] A conflict with a commit made after the stash names the file.
 - [ ] Twenty files in conflict list 15 and **…and 5 more**.
+- [ ] Extension: the three cases (git will refuse it, an untracked file it took is there again, conflicts) each show
+      in the dialog of **Apply** before anything runs.
+- [ ] Extension: with a file the stash changes in conflict in the working tree, the dialog says git will refuse it,
+      naming that file, and predicts no conflicts.
 
 ### `stash.apply` — Apply a stash
 
@@ -202,6 +291,13 @@ Brings the changes of a stash back into the files, and keeps the stash.
 - **Function**: `features::stash::apply(context, answers) -> Outcome`
 - **Entry points**: **Apply** on the row and in the context menu of a stash in the Stashes list of the branch rail; in
   the context menu of its row in the timeline.
+- **Extension**: **Apply** in the context menu of a stash in the Stashes view, in the Stashes section of the references
+  beside the graph and on its row in the graph; the first button on the row of a stash in the Stashes view (tooltip
+  **Apply: bring the changes back and keep the stash**). Each sends `feature/run` of `stash.apply` to Gitardo's engine,
+  the stash by its index in `stash@{N}` (`stashIndex` and `engineRuns` in `src/engine/actions.ts`, run by
+  `Controller.runOnEngine`), its plan always shown in a modal dialog first (`VscodeAsker`). A name that is not
+  `stash@{N}` is not sent to the engine: the TypeScript operation refuses it. When the engine's binary is missing,
+  `stashOp('apply', …)` of `src/git/ops.ts` runs in its place, with `withStashPreview`, as before (D49).
 - **Reads**: `stash.read-files`, the conflicts by `git merge-tree` as `stash.preview` says, the state of the working
   tree.
 - **Plan**: `git stash apply stash@{N}`, titled **Apply stash@{N}**, with the note **Its changes go into the files, and
@@ -221,6 +317,10 @@ Acceptance:
 - [ ] Once confirmed, the changes are in the files and the stash is still listed.
 - [ ] A stash that conflicts leaves the files in conflict, the banner shows, and the stash is kept.
 - [ ] When git refuses because a file it changes has changes, nothing changes and git's words are shown.
+- [ ] Extension: applying `stash@{0}` asks **Apply stash@{0}?** in a modal dialog, even with `gitardo.commandPreview`
+      at `off`; with nothing in the way it says **No conflicts expected.** and **it stays in the list**; cancelled, it
+      changes nothing.
+- [ ] Extension: `--all` in place of a stash is refused, *"--all" is not a stash.*, and nothing runs.
 
 ### `stash.pop` — Pop a stash
 
@@ -230,6 +330,12 @@ Brings the changes of a stash back into the files, and drops the stash once they
 - **Function**: `features::stash::pop(context, answers) -> Outcome`
 - **Entry points**: **Pop** on the row and in the context menu of a stash in the Stashes list of the branch rail; in
   the context menu of its row in the timeline.
+- **Extension**: **Pop** in the context menu of a stash in the Stashes view, in the Stashes section of the references
+  beside the graph and on its row in the graph; the second button on the row of a stash in the Stashes view (tooltip
+  **Pop: bring the changes back and drop the stash**). Each sends `feature/run` of `stash.pop` to Gitardo's engine, as
+  **Apply** sends `stash.apply`, its plan always shown in a modal dialog first (`VscodeAsker`). When the engine's
+  binary is missing, `stashOp('pop', …)` of `src/git/ops.ts` runs in its place, with `withStashPreview`, as before
+  (D49).
 - **Reads**: as `stash.apply`.
 - **Plan**: `git stash pop stash@{N}`, titled **Pop stash@{N}**, with the note **Its changes go into the files, and it
   is dropped once they are in without conflicts: with conflicts it stays.** followed by `stash.preview`.
@@ -245,6 +351,10 @@ Acceptance:
 - [ ] A clean pop puts the changes in the files and the stash leaves the list.
 - [ ] A pop that conflicts leaves the files in conflict and the stash in the list.
 - [ ] **Pop** asks first, also with `commandPreview` set to `off`.
+- [ ] Extension: popping `stash@{0}` asks **Pop stash@{0}?** in a modal dialog, even with `gitardo.commandPreview` at
+      `off`, and with nothing in the way it says **No conflicts expected.**
+- [ ] Extension: with an untracked file it took there again, the tracked changes go in, the file is left as it was,
+      and the stash is still listed.
 
 ### `stash.drop` — Drop a stash
 
@@ -254,6 +364,13 @@ Deletes a stash and the changes it holds.
 - **Function**: `features::stash::drop(context, answers) -> Outcome`
 - **Entry points**: **Drop…** on the row and **Drop** in the context menu of a stash in the Stashes list of the branch
   rail; **Drop** in the context menu of its row in the timeline.
+- **Extension**: **Drop**, marked as an entry that loses work, in the context menu of a stash in the Stashes view, in
+  the Stashes section of the references beside the graph and on its row in the graph; the **Drop…** button on the row
+  of a stash in the Stashes view. Each sends `feature/run` of `stash.drop` to Gitardo's engine, the stash by its index
+  (`engineRuns` in `src/engine/actions.ts`, run by `Controller.runOnEngine`), its warning always asked in a modal
+  warning dialog (`VscodeAsker`); the engine's journal keeps what `stash.undo-drop` needs, and **Undo** is the
+  engine's (`undo.last`). When the engine's binary is missing, `stashOp('drop', …)` of `src/git/ops.ts` runs in its
+  place, and **Undo** takes it back from what `Controller.undoable` remembered (`restoreStashOp`), as before (D49).
 - **Plan**: `git stash drop stash@{N}`, titled **Drop stash@{N}**, with the note **The stashed changes will be
   deleted.**
 - **Danger**: Destructive, because the changes of the stash are deleted and no reference keeps them.
@@ -266,6 +383,9 @@ Acceptance:
 - [ ] **Drop** asks with a warning, also with `commandPreview` set to `off`.
 - [ ] Once confirmed, the stash is gone and `stash@{1}` becomes `stash@{0}`.
 - [ ] Undo right after brings it back (`stash.undo-drop`).
+- [ ] Extension: dropping `stash@{0}` warns **Drop stash@{0}?** with **The stashed changes will be deleted.** and the
+      command, whatever `gitardo.commandPreview` says; cancelled, the stash is still listed.
+- [ ] Extension: `--all` in place of a stash is refused, and nothing runs.
 
 ### `stash.undo-drop` — Undo a stash dropped
 
@@ -274,6 +394,8 @@ Brings back a stash dropped in Gitardo, while its commit is still in the reposit
 - **Kind**: Operation
 - **Function**: `features::stash::undo_drop(context, answers) -> Outcome`
 - **Entry points**: **Undo** in the **…** menu of the header (`undo.last`), right after `stash.drop`.
+- **Extension**: the **Undo** of the extension, which runs `undo.last` in Gitardo's engine (its **Extension** line),
+  right after `stash.drop` ran in the engine.
 - **Offered when**: the last operation Gitardo ran was the drop, and the last entry of the reflog of `HEAD` is the one
   there was when it ran: nothing else happened since. Otherwise Undo takes back what the reflog says.
 - **Reads**: none: the message and the hash of the stash were kept when it was dropped.
@@ -289,6 +411,10 @@ Acceptance:
       stash again with its message and its files.
 - [ ] A stash dropped, then a commit made, is not restored by Undo: Undo takes back the commit.
 - [ ] A stash restored from `stash@{2}` comes back as `stash@{0}`.
+- [ ] Extension: right after dropping the stash `On main: keep me`, **Undo** asks first and runs
+      `git stash store -m "On main: keep me" <hash>`, and the stash is listed again with the same hash and message.
+- [ ] Extension: two stashes dropped are brought back by two **Undo**, newest first; staging a file in between makes
+      **Undo** forget neither.
 
 ### `stash.branch` — Create a branch from a stash
 
@@ -299,6 +425,13 @@ with what came after.
 - **Function**: `features::stash::branch(context, answers) -> Outcome`
 - **Entry points**: **Create branch from stash…** in the context menu of a stash in the Stashes list of the branch
   rail and of its row in the timeline.
+- **Extension**: **Create branch from stash…** in the context menu of a stash in the Stashes view, in the Stashes
+  section of the references beside the graph and on its row in the graph. It sends `feature/run` of `stash.branch` to
+  Gitardo's engine, the stash by its index (`engineRuns` in `src/engine/actions.ts`, run by `Controller.runOnEngine`);
+  the name is asked in VS Code's input box, checked by the engine with `question/validate` as it is typed
+  (`VscodeAsker` in `src/engine/vscode.ts`), and the update of the submodules follows as here, by
+  `gitardo.submodules.updateOnCheckout`. When the engine's binary is missing, `stashBranchOp` of `src/git/ops.ts` runs
+  in its place, with `updatingSubmodules` of `src/extension/actions.ts`, as before (D49).
 - **Asks**: **Create branch from stash@{N}**: the name of the branch, refused while typing when git does not accept it
   as a branch name (`branch.validate-name`) or when **A branch with that name already exists**.
 - **Plan**: `git stash branch <name> stash@{N}`, titled **Create branch `<name>` from stash@{N}**; followed by the update
@@ -317,6 +450,13 @@ Acceptance:
 - [ ] On a stash made on `a1b2c3d`, typing `rescue` makes `rescue` at `a1b2c3d`, checks it out and applies the stash.
 - [ ] The stash leaves the list when it applied cleanly.
 - [ ] A name of an existing branch, or one git refuses such as `bad..name`, cannot be accepted.
+- [ ] Extension: creating `rescue` from `stash@{0}` in the engine checks out `rescue` at the commit the stash was made
+      on, with its changes, and the stash is gone from the list.
+- [ ] Extension: `-x`, `a..b` and the name of an existing branch are refused in the input box while they are typed,
+      and nothing runs.
+- [ ] Extension: in a repository with submodules, `git submodule update --init --recursive` runs after it; with
+      `gitardo.submodules.updateOnCheckout` off, it does not.
+- [ ] Extension: right after it, **Undo** goes back to the branch checked out before.
 
 ### `stash.in-graph` — Stashes in the timeline
 

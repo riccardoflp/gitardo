@@ -144,7 +144,7 @@ steps 2 and 3 are the engine's:
    `feature/confirm`, and `VscodeAsker` (`src/engine/vscode.ts`) answers with VS Code's input boxes, quick picks and
    dialogs; an input box checks its text with `question/validate` as it is typed.
 3. The engine runs the plan and logs each step, which comes back as `log/line` and goes to the **Gitardo** output
-   channel with `[engine]` before it. `feature/followUps` comes before the answer, and `runOnEngine` carries out the
+   channel as the command of a `GitOp` does, `> ` before it; a failure, a warning or a read has `[engine]` before it. `feature/followUps` comes before the answer, and `runOnEngine` carries out the
    follow-ups that are the extension's: a message, the inputs of the format remembered in `worktreeInputs`, the new
    `HEAD` selected in the graph once the repository is read again.
 

@@ -64,6 +64,7 @@ Four things cut across areas and are best decided once:
   refuses "There is nothing to unstage." when nothing is staged (line 17).
 - **Verdict**: **Bug (extension)**, fixed by the move. CHANGELOG: "Unstage all changes from the menu of the uncommitted
   changes no longer ends a merge or cherry-pick stopped on conflicts: it unstages the staged files one by one."
+- **Fixed in stage 4** (area 1), with **Unstage all** run by the engine; in the extension's CHANGELOG.
 
 ### A2. Unstage all during an operation with no conflict left
 
@@ -77,6 +78,8 @@ Four things cut across areas and are best decided once:
   (`docs/features/05-changes-and-commit.md:270-272`).
 - **Verdict**: **Bug (engine)**, shared with the extension. Recommendation: name the staged files (`git restore --staged
   -- …`) also while `repository.operation` is set, so no unstage ever ends an operation. No option needed.
+- **Fixed in stage 4** (area 1): `unstage_all` names the staged files while an operation is under way too
+  (`rust/crates/features/src/changes/unstage_all.rs`).
 
 ### A3. Discard before the first commit: the warning
 
@@ -138,6 +141,7 @@ Four things cut across areas and are best decided once:
   amend yet." (`rust/crates/features/src/commit/amend.rs:17-19`).
 - **Verdict**: **CHANGELOG** (barely visible): "Stage all and Amend say why when there is nothing to stage or no commit
   to amend, instead of running git." The plans are otherwise the same.
+- **In the CHANGELOG in stage 4** (area 1).
 
 ## Stashes
 
@@ -151,6 +155,7 @@ Four things cut across areas and are best decided once:
   `docs/features/08-stashes.md:141-144`).
 - **Verdict**: **Bug (extension)** (git refuses a pathspec that is not in the index), fixed by the move. CHANGELOG:
   "Stashing a file whose rename is staged now stashes both its names instead of failing."
+- **Fixed in stage 4** (area 1), with the stashes run by the engine; in the extension's CHANGELOG.
 
 ### A9. Stash with nothing to stash, or before the first commit
 
@@ -162,6 +167,7 @@ Four things cut across areas and are best decided once:
   to stash.", "Nothing is staged." (`rust/crates/features/src/stash.rs:54-60`, `stash/push.rs:16-21`,
   `stash/push_staged.rs:14-19`).
 - **Verdict**: **CHANGELOG**: "Stash says there are no changes to stash before asking for a message."
+- **In the CHANGELOG in stage 4** (area 1).
 
 ### A10. Create a branch from a stash: the submodules
 
@@ -201,6 +207,7 @@ Four things cut across areas and are best decided once:
   and confirmation are the same (`stash.rs:131-134`; `extension/src/git/ops.ts:575-590`).
 - **Verdict**: **CHANGELOG**: "Before a stash is applied, files in conflict count as changes git refuses to touch, and
   no conflicts are predicted for a stash git will refuse."
+- **In the CHANGELOG in stage 4** (area 1).
 
 ### A13. Undo right after a stash push (shared, not a difference)
 
@@ -291,6 +298,17 @@ Four things cut across areas and are best decided once:
 - Verdict: **Choice**. I recommend that the extension's menu and double click go through `branch.open` and
   `worktree.open`, as the desktop does. Users then see no change, and no engine option is needed. Only a caller that
   bypasses `branch.open` would meet the refusal.
+
+### B10. At a commit, the format asks what `${base}` is last
+
+- Feature: `branch.create` with `branches.format` set, invoked at a commit; extension `createBranch`.
+- Extension: after **Use the format**, it asks first what `${base}` is (the commit or a branch that has it), then the
+  inputs in their order (`extension/src/extension/actions.ts:1330`).
+- Engine: the inputs are asked in the order they first appear, then `${base}` when it is at a commit
+  (`rust/crates/model/src/branch/from_format.rs:133`, the card `branch.name-from-format`).
+- Verdict: **CHANGELOG**: "At a commit, **Create branch** with a format asks for its inputs first and then what
+  `${base}` is." Found by the e2e test of stage 4, run with the engine; the questions and the name made are the same.
+- **In the CHANGELOG in stage 4** (area 1, where the e2e found it).
 
 ## Remotes and sync
 
@@ -859,7 +877,7 @@ Entries marked **Merged into …** are not counted again.
 | --- | --- | --- | --- | --- | --- |
 | Changes and commit (A1–A7) | 1 | 2 | 1 | 3 | 7 |
 | Stashes (A8, A9, A12; A10, A11, A13 merged) | 1 | 0 | 0 | 2 | 3 |
-| Branches and tags (B2, B3, B5, B6; B1, B4 merged) | 1 | 0 | 2 | 1 | 4 |
+| Branches and tags (B2, B3, B5, B6, B10; B1, B4 merged) | 1 | 0 | 2 | 2 | 5 |
 | Remotes, sync and identity (B7–B9) | 0 | 1 | 1 | 1 | 3 |
 | Merge, rebase, cherry-pick, revert, reset (C1, C2, C4; C3 merged) | 0 | 0 | 0 | 3 | 3 |
 | Rewriting (C5–C8) | 0 | 1 | 0 | 3 | 4 |
@@ -868,7 +886,7 @@ Entries marked **Merged into …** are not counted again.
 | Undo, preview and log (D7–D12) | 0 | 2 | 1 | 3 | 6 |
 | Worktrees and their setup (W1–W12; W11 merged) | 1 | 5 | 2 | 3 | 11 |
 | Submodules (S1–S6) | 1 | 4 | 0 | 1 | 6 |
-| **Total** | **5** | **18** | **8** | **23** | **54** |
+| **Total** | **5** | **18** | **8** | **24** | **55** |
 
 Of the 18 engine bugs, five are in the extension too, so whichever side wins they get fixed in the engine: A2 (Unstage
 all during an operation), B7 (remote branch by its short name), D2 (Skip without asking), D7 (Undo after what it cannot

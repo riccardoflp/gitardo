@@ -901,6 +901,13 @@ The stashes are in the timeline too, each above the commit it was made on, as lo
 - **Kind**: View
 - **Function**: `views::graph::stashes_view(state: &StashRows, ui) -> Vec<Intent>`
 - **Entry points**: **Show stashes** in the **…** menu; the context menu of a stash row.
+- **Extension**: the stashes in the graph, placed by the extension itself, in TypeScript (`Repo.withStashes` in
+  `src/git/repo.ts`), each above the commit it was made on, labeled `stash@{N}`; the **Stashes** section of the
+  references beside the graph, one entry per stash named by its message, with the tooltip `stash@{N}: <message>`,
+  where a click selects its row (the Branches view has no such section); **Show stashes** in the **…** menu of the
+  toolbar, ticked while they are shown, which writes `gitardo.graph.showStashes` for the user. The context menu of a
+  stash, there and on its row (`stashMenu` in `src/webview/menus.ts`), sends the operations to Gitardo's engine as
+  their cards say.
 - **Offered when**: the commit the stash was made on is in the timeline: on the branches shown, and not among what a
   search finds, in the history of a file or of a commit on no branch.
 - **Settings**: `graph.showStashes` (on by default).
@@ -917,6 +924,12 @@ Acceptance:
 - [ ] Unchecking **Show stashes** takes them out and sets `graph.showStashes` to false.
 - [ ] The context menu of a stash row has apply, pop, drop and create branch, and nothing of a commit.
 - [ ] While the timeline shows the history of a file, no stash is in it.
+- [ ] Extension: a stash made on `main` is a row above the commit of `main`, with `stash@{0}` and a single parent, that
+      commit, joined to it by a dashed line.
+- [ ] Extension: it is not in the graph narrowed to a branch that does not have its commit, nor among what a search for
+      its message finds, nor with `gitardo.graph.showStashes` set to `false`.
+- [ ] Extension: the **Stashes** section of the references lists each stash by its message, and a click on one selects
+      its row in the graph.
 
 ### `graph.show-in-graph` — Go to a commit in the timeline
 

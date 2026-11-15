@@ -6,14 +6,13 @@
  */
 import { execFileSync, spawn } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
-import { binaryName } from '../src/engine/binary';
-import { EngineClient, type EngineLog, type FeatureAsker } from '../src/engine/client';
+import { describe, expect, it } from 'vitest';
+import type { EngineClient } from '../src/engine/client';
 import { Connection, EngineError, ErrorCode } from '../src/engine/connection';
-import { type Answer, type EngineState, PROTOCOL, type Plan, type Question, type Settings } from '../src/engine/messages';
+import { type Answer, type EngineState, PROTOCOL } from '../src/engine/messages';
 import { engineSettings } from '../src/engine/settings';
+import { answering, built, binary, choice, cleanUpAfterEach, client, commitFile, folder, memoryLog, repository, text } from './engine/harness';
 import { headOf, recordOf, type UndoRecord } from '../src/engine/journal';
 import { targetOf } from '../src/engine/target';
 import { git } from '../src/git/exec';
@@ -21,67 +20,7 @@ import { commitOp, deleteBranchOp, type GitOp, mergeOp, splitHeadOp, stashOp } f
 import { Repo } from '../src/git/repo';
 import type { RepoState } from '../src/shared/protocol';
 
-const binary = process.env.GITARDO_ENGINE ?? path.resolve(__dirname, '../../rust/target/debug', binaryName());
-const built = fs.existsSync(binary);
-if (!built) console.warn(`The engine's tests are skipped: ${binary} is not built. Run cargo build -p server in rust/.`);
-
-const folders: string[] = [];
-const clients: EngineClient[] = [];
-
-afterEach(async () => {
-  await Promise.all(clients.splice(0).map((client) => client.dispose()));
-  for (const folder of folders.splice(0)) fs.rmSync(folder, { recursive: true, force: true });
-});
-
-/** A folder of its own for a test, by its real name, as git names it. */
-function folder(): string {
-  const made = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-engine-')));
-  folders.push(made);
-  return made;
-}
-
-/** A new repository with a commit on `main`, or none. */
-async function repository(commit = true): Promise<string> {
-  const root = path.join(folder(), 'repo');
-  fs.mkdirSync(root);
-  await git(root, ['init', '--initial-branch=main']);
-  await git(root, ['config', 'user.name', 'Gitardo Test']);
-  await git(root, ['config', 'user.email', 'test@gitardo.invalid']);
-  await git(root, ['config', 'commit.gpgsign', 'false']);
-  if (commit) await commitFile(root, 'a.txt', 'one\n', 'First commit');
-  return root;
-}
-
-async function commitFile(root: string, file: string, content: string, message: string): Promise<void> {
-  fs.writeFileSync(path.join(root, file), content);
-  await git(root, ['add', '--', file]);
-  await git(root, ['commit', '--quiet', '-m', message]);
-}
-
-/** The lines the tests read of the log. */
-function memoryLog(): EngineLog & { lines: string[] } {
-  const lines: string[] = [];
-  const keep = (level: string) => (line: string) => lines.push(`${level} ${line}`);
-  return {
-    lines,
-    info: keep('info'),
-    warn: keep('warn'),
-    error: keep('error'),
-    debug: keep('debug'),
-  };
-}
-
-function client(log = memoryLog(), settings: Settings = engineSettings({}, new Set(), {}, 0)): EngineClient {
-  const started = new EngineClient({
-    binary,
-    clientVersion: '0.0.0-test',
-    settings: () => settings,
-    logLevel: () => 'info',
-    log,
-  });
-  clients.push(started);
-  return started;
-}
+cleanUpAfterEach();
 
 /** A path as both sides can be compared by. */
 function samePath(named: string): string {
@@ -377,32 +316,6 @@ describe.skipIf(!built)('gitardo-engine from the extension', { timeout: 60_000 }
   });
 });
 
-/** An asker that answers by the key of each question, and keeps what it was asked. */
-function answering(answers: Record<string, (question: Question) => Answer | null | Promise<Answer | null>>): FeatureAsker & {
-  asked: Question[];
-  confirmed: Plan[];
-} {
-  const asked: Question[] = [];
-  const confirmed: Plan[] = [];
-  return {
-    asked,
-    confirmed,
-    async ask(question) {
-      asked.push(question);
-      const answer = answers[question.key];
-      if (!answer) throw new Error(`No answer for ${question.key}`);
-      return answer(question);
-    },
-    async confirm(plan) {
-      confirmed.push(plan);
-      return true;
-    },
-  };
-}
-
-const text = (value: string) => (): Answer => ({ kind: 'text', text: value });
-const choice = (identifier: string) => (): Answer => ({ kind: 'choice', identifier });
-
 describe.skipIf(!built)('Create branch through gitardo-engine', { timeout: 60_000 }, () => {
   it("asks the name on a commit, refuses feature x and a name taken with the engine's sentences while it is typed, and creates the branch with the commands the engine logs", async () => {
     const root = await repository();
@@ -428,7 +341,7 @@ describe.skipIf(!built)('Create branch through gitardo-engine', { timeout: 60_00
     expect(followUps).toEqual([{ kind: 'selectHead' }]);
     expect((await git(root, ['symbolic-ref', '--short', 'HEAD'])).stdout.trim()).toBe('topic');
     expect((await git(root, ['rev-parse', 'HEAD'])).stdout.trim()).toBe(first);
-    expect(log.lines).toContain(`info [engine] git checkout -b topic ${first} (${root})`);
+    expect(log.lines).toContain(`info > git checkout -b topic ${first}`);
   });
 
   it('proposes the name from gitardo.branches.format, with the inputs used last, and gives them back to remember', async () => {

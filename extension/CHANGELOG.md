@@ -6,9 +6,17 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 ### Changed
 
-- **Create branch…** is run by Gitardo's engine when the extension has it for your system: the name is checked as you type in the engine's words, the commands are in the log with `[engine]` before them, and the new branch is selected in the graph once it is checked out. Without the engine, Gitardo creates the branch as before.
+- **Create branch…** is run by Gitardo's engine when the extension has it for your system: the name is checked as you type in the engine's words, the commands are in the log as the others are, with `>` before them, and the new branch is selected in the graph once it is checked out. Without the engine, Gitardo creates the branch as before.
 - **Undo** is run by Gitardo's engine when the extension has it, and takes back the newest of Gitardo's operations, whichever ran it. It now remembers up to 50 of them, for as long as nothing moves HEAD from outside Gitardo: staging a file no longer makes it forget a branch deleted or a stash dropped, and undoing again brings back the one before. Right after an operation it cannot take back, a push, a fetch, a tag, a stash or a worktree, it says so instead of taking back the one before it, and the tooltip of **Undo** names the operation it would take back.
 - **Undo** now asks with a warning, says in words what it takes back, and selects the commit HEAD is at once done. A branch created without checking it out is deleted by **Undo**.
+- Staging, unstaging and discarding files, **Stage all**, **Unstage all**, **Discard all changes…**, **Commit**, **Amend**, and every way to stash, apply, pop, drop a stash or create a branch from one are run by Gitardo's engine when the extension has it, with the same commands as before, and without the engine as before.
+- **Unstage all changes** no longer ends a merge or a cherry-pick: while one is stopped on conflicts, or waits to be committed with none left, it unstages the staged files by name instead of running `git reset`.
+- **Stage all** and **Amend** say why when there is nothing to stage or no commit to amend, instead of running git.
+- Stashing a file whose rename is staged now stashes both its names instead of failing.
+- **Stash** says there are no changes to stash, or that nothing is staged, before asking for a message.
+- Before a stash is applied, files in conflict count as changes git refuses to touch, and no conflicts are predicted for a stash git will refuse.
+- At a commit, **Create branch** with a format asks for its inputs first and then what `${base}` is.
+- The questions and confirmations of the operations Gitardo's engine runs use the words of Gitardo's desktop: a name between backticks, as in **Create branch \`topic\`**, and a few titles worded otherwise, such as **Discard the changes of 2 files**.
 
 ## 0.11.0 - 2026-11-12
 

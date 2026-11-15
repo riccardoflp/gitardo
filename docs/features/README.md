@@ -165,14 +165,14 @@ earns it.
 | [`changes.open`](05-changes-and-commit.md#changesopen--what-a-file-of-the-changes-page-opens) | What a file of the Changes page opens | Derivation | Built | Built |
 | [`changes.stage`](05-changes-and-commit.md#changesstage--stage-a-file) | Stage a file | Operation | Built | Built |
 | [`changes.unstage`](05-changes-and-commit.md#changesunstage--unstage-a-file) | Unstage a file | Operation | Built | Built |
-| [`changes.stage-all`](05-changes-and-commit.md#changesstage-all--stage-all-changes) | Stage all changes | Operation | Built | Differs (A7) |
-| [`changes.unstage-all`](05-changes-and-commit.md#changesunstage-all--unstage-all-changes) | Unstage all changes | Operation | Built | Differs (A1, A2) |
+| [`changes.stage-all`](05-changes-and-commit.md#changesstage-all--stage-all-changes) | Stage all changes | Operation | Built | Built |
+| [`changes.unstage-all`](05-changes-and-commit.md#changesunstage-all--unstage-all-changes) | Unstage all changes | Operation | Built | Built |
 | [`changes.discard`](05-changes-and-commit.md#changesdiscard--discard-the-changes-of-a-file) | Discard the changes of a file | Operation | Built | Differs (A3) |
 | [`changes.discard-all`](05-changes-and-commit.md#changesdiscard-all--discard-all-changes) | Discard all changes | Operation | Built | Differs (A3) |
 | [`changes.save`](05-changes-and-commit.md#changessave--save-a-file-or-all-of-them) | Save a file, or all of them | Operation | Built | Host only |
 | [`changes.pathspec`](05-changes-and-commit.md#changespathspec--a-file-named-as-itself) | A file named as itself | Derivation | Built | Built |
 | [`commit.create`](05-changes-and-commit.md#commitcreate--commit) | Commit | Operation | Built | Built |
-| [`commit.amend`](05-changes-and-commit.md#commitamend--amend-the-last-commit) | Amend the last commit | Operation | Built | Differs (A7) |
+| [`commit.amend`](05-changes-and-commit.md#commitamend--amend-the-last-commit) | Amend the last commit | Operation | Built | Built |
 | [`commit.draft-message`](05-changes-and-commit.md#commitdraft-message--draft-the-commit-message) | Draft the commit message | Derivation | Built | Built |
 | [`identity.read`](05-changes-and-commit.md#identityread--read-the-identity) | Read the identity | Read | Built | Built |
 | [`identity.switch`](05-changes-and-commit.md#identityswitch--switch-identity) | Switch identity | Operation | Built | Differs (B9) |
@@ -261,15 +261,15 @@ earns it.
 | [`stash.read-list`](08-stashes.md#stashread-list--read-the-stashes) | Read the stashes | Read | Built | Built |
 | [`stash.read-files`](08-stashes.md#stashread-files--read-what-a-stash-changes) | Read what a stash changes | Read | Built | Built |
 | [`stash.pane`](08-stashes.md#stashpane--the-stashes-list) | The Stashes list | View | Built | Built |
-| [`stash.push`](08-stashes.md#stashpush--stash-all-changes) | Stash all changes | Operation | Built | Differs (A9, D7) |
-| [`stash.push-staged`](08-stashes.md#stashpush-staged--stash-the-staged-changes) | Stash the staged changes | Operation | Built | Differs (A9, D7) |
-| [`stash.push-file`](08-stashes.md#stashpush-file--stash-a-file-or-the-files-ticked) | Stash a file, or the files ticked | Operation | Built | Differs (A8, A9, D7) |
-| [`stash.preview`](08-stashes.md#stashpreview--what-applying-a-stash-would-stop-on) | What applying a stash would stop on | Derivation | Built | Differs (A12) |
-| [`stash.apply`](08-stashes.md#stashapply--apply-a-stash) | Apply a stash | Operation | Built | Differs (A12) |
-| [`stash.pop`](08-stashes.md#stashpop--pop-a-stash) | Pop a stash | Operation | Built | Differs (A12) |
-| [`stash.drop`](08-stashes.md#stashdrop--drop-a-stash) | Drop a stash | Operation | Built | Differs (D9) |
-| [`stash.undo-drop`](08-stashes.md#stashundo-drop--undo-a-stash-dropped) | Undo a stash dropped | Operation | Built | Differs (D9) |
-| [`stash.branch`](08-stashes.md#stashbranch--create-a-branch-from-a-stash) | Create a branch from a stash | Operation | Built | Differs (S2) |
+| [`stash.push`](08-stashes.md#stashpush--stash-all-changes) | Stash all changes | Operation | Built | Built |
+| [`stash.push-staged`](08-stashes.md#stashpush-staged--stash-the-staged-changes) | Stash the staged changes | Operation | Built | Built |
+| [`stash.push-file`](08-stashes.md#stashpush-file--stash-a-file-or-the-files-ticked) | Stash a file, or the files ticked | Operation | Built | Built |
+| [`stash.preview`](08-stashes.md#stashpreview--what-applying-a-stash-would-stop-on) | What applying a stash would stop on | Derivation | Built | Built |
+| [`stash.apply`](08-stashes.md#stashapply--apply-a-stash) | Apply a stash | Operation | Built | Built |
+| [`stash.pop`](08-stashes.md#stashpop--pop-a-stash) | Pop a stash | Operation | Built | Built |
+| [`stash.drop`](08-stashes.md#stashdrop--drop-a-stash) | Drop a stash | Operation | Built | Built |
+| [`stash.undo-drop`](08-stashes.md#stashundo-drop--undo-a-stash-dropped) | Undo a stash dropped | Operation | Built | Built |
+| [`stash.branch`](08-stashes.md#stashbranch--create-a-branch-from-a-stash) | Create a branch from a stash | Operation | Built | Built |
 | [`stash.in-graph`](08-stashes.md#stashin-graph--stashes-in-the-timeline) | Stashes in the timeline | Derivation | Built | Built |
 | [`stash.autostash-left`](08-stashes.md#stashautostash-left--the-stash-a-pull-leaves) | The stash a pull leaves | Derivation | Built | Built |
 
@@ -550,25 +550,6 @@ catalog it is an alias of ([D44](../08-decisions.md#d44--one-catalog-the-desktop
 | --- | --- | --- |
 | `repo.select` ([card](extension/01-repositories.md#reposelect--choose-the-repository-shown)) | `repo.select` | |
 | `repo.follow-source-control` ([card](extension/01-repositories.md#repofollow-source-control--follow-the-repositories-view-of-vs-code)) | — | Host only |
-| `changes.view` ([card](extension/05-changes-and-commit.md#changesview--the-changes-view)) | `changes.pane` | |
-| `changes.stage` ([card](extension/05-changes-and-commit.md#changesstage--stage-a-file)) | `changes.stage` | |
-| `changes.unstage` ([card](extension/05-changes-and-commit.md#changesunstage--unstage-a-file)) | `changes.unstage` | |
-| `changes.stage-all` ([card](extension/05-changes-and-commit.md#changesstage-all--stage-all-changes)) | `changes.stage-all` | |
-| `changes.unstage-all` ([card](extension/05-changes-and-commit.md#changesunstage-all--unstage-all-changes)) | `changes.unstage-all` | |
-| `changes.stage-hunk` ([card](extension/05-changes-and-commit.md#changesstage-hunk--stage-or-unstage-one-change-of-a-file)) | `diff.stage-change`, `diff.unstage-change` | No view posts it; the Flow Diff stages one change |
-| `changes.discard` ([card](extension/05-changes-and-commit.md#changesdiscard--discard-the-changes-of-a-file)) | `changes.discard` | |
-| `changes.discard-all` ([card](extension/05-changes-and-commit.md#changesdiscard-all--discard-all-changes)) | `changes.discard-all` | |
-| `changes.open` ([card](extension/05-changes-and-commit.md#changesopen--open-a-file-or-its-diff)) | `changes.open` | VS Code's editors in place of the pages |
-| `changes.open-all` ([card](extension/05-changes-and-commit.md#changesopen-all--open-all-changes-in-one-editor)) | `changes.open` | VS Code's multi-diff editor in place of one Diff page |
-| `changes.layout` ([card](extension/05-changes-and-commit.md#changeslayout--list-the-files-or-show-them-as-a-tree)) | `changes.pane` | The list or tree switch of the page |
-| `changes.unsaved` ([card](extension/05-changes-and-commit.md#changesunsaved--files-with-edits-not-saved)) | `changes.unsaved` | |
-| `changes.save` ([card](extension/05-changes-and-commit.md#changessave--save-a-file-from-the-changes-view)) | `changes.save` | VS Code saves its own editors |
-| `changes.compare-with-saved` ([card](extension/05-changes-and-commit.md#changescompare-with-saved--compare-with-the-saved-file)) | `changes.open` | VS Code's diff editor in place of the Diff page |
-| `commit.box` ([card](extension/05-changes-and-commit.md#commitbox--the-commit-box)) | `changes.pane` | The commit box of the page |
-| `commit.create` ([card](extension/05-changes-and-commit.md#commitcreate--commit)) | `commit.create` | |
-| `commit.amend` ([card](extension/05-changes-and-commit.md#commitamend--amend-the-last-commit)) | `commit.amend` | |
-| `commit.start-message` ([card](extension/05-changes-and-commit.md#commitstart-message--the-message-the-box-starts-from)) | `commit.create` | Its paragraph on the message prepared by the repository |
-| `commit.draft-message` ([card](extension/05-changes-and-commit.md#commitdraft-message--draft-the-message-with-the-language-model)) | `commit.draft-message` | VS Code's language models in place of the AI provider |
 | `branch.checkout` ([card](extension/06-branches-tags-remotes.md#branchcheckout--check-out-a-branch)) | `branch.checkout` | |
 | `branch.checkout-remote` ([card](extension/06-branches-tags-remotes.md#branchcheckout-remote--check-out-a-remote-branch-in-the-local-branch-of-its-name)) | `branch.checkout-remote`, `branch.checkout-remote-and-rebase` | |
 | `branch.checkout-detached` ([card](extension/06-branches-tags-remotes.md#branchcheckout-detached--check-out-a-commit-or-a-tag-detached)) | `branch.checkout-detached`, `tag.checkout` | |
@@ -621,18 +602,6 @@ catalog it is an alias of ([D44](../08-decisions.md#d44--one-catalog-the-desktop
 | `bisect.mark` ([card](extension/07-merge-and-rewrite.md#bisectmark--mark-the-commit-tested)) | `bisect.mark`, `bisect.answer` | |
 | `bisect.end` ([card](extension/07-merge-and-rewrite.md#bisectend--end-the-bisect)) | `bisect.end` | |
 | `bisect.banner` ([card](extension/07-merge-and-rewrite.md#bisectbanner--the-bisect-banner)) | `bisect.banner` | |
-| `stash.push` ([card](extension/08-stashes.md#stashpush--stash-all-changes)) | `stash.push` | |
-| `stash.push-staged` ([card](extension/08-stashes.md#stashpush-staged--stash-only-the-staged-changes)) | `stash.push-staged` | |
-| `stash.push-files` ([card](extension/08-stashes.md#stashpush-files--stash-some-files)) | `stash.push-file` | |
-| `stash.preview` ([card](extension/08-stashes.md#stashpreview--what-applying-a-stash-would-stop-on)) | `stash.preview` | |
-| `stash.apply` ([card](extension/08-stashes.md#stashapply--apply-a-stash)) | `stash.apply` | |
-| `stash.pop` ([card](extension/08-stashes.md#stashpop--pop-a-stash)) | `stash.pop` | |
-| `stash.drop` ([card](extension/08-stashes.md#stashdrop--drop-a-stash)) | `stash.drop`, `stash.undo-drop` | |
-| `stash.branch` ([card](extension/08-stashes.md#stashbranch--create-a-branch-from-a-stash)) | `stash.branch` | |
-| `stash.list` ([card](extension/08-stashes.md#stashlist--the-stashes-of-a-repository)) | `stash.read-list` | |
-| `stash.contents` ([card](extension/08-stashes.md#stashcontents--what-a-stash-holds)) | `stash.read-files` | |
-| `stash.view` ([card](extension/08-stashes.md#stashview--the-stashes-view)) | `stash.pane` | |
-| `stash.graph` ([card](extension/08-stashes.md#stashgraph--stashes-in-the-graph-and-its-references)) | `graph.stashes`, `graph.place-stashes`, `stash.in-graph` | |
 | `operation.banner` ([card](extension/09-conflicts.md#operationbanner--the-banner-of-an-operation-under-way)) | `conflicts.banner` | |
 | `operation.stopped` ([card](extension/09-conflicts.md#operationstopped--what-a-stop-on-conflicts-says)) | `conflicts.stopped` | |
 | `operation.continue` ([card](extension/09-conflicts.md#operationcontinue--continue-the-operation-under-way)) | `conflicts.continue-operation` | |

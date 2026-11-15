@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature, one card each, 182 in all. The template and the rules of the cards are in the
+Every feature, one card each, 151 in all. The template and the rules of the cards are in the
 feature contract. This index is written by `catalog.py --index`: change a status here in the commit that
 earns it, and run the script again after adding or renaming a card; the statuses are kept. A card with a
 **Differs** line is *Differs*; when the line goes, it becomes *Documented*.
@@ -8,11 +8,9 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | File | Area | Cards |
 | --- | --- | --- |
 | [01-repositories.md](01-repositories.md) | Repositories | 2 |
-| [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 19 |
 | [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 24 |
 | [07-merge-and-rewrite.md](07-merge-and-rewrite.md) | Merge, rebase and rewriting history | 28 |
-| [08-stashes.md](08-stashes.md) | Stashes | 12 |
-| [09-conflicts.md](09-conflicts.md) | Conflicts | 31 |
+| [09-conflicts.md](09-conflicts.md) | Conflicts | 34 |
 | [12-worktrees.md](12-worktrees.md) | Worktrees | 38 |
 | [13-submodules.md](13-submodules.md) | Submodules | 17 |
 | [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 7 |
@@ -24,30 +22,6 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | --- | --- | --- | --- |
 | [`repo.select`](01-repositories.md#reposelect--choose-the-repository-shown) | Choose the repository shown | View | Documented |
 | [`repo.follow-source-control`](01-repositories.md#repofollow-source-control--follow-the-repositories-view-of-vs-code) | Follow the Repositories view of VS Code | View | Documented |
-
-## Changes and commit
-
-| Feature | Title | Kind | Status |
-| --- | --- | --- | --- |
-| [`changes.view`](05-changes-and-commit.md#changesview--the-changes-view) | The Changes view | View | Documented |
-| [`changes.stage`](05-changes-and-commit.md#changesstage--stage-a-file) | Stage a file | Operation | Documented |
-| [`changes.unstage`](05-changes-and-commit.md#changesunstage--unstage-a-file) | Unstage a file | Operation | Documented |
-| [`changes.stage-all`](05-changes-and-commit.md#changesstage-all--stage-all-changes) | Stage all changes | Operation | Documented |
-| [`changes.unstage-all`](05-changes-and-commit.md#changesunstage-all--unstage-all-changes) | Unstage all changes | Operation | Differs |
-| [`changes.stage-hunk`](05-changes-and-commit.md#changesstage-hunk--stage-or-unstage-one-change-of-a-file) | Stage or unstage one change of a file | Operation | Documented |
-| [`changes.discard`](05-changes-and-commit.md#changesdiscard--discard-the-changes-of-a-file) | Discard the changes of a file | Operation | Documented |
-| [`changes.discard-all`](05-changes-and-commit.md#changesdiscard-all--discard-all-changes) | Discard all changes | Operation | Documented |
-| [`changes.open`](05-changes-and-commit.md#changesopen--open-a-file-or-its-diff) | Open a file or its diff | View | Documented |
-| [`changes.open-all`](05-changes-and-commit.md#changesopen-all--open-all-changes-in-one-editor) | Open all changes in one editor | View | Documented |
-| [`changes.layout`](05-changes-and-commit.md#changeslayout--list-the-files-or-show-them-as-a-tree) | List the files or show them as a tree | View | Documented |
-| [`changes.unsaved`](05-changes-and-commit.md#changesunsaved--files-with-edits-not-saved) | Files with edits not saved | View | Documented |
-| [`changes.save`](05-changes-and-commit.md#changessave--save-a-file-from-the-changes-view) | Save a file from the Changes view | View | Documented |
-| [`changes.compare-with-saved`](05-changes-and-commit.md#changescompare-with-saved--compare-with-the-saved-file) | Compare with the saved file | View | Documented |
-| [`commit.box`](05-changes-and-commit.md#commitbox--the-commit-box) | The commit box | View | Documented |
-| [`commit.create`](05-changes-and-commit.md#commitcreate--commit) | Commit | Operation | Documented |
-| [`commit.amend`](05-changes-and-commit.md#commitamend--amend-the-last-commit) | Amend the last commit | Operation | Documented |
-| [`commit.start-message`](05-changes-and-commit.md#commitstart-message--the-message-the-box-starts-from) | The message the box starts from | View | Documented |
-| [`commit.draft-message`](05-changes-and-commit.md#commitdraft-message--draft-the-message-with-the-language-model) | Draft the message with the language model | Read | Documented |
 
 ## Branches, tags, remotes and sync
 
@@ -110,23 +84,6 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | [`bisect.mark`](07-merge-and-rewrite.md#bisectmark--mark-the-commit-tested) | Mark the commit tested | Operation | Documented |
 | [`bisect.end`](07-merge-and-rewrite.md#bisectend--end-the-bisect) | End the bisect | Operation | Documented |
 | [`bisect.banner`](07-merge-and-rewrite.md#bisectbanner--the-bisect-banner) | The bisect banner | View | Documented |
-
-## Stashes
-
-| Feature | Title | Kind | Status |
-| --- | --- | --- | --- |
-| [`stash.push`](08-stashes.md#stashpush--stash-all-changes) | Stash all changes | Operation | Differs |
-| [`stash.push-staged`](08-stashes.md#stashpush-staged--stash-only-the-staged-changes) | Stash only the staged changes | Operation | Differs |
-| [`stash.push-files`](08-stashes.md#stashpush-files--stash-some-files) | Stash some files | Operation | Differs |
-| [`stash.preview`](08-stashes.md#stashpreview--what-applying-a-stash-would-stop-on) | What applying a stash would stop on | Read | Documented |
-| [`stash.apply`](08-stashes.md#stashapply--apply-a-stash) | Apply a stash | Operation | Differs |
-| [`stash.pop`](08-stashes.md#stashpop--pop-a-stash) | Pop a stash | Operation | Differs |
-| [`stash.drop`](08-stashes.md#stashdrop--drop-a-stash) | Drop a stash | Operation | Documented |
-| [`stash.branch`](08-stashes.md#stashbranch--create-a-branch-from-a-stash) | Create a branch from a stash | Operation | Documented |
-| [`stash.list`](08-stashes.md#stashlist--the-stashes-of-a-repository) | The stashes of a repository | Read | Documented |
-| [`stash.contents`](08-stashes.md#stashcontents--what-a-stash-holds) | What a stash holds | Read | Documented |
-| [`stash.view`](08-stashes.md#stashview--the-stashes-view) | The Stashes view | View | Documented |
-| [`stash.graph`](08-stashes.md#stashgraph--stashes-in-the-graph-and-its-references) | Stashes in the graph and its references | View | Documented |
 
 ## Conflicts
 

@@ -31,7 +31,7 @@ Acceptance:
 | Setting | Default | Scope | What it does | Cards |
 | --- | --- | --- | --- | --- |
 | `gitardo.commandPreview` | `off` | window | `off`: asks only before what can lose work; `all`: shows the commands of every operation first. | `preview.ask`, and every operation |
-| `gitardo.identities` | `[]` | window | Names and emails to choose from with **Gitardo: Switch Identity**, saved in the repository's configuration. | Repositories and identities (no cards yet); `commit.box` |
+| `gitardo.identities` | `[]` | window | Names and emails to choose from with **Gitardo: Switch Identity**, saved in the repository's configuration. | Repositories and identities (no cards yet); `changes.pane` |
 | `gitardo.blame.enabled` | `true` | window | Who last changed the line under the cursor, at its end. | History and blame (no cards yet) |
 | `gitardo.blame.ignoreWhitespaceAndMoves` | `false` | window | `git blame -w -M`, for the line and the file. | History and blame (no cards yet) |
 | `gitardo.fileBlame.everyFile` | `false` | window | The blame of a file beside its lines in every file opened. | History and blame (no cards yet) |
@@ -42,7 +42,7 @@ Acceptance:
 | `gitardo.fileBlame.age.oldColor` | `#316dca` | window | The color of a line changed long ago. | History and blame (no cards yet) |
 | `gitardo.fileBlame.age.oldAfterDays` | `730` | window | After how many days a line is old. | History and blame (no cards yet) |
 | `gitardo.changes.openOnClick` | `file` | window | What a click on a file of the Changes view opens: the file or its diff. | `changes.open` |
-| `gitardo.scm.stashButtons` | `true` | window | The stash buttons in VS Code's own Source Control view. | `stash.push`, `stash.push-staged`, `stash.push-files` |
+| `gitardo.scm.stashButtons` | `true` | window | The stash buttons in VS Code's own Source Control view. | `stash.push`, `stash.push-staged`, `stash.push-file` |
 | `gitardo.pull.autostash` | `true` | window | **Pull** adds `--autostash`. | `sync.pull` |
 | `gitardo.pull.rebase` | `true` | window | **Pull** adds `--rebase`. | `sync.pull` |
 | `gitardo.submodules.updateOnCheckout` | `true` | window | A checkout is followed by `git submodule update --init --recursive`. | `submodule.update-on-checkout`, `branch.checkout`, `branch.checkout-remote`, `branch.checkout-detached`, `branch.create`, `stash.branch` |
@@ -50,7 +50,7 @@ Acceptance:
 | `gitardo.branches.openIn` | `checkout` | window | What a double click on a local branch does: check it out, or open it in a worktree. | `branch.checkout`, `worktree.open-in-worktree` |
 | `gitardo.readOnStartup` | `true` | window | Read the repository when VS Code starts. | Repositories and identities (no cards yet) |
 | `gitardo.graph.pageSize` | `1000` | window | How many commits the graph reads at a time, from 100 to 10,000. | Graph (no cards yet) |
-| `gitardo.graph.showStashes` | `true` | window | The stashes in the graph. Written by the toolbar's menu, in the user settings. | `stash.graph` |
+| `gitardo.graph.showStashes` | `true` | window | The stashes in the graph. Written by the toolbar's menu, in the user settings. | `graph.stashes` |
 | `gitardo.graph.columns` | `["author", "date", "hash"]` | window | What is shown beside each message. | Graph (no cards yet) |
 | `gitardo.graph.dateSeparators` | `true` | window | The lines that name yesterday, this week, each month. Written by the toolbar's menu. | Graph (no cards yet) |
 | `gitardo.graph.combineUpstream` | `true` | window | A branch and its upstream on one label while at the same commit. Written by the toolbar's menu. | Graph (no cards yet); `branch.delete-remote` |

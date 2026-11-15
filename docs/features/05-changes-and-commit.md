@@ -19,6 +19,18 @@ commit checked out, the draft is not there, and this page is where one commits.
 - **Function**: `views::changes::pane(state: &ChangesState, ui: &mut Ui) -> Vec<Intent>`
 - **Entry points**: **Review** in the draft (`graph.uncommitted-row`); **Show changes** in Quick search opens it and
   puts the keyboard in its message box.
+- **Extension**: the **Gitardo Changes** view of the Source Control side bar (`ChangesApp` in
+  `src/webview/ChangesApp.tsx`, view kind `changes`, registered as `gitardo.changes`), declared hidden in
+  `package.json`, so that VS Code shows it only once **Gitardo: Show Changes** in the Command Palette
+  (`gitardo.openChanges`), ticking **Gitardo Changes** in the **…** menu of the side bar, or **Show Changes** in the
+  message after a squash merge asks for it. Its rows, boxes and buttons are those of this page, with VS Code's editors
+  in place of the pages (`changes.open`); a list of more than 300 files shows the first 300 and **Show all N files…**
+  (`FILES_LIMIT` in `src/webview/Capped.tsx`). The view runs nothing itself: what its boxes and buttons ask is sent to
+  Gitardo's engine as the cards of the operations say. **View as tree** or **View as list**, and the message of the
+  commit box, are kept in the view's state (`loadUiState` and `saveUiState` in `src/webview/vscode.ts`), the layout as
+  `changesFiles`. The placeholder of the message is `Message (Ctrl+Enter to commit on main)`, or `on detached HEAD`;
+  a click on the identity under it runs `Controller.switchIdentity` (`src/extension/controller.ts`), still in
+  TypeScript. Before the repository is read the view says *Loading repository…*.
 - **Uses**: `changes.list`, `changes.unsaved`, `changes.open`, `changes.stage`, `changes.unstage`, `changes.stage-all`,
   `changes.unstage-all`, `conflicts.mark-resolved`, `changes.discard`, `changes.discard-all`, `changes.save`,
   `details.show-all-files`, `commit.create`, `commit.amend`, `commit.draft-message`, `identity.switch`, `stash.push`,
@@ -73,6 +85,20 @@ Acceptance:
 - [ ] With no repository in the workspace, the page shows **No Git repository in this workspace** and **Check again**.
 - [ ] The identity line reads `Ada <ada@example.com>` when `git config user.name` and `user.email` say so, and
       **No identity configured** when neither is set.
+- [ ] Extension: after installing, the side bar does not show **Gitardo Changes**; **Gitardo: Show Changes** shows it,
+      open.
+- [ ] Extension: with 301 changed files the list shows the first 300 and **Show all 301 files…**; the header still
+      counts `301`, and its box and buttons act on all 301.
+- [ ] Extension: with nothing to commit and no edits not saved the view says *No changes*; before the repository is
+      read, *Loading repository…*.
+- [ ] Extension: while an operation runs, **Commit** and the box that chooses the repository are disabled.
+- [ ] Extension: **Commit** is disabled while the message is empty or only spaces and while nothing is changed; with
+      **Amend last commit** ticked it is enabled with an empty message.
+- [ ] Extension: a message typed and left, and the choice of tree or list, are still there when the view is hidden
+      and shown again.
+- [ ] Extension: the directory rows of the tree have no box: staging stays per file and for all.
+- [ ] Extension: once a commit or an amend ran, the box is empty and **Amend last commit** unticked; when it fails or
+      is refused, the message stays.
 
 ### `changes.read-working-tree` — Read what is not committed
 
@@ -145,6 +171,11 @@ editable sides of the Diff and Merge pages.
 - **Reads**: `git check-ignore -z --stdin`, given the candidate paths separated by NUL on standard input; git ends
   with code 1 when none of them is ignored, which means none is.
 - **Uses**: `file-view.page`, `diff.page`, `merge-view.page`.
+- **Extension**: the files of VS Code's text documents with edits not saved, worked out by the extension itself
+  (`Controller.checkUnsaved` and `Controller.unsavedIn` in `src/extension/controller.ts`) by the same rules, with
+  `git check-ignore -z --stdin` run by `Repo.ignored` (`src/git/repo.ts`) without taking locks, and told to the Changes
+  view with an `unsaved` message. It is worked out again at each edit, at each editor closed or saved and at each read
+  of the repository, and sent only when the list changed.
 
 Rules:
 
@@ -162,6 +193,12 @@ Acceptance:
 - [x] A buffer of a file in a submodule, or in `node_modules` ignored by `.gitignore`, is not in the result.
 - [x] A buffer of a file outside the repository is not in the result.
 - [x] The row of a file that is changed for git and also has edits not saved has a dot after its name and **Save**.
+- [ ] Extension: the dot after the name of a file with edits not saved is titled *Not saved*.
+- [ ] Extension: a file git sees no change in, edited in an editor and not saved, is listed among the others in the
+      order of the paths, and a click on it opens its editor.
+- [ ] Extension: reverting the editor takes the file out of the list, or its dot away, without a read of the
+      repository.
+- [ ] Extension: the view does not say *No changes* while a file has edits not saved.
 
 ### `changes.open` — What a file of the Changes page opens
 
@@ -171,6 +208,17 @@ Decides which page, and which two versions, a click or a button on a file of the
 - **Function**: `model::changes::open(input: &OpenInput) -> PageRequest`
 - **Settings**: `changes.openOnClick`: `file` (the default) or `diff`. It changes only what a click on a row does.
 - **Uses**: `diff.page`, `file-view.page`, `merge-view.page`.
+- **Extension**: a click on a file of the Changes view, its buttons **Open File** and **Open Changes**, **Open all
+  changes in one editor** on the header of **Changes**, and **Compare with the saved file** on a file only an editor
+  has changed, done by the extension itself (the messages `openChange`, `openFile`, `openDiff`, `openChanges` and
+  `compareWithSaved` in `Controller.onMessage`, and `sides` in `src/extension/controller.ts`), with VS Code's editors
+  in place of the pages. The diff opens in VS Code's diff editor, titled `a.txt (Working Tree)` or `a.txt (Index)`;
+  when VS Code's Git extension has the repository open, its two sides are that extension's own `git:` documents, so
+  that **Stage Selected Ranges**, **Unstage Selected Ranges** and **Revert Selected Ranges** work in it. **Open all
+  changes in one editor** runs `vscode.changes`: one editor titled **Changes**, where each file has the two sides
+  **Open Changes** gives it, rather than the last commit against the file on disk. **Compare with the saved file** runs
+  VS Code's `workbench.files.action.compareWithSaved`. A file in conflict with its base and both sides opens in VS
+  Code's merge editor. The setting is `gitardo.changes.openOnClick`.
 
 Rules:
 
@@ -195,16 +243,32 @@ Acceptance:
       `file`, the File page.
 - [x] A click on a deleted file opens its Diff page whatever the setting says.
 - [x] **Open all changes in one Diff page** with three changed files opens one Diff page with three files.
+- [ ] Extension: **Open all changes in one editor** with `a.txt` wholly staged and `b.txt` with changes not staged
+      opens one editor titled **Changes**, with `HEAD` against the index for `a.txt` and the index against the file
+      on disk for `b.txt`.
+- [ ] Extension: a click on a file only an editor has changed opens that editor; **Compare with the saved file** opens
+      VS Code's comparison of the file on disk with what its editor has, not saved.
+- [ ] Extension: a click on a file in conflict that has its base and both sides opens it in the merge editor, whatever
+      `gitardo.changes.openOnClick` says.
 
 ### `changes.stage` — Stage a file
 
-Puts the changes of a file in the index, for the next commit.
+Puts the changes of a file, or of several files given at once, in the index, for the next commit.
 
 - **Kind**: Operation
 - **Function**: `features::changes::stage(context, answers) -> Outcome`
 - **Entry points**: ticking the box of a file that is empty or half ticked, in the Changes page.
+- **Extension**: ticking the box of a file in the Changes view (titled *Click to stage*, or *Partly staged: click to
+  stage all of it*); **Mark as resolved** on a file in conflict there; ticking the header box while files are in
+  conflict, which gives the files not all staged. Each sends `feature/run` of `changes.stage` to Gitardo's engine
+  (`Controller.runOnEngine` in `src/extension/controller.ts`), on the one file or on the files given (`engineRuns` in
+  `src/engine/actions.ts`); the plan is shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker`
+  in `src/engine/vscode.ts`). **Stage File** in the title of the Flow Diff is `diff.stage-file`, still the `GitOp`
+  `stageOp` run by `Controller.runIn`. When the engine's binary is missing, `stageOp` of `src/git/ops.ts` runs in its
+  place, as before (D49).
 - **Offered when**: the file is changed for git; the box of a file that only an editor has changed is disabled.
-- **Plan**: `git add -- <path>`, with the path as `changes.pathspec` writes it.
+- **Plan**: `git add -- <path>`, with the path as `changes.pathspec` writes it. Several files given at once
+  (`Target::Files`) are added by one command, `git add -- <path>…`, titled **Stage N files**.
 - **Danger**: None.
 - **Undo**: Not taken back by Undo, which follows the reflog: unticking the box (`changes.unstage`) takes it back.
 - **Uses**: `changes.pathspec`.
@@ -215,16 +279,40 @@ Acceptance:
 - [ ] Ticking a half ticked box stages the rest of the file: the box is ticked after.
 - [ ] Ticking `pages/[id].tsx` runs `git add -- :(literal)pages/[id].tsx` and leaves `pages/i.tsx` unstaged.
 - [ ] Ticking a deleted file stages its deletion.
+- [ ] `a.txt` and `b.txt` given at once are added by one `git add -- a.txt b.txt`, titled **Stage 2 files**.
+- [ ] Extension: ticking the box of `b.txt` runs `git add -- b.txt` in the engine, written to the **Gitardo** output
+      channel.
+- [ ] Extension: with `gitardo.commandPreview` set to `off` nothing is asked; set to `all`, a modal dialog *Stage
+      b.txt?* shows `git add -- b.txt` and the folder it runs in, with **Run**; **Cancel** stages nothing and leaves
+      the box unticked.
+- [ ] Extension: a file named `-dash.txt` is staged with `git add -- -dash.txt`: it comes after `--`, so it is never an
+      option.
+- [ ] Extension: **Mark as resolved** on `clash.ts` in conflict runs `git add -- clash.ts`, and the file leaves
+      **Conflicts**.
+- [ ] Extension: before the first commit, ticking `a.txt` runs `git add -- a.txt` and lists it as added.
+- [ ] Extension: **Undo** right after staging does not unstage the file, and staging does not make **Undo** forget a
+      branch deleted just before.
+- [ ] Extension: with `gitardo.engine.path` naming a missing file, the output channel says once that the engine was
+      not found, and ticking a box runs `stageOp`, as do the other operations of this file with their `GitOp`.
 
 ### `changes.unstage` — Unstage a file
 
-Takes the changes of a file out of the index; the file on disk is not touched.
+Takes the changes of a file, or of several files given at once, out of the index; the files on disk are not touched.
 
 - **Kind**: Operation
 - **Function**: `features::changes::unstage(context, answers) -> Outcome`
 - **Entry points**: unticking the box of a file that is ticked, in the Changes page.
+- **Extension**: unticking the ticked box of a file in the Changes view (titled *Staged: click to unstage*), which
+  gives both names of a staged rename; unticking the header box while files are in conflict, which gives the files
+  staged. Each sends `feature/run` of `changes.unstage` to Gitardo's engine (`Controller.runOnEngine`), on the one file
+  or on the files given (`engineRuns` in `src/engine/actions.ts`), its plan shown in a modal dialog when
+  `gitardo.commandPreview` is `all` (`VscodeAsker`). **Unstage File** in the title of the Flow Diff is
+  `diff.unstage-file`, still the `GitOp` `unstageOp` run by `Controller.runIn`. When the engine's binary is missing,
+  `unstageOp` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Plan**: `git restore --staged -- <path>`; for a staged rename, both names: `git restore --staged -- <new> <old>`.
-  Before the first commit there is no `HEAD` to restore the index from: `git rm --cached -r -- <path>`.
+  Before the first commit there is no `HEAD` to restore the index from: `git rm --cached -r -- <path>`. Several files
+  given at once (`Target::Files`) are restored by one command, `git restore --staged -- <path>…`, a staged rename with
+  both of its names, titled **Unstage N files**.
 - **Danger**: None.
 - **Undo**: Not taken back by Undo: ticking the box again (`changes.stage`) does.
 - **Uses**: `changes.pathspec`.
@@ -236,6 +324,14 @@ Acceptance:
       `b` untracked.
 - [ ] In a repository with no commit, unticking a staged file runs `git rm --cached -r -- <path>` and the file stays on
       disk, untracked.
+- [ ] `a.txt` and the staged rename of `b` to `c` given at once are restored by one
+      `git restore --staged -- a.txt c b`, titled **Unstage 2 files**.
+- [ ] Extension: unticking `a.ts` runs `git restore --staged -- a.ts` in the engine, written to the **Gitardo** output
+      channel; nothing is asked with `gitardo.commandPreview` set to `off`, and with `all` *Unstage a.ts?* shows the
+      command first.
+- [ ] Extension: unticking the staged rename of `old.txt` to `new.txt` leaves nothing staged, `old.txt` deleted and
+      `new.txt` untracked.
+- [ ] Extension: unticking `a*.ts` runs `git restore --staged -- :(literal)a*.ts`.
 
 ### `changes.stage-all` — Stage all changes
 
@@ -245,6 +341,12 @@ Stages every change at once.
 - **Function**: `features::changes::stage_all(context, answers) -> Outcome`
 - **Entry points**: ticking the box on the header of the list in the Changes page, when it is empty or half ticked;
   **Stage all changes** in the context menu of the draft in the timeline.
+- **Extension**: ticking the header box of **Changes** in the Changes view (titled *Click to stage all changes*) while
+  no file is in conflict, and **Stage all changes** in the context menu of the uncommitted changes row of the graph,
+  send `feature/run` of `changes.stage-all` to Gitardo's engine on the changes (`Controller.runOnEngine`, `engineRuns`
+  in `src/engine/actions.ts`); while files are in conflict the header box sends `changes.stage` with the files not all
+  staged. The plan is shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker`). When the
+  engine's binary is missing, `stageAllOp` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: in the context menu of the row, while some change is not staged and no file is in conflict.
 - **Plan**: `git add --all`. While files are in conflict, which `--all` would take as resolved, markers and all, every
   other file that is not all staged is named instead: `git add -- <path>…`.
@@ -258,6 +360,10 @@ Acceptance:
 - [ ] With `a.txt` in conflict and `b.txt`, `c.txt` changed, ticking the header box runs `git add -- b.txt c.txt`, and
       `a.txt` is still in conflict after.
 - [ ] The context menu of the draft has no **Stage all changes** while a file is in conflict.
+- [ ] Extension: with `clash.ts` in conflict and `a.ts`, `b.ts` changed, the header box runs `git add -- a.ts b.ts`,
+      titled *Stage 2 files*, and `clash.ts` stays in conflict.
+- [ ] Extension: nothing is asked with `gitardo.commandPreview` set to `off`; with `all`, *Stage all changes?* shows
+      `git add --all` first.
 
 ### `changes.unstage-all` — Unstage all changes
 
@@ -267,9 +373,18 @@ Takes everything out of the index; the files on disk are not touched.
 - **Function**: `features::changes::unstage_all(context, answers) -> Outcome`
 - **Entry points**: unticking the box on the header of the list in the Changes page, when it is ticked; **Unstage all
   changes** in the context menu of the draft in the timeline.
+- **Extension**: unticking the ticked header box of **Changes** in the Changes view (titled *All staged: click to
+  unstage all changes*) while no file is in conflict, and **Unstage all changes** in the context menu of the
+  uncommitted changes row of the graph, offered while something is staged, also while files are in conflict, send
+  `feature/run` of `changes.unstage-all` to Gitardo's engine on the changes (`Controller.runOnEngine`, `engineRuns` in
+  `src/engine/actions.ts`): neither ends a merge or a cherry-pick any more. While files are in conflict the header box
+  sends `changes.unstage` with the files staged, both names of a rename. The plan is shown in a modal dialog when
+  `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing, `unstageAllOp` of
+  `src/git/ops.ts` runs in its place, as before, `git reset` included (D49).
 - **Offered when**: in the context menu of the row, while something is staged.
 - **Plan**: `git reset`; before the first commit, `git rm --cached -r -- .`. While files are in conflict, whose conflicts
-  `git reset` would forget, the files that are staged are named instead: `git restore --staged -- <path>…`, a staged
+  `git reset` would forget, or while a merge, a rebase, a cherry-pick, a revert or a patch is under way, which
+  `git reset` would end, the files that are staged are named instead: `git restore --staged -- <path>…`, a staged
   rename with both of its names.
 - **Danger**: None.
 - **Undo**: Not taken back by Undo: `changes.stage-all` does.
@@ -281,14 +396,32 @@ Acceptance:
 - [ ] With a file in conflict, unticking runs `git restore --staged -- <the staged files>` and the conflict is still
       listed under **Conflicts** after.
 - [ ] In a repository with no commit it runs `git rm --cached -r -- .` and every file stays on disk.
+- [ ] While a merge waits to be committed with no conflict left, it runs `git restore --staged -- <the staged files>`,
+      and the merge is still under way after.
+- [ ] Extension: during a merge stopped on conflicts, **Unstage all changes** in the menu of the uncommitted changes
+      row runs `git restore --staged -- <the staged files>`; the merge and its conflicts are still there after.
+- [ ] Extension: during a merge of `other` with no conflict left and `a.txt`, `b.txt` staged, it runs
+      `git restore --staged -- a.txt b.txt`, and `.git/MERGE_HEAD` is still there.
+- [ ] Extension: nothing is asked with `gitardo.commandPreview` set to `off`; with `all`, *Unstage all changes?* shows
+      the command first.
 
 ### `changes.discard` — Discard the changes of a file
 
-Takes one file back to the last commit, staged changes included, or deletes it when it is untracked.
+Takes one file back to the last commit, staged changes included, or deletes it when it is untracked; several files
+given at once are discarded together.
 
 - **Kind**: Operation
 - **Function**: `features::changes::discard(context, answers) -> Outcome`
 - **Entry points**: **Discard changes** on a file of the Changes page.
+- **Extension**: **Discard changes** on a file of the Changes view, which gives the file alone when nothing of it is
+  staged and the file with both names of a rename otherwise; **Discard all changes in this file, staged too…** on a
+  file of the uncommitted changes in the details of the graph; **Discard all changes in 1 selected file…** or
+  **Discard all changes in N selected files…** above those files, once some are ticked. Each sends `feature/run` of
+  `changes.discard` to Gitardo's engine (`Controller.runOnEngine`), on the one file or on the files given (the actions
+  `discard` and `discardChanges` in `engineRuns`, `src/engine/actions.ts`); its warning is always asked, in a modal
+  warning dialog (`VscodeAsker`). **Discard Changes** in the title of the Flow Diff is `diff.discard-file`, still the
+  `GitOp` `discardOp` run by `Controller.runIn`. When the engine's binary is missing, `discardOp` and
+  `discardChangesOp` of `src/git/ops.ts` run in its place, as before (D49).
 - **Offered when**: the file is changed for git.
 - **Plan**:
   - Nothing of it staged: `git restore -- <path>` for a tracked file, `git clean -f -- <path>` for an untracked one.
@@ -296,6 +429,9 @@ Takes one file back to the last commit, staged changes included, or deletes it w
     rename, so that the file goes back to it; and `git clean -f -- <path>` for a file that is untracked and not staged.
   - Before the first commit, a staged file has nothing to go back to: `git rm -r --force --quiet -- <path>`, which
     deletes it.
+  - Several files given at once (`Target::Files`) are discarded as `changes.discard-all` discards the files of the
+    list of the Changes page, those files only, in one plan titled **Discard the changes of N files**, with one warning
+    that counts them.
 - **Danger**: Destructive, because changes that are not committed are lost for good, and an untracked or added file is
   deleted from disk. The warning says which: "Unstaged changes to tracked files will be lost.", "One untracked file will
   be deleted from disk.", or "One file goes back to the last commit, staged changes included: they will be lost, and a
@@ -313,6 +449,18 @@ Acceptance:
       both match `HEAD` after.
 - [ ] On a staged rename of `a` to `b` the command names `b` and `a`, and `a` is back after.
 - [ ] With `commandPreview` set to `off`, it still asks, showing the warning.
+- [ ] `a.txt` and `b.txt` modified and `new.txt` untracked, given at once with nothing staged, run
+      `git restore -- a.txt b.txt` and `git clean -f -- new.txt`, after one warning, "Unstaged changes to tracked files
+      will be lost. One untracked file will be deleted from disk.", titled **Discard the changes of 3 files**.
+- [ ] Extension: **Discard changes** on `a.ts`, changed and not staged, asks *Discard the changes of a.ts?* in a modal
+      warning dialog with `git restore -- a.ts`, whatever `gitardo.commandPreview` says; **Run** runs it in the engine,
+      written to the **Gitardo** output channel; **Cancel** leaves every file as it was.
+- [ ] Extension: in the details, ticking `one.txt` and `two.txt`, both untracked, and choosing **Discard all changes in
+      2 selected files…** asks *Discard the changes of 2 files?* with `git clean -f -- one.txt two.txt` and "2
+      untracked files will be deleted from disk."
+- [ ] Extension: a file taken out of the index and left on disk goes back to what `HEAD` has, and is not deleted.
+- [ ] Extension: discarding `pages/[id].txt` runs `git restore -- :(literal)pages/[id].txt`, and `pages/i.txt` and
+      `pages/d.txt` keep their changes.
 
 ### `changes.discard-all` — Discard all changes
 
@@ -322,6 +470,14 @@ Takes every changed file back to the last commit, staged changes included, and d
 - **Function**: `features::changes::discard_all(context, answers) -> Outcome`
 - **Entry points**: **Discard all changes** on the header of the list in the Changes page; **Discard all changes…** in
   the context menu of the draft in the timeline.
+- **Extension**: **Discard all changes…** in the context menu of the uncommitted changes row of the graph, and above
+  the files of the uncommitted changes in the details while none is ticked, both offered while no operation is under
+  way, send `feature/run` of `changes.discard-all` to Gitardo's engine on the whole working tree, as from the draft;
+  **Discard all changes** on the header of **Changes** in the Changes view sends it on the files of the list when
+  nothing is staged, and `changes.discard` with every file of the list, both names of a rename, when something is (the
+  actions `discardChanges` and `discardAll` in `engineRuns`, `src/engine/actions.ts`, run by
+  `Controller.runOnEngine`). The warning is always asked, in a modal warning dialog (`VscodeAsker`). When the engine's
+  binary is missing, `discardChangesOp` and `discardOp` of `src/git/ops.ts` run in its place, as before (D49).
 - **Offered when**: in the context menu of the row, while no merge, rebase, cherry-pick, revert or `git am` is in
   progress: there, **Abort** is what goes back.
 - **Plan**, from the header of the Changes page, which acts on the files of its list and leaves the files in conflict
@@ -358,6 +514,16 @@ Acceptance:
 - [ ] The entry of the row is not in its menu while a merge is stopped on conflicts.
 - [ ] The files only an editor has changed keep their edits not saved.
 - [ ] With `commandPreview` set to `off`, it still asks, showing the warning.
+- [ ] Extension: **Discard all changes…** in the menu of the uncommitted changes row asks *Discard all changes?* in a
+      modal warning dialog with `git restore --source=HEAD --staged --worktree -- .` and `git clean -f -d -- .`,
+      whatever `gitardo.commandPreview` says; after **Run**, `git status --porcelain` prints nothing.
+- [ ] Extension: during a merge, neither the menu of the uncommitted changes row nor the details offer **Discard all
+      changes…**.
+- [ ] Extension: with `a.txt` staged and `b.txt` changed, **Discard all changes** of the Changes view asks *Discard the
+      changes of 2 files?* with one `git restore --source=HEAD --staged --worktree -- a.txt b.txt`.
+- [ ] Extension: before the first commit, **Discard all changes…** of the row runs `git rm -r --force --quiet -- .`,
+      and the staged files are deleted from disk.
+- [ ] Extension: **Cancel** leaves every file as it was.
 
 ### `changes.save` — Save a file, or all of them
 
@@ -368,6 +534,9 @@ Writes to disk the edits typed in Gitardo's editors and not saved yet, so that g
 - **Entry points**: **Save all** on the header of the list, for every file of the working tree with edits not saved
   in a File page. **Save** on a row of the Changes page saves that file through `file-view.save`, which asks before
   writing over a file another program changed.
+- **Extension**: **Save** on the row of a file with edits not saved, and **Save all** on the header of **Changes** in
+  the Changes view, have VS Code save its own editors of those files (`Controller.save` in
+  `src/extension/controller.ts`), as `Ctrl+S` would: no git command runs, and nothing is written to the log.
 - **Offered when**: the file has edits not saved (`changes.unsaved`).
 - **Plan**: `write <path>` for each file, with the text of its buffer.
 - **Danger**: None.
@@ -381,6 +550,9 @@ Acceptance:
       ticked.
 - [x] **Save all** with two unsaved files writes both, and logs two `write` lines.
 - [x] A file saved that ends up as in `HEAD` leaves the list.
+- [ ] Extension: **Save** on `first.txt` writes the edits of its editor to disk; the dot goes, and `first.txt` is
+      listed as changed once the repository is read again.
+- [ ] Extension: **Save all** saves every file of the repository listed with a dot, and no other editor.
 
 ### `changes.pathspec` — A file named as itself
 
@@ -411,6 +583,19 @@ Makes a commit of what is staged, with the message of the commit box.
 - **Function**: `features::commit::create(context, answers) -> Outcome`
 - **Entry points**: **Commit** in the draft and under the message in the Changes page; `Ctrl+Enter` (`Cmd+Enter` on
   macOS) in the message box.
+- **Extension**: **Commit** in the commit box of the Changes view, and `Ctrl+Enter` (`Cmd+Enter`) in its message, send
+  `feature/run` of `commit.create` to Gitardo's engine with the message typed as the answer `message` (`engineRuns` in
+  `src/engine/actions.ts`, run by `Controller.runOnEngine`). The question when nothing is staged is a modal warning
+  dialog with **Stage all and commit** (`VscodeAsker` in `src/engine/vscode.ts`), and the plan is shown in a modal
+  dialog when `gitardo.commandPreview` is `all`; once it ran, the engine's follow-up `emptyCommitMessage` empties the
+  commit box (the message `committed`). The message the box starts from is the extension's own: after a squash merge,
+  what `.git/SQUASH_MSG` says (`Repo.squashMessage`), with the message *Gitardo: the changes are staged, and nothing
+  is committed yet. Commit them to make them one commit on main.* and **Show Changes** and **Undo**; after a split,
+  the message of the commit split (`Repo.commitMessage`), with *The changes of "\<subject\>" are in the working tree,
+  unstaged: commit them in as many commits as you like.* and **Undo** after a split of the last commit; both posted as
+  `commitMessage` by `Controller.reportSquashed` and `Controller.reportSplit` (`src/extension/controller.ts`), which
+  still run in TypeScript with the merge and the split. When the engine's binary is missing, `commitOp` of
+  `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: **Amend last commit** is not ticked, the message is not empty and something is changed; otherwise
   the button is disabled.
 - **Asks**: when nothing is staged and some change is not: a confirmation, "There are no staged changes. Stage all
@@ -438,6 +623,22 @@ Acceptance:
 - [ ] With the message `  \n  ` the button is disabled.
 - [ ] After the commit the message box is empty.
 - [ ] A squash merge that stopped to be committed fills the empty message box with git's prepared message.
+- [ ] Extension: with `b.txt` staged, typing `Commit from the UI` and pressing **Commit** runs
+      `git commit -m "Commit from the UI"` in the engine, written to the **Gitardo** output channel, and
+      `git log -1 --format=%s` prints `Commit from the UI`; what is not staged stays out of the commit and stays
+      listed.
+- [ ] Extension: nothing is asked with `gitardo.commandPreview` set to `off`; with `all`, *Commit "Commit from the
+      UI"?* shows the command first.
+- [ ] Extension: with nothing staged and `a.txt` changed, **Commit** asks *There are no staged changes. Stage all
+      changes and commit them?*; **Stage all and commit** runs `git add --all` and then `git commit -m "<message>"`.
+- [ ] Extension: a message with a subject, a blank line and a body of several lines is committed exactly as typed,
+      trimmed at its ends.
+- [ ] Extension: right after, **Undo** asks first and then runs `git reset --soft` to the commit before: the commit is
+      gone and its changes are staged.
+- [ ] Extension: after **Split this commit…** on `Add the login page`, the empty box holds its whole message; when the
+      box already has text other than spaces, that text stays.
+- [ ] Extension: when git refuses, such as a hook that fails, an error message says why with **Show Log**, and the
+      message stays in the box.
 
 ### `commit.amend` — Amend the last commit
 
@@ -447,6 +648,11 @@ Replaces the last commit with one that has the staged changes too, and the new m
 - **Function**: `features::commit::amend(context, answers) -> Outcome`
 - **Entry points**: **Amend** in the Changes page, which **Commit** becomes while **Amend last commit** is ticked
   there, the box being on the Changes page only; `Ctrl+Enter` (`Cmd+Enter` on macOS) in its message box then.
+- **Extension**: ticking **Amend last commit** in the commit box of the Changes view, then **Amend** or `Ctrl+Enter`,
+  sends `feature/run` of `commit.amend` to Gitardo's engine with the message typed, empty to keep the one the commit
+  has, as the answer `message` (`engineRuns` in `src/engine/actions.ts`, run by `Controller.runOnEngine`); the plan is
+  shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker`). When the engine's binary is missing,
+  `commitOp` of `src/git/ops.ts` runs in its place, as before (D49).
 - **Offered when**: there is a commit: the box **Amend last commit** is disabled before the first one. Nothing needs to
   be staged.
 - **Plan**: `git commit --amend -m <message>`; with the message box empty, `git commit --amend --no-edit`, which keeps
@@ -466,6 +672,11 @@ Acceptance:
 - [ ] With `b.txt` staged and an empty message, it runs `git commit --amend --no-edit`; `HEAD` has `b.txt` and its old
       message.
 - [ ] In a repository with no commit the box **Amend last commit** cannot be ticked.
+- [ ] Extension: with nothing staged and the message empty, **Amend** is enabled and runs
+      `git commit --amend --no-edit` in the engine.
+- [ ] Extension: when the last commit is on its upstream already, nothing is asked with `gitardo.commandPreview` set
+      to `off`, and nothing says the branch will need a force push.
+- [ ] Extension: right after, **Undo** asks first and then puts back the commit as it was before the amend.
 
 ### `commit.draft-message` — Draft the commit message
 
@@ -476,6 +687,16 @@ Asks the AI provider to write the commit message from the changes, and puts its 
   `model::commit::clean_draft(answer: &str) -> String`
 - **Entry points**: the sparkle button beside **Commit** in the Changes page, and not in the draft, whose tooltip says
   **Draft a message from the changes with the AI provider**.
+- **Extension**: the sparkle button of the commit box of the Changes view, titled *Draft a message from the changes
+  with the language model set up in VS Code*. The extension drafts the message itself, in TypeScript
+  (`Controller.draftMessage` in `src/extension/controller.ts`, `draftCommitMessage` in `src/extension/ai.ts`), with
+  VS Code's language models in place of the AI provider: the first model `vscode.lm.selectChatModels()` gives, asked
+  with the justification *Gitardo sends your uncommitted changes to the model to draft a commit message.* The request
+  and the cleaning of the answer are these (`buildPrompt`, `cleanMessage` and `MAX_DIFF_CHARS` in
+  `src/shared/commitPrompt.ts`), the diff read by `Repo.diffText` (`src/git/repo.ts`), and the subjects are those of
+  the graph. The status bar says *Gitardo: drafting commit message* while it runs. With no model, it refuses with
+  *Gitardo: No language model is available in VS Code. Install an extension that provides one, such as GitHub
+  Copilot.*
 - **Offered when**: something is changed; the button is disabled while a draft is being written.
 - **Reads**: the staged changes, `git diff --cached --no-color --no-ext-diff`, when something is staged; otherwise all
   changes, `git diff --no-color --no-ext-diff`, with the paths of the untracked files; and the subjects of the last 10
@@ -515,6 +736,9 @@ Acceptance:
 - [ ] The answer "```text\nAdd the parser\n```" puts `Add the parser` in the message box.
 - [ ] No HTTP request is made before the button is pressed.
 - [ ] Cancelling while it runs leaves the message box as it was.
+- [ ] Extension: nothing is sent to a model until the sparkle button is pressed.
+- [ ] Extension: with no model in VS Code, the error above is shown and the box keeps what it had.
+- [ ] Extension: nothing in the repository changes, and nothing is written to the log of operations.
 
 ### `identity.read` — Read the identity
 

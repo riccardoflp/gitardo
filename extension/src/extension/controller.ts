@@ -78,8 +78,8 @@ import { INDEX, contentUri, proposalUri } from './content';
 import { fetchPulls, githubSession } from './github';
 import { editSetupJson, savePatterns, saveSetup, setupChangeText, setupPatterns, worktreeSetupInfo } from './worktreeSettings';
 import { EngineError, ErrorCode } from '../engine/connection';
-import type { Target } from '../engine/messages';
-import { targetOf } from '../engine/target';
+import { type EngineRun, engineRuns } from '../engine/actions';
+import type { FollowUp, Target } from '../engine/messages';
 import { VscodeAsker, type WindowEngine } from '../engine/vscode';
 import { headOf, recordOf, type UndoRecord } from '../engine/journal';
 
@@ -564,8 +564,11 @@ export class Controller implements vscode.Disposable {
   /** Writes resolutions of conflicts, with the way back, and says what is left. */
   private async writeResolutions(repo: Repo, op: GitOp, files: string[]): Promise<boolean> {
     const top = (await repo.reflog('HEAD', 1).catch(() => []))[0];
-    if (!(await this.run(op, { repo })).ok) return false;
+    const before = this.state;
+    if (!(await this.run(op, { repo, recorded: true })).ok) return false;
     if (this.repo && samePath(this.repo.root, repo.root)) this.undoable = { reflogTop: top ? `${top.hash} ${top.subject}` : '', op: restoreConflictsOp(files) };
+    // HEAD has not moved, so the journal is told what Undo puts back: the conflicts of the files written.
+    await this.recordInJournal(repo, op.title, before, { kind: 'conflictsResolved', files });
     return true;
   }
 
@@ -1646,11 +1649,10 @@ export class Controller implements vscode.Disposable {
     const state = await this.requireState();
     const repo = this.repo;
     if (!state || !repo) return;
-    // Creating a branch is the engine's: its TypeScript operation is only for an engine that is not there.
-    if (action.kind === 'createBranch' && (await this.runOnEngine('branch.create', targetOf(action.at, state), repo))) return;
-    // Undo is the engine's, which takes back the newest operation whichever of the two ran it; what Gitardo remembered
-    // here is only for an engine that is not there.
-    if (action.kind === 'undo' && (await this.runOnEngine('undo.last', { kind: 'head' }, repo))) return;
+    // The operations of the areas moved to the engine are its own: their TypeScript is only for an engine that is not
+    // there. Undo is the engine's too, which takes back the newest operation whichever of the two ran it.
+    const runs = engineRuns(action, state);
+    if (runs && (await this.runOnEngine(runs, repo))) return;
     // A key binding, or a view drawn before the setting changed, can still ask for it.
     if (action.kind === 'resolveConflicts' && !this.autoResolve()) {
       void vscode.window
@@ -1770,46 +1772,96 @@ export class Controller implements vscode.Disposable {
    * the output channel, and the follow-ups it leaves carried out here; false when there is no engine to run it, and the
    * operation of TypeScript is to run in its place.
    */
-  private async runOnEngine(feature: string, target: Target, repo: Repo): Promise<boolean> {
+  private async runOnEngine(runs: EngineRun[], repo: Repo): Promise<boolean> {
     const client = this.engine?.running;
     if (!client) return false;
-    // As for a GitOp, one operation at a time; the engine would answer busy anyway.
-    if (this.running) return true;
-    this.running = true;
-    this.operations++;
-    let ran = false;
-    try {
-      const { finished, followUps } = await client.runFeature(
-        { repository: repo.root, feature, target, inputs: this.memento.get<Record<string, string>>(LAST_INPUTS, {}) },
-        new VscodeAsker(client, repo.root),
-      );
-      if (finished.kind === 'refused') void vscode.window.showWarningMessage(`Gitardo: ${finished.message}`);
-      if (finished.kind !== 'ran') return true;
-      ran = true;
-      this.undoable = undefined;
-      for (const followUp of followUps) {
-        if (followUp.kind === 'say') void vscode.window.showInformationMessage(`Gitardo: ${String(followUp.text)}`);
-        if (followUp.kind === 'rememberInputs') {
-          const last = this.memento.get<Record<string, string>>(LAST_INPUTS, {});
-          await this.memento.update(LAST_INPUTS, { ...last, ...(followUp.values as Record<string, string>) });
+    for (const { feature, target, answers } of runs) {
+      // As for a GitOp, one operation at a time; the engine would answer busy anyway.
+      if (this.running) return true;
+      this.running = true;
+      this.operations++;
+      this.post({ type: 'busy', title: feature });
+      let result: Awaited<ReturnType<typeof client.runFeature>> | undefined;
+      try {
+        const inputs = this.memento.get<Record<string, string>>(LAST_INPUTS, {});
+        result = await client.runFeature({ repository: repo.root, feature, target, answers, inputs }, new VscodeAsker(client, repo.root));
+      } catch (failure) {
+        if (!(failure instanceof EngineError && (failure.code === ErrorCode.busy || failure.code === ErrorCode.cancelled))) {
+          const data = failure instanceof EngineError ? (failure.data as { output?: string | null } | undefined) : undefined;
+          const said = data?.output?.trim();
+          if (said) this.log.error(said);
+          void vscode.window.showErrorMessage(`Gitardo: ${errorText(failure)}`, 'Show Log').then((choice) => choice && this.log.show());
         }
+      } finally {
+        // The repository is read once the run is over: nothing is read while an operation runs.
+        this.running = false;
+        this.post({ type: 'busy', title: null });
+      }
+      const { finished, followUps } = result ?? { finished: undefined, followUps: [] };
+      if (finished?.kind === 'ran') {
+        this.undoable = undefined;
+        await this.followUpsBeforeRead(followUps);
       }
       await this.refresh();
-      for (const followUp of followUps) {
-        if (followUp.kind === 'selectHead' && this.state?.head) this.show(this.state.head);
-        if (followUp.kind === 'selectCommit') this.show(String(followUp.commit));
-      }
-    } catch (failure) {
-      if (failure instanceof EngineError && (failure.code === ErrorCode.busy || failure.code === ErrorCode.cancelled)) return true;
-      const data = failure instanceof EngineError ? (failure.data as { output?: string | null } | undefined) : undefined;
-      const said = data?.output?.trim();
-      if (said) this.log.error(said);
-      void vscode.window.showErrorMessage(`Gitardo: ${errorText(failure)}`, 'Show Log').then((choice) => choice && this.log.show());
-    } finally {
-      this.running = false;
-      if (!ran) await this.refresh();
+      if (finished?.kind === 'refused') this.offerAfterRefusal(finished.message, finished.offer, target, repo);
+      if (finished?.kind !== 'ran') return true;
+      this.followUpsAfterRead(followUps);
     }
     return true;
+  }
+
+  /** Says why the engine refused, with the button of the feature it offers in its place, run on the same target. */
+  private offerAfterRefusal(message: string, offer: { feature: string; label: string } | null, target: Target, repo: Repo): void {
+    const items = offer ? [offer.label] : [];
+    void vscode.window.showWarningMessage(`Gitardo: ${message}`, ...items).then((choice) => {
+      if (offer && choice === offer.label) void this.runOnEngine([{ feature: offer.feature, target }], repo);
+    });
+  }
+
+  /** Carries out what a plan of the engine leaves for the host before the repository is read again. */
+  private async followUpsBeforeRead(followUps: FollowUp[]): Promise<void> {
+    for (const followUp of followUps) {
+      switch (followUp.kind) {
+        case 'say':
+          void vscode.window.showInformationMessage(`Gitardo: ${String(followUp.text)}`);
+          break;
+        case 'rememberInputs': {
+          const last = this.memento.get<Record<string, string>>(LAST_INPUTS, {});
+          await this.memento.update(LAST_INPUTS, { ...last, ...(followUp.values as Record<string, string>) });
+          break;
+        }
+        case 'emptyCommitMessage':
+          this.post({ type: 'committed' });
+          break;
+        case 'copyToClipboard':
+          await vscode.env.clipboard.writeText(String(followUp.text));
+          break;
+        case 'openUrl':
+          void vscode.env.openExternal(vscode.Uri.parse(String(followUp.url)));
+          break;
+        case 'openWindow':
+          void vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(String(followUp.folder)), { forceNewWindow: true });
+          break;
+        case 'showFolder':
+          void vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(String(followUp.folder)));
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  /** Carries out what a plan of the engine leaves for the host once the repository was read again: what to select. */
+  private followUpsAfterRead(followUps: FollowUp[]): void {
+    for (const followUp of followUps) {
+      if (followUp.kind === 'selectHead' && this.state?.head) this.show(this.state.head);
+      if (followUp.kind === 'selectCommit') this.show(String(followUp.commit));
+      if (followUp.kind === 'selectBeforeHead' && this.state?.head) {
+        const count = Number(followUp.count);
+        void git(this.state.root, ['rev-parse', `HEAD~${count}`]).then((result) => this.show(result.stdout.trim()));
+      }
+      if (followUp.kind === 'openCommitPage') void this.openCommit(String(followUp.commit));
+    }
   }
 
   /**
