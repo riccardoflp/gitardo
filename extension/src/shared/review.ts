@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import type { ConflictAnswer } from '../shared/conflictPrompt';
-import { choiceText, proposalLines, repeatedKeys } from '../shared/proposalLines';
+import type { ConflictAnswer } from './conflictPrompt';
+import { choiceText, proposalLines, repeatedKeys } from './proposalLines';
 import {
   CHOSEN,
   RESOLUTIONS,
@@ -12,9 +12,8 @@ import {
   type ProposalWarning,
   type ReviewConflict,
   type ReviewFile,
-} from '../shared/resolution';
-import { applyReplacements, type Conflict } from './conflicts';
-import type { ConflictPlan } from './repo';
+} from './resolution';
+import { applyReplacements, type Conflict, type ConflictPlan } from './conflicts';
 
 /** How many lines of the file the tab shows before a conflict and after it. */
 const AROUND = 3;

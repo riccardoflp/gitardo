@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import { ThemeService } from '../flow/theme';
 import { discoverRepos, repoName } from '../git/discover';
 import { GitError, formatCommand, git, writeFiles } from '../git/exec';
-import { compareRangeUrl, compareUrl, parseGitHubRemote, type GitHubRepo } from '../git/github';
+import { compareRangeUrl, compareUrl, parseGitHubRemote, type GitHubRepo } from '../shared/github';
 import {
   CONFLICT_SIDES,
   cleanupBranchesOp,

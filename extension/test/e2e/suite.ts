@@ -9,7 +9,7 @@ import { CONFLICT, INDEX, contentUri } from '../../src/extension/content';
 import type { GitardoApi } from '../../src/extension/extension';
 import { type DiffDescriptor, describeDiff } from '../../src/flow/sides';
 import { git } from '../../src/git/exec';
-import { samePath } from '../../src/git/parse';
+import { samePath } from '../../src/shared/paths';
 import { Repo } from '../../src/git/repo';
 import { WORKTREE, type CompareMode, type CompareSide, type Filter, type HostMessage, type RebaseStep, type RepoState, type ViewKind, type WebviewMessage } from '../../src/shared/protocol';
 import type { ConflictReview } from '../../src/shared/resolution';

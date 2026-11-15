@@ -6,7 +6,7 @@ import type { MergeMode, Operation, RebaseStep, RepoState, PullAction, SyncActio
 import { OPERATION_COMMANDS, upstreamBranch, upstreamName } from '../shared/state';
 import { canFastForward, refArg, worktreeOf } from '../shared/refs';
 import { RESOLUTIONS, type Proposal } from '../shared/resolution';
-import { applyReplacements, conflictCount } from './conflicts';
+import { CONFLICT_SIDES, applyReplacements, conflictCount } from '../shared/conflicts';
 import { type FileWrite, GitError, formatCommand, git } from './exec';
 import type { ConflictPlan } from './repo';
 
@@ -1101,15 +1101,7 @@ export function clearIdentityOp(localKeys: string[]): GitOp {
   return { title: 'Use the global identity', commands: keys.map((key) => ['config', '--unset-all', key]) };
 }
 
-/** What the two sides of a conflict are, which depends on the operation that stopped: a rebase swaps them. */
-export const CONFLICT_SIDES: Record<Operation | 'none', [current: string, incoming: string]> = {
-  merge: ['The branch checked out', 'The branch being merged'],
-  rebase: ['What the branch is being rebased onto', 'Your commit being replayed'],
-  cherryPick: ['The branch checked out', 'The commit being picked'],
-  revert: ['The branch checked out', 'The state before the reverted commit'],
-  patch: ['The branch checked out', 'The patch being applied'],
-  none: ['Your files', 'The changes being applied'],
-};
+export { CONFLICT_SIDES } from '../shared/conflicts';
 
 const plural = (count: number, one: string) => (count === 1 ? `1 ${one}` : `${count} ${one}s`);
 

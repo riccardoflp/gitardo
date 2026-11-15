@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { Answer } from '../git/review';
+import type { Answer } from '../shared/review';
 import type { Choice } from '../shared/resolution';
 
 /**

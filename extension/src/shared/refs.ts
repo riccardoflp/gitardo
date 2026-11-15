@@ -1,6 +1,11 @@
 import type { Branch, BranchSort, PullRequest, RepoState, RepositoryState, Worktree } from './protocol';
 import { checkedOutBranch, upstreamName, worktreeBranch } from './state';
 
+/** Whether a value is the hash of a commit, whole or the start of it, as git writes it. */
+export function isHash(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{7,64}$/.test(value);
+}
+
 const KINDS = { branch: 'refs/heads/', remote: 'refs/remotes/', tag: 'refs/tags/' } as const;
 
 /**

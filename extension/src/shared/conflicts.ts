@@ -1,4 +1,4 @@
-import type { Resolution } from '../shared/protocol';
+import type { Operation, Resolution } from './protocol';
 
 // Resolves the conflicts of a file that need no choice between the two sides. Git stops wherever both sides changed
 // lines that touch; a good part of what it stops at is two changes that sit side by side, or the same lines spaced
@@ -638,3 +638,22 @@ function plan(lines: string[], found: Block[], baseLines: string[], real: string
     return { patch: { from: block.from - (up.distance - 1), to: block.to + down.distance, lines: merged.lines, resolution: merged.resolution }, stretch };
   });
 }
+
+/** A file in conflict as it is in the working tree, and as it would be with the conflicts that need no choice resolved. */
+export interface ConflictPlan {
+  path: string;
+  /** What the file has now, markers and all. */
+  text: string;
+  resolved: string;
+  conflicts: Conflict[];
+}
+
+/** What the two sides of a conflict are, which depends on the operation that stopped: a rebase swaps them. */
+export const CONFLICT_SIDES: Record<Operation | 'none', [current: string, incoming: string]> = {
+  merge: ['The branch checked out', 'The branch being merged'],
+  rebase: ['What the branch is being rebased onto', 'Your commit being replayed'],
+  cherryPick: ['The branch checked out', 'The commit being picked'],
+  revert: ['The branch checked out', 'The state before the reverted commit'],
+  patch: ['The branch checked out', 'The patch being applied'],
+  none: ['Your files', 'The changes being applied'],
+};

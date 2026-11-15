@@ -2,12 +2,12 @@ import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as path from 'node:path';
 import { discoverRepos, repoName } from '../git/discover';
-import { parseGitHubRemote } from '../git/github';
-import { samePath } from '../git/parse';
-import type { Conflict } from '../git/conflicts';
-import { CONFLICT_SIDES } from '../git/ops';
+import { parseGitHubRemote } from '../shared/github';
+import { samePath } from '../shared/paths';
+import type { Conflict } from '../shared/conflicts';
+import { CONFLICT_SIDES } from '../shared/conflicts';
 import { Repo } from '../git/repo';
-import { fingerprint, reviewFiles, type Answer } from '../git/review';
+import { fingerprint, reviewFiles, type Answer } from '../shared/review';
 import { previewSetup, proposedCommands, scanIgnored } from '../git/worktreeSetup';
 import { addressed, languageMap, readFileIconTheme } from '../extension/fileIconTheme';
 import {

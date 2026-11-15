@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { answerProposal, fingerprint } from '../src/git/review';
-import { resolveConflicts } from '../src/git/conflicts';
+import { answerProposal, fingerprint } from '../src/shared/review';
+import { resolveConflicts } from '../src/shared/conflicts';
 import { buildConflictPrompt, fitResolution, parseConflictAnswer, partialResolution } from '../src/shared/conflictPrompt';
 import { newLineCount } from '../src/shared/resolution';
 

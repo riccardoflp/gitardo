@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { samePath } from '../git/parse';
+import { samePath } from '../shared/paths';
 
 /** The little of the API of VS Code's Git extension that following its selection needs. */
 interface GitRepository {

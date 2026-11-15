@@ -12,7 +12,7 @@ import { engineSettings, extensionKey } from '../src/engine/settings';
 import { git } from '../src/git/exec';
 import { CONFLICT_SIDES } from '../src/git/ops';
 import { Repo } from '../src/git/repo';
-import { questionParts } from '../src/git/review';
+import { questionParts } from '../src/shared/review';
 import { buildPrompt, cleanMessage } from '../src/shared/commitPrompt';
 import { buildConflictPrompt, fitResolution, parseConflictAnswer } from '../src/shared/conflictPrompt';
 import { answering, built, choice, cleanUpAfterEach, client, commitFile, memoryLog, repository } from './engine/harness';

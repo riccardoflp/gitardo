@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { merge, resolveConflicts } from '../src/git/conflicts';
+import { merge, resolveConflicts } from '../src/shared/conflicts';
 import { GitError, git, writeFiles } from '../src/git/exec';
 import {
   checkoutOp,
@@ -22,7 +22,7 @@ import {
   type GitOp,
 } from '../src/git/ops';
 import { Repo } from '../src/git/repo';
-import { conflictChanges, reviewFiles } from '../src/git/review';
+import { conflictChanges, reviewFiles } from '../src/shared/review';
 import type { Choice } from '../src/shared/resolution';
 
 // Conflicts as git itself leaves them, in a throwaway repository, resolved the way the extension does it.

@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { git } from '../git/exec';
-import { samePath } from '../git/parse';
+import { samePath } from '../shared/paths';
 import { Repo } from '../git/repo';
 import { reads } from '../engine/reads';
 import { INDEX, SCHEME, contentUri } from '../extension/content';

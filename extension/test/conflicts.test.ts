@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyReplacements, conflictCount, diff, diffBackward, merge, resolveConflicts } from '../src/git/conflicts';
+import { applyReplacements, conflictCount, diff, diffBackward, merge, resolveConflicts } from '../src/shared/conflicts';
 
 /** Lines as they are in a file: each with its line break. */
 const lines = (...texts: string[]) => texts.map((text) => `${text}\n`);

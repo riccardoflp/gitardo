@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { workingChanges, type WorkingChange } from '../git/parse';
+import { workingChanges, type WorkingChange } from '../shared/changes';
 import type { FileChange, FilesLayout, RepoState } from '../shared/protocol';
 import { checkedOutBranch } from '../shared/state';
 import { fileTree } from '../shared/tree';

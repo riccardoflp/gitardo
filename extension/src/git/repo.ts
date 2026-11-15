@@ -30,9 +30,10 @@ import {
   type Worktree,
 } from '../shared/protocol';
 import { stashName, uncommittedDetail } from '../shared/state';
+import { isHash } from '../shared/refs';
 import { REF_KINDS, SCOPE_PREFIXES, pruneScope, scopeKinds } from '../shared/scope';
 import type { DeletedConflict } from '../shared/resolution';
-import { resolveConflicts, type Conflict } from './conflicts';
+import { resolveConflicts, type Conflict, type ConflictPlan } from '../shared/conflicts';
 import { GitError, formatCommand, git, type GitResult } from './exec';
 import { committedRange, type LineRange } from './lines';
 import { SPLIT_MARKER, type UndoInfo } from './ops';
@@ -67,18 +68,9 @@ import {
   parseWorktrees,
 } from './parse';
 
-export function isHash(value: unknown): value is string {
-  return typeof value === 'string' && /^[0-9a-f]{7,64}$/.test(value);
-}
+export { isHash };
 
-/** A file in conflict as it is in the working tree, and as it would be with the conflicts that need no choice resolved. */
-export interface ConflictPlan {
-  path: string;
-  /** What the file has now, markers and all. */
-  text: string;
-  resolved: string;
-  conflicts: Conflict[];
-}
+export type { ConflictPlan } from '../shared/conflicts';
 
 /** How far back in the moves of HEAD the branches checked out last are looked for, as far as the engine looks. */
 const RECENT_MOVES = 300;

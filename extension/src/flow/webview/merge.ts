@@ -1,6 +1,6 @@
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js';
 import 'monaco-editor/esm/vs/base/browser/ui/codicons/codicon/codicon.css';
-import { applyReplacements } from '../../git/conflicts';
+import { applyReplacements } from '../../shared/conflicts';
 import type { DiffChunk } from '../diff/model';
 import {
   applyChoices,

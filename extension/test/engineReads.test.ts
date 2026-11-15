@@ -7,7 +7,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Bytes, DiffLine } from '../src/engine/messages';
-import { resolveConflicts } from '../src/git/conflicts';
+import { resolveConflicts } from '../src/shared/conflicts';
 import { git } from '../src/git/exec';
 import { parseGitHubRemote } from '../src/git/github';
 import { Repo } from '../src/git/repo';

@@ -1,10 +1,10 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { applyReplacements } from '../git/conflicts';
+import { applyReplacements } from '../shared/conflicts';
 import { CONFLICT_SIDES, writeResolutionsOp, type GitOp } from '../git/ops';
-import { samePath } from '../git/parse';
+import { samePath } from '../shared/paths';
 import type { ConflictPlan, Repo } from '../git/repo';
-import { fingerprint, questionParts, reviewFiles } from '../git/review';
+import { fingerprint, questionParts, reviewFiles } from '../shared/review';
 import { partialResolution, type ConflictAnswer } from '../shared/conflictPrompt';
 import type { EngineClient } from '../engine/client';
 import type { FileResolutions } from '../engine/messages';
