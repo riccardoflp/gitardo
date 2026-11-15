@@ -172,6 +172,12 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
   `EngineClient`, and compares the answer with what `Repo` (or `worktreeSetup.ts`, `conflicts.ts` and `github.ts`)
   reads of the same throwaway repositories; where they differ, [04-differences.md](../transition/04-differences.md)
   says why, under **Reads (stage 5)**.
+- `test/engineAi.test.ts`, for the AI and GitHub (stage 4, area 6), answers the engine's host questions with a fake
+  language model, which keeps what it was asked: the draft of a commit message and the question about a conflict are
+  sent the request the TypeScript writes, `buildPrompt` and `buildConflictPrompt`, the same answer gives the same
+  message and the same lines, cancelling a read cancels the question to the model, and choosing the model leaves the
+  two settings as `writeSetting`. Where they differ, [04-differences.md](../transition/04-differences.md) says why,
+  under **AI and GitHub**.
 - The scenarios shared with the desktop ([desktop/06-testing.md](../desktop/06-testing.md#scenarios-run-by-both-apps))
   compare the engine's plan and the final state with the TypeScript `GitOp`'s, operation by operation, until `src/git`
   is removed.

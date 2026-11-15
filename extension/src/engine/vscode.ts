@@ -6,7 +6,7 @@
  */
 import * as vscode from 'vscode';
 import { findBinary } from './binary';
-import { EngineClient, type FeatureAsker } from './client';
+import { EngineClient, type EngineOptions, type FeatureAsker } from './client';
 import type { Answer, Choice, Plan, Question, Settings } from './messages';
 import { engineSettings } from './settings';
 
@@ -167,6 +167,9 @@ function items(choices: Choice[], question: Question): Array<vscode.QuickPickIte
   return [...all.filter((item) => item.identifier === first), ...all.filter((item) => item.identifier !== first)];
 }
 
+/** What VS Code answers for the engine besides the questions of a feature: GitHub's sign-in and the language models (area 6). */
+export type HostAnswers = Pick<EngineOptions, 'githubToken' | 'languageModel' | 'languageModels'>;
+
 /** The engine of this window, started on the first call to `start`; none when its binary is missing. */
 export class WindowEngine implements vscode.Disposable {
   private client?: EngineClient;
@@ -176,6 +179,7 @@ export class WindowEngine implements vscode.Disposable {
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly log: vscode.LogOutputChannel,
+    private readonly answers: HostAnswers = {},
   ) {}
 
   /** Starts the engine the first time; the output channel says once when there is no binary for this system. */
@@ -199,6 +203,7 @@ export class WindowEngine implements vscode.Disposable {
       settings: () => readSettings(this.context.extension),
       logLevel: () => (this.log.logLevel <= vscode.LogLevel.Debug ? 'debug' : 'info'),
       log: this.log,
+      ...this.answers,
     });
     this.client = client;
     // The features see the new values from their next run.

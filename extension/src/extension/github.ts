@@ -9,6 +9,19 @@ export async function githubSession(prompt: boolean): Promise<vscode.Authenticat
   return vscode.authentication.getSession('github', SCOPES, prompt ? { createIfNone: true } : { silent: true });
 }
 
+/**
+ * The token of the user's GitHub session, for the engine (`host/githubToken`); asks them to sign in when `ask` is set.
+ * Null when there is none, or they backed out of signing in (area 6 of stage 4).
+ */
+export async function githubToken(ask: boolean): Promise<string | null> {
+  try {
+    return (await githubSession(ask))?.accessToken ?? null;
+  } catch {
+    // VS Code fails the sign-in the user closed.
+    return null;
+  }
+}
+
 /** Open pull requests of a repository by branch name, read with one GraphQL request. */
 export async function fetchPulls(repo: GitHubRepo, token: string): Promise<Record<string, PullRequest>> {
   const response = await fetch('https://api.github.com/graphql', {

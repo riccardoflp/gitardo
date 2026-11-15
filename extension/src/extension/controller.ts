@@ -83,6 +83,10 @@ import type { FileResolutions, Finished, FollowUp, OfferedRun, Plan, Step, Targe
 import { type HostHooks, VscodeAsker, type WindowEngine } from '../engine/vscode';
 import { runSetupCommands } from './worktreeCommands';
 import { headOf, recordOf, type UndoRecord } from '../engine/journal';
+// Area 6 of stage 4: AI and GitHub through the engine.
+import type { EngineClient } from '../engine/client';
+import type { ComparisonTarget, CompareSideTarget, PullRequest as EnginePullRequest, WriteSettingFollowUp } from '../engine/messages';
+import { extensionKey } from '../engine/settings';
 
 /** How many commits the graph reads at a time, unless the settings ask for another number between the two after it. */
 const PAGE_SIZE = 1000;
@@ -517,6 +521,8 @@ export class Controller implements vscode.Disposable {
         post: (message: HostMessage, webview: vscode.Webview) => this.post(message, webview),
         write: (on: Repo, op: GitOp, files: string[], resolutions: FileResolutions[]) => this.writeResolutions(on, op, files, resolutions),
         settings: () => ({ rules: this.autoResolve(), ai: this.resolveWithAI() }),
+        // Area 6 of stage 4: the engine asks the model about each conflict when it runs.
+        engine: () => this.engine?.running,
       };
       const tab: ConflictReviewTab = new ConflictReviewTab(host, repo, wanted, () => {
         this.pinned.delete(tab.webview);
@@ -1317,6 +1323,8 @@ export class Controller implements vscode.Disposable {
     const { state, github, githubRemote } = this;
     const { from, to, mode } = tab;
     if (!state || !github || !samePath(state.root, tab.repo.root) || from.hash === WORKTREE || to.hash === WORKTREE) return;
+    // Area 6 of stage 4: the engine names each side on GitHub and opens the address.
+    if (await this.runOnEngine([{ feature: 'compare.open-on-github', target: this.comparisonTarget(tab) }], tab.repo)) return;
     const there = (side: CompareSide) => {
       if (!side.live || side.gone) return side.hash;
       const branch = state.branches.find((candidate) => candidate.name === side.name);
@@ -1561,7 +1569,7 @@ export class Controller implements vscode.Disposable {
     try {
       const message = await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Window, title: 'Gitardo: drafting commit message', cancellable: true },
-        (_progress, token) => draftCommitMessage(repo, state, token),
+        (_progress, token) => this.draftWith(repo, state, token),
       );
       this.post({ type: 'drafting', active: false, message });
     } catch (error) {
@@ -1582,10 +1590,14 @@ export class Controller implements vscode.Disposable {
     }
     if (!force && Date.now() - this.pullsAt < PULLS_MAX_AGE) return;
     try {
-      const session = await githubSession(prompt);
-      if (!session) return;
-      this.pullsAt = Date.now();
-      const pulls = await this.activity.track('Reading the pull requests from GitHub', () => fetchPulls(github, session.accessToken));
+      // Area 6 of stage 4: signing in loads them with the engine's `github.load-pull-requests`, which reads them again.
+      const client = this.engine?.running;
+      if (prompt && client && this.repo) {
+        await this.runOnEngine([{ feature: 'github.load-pull-requests', target: { kind: 'head' } }], this.repo);
+        return;
+      }
+      const pulls = client && this.repo ? await this.pullsOnEngine(client, this.repo) : await this.pullsInTypeScript(github, prompt);
+      if (!pulls) return;
       if (github !== this.github || JSON.stringify(pulls) === JSON.stringify(this.pulls)) return;
       this.pulls = pulls;
       if (this.state) this.setState({ ...this.state, pulls });
@@ -1593,6 +1605,92 @@ export class Controller implements vscode.Disposable {
       this.log.warn(`Could not read pull requests: ${errorText(error)}`);
       if (prompt) void vscode.window.showErrorMessage(`Gitardo: could not read pull requests. ${errorText(error)}`);
     }
+  }
+
+  /** The open pull requests read in TypeScript, with the session of VS Code; null without one (D49). */
+  private async pullsInTypeScript(github: GitHubRepo, prompt: boolean): Promise<Record<string, PullRequest> | null> {
+    const session = await githubSession(prompt);
+    if (!session) return null;
+    this.pullsAt = Date.now();
+    return this.activity.track('Reading the pull requests from GitHub', () => fetchPulls(github, session.accessToken));
+  }
+
+  // Area 6 of stage 4: AI and GitHub through the engine, each with the TypeScript it falls back to (D49).
+
+  /**
+   * The open pull requests the engine reads (`github.read-pull-requests`), with VS Code's token, never asking the user
+   * to sign in; null when there is no token or the remote is not on GitHub.
+   */
+  private async pullsOnEngine(client: EngineClient, repo: Repo): Promise<Record<string, PullRequest> | null> {
+    // As without the engine, nothing is read until the user signed in to GitHub in VS Code.
+    if (!(await githubSession(false))) return null;
+    const read = await this.activity.track('Reading the pull requests from GitHub', () => client.pullRequests(repo.root, this.githubRemote));
+    if (read.kind === 'failed') throw new Error(read.message);
+    if (read.kind !== 'read') return null;
+    this.pullsAt = Date.now();
+    const checks = { passed: 'success', failed: 'failure', running: 'pending' } as const;
+    const pull = (each: EnginePullRequest): PullRequest => ({
+      number: each.number,
+      title: each.title,
+      url: each.url,
+      draft: each.isDraft,
+      checks: each.checks ? checks[each.checks] : null,
+    });
+    return Object.fromEntries(Object.entries(read.byBranch).map(([branch, each]) => [branch, pull(each)]));
+  }
+
+  /** The draft of a commit message: the engine's (`commit.draft-message`) when it runs, the extension's otherwise. */
+  private async draftWith(repo: Repo, state: RepoState, token: vscode.CancellationToken): Promise<string> {
+    const client = this.engine?.running;
+    if (!client) return draftCommitMessage(repo, state, token);
+    const subjects = (await repo.state(10)).rows.filter((row) => row.author).map((row) => row.subject);
+    const aborted = new AbortController();
+    const listener = token.onCancellationRequested(() => aborted.abort());
+    try {
+      const drafted = await client.draftMessage(repo.root, subjects, aborted.signal);
+      if (drafted.kind === 'failed') throw new Error(drafted.message);
+      return drafted.message;
+    } catch (error) {
+      // Cancelled, the box keeps what it had, as when the extension drafted it.
+      if (error instanceof EngineError && error.code === ErrorCode.cancelled) throw new vscode.CancellationError();
+      throw error;
+    } finally {
+      listener.dispose();
+    }
+  }
+
+  /**
+   * Asks which language model resolves conflicts, and how much it thinks: `ai.choose-model` of the engine, which lists
+   * VS Code's models and leaves the two settings to write, or the extension's own picks without the engine.
+   */
+  async chooseConflictModel(): Promise<void> {
+    const repo = this.repo;
+    if (repo && (await this.runOnEngine([{ feature: 'ai.choose-model', target: { kind: 'head' } }], repo))) return;
+    await chooseConflictModel();
+  }
+
+  /** Writes a setting the engine left, in the user's settings, by the extension's name; null removes it. */
+  private async writeSetting(followUp: WriteSettingFollowUp): Promise<void> {
+    const value = followUp.value === null ? undefined : followUp.value;
+    await vscode.workspace.getConfiguration('gitardo').update(extensionKey(followUp.key), value, vscode.ConfigurationTarget.Global);
+  }
+
+  /** A comparison tab as the target of `compare.open-on-github`. */
+  private comparisonTarget(tab: CompareTab): ComparisonTarget {
+    const side = (compared: CompareSide): CompareSideTarget => ({
+      name: compared.name,
+      side: compared.hash === WORKTREE ? { kind: 'workingTree' } : { kind: 'commit', commit: compared.hash },
+      isFollowed: compared.live,
+      isGone: compared.gone ?? false,
+    });
+    return {
+      kind: 'comparison',
+      first: side(tab.from),
+      second: side(tab.to),
+      mode: tab.mode === 'diverged' ? 'sinceDiverged' : 'everything',
+      path: tab.path,
+      mergeBase: null,
+    };
   }
 
   /** Opens the pull request of a branch in the browser, or GitHub's page to create one. */
@@ -1995,6 +2093,10 @@ export class Controller implements vscode.Disposable {
         // Branches, tags and remotes (stage 4, area 2): a fetch, a pull, a push or a remote changed.
         case 'readPullRequests':
           void this.refreshPulls(true);
+          break;
+        // AI and GitHub (stage 4, area 6): the model that resolves conflicts, chosen with `ai.choose-model`.
+        case 'writeSetting':
+          await this.writeSetting({ kind: 'writeSetting', key: String(followUp.key), value: followUp.value });
           break;
         // The commit box of the Changes view, after a squash merge and a split (area 3).
         case 'preparedMessage': {
@@ -2646,7 +2748,7 @@ export class Controller implements vscode.Disposable {
       case 'stopAsking':
         return review?.stop();
       case 'chooseConflictModel':
-        return chooseConflictModel();
+        return this.chooseConflictModel();
       case 'openConflict':
         return repo && this.openConflict(repo, message.path, message.line, message.editor);
       case 'refresh':

@@ -1076,6 +1076,78 @@ branch that joins them, with the engine, it found what follows.
   Git, and its diffs could no longer be served.
 - Verdict: **Bug (extension)**, fixed: the main worktree is never closed, since git neither moves nor removes it.
 
+## AI and GitHub (stage 4, area 6)
+
+Area 6 asked VS Code's language models and its sign-in to GitHub through the engine (`host/languageModel`,
+`host/languageModels`, `host/githubToken`). `extension/test/engineAi.test.ts` asks each question with a fake model as
+the extension's TypeScript asked it and as the engine asks it: the draft of a commit message is the same request,
+cleaned the same; the question about a conflict sends the same parts of the file and makes the same proposal of the
+same answer; the model chosen and the effort reach the model the same. What differs follows.
+
+### G1. The words of the question about a conflict
+
+- **Feature**: `ai.conflict-question`, `ai.ask-conflict`; extension `buildConflictPrompt`
+  (`extension/src/shared/conflictPrompt.ts`).
+- **Extension**: its own task and form ("when they cannot, choose the one…", "Reply in exactly this form", "what you
+  kept"), and the sides named from `CONFLICT_SIDES` with the subjects of `Repo.conflictSubjects`.
+- **Engine**: the task and form of `rust/crates/model/src/ai/question.rs`, and the sides named by
+  `conflicts.side-names`, the same words. The parts between tags, `<before>`, `<base>`, `<current>`, `<incoming>` and
+  `<after>`, are the same, and so is the reading and trimming of the answer.
+- **Verdict**: the engine wins (D45); nothing a user sees but what the model answers.
+
+### G2. The choices of the model that resolves conflicts
+
+- **Feature**: `ai.choose-model`; extension `chooseConflictModel` (`extension/src/extension/ai.ts`).
+- **Extension**: **The first model of VS Code**, then each model with *vendor · family*, the one set marked
+  `$(check)`; then **As the model is set up in VS Code** and the five efforts.
+- **Engine**: the desktop's picks under a host whose models they are (`uses_host_models`): **The first model of the
+  provider**, each model with its id, the one set first rather than marked; **As the model is set up**. It writes the
+  two settings through the follow-up `writeSetting`, which the extension writes in the user's settings as
+  `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort`, as it did.
+- **Verdict**: **Choice**, decided: the engine's words, *to be confirmed by the maintainer*. Recommended later: under a
+  host the first choice says **The first model**, without naming the provider. CHANGELOG: "Choosing the model that
+  resolves conflicts offers the models as Gitardo Desktop does."
+
+### G3. The model the draft of a commit message is asked of
+
+- **Feature**: `commit.draft-message`; extension `draftCommitMessage`.
+- **Extension**: VS Code's first model, whatever `gitardo.conflicts.aiModel` says, with no effort.
+- **Engine**: the desktop asks the model of `ai.model` with `ai.effort`, which the extension sends from
+  `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` (Q400).
+- **Verdict**: **Choice**, decided: under the extension the engine asks VS Code's first model with no effort
+  (`model` and `effort` null in `host/languageModel`), as the extension did, since the setting is named for the
+  conflicts and keeps its meaning ([stored data](../extension/11-data.md)). *To be confirmed by the maintainer*,
+  with Q400: a `gitardo.ai.model` of its own if the draft is to have one.
+
+### G4. Backing out of signing in to GitHub
+
+- **Feature**: `github.load-pull-requests`; extension `Controller.refreshPulls` with `prompt`.
+- **Extension**: VS Code's sign-in closed fails `getSession`, and Gitardo says "Gitardo: could not read pull
+  requests." with VS Code's error.
+- **Engine**: the host gives no token, and the feature backs out without a word; the desktop's box that asks for a
+  token never shows under the extension, whose sign-in takes its place.
+- **Verdict**: **CHANGELOG**. "Closing GitHub's sign-in that **Sign in to GitHub** opens says nothing."
+
+### G5. Refusals of the engine around GitHub and the models
+
+- **Feature**: `compare.open-on-github`, `ai.choose-model`.
+- **Extension**: a comparison whose two sides are the same commit opened GitHub's page anyway; with no model,
+  choosing one said "Gitardo: no language model is available in VS Code…".
+- **Engine**: "The two sides are the same commit." as a warning, and nothing opened; with no model, "Gitardo: No
+  language model is available in VS Code…", the extension's words given by the host.
+- **Verdict**: **CHANGELOG**. "Opening on GitHub a comparison of a commit with itself says the two sides are the same
+  commit."
+
+### G6. Plans with no step confirmed under `gitardo.commandPreview` set to `all`
+
+- **Feature**: `ai.choose-model`, `github.load-pull-requests`, `compare.open-on-github`; `preview::needs_confirmation`
+  (`rust/crates/engine/src/preview.rs`).
+- **Extension**: none of the three asked anything more than its picks.
+- **Engine**: each is a plan with no step and no danger, which the engine asks to confirm when every plan is to be
+  shown (`all`), with an empty list of commands; with the default, it asks nothing.
+- **Verdict**: **Choice**, open. Recommended: a plan with no step and no danger is never confirmed, on both apps; an
+  engine change, not an option.
+
 ## Summary
 
 Entries marked **Merged into …** are not counted again.
@@ -1095,7 +1167,8 @@ Entries marked **Merged into …** are not counted again.
 | Submodules (S1–S6) | 1 | 4 | 0 | 1 | 6 |
 | Reads (R1; R2–R5 not seen by users) | 0 | 1 | 0 | 0 | 1 |
 | Found by the end-to-end suite (E1–E4) | 1 | 1 | 0 | 2 | 4 |
-| **Total** | **6** | **20** | **8** | **26** | **60** |
+| AI and GitHub (G2–G6; G1 not seen by users) | 0 | 0 | 3 | 2 | 5 |
+| **Total** | **6** | **20** | **11** | **28** | **65** |
 
 Of the 19 engine bugs, five are in the extension too, so whichever side wins they get fixed in the engine: A2 (Unstage
 all during an operation), B7 (remote branch by its short name), D2 (Skip without asking), D7 (Undo after what it cannot

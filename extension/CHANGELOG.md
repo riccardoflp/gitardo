@@ -51,6 +51,10 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - Creating a worktree with `gitardo.branches.format` set asks for the inputs of the format after what the new branch starts from, and at a commit asks what `${base}` is among the branches at it, its short hash and the branches that have it; from a detached HEAD, `${base}` is its short hash.
 - Renaming the main worktree, and **Open in worktree** on the branch checked out in this window, are refused with a warning before git runs.
 - Bringing ignored files into a worktree lists only what it brings, not what the worktree had already.
+- Drafting the commit message, asking the AI about conflicts, choosing the model that resolves them, **Sign in to GitHub**, loading the pull requests and **Open on GitHub** in the Compare tab are run by Gitardo's engine when the extension has it: the engine writes what the language model is asked, and the extension sends it to the model of VS Code, as before.
+- Choosing the model that resolves conflicts offers the models as Gitardo Desktop does: **The first model of the provider**, then each model, and **As the model is set up** for how much it thinks.
+- Closing GitHub's sign-in that **Sign in to GitHub** opens says nothing.
+- Opening on GitHub a comparison of a commit with itself says the two sides are the same commit.
 
 ## 0.11.0 - 2026-11-12
 

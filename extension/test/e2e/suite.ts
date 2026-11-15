@@ -1414,6 +1414,9 @@ export async function run(): Promise<void> {
     const githubRemote = internals.githubRemote;
     internals.github = { owner: 'octo', repo: 'app' };
     internals.githubRemote = 'origin';
+    // Area 6 of stage 4: the engine reads the remotes itself, so origin is on GitHub while it opens the comparison.
+    const originUrl = (await git(app, ['remote', 'get-url', 'origin'])).stdout.trim();
+    if (internals.engine?.running) await git(app, ['remote', 'set-url', 'origin', 'https://github.com/octo/app.git']);
     try {
       await internals.onMessage(branches.panel.webview, { type: 'openCompareOnGitHub' });
       // A branch with no upstream there is not on GitHub by its name: its commit is, once pushed.
@@ -1424,6 +1427,7 @@ export async function run(): Promise<void> {
       env.openExternal = openExternal;
       internals.github = github;
       internals.githubRemote = githubRemote;
+      await git(app, ['remote', 'set-url', 'origin', originUrl]);
     }
     assert.deepEqual(opened, [`https://github.com/octo/app/compare/main...${hashOf('topic')}`, `https://github.com/octo/app/compare/${hashOf('topic')}..main`]);
     await closeAll();
@@ -3054,10 +3058,19 @@ export async function run(): Promise<void> {
         return options.title === 'The model that resolves conflicts' ? byLabel('Chosen model')(items) : byLabel('High')(items);
       };
       await vscode.commands.executeCommand('gitardo.chooseConflictModel');
-      assert.deepEqual(offered, [
-        ['$(check) The first model of VS Code', 'First model', 'Chosen model'],
-        ['$(check) As the model is set up in VS Code', 'Low', 'Medium', 'High', 'Extra high', 'Max'],
-      ]);
+      // Area 6 of stage 4: the engine's `ai.choose-model` names the choices as the desktop does (G3).
+      assert.deepEqual(
+        offered,
+        internals.engine?.running
+          ? [
+              ['The first model of the provider', 'First model', 'Chosen model'],
+              ['As the model is set up', 'Low', 'Medium', 'High', 'Extra high', 'Max'],
+            ]
+          : [
+              ['$(check) The first model of VS Code', 'First model', 'Chosen model'],
+              ['$(check) As the model is set up in VS Code', 'Low', 'Medium', 'High', 'Extra high', 'Max'],
+            ],
+      );
       assert.equal(settings().get('conflicts.aiModel'), 'test-chosen');
       assert.equal(settings().get('conflicts.aiEffort'), 'high');
       asked.length = 0;

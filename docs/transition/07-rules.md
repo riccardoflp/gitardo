@@ -121,6 +121,17 @@ needs is written in the commit of that stage, not before.
 | [extension/06-testing.md](../extension/06-testing.md) | `npm run package` makes the universal vsix and one per target whose engine it finds; `npm run test:vsix` tests the vsix of this computer with its engine. |
 | `.github/workflows/check.yml` | The pipeline: `cargo xtask check` and the desktop on Windows, Linux and macOS (both targets of the Mac), the engine of the seven targets, the extension's checks and its e2e suite with the engine and without on the three systems, and the vsix of every target, all as artifacts; it publishes nothing. |
 
+## Written in stage 4, area 6 (AI and GitHub)
+
+| Page | Change |
+| --- | --- |
+| [transition/02-protocol.md](02-protocol.md) | Version 1.5: `read/commit.draft-message` and `read/ai.ask-conflict`; the host questions `host/languageModel` and `host/languageModels`, said at `initialize` as `languageModel`, and `host/githubToken` with `ask` for **Sign in to GitHub**; `$/cancel` sent by the engine for a host question it no longer waits for; the follow-up `writeSetting` and the target `comparison`. |
+| [features/05-changes-and-commit.md](../features/05-changes-and-commit.md), [09-conflicts.md](../features/09-conflicts.md), [10-compare.md](../features/10-compare.md), [15-github.md](../features/15-github.md) | The card `commit.read-draft-diff`, desktop first (Q398); the **Extension** lines of the cards of the AI and of GitHub, run or asked through the engine, with the TypeScript as fallback; no card of the area is left to the extension alone. |
+| [08-decisions.md](../08-decisions.md) | Q398 answered; Q399 built for `ai.choose-model` (`WriteSetting`). |
+| [transition/04-differences.md](04-differences.md) | G1 the engine's; G2 and G3 decided, to be confirmed; G4 and G5 in the CHANGELOG; G6 open. |
+| [extension/06-testing.md](../extension/06-testing.md) | `test/engineAi.test.ts`, with a fake language model. |
+| [extension/10-security.md](../extension/10-security.md) | T2, T3 and the secrets: what reaches the model through the engine, and the token asked with `ask` only to sign in. |
+
 ## Waiting for a stage
 
 | Rule | Stage | What |

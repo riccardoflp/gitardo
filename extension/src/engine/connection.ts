@@ -47,7 +47,9 @@ export class Connection {
   private nextId = 1;
   private readonly waiting = new Map<number, Waiting>();
   private readonly handlers = new Map<string, (params: unknown) => void>();
-  private readonly answerers = new Map<string, (params: unknown) => Promise<unknown>>();
+  private readonly answerers = new Map<string, (params: unknown, signal: AbortSignal) => Promise<unknown>>();
+  /** The requests of the engine being answered, each with what `$/cancel` aborts (area 6 of stage 4). */
+  private readonly answering = new Map<number | string, AbortController>();
   private readonly reader = new FrameReader();
   private ended = false;
 
@@ -106,9 +108,10 @@ export class Connection {
 
   /**
    * Answers each request of the engine of a method with what a handler gives, in place of the one before; a handler that
-   * throws answers with the error. A method with no handler is answered `methodNotFound`.
+   * throws answers with the error. A method with no handler is answered `methodNotFound`. The signal is aborted when the
+   * engine sends `$/cancel` for the request.
    */
-  onRequest(method: string, handler: (params: unknown) => Promise<unknown>): void {
+  onRequest(method: string, handler: (params: unknown, signal: AbortSignal) => Promise<unknown>): void {
     this.answerers.set(method, handler);
   }
 
@@ -127,12 +130,16 @@ export class Connection {
       this.write({ jsonrpc: '2.0', id, error: { code: ErrorCode.methodNotFound, message: `The extension has no method ${method}.` } });
       return;
     }
-    handler(params).then(
-      (result) => !this.ended && this.write({ jsonrpc: '2.0', id, result: result ?? null }),
-      (error: unknown) =>
-        !this.ended &&
-        this.write({ jsonrpc: '2.0', id, error: { code: ErrorCode.internalError, message: error instanceof Error ? error.message : String(error) } }),
-    );
+    const controller = new AbortController();
+    this.answering.set(id, controller);
+    handler(params, controller.signal)
+      .then(
+        (result) => !this.ended && this.write({ jsonrpc: '2.0', id, result: result ?? null }),
+        (error: unknown) =>
+          !this.ended &&
+          this.write({ jsonrpc: '2.0', id, error: { code: ErrorCode.internalError, message: error instanceof Error ? error.message : String(error) } }),
+      )
+      .finally(() => this.answering.delete(id));
   }
 
   private write(message: unknown): void {
@@ -149,6 +156,12 @@ export class Connection {
       error?: { code: number; message: string; data?: unknown };
     };
     if (typeof method === 'string') {
+      // Area 6 of stage 4: the engine no longer waits for a request it asked, such as a question to a language model.
+      if (method === '$/cancel' && (id === undefined || id === null)) {
+        const cancelled = (params as { id?: number | string } | null)?.id;
+        if (cancelled !== undefined) this.answering.get(cancelled)?.abort();
+        return;
+      }
       if (id === undefined || id === null) this.handlers.get(method)?.(params);
       else this.answer(id, method, params);
       return;

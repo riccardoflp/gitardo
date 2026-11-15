@@ -5,7 +5,8 @@ import { CONFLICT_SIDES, writeResolutionsOp, type GitOp } from '../git/ops';
 import { samePath } from '../git/parse';
 import type { ConflictPlan, Repo } from '../git/repo';
 import { fingerprint, questionParts, reviewFiles } from '../git/review';
-import { partialResolution } from '../shared/conflictPrompt';
+import { partialResolution, type ConflictAnswer } from '../shared/conflictPrompt';
+import type { EngineClient } from '../engine/client';
 import type { FileResolutions } from '../engine/messages';
 import { engineResolutions } from '../engine/resolutions';
 import type { HostMessage, Operation, ViewKind } from '../shared/protocol';
@@ -30,6 +31,8 @@ export interface ReviewHost {
   write(repo: Repo, op: GitOp, paths: string[], resolutions: FileResolutions[]): Promise<boolean>;
   /** Whether the rules propose resolutions, and whether the language model can be asked. */
   settings(): { rules: boolean; ai: boolean };
+  /** The engine, which asks the model about each conflict when it runs (area 6 of stage 4). */
+  engine?(): EngineClient | undefined;
 }
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
@@ -276,16 +279,25 @@ export class ConflictReviewTab implements vscode.Disposable {
       const plan = this.plans.find((each) => each.path === job.path);
       const conflict = plan?.conflicts.find((each) => fingerprint(plan.text, each) === job.print);
       if (!plan || !conflict) throw new Error('The conflict is no longer in the file.');
-      const [current, incoming] = CONFLICT_SIDES[this.operation ?? 'none'];
-      const [oursSubject, theirsSubject] = await this.repo.conflictSubjects();
-      const question = { path: plan.path, oursLabel: current, theirsLabel: incoming, oursSubject, theirsSubject, ...questionParts(plan.text, conflict) };
-      this.asking.set(id, { state: 'thinking', text: '' });
-      this.schedule();
-      const answer = await askResolution(question, token, (text) => {
+      const onText = (text: string) => {
         if (token.isCancellationRequested) return;
         this.asking.set(id, { state: 'thinking', text: partialResolution(text) });
         this.schedule();
-      });
+      };
+      const client = this.host.engine?.();
+      let answer: ConflictAnswer;
+      if (client) {
+        this.asking.set(id, { state: 'thinking', text: '' });
+        this.schedule();
+        answer = await askOnEngine(client, this.repo.root, plan, conflict, onText, token);
+      } else {
+        const [current, incoming] = CONFLICT_SIDES[this.operation ?? 'none'];
+        const [oursSubject, theirsSubject] = await this.repo.conflictSubjects();
+        const question = { path: plan.path, oursLabel: current, theirsLabel: incoming, oursSubject, theirsSubject, ...questionParts(plan.text, conflict) };
+        this.asking.set(id, { state: 'thinking', text: '' });
+        this.schedule();
+        answer = await askResolution(question, token, onText);
+      }
       if (token.isCancellationRequested) return;
       this.asking.delete(id);
       answers.set(this.repo.root, job.path, job.print, answer);
@@ -297,5 +309,42 @@ export class ConflictReviewTab implements vscode.Disposable {
       this.schedule();
       if (!token.isCancellationRequested) void this.next(token);
     }
+  }
+}
+
+// Area 6 of stage 4: the question about one conflict, asked by the engine (`ai.ask-conflict`), which writes the
+// question, reads the names of the sides itself, and reads and trims the answer. The review stays here.
+
+/** The lines of a text without what ends them, one for each line break and one for what follows the last. */
+const linesWithoutEnds = (text: string) => text.split(/(?<=\n)/).map((line) => line.replace(/\r?\n$/, ''));
+
+/** The lines between two markers of a conflict, without what ends them. */
+const sideLines = (text: string) => (text ? text.replace(/\r?\n$/, '').split(/\r?\n/) : []);
+
+/** Asks the engine about one conflict of a file, and gives its answer as the review takes it. */
+async function askOnEngine(
+  client: EngineClient,
+  repository: string,
+  plan: ConflictPlan,
+  conflict: ConflictPlan['conflicts'][number],
+  onText: (text: string) => void,
+  token: vscode.CancellationToken,
+): Promise<ConflictAnswer> {
+  const aborted = new AbortController();
+  const listener = token.onCancellationRequested(() => aborted.abort());
+  try {
+    const asked = {
+      start: conflict.from,
+      end: conflict.to,
+      current: sideLines(conflict.ours),
+      incoming: sideLines(conflict.theirs),
+      base: conflict.stretch ? sideLines(conflict.stretch.base) : null,
+    };
+    const answer = await client.askConflict(repository, { path: plan.path, lines: linesWithoutEnds(plan.text), conflict: asked }, onText, aborted.signal);
+    if (answer.kind === 'failed') throw new Error(answer.message);
+    const text = answer.lines.length ? `${answer.lines.join('\n')}\n` : '';
+    return { text, reason: answer.reason, confidence: answer.confidence, model: answer.model };
+  } finally {
+    listener.dispose();
   }
 }
