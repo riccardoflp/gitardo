@@ -45,7 +45,8 @@ export function readSettings(extension: vscode.Extension<unknown>): Settings {
 
 /**
  * Asks the questions of a feature of the engine as Gitardo's TypeScript operations ask theirs: text in an input box whose
- * text the engine checks as it is typed, a pick in a quick pick, a confirmation and the plan in a modal dialog.
+ * text the engine checks as it is typed, a pick in a quick pick, a confirmation and the plan in a modal dialog, and so
+ * a pick of a few choices whose detail has more than one line.
  */
 export class VscodeAsker implements FeatureAsker {
   constructor(
@@ -72,6 +73,14 @@ export class VscodeAsker implements FeatureAsker {
       }
       case 'pick':
       case 'search': {
+        // A pick of a few choices that says more than the one line of a quick pick is asked as a dialog, with a button
+        // for each choice, as **Resolve** and **Review** are (stage 4, area 4).
+        if (kind.kind === 'pick' && question.detail?.includes('\n') && kind.choices.length <= 3) {
+          const ordered = items(kind.choices, question);
+          const chosen = await vscode.window.showInformationMessage(title, { modal: true, detail: question.detail }, ...ordered.map((item) => item.label));
+          const button = ordered.find((item) => item.label === chosen);
+          return button ? { kind: 'choice', identifier: button.identifier } : null;
+        }
         const picked = await vscode.window.showQuickPick(items(kind.choices, question), {
           title,
           placeHolder: question.detail ?? undefined,

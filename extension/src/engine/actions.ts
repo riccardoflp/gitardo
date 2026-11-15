@@ -34,7 +34,14 @@ const text = (value: string): Answer => ({ kind: 'text', text: value });
  * The runs of the engine that take the place of an action, in order, each ended before the next starts; none when the
  * action is not one the engine runs yet.
  */
-export function engineRuns(action: Action, state: Pick<RepoState, 'branches' | 'remoteBranches' | 'tags'>): EngineRun[] | null {
+export function engineRuns(
+  action: Action,
+  state: Pick<RepoState, 'branches' | 'remoteBranches' | 'tags'> & Partial<Pick<RepoState, 'working' | 'rebaseStop'>>,
+): EngineRun[] | null {
+  // Conflicts (stage 4, area 4): staging the one file in conflict, from its row in the Changes view, marks it resolved.
+  if (action.kind === 'stage' && action.paths.length === 1 && state.working?.conflicts.some((file) => file.path === action.paths[0])) {
+    return [{ feature: 'conflicts.mark-resolved', target: { kind: 'file', path: action.paths[0] } }];
+  }
   switch (action.kind) {
     // Branches.
     case 'createBranch':
@@ -78,6 +85,29 @@ export function engineRuns(action: Action, state: Pick<RepoState, 'branches' | '
       const feature = { stashApply: 'stash.apply', stashPop: 'stash.pop', stashDrop: 'stash.drop', stashBranch: 'stash.branch' }[action.kind];
       return [{ feature, target: { kind: 'stash', index } }];
     }
+
+    // Conflicts (stage 4, area 4).
+    case 'resolveConflicts': {
+      // The engine resolves every file in conflict: some of them only stay with TypeScript.
+      const conflicted = state.working?.conflicts.map((file) => file.path) ?? [];
+      if (action.paths && conflicted.some((path) => !action.paths?.includes(path))) return null;
+      return [{ feature: 'conflicts.resolve-automatically', target: { kind: 'head' } }];
+    }
+    case 'takeSide':
+      return [
+        {
+          feature: 'conflicts.take-side',
+          target: { kind: 'file', path: action.path },
+          answers: { side: { kind: 'choice', identifier: action.side === 'ours' ? 'current' : 'incoming' } },
+        },
+      ];
+    case 'continue':
+      // A rebase stopped to edit or to split a commit goes on as its stop says, which is the rewriting area's.
+      return state.rebaseStop ? null : [{ feature: 'conflicts.continue-operation', target: { kind: 'head' } }];
+    case 'skip':
+      return [{ feature: 'conflicts.skip-step', target: { kind: 'head' } }];
+    case 'abort':
+      return [{ feature: 'conflicts.abort-operation', target: { kind: 'head' } }];
 
     default:
       return null;

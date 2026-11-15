@@ -4,7 +4,7 @@
  */
 
 /** The version of the protocol the extension speaks. */
-export const PROTOCOL = '1.2';
+export const PROTOCOL = '1.3';
 
 /** The names of the methods. */
 export const Method = {
@@ -143,7 +143,30 @@ export type Target =
   | { kind: 'commits'; commits: string[] }
   | { kind: 'submodule'; path: string }
   | { kind: 'worktree'; folder: string }
-  | { kind: 'path'; path: string };
+  | { kind: 'path'; path: string }
+  // The targets of the conflicts, from 1.3.
+  | { kind: 'resolutions'; files: FileResolutions[] }
+  | { kind: 'mergeResult'; path: string; unsaved: string | null; marked: number };
+
+/** The resolutions accepted in a file of the review, and the text they were made from (`FileResolutions` of `model`). */
+export interface FileResolutions {
+  path: string;
+  text: string;
+  conflicts: number;
+  accepted: AcceptedProposal[];
+}
+
+/** A proposal accepted: the lines `from` to `to` of the file, from 0 and `to` left out, with `text` in their place. */
+export interface AcceptedProposal {
+  source:
+    | { kind: 'rules'; case: 'spacesOrLineEndings' | 'sameChange' | 'oneSide' | 'nextToEachOther' }
+    | { kind: 'ai'; model: string; reason: string; confidence: 'high' | 'medium' | 'low' }
+    | { kind: 'choice'; choice: 'currentOnly' | 'incomingOnly' | 'bothCurrentFirst' | 'bothIncomingFirst' | 'written' };
+  from: number;
+  to: number;
+  text: string;
+  newLines: number;
+}
 
 /** What a person answers to a question. */
 export type Answer =

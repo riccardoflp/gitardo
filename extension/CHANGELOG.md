@@ -17,6 +17,13 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - Before a stash is applied, files in conflict count as changes git refuses to touch, and no conflicts are predicted for a stash git will refuse.
 - At a commit, **Create branch** with a format asks for its inputs first and then what `${base}` is.
 - The questions and confirmations of the operations Gitardo's engine runs use the words of Gitardo's desktop: a name between backticks, as in **Create branch \`topic\`**, and a few titles worded otherwise, such as **Discard the changes of 2 files**.
+- **Continue**, **Skip** and **Abort** of a merge, rebase, cherry-pick, revert or patch stopped on conflicts, taking a whole file from one side, **Mark as resolved** in the Changes view and in the Flow Merge, **Resolve automatically** and the write of the resolutions accepted in the review, the rules' and the AI's alike, are run by Gitardo's engine when the extension has it, with the same commands as before, and without the engine as before. A rebase stopped to edit or split a commit still goes on as before.
+- **Continue** says to resolve and stage the files first while a file is still in conflict, rather than running git and failing.
+- **Skip** now asks first while files are staged, changed or in conflict, since git throws away what was resolved in the step.
+- Taking a whole file from one side warns, rather than asks, when the file has lines neither side has, typed in it since git stopped: they are lost too.
+- The question of **Resolve automatically** says what it writes and runs in a sentence, and it is the only question asked, also with `gitardo.commandPreview` set to `all`.
+- With `gitardo.commandPreview` set to `all`, writing the resolutions accepted in the review asks first, and a file saved while the question is open is not written over.
+- The log says, for each file the review writes, how many of its conflicts were resolved and by whom, and warns when the AI wrote some; the files written are named by their whole path.
 
 ## 0.11.0 - 2026-11-12
 

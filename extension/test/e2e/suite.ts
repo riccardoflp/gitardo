@@ -134,6 +134,12 @@ export async function run(): Promise<void> {
     logInfo(message, ...rest);
   };
 
+  /**
+   * The commands of the log, each file written by its name: the engine logs the whole path of a file it writes, the
+   * extension the path from the top of the repository.
+   */
+  const commandsLogged = () => logged.filter((line) => line.startsWith('> ')).map((line) => line.replace(/^> write .*[\\/]/, '> write '));
+
   // What the extension logs as an error, and shows as one.
   const errors: string[] = [];
   const logError = log.error.bind(log);
@@ -2850,9 +2856,13 @@ export async function run(): Promise<void> {
       await vscode.commands.executeCommand('gitardo.resolveConflicts');
       assert.equal(asked[0].message, 'Resolve 2 of 3 conflicts automatically?');
       assert.deepEqual(asked[0].items, ['Resolve', 'Review']);
-      assert.match(asked[0].detail, /^c\.txt: 1 of 2 conflicts \(changes to lines next to each other\)\nd\.txt: 1 of 1 conflict \(/);
+      // The engine says a file's one conflict as "the conflict", and what it writes and runs in a sentence.
+      assert.match(asked[0].detail, /^c\.txt: 1 of 2 conflicts \(changes to lines next to each other\)\nd\.txt: (1 of 1 conflict|the conflict) \(/);
       assert.match(asked[0].detail, /1 conflict will be left to resolve by hand/);
-      assert.match(asked[0].detail, /Gitardo will write in [^\n]+:\n\nc\.txt\nd\.txt\n\nand then run:\n\ngit add -- d\.txt$/);
+      assert.match(
+        asked[0].detail,
+        /(Gitardo will write in [^\n]+:\n\nc\.txt\nd\.txt\n\nand then run:\n\ngit add -- d\.txt|Writes c\.txt, d\.txt, then runs git add -- d\.txt\.)$/,
+      );
       const tab = await until('the review', () => vscode.window.tabGroups.activeTabGroup.activeTab);
       assert.equal(tab.label, 'Conflicts · app');
       const shown = await until('the review sent', () => lastReview());
@@ -2873,10 +2883,7 @@ export async function run(): Promise<void> {
       logged.length = 0;
       answer = (_text, _detail, items) => (items.includes('Resolve') ? 'Resolve' : undefined);
       await fromWebview({ type: 'action', action: { kind: 'resolveConflicts' } });
-      assert.deepEqual(
-        logged.filter((line) => line.startsWith('> ')),
-        ['> write c.txt', '> write d.txt', '> git add -- d.txt'],
-      );
+      assert.deepEqual(commandsLogged(), ['> write c.txt', '> write d.txt', '> git add -- d.txt']);
       assert.equal(read('d.txt'), 'ONE\nTWO\n');
       const left = '<<<<<<< HEAD\nnine, ours\n=======\nnine, theirs\n>>>>>>> beside\n';
       assert.equal(read('c.txt'), lines({ 2: 'two, theirs', 3: 'three, ours', 9: 'LEFT' }).replace('LEFT\n', left));
@@ -2918,13 +2925,20 @@ export async function run(): Promise<void> {
       assert.deepEqual(whole?.items, ['Continue', 'Undo']);
       assert.deepEqual(state().working.conflicts, []);
 
-      // With nothing to resolve it says so and asks nothing.
+      // With nothing to resolve it says so and asks nothing: as an error without the engine, as its refusal with it.
       asked.length = 0;
       const before = errors.length;
       await controller.action({ kind: 'resolveConflicts' });
-      assert.match(errors[before], /There are no conflicts marked in the files to resolve\./);
+      const said = [...errors.slice(before), ...asked.map((question) => question.message)];
+      assert.ok(
+        said.some((text) => /There are no conflicts marked in the files to resolve\./.test(text)),
+        JSON.stringify(said),
+      );
       errors.length = before;
-      assert.deepEqual(asked, []);
+      assert.deepEqual(
+        asked.filter((question) => question.items.length),
+        [],
+      );
 
       answer = run;
       await controller.action({ kind: 'continue' });
@@ -3065,10 +3079,7 @@ export async function run(): Promise<void> {
       posted.length = 0;
       addressed.length = 0;
       await internals.onMessage(tab, { type: 'writeResolutions', accepted: [{ path: 'e.txt', key: rules.key }, { path: 'e.txt', key: ai.key }] });
-      assert.deepEqual(
-        logged.filter((line) => line.startsWith('> ')),
-        ['> write e.txt', '> git add -- e.txt'],
-      );
+      assert.deepEqual(commandsLogged(), ['> write e.txt', '> git add -- e.txt']);
       assert.equal(read('e.txt'), lines({ 2: 'two, theirs', 3: 'three, ours', 9: 'nine, ours and theirs' }));
       assert.deepEqual(state().working.conflicts, []);
       const after = await until('the report', () => lastReview()?.report && lastReview());

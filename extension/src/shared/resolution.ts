@@ -22,6 +22,15 @@ export type SideChoice = 'current' | 'incoming' | 'current-first' | 'incoming-fi
 /** What the user chose in the review in place of what was proposed: the sides, or lines written by hand. */
 export type Choice = { kind: SideChoice } | { kind: 'edited'; text: string };
 
+/** What each choice of the review is called, where the proposal says why. */
+export const CHOSEN: Record<Choice['kind'], string> = {
+  current: 'Only the current side',
+  incoming: 'Only the incoming side',
+  'current-first': 'Both sides, the current one first',
+  'incoming-first': 'Both sides, the incoming one first',
+  edited: 'Written by you',
+};
+
 /**
  * What looks like a mistake in a proposal: a name given a value twice, once by each side, at these lines of the
  * proposal from 0; or a file that would no longer be read as JSON, though it can be with either side.
