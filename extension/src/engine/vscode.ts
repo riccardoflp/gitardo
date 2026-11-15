@@ -43,6 +43,20 @@ export function readSettings(extension: vscode.Extension<unknown>): Settings {
   return engineSettings(values, unset, fallbacks, -new Date().getTimezoneOffset());
 }
 
+/** A choice VS Code adds at the end of a pick of the engine: picking it runs it, and the feature is backed out of. */
+export interface HostChoice {
+  label: string;
+  description?: string;
+  run(): unknown;
+}
+
+/** What VS Code adds to the questions of a feature: choices of its own, by the key of the pick, and what it does once a plan is confirmed. */
+export interface HostHooks {
+  choices?: Record<string, HostChoice[]>;
+  /** Run once the plan is confirmed, before its steps: what only VS Code can do first, such as closing a worktree in its Git. */
+  confirmed?(plan: Plan): Promise<void>;
+}
+
 /**
  * Asks the questions of a feature of the engine as Gitardo's TypeScript operations ask theirs: text in an input box whose
  * text the engine checks as it is typed, a pick in a quick pick, a confirmation and the plan in a modal dialog.
@@ -51,6 +65,7 @@ export class VscodeAsker implements FeatureAsker {
   constructor(
     private readonly client: EngineClient,
     private readonly repository: string,
+    private readonly hooks: HostHooks = {},
   ) {}
 
   async ask(question: Question): Promise<Answer | null> {
@@ -72,11 +87,17 @@ export class VscodeAsker implements FeatureAsker {
       }
       case 'pick':
       case 'search': {
-        const picked = await vscode.window.showQuickPick(items(kind.choices, question), {
+        const host = this.hooks.choices?.[question.key] ?? [];
+        const own = host.map((choice, place) => ({ label: choice.label, description: choice.description, identifier: '', place }));
+        const picked = await vscode.window.showQuickPick([...items(kind.choices, question).map((item) => ({ ...item, place: -1 })), ...own], {
           title,
           placeHolder: question.detail ?? undefined,
           matchOnDescription: kind.kind === 'search',
         });
+        if (picked && picked.place >= 0) {
+          await host[picked.place]?.run();
+          return null;
+        }
         return picked ? { kind: 'choice', identifier: picked.identifier } : null;
       }
       case 'pickMany': {
@@ -113,14 +134,23 @@ export class VscodeAsker implements FeatureAsker {
     const ask = plan.danger.kind === 'destructive' ? vscode.window.showWarningMessage : vscode.window.showInformationMessage;
     const reason = plan.danger.kind === 'none' ? '' : `${plan.danger.reason}\n\n`;
     const detail = `${reason}Gitardo will run in ${this.repository}:\n\n${plan.steps.map((step) => step.line).join('\n')}`;
-    return (await ask(`${plan.title}?`, { modal: true, detail }, 'Run')) === 'Run';
+    if ((await ask(`${plan.title}?`, { modal: true, detail }, 'Run')) !== 'Run') return false;
+    await this.hooks.confirmed?.(plan);
+    return true;
   }
 }
 
 /** The choices of a question as items of a quick pick, the default first. */
 function items(choices: Choice[], question: Question): Array<vscode.QuickPickItem & { identifier: string }> {
   const first = question.default?.kind === 'choice' ? question.default.identifier : undefined;
-  const all = choices.map((choice) => ({ label: choice.label, description: choice.description ?? undefined, identifier: choice.identifier }));
+  // The choices a pick of many ticks first, such as the merged branches of a clean-up (stage 4, area 2).
+  const ticked = question.default?.kind === 'choices' ? question.default.identifiers : [];
+  const all = choices.map((choice) => ({
+    label: choice.label,
+    description: choice.description ?? undefined,
+    identifier: choice.identifier,
+    picked: ticked.includes(choice.identifier),
+  }));
   return [...all.filter((item) => item.identifier === first), ...all.filter((item) => item.identifier !== first)];
 }
 

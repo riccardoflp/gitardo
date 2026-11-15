@@ -1078,6 +1078,11 @@ Branches, remote branches and tags are listed by name, or the one committed to l
 - **Function**: `model::refs::sort(references: &References, order: SortOrder) -> References`
 - **Entry points**: **Sort by name** and **Sort by date** in the **…** on the title of the Local list, of the list of
   each remote and of the Tags list, checked as they are.
+- **Extension**: **Sort by name** and **Sort by date** in the **…** on the title of the **Local**, **Remotes** and
+  **Tags** sections of the references tree and of the Branches view, the one in use ticked. The order is the setting
+  `gitardo.branches.sortOrder`, written to the user settings; while it is not set, VS Code's `git.branchSortOrder` set
+  to `committerdate` means `date`. `sortRefs` in `src/shared/refs.ts` sorts, in TypeScript, until the reads move to the
+  engine.
 - **Settings**: `branches.sortOrder`: `name` or `date`; not set, by name, or by date when Git's own `branch.sort` is
   `-committerdate` or `committerdate` (`model::refs::order_in_force`).
 - **Reads**: Git's `branch.sort`, with the state of the repository (`repo.read-state`).
@@ -1093,6 +1098,10 @@ Acceptance:
 - [ ] By date, a branch committed to an hour ago comes before one committed to yesterday.
 - [ ] An annotated tag made today on an old commit comes first among the tags by date.
 - [ ] **Sort by date** in the Tags list also orders the Local list and the branch picker of `branch.create`.
+- [ ] Extension: **Sort by date** in the menu of **Local** sets `gitardo.branches.sortOrder` to `date` in the user
+      settings, and the Local, Remotes and Tags sections, the Branches view and the pickers of branches list the latest
+      first.
+- [ ] Extension: with the setting not set and `git.branchSortOrder` set to `alphabetically`, they are listed by name.
 
 ### `refs.recent` — The branches checked out last
 
@@ -1125,6 +1134,10 @@ listed with the others.
 - **Entry points**: **Add to favorites** and **Remove from favorites** in the context menu of a branch or a remote
   branch, in the branch rail and on labels of the timeline; on a label shared with its upstream,
   **Add `origin/feature` to favorites** too (`graph.combine-upstream`).
+- **Extension**: **Add to favorites** and **Remove from favorites** in the context menu of a local or a remote branch,
+  and **Add `<remote branch>` to favorites** under the entries of a label that stands for its upstream too; the full
+  names of each repository are kept in the workspace state under `gitardo.favorites` (`Controller.setFavorite`), and the
+  **Favorites** sections of the references tree and of the Branches view list them. No git command runs.
 - **Uses**: by `refs.tree`.
 
 The favorites are kept for each repository of the workspace, by the full names of the branches, in Gitardo's storage,
@@ -1137,3 +1150,5 @@ Acceptance:
 - [ ] **Remove from favorites** takes it out; with none left, the Favorites list is not there.
 - [ ] The favorites of one repository are not those of another of the same workspace.
 - [ ] A favorite deleted with `git branch -D` is no longer listed.
+- [ ] Extension: **Add to favorites** on `feature` and on `origin/main` makes the favorites `refs/heads/feature`,
+      `refs/remotes/origin/main`, in that order, and the views are told without the repository being read again.

@@ -215,6 +215,9 @@ export type FollowUp =
   | { kind: 'offerRun'; label: string; feature: string; target: Target; answers: Record<string, Answer> }
   | ({ kind: string } & Record<string, unknown>);
 
+/** An operation a plan offers with a button. */
+export type OfferedRun = Extract<FollowUp, { kind: 'offerRun' }>;
+
 /** How a feature ended: the answer of `feature/run`. */
 export type Finished =
   | { kind: 'ran'; plan: Plan; steps: string[]; wentOnAfter: Array<{ failed: string; said: string }>; waiting: Step[] }

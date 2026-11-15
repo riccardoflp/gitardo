@@ -18,7 +18,8 @@ so that **Delete anyway** runs `branch.delete` told the branch is not merged. A 
 from the first call, as the desktop's window gives what it knows, since no question asks it; the other answers given
 still answer their questions when asked. An `offerRun` whose target or one of whose answers has no JSON yet is not
 sent, since it would run otherwise than offered. The extension shows its `label` as a button on the message and, when
-it is clicked, sends `feature/run` with that `feature`, `target` and `answers`.
+it is clicked, sends `feature/run` with that `feature`, `target` and `answers`. The data of an error is written in camel
+case, `followUps`, as this page always said; before 1.3 the server wrote `follow_ups`.
 
 ## Transport
 

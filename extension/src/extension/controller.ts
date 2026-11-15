@@ -78,9 +78,9 @@ import { INDEX, contentUri, proposalUri } from './content';
 import { fetchPulls, githubSession } from './github';
 import { editSetupJson, savePatterns, saveSetup, setupChangeText, setupPatterns, worktreeSetupInfo } from './worktreeSettings';
 import { EngineError, ErrorCode } from '../engine/connection';
-import { type EngineRun, engineRuns } from '../engine/actions';
-import type { FollowUp, Target } from '../engine/messages';
-import { VscodeAsker, type WindowEngine } from '../engine/vscode';
+import { type EngineRun, engineRuns, syncRuns } from '../engine/actions';
+import type { FollowUp, OfferedRun, Plan, Target } from '../engine/messages';
+import { type HostHooks, VscodeAsker, type WindowEngine } from '../engine/vscode';
 import { headOf, recordOf, type UndoRecord } from '../engine/journal';
 
 /** How many commits the graph reads at a time, unless the settings ask for another number between the two after it. */
@@ -1487,6 +1487,8 @@ export class Controller implements vscode.Disposable {
   private async cleanupBranches(): Promise<void> {
     const state = await this.requireState();
     if (!state || !this.repo) return;
+    // The engine's (stage 4, area 2): once the plan is confirmed, VS Code's Git first lets go of the worktrees it removes.
+    if (await this.runOnEngine([{ feature: 'branch.clean-up', target: { kind: 'head' } }], this.repo, { confirmed: (plan) => this.closeRemoved(plan) })) return;
     const merged = new Set(await this.repo.mergedBranches());
     // A branch that another worktree has goes with that worktree, except the main one, which git cannot remove.
     const candidates = state.branches.filter(
@@ -1532,6 +1534,15 @@ export class Controller implements vscode.Disposable {
       };
     }
     await this.run(op);
+  }
+
+  /** Closes in VS Code's Git the worktrees a plan of the engine removes, which Windows would not let git delete. */
+  private async closeRemoved(plan: Plan): Promise<void> {
+    const removed = plan.steps.flatMap((step) => {
+      const command = step.kind === 'git' && Array.isArray(step.arguments) ? (step.arguments as string[]) : [];
+      return command[0] === 'worktree' && command[1] === 'remove' ? [command[command.length - 1]] : [];
+    });
+    if (removed.length) await closeInVSCodeGit(removed, this.log);
   }
 
   /** Asks the language model for a commit message and hands it to the Changes view. */
@@ -1598,6 +1609,17 @@ export class Controller implements vscode.Disposable {
   async sync(action: SyncAction): Promise<void> {
     const state = await this.requireState();
     if (!state) return;
+    // Fetch, pull, push and Sync are the engine's (stage 4, area 2); Sync has no TypeScript operation to fall back on.
+    if (this.repo && (await this.runOnEngine(syncRuns(action, this.defaultPull()), this.repo))) {
+      await this.afterSync(action, state);
+      return;
+    }
+    if (action === 'sync') {
+      void vscode.window.showInformationMessage(
+        "Gitardo: Sync needs Gitardo's engine, which this package does not have for your system. Fetch, Pull and Push work.",
+      );
+      return;
+    }
     if (!state.remotes.length) {
       // Nothing to fetch from or push to yet: the useful next step is to say where.
       const choice = await vscode.window.showWarningMessage('Gitardo: this repository has no remote.', 'Add Remote…');
@@ -1618,25 +1640,32 @@ export class Controller implements vscode.Disposable {
       const result = await this.run(op);
       if (!result.ok) return;
       void this.refreshPulls(true);
-      // The changes that were set aside no longer fit on what came in: git leaves them in conflict in the files, and
-      // keeps the stash it made, which nothing says unless its output is read.
-      const kept = this.state?.stashes[0];
-      if (action.endsWith('Autostash') && kept && this.state!.stashes.length > state.stashes.length && /autostash/i.test(kept.message)) {
-        void vscode.window
-          .showWarningMessage(
-            `Gitardo: pulled, but your changes do not fit on what came in. They are in conflict in the files, and whole in the stash "${kept.message}": resolve the conflicts, then drop the stash.`,
-            'Show Stashes',
-          )
-          .then((choice) => choice && vscode.commands.executeCommand('gitardo.openStashes'));
-      }
-      // The first push of a branch is the natural moment to open a pull request for it.
-      const branch = state.branch;
-      if (action.startsWith('push') && branch && !upstream && this.github && !this.pulls[branch]) {
-        const choice = await vscode.window.showInformationMessage(`Pushed ${branch}.`, 'Create Pull Request');
-        if (choice) await this.openPullRequest(branch);
-      }
+      await this.afterSync(action, state);
     } catch (error) {
       void vscode.window.showErrorMessage(`Gitardo: ${errorText(error)}`);
+    }
+  }
+
+  /** What is said after a pull or a push, on either path, from the state before it and the state read after. */
+  private async afterSync(action: SyncAction, before: RepoState): Promise<void> {
+    // The changes that were set aside no longer fit on what came in: git leaves them in conflict in the files, and
+    // keeps the stash it made, which nothing says unless its output is read.
+    const kept = this.state?.stashes[0];
+    if (kept && this.state!.stashes.length > before.stashes.length && /autostash/i.test(kept.message)) {
+      void vscode.window
+        .showWarningMessage(
+          `Gitardo: pulled, but your changes do not fit on what came in. They are in conflict in the files, and whole in the stash "${kept.message}": resolve the conflicts, then drop the stash.`,
+          'Show Stashes',
+        )
+        .then((choice) => choice && vscode.commands.executeCommand('gitardo.openStashes'));
+    }
+    // The first push of a branch is the natural moment to open a pull request for it: it had no upstream, and has one now.
+    const branch = before.branch;
+    const hadUpstream = before.branches.some((each) => each.current && each.upstream);
+    const hasUpstream = this.state?.branches.some((each) => each.current && each.name === branch && each.upstream);
+    if ((action.startsWith('push') || action === 'sync') && branch && !hadUpstream && hasUpstream && this.github && !this.pulls[branch]) {
+      const choice = await vscode.window.showInformationMessage(`Pushed ${branch}.`, 'Create Pull Request');
+      if (choice) await this.openPullRequest(branch);
     }
   }
 
@@ -1772,7 +1801,7 @@ export class Controller implements vscode.Disposable {
    * the output channel, and the follow-ups it leaves carried out here; false when there is no engine to run it, and the
    * operation of TypeScript is to run in its place.
    */
-  private async runOnEngine(runs: EngineRun[], repo: Repo): Promise<boolean> {
+  private async runOnEngine(runs: EngineRun[], repo: Repo, hooks: HostHooks = {}): Promise<boolean> {
     const client = this.engine?.running;
     if (!client) return false;
     for (const { feature, target, answers } of runs) {
@@ -1784,13 +1813,19 @@ export class Controller implements vscode.Disposable {
       let result: Awaited<ReturnType<typeof client.runFeature>> | undefined;
       try {
         const inputs = this.memento.get<Record<string, string>>(LAST_INPUTS, {});
-        result = await client.runFeature({ repository: repo.root, feature, target, answers, inputs }, new VscodeAsker(client, repo.root));
+        result = await client.runFeature({ repository: repo.root, feature, target, answers, inputs }, new VscodeAsker(client, repo.root, hooks));
       } catch (failure) {
         if (!(failure instanceof EngineError && (failure.code === ErrorCode.busy || failure.code === ErrorCode.cancelled))) {
-          const data = failure instanceof EngineError ? (failure.data as { output?: string | null } | undefined) : undefined;
+          const data = failure instanceof EngineError ? (failure.data as { output?: string | null; followUps?: FollowUp[] } | undefined) : undefined;
           const said = data?.output?.trim();
           if (said) this.log.error(said);
-          void vscode.window.showErrorMessage(`Gitardo: ${errorText(failure)}`, 'Show Log').then((choice) => choice && this.log.show());
+          // What the plan offers once git refused it, such as **Delete anyway**, is a button on the error (area 2).
+          const offers = (data?.followUps ?? []).filter((followUp): followUp is OfferedRun => followUp.kind === 'offerRun');
+          void vscode.window.showErrorMessage(`Gitardo: ${errorText(failure)}`, ...offers.map((offer) => offer.label), 'Show Log').then((choice) => {
+            const offer = offers.find((each) => each.label === choice);
+            if (offer) void this.runOnEngine([{ feature: offer.feature, target: offer.target, answers: offer.answers }], repo);
+            else if (choice) this.log.show();
+          });
         }
       } finally {
         // The repository is read once the run is over: nothing is read while an operation runs.
@@ -1844,6 +1879,10 @@ export class Controller implements vscode.Disposable {
           break;
         case 'showFolder':
           void vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(String(followUp.folder)));
+          break;
+        // Branches, tags and remotes (stage 4, area 2): a fetch, a pull, a push or a remote changed.
+        case 'readPullRequests':
+          void this.refreshPulls(true);
           break;
         default:
           break;
@@ -2069,6 +2108,12 @@ export class Controller implements vscode.Disposable {
     const state = await this.requireState();
     const repo = this.repo;
     if (!state || !repo) return;
+    // The engine's (stage 4, area 2); the remote that pull requests are read from may be another one after.
+    if (await this.runOnEngine([{ feature: add ? 'remote.add' : 'remote.manage', target: { kind: 'head' } }], repo)) {
+      await this.detectGitHub(repo);
+      await this.refresh();
+      return;
+    }
     const remotes = await repo.remotes();
     const taken = (except?: string) => (name: string) =>
       refNameProblem(name) ?? (name !== except && remotes.some((remote) => remote.name === name) ? 'A remote with that name already exists' : undefined);
@@ -2225,6 +2270,9 @@ export class Controller implements vscode.Disposable {
     const state = await this.requireState();
     const repo = this.repo;
     if (!state || !repo) return;
+    // The engine's (stage 4, area 2), with the entry that opens the setting at the end of its pick, as before (B9).
+    const editList = { label: 'Edit the list of identities…', description: 'gitardo.identities', run: () => this.openIdentities() };
+    if (await this.runOnEngine([{ feature: 'identity.switch', target: { kind: 'head' } }], repo, { choices: { 'identity-pick': [editList] } })) return;
     const configured = vscode.workspace.getConfiguration('gitardo').get<unknown[]>('identities') ?? [];
     const profiles = configured.filter(
       (profile): profile is IdentityProfile =>
@@ -2240,7 +2288,7 @@ export class Controller implements vscode.Disposable {
       return newEmail?.trim() ? identityOp({ name: newName, email: newEmail }, localKeys) : undefined;
     };
     const openSettings = async (): Promise<undefined> => {
-      await vscode.commands.executeCommand('workbench.action.openSettings', 'gitardo.identities');
+      await this.openIdentities();
     };
     const items: (vscode.QuickPickItem & { op(): GitOp | undefined | Promise<GitOp | undefined> })[] = profiles.map((profile) => ({
       label: profile.name,
@@ -2261,6 +2309,11 @@ export class Controller implements vscode.Disposable {
     });
     const op = await choice?.op();
     if (op) await this.run(op);
+  }
+
+  /** Opens the setting that lists the identities to commit as. */
+  private async openIdentities(): Promise<void> {
+    await vscode.commands.executeCommand('workbench.action.openSettings', 'gitardo.identities');
   }
 
   /** Picks up changes made outside Gitardo: the terminal, another tool, a background fetch. */

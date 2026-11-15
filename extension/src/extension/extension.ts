@@ -158,6 +158,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     'push',
     'pushForceWithLease',
     'pushForce',
+    'sync',
   ];
   const webviewOptions = { webviewOptions: { retainContextWhenHidden: true } };
 
