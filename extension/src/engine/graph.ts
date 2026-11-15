@@ -1,19 +1,27 @@
 /**
  * The graph read by Gitardo's engine, from stage 7 of the transition: the rows of the timeline, the position of a
  * commit and the matches of a search, asked with the timeline the graph shows (`read/graph.read-commits`,
- * `read/graph.read-position`, `read/search.read-matches`). The rows come back in the shape `Repo` lists them, for the
- * lines of the graph to be laid out from their parents as before; the next pages are asked with `skip`, so that only
- * the rows the views do not have are read.
+ * `read/graph.read-position`, `read/search.read-matches`). The lines of the graph are laid out here from the parents of
+ * the rows; the next pages are asked with `skip`, so that only the rows the views do not have are read.
  */
 import { createHash } from 'node:crypto';
-import type { Commit, Filter, Scope, Search } from '../shared/protocol';
+import * as path from 'node:path';
+import { changedPaths } from '../shared/changes';
+import { GraphLayout } from '../shared/graph';
+import { GRAPH_COLUMNS, WORKTREE, type Commit, type Filter, type RepoParts, type RepoState, type Row, type Scope, type Search } from '../shared/protocol';
+import { pruneScope } from '../shared/scope';
 import type { EngineClient } from './client';
 import type { BranchesShown, CommitPage, EngineCommit, EngineRow, Narrowing, SearchMode, Timeline } from './messages';
 
-/** A commit of the graph, or a stash among them with its name, as `Repo` lists them. */
+/** A commit of the graph, or a stash among them with its name. */
 export type Listed = Commit & { stash?: string };
 
-/** What the graph shows, as `Repo.state` gives it to a reader of its commits (`CommitsAsked` of `src/git/repo.ts`). */
+/**
+ * What the graph shows, as its commits are asked for. `scope` is the one the references have now; `names` are those
+ * of the file of a `path` filter, its name now first; `stashes` says whether they are placed among the commits, never
+ * with a filter. `head`, `refs` and `stashList` are the state just read, which tells whether the history may have
+ * changed since.
+ */
 export interface GraphAsked {
   limit: number;
   filter: Filter | null;
@@ -24,6 +32,82 @@ export interface GraphAsked {
   head: string | null;
   refs: unknown;
   stashList: unknown;
+}
+
+/** What the graph is read for: how many commits, narrowed how, of which branches, with the stashes or not. */
+export interface StateAsked {
+  limit: number;
+  filter: Filter | null;
+  scope: Scope | null;
+  stashes: boolean;
+  /** Whether only the first parent of each merge is followed: what was merged is left out. */
+  firstParent: boolean;
+}
+
+/** Reads the commits of the graph, and whether there are more. */
+export type CommitsReader = (asked: GraphAsked) => Promise<GraphCommits>;
+
+/**
+ * The state of a repository from what `repo.read-state` read, with the commits of the graph `read` gives, the row of the
+ * uncommitted changes above them, and the lines of the graph laid out. The parts that are the window's own, such as
+ * the favorites, are left at their defaults for the caller to fill.
+ */
+export async function graphState(client: EngineClient, root: string, parts: RepoParts, asked: StateAsked, read: CommitsReader, signal?: AbortSignal): Promise<RepoState> {
+  const { limit, filter, stashes, firstParent } = asked;
+  const head = parts.head.commit;
+  const changes = changedPaths(parts.workingTree);
+  // A branch chosen for the graph may have been deleted since.
+  const shown = pruneScope(asked.scope, parts);
+  // A file is followed under the names it had before, or its history would end at the commit that renamed it. A folder
+  // is not: git follows only files.
+  const names = filter?.kind === 'path' ? (filter.folder ? [filter.path] : await client.fileNames(root, filter.path, signal)) : [];
+  const refs = { branches: parts.branches, remoteBranches: parts.remoteBranches, tags: parts.tags };
+  const commits = await read({ limit, filter, scope: shown, names, stashes: stashes && !filter, firstParent, head, refs, stashList: parts.stashes });
+  const listed = commits.commits;
+
+  const layout = new GraphLayout();
+  const rows: Row[] = [];
+  // Search results are unrelated commits: drawing lines between them would suggest a history that is not there.
+  const connected = !filter || filter.kind === 'path' || filter.kind === 'lines' || filter.kind === 'ref';
+  // Nor are the changes shown above a graph that leaves out the commit they are made on.
+  const headListed = !shown || !head || listed.some((commit) => commit.stash === undefined && commit.hash === head);
+  if (changes.length && !filter && headListed) {
+    // Before the first commit there is no HEAD to hang the changes on, and they are all there is to show.
+    const parents = head ? [head] : [];
+    const subject = `Uncommitted changes (${changes.length})`;
+    rows.push({ hash: WORKTREE, parents, author: '', email: '', date: 0, subject, graph: layout.next(WORKTREE, parents, true) });
+  }
+  for (const commit of listed) rows.push({ ...commit, graph: layout.next(commit.hash, connected ? commit.parents : [], commit.stash !== undefined) });
+
+  return {
+    root,
+    name: path.basename(root),
+    ...parts,
+    rows,
+    hasMore: commits.hasMore,
+    changes: changes.length,
+    filter: filter?.kind === 'path' && names.length > 1 ? { ...filter, renamedFrom: names.slice(1) } : filter,
+    scope: shown,
+    favorites: [],
+    defaultPull: 'pullRebaseAutostash',
+    repos: [],
+    github: null,
+    pulls: {},
+    agentsWindow: false,
+    undo: null,
+    worktreesRoot: null,
+    openBranches: 'checkout',
+    showStashes: stashes,
+    firstParent,
+    graphColumns: GRAPH_COLUMNS,
+    dateSeparators: true,
+    combineUpstream: true,
+    traceSelected: true,
+    branchesFollowScope: true,
+    sortOrder: 'name',
+    resolveWithAI: false,
+    home: null,
+  };
 }
 
 /** The commits read, and whether the history has more. */

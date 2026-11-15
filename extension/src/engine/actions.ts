@@ -1,8 +1,7 @@
 /**
  * Which feature of Gitardo's engine an action of the views runs, with its target and the answers the view already
- * gave, for the areas moved to the engine ([docs/transition/06-roadmap.md](../../../docs/transition/06-roadmap.md),
- * stage 4). An action that has none here still runs as a `GitOp` of `src/git/ops.ts`, and so does every action when the
- * engine is not there (D49).
+ * gave ([docs/transition/06-roadmap.md](../../../docs/transition/06-roadmap.md), stage 4). An action that has none here
+ * is VS Code's own (`hostAction` of `src/extension/actions.ts`), or one there is nothing to run for.
  */
 
 import type { Action, MergeMode, PullAction, RebaseStep, RepoState, SyncAction } from '../shared/protocol';
@@ -148,7 +147,7 @@ export function engineRuns(
       return [{ feature: 'bisect.end', target: { kind: 'head' } }];
     // Conflicts (stage 4, area 4).
     case 'resolveConflicts': {
-      // The engine resolves every file in conflict: some of them only stay with TypeScript.
+      // The engine resolves every file in conflict: some of them only are looked at in the review.
       const conflicted = state.workingTree?.conflicted.map((file) => file.path) ?? [];
       if (action.paths && conflicted.some((path) => !action.paths?.includes(path))) return null;
       return [{ feature: 'conflicts.resolve-automatically', target: { kind: 'head' } }];
@@ -162,8 +161,8 @@ export function engineRuns(
         },
       ];
     case 'continue':
-      // A rebase stopped to edit or to split a commit goes on as its stop says, which is the rewriting area's.
-      return state.rebaseStop ? null : [{ feature: 'conflicts.continue-operation', target: { kind: 'head' } }];
+      // A rebase stopped to edit or to split a commit goes on as its stop says, which the engine hands over to.
+      return [{ feature: 'conflicts.continue-operation', target: { kind: 'head' } }];
     case 'skip':
       return [{ feature: 'conflicts.skip-step', target: { kind: 'head' } }];
     case 'abort':

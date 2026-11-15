@@ -192,8 +192,8 @@ export class WindowEngine implements vscode.Disposable {
     if (!binary) {
       this.log.info(
         setting?.trim()
-          ? `Gitardo's engine was not found at ${setting}, which gitardo.engine.path names; Gitardo works without it.`
-          : `Gitardo's engine has no binary for ${process.platform}-${process.arch} in this package; Gitardo works without it.`,
+          ? `Gitardo's engine was not found at ${setting}, which gitardo.engine.path names: Gitardo cannot read a repository or run anything without it.`
+          : `Gitardo's engine has no binary for ${process.platform}-${process.arch} in this package: Gitardo cannot read a repository or run anything without it.`,
       );
       return undefined;
     }

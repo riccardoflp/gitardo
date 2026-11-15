@@ -6,7 +6,7 @@
  */
 import { type ChildProcess, spawn } from 'node:child_process';
 import { Connection, ENDED, EngineError, ErrorCode } from './connection';
-import type { Head, JournalEntry, UndoRecord } from './journal';
+import type { JournalEntry } from './journal';
 import type { FileChange, RepositoryState } from '../shared/state';
 import {
   AiMethod,
@@ -257,17 +257,6 @@ export class EngineClient {
     await this.ensureOpen(repository);
     const { entry } = await connection.request<{ entry: JournalEntry | null }>(Method.journalLast, { repository });
     return entry;
-  }
-
-  /**
-   * Tells the journal of a repository an operation the extension ran in TypeScript, with what Undo needs of it, and gives
-   * the number of the entry it made; null when it made none.
-   */
-  async journalRecord(repository: string, title: string, record: UndoRecord | null, before: Head, after: Head): Promise<number | null> {
-    const connection = await this.ready();
-    await this.ensureOpen(repository);
-    const { number } = await connection.request<{ number: number | null }>(Method.journalRecord, { repository, title, record, before, after });
-    return number;
   }
 
   // The reads of version 1.4, from stage 5: one method for each, which opens the repository when it is not open. Each

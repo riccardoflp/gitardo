@@ -1,7 +1,5 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { discardOp, stageOp, unstageOp } from '../git/ops';
-import { Repo } from '../git/repo';
 import { reads } from '../engine/reads';
 import { buildModel, refreshPanel } from './build';
 import { ChunkActions, type RunOp } from './chunks';
@@ -124,13 +122,9 @@ export class FlowDiff implements vscode.Disposable {
       await vscode.window.showTextDocument(fileUri(panel.descriptor), { preview: false });
       return;
     }
-    const repo = new Repo(repoRoot);
-    let ran = false;
-    if (kind === 'stage') ran = await this.runOp(repoRoot, stageOp([file]));
-    if (kind === 'unstage') ran = await this.runOp(repoRoot, unstageOp([file], (await repo.resolve('HEAD')) !== null));
-    // Asked first, as every operation that can lose work.
-    if (kind === 'discard') ran = await this.runOp(repoRoot, discardOp([file], await repo.working()));
-    if (ran) await refreshPanel(this.engine, panel);
+    // The engine asks first before what can lose work.
+    const feature = kind === 'stage' ? 'changes.stage' : kind === 'unstage' ? 'changes.unstage' : 'changes.discard';
+    if (await this.runOp(repoRoot, [{ feature, target: { kind: 'file', path: file } }])) await refreshPanel(this.engine, panel);
   }
 
   /**
@@ -140,7 +134,7 @@ export class FlowDiff implements vscode.Disposable {
    */
   private async openAdjacentFile(panel: DiffPanel, direction: 'next' | 'prev'): Promise<void> {
     const { descriptor } = panel;
-    const working = await reads.working(new Repo(descriptor.repoRoot)).catch(() => null);
+    const working = await reads.working({ root: descriptor.repoRoot }).catch(() => null);
     const files = working ? (changedFiles(descriptor, working) ?? []).sort(compare) : [];
     const current = descriptor.path;
     // files after the current one in the given direction, then wrapping around

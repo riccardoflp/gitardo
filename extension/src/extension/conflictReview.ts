@@ -1,18 +1,17 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { applyReplacements } from '../shared/conflicts';
-import { CONFLICT_SIDES, writeResolutionsOp, type GitOp } from '../git/ops';
+import { CONFLICT_SIDES, applyReplacements, conflictCount, type ConflictPlan } from '../shared/conflicts';
 import { samePath } from '../shared/paths';
-import type { ConflictPlan, Repo } from '../git/repo';
-import { fingerprint, questionParts, reviewFiles } from '../shared/review';
+import { fingerprint, reviewFiles } from '../shared/review';
 import { partialResolution, type ConflictAnswer } from '../shared/conflictPrompt';
 import type { EngineClient } from '../engine/client';
+import { conflictPlans, deletedConflicts } from '../engine/conflictPlans';
 import type { FileResolutions } from '../engine/messages';
-import { reads } from '../engine/reads';
+import { reads, type Repository } from '../engine/reads';
 import { engineResolutions } from '../engine/resolutions';
 import type { HostMessage, Operation, ViewKind } from '../shared/protocol';
 import type { Asking, Choice, ConflictRef, ConflictReview, DeletedConflict, Proposal, ReviewReport } from '../shared/resolution';
-import { askResolution, conflictModelName } from './ai';
+import { conflictModelName } from './ai';
 import { proposalUri } from './content';
 import { answers, choices } from './answers';
 
@@ -25,15 +24,10 @@ const SEND_EVERY = 120;
 export interface ReviewHost {
   attach(webview: vscode.Webview, kind: ViewKind, data: Record<string, string>): vscode.Disposable;
   post(message: HostMessage, webview: vscode.Webview): void;
-  /**
-   * Writes resolutions, with Undo to put back the conflicts of these files: `review.write` of the engine on
-   * `resolutions`, or the operation when there is no engine; true once they are written.
-   */
-  write(repo: Repo, op: GitOp, paths: string[], resolutions: FileResolutions[]): Promise<boolean>;
+  /** Writes resolutions, with Undo to put back the conflicts: `review.write` of the engine; true once they are written. */
+  write(repo: Repository, resolutions: FileResolutions[]): Promise<boolean>;
   /** Whether the rules propose resolutions, and whether the language model can be asked. */
   settings(): { rules: boolean; ai: boolean };
-  /** The engine, which asks the model about each conflict when it runs (area 6 of stage 4). */
-  engine?(): EngineClient | undefined;
 }
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
@@ -70,7 +64,7 @@ export class ConflictReviewTab implements vscode.Disposable {
 
   constructor(
     private readonly host: ReviewHost,
-    readonly repo: Repo,
+    readonly repo: Repository,
     /** The files the review is of, or all the files in conflict. */
     private paths: string[] | undefined,
     onDispose: () => void,
@@ -118,11 +112,11 @@ export class ConflictReviewTab implements vscode.Disposable {
     try {
       const conflicted = await reads.conflicted(this.repo);
       const files = this.paths ? conflicted.filter((file) => this.paths?.includes(file)) : conflicted;
-      this.plans = await this.repo.conflictPlans(files);
+      this.plans = await conflictPlans(reads, this.repo, files);
       const unmarked = files.filter((file) => !this.plans.some((plan) => plan.path === file));
-      this.deleted = await this.repo.deletedConflicts(unmarked);
+      this.deleted = await deletedConflicts(reads, this.repo, unmarked);
       this.others = unmarked.filter((file) => !this.deleted.some((each) => each.path === file));
-      this.operation = await this.repo.operation().catch(() => null);
+      this.operation = await reads.operation(this.repo).catch(() => null);
       ({ names: this.names, subjects: this.subjects } = await reads.conflictSides(this.repo));
       this.conflicted = conflicted.length;
       this.model = this.host.settings().ai ? await conflictModelName() : null;
@@ -192,16 +186,14 @@ export class ConflictReviewTab implements vscode.Disposable {
     await this.reading;
     const chosen = this.proposals(refs);
     const files = this.plans.map((plan) => ({ path: plan.path, text: plan.text, conflicts: plan.conflicts.length, proposals: chosen.get(plan.path) ?? [] }));
-    let op: GitOp;
-    try {
-      op = writeResolutionsOp(files);
-    } catch (error) {
-      void vscode.window.showErrorMessage(`Gitardo: ${errorText(error)}`);
+    const written = files.filter((file) => file.proposals.length);
+    if (!written.length) {
+      void vscode.window.showErrorMessage('Gitardo: No resolution is accepted.');
       return;
     }
-    const written = files.filter((file) => file.proposals.length);
-    const staged = op.commands.length ? op.commands[0].length - 2 : 0;
-    if (!(await this.host.write(this.repo, op, written.map((file) => file.path), engineResolutions(files)))) return this.reload();
+    // The files left without conflicts are staged.
+    const staged = written.filter((file) => conflictCount(applyReplacements(file.text, file.proposals)) === 0).length;
+    if (!(await this.host.write(this.repo, engineResolutions(files)))) return this.reload();
     const all = written.flatMap((file) => file.proposals);
     this.report = { resolved: all.length, files: written.length, staged, fromAI: all.filter((proposal) => proposal.source === 'ai').length };
     await this.reload();
@@ -285,20 +277,10 @@ export class ConflictReviewTab implements vscode.Disposable {
         this.asking.set(id, { state: 'thinking', text: partialResolution(text) });
         this.schedule();
       };
-      const client = this.host.engine?.();
-      let answer: ConflictAnswer;
-      if (client) {
-        this.asking.set(id, { state: 'thinking', text: '' });
-        this.schedule();
-        answer = await askOnEngine(client, this.repo.root, plan, conflict, onText, token);
-      } else {
-        const [current, incoming] = CONFLICT_SIDES[this.operation ?? 'none'];
-        const [oursSubject, theirsSubject] = await this.repo.conflictSubjects();
-        const question = { path: plan.path, oursLabel: current, theirsLabel: incoming, oursSubject, theirsSubject, ...questionParts(plan.text, conflict) };
-        this.asking.set(id, { state: 'thinking', text: '' });
-        this.schedule();
-        answer = await askResolution(question, token, onText);
-      }
+      const client = reads.client();
+      this.asking.set(id, { state: 'thinking', text: '' });
+      this.schedule();
+      const answer = await askOnEngine(client, this.repo.root, plan, conflict, onText, token);
       if (token.isCancellationRequested) return;
       this.asking.delete(id);
       answers.set(this.repo.root, job.path, job.print, answer);
@@ -313,8 +295,8 @@ export class ConflictReviewTab implements vscode.Disposable {
   }
 }
 
-// Area 6 of stage 4: the question about one conflict, asked by the engine (`ai.ask-conflict`), which writes the
-// question, reads the names of the sides itself, and reads and trims the answer. The review stays here.
+// The question about one conflict, asked by the engine (`ai.ask-conflict`), which writes the question, reads the names
+// of the sides itself, and reads and trims the answer. The review stays here.
 
 /** The lines of a text without what ends them, one for each line break and one for what follows the last. */
 const linesWithoutEnds = (text: string) => text.split(/(?<=\n)/).map((line) => line.replace(/\r?\n$/, ''));

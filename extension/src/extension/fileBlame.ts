@@ -1,8 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import type { BlameLine } from '../git/parse';
-import type { Repo } from '../git/repo';
-import { reads } from '../engine/reads';
+import { type Repository, reads } from '../engine/reads';
+import type { ShownBlameLine as BlameLine } from '../engine/shapes';
 import { DEFAULT_AGE, DEFAULT_FORMAT, ageColor, blameLabels, parseFormat, type AgeColors, type FormatPart } from '../shared/blameFormat';
 import { ignoresWhitespace, type Blamable, type BlameSource } from './blame';
 import { SCHEME, revisionUri } from './content';
@@ -65,7 +64,7 @@ function readSettings(): Settings {
 /** What the rest of the extension does with a commit that the blame names. */
 export interface BlameActions {
   /** Opens a commit of a repository in an editor tab. */
-  open(hash: string, repo: Repo): unknown;
+  open(hash: string, repo: Repository): unknown;
   /** Shows a commit in the graph. */
   reveal(hash: string): unknown;
 }

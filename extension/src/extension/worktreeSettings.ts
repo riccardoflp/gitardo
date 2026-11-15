@@ -1,11 +1,14 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import type { SetupChange } from '../git/worktreeSetup';
+import { reads } from '../engine/reads';
 import {
+  chooseByPath,
   cleanCommands,
   cleanPatterns,
   namedPaths,
+  statusOf,
   type CommandProposal,
+  type IgnoredEntry,
   type SetupChoice,
   type SetupLayer,
   type SetupPatterns,
@@ -146,6 +149,80 @@ export async function editSetupJson(root: string, target: SetupTarget): Promise<
     // Not there yet: VS Code makes it, as it does from its own Settings editor.
     await vscode.commands.executeCommand('workbench.action.openFolderSettingsFile', folder.uri);
   }
+}
+
+/** What became of a file or folder of the checkout, given to new worktrees, or taken from them, from the Explorer. */
+export type SetupChange =
+  /** The patterns now give it what was chosen; `partly`, only what git ignores in it. */
+  | { kind: 'done'; partly: boolean }
+  /** Taken out of the patterns, though another pattern, `by`, still gives it something. */
+  | { kind: 'still'; choice: 'link' | 'copy'; by: string }
+  /** Another pattern, `by`, gives it what was chosen already. */
+  | { kind: 'already'; by: string }
+  /** Git tracks it, or files in it: each worktree has it from its commit. */
+  | { kind: 'tracked' }
+  /** Git does not ignore it, or not all of it. */
+  | { kind: 'notIgnored'; partly: boolean }
+  /** It is the folder `folder`, or inside it, which the pattern `by` links: nothing in a linked folder is copied. */
+  | { kind: 'linked'; folder: string; by: string };
+
+/** Whether one of these paths is the entry, or a folder it is in. */
+const covers = (taken: string[], entry: string) => taken.some((each) => entry === each || entry.startsWith(`${each}/`));
+
+/** What the patterns take from the checkout in `root`, as the engine works it out: the folders linked and the paths copied. */
+async function taken(root: string, patterns: SetupPatterns): Promise<SetupPatterns> {
+  const [preview] = await reads.setupTakes(root, [{ folder: root, link: patterns.link, copy: patterns.copy, commit: null }]);
+  return { link: preview?.linked ?? [], copy: preview?.copied ?? [] };
+}
+
+/** The first of the patterns of `choice` that gives `entry` something by itself, that is, takes it or a folder it is in. */
+async function takenBy(root: string, entry: string, choice: 'link' | 'copy', patterns: SetupPatterns): Promise<string> {
+  // A path is copied only outside the folders linked.
+  const requests = patterns[choice].map((pattern) => ({
+    folder: root,
+    link: choice === 'link' ? [pattern] : patterns.link,
+    copy: choice === 'copy' ? [pattern] : [],
+    commit: null,
+  }));
+  const previews = await reads.setupTakes(root, requests);
+  const found = previews.map((preview) => covers(choice === 'link' ? preview.linked : preview.copied, entry));
+  return patterns[choice][found.indexOf(true)] ?? '';
+}
+
+/**
+ * Sets what new worktrees get of the file or folder `entry` of the checkout in `root` by the pattern of its path, as
+ * the context menu of the Explorer does: linked, copied, or nothing by a pattern of its own. Returns the patterns to
+ * save, the same ones when nothing is to change, and what became of it, as the engine works the patterns out
+ * (`worktree-setup.read-what-patterns-take`, `worktree-setup.explain-change`).
+ */
+export async function changeSetup(
+  root: string,
+  entry: Pick<IgnoredEntry, 'path' | 'folder'>,
+  choice: SetupChoice,
+  patterns: SetupPatterns,
+): Promise<{ patterns: SetupPatterns; change: SetupChange }> {
+  const next = chooseByPath(patterns, entry, choice);
+  if (choice === 'none') {
+    const still = statusOf(entry, await taken(root, next));
+    if (still.choice === 'none' || still.partly) return { patterns: next, change: { kind: 'done', partly: false } };
+    return { patterns: next, change: { kind: 'still', choice: still.choice, by: await takenBy(root, entry.path, still.choice, next) } };
+  }
+
+  const was = statusOf(entry, await taken(root, patterns));
+  if (was.choice === choice && !was.partly) return { patterns, change: { kind: 'already', by: await takenBy(root, entry.path, choice, patterns) } };
+
+  const after = await taken(root, next);
+  const now = statusOf(entry, after);
+  if (now.choice === choice && (!now.partly || choice === 'copy')) return { patterns: next, change: { kind: 'done', partly: now.partly } };
+  if (choice === 'copy' && now.choice === 'link' && !now.partly) {
+    const folder = after.link.find((each) => covers([each], entry.path))!;
+    return { patterns, change: { kind: 'linked', folder, by: await takenBy(root, entry.path, 'link', next) } };
+  }
+  const [status] = await reads.pathStatuses(root, [entry.path]);
+  const tracked = status !== undefined && status.tracked !== 'nothing';
+  const ignored = status !== undefined && status.ignored !== 'nothing';
+  if (tracked && (!entry.folder || choice === 'link' || !ignored)) return { patterns, change: { kind: 'tracked' } };
+  return { patterns, change: { kind: 'notIgnored', partly: ignored } };
 }
 
 /** What became of `name`, a file or a folder of the checkout, given to new worktrees or taken from them, said for the user. */

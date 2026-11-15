@@ -31,7 +31,6 @@ export const Method = {
   validate: 'question/validate',
   settingsChanged: 'settings/changed',
   journalLast: 'journal/last',
-  journalRecord: 'journal/record',
   discover: 'repository/discover',
 } as const;
 

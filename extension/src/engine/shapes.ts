@@ -20,7 +20,7 @@ import type {
 import type { BranchLog, CompareMode, CompareView, FilePatch, PullRequest, RepoParts, Resolution } from '../shared/protocol';
 import { type IgnoredEntry, type SetupPreview, suggest } from '../shared/worktreeSetup';
 
-/** Who last changed a line, as the editors of the extension show it (`BlameLine` of `src/git/parse.ts`). */
+/** Who last changed a line, as the editors of the extension show it. */
 export interface ShownBlameLine {
   hash: string;
   author: string;
@@ -30,7 +30,7 @@ export interface ShownBlameLine {
   previous?: { hash: string; file: string };
 }
 
-/** A place HEAD or a branch was at, as the extension lists it (`ReflogEntry` of `src/git/parse.ts`). */
+/** A place HEAD or a branch was at, as the extension lists it. */
 export interface ShownReflogEntry {
   hash: string;
   subject: string;

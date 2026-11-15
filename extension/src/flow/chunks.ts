@@ -1,22 +1,17 @@
 import * as vscode from 'vscode';
 import type { EngineRun } from '../engine/actions';
-import { type GitOp, stageOp, unstageOp } from '../git/ops';
-import { Repo } from '../git/repo';
-import { stagePatch, unstagePatch } from './diff/chunkPatch';
-import { normalizeEol } from './diff/hunks';
+import type { DiffChangeTarget, DiffSideTarget } from '../engine/messages';
 import type { AlignedDiffModel, DiffChunk } from './diff/model';
 import type { DiffHost } from './panel';
-import { canStage, fileUri, readVersion } from './sides';
+import { type DiffDescriptor, type Version, canStage, fileUri } from './sides';
 
 export type ChunkActionKind = 'revertChunk' | 'stageChunk' | 'unstageChunk';
 
 /**
- * Runs a git operation in a repository the way Gitardo runs its own: logged, shown first when the user asked for
- * that, and followed by a refresh. Resolves to whether it ran and succeeded; a failure has already been reported.
+ * Runs features of the engine in a repository the way Gitardo runs its own: logged, asked first when the user wants
+ * that, and followed by a refresh. Resolves to whether they all ran; a failure or a refusal has already been said.
  */
-/** Runs an operation in a repository, or the runs of the engine that take its place when the engine is there. */
-export type RunOp = (root: string, op: GitOp, runs?: EngineRun[]) => Promise<boolean>;
-
+export type RunOp = (root: string, runs: EngineRun[]) => Promise<boolean>;
 /** Host-side handlers for the per-chunk gutter buttons. */
 export class ChunkActions {
   constructor(
@@ -91,114 +86,58 @@ export class ChunkActions {
     await document.save();
   }
 
-  /** Moves the index towards the worktree on the chunk's region. */
+  /**
+   * Moves the index towards the working tree on the change: `diff.stage-change` of the engine, which makes the patch,
+   * checks the file is as the diff shows it, and stages a file the index does not have whole.
+   */
   private async stageChunk(panel: DiffHost, model: AlignedDiffModel, chunk: DiffChunk): Promise<void> {
     const { descriptor } = panel;
-    const index = await readVersion({ ...descriptor, right: { kind: 'index' } }, 'right');
-    if (index === undefined) {
-      // untracked file: there is no index entry to patch — stage it whole
-      await this.runOp(descriptor.repoRoot, stageOp([descriptor.path]));
-      return;
-    }
-    const worktree = (await readVersion({ ...descriptor, right: { kind: 'worktree' } }, 'right')) ?? '';
-    assertSideMatches(model, 'right', worktree);
-    const patch = stagePatch(descriptor.path, index, worktree, {
-      start: chunk.rightStart,
-      count: chunk.rightCount,
-    });
-    if (patch) {
-      await this.applyToIndex(panel, patch, 'Stage');
-    }
+    await this.runOp(descriptor.repoRoot, [{ feature: 'diff.stage-change', target: changeTarget(descriptor, model, chunk) }]);
   }
 
   /**
-   * Moves the index back towards HEAD on the chunk's region. In the index
-   * view the chunk's right side is the index; in the worktree view (staged
-   * chunk) its left side is HEAD.
+   * Moves the index back towards HEAD on the change: `diff.unstage-change` of the engine. In the diff of the index the
+   * change's right side is the index; in the diff of the working tree (a staged change) its left side is HEAD.
    */
   private async unstageChunk(panel: DiffHost, model: AlignedDiffModel, chunk: DiffChunk): Promise<void> {
     const { descriptor } = panel;
-    const [index, head] = await Promise.all([
-      readVersion({ ...descriptor, right: { kind: 'index' } }, 'right'),
-      readVersion({ ...descriptor, right: { kind: 'commit', ref: 'HEAD' } }, 'right'),
-    ]);
-    if (index === undefined) {
-      return; // nothing staged
-    }
-    if (head === undefined) {
-      // added in the index, not in HEAD: the whole file is the one chunk
-      const hasHead = (await new Repo(descriptor.repoRoot).resolve('HEAD')) !== null;
-      await this.runOp(descriptor.repoRoot, unstageOp([descriptor.path], hasHead));
-      return;
-    }
-    const fromIndexView = descriptor.right.kind === 'index';
-    assertSideMatches(model, fromIndexView ? 'right' : 'left', fromIndexView ? index : head);
-    const patch = fromIndexView
-      ? unstagePatch(descriptor.path, index, head, { start: chunk.rightStart, count: chunk.rightCount }, 'index')
-      : unstagePatch(descriptor.path, index, head, { start: chunk.leftStart, count: chunk.leftCount }, 'head');
-    if (patch) {
-      await this.applyToIndex(panel, patch, 'Unstage');
-    }
+    await this.runOp(descriptor.repoRoot, [{ feature: 'diff.unstage-change', target: changeTarget(descriptor, model, chunk) }]);
   }
+}
 
-  /**
-   * The patch is built from decoded text and reaches git as UTF-8, so it must
-   * mean the same bytes as the file: refuse instead of corrupting the index.
-   */
-  private async applyToIndex(panel: DiffHost, patch: string, verb: 'Stage' | 'Unstage'): Promise<void> {
-    const { repoRoot, path: file } = panel.descriptor;
-    const uri = fileUri(panel.descriptor);
-    const encoding = vscode.workspace.getConfiguration('files', uri).get<string>('encoding', 'utf8');
-    if (encoding !== 'utf8' && encoding !== 'utf8bom' && /[^\x00-\x7f]/.test(patch)) {
-      throw new Error(`chunk staging needs UTF-8 text, this file is ${encoding} — stage the whole file`);
-    }
-    // git's decoder strips a UTF-8 BOM: a hunk on line 1 would lose or misplace it
-    if (/^@@ -[01],/m.test(patch) && (await startsWithBom(uri))) {
-      throw new Error('the first line of a file with a BOM cannot be staged per chunk — stage the whole file');
-    }
-    await this.runOp(repoRoot, chunkOp(verb, file, patch));
+/** A side of a Flow Diff as the engine names it. */
+function sideTarget(version: Version): DiffSideTarget {
+  switch (version.kind) {
+    case 'worktree':
+      return { kind: 'workingTree' };
+    case 'index':
+      return { kind: 'index' };
+    case 'commit':
+      return version.ref === 'HEAD' ? { kind: 'head' } : { kind: 'commit', commit: version.ref };
+    case 'none':
+      return { kind: 'empty' };
   }
 }
 
 /**
- * Writes one chunk of a file into the index. The patches carry no line of context, which `--unidiff-zero` allows, and
- * always go forward from the exact content of the index: unstaging is a patch from the index towards HEAD.
+ * A change of a Flow Diff as the engine takes it: its lines on each side from 0, the end left out, and their text. A
+ * change that has no lines on a side starts there after the line it follows, which the diff counts from 1.
  */
-export function chunkOp(verb: 'Stage' | 'Unstage', file: string, patch: string): GitOp {
-  const header = patch.split('\n').find((line) => line.startsWith('@@')) ?? '';
-  return {
-    title: `${verb} change in ${file}`,
-    commands: [['apply', '--cached', '--unidiff-zero', '--whitespace=nowarn', '-']],
-    input: patch,
-    note: `The patch on standard input changes this part of ${file} in the index:\n${header}`,
+export function changeTarget(descriptor: DiffDescriptor, model: AlignedDiffModel, chunk: DiffChunk): DiffChangeTarget {
+  const lines = (start: number, count: number) => {
+    const first = count ? start - 1 : start;
+    return { start: first, end: first + count };
   };
-}
-
-async function startsWithBom(uri: vscode.Uri): Promise<boolean> {
-  try {
-    const bytes = await vscode.workspace.fs.readFile(uri);
-    return bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
-  } catch {
-    return false;
-  }
-}
-
-/** Race guard: the chunk coordinates are only valid for the text the model was built from. */
-function assertSideMatches(model: AlignedDiffModel, side: 'left' | 'right', text: string): void {
-  const expected: string[] = [];
-  for (const row of model.rows) {
-    const cell = side === 'left' ? row.left : row.right;
-    if (cell.kind !== 'filler' && cell.text !== undefined) {
-      expected.push(cell.text);
-    }
-  }
-  const actual = normalizeEol(text).split('\n');
-  if (actual[actual.length - 1] === '') {
-    actual.pop();
-  }
-  if (actual.length !== expected.length || actual.some((line, i) => line !== expected[i])) {
-    throw new Error('the file changed since the diff was computed, retry');
-  }
+  return {
+    kind: 'diffChange',
+    path: descriptor.path,
+    left: sideTarget(descriptor.left),
+    right: sideTarget(descriptor.right),
+    leftLines: lines(chunk.leftStart, chunk.leftCount),
+    rightLines: lines(chunk.rightStart, chunk.rightCount),
+    leftText: sideLines(model, chunk, 'left'),
+    rightText: sideLines(model, chunk, 'right'),
+  };
 }
 
 function sideLines(model: AlignedDiffModel, chunk: DiffChunk, side: 'left' | 'right'): string[] {

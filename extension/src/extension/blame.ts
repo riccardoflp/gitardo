@@ -1,7 +1,6 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { Repo, type BlameOptions } from '../git/repo';
-import { reads } from '../engine/reads';
+import { type BlameAsked, type Repository, reads } from '../engine/reads';
 import { ago } from '../shared/blameFormat';
 import { revisionOf } from './content';
 
@@ -9,7 +8,7 @@ const DELAY = 200;
 
 /** Where a document is in a repository: the name the file has there, and the commit it is shown as it was in, if any. */
 export interface Blamable {
-  repo: Repo;
+  repo: Repository;
   file: string;
   revision?: string;
 }
@@ -17,26 +16,23 @@ export interface Blamable {
 /** Whether a line is left to who wrote it when only its whitespace or its place in the file changed since. */
 export const ignoresWhitespace = () => vscode.workspace.getConfiguration('gitardo').get<boolean>('blame.ignoreWhitespaceAndMoves') === true;
 
-/** Finds the repository a file of the editor is in. It works before any Gitardo view is opened. */
+/** Finds the repository a file of the editor is in, by the engine. It works before any Gitardo view is opened. */
 export class BlameSource {
   /** The repository of each folder a file was opened from, found once. */
-  private readonly found = new Map<string, Promise<Repo | undefined>>();
-  private readonly repos = new Map<string, Repo>();
+  private readonly found = new Map<string, Promise<Repository | undefined>>();
 
   constructor(private readonly log: vscode.LogOutputChannel) {}
 
-  private repo(root: string): Repo {
-    let repo = this.repos.get(root);
-    if (!repo) this.repos.set(root, (repo = new Repo(root, (command) => this.log.debug(command))));
-    return repo;
-  }
-
-  private repoOf(folder: string): Promise<Repo | undefined> {
+  private repoOf(file: string): Promise<Repository | undefined> {
+    const folder = path.dirname(file);
     let repo = this.found.get(folder);
     if (!repo) {
-      repo = Repo.discover(folder).then(
-        (root) => (root ? this.repo(root) : undefined),
-        () => undefined,
+      repo = reads.repositoryOf(file).then(
+        (found) => (found ? { root: found.root } : undefined),
+        (error: unknown) => {
+          this.log.debug(`No repository found for ${folder}: ${error instanceof Error ? error.message : String(error)}`);
+          return undefined;
+        },
       );
       this.found.set(folder, repo);
     }
@@ -46,21 +42,20 @@ export class BlameSource {
   /** The repository of a document, when it is a file on disk inside one or a file as it was in a commit. */
   async of(document: vscode.TextDocument): Promise<Blamable | undefined> {
     const past = revisionOf(document.uri);
-    if (past) return { repo: this.repo(past.root), file: past.file, revision: past.revision };
+    if (past) return { repo: { root: past.root }, file: past.file, revision: past.revision };
     if (document.uri.scheme !== 'file') return undefined;
-    const repo = await this.repoOf(path.dirname(document.uri.fsPath));
+    const repo = await this.repoOf(document.uri.fsPath);
     if (!repo) return undefined;
     const file = path.relative(repo.root, document.uri.fsPath).replace(/\\/g, '/');
     return file.startsWith('..') || path.isAbsolute(file) ? undefined : { repo, file };
   }
 
-  /** What git is told to blame a document: the text of the editor when it is not saved, and what the settings ask. */
-  options(document: vscode.TextDocument, found: Blamable): BlameOptions {
-    return {
-      contents: !found.revision && document.isDirty ? document.getText() : undefined,
-      revision: found.revision,
-      ignoreWhitespace: ignoresWhitespace(),
-    };
+  /**
+   * What the engine is told to blame a document with: the text of the editor when it is not saved, and the commit it is
+   * shown as it was in. Whitespace is left to the setting, which the engine reads.
+   */
+  options(document: vscode.TextDocument, found: Blamable): BlameAsked {
+    return { contents: !found.revision && document.isDirty ? document.getText() : undefined, revision: found.revision };
   }
 }
 

@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { FlowDiff } from '../flow/flowDiff';
-import { discoverRepos } from '../git/discover';
 import { reads } from '../engine/reads';
 import { WindowEngine } from '../engine/vscode';
 import type { RepoState, SyncAction, ViewKind } from '../shared/protocol';
@@ -32,12 +31,12 @@ export interface GitardoApi {
 
 export function activate(context: vscode.ExtensionContext): GitardoApi {
   const log = vscode.window.createOutputChannel('Gitardo', { log: true });
-  // Gitardo's engine, started the first time a repository is found. It runs the operations of the areas moved to it,
-  // and answers the reads of the views; src/git does both when it is not there (D49).
-  // Area 6 of stage 4: the engine asks VS Code's sign-in to GitHub and its language models.
+  // Gitardo's engine, started at once: it finds the repositories of the workspace, answers every read of the views and
+  // runs every operation. Without it, the views and the commands say it is not available (D49). It asks VS Code's
+  // sign-in to GitHub and its language models.
   const engine = new WindowEngine(context, log, { githubToken, languageModel: answerLanguageModel, languageModels });
   context.subscriptions.push(engine);
-  reads.use(() => engine.running, log);
+  reads.use(() => engine.running);
   const controller = new Controller(context.extensionUri, log, context.workspaceState);
   controller.useEngine(engine);
   const blameSource = new BlameSource(log);
@@ -46,7 +45,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     reveal: (hash) => controller.reveal(hash),
   });
   // What it stages and unstages runs as Gitardo's own operations, and what Gitardo reads again may have moved it.
-  const flowDiff = new FlowDiff(context.extensionUri, (root, op, runs) => controller.runIn(root, op, runs));
+  const flowDiff = new FlowDiff(context.extensionUri, (root, runs) => controller.runIn(root, runs));
   // The repository shown and the one selected in VS Code's Repositories view follow each other.
   const sourceControl = new SourceControlSelection((root) => controller.followSourceControl(root), log);
   void sourceControl.start();
@@ -100,7 +99,6 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
   // for now, since no view may be open to read one, and again when the folders of the workspace change. A repository
   // made later shows them as soon as a view reads it.
   const hasRepository = (has: boolean) => {
-    if (has) engine.start();
     if (has) status.show();
     else status.hide();
     void vscode.commands.executeCommand('setContext', 'gitardo.hasRepository', has);
@@ -117,7 +115,8 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
   let roots: string[] = [];
   const lookForRepos = async () => {
     const folders = (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath);
-    roots = await discoverRepos(folders).catch(() => []);
+    // The engine finds them; without it there are none to show.
+    roots = reads.available ? (await reads.discover(folders).catch(() => [])).map((found) => found.folder) : [];
     hasRepository(roots.length > 0);
     showSetupInMenus(roots);
     showRootsInMenus(roots);

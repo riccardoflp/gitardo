@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { git } from '../git/exec';
+import { reads } from '../engine/reads';
 import type { DiffPanel, PanelRegistry } from './panel';
 import { fileUri } from './sides';
 
@@ -52,9 +52,9 @@ export class Refresher implements vscode.Disposable {
     if (this.watched.has(key)) return;
     this.watched.set(
       key,
-      git(root, ['rev-parse', '--absolute-git-dir'], { readOnly: true }).then(
-        ({ stdout }) => {
-          const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(stdout.trim()), '{index,HEAD}'));
+      reads.gitFolder({ root }).then(
+        (folder) => {
+          const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(folder), '{index,HEAD}'));
           const changed = () => this.repositoryChanged(root);
           return vscode.Disposable.from(watcher, watcher.onDidChange(changed), watcher.onDidCreate(changed), watcher.onDidDelete(changed));
         },

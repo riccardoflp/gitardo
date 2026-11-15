@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import type { OpLog } from '../git/ops';
+import type { HostLog } from './actions';
 
 /*
  * The commands of gitardo.worktrees.setupCommands, run in a new worktree once Gitardo has made it and its links and
@@ -47,7 +47,7 @@ function runTask(task: vscode.Task): Promise<number | undefined> {
  * what stopped them, said for the user, or undefined when they all succeeded. Nothing runs in a workspace that is not
  * trusted, whose settings may come from a repository that was only cloned.
  */
-export async function runSetupCommands(root: string, dir: string, commands: string[], log: OpLog): Promise<string | undefined> {
+export async function runSetupCommands(root: string, dir: string, commands: string[], log: HostLog): Promise<string | undefined> {
   const name = path.basename(dir);
   if (!vscode.workspace.isTrusted) {
     log.warn('The commands of gitardo.worktrees.setupCommands did not run: this workspace is not trusted.');

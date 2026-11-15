@@ -1,13 +1,11 @@
 import { createHash } from 'node:crypto';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { CONFLICT_SIDES, stageOp } from '../git/ops';
-import { Repo } from '../git/repo';
 import { samePath } from '../shared/paths';
 import type { Operation } from '../shared/protocol';
 import { CONFLICT, contentUri } from '../extension/content';
 import { answers } from '../extension/answers';
-import { resolveConflicts } from '../shared/conflicts';
+import { CONFLICT_SIDES, resolveConflicts } from '../shared/conflicts';
 import { answerProposal, fingerprint, rulesProposal } from '../shared/review';
 import { normalizeEol } from './diff/hunks';
 import { markerBlockCount, mergeEditorStart } from './diff/merge3';
@@ -166,7 +164,7 @@ export class FlowMerge implements vscode.Disposable {
       if (choice !== mark) return;
     }
     if (document.isDirty && !(await document.save())) return;
-    // With the engine, `merge-view.mark-resolved` on the file saved, the question about the markers answered above.
+    // The engine's `merge-view.mark-resolved` on the file saved, the question about the markers answered above.
     const runs: EngineRun[] = [
       {
         feature: 'merge-view.mark-resolved',
@@ -174,7 +172,7 @@ export class FlowMerge implements vscode.Disposable {
         answers: left > 0 ? { 'mark anyway': { kind: 'confirmed' } } : undefined,
       },
     ];
-    if (await this.runOp(repoRoot, stageOp([file]), runs)) panel.close();
+    if (await this.runOp(repoRoot, runs)) panel.close();
   }
 
   private active(): MergePanel | undefined {
@@ -206,7 +204,7 @@ export class FlowMerge implements vscode.Disposable {
    * Resolves to whether it was closed.
    */
   private async leaveMergeEditor(tab: vscode.Tab & { input: { result: vscode.Uri } }, descriptor: MergeDescriptor): Promise<boolean> {
-    const versions = await reads.conflictVersions(new Repo(descriptor.repoRoot), descriptor.path).catch(() => null);
+    const versions = await reads.conflictVersions({ root: descriptor.repoRoot }, descriptor.path).catch(() => null);
     // Not a file in conflict any more: the merge editor stays, and opening the Flow Merge says why it cannot.
     if (!versions?.hasBothSides) return true;
     const document = vscode.workspace.textDocuments.find((each) => samePath(each.uri.fsPath, tab.input.result.fsPath));
@@ -241,13 +239,13 @@ export class FlowMerge implements vscode.Disposable {
     const panel = this.active();
     if (!panel) return;
     const { repoRoot, path: file } = panel.descriptor;
-    const repo = new Repo(repoRoot);
+    const repo = { root: repoRoot };
     const stages = await reads.conflictStages(repo, file).catch(() => [] as number[]);
     // What was chosen here and not saved is not lost: the merge editor saves the file as it opens it. Where markers of
     // git are left in it, it then starts its own result again from the base, without saving that.
     try {
       // The merge editor needs all three sides: a file both sides added has no base, and opens as it is.
-      if ([1, 2, 3].every((stage) => stages.includes(stage))) await openMergeEditor(repoRoot, file, await repo.operation().catch(() => null));
+      if ([1, 2, 3].every((stage) => stages.includes(stage))) await openMergeEditor(repoRoot, file, await reads.operation(repo).catch(() => null));
       else await vscode.window.showTextDocument(fileUri(panel.descriptor), { preview: false });
     } catch (error) {
       void vscode.window.showWarningMessage(`Flow Merge: could not open the merge editor — ${error instanceof Error ? error.message : String(error)}`);
@@ -464,7 +462,7 @@ async function buildMerge(
 ): Promise<{ model: MergeModel; inputKey: string } | undefined> {
   const tell = (message: string) => interactive && void vscode.window.showInformationMessage(`Flow Merge: ${message}`);
   // Both sides added the file: there is no base, which is the same as an empty one.
-  const versions = await reads.conflictVersions(new Repo(descriptor.repoRoot), descriptor.path).catch(() => null);
+  const versions = await reads.conflictVersions({ root: descriptor.repoRoot }, descriptor.path).catch(() => null);
   if (!versions?.hasBothSides) {
     tell(`${descriptor.path} is not in conflict with a change on each side.`);
     return undefined;

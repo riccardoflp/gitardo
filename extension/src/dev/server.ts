@@ -1,14 +1,17 @@
 import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as path from 'node:path';
-import { discoverRepos, repoName } from '../git/discover';
+import { binaryName } from '../engine/binary';
+import { EngineClient } from '../engine/client';
+import { conflictPlans, deletedConflicts } from '../engine/conflictPlans';
+import { EngineGraph, graphState, historyOf, matchesOnEngine, positionOnEngine } from '../engine/graph';
+import { Reads, type Repository, repositoryName } from '../engine/reads';
+import { engineSettings } from '../engine/settings';
 import { parseGitHubRemote } from '../shared/github';
 import { samePath } from '../shared/paths';
 import type { Conflict } from '../shared/conflicts';
 import { CONFLICT_SIDES } from '../shared/conflicts';
-import { Repo } from '../git/repo';
 import { fingerprint, reviewFiles, type Answer } from '../shared/review';
-import { previewSetup, proposedCommands, scanIgnored } from '../git/worktreeSetup';
 import { addressed, languageMap, readFileIconTheme } from '../extension/fileIconTheme';
 import {
   GRAPH_COLUMNS,
@@ -25,13 +28,18 @@ import { sortRefs } from '../shared/refs';
 import type { Asking, Choice } from '../shared/resolution';
 import { cleanCommands, cleanPatterns, type SetupLayer, type SetupSource } from '../shared/worktreeSetup';
 
-// Usage: node dist/dev-server.js [--port=5174] [--icon-theme=<file>] [folder...]   (every repository found in the folders can be chosen in the page)
-// Read-only: actions that would change the repository or open an editor are only logged.
+// Usage: node dist/dev-server.js [--port=5174] [--icon-theme=<file>] [--engine=<binary>] [folder...]   (every repository found in the folders can be chosen in the page)
+// Read-only: actions that would change the repository or open an editor are only logged. The repositories are read by
+// Gitardo's engine: the binary of `--engine=`, else of GITARDO_ENGINE, else the debug build of rust/.
 
 const PAGE_SIZE = 1000;
 const options = process.argv.slice(2).filter((argument) => argument.startsWith('--'));
 const port = Number(options.find((option) => option.startsWith('--port='))?.slice(7) ?? process.env.PORT ?? 5174);
 const assets = __dirname;
+const engineBinary =
+  options.find((option) => option.startsWith('--engine='))?.slice(9) ??
+  process.env.GITARDO_ENGINE ??
+  path.resolve(assets, '../../rust/target/debug', binaryName());
 
 /** Where VS Code keeps its own extensions, in the places it is installed in: newer versions on Windows in a folder of their own. */
 function builtInExtensions(): string | undefined {
@@ -203,9 +211,17 @@ window.acquireVsCodeApi = () => ({
 async function main() {
   const given = process.argv.slice(2).filter((argument) => !argument.startsWith('--'));
   const folders = (given.length ? given : ['.']).map((folder) => path.resolve(folder));
-  const roots = await discoverRepos(folders);
-  const repos = roots.map((root) => ({ root, name: repoName(root, folders) }));
-  let repo = roots.length ? new Repo(roots[0]) : null;
+  if (!fs.existsSync(engineBinary)) {
+    throw new Error(`Gitardo's engine is not at ${engineBinary}: build it with cargo build -p server in rust/, or name it with --engine=.`);
+  }
+  const log = { info: () => {}, warn: console.warn, error: console.error, debug: () => {} };
+  const settings = engineSettings({}, new Set(), {}, 0);
+  const client = new EngineClient({ binary: engineBinary, clientVersion: '0.0.0-preview', settings: () => settings, logLevel: () => 'info', log });
+  const reads = new Reads(() => client);
+  const graph = new EngineGraph();
+  const roots = (await reads.discover(folders)).map((found) => found.folder);
+  const repos = roots.map((root) => ({ root, name: repositoryName(root, folders) }));
+  let repo: Repository | null = roots.length ? { root: roots[0] } : null;
   let limit = PAGE_SIZE;
   let filter: Filter | null = null;
   let scope: Scope | null = null;
@@ -240,11 +256,14 @@ async function main() {
 
   async function review(): Promise<HostMessage[]> {
     if (!repo) return [{ type: 'review', review: null, error: 'No repository.' }];
-    const conflicted = await repo.conflicted();
-    const plans = await repo.conflictPlans(conflicted);
-    const operation = await repo.operation().catch(() => null);
+    const conflicted = await reads.conflicted(repo);
+    const plans = await conflictPlans(reads, repo, conflicted);
+    const operation = await reads.operation(repo).catch(() => null);
     const [oursLabel, theirsLabel] = CONFLICT_SIDES[operation ?? 'none'];
-    const [[oursName, theirsName], [oursSubject, theirsSubject]] = await Promise.all([repo.conflictNames(), repo.conflictSubjects()]);
+    const {
+      names: [oursName, theirsName],
+      subjects: [oursSubject, theirsSubject],
+    } = await reads.conflictSides(repo);
     const sides = new Map(plans.flatMap((plan) => plan.conflicts.map((conflict): [string, Conflict] => [`${plan.path}\0${fingerprint(plan.text, conflict)}`, conflict])));
     const now = Date.now();
     const pretend = (id: string) => {
@@ -272,7 +291,7 @@ async function main() {
     const files = reviewFiles(plans, true, asked);
     const busy = files.some((file) => file.conflicts.some((conflict) => conflict.asking && conflict.asking.state !== 'failed'));
     const unmarked = conflicted.filter((file) => !plans.some((plan) => plan.path === file));
-    const deleted = await repo.deletedConflicts(unmarked);
+    const deleted = await deletedConflicts(reads, repo, unmarked);
     const others = unmarked.filter((file) => !deleted.some((each) => each.path === file));
     const shown = { root: repo.root, operation, oursLabel, theirsLabel, oursName, theirsName, oursSubject, theirsSubject, files, deleted, others, rules: true, ai: true, asking: busy, model: PRETEND_MODEL, report: null, conflicted: conflicted.length };
     return [{ type: 'review', review: shown }];
@@ -282,14 +301,14 @@ async function main() {
     if (!repo || !compared) return [];
     const side = async (name: string) => {
       if (name === WORKTREE) return { name: 'Working tree', hash: WORKTREE, live: true };
-      const hash = await repo!.resolve(name);
+      const hash = await reads.resolve(repo!, name);
       return hash && { name: hash.startsWith(name) ? hash.slice(0, 7) : name, hash, live: !hash.startsWith(name) };
     };
     const [from, to] = await Promise.all([side(compared.from), side(compared.to)]);
     if (!from || !to) return [{ type: 'compareView', view: null, error: 'Git does not know these.' }];
-    const found = await repo.compareSides(from.hash, to.hash, compared.mode, compared.path);
+    const found = await reads.compareSides(repo, from.hash, to.hash, compared.mode, compared.path);
     if (!found) return [{ type: 'compareView', view: null }];
-    const patch = await repo.comparePatch(found.files, found.since, to.hash, 20_000, compared.path);
+    const patch = await reads.comparePatch(repo, found.files, found.since, to.hash, compared.path);
     return [
       { type: 'compareView', view: { from, to, mode: compared.mode, ...found } },
       { type: 'comparePatch', since: found.since, to: to.hash, patch },
@@ -304,11 +323,11 @@ async function main() {
     const [copy, copyFrom] = one('copy');
     const commands = setup.workspace.commands ?? setup.user.commands;
     const commandsFrom: SetupSource = setup.workspace.commands ? 'workspace' : setup.user.commands ? 'user' : 'none';
-    const others = (await repo.state(1)).worktrees.filter((worktree) => !worktree.isMissing && !samePath(worktree.folder, repo!.root)).length;
+    const others = (await reads.parts(repo)).worktrees.filter((worktree) => !worktree.isMissing && !samePath(worktree.folder, repo!.root)).length;
     const info = {
       root: repo.root,
-      entries: await scanIgnored(repo.root),
-      commands: { effective: commands ?? [], from: commandsFrom, proposed: await proposedCommands(repo.root) },
+      entries: await reads.setupIgnored(repo.root),
+      commands: { effective: commands ?? [], from: commandsFrom, proposed: await reads.setupCommands(repo.root) },
       user: setup.user,
       workspace: { ...setup.workspace, name: path.basename(repo.root), file: path.join(repo.root, '.vscode', 'settings.json') },
       vscode: { link: [], copy: [] },
@@ -320,9 +339,10 @@ async function main() {
 
   async function state(): Promise<HostMessage[]> {
     if (!repo) return [{ type: 'state', state: null }];
-    const github = parseGitHubRemote(await repo.remoteUrl('origin'));
-    repo.firstParent = firstParent;
-    const read = await repo.state(limit, filter, scope, true, showStashes);
+    const root = repo.root;
+    const github = parseGitHubRemote((await reads.remotes(repo)).find((remote) => remote.name === 'origin')?.url ?? '');
+    const asked = { limit, filter, scope, stashes: showStashes, firstParent };
+    const read = await graphState(client, root, await reads.parts(repo, true), asked, (wanted) => graph.commits(client, root, wanted, PAGE_SIZE));
     scope = read.scope;
     worktrees = read.worktrees.filter((worktree) => !worktree.isMissing).map((worktree) => worktree.folder);
     const away = inRoots(read.root) ? null : home;
@@ -337,7 +357,7 @@ async function main() {
         if (!root) return [];
         const shown = repo && inRoots(repo.root);
         if (shown) home = repos.find((each) => each.root === shown) ?? home;
-        repo = new Repo(root);
+        repo = { root };
         filter = null;
         scope = null;
         limit = PAGE_SIZE;
@@ -429,11 +449,11 @@ async function main() {
         if (compared) compared = { ...compared, path: message.path };
         return comparison();
       case 'getLog': {
-        const log = await repo?.branchLog(message.limit);
+        const log = repo && (await reads.branchLog(repo, message.limit));
         return log ? [{ type: 'log', log }] : [];
       }
       case 'getComparison': {
-        const comparison = await repo?.compare(message.from, message.to);
+        const comparison = repo && (await reads.compare(repo, message.from, message.to));
         return comparison ? [{ type: 'comparison', comparison }] : [];
       }
       case 'show':
@@ -442,18 +462,21 @@ async function main() {
         // A page of the preview is one view: there is no graph beside the branches to bring the history out in.
         return [];
       case 'goTo': {
-        const hash = await repo?.resolve(message.revision);
+        const hash = repo && (await reads.resolve(repo, message.revision));
         if (!repo || !hash) return [];
+        const root = repo.root;
+        const position = async (narrowed: Filter | null, branches: Scope | null) =>
+          positionOnEngine(client, root, hash, await historyOf(client, root, narrowed, branches, null, firstParent)).catch(() => -1);
         const shown = filter;
         const among = scope;
-        let index = await repo.position(hash, shown, among);
+        let index = await position(shown, among);
         if (index < 0 && shown) {
           filter = null;
-          index = await repo.position(hash, null, among);
+          index = await position(null, among);
         }
         if (index < 0 && among) {
           scope = null;
-          index = await repo.position(hash);
+          index = await position(null, null);
         }
         if (index < 0) {
           filter = { kind: 'ref', ref: hash, lost: true };
@@ -464,25 +487,26 @@ async function main() {
       }
       case 'find': {
         const { search } = message;
-        const found = await repo?.matches(search, filter && 'query' in filter ? null : filter, 5000, scope).catch(() => null);
+        const searched = filter && 'query' in filter ? null : filter;
+        const found =
+          repo &&
+          (await historyOf(client, repo.root, searched, scope, null, firstParent)
+            .then((history) => matchesOnEngine(client, repo!.root, search, history))
+            .catch(() => null));
         return [{ type: 'found', search, ...(found ?? { hashes: [], more: false, failed: true }) }];
       }
       case 'getDetail':
-        return [{ type: 'detail', hash: message.hash, detail: (await repo?.commitDetail(message.hash)) ?? null }];
+        return [{ type: 'detail', hash: message.hash, detail: (repo && (await reads.commitDetail(repo, message.hash))) ?? null }];
       case 'getPatch': {
-        const detail = await repo?.commitDetail(message.hash);
-        return [{ type: 'patch', hash: message.hash, patch: (detail && (await repo?.commitPatch(detail, 20_000))) ?? null }];
+        const detail = repo && (await reads.commitDetail(repo, message.hash));
+        return [{ type: 'patch', hash: message.hash, patch: (repo && detail && (await reads.commitPatch(repo, detail))) ?? null }];
       }
-      // The clipboard and the save dialog are VS Code's: here the patch is printed.
-      case 'formatPatch':
-        console.log(await repo?.formatPatch(message.hashes));
-        return [];
       case 'getWorktreeSetup':
         return worktreeSetup();
       case 'previewWorktreeSetup': {
         if (!repo) return [];
         const patterns = { link: cleanPatterns(message.patterns.link), copy: cleanPatterns(message.patterns.copy) };
-        return [{ type: 'worktreeSetupPreview', patterns: message.patterns, preview: await previewSetup(repo.root, patterns) }];
+        return [{ type: 'worktreeSetupPreview', patterns: message.patterns, preview: await reads.setupPreview(repo.root, patterns) }];
       }
       // No theme of VS Code here: the page takes the colors of Dark+ or Light+.
       case 'syntaxTheme':
@@ -533,7 +557,7 @@ async function main() {
           const view = VIEWS.find((candidate) => candidate === url.searchParams.get('view')) ?? 'graph';
           reviewing = view === 'conflicts';
           // The tab of a commit: of the one asked for with `commit=`, or of the last.
-          const commit = view === 'commit' ? await repo?.resolve(url.searchParams.get('commit') ?? 'HEAD') : null;
+          const commit = view === 'commit' && repo ? await reads.resolve(repo, url.searchParams.get('commit') ?? 'HEAD') : null;
           const files = url.searchParams.get('files') === 'list' ? 'list' : 'tree';
           // The tab of a comparison: of `from=` and `to=`, the branch checked out and the one before it when not given.
           if (view === 'compare' && repo) {

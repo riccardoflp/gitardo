@@ -1,6 +1,6 @@
 /** A directory in a tree of files, or one of the files: `item` is what the caller listed, and only files have one. */
 export interface TreeNode<T> {
-  /** What to call it. A directory with nothing in it but another has the names of both, as `src/git`. */
+  /** What to call it. A directory with nothing in it but another has the names of both, as `src/shared`. */
   name: string;
   /** Where it is from the top, which no other node of its kind shares. */
   path: string;
