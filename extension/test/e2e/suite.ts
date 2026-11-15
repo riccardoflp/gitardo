@@ -1903,7 +1903,9 @@ export async function run(): Promise<void> {
     try {
       await vscode.commands.executeCommand('gitardo.cleanupBranches');
       // `topic` points at the commit that was reworded since, so it is not merged and not offered.
-      assert.deepEqual(offered, ['merged (ticked): merged into main · with its worktree merged']);
+      // The engine joins what it says of a branch with commas, the extension with dots (stage 4, area 2).
+      assert.equal(offered.length, 1);
+      assert.match(offered[0], /^merged \(ticked\): merged into main(, | · )with its worktree merged$/);
       assert.deepEqual(
         state().branches.map((branch) => branch.name),
         ['feature', 'main', 'topic'],
@@ -2180,7 +2182,11 @@ export async function run(): Promise<void> {
     asked.length = 0;
     answer = () => undefined;
     await controller.sync('push');
-    assert.deepEqual(asked, [{ message: 'Gitardo: this repository has no remote.', detail: '', items: ['Add Remote…'] }]);
+    // The engine writes it as the desktop does, in capitals where the extension had none (stage 4, area 2).
+    assert.equal(asked.length, 1);
+    assert.match(asked[0].message, /^Gitardo: [Tt]his repository has no remote\.$/);
+    assert.equal(asked[0].items.length, 1);
+    assert.match(asked[0].items[0], /^Add [Rr]emote…$/);
     await controller.selectRepo(state().repos[0].root);
   });
 
@@ -3490,10 +3496,10 @@ export async function run(): Promise<void> {
       assert.ok(errors.slice(before).every((text) => text.includes("transport 'file' not allowed")), errors.slice(before).join('\n'));
       errors.length = before;
       assert.equal(state().branch, 'with-lib');
-      assert.deepEqual(
-        asked.map((question) => question.message),
-        ['Update the submodules from a folder on disk?'],
-      );
+      // The engine offers the rest of the checkout again under its own title, the extension the update alone (stage 4,
+      // area 2).
+      assert.equal(asked.length, 1, JSON.stringify(asked));
+      assert.match(asked[0].message, /^(Update the submodules|Check out with-lib) from a folder on disk\?$/);
       assert.ok(logged.includes('> git checkout with-lib'), logged.join('\n'));
       assert.ok(logged.includes('> git -c protocol.file.allow=always submodule update --init --recursive'), logged.join('\n'));
       assert.deepEqual([submodule()?.head, submodule()?.ahead, submodule()?.behind], [first, 0, 0]);
