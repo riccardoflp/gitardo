@@ -11,11 +11,50 @@ use model::state::{ChangeKind, WorkingTree};
 /// Said when an operation on one file is given none.
 pub(super) const CHOOSE_A_FILE: &str = "Choose a file of the Changes page.";
 
-/// The file an operation was invoked on, by its path from the top of the working tree.
+/// The file an operation was invoked on, by its path from the top of the working tree; the one of the files ticked,
+/// when only one is.
 pub(super) fn target_file(context: &Context) -> Result<&str, Refusal> {
     match &context.target {
         Target::File(path) => Ok(path),
+        Target::Files(paths) if paths.len() == 1 => paths
+            .first()
+            .map(String::as_str)
+            .ok_or_else(|| Refusal::saying(CHOOSE_A_FILE)),
         _ => Err(Refusal::saying(CHOOSE_A_FILE)),
+    }
+}
+
+/// The files an operation was invoked on: the one file of a row, or the files ticked (`Target::Files`), each by its
+/// path from the top of the working tree.
+pub(super) fn target_files(context: &Context) -> Result<Vec<&str>, Refusal> {
+    match &context.target {
+        Target::File(path) => Ok(vec![path.as_str()]),
+        Target::Files(paths) if !paths.is_empty() => Ok(paths.iter().map(String::as_str).collect()),
+        _ => Err(Refusal::saying(CHOOSE_A_FILE)),
+    }
+}
+
+/// The files ticked, without the old name of a staged rename whose new name is ticked too: a host that lists a rename
+/// as one row may send both its names, which are one file to the user.
+pub(super) fn without_old_names<'a>(tree: &WorkingTree, paths: &[&'a str]) -> Vec<&'a str> {
+    paths
+        .iter()
+        .copied()
+        .filter(|path| {
+            !tree.staged.iter().any(|change| {
+                change.kind == ChangeKind::Renamed
+                    && change.original_path.as_deref() == Some(*path)
+                    && paths.contains(&change.path.as_str())
+            })
+        })
+        .collect()
+}
+
+/// What a plan on files names them by: the path of the one file, or how many they are.
+pub(super) fn named(paths: &[&str]) -> String {
+    match paths {
+        [path] => (*path).to_owned(),
+        _ => format!("{} files", paths.len()),
     }
 }
 

@@ -5,8 +5,9 @@ use model::contract::{Answers, Context, Danger, Outcome, Refusal, Step};
 use super::files::{plan, staged_names, with_files};
 
 /// Unstages everything: `git reset`, or `git rm --cached -r -- .` before the first commit. While files are in
-/// conflict, whose conflicts `git reset` would forget, the files staged are named instead:
-/// `git restore --staged -- <path>…`, a staged rename with both of its names.
+/// conflict, whose conflicts `git reset` would forget, or while a merge, a rebase, a cherry-pick, a revert or a patch is
+/// under way, which `git reset` would end, the files staged are named instead: `git restore --staged -- <path>…`, a
+/// staged rename with both of its names.
 ///
 /// Feature: changes.unstage-all
 #[must_use]
@@ -17,7 +18,7 @@ pub fn unstage_all(context: &Context, _answers: &Answers) -> Outcome {
         return Outcome::Refuse(Refusal::saying("There is nothing to unstage."));
     }
     let folder = repository.folder.clone();
-    let step = if !tree.conflicted.is_empty() {
+    let step = if !tree.conflicted.is_empty() || repository.operation.is_some() {
         let names = tree.staged.iter().flat_map(|change| staged_names(tree, &change.path));
         with_files(folder, &["restore", "--staged"], names)
     } else if repository.has_commit() {
@@ -39,7 +40,7 @@ mod tests {
     use super::unstage_all;
     use crate::testing::{context, lines, modified, plan, renamed, state};
     use model::contract::{Answers, Target};
-    use model::state::{ConflictKind, ConflictedFile, Head};
+    use model::state::{ConflictKind, ConflictedFile, Head, Operation};
 
     #[test]
     fn changes_unstage_all__with_no_conflict_resets() {
@@ -60,6 +61,15 @@ mod tests {
         state.working_tree.staged.push(renamed("new", "old"));
         let plan = plan(unstage_all(&context(state, Target::Changes), &Answers::new()));
         assert_eq!(lines(&plan), ["git restore --staged -- a.txt new old"]);
+    }
+
+    #[test]
+    fn changes_unstage_all__while_an_operation_waits_with_no_conflict_left_names_the_staged_files() {
+        let mut state = state();
+        state.operation = Some(Operation::Merge);
+        state.working_tree.staged.push(modified("a.txt"));
+        let plan = plan(unstage_all(&context(state, Target::Changes), &Answers::new()));
+        assert_eq!(lines(&plan), ["git restore --staged -- a.txt"]);
     }
 
     #[test]

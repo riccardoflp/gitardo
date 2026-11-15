@@ -77,3 +77,24 @@ fn refuses_a_file_with_no_change_and_deletes_a_staged_file_before_the_first_comm
         ["git rm -r --force --quiet -- a.txt"]
     );
 }
+
+#[test]
+fn changes_discard__the_files_ticked_are_discarded_at_once_with_one_warning_that_counts_them() {
+    let mut state = state();
+    state.working_tree.unstaged.push(modified("a.txt"));
+    state.working_tree.unstaged.push(modified("b.txt"));
+    state.working_tree.unstaged.push(modified("c.txt"));
+    state.working_tree.untracked.push(String::from("new.txt"));
+    let target = Target::Files(vec![
+        String::from("a.txt"),
+        String::from("b.txt"),
+        String::from("new.txt"),
+    ]);
+    let plan = plan(discard(&context(state, target), &Answers::new()));
+    assert_eq!(lines(&plan), ["git restore -- a.txt b.txt", "git clean -f -- new.txt"]);
+    assert_eq!(
+        warning(&plan),
+        "Unstaged changes to tracked files will be lost. One untracked file will be deleted from disk."
+    );
+    assert_eq!(plan.title.as_str(), "Discard the changes of 3 files");
+}

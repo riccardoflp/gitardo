@@ -1,7 +1,7 @@
 //! `changes.discard`: takes one file back to the last commit, staged changes included, or deletes it when it is
 //! untracked.
 
-use model::contract::{Answers, Context, Danger, Outcome, Refusal, Step, Text};
+use model::contract::{Answers, Context, Danger, Outcome, Refusal, Step, Target, Text};
 
 use super::files::{
     NEVER_COMMITTED, NOTHING_TO_DISCARD, UNSTAGED_WARNING, back_to_last_commit_warning, is_staged, is_unstaged,
@@ -11,11 +11,17 @@ use super::files::{
 /// Discards the changes of a file of the Changes page, after a warning that says what is lost: with nothing of it
 /// staged, `git restore -- <path>`, or `git clean -f -- <path>` for an untracked file; with some of it staged,
 /// `git restore --source=HEAD --staged --worktree -- <path>`, with the old name of a rename; before the first commit, a
-/// staged file is deleted with `git rm -r --force --quiet -- <path>`.
+/// staged file is deleted with `git rm -r --force --quiet -- <path>`. The files ticked (`Target::Files`) are discarded
+/// at once, as **Discard all** discards the files of the list, with one warning that counts them.
 ///
 /// Feature: changes.discard
 #[must_use]
 pub fn discard(context: &Context, _answers: &Answers) -> Outcome {
+    if let Target::Files(paths) = &context.target
+        && paths.len() > 1
+    {
+        return super::discard_all::the_files(&context.repository, paths);
+    }
     let path = match target_file(context) {
         Ok(path) => path,
         Err(refusal) => return Outcome::Refuse(refusal),

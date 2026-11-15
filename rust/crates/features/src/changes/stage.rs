@@ -2,22 +2,22 @@
 
 use model::contract::{Answers, Context, Danger, Outcome};
 
-use super::files::{plan, target_file, with_files};
+use super::files::{named, plan, target_files, with_files};
 
-/// Stages a file of the Changes page: `git add -- <path>`, the path named as itself. A file deleted has its deletion
-/// staged.
+/// Stages a file of the Changes page, or the files ticked, in one `git add -- <path>…`, each path named as itself. A file
+/// deleted has its deletion staged.
 ///
 /// Feature: changes.stage
 #[must_use]
 pub fn stage(context: &Context, _answers: &Answers) -> Outcome {
-    let path = match target_file(context) {
-        Ok(path) => path,
+    let paths = match target_files(context) {
+        Ok(paths) => paths,
         Err(refusal) => return Outcome::Refuse(refusal),
     };
     let folder = context.repository.folder.clone();
-    let steps = vec![with_files(folder, &["add"], [path])];
+    let steps = vec![with_files(folder, &["add"], paths.iter().copied())];
     Outcome::Run(plan(
-        format!("Stage {path}"),
+        format!("Stage {}", named(&paths)),
         steps,
         Danger::None,
         "Unstaging it takes it back.",
@@ -58,6 +58,14 @@ mod tests {
     fn changes_stage__a_deleted_file_has_its_deletion_staged() {
         // `git add` of a file gone from disk stages its deletion.
         assert_eq!(staged("gone.txt"), ["git add -- gone.txt"]);
+    }
+
+    #[test]
+    fn changes_stage__the_files_ticked_are_added_by_one_command() {
+        let target = Target::Files(vec![String::from("a.txt"), String::from("b.txt")]);
+        let plan = plan(stage(&context(state(), target), &Answers::new()));
+        assert_eq!(lines(&plan), ["git add -- a.txt b.txt"]);
+        assert_eq!(plan.title.as_str(), "Stage 2 files");
     }
 
     #[test]

@@ -19,7 +19,7 @@ use super::files::{
 pub fn discard_all(context: &Context, _answers: &Answers) -> Outcome {
     let repository = &context.repository;
     let discarded = if context.target == Target::Changes {
-        from_list(repository)
+        from_list(repository, None)
     } else if let Some(operation) = repository.operation {
         return Outcome::Refuse(Refusal::saying(&format!(
             "Abort the {} to discard all of it.",
@@ -68,20 +68,37 @@ fn tracked_paths(repository: &RepositoryState, with_conflicts: bool) -> Vec<&str
     tracked
 }
 
-/// The files of the list of the Changes page, each named: the tracked ones restored, the untracked ones not staged
-/// cleaned.
-fn from_list(repository: &RepositoryState) -> Discarded {
+/// The files ticked in the Changes page, discarded as the files of its list are (`changes.discard`).
+pub(super) fn the_files(repository: &RepositoryState, paths: &[String]) -> Outcome {
+    let discarded = from_list(repository, Some(paths));
+    if discarded.steps.is_empty() {
+        return Outcome::Refuse(Refusal::saying(NOTHING_TO_DISCARD));
+    }
+    Outcome::Run(plan(
+        format!("Discard the changes of {} files", paths.len()),
+        discarded.steps,
+        Danger::Destructive(Text::from(discarded.warning.join(" "))),
+        NEVER_COMMITTED,
+    ))
+}
+
+/// The files of the list of the Changes page, or those of them given, each named: the tracked ones restored, the
+/// untracked ones not staged cleaned.
+fn from_list(repository: &RepositoryState, only: Option<&[String]>) -> Discarded {
     let tree = &repository.working_tree;
     let folder = &repository.folder;
-    let tracked = tracked_paths(repository, false);
+    let given = |path: &&str| only.is_none_or(|paths| paths.iter().any(|given| given == path));
+    let tracked: Vec<&str> = tracked_paths(repository, false).into_iter().filter(given).collect();
     let untracked: Vec<&str> = tree
         .untracked
         .iter()
         .map(String::as_str)
         .filter(|path| !is_staged(tree, path))
+        .filter(given)
         .collect();
+    let staged_given = tree.staged.iter().any(|change| given(&change.path.as_str()));
     let mut discarded = Discarded::default();
-    if !tracked.is_empty() && tree.staged.is_empty() {
+    if !tracked.is_empty() && !staged_given {
         discarded
             .steps
             .push(with_files(folder.clone(), &["restore"], tracked.iter().copied()));
@@ -95,7 +112,7 @@ fn from_list(repository: &RepositoryState) -> Discarded {
                 names,
             )
         } else {
-            let staged = tree.staged.iter().map(|change| change.path.as_str());
+            let staged = tree.staged.iter().map(|change| change.path.as_str()).filter(given);
             with_files(folder.clone(), &["rm", "-r", "--force", "--quiet"], staged)
         };
         discarded.steps.push(step);

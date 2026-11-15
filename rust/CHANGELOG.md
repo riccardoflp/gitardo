@@ -9,6 +9,8 @@
 - **Undo** refuses while a merge, a rebase, a cherry-pick, a revert or a patch is under way, *Finish or abort the merge
   first.*, but for a squash merge or conflicts resolved, which it takes back from where they stopped.
 - **Undo** deletes a branch created without checking it out.
+- **Unstage all changes** no longer ends a merge, a rebase, a cherry-pick, a revert or a patch that waits to be
+  committed with no conflict left: it unstages the staged files by name, as it does while files are in conflict.
 - The window is made of islands: the header, the branch rail, the timeline, the inspector and the page shown are each
   a rounded card on a darker ground, with a gap between them that is dragged to resize them.
 - A bar of views on the left edge of the window goes to **Timeline**, **Changes**, with the number of changed files,

@@ -18,6 +18,16 @@ pub fn push_file(context: &Context, answers: &Answers) -> Outcome {
     let Target::Files(files) = &context.target else {
         return Outcome::Refuse(Refusal::saying("Pick the files to stash first."));
     };
+    // The old name of a staged rename whose new name is there too is the same file, which takes it along below.
+    let staged = &context.repository.working_tree.staged;
+    let files: Vec<&String> = files
+        .iter()
+        .filter(|file| {
+            !staged
+                .iter()
+                .any(|change| change.original_path.as_ref() == Some(*file) && files.contains(&change.path))
+        })
+        .collect();
     let (Some(first), false) = (files.first(), files.is_empty()) else {
         return Outcome::Refuse(Refusal::saying("Pick the files to stash first."));
     };
@@ -34,13 +44,10 @@ pub fn push_file(context: &Context, answers: &Answers) -> Outcome {
     };
     let mut paths = vec![String::from("--")];
     let mut unstaged_first = Vec::new();
-    for file in files {
-        let renamed_from = context
-            .repository
-            .working_tree
-            .staged
+    for file in &files {
+        let renamed_from = staged
             .iter()
-            .find(|change| change.path == *file)
+            .find(|change| change.path == **file)
             .and_then(|change| change.original_path.as_ref());
         if let Some(original) = renamed_from {
             // Git takes no path that is not in the index: the old name of a staged rename is put back in the index
@@ -124,7 +131,15 @@ mod tests {
             kind: ChangeKind::Renamed,
         });
         assert_eq!(
-            stashed(&["new.txt"], state),
+            stashed(&["new.txt"], state.clone()),
+            [
+                "git reset --quiet -- old.txt",
+                "git stash push --include-untracked -- old.txt new.txt"
+            ]
+        );
+        // A host that lists the rename as one row may send both its names: the old one is not given twice.
+        assert_eq!(
+            stashed(&["new.txt", "old.txt"], state),
             [
                 "git reset --quiet -- old.txt",
                 "git stash push --include-untracked -- old.txt new.txt"
