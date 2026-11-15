@@ -8,6 +8,19 @@ use std::time::Duration;
 /// How many times deleting the folder is tried again, when a file in it is still held for a moment.
 const REMOVAL_ATTEMPTS: u32 = 5;
 
+/// The temporary folder by the name git gives it: on Windows its long name where the system may give a short one
+/// (`RUNNER~1`), without the `\\?\` it puts before a path it makes whole; on macOS the folder a link such as `/var`
+/// leads to. A path the tests build from it then compares with the paths git prints.
+fn whole(folder: PathBuf) -> PathBuf {
+    let Ok(made) = fs::canonicalize(&folder) else {
+        return folder;
+    };
+    match made.to_string_lossy().strip_prefix(r"\\?\") {
+        Some(rest) => PathBuf::from(rest),
+        None => made,
+    }
+}
+
 /// A folder under the temporary folder that no other test uses, deleted with what it holds when it is dropped.
 #[derive(Debug)]
 pub(crate) struct TemporaryFolder {
@@ -19,7 +32,7 @@ impl TemporaryFolder {
     /// Creating a folder fails when it exists, so two tests running at the same time never get the same one, without a
     /// counter shared between them or a clock.
     pub(crate) fn new() -> TemporaryFolder {
-        let parent = std::env::temp_dir();
+        let parent = whole(std::env::temp_dir());
         let process = std::process::id();
         for number in 0_u32.. {
             let path = parent.join(format!("gitardo-test-{process}-{number}"));
