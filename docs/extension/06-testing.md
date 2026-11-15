@@ -194,6 +194,26 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
   commit does (B10). The commands the engine runs are logged as a `GitOp`'s are, `> ` before them, so a step reads the
   log the same way on both paths.
 
+## The engine's shapes
+
+From stage 6 the state of a repository and the details of a commit are the engine's types, written by hand in
+`src/shared/state.ts` ([02-architecture.md](02-architecture.md#the-views-shapes)). They are checked against the JSON the
+engine writes, not against a schema, with no dependency added:
+
+- `rust/crates/protocol/tests/shapes.rs` writes a state and the details of a commit as golden files,
+  `tests/golden/state-filled.json` and `tests/golden/commit-detail-filled.json`, with every optional part filled and
+  every list holding one entry, so that every field has a value. It is a golden test of the engine: when the JSON of
+  `protocol` changes, `cargo xtask check` fails until the files are written again with `GITARDO_GOLDEN_RECORD=1`.
+- `test/engineShapes.ts`, which `npm run typecheck` checks and nothing runs, reads the two files as types
+  (`resolveJsonModule`) and makes each side assignable to the other: `RepositoryState` and `CommitDetail`, with every
+  field filled and every string a string, to what the files hold, and back. A field added, removed or renamed on either
+  side, or a value of another kind (a number for a string, a list for an object), is a type error there.
+
+What it cannot see: the strings an enumeration has, since TypeScript reads every string of a JSON file as `string`, and
+which fields may be null, since none is null in the files. The values are compared by the tests that read the same
+repositories both ways: `test/engine.test.ts` compares every field of the engine's state with `Repo.state`'s, and
+`test/engineReads.test.ts` the details of a commit, of a stash and of the uncommitted changes with `Repo.commitDetail`'s.
+
 ## What a change runs before it is committed
 
 - Always: `npm run typecheck` and `npm test`.

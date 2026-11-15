@@ -78,7 +78,7 @@ flowchart TB
 | Path | What is there |
 | --- | --- |
 | `src/git` | Git itself, with no VS Code in it: running it (`exec.ts`), finding the repositories of a folder (`discover.ts`), reading a repository (`repo.ts`), parsing what git prints (`parse.ts`), the commands of each operation (`ops.ts`), the conflicts that need no choice (`conflicts.ts`), what is proposed for each conflict (`review.ts`), what new worktrees get (`worktreeSetup.ts`), the lines of a range (`lines.ts`), GitHub URLs and the pull requests query (`github.ts`). |
-| `src/engine` | Gitardo's engine, from stage 1 of [the transition](../transition/06-roadmap.md): finding the binary (`binary.ts`), the framing (`framing.ts`), requests, notifications and `$/cancel` (`connection.ts`), the messages (`messages.ts`), the settings sent under the desktop's names (`settings.ts`), the process, its restarts and the features it runs (`client.ts`), the target of a feature from what a menu names (`target.ts`), and the engine of a window, with VS Code's settings, output channel, and the input boxes, picks and dialogs its features ask with (`vscode.ts`). From stage 2, `Controller.runOnEngine` sends it **Create branch…** (`branch.create`), and runs the `GitOp` when the binary is missing. From stage 5, the views read through it: `reads.ts` asks the engine's read and turns its answer into the shape the view had (`shapes.ts`), or reads with `Repo` when the engine is not there (see [Where the reads come from](#where-the-reads-come-from)). |
+| `src/engine` | Gitardo's engine, from stage 1 of [the transition](../transition/06-roadmap.md): finding the binary (`binary.ts`), the framing (`framing.ts`), requests, notifications and `$/cancel` (`connection.ts`), the messages (`messages.ts`), the settings sent under the desktop's names (`settings.ts`), the process, its restarts and the features it runs (`client.ts`), the target of a feature from what a menu names (`target.ts`), and the engine of a window, with VS Code's settings, output channel, and the input boxes, picks and dialogs its features ask with (`vscode.ts`). From stage 2, `Controller.runOnEngine` sends it **Create branch…** (`branch.create`), and runs the `GitOp` when the binary is missing. From stage 5, the views read through it: `reads.ts` asks the engine's read and turns its answer into the shape the view had (`shapes.ts`), or reads with `Repo` when the engine is not there (see [Where the reads come from](#where-the-reads-come-from)). From stage 6 the state and the details of a commit are the engine's shapes and are not converted. |
 | `src/shared` | What the extension and the webviews both use: the messages between them (`protocol.ts`), the lanes of the graph (`graph.ts`), the tree of files (`tree.ts`), how references are named (`refs.ts`) and messages shown (`message.ts`), the branches shown (`scope.ts`), the blame's format (`blameFormat.ts`), the prompts of the language model (`commitPrompt.ts`, `conflictPrompt.ts`), proposals (`resolution.ts`), submodules' status, file icons, JSON with comments. |
 | `src/extension` | VS Code: activation and commands (`extension.ts`), the `Controller` that owns the state and every webview (`controller.ts`), what an action asks and which operation it becomes (`actions.ts`), blame of the line and of the file (`blame.ts`, `fileBlame.ts`), the content of the diffs (`content.ts`), what is running (`activity.ts`), the review of conflicts (`conflictReview.ts`), GitHub sign-in (`github.ts`), the language model (`ai.ts`), file icons, the worktree settings and Explorer commands. |
 | `src/webview` | The React UI of every view and tab, in one bundle. `main.tsx` picks the component from the `data-view` the host writes on the page. `menus.ts` has every context menu and `act()`. |
@@ -173,8 +173,8 @@ engine.
 From stage 5 of [the transition](../transition/06-roadmap.md), what a view reads comes from the engine's reads of
 [the protocol](../transition/02-protocol.md#reads) when the engine is there, and from `Repo` when it is not (D49). The
 choice is made in one place, `src/engine/reads.ts`: the `reads` of the window, given the running engine at activation
-(`reads.use`), has a method for each read a view makes, which asks the engine and turns its answer into the shape the
-view had (`src/engine/shapes.ts`), so that the views and the webviews are as they were. `Repo` reads instead when:
+(`reads.use`), has a method for each read a view makes, which asks the engine and, where the view's shape is not the engine's, turns
+its answer into it (`src/engine/shapes.ts`). `Repo` reads instead when:
 
 - no engine is running (no binary, or stopped for good); the read is logged at `debug` with how long it took, as the
   engine logs its own;
@@ -185,7 +185,7 @@ view had (`src/engine/shapes.ts`), so that the views and the webviews are as the
   the pull requests with no token or no repository on GitHub.
 
 The state's parts (`RepoParts`: `HEAD`, branches, tags, stashes, worktrees, submodules, remotes, the working tree,
-the operation and its stop, bisect, the identity, the branches checked out last) come from `repo.read-state`, read once
+the operation and its stop, bisect, the identity, the last moves of `HEAD`) come from `repo.read-state`, read once
 per burst of changes as before, and the files the rules resolve from `conflicts.resolve-by-rules`; the commits of the
 graph, and what they are filtered and scoped by, are still read by `Repo.withCommits` (stage 7). The GitHub token is
 given to the engine by `githubSession`, when it asks with `host/githubToken`.
@@ -201,11 +201,40 @@ from their parents as before, the next pages are asked with `skip` from the last
 takes the place of is cancelled. Without the engine, or when it fails otherwise than with git's error, `Repo` reads
 them with `git log` (D49).
 
+### The views' shapes
+
+From stage 6 the state of a repository and the details of a commit are the engine's types, field for field:
+`src/shared/state.ts` writes them as `repo.read-state` and `details.read-commit` answer (`RepositoryState`,
+`CommitDetail` and what they are made of: `Head`, `Branch`, `Worktree`, `WorkingTree`, `FileChange`, `Submodule`, …),
+and the extension, the webviews and the preview server read those fields. `Repo` and `src/git/parse.ts` produce the
+same shapes when the engine is not there, so the views cannot tell which read they got. What the views show that the
+engine does not write is worked out from those fields where it is shown, with the helpers beside the types:
+
+- the branch checked out by its short name, `checkedOutBranch`, from `head.branch`, which is the full name
+  (`refs/heads/main`), and that of a worktree, `worktreeBranch`;
+- the branches checked out last, `recentBranches` of `src/shared/refs.ts`, from `reflogSubjects`;
+- the upstream as git names it short, `upstreamName`, from `upstream.reference`;
+- the letter of a file's change, `CHANGE_LETTERS`, from its `kind`; a file not tracked or in conflict is marked `?` or
+  `U` from the working tree (`workingMarks` of `src/webview/FileRow.tsx`), since the details list it as added or
+  modified;
+- the subject and the body of a commit, `subjectAndBody` of `src/shared/message.ts`, from its `message`;
+- the uncommitted changes shown as a commit, `uncommittedDetail`, from the working tree, in its order: the conflicts,
+  the index, the working tree, the untracked files;
+- the git name of an operation, `operationName` (`cherry-pick`, `am`), from the engine's (`cherryPick`, `patch`).
+
+The count of what is not committed in each worktree is the engine's `uncommitted`, and a commit that is not there yet,
+before the first commit, is `null`, not an id of zeros. What the extension adds is beside the engine's fields, in
+`RepoState` of `src/shared/protocol.ts`: the folder `root` and `name`, the rows of the graph and `hasMore`, `changes`,
+`filter`, `scope`, the favorites, the settings sent with the state, the pull requests, the repositories of the
+workspace and `undo`; and in `RepoParts`, `conflictFiles`, the engine's proposals for the conflicts in the review's
+shape. The other reads keep their own shapes and are converted by `shapes.ts`. `test/engineShapes.ts` checks the types
+against the JSON the engine writes ([06-testing.md](06-testing.md#the-engines-shapes)).
+
 ## State
 
-- **The state of the repository** is one `RepoState`, kept by the `Controller` (`setState`). `Controller.readState`
-  reads its parts with `reads.parts` (`repo.read-state` of the engine, or `Repo.parts`), then the commits of the graph
-  with `Repo.withCommits`. The webviews get it in `state` messages and change nothing of it themselves.
+- **The state of the repository** is one `RepoState`, the engine's `RepositoryState` with what the extension adds,
+  kept by the `Controller` (`setState`). `Controller.readState` reads its parts with `reads.parts` (`repo.read-state`
+  of the engine, or `Repo.parts`), then the commits of the graph with `Repo.withCommits`. The webviews get it in `state` messages and change nothing of it themselves.
 - **One repository at a time**: the `Controller` shows one repository of the workspace, chosen in the toolbar's list or
   remembered from the last time. A tab of a commit or a comparison stays with the repository it was opened for.
 - **One operation at a time**: while `Controller.run` runs one (`running`), another is refused and nothing is read; the
@@ -247,6 +276,7 @@ is. Nothing a user starts can be cancelled once its commands run; a question can
 | The question before an operation, and the log | `Controller.run` and `Controller.describe` in `src/extension/controller.ts` |
 | What is read from git, and how it is parsed | `src/git/repo.ts`, `src/git/parse.ts` |
 | Whether a view reads through the engine or `Repo`, and the engine's answer in the view's shape | `src/engine/reads.ts`, `src/engine/shapes.ts` |
+| The engine's state and details of a commit, as the views read them, and what is worked out from them | `src/shared/state.ts` |
 | The lanes of the graph | `src/shared/graph.ts` |
 | The rules for conflicts | `src/git/conflicts.ts`, `src/git/review.ts` |
 | A command of the Command Palette, a setting | `package.json` (`contributes`) and `src/extension/extension.ts` |

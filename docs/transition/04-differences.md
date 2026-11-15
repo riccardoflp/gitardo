@@ -1061,6 +1061,22 @@ two more, which compare the reads as the views ask them.
   which is what the tab of a comparison says (the sides' distance in its header, the files since the merge base in
   **Since they diverged**); the engine's card changes to it.
 
+## The views on the engine's shapes (stage 6)
+
+Stage 6 made the state and the details of a commit the engine's types in the views, and `Repo` read them in the same
+shapes. The views show what they showed; one difference of the engine's answer is kept out of them, and is not counted
+in the summary, since no user sees it.
+
+### V1. The order of the uncommitted changes
+
+- **Feature**: `details.read-commit` with `uncommitted`; extension `Repo.commitDetail(WORKTREE)`.
+- **Extension**: the files in conflict first, then those of the index, of the working tree, and the untracked ones,
+  each once, in the order `git status` gives them.
+- **Engine**: the same files, sorted by path.
+- **Verdict**: the view's order is kept. The details of the uncommitted changes are made from the working tree of the
+  state, with or without the engine (`uncommittedDetail` of `extension/src/shared/state.ts`), not asked of the engine;
+  `extension/test/engineReads.test.ts` checks that the two hold the same files.
+
 ## Reads of the graph (stage 7)
 
 Stage 7 asked the three reads of the graph of version 1.5 of [the protocol](02-protocol.md#the-graph) of the engine and

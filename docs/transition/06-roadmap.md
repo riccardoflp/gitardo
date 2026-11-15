@@ -159,7 +159,14 @@ Acceptance:
 written to match and checked by a test), and the conversion of stage 1 goes away. Nothing the user sees changes.
 
 Acceptance: `src/engine` has no conversion of the state left; `npm run typecheck` passes with the types checked against
-`protocol`'s JSON schema by a test.
+`protocol`'s JSON by a test.
+
+The types are written to match, in `extension/src/shared/state.ts`, and the check is against the JSON the engine
+writes, not against a schema: `protocol` has no schema of its messages, and writing one would add a dependency or a
+second description to keep in step. `rust/crates/protocol/tests/shapes.rs` writes a state and the details of a commit
+with every optional part filled as golden files, and `extension/test/engineShapes.ts` makes `npm run typecheck` fail
+when a field is added, removed or renamed on either side, or holds a value of another kind
+([extension/06-testing.md](../extension/06-testing.md#the-engines-shapes)).
 
 ## Stage 7 — The graph reads
 

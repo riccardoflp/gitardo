@@ -127,6 +127,16 @@ needs is written in the commit of that stage, not before.
 | [extension/06-testing.md](../extension/06-testing.md) | `test/reads.test.ts`, the reads as the views ask them, with the engine and without. |
 | [transition/04-differences.md](04-differences.md), [08-decisions.md](../08-decisions.md), `extension/CHANGELOG.md` | R6 in the CHANGELOG; R7 a choice, Q407, read in TypeScript until it is decided. |
 
+## Written in stage 6 (the webviews on the engine's shapes)
+
+| Page | Change |
+| --- | --- |
+| [extension/02-architecture.md](../extension/02-architecture.md) | **The views' shapes**: the state and the details of a commit are the engine's types in `src/shared/state.ts`, read by the extension, the webviews and the preview server, and produced by `Repo` too; what the views show that the engine does not write is worked out from its fields, with the helpers beside the types; what the extension adds is in `RepoState`; `shapes.ts` converts only the other reads. |
+| [extension/06-testing.md](../extension/06-testing.md) | **The engine's shapes**: the golden files of `rust/crates/protocol/tests/shapes.rs`, every optional part filled, and `test/engineShapes.ts`, which `npm run typecheck` checks both ways against them; what it cannot see, and which tests compare those values. |
+| [transition/06-roadmap.md](06-roadmap.md) | Stage 6: the check is against the engine's JSON, not a schema. |
+| [transition/04-differences.md](04-differences.md) | **The views on the engine's shapes (stage 6)**: V1, the order of the uncommitted changes, the view's kept. |
+| `extension/tsconfig.json` | `resolveJsonModule`, so that `test/engineShapes.ts` reads the engine's golden files as types. |
+
 ## Written in stage 7 (the graph reads)
 
 | Page | Change |
