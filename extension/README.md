@@ -25,12 +25,13 @@ code --install-extension RiccardoFilippozzi.gitardo
 
 Gitardo needs VS Code 1.100 or later and `git` on your `PATH`.
 
-To build it yourself instead, pack it and install it from the file:
+To build it yourself instead, build Gitardo's engine for your system, pack it and install it from the file, here for Windows on x64:
 
 ```bash
+cargo build --release -p server --manifest-path ../rust/Cargo.toml
 npm install
 npm run package
-code --install-extension gitardo-0.11.0.vsix
+code --install-extension gitardo-win32-x64-0.11.0.vsix
 ```
 
 Reload the VS Code window afterwards. To update, run the last two commands again; to remove it, `code --uninstall-extension RiccardoFilippozzi.gitardo`.

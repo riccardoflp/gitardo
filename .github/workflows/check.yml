@@ -1,7 +1,7 @@
 # The pipeline of stage 9 of docs/transition/06-roadmap.md: on every push, the checks of the Rust workspace and of the
-# extension on Windows, Linux and macOS, the engine of every target of the Marketplace, the seven vsix and the universal
-# one, and the desktop of each system, all kept as artifacts. It publishes, pushes and tags nothing: the maintainer
-# publishes by hand (D36).
+# extension on Windows, Linux and macOS, the engine of every target of the Marketplace, the seven vsix, and the desktop
+# of each system, all kept as artifacts. It publishes, pushes and tags nothing: the maintainer publishes by hand (D36),
+# once the vsix of every target is made.
 
 name: Check
 

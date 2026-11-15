@@ -1,9 +1,10 @@
 // Packs the minified build that `node esbuild.mjs --production` left in dist/ into the vsix files of the extension:
 //   node scripts/package.mjs [--target <target>]... [--binaries <folder>] [--every-target]
-// With no --target, the universal vsix, which holds no engine and runs on the TypeScript operations (D49), and one vsix
-// for each target whose engine is found. A target's engine is looked for in <folder>/<target>/ when --binaries (or
-// GITARDO_BINARIES) names a folder, as the pipeline lays its artifacts out, then in ../rust/target/<triple>/release/,
-// and, for the target of this computer, in ../rust/target/release/. --every-target fails when an engine is missing.
+// With no --target, one vsix for each target whose engine is found: there is no universal vsix, since without the
+// engine for its system the extension does nothing but say so (D49), and a release waits for the vsix of every target.
+// A target's engine is looked for in <folder>/<target>/ when --binaries (or GITARDO_BINARIES) names a folder, as the
+// pipeline lays its artifacts out, then in ../rust/target/<triple>/release/, and, for the target of this computer, in
+// ../rust/target/release/. --every-target fails when an engine is missing.
 // Each vsix holds bin/<target>/gitardo-engine[.exe] only, and its size is printed for the release notes.
 
 import { execFileSync } from 'node:child_process';
@@ -79,12 +80,8 @@ function main() {
   const bin = path.join(extension, 'bin');
   const made = [];
 
-  // A bin/ left by a run that failed would go into the universal vsix.
+  // A bin/ left by a run that failed would go into the next vsix.
   fs.rmSync(bin, { recursive: true, force: true });
-  if (!asked.length) {
-    vsce([]);
-    made.push(path.join(extension, `${name}-${version}.vsix`));
-  }
 
   const missing = [];
   for (const target of asked.length ? asked : Object.keys(TARGETS)) {
@@ -111,8 +108,9 @@ function main() {
   if (missing.length) {
     const said = `No engine for ${missing.join(', ')}: build it with cargo build --release -p server --target <triple> in rust/.`;
     if (every || asked.length) throw new Error(said);
-    console.log(`${said} Their vsix files were not made.`);
+    console.log(`${said} Their vsix files were not made, and a release waits for every target.`);
   }
+  if (!made.length) throw new Error('No vsix was made: no engine was found for any target.');
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

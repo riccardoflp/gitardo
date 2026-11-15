@@ -1,7 +1,7 @@
 // Runs the end-to-end suite inside a real VS Code: node test/e2e/run.mjs [--vsix] [--no-engine] [path to the VS Code executable]
 // VS Code starts as a separate instance with its own throwaway profile, so the one you work in is not touched.
 // With --vsix the extension under test is what the packaged .vsix contains, rather than this folder: the vsix of this
-// computer's target with the engine packed in it, which runs with no gitardo.engine.path, or else the universal one.
+// computer's target with the engine packed in it, which runs with no gitardo.engine.path.
 
 import { execFileSync, spawn } from 'node:child_process';
 import * as fs from 'node:fs';
@@ -19,9 +19,8 @@ const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'gitardo-e2e-'));
 /** Unpacks the .vsix, which is a zip archive, and returns the folder of the extension inside it. */
 function unpackVsix() {
   const { name, version } = JSON.parse(fs.readFileSync(path.join(source, 'package.json'), 'utf8'));
-  const targeted = path.join(source, `${name}-${hostTarget()}-${version}.vsix`);
-  const vsix = fs.existsSync(targeted) ? targeted : path.join(source, `${name}-${version}.vsix`);
-  if (!fs.existsSync(vsix)) throw new Error(`${vsix} not found. Run "npm run package" first.`);
+  const vsix = path.join(source, `${name}-${hostTarget()}-${version}.vsix`);
+  if (!fs.existsSync(vsix)) throw new Error(`${vsix} not found. Build the engine with cargo build --release -p server in ../rust, then run "npm run package".`);
   const dir = path.join(temp, 'vsix');
   fs.mkdirSync(dir);
   // Windows ships a tar that reads zip archives; the one that comes with Git does not, so it is named in full.
