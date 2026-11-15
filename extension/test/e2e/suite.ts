@@ -857,9 +857,15 @@ export async function run(): Promise<void> {
     const selected = () => vscodeApi.repositories.filter((repository) => repository.ui.selected).map((repository) => path.basename(repository.rootUri.fsPath));
     // The view makes the commands that select in it; the worktrees of the steps before, gone from disk, are closed.
     await vscode.commands.executeCommand('workbench.view.scm');
+    // VS Code's Git may keep a worktree a step deleted with git open for a long while: it is closed here, as Gitardo
+    // closes those it removes itself.
+    for (const repository of vscodeApi.repositories.filter((each) => !fs.existsSync(each.rootUri.fsPath))) {
+      await vscode.commands.executeCommand('git.close', repository);
+    }
     await until("VS Code's Git extension to have app and lib open, alone", () => opened(app) && opened(lib) && vscodeApi.repositories.length === 2).catch(
       (error: Error) => {
-        throw new Error(`${error.message}; it has ${vscodeApi.repositories.map((repository) => repository.rootUri.fsPath).join(', ')}`);
+        const listed = vscodeApi.repositories.map((repository) => `${repository.rootUri.fsPath}${fs.existsSync(repository.rootUri.fsPath) ? '' : ' (gone)'}`);
+        throw new Error(`${error.message}; it has ${listed.join(', ')}`);
       },
     );
     const scm = vscode.workspace.getConfiguration('scm');
