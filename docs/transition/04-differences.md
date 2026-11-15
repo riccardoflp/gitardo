@@ -479,6 +479,7 @@ Four things cut across areas and are best decided once:
   (`features/src/conflicts/continue_operation.rs:29-31`; test at 160-173 of the same file).
 - Verdict: **CHANGELOG**. "Continue now says to resolve and stage the files first while a file is still in conflict,
   rather than running git and failing."
+- **In the CHANGELOG in stage 4** (area 4), with **Continue** run by the engine.
 
 ### D2. Skip throws away resolved conflicts without asking, on both sides
 
@@ -491,6 +492,9 @@ Four things cut across areas and are best decided once:
   `Danger::Confirm` with *What was resolved in this step is thrown away*, at least when files of the step were staged;
   no option needed. (The engine also refuses at a stop to edit or split, `skip_step.rs:21-23`, where the extension only
   hides the button: same for the user.)
+- **Fixed in stage 4** (area 4): `skip_step` asks with `Danger::Confirm`, *What was resolved in this step is thrown
+  away.*, while files are staged, changed or in conflict, and runs at once when the working tree is clean; the
+  extension's **Skip** runs it, and its `skipOp` stays the fallback as it was. In the extension's CHANGELOG.
 
 ### D3. Resolve automatically is asked twice with `commandPreview` set to `all`
 
@@ -504,6 +508,9 @@ Four things cut across areas and are best decided once:
   `commandPreview` says" (`09-conflicts.md:525`).
 - Verdict: **Bug (engine)**, minor. A plan whose question was its confirmation needs a way to say so (for example a
   `Danger` or plan flag "already confirmed").
+- **Fixed in stage 4** (area 4): `Danger::Agreed`, a plan the user agreed to in the feature's own question, is never
+  shown again (`engine/src/preview.rs`); the plans of **Resolve** and of **Review** have it. The protocol sends it as
+  `none`, so no version is raised for it.
 
 ### D4. The review writes over a file changed while its preview was open
 
@@ -516,6 +523,9 @@ Four things cut across areas and are best decided once:
   avoids this by reading again after its question (`resolve_automatically.rs:72-80`).
 - Verdict: **Bug (engine)**, minor. Read the files again after the confirmation, or give `Step::Write` an expected
   content checked when it runs.
+- **Fixed in stage 4** (area 4), the first way: with `commandPreview` `all`, `review.write` asks its plan as its own
+  question (**Write**) before it reads the files again, and the plan is then `Danger::Agreed`; with `off` nothing is
+  shown between the read and the write. A file saved while the question is open is refused as any changed file is.
 
 ### D5. The log of a review's write says how many conflicts each file got and by whom
 
@@ -528,6 +538,7 @@ Four things cut across areas and are best decided once:
   AI)*, then what is left and the AI warning, all logged (`review/write.rs:66-70`, `100-150`).
 - Verdict: **CHANGELOG**. "The log now says, for each file the review writes, how many of its conflicts were resolved
   and by whom, and warns when the AI wrote some."
+- **In the CHANGELOG in stage 4** (area 4), with the review's write run by the engine.
 
 ### D6. Taking one side is a question, not a warning, while the desktop's own list calls it destructive
 
@@ -540,6 +551,11 @@ Four things cut across areas and are best decided once:
 - Verdict: **Choice**. Recommend `Danger::Destructive` for a file whose working-tree text differs from what git wrote
   when it stopped (typed edits lost), `Confirm` otherwise; at least make the desktop's `preview.confirm` list agree
   with the cards. No option needed.
+- **Decided in stage 4 (area 4), as recommended; to be confirmed by the maintainer**: `take_side` reads the texts of
+  the files in conflict, and the plan is `Danger::Destructive` when the file on disk has a line that neither side nor
+  the base has, other than git's markers (*… has lines that neither side has, typed in it since git stopped: they are
+  lost too.*), `Confirm` otherwise. What git wrote when it stopped is not read again: a hand resolution made only by
+  deleting lines and markers is still asked as `Confirm`. The paragraph of `preview.confirm` agrees with the cards.
 
 ## Undo, preview and log
 
@@ -1137,6 +1153,13 @@ These pairs matched in plan, questions, danger, refusals and undo, apart from wo
   several-paths case of **Stage all** is the changes area's.
 - The default button of the confirmation (the desktop makes **Run** the default only when not destructive,
   `16-undo-preview-log.md`, `preview.confirm`); VS Code's modal was not checked.
+- Checked in stage 4 (area 4): the extension keeps **Undo** beside **Continue** on the message after resolving
+  automatically, a button the engine's plan does not offer; two resolutions over the same lines are refused by the
+  engine's sentence (*Two resolutions accepted in … take the place of the same lines, so nothing was written.*)
+  where the extension said *Two resolutions are for the same lines of the file.*, which only an error of the review
+  can reach; `resolveConflicts` with `paths` is sent only by the e2e suite, and runs in the engine when the paths are
+  every file in conflict, in TypeScript otherwise; a file in conflict staged from the Changes view runs
+  `conflicts.mark-resolved`, the same `git add`.
 
 ### Worktrees and their setup; submodules
 
