@@ -14,8 +14,10 @@ import { EngineClient, type EngineLog, type FeatureAsker } from '../src/engine/c
 import { Connection, EngineError, ErrorCode } from '../src/engine/connection';
 import { type Answer, type EngineState, PROTOCOL, type Plan, type Question, type Settings } from '../src/engine/messages';
 import { engineSettings } from '../src/engine/settings';
+import { headOf, recordOf, type UndoRecord } from '../src/engine/journal';
 import { targetOf } from '../src/engine/target';
 import { git } from '../src/git/exec';
+import { commitOp, deleteBranchOp, type GitOp, mergeOp, splitHeadOp, stashOp } from '../src/git/ops';
 import { Repo } from '../src/git/repo';
 import type { RepoState } from '../src/shared/protocol';
 
@@ -533,5 +535,187 @@ describe('the settings sent to the engine', () => {
       trust: 'vscode',
       utcOffsetMinutes: 60,
     });
+  });
+});
+
+/**
+ * Runs a `GitOp` as `Controller.run` does, then tells the engine's journal about it as `Controller.recordInJournal`
+ * does: with `record` when the operation says what Undo needs of it, else with what the states before and after tell.
+ */
+async function ranInTypeScript(engine: EngineClient, root: string, op: GitOp, record?: UndoRecord): Promise<number | null> {
+  const read = async () => new Repo((await Repo.discover(root))!).state(10);
+  const before = await read();
+  let failure: unknown;
+  for (const [index, args] of op.commands.entries()) {
+    try {
+      await git(root, args, { input: index === op.commands.length - 1 ? op.input : undefined });
+    } catch (stopped) {
+      failure = stopped;
+      break;
+    }
+  }
+  const after = await read();
+  const told = record ?? recordOf(before, after);
+  const number = told ? await engine.journalRecord(root, op.title, told, headOf(before), headOf(after)) : null;
+  if (failure && !record) return null;
+  return number;
+}
+
+/** Runs **Undo** as the toolbar does once the engine runs: `feature/run` of `undo.last`, its plan confirmed. */
+async function undo(engine: EngineClient, root: string) {
+  const { finished } = await engine.runFeature({ repository: root, feature: 'undo.last', target: { kind: 'head' } }, answering({}));
+  return finished;
+}
+
+const head = async (root: string) => (await git(root, ['rev-parse', 'HEAD'])).stdout.trim();
+
+describe.skipIf(!built)('Undo through gitardo-engine, of operations run by either', { timeout: 60_000 }, () => {
+  it('takes back a branch created by the engine, then one deleted in TypeScript, from the journal', async () => {
+    const root = await repository();
+    await git(root, ['branch', 'old']);
+    const commit = await head(root);
+    const engine = client();
+    const number = await ranInTypeScript(engine, root, deleteBranchOp('old'), { kind: 'branchDeleted', name: 'old', commit });
+    expect(number).toEqual(expect.any(Number));
+    const asker = answering({ name: text('spike'), mode: choice('only') });
+    expect((await engine.runFeature({ repository: root, feature: 'branch.create', target: { kind: 'head' } }, asker)).finished.kind).toBe('ran');
+    expect(await engine.journalLast(root)).toMatchObject({ title: 'Create branch spike at HEAD', undoable: true });
+
+    expect((await undo(engine, root)).kind).toBe('ran');
+    expect((await git(root, ['branch', '--list', 'spike'])).stdout.trim()).toBe('');
+    expect((await undo(engine, root)).kind).toBe('ran');
+    expect((await git(root, ['rev-parse', 'old'])).stdout.trim()).toBe(commit);
+  });
+
+  it('takes back a commit made in TypeScript, then the stash dropped in TypeScript before it', async () => {
+    const root = await repository();
+    fs.writeFileSync(path.join(root, 'a.txt'), 'changed\n');
+    await git(root, ['stash', 'push', '-m', 'half a fix']);
+    const stash = (await git(root, ['rev-parse', 'stash@{0}'])).stdout.trim();
+    const engine = client();
+    const { message } = (await new Repo((await Repo.discover(root))!).state(10)).stashes[0];
+    await ranInTypeScript(engine, root, stashOp('drop', 'stash@{0}'), { kind: 'stashDropped', message, commit: stash });
+    const before = await head(root);
+    fs.writeFileSync(path.join(root, 'b.txt'), 'b\n');
+    await ranInTypeScript(engine, root, commitOp('Add b', false, true));
+
+    expect((await undo(engine, root)).kind).toBe('ran');
+    expect(await head(root)).toBe(before);
+    expect((await undo(engine, root)).kind).toBe('ran');
+    expect((await git(root, ['rev-parse', 'stash@{0}'])).stdout.trim()).toBe(stash);
+  });
+
+  it('says right after a push that it cannot take it back, and takes back nothing', async () => {
+    const remote = await repository();
+    const root = path.join(folder(), 'clone');
+    await git(path.dirname(root), ['clone', '--quiet', remote, root]);
+    await git(root, ['config', 'user.name', 'Gitardo Test']);
+    await git(root, ['config', 'user.email', 'test@gitardo.invalid']);
+    await git(root, ['config', 'commit.gpgsign', 'false']);
+    await git(remote, ['checkout', '--quiet', '--detach']);
+    await commitFile(root, 'b.txt', 'b\n', 'Add b');
+    const engine = client();
+    await ranInTypeScript(engine, root, { title: 'Push main to origin', commands: [['push', 'origin', 'main']] });
+    const pushed = await head(root);
+    expect(await engine.journalLast(root)).toMatchObject({ title: 'Push main to origin', undoable: false });
+
+    expect(await undo(engine, root)).toMatchObject({
+      kind: 'refused',
+      message: '"Push main to origin" cannot be undone. It changed the remote branches, which Undo does not take back.',
+    });
+    expect(await head(root)).toBe(pushed);
+  });
+
+  it('refuses during a merge stopped on conflicts with the sentence of the engine', async () => {
+    const root = await repository();
+    await git(root, ['checkout', '--quiet', '-b', 'other']);
+    await commitFile(root, 'a.txt', 'other\n', 'Other');
+    await git(root, ['checkout', '--quiet', 'main']);
+    await commitFile(root, 'a.txt', 'main\n', 'Main');
+    const engine = client();
+    await ranInTypeScript(engine, root, mergeOp('other', 'main'));
+    expect(await undo(engine, root)).toMatchObject({ kind: 'refused', message: 'Finish or abort the merge first.' });
+  });
+
+  it('takes back whole a squash merge, a split and a resolution of conflicts', async () => {
+    const root = await repository();
+    await git(root, ['checkout', '--quiet', '-b', 'other']);
+    await commitFile(root, 'b.txt', 'b\n', 'Add b');
+    await commitFile(root, 'c.txt', 'c\n', 'Add c');
+    await git(root, ['checkout', '--quiet', 'main']);
+    const engine = client();
+    await ranInTypeScript(engine, root, mergeOp('other', 'main', 'squash'), { kind: 'squashMerge' });
+    expect((await undo(engine, root)).kind).toBe('ran');
+    expect((await git(root, ['status', '--porcelain'])).stdout.trim()).toBe('');
+
+    await commitFile(root, 'd.txt', 'd\n', 'Add d');
+    const split = await head(root);
+    await ranInTypeScript(engine, root, splitHeadOp(split), { kind: 'splitLast', commit: split });
+    expect((await undo(engine, root)).kind).toBe('ran');
+    expect(await head(root)).toBe(split);
+    expect((await git(root, ['status', '--porcelain'])).stdout.trim()).toBe('');
+
+    await commitFile(root, 'a.txt', 'main\n', 'Main');
+    await git(root, ['checkout', '--quiet', 'other']);
+    await commitFile(root, 'a.txt', 'other\n', 'Other');
+    await git(root, ['checkout', '--quiet', 'main']);
+    await git(root, ['merge', 'other']).catch(() => null);
+    fs.writeFileSync(path.join(root, 'a.txt'), 'both\n');
+    const resolve: GitOp = { title: 'Resolve the conflicts of a.txt', commands: [['add', '--', 'a.txt']] };
+    await ranInTypeScript(engine, root, resolve, { kind: 'conflictsResolved', files: ['a.txt'] });
+    expect((await undo(engine, root)).kind).toBe('ran');
+    expect(fs.readFileSync(path.join(root, 'a.txt'), 'utf8')).toContain('<<<<<<<');
+  });
+
+  it('goes by the reflog once the engine restarted, its journal empty', async () => {
+    const root = await repository();
+    const first = await head(root);
+    const before = client();
+    fs.writeFileSync(path.join(root, 'b.txt'), 'b\n');
+    await ranInTypeScript(before, root, commitOp('Add b', false, true));
+    await ranInTypeScript(before, root, { title: 'Create tag v1', commands: [['tag', 'v1']] });
+    expect(await before.journalLast(root)).toMatchObject({ undoable: false });
+    await before.dispose();
+
+    const engine = client();
+    expect(await engine.journalLast(root)).toBeNull();
+    expect((await undo(engine, root)).kind).toBe('ran');
+    expect(await head(root)).toBe(first);
+  });
+});
+
+describe('what the journal is told of an operation run in TypeScript', () => {
+  const state = (changes: Partial<RepoState>) =>
+    ({
+      head: 'a'.repeat(40),
+      branch: 'main',
+      branches: [],
+      remoteBranches: [],
+      tags: [],
+      stashes: [],
+      worktrees: [],
+      remotes: [],
+      submodules: [],
+      ...changes,
+    }) as unknown as RepoState;
+
+  it('is a move of HEAD for the reflog, the references it changed with a reason, and nothing when only files changed', () => {
+    expect(recordOf(state({}), state({ head: 'b'.repeat(40) }))).toEqual({ kind: 'reflog' });
+    expect(recordOf(state({}), state({ branch: null }))).toEqual({ kind: 'reflog' });
+    expect(recordOf(state({}), state({ tags: [{ name: 'v1', hash: 'a'.repeat(40) }] }))).toEqual({
+      kind: 'notUndoable',
+      reason: 'It changed the tags, which Undo does not take back.',
+    });
+    const stashed = { ref: 'stash@{0}', hash: 'c'.repeat(40), message: 'm', date: 0 };
+    expect(recordOf(state({}), state({ remotes: ['origin'], stashes: [stashed] }))).toEqual({
+      kind: 'notUndoable',
+      reason: 'It changed the stashes and remotes, which Undo does not take back.',
+    });
+    expect(recordOf(state({}), state({ changes: 3 }))).toBeNull();
+  });
+
+  it('names the branch by its full name, and none when detached', () => {
+    expect(headOf({ head: 'a'.repeat(40), branch: 'main' })).toEqual({ commit: 'a'.repeat(40), branch: 'refs/heads/main' });
+    expect(headOf({ head: 'a'.repeat(40), branch: null })).toEqual({ commit: 'a'.repeat(40), branch: null });
   });
 });

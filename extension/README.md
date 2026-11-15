@@ -272,7 +272,7 @@ To find the commit that broke something, right-click a commit you know is broken
 
 ### Undo
 
-**Undo** in the toolbar takes back the last commit, amend, checkout, merge, pull, rebase or reset, including ones made from the terminal, by reading the reflog. It always shows what it is about to do first. Undoing twice redoes. It also restores a branch deleted or a stash dropped in Gitardo and the conflicts Gitardo resolved, and takes out the changes a squash merge staged, as long as nothing else happened since.
+**Undo** in the toolbar takes back the newest of Gitardo's operations: a commit, amend, checkout, merge, pull, rebase or reset by the reflog; a branch deleted or created, a stash dropped, the conflicts Gitardo resolved, the changes a squash merge staged, a series of cherry-picks or a split from what Gitardo remembered of them. Undoing again takes back the operation before, up to 50 of them, for as long as nothing moves HEAD from outside Gitardo; then, and after a commit made in the terminal, it goes by the reflog, and undoing twice redoes. Right after an operation it cannot take back, a push, a fetch, a tag, a stash or a worktree, it says so instead of taking back the one before. Its tooltip names the operation it would take back. It always shows what it is about to do first. Without Gitardo's engine, it remembers only the last operation the reflog cannot see.
 
 ### Previews before risky operations
 

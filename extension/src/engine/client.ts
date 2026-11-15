@@ -6,6 +6,7 @@
  */
 import { type ChildProcess, spawn } from 'node:child_process';
 import { Connection, ENDED, EngineError, ErrorCode } from './connection';
+import type { Head, JournalEntry, UndoRecord } from './journal';
 import {
   type Answer,
   type AskParams,
@@ -168,6 +169,25 @@ export class EngineClient {
       this.askers.delete(id);
       this.followUps.delete(id);
     }
+  }
+
+  /** The newest entry of the journal of a repository, which **Undo** would take back; null when Undo goes by the reflog. */
+  async journalLast(repository: string): Promise<JournalEntry | null> {
+    const connection = await this.ready();
+    await this.ensureOpen(repository);
+    const { entry } = await connection.request<{ entry: JournalEntry | null }>(Method.journalLast, { repository });
+    return entry;
+  }
+
+  /**
+   * Tells the journal of a repository an operation the extension ran in TypeScript, with what Undo needs of it, and gives
+   * the number of the entry it made; null when it made none.
+   */
+  async journalRecord(repository: string, title: string, record: UndoRecord | null, before: Head, after: Head): Promise<number | null> {
+    const connection = await this.ready();
+    await this.ensureOpen(repository);
+    const { number } = await connection.request<{ number: number | null }>(Method.journalRecord, { repository, title, record, before, after });
+    return number;
   }
 
   /** What is wrong with text typed for a question, as the engine says it; null when it is fine. */

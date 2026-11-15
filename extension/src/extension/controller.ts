@@ -81,6 +81,7 @@ import { EngineError, ErrorCode } from '../engine/connection';
 import type { Target } from '../engine/messages';
 import { targetOf } from '../engine/target';
 import { VscodeAsker, type WindowEngine } from '../engine/vscode';
+import { headOf, recordOf, type UndoRecord } from '../engine/journal';
 
 /** How many commits the graph reads at a time, unless the settings ask for another number between the two after it. */
 const PAGE_SIZE = 1000;
@@ -448,6 +449,7 @@ export class Controller implements vscode.Disposable {
           github: this.github,
           pulls: this.pulls,
           agentsWindow: await (this.agentsWindow ??= hasCommand(AGENTS_WINDOW)),
+          undo: await this.newestInJournal(state.root),
           worktreesRoot: worktreesFolder(state),
           openBranches: vscode.workspace.getConfiguration('gitardo').get('branches.openIn') === 'worktree' ? 'worktree' : 'checkout',
           branchesFollowScope: vscode.workspace.getConfiguration('gitardo').get('branches.followGraphFilter') !== false,
@@ -1646,6 +1648,9 @@ export class Controller implements vscode.Disposable {
     if (!state || !repo) return;
     // Creating a branch is the engine's: its TypeScript operation is only for an engine that is not there.
     if (action.kind === 'createBranch' && (await this.runOnEngine('branch.create', targetOf(action.at, state), repo))) return;
+    // Undo is the engine's, which takes back the newest operation whichever of the two ran it; what Gitardo remembered
+    // here is only for an engine that is not there.
+    if (action.kind === 'undo' && (await this.runOnEngine('undo.last', { kind: 'head' }, repo))) return;
     // A key binding, or a view drawn before the setting changed, can still ask for it.
     if (action.kind === 'resolveConflicts' && !this.autoResolve()) {
       void vscode.window
@@ -1684,6 +1689,8 @@ export class Controller implements vscode.Disposable {
       if (asked && !(await this.confirmWrites(repo, op, action.paths))) return;
 
       const { result, ran } = await this.runWithFallback(op, asked);
+      // What Undo needs of it beyond what the states before and after it tell, for the engine's journal.
+      let record: UndoRecord | undefined;
       // A patch applied as commits makes them one after the other too, and is taken back as a whole like such a cherry-pick.
       const making = action.kind === 'cherryPickMany' ? 'cherry-pick' : action.kind === 'applyPatch' && op.commands[0]?.[0] === 'am' ? 'am' : null;
       if (making && state.head && (result.ok || this.state?.operation === making)) {
@@ -1694,7 +1701,11 @@ export class Controller implements vscode.Disposable {
       const squashed = action.kind === 'merge' && isSquashMerge(ran) ? await repo.squashMessage() : null;
       const undoSquash = { reflogTop, op: undoSquashOp(ran.title) };
       if (!result.ok) {
-        if (squashed !== null && this.state?.working.conflicts.length) this.undoable = undoSquash;
+        if (squashed !== null && this.state?.working.conflicts.length) {
+          this.undoable = undoSquash;
+          record = { kind: 'squashMerge' };
+        }
+        await this.recordInJournal(repo, ran.title, state, record);
         return;
       }
       // Said along with the operation, so not asked again.
@@ -1710,21 +1721,31 @@ export class Controller implements vscode.Disposable {
         const now = (await repo.reflog('HEAD', 1))[0];
         const info = { kind: 'move', previous: action.hash, subject: op.title, mode: 'mixed' } as const;
         if (now) this.undoable = { reflogTop: `${now.hash} ${now.subject}`, op: undoOp(info, state.branch) };
+        record = { kind: 'splitLast', commit: action.hash };
       }
       if (action.kind === 'split') await this.reportSplit(repo, action.hash, action.hash === state.head);
       const branch = action.kind === 'deleteBranch' && state.branches.find((candidate) => candidate.name === action.name);
       const stash = action.kind === 'stashDrop' && state.stashes.find((candidate) => candidate.ref === action.ref);
-      if (branch) this.undoable = { reflogTop, op: restoreBranchOp(branch.name, branch.hash) };
-      if (stash) this.undoable = { reflogTop, op: restoreStashOp(stash.message, stash.hash) };
+      if (branch) {
+        this.undoable = { reflogTop, op: restoreBranchOp(branch.name, branch.hash) };
+        record = { kind: 'branchDeleted', name: branch.name, commit: branch.hash };
+      }
+      if (stash) {
+        this.undoable = { reflogTop, op: restoreStashOp(stash.message, stash.hash) };
+        record = { kind: 'stashDropped', message: stash.message, commit: stash.hash };
+      }
       if (squashed !== null) {
         this.undoable = undoSquash;
+        record = { kind: 'squashMerge' };
         this.reportSquashed(squashed);
       }
       if (action.kind === 'takeSide' && sides.includes(2) && sides.includes(3)) {
         this.undoable = { reflogTop, op: restoreConflictsOp([action.path]) };
+        record = { kind: 'conflictsResolved', files: [action.path] };
       }
       if (action.kind === 'resolveConflicts' && op.writes?.length) {
         this.undoable = { reflogTop, op: restoreConflictsOp(op.writes.map((write) => write.path)) };
+        record = { kind: 'conflictsResolved', files: op.writes.map((write) => write.path) };
         this.reportResolved(op.writes.length);
       }
 
@@ -1736,7 +1757,9 @@ export class Controller implements vscode.Disposable {
         const now = (await repo.reflog('HEAD', 1))[0];
         const info = { kind: 'move', previous: series.before, subject: series.title, mode: 'keep' } as const;
         if (now) this.undoable = { reflogTop: `${now.hash} ${now.subject}`, op: undoOp(info, series.branch) };
+        record = { kind: 'series', headBefore: series.before };
       }
+      await this.recordInJournal(repo, ran.title, state, record);
     } catch (error) {
       void vscode.window.showErrorMessage(`Gitardo: ${errorText(error)}`);
     }
@@ -1794,9 +1817,9 @@ export class Controller implements vscode.Disposable {
    * any operation is. `ran` is the one that ran last.
    */
   private async runWithFallback(op: GitOp, asked: boolean): Promise<{ result: RunResult; ran: GitOp }> {
-    const result = await this.run(op, { silent: Boolean(op.fallback), asked });
+    const result = await this.run(op, { silent: Boolean(op.fallback), asked, recorded: true });
     if (!op.fallback || result.error === undefined) return { result, ran: op };
-    if (op.fallback.when.test(result.error)) return { result: await this.run(op.fallback.op), ran: op.fallback.op };
+    if (op.fallback.when.test(result.error)) return { result: await this.run(op.fallback.op, { recorded: true }), ran: op.fallback.op };
     this.reportFailure(op, result.error);
     return { result, ran: op };
   }
@@ -2476,10 +2499,14 @@ export class Controller implements vscode.Disposable {
     return (await this.run(op, { repo })).ok;
   }
 
-  /** Runs an operation, first showing its exact commands when the user asked for that or when it can lose work. */
-  private async run(op: GitOp, options: { silent?: boolean; asked?: boolean; repo?: Repo } = {}): Promise<RunResult> {
+  /**
+   * Runs an operation, first showing its exact commands when the user asked for that or when it can lose work, and tells
+   * the engine's journal what it did, unless `recorded` says its caller does.
+   */
+  private async run(op: GitOp, options: { silent?: boolean; asked?: boolean; repo?: Repo; recorded?: boolean } = {}): Promise<RunResult> {
     const repo = options.repo ?? this.repo;
     if (!repo || this.running) return { ok: false };
+    const before = this.state;
 
     const preview = vscode.workspace.getConfiguration('gitardo').get<string>('commandPreview') === 'all';
     if (!options.asked && (preview || op.danger || op.confirm)) {
@@ -2534,10 +2561,44 @@ export class Controller implements vscode.Disposable {
       this.post({ type: 'busy', title: null });
       await this.refresh();
     }
+    if (!options.recorded) await this.recordInJournal(repo, op.title, before);
 
     if (error === undefined) return { ok: true };
     if (!options.silent) this.reportFailure(op, error);
     return { ok: false, error };
+  }
+
+  /**
+   * Tells the journal of the engine an operation that ran here, in TypeScript, so that **Undo**, which the engine runs,
+   * takes back the newest operation whichever of the two ran it. `record` is what Undo needs of it beyond what the states
+   * read before and after it tell (`recordOf`). Nothing is told without an engine, nor of a repository not shown.
+   */
+  private async recordInJournal(repo: Repo, title: string, before: RepoState | null | undefined, record?: UndoRecord): Promise<void> {
+    const client = this.engine?.running;
+    const after = this.state;
+    if (!client || !before || !after || !samePath(before.root, repo.root) || !samePath(after.root, repo.root)) return;
+    const told = record ?? recordOf(before, after);
+    if (!told) return;
+    try {
+      await client.journalRecord(repo.root, title, told, headOf(before), headOf(after));
+      // Its label is the operation just told.
+      const undo = await this.newestInJournal(repo.root);
+      if (this.state === after) this.setState({ ...after, undo });
+    } catch (failure) {
+      this.log.warn(`Could not tell Undo of "${title}": ${errorText(failure)}`);
+    }
+  }
+
+  /** The newest entry of the engine's journal of a repository, for the label of **Undo**; null without an engine. */
+  private async newestInJournal(root: string): Promise<RepoState['undo']> {
+    const client = this.engine?.running;
+    if (!client) return null;
+    try {
+      const entry = await client.journalLast(root);
+      return entry && { title: entry.title, undoable: entry.undoable };
+    } catch {
+      return null;
+    }
   }
 
   /** What an operation is about to do, for who is asked whether to do it: the files it writes and the commands it runs. */

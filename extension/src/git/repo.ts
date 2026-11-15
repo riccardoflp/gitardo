@@ -734,6 +734,7 @@ export class Repo {
       github: null,
       pulls: {},
       agentsWindow: false,
+      undo: null,
       worktreesRoot: null,
       openBranches: 'checkout',
       showStashes: stashes,

@@ -270,6 +270,11 @@ export interface RepoState {
   pulls: Record<string, PullRequest>;
   /** Whether this VS Code has the Agents window, where a worktree can be opened for agent sessions. */
   agentsWindow: boolean;
+  /**
+   * The newest operation **Undo** would take back, as the journal of Gitardo's engine keeps it, and whether it can: null
+   * when Undo goes by the reflog, or the engine is not there.
+   */
+  undo: { title: string; undoable: boolean } | null;
   /** Where new worktrees go, as the settings say: the ones in it are named by their path from there. */
   worktreesRoot: string | null;
   /** What a double click on a branch does, as the settings say: check it out here, or open its worktree. */

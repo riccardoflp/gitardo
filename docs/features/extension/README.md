@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature, one card each, 183 in all. The template and the rules of the cards are in the
+Every feature, one card each, 182 in all. The template and the rules of the cards are in the
 feature contract. This index is written by `catalog.py --index`: change a status here in the commit that
 earns it, and run the script again after adding or renaming a card; the statuses are kept. A card with a
 **Differs** line is *Differs*; when the line goes, it becomes *Documented*.
@@ -15,7 +15,7 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | [09-conflicts.md](09-conflicts.md) | Conflicts | 31 |
 | [12-worktrees.md](12-worktrees.md) | Worktrees | 38 |
 | [13-submodules.md](13-submodules.md) | Submodules | 17 |
-| [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 8 |
+| [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 7 |
 | [18-settings.md](18-settings.md) | Settings | 1 |
 
 ## Repositories
@@ -241,7 +241,6 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | [`log.write`](16-undo-preview-log.md#logwrite--write-every-command-and-its-output-to-the-log) | Write every command and its output to the log | Operation | Documented |
 | [`log.show`](16-undo-preview-log.md#logshow--show-the-command-log) | Show the command log | View | Documented |
 | [`log.report-failure`](16-undo-preview-log.md#logreport-failure--say-why-an-operation-failed) | Say why an operation failed | View | Documented |
-| [`undo.last`](16-undo-preview-log.md#undolast--undo-the-last-operation) | Undo the last operation | Operation | Differs |
 | [`activity.track`](16-undo-preview-log.md#activitytrack--show-what-is-running-in-the-status-bar) | Show what is running in the status bar | View | Documented |
 | [`activity.show`](16-undo-preview-log.md#activityshow--list-what-is-running) | List what is running | View | Documented |
 

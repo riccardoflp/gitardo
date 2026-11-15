@@ -485,8 +485,8 @@ earns it.
 | [`preview.confirm`](16-undo-preview-log.md#previewconfirm--show-the-commands-before-they-run) | Show the commands before they run | View | Built | Built |
 | [`log.record`](16-undo-preview-log.md#logrecord--log-every-command-that-changes-something) | Log every command that changes something | Operation | Built | Differs (D11) |
 | [`log.show`](16-undo-preview-log.md#logshow--show-the-command-log) | Show the command log | View | Built | Host only |
-| [`undo.last`](16-undo-preview-log.md#undolast--undo-the-last-operation) | Undo the last operation | Operation | Built | Differs (B5, D7, D8, D9, D10) |
-| [`undo.journal`](16-undo-preview-log.md#undojournal--remember-what-undo-needs) | Remember what Undo needs | Derivation | Built | Differs (D9) |
+| [`undo.last`](16-undo-preview-log.md#undolast--undo-the-last-operation) | Undo the last operation | Operation | Built | Built |
+| [`undo.journal`](16-undo-preview-log.md#undojournal--remember-what-undo-needs) | Remember what Undo needs | Derivation | Built | Built |
 | [`activity.track`](16-undo-preview-log.md#activitytrack--say-what-is-running) | Say what is running | Operation | Built | Built |
 
 ## Diff, Merge and File pages
@@ -727,7 +727,6 @@ catalog it is an alias of ([D44](../08-decisions.md#d44--one-catalog-the-desktop
 | `log.write` ([card](extension/16-undo-preview-log.md#logwrite--write-every-command-and-its-output-to-the-log)) | `log.record` | |
 | `log.show` ([card](extension/16-undo-preview-log.md#logshow--show-the-command-log)) | `log.show` | VS Code's output channel in place of the Command log |
 | `log.report-failure` ([card](extension/16-undo-preview-log.md#logreport-failure--say-why-an-operation-failed)) | `conflicts.stopped` | |
-| `undo.last` ([card](extension/16-undo-preview-log.md#undolast--undo-the-last-operation)) | `undo.last`, `undo.journal` | |
 | `activity.track` ([card](extension/16-undo-preview-log.md#activitytrack--show-what-is-running-in-the-status-bar)) | `activity.track`, `activity.status-bar`, `activity.describe-task` | |
 | `activity.show` ([card](extension/16-undo-preview-log.md#activityshow--list-what-is-running)) | `activity.what-is-running` | |
 | `settings.read` ([card](extension/18-settings.md#settingsread--read-the-settings-when-they-are-needed)) | `settings.read` | VS Code's configuration in place of the files |

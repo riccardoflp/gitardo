@@ -192,8 +192,7 @@ Makes a new branch at a commit, a branch or a tag, and checks it out or not.
   are empty, `gitardo.worktrees.branchFormat` and `gitardo.worktrees.inputs`, as before
   (`src/engine/settings.ts`); the inputs used last are kept in the workspace state `worktreeInputs`. When the
   engine's binary is missing, `createBranchOp` of `src/git/ops.ts` runs in its place, as before, and the output
-  channel says the engine is missing (D49). **Undo** right after **Create only** takes back the operation before it,
-  as `undo.last` says, until stage 3 of the transition.
+  channel says the engine is missing (D49).
 - **Offered when**: there is a commit: **Branch** in the header is disabled before the first one.
 - **Asks**:
   1. With `branches.format` set: a pick titled **Create branch**, **Use the format** (the format beside it), which is

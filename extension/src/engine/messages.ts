@@ -1,10 +1,10 @@
 /**
- * The messages of the protocol with `gitardo-engine` that stages 1 and 2 built, as the crate `protocol` writes them
- * (`rust/crates/protocol/src/messages.rs`, `state.rs` and `feature/`, `docs/transition/02-protocol.md`).
+ * The messages of the protocol with `gitardo-engine` that stages 1, 2 and 3 built, as the crate `protocol` writes them
+ * (`rust/crates/protocol/src/messages.rs`, `state.rs`, `feature/` and `journal.rs`, `docs/transition/02-protocol.md`).
  */
 
 /** The version of the protocol the extension speaks. */
-export const PROTOCOL = '1.1';
+export const PROTOCOL = '1.2';
 
 /** The names of the methods. */
 export const Method = {
@@ -24,6 +24,8 @@ export const Method = {
   followUps: 'feature/followUps',
   validate: 'question/validate',
   settingsChanged: 'settings/changed',
+  journalLast: 'journal/last',
+  journalRecord: 'journal/record',
 } as const;
 
 /** What the extension says of itself in `initialize`. */

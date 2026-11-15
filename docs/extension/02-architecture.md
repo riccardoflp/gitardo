@@ -148,8 +148,11 @@ steps 2 and 3 are the engine's:
    follow-ups that are the extension's: a message, the inputs of the format remembered in `worktreeInputs`, the new
    `HEAD` selected in the graph once the repository is read again.
 
-**Undo** still reads the reflog in TypeScript until stage 3, so a plan of the engine that moves `HEAD` is taken back
-as one of a `GitOp`.
+From stage 3, **Undo** is the engine's too: `feature/run` of `undo.last`, which takes back the newest entry of the
+engine's journal. Every `GitOp` that still runs in TypeScript is told to that journal once it ran, with
+`journal/record` (`Controller.recordInJournal`): what Undo needs of it, as `Controller.action` remembered it, or what
+the states read before and after it tell (`recordOf` in `src/engine/journal.ts`). The tooltip of **Undo** names the
+newest entry, from `journal/last` (`RepoState.undo`). `Controller.undoable` is only for an engine that is not there.
 
 Anything that changes the repository is a `GitOp` or a plan of the engine, also what Gitardo does itself rather than
 git (`writes`, `prepare`, `finish`): that is how it gets the preview, the log and Undo. The Flow Diff runs its index writes through

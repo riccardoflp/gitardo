@@ -571,6 +571,7 @@ Four things cut across areas and are best decided once:
 - Engine: up to 50 entries, oldest dropped first (`engine/src/undo.rs:7`, `81-82`), each holding while `HEAD` (commit
   and branch) is what it was once its plan ran (`undo.rs:57-61`); an Undo drops only the entry it took back
   (`undo.rs:61-63`), so two branches deleted are brought back by two Undos, and a stage in between forgets nothing.
+- **In the CHANGELOG in stage 3**, with **Undo** run by the engine in the extension.
 - Verdict: **CHANGELOG**. "Undo now remembers up to 50 of Gitardo's own operations the reflog cannot see (branches
   deleted, stashes dropped, conflicts resolved, series), for as long as nothing moves HEAD: staging a file no longer
   makes it forget them, and undoing again brings back the one before." A11 (stash drops), B4 (deleted branches) and C3
@@ -585,6 +586,7 @@ Four things cut across areas and are best decided once:
   `undo/journal.rs:21-28`, branch adds *The branch does not get its upstream back.*); refusal *Nothing to undo*
   (`last.rs:80-82`); with `--keep` and changes in the way, *Undo would overwrite changes that are not committed: commit
   or stash them first* (`last.rs:156-162`); after, it selects `HEAD` and says *Undid …* (`last.rs:184-187`).
+- **In the CHANGELOG in stage 3**, with **Undo** run by the engine in the extension.
 - Verdict: **CHANGELOG**. "Undo now asks with a warning, says in words what it takes back, and selects the commit HEAD
   is at once done."
 

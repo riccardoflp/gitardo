@@ -44,6 +44,16 @@ needs is written in the commit of that stage, not before.
 | [extension/06-testing.md](../extension/06-testing.md) | What `test/engine.test.ts` checks of `branch.create`, and the scenario run through `gitardo-cli` and the extension. |
 | [features/06-branches-tags-remotes.md](../features/06-branches-tags-remotes.md) | The first card merged: `branch.create`, with its **Extension** line, Desktop Built and Extension Built; the extension's card is gone from `features/extension/`. |
 
+## Written in stage 3
+
+| Page | Change |
+| --- | --- |
+| [transition/02-protocol.md](02-protocol.md) | Version 1.2: `journal/last` with `undoable`, `journal/record` with `before` and `after` and every `UndoRecord` with its fields. |
+| [features/16-undo-preview-log.md](../features/16-undo-preview-log.md) | The journal a stack of Gitardo's operations; `undo.last` refuses what it cannot take back and while an operation is under way; the extension's card of `undo.last` merged, with its **Extension** line. |
+| [features/06-branches-tags-remotes.md](../features/06-branches-tags-remotes.md) | Undo of a branch created only deletes it. |
+| [transition/04-differences.md](04-differences.md) | D7 and D8 fixed; D9 and D10 in the extension's CHANGELOG. |
+| [extension/02-architecture.md](../extension/02-architecture.md) | Every `GitOp` recorded with `journal/record`, and **Undo** through `feature/run`. |
+
 ## Waiting for a stage
 
 | Rule | Stage | What |

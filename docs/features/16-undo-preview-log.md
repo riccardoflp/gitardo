@@ -85,6 +85,17 @@ before it. It always shows what it is about to do first. With nothing in the jou
 - **Function**: `features::undo::last(context, answers) -> Outcome`
 - **Entry points**: **Undo** in the **…** menu of the header; **Undo Last Operation** in Quick search; the **Undo** of
   the messages that follow an operation.
+- **Extension**: **Undo** in the toolbar of the graph, whose tooltip names the newest operation of the journal
+  (*Undo "Commit"*, or *"Push main to origin" cannot be undone*, from `journal/last`); **Gitardo: Undo Last
+  Operation** in the Command Palette and in the **…** of the headers of the Commits view and the Gitardo Graph; the
+  **Undo** of the messages after resolving conflicts, a squash merge and a split. Each sends `feature/run` of
+  `undo.last` to Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`), its plan always shown in
+  a modal dialog first (`VscodeAsker` in `src/engine/vscode.ts`). Every operation that still runs in TypeScript is told
+  to the engine's journal once it ran, with `journal/record` (`Controller.recordInJournal`): what Undo needs of it, as
+  it remembered it (a branch deleted, a stash dropped, conflicts resolved, a squash merge, a series, the split of the
+  last commit), or what the states before and after it tell (`recordOf` in `src/engine/journal.ts`). When the
+  engine's binary is missing, the extension takes back what it remembered itself (`Controller.undoable`) and otherwise
+  the reflog (`undoOp` of `src/git/ops.ts`, from `Repo.undoInfo`), as before (D49).
 - **Offered when**: the journal has an entry, or the reflog of `HEAD` has a previous position.
 - **Reads**: the newest entry of the journal of Gitardo's own operations for this repository; the last two entries of
   the reflog of `HEAD`
@@ -144,6 +155,14 @@ Acceptance:
 - [ ] A stash dropped, then a commit: Undo takes back the commit, then the drop.
 - [ ] Right after a push, Undo says it cannot take back the push, and takes back nothing.
 - [ ] During a merge stopped on conflicts, Undo refuses with *Finish or abort the merge first.*
+- [ ] Extension: a branch deleted in TypeScript, then a branch created by the engine: **Undo** removes the new branch,
+      and **Undo** again restores the deleted one, from the journal.
+- [ ] Extension: a stash dropped in TypeScript, then a commit made in TypeScript: **Undo** takes back the commit, then
+      the drop.
+- [ ] Extension: a squash merge, a resolution of conflicts and a split of the last commit run in TypeScript are each
+      taken back whole.
+- [ ] Extension: once the engine restarted, its journal is empty and **Undo** goes by the reflog, as after a reload.
+- [ ] Extension: **Undo** always asks first, whatever `gitardo.commandPreview` says.
 
 ### `undo.journal` — Remember what Undo needs
 

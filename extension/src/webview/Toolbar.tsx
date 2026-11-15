@@ -400,7 +400,13 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
         className="button"
         disabled={!!busy || !state.head}
         onClick={() => act({ kind: 'undo' })}
-        title="Undo the last commit, checkout, merge, rebase, reset, branch deletion or stash drop"
+        title={
+          state.undo
+            ? state.undo.undoable
+              ? `Undo "${state.undo.title}"`
+              : `"${state.undo.title}" cannot be undone`
+            : 'Undo the last commit, checkout, merge, rebase, reset, branch deletion or stash drop'
+        }
         aria-label="Undo"
       >
         <Icon name="discard" />
