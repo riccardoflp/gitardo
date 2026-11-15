@@ -2161,11 +2161,13 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "engine",
+ "features",
  "git",
  "model",
  "protocol",
  "serde",
  "serde_json",
+ "settings",
  "testkit",
 ]
 

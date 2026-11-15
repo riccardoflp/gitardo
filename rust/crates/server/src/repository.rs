@@ -1,24 +1,60 @@
-//! A repository the extension opened: its folder, and the burst of changes its watchers saw, which is read once after
-//! the burst is over, as `repo.watch-changes` says how long each kind of change waits.
+//! A repository the extension opened: its folder, its engine, which runs its features one at a time on a thread of
+//! its own and keeps their journal, and the burst of changes its watchers saw, which is read once after the burst is
+//! over, as `repo.watch-changes` says how long each kind of change waits.
 
+use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, Sender};
+use std::thread;
 use std::time::{Duration, Instant};
 
+use engine::{Clock, CommandLog, Engine, LogLevel};
+use git::Git;
+use model::Timestamp;
 use model::repo::{Change, watch_changes};
 
 use crate::session::locked;
 
 /// A repository the extension opened.
-#[derive(Debug)]
 pub struct Repository {
     /// The folder of the top of its working tree, as the extension named it.
     folder: PathBuf,
+    /// The work given to the thread that owns its engine.
+    jobs: Sender<Job>,
+    /// Whether a feature runs, so that a second one is answered `busy`.
+    is_running: AtomicBool,
     /// When the repository is read again; none while no change waits.
     burst: Mutex<Burst>,
     /// Whether `repository/close` dropped it, so that a read waiting for it is not made.
     is_closed: AtomicBool,
+}
+
+impl fmt::Debug for Repository {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("Repository")
+            .field("folder", &self.folder)
+            .field("is_closed", &self.is_closed)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Work for the thread that owns the engine.
+type Job = Box<dyn FnOnce(&mut Engine) + Send>;
+
+/// Other work runs with the engine of the repository.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Busy;
+
+/// The system's clock, which the engine stamps its log with.
+struct SystemClock;
+
+impl Clock for SystemClock {
+    fn now(&self) -> Timestamp {
+        crate::session::now()
+    }
 }
 
 /// The changes waiting for a read.
@@ -43,7 +79,23 @@ pub enum Next {
 impl Repository {
     /// A repository just opened.
     pub fn new(folder: PathBuf) -> Repository {
+        let (jobs, received) = mpsc::channel::<Job>();
+        let engine_folder = folder.clone();
+        // The engine stays on this thread, which ends when the repository is dropped.
+        let _owner = thread::spawn(move || {
+            let mut engine = Engine::new(
+                Git::new(&engine_folder),
+                CommandLog::new(LogLevel::Info),
+                Box::new(SystemClock),
+            );
+            engine.find_operations_with(features::operation);
+            for job in received {
+                job(&mut engine);
+            }
+        });
         Repository {
+            jobs,
+            is_running: AtomicBool::new(false),
             folder,
             burst: Mutex::new(Burst::default()),
             is_closed: AtomicBool::new(false),
@@ -53,6 +105,35 @@ impl Repository {
     /// Its folder.
     pub fn folder(&self) -> &Path {
         &self.folder
+    }
+
+    /// Runs work with its engine on the engine's thread, and gives what it gave; [`Busy`] while other work runs there.
+    ///
+    /// # Errors
+    ///
+    /// When other work runs, or the thread of the engine is gone.
+    pub fn with_engine<T: Send + 'static>(
+        &self,
+        work: impl FnOnce(&mut Engine) -> T + Send + 'static,
+    ) -> Result<T, Busy> {
+        if self
+            .is_running
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .is_err()
+        {
+            return Err(Busy);
+        }
+        let (given, result) = mpsc::channel();
+        let job: Job = Box::new(move |engine| {
+            let _given = given.send(work(engine));
+        });
+        let done = self
+            .jobs
+            .send(job)
+            .map_err(|_| Busy)
+            .and_then(|()| result.recv().map_err(|_| Busy));
+        self.is_running.store(false, Ordering::SeqCst);
+        done
     }
 
     /// Marks it closed: a burst waiting for it is not read.

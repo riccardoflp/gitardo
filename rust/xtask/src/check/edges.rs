@@ -30,7 +30,10 @@ const ALLOWED: [(&str, &[&str]); 20] = [
     ("http", &["tls"]),
     ("tls", &[]),
     ("protocol", &["model", "git", "engine"]),
-    ("server", &["protocol", "engine", "settings", "git", "model", "json"]),
+    (
+        "server",
+        &["protocol", "engine", "features", "settings", "git", "model", "json"],
+    ),
     ("testkit", &[]),
     ("xtask", &[]),
 ];

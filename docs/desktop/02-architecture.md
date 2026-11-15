@@ -74,7 +74,7 @@ app ──► views ──► ui ──► render ──► platform ──► s
  └──► every other crate below it: platform, system, ui, render, model, git, text (D15)
 
 server ──► protocol ──► model, git, engine (the types it converts), serde, serde_json (D42)
-   └─────► engine, settings, git, model, json
+   └─────► engine, features (the operations of feature/run), settings, git, model, json
 ```
 
 - Nothing depends on `app`, and `app` may use any crate but `testkit`, `xtask`, `protocol` and `server`

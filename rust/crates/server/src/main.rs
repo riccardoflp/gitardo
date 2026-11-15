@@ -7,9 +7,13 @@
 
 #![forbid(unsafe_code)]
 
+mod asker;
+mod feature;
 mod framing;
+mod outgoing;
 mod repository;
 mod session;
+mod settings;
 
 use std::io::{self, Write};
 use std::process::ExitCode;
@@ -65,8 +69,8 @@ fn run() -> ExitCode {
                 }
                 session.notification(&method, params);
             }
-            // The engine of stage 1 asks the extension nothing, so no answer is waited for.
-            Ok(Incoming::Response { .. }) => {}
+            // The answer of a question of a feature, which its thread waits for.
+            Ok(Incoming::Response { id, outcome }) => session.response(&id, outcome),
             Err(unreadable) => session.send(error_message(unreadable.id.as_ref(), &unreadable.error)),
         }
     }

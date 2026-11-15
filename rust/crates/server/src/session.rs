@@ -13,8 +13,10 @@ use engine::{Activities, LogEntry, LogKind, LogLevel};
 use git::read::repo::{StateRequest, read_state};
 use git::{CancelToken, Git, GitError};
 use model::Timestamp;
+use model::contract::FeatureSettings;
 use model::contract::Text;
 use model::state::RepositoryState;
+use protocol::feature::{FeatureRunParams, SettingsParams, ValidateParams};
 use protocol::messages::{
     ActivityJson, ActivityParams, CancelParams, ChangedParams, EngineInfo, InitializeParams, InitializeResult,
     LogEntryJson, LogLineParams, OpenResult, RepositoryParams, StateParams, StateReason, VERSION, is_compatible,
@@ -24,8 +26,9 @@ use protocol::rpc::{ErrorData, RequestId, ResponseError, codes, error_message, n
 use protocol::state::StateJson;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use serde_json::Value;
+use serde_json::{Map, Value};
 
+use crate::outgoing::Outgoing;
 use crate::repository::{Next, Repository};
 
 /// The engine speaking to one extension.
@@ -43,6 +46,10 @@ pub struct Session {
     activities: Activities,
     /// Whether `shutdown` was asked.
     is_shut_down: AtomicBool,
+    /// The requests sent to the extension and waited for.
+    asked: Outgoing,
+    /// The settings, by the desktop's names, from `initialize` and `settings/changed`.
+    settings: Mutex<Map<String, Value>>,
 }
 
 /// The value behind a lock, even when a thread that held it panicked: what it guards is plain data, still whole.
@@ -60,7 +67,24 @@ impl Session {
             level: Mutex::new(LogLevel::Info),
             activities: Activities::new(),
             is_shut_down: AtomicBool::new(false),
+            asked: Outgoing::default(),
+            settings: Mutex::new(Map::new()),
         }
+    }
+
+    /// The requests sent to the extension and waited for.
+    pub fn asked(&self) -> &Outgoing {
+        &self.asked
+    }
+
+    /// The settings of the features, as the extension sent them.
+    pub fn feature_settings(&self) -> FeatureSettings {
+        crate::settings::feature_settings(&locked(&self.settings))
+    }
+
+    /// How much the log says.
+    pub fn log_level(&self) -> LogLevel {
+        *locked(&self.level)
     }
 
     /// Sends a message; nothing happens once the output is closed.
@@ -73,11 +97,12 @@ impl Session {
         self.is_shut_down.load(Ordering::SeqCst)
     }
 
-    /// Cancels every request that runs.
+    /// Cancels every request that runs, and ends the waits for the extension's answers.
     pub fn cancel_all(&self) {
         for token in locked(&self.running).values() {
             token.cancel();
         }
+        self.asked.end();
     }
 
     /// Answers a request on a thread of its own, with a token that `$/cancel` cancels.
@@ -86,7 +111,7 @@ impl Session {
         let _replaced = locked(&self.running).insert(id.clone(), cancel.clone());
         let session = Arc::clone(self);
         let _answering = thread::spawn(move || {
-            let outcome = session.answer(&method, params, &cancel);
+            let outcome = session.answer(&id, &method, params, &cancel);
             let _done = locked(&session.running).remove(&id);
             session.send(match outcome {
                 Ok(result) => result_message(&id, result),
@@ -110,13 +135,26 @@ impl Session {
                     self.changed(changed);
                 }
             }
+            methods::SETTINGS_CHANGED => {
+                if let Ok(SettingsParams { settings }) = parameters::<SettingsParams>(params) {
+                    *locked(&self.settings) = settings;
+                }
+            }
             _ => {}
         }
     }
 
     /// The answer of a request.
-    fn answer(&self, method: &str, params: Value, cancel: &CancelToken) -> Result<Value, ResponseError> {
+    fn answer(
+        self: &Arc<Self>,
+        id: &RequestId,
+        method: &str,
+        params: Value,
+        cancel: &CancelToken,
+    ) -> Result<Value, ResponseError> {
         match method {
+            methods::FEATURE_RUN => crate::feature::run(self, id, parameters::<FeatureRunParams>(params)?, cancel),
+            methods::QUESTION_VALIDATE => crate::feature::validate(parameters::<ValidateParams>(params)?),
             methods::INITIALIZE => self.initialize(&parameters(params)?),
             methods::SHUTDOWN => {
                 self.is_shut_down.store(true, Ordering::SeqCst);
@@ -168,11 +206,12 @@ impl Session {
             return Err(ResponseError::new(codes::INVALID_PARAMS, message).with_data(json(&answer)?));
         }
         *locked(&self.level) = params.log_level.into();
+        locked(&self.settings).clone_from(&params.settings);
         json(&answer)
     }
 
     /// A repository opened, or the error of one that is not.
-    fn opened(&self, repository: &str) -> Result<Arc<Repository>, ResponseError> {
+    pub fn opened(&self, repository: &str) -> Result<Arc<Repository>, ResponseError> {
         locked(&self.repositories)
             .get(repository)
             .cloned()
@@ -201,11 +240,21 @@ impl Session {
 
     /// Reads a repository again after its files changed, and sends its state.
     fn read_again(&self, repository: &str, folder: &Path) {
-        if let Ok(state) = self.read(repository, folder, "Files changed", &CancelToken::new()) {
+        self.read_and_send(repository, folder, "Files changed", StateReason::Changed);
+    }
+
+    /// Reads a repository again after a plan ran there, and sends its state.
+    pub fn read_after_plan(&self, repository: &str, folder: &Path) {
+        self.read_and_send(repository, folder, "An operation ran", StateReason::Ran);
+    }
+
+    /// Reads a repository and sends its state, saying why.
+    fn read_and_send(&self, repository: &str, folder: &Path, cause: &str, reason: StateReason) {
+        if let Ok(state) = self.read(repository, folder, cause, &CancelToken::new()) {
             let params = StateParams {
                 repository: repository.to_owned(),
                 state,
-                reason: StateReason::Changed,
+                reason,
             };
             if let Ok(params) = json(&params) {
                 self.send(notification_message(methods::STATE, params));
@@ -258,13 +307,25 @@ impl Session {
             kind: LogKind::Read(took),
             line: format!("Read the state of {repository}"),
         };
-        let params = LogLineParams {
-            repository: Some(repository.to_owned()),
-            entry: LogEntryJson::from(&entry),
-        };
-        if let Ok(params) = json(&params) {
-            self.send(notification_message(methods::LOG_LINE, params));
+        self.send_log(repository, vec![entry]);
+    }
+
+    /// Sends lines of the log of a repository, in their order.
+    pub fn send_log(&self, repository: &str, entries: Vec<LogEntry>) {
+        for entry in entries {
+            let params = LogLineParams {
+                repository: Some(repository.to_owned()),
+                entry: LogEntryJson::from(&entry),
+            };
+            if let Ok(params) = json(&params) {
+                self.send(notification_message(methods::LOG_LINE, params));
+            }
         }
+    }
+
+    /// Gives an answer of the extension to the request of the engine waiting for it.
+    pub fn response(&self, id: &RequestId, outcome: Result<Value, ResponseError>) {
+        self.asked.answer(id, outcome);
     }
 }
 
@@ -275,7 +336,7 @@ fn parameters<T: DeserializeOwned>(params: Value) -> Result<T, ResponseError> {
 }
 
 /// The JSON of a value of the protocol.
-fn json(value: &impl Serialize) -> Result<Value, ResponseError> {
+pub fn json(value: &impl Serialize) -> Result<Value, ResponseError> {
     serde_json::to_value(value).map_err(|error| {
         ResponseError::new(
             codes::INTERNAL_ERROR,
@@ -290,7 +351,7 @@ fn not_open(repository: &str) -> ResponseError {
 }
 
 /// The error of a read of git that failed or was cancelled.
-fn git_failure(error: &GitError) -> ResponseError {
+pub fn git_failure(error: &GitError) -> ResponseError {
     if let GitError::Cancelled { .. } = error {
         return ResponseError::new(codes::CANCELLED, "The read was cancelled.");
     }
@@ -301,6 +362,7 @@ fn git_failure(error: &GitError) -> ResponseError {
     let data = ErrorData {
         output,
         steps: Vec::new(),
+        follow_ups: Vec::new(),
     };
     let error = ResponseError::new(codes::GIT_FAILED, error.to_string());
     match serde_json::to_value(&data) {
@@ -316,7 +378,7 @@ fn git_version() -> Option<String> {
 }
 
 /// The time of day, in seconds since 1970.
-fn now() -> Timestamp {
+pub fn now() -> Timestamp {
     let seconds = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .map_or(0, |since| since.as_secs());
