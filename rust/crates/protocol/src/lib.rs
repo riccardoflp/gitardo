@@ -11,5 +11,6 @@
 pub mod feature;
 pub mod journal;
 pub mod messages;
+pub mod reads;
 pub mod rpc;
 pub mod state;

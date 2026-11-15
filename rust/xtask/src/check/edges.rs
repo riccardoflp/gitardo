@@ -29,10 +29,10 @@ const ALLOWED: [(&str, &[&str]); 20] = [
     ("json", &[]),
     ("http", &["tls"]),
     ("tls", &[]),
-    ("protocol", &["model", "git", "engine"]),
+    ("protocol", &["model", "git", "engine", "text"]),
     (
         "server",
-        &["protocol", "engine", "features", "settings", "git", "model", "json"],
+        &["protocol", "engine", "features", "settings", "git", "model", "json", "text", "http"],
     ),
     ("testkit", &[]),
     ("xtask", &[]),

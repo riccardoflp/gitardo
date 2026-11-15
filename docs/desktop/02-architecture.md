@@ -73,8 +73,9 @@ app ──► views ──► ui ──► render ──► platform ──► s
  │   platform ──► winit, softbuffer, arboard, rfd, accesskit_winit (D16)
  └──► every other crate below it: platform, system, ui, render, model, git, text (D15)
 
-server ──► protocol ──► model, git, engine (the types it converts), serde, serde_json (D42)
-   └─────► engine, features (the operations of feature/run), settings, git, model, json
+server ──► protocol ──► model, git, engine, text (the types it converts), serde, serde_json (D42)
+   ├─────► engine, features (the operations of feature/run), settings, git, model, json
+   └─────► text, http (the reads of stage 5: the rules of the conflicts, the pull requests)
 ```
 
 - Nothing depends on `app`, and `app` may use any crate but `testkit`, `xtask`, `protocol` and `server`
