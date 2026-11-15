@@ -8,10 +8,12 @@ use model::contract::{CommandPreview, Danger};
 /// | --- | --- | --- | --- |
 /// | `off` | runs | asks | asks, with the warning |
 /// | `all` | asks | asks | asks, with the warning |
+///
+/// A plan the user agreed to in the feature's own question (`Agreed`) runs without being shown again, either way.
 #[must_use]
 pub fn needs_confirmation(danger: &Danger, preview: CommandPreview) -> bool {
     match (danger, preview) {
-        (Danger::None, CommandPreview::Off) => false,
+        (Danger::None, CommandPreview::Off) | (Danger::Agreed, _) => false,
         (Danger::None, CommandPreview::All) | (Danger::Confirm(_) | Danger::Destructive(_), _) => true,
     }
 }
@@ -27,6 +29,8 @@ mod tests {
         let cases = [
             (Danger::None, CommandPreview::Off, false),
             (Danger::None, CommandPreview::All, true),
+            (Danger::Agreed, CommandPreview::Off, false),
+            (Danger::Agreed, CommandPreview::All, false),
             (Danger::Confirm(reason.clone()), CommandPreview::Off, true),
             (Danger::Confirm(reason.clone()), CommandPreview::All, true),
             (Danger::Destructive(reason.clone()), CommandPreview::Off, true),

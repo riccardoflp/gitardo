@@ -98,7 +98,7 @@ pub fn uncommitted_words(folder: &str) -> String {
 /// A danger that asks first, with a reason added to what it said.
 fn with_reason(danger: &Danger, reason: &str) -> Danger {
     match danger {
-        Danger::None => Danger::Confirm(Text::from(reason)),
+        Danger::None | Danger::Agreed => Danger::Confirm(Text::from(reason)),
         Danger::Confirm(note) => Danger::Confirm(Text::from(format!("{note}\n\n{reason}"))),
         Danger::Destructive(note) => Danger::Destructive(Text::from(format!("{note}\n\n{reason}"))),
     }

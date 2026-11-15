@@ -375,7 +375,7 @@ pub fn confirm_view(state: &ConfirmState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let (reason, style) = match &state.plan.danger {
         model::contract::Danger::Destructive(reason) => (Some(reason.as_str()), ConfirmStyle::Danger),
         model::contract::Danger::Confirm(reason) => (Some(reason.as_str()), ConfirmStyle::Normal),
-        model::contract::Danger::None => (None, ConfirmStyle::Normal),
+        model::contract::Danger::None | model::contract::Danger::Agreed => (None, ConfirmStyle::Normal),
     };
     // A reason that only says the title again is not said twice.
     let message = match reason.filter(|reason| reason.trim_end_matches('.') != title) {

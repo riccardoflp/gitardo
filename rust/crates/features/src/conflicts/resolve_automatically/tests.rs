@@ -202,3 +202,14 @@ fn says_which_files_are_still_in_conflict_and_refuses_when_nothing_can_be_resolv
         "The conflict cannot be resolved without choosing a side."
     );
 }
+
+#[test]
+fn conflicts_resolve_automatically__its_question_is_the_confirmation_whatever_command_preview_says() {
+    let mut context = merging(&["first.txt"]);
+    context.settings.command_preview = model::contract::CommandPreview::All;
+    let texts = [next_to_each_other("first.txt")];
+    for choice in ["resolve", "review"] {
+        let plan = plan(resolve_automatically(&context, &answered(&texts, choice)));
+        assert_eq!(plan.danger, model::contract::Danger::Agreed, "{choice}");
+    }
+}

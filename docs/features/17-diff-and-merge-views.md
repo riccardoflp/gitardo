@@ -790,6 +790,12 @@ Saves the file and stages it, which tells git that its conflicts are resolved, a
 - **Undo**: Impossible with **Undo**: staging leaves nothing in the reflog.
 - **After**: the page closes; the file leaves the conflicts of the Changes page.
 - **Uses**: `file-view.save`, `conflicts.mark-resolved`.
+- **Extension**: **Mark as Resolved** in the Flow Merge. The extension saves the document in VS Code itself and asks
+  itself about the markers left, **shapes.ts still has a conflict marked by git. Mark it as resolved all the same, with
+  the markers in it?**; then it sends `feature/run` of `merge-view.mark-resolved` to Gitardo's engine with a
+  `mergeResult` target (`Controller.runOnEngine` in `src/extension/controller.ts`, `engineRuns` in
+  `src/engine/actions.ts`), which stages the file. When the engine's binary is missing, `stageOp([path])` of
+  `src/git/ops.ts` runs in its place, as before (D49).
 
 Acceptance:
 
@@ -797,6 +803,8 @@ Acceptance:
       the page closes.
 - [ ] With 1 conflict left, it asks first; cancelling writes and stages nothing and the page stays.
 - [ ] With the file saved already, the plan is `git add -- <file>` alone.
+- [ ] Extension: **Mark as Resolved** in the Flow Merge of `shapes.ts` with a marker left asks the question above first;
+      on yes the file is saved and staged, and leaves the **Conflicts** group of the Changes view.
 
 ### `merge-view.close` — Closing with unsaved changes
 

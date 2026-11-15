@@ -8,9 +8,12 @@ use model::contract::{Answer, Choice, FileQuestion, Question, QuestionKind, Targ
 use model::worktree::{FolderBase, WorktreeNameRule};
 use serde::{Deserialize, Serialize};
 
-/// What a feature was invoked on (`Target` of `model`). The kinds with a structure of their own (a change of a diff, a
-/// comparison, a merge result, resolutions, files saved, a file at a commit, the settings of new worktrees, lines, a
-/// line of a file, a file of a list) come with the areas that use them.
+use super::resolutions::{FileResolutionsJson, MergeResultJson};
+
+/// What a feature was invoked on (`Target` of `model`). The kinds with a structure of their own come with the areas that
+/// use them: the resolutions of the review and the file of a Merge page with the conflicts (1.3); a change of a diff, a
+/// comparison, files saved, a file at a commit, the settings of new worktrees, lines, a line of a file and a file of a
+/// list with theirs.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum TargetJson {
@@ -78,6 +81,13 @@ pub enum TargetJson {
         /// Where it is.
         path: String,
     },
+    /// The resolutions accepted on the review of the conflicts.
+    Resolutions {
+        /// The files of the review, in its order, with or without any accepted.
+        files: Vec<FileResolutionsJson>,
+    },
+    /// The file of a Merge page.
+    MergeResult(MergeResultJson),
 }
 
 /// A commit id that is not one.
@@ -115,6 +125,10 @@ impl TryFrom<TargetJson> for Target {
             TargetJson::Submodule { path } => Target::Submodule(path),
             TargetJson::Worktree { folder } => Target::Worktree(PathBuf::from(folder)),
             TargetJson::Path { path } => Target::Path(PathBuf::from(path)),
+            TargetJson::Resolutions { files } => Target::Resolutions(Box::new(model::review::Resolutions {
+                files: files.into_iter().map(Into::into).collect(),
+            })),
+            TargetJson::MergeResult(result) => Target::MergeResult(Box::new(result.into())),
         })
     }
 }

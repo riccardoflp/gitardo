@@ -37,7 +37,7 @@ pub fn allow_file_protocol(input: &FailedPlan<'_>) -> Option<Plan> {
     let plan = input.plan;
     let steps = plan.steps.iter().skip(input.failed_step).map(allowed).collect();
     let danger = match &plan.danger {
-        Danger::None => Danger::Confirm(Text::from(WHY_ALLOWED)),
+        Danger::None | Danger::Agreed => Danger::Confirm(Text::from(WHY_ALLOWED)),
         Danger::Confirm(note) => Danger::Confirm(Text::from(format!("{WHY_ALLOWED}\n\n{note}"))),
         Danger::Destructive(note) => Danger::Destructive(Text::from(format!("{WHY_ALLOWED}\n\n{note}"))),
     };

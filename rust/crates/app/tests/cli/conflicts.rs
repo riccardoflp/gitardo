@@ -78,7 +78,14 @@ fn conflicts_continue_operation__a_cherry_pick_resolved_as_head_has_it_is_skippe
 fn conflicts_skip_step__a_cherry_pick_of_3_commits_stopped_on_the_second_skips_it_and_picks_the_third() {
     let (repository, [first, second, third]) = three_commits_one_in_conflict();
     stopping(&repository, &["cherry-pick", &first, &second, &third]);
-    let ended = cli_done(&repository, &["conflicts.skip-step"]);
+    let asked = cli(&repository, &["conflicts.skip-step"]);
+    assert_eq!(asked.code, Some(2), "{}\n{}", asked.out, asked.errors);
+    assert!(
+        asked.out.contains("What was resolved in this step is thrown away."),
+        "{}",
+        asked.out
+    );
+    let ended = cli_done(&repository, &["--yes", "conflicts.skip-step"]);
     assert!(ended.out.contains("git cherry-pick --skip"), "{}", ended.out);
     assert_eq!(subjects(&repository, 3), ["Add c", "Add b", "Change a on main"]);
 }

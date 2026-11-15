@@ -5,6 +5,7 @@
 mod follow_up;
 mod plan;
 mod question;
+mod resolutions;
 
 use std::collections::BTreeMap;
 
@@ -13,6 +14,10 @@ pub use plan::{DangerJson, FinishedJson, OfferJson, PlanJson, StepJson, UndoJson
 pub use question::{
     AnswerJson, ChoiceJson, FileFilterJson, FileQuestionJson, NotACommit, QuestionJson, QuestionKindJson, TargetJson,
     ValidationJson,
+};
+pub use resolutions::{
+    ConfidenceJson, FileResolutionsJson, MergeResultJson, ProposalJson, ProposalSourceJson, ResolutionChoiceJson,
+    RuleCaseJson,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};

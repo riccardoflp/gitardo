@@ -239,7 +239,8 @@ fn git_step(arguments: &[std::ffi::OsString], directory: &Path, input: Option<&[
 impl From<&Danger> for DangerJson {
     fn from(danger: &Danger) -> DangerJson {
         match danger {
-            Danger::None => DangerJson::None,
+            // What the user agreed to in a question of the feature is not confirmed again: for the host it is none.
+            Danger::None | Danger::Agreed => DangerJson::None,
             Danger::Confirm(reason) => DangerJson::Confirm {
                 reason: text_of(reason),
             },

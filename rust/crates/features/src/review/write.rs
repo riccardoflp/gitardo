@@ -3,19 +3,25 @@
 
 use model::changes::pathspec;
 use model::contract::{
-    AnswerKey, Answers, Context, Danger, Outcome, Plan, Query, Refusal, Step, Target, Text, Undo, UndoRecord,
+    AnswerKey, Answers, CommandPreview, Context, Danger, Outcome, Plan, Query, Question, QuestionKind, Refusal, Step,
+    Target, Text, Undo, UndoRecord,
 };
 use model::review::{FileResolutions, Resolutions};
 
 /// The key of the files read again before they are written.
 pub const FILES: AnswerKey = AnswerKey("files");
 
+/// The key of the confirmation asked first when `commandPreview` is `all`.
+pub const WRITE: AnswerKey = AnswerKey("write");
+
 /// What is said when nothing is accepted.
 const NOTHING_ACCEPTED: &str = "No resolution is accepted.";
 
 /// Writes the accepted resolutions in their files, each file only while it is still the text they were made from,
 /// then stages with `git add` the files left with no conflict. The plan starts with what it does to each file, which
-/// the log keeps with the `write` lines. Undo marks the conflicts of the files written again.
+/// the log keeps with the `write` lines. Undo marks the conflicts of the files written again. With `commandPreview` set
+/// to `all` the plan is asked first, as its own question, and the files are read again only once it is answered, so
+/// that a file saved while the question was open is not written over; it is then not shown again.
 ///
 /// Feature: review.write
 #[must_use]
@@ -43,6 +49,11 @@ pub fn write(context: &Context, answers: &Answers) -> Outcome {
             }
         }
     }
+    let asks_first = context.settings.command_preview == CommandPreview::All;
+    let mut plan = plan(context, resolutions, (&written, texts));
+    if asks_first && !answers.is_confirmed(WRITE) {
+        return Outcome::Ask(confirmation(&plan));
+    }
     let folder = &context.repository.folder;
     let Some(on_disk) = answers.files(FILES) else {
         let paths = written.iter().map(|file| folder.join(&file.path)).collect();
@@ -58,7 +69,24 @@ pub fn write(context: &Context, answers: &Answers) -> Outcome {
             file.path
         )));
     }
-    Outcome::Run(plan(context, resolutions, (&written, texts)))
+    if asks_first {
+        plan.danger = Danger::Agreed;
+    }
+    Outcome::Run(plan)
+}
+
+/// The plan asked as a question, before the files are read again: its title, then its steps as the log writes them.
+fn confirmation(plan: &Plan) -> Question {
+    let lines: Vec<String> = plan.steps.iter().map(Step::log_line).collect();
+    Question {
+        key: WRITE,
+        kind: QuestionKind::Confirm {
+            accept: Text::from("Write"),
+        },
+        title: Text::from(format!("{}?", plan.title)),
+        detail: Some(Text::from(lines.join("\n"))),
+        default: None,
+    }
 }
 
 /// The plan: what it does to each file, the files written, then those left with no conflict staged.

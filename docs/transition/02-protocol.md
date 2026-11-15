@@ -6,10 +6,13 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.2** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.3** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
-for Undo: `journal/last` and `journal/record`. The rest is not built yet.
+for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
+targets `resolutions`, the resolutions accepted on the review for `review.write`, and `mergeResult`, the file of a
+Merge page for `merge-view.mark-resolved`. A plan the user agreed to in its own question (`Danger::Agreed`) is sent
+with the danger `none`, and the engine does not send `feature/confirm` for it. The rest is not built yet.
 
 ## Transport
 
@@ -488,7 +491,16 @@ The fields are those of `model`; this section says only what the JSON adds or le
   commits }`, `{ kind: "submodule", path }`, `{ kind: "worktree", folder }`, `{ kind: "path", path }`, built at stage
   2, and the kinds with a structure of their own: `diffChange`, `comparison`, `mergeResult`, `resolutions`,
   `fileSave`, `fileSaves`, `fileAt`, `setupSettings`, `lines`, `lineOfFile`, `listedFile`, each with the fields of its
-  type in `model`, built with the stage that moves the area that uses it.
+  type in `model`, built with the stage that moves the area that uses it. Built in 1.3: `{ kind: "resolutions", files:
+  FileResolutions[] }` and `{ kind: "mergeResult", path, unsaved: string | null, marked }` (the text not saved, or
+  `null` when the file on disk is the result; how many conflicts git still marks in it).
+- **`FileResolutions`** (`model/src/review/resolutions.rs`, 1.3): `{ path, text, conflicts, accepted: Proposal[] }`:
+  the text the proposals were made from, which the file must still have to be written, and how many conflicts it has.
+  **`Proposal`**: `{ source, from, to, text, newLines }`, the lines `from` to `to` of the file (from 0, `to` left out)
+  replaced by `text`, each line with what ends it; `source` is `{ kind: "rules", case: "spacesOrLineEndings" |
+  "sameChange" | "oneSide" | "nextToEachOther" }`, `{ kind: "ai", model, reason, confidence: "high" | "medium" | "low"
+  }` or `{ kind: "choice", choice: "currentOnly" | "incomingOnly" | "bothCurrentFirst" | "bothIncomingFirst" |
+  "written" }`.
 - **`Question`** (`model/src/contract/question.rs`): `{ key, kind: QuestionKind, title, detail: string | null,
   default: Answer | null }`. **`Choice`**: `{ identifier, label, description: string | null }`. **`Validation`**,
   every kind an object, those without data too, since `question/validate` sends it back: `{ kind: "anything" }`,

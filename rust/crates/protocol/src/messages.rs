@@ -51,8 +51,8 @@ pub mod methods {
 }
 
 /// The version of the protocol the engine speaks: 1.1 added the messages of the features (stage 2), 1.2 those of the
-/// journal (stage 3).
-pub const VERSION: &str = "1.2";
+/// journal (stage 3), 1.3 the targets of the conflicts (stage 4, area 4).
+pub const VERSION: &str = "1.3";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]
