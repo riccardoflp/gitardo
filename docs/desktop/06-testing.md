@@ -65,6 +65,41 @@ TypeScript side is dropped with `src/git`.
 The protocol has its own tests: each type of `rust/crates/protocol` is turned into JSON and back, and every variant of
 every enum of [transition/02-protocol.md](../transition/02-protocol.md) has its JSON written once in a golden file.
 
+## The engine on a large repository
+
+`cargo xtask perf <folder> [times]` times the reads of the graph in `gitardo-engine --stdio`, the engine the extension
+starts, built first with `cargo build --release -p server`. It frames the requests of JSON-RPC itself, with no other
+crate, and times each one from the request to the last byte of its answer, as the extension waits for it: the first
+page of 1,000 rows, the next three pages and the 50th, each asked with `skip` from the last row before it, the position
+of the last commit of the 50th page, a search of the messages and one of the authors, and `repo.read-state`. Each read
+is asked five times unless it says otherwise; the table gives the rows, the bytes of the answer and the fastest, median
+and slowest time. It is not pass or fail. The repository is the one `extension/test/perf/big-repo.mjs` makes, outside
+the repository of Gitardo ([extension/06-testing.md](../extension/06-testing.md#large-repositories)).
+
+What stage 7 measured, on 2026-11-15, in its own run and not on the maintainer's machine: Windows 11, git
+2.53.0.windows.1, the release build, `node extension/test/perf/big-repo.mjs <folder> 50000 1779` (56,120 commits,
+249 branches never merged, 2,000 tags, 2,375 references, 1,779 changed files). The median, in milliseconds, first of
+five runs on the repository as the script leaves it, then of ten after `git pack-refs --all` and
+`git commit-graph write --reachable`, as the extension's large repository is measured. Other work ran on the machine
+at the same time, so the slowest runs were up to half as long again as the median:
+
+| Read | Rows | Bytes | As made | With a commit-graph |
+| --- | ---: | ---: | ---: | ---: |
+| `graph.read-commits`, page 1 | 1,000 | 253,667 | 359.9 | 167.0 |
+| `graph.read-commits`, page 2 with `skip` | 1,001 | 253,870 | 361.6 | 209.0 |
+| `graph.read-commits`, page 3 with `skip` | 1,001 | 253,864 | 369.2 | 198.8 |
+| `graph.read-commits`, page 4 with `skip` | 1,001 | 253,755 | 358.7 | 203.8 |
+| `graph.read-commits`, page 50 with `skip` | 1,001 | 253,707 | 329.8 | 177.2 |
+| `graph.read-position`, a commit of page 50 | | 50 | 391.4 | 304.8 |
+| `search.read-matches`, the messages, "the parser" | 5,000 | 215,063 | 348.3 | 316.7 |
+| `search.read-matches`, the authors, "Grace" | 210 | 9,094 | 353.8 | 425.5 |
+| `repo.read-state` | | 290,451 | 278.6 | 314.7 |
+
+Without a commit-graph, `git log` alone takes about 310 ms to list the first 1,001 commits of that repository, so a page
+is git's time and some 50 ms of the engine's; with one, about 120 ms. The pages after the first take about as long,
+since git walks the history from the top to reach them. The engine reads the references and the stashes only when the
+branches shown or the stashes need them, which took a page of the repository as made from about 510 ms to 360 ms.
+
 ## What a change runs before it is committed
 
 `cargo xtask check`, which is `rustfmt --check`, `clippy` with warnings denied, `cargo test`, and the checks of the

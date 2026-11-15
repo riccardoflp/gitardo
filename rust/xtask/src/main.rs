@@ -6,6 +6,7 @@ mod catalog;
 mod check;
 mod error;
 mod files;
+mod perf;
 mod problem;
 mod source;
 mod toml;
@@ -19,12 +20,14 @@ use std::process::ExitCode;
 const USAGE: &str = "Usage: cargo xtask <command>
 
 Commands:
-  check    rustfmt, clippy, the tests, and the rules of docs/desktop/03-code-rules.md that a program can check";
+  check    rustfmt, clippy, the tests, and the rules of docs/desktop/03-code-rules.md that a program can check
+  perf     the reads of the graph timed in gitardo-engine, on the repository of a folder";
 
 fn main() -> ExitCode {
     let command = std::env::args().nth(1);
     let outcome = match command.as_deref() {
         Some("check") => check::run(&workspace_root()),
+        Some("perf") => perf::run(&workspace_root(), &std::env::args().skip(2).collect::<Vec<_>>()),
         _ => writeln!(std::io::stderr().lock(), "{USAGE}")
             .map(|()| false)
             .map_err(error::Error::Output),
