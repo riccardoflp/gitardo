@@ -1,5 +1,6 @@
 //! The message git prepared for the next commit: what a squash merge leaves in `SQUASH_MSG` while its changes wait to
-//! be committed (`commit.prepared-message`).
+//! be committed (`commit.prepared-message`); and the diff the draft of a commit message is written from
+//! (`commit.read-draft-diff`).
 
 use std::fs;
 use std::io;
@@ -26,6 +27,38 @@ pub struct PreparedMessageRequest;
 pub fn read_prepared_message(git: &Git, _request: &PreparedMessageRequest) -> Result<Option<String>, GitError> {
     let location = read_location(git)?;
     read_message_file(&location.git_folder.join(SQUASH_MESSAGE_FILE))
+}
+
+/// What the draft of a commit message describes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct DraftDiffRequest {
+    /// Whether something is staged: then only the staged changes are described, as **Commit** would commit them.
+    pub is_staged: bool,
+}
+
+/// The arguments of the diff a draft is written from: of what is staged when something is, of every change of the
+/// tracked files otherwise; without colors and without the external diff program a user may have set up.
+#[must_use]
+pub fn draft_diff_arguments(request: &DraftDiffRequest) -> Vec<&'static str> {
+    let mut arguments = vec!["diff"];
+    if request.is_staged {
+        arguments.push("--cached");
+    }
+    arguments.extend(["--no-color", "--no-ext-diff"]);
+    arguments
+}
+
+/// The diff the draft of a commit message is written from (`commit.draft-message`), as git prints it; bytes that are
+/// not UTF-8 are replaced.
+///
+/// Feature: commit.read-draft-diff
+///
+/// # Errors
+///
+/// When the folder is not in a repository, or git cannot be started or fails.
+pub fn read_draft_diff(git: &Git, request: &DraftDiffRequest) -> Result<String, GitError> {
+    let diff = git.run_read(&draft_diff_arguments(request))?;
+    Ok(String::from_utf8_lossy(&diff).into_owned())
 }
 
 /// The message in a file of the git folder; none when the file is not there or holds only blanks.

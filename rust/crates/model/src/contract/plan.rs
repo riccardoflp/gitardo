@@ -307,6 +307,18 @@ pub enum FollowUp {
     TrustFolder(PathBuf),
     /// Stop trusting these folders (`trust.manage`).
     ForgetTrustedFolders(Vec<PathBuf>),
+    /// Write a setting in the user's settings of the host, in place of a step that writes the user's settings file:
+    /// under the extension, VS Code's (`ai.choose-model`, Q399). Never in Gitardo Desktop.
+    WriteSetting(Box<SettingWritten>),
+}
+
+/// A setting the host writes in the user's settings.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SettingWritten {
+    /// Its name, as the desktop's settings file names it: `ai.model`.
+    pub key: String,
+    /// Its value as JSON text, `"claude-test"`; none to remove the setting, so that its default applies.
+    pub value: Option<String>,
 }
 
 /// A plan offered in place of one whose step failed, when git said some words.

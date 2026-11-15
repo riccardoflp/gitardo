@@ -53,8 +53,11 @@ pub mod methods {
 /// The version of the protocol the engine speaks: 1.1 added the messages of the features (stage 2), 1.2 those of the
 /// journal (stage 3), 1.3 those of stage 4: the operations offered with their target and answers, such as **Delete
 /// anyway** and **Remove anyway**, the targets of the conflicts, and whether the host runs the setup commands of new
-/// worktrees in its terminals; 1.4 the reads but the graph's (stage 5, [`crate::reads`]).
-pub const VERSION: &str = "1.4";
+/// worktrees in its terminals; 1.4 the reads but the graph's (stage 5, [`crate::reads`]); 1.5 what area 6 of stage 4
+/// needs, AI and GitHub ([`crate::ai`]): the host questions to VS Code's language models, the reads of the draft of a
+/// commit message and of the question about a conflict, the follow-up that writes a setting, and the target of a
+/// comparison.
+pub const VERSION: &str = "1.5";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]

@@ -7,12 +7,15 @@ use model::CommitId;
 use model::contract::Target;
 use serde::{Deserialize, Serialize};
 
+use model::compare::{CompareSide, ComparisonPart, ComparisonTarget, Side};
+
 use super::resolutions::{FileResolutionsJson, MergeResultJson};
+use crate::reads::{CompareModeJson, ComparisonSideJson};
 
 /// What a feature was invoked on (`Target` of `model`). The kinds with a structure of their own come with the areas that
-/// use them: the resolutions of the review and the file of a Merge page with the conflicts (1.3); a change of a diff, a
-/// comparison, files saved, a file at a commit, the settings of new worktrees, lines, a line of a file and a file of a
-/// list with theirs.
+/// use them: the resolutions of the review and the file of a Merge page with the conflicts (1.3), a comparison page as a
+/// whole with AI and GitHub (1.5); a change of a diff, a part of a comparison, files saved, a file at a commit, the
+/// settings of new worktrees, lines, a line of a file and a file of a list with theirs.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum TargetJson {
@@ -87,6 +90,48 @@ pub enum TargetJson {
     },
     /// The file of a Merge page.
     MergeResult(MergeResultJson),
+    /// A comparison page, as a whole (1.5, `compare.open-on-github`).
+    Comparison {
+        /// The first side.
+        first: CompareSideJson,
+        /// The second side.
+        second: CompareSideJson,
+        /// How they are compared.
+        mode: CompareModeJson,
+        /// The file or folder it is narrowed to; none for the whole repository.
+        #[serde(default)]
+        path: Option<String>,
+        /// Where the two diverged, as the page last read it.
+        #[serde(default)]
+        merge_base: Option<String>,
+    },
+}
+
+/// A side of a comparison page: its name, where it is now, and whether it follows its name.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompareSideJson {
+    /// Its name: a branch, a tag, a revision, a hash, or **Working tree**.
+    pub name: String,
+    /// Where it is now.
+    pub side: ComparisonSideJson,
+    /// Whether it follows its name as it moves; a side given by its hash is fixed.
+    pub is_followed: bool,
+    /// Whether its name no longer stands for a commit.
+    pub is_gone: bool,
+}
+
+impl TryFrom<CompareSideJson> for CompareSide {
+    type Error = NotACommit;
+
+    fn try_from(side: CompareSideJson) -> Result<CompareSide, NotACommit> {
+        Ok(CompareSide {
+            side: Side::try_from(&side.side)?,
+            name: side.name,
+            is_followed: side.is_followed,
+            is_gone: side.is_gone,
+        })
+    }
 }
 
 /// A commit id that is not one.
@@ -128,6 +173,20 @@ impl TryFrom<TargetJson> for Target {
                 files: files.into_iter().map(Into::into).collect(),
             })),
             TargetJson::MergeResult(result) => Target::MergeResult(Box::new(result.into())),
+            TargetJson::Comparison {
+                first,
+                second,
+                mode,
+                path,
+                merge_base,
+            } => Target::Comparison(Box::new(ComparisonTarget {
+                first: first.try_into()?,
+                second: second.try_into()?,
+                mode: mode.into(),
+                path,
+                merge_base: merge_base.as_deref().map(commit).transpose()?,
+                part: ComparisonPart::Whole,
+            })),
         })
     }
 }

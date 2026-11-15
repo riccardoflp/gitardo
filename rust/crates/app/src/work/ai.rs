@@ -8,11 +8,12 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use engine::ai::{ConflictReply, ConflictRequest, Provider, Sending};
+use engine::ai::{ConflictReply, ConflictRequest, Provider, ProviderModel, Sending};
 use engine::{Activities, SecretStore};
+use git::read::commit::{DraftDiffRequest, read_draft_diff};
 use http::{Cancel, Http, Proxies, ProxySettings, Trust};
-use model::ai::{AiRequest, AiSettings, Key};
-use model::commit::{DraftInput, clean_draft, draft_message};
+use model::ai::{AiSettings, Key};
+use model::commit::DraftInput;
 use model::contract::Text;
 
 use super::Deliver;
@@ -228,39 +229,37 @@ fn answer(
             });
         }
     };
+    let mut model = ProviderModel {
+        sending,
+        provider: &provider,
+    };
     let result = match &question.work {
-        AiWork::Conflict(request) => {
-            engine::ai::ask_conflict(sending, &provider, request, &mut pieces).map(AiReply::Conflict)
-        }
+        AiWork::Conflict(request) => engine::ai::ask_conflict(&mut model, request, &mut pieces).map(AiReply::Conflict),
         AiWork::Draft(job) => {
-            let request = draft_request(job, cancel)?;
-            engine::ai::ask(sending, &provider, &request, &mut pieces)
-                .map(|asked| AiReply::Draft(clean_draft(&asked.text)))
+            let diff = draft_diff(job, cancel)?;
+            let input = DraftInput {
+                diff: &diff,
+                new_files: &job.new_files,
+                subjects: &job.subjects,
+            };
+            engine::ai::draft(&mut model, &input, &mut pieces).map(AiReply::Draft)
         }
     };
     result.map_err(AiFailed::from)
 }
 
-/// What is asked for the message of a commit: the diff of what is staged when something is, of every change
-/// otherwise, with the new files and the subjects of the last commits.
-fn draft_request(job: &DraftJob, cancel: &Cancel) -> Result<AiRequest, AiFailed> {
-    let mut arguments = vec!["diff"];
-    if job.is_staged {
-        arguments.push("--cached");
-    }
-    arguments.extend(["--no-color", "--no-ext-diff"]);
-    let diff = git::Git::new(&job.folder)
-        .run_read(&arguments)
-        .map_err(|error| AiFailed::saying(error.to_string()))?;
+/// The diff the message of a commit is drafted from (`commit.read-draft-diff`): of what is staged when something is,
+/// of every change otherwise.
+fn draft_diff(job: &DraftJob, cancel: &Cancel) -> Result<String, AiFailed> {
+    let request = DraftDiffRequest {
+        is_staged: job.is_staged,
+    };
+    let diff =
+        read_draft_diff(&git::Git::new(&job.folder), &request).map_err(|error| AiFailed::saying(error.to_string()))?;
     if cancel.is_cancelled() {
         return Err(engine::ai::AiError::Cancelled.into());
     }
-    let diff = String::from_utf8_lossy(&diff);
-    Ok(draft_message(&DraftInput {
-        diff: &diff,
-        new_files: &job.new_files,
-        subjects: &job.subjects,
-    }))
+    Ok(diff)
 }
 
 /// The client that sends the requests: made once, trusting the certificates of the system and going through the proxy

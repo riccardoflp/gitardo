@@ -759,6 +759,25 @@ Acceptance:
 - [ ] Extension: with no model in VS Code, the error above is shown and the box keeps what it had.
 - [ ] Extension: nothing in the repository changes, and nothing is written to the log of operations.
 
+### `commit.read-draft-diff` — The diff a draft is written from
+
+The diff `commit.draft-message` sends to the model: of what is staged when something is, as **Commit** would commit
+it, and of every change of the tracked files otherwise (Q398).
+
+- **Kind**: Read
+- **Function**: `git::read::commit::read_draft_diff(git: &Git, request: &DraftDiffRequest) -> Result<String, GitError>`
+- **Reads**: `git diff --cached --no-color --no-ext-diff` when `is_staged`, `git diff --no-color --no-ext-diff`
+  otherwise, as git prints it, bytes that are not UTF-8 replaced. An untracked file is in neither; the draft names
+  those apart.
+- **Extension**: the engine reads it for `read/commit.draft-message`; the extension read it with `Repo.diffText`
+  (`src/git/repo.ts`), the same commands.
+
+Acceptance:
+
+- [ ] With `a.txt` staged and `b.txt` changed and not staged, the staged diff has `a.txt` and not `b.txt`.
+- [ ] With nothing staged, the diff has `a.txt` and `b.txt`, and not the untracked `new.txt`.
+- [ ] With `color.diff` set to `always` and `diff.external` set to a program, the diff has no colors and is git's own.
+
 ### `identity.read` — Read the identity
 
 Who commits will be made as in this repository, and which of the `user.*` keys the repository sets for itself.

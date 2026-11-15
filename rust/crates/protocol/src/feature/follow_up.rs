@@ -109,6 +109,13 @@ pub enum FollowUpJson {
         /// The answers it is given before it asks, by their keys.
         answers: BTreeMap<String, AnswerJson>,
     },
+    /// A setting is written in the user's settings of VS Code, by the desktop's name (1.5, `ai.choose-model`).
+    WriteSetting {
+        /// The setting, as the desktop names it: `ai.model`.
+        key: String,
+        /// Its value; null removes it.
+        value: Option<serde_json::Value>,
+    },
 }
 
 fn text_of(text: &Text) -> String {
@@ -176,6 +183,13 @@ impl FollowUpJson {
                 line: *line,
             },
             FollowUp::OfferRun(offered) => offer_run(offered)?,
+            FollowUp::WriteSetting(written) => FollowUpJson::WriteSetting {
+                key: written.key.clone(),
+                value: match &written.value {
+                    Some(text) => Some(serde_json::from_str(text).ok()?),
+                    None => None,
+                },
+            },
             _ => return None,
         })
     }

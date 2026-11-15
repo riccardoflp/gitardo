@@ -1,5 +1,6 @@
-//! The AI provider of `ai.provider`, over HTTP: the models it lists (`ai.choose-model`), a question asked with its
-//! answer streamed (`commit.draft-message`), and the question about one conflict (`ai.ask-conflict`).
+//! The language models: the AI provider of `ai.provider` over HTTP, or those of the host the engine runs under
+//! ([`LanguageModel`]); the models listed (`ai.choose-model`), a question asked with its answer streamed, the draft of
+//! a commit message (`commit.draft-message`), and the question about one conflict (`ai.ask-conflict`).
 //!
 //! Nothing here is sent unless a person asked for it: the window calls these functions only from a button, and the
 //! tests send them to a server of their own on 127.0.0.1.
@@ -10,7 +11,10 @@ use std::fmt;
 use std::io::BufReader;
 
 use http::{Cancel, Events, Http};
-use model::ai::{AiModel, AiModels, AiProvider, AiRequest, AiSettings, AnswerError, ConflictAnswer, Key, TrimInput};
+use model::ai::{
+    AiModel, AiModels, AiProvider, AiRequest, AiSettings, AnswerError, ConflictAnswer, Key, QuestionInput, TrimInput,
+};
+use model::commit::{DraftInput, clean_draft, draft_message};
 
 pub use wire::{ANTHROPIC_VERSION, MOST_TOKENS};
 
@@ -30,6 +34,54 @@ pub struct Sending<'a> {
     pub http: &'a Http,
     /// What cancels the request: the token of the job that sends it.
     pub cancel: &'a Cancel,
+}
+
+/// What a question to a language model is for, so that the host says why it sends it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Purpose {
+    /// The draft of a commit message (`commit.draft-message`).
+    CommitMessage,
+    /// How to resolve one conflict (`ai.ask-conflict`).
+    Conflict,
+}
+
+/// Who answers the questions to a language model: the AI provider over HTTP in Gitardo Desktop
+/// ([`ProviderModel`]), or the models of the host the engine runs under, which the server asks of the extension.
+pub trait LanguageModel {
+    /// The models it has, in its order.
+    ///
+    /// # Errors
+    ///
+    /// When they cannot be listed.
+    fn models(&mut self) -> Result<Vec<AiModel>, AiError>;
+
+    /// Asks a question of the model its settings choose, or of its first model when they choose none; each piece of
+    /// the answer is given to `pieces` as it comes, before the whole answer is.
+    ///
+    /// # Errors
+    ///
+    /// When there is no model, the one chosen is not there, the question is refused or cancelled, or the answer
+    /// cannot be read.
+    fn ask(&mut self, purpose: Purpose, request: &AiRequest, pieces: &mut dyn FnMut(&str)) -> Result<Asked, AiError>;
+}
+
+/// The AI provider of `ai.provider`, asked over HTTP as Gitardo Desktop asks it.
+#[derive(Clone, Copy, Debug)]
+pub struct ProviderModel<'a> {
+    /// How the requests are sent.
+    pub sending: Sending<'a>,
+    /// The provider, with its key.
+    pub provider: &'a Provider,
+}
+
+impl LanguageModel for ProviderModel<'_> {
+    fn models(&mut self) -> Result<Vec<AiModel>, AiError> {
+        list_models(self.sending, self.provider)
+    }
+
+    fn ask(&mut self, _purpose: Purpose, request: &AiRequest, pieces: &mut dyn FnMut(&str)) -> Result<Asked, AiError> {
+        ask(self.sending, self.provider, request, pieces)
+    }
 }
 
 /// What went wrong asking the AI provider.
@@ -62,6 +114,8 @@ pub enum AiError {
     Answer(AnswerError),
     /// The question was cancelled.
     Cancelled,
+    /// The host the engine runs under could not ask its model, and said why in its own words.
+    Host(String),
 }
 
 impl From<http::Error> for AiError {
@@ -100,6 +154,7 @@ impl fmt::Display for AiError {
             }
             AiError::Answer(error) => formatter.write_str(error.0.as_str()),
             AiError::Cancelled => formatter.write_str("The question was cancelled."),
+            AiError::Host(said) => formatter.write_str(said),
         }
     }
 }
@@ -207,6 +262,20 @@ pub struct ConflictRequest {
     pub has_side_lines: bool,
 }
 
+impl ConflictRequest {
+    /// The question about a conflict of a file (`ai.conflict-question`), with the lines sent around it.
+    #[must_use]
+    pub fn of(input: &QuestionInput<'_>) -> ConflictRequest {
+        let around = model::ai::lines_around(input);
+        ConflictRequest {
+            question: model::ai::conflict_question(input),
+            before: around.before.iter().map(|line| (*line).to_owned()).collect(),
+            after: around.after.iter().map(|line| (*line).to_owned()).collect(),
+            has_side_lines: !input.conflict.current.is_empty() || !input.conflict.incoming.is_empty(),
+        }
+    }
+}
+
 /// What the model proposed for a conflict, and which model it was.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConflictReply {
@@ -223,16 +292,14 @@ pub struct ConflictReply {
 ///
 /// # Errors
 ///
-/// As [`ask`], and when the answer is not a resolution.
+/// As [`LanguageModel::ask`], and when the answer is not a resolution.
 pub fn ask_conflict(
-    sending: Sending<'_>,
-    provider: &Provider,
+    model: &mut dyn LanguageModel,
     request: &ConflictRequest,
     pieces: &mut dyn FnMut(&str),
 ) -> Result<ConflictReply, AiError> {
-    let asked = ask(
-        sending,
-        provider,
+    let asked = model.ask(
+        Purpose::Conflict,
         &AiRequest {
             prompt: request.question.clone(),
         },
@@ -254,6 +321,21 @@ pub fn ask_conflict(
         model: asked.model,
         answer: trimmed,
     })
+}
+
+/// Asks the model for the message of a commit from the changes (`commit.draft-message`), the pieces of its answer as
+/// they come, and gives the answer cleaned as the message box takes it.
+///
+/// # Errors
+///
+/// As [`LanguageModel::ask`].
+pub fn draft(
+    model: &mut dyn LanguageModel,
+    input: &DraftInput<'_>,
+    pieces: &mut dyn FnMut(&str),
+) -> Result<String, AiError> {
+    let asked = model.ask(Purpose::CommitMessage, &draft_message(input), pieces)?;
+    Ok(clean_draft(&asked.text))
 }
 
 /// Whether a provider cannot be asked without a key.

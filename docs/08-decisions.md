@@ -2391,11 +2391,15 @@ start of stage 1, as recommended.
   message git prepared (`SQUASH_MSG`), and the diff given to the AI for a commit message. Recommended: a Read card for
   each in the engine, the window using them from there. *Answered in stage 5* for the first two: the cards
   `repo.common-folder` and `commit.prepared-message`, which the extension reads with `read/…`; the window still reads
-  both itself (`repository_watch.rs`, `operations.rs`) until it is moved to them. The diff given to the AI waits for
-  stage 4, area 6.
+  both itself (`repository_watch.rs`, `operations.rs`) until it is moved to them. *Answered in stage 4, area 6* for
+  the third: the card `commit.read-draft-diff`, which the window's draft uses and the engine reads for
+  `read/commit.draft-message`.
 - **Q399** — A feature that writes a setting under the extension (`worktree-setup.save`, the toggles of the graph):
   recommended a new follow-up `WriteSetting { key, value, target }` that the window carries out by writing its
   `settings.json` and the extension with `WorkspaceConfiguration.update`, in place of the steps that write the file.
+  *Partly built in stage 4, area 6*: `FollowUp::WriteSetting { key, value }`, without `target` (the user's settings),
+  left by `ai.choose-model` only under the extension (`uses_host_models`); the window still writes its file there,
+  and the other features wait.
 - **Q400** — The extension's `gitardo.conflicts.aiModel` and `gitardo.conflicts.aiEffort` against the desktop's
   `ai.model` and `ai.effort`. Recommended: the extension keeps its keys and sends them as `ai.*`; a `gitardo.ai.*`
   pair only if a second use of AI needs another model.

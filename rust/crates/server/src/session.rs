@@ -86,7 +86,11 @@ impl Session {
 
     /// The settings of the features, as the extension sent them.
     pub fn feature_settings(&self) -> FeatureSettings {
-        crate::settings::feature_settings(&locked(&self.settings))
+        let mut settings = crate::settings::feature_settings(&locked(&self.settings));
+        // Area 6 of stage 4: the models are VS Code's when the extension answers `host/languageModel`, and what is
+        // chosen of them is written in VS Code's settings.
+        settings.uses_host_models = self.host().language_model;
+        settings
     }
 
     /// Whether the extension runs the setup commands of new worktrees itself: they are then handed over in `waiting`
@@ -177,6 +181,8 @@ impl Session {
             methods::JOURNAL_RECORD => crate::journal::record(self, parameters(params)?),
             methods::INITIALIZE => self.initialize(&parameters(params)?),
             read if crate::reads::is_read(read) => crate::reads::answer(self, read, params, cancel),
+            // Area 6 of stage 4: the reads that ask a language model of VS Code.
+            read if crate::ai::is_ai_read(read) => crate::ai::answer(self, id, read, params, cancel),
             methods::SHUTDOWN => {
                 self.is_shut_down.store(true, Ordering::SeqCst);
                 Ok(Value::Null)

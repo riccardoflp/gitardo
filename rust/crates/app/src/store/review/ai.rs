@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, VecDeque};
 use std::path::{Path, PathBuf};
 
 use engine::ai::ConflictRequest;
-use model::ai::{AiSettings, QuestionInput, conflict_question, lines_around, streamed_lines};
+use model::ai::{AiSettings, QuestionInput, streamed_lines};
 use model::review::{AiAnswer, ReviewFile};
 use views::review::{CardAi, ConflictKey};
 
@@ -196,19 +196,12 @@ fn request(file: &ReviewFile, sides: &model::conflicts::SideNames, fingerprint: 
         .iter()
         .find(|conflict| conflict.fingerprint == fingerprint)?;
     let lines: Vec<&str> = file.lines().into_iter().map(|(text, _)| text).collect();
-    let input = QuestionInput {
+    Some(ConflictRequest::of(&QuestionInput {
         path: &file.path,
         sides,
         lines: &lines,
         conflict,
-    };
-    let around = lines_around(&input);
-    Some(ConflictRequest {
-        question: conflict_question(&input),
-        before: around.before.iter().map(|line| (*line).to_owned()).collect(),
-        after: around.after.iter().map(|line| (*line).to_owned()).collect(),
-        has_side_lines: !conflict.current.is_empty() || !conflict.incoming.is_empty(),
-    })
+    }))
 }
 
 /// Sends the questions waiting, while fewer than [`MOST_UNDER_WAY`] are under way.

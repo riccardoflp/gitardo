@@ -19,7 +19,7 @@ pub use context::{
 };
 pub use journal::{JournalEntry, UndoRecord};
 pub use outcome::{FeatureId, Operation, Outcome, Query, Refusal};
-pub use plan::{Danger, FailureOffer, FollowUp, OfferedRun, Plan, Step, Undo};
+pub use plan::{Danger, FailureOffer, FollowUp, OfferedRun, Plan, SettingWritten, Step, Undo};
 pub use question::{Choice, FileFilter, FileQuestion, Question, QuestionKind, Validation};
 pub use results::EmptyStop;
 pub use words::Text;

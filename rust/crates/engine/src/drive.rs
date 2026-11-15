@@ -88,6 +88,7 @@ pub struct Engine {
     secrets: Box<dyn SecretStore>,
     http: Option<http::Http>,
     task_steps: TaskSteps,
+    host: Option<Box<dyn crate::Host>>,
 }
 
 impl Engine {
@@ -107,6 +108,7 @@ impl Engine {
             secrets: Box::new(SystemSecrets),
             http: None,
             task_steps: TaskSteps::InPlace,
+            host: None,
         }
     }
 
@@ -115,11 +117,6 @@ impl Engine {
     /// when a request is first sent.
     pub fn send_requests_with(&mut self, http: http::Http) {
         self.http = Some(http);
-    }
-
-    /// Keeps the secrets of the features (the GitHub token) in another store than the system's: the memory of a test.
-    pub fn keep_secrets_in(&mut self, secrets: Box<dyn SecretStore>) {
-        self.secrets = secrets;
     }
 
     /// Takes the lookup of the operations of the catalog, so that a plan that names a feature to run when one of its
@@ -243,7 +240,11 @@ impl Engine {
                 }
                 Outcome::Read(key, Query::Clipboard) => answers.insert(key, Answer::Clipboard(asker.clipboard())),
                 Outcome::Read(key, Query::GitHubToken { helper }) => {
-                    let token = self.github_token(helper).map_err(EngineError::Query)?;
+                    let tokens::TokenFound::Found(token) = self.github_token(helper).map_err(EngineError::Query)?
+                    else {
+                        // The host asked the user to sign in, and they did not: nothing is asked in its place.
+                        return Ok(Finished::BackedOut);
+                    };
                     answers.insert(key, Answer::Token(token));
                 }
                 Outcome::Read(key, Query::AiModels { settings, key: typed }) => {

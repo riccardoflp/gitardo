@@ -130,6 +130,10 @@ pub struct FeatureSettings {
     pub blame: BlameSettings,
     /// What the operations of worktrees read: their settings, and where the window is.
     pub worktrees: WorktreeSettings,
+    /// Whether the language models are the host's and the host writes the settings: under the extension, VS Code's
+    /// models, which need no AI provider and no key, and VS Code's settings, written with `FollowUp::WriteSetting` in
+    /// place of a step that writes the user's settings file (`ai.choose-model`). Never in Gitardo Desktop.
+    pub uses_host_models: bool,
 }
 
 /// The settings of the blame the features switch.
@@ -224,6 +228,7 @@ impl Default for FeatureSettings {
             trusted_folders: Vec::new(),
             blame: BlameSettings::default(),
             worktrees: WorktreeSettings::default(),
+            uses_host_models: false,
         }
     }
 }
