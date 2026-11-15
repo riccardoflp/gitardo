@@ -64,6 +64,12 @@ pub fn page_view(state: &WelcomeState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             if ui.button("open folder", cell, &open).clicked {
                 intents.push(Intent::OpenFolder);
             }
+            let file = Button::secondary(crate::text::repo::OPEN_WORKSPACE_FILE);
+            let (file_width, file_height) = ui.button_size(&file);
+            let beside = Rect::new(cell.right() + spacing.medium, cell.y, file_width, file_height);
+            if ui.button("open workspace file", beside, &file).clicked {
+                intents.push(Intent::OpenWorkspaceFile);
+            }
             if !state.recent.is_empty() {
                 recent(state.recent, ui, &mut column, &mut intents);
             }

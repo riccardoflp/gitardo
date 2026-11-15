@@ -3,10 +3,15 @@
 ## Unreleased
 
 - Each repository of the workspace has a tab, in an island at the top of the window, in place of the repository menu
-  of the header: a click, `Ctrl+1` to `Ctrl+9`, `Ctrl+PageDown` and `Ctrl+PageUp` show another one, and **+** opens
-  a folder or a recent workspace. A repository keeps what it showed while another is shown, its commit selected, its
-  search, its pages and where its lists were scrolled, and shows it again at once; `repositories.keepOpen`, on by
-  default, turns that off. The tab shown is the one shown the next time the window opens.
+  of the header: a click, `Ctrl+1` to `Ctrl+9`, `Ctrl+PageDown` and `Ctrl+PageUp` show another one. A repository
+  keeps what it showed while another is shown, its commit selected, its search, its pages and where its lists were
+  scrolled, and shows it again at once; `repositories.keepOpen`, on by default, turns that off. The tab shown is the
+  one shown the next time the window opens.
+- A workspace opened for the first time with several repositories asks which of them open in tabs, all checked; a
+  workspace opened before opens the tabs it had. **+** at the end of the tabs opens a repository of the workspace that
+  has no tab, a folder, or a workspace file of VS Code, whose folders are opened as a workspace named after the file;
+  **Open workspace file…** is on the Welcome page and in Quick search too. A tab closes with its **×**, a middle click
+  or its menu, which also has **Close other tabs**; closing the only tab shows the Welcome page.
 - On macOS and Linux too, removing a worktree, also when cleaning up branches, takes out of it first its links to
   folders outside it, each an `unlink <path>` step: git no longer refuses a worktree whose `node_modules` link is left
   out by `node_modules/` in `.gitignore`, a pattern for folders only.

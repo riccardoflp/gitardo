@@ -28,6 +28,9 @@ pub enum Message {
     Intent(Intent),
     /// The answer of the system's folder dialog: none when it was cancelled.
     FolderChosen(Option<PathBuf>),
+    /// The answer of the system's dialog for a workspace file of VS Code: the file and its text, or what kept it from
+    /// being read; none when it was cancelled.
+    WorkspaceFileChosen(Option<(PathBuf, Result<String, String>)>),
     /// A job that looked for the repositories of folders is done.
     RepositoriesFound {
         /// The job.
@@ -415,6 +418,9 @@ pub enum Effect {
     StopAsking(Vec<crate::work::ai::AskId>),
     /// Opens the system's folder dialog, whose answer comes back as [`Message::FolderChosen`].
     ChooseFolder,
+    /// Opens the system's dialog for a workspace file of VS Code, whose answer comes back as
+    /// [`Message::WorkspaceFileChosen`].
+    ChooseWorkspaceFile,
     /// Writes what is kept between runs.
     WritePersisted(Persisted),
     /// Sets a value in a settings file, keeping the rest of its text, on a thread of its own: a switch of the timeline

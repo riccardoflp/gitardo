@@ -55,6 +55,12 @@ pub enum QuickCommand {
     OpenFolder,
     /// **Select Repository** (`repo.select`).
     SelectRepository,
+    /// **Open workspace file…** (`repo.open-code-workspace`).
+    OpenWorkspaceFile,
+    /// **Open Repository in a Tab** (`repo.open-tab`).
+    OpenRepositoryInTab,
+    /// **Close Tab** (`repo.close-tab`), for the tab shown.
+    CloseTab,
     /// **Show What Is Running** (`activity.what-is-running`).
     ShowWhatIsRunning,
     /// **Show branches** (`refs.tree`).
@@ -131,13 +137,16 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 42] = [
+    pub const ALL: [QuickCommand; 45] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
         QuickCommand::Refresh,
         QuickCommand::OpenFolder,
         QuickCommand::SelectRepository,
+        QuickCommand::OpenWorkspaceFile,
+        QuickCommand::OpenRepositoryInTab,
+        QuickCommand::CloseTab,
         QuickCommand::ShowWhatIsRunning,
         QuickCommand::ShowBranches,
         QuickCommand::ShowCommandLog,
@@ -289,6 +298,7 @@ fn picker(state: &QuickSearchState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         items: &items,
         mode: PickerMode::Single,
         query: state.typed,
+        checked: &[],
     };
     let intent = match ui.picker("quick search picker", &picker) {
         Some(PickerAnswer::Chose(index)) => state.entries.get(index).map_or(SearchIntent::CloseQuick, |entry| {

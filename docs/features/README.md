@@ -57,8 +57,8 @@ earns it.
 | [`welcome.page`](01-repositories.md#welcomepage--the-welcome-page) | The Welcome page | View | Built | Host only |
 | [`repo.tabs`](01-repositories.md#repotabs--the-tabs-of-the-repositories-open) | The tabs of the repositories open | View | Specified | Host only |
 | [`repo.open-tab`](01-repositories.md#repoopen-tab--open-a-repository-in-a-tab) | Open a repository in a tab | Operation | Specified | Host only |
-| [`repo.choose-tabs`](01-repositories.md#repochoose-tabs--choose-the-repositories-a-workspace-opens) | Choose the repositories a workspace opens | Operation | Specified | Host only |
-| [`repo.open-code-workspace`](01-repositories.md#repoopen-code-workspace--open-a-workspace-file-of-vs-code) | Open a workspace file of VS Code | Operation | Specified | Host only |
+| [`repo.choose-tabs`](01-repositories.md#repochoose-tabs--choose-the-repositories-a-workspace-opens) | Choose the repositories a workspace opens | Operation | Built | Host only |
+| [`repo.open-code-workspace`](01-repositories.md#repoopen-code-workspace--open-a-workspace-file-of-vs-code) | Open a workspace file of VS Code | Operation | Built | Host only |
 | [`repo.close-tab`](01-repositories.md#repoclose-tab--close-a-tab) | Close a tab | Operation | Specified | Host only |
 | [`repo.switch-tab`](01-repositories.md#reposwitch-tab--show-another-tab) | Show another tab | Operation | Specified | Host only |
 | [`repo.keep-open`](01-repositories.md#repokeep-open--keep-what-each-repository-showed) | Keep what each repository showed | Derivation | Built | Planned |

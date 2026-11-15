@@ -17,7 +17,7 @@ use views::graph::{
 };
 use views::log::{LogLine, LogState};
 use views::page::{Page, PageHostState, PageState};
-use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, TabEntry, TabsState};
+use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState};
 use views::settings::{SettingRow, SettingsPageState, ThemePickerState};
 use views::welcome::WelcomeState;
 use views::{Content, TimelineState, WindowState};
@@ -35,8 +35,8 @@ pub struct ViewData {
     recent: Vec<String>,
     /// The repositories of the workspace, by their names, the one shown marked.
     repositories: Vec<RepositoryEntry>,
-    /// The tabs, by the names of their repositories, the one shown marked.
-    tabs: Vec<TabEntry>,
+    /// The words of the tabs.
+    tabs: super::tabs::TabsData,
     /// The name of the repository shown, or of the first folder when the workspace has no repository.
     name: Option<String>,
     /// The folder of the repository shown.
@@ -73,7 +73,12 @@ impl ViewData {
             .persisted
             .recent
             .iter()
-            .map(|workspace| folder_list(&workspace.folders))
+            .map(|workspace| {
+                workspace.file.as_ref().and_then(|file| file.file_stem()).map_or_else(
+                    || folder_list(&workspace.folders),
+                    |name| name.to_string_lossy().into_owned(),
+                )
+            })
             .collect();
         let roots = state
             .workspace
@@ -100,12 +105,12 @@ impl ViewData {
                     .next()
             });
         let question_folder = match &state.dialog {
-            Some(Dialog::OpenFolder { folder }) => display(folder),
+            Some(Dialog::OpenFolder { opened }) => opened.name(),
             _ => String::new(),
         };
         ViewData {
             recent,
-            tabs: super::tabs::entries(state, &repositories),
+            tabs: super::tabs::TabsData::new(state, &repositories),
             repositories,
             name,
             folder: shown.map_or_default(|folder| display(folder)),
@@ -148,10 +153,8 @@ impl ViewData {
     pub fn window_state<'a>(&'a self, state: &'a State) -> WindowState<'a> {
         WindowState {
             view_bar: view_bar(state),
-            tabs: state.workspace.is_some().then_some(TabsState {
-                tabs: &self.tabs,
-                recent: &self.recent,
-            }),
+            tabs: self.tabs.island(state),
+            tabs_picker: self.tabs.picker(state),
             header: self.header(state),
             status: StatusBarState {
                 running: &self.running,

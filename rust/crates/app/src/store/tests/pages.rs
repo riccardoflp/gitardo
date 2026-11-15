@@ -138,10 +138,12 @@ fn welcome_page__a_workspace_opened_from_the_page_is_listed_first_the_next_time(
         RecentWorkspace {
             folders: vec![work.clone()],
             repository: None,
+            ..RecentWorkspace::default()
         },
         RecentWorkspace {
             folders: vec![other.clone()],
             repository: None,
+            ..RecentWorkspace::default()
         },
     ];
     let _shown = intent(&mut state, Intent::ShowPage(Page::Welcome));

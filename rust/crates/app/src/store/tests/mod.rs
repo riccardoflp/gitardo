@@ -3,12 +3,14 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 #![allow(clippy::unwrap_used, clippy::panic, reason = "a test that cannot go on fails")]
 
+mod code_workspace;
 mod github;
 mod open_folder;
 mod open_recent;
 mod pages;
 mod reads;
 mod select;
+mod tabs;
 
 use std::path::{Path, PathBuf};
 
@@ -98,8 +100,20 @@ fn repository_state(folder: &Path) -> RepositoryState {
 }
 
 /// Answers the jobs an answer started as a worker would: the repositories of each folder as given, each repository
-/// read with one branch. Goes on with the jobs those answers start, and gives every effect.
+/// read with one branch, every repository offered in tabs opened (`repo.choose-tabs`). Goes on with the jobs those
+/// answers start, and gives every effect.
 fn answer(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[PathBuf])]) -> Vec<Effect> {
+    let mut all = answer_asking(state, effects, found);
+    if let Some(super::Dialog::ChooseTabs(choosing)) = &state.dialog {
+        let every = (0..choosing.offered.len()).collect();
+        let effects = intent(state, Intent::TabsChosen(Some(every)));
+        all.extend(answer_asking(state, effects, found));
+    }
+    all
+}
+
+/// Answers the jobs an answer started as [`answer`] does, leaving the picker of the tabs to open open.
+fn answer_asking(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[PathBuf])]) -> Vec<Effect> {
     let mut all = Vec::new();
     let mut waiting = effects;
     while !waiting.is_empty() {

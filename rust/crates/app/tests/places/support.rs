@@ -218,8 +218,19 @@ fn center(tree: &TreeUpdate, role: Role, name: &str) -> Point {
     )
 }
 
-/// Reduces a message, then runs at once every job it starts, as a worker would, until none is left.
+/// Reduces a message, then runs at once every job it starts, as a worker would, until none is left; every repository
+/// offered in tabs is opened (`repo.choose-tabs`).
 pub fn run(state: &mut State, message: Message) -> Vec<Effect> {
+    let mut all = run_asking(state, message);
+    if let Some(app::store::Dialog::ChooseTabs(choosing)) = &state.dialog {
+        let every = (0..choosing.offered.len()).collect();
+        all.extend(run_asking(state, Message::Intent(Intent::TabsChosen(Some(every)))));
+    }
+    all
+}
+
+/// Reduces a message and runs the jobs it starts as [`run`] does, leaving the picker of the tabs to open open.
+pub fn run_asking(state: &mut State, message: Message) -> Vec<Effect> {
     let mut all = Vec::new();
     let mut waiting = vec![message];
     while let Some(message) = waiting.pop() {

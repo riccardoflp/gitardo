@@ -62,6 +62,9 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         QuickCommand::Refresh => vec![Intent::Refresh],
         QuickCommand::OpenFolder => vec![Intent::OpenFolder],
         QuickCommand::SelectRepository => vec![Intent::PickRepository],
+        QuickCommand::OpenWorkspaceFile => vec![Intent::OpenWorkspaceFile],
+        QuickCommand::OpenRepositoryInTab => vec![Intent::PickTabToOpen],
+        QuickCommand::CloseTab => vec![Intent::CloseTabShown],
         QuickCommand::ShowWhatIsRunning => vec![Intent::OpenActivity],
         QuickCommand::ShowBranches => {
             let mut intents = vec![Intent::ShowTimeline];

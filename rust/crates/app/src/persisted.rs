@@ -1,6 +1,7 @@
 //! What is kept between runs, in one file per user (`state.json` in Gitardo's configuration folder): whether the
 //! program started before, the steps of the Welcome page done, the recent workspaces with the repository shown last in
-//! each, the size of the window and the width of the branch rail; the sizes of the panes of each workspace and the
+//! each, the repositories open in tabs in it (`tabs`) and the workspace file of VS Code it came from (`file`), the size
+//! of the window and the width of the branch rail; the sizes of the panes of each workspace and the
 //! folds of each repository ([`timeline`]); the favorites and the branches shown of each repository ([`rail`]).
 //! folds of each repository ([`timeline`]); how the files are laid out in the inspector, in the pages of commits and in
 //! the Changes page ([`layouts`]); the message of the commit box of each repository ([`changes`]); the values given last
@@ -75,6 +76,11 @@ pub struct RecentWorkspace {
     pub folders: Vec<PathBuf>,
     /// The repository shown in it last, by its folder.
     pub repository: Option<PathBuf>,
+    /// The repositories open in tabs in it, by their folders, in their order (`repo.open-tab`, `repo.close-tab`); none
+    /// for a workspace last opened before there were tabs, which opens them all.
+    pub tabs: Option<Vec<PathBuf>>,
+    /// The workspace file of VS Code it was opened from, whose name it is listed by (`repo.open-code-workspace`).
+    pub file: Option<PathBuf>,
 }
 
 impl Persisted {
@@ -187,10 +193,18 @@ impl Persisted {
         std::fs::read_to_string(path).map_or_default(|text| Persisted::from_text(&text))
     }
 
-    /// Puts a workspace first among the recent ones, with the repository shown in it, keeping [`MOST_RECENT`].
-    pub fn remember_workspace(&mut self, workspace: RecentWorkspace) {
-        self.recent
-            .retain(|recent| !same_folders(&recent.folders, &workspace.folders));
+    /// Puts a workspace first among the recent ones, with the repository shown in it, keeping [`MOST_RECENT`]. The tabs
+    /// and the file it was remembered with before stay, unless it names others.
+    pub fn remember_workspace(&mut self, mut workspace: RecentWorkspace) {
+        if let Some(before) = self
+            .recent
+            .iter()
+            .position(|recent| same_folders(&recent.folders, &workspace.folders))
+        {
+            let before = self.recent.remove(before);
+            workspace.tabs = workspace.tabs.or(before.tabs);
+            workspace.file = workspace.file.or(before.file);
+        }
         self.recent.insert(0, workspace);
         self.recent.truncate(MOST_RECENT);
     }
@@ -275,6 +289,16 @@ fn recent_value(workspace: &RecentWorkspace) -> Value {
             Value::String(repository.to_string_lossy().into_owned()),
         ));
     }
+    if let Some(tabs) = &workspace.tabs {
+        let tabs = tabs
+            .iter()
+            .map(|tab| Value::String(tab.to_string_lossy().into_owned()))
+            .collect();
+        members.push(member("tabs", Value::Array(tabs)));
+    }
+    if let Some(file) = &workspace.file {
+        members.push(member("file", Value::String(file.to_string_lossy().into_owned())));
+    }
     Value::Object(members)
 }
 
@@ -287,9 +311,15 @@ fn recent_workspace(value: &Value) -> Option<RecentWorkspace> {
         .filter_map(Value::as_str)
         .map(PathBuf::from)
         .collect();
+    let tabs = value
+        .get("tabs")
+        .and_then(Value::as_array)
+        .map(|tabs| tabs.iter().filter_map(Value::as_str).map(PathBuf::from).collect());
     (!folders.is_empty()).then(|| RecentWorkspace {
         folders,
         repository: value.get("repository").and_then(Value::as_str).map(PathBuf::from),
+        tabs,
+        file: value.get("file").and_then(Value::as_str).map(PathBuf::from),
     })
 }
 
@@ -303,6 +333,11 @@ mod tests {
         RecentWorkspace {
             folders: vec![PathBuf::from(folder)],
             repository: Some(PathBuf::from(format!("{folder}/app"))),
+            tabs: Some(vec![
+                PathBuf::from(format!("{folder}/app")),
+                PathBuf::from(format!("{folder}/web")),
+            ]),
+            file: Some(PathBuf::from(format!("{folder}/all.code-workspace"))),
         }
     }
 

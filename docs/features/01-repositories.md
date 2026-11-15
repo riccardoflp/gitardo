@@ -74,24 +74,27 @@ Shows a folder, or several, in the window: replaces what the window shows, or ad
   1. The folder, in the system's folder dialog.
   2. When the window already shows a workspace: **Replace the workspace** or **Add to the workspace** (default:
      replace).
+  3. Which of its repositories open in tabs, as `repo.choose-tabs` says.
 - **Reads**: `repo.read-repositories` for the folders of the new workspace.
 - **Plan**: no step: nothing runs in a repository.
 - **Danger**: None.
 - **Undo**: nothing in a repository changes; the workspace before is among the recent ones.
-- **After**: the window shows the new workspace and the repository `repo.select` remembers for it, or the first one
-  found; the workspace goes first among the recent ones of the Welcome page.
-- **Uses**: `repo.read-repositories`, `repo.read-state`, `welcome.page`.
+- **After**: the window shows the new workspace, with the tabs it had or those chosen, and the repository `repo.select`
+  remembers for it, or the first one; the workspace goes first among the recent ones of the Welcome page. A folder
+  added keeps the tabs open and opens its own after them. The window shows what it showed until the repositories are
+  found and chosen.
+- **Uses**: `repo.read-repositories`, `repo.read-state`, `repo.choose-tabs`, `welcome.page`.
 
 Acceptance:
 
-- [ ] Opening a folder with two repositories shows the first one and has a tab for each.
+- [ ] Opening a folder with two repositories, both chosen, shows the first one and has a tab for each.
 - [ ] Adding a folder to a workspace keeps the repository that was shown.
 - [ ] Opening a folder with no repository shows `repo.no-repository`.
 - [ ] The workspace opened is the first of the recent workspaces on the Welcome page.
 
 ### `repo.open-recent` — Open a recent workspace
 
-Opens again a workspace the window showed before, with the repository that was shown in it.
+Opens again a workspace the window showed before, with the tabs it had and the repository that was shown in it.
 
 - **Kind**: Operation
 - **Function**: `app::store::open_recent(state: &mut State, index: usize) -> Vec<Effect>`, a function of the store
@@ -102,13 +105,15 @@ Opens again a workspace the window showed before, with the repository that was s
 - **Plan**: no step.
 - **Danger**: None.
 - **Undo**: nothing in a repository changes.
-- **After**: the window shows that workspace, with the repository chosen last in it.
+- **After**: the window shows that workspace, with the tabs it had, those whose repositories are still there, and the
+  repository shown last in it. A workspace last opened before there were tabs opens a tab for each of its repositories.
 - **Refuses**: a workspace whose folders are all gone: "None of the folders of this workspace is there any more." The
   workspace is taken out of the list.
 
 Acceptance:
 
-- [ ] A workspace opened before is listed, and opening it shows the repository that was shown in it last.
+- [ ] A workspace opened before is listed, and opening it shows the tabs it had and the repository that was shown in it
+      last.
 - [ ] A workspace whose folder was deleted is refused with that message and leaves the list.
 
 ### `repo.select` — Choose the repository shown
@@ -603,8 +608,9 @@ Opens the folders a `.code-workspace` file of VS Code lists, so that the window 
 the user already has in VS Code.
 
 - **Kind**: Operation
-- **Function**: `app::store::open_code_workspace(state: &mut State, file: Option<PathBuf>) -> Vec<Effect>`, a
-  function of the store (Q43); its folders read by `model::repo::code_workspace_folders(text: &str, file: &Path) ->
+- **Function**: `app::store::code_workspace::open_code_workspace(state: &mut State, chosen: Option<(PathBuf,
+  Result<String, String>)>) -> Vec<Effect>`, a function of the store (Q43), given the file chosen and its text or why
+  it could not be read; its folders read by `app::store::code_workspace_folders(text: &str, file: &Path) ->
   Result<Vec<PathBuf>, String>`
 - **Entry points**: **Open workspace file…** on the Welcome page, in the menu of **+** and in Quick search.
 - **Asks**:
@@ -619,6 +625,7 @@ the user already has in VS Code.
   page, named after the file.
 - **Refuses**:
   - a file that names no folders: "This file names no folders.";
+  - a file that cannot be read, or is no JSON: what is wrong with it;
   - a file whose folders are all gone: "None of the folders of this workspace is there any more."
 - **Uses**: `repo.open-folder`, `repo.choose-tabs`, `repo.read-repositories`.
 
@@ -660,6 +667,7 @@ Acceptance:
 - [ ] Closing a tab where an operation runs is refused with that sentence; closing another tab meanwhile is not.
 - [ ] A tab closed is not there once the window is closed and opened again.
 - [ ] **Close other tabs** on `web` leaves `web` alone.
+- [ ] Closing a tab with a page whose edits are not saved asks what closing that page asks.
 
 ### `repo.switch-tab` — Show another tab
 

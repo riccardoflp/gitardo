@@ -327,6 +327,7 @@ pub fn theme_picker_view(state: &ThemePickerState<'_>, ui: &mut Ui<'_>) -> Vec<I
         mode: PickerMode::Single,
 
         query: "",
+        checked: &[],
     };
     match ui.picker("theme picker", &picker) {
         Some(PickerAnswer::Chose(index)) => match words::THEME_VALUES.get(index) {

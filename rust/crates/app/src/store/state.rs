@@ -153,6 +153,40 @@ pub struct Opening {
     /// Whether it is the workspace shown, looked at again: the repository shown is read again even when it is the
     /// one chosen.
     pub is_refresh: bool,
+    /// Whether its folders are those of the workspace shown with one added: its tabs stay, and the repositories of the
+    /// folder added are offered (`repo.choose-tabs`).
+    pub is_added: bool,
+    /// The workspace file of VS Code its folders come from (`repo.open-code-workspace`).
+    pub file: Option<PathBuf>,
+    /// The page the window showed when it had no workspace and showed this one at once, given back when the choice of
+    /// the tabs is cancelled.
+    pub page_before: Option<Option<usize>>,
+}
+
+/// Folders chosen to open, from a folder or from a workspace file of VS Code.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Opened {
+    /// The folders.
+    pub folders: Vec<PathBuf>,
+    /// The workspace file of VS Code that lists them, when they come from one.
+    pub file: Option<PathBuf>,
+}
+
+impl Opened {
+    /// What the question asked about them names: the workspace file, or the first folder.
+    #[must_use]
+    pub fn name(&self) -> String {
+        self.file
+            .as_ref()
+            .or(self.folders.first())
+            .map(|path| {
+                path.file_name().map_or_else(
+                    || path.display().to_string(),
+                    |name| name.to_string_lossy().into_owned(),
+                )
+            })
+            .unwrap_or_default()
+    }
 }
 
 /// The pages open.
@@ -169,13 +203,18 @@ pub struct Pages {
 pub enum Dialog {
     /// The picker of the repository shown (`repo.select`).
     Picker,
-    /// Whether a folder chosen replaces the workspace or is added to it (`repo.open-folder`).
+    /// Whether the folders chosen replace the workspace or are added to it (`repo.open-folder`,
+    /// `repo.open-code-workspace`).
     OpenFolder {
-        /// The folder chosen.
-        folder: PathBuf,
+        /// The folders chosen.
+        opened: Opened,
     },
     /// The picker of the themes (`settings.theme`).
     ThemePicker,
+    /// The picker of the repositories to open in tabs, all checked (`repo.choose-tabs`).
+    ChooseTabs(Box<super::tabs::Choosing>),
+    /// The picker of a repository of the workspace to open in a tab (`repo.open-tab`).
+    OpenTab,
 }
 
 impl State {

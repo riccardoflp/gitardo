@@ -52,6 +52,9 @@ pub struct WindowState<'a> {
     pub drawer: Option<ActivityState<'a>>,
     /// The picker of the repositories, while it is open.
     pub picker: Option<RepositoryPickerState<'a>>,
+    /// The picker of the repositories to open in tabs, or of one to open in a tab, while it is open
+    /// (`repo.choose-tabs`, `repo.open-tab`).
+    pub tabs_picker: Option<crate::repo::TabsPickerState<'a>>,
     /// The question asked about a folder opened, while it waits for its answer.
     pub question: Option<OpenFolderQuestion<'a>>,
     /// The picker of the themes, while it is open (`settings.theme`).
@@ -209,6 +212,9 @@ fn tab_islands(
 fn dialogs(state: &WindowState<'_>, ui: &mut Ui<'_>, intents: &mut Vec<Intent>) {
     if let Some(picker) = &state.picker {
         intents.extend(repository_picker_view(picker, ui));
+    }
+    if let Some(picker) = &state.tabs_picker {
+        intents.extend(crate::repo::tabs_picker_view(picker, ui));
     }
     if let Some(question) = &state.question {
         intents.extend(open_folder_question_view(question, ui));

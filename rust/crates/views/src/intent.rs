@@ -25,6 +25,21 @@ pub enum Intent {
     SelectRepository(PathBuf),
     /// Show the repository of a tab, by its place in the island of tabs (`repo.switch-tab`).
     SwitchTab(usize),
+    /// Opens a repository of the workspace in a tab, by its folder (`repo.open-tab`).
+    OpenTab(PathBuf),
+    /// **Open Repository in a Tab** of Quick search: the picker of the repositories with no tab (`repo.open-tab`).
+    PickTabToOpen,
+    /// The repositories checked in the picker of the tabs to open, by their places; none when it was cancelled
+    /// (`repo.choose-tabs`).
+    TabsChosen(Option<Vec<usize>>),
+    /// Closes the tab at a place (`repo.close-tab`).
+    CloseTab(usize),
+    /// Closes every tab but the one at a place (`repo.close-tab`).
+    CloseOtherTabs(usize),
+    /// Closes the tab shown, from Quick search (`repo.close-tab`).
+    CloseTabShown,
+    /// **Open workspace file…**: the system's dialog for a workspace file of VS Code (`repo.open-code-workspace`).
+    OpenWorkspaceFile,
     /// **Select repository…**: the picker of the repositories of the workspace (`repo.select`).
     PickRepository,
     /// The picker of the repositories closed with nothing chosen.

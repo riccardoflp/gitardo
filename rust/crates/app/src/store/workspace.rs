@@ -29,6 +29,10 @@ pub struct OpenRequest {
     pub is_shown_at_once: bool,
     /// Whether it is the workspace shown, looked at again.
     pub is_refresh: bool,
+    /// Whether it is the workspace shown with a folder added.
+    pub is_added: bool,
+    /// The workspace file of VS Code its folders come from.
+    pub file: Option<PathBuf>,
 }
 
 /// Starts opening a workspace: its repositories are looked for on a worker. A workspace opened before shows the
@@ -49,6 +53,7 @@ pub fn open_workspace(state: &mut State, folders: Vec<PathBuf>, mut request: Ope
             folders: folders.clone(),
         },
     );
+    let page_before = (request.is_shown_at_once && state.workspace.is_none()).then_some(state.pages.shown);
     if request.is_shown_at_once {
         effects.extend(cancel_reads(state));
         state.workspace = Some(Workspace {
@@ -64,6 +69,9 @@ pub fn open_workspace(state: &mut State, folders: Vec<PathBuf>, mut request: Ope
         remembered: request.remembered,
         recent: request.recent,
         is_refresh: request.is_refresh,
+        is_added: request.is_added,
+        file: request.file,
+        page_before,
     });
     effects.push(Effect::Start(job));
     effects
@@ -77,7 +85,10 @@ pub fn repositories_found(state: &mut State, job: JobId, found: Found) -> Vec<Ef
         return Vec::new();
     };
     let repositories = match found {
-        Found::AllGone if opening.recent.is_some() => return refuse_recent(state, opening.recent),
+        Found::AllGone if opening.recent.is_some() || opening.file.is_some() => {
+            give_back(state, &opening);
+            return refuse_recent(state, opening.recent);
+        }
         Found::Repositories(repositories) => repositories,
         Found::AllGone => Vec::new(),
         Found::Failed(error) => {
@@ -118,6 +129,8 @@ pub fn repositories_found(state: &mut State, job: JobId, found: Found) -> Vec<Ef
         state.persisted.remember_workspace(RecentWorkspace {
             folders: opening.folders,
             repository: chosen,
+            file: opening.file,
+            ..RecentWorkspace::default()
         });
         effects.push(Effect::WritePersisted(state.persisted.clone()));
     }
@@ -203,6 +216,7 @@ pub fn select(state: &mut State, folder: &Path) -> Vec<Effect> {
         state.persisted.remember_workspace(RecentWorkspace {
             folders,
             repository: Some(chosen),
+            ..RecentWorkspace::default()
         });
         effects.push(Effect::WritePersisted(state.persisted.clone()));
     }
@@ -246,7 +260,16 @@ pub fn watch_settings(state: &State) -> Effect {
     })
 }
 
-/// Takes a recent workspace whose folders are all gone out of the list, and says so.
+/// Gives the window back what it showed before a workspace it had none before was shown at once, while its
+/// repositories were looked for: nothing opens.
+pub(super) fn give_back(state: &mut State, opening: &Opening) {
+    if let Some(page) = opening.page_before {
+        state.workspace = None;
+        state.pages.shown = page;
+    }
+}
+
+/// Says that the folders of a workspace are all gone, and takes it out of the recent ones when it is one of them.
 fn refuse_recent(state: &mut State, recent: Option<usize>) -> Vec<Effect> {
     if let Some(index) = recent.filter(|index| *index < state.persisted.recent.len()) {
         let _gone = state.persisted.recent.remove(index);

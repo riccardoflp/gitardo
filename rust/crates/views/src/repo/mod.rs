@@ -106,6 +106,7 @@ pub fn repository_picker_view(state: &RepositoryPickerState<'_>, ui: &mut Ui<'_>
         items: &items,
         mode: PickerMode::Single,
         query: "",
+        checked: &[],
     };
     match ui.picker("repository picker", &picker) {
         Some(PickerAnswer::Chose(index)) => state
@@ -114,6 +115,66 @@ pub fn repository_picker_view(state: &RepositoryPickerState<'_>, ui: &mut Ui<'_>
             .map_or_default(|repository| vec![Intent::SelectRepository(repository.folder.clone())]),
         Some(PickerAnswer::Cancelled | PickerAnswer::ChoseMany(_)) => vec![Intent::ClosePicker],
         None => Vec::new(),
+    }
+}
+
+/// Which picker of the tabs is open.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TabsPickerKind {
+    /// **Repositories to open in tabs**, all checked (`repo.choose-tabs`).
+    Choose,
+    /// **Open a repository in a tab**, one of those with no tab (`repo.open-tab`).
+    Open,
+}
+
+/// What a picker of the tabs lists.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TabsPickerState<'a> {
+    /// Which picker.
+    pub kind: TabsPickerKind,
+    /// The repositories it lists, in the order they were found.
+    pub repositories: &'a [RepositoryEntry],
+}
+
+/// The picker of the repositories to open in tabs, each by its name with its folder beside it, all checked at first,
+/// `Enter` opening the ones checked (`repo.choose-tabs`); or the picker of a repository to open in a tab
+/// (`repo.open-tab`).
+pub fn tabs_picker_view(state: &TabsPickerState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
+    let descriptions: Vec<String> = state
+        .repositories
+        .iter()
+        .map(|repository| repository.folder.to_string_lossy().into_owned())
+        .collect();
+    let items: Vec<PickerItem<'_>> = state
+        .repositories
+        .iter()
+        .zip(&descriptions)
+        .map(|(repository, description)| PickerItem {
+            label: &repository.name,
+            description,
+        })
+        .collect();
+    let all: Vec<usize> = (0..items.len()).collect();
+    let (placeholder, mode, checked) = match state.kind {
+        TabsPickerKind::Choose => (words::CHOOSE_TABS_TITLE, PickerMode::Multiple, all.as_slice()),
+        TabsPickerKind::Open => (words::OPEN_TAB_TITLE, PickerMode::Single, &[][..]),
+    };
+    let picker = Picker {
+        placeholder,
+        items: &items,
+        mode,
+        query: "",
+        checked,
+    };
+    match (ui.picker(("tabs picker", state.kind == TabsPickerKind::Choose), &picker), state.kind) {
+        (Some(PickerAnswer::ChoseMany(chosen)), _) => vec![Intent::TabsChosen(Some(chosen))],
+        (Some(PickerAnswer::Cancelled), TabsPickerKind::Choose) => vec![Intent::TabsChosen(None)],
+        (Some(PickerAnswer::Chose(index)), _) => state
+            .repositories
+            .get(index)
+            .map_or_default(|repository| vec![Intent::OpenTab(repository.folder.clone())]),
+        (Some(PickerAnswer::Cancelled), TabsPickerKind::Open) => vec![Intent::ClosePicker],
+        (None, _) => Vec::new(),
     }
 }
 

@@ -187,6 +187,7 @@ fn pick(ui: &mut Ui<'_>, mode: PickerMode, intents: &mut Vec<GalleryIntent>) {
         items: &PICKER_BRANCHES,
         mode,
         query: "",
+        checked: &[],
     };
     let label = |index: usize| PICKER_BRANCHES.get(index).map_or("", |item| item.label);
     match ui.picker(PICKER, &picker) {
@@ -207,6 +208,7 @@ fn quick_search(ui: &mut Ui<'_>, intents: &mut Vec<GalleryIntent>) {
         items: &QUICK_SEARCH,
         mode: PickerMode::Single,
         query: "",
+        checked: &[],
     };
     match ui.picker(PICKER, &picker) {
         Some(PickerAnswer::Chose(index)) => {

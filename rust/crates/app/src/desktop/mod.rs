@@ -252,6 +252,21 @@ impl DesktopWindow {
                 let folder = dialog.choose_folder(self.surface.window());
                 return Ok(Some(Followed::Message(Box::new(Message::FolderChosen(folder)))));
             }
+            Effect::ChooseWorkspaceFile => {
+                let dialog = FileDialog {
+                    title: String::from(views::text::repo::CHOOSE_WORKSPACE_FILE),
+                    filters: vec![platform::FileFilter {
+                        name: String::from(views::text::repo::WORKSPACE_FILES),
+                        extensions: vec![String::from("code-workspace")],
+                    }],
+                    ..FileDialog::default()
+                };
+                let chosen = dialog.choose_file(self.surface.window()).map(|file| {
+                    let text = std::fs::read_to_string(&file).map_err(|error| error.to_string());
+                    (file, text)
+                });
+                return Ok(Some(Followed::Message(Box::new(Message::WorkspaceFileChosen(chosen)))));
+            }
             Effect::WritePersisted(persisted) => {
                 if let Some(writer) = &self.writer {
                     writer.write(persisted);

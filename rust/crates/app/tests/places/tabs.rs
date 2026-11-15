@@ -21,11 +21,25 @@ use super::search::search;
 use super::support::{self, Window, find};
 
 /// The size of the window of these tests.
-const WIDE: (u32, u32) = (1000, 580);
+pub(super) const WIDE: (u32, u32) = (1000, 580);
 
 /// A repository with a little history, cloned as `api`, `web` and `docs` in a folder of their own, and a window
 /// showing the three, `api` first; the folder is kept alive by the first value.
-fn three_clones() -> ((Repository, Repository), [PathBuf; 3], State) {
+pub(super) fn three_clones() -> ((Repository, Repository), [PathBuf; 3], State) {
+    let (kept, clones) = clone_three();
+    let mut state = super::window();
+    let _ = support::run(
+        &mut state,
+        Message::Started {
+            folders: clones.to_vec(),
+        },
+    );
+    (kept, clones, state)
+}
+
+/// A repository with a little history, cloned as `api`, `web` and `docs` in a folder of their own, which the first
+/// value keeps alive.
+pub(super) fn clone_three() -> ((Repository, Repository), [PathBuf; 3]) {
     let mut origin = Repository::new();
     let _ = origin.commit("Add the readme", &[("README.md", "Gitardo\n")]);
     let _ = origin.commit("Read the settings at startup", &[("settings.txt", "theme\n")]);
@@ -36,14 +50,7 @@ fn three_clones() -> ((Repository, Repository), [PathBuf; 3], State) {
         let _ = origin.git(&["clone", "--quiet", ".", clone.to_str().unwrap()]);
         test_identity(&origin, clone);
     }
-    let mut state = super::window();
-    let _ = support::run(
-        &mut state,
-        Message::Started {
-            folders: clones.to_vec(),
-        },
-    );
-    ((origin, holder), clones, state)
+    ((origin, holder), clones)
 }
 
 /// Gives a clone the identity of the tests, so that the status bar names no real person.
@@ -191,16 +198,7 @@ fn repo_keep_open__a_commit_selected_in_api_and_a_search_in_web_are_both_there_w
 fn repo_keep_open__the_timeline_of_api_scrolled_down_is_at_the_same_place_when_api_is_shown_again() {
     let mut origin = Repository::new();
     for number in 1..=60 {
-        let _ = origin.commit(
-            &format!("Change {number}"),
-            &[(
-                "change.txt",
-                &format!(
-                    "{number}
-"
-                ),
-            )],
-        );
+        let _ = origin.commit(&format!("Change {number}"), &[("change.txt", &format!("{number}\n"))]);
     }
     let holder = Repository::new();
     let clones = ["api", "web"].map(|name| holder.path().join(name));

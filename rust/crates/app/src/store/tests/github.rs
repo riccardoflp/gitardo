@@ -120,6 +120,7 @@ fn github_read_pull_requests__a_push_that_succeeded_is_followed_by_a_request_eve
 fn github_offer_after_push__the_first_push_of_a_branch_says_pushed_with_create_pull_request() {
     let mut state = showing();
     state.operations.running = Some(crate::store::feature::Running {
+        title: None,
         feature: model::contract::FeatureId("sync.push"),
         asking: None,
     });

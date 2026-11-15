@@ -7,7 +7,7 @@ use crate::persisted::RecentWorkspace;
 use crate::store::{Effect, Found, JobKind, Message, reduce};
 
 #[test]
-fn repo_open_recent__a_workspace_opened_before_shows_the_repository_shown_in_it_last() {
+fn repo_open_recent__a_workspace_opened_before_shows_its_tabs_and_the_repository_shown_in_it_last() {
     let mut state = window();
     let (work, other) = (folder("work"), folder("other"));
     let found = [
@@ -32,6 +32,8 @@ fn repo_open_recent__a_workspace_opened_before_shows_the_repository_shown_in_it_
     let effects = answer(&mut state, effects, &found);
     assert_eq!(reads(&effects), [work.join("lib")]);
     assert_eq!(timeline_folder(&state), Some(work.join("lib")));
+    let tabs: Vec<_> = state.tabs.open.iter().map(|tab| tab.folder.clone()).collect();
+    assert_eq!(tabs, [work.join("app"), work.join("lib")], "with the tabs it had");
     assert_eq!(state.persisted.recent[0].folders, [work]);
 }
 
@@ -42,10 +44,12 @@ fn repo_open_recent__a_workspace_whose_folders_are_gone_is_refused_and_leaves_th
         RecentWorkspace {
             folders: vec![folder("gone")],
             repository: None,
+            ..RecentWorkspace::default()
         },
         RecentWorkspace {
             folders: vec![folder("work")],
             repository: None,
+            ..RecentWorkspace::default()
         },
     ];
     let effects = intent(&mut state, Intent::OpenRecent(0));
@@ -76,6 +80,7 @@ fn repo_open_recent__a_workspace_opened_from_the_command_line_shows_its_remember
     state.persisted.recent = vec![RecentWorkspace {
         folders: vec![work.clone()],
         repository: Some(work.join("lib")),
+        ..RecentWorkspace::default()
     }];
     let effects = reduce(
         &mut state,

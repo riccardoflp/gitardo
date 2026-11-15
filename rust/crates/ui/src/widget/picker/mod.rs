@@ -49,6 +49,8 @@ pub struct Picker<'text> {
     pub mode: PickerMode,
     /// What its input box holds when it opens, such as what was typed in the box that opened it.
     pub query: &'text str,
+    /// The items checked when it opens, by their places among the items, in a picker of several.
+    pub checked: &'text [usize],
 }
 
 /// What a picker was answered.
@@ -140,6 +142,9 @@ impl Ui<'_> {
             self.request_focus(input);
         }
         let mut state = self.memory().pickers.remove(&id).unwrap_or_default();
+        if is_new {
+            state.checked = picker.checked.iter().copied().collect();
+        }
         let query = self.memory_view().input_text(input).unwrap_or_default().to_owned();
         let mut answer = self.picker_keys(input, picker, &mut state);
         let rect = self.picker_rect(picker, &state.query);

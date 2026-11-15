@@ -6,6 +6,7 @@
 
 pub mod blame;
 mod changes;
+mod code_workspace;
 mod commit_page;
 pub mod compare;
 mod conflicts;
@@ -48,6 +49,7 @@ use crate::persisted;
 use crate::settings::Settings;
 
 pub use changes::{Changes, ChangesData};
+pub use code_workspace::code_workspace_folders;
 pub use commit_page::{CommitPage, CommitPages, PageReadState};
 pub use diff_page::{DiffPage, DiffPages};
 pub use file_page::{FileContent, FilePage, FilePages};
@@ -57,7 +59,7 @@ pub use message::{Effect, Found, Job, JobId, JobKind, Known, Message, MorePages,
 pub use rail::{FilterPicker, Rail};
 pub use reads::Reads;
 pub use stashes::StashesList;
-pub use state::{Dialog, Opening, Pages, RepositoryRead, Shown, State, Workspace};
+pub use state::{Dialog, Opened, Opening, Pages, RepositoryRead, Shown, State, Workspace};
 pub use timeline::{Timeline, commits_request, draft_of, history_of, known};
 pub use view_state::ViewData;
 pub use workspace::OpenRequest;
@@ -109,11 +111,8 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::Started { folders } => started(state, folders),
         Message::Intent(intent) => reduce_intent(state, intent),
         Message::FolderChosen(folder) => open_folder(state, folder),
-        Message::RepositoriesFound { job, found } => {
-            let mut effects = workspace::repositories_found(state, job, found);
-            effects.extend(tabs::follow_repositories(state));
-            effects
-        }
+        Message::WorkspaceFileChosen(chosen) => code_workspace::open_code_workspace(state, chosen),
+        Message::RepositoriesFound { job, found } => tabs::repositories_found(state, job, found),
         Message::RepositoryRead {
             job,
             folder,
@@ -257,41 +256,58 @@ fn open_folder(state: &mut State, folder: Option<PathBuf>) -> Vec<Effect> {
     let Some(folder) = folder else {
         return Vec::new();
     };
+    open_folders(
+        state,
+        Opened {
+            folders: vec![folder],
+            file: None,
+        },
+    )
+}
+
+/// Folders chosen, from a folder or from a workspace file of VS Code: shown at once in a window with no workspace;
+/// otherwise **Replace the workspace** or **Add to the workspace** is asked.
+fn open_folders(state: &mut State, opened: Opened) -> Vec<Effect> {
     if state.workspace.is_some() {
-        state.dialog = Some(Dialog::OpenFolder { folder });
+        state.dialog = Some(Dialog::OpenFolder { opened });
         return Vec::new();
     }
     let request = OpenRequest {
         is_shown_at_once: true,
+        file: opened.file,
         ..OpenRequest::default()
     };
-    workspace::open_workspace(state, vec![folder], request)
+    workspace::open_workspace(state, opened.folders, request)
 }
 
-/// The answer to **Replace the workspace** or **Add to the workspace**: an added folder keeps the repository shown.
+/// The answer to **Replace the workspace** or **Add to the workspace**: the window keeps what it shows until the
+/// repositories are found; an added folder keeps the repository shown, and the tabs open.
 fn answer_open_folder(state: &mut State, answer: FolderAnswer) -> Vec<Effect> {
-    let Some(Dialog::OpenFolder { folder }) = state.dialog.take() else {
+    let Some(Dialog::OpenFolder { opened }) = state.dialog.take() else {
         return Vec::new();
     };
     match answer {
         FolderAnswer::Cancel => Vec::new(),
         FolderAnswer::Replace => {
             let request = OpenRequest {
-                is_shown_at_once: true,
+                file: opened.file,
                 ..OpenRequest::default()
             };
-            workspace::open_workspace(state, vec![folder], request)
+            workspace::open_workspace(state, opened.folders, request)
         }
         FolderAnswer::Add => {
             let mut folders = state
                 .workspace
                 .as_ref()
                 .map_or_default(|workspace| workspace.folders.clone());
-            if !folders.iter().any(|known| persisted::same_folder(known, &folder)) {
-                folders.push(folder);
+            for folder in opened.folders {
+                if !folders.iter().any(|known| persisted::same_folder(known, &folder)) {
+                    folders.push(folder);
+                }
             }
             let request = OpenRequest {
                 remembered: state.shown_folder().cloned(),
+                is_added: true,
                 ..OpenRequest::default()
             };
             workspace::open_workspace(state, folders, request)
@@ -309,7 +325,17 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::AnswerOpenFolder(answer) => answer_open_folder(state, answer),
         Intent::OpenRecent(index) => open_recent(state, index),
         Intent::SelectRepository(folder) => tabs::show_repository(state, &folder),
-        Intent::SwitchTab(index) => tabs::switch_tab(state, index),
+        Intent::OpenWorkspaceFile => {
+            state.dialog = None;
+            vec![Effect::ChooseWorkspaceFile]
+        }
+        Intent::SwitchTab(_)
+        | Intent::OpenTab(_)
+        | Intent::PickTabToOpen
+        | Intent::TabsChosen(_)
+        | Intent::CloseTab(_)
+        | Intent::CloseOtherTabs(_)
+        | Intent::CloseTabShown => tabs::reduce(state, intent),
         Intent::PickRepository => {
             workspace::pick_repository(state);
             Vec::new()
@@ -398,6 +424,7 @@ fn open_recent(state: &mut State, index: usize) -> Vec<Effect> {
     let request = OpenRequest {
         remembered: recent.repository,
         recent: Some(index),
+        file: recent.file,
         ..OpenRequest::default()
     };
     workspace::open_workspace(state, recent.folders, request)
@@ -415,9 +442,9 @@ fn look_again(state: &mut State, is_refresh: bool) -> Vec<Effect> {
         } else {
             None
         },
-        recent: None,
         is_shown_at_once: !is_refresh,
         is_refresh,
+        ..OpenRequest::default()
     };
     workspace::open_workspace(state, folders, request)
 }

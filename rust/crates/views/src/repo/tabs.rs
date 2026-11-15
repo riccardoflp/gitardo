@@ -1,12 +1,15 @@
 //! The island of the tabs, at the top of the window (`repo.tabs`): a tab for each repository open, the one shown
-//! marked, and **+**, which opens a folder or a recent workspace.
+//! marked, each with its menu and a **×** on the one shown and the one under the pointer (`repo.close-tab`), and
+//! **+**, which opens a repository of the workspace in a tab (`repo.open-tab`), a folder or a workspace file of VS
+//! Code.
 
-use ui::layout::{Area, Insets, inset};
+use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{
     AccessRole, Button, ButtonKind, Description, Icon, Key, Label, MenuEntry, MenuItem, Modifiers, NamedKey, Rect,
     Sense, TextKind, Tone, Ui,
 };
 
+use crate::graph::RepositoryEntry;
 use crate::intent::Intent;
 use crate::line::control_in;
 use crate::text::header;
@@ -23,8 +26,8 @@ const OPEN_MENU: &str = "open menu";
 pub struct TabsState<'a> {
     /// The tabs, in their order.
     pub tabs: &'a [TabEntry],
-    /// The recent workspaces, the latest first, each by its folders, for the menu of **+** (`repo.open-recent`).
-    pub recent: &'a [String],
+    /// The repositories of the workspace with no tab, which the menu of **+** lists (`repo.open-tab`).
+    pub not_open: &'a [RepositoryEntry],
 }
 
 /// A tab, as the island draws it.
@@ -41,16 +44,27 @@ pub struct TabEntry {
 /// What an entry of the menu of **+** does.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum OpenCommand {
+    /// Opens a repository with no tab, by its place among them.
+    OpenTab(usize),
     /// **Open folder…**.
     OpenFolder,
-    /// Opens a recent workspace, by its place in the list.
-    OpenRecent(usize),
+    /// **Open workspace file…**.
+    OpenWorkspaceFile,
 }
 
-/// The island of the tabs over the rectangle its caller clipped it to: each tab as wide as its name, up to
-/// [`TAB_MOST`], a longer name cut at its start; the tab shown on the ground of a page with a border; **+** at the end.
-/// `Ctrl+1` to `Ctrl+8` show the tab at that place and `Ctrl+9` the last, `Ctrl+PageDown` and `Ctrl+PageUp` the next
-/// tab and the one before, going round.
+/// What an entry of the menu of a tab does.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TabCommand {
+    /// **Close tab**.
+    Close,
+    /// **Close other tabs**.
+    CloseOthers,
+}
+
+/// The island of the tabs over the rectangle its caller clipped it to: each tab as wide as its name and the room of its
+/// **×**, up to [`TAB_MOST`], a longer name cut at its start; the tab shown on the ground of a page with a border; a
+/// **×** on it and on the tab under the pointer; **+** at the end. A middle click on a tab closes it, a right click opens its menu. `Ctrl+1` to `Ctrl+8` show the tab at that
+/// place and `Ctrl+9` the last, `Ctrl+PageDown` and `Ctrl+PageUp` the next tab and the one before, going round.
 ///
 /// Feature: repo.tabs
 pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -62,26 +76,25 @@ pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         let spacing = theme.sizes.spacing;
         let inner = inset(rect, Insets::symmetric(spacing.medium, 0.0));
         let mut area = Area::with_gap(inner, spacing.small);
-        open_button(state.recent, ui, &mut area, &mut intents);
+        open_button(state.not_open, ui, &mut area, &mut intents);
         for (index, tab) in state.tabs.iter().enumerate() {
             let style = ui.text_style(TextKind::Medium);
             let padding = 2.0 * spacing.large;
-            let width = (ui.measure(&tab.name, style) + padding).min(TAB_MOST);
+            let close = theme.sizes.icon + 2.0 * spacing.small;
+            let width = (ui.measure(&tab.name, style) + padding + close).min(TAB_MOST);
             if area.rest().width < width {
                 break;
             }
             let cell = control_in(ui, area.left(width), width);
-            if tab_button((index, tab), ui, (cell, padding)) {
-                intents.push(Intent::SwitchTab(index));
-            }
+            intents.extend(tab_button((index, tab), ui, (cell, padding, close)));
         }
     });
     intents.extend(keys(state.tabs, ui));
     intents
 }
 
-/// One tab, and whether it was clicked.
-fn tab_button((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, (cell, padding): (Rect, f32)) -> bool {
+/// One tab, and what a click on it, on its **×**, a middle click or its menu asked.
+fn tab_button((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, (cell, padding, close): (Rect, f32, f32)) -> Vec<Intent> {
     let theme = *ui.theme();
     let radius = theme.sizes.radius.medium;
     let id = ui.id(("tab", index, &tab.folder));
@@ -99,15 +112,39 @@ fn tab_button((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, (cell, padding)
     } else if response.hovered {
         ui.fill_rounded_rect(cell, radius, theme.colors.secondary_button_hover);
     }
-    let room = cell.width - padding;
+    let room = cell.width - padding - close;
     let name = cut_at_start(ui, &tab.name, (room, TextKind::Medium));
     let tone = if tab.is_shown { Tone::Normal } else { Tone::Muted };
-    let text = inset(cell, Insets::symmetric(padding / 2.0, 0.0));
-    let _ = ui.label(text, &Label::new(&name).kind(TextKind::Medium).tone(tone));
+    let mut parts = Area::new(inset(cell, Insets::symmetric(padding / 2.0, 0.0)));
+    let close_cell = parts.right(close);
+    let _ = ui.label(parts.rest(), &Label::new(&name).kind(TextKind::Medium).tone(tone));
     let description = Description::new(AccessRole::Button, &tab.name).selected(tab.is_shown);
     ui.describe(id, cell, &description);
     ui.tooltip(&response, &tab.folder);
-    response.clicked
+    let side = theme.sizes.icon + theme.sizes.spacing.small;
+    let close_rect = place(close_cell, (side, side), (Align::End, Align::Center));
+    let close_button = Button::icon(Icon::Close, words::CLOSE_TAB).kind(ButtonKind::Icon);
+    // The room of the **×** is kept on every tab, so that a tab does not change its width under the pointer.
+    let is_closed = (tab.is_shown || response.hovered)
+        && ui
+            .scope(("tab close", index), |ui| ui.button("close", close_rect, &close_button))
+            .clicked;
+    let entries = [
+        MenuEntry::Item(MenuItem::new(words::CLOSE_TAB, TabCommand::Close)),
+        MenuEntry::Item(MenuItem::new(words::CLOSE_OTHER_TABS, TabCommand::CloseOthers)),
+    ];
+    let mut intents = Vec::new();
+    match ui.context_menu(("tab menu", index), &response, &entries) {
+        Some(TabCommand::Close) => intents.push(Intent::CloseTab(index)),
+        Some(TabCommand::CloseOthers) => intents.push(Intent::CloseOtherTabs(index)),
+        None => {}
+    }
+    if is_closed || response.middle_clicked {
+        intents.push(Intent::CloseTab(index));
+    } else if response.clicked {
+        intents.push(Intent::SwitchTab(index));
+    }
+    intents
 }
 
 /// A name that does not fit cut at its start with `…`, so that its last part, the repository's own folder, stays.
@@ -129,29 +166,33 @@ pub fn cut_at_start(ui: &Ui<'_>, name: &str, (room, kind): (f32, TextKind)) -> S
     }
 }
 
-/// **+** at the end of the island, with its menu: **Open folder…** and the recent workspaces.
-fn open_button(recent: &[String], ui: &mut Ui<'_>, area: &mut Area, intents: &mut Vec<Intent>) {
+/// **+** at the end of the island, with its menu: the repositories of the workspace with no tab, then **Open
+/// folder…** and **Open workspace file…**.
+fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, area: &mut Area, intents: &mut Vec<Intent>) {
     let side = ui.theme().sizes.control_height;
     let rect = control_in(ui, area.right(side), side);
     let button = Button::icon(Icon::Plus, words::OPEN_ANOTHER).kind(ButtonKind::Icon);
-    let recent_entries: Vec<MenuEntry<'_, OpenCommand>> = recent
+    let mut entries: Vec<MenuEntry<'_, OpenCommand>> = not_open
         .iter()
         .enumerate()
-        .map(|(index, label)| MenuEntry::Item(MenuItem::new(label.as_str(), OpenCommand::OpenRecent(index))))
+        .map(|(index, entry)| MenuEntry::Item(MenuItem::new(entry.name.as_str(), OpenCommand::OpenTab(index))))
         .collect();
-    let mut entries = vec![MenuEntry::Item(
-        MenuItem::new(header::OPEN_FOLDER, OpenCommand::OpenFolder).with_icon(Icon::Folder),
-    )];
-    if !recent_entries.is_empty() {
-        entries.push(MenuEntry::Submenu {
-            label: header::OPEN_RECENT,
-            icon: None,
-            entries: &recent_entries,
-        });
+    if !entries.is_empty() {
+        entries.push(MenuEntry::Separator);
     }
+    entries.push(MenuEntry::Item(
+        MenuItem::new(header::OPEN_FOLDER, OpenCommand::OpenFolder).with_icon(Icon::Folder),
+    ));
+    entries.push(MenuEntry::Item(MenuItem::new(
+        words::OPEN_WORKSPACE_FILE,
+        OpenCommand::OpenWorkspaceFile,
+    )));
     match ui.menu_button(OPEN_MENU, rect, &button, &entries) {
+        Some(OpenCommand::OpenTab(index)) => {
+            intents.extend(not_open.get(index).map(|entry| Intent::OpenTab(entry.folder.clone())));
+        }
         Some(OpenCommand::OpenFolder) => intents.push(Intent::OpenFolder),
-        Some(OpenCommand::OpenRecent(index)) => intents.push(Intent::OpenRecent(index)),
+        Some(OpenCommand::OpenWorkspaceFile) => intents.push(Intent::OpenWorkspaceFile),
         None => {}
     }
 }

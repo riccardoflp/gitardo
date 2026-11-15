@@ -1,5 +1,6 @@
 //! The words of the repositories of a workspace (`repo.open-folder`, `repo.open-recent`, `repo.select`,
-//! `repo.no-repository`).
+//! `repo.no-repository`) and of their tabs (`repo.tabs`, `repo.open-tab`, `repo.choose-tabs`, `repo.close-tab`,
+//! `repo.open-code-workspace`).
 
 /// What the timeline says in a workspace with no repository (`repo.no-repository`).
 pub const NO_REPOSITORY: &str = "No Git repository in this workspace";
@@ -30,9 +31,31 @@ pub const NO_REPOSITORY_TO_SELECT: &str = "Gitardo: no Git repository in this wo
 /// The island of the tabs, as the screen reader names it (`repo.tabs`).
 pub const TABS: &str = "Repositories open";
 /// The tooltip of **+** at the end of the island of the tabs.
-pub const OPEN_ANOTHER: &str = "Open a folder or a recent workspace";
+pub const OPEN_ANOTHER: &str = "Open a repository, a folder or a workspace file";
+/// The entry that opens a workspace file of VS Code (`repo.open-code-workspace`).
+pub const OPEN_WORKSPACE_FILE: &str = "Open workspace file\u{2026}";
+/// The title of the system's dialog for a workspace file of VS Code.
+pub const CHOOSE_WORKSPACE_FILE: &str = "Open workspace file";
+/// The kind of files that dialog shows.
+pub const WORKSPACE_FILES: &str = "VS Code workspaces";
+/// Why a workspace file of VS Code does not open.
+pub const NAMES_NO_FOLDERS: &str = "This file names no folders.";
+/// The picker of the repositories to open in tabs (`repo.choose-tabs`).
+pub const CHOOSE_TABS_TITLE: &str = "Repositories to open in tabs";
+/// The picker of a repository to open in a tab (`repo.open-tab`).
+pub const OPEN_TAB_TITLE: &str = "Open a repository in a tab";
+/// The entry of the menu of a tab, and the tooltip of its **×**, that closes it (`repo.close-tab`).
+pub const CLOSE_TAB: &str = "Close tab";
+/// The entry of the menu of a tab that closes the others.
+pub const CLOSE_OTHER_TABS: &str = "Close other tabs";
 /// The button that puts a notice away.
 pub const DISMISS: &str = "Dismiss";
+
+/// Why a tab where an operation runs does not close (`repo.close-tab`).
+#[must_use]
+pub fn wait_before_closing(title: &str) -> String {
+    format!("Gitardo: wait for {title} to end before closing this tab.")
+}
 
 /// The title of the question asked when a folder is opened while the window shows a workspace.
 #[must_use]

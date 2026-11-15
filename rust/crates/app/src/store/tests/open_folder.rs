@@ -4,7 +4,7 @@ use views::repo::NoRepositoryState;
 use views::{Content, FolderAnswer, Intent, TimelineState};
 
 use super::{act, answer, folder, intent, open, reads, tabs_listed, timeline_folder, view_data, window};
-use crate::store::{Dialog, Effect, Message, Shown, reduce};
+use crate::store::{Dialog, Effect, Message, reduce};
 
 #[test]
 fn repo_open_folder__a_folder_with_two_repositories_shows_the_first_and_has_a_tab_for_each() {
@@ -33,7 +33,15 @@ fn repo_open_folder__adding_a_folder_keeps_the_repository_shown() {
     let _chosen = act(&mut state, Intent::SelectRepository(work.join("app")), &found);
     let generation = state.shown_read().map(|read| read.generation);
     assert_eq!(reduce(&mut state, Message::FolderChosen(Some(other.clone()))).len(), 0);
-    assert_eq!(state.dialog, Some(Dialog::OpenFolder { folder: other.clone() }));
+    assert_eq!(
+        state.dialog,
+        Some(Dialog::OpenFolder {
+            opened: crate::store::Opened {
+                folders: vec![other.clone()],
+                file: None,
+            }
+        })
+    );
     let effects = act(&mut state, Intent::AnswerOpenFolder(FolderAnswer::Add), &found);
     assert_eq!(reads(&effects).len(), 0, "the repository shown is not read again");
     assert_eq!(timeline_folder(&state), Some(work.join("app")));
@@ -55,9 +63,9 @@ fn repo_open_folder__replacing_the_workspace_shows_the_folder_opened() {
     let _asked = reduce(&mut state, Message::FolderChosen(Some(other.clone())));
     let effects = intent(&mut state, Intent::AnswerOpenFolder(FolderAnswer::Replace));
     assert_eq!(
-        state.workspace.as_ref().map(|workspace| &workspace.shown),
-        Some(&Shown::Looking),
-        "the window says Loading repository… at once"
+        timeline_folder(&state),
+        Some(work.clone()),
+        "the window shows what it showed until the repositories are found"
     );
     let _read = answer(&mut state, effects, &found);
     assert_eq!(state.workspace.as_ref().unwrap().folders, std::slice::from_ref(&other));

@@ -42,6 +42,7 @@ fn repo_select__a_remembered_repository_no_longer_in_the_workspace_gives_way_to_
     state.persisted.recent = vec![RecentWorkspace {
         folders: vec![work.clone()],
         repository: Some(work.join("deleted")),
+        ..RecentWorkspace::default()
     }];
     let effects = reduce(
         &mut state,

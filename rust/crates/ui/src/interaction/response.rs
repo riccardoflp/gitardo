@@ -31,6 +31,8 @@ pub struct Response {
     /// Whether the button of context menus was pressed and released over it, or the key of context menus pressed
     /// while it has the focus.
     pub secondary_clicked: bool,
+    /// Whether the middle button was released over it after being pressed on it, as a click of the wheel.
+    pub middle_clicked: bool,
     /// Whether it has the keyboard focus.
     pub has_focus: bool,
     /// Whether the focus is on it and shows a ring, because it came there by the keyboard.
@@ -51,6 +53,7 @@ impl Response {
             clicked: false,
             double_clicked: false,
             secondary_clicked: false,
+            middle_clicked: false,
             has_focus,
             shows_focus: has_focus && state.focus_visible && state.window_focused,
             escaped: false,
@@ -68,7 +71,8 @@ impl Response {
                         response.double_clicked |= *click_count == 2;
                     }
                     PointerButton::Secondary => response.secondary_clicked = true,
-                    PointerButton::Middle | PointerButton::Back | PointerButton::Forward => {}
+                    PointerButton::Middle => response.middle_clicked = true,
+                    PointerButton::Back | PointerButton::Forward => {}
                 },
                 WidgetEvent::Key(key) if key.modifiers == Modifiers::NONE => match key.key {
                     Key::Named(NamedKey::Enter) | Key::Character(' ') => {

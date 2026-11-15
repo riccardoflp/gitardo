@@ -46,6 +46,7 @@ mod merge;
 mod merge_actions;
 mod merge_at_line;
 mod new_worktrees;
+mod open_tabs;
 mod operations;
 mod pane;
 mod panes;
@@ -92,10 +93,12 @@ fn window() -> State {
                 RecentWorkspace {
                     folders: vec![PathBuf::from("/work/app")],
                     repository: None,
+                    ..RecentWorkspace::default()
                 },
                 RecentWorkspace {
                     folders: vec![PathBuf::from("/work/site"), PathBuf::from("/work/docs")],
                     repository: None,
+                    ..RecentWorkspace::default()
                 },
             ],
             ..Persisted::default()

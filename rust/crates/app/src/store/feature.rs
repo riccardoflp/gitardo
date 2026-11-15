@@ -72,6 +72,8 @@ pub struct Running {
     pub feature: FeatureId,
     /// The question it asks, or the plan it shows; none while it reads or runs.
     pub asking: Option<Asking>,
+    /// The title of its plan, once it showed one.
+    pub title: Option<String>,
 }
 
 /// What the operation running shows over the window.
@@ -236,7 +238,11 @@ pub fn run_in(
         // The store reads no clock: the window sets the time when it starts the operation.
         now: model::Timestamp(0),
     };
-    state.operations.running = Some(Running { feature, asking: None });
+    state.operations.running = Some(Running {
+        feature,
+        asking: None,
+        title: None,
+    });
     state.operations.said = None;
     state.is_operation_running = true;
     vec![Effect::RunFeature {
@@ -306,6 +312,7 @@ pub fn asks(state: &mut State, question: Question) -> Vec<Effect> {
 /// The operation running shows its plan before it runs.
 pub fn confirms(state: &mut State, plan: Plan) -> Vec<Effect> {
     if let Some(running) = state.operations.running.as_mut() {
+        running.title = Some(plan.title.as_str().to_owned());
         running.asking = Some(Asking::Plan(plan));
     }
     Vec::new()
