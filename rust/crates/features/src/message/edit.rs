@@ -9,9 +9,10 @@ use model::contract::{
     AnswerKey, Answers, Context, Danger, FollowUp, Outcome, Plan, Query, Question, QuestionKind, Refusal, Step, Text,
     Undo, Validation,
 };
-use model::rebase::{Reword, TodoAction, TodoStep, build_todo_list, pushed_note};
+use model::rebase::{Reword, TodoAction, TodoStep, pushed_note};
 
 use crate::history::{refuse_under_way, target_commit};
+use crate::rebase::{Rewrite, rewrite_plan};
 
 /// The new message, typed.
 pub const MESSAGE: AnswerKey = AnswerKey("message");
@@ -182,12 +183,9 @@ fn amend_plan(context: &Context, edited: &Edited<'_>, note: Option<Text>) -> Pla
 }
 
 /// The interactive rebase that rewords an older commit and picks the commits after it, oldest first, with
-/// `--autostash`: the new message and the todo list written in a folder of their own in the git folder, which is
-/// deleted once the rebase ended; or why git could not read the list.
+/// `--autostash`: the new message and the todo list written to the folder of the files of the rebase, which is deleted
+/// once the rebase ended, also when it stopped first on a commit picked after it; or why git could not read the list.
 fn rebase_plan(context: &Context, edited: &Edited<'_>, line: &Line, note: Option<Text>) -> Result<Plan, Text> {
-    let repository = &context.repository;
-    let folder = repository.git_folder.join(format!("gitardo-rebase-{}", context.now.0));
-    let folder_text = folder.to_string_lossy().replace('\\', "/");
     let commit = edited.commit.to_string();
     let mut todo = vec![TodoStep {
         action: TodoAction::Reword,
@@ -204,46 +202,17 @@ fn rebase_plan(context: &Context, edited: &Edited<'_>, line: &Line, note: Option
         commit: pick,
         reword: None,
     }));
-    let list = build_todo_list(&todo, &folder_text)?;
-    let mut steps: Vec<Step> = list
-        .files
-        .iter()
-        .map(|(name, contents)| Step::Write {
-            path: folder.join(name),
-            contents: contents.clone().into_bytes(),
-        })
-        .collect();
-    steps.push(Step::Write {
-        path: folder.join("todo"),
-        contents: list.text.into_bytes(),
-    });
-    let editor = format!("sequence.editor=cp \"{folder_text}/todo\"");
-    let base = line
-        .base
-        .as_ref()
-        .map_or_else(|| String::from("--root"), ToString::to_string);
-    steps.push(Step::git(
-        repository.folder.clone(),
-        [
-            "-c",
-            &editor,
-            "-c",
-            "core.editor=true",
-            "rebase",
-            "-i",
-            "--autostash",
-            &base,
-        ],
-    ));
-    steps.push(Step::Delete { path: folder });
-    Ok(Plan {
-        title: Text::from(format!("Edit the message of {}", edited.commit.short())),
-        steps,
-        danger: Danger::Confirm(rebase_note(context, edited.commit, line.after.len(), note)),
-        undo: Undo::ByReflog,
-        after: vec![FollowUp::SelectBeforeHead(line.after.len())],
-        on_failure: Vec::new(),
-    })
+    rewrite_plan(
+        context,
+        Rewrite {
+            steps: &todo,
+            base: line.base.as_ref(),
+            sets_aside: true,
+            title: format!("Edit the message of {}", edited.commit.short()),
+            note: rebase_note(context, edited.commit, line.after.len(), note).to_string(),
+            after: vec![FollowUp::SelectBeforeHead(line.after.len())],
+        },
+    )
 }
 
 /// What the confirmation of the rebase says: the note of a commit pushed already, what is made again, and the changes

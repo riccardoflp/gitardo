@@ -439,3 +439,6 @@
   the AI's.
 - A row of the Worktrees list shows the open pull request of its branch, in the color of its checks, and its tooltip
   names it.
+- **Edit message…** on an older commit removes the files of its rebase from the git folder once the rebase ends, also
+  when it stopped on a conflict in a commit made again after it; they were left behind before.
+- **Apply patch** with a patch of one commit says **Apply `<name>` as 1 commit**, as it says **as 2 commits** for two.

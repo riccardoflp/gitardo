@@ -733,7 +733,10 @@ The banner's **Good**, **Bad** and **Skip** mark the commit git checked out to t
 - **Undo**: not by Undo (*End the bisect first.*).
 - **After**: git checks out the next commit to test, and the banner counts again; when a single commit is left, the
   message of `bisect.mark`.
-- **Refuses**: **Skip** with no bisect under way, *No bisect is in progress.*
+- **Asks**: when no button gave the answer, **Mark the commit being tested**: **This commit is good**, **This commit
+  is bad** or **Skip this commit**.
+- **Refuses**: with no bisect under way, *No bisect is in progress.*; once one commit is left, *The bisect found the
+  first bad commit already.*
 - **Uses**: `bisect.read`, `bisect.banner`.
 
 Acceptance:

@@ -152,8 +152,8 @@ author and message, or to the working tree only, its changes staged and nothing 
   - from the clipboard: `write <temporary file>` with the text of the clipboard, in the temporary folder of the system
     with a name that cannot collide (`gitardo-<unique>.patch`), then `git am --3way <temporary file>` or
     `git apply --3way <temporary file>`, then `delete <temporary file>`, which runs whether git succeeded or not.
-  - Titled **Apply `<name>` as N commits**, with the note **The N commits will be made on top of `<branch>`, with the
-    authors and messages the patch has.**, or **Apply `<name>` to the working tree**, with the note **The changes will
+  - Titled **Apply `<name>` as N commits** (**as 1 commit** for one), with the note **The N commits will be made on top
+    of `<branch>`, with the authors and messages the patch has.** (**The commit will be made…** for one), or **Apply `<name>` to the working tree**, with the note **The changes will
     be applied to the files and staged: nothing is committed.**
   - The note goes on with what `patch.check` found: **No conflicts expected.**, or **This will stop with conflicts in N
     files:** and the first 15 files, then **…and K more**.

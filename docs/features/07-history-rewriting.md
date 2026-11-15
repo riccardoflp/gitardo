@@ -411,9 +411,14 @@ Rebases a local branch that is not checked out onto the commit it is dropped on;
 - **Entry points**: **Rebase `<branch>` onto `<short hash>`** in the menu of a local branch, not checked out, dropped on
   another commit (`drag.drop`).
 - **Offered when**: the branch is local, is not at the commit it is dropped on, and no other worktree has it checked out.
+- **Asks**: when no branch is given, which one, from the local branches not checked out here and not at the commit; a
+  branch another worktree has checked out is in the list, described *checked out in another worktree*, and refused when
+  picked.
 - **Plan**: `git rebase <onto> <branch>`.
 - **Danger**: None.
 - **Undo**: by the reflog (`undo.last`). After it, `<branch>` is the branch checked out, as git leaves it.
+- **Refuses**: *`<branch>` is checked out: rebase it onto `<short>` instead.*; *`<branch>` is checked out in another
+  worktree: rebase it there.*
 - **Uses**: `drag.drop`, `undo.last`.
 
 Acceptance:
@@ -686,7 +691,9 @@ after it again.
   - an older commit: `rebase.interactive` with `--autostash` and the steps `reword <hash>` with the whole message, then
     `pick` for each commit after it, oldest first. The title is *Edit the message of `<short hash>`*, and the note *`<short
     hash>` gets the new message, and the commit after it is made again on top of it, with new hashes.* (or *the N commits
-    after it are*), with *Changes that are not committed are set aside and put back.* when there are some.
+    after it are*), with *Changes that are not committed are set aside and put back.* when there are some. Its files
+    go into `<git folder>/gitardo-rebase`, as for `rebase.interactive`, deleted once no rebase is under way, also when it
+    stopped on a commit made again after it.
 - **Danger**: for the last commit, None; for an older one, Confirm (a rewrite of history). Both become Confirm when the
   commit is pushed, with the note of `rebase.read-pushed` first.
 - **Undo**: by the reflog (`undo.last`): an amend is taken back with `git reset --soft` to the commit before it; a rebase
@@ -707,6 +714,8 @@ Acceptance:
 - [ ] A commit on `origin/main` asks first and says the branch will have to be force pushed.
 - [ ] `Escape` in the box leaves the message as it was and runs nothing.
 - [ ] While a bisect is under way, neither the pencil nor **Edit message…** is offered.
+- [ ] Saving for an older commit when a commit made again after it stops on a conflict leaves
+      `<git folder>/gitardo-rebase` until the rebase is continued to its end or aborted, then deletes it.
 
 ### `squash.join-messages` — The message of commits squashed into one
 

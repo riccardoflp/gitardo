@@ -286,15 +286,15 @@ fn plan(
     ));
     let name = &source.name;
     let (title, note) = if as_commits {
-        let commits = if commits == 1 {
-            String::from("commit")
+        let (counted, made) = if commits == 1 {
+            (String::from("1 commit"), String::from("commit"))
         } else {
-            format!("{commits} commits")
+            (format!("{commits} commits"), format!("{commits} commits"))
         };
         (
-            format!("Apply {name} as {commits}"),
+            format!("Apply {name} as {counted}"),
             format!(
-                "The {commits} will be made on top of {}, with the authors and messages the patch has.",
+                "The {made} will be made on top of {}, with the authors and messages the patch has.",
                 branch(context)
             ),
         )

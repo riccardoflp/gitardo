@@ -177,6 +177,14 @@ fn patch_apply__as_commits_with_staged_changes_is_refused_before_git_runs() {
 }
 
 #[test]
+fn patch_apply__a_patch_of_one_commit_is_applied_as_1_commit() {
+    let context = context(state(), Target::Head);
+    let one = format_patch(&[&commit('1')]);
+    let plan = plan(apply(&context, &from_file(&one, Some("commits"), Some(&[]))));
+    assert_eq!(plan.title.as_str(), "Apply two.patch as 1 commit");
+}
+
+#[test]
 fn patch_apply__undo_takes_back_every_commit_of_the_patch_at_once() {
     let context = context(state(), Target::Head);
     let plan = plan(apply(&context, &from_file(&two_commits(), Some("commits"), Some(&[]))));
