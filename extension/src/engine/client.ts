@@ -220,7 +220,7 @@ export class EngineClient {
     return number;
   }
 
-  // The reads of version 1.3, from stage 5: one method for each, which opens the repository when it is not open. Each
+  // The reads of version 1.4, from stage 5: one method for each, which opens the repository when it is not open. Each
   // runs in the engine at the same time as the others, and `signal` cancels it.
 
   /** The commit a name stands for, as a search reads it; null when it names none (`search.read-revision`). */

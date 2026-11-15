@@ -5,7 +5,7 @@
  */
 
 /** The version of the protocol the extension speaks. */
-export const PROTOCOL = '1.3';
+export const PROTOCOL = '1.4';
 
 /** The names of the methods. */
 export const Method = {
@@ -247,9 +247,9 @@ export interface FollowUpsParams {
   followUps: FollowUp[];
 }
 
-// The reads of version 1.3, from stage 5 (`rust/crates/protocol/src/reads/`): every read but the graph's.
+// The reads of version 1.4, from stage 5 (`rust/crates/protocol/src/reads/`): every read but the graph's.
 
-/** The names of the reads of version 1.3, each `read/<card>`. */
+/** The names of the reads of version 1.4, each `read/<card>`. */
 export const ReadMethod = {
   searchRevision: 'read/search.read-revision',
   details: 'read/details.read-commit',

@@ -6,14 +6,14 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.3** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.4** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
-for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 5 built: every read of the table of
-[Reads](#reads) but the three of the graph, and the host question `host/githubToken` that
-`read/github.read-pull-requests` asks. The rest is not built yet.
+for Undo: `journal/last` and `journal/record`. Version 1.3 adds what area 2 of stage 4 built. Version 1.4 adds what
+stage 5 built: every read of the table of [Reads](#reads) but the three of the graph, and the host question
+`host/githubToken` that `read/github.read-pull-requests` asks. The rest is not built yet.
 
-Version 1.3 writes the parameters of some reads as the engine's functions take them, where the table of 1.2 had
+Version 1.4 writes the parameters of some reads as the engine's functions take them, where the table of 1.2 had
 guessed them: `diff.read-sides` takes the two versions of the file (`FileVersion` of the engine) rather than the two
 sides of a comparison; `merge-view.read-sides` answers with the engine's names, `current` and `incoming`, and the file
 as it is now; `compare.read-sides` and `compare.read-patch` take the request of `compare.read-sides`;
@@ -80,7 +80,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.3",
+  protocol: "1.4",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {

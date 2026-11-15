@@ -1,4 +1,4 @@
-//! The JSON of the reads of version 1.3, from stage 5: each parameter and answer read back as it was written, every
+//! The JSON of the reads of version 1.4, from stage 5: each parameter and answer read back as it was written, every
 //! variant of their enums in its JSON form, and the engine's types made into their JSON.
 
 #![cfg(test)]
