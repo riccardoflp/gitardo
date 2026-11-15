@@ -14,9 +14,11 @@ for Undo: `journal/last` and `journal/record`. The rest is not built yet.
 Version 1.3 adds what area 2 of stage 4 (branches, tags, remotes) needed to offer an operation after git refused one:
 the follow-up `offerRun { label, feature, target: Target, answers: Record<string, Answer> }`, sent after a plan and in
 `data.followUps` of `stepFailed`, and the answer `{ kind: "flag", value: boolean }`, which only an `offerRun` carries,
-so that **Delete anyway** runs `branch.delete` told the branch is not merged. An `offerRun` whose target or one of whose
-answers has no JSON yet is not sent, since it would run otherwise than offered. The extension shows its `label` as a
-button on the message and, when it is clicked, sends `feature/run` with that `feature`, `target` and `answers`.
+so that **Delete anyway** runs `branch.delete` told the branch is not merged. A `flag` given in `feature/run` is known
+from the first call, as the desktop's window gives what it knows, since no question asks it; the other answers given
+still answer their questions when asked. An `offerRun` whose target or one of whose answers has no JSON yet is not
+sent, since it would run otherwise than offered. The extension shows its `label` as a button on the message and, when
+it is clicked, sends `feature/run` with that `feature`, `target` and `answers`.
 
 ## Transport
 
