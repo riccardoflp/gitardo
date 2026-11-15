@@ -19,7 +19,7 @@ use super::showing;
 use super::support::{Window, has, says, shortcut};
 
 /// The size of the window of the Merge pages.
-pub const MERGE: (u32, u32) = (1200, 700);
+pub const MERGE: (u32, u32) = (1200, 760);
 /// The file in conflict.
 pub const FILE: &str = "src/app.rs";
 

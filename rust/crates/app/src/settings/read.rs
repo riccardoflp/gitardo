@@ -53,6 +53,7 @@ fn settings_of(mut lookup: Lookup) -> Settings {
         size: font_size(&mut lookup).unwrap_or(defaults.fonts.size),
     };
     let read_on_startup = lookup.boolean(keys::READ_ON_STARTUP, Scope::UserAndRepository);
+    let keep_open = lookup.boolean(keys::KEEP_OPEN, Scope::User);
     let page_size = ::settings::page_size(&mut lookup);
     let switches = timeline_switches(&mut lookup);
     let sort_order = ::settings::sort_order(&mut lookup);
@@ -84,6 +85,7 @@ fn settings_of(mut lookup: Lookup) -> Settings {
         open_on_click,
         word_wrap,
         read_on_startup: read_on_startup.unwrap_or(defaults.read_on_startup),
+        keep_open: keep_open.unwrap_or(defaults.keep_open),
         page_size,
         problems: lookup.into_problems(),
     }

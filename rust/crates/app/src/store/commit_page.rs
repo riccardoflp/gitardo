@@ -254,7 +254,7 @@ fn show_in_timeline(state: &mut State, id: CommitPageId) -> Vec<Effect> {
     let is_shown = state.shown_folder().is_some_and(|shown| same_folder(shown, &folder));
     state.commit_pages.go_to = Some((folder.clone(), commit));
     if !is_shown {
-        effects.extend(super::workspace::select(state, &folder));
+        effects.extend(super::tabs::show_repository(state, &folder));
     }
     effects.extend(follow(state));
     effects

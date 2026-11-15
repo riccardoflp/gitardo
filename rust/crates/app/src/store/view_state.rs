@@ -13,11 +13,11 @@ use views::file_view::FilePageState;
 use views::filter::NarrowedBar;
 use views::graph::{
     BranchChip, Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, ReferencesShown, RepositoryEntry,
-    RepositoryPill, SyncCounts, TimelineMenu, ToolbarState, TraceShown,
+    SyncCounts, TimelineMenu, ToolbarState, TraceShown,
 };
 use views::log::{LogLine, LogState};
 use views::page::{Page, PageHostState, PageState};
-use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState};
+use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, TabEntry, TabsState};
 use views::settings::{SettingRow, SettingsPageState, ThemePickerState};
 use views::welcome::WelcomeState;
 use views::{Content, TimelineState, WindowState};
@@ -35,6 +35,8 @@ pub struct ViewData {
     recent: Vec<String>,
     /// The repositories of the workspace, by their names, the one shown marked.
     repositories: Vec<RepositoryEntry>,
+    /// The tabs, by the names of their repositories, the one shown marked.
+    tabs: Vec<TabEntry>,
     /// The name of the repository shown, or of the first folder when the workspace has no repository.
     name: Option<String>,
     /// The folder of the repository shown.
@@ -103,6 +105,7 @@ impl ViewData {
         };
         ViewData {
             recent,
+            tabs: super::tabs::entries(state, &repositories),
             repositories,
             name,
             folder: shown.map_or_default(|folder| display(folder)),
@@ -145,6 +148,10 @@ impl ViewData {
     pub fn window_state<'a>(&'a self, state: &'a State) -> WindowState<'a> {
         WindowState {
             view_bar: view_bar(state),
+            tabs: state.workspace.is_some().then_some(TabsState {
+                tabs: &self.tabs,
+                recent: &self.recent,
+            }),
             header: self.header(state),
             status: StatusBarState {
                 running: &self.running,
@@ -190,15 +197,6 @@ impl ViewData {
         let read = state.shown_read().map(|read| read.state.as_ref());
         let upstream = read.and_then(checked_out_upstream);
         ToolbarState {
-            repository: RepositoryPill {
-                name: self.name.as_deref(),
-                repositories: if self.repositories.len() > 1 {
-                    &self.repositories
-                } else {
-                    &[]
-                },
-                recent: &self.recent,
-            },
             branch: read.map(|repository| BranchChip {
                 head: head_name(repository),
                 upstream,

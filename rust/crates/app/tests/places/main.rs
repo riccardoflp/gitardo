@@ -68,6 +68,7 @@ mod stashes;
 mod submodules;
 mod support;
 mod sync_stash;
+mod tabs;
 mod tasks;
 mod timeline;
 mod trust;

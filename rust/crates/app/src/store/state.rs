@@ -93,6 +93,8 @@ pub struct State {
     pub worktrees: super::worktrees::Worktrees,
     /// The pull requests of GitHub of the repository shown, and when they are read again.
     pub github: super::github::GitHub,
+    /// The tabs of the repositories open, and what those not shown keep (`repo.tabs`, `repo.keep-open`).
+    pub tabs: super::tabs::Tabs,
     /// The Tasks of the Activity drawer: the commands of new worktrees (`worktree-setup.command-steps`).
     pub tasks: super::tasks::Tasks,
 }

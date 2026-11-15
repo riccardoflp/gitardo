@@ -39,12 +39,26 @@ fn commit_page_show_in_graph__show_in_the_timeline_selects_the_commit_in_the_tim
 }
 
 #[test]
-fn commit_page_show_in_graph__from_a_page_of_another_repository_the_window_is_pointed_back_at_it_first() {
+fn commit_page_show_in_graph__from_a_page_shown_again_in_the_tab_of_its_repository_the_commit_is_selected_there() {
     let first = Repository::new();
     let mut second = Repository::new();
-    let _ = second.commit("Add the readme", &[("README.md", "Gitardo\n")]);
+    let _ = second.commit(
+        "Add the readme",
+        &[(
+            "README.md",
+            "Gitardo
+",
+        )],
+    );
     let mut first = first;
-    let _ = first.commit("Add the guide", &[("guide.md", "The timeline\n")]);
+    let _ = first.commit(
+        "Add the guide",
+        &[(
+            "guide.md",
+            "The timeline
+",
+        )],
+    );
     let mut state = super::window();
     let folders = vec![first.path().to_path_buf(), second.path().to_path_buf()];
     let _ = support::run(&mut state, Message::Started { folders });
@@ -52,11 +66,9 @@ fn commit_page_show_in_graph__from_a_page_of_another_repository_the_window_is_po
     let commit = row_id(&state, "Add the guide");
     let id = open(&mut state, "Add the guide");
     ask(&mut state, Intent::SelectRepository(second.path().to_path_buf()));
-    assert!(app::persisted::same_folder(
-        state.shown_folder().unwrap(),
-        second.path()
-    ));
-    ask(&mut state, Intent::ShowPage(Page::Commit(id)));
+    assert_eq!(state.page_shown(), None, "the page stays in the tab of its repository");
+    ask(&mut state, Intent::SelectRepository(first.path().to_path_buf()));
+    assert_eq!(state.page_shown(), Some(Page::Commit(id)));
     ask_page(&mut state, id, CommitPageIntent::ShowInTimeline);
     assert!(app::persisted::same_folder(state.shown_folder().unwrap(), first.path()));
     assert_eq!(state.page_shown(), None);

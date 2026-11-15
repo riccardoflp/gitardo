@@ -2,7 +2,7 @@
 
 use views::{Intent, Notice};
 
-use super::{answer, folder, intent, open, reads, started, timeline_folder, window, with_header};
+use super::{answer, folder, intent, open, reads, started, tabs_listed, timeline_folder, window};
 use crate::persisted::RecentWorkspace;
 use crate::store::{Dialog, Effect, Message, Shown, reduce};
 
@@ -55,11 +55,11 @@ fn repo_select__a_remembered_repository_no_longer_in_the_workspace_gives_way_to_
 }
 
 #[test]
-fn repo_select__with_one_repository_the_menu_lists_none_and_the_command_says_so() {
+fn repo_select__with_one_repository_the_island_has_one_tab_and_the_command_says_so() {
     let mut state = window();
     let work = folder("work");
     let _opened = open(&mut state, &work, &[(&work, std::slice::from_ref(&work))]);
-    assert!(with_header(&state, |header| header.repository.repositories.is_empty()));
+    assert_eq!(tabs_listed(&state), [(String::from("work"), true)]);
     assert_eq!(intent(&mut state, Intent::PickRepository).len(), 0);
     assert_eq!(state.notice, Some(Notice::SingleRepository));
     assert_eq!(state.dialog, None);
@@ -105,6 +105,8 @@ fn repo_select__while_an_operation_runs_choosing_another_does_nothing() {
 #[test]
 fn repo_select__the_read_of_a_repository_no_longer_chosen_is_cancelled_and_its_result_dropped() {
     let mut state = window();
+    // With `repositories.keepOpen` on, the repository chosen again shows what it kept (`repo.keep-open`).
+    state.settings.keep_open = false;
     let work = folder("work");
     let found = [(work.as_path(), &[work.join("app"), work.join("lib")][..])];
     let _opened = open(&mut state, &work, &found);

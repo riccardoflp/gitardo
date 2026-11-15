@@ -489,7 +489,8 @@ pushing, is done in it, without opening another window.
 - **Kind**: Operation
 - **Function**: `features::worktree::show_in_gitardo(context, answers) -> Outcome`
 - **Entry points**: **Show in Gitardo** in the context menu of a worktree; **Show worktree in Gitardo** in the menu of a
-  branch another worktree has; the repository menu of the header, which lists it while it is shown.
+  branch another worktree has; in the extension, the repository menu of the header, which lists it while it is shown.
+  In Gitardo Desktop it is shown in the tab of its repository, whose tooltip names its folder.
 - **Offered when**: the worktree is not the one the views show and is not missing.
 - **Plan**: no steps.
 - **Danger**: None.

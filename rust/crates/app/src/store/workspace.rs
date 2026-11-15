@@ -207,6 +207,7 @@ pub fn select(state: &mut State, folder: &Path) -> Vec<Effect> {
         effects.push(Effect::WritePersisted(state.persisted.clone()));
     }
     state.pages.shown = None;
+    super::tabs::follow_shown(state);
     effects.push(watch_settings(state));
     effects
 }
@@ -276,7 +277,7 @@ fn find_repository<'a>(repositories: &'a [Repository], folder: &Path) -> Option<
 
 /// Starts a read of a repository with the settings in force: as many pages as its timeline has loaded when it is the
 /// one shown, one otherwise.
-fn start_read(state: &mut State, folder: PathBuf) -> Effect {
+pub(super) fn start_read(state: &mut State, folder: PathBuf) -> Effect {
     let is_shown = state
         .timeline
         .folder
@@ -300,7 +301,7 @@ pub(super) fn start_job(state: &mut State, kind: JobKind) -> Job {
 
 /// Cancels the reads of repositories running, and of the next pages of the timeline: their results are not wanted any
 /// more.
-fn cancel_reads(state: &mut State) -> Vec<Effect> {
+pub(super) fn cancel_reads(state: &mut State) -> Vec<Effect> {
     super::reads::stopped(state);
     let mut effects = super::timeline::cancel_more(state);
     let reads: Vec<JobId> = state

@@ -45,7 +45,8 @@ Acceptance:
 
 ### `repo.name-repositories` — Name the repositories in lists
 
-How a repository is called in the repository menu of the header, in the picker and in the activity indicator.
+How a repository is called on its tab (`repo.tabs`), in the repository menu of the extension, in the picker and in
+the activity indicator.
 
 - **Kind**: Derivation
 - **Function**: `model::repo::name_repositories(roots: &[PathBuf], folders: &[PathBuf]) -> Vec<String>`
@@ -67,7 +68,8 @@ Shows a folder, or several, in the window: replaces what the window shows, or ad
 - **Kind**: Operation
 - **Function**: `app::store::open_folder(state: &mut State, folder: Option<PathBuf>) -> Vec<Effect>`, a function of
   the store: the workspace is the window's, not a repository's (Q43)
-- **Entry points**: **Open folder…** on the Welcome page, in the repository menu of the header, and in Quick search.
+- **Entry points**: **Open folder…** on the Welcome page, in the menu of **+** at the end of the tabs, in the
+  repository menu of the extension, and in Quick search.
 - **Asks**:
   1. The folder, in the system's folder dialog.
   2. When the window already shows a workspace: **Replace the workspace** or **Add to the workspace** (default:
@@ -82,7 +84,7 @@ Shows a folder, or several, in the window: replaces what the window shows, or ad
 
 Acceptance:
 
-- [ ] Opening a folder with two repositories shows the first one and lists both in the repository menu of the header.
+- [ ] Opening a folder with two repositories shows the first one and has a tab for each.
 - [ ] Adding a folder to a workspace keeps the repository that was shown.
 - [ ] Opening a folder with no repository shows `repo.no-repository`.
 - [ ] The workspace opened is the first of the recent workspaces on the Welcome page.
@@ -116,11 +118,12 @@ Gitardo shows one repository at a time; in a workspace with several, this choose
 - **Kind**: Operation
 - **Function**: `app::store::workspace::select(state: &mut State, folder: &Path) -> Vec<Effect>`, a function of the
   store (Q43)
-- **Entry points**: the repository menu of the header; **Select repository…** in the **…** menu of the header;
-  **Select Repository** in Quick search.
+- **Entry points**: the tabs (`repo.switch-tab`), and the repository menu of the header in the extension; **Select
+  repository…** in the **…** menu of the header; **Select Repository** in Quick search. In Gitardo Desktop, choosing a
+  repository of a tab shows that tab, as `repo.switch-tab` does.
 - **Offered when**: the workspace has more than one repository, or the window shows a worktree of a repository of the
-  workspace that is not in the workspace itself (see `worktree.switch`). The repository menu of the header lists the
-  repositories to choose from only then.
+  workspace that is not in the workspace itself (see `worktree.switch`). The repository menu of the extension lists
+  the repositories to choose from only then.
 - **Asks**: the repository, in Gitardo's picker titled **Repository shown in Gitardo**: each repository by its name,
   with its folder under it, and the one shown marked **current**; a worktree shown from outside the workspace is listed
   last as **worktree, current**. The text typed matches the names and the folders.
@@ -128,7 +131,8 @@ Gitardo shows one repository at a time; in a workspace with several, this choose
 - **Danger**: None.
 - **Undo**: nothing in a repository changes; choosing the other one again goes back.
 - **After**: the branch rail, the timeline and the draft show the repository chosen: its own branches shown
-  (`filter.remember`), the first page of its commits, nothing searched and nothing selected. The choice is remembered
+  (`filter.remember`), the first page of its commits, nothing searched and nothing selected; with
+  `repositories.keepOpen` on, what it showed when it was left, as `repo.keep-open` says. The choice is remembered
   for the workspace, and is the one shown the next time the workspace opens, as long as it is still among its
   repositories.
 - **Refuses**:
@@ -142,8 +146,8 @@ Acceptance:
 - [ ] In a workspace of two repositories, choosing the second shows its branches and commits, and the next time the
       workspace opens it is the one shown.
 - [ ] A remembered repository that is no longer in the workspace gives way to the first one found.
-- [ ] With one repository the repository menu of the header lists no repository to choose, and the command says
-      "Gitardo: this workspace has a single repository."
+- [ ] With one repository the island has one tab, and the command says "Gitardo: this workspace has a single
+      repository."
 - [ ] Choosing the repository already shown reads nothing.
 - [ ] While an operation runs, choosing another repository does nothing.
 
@@ -697,7 +701,8 @@ Acceptance:
 What a repository keeps while another is shown, so that coming back to it finds it as it was, at once.
 
 - **Kind**: Derivation
-- **Function**: `app::store::tabs::kept_on_leaving(view: RepositoryView, keep_open: bool) -> RepositoryView`
+- **Function**: `app::store::tabs::kept_on_leaving(view: RepositoryView, keep_open: bool) -> (Option<RepositoryView>,
+  Vec<JobId>)`: what the tab keeps, and the reads it started that nobody waits for any more
 - **Settings**: `repositories.keepOpen`: `true` in Gitardo Desktop; `gitardo.repositories.keepOpen`, `false`, in the
   extension.
 - **Uses**: by `repo.switch-tab`, `repo.group-tabs` and, in the extension, `repo.select`; `repo.watch-hidden`.

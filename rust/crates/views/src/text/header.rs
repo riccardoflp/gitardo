@@ -1,12 +1,10 @@
 //! The words of the header (`graph.toolbar`, `activity.status-bar`, `graph.more-menu`).
 
-/// The pill of the repository when the window shows no folder.
-pub const NO_FOLDER: &str = "No folder open";
-/// The tooltip of the pill of the repository.
-pub const REPOSITORY_TOOLTIP: &str = "Choose the repository shown, or open a folder";
-/// The entry of the repository menu that opens a folder (`repo.open-folder`).
+/// The name of the header, for the screen reader.
+pub const HEADER: &str = "Header of the repository shown";
+/// The entry of the menu of **+** that opens a folder (`repo.open-folder`).
 pub const OPEN_FOLDER: &str = "Open folder\u{2026}";
-/// The submenu of the recent workspaces in the repository menu (`repo.open-recent`).
+/// The submenu of the recent workspaces in the menu of **+** (`repo.open-recent`).
 pub const OPEN_RECENT: &str = "Open recent";
 /// Said after the repository shown in the picker of the repositories (`repo.select`).
 pub const CURRENT: &str = "current";

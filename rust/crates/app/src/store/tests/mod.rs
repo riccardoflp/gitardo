@@ -16,7 +16,6 @@ use git::read::graph::CommitPage;
 use model::CommitId;
 use model::repo::Repository;
 use model::state::{Branch, Head, RepositoryState};
-use views::graph::ToolbarState;
 use views::{Content, Intent, TimelineState};
 
 use super::{Effect, Found, JobId, JobKind, Message, State, ViewData, reduce};
@@ -240,11 +239,16 @@ fn view_data(state: &State) -> ViewData {
     ViewData::new(state, Vec::new(), 0)
 }
 
-/// The header the views are given.
-fn with_header<R>(state: &State, check: impl FnOnce(&ToolbarState<'_>) -> R) -> R {
+/// The tabs the island of the tabs is given: the name of each, and whether it is the one shown.
+fn tabs_listed(state: &State) -> Vec<(String, bool)> {
     let data = view_data(state);
     let window = data.window_state(state);
-    check(&window.header)
+    window
+        .tabs
+        .map_or_default(|tabs| tabs.tabs)
+        .iter()
+        .map(|tab| (tab.name.clone(), tab.is_shown))
+        .collect()
 }
 
 /// The folder of the repository the timeline shows, once read.

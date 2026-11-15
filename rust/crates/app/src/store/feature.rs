@@ -204,7 +204,7 @@ fn switch_first(state: &mut State, feature: FeatureId, target: &Target) -> Optio
         return None;
     }
     let holding = super::workspace::repository_holding(state, path)?;
-    let effects = super::workspace::select(state, &holding);
+    let effects = super::tabs::show_repository(state, &holding);
     if effects.is_empty() {
         return None;
     }

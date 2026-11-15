@@ -22,7 +22,7 @@ use super::support::{self, NOW, Window, find, has, says, says_in, shortcut, type
 use super::{repository_with_history, showing};
 
 /// The size of the window of the pages.
-pub const PAGE: (u32, u32) = (1000, 860);
+pub const PAGE: (u32, u32) = (1000, 920);
 
 /// A message whose text under its title is three paragraphs.
 const MESSAGE: &str = "Explain the timeline in the guide\n\n\
@@ -218,9 +218,12 @@ fn commit_page_open__the_same_hash_in_two_repositories_of_the_workspace_opens_tw
         "the same hash in the clone"
     );
     ask(&mut state, Intent::Graph(GraphIntent::Open(commit)));
-    assert_eq!(state.commit_pages.pages.len(), 2);
-    let folders: Vec<&PathBuf> = state.commit_pages.pages.iter().map(|page| &page.folder).collect();
-    assert!(!app::persisted::same_folder(folders[0], folders[1]));
+    // Each tab has pages of its own (`repo.keep-open`): one page in the tab shown, one in the tab left.
+    let shown_page: Vec<&PathBuf> = state.commit_pages.pages.iter().map(|page| &page.folder).collect();
+    let left = state.tabs.open.iter().find_map(|tab| tab.kept.as_ref()).unwrap();
+    let left_page: Vec<&PathBuf> = left.commit_pages.pages.iter().map(|page| &page.folder).collect();
+    assert_eq!((shown_page.len(), left_page.len()), (1, 1));
+    assert!(!app::persisted::same_folder(shown_page[0], left_page[0]));
 }
 
 #[test]

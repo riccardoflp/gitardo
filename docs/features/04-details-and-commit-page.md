@@ -354,7 +354,7 @@ Acceptance:
 
 - [ ] Double-clicking a commit opens a page titled `3f2a1c9 Fix the parser`.
 - [ ] Opening the same commit again shows the page it has; there is never a second page for it.
-- [ ] The same hash in two repositories of the workspace opens two pages.
+- [ ] The same hash in two repositories of the workspace opens two pages, one in the tab of each.
 - [ ] Typing `HEAD~3` in the command of Quick search opens the commit three before `HEAD`.
 - [ ] Typing a name git does not know is refused in the box, and nothing opens.
 - [ ] A subject longer than 32 characters is cut with `…` in the title of the page.
@@ -507,12 +507,14 @@ Brings the timeline to a commit, from the page of that commit.
 - **Kind**: View
 - **Function**: `views::commit_page::show_in_graph(state: &CommitPageState, ui: &mut Ui) -> Vec<Intent>`
 - **Entry points**: **Show in the timeline** in the page of a commit.
-- **Uses**: `repo.select` when the page is of another repository than the one the window shows; `graph.show-in-graph`,
-  which loads the commit when it is further back than the history loaded and shows all branches when a filter leaves it
-  out.
+- **Uses**: `repo.switch-tab`, and `repo.select` in the extension, when the page is of another repository than the one
+  shown; `graph.show-in-graph`, which loads the commit when it is further back than the history loaded and shows all
+  branches when a filter leaves it out.
 
 Acceptance:
 
 - [ ] **Show in the timeline** in the page of a commit selects that commit in the timeline, shown in place of the page.
-- [ ] From the page of a commit of another repository, the window is pointed back at that repository first.
+- [ ] From the page of a commit shown again in the tab of its repository, the commit is selected in the timeline of
+      that repository.
+- [ ] Extension: from the page of a commit of another repository, the repository of the page is chosen again first.
 - [ ] A commit further back than the history loaded is loaded and selected.

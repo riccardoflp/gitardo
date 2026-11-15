@@ -23,6 +23,8 @@ pub enum Intent {
     OpenRecent(usize),
     /// A repository of the workspace to show, by its folder (`repo.select`).
     SelectRepository(PathBuf),
+    /// Show the repository of a tab, by its place in the island of tabs (`repo.switch-tab`).
+    SwitchTab(usize),
     /// **Select repository…**: the picker of the repositories of the workspace (`repo.select`).
     PickRepository,
     /// The picker of the repositories closed with nothing chosen.

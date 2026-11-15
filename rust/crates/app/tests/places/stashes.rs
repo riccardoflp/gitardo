@@ -20,7 +20,7 @@ use super::showing;
 use super::support::{OperationsDriver, Window, has, run, says};
 
 /// The size of the window of these tests.
-const WIDE: (u32, u32) = (1000, 520);
+const WIDE: (u32, u32) = (1000, 580);
 
 /// A repository whose stash changed `a.txt` and `b.txt` and took the untracked `new.txt`, and the commit it was made on.
 fn stashed_with_untracked() -> (Repository, String) {

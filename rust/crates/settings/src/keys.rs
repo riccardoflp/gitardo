@@ -13,6 +13,8 @@ pub const FONT_CODE: &str = "font.code";
 pub const FONT_SIZE_KEY: &str = "font.size";
 /// `readOnStartup`.
 pub const READ_ON_STARTUP: &str = "readOnStartup";
+/// `repositories.keepOpen`.
+pub const KEEP_OPEN: &str = "repositories.keepOpen";
 /// `graph.pageSize`.
 pub const PAGE_SIZE: &str = "graph.pageSize";
 /// `graph.showStashes`.

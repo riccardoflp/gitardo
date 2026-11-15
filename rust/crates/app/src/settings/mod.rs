@@ -37,6 +37,7 @@ pub use rows::{problem_words, setting_rows, theme_value};
 /// The settings in force: those of the repository's file for the settings it may set, then those of the user's file,
 /// then the defaults.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(clippy::struct_excessive_bools, reason = "each is a setting of its own, on or off")]
 pub struct Settings {
     /// `theme`: the theme chosen, or to follow the system.
     pub theme: ThemeName,
@@ -44,6 +45,8 @@ pub struct Settings {
     pub fonts: FontChoice,
     /// `readOnStartup`: read the repository when the window opens.
     pub read_on_startup: bool,
+    /// `repositories.keepOpen`: each repository keeps what it showed while another is shown (`repo.keep-open`).
+    pub keep_open: bool,
     /// `graph.pageSize`: how many commits the timeline reads at a time.
     pub page_size: PageSize,
     /// `graph.showStashes`, `graph.firstParent`, `graph.traceSelected`, `graph.columns`, `graph.dateSeparators` and
@@ -78,6 +81,7 @@ impl Default for Settings {
             theme: ThemeName::System,
             fonts: FontChoice::default(),
             read_on_startup: true,
+            keep_open: true,
             page_size: PageSize::DEFAULT,
             switches: Switches::DEFAULT,
             sort_order: None,

@@ -1,6 +1,10 @@
-//! The repositories of the workspace: what the timeline says while there is none to show (`repo.no-repository`), the
-//! picker of the repositories (`repo.select`), and the question asked when a folder is opened while the window shows
-//! a workspace (`repo.open-folder`).
+//! The repositories of the workspace: the island of the tabs (`repo.tabs`), what the timeline says while there is none
+//! to show (`repo.no-repository`), the picker of the repositories (`repo.select`), and the question asked when a folder
+//! is opened while the window shows a workspace (`repo.open-folder`).
+
+mod tabs;
+
+pub use tabs::{TAB_MOST, TabEntry, TabsState, cut_at_start, tabs_view};
 
 use ui::layout::{Align, Area, place};
 use ui::{Button, Dialog, DialogButton, DialogRole, Label, Picker, PickerAnswer, PickerItem, PickerMode, Tone, Ui};

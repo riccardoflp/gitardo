@@ -3,33 +3,22 @@
 use views::repo::NoRepositoryState;
 use views::{Content, FolderAnswer, Intent, TimelineState};
 
-use super::{act, answer, folder, intent, open, reads, timeline_folder, view_data, window, with_header};
+use super::{act, answer, folder, intent, open, reads, tabs_listed, timeline_folder, view_data, window};
 use crate::store::{Dialog, Effect, Message, Shown, reduce};
 
 #[test]
-fn repo_open_folder__a_folder_with_two_repositories_shows_the_first_and_the_menu_lists_both() {
+fn repo_open_folder__a_folder_with_two_repositories_shows_the_first_and_has_a_tab_for_each() {
     let mut state = window();
     let work = folder("work");
     let repositories = [work.join("app"), work.join("lib")];
     let effects = open(&mut state, &work, &[(&work, &repositories)]);
     assert_eq!(reads(&effects), [work.join("app")]);
     assert_eq!(timeline_folder(&state), Some(work.join("app")));
-    let listed: Vec<(String, bool)> = with_header(&state, |header| {
-        header
-            .repository
-            .repositories
-            .iter()
-            .map(|entry| (entry.name.clone(), entry.is_current))
-            .collect()
-    });
     assert_eq!(
-        listed,
+        tabs_listed(&state),
         [(String::from("work/app"), true), (String::from("work/lib"), false)]
     );
-    assert_eq!(
-        with_header(&state, |header| header.repository.name.map(str::to_owned)),
-        Some(String::from("work/app"))
-    );
+    assert_eq!(view_data(&state).name(), Some("work/app"));
 }
 
 #[test]
@@ -102,10 +91,8 @@ fn repo_open_folder__a_folder_with_no_repository_shows_no_repository() {
         data.window_state(&state).content,
         Content::Timeline(TimelineState::NoRepository(NoRepositoryState::NoRepository))
     );
-    assert_eq!(
-        with_header(&state, |header| header.repository.name.map(str::to_owned)),
-        Some(String::from("empty"))
-    );
+    assert_eq!(view_data(&state).name(), Some("empty"));
+    assert_eq!(tabs_listed(&state), []);
 }
 
 #[test]

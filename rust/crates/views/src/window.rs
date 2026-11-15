@@ -1,5 +1,5 @@
 //! The whole window (D21): the bar of views on its left edge and the status bar at its foot, on the ground of the
-//! window; beside them the islands: the header at the top, under it the branch rail, the timeline and the inspector, or
+//! window; beside them the islands: the tabs at the top (D50), the header under them, under it the branch rail, the timeline and the inspector, or
 //! a page with its trail; the Activity drawer, the picker of the repositories, the question of an opened folder and a
 //! notice over them. Below about 900 logical pixels the rail shows only icons, the header only its icons and the gaps
 //! between the islands narrow; below about 700 the inspector is not beside the timeline (it opens over it once a
@@ -24,8 +24,8 @@ use crate::page::Page;
 use crate::page::{PageHostState, host_view};
 use crate::refs::ReferencesState;
 use crate::repo::{
-    NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, no_repository_view, open_folder_question_view,
-    repository_picker_view,
+    NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, TabsState, no_repository_view,
+    open_folder_question_view, repository_picker_view, tabs_view,
 };
 use crate::search::{GoToCommitDialog, ListMode, SearchBox, go_to_commit_dialog, list_mode_view};
 use crate::settings::{ThemePickerState, theme_picker_view};
@@ -40,6 +40,8 @@ const SEARCH_BOX_ROOM: f32 = 360.0;
 pub struct WindowState<'a> {
     /// The bar of views, on the left edge.
     pub view_bar: ViewBarState,
+    /// The island of the tabs, at the top, once a workspace is open (`repo.tabs`).
+    pub tabs: Option<TabsState<'a>>,
     /// The header.
     pub header: ToolbarState<'a>,
     /// The status bar, at the foot.
@@ -151,6 +153,36 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         },
     );
     let mut column = Area::with_gap(islands, gap);
+    if let Some(tabs) = &state.tabs {
+        let rect = column.top(bar_height);
+        intents.extend(island(ui, rect, |ui| tabs_view(tabs, ui)));
+    }
+    // What is under the tabs is the tab's: its widgets remember how far they are scrolled and what is typed in them
+    // apart from those of the other tabs (`repo.keep-open`).
+    let shown_tab = state
+        .tabs
+        .as_ref()
+        .and_then(|tabs| tabs.tabs.iter().find(|tab| tab.is_shown))
+        .map(|tab| tab.folder.as_str());
+    let body = ui.scope(("tab", shown_tab), |ui| {
+        tab_islands(state, ui, (column, gap, bar_height), &mut intents)
+    });
+    if let Some(drawer) = &state.drawer {
+        intents.extend(ui.clip(body, |ui| what_is_running_view(drawer, ui)));
+    }
+    dialogs(state, ui, &mut intents);
+    intents.extend(shortcuts(ui, state.drawer.is_some()));
+    intents
+}
+
+/// The islands of the tab shown: the header, what was said, a notice, and the timeline or the page; gives the rectangle
+/// under the notices, where the Activity drawer opens.
+fn tab_islands(
+    state: &WindowState<'_>,
+    ui: &mut Ui<'_>,
+    (mut column, gap, bar_height): (Area, f32, f32),
+    intents: &mut Vec<Intent>,
+) -> Rect {
     let top = column.top(bar_height);
     intents.extend(island(ui, top, |ui| toolbar_view(&state.header, ui)));
     let mut body = column.rest();
@@ -164,18 +196,13 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         let mut rows = Area::with_gap(body, gap);
         let bar = rows.top(bar_height);
         body = rows.rest();
-        island(ui, bar, |ui| notice_bar(notice, ui, bar, &mut intents));
+        island(ui, bar, |ui| notice_bar(notice, ui, bar, intents));
     }
     match &state.content {
-        Content::Timeline(timeline) => timeline_with_rail(timeline, ui, (body, gap), &mut intents),
+        Content::Timeline(timeline) => timeline_with_rail(timeline, ui, (body, gap), intents),
         Content::Page(page) => intents.extend(island(ui, body, |ui| host_view(page, ui))),
     }
-    if let Some(drawer) = &state.drawer {
-        intents.extend(ui.clip(body, |ui| what_is_running_view(drawer, ui)));
-    }
-    dialogs(state, ui, &mut intents);
-    intents.extend(shortcuts(ui, state.drawer.is_some()));
-    intents
+    body
 }
 
 /// The dialogs over the window, those that are open.

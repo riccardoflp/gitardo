@@ -53,11 +53,11 @@ history fills it, and everything else opens from it.
   and at last makes the island one button.
 - **Islands**: the tabs, the header, the branch rail, the timeline and the inspector, or the page shown, are each a
   rounded card on a ground one step darker, with a gap between them that is dragged to resize them.
-- **Header**: the **repository** (a menu of the repositories of the workspace and the recent ones, until the tabs of
-  M12 take its place), the **branch** checked out with how far it is from its upstream, **Search**, the button of
-  **Quick search** with `Ctrl K` beside it, **Sync**, which shows the commits to pull and to push and, clicked, fetches,
-  pulls and pushes them, with its menu (fetch, pull, push and their other ways), and **…** (refresh, branch, stash,
-  undo and the switches of the timeline). It gives up its words for icons when the window is narrow.
+- **Header**: the button that shows or hides the branch rail, the **branch** checked out with how far it is from its
+  upstream, **Search**, the button of **Quick search** with `Ctrl K` beside it, **Sync**, which shows the commits to
+  pull and to push and, clicked, fetches, pulls and pushes them, with its menu (fetch, pull, push and their other
+  ways), and **…** (refresh, branch, stash, undo and the switches of the timeline). It gives up its words for icons
+  when the window is narrow.
 - **Status bar**: a line of small text at the foot of the window: the **activity** indicator on the left (what is
   running, which opens the **Activity** drawer), and on the right the identity commits are made with, which a click
   switches.

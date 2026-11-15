@@ -35,7 +35,7 @@ pub struct SettingInfo {
 }
 
 /// Every setting, in the order of the card.
-pub const SETTINGS: [SettingInfo; 48] = [
+pub const SETTINGS: [SettingInfo; 49] = [
     SettingInfo {
         key: "commandPreview",
         description: "When the commands are shown before they run: off for the ones that can lose work, all for everything that changes something.",
@@ -57,6 +57,14 @@ pub const SETTINGS: [SettingInfo; 48] = [
         description: "Read the repository when the window opens, before the timeline is shown.",
         default: "true",
         is_repository: true,
+        is_experimental: false,
+        kind: SettingKind::Toggle,
+    },
+    SettingInfo {
+        key: "repositories.keepOpen",
+        description: "Each repository keeps what it showed while another is shown, and the tabs not shown are read in the background.",
+        default: "true",
+        is_repository: false,
         is_experimental: false,
         kind: SettingKind::Toggle,
     },

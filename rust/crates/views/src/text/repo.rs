@@ -27,6 +27,10 @@ pub const RECENT_GONE: &str = "None of the folders of this workspace is there an
 pub const SINGLE_REPOSITORY: &str = "Gitardo: this workspace has a single repository.";
 /// Why Select repository… does nothing in a workspace of none.
 pub const NO_REPOSITORY_TO_SELECT: &str = "Gitardo: no Git repository in this workspace.";
+/// The island of the tabs, as the screen reader names it (`repo.tabs`).
+pub const TABS: &str = "Repositories open";
+/// The tooltip of **+** at the end of the island of the tabs.
+pub const OPEN_ANOTHER: &str = "Open a folder or a recent workspace";
 /// The button that puts a notice away.
 pub const DISMISS: &str = "Dismiss";
 

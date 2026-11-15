@@ -1,10 +1,10 @@
-//! The header (`graph.toolbar`): the repository with its menu, the branch checked out and how far it is from its
-//! upstream, **Search**, Sync and the **…** menu, in the island at the top of the window (D21).
+//! The header (`graph.toolbar`): the branch checked out and how far it is from its upstream, **Search**, Sync and the
+//! **…** menu, in the island under the tabs (D21, D50).
 
 use std::path::PathBuf;
 
 use ui::layout::{Area, Insets, inset};
-use ui::{AccessRole, Button, ButtonKind, Description, Icon, Label, MenuEntry, MenuItem, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, Description, Icon, Label, TextKind, Tone, Ui};
 
 use super::more_menu::{MoreMenuState, more_menu_view};
 use super::sync_menu::{SyncWords, sync_entries, sync_intent};
@@ -14,14 +14,9 @@ use crate::line::{control_in, is_narrow};
 use crate::search;
 use crate::text::header as words;
 
-/// The key of the menu of the repository.
-const REPOSITORY_MENU: &str = "repository menu";
-
 /// What the header shows.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ToolbarState<'a> {
-    /// The pill of the repository and its menu.
-    pub repository: RepositoryPill<'a>,
     /// What is checked out, once the repository is read.
     pub branch: Option<BranchChip<'a>>,
     /// How many commits Sync would bring and send, once the repository is read and its branch has an upstream.
@@ -36,18 +31,7 @@ pub struct ToolbarState<'a> {
     pub quick: search::QuickSearchState<'a>,
 }
 
-/// The pill of the repository: its name, and its menu of the repositories of the workspace and the recent ones.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RepositoryPill<'a> {
-    /// The name of the repository shown, or of the workspace while it has none; none with no workspace.
-    pub name: Option<&'a str>,
-    /// The repositories to choose from, only when the workspace has more than one (`repo.select`).
-    pub repositories: &'a [RepositoryEntry],
-    /// The recent workspaces, the latest first, each by its folders (`repo.open-recent`).
-    pub recent: &'a [String],
-}
-
-/// A repository of the workspace, as the menu and the picker list it (`repo.name-repositories`).
+/// A repository of the workspace, as the picker lists it (`repo.name-repositories`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RepositoryEntry {
     /// Its name.
@@ -100,19 +84,8 @@ pub struct SyncCounts {
     pub ahead: u32,
 }
 
-/// What an item of the repository menu does.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum RepositoryCommand {
-    /// Show a repository, by its place in the list.
-    Select(usize),
-    /// **Open folder…**.
-    OpenFolder,
-    /// Open a recent workspace, by its place in the list.
-    OpenRecent(usize),
-}
-
-/// The header, over the rectangle its caller clipped it to: the button of the branch rail, the repository, the branch
-/// checked out, then at its end **Search**, **Sync** with its menu and **…**. In a narrow window each keeps its icon and
+/// The header, over the rectangle its caller clipped it to: the button of the branch rail, the branch checked out,
+/// then at its end **Search**, **Sync** with its menu and **…**. In a narrow window each keeps its icon and
 /// gives up its words.
 ///
 /// Feature: graph.toolbar
@@ -121,7 +94,7 @@ pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
     let theme = *ui.theme();
     ui.fill_rect(rect, theme.colors.header_background);
-    ui.region("header", (rect, AccessRole::Header, words::REPOSITORY_TOOLTIP), |ui| {
+    ui.region("header", (rect, AccessRole::Header, words::HEADER), |ui| {
         let spacing = theme.sizes.spacing;
         let inner = inset(rect, Insets::symmetric(spacing.medium, 0.0));
         let mut area = Area::with_gap(inner, spacing.large);
@@ -130,7 +103,6 @@ pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             let rect = control_in(ui, area.left(side), side);
             intents.extend(ui.clip(rect, |ui| toggle_references_view(references, ui)));
         }
-        repository_pill(&state.repository, ui, &mut area, &mut intents);
         if let Some(branch) = &state.branch {
             branch_chip(branch, ui, &mut area);
         }
@@ -141,62 +113,6 @@ pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         intents.extend(ui.clip(cell, |ui| search::quick_search_view(&state.quick, ui)));
     });
     intents
-}
-
-/// The pill of the repository, which opens its menu.
-fn repository_pill(pill: &RepositoryPill<'_>, ui: &mut Ui<'_>, area: &mut Area, intents: &mut Vec<Intent>) {
-    let accent = ui.theme().colors.accent;
-    let name = pill.name.unwrap_or(words::NO_FOLDER);
-    let button = Button::secondary(name)
-        .kind(ButtonKind::Pill)
-        .with_dot(accent)
-        .with_trailing(Icon::ChevronDown)
-        .with_tooltip(words::REPOSITORY_TOOLTIP);
-    let (width, _) = ui.button_size(&button);
-    let rect = control_in(ui, area.left(width), width);
-    let recent_entries: Vec<MenuEntry<'_, RepositoryCommand>> = pill
-        .recent
-        .iter()
-        .enumerate()
-        .map(|(index, label)| MenuEntry::Item(MenuItem::new(label.as_str(), RepositoryCommand::OpenRecent(index))))
-        .collect();
-    let mut entries: Vec<MenuEntry<'_, RepositoryCommand>> = pill
-        .repositories
-        .iter()
-        .enumerate()
-        .map(|(index, repository)| {
-            let item = MenuItem::new(repository.name.as_str(), RepositoryCommand::Select(index));
-            MenuEntry::Item(if repository.is_current {
-                item.with_icon(Icon::Check)
-            } else {
-                item
-            })
-        })
-        .collect();
-    if !entries.is_empty() {
-        entries.push(MenuEntry::Separator);
-    }
-    entries.push(MenuEntry::Item(
-        MenuItem::new(words::OPEN_FOLDER, RepositoryCommand::OpenFolder).with_icon(Icon::Folder),
-    ));
-    if !recent_entries.is_empty() {
-        entries.push(MenuEntry::Submenu {
-            label: words::OPEN_RECENT,
-            icon: None,
-            entries: &recent_entries,
-        });
-    }
-    let chosen = ui.menu_button(REPOSITORY_MENU, rect, &button, &entries);
-    match chosen {
-        Some(RepositoryCommand::Select(index)) => {
-            if let Some(repository) = pill.repositories.get(index) {
-                intents.push(Intent::SelectRepository(repository.folder.clone()));
-            }
-        }
-        Some(RepositoryCommand::OpenFolder) => intents.push(Intent::OpenFolder),
-        Some(RepositoryCommand::OpenRecent(index)) => intents.push(Intent::OpenRecent(index)),
-        None => {}
-    }
 }
 
 /// The words of the branch of the header.

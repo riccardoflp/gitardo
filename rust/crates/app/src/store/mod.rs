@@ -29,6 +29,7 @@ pub mod search;
 mod settings_page;
 mod stashes;
 mod state;
+pub mod tabs;
 pub mod tasks;
 #[cfg(test)]
 mod tests;
@@ -66,6 +67,10 @@ pub use worktrees::Worktrees;
 /// follows the row selected, the pages closed are forgotten, **Show in the timeline** follows the timeline read, and
 /// the repository shown is watched, when it is not the one watched.
 pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
+    if let Some(tab) = tabs::waiting_for(state, &message) {
+        tabs::keep_for(state, tab, message);
+        return Vec::new();
+    }
     let mut effects = reduce_message(state, message);
     effects.extend(inspector::follow(state));
     effects.extend(commit_page::prune(state));
@@ -99,12 +104,16 @@ fn feature_ended(state: &mut State, ended: feature::Ended, log: Vec<engine::LogE
 }
 
 /// Changes the store as a message says.
-fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
+pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
     match message {
         Message::Started { folders } => started(state, folders),
         Message::Intent(intent) => reduce_intent(state, intent),
         Message::FolderChosen(folder) => open_folder(state, folder),
-        Message::RepositoriesFound { job, found } => workspace::repositories_found(state, job, found),
+        Message::RepositoriesFound { job, found } => {
+            let mut effects = workspace::repositories_found(state, job, found);
+            effects.extend(tabs::follow_repositories(state));
+            effects
+        }
         Message::RepositoryRead {
             job,
             folder,
@@ -146,6 +155,7 @@ fn reduce_message(state: &mut State, message: Message) -> Vec<Effect> {
         Message::UrlNotOpened(said) => github::not_opened(state, said),
         Message::CloseRequested { window_size } => {
             let mut effects = workspace::cancel_all(state);
+            effects.extend(tabs::cancel_all(state));
             state.persisted.window_size = window_size.or(state.persisted.window_size);
             effects.push(Effect::WritePersisted(state.persisted.clone()));
             effects.push(Effect::Quit);
@@ -196,7 +206,7 @@ fn settings_read(state: &mut State, settings: Settings) -> Vec<Effect> {
     if state.settings.sort_order != sorted_before {
         rail::arrange(state);
     }
-    let mut effects = Vec::new();
+    let mut effects = tabs::settings_changed(state);
     if looks_different {
         effects.push(Effect::ApplySettings);
     }
@@ -298,7 +308,8 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         }
         Intent::AnswerOpenFolder(answer) => answer_open_folder(state, answer),
         Intent::OpenRecent(index) => open_recent(state, index),
-        Intent::SelectRepository(folder) => workspace::select(state, &folder),
+        Intent::SelectRepository(folder) => tabs::show_repository(state, &folder),
+        Intent::SwitchTab(index) => tabs::switch_tab(state, index),
         Intent::PickRepository => {
             workspace::pick_repository(state);
             Vec::new()
