@@ -1,6 +1,6 @@
-//! The reads of version 1.4, from stage 5 of the transition: every `read/<card>` of `docs/transition/02-protocol.md`
-//! (Reads) but the graph's, each with its parameters and its answer, and the conversion of the engine's types to their
-//! JSON. A read never changes the repository; the server answers each on a thread of its own.
+//! The reads of version 1.4, from stage 5 of the transition, and those of the graph that version 1.5 adds in stage 7:
+//! every `read/<card>` of `docs/transition/02-protocol.md` (Reads), each with its parameters and its answer, and the
+//! conversion of the engine's types to their JSON. A read never changes the repository; the server answers each on a thread of its own.
 //!
 //! The parameters of each read carry `repository` and the fields of the card's request; the answers are the JSON of
 //! the types the card's function gives.
@@ -10,6 +10,7 @@ mod commits;
 mod compare;
 mod conflicts;
 mod files;
+mod graph;
 mod repository;
 
 pub use bytes::{BytesJson, NotBase64};
@@ -31,6 +32,10 @@ pub use files::{
     BlameCommitJson, BlameFileParams, BlameLineJson, BlameLineParams, CommittedLinesJson, CommittedLinesParams,
     DiffSidesJson, DiffSidesParams, FileRevisionParams, FileVersionJson, IgnoredParams, IgnoredResult, LineRangeJson,
     NamesParams, NamesResult, PreviousVersionJson, VersionJson,
+};
+pub use graph::{
+    BranchesShownJson, CommitPageJson, CommitsParams, MatchesJson, MatchesParams, NarrowingJson, ParentsJson,
+    PositionParams, PositionResult, RowJson, SearchModeJson, TimelineJson,
 };
 pub use repository::{
     ChecksJson, CommandProposalJson, CommandsResult, CommonFolderResult, GitHubTokenParams, GitHubTokenResult,
@@ -109,9 +114,18 @@ pub mod methods {
     pub const COMMON_FOLDER: &str = "read/repo.common-folder";
     /// `commit.prepared-message`: the message git prepared.
     pub const PREPARED_MESSAGE: &str = "read/commit.prepared-message";
+    /// `graph.read-commits`: a page of the commits the timeline lists (version 1.5).
+    pub const GRAPH_COMMITS: &str = "read/graph.read-commits";
+    /// `graph.read-position`: where a commit is in the timeline (version 1.5).
+    pub const GRAPH_POSITION: &str = "read/graph.read-position";
+    /// `search.read-matches`: what a search of the whole history finds (version 1.5).
+    pub const SEARCH_MATCHES: &str = "read/search.read-matches";
 
-    /// Every read of version 1.4, in the order of the table of the protocol.
-    pub const ALL: [&str; 32] = [
+    /// Every read of version 1.5, in the order of the table of the protocol.
+    pub const ALL: [&str; 35] = [
+        GRAPH_COMMITS,
+        GRAPH_POSITION,
+        SEARCH_MATCHES,
         SEARCH_REVISION,
         DETAILS_COMMIT,
         COMMIT_PAGE_PATCH,

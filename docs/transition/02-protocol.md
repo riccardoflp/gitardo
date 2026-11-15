@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.4** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.5** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -36,6 +36,12 @@ as it is now; `compare.read-sides` and `compare.read-patch` take the request of 
 and both blame reads leave whitespace to the setting `blame.ignoreWhitespaceAndMoves`; `file-history.read-names` has no
 revision; `worktree-setup.propose-commands` gives the file that calls for each command; `branch.read-log` takes a count
 only, and answers whether there are more commits and which upstream the commits not pushed are counted against.
+
+Version 1.5 adds what stage 7 built: the three reads of the graph, `read/graph.read-commits`,
+`read/graph.read-position` and `read/search.read-matches`. Their `TimelineRequest` is written as [The graph](#the-graph)
+gives it, with two additions to what 1.4 guessed: a `narrowing` may be a search shown as a list (`{ kind: "search",
+mode, text }`), as the desktop's timeline lists one, and the answer of `read/search.read-matches` says whether the
+search found more than the 5,000 commits it gives (`hasMore`).
 
 ## Transport
 
@@ -207,9 +213,9 @@ change the repository and run at the same time as each other and as an operation
 | Method | Parameters besides `repository` | Result | Card (desktop) |
 | --- | --- | --- | --- |
 | `read/repo.read-state` | — | `RepositoryState` | `repo.read-state` |
-| `read/graph.read-commits` | `TimelineRequest` | `CommitPage` | `graph.read-commits` (stage 7) |
-| `read/graph.read-position` | `{ commit, timeline: TimelineRequest }` | `{ index: number \| null }` | `graph.read-position` (stage 7) |
-| `read/search.read-matches` | `{ text, mode: SearchMode, timeline: TimelineRequest }` | `{ commits: CommitId[] }` | `search.read-matches` (stage 7) |
+| `read/graph.read-commits` | `TimelineRequest` | `CommitPage` | `graph.read-commits` |
+| `read/graph.read-position` | `{ commit, timeline: TimelineRequest }` | `{ index: number \| null }` | `graph.read-position` |
+| `read/search.read-matches` | `{ text, mode: SearchMode, timeline: TimelineRequest }` | `{ commits: CommitId[], hasMore }` | `search.read-matches` |
 | `read/search.read-revision` | `{ revision }` | `{ commit: CommitId \| null }` | `search.read-revision` |
 | `read/details.read-commit` | `{ commit }`, `{ stash: number }` or `{ uncommitted: true }` | `CommitDetail \| null` | `details.read-commit` |
 | `read/commit-page.read-patch` | `{ commit, path: string \| null }` | `Patch` | `commit-page.read-patch` |
@@ -267,24 +273,39 @@ TimelineRequest = {
   shown: BranchesShown | null,     // null: every branch; else the branches ticked in the graph's selector
   parents: "all" | "first",        // gitardo.graph.firstParent
   alone: CommitId | null,          // only this commit's history (graph.show-in-graph of a commit not listed)
-  narrowing: HistoryOf | null,     // the history of a file, of lines, of a folder
+  narrowing: Narrowing | null,     // the history of a file, of lines, of a folder, or a search shown as a list
   pageSize: number,                // gitardo.graph.pageSize
   pages: number,                   // how many pages from the newest commit
   skip: number,                    // the rows the extension has already: the read starts after them
   stashes: boolean                 // gitardo.graph.showStashes
 }
+BranchesShown = { kind: "current" } | { kind: "upstream" }
+    | { kind: "kinds", local: boolean, remote: boolean, tags: boolean }
+    | { kind: "references", names: string[] }   // full names, refs/heads/main
+Narrowing = { kind: "file", path, earlier: string[] }   // earlier: the names it had before, newest first
+    | { kind: "lines", path, lines: LineRange, commit: CommitId, inEditor: LineRange | null }
+    | { kind: "folder", path }
+    | { kind: "search", mode: SearchMode, text }
+SearchMode = "message" | "author" | "changes" | "changesPattern"
 CommitPage = { rows: Row[], hasMore: boolean }
 Row = { kind: "commit", commit: Commit }
     | { kind: "stash", commit: Commit, index: number }
-    | { kind: "uncommitted", parent: CommitId | null }
+    | { kind: "uncommitted", parent: CommitId | null, files: number }
 Commit = { id, parents: CommitId[], authorName, authorEmail, authorDate: Timestamp, subject }
 ```
 
 `history_of` and `commits_request` are in the engine (`engine::timeline`, moved from `crates/app` in stage 1), since the
-extension must not build git's arguments. `skip` makes the next page carry only the new rows, as the extension's
-prefetch does since `ac28e4c` (`gitardo.graph.pageSize`, 500 rows ahead). The lanes stay computed by the webviews
-(`src/shared/graph.ts`) from `parents`. A page of the repository of 56,000 commits answers in less than 300 ms
-([06-roadmap.md](06-roadmap.md#stage-7--the-graph-reads)).
+extension must not build git's arguments. In `read/graph.read-commits` the fields of `TimelineRequest` are beside
+`repository`; the two other reads take it as `timeline`, and how much of it is read does not matter to them. `skip`
+makes the next page carry only the new rows, as the extension's prefetch does since `ac28e4c`
+(`gitardo.graph.pageSize`, 500 rows ahead): the extension asks from the last commit it has, `skip` one less than the
+commits it has, and checks that the page starts with it. The lanes stay computed by the extension
+(`src/shared/graph.ts`) from `parents`. A read of the graph never lists the row of the changes not committed, which
+the extension adds; a stash comes with its index, which the extension names `stash@{index}`. A history git cannot
+list, such as a search of a pattern git refuses, is the error `gitFailed`; a read cancelled with `$/cancel` stops its
+git and answers `cancelled`. A page of the repository of 56,000 commits was to answer in less than 300 ms
+([06-roadmap.md](06-roadmap.md#stage-7--the-graph-reads)); what `cargo xtask perf` measured is in
+[the desktop's testing](../desktop/06-testing.md).
 
 ## Features
 

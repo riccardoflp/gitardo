@@ -1,5 +1,6 @@
 //! The JSON of the reads of version 1.4, from stage 5: each parameter and answer read back as it was written, every
-//! variant of their enums in its JSON form, and the engine's types made into their JSON.
+//! variant of their enums in its JSON form, and the engine's types made into their JSON. Those of the graph, from
+//! version 1.5, are in `graph.rs`.
 
 #![cfg(test)]
 
@@ -35,8 +36,8 @@ fn commit(letter: char) -> CommitId {
 }
 
 #[test]
-fn every_read_but_the_graphs_has_its_method_once() {
-    assert_eq!(methods::ALL.len(), 32);
+fn every_read_has_its_method_once_the_graphs_since_version_1_5() {
+    assert_eq!(methods::ALL.len(), 35);
     for (index, method) in methods::ALL.iter().enumerate() {
         assert!(method.starts_with("read/"), "{method}");
         assert!(
@@ -45,7 +46,7 @@ fn every_read_but_the_graphs_has_its_method_once() {
         );
     }
     for graph in ["graph.read-commits", "graph.read-position", "search.read-matches"] {
-        assert!(!methods::ALL.contains(&format!("read/{graph}").as_str()));
+        assert!(methods::ALL.contains(&format!("read/{graph}").as_str()), "{graph}");
     }
 }
 
