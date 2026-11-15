@@ -10,7 +10,9 @@ import * as path from 'node:path';
 import { hostTarget } from '../../scripts/package.mjs';
 import { createWorkspace, engineSetting, environment, findCode, isolated, remove, source } from './fixture.mjs';
 
-const TIMEOUT = 240_000;
+// With everything read and run by the engine, its debug build included, the whole suite takes longer than 240 seconds;
+// the UI suite has the same limit.
+const TIMEOUT = 360_000;
 const options = process.argv.slice(2).filter((argument) => argument.startsWith('--'));
 const [codePath] = process.argv.slice(2).filter((argument) => !argument.startsWith('--'));
 

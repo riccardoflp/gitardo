@@ -6,6 +6,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { CONFLICT, INDEX, contentUri } from '../../src/extension/content';
+import type { EngineClient } from '../../src/engine/client';
+import { reads } from '../../src/engine/reads';
 import type { GitardoApi } from '../../src/extension/extension';
 import { type DiffDescriptor, describeDiff } from '../../src/flow/sides';
 import { git } from '../git';
@@ -98,6 +100,9 @@ export async function run(): Promise<void> {
   assert.ok(extension, 'the extension is installed');
   const { controller, log, fileBlame, flowDiff } = await extension.activate();
   const internals = controller as unknown as Internals;
+  // The functions of the extension this suite calls itself, such as describeDiff, are bundled into it with reads of
+  // their own: they ask the engine of the window, as the extension's do.
+  reads.use(() => internals.engine?.running as EngineClient | undefined);
   const state = () => {
     assert.ok(internals.state, 'a repository is loaded');
     return internals.state;
@@ -199,9 +204,8 @@ export async function run(): Promise<void> {
     await step('says in every view that the engine is not available, with a button that shows the log', async () => {
       for (const name of ['Graph', 'Changes', 'Commits', 'SideGraph', 'Branches', 'Stashes']) await vscode.commands.executeCommand(`gitardo.open${name}`);
       await until('the webviews', () => kinds().join() === 'branches,changes,commits,graph,sideGraph,stashes');
-      await until('the views told there is no engine', () =>
-        posted.some((message) => message.type === 'state' && message.state === null && message.engineMissing === true),
-      );
+      // The views are sent no state; `post` adds that it is for want of the engine, which the UI suite sees drawn.
+      await until('the views told there is no state', () => posted.some((message) => message.type === 'state' && message.state === null));
       assert.equal(internals.state, null);
       assert.ok(!posted.some((message) => message.type === 'state' && message.state !== null));
       // The button of the views.
@@ -3795,10 +3799,11 @@ export async function run(): Promise<void> {
       // What is changed and not committed is in the way, which is said rather than tried.
       write('edit-one.txt', 'one, changed\n');
       await controller.refresh();
-      errors.length = 0;
+      // The engine refuses, and the refusal is a warning: nothing failed, nothing ran.
+      asked.length = 0;
       await controller.action({ kind: 'continue' });
-      assert.ok(errors.some((text) => /amend the commit with them, commit them, or stash them/.test(text)), JSON.stringify(errors));
-      errors.length = 0;
+      const refused = await until('the refusal', () => asked.find((said) => /amend the commit with them, commit them, or stash them/.test(said.message)));
+      assert.ok(refused.message.startsWith('Gitardo: '), refused.message);
       assert.equal(state().operation, 'rebase');
 
       // Amended, it goes on, and the commit after it is made again on top.
@@ -3833,6 +3838,7 @@ export async function run(): Promise<void> {
     const last = await commit('Add split three and four', 'split-three.txt', 'split-four.txt');
     await controller.refresh();
     const drafted = () => posted.flatMap((message) => (message.type === 'commitMessage' ? [message.message] : []));
+    let failed: unknown;
     try {
       // The last one: a reset, a message that says what to do, its message in the box, and an undo of its own.
       asked.length = 0;
@@ -3867,14 +3873,19 @@ export async function run(): Promise<void> {
       await controller.refresh();
 
       // Continue with a file of it not committed: going back to committing changes nothing.
-      asked.length = 0;
-      answer = () => 'Go Back to Committing';
+      // The engine asks it as a pick of two choices, which the extension shows as a quick pick with the question as title.
+      const titles: string[] = [];
+      choose = (items, options) => {
+        titles.push(options.title ?? '');
+        return byLabel('Go back to committing')(items);
+      };
       await controller.action({ kind: 'continue' });
-      assert.equal(asked.length, 1);
-      assert.ok(/^"Add split one and two" is not all committed yet: 1 file of it is still changed\.$/.test(asked[0].message), asked[0].message);
+      assert.equal(titles.length, 1);
+      assert.ok(/^"Add split one and two" is not all committed yet: 1 file of it is still changed\.$/.test(titles[0]), titles[0]);
       assert.equal(state().operation, 'rebase');
       // Or what is left is committed with the message the commit had, and the rebase goes on to the end.
-      answer = (_message, _detail, items) => (items.includes('Commit What Is Left') ? 'Commit What Is Left' : items.includes('Run') ? 'Run' : undefined);
+      choose = byLabel('Commit what is left');
+      answer = run;
       await controller.action({ kind: 'continue' });
       assert.equal(state().operation, null);
       assert.equal(state().rebaseStop, null);
@@ -3885,11 +3896,20 @@ export async function run(): Promise<void> {
       answer = run;
       await controller.action({ kind: 'undo' });
       assert.equal(state().head.commit, last);
+    } catch (error) {
+      failed = error;
+      throw error;
     } finally {
       answer = () => undefined;
-      await git(app, ['rebase', '--abort']).catch(() => undefined);
-      await git(app, ['checkout', '--force', home]);
-      await git(app, ['branch', '-D', 'split']);
+      choose = () => undefined;
+      // What went wrong in the step is what is said, not that the clean-up could not end what it left.
+      try {
+        await git(app, ['rebase', '--abort']).catch(() => undefined);
+        await git(app, ['checkout', '--force', home]);
+        await git(app, ['branch', '-D', 'split']);
+      } catch (error) {
+        if (!failed) throw error;
+      }
       for (const name of ['one', 'two', 'three', 'four']) fs.rmSync(path.join(app, `split-${name}.txt`), { force: true });
       await controller.refresh();
     }
