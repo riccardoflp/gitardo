@@ -678,6 +678,25 @@ Acceptance:
       to `off`, and nothing says the branch will need a force push.
 - [ ] Extension: right after, **Undo** asks first and then puts back the commit as it was before the amend.
 
+### `commit.prepared-message` — The message git prepared
+
+The message git wrote for the commit of a squash merge while its changes wait to be committed, which fills the commit
+box after `merge.squash` (`FollowUp::PreparedMessage`, Q398).
+
+- **Kind**: Read
+- **Function**: `git::read::commit::read_prepared_message(git: &Git, request: &PreparedMessageRequest) -> Result<Option<String>, GitError>`
+- **Reads**: `git rev-parse --show-toplevel --absolute-git-dir` for the git folder of the worktree, then the file
+  `SQUASH_MSG` in it, without the line breaks and spaces at its end. No file, or one with only blanks, is no message.
+- **Extension**: the commit box of the Changes view; the extension kept the line breaks at the end of the message.
+
+Acceptance:
+
+- [ ] After `git merge --squash`, it is the message git wrote, starting with "Squashed commit of the following:", without
+      the line breaks at its end.
+- [ ] With no squash merge waiting, there is none.
+- [ ] A linked worktree has its own: a squash merge waiting in the main worktree gives no message in another one.
+- [ ] A `SQUASH_MSG` of blank lines is no message.
+
 ### `commit.draft-message` — Draft the commit message
 
 Asks the AI provider to write the commit message from the changes, and puts its answer in the message box, to edit.
