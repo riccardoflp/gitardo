@@ -58,13 +58,13 @@ Acceptance:
 | `gitardo.graph.traceSelected` | `true` | window | Bring out the history of the selected commit. | Graph (no cards yet) |
 | `gitardo.branches.sortOrder` | not set | window | `name` or `date`; not set, VS Code's `git.branchSortOrder` decides, and by name without it. Written by the sections' menu. | `branch.sort` |
 | `gitardo.branches.followGraphFilter` | `true` | window | The references list only the branches shown. Written by the switch above the references. | Search and filter (no cards yet) |
-| `gitardo.branches.format` | `""` | window | A format for the names of new branches. | `branch.name-format`, `branch.create`, `worktree.branch-name`, `worktree.create` |
-| `gitardo.branches.inputs` | `[]` | window | What each `${input:<id>}` of the format asks. | `branch.name-format`, `branch.create`, `worktree.branch-name`, `worktree.create` |
+| `gitardo.branches.format` | `""` | window | A format for the names of new branches. | `branch.name-format`, `branch.create`, `worktree.create` |
+| `gitardo.branches.inputs` | `[]` | window | What each `${input:<id>}` of the format asks. | `branch.name-format`, `branch.create`, `worktree.create` |
 | `gitardo.worktrees.openIn` | `window` | window | Where a worktree opens: a new window or the Agents window. | `worktree.open`, `worktree.open-in-worktree`, `worktree.switch` |
-| `gitardo.worktrees.folder` | `${repo}.worktrees` | window | Where new worktrees go. | `worktree.folder`, `worktree.create` |
-| `gitardo.worktrees.linkFolders` | `[]` | resource | Ignored folders linked into each new worktree. Falls back to `git.worktreeSymlinkFolders`. | `setup.link-and-copy`, `setup.source`, `setup.page`, `setup.save`, `setup.explorer-link` |
-| `gitardo.worktrees.copyFiles` | `[]` | resource | Ignored files copied into each new worktree. Falls back to `git.worktreeIncludeFiles`. | `setup.link-and-copy`, `setup.source`, `setup.page`, `setup.save`, `setup.explorer-copy` |
-| `gitardo.worktrees.setupCommands` | `[]` | resource | Commands run in a terminal in each new worktree. | `setup.commands`, `setup.page`, `setup.save` |
+| `gitardo.worktrees.folder` | `${repo}.worktrees` | window | Where new worktrees go. | `worktree.folder-path`, `worktree.create` |
+| `gitardo.worktrees.linkFolders` | `[]` | resource | Ignored folders linked into each new worktree. Falls back to `git.worktreeSymlinkFolders`. | `worktree-setup.link-and-copy-steps`, `worktree-setup.settings-in-effect`, `worktree-setup.page`, `worktree-setup.save`, `worktree-setup.link-into-new-worktrees` |
+| `gitardo.worktrees.copyFiles` | `[]` | resource | Ignored files copied into each new worktree. Falls back to `git.worktreeIncludeFiles`. | `worktree-setup.link-and-copy-steps`, `worktree-setup.settings-in-effect`, `worktree-setup.page`, `worktree-setup.save`, `worktree-setup.copy-into-new-worktrees` |
+| `gitardo.worktrees.setupCommands` | `[]` | resource | Commands run in a terminal in each new worktree. | `worktree-setup.command-steps`, `worktree-setup.page`, `worktree-setup.save` |
 | `gitardo.worktrees.branchFormat` | `""` | window | The older name of `gitardo.branches.format`, read while that one is not set. Has no description, so the Settings editor shows it bare. | `branch.name-format` |
 | `gitardo.worktrees.inputs` | `[]` | window | The older name of `gitardo.branches.inputs`, read while that one is empty. | `branch.name-format` |
 | `gitardo.conflicts.autoResolve` | `false` | window | Experimental: offer the rules for conflicts that need no choice. | `conflict.resolve-rules`, `conflict.review`, `operation.banner`, `log.report-failure` |

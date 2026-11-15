@@ -285,7 +285,7 @@ export class EngineClient {
       protocol: PROTOCOL,
       client: { name: 'gitardo-vscode', version: this.options.clientVersion },
       settings: this.options.settings(),
-      host: {},
+      host: { terminal: true },
       logLevel: this.options.logLevel(),
     };
     try {

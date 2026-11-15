@@ -722,7 +722,7 @@ async function checkoutRemote(ref: string, rebase: boolean, state: RepoState, re
 export const AGENTS_WINDOW = 'workbench.action.openAgentsWindow';
 
 /** Where a worktree opens when nothing says: as the settings choose, in the Agents window only where VS Code has one. */
-function openIn(state: RepoState): 'window' | 'agents' {
+export function openIn(state: Pick<RepoState, 'agentsWindow'>): 'window' | 'agents' {
   const setting = vscode.workspace.getConfiguration('gitardo').get<string>('worktrees.openIn', 'window');
   return setting === 'agents' && state.agentsWindow ? 'agents' : 'window';
 }
@@ -769,7 +769,7 @@ async function openInWorktree(name: string, remote: boolean, state: RepoState): 
 
 /** Whether creating a worktree has offered once to choose what new worktrees get, and the button that offers it. */
 export const SETUP_OFFERED = 'worktreeSetupOffered';
-const SET_UP = 'Choose What It Gets…';
+export const SET_UP = 'Choose What It Gets…';
 
 /** What the patterns will bring into a worktree, said for who is asked. Undefined when they bring nothing. */
 function setupNote(patterns: SetupPatterns, root: string): string | undefined {

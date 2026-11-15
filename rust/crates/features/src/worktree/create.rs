@@ -1,8 +1,8 @@
 //! `worktree.create`: makes a new worktree on a new branch, from a branch the user picks, in the folder of the
 //! worktrees.
 
-use model::branch::{RefKind, RefNames, ref_argument};
-use model::contract::{Answer, AnswerKey, Answers, Context, Outcome, Question, QuestionKind, Text};
+use model::branch::{BaseOf, RefKind, RefNames, ref_argument};
+use model::contract::{Answer, AnswerKey, Answers, Context, FollowUp, Outcome, Question, QuestionKind, Text};
 use model::worktree::folder_in;
 
 use super::add::{Addition, add, with_offers};
@@ -20,7 +20,8 @@ pub const NAME: AnswerKey = AnswerKey("name");
 const DETACHED: &str = "HEAD";
 
 /// Makes a worktree on a new branch: asks, when `branches.format` is set, whether to use it; then what it starts from,
-/// the branch checked out first; then the name, made by the format or typed, refused while typed when git would not
+/// the branch checked out first; then, with the format, its inputs (`branch.name-from-format`), `${base}` being the
+/// branch it starts from or the short hash of a detached `HEAD`; then the name, made by the format or typed, refused while typed when git would not
 /// take it, when it is a branch already or beside one, or when its folder is a worktree's. Then
 /// `git worktree add --no-track -b <name> <folder> <start>`, so that the new branch has no upstream, followed by what
 /// new worktrees get.
@@ -39,16 +40,20 @@ pub fn create(context: &Context, answers: &Answers) -> Outcome {
     let Some(start) = answers.choice(START) else {
         return Outcome::Ask(start_question(context));
     };
+    let from_format = match format.filter(|_| uses_format) {
+        Some(format) => match formatted(context, answers, (format, base_of_start(context, start), TITLE)) {
+            Ok(made) => Some(made),
+            Err(outcome) => return *outcome,
+        },
+        None => None,
+    };
     let Some(name) = answers.text(NAME) else {
-        let proposed = format
-            .filter(|_| uses_format)
-            .map(|format| formatted(context, format, start));
         let detail = "Name of the new branch, and of the folder of the worktree";
         return Outcome::Ask(name_question(
             NAME,
-            ("Create worktree", detail),
+            (TITLE, detail),
             rule(context, true, None),
-            proposed,
+            from_format.map(|made| made.name),
         ));
     };
     let name = name.trim();
@@ -67,8 +72,25 @@ pub fn create(context: &Context, answers: &Answers) -> Outcome {
         start,
     };
     match add(context, answers, addition) {
-        Ok(made) => Outcome::Run(with_offers(context, made, &folder)),
+        Ok(made) => {
+            let mut plan = with_offers(context, made, &folder);
+            plan.after
+                .extend(from_format.map(|made| FollowUp::RememberInputs(made.inputs)));
+            Outcome::Run(plan)
+        }
         Err(outcome) => *outcome,
+    }
+}
+
+/// The title of the questions.
+const TITLE: &str = "Create worktree";
+
+/// What `${base}` is for the start picked: the branch, or a remote branch, by its name; the short hash of `HEAD` when
+/// it is detached.
+fn base_of_start(context: &Context, start: &str) -> BaseOf {
+    match (start, &context.repository.head.commit) {
+        (DETACHED, Some(commit)) => BaseOf::Known(commit.short().to_owned()),
+        _ => BaseOf::Known(start.to_owned()),
     }
 }
 

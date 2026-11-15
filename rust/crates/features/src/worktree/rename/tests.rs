@@ -15,7 +15,8 @@ fn renamed(name: &str) -> Answers {
 }
 
 #[test]
-fn worktree_rename__with_its_branch_it_moves_the_folder_then_renames_the_branch_proposed_from_the_folder() {
+fn worktree_rename__with_its_branch_it_moves_the_folder_deletes_the_empty_ones_then_renames_the_branch_proposed_from_the_folder()
+ {
     let context = on_login();
     let asked = question(rename(&context, &Answers::new()));
     assert_eq!(asked.default, Some(Answer::Text(String::from("feature/login"))));
@@ -27,10 +28,12 @@ fn worktree_rename__with_its_branch_it_moves_the_folder_then_renames_the_branch_
         &context,
         &answers.with(BRANCH_NAME, Answer::Text(String::from("feature/signin"))),
     ));
+    // The folders left empty go before the branch, so that a rename git refuses leaves none behind.
     assert_eq!(
-        lines(&plan).get(..2).unwrap(),
+        lines(&plan),
         [
             "git worktree move /code/app.worktrees/feature/login /code/app.worktrees/feature/signin",
+            "delete /code/app.worktrees/feature",
             "git branch -m feature/login feature/signin",
         ]
     );

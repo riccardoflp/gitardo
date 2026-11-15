@@ -94,6 +94,14 @@ needs is written in the commit of that stage, not before.
 | [transition/04-differences.md](04-differences.md) | D2, D3 and D4 fixed, D6 decided, D1 and D5 in the CHANGELOG; the pairs of the area not reached before, checked. |
 | [extension/02-architecture.md](../extension/02-architecture.md) | `src/engine/resolutions.ts`, and the Flow Diff and Flow Merge handed the runs of the engine with their `GitOp`. |
 
+## Written in stage 4, area 5 (worktrees and their setup, submodules)
+
+| Page | Change |
+| --- | --- |
+| [features/12-worktrees.md](../features/12-worktrees.md), [13-submodules.md](../features/13-submodules.md) | The extension's cards of the area merged, each with its **Extension** line and acceptance lines; `features/extension/12` and `13` emptied, and the identifiers of the area in `features/extension/18-settings.md` and `01-repositories.md` changed to the desktop's. |
+| [transition/02-protocol.md](02-protocol.md) | Version 1.3: `offerRun` for **Remove anyway**, given `force` as a `flag`, and for **Choose What It Gets…**; `host.terminal`, the setup commands of a new worktree handed over in `waiting`. |
+| [transition/04-differences.md](04-differences.md) | W1–W3, W9, W10, S3, S4 and S6 fixed; W4 and W5 decided as recommended, to be confirmed; W6–W8, S1 and S5 in the CHANGELOG; W11 left to D7; W12 waiting for `WriteSetting` (Q399). |
+
 ## Written in stages 8 and 9
 
 | Page | Change |

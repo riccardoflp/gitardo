@@ -108,3 +108,27 @@ fn a_move_that_never_succeeds_shows_the_last_failure_after_twenty_tries() {
     assert_eq!(result, Err(last.to_owned()));
     assert_eq!(done.tries, 19);
 }
+
+#[test]
+fn submodule_deinitialize__a_folder_windows_holds_is_tried_again_until_git_empties_it() {
+    let held = "error: could not remove 'lib': Permission denied\n";
+    let deinit = ["-C", "vendor", "submodule", "deinit", "--", "lib"];
+    let (result, done) = recovered((&deinit, held), &[Err(held), Ok(())], (true, true));
+    assert_eq!(result, Ok(()));
+    assert_eq!(done.tries, 2);
+    assert_eq!(done.logged.last().unwrap(), "git -C vendor submodule deinit -- lib");
+    let (result, done) = recovered((&deinit, held), &[Ok(())], (false, true));
+    assert_eq!(result, Err(held.to_owned()), "only Windows holds folders so");
+    assert_eq!(done.tries, 0);
+}
+
+#[test]
+fn submodule_remove__git_rm_on_a_folder_windows_holds_is_tried_again() {
+    let held = "error: unable to remove 'lib': Device or resource busy\n";
+    let (result, done) = recovered((&["rm", "--force", "--", "lib"], held), &[Ok(())], (true, true));
+    assert_eq!(result, Ok(()));
+    assert_eq!(done.tries, 1);
+    let other = "fatal: pathspec 'lib' did not match any files\n";
+    let (result, _) = recovered((&["rm", "--force", "--", "lib"], other), &[Ok(())], (true, true));
+    assert_eq!(result, Err(other.to_owned()), "a failure of its own is the operation's");
+}

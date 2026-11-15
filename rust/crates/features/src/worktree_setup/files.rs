@@ -105,12 +105,31 @@ pub fn patterns_of(settings: &SetupSettings) -> SetupPatterns {
     }
 }
 
-/// The settings files, or the outcome that reads them first.
+/// What is said where a feature would write the settings files while the host gives the settings.
+pub const SETTINGS_OF_THE_HOST: &str = "Inside VS Code, what new worktrees get is in VS Code's settings: Gitardo changes them there, not in a file of its own.";
+
+/// What new worktrees get: what the host gives, inside VS Code, or else what the settings files set, read first.
 ///
 /// # Errors
 ///
 /// The read of the files, while they are not read yet.
+pub fn settings_given(context: &Context, answers: &Answers) -> Result<SetupSettings, Box<Outcome>> {
+    match &context.settings.worktrees.setup {
+        Some(given) => Ok(given.clone()),
+        None => Ok(read_files(context, answers)?.in_effect()),
+    }
+}
+
+/// The settings files, or the outcome that reads them first. While the host gives the settings, no file is read, and
+/// a feature that would write one is refused: the host writes its own.
+///
+/// # Errors
+///
+/// The read of the files, while they are not read yet; the refusal while the host gives the settings.
 pub fn read_files(context: &Context, answers: &Answers) -> Result<SettingsFiles, Box<Outcome>> {
+    if context.settings.worktrees.setup.is_some() {
+        return Err(Box::new(Outcome::Refuse(Refusal::saying(SETTINGS_OF_THE_HOST))));
+    }
     let folder = &context.repository.folder;
     let repository = folder.join(".gitardo").join("settings.json");
     let vs_code = folder.join(".vscode").join("settings.json");

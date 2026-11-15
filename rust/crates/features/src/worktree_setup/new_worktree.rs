@@ -10,7 +10,7 @@ use model::worktree_setup::{
     link_and_copy_steps,
 };
 
-use super::files::{patterns_of, read_files};
+use super::files::{patterns_of, settings_given};
 use crate::trust::TrustAsked;
 
 /// The key of what the patterns take for the new worktree.
@@ -45,7 +45,7 @@ pub fn new_worktree_steps(
     answers: &Answers,
     worktree: &NewWorktree<'_>,
 ) -> Result<SetupSteps, Box<Outcome>> {
-    let settings = read_files(context, answers)?.in_effect();
+    let settings = settings_given(context, answers)?;
     let asked = TrustAsked {
         commands: &settings.setup_commands.values,
         source: settings.setup_commands.source,
@@ -185,6 +185,38 @@ mod tests {
                 directory: worktree.clone(),
                 name: String::from("feature"),
             })
+        );
+    }
+
+    #[test]
+    fn worktree_setup_settings_in_effect__inside_vs_code_the_settings_the_host_gives_are_taken_and_no_file_is_read() {
+        use model::worktree_setup::{InEffect, SettingSource, SetupSettings};
+        let in_effect = |values: &[&str]| InEffect {
+            values: values.iter().map(|value| (*value).to_owned()).collect(),
+            source: SettingSource::Repository,
+        };
+        let mut context = context(state(), Target::Head);
+        context.settings.trust = Trust::Trusted;
+        context.settings.worktrees.setup = Some(SetupSettings {
+            link_folders: in_effect(&[]),
+            copy_files: in_effect(&[]),
+            setup_commands: in_effect(&["npm ci"]),
+        });
+        let worktree = PathBuf::from("tree");
+        let new = NewWorktree {
+            folder: &worktree,
+            commit: "main",
+            name: "tree",
+        };
+        let steps = new_worktree_steps(&context, &Answers::new(), &new).unwrap();
+        assert_eq!(
+            lines(&steps.steps),
+            ["Then Gitardo will run npm ci, in Tasks, in the worktree.", "run npm ci"]
+        );
+        let refused = crate::worktree_setup::files::read_files(&context, &Answers::new()).map_err(|outcome| *outcome);
+        assert!(
+            matches!(refused, Err(Outcome::Refuse(_))),
+            "the files of the desktop are neither read nor written: {refused:?}"
         );
     }
 

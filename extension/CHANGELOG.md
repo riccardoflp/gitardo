@@ -42,6 +42,13 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - The question of **Resolve automatically** says what it writes and runs in a sentence, and it is the only question asked, also with `gitardo.commandPreview` set to `all`.
 - With `gitardo.commandPreview` set to `all`, writing the resolutions accepted in the review asks first, and a file saved while the question is open is not written over.
 - The log says, for each file the review writes, how many of its conflicts were resolved and by whom, and warns when the AI wrote some; the files written are named by their whole path.
+- Creating, removing, renaming and pruning worktrees, **Open in worktree**, bringing what git ignores into worktrees, and adding, updating, initializing, staging, deinitializing, removing and synchronizing submodules are run by Gitardo's engine when the extension has it, with the same commands as before, and without the engine as before. What new worktrees get still comes from `gitardo.worktrees.linkFolders`, `copyFiles` and `setupCommands`, and the setup commands still run in a terminal of this window, only in a trusted workspace.
+- Removing a worktree whose folder is gone now says to prune the worktrees instead.
+- When git refuses to remove a worktree with changes, the message now has a **Remove anyway** button instead of asking at once.
+- A folder left empty by removing a worktree now goes even when its branch is kept for not being merged, and one left empty by renaming a worktree goes even when renaming its branch fails.
+- Allowing a submodule to be cloned from a folder on disk now runs again only the commands that had not run.
+- Updating or staging a submodule that is already on its recorded commit now says so instead of running git; update a submodule before taking it to the latest of its branch.
+- Creating a worktree with `gitardo.branches.format` set asks for the inputs of the format after what the new branch starts from, and at a commit asks what `${base}` is among the branches at it, its short hash and the branches that have it; from a detached HEAD, `${base}` is its short hash.
 
 ## 0.11.0 - 2026-11-12
 

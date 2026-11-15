@@ -4,7 +4,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex, PoisonError};
 
-use engine::{EngineError, Finished};
+use engine::{EngineError, Finished, TaskSteps};
 use git::read::repo::{StateRequest, read_state};
 use git::{CancelToken, Git};
 use model::contract::{Answer, AnswerKey, Answers, Context, Target, Validation};
@@ -46,10 +46,17 @@ pub fn run(
     };
     let (known, given) = known_before(params.answers);
     let (asking, run, token) = (Arc::clone(session), id.clone(), cancel.clone());
+    // The setup commands of a new worktree run in VS Code's terminals when the extension said it runs them.
+    let tasks = if session.runs_tasks() {
+        TaskSteps::HandedOver
+    } else {
+        TaskSteps::InPlace
+    };
     let finished = repository
         .with_engine(move |engine| {
             engine.state_read(Arc::clone(&context.repository));
             engine.cancel_with(token.clone());
+            engine.run_tasks(tasks);
             let mut asker = HostAsker::new(&asking, run, given, token);
             let finished = engine.run_feature_from(feature, operation, (&context, known), &mut asker);
             (finished, engine.take_log(asking.log_level()))

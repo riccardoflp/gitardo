@@ -1,8 +1,8 @@
 //! `worktree.create-from-branch`: puts a local branch in a worktree of its own, or a new branch made from it with the
 //! format of branch names.
 
-use model::branch::other_worktree;
-use model::contract::{AnswerKey, Answers, Context, Outcome, Refusal, Target};
+use model::branch::{BaseOf, RefKind, RefNames, other_worktree, ref_argument};
+use model::contract::{AnswerKey, Answers, Context, FollowUp, Outcome, Refusal, Target};
 use model::worktree::folder_in;
 
 use super::add::{Addition, add, with_offers};
@@ -15,7 +15,8 @@ pub const FOLDER: AnswerKey = AnswerKey("folder");
 
 /// Puts the branch invoked on in a worktree of its own: `git worktree add <folder> <branch>`, the folder named after
 /// the branch unless another name is typed. With `branches.format` set, it asks first whether to use the format, which
-/// makes a new branch from it with `--no-track -b`, or the branch itself. A branch checked out here or in another
+/// makes a new branch from it with `--no-track -b`, its inputs asked (`branch.name-from-format`) and `${base}` the
+/// branch, or the branch itself. A branch checked out here or in another
 /// worktree is not put in one more.
 ///
 /// Feature: worktree.create-from-branch
@@ -24,15 +25,8 @@ pub fn create_from_branch(context: &Context, answers: &Answers) -> Outcome {
     let Target::Branch(branch) = &context.target else {
         return Outcome::Refuse(Refusal::saying("Choose a local branch to put in a worktree."));
     };
-    let state = &context.repository;
-    let is_checked_out = state
-        .branches
-        .iter()
-        .any(|known| known.name == *branch && known.is_checked_out);
-    if is_checked_out || other_worktree(state, branch).is_some() {
-        return Outcome::Refuse(Refusal::saying(&format!(
-            "`{branch}` is checked out already: git checks a branch out in one worktree at a time."
-        )));
+    if let Some(refusal) = checked_out(context, branch) {
+        return refusal;
     }
     let format = format_of(context);
     let uses_format = match (format, answers.choice(WAY)) {
@@ -46,32 +40,65 @@ pub fn create_from_branch(context: &Context, answers: &Answers) -> Outcome {
         }
         (Some(_), Some(way)) => way == USE_FORMAT,
     };
-    match (format.filter(|_| uses_format), answers.text(NAME), answers.text(FOLDER)) {
-        (Some(format), None, _) => Outcome::Ask(name_question(
+    let from_format = match format.filter(|_| uses_format) {
+        Some(format) => match formatted(
+            context,
+            answers,
+            (format, BaseOf::Known(branch.clone()), "Create worktree"),
+        ) {
+            Ok(made) => Some(made),
+            Err(outcome) => return *outcome,
+        },
+        None => None,
+    };
+    match (from_format, answers.text(NAME), answers.text(FOLDER)) {
+        (Some(made), None, _) => Outcome::Ask(name_question(
             NAME,
             (
                 "Create worktree",
                 "Name of the new branch, and of the folder of the worktree",
             ),
             rule(context, true, None),
-            Some(formatted(context, format, branch)),
+            Some(made.name),
         )),
-        (Some(_), Some(name), _) => made(context, answers, (branch, Some(name.trim()), name.trim())),
+        (Some(made), Some(name), _) => match made_plan(context, answers, (branch, Some(name.trim()), name.trim())) {
+            Outcome::Run(mut plan) => {
+                plan.after.push(FollowUp::RememberInputs(made.inputs));
+                Outcome::Run(plan)
+            }
+            other => other,
+        },
         (None, _, None) => Outcome::Ask(name_question(
             FOLDER,
             ("Create worktree", "Name of the folder of the worktree"),
             rule(context, false, None),
             Some(branch.clone()),
         )),
-        (None, _, Some(folder)) => made(context, answers, (branch, None, folder.trim())),
+        (None, _, Some(folder)) => made_plan(context, answers, (branch, None, folder.trim())),
     }
 }
 
+/// The refusal of a branch checked out here or in another worktree, which git checks out in one worktree at a time.
+fn checked_out(context: &Context, branch: &str) -> Option<Outcome> {
+    let state = &context.repository;
+    let is_checked_out = state
+        .branches
+        .iter()
+        .any(|known| known.name == branch && known.is_checked_out);
+    (is_checked_out || other_worktree(state, branch).is_some()).then(|| {
+        Outcome::Refuse(Refusal::saying(&format!(
+            "`{branch}` is checked out already: git checks a branch out in one worktree at a time."
+        )))
+    })
+}
+
 /// The plan: the branch itself, or a new branch from it, in the folder of a name.
-fn made(context: &Context, answers: &Answers, (branch, new_branch, name): (&str, Option<&str>, &str)) -> Outcome {
+fn made_plan(context: &Context, answers: &Answers, (branch, new_branch, name): (&str, Option<&str>, &str)) -> Outcome {
     let folder = folder_in(&folder_of_worktrees(context), name);
     let path = folder.to_string_lossy().into_owned();
     let (title, arguments) = match new_branch {
+        // A new branch starts from the branch by its full name when a namesake would take its short one; the branch
+        // itself is given by its short name, which git would otherwise check out on a detached `HEAD`.
         Some(new) => (
             format!("Create worktree {new} from {branch}"),
             vec![
@@ -79,7 +106,7 @@ fn made(context: &Context, answers: &Answers, (branch, new_branch, name): (&str,
                 String::from("-b"),
                 new.to_owned(),
                 path,
-                branch.to_owned(),
+                ref_argument(RefKind::Branch, branch, &RefNames::of(&context.repository)),
             ],
         ),
         None => (format!("Put {branch} in a worktree"), vec![path, branch.to_owned()]),
@@ -121,6 +148,22 @@ mod tests {
         let answers = not_there().with(FOLDER, Answer::Text(String::from("release")));
         let plan = plan(create_from_branch(&context, &answers));
         assert_eq!(lines(&plan)[0], "git worktree add /code/app.worktrees/release release");
+    }
+
+    #[test]
+    fn worktree_create_from_branch__a_new_branch_starts_from_the_branch_in_full_when_a_tag_has_its_name() {
+        let mut context = on_release();
+        let mut state = (*context.repository).clone();
+        state.tags.push(crate::testing::tag("release", 'a'));
+        context.repository = std::sync::Arc::new(state);
+        context.settings.branch_format = String::from("${base}-spike");
+        let new = not_there()
+            .with(WAY, Answer::Choice(USE_FORMAT.to_owned()))
+            .with(NAME, Answer::Text(String::from("release-spike")));
+        assert_eq!(
+            lines(&plan(create_from_branch(&context, &new)))[0],
+            "git worktree add --no-track -b release-spike /code/app.worktrees/release-spike refs/heads/release"
+        );
     }
 
     #[test]

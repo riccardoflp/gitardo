@@ -97,7 +97,8 @@ pub enum FollowUpJson {
         line: usize,
     },
     /// An operation is offered with a button, on a target of its own and with answers given: **Delete anyway** after
-    /// git kept a branch it found not fully merged.
+    /// git kept a branch it found not fully merged, **Remove anyway** after git refused to remove a worktree with
+    /// changes, **Choose What It Gets…** once a worktree is made.
     OfferRun {
         /// The words of the button.
         label: String,

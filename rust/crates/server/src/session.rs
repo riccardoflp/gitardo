@@ -50,6 +50,9 @@ pub struct Session {
     asked: Outgoing,
     /// The settings, by the desktop's names, from `initialize` and `settings/changed`.
     settings: Mutex<Map<String, Value>>,
+    /// Whether the extension runs the setup commands of new worktrees itself, in VS Code's terminals (`host.terminal`
+    /// of `initialize`).
+    runs_tasks: AtomicBool,
 }
 
 /// The value behind a lock, even when a thread that held it panicked: what it guards is plain data, still whole.
@@ -69,6 +72,7 @@ impl Session {
             is_shut_down: AtomicBool::new(false),
             asked: Outgoing::default(),
             settings: Mutex::new(Map::new()),
+            runs_tasks: AtomicBool::new(false),
         }
     }
 
@@ -80,6 +84,12 @@ impl Session {
     /// The settings of the features, as the extension sent them.
     pub fn feature_settings(&self) -> FeatureSettings {
         crate::settings::feature_settings(&locked(&self.settings))
+    }
+
+    /// Whether the extension runs the setup commands of new worktrees itself: they are then handed over in `waiting`
+    /// instead of run by the engine.
+    pub fn runs_tasks(&self) -> bool {
+        self.runs_tasks.load(Ordering::SeqCst)
     }
 
     /// How much the log says.
@@ -209,6 +219,7 @@ impl Session {
         }
         *locked(&self.level) = params.log_level.into();
         locked(&self.settings).clone_from(&params.settings);
+        self.runs_tasks.store(params.host.terminal, Ordering::SeqCst);
         json(&answer)
     }
 

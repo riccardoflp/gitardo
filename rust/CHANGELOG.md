@@ -454,3 +454,14 @@
 - **Edit message…** on an older commit removes the files of its rebase from the git folder once the rebase ends, also
   when it stopped on a conflict in a commit made again after it; they were left behind before.
 - **Apply patch** with a patch of one commit says **Apply `<name>` as 1 commit**, as it says **as 2 commits** for two.
+- Creating a worktree with `branches.format` set asks for the inputs of the format, each with the value given last,
+  after what the new branch starts from, and keeps them for the next time; at a commit `${base}` is picked among the
+  branches at it, its short hash and the branches that have it, and from a detached `HEAD` it is its short hash.
+- Renaming a worktree deletes the folders it leaves empty before renaming its branch, so they go even when renaming
+  the branch fails.
+- **Open in worktree** on a remote branch, and a worktree on a new branch made from a branch with the format, give
+  git the full name of the branch when a tag or another branch has its short name.
+- On Windows, deinitializing or removing a submodule whose folder is held is tried again, as moving or removing a
+  worktree is.
+- Adding a submodule in a folder whose name git could read as a pattern updates that folder only.
+- Removing a submodule whose clone cannot be deleted afterwards says so in the log and is not a failure.

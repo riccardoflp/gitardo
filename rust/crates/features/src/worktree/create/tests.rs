@@ -218,3 +218,62 @@ fn worktree_create__backing_out_of_any_question_runs_nothing() {
     );
     let _ = FeatureId("worktree.create");
 }
+
+#[test]
+fn worktree_create__a_format_with_inputs_asks_them_after_the_start_and_keeps_them() {
+    let mut context = app();
+    context.settings.branch_format = String::from("PRJ-${input:ticket}-${base}");
+    context.settings.branch_inputs = vec![model::branch::BranchInput {
+        id: String::from("ticket"),
+        kind: model::branch::InputKind::PromptString,
+        description: Some(String::from("Ticket")),
+        default: None,
+        pattern: None,
+        options: Vec::new(),
+        allow_custom: false,
+    }];
+    let Some(&ticket) = model::branch::INPUTS.first() else {
+        panic!("the key of the first input");
+    };
+    let way = question(create(&context, &Answers::new()));
+    assert_eq!(way.key, WAY, "a format with an input is offered");
+    let started = Answers::new()
+        .with(WAY, Answer::Choice(USE_FORMAT.to_owned()))
+        .with(START, Answer::Choice(String::from("release")));
+    assert_eq!(question(create(&context, &started)).key, ticket);
+    let typed = started.with(ticket, Answer::Text(String::from("7")));
+    let name = question(create(&context, &typed));
+    assert_eq!(name.default, Some(Answer::Text(String::from("PRJ-7-release"))));
+    let plan = plan(create(
+        &context,
+        &not_there()
+            .with(WAY, Answer::Choice(USE_FORMAT.to_owned()))
+            .with(START, Answer::Choice(String::from("release")))
+            .with(ticket, Answer::Text(String::from("7")))
+            .with(NAME, Answer::Text(String::from("PRJ-7-release"))),
+    ));
+    let remembered = plan.after.iter().any(|follow_up| {
+        matches!(follow_up, FollowUp::RememberInputs(values) if values.get("ticket").map(String::as_str) == Some("7"))
+    });
+    assert!(remembered, "{:?}", plan.after);
+}
+
+#[test]
+fn worktree_create__from_a_detached_head_the_base_of_the_format_is_its_short_hash() {
+    let mut context = app();
+    let mut state = (*context.repository).clone();
+    state.head.branch = None;
+    for branch in &mut state.branches {
+        branch.is_checked_out = false;
+    }
+    context.repository = std::sync::Arc::new(state);
+    context.settings.branch_format = String::from("${base}-spike");
+    let answers = Answers::new()
+        .with(WAY, Answer::Choice(USE_FORMAT.to_owned()))
+        .with(START, Answer::Choice(String::from("HEAD")));
+    let short = crate::testing::commit('a').short().to_owned();
+    assert_eq!(
+        question(create(&context, &answers)).default,
+        Some(Answer::Text(format!("{short}-spike")))
+    );
+}

@@ -56,8 +56,10 @@ pub enum Recovery {
 
 /// What is done when `git worktree move` or `git worktree remove` fails: on Windows, a move failing because the folder
 /// is held changed nothing and is tried again, up to 20 times, 200 ms apart; a removal failing to delete the folder,
-/// once git no longer lists the worktree, leaves the rest of the folder to delete. Any other failure, and any failure
-/// elsewhere, is the operation's.
+/// once git no longer lists the worktree, leaves the rest of the folder to delete. `git submodule deinit` and `git rm`
+/// of a submodule (`submodule.deinitialize`, `submodule.remove`) failing on a folder that is held are tried again the
+/// same way: git checks and writes its index only once the folder is gone, so running them again is safe. Any other
+/// failure, and any failure elsewhere, is the operation's.
 ///
 /// Feature: worktree.recover-held-folder
 #[must_use]
@@ -65,8 +67,19 @@ pub fn recover_held_folder(input: &HeldInput<'_>) -> Recovery {
     if !input.is_windows {
         return Recovery::Fail;
     }
-    let words: Vec<&str> = input.arguments.iter().map(String::as_str).collect();
-    match words.as_slice() {
+    let all: Vec<&str> = input.arguments.iter().map(String::as_str).collect();
+    // A submodule inside another is worked on with `-C <its parent>` first.
+    let words = match all.as_slice() {
+        ["-C", _, rest @ ..] => rest,
+        words => words,
+    };
+    match words {
+        ["submodule", "deinit", ..] | ["rm", ..] if is_held_submodule(input.said) && input.failures < MOVE_TRIES => {
+            Recovery::TryAgain {
+                wait: MOVE_WAIT,
+                note: format!("{} {TRIED_AGAIN}", first_line(input.said)),
+            }
+        }
         ["worktree", "move", ..] if is_held_move(input.said) && input.failures < MOVE_TRIES => Recovery::TryAgain {
             wait: MOVE_WAIT,
             note: format!("{} {TRIED_AGAIN}", first_line(input.said)),
@@ -81,6 +94,13 @@ pub fn recover_held_folder(input: &HeldInput<'_>) -> Recovery {
         },
         _ => Recovery::Fail,
     }
+}
+
+/// Whether git failed to empty or delete the folder of a submodule because another program holds it.
+fn is_held_submodule(said: &str) -> bool {
+    ["could not remove", "Permission denied", "Device or resource busy"]
+        .iter()
+        .any(|reason| said.contains(reason))
 }
 
 /// Whether git failed to move a folder because another program holds it.

@@ -2,22 +2,23 @@
 //! detached `HEAD` when no name is given.
 
 use model::CommitId;
-use model::branch::local_name;
-use model::contract::{Answer, AnswerKey, Answers, Context, Outcome, Question, QuestionKind, Refusal, Target, Text};
+use model::branch::{FormatName, base_of};
+use model::contract::{Answers, Context, FollowUp, Outcome, Refusal, Target};
 use model::worktree::folder_in;
 
 use super::add::{Addition, add, with_offers};
 use super::create::{NAME, WAY};
 use super::folder_of_worktrees;
-use super::names::{USE_FORMAT, choice, format_of, formatted, name_question, rule, way_question};
+use super::names::{USE_FORMAT, format_of, formatted, name_question, rule, way_question};
 
-/// What `${base}` of the format stands for: a branch at the commit, or its short hash.
-pub const BASE: AnswerKey = AnswerKey("base");
+/// What `${base}` of the format stands for: a branch at the commit, the short hash, or a branch that has the commit.
+pub use model::branch::BASE;
 
 /// Makes a worktree at the commit invoked on: on a new branch, `git worktree add --no-track -b <name> <folder>
 /// <commit>`, or, with the name left empty, on a detached `HEAD` in a folder named after the short hash,
-/// `git worktree add --detach <folder> <commit>`. With `branches.format` set it asks whether to use it, and what
-/// `${base}` is when the format has it: the branches at the commit first, then the short hash.
+/// `git worktree add --detach <folder> <commit>`. With `branches.format` set it asks whether to use it, then its inputs
+/// and what `${base}` is when the format has it (`branch.name-from-format`): the branches at the commit first, then
+/// the short hash, then the other branches that have the commit.
 ///
 /// Feature: worktree.create-at-commit
 #[must_use]
@@ -33,75 +34,44 @@ pub fn create_at_commit(context: &Context, answers: &Answers) -> Outcome {
         (Some(format), None) => return Outcome::Ask(way_question(WAY, format, ("Type a branch name", None))),
         (Some(_), Some(way)) => way == USE_FORMAT,
     };
+    let from_format = match format.filter(|_| uses_format) {
+        Some(format) => {
+            let title = format!("Create worktree at {}", commit.short());
+            match formatted(
+                context,
+                answers,
+                (format, base_of(&context.repository, &context.target), &title),
+            ) {
+                Ok(made) => Some(made),
+                Err(outcome) => return *outcome,
+            }
+        }
+        None => None,
+    };
     let Some(name) = answers.text(NAME) else {
-        return match format.filter(|_| uses_format) {
-            Some(format) => format_name(context, answers, (format, commit)),
-            None => Outcome::Ask(name_question(
-                NAME,
-                (
-                    "Create worktree",
-                    "Name of a new branch, and of the folder of the worktree. Leave empty for a detached HEAD.",
-                ),
-                rule(context, true, Some(commit.short().to_owned())),
-                None,
-            )),
+        let detail = if from_format.is_some() {
+            "Name of the new branch, and of the folder of the worktree"
+        } else {
+            "Name of a new branch, and of the folder of the worktree. Leave empty for a detached HEAD."
         };
+        return Outcome::Ask(name_question(
+            NAME,
+            ("Create worktree", detail),
+            rule(context, true, Some(commit.short().to_owned())),
+            from_format.map(|made| made.name),
+        ));
     };
-    made(context, answers, (commit, name.trim()))
+    remembering(made(context, answers, (commit, name.trim())), from_format)
 }
 
-/// What `${base}` is, when the format has it, then the name the format makes, which can be changed.
-fn format_name(context: &Context, answers: &Answers, (format, commit): (&str, &CommitId)) -> Outcome {
-    let base = if format.contains("${base}") {
-        match answers.choice(BASE) {
-            Some(base) => base.to_owned(),
-            None => return Outcome::Ask(base_question(context, commit)),
+/// The plan, ending with the inputs given to the format kept for the next time.
+fn remembering(outcome: Outcome, from_format: Option<FormatName>) -> Outcome {
+    match (outcome, from_format) {
+        (Outcome::Run(mut plan), Some(made)) => {
+            plan.after.push(FollowUp::RememberInputs(made.inputs));
+            Outcome::Run(plan)
         }
-    } else {
-        commit.short().to_owned()
-    };
-    Outcome::Ask(name_question(
-        NAME,
-        (
-            "Create worktree",
-            "Name of the new branch, and of the folder of the worktree",
-        ),
-        rule(context, true, Some(commit.short().to_owned())),
-        Some(formatted(context, format, &base)),
-    ))
-}
-
-/// What `${base}` is: the branches at the commit, local then remote by their local names, then the short hash.
-fn base_question(context: &Context, commit: &CommitId) -> Question {
-    let state = &context.repository;
-    let mut names: Vec<String> = state
-        .branches
-        .iter()
-        .filter(|branch| branch.commit == *commit)
-        .map(|branch| branch.name.clone())
-        .collect();
-    for remote in state.remote_branches.iter().filter(|branch| branch.commit == *commit) {
-        let name = local_name(&remote.name, &state.remotes).to_owned();
-        if !names.contains(&name) {
-            names.push(name);
-        }
-    }
-    let mut choices: Vec<_> = names
-        .iter()
-        .map(|name| choice(name, name, Some(String::from("Branch at this commit"))))
-        .collect();
-    choices.push(choice(
-        commit.short(),
-        commit.short(),
-        Some(String::from("This commit")),
-    ));
-    let default = choices.first().map(|first| Answer::Choice(first.identifier.clone()));
-    Question {
-        key: BASE,
-        kind: QuestionKind::Pick { choices },
-        title: Text::from(format!("Create worktree at {}: what ${{base}} is", commit.short())),
-        detail: None,
-        default,
+        (outcome, _) => outcome,
     }
 }
 
@@ -140,7 +110,8 @@ fn made(context: &Context, answers: &Answers, (commit, name): (&CommitId, &str))
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
-    use model::contract::{Answer, Answers, QuestionKind, Target};
+    use model::branch::{BranchInput, CONTAINING, INPUTS, InputKind};
+    use model::contract::{Answer, Answers, FollowUp, Outcome, Query, QuestionKind, Target};
 
     use super::{BASE, create_at_commit};
     use crate::testing::{commit, lines, plan, question};
@@ -189,18 +160,66 @@ mod tests {
     }
 
     #[test]
-    fn worktree_create_at_commit__the_picker_of_base_lists_the_branch_at_the_commit_first() {
+    fn worktree_create_at_commit__the_picker_of_base_lists_the_branch_at_the_commit_first_then_those_that_have_it() {
         let mut context = at('a');
         context.settings.branch_format = String::from("${base}-spike");
         let answers = Answers::new().with(WAY, Answer::Choice(USE_FORMAT.to_owned()));
-        let base = question(create_at_commit(&context, &answers));
+        let Outcome::Read(key, Query::Containing { .. }) = create_at_commit(&context, &answers) else {
+            panic!("expected the read of the branches that have the commit");
+        };
+        assert_eq!(key, CONTAINING);
+        let read = answers.with(
+            CONTAINING,
+            Answer::Names(vec![String::from("refs/heads/main"), String::from("refs/heads/later")]),
+        );
+        let base = question(create_at_commit(&context, &read));
         let QuestionKind::Pick { choices } = &base.kind else {
             panic!()
         };
-        assert_eq!(choices[0].identifier, "main");
-        assert_eq!(choices.last().unwrap().identifier, commit('a').short());
-        let picked = answers.with(BASE, Answer::Choice(String::from("main")));
+        let identifiers: Vec<&str> = choices.iter().map(|choice| choice.identifier.as_str()).collect();
+        assert_eq!(identifiers, ["main", commit('a').short(), "later"]);
+        let picked = read.with(BASE, Answer::Choice(String::from("later")));
         let name = question(create_at_commit(&context, &picked));
-        assert_eq!(name.default, Some(Answer::Text(String::from("main-spike"))));
+        assert_eq!(name.default, Some(Answer::Text(String::from("later-spike"))));
+    }
+
+    #[test]
+    fn worktree_create_at_commit__a_format_with_inputs_asks_them_and_keeps_them_for_the_next_time() {
+        let mut context = at('c');
+        context.settings.branch_format = String::from("PRJ-${input:ticket}");
+        context.settings.branch_inputs = vec![ticket()];
+        let answers = Answers::new().with(WAY, Answer::Choice(USE_FORMAT.to_owned()));
+        let asked = question(create_at_commit(&context, &answers));
+        assert_eq!(Some(&asked.key), INPUTS.first());
+        let Some(&input) = INPUTS.first() else {
+            panic!("the key of the first input");
+        };
+        let typed = answers.with(input, Answer::Text(String::from("42")));
+        let name = question(create_at_commit(&context, &typed));
+        assert_eq!(name.default, Some(Answer::Text(String::from("PRJ-42"))));
+        let ran = plan(create_at_commit(
+            &context,
+            &not_there()
+                .with(WAY, Answer::Choice(USE_FORMAT.to_owned()))
+                .with(input, Answer::Text(String::from("42")))
+                .with(NAME, Answer::Text(String::from("PRJ-42"))),
+        ));
+        let remembered = ran.after.iter().any(|follow_up| {
+            matches!(follow_up, FollowUp::RememberInputs(values) if values.get("ticket").map(String::as_str) == Some("42"))
+        });
+        assert!(remembered, "{:?}", ran.after);
+    }
+
+    /// The input `${input:ticket}` of a format, typed.
+    fn ticket() -> BranchInput {
+        BranchInput {
+            id: String::from("ticket"),
+            kind: InputKind::PromptString,
+            description: Some(String::from("Ticket")),
+            default: None,
+            pattern: None,
+            options: Vec::new(),
+            allow_custom: false,
+        }
     }
 }

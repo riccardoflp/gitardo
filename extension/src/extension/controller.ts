@@ -71,7 +71,7 @@ import type {
   WebviewMessage,
 } from '../shared/protocol';
 import { openMergeEditor } from '../flow/merge';
-import { AGENTS_WINDOW, LAST_INPUTS, SETUP_OFFERED, closeInVSCodeGit, inVSCodeGit, recoverHeldWorktree, refreshVSCodeGit, removeEmptyParents, resolveAction, squashRange, worktreesFolder } from './actions';
+import { AGENTS_WINDOW, LAST_INPUTS, SETUP_OFFERED, SET_UP, closeInVSCodeGit, openIn, openWorktree, inVSCodeGit, recoverHeldWorktree, refreshVSCodeGit, removeEmptyParents, resolveAction, squashRange, worktreesFolder } from './actions';
 import { chooseConflictModel, draftCommitMessage } from './ai';
 import { ConflictReviewTab } from './conflictReview';
 import { INDEX, contentUri, proposalUri } from './content';
@@ -79,8 +79,9 @@ import { fetchPulls, githubSession } from './github';
 import { editSetupJson, savePatterns, saveSetup, setupChangeText, setupPatterns, worktreeSetupInfo } from './worktreeSettings';
 import { EngineError, ErrorCode } from '../engine/connection';
 import { type EngineRun, engineRuns, syncRuns } from '../engine/actions';
-import type { FileResolutions, FollowUp, OfferedRun, Plan, Target } from '../engine/messages';
+import type { FileResolutions, Finished, FollowUp, OfferedRun, Plan, Step, Target } from '../engine/messages';
 import { type HostHooks, VscodeAsker, type WindowEngine } from '../engine/vscode';
+import { runSetupCommands } from './worktreeCommands';
 import { headOf, recordOf, type UndoRecord } from '../engine/journal';
 
 /** How many commits the graph reads at a time, unless the settings ask for another number between the two after it. */
@@ -1695,6 +1696,8 @@ export class Controller implements vscode.Disposable {
       return;
     }
     const runs = engineRuns(action, state);
+    // Area 5: VS Code's Git lets go of what the engine is about to move, empty or delete.
+    if (runs && this.engine?.running) await this.letGoInVSCodeGit(action, state);
     // Area 3. The clipboard is VS Code's: the text of a patch in it is read here and given to the engine. A bisect says
     // once it ran whether the commit it was looking for is found, which the engine leaves to the window.
     if (runs && this.engine?.running && (action.kind === 'applyPatch' || action.kind === 'bisect')) {
@@ -1848,7 +1851,8 @@ export class Controller implements vscode.Disposable {
       const { finished, followUps } = result ?? { finished: undefined, followUps: [] };
       if (finished?.kind === 'ran') {
         this.undoable = undefined;
-        await this.followUpsBeforeRead(followUps, { feature, target, repo });
+        // Area 5: what a new worktree runs and offers once made is VS Code's.
+        await this.followUpsBeforeRead(this.worktreeMade(feature, finished, followUps, repo), { feature, target, repo });
       }
       await this.refresh();
       // Said once the repository is read again, which tells whether it stopped on conflicts.
@@ -1859,6 +1863,73 @@ export class Controller implements vscode.Disposable {
     }
     ran?.();
     return true;
+  }
+
+  // Area 5: worktrees and what new worktrees get, submodules, run by the engine.
+
+  /**
+   * Has VS Code's Git extension close the worktree or the submodules, and those inside them, that the engine is about to
+   * move, empty or delete, which Windows refuses while the extension watches them.
+   */
+  private async letGoInVSCodeGit(action: Action, state: RepoState): Promise<void> {
+    if (action.kind === 'worktreeRemove' || action.kind === 'worktreeRename') await closeInVSCodeGit([action.path], this.log);
+    if (action.kind === 'submoduleDeinit' || action.kind === 'submoduleRemove') {
+      const path = action.path;
+      const inside = state.submodules.filter((each) => each.head !== null && (each.path === path || each.path.startsWith(`${path}/`)));
+      await closeInVSCodeGit(
+        inside.map((each) => submoduleFolder(each, state)),
+        this.log,
+      );
+    }
+  }
+
+  /**
+   * Carries out what follows a new worktree made by the engine as the extension did: the commands of
+   * gitardo.worktrees.setupCommands, handed over by the engine, in a terminal of this window, and only once they all
+   * succeeded the message that it was created, with its buttons to open it, or the worktree opened for **Open in
+   * worktree** where gitardo.worktrees.openIn says; when a command fails, Gitardo says so and offers to open it. Gives the
+   * follow-ups left to carry out.
+   */
+  private worktreeMade(feature: string, finished: Extract<Finished, { kind: 'ran' }>, followUps: FollowUp[], repo: Repo): FollowUp[] {
+    const creates = ['worktree.create', 'worktree.create-from-branch', 'worktree.create-at-commit'].includes(feature);
+    if (!creates && feature !== 'worktree.open-in-worktree') return followUps;
+    // `git worktree add [<options>] <folder> <commit-ish>`.
+    const argumentsOf = (step: Step) => (step.kind === 'git' && Array.isArray(step.arguments) ? (step.arguments as string[]) : []);
+    const added = finished.plan.steps.map(argumentsOf).find((args) => args[0] === 'worktree' && args[1] === 'add') ?? [];
+    const dir = added[added.length - 2];
+    if (!dir) return followUps;
+    const agents = this.state?.agentsWindow ?? false;
+    const says = followUps.flatMap((followUp) => (followUp.kind === 'say' ? [String(followUp.text)] : []));
+    const offersSetup =
+      followUps.some((followUp) => followUp.kind === 'offerRun' && followUp.feature === 'worktree-setup.page') && !this.memento.get(SETUP_OFFERED);
+    const opens = [...(agents ? ['Open in Agents Window'] : []), 'Open in New Window'];
+    const open = (choice: string | undefined) => {
+      if (choice) void openWorktree(dir, choice === 'Open in Agents Window' ? 'agents' : 'window');
+    };
+    const done = () => {
+      if (!creates) {
+        void openWorktree(dir, openIn({ agentsWindow: agents }));
+        for (const said of says) void vscode.window.showInformationMessage(`Gitardo: ${said}`);
+        return;
+      }
+      if (offersSetup) void this.memento.update(SETUP_OFFERED, true);
+      const [created, ...others] = says;
+      for (const said of others) void vscode.window.showInformationMessage(`Gitardo: ${said}`);
+      void vscode.window
+        // Without the name of Gitardo before it, as the message of the extension had it.
+        .showInformationMessage(created ?? `Worktree created in ${dir}`, ...opens, ...(offersSetup ? [SET_UP] : []))
+        .then((choice) => (choice === SET_UP ? void vscode.commands.executeCommand('gitardo.worktreeSetup') : open(choice)));
+    };
+    const commands = finished.waiting.filter((step) => step.kind === 'task').map((step) => String(step.command));
+    if (!commands.length) done();
+    else {
+      // Not waited for: the commands can take minutes, and other operations go on meanwhile.
+      void runSetupCommands(repo.root, dir, commands, this.log).then((stopped) => {
+        if (!stopped) return done();
+        void vscode.window.showWarningMessage(`Gitardo: ${stopped}`, ...opens).then(open);
+      });
+    }
+    return followUps.filter((followUp) => followUp.kind !== 'say' && followUp.kind !== 'openWindow');
   }
 
   /** Says why the engine refused, with the button of the feature it offers in its place, run on the same target. */

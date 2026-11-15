@@ -17,12 +17,13 @@ with the danger `none`, and the engine does not send `feature/confirm` for it. T
 Version 1.3 adds what area 2 of stage 4 (branches, tags, remotes) needed to offer an operation after git refused one:
 the follow-up `offerRun { label, feature, target: Target, answers: Record<string, Answer> }`, sent after a plan and in
 `data.followUps` of `stepFailed`, and the answer `{ kind: "flag", value: boolean }`, which only an `offerRun` carries,
-so that **Delete anyway** runs `branch.delete` told the branch is not merged. A `flag` given in `feature/run` is known
-from the first call, as the desktop's window gives what it knows, since no question asks it; the other answers given
-still answer their questions when asked. An `offerRun` whose target or one of whose answers has no JSON yet is not
-sent, since it would run otherwise than offered. The extension shows its `label` as a button on the message and, when
-it is clicked, sends `feature/run` with that `feature`, `target` and `answers`. The data of an error is written in camel
-case, `followUps`, as this page always said; before 1.3 the server wrote `follow_ups`.
+so that **Delete anyway** runs `branch.delete` told the branch is not merged, and **Remove anyway** runs
+`worktree.remove` given `force` (area 5). A `flag` given in `feature/run` is known from the first call, as the desktop's
+window gives what it knows, since no question asks it; the other answers given still answer their questions when asked.
+An `offerRun` whose target or one of whose answers has no JSON yet is not sent, since it would run otherwise than
+offered. The extension shows its `label` as a button on the message and, when it is clicked, sends `feature/run` with
+that `feature`, `target` and `answers`. The data of an error is written in camel case, `followUps`, as this page always
+said; before 1.3 the server wrote `follow_ups`.
 
 ## Transport
 
@@ -292,7 +293,8 @@ its start to its answer, questions included; a second is answered `busy`, and th
 as `Controller.run` does today while `this.running` is set (`controller.ts:2421`). The engine of each repository lives
 on a thread of its own (`crates/server/src/repository.rs`), which takes one feature at a time.
 
-An answer in `answers` answers the question of its key without asking it, once. `inputs` is what the desktop keeps in
+An answer in `answers` answers the question of its key without asking it, once. A `confirmed` answer is also read by a
+feature that never asks it: **Remove anyway** sends `force` so (1.3). `inputs` is what the desktop keeps in
 the workspace's file and the extension in its workspace state: the engine reads it as `FeatureSettings::branch_values`,
 the defaults of the questions of `branches.format`, and a plan that used them ends with `RememberInputs`.
 
@@ -352,6 +354,11 @@ object with a `kind` and the fields of its variant. Stage 2 sends `say`, `select
 `readPullRequests`, `offer`, `copyToClipboard`, `openUrl`, `openReview`, `closeMergePage`, `openWindow`, `showFolder`,
 `rememberInputs` and `editFile` (`crates/protocol/src/feature/follow_up.rs`); version 1.3 adds `offerRun`; the others
 are sent from the stage that moves their features.
+
+`offerRun` is `{ kind: "offerRun", label, feature, target: Target, answers: Record<string, Answer> }`: a button named
+`label` that runs `feature` on `target` with `answers` given, as **Remove anyway** after git refuses a worktree with
+changes, or **Choose What It Gets…** (`worktree-setup.page`) after a worktree is made. An offer whose target or answers
+cannot cross (an answer of the engine's own reads, such as a list of names) is left out.
 
 | `FollowUp` | Carried out by | In the extension |
 | --- | --- | --- |
