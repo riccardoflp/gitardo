@@ -1,11 +1,11 @@
 /**
- * The messages of the protocol with `gitardo-engine` that stages 1 to 5 built, as the crate `protocol` writes them
+ * The messages of the protocol with `gitardo-engine` that stages 1 to 5 and 7 built, as the crate `protocol` writes them
  * (`rust/crates/protocol/src/messages.rs`, `state.rs`, `feature/`, `journal.rs` and `reads/`,
  * `docs/transition/02-protocol.md`).
  */
 
 /** The version of the protocol the extension speaks. */
-export const PROTOCOL = '1.4';
+export const PROTOCOL = '1.5';
 
 /** The names of the methods. */
 export const Method = {
@@ -313,6 +313,9 @@ export const ReadMethod = {
   branchLog: 'read/branch.read-log',
   commonFolder: 'read/repo.common-folder',
   preparedMessage: 'read/commit.prepared-message',
+  graphCommits: 'read/graph.read-commits',
+  graphPosition: 'read/graph.read-position',
+  searchMatches: 'read/search.read-matches',
 } as const;
 
 /** The host question that `read/github.read-pull-requests` asks. */
@@ -573,4 +576,54 @@ export interface BranchLog {
   hasMore: boolean;
   unpushed: string[] | null;
   upstream: string | null;
+}
+
+// The reads of the graph, from stage 7 (version 1.5): `read/graph.read-commits`, `read/graph.read-position` and
+// `read/search.read-matches`, each asked with the timeline the graph shows.
+
+/** The branches the graph shows; null in a timeline is every branch. */
+export type BranchesShown =
+  | { kind: 'current' }
+  | { kind: 'upstream' }
+  | { kind: 'kinds'; local: boolean; remote: boolean; tags: boolean }
+  | { kind: 'references'; names: string[] };
+
+/** How a search of the whole history looks at the commits. */
+export type SearchMode = 'message' | 'author' | 'changes' | 'changesPattern';
+
+/** What narrows the history the graph lists: the history of a file, of some lines or of a folder, or a search shown as the list. */
+export type Narrowing =
+  | { kind: 'file'; path: string; earlier: string[] }
+  | { kind: 'lines'; path: string; lines: LineRange; commit: string; inEditor: LineRange | null }
+  | { kind: 'folder'; path: string }
+  | { kind: 'search'; mode: SearchMode; text: string };
+
+/** The timeline a read of the graph is about, and how much of it: `pages` of `pageSize` commits, after the `skip` the client has. */
+export interface Timeline {
+  shown: BranchesShown | null;
+  parents: 'all' | 'first';
+  alone: string | null;
+  narrowing: Narrowing | null;
+  pageSize: number;
+  pages: number;
+  skip: number;
+  stashes: boolean;
+}
+
+/** A row of the graph as the engine reads it; it never lists the uncommitted changes itself. */
+export type EngineRow =
+  | { kind: 'commit'; commit: EngineCommit }
+  | { kind: 'stash'; commit: EngineCommit; index: number }
+  | { kind: 'uncommitted'; parent: string | null; files: number };
+
+/** The rows of the pages asked, after those the client has, and whether the history has more. */
+export interface CommitPage {
+  rows: EngineRow[];
+  hasMore: boolean;
+}
+
+/** The commits a search found, newest first, at most 5,000, and whether it found more. */
+export interface Matches {
+  commits: string[];
+  hasMore: boolean;
 }

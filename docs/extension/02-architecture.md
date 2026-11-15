@@ -195,6 +195,12 @@ review of the conflicts (`conflictPlans`, which needs the text of each side), th
 repository of the workspace (`commonDir`, which would open each in the engine), the operation under way read alone,
 the AI's commit message (the graph's rows), and the preview server.
 
+From stage 7 the rows of the graph, the position of a commit and the matches of a search are read by the engine while
+it runs (`src/engine/graph.ts`): `Repo.state` is given a reader of its commits (`CommitsReader`) and lays out the lines
+from their parents as before, the next pages are asked with `skip` from the last row read, and a read that another
+takes the place of is cancelled. Without the engine, or when it fails otherwise than with git's error, `Repo` reads
+them with `git log` (D49).
+
 ## State
 
 - **The state of the repository** is one `RepoState`, kept by the `Controller` (`setState`). `Controller.readState`

@@ -84,6 +84,47 @@ pub fn read_state(git: &Git, request: &StateRequest) -> Result<RepositoryState, 
     })
 }
 
+/// Which parts of the state a read of the graph needs besides what is checked out.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct TimelineParts {
+    /// The branches with their upstreams, the remote branches and the tags: for the references ticked one by one,
+    /// which are checked against them, and for the upstream of the branch checked out.
+    pub references: bool,
+    /// The stashes, to place among the commits.
+    pub stashes: bool,
+}
+
+/// The parts of the state that say which history the timeline lists, for a read of the graph asked without a window
+/// that keeps the state (`graph.read-commits`): what is checked out, and the references and the stashes when they are
+/// asked for, read at once. The rest is left empty: the list of commits needs neither `git status` nor the distance of
+/// each branch from its upstream, which take longer than the page itself on a large repository.
+///
+/// # Errors
+///
+/// When git cannot be started or fails, or prints what this does not understand.
+pub fn read_timeline_parts(git: &Git, parts: TimelineParts) -> Result<RepositoryState, GitError> {
+    thread::scope(|scope| {
+        let references = parts
+            .references
+            .then(|| scope.spawn(|| references::read_references(git)));
+        let head_commit = scope.spawn(|| head::read_head_commit(git));
+        let head_branch = scope.spawn(|| head::read_head_branch(git));
+        let stashes = parts.stashes.then(|| scope.spawn(|| stashes::read_stashes(git)));
+        let references = references.map(joined).transpose()?.unwrap_or_default();
+        Ok(RepositoryState {
+            head: Head {
+                commit: joined(head_commit)?,
+                branch: joined(head_branch)?,
+            },
+            branches: references.branches,
+            remote_branches: references.remote_branches,
+            tags: references.tags,
+            stashes: stashes.map(joined).transpose()?.unwrap_or_default(),
+            ..RepositoryState::default()
+        })
+    })
+}
+
 /// What each read found.
 struct Parts {
     references: References,

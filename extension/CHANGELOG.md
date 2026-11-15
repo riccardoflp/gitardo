@@ -53,6 +53,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - Bringing ignored files into a worktree lists only what it brings, not what the worktree had already.
 - Adding a submodule asks in the words of Gitardo's desktop, and says that a folder is not empty once it is entered rather than while it is typed.
 - The patch copied from a comparison that starts at the working tree names its sides `a/` and `b/`, as every other patch does.
+- The commits of the graph, where a commit is in it and what a search finds are read by Gitardo's engine when the extension has it, a page at a time as before, the next pages from the last commit read; a read that another takes the place of, such as a page scrolled past, is cancelled. Without the engine, Gitardo reads them as before. Two stashes made in the same second on one commit are listed the newest first.
 
 ## 0.11.0 - 2026-11-12
 

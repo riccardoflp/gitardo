@@ -174,6 +174,11 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
   says why, under **Reads (stage 5)**. `test/reads.test.ts` asks the reads as the views ask them, through
   `src/engine/reads.ts`, once with the engine and once without, and checks that the views get the same; and with the
   binary missing, that each read is the TypeScript one, logged.
+- From stage 7, `test/engineGraph.test.ts` reads the graph as `Repo.state` does, once with `git log` and once through
+  the engine (`src/engine/graph.ts`), and compares the rows and the lines laid out from them, in every way the graph
+  can be shown, page after page with each next page read from the last row with `skip`, with a stash that makes the
+  pages be read whole again, and the positions and matches against `Repo.position` and `Repo.matches`; R8 of
+  [04-differences.md](../transition/04-differences.md#reads-of-the-graph-stage-7) is its own test.
 - The scenarios shared with the desktop ([desktop/06-testing.md](../desktop/06-testing.md#scenarios-run-by-both-apps))
   compare the engine's plan and the final state with the TypeScript `GitOp`'s, operation by operation, until `src/git`
   is removed.

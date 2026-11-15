@@ -14,6 +14,7 @@ import {
   type BranchLog,
   type Bytes,
   type CommitAsked,
+  type CommitPage,
   type CommitDetail,
   type CommittedLines,
   type CompareRequest,
@@ -33,6 +34,7 @@ import {
   type InitializeResult,
   type LineRange,
   type LogLineParams,
+  type Matches,
   type MergeSides,
   Method,
   PROTOCOL,
@@ -43,6 +45,7 @@ import {
   type Question,
   ReadMethod,
   type ReflogPosition,
+  type SearchMode,
   type SetupPreview,
   type Settings,
   type Side,
@@ -50,6 +53,7 @@ import {
   type Submodule,
   type TakeRequest,
   type Target,
+  type Timeline,
   type Validation,
   type Version,
 } from './messages';
@@ -408,6 +412,23 @@ export class EngineClient {
   /** The message git prepared for the commit of a squash merge; null when none waits (`commit.prepared-message`). */
   async preparedMessage(repository: string, signal?: AbortSignal): Promise<string | null> {
     return (await this.read<{ message: string | null }>(ReadMethod.preparedMessage, repository, {}, signal)).message;
+  }
+
+  // The reads of the graph, from stage 7 (version 1.5).
+
+  /** The rows of the pages of the timeline asked for, after the `skip` the client has (`graph.read-commits`). */
+  graphCommits(repository: string, timeline: Timeline, signal?: AbortSignal): Promise<CommitPage> {
+    return this.read(ReadMethod.graphCommits, repository, timeline, signal);
+  }
+
+  /** How many commits come before a commit in the timeline; null when it is not there (`graph.read-position`). */
+  async graphPosition(repository: string, commit: string, timeline: Timeline, signal?: AbortSignal): Promise<number | null> {
+    return (await this.read<{ index: number | null }>(ReadMethod.graphPosition, repository, { commit, timeline }, signal)).index;
+  }
+
+  /** The commits of the history of the timeline that a search finds, newest first (`search.read-matches`). */
+  searchMatches(repository: string, text: string, mode: SearchMode, timeline: Timeline, signal?: AbortSignal): Promise<Matches> {
+    return this.read(ReadMethod.searchMatches, repository, { text, mode, timeline }, signal);
   }
 
   /** A read of a repository, opened first when it is not. */

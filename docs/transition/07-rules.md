@@ -116,6 +116,16 @@ needs is written in the commit of that stage, not before.
 | [extension/06-testing.md](../extension/06-testing.md) | `test/reads.test.ts`, the reads as the views ask them, with the engine and without. |
 | [transition/04-differences.md](04-differences.md), [08-decisions.md](../08-decisions.md), `extension/CHANGELOG.md` | R6 in the CHANGELOG; R7 a choice, Q407, read in TypeScript until it is decided. |
 
+## Written in stage 7 (the graph reads)
+
+| Page | Change |
+| --- | --- |
+| [transition/02-protocol.md](02-protocol.md) | Version 1.5: `read/graph.read-commits`, `read/graph.read-position` and `read/search.read-matches`, with `BranchesShown`, `Narrowing` (a search shown as a list among them), `SearchMode` and `Row` written out, the matches with `hasMore`, and how the extension asks the next pages with `skip`. |
+| [desktop/06-testing.md](../desktop/06-testing.md), `rust/xtask` | `cargo xtask perf <folder>`, the reads of the graph timed in the release engine, and the numbers of stage 7's own run. |
+| [transition/04-differences.md](04-differences.md) | **Reads of the graph (stage 7)**: R8, two stashes of the same second, in the CHANGELOG. |
+| [extension/02-architecture.md](../extension/02-architecture.md) | `src/engine/graph.ts` and `CommitsReader`: the graph read by the engine, `git log` as the fallback. |
+| [extension/06-testing.md](../extension/06-testing.md) | `test/engineGraph.test.ts`, the rows, pages, lines, positions and matches of the engine against `Repo`'s. |
+
 ## Written in stages 8 and 9
 
 | Page | Change |

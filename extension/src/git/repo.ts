@@ -53,6 +53,7 @@ import {
   parseReflog,
   type BlameLine,
   type ReflogEntry,
+  type Refs,
   parseLog,
   parseBranchStatus,
   parseGitlinks,
@@ -130,10 +131,34 @@ function blameArgs({ contents, revision, ignoreWhitespace }: BlameOptions): stri
   return args;
 }
 
-/** Read-only view of one repository. Everything that changes the repository goes through `ops.ts` instead. */
 /** A commit of the graph, or a stash among them. */
-type Listed = Commit & Pick<Row, 'stash'>;
+export type Listed = Commit & Pick<Row, 'stash'>;
 
+/**
+ * What the commits of the graph are read for when another reads them in place of `git log` here: Gitardo's engine,
+ * from stage 7 of the transition. `scope` is the one the references have now; `names` are those of the file of a
+ * `path` filter, its name now first; `stashes` says whether they are placed among the commits, never with a filter.
+ * `head`, `refs` and `stashList` are the state just read, which tells whether the history may have changed since.
+ */
+export interface CommitsAsked {
+  limit: number;
+  filter: Filter | null;
+  scope: Scope | null;
+  names: string[];
+  stashes: boolean;
+  firstParent: boolean;
+  head: string | null;
+  refs: Refs;
+  stashList: Stash[];
+}
+
+/**
+ * Reads the commits of the graph as `git log` here would list them, the stashes among them, and whether there are more;
+ * null when it could not, for `git log` to read them here after all.
+ */
+export type CommitsReader = (asked: CommitsAsked) => Promise<{ commits: Listed[]; hasMore: boolean } | null>;
+
+/** Read-only view of one repository. Everything that changes the repository goes through `ops.ts` instead. */
 export class Repo {
   private gitDir?: string;
   /** Whether the graph follows only the first parent of each merge, as the settings say: what was merged is left out. */
@@ -637,10 +662,18 @@ export class Repo {
 
   /**
    * With `resolve`, the files with conflicts are read to say which of the conflicts need no choice between the two
-   * sides. With `stashes`, the stashes are among the commits.
+   * sides. With `stashes`, the stashes are among the commits. With `reader`, the commits are read by it rather than
+   * by `git log` here.
    */
-  async state(limit: number, filter: Filter | null = null, scope: Scope | null = null, resolve = false, stashes = false): Promise<RepoState> {
-    return this.withCommits(await this.parts(resolve), limit, filter, scope, stashes);
+  async state(
+    limit: number,
+    filter: Filter | null = null,
+    scope: Scope | null = null,
+    resolve = false,
+    stashes = false,
+    reader?: CommitsReader,
+  ): Promise<RepoState> {
+    return this.withCommits(await this.parts(resolve), limit, filter, scope, stashes, reader);
   }
 
   /**
@@ -696,23 +729,30 @@ export class Repo {
     };
   }
 
-  /** The state of the repository from what `parts` read, with the commits of the graph read after it. */
-  async withCommits(parts: RepoParts, limit: number, filter: Filter | null = null, scope: Scope | null = null, stashes = false): Promise<RepoState> {
+  /**
+   * The state of the repository from what `parts` read, with the commits of the graph read after it. With `reader`, the
+   * commits are read by it rather than by `git log` here.
+   */
+  async withCommits(
+    parts: RepoParts,
+    limit: number,
+    filter: Filter | null = null,
+    scope: Scope | null = null,
+    stashes = false,
+    reader?: CommitsReader,
+  ): Promise<RepoState> {
     const { head } = parts;
     const changes = allChanges(parts.working);
     // A branch chosen for the graph may have been deleted since.
     const shown = pruneScope(scope, parts);
 
     const { args, names } = await this.selection(filter, head, shown);
-    // A search can be one git refuses, such as an invalid regular expression: that must be reported, not shown as no results.
-    const commits = parseLog(await this.read(['log', '-z', `--format=${LOG_FORMAT}`, `--max-count=${limit + 1}`, ...args], !filter));
-    const hasMore = commits.length > limit;
-    if (hasMore) commits.length = limit;
-    // The other parents of a merge are not followed: a line to them would lead nowhere.
-    if (this.firstParent) for (const commit of commits) commit.parents.length = Math.min(commit.parents.length, 1);
     const stashList = parts.stashes;
-    // Not among the results of a search, nor in the history of a file or of a commit, which they are no part of.
-    const listed: Listed[] = stashes && !filter && stashList.length ? await this.withStashes(commits, stashList) : commits;
+    const refs: Refs = { branches: parts.branches, remoteBranches: parts.remoteBranches, tags: parts.tags };
+    const asked: CommitsAsked = { limit, filter, scope: shown, names, stashes: stashes && !filter, firstParent: this.firstParent, head, refs, stashList };
+    const read = reader && (await reader(asked));
+    const { listed, hasMore } = read ? { listed: read.commits, hasMore: read.hasMore } : await this.readLog(args, limit, filter, stashes, stashList);
+    const commits = listed.filter((commit) => commit.stash === undefined);
 
     const layout = new GraphLayout();
     const rows: Row[] = [];
@@ -821,6 +861,25 @@ export class Repo {
     const names = filter?.kind === 'path' ? (filter.folder ? [filter.path] : await this.pathNames(filter.path)) : [];
     if (names.length) args.push('--', ...names.map((name) => `:(literal)${name}`));
     return { args, names };
+  }
+
+  /** The commits of the graph by `git log`, the stashes among them when they are shown, and whether there are more. */
+  private async readLog(
+    args: string[],
+    limit: number,
+    filter: Filter | null,
+    stashes: boolean,
+    stashList: Stash[],
+  ): Promise<{ listed: Listed[]; hasMore: boolean }> {
+    // A search can be one git refuses, such as an invalid regular expression: that must be reported, not shown as no results.
+    const commits = parseLog(await this.read(['log', '-z', `--format=${LOG_FORMAT}`, `--max-count=${limit + 1}`, ...args], !filter));
+    const hasMore = commits.length > limit;
+    if (hasMore) commits.length = limit;
+    // The other parents of a merge are not followed: a line to them would lead nowhere.
+    if (this.firstParent) for (const commit of commits) commit.parents.length = Math.min(commit.parents.length, 1);
+    // Not among the results of a search, nor in the history of a file or of a commit, which they are no part of.
+    const listed: Listed[] = stashes && !filter && stashList.length ? await this.withStashes(commits, stashList) : commits;
+    return { listed, hasMore };
   }
 
   /**

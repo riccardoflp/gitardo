@@ -30,7 +30,7 @@ import {
   type IdentityProfile,
 } from '../git/ops';
 import { allChanges, samePath } from '../git/parse';
-import { Repo, isHash } from '../git/repo';
+import { type CommitsReader, Repo, isHash } from '../git/repo';
 import { changeSetup, previewSetup, proposedCommands, scanIgnored, unlinkFolderLinks } from '../git/worktreeSetup';
 import { GRAPH_COLUMNS, WORKTREE, showsGraph } from '../shared/protocol';
 import { changesText, sortRefs, worktreeLabel, worktreeOf, worktreeStatus } from '../shared/refs';
@@ -84,6 +84,7 @@ import { type HostHooks, VscodeAsker, type WindowEngine } from '../engine/vscode
 import { runSetupCommands } from './worktreeCommands';
 import { headOf, recordOf, type UndoRecord } from '../engine/journal';
 import { reads } from '../engine/reads';
+import { EngineGraph, historyOf, matchesOnEngine, positionOnEngine } from '../engine/graph';
 
 /** How many commits the graph reads at a time, unless the settings ask for another number between the two after it. */
 const PAGE_SIZE = 1000;
@@ -151,6 +152,16 @@ interface RunResult {
 }
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
+/** Whether a read failed because it was cancelled for another. */
+const isCancelled = (error: unknown) => error instanceof EngineError && error.code === ErrorCode.cancelled;
+
+/** What git said when a read failed, in the extension or in the engine; the error itself otherwise. */
+function failureText(error: unknown): string {
+  if (error instanceof GitError) return error.result.stderr.trim();
+  const output = error instanceof EngineError ? (error.data as { output?: string | null } | undefined)?.output?.trim() : undefined;
+  return output || errorText(error);
+}
 
 /** The title of the tab of a comparison. */
 const compareTitle = (from: CompareSide, to: CompareSide, path: string | null) =>
@@ -257,6 +268,10 @@ export class Controller implements vscode.Disposable {
   private running = false;
   /** Gitardo's engine, which runs the operations of the areas moved to it; their GitOps run when it is missing (D49). */
   private engine?: WindowEngine;
+  /** The rows of the graph the engine read last, to read the next pages from (stage 7). */
+  private readonly engineGraph = new EngineGraph();
+  /** The read of the commits of the graph under way in the engine, to cancel when another takes its place. */
+  private graphRead?: AbortController;
   private timer?: ReturnType<typeof setTimeout>;
   /** When `timer` fires. */
   private due = 0;
@@ -435,8 +450,9 @@ export class Controller implements vscode.Disposable {
         const state = await this.readState(repo);
         // Read while an operation ran, it can be half from before it and half from after, such as a new commit that
         // no branch points at yet. It is dropped: the operation is followed by a read of its own.
-        // Unless the views were pointed at another repository in the meantime. Who waited for it waits for the next.
-        if (this.running || operations !== this.operations || repo !== this.repo) {
+        // Unless the views were pointed at another repository in the meantime. Who waited for it waits for the next,
+        // as for a read of the commits cancelled for another.
+        if (!state || this.running || operations !== this.operations || repo !== this.repo) {
           this.waiters.unshift(...waiting.splice(0));
           continue;
         }
@@ -578,23 +594,33 @@ export class Controller implements vscode.Disposable {
     return true;
   }
 
-  /** A search git cannot run, such as an invalid regular expression, is reported and dropped rather than taking the graph down. */
-  private async readState(repo: Repo): Promise<RepoState> {
+  /**
+   * A search git cannot run, such as an invalid regular expression, is reported and dropped rather than taking the graph
+   * down. Null when the read of the commits was cancelled, for a read that takes its place.
+   */
+  private async readState(repo: Repo): Promise<RepoState | null> {
     const resolve = this.autoResolve();
     const stashes = vscode.workspace.getConfiguration('gitardo').get('graph.showStashes') !== false;
     repo.firstParent = vscode.workspace.getConfiguration('gitardo').get('graph.firstParent') === true;
     // Stage 5: what the views show but the commits comes from Gitardo's engine when it is there, from Repo when not.
-    // The commits of the graph are read after it by Repo, from what it says.
+    // The commits of the graph are read after it, by the engine too (stage 7), from what it says.
     const parts = await reads.parts(repo, resolve);
-    if (!this.filter) return repo.withCommits(parts, this.limit, null, this.scope, stashes);
+    const reader = this.graphReader(repo);
     try {
-      return await repo.withCommits(parts, this.limit, this.filter, this.scope, stashes);
+      if (!this.filter) return await repo.withCommits(parts, this.limit, null, this.scope, stashes, reader);
+      try {
+        return await repo.withCommits(parts, this.limit, this.filter, this.scope, stashes, reader);
+      } catch (error) {
+        if (isCancelled(error)) throw error;
+        this.filter = null;
+        const text = failureText(error);
+        this.log.error(text);
+        void vscode.window.showErrorMessage(`Gitardo: the search failed. ${text.split('\n')[0]}`);
+        return await repo.withCommits(parts, this.limit, null, this.scope, stashes, reader);
+      }
     } catch (error) {
-      this.filter = null;
-      const text = error instanceof GitError ? error.result.stderr.trim() : errorText(error);
-      this.log.error(text);
-      void vscode.window.showErrorMessage(`Gitardo: the search failed. ${text.split('\n')[0]}`);
-      return repo.withCommits(parts, this.limit, null, this.scope, stashes);
+      if (isCancelled(error)) return null;
+      throw error;
     }
   }
 
@@ -603,12 +629,78 @@ export class Controller implements vscode.Disposable {
     return repo.withCommits(await reads.parts(repo), 1);
   }
 
+  // The graph read by the engine (stage 7): its rows, the position of a commit and the matches of a search, with the
+  // reads of `Repo` when the engine is not there (D49).
+
+  /**
+   * What reads the commits of the graph in the engine, while it runs: in pages of `gitardo.graph.pageSize`, the next
+   * ones from the last row read. A read that something else takes the place of is cancelled. A failure of the engine
+   * that is not git's is a warning of the log, and `git log` reads them here after all.
+   */
+  private graphReader(repo: Repo): CommitsReader | undefined {
+    const client = this.engine?.running;
+    if (!client) return undefined;
+    return async (asked) => {
+      this.graphRead?.abort();
+      const reading = new AbortController();
+      this.graphRead = reading;
+      try {
+        return await this.engineGraph.commits(client, repo.root, asked, pageSize(), reading.signal);
+      } catch (error) {
+        // A search git refuses is the search's failure, as it is for `git log` here.
+        if (isCancelled(error) || (asked.filter && error instanceof EngineError && error.code === ErrorCode.gitFailed)) throw error;
+        this.log.warn(`The engine could not read the commits of the graph, read here instead: ${errorText(error)}`);
+        return null;
+      } finally {
+        if (this.graphRead === reading) this.graphRead = undefined;
+      }
+    };
+  }
+
+  /** Cancels the read of the commits under way, which a read of another history or of more commits takes the place of. */
+  private cancelGraphRead(): void {
+    this.graphRead?.abort();
+    this.graphRead = undefined;
+  }
+
+  /** How many commits come before one in the history listed with a filter and a scope, or -1 when it is not there. */
+  private async positionOf(repo: Repo, hash: string, filter: Filter | null = null, scope: Scope | null = null): Promise<number> {
+    const client = this.engine?.running;
+    if (client && isHash(hash)) {
+      try {
+        const history = await historyOf(client, repo.root, filter, scope, this.state?.head ?? null, repo.firstParent);
+        return await positionOnEngine(client, repo.root, hash, history);
+      } catch (error) {
+        // As `Repo.position`, whose git may fail: a history git cannot list has no commit in it.
+        if (error instanceof EngineError && error.code === ErrorCode.gitFailed) return -1;
+        this.log.warn(`The engine could not find where the commit is, found here instead: ${errorText(error)}`);
+      }
+    }
+    return repo.position(hash, filter, scope);
+  }
+
+  /** The commits of the history listed that a search finds, newest first; it throws when git refuses the search. */
+  private async matchesOf(repo: Repo, search: Search, filter: Filter | null, scope: Scope | null): Promise<{ hashes: string[]; more: boolean }> {
+    const client = this.engine?.running;
+    if (client) {
+      try {
+        const history = await historyOf(client, repo.root, filter, scope, this.state?.head ?? null, repo.firstParent);
+        return await matchesOnEngine(client, repo.root, search, history);
+      } catch (error) {
+        if (error instanceof EngineError && error.code === ErrorCode.gitFailed) throw error;
+        this.log.warn(`The engine could not search the history, searched here instead: ${errorText(error)}`);
+      }
+    }
+    return repo.matches(search, filter, FOUND_LIMIT, scope);
+  }
+
   /** Narrows the graph to the history of some branches, or shows them all again. What the filter does is left to it. */
   async setScope(scope: Scope | null): Promise<void> {
     await this.whenLocated();
     // As it is given: reading the repository leaves out what is not a branch of it.
     this.scope = scope && typeof scope === 'object' ? scope : null;
     this.limit = pageSize();
+    this.cancelGraphRead();
     await this.reload('filter');
   }
 
@@ -664,6 +756,7 @@ export class Controller implements vscode.Disposable {
     await this.whenLocated();
     this.filter = filter;
     this.limit = pageSize();
+    this.cancelGraphRead();
     // Searching inside the changes of every commit can take a while on a large repository, and so can following lines.
     const slow = filter?.kind === 'pickaxe' || filter?.kind === 'regex' || filter?.kind === 'lines';
     if (slow) this.post({ type: 'busy', title: 'Searching' });
@@ -803,15 +896,15 @@ export class Controller implements vscode.Disposable {
     if (!repo || this.state?.rows.some((row) => row.hash === hash)) return;
     const shown = this.filter;
     const scope = this.scope;
-    let index = await repo.position(hash, shown, scope);
+    let index = await this.positionOf(repo, hash, shown, scope);
     if (index < 0 && shown) {
       this.filter = null;
-      index = await repo.position(hash, null, scope);
+      index = await this.positionOf(repo, hash, null, scope);
     }
     // On a branch that is not among the ones shown: they are all shown again.
     if (index < 0 && scope) {
       this.scope = null;
-      index = await repo.position(hash);
+      index = await this.positionOf(repo, hash);
     }
     if (index < 0) {
       this.filter = { kind: 'ref', ref: hash, lost: true };
@@ -954,10 +1047,10 @@ export class Controller implements vscode.Disposable {
     try {
       // A list of results gives way to the graph, in which the new ones are to be shown.
       if (this.filter && 'query' in this.filter) await this.setFilter(null);
-      const found = await repo.matches({ kind: search.kind, query: search.query }, this.filter, FOUND_LIMIT, this.scope);
+      const found = await this.matchesOf(repo, { kind: search.kind, query: search.query }, this.filter, this.scope);
       this.post({ type: 'found', search, ...found }, asker);
     } catch (error) {
-      const text = error instanceof GitError ? error.result.stderr.trim() : errorText(error);
+      const text = failureText(error);
       this.log.error(text);
       void vscode.window.showErrorMessage(`Gitardo: the search failed. ${text.split('\n')[0]}`);
       this.post({ type: 'found', search, hashes: [], more: false, failed: true }, asker);
@@ -2233,6 +2326,7 @@ export class Controller implements vscode.Disposable {
     this.watcher = undefined;
     this.repo = undefined;
     this.limit = pageSize();
+    this.cancelGraphRead();
     this.filter = null;
     this.scope = null;
     this.github = null;
@@ -2670,6 +2764,7 @@ export class Controller implements vscode.Disposable {
       case 'refresh':
         return this.refresh();
       case 'loadMore':
+        this.cancelGraphRead();
         this.limit += pageSize();
         return this.reload('more');
       case 'getLog': {

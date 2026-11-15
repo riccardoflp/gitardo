@@ -1,11 +1,13 @@
-//! The reads of stage 5: every `read/<card>` of the protocol but the graph's and `repo.read-state`, each answered by
-//! the function its card names. A read runs on the thread of its request, never on the thread of the repository's
-//! engine, so that reads run at the same time as each other and as an operation; its git is given the token that
-//! `$/cancel` cancels, and it is logged as a read with how long it took. Nothing here changes the repository.
+//! The reads of stage 5, and those of the graph from stage 7: every `read/<card>` of the protocol but
+//! `repo.read-state`, each answered by the function its card names. A read runs on the thread of its request, never
+//! on the thread of the repository's engine, so that reads run at the same time as each other and as an operation;
+//! its git is given the token that `$/cancel` cancels, and it is logged as a read with how long it took. Nothing here
+//! changes the repository.
 
 mod commits;
 mod conflicts;
 mod files;
+mod graph;
 mod repository;
 
 use std::fmt::Display;
@@ -67,6 +69,9 @@ pub fn answer(
 /// The answer of one read, by its method.
 fn read(reading: &Reading<'_>, method: &str, params: Value) -> Result<Value, ResponseError> {
     match method {
+        methods::GRAPH_COMMITS => graph::commits(reading, &parameters(params)?),
+        methods::GRAPH_POSITION => graph::position(reading, &parameters(params)?),
+        methods::SEARCH_MATCHES => graph::matches(reading, &parameters(params)?),
         methods::SEARCH_REVISION => commits::search_revision(reading, parameters(params)?),
         methods::DETAILS_COMMIT => commits::details(reading, parameters(params)?),
         methods::COMMIT_PAGE_PATCH => commits::commit_patch(reading, &parameters(params)?),
