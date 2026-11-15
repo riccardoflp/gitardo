@@ -26,7 +26,7 @@ names, `.gitmodules`, hooks, `.vscode/settings.json`), the answers of GitHub, an
 | | STRIDE | The threat, concretely | Where | Mitigation | Status |
 | --- | --- | --- | --- | --- | --- |
 | T1 | Tampering, Elevation | A file named `--output=…` or a branch name that git reads as an option changes what a command does. | Every command built from a name | R8.1 (no shell), R8.3 (`arg()` refuses a leading `-`; files after `--` and as `:(literal)` when they are patterns) | Mitigated |
-| T2 | Information disclosure | The GitHub token leaks: logged, shown in a command preview, sent to another host. | `src/extension/github.ts` | R13.1: asked of VS Code at each use, sent only in the `Authorization` header to `https://api.github.com/graphql`, never logged | Mitigated |
+| T2 | Information disclosure | The GitHub token leaks: logged, shown in a command preview, sent to another host. | `src/extension/github.ts`, `src/engine/client.ts` | R13.1: asked of VS Code at each use, sent only in the `Authorization` header to `https://api.github.com/graphql`, never logged. The engine asks it with the host question `host/githubToken`, only when the extension said at `initialize` that it answers it, for each read of the pull requests, never to sign in; it keeps it for that request only and sends it only as a secret header, which its log and its errors never show | Mitigated |
 | T3 | Information disclosure | Code leaves the machine without the user knowing. | The language model; GitHub | R13.3: the model is asked only when the user asks for a draft or a resolution, and the AI resolution is off by default (`conflict.resolve-ai`); GitHub is asked only for the open pull requests of a repository on github.com, with a session the user already granted | Mitigated |
 | T4 | Tampering, Elevation | A commit message, branch or file name containing markup runs script in a webview. | The webviews | R13.2: React escapes all text; the two uses of `innerHTML` in `src/flow/webview` write fixed markup; the Content Security Policy allows only the extension's scripts and a nonce | Mitigated |
 | T5 | Information disclosure | Gitardo calls a service on its own, as telemetry would. | Network | R13.3: no telemetry, no call but the two above | Mitigated |
@@ -49,7 +49,7 @@ input), a line of a card's acceptance, or a decision. The threats that are open 
 
 | Secret | Kept by | Read by | Never in |
 | --- | --- | --- | --- |
-| GitHub token (`repo` scope) | VS Code's authentication provider | `githubSession` at each request, silently unless the user runs **Gitardo: Sign In to GitHub** | The log, a command preview, the workspace state, the webviews, any request but GitHub's |
+| GitHub token (`repo` scope) | VS Code's authentication provider | `githubSession` at each request, silently unless the user runs **Gitardo: Sign In to GitHub**; the engine, through `host/githubToken`, for one read of the pull requests | The log, a command preview, the workspace state, the webviews, any request but GitHub's, the engine's memory once its read is answered |
 | Credentials of remotes | git's credential helper, the SSH agent | git | Gitardo: it never asks for them, and `GIT_TERMINAL_PROMPT=0` keeps git from asking on a terminal it does not have |
 
 ## Input that is not trusted

@@ -162,6 +162,10 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
   changes, the commit and the stashes): each operation runs as its `GitOp` in one copy and, with the target and answers
   `engineRuns` (`src/engine/actions.ts`) gives it, as the engine's feature in the other; the commands and the
   repositories after must be the same, but where [04-differences.md](../transition/04-differences.md) says why not.
+- From stage 5, `test/engineReads.test.ts` asks each read of version 1.4 of the protocol through the typed methods of
+  `EngineClient`, and compares the answer with what `Repo` (or `worktreeSetup.ts`, `conflicts.ts` and `github.ts`)
+  reads of the same throwaway repositories; where they differ, [04-differences.md](../transition/04-differences.md)
+  says why, under **Reads (stage 5)**.
 - The scenarios shared with the desktop ([desktop/06-testing.md](../desktop/06-testing.md#scenarios-run-by-both-apps))
   compare the engine's plan and the final state with the TypeScript `GitOp`'s, operation by operation, until `src/git`
   is removed.

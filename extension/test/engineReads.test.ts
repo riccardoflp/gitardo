@@ -169,7 +169,7 @@ describe.skipIf(!built)('the reads of the engine and of the extension', { timeou
     );
     expect([text(typed.left), text(typed.right)]).toEqual([await repo.show('', 'a.txt'), 'typed\n']);
     expect(text(await engine.fileRevision(root, 'a.txt', 'feature'))).toBe(await repo.show('feature', 'a.txt'));
-    // R1: a file the commit does not have is null for the engine, and empty for Repo.show.
+    // R2: a file the commit does not have is null for the engine, and empty for Repo.show.
     expect(await engine.fileRevision(root, 'b.txt', 'feature')).toBeNull();
     expect(await repo.show('feature', 'b.txt')).toBe('');
   });
@@ -262,7 +262,7 @@ describe.skipIf(!built)('the reads of the engine and of the extension', { timeou
             previous: line.previous && { hash: line.previous.commit, file: line.previous.path },
           }
         : 'notCommitted');
-    // R3: Repo.blameLine leaves out the version before, which the engine gives as blame.read-file does.
+    // R4: Repo.blameLine leaves out the version before, which the engine gives as blame.read-file does.
     const withoutPrevious = (line: ReturnType<typeof ofEngine>) => (line && typeof line === 'object' ? { ...line, previous: null } : line);
     for (const line of [1, 2, 3]) {
       expect(withoutPrevious(ofEngine(await engine.blameLine(root, 'moved.txt', line, bytesOf(typed)))), `line ${line}`).toEqual(
@@ -400,7 +400,7 @@ describe.skipIf(!built)('the reads of the engine and of the extension', { timeou
     }
     expect(await engine.preparedMessage(root)).toBe(await repo.squashMessage());
     await git(root, ['merge', '--squash', 'feature']);
-    // R2: the engine gives the message without the newlines at its end, which Repo.squashMessage keeps.
+    // R3: the engine gives the message without the newlines at its end, which Repo.squashMessage keeps.
     expect(await engine.preparedMessage(root)).toBe((await repo.squashMessage())?.trimEnd());
   });
 });
