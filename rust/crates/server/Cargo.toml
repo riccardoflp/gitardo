@@ -15,9 +15,12 @@ path = "src/main.rs"
 engine = { path = "../engine" }
 features = { path = "../features" }
 git = { path = "../git" }
+http = { path = "../http" }
+json = { path = "../json" }
 model = { path = "../model" }
 protocol = { path = "../protocol" }
 settings = { path = "../settings" }
+text = { path = "../text" }
 serde = "1.0.229"
 serde_json = "1.0.154"
 

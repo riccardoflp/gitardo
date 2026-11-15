@@ -24,6 +24,20 @@ pub struct Commit {
     pub subject: String,
 }
 
+/// The commits of what is checked out, as the Commits view of the extension lists them (`branch.read-log`).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct BranchLog {
+    /// The commits, newest first, each before its parents.
+    pub commits: Vec<Commit>,
+    /// Whether `HEAD` has more commits than were read.
+    pub has_more: bool,
+    /// Those of the commits read that are not pushed: not in the upstream of the branch, or in no remote branch when it
+    /// has none; none when there is no remote to push to, or nothing is listed.
+    pub unpushed: Option<Vec<CommitId>>,
+    /// The upstream they are not in, by its short name: `origin/main`; none when it is every remote branch.
+    pub upstream: Option<String>,
+}
+
 impl Commit {
     /// Whether it has more than one parent.
     #[must_use]

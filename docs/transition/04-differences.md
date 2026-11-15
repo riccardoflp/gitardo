@@ -2,7 +2,8 @@
 
 This lists, for every pair of [the map](03-map.md), where the extension's operation and the engine's
 feature differ: the plan (commands, flags, order), the questions, the danger, the refusals, Undo, and what is offered
-after or when git refuses. Reads and views are left out. Each difference gets a verdict:
+after or when git refuses. Reads and views are left out, but for the reads stage 5 compared, under
+[Reads (stage 5)](#reads-stage-5). Each difference gets a verdict:
 
 - **Bug (extension)**: the extension is wrong and the engine is right; the move fixes it, and the entry gives the
   CHANGELOG line.
@@ -969,6 +970,69 @@ Four things cut across areas and are best decided once:
   (`closeInVSCodeGit`, `extension/src/extension/actions.ts:1100-1120`) has no engine counterpart; the host must keep
   doing it before the plan.
 
+## Reads (stage 5)
+
+Stage 5 asked each read of version 1.4 of [the protocol](02-protocol.md#reads) of the engine and of the extension's
+TypeScript against the same throwaway repositories (`extension/test/engineReads.test.ts`). They answer the same but for
+what follows. R2 to R5 are not differences a user sees: the engine wins (D45), and a caller moved to the engine reads
+its shape.
+
+### R1. A place past the end of a reflog
+
+- **Feature**: `search.read-revision`, and `details.read-commit` for a stash; extension `Repo.resolve`.
+- **Extension**: `git rev-parse --verify --quiet <revision>^{commit}` with its failure allowed: `stash@{3}` with two
+  stashes, or `HEAD@{99}`, is no commit (`extension/src/git/repo.ts:463-468`).
+- **Engine**: git ends with 128 for such a name ("log for 'stash' only has 2 entries"), which `read_revision` took for
+  a failure: the read answered `gitFailed` where the name stands for no commit (`rust/crates/git/src/read/search.rs`).
+- **Verdict**: **Bug (engine)**. **Fixed in stage 5**: a place past the end of a reflog is no commit, an acceptance
+  line of `search.read-revision` and its test (`search_read_revision__a_place_past_the_end_of_a_reflog_gives_none`),
+  and a stash past the last is `null` for `details.read-commit`. The desktop's CHANGELOG says it.
+
+### R2. A file a commit does not have
+
+- **Feature**: `file-view.read-revision`, `diff.read-sides`; extension `Repo.show`.
+- **Extension**: `git show <ref>:<file>` with its failure allowed gives an empty text for a file the commit does not
+  have, as for an empty file (`extension/src/git/repo.ts:1086-1088`).
+- **Engine**: `null` for a file the commit does not have or a name that is no commit, the bytes otherwise
+  (`rust/crates/git/src/read/file_view.rs`).
+- **Verdict**: the engine tells the two apart; nothing a user sees.
+
+### R3. The newlines at the end of the message git prepared
+
+- **Feature**: `commit.prepared-message`; extension `Repo.squashMessage`.
+- **Extension**: `SQUASH_MSG` as it is, with the newlines at its end (`extension/src/git/repo.ts:232-236`).
+- **Engine**: the message without the whitespace at its end, and `null` for an empty one
+  (`rust/crates/git/src/read/commit.rs`).
+- **Verdict**: git strips them when it commits; nothing a user sees but the cursor at the end of the message.
+
+### R4. The version before, for the blame of one line
+
+- **Feature**: `blame.read-line`; extension `Repo.blameLine`.
+- **Extension**: `parseBlameLine` reads the commit, its author, its time and its summary, and leaves out the `previous`
+  line of git (`extension/src/git/parse.ts:338-350`); `Repo.blame` reads it.
+- **Engine**: `previous`, the commit and the name the file had before, for one line as for the whole file.
+- **Verdict**: the engine gives more; nothing a user sees.
+
+### R5. The same answer in another shape
+
+- `details.read-commit`: the message whole where the extension splits a subject and a body; for the uncommitted
+  changes no id, no author and an empty message, where the extension says `WORKTREE`, empty authors and the subject
+  **Uncommitted changes**; the untracked files of the changes are among `files`, added, on both sides.
+- `compare.read-sides`: `onlyInFirst` and `onlyInSecond` are the extension's `behind` and `ahead`; the sides are
+  `first` and `second` for `from` and `to`; the engine says what a merge would do in `merge`, where the extension has
+  `conflicts`, and has no `since` and `matched`.
+- `submodule.read-list`: `parent` is `null` at the top, `''` in the extension; what is checked out is in `checkout`.
+- `worktree-setup.read-ignored`: the kind of an entry is a tagged union where the extension has the flags `folder` and
+  `link`; a file counts as one file in both.
+- `worktree-setup.read-what-patterns-take`: each pattern with how many paths it takes and the first of them, where the
+  extension keeps the counts by pattern.
+
+Three reads have no read of the extension to compare with: `worktree.read-folder-links`, which the extension reads only
+inside `unlinkFolderLinks` as it removes them (`extension/src/git/worktreeSetup.ts:233`);
+`worktree-setup.explain-change`, read inside `changeSetup` (`extension/src/git/worktreeSetup.ts:490`); and
+`github.read-pull-requests`, of which only the repository found on GitHub (`parseGitHubRemote`) and the answer without
+a token are compared, since GitHub is not asked offline.
+
 ## Summary
 
 Entries marked **Merged into …** are not counted again.
@@ -986,9 +1050,10 @@ Entries marked **Merged into …** are not counted again.
 | Undo, preview and log (D7–D12) | 0 | 2 | 1 | 3 | 6 |
 | Worktrees and their setup (W1–W12; W11 merged) | 1 | 5 | 2 | 3 | 11 |
 | Submodules (S1–S6) | 1 | 4 | 0 | 1 | 6 |
-| **Total** | **5** | **18** | **8** | **24** | **55** |
+| Reads (R1; R2–R5 not seen by users) | 0 | 1 | 0 | 0 | 1 |
+| **Total** | **5** | **19** | **8** | **24** | **56** |
 
-Of the 18 engine bugs, five are in the extension too, so whichever side wins they get fixed in the engine: A2 (Unstage
+Of the 19 engine bugs, five are in the extension too, so whichever side wins they get fixed in the engine: A2 (Unstage
 all during an operation), B7 (remote branch by its short name), D2 (Skip without asking), D7 (Undo after what it cannot
 take back), W9 (empty folders after a failed rename). Several others are engine code doing less than its own card
 says: S2 (with A10 and B1), W1, W2, S3, S6, and in part A3, C6, W10.

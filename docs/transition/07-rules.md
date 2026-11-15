@@ -101,6 +101,17 @@ needs is written in the commit of that stage, not before.
 | [features/12-worktrees.md](../features/12-worktrees.md), [13-submodules.md](../features/13-submodules.md) | The extension's cards of the area merged, each with its **Extension** line and acceptance lines; `features/extension/12` and `13` emptied, and the identifiers of the area in `features/extension/18-settings.md` and `01-repositories.md` changed to the desktop's. |
 | [transition/02-protocol.md](02-protocol.md) | Version 1.3: `offerRun` for **Remove anyway**, given `force` as a `flag`, and for **Choose What It Gets…**; `host.terminal`, the setup commands of a new worktree handed over in `waiting`. |
 | [transition/04-differences.md](04-differences.md) | W1–W3, W9, W10, S3, S4 and S6 fixed; W4 and W5 decided as recommended, to be confirmed; W6–W8, S1 and S5 in the CHANGELOG; W11 left to D7; W12 waiting for `WriteSetting` (Q399). |
+## Written in stage 5 (the engine's reads)
+
+| Page | Change |
+| --- | --- |
+| [transition/02-protocol.md](02-protocol.md) | Version 1.4: every read but the graph's with its method, parameters and answer, the shapes of the reads, the paragraph on parameters that changed from 1.2, and how the server answers them: on the thread of the request, cancelled by `$/cancel`, logged as a read with how long it took; `host/githubToken` asked by `read/github.read-pull-requests`. |
+| [desktop/02-architecture.md](../desktop/02-architecture.md), `rust/xtask` | `protocol` uses `text`; `server` uses `text` and `http` (R1.3). |
+| [features/06-branches-tags-remotes.md](../features/06-branches-tags-remotes.md), [01-repositories.md](../features/01-repositories.md), [05-changes-and-commit.md](../features/05-changes-and-commit.md) | The cards `branch.read-log`, `repo.common-folder` and `commit.prepared-message`, desktop first, which answer Q397 and Q398 ([08-decisions.md](../08-decisions.md)). |
+| [features/03-search-and-filter.md](../features/03-search-and-filter.md), `rust/CHANGELOG.md` | `search.read-revision` finds no commit for a place past the end of a reflog instead of failing (R1). |
+| [transition/04-differences.md](04-differences.md) | **Reads (stage 5)**: R1 fixed, R2 to R5 the same answer in another shape, and the three reads with no read of the extension to compare with. |
+| [extension/06-testing.md](../extension/06-testing.md) | `test/engineReads.test.ts`, each read of the engine against the extension's. |
+| [extension/10-security.md](../extension/10-security.md) | T2 and the secrets: the GitHub token asked by the engine with `host/githubToken`, done from **Waiting for a stage**. |
 
 ## Written in stages 8 and 9
 
@@ -117,7 +128,6 @@ needs is written in the commit of that stage, not before.
 | The merge of the cards | 4 | For each area, the extension's cards are merged into the desktop's ones, and the area's file in `features/extension/` is emptied; the card template of the desktop gets an **Extension** line where the interface differs. |
 | The check of the catalog | 4 | `cargo xtask docs`, the part of `cargo xtask check` that reads the documents, takes from `docs/catalog.py` the lines a card's kind needs and the words of the glossary, and `npm run check:docs` calls it; `catalog.py` is removed when the last area is merged ([D46](../08-decisions.md#d46--cargo-xtask-check-checks-the-catalog-of-both-apps)). |
 | The promises of the cards | 4 | The extension's [promises](../extension/04-feature-contract.md#the-promises-every-card-is-checked-against) are compared with the desktop's contract and the ones it lacks are added there. |
-| Security | 5 | [extension/10-security.md](../extension/10-security.md) gets the host questions that carry a token. |
 
 ## How the extension is tested with the engine, in short
 

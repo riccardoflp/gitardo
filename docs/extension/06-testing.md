@@ -168,6 +168,10 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
   `engineBranches.test.ts`, for the branches, tags, remotes, identity and sync, gives each copy a bare repository
   beside it as `origin`, cloned by a colleague who pushes, so that fetches and pushes reach only folders the test made,
   and fixes the dates of the commits so that the two copies get the same hashes.
+- From stage 5, `test/engineReads.test.ts` asks each read of version 1.4 of the protocol through the typed methods of
+  `EngineClient`, and compares the answer with what `Repo` (or `worktreeSetup.ts`, `conflicts.ts` and `github.ts`)
+  reads of the same throwaway repositories; where they differ, [04-differences.md](../transition/04-differences.md)
+  says why, under **Reads (stage 5)**.
 - The scenarios shared with the desktop ([desktop/06-testing.md](../desktop/06-testing.md#scenarios-run-by-both-apps))
   compare the engine's plan and the final state with the TypeScript `GitOp`'s, operation by operation, until `src/git`
   is removed.

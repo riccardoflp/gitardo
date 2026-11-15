@@ -1,7 +1,15 @@
 //! What the operations on branches ask before they decide: how far two branches are apart, whether one has the other,
-//! which branches are merged or have a commit, and whether a commit has submodules.
+//! which branches are merged or have a commit, and whether a commit has submodules; and the commits of what is checked
+//! out ([`log`]).
+
+mod log;
 
 use std::ffi::OsString;
+
+pub use log::{
+    BranchLogRequest, head_arguments, log_of_head_arguments, parse_unpushed, parse_upstream, read_log,
+    unpushed_arguments, upstream_arguments,
+};
 
 use crate::read::fields::{arguments, read_or_nothing, unexpected};
 use crate::{Git, GitError};

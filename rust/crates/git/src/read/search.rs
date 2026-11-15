@@ -82,7 +82,8 @@ pub struct RevisionRequest {
 }
 
 /// The commit that a hash, a branch, a tag or anything else git understands stands for; none for a name git does not
-/// know, an abbreviated hash that starts several objects, or something that is not a commit and leads to none. An empty
+/// know, a place in a reflog past its end, an abbreviated hash that starts several objects, or something that is not a
+/// commit and leads to none. An empty
 /// name, or one that starts with `-`, which git would take for an option, is not asked of git.
 ///
 /// Feature: search.read-revision
@@ -94,9 +95,13 @@ pub fn read_revision(git: &Git, request: &RevisionRequest) -> Result<Option<Comm
     let Some(words) = revision_arguments(request) else {
         return Ok(None);
     };
-    read_or_nothing(git, &words)?
-        .map(|output| parse_revision(&output))
-        .transpose()
+    match read_or_nothing(git, &words) {
+        Ok(output) => output.map(|output| parse_revision(&output)).transpose(),
+        // A place in a reflog past its end, such as `stash@{3}` with two stashes, makes git fail where it says nothing
+        // of a name it does not know: it stands for no commit either.
+        Err(GitError::Failed { code: Some(128), .. }) if request.revision.contains("@{") => Ok(None),
+        Err(error) => Err(error),
+    }
 }
 
 /// `git rev-parse --verify --quiet <revision>^{commit}`, which prints the full hash of the commit, or nothing and the

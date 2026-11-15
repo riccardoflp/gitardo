@@ -6,13 +6,13 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.3** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.4** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
 targets `resolutions`, the resolutions accepted on the review for `review.write`, and `mergeResult`, the file of a
 Merge page for `merge-view.mark-resolved`. A plan the user agreed to in its own question (`Danger::Agreed`) is sent
-with the danger `none`, and the engine does not send `feature/confirm` for it. The rest is not built yet.
+with the danger `none`, and the engine does not send `feature/confirm` for it.
 
 Version 1.3 adds what area 2 of stage 4 (branches, tags, remotes) needed to offer an operation after git refused one:
 the follow-up `offerRun { label, feature, target: Target, answers: Record<string, Answer> }`, sent after a plan and in
@@ -24,6 +24,18 @@ An `offerRun` whose target or one of whose answers has no JSON yet is not sent, 
 offered. The extension shows its `label` as a button on the message and, when it is clicked, sends `feature/run` with
 that `feature`, `target` and `answers`. The data of an error is written in camel case, `followUps`, as this page always
 said; before 1.3 the server wrote `follow_ups`.
+
+Version 1.4 adds what stage 5 built: every read of the table of [Reads](#reads) but the three of the graph, and the host
+question `host/githubToken` that `read/github.read-pull-requests` asks. The rest is not built yet.
+
+Version 1.4 writes the parameters of some reads as the engine's functions take them, where the table of 1.2 had
+guessed them: `diff.read-sides` takes the two versions of the file (`FileVersion` of the engine) rather than the two
+sides of a comparison; `merge-view.read-sides` answers with the engine's names, `current` and `incoming`, and the file
+as it is now; `compare.read-sides` and `compare.read-patch` take the request of `compare.read-sides`;
+`compare.read-files` takes `from` and `to`; `blame.read-line` has no revision, which the engine's read does not take,
+and both blame reads leave whitespace to the setting `blame.ignoreWhitespaceAndMoves`; `file-history.read-names` has no
+revision; `worktree-setup.propose-commands` gives the file that calls for each command; `branch.read-log` takes a count
+only, and answers whether there are more commits and which upstream the commits not pushed are counted against.
 
 ## Transport
 
@@ -83,7 +95,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.3",
+  protocol: "1.4",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -195,45 +207,52 @@ change the repository and run at the same time as each other and as an operation
 | Method | Parameters besides `repository` | Result | Card (desktop) |
 | --- | --- | --- | --- |
 | `read/repo.read-state` | — | `RepositoryState` | `repo.read-state` |
-| `read/graph.read-commits` | `TimelineRequest` | `CommitPage` | `graph.read-commits` |
-| `read/graph.read-position` | `{ commit, timeline: TimelineRequest }` | `{ index: number \| null }` | `graph.read-position` |
-| `read/search.read-matches` | `{ text, mode: SearchMode, timeline: TimelineRequest }` | `{ commits: CommitId[] }` | `search.read-matches` |
+| `read/graph.read-commits` | `TimelineRequest` | `CommitPage` | `graph.read-commits` (stage 7) |
+| `read/graph.read-position` | `{ commit, timeline: TimelineRequest }` | `{ index: number \| null }` | `graph.read-position` (stage 7) |
+| `read/search.read-matches` | `{ text, mode: SearchMode, timeline: TimelineRequest }` | `{ commits: CommitId[] }` | `search.read-matches` (stage 7) |
 | `read/search.read-revision` | `{ revision }` | `{ commit: CommitId \| null }` | `search.read-revision` |
-| `read/details.read-commit` | `{ commit }` or `{ stash: number }` | `CommitDetail \| null` | `details.read-commit` |
+| `read/details.read-commit` | `{ commit }`, `{ stash: number }` or `{ uncommitted: true }` | `CommitDetail \| null` | `details.read-commit` |
 | `read/commit-page.read-patch` | `{ commit, path: string \| null }` | `Patch` | `commit-page.read-patch` |
 | `read/changes.read-working-tree` | — | `WorkingTree` | `changes.read-working-tree` |
 | `read/changes.read-ignored` | `{ paths: string[] }` | `{ ignored: string[] }` | (`changes.unsaved`) |
-| `read/diff.read-sides` | `FileSides` | `{ left: Bytes \| null, right: Bytes \| null }` | `diff.read-sides` |
+| `read/diff.read-sides` | `{ left: Version, right: Version }` | `{ left: Bytes \| null, right: Bytes \| null }` | `diff.read-sides` |
 | `read/file-view.read-revision` | `{ path, revision }` | `Bytes \| null` | `file-view.read-revision` |
-| `read/merge-view.read-sides` | `{ path }` | `{ base, ours, theirs, merged }` (each `Bytes \| null`) | `merge-view.read-sides` |
+| `read/merge-view.read-sides` | `{ path, unsaved: Bytes \| null }` | `MergeSides` | `merge-view.read-sides` |
 | `read/conflicts.read-files` | — | `ConflictFile[]` | `conflicts.read-files` |
-| `read/conflicts.side-names` | — | `{ ours: SideName, theirs: SideName }` | `conflicts.side-names` |
-| `read/conflicts.resolve-by-rules` | `{ paths: string[] \| null }` | `Proposal[]` | `conflicts.resolve-by-rules` |
-| `read/compare.read-sides` | `ComparisonTarget` | `ComparisonSides` | `compare.read-sides` |
-| `read/compare.read-files` | `{ left, right }` | `FileChange[]` | `compare.read-files` |
-| `read/compare.read-patch` | `ComparisonTarget` | `Patch` | `compare.read-patch` |
+| `read/conflicts.side-names` | — | `{ current: Side, incoming: Side }` | `conflicts.side-names` |
+| `read/conflicts.resolve-by-rules` | `{ paths: string[] \| null }` | `ConflictProposals[]` | `conflicts.resolve-by-rules` |
+| `read/compare.read-sides` | `CompareRequest` | `CompareView` | `compare.read-sides` |
+| `read/compare.read-files` | `{ from, to }` | `FileChange[]` | `compare.read-files` |
+| `read/compare.read-patch` | `CompareRequest` and `{ mergeBase: CommitId \| null, files: FileChange[], form: "lines" \| "text" }` | `Patch` | `compare.read-patch` |
 | `read/compare.resolve-revision` | `{ revision }` | `{ commit: CommitId \| null }` | `compare.resolve-revision` |
-| `read/blame.read-line` | `{ path, line, revision: string \| null, contents: Bytes \| null }` | `BlameLine \| null` | `blame.read-line` |
+| `read/blame.read-line` | `{ path, line, contents: Bytes \| null }` | `BlameLine \| null` | `blame.read-line` |
 | `read/blame.read-file` | `{ path, revision: string \| null, contents: Bytes \| null }` | `(BlameLine \| null)[] \| null` | `blame.read-file` |
-| `read/file-history.read-names` | `{ path, revision }` | `{ names: string[] }` | `file-history.read-names` |
-| `read/file-history.read-committed-lines` | `CommittedLinesQuery` | `CommittedLines` | `file-history.read-committed-lines` |
-| `read/reflog.read` | `{ reference: string, count: number }` | `ReflogEntry[]` | `reflog.read` |
-| `read/remote.read-remotes` | — | `Remote[]` | `remote.read-remotes` |
-| `read/identity.read` | — | `IdentityKeys` | `identity.read` |
+| `read/file-history.read-names` | `{ path }` | `{ names: string[] }` | `file-history.read-names` |
+| `read/file-history.read-committed-lines` | `{ path, renamedFrom: string \| null, text, lines: LineRange }` | `CommittedLines` | `file-history.read-committed-lines` |
+| `read/reflog.read` | `{ reference: string, count: number }` | `ReflogPosition[]` | `reflog.read` |
+| `read/remote.read-remotes` | — | `{ name, url }[]` | `remote.read-remotes` |
+| `read/identity.read` | — | `{ identity: { name, email }, localKeys: string[] }` | `identity.read` |
 | `read/submodule.read-list` | — | `Submodule[]` | `submodule.read-list` |
 | `read/worktree.read-folder-links` | `{ worktree }` | `{ paths: string[] }` | `worktree.read-folder-links` |
 | `read/worktree-setup.read-ignored` | `{ worktree }` | `IgnoredEntry[]` | `worktree-setup.read-ignored` |
 | `read/worktree-setup.read-what-patterns-take` | `{ requests: TakeRequest[] }` | `SetupPreview[]` | `worktree-setup.read-what-patterns-take` |
-| `read/worktree-setup.propose-commands` | — | `{ commands: string[] }` | `worktree-setup.propose-commands` |
+| `read/worktree-setup.propose-commands` | — | `{ commands: { command, file }[] }` | `worktree-setup.propose-commands` |
 | `read/worktree-setup.explain-change` | `{ paths: string[] }` | `PathStatus[]` | `worktree-setup.explain-change` |
-| `read/github.read-pull-requests` | `{ remote }` | `PullRequests` | `github.read-pull-requests` |
-| `read/branch.read-log` | `{ upstreamOnly: boolean, count: number }` | `{ commits: Commit[], unpushed: CommitId[] }` | none yet (Q397) |
-| `read/repo.common-folder` | — | `{ folder: string }` | none yet (Q398) |
-| `read/commit.prepared-message` | — | `{ message: string \| null }` | none yet (Q398) |
+| `read/github.read-pull-requests` | `{ remote: string \| null }` | `PullRequests` | `github.read-pull-requests` |
+| `read/branch.read-log` | `{ count: number }` | `{ commits: Commit[], hasMore, unpushed: CommitId[] \| null, upstream: string \| null }` | `branch.read-log` |
+| `read/repo.common-folder` | — | `{ folder: string }` | `repo.common-folder` |
+| `read/commit.prepared-message` | — | `{ message: string \| null }` | `commit.prepared-message` |
 
-Three reads at the end have no desktop card: the map found them read in `crates/app` or not at all
-([03-map.md](03-map.md#3-gaps-extension-side)). Each gets its card in the engine, desktop first (D39), before the
-extension uses it.
+The three reads at the end had no desktop card: the map found them read in `crates/app` or not at all
+([03-map.md](03-map.md#3-gaps-extension-side)). Stage 5 made each a card of the engine, desktop first (D39), before the
+extension uses it (Q397, Q398).
+
+The server answers each read on a thread of its own, never on the thread of the repository's engine, so that reads run
+at the same time as each other and as an operation. Each gets the token that `$/cancel` cancels, which kills the git it
+runs, and is logged as `LogKind::Read` with how long it took, as `Read <method> in <repository>`. A read whose
+parameters name a commit by anything but its full id answers `-32602`; one whose git fails answers `gitFailed`.
+`read/github.read-pull-requests` asks the extension `host/githubToken` with `{ host: "github.com", ask: false }` when
+it said `host.githubToken` at `initialize`, and reads nothing without a token.
 
 The reads a feature asks for itself (`Outcome::Read` with a `Query`) are not in this list: the engine answers them
 inside `feature/run`, and they never reach the extension, but for the host questions.
@@ -544,6 +563,43 @@ The fields are those of `model`; this section says only what the JSON adds or le
   "notUndoable", reason }`, `{ kind: "branchCreated", name }`, `{ kind: "branchDeleted", name, commit }`, `{ kind:
   "stashDropped", message, commit }`, `{ kind: "conflictsResolved", files: string[] }`, `{ kind: "squashMerge" }`, `{
   kind: "series", headBefore }`, `{ kind: "splitLast", commit }`; each commit a full id.
+
+The shapes of the reads (`protocol/src/reads/`), each from the engine's type it names:
+
+- **`Bytes`**: `{ base64: string }`, padded with `=`.
+- **`Version`** (`FileVersion` of `git::read::diff`): `{ version: { kind: "absent" } | { kind: "index" } | { kind:
+  "commit", commit } | { kind: "base" } | { kind: "workingTree", unsaved: Bytes | null }, path }`.
+- **`MergeSides`**: `{ base, current, incoming, result: Bytes, operation: Operation | null, hasBothSides: boolean }`,
+  each side empty when its stage has no file.
+- **`ConflictFile`**: `{ path, base, current, incoming }`, each stage `{ mode, object } | null`.
+- **`Side`** (`model::conflicts`): `{ role: "branchCheckedOut" | "branchBeingMerged" | "rebasedOnto" |
+  "commitBeingReplayed" | "commitBeingPicked" | "stateBeforeReverted" | "patchBeingApplied" | "yourFiles" |
+  "changesBeingApplied", name: string | null, subject: string | null }`.
+- **`ConflictProposals`**: `{ path, leftAlone: "tooLarge" | "noMarkers" | "binary" | "notUtf8" | "tooManyLines" |
+  "markersDoNotPair" | "tooComplex" | null, conflicts: { line, span: Span, proposal: { case: "spacesOrLineEndings" |
+  "sameChange" | "oneSide" | "nextToEachOther", replaced: Span, lines: { text, ending }[] } | null }[] }`, a `Span`
+  being `{ start, end }`, lines of the file from 0, the end left out.
+- **`CompareRequest`**: `{ first, second, mode: "sinceDiverged" | "everything", path: string | null }`, each side
+  `{ kind: "commit", commit } | { kind: "workingTree" }`. **`CompareView`**: `{ mergeBase: CommitId | null,
+  onlyInFirst, onlyInSecond, files: FileChange[], commits: { side: "first" | "second", id, authorName, authorDate,
+  subject, isAlsoInOtherSide }[], merge: { kind: "notAsked" } | { kind: "clean" } | { kind: "conflicts", files } |
+  { kind: "unknown" } }`.
+- **`Patch`**: `{ kind: "files", files: FilePatch[] } | { kind: "unmatched" } | { kind: "text", text: Bytes }`;
+  `FilePatch = { path, originalPath, kind, hunks: { header, lines: { kind: "context" | "added" | "removed" |
+  "noNewline", text, before: number | null, after: number | null }[] }[], added, removed, isBinary, isPastLimit }`.
+- **`BlameLine`**: `{ kind: "notCommitted" } | { kind: "committed", commit, author, authorTime, summary, previous:
+  { commit, path } | null }`.
+- **`LineRange`**: `{ start, end }`, from 1, the end in. **`CommittedLines`**: `{ kind: "inNoCommit" } | { kind:
+  "committed", commit, path, lines: LineRange | null }`.
+- **`ReflogPosition`**: `{ commit, subject, selector, time }`.
+- **`IgnoredEntry`**: `{ path, kind: { kind: "file", bytes } | { kind: "folder", files, bytes, hasMore } | { kind:
+  "link" } }`. **`TakeRequest`**: `{ folder, link: string[], copy: string[], commit: string | null }`.
+  **`SetupPreview`**: `{ linked, copied, linkPatterns, copyPatterns, already }`, each pattern `{ pattern, count, paths
+  }`. **`PathStatus`**: `{ isFolder, tracked: "nothing" | "it" | "filesIn", ignored: "whole" | "part" | "nothing" }`.
+- **`PullRequests`**: `{ kind: "read", byBranch: Record<string, { number, title, url, isDraft, branch, checks: "passed"
+  | "failed" | "running" | null }> } | { kind: "notOnGitHub" } | { kind: "noToken" } | { kind: "failed", message,
+  isUnauthorized }`.
+- **`Commit`** is that of [The graph](#the-graph).
 
 The protocol's own tests round-trip each type through JSON and check that every variant of every enum above has its
 JSON form ([07-rules.md](07-rules.md)).

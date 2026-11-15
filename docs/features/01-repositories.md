@@ -252,6 +252,22 @@ Acceptance:
 - [ ] No read takes `index.lock`: while it runs, `git commit` in a terminal does not fail because of it.
 - [ ] With `readOnStartup` off, starting the window runs no git command until **Read the repository** is clicked.
 
+### `repo.common-folder` — The git folder the worktrees share
+
+The git folder every worktree of a repository shares, where its references live: the `.git` of the main worktree,
+whichever worktree is shown. The extension watches it for the changes of the references (Q398).
+
+- **Kind**: Read
+- **Function**: `git::read::repo::read_common_folder(git: &Git, request: &CommonFolderRequest) -> Result<PathBuf, GitError>`
+- **Reads**: `git rev-parse --git-common-dir`, which gives the folder from the folder git runs in or in full; it is
+  made whole from there, without its `.` and `..`.
+
+Acceptance:
+
+- [ ] In the main worktree, it is its `.git`.
+- [ ] In a linked worktree, it is the `.git` of the main worktree, not the worktree's own git folder.
+- [ ] From a folder inside the working tree, it is the same folder, in full.
+
 ### `repo.watch-changes` — Which changes ask for a read
 
 The repository is read again on its own when it or its files change, from Gitardo, a terminal or another program.

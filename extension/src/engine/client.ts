@@ -10,23 +10,48 @@ import type { Head, JournalEntry, UndoRecord } from './journal';
 import {
   type Answer,
   type AskParams,
+  type BlameLine,
+  type BranchLog,
+  type Bytes,
+  type CommitAsked,
+  type CommitDetail,
+  type CommittedLines,
+  type CompareRequest,
+  type CompareView,
   type ConfirmParams,
+  type ConflictFile,
+  type ConflictProposals,
+  type EngineFileChange,
   type EngineState,
   type FeatureRunParams,
   type Finished,
   type FollowUp,
   type FollowUpsParams,
+  HostMethod,
+  type IgnoredEntry,
   type InitializeParams,
   type InitializeResult,
+  type LineRange,
   type LogLineParams,
+  type MergeSides,
   Method,
   PROTOCOL,
+  type Patch,
+  type PathStatus,
   type Plan,
+  type PullRequests,
   type Question,
+  ReadMethod,
+  type ReflogPosition,
+  type SetupPreview,
   type Settings,
+  type Side,
   type StateParams,
+  type Submodule,
+  type TakeRequest,
   type Target,
   type Validation,
+  type Version,
 } from './messages';
 
 /** How long the exits are counted for. */
@@ -55,6 +80,11 @@ export interface EngineOptions {
   log: EngineLog;
   /** The time now; the tests give their own. */
   now?: () => number;
+  /**
+   * The token of GitHub that VS Code keeps, for `read/github.read-pull-requests`; null when there is none. Without it the
+   * engine is told the host does not answer `host/githubToken`, and reads no pull requests.
+   */
+  githubToken?: (ask: boolean) => Promise<string | null>;
 }
 
 /** Who answers the questions of a feature run: in the extension, VS Code's input boxes, picks and dialogs. */
@@ -190,6 +220,185 @@ export class EngineClient {
     return number;
   }
 
+  // The reads of version 1.4, from stage 5: one method for each, which opens the repository when it is not open. Each
+  // runs in the engine at the same time as the others, and `signal` cancels it.
+
+  /** The commit a name stands for, as a search reads it; null when it names none (`search.read-revision`). */
+  async searchRevision(repository: string, revision: string, signal?: AbortSignal): Promise<string | null> {
+    return (await this.read<{ commit: string | null }>(ReadMethod.searchRevision, repository, { revision }, signal)).commit;
+  }
+
+  /** The details of a commit by its full id, of a stash, or of the uncommitted changes; null for one not there. */
+  details(repository: string, asked: CommitAsked, signal?: AbortSignal): Promise<CommitDetail | null> {
+    return this.read(ReadMethod.details, repository, asked, signal);
+  }
+
+  /** The lines a commit changed in each of its files, or in one of them (`commit-page.read-patch`). */
+  commitPatch(repository: string, commit: string, path: string | null, signal?: AbortSignal): Promise<Patch> {
+    return this.read(ReadMethod.commitPatch, repository, { commit, path }, signal);
+  }
+
+  /** What is not committed (`changes.read-working-tree`). */
+  workingTree(repository: string, signal?: AbortSignal): Promise<EngineState['workingTree']> {
+    return this.read(ReadMethod.workingTree, repository, {}, signal);
+  }
+
+  /** Those of some paths that git ignores. */
+  async ignored(repository: string, paths: string[], signal?: AbortSignal): Promise<string[]> {
+    return (await this.read<{ ignored: string[] }>(ReadMethod.ignored, repository, { paths }, signal)).ignored;
+  }
+
+  /** The two sides of a file of a Diff page; null for a side that has no such file (`diff.read-sides`). */
+  diffSides(repository: string, left: Version, right: Version, signal?: AbortSignal): Promise<{ left: Bytes | null; right: Bytes | null }> {
+    return this.read(ReadMethod.diffSides, repository, { left, right }, signal);
+  }
+
+  /** A file as a commit has it; null when the name is no commit or the commit has no such file (`file-view.read-revision`). */
+  fileRevision(repository: string, path: string, revision: string, signal?: AbortSignal): Promise<Bytes | null> {
+    return this.read(ReadMethod.fileRevision, repository, { path, revision }, signal);
+  }
+
+  /** The versions of a file in conflict, and the file as it is now or as its editor has it (`merge-view.read-sides`). */
+  mergeSides(repository: string, path: string, unsaved: Bytes | null, signal?: AbortSignal): Promise<MergeSides> {
+    return this.read(ReadMethod.mergeSides, repository, { path, unsaved }, signal);
+  }
+
+  /** The files in conflict, with the stages the index has of each (`conflicts.read-files`). */
+  conflictFiles(repository: string, signal?: AbortSignal): Promise<ConflictFile[]> {
+    return this.read(ReadMethod.conflictFiles, repository, {}, signal);
+  }
+
+  /** What the two sides of the operation under way are (`conflicts.side-names`). */
+  sideNames(repository: string, signal?: AbortSignal): Promise<{ current: Side; incoming: Side }> {
+    return this.read(ReadMethod.sideNames, repository, {}, signal);
+  }
+
+  /** What the rules propose for the conflicts of the files in conflict, or of some of them (`conflicts.resolve-by-rules`). */
+  conflictRules(repository: string, paths: string[] | null, signal?: AbortSignal): Promise<ConflictProposals[]> {
+    return this.read(ReadMethod.conflictRules, repository, { paths }, signal);
+  }
+
+  /** What two sides of a comparison have that the other has not (`compare.read-sides`). */
+  compareSides(repository: string, request: CompareRequest, signal?: AbortSignal): Promise<CompareView> {
+    return this.read(ReadMethod.compareSides, repository, request, signal);
+  }
+
+  /** The files that differ between two commits (`compare.read-files`). */
+  compareFiles(repository: string, from: string, to: string, signal?: AbortSignal): Promise<EngineFileChange[]> {
+    return this.read(ReadMethod.compareFiles, repository, { from, to }, signal);
+  }
+
+  /** The lines that differ in a comparison, in some of its files, as lines or as text (`compare.read-patch`). */
+  comparePatch(
+    repository: string,
+    request: CompareRequest & { mergeBase: string | null; files: EngineFileChange[]; form: 'lines' | 'text' },
+    signal?: AbortSignal,
+  ): Promise<Patch> {
+    return this.read(ReadMethod.comparePatch, repository, request, signal);
+  }
+
+  /** The commit a side of a comparison names; null when it names none (`compare.resolve-revision`). */
+  async compareRevision(repository: string, revision: string, signal?: AbortSignal): Promise<string | null> {
+    return (await this.read<{ commit: string | null }>(ReadMethod.compareRevision, repository, { revision }, signal)).commit;
+  }
+
+  /** Who last changed a line of a file, from 1, with the text of its editor when it has edits not saved (`blame.read-line`). */
+  blameLine(repository: string, path: string, line: number, contents: Bytes | null, signal?: AbortSignal): Promise<BlameLine | null> {
+    return this.read(ReadMethod.blameLine, repository, { path, line, contents }, signal);
+  }
+
+  /** Who last changed each line of a file; null when git cannot blame it (`blame.read-file`). */
+  blameFile(repository: string, path: string, revision: string | null, contents: Bytes | null, signal?: AbortSignal): Promise<Array<BlameLine | null> | null> {
+    return this.read(ReadMethod.blameFile, repository, { path, revision, contents }, signal);
+  }
+
+  /** Every name a file had, the newest first (`file-history.read-names`). */
+  async fileNames(repository: string, path: string, signal?: AbortSignal): Promise<string[]> {
+    return (await this.read<{ names: string[] }>(ReadMethod.fileNames, repository, { path }, signal)).names;
+  }
+
+  /** Where some lines of a file are in the commit checked out (`file-history.read-committed-lines`). */
+  committedLines(
+    repository: string,
+    request: { path: string; renamedFrom: string | null; text: string; lines: LineRange },
+    signal?: AbortSignal,
+  ): Promise<CommittedLines> {
+    return this.read(ReadMethod.committedLines, repository, request, signal);
+  }
+
+  /** The places a reference was at, the last first (`reflog.read`). */
+  reflog(repository: string, reference: string, count: number, signal?: AbortSignal): Promise<ReflogPosition[]> {
+    return this.read(ReadMethod.reflog, repository, { reference, count }, signal);
+  }
+
+  /** The remotes, with their URLs (`remote.read-remotes`). */
+  remotes(repository: string, signal?: AbortSignal): Promise<Array<{ name: string; url: string }>> {
+    return this.read(ReadMethod.remotes, repository, {}, signal);
+  }
+
+  /** The identity commits are made with, and the keys of it the repository sets (`identity.read`). */
+  identity(repository: string, signal?: AbortSignal): Promise<{ identity: EngineState['identity']; localKeys: string[] }> {
+    return this.read(ReadMethod.identity, repository, {}, signal);
+  }
+
+  /** The submodules, and theirs (`submodule.read-list`). */
+  submodules(repository: string, signal?: AbortSignal): Promise<Submodule[]> {
+    return this.read(ReadMethod.submodules, repository, {}, signal);
+  }
+
+  /** The links to folders that removing a worktree would follow (`worktree.read-folder-links`). */
+  async folderLinks(repository: string, worktree: string, signal?: AbortSignal): Promise<string[]> {
+    return (await this.read<{ paths: string[] }>(ReadMethod.folderLinks, repository, { worktree }, signal)).paths;
+  }
+
+  /** What git ignores in a checkout, with its size on disk (`worktree-setup.read-ignored`). */
+  setupIgnored(repository: string, worktree: string, signal?: AbortSignal): Promise<IgnoredEntry[]> {
+    return this.read(ReadMethod.setupIgnored, repository, { worktree }, signal);
+  }
+
+  /** What link and copy patterns take from each checkout asked (`worktree-setup.read-what-patterns-take`). */
+  setupTakes(repository: string, requests: TakeRequest[], signal?: AbortSignal): Promise<SetupPreview[]> {
+    return this.read(ReadMethod.setupTakes, repository, { requests }, signal);
+  }
+
+  /** The commands proposed for new worktrees, each with the file that calls for it (`worktree-setup.propose-commands`). */
+  async setupCommands(repository: string, signal?: AbortSignal): Promise<Array<{ command: string; file: string }>> {
+    const { commands } = await this.read<{ commands: Array<{ command: string; file: string }> }>(ReadMethod.setupCommands, repository, {}, signal);
+    return commands;
+  }
+
+  /** What each path is for git, and whether it is a folder (`worktree-setup.explain-change`). */
+  pathStatuses(repository: string, paths: string[], signal?: AbortSignal): Promise<PathStatus[]> {
+    return this.read(ReadMethod.pathStatuses, repository, { paths }, signal);
+  }
+
+  /** The open pull requests of the repository on GitHub of a remote, or of the main one (`github.read-pull-requests`). */
+  pullRequests(repository: string, remote: string | null, signal?: AbortSignal): Promise<PullRequests> {
+    return this.read(ReadMethod.pullRequests, repository, { remote }, signal);
+  }
+
+  /** The commits of what is checked out, at most `count`, and which are not pushed (`branch.read-log`). */
+  branchLog(repository: string, count: number, signal?: AbortSignal): Promise<BranchLog> {
+    return this.read(ReadMethod.branchLog, repository, { count }, signal);
+  }
+
+  /** The git folder the worktrees share, in full (`repo.common-folder`). */
+  async commonFolder(repository: string, signal?: AbortSignal): Promise<string> {
+    return (await this.read<{ folder: string }>(ReadMethod.commonFolder, repository, {}, signal)).folder;
+  }
+
+  /** The message git prepared for the commit of a squash merge; null when none waits (`commit.prepared-message`). */
+  async preparedMessage(repository: string, signal?: AbortSignal): Promise<string | null> {
+    return (await this.read<{ message: string | null }>(ReadMethod.preparedMessage, repository, {}, signal)).message;
+  }
+
+  /** A read of a repository, opened first when it is not. */
+  private async read<T>(method: string, repository: string, params: object, signal?: AbortSignal): Promise<T> {
+    const connection = await this.ready();
+    await this.ensureOpen(repository);
+    return connection.request<T>(method, { ...params, repository }, signal);
+  }
+
   /** What is wrong with text typed for a question, as the engine says it; null when it is fine. */
   async validate(repository: string, validation: Validation, text: string): Promise<string | null> {
     const connection = await this.ready();
@@ -271,6 +480,10 @@ export class EngineClient {
       const asker = this.askers.get(run);
       return { run: asker ? await asker.confirm(plan) : false };
     });
+    connection.onRequest(HostMethod.githubToken, async (params) => {
+      const { ask } = params as { host: string; ask: boolean };
+      return { token: this.options.githubToken ? await this.options.githubToken(ask) : null };
+    });
     connection.on(Method.state, (params) => {
       const { repository, state } = params as StateParams;
       for (const handler of this.stateHandlers) handler(repository, state);
@@ -285,7 +498,7 @@ export class EngineClient {
       protocol: PROTOCOL,
       client: { name: 'gitardo-vscode', version: this.options.clientVersion },
       settings: this.options.settings(),
-      host: { terminal: true },
+      host: { terminal: true, githubToken: this.options.githubToken !== undefined },
       logLevel: this.options.logLevel(),
     };
     try {

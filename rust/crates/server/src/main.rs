@@ -12,6 +12,7 @@ mod feature;
 mod framing;
 mod journal;
 mod outgoing;
+mod reads;
 mod repository;
 mod session;
 mod settings;

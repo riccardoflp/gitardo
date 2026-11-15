@@ -5,6 +5,8 @@
 #![cfg(test)]
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 
+#[path = "reads/branch_log.rs"]
+mod branch_log;
 #[path = "reads/conflicts.rs"]
 mod conflicts;
 #[path = "reads/github.rs"]

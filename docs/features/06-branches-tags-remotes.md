@@ -673,6 +673,32 @@ Acceptance:
 - [ ] Every list of **Kept aside** is closed when the window opens, and the others are open.
 - [ ] The **…** of the Worktrees list has **Prune missing worktrees** only while a worktree's folder is missing.
 
+### `branch.read-log` — Read the commits of what is checked out
+
+The commits of `HEAD`, newest first, whatever the graph is narrowed to, and which of them are not pushed: what the
+Commits view of the extension lists (Q397).
+
+- **Kind**: Read
+- **Function**: `git::read::branch::read_log(git: &Git, request: &BranchLogRequest) -> Result<BranchLog, GitError>`
+- **Reads**: `git rev-parse --verify --quiet HEAD^{commit}`, which ends with 1 before the first commit and then nothing
+  else is read; `git log -z` with the format of every list (`graph.read-commits`) and `--max-count=<count + 1>`, from
+  `HEAD`; `git rev-parse --symbolic-full-name @{upstream}`, which fails without an upstream; `git remote`; and, when
+  there is an upstream or a remote, `git rev-list --max-count=<count> HEAD --not <upstream> --`, or `--remotes` in place
+  of the upstream when there is none.
+- **Extension**: the Commits view of the Source Control side bar, which lists these commits with a mark on those not
+  pushed.
+
+Acceptance:
+
+- [ ] On a branch of three commits, asked for two, the two newest are listed, newest first, and it says there are
+      more; the commits of another branch are not listed.
+- [ ] Before the first commit nothing is listed and nothing fails.
+- [ ] With an upstream that lacks the newest commit, that commit is the one not pushed and the upstream is named by its
+      short name, `origin/main`.
+- [ ] Without an upstream but with a remote, the commits in no remote branch are the ones not pushed, and no upstream
+      is named.
+- [ ] With no remote, nothing is said of what is pushed.
+
 ### `tag.create` — Create a tag
 
 Puts a tag on a commit: a lightweight one, or an annotated one with a message.

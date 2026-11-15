@@ -1774,6 +1774,7 @@ dependencies = [
  "serde",
  "serde_json",
  "testkit",
+ "text",
 ]
 
 [[package]]
@@ -2163,12 +2164,15 @@ dependencies = [
  "engine",
  "features",
  "git",
+ "http",
+ "json",
  "model",
  "protocol",
  "serde",
  "serde_json",
  "settings",
  "testkit",
+ "text",
 ]
 
 [[package]]

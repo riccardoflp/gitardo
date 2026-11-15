@@ -174,3 +174,19 @@ fn search_read_revision__gives_none_for_a_blob() {
     assert_eq!(revision(&repository, blob.trim_end()), None);
     assert_eq!(revision(&repository, "nope"), None);
 }
+
+#[test]
+fn search_read_revision__a_place_past_the_end_of_a_reflog_gives_none() {
+    let (repository, commits) = five_commits();
+    std::fs::write(
+        repository.path().join("file.txt"),
+        "changed
+",
+    )
+    .unwrap();
+    let _ = repository.git(&["stash", "push", "--quiet"]);
+    assert!(revision(&repository, "stash@{0}").is_some());
+    assert_eq!(revision(&repository, "stash@{1}"), None);
+    assert_eq!(revision(&repository, "HEAD@{99}"), None);
+    assert_eq!(revision(&repository, "HEAD@{0}").as_ref(), commits.last());
+}

@@ -2384,10 +2384,15 @@ start of stage 1, as recommended.
   asking nothing of its own ([W5](transition/04-differences.md#w5-who-decides-that-the-setup-commands-may-run)).
 - **Q397** — The Commits view of the extension (`Repo.branchLog`) has no read in the engine. Recommended: a card
   `branch.read-log` in the desktop first, made of `graph.read-commits` and `graph.unpushed`, and a view of it in the
-  desktop only if it earns one.
+  desktop only if it earns one. *Answered in stage 5*: the card `branch.read-log`, a read of the engine
+  (`git::read::branch::read_log`) with the format of `graph.read-commits` and git's own count of what is not pushed;
+  no view of it in the desktop yet.
 - **Q398** — Three reads are done in `crates/app` and not in the engine: the common git folder of a worktree, the
   message git prepared (`SQUASH_MSG`), and the diff given to the AI for a commit message. Recommended: a Read card for
-  each in the engine, the window using them from there.
+  each in the engine, the window using them from there. *Answered in stage 5* for the first two: the cards
+  `repo.common-folder` and `commit.prepared-message`, which the extension reads with `read/…`; the window still reads
+  both itself (`repository_watch.rs`, `operations.rs`) until it is moved to them. The diff given to the AI waits for
+  stage 4, area 6.
 - **Q399** — A feature that writes a setting under the extension (`worktree-setup.save`, the toggles of the graph):
   recommended a new follow-up `WriteSetting { key, value, target }` that the window carries out by writing its
   `settings.json` and the extension with `WorkspaceConfiguration.update`, in place of the steps that write the file.
