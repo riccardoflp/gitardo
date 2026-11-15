@@ -1,10 +1,11 @@
 /**
- * The messages of the protocol with `gitardo-engine` that stages 1, 2 and 3 built, as the crate `protocol` writes them
- * (`rust/crates/protocol/src/messages.rs`, `state.rs`, `feature/` and `journal.rs`, `docs/transition/02-protocol.md`).
+ * The messages of the protocol with `gitardo-engine` that stages 1, 2, 3 and 5 built, as the crate `protocol` writes
+ * them (`rust/crates/protocol/src/messages.rs`, `state.rs`, `feature/`, `journal.rs` and `reads/`,
+ * `docs/transition/02-protocol.md`).
  */
 
 /** The version of the protocol the extension speaks. */
-export const PROTOCOL = '1.2';
+export const PROTOCOL = '1.3';
 
 /** The names of the methods. */
 export const Method = {
@@ -244,4 +245,302 @@ export interface ConfirmParams {
 export interface FollowUpsParams {
   run: number;
   followUps: FollowUp[];
+}
+
+// The reads of version 1.3, from stage 5 (`rust/crates/protocol/src/reads/`): every read but the graph's.
+
+/** The names of the reads of version 1.3, each `read/<card>`. */
+export const ReadMethod = {
+  searchRevision: 'read/search.read-revision',
+  details: 'read/details.read-commit',
+  commitPatch: 'read/commit-page.read-patch',
+  workingTree: 'read/changes.read-working-tree',
+  ignored: 'read/changes.read-ignored',
+  diffSides: 'read/diff.read-sides',
+  fileRevision: 'read/file-view.read-revision',
+  mergeSides: 'read/merge-view.read-sides',
+  conflictFiles: 'read/conflicts.read-files',
+  sideNames: 'read/conflicts.side-names',
+  conflictRules: 'read/conflicts.resolve-by-rules',
+  compareSides: 'read/compare.read-sides',
+  compareFiles: 'read/compare.read-files',
+  comparePatch: 'read/compare.read-patch',
+  compareRevision: 'read/compare.resolve-revision',
+  blameLine: 'read/blame.read-line',
+  blameFile: 'read/blame.read-file',
+  fileNames: 'read/file-history.read-names',
+  committedLines: 'read/file-history.read-committed-lines',
+  reflog: 'read/reflog.read',
+  remotes: 'read/remote.read-remotes',
+  identity: 'read/identity.read',
+  submodules: 'read/submodule.read-list',
+  folderLinks: 'read/worktree.read-folder-links',
+  setupIgnored: 'read/worktree-setup.read-ignored',
+  setupTakes: 'read/worktree-setup.read-what-patterns-take',
+  setupCommands: 'read/worktree-setup.propose-commands',
+  pathStatuses: 'read/worktree-setup.explain-change',
+  pullRequests: 'read/github.read-pull-requests',
+  branchLog: 'read/branch.read-log',
+  commonFolder: 'read/repo.common-folder',
+  preparedMessage: 'read/commit.prepared-message',
+} as const;
+
+/** The host question that `read/github.read-pull-requests` asks. */
+export const HostMethod = { githubToken: 'host/githubToken' } as const;
+
+/** Bytes, as they travel: base64, padded with `=`. */
+export interface Bytes {
+  base64: string;
+}
+
+/** Which commit `read/details.read-commit` is asked for: one by its full id, a stash by its place, or the changes. */
+export type CommitAsked = { commit: string } | { stash: number } | { uncommitted: true };
+
+/** Who made a commit, and when, in seconds since 1970. */
+export interface Signature {
+  name: string;
+  email: string;
+  date: number;
+}
+
+/** The details of a commit, a stash or the uncommitted changes (`CommitDetail`). */
+export interface CommitDetail {
+  id: string | null;
+  parents: string[];
+  author: Signature | null;
+  committer: Signature | null;
+  message: string;
+  files: EngineFileChange[];
+  untrackedFiles: EngineFileChange[];
+}
+
+/** A line of a hunk, numbered on each side it is on. */
+export interface DiffLine {
+  kind: 'context' | 'added' | 'removed' | 'noNewline';
+  text: string;
+  before: number | null;
+  after: number | null;
+}
+
+/** The lines a file changed. */
+export interface FilePatch {
+  path: string;
+  originalPath: string | null;
+  kind: EngineFileChange['kind'];
+  hunks: Array<{ header: string; lines: DiffLine[] }>;
+  added: number;
+  removed: number;
+  isBinary: boolean;
+  isPastLimit: boolean;
+}
+
+/** The lines that changed, as lines of each file, as text, or not matched to the files asked. */
+export type Patch = { kind: 'files'; files: FilePatch[] } | { kind: 'unmatched' } | { kind: 'text'; text: Bytes };
+
+/** A side of a comparison. */
+export type ComparisonSide = { kind: 'commit'; commit: string } | { kind: 'workingTree' };
+
+/** What `read/compare.read-sides` and `read/compare.read-patch` compare. */
+export interface CompareRequest {
+  first: ComparisonSide;
+  second: ComparisonSide;
+  mode: 'sinceDiverged' | 'everything';
+  path: string | null;
+}
+
+/** A commit of one side of a comparison. */
+export interface ComparedCommit {
+  side: 'first' | 'second';
+  id: string;
+  authorName: string;
+  authorDate: number;
+  subject: string;
+  isAlsoInOtherSide: boolean;
+}
+
+/** What two sides of a comparison have that the other has not (`CompareView`). */
+export interface CompareView {
+  mergeBase: string | null;
+  onlyInFirst: number;
+  onlyInSecond: number;
+  files: EngineFileChange[];
+  commits: ComparedCommit[];
+  merge: { kind: 'notAsked' } | { kind: 'clean' } | { kind: 'conflicts'; files: string[] } | { kind: 'unknown' };
+}
+
+/** A version of a file, for a side of a Diff page. */
+export interface Version {
+  version: { kind: 'absent' } | { kind: 'index' } | { kind: 'commit'; commit: string } | { kind: 'base' } | { kind: 'workingTree'; unsaved: Bytes | null };
+  path: string;
+}
+
+/** Who last changed a line; `notCommitted` for a line not committed yet. */
+export type BlameLine =
+  | { kind: 'notCommitted' }
+  | { kind: 'committed'; commit: string; author: string; authorTime: number; summary: string; previous: { commit: string; path: string } | null };
+
+/** Lines of a file, from 1, the end in. */
+export interface LineRange {
+  start: number;
+  end: number;
+}
+
+/** Where some lines of a file are in the commit checked out. */
+export type CommittedLines = { kind: 'inNoCommit' } | { kind: 'committed'; commit: string; path: string; lines: LineRange | null };
+
+/** The versions of a file in conflict, each empty when its stage has none, and the file as it is now. */
+export interface MergeSides {
+  base: Bytes;
+  current: Bytes;
+  incoming: Bytes;
+  result: Bytes;
+  operation: 'merge' | 'rebase' | 'cherryPick' | 'revert' | 'patch' | null;
+  hasBothSides: boolean;
+}
+
+/** A version the index keeps of a file in conflict. */
+export interface StageEntry {
+  mode: string;
+  object: string;
+}
+
+/** A file in conflict, with the stages the index has of it. */
+export interface ConflictFile {
+  path: string;
+  base: StageEntry | null;
+  current: StageEntry | null;
+  incoming: StageEntry | null;
+}
+
+/** What a side of a conflict is. */
+export interface Side {
+  role:
+    | 'branchCheckedOut'
+    | 'branchBeingMerged'
+    | 'rebasedOnto'
+    | 'commitBeingReplayed'
+    | 'commitBeingPicked'
+    | 'stateBeforeReverted'
+    | 'patchBeingApplied'
+    | 'yourFiles'
+    | 'changesBeingApplied';
+  name: string | null;
+  subject: string | null;
+}
+
+/** Lines of a file, from 0, the end left out. */
+export interface Span {
+  start: number;
+  end: number;
+}
+
+/** What a rule proposes for a conflict: lines in place of some lines of the file. */
+export interface Proposal {
+  case: 'spacesOrLineEndings' | 'sameChange' | 'oneSide' | 'nextToEachOther';
+  replaced: Span;
+  lines: Array<{ text: string; ending: string }>;
+}
+
+/** What the rules make of the conflicts of one file. */
+export interface ConflictProposals {
+  path: string;
+  leftAlone: 'tooLarge' | 'noMarkers' | 'binary' | 'notUtf8' | 'tooManyLines' | 'markersDoNotPair' | 'tooComplex' | null;
+  conflicts: Array<{ line: number; span: Span; proposal: Proposal | null }>;
+}
+
+/** A place a reference was at. */
+export interface ReflogPosition {
+  commit: string;
+  subject: string;
+  selector: string;
+  time: number;
+}
+
+/** A submodule, as `submodule.read-list` reads it. */
+export interface Submodule {
+  name: string;
+  folder: string;
+  parent: string | null;
+  url: string | null;
+  branch: string | null;
+  recorded: string | null;
+  staged: string | null;
+  checkout: {
+    commit: string | null;
+    branch: string | null;
+    uncommitted: number;
+    distance: { ahead: number; behind: number } | null;
+  } | null;
+}
+
+/** Something git ignores in a checkout, with its size on disk. */
+export interface IgnoredEntry {
+  path: string;
+  kind: { kind: 'file'; bytes: number } | { kind: 'folder'; files: number; bytes: number; hasMore: boolean } | { kind: 'link' };
+}
+
+/** What link and copy patterns are asked of a checkout. */
+export interface TakeRequest {
+  folder: string;
+  link: string[];
+  copy: string[];
+  commit: string | null;
+}
+
+/** How many paths a pattern takes, with the first of them. */
+export interface PatternTake {
+  pattern: string;
+  count: number;
+  paths: string[];
+}
+
+/** What the link and copy patterns take from a checkout. */
+export interface SetupPreview {
+  linked: string[];
+  copied: string[];
+  linkPatterns: PatternTake[];
+  copyPatterns: PatternTake[];
+  already: string[];
+}
+
+/** What a path is for git, and whether it is a folder on disk. */
+export interface PathStatus {
+  isFolder: boolean;
+  tracked: 'nothing' | 'it' | 'filesIn';
+  ignored: 'whole' | 'part' | 'nothing';
+}
+
+/** An open pull request. */
+export interface PullRequest {
+  number: number;
+  title: string;
+  url: string;
+  isDraft: boolean;
+  branch: string;
+  checks: 'passed' | 'failed' | 'running' | null;
+}
+
+/** The open pull requests by the name of their branch, or why they were not read. */
+export type PullRequests =
+  | { kind: 'read'; byBranch: Record<string, PullRequest> }
+  | { kind: 'notOnGitHub' }
+  | { kind: 'noToken' }
+  | { kind: 'failed'; message: string; isUnauthorized: boolean };
+
+/** A commit as the log of what is checked out lists it. */
+export interface EngineCommit {
+  id: string;
+  parents: string[];
+  authorName: string;
+  authorEmail: string;
+  authorDate: number;
+  subject: string;
+}
+
+/** The commits of what is checked out, whether there are more, and which are not pushed against which upstream. */
+export interface BranchLog {
+  commits: EngineCommit[];
+  hasMore: boolean;
+  unpushed: string[] | null;
+  upstream: string | null;
 }
