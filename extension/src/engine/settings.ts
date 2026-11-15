@@ -38,6 +38,13 @@ export function engineSettings(values: Record<string, unknown>, unset: ReadonlyS
   }
   if (unset.has('worktrees.linkFolders') && Array.isArray(git.worktreeSymlinkFolders)) settings['worktrees.linkFolders'] = git.worktreeSymlinkFolders;
   if (unset.has('worktrees.copyFiles') && Array.isArray(git.worktreeIncludeFiles)) settings['worktrees.copyFiles'] = git.worktreeIncludeFiles;
+  // The format of branch names was a setting of the worktrees before; it still stands where the new one is empty.
+  const format = values['branches.format'];
+  if (!(typeof format === 'string' && format.trim()) && typeof values['worktrees.branchFormat'] === 'string') {
+    settings['branches.format'] = values['worktrees.branchFormat'];
+  }
+  const inputs = values['branches.inputs'];
+  if (!(Array.isArray(inputs) && inputs.length) && Array.isArray(values['worktrees.inputs'])) settings['branches.inputs'] = values['worktrees.inputs'];
   settings.host = 'vscode';
   settings['ai.provider'] = 'vscode';
   settings.trust = 'vscode';

@@ -148,7 +148,9 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
 
 - `test/engine.test.ts` (Vitest) starts the binary and checks the protocol: `initialize`, the state of the throwaway
   repositories against `Repo.state`, a burst of changes, cancelling, the restarts after the engine is killed, and the
-  settings sent.
+  settings sent. From stage 2 it runs `branch.create` through `feature/run` with an asker that answers from the test,
+  checks the name with `question/validate`, and runs the same answers through `gitardo-cli`, comparing the plans and
+  the repositories after.
 - The integration tests of a moved area run each operation through `feature/run`, with a fake host that answers the
   questions from the test; they keep the same names, so that a card's **Tested by** line still finds them.
 - The scenarios shared with the desktop ([desktop/06-testing.md](../desktop/06-testing.md#scenarios-run-by-both-apps))

@@ -47,6 +47,7 @@ export class Connection {
   private nextId = 1;
   private readonly waiting = new Map<number, Waiting>();
   private readonly handlers = new Map<string, (params: unknown) => void>();
+  private readonly answerers = new Map<string, (params: unknown) => Promise<unknown>>();
   private readonly reader = new FrameReader();
   private ended = false;
 
@@ -70,8 +71,13 @@ export class Connection {
    * and the request ends with the engine's answer, `cancelled` for a read.
    */
   request<T>(method: string, params: unknown, signal?: AbortSignal): Promise<T> {
-    if (this.ended) return Promise.reject(new EngineError(ENDED, "Gitardo's engine is not running."));
+    return this.send<T>(method, params, signal).answer;
+  }
+
+  /** Sends a request as `request` does, and gives its id too, which the engine's requests about it name. */
+  send<T>(method: string, params: unknown, signal?: AbortSignal): { id: number; answer: Promise<T> } {
     const id = this.nextId++;
+    if (this.ended) return { id, answer: Promise.reject(new EngineError(ENDED, "Gitardo's engine is not running.")) };
     const answer = new Promise<T>((resolve, reject) => {
       this.waiting.set(id, {
         resolve: (result) => resolve(result as T),
@@ -85,7 +91,7 @@ export class Connection {
       else signal.addEventListener('abort', cancel, { once: true });
       void answer.finally(() => signal.removeEventListener('abort', cancel)).catch(() => {});
     }
-    return answer;
+    return { id, answer };
   }
 
   /** Sends a notification. */
@@ -98,12 +104,35 @@ export class Connection {
     this.handlers.set(method, handler);
   }
 
+  /**
+   * Answers each request of the engine of a method with what a handler gives, in place of the one before; a handler that
+   * throws answers with the error. A method with no handler is answered `methodNotFound`.
+   */
+  onRequest(method: string, handler: (params: unknown) => Promise<unknown>): void {
+    this.answerers.set(method, handler);
+  }
+
   /** Fails every request still waiting: the engine ended. */
   end(): void {
     if (this.ended) return;
     this.ended = true;
     for (const waiting of this.waiting.values()) waiting.reject(new EngineError(ENDED, "Gitardo's engine ended before it answered."));
     this.waiting.clear();
+  }
+
+  /** Answers a request of the engine. */
+  private answer(id: number | string, method: string, params: unknown): void {
+    const handler = this.answerers.get(method);
+    if (!handler) {
+      this.write({ jsonrpc: '2.0', id, error: { code: ErrorCode.methodNotFound, message: `The extension has no method ${method}.` } });
+      return;
+    }
+    handler(params).then(
+      (result) => !this.ended && this.write({ jsonrpc: '2.0', id, result: result ?? null }),
+      (error: unknown) =>
+        !this.ended &&
+        this.write({ jsonrpc: '2.0', id, error: { code: ErrorCode.internalError, message: error instanceof Error ? error.message : String(error) } }),
+    );
   }
 
   private write(message: unknown): void {
@@ -120,8 +149,8 @@ export class Connection {
       error?: { code: number; message: string; data?: unknown };
     };
     if (typeof method === 'string') {
-      // The engine of stage 1 asks the extension nothing; a request of it would be answered here.
       if (id === undefined || id === null) this.handlers.get(method)?.(params);
+      else this.answer(id, method, params);
       return;
     }
     if (typeof id !== 'number') {

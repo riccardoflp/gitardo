@@ -1,19 +1,20 @@
 /**
  * The extension's client against `gitardo-engine`, built by `cargo build -p server` in `../rust`: the acceptance lines of
- * stage 1 of `docs/transition/06-roadmap.md` that need the extension. The state the engine reads is compared with the
+ * stages 1 and 2 of `docs/transition/06-roadmap.md` that need the extension. The state the engine reads is compared with the
  * one `Repo.state` reads in the same throwaway repositories. Skipped, with the reason, when the binary is not built;
  * `GITARDO_ENGINE` names another one.
  */
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { binaryName } from '../src/engine/binary';
-import { EngineClient, type EngineLog } from '../src/engine/client';
+import { EngineClient, type EngineLog, type FeatureAsker } from '../src/engine/client';
 import { Connection, EngineError, ErrorCode } from '../src/engine/connection';
-import type { EngineState } from '../src/engine/messages';
+import { type Answer, type EngineState, PROTOCOL, type Plan, type Question, type Settings } from '../src/engine/messages';
 import { engineSettings } from '../src/engine/settings';
+import { targetOf } from '../src/engine/target';
 import { git } from '../src/git/exec';
 import { Repo } from '../src/git/repo';
 import type { RepoState } from '../src/shared/protocol';
@@ -68,11 +69,11 @@ function memoryLog(): EngineLog & { lines: string[] } {
   };
 }
 
-function client(log = memoryLog()): EngineClient {
+function client(log = memoryLog(), settings: Settings = engineSettings({}, new Set(), {}, 0)): EngineClient {
   const started = new EngineClient({
     binary,
     clientVersion: '0.0.0-test',
-    settings: () => engineSettings({}, new Set(), {}, 0),
+    settings: () => settings,
     logLevel: () => 'info',
     log,
   });
@@ -282,14 +283,14 @@ describe.skipIf(!built)('gitardo-engine from the extension', { timeout: 60_000 }
     });
   });
 
-  it('answers initialize with protocol 1.0, and an initialize with 2.0 with -32602 and its own version', async () => {
+  it('answers initialize with its version of the protocol, also to 1.0, and an initialize with 2.0 with -32602 and its own version', async () => {
     const child = spawn(binary, ['--stdio'], {
       stdio: ['pipe', 'pipe', 'inherit'],
     });
     const connection = new Connection(child.stdin, child.stdout);
     try {
       const answer = await connection.request<{ protocol: string }>('initialize', { protocol: '1.0', client: { name: 'test', version: '0' } });
-      expect(answer.protocol).toBe('1.0');
+      expect(answer.protocol).toBe(PROTOCOL);
       const refused = await connection
         .request('initialize', {
           protocol: '2.0',
@@ -299,7 +300,7 @@ describe.skipIf(!built)('gitardo-engine from the extension', { timeout: 60_000 }
       expect(refused).toBeInstanceOf(EngineError);
       expect((refused as EngineError).code).toBe(ErrorCode.invalidParams);
       expect((refused as EngineError).data).toMatchObject({
-        protocol: '1.0',
+        protocol: PROTOCOL,
         engine: { version: expect.any(String) },
       });
 
@@ -374,7 +375,132 @@ describe.skipIf(!built)('gitardo-engine from the extension', { timeout: 60_000 }
   });
 });
 
+/** An asker that answers by the key of each question, and keeps what it was asked. */
+function answering(answers: Record<string, (question: Question) => Answer | null | Promise<Answer | null>>): FeatureAsker & {
+  asked: Question[];
+  confirmed: Plan[];
+} {
+  const asked: Question[] = [];
+  const confirmed: Plan[] = [];
+  return {
+    asked,
+    confirmed,
+    async ask(question) {
+      asked.push(question);
+      const answer = answers[question.key];
+      if (!answer) throw new Error(`No answer for ${question.key}`);
+      return answer(question);
+    },
+    async confirm(plan) {
+      confirmed.push(plan);
+      return true;
+    },
+  };
+}
+
+const text = (value: string) => (): Answer => ({ kind: 'text', text: value });
+const choice = (identifier: string) => (): Answer => ({ kind: 'choice', identifier });
+
+describe.skipIf(!built)('Create branch through gitardo-engine', { timeout: 60_000 }, () => {
+  it("asks the name on a commit, refuses feature x and a name taken with the engine's sentences while it is typed, and creates the branch with the commands the engine logs", async () => {
+    const root = await repository();
+    await commitFile(root, 'b.txt', 'two\n', 'Second commit');
+    const first = (await git(root, ['rev-parse', 'HEAD~1'])).stdout.trim();
+    const log = memoryLog();
+    const engine = client(log);
+    const said: Array<string | null> = [];
+    const asker = answering({
+      name: async (question) => {
+        if (question.kind.kind !== 'text') throw new Error('the name is typed');
+        for (const typed of ['feature x', 'main', 'topic']) said.push(await engine.validate(root, question.kind.validation, typed));
+        return { kind: 'text', text: 'topic' };
+      },
+      mode: choice('checkout'),
+    });
+    const target = targetOf(first, { branches: [], remoteBranches: [], tags: [] });
+    const { finished, followUps } = await engine.runFeature({ repository: root, feature: 'branch.create', target }, asker);
+    expect(finished.kind).toBe('ran');
+    expect(asker.asked.map((question) => question.key)).toEqual(['name', 'mode']);
+    expect(said[0]).toEqual(expect.any(String));
+    expect(said.slice(1)).toEqual(['A branch with that name already exists', null]);
+    expect(followUps).toEqual([{ kind: 'selectHead' }]);
+    expect((await git(root, ['symbolic-ref', '--short', 'HEAD'])).stdout.trim()).toBe('topic');
+    expect((await git(root, ['rev-parse', 'HEAD'])).stdout.trim()).toBe(first);
+    expect(log.lines).toContain(`info [engine] git checkout -b topic ${first} (${root})`);
+  });
+
+  it('proposes the name from gitardo.branches.format, with the inputs used last, and gives them back to remember', async () => {
+    const root = await repository();
+    const settings = engineSettings(
+      { 'branches.format': '${input:ticket}-${base}', 'branches.inputs': [{ id: 'ticket', type: 'promptString', description: 'Ticket' }] },
+      new Set(),
+      {},
+      0,
+    );
+    const engine = client(memoryLog(), settings);
+    let proposed: Answer | null = null;
+    const asker = answering({
+      way: choice('format'),
+      input1: (question) => question.default ?? { kind: 'text', text: '' },
+      name: (question) => (proposed = question.default),
+      mode: choice('only'),
+    });
+    const request = { repository: root, feature: 'branch.create', target: { kind: 'head' } as const, inputs: { ticket: 'T-1' } };
+    const { finished, followUps } = await engine.runFeature(request, asker);
+    expect(finished.kind).toBe('ran');
+    expect(proposed).toEqual({ kind: 'text', text: 'T-1-main' });
+    expect(followUps).toContainEqual({ kind: 'rememberInputs', values: { ticket: 'T-1' } });
+    expect((await git(root, ['branch', '--list', 'T-1-main'])).stdout.trim()).toBe('T-1-main');
+  });
+
+  it('runs branch.create with the same answers through gitardo-cli and through the extension, with the same plan and the same repository after', async () => {
+    const root = await repository();
+    await commitFile(root, 'b.txt', 'two\n', 'Second commit');
+    const copy = path.join(folder(), 'repo');
+    fs.cpSync(root, copy, { recursive: true });
+    const first = (await git(root, ['rev-parse', 'HEAD~1'])).stdout.trim();
+    const cli = path.join(path.dirname(binary), process.platform === 'win32' ? 'gitardo-cli.exe' : 'gitardo-cli');
+    const arguments_ = ['--repository', copy, '--target', `commit:${first}`, 'branch.create', 'name=topic', 'mode=checkout'];
+    const printed = execFileSync(cli, arguments_, { encoding: 'utf8' });
+
+    const engine = client();
+    const { finished } = await engine.runFeature(
+      { repository: root, feature: 'branch.create', target: { kind: 'commit', commit: first } },
+      answering({ name: text('topic'), mode: choice('checkout') }),
+    );
+    if (finished.kind !== 'ran') throw new Error(`branch.create ended ${finished.kind}`);
+    const plan = [finished.plan.title, ...finished.plan.steps.map((step) => `  > ${step.line}`)];
+    expect(printed.trim().split(/\r?\n/)).toEqual(plan);
+    const refs = async (where: string) => [
+      (await git(where, ['symbolic-ref', 'HEAD'])).stdout.trim(),
+      (await git(where, ['for-each-ref', '--format=%(refname) %(objectname)'])).stdout.trim(),
+      (await git(where, ['status', '--porcelain'])).stdout.trim(),
+    ];
+    expect(await refs(root)).toEqual(await refs(copy));
+  });
+});
+
+describe('the target of a feature from what a menu names', () => {
+  const refs = { branches: [{ name: 'main' }], remoteBranches: [{ name: 'origin/main' }], tags: [{ name: 'v1' }] };
+  it('takes HEAD, a full name, a short name of each kind, and a commit', () => {
+    expect(targetOf('HEAD', refs)).toEqual({ kind: 'head' });
+    expect(targetOf('refs/tags/main', refs)).toEqual({ kind: 'tag', name: 'main' });
+    expect(targetOf('main', refs)).toEqual({ kind: 'branch', name: 'main' });
+    expect(targetOf('origin/main', refs)).toEqual({ kind: 'remoteBranch', name: 'origin/main' });
+    expect(targetOf('v1', refs)).toEqual({ kind: 'tag', name: 'v1' });
+    expect(targetOf('a'.repeat(40), refs)).toEqual({ kind: 'commit', commit: 'a'.repeat(40) });
+  });
+});
+
 describe('the settings sent to the engine', () => {
+  it('sends the format of branch names of the worktrees where gitardo.branches.format is empty, as it was before', () => {
+    const inputs = [{ id: 'ticket', type: 'promptString' }];
+    const values = { 'branches.format': '', 'branches.inputs': [], 'worktrees.branchFormat': '${input:ticket}', 'worktrees.inputs': inputs };
+    const settings = engineSettings(values, new Set(), {}, 0);
+    expect(settings['branches.format']).toBe('${input:ticket}');
+    expect(settings['branches.inputs']).toEqual(inputs);
+  });
+
   it('drops the prefix, maps the three the desktop names otherwise, keeps what is only VS Code', () => {
     const values = {
       'graph.pageSize': 500,

@@ -29,11 +29,12 @@ export interface GitardoApi {
 
 export function activate(context: vscode.ExtensionContext): GitardoApi {
   const log = vscode.window.createOutputChannel('Gitardo', { log: true });
-  // Gitardo's engine, started the first time a repository is found. No view uses it yet: the views still read through
-  // src/git, and the tests compare the two.
+  // Gitardo's engine, started the first time a repository is found. It runs the operations of the areas moved to it,
+  // Create branch first; the views still read through src/git, and the tests compare the two.
   const engine = new WindowEngine(context, log);
   context.subscriptions.push(engine);
   const controller = new Controller(context.extensionUri, log, context.workspaceState);
+  controller.useEngine(engine);
   const blameSource = new BlameSource(log);
   const fileBlame = new FileBlame(blameSource, {
     open: (hash, repo) => controller.openCommit(hash, repo),

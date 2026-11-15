@@ -1,10 +1,10 @@
 /**
- * The messages of stage 1 of the protocol with `gitardo-engine`, as the crate `protocol` writes them
- * (`rust/crates/protocol/src/messages.rs` and `state.rs`, `docs/transition/02-protocol.md`).
+ * The messages of the protocol with `gitardo-engine` that stages 1 and 2 built, as the crate `protocol` writes them
+ * (`rust/crates/protocol/src/messages.rs`, `state.rs` and `feature/`, `docs/transition/02-protocol.md`).
  */
 
 /** The version of the protocol the extension speaks. */
-export const PROTOCOL = '1.0';
+export const PROTOCOL = '1.1';
 
 /** The names of the methods. */
 export const Method = {
@@ -18,6 +18,12 @@ export const Method = {
   readState: 'read/repo.read-state',
   logLine: 'log/line',
   activity: 'activity/changed',
+  featureRun: 'feature/run',
+  featureAsk: 'feature/ask',
+  featureConfirm: 'feature/confirm',
+  followUps: 'feature/followUps',
+  validate: 'question/validate',
+  settingsChanged: 'settings/changed',
 } as const;
 
 /** What the extension says of itself in `initialize`. */
@@ -107,7 +113,7 @@ export interface EngineFileChange {
 export interface StateParams {
   repository: string;
   state: EngineState;
-  reason: 'changed';
+  reason: 'changed' | 'ran' | 'opened';
 }
 
 /** A line of the engine's log. */
@@ -118,4 +124,122 @@ export interface LogLineParams {
     kind: 'step' | 'failure' | 'warning' | { kind: 'read'; milliseconds: number };
     line: string;
   };
+}
+
+/** What a feature is run on (`Target` of `model`): the kinds stage 2 built. */
+export type Target =
+  | { kind: 'head' }
+  | { kind: 'commit'; commit: string }
+  | { kind: 'branch'; name: string }
+  | { kind: 'remoteBranch'; name: string }
+  | { kind: 'tag'; name: string }
+  | { kind: 'stash'; index: number }
+  | { kind: 'remote'; name: string }
+  | { kind: 'files'; paths: string[] }
+  | { kind: 'file'; path: string }
+  | { kind: 'changes' }
+  | { kind: 'commits'; commits: string[] }
+  | { kind: 'submodule'; path: string }
+  | { kind: 'worktree'; folder: string }
+  | { kind: 'path'; path: string };
+
+/** What a person answers to a question. */
+export type Answer =
+  | { kind: 'text'; text: string }
+  | { kind: 'choice'; identifier: string }
+  | { kind: 'choices'; identifiers: string[] }
+  | { kind: 'confirmed' }
+  | { kind: 'path'; path: string };
+
+/** What typed text must be; sent back as it came in `question/validate`. */
+export type Validation = { kind: string } & Record<string, unknown>;
+
+/** One choice of a pick. */
+export interface Choice {
+  identifier: string;
+  label: string;
+  description: string | null;
+}
+
+/** A file or folder to choose. */
+export interface FileQuestion {
+  folder: string | null;
+  fileName: string | null;
+  filters: Array<{ name: string; extensions: string[] }>;
+}
+
+/** How a question is answered. */
+export type QuestionKind =
+  | { kind: 'text'; placeholder: string | null; validation: Validation }
+  | { kind: 'secret' }
+  | { kind: 'pick'; choices: Choice[] }
+  | { kind: 'search'; choices: Choice[] }
+  | { kind: 'pickMany'; choices: Choice[] }
+  | { kind: 'confirm'; accept: string }
+  | ({ kind: 'openFile' } & FileQuestion)
+  | ({ kind: 'saveFile' } & FileQuestion);
+
+/** A question of a feature. */
+export interface Question {
+  key: string;
+  kind: QuestionKind;
+  title: string;
+  detail: string | null;
+  default: Answer | null;
+}
+
+/** One thing a plan does; the extension shows its `line`. */
+export type Step = { kind: string; line: string } & Record<string, unknown>;
+
+/** What a feature is about to do. */
+export interface Plan {
+  title: string;
+  steps: Step[];
+  danger: { kind: 'none' } | { kind: 'confirm'; reason: string } | { kind: 'destructive'; reason: string };
+  undo: { kind: string } & Record<string, unknown>;
+  after: FollowUp[];
+}
+
+/** What the host does once a plan ran. */
+export type FollowUp =
+  | { kind: 'say'; text: string }
+  | { kind: 'selectHead' }
+  | { kind: 'selectCommit'; commit: string }
+  | { kind: 'selectBeforeHead'; count: number }
+  | { kind: 'rememberInputs'; values: Record<string, string> }
+  | ({ kind: string } & Record<string, unknown>);
+
+/** How a feature ended: the answer of `feature/run`. */
+export type Finished =
+  | { kind: 'ran'; plan: Plan; steps: string[]; wentOnAfter: Array<{ failed: string; said: string }>; waiting: Step[] }
+  | { kind: 'refused'; message: string; offer: { feature: string; label: string } | null }
+  | { kind: 'backedOut' }
+  | { kind: 'notConfirmed'; plan: Plan };
+
+/** The request to run a feature. */
+export interface FeatureRunParams {
+  repository: string;
+  feature: string;
+  target: Target;
+  answers: Record<string, Answer>;
+  journal: boolean;
+  inputs: Record<string, string>;
+}
+
+/** The engine's question of a run. */
+export interface AskParams {
+  run: number;
+  question: Question;
+}
+
+/** The engine's plan of a run to confirm. */
+export interface ConfirmParams {
+  run: number;
+  plan: Plan;
+}
+
+/** The follow-ups of a run that ran, sent right before its answer. */
+export interface FollowUpsParams {
+  run: number;
+  followUps: FollowUp[];
 }

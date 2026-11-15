@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature, one card each, 181 in all. The template and the rules of the cards are in the
+Every feature, one card each, 183 in all. The template and the rules of the cards are in the
 feature contract. This index is written by `catalog.py --index`: change a status here in the commit that
 earns it, and run the script again after adding or renaming a card; the statuses are kept. A card with a
 **Differs** line is *Differs*; when the line goes, it becomes *Documented*.
@@ -9,7 +9,7 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | --- | --- | --- |
 | [01-repositories.md](01-repositories.md) | Repositories | 2 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 19 |
-| [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 25 |
+| [06-branches-tags-remotes.md](06-branches-tags-remotes.md) | Branches, tags, remotes and sync | 24 |
 | [07-merge-and-rewrite.md](07-merge-and-rewrite.md) | Merge, rebase and rewriting history | 28 |
 | [08-stashes.md](08-stashes.md) | Stashes | 12 |
 | [09-conflicts.md](09-conflicts.md) | Conflicts | 31 |
@@ -56,7 +56,6 @@ earns it, and run the script again after adding or renaming a card; the statuses
 | [`branch.checkout`](06-branches-tags-remotes.md#branchcheckout--check-out-a-branch) | Check out a branch | Operation | Documented |
 | [`branch.checkout-remote`](06-branches-tags-remotes.md#branchcheckout-remote--check-out-a-remote-branch-in-the-local-branch-of-its-name) | Check out a remote branch in the local branch of its name | Operation | Documented |
 | [`branch.checkout-detached`](06-branches-tags-remotes.md#branchcheckout-detached--check-out-a-commit-or-a-tag-detached) | Check out a commit or a tag, detached | Operation | Documented |
-| [`branch.create`](06-branches-tags-remotes.md#branchcreate--create-a-branch) | Create a branch | Operation | Differs |
 | [`branch.name-format`](06-branches-tags-remotes.md#branchname-format--name-a-new-branch-from-a-format) | Name a new branch from a format | Derivation | Documented |
 | [`branch.rename`](06-branches-tags-remotes.md#branchrename--rename-a-branch) | Rename a branch | Operation | Differs |
 | [`branch.delete`](06-branches-tags-remotes.md#branchdelete--delete-a-branch) | Delete a branch | Operation | Documented |

@@ -7,14 +7,25 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { Connection, ENDED, EngineError, ErrorCode } from './connection';
 import {
+  type Answer,
+  type AskParams,
+  type ConfirmParams,
   type EngineState,
+  type FeatureRunParams,
+  type Finished,
+  type FollowUp,
+  type FollowUpsParams,
   type InitializeParams,
   type InitializeResult,
   type LogLineParams,
   Method,
   PROTOCOL,
+  type Plan,
+  type Question,
   type Settings,
   type StateParams,
+  type Target,
+  type Validation,
 } from './messages';
 
 /** How long the exits are counted for. */
@@ -45,6 +56,31 @@ export interface EngineOptions {
   now?: () => number;
 }
 
+/** Who answers the questions of a feature run: in the extension, VS Code's input boxes, picks and dialogs. */
+export interface FeatureAsker {
+  /** The answer to a question; null when the user backed out. */
+  ask(question: Question): Promise<Answer | null>;
+  /** Whether to run a plan. */
+  confirm(plan: Plan): Promise<boolean>;
+}
+
+/** A feature to run, as `feature/run` takes it. */
+export interface FeatureRequest {
+  repository: string;
+  feature: string;
+  target: Target;
+  /** Answers given before it asks. */
+  answers?: Record<string, Answer>;
+  /** The values of the inputs of `branches.format` used last. */
+  inputs?: Record<string, string>;
+}
+
+/** How a feature ended, and the follow-ups the engine left the extension to carry out. */
+export interface FeatureResult {
+  finished: Finished;
+  followUps: FollowUp[];
+}
+
 /** Where the client stands. */
 export type EngineStatus = 'stopped' | 'starting' | 'running' | 'restarting' | 'given up' | 'refused';
 
@@ -56,6 +92,10 @@ export class EngineClient {
   private readonly opened = new Set<string>();
   private readonly exits: number[] = [];
   private readonly stateHandlers = new Set<(repository: string, state: EngineState) => void>();
+  /** The askers of the runs waiting for their answer, by the id of their `feature/run`. */
+  private readonly askers = new Map<number, FeatureAsker>();
+  /** The follow-ups of the runs, sent before their answers. */
+  private readonly followUps = new Map<number, FollowUp[]>();
   private stopping = false;
   private current: EngineStatus = 'stopped';
 
@@ -96,6 +136,50 @@ export class EngineClient {
   async readState(repository: string, signal?: AbortSignal): Promise<EngineState> {
     const connection = await this.ready();
     return connection.request<EngineState>(Method.readState, { repository }, signal);
+  }
+
+  /** Opens a repository unless it is open. */
+  async ensureOpen(repository: string): Promise<void> {
+    if (!this.opened.has(repository)) await this.open(repository);
+  }
+
+  /**
+   * Runs a feature of the engine in a repository, asking `asker` its questions, and gives how it ended. A failure is an
+   * `EngineError`: `stepFailed` with what ran in its data, `busy` while another runs there, `cancelled` once `signal`
+   * aborted it.
+   */
+  async runFeature(request: FeatureRequest, asker: FeatureAsker, signal?: AbortSignal): Promise<FeatureResult> {
+    const connection = await this.ready();
+    await this.ensureOpen(request.repository);
+    const params: FeatureRunParams = {
+      repository: request.repository,
+      feature: request.feature,
+      target: request.target,
+      answers: request.answers ?? {},
+      journal: true,
+      inputs: request.inputs ?? {},
+    };
+    const { id, answer } = connection.send<Finished>(Method.featureRun, params, signal);
+    this.askers.set(id, asker);
+    try {
+      const finished = await answer;
+      return { finished, followUps: this.followUps.get(id) ?? [] };
+    } finally {
+      this.askers.delete(id);
+      this.followUps.delete(id);
+    }
+  }
+
+  /** What is wrong with text typed for a question, as the engine says it; null when it is fine. */
+  async validate(repository: string, validation: Validation, text: string): Promise<string | null> {
+    const connection = await this.ready();
+    const { problem } = await connection.request<{ problem: string | null }>(Method.validate, { repository, validation, text });
+    return problem;
+  }
+
+  /** Sends the settings as they are now, after one changed. */
+  settingsChanged(): void {
+    this.connection?.notify(Method.settingsChanged, { settings: this.options.settings() });
   }
 
   /** Says which paths the watchers saw change in a repository opened. */
@@ -153,6 +237,20 @@ export class EngineClient {
       for (const line of chunk.toString('utf8').split(/\r?\n/)) if (line.trim()) log.warn(`[engine] ${line}`);
     });
     connection.on(Method.logLine, (params) => this.logLine(params as LogLineParams));
+    connection.on(Method.followUps, (params) => {
+      const { run, followUps } = params as FollowUpsParams;
+      this.followUps.set(run, followUps);
+    });
+    connection.onRequest(Method.featureAsk, async (params) => {
+      const { run, question } = params as AskParams;
+      const asker = this.askers.get(run);
+      return { answer: asker ? await asker.ask(question) : null };
+    });
+    connection.onRequest(Method.featureConfirm, async (params) => {
+      const { run, plan } = params as ConfirmParams;
+      const asker = this.askers.get(run);
+      return { run: asker ? await asker.confirm(plan) : false };
+    });
     connection.on(Method.state, (params) => {
       const { repository, state } = params as StateParams;
       for (const handler of this.stateHandlers) handler(repository, state);

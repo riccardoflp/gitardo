@@ -181,6 +181,19 @@ Makes a new branch at a commit, a branch or a tag, and checks it out or not.
   **Create branch…** in Quick search, at `HEAD`; **Create branch here…** in the context menu of a commit in the
   timeline, narrowed or not, of a local branch and of a tag; the button **Create branch** at the top of the
   branch rail.
+- **Extension**: **Branch** in the toolbar of the graph (tooltip **Branch: create a branch at HEAD**), **Gitardo:
+  Create Branch…** in the Command Palette and on the title of the Branches view, all at `HEAD`; **Create branch
+  here…** in the context menu of a commit (graph and Commits view), of a local branch, of a tag, and of a position
+  picked in **Gitardo: Browse Reflog**. Each sends `feature/run` of `branch.create` to Gitardo's engine
+  (`Controller.runOnEngine` in `src/extension/controller.ts`, the target from `targetOf` in `src/engine/target.ts`);
+  its questions are VS Code's input boxes and quick picks, the name checked with `question/validate` as it is typed,
+  and the plan shown in a modal dialog when `gitardo.commandPreview` is `all` (`VscodeAsker` in
+  `src/engine/vscode.ts`). The settings are `gitardo.branches.format` and `gitardo.branches.inputs`, or, where they
+  are empty, `gitardo.worktrees.branchFormat` and `gitardo.worktrees.inputs`, as before
+  (`src/engine/settings.ts`); the inputs used last are kept in the workspace state `worktreeInputs`. When the
+  engine's binary is missing, `createBranchOp` of `src/git/ops.ts` runs in its place, as before, and the output
+  channel says the engine is missing (D49). **Undo** right after **Create only** takes back the operation before it,
+  as `undo.last` says, until stage 3 of the transition.
 - **Offered when**: there is a commit: **Branch** in the header is disabled before the first one.
 - **Asks**:
   1. With `branches.format` set: a pick titled **Create branch**, **Use the format** (the format beside it), which is
@@ -217,6 +230,15 @@ Acceptance:
       `submodules.updateOnCheckout` on, ends with `git submodule update --init --recursive`; with it off, or with
       **Create only**, nothing is read and nothing is updated.
 - [ ] Backing out of any question runs nothing.
+- [ ] In the extension, **Create branch here…** on a commit asks the name, refuses `feature x` with the engine's
+      sentence while it is typed, refuses a name taken, creates the branch with the commands the engine logs in the
+      **Gitardo** output channel, and the graph shows it.
+- [ ] In the extension, with `gitardo.branches.format` set, the name is proposed from the format and the inputs given
+      are remembered in `worktreeInputs`.
+- [ ] In the extension, **Undo** right after **Create and check out** goes back to the branch before, by the reflog.
+- [ ] In the extension, with `gitardo.engine.path` naming a missing file, the TypeScript operation runs and the output
+      channel says the engine is missing.
+- [ ] The same answers through `gitardo-cli` and through the extension give the same plan and the same repository.
 
 ### `branch.format-name` — Expand the format of branch names
 

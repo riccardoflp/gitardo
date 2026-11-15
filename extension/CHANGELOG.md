@@ -2,6 +2,12 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
+## Unreleased
+
+### Changed
+
+- **Create branch…** is run by Gitardo's engine when the extension has it for your system: the name is checked as you type in the engine's words, the commands are in the log with `[engine]` before them, and the new branch is selected in the graph once it is checked out. Without the engine, Gitardo creates the branch as before.
+
 ## 0.11.0 - 2026-11-12
 
 ### Added

@@ -71,12 +71,16 @@ import type {
   WebviewMessage,
 } from '../shared/protocol';
 import { openMergeEditor } from '../flow/merge';
-import { AGENTS_WINDOW, SETUP_OFFERED, closeInVSCodeGit, inVSCodeGit, recoverHeldWorktree, refreshVSCodeGit, removeEmptyParents, resolveAction, squashRange, worktreesFolder } from './actions';
+import { AGENTS_WINDOW, LAST_INPUTS, SETUP_OFFERED, closeInVSCodeGit, inVSCodeGit, recoverHeldWorktree, refreshVSCodeGit, removeEmptyParents, resolveAction, squashRange, worktreesFolder } from './actions';
 import { chooseConflictModel, draftCommitMessage } from './ai';
 import { ConflictReviewTab } from './conflictReview';
 import { INDEX, contentUri, proposalUri } from './content';
 import { fetchPulls, githubSession } from './github';
 import { editSetupJson, savePatterns, saveSetup, setupChangeText, setupPatterns, worktreeSetupInfo } from './worktreeSettings';
+import { EngineError, ErrorCode } from '../engine/connection';
+import type { Target } from '../engine/messages';
+import { targetOf } from '../engine/target';
+import { VscodeAsker, type WindowEngine } from '../engine/vscode';
 
 /** How many commits the graph reads at a time, unless the settings ask for another number between the two after it. */
 const PAGE_SIZE = 1000;
@@ -248,6 +252,8 @@ export class Controller implements vscode.Disposable {
   /** Something changed since that read started. */
   private dirty = false;
   private running = false;
+  /** Gitardo's engine, which runs the operations of the areas moved to it; their GitOps run when it is missing (D49). */
+  private engine?: WindowEngine;
   private timer?: ReturnType<typeof setTimeout>;
   /** When `timer` fires. */
   private due = 0;
@@ -1629,10 +1635,17 @@ export class Controller implements vscode.Disposable {
     }
   }
 
+  /** Runs the operations of the areas moved to the engine there from now on. */
+  useEngine(engine: WindowEngine): void {
+    this.engine = engine;
+  }
+
   async action(action: Action): Promise<void> {
     const state = await this.requireState();
     const repo = this.repo;
     if (!state || !repo) return;
+    // Creating a branch is the engine's: its TypeScript operation is only for an engine that is not there.
+    if (action.kind === 'createBranch' && (await this.runOnEngine('branch.create', targetOf(action.at, state), repo))) return;
     // A key binding, or a view drawn before the setting changed, can still ask for it.
     if (action.kind === 'resolveConflicts' && !this.autoResolve()) {
       void vscode.window
@@ -1727,6 +1740,53 @@ export class Controller implements vscode.Disposable {
     } catch (error) {
       void vscode.window.showErrorMessage(`Gitardo: ${errorText(error)}`);
     }
+  }
+
+  /**
+   * Runs a feature of the engine in a repository, its questions asked with VS Code's input boxes and picks, its log in
+   * the output channel, and the follow-ups it leaves carried out here; false when there is no engine to run it, and the
+   * operation of TypeScript is to run in its place.
+   */
+  private async runOnEngine(feature: string, target: Target, repo: Repo): Promise<boolean> {
+    const client = this.engine?.running;
+    if (!client) return false;
+    // As for a GitOp, one operation at a time; the engine would answer busy anyway.
+    if (this.running) return true;
+    this.running = true;
+    this.operations++;
+    let ran = false;
+    try {
+      const { finished, followUps } = await client.runFeature(
+        { repository: repo.root, feature, target, inputs: this.memento.get<Record<string, string>>(LAST_INPUTS, {}) },
+        new VscodeAsker(client, repo.root),
+      );
+      if (finished.kind === 'refused') void vscode.window.showWarningMessage(`Gitardo: ${finished.message}`);
+      if (finished.kind !== 'ran') return true;
+      ran = true;
+      this.undoable = undefined;
+      for (const followUp of followUps) {
+        if (followUp.kind === 'say') void vscode.window.showInformationMessage(`Gitardo: ${String(followUp.text)}`);
+        if (followUp.kind === 'rememberInputs') {
+          const last = this.memento.get<Record<string, string>>(LAST_INPUTS, {});
+          await this.memento.update(LAST_INPUTS, { ...last, ...(followUp.values as Record<string, string>) });
+        }
+      }
+      await this.refresh();
+      for (const followUp of followUps) {
+        if (followUp.kind === 'selectHead' && this.state?.head) this.show(this.state.head);
+        if (followUp.kind === 'selectCommit') this.show(String(followUp.commit));
+      }
+    } catch (failure) {
+      if (failure instanceof EngineError && (failure.code === ErrorCode.busy || failure.code === ErrorCode.cancelled)) return true;
+      const data = failure instanceof EngineError ? (failure.data as { output?: string | null } | undefined) : undefined;
+      const said = data?.output?.trim();
+      if (said) this.log.error(said);
+      void vscode.window.showErrorMessage(`Gitardo: ${errorText(failure)}`, 'Show Log').then((choice) => choice && this.log.show());
+    } finally {
+      this.running = false;
+      if (!ran) await this.refresh();
+    }
+    return true;
   }
 
   /**

@@ -78,7 +78,7 @@ flowchart TB
 | Path | What is there |
 | --- | --- |
 | `src/git` | Git itself, with no VS Code in it: running it (`exec.ts`), finding the repositories of a folder (`discover.ts`), reading a repository (`repo.ts`), parsing what git prints (`parse.ts`), the commands of each operation (`ops.ts`), the conflicts that need no choice (`conflicts.ts`), what is proposed for each conflict (`review.ts`), what new worktrees get (`worktreeSetup.ts`), the lines of a range (`lines.ts`), GitHub URLs and the pull requests query (`github.ts`). |
-| `src/engine` | Gitardo's engine, from stage 1 of [the transition](../transition/06-roadmap.md): finding the binary (`binary.ts`), the framing (`framing.ts`), requests, notifications and `$/cancel` (`connection.ts`), the messages (`messages.ts`), the settings sent under the desktop's names (`settings.ts`), the process and its restarts (`client.ts`), and the engine of a window, with VS Code's settings and output channel (`vscode.ts`). In stage 1 no view uses it: the tests compare its state with `Repo.state`. |
+| `src/engine` | Gitardo's engine, from stage 1 of [the transition](../transition/06-roadmap.md): finding the binary (`binary.ts`), the framing (`framing.ts`), requests, notifications and `$/cancel` (`connection.ts`), the messages (`messages.ts`), the settings sent under the desktop's names (`settings.ts`), the process, its restarts and the features it runs (`client.ts`), the target of a feature from what a menu names (`target.ts`), and the engine of a window, with VS Code's settings, output channel, and the input boxes, picks and dialogs its features ask with (`vscode.ts`). From stage 2, `Controller.runOnEngine` sends it **Create branch…** (`branch.create`), and runs the `GitOp` when the binary is missing; no view reads through it yet: the tests compare its state with `Repo.state`. |
 | `src/shared` | What the extension and the webviews both use: the messages between them (`protocol.ts`), the lanes of the graph (`graph.ts`), the tree of files (`tree.ts`), how references are named (`refs.ts`) and messages shown (`message.ts`), the branches shown (`scope.ts`), the blame's format (`blameFormat.ts`), the prompts of the language model (`commitPrompt.ts`, `conflictPrompt.ts`), proposals (`resolution.ts`), submodules' status, file icons, JSON with comments. |
 | `src/extension` | VS Code: activation and commands (`extension.ts`), the `Controller` that owns the state and every webview (`controller.ts`), what an action asks and which operation it becomes (`actions.ts`), blame of the line and of the file (`blame.ts`, `fileBlame.ts`), the content of the diffs (`content.ts`), what is running (`activity.ts`), the review of conflicts (`conflictReview.ts`), GitHub sign-in (`github.ts`), the language model (`ai.ts`), file icons, the worktree settings and Explorer commands. |
 | `src/webview` | The React UI of every view and tab, in one bundle. `main.tsx` picks the component from the `data-view` the host writes on the page. `menus.ts` has every context menu and `act()`. |
@@ -134,8 +134,25 @@ flowchart TB
    branch, a dropped stash, conflicts resolved, a squash merge, a series of cherry-picks or of commits of a patch, a
    split of the last commit.
 
-Anything that changes the repository is a `GitOp`, also what Gitardo does itself rather than git (`writes`, `prepare`,
-`finish`): that is how it gets the preview, the log and Undo. The Flow Diff runs its index writes through
+In an area moved to the engine (from stage 2 of [the transition](../transition/06-roadmap.md), **Create branch…**),
+steps 2 and 3 are the engine's:
+
+1. `Controller.action` hands the action to `Controller.runOnEngine`, with the feature's identifier and its `Target`
+   (`targetOf` in `src/engine/target.ts`). With no engine running (no binary, or stopped for good), it returns false
+   and the `GitOp` runs as above (D49).
+2. `EngineClient.runFeature` sends `feature/run`. While it runs, the engine asks with `feature/ask` and
+   `feature/confirm`, and `VscodeAsker` (`src/engine/vscode.ts`) answers with VS Code's input boxes, quick picks and
+   dialogs; an input box checks its text with `question/validate` as it is typed.
+3. The engine runs the plan and logs each step, which comes back as `log/line` and goes to the **Gitardo** output
+   channel with `[engine]` before it. `feature/followUps` comes before the answer, and `runOnEngine` carries out the
+   follow-ups that are the extension's: a message, the inputs of the format remembered in `worktreeInputs`, the new
+   `HEAD` selected in the graph once the repository is read again.
+
+**Undo** still reads the reflog in TypeScript until stage 3, so a plan of the engine that moves `HEAD` is taken back
+as one of a `GitOp`.
+
+Anything that changes the repository is a `GitOp` or a plan of the engine, also what Gitardo does itself rather than
+git (`writes`, `prepare`, `finish`): that is how it gets the preview, the log and Undo. The Flow Diff runs its index writes through
 `Controller.runIn` for the same reason. Reads go through `Repo` and never take locks (`GIT_OPTIONAL_LOCKS=0`).
 
 ## State

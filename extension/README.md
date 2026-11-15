@@ -648,6 +648,7 @@ For the same reason, two things that look odd in a command are there on purpose:
 
 A few operations do more than run commands:
 
+- Creating a branch is run by Gitardo's engine, `gitardo-engine`, when the extension has it for your system: the log has the engine's commands with `[engine]` before them, the name is checked as you type in the engine's words, and the new branch is selected in the graph once it is checked out. Without the engine, Gitardo runs the same commands itself.
 - Resolving conflicts automatically or with AI, which are experimental and off by default, writes the files itself, and then runs `git add`. The confirmation lists the files before the command, and the log has a `write <file>` line for each.
 - Creating a worktree, when `gitardo.worktrees.linkFolders` and `gitardo.worktrees.copyFiles`, or VS Code's `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles`, ask for something, links and copies it after `git worktree add`, with a `symlink <folder>` or `copy <path>` line in the log for each (see [What git ignores, in a new worktree](#what-git-ignores-in-a-new-worktree)). **Bring ignored files…** does the same in a worktree that is there already, and runs no git command that changes anything.
 - Creating a worktree, when `gitardo.worktrees.setupCommands` has commands, then runs them in a terminal of this window, with a `run <command>` line in the log for each, and the question of the command preview says them (see [Commands in a new worktree](#commands-in-a-new-worktree)).

@@ -33,12 +33,23 @@ needs is written in the commit of that stage, not before.
 | [extension/10-security.md](../extension/10-security.md) | The engine as a process: T14 (another binary run as the engine; `gitardo.engine.path` read only from the user's settings) and what it writes, among the input that is not trusted. The host questions that carry a token wait for stage 5. |
 | [extension/06-testing.md](../extension/06-testing.md) | Where the tests find the binary (`GITARDO_ENGINE`, else `../rust/target/debug`), and what `test/engine.test.ts` checks. |
 
+## Written in stage 2
+
+| Page | Change |
+| --- | --- |
+| [transition/02-protocol.md](02-protocol.md) | Version 1.1: `feature/run` with `inputs`, the answers given taken by key, one run at a time on the thread of each repository's engine, every `Validation` an object, each `Step` with its `line`, the follow-ups stage 2 sends, `followUps` in the data of `stepFailed`. |
+| [desktop/02-architecture.md](../desktop/02-architecture.md) | `server` uses `features` and `settings`, for `feature/run` (R1.3). |
+| [extension/02-architecture.md](../extension/02-architecture.md) | The path of a click through `feature/run`, `feature/ask` and the follow-ups. |
+| [extension/11-data.md](../extension/11-data.md) | The settings sent to the engine; `worktreeInputs` written by the follow-up `rememberInputs` and sent as `inputs`. |
+| [extension/06-testing.md](../extension/06-testing.md) | What `test/engine.test.ts` checks of `branch.create`, and the scenario run through `gitardo-cli` and the extension. |
+| [features/06-branches-tags-remotes.md](../features/06-branches-tags-remotes.md) | The first card merged: `branch.create`, with its **Extension** line, Desktop Built and Extension Built; the extension's card is gone from `features/extension/`. |
+
 ## Waiting for a stage
 
 | Rule | Stage | What |
 | --- | --- | --- |
-| The extension's architecture | 2 | [extension/02-architecture.md](../extension/02-architecture.md) gets the path of a click through `feature/run`. |
-| The extension's stored data | 2 | [extension/11-data.md](../extension/11-data.md) says that the settings are sent to the engine, and where the rebase files go when the rebase area moves. |
+| The extension's stored data | 4 | [extension/11-data.md](../extension/11-data.md) says where the rebase files go when the rebase area moves. |
+| The e2e and UI suites with the engine | 2 | Not done in stage 2: `test/e2e/run.mjs` and `test/e2e/ui.mjs` set `gitardo.engine.path`, and run once with the binary and once with a missing file ([extension/06-testing.md](../extension/06-testing.md#with-the-engine)). |
 | The merge of the cards | 4 | For each area, the extension's cards are merged into the desktop's ones, and the area's file in `features/extension/` is emptied; the card template of the desktop gets an **Extension** line where the interface differs. |
 | The check of the catalog | 4 | `cargo xtask docs`, the part of `cargo xtask check` that reads the documents, takes from `docs/catalog.py` the lines a card's kind needs and the words of the glossary, and `npm run check:docs` calls it; `catalog.py` is removed when the last area is merged ([D46](../08-decisions.md#d46--cargo-xtask-check-checks-the-catalog-of-both-apps)). |
 | The promises of the cards | 4 | The extension's [promises](../extension/04-feature-contract.md#the-promises-every-card-is-checked-against) are compared with the desktop's contract and the ones it lacks are added there. |

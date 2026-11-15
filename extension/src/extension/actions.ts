@@ -1024,7 +1024,7 @@ interface BranchInput {
 }
 
 /** Where the values typed or picked for the inputs last are kept, by their ids, to be proposed the next time. */
-const LAST_INPUTS = 'worktreeInputs';
+export const LAST_INPUTS = 'worktreeInputs';
 
 /**
  * The format of branch names and its inputs, from `gitardo.branches.format` and `gitardo.branches.inputs`, or, where

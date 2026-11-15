@@ -1,12 +1,13 @@
 /**
  * The engine in a window of VS Code: the binary found from `gitardo.engine.path` or the package, the settings read
- * from VS Code, and the log in the **Gitardo** output channel. In stage 1 nothing the user sees uses it: it is started
- * the first time a repository is found, and the output channel says when it cannot be.
+ * from VS Code and sent again when they change, the questions of its features asked with VS Code's input boxes, picks
+ * and dialogs, and the log in the **Gitardo** output channel. It is started the first time a repository is found, and
+ * the output channel says when it cannot be; Gitardo then runs its TypeScript operations (D49).
  */
 import * as vscode from 'vscode';
 import { findBinary } from './binary';
-import { EngineClient } from './client';
-import type { Settings } from './messages';
+import { EngineClient, type FeatureAsker } from './client';
+import type { Answer, Choice, Plan, Question, Settings } from './messages';
 import { engineSettings } from './settings';
 
 /** The keys of every `gitardo.*` setting the extension contributes, without the prefix. */
@@ -42,10 +43,92 @@ export function readSettings(extension: vscode.Extension<unknown>): Settings {
   return engineSettings(values, unset, fallbacks, -new Date().getTimezoneOffset());
 }
 
+/**
+ * Asks the questions of a feature of the engine as Gitardo's TypeScript operations ask theirs: text in an input box whose
+ * text the engine checks as it is typed, a pick in a quick pick, a confirmation and the plan in a modal dialog.
+ */
+export class VscodeAsker implements FeatureAsker {
+  constructor(
+    private readonly client: EngineClient,
+    private readonly repository: string,
+  ) {}
+
+  async ask(question: Question): Promise<Answer | null> {
+    const { kind } = question;
+    const title = question.title;
+    switch (kind.kind) {
+      case 'text':
+      case 'secret': {
+        const validation = kind.kind === 'text' ? kind.validation : undefined;
+        const text = await vscode.window.showInputBox({
+          title,
+          prompt: question.detail ?? undefined,
+          placeHolder: kind.kind === 'text' ? (kind.placeholder ?? undefined) : undefined,
+          value: question.default?.kind === 'text' ? question.default.text : undefined,
+          password: kind.kind === 'secret',
+          validateInput: validation ? (value) => this.client.validate(this.repository, validation, value).catch(() => null) : undefined,
+        });
+        return text === undefined ? null : { kind: 'text', text };
+      }
+      case 'pick':
+      case 'search': {
+        const picked = await vscode.window.showQuickPick(items(kind.choices, question), {
+          title,
+          placeHolder: question.detail ?? undefined,
+          matchOnDescription: kind.kind === 'search',
+        });
+        return picked ? { kind: 'choice', identifier: picked.identifier } : null;
+      }
+      case 'pickMany': {
+        const picked = await vscode.window.showQuickPick(items(kind.choices, question), {
+          title,
+          placeHolder: question.detail ?? undefined,
+          canPickMany: true,
+        });
+        return picked ? { kind: 'choices', identifiers: picked.map((item) => item.identifier) } : null;
+      }
+      case 'confirm': {
+        const chosen = await vscode.window.showWarningMessage(title, { modal: true, detail: question.detail ?? undefined }, kind.accept);
+        return chosen === kind.accept ? { kind: 'confirmed' } : null;
+      }
+      case 'openFile':
+      case 'saveFile': {
+        const folder = kind.folder ? vscode.Uri.file(kind.folder) : undefined;
+        const filters = Object.fromEntries(kind.filters.map((filter) => [filter.name, filter.extensions]));
+        if (kind.kind === 'saveFile') {
+          const where = await vscode.window.showSaveDialog({
+            title,
+            defaultUri: folder && kind.fileName ? vscode.Uri.joinPath(folder, kind.fileName) : folder,
+            filters,
+          });
+          return where ? { kind: 'path', path: where.fsPath } : null;
+        }
+        const chosen = await vscode.window.showOpenDialog({ title, defaultUri: folder, filters, canSelectMany: false });
+        return chosen?.[0] ? { kind: 'path', path: chosen[0].fsPath } : null;
+      }
+    }
+  }
+
+  async confirm(plan: Plan): Promise<boolean> {
+    const ask = plan.danger.kind === 'destructive' ? vscode.window.showWarningMessage : vscode.window.showInformationMessage;
+    const reason = plan.danger.kind === 'none' ? '' : `${plan.danger.reason}\n\n`;
+    const detail = `${reason}Gitardo will run in ${this.repository}:\n\n${plan.steps.map((step) => step.line).join('\n')}`;
+    return (await ask(`${plan.title}?`, { modal: true, detail }, 'Run')) === 'Run';
+  }
+}
+
+/** The choices of a question as items of a quick pick, the default first. */
+function items(choices: Choice[], question: Question): Array<vscode.QuickPickItem & { identifier: string }> {
+  const first = question.default?.kind === 'choice' ? question.default.identifier : undefined;
+  const all = choices.map((choice) => ({ label: choice.label, description: choice.description ?? undefined, identifier: choice.identifier }));
+  return [...all.filter((item) => item.identifier === first), ...all.filter((item) => item.identifier !== first)];
+}
+
 /** The engine of this window, started on the first call to `start`; none when its binary is missing. */
 export class WindowEngine implements vscode.Disposable {
   private client?: EngineClient;
   private looked = false;
+  private readonly subscriptions: vscode.Disposable[] = [];
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -75,11 +158,24 @@ export class WindowEngine implements vscode.Disposable {
       log: this.log,
     });
     this.client = client;
+    // The features see the new values from their next run.
+    this.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration('gitardo') || event.affectsConfiguration('git')) client.settingsChanged();
+      }),
+    );
     client.start().catch((error: unknown) => this.log.warn(error instanceof Error ? error.message : String(error)));
     return client;
   }
 
+  /** The engine, when it runs or is starting: none when it has no binary, or stopped for good. */
+  get running(): EngineClient | undefined {
+    const client = this.start();
+    return client && client.status !== 'given up' && client.status !== 'refused' ? client : undefined;
+  }
+
   dispose(): void {
+    for (const subscription of this.subscriptions) subscription.dispose();
     void this.client?.dispose();
   }
 }

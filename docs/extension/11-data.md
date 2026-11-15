@@ -19,7 +19,7 @@ one too (R14.2 in the [code rules](03-code-rules.md)).
 | `gitardo.commitFiles` | `tree` or `list`: how the files of a commit or a comparison are listed. | The two buttons beside the count of files | Opening a tab | Yes. |
 | `gitardo.recentComparisons` | For each repository root, the last 8 comparisons: the name and hash of each side, and the path they are narrowed to. | Opening a comparison (`rememberComparison`) | **Opened before** in the comparison's picker | Yes. |
 | `worktreeSetupOffered` | `true` once Gitardo offered to choose what new worktrees get. | The offer after creating a worktree, opening the page | Creating a worktree | Yes: offered once more. |
-| `worktreeInputs` | The last value typed for each input of `gitardo.worktrees.inputs`, by its name. | Creating a worktree with inputs | The next creation, as defaults | Yes. |
+| `worktreeInputs` | The last value typed for each input of the format of branch names (`gitardo.branches.inputs`, or `gitardo.worktrees.inputs`), by its name. | Creating a worktree or a branch with inputs; for a branch, the follow-up `rememberInputs` of the engine | The next creation, as defaults; sent to the engine as `inputs` of `feature/run` | Yes. |
 
 *Not versioned.* None of these carries a version. The keys were named as they were added; the last two have no
 `gitardo.` prefix. Renaming one loses what users have stored under it unless the old key is read too.
@@ -41,6 +41,13 @@ across restarts. Written through `saveUiState` (`src/webview/vscode.ts`), which 
 
 These are read with defaults for anything missing (`loadUiState`), so a value from an older version that lacks a field
 is filled in.
+
+### Settings sent to the engine
+
+From stage 1 of [the transition](../transition/06-roadmap.md), the `gitardo.*` settings are sent to Gitardo's engine
+in `initialize`, and again with `settings/changed` whenever a `gitardo.*` or `git.*` setting changes, under the
+desktop's names, which are the same without `gitardo.` ([05-stored-data.md](../transition/05-stored-data.md)). The
+engine keeps nothing of them on disk.
 
 ### Settings Gitardo writes
 

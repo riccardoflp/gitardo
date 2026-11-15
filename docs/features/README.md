@@ -187,7 +187,7 @@ earns it.
 | [`branch.checkout-remote`](06-branches-tags-remotes.md#branchcheckout-remote--check-out-a-remote-branch) | Check out a remote branch | Operation | Built | Differs (B2, B6) |
 | [`branch.checkout-remote-and-rebase`](06-branches-tags-remotes.md#branchcheckout-remote-and-rebase--check-out-a-branch-and-rebase-it-onto-its-remote-branch) | Check out a branch and rebase it onto its remote branch | Operation | Built | Built |
 | [`branch.checkout-detached`](06-branches-tags-remotes.md#branchcheckout-detached--check-out-a-commit) | Check out a commit | Operation | Built | Built |
-| [`branch.create`](06-branches-tags-remotes.md#branchcreate--create-a-branch) | Create a branch | Operation | Built | Differs (S2) |
+| [`branch.create`](06-branches-tags-remotes.md#branchcreate--create-a-branch) | Create a branch | Operation | Built | Built |
 | [`branch.format-name`](06-branches-tags-remotes.md#branchformat-name--expand-the-format-of-branch-names) | Expand the format of branch names | Derivation | Built | Built |
 | [`branch.name-from-format`](06-branches-tags-remotes.md#branchname-from-format--ask-for-the-parts-of-the-format) | Ask for the parts of the format | Derivation | Built | Built |
 | [`branch.validate-name`](06-branches-tags-remotes.md#branchvalidate-name--what-git-does-not-take-as-a-name) | What git does not take as a name | Derivation | Built | Built |
@@ -572,7 +572,6 @@ catalog it is an alias of ([D44](../08-decisions.md#d44--one-catalog-the-desktop
 | `branch.checkout` ([card](extension/06-branches-tags-remotes.md#branchcheckout--check-out-a-branch)) | `branch.checkout` | |
 | `branch.checkout-remote` ([card](extension/06-branches-tags-remotes.md#branchcheckout-remote--check-out-a-remote-branch-in-the-local-branch-of-its-name)) | `branch.checkout-remote`, `branch.checkout-remote-and-rebase` | |
 | `branch.checkout-detached` ([card](extension/06-branches-tags-remotes.md#branchcheckout-detached--check-out-a-commit-or-a-tag-detached)) | `branch.checkout-detached`, `tag.checkout` | |
-| `branch.create` ([card](extension/06-branches-tags-remotes.md#branchcreate--create-a-branch)) | `branch.create` | |
 | `branch.name-format` ([card](extension/06-branches-tags-remotes.md#branchname-format--name-a-new-branch-from-a-format)) | `branch.format-name`, `branch.name-from-format` | |
 | `branch.rename` ([card](extension/06-branches-tags-remotes.md#branchrename--rename-a-branch)) | `branch.rename` | |
 | `branch.delete` ([card](extension/06-branches-tags-remotes.md#branchdelete--delete-a-branch)) | `branch.delete` | |
