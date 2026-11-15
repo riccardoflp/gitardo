@@ -1,0 +1,63 @@
+{
+  "ask": {
+    "question": {
+      "default": {
+        "kind": "text",
+        "text": "T-1/main"
+      },
+      "detail": null,
+      "key": "name",
+      "kind": {
+        "kind": "text",
+        "placeholder": "feature/my-change",
+        "validation": {
+          "kind": "referenceName",
+          "taken": [
+            "main",
+            "feature"
+          ],
+          "takenMessage": "A branch with that name already exists"
+        }
+      },
+      "title": "Create branch"
+    },
+    "run": 4
+  },
+  "confirm": {
+    "plan": {
+      "after": [
+        {
+          "kind": "selectHead"
+        },
+        {
+          "kind": "rememberInputs",
+          "values": {
+            "ticket": "T-1"
+          }
+        }
+      ],
+      "danger": {
+        "kind": "none"
+      },
+      "steps": [
+        {
+          "arguments": [
+            "checkout",
+            "-b",
+            "topic",
+            "main"
+          ],
+          "directory": "/work/app",
+          "input": null,
+          "kind": "git",
+          "line": "git checkout -b topic main"
+        }
+      ],
+      "title": "Create branch topic at main and check it out",
+      "undo": {
+        "kind": "byReflog"
+      }
+    },
+    "run": 4
+  }
+}

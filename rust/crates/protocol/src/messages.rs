@@ -32,10 +32,22 @@ pub mod methods {
     pub const LOG_LINE: &str = "log/line";
     /// What runs, whenever it changes.
     pub const ACTIVITY: &str = "activity/changed";
+    /// Runs a feature of the catalog (stage 2).
+    pub const FEATURE_RUN: &str = "feature/run";
+    /// The engine asks a question of a feature that runs.
+    pub const FEATURE_ASK: &str = "feature/ask";
+    /// The engine asks whether to run a plan.
+    pub const FEATURE_CONFIRM: &str = "feature/confirm";
+    /// What the extension carries out once a feature ran.
+    pub const FEATURE_FOLLOW_UPS: &str = "feature/followUps";
+    /// Whether the text typed so far is an answer a question takes.
+    pub const QUESTION_VALIDATE: &str = "question/validate";
+    /// Every setting, whenever one changes.
+    pub const SETTINGS_CHANGED: &str = "settings/changed";
 }
 
-/// The version of the protocol the engine speaks.
-pub const VERSION: &str = "1.0";
+/// The version of the protocol the engine speaks: 1.1 added the messages of the features (stage 2).
+pub const VERSION: &str = "1.1";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]

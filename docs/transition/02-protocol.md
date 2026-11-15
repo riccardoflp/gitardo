@@ -6,7 +6,9 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.0** of the protocol. Nothing of it is built yet.
+This is version **1.1** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
+`feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. The rest is not built yet.
 
 ## Transport
 
@@ -53,7 +55,8 @@ A request that fails answers with a JSON-RPC error:
 | 8 | `unknownFeature` | No feature has that identifier |
 
 `message` is the sentence for the user, as the engine's `Display` writes it. `data` is
-`{"output": string | null, "steps": string[]}`: what git printed, and the lines of the steps that ran, for the log.
+`{"output": string | null, "steps": string[], "followUps": FollowUp[]}`: what git printed, the lines of the steps that
+ran, for the log, and, for `stepFailed`, the follow-ups of the plan for a failure that are the extension's.
 
 A feature that **refuses** is not an error: its answer is a `Finished` of kind `refused`.
 
@@ -65,7 +68,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.0",
+  protocol: "1.1",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -262,16 +265,22 @@ params: {
   feature: string,                 // "branch.create"
   target: Target,                  // what it was asked on
   answers: Record<string, Answer>, // answers given before it asks: from an offer (OfferedRun), or a view that knows them
-  journal: boolean                 // false only in the tests that check the plan alone
+  journal: boolean,                // false only in the tests that check the plan alone; read from stage 3
+  inputs: Record<string, string>   // the values of the inputs of branches.format used last (worktreeInputs)
 }
 result: Finished
 ```
 
 The answer comes when the feature has finished: refused, backed out of, not confirmed, or run. In between the engine
 asks the extension, as requests on the same connection: `feature/ask` for each question, `feature/confirm` for the
-plan when it must be confirmed, and the host questions. Only one `feature/run` that reaches a plan runs at a time in a
-repository; a second is answered `busy`, and the extension drops it without a word, as `Controller.run` does today
-while `this.running` is set (`controller.ts:2421`).
+plan when it must be confirmed, and the host questions. Only one `feature/run` runs at a time in a repository, from
+its start to its answer, questions included; a second is answered `busy`, and the extension drops it without a word,
+as `Controller.run` does today while `this.running` is set (`controller.ts:2421`). The engine of each repository lives
+on a thread of its own (`crates/server/src/repository.rs`), which takes one feature at a time.
+
+An answer in `answers` answers the question of its key without asking it, once. `inputs` is what the desktop keeps in
+the workspace's file and the extension in its workspace state: the engine reads it as `FeatureSettings::branch_values`,
+the defaults of the questions of `branches.format`, and a plan that used them ends with `RememberInputs`.
 
 ```ts
 Finished =
@@ -323,7 +332,12 @@ Rust. The extension calls it on each change, without waiting on the previous one
 ### `feature/followUps`
 
 Notification from the engine, right before the answer of a `feature/run` that ran: `{ run, followUps: FollowUp[] }`,
-the follow-ups that are the host's to carry out, in their order. The engine keeps those that are its own.
+the follow-ups that are the host's to carry out, in their order. The engine keeps those that are its own. Each is an
+object with a `kind` and the fields of its variant. Stage 2 sends `say`, `selectHead`, `selectCommit`,
+`selectBeforeHead`, `openCommitPage`, `emptyCommitMessage`, `preparedMessage`, `fillCommitMessage`,
+`readPullRequests`, `offer`, `copyToClipboard`, `openUrl`, `openReview`, `closeMergePage`, `openWindow`, `showFolder`,
+`rememberInputs` and `editFile` (`crates/protocol/src/feature/follow_up.rs`); the others are sent from the stage that
+moves their features.
 
 | `FollowUp` | Carried out by | In the extension |
 | --- | --- | --- |
@@ -416,8 +430,9 @@ the protocol asks of `engine`, beside separating `platform` (Q393).
 
 ## How the Asker is translated
 
-`Asker` (`crates/engine/src/drive.rs:39`) has three methods. In the server, each `feature/run` runs on a thread of its
-own with a `HostAsker`, which holds the id of the request and a channel to the writer of standard output:
+`Asker` (`crates/engine/src/drive.rs:39`) has three methods. In the server, each `feature/run` runs on the thread of
+its repository's engine with a `HostAsker` (`crates/server/src/asker.rs`), which holds the id of the request and sends
+its requests through the writer of standard output, waiting for their answers:
 
 | `Asker` | Becomes | In the extension |
 | --- | --- | --- |
@@ -425,7 +440,8 @@ own with a `HostAsker`, which holds the id of the request and a channel to the w
 | `confirm(&Plan) -> bool` | `feature/confirm`, waits | the modal dialog of today, with the plan's commands (`gitardo.commandPreview`) |
 | `clipboard() -> Option<String>` | `host/clipboard`, waits | `vscode.env.clipboard.readText()` |
 
-A question has `key`, `kind`, `title`, `detail`, `default`. In VS Code:
+The answers given in `feature/run` are taken first: a question whose key has one is not sent. A question has `key`,
+`kind`, `title`, `detail`, `default`. In VS Code:
 
 | `QuestionKind` | VS Code | `Answer` sent |
 | --- | --- | --- |
@@ -465,13 +481,16 @@ The fields are those of `model`; this section says only what the JSON adds or le
 - **`Target`** (`model/src/contract/context.rs`): `{ kind: "head" }`, `{ kind: "commit", commit }`, `{ kind:
   "branch", name }`, `{ kind: "remoteBranch", name }`, `{ kind: "tag", name }`, `{ kind: "stash", index }`, `{ kind:
   "remote", name }`, `{ kind: "files", paths }`, `{ kind: "file", path }`, `{ kind: "changes" }`, `{ kind: "commits",
-  commits }`, `{ kind: "submodule", path }`, `{ kind: "worktree", folder }`, `{ kind: "path", path }`, and the kinds
-  with a structure of their own: `diffChange`, `comparison`, `mergeResult`, `resolutions`, `fileSave`, `fileSaves`,
-  `fileAt`, `setupSettings`, `lines`, `lineOfFile`, `listedFile`, each with the fields of its type in `model`.
+  commits }`, `{ kind: "submodule", path }`, `{ kind: "worktree", folder }`, `{ kind: "path", path }`, built at stage
+  2, and the kinds with a structure of their own: `diffChange`, `comparison`, `mergeResult`, `resolutions`,
+  `fileSave`, `fileSaves`, `fileAt`, `setupSettings`, `lines`, `lineOfFile`, `listedFile`, each with the fields of its
+  type in `model`, built with the stage that moves the area that uses it.
 - **`Question`** (`model/src/contract/question.rs`): `{ key, kind: QuestionKind, title, detail: string | null,
-  default: string | null }`. **`Choice`**: `{ identifier, label, description: string | null }`. **`Validation`**:
-  `"anything" | { kind: "referenceName", taken: string[], takenMessage } | "url" | { kind: "newMessage", old } |
-  "required" | "optionalReferenceName" | "submoduleFolder" | "worktreeName" | { kind: "pattern", pattern }`.
+  default: Answer | null }`. **`Choice`**: `{ identifier, label, description: string | null }`. **`Validation`**,
+  every kind an object, those without data too, since `question/validate` sends it back: `{ kind: "anything" }`,
+  `{ kind: "referenceName", taken: string[], takenMessage }`, `{ kind: "url" }`, `{ kind: "newMessage", old }`,
+  `{ kind: "required", message }`, `{ kind: "optionalReferenceName" }`, `{ kind: "submoduleFolder", submodules }`,
+  `{ kind: "worktreeName", branches, emptyName, worktrees, beside, takenFolders }`, `{ kind: "pattern", pattern }`.
   **`FileQuestion`**: `{ folder: string | null, fileName: string | null, filters: { name, extensions }[] }`.
 - **`Answer`** (`model/src/contract/answers.rs`): only the kinds a person gives travel to the engine: `text`,
   `choice`, `choices`, `confirmed`, `path`. The other kinds are answers of the engine's own queries and never cross,
@@ -482,8 +501,9 @@ The fields are those of `model`; this section says only what the JSON adds or le
 - **`Step`**: `{ kind: "git", arguments: string[], directory: string | null, input: string | null }`, `{ kind: "write",
   path }`, `{ kind: "link", from, to }`, `{ kind: "copy", from, to }`, `{ kind: "unlink", path }`, `{ kind: "delete",
   path }`, `{ kind: "run", command, directory }`, `{ kind: "task", command, directory }`, `{ kind: "makeFolder",
-  path }`, `{ kind: "deleteEmptyFolder", path }`, `{ kind: "warn", text }`. The extension shows them only, in the
-  confirmation and in the log: the line of each is the one the engine logs.
+  path }`, `{ kind: "deleteEmptyFolder", path }`, `{ kind: "warn", text }`, each with a `line` too: the line the
+  engine logs for it (`Step::log_line`). The extension shows them only, in the confirmation and in the log, by that
+  line.
 - **`JournalEntry`** (`model/src/contract/journal.rs`): `{ number, title, head: CommitId | null }`; the record stays
   in the engine.
 - **`UndoRecord`**, sent only in `journal/record`: `{ kind: "branchDeleted", name, commit }`, `{ kind: "stashDropped",
