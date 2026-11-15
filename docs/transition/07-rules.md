@@ -63,6 +63,14 @@ needs is written in the commit of that stage, not before.
 | [extension/02-architecture.md](../extension/02-architecture.md) | A step of the engine logged as the command of a `GitOp`. |
 | [extension/06-testing.md](../extension/06-testing.md) | The harness and the scenario test of an area; the e2e and UI suites with the engine and without. |
 
+## Written in stages 8 and 9
+
+| Page | Change |
+| --- | --- |
+| [extension/03-code-rules.md](../extension/03-code-rules.md) | R1.3: `.vscodeignore` lets in `bin/<target>/`. |
+| [extension/06-testing.md](../extension/06-testing.md) | `npm run package` makes the universal vsix and one per target whose engine it finds; `npm run test:vsix` tests the vsix of this computer with its engine. |
+| `.github/workflows/check.yml` | The pipeline: `cargo xtask check` and the desktop on Windows, Linux and macOS (both targets of the Mac), the engine of the seven targets, the extension's checks and its e2e suite with the engine and without on the three systems, and the vsix of every target, all as artifacts; it publishes nothing. |
+
 ## Waiting for a stage
 
 | Rule | Stage | What |
@@ -72,7 +80,6 @@ needs is written in the commit of that stage, not before.
 | The check of the catalog | 4 | `cargo xtask docs`, the part of `cargo xtask check` that reads the documents, takes from `docs/catalog.py` the lines a card's kind needs and the words of the glossary, and `npm run check:docs` calls it; `catalog.py` is removed when the last area is merged ([D46](../08-decisions.md#d46--cargo-xtask-check-checks-the-catalog-of-both-apps)). |
 | The promises of the cards | 4 | The extension's [promises](../extension/04-feature-contract.md#the-promises-every-card-is-checked-against) are compared with the desktop's contract and the ones it lacks are added there. |
 | Security | 5 | [extension/10-security.md](../extension/10-security.md) gets the host questions that carry a token. |
-| The vsix | 8 | R1.3 of the extension's code rules: `.vscodeignore` lets in `bin/<target>/`. |
 
 ## How the extension is tested with the engine, in short
 
