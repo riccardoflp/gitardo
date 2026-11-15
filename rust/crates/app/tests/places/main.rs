@@ -13,6 +13,7 @@ mod blame_file;
 mod branches;
 mod changes;
 mod changes_save;
+mod close_tabs;
 mod commit_page;
 mod compare;
 mod compare_actions;

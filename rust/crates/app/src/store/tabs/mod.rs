@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 
 use views::Intent;
 
-pub use close::{close_other_tabs, close_tab};
+pub use close::{Closing, close_answered, close_other_tabs, close_tab, follow_closing};
 pub use data::TabsData;
 pub use open::{Choosing, choose_tabs, open_tab, repositories_found};
 pub use view::RepositoryView;
@@ -31,6 +31,8 @@ pub struct Tabs {
     pub open: Vec<Tab>,
     /// The tab shown; none while the window shows no repository.
     pub shown: Option<usize>,
+    /// The tabs being closed, while a page in them with edits not saved asks first.
+    pub closing: Option<Closing>,
 }
 
 /// A repository open in a tab.
@@ -161,12 +163,13 @@ pub(super) fn remember(state: &mut State) -> Vec<Effect> {
 
 /// What a tab keeps when it is left (`repo.keep-open`), and the jobs it started that nobody waits for any more: with
 /// `repositories.keepOpen` on, all it shows, still waiting for its jobs; with it off, nothing but what is kept between
-/// runs anyway, which the store keeps by repository itself, and none of its jobs.
+/// runs anyway, which the store keeps by repository itself, and none of its jobs, but for a tab with a page whose
+/// edits are not saved, which keeps all it shows, so that the edits are not lost.
 ///
 /// Feature: repo.keep-open
 #[must_use]
 pub fn kept_on_leaving(view: RepositoryView, keep_open: bool) -> (Option<RepositoryView>, Vec<JobId>) {
-    if keep_open {
+    if keep_open || view.has_unsaved() {
         (Some(view), Vec::new())
     } else {
         (None, view.jobs.into_keys().collect())
@@ -205,15 +208,15 @@ pub fn keep_for(state: &mut State, index: usize, message: Message) {
 }
 
 /// With `repositories.keepOpen` turned off, the tabs not shown forget what they kept, and what they waited for is
-/// cancelled.
+/// cancelled; a tab with a page whose edits are not saved keeps it all.
 pub fn settings_changed(state: &mut State) -> Vec<Effect> {
     if state.settings.keep_open {
         return Vec::new();
     }
     let mut effects = Vec::new();
     for tab in &mut state.tabs.open {
-        tab.waiting.clear();
-        if let Some(kept) = tab.kept.take() {
+        if let Some(kept) = tab.kept.take_if(|kept| !kept.has_unsaved()) {
+            tab.waiting.clear();
             effects.extend(kept.jobs.into_keys().map(Effect::Cancel));
         }
     }

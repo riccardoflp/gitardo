@@ -55,6 +55,22 @@ pub struct RepositoryView {
     pub rail: super::super::rail::Rail,
 }
 
+impl RepositoryView {
+    /// Whether a page of it has edits not saved: a File page, or the result of a Merge page.
+    #[must_use]
+    pub fn has_unsaved(&self) -> bool {
+        self.file_pages
+            .pages
+            .iter()
+            .any(super::super::file_page::FilePage::is_unsaved)
+            || self
+                .merge_pages
+                .pages
+                .iter()
+                .any(super::super::merge_page::MergePage::is_unsaved)
+    }
+}
+
 /// What a message is the answer to: a job, or a question to the AI provider.
 pub(super) enum Answered {
     Job(JobId),

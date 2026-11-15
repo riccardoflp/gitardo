@@ -389,11 +389,12 @@ pub fn close_page(state: &mut State) -> Vec<Effect> {
 }
 
 /// The answer to **Save changes to app.rs?**: **Save** saves, then closes; **Don't save** closes and forgets the edits;
-/// **Cancel** keeps the page.
+/// **Cancel** keeps the page. A tab being closed hears of it too (`repo.close-tab`).
 fn answer_close(state: &mut State, answer: CloseAnswer) -> Vec<Effect> {
     let Some(id) = state.file_pages.closing.take() else {
         return Vec::new();
     };
+    super::tabs::close_answered(state, id, answer);
     match answer {
         CloseAnswer::Save => edit::save(state, id, true),
         CloseAnswer::DontSave => {

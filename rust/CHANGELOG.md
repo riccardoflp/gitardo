@@ -11,7 +11,9 @@
   workspace opened before opens the tabs it had. **+** at the end of the tabs opens a repository of the workspace that
   has no tab, a folder, or a workspace file of VS Code, whose folders are opened as a workspace named after the file;
   **Open workspace file…** is on the Welcome page and in Quick search too. A tab closes with its **×**, a middle click
-  or its menu, which also has **Close other tabs**; closing the only tab shows the Welcome page.
+  or its menu, which also has **Close other tabs**; closing the only tab shows the Welcome page. A tab with a File
+  page whose edits are not saved asks **Save changes to app.rs?** before it closes, and keeps the edits while another
+  tab is shown, also with `repositories.keepOpen` off.
 - On macOS and Linux too, removing a worktree, also when cleaning up branches, takes out of it first its links to
   folders outside it, each an `unlink <path>` step: git no longer refuses a worktree whose `node_modules` link is left
   out by `node_modules/` in `.gitignore`, a pattern for folders only.

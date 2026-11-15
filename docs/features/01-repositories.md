@@ -649,7 +649,9 @@ Takes a repository out of the window. Nothing in the repository changes.
   store (Q43)
 - **Entry points**: the **×** of a tab; a middle click on it; **Close tab** and **Close other tabs** in its context
   menu; **Close Tab** in Quick search, for the tab shown.
-- **Asks**: for a page of the tab with edits not saved, what closing that page asks.
+- **Asks**: for a File page of the tab with edits not saved, what closing that page asks, **Save changes to app.rs?**,
+  the tab and the page shown while it asks: **Save** saves the file, then the tab closes; **Don't save** closes it with
+  the edits lost; **Cancel** keeps it, and the tabs not closed yet. A save that fails keeps the tab.
 - **Plan**: no step: nothing runs in a repository.
 - **Danger**: None.
 - **Undo**: nothing in a repository changes; **+** opens the repository again, with a first read.
@@ -727,7 +729,8 @@ timeline; the commit selected and the inspector; the search and the branch filte
 closed and its scroll; the pages open, the one shown, their trails and their scrolls; the Changes page with the
 message of the commit box; the comparison in the inspector. With it off, a repository keeps only what is kept between
 runs anyway (the branches shown, the folds, the favorites, the message of the commit box): coming back to it is a first
-read, nothing searched and nothing selected.
+read, nothing searched and nothing selected. A repository with a page whose edits are not saved, a File page or the
+result of a Merge page, keeps everything it showed all the same, so that the edits are not lost.
 
 Between runs, the tabs open and the one shown are kept, with what was kept between runs before; the rest starts again.
 
@@ -742,6 +745,8 @@ Acceptance:
 - [ ] With the setting off, coming back to `api` shows its first page of commits, its own branches shown, nothing
       selected and nothing searched.
 - [ ] Turning the setting off forgets at once what the tabs not shown kept.
+- [ ] With the setting off, a File page of `api` with edits not saved is there again, with its edits, when `api` is
+      shown again.
 - [ ] Extension: with `gitardo.repositories.keepOpen` on, choosing `web` in the list and then `api` again shows `api`
       with the commit it had selected, at the same scroll.
 - [ ] Extension: with the setting off, its default, coming back to `api` shows it as choosing a repository did before.

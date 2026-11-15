@@ -83,6 +83,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(merge_page::follow(state));
     effects.extend(file_page::prune(state));
     effects.extend(file_page::follow(state));
+    effects.extend(tabs::follow_closing(state));
     effects.extend(compare::prune(state));
     effects.extend(compare::follow(state));
     effects.extend(review::prune(state));
