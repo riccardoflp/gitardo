@@ -218,3 +218,46 @@ fn a_feature_that_is_not_there_answers_8_and_a_second_run_in_a_repository_busy_a
     let cancelled = engine.answer(first);
     assert_eq!(cancelled["error"]["code"], json!(7), "{cancelled} after {waiting}");
 }
+
+#[test]
+fn branch_delete_told_a_branch_is_merged_that_git_keeps_offers_delete_anyway_with_its_target_and_answers() {
+    let repository = repository();
+    let _spike = repository.git(&["checkout", "--quiet", "-b", "spike"]);
+    std::fs::write(repository.path().join("b.txt"), "b\n").unwrap();
+    let _added = repository.git(&["add", "b.txt"]);
+    let _committed = repository.git(&["commit", "--quiet", "-m", "Add b"]);
+    let _back = repository.git(&["checkout", "--quiet", "-"]);
+    let mut engine = opened(&repository, &json!({}));
+    let run = |engine: &mut Engine, answers: &Value| {
+        let id = engine.send(
+            "feature/run",
+            &json!({
+                "repository": folder(&repository),
+                "feature": "branch.delete",
+                "target": { "kind": "branch", "name": "spike" },
+                "answers": answers
+            }),
+        );
+        engine.answer_asked(id, |request| {
+            assert_eq!(request["method"], json!("feature/confirm"), "{request}");
+            json!({ "run": true })
+        })
+    };
+    let failed = run(&mut engine, &json!({ "merged": { "kind": "flag", "value": true } }));
+    let offer = &failed["error"]["data"]["followUps"][0];
+    assert_eq!(
+        offer,
+        &json!({
+            "kind": "offerRun",
+            "label": "Delete anyway",
+            "feature": "branch.delete",
+            "target": { "kind": "branch", "name": "spike" },
+            "answers": { "merged": { "kind": "flag", "value": false } }
+        }),
+        "{failed}"
+    );
+    let ran = run(&mut engine, &offer["answers"]);
+    assert_eq!(ran["result"]["kind"], json!("ran"), "{ran}");
+    assert_eq!(ran["result"]["plan"]["danger"]["kind"], json!("destructive"), "{ran}");
+    assert!(repository.git(&["branch", "--list", "spike"]).trim().is_empty());
+}

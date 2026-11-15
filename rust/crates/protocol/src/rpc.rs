@@ -77,6 +77,7 @@ impl ResponseError {
 
 /// The data of an error of git or of a step: what git printed, and the lines of the steps that ran.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ErrorData {
     /// What git printed; none when it printed nothing or did not run.
     pub output: Option<String>,
