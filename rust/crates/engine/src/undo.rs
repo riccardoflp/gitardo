@@ -89,40 +89,6 @@ pub fn journal_after(
     Journal { entries, next_number }
 }
 
-/// The journal once an operation ran outside the engine, in the extension, which says what Undo needs of it
-/// (`journal/record`): an entry for `record`, or none when it changed only files and the index. `before` and `after` are
-/// what was checked out around it. It is part of `undo.journal`, whose function is [`journal_after`].
-#[must_use]
-pub fn journal_recorded(
-    journal: &Journal,
-    title: &Text,
-    record: Option<&UndoRecord>,
-    before: &Head,
-    after: &Head,
-) -> Journal {
-    let mut entries = journal.entries.clone();
-    if !holds(&entries, before) {
-        entries.clear();
-    }
-    let mut next_number = journal.next_number;
-    match record {
-        Some(record) => {
-            entries.push(JournalEntry {
-                number: next_number,
-                title: title.clone(),
-                record: record.clone(),
-                head: after.clone(),
-            });
-            next_number += 1;
-        }
-        None if !holds(&entries, after) => entries.clear(),
-        None => {}
-    }
-    let extra = entries.len().saturating_sub(MOST_ENTRIES);
-    entries.drain(..extra).for_each(drop);
-    Journal { entries, next_number }
-}
-
 /// Whether the entries hold with this checked out: it is what the newest of them left.
 fn holds(entries: &[JournalEntry], head: &Head) -> bool {
     entries.last().is_none_or(|newest| newest.head == *head)
@@ -197,7 +163,7 @@ fn references(state: &RepositoryState) -> Vec<String> {
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
-    use super::{Journal, MOST_ENTRIES, journal_after, journal_recorded};
+    use super::{Journal, MOST_ENTRIES, journal_after};
     use model::CommitId;
     use model::contract::{Danger, Plan, Text, Undo, UndoRecord};
     use model::state::{Head, RepositoryState, Tag};
@@ -290,41 +256,6 @@ mod tests {
             after.newest().map(|entry| &entry.record),
             Some(UndoRecord::NotUndoable { .. })
         ));
-    }
-
-    #[test]
-    fn undo_journal__an_operation_the_extension_ran_is_recorded_with_what_it_says() {
-        let head = |digit: char| at(digit).head;
-        let journal = journal_recorded(
-            &Journal::new(),
-            &Text::from("Drop stash"),
-            Some(&UndoRecord::StashDropped {
-                message: String::from("wip"),
-                commit: commit('b'),
-            }),
-            &head('a'),
-            &head('a'),
-        );
-        let journal = journal_recorded(
-            &journal,
-            &Text::from("Commit"),
-            Some(&UndoRecord::Reflog),
-            &head('a'),
-            &head('c'),
-        );
-        assert_eq!(journal.entries().len(), 2);
-        // A stage, recorded with nothing, keeps them.
-        let staged = journal_recorded(&journal, &Text::from("Stage a.txt"), None, &head('c'), &head('c'));
-        assert_eq!(staged, journal);
-        // Recorded from where something else had moved HEAD: only the new entry holds.
-        let moved = journal_recorded(
-            &journal,
-            &Text::from("Commit"),
-            Some(&UndoRecord::Reflog),
-            &head('d'),
-            &head('e'),
-        );
-        assert_eq!(moved.entries().len(), 1);
     }
 
     #[test]

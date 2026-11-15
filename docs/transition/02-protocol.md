@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.6** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.7** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -50,6 +50,14 @@ follow-up `writeSetting { key, value }` (Q399), which `ai.choose-model` leaves u
 the user's settings file; and the target `comparison`, a comparison page as a whole, for `compare.open-on-github`.
 `host/githubToken` is asked by a feature too, with `ask: true`, for `github.load-pull-requests`. The engine sends
 `$/cancel` for a question it asked of the extension and no longer waits for.
+
+Version 1.7 adds what stage 10 needed once the extension has no git of its own (`extension/src/git` removed):
+`repository/discover` answered, each repository with its `superproject` and the git folder its worktrees share,
+`commonFolder`; the target `comparison` with the `file` of the page it was invoked on, for `compare.take-file`; and the
+target `diffChange`, a change of a diff, for `diff.stage-change` and `diff.unstage-change` from the gutter of the Flow
+Diff. `journal/record` is removed: no client sends it, since no operation runs outside the engine any more, so the
+major version stays. `compare.read-sides` counts the whole sides of a comparison narrowed to a path and compares the
+working tree from the merge base in **Since they diverged** (Q407), which changes no field.
 
 ## Transport
 
@@ -109,7 +117,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.4",
+  protocol: "1.7",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -150,9 +158,12 @@ params: { folders: string[] }                 // the folders of the workspace
 result: { repositories: DiscoveredRepository[] }
 ```
 
-`repo.read-repositories`: the repositories in those folders and around them, in the order the extension shows them
-(`src/git/discover.ts:40`, the repositories in a folder before the one around it). `DiscoveredRepository`: `{ folder,
-gitFolder, isWorktreeOf: string | null, isSubmoduleOf: string | null }`.
+`repo.read-repositories` (1.7): the repositories in those folders and around them, in the order the extension shows
+them, the repositories in a folder before the one around it, each followed by its submodules. `DiscoveredRepository`:
+`{ folder, superproject: string | null, commonFolder: string | null }`, `commonFolder` the git folder its worktrees
+share (`repo.common-folder`), by which the extension tells which repository of the workspace a worktree chosen in
+VS Code's Repositories view belongs to; `null` when git could not say it. It needs no repository opened, and opens
+none; the extension also asks it with the folder of a file alone, to find the repository the file is in.
 
 ### `repository/open`
 
@@ -458,17 +469,8 @@ cannot cross (an answer of the engine's own reads, such as a list of names) is l
 
 `{ repository }` → `{ entry: JournalEntry | null }`: the newest entry that still holds, for the label of **Undo**.
 
-### `journal/record`
-
-From the extension, only while some operations still run in TypeScript
-([06-roadmap.md](06-roadmap.md#stage-3--undo-in-the-engine)): `{ repository, title: string, record: UndoRecord | null,
-before: Head, after: Head }` → `{ number: number | null }`, `before` and `after` being what was checked out around the
-operation. The extension tells the engine what it ran, with what its `GitOp` remembered (the dropped stash, the deleted
-branch) converted to an `UndoRecord`: `{ kind: "reflog" }` when it moved `HEAD`, `{ kind: "notUndoable", reason }`
-when it changed a reference Undo does not take back, or `null` when it changed only files and the index, which adds
-nothing (`number` is then `null`). The entries before are dropped first when `before` is not what the newest entry
-left. **Undo** is then always `feature/run` of `undo.last`, and finds the newest operation whichever of the two ran it.
-The request goes away with `src/git`.
+`journal/record`, by which the extension told the engine of an operation it ran in TypeScript, was removed in 1.7
+with that TypeScript (stage 10).
 
 ## The log and the activity
 
@@ -587,7 +589,11 @@ The fields are those of `model`; this section says only what the JSON adds or le
   `null` when the file on disk is the result; how many conflicts git still marks in it). Built in 1.6: `{ kind:
   "comparison", first: CompareSide, second: CompareSide, mode: "sinceDiverged" | "everything", path: string | null,
   mergeBase: CommitId | null }`, a comparison page as a whole, each side `{ name, side: { kind: "commit", commit } |
-  { kind: "workingTree" }, isFollowed, isGone }`.
+  { kind: "workingTree" }, isFollowed, isGone }`. Built in 1.7: `file: FileChange | null` in `comparison`, the file of
+  the page it was invoked on (`compare.take-file`), and `{ kind: "diffChange", path, left: DiffSide, right: DiffSide,
+  leftLines, rightLines, leftText: string[], rightText: string[] }`, a change of a diff, each `DiffSide` `{ kind:
+  "head" }`, `{ kind: "index" }`, `{ kind: "workingTree" }`, `{ kind: "commit", commit }` or `{ kind: "empty" }`, the
+  lines `{ start, end }` counted from 0 with the end left out, and the text of those lines as the diff showed them.
 - **`FileResolutions`** (`model/src/review/resolutions.rs`, 1.3): `{ path, text, conflicts, accepted: Proposal[] }`:
   the text the proposals were made from, which the file must still have to be written, and how many conflicts it has.
   **`Proposal`**: `{ source, from, to, text, newLines }`, the lines `from` to `to` of the file (from 0, `to` left out)
@@ -617,10 +623,6 @@ The fields are those of `model`; this section says only what the JSON adds or le
   line.
 - **`JournalEntry`** (`protocol/src/journal.rs`): `{ number, title, undoable: boolean, head: Head }`; `undoable` is
   false for an operation Undo cannot take back. The record stays in the engine.
-- **`UndoRecord`** (`protocol/src/journal.rs`), sent only in `journal/record`: `{ kind: "reflog" }`, `{ kind:
-  "notUndoable", reason }`, `{ kind: "branchCreated", name }`, `{ kind: "branchDeleted", name, commit }`, `{ kind:
-  "stashDropped", message, commit }`, `{ kind: "conflictsResolved", files: string[] }`, `{ kind: "squashMerge" }`, `{
-  kind: "series", headBefore }`, `{ kind: "splitLast", commit }`; each commit a full id.
 
 The shapes of the reads (`protocol/src/reads/`), each from the engine's type it names:
 

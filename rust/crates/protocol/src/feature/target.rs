@@ -9,13 +9,15 @@ use serde::{Deserialize, Serialize};
 
 use model::compare::{CompareSide, ComparisonPart, ComparisonTarget, Side};
 
+use super::diff_change::DiffChangeJson;
 use super::resolutions::{FileResolutionsJson, MergeResultJson};
 use crate::reads::{CompareModeJson, ComparisonSideJson};
+use crate::state::FileChangeJson;
 
 /// What a feature was invoked on (`Target` of `model`). The kinds with a structure of their own come with the areas that
 /// use them: the resolutions of the review and the file of a Merge page with the conflicts (1.3), a comparison page as a
-/// whole with AI and GitHub (1.6); a change of a diff, a part of a comparison, files saved, a file at a commit, the
-/// settings of new worktrees, lines, a line of a file and a file of a list with theirs.
+/// whole with AI and GitHub (1.6), a file of a comparison and a change of a diff with stage 10 (1.7); files saved, a
+/// file at a commit, the settings of new worktrees, lines, a line of a file and a file of a list with theirs.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum TargetJson {
@@ -104,7 +106,13 @@ pub enum TargetJson {
         /// Where the two diverged, as the page last read it.
         #[serde(default)]
         merge_base: Option<String>,
+        /// The file of the page it was invoked on, as the page lists it (1.7, `compare.take-file`); none for the page as
+        /// a whole.
+        #[serde(default)]
+        file: Option<FileChangeJson>,
     },
+    /// A change of a diff (1.7, `diff.stage-change` and `diff.unstage-change`).
+    DiffChange(DiffChangeJson),
 }
 
 /// A side of a comparison page: its name, where it is now, and whether it follows its name.
@@ -179,14 +187,16 @@ impl TryFrom<TargetJson> for Target {
                 mode,
                 path,
                 merge_base,
+                file,
             } => Target::Comparison(Box::new(ComparisonTarget {
                 first: first.try_into()?,
                 second: second.try_into()?,
                 mode: mode.into(),
                 path,
                 merge_base: merge_base.as_deref().map(commit).transpose()?,
-                part: ComparisonPart::Whole,
+                part: file.as_ref().map_or(ComparisonPart::Whole, |file| ComparisonPart::File(file.into())),
             })),
+            TargetJson::DiffChange(change) => Target::DiffChange(Box::new(change.try_into()?)),
         })
     }
 }

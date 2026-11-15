@@ -178,7 +178,7 @@ impl Session {
             methods::FEATURE_RUN => crate::feature::run(self, id, parameters::<FeatureRunParams>(params)?, cancel),
             methods::QUESTION_VALIDATE => crate::feature::validate(parameters::<ValidateParams>(params)?),
             methods::JOURNAL_LAST => crate::journal::last(self, &parameters(params)?),
-            methods::JOURNAL_RECORD => crate::journal::record(self, parameters(params)?),
+            methods::DISCOVER => crate::discover::discover(&parameters(params)?, cancel),
             methods::INITIALIZE => self.initialize(&parameters(params)?),
             read if crate::reads::is_read(read) => crate::reads::answer(self, read, params, cancel),
             // Area 6 of stage 4: the reads that ask a language model of VS Code.

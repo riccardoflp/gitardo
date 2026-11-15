@@ -2,6 +2,7 @@
 //! from the engine while one runs, `question/validate` while a name is typed, `feature/followUps` before the answer of a
 //! feature that ran, and `settings/changed` (`docs/transition/02-protocol.md`, Features and Settings).
 
+mod diff_change;
 mod follow_up;
 mod plan;
 mod question;
@@ -19,6 +20,7 @@ pub use resolutions::{
     ConfidenceJson, FileResolutionsJson, MergeResultJson, ProposalJson, ProposalSourceJson, ResolutionChoiceJson,
     RuleCaseJson,
 };
+pub use diff_change::{DiffChangeJson, DiffSideJson, LinesJson};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 pub use target::{NotACommit, TargetJson};

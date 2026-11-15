@@ -18,6 +18,8 @@ pub mod methods {
     pub const EXIT: &str = "exit";
     /// The notification that cancels a request, either way.
     pub const CANCEL: &str = "$/cancel";
+    /// The repositories of the folders of a workspace (`repo.read-repositories`, 1.7).
+    pub const DISCOVER: &str = "repository/discover";
     /// Makes the engine of a repository and reads its state.
     pub const OPEN: &str = "repository/open";
     /// Drops the engine of a repository.
@@ -46,8 +48,6 @@ pub mod methods {
     pub const SETTINGS_CHANGED: &str = "settings/changed";
     /// The newest entry of the journal, for the label of Undo.
     pub const JOURNAL_LAST: &str = "journal/last";
-    /// An operation the extension ran, recorded for Undo.
-    pub const JOURNAL_RECORD: &str = "journal/record";
 }
 
 /// The version of the protocol the engine speaks: 1.1 added the messages of the features (stage 2), 1.2 those of the
@@ -56,8 +56,10 @@ pub mod methods {
 /// worktrees in its terminals; 1.4 the reads but the graph's (stage 5, [`crate::reads`]); 1.5 the reads of the graph
 /// (stage 7); 1.6 what area 6 of stage 4 needs, AI and GitHub ([`crate::ai`]): the host questions to VS Code's language
 /// models, the reads of the draft of a commit message and of the question about a conflict, the follow-up that writes a
-/// setting, and the target of a comparison.
-pub const VERSION: &str = "1.6";
+/// setting, and the target of a comparison; 1.7 what stage 10 needs once the extension has no git of its own:
+/// `repository/discover` with the common git folder of each repository, a change of a diff and a file of a comparison
+/// as targets, and `journal/record` gone, which no client sends any more.
+pub const VERSION: &str = "1.7";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]
@@ -163,6 +165,35 @@ pub struct EngineInfo {
 pub struct RepositoryParams {
     /// The folder of the top of its working tree.
     pub repository: String,
+}
+
+/// The parameters of `repository/discover`.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoverParams {
+    /// The folders of the workspace, in their order.
+    pub folders: Vec<String>,
+}
+
+/// The answer of `repository/discover`.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoverResult {
+    /// The repositories, in the order a window shows them.
+    pub repositories: Vec<DiscoveredRepositoryJson>,
+}
+
+/// A repository found in the folders of a workspace.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveredRepositoryJson {
+    /// The top folder of its working tree, as git names it.
+    pub folder: String,
+    /// The top folder of the repository it is a submodule of; none for a repository of its own.
+    pub superproject: Option<String>,
+    /// The git folder its worktrees share (`repo.common-folder`), which tells the worktrees of one repository; none
+    /// when git could not say it.
+    pub common_folder: Option<String>,
 }
 
 /// The answer of `repository/open`.

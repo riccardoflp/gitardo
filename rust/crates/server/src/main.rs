@@ -9,6 +9,7 @@
 
 mod ai;
 mod asker;
+mod discover;
 mod feature;
 mod framing;
 mod host;

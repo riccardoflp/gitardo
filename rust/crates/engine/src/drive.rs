@@ -20,7 +20,7 @@ use crate::queries;
 use crate::secrets::{SecretStore, SystemSecrets};
 use crate::steps::{StepFailure, StepRunner};
 use crate::tasks::TaskSteps;
-use crate::undo::{Journal, journal_after, journal_recorded};
+use crate::undo::{Journal, journal_after};
 
 mod answers;
 mod tokens;
@@ -143,23 +143,6 @@ impl Engine {
     #[must_use]
     pub fn journal(&self) -> &Journal {
         &self.journal
-    }
-
-    /// Takes in an operation that ran outside the engine, which the extension says what Undo needs of (`journal/record`):
-    /// `record` is none when it changed only files and the index; `before` and `after` are what was checked out around it.
-    pub fn record(
-        &mut self,
-        title: &Text,
-        record: Option<&model::contract::UndoRecord>,
-        before: &model::state::Head,
-        after: &model::state::Head,
-    ) {
-        self.journal = journal_recorded(&self.journal, title, record, before, after);
-        if let Some(state) = &self.last_state {
-            let mut moved = RepositoryState::clone(state);
-            moved.head = after.clone();
-            self.last_state = Some(Arc::new(moved));
-        }
     }
 
     /// Takes in a state of the repository read for any reason, so that an entry of the journal that no longer holds,
