@@ -1,0 +1,130 @@
+{
+  "folder": "/work/app",
+  "gitFolder": "/work/app/.git",
+  "head": {
+    "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "branch": "refs/heads/main"
+  },
+  "branches": [
+    {
+      "name": "main",
+      "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "upstream": {
+        "reference": "refs/remotes/origin/main",
+        "remote": "origin",
+        "remoteBranch": "refs/heads/main",
+        "ahead": 1,
+        "behind": 2,
+        "isGone": false
+      },
+      "isCheckedOut": true,
+      "date": 1700000000
+    }
+  ],
+  "remoteBranches": [
+    {
+      "name": "origin/main",
+      "remote": "origin",
+      "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "date": 1699000000
+    }
+  ],
+  "tags": [
+    {
+      "name": "v1.0",
+      "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "date": 1699000000
+    }
+  ],
+  "stashes": [
+    {
+      "commit": "cccccccccccccccccccccccccccccccccccccccc",
+      "index": 0,
+      "message": "On main: half a fix",
+      "date": 1700000100
+    }
+  ],
+  "worktrees": [
+    {
+      "folder": "/work/app",
+      "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "branch": "refs/heads/main",
+      "isMain": true,
+      "isCurrent": true,
+      "isMissing": false,
+      "uncommitted": 3
+    }
+  ],
+  "remotes": [
+    "origin"
+  ],
+  "identity": {
+    "name": "Ada Lovelace",
+    "email": "ada@example.com"
+  },
+  "branchSort": "-committerdate",
+  "reflogSubjects": [
+    "checkout: moving from feature to main"
+  ],
+  "workingTree": {
+    "staged": [
+      {
+        "path": "src/new.rs",
+        "originalPath": "src/old.rs",
+        "kind": "renamed"
+      }
+    ],
+    "unstaged": [
+      {
+        "path": "docs/new.md",
+        "originalPath": "docs/old.md",
+        "kind": "renamed"
+      }
+    ],
+    "untracked": [
+      "notes.txt"
+    ],
+    "conflicted": [
+      {
+        "path": "Cargo.lock",
+        "kind": "bothModified"
+      }
+    ]
+  },
+  "operation": "rebase",
+  "rebaseStop": {
+    "kind": "edit",
+    "commit": "dddddddddddddddddddddddddddddddddddddddd",
+    "subject": "Add the parser"
+  },
+  "bisect": {
+    "bad": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "good": [
+      "ffffffffffffffffffffffffffffffffffffffff"
+    ],
+    "skipped": [
+      "1111111111111111111111111111111111111111"
+    ],
+    "remaining": 4
+  },
+  "submodules": [
+    {
+      "name": "inner",
+      "folder": "vendor/lib/inner",
+      "parent": "vendor/lib",
+      "url": "https://example.com/inner.git",
+      "branch": "main",
+      "recorded": "2222222222222222222222222222222222222222",
+      "staged": "3333333333333333333333333333333333333333",
+      "checkout": {
+        "commit": "4444444444444444444444444444444444444444",
+        "branch": "main",
+        "uncommitted": 1,
+        "distance": {
+          "ahead": 1,
+          "behind": 0
+        }
+      }
+    }
+  ]
+}

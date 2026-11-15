@@ -1,0 +1,33 @@
+{
+  "id": "cccccccccccccccccccccccccccccccccccccccc",
+  "parents": [
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "5555555555555555555555555555555555555555",
+    "6666666666666666666666666666666666666666"
+  ],
+  "author": {
+    "name": "Ada Lovelace",
+    "email": "ada@example.com",
+    "date": 1700000100
+  },
+  "committer": {
+    "name": "Ada Lovelace",
+    "email": "ada@example.com",
+    "date": 1700000100
+  },
+  "message": "On main: half a fix\n\nThe rest tomorrow.",
+  "files": [
+    {
+      "path": "src/new.rs",
+      "originalPath": "src/old.rs",
+      "kind": "renamed"
+    }
+  ],
+  "untrackedFiles": [
+    {
+      "path": "notes.txt",
+      "originalPath": "notes.old",
+      "kind": "renamed"
+    }
+  ]
+}
