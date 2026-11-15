@@ -26,6 +26,7 @@ export function findBinary(
     const candidates = platform === 'win32' && !absolute.toLowerCase().endsWith('.exe') ? [absolute, `${absolute}.exe`] : [absolute];
     return candidates.find((candidate) => fs.existsSync(candidate));
   }
-  const packed = path.join(extensionFolder, 'bin', `${platform}-${arch}`, binaryName(platform));
-  return fs.existsSync(packed) ? packed : undefined;
+  // A vsix holds the binary of its own target only; on Linux that is linux-<arch>, or alpine-<arch> built for musl.
+  const targets = platform === 'linux' ? [`linux-${arch}`, `alpine-${arch}`] : [`${platform}-${arch}`];
+  return targets.map((target) => path.join(extensionFolder, 'bin', target, binaryName(platform))).find((packed) => fs.existsSync(packed));
 }

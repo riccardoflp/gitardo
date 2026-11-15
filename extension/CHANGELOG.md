@@ -16,6 +16,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - **Stash** says there are no changes to stash, or that nothing is staged, before asking for a message.
 - Before a stash is applied, files in conflict count as changes git refuses to touch, and no conflicts are predicted for a stash git will refuse.
 - At a commit, **Create branch** with a format asks for its inputs first and then what `${base}` is.
+- Gitardo comes in a package for each system, with its engine in it: Windows and Linux on x64 and Arm, Alpine Linux on x64, macOS on Intel and Apple silicon. The package with no engine in it works as before, on its TypeScript code.
 - The questions and confirmations of the operations Gitardo's engine runs use the words of Gitardo's desktop: a name between backticks, as in **Create branch \`topic\`**, and a few titles worded otherwise, such as **Discard the changes of 2 files**.
 
 ## 0.11.0 - 2026-11-12

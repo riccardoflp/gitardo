@@ -15,7 +15,7 @@ npm run test:vsix    # packages, then runs the same suite on what the .vsix cont
 npm run test:ui      # builds, then drives a real VS Code window with clicks and keys; screenshots in dist/ui
 npm run check:docs   # checks the catalog of features: cards, identifiers, glossary words
 npm run preview -- <folder>...   # the webviews in a browser, against the repositories in the folders
-npm run package      # a minified build packed into gitardo-<version>.vsix
+npm run package      # gitardo-<version>.vsix, and gitardo-<target>-<version>.vsix for each engine built
 ```
 
 | Script | Purpose |
@@ -26,8 +26,8 @@ npm run package      # a minified build packed into gitardo-<version>.vsix
 | `npm test` | Runs the tests with Vitest. The integration tests run the real commands against throwaway repositories, and resolve conflicts marked by git itself, hundreds of them made at random. |
 | `npm run test:e2e` | Builds, then runs the end-to-end tests inside a real VS Code: see below. |
 | `npm run test:ui` | Builds, then uses the extension in a real VS Code window, with real clicks and keys, saving screenshots: see below. |
-| `npm run package` | Makes a minified build and packs it into `gitardo-<version>.vsix`. It leaves the minified build in `dist/`; `npm run build` brings the development one back. |
-| `npm run test:vsix` | Packages, then runs the end-to-end tests on what the `.vsix` contains instead of on this folder. |
+| `npm run package` | Makes a minified build and packs it (`scripts/package.mjs`) into the universal `gitardo-<version>.vsix`, which holds no engine and runs on the TypeScript code (D49), and into `gitardo-<target>-<version>.vsix` for each of the seven targets whose engine it finds, holding `bin/<target>/gitardo-engine` only: in the folder `--binaries` names, laid out by target as the pipeline does, then in `../rust/target/<triple>/release/`, and for this computer in `../rust/target/release/`. `--target <target>` makes that one only, `--every-target` fails when an engine is missing. It prints the size of each, for the release notes. It leaves the minified build in `dist/`; `npm run build` brings the development one back. |
+| `npm run test:vsix` | Packages, then runs the end-to-end tests on what the `.vsix` of this computer's target contains, with the engine packed in it and no `gitardo.engine.path`; on the universal one when there is none. |
 | `npm run check:docs` | Runs `docs/catalog.py` on the extension's cards (`docs/features/extension`) and documents: every card has the lines its kind needs, every identifier written in them names a card of either catalog, and none of them uses a word the glossary says to avoid. Needs Python 3. |
 | `npm run preview -- <folder>...` | Serves the webview at `http://localhost:5174` against the repositories found in the folders, read-only, to work on the UI without an Extension Host. Add `?view=changes`, `commits`, `branches` or `stashes` for a view of the side bar, `?view=worktreeSetup` for the tab that chooses what new worktrees get, `?view=commit&commit=<revision>` for the tab of a commit, `?view=compare&from=<revision>&to=<revision>` for the tab of a comparison, and `?theme=light` for the light theme, and `--port=<number>` before the folders to serve a second one beside it. |
 

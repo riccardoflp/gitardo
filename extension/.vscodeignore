@@ -16,3 +16,4 @@ dist/flow/**/*.map
 !dist/highlight/**
 dist/highlight/**/*.map
 !dist/flowWorker.js
+!bin/**

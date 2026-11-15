@@ -86,9 +86,11 @@ export function isolated(temp) {
 /**
  * The setting that points the throwaway profile at Gitardo's engine, which is read from the user settings only: the
  * debug binary of `../rust/target/debug` (or `GITARDO_ENGINE`), unless `--no-engine` asks for a file that is not there,
- * which checks the fallback to the TypeScript operations. `said` is what was chosen, to be printed.
+ * which checks the fallback to the TypeScript operations; with `--packed`, none, for the engine of the vsix under test.
+ * `said` is what was chosen, to be printed.
  */
 export function engineSetting(temp, options) {
+  if (options.includes('--packed')) return { settings: {}, said: 'with the engine packed in the vsix' };
   const name = process.platform === 'win32' ? 'gitardo-engine.exe' : 'gitardo-engine';
   const built = process.env.GITARDO_ENGINE ?? path.resolve(source, '..', 'rust', 'target', 'debug', name);
   const engine = options.includes('--no-engine') || !fs.existsSync(built) ? path.join(temp, 'no-engine', name) : built;

@@ -34,7 +34,7 @@ npm run check:docs   # the extension's cards, identifiers and glossary words (ne
 npm run test:e2e     # builds, then runs test/e2e/suite.ts inside a real VS Code
 npm run test:ui      # builds, then drives a real VS Code window with clicks and keys; screenshots in dist/ui
 npm run preview -- <folder>...   # the webviews in a browser, against the repositories in the folders
-npm run package      # a minified build packed into gitardo-<version>.vsix, with ../LICENSE copied in
+npm run package      # gitardo-<version>.vsix and one vsix per target with its engine, with ../LICENSE copied in
 ```
 
 Which check sees which change, and how the extension is tested with the engine, is in

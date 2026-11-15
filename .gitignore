@@ -15,3 +15,6 @@ dist/
 
 # The worktrees and the settings of the sessions of Claude Code.
 .claude/
+
+# The engines npm run package puts into a vsix, which it removes once packed.
+/extension/bin/

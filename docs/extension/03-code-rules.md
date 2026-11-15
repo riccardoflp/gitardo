@@ -16,8 +16,8 @@ A change that needs to break a rule changes this page first, in its own commit, 
   choice ([D24](../08-decisions.md#d24--run-the-git-executable-never-a-library)). Followed.*
 - **R1.2** A new runtime dependency is proposed first, with what it costs in the size of the package. *Source:
   AGENTS.md, "an idea beyond what was asked is proposed first". Review.*
-- **R1.3** Every file the extension needs at run time is let into the package in `.vscodeignore`; `npm run test:vsix`
-  runs the end-to-end suite on what the package holds. *Source: AGENTS.md. Enforced by `npm run test:vsix` for what the
+- **R1.3** Every file the extension needs at run time is let into the package in `.vscodeignore`, the engine's
+  `bin/<target>/` too; `npm run test:vsix` runs the end-to-end suite on what the package holds. *Source: AGENTS.md. Enforced by `npm run test:vsix` for what the
   suite reaches.*
 - **R1.4** The folders use each other as [the architecture](02-architecture.md#who-may-use-whom) draws it: `src/git`
   never imports `vscode` or `src/extension`; `src/shared` imports nothing of the others. *Source: project choice.
