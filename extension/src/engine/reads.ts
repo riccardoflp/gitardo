@@ -25,6 +25,7 @@ import {
   setupPreview,
 } from './shapes';
 import {
+  NO_ENGINE,
   WORKTREE,
   type BranchLog,
   type CommitDetail,
@@ -39,9 +40,6 @@ import {
 } from '../shared/protocol';
 import { uncommittedDetail } from '../shared/state';
 import type { CommandProposal, IgnoredEntry, SetupPatterns, SetupPreview } from '../shared/worktreeSetup';
-
-/** What every view and every command says when there is no engine to read or to run anything (D49). */
-export const NO_ENGINE = "Gitardo's engine is not available on this system.";
 
 /** A read, or a run, asked while there is no engine: its message is the sentence of the views. */
 export class EngineMissing extends Error {

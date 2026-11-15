@@ -4,7 +4,7 @@ import { checkedOutBranch, upstreamName } from '../shared/state';
 import { useMenu } from './ContextMenu';
 import { ActionButtons, FileRow } from './FileRow';
 import { Icon } from './Icon';
-import { Placeholder } from './Placeholder';
+import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { logMenu } from './menus';
 import { fullDate, relativeTime, shortHash } from './util';
 import { onMessage, post } from './vscode';
@@ -51,7 +51,7 @@ function summary(state: RepoState, log: BranchLog): string {
  */
 export function CommitsApp() {
   const [state, setState] = useState<RepoState | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState<Loaded>(false);
   const [log, setLog] = useState<BranchLog | null>(null);
   const [limit, setLimit] = useState(PAGE);
   const [open, setOpen] = useState<Open>({});
@@ -64,7 +64,7 @@ export function CommitsApp() {
     const stop = onMessage((message) => {
       if (message.type === 'state') {
         setState(message.state);
-        setLoaded(true);
+        setLoaded(loadedOf(message));
         const root = message.state?.root ?? null;
         if (root !== rootRef.current) {
           // Another repository: its commits are others, and are asked for from the start.

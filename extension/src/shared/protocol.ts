@@ -469,13 +469,17 @@ export type Action =
   | { kind: 'bisectReset' }
   | { kind: 'continue' | 'skip' | 'abort' };
 
+/** What every view and every command says when there is no engine to read or to run anything (D49). */
+export const NO_ENGINE = "Gitardo's engine is not available on this system.";
+
 export type HostMessage =
   /**
    * With `kept` the first `kept` rows are the ones sent before, and are not sent again: `state.rows` only has the rows
    * after them, which are none when the commits are the same, and before those the row of the uncommitted changes, if
-   * there is one, because the number of changes it tells may be another.
+   * there is one, because the number of changes it tells may be another. Without a state, `engineMissing` says that
+   * there is no engine to read one with (D49).
    */
-  | { type: 'state'; state: RepoState | null; kept?: number }
+  | { type: 'state'; state: RepoState | null; kept?: number; engineMissing?: boolean }
   /** The commits of what is checked out, for the view that asked. */
   | { type: 'log'; log: BranchLog }
   | { type: 'detail'; hash: string; detail: CommitDetail | null }
@@ -531,6 +535,8 @@ export type HostMessage =
 /** Things the UI can ask for that need the extension to prompt, pick or open something. */
 export type UiCommand =
   | 'reflog'
+  /** The output channel, which says why there is no engine. */
+  | 'showLog'
   | 'cleanupBranches'
   | 'activeFileHistory'
   | 'signInGitHub'

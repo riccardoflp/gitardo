@@ -12,6 +12,7 @@ import { OperationBanner, resolvableConflicts } from './OperationBanner';
 import { RepoSelect } from './RepoSelect';
 import { WorktreeBanner } from './WorktreeBanner';
 import { act } from './menus';
+import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
 /** A staged rename covers two paths: unstaging only the new one would leave the deletion of the old one staged. */
@@ -144,7 +145,7 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
 
 export function ChangesApp() {
   const [state, setState] = useState<RepoState | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState<Loaded>(false);
   const [busy, setBusy] = useState(false);
   const [layout, setLayout] = useState(() => loadUiState({ changesFiles: 'list' as FilesLayout }).changesFiles);
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
@@ -155,7 +156,7 @@ export function ChangesApp() {
     const stop = onMessage((incoming) => {
       if (incoming.type === 'state') {
         setState(incoming.state);
-        setLoaded(true);
+        setLoaded(loadedOf(incoming));
       } else if (incoming.type === 'busy') {
         setBusy(incoming.title !== null);
       } else if (incoming.type === 'unsaved') {
@@ -179,17 +180,7 @@ export function ChangesApp() {
     return [...changes, ...others].sort((one, other) => (one.file.path < other.file.path ? -1 : one.file.path > other.file.path ? 1 : 0));
   }, [unsaved, changes, working]);
 
-  if (!loaded) return <div className="empty">Loading repository…</div>;
-  if (!state) {
-    return (
-      <div className="empty">
-        <p>No Git repository in this workspace</p>
-        <button className="button" onClick={() => post({ type: 'refresh' })}>
-          Check again
-        </button>
-      </div>
-    );
-  }
+  if (!state) return <Placeholder loaded={loaded} />;
 
   const { staged } = state.workingTree;
   // A file in conflict is listed as a change to it, marked `U`.

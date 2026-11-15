@@ -39,6 +39,7 @@ import {
   type Comparing,
 } from './menus';
 import { ALL_FOLDED, foldedAmong, foldMerge, NO_FOLDS, recallFolds, rememberFolds, withoutGone, type Folds } from './folds';
+import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
 const NONE: ReadonlySet<string> = new Set();
@@ -80,7 +81,7 @@ const sameSearch = (one: Search, other: Search) => one.kind === other.kind && on
 /** `compact` is the graph as it fits in the side bar: the commits and their details, with the references left to the view beside it. */
 export function App({ compact = false }: { compact?: boolean }) {
   const [state, setState] = useState<RepoState | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState<Loaded>(false);
   const [selected, setSelected] = useState<string | null>(null);
   // The commits selected together with Ctrl or Shift. Empty when only `selected` is.
   const [marked, setMarked] = useState<ReadonlySet<string>>(NONE);
@@ -146,7 +147,7 @@ export function App({ compact = false }: { compact?: boolean }) {
         const next = message.state;
         const kept = message.kept;
         setState(next && kept !== undefined ? (previous) => withRowsOf(previous, next, kept) : next);
-        setLoaded(true);
+        setLoaded(loadedOf(message));
         const root = message.state?.root ?? null;
         if (root !== rootRef.current) {
           // Another repository: what was selected or being edited belongs to the previous one.
@@ -283,17 +284,7 @@ export function App({ compact = false }: { compact?: boolean }) {
     if (rows && current?.hashes && !current.failed) post({ type: 'find', search: current.search });
   }, [rows]);
 
-  if (!loaded) return <div className="empty">Loading repository…</div>;
-  if (!state) {
-    return (
-      <div className="empty">
-        <p>No Git repository in this workspace</p>
-        <button className="button" onClick={() => post({ type: 'refresh' })}>
-          Check again
-        </button>
-      </div>
-    );
-  }
+  if (!state) return <Placeholder loaded={loaded} />;
 
   const markedRows = marked.size > 1 ? state.rows.filter((row) => marked.has(row.hash)) : [];
   const at = matches && selected ? matches.indexOf(selected) : -1;

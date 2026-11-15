@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { type Repository, reads } from '../engine/reads';
+import { sayEngineMissing } from '../engine/vscode';
 import type { ShownBlameLine as BlameLine } from '../engine/shapes';
 import { DEFAULT_AGE, DEFAULT_FORMAT, ageColor, blameLabels, parseFormat, type AgeColors, type FormatPart } from '../shared/blameFormat';
 import { ignoresWhitespace, type Blamable, type BlameSource } from './blame';
@@ -228,12 +229,14 @@ export class FileBlame implements vscode.Disposable {
 
   /** Opens the commit that last changed the line under the cursor in an editor tab. */
   async openLine(): Promise<void> {
+    if (!reads.available) return sayEngineMissing();
     const at = await this.underCursor();
     if (at) await this.actions.open(at.line.hash, at.found.repo);
   }
 
   /** Shows the commit that last changed the line under the cursor in the graph. */
   async revealLine(): Promise<void> {
+    if (!reads.available) return sayEngineMissing();
     const at = await this.underCursor();
     if (at) await this.actions.reveal(at.line.hash);
   }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Comparing, Comparison, RepoState } from '../shared/protocol';
 import { Compare } from './Compare';
-import { Placeholder } from './Placeholder';
+import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { RefsTree, type SectionId } from './RefsTree';
 import { onMessage, post } from './vscode';
 import { WorktreeBanner } from './WorktreeBanner';
@@ -12,7 +12,7 @@ const SECTIONS: SectionId[] = ['favorites', 'recent', 'branches', 'remotes', 'ta
 /** The branches, tags and worktrees in the side bar, with a comparison under them when one is asked for. */
 export function BranchesApp() {
   const [state, setState] = useState<RepoState | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState<Loaded>(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [comparing, setComparing] = useState<Comparing | null>(null);
   const [comparison, setComparison] = useState<Comparison | null>(null);
@@ -45,7 +45,7 @@ export function BranchesApp() {
     const stop = onMessage((message) => {
       if (message.type === 'state') {
         setState(message.state);
-        setLoaded(true);
+        setLoaded(loadedOf(message));
         const root = message.state?.root ?? null;
         if (root !== rootRef.current) {
           // Another repository: what was selected or compared belongs to the previous one.

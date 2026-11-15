@@ -15,6 +15,7 @@ import { minimalReplace, offsetToPosition } from './diff/textEdit';
 import type { RunOp } from './chunks';
 import type { EngineRun } from '../engine/actions';
 import { reads } from '../engine/reads';
+import { sayEngineMissing } from '../engine/vscode';
 import type { DiffEngine } from './engine';
 import { inRepository } from './sides';
 import type { ThemeService } from './theme';
@@ -181,6 +182,7 @@ export class FlowMerge implements vscode.Disposable {
 
   /** The button of the merge editor, or the command on a file in conflict: the file, in a Flow Merge in its place. */
   private async openFromEditor(uri?: vscode.Uri): Promise<void> {
+    if (!reads.available) return sayEngineMissing();
     const tabs = vscode.window.tabGroups.all.flatMap((group) => group.tabs).filter(isMerge);
     const current = vscode.window.tabGroups.activeTabGroup.activeTab;
     // The button names the file of its editor, which is not the active one when the button is of another group.

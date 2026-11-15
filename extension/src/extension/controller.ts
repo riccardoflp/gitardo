@@ -66,9 +66,9 @@ import { changeSetup, editSetupJson, savePatterns, saveSetup, setupChangeText, s
 import { EngineError, ErrorCode } from '../engine/connection';
 import { type EngineRun, engineRuns, syncRuns } from '../engine/actions';
 import type { FileResolutions, Finished, FollowUp, OfferedRun, Plan, Step, Target } from '../engine/messages';
-import { type HostHooks, VscodeAsker, type WindowEngine } from '../engine/vscode';
+import { type HostHooks, VscodeAsker, type WindowEngine, sayEngineMissing } from '../engine/vscode';
 import { runSetupCommands } from './worktreeCommands';
-import { NO_ENGINE, type Repository, reads, repositoryName } from '../engine/reads';
+import { type Repository, reads, repositoryName } from '../engine/reads';
 import { type CommitsReader, EngineGraph, graphState, historyOf, matchesOnEngine, positionOnEngine } from '../engine/graph';
 import type { EngineClient } from '../engine/client';
 import type { ComparisonTarget, CompareSideTarget, WriteSettingFollowUp } from '../engine/messages';
@@ -1432,6 +1432,7 @@ export class Controller implements vscode.Disposable {
 
   async command(command: UiCommand): Promise<void> {
     try {
+      if (command === 'showLog') return this.log.show();
       if (command === 'activeFileHistory') return await this.fileHistory();
       if (command === 'signInGitHub') return await this.refreshPulls(true, true);
       if (command === 'reflog') return await this.browseReflog();
@@ -1719,7 +1720,7 @@ export class Controller implements vscode.Disposable {
     }
     const runs = engineRuns(action, state);
     if (!runs) return;
-    if (!reads.available) return this.sayEngineMissing();
+    if (!reads.available) return sayEngineMissing();
     // VS Code's Git lets go of what the engine is about to move, empty or delete.
     await this.letGoInVSCodeGit(action, state);
     // The clipboard is VS Code's: the text of a patch in it is read here and given to the engine.
@@ -1727,11 +1728,6 @@ export class Controller implements vscode.Disposable {
     if (action.kind === 'applyPatch' && first) first.answers = { clipboard: { kind: 'text', text: await vscode.env.clipboard.readText() } };
     // A bisect says once it ran whether the commit it was looking for is found, which the engine leaves to the window.
     if ((await this.runOnEngine(runs, repo)) && action.kind === 'bisect') this.reportBisect();
-  }
-
-  /** Says that there is no engine to read or run anything, with the button that opens the log, which says why (D49). */
-  private sayEngineMissing(): void {
-    void vscode.window.showErrorMessage(`Gitardo: ${NO_ENGINE}`, 'Show the log').then((choice) => choice && this.log.show());
   }
 
   /**
@@ -1742,7 +1738,7 @@ export class Controller implements vscode.Disposable {
   private async runOnEngine(runs: EngineRun[], repo: Repository, hooks: HostHooks = {}, ran?: () => void): Promise<boolean> {
     const client = this.engine?.running;
     if (!client) {
-      this.sayEngineMissing();
+      sayEngineMissing();
       return false;
     }
     for (const { feature, target, answers } of runs) {
@@ -1985,7 +1981,7 @@ export class Controller implements vscode.Disposable {
   /** The state of the repository shown; without one, the user is told why: no engine, or no repository. */
   private async requireState(): Promise<RepoState | null> {
     await this.whenLocated();
-    if (!reads.available) this.sayEngineMissing();
+    if (!reads.available) sayEngineMissing();
     else if (!this.state) void vscode.window.showWarningMessage('Gitardo: no Git repository in this workspace.');
     return this.state;
   }
@@ -2261,7 +2257,9 @@ export class Controller implements vscode.Disposable {
   private post(message: HostMessage, to?: vscode.Webview): void {
     const targets = to ? [to] : [...this.views.keys()];
     if (message.type !== 'state' || !message.state) {
-      for (const view of targets) void view.postMessage(message);
+      // Without a state, the views say whether it is for want of the engine.
+      const said = message.type === 'state' && !reads.available ? { ...message, engineMissing: true } : message;
+      for (const view of targets) void view.postMessage(said);
       return;
     }
     const { state } = message;

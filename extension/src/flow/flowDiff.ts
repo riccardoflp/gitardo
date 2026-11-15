@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { reads } from '../engine/reads';
+import { sayEngineMissing } from '../engine/vscode';
 import { buildModel, refreshPanel } from './build';
 import { ChunkActions, type RunOp } from './chunks';
 import { DiffEngine } from './engine';
@@ -91,6 +92,7 @@ export class FlowDiff implements vscode.Disposable {
 
   /** The button of a diff editor: the same diff, in a Flow Diff that takes the place of the editor. */
   private async openFromDiffEditor(uri?: vscode.Uri): Promise<void> {
+    if (!reads.available) return sayEngineMissing();
     const isDiff = (tab: vscode.Tab): tab is vscode.Tab & { input: vscode.TabInputTextDiff } => tab.input instanceof vscode.TabInputTextDiff;
     // The button names the file of its editor, which is not the active one when the button is of another group.
     const tabs = vscode.window.tabGroups.all.flatMap((group) => group.tabs).filter(isDiff);

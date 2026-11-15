@@ -9,6 +9,12 @@ import { findBinary } from './binary';
 import { EngineClient, type EngineOptions, type FeatureAsker } from './client';
 import type { Answer, Choice, Plan, Question, Settings } from './messages';
 import { engineSettings } from './settings';
+import { NO_ENGINE } from '../shared/protocol';
+
+/** Says that there is no engine to read or run anything, with the button that opens the log, which says why (D49). */
+export function sayEngineMissing(): void {
+  void vscode.window.showErrorMessage(`Gitardo: ${NO_ENGINE}`, 'Show the log').then((choice) => choice && vscode.commands.executeCommand('gitardo.showLog'));
+}
 
 /** The keys of every `gitardo.*` setting the extension contributes, without the prefix. */
 function settingKeys(extension: vscode.Extension<unknown>): string[] {

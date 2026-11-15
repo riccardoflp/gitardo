@@ -4,7 +4,7 @@ import { stashName } from '../shared/state';
 import { useMenu } from './ContextMenu';
 import { ActionButtons, FileRow } from './FileRow';
 import { Icon } from './Icon';
-import { Placeholder } from './Placeholder';
+import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { act, stashMenu } from './menus';
 import { fullDate, relativeTime } from './util';
 import { onMessage, post } from './vscode';
@@ -15,7 +15,7 @@ type Open = Record<string, CommitDetail | null>;
 /** The stashes in the side bar. Each unfolds to the files it holds, which open as diffs. */
 export function StashesApp() {
   const [state, setState] = useState<RepoState | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState<Loaded>(false);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<Open>({});
   const openRef = useRef(open);
@@ -26,7 +26,7 @@ export function StashesApp() {
     const stop = onMessage((message) => {
       if (message.type === 'state') {
         setState(message.state);
-        setLoaded(true);
+        setLoaded(loadedOf(message));
         // A stash never changes, so what was read of the ones still there holds; the others are gone.
         const hashes = new Set(message.state?.stashes.map((stash) => stash.commit));
         setOpen((current) => Object.fromEntries(Object.entries(current).filter(([hash]) => hashes.has(hash))));
