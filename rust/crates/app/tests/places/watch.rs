@@ -64,6 +64,9 @@ fn repo_watch_changes__with_core_fsmonitor_and_nothing_changing_the_repository_i
     let _set = repository.git(&["config", "core.fsmonitor", "true"]);
     let folder = repository.path().to_path_buf();
     let (watch, receiver) = watched(&folder);
+    // On macOS the watcher may still be told of the write of `.git/config` just above, which is the test's own and
+    // not one of a read.
+    let _setup = changes_within(&receiver, Duration::from_millis(500));
     let mut state = showing(folder.clone());
     assert!(state.shown_read().is_some(), "the repository is read once");
     let changes = changes_within(&receiver, Duration::from_millis(1_500));
