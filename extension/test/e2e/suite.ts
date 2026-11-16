@@ -110,7 +110,7 @@ export async function run(): Promise<void> {
   // their own: they ask the engine of the window, as the extension's do.
   reads.use(() => internals.engine?.running as EngineClient | undefined);
   const state = () => {
-    assert.ok(internals.state, 'a repository is loaded');
+    assert.ok(internals.state, `a repository is loaded${lastLogged ? `; logged last: ${lastLogged}` : ''}`);
     return internals.state;
   };
   const subjects = () => state().rows.map((row) => row.subject);
@@ -157,10 +157,18 @@ export async function run(): Promise<void> {
 
   // What the extension logs as an error, and shows as one.
   const errors: string[] = [];
+  /** The last error or warning logged, which the steps that clear `errors` leave: it says why a step found no state. */
+  let lastLogged: string | undefined;
   const logError = log.error.bind(log);
   log.error = (message: string | Error, ...rest: unknown[]) => {
     errors.push(String(message));
+    lastLogged = `error: ${String(message)}`;
     logError(message, ...rest);
+  };
+  const logWarn = log.warn.bind(log);
+  log.warn = (message: string, ...rest: unknown[]) => {
+    lastLogged = `warning: ${message}`;
+    logWarn(message, ...rest);
   };
 
   /** What the tab of the review of the conflicts was sent last. */
@@ -931,9 +939,15 @@ export async function run(): Promise<void> {
   const readsFrom = () => {
     const tasks: { title: string; task: { detail?: string } }[] = [];
     const start = controller.activity.start;
+    // Each turn of a read says which repository it reads, the first one too: a read of another that follows one under
+    // way is a turn of the same task.
     controller.activity.start = (title: string, detail?: string) => {
       const task = start.call(controller.activity, title, detail);
-      tasks.push({ title, task });
+      const describe = task.describe.bind(task);
+      task.describe = (said: string | undefined, named = task.title) => {
+        if (named.startsWith('Reading ')) tasks.push({ title: named, task });
+        describe(said, named);
+      };
       return task;
     };
     return {
@@ -997,6 +1011,8 @@ export async function run(): Promise<void> {
       assert.equal(counted.of(nameOf(app)).length, appReads);
     } finally {
       counted.stop();
+      // What app was narrowed to is kept for it: it is taken off there, whichever repository a failure left shown.
+      if (!samePath(state().root, app)) await controller.selectRepo(app);
       await controller.setFilter(null);
       await controller.setScope(null);
       await keepOpen(undefined);
