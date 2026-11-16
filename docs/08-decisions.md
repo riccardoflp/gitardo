@@ -2503,4 +2503,6 @@ Questions of milestone M12 ([D50](#d50--repository-tabs-and-what-each-repository
   within the island in M12 if it costs little, no moving between windows.
 - **Q412** — In the extension, where each webview keeps what a repository showed (`repo.keep-open`): in its own state
   (`vscode.setState`), by the folder of the repository, or in the extension host. Recommended: each webview, in memory,
-  by folder, the host keeping only the message of the Changes view.
+  by folder, the host keeping only the message of the Changes view. Built so in phase 6 of M12, the host keeping as
+  well, as the controller kept before for the repository shown, the state the views were last sent, what the graph
+  was narrowed to and how far it was read.

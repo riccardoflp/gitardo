@@ -33,6 +33,8 @@ interface Internals {
   scheduleRefresh(cause: string, delay?: number): void;
   /** Gitardo's engine, when the extension has it running. */
   engine?: { running?: unknown };
+  /** The repositories left that keep what they showed. */
+  kept: { has(root: string): boolean; outOfDate(root: string): string | undefined };
   /** Looks for the repositories of the workspace again, as when its folders change. */
   locate(): Promise<void>;
 }
@@ -920,6 +922,190 @@ export async function run(): Promise<void> {
     assert.ok(samePath(state().root, app), state().root);
   });
 
+  // What a repository keeps while another is shown (repo.keep-open), and how it follows its changes meanwhile
+  // (repo.watch-hidden), with gitardo.repositories.keepOpen on and off.
+  const keepOpen = (on: boolean | undefined) => vscode.workspace.getConfiguration('gitardo').update('repositories.keepOpen', on, vscode.ConfigurationTarget.Global);
+  /** The reads of the repository each title names, as the status bar says them, from the time this is called. */
+  const readsFrom = () => {
+    const tasks: { title: string; task: { detail?: string } }[] = [];
+    const start = controller.activity.start;
+    controller.activity.start = (title: string, detail?: string) => {
+      const task = start.call(controller.activity, title, detail);
+      tasks.push({ title, task });
+      return task;
+    };
+    return {
+      of: (repository: string) => tasks.filter(({ title }) => title === `Reading ${repository}`),
+      stop: () => {
+        controller.activity.start = start;
+      },
+    };
+  };
+  const nameOf = (root: string) => state().repos.find((repo) => samePath(repo.root, root))?.name ?? '';
+  /** What the views were told from then on of the reads of the graph and of the repositories shown. */
+  const toldFrom = (from: number) =>
+    posted.slice(from).flatMap((message) => {
+      if (message.type === 'loading') return [`loading ${message.what}`];
+      if (message.type === 'state') return [`state ${message.state ? path.basename(message.state.root) : 'none'}`];
+      return [];
+    });
+
+  await step('with keeping repositories open on, shows a repository chosen again at once as it was left, and reads nothing for it when nothing changed', async () => {
+    const counted = readsFrom();
+    await keepOpen(true);
+    try {
+      // What app shows: the history of a file, the local branches only, and more than a page of it asked for.
+      await controller.setFilter({ kind: 'path', path: 'b.txt' });
+      await controller.setScope({ kind: 'kinds', kinds: ['branch'] });
+      internals.limit = 2500;
+      await vscode.commands.executeCommand('gitardo.refresh');
+      const left = state();
+      assert.equal(left.keepOpen, true);
+      assert.deepEqual(left.filter, { kind: 'path', path: 'b.txt' });
+
+      await controller.selectRepo(lib);
+      assert.ok(samePath(state().root, lib), state().root);
+      // Shown for the first time, lib is read, nothing narrowed, as before.
+      assert.equal(state().filter, null);
+      assert.ok(counted.of(nameOf(lib)).length > 0, 'lib is read');
+      assert.ok(internals.kept.has(app), 'app keeps what it showed');
+
+      const from = posted.length;
+      const appReads = counted.of(nameOf(app)).length;
+      await controller.selectRepo(app);
+      assert.ok(samePath(state().root, app), state().root);
+      assert.deepEqual(
+        state().rows.map((row) => row.hash),
+        left.rows.map((row) => row.hash),
+      );
+      assert.deepEqual(state().filter, left.filter);
+      assert.deepEqual(state().scope, left.scope);
+      assert.deepEqual(internals.filter, left.filter);
+      assert.equal(internals.limit, 2500);
+      // At once: the views are sent its state, and are not told to wait for its commits.
+      assert.deepEqual(toldFrom(from), ['state app']);
+      await sleep(1500);
+      assert.equal(counted.of(nameOf(app)).length, appReads, 'app is not read again');
+      assert.ok(!internals.kept.has(app), 'app, shown, keeps nothing apart');
+      assert.ok(internals.kept.has(lib), 'lib keeps what it showed');
+      // Choosing the repository shown reads nothing either.
+      await controller.selectRepo(app);
+      assert.equal(counted.of(nameOf(app)).length, appReads);
+    } finally {
+      counted.stop();
+      await controller.setFilter(null);
+      await controller.setScope(null);
+      await keepOpen(undefined);
+    }
+  });
+
+  await step('with keeping repositories open on, keeps the message of the Changes view of each repository and gives it back when it is shown again', async () => {
+    const changes = view('changes');
+    await keepOpen(true);
+    try {
+      const told = (from: number) => posted.slice(from).filter((message) => message.type === 'keptMessage');
+      // The box was pointed from app to lib: lib had none kept, so the box keeps what it has.
+      let from = posted.length;
+      await internals.onMessage(changes, { type: 'keepMessage', root: app, message: 'Fix the parser', shown: lib });
+      assert.deepEqual(told(from), []);
+      // And back to app: the message app had comes back, and the one of lib is kept.
+      from = posted.length;
+      await internals.onMessage(changes, { type: 'keepMessage', root: lib, message: 'Update the docs', shown: app });
+      assert.deepEqual(told(from), [{ type: 'keptMessage', root: app, message: 'Fix the parser' }]);
+      from = posted.length;
+      await internals.onMessage(changes, { type: 'keepMessage', root: app, message: '', shown: lib });
+      assert.deepEqual(told(from), [{ type: 'keptMessage', root: lib, message: 'Update the docs' }]);
+    } finally {
+      await keepOpen(undefined);
+    }
+    // With the setting off, nothing is kept and nothing given back.
+    const from = posted.length;
+    await internals.onMessage(changes, { type: 'keepMessage', root: lib, message: 'Update the docs', shown: app });
+    assert.ok(!posted.slice(from).some((message) => message.type === 'keptMessage'));
+  });
+
+  await step('with keeping repositories open off, its default, coming back to a repository shows it as choosing a repository did before', async () => {
+    assert.equal(vscode.workspace.getConfiguration('gitardo').get('repositories.keepOpen'), false);
+    assert.equal(state().keepOpen, false);
+    const counted = readsFrom();
+    try {
+      await controller.setFilter({ kind: 'path', path: 'b.txt' });
+      await controller.selectRepo(lib);
+      assert.ok(!internals.kept.has(app), 'app keeps nothing');
+      const from = posted.length;
+      const appReads = counted.of(nameOf(app)).length;
+      await controller.selectRepo(app);
+      // Its commits are read again, nothing narrowed, and the views wait for them as before.
+      assert.equal(state().filter, null);
+      const told = toldFrom(from);
+      assert.deepEqual(
+        told.filter((line) => line.startsWith('loading')),
+        ['loading filter', 'loading null'],
+      );
+      assert.ok(told.includes('state app'), told.join(', '));
+      assert.ok(counted.of(nameOf(app)).length > appReads, 'app is read again');
+    } finally {
+      counted.stop();
+      await controller.setFilter(null);
+    }
+  });
+
+  await step('turning keeping repositories open off forgets at once what the repositories not shown kept, and tells the views', async () => {
+    await keepOpen(true);
+    try {
+      await controller.selectRepo(lib);
+      await controller.selectRepo(app);
+      assert.ok(internals.kept.has(lib), 'lib keeps what it showed');
+      const from = posted.length;
+      await keepOpen(false);
+      await until('lib to keep nothing', () => !internals.kept.has(lib));
+      assert.ok(posted.slice(from).some((message) => message.type === 'state' && message.state?.keepOpen === false));
+    } finally {
+      await keepOpen(undefined);
+    }
+  });
+
+  await step('with keeping repositories open on, a commit made in a terminal in a repository not shown reads nothing, and showing it reads it once', async () => {
+    const counted = readsFrom();
+    await keepOpen(true);
+    const first = (await git(lib, ['rev-parse', 'HEAD'])).stdout.trim();
+    try {
+      await controller.selectRepo(lib);
+      const before = state().rows.map((row) => row.subject);
+      await controller.selectRepo(app);
+      assert.ok(internals.kept.has(lib), 'lib keeps what it showed');
+      await git(lib, ['-c', 'user.name=Test Author', '-c', 'user.email=author@example.com', 'commit', '--allow-empty', '-m', 'From the terminal in lib']);
+      const libReads = counted.of(nameOf(lib)).length;
+      await until('lib to be marked out of date', () => internals.kept.outOfDate(lib));
+      // Longer than a read of a change waits for.
+      await sleep(1500);
+      assert.equal(counted.of(nameOf(lib)).length, libReads, 'lib is not read while app is shown');
+
+      // What it kept, at once, then the commit after one read, which the status bar says the reason for.
+      const shown: string[][] = [];
+      const listening = controller.onDidChangeState((each) => {
+        if (each && samePath(each.root, lib)) shown.push(each.rows.map((row) => row.subject));
+      });
+      try {
+        await controller.selectRepo(lib);
+      } finally {
+        listening.dispose();
+      }
+      assert.deepEqual(shown[0], before);
+      await until('the new commit of lib', () => state().rows[0]?.subject === 'From the terminal in lib');
+      const reads = counted.of(nameOf(lib)).slice(libReads);
+      assert.equal(reads.length, 1, `lib read ${reads.length} times`);
+      assert.match(reads[0].task.detail ?? '', /^Because .* changed\.$/);
+      await sleep(1500);
+      assert.equal(counted.of(nameOf(lib)).length, libReads + 1, 'lib is read once');
+    } finally {
+      counted.stop();
+      if (!samePath(state().root, app)) await controller.selectRepo(app);
+      await keepOpen(undefined);
+      await git(lib, ['reset', '--hard', first]);
+    }
+  });
+
   await step('lists the worktrees of a repository of the workspace under it in the list of the repositories', async () => {
     const login = path.join(workspace, 'app-login');
     await git(app, ['worktree', 'add', '-b', 'login-page', login, 'main']);
@@ -943,7 +1129,6 @@ export async function run(): Promise<void> {
     );
     assert.ok(samePath(state().root, app), state().root);
   });
-
 
   await step('opens a branch in its worktree, made for it with nothing asked, and switches between worktrees', async () => {
     const home = path.join(workspace, 'app.worktrees').replace(/\\/g, '/');

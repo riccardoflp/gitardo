@@ -20,6 +20,7 @@ import { Sash } from './Sash';
 import { endDrag, startDrag, type DragSource } from './drag';
 import { datePeriods, fullDate, laneColor, relativeTime, shortHash } from './util';
 import { post } from './vscode';
+import { useKept } from './kept';
 
 export interface Label {
   /** `good`, `bad` and `skipped` are the marks of a bisect in progress. */
@@ -38,6 +39,10 @@ export interface Label {
 export type SelectMode = 'single' | 'toggle' | 'range';
 
 interface Props {
+  /** The repository the commits are of, which keeps where they were scrolled to while another is shown. */
+  root: string;
+  /** Whether it does, as `gitardo.repositories.keepOpen` says (`repo.keep-open`). */
+  keepOpen: boolean;
   rows: Row[];
   /** What to say in their place when there are none. */
   empty: string;
@@ -352,6 +357,11 @@ export function CommitList(props: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
+  // Coming back to a repository that kept what it showed, the commits are where they were scrolled to.
+  useKept(props.root, props.keepOpen, 'scroll', scrollTop, (top) => {
+    if (scroller.current) scroller.current.scrollTop = top;
+    setScrollTop(top);
+  });
 
   useLayoutEffect(() => {
     const element = scroller.current!;

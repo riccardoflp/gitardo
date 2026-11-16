@@ -21,6 +21,7 @@ import { subjectAndBody } from '../shared/message';
 import { checkedOutBranch, operationName, worktreeBranch } from '../shared/state';
 import { groupRepositories } from '../shared/repositoryGroups';
 import { Activity } from './activity';
+import { type KeptRepository, KeptRepositories } from './keptRepositories';
 import { FileIcons } from './fileIcons';
 import type {
   Action,
@@ -218,6 +219,14 @@ function branchSort(): BranchSort {
   return (git?.workspaceFolderValue ?? git?.workspaceValue ?? git?.globalValue) === 'committerdate' ? 'date' : 'name';
 }
 
+/**
+ * Whether a repository left keeps what the views showed of it, and is read again only once it is shown when it changed
+ * meanwhile, as `gitardo.repositories.keepOpen` asks (`repo.keep-open`, `repo.watch-hidden`). Off by default.
+ */
+function keepOpen(): boolean {
+  return vscode.workspace.getConfiguration('gitardo').get('repositories.keepOpen') === true;
+}
+
 /** How many commits the graph reads at a time, as `gitardo.graph.pageSize` asks. */
 function pageSize(): number {
   const wanted = Math.trunc(Number(vscode.workspace.getConfiguration('gitardo').get('graph.pageSize')));
@@ -269,6 +278,8 @@ export class Controller implements vscode.Disposable {
   private repos: RepoInfo[] = [];
   /** The repository of the workspace shown before a worktree of it that is not in the workspace. */
   private home?: RepoInfo;
+  /** The repositories left that keep what they showed, with `gitardo.repositories.keepOpen` on. */
+  private readonly kept = new KeptRepositories();
   /** Whether this VS Code has the Agents window, which is looked up once: it comes and goes with VS Code itself. */
   private agentsWindow?: Promise<boolean>;
   private readonly views = new Map<vscode.Webview, ViewKind>();
@@ -345,7 +356,10 @@ export class Controller implements vscode.Disposable {
         const sections = ['gitardo.conflicts', 'gitardo.pull', 'gitardo.worktrees', 'gitardo.branches', 'gitardo.graph', 'git.branchSortOrder'];
         if (sections.some((section) => event.affectsConfiguration(section))) {
           this.scheduleRefresh('the settings changed');
+          // The repositories kept were read with the settings before: each is read again once it is shown.
+          this.kept.changedAll('the settings changed');
         }
+        if (event.affectsConfiguration('gitardo.repositories.keepOpen')) this.keepOpenChanged();
         if (event.affectsConfiguration('gitardo.conflicts')) void this.reviewTab?.reload();
       }),
       // The branches a comparison is of may have moved, and the conflicts of the review may be resolved.
@@ -364,6 +378,7 @@ export class Controller implements vscode.Disposable {
   dispose(): void {
     clearTimeout(this.timer);
     this.watcher?.dispose();
+    this.kept.dispose();
     for (const subscription of this.subscriptions) subscription.dispose();
   }
 
@@ -428,6 +443,8 @@ export class Controller implements vscode.Disposable {
         // Unless the views were pointed at another repository in the meantime. Who waited for it waits for the next,
         // as for a read of the commits cancelled for another.
         if (!state || this.running || operations !== this.operations || repo !== this.repo) {
+          // A repository left while it was read keeps what it showed before: it is read again once it is shown.
+          if (repo !== this.repo) this.kept.changed(repo.root, cause ?? 'it was left while it was read');
           this.waiters.unshift(...waiting.splice(0));
           continue;
         }
@@ -452,7 +469,8 @@ export class Controller implements vscode.Disposable {
           dateSeparators: vscode.workspace.getConfiguration('gitardo').get('graph.dateSeparators') !== false,
           combineUpstream: vscode.workspace.getConfiguration('gitardo').get('graph.combineUpstream') !== false,
           resolveWithAI: this.resolveWithAI(),
-          home: this.repos.some((each) => samePath(each.root, state.root)) ? null : (this.home ?? null),
+          home: this.homeOf(state.root),
+          keepOpen: keepOpen(),
         });
         for (const resolve of waiting.splice(0)) resolve();
       }
@@ -468,6 +486,20 @@ export class Controller implements vscode.Disposable {
     }
     // Not for the read at the start of VS Code: GitHub is asked only once a view can show what it says.
     if (this.views.size) void this.refreshPulls(false);
+  }
+
+  /** The repository of the workspace the views go back to, while they show a worktree of it that is not in the workspace. */
+  private homeOf(root: string): RepoInfo | null {
+    return this.repos.some((each) => samePath(each.root, root)) ? null : (this.home ?? null);
+  }
+
+  /**
+   * Turned off, the repositories kept forget at once what they showed, and the views forget what they kept of them;
+   * turned on, the repository shown keeps what it shows once it is left.
+   */
+  private keepOpenChanged(): void {
+    if (!keepOpen()) this.kept.forget();
+    if (this.state) this.setState({ ...this.state, keepOpen: keepOpen() });
   }
 
   /** What the status bar says the repository is read for, by the name the list of repositories gives it. */
@@ -2069,15 +2101,19 @@ export class Controller implements vscode.Disposable {
     const roots = found.map((each) => each.folder);
     // Each worktree and submodule under its repository, as the list of the repositories shows them (`repo.group-tabs`).
     this.repos = groupRepositories(found).map(({ repository, depth }) => ({ root: repository.folder, name: repositoryName(repository.folder, folders), depth }));
+    // A repository that is no longer in the workspace keeps nothing.
+    this.kept.forget((root) => !this.repos.some((repo) => samePath(repo.root, root)));
     // The repository chosen last time in this workspace, as long as it is still there.
     const remembered = this.memento.get<string>(REPO_KEY);
     await this.open(roots.find((root) => root === remembered) ?? roots[0]);
   }
 
-  /** Points every view at one repository of the workspace, or at none. */
+  /**
+   * Points every view at one repository of the workspace, or at none. With `gitardo.repositories.keepOpen` on, the one
+   * left keeps what it showed, and one that kept what it showed is shown as it was (`repo.keep-open`).
+   */
   private async open(root: string | undefined): Promise<void> {
-    this.watcher?.dispose();
-    this.watcher = undefined;
+    this.leave();
     this.repo = undefined;
     this.limit = pageSize();
     this.cancelGraphRead();
@@ -2087,15 +2123,70 @@ export class Controller implements vscode.Disposable {
     this.pulls = {};
     this.pullsAt = 0;
     if (!root) return this.setState(null);
-    this.scope = this.memento.get<Record<string, Scope>>(SCOPE_KEY, {})[root] ?? null;
     const repo: Repository = { root };
+    const kept = keepOpen() ? this.kept.take(root) : undefined;
+    if (kept) return this.comeBack(repo, kept);
+    this.scope = this.memento.get<Record<string, Scope>>(SCOPE_KEY, {})[root] ?? null;
     this.repo = repo;
     // The commits of the repository before stay in the views until those of this one come.
     await this.reload('filter', async () => {
-      this.watch(root, await reads.commonDir(repo));
+      const gitDir = await reads.commonDir(repo);
+      // Another may have been chosen meanwhile, which has watchers of its own.
+      if (this.repo !== repo) return;
+      this.watcher = this.watch(root, gitDir);
       await this.detectGitHub(repo);
       await this.refresh();
     });
+  }
+
+  /**
+   * The repository shown is left. With `gitardo.repositories.keepOpen` on it keeps what it showed, and its watchers,
+   * which from now on only mark it out of date (`repo.keep-open`, `repo.watch-hidden`); else it is no longer watched.
+   */
+  private leave(): void {
+    const { repo, state, watcher } = this;
+    // A change seen just before is the repository left's, not the next one's.
+    const pending = this.timer !== undefined ? (this.cause ?? 'something changed') : undefined;
+    clearTimeout(this.timer);
+    this.timer = undefined;
+    this.cause = undefined;
+    this.watcher = undefined;
+    if (!repo || !state || !samePath(state.root, repo.root) || !keepOpen()) return watcher?.dispose();
+    this.kept.keep(repo.root, {
+      state,
+      filter: this.filter,
+      scope: this.scope,
+      limit: this.limit,
+      github: this.github,
+      githubRemote: this.githubRemote,
+      pulls: this.pulls,
+      pullsAt: this.pullsAt,
+      watcher,
+      changed: pending,
+    });
+  }
+
+  /**
+   * Shows at once what a repository showed when it was left, and reads it again behind that when it changed meanwhile,
+   * as **Refresh** would, the status bar saying why (`repo.keep-open`, `repo.watch-hidden`).
+   */
+  private async comeBack(repo: Repository, kept: KeptRepository): Promise<void> {
+    this.repo = repo;
+    this.filter = kept.filter;
+    this.scope = kept.scope;
+    this.limit = kept.limit;
+    this.github = kept.github;
+    this.githubRemote = kept.githubRemote;
+    this.pulls = kept.pulls;
+    this.pullsAt = kept.pullsAt;
+    this.watcher = kept.watcher;
+    // The repositories of the workspace may have changed while it was not shown.
+    this.setState({ ...kept.state, repos: this.repos, home: this.homeOf(kept.state.root), keepOpen: true });
+    if (kept.changed) {
+      this.cause = kept.changed;
+      await this.detectGitHub(repo).catch((error) => this.log.warn(`Could not read the remotes of ${repo.root}: ${errorText(error)}`));
+      await this.refresh();
+    } else if (this.views.size) void this.refreshPulls(false);
   }
 
   /** Works out whether the main remote is a repository on GitHub. */
@@ -2197,6 +2288,17 @@ export class Controller implements vscode.Disposable {
     if (choice) await this.selectRepo(choice.repo.root);
   }
 
+  /**
+   * Keeps the message the commit box had in the repository it was pointed away from, and gives it back the one it had in
+   * the repository shown, when it kept one (`repo.keep-open`).
+   */
+  private keepMessage(webview: vscode.Webview, root: unknown, message: unknown, shown: unknown): void {
+    if (!keepOpen() || typeof root !== 'string' || typeof message !== 'string' || typeof shown !== 'string') return;
+    this.kept.keepMessage(root, message);
+    const back = this.kept.message(shown);
+    if (back !== undefined) this.post({ type: 'keptMessage', root: shown, message: back }, webview);
+  }
+
   /** Chooses who commits are made as in this repository: a profile from the settings, a new one, or the global identity again. */
   private async switchIdentity(): Promise<void> {
     const state = await this.requireState();
@@ -2212,8 +2314,11 @@ export class Controller implements vscode.Disposable {
     await vscode.commands.executeCommand('workbench.action.openSettings', 'gitardo.identities');
   }
 
-  /** Picks up changes made outside Gitardo: the terminal, another tool, a background fetch. */
-  private watch(root: string, gitDir: string): void {
+  /**
+   * Picks up changes made outside Gitardo: the terminal, another tool, a background fetch. A repository kept while
+   * another is shown is watched too, and a change there only marks it out of date (`repo.watch-hidden`).
+   */
+  private watch(root: string, gitDir: string): vscode.Disposable {
     const pattern = new vscode.RelativePattern(
       vscode.Uri.file(gitDir),
       // The submodules keep their repositories in it too: what is checked out in them and their branches.
@@ -2224,15 +2329,15 @@ export class Controller implements vscode.Disposable {
     const schedule = (uri: vscode.Uri) => {
       const file = relative(gitDir, uri);
       if (!meansChange(file)) return;
-      this.scheduleRefresh(`.git/${file} changed`);
+      this.changedIn(root, `.git/${file} changed`);
     };
     // Files written by something other than this editor, such as a command in the terminal. Git's own files have the watcher above.
     const files = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(root), '**'));
     const fileChanged = (uri: vscode.Uri) => {
       if (/(^|\/)\.git(\/|$)/.test(uri.path)) return;
-      this.scheduleRefresh(`${relative(root, uri)} changed`, WORKTREE_REFRESH_DELAY);
+      this.changedIn(root, `${relative(root, uri)} changed`, WORKTREE_REFRESH_DELAY);
     };
-    this.watcher = vscode.Disposable.from(
+    return vscode.Disposable.from(
       watcher,
       watcher.onDidChange(schedule),
       watcher.onDidCreate(schedule),
@@ -2242,6 +2347,12 @@ export class Controller implements vscode.Disposable {
       files.onDidCreate(fileChanged),
       files.onDidDelete(fileChanged),
     );
+  }
+
+  /** A change seen in a repository: the one shown is read again for it, one kept is only marked out of date. */
+  private changedIn(root: string, cause: string, delay?: number): void {
+    if (this.repo && samePath(this.repo.root, root)) this.scheduleRefresh(cause, delay);
+    else this.kept.changed(root, cause);
   }
 
   /** Refreshes once, `delay` after the first of a burst of events, however long the burst lasts. `cause` is the last of them. */
@@ -2471,6 +2582,8 @@ export class Controller implements vscode.Disposable {
       }
       case 'selectRepo':
         return this.selectRepo(message.root);
+      case 'keepMessage':
+        return this.keepMessage(webview, message.root, message.message, message.shown);
       case 'openDiff':
         return this.openDiff(message.source, message.file, repo);
       case 'compareFile':

@@ -49,6 +49,7 @@ Acceptance:
 | `gitardo.cherryPick.recordOrigin` | `false` | window | Cherry-picks end their message with the commit they come from (`-x`). | `cherry-pick.one`, `cherry-pick.many` |
 | `gitardo.branches.openIn` | `checkout` | window | What a double click on a local branch does: check it out, or open it in a worktree. | `branch.checkout`, `worktree.open-in-worktree` |
 | `gitardo.readOnStartup` | `true` | window | Read the repository when VS Code starts. | Repositories and identities (no cards yet) |
+| `gitardo.repositories.keepOpen` | `false` | window | Each repository left keeps what the views showed of it, and is read again only once it is shown after a change. | `repo.keep-open`, `repo.watch-hidden` |
 | `gitardo.graph.pageSize` | `1000` | window | How many commits the graph reads at a time, from 100 to 10,000. | Graph (no cards yet) |
 | `gitardo.graph.showStashes` | `true` | window | The stashes in the graph. Written by the toolbar's menu, in the user settings. | `graph.stashes` |
 | `gitardo.graph.columns` | `["author", "date", "hash"]` | window | What is shown beside each message. | Graph (no cards yet) |

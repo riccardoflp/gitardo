@@ -42,6 +42,9 @@ across restarts. Written through `saveUiState` (`src/webview/vscode.ts`), which 
 These are read with defaults for anything missing (`loadUiState`), so a value from an older version that lacks a field
 is filled in.
 
+What a repository left keeps with `gitardo.repositories.keepOpen` on, in the views and in the extension host, is kept
+in memory only, never stored: it is gone once the window is closed or the setting is turned off (`repo.keep-open`).
+
 ### Settings sent to the engine
 
 From stage 1 of [the transition](../transition/06-roadmap.md), the `gitardo.*` settings are sent to Gitardo's engine

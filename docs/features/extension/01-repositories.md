@@ -22,7 +22,7 @@ workspace.
   (`src/webview/ChangesApp.tsx`); `selectRepo`, `pickRepo` and `open` in `src/extension/controller.ts`. The choice is
   kept in the workspace state under `gitardo.repository`. The order of the list and how far each is indented are
   `groupRepositories` of `src/shared/repositoryGroups.ts`, from what `repository/discover` says of each repository
-  (`RepoInfo.depth`).
+  (`RepoInfo.depth`). What a repository left keeps, with `gitardo.repositories.keepOpen` on, is `repo.keep-open`'s.
 - **Tested by**: `test/e2e/suite.ts`, steps "narrows the graph to the history of a file, switching repository if
   needed", "follows the repository selected in VS Code's Repositories view, selects there the one shown, and
   shows a worktree of another" and "lists the worktrees of a repository of the workspace under it in the list of the

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { workingChanges, type WorkingChange } from '../shared/changes';
 import type { FileChange, FilesLayout, RepoState } from '../shared/protocol';
 import { checkedOutBranch } from '../shared/state';
@@ -74,6 +74,9 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
   const [message, setMessage] = useState(() => loadUiState({ message: '' }).message);
   const [amend, setAmend] = useState(false);
   const [drafting, setDrafting] = useState(false);
+  // The repository the box is of, and what was typed in it, as the view last showed them.
+  const shown = useRef(state.root);
+  const typed = useRef(message);
 
   useEffect(
     () =>
@@ -84,6 +87,8 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
         } else if (incoming.type === 'drafting') {
           setDrafting(incoming.active);
           if (incoming.message) setMessage(incoming.message);
+        } else if (incoming.type === 'keptMessage') {
+          if (incoming.root === shown.current) setMessage(incoming.message);
         } else if (incoming.type === 'commitMessage') {
           // What the user has written already is kept.
           setMessage((written) => (written.trim() ? written : incoming.message));
@@ -95,6 +100,16 @@ function CommitBox({ state, busy }: { state: RepoState; busy: boolean }) {
   useEffect(() => {
     saveUiState({ message });
   }, [message]);
+
+  // Pointed at another repository, the box gives the extension the message it had in the one left, which keeps it,
+  // and gets back the one it had in the repository shown, when it kept one (`repo.keep-open`).
+  useLayoutEffect(() => {
+    if (shown.current !== state.root) {
+      if (state.keepOpen) post({ type: 'keepMessage', root: shown.current, message: typed.current, shown: state.root });
+      shown.current = state.root;
+    }
+    typed.current = message;
+  });
 
   const { identity } = state;
   const { staged, unstaged, untracked } = state.workingTree;

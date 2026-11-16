@@ -348,7 +348,7 @@ async function main() {
     scope = read.scope;
     worktrees = read.worktrees.filter((worktree) => !worktree.isMissing).map((worktree) => worktree.folder);
     const away = inRoots(read.root) ? null : home;
-    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', branchesFollowScope, sortOrder: branchSort, traceSelected, graphColumns, dateSeparators, combineUpstream, resolveWithAI: true, home: away } }];
+    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', branchesFollowScope, sortOrder: branchSort, traceSelected, graphColumns, dateSeparators, combineUpstream, resolveWithAI: true, home: away, keepOpen: false } }];
   }
 
   /** `light` for a page in the light theme, which can have other file icons. */

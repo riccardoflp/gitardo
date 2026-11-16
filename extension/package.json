@@ -1187,6 +1187,11 @@
           "default": true,
           "markdownDescription": "Read the repository when VS Code starts, for the views of Gitardo to open with the graph, the commits and the branches already there. Off, it is read when the first of them opens: for a very large repository, in the settings of its workspace, when VS Code should not run git for it before you ask."
         },
+        "gitardo.repositories.keepOpen": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Keep what each repository showed while you look at another: choosing it again in the list of repositories, in the Repositories view of Source Control or with **Show in Gitardo** shows it at once as you left it, with the commit selected, the scroll of the graph, the search, the branches shown, the sections of the references and the message of the Changes view. A repository left is watched, and read again only when it is shown after something changed in it. Off, choosing another repository starts it afresh."
+        },
         "gitardo.graph.pageSize": {
           "type": "number",
           "default": 1000,

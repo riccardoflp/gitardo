@@ -39,6 +39,7 @@ import {
   type Comparing,
 } from './menus';
 import { ALL_FOLDED, foldedAmong, foldMerge, NO_FOLDS, recallFolds, rememberFolds, withoutGone, type Folds } from './folds';
+import { keptViews } from './kept';
 import { type Loaded, Placeholder, loadedOf } from './Placeholder';
 import { loadUiState, onMessage, post, saveUiState } from './vscode';
 
@@ -78,6 +79,16 @@ interface Find {
 
 const sameSearch = (one: Search, other: Search) => one.kind === other.kind && one.query === other.query;
 
+/** What the graph shows of a repository beside its commits, kept while another is shown (`repo.keep-open`). */
+interface Shown {
+  selected: string | null;
+  marked: ReadonlySet<string>;
+  detail: CommitDetail | null;
+  find: Find | null;
+  comparing: Comparing | null;
+  comparison: Comparison | null;
+}
+
 /** `compact` is the graph as it fits in the side bar: the commits and their details, with the references left to the view beside it. */
 export function App({ compact = false }: { compact?: boolean }) {
   const [state, setState] = useState<RepoState | null>(null);
@@ -112,6 +123,9 @@ export function App({ compact = false }: { compact?: boolean }) {
   rowsRef.current = state?.rows ?? [];
   // Whether the first commit of what a search finds is to be shown: of a search just asked, not of one repeated.
   const jumpRef = useRef(false);
+  // What the repository shown has selected, found and compared, to keep once it is left.
+  const shownRef = useRef<Shown>({ selected, marked, detail, find, comparing, comparison });
+  shownRef.current = { selected, marked, detail, find, comparing, comparison };
 
   /** Shows a commit in the detail pane, leaving alone whatever else is selected with it. */
   const show = useCallback((hash: string | null) => {
@@ -129,6 +143,19 @@ export function App({ compact = false }: { compact?: boolean }) {
     },
     [show],
   );
+
+  /** Shows again what a repository kept when it was left: the commits selected, their details, a search, a comparison. */
+  const restore = useCallback((kept: Shown) => {
+    setSelected(kept.selected);
+    setMarked(kept.marked);
+    setDetail(kept.detail);
+    setFind(kept.find);
+    setComparing(kept.comparing);
+    setComparison(kept.comparison);
+    setEditing(null);
+    // The uncommitted changes may be others by now.
+    if (kept.selected === WORKTREE) post({ type: 'getDetail', hash: WORKTREE });
+  }, []);
 
   const compare = useCallback((next: Comparing) => {
     setComparing(next);
@@ -150,12 +177,21 @@ export function App({ compact = false }: { compact?: boolean }) {
         setLoaded(loadedOf(message));
         const root = message.state?.root ?? null;
         if (root !== rootRef.current) {
-          // Another repository: what was selected or being edited belongs to the previous one.
+          // Another repository: what was selected or being edited belongs to the previous one, which keeps it while
+          // the setting says so, and the one shown gets back what it kept.
+          const left = rootRef.current;
           rootRef.current = root;
-          select(null);
+          const keep = next?.keepOpen === true;
+          if (!keep) keptViews.forget();
+          if (keep && left) keptViews.leave(left, 'graph', shownRef.current);
+          const back = keep && root ? keptViews.back<Shown>(root, 'graph') : undefined;
+          if (back) restore(back);
+          else {
+            select(null);
+            setFind(null);
+          }
           setFolds(root ? recallFolds(loadUiState({ foldedMerges: null as unknown }).foldedMerges, root) : NO_FOLDS);
           setRebase(null);
-          setFind(null);
         } else if (selectedRef.current === WORKTREE) {
           // The list of uncommitted files is the only detail that goes stale.
           if (message.state?.changes) post({ type: 'getDetail', hash: WORKTREE });
@@ -184,7 +220,7 @@ export function App({ compact = false }: { compact?: boolean }) {
     });
     post({ type: 'ready' });
     return stop;
-  }, [select, trace]);
+  }, [select, trace, restore]);
 
   useEffect(() => {
     saveUiState({ refsWidth, detailWidth, graphWidth, detailHeight, refsHidden });
@@ -440,6 +476,8 @@ export function App({ compact = false }: { compact?: boolean }) {
           <Sash pane="refs" width={refsWidth} onResize={(width) => resize({ refsWidth: width })} onReset={() => resize({ refsWidth: WIDTHS.refsWidth })} />
         )}
         <CommitList
+          root={state.root}
+          keepOpen={state.keepOpen}
           rows={state.rows}
           empty={state.filter ? 'No commits found' : state.head.commit ? 'No commits to show' : 'No commits yet'}
           hasMore={state.hasMore}

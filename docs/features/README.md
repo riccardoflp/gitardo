@@ -61,7 +61,7 @@ earns it.
 | [`repo.open-code-workspace`](01-repositories.md#repoopen-code-workspace--open-a-workspace-file-of-vs-code) | Open a workspace file of VS Code | Operation | Built | Host only |
 | [`repo.close-tab`](01-repositories.md#repoclose-tab--close-a-tab) | Close a tab | Operation | Built | Host only |
 | [`repo.switch-tab`](01-repositories.md#reposwitch-tab--show-another-tab) | Show another tab | Operation | Specified | Host only |
-| [`repo.keep-open`](01-repositories.md#repokeep-open--keep-what-each-repository-showed) | Keep what each repository showed | Derivation | Built | Planned |
+| [`repo.keep-open`](01-repositories.md#repokeep-open--keep-what-each-repository-showed) | Keep what each repository showed | Derivation | Built | Built |
 | [`repo.group-tabs`](01-repositories.md#repogroup-tabs--worktrees-and-submodules-in-the-tab-of-their-repository) | Worktrees and submodules in the tab of their repository | Derivation | Specified | Planned |
 | [`repo.watch-hidden`](01-repositories.md#repowatch-hidden--keep-the-tabs-not-shown-up-to-date) | Keep the tabs not shown up to date | Derivation | Specified | Planned |
 | [`trust.is-trusted`](01-repositories.md#trustis-trusted--whether-a-folder-is-trusted) | Whether a folder is trusted | Derivation | Built | Host only |
