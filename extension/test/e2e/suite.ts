@@ -37,6 +37,8 @@ interface Internals {
   kept: { has(root: string): boolean; outOfDate(root: string): string | undefined };
   /** Looks for the repositories of the workspace again, as when its folders change. */
   locate(): Promise<void>;
+  /** The workspace state of the extension. */
+  memento: { get<T>(key: string): T | undefined };
 }
 
 /** A comparison open in a tab, as the controller keeps it. */
@@ -1910,6 +1912,50 @@ export async function run(): Promise<void> {
 
     await internals.onMessage(graph, { type: 'setScope', scope: null });
     assert.equal(state().scope, null);
+    assert.deepEqual(subjects(), everything);
+  });
+
+  await step('lists in the references what their own filter chooses, kept for each repository, and the branches shown in the graph and it never change each other', async () => {
+    const graph = view('graph');
+    const everything = subjects();
+    assert.equal(state().listed, null);
+    /** What the workspace state keeps for app. */
+    const kept = () => Object.entries(internals.memento.get<Record<string, unknown>>('gitardo.branchesListed') ?? {}).find(([root]) => samePath(root, app))?.[1];
+
+    // Local in the filter of the references: the graph is not narrowed, and its own filter is as it was.
+    await internals.onMessage(graph, { type: 'setListed', listed: { kind: 'kinds', kinds: ['branch'] } });
+    assert.deepEqual(state().listed, { kind: 'kinds', kinds: ['branch'] });
+    assert.equal(state().scope, null);
+    assert.deepEqual(subjects(), everything);
+    assert.deepEqual(kept(), { kind: 'kinds', kinds: ['branch'] });
+
+    // Narrowing the graph leaves the filter of the references as it was.
+    await internals.onMessage(graph, { type: 'setScope', scope: { kind: 'refs', refs: ['refs/heads/main'] } });
+    assert.deepEqual(state().scope, { kind: 'refs', refs: ['refs/heads/main'] });
+    assert.deepEqual(state().listed, { kind: 'kinds', kinds: ['branch'] });
+    await internals.onMessage(graph, { type: 'setScope', scope: null });
+    assert.deepEqual(state().listed, { kind: 'kinds', kinds: ['branch'] });
+
+    // Each repository has its own, and finds it again.
+    await controller.selectRepo(lib);
+    assert.equal(state().listed, null);
+    await controller.selectRepo(app);
+    assert.deepEqual(state().listed, { kind: 'kinds', kinds: ['branch'] });
+
+    // Branches ticked one by one: one deleted is no longer listed, and with none left everything is.
+    await git(app, ['branch', 'old', 'HEAD~1']);
+    await vscode.commands.executeCommand('gitardo.refresh');
+    await internals.onMessage(graph, { type: 'setListed', listed: { kind: 'refs', refs: ['refs/heads/main', 'refs/heads/old', '--all'] } });
+    assert.deepEqual(state().listed, { kind: 'refs', refs: ['refs/heads/main', 'refs/heads/old'] });
+    await git(app, ['branch', '-D', 'old']);
+    await vscode.commands.executeCommand('gitardo.refresh');
+    assert.deepEqual(state().listed, { kind: 'refs', refs: ['refs/heads/main'] });
+    assert.equal(state().scope, null);
+
+    // Show all: everything listed, and nothing kept for the repository.
+    await internals.onMessage(graph, { type: 'setListed', listed: null });
+    assert.equal(state().listed, null);
+    assert.equal(kept(), undefined);
     assert.deepEqual(subjects(), everything);
   });
 

@@ -629,8 +629,11 @@ comparison of a reference with the branch checked out.
 - **Entry points**: the left of the window; **Show branches** in Quick search shows the branch rail when it was put
   away.
 - **Settings**: `branches.sortOrder`.
-- **Extension**: until phase 3 of M13, while the graph is narrowed to some branches the references list only those, as
-  long as `gitardo.branches.followGraphFilter` is on.
+- **Extension**: the references beside the graph and the Branches view, whose header names the branch checked out and
+  has its buttons. They have no top of their own: the funnel of `refs.list-filter` ends their top row, after the box
+  that finds a name. They list every branch whatever the graph is narrowed to, the ones it leaves out dimmed. Tested by
+  `test/e2e/ui.mjs`, step "the branches list the favorites and the ones checked out last first, all of them whatever
+  the graph is narrowed to, what their own filter chooses, and can be put away; the status bar opens the graph".
 - **Uses**: `refs.tree`, `refs.list-filter`, `filter.list-too`, `branch.create`, `compare.with-current`,
   `compare.choose`, `worktree.create`, `worktree.switch`, `worktree-setup.page`,
   `worktree-setup.bring-into-other-worktrees`, `worktree.prune`, `graph.show-in-graph`, `graph.hover-history`.

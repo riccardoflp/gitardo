@@ -110,8 +110,8 @@ earns it.
 | [`refs.tree`](02-graph.md#refstree--the-branch-rail) | The branch rail | View | Built | Built |
 | [`refs.filter`](02-graph.md#refsfilter--filter-the-branch-rail-by-name) | Filter the branch rail by name | View | Built | Built |
 | [`refs.scope-line`](02-graph.md#refsscope-line--the-line-of-what-the-branch-rail-lists) | The line of what the branch rail lists | View | Built | Built |
-| [`refs.list-filter`](02-graph.md#refslist-filter--choose-what-the-branch-rail-lists) | Choose what the branch rail lists | View | Built | Planned |
-| [`refs.listed`](02-graph.md#refslisted--which-references-the-branch-rail-lists) | Which references the branch rail lists | Derivation | Built | Planned |
+| [`refs.list-filter`](02-graph.md#refslist-filter--choose-what-the-branch-rail-lists) | Choose what the branch rail lists | View | Built | Built |
+| [`refs.listed`](02-graph.md#refslisted--which-references-the-branch-rail-lists) | Which references the branch rail lists | Derivation | Built | Built |
 | [`refs.sort`](02-graph.md#refssort--sort-the-branches-and-tags) | Sort the branches and tags | Derivation | Built | Built |
 | [`refs.recent`](02-graph.md#refsrecent--the-branches-checked-out-last) | The branches checked out last | Derivation | Built | Built |
 | [`refs.favorite`](02-graph.md#refsfavorite--add-a-branch-to-favorites) | Add a branch to favorites | View | Built | Built |

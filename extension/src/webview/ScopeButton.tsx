@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import type { RepoState, Scope } from '../shared/protocol';
+import type { RefKind, RepoState, Scope } from '../shared/protocol';
 import { byMatch } from '../shared/refs';
-import { scopeChoices, scopeLabel, scopeRefName, scopeRefs, toggleScopeRef, type ScopeChoice } from '../shared/scope';
+import { scopeChoices, scopeKinds, scopeLabel, scopeRefName, scopeRefs, toggleListedKind, toggleScopeRef, type ScopeChoice } from '../shared/scope';
 import { Icon } from './Icon';
 import { post } from './vscode';
 
@@ -26,25 +26,48 @@ const QUICK: { scope: Scope | null; label: string; title: string }[] = [
   { scope: { kind: 'kinds', kinds: ['remote'] }, label: 'Remotes', title: 'Only the remote branches, and what is checked out' },
 ];
 
-function Picker({ state, anchor, onClose }: { state: RepoState; anchor: HTMLElement; onClose(): void }) {
+/** The kinds of references the filter of the references lists, as check boxes at the bottom of its list. */
+const KINDS: { kind: RefKind; label: string }[] = [
+  { kind: 'branch', label: 'Show local branches' },
+  { kind: 'remote', label: 'Show remote branches' },
+  { kind: 'tag', label: 'Show tags' },
+];
+
+interface PickerProps {
+  state: RepoState;
+  anchor: HTMLElement;
+  /** What is chosen now: the branches shown in the graph, or what the references list. */
+  choice: Scope | null;
+  onChoose(next: Scope | null): void;
+  /** What the list is for, said to a screen reader, and above the list when `heading` is set. */
+  title: string;
+  heading?: boolean;
+  /** With the kinds of references listed as check boxes at the bottom, as the filter of the references has them. */
+  kinds?: boolean;
+  onClose(): void;
+}
+
+/**
+ * The list of the branches, remote branches and tags to choose from, with the presets above them: the same for the
+ * branches shown in the graph and for what the references list (`refs.list-filter`), each with its own choice.
+ */
+function Picker({ state, anchor, choice, onChoose, title, heading, kinds, onClose }: PickerProps) {
   const element = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
   const [place, setPlace] = useState<CSSProperties>({ left: 0, top: 0 });
   // What was last chosen here, until the graph shows it: a second tick does not wait for the first to come back.
   const [wanted, setWanted] = useState<{ scope: Scope | null } | null>(null);
-  const scope = wanted && !same(wanted.scope, state.scope) ? wanted.scope : state.scope;
+  const scope = wanted && !same(wanted.scope, choice) ? wanted.scope : choice;
   const latest = useRef(scope);
   latest.current = scope;
   const setScope = (next: Scope | null) => {
     latest.current = next;
     setWanted({ scope: next });
-    post({ type: 'setScope', scope: next });
+    onChoose(next);
   };
-  // The same for the switch of the list of branches, which waits for the settings to change.
-  const [follow, setFollow] = useState<boolean | null>(null);
-  const follows = follow ?? state.branchesFollowScope;
-  useEffect(() => setFollow(null), [state.branchesFollowScope]);
+  // The kinds the choice lists: none while it is of references ticked one by one or what is checked out.
+  const kindsListed = scopeKinds(scope);
 
   // Under the button and inside the view: as tall as the room there is, which in the panel is little.
   // Placed before it is painted, and never hidden, or the box could not take the focus.
@@ -90,7 +113,8 @@ function Picker({ state, anchor, onClose }: { state: RepoState; anchor: HTMLElem
   const choices = byMatch(scopeChoices(state), (choice) => choice.name, needle);
 
   return createPortal(
-    <div className="popover scope-picker" role="dialog" aria-label="Branches shown in the graph" ref={element} style={place}>
+    <div className={`popover scope-picker${kinds ? ' list-filter-picker' : ''}`} role="dialog" aria-label={title} ref={element} style={place}>
+      {heading && <div className="title">{title}</div>}
       <div className="quick" role="radiogroup" aria-label="Which branches">
         {QUICK.map((quick) => (
           <button
@@ -133,17 +157,21 @@ function Picker({ state, anchor, onClose }: { state: RepoState; anchor: HTMLElem
         })}
         {!choices.length && <div className="none">{needle ? 'No branch or tag has that in its name' : 'No branches or tags yet'}</div>}
       </div>
-      <label className="follow" title="Beside the graph and in the Branches view: only the branches the graph shows, or all of them with the others dimmed">
-        <input
-          type="checkbox"
-          checked={follows}
-          onChange={() => {
-            setFollow(!follows);
-            post({ type: 'setBranchesFollowScope', follow: !follows });
-          }}
-        />
-        <span>Filter the list of branches too</span>
-      </label>
+      {kinds && (
+        <div className="kinds" role="group" aria-label="Kinds of references listed">
+          {KINDS.map(({ kind, label }) => (
+            <label key={kind} title={kindsListed ? undefined : 'Chosen in the filter'}>
+              <input
+                type="checkbox"
+                checked={kindsListed?.includes(kind) ?? false}
+                disabled={!kindsListed}
+                onChange={() => setScope(toggleListedKind(latest.current, kind))}
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
+      )}
     </div>,
     document.body,
   );
@@ -175,7 +203,54 @@ export function ScopeButton({ state, compact }: { state: RepoState; compact?: bo
         {!compact && refs.length > 1 && <span className="label more">+{refs.length - 1}</span>}
         {!compact && <Icon name="chevron-down" />}
       </button>
-      {open && button.current && <Picker state={state} anchor={button.current} onClose={() => setOpen(false)} />}
+      {open && button.current && (
+        <Picker
+          state={state}
+          anchor={button.current}
+          choice={state.scope}
+          onChoose={(scope) => post({ type: 'setScope', scope })}
+          title="Branches shown in the graph"
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
+/**
+ * The funnel at the top of the references: says what they list, and opens the list to choose it from, apart from the
+ * branches shown in the graph (`refs.list-filter`). It is pressed in while they list less than everything.
+ */
+export function ListFilterButton({ state }: { state: RepoState }) {
+  const [open, setOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
+  const label = scopeLabel(state.listed);
+  return (
+    <>
+      <button
+        ref={button}
+        className={`list-filter${state.listed ? ' on' : ''}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-pressed={state.listed !== null}
+        aria-label={`Branches listed: ${label}`}
+        title={`Branches listed here: ${label}`}
+        onClick={() => setOpen(!open)}
+      >
+        <Icon name={state.listed ? 'filter-filled' : 'filter'} />
+      </button>
+      {open && button.current && (
+        <Picker
+          state={state}
+          anchor={button.current}
+          choice={state.listed}
+          onChoose={(listed) => post({ type: 'setListed', listed })}
+          title="Branches listed"
+          heading
+          kinds
+          onClose={() => setOpen(false)}
+        />
+      )}
     </>
   );
 }

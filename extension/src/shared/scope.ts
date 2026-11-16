@@ -70,6 +70,32 @@ export function scopeRefs(scope: Scope, state: Refs): string[] {
   return upstream ? [`refs/heads/${branch}`, `refs/remotes/${upstreamName(upstream)}`] : [`refs/heads/${branch}`];
 }
 
+/**
+ * The branches, remote branches and tags the references list from the choice of their own filter, by their full names;
+ * null when they list every one (`refs.listed`), as `model::filter::rail::listed` of Gitardo Desktop says: **Current**
+ * and **Upstream** list the branch checked out and its upstream, some kinds every reference of those kinds, references
+ * ticked one by one those that are still there, and everything once none is. Whatever the graph is narrowed to, it
+ * changes nothing here.
+ */
+export function listedRefs(choice: Scope | null, state: Refs): Set<string> | null {
+  if (!choice) return null;
+  if (choice.kind === 'current') return new Set(scopeRefs({ kind: 'current', upstream: true }, state));
+  if (choice.kind === 'kinds') return new Set(scopeRefs(choice, state));
+  const kept = pruneScope(choice, state);
+  return kept ? new Set(scopeRefs(kept, state)) : null;
+}
+
+/**
+ * The choice of the filter of the references with a kind of reference listed or no longer (`filter.kinds`): all three is
+ * everything, and the last one listed stays. While the choice is not of kinds, nothing changes.
+ */
+export function toggleListedKind(choice: Scope | null, kind: RefKind): Scope | null {
+  const kinds = scopeKinds(choice);
+  if (!kinds) return choice;
+  const next = kinds.includes(kind) ? kinds.filter((each) => each !== kind) : [...kinds, kind];
+  return next.length ? kindsScope(next) : choice;
+}
+
 /** The scope with a reference added, or taken out if it is there: no scope, and so all the history, when none is left. */
 export function toggleScopeRef(scope: Scope | null, ref: string, state: Refs): Scope | null {
   const chosen = scope ? scopeRefs(scope, state) : [];

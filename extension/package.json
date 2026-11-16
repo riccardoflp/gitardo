@@ -1249,7 +1249,8 @@
         "gitardo.branches.followGraphFilter": {
           "type": "boolean",
           "default": true,
-          "description": "Whether the branches, remote branches and tags listed beside the graph and in the Branches view are only the ones the graph is narrowed to. Switched off, they are all listed, and the ones the graph leaves out are dimmed. The list of branches of the graph has the same switch."
+          "description": "No longer read: the references beside the graph and in the Branches view list what the funnel at their top chooses, whatever the graph is narrowed to.",
+          "markdownDeprecationMessage": "No longer read: the references list what the funnel at their top chooses, whatever the graph is narrowed to, and the ones the graph leaves out are dimmed."
         },
         "gitardo.branches.format": {
           "type": "string",

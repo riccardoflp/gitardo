@@ -451,15 +451,25 @@ input:focus-visible,
   accent-color: var(--vscode-button-background);
 }
 
-/* Below the list: whether the branches listed beside the graph are narrowed as it is. */
-.scope-picker label.follow {
+/* What the list is for, above the presets of the filter of the references. */
+.scope-picker .title {
   flex: none;
+  padding: 2px 6px 4px;
+  font-weight: 600;
+}
+
+/* Below the list of the filter of the references: the kinds of references it lists. */
+.scope-picker .kinds {
+  flex: none;
+  display: flex;
+  flex-direction: column;
   margin-top: 4px;
   padding-top: 4px;
-  height: 26px;
-  box-sizing: border-box;
   border-top: 1px solid var(--vscode-menu-separatorBackground, var(--vscode-panel-border));
-  border-radius: 0;
+}
+
+.scope-picker .kinds label:has(input:disabled) {
+  opacity: 0.6;
 }
 
 .scope-picker .none {
@@ -703,16 +713,33 @@ input:focus-visible,
   background: var(--vscode-list-hoverBackground);
 }
 
-/* Stays in sight while the names scroll under it. */
-.refs-filter {
+/* The box that finds a name and the funnel of the filter of the list: in sight while the names scroll under them. */
+.refs-top {
   position: sticky;
   top: -4px;
   z-index: 1;
   display: flex;
   align-items: center;
   gap: 4px;
-  height: 22px;
   margin: 0 6px 4px;
+}
+
+/* As opaque as what is around it, for the names scrolled under it: the panel beside the graph, the side bar in the Branches view. */
+.app .refs-top {
+  background: var(--vscode-panel-background);
+}
+
+.side .refs-top {
+  background: var(--vscode-sideBar-background);
+}
+
+.refs-filter {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
   padding: 0 4px;
   border-radius: 3px;
   color: var(--vscode-input-foreground);
@@ -774,7 +801,7 @@ input:focus-visible,
   color: var(--vscode-icon-foreground);
 }
 
-/* Said above the names while the graph is narrowed to some branches, which are then the ones listed. */
+/* Said above the names while the filter of the list lists some references only. */
 .refs-scope {
   display: flex;
   align-items: center;
@@ -799,16 +826,25 @@ input:focus-visible,
   background: none;
 }
 
-.refs .refs-scope button.follow {
+/* The funnel of the filter of the list, at the end of the top row, pressed in while it lists some references only. */
+.refs .refs-top .list-filter {
+  flex: none;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
   border-radius: 3px;
   color: var(--vscode-icon-foreground);
 }
 
-.refs .refs-scope button.follow:hover {
+.refs .refs-top .list-filter:hover {
   background: var(--vscode-toolbar-hoverBackground);
+}
+
+.refs .refs-top .list-filter.on {
+  color: var(--vscode-inputOption-activeForeground, var(--vscode-icon-foreground));
+  background: var(--vscode-inputOption-activeBackground, var(--vscode-toolbar-hoverBackground));
+  outline: 1px solid var(--vscode-inputOption-activeBorder, transparent);
 }
 
 /* The mark of a favorite, beside its name where it is listed with the others, and of a branch another worktree has. */

@@ -181,10 +181,11 @@ export interface RepoState extends RepoParts {
   /** Whether a branch and its upstream of the same name share one label while they are at the same commit, as the settings say. */
   combineUpstream: boolean;
   /**
-   * Whether the branches listed beside the graph and in the Branches view are only the ones the graph is narrowed
-   * to, as the settings say. When not, they are all listed, and the ones the graph leaves out are dimmed.
+   * What the references list, beside the graph and in the Branches view, as their own filter says, apart from the
+   * branches shown (`refs.list-filter`): the choice kept for this repository, without the references gone since. Null
+   * when they list everything.
    */
-  branchesFollowScope: boolean;
+  listed: Scope | null;
   /**
    * How the branches, remote branches and tags are listed everywhere, as the settings say: by name, or the latest first.
    * `gitardo.branches.sortOrder`; `branchSort` is git's own setting, as the engine reads it.
@@ -629,8 +630,8 @@ export type WebviewMessage =
   | { type: 'action'; action: Action }
   | { type: 'setFilter'; filter: Filter | null }
   | { type: 'setScope'; scope: Scope | null }
-  /** Lists only the branches the graph is narrowed to beside it and in the Branches view, or all of them. */
-  | { type: 'setBranchesFollowScope'; follow: boolean }
+  /** What the references list, chosen in their own filter: null for everything (`refs.list-filter`). */
+  | { type: 'setListed'; listed: Scope | null }
   /** Shows the stashes in the graph, or no longer. */
   | { type: 'setShowStashes'; show: boolean }
   | { type: 'setTraceSelected'; trace: boolean }

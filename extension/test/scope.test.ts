@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import type { Branch, RemoteBranch } from '../src/shared/protocol';
 import { branchAt, headAt, remoteAt, upstreamOf } from './states';
-import { MAX_SCOPE_REFS, kindsScope, pruneScope, scopeChoices, scopeKinds, scopeLabel, scopeRefName, scopeRefs, toggleScopeRef } from '../src/shared/scope';
+import {
+  MAX_SCOPE_REFS,
+  kindsScope,
+  listedRefs,
+  pruneScope,
+  scopeChoices,
+  scopeKinds,
+  scopeLabel,
+  scopeRefName,
+  scopeRefs,
+  toggleListedKind,
+  toggleScopeRef,
+} from '../src/shared/scope';
 
 const branch = (name: string, current = false): Branch => branchAt(name, 'a'.repeat(40), { isCheckedOut: current });
 const named = (name: string): RemoteBranch => remoteAt(name, 'b'.repeat(40));
@@ -102,5 +114,45 @@ describe('the branches the graph is narrowed to', () => {
     expect(scopeLabel({ kind: 'kinds', kinds: ['remote', 'tag'] })).toBe('Remote branches and tags');
     expect(scopeLabel({ kind: 'refs', refs: ['refs/remotes/origin/main'] })).toBe('origin/main');
     expect(scopeLabel({ kind: 'refs', refs: ['refs/heads/main', 'refs/tags/v1.0', 'refs/heads/feature'] })).toBe('main +2');
+  });
+});
+
+describe('what the references list, from the choice of their own filter (refs.listed)', () => {
+  const listed = (choice: Parameters<typeof listedRefs>[0], from = state) => {
+    const refs = listedRefs(choice, from);
+    return refs && [...refs];
+  };
+  const upstream = upstreamOf('origin/main', { ahead: 1 });
+  const tracking = { ...state, branches: [branch('feature'), { ...branch('main', true), upstream }] };
+
+  it('refs.listed: All lists every branch, remote branch and tag', () => {
+    expect(listed(null)).toBeNull();
+  });
+
+  it('refs.listed: Current and Upstream list the branch checked out and its upstream, and nothing when detached', () => {
+    expect(listed({ kind: 'current' }, tracking)).toEqual(['refs/heads/main', 'refs/remotes/origin/main']);
+    expect(listed({ kind: 'current', upstream: true }, tracking)).toEqual(['refs/heads/main', 'refs/remotes/origin/main']);
+    expect(listed({ kind: 'current' }, state)).toEqual(['refs/heads/main']);
+    expect(listed({ kind: 'current' }, { ...state, head: headAt('a'.repeat(40)) })).toEqual([]);
+  });
+
+  it('refs.listed: Local lists the local branches alone, and Remotes the remote branches alone', () => {
+    expect(listed({ kind: 'kinds', kinds: ['branch'] })).toEqual(['refs/heads/feature', 'refs/heads/main']);
+    expect(listed({ kind: 'kinds', kinds: ['remote'] })).toEqual(['refs/remotes/origin/main']);
+  });
+
+  it('refs.listed: with main and old ticked and old deleted, lists main; with every one ticked gone, lists everything', () => {
+    expect(listed({ kind: 'refs', refs: ['refs/heads/main', 'refs/heads/old'] })).toEqual(['refs/heads/main']);
+    expect(listed({ kind: 'refs', refs: ['refs/heads/old'] })).toBeNull();
+  });
+
+  it('refs.list-filter: the kinds listed are switched one at a time, all three are everything, and the last one stays', () => {
+    expect(toggleListedKind(null, 'tag')).toEqual({ kind: 'kinds', kinds: ['branch', 'remote'] });
+    expect(toggleListedKind({ kind: 'kinds', kinds: ['branch', 'remote'] }, 'tag')).toBeNull();
+    expect(toggleListedKind({ kind: 'kinds', kinds: ['branch'] }, 'branch')).toEqual({ kind: 'kinds', kinds: ['branch'] });
+    expect(toggleListedKind({ kind: 'kinds', kinds: ['branch'] }, 'remote')).toEqual({ kind: 'kinds', kinds: ['branch', 'remote'] });
+    // While branches are ticked one by one, or what is checked out is chosen, the kinds are not the choice.
+    expect(toggleListedKind({ kind: 'current' }, 'tag')).toEqual({ kind: 'current' });
+    expect(toggleListedKind({ kind: 'refs', refs: ['refs/heads/main'] }, 'tag')).toEqual({ kind: 'refs', refs: ['refs/heads/main'] });
   });
 });

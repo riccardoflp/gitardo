@@ -15,6 +15,7 @@ one too (R14.2 in the [code rules](03-code-rules.md)).
 | --- | --- | --- | --- | --- |
 | `gitardo.repository` | The root of the repository shown last, a path. | Choosing a repository (`Controller.selectRepo`) | Opening the workspace (`findRepos`) | Yes: the first repository is shown. |
 | `gitardo.scope` | For each repository root, the branches shown (`Scope`): a kind or a list of reference names. | Choosing the branches shown (`settleScope`) | Opening a repository | Yes: every branch is shown. |
+| `gitardo.branchesListed` | For each repository root, what the references list by their own filter (`Scope`), apart from the branches shown: a preset, the kinds listed or the full names ticked; none for a repository whose references list everything. | The funnel at the top of the references, and **Show all** under it (`setListed`) | Every read of the state (`listedIn`), which leaves out the names gone without writing it again | Yes: every branch is listed. |
 | `gitardo.favorites` | For each repository root, the names of the favorite branches. | **Add to favorites**, **Remove from favorites** (`setFavorite`) | Every read of the state | Yes, but the user marked them by hand. |
 | `gitardo.commitFiles` | `tree` or `list`: how the files of a commit or a comparison are listed. | The two buttons beside the count of files | Opening a tab | Yes. |
 | `gitardo.recentComparisons` | For each repository root, the last 8 comparisons: the name and hash of each side, and the path they are narrowed to. | Opening a comparison (`rememberComparison`) | **Opened before** in the comparison's picker | Yes. |
@@ -58,7 +59,7 @@ Gitardo writes VS Code settings only when the user changes the same thing from i
 
 | Setting | Target | Written by |
 | --- | --- | --- |
-| `gitardo.graph.showStashes`, `gitardo.graph.dateSeparators`, `gitardo.graph.combineUpstream`, `gitardo.branches.followGraphFilter`, `gitardo.branches.sortOrder` | User settings | The toggles of the **…** menu of the toolbar and of the references (`Controller.onMessage`) |
+| `gitardo.graph.showStashes`, `gitardo.graph.dateSeparators`, `gitardo.graph.combineUpstream`, `gitardo.branches.sortOrder` | User settings | The toggles of the **…** menu of the toolbar and of the references (`Controller.onMessage`) |
 | `gitardo.worktrees.linkFolders`, `gitardo.worktrees.copyFiles`, `gitardo.worktrees.setupCommands` | The settings of the workspace folder or the user's, as chosen | The page of what new worktrees get, and **Link into New Worktrees** and **Copy into New Worktrees** in the Explorer (`src/extension/worktreeSettings.ts`) |
 | `git.worktreeSymlinkFolders`, `git.worktreeIncludeFiles` | The same | The same page, when the user asks for VS Code's worktrees to get the same |
 

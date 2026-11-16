@@ -2,7 +2,7 @@ import { memo, useMemo, useState, type ReactNode } from 'react';
 import type { PullRequest, RepoState, Submodule } from '../shared/protocol';
 import { byMatch, changesText, pullOf, pullTitle, pushedName, recentBranches, upstreamHint, worktreeLabel, worktreeOf, worktreeStatus } from '../shared/refs';
 import { stashName, upstreamName, worktreeBranch } from '../shared/state';
-import { scopeLabel, scopeRefs, toggleScopeRef } from '../shared/scope';
+import { listedRefs, scopeLabel, scopeRefs, toggleScopeRef } from '../shared/scope';
 import { submoduleDepth, submoduleStatus, submoduleStatusText } from '../shared/submodules';
 import { useMenu, type MenuEntry } from './ContextMenu';
 import { Icon } from './Icon';
@@ -21,6 +21,7 @@ import {
   type Comparing,
 } from './menus';
 import { useKept } from './kept';
+import { ListFilterButton } from './ScopeButton';
 import { loadUiState, post, saveUiState } from './vscode';
 
 /** The start of VS Code the page is shown in. */
@@ -129,12 +130,12 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
   const [filter, setFilter] = useState('');
   const openMenu = useMenu();
   const needle = filter.trim().toLowerCase();
-  // What the graph is narrowed to is what is listed here: the branches, remote branches and tags whose history it shows.
-  // Or, as the settings may say, they are all listed and the others are dimmed.
+  // What is listed here is what the filter of the references says, whatever the graph is narrowed to (`refs.listed`);
+  // the branches, remote branches and tags the graph leaves out are dimmed (`filter.list-too`).
   const scoped = useMemo(() => (state.scope ? new Set(scopeRefs(state.scope, state)) : null), [state]);
   const within = (ref: string) => !scoped || scoped.has(ref);
-  const follows = state.branchesFollowScope;
-  const listedHere = (ref: string) => !follows || within(ref);
+  const listed = useMemo(() => listedRefs(state.listed, state), [state]);
+  const listedHere = (ref: string) => !listed || listed.has(ref);
 
   const toggle = (id: string) => {
     // From what is open now, not from the last render: two sections opened before it are both kept.
@@ -333,41 +334,32 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
 
   return (
     <nav className="refs" aria-label="References">
-      {(names >= FILTER_FROM || filter) && (
-        <div className="refs-filter">
-          <Icon name="filter" />
-          <input
-            type="text"
-            value={filter}
-            aria-label="Filter branches, tags and stashes"
-            placeholder="Filter branches and tags"
-            onChange={(event) => setFilter(event.target.value)}
-            onKeyDown={(event) => event.key === 'Escape' && setFilter('')}
-          />
-          {filter && (
-            <button className="clear" onClick={() => setFilter('')} aria-label="Clear the filter" title="Clear the filter">
-              <Icon name="close" />
-            </button>
-          )}
-        </div>
-      )}
-      {scoped && (
-        <div
-          className="refs-scope"
-          role="status"
-          title={follows ? 'Only the branches the graph is narrowed to are listed' : 'The graph is narrowed to these: the others are dimmed'}
-        >
+      <div className="refs-top">
+        {(names >= FILTER_FROM || filter) && (
+          <div className="refs-filter">
+            <Icon name="filter" />
+            <input
+              type="text"
+              value={filter}
+              aria-label="Filter branches, tags and stashes"
+              placeholder="Filter branches and tags"
+              onChange={(event) => setFilter(event.target.value)}
+              onKeyDown={(event) => event.key === 'Escape' && setFilter('')}
+            />
+            {filter && (
+              <button className="clear" onClick={() => setFilter('')} aria-label="Clear the filter" title="Clear the filter">
+                <Icon name="close" />
+              </button>
+            )}
+          </div>
+        )}
+        <ListFilterButton state={state} />
+      </div>
+      {state.listed && (
+        <div className="refs-scope" role="status" title="Listed as the funnel above says, whatever the graph shows">
           <Icon name="filter-filled" />
-          <span className="grow">{scopeLabel(state.scope)}</span>
-          <button
-            className="follow"
-            onClick={() => post({ type: 'setBranchesFollowScope', follow: !follows })}
-            title={follows ? 'List all the branches here, the ones not in the graph dimmed' : 'List only the branches in the graph here'}
-            aria-label={follows ? 'List all the branches here' : 'List only the branches in the graph here'}
-          >
-            <Icon name={follows ? 'list-flat' : 'list-filter'} />
-          </button>
-          <button className="link" onClick={() => post({ type: 'setScope', scope: null })}>
+          <span className="grow">{scopeLabel(state.listed)}</span>
+          <button className="link" onClick={() => post({ type: 'setListed', listed: null })}>
             Show all
           </button>
         </div>
@@ -375,7 +367,8 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
       {section('favorites', 'Favorites', 'star-full', favoriteItems, true)}
       {section('recent', 'Recent', 'history', recentItems, true)}
       {section('branches', 'Local', 'git-branch', branches, false, sorting('branches'))}
-      {section('remotes', 'Remotes', 'cloud', remotes, false, sorting('remote branches'))}
+      {/* While the filter of the list lists some references only, a list it leaves empty is left out (Q415). */}
+      {section('remotes', 'Remotes', 'cloud', remotes, !!state.listed, sorting('remote branches'))}
       {section(
         'tags',
         'Tags',
@@ -389,7 +382,7 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
             label: ref.name,
             menu: () => tagMenu(ref, state, onCompare, onReveal),
           })),
-        false,
+        !!state.listed,
         sorting('tags'),
       )}
       {section(

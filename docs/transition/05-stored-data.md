@@ -60,8 +60,9 @@ The webviews' own state (widths, folds, drafts, which groups are open) does not 
 Gitardo Desktop keeps one more key of its own in `state.json` since milestone M13: `branchesListed`, for each repository
 folder what its branch rail lists by its own filter (`refs.listed`), in the shape of `branchesShown` (a preset by its
 name, the kinds listed, or the full names ticked), kept apart from it and for the 20 repositories chosen last; nothing
-is kept for a repository whose rail lists everything. The extension's references get their own filter in phase 3 of
-M13, with a key of its own in the workspace state.
+is kept for a repository whose rail lists everything. The extension's references have their own filter since phase 3
+of M13, kept under `gitardo.branchesListed` in the workspace state, in the shape of `gitardo.scope`; the engine reads
+neither, since what the references list is drawn by the webviews alone.
 
 ## Files in `.git` and in the temporary folder
 

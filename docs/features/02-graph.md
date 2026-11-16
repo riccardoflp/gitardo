@@ -980,6 +980,12 @@ worktrees, the tags and the submodules: in lists that fold, on the left of the w
   `filter.show-all`, `graph.show-in-graph`,
   `graph.hover-history`, `graph.pull-request-badge`, `branch.open`, `drag.drop`, `branch.`, `tag.`, `stash.`,
   `worktree.`, `submodule.`.
+- **Extension**: the references beside the graph and in the Branches view (`RefsTree` in `src/webview/RefsTree.tsx`).
+  They list what their own filter lists (`refs.listed`), whatever the graph is narrowed to, the branches it leaves out
+  dimmed (`filter.list-too`). A click on a branch selects its tip in the graph and narrows nothing, as it did before;
+  **Show only this history** in its menu narrows the graph, and the references stay as they were. Tested by
+  `test/e2e/ui.mjs`, step "the branches list the favorites and the ones checked out last first, all of them whatever
+  the graph is narrowed to, what their own filter chooses, and can be put away; the status bar opens the graph".
 
 - Lists, in this order: **Favorites** and **Recent** (each only when it has something), **Local**, then one list for
   each remote, under a heading that is the remote's name (**ORIGIN**, **UPSTREAM**), with its branches; then **Kept
@@ -1057,8 +1063,10 @@ While the filter of the branch rail lists less than everything, a line at the to
 - **Function**: `views::refs::scope_line_view(state: &ScopeLine, ui) -> Vec<Intent>`
 - **Entry points**: the top of the branch rail, while its own filter lists less than everything (`refs.list-filter`).
 - **Uses**: `refs.list-filter`, `filter.label`.
-- **Extension**: until phase 3 of M13, the line follows the graph's filter while `gitardo.branches.followGraphFilter`
-  is on, as it did before [D51](../08-decisions.md#d51--the-branch-rail-has-a-filter-of-its-own).
+- **Extension**: the line above the names of the references, with the funnel's label (`scopeLabel` of
+  `src/shared/scope.ts`) and **Show all**, which sends `setListed` with nothing; what the graph is narrowed to is said in
+  the bar above its commits. Tested by `test/e2e/ui.mjs`, step "the branches list the favorites and the ones checked out last first, all of them whatever
+  the graph is narrowed to, what their own filter chooses, and can be put away; the status bar opens the graph".
 
 The line says what the rail lists, as the button of its filter does (`Local`, `main +2`), and its **Show all** lists
 everything again: the filter of the rail goes back to all. What the timeline is narrowed to is never said here: the
@@ -1081,7 +1089,14 @@ The branch rail's own filter: which branches, remote branches and tags it lists,
   (`branch.pane`), and in the narrow layout at the top of its icons; **Filter the Branch Rail** in Quick search.
 - **Uses**: `filter.picker`, `filter.preset`, `filter.tick`, `filter.kinds`, `filter.rank-names`, `filter.label`,
   `refs.listed`, `refs.scope-line`.
-- **Extension**: until phase 3 of M13, the references have no filter of their own.
+- **Extension**: the funnel at the end of the top row of the references, after the box that finds a name, beside the
+  graph and in the Branches view (`ListFilterButton` in `src/webview/ScopeButton.tsx`). It opens the list of the
+  branches shown in the graph, titled **Branches listed**, over the references alone, with the three check boxes at its
+  bottom, greyed out with **Chosen in the filter** as Q416 says. Its tooltip is `Branches listed here: <label>`. No
+  command, as the branches shown have none. Tested by `test/e2e/ui.mjs`, step "the branches list the favorites and the ones checked out last first, all of them whatever
+  the graph is narrowed to, what their own filter chooses, and can be put away; the status bar opens the graph"; `test/e2e/suite.ts`, step "lists in the references what their own filter chooses, kept for each repository, and
+  the branches shown in the graph and it never change each other"; `test/scope.test.ts`, "refs.list-filter: the
+  kinds listed are switched one at a time, all three are everything, and the last one stays".
 
 The button opens the picker of the timeline's branch filter (`filter.picker`) titled **Branches listed**, over the rail
 alone: the presets **All**, **Current**, **Upstream**, **Local** and **Remotes**, the box that finds a branch, the
@@ -1105,8 +1120,12 @@ What the branch rail lists from the choice of its own filter, and that choice ke
 - **Kind**: Derivation
 - **Function**: `model::filter::rail::listed(choice: &Choice, references: &References) -> Listed`
 - **Uses**: `filter.preset`, `filter.tick`, `filter.kinds`, `filter.remember`.
-- **Extension**: until phase 3 of M13, the references list what the graph shows while
-  `gitardo.branches.followGraphFilter` is on.
+- **Extension**: `listedRefs` of `src/shared/scope.ts`, the rules of `model::filter::rail::listed` ported to
+  TypeScript, over the `Scope` the branches shown are made of. The choice is kept for each repository in the workspace
+  state under `gitardo.branchesListed` (`Controller.setListed`), and is sent to the views as `RepoState.listed` without
+  the references gone since (`Controller.listedIn`), which is not written again then (Q414). Tested by
+  `test/scope.test.ts`, the tests that start "refs.listed:"; `test/e2e/suite.ts`, step "lists in the references what their own filter chooses, kept for each repository, and
+  the branches shown in the graph and it never change each other".
 
 - **All** lists every branch, remote branch and tag; **Current** the branch checked out and its upstream; **Upstream**
   the branch checked out, its upstream and the branch it was made from when git says so, as `filter.preset` says;

@@ -20,6 +20,7 @@ import { submoduleFolder } from '../shared/submodules';
 import { subjectAndBody } from '../shared/message';
 import { checkedOutBranch, operationName, worktreeBranch } from '../shared/state';
 import { groupRepositories } from '../shared/repositoryGroups';
+import { pruneScope } from '../shared/scope';
 import { Activity } from './activity';
 import { type KeptRepository, KeptRepositories } from './keptRepositories';
 import { FileIcons } from './fileIcons';
@@ -90,6 +91,8 @@ const WORKING_SOURCES = new Set<DiffSource['kind']>(['staged', 'unstaged', 'chan
 const REPO_KEY = 'gitardo.repository';
 /** The branches chosen for the graph of each repository, by its folder. */
 const SCOPE_KEY = 'gitardo.scope';
+/** What the references of each repository list, by its folder, as their own filter says, apart from `SCOPE_KEY`. */
+const LISTED_KEY = 'gitardo.branchesListed';
 /** How the files of a commit are laid out in its tab: as a tree until a list is asked for. */
 const FILES_KEY = 'gitardo.commitFiles';
 /** The favorite branches of each repository of the workspace. */
@@ -462,7 +465,7 @@ export class Controller implements vscode.Disposable {
           undo: await this.newestInJournal(state.root),
           worktreesRoot: worktreesFolder(state),
           openBranches: vscode.workspace.getConfiguration('gitardo').get('branches.openIn') === 'worktree' ? 'worktree' : 'checkout',
-          branchesFollowScope: vscode.workspace.getConfiguration('gitardo').get('branches.followGraphFilter') !== false,
+          listed: this.listedIn(state),
           sortOrder: sort,
           traceSelected: vscode.workspace.getConfiguration('gitardo').get('graph.traceSelected') !== false,
           graphColumns: graphColumns(),
@@ -726,6 +729,28 @@ export class Controller implements vscode.Disposable {
     const known = new Set([...state.branches.map((branch) => `refs/heads/${branch.name}`), ...state.remoteBranches.map((ref) => `refs/remotes/${ref.name}`)]);
     const stored: unknown = this.memento.get<Record<string, unknown>>(FAVORITES_KEY, {})[state.root];
     return Array.isArray(stored) ? stored.filter((ref): ref is string => typeof ref === 'string' && known.has(ref)) : [];
+  }
+
+  /**
+   * What the references of a repository list, as their own filter was last set there (`refs.listed`), without the
+   * references gone since: null, everything, once none of those ticked is left. What is kept is written again only when
+   * the choice changes.
+   */
+  private listedIn(state: Pick<RepoState, 'root' | 'head' | 'branches' | 'remoteBranches' | 'tags'>): Scope | null {
+    return pruneScope(this.memento.get<Record<string, unknown>>(LISTED_KEY, {})[state.root], state);
+  }
+
+  /**
+   * Chooses what the references list, in the repository shown, apart from the branches shown in the graph
+   * (`refs.list-filter`). Nothing is read: the views are told at once.
+   */
+  async setListed(listed: unknown): Promise<void> {
+    const state = await this.requireState();
+    if (!state) return;
+    const kept = pruneScope(listed, state);
+    const others = Object.fromEntries(Object.entries(this.memento.get<Record<string, unknown>>(LISTED_KEY, {})).filter(([root]) => root !== state.root));
+    await this.memento.update(LISTED_KEY, kept ? { ...others, [state.root]: kept } : others);
+    if (this.state?.root === state.root) this.setState({ ...this.state, listed: kept });
   }
 
   /** Marks a branch as a favorite, or no longer. Nothing of the repository changes: the views are told at once. */
@@ -2433,9 +2458,8 @@ export class Controller implements vscode.Disposable {
         return this.setFilter(message.filter);
       case 'setScope':
         return this.setScope(message.scope);
-      case 'setBranchesFollowScope':
-        // For the user wherever they work. The views are told when the settings change.
-        return vscode.workspace.getConfiguration('gitardo').update('branches.followGraphFilter', message.follow === true, vscode.ConfigurationTarget.Global);
+      case 'setListed':
+        return this.setListed(message.listed);
       case 'setShowStashes':
         return vscode.workspace.getConfiguration('gitardo').update('graph.showStashes', message.show === true, vscode.ConfigurationTarget.Global);
       case 'setDateSeparators':

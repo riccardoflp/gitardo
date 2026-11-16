@@ -451,9 +451,11 @@ dimmed there, and one of them can be added to the timeline from its row.
 - **Function**: `views::filter::list_too_view(state: &ListToo, ui) -> Vec<Intent>`: the eye at the end of a dimmed row
 - **Entry points**: the rows of the branch rail while the timeline is narrowed.
 - **Uses**: `filter.show-too`, `refs.list-filter`.
-- **Extension**: until phase 3 of M13, **Filter the list of branches too** at the bottom of the branch filter and the
-  switch above the references set `gitardo.branches.followGraphFilter`, and with it on the references list only the
-  branches the graph shows.
+- **Extension**: the branches the graph leaves out are dimmed in the references, say **Not shown in the graph**, and
+  have the eye that adds them to it. **Filter the list of branches too** and the switch above the references are gone,
+  and `gitardo.branches.followGraphFilter` is not read; `RepoState.branchesFollowScope` and its message are retired.
+  Tested by `test/e2e/ui.mjs`, step "the branches list the favorites and the ones checked out last first, all of them whatever
+  the graph is narrowed to, what their own filter chooses, and can be put away; the status bar opens the graph".
 
 While the timeline is narrowed, a branch, a remote branch or a tag of the rail that the timeline leaves out is dimmed,
 says **Not shown in the timeline** in its tooltip, and has an eye at the end of its row, under the pointer, that adds

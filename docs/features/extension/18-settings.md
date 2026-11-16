@@ -58,7 +58,7 @@ Acceptance:
 | `gitardo.graph.firstParent` | `false` | window | Follow only the first parent of merges. | Graph (no cards yet) |
 | `gitardo.graph.traceSelected` | `true` | window | Bring out the history of the selected commit. | Graph (no cards yet) |
 | `gitardo.branches.sortOrder` | not set | window | `name` or `date`; not set, VS Code's `git.branchSortOrder` decides, and by name without it. Written by the sections' menu. | `branch.sort` |
-| `gitardo.branches.followGraphFilter` | `true` | window | The references list only the branches shown. Written by the switch above the references. | Search and filter (no cards yet) |
+| `gitardo.branches.followGraphFilter` | `true` | window | Not read since [D51](../../08-decisions.md#d51--the-branch-rail-has-a-filter-of-its-own): the references have a filter of their own. Kept by its name, marked as no longer read, so that a file that sets it is no error. | `refs.list-filter`, `filter.list-too` |
 | `gitardo.branches.format` | `""` | window | A format for the names of new branches. | `branch.name-format`, `branch.create`, `worktree.create` |
 | `gitardo.branches.inputs` | `[]` | window | What each `${input:<id>}` of the format asks. | `branch.name-format`, `branch.create`, `worktree.create` |
 | `gitardo.worktrees.openIn` | `window` | window | Where a worktree opens: a new window or the Agents window. | `worktree.open`, `worktree.open-in-worktree`, `worktree.switch` |

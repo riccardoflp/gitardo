@@ -1550,7 +1550,7 @@ try {
     await graph.click('.detail .close');
   });
 
-  await step('the branches list the favorites and the ones checked out last first, only the ones the graph is narrowed to, and can be put away; the status bar opens the graph', async () => {
+  await step('the branches list the favorites and the ones checked out last first, all of them whatever the graph is narrowed to, what their own filter chooses, and can be put away; the status bar opens the graph', async () => {
     const graph = await webview('graph');
     // The sections that come here, as the favorites, start closed: they are opened to read them.
     const sections = async (view) => {
@@ -1591,18 +1591,48 @@ try {
     const side = await webview('branches');
     await until('the favorites in the side bar', async () => (await sections(side)).favorites?.join() === 'merged');
 
-    // Narrowed to a branch, the graph leaves only that one here too, and says so with the way back.
+    // Narrowed to a branch, the graph leaves every branch here, the ones it leaves out dimmed, and no line above them.
+    const dimmed = () => graph.evaluate(`[...document.querySelectorAll('.refs section[data-section="branches"] .ref.outside .grow')].map((ref) => ref.textContent)`);
     await menuOf('feature');
     await graph.click('[role="menuitem"]', 'Show only this history');
-    const narrowed = await until('only the branch shown', async () => {
-      const now = await sections(graph);
-      return now.branches.join() === 'feature' ? now : null;
-    });
-    assert(narrowed.recent.join() === 'feature' && !('favorites' in narrowed) && !narrowed.remotes.length, `narrowed: ${JSON.stringify(narrowed)}`);
-    assert((await graph.evaluate(`document.querySelector('.refs-scope .grow').textContent`)) === 'feature', 'the references say what they are narrowed to');
+    await until('main dimmed', async () => (await dimmed()).includes('main'));
+    const narrowed = await sections(graph);
+    assert(narrowed.branches.includes('main') && narrowed.branches.includes('feature') && narrowed.remotes.length, `narrowed: ${JSON.stringify(narrowed)}`);
+    assert(!(await dimmed()).includes('feature'), 'the branch shown is not dimmed');
+    assert(!(await graph.evaluate(`!!document.querySelector('.refs-scope')`)), 'no line while only the graph is narrowed');
     await shot('branches-narrowed');
+    // The branch filter of the graph has no switch for the list of branches any more.
+    await graph.click('.button.scope');
+    await until('the list of the graph', () => graph.evaluate(`!!document.querySelector('.scope-picker')`));
+    assert(!(await graph.evaluate(`document.querySelector('.scope-picker').textContent.includes('Filter the list of branches too')`)), 'no switch for the list');
+    await graph.click('.scope-picker .quick button', 'All');
+    await key('Escape');
+    await until('nothing dimmed', async () => (await dimmed()).length === 0);
+
+    // The funnel of the references: Local lists no remote branch, and the graph still shows every branch.
+    const rows = () => graph.evaluate(`document.querySelectorAll('.commits .row').length`);
+    const before = await rows();
+    await graph.click('.refs-top .list-filter');
+    await until('the list of the references', () => graph.evaluate(`document.querySelector('.list-filter-picker .title')?.textContent === 'Branches listed'`));
+    await shot('branches-listed');
+    await graph.click('.list-filter-picker .quick button', 'Local');
+    const local = await until('only the local branches listed', async () => {
+      const now = await sections(graph);
+      return !('remotes' in now) && !('tags' in now) ? now : null;
+    });
+    assert(local.branches.includes('main') && local.branches.includes('feature'), `listed: ${JSON.stringify(local)}`);
+    assert(
+      await graph.evaluate(`[...document.querySelectorAll('.list-filter-picker .kinds input')].map((box) => box.checked).join() === 'true,false,false'`),
+      'the kinds checked as the filter lists them',
+    );
+    await key('Escape');
+    assert((await graph.evaluate(`document.querySelector('.refs-scope .grow').textContent`)) === 'Local branches', 'the line says what is listed');
+    assert(await graph.evaluate(`document.querySelector('.refs-top .list-filter').getAttribute('aria-pressed') === 'true'`), 'the funnel is pressed in');
+    assert((await graph.evaluate(`document.querySelector('.button.scope').classList.contains('on')`)) === false, 'the graph is not narrowed');
+    assert((await rows()) === before, 'the graph shows what it showed');
+    await shot('branches-listed-local');
     await graph.click('.refs-scope button.link');
-    await until('all the branches again', async () => (await sections(graph)).branches.includes('main'));
+    await until('the remote branches listed again', async () => 'remotes' in (await sections(graph)));
     assert((await menuOf('merged')).includes('Remove from favorites'), 'a favorite can be taken out');
     await graph.click('[role="menuitem"]', 'Remove from favorites');
     await until('no favorites', async () => !('favorites' in (await sections(graph))));

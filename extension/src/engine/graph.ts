@@ -103,7 +103,7 @@ export async function graphState(client: EngineClient, root: string, parts: Repo
     dateSeparators: true,
     combineUpstream: true,
     traceSelected: true,
-    branchesFollowScope: true,
+    listed: null,
     sortOrder: 'name',
     resolveWithAI: false,
     home: null,

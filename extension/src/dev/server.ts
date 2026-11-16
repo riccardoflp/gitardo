@@ -10,6 +10,7 @@ import { engineSettings } from '../engine/settings';
 import { parseGitHubRemote } from '../shared/github';
 import { samePath } from '../shared/paths';
 import { groupRepositories } from '../shared/repositoryGroups';
+import { pruneScope } from '../shared/scope';
 import type { Conflict } from '../shared/conflicts';
 import { CONFLICT_SIDES } from '../shared/conflicts';
 import { fingerprint, reviewFiles, type Answer } from '../shared/review';
@@ -227,8 +228,8 @@ async function main() {
   let limit = PAGE_SIZE;
   let filter: Filter | null = null;
   let scope: Scope | null = null;
-  /** What `gitardo.branches.followGraphFilter` and the settings of the graph would say, kept while the server runs. */
-  let branchesFollowScope = true;
+  /** What the references of each repository list, by its folder, and what the settings of the graph would say, kept while the server runs. */
+  const listed = new Map<string, Scope>();
   let showStashes = true;
   let traceSelected = true;
   let firstParent = false;
@@ -348,7 +349,7 @@ async function main() {
     scope = read.scope;
     worktrees = read.worktrees.filter((worktree) => !worktree.isMissing).map((worktree) => worktree.folder);
     const away = inRoots(read.root) ? null : home;
-    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', branchesFollowScope, sortOrder: branchSort, traceSelected, graphColumns, dateSeparators, combineUpstream, resolveWithAI: true, home: away, keepOpen: false } }];
+    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', listed: pruneScope(listed.get(read.root), read), sortOrder: branchSort, traceSelected, graphColumns, dateSeparators, combineUpstream, resolveWithAI: true, home: away, keepOpen: false } }];
   }
 
   /** `light` for a page in the light theme, which can have other file icons. */
@@ -373,8 +374,10 @@ async function main() {
         scope = message.scope;
         limit = PAGE_SIZE;
         return state();
-      case 'setBranchesFollowScope':
-        branchesFollowScope = message.follow === true;
+      case 'setListed':
+        if (!repo) return [];
+        if (message.listed) listed.set(repo.root, message.listed);
+        else listed.delete(repo.root);
         return state();
       case 'setShowStashes':
         showStashes = message.show === true;
