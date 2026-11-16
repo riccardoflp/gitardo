@@ -298,7 +298,7 @@ says what is shown and opens the list to choose from.
 - **Function**: `views::filter::picker_view(state: &BranchPicker, ui) -> Vec<Intent>`
 - **Entry points**: the button of the branches shown, at the top of the timeline before the search box, with the icon
   of three lines that get shorter; in the narrow layout, the icon alone.
-- **Uses**: `filter.preset`, `filter.tick`, `filter.rank-names`, `filter.list-too`, `filter.label`.
+- **Uses**: `filter.preset`, `filter.tick`, `filter.rank-names`, `filter.label`; by `refs.list-filter`.
 
 - The button says what is shown (`filter.label`), the first name and `+2` apart when several are ticked, so that the
   count stays when the name is cut; its tooltip is `Branches shown in the timeline: <what>`. It is pressed in while the
@@ -323,7 +323,8 @@ says what is shown and opens the list to choose from.
   `refs.sort`, the branch checked out marked; the ticks are those of what is shown now (`filter.tick`). The timeline
   changes as they are ticked; a second tick does not wait for the timeline to show the first. With no name left it says
   **No branch or tag has that in its name**, and in a repository with none **No branches or tags yet**.
-- At the bottom, **Filter the list of branches too** (`filter.list-too`).
+- Nothing at the bottom since D51: the branch rail has a filter of its own (`refs.list-filter`), which shows this
+  list over the rail, titled **Branches listed**, with three check boxes of kinds at its bottom.
 
 Acceptance:
 
