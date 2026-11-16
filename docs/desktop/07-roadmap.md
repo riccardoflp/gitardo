@@ -152,6 +152,34 @@ Exit: a click on any branch of the rail never takes another out of it; the filte
 change each other, in either app; each repository keeps its own choice of both after the window opens again; every card
 of the phase passes its tests, and the snapshots of the rail match.
 
+## M14 — The window keeps its sides
+
+The parts of the window stay where they are while files are read, a terminal and the Command log share a panel under
+the timeline, the icons are the ones other applications use, and the extension can have islands
+([D53](../08-decisions.md#d53--pages-beside-the-inspector-a-bottom-panel-the-icons-of-lucide-islands-in-the-extension)).
+Built in six phases, each one commit or more, each ending with its cards built and their tests passing; the
+extension comes last.
+
+1. **Whole rows dimmed.** The rows a history brought out leaves out are dimmed whole, as in the extension. Cards:
+   `graph.hover-history`, `graph.trace-selected`.
+2. **Pages beside what opened them.** A file of the inspector opens its Diff page in place of the timeline only, the
+   inspector staying beside it and moving the page from file to file; a file of the Files page opens on the right of
+   its tree. Cards: `diff.beside-inspector`, `file-view.beside-files`.
+3. **The bottom panel.** Its island, its tabs, its height, `` Ctrl+` ``; the Command log moved into it from the
+   Activity drawer, and **Terminal** in the bar of views. Cards: `panel.bottom`, `log.show`,
+   `activity.what-is-running`, `graph.view-bar`.
+4. **The terminal.** A shell in the folder of the repository shown, several at once, in the panel. Cards:
+   `terminal.view`.
+5. **The icons of Lucide.** Every icon of the window from Lucide's outlines, one meaning each, every button looked at
+   again. Cards: `graph.icons`.
+6. **The extension.** `gitardo.graph.islands` in the Graph view. Cards: `graph.islands` in the extension.
+
+Exit: selecting a commit dims the message of every row it does not reach; every file of a commit can be opened one after
+the other from the inspector, which never closes; a file opened from the Files page leaves its tree on the left;
+`git status` typed in the terminal of the panel prints in color, and the pager of `git log` runs there; no icon of the
+window means two things; with `gitardo.graph.islands` on, the Graph view of the extension is three islands; every card of the
+phase passes its tests, and the snapshots of the window match.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

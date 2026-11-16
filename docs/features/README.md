@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 430 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 435 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -18,7 +18,7 @@ earns it.
 | File | Area | Cards |
 | --- | --- | --- |
 | [01-repositories.md](01-repositories.md) | Repositories | 27 |
-| [02-graph.md](02-graph.md) | Graph | 43 |
+| [02-graph.md](02-graph.md) | Graph | 46 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 21 |
@@ -33,7 +33,7 @@ earns it.
 | [14-patches.md](14-patches.md) | Patches | 7 |
 | [15-github.md](15-github.md) | GitHub | 6 |
 | [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 6 |
-| [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 39 |
+| [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 41 |
 | [18-settings.md](18-settings.md) | Settings | 3 |
 
 ## Repositories
@@ -77,8 +77,11 @@ earns it.
 | [`graph.view`](02-graph.md#graphview--the-timeline) | The timeline | View | Built | Built |
 | [`graph.toolbar`](02-graph.md#graphtoolbar--the-header) | The header | View | Built | Built |
 | [`graph.search-button`](02-graph.md#graphsearch-button--the-button-of-quick-search) | The button of Quick search | View | Built | Host only |
-| [`graph.islands`](02-graph.md#graphislands--the-islands-of-the-window) | The islands of the window | View | Built | Host only |
-| [`graph.view-bar`](02-graph.md#graphview-bar--the-bar-of-views) | The bar of views | View | Built | Host only |
+| [`graph.islands`](02-graph.md#graphislands--the-islands-of-the-window) | The islands of the window | View | Built | Planned |
+| [`graph.view-bar`](02-graph.md#graphview-bar--the-bar-of-views) | The bar of views | View | Specified | Host only |
+| [`panel.bottom`](02-graph.md#panelbottom--the-bottom-panel) | The bottom panel | View | Specified | Host only |
+| [`terminal.view`](02-graph.md#terminalview--a-terminal-in-the-bottom-panel) | A terminal in the bottom panel | View | Specified | Host only |
+| [`graph.icons`](02-graph.md#graphicons--the-icons-of-the-window) | The icons of the window | View | Specified | Host only |
 | [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Built | Built |
 | [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Built | Built |
 | [`graph.lanes`](02-graph.md#graphlanes--lay-out-the-lines-of-the-graph) | Lay out the lines of the graph | Derivation | Built | Built |
@@ -509,6 +512,7 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`diff.page`](17-diff-and-merge-views.md#diffpage--the-diff-page) | The Diff page | View | Built | Built |
+| [`diff.beside-inspector`](17-diff-and-merge-views.md#diffbeside-inspector--files-of-a-commit-read-beside-the-inspector) | Files of a commit read beside the inspector | View | Specified | Host only |
 | [`diff.read-sides`](17-diff-and-merge-views.md#diffread-sides--the-two-versions-of-a-file) | The two versions of a file | Read | Built | Built |
 | [`diff.line-diff`](17-diff-and-merge-views.md#diffline-diff--the-lines-that-changed) | The lines that changed | Derivation | Built | Built |
 | [`diff.word-diff`](17-diff-and-merge-views.md#diffword-diff--the-words-that-changed-in-a-line) | The words that changed in a line | Derivation | Built | Built |
@@ -540,6 +544,7 @@ earns it.
 | [`merge-view.mark-resolved`](17-diff-and-merge-views.md#merge-viewmark-resolved--mark-as-resolved) | Mark as resolved | Operation | Built | Built |
 | [`merge-view.close`](17-diff-and-merge-views.md#merge-viewclose--closing-with-unsaved-changes) | Closing with unsaved changes | View | Built | Built |
 | [`file-view.page`](17-diff-and-merge-views.md#file-viewpage--the-file-page) | The File page | View | Built | Host only |
+| [`file-view.beside-files`](17-diff-and-merge-views.md#file-viewbeside-files--a-file-opened-beside-the-tree-of-the-files-page) | A file opened beside the tree of the Files page | View | Specified | Host only |
 | [`file-view.read-revision`](17-diff-and-merge-views.md#file-viewread-revision--a-file-at-a-revision) | A file at a revision | Read | Built | Built |
 | [`file-view.edit`](17-diff-and-merge-views.md#file-viewedit--editing-a-file) | Editing a file | View | Built | Host only |
 | [`file-view.save`](17-diff-and-merge-views.md#file-viewsave--save) | Save | Operation | Built | Host only |

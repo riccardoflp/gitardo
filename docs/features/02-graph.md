@@ -165,7 +165,15 @@ the window.
 - **Kind**: View
 - **Function**: `views::island(ui: &mut Ui, rect: Rect, inside: impl FnOnce(&mut Ui) -> R) -> R`
 - **Entry points**: the whole window.
+- **Settings**: `gitardo.graph.islands`, in the extension only, off by default.
 - **Uses**: `graph.view-bar`, `graph.toolbar`, `activity.status-bar`, `graph.resize-panes`.
+- **Extension**: with `gitardo.graph.islands` on, the references, the commits and the details of the Graph view are each
+  an island, on a ground one step darker than the panel's background in the dark themes and one step deeper in the
+  light ones, with the radius and the border of VS Code's widgets and a gap of 8 pixels between them, 4 in a panel
+  narrower than 900 pixels; the gap is the line dragged to resize them, and the details under the commits in a narrow
+  panel are an island too. The toolbar stays above them, on the ground. Off, the view is as it was. The other views
+  keep their look
+  ([D53](../08-decisions.md#d53--pages-beside-the-inspector-a-bottom-panel-the-icons-of-lucide-islands-in-the-extension)).
 
 The ground is one step darker than the islands in the dark themes and one step deeper in the light ones; each island
 has the radius of a dialog and a border, with a gap of 8 pixels between islands, 4 when the window is narrow. In the
@@ -179,6 +187,9 @@ Acceptance:
 - [ ] In the dark theme, the ground between the rail and the timeline is darker than both.
 - [ ] The corners of the inspector are the ground of the window, whatever is drawn in it.
 - [ ] In a window narrower than 900 pixels the gap is 4 pixels.
+- [ ] Extension: with `gitardo.graph.islands` on, the references, the commits and the details are three islands with
+      a gap between them, and dragging the gap between the commits and the details changes their widths.
+- [ ] Extension: with `gitardo.graph.islands` off, the Graph view has no gap and no rounded corners.
 
 ### `graph.view-bar` — The bar of views
 
@@ -187,13 +198,15 @@ A column of icons on the left edge of the window, each the way to a place of it.
 - **Kind**: View
 - **Function**: `views::view_bar_view(state: &ViewBarState, ui) -> Vec<Intent>`
 - **Entry points**: the left edge of the window.
-- **Uses**: `graph.view`, `changes.pane`, `compare.choose`, `activity.what-is-running`, `settings.edit`.
+- **Uses**: `graph.view`, `changes.pane`, `compare.choose`, `panel.bottom`, `activity.what-is-running`,
+  `settings.edit`.
 
 From the top: **Timeline**, which comes back to the timeline (`graph.view`); **Changes**, with the number of changed
 files on it, which opens the Changes page (`changes.pane`); **Files**, which opens the Files page; **Compare**, which
-asks what to compare (`compare.choose`); and at its foot **Activity**, which opens and closes the Activity drawer
-(`activity.what-is-running`), and **Settings**, which opens the settings page (`settings.edit`). The place shown is
-marked with the ground of an island; **Activity** is marked while the drawer is open. Each says its name in its
+asks what to compare (`compare.choose`); and at its foot **Terminal**, which shows and hides the bottom panel
+(`panel.bottom`), **Activity**, which opens and closes the Activity drawer (`activity.what-is-running`), and
+**Settings**, which opens the settings page (`settings.edit`). The place shown is marked with the ground of an island;
+**Terminal** is marked while the bottom panel is shown, **Activity** while the drawer is open. Each says its name in its
 tooltip. Before a repository is read only **Activity** and **Settings** can be clicked
 ([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)).
 
@@ -202,7 +215,146 @@ Acceptance:
 - [ ] With three changed files, **Changes** shows `3`; with none, no number.
 - [ ] A click on **Changes** opens the Changes page and marks **Changes**; a click on **Timeline** comes back.
 - [ ] A click on **Activity** opens the Activity drawer, and another closes it.
-- [ ] With no repository read, **Timeline**, **Changes**, **Files** and **Compare** cannot be clicked.
+- [ ] A click on **Terminal** shows the bottom panel, and another hides it.
+- [ ] With no repository read, **Timeline**, **Changes**, **Files**, **Compare** and **Terminal** cannot be clicked.
+
+### `panel.bottom` — The bottom panel
+
+An island under the timeline and the inspector, or the page shown, with the terminals and the Command log, each in a
+tab of its own.
+
+- **Kind**: View
+- **Function**: `views::panel::bottom_view(state: &BottomPanelState, ui) -> Vec<Intent>`
+- **Entry points**: `` Ctrl+` `` (`` Cmd+` `` on macOS), which shows the panel at its terminal, or hides it when it has
+  the focus; **Terminal** in the bar of views (`graph.view-bar`); **Show Terminal** and **Show Command Log** in Quick
+  search; **Show the commands Gitardo runs** in the Activity drawer (`activity.what-is-running`).
+- **Uses**: `terminal.view`, `log.show`, `graph.islands`, `graph.resize-panes`.
+- **Extension**: VS Code's own panel, with its terminals and the output channel **Gitardo**: nothing to build.
+
+- The panel is an island of its own, as wide as the timeline and the inspector together, or as the page shown, above
+  the status bar; the branch rail keeps its whole height beside it. Hidden, it leaves its room to the islands above.
+- At its top, on the left, its tabs: **Terminal** and **Command log**; the one shown is marked. On the right, with
+  **Terminal** shown: **New terminal**, the list of the terminals when there are more than one, each named by its
+  shell and numbered, and **Kill the terminal**; then, always, **Hide the panel**, which hides it and stops nothing.
+- The gap above it is the line dragged to change its height: it starts at 240 px, never less than 100 px nor more than
+  70% of the window, and a double click gives it 240 px again. In the narrow layout the gap is 4 px, as between the
+  other islands.
+- Whether it is shown, its height and the tab shown are the window's, remembered for the workspace; the terminals are
+  each repository tab's (Q418).
+
+Acceptance:
+
+- [ ] `` Ctrl+` `` shows the panel at the terminal, with the focus in it; pressed again there, it hides the panel.
+- [ ] **Show the commands Gitardo runs** in the Activity drawer shows the panel at the Command log.
+- [ ] The height dragged to 300 px is there after the window is closed and opened again on the same workspace.
+- [ ] **Hide the panel** while a command runs in the terminal leaves it running: shown again, its output has grown.
+
+### `terminal.view` — A terminal in the bottom panel
+
+A shell in the folder of the repository shown, inside the window, with the colors and the keys of a terminal.
+
+- **Kind**: View
+- **Function**: `views::terminal::terminal_view(state: &TerminalState, ui) -> Vec<Intent>`
+- **Entry points**: **Terminal** in the bottom panel (`panel.bottom`), which starts one when there is none; **New
+  terminal** there; `` Ctrl+Shift+` ``; **New Terminal** in Quick search.
+- **Settings**: `terminal.shellPath` (empty: PowerShell 7 on Windows when it is installed, else Windows PowerShell; the
+  shell of `SHELL` on Linux and macOS), `terminal.scrollbackLines` (10,000 lines), `editor.fontFamily` and
+  `editor.fontSize`.
+- **Uses**: `panel.bottom`, `repo.watch-changes`.
+
+- A terminal starts the shell in the folder of the repository tab shown, the worktree shown in it, through a
+  pseudo-terminal of the system (ConPTY on Windows), with `TERM=xterm-256color`, so that what git and other programs
+  print has its colors and a program that draws the whole screen (an editor, a pager) works there.
+- What it prints is drawn in the font of the editor, with the 16 colors of the theme's terminal palette, 256 colors and
+  24-bit colors, bold, italic, underline and the cursor; it scrolls back as far as `terminal.scrollbackLines` keeps.
+- The keys go to the shell, `Ctrl+C` included, but for those of the window: `` Ctrl+` ``, `Ctrl+Tab`, `Ctrl+K`, and
+  `Ctrl+Shift+C` and `Ctrl+Shift+V`, which copy what is selected and paste. With text selected, `Ctrl+C` copies it
+  instead. Text is selected with the pointer; a double click selects a word.
+- When the panel or the window changes size, the shell is told its new columns and rows.
+- What the commands typed there change in the repository shows in the timeline as anything done in another terminal
+  does (`repo.watch-changes`).
+- When the shell ends, the terminal says **The shell ended with exit code `<n>`** under what it printed, and `Enter`
+  starts a new one in its place.
+- Each repository tab has its own terminals, kept while another tab is shown; closing a tab or the window ends its
+  shells, without asking.
+
+Acceptance:
+
+- [ ] The first terminal of a repository tab starts in the folder of that repository: `pwd` prints it.
+- [ ] `git log --oneline --decorate -1` prints its labels in color.
+- [ ] `git log` with more commits than the terminal has rows runs its pager, and `q` leaves it.
+- [ ] `git commit` typed in the terminal shows the new commit in the timeline.
+- [ ] Making the panel narrower changes what `tput cols` prints, on Linux and macOS.
+- [ ] Text selected and copied with `Ctrl+Shift+C` is on the clipboard.
+- [ ] **New terminal** adds a second one; each keeps what it printed when the other is shown.
+- [ ] Showing another repository tab shows its terminals, and coming back shows the first ones as they were.
+- [ ] `exit` says that the shell ended with exit code 0, and `Enter` starts a new one.
+
+### `graph.icons` — The icons of the window
+
+Every icon of the window is one of [Lucide](https://lucide.dev)'s, each with one meaning, so that the same action looks
+the same everywhere, and as it does in other applications.
+
+- **Kind**: View
+- **Function**: `render::Canvas::draw_icon(icon: Icon, origin: Point, size: f32, color: Color)`
+- **Entry points**: every button, menu, row and mark of the window that has an icon.
+
+The outlines of the icons are Lucide's, kept in the repository with its licence (ISC), drawn in the color and at the
+size asked, 16 logical pixels unless said otherwise, with their stroke scaled so that they keep the weight of the text
+beside them (Q420). An icon is used for the meaning the table gives it, and for no other; a button whose meaning is
+not in the table gets a line of it before it gets an icon.
+
+| Meaning | Lucide icon |
+| --- | --- |
+| Fold, unfold | `chevron-right`, `chevron-down` |
+| Close a page, a drawer, the inspector, a box, the bottom panel; empty a box | `x` |
+| Chosen in a menu; done; a good commit of a bisect | `check` |
+| Add: stage a file or a change, take a side into the result, a new terminal, add a submodule | `plus` |
+| Unstage | `minus` |
+| Back to how it was: discard the changes of a file, revert a change, Undo | `undo-2` |
+| Delete: a branch, a tag, a stash dropped, a terminal killed | `trash-2` |
+| Save, save all | `save` |
+| Search | `search` |
+| Filter what is shown or listed | `funnel` |
+| Show, show beside; hide | `eye`, `eye-off` |
+| Branch; create a branch | `git-branch`, `git-branch-plus` |
+| Tag | `tag` |
+| Remote | `cloud` |
+| Commit; open a commit as a page | `git-commit-horizontal`, `maximize-2` |
+| Merge; cherry-pick | `git-merge`, `cherry` |
+| Compare; swap the two sides | `git-compare-arrows`, `arrow-left-right` |
+| Pull request; a draft | `git-pull-request`, `git-pull-request-draft` |
+| Fetch; pull; push; Sync | `cloud-download`, `arrow-down-to-line`, `arrow-up-from-line`, `arrow-down-up` |
+| Commits to pull and to push, beside their count | `arrow-down`, `arrow-up` |
+| Read again | `refresh-cw` |
+| The previous and the next change or match | `chevron-up`, `chevron-down`, in the bar of a page |
+| Back to the top | `arrow-up-to-line` |
+| Move up, move down in a list | `move-up`, `move-down` |
+| The bar of views: Timeline, Changes, Files, Compare, Terminal, Activity, Settings | `git-graph`, `file-diff`, `folder-tree`, `git-compare-arrows`, `square-terminal`, `activity`, `settings` |
+| Command log | `scroll-text` |
+| Folder; file; open the file; open its changes; open all the changes | `folder`, `file`, `file-text`, `file-diff`, `files` |
+| Worktree; submodule | `folder-git-2`, `boxes` |
+| Stash; apply; pop | `archive`, `archive-restore`, `package-open` |
+| Favorite; recent | `star`, `clock` |
+| History of a file or a folder | `history` |
+| Who changed each line; on every file | `user-pen`, `pin` |
+| Drafted by the AI; resolved by the rules | `sparkles`, `wand-sparkles` |
+| Edited, not saved or not committed | `pencil` |
+| Waits; did not run, skipped | `hourglass`, `circle-slash` |
+| Warning; error, a bad commit of a bisect; information | `triangle-alert`, `circle-x`, `info` |
+| What is running | `activity` |
+| More | `ellipsis` |
+| List; tree of folders | `list`, `list-tree` |
+| Fold the lines that did not change | `fold-vertical` |
+
+Acceptance:
+
+- [ ] No icon of the window is drawn for two meanings of the table: a test goes through every `Icon` the views use and
+      the meaning each is given.
+- [ ] **Discard changes** on a file of the Changes page and **Revert this change** in a Diff page draw the same icon,
+      and **Drop** on a stash another one.
+- [ ] Each icon drawn at 16 px and at 32 px matches its snapshot, in the dark and the light theme.
+- [ ] The licence of Lucide is in the repository beside its outlines.
 
 ### `graph.more-menu` — The … menu of the header
 
@@ -559,7 +711,9 @@ would bring to the branch checked out.
 - **Uses**: `graph.trace-history`.
 
 - After the pointer has rested 150 ms on a label, the commits it reaches, as far as the timeline has loaded them, and
-  the lines between them keep their colors, and the rest of the timeline fades. Going from one label to another changes
+  the lines between them keep their colors, and the rest of the timeline fades: the lines and dots it leaves out, and
+  the whole of each row it leaves out, its message, labels, author, date and hash, to about a third of their strength,
+  as the extension does. Going from one label to another changes
   it at once; leaving the labels brings the timeline back 100 ms later, so that passing over labels does not flash it.
 - With `Shift` held on a label of the timeline, only the commits it has that the commit checked out has not stand out:
   what merging it, or a pull request of it, would bring. When the commit checked out is not among the rows, the whole
@@ -569,7 +723,7 @@ would bring to the branch checked out.
 
 Acceptance:
 
-- [ ] Resting on `feature` for 150 ms fades every commit `feature` does not reach.
+- [ ] Resting on `feature` for 150 ms fades every commit `feature` does not reach, its message and author with its dot.
 - [ ] Moving the pointer across labels quickly does not fade the timeline.
 - [ ] With `Shift` held on `feature`, only the commits of `feature` not in the commit checked out stay in color.
 - [ ] Resting on a branch in the branch rail brings out its history in the timeline.
@@ -586,13 +740,15 @@ the ones made on top of it.
 - **Uses**: `graph.trace-history`.
 
 The commits the selected one reaches and those that reach it, with the lines between them, keep their colors; the rest
-is dimmed, less than under a label. It does not apply while several commits are selected, nor to the draft, and
-gives way to the history of a label under the pointer until the pointer leaves it. It stays while the
-commits are read.
+is dimmed, less than under a label: the lines and dots left out, and the whole of each row left out, its message,
+labels, author, date and hash, to about two thirds of their strength, as the extension does. It does not apply while
+several commits are selected, nor to the draft, and gives way to the history of a label under the pointer until the
+pointer leaves it. It stays while the commits are read.
 
 Acceptance:
 
-- [ ] Selecting a commit on `feature` dims the commits of `main` made after `feature` left it.
+- [ ] Selecting a commit on `feature` dims the commits of `main` made after `feature` left it: their dots, and their
+      messages, labels, authors, dates and hashes, while those `feature` reaches keep their full color.
 - [ ] Selecting the draft dims nothing.
 - [ ] With two commits selected, nothing is dimmed.
 - [ ] Unchecking the entry in **…** sets `graph.traceSelected` to false and nothing is dimmed.

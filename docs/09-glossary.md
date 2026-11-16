@@ -11,7 +11,8 @@ titles of the commands in `package.json`, the words of the webviews, and the typ
 
 | Term | Means | Not to be confused with | Avoid | In code |
 | --- | --- | --- | --- | --- |
-| panel | The bottom panel of VS Code, where the **Graph** view is, next to the terminal. | side bar | | `gitardo` view container |
+| panel | The bottom panel of VS Code, where the **Graph** view is, next to the terminal. | side bar, bottom panel | | `gitardo` view container |
+| bottom panel | In Gitardo Desktop, the island under the timeline with the terminals and the Command log. | panel (VS Code's) | | `views::panel`, `panel.bottom` |
 | side bar | The **Source Control** side bar of VS Code, where the **Commits**, **Gitardo Graph**, **Branches**, **Stashes** and **Gitardo Changes** views are. | panel | sidebar | `scm` view container |
 | Repositories view | The **Repositories** view of VS Code's side bar, where its Git extension lists the repositories and worktrees it has open; Source Control is on one of them at a time. | repository | | `SourceControlSelection` |
 | graph | The **Graph** view: the references, the commits of every branch with their lines and labels, and the details, side by side. Also the commit graph itself. | Gitardo Graph | | view kind `graph`, `App.tsx` |

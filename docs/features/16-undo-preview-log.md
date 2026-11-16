@@ -63,12 +63,13 @@ Acceptance:
 
 ### `log.show` — Show the command log
 
-The **Command log** in the Activity drawer lists what the log recorded, newest last, and follows it as it grows.
+The **Command log**, a tab of the bottom panel, lists what the log recorded, newest last, and follows it as it
+grows.
 
 - **Kind**: View
 - **Function**: `views::log::log_view(state, ui) -> Vec<Intent>`
-- **Entry points**: the Activity drawer; **Show Command Log** in Quick search; **Show the commands Gitardo runs** under
-  what is running, in the same drawer.
+- **Entry points**: **Command log** in the bottom panel (`panel.bottom`); **Show Command Log** in Quick search; **Show
+  the commands Gitardo runs** under what is running, in the Activity drawer, which shows the bottom panel at it.
 - **Settings**: `log.level`.
 
 Acceptance:
@@ -76,6 +77,7 @@ Acceptance:
 - [ ] Opening it shows the commands of the session, each with the time it started.
 - [ ] Text can be selected and copied.
 - [ ] It keeps the last 10,000 lines and says how many were dropped.
+- [ ] It is in the bottom panel, and no longer in the Activity drawer.
 
 ### `undo.last` — Undo the last operation
 

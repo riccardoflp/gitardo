@@ -435,12 +435,13 @@ Lists what Gitardo is doing now, with the way to the commands it runs.
 - **Function**: `views::activity::what_is_running_view(state: &ActivityState, ui) -> Vec<Intent>`
 - **Entry points**: a click on the activity indicator of the status bar; **Activity** in the bar of views; **Show
   What Is Running** in Quick search.
-- **Uses**: `activity.describe-task`, `log.show`.
+- **Uses**: `activity.describe-task`, `log.show`, `panel.bottom`.
 
 The drawer lists each thing that runs, with its title, how long it has run and its detail, the times going on every
 second while it is open, and the list following what starts and ends. With nothing running it says **Nothing is running
 now** and "Gitardo is not reading or changing anything". Under the list, **Show the commands Gitardo runs** shows the
-Command log of the drawer. Opening the drawer while it is open leaves it as it is.
+bottom panel at the Command log (`panel.bottom`), which is no longer in the drawer. Opening the drawer while it is open
+leaves it as it is.
 
 Once a new worktree has run commands (`worktree-setup.command-steps`), the drawer, higher, has **Tasks** at its right:
 a row for each of the latest commands, with its worktree and how it stands (a spinner while it runs, **waits**, a
@@ -453,7 +454,7 @@ Acceptance:
 
 - [ ] Opened during a long fetch, the drawer lists the fetch, and its time grows each second.
 - [ ] When the fetch ends, it leaves the list; with nothing else, the drawer says **Nothing is running now**.
-- [ ] **Show the commands Gitardo runs** shows the Command log.
+- [ ] **Show the commands Gitardo runs** shows the bottom panel at the Command log.
 
 ### `welcome.page` — The Welcome page
 

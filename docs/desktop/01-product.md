@@ -44,8 +44,8 @@ history fills it, and everything else opens from it.
 
 - **Bar of views**: a column of icons on the left edge, outside the islands
   ([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)): **Timeline**, **Changes** with the number of
-  changed files, **Files** and **Compare**; at its foot **Activity**, which opens and closes the Activity drawer, and
-  **Settings**. The place shown is marked.
+  changed files, **Files** and **Compare**; at its foot **Terminal**, which shows and hides the bottom panel,
+  **Activity**, which opens and closes the Activity drawer, and **Settings**. The place shown is marked.
 - **Tabs**: the island at the top, a tab for each repository open, the one shown marked, its worktrees and submodules
   in the **▾** of its tab, and **+** to open another (milestone M12,
   [D50](../08-decisions.md#d50--repository-tabs-and-what-each-repository-keeps)). Everything under it is the tab's,
@@ -81,10 +81,16 @@ history fills it, and everything else opens from it.
 - **Pages**: a commit, a comparison, the diff of a file, the merge of a file in conflict, a file with its blame, the
   review of the conflicts, the changes, the files of the working tree, what new worktrees get, the settings, the
   welcome page. A page opens in place of the timeline and the inspector, with a **trail** above it
-  (`Timeline › Commit 4b830a6 › src/login/page.rs`) whose first step comes back to the timeline. Each page is open
-  once: asking for it again shows the one there is. `Ctrl+Tab` goes through the pages open.
-- **Activity drawer**: what is running, for how long and why; the **Command log**, every command that changed
-  something; and **Tasks**, the commands run in new worktrees, with what they print.
+  (`Timeline › Commit 4b830a6 › src/login/page.rs`) whose first step comes back to the timeline; a file of the
+  inspector opens its Diff page in place of the timeline only, the inspector staying beside it, and a file of the Files
+  page opens on the right of its tree, which stays (milestone M14,
+  [D53](../08-decisions.md#d53--pages-beside-the-inspector-a-bottom-panel-the-icons-of-lucide-islands-in-the-extension)).
+  Each page is open once: asking for it again shows the one there is. `Ctrl+Tab` goes through the pages open.
+- **Activity drawer**: what is running, for how long and why; and **Tasks**, the commands run in new worktrees, with
+  what they print.
+- **Bottom panel**: an island under the timeline and the inspector, or the page shown, with two tabs: the
+  **Terminal**, shells in the folder of the repository shown, and the **Command log**, every command that changed
+  something. `` Ctrl+` `` shows and hides it; its height is dragged (milestone M14).
 - **Quick search** (`Ctrl+K`, `Cmd+K` on macOS): one field that finds commits, branches, files and commands. Every
   command of the catalog that names Quick search among its entry points is there by name.
 
@@ -111,7 +117,8 @@ The cards of the catalog name the places of the window with these words, and onl
 | **Changes page** | Every uncommitted file, staged or not, with its diff; opened by **Review** in the draft. |
 | **Files page** | The tree of the working tree, where a file or a folder is picked for its history, its blame or a comparison. |
 | **Commit**, **Compare**, **Diff**, **Merge**, **Conflicts**, **File**, **Settings**, **Welcome** and **Worktree setup** pages | The other pages, each opened in place of the timeline with its trail. |
-| **Activity drawer** | What is running, the Command log and the Tasks. |
+| **Activity drawer** | What is running and the Tasks. |
+| **Bottom panel** | The island under the timeline: the terminals and the Command log. |
 | **Quick search** | `Ctrl+K`: commits, branches, files and commands. |
 
 ## What replaces VS Code
@@ -128,13 +135,14 @@ The cards of the catalog name the places of the window with these words, and onl
 | Quick pick, input box, modal dialog | Gitardo's own picker, input box and dialog, drawn in the window. |
 | The command palette | **Quick search** (`Ctrl+K`), which also finds commits, branches and files. |
 | The Source Control view and its list of changes | The **draft** at the top of the timeline, and the **Changes** page it opens. |
-| Output channel **Gitardo** | The **Command log** in the Activity drawer. |
+| Output channel **Gitardo** | The **Command log** in the bottom panel. |
 | Status bar item and **Show What Is Running** | The activity indicator of the status bar, and the **Activity** drawer it opens. |
 | `settings.json` of the user | `settings.json` in Gitardo's folder of the user's configuration. |
 | `.vscode/settings.json` of a repository | `.gitardo/settings.json` of the repository, which can be committed to share it. For worktrees, VS Code's `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles` in `.vscode/settings.json` are still read as the fallback the extension has. |
 | Workspace trust | A folder is trusted once the user says so; until then nothing it asks to run is run. |
 | Theme colors and the file icon theme | Gitardo's own themes (dark, light, dark and light high contrast, or as the system is), its own fonts, and a built-in set of file icons. |
-| Codicons | Built-in icons, drawn from paths of Gitardo's own. |
+| Codicons | The icons of Lucide, drawn from their outlines, one meaning each (`graph.icons`). |
+| The integrated terminal of VS Code | The **Terminal** in the bottom panel (`terminal.view`). |
 | Language models of VS Code (Copilot) | A language model reached over HTTP, as the settings `ai.*` say, with its key in the credential store of the system. |
 | GitHub account of VS Code | A GitHub token from `git credential fill` for `github.com`, or one the user gives, kept in the credential store of the system. Asked for only when the user first loads the pull requests. |
 | Tasks of VS Code (setup commands of new worktrees) | **Tasks** in the Activity drawer, which runs each command with the shell of the system, in the worktree. |

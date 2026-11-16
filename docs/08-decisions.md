@@ -771,6 +771,50 @@ federated credential (it works, but needs Azure for what trusted publishing does
 at once (the desktop is not signed, and the maintainer reads the notes first); a version of its own for the desktop
 (two numbers to keep apart for builds made from one commit, and tags that would have to say which app).
 
+## D53 — Pages beside the inspector, a bottom panel, the icons of Lucide, islands in the extension
+
+*Asked by the maintainer for milestone M14; the details proposed by the agent, the four choices below answered by the
+maintainer.*
+
+Five changes to how the window looks and keeps its parts, and one to the extension
+([the roadmap](desktop/07-roadmap.md#m14--the-window-keeps-its-sides)):
+
+- **The selected commit dims whole rows.** While a history is brought out, by a label under the pointer
+  (`graph.hover-history`) or by the commit selected (`graph.trace-selected`), the rows it leaves out are dimmed whole,
+  their message, labels, author, date and hash, and not only their lines and dots, as the extension does. The
+  extension does it already; the window catches up.
+- **A file opens beside the inspector.** A file of the commit or of the comparison in the inspector opens its Diff page
+  in place of the timeline only: the inspector stays on the right, marks the file shown, and another of its files
+  replaces the diff in the same page, so that every file of a commit can be read one after the other without the
+  inspector closing (`diff.beside-inspector`). The same for the Files page: a file opens on the right of its tree, which
+  stays (`file-view.beside-files`). The other ways to a Diff or File page still open it in place of the timeline and
+  the inspector, as before.
+- **A bottom panel.** An island under the timeline and the inspector, or the page shown, above the status bar, with the
+  **Terminal** and the **Command log** in tabs (`panel.bottom`). The terminal is a real shell, in the folder of the
+  repository shown, interactive, with the colors and the keys of a terminal, several at once (`terminal.view`). The
+  Command log leaves the Activity drawer for the panel: whatever opened it there opens it here. The drawer keeps what is
+  running and the Tasks. The terminal is built on a library of terminal emulation and pseudo-terminals, weighed as D22
+  says; `alacritty_terminal` (Apache-2.0, ConPTY on Windows, a pty on Linux and macOS, its grid and scrollback) is the
+  first candidate ([Q417](#of-milestone-m14-from-q417)).
+- **The icons of Lucide.** Every icon of the window is one of [Lucide](https://lucide.dev)'s (ISC licence), drawn from
+  its outlines, in place of the ones drawn here; each meaning has one icon and each icon one meaning, as the table of
+  `graph.icons` says, so that the same action looks the same everywhere and as it does in other applications. The
+  outlines are kept in the repository with the licence, and the icons are drawn as before, in the color and the size
+  asked.
+- **Islands in the extension.** The setting `gitardo.graph.islands`, off by default, draws the references, the commits
+  and the details of the Graph view each as a rounded card on a ground one step darker, with the gap between them as
+  the line that is dragged, as the window does since D21 (`graph.islands`). The other views keep their look.
+
+The maintainer chose: in the panel the Command log only, beside the terminal (the drawer keeps the rest); a real shell
+rather than a line that runs one command; Lucide among Lucide, the codicons of VS Code and Material Symbols; the islands
+in the Graph view of the extension only.
+
+Rejected: the whole Activity drawer in the panel (the maintainer's choice); a line that runs one command and shows its
+output (no program that asks, no colors, no prompt of its own); the codicons (the CC-BY licence asks for attribution in
+the application, and the window would look like VS Code again, which D16 left); a new Diff page for each file clicked
+in the inspector (they would pile up in `Ctrl+Tab`); islands in every webview of the extension (the side bar views are
+too narrow for the gaps).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -2561,3 +2605,23 @@ until the card says otherwise.
   out as `filter.kinds` says, with **Chosen in the filter** as their tooltip. The button is the funnel alone, at the end
   of the line that names the branch checked out, and its tooltip is `Branches listed in the branch rail: <label>`.
   `branches.followGraphFilter` stays on the settings page, said to be no longer read.
+
+### Of milestone M14, from Q417
+
+Questions of milestone M14 ([D53](#d53--pages-beside-the-inspector-a-bottom-panel-the-icons-of-lucide-islands-in-the-extension)),
+each built with the reading given until the card says otherwise.
+
+- **Q417** — `terminal.view`: which library. Recommended: `alacritty_terminal`, which has the parser, the grid, the
+  scrollback, the selection and the pseudo-terminal of each system (ConPTY on Windows), and is kept up with Alacritty;
+  its types stay in a crate `terminal` of its own (R1.6), which `app` uses. Else `portable-pty` for the processes and
+  `vte` for the parser, the grid written here.
+- **Q418** — `panel.bottom`: are the terminals the repository tab's or the window's? Recommended: each repository tab
+  has its own, started in its folder (D50: what is under the tabs is the tab's); the panel being open, its height and
+  the tab chosen in it are the window's.
+- **Q419** — `diff.beside-inspector`: a Diff page opened from the inspector shows the commit selected when it was
+  opened; selecting another commit in the inspector is not possible while the timeline is not shown. Recommended:
+  **Timeline** in the trail, or `Escape`, brings the timeline back with the same commit selected, and the page stays
+  in `Ctrl+Tab`.
+- **Q420** — `graph.icons`: the icons of Lucide are drawn at 24 units with a stroke of 2. Recommended: drawn at 16
+  logical pixels, the stroke scaled to 1.5 so that they keep the weight of the text beside them, and the outlines
+  turned into paths once, when the program starts.

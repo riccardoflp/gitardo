@@ -14,9 +14,10 @@ Two versions of a file side by side, kept level, with every change joined across
 - **Kind**: View
 - **Function**: `views::diff::page_view(state, ui) -> Vec<Intent>`
 - **Entry points**: a click on a file in the Changes page when `changes.openOnClick` is `diff`, and **Open changes** on
-  its row; a file in the inspector, in the Commit page and in a comparison; **Compare with the saved file** in the
-  Changes page; **Compare with…** on a file; the button on the header of the Changes page that opens all its diffs in
-  one page; **Show the result** in the review of the conflicts; `conflicts.open-file` for a file deleted on one side.
+  its row; a file in the inspector, beside it (`diff.beside-inspector`); a file in the Commit page and in a
+  comparison; **Compare with the saved file** in the Changes page; **Compare with…** on a file; the button on the
+  header of the Changes page that opens all its diffs in one page; **Show the result** in the review of the
+  conflicts; `conflicts.open-file` for a file deleted on one side.
 - **Reads**: `diff.read-sides`.
 - **Refuses**: a file with a NUL byte on either side: *This file looks binary.* A diff that takes more than 5 seconds to
   compute: *This file has too many differences to display.*
@@ -65,6 +66,42 @@ Acceptance:
 - [ ] Two files of 60,000 lines each ask before computing; **Continue** shows the diff, and cancelling opens nothing.
 - [ ] Opening the same diff twice shows one page.
 - [ ] Staging a file from the Changes page while its diff against the index is open redraws the page with no change.
+
+### `diff.beside-inspector` — Files of a commit read beside the inspector
+
+A file of the commit in the inspector opens its diff where the timeline was, and the inspector stays on the right, so
+that every file of the commit can be read one after the other without it closing.
+
+- **Kind**: View
+- **Function**: `views::diff::beside_inspector_view(state: &BesideInspectorState, ui) -> Vec<Intent>`
+- **Entry points**: a click on a file in the inspector, of a commit, a stash, the draft or a comparison in its place
+  (`compare.in-place`); `Alt+Down` and `Alt+Up` in the Diff page opened so, for the next and the previous file of the
+  inspector.
+- **Uses**: `diff.page`, `details.show`, `compare.in-place`, `graph.resize-panes`.
+- **Extension**: VS Code's diff editor opens beside the panel, and the details stay: nothing to build.
+
+- The Diff page takes the place of the timeline only, between the branch rail and the inspector; the branch rail stays
+  as it was, shown or put away, and the inspector keeps its width (`graph.resize-panes`).
+- The inspector marks the file whose diff is shown, as a row selected, and keeps it in view.
+- A click on another file of the inspector shows its diff in the same page, which is not opened again: the trail
+  names the file shown, and `Ctrl+Tab` lists one page for the files of that commit, not one for each file.
+- **Open all changes in one Diff page** in the inspector opens the diffs one after the other in the same place.
+- The trail's first step, **Timeline**, or `Escape` in the page, brings the timeline back, the same commit selected
+  (Q419). Closing the inspector leaves the Diff page, which then takes its width too.
+- In the narrow layout, where the inspector is over the timeline, a file opens the Diff page in place of both, as
+  before.
+- A file opened from anywhere else (the Commit page, the Changes page, a comparison page, **Compare with…**) opens its
+  Diff page in place of the timeline and the inspector, as `diff.page` says.
+
+Acceptance:
+
+- [ ] A click on `src/a.rs` in the inspector opens its diff, and the inspector is still shown on the right with
+      `src/a.rs` marked.
+- [ ] A click on `src/b.rs` then shows its diff in the same page, and `Ctrl+Tab` lists one Diff page.
+- [ ] `Alt+Down` in that page shows the diff of the next file of the inspector.
+- [ ] **Timeline** in the trail shows the timeline with the same commit selected.
+- [ ] In a window narrower than the narrow layout, a click on a file of the inspector opens the Diff page in place of
+      the timeline and the inspector.
 
 ### `diff.read-sides` — The two versions of a file
 
@@ -834,11 +871,11 @@ read-only.
 
 - **Kind**: View
 - **Function**: `views::file_view::page_view(state, ui) -> Vec<Intent>`
-- **Entry points**: a click on a file in the Files page; a click on a file in the Changes page when
-  `changes.openOnClick` is not `diff`, and **Open file** on its row; **Open file** of a Diff page; `F4` in a Diff or
-  Merge page; `conflicts.open-file` for a file both sides added; a line number in the review of the conflicts;
-  `merge-view.close`; **Open the file at this revision** on a file of a commit; **Blame the file as it was before** in
-  the blame (`blame.`).
+- **Entry points**: a click on a file in the Files page, beside its tree (`file-view.beside-files`); a click on a file
+  in the Changes page when `changes.openOnClick` is not `diff`, and **Open file** on its row; **Open file** of a Diff
+  page; `F4` in a Diff or Merge page; `conflicts.open-file` for a file both sides added; a line number in the review of
+  the conflicts; `merge-view.close`; **Open the file at this revision** on a file of a commit; **Blame the file as it
+  was before** in the blame (`blame.`).
 - **Reads**: the file from the disk; at a revision, `file-view.read-revision`.
 - **Settings**: `editor.wordWrap`.
 - **Uses**: `file-view.read-revision`, `file-view.edit`, `file-view.save`, `file-view.find`, `file-view.go-to-line`,
@@ -866,6 +903,32 @@ Acceptance:
 - [ ] Opening `src/app.rs` at `3f2a1c9` opens a read-only page **app.rs (3f2a1c9)**; typing does nothing.
 - [ ] Opening the same file at line 120 when its page is open shows that page, scrolled to line 120.
 - [ ] Changing the file in another program while the page has no unsaved edits shows the new text.
+
+### `file-view.beside-files` — A file opened beside the tree of the Files page
+
+A file of the Files page opens on the right of its tree, which stays, so that the files of the working tree can be
+opened one after the other.
+
+- **Kind**: View
+- **Function**: `views::file_view::beside_files_view(state: &BesideFilesState, ui) -> Vec<Intent>`
+- **Entry points**: a click on a file in the Files page; `Enter` on a file of its tree.
+- **Uses**: `file-view.page`, `graph.resize-panes`.
+- **Extension**: the Explorer of VS Code stays beside the editor: nothing to build.
+
+- The Files page is split in two: its tree on the left, as wide as the branch rail starts (210 px, dragged as
+  `graph.resize-panes` says, and remembered for the workspace), and the File page of the file opened on its right.
+- The tree marks the file shown and keeps where it was scrolled and which folders were open.
+- A click on another file shows it in the same place; a file with unsaved edits stays open in its own page, listed in
+  `Ctrl+Tab`, and the place shows the new one.
+- The trail reads `Timeline › Files › app.rs`; **Files** shows the tree alone again.
+- In the narrow layout the File page takes the whole page, and **Files** in the trail comes back to the tree.
+
+Acceptance:
+
+- [ ] A click on `src/app.rs` in the Files page shows the file on the right, and the tree is still on the left with
+      `src/app.rs` marked.
+- [ ] A click on `README.md` then shows it in the same place, and the folder `src` is still open in the tree.
+- [ ] With unsaved edits in `src/app.rs`, opening `README.md` keeps `src/app.rs` in `Ctrl+Tab`.
 
 ### `file-view.read-revision` — A file at a revision
 
