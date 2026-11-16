@@ -19,6 +19,7 @@ import {
 import { submoduleFolder } from '../shared/submodules';
 import { subjectAndBody } from '../shared/message';
 import { checkedOutBranch, operationName, worktreeBranch } from '../shared/state';
+import { groupRepositories } from '../shared/repositoryGroups';
 import { Activity } from './activity';
 import { FileIcons } from './fileIcons';
 import type {
@@ -2066,7 +2067,8 @@ export class Controller implements vscode.Disposable {
         })
       : [];
     const roots = found.map((each) => each.folder);
-    this.repos = roots.map((root) => ({ root, name: repositoryName(root, folders) }));
+    // Each worktree and submodule under its repository, as the list of the repositories shows them (`repo.group-tabs`).
+    this.repos = groupRepositories(found).map(({ repository, depth }) => ({ root: repository.folder, name: repositoryName(repository.folder, folders), depth }));
     // The repository chosen last time in this workspace, as long as it is still there.
     const remembered = this.memento.get<string>(REPO_KEY);
     await this.open(roots.find((root) => root === remembered) ?? roots[0]);
@@ -2186,7 +2188,9 @@ export class Controller implements vscode.Disposable {
     const choice = await vscode.window.showQuickPick(
       [
         ...this.repos.map((repo) => ({ label: repo.name, description: repo.root === current ? 'current' : undefined, detail: repo.root, repo })),
-        ...(this.state?.home && current ? [{ label: this.state.name, description: 'worktree, current', detail: current, repo: { root: current, name: this.state.name } }] : []),
+        ...(this.state?.home && current
+          ? [{ label: this.state.name, description: 'worktree, current', detail: current, repo: { root: current, name: this.state.name, depth: 0 } }]
+          : []),
       ],
       { title: 'Repository shown in Gitardo', matchOnDetail: true },
     );

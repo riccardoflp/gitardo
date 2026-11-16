@@ -6,6 +6,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 ### Changed
 
+- The list of the repositories puts the worktrees and the submodules of a repository under it, indented, and **Gitardo: Select Repository** lists them in the same order.
 - On macOS and Linux too, **Remove…** and **Gitardo: Clean Up Branches** take out of a worktree its links to folders outside it before removing it, with an `unlink <path>` line for each: git no longer refuses a worktree whose `node_modules` link is left out by `node_modules/` in `.gitignore`.
 - The stashes are read without an error when the last one goes while they are read, as when it is dropped or a pull takes back the changes it set aside.
 

@@ -33,6 +33,8 @@ interface Internals {
   scheduleRefresh(cause: string, delay?: number): void;
   /** Gitardo's engine, when the extension has it running. */
   engine?: { running?: unknown };
+  /** Looks for the repositories of the workspace again, as when its folders change. */
+  locate(): Promise<void>;
 }
 
 /** A comparison open in a tab, as the controller keeps it. */
@@ -917,6 +919,31 @@ export async function run(): Promise<void> {
     }
     assert.ok(samePath(state().root, app), state().root);
   });
+
+  await step('lists the worktrees of a repository of the workspace under it in the list of the repositories', async () => {
+    const login = path.join(workspace, 'app-login');
+    await git(app, ['worktree', 'add', '-b', 'login-page', login, 'main']);
+    try {
+      // The repositories of the workspace are looked for again, as when its folders change.
+      await internals.locate();
+      assert.deepEqual(
+        state().repos.map((repo) => `${'  '.repeat(repo.depth)}${repo.name}`),
+        ['workspace/app', '  workspace/app-login', 'workspace/lib'],
+      );
+    } finally {
+      await git(app, ['worktree', 'remove', '--force', login]).catch(() => undefined);
+      fs.rmSync(login, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+      await git(app, ['worktree', 'prune']);
+      await git(app, ['branch', '-D', 'login-page']).catch(() => undefined);
+      await internals.locate();
+    }
+    assert.deepEqual(
+      state().repos.map((repo) => repo.name),
+      ['workspace/app', 'workspace/lib'],
+    );
+    assert.ok(samePath(state().root, app), state().root);
+  });
+
 
   await step('opens a branch in its worktree, made for it with nothing asked, and switches between worktrees', async () => {
     const home = path.join(workspace, 'app.worktrees').replace(/\\/g, '/');

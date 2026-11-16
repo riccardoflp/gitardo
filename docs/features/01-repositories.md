@@ -764,6 +764,9 @@ chooses which of them it shows.
   it. The one the tab shows has a check. Choosing another shows it in the tab, as `worktree.show-in-gitardo` and
   `submodule.show-in-gitardo` do.
 - **Uses**: `repo.common-folder`, `repo.keep-open`, `worktree.show-in-gitardo`, `submodule.show-in-gitardo`.
+- **Extension**: no tabs and no **▾**; the list of `repo.select` follows the first three rules, each member indented
+  under its repository, its worktrees first (`groupRepositories` in `src/shared/repositoryGroups.ts`, tested by
+  `test/repositoryGroups.test.ts`).
 
 The rules:
 

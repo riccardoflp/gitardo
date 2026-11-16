@@ -91,6 +91,11 @@ export type Search = Extract<Filter, { query: string }>;
 export interface RepoInfo {
   root: string;
   name: string;
+  /**
+   * How far under the repository of its group the list of the repositories puts it: 0 for a repository, 1 for one of
+   * its worktrees or submodules, 2 for a submodule of one of those (`repo.group-tabs`).
+   */
+  depth: number;
 }
 
 export interface PullRequest {
