@@ -968,6 +968,12 @@ export async function run(): Promise<void> {
 
   await step('with keeping repositories open on, shows a repository chosen again at once as it was left, and reads nothing for it when nothing changed', async () => {
     const counted = readsFrom();
+    // The window getting the focus asks for a read, as it should, and the windows of the runners get it at any moment:
+    // that is not what this step looks at, so it asks for none here.
+    const schedule = internals.scheduleRefresh;
+    internals.scheduleRefresh = (cause, delay) => {
+      if (cause !== 'VS Code got the focus') schedule.call(controller, cause, delay);
+    };
     await keepOpen(true);
     try {
       // What app shows: the history of a file, the local branches only, and more than a page of it asked for.
@@ -1011,6 +1017,7 @@ export async function run(): Promise<void> {
       assert.equal(counted.of(nameOf(app)).length, appReads);
     } finally {
       counted.stop();
+      internals.scheduleRefresh = schedule;
       // What app was narrowed to is kept for it: it is taken off there, whichever repository a failure left shown.
       if (!samePath(state().root, app)) await controller.selectRepo(app);
       await controller.setFilter(null);
