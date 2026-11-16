@@ -48,6 +48,17 @@ pub const OPEN_TAB_TITLE: &str = "Open a repository in a tab";
 pub const CLOSE_TAB: &str = "Close tab";
 /// The entry of the menu of a tab that closes the others.
 pub const CLOSE_OTHER_TABS: &str = "Close other tabs";
+/// The tooltip of the **▾** of a tab, which lists its worktrees and its submodules (`repo.group-tabs`).
+pub const TAB_MEMBERS: &str = "Worktrees and submodules";
+/// What is put between the name of a tab and the name of the worktree or the submodule it shows.
+pub const IN_TAB: &str = " \u{203a} ";
+
+/// A worktree with no branch checked out, in the **▾** of its tab.
+#[must_use]
+pub fn detached_at(short: &str) -> String {
+    format!("detached at {short}")
+}
+
 /// The button that puts a notice away.
 pub const DISMISS: &str = "Dismiss";
 

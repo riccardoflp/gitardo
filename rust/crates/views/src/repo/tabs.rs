@@ -39,6 +39,22 @@ pub struct TabEntry {
     pub folder: String,
     /// Whether it is the tab shown.
     pub is_shown: bool,
+    /// The repositories of its group its **▾** lists, its own first; none when it has no other worktree and no
+    /// submodule, and then it has no **▾** (`repo.group-tabs`).
+    pub members: Vec<TabMemberEntry>,
+}
+
+/// A repository of the group of a tab, in its **▾**.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TabMemberEntry {
+    /// Its repository's name, a worktree's branch or `detached at <short>`, or a submodule's path.
+    pub label: String,
+    /// Its folder.
+    pub folder: std::path::PathBuf,
+    /// How many submodules it is inside, for its indent.
+    pub depth: usize,
+    /// Whether the tab shows it, which a check marks.
+    pub is_shown: bool,
 }
 
 /// What an entry of the menu of **+** does.
@@ -80,7 +96,10 @@ pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         for (index, tab) in state.tabs.iter().enumerate() {
             let style = ui.text_style(TextKind::Medium);
             let padding = 2.0 * spacing.large;
-            let close = theme.sizes.icon + 2.0 * spacing.small;
+            let mut close = theme.sizes.icon + 2.0 * spacing.small;
+            if !tab.members.is_empty() {
+                close += theme.sizes.icon + spacing.small;
+            }
             let width = (ui.measure(&tab.name, style) + padding + close).min(TAB_MOST);
             if area.rest().width < width {
                 break;
@@ -127,6 +146,11 @@ fn tab_button(
     ui.tooltip(&response, &tab.folder);
     let side = theme.sizes.icon + theme.sizes.spacing.small;
     let close_rect = place(close_cell, (side, side), (Align::End, Align::Center));
+    let mut intents = Vec::new();
+    if !tab.members.is_empty() {
+        let members_rect = place(close_cell, (side, side), (Align::Start, Align::Center));
+        intents.extend(members_button((index, tab), ui, members_rect));
+    }
     let close_button = Button::icon(Icon::Close, words::CLOSE_TAB).kind(ButtonKind::Icon);
     // The room of the **×** is kept on every tab, so that a tab does not change its width under the pointer.
     let is_closed = (tab.is_shown || response.hovered)
@@ -137,7 +161,6 @@ fn tab_button(
         MenuEntry::Item(MenuItem::new(words::CLOSE_TAB, TabCommand::Close)),
         MenuEntry::Item(MenuItem::new(words::CLOSE_OTHER_TABS, TabCommand::CloseOthers)),
     ];
-    let mut intents = Vec::new();
     match ui.context_menu(("tab menu", index), &response, &entries) {
         Some(TabCommand::Close) => intents.push(Intent::CloseTab(index)),
         Some(TabCommand::CloseOthers) => intents.push(Intent::CloseOtherTabs(index)),
@@ -149,6 +172,37 @@ fn tab_button(
         intents.push(Intent::SwitchTab(index));
     }
     intents
+}
+
+/// The **▾** of a tab whose repository has other worktrees or submodules, and the one chosen in its menu: the
+/// repository, its worktrees, then its submodules indented by how many submodules they are inside, the one the tab
+/// shows checked (`repo.group-tabs`).
+fn members_button((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, rect: Rect) -> Option<Intent> {
+    let labels: Vec<String> = tab
+        .members
+        .iter()
+        .map(|member| format!("{}{}", "\u{2003}".repeat(member.depth), member.label))
+        .collect();
+    let entries: Vec<MenuEntry<'_, usize>> = tab
+        .members
+        .iter()
+        .zip(&labels)
+        .enumerate()
+        .map(|(at, (member, label))| {
+            let item = MenuItem::new(label.as_str(), at);
+            MenuEntry::Item(if member.is_shown {
+                item.with_icon(Icon::Check)
+            } else {
+                item
+            })
+        })
+        .collect();
+    let button = Button::icon(Icon::ChevronDown, words::TAB_MEMBERS).kind(ButtonKind::Icon);
+    let chosen = ui.scope(("tab members", index), |ui| {
+        ui.menu_button("members", rect, &button, &entries)
+    })?;
+    let member = tab.members.get(chosen)?;
+    Some(Intent::ShowInTab(index, member.folder.clone()))
 }
 
 /// A name that does not fit cut at its start with `…`, so that its last part, the repository's own folder, stays.

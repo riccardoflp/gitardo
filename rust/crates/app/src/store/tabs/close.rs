@@ -131,8 +131,8 @@ fn go_on(state: &mut State) -> Vec<Effect> {
             return effects;
         };
         if let Some(index) = position(state, &folder) {
-            if let Some(page) = unsaved_page(state, index) {
-                effects.extend(ask(state, index, page));
+            if let Some((page, member)) = unsaved_page(state, index) {
+                effects.extend(ask(state, (index, member), page));
                 return effects;
             }
             effects.extend(remove_tab(state, index));
@@ -146,27 +146,42 @@ fn go_on(state: &mut State) -> Vec<Effect> {
     effects
 }
 
-/// A File page of a tab with edits not saved, which the user has not chosen to lose.
-fn unsaved_page(state: &State, index: usize) -> Option<FilePageId> {
+/// A File page of a tab with edits not saved, which the user has not chosen to lose, with the folder of the worktree
+/// or the submodule of its group that keeps it when the tab does not show that one (`repo.group-tabs`).
+fn unsaved_page(state: &State, index: usize) -> Option<(FilePageId, Option<PathBuf>)> {
     let not_saved = state
         .tabs
         .closing
         .as_ref()
         .map_or(&[][..], |closing| closing.not_saved.as_slice());
-    let pages = if state.tabs.shown == Some(index) {
-        &state.file_pages.pages
+    let tab = state.tabs.open.get(index)?;
+    let own = if state.tabs.shown == Some(index) {
+        Some(&state.file_pages.pages)
     } else {
-        &state.tabs.open.get(index)?.kept.as_ref()?.file_pages.pages
+        tab.kept.as_ref().map(|kept| &kept.file_pages.pages)
     };
-    pages
+    let members = tab
+        .members
         .iter()
-        .find(|page| page.is_unsaved() && !not_saved.contains(&page.id))
-        .map(|page| page.id)
+        .map(|member| (&member.kept.file_pages.pages, Some(member.folder.clone())));
+    own.map(|pages| (pages, None))
+        .into_iter()
+        .chain(members)
+        .find_map(|(pages, member)| {
+            pages
+                .iter()
+                .find(|page| page.is_unsaved() && !not_saved.contains(&page.id))
+                .map(|page| (page.id, member))
+        })
 }
 
-/// Shows the tab and its page with edits not saved, and asks **Save changes to app.rs?**
-fn ask(state: &mut State, index: usize, page: FilePageId) -> Vec<Effect> {
-    let effects = switch_tab(state, index);
+/// Shows the tab, the repository of its group that has the page with edits not saved, and the page, and asks **Save
+/// changes to app.rs?**
+fn ask(state: &mut State, (index, member): (usize, Option<PathBuf>), page: FilePageId) -> Vec<Effect> {
+    let mut effects = switch_tab(state, index);
+    if let Some(member) = member {
+        effects.extend(super::show_member(state, &member));
+    }
     if let Some(at) = state.pages.open.iter().position(|open| *open == Page::File(page)) {
         state.pages.shown = Some(at);
     }

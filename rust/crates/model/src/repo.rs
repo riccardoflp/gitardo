@@ -1,11 +1,13 @@
 //! The repositories of a workspace: how they are called in lists, which one a file is in, which changes ask for a read
 //! of the one shown and when it is read.
 
+mod group;
 mod schedule;
 pub(crate) mod watch;
 
 use std::path::{Path, PathBuf};
 
+pub use group::{TabGroup, group_tabs};
 pub use schedule::{ReadAction, ReadEvent, ReadSchedule, StartedRead, schedule_reads};
 pub use watch::{Change, FilesChange, LATER, ReadCause, ReadRequest, SOON, watch_changes};
 
@@ -16,6 +18,8 @@ pub struct Repository {
     pub folder: PathBuf,
     /// The top folder of the repository it is a submodule of; none for a repository of its own.
     pub superproject: Option<PathBuf>,
+    /// The git folder its worktrees share (`repo.common-folder`); none for a submodule, and when git could not say.
+    pub common_folder: Option<PathBuf>,
 }
 
 /// Whether the case of a letter counts when two paths are compared: not on Windows, where `C:\Work` and `c:\work` are
@@ -122,6 +126,7 @@ mod tests {
         Repository {
             folder: PathBuf::from(folder),
             superproject: superproject.map(PathBuf::from),
+            common_folder: None,
         }
     }
 

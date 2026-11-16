@@ -758,7 +758,8 @@ Which repositories share a tab: a repository, its worktrees and its submodules a
 chooses which of them it shows.
 
 - **Kind**: Derivation
-- **Function**: `model::repo::group_tabs(repositories: &[TabMember]) -> Vec<TabGroup>`
+- **Function**: `model::repo::group_tabs(repositories: &[Repository]) -> Vec<TabGroup>`, each repository with the
+  common git folder `repo.read-repositories` read for it
 - **Entry points**: the **▾** of a tab, which lists the group: the repository itself, its other worktrees, each by its
   branch or `detached at <short>`, then its submodules, each by its path, a submodule's own submodules indented under
   it. The one the tab shows has a check. Choosing another shows it in the tab, as `worktree.show-in-gitardo` and
@@ -776,6 +777,10 @@ The rules:
   name of its folder when it is detached, as in `api › feature/login`; the path of a submodule, as in `api › lib/core`.
 - Which member a tab shows is kept while the window is open; when the window opens again each tab shows its
   repository, as `worktree.show-in-gitardo` says.
+- The group is named after its main worktree when that is a folder of the workspace, otherwise after the first of it
+  found. The other worktrees the **▾** lists are those git lists for the repository, a folder of the workspace or not;
+  before the tab was read, those of the workspace.
+- Closing the tab asks about a page with edits not saved of any member, that member shown, as `repo.close-tab` says.
 
 Acceptance:
 

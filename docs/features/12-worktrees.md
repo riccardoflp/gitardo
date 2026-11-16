@@ -498,8 +498,9 @@ pushing, is done in it, without opening another window.
 - **After**: the timeline with its draft, the branch rail and the Changes page are those of the worktree; the banner of
   `worktree.banner` says so. The folder of the window is then listed as another worktree, and can be neither renamed
   nor removed, nor given ignored files, from there. The choice is not remembered: the next time the window opens, the
-  views show its own folder.
-- **Uses**: `worktree.banner`, `repo.select`.
+  views show its own folder. In Gitardo Desktop the tab is named after its repository and the worktree's branch, as
+  `api › feature/login`, and the worktree keeps what it showed apart from its repository, as `repo.group-tabs` says.
+- **Uses**: `worktree.banner`, `repo.select`, `repo.group-tabs`.
 - **Extension**: **Show in Gitardo** in the context menu of a worktree; **Show worktree in Gitardo** in that of a branch
   another worktree has (`worktreeOpenEntries` in `src/webview/menus.ts`); a worktree selected in VS Code's Repositories
   view (`repo.follow-source-control`); **Gitardo: Select Repository**, which lists the worktree shown as *worktree,

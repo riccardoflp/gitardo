@@ -25,6 +25,9 @@ pub enum Intent {
     SelectRepository(PathBuf),
     /// Show the repository of a tab, by its place in the island of tabs (`repo.switch-tab`).
     SwitchTab(usize),
+    /// Shows in a tab, by its place, a repository of its group by its folder: the repository itself, one of its
+    /// worktrees or one of its submodules, chosen in the **▾** of the tab (`repo.group-tabs`).
+    ShowInTab(usize, PathBuf),
     /// Opens a repository of the workspace in a tab, by its folder (`repo.open-tab`).
     OpenTab(PathBuf),
     /// **Open Repository in a Tab** of Quick search: the picker of the repositories with no tab (`repo.open-tab`).

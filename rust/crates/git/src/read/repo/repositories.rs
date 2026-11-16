@@ -104,9 +104,11 @@ fn folder_repositories(git: &Git, folder: &Path) -> Result<Vec<Repository>, GitE
     };
     let mut repositories = Vec::new();
     for top in tops {
+        let common_folder = common_folder(git, &top);
         repositories.push(Repository {
             folder: top.clone(),
             superproject: None,
+            common_folder,
         });
         add_submodules(git, &top, SUBMODULE_DEPTH, &mut repositories)?;
     }
@@ -121,6 +123,12 @@ fn top_level(git: &Git, folder: &Path) -> Result<Option<PathBuf>, GitError> {
     } else {
         None
     })
+}
+
+/// The git folder the worktrees of a repository share (`repo.common-folder`), which puts a worktree in the tab of its
+/// repository (`repo.group-tabs`); none when git cannot say.
+fn common_folder(git: &Git, top: &Path) -> Option<PathBuf> {
+    super::read_common_folder(&git.in_directory(top), &super::CommonFolderRequest).ok()
 }
 
 /// The folders directly inside a folder that have a `.git`, a folder or a file, by name.
@@ -157,6 +165,7 @@ fn add_submodules(git: &Git, top: &Path, depth: usize, repositories: &mut Vec<Re
             repositories.push(Repository {
                 folder: folder.clone(),
                 superproject: Some(top.to_path_buf()),
+                common_folder: None,
             });
             add_submodules(git, &folder, depth - 1, repositories)?;
         }

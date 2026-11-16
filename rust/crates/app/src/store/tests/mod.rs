@@ -135,6 +135,7 @@ fn answer_asking(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[Pat
                             .map(|folder| Repository {
                                 folder: folder.clone(),
                                 superproject: None,
+                                common_folder: None,
                             })
                             .collect(),
                     ),

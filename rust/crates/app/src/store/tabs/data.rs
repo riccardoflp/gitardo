@@ -1,11 +1,12 @@
 //! What the island of the tabs and the pickers of the tabs are drawn from (`repo.tabs`, `repo.open-tab`,
 //! `repo.choose-tabs`).
 
-use model::repo::name_repositories;
+use model::repo::{group_tabs, name_repositories};
 use views::graph::RepositoryEntry;
 use views::repo::{TabEntry, TabsPickerKind, TabsPickerState, TabsState};
 
 use super::super::state::{Dialog, State};
+use super::menu::{TabShows, tab_name};
 use crate::persisted::same_folder;
 
 /// The words of the tabs, made once for a frame.
@@ -68,10 +69,21 @@ impl TabsData {
     }
 }
 
-/// The repositories of the workspace with no tab, which **+** offers to open (`repo.open-tab`).
+/// The repositories of the workspace with no tab, which **+** offers to open (`repo.open-tab`): one for each group of
+/// `repo.group-tabs` none of whose repositories has a tab.
 fn not_open(state: &State, repositories: &[RepositoryEntry]) -> Vec<RepositoryEntry> {
+    let groups = group_tabs(state.repositories());
     repositories
         .iter()
+        .filter(|entry| {
+            groups
+                .iter()
+                .find(|group| group.holds(&entry.folder))
+                .is_none_or(|group| {
+                    same_folder(&group.repository.folder, &entry.folder)
+                        && !state.tabs.open.iter().any(|tab| group.holds(&tab.folder))
+                })
+        })
         .filter(|entry| {
             !state
                 .tabs
@@ -83,26 +95,28 @@ fn not_open(state: &State, repositories: &[RepositoryEntry]) -> Vec<RepositoryEn
         .collect()
 }
 
-/// The tabs as the island draws them: each by the name of its repository among those of the workspace, and with the
-/// folder of what it shows for its tooltip, a worktree shown in place of its repository included.
+/// The tabs as the island draws them: each by the name of its repository among those of the workspace, with the
+/// worktree or the submodule it shows after ` › ` (`repo.group-tabs`), the folder of what it shows for its tooltip,
+/// and the repositories of its group for its **▾**.
 fn entries(state: &State, repositories: &[RepositoryEntry]) -> Vec<TabEntry> {
-    let shown = state.shown_folder();
+    let groups = group_tabs(state.repositories());
     state
         .tabs
         .open
         .iter()
         .enumerate()
         .map(|(index, tab)| {
-            let is_shown = state.tabs.shown == Some(index);
-            let name = repositories
+            let own = repositories
                 .iter()
                 .find(|entry| same_folder(&entry.folder, &tab.folder))
                 .map_or_else(|| tab.folder.display().to_string(), |entry| entry.name.clone());
-            let folder = match shown {
-                Some(shown) if is_shown => shown.display().to_string(),
-                _ => tab.folder.display().to_string(),
-            };
-            TabEntry { name, folder, is_shown }
+            let shows = TabShows::new(state, (index, tab), &groups, &own);
+            TabEntry {
+                name: tab_name(&own, shows.shown_label.as_deref()),
+                folder: shows.folder.display().to_string(),
+                is_shown: state.tabs.shown == Some(index),
+                members: shows.members,
+            }
         })
         .collect()
 }

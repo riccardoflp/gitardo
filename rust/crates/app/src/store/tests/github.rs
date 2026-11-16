@@ -41,6 +41,7 @@ fn answer(state: &mut State, effects: Vec<Effect>, read_at: i64) -> usize {
                             .map(|folder| Repository {
                                 folder,
                                 superproject: None,
+                                common_folder: None,
                             })
                             .collect(),
                     ),

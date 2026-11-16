@@ -233,6 +233,7 @@ fn repo_no_repository__a_read_that_fails_shows_it_and_keeps_what_git_said() {
             found: crate::store::Found::Repositories(vec![model::repo::Repository {
                 folder: work.clone(),
                 superproject: None,
+                common_folder: None,
             }]),
         },
     );

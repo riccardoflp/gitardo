@@ -89,11 +89,13 @@ fn repo_choose_tabs__a_repository_with_two_submodules_opens_one_tab_and_asks_not
     let submodule = |name: &str| Repository {
         folder: app.join(name),
         superproject: Some(app.clone()),
+        common_folder: None,
     };
     let found = Found::Repositories(vec![
         Repository {
             folder: app.clone(),
             superproject: None,
+            common_folder: None,
         },
         submodule("ui"),
         submodule("vendor"),

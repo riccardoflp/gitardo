@@ -225,8 +225,9 @@ Points this window at the submodule, as a repository of its own, without opening
 - **Undo**: Nothing to take back: nothing changes.
 - **After**: the timeline, the draft, the branch rail and the Changes page are those of the submodule, and what is done
   there is done in it. The banner of `worktree.banner` says which folder they show, with **Back to** the repository of
-  the window. The choice is not remembered when the window is opened again.
-- **Uses**: `worktree.banner`.
+  the window. The choice is not remembered when the window is opened again. In Gitardo Desktop the submodule is shown
+  in the tab of its repository, named as `api › lib/core`, and keeps what it showed apart from it (`repo.group-tabs`).
+- **Uses**: `worktree.banner`, `repo.group-tabs`.
 
 Acceptance:
 

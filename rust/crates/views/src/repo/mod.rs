@@ -4,7 +4,7 @@
 
 mod tabs;
 
-pub use tabs::{TAB_MOST, TabEntry, TabsState, cut_at_start, tabs_view};
+pub use tabs::{TAB_MOST, TabEntry, TabMemberEntry, TabsState, cut_at_start, tabs_view};
 
 use ui::layout::{Align, Area, place};
 use ui::{Button, Dialog, DialogButton, DialogRole, Label, Picker, PickerAnswer, PickerItem, PickerMode, Tone, Ui};

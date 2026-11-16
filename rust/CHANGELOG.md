@@ -14,6 +14,9 @@
   or its menu, which also has **Close other tabs**; closing the only tab shows the Welcome page. A tab with a File
   page whose edits are not saved asks **Save changes to app.rs?** before it closes, and keeps the edits while another
   tab is shown, also with `repositories.keepOpen` off.
+- The worktrees and the submodules of a repository are in its tab rather than in tabs of their own: the **▾** of the
+  tab lists them, a worktree by its branch, and shows the one chosen in the tab, named as `api › feature/login`; each
+  keeps what it showed apart from the others. A worktree of a repository open, opened from **+**, is shown in its tab.
 - On macOS and Linux too, removing a worktree, also when cleaning up branches, takes out of it first its links to
   folders outside it, each an `unlink <path>` step: git no longer refuses a worktree whose `node_modules` link is left
   out by `node_modules/` in `.gitignore`, a pattern for folders only.

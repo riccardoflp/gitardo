@@ -63,11 +63,15 @@ pub(super) fn offered(follow_ups: &[FollowUp]) -> Vec<OfferedRun> {
         .collect()
 }
 
-/// Points the views at another worktree of the repository or at a submodule, keeping the folder of the window to go back to; the folder
-/// of the window itself goes back. Nothing while an operation runs.
+/// Points the views at another worktree of the repository or at a submodule, keeping the folder of the window to go
+/// back to; the folder of the window itself goes back. In a tab, each keeps what it showed apart from the others
+/// (`repo.group-tabs`). Nothing while an operation runs.
 pub fn show(state: &mut State, folder: &Path) -> Vec<Effect> {
     if state.is_operation_running {
         return Vec::new();
+    }
+    if state.tabs.shown.is_some() {
+        return super::tabs::show_member(state, folder);
     }
     let Some(shown) = state.shown_folder().cloned() else {
         return Vec::new();

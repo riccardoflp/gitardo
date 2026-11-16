@@ -35,6 +35,7 @@ mod folds;
 mod github;
 mod go_to;
 mod going_to;
+mod group_tabs;
 mod histories;
 mod history;
 mod inspector;

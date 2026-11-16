@@ -3,12 +3,12 @@
 
 use std::path::{Path, PathBuf};
 
-use model::repo::Repository;
+use model::repo::{Repository, group_tabs};
 
 use super::super::message::{Effect, Found, JobId};
 use super::super::state::{Dialog, Opening, State};
 use super::super::workspace;
-use super::{Tab, forget, remember, shown_tab, switch_tab};
+use super::{Tab, forget, remember, show_in_tab, shown_tab, switch_tab, tab_of};
 use crate::persisted::{same_folder, same_folders};
 
 /// The repositories of a workspace being opened, while the user chooses which open in tabs.
@@ -89,15 +89,16 @@ pub fn choose_tabs(state: &mut State, chosen: &[PathBuf]) -> Vec<Effect> {
 }
 
 /// Opens a repository of the workspace in a tab after the tab shown, and shows it; a repository open already has its
-/// tab shown.
+/// tab shown, and a worktree or a submodule of a repository open is shown in the tab of that repository
+/// (`repo.group-tabs`).
 ///
 /// Feature: repo.open-tab
 pub fn open_tab(state: &mut State, folder: &Path) -> Vec<Effect> {
     if state.dialog == Some(Dialog::OpenTab) {
         state.dialog = None;
     }
-    if let Some(index) = state.tabs.open.iter().position(|tab| same_folder(&tab.folder, folder)) {
-        return switch_tab(state, index);
+    if let Some(index) = tab_of(state, folder) {
+        return show_in_tab(state, index, folder);
     }
     let found = state
         .repositories()
@@ -183,23 +184,13 @@ fn wanted(state: &State, job: JobId, found: &Found) -> Wanted {
     }
 }
 
-/// The repositories that have a tab of their own, in the order they were found: not the submodules, which are shown
-/// from their superproject; the first repository when there is no other.
+/// The repositories that have a tab of their own, in the order they were found: one for each group of
+/// `repo.group-tabs`, its worktrees and its submodules being shown in its tab.
 fn own_tabs(repositories: &[Repository]) -> Vec<PathBuf> {
-    let own: Vec<PathBuf> = repositories
-        .iter()
-        .filter(|repository| repository.superproject.is_none())
-        .map(|repository| repository.folder.clone())
-        .collect();
-    if own.is_empty() {
-        repositories
-            .iter()
-            .take(1)
-            .map(|repository| repository.folder.clone())
-            .collect()
-    } else {
-        own
-    }
+    group_tabs(repositories)
+        .into_iter()
+        .map(|group| group.repository.folder)
+        .collect()
 }
 
 /// The tabs of the window once a workspace is found: a tab still wanted keeps what it kept, the one shown is the one

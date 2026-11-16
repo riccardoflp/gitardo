@@ -18,7 +18,7 @@ use super::tabs::three_clones;
 const TYPED: &str = "Gitardo, edited\n";
 
 /// Opens `README.md` of the repository shown in a File page and replaces its text, without saving it.
-fn edit_readme(driver: &OperationsDriver, state: &mut State) -> FilePageId {
+pub(super) fn edit_readme(driver: &OperationsDriver, state: &mut State) -> FilePageId {
     driver.intent(
         state,
         Intent::FileView(FileViewIntent::Open(FileTarget::working_tree("README.md"))),
@@ -39,7 +39,7 @@ fn edit_readme(driver: &OperationsDriver, state: &mut State) -> FilePageId {
 }
 
 /// Answers **Save changes to README.md?**
-fn answer(driver: &OperationsDriver, state: &mut State, answer: CloseAnswer) {
+pub(super) fn answer(driver: &OperationsDriver, state: &mut State, answer: CloseAnswer) {
     driver.intent(state, Intent::FileView(FileViewIntent::AnswerClose(answer)));
 }
 
