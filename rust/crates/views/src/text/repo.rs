@@ -53,6 +53,17 @@ pub const TAB_MEMBERS: &str = "Worktrees and submodules";
 /// What is put between the name of a tab and the name of the worktree or the submodule it shows.
 pub const IN_TAB: &str = " \u{203a} ";
 
+/// The entry of the island drawn as one button that opens a repository in a tab (`repo.open-tab`).
+pub const OPEN_A_REPOSITORY: &str = "Open a repository\u{2026}";
+/// The tooltip of **… N**, the tabs that do not fit in the island.
+pub const MORE_TABS: &str = "Tabs that do not fit";
+
+/// **… N**, the button of the tabs that do not fit in the island, `N` being how many.
+#[must_use]
+pub fn more_tabs(count: usize) -> String {
+    format!("\u{2026} {count}")
+}
+
 /// A worktree with no branch checked out, in the **▾** of its tab.
 #[must_use]
 pub fn detached_at(short: &str) -> String {

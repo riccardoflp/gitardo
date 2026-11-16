@@ -17,6 +17,10 @@
 - The worktrees and the submodules of a repository are in its tab rather than in tabs of their own: the **▾** of the
   tab lists them, a worktree by its branch, and shows the one chosen in the tab, named as `api › feature/login`; each
   keeps what it showed apart from the others. A worktree of a repository open, opened from **+**, is shown in its tab.
+- Tabs that do not fit the window get narrower, and those that still do not fit are listed in **… N** at the end of
+  the tabs, never the one shown; in a window narrower than 480 logical pixels the tabs are one button, the name of
+  the tab shown, which lists every tab and **Open a repository…**. On macOS `Cmd+1` to `Cmd+9`, `Cmd+Shift+]` and
+  `Cmd+Shift+[` show another tab.
 - On macOS and Linux too, removing a worktree, also when cleaning up branches, takes out of it first its links to
   folders outside it, each an `unlink <path>` step: git no longer refuses a worktree whose `node_modules` link is left
   out by `node_modules/` in `.gitignore`, a pattern for folders only.

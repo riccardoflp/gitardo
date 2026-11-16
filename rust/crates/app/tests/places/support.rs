@@ -22,8 +22,10 @@ use views::Intent;
 /// repositories, so that the pictures do not change from one day to the next.
 pub const NOW: i64 = 1_735_689_600 + 3 * 3_600;
 
-/// A window drawn in memory at a scale of 1, in a theme.
+/// A window drawn in memory at a scale, 1 unless said, in a theme.
 pub struct Window {
+    /// How many pixels a logical pixel is.
+    scale: f32,
     /// The pixels.
     pub frame: FrameBuffer,
     /// The fonts.
@@ -42,7 +44,12 @@ pub struct Window {
 
 impl Window {
     /// A window of a size in logical pixels.
-    pub fn new(theme: ThemeName, (width, height): (u32, u32)) -> Window {
+    pub fn new(theme: ThemeName, size: (u32, u32)) -> Window {
+        Window::scaled(theme, size, 1)
+    }
+
+    /// A window of a size in logical pixels, at a scale.
+    pub fn scaled(theme: ThemeName, (width, height): (u32, u32), scale: u8) -> Window {
         let mut assets = Assets::bundled();
         let mut add = |family, weight| assets.fonts.add_typeface(&family, weight).unwrap();
         let typefaces = Typefaces {
@@ -52,7 +59,8 @@ impl Window {
             mono: add(FontFamily::Code, FontWeight::REGULAR),
         };
         Window {
-            frame: FrameBuffer::new(width, height),
+            scale: f32::from(scale),
+            frame: FrameBuffer::new(width * u32::from(scale), height * u32::from(scale)),
             assets,
             memory: UiMemory::new(),
             typefaces,
@@ -83,7 +91,7 @@ impl Window {
             settings: FrameSettings {
                 theme: self.theme,
                 typefaces: self.typefaces,
-                scale: 1.0,
+                scale: self.scale,
                 now: self.now,
             },
         });

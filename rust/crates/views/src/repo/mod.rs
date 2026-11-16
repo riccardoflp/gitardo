@@ -2,9 +2,11 @@
 //! to show (`repo.no-repository`), the picker of the repositories (`repo.select`), and the question asked when a folder
 //! is opened while the window shows a workspace (`repo.open-folder`).
 
+mod fit;
 mod tabs;
 
-pub use tabs::{TAB_MOST, TabEntry, TabMemberEntry, TabsState, cut_at_start, tabs_view};
+pub use fit::{Fit, TAB_LEAST, fit_tabs};
+pub use tabs::{ONE_BUTTON_BELOW, TAB_MOST, TabEntry, TabMemberEntry, TabsState, cut_at_start, tabs_view};
 
 use ui::layout::{Align, Area, place};
 use ui::{Button, Dialog, DialogButton, DialogRole, Label, Picker, PickerAnswer, PickerItem, PickerMode, Tone, Ui};

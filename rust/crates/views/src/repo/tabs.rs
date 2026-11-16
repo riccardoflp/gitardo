@@ -18,6 +18,9 @@ use crate::text::repo as words;
 /// The widest a tab gets, in logical pixels.
 pub const TAB_MOST: f32 = 200.0;
 
+/// Below this width of the window, in logical pixels, the island is one button.
+pub const ONE_BUTTON_BELOW: f32 = 480.0;
+
 /// The key of the menu of **+**.
 const OPEN_MENU: &str = "open menu";
 
@@ -68,6 +71,15 @@ enum OpenCommand {
     WorkspaceFile,
 }
 
+/// What an entry of the island drawn as one button does.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ListCommand {
+    /// Shows the tab at a place.
+    Tab(usize),
+    /// **Open a repository…**.
+    Open,
+}
+
 /// What an entry of the menu of a tab does.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum TabCommand {
@@ -78,9 +90,13 @@ enum TabCommand {
 }
 
 /// The island of the tabs over the rectangle its caller clipped it to: each tab as wide as its name and the room of its
-/// **×**, up to [`TAB_MOST`], a longer name cut at its start; the tab shown on the ground of a page with a border; a
-/// **×** on it and on the tab under the pointer; **+** at the end. A middle click on a tab closes it, a right click opens its menu. `Ctrl+1` to `Ctrl+8` show the tab at that
-/// place and `Ctrl+9` the last, `Ctrl+PageDown` and `Ctrl+PageUp` the next tab and the one before, going round.
+/// **×** and its **▾**, up to [`TAB_MOST`], a longer name cut at its start; the tab shown on the ground of a page with
+/// a border; a **×** on it and on the tab under the pointer; **+** at the end. Tabs that do not fit get narrower, down
+/// to [`super::TAB_LEAST`], and those that still do not are listed in **… N**, never the tab shown. Below
+/// [`ONE_BUTTON_BELOW`] the island is one button, the name of the tab shown with a chevron, listing every tab and
+/// **Open a repository…**. A middle click on a tab closes it, a right click opens its menu. `Ctrl+1` to `Ctrl+8` show
+/// the tab at that place and `Ctrl+9` the last, `Ctrl+PageDown` and `Ctrl+PageUp` the next tab and the one before,
+/// going round; on macOS `Cmd+1` to `Cmd+9`, `Cmd+Shift+]` and `Cmd+Shift+[`.
 ///
 /// Feature: repo.tabs
 pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -92,24 +108,102 @@ pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         let spacing = theme.sizes.spacing;
         let inner = inset(rect, Insets::symmetric(spacing.medium, 0.0));
         let mut area = Area::with_gap(inner, spacing.small);
+        if ui.window().width < ONE_BUTTON_BELOW {
+            intents.extend(one_button(state.tabs, ui, area.rest()));
+            return;
+        }
         open_button(state.not_open, ui, &mut area, &mut intents);
-        for (index, tab) in state.tabs.iter().enumerate() {
-            let style = ui.text_style(TextKind::Medium);
-            let padding = 2.0 * spacing.large;
-            let mut close = theme.sizes.icon + 2.0 * spacing.small;
-            if !tab.members.is_empty() {
-                close += theme.sizes.icon + spacing.small;
-            }
-            let width = (ui.measure(&tab.name, style) + padding + close).min(TAB_MOST);
-            if area.rest().width < width {
-                break;
-            }
+        let widths: Vec<f32> = state.tabs.iter().map(|tab| rooms(ui, tab).0).collect();
+        let more = Button::secondary("").kind(ButtonKind::Icon);
+        let label = words::more_tabs(state.tabs.len());
+        let more_width = ui.button_size(&Button { label: &label, ..more }).0;
+        let shown = state.tabs.iter().position(|tab| tab.is_shown);
+        let fit = super::fit_tabs(&widths, shown, (area.rest().width, spacing.small, more_width));
+        for (index, width) in fit.drawn {
+            let Some(tab) = state.tabs.get(index) else {
+                continue;
+            };
             let cell = control_in(ui, area.left(width), width);
+            let (_, padding, close) = rooms(ui, tab);
             intents.extend(tab_button((index, tab), ui, (cell, padding, close)));
+        }
+        if !fit.listed.is_empty() {
+            let rect = area.left(more_width);
+            intents.extend(more_button((state.tabs, &fit.listed), ui, rect));
         }
     });
     intents.extend(keys(state.tabs, ui));
     intents
+}
+
+/// The width a tab wants, as wide as its name up to [`TAB_MOST`]; the room on each side of its name; and the room of
+/// its **×** and its **▾**.
+fn rooms(ui: &Ui<'_>, tab: &TabEntry) -> (f32, f32, f32) {
+    let theme = ui.theme();
+    let spacing = theme.sizes.spacing;
+    let padding = 2.0 * spacing.large;
+    let mut close = theme.sizes.icon + 2.0 * spacing.small;
+    if !tab.members.is_empty() {
+        close += theme.sizes.icon + spacing.small;
+    }
+    let style = ui.text_style(TextKind::Medium);
+    let width = (ui.measure(&tab.name, style) + padding + close).min(TAB_MOST);
+    (width, padding, close)
+}
+
+/// **… N**, which lists the tabs that do not fit, in their order; choosing one shows it.
+fn more_button((tabs, listed): (&[TabEntry], &[usize]), ui: &mut Ui<'_>, rect: Rect) -> Option<Intent> {
+    let label = words::more_tabs(listed.len());
+    let button = Button::secondary(&label)
+        .kind(ButtonKind::Icon)
+        .with_tooltip(words::MORE_TABS);
+    let rect = control_in(ui, rect, rect.width);
+    let entries: Vec<MenuEntry<'_, usize>> = listed
+        .iter()
+        .filter_map(|index| {
+            tabs.get(*index)
+                .map(|tab| MenuEntry::Item(MenuItem::new(tab.name.as_str(), *index)))
+        })
+        .collect();
+    ui.menu_button("more tabs", rect, &button, &entries)
+        .map(Intent::SwitchTab)
+}
+
+/// The island as one button, in a narrow window: the name of the tab shown with a chevron, whose list has every tab,
+/// the one shown checked, and **Open a repository…**.
+fn one_button(tabs: &[TabEntry], ui: &mut Ui<'_>, room: Rect) -> Option<Intent> {
+    let name = tabs
+        .iter()
+        .find(|tab| tab.is_shown)
+        .map_or(words::OPEN_A_REPOSITORY, |tab| tab.name.as_str());
+    let button = Button::secondary(name)
+        .kind(ButtonKind::Icon)
+        .with_trailing(Icon::ChevronDown);
+    let width = ui.button_size(&button).0.min(room.width);
+    let rect = control_in(ui, room, width);
+    let mut entries: Vec<MenuEntry<'_, ListCommand>> = tabs
+        .iter()
+        .enumerate()
+        .map(|(index, tab)| {
+            let item = MenuItem::new(tab.name.as_str(), ListCommand::Tab(index));
+            MenuEntry::Item(if tab.is_shown {
+                item.with_icon(Icon::Check)
+            } else {
+                item
+            })
+        })
+        .collect();
+    if !entries.is_empty() {
+        entries.push(MenuEntry::Separator);
+    }
+    entries.push(MenuEntry::Item(MenuItem::new(
+        words::OPEN_A_REPOSITORY,
+        ListCommand::Open,
+    )));
+    match ui.menu_button("tabs list", rect, &button, &entries)? {
+        ListCommand::Tab(index) => Some(Intent::SwitchTab(index)),
+        ListCommand::Open => Some(Intent::PickTabToOpen),
+    }
 }
 
 /// One tab, and what a click on it, on its **×**, a middle click or its menu asked.
@@ -255,25 +349,33 @@ fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, area: &mut Area, i
     }
 }
 
-/// The keys of the tabs, when nothing else took them.
+/// The keys of the tabs, when nothing else took them: `Ctrl` with a digit, `PageDown` or `PageUp`; on macOS `Cmd` with
+/// a digit, `Cmd+Shift+]` or `Cmd+Shift+[`.
 fn keys(tabs: &[TabEntry], ui: &Ui<'_>) -> Vec<Intent> {
     let count = tabs.len();
     let shown = tabs.iter().position(|tab| tab.is_shown);
     if count < 2 {
         return Vec::new();
     }
+    let next = Intent::SwitchTab(shown.map_or(0, |shown| (shown + 1) % count));
+    let before = Intent::SwitchTab(shown.map_or(0, |shown| (shown + count - 1) % count));
+    let is_mac = cfg!(target_os = "macos");
+    let digit_with = if is_mac { Modifiers::META } else { Modifiers::CONTROL };
     ui.unclaimed_keys()
         .into_iter()
-        .filter(|key| key.modifiers == Modifiers::CONTROL)
         .filter_map(|key| match key.key {
-            Key::Character(digit @ '1'..='8') => {
+            Key::Character(digit @ '1'..='8') if key.modifiers == digit_with => {
                 let place = digit.to_digit(10).and_then(|place| usize::try_from(place).ok())?;
                 (place <= count).then(|| Intent::SwitchTab(place - 1))
             }
-            Key::Character('9') => Some(Intent::SwitchTab(count - 1)),
-            Key::Named(NamedKey::PageDown) => Some(Intent::SwitchTab(shown.map_or(0, |shown| (shown + 1) % count))),
-            Key::Named(NamedKey::PageUp) => {
-                Some(Intent::SwitchTab(shown.map_or(0, |shown| (shown + count - 1) % count)))
+            Key::Character('9') if key.modifiers == digit_with => Some(Intent::SwitchTab(count - 1)),
+            Key::Named(NamedKey::PageDown) if !is_mac && key.modifiers == Modifiers::CONTROL => Some(next.clone()),
+            Key::Named(NamedKey::PageUp) if !is_mac && key.modifiers == Modifiers::CONTROL => Some(before.clone()),
+            Key::Character(']' | '}') if is_mac && key.modifiers == Modifiers::META | Modifiers::SHIFT => {
+                Some(next.clone())
+            }
+            Key::Character('[' | '{') if is_mac && key.modifiers == Modifiers::META | Modifiers::SHIFT => {
+                Some(before.clone())
             }
             _ => None,
         })

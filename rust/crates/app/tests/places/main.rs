@@ -47,6 +47,7 @@ mod log_secrets;
 mod merge;
 mod merge_actions;
 mod merge_at_line;
+mod narrow_tabs;
 mod new_worktrees;
 mod open_tabs;
 mod operations;
