@@ -9,6 +9,7 @@ import { Reads, type Repository, repositoryName } from '../engine/reads';
 import { engineSettings } from '../engine/settings';
 import { parseGitHubRemote } from '../shared/github';
 import { samePath } from '../shared/paths';
+import { groupRepositories } from '../shared/repositoryGroups';
 import type { Conflict } from '../shared/conflicts';
 import { CONFLICT_SIDES } from '../shared/conflicts';
 import { fingerprint, reviewFiles, type Answer } from '../shared/review';
@@ -219,8 +220,9 @@ async function main() {
   const client = new EngineClient({ binary: engineBinary, clientVersion: '0.0.0-preview', settings: () => settings, logLevel: () => 'info', log });
   const reads = new Reads(() => client);
   const graph = new EngineGraph();
-  const roots = (await reads.discover(folders)).map((found) => found.folder);
-  const repos = roots.map((root) => ({ root, name: repositoryName(root, folders) }));
+  const discovered = await reads.discover(folders);
+  const roots = discovered.map((found) => found.folder);
+  const repos = groupRepositories(discovered).map(({ repository, depth }) => ({ root: repository.folder, name: repositoryName(repository.folder, folders), depth }));
   let repo: Repository | null = roots.length ? { root: roots[0] } : null;
   let limit = PAGE_SIZE;
   let filter: Filter | null = null;
@@ -346,7 +348,7 @@ async function main() {
     scope = read.scope;
     worktrees = read.worktrees.filter((worktree) => !worktree.isMissing).map((worktree) => worktree.folder);
     const away = inRoots(read.root) ? null : home;
-    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', branchesFollowScope, sortOrder: branchSort, traceSelected, graphColumns, dateSeparators, combineUpstream, resolveWithAI: true, home: away } }];
+    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', branchesFollowScope, sortOrder: branchSort, traceSelected, graphColumns, dateSeparators, combineUpstream, resolveWithAI: true, home: away, keepOpen: false } }];
   }
 
   /** `light` for a page in the light theme, which can have other file icons. */

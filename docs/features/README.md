@@ -61,9 +61,9 @@ earns it.
 | [`repo.open-code-workspace`](01-repositories.md#repoopen-code-workspace--open-a-workspace-file-of-vs-code) | Open a workspace file of VS Code | Operation | Built | Host only |
 | [`repo.close-tab`](01-repositories.md#repoclose-tab--close-a-tab) | Close a tab | Operation | Built | Host only |
 | [`repo.switch-tab`](01-repositories.md#reposwitch-tab--show-another-tab) | Show another tab | Operation | Built | Host only |
-| [`repo.keep-open`](01-repositories.md#repokeep-open--keep-what-each-repository-showed) | Keep what each repository showed | Derivation | Built | Planned |
-| [`repo.group-tabs`](01-repositories.md#repogroup-tabs--worktrees-and-submodules-in-the-tab-of-their-repository) | Worktrees and submodules in the tab of their repository | Derivation | Built | Planned |
-| [`repo.watch-hidden`](01-repositories.md#repowatch-hidden--keep-the-tabs-not-shown-up-to-date) | Keep the tabs not shown up to date | Derivation | Built | Planned |
+| [`repo.keep-open`](01-repositories.md#repokeep-open--keep-what-each-repository-showed) | Keep what each repository showed | Derivation | Built | Built |
+| [`repo.group-tabs`](01-repositories.md#repogroup-tabs--worktrees-and-submodules-in-the-tab-of-their-repository) | Worktrees and submodules in the tab of their repository | Derivation | Built | Built |
+| [`repo.watch-hidden`](01-repositories.md#repowatch-hidden--keep-the-tabs-not-shown-up-to-date) | Keep the tabs not shown up to date | Derivation | Built | Built |
 | [`trust.is-trusted`](01-repositories.md#trustis-trusted--whether-a-folder-is-trusted) | Whether a folder is trusted | Derivation | Built | Host only |
 | [`trust.ask`](01-repositories.md#trustask--ask-whether-to-trust-a-folder-before-running-what-it-asks) | Ask whether to trust a folder before running what it asks | Operation | Built | Host only |
 | [`trust.manage`](01-repositories.md#trustmanage--see-the-trusted-folders-and-stop-trusting-some) | See the trusted folders and stop trusting some | Operation | Built | Host only |

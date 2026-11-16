@@ -7,6 +7,7 @@ import { RepoSelect } from './RepoSelect';
 import { ScopeButton } from './ScopeButton';
 import { WorktreeSelect } from './WorktreeSelect';
 import { act } from './menus';
+import { useKept } from './kept';
 import { loadUiState, post, saveUiState } from './vscode';
 
 interface Props {
@@ -83,6 +84,12 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
   // Whether a search of the whole history replaces the graph with what it finds, rather than highlight it there.
   const [only, setOnly] = useState(() => loadUiState({ searchOnly: false }).searchOnly);
   const input = useRef<HTMLInputElement>(null);
+  // Coming back to a repository that kept what it showed, its search is in the box again.
+  useKept(state.root, state.keepOpen, 'search', { text, mode }, (kept) => {
+    setText(kept.text);
+    setMode(kept.mode);
+    onQuery(kept.mode === 'loaded' ? kept.text : '');
+  });
   const openMenu = useMenu();
   const upstream = state.branches.find((branch) => branch.isCheckedOut)?.upstream;
   const sync = (action: SyncAction) => post({ type: 'sync', action });

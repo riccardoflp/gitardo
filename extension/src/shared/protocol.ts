@@ -91,6 +91,11 @@ export type Search = Extract<Filter, { query: string }>;
 export interface RepoInfo {
   root: string;
   name: string;
+  /**
+   * How far under the repository of its group the list of the repositories puts it: 0 for a repository, 1 for one of
+   * its worktrees or submodules, 2 for a submodule of one of those (`repo.group-tabs`).
+   */
+  depth: number;
 }
 
 export interface PullRequest {
@@ -192,6 +197,11 @@ export interface RepoState extends RepoParts {
    * workspace. Null when they show a repository of the workspace.
    */
   home: RepoInfo | null;
+  /**
+   * Whether each repository keeps what the views showed of it while another is shown, as `gitardo.repositories.keepOpen`
+   * says (`repo.keep-open`).
+   */
+  keepOpen: boolean;
 }
 
 /** The commits of what is checked out, for the view that lists them apart from the graph. */
@@ -524,6 +534,8 @@ export type HostMessage =
   | { type: 'drafting'; active: boolean; message?: string }
   /** A message for the commit box to start from when it is empty, such as the one git prepared for a squash merge, or that of a commit being split. */
   | { type: 'commitMessage'; message: string }
+  /** The message the commit box had when the repository shown was left, kept while another was shown (`repo.keep-open`). */
+  | { type: 'keptMessage'; root: string; message: string }
   /** What the tab of the setup of new worktrees shows. Null, with `error`, when it could not be read. */
   | { type: 'worktreeSetup'; info: WorktreeSetupInfo | null; error?: string }
   /** What the patterns take from the checkout. Null when git could not say. */
@@ -591,6 +603,11 @@ export type WebviewMessage =
   /** The pointer came to a branch, with its commit, whose history the views of the graph bring out; or left it, with null. */
   | { type: 'trace'; hash: string | null }
   | { type: 'selectRepo'; root: string }
+  /**
+   * The commit box was pointed at another repository: the message it had in the one left, to keep, and the one shown,
+   * whose message it asks for (`repo.keep-open`).
+   */
+  | { type: 'keepMessage'; root: string; message: string; shown: string }
   | { type: 'openDiff'; source: DiffSource; file: FileChange }
   /**
    * Asks what to compare a file listed in a commit, in a comparison or in the changes not committed with, a branch,

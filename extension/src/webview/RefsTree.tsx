@@ -20,6 +20,7 @@ import {
   worktreesMenu,
   type Comparing,
 } from './menus';
+import { useKept } from './kept';
 import { loadUiState, post, saveUiState } from './vscode';
 
 /** The start of VS Code the page is shown in. */
@@ -117,6 +118,11 @@ export const RefsTree = memo(function RefsTree({ state, selected, onSelect, onCo
   const [opened, setOpened] = useState(() => {
     const saved = loadUiState({ opened: {} as Record<string, boolean>, openedIn: '' });
     return saved.openedIn === SESSION ? saved.opened : {};
+  });
+  // Coming back to a repository that kept what it showed, its sections are open or closed as they were.
+  useKept(state.root, state.keepOpen, 'sections', opened, (kept) => {
+    setOpened(kept);
+    saveUiState({ opened: kept, openedIn: SESSION });
   });
   // Sections listed in full. Not remembered: the next time the short list is the better start again.
   const [full, setFull] = useState<Record<string, boolean>>({});

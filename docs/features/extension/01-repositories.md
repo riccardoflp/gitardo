@@ -20,10 +20,13 @@ workspace.
 - **Uses**: `worktree.show-in-gitardo`, `repo.follow-source-control`.
 - **Implemented in**: `RepoSelect`, used by `Toolbar` (`src/webview/Toolbar.tsx`) and `ChangesApp`
   (`src/webview/ChangesApp.tsx`); `selectRepo`, `pickRepo` and `open` in `src/extension/controller.ts`. The choice is
-  kept in the workspace state under `gitardo.repository`.
+  kept in the workspace state under `gitardo.repository`. The order of the list and how far each is indented are
+  `groupRepositories` of `src/shared/repositoryGroups.ts`, from what `repository/discover` says of each repository
+  (`RepoInfo.depth`). What a repository left keeps, with `gitardo.repositories.keepOpen` on, is `repo.keep-open`'s.
 - **Tested by**: `test/e2e/suite.ts`, steps "narrows the graph to the history of a file, switching repository if
-  needed" and "follows the repository selected in VS Code's Repositories view, selects there the one shown, and
-  shows a worktree of another".
+  needed", "follows the repository selected in VS Code's Repositories view, selects there the one shown, and
+  shows a worktree of another" and "lists the worktrees of a repository of the workspace under it in the list of the
+  repositories"; `test/repositoryGroups.test.ts`.
 
 Acceptance:
 
@@ -33,6 +36,8 @@ Acceptance:
 - [ ] While the views show a worktree that is not in the workspace, the repository it is of stays chosen in the list;
   the worktree is chosen with the branch in the toolbar of the graph (`worktree.show-in-gitardo`).
 - [ ] The list is disabled while an operation runs.
+- [ ] The list puts a worktree of a repository and a submodule of it under it, indented, the worktree first, and
+  **Gitardo: Select Repository** lists them in the same order.
 
 ### `repo.follow-source-control` — Follow the Repositories view of VS Code
 

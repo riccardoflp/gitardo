@@ -2309,6 +2309,65 @@ try {
       else fs.writeFileSync(settingsFile, settingsBefore);
     }
   });
+
+  await step('with keeping repositories open on, a repository chosen again in the list shows the commit it had selected, at the same scroll', async () => {
+    // Enough commits for the graph to scroll, on a branch of their own.
+    const tree = git(app, 'rev-parse', 'HEAD^{tree}').toString().trim();
+    let tip = git(app, 'rev-parse', 'HEAD').toString().trim();
+    for (let index = 1; index <= 80; index++) tip = git(app, 'commit-tree', tree, '-p', tip, '-m', `Long ${String(index).padStart(2, '0')}`).toString().trim();
+    git(app, 'branch', 'long', tip);
+    setting('gitardo.repositories.keepOpen', true);
+    // VS Code reads the settings file again on its own, and the views are told.
+    await sleep(1500);
+    await command('Gitardo: Show Graph');
+    const graph = await webview('graph');
+    /** Chooses a repository in the list at the start of the toolbar, as a person picks it there. */
+    const choose = (name) =>
+      graph.evaluate(`(() => {
+        const list = document.querySelector('select.repo');
+        const option = [...list.options].find((candidate) => candidate.textContent.trim().endsWith(${JSON.stringify(name)}));
+        list.value = option.value;
+        list.dispatchEvent(new Event('change', { bubbles: true }));
+      })()`);
+    const shown = () =>
+      graph.evaluate(`({
+        scroll: Math.round(document.querySelector('.commits').scrollTop),
+        selected: document.querySelector('.row.selected .subject')?.textContent ?? null,
+        subjects: [...document.querySelectorAll('.row .subject')].map((row) => row.textContent),
+      })`);
+    try {
+      await until('the long branch', async () => (await shown()).subjects.some((subject) => subject.startsWith('Long ')));
+      await graph.evaluate(`document.querySelector('.commits').scrollTop = 900`);
+      await until('the graph scrolled', async () => (await shown()).scroll >= 600);
+      // A commit in sight, clicked as a person would: the graph also draws rows just out of sight, which a click misses.
+      const target = await graph.evaluate(`(() => {
+        const box = document.querySelector('.commits').getBoundingClientRect();
+        const middle = box.top + box.height / 2;
+        const rows = [...document.querySelectorAll('.row')].filter((row) => {
+          const rect = row.getBoundingClientRect();
+          return rect.top >= middle && rect.bottom <= box.bottom && row.querySelector('.subject')?.textContent.startsWith('Long ');
+        });
+        return rows[0]?.querySelector('.subject').textContent ?? null;
+      })()`);
+      assert(target, 'a commit of the long branch in sight');
+      await graph.click('.row', target);
+      await until('the commit selected', async () => (await shown()).selected === target);
+      const left = await shown();
+      await shot('keep-open-left');
+
+      await choose('lib');
+      await until('lib shown', async () => (await shown()).subjects.includes('Add lib'));
+      await choose('app');
+      await until('app shown again', async () => (await shown()).subjects.some((subject) => subject.startsWith('Long ')));
+      const back = await shown();
+      await shot('keep-open-back');
+      assert(back.selected === left.selected, `selected ${back.selected}, not ${left.selected}`);
+      assert(Math.abs(back.scroll - left.scroll) <= 1, `scrolled to ${back.scroll}, not ${left.scroll}`);
+    } finally {
+      setting('gitardo.repositories.keepOpen', undefined);
+      git(app, 'branch', '-D', 'long');
+    }
+  });
 } catch (error) {
   await finish(error);
 }

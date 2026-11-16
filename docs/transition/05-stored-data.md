@@ -22,6 +22,9 @@ extension's side is [extension/11-data.md](../extension/11-data.md); the desktop
 The names coincide already: the desktop's key is the extension's without `gitardo.` (`settings/src/keys.rs` against
 `extension/package.json`). 33 keys are in both; 9 are only in the extension and 13 only in the desktop. That is what
 lets the extension send its settings to the engine as they are ([02-protocol.md](02-protocol.md#settings)).
+`repositories.keepOpen` is in both since milestone M12, `true` by default in the desktop and `false` in the extension,
+where it is the extension's alone: the engine keeps the state of every repository opened anyway, and reads nothing of
+the setting.
 
 Only in the extension, and what becomes of each:
 

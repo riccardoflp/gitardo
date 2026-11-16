@@ -107,6 +107,7 @@ export async function graphState(client: EngineClient, root: string, parts: Repo
     sortOrder: 'name',
     resolveWithAI: false,
     home: null,
+    keepOpen: false,
   };
 }
 
