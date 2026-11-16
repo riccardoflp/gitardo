@@ -28,6 +28,10 @@ const READ_SETTINGS: [&str; 5] = ["conflicts", "pull", "worktrees", "branches", 
 /// The folder the daemon of `core.fsmonitor` writes in each time `git status` runs, which never asks for a read.
 const FSMONITOR_FOLDER: &str = "fsmonitor--daemon";
 
+/// The socket the daemon of `core.fsmonitor` listens on, on Linux and macOS, beside that folder: it never asks for a
+/// read either.
+const FSMONITOR_SOCKET: &str = "fsmonitor--daemon.ipc";
+
 /// Something that changed, as the window learns it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Change {
@@ -135,9 +139,12 @@ pub fn watch_changes(change: &Change) -> Option<ReadRequest> {
     Some(ReadRequest { delay, cause })
 }
 
-/// Whether a path may ask for a read at all: not a path with a part named `fsmonitor--daemon`, nor a lock.
+/// Whether a path may ask for a read at all: not a path with a part named `fsmonitor--daemon` or
+/// `fsmonitor--daemon.ipc`, nor a lock.
 pub(crate) fn is_watched(parts: &[String]) -> bool {
-    let is_daemon = parts.iter().any(|part| part == FSMONITOR_FOLDER);
+    let is_daemon = parts
+        .iter()
+        .any(|part| part == FSMONITOR_FOLDER || part == FSMONITOR_SOCKET);
     let is_lock = parts.last().is_some_and(|name| {
         Path::new(name)
             .extension()
@@ -201,6 +208,12 @@ mod tests {
         assert_eq!(git("fsmonitor--daemon/cookies/1"), None);
         let in_tree = Change::WorkingTree(PathBuf::from(".git/fsmonitor--daemon/cookies/1"));
         assert_eq!(watch_changes(&in_tree), None);
+    }
+
+    #[test]
+    fn repo_watch_changes__the_socket_of_the_fsmonitor_daemon_in_a_worktree_asks_for_nothing() {
+        assert_eq!(git("worktrees/feature/fsmonitor--daemon.ipc"), None);
+        assert_eq!(git("fsmonitor--daemon.ipc"), None);
     }
 
     #[test]

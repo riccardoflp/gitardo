@@ -15,6 +15,7 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 - The references beside the graph and the Branches view list every branch whatever the graph is narrowed to, the ones it leaves out dimmed with their eye. **Filter the list of branches too** and the switch above the references are gone, and `gitardo.branches.followGraphFilter` is no longer read.
 - The list of the repositories puts the worktrees and the submodules of a repository under it, indented, and **Gitardo: Select Repository** lists them in the same order.
 - On macOS and Linux too, **Remove…** and **Gitardo: Clean Up Branches** take out of a worktree its links to folders outside it before removing it, with an `unlink <path>` line for each: git no longer refuses a worktree whose `node_modules` link is left out by `node_modules/` in `.gitignore`.
+- With `core.fsmonitor` on, on Linux and macOS, a worktree no longer has its repository read again and again: the socket the daemon listens on in its git folder (`fsmonitor--daemon.ipc`) no longer counts as a change, as the daemon's folder already did not.
 - The headers of the views in the side bar, such as the branch checked out on **Branches** and the count on **Stashes**, are filled as soon as a view opens, also when the repository was read before it: they stayed empty until the next read.
 - The stashes are read without an error when the last one goes while they are read, as when it is dropped or a pull takes back the changes it set aside.
 

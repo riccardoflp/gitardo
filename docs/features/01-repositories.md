@@ -298,12 +298,13 @@ What is watched, and what each change asks for:
 | Files created, deleted or renamed by Gitardo | yes | 400 ms | `files were created` (`deleted`, `renamed`) |
 | The window gets the focus | yes | 400 ms | `the window got the focus` |
 | A setting under `conflicts`, `pull`, `worktrees`, `branches` or `graph` changes | yes | 400 ms | `the settings changed` |
-| Any path with a part named `fsmonitor--daemon` | no | | |
+| Any path with a part named `fsmonitor--daemon`, or `fsmonitor--daemon.ipc` | no | | |
 | Any file whose name ends in `.lock` | no | | |
 
 The last two rules are what keep a repository from being read for ever: the daemon of `core.fsmonitor` leaves a file
 in the folder of a worktree (`.git/worktrees/<name>/fsmonitor--daemon/…`) each time `git status` runs there, as it
-does in every read; and a lock is always followed by the file it locked.
+does in every read, and on Linux and macOS listens on a socket beside it (`fsmonitor--daemon.ipc`); and a lock is
+always followed by the file it locked.
 
 Acceptance:
 
@@ -311,6 +312,7 @@ Acceptance:
       `.git/refs/heads/main changed` (or the file that changed first).
 - [ ] Saving a file from another editor asks for a read after 1,000 ms.
 - [ ] A change to `.git/worktrees/feature/fsmonitor--daemon/cookies/…` asks for nothing.
+- [ ] A change to `.git/worktrees/feature/fsmonitor--daemon.ipc` asks for nothing.
 - [ ] A change to `.git/index.lock` asks for nothing.
 - [ ] With `core.fsmonitor=true` and nothing changing, the repository is read once and then not again.
 

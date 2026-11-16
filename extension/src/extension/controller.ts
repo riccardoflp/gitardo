@@ -175,11 +175,11 @@ const hasCommand = async (id: string) => (await vscode.commands.getCommands(true
 /**
  * Whether a file of the folder of git that changed can mean that the repository did. What git writes for itself and
  * takes away again does not: the daemon of `core.fsmonitor` leaves a file in the folder of a worktree each time
- * `git status` runs there, as it does each time Gitardo reads, which would have it read again and again for ever; and a
- * lock is followed by the file it locked.
+ * `git status` runs there, as it does each time Gitardo reads, which would have it read again and again for ever, and on
+ * Linux and macOS listens on a socket beside it; and a lock is followed by the file it locked.
  */
 function meansChange(file: string): boolean {
-  return !/(^|\/)fsmonitor--daemon(\/|$)/.test(file) && !file.endsWith('.lock');
+  return !/(^|\/)fsmonitor--daemon(\.ipc)?(\/|$)/.test(file) && !file.endsWith('.lock');
 }
 
 /** What the status bar says of a read of the repository: what asked for it, and how many came one after another. */

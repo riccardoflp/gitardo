@@ -974,6 +974,8 @@ export async function run(): Promise<void> {
 
       const from = posted.length;
       const appReads = counted.of(nameOf(app)).length;
+      // Why app would be read once shown, if something changed in it meanwhile.
+      const changed = internals.kept.outOfDate(app);
       await controller.selectRepo(app);
       assert.ok(samePath(state().root, app), state().root);
       assert.deepEqual(
@@ -985,7 +987,7 @@ export async function run(): Promise<void> {
       assert.deepEqual(internals.filter, left.filter);
       assert.equal(internals.limit, 2500);
       // At once: the views are sent its state, and are not told to wait for its commits.
-      assert.deepEqual(toldFrom(from), ['state app']);
+      assert.deepEqual(toldFrom(from), ['state app'], `app was marked out of date: ${changed}`);
       await sleep(1500);
       assert.equal(counted.of(nameOf(app)).length, appReads, 'app is not read again');
       assert.ok(!internals.kept.has(app), 'app, shown, keeps nothing apart');

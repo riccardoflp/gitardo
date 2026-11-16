@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- With `core.fsmonitor` on, on Linux and macOS, a worktree no longer has its repository read again and again: the
+  socket the daemon listens on in its git folder (`fsmonitor--daemon.ipc`) asks for nothing, as the daemon's folder
+  already did.
 - A click on a branch of the branch rail narrows the timeline and leaves the rail as it was: it keeps listing every
   branch, the ones the timeline leaves out dimmed, each with the eye that adds its history to the timeline. The line
   of the branches shown at the top of the rail is gone, as is **Filter the list of branches too** in the branch filter;
