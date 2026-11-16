@@ -445,7 +445,15 @@ export class Controller implements vscode.Disposable {
         task.describe(readDetail(reads, cause), this.readTitle(repo));
         const operations = this.operations;
         const scope = this.scope;
-        const state = await this.readState(repo);
+        let state: RepoState | null;
+        try {
+          state = await this.readState(repo);
+        } catch (error) {
+          // An operation that ran meanwhile can take from under the read what it was reading, such as a conflict
+          // resolved while its versions were read: the read is dropped as below, and the one after it says what is there.
+          if (!this.running && operations === this.operations && repo === this.repo) throw error;
+          state = null;
+        }
         // Read while an operation ran, it can be half from before it and half from after, such as a new commit that
         // no branch points at yet. It is dropped: the operation is followed by a read of its own.
         // Unless the views were pointed at another repository in the meantime. Who waited for it waits for the next,
