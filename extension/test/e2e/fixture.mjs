@@ -23,7 +23,11 @@ export function findCode(given) {
   return found;
 }
 
-export const git = (cwd, ...args) => execFileSync('git', args, { cwd, stdio: 'pipe' });
+/**
+ * Git as the tests run it. Without the optional locks, as Gitardo's engine reads: a `git status` the tests poll with
+ * would otherwise take the index lock to refresh it, and an operation of Gitardo running at that moment fails on it.
+ */
+export const git = (cwd, ...args) => execFileSync('git', args, { cwd, stdio: 'pipe', env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' } });
 
 /** A repository with its own identity, so that nothing depends on the machine's git configuration. */
 function init(dir) {
