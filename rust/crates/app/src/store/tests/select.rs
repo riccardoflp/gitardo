@@ -106,7 +106,8 @@ fn repo_select__while_an_operation_runs_choosing_another_does_nothing() {
     let _opened = open(&mut state, &work, &[(&work, &[work.join("app"), work.join("lib")])]);
     state.is_operation_running = true;
     let before = state.clone();
-    assert_eq!(intent(&mut state, Intent::SelectRepository(work.join("lib"))).len(), 0);
+    // In Gitardo Desktop the tabs are shown while an operation runs (`repo.switch-tab`); the choice itself waits.
+    assert_eq!(crate::store::workspace::select(&mut state, &work.join("lib")).len(), 0);
     assert_eq!(state, before);
 }
 

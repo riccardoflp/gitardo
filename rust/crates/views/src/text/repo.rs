@@ -57,6 +57,15 @@ pub fn wait_before_closing(title: &str) -> String {
     format!("Gitardo: wait for {title} to end before closing this tab.")
 }
 
+/// Why an operation does not start while another runs, in this tab or another (`repo.switch-tab`).
+#[must_use]
+pub fn running_elsewhere(title: &str, repository: &str) -> String {
+    format!("Gitardo: {title} is running in {repository}. Try again once it ends.")
+}
+
+/// What the spinner of a tab where an operation runs says (`repo.tabs`).
+pub const OPERATION_RUNNING: &str = "An operation is running";
+
 /// The title of the question asked when a folder is opened while the window shows a workspace.
 #[must_use]
 pub fn open_question(folder: &str) -> String {

@@ -169,8 +169,8 @@ fn run(state: &mut State, feature: FeatureId, target: Target, mut preset: Answer
 }
 
 /// The operations on a file that show the repository holding it first, when it is another repository of the workspace:
-/// its comparison with another (`compare.path-with`).
-const SHOW_HOLDING_FIRST: [FeatureId; 1] = [FeatureId("compare.path-with")];
+/// its history (`repo.owner-of-file`) and its comparison with another (`compare.path-with`).
+const SHOW_HOLDING_FIRST: [FeatureId; 2] = [FeatureId("compare.path-with"), FeatureId("file-history.file")];
 
 /// Points the window at the repository of a file or a folder of another repository of the workspace, for an operation
 /// that runs on it, which then runs once that repository is read: at once when its tab is up to date; none when the
@@ -213,7 +213,7 @@ pub fn run_in(
     preset: Answers,
 ) -> Vec<Effect> {
     if state.operations.running.is_some() {
-        return Vec::new();
+        return super::tabs::refuse_operation(state);
     }
     let mut settings = state.settings.features.clone();
     settings.user_settings_file.clone_from(&state.user_settings_file);
@@ -236,6 +236,7 @@ pub fn run_in(
     });
     state.operations.said = None;
     state.is_operation_running = true;
+    super::tabs::operation_started(state);
     vec![Effect::RunFeature {
         folder,
         feature,

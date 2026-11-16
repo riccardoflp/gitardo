@@ -199,6 +199,12 @@ pub fn select(state: &mut State, folder: &Path) -> Vec<Effect> {
     if state.is_operation_running {
         return Vec::new();
     }
+    choose(state, folder)
+}
+
+/// Shows a repository of the workspace as `repo.select` does, the repository shown being read for it; a tab shown
+/// while an operation runs is chosen this way too.
+pub(super) fn choose(state: &mut State, folder: &Path) -> Vec<Effect> {
     state.dialog = None;
     if state.shown_folder().is_some_and(|shown| same_folder(shown, folder)) {
         return Vec::new();

@@ -21,6 +21,10 @@ pub struct Background {
     pub watched: Vec<PathBuf>,
     /// The read of a tab not shown under way.
     pub reading: Option<BackgroundRead>,
+    /// The folder of the tab the operation running was started in.
+    pub operation: Option<PathBuf>,
+    /// What an operation that ended in a tab not shown has to do once that tab is read again, with the tab's folder.
+    pub after_operation: Option<(PathBuf, super::operation::AfterOperation)>,
 }
 
 /// The read of a tab not shown under way.
@@ -119,6 +123,9 @@ pub(super) fn answered(state: &mut State, index: usize, message: &Message) {
 /// What the tabs not shown need after each message: the read of one stopped while an operation runs or the tab shown
 /// is read, or the next tab never read read once nothing else is; and the tabs not shown watched.
 pub fn follow(state: &mut State) -> Vec<Effect> {
+    if !state.is_operation_running {
+        state.tabs.background.operation = None;
+    }
     forget_gone(state);
     let is_busy = state.is_operation_running
         || state.opening.is_some()
@@ -253,6 +260,7 @@ pub(super) fn shown_again(state: &mut State, hidden: &HiddenTab, folder: PathBuf
     {
         return Vec::new();
     }
+    super::operation::shown_again(state, &folder);
     let Some(cause) = hidden.out_of_date() else {
         return Vec::new();
     };

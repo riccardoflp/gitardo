@@ -68,13 +68,19 @@ pub use worktrees::Worktrees;
 /// Changes the store as a message says, and gives what the outside is to do after it, in order: then the inspector
 /// follows the row selected, the pages closed are forgotten, **Show in the timeline** follows the timeline read, the
 /// repository shown is watched, when it is not the one watched, and the tabs not shown are watched and read
-/// (`repo.watch-hidden`).
+/// (`repo.watch-hidden`). What the operation running says goes to its tab first (`repo.switch-tab`).
 pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
+    let (mut effects, message) = tabs::before(state, message);
+    let Some(message) = message else {
+        effects.extend(tabs::follow_hidden(state));
+        return effects;
+    };
     if let Some(tab) = tabs::waiting_for(state, &message) {
         tabs::keep_for(state, tab, message);
-        return tabs::follow_hidden(state);
+        effects.extend(tabs::follow_hidden(state));
+        return effects;
     }
-    let mut effects = reduce_message(state, message);
+    effects.extend(reduce_message(state, message));
     effects.extend(inspector::follow(state));
     effects.extend(commit_page::prune(state));
     effects.extend(commit_page::follow(state));

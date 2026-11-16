@@ -94,6 +94,7 @@ fn entries(state: &State, repositories: &[RepositoryEntry]) -> Vec<TabEntry> {
         .enumerate()
         .map(|(index, tab)| {
             let is_shown = state.tabs.shown == Some(index);
+            let is_running = super::operation_tab(state) == Some(index);
             let name = repositories
                 .iter()
                 .find(|entry| same_folder(&entry.folder, &tab.folder))
@@ -102,7 +103,12 @@ fn entries(state: &State, repositories: &[RepositoryEntry]) -> Vec<TabEntry> {
                 Some(shown) if is_shown => shown.display().to_string(),
                 _ => tab.folder.display().to_string(),
             };
-            TabEntry { name, folder, is_shown }
+            TabEntry {
+                name,
+                folder,
+                is_shown,
+                is_running,
+            }
         })
         .collect()
 }

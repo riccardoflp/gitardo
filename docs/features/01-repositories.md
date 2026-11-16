@@ -141,7 +141,8 @@ Gitardo shows one repository at a time; in a workspace with several, this choose
   for the workspace, and is the one shown the next time the workspace opens, as long as it is still among its
   repositories.
 - **Refuses**:
-  - while an operation runs: nothing happens;
+  - while an operation runs: nothing happens; in Gitardo Desktop the tab is shown all the same, as `repo.switch-tab`
+    says;
   - from Quick search, with a single repository: "Gitardo: this workspace has a single repository."; with none:
     "Gitardo: no Git repository in this workspace."
 - **Uses**: `repo.read-state`, `repo.name-repositories`, `filter.remember`.
@@ -696,8 +697,11 @@ Shows the repository of another tab, as it was left.
 - **Uses**: `repo.keep-open`, `repo.watch-hidden`, `repo.owner-of-file`.
 
 While an operation runs, tabs can still be switched, and what the other tabs show can be looked at, searched and
-opened. The tab of the operation shows a spinner, and is shown again before the operation asks a question or shows its
-plan to confirm. A window runs one operation at a time: another one started meanwhile, in any tab, is refused with
+opened. The tab of the operation shows a spinner, keeps what it shows while it runs whatever `repositories.keepOpen`
+says, and is shown again before the operation asks a question or shows its plan to confirm. When the operation ends
+while another tab is shown, what it says is said over the window, and its tab is read again once it is shown, with
+what the operation does after that read, such as selecting the commit it made (`repo.watch-hidden`). A window runs
+one operation at a time: another one started meanwhile, in any tab, is refused with
 "Gitardo: `<title>` is running in `<repository>`. Try again once it ends."
 
 Acceptance:
@@ -808,7 +812,7 @@ The rules:
 - A change in a tab not shown reads nothing: it marks the tab out of date, with the last change.
 - A tab out of date that is shown shows what it kept at once, and is read again at once, as **Refresh** does, the
   activity indicator saying why. A tab left while a read of it was under way or waiting is out of date, for that read's
-  reason.
+  reason; so is the tab of an operation that ended while another was shown.
 - With the setting on, once the tab shown has its first read after the workspace opens, the other tabs are read one
   after the other, so that each is there when it is first shown. With it off, a tab is read when it is shown, and a
   tab not shown has no watcher.

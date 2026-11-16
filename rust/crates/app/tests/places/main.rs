@@ -70,6 +70,7 @@ mod stashes;
 mod submodules;
 mod support;
 mod sync_stash;
+mod tab_operations;
 mod tabs;
 mod tasks;
 mod timeline;

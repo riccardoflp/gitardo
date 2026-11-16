@@ -193,15 +193,12 @@ fn remove_tab(state: &mut State, index: usize) -> Vec<Effect> {
     effects
 }
 
-/// Whether closing is refused because it would close the tab where an operation runs, which is the tab shown: says
-/// so.
-fn refuses(state: &mut State, closes_shown: impl Fn(usize) -> bool) -> bool {
-    if !state.is_operation_running || !state.tabs.shown.is_some_and(closes_shown) {
+/// Whether closing is refused because it would close the tab where an operation runs, shown or not: says so.
+fn refuses(state: &mut State, closes: impl Fn(usize) -> bool) -> bool {
+    if !super::operation_tab(state).is_some_and(closes) {
         return false;
     }
-    let title = state.operations.running.as_ref().map_or_else(String::new, |running| {
-        running.title.clone().unwrap_or_else(|| running.feature.0.to_owned())
-    });
+    let title = super::operation_title(state);
     state.operations.said = Some(Said::error(views::text::repo::wait_before_closing(&title)));
     true
 }
