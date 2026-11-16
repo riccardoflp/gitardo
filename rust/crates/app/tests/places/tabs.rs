@@ -77,9 +77,24 @@ fn shows_a_repository(state: &State) -> bool {
     )
 }
 
-/// A key pressed with Ctrl.
-fn control(key: Key) -> InputEvent {
-    InputEvent::KeyPressed(KeyEvent::press(key, Modifiers::CONTROL))
+/// The key that shows the first tab, as its card says: `Ctrl+1`, and `Cmd+1` on macOS.
+fn the_first_tab() -> InputEvent {
+    let with = if cfg!(target_os = "macos") {
+        Modifiers::META
+    } else {
+        Modifiers::CONTROL
+    };
+    InputEvent::KeyPressed(KeyEvent::press(Key::Character('1'), with))
+}
+
+/// The key that shows the next tab, as its card says: `Ctrl+PageDown`, and `Cmd+Shift+]` on macOS.
+fn the_next_tab() -> InputEvent {
+    let event = if cfg!(target_os = "macos") {
+        KeyEvent::press(Key::Character(']'), Modifiers::META | Modifiers::SHIFT)
+    } else {
+        KeyEvent::press(Key::Named(NamedKey::PageDown), Modifiers::CONTROL)
+    };
+    InputEvent::KeyPressed(event)
 }
 
 #[test]
@@ -107,9 +122,9 @@ fn repo_tabs__a_click_ctrl_1_and_ctrl_page_down_ask_for_the_tabs_they_name() {
     let mut window = Window::new(ThemeName::Dark, WIDE);
     assert_eq!(window.click(&state, Role::Button, "docs"), [Intent::SwitchTab(2)]);
     ask(&mut state, Intent::SwitchTab(2));
-    let (intents, _) = window.draw(&state, &[control(Key::Character('1'))]);
+    let (intents, _) = window.draw(&state, &[the_first_tab()]);
     assert_eq!(intents, [Intent::SwitchTab(0)]);
-    let (intents, _) = window.draw(&state, &[control(Key::Named(NamedKey::PageDown))]);
+    let (intents, _) = window.draw(&state, &[the_next_tab()]);
     assert_eq!(
         intents,
         [Intent::SwitchTab(0)],
