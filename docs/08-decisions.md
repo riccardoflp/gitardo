@@ -547,7 +547,9 @@ card's identifier, would rename hundreds of tests for a link the card already gi
 
 ## D36 — The maintainer publishes by hand
 
-*D14 of the extension until the two apps shared one repository.*
+*D14 of the extension until the two apps shared one repository. Replaced by
+[D52](#d52--a-tag-publishes-the-release-once-the-maintainer-approves), which keeps the maintainer's hand on every
+release and lets the pipeline do the upload.*
 
 No agent pushes, tags or publishes. A release is a commit with the version and the CHANGELOG, a tag, and a package made
 with `npm run package` that the maintainer uploads to the Marketplace. *Reconstructed from AGENTS.md.*
@@ -738,6 +740,35 @@ the top of the rail says what the rail's own filter lists. Desktop first, then t
 Rejected: keeping `branches.followGraphFilter` with `false` as its default (two ways to do one thing, and a click still
 hides branches for whoever had it on); one filter shared by the rail and the timeline (what the maintainer asked
 against); a rail that follows the timeline until its own filter is used (the rail would still change under a click).
+
+## D52 — A tag publishes the release, once the maintainer approves
+
+*The maintainer's decision, 2026-11-16: publishing by hand meant seven vsix to upload one by one, and the tokens of
+Azure DevOps that `vsce publish` used stop working on 2026-12-01. Replaces
+[D36](#d36--the-maintainer-publishes-by-hand).*
+
+No agent pushes, tags or publishes, as before. A release is a commit on `main` with the version in
+`extension/package.json` and its section in `extension/CHANGELOG.md`, and a tag `vX.Y.Z` of that version, which the
+maintainer pushes. The tag runs `.github/workflows/release.yml`: it checks that the tag, the version and the CHANGELOG
+agree and that the commit is on `main`, runs the whole of `check.yml` on it, and once that is green:
+
+- the seven vsix wait for the maintainer's approval in the GitHub environment `marketplace`, then are published on the
+  Marketplace by its trusted publishing (`vsce publish --oidc`), with no token stored anywhere: the Marketplace's
+  policy names the repository, the workflow and the environment;
+- a draft release on GitHub, on the tag, gets the seven vsix, the desktop of Windows x64, Linux x64 and macOS on Apple
+  silicon in an archive each, not signed, and the extension's section of the CHANGELOG as notes; the maintainer reads
+  it and publishes it.
+
+The workflow can be run again from the Actions tab on the same tag: what is already on the Marketplace is skipped, and
+the files of the draft are replaced. A push of a branch runs `check.yml` alone and publishes nothing, as before.
+Gitardo Desktop keeps its own version (`rust/Cargo.toml`), named in the archives; it has no tag of its own while it
+is released beside the extension.
+
+Rejected: publishing on every push of `main` (a release is the maintainer's choice, not every commit's); a run started
+by hand only (a tag is made for every release anyway, and the approval already asks); a token of Azure DevOps in a
+secret (they stop working on 2026-12-01, and a stored token can leak); an application of Microsoft Entra ID with a
+federated credential (it works, but needs Azure for what trusted publishing does alone); a release on GitHub published
+at once (the desktop is not signed, and the maintainer reads the notes first).
 
 ## Open questions
 

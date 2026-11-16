@@ -158,9 +158,9 @@ A change that needs to break a rule changes this page first, in its own commit, 
 
 - **R12.1** Everything in the repository is in English: code, comments, UI text, documents, commit messages. *Source:
   AGENTS.md. Review.*
-- **R12.2** One commit per piece of work, made only when asked; never pushed or published by an agent: the maintainer
-  publishes on the Marketplace by hand, once the vsix of every target is made, since there is no universal one to
-  publish without them (D49). *Source: AGENTS.md. Review.*
+- **R12.2** One commit per piece of work, made only when asked; never pushed, tagged or published by an agent: the
+  maintainer pushes the tag of a release, and the pipeline publishes the vsix of every target once they approve, since
+  there is no universal one to publish without them (D49, D52). *Source: AGENTS.md. Review.*
 - **R12.3** A commit message is one sentence that says what changed for the user, in the imperative, with no prefix.
   *Source: AGENTS.md. Review.*
 - **R12.4** A change a user can see goes into the README, where the feature is described, into the **Unreleased**

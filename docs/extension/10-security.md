@@ -39,6 +39,7 @@ names, `.gitmodules`, hooks, `.vscode/settings.json`), the answers of GitHub, an
 | T12 | Information disclosure | The messages of an interactive rebase stay in the temporary folder after the rebase stopped or was cancelled. | `interactiveRebase` | None yet | Open ([RS7](13-risks.md)) |
 | T13 | Tampering | The nonce of the webviews' Content Security Policy is made with `Math.random`, not a cryptographic source. | `Controller.html` | The webview loads only the extension's own files; no content of a repository is a script | Accepted |
 | T14 | Tampering, Elevation | Another program runs as Gitardo's engine: a binary put in the package's `bin/`, or one that `gitardo.engine.path` names. | `src/engine/binary.ts` | The binary in `bin/` is the package's own, and changing it needs the rights that change the extension; `gitardo.engine.path`, a setting for development, is read only from the user's own settings, never from a workspace's `.vscode/settings.json` | Mitigated |
+| T15 | Tampering, Spoofing | A version the maintainer did not mean is published on the Marketplace: a tag pushed by someone else, a workflow changed on a branch, a token that leaked. | `.github/workflows/release.yml` | D52: no token is stored; trusted publishing gives a credential of 15 minutes only to the workflow and the environment its policy names; the environment `marketplace` asks the maintainer's approval and takes only tags `v*`; the workflow publishes only a tag on `main` whose version and CHANGELOG agree, after the whole of `check.yml` | Mitigated while the environment keeps its required reviewer |
 
 ## What we do about it
 
@@ -51,6 +52,7 @@ input), a line of a card's acceptance, or a decision. The threats that are open 
 | --- | --- | --- | --- |
 | GitHub token (`repo` scope) | VS Code's authentication provider | `githubSession` at each request, silently unless the user runs **Gitardo: Sign In to GitHub**; the engine, through `host/githubToken`, for one read of the pull requests or one run of **Sign in to GitHub** | The log, a command preview, the workspace state, the webviews, any request but GitHub's, the engine's memory once its read is answered |
 | Credentials of remotes | git's credential helper, the SSH agent | git | Gitardo: it never asks for them, and `GIT_TERMINAL_PROMPT=0` keeps git from asking on a terminal it does not have |
+| Marketplace credential of a release | Nobody: the Marketplace makes it from GitHub's OIDC token, for 15 minutes | `vsce publish --oidc` in the job `marketplace` of `release.yml` (D52) | The repository, the secrets of GitHub, the log |
 
 ## Input that is not trusted
 

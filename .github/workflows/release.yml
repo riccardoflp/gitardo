@@ -1,0 +1,160 @@
+# The release (D52): a tag vX.Y.Z pushed by the maintainer, on a commit of main whose extension/package.json has the
+# version X.Y.Z and whose extension/CHANGELOG.md has its section, runs the whole of check.yml on that commit. Once it is
+# green, the seven vsix wait in the environment `marketplace` for the maintainer's approval and are then published on
+# the Marketplace by trusted publishing, with no token stored; beside that, a draft release on GitHub gets the vsix and
+# the desktop of each system, for the maintainer to read and publish. It can be run again by hand on the same tag, from
+# the Actions tab with the tag chosen in "Use workflow from": what is already on the Marketplace is left as it is.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: The tag and the version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      desktop: ${{ steps.version.outputs.desktop }}
+    steps:
+      # The whole history, for the check that the tag is on main.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: The tag names the version of the extension, which has its section in the CHANGELOG, on main
+        id: version
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF_TYPE" != tag ]; then
+            echo "::error::A release runs on a tag: push vX.Y.Z, or choose the tag in \"Use workflow from\"."
+            exit 1
+          fi
+          version=$(node -p "require('./extension/package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::The tag is $GITHUB_REF_NAME, but extension/package.json has the version $version."
+            exit 1
+          fi
+          if ! grep -q "^## $version - " extension/CHANGELOG.md; then
+            echo "::error::extension/CHANGELOG.md has no section \"## $version - <date>\"."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::The commit of $GITHUB_REF_NAME is not on main."
+            exit 1
+          fi
+          desktop=$(sed -n 's/^version = "\(.*\)"$/\1/p' rust/Cargo.toml | head -n 1)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "desktop=$desktop" >> "$GITHUB_OUTPUT"
+          echo "The extension $version, Gitardo Desktop $desktop."
+
+  check:
+    name: Check
+    needs: version
+    uses: ./.github/workflows/check.yml
+
+  marketplace:
+    name: Publish on the Marketplace
+    needs: [version, check]
+    runs-on: ubuntu-latest
+    # The maintainer's approval: the environment asks for it before this job starts, and the Marketplace's trusted
+    # publishing policy names it, so that no other job can publish.
+    environment: marketplace
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+      # vsce at the version of package-lock.json, which has --oidc from 4.1.
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix
+          path: vsix
+      # One vsix at a time, so that the log says which target failed; a target already published, by a run before this
+      # one on the same tag, is skipped.
+      - name: vsce publish --oidc, for each target
+        run: |
+          count=$(ls ../vsix/*.vsix | wc -l)
+          if [ "$count" -ne 7 ]; then
+            echo "::error::$count vsix were made, not 7: a release waits for every target."
+            exit 1
+          fi
+          for file in ../vsix/*.vsix; do
+            npx vsce publish --oidc --skip-duplicate --packagePath "$file"
+          done
+
+  draft:
+    name: The draft release on GitHub
+    needs: [version, check]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+      VERSION: ${{ needs.version.outputs.version }}
+      DESKTOP: ${{ needs.version.outputs.desktop }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: desktop
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix
+          path: release
+      # An artifact keeps no mode, so the binaries of Linux and macOS are made executable again before they are packed.
+      - name: The desktop of each system, in an archive with the license
+        run: |
+          archive="$GITHUB_WORKSPACE/release/gitardo-desktop-$DESKTOP"
+          for system in Windows Linux macOS; do cp LICENSE "desktop/desktop-$system/"; done
+          chmod +x desktop/desktop-Linux/gitardo desktop/desktop-Linux/gitardo-cli
+          chmod +x desktop/desktop-macOS/gitardo desktop/desktop-macOS/gitardo-cli
+          (cd desktop/desktop-Windows && zip -q "$archive-windows-x64.zip" gitardo.exe gitardo-cli.exe LICENSE)
+          tar -czf "$archive-linux-x64.tar.gz" -C desktop/desktop-Linux gitardo gitardo-cli LICENSE
+          tar -czf "$archive-macos-arm64.tar.gz" -C desktop/desktop-macOS gitardo gitardo-cli LICENSE
+          ls -l release
+      - name: The notes, from the CHANGELOG of the extension
+        run: |
+          {
+            echo "## Gitardo for VS Code $VERSION"
+            echo
+            echo "On the Marketplace once approved; the vsix of each target are below too."
+            awk -v heading="## $VERSION - " \
+              'index($0, heading) == 1 { inside = 1; next } inside && /^## / { exit } inside' extension/CHANGELOG.md
+            echo
+            echo "## Gitardo Desktop $DESKTOP"
+            echo
+            echo "Built from the same commit, for Windows x64, Linux x64 and macOS on Apple silicon."
+            echo "The binaries are not signed: Windows may warn before running them, and on macOS"
+            echo "\`xattr -d com.apple.quarantine gitardo gitardo-cli\` lets them start."
+          } > notes.md
+          cat notes.md
+      # A run again on the same tag replaces the files of the release it made, and leaves its notes as they are.
+      - name: The draft release
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" release/* --clobber
+          else
+            gh release create "$TAG" release/* --draft --verify-tag --title "Gitardo $VERSION" --notes-file notes.md
+          fi

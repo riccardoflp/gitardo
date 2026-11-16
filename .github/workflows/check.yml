@@ -1,14 +1,17 @@
-# The pipeline of stage 9 of docs/transition/06-roadmap.md: on every push, the checks of the Rust workspace and of the
-# extension on Windows, Linux and macOS, the engine of every target of the Marketplace, the seven vsix, and the desktop
-# of each system, all kept as artifacts. It publishes, pushes and tags nothing: the maintainer publishes by hand (D36),
-# once the vsix of every target is made.
+# The pipeline of stage 9 of docs/transition/06-roadmap.md: on every push of a branch, the checks of the Rust workspace
+# and of the extension on Windows, Linux and macOS, the engine of every target of the Marketplace, the seven vsix, and
+# the desktop of each system, all kept as artifacts. It publishes, pushes and tags nothing. A tag runs it through
+# release.yml, which publishes what it made once the maintainer approves (D52).
 
 name: Check
 
 on:
   push:
+    # A tag is checked by release.yml, which calls this workflow: on its own it would run twice.
+    branches: ["**"]
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read

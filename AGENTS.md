@@ -25,7 +25,8 @@ of their code and the catalog of their features are in [docs/](docs/README.md). 
 - Everything in the repository is in English: code, comments, UI text, READMEs, CHANGELOGs, the documents, commit
   messages.
 - Commit only when asked. When several pieces of work are waiting, make one commit for each, not one for all of them.
-  Never push or publish: the maintainer publishes by hand.
+  Never push, tag or publish: the maintainer pushes the tag of a release, and the pipeline publishes it once they
+  approve ([D52](docs/08-decisions.md#d52--a-tag-publishes-the-release-once-the-maintainer-approves)).
 - Gitardo has had other names. Do not write them anywhere, except where the 0.2.0 entry of the extension's CHANGELOG
   explains the change of name.
 - A change a user can see goes, in the same commit, into its card in the [catalog](docs/features/README.md) with the

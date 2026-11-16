@@ -71,4 +71,7 @@ patches, GitHub, the Flow Diff and the Flow Merge. When an area is written, its 
 - [ ] The CHANGELOG's **Unreleased** section becomes the version; `package.json` has the version.
 - [ ] Every card changed since the last release has its status in the index.
 - [ ] [10-security.md](10-security.md) read again if a service, a secret or a file written was added.
-- [ ] The maintainer packs with `npm run package`, tags and publishes by hand.
+- [ ] The maintainer commits on `main`, pushes it and the tag `vX.Y.Z`; the workflow **Release** checks the commit,
+  waits for their approval in the environment `marketplace`, publishes the seven vsix and makes a draft release on
+  GitHub with them and the desktop of each system, which the maintainer reads and publishes
+  ([D52](../08-decisions.md#d52--a-tag-publishes-the-release-once-the-maintainer-approves)).

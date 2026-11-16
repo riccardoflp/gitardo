@@ -211,7 +211,8 @@ Acceptance:
 
 GitHub Actions: on every push, `cargo xtask check` on Windows, Linux and macOS (`macos-14`, both targets, which closes
 M11 of the desktop, D48), the extension's checks on the three systems with the engine, and the vsix of every target as
-artifacts. Publishing stays by hand (D36): the pipeline builds, the maintainer publishes.
+artifacts. Publishing stays by hand (D36): the pipeline builds, the maintainer publishes. Since D52, a tag the
+maintainer pushes runs the same checks and publishes, once they approve.
 
 Acceptance:
 
