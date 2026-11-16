@@ -240,6 +240,7 @@ impl DesktopWindow {
                 self.workers.start_described(job, words);
             }
             Effect::WatchRepository(folder) => self.reads.watch(folder.as_deref(), &self.deliver),
+            Effect::WatchTabs(folders) => self.reads.watch_tabs(&folders, &self.deliver),
             Effect::WakeAt(at) => self.reads.wake_at(at),
             Effect::Cancel(job) => self.workers.cancel(job),
             Effect::Ask(question) => self.asking.ask(*question),

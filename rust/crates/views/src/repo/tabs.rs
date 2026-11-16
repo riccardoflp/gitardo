@@ -42,6 +42,8 @@ pub struct TabEntry {
     pub folder: String,
     /// Whether it is the tab shown.
     pub is_shown: bool,
+    /// Whether an operation runs in its repository: it shows a spinner (`repo.switch-tab`).
+    pub is_running: bool,
     /// The repositories of its group its **▾** lists, its own first; none when it has no other worktree and no
     /// submodule, and then it has no **▾** (`repo.group-tabs`).
     pub members: Vec<TabMemberEntry>,
@@ -146,8 +148,14 @@ fn rooms(ui: &Ui<'_>, tab: &TabEntry) -> (f32, f32, f32) {
     if !tab.members.is_empty() {
         close += theme.sizes.icon + spacing.small;
     }
+    // The spinner of a tab where an operation runs goes before its name.
+    let spinner = if tab.is_running {
+        theme.sizes.icon + spacing.small
+    } else {
+        0.0
+    };
     let style = ui.text_style(TextKind::Medium);
-    let width = (ui.measure(&tab.name, style) + padding + close).min(TAB_MOST);
+    let width = (ui.measure(&tab.name, style) + padding + close + spinner).min(TAB_MOST);
     (width, padding, close)
 }
 
@@ -229,12 +237,15 @@ fn tab_button(
     } else if response.hovered {
         ui.fill_rounded_rect(cell, radius, theme.colors.secondary_button_hover);
     }
-    let room = cell.width - padding - close;
-    let name = cut_at_start(ui, &tab.name, (room, TextKind::Medium));
-    let tone = if tab.is_shown { Tone::Normal } else { Tone::Muted };
     let mut parts = Area::new(inset(cell, Insets::symmetric(padding / 2.0, 0.0)));
     let close_cell = parts.right(close);
-    let _ = ui.label(parts.rest(), &Label::new(&name).kind(TextKind::Medium).tone(tone));
+    if tab.is_running {
+        running_spinner(ui, &mut parts, index);
+    }
+    let name_rect = parts.rest();
+    let name = cut_at_start(ui, &tab.name, (name_rect.width, TextKind::Medium));
+    let tone = if tab.is_shown { Tone::Normal } else { Tone::Muted };
+    let _ = ui.label(name_rect, &Label::new(&name).kind(TextKind::Medium).tone(tone));
     let description = Description::new(AccessRole::Button, &tab.name).selected(tab.is_shown);
     ui.describe(id, cell, &description);
     ui.tooltip(&response, &tab.folder);
@@ -297,6 +308,20 @@ fn members_button((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, rect: Rect)
     })?;
     let member = tab.members.get(chosen)?;
     Some(Intent::ShowInTab(index, member.folder.clone()))
+}
+
+/// The spinner of a tab where an operation runs, before its name.
+fn running_spinner(ui: &mut Ui<'_>, parts: &mut Area, index: usize) {
+    let theme = *ui.theme();
+    let mark = parts.left(theme.sizes.icon);
+    let _gap = parts.left(theme.sizes.spacing.small);
+    ui.spinner(mark);
+    let id = ui.id(("tab spinner", index));
+    ui.describe(
+        id,
+        mark,
+        &Description::new(AccessRole::Progress, words::OPERATION_RUNNING),
+    );
 }
 
 /// A name that does not fit cut at its start with `…`, so that its last part, the repository's own folder, stays.

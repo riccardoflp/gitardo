@@ -2,12 +2,14 @@
 //! of the one shown and when it is read.
 
 mod group;
+mod hidden;
 mod schedule;
 pub(crate) mod watch;
 
 use std::path::{Path, PathBuf};
 
 pub use group::{TabGroup, group_tabs};
+pub use hidden::{HiddenTab, schedule_hidden};
 pub use schedule::{ReadAction, ReadEvent, ReadSchedule, StartedRead, schedule_reads};
 pub use watch::{Change, FilesChange, LATER, ReadCause, ReadRequest, SOON, watch_changes};
 

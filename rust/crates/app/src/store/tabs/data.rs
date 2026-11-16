@@ -115,6 +115,7 @@ fn entries(state: &State, repositories: &[RepositoryEntry]) -> Vec<TabEntry> {
                 name: tab_name(&own, shows.shown_label.as_deref()),
                 folder: shows.folder.display().to_string(),
                 is_shown: state.tabs.shown == Some(index),
+                is_running: super::operation_tab(state) == Some(index),
                 members: shows.members,
             }
         })

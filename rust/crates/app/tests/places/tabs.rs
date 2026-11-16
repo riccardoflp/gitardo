@@ -263,7 +263,9 @@ fn repo_keep_open__the_page_of_a_commit_open_in_api_is_open_again_in_api_and_not
 #[test]
 fn repo_keep_open__with_the_setting_off_coming_back_to_api_shows_it_as_a_first_read() {
     let (_kept, _clones, mut state) = three_clones();
-    state.settings.keep_open = false;
+    let mut settings = state.settings.clone();
+    settings.keep_open = false;
+    let _ = support::run(&mut state, Message::SettingsRead(Box::new(settings)));
     let commit = row_id(&state, "Read the settings");
     ask(&mut state, Intent::Graph(GraphIntent::Select(Selected::Commit(commit))));
     search(&mut state, SearchIntent::Type(String::from("settings")));

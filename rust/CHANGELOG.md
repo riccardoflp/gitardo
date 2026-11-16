@@ -30,6 +30,14 @@
   the tabs, never the one shown; in a window narrower than 480 logical pixels the tabs are one button, the name of
   the tab shown, which lists every tab and **Open a repository…**. On macOS `Cmd+1` to `Cmd+9`, `Cmd+Shift+]` and
   `Cmd+Shift+[` show another tab.
+- The tabs not shown are watched: a change in one reads nothing until it is shown, and it is then read at once, the
+  activity indicator saying why; a tab in which nothing changed is shown with no read. With
+  `repositories.keepOpen` on, once the tab shown is read, the other tabs are read one after the other, never beside an
+  operation or a read of the tab shown, so that each is there at once when it is first shown.
+- Tabs can be switched while an operation runs, and the other tabs looked at, searched and opened; the tab of the
+  operation shows a spinner, and is shown again before the operation asks a question or shows its plan. Another
+  operation started meanwhile, in any tab, is refused, saying which one runs and in which repository.
+  **Show file history** of a file of another tab shows that tab first.
 - On macOS and Linux too, removing a worktree, also when cleaning up branches, takes out of it first its links to
   folders outside it, each an `unlink <path>` step: git no longer refuses a worktree whose `node_modules` link is left
   out by `node_modules/` in `.gitignore`, a pattern for folders only.

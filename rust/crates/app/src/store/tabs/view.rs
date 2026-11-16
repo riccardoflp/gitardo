@@ -53,6 +53,8 @@ pub struct RepositoryView {
     pub github: super::super::github::GitHub,
     /// The branch rail.
     pub rail: super::super::rail::Rail,
+    /// How what it keeps stands against its repository while it is not shown (`repo.watch-hidden`).
+    pub hidden: model::repo::HiddenTab,
 }
 
 impl RepositoryView {
@@ -166,6 +168,7 @@ pub(super) fn take_view(state: &mut State) -> RepositoryView {
         worktrees: std::mem::take(&mut state.worktrees),
         github: std::mem::take(&mut state.github),
         rail: std::mem::take(&mut state.rail),
+        hidden: model::repo::HiddenTab::default(),
     };
     state.reads.watched.clone_from(&view.reads.watched);
     state.rail.lists = view.rail.lists.clone();

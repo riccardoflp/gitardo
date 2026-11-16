@@ -7,9 +7,11 @@
 
 mod close;
 mod data;
+mod hidden;
 mod members;
 mod menu;
 mod open;
+mod operation;
 mod view;
 
 use std::path::{Path, PathBuf};
@@ -18,8 +20,10 @@ use views::Intent;
 
 pub use close::{Closing, close_answered, close_other_tabs, close_tab, follow_closing};
 pub use data::TabsData;
+pub use hidden::{Background, BackgroundRead, changed as tab_changed, follow as follow_hidden};
 pub use members::{Member, group_of, kept_folder, show_in_tab, show_member, tab_of};
 pub use open::{Choosing, choose_tabs, open_tab, repositories_found};
+pub use operation::{AfterOperation, before, operation_started, operation_tab, operation_title, refuse_operation};
 pub use view::RepositoryView;
 use view::{Answered, put_view, take_view};
 
@@ -36,6 +40,8 @@ pub struct Tabs {
     pub shown: Option<usize>,
     /// The tabs being closed, while a page in them with edits not saved asks first.
     pub closing: Option<Closing>,
+    /// What the window does for the tabs not shown: their watchers, the read of one, the operation (`repo.watch-hidden`).
+    pub background: Background,
 }
 
 /// A repository open in a tab.
@@ -43,8 +49,8 @@ pub struct Tabs {
 pub struct Tab {
     /// The folder of the repository.
     pub folder: PathBuf,
-    /// What it showed when it was left, with `repositories.keepOpen` on; none for the tab shown, for one never shown,
-    /// and with the setting off.
+    /// What it showed when it was left, or what it was read into before it was ever shown, with `repositories.keepOpen`
+    /// on; none for the tab shown, for one not read yet, and with the setting off.
     pub kept: Option<Box<RepositoryView>>,
     /// What its reads answered while it was not shown, in the order it came.
     pub waiting: Vec<Message>,
@@ -106,17 +112,20 @@ pub(super) fn shown_tab(state: &State) -> Option<usize> {
     state.tabs.open.iter().position(|tab| same_folder(&tab.folder, folder))
 }
 
-/// Shows the repository of another tab (`repo.switch-tab`): nothing while an operation runs, or when it is the tab
+/// Shows the repository of another tab (`repo.switch-tab`), also while an operation runs; nothing when it is the tab
 /// shown. With `repositories.keepOpen` on, the tab left keeps what it shows, and a tab that kept something shows it at
-/// once, read again behind it; otherwise the repository is read as when it is chosen (`repo.select`).
+/// once, read again only when it is out of date (`repo.watch-hidden`); otherwise the repository is read as when it is
+/// chosen (`repo.select`). The tab where an operation runs keeps what it shows whatever the setting, so that the
+/// operation asks and ends in it.
 ///
 /// Feature: repo.switch-tab
 pub fn switch_tab(state: &mut State, index: usize) -> Vec<Effect> {
-    if state.is_operation_running || state.tabs.shown == Some(index) {
+    if state.tabs.shown == Some(index) {
         return Vec::new();
     }
-    let keep_open = state.settings.keep_open;
-    switch(state, index, keep_open)
+    let keeps_left =
+        state.settings.keep_open || (state.tabs.shown.is_some() && state.tabs.shown == operation_tab(state));
+    switch(state, index, keeps_left)
 }
 
 /// Shows the tab at a place, the tab left keeping what it shows when `keeps_left` says so; what it waited for is
@@ -125,8 +134,12 @@ fn switch(state: &mut State, index: usize, keeps_left: bool) -> Vec<Effect> {
     let Some(folder) = state.tabs.open.get(index).map(|tab| tab.folder.clone()) else {
         return Vec::new();
     };
+    // The tab left is out of date when a read of it was under way or waiting: that read is stopped.
+    let pending = state.reads.schedule.pending().cloned();
     let mut effects = super::workspace::cancel_reads(state);
-    let (left, not_wanted) = kept_on_leaving(take_view(state), keeps_left);
+    let mut view = take_view(state);
+    view.hidden = model::repo::HiddenTab::left(pending);
+    let (left, not_wanted) = kept_on_leaving(view, keeps_left);
     effects.extend(not_wanted.into_iter().map(Effect::Cancel));
     if let Some(tab) = state.tabs.shown.and_then(|shown| state.tabs.open.get_mut(shown)) {
         tab.kept = left.map(Box::new);
@@ -139,17 +152,17 @@ fn switch(state: &mut State, index: usize, keeps_left: bool) -> Vec<Effect> {
     let waiting = std::mem::take(&mut tab.waiting);
     state.tabs.shown = Some(index);
     let Some(kept) = kept else {
-        effects.extend(super::workspace::select(state, &folder));
+        effects.extend(super::workspace::choose(state, &folder));
         return effects;
     };
+    let hidden = kept.hidden.clone();
     put_view(state, *kept);
     effects.extend(remember(state));
     effects.push(super::workspace::watch_settings(state));
-    let read_folder = state.shown_folder().cloned().unwrap_or(folder);
-    effects.push(super::workspace::start_read(state, read_folder));
     for message in waiting {
         effects.extend(super::reduce_message(state, message));
     }
+    effects.extend(hidden::shown_again(state, &hidden, folder));
     effects
 }
 
@@ -207,6 +220,7 @@ pub fn waiting_for(state: &State, message: &Message) -> Option<usize> {
 /// Keeps a message for the tab that waits for it, until it is shown, or for the repository of its group that waits
 /// for it, until that one is shown in it.
 pub fn keep_for(state: &mut State, index: usize, message: Message) {
+    hidden::answered(state, index, &message);
     let Some(tab) = state.tabs.open.get_mut(index) else {
         return;
     };
@@ -222,13 +236,17 @@ pub fn keep_for(state: &mut State, index: usize, message: Message) {
 }
 
 /// With `repositories.keepOpen` turned off, the tabs not shown forget what they kept, and what they waited for is
-/// cancelled; a tab with a page whose edits are not saved keeps it all.
+/// cancelled; a tab with a page whose edits are not saved keeps it all, and so does the tab where an operation runs.
 pub fn settings_changed(state: &mut State) -> Vec<Effect> {
     if state.settings.keep_open {
         return Vec::new();
     }
     let mut effects = Vec::new();
-    for tab in &mut state.tabs.open {
+    let operation = operation_tab(state);
+    for (index, tab) in state.tabs.open.iter_mut().enumerate() {
+        if Some(index) == operation {
+            continue;
+        }
         if let Some(kept) = tab.kept.take_if(|kept| !kept.has_unsaved()) {
             tab.waiting.clear();
             effects.extend(kept.jobs.into_keys().map(Effect::Cancel));
