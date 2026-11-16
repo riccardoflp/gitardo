@@ -1,12 +1,12 @@
-//! The watcher of the repository shown (`repo.watch-changes`): its working tree, and its common git folder when that is
-//! outside it, as a worktree's is. Each batch of changes the system reports goes to the store as one message, with
+//! The watcher of the repository shown (`repo.watch-changes`), and of those of the tabs not shown
+//! (`repo.watch-hidden`): its working tree, and its common git folder when that is outside it, as a worktree's is. Each batch of changes the system reports goes to the store as one message, with
 //! the paths made relative to the folder they are in; the store decides which ask for a read. A folder whose time was
 //! written is left out: the files created or deleted in it are said on their own.
 
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use model::repo::Change;
 use platform::{WatchDeliver, WatchEvent, Watcher};
@@ -25,6 +25,26 @@ impl RepositoryWatch {
     /// moment the window opened. None when the system cannot watch them.
     #[must_use]
     pub fn new(tree: &Path, origin: Instant, deliver: &Deliver) -> Option<RepositoryWatch> {
+        RepositoryWatch::saying(tree, (origin, deliver), |changes, at| Message::Changed { changes, at })
+    }
+
+    /// Watches the working tree of a tab not shown and its common git folder: its changes are said with its folder.
+    #[must_use]
+    pub fn for_tab(tree: &Path, origin: Instant, deliver: &Deliver) -> Option<RepositoryWatch> {
+        let folder = tree.to_path_buf();
+        RepositoryWatch::saying(tree, (origin, deliver), move |changes, at| Message::TabChanged {
+            folder: folder.clone(),
+            changes,
+            at,
+        })
+    }
+
+    /// Watches a working tree and its common git folder, each batch of changes said as a message makes it.
+    fn saying(
+        tree: &Path,
+        (origin, deliver): (Instant, &Deliver),
+        message: impl Fn(Vec<Change>, Duration) -> Message + Send + Sync + 'static,
+    ) -> Option<RepositoryWatch> {
         let git_folder = common_git_folder(tree);
         let mut folders = vec![tree.to_path_buf()];
         if let Some(git_folder) = git_folder.as_ref().filter(|git_folder| !git_folder.starts_with(tree)) {
@@ -39,10 +59,7 @@ impl RepositoryWatch {
                 .filter_map(|event| change_of(&tree, git_folder.as_deref(), event))
                 .collect();
             if !changes.is_empty() {
-                deliver(Message::Changed {
-                    changes,
-                    at: origin.elapsed(),
-                });
+                deliver(message(changes, origin.elapsed()));
             }
         });
         Watcher::new(&folders, &changes)

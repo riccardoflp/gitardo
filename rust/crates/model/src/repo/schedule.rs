@@ -122,6 +122,17 @@ impl ReadSchedule {
         self.bar_until.is_some()
     }
 
+    /// Why the repository is still to be read: the read under way, the one noted to follow it, or the one waiting for
+    /// its moment; none when nothing waits.
+    #[must_use]
+    pub fn pending(&self) -> Option<&ReadCause> {
+        self.running
+            .as_ref()
+            .map(|running| &running.cause)
+            .or(self.again.as_ref())
+            .or(self.due.as_ref().map(|due| &due.cause))
+    }
+
     /// The moment the read waiting starts, if one waits.
     #[must_use]
     pub fn due_at(&self) -> Option<Duration> {

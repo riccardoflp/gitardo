@@ -12,7 +12,11 @@ fn repo_open_folder__a_folder_with_two_repositories_shows_the_first_and_has_a_ta
     let work = folder("work");
     let repositories = [work.join("app"), work.join("lib")];
     let effects = open(&mut state, &work, &[(&work, &repositories)]);
-    assert_eq!(reads(&effects), [work.join("app")]);
+    assert_eq!(
+        reads(&effects),
+        [work.join("app"), work.join("lib")],
+        "the tab shown first, then the other in the background"
+    );
     assert_eq!(timeline_folder(&state), Some(work.join("app")));
     assert_eq!(
         tabs_listed(&state),
@@ -43,7 +47,10 @@ fn repo_open_folder__adding_a_folder_keeps_the_repository_shown() {
         })
     );
     let effects = act(&mut state, Intent::AnswerOpenFolder(FolderAnswer::Add), &found);
-    assert_eq!(reads(&effects).len(), 0, "the repository shown is not read again");
+    assert!(
+        !reads(&effects).contains(&work.join("app")),
+        "the repository shown is not read again"
+    );
     assert_eq!(timeline_folder(&state), Some(work.join("app")));
     assert_eq!(state.shown_read().map(|read| read.generation), generation);
     let workspace = state.workspace.as_ref().unwrap();

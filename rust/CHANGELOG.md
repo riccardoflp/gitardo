@@ -14,6 +14,10 @@
   or its menu, which also has **Close other tabs**; closing the only tab shows the Welcome page. A tab with a File
   page whose edits are not saved asks **Save changes to app.rs?** before it closes, and keeps the edits while another
   tab is shown, also with `repositories.keepOpen` off.
+- The tabs not shown are watched: a change in one reads nothing until it is shown, and it is then read at once, the
+  activity indicator saying why; a tab in which nothing changed is shown with no read. With
+  `repositories.keepOpen` on, once the tab shown is read, the other tabs are read one after the other, never beside an
+  operation or a read of the tab shown, so that each is there at once when it is first shown.
 - On macOS and Linux too, removing a worktree, also when cleaning up branches, takes out of it first its links to
   folders outside it, each an `unlink <path>` step: git no longer refuses a worktree whose `node_modules` link is left
   out by `node_modules/` in `.gitignore`, a pattern for folders only.

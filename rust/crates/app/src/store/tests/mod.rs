@@ -5,6 +5,7 @@
 
 mod code_workspace;
 mod github;
+mod hidden;
 mod open_folder;
 mod open_recent;
 mod pages;

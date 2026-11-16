@@ -66,12 +66,13 @@ pub use workspace::OpenRequest;
 pub use worktrees::Worktrees;
 
 /// Changes the store as a message says, and gives what the outside is to do after it, in order: then the inspector
-/// follows the row selected, the pages closed are forgotten, **Show in the timeline** follows the timeline read, and
-/// the repository shown is watched, when it is not the one watched.
+/// follows the row selected, the pages closed are forgotten, **Show in the timeline** follows the timeline read, the
+/// repository shown is watched, when it is not the one watched, and the tabs not shown are watched and read
+/// (`repo.watch-hidden`).
 pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     if let Some(tab) = tabs::waiting_for(state, &message) {
         tabs::keep_for(state, tab, message);
-        return Vec::new();
+        return tabs::follow_hidden(state);
     }
     let mut effects = reduce_message(state, message);
     effects.extend(inspector::follow(state));
@@ -93,6 +94,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(changes::follow_unsaved(state));
     effects.extend(blame::follow(state));
     effects.extend(reads::watch(state));
+    effects.extend(tabs::follow_hidden(state));
     effects
 }
 
@@ -143,6 +145,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::BlameRead { job, result } => blame::blame_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, *settings),
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
+        Message::TabChanged { folder, changes, at } => tabs::tab_changed(state, &folder, &changes, at),
         Message::Wake { at } => reads::wake(state, at),
         Message::Minimized(is_minimized) => reads::minimized(state, is_minimized),
         Message::ReadTook { line, took, time } => {

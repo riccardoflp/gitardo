@@ -1,11 +1,13 @@
 //! The repositories of a workspace: how they are called in lists, which one a file is in, which changes ask for a read
 //! of the one shown and when it is read.
 
+mod hidden;
 mod schedule;
 pub(crate) mod watch;
 
 use std::path::{Path, PathBuf};
 
+pub use hidden::{HiddenTab, schedule_hidden};
 pub use schedule::{ReadAction, ReadEvent, ReadSchedule, StartedRead, schedule_reads};
 pub use watch::{Change, FilesChange, LATER, ReadCause, ReadRequest, SOON, watch_changes};
 

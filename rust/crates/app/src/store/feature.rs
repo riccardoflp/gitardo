@@ -168,14 +168,18 @@ fn run(state: &mut State, feature: FeatureId, target: Target, mut preset: Answer
     run_in(state, repository, (feature, target), preset)
 }
 
+/// The operations on a file that show the repository holding it first, when it is another repository of the workspace:
+/// its comparison with another (`compare.path-with`).
+const SHOW_HOLDING_FIRST: [FeatureId; 1] = [FeatureId("compare.path-with")];
+
 /// Points the window at the repository of a file or a folder of another repository of the workspace, for an operation
-/// that compares it (`compare.path-with`), which then runs once that repository is read; none when the file is in the
-/// repository shown, or in none of the workspace.
+/// that runs on it, which then runs once that repository is read: at once when its tab is up to date; none when the
+/// file is in the repository shown, or in none of the workspace.
 fn switch_first(state: &mut State, feature: FeatureId, target: &Target) -> Option<Vec<Effect>> {
     let Target::Path(path) = target else {
         return None;
     };
-    if feature != FeatureId("compare.path-with") || state.operations.running.is_some() {
+    if !SHOW_HOLDING_FIRST.contains(&feature) || state.operations.running.is_some() {
         return None;
     }
     let shown = state.shown_folder()?;
@@ -183,11 +187,21 @@ fn switch_first(state: &mut State, feature: FeatureId, target: &Target) -> Optio
         return None;
     }
     let holding = super::workspace::repository_holding(state, path)?;
-    let effects = super::tabs::show_repository(state, &holding);
-    if effects.is_empty() {
-        return None;
+    let mut effects = super::tabs::show_repository(state, &holding);
+    let is_shown = state
+        .shown_folder()
+        .is_some_and(|shown| crate::persisted::same_folder(shown, &holding));
+    if !is_shown {
+        return (!effects.is_empty()).then_some(effects);
     }
-    state.operations.run_after_read = Some((holding, feature, target.clone()));
+    let is_read = state
+        .shown_read()
+        .is_some_and(|read| crate::persisted::same_folder(&read.folder, &holding));
+    if is_read && !state.reads.schedule.is_reading() {
+        effects.extend(run(state, feature, target.clone(), Answers::new()));
+    } else {
+        state.operations.run_after_read = Some((holding, feature, target.clone()));
+    }
     Some(effects)
 }
 

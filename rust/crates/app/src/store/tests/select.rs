@@ -13,7 +13,10 @@ fn repo_select__choosing_the_second_shows_it_and_it_is_shown_the_next_time() {
     let found = [(work.as_path(), &[work.join("app"), work.join("lib")][..])];
     let _opened = open(&mut state, &work, &found);
     let effects = intent(&mut state, Intent::SelectRepository(work.join("lib")));
-    assert_eq!(reads(&effects), [work.join("lib")]);
+    assert!(
+        reads(&effects).is_empty(),
+        "lib was read once the tab shown was (`repo.watch-hidden`)"
+    );
     assert!(
         effects
             .iter()
@@ -31,7 +34,7 @@ fn repo_select__choosing_the_second_shows_it_and_it_is_shown_the_next_time() {
         },
     );
     let effects = answer(&mut next_time, effects, &found);
-    assert_eq!(reads(&effects), [work.join("lib")]);
+    assert_eq!(reads(&effects).first(), Some(&work.join("lib")));
     assert_eq!(timeline_folder(&next_time), Some(work.join("lib")));
 }
 
@@ -51,7 +54,7 @@ fn repo_select__a_remembered_repository_no_longer_in_the_workspace_gives_way_to_
         },
     );
     let effects = answer(&mut state, effects, &[(&work, &[work.join("app"), work.join("lib")])]);
-    assert_eq!(reads(&effects), [work.join("app")]);
+    assert_eq!(reads(&effects).first(), Some(&work.join("app")));
     assert_eq!(state.persisted.recent[0].repository, Some(work.join("app")));
 }
 
@@ -79,7 +82,11 @@ fn repo_select__the_picker_opens_with_several_repositories() {
     assert_eq!(state.dialog, Some(Dialog::Picker));
     let effects = intent(&mut state, Intent::SelectRepository(work.join("lib")));
     assert_eq!(state.dialog, None);
-    assert_eq!(reads(&effects), [work.join("lib")]);
+    assert!(
+        reads(&effects).is_empty(),
+        "lib was read once the tab shown was (`repo.watch-hidden`)"
+    );
+    assert_eq!(timeline_folder(&state), Some(work.join("lib")));
 }
 
 #[test]

@@ -2,7 +2,7 @@
 //! watcher of the repository, the timer of the next scheduled read, the focus and the minimized window told to the
 //! store, the words of each read in the Activity drawer, and how long each took, for the Command log.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -26,6 +26,8 @@ pub struct ReadClock {
     pub origin: Instant,
     /// The watcher of the repository shown; none while none is shown, or when the system cannot watch it.
     watch: Option<RepositoryWatch>,
+    /// The watchers of the tabs not shown, by their working trees.
+    tabs: BTreeMap<PathBuf, RepositoryWatch>,
     /// The moment the store asked to be woken at, until the timer is set.
     wake_at: Option<Duration>,
     /// Whether the window is minimized.
@@ -41,6 +43,7 @@ impl ReadClock {
         ReadClock {
             origin: Instant::now(),
             watch: None,
+            tabs: BTreeMap::new(),
             wake_at: None,
             is_minimized: false,
             started: HashMap::new(),
@@ -51,6 +54,19 @@ impl ReadClock {
     pub fn watch(&mut self, folder: Option<&Path>, deliver: &Deliver) {
         self.watch = None;
         self.watch = folder.and_then(|folder| RepositoryWatch::new(folder, self.origin, deliver));
+    }
+
+    /// Watches the working trees of the tabs not shown, in place of those watched before: a watcher already there is
+    /// kept, so that no change is missed.
+    pub fn watch_tabs(&mut self, folders: &[PathBuf], deliver: &Deliver) {
+        self.tabs.retain(|folder, _| folders.contains(folder));
+        for folder in folders {
+            if !self.tabs.contains_key(folder)
+                && let Some(watch) = RepositoryWatch::for_tab(folder, self.origin, deliver)
+            {
+                let _new = self.tabs.insert(folder.clone(), watch);
+            }
+        }
     }
 
     /// Notes the moment to wake the store at; the timer is set once the loop can be asked.
@@ -105,7 +121,10 @@ impl ReadClock {
             request.pages
         );
         let _replaced = self.started.insert(job.id, (Instant::now(), now, line));
-        let reason = state.reads.reason(job.id)?;
+        let reason = state
+            .reads
+            .reason(job.id)
+            .or_else(|| state.tabs.background.reason(job.id))?;
         let task = Task {
             kind: TaskKind::Read {
                 name: repository_name(state, folder),

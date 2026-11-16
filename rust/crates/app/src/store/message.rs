@@ -172,6 +172,16 @@ pub enum Message {
         /// When.
         at: Duration,
     },
+    /// The watcher of a tab not shown saw changes (`repo.watch-hidden`), at a moment counted from when the window
+    /// opened.
+    TabChanged {
+        /// The working tree watched, as [`Effect::WatchTabs`] named it.
+        folder: PathBuf,
+        /// What changed.
+        changes: Vec<Change>,
+        /// When.
+        at: Duration,
+    },
     /// The moment an [`Effect::WakeAt`] asked for came, or later.
     Wake {
         /// The moment, counted from when the window opened.
@@ -440,6 +450,9 @@ pub enum Effect {
     /// Watches this working tree and its git folder for changes, in place of the one watched before; none stops
     /// watching (`repo.watch-changes`).
     WatchRepository(Option<PathBuf>),
+    /// Watches these working trees and their git folders, those of the tabs not shown, in place of the ones watched
+    /// before; each sends [`Message::TabChanged`] (`repo.watch-hidden`).
+    WatchTabs(Vec<PathBuf>),
     /// Sends [`Message::Wake`] at this moment, counted from when the window opened, in place of the wake asked for
     /// before (`repo.schedule-reads`).
     WakeAt(Duration),
