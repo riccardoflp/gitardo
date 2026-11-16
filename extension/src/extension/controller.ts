@@ -322,6 +322,11 @@ export class Controller implements vscode.Disposable {
 
   /** Fires whenever the repository state has been reloaded. */
   readonly onDidChangeState = this.stateEmitter.event;
+
+  /** The repository state the views were sent last, for a view that opens after it was read. */
+  get shownState(): RepoState | null {
+    return this.state;
+  }
   private readonly chosenEmitter = new vscode.EventEmitter<string>();
   /** Fires with the root of the repository or worktree chosen to be shown, once the views show it. */
   readonly onDidChooseRepo = this.chosenEmitter.event;

@@ -68,9 +68,12 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
   const sideView = (kind: ViewKind, describe?: (state: RepoState) => string | undefined): vscode.WebviewViewProvider => ({
     resolveWebviewView(view) {
       const attachment = controller.attach(view.webview, kind);
-      const described = controller.onDidChangeState((state) => {
+      const show = (state: RepoState | null) => {
         view.description = state && describe ? describe(state) : undefined;
-      });
+      };
+      // A view opened once the repository was read says it at once, not only after the next read.
+      show(controller.shownState);
+      const described = controller.onDidChangeState(show);
       view.onDidDispose(() => vscode.Disposable.from(attachment, described).dispose());
     },
   });
