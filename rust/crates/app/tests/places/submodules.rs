@@ -234,7 +234,6 @@ fn submodule_status__the_icons_read_in_the_dark_the_light_and_both_high_contrast
         recent: &[],
         typed: "",
         shown: None,
-        follows_timeline: true,
         selected: None,
         sort: SortOrder::Name,
         open_in: OpenIn::Checkout,

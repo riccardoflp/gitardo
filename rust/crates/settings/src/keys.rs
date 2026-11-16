@@ -39,8 +39,6 @@ pub const TRACE_SELECTED: &str = "graph.traceSelected";
 pub const SORT_ORDER: &str = "branches.sortOrder";
 /// The values of `branches.sortOrder`.
 pub const SORT_ORDERS: [&str; 2] = ["name", "date"];
-/// `branches.followGraphFilter`.
-pub const FOLLOW_GRAPH_FILTER: &str = "branches.followGraphFilter";
 /// `commandPreview`.
 pub const COMMAND_PREVIEW: &str = "commandPreview";
 /// The values of `commandPreview`: the commands shown only before what can lose work, or before everything.

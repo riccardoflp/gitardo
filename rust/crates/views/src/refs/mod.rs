@@ -1,8 +1,8 @@
 //! The branch rail, on the left of the window (`refs.tree`): the legend and the filter of the timeline. At its top the
-//! filter box (`refs.filter`) and, while the timeline is narrowed, the line of the branches shown (`refs.scope-line`);
-//! under them **Favorites** and **Recent**, the local branches each with the dot of its lane, the branches of each
-//! remote under its name, and **Kept aside**: the stashes, the worktrees, the tags and the submodules, in lists that
-//! open and close. In the narrow layout it shows only the dots and the icons.
+//! filter box (`refs.filter`); under it **Favorites** and **Recent**, the local branches each with the dot of its lane,
+//! the branches of each remote under its name, and **Kept aside**: the stashes, the worktrees, the tags and the
+//! submodules, in lists that open and close. The branches the timeline leaves out are dimmed (`filter.list-too`). In
+//! the narrow layout it shows only the dots and the icons.
 
 mod draw;
 mod entry;
@@ -59,10 +59,8 @@ pub struct ReferencesState<'a> {
     pub recent: &'a [String],
     /// What is typed in the filter box.
     pub typed: &'a str,
-    /// The branches the timeline shows; none is everything.
+    /// The branches the timeline shows; none is everything. Those it leaves out are dimmed.
     pub shown: Option<&'a BranchesShown>,
-    /// Whether the rail lists only the branches the timeline shows: `branches.followGraphFilter`.
-    pub follows_timeline: bool,
     /// The commit selected in the timeline, whose references are marked.
     pub selected: Option<&'a CommitId>,
     /// The order of the branches and tags: `branches.sortOrder`.
@@ -84,13 +82,11 @@ pub struct ReferencesFilter<'a> {
     pub typed: &'a str,
 }
 
-/// The line at the top of the rail while the timeline is narrowed.
+/// The line at the top of the rail while it lists less than everything.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ScopeLine<'a> {
-    /// The branches the timeline shows.
-    pub shown: &'a BranchesShown,
-    /// Whether the rail lists only those: `branches.followGraphFilter`.
-    pub follows_timeline: bool,
+    /// What the rail lists.
+    pub listed: &'a BranchesShown,
 }
 
 /// **Add to favorites** or **Remove from favorites**, chosen on a branch.
@@ -147,15 +143,6 @@ pub(crate) fn rail_view(
                 .intents
                 .extend(ui.clip(area.top(theme.sizes.control_height), |ui| filter_view(&filter, ui)));
         }
-        if let (Some(shown), false) = (state.shown, is_icons) {
-            let line = ScopeLine {
-                shown,
-                follows_timeline: state.follows_timeline,
-            };
-            report
-                .intents
-                .extend(ui.clip(area.top(theme.sizes.control_height), |ui| scope_line_view(&line, ui)));
-        }
         lists(state, ui, area.rest(), &mut report);
     });
     (report.intents, report.hover)
@@ -209,9 +196,8 @@ pub fn filter_view(state: &ReferencesFilter<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
     intents
 }
 
-/// The line at the top of the rail while the timeline is narrowed, over the rectangle its caller clipped it to: what
-/// the timeline is narrowed to, the button that lists every branch with the others dimmed or only those shown, and
-/// **Show all**.
+/// The line at the top of the rail while it lists less than everything, over the rectangle its caller clipped it to:
+/// what it lists, and **Show all**.
 ///
 /// Feature: refs.scope-line
 pub fn scope_line_view(state: &ScopeLine<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -226,23 +212,7 @@ pub fn scope_line_view(state: &ScopeLine<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     if ui.button("scope show all", parts.right(width), &show_all).clicked {
         intents.push(Intent::Filter(FilterIntent::Show(None)));
     }
-    let (tooltip, kind) = if state.follows_timeline {
-        (words::LIST_ALL, ButtonKind::Icon)
-    } else {
-        (words::LIST_SHOWN, ButtonKind::Outline)
-    };
-    let list_all = Button::icon(Icon::Eye, tooltip).kind(kind);
-    let eye = parts.right(theme.sizes.icon + 2.0 * spacing.small);
-    let eye = Rect::new(
-        eye.x,
-        rect.y + spacing.tiny,
-        eye.width,
-        rect.height - 2.0 * spacing.tiny,
-    );
-    if ui.button("scope list all", eye, &list_all).clicked {
-        intents.push(Intent::Filter(FilterIntent::FollowGraphFilter(!state.follows_timeline)));
-    }
-    let what = label(Some(state.shown));
+    let what = label(Some(state.listed));
     // The filter icon goes first while the words fit beside it.
     let words_width = ui.measure(&what, ui.text_style(TextKind::Body));
     if parts.rest().width >= words_width + theme.sizes.icon + spacing.small {

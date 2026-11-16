@@ -67,7 +67,6 @@ struct Rail {
     recent: Vec<String>,
     typed: String,
     shown: Option<BranchesShown>,
-    follows: bool,
 }
 
 impl Rail {
@@ -102,7 +101,6 @@ impl Rail {
             recent: Vec::new(),
             typed: String::new(),
             shown: None,
-            follows: true,
         }
     }
 
@@ -117,7 +115,6 @@ impl Rail {
             recent: &self.recent,
             typed: &self.typed,
             shown: self.shown.as_ref(),
-            follows_timeline: self.follows,
             selected: None,
             sort: SortOrder::Name,
             open_in: OpenIn::Checkout,
@@ -343,55 +340,30 @@ fn refs_filter__a_closed_list_with_a_match_is_shown_while_the_box_has_text_and_c
 }
 
 #[test]
-fn refs_scope_line__narrowed_to_main_and_feature_the_local_list_has_only_those_two() {
+fn refs_scope_line__stashes_worktrees_and_submodules_are_always_listed() {
+    let mut rail = Rail::new(&["main", "feature"], &["origin/main"], &["v1.0"]);
+    rail.shown = Some(BranchesShown::References(vec![String::from("refs/tags/v1.0")]));
+    let rows = rail.rows();
+    for kept in ["-Stashes 1", "-Worktrees 0", "-Tags 1"] {
+        assert!(rows.contains(&String::from(kept)), "{kept} in {rows:?}");
+    }
+}
+
+#[test]
+fn filter_list_too__narrowed_to_main_the_local_section_lists_every_branch_all_but_main_dimmed() {
     let mut rail = Rail::new(&["main", "feature", "fix"], &["origin/main"], &[]);
-    let shown = BranchesShown::References(vec![
-        String::from("refs/heads/main"),
-        String::from("refs/heads/feature"),
-    ]);
-    assert_eq!(model::filter::label(Some(&shown)), "main +1");
-    rail.shown = Some(shown);
-    assert_eq!(rail.entries_of(&RailList::Local), ["main", "feature"]);
+    rail.shown = Some(BranchesShown::References(vec![String::from("refs/heads/main")]));
+    assert_eq!(rail.rows().get(1..4), Some(&names(&["main", "feature~", "fix~"])[..]));
     assert_eq!(
         rail.entries_of(&RailList::Remote(String::from("origin"))),
-        [] as [String; 0]
+        ["origin/main"],
+        "the remote branches are listed too"
     );
-    assert!(
-        rail.rows().contains(&String::from("-Stashes 1")),
-        "the stashes are always listed"
-    );
-    assert!(
-        !rail.rows().iter().any(|row| row.starts_with("ORIGIN")),
-        "a remote with none shown is left out"
-    );
-}
-
-#[test]
-fn refs_scope_line__off_it_lists_every_branch_the_others_dimmed() {
-    let mut rail = Rail::new(&["main", "feature", "fix"], &[], &[]);
-    rail.shown = Some(BranchesShown::References(vec![String::from("refs/heads/main")]));
-    rail.follows = false;
-    assert_eq!(rail.rows().get(1..4), Some(&names(&["main", "feature~", "fix~"])[..]));
-}
-
-#[test]
-fn filter_list_too__narrowed_to_main_on_the_local_section_lists_main_alone() {
-    let mut rail = Rail::new(&["main", "feature"], &[], &[]);
-    rail.shown = Some(BranchesShown::References(vec![String::from("refs/heads/main")]));
-    assert_eq!(rail.entries_of(&RailList::Local), ["main"]);
-}
-
-#[test]
-fn filter_list_too__off_every_branch_is_listed_all_but_main_dimmed() {
-    let mut rail = Rail::new(&["main", "feature"], &[], &[]);
-    rail.shown = Some(BranchesShown::References(vec![String::from("refs/heads/main")]));
-    rail.follows = false;
-    assert_eq!(rail.rows().get(1..3), Some(&names(&["main", "feature~"])[..]));
-    let rail_none = Rail::new(&["main", "feature"], &[], &[]);
+    let not_narrowed = Rail::new(&["main", "feature"], &[], &[]);
     assert_eq!(
-        rail_none.rows().get(1..3),
+        not_narrowed.rows().get(1..3),
         Some(&names(&["main", "feature"])[..]),
-        "not narrowed, all are listed"
+        "not narrowed, none is dimmed"
     );
 }
 

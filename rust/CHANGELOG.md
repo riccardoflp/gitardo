@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- A click on a branch of the branch rail narrows the timeline and leaves the rail as it was: it keeps listing every
+  branch, the ones the timeline leaves out dimmed, each with the eye that adds its history to the timeline. The line
+  of the branches shown at the top of the rail is gone, as is **Filter the list of branches too** in the branch filter;
+  `branches.followGraphFilter` is no longer read.
 - Each repository of the workspace has a tab, in an island at the top of the window, in place of the repository menu
   of the header: a click, `Ctrl+1` to `Ctrl+9`, `Ctrl+PageDown` and `Ctrl+PageUp` show another one. A repository
   keeps what it showed while another is shown, its commit selected, its search, its pages and where its lists were

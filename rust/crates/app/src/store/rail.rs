@@ -1,5 +1,5 @@
 //! The branch rail and the branch filter as the store keeps them (`refs.tree`, `refs.filter`, `refs.favorite`,
-//! `refs.sort`, `filter.picker`, `filter.list-too`, `filter.kinds`): the lists opened and closed, what is typed, the
+//! `refs.sort`, `filter.picker`, `filter.kinds`): the lists opened and closed, what is typed, the
 //! references in their order and the branches checked out last, the favorites of each repository, the stashes unfolded
 //! in the Stashes list (`stash.pane`).
 
@@ -171,10 +171,6 @@ pub fn reduce_filter(state: &mut State, intent: FilterIntent) -> Vec<Effect> {
                 picker.typed = typed;
             }
             Vec::new()
-        }
-        FilterIntent::FollowGraphFilter(is_on) => {
-            state.settings.follows_graph_filter = is_on;
-            write_setting(state, keys::FOLLOW_GRAPH_FILTER, json::Value::Bool(is_on))
         }
     }
 }

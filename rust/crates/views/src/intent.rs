@@ -227,9 +227,6 @@ pub enum FilterIntent {
     ClosePicker,
     /// What is typed in the box of the branch filter.
     Type(String),
-    /// Whether the branch rail lists only the branches the timeline shows: `branches.followGraphFilter`
-    /// (`filter.list-too`).
-    FollowGraphFilter(bool),
 }
 
 /// A sentence the window says once, over what it shows, until it is put away.

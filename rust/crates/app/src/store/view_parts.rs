@@ -29,7 +29,6 @@ pub(super) fn rail<'a>(state: &'a State, read: &'a RepositoryRead, now: i64) -> 
         recent: &state.rail.recent,
         typed: &state.rail.typed,
         shown: state.timeline.shown.as_ref(),
-        follows_timeline: state.settings.follows_graph_filter,
         selected,
         sort: sort_order(state),
         open_in: state.settings.features.branch_open_in,
@@ -53,7 +52,6 @@ pub(super) fn branch_picker(state: &State) -> BranchPicker<'_> {
             typed: &picker.typed,
             window: picker.window,
         }),
-        follows_timeline: state.settings.follows_graph_filter,
     }
 }
 

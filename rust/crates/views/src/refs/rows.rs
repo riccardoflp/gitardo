@@ -1,6 +1,5 @@
-//! The rows of the branch rail under its filter box and the line of the branches shown, in their order: each list with
-//! its title and, while it is open, its entries: what the timeline does not show left out or dimmed, and at most 100 of
-//! them until **Show all `<n>`…**. While something is typed in the filter box, one list of the entries of every list
+//! The rows of the branch rail under its filter box, in their order: each list with its title and, while it is open,
+//! its entries: what the timeline does not show dimmed, and at most 100 of them until **Show all `<n>`…**. While something is typed in the filter box, one list of the entries of every list
 //! that have it, the best first, takes their place.
 
 use std::collections::HashSet;
@@ -145,25 +144,14 @@ impl Entry<'_> {
 pub(super) struct Marks {
     /// It is a favorite: it has a star.
     pub(super) is_favorite: bool,
-    /// The timeline leaves it out, while the rail lists every branch.
+    /// The timeline leaves it out.
     pub(super) is_dimmed: bool,
     /// It is at the commit selected in the timeline.
     pub(super) is_selected: bool,
 }
 
-/// Whether the timeline shows a reference.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Shown {
-    /// It does, or nothing narrows it.
-    Yes,
-    /// It does not, and the rail lists it dimmed.
-    Dimmed,
-    /// It does not, and the rail leaves it out.
-    Hidden,
-}
-
 /// The rows of the rail of a repository. In the narrow layout there are no titles, no favorites, no recent branches
-/// and no entries kept aside; a list of branches the timeline shows none of, while the rail follows it, is left out.
+/// and no entries kept aside.
 pub(super) fn rail_rows<'a>(state: &ReferencesState<'a>, is_icons: bool) -> Vec<RailRow<'a>> {
     let mut rows = Vec::new();
     let shown: Option<HashSet<String>> = state
@@ -175,7 +163,7 @@ pub(super) fn rail_rows<'a>(state: &ReferencesState<'a>, is_icons: bool) -> Vec<
     }
     for (list, entries) in branch_lists(state) {
         let is_extra = matches!(list, RailList::Favorites | RailList::Recent);
-        if (is_extra && (entries.is_empty() || is_icons)) || lister.is_emptied(&entries) {
+        if is_extra && (entries.is_empty() || is_icons) {
             continue;
         }
         if list != RailList::Favorites && !rows.is_empty() && !matches!(rows.last(), Some(RailRow::Gap)) {
@@ -300,7 +288,7 @@ impl<'a> Lister<'_, 'a> {
             .flat_map(|(list, entries)| {
                 entries
                     .into_iter()
-                    .filter_map(|entry| self.marks(&entry).map(|marks| (list.clone(), entry, marks)))
+                    .map(|entry| (list.clone(), entry, self.marks(&entry)))
                     .collect::<Vec<_>>()
             })
             .collect();
@@ -322,10 +310,7 @@ impl<'a> Lister<'_, 'a> {
     /// Adds a list: its title, and while it is open its entries, at most 100 until it is listed in full, the one
     /// checked out among them.
     fn add(&self, rows: &mut Vec<RailRow<'a>>, list: &RailList, entries: Vec<Entry<'a>>) {
-        let marked: Vec<(Entry<'a>, Marks)> = entries
-            .into_iter()
-            .filter_map(|entry| self.marks(&entry).map(|marks| (entry, marks)))
-            .collect();
+        let marked: Vec<(Entry<'a>, Marks)> = entries.into_iter().map(|entry| (entry, self.marks(&entry))).collect();
         let all = marked.len();
         let names: Vec<String> = marked.iter().map(|(entry, _)| entry.name()).collect();
         let typed = self.state.typed;
@@ -356,12 +341,6 @@ impl<'a> Lister<'_, 'a> {
         }
     }
 
-    /// Whether a list that has entries has none left once those the timeline does not show are left out: it is not
-    /// listed then.
-    fn is_emptied(&self, entries: &[Entry<'_>]) -> bool {
-        !entries.is_empty() && entries.iter().all(|entry| self.marks(entry).is_none())
-    }
-
     /// Adds the entries of an open list.
     fn add_entries(&self, rows: &mut Vec<RailRow<'a>>, list: &RailList, ranked: Vec<(Entry<'a>, Marks)>) {
         let count = ranked.len();
@@ -388,32 +367,23 @@ impl<'a> Lister<'_, 'a> {
         });
     }
 
-    /// How an entry is marked; none when the timeline does not show it and the rail follows the timeline.
-    fn marks(&self, entry: &Entry<'_>) -> Option<Marks> {
-        let shown = match (&self.shown, entry.full_name()) {
-            (Some(names), Some(full)) if !names.contains(&full) => {
-                if self.state.follows_timeline {
-                    Shown::Hidden
-                } else {
-                    Shown::Dimmed
-                }
-            }
-            _ => Shown::Yes,
-        };
-        if shown == Shown::Hidden {
-            return None;
-        }
+    /// How an entry is marked: dimmed when the timeline leaves it out.
+    fn marks(&self, entry: &Entry<'_>) -> Marks {
         let full = entry.full_name();
-        Some(Marks {
+        let is_dimmed = match (&self.shown, &full) {
+            (Some(names), Some(full)) => !names.contains(full),
+            _ => false,
+        };
+        Marks {
             is_favorite: full
                 .as_ref()
                 .is_some_and(|full| self.state.favorites.iter().any(|favorite| favorite == full)),
-            is_dimmed: shown == Shown::Dimmed,
+            is_dimmed,
             is_selected: self
                 .state
                 .selected
                 .is_some_and(|selected| entry.commit() == Some(selected)),
-        })
+        }
     }
 }
 

@@ -77,7 +77,6 @@ fn listed(submodules: Vec<Submodule>) -> Option<Vec<String>> {
         recent: &[],
         typed: "",
         shown: None,
-        follows_timeline: true,
         selected: None,
         sort: SortOrder::Name,
         open_in: OpenIn::Checkout,

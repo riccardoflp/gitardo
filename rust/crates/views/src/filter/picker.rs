@@ -1,16 +1,14 @@
 //! The branch filter (`filter.picker`): the button before Quick search that says what the timeline shows, pressed in
-//! while it is narrowed, and the list it opens: the presets, the box, every reference with a tick, and **Filter the
-//! list of branches too**.
+//! while it is narrowed, and the list it opens: the presets, the box, and every reference with a tick.
 
 use model::filter::{BranchesShown, Preset, ReferenceKind, label, label_parts, preset, rank_names, tick, ticked};
 use model::refs::References;
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{
-    AccessRole, Axis, Border, Button, ButtonKind, Choice, Description, Icon, InputBox, Key, Label, NamedKey, Popover,
-    Rect, Sense, TextKind, Tone, Ui,
+    AccessRole, Border, Button, ButtonKind, Choice, Description, Icon, InputBox, Key, Label, NamedKey, Popover, Rect,
+    Sense, TextKind, Tone, Ui,
 };
 
-use super::{ListToo, list_too_view};
 use crate::intent::{FilterIntent, Intent};
 use crate::line::{is_narrow, rows_of};
 use crate::text::filter as words;
@@ -33,8 +31,6 @@ pub struct BranchPicker<'a> {
     pub references: &'a References,
     /// The list, while it is open.
     pub open: Option<PickerOpen<'a>>,
-    /// Whether the branch rail lists only the branches the timeline shows: `branches.followGraphFilter`.
-    pub follows_timeline: bool,
 }
 
 /// The list of the branch filter while it is open.
@@ -174,10 +170,7 @@ fn list(state: &BranchPicker<'_>, open: &PickerOpen<'_>, ui: &mut Ui<'_>, anchor
     let sizes = ui.theme().sizes;
     let rows = pick_rows(state.references, open.typed);
     let listed = rows.len().clamp(1, LISTED_ROWS);
-    let height = 2.0 * sizes.control_height
-        + sizes.row_height * (rows_of(listed) + 1.0)
-        + 5.0 * sizes.spacing.medium
-        + sizes.border;
+    let height = 2.0 * sizes.control_height + sizes.row_height * rows_of(listed) + 4.0 * sizes.spacing.medium;
     let popover = Popover {
         anchor,
         size: (WIDTH, height),
@@ -282,7 +275,7 @@ fn matched_rows<'a>(groups: [Group<'a>; 3], typed: &str) -> Vec<PickRow<'a>> {
         .collect()
 }
 
-/// The inside of the list: the presets, the box, the references and **Filter the list of branches too**.
+/// The inside of the list: the presets, the box and the references.
 fn draw_body(body: &Body<'_, '_>, ui: &mut Ui<'_>, rect: Rect, is_new: bool) -> Vec<Intent> {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
@@ -298,13 +291,6 @@ fn draw_body(body: &Body<'_, '_>, ui: &mut Ui<'_>, rect: Rect, is_new: bool) -> 
     if let Some(text) = ui.input_box("filter box", box_rect, &input).changed_text {
         intents.push(Intent::Filter(FilterIntent::Type(text)));
     }
-    let bottom = area.bottom(theme.sizes.row_height);
-    let line = area.bottom(theme.sizes.border);
-    ui.separator(line, Axis::Horizontal);
-    let list_too = ListToo {
-        is_on: body.state.follows_timeline,
-    };
-    intents.extend(ui.clip(bottom, |ui| list_too_view(&list_too, ui)));
     intents.extend(reference_rows(body, ui, area.rest()));
     let is_escaped = ui
         .unclaimed_keys()

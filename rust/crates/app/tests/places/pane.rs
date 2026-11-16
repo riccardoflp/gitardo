@@ -1,32 +1,35 @@
 //! The branch rail as one place, drawn from the store (`branch.pane`): its top with the branch checked out and its
-//! buttons, the lists it follows the timeline with, a click on a branch, and the lists open when the window opens.
+//! buttons, the branches the timeline leaves out dimmed, a click on a branch, and the lists open when the window opens.
 
-use app::settings::Settings;
 use app::store::{Message, State};
 use model::contract::{FeatureId, Target};
 use model::filter::BranchesShown;
 use platform::accesskit::{Role, TreeUpdate};
-use render::ThemeName;
+use render::{Rect, ThemeName};
 use views::feature::FeatureIntent;
 use views::graph::Selected;
 use views::{FilterIntent, Intent, RailList};
 
 use super::pointer::{apply, bounds, middle, moved, rect};
 use super::support::{Window, has, run};
-use super::timeline::showing_with;
 use super::{repository_with_history, showing};
 
 /// The size of the window of these tests.
 const WIDE: (u32, u32) = (1000, 520);
 
-/// Whether a button of the branch rail has a name, below its top.
-fn listed(tree: &TreeUpdate, name: &str) -> bool {
+/// The rectangle of a button of the branch rail by its name, below its top, when the rail has one.
+fn rail_entry(tree: &TreeUpdate, name: &str) -> Option<Rect> {
     let rail = bounds(tree, Role::Navigation, "Branches");
     tree.nodes
         .iter()
         .filter(|(_, node)| node.role() == Role::Button && node.label() == Some(name))
         .filter_map(|(_, node)| node.bounds().map(rect))
-        .any(|found| found.x >= rail.x && found.right() <= rail.right() + 0.5 && found.y >= rail.y)
+        .find(|found| found.x >= rail.x && found.right() <= rail.right() + 0.5 && found.y >= rail.y)
+}
+
+/// Whether a button of the branch rail has a name, below its top.
+fn listed(tree: &TreeUpdate, name: &str) -> bool {
+    rail_entry(tree, name).is_some()
 }
 
 /// The commit a branch of the repository shown is at.
@@ -81,23 +84,18 @@ fn branch_pane__the_top_names_the_branch_checked_out_and_create_branch_there_ask
 }
 
 #[test]
-fn branch_pane__narrowed_to_main_it_lists_only_main_and_with_follow_graph_filter_off_all_of_them_the_others_dimmed() {
+fn branch_pane__with_the_timeline_narrowed_to_main_the_rail_lists_every_local_branch_the_others_dimmed() {
     let (repository, _remote) = repository_with_history();
     let mut state = showing(repository.path().to_path_buf());
     narrowed_to_main(&mut state);
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
     assert!(listed(&tree, "main"));
-    assert!(!listed(&tree, "feature"));
-    let settings = Settings {
-        follows_graph_filter: false,
-        ..Settings::default()
-    };
-    let mut state = showing_with(repository.path().to_path_buf(), settings);
-    narrowed_to_main(&mut state);
-    let (_, tree) = window.draw(&state, &[]);
     assert!(listed(&tree, "feature"));
-    let feature = bounds(&tree, Role::Button, "feature");
+    let main = rail_entry(&tree, "main").unwrap();
+    let (_, tree) = window.draw(&state, &[moved(middle(main))]);
+    assert!(!has(&tree, Role::Button, "Show this history too"), "main is not dimmed");
+    let feature = rail_entry(&tree, "feature").unwrap();
     let (_, tree) = window.draw(&state, &[moved(middle(feature))]);
     assert!(
         has(&tree, Role::Button, "Show this history too"),

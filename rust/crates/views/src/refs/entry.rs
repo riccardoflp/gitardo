@@ -5,12 +5,11 @@
 use std::time::Duration;
 
 use model::branch::OpenedReference;
-use model::filter::{ReferenceKind, show_only, show_too};
+use model::filter::{ReferenceKind, show_only};
 use model::state::{Branch, Worktree};
 use ui::layout::{Area, Insets, inset};
 use ui::{
-    AccessRole, Button, ButtonKind, Description, Icon, Label, LineCap, MenuAnchor, Rect, Response, Sense, Stroke,
-    TextKind, Tone, Ui,
+    AccessRole, Description, Icon, Label, LineCap, MenuAnchor, Rect, Response, Sense, Stroke, TextKind, Tone, Ui,
 };
 
 use super::ReferencesState;
@@ -19,7 +18,7 @@ use super::menu::{EntryCommand, entry_menu, operations};
 use super::rows::{Entry, Marks, worktree_folder};
 use crate::branch::{ReferenceMenus, chosen, open_intent};
 use crate::drag::DragItem;
-use crate::filter::filter_entry_intent;
+use crate::filter::{ListToo, filter_entry_intent, list_too_view};
 use crate::graph::{
     GraphIntent, HoverTarget, HoverWay, PullRequestBadge, draw_pull_request_badge, pull_request_badge_width,
 };
@@ -220,21 +219,18 @@ fn entry_menu_chosen(
     }
 }
 
-/// The eye at the end of a dimmed reference under the pointer, which adds its history to the timeline.
+/// The eye at the end of a dimmed reference under the pointer, which adds its history to the timeline
+/// (`filter.list-too`).
 fn eye_button(ui: &mut Ui<'_>, state: &ReferencesState<'_>, entry: &Entry<'_>, rect: Rect) -> Vec<Intent> {
-    let (Some(full), Some(shown)) = (entry.full_name(), state.shown) else {
+    let (Some(reference), Some(shown)) = (entry.full_name(), state.shown) else {
         return Vec::new();
     };
-    let button = Button::icon(Icon::Eye, words::SHOW_TOO).kind(ButtonKind::Icon);
-    if ui.button(("eye", &full), rect, &button).clicked {
-        vec![Intent::Filter(FilterIntent::Show(Some(show_too(
-            shown,
-            &full,
-            state.references,
-        ))))]
-    } else {
-        Vec::new()
-    }
+    let eye = ListToo {
+        shown,
+        reference: &reference,
+        references: state.references,
+    };
+    ui.clip(rect, |ui| list_too_view(&eye, ui))
 }
 
 /// The tooltip of an entry: about the upstream and the worktree of a local branch, the name of a stash with its full

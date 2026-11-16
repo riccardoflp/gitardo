@@ -64,8 +64,9 @@ history fills it, and everything else opens from it.
 - **Branch rail**: the local branches, each with the color of its lane, so that the rail is also the legend of the
   graph; the branches of each remote, under a heading for each remote (**ORIGIN**); **Kept aside**: stashes,
   worktrees, tags and submodules, each a list that opens in the rail. The lists of Kept aside start closed and the
-  others open. A click on a branch narrows the timeline to its history and selects its tip; a second click brings the
-  whole history back; a tag, a stash or a worktree goes to its commit. The commits of what is checked out are the
+  others open. A click on a branch narrows the timeline to its history and selects its tip, and the rail keeps listing
+  every branch, those the timeline leaves out dimmed; a second click brings the whole history back; a tag, a stash or a
+  worktree goes to its commit. The commits of what is checked out are the
   timeline narrowed to the branch checked out. The rail can be narrowed to icons or hidden.
 - **Timeline**: the commits with their lanes, two lines a row: the subject with its labels as pills, then the author
   and the date; the short hash on the right. The selected commit is shown in the inspector.

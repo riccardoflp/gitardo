@@ -1,16 +1,17 @@
-//! The branches the timeline shows: the branch filter in the header with its list (`filter.picker`), **Filter the list
-//! of branches too** (`filter.list-too`), the bar above the commits while the timeline is narrowed (`filter.bar`), and
-//! the entries of the menus of a reference that narrow the timeline (`filter.show-only`, `filter.show-too`,
-//! `filter.hide`, `filter.show-all`).
+//! The branches the timeline shows: the branch filter in the header with its list (`filter.picker`), the eye on a
+//! reference of the branch rail the timeline leaves out (`filter.list-too`), the bar above the commits while the
+//! timeline is narrowed (`filter.bar`), and the entries of the menus of a reference that narrow the timeline
+//! (`filter.show-only`, `filter.show-too`, `filter.hide`, `filter.show-all`).
 
 mod menu;
 mod picker;
 #[cfg(test)]
 mod tests;
 
-use model::filter::BranchesShown;
+use model::filter::{BranchesShown, show_too};
+use model::refs::References;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Axis, Button, ButtonKind, Choice, Icon, Label, Rect, Tone, Ui};
+use ui::{Axis, Button, ButtonKind, Icon, Label, Rect, Tone, Ui};
 
 use crate::intent::{FilterIntent, Intent};
 use crate::text::filter as words;
@@ -18,11 +19,15 @@ use crate::text::filter as words;
 pub use menu::{FilterEntry, filter_entries, filter_entry_intent, filter_entry_words};
 pub use picker::{BranchPicker, PickerOpen, picker_button_width, picker_view};
 
-/// **Filter the list of branches too**, as it stands.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct ListToo {
-    /// Whether the branch rail lists only the branches the timeline shows: `branches.followGraphFilter`.
-    pub is_on: bool,
+/// A reference of the branch rail that the timeline leaves out, dimmed there.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ListToo<'a> {
+    /// The branches the timeline shows.
+    pub shown: &'a BranchesShown,
+    /// The reference, by its full name.
+    pub reference: &'a str,
+    /// The references of the repository.
+    pub references: &'a References,
 }
 
 /// What the bar above the commits says while the timeline is narrowed to some branches.
@@ -43,16 +48,17 @@ pub fn bar_height(ui: &Ui<'_>) -> f32 {
     sizes.control_height + 2.0 * sizes.spacing.small
 }
 
-/// **Filter the list of branches too**, a check box over the rectangle its caller clipped it to: a click turns
-/// `branches.followGraphFilter` the other way.
+/// The eye at the end of a dimmed row of the branch rail, over the rectangle its caller clipped it to: a click adds the
+/// history of its reference to the timeline (`filter.show-too`). The rail lists what its own filter lists, whatever the
+/// timeline shows.
 ///
 /// Feature: filter.list-too
-pub fn list_too_view(state: &ListToo, ui: &mut Ui<'_>) -> Vec<Intent> {
+pub fn list_too_view(state: &ListToo<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
-    let response = ui.choice("list too", rect, &Choice::check_box(words::LIST_TOO, state.is_on));
-    ui.tooltip(&response, words::LIST_TOO_TOOLTIP);
-    if response.clicked {
-        vec![Intent::Filter(FilterIntent::FollowGraphFilter(!state.is_on))]
+    let button = Button::icon(Icon::Eye, words::SHOW_TOO).kind(ButtonKind::Icon);
+    if ui.button(("eye", state.reference), rect, &button).clicked {
+        let shown = show_too(state.shown, state.reference, state.references);
+        vec![Intent::Filter(FilterIntent::Show(Some(shown)))]
     } else {
         Vec::new()
     }

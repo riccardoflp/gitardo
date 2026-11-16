@@ -16,7 +16,7 @@ use views::{FilterIntent, Intent};
 
 use super::pointer::apply;
 use super::support::{Window, find, has, run};
-use super::timeline::{showing_with, subjects, written};
+use super::timeline::subjects;
 use super::{repository_with_history, showing};
 
 /// The size of the window of these tests.
@@ -161,19 +161,13 @@ fn filter_picker__escape_with_text_empties_the_box_and_escape_again_closes_the_l
 }
 
 #[test]
-fn filter_list_too__unticking_it_in_the_branch_filter_sets_follow_graph_filter_to_false() {
+fn filter_list_too__the_branch_filter_of_the_timeline_has_no_filter_the_list_of_branches_too() {
     let (repository, _remote) = repository_with_history();
-    let mut state = showing_with(repository.path().to_path_buf(), Settings::default());
+    let mut state = showing(repository.path().to_path_buf());
     let mut window = Window::new(ThemeName::Dark, WIDE);
-    let _tree = open_picker(&mut window, &mut state, "All branches");
-    let intents = window.click(&state, Role::CheckBox, "Filter the list of branches too");
-    assert_eq!(intents, [Intent::Filter(FilterIntent::FollowGraphFilter(false))]);
-    let effects = ask(&mut state, Intent::Filter(FilterIntent::FollowGraphFilter(false)));
-    assert_eq!(
-        written(&effects),
-        Some(("branches.followGraphFilter", json::Value::Bool(false)))
-    );
-    assert!(!state.settings.follows_graph_filter);
+    let tree = open_picker(&mut window, &mut state, "All branches");
+    assert!(has(&tree, Role::CheckBox, "feature"), "the list is open");
+    assert!(!has(&tree, Role::CheckBox, "Filter the list of branches too"));
 }
 
 #[test]
