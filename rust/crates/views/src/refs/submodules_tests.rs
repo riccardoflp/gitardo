@@ -77,6 +77,7 @@ fn listed(submodules: Vec<Submodule>) -> Option<Vec<String>> {
         recent: &[],
         typed: "",
         shown: None,
+        list_filter: super::stashes_tests::everything_listed(&references),
         selected: None,
         sort: SortOrder::Name,
         open_in: OpenIn::Checkout,

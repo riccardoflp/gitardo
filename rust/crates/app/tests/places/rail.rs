@@ -35,7 +35,7 @@ fn narrow(state: &mut State, names: &[&str]) {
 }
 
 /// The rectangle of an entry of the branch rail by its name, when the rail lists it.
-fn rail_entry(tree: &TreeUpdate, name: &str) -> Option<Rect> {
+pub(super) fn rail_entry(tree: &TreeUpdate, name: &str) -> Option<Rect> {
     let rail = bounds(tree, Role::Navigation, "Branches");
     tree.nodes
         .iter()
@@ -73,7 +73,7 @@ fn press(key: Key) -> InputEvent {
 }
 
 /// Two repositories in one workspace, the first shown.
-fn two_repositories() -> (Repository, Repository, State) {
+pub(super) fn two_repositories() -> (Repository, Repository, State) {
     let (first, _remote) = repository_with_history();
     let mut second = Repository::new();
     let _ = second.commit("Start the site", &[("index.html", "site\n")]);
@@ -85,7 +85,7 @@ fn two_repositories() -> (Repository, Repository, State) {
 }
 
 /// Shows another repository of the workspace.
-fn select(state: &mut State, folder: &Path) {
+pub(super) fn select(state: &mut State, folder: &Path) {
     let _effects = ask(state, Intent::SelectRepository(folder.to_path_buf()));
 }
 

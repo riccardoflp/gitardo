@@ -54,6 +54,12 @@ under the extension (`host` `"vscode"`).
 
 The webviews' own state (widths, folds, drafts, which groups are open) does not move: it is the interface's.
 
+Gitardo Desktop keeps one more key of its own in `state.json` since milestone M13: `branchesListed`, for each repository
+folder what its branch rail lists by its own filter (`refs.listed`), in the shape of `branchesShown` (a preset by its
+name, the kinds listed, or the full names ticked), kept apart from it and for the 20 repositories chosen last; nothing
+is kept for a repository whose rail lists everything. The extension's references get their own filter in phase 3 of
+M13, with a key of its own in the workspace state.
+
 ## Files in `.git` and in the temporary folder
 
 - **`gitardo-split`**, in `rebase-merge` of the worktree's git folder: the same name and the same meaning in both apps.

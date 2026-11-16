@@ -65,6 +65,8 @@ pub enum QuickCommand {
     ShowWhatIsRunning,
     /// **Show branches** (`refs.tree`).
     ShowBranches,
+    /// **Filter the Branch Rail** (`refs.list-filter`).
+    FilterBranchRail,
     /// **Show Command Log** (`log.show`).
     ShowCommandLog,
     /// **Open Settings** (`settings.edit`).
@@ -137,7 +139,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 45] = [
+    pub const ALL: [QuickCommand; 46] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -149,6 +151,7 @@ impl QuickCommand {
         QuickCommand::CloseTab,
         QuickCommand::ShowWhatIsRunning,
         QuickCommand::ShowBranches,
+        QuickCommand::FilterBranchRail,
         QuickCommand::ShowCommandLog,
         QuickCommand::OpenSettings,
         QuickCommand::Welcome,

@@ -2504,3 +2504,22 @@ Questions of milestone M12 ([D50](#d50--repository-tabs-and-what-each-repository
 - **Q412** — In the extension, where each webview keeps what a repository showed (`repo.keep-open`): in its own state
   (`vscode.setState`), by the folder of the repository, or in the extension host. Recommended: each webview, in memory,
   by folder, the host keeping only the message of the Changes view.
+
+### Of the branch rail's own filter, from Q413
+
+Questions of milestone M13 ([D51](#d51--the-branch-rail-has-a-filter-of-its-own)), each built with the reading given
+until the card says otherwise.
+
+- **Q413** — `refs.listed`: **Current** lists the branch checked out and its upstream, as the card says, and
+  **Upstream** the same, since nothing reads the branch a branch was made from. The ticks of the list under **Current**
+  are those of `filter.tick`: the branch checked out alone. Is a branch's base to be read for **Upstream**?
+- **Q414** — `refs.listed`: with every branch ticked gone, the rail lists everything, as `filter.remember` does for the
+  timeline; what is kept is not written again at a read, only when the choice changes. Is that the reading?
+- **Q415** — `refs.scope-line`: the line says what `filter.label` says, `Local branches`, where the card's example has
+  `Local`. The **Tags** list is left out while the filter of the rail lists no tag, as a remote list with no branch
+  listed is (Q71); stashes, worktrees and submodules are always listed.
+- **Q416** — `refs.list-filter`: **Show local branches**, **Show remote branches** and **Show tags** are three check
+  boxes at the bottom of **Branches listed**, where the timeline's list had **Filter the list of branches too**, greyed
+  out as `filter.kinds` says, with **Chosen in the filter** as their tooltip. The button is the funnel alone, at the end
+  of the line that names the branch checked out, and its tooltip is `Branches listed in the branch rail: <label>`.
+  `branches.followGraphFilter` stays on the settings page, said to be no longer read.

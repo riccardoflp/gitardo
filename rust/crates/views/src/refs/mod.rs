@@ -1,11 +1,14 @@
-//! The branch rail, on the left of the window (`refs.tree`): the legend and the filter of the timeline. At its top the
-//! filter box (`refs.filter`); under it **Favorites** and **Recent**, the local branches each with the dot of its lane,
-//! the branches of each remote under its name, and **Kept aside**: the stashes, the worktrees, the tags and the
-//! submodules, in lists that open and close. The branches the timeline leaves out are dimmed (`filter.list-too`). In
-//! the narrow layout it shows only the dots and the icons.
+//! The branch rail, on the left of the window (`refs.tree`): the legend and the filter of the timeline. It lists what
+//! its own filter chooses (`refs.list-filter`, `refs.listed`), whatever the timeline shows. At its top the filter box
+//! (`refs.filter`) and, while its filter lists less than everything, the line of what it lists (`refs.scope-line`);
+//! under them **Favorites** and **Recent**, the local branches each with the dot of its lane, the branches of each
+//! remote under its name, and **Kept aside**: the stashes, the worktrees, the tags and the submodules, in lists that
+//! open and close. The branches the timeline leaves out are dimmed (`filter.list-too`). In the narrow layout it shows
+//! only the button of its filter, the dots and the icons.
 
 mod draw;
 mod entry;
+mod list_filter;
 mod menu;
 mod rows;
 mod stashes;
@@ -31,12 +34,13 @@ use ui::layout::{Area, Insets, inset};
 use ui::{AccessRole, Axis, Button, ButtonKind, Icon, InputBox, Key, Label, NamedKey, Rect, TextKind, Tone, Ui};
 
 use crate::graph::HoverTarget;
-use crate::intent::{FilterIntent, Intent, RailIntent, RailLists};
+use crate::intent::{Intent, RailIntent, RailLists};
 use crate::line::is_narrow;
 use crate::text::rail as words;
 use draw::{Context, RailReport, draw_row, row_height};
 use rows::{is_filter_offered, rail_rows};
 
+pub use list_filter::{ListFilterOpen, ListFilterState, list_filter_view};
 pub use stashes::{StashFilesRead, StashesShown};
 
 /// What the branch rail lists.
@@ -61,6 +65,8 @@ pub struct ReferencesState<'a> {
     pub typed: &'a str,
     /// The branches the timeline shows; none is everything. Those it leaves out are dimmed.
     pub shown: Option<&'a BranchesShown>,
+    /// The filter of the rail: what it lists, apart from what the timeline shows.
+    pub list_filter: ListFilterState<'a>,
     /// The commit selected in the timeline, whose references are marked.
     pub selected: Option<&'a CommitId>,
     /// The order of the branches and tags: `branches.sortOrder`.
@@ -137,11 +143,23 @@ pub(crate) fn rail_view(
     let mut report = RailReport::default();
     ui.region("rail region", (rect, AccessRole::Navigation, words::RAIL), |ui| {
         let mut area = Area::with_gap(inset(rect, Insets::symmetric(across, spacing.large)), spacing.medium);
+        if is_icons {
+            let button = area.top(theme.sizes.control_height);
+            report
+                .intents
+                .extend(ui.clip(button, |ui| list_filter_view(&state.list_filter, ui)));
+        }
         if !is_icons && is_filter_offered(state) {
             let filter = ReferencesFilter { typed: state.typed };
             report
                 .intents
                 .extend(ui.clip(area.top(theme.sizes.control_height), |ui| filter_view(&filter, ui)));
+        }
+        if let (Some(listed), false) = (state.list_filter.listed, is_icons) {
+            let line = ScopeLine { listed };
+            report
+                .intents
+                .extend(ui.clip(area.top(theme.sizes.control_height), |ui| scope_line_view(&line, ui)));
         }
         lists(state, ui, area.rest(), &mut report);
     });
@@ -196,8 +214,8 @@ pub fn filter_view(state: &ReferencesFilter<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
     intents
 }
 
-/// The line at the top of the rail while it lists less than everything, over the rectangle its caller clipped it to:
-/// what it lists, and **Show all**.
+/// The line at the top of the rail while its own filter lists less than everything, over the rectangle its caller
+/// clipped it to: what it lists, and **Show all**, which lists everything again and leaves the timeline as it is.
 ///
 /// Feature: refs.scope-line
 pub fn scope_line_view(state: &ScopeLine<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -210,7 +228,7 @@ pub fn scope_line_view(state: &ScopeLine<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let show_all = Button::secondary(words::SHOW_ALL).kind(ButtonKind::Icon);
     let (width, _) = ui.button_size(&show_all);
     if ui.button("scope show all", parts.right(width), &show_all).clicked {
-        intents.push(Intent::Filter(FilterIntent::Show(None)));
+        intents.push(Intent::Rail(RailIntent::List(None)));
     }
     let what = label(Some(state.listed));
     // The filter icon goes first while the words fit beside it.

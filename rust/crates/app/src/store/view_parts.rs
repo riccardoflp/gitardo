@@ -6,7 +6,7 @@ use views::details::SelectedDetails;
 use views::filter::{BranchPicker, PickerOpen};
 use views::graph::Selected;
 use views::page::Page;
-use views::refs::ReferencesState;
+use views::refs::{ListFilterOpen, ListFilterState, ReferencesState};
 use views::{ViewBarState, ViewShown};
 
 use super::rail::{favorites, sort_order};
@@ -29,6 +29,14 @@ pub(super) fn rail<'a>(state: &'a State, read: &'a RepositoryRead, now: i64) -> 
         recent: &state.rail.recent,
         typed: &state.rail.typed,
         shown: state.timeline.shown.as_ref(),
+        list_filter: ListFilterState {
+            listed: state.rail.listed.as_ref(),
+            references: &state.rail.references,
+            open: state.rail.list_filter.as_ref().map(|picker| ListFilterOpen {
+                typed: &picker.typed,
+                window: picker.window,
+            }),
+        },
         selected,
         sort: sort_order(state),
         open_in: state.settings.features.branch_open_in,

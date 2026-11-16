@@ -3,6 +3,7 @@
 //! timeline is narrowed (`filter.bar`), and the entries of the menus of a reference that narrow the timeline
 //! (`filter.show-only`, `filter.show-too`, `filter.hide`, `filter.show-all`).
 
+mod list;
 mod menu;
 mod picker;
 #[cfg(test)]
@@ -16,6 +17,7 @@ use ui::{Axis, Button, ButtonKind, Icon, Label, Rect, Tone, Ui};
 use crate::intent::{FilterIntent, Intent};
 use crate::text::filter as words;
 
+pub(crate) use list::{PickerFor, Picking, picker_list};
 pub use menu::{FilterEntry, filter_entries, filter_entry_intent, filter_entry_words};
 pub use picker::{BranchPicker, PickerOpen, picker_button_width, picker_view};
 

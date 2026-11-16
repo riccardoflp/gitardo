@@ -54,6 +54,7 @@ mod panes;
 mod patches;
 mod pointer;
 mod rail;
+mod rail_filter;
 mod rebase;
 mod review;
 mod review_cards;

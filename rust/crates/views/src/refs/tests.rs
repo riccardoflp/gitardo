@@ -67,6 +67,7 @@ struct Rail {
     recent: Vec<String>,
     typed: String,
     shown: Option<BranchesShown>,
+    listed: Option<BranchesShown>,
 }
 
 impl Rail {
@@ -101,6 +102,7 @@ impl Rail {
             recent: Vec::new(),
             typed: String::new(),
             shown: None,
+            listed: None,
         }
     }
 
@@ -115,6 +117,11 @@ impl Rail {
             recent: &self.recent,
             typed: &self.typed,
             shown: self.shown.as_ref(),
+            list_filter: super::ListFilterState {
+                listed: self.listed.as_ref(),
+                references: &self.references,
+                open: None,
+            },
             selected: None,
             sort: SortOrder::Name,
             open_in: OpenIn::Checkout,
@@ -347,6 +354,29 @@ fn refs_scope_line__stashes_worktrees_and_submodules_are_always_listed() {
     for kept in ["-Stashes 1", "-Worktrees 0", "-Tags 1"] {
         assert!(rows.contains(&String::from(kept)), "{kept} in {rows:?}");
     }
+    rail.listed = Some(BranchesShown::References(vec![String::from("refs/heads/main")]));
+    let rows = rail.rows();
+    assert!(rows.contains(&String::from("-Stashes 1")), "{rows:?}");
+    assert!(rows.contains(&String::from("-Worktrees 0")), "{rows:?}");
+    assert!(
+        !rows.iter().any(|row| row.contains("Tags")),
+        "no tag is listed: {rows:?}"
+    );
+    assert!(
+        !rows.iter().any(|row| row.starts_with("ORIGIN")),
+        "no remote branch is listed: {rows:?}"
+    );
+}
+
+#[test]
+fn refs_listed__favorites_and_recent_list_only_the_branches_the_choice_lists() {
+    let mut rail = Rail::new(&["main", "feature", "fix"], &[], &[]);
+    rail.recent = vec![String::from("fix"), String::from("main")];
+    rail.favorites = vec![String::from("refs/heads/feature"), String::from("refs/heads/main")];
+    rail.listed = Some(BranchesShown::References(vec![String::from("refs/heads/main")]));
+    assert_eq!(rail.entries_of(&RailList::Favorites), ["main"]);
+    assert_eq!(rail.entries_of(&RailList::Recent), ["main"]);
+    assert_eq!(rail.entries_of(&RailList::Local), ["main"]);
 }
 
 #[test]

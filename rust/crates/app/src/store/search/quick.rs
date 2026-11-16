@@ -66,11 +66,10 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         QuickCommand::OpenRepositoryInTab => vec![Intent::PickTabToOpen],
         QuickCommand::CloseTab => vec![Intent::CloseTabShown],
         QuickCommand::ShowWhatIsRunning => vec![Intent::OpenActivity],
-        QuickCommand::ShowBranches => {
-            let mut intents = vec![Intent::ShowTimeline];
-            if workspace_panes(state).is_rail_hidden {
-                intents.push(Intent::Graph(GraphIntent::ToggleReferences));
-            }
+        QuickCommand::ShowBranches => show_branches(state),
+        QuickCommand::FilterBranchRail => {
+            let mut intents = show_branches(state);
+            intents.push(Intent::Rail(views::RailIntent::OpenListFilter { window: None }));
             intents
         }
         QuickCommand::ShowCommandLog => vec![Intent::OpenActivity, Intent::ShowCommandLog],
@@ -89,4 +88,13 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         .into_iter()
         .flat_map(|intent| super::super::reduce(state, Message::Intent(intent)))
         .collect()
+}
+
+/// **Show branches**: the timeline, with the branch rail when it was put away.
+fn show_branches(state: &State) -> Vec<Intent> {
+    let mut intents = vec![Intent::ShowTimeline];
+    if workspace_panes(state).is_rail_hidden {
+        intents.push(Intent::Graph(GraphIntent::ToggleReferences));
+    }
+    intents
 }
