@@ -578,8 +578,9 @@ one catalog, `SECURITY.md`, `LICENSE`, `.gitignore`, `.gitattributes`, `.github/
 `main-desktop` came in whole through a branch that moved its files into `rust/` and a merge with
 `--allow-unrelated-histories`, so `git log --follow` reaches the first commit of each file. Until stage 1 of the
 roadmap, commits on `main-desktop` come in with a plain `git merge main-desktop`, which follows the moves by itself
-(tried once: `-Xsubtree=rust` loses the move of the documents and must not be used); after it, the work is done only
-here. `main` and `main-desktop` stay as they are. Rejected: two repositories with the engine as a package (the desktop
+(tried once: `-Xsubtree=rust` loses the move of the documents and must not be used); after it, the work was done only
+here. Once the transition was done, `main-merge` came into `main` by a fast-forward and was deleted, with
+`main-desktop` (2026-11-16): the work is done on `main`. Rejected: two repositories with the engine as a package (the desktop
 first rule needs one commit for both); `engine/` and `vscode/` as names (the folder holds the whole desktop, not only
 the engine).
 

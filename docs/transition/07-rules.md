@@ -1,7 +1,7 @@
 # The rules that change
 
-What one engine and *desktop first* change in the rules of the repository, page by page: what is already written on
-`main-merge` with these documents, and what waits for a stage of the [roadmap](06-roadmap.md). A rule that a stage
+What one engine and *desktop first* change in the rules of the repository, page by page: what was written with these
+documents, and what waited for a stage of the [roadmap](06-roadmap.md). A rule that a stage
 needs is written in the commit of that stage, not before.
 
 ## Written with these documents

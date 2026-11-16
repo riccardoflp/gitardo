@@ -11,15 +11,16 @@ macOS, closed by the pipeline of stage 9) and [extension/07-roadmap.md](../exten
 
 **The transition is done.** Every stage below holds, and the pipeline's run of 62a9a41 on `main-merge` (2026-11-16)
 passed every job on Windows, Linux and macOS: the seven engines, the vsix of every target, the Rust workspace and the
-extension's suites with the engine. What is left is outside it: `main-merge` into `main`, and the first release with
-the engine, by hand, after the checks of **Before a release** in [desktop/07-roadmap.md](../desktop/07-roadmap.md).
+extension's suites with the engine. The same day `main-merge` came into `main` by a fast-forward and was deleted: the
+work is done on `main`. What is left is outside the transition: the first release with the engine, by hand, after the
+checks of **Before a release** in [desktop/07-roadmap.md](../desktop/07-roadmap.md).
 
 Until stage 1 is done, `main-desktop` may still get commits; they come into `main-merge` with a plain
 `git merge main-desktop`, which follows the move into `rust/` and of the documents into `docs/` by itself: a probe
 merge of a commit that changes `crates/engine/src/undo.rs` and `docs/06-testing.md` on top of `main-desktop` landed in
 `rust/crates/engine/src/undo.rs` and `docs/desktop/06-testing.md` with no conflict. `-Xsubtree=rust` must **not** be
 used: with it git lost the move of the documents and reported a modify/delete conflict on `rust/docs/06-testing.md`.
-After stage 1 the work is done only in `main-merge` (D38).
+After stage 1 the work was done only in `main-merge`, and since the end of the transition it is done on `main` (D38).
 
 ## Stage 1 — The server, with the smallest protocol
 
@@ -214,7 +215,7 @@ artifacts. Publishing stays by hand (D36): the pipeline builds, the maintainer p
 
 Acceptance:
 
-- A push to `main-merge` runs every check on the three systems and keeps the seven vsix and the binaries of the desktop
+- A push runs every check on the three systems and keeps the seven vsix and the binaries of the desktop
   as artifacts.
 - The e2e suite of the extension passes on macOS with the engine.
 - A failing check on one system fails the run and names the system.
