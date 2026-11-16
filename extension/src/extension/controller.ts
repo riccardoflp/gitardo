@@ -442,6 +442,9 @@ export class Controller implements vscode.Disposable {
         waiting = this.waiters.splice(0);
         const cause = this.cause;
         this.cause = undefined;
+        // The read that starts now sees what the changes seen until now did: the read they had asked for is this one.
+        clearTimeout(this.timer);
+        this.timer = undefined;
         task.describe(readDetail(reads, cause), this.readTitle(repo));
         const operations = this.operations;
         const scope = this.scope;
