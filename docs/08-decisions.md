@@ -2344,6 +2344,9 @@ From milestone M11 (macOS):
   (all but `tls`, `http`, `engine` and `app`, whose build compiles C with the compiler of Apple). None of it has run,
   its own tests included, and nothing links it. The roadmap keeps M11 open until `cargo xtask check` passes on a Mac.
   Should the code stay on the branch until then, or wait for a Mac to be written against?
+  *Answered by [D48](#d48--macos-on-github-actions)*: the code stayed, and the pipeline runs `cargo xtask check` on
+  macOS and builds both targets of the Mac; its run of 7d01480 (2026-11-15) passed on all three systems, which closes
+  M11.
 - **Q370** — As on Linux, the libraries of the system are declared by hand, one file each: `CoreFoundation` (strings,
   arrays, dictionaries, bytes, `CFRelease`), `CoreServices` (`FSEvents`), `Security` (the keychain), `libobjc` (with
   `AppKit` linked for its classes) and `libSystem` (`localtime_r`, the queues of `libdispatch`). The `objc2` crates are
