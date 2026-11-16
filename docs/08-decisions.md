@@ -711,7 +711,7 @@ then becoming one button. A `.code-workspace` file of VS Code can be opened, for
 The extension keeps its list of repositories and gets no tabs: it gets the same keeping, behind
 `gitardo.repositories.keepOpen`, off by default there, and its list groups the worktrees and the submodules under
 their repository. Desktop first ([D39](#d39--desktop-first-and-a-status-for-each-app)), in milestone M12 of
-[the roadmap](desktop/07-roadmap.md#m12--repository-tabs).
+[the roadmap](desktop/07-roadmap.md#m12--repository-tabs-done).
 
 Rejected: an island for each repository (it does not fit a narrow window); a tab for each repository found, submodules
 included (too many, and not the ones the user chose); tabs for worktrees and submodules (they are the same project,
@@ -732,7 +732,7 @@ by one, the kinds of references) over the rail alone: the two filters never chan
 per repository apart from the other. `branches.followGraphFilter`, and `gitardo.branches.followGraphFilter` in the
 extension, are no longer read, and **Filter the list of branches too** leaves the timeline's branch filter. The line at
 the top of the rail says what the rail's own filter lists. Desktop first, then the extension, in milestone M13 of
-[the roadmap](desktop/07-roadmap.md#m13--the-branch-rails-own-filter).
+[the roadmap](desktop/07-roadmap.md#m13--the-branch-rails-own-filter-done).
 
 Rejected: keeping `branches.followGraphFilter` with `false` as its default (two ways to do one thing, and a click still
 hides branches for whoever had it on); one filter shared by the rail and the timeline (what the maintainer asked

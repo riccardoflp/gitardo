@@ -103,7 +103,7 @@ Written, and checked by clippy for `aarch64-apple-darwin` from Linux: `platform`
 `engine` and `app`, whose `ring` needs the C compiler of Apple to be built. Nothing of it has run yet. The milestone is
 done once `cargo xtask check` passes on a Mac ([Q369](../08-decisions.md#open-questions)).
 
-## M12 — Repository tabs
+## M12 — Repository tabs (done)
 
 Several repositories open in one window, each in a tab, each keeping what it showed
 ([D50](../08-decisions.md#d50--repository-tabs-and-what-each-repository-keeps)). Built in six phases, each one commit
@@ -134,7 +134,7 @@ nothing changed in it; a window 400 logical pixels wide still reaches every tab;
 `gitardo.repositories.keepOpen` on, the extension shows a repository chosen again as it was left; every card of the
 phase passes its tests, and the snapshots of the island match.
 
-## M13 — The branch rail's own filter
+## M13 — The branch rail's own filter (done)
 
 The branch rail lists what its own filter says, and a click on a branch narrows only the timeline
 ([D51](../08-decisions.md#d51--the-branch-rail-has-a-filter-of-its-own)). Built in three phases, each one commit or
