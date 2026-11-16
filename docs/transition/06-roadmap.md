@@ -6,8 +6,13 @@ commit or a few, never mixed with the next stage. Every stage that touches a fea
 that is the engine and the window of Gitardo Desktop with the card, the tests and `rust/CHANGELOG.md`, **then the
 extension**, with its interface, its tests and `extension/CHANGELOG.md`.
 
-The milestones of each app before this work are in [desktop/07-roadmap.md](../desktop/07-roadmap.md) (M0 to M11; M11
-waits for macOS, stage 9 here) and [extension/07-roadmap.md](../extension/07-roadmap.md).
+The milestones of each app before this work are in [desktop/07-roadmap.md](../desktop/07-roadmap.md) (M0 to M13; M11,
+macOS, closed by the pipeline of stage 9) and [extension/07-roadmap.md](../extension/07-roadmap.md).
+
+**The transition is done.** Every stage below holds, and the pipeline's run of 62a9a41 on `main-merge` (2026-11-16)
+passed every job on Windows, Linux and macOS: the seven engines, the vsix of every target, the Rust workspace and the
+extension's suites with the engine. What is left is outside it: `main-merge` into `main`, and the first release with
+the engine, by hand, after the checks of **Before a release** in [desktop/07-roadmap.md](../desktop/07-roadmap.md).
 
 Until stage 1 is done, `main-desktop` may still get commits; they come into `main-merge` with a plain
 `git merge main-desktop`, which follows the move into `rust/` and of the documents into `docs/` by itself: a probe
@@ -215,6 +220,8 @@ Acceptance:
 - A failing check on one system fails the run and names the system.
 - Nothing is published, pushed or tagged by the pipeline.
 
+**Done**: its first run with every job green is that of 7d01480 (2026-11-15), on the three systems.
+
 ## Stage 10 — `src/git` removed
 
 Only once every target has its binary from stage 9, since until then the TypeScript code is what runs where the binary
@@ -237,7 +244,8 @@ Flow Diff's changes, a file of a comparison by its second side; `journal/record`
 `extension/src/shared`. `scripts/package.mjs` makes one vsix per target and no universal one, and a release waits for
 all of them. The e2e and UI suites check without the engine only the sentence with **Show the log**; with the engine, on
 Windows, the e2e suite passes 74 of 74, the UI suite 34 of 34, and the e2e suite on the win32-x64 vsix with its
-engine. Linux, macOS and win32-arm64 wait for the first run of the pipeline.
+engine. Since the pipeline's run of 7d01480 the e2e suite passes with the engine on Linux and macOS too, and the vsix
+of every target is built; `win32-arm64` is built but not tested, the pipeline having no Arm runner for Windows.
 
 ## The first step, for the session that starts it
 
