@@ -1,10 +1,11 @@
-//! The rows of the branch rail under its filter box and the line of the branches shown, in their order: each list with
-//! its title and, while it is open, its entries: what the timeline does not show left out or dimmed, and at most 100 of
-//! them until **Show all `<n>`…**. While something is typed in the filter box, one list of the entries of every list
+//! The rows of the branch rail under its filter box, in their order: each list with its title and, while it is open,
+//! its entries: what the filter of the rail lists (`refs.listed`), what the timeline does not show dimmed, and at most
+//! 100 of them until **Show all `<n>`…**. While something is typed in the filter box, one list of the entries of every list
 //! that have it, the best first, takes their place.
 
 use std::collections::HashSet;
 
+use model::filter::rail::{Choice, Listed, listed};
 use model::filter::{ReferenceKind, rank_names, ticked};
 use model::state::{Branch, RemoteBranch, Stash, Tag, Worktree};
 use model::submodule::Submodule;
@@ -145,31 +146,29 @@ impl Entry<'_> {
 pub(super) struct Marks {
     /// It is a favorite: it has a star.
     pub(super) is_favorite: bool,
-    /// The timeline leaves it out, while the rail lists every branch.
+    /// The timeline leaves it out.
     pub(super) is_dimmed: bool,
     /// It is at the commit selected in the timeline.
     pub(super) is_selected: bool,
 }
 
-/// Whether the timeline shows a reference.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Shown {
-    /// It does, or nothing narrows it.
-    Yes,
-    /// It does not, and the rail lists it dimmed.
-    Dimmed,
-    /// It does not, and the rail leaves it out.
-    Hidden,
-}
-
 /// The rows of the rail of a repository. In the narrow layout there are no titles, no favorites, no recent branches
-/// and no entries kept aside; a list of branches the timeline shows none of, while the rail follows it, is left out.
+/// and no entries kept aside. A list of branches, or the Tags list, of which the filter of the rail lists none is left
+/// out.
 pub(super) fn rail_rows<'a>(state: &ReferencesState<'a>, is_icons: bool) -> Vec<RailRow<'a>> {
     let mut rows = Vec::new();
     let shown: Option<HashSet<String>> = state
         .shown
         .map(|shown| ticked(Some(shown), state.references).into_iter().collect());
-    let lister = Lister { state, shown, is_icons };
+    let choice = Choice {
+        listed: state.list_filter.listed,
+    };
+    let lister = Lister {
+        state,
+        shown,
+        listed: listed(&choice, state.references),
+        is_icons,
+    };
     if !is_icons && !state.typed.is_empty() {
         return with_stash_rows(lister.matches(), &state.stashes);
     }
@@ -188,6 +187,9 @@ pub(super) fn rail_rows<'a>(state: &ReferencesState<'a>, is_icons: bool) -> Vec<
         rows.push(RailRow::KeptTitle);
     }
     for (list, entries) in kept_lists(state) {
+        if list == RailList::Tags && lister.is_emptied(&entries) {
+            continue;
+        }
         lister.add(&mut rows, &list, entries);
     }
     if is_icons {
@@ -284,6 +286,8 @@ struct Lister<'s, 'a> {
     state: &'s ReferencesState<'a>,
     /// The full names of the references the timeline shows, while it is narrowed.
     shown: Option<HashSet<String>>,
+    /// The references the filter of the rail lists.
+    listed: Listed,
     /// Whether the rail shows only icons.
     is_icons: bool,
 }
@@ -356,8 +360,8 @@ impl<'a> Lister<'_, 'a> {
         }
     }
 
-    /// Whether a list that has entries has none left once those the timeline does not show are left out: it is not
-    /// listed then.
+    /// Whether a list that has entries has none left once those the filter of the rail does not list are left out: it
+    /// is not listed then.
     fn is_emptied(&self, entries: &[Entry<'_>]) -> bool {
         !entries.is_empty() && entries.iter().all(|entry| self.marks(entry).is_none())
     }
@@ -388,27 +392,22 @@ impl<'a> Lister<'_, 'a> {
         });
     }
 
-    /// How an entry is marked; none when the timeline does not show it and the rail follows the timeline.
+    /// How an entry is marked: dimmed when the timeline leaves it out; none when the filter of the rail does not list
+    /// it. Stashes, worktrees and submodules are always listed.
     fn marks(&self, entry: &Entry<'_>) -> Option<Marks> {
-        let shown = match (&self.shown, entry.full_name()) {
-            (Some(names), Some(full)) if !names.contains(&full) => {
-                if self.state.follows_timeline {
-                    Shown::Hidden
-                } else {
-                    Shown::Dimmed
-                }
-            }
-            _ => Shown::Yes,
-        };
-        if shown == Shown::Hidden {
+        let full = entry.full_name();
+        if full.as_ref().is_some_and(|full| !self.listed.has(full)) {
             return None;
         }
-        let full = entry.full_name();
+        let is_dimmed = match (&self.shown, &full) {
+            (Some(names), Some(full)) => !names.contains(full),
+            _ => false,
+        };
         Some(Marks {
             is_favorite: full
                 .as_ref()
                 .is_some_and(|full| self.state.favorites.iter().any(|favorite| favorite == full)),
-            is_dimmed: shown == Shown::Dimmed,
+            is_dimmed,
             is_selected: self
                 .state
                 .selected

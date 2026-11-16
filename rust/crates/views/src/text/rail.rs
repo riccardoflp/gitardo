@@ -35,16 +35,12 @@ pub const MISSING: &str = "missing";
 pub const FILTER: &str = "Filter branches and tags";
 /// The button at the end of the filter box, which empties it.
 pub const EMPTY_FILTER: &str = "Empty the filter";
-/// The tooltip of a reference the timeline leaves out, while the rail lists them all.
+/// The tooltip of a reference the timeline leaves out, dimmed in the rail.
 pub const NOT_SHOWN: &str = "Not shown in the timeline";
-/// The eye at the end of such a reference, which adds its history to the timeline.
-pub const SHOW_TOO: &str = "Show this history too";
-/// The button of the line at the top of the rail while it lists only the branches the timeline shows.
-pub const LIST_ALL: &str = "List every branch, the others dimmed";
-/// The same button while the rail lists every branch.
-pub const LIST_SHOWN: &str = "List only the branches the timeline shows";
 /// **Show all** on the line at the top of the rail.
 pub const SHOW_ALL: &str = "Show all";
+/// The list of the filter of the rail, for the screen reader (`refs.list-filter`).
+pub const LIST_FILTER: &str = "Branches listed";
 /// The **…** on the title of a list, for the screen reader and its tooltip.
 pub const LIST_MENU: &str = "More about this list";
 /// **Add to favorites** in the menu of a branch.
@@ -117,4 +113,10 @@ pub fn in_worktree(folder: &str, uncommitted: Option<usize>) -> String {
 #[must_use]
 pub fn stash_tooltip(index: usize, message: &str) -> String {
     format!("stash@{{{index}}}: {message}")
+}
+
+/// The tooltip of the button of the filter of the rail: `Branches listed in the branch rail: Local branches`.
+#[must_use]
+pub fn list_filter_tooltip(what: &str) -> String {
+    format!("Branches listed in the branch rail: {what}")
 }

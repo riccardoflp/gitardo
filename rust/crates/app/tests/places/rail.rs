@@ -6,7 +6,6 @@ use std::path::Path;
 use std::time::Duration;
 
 use app::persisted::rail::favorites_of;
-use app::settings::Settings;
 use app::store::{Message, State};
 use model::CommitId;
 use model::filter::BranchesShown;
@@ -19,7 +18,6 @@ use views::{FilterIntent, Intent, RailIntent, RailList};
 
 use super::pointer::{apply, bounds, middle, moved};
 use super::support::{Window, has, run};
-use super::timeline::{showing_with, written};
 use super::{repository_with_history, showing};
 
 /// The size of the window of these tests.
@@ -37,7 +35,7 @@ fn narrow(state: &mut State, names: &[&str]) {
 }
 
 /// The rectangle of an entry of the branch rail by its name, when the rail lists it.
-fn rail_entry(tree: &TreeUpdate, name: &str) -> Option<Rect> {
+pub(super) fn rail_entry(tree: &TreeUpdate, name: &str) -> Option<Rect> {
     let rail = bounds(tree, Role::Navigation, "Branches");
     tree.nodes
         .iter()
@@ -75,7 +73,7 @@ fn press(key: Key) -> InputEvent {
 }
 
 /// Two repositories in one workspace, the first shown.
-fn two_repositories() -> (Repository, Repository, State) {
+pub(super) fn two_repositories() -> (Repository, Repository, State) {
     let (first, _remote) = repository_with_history();
     let mut second = Repository::new();
     let _ = second.commit("Start the site", &[("index.html", "site\n")]);
@@ -87,7 +85,7 @@ fn two_repositories() -> (Repository, Repository, State) {
 }
 
 /// Shows another repository of the workspace.
-fn select(state: &mut State, folder: &Path) {
+pub(super) fn select(state: &mut State, folder: &Path) {
     let _effects = ask(state, Intent::SelectRepository(folder.to_path_buf()));
 }
 
@@ -119,53 +117,73 @@ fn refs_filter__escape_empties_the_box() {
 }
 
 #[test]
-fn refs_scope_line__the_button_lists_every_branch_and_sets_follow_graph_filter_to_false() {
-    let (repository, _remote) = repository_with_history();
-    let mut state = showing_with(repository.path().to_path_buf(), Settings::default());
-    narrow(&mut state, &["refs/heads/main"]);
-    let mut window = Window::new(ThemeName::Dark, WIDE);
-    let (_, tree) = window.draw(&state, &[]);
-    assert!(rail_entry(&tree, "feature").is_none());
-    let intents = window.click(&state, Role::Button, "List every branch, the others dimmed");
-    assert_eq!(intents, [Intent::Filter(FilterIntent::FollowGraphFilter(false))]);
-    let effects = ask(&mut state, Intent::Filter(FilterIntent::FollowGraphFilter(false)));
-    assert_eq!(
-        written(&effects),
-        Some(("branches.followGraphFilter", json::Value::Bool(false)))
-    );
-    let (_, tree) = window.draw(&state, &[]);
-    assert!(rail_entry(&tree, "feature").is_some());
-    assert!(rail_entry(&tree, "main").is_some());
-}
-
-#[test]
-fn refs_scope_line__the_eye_on_a_dimmed_fix_adds_fix_to_the_branches_shown() {
+fn refs_tree__a_click_on_feature_narrows_the_timeline_and_the_rail_still_lists_main_and_every_other_local_branch_main_dimmed()
+ {
     let (repository, _remote) = repository_with_history();
     repository.branch("fix");
-    let settings = Settings {
-        follows_graph_filter: false,
-        ..Settings::default()
-    };
-    let mut state = showing_with(repository.path().to_path_buf(), settings);
-    narrow(&mut state, &["refs/heads/main"]);
+    let mut state = showing(repository.path().to_path_buf());
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
-    let fix = rail_entry(&tree, "fix").unwrap();
-    let _ = window.draw(&state, &[moved(middle(fix))]);
-    let intents = window.click(&state, Role::Button, "Show this history too");
+    let feature = rail_entry(&tree, "feature").unwrap();
+    let intents = window.click_at(&state, middle(feature), 1);
     apply(&mut state, intents);
-    let both = BranchesShown::References(vec![String::from("refs/heads/main"), String::from("refs/heads/fix")]);
-    assert_eq!(state.timeline.shown, Some(both));
+    let only = BranchesShown::References(vec![String::from("refs/heads/feature")]);
+    assert_eq!(state.timeline.shown, Some(only));
+    let (_, tree) = window.draw(&state, &[]);
+    for name in ["main", "feature", "fix", "origin/main"] {
+        assert!(rail_entry(&tree, name).is_some(), "{name} is still listed");
+    }
+    let main = rail_entry(&tree, "main").unwrap();
+    let (_, tree) = window.draw(&state, &[moved(middle(main))]);
+    assert!(
+        has(&tree, Role::Button, "Show this history too"),
+        "main is dimmed, with the eye that adds it"
+    );
 }
 
 #[test]
-fn filter_list_too__off_the_eye_on_feature_adds_feature_to_the_timeline() {
+fn refs_scope_line__narrowing_the_timeline_to_main_shows_no_line_and_the_rail_lists_every_branch() {
     let (repository, _remote) = repository_with_history();
-    let settings = Settings {
-        follows_graph_filter: false,
-        ..Settings::default()
-    };
-    let mut state = showing_with(repository.path().to_path_buf(), settings);
+    let mut state = showing(repository.path().to_path_buf());
+    narrow(&mut state, &["refs/heads/main"]);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(!has(&tree, Role::Button, "Show all"), "the rail has no line");
+    for name in ["main", "feature", "origin/main"] {
+        assert!(rail_entry(&tree, name).is_some(), "{name} is listed");
+    }
+}
+
+#[test]
+fn refs_scope_line__what_the_timeline_is_narrowed_to_is_said_by_the_bar_above_it_not_in_the_rail() {
+    let (repository, _remote) = repository_with_history();
+    let mut state = showing(repository.path().to_path_buf());
+    narrow(&mut state, &["refs/heads/main", "refs/heads/feature"]);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    let rail = bounds(&tree, Role::Navigation, "Branches");
+    let bar = bounds(&tree, Role::Button, "Show all branches");
+    assert!(bar.x >= rail.right(), "the bar is beside the rail, above the timeline");
+    let said_in_rail = tree
+        .nodes
+        .iter()
+        .filter(|(_, node)| node.label() == Some("main +1") || node.value() == Some("main +1"))
+        .filter_map(|(_, node)| node.bounds())
+        .any(|found| {
+            #[allow(
+                clippy::cast_possible_truncation,
+                reason = "a window is far smaller than an f32 counts"
+            )]
+            let x = found.x0 as f32;
+            x >= rail.x && x < rail.right()
+        });
+    assert!(!said_in_rail, "the rail does not say what the timeline shows");
+}
+
+#[test]
+fn filter_list_too__the_eye_on_feature_adds_feature_to_the_timeline() {
+    let (repository, _remote) = repository_with_history();
+    let mut state = showing(repository.path().to_path_buf());
     narrow(&mut state, &["refs/heads/main"]);
     let main_only = state.timeline.rows.len();
     let mut window = Window::new(ThemeName::Dark, WIDE);
@@ -180,22 +198,6 @@ fn filter_list_too__off_the_eye_on_feature_adds_feature_to_the_timeline() {
     ]);
     assert_eq!(state.timeline.shown, Some(both));
     assert!(state.timeline.rows.len() >= main_only);
-}
-
-#[test]
-fn refs_scope_line__show_all_takes_the_line_away_and_lists_everything() {
-    let (repository, _remote) = repository_with_history();
-    let mut state = showing(repository.path().to_path_buf());
-    let everything = state.timeline.rows.len();
-    narrow(&mut state, &["refs/heads/main", "refs/heads/feature"]);
-    let mut window = Window::new(ThemeName::Dark, WIDE);
-    let intents = window.click(&state, Role::Button, "Show all");
-    assert_eq!(intents, [Intent::Filter(FilterIntent::Show(None))]);
-    apply(&mut state, intents);
-    let (_, tree) = window.draw(&state, &[]);
-    assert!(!has(&tree, Role::Button, "Show all"));
-    assert!(rail_entry(&tree, "origin/main").is_some());
-    assert_eq!(state.timeline.rows.len(), everything);
 }
 
 #[test]

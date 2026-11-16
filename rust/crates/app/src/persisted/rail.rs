@@ -1,6 +1,6 @@
 //! What the branch rail and the branch filter keep between runs, for each repository by its folder: the favorites
-//! (`refs.favorite`), under `favorites`, and the branches the timeline shows (`filter.remember`), under
-//! `branchesShown`.
+//! (`refs.favorite`), under `favorites`, the branches the timeline shows (`filter.remember`), under `branchesShown`, and
+//! what the branch rail lists (`refs.listed`), under `branchesListed` in the same shape.
 
 use std::path::{Path, PathBuf};
 
@@ -18,7 +18,7 @@ pub struct RepositoryFavorites {
     pub references: Vec<String>,
 }
 
-/// The branches a repository's timeline shows, as kept.
+/// The branches a repository's timeline shows, or its branch rail lists, as kept.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RepositoryShown {
     /// The folder of the repository.
@@ -72,6 +72,17 @@ pub(super) fn shown_value(shown: &RepositoryShown) -> Option<Value> {
         member("folder", Value::String(shown.folder.to_string_lossy().into_owned())),
         member(name, value),
     ]))
+}
+
+/// What the branch rail lists of each repository, as written under `branchesListed`; nothing while every rail lists
+/// everything.
+pub(super) fn listed_member(list: &[RepositoryShown]) -> Option<json::Member> {
+    (!list.is_empty()).then(|| {
+        member(
+            "branchesListed",
+            Value::Array(list.iter().filter_map(shown_value).collect()),
+        )
+    })
 }
 
 /// The choice of a repository read back; none without a folder, and a shape this version does not know as such.

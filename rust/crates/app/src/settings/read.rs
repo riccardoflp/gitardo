@@ -57,7 +57,6 @@ fn settings_of(mut lookup: Lookup) -> Settings {
     let page_size = ::settings::page_size(&mut lookup);
     let switches = timeline_switches(&mut lookup);
     let sort_order = ::settings::sort_order(&mut lookup);
-    let follows_graph_filter = lookup.boolean(keys::FOLLOW_GRAPH_FILTER, Scope::User);
     let collapse_unchanged = lookup.boolean(keys::COLLAPSE_UNCHANGED, Scope::User);
     let open_on_click = match lookup.choice(keys::OPEN_ON_CLICK, &keys::OPEN_ON_CLICKS) {
         Some("diff") => OpenOnClick::Diff,
@@ -80,7 +79,6 @@ fn settings_of(mut lookup: Lookup) -> Settings {
         fonts,
         switches,
         sort_order,
-        follows_graph_filter: follows_graph_filter.unwrap_or(defaults.follows_graph_filter),
         collapse_unchanged: collapse_unchanged.unwrap_or(defaults.collapse_unchanged),
         open_on_click,
         word_wrap,

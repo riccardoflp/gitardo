@@ -1,21 +1,22 @@
 //! The branch rail and the branch filter as the store keeps them (`refs.tree`, `refs.filter`, `refs.favorite`,
-//! `refs.sort`, `filter.picker`, `filter.list-too`, `filter.kinds`): the lists opened and closed, what is typed, the
+//! `refs.sort`, `filter.picker`, `filter.kinds`): the lists opened and closed, what is typed, the
 //! references in their order and the branches checked out last, the favorites of each repository, the stashes unfolded
-//! in the Stashes list (`stash.pane`).
+//! in the Stashes list (`stash.pane`), and the rail's own filter, kept for each repository apart from the timeline's
+//! (`refs.list-filter`, `refs.listed`).
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use model::filter::{ReferenceKind, kinds};
+use model::filter::{BranchesShown, ReferenceKind, StoredValue, checked, kinds, remember as remember_choice};
 use model::refs::{References, SortOrder, order_in_force, recent, sort};
 use views::{FilterIntent, RailIntent, RailLists};
 
 use super::message::Effect;
 use super::state::State;
 use super::timeline;
-use crate::persisted::rail::favorites_of;
+use crate::persisted::rail::{favorites_of, shown_of};
 use crate::persisted::timeline::remember;
-use crate::persisted::{RepositoryFavorites, same_folder};
+use crate::persisted::{RepositoryFavorites, RepositoryShown, same_folder};
 use crate::settings::{keys, sort_order_value};
 
 /// The branch rail and the branch filter of a window.
@@ -34,6 +35,19 @@ pub struct Rail {
     pub recent: Vec<String>,
     /// The stashes unfolded in the Stashes list, and what was read of their files (`stash.pane`).
     pub stashes: super::stashes::StashesList,
+    /// What the rail lists, by its own filter, checked against the references; none is everything (`refs.listed`).
+    pub listed: Option<BranchesShown>,
+    /// The list of the filter of the rail, while it is open (`refs.list-filter`).
+    pub list_filter: Option<ListFilterPicker>,
+}
+
+/// The list of the filter of the rail, open.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct ListFilterPicker {
+    /// What is typed in its box.
+    pub typed: String,
+    /// The size of the window it opened in; none until it is drawn, when it opened from Quick search.
+    pub window: Option<(f32, f32)>,
 }
 
 /// The list of the branch filter, open.
@@ -68,8 +82,13 @@ pub fn arrange(state: &mut State) {
         &names,
         current.map(|branch| branch.name.as_str()),
     );
+    let listed = state
+        .shown_folder()
+        .and_then(|folder| shown_of(&state.persisted.branches_listed, folder))
+        .and_then(|stored| remember_choice(stored, &references));
     state.rail.references = Arc::new(references);
     state.rail.recent = recent;
+    state.rail.listed = listed;
     super::stashes::forget_gone(state);
 }
 
@@ -110,7 +129,53 @@ pub fn reduce_rail(state: &mut State, intent: RailIntent) -> Vec<Effect> {
         }
         RailIntent::ToggleStash(commit) => super::stashes::toggle(state, commit),
         RailIntent::ShowStashes => super::stashes::show(state),
+        RailIntent::List(listed) => list(state, listed.as_ref()),
+        RailIntent::OpenListFilter { window } => {
+            let picker = state.rail.list_filter.get_or_insert_default();
+            picker.window = window.or(picker.window);
+            Vec::new()
+        }
+        RailIntent::CloseListFilter => {
+            state.rail.list_filter = None;
+            Vec::new()
+        }
+        RailIntent::TypeInListFilter(typed) => {
+            if let Some(picker) = &mut state.rail.list_filter {
+                picker.typed = typed;
+            }
+            Vec::new()
+        }
     }
+}
+
+/// What the rail lists, chosen in its own filter: checked against the references of the repository shown and kept for
+/// it, apart from what the timeline shows, which does not change. Everything keeps nothing.
+fn list(state: &mut State, listed: Option<&BranchesShown>) -> Vec<Effect> {
+    let Some(folder) = state.shown_folder().cloned() else {
+        return Vec::new();
+    };
+    let listed = checked(listed, &state.rail.references);
+    let stored = listed.as_ref().map(StoredValue::of);
+    state.rail.listed = listed;
+    if shown_of(&state.persisted.branches_listed, &folder) == stored.as_ref() {
+        return Vec::new();
+    }
+    match stored {
+        Some(shown) => {
+            let entry = RepositoryShown {
+                folder: folder.clone(),
+                shown,
+            };
+            remember(&mut state.persisted.branches_listed, entry, |kept| {
+                same_folder(&kept.folder, &folder)
+            });
+        }
+        None => state
+            .persisted
+            .branches_listed
+            .retain(|kept| !same_folder(&kept.folder, &folder)),
+    }
+    vec![Effect::WritePersisted(state.persisted.clone())]
 }
 
 /// A branch added to the favorites of the repository shown, or taken out; those whose branch no longer exists are
@@ -171,10 +236,6 @@ pub fn reduce_filter(state: &mut State, intent: FilterIntent) -> Vec<Effect> {
                 picker.typed = typed;
             }
             Vec::new()
-        }
-        FilterIntent::FollowGraphFilter(is_on) => {
-            state.settings.follows_graph_filter = is_on;
-            write_setting(state, keys::FOLLOW_GRAPH_FILTER, json::Value::Bool(is_on))
         }
     }
 }

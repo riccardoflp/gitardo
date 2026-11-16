@@ -2,8 +2,9 @@
 //! configuration folder and from `.gitardo/settings.json` of the repository shown, both JSON with comments.
 //!
 //! Only the settings this window uses are read here: the theme and the fonts (`settings.theme`), `readOnStartup`,
-//! `graph.pageSize`, the switches of the timeline, `branches.sortOrder`, `branches.followGraphFilter`, `log.level`, and
-//! `commandPreview`, `branches.format` and `submodules.updateOnCheckout`, which the operations read.
+//! `graph.pageSize`, the switches of the timeline, `branches.sortOrder`, `log.level`, and `commandPreview`,
+//! `branches.format` and `submodules.updateOnCheckout`, which the operations read. `branches.followGraphFilter` is not
+//! read since D51: the branch rail has a filter of its own.
 //! Each card that uses another setting adds it to [`keys`]. Every value the files set is kept as written too, for the
 //! settings page (`settings.edit`).
 //!
@@ -55,8 +56,6 @@ pub struct Settings {
     /// `branches.sortOrder`: the order of the branches, the remote branches and the tags; none while it is not set,
     /// which is by name.
     pub sort_order: Option<SortOrder>,
-    /// `branches.followGraphFilter`: the branch rail lists only the branches the timeline shows.
-    pub follows_graph_filter: bool,
     /// `log.level`: whether the Command log records the reads too.
     pub log_level: LogLevel,
     /// `commandPreview`, `branches.format` and `submodules.updateOnCheckout`: the settings the operations read.
@@ -85,7 +84,6 @@ impl Default for Settings {
             page_size: PageSize::DEFAULT,
             switches: Switches::DEFAULT,
             sort_order: None,
-            follows_graph_filter: true,
             log_level: LogLevel::Info,
             features: FeatureSettings::default(),
             collapse_unchanged: true,

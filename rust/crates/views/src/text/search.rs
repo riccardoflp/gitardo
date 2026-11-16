@@ -243,6 +243,7 @@ pub fn command_name(command: crate::search::QuickCommand) -> &'static str {
         QuickCommand::CloseTab => "Close Tab",
         QuickCommand::ShowWhatIsRunning => "Show What Is Running",
         QuickCommand::ShowBranches => "Show branches",
+        QuickCommand::FilterBranchRail => "Filter the Branch Rail",
         QuickCommand::Welcome => "Welcome",
         QuickCommand::ShowChanges => "Show changes",
         QuickCommand::CreateBranch => "Create branch\u{2026}",

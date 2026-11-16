@@ -9,7 +9,7 @@ use model::state::{Branch, RemoteBranch, Tag};
 use model::{CommitId, Timestamp};
 use ui::{Availability, MenuEntry};
 
-use super::picker::{PickRow, pick_rows};
+use super::list::{PickRow, pick_rows};
 use super::{FilterEntry, filter_entries, filter_entry_intent};
 use crate::graph::kind_entries;
 use crate::intent::{FilterIntent, Intent};

@@ -1,6 +1,7 @@
-//! The words of the branches the timeline shows: the branch filter (`filter.picker`, `filter.preset`,
-//! `filter.list-too`), the entries of the menus (`filter.show-only`, `filter.show-too`, `filter.hide`,
-//! `filter.show-all`, `filter.kinds`) and the bar above the commits (`filter.bar`).
+//! The words of the branches the timeline shows: the branch filter (`filter.picker`, `filter.preset`), the eye on a
+//! reference of the branch rail the timeline leaves out (`filter.list-too`), the entries of the menus
+//! (`filter.show-only`, `filter.show-too`, `filter.hide`, `filter.show-all`, `filter.kinds`) and the bar above the
+//! commits (`filter.bar`).
 
 use model::filter::{BranchesShown, short_name};
 
@@ -35,14 +36,9 @@ pub const TAGS: &str = "Tags";
 pub const NO_NAME_MATCHES: &str = "No branch or tag has that in its name";
 /// The list in a repository with no branch or tag.
 pub const NO_REFERENCES: &str = "No branches or tags yet";
-/// **Filter the list of branches too**.
-pub const LIST_TOO: &str = "Filter the list of branches too";
-/// Its tooltip.
-pub const LIST_TOO_TOOLTIP: &str = "In the branch rail: only the branches the timeline shows, or all of them with the \
-                                    others dimmed";
 /// **Show only this history** in the menu of a reference.
 pub const SHOW_ONLY: &str = "Show only this history";
-/// **Show this history too**.
+/// **Show this history too**, in the menu of a reference and on the eye of a dimmed one in the branch rail.
 pub const SHOW_TOO: &str = "Show this history too";
 /// **Hide this history**.
 pub const HIDE: &str = "Hide this history";

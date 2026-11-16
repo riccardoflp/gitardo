@@ -5,6 +5,7 @@
 mod choice;
 mod label;
 mod log;
+pub mod rail;
 mod rank;
 mod remember;
 

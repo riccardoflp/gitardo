@@ -190,7 +190,7 @@ impl RailLists {
 }
 
 /// Something asked of the branch rail.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum RailIntent {
     /// Open or close a list.
     Toggle(RailList),
@@ -212,6 +212,18 @@ pub enum RailIntent {
     ToggleStash(model::CommitId),
     /// **Show Stashes**: the branch rail shown with the Stashes list open (`stash.pane`).
     ShowStashes,
+    /// List these branches in the rail, whatever the timeline shows; none is everything (`refs.list-filter`).
+    List(Option<BranchesShown>),
+    /// Open the list of the filter of the rail, in a window of this size, in logical pixels; none when the size is not
+    /// known yet, as from Quick search (`refs.list-filter`).
+    OpenListFilter {
+        /// The size of the window it opened in: a window resized closes it.
+        window: Option<(f32, f32)>,
+    },
+    /// Close the list of the filter of the rail.
+    CloseListFilter,
+    /// What is typed in the box of the filter of the rail.
+    TypeInListFilter(String),
 }
 
 /// Something asked of the branches the timeline shows.
@@ -230,9 +242,6 @@ pub enum FilterIntent {
     ClosePicker,
     /// What is typed in the box of the branch filter.
     Type(String),
-    /// Whether the branch rail lists only the branches the timeline shows: `branches.followGraphFilter`
-    /// (`filter.list-too`).
-    FollowGraphFilter(bool),
 }
 
 /// A sentence the window says once, over what it shows, until it is put away.

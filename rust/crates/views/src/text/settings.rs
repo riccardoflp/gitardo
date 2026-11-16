@@ -134,7 +134,7 @@ pub const SETTINGS: [SettingInfo; 49] = [
     },
     SettingInfo {
         key: "branches.followGraphFilter",
-        description: "The branch rail lists only the branches the timeline is narrowed to.",
+        description: "Not read any more: the branch rail has a filter of its own.",
         default: "true",
         is_repository: false,
         is_experimental: false,

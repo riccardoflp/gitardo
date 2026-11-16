@@ -2,7 +2,8 @@
 //! program started before, the steps of the Welcome page done, the recent workspaces with the repository shown last in
 //! each, the repositories open in tabs in it (`tabs`) and the workspace file of VS Code it came from (`file`), the size
 //! of the window and the width of the branch rail; the sizes of the panes of each workspace and the
-//! folds of each repository ([`timeline`]); the favorites and the branches shown of each repository ([`rail`]).
+//! folds of each repository ([`timeline`]); the favorites, the branches shown and the branches listed in the branch
+//! rail of each repository ([`rail`]).
 //! folds of each repository ([`timeline`]); how the files are laid out in the inspector, in the pages of commits and in
 //! the Changes page ([`layouts`]); the message of the commit box of each repository ([`changes`]); the values given last
 //! for the inputs of the format of branch names in each workspace ([`inputs`]); the folders the user trusts
@@ -54,6 +55,9 @@ pub struct Persisted {
     pub favorites: Vec<RepositoryFavorites>,
     /// The branches shown of the repositories narrowed last.
     pub branches_shown: Vec<RepositoryShown>,
+    /// What the branch rail lists, of the repositories whose rail lists less than everything, chosen last
+    /// (`refs.listed`).
+    pub branches_listed: Vec<RepositoryShown>,
     /// Whether the funnel of the search box is pressed: a search of the whole history narrows the timeline to what
     /// it finds (`search.list-mode`).
     pub search_as_list: bool,
@@ -115,6 +119,7 @@ impl Persisted {
             folds: list(&document, "folds", timeline::repository_folds),
             favorites: list(&document, "favorites", rail::repository_favorites),
             branches_shown: list(&document, "branchesShown", rail::repository_shown),
+            branches_listed: list(&document, "branchesListed", rail::repository_shown),
             search_as_list: document.get("searchAsList").and_then(Value::as_bool).unwrap_or(false),
             file_layouts: document.get("fileLayouts").map_or_default(layouts::file_layouts),
             commit_messages: list(&document, "commitMessages", changes::repository_message),
@@ -160,6 +165,7 @@ impl Persisted {
             "branchesShown",
             Value::Array(self.branches_shown.iter().filter_map(rail::shown_value).collect()),
         ));
+        members.extend(rail::listed_member(&self.branches_listed));
         if self.search_as_list {
             members.push(member("searchAsList", Value::Bool(true)));
         }

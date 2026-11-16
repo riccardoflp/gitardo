@@ -27,6 +27,15 @@ pub(super) fn nothing_unfolded() -> StashesShown<'static> {
     }
 }
 
+/// The filter of the rail listing everything, for the tests of the rest of the rail.
+pub(super) fn everything_listed(references: &model::refs::References) -> super::ListFilterState<'_> {
+    super::ListFilterState {
+        listed: None,
+        references,
+        open: None,
+    }
+}
+
 /// A stash made on a commit of a test.
 fn stash() -> Stash {
     Stash {
