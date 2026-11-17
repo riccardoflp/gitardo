@@ -180,6 +180,30 @@ the other from the inspector, which never closes; a file opened from the Files p
 window means two things; with `gitardo.graph.islands` on, the Graph view of the extension is three islands; every card of the
 phase passes its tests, and the snapshots of the window match.
 
+## M15 — The whole history in one read
+
+The timeline reads its history with one `git log` as git prints it, rather than one for each page, and lays out only
+the rows that come ([D54](../08-decisions.md#d54--the-timeline-is-read-by-one-git-log-as-it-prints)). Built in four
+phases, each one commit or more, each ending with its cards built and their tests passing; the extension comes last.
+
+1. **The measure first.** `cargo xtask perf` times the whole history too: from the request to its first page, and to
+   its last row, and the layout of the timeline over every row, page after page, as `app` makes it today. Its table in
+   [06-testing.md](06-testing.md) gets the numbers of before. No card.
+2. **The read as git prints.** `crates/git` runs a read whose output is taken as it comes, cancelled as any read; the
+   read of the commits gives each page to the worker as soon as it is printed, and stops at 100,000 commits; the store
+   adds each page under the rows, and starts again on another history. Cards: `graph.read-commits`, `graph.load-more`.
+3. **The layout from the last row.** The lanes as they stand under the last row are kept with the layout, and a page
+   is laid out from them; the folds, the labels and the date separators of the new rows with it. Cards: `graph.lanes`.
+4. **The extension.** Version 1.8 of [the protocol](../transition/02-protocol.md), the pages sent as they are read,
+   `EngineGraph` and the controller taking them, and the lanes of `src/shared/graph.ts` laid out from the last row.
+   Cards: `graph.read-commits`, `graph.load-more` and `graph.lanes` in the extension.
+
+Exit: on the repository that `extension/test/perf/big-repo.mjs` makes (56,120 commits), measured by `cargo xtask perf`
+with the release build, the first page comes no later than the first page did before M15, and every commit is read
+and laid out in less than 3 seconds, in the window and in the extension; scrolling to the last commit asks for nothing
+more; another branch filter shows its first page as soon as the first page did before; every card of the phase passes
+its tests, and the snapshots of the timeline match.
+
 ## M16 — The settings in sections, and a side column
 
 The settings page in the middle of the window, in sections, every value changed on it

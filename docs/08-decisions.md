@@ -815,6 +815,49 @@ the application, and the window would look like VS Code again, which D16 left); 
 in the inspector (they would pile up in `Ctrl+Tab`); islands in every webview of the extension (the side bar views are
 too narrow for the gaps).
 
+## D54 — The timeline is read by one git log, as it prints
+
+*Asked by the maintainer for milestone M15, after the reads of the graph were timed; the details proposed by the agent.*
+
+Every page of the timeline was a `git log` of its own, from the newest commit, with `--skip` for the commits loaded:
+git walks the history from the top for each page, so loading all of it costs one walk per page. Timed on 2026-11-17
+on a clone of GIMP (73,581 commits, 468 references, Windows, git alone, no engine): its 74 pages took 61.1 s, 37.7 s
+with a commit-graph file; one `git log` of the whole history took 1.4 s, with or without one, and its first 1,000
+commits came in 0.97 s, 0.45 s with one, as soon as the first page does today. The layout of the timeline is made
+again over every row at each page, which grows the same way.
+
+So the history shown is read by one `git log -z --date-order`, without `--max-count` or `--skip`, read as git prints
+it (`graph.read-commits`):
+
+- **The rows come in pages as they are printed.** The first `graph.pageSize` commits go to the timeline as soon as
+  they are read, as the first page does today; the next ones follow, a page at a time, while git goes on, without
+  waiting for the list to be scrolled. The setting keeps its name and meaning: how many commits the timeline gets at a
+  time.
+- **The read goes to the end of the history, up to 100,000 commits** ([Q435](#of-milestone-m15-from-q435)). There it
+  stops, and its git with it; the next commits are read as they are today, by a read from the last commit loaded with
+  `--skip`, once the last row drawn is 500 rows from the end (`graph.load-more`), and that read goes on the same way.
+  A history of less than 100,000 commits is walked once.
+- **The layout goes on from the last row** (`graph.lanes`): the lanes as they stand under the last row laid out are
+  kept, and the rows of a new page are laid out from them, which gives the cells a layout of every row gives.
+- **Another history starts again.** Another filter, branches, search or narrowing, a reference moved by a fetch, a
+  commit or any operation: the read running is cancelled, its git killed, and a new one starts. The rows listed stay,
+  dimmed, until the first page of the new read, as they do today; a read that finds the same commits as those listed
+  changes none of the rows.
+- **The extension gets the pages as they are read**, in version 1.8 of [the protocol](transition/02-protocol.md):
+  `read/graph.read-commits` sends each page as a notification while it reads and answers when its read ends
+  ([Q436](#of-milestone-m15-from-q435)); the webview gets only the new rows, as it does since `ac28e4c`, and lays them
+  out from its last row (`src/shared/graph.ts`).
+
+This answers [Q56](#open-questions): the pages after the first no longer need `--skip` below 100,000 commits. Desktop
+first, then the extension, in milestone M15 of [the roadmap](desktop/07-roadmap.md#m15--the-whole-history-in-one-read).
+
+Rejected: reading the whole history before showing any of it (the first rows would wait for the last, and on a
+history of a million commits for tens of seconds and hundreds of megabytes); keeping one `git log` open and stopped by
+the pipe while the list is not scrolled (a process held open for each tab, while a read past 100,000 commits that
+starts again with `--skip` costs one walk more, and is rare); writing a commit-graph file without asking (it is the
+user's repository; it may be proposed apart); a cache of the rows on disk (another stored file, for a read that now
+takes a second or two).
+
 ## D55 — The settings page in sections, in the middle of the window
 
 *Asked by the maintainer for milestone M16: the settings page is one long list against the left edge, and should be in
@@ -1080,7 +1123,9 @@ repositories, the settings), each built with the reading given until it is answe
   `graph.read-commits`, so that git prints only the new page and the last commit loaded again; when that commit is
   not where it was, every page is read again and replaces the rows. The card of the read does not name `--skip`.
   Is that the reading? Without a commit-graph file, `--date-order` walks the whole history before the first commit
-  of any page (about 170 ms for 56,000 commits here), which is most of the time of a page.
+  of any page (about 170 ms for 56,000 commits here), which is most of the time of a page. *Answered by
+  [D54](#d54--the-timeline-is-read-by-one-git-log-as-it-prints) in milestone M15: one read lists the history as git
+  prints it, and `--skip` is left for the commits past 100,000.*
 - **Q57** — `graph.uncommitted-row`: the draft says **Describe the next commit** in place of a message, and its
   **Review** and **Commit** buttons, and every entry of its menu and of a stash row's menu, are shown but cannot be
   clicked, with the tooltip "Not yet", until the operations they run exist (M4 and later). Is showing them disabled
@@ -2799,3 +2844,22 @@ each built with the reading given until the card says otherwise.
   is read into paths the first time its icon is drawn and kept with the icons rasterized, which is once for the
   program without reading the 79 files before the first frame; a test reads all of them. The path data is parsed with
   `svgtypes` (MIT or Apache-2.0, kept up with `resvg`), which turns its arcs into curves.
+
+### Of milestone M15, from Q435
+
+Questions of milestone M15 ([D54](#d54--the-timeline-is-read-by-one-git-log-as-it-prints)), each built with the
+reading given until the card says otherwise.
+
+- **Q435** — `graph.read-commits`: where one read stops. Recommended: at 100,000 commits, whatever `graph.pageSize` is,
+  so that a history of that size is walked once and a tab keeps some 25 MB of rows at most before it is scrolled
+  (Q410); past it, each read from the last commit with `--skip` lists 100,000 more.
+- **Q436** — The protocol: how the extension gets the pages. Recommended: the request `read/graph.read-commits` takes
+  `stream: true` (a field added, version 1.8); the engine sends `read/graph.rows { read, rows: Row[] }` for each page
+  as it is read, `read` the id of the request, and answers the request with `{ rows: [], hasMore }` once its read ends,
+  at the end of the history or at 100,000 commits. `$/cancel` stops it as any read. Without `stream`, the read answers
+  as today, for an older extension.
+- **Q437** — `repo.watch-hidden`: a tab not shown reads its history again when a reference moves in it. Recommended:
+  it reads its first page only, and the rest once it is shown, so that eight tabs do not walk eight histories at once.
+- **Q438** — `graph.load-more`: the bar along the top of the list ran while a page was read. Recommended: it runs
+  until the first page of a read is there; while the rest is read, the last row says **Loading more commits…**, as it
+  does while there are more.

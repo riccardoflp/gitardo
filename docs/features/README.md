@@ -75,7 +75,7 @@ earns it.
 
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
-| [`graph.read-commits`](02-graph.md#graphread-commits--read-a-page-of-the-graph) | Read a page of the graph | Read | Built | Built |
+| [`graph.read-commits`](02-graph.md#graphread-commits--read-the-commits-of-the-graph) | Read the commits of the graph | Read | Specified | Planned |
 | [`graph.read-position`](02-graph.md#graphread-position--where-a-commit-is-in-the-history-listed) | Where a commit is in the history listed | Read | Built | Built |
 | [`graph.view`](02-graph.md#graphview--the-timeline) | The timeline | View | Built | Built |
 | [`graph.toolbar`](02-graph.md#graphtoolbar--the-header) | The header | View | Built | Built |
@@ -89,8 +89,8 @@ earns it.
 | [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Built | Built |
 | [`ui.menu-scroll`](02-graph.md#uimenu-scroll--a-menu-taller-than-the-room-under-it) | A menu taller than the room under it | Derivation | Specified | Host only |
 | [`ui.picker-scroll`](02-graph.md#uipicker-scroll--a-picker-longer-than-its-rows) | A picker longer than its rows | Derivation | Specified | Host only |
-| [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Built | Built |
-| [`graph.lanes`](02-graph.md#graphlanes--lay-out-the-lines-of-the-graph) | Lay out the lines of the graph | Derivation | Built | Built |
+| [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Specified | Planned |
+| [`graph.lanes`](02-graph.md#graphlanes--lay-out-the-lines-of-the-graph) | Lay out the lines of the graph | Derivation | Specified | Planned |
 | [`graph.fit-width`](02-graph.md#graphfit-width--how-wide-the-graph-is-drawn) | How wide the graph is drawn | Derivation | Built | Built |
 | [`graph.resize-graph`](02-graph.md#graphresize-graph--give-the-graph-less-room-or-more) | Give the graph less room or more | View | Built | Built |
 | [`graph.resize-panes`](02-graph.md#graphresize-panes--resize-the-branch-rail-and-the-inspector) | Resize the branch rail and the inspector | View | Built | Built |

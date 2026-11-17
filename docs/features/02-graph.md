@@ -9,33 +9,43 @@ branches the timeline is narrowed to (`filter.`); the selected commit in the ins
 selected together `selection.`, drag and drop `drag.`, fetch, pull and push `sync.`, and what is done to a stash
 `stash.`.
 
-### `graph.read-commits` — Read a page of the graph
+### `graph.read-commits` — Read the commits of the graph
 
-The commits the timeline lists, newest first, with their parents: as many pages as were asked for.
+The commits the timeline lists, newest first, with their parents, a page at a time as git prints them: one read goes
+on to the end of the history, or to 100,000 commits (D54).
 
 - **Kind**: Read
-- **Function**: `git::read::graph::read_commits(git, request: &CommitsRequest) -> Result<CommitPage, GitError>`
+- **Function**: `git::read::graph::read_commits(git, request: &CommitsRequest, page: &mut dyn FnMut(CommitPage)) ->
+  Result<ReadEnd, GitError>`, where `ReadEnd` says whether the history has more than the read listed.
 - **Reads**:
-  - `git log -z --format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%s --max-count=<count + 1> --date-order <selection>`,
-    where `<count>` is the page size times the pages asked for, and `<selection>` the arguments that say which history
-    is listed (`filter.log-arguments`), followed by those of a search shown as a list (`search.read-matches`) or of the
-    history of a file, a folder or some lines (`file-history.read-names`). One commit more than asked for says whether there
+  - `git log -z --format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%s --max-count=<100,000 + 1> --date-order <selection>`,
+    where `<selection>` is the arguments that say which history is listed (`filter.log-arguments`), followed by those
+    of a search shown as a list (`search.read-matches`) or of the history of a file, a folder or some lines
+    (`file-history.read-names`). Its output is taken as git prints it: each time a page of `graph.pageSize` commits is
+    read, it is given to `page`, and the last commits when git ends. One commit more than 100,000 says whether there
     are more.
+  - A read from a commit already loaded (`graph.load-more`, past 100,000 commits) adds `--skip=<commits loaded - 1>`
+    and goes on the same way; it starts with that commit, or the history changed under it and is read again whole.
+  - Cancelled, the read kills its git and gives no more pages.
   - With the setting `graph.firstParent`, `--first-parent` before the selection, and each commit keeps only its first
     parent.
   - With `graph.showStashes`, stashes in the repository and nothing narrowing the history but the branches shown:
     `git log --no-walk=unsorted -z --format=<the same> <the hash of each stash> --`, for the stashes to be placed among
-    the commits by `graph.place-stashes`. `refs/stash` itself is never part of the selection: the commits of a stash
-    would clutter the graph.
+    the commits by `graph.place-stashes`, read before the first page so that each page comes with its stashes.
+    `refs/stash` itself is never part of the selection: the commits of a stash would clutter the graph.
 - **Settings**: `graph.pageSize` (1,000 by default; a number under 100 counts as 100, over 10,000 as 10,000, and what
   is not a number as 1,000); `graph.firstParent`; `graph.showStashes`.
 - **Uses**: `filter.log-arguments`, `graph.place-stashes`, `graph.lanes`.
 
 Acceptance:
 
-- [ ] In a repository of 2,500 commits, one page reads 1,000 commits and says there are more; three pages read 2,500
-      and say there are none.
+- [ ] In a repository of 2,500 commits, one read gives three pages, of 1,000, 1,000 and 500 commits, the first before
+      git has printed the last commit, and says there are no more; it runs one git for the commits.
+- [ ] In a history of 100,050 commits, the read stops at 100,000 and says there are more; the read from the last of
+      them gives the 50 left.
+- [ ] A read cancelled after its first page gives no other page, and its git is no longer running.
 - [ ] With `graph.pageSize` set to 50, a page is 100 commits; set to `"abc"`, 1,000.
+- [ ] The stashes are placed among the commits of each page as they would be among all the commits read at once.
 - [ ] A merge of three parents is read with its three parents, and with `graph.firstParent` with its first only.
 - [ ] Commit messages with a tab, a line break in the body, or non-ASCII characters are read whole: the subject is the
       first line.
@@ -510,8 +520,9 @@ Acceptance:
 
 ### `graph.load-more` — Load the next commits while scrolling
 
-The commits are read a page at a time, the next page long before the end of those shown, so that scrolling does not
-stop to wait for them.
+The commits come a page at a time as they are read, without waiting for the list to be scrolled, so that scrolling does
+not stop to wait for them; past the 100,000 commits of one read, the next read starts long before the end of those
+shown (D54).
 
 - **Kind**: View
 - **Function**: `views::graph::load_more_view(state: &ListState, ui) -> Vec<Intent>`
@@ -519,22 +530,27 @@ stop to wait for them.
 - **Settings**: `graph.pageSize`.
 - **Uses**: `graph.read-commits`.
 
-- The next page is asked for as soon as the last row drawn is 500 rows or fewer from the end of the commits loaded,
-  and once for each number of commits loaded: with small pages, one follows the other until 500 are ahead again.
-  Counted in commits loaded, so that the commits of folded merges count too.
-- While there are more, the last row says **Loading more commits…** with a spinning icon, and the bar runs along the
-  top of the list while the page is read.
+- Each page of a read is added under the rows as soon as it is read, whether the list is scrolled or not, until the
+  read ends at the end of the history or at 100,000 commits (`graph.read-commits`).
+- Past those, the next read is asked for as soon as the last row drawn is 500 rows or fewer from the end of the
+  commits loaded, and once for each number of commits loaded. Counted in commits loaded, so that the commits of folded
+  merges count too.
+- The bar runs along the top of the list until the first page of a read is there. While there are more, read or still
+  to read, the last row says **Loading more commits…** with a spinning icon.
 - The commits already listed stay where they are: the rows of the page are added under them, and the scroll position,
   the selection and the folds do not move. A read that finds the same commits as before, as after a file is saved,
   changes none of the rows.
-- Choosing another repository, other branches, a filter or a search starts again from one page.
+- Choosing another repository, other branches, a filter or a search cancels the read running and starts a new one;
+  the rows listed stay, dimmed, until its first page.
 
 Acceptance:
 
-- [ ] With 1,000 commits loaded, scrolling to row 500 asks for the next page; at row 499, not yet.
-- [ ] Scrolling on while the page is read does not ask for it again.
-- [ ] With `graph.pageSize` at 100, scrolling to the 50th row loads pages until 600 commits are loaded.
+- [ ] In a repository of 5,000 commits, with the list not scrolled, the five pages are added one after the other and
+      the last row no longer says **Loading more commits…** once the fifth is there.
+- [ ] With 100,000 commits loaded and more, scrolling to row 99,500 starts the next read; at row 99,499, not yet.
+- [ ] Scrolling on while that read runs does not start it again.
 - [ ] After a page is added, the selected commit and the scroll position are as they were.
+- [ ] Choosing another branch while a read runs stops it: no page of the old read is added after the first of the new.
 - [ ] The last row says **Loading more commits…** while there are more, and is gone at the end of the history.
 
 ### `graph.lanes` — Lay out the lines of the graph
@@ -577,9 +593,18 @@ Examples (rows newest first, `X: P Q` meaning X with parents P and Q):
 - An uncommitted-changes row `W: C` above `C:` gives W lane 0 with a dashed line down; C takes lane 0, since it is
   the only lane waiting for it, and its own line is not dashed.
 
+The layout goes on from where it stopped (D54): `model::graph::lanes_after(start: &LaneState, rows: &[GraphInput]) ->
+(Vec<GraphCell>, LaneState)` lays out rows under others from the lanes as they stood under the last of them (which
+lanes wait, for which commit, in which color, dashed or not, and the next color), and gives them as they stand under
+its own last row. `lanes` is `lanes_after` from no lanes. The timeline keeps the state of its last row, and lays out
+only the rows of a page added under it; any other change of the rows lays them out again from the first.
+
 Acceptance:
 
 - [ ] Each example above gives exactly the cells it says.
+- [ ] 10,000 rows of a real history laid out a page of 1,000 at a time, each from the state of the page before, give
+      exactly the cells of the 10,000 laid out at once; so do the same rows cut after a merge, and between a commit and
+      its first parent.
 - [ ] A branch merged and deleted leaves its lane free for the next tip, which takes it and a new color.
 - [ ] Twenty branches open at once give twenty lanes, and once they end the graph is one lane wide again.
 - [ ] A stash on a commit that is also the parent of the next commit of the history: the commit goes on the lane of
