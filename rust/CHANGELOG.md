@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 - 2026-11-17
 
 - With `core.fsmonitor` on, on Linux and macOS, a worktree no longer has its repository read again and again: the
   socket the daemon listens on in its git folder (`fsmonitor--daemon.ipc`) asks for nothing, as the daemon's folder
