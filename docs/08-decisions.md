@@ -1232,6 +1232,21 @@ indicator shows it, and timed from its start; a row stays where it is while it r
 **Ran**, with the time it ended and how long it took, the latest first, the last 50 of the session kept; reads of the
 same repository one after the other are one row that counts them (`Reading app ×4`); the list scrolls.
 
+What phase 3 settled, building them. The engine says of each activity the moment it started and whether it is a read,
+and gives once, with what runs, what ended since it was last asked, each with the moment it ended
+(`Activities::report`): the list is kept from what happened and not from what each frame saw, so a read over between
+two frames is counted, and what ended within the same frame is listed by when it ended (the sixth cause). A read joins
+the row of the reads of the same words while that row runs, or within half a second of its last read, as long as
+something runs before it is listed; meanwhile the row is among what runs, its time stopped at the end of its last
+read. The cost is that a read alone is shown half a second longer than it ran (Q682): the other ways, a row that
+leaves and comes back at each read, or one taken back from **Ran**, are the jumps this decision is about. Under
+**Ran**, reads of the same words that end one after the other, with nothing else ending between them, are one row too,
+so that reads a second apart do not fill the last 50. A row is two lines high whether it has a detail or not, and
+**Nothing is running now** is as high as a row, so that the first thing listed takes its place. Against the tab so
+laid out, the replay of phase 1 finds no fault in its 160 frames: the fetch says `0 s` in its first frame and counts
+from its start, the forty reads are the one row `Reading app ×40`, second from 1.5 s until it goes under **Ran**
+half a second after its last read, and nothing listed goes in the fifty seconds.
+
 Rejected: keeping the drawer and making it a card that pushes the timeline up (two places for the same height, and the
 panel already has one); a window of its own for Activity (it is looked at for a moment, beside what it is about);
 dropping **Ran** (what failed a moment ago is what is looked for).
@@ -3745,3 +3760,25 @@ built, each built with the reading given until the card says otherwise.
   **Activity** shows the terminals rather than hiding the panel. Hidden at **Activity**, the panel comes back at
   **Terminal** from that button, not at the Command log it may have shown before. Should the panel remember the tab
   each of the two buttons showed last?
+- **Q682** — `activity.what-is-running`, `activity.status-bar`: a row of reads waits half a second after a read ended
+  for the next read of the same repository, and meanwhile it is among what runs, in the tab and in the activity
+  indicator, its spinner turning and its time stopped: a read alone is shown half a second longer than it ran. Reads a
+  change asks for after the second it waits (`repo.watch-changes`) are so a row each among what runs, and one row only
+  under **Ran**. Should the wait be longer, as long as the longest delay of a change, or should the row say that it
+  waits for the next read?
+- **Q683** — `activity.what-is-running`: what took between half a second and a second is said under **Ran** as `took
+  less than 1 s`, where what runs says its whole seconds, `0 s`, as `activity.describe-task` has it. Should what runs
+  say the same, or **Ran** say tenths of a second?
+- **Q684** — `activity.what-is-running`, `activity.describe-task`: every read of a repository is titled `Reading
+  <name>`, whether it reads the repository, the details of a commit, a diff or more commits, so one row counts them
+  together, with the detail of the latest; and the detail of a read a change asked for during another still says
+  `Read <n> times in a row`, a count of its own beside the one of the title. Should the row count only the reads of the
+  repository itself, and should the sentence of the detail go now that the title counts?
+- **Q685** — `activity.what-is-running`: a row under **Ran** has a check whether what it stands for succeeded or
+  failed, as the rows of the drawer had, though D64 keeps **Ran** because what failed a moment ago is what is looked
+  for. Not built: should a row of something that failed say so, with a link to its lines in the Command log
+  (`activity.said` has one)?
+- **Q686** — `activity.track`: the engine now says the moment each activity started, whether it is a read and, once,
+  what ended; the protocol still gives the extension the number, the words, the cause and the second of the start of
+  what runs. Nothing changes in the extension with M18. Should its picker of **Show What Is Running** list what ran
+  and count the reads as the tab does, with these in a minor version of the protocol?

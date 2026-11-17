@@ -11,6 +11,8 @@ pub const NOTHING_RUNNING_DETAIL: &str = "Gitardo is not reading or changing any
 
 /// The title of the column of what runs.
 pub const RUNNING_COLUMN: &str = "WHAT IS RUNNING";
+/// The heading of what ran, under what runs.
+pub const RAN_HEADING: &str = "RAN";
 /// The Command log, as the screen reader says its list (`log.show`).
 pub const COMMAND_LOG: &str = "Command log";
 /// What the Command log says before anything was logged.
@@ -113,10 +115,22 @@ pub fn dropped_lines(count: usize) -> String {
     }
 }
 
-/// What ran a moment ago, in the Activity tab: `Took 2 s`.
+/// What the Activity tab says of what ran: the time it ended and how long it took, `14:02:09 · took 2 s`, and
+/// `took less than 1 s` for what was over sooner.
 #[must_use]
-pub fn took(seconds: u64) -> String {
-    format!("Took {}", duration(seconds))
+pub fn ran(ended: i64, took: std::time::Duration) -> String {
+    let took = match took.as_secs() {
+        0 => String::from("less than 1 s"),
+        seconds => duration(seconds),
+    };
+    format!("{} \u{b7} took {took}", time_of_day(ended))
+}
+
+/// The time of day of a moment, `14:02:09`, in UTC as the timeline says dates (open question Q58).
+#[must_use]
+pub fn time_of_day(seconds: i64) -> String {
+    let of_day = seconds.rem_euclid(86_400);
+    format!("{:02}:{:02}:{:02}", of_day / 3_600, of_day % 3_600 / 60, of_day % 60)
 }
 
 /// How long something has run, in whole seconds, `12 s`, and from a minute on `1 min 5 s`.
@@ -131,12 +145,24 @@ pub fn duration(seconds: u64) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::duration;
+    use std::time::Duration;
+
+    use super::{duration, ran};
 
     #[test]
     fn says_seconds_then_minutes_and_seconds() {
         assert_eq!(duration(59), "59 s");
         assert_eq!(duration(65), "1 min 5 s");
         assert_eq!(duration(0), "0 s");
+    }
+
+    #[test]
+    fn says_when_something_ended_and_how_long_it_took() {
+        let ended = 14 * 3_600 + 2 * 60 + 9;
+        assert_eq!(ran(ended, Duration::from_millis(2_900)), "14:02:09 \u{b7} took 2 s");
+        assert_eq!(
+            ran(ended + 86_400, Duration::from_millis(700)),
+            "14:02:09 \u{b7} took less than 1 s"
+        );
     }
 }

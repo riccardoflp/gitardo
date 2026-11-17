@@ -22,8 +22,9 @@ pub use said::{SAID_FOR, said_view};
 pub use tab::{ActivityState, what_is_running_view};
 pub use tasks::{TaskId, TaskIntent, TaskRow, TasksState};
 
-/// How long something runs before the activity indicator shows it, so that what is over sooner does not flicker.
-const SHOWN_AFTER: Duration = Duration::from_millis(500);
+/// How long something runs before the activity indicator and the Activity tab list it, so that what is over sooner
+/// does not come and go (D64); what took less is not listed among what ran either.
+pub const LISTED_AFTER: Duration = Duration::from_millis(500);
 /// How often the times shown go on.
 const TICK: Duration = Duration::from_millis(500);
 /// The widest the words of the activity indicator are.
@@ -34,18 +35,27 @@ const WORDS_LEAST_WIDTH: f32 = 80.0;
 /// Something running, or that ran, as the status bar and the Activity tab say it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RunningTask {
-    /// What it is: `Reading app`.
+    /// What it is: `Reading app`, or `Reading app ×4` for four reads one after the other.
     pub title: String,
     /// Why it runs: `Because src/a.rs changed.`; none when nothing is said.
     pub detail: Option<String>,
-    /// How long it has run, when the frame is drawn; for what ran, how long it took.
+    /// How long it has run since it started, when the frame is drawn; for what ran, how long it took.
     pub elapsed: Duration,
+}
+
+/// Something that ran, as the Activity tab lists it under **Ran**.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RanTask {
+    /// What it was, with how long it took.
+    pub task: RunningTask,
+    /// When it ended, in seconds since 1970.
+    pub ended: i64,
 }
 
 /// What the status bar shows.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct StatusBarState<'a> {
-    /// What runs, the oldest first.
+    /// What runs, in the order it started; what has not run for half a second yet is not shown.
     pub running: &'a [RunningTask],
     /// The identity commits are made with in the repository shown, once it is read.
     pub identity: Option<&'a model::state::Identity>,
@@ -58,9 +68,9 @@ pub struct StatusBarState<'a> {
 /// The least room what was said keeps: the identity gives its room up first, then the words of what runs.
 const SAID_LEAST: f32 = 240.0;
 
-/// What has run long enough to be shown, the oldest first.
+/// What has run long enough to be listed, in the order it started.
 fn shown(running: &[RunningTask]) -> impl Iterator<Item = &RunningTask> {
-    running.iter().filter(|task| task.elapsed >= SHOWN_AFTER)
+    running.iter().filter(|task| task.elapsed >= LISTED_AFTER)
 }
 
 /// The width the activity indicator takes out of the room it is given: none while nothing has run for half a second,
@@ -85,12 +95,12 @@ fn indicator_width(state: &StatusBarState<'_>, ui: &Ui<'_>, room: f32) -> f32 {
     icon + theme.sizes.spacing.medium + words_width
 }
 
-/// The tooltip of the activity indicator: everything that runs, the oldest first, each with its title, how long it has
-/// run and its detail, then **Click to show Activity in the bottom panel.**
+/// The tooltip of the activity indicator: everything that has run for half a second, in the order it started, each
+/// with its title, how long it has run and its detail, then **Click to show Activity in the bottom panel.**
 #[must_use]
 pub fn tooltip(running: &[RunningTask]) -> String {
     let mut lines: Vec<String> = Vec::new();
-    for task in running {
+    for task in shown(running) {
         lines.push(header::running(&task.title, task.elapsed.as_secs()));
         if let Some(detail) = &task.detail {
             lines.push(detail.clone());
@@ -104,7 +114,8 @@ pub fn tooltip(running: &[RunningTask]) -> String {
 /// with the title of what has run longest and for how long, once it has run for half a second, whose tooltip lists
 /// everything that runs and whose click shows the bottom panel at its Activity tab, or hides the panel when it shows
 /// that tab; at its end the identity commits are made with, which a click switches (`identity.switch`), when it fits
-/// after the indicator and what was said; between them what was said last (`activity.said`). It asks for the frames that make the indicator appear and its times go on.
+/// after the indicator and what was said; between them what was said last (`activity.said`). It asks for the frames
+/// that make the indicator appear and its times go on.
 ///
 /// Feature: activity.status-bar
 pub fn status_bar_view(state: &StatusBarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -184,8 +195,8 @@ fn ask_for_next_frame(running: &[RunningTask], ui: &mut Ui<'_>) {
     let wait = running
         .iter()
         .map(|task| {
-            if task.elapsed < SHOWN_AFTER {
-                SHOWN_AFTER.saturating_sub(task.elapsed)
+            if task.elapsed < LISTED_AFTER {
+                LISTED_AFTER.saturating_sub(task.elapsed)
             } else {
                 let into_tick = task.elapsed.as_millis() % TICK.as_millis();
                 TICK.saturating_sub(Duration::from_millis(u64::try_from(into_tick).unwrap_or_default()))

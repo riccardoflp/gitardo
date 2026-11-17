@@ -426,7 +426,9 @@ that takes time.
 | A command of a new worktree, in Tasks | `Running <command> in <worktree>` | `A command of a new worktree, in Tasks` |
 
 `<name>` is the one `repo.name-repositories` gives. How long it has run is said in whole seconds, `12 s`, and from a
-minute on as `1 min 5 s`.
+minute on as `1 min 5 s`. Reads of the same repository one after the other are said on one row, whose title counts
+them from the second on, `Reading app ×4` (`model::activity::counted`), and whose detail is that of the latest
+([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)).
 
 Acceptance:
 
@@ -434,6 +436,8 @@ Acceptance:
       read. Because src/a.rs changed.`
 - [ ] 65 seconds is said as `1 min 5 s`, 59.9 seconds as `59 s`.
 - [ ] A read while the timeline is narrowed to `git log -S foo` is titled `Searching <name>`.
+- [ ] Four reads of `work/app` one after the other are titled `Reading work/app ×4`, and one alone `Reading
+      work/app`.
 
 ### `activity.status-bar` — What is running, in the status bar
 
@@ -449,12 +453,16 @@ said (`activity.said`), and the identity commits are made with.
   GitHub for more than half a second, the activity indicator shows a spinning icon with the title of what has run
   longest and for how long, as `Reading app (2 s)`, at the start of the status bar. What is over sooner never shows,
   so that it does not flicker. Where its words would be cut short it shows its icon alone.
+- It shows the rows of the **Activity** tab (`activity.what-is-running`): each thing is timed from when the engine
+  started it, and reads of the same repository one after the other are one entry that counts them, `Reading app ×4
+  (2 s)`, timed from the first, which stays half a second after a read ended for the next to join it
+  ([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)).
 - The end of the status bar says the identity commits are made with in the repository shown, `Ada
   <ada@example.com>`, the name or the email alone, or **No identity configured**, when there is room for it after
   what runs; a click switches it (`identity.switch`), except while an operation runs.
-- Its tooltip lists everything that runs, the oldest first, each with its title, how long it has run and its detail,
-  and ends with **Click to show Activity in the bottom panel.** The times go on every half second; the tooltip is
-  drawn again only when its text changes.
+- Its tooltip lists everything that has run for half a second, in the order it started, each with its title, how
+  long it has run and its detail, and ends with **Click to show Activity in the bottom panel.** The times go on every
+  half second; the tooltip is drawn again only when its text changes.
 - A click shows the bottom panel at its **Activity** tab (`activity.what-is-running`), or hides the panel when it
   shows that tab ([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)).
 - The status bar keeps its height whatever it says: what was said and its links are drawn in its text
@@ -462,7 +470,7 @@ said (`activity.said`), and the identity commits are made with.
 
 Acceptance:
 
-- [ ] A read of 0.3 s shows nothing; a read of 2 s shows the activity indicator from 0.5 s until it ends.
+- [ ] A read of 0.3 s shows nothing; a read of 2 s shows the activity indicator from 0.5 s until its row ends.
 - [ ] A fetch and a read at once are both in the tooltip, the fetch first if it started first.
 - [ ] The tooltip of a read asked for by a change says which file changed.
 - [ ] In a window 1000 pixels wide, a read of 2 s says `Reading app (2 s)` in the status bar, and the identity is at
@@ -470,6 +478,9 @@ Acceptance:
 - [ ] With `main` two ahead of `origin/main`, the header names `main` without how far it is, and **Sync** says `↑2`
       (Q500).
 - [ ] A click on the indicator shows the bottom panel at **Activity**, and another hides the panel.
+- [ ] What has run less than half a second is not in the tooltip.
+- [ ] Three reads of `app` one after the other are one entry of the indicator that counts them, `Reading app ×3
+      (1 s)`.
 
 ### `activity.said` — What was said, in the status bar
 
@@ -528,10 +539,26 @@ gap and its **Hide the panel**: nothing is drawn over the timeline to say what r
 the status bar and **Activity** in the bar of views show the panel at it, and hide the panel when it shows it; **Show
 What Is Running** shows the panel at it (Q680). `Escape` closes nothing there.
 
-The tab lists each thing that runs, with its title, how long it has run and its detail, the times going on every
-second while it is shown, and the list following what starts and ends. With nothing running it says **Nothing is running
-now** and "Gitardo is not reading or changing anything". The commands Gitardo runs are in the tab beside it,
-**Command log** (`log.show`).
+The tab lists each thing that runs on a row, with its title, how long it has run and, under it, its detail, the times
+going on while it is shown. The list is laid out so that it holds still while it is read:
+
+- Each thing is timed from the moment the engine started it, and ends at the moment the engine says it ended,
+  whichever frames drew it.
+- Something is listed once it has run half a second, as the activity indicator shows it; what is over sooner is listed
+  neither while it runs nor after.
+- The rows are in the order things started, and a row stays where it is while it runs; a row is as high whether it
+  has a detail or not.
+- Reads of the same repository one after the other are one row that counts them, `Reading app ×4`
+  (`activity.describe-task`), with the detail of the latest, timed from the start of the first, its time stopped
+  between one read and the next. The row waits half a second after a read ended for the next to join it (Q682).
+- What ended goes under **Ran**, the latest first, with the time of day it ended, in UTC as the Command log says its
+  times, and how long it took: `14:02:09 · took 4 s`, or `took less than 1 s` (Q683). Reads that end one after the
+  other, with nothing else ending between them, are one row there too, with the time the last ended and how long they
+  took together. **Ran** keeps the last 50 of the session, however long ago they ended.
+- The list scrolls, under the title of its column, when it is taller than the tab.
+
+With nothing running it says **Nothing is running now** and "Gitardo is not reading or changing anything", where the
+first row would be. The commands Gitardo runs are in the tab beside it, **Command log** (`log.show`).
 
 Once a new worktree has run commands (`worktree-setup.command-steps`), the tab has **Tasks** at its right: a row for
 each of the latest commands, as many as fit, with its worktree and how it stands (a spinner while it runs, **waits**,
@@ -548,6 +575,17 @@ Acceptance:
       log**, and nothing is drawn over the timeline, which ends above the panel.
 - [ ] `Escape` with the panel at **Activity** hides nothing.
 - [ ] A click on the tab **Command log**, beside it, shows the commands Gitardo runs.
+- [ ] What runs less than half a second is listed neither while it runs nor under **Ran**.
+- [ ] During a fetch with forty reads in a row around it, no row moves, flashes or goes before the fetch ends; the
+      fetch counts its seconds from its start, and the reads are one row.
+- [ ] Two reads that end within the same frame are listed in the same order each time, the one that ended last first.
+- [ ] A fetch that ended is under **Ran** with the time it ended and how long it took, and is still there ten minutes
+      later.
+- [ ] **Ran** lists the latest first and keeps the last 50.
+- [ ] Reads of a repository one after the other are one row that counts them, `Reading app ×4`, where the first
+      was.
+- [ ] Reads that ended one after the other are one row under **Ran**, until something else ends.
+- [ ] With more rows than fit, the wheel brings the last into sight.
 
 ### `welcome.page` — The Welcome page
 

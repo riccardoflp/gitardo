@@ -16,18 +16,12 @@ pub fn log_lines(log: &CommandLog) -> Vec<LogLine> {
                 LogKind::Step | LogKind::Failure | LogKind::Warning => entry.line.clone(),
             };
             LogLine {
-                time: time_of_day(entry.time.0),
+                time: views::text::activity::time_of_day(entry.time.0),
                 text,
                 is_failure: entry.kind == LogKind::Failure,
             }
         })
         .collect()
-}
-
-/// The time of day of a moment, `14:02:09`.
-fn time_of_day(seconds: i64) -> String {
-    let of_day = seconds.rem_euclid(86_400);
-    format!("{:02}:{:02}:{:02}", of_day / 3_600, of_day % 3_600 / 60, of_day % 60)
 }
 
 /// The line the Command log was opened at, among the lines kept, while it is still kept (`activity.said`).

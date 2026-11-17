@@ -92,6 +92,17 @@ pub fn describe_task(task: &Task, now: Instant) -> TaskText {
     TaskText { title, detail, elapsed }
 }
 
+/// The title of things of the same words that run one after the other, on the one row that counts them, with how
+/// many they are from the second on: `Reading app ×4`.
+#[must_use]
+pub fn counted(title: &str, count: u32) -> String {
+    if count < 2 {
+        title.to_owned()
+    } else {
+        format!("{title} \u{d7}{count}")
+    }
+}
+
 /// How long something ran, in whole seconds, `12 s`, and from a minute on `1 min 5 s`.
 #[must_use]
 pub fn elapsed_words(elapsed: Duration) -> String {

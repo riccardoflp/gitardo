@@ -6,6 +6,7 @@
 
 mod activity;
 mod activity_burst;
+mod activity_list;
 mod activity_replay;
 mod activity_tab;
 mod ai;

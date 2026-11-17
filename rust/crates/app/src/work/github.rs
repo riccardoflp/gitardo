@@ -100,7 +100,7 @@ impl GitHubReader {
             let message = {
                 let _activity = matches!(job.work, GitHubWork::Read { .. }).then(|| {
                     let description = Text::from(words::READING_PULL_REQUESTS);
-                    activities.track(description, Text::from(""), super::now())
+                    activities.track_read(description, Text::from(""), super::now())
                 });
                 run(&access, &job)
             };

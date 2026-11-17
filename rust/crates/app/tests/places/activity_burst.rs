@@ -5,14 +5,20 @@
 //! moment, the same title twice, a time that is not the time since the engine started it.
 
 use std::fmt::Write as _;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+
+use engine::{ActivityEntry, ActivityReport, EndedActivity};
+use model::Timestamp;
+use model::contract::Text;
+
+use super::support::NOW;
 
 /// The title of the fetch.
 pub const FETCH: &str = "Fetching origin";
 /// The title of the forty reads.
 pub const READ: &str = "Reading app";
 /// How long something runs before it is listed.
-pub const LISTED_AFTER: Duration = Duration::from_millis(500);
+pub const LISTED_AFTER: Duration = views::activity::LISTED_AFTER;
 
 /// Some milliseconds.
 pub const fn ms(count: u64) -> Duration {
@@ -32,6 +38,66 @@ pub struct Scripted {
     pub starts: Duration,
     /// When it ends.
     pub ends: Duration,
+    /// Whether it is a read.
+    pub is_read: bool,
+}
+
+impl Scripted {
+    /// Something that is not a read, with its number, from a moment to another in milliseconds.
+    pub fn operation(number: u64, title: &str, (starts, ends): (u64, u64)) -> Scripted {
+        Scripted {
+            number,
+            title: title.to_owned(),
+            cause: String::new(),
+            starts: ms(starts),
+            ends: ms(ends),
+            is_read: false,
+        }
+    }
+
+    /// A read, with its number, from a moment to another in milliseconds.
+    pub fn read(number: u64, title: &str, (starts, ends): (u64, u64)) -> Scripted {
+        Scripted {
+            is_read: true,
+            ..Scripted::operation(number, title, (starts, ends))
+        }
+    }
+
+    /// The activity as the engine says it, in a burst that started at a moment.
+    fn entry(&self, start: Instant) -> ActivityEntry {
+        ActivityEntry {
+            number: self.number,
+            description: Text::from(self.title.clone()),
+            cause: Text::from(self.cause.clone()),
+            started: Timestamp(NOW + i64::try_from(self.starts.as_secs()).unwrap()),
+            since: start + self.starts,
+            is_read: self.is_read,
+        }
+    }
+}
+
+/// What the engine says at a moment of a burst that started at an instant: what runs, in the order it started, and
+/// what ended since the look before, in the order it ended.
+pub fn report_at(script: &[Scripted], (looked, at): (Option<Duration>, Duration), start: Instant) -> ActivityReport {
+    let mut ended: Vec<&Scripted> = script
+        .iter()
+        .filter(|scripted| scripted.ends <= at && looked.is_none_or(|looked| scripted.ends > looked))
+        .collect();
+    ended.sort_by_key(|scripted| scripted.ends);
+    ActivityReport {
+        running: script
+            .iter()
+            .filter(|scripted| scripted.starts <= at && at < scripted.ends)
+            .map(|scripted| scripted.entry(start))
+            .collect(),
+        ended: ended
+            .into_iter()
+            .map(|scripted| EndedActivity {
+                entry: scripted.entry(start),
+                ended: start + scripted.ends,
+            })
+            .collect(),
+    }
 }
 
 /// The burst: the fetch from 0.05 s to 12 s; forty reads of `app` from 1 s, one every quarter of a second, each over in
@@ -43,6 +109,7 @@ pub fn script() -> Vec<Scripted> {
         cause: String::from("Fetch in the header"),
         starts: ms(50),
         ends: ms(12_000),
+        is_read: false,
     }];
     for index in 0..40 {
         all.push(Scripted {
@@ -51,6 +118,7 @@ pub fn script() -> Vec<Scripted> {
             cause: format!("Because src/file_{index}.rs changed."),
             starts: ms(1_000 + index * 250),
             ends: ms(1_200 + index * 250),
+            is_read: true,
         });
     }
     for (title, cause, starts, ends) in [
@@ -63,6 +131,7 @@ pub fn script() -> Vec<Scripted> {
             cause: cause.to_owned(),
             starts: ms(starts),
             ends: ms(ends),
+            is_read: true,
         });
     }
     all.sort_by_key(|scripted| scripted.starts);
@@ -158,8 +227,8 @@ pub fn seconds_said(elapsed: Duration) -> String {
 }
 
 /// The faults of the lists of a replay, each said with its moment: a row at another height from one frame to the next,
-/// or pushed out of sight, while it stays in its part of the list, before the fetch ends, or put before one it was
-/// after; a row gone; a row that runs for something over in less than half a second; a title on two rows; a row that
+/// or pushed out of sight, while it stays in its part of the list, in a frame drawn before the fetch ends, or put
+/// before one it was after; a row gone; a row that runs for something over in less than half a second; a title on two rows; a row that
 /// runs whose time is not the time since the engine started it.
 pub fn faults(frames: &[Frame], stands_for: &dyn Fn(&str) -> Option<Stood>, still_until: Duration) -> Vec<String> {
     let mut found = Vec::new();
@@ -239,7 +308,7 @@ fn between(before: &Frame, after: &Frame, still_until: Duration, found: &mut Vec
         if row.section != same.section {
             continue;
         }
-        if after.at <= still_until {
+        if after.at < still_until {
             match (row.y, same.y) {
                 (Some(y), Some(y_after)) if (y - y_after).abs() > 0.5 => {
                     found.push(format!("moved: {at:.1} s, {} from {y:.0} to {y_after:.0}", row.key));

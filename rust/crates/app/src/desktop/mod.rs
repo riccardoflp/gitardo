@@ -401,10 +401,9 @@ impl DesktopWindow {
 
     /// Draws a frame of the views from the store, then reduces the intents they returned.
     fn draw(&mut self, context: &Context<'_>) -> Result<Flow, AppError> {
-        let running = self
-            .running
-            .tasks(&self.activities.running(), std::time::Instant::now());
-        let data = ViewData::new(&self.state, running, seconds_now()).with_finished(self.running.finished());
+        let report = self.activities.report();
+        let running = self.running.tasks(&report, std::time::Instant::now());
+        let data = ViewData::new(&self.state, running, seconds_now()).with_ran(self.running.ran());
         self.surface.set_title(&views::text::window_title(data.name()));
         let state = &self.state;
         let intents = self

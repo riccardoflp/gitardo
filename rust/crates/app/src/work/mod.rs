@@ -148,7 +148,7 @@ fn work(receiver: &Mutex<Receiver<Task>>, activities: &Activities, deliver: &Del
             continue;
         }
         let (description, cause) = task.words.clone().unwrap_or_else(|| words(&task.job.kind));
-        let _activity = activities.track(description, cause, now());
+        let _activity = activities.track_read(description, cause, now());
         jobs::run(&task.job, &task.cancel, &mut |message| {
             // A job cancelled is no longer wanted: what it still says, such as the next page of a read, is dropped.
             if !task.cancel.is_cancelled() {

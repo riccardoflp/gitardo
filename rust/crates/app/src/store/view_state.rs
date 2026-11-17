@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use model::filter::kinds_shown;
 use model::repo::name_repositories;
 use model::state::RepositoryState;
-use views::activity::{ActivityState, RunningTask, StatusBarState};
+use views::activity::{ActivityState, RanTask, RunningTask, StatusBarState};
 use views::branch::ReferenceMenus;
 use views::filter::NarrowedBar;
 use views::graph::{
@@ -46,8 +46,8 @@ pub struct ViewData {
     question_folder: String,
     /// What is running, for the status bar and the Activity tab.
     running: Vec<RunningTask>,
-    /// What ran a moment ago, the latest first, for the Activity tab.
-    finished: Vec<RunningTask>,
+    /// What ran, the latest first, for the Activity tab.
+    ran: Vec<RanTask>,
     /// The lines of the Command log, while the bottom panel shows it.
     log_lines: Vec<LogLine>,
     /// The settings, while the settings page is open.
@@ -107,7 +107,7 @@ impl ViewData {
             folder: shown.map_or_default(|folder| folder.display().to_string()),
             question_folder,
             running,
-            finished: Vec::new(),
+            ran: Vec::new(),
             log_lines: if super::panel::is_log_shown(state) {
                 super::log_lines::log_lines(&state.log)
             } else {
@@ -127,10 +127,10 @@ impl ViewData {
         }
     }
 
-    /// The same words, with what ran a moment ago, the latest first, for the Activity tab.
+    /// The same words, with what ran, the latest first, for the Activity tab.
     #[must_use]
-    pub fn with_finished(self, finished: Vec<RunningTask>) -> ViewData {
-        ViewData { finished, ..self }
+    pub fn with_ran(self, ran: Vec<RanTask>) -> ViewData {
+        ViewData { ran, ..self }
     }
 
     /// The name of the repository shown, for the title of the window.
@@ -217,7 +217,7 @@ impl ViewData {
             height: look.height,
             activity: ActivityState {
                 running: &self.running,
-                finished: &self.finished,
+                ran: &self.ran,
                 tasks: state.tasks.view(&self.task_rows),
             },
             log: LogState {

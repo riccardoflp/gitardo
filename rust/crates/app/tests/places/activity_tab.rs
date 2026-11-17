@@ -8,7 +8,7 @@ use platform::accesskit::{Node, Role, TreeUpdate};
 use render::{Point, Rect, ThemeName};
 use ui::{InputEvent, Key, KeyEvent, Modifiers, NamedKey, PointerButton, PointerButtonEvent, PointerMove};
 use views::Intent;
-use views::activity::{ActivityState, RunningTask, what_is_running_view};
+use views::activity::{ActivityState, RanTask, RunningTask, what_is_running_view};
 use views::panel::{PanelIntent, PanelTab};
 
 use super::panel::without_sizes;
@@ -17,6 +17,8 @@ use super::{repository_with_history, showing};
 
 /// The size of the window.
 const WIDE: (u32, u32) = (1000, 640);
+/// The room the bottom panel gives the tab in a window of that size.
+pub(super) const TAB: Rect = Rect::new(280.0, 420.0, 700.0, 190.0);
 /// The themes, each with the end of the names of its pictures.
 pub(super) const THEMES: [(ThemeName, &str); 4] = [
     (ThemeName::Dark, "dark"),
@@ -46,25 +48,29 @@ fn bounds(node: &Node) -> Rect {
     )
 }
 
+/// Something that ran for some milliseconds, and ended some seconds after the moment the tests say dates from.
+fn ran(title: &str, millis: u64, detail: Option<&str>, ended: i64) -> RanTask {
+    RanTask {
+        task: task(title, millis, detail),
+        ended: NOW + ended,
+    }
+}
+
 /// The tree of a frame of the tab alone, over the room the bottom panel gives it in a window.
-fn tab(window: &mut Window, state: &ActivityState<'_>) -> TreeUpdate {
+pub(super) fn tab(window: &mut Window, state: &ActivityState<'_>) -> TreeUpdate {
     window
-        .frame(&[], |ui| {
-            ui.clip(Rect::new(280.0, 420.0, 700.0, 190.0), |ui| {
-                what_is_running_view(state, ui)
-            })
-        })
+        .frame(&[], |ui| ui.clip(TAB, |ui| what_is_running_view(state, ui)))
         .1
 }
 
 /// A frame of the whole window with what runs and what ran, and some input.
-fn draw_running(
+pub(super) fn draw_running(
     window: &mut Window,
     state: &State,
-    (running, finished): (&[RunningTask], &[RunningTask]),
+    (running, ran): (&[RunningTask], &[RanTask]),
     events: &[InputEvent],
 ) -> (Vec<Intent>, TreeUpdate) {
-    let data = ViewData::new(state, running.to_vec(), NOW).with_finished(finished.to_vec());
+    let data = ViewData::new(state, running.to_vec(), NOW).with_ran(ran.to_vec());
     window.frame(events, |ui| views::view(&data.window_state(state), ui))
 }
 
@@ -127,17 +133,17 @@ fn activity_what_is_running__shown_during_a_long_fetch_the_tab_lists_it_and_its_
 #[test]
 fn activity_what_is_running__when_the_fetch_ends_the_tab_says_nothing_is_running_now() {
     let mut window = Window::new(ThemeName::Dark, WIDE);
-    let finished = [task("Fetching origin", 4_000, None)];
+    let ran = [ran("Fetching origin", 4_000, None, 129)];
     let tree = tab(
         &mut window,
         &ActivityState {
             running: &[],
-            finished: &finished,
+            ran: &ran,
             tasks: None,
         },
     );
     assert!(says(&tree, "Nothing is running now"));
-    assert!(says(&tree, "Took 4 s"));
+    assert!(says(&tree, "RAN") && says(&tree, "03:02:09 \u{b7} took 4 s"));
 }
 
 #[test]
@@ -229,21 +235,25 @@ fn activity_what_is_running__the_tab_is_drawn_empty_and_running_in_each_theme() 
     let (repository, _remote) = repository_with_history();
     let mut state = showing(repository.path().to_path_buf());
     reduce_all(&mut state, vec![Intent::Panel(PanelIntent::ToggleActivity)]);
-    let running = [task(
-        "Reading app",
-        2_400,
-        Some("Read 2 times in a row: something changed during each read. Because src/a.rs changed."),
-    )];
-    let finished = [task(
-        "Looking for repositories in app",
-        1_000,
-        Some("Opening the workspace"),
-    )];
+    let running = [
+        task("Fetching origin", 12_400, Some("Sync in the header")),
+        task("Reading app \u{d7}4", 2_400, Some("Because src/a.rs changed.")),
+        task("Pushing main to origin", 300, None),
+    ];
+    let ran = [
+        ran("Reading lib", 700, Some("Because the window got the focus."), -65),
+        ran(
+            "Looking for repositories in app",
+            1_000,
+            Some("Opening the workspace"),
+            -3_600,
+        ),
+    ];
     for (theme, name) in THEMES {
         let mut window = Window::new(theme, WIDE);
         let _ = draw_running(&mut window, &state, (&[], &[]), &[]);
         window.assert_snapshot(&format!("activity-tab-empty-{name}"));
-        let _ = draw_running(&mut window, &state, (&running, &finished), &[]);
+        let _ = draw_running(&mut window, &state, (&running, &ran), &[]);
         window.assert_snapshot(&format!("activity-tab-running-{name}"));
     }
 }
