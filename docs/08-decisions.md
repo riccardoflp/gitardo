@@ -2625,37 +2625,37 @@ each built with the reading given until the card says otherwise.
 - **Q420** — `graph.icons`: the icons of Lucide are drawn at 24 units with a stroke of 2. Recommended: drawn at 16
   logical pixels, the stroke scaled to 1.5 so that they keep the weight of the text beside them, and the outlines
   turned into paths once, when the program starts.
-- **Q-T1** — `terminal.view`: the card reads `editor.fontFamily` and `editor.fontSize`, which Gitardo Desktop does not
+- **Q421** — `terminal.view`: the card reads `editor.fontFamily` and `editor.fontSize`, which Gitardo Desktop does not
   have. Built: the terminal is drawn in the font of code, `font.code` at the size `font.size` gives code, as every
   other place that shows code.
-- **Q-T2** — `terminal.view`: no italic and no bold of the font of code is drawn by the window yet. Built: italic text
+- **Q422** — `terminal.view`: no italic and no bold of the font of code is drawn by the window yet. Built: italic text
   is drawn upright, and bold text is drawn twice a hair apart, which makes it heavier without changing its width.
-- **Q-T3** — `terminal.view`: `Ctrl+V` pastes, as it does in every input of the window, rather than going to the
+- **Q423** — `terminal.view`: `Ctrl+V` pastes, as it does in every input of the window, rather than going to the
   shell; `Ctrl+Shift+V` pastes too, there and in the inputs.
-- **Q-T4** — `terminal.view`: **Kill the terminal** on the last terminal of a repository tab hides the panel, as the
+- **Q424** — `terminal.view`: **Kill the terminal** on the last terminal of a repository tab hides the panel, as the
   Terminal tab would start another at once otherwise.
-- **Q-T5** — `terminal.view`: the wheel over a program that draws on the second screen (a pager, an editor), which has
+- **Q425** — `terminal.view`: the wheel over a program that draws on the second screen (a pager, an editor), which has
   no scrollback, sends it the up and down arrows, three lines for a turn; elsewhere it scrolls into what was printed
   before. On Windows the acceptance line of `tput cols` is checked with `[Console]::WindowWidth`, which PowerShell
   reads from the same size.
-- **Q-T6** — `panel.bottom`: the tabs of the panel and its buttons are text buttons and the icons of the set the
-  window has; **Terminal** in the bar of views reuses the chevron pointing right until the icons of Lucide come
-  (`graph.icons`), which have a terminal of their own.
-- **Q-P1** — `diff.beside-inspector`: which file is the next one for `Alt+Down` while the files are laid out as a
+- **Q426** — `panel.bottom`: the tabs of the panel are text buttons. Once the icons of Lucide came (`graph.icons`),
+  **Terminal** in the bar of views draws `square-terminal`, **Hide the panel** `x`, **New terminal** `plus` and
+  **Kill the terminal** `trash-2`, as the table says.
+- **Q427** — `diff.beside-inspector`: which file is the next one for `Alt+Down` while the files are laid out as a
   tree, and what `Escape` does while the Activity drawer is open. Built: the order the inspector shows them in, files
   of folded directories included, then the untracked files of a stash; from a page of all the files, the first.
   `Escape` closes the drawer first, as it did, and brings the timeline back once it is closed.
-- **Q-P2** — `diff.beside-inspector`: a file of more than 100,000 lines clicked while the page beside the inspector
+- **Q428** — `diff.beside-inspector`: a file of more than 100,000 lines clicked while the page beside the inspector
   already shows another. Built: the page is open, so the file is shown as one with too many differences, as `F7`
   going from file to file shows it, rather than asking; only the first file of the page asks.
-- **Q-P3** — `file-view.beside-files`: the narrow layout of the Files page. Built: below 700 logical pixels, where the
+- **Q429** — `file-view.beside-files`: the narrow layout of the Files page. Built: below 700 logical pixels, where the
   inspector goes over the timeline, the File page takes the whole page; a file that has its own page already is shown
   beside the tree too and keeps its page.
-- **Q-I1** — `graph.icons`: a button that opens a menu below it (the arrow of **Sync**, the list of a repository tab,
+- **Q430** — `graph.icons`: a button that opens a menu below it (the arrow of **Sync**, the list of a repository tab,
   the mode of the search box, the action of a step of a rebase) had the chevron down, which the table gives to a row
   unfolded. Built: `chevrons-up-down`, a line of its own in the table; the arrow of an entry of a menu that opens a menu
   to the side keeps `chevron-right`, read as folded: more inside, shown when opened.
-- **Q-I2** — `graph.icons`: buttons and marks the table did not have, each given a line: **Accept the changes that need
+- **Q431** — `graph.icons`: buttons and marks the table did not have, each given a line: **Accept the changes that need
   no choice** of the Merge page `check-check` (the card's two ticks), **Stop drafting the message** `circle-stop` (it
   had the cross of closing), **Open in external editor** `external-link`, **Take incoming** and **Take current** of a
   file in conflict `circle-arrow-down` and `circle-arrow-up` (two plus signs side by side could not be told apart; the
@@ -2663,19 +2663,19 @@ each built with the reading given until the card says otherwise.
   rebase `grip-vertical` (it had the three dots of More), the banner of a bisect `binoculars` (it had the magnifying
   glass of Search), a submodule not initialized `circle-dashed` (it had the minus of Unstage), and **Show the base** of
   the Merge page `git-fork` (it had the clock of Recent).
-- **Q-I3** — `graph.icons`: the proposals of the Merge page come from the rules or from the AI, and **Use what is
+- **Q432** — `graph.icons`: the proposals of the Merge page come from the rules or from the AI, and **Use what is
   proposed** of the worktree setup from what Gitardo found. Built: all draw `sparkles` with the messages the AI drafts,
   one meaning, made for you, to look at before taking it; the wand stays what the rules resolved, in the Changes view
   and in the review. Else the proposals of the rules a wand and those of the AI sparkles, which the button that accepts
   all of them at once cannot say.
-- **Q-I4** — `graph.icons`: some lines of the table share a meaning with an entry of the bar of views, and are built as
+- **Q433** — `graph.icons`: some lines of the table share a meaning with an entry of the bar of views, and are built as
   one: the Changes view and opening the changes of a file `file-diff`, the Compare view and Compare
   `git-compare-arrows`, the Activity view and what is running `activity`; **Show in the timeline** draws the Timeline's
   `git-graph`. A submodule added and not committed draws the pencil, the sticky name of a branch its branch, the button
   that shows or hides the branch rail the branch, and the funnel of the blame (ignore whitespace) stays. The box that narrows the branch rail by name keeps the magnifying
   glass: typing a name is a search, and the toolkit makes a box with it a search box for the screen reader. The person with
   a pen of the blame of a file is filled while the blame is shown, in place of the closed eye.
-- **Q-I5** — `graph.icons`: Q420 asks for the outlines turned into paths when the program starts. Built: each outline
+- **Q434** — `graph.icons`: Q420 asks for the outlines turned into paths when the program starts. Built: each outline
   is read into paths the first time its icon is drawn and kept with the icons rasterized, which is once for the
   program without reading the 79 files before the first frame; a test reads all of them. The path data is parsed with
   `svgtypes` (MIT or Apache-2.0, kept up with `resvg`), which turns its arcs into curves.
