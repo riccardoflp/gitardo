@@ -89,7 +89,7 @@ earns it.
 | [`panel.bottom`](02-graph.md#panelbottom--the-bottom-panel) | The bottom panel | View | Built | Host only |
 | [`terminal.view`](02-graph.md#terminalview--a-terminal-in-the-bottom-panel) | A terminal in the bottom panel | View | Built | Host only |
 | [`graph.icons`](02-graph.md#graphicons--the-icons-of-the-window) | The icons of the window | View | Built | Host only |
-| [`graph.view-menu`](02-graph.md#graphview-menu--the-menu-of-the-view-of-the-header) | The menu of the view of the header | View | Built | Planned |
+| [`graph.view-menu`](02-graph.md#graphview-menu--the-menu-of-the-view-of-the-header) | The menu of the view of the header | View | Built | Built |
 | [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Built | Built |
 | [`ui.menu-scroll`](02-graph.md#uimenu-scroll--a-menu-taller-than-the-room-under-it) | A menu taller than the room under it | Derivation | Built | Host only |
 | [`ui.menu-icons`](02-graph.md#uimenu-icons--the-icon-of-each-action-in-the-menus) | The icon of each action in the menus | Derivation | Built | Planned |

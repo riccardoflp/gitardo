@@ -3518,3 +3518,8 @@ reading given until the card says otherwise.
   merges loaded rather than write a setting, have a group of their own?
 - **Q664** — `graph.view-menu`: neither menu has a key, **…** had none before, and the keymap has none for them.
   Should the menu of the view open with `Alt+V`, which no key of the window takes?
+- **Q665** — `graph.view-menu`, in the extension: the button draws the codicon `settings`, three sliders, the nearest
+  to Lucide's `sliders-horizontal`, and its menu opens at the pointer, as every menu of the webviews does, not under
+  its button; its entries are tested (`test/toolbarMenus.test.ts`), and the two buttons were looked at in the preview
+  server of the webviews, the e2e and UI suites not having been run for them. In the graph of the side bar, which is
+  narrow, the two buttons take the room of one more icon beside the search. Should the two be one there?

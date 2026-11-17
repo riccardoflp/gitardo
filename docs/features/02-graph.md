@@ -560,6 +560,10 @@ Every switch of what the timeline shows and how it draws it, in one menu apart f
 - **Offered when**: a repository is read; before, the button cannot be clicked.
 - **Uses**: `filter.kinds`, `graph.stashes`, `graph.first-parent`, `graph.one-lane`, `graph.trace-selected`,
   `graph.date-separators`, `graph.combine-upstream`, `graph.fold-all`, `graph.columns`.
+- **Extension**: the button **View**, with the codicon `settings`, the sliders, right before **…** in the toolbar of
+  the Graph view and of the Gitardo Graph view, whose menu has the same switches in the same groups (`viewMenu` in
+  `src/webview/toolbarMenus.ts`), each ticked while it is on and writing its setting for the user. It opens at the
+  pointer, as the extension's menus do, and has no snapshot (Q665).
 
 In this order, separated in groups (Q663):
 
@@ -600,6 +604,11 @@ timeline, which are in the menu of the view (`graph.view-menu`,
 - **Kind**: View
 - **Function**: `views::graph::more_menu_view(state: &MoreMenuState, ui) -> Vec<Intent>`
 - **Entry points**: **…** at the end of the header.
+- **Extension**: **…** at the end of the toolbar of the graph, with the actions alone (`moreMenu` in
+  `src/webview/toolbarMenus.ts`): **Refresh**, but in the side bar, where the header of the view has it; the entries
+  of group 2, with **Browse reflog…**; **Switch identity…**; **Load pull requests from GitHub**. It has neither
+  **Branch**, **Stash** and **Undo**, which are buttons of the toolbar, nor **Settings** and **Theme…**, which are VS
+  Code's.
 
 In this order, separated in groups:
 
@@ -1257,8 +1266,8 @@ Every commit of the timeline on one straight line, as a list of the history rath
 - **Entry points**: **Show all commits on one line** in the menu of the view (`graph.view-menu`).
 - **Settings**: `graph.oneLane` (off by default).
 - **Uses**: in place of `graph.lanes` while it is on.
-- **Extension**: the same switch in the **…** menu of the Graph view, `gitardo.graph.oneLane`, which lays out the rows
-  of `src/webview/graph` with this function's rules.
+- **Extension**: the same switch in the **View** menu of the Graph view, `gitardo.graph.oneLane`, which lays out the
+  rows of `src/webview/graph` with this function's rules.
 
 On, each row has its dot in the first lane, in the color of the first lane, with a line from the top edge to the dot
 when a row is above it and from the dot to the bottom edge when a row is below it; there are no other lanes and no
@@ -1518,7 +1527,7 @@ The stashes are in the timeline too, each above the commit it was made on, as lo
 - **Extension**: the stashes in the graph, placed by the engine's read of the graph (`graphState` in
   `src/engine/graph.ts`), each above the commit it was made on, labeled `stash@{N}`; the **Stashes** section of the
   references beside the graph, one entry per stash named by its message, with the tooltip `stash@{N}: <message>`,
-  where a click selects its row (the Branches view has no such section); **Show stashes** in the **…** menu of the
+  where a click selects its row (the Branches view has no such section); **Show stashes** in the **View** menu of the
   toolbar, ticked while they are shown, which writes `gitardo.graph.showStashes` for the user. The context menu of a
   stash, there and on its row (`stashMenu` in `src/webview/menus.ts`), sends the operations to Gitardo's engine as
   their cards say.
