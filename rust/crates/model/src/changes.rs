@@ -1,12 +1,14 @@
 //! The files of the working tree, as the Changes page lists them and the operations on them name them.
 
 mod list;
+mod marks;
 mod open;
 mod unsaved;
 
 use std::ffi::OsString;
 
 pub use list::{ChangeRow, ChangesInput, ChangesList, FileStatus, StagedBox, list};
+pub use marks::{FolderMark, MarkedFile, TreeMark, TreeMarks, tree_marks};
 pub use open::{OpenAction, OpenInput, OpenOnClick, OpenTarget, OpenVersion, PageRequest, open, open_all};
 pub use unsaved::{UnsavedInput, ignore_candidates, unsaved};
 

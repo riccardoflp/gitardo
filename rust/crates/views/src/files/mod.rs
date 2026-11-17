@@ -1,10 +1,14 @@
 //! The Files page: the tree of the working tree, its folders folded until they are opened, where a click opens a file
 //! in its File page and the context menu of a file or a folder shows its history (`file-history.file`,
 //! `file-history.folder`) or compares it with a branch, a tag or a commit (`compare.path-with`). The top row is the
-//! repository itself.
+//! repository itself. Each file that differs from the last commit is marked as the Changes page marks it, and each
+//! folder holding one has a dot (`file-view.files-changes`).
+
+mod marks;
 
 use std::collections::BTreeSet;
 
+use model::changes::{FolderMark, MarkedFile, TreeMarks};
 use model::contract::FeatureId;
 use model::details::TreeNode;
 use ui::layout::{Align, Area, Insets, inset, place};
@@ -23,6 +27,8 @@ pub struct FilesPageState<'a> {
     pub shown: FilesShown<'a>,
     /// The folders opened, by their paths; the others are folded.
     pub opened: &'a BTreeSet<String>,
+    /// How the files differ from the last commit, and the dots of the folders holding them.
+    pub marks: &'a TreeMarks,
     /// The file shown beside the tree, by its path, which the tree marks (`file-view.beside-files`).
     pub marked: Option<&'a str>,
 }
@@ -68,6 +74,8 @@ enum FilesRow<'a> {
         depth: usize,
         /// Whether it is opened.
         is_open: bool,
+        /// The dot of the most important state of the files under it, when one differs from the last commit.
+        mark: Option<FolderMark>,
     },
     /// A file.
     File {
@@ -77,6 +85,8 @@ enum FilesRow<'a> {
         path: &'a str,
         /// How deep it is under the top row.
         depth: usize,
+        /// How it differs from the last commit, when it does.
+        mark: Option<&'a MarkedFile>,
     },
 }
 
@@ -114,7 +124,7 @@ pub fn page_view(state: &FilesPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             }
         };
         let mut rows = vec![FilesRow::Top];
-        tree_rows(nodes, (state.opened, 1), &mut rows);
+        tree_rows(nodes, (state.opened, state.marks, 1), &mut rows);
         if nodes.is_empty() {
             let line = Rect::new(inner.x, inner.y, inner.width, theme.sizes.row_height);
             let _ = ui.label(line, &Label::new(words::NO_FILES).tone(Tone::Muted));
@@ -141,7 +151,11 @@ pub fn page_view(state: &FilesPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
 }
 
 /// The rows of some nodes of the tree at a depth, without what the folded folders hold.
-fn tree_rows<'a>(nodes: &'a [TreeNode], (opened, depth): (&BTreeSet<String>, usize), rows: &mut Vec<FilesRow<'a>>) {
+fn tree_rows<'a>(
+    nodes: &'a [TreeNode],
+    (opened, marks, depth): (&BTreeSet<String>, &'a TreeMarks, usize),
+    rows: &mut Vec<FilesRow<'a>>,
+) {
     for node in nodes {
         match node {
             TreeNode::Directory { name, path, children } => {
@@ -151,22 +165,24 @@ fn tree_rows<'a>(nodes: &'a [TreeNode], (opened, depth): (&BTreeSet<String>, usi
                     path,
                     depth,
                     is_open,
+                    mark: marks.folders.get(path).copied(),
                 });
                 if is_open {
-                    tree_rows(children, (opened, depth + 1), rows);
+                    tree_rows(children, (opened, marks, depth + 1), rows);
                 }
             }
             TreeNode::File { name, path, .. } => rows.push(FilesRow::File {
                 name,
                 path: path.as_str(),
                 depth,
+                mark: marks.files.get(path.as_str()),
             }),
         }
     }
 }
 
-/// A row: its arrow and icon and its name, lit under the pointer; a click opens a file or opens or folds a folder, and
-/// its context menu offers what can be done with it.
+/// A row: its arrow and icon and its name, lit under the pointer, and how it differs from the last commit; a click
+/// opens a file or opens or folds a folder, and its context menu offers what can be done with it.
 fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &FilesRow<'_>)) -> Vec<Intent> {
     let theme = *ui.theme();
     let (name, path, depth, icon) = match *row {
@@ -176,11 +192,12 @@ fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &Fi
             path,
             depth,
             is_open,
+            ..
         } => {
             let arrow = if is_open { icons::UNFOLDED } else { icons::FOLDED };
             (name, path, depth, arrow)
         }
-        FilesRow::File { name, path, depth } => (name, path, depth, icons::FILE),
+        FilesRow::File { name, path, depth, .. } => (name, path, depth, icons::FILE),
     };
     let response = ui.interact(ui.id(("files row", path)), rect, Sense::CLICK | Sense::HOVER);
     let is_marked = matches!(row, FilesRow::File { .. }) && state.marked == Some(path);
@@ -200,8 +217,20 @@ fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &Fi
         (theme.sizes.icon, theme.sizes.icon),
         (Align::Start, Align::Center),
     );
-    ui.icon_in(icon_cell, icon, Tone::Muted);
-    let _ = ui.label(parts.rest(), &Label::new(name));
+    let opacity = match row {
+        FilesRow::File { mark, .. } if marks::is_deleted(*mark) => marks::DIMMED,
+        _ => u8::MAX,
+    };
+    ui.faded(opacity, |ui| {
+        ui.icon_in(icon_cell, icon, Tone::Muted);
+        match *row {
+            FilesRow::File { mark: Some(file), .. } => marks::marked_file(ui, (parts.rest(), &response), (name, file)),
+            FilesRow::Folder { mark: Some(mark), .. } => marks::marked_folder(ui, parts.rest(), (name, mark)),
+            _ => {
+                let _ = ui.label(parts.rest(), &Label::new(name));
+            }
+        }
+    });
     let mut intents = Vec::new();
     if response.clicked {
         match row {

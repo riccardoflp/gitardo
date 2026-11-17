@@ -17,7 +17,8 @@ Two versions of a file side by side, kept level, with every change joined across
   its row; a file in the inspector, beside it (`diff.beside-inspector`); a file in the Commit page and in a
   comparison; **Compare with the saved file** in the Changes page; **Compare with…** on a file; the button on the
   header of the Changes page that opens all its diffs in one page; **Show the result** in the review of the
-  conflicts; `conflicts.open-file` for a file deleted on one side.
+  conflicts; `conflicts.open-file` for a file deleted on one side; a deleted file of the Files page
+  (`file-view.files-changes`).
 - **Reads**: `diff.read-sides`.
 - **Refuses**: a file with a NUL byte on either side: *This file looks binary.* A diff that takes more than 5 seconds to
   compute: *This file has too many differences to display.*
@@ -947,6 +948,61 @@ Acceptance:
       `src/app.rs` marked.
 - [ ] A click on `README.md` then shows it in the same place, and the folder `src` is still open in the tree.
 - [ ] With unsaved edits in `src/app.rs`, opening `README.md` keeps `src/app.rs` in `Ctrl+Tab`.
+
+### `file-view.files-changes` — What differs from the last commit, in the tree of the Files page
+
+Each file of the tree of the Files page that differs from `HEAD` is marked as the Changes page marks it, and each folder
+holding one has a dot, so that the files changed are seen where they are in the working tree
+([D61](../08-decisions.md#d61--the-tree-of-the-files-page-shows-what-differs-from-the-last-commit)).
+
+- **Kind**: Derivation
+- **Function**: `model::changes::tree_marks(list: &ChangesList) -> TreeMarks`, from the list of the Changes page,
+  drawn by the rows of the tree (`views::files`)
+- **Entry points**: the tree of the Files page.
+- **Uses**: `changes.list`, `changes.open`, `details.file-tree`, `file-view.beside-files`.
+- **Extension**: the Explorer of VS Code marks the changes of git itself, and the extension has no Files view: nothing
+  to build.
+
+Rules:
+
+- A file that differs from `HEAD` has its name in the color of its state and the letter of the Changes page at the
+  right end of its row, in the same color: `A` added, `M` modified, `D` deleted, `R` renamed, `C` copied, `T` type
+  changed, `?` untracked, `!` in conflict. Its staged and unstaged changes are taken together, as the Changes page
+  takes them (`changes.list`); a file in conflict is marked so, whatever else it is. A file as committed is drawn as
+  before.
+- The screen reader hears the state after the name: `app.rs, modified`, `notes.txt, untracked`, `b.rs, renamed from
+  src/a.rs`.
+- A renamed or copied file whose rename is staged is at its new path; its tooltip says `Renamed from src/a.rs`. The old
+  path is not listed.
+- A deleted file is listed at its place in the tree, whether its deletion is staged or not, dimmed, its name struck
+  through. A click on it, `Enter` or **Open file** opens its Diff page as **Open changes** of the Changes page does
+  (`changes.open`), there being no file on disk for a File page.
+- A folder holding a file that differs, at any depth, has a dot at the right end of its row, in the color of the most
+  important state under it: a conflict, then a deletion, then a modification (a rename, a copy or a change of type
+  counts as one), then a new file, added or untracked. A folded folder shows it too; the screen reader hears
+  `src, has changes`.
+- The marks come from the read of the repository the Changes page lists from, with no other git command, and follow
+  every read of it: a file changed on disk is marked once it is read again, a file put back loses its mark. Nothing is
+  folded or unfolded by them.
+- Ignored files stay unlisted. A file only an editor of Gitardo has changed is not marked
+  ([Q600](../08-decisions.md#open-questions)).
+
+Acceptance:
+
+- [x] `src/app.rs` changed on disk shows `M` in the color of a modification, and the screen reader hears
+      `app.rs, modified`; `README.md`, as committed, is said by its name alone.
+- [x] `notes.txt`, not tracked, shows `?`; `todo.txt`, new and staged, shows `A`.
+- [x] `src/gone.rs` deleted from disk and `src/old.rs` whose deletion is staged are both in the tree, after
+      `src/app.rs` in the order of their names, struck through with `D`.
+- [x] A click on `README.md`, whose deletion is staged, opens its Diff page, not a File page.
+- [x] `src/app.rs` renamed to `src/main.rs` and staged shows `main.rs` with `R`, heard as
+      `main.rs, renamed from src/app.rs`, its tooltip naming `src/app.rs`; `app.rs` is not listed.
+- [x] `conflict.txt` in conflict during a merge shows `!`, heard as `conflict.txt, in conflict`.
+- [x] The folder `src`, folded, holding a modified `src/ui/list.rs` and a new `src/new.rs`, shows the dot of a
+      modification; once `src/app.rs` is deleted and the repository read again, the dot of a deletion, `src/ui` keeping
+      that of a modification, and `src` stays folded.
+- [x] Changing `src/app.rs` on disk, with `src` open, marks it `M` once the repository is read again, and putting it
+      back takes the mark away; `src` stays open.
 
 ### `file-view.markdown-preview` — A Markdown file as it reads
 
