@@ -1,6 +1,7 @@
 //! The engine started as the extension starts it, and the repositories the tests run it on.
 
 use std::io::{BufRead, BufReader, Write};
+use std::path::Path;
 use std::process::{Child, ChildStdin, Command, ExitStatus, Stdio};
 use std::sync::mpsc::{Receiver, RecvTimeoutError, channel};
 use std::thread;
@@ -26,7 +27,20 @@ pub struct Engine {
 impl Engine {
     /// Starts `gitardo-engine --stdio`, and a thread that reads its messages.
     pub fn start() -> Engine {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_gitardo-engine"))
+        Engine::start_with(Command::new(env!("CARGO_BIN_EXE_gitardo-engine")))
+    }
+
+    /// Starts `gitardo-engine --stdio` with every git it runs writing a line to a file as it starts (`GIT_TRACE`), so
+    /// that a test counts the git processes a request starts.
+    pub fn start_traced(trace: &Path) -> Engine {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_gitardo-engine"));
+        let _traced = command.env("GIT_TRACE", trace);
+        Engine::start_with(command)
+    }
+
+    /// Starts the engine of a command, and a thread that reads its messages.
+    fn start_with(mut command: Command) -> Engine {
+        let mut child = command
             .arg("--stdio")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -221,6 +235,19 @@ pub fn repository() -> Repository {
     let _second = repository.commit("Change a", &[("a.txt", "a, again\n")]);
     repository.tag("v1.0");
     repository
+}
+
+/// The git commands a traced engine started, as `GIT_TRACE` wrote them: one line each, such as
+/// `trace: built-in: git status --porcelain=v2`.
+pub fn traced_commands(trace: &Path) -> Vec<String> {
+    std::fs::read_to_string(trace)
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|line| {
+            line.split_once("trace: built-in: ")
+                .map(|(_, command)| command.to_owned())
+        })
+        .collect()
 }
 
 /// The folder of a repository, as the extension names it.

@@ -512,7 +512,7 @@ earns it.
 | [`preview.confirm`](16-undo-preview-log.md#previewconfirm--show-the-commands-before-they-run) | Show the commands before they run | View | Built | Built |
 | [`log.record`](16-undo-preview-log.md#logrecord--log-every-command-that-changes-something) | Log every command that changes something | Operation | Built | Differs (D11) |
 | [`log.show`](16-undo-preview-log.md#logshow--show-the-command-log) | Show the command log | View | Built | Host only |
-| [`undo.last`](16-undo-preview-log.md#undolast--undo-the-last-operation) | Undo the last operation | Operation | Specified | Planned |
+| [`undo.last`](16-undo-preview-log.md#undolast--undo-the-last-operation) | Undo the last operation | Operation | Built | Planned |
 | [`undo.journal`](16-undo-preview-log.md#undojournal--remember-what-undo-needs) | Remember what Undo needs | Derivation | Built | Built |
 | [`activity.track`](16-undo-preview-log.md#activitytrack--say-what-is-running) | Say what is running | Operation | Built | Built |
 

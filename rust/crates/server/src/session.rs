@@ -187,15 +187,7 @@ impl Session {
                 self.is_shut_down.store(true, Ordering::SeqCst);
                 Ok(Value::Null)
             }
-            methods::OPEN => {
-                let RepositoryParams { repository } = parameters(params)?;
-                let folder = PathBuf::from(&repository);
-                let state = self.read(&repository, &folder, "The extension opened it", cancel)?;
-                let _opened = locked(&self.repositories)
-                    .entry(repository)
-                    .or_insert_with(|| Arc::new(Repository::new(folder)));
-                json(&OpenResult { state })
-            }
+            methods::OPEN => self.open(parameters(params)?, cancel),
             methods::CLOSE => {
                 let RepositoryParams { repository } = parameters(params)?;
                 let closed = locked(&self.repositories)
@@ -206,14 +198,35 @@ impl Session {
             }
             methods::READ_STATE => {
                 let RepositoryParams { repository } = parameters(params)?;
-                let folder = self.opened(&repository)?.folder().to_path_buf();
-                json(&self.read(&repository, &folder, "The extension asked for it", cancel)?)
+                let opened = self.opened(&repository)?;
+                json(&self.read_kept(&opened, &repository, "The extension asked for it", cancel)?)
             }
             _ => Err(ResponseError::new(
                 codes::METHOD_NOT_FOUND,
                 format!("Gitardo's engine has no method named {method}."),
             )),
         }
+    }
+
+    /// The answer of `repository/open`: the repository read, opened unless it was, and its state kept.
+    fn open(
+        &self,
+        RepositoryParams { repository }: RepositoryParams,
+        cancel: &CancelToken,
+    ) -> Result<Value, ResponseError> {
+        let folder = PathBuf::from(&repository);
+        let started = self.opened(&repository).ok().map(|opened| opened.read_starts());
+        let state = Arc::new(self.read(&repository, &folder, "The extension opened it", cancel)?);
+        let opened = Arc::clone(
+            locked(&self.repositories)
+                .entry(repository)
+                .or_insert_with(|| Arc::new(Repository::new(folder))),
+        );
+        let answer = OpenResult {
+            state: StateJson::from(&*state),
+        };
+        opened.keep_state(started.unwrap_or_else(|| opened.read_starts()), state);
+        json(&answer)
     }
 
     /// The answer of `initialize`: the engine's version, or the error of a major version it does not speak.
@@ -261,25 +274,27 @@ impl Session {
                 match repository.next() {
                     Next::Wait(wait) => thread::sleep(wait),
                     Next::End => break,
-                    Next::Read => session.read_again(&changed.repository, repository.folder()),
+                    Next::Read => session.read_again(&changed.repository, &repository),
                 }
             }
         });
     }
 
     /// Reads a repository again after its files changed, and sends its state.
-    fn read_again(&self, repository: &str, folder: &Path) {
-        self.read_and_send(repository, folder, "Files changed", StateReason::Changed);
+    fn read_again(&self, repository: &str, opened: &Repository) {
+        self.read_and_send(repository, opened, "Files changed", StateReason::Changed);
     }
 
-    /// Reads a repository again after a plan ran there, and sends its state.
-    pub fn read_after_plan(&self, repository: &str, folder: &Path) {
-        self.read_and_send(repository, folder, "An operation ran", StateReason::Ran);
+    /// Reads a repository again after a plan ran there, and sends its state. The state kept from before the plan is
+    /// dropped first, and so is any read that started before it ended.
+    pub fn read_after_plan(&self, repository: &str, opened: &Repository) {
+        opened.operation_ran();
+        self.read_and_send(repository, opened, "An operation ran", StateReason::Ran);
     }
 
     /// Reads a repository and sends its state, saying why.
-    fn read_and_send(&self, repository: &str, folder: &Path, cause: &str, reason: StateReason) {
-        if let Ok(state) = self.read(repository, folder, cause, &CancelToken::new()) {
+    fn read_and_send(&self, repository: &str, opened: &Repository, cause: &str, reason: StateReason) {
+        if let Ok(state) = self.read_kept(opened, repository, cause, &CancelToken::new()) {
             let params = StateParams {
                 repository: repository.to_owned(),
                 state,
@@ -291,6 +306,21 @@ impl Session {
         }
     }
 
+    /// Reads the state of a repository opened, keeps it for `journal/last` (`undo.last`), and gives its JSON.
+    fn read_kept(
+        &self,
+        opened: &Repository,
+        repository: &str,
+        cause: &str,
+        cancel: &CancelToken,
+    ) -> Result<StateJson, ResponseError> {
+        let started = opened.read_starts();
+        let state = Arc::new(self.read(repository, opened.folder(), cause, cancel)?);
+        let answer = StateJson::from(&*state);
+        opened.keep_state(started, state);
+        Ok(answer)
+    }
+
     /// Reads the state of a repository (`repo.read-state`), shown as running while it does, and logged as a read.
     fn read(
         &self,
@@ -298,7 +328,7 @@ impl Session {
         folder: &Path,
         cause: &str,
         cancel: &CancelToken,
-    ) -> Result<StateJson, ResponseError> {
+    ) -> Result<RepositoryState, ResponseError> {
         let activity = self
             .activities
             .track(Text::from(format!("Reading {repository}")), Text::from(cause), now());
@@ -314,8 +344,7 @@ impl Session {
         drop(activity);
         self.send_activity();
         self.log_read(repository, format!("Read the state of {repository}"), started.elapsed());
-        read.map(|state: RepositoryState| StateJson::from(&state))
-            .map_err(|error| git_failure(&error))
+        read.map_err(|error| git_failure(&error))
     }
 
     /// Sends what runs now.
