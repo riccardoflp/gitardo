@@ -2,14 +2,16 @@
 //! the start of the header bar, before where one is. Neither is a button: both are part of the caption of the title
 //! bar (`window.title-bar`).
 
-use ui::layout::{Align, Insets, inset, place};
-use ui::{AccessRole, Description, Label, TextKind, Tone, Ui};
+use ui::layout::{Align, Area, Insets, inset, place};
+use ui::{AccessRole, Description, Label, Rect, TextKind, Tone, Ui};
 
 use crate::icons;
 use crate::intent::Intent;
-use crate::line::control_in;
+use crate::line::{control_in, is_narrow};
 use crate::text::header as words;
 use crate::view_bar::VIEW_BAR_WIDTH;
+
+use super::frame::{CaptionState, TitleBar};
 
 /// What the top left of the window shows.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -59,4 +61,28 @@ pub fn brand_view(state: &BrandState, ui: &mut Ui<'_>) -> Vec<Intent> {
         );
     }
     Vec::new()
+}
+
+/// Draws the logo in the square above the bar of views and the name at the start of the header bar, or both at the
+/// start of the header bar on macOS, whose buttons take that square; gives what is left of the header bar for the
+/// header (`window.brand`).
+pub(super) fn with_brand(
+    caption: CaptionState,
+    (corner, header): (Rect, Rect),
+    ui: &mut Ui<'_>,
+    intents: &mut Vec<Intent>,
+) -> Rect {
+    let brand = BrandState {
+        is_name_shown: !is_narrow(ui),
+    };
+    let name_width = name_width(brand, ui);
+    let mut header = Area::new(header);
+    let top_left = if caption.title_bar == TitleBar::Transparent {
+        header.left(VIEW_BAR_WIDTH + name_width)
+    } else {
+        let name = header.left(name_width);
+        Rect::new(corner.x, corner.y, corner.width + name.width, corner.height)
+    };
+    intents.extend(ui.clip(top_left, |ui| brand_view(&brand, ui)));
+    header.rest()
 }
