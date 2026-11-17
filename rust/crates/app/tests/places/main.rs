@@ -5,6 +5,10 @@
 #![allow(clippy::unwrap_used, clippy::panic, reason = "a test that cannot go on fails")]
 
 mod activity;
+mod activity_burst;
+mod activity_list;
+mod activity_replay;
+mod activity_tab;
 mod ai;
 mod am_stopped;
 mod beside;
@@ -106,6 +110,7 @@ mod terminal;
 mod timeline;
 mod title_bar;
 mod trust;
+mod under_pointer;
 mod views_drawn;
 mod watch;
 mod where_one_is;

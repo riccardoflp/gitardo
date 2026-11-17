@@ -1,5 +1,5 @@
-//! The bottom panel (`panel.bottom`): `` Ctrl+` ``, its height kept for the workspace, the way to it from the Activity
-//! drawer and from the bar of views (`graph.view-bar`), and the Command log in it (`log.show`).
+//! The bottom panel (`panel.bottom`): `` Ctrl+` ``, its tabs, its height and its tab kept for the workspace, the way
+//! to it from the bar of views (`graph.view-bar`), and the Command log in it (`log.show`).
 
 use app::persisted::Persisted;
 use app::settings::Settings;
@@ -82,16 +82,11 @@ fn panel_bottom__ctrl_backtick_shows_the_panel_at_the_terminal_with_the_focus_an
 }
 
 #[test]
-fn panel_bottom__show_the_commands_gitardo_runs_in_the_activity_drawer_shows_the_panel_at_the_command_log() {
+fn panel_bottom__the_tabs_are_terminal_activity_and_command_log_and_a_click_on_activity_shows_what_is_running() {
     let (repository, _remote) = repository_with_history();
     let mut state = showing(repository.path().to_path_buf());
-    let _opened = run(&mut state, Message::Intent(Intent::OpenActivity));
+    reduce_all(&mut state, vec![Intent::ShowCommandLog]);
     let mut window = Window::new(ThemeName::Dark, WIDE);
-    let intents = window.click(&state, Role::Button, "Show the commands Gitardo runs");
-    assert_eq!(without_sizes(&intents), [Intent::ShowCommandLog]);
-    reduce_all(&mut state, intents);
-    let look = panel::look(&state);
-    assert!(look.is_shown && look.tab == PanelTab::CommandLog, "{look:?}");
     let (_, tree) = window.draw(&state, &[]);
     let rect = panel_rect(&tree);
     assert!(says(&tree, "No command has run yet"));
@@ -99,6 +94,48 @@ fn panel_bottom__show_the_commands_gitardo_runs_in_the_activity_drawer_shows_the
         rect.bottom() > 600.0,
         "the panel is at the foot of the window: {rect:?}"
     );
+    let tab = |name: &str| {
+        tree.nodes
+            .iter()
+            .filter(|(_, node)| node.role() == Role::Button && node.label() == Some(name))
+            .map(|(_, node)| bounds(node))
+            .find(|found| rect.contains(Point::new(found.x + 1.0, found.y + 1.0)))
+            .unwrap()
+    };
+    let (terminal, activity, log, hide) = (
+        tab("Terminal"),
+        tab("Activity"),
+        tab("Command log"),
+        tab("Hide the panel"),
+    );
+    assert!(
+        terminal.x < activity.x && activity.x < log.x && log.x < hide.x,
+        "{terminal:?} {activity:?} {log:?} {hide:?}"
+    );
+    let center = Point::new(activity.x + activity.width * 0.5, activity.y + activity.height * 0.5);
+    let intents = window.click_at(&state, center, 1);
+    assert_eq!(
+        without_sizes(&intents),
+        [Intent::Panel(PanelIntent::Show(PanelTab::Activity))]
+    );
+    reduce_all(&mut state, intents);
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(says(&tree, "Nothing is running now"));
+    assert_eq!(panel_rect(&tree), rect, "the panel is as high at each tab");
+    let _hide = find(&tree, Role::Button, "Hide the panel");
+}
+
+#[test]
+fn panel_bottom__the_panel_shown_at_activity_is_there_at_that_tab_after_the_window_is_opened_again() {
+    let (repository, _remote) = repository_with_history();
+    let folder = repository.path().to_path_buf();
+    let mut state = showing(folder.clone());
+    reduce_all(&mut state, vec![Intent::Panel(PanelIntent::Show(PanelTab::Activity))]);
+    let kept = Persisted::from_text(&state.persisted.to_text());
+    let mut again = State::new(kept, Settings::default(), None);
+    let _started = run(&mut again, Message::Started { folders: vec![folder] });
+    let look = panel::look(&again);
+    assert!(look.is_shown && look.tab == PanelTab::Activity, "{look:?}");
 }
 
 #[test]
@@ -193,14 +230,14 @@ fn graph_view_bar__a_click_on_terminal_shows_the_bottom_panel_and_another_hides_
 }
 
 #[test]
-fn log_show__it_is_in_the_bottom_panel_and_no_longer_in_the_activity_drawer() {
+fn log_show__it_is_a_tab_of_the_bottom_panel_beside_activity() {
     let (repository, _remote) = repository_with_history();
     let mut state = showing(repository.path().to_path_buf());
     state.log.set_level(engine::LogLevel::Debug);
     state
         .log
         .record_failure(model::Timestamp(super::support::NOW), "fatal: not a git repository");
-    reduce_all(&mut state, vec![Intent::OpenActivity, Intent::ShowCommandLog]);
+    reduce_all(&mut state, vec![Intent::ShowCommandLog]);
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
     let list = bounds(find(&tree, Role::ListBox, "Command log"));
@@ -210,8 +247,7 @@ fn log_show__it_is_in_the_bottom_panel_and_no_longer_in_the_activity_drawer() {
         "{list:?} in {rect:?}"
     );
     assert!(!has(&tree, Role::Button, "Hide the commands"));
-    reduce_all(&mut state, vec![Intent::CloseActivity]);
-    let _ = window.draw(&state, &[]);
+    assert!(has(&tree, Role::Button, "Activity"));
     window.assert_snapshot("command-log-dark");
 }
 

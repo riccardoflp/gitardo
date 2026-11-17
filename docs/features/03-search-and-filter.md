@@ -468,6 +468,8 @@ Acceptance:
 
 - [ ] Narrowed to `main`: the Local section lists every branch, all but `main` dimmed.
 - [ ] The eye on `feature` adds `feature` to the timeline.
+- [ ] With the pointer moved from the dimmed row of `feature` onto its eye and resting there ten frames, each frame
+      draws the eye and the row lit, none differing from the one before; a click then adds `feature` to the timeline.
 - [ ] The branch filter of the timeline has no **Filter the list of branches too**.
 
 ### `filter.kinds` — Show local branches, remote branches, tags

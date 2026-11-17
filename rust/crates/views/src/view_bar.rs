@@ -22,9 +22,9 @@ pub struct ViewBarState {
     /// How many files are changed, once a repository is read; none before, when only **Activity** and **Settings**
     /// can be clicked.
     pub changed_files: Option<usize>,
-    /// Whether the Activity drawer is open, which marks **Activity**.
-    pub is_activity_open: bool,
-    /// Whether the bottom panel is shown, which marks **Terminal**.
+    /// Whether the bottom panel shows its Activity tab, which marks **Activity**.
+    pub is_activity_shown: bool,
+    /// Whether the bottom panel shows another of its tabs, which marks **Terminal**.
     pub is_panel_shown: bool,
 }
 
@@ -78,7 +78,7 @@ impl View {
             View::Files => state.shown == ViewShown::Files,
             View::Compare => false,
             View::Terminal => state.is_panel_shown,
-            View::Activity => state.is_activity_open,
+            View::Activity => state.is_activity_shown,
             View::Settings => state.shown == ViewShown::Settings,
         }
     }
@@ -92,15 +92,14 @@ impl View {
     }
 
     /// What a click asks for.
-    fn intent(self, state: &ViewBarState) -> Intent {
+    fn intent(self) -> Intent {
         match self {
             View::Timeline => Intent::ShowTimeline,
             View::Changes => Intent::ShowPage(Page::Changes),
             View::Files => Intent::ShowPage(Page::Files),
             View::Compare => Intent::Feature(FeatureIntent::Run(FeatureId("compare.choose"), Target::Head)),
             View::Terminal => Intent::Panel(crate::panel::PanelIntent::Toggle),
-            View::Activity if state.is_activity_open => Intent::CloseActivity,
-            View::Activity => Intent::OpenActivity,
+            View::Activity => Intent::Panel(crate::panel::PanelIntent::ToggleActivity),
             View::Settings => Intent::ShowPage(Page::Settings),
         }
     }
@@ -168,5 +167,5 @@ fn button(view: View, state: &ViewBarState, ui: &mut Ui<'_>, cell: Rect) -> Opti
         let spot = Rect::new(cell.right() - width + 4.0, cell.y - 2.0, width, height);
         let _ = ui.badge(spot, &badge);
     }
-    clicked.then(|| view.intent(state))
+    clicked.then(|| view.intent())
 }

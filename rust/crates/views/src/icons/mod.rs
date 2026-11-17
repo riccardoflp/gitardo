@@ -26,7 +26,7 @@ pub(crate) const PREVIOUS: Icon = Icon::ChevronUp;
 /// A button that opens a list of choices below it.
 pub(crate) const CHOOSE: Icon = Icon::ChevronsUpDown;
 
-/// Close a page, a drawer, the inspector, a box, the bottom panel; empty a box.
+/// Close a page, the inspector, a box, the bottom panel; empty a box.
 pub(crate) const CLOSE: Icon = Icon::Close;
 
 /// Chosen in a menu; done; a good commit of a bisect.
@@ -305,7 +305,7 @@ pub(crate) const MEANINGS: [(&str, Icon); 92] = [
     ("The previous change or match", PREVIOUS),
     ("A button that opens a list of choices below it", CHOOSE),
     (
-        "Close a page, a drawer, the inspector, a box, the bottom panel; empty a box",
+        "Close a page, the inspector, a box, the bottom panel; empty a box",
         CLOSE,
     ),
     ("Chosen in a menu; done; a good commit of a bisect", CHOSEN),

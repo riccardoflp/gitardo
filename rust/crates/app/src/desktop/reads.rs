@@ -1,6 +1,6 @@
 //! What the window does for the reads of the repository shown (`repo.watch-changes`, `repo.schedule-reads`): the
 //! watcher of the repository, the timer of the next scheduled read, the focus and the minimized window told to the
-//! store, the words of each read in the Activity drawer, and how long each took, for the Command log.
+//! store, the words of each read in the Activity tab, and how long each took, for the Command log.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -131,7 +131,7 @@ impl ReadClock {
     }
 
     /// Notes a job started; for a read of a repository the schedule counts, gives what it is and why it runs, in the
-    /// words of the Activity drawer.
+    /// words of the Activity tab.
     pub fn started(&mut self, state: &State, job: &Job, now: Timestamp) -> Option<(Text, Text)> {
         let JobKind::ReadRepository { folder, request, .. } = &job.kind else {
             return None;

@@ -69,7 +69,9 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         QuickCommand::OpenWorkspaceFile => vec![Intent::OpenWorkspaceFile],
         QuickCommand::OpenRepositoryInTab => vec![Intent::PickTabToOpen],
         QuickCommand::CloseTab => vec![Intent::CloseTabShown],
-        QuickCommand::ShowWhatIsRunning => vec![Intent::OpenActivity],
+        QuickCommand::ShowWhatIsRunning => vec![Intent::Panel(views::panel::PanelIntent::Show(
+            views::panel::PanelTab::Activity,
+        ))],
         QuickCommand::ShowBranches => show_branches(state),
         QuickCommand::FilterBranchRail => {
             let mut intents = show_branches(state);

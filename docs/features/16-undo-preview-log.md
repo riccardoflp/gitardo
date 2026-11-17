@@ -68,8 +68,8 @@ grows.
 
 - **Kind**: View
 - **Function**: `views::log::log_view(state, ui) -> Vec<Intent>`
-- **Entry points**: **Command log** in the bottom panel (`panel.bottom`); **Show Command Log** in Quick search; **Show
-  the commands Gitardo runs** under what is running, in the Activity drawer, which shows the bottom panel at it.
+- **Entry points**: **Command log** in the bottom panel (`panel.bottom`), the tab beside **Activity**; **Show Command
+  Log** in Quick search.
 - **Settings**: `log.level`.
 
 Acceptance:
@@ -77,7 +77,7 @@ Acceptance:
 - [ ] Opening it shows the commands of the session, each with the time it started.
 - [ ] Text can be selected and copied.
 - [ ] It keeps the last 10,000 lines and says how many were dropped.
-- [ ] It is in the bottom panel, and no longer in the Activity drawer.
+- [ ] It is a tab of the bottom panel, beside **Activity**.
 
 ### `undo.last` — Undo the last operation
 
@@ -200,7 +200,7 @@ Acceptance:
 
 Every read, plan, comparison and request that may take longer than a frame is registered while it runs, with what it is
 in words, when it started and what asked for it, so that the activity indicator of the status bar (`activity.status-bar`)
-and the **Activity** drawer (`activity.what-is-running`) can say it. The words are those of `activity.describe-task`.
+and the **Activity** tab (`activity.what-is-running`) can say it. The words are those of `activity.describe-task`.
 
 - **Kind**: Operation (of the engine; it has no entry point of its own)
 - **Function**: `engine::activity::track(description, cause) -> ActivityGuard`, which ends the entry when dropped.

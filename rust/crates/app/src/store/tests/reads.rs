@@ -1,5 +1,5 @@
 //! The reads of the repository shown that changes ask for (`repo.watch-changes`, `repo.schedule-reads`), the window
-//! opened with `readOnStartup` off (`repo.read-state`), the Command log of the drawer (`log.show`) and the settings
+//! opened with `readOnStartup` off (`repo.read-state`), the Command log (`log.show`) and the settings
 //! page (`settings.edit`, `settings.theme`).
 
 use std::path::PathBuf;

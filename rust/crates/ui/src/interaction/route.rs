@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use render::Point;
 
-use super::hits::{Hits, Sense};
+use super::hits::{Hit, Hits, Sense};
 use crate::id::WidgetId;
 use crate::input::{InputEvent, Key, KeyEvent, Modifiers, NamedKey, PointerButton, PointerButtonEvent, WheelDelta};
 
@@ -86,6 +86,12 @@ pub(crate) struct Interaction {
     pub(crate) window_focused: bool,
     /// The widget under the pointer.
     pub(crate) hovered: Option<WidgetId>,
+    /// The widgets the pointer is within: the topmost one under it and those of its layer it is drawn inside, as a
+    /// button is drawn inside its row; none while the main button is held on a widget that is not one of them.
+    pub(crate) within: Vec<WidgetId>,
+    /// The topmost widget under the pointer, whichever widget holds the main button, while the pointer is within
+    /// some widget: what a list finds the row under the pointer by.
+    pub(crate) under: Option<Hit>,
     /// The widget under the pointer and since when it is, for tooltips.
     pub(crate) hover_since: Option<(WidgetId, Duration)>,
     /// The widget a button was pressed on, whose tooltip stays hidden until the pointer leaves it.
@@ -107,6 +113,8 @@ impl Default for Interaction {
             focus_visible: false,
             window_focused: true,
             hovered: None,
+            within: Vec::new(),
+            under: None,
             hover_since: None,
             tooltip_hidden_on: None,
             modifiers: Modifiers::NONE,
@@ -365,16 +373,21 @@ fn wheel_pixels(delta: WheelDelta, modifiers: Modifiers, line_height: f32) -> Po
 }
 
 /// Finds the widget under the pointer: the one holding the main button while it is held and the pointer is over it,
-/// otherwise the topmost one.
+/// otherwise the topmost one; and the widgets the pointer is within, which that one is drawn inside.
 pub(crate) fn update_hover(state: &mut Interaction, now: Duration) {
-    let covering = state
-        .pointer
-        .and_then(|point| state.hits.covering(point))
-        .map(|hit| hit.id);
+    let covering = state.pointer.and_then(|point| state.hits.covering(point)).copied();
     state.hovered = match state.active {
-        Some(active) => covering.filter(|id| *id == active.id),
-        None => covering,
+        Some(active) => covering.map(|hit| hit.id).filter(|id| *id == active.id),
+        None => covering.map(|hit| hit.id),
     };
+    let within = match (covering, state.pointer) {
+        (Some(top), Some(point)) => state.hits.around(&top, point),
+        _ => Vec::new(),
+    };
+    // A drag that started elsewhere lights nothing it passes over, as it makes nothing else `hovered`.
+    let is_held_elsewhere = state.active.is_some_and(|active| !within.contains(&active.id));
+    state.under = covering.filter(|_| !is_held_elsewhere);
+    state.within = if is_held_elsewhere { Vec::new() } else { within };
     let since = state.hover_since.filter(|(id, _)| Some(*id) == state.hovered);
     state.hover_since = since.or_else(|| state.hovered.map(|id| (id, now)));
     if state.tooltip_hidden_on != state.hovered {

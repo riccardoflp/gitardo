@@ -144,7 +144,7 @@ fn serve(
             engine.keep_secrets_in((access.secrets)());
             engine.share_activities(activities.clone());
             engine.find_operations_with(features::operation);
-            // The commands of a new worktree run in the Tasks of the drawer, which other operations do not wait for.
+            // The commands of a new worktree run in the Tasks of the Activity tab, which other operations do not wait for.
             engine.run_tasks(engine::TaskSteps::HandedOver);
             engine
         });

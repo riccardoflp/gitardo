@@ -3,8 +3,8 @@
 How a window finds the repositories of its workspace, which one it shows, what it reads of it, and how it keeps that up
 to date on its own while the repository and its files change, from Gitardo or from anything else. The tabs of the
 repositories a window of Gitardo Desktop keeps open, and what each keeps while another is shown. Also what the activity
-indicator of the status bar says Gitardo is doing, the **Activity** drawer, the **Welcome** page of the first start,
-and the folders the user trusts to run what they ask.
+indicator of the status bar says Gitardo is doing, the **Activity** tab of the bottom panel, the **Welcome** page of
+the first start, and the folders the user trusts to run what they ask.
 
 ### `repo.read-repositories` — Find the repositories of a workspace
 
@@ -409,7 +409,8 @@ Acceptance:
 
 ### `activity.describe-task` — Say what Gitardo is doing
 
-The words the activity indicator of the status bar and the **Activity** drawer use for each thing that takes time.
+The words the activity indicator of the status bar and the **Activity** tab of the bottom panel use for each thing
+that takes time.
 
 - **Kind**: Derivation
 - **Function**: `model::activity::describe_task(task: &Task, now: Instant) -> TaskText`
@@ -425,7 +426,9 @@ The words the activity indicator of the status bar and the **Activity** drawer u
 | A command of a new worktree, in Tasks | `Running <command> in <worktree>` | `A command of a new worktree, in Tasks` |
 
 `<name>` is the one `repo.name-repositories` gives. How long it has run is said in whole seconds, `12 s`, and from a
-minute on as `1 min 5 s`.
+minute on as `1 min 5 s`. Reads of the same repository one after the other are said on one row, whose title counts
+them from the second on, `Reading app ×4` (`model::activity::counted`), and whose detail is that of the latest
+([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)).
 
 Acceptance:
 
@@ -433,6 +436,8 @@ Acceptance:
       read. Because src/a.rs changed.`
 - [ ] 65 seconds is said as `1 min 5 s`, 59.9 seconds as `59 s`.
 - [ ] A read while the timeline is narrowed to `git log -S foo` is titled `Searching <name>`.
+- [ ] Four reads of `work/app` one after the other are titled `Reading work/app ×4`, and one alone `Reading
+      work/app`.
 
 ### `activity.status-bar` — What is running, in the status bar
 
@@ -448,25 +453,34 @@ said (`activity.said`), and the identity commits are made with.
   GitHub for more than half a second, the activity indicator shows a spinning icon with the title of what has run
   longest and for how long, as `Reading app (2 s)`, at the start of the status bar. What is over sooner never shows,
   so that it does not flicker. Where its words would be cut short it shows its icon alone.
+- It shows the rows of the **Activity** tab (`activity.what-is-running`): each thing is timed from when the engine
+  started it, and reads of the same repository one after the other are one entry that counts them, `Reading app ×4
+  (2 s)`, timed from the first, which stays half a second after a read ended for the next to join it
+  ([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)).
 - The end of the status bar says the identity commits are made with in the repository shown, `Ada
   <ada@example.com>`, the name or the email alone, or **No identity configured**, when there is room for it after
   what runs; a click switches it (`identity.switch`), except while an operation runs.
-- Its tooltip lists everything that runs, the oldest first, each with its title, how long it has run and its detail,
-  and ends with **Click to open the Activity drawer.** The times go on every half second; the tooltip is
-  drawn again only when its text changes.
-- A click opens the Activity drawer (`activity.what-is-running`).
+- Its tooltip lists everything that has run for half a second, in the order it started, each with its title, how
+  long it has run and its detail, and ends with **Click to show Activity in the bottom panel.** The times go on every
+  half second; the tooltip is drawn again only when its text changes.
+- A click shows the bottom panel at its **Activity** tab (`activity.what-is-running`), or hides the panel when it
+  shows that tab ([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)).
 - The status bar keeps its height whatever it says: what was said and its links are drawn in its text
   ([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
 
 Acceptance:
 
-- [ ] A read of 0.3 s shows nothing; a read of 2 s shows the activity indicator from 0.5 s until it ends.
+- [ ] A read of 0.3 s shows nothing; a read of 2 s shows the activity indicator from 0.5 s until its row ends.
 - [ ] A fetch and a read at once are both in the tooltip, the fetch first if it started first.
 - [ ] The tooltip of a read asked for by a change says which file changed.
 - [ ] In a window 1000 pixels wide, a read of 2 s says `Reading app (2 s)` in the status bar, and the identity is at
   its end; a click on the identity asks to switch it.
 - [ ] With `main` two ahead of `origin/main`, the header names `main` without how far it is, and **Sync** says `↑2`
       (Q500).
+- [ ] A click on the indicator shows the bottom panel at **Activity**, and another hides the panel.
+- [ ] What has run less than half a second is not in the tooltip.
+- [ ] Three reads of `app` one after the other are one entry of the indicator that counts them, `Reading app ×3
+      (1 s)`.
 
 ### `activity.said` — What was said, in the status bar
 
@@ -506,34 +520,72 @@ Acceptance:
 - [ ] A click on the words opens the Command log at that command.
 - [ ] No bar is drawn between the header and the timeline after an operation.
 
-### `activity.what-is-running` — What is running, in the Activity drawer
+### `activity.what-is-running` — What is running, in the Activity tab
 
-Lists what Gitardo is doing now, with the way to the commands it runs.
+Lists what Gitardo is doing now, in a tab of the bottom panel, beside the commands it runs.
 
 - **Kind**: View
 - **Function**: `views::activity::what_is_running_view(state: &ActivityState, ui) -> Vec<Intent>`
-- **Entry points**: a click on the activity indicator of the status bar; **Activity** in the bar of views; **Show
-  What Is Running** in Quick search.
+- **Entry points**: the tab **Activity** of the bottom panel (`panel.bottom`); a click on the activity indicator of the
+  status bar; **Activity** in the bar of views; **Show What Is Running** in Quick search.
 - **Uses**: `activity.describe-task`, `log.show`, `panel.bottom`.
+- **Extension**: a click on the item of the status bar, or **Gitardo: Show What Is Running**, lists what runs in a
+  picker of VS Code, kept up to date while it is open, whose last entry, **Show the commands Gitardo runs**, opens the
+  output channel **Gitardo**. The tab is the window's alone: VS Code has its own panel.
 
-The drawer lists each thing that runs, with its title, how long it has run and its detail, the times going on every
-second while it is open, and the list following what starts and ends. With nothing running it says **Nothing is running
-now** and "Gitardo is not reading or changing anything". Under the list, **Show the commands Gitardo runs** shows the
-bottom panel at the Command log (`panel.bottom`), which is no longer in the drawer. Opening the drawer while it is open
-leaves it as it is.
+**Activity** is a tab of the bottom panel, after **Terminal** and before **Command log**, with the panel's height, its
+gap and its **Hide the panel**: nothing is drawn over the timeline to say what runs
+([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)). The activity indicator of
+the status bar and **Activity** in the bar of views show the panel at it, and hide the panel when it shows it; **Show
+What Is Running** shows the panel at it (Q680). `Escape` closes nothing there.
 
-Once a new worktree has run commands (`worktree-setup.command-steps`), the drawer, higher, has **Tasks** at its right:
-a row for each of the latest commands, with its worktree and how it stands (a spinner while it runs, **waits**, a
-check, **exit code `<n>`**, **stopped**, **did not run**); below, what the task shown printed, following its end, the
-colors of a terminal left out; a click on a row shows what that one printed. While the task shown runs, a box under
-its output answers what it asks, `Enter` giving it the line typed, and **Stop** stops it, so that those after it do
-not run.
+The tab lists each thing that runs on a row, with its title, how long it has run and, under it, its detail, the times
+going on while it is shown. The list is laid out so that it holds still while it is read:
+
+- Each thing is timed from the moment the engine started it, and ends at the moment the engine says it ended,
+  whichever frames drew it.
+- Something is listed once it has run half a second, as the activity indicator shows it; what is over sooner is listed
+  neither while it runs nor after.
+- The rows are in the order things started, and a row stays where it is while it runs; a row is as high whether it
+  has a detail or not.
+- Reads of the same repository one after the other are one row that counts them, `Reading app ×4`
+  (`activity.describe-task`), with the detail of the latest, timed from the start of the first, its time stopped
+  between one read and the next. The row waits half a second after a read ended for the next to join it (Q682).
+- What ended goes under **Ran**, the latest first, with the time of day it ended, in UTC as the Command log says its
+  times, and how long it took: `14:02:09 · took 4 s`, or `took less than 1 s` (Q683). Reads that end one after the
+  other, with nothing else ending between them, are one row there too, with the time the last ended and how long they
+  took together. **Ran** keeps the last 50 of the session, however long ago they ended.
+- The list scrolls, under the title of its column, when it is taller than the tab.
+
+With nothing running it says **Nothing is running now** and "Gitardo is not reading or changing anything", where the
+first row would be. The commands Gitardo runs are in the tab beside it, **Command log** (`log.show`).
+
+Once a new worktree has run commands (`worktree-setup.command-steps`), the tab has **Tasks** at its right: a row for
+each of the latest commands, as many as fit, with its worktree and how it stands (a spinner while it runs, **waits**,
+a check, **exit code `<n>`**, **stopped**, **did not run**); beside the rows, what the task shown printed, following
+its end, the colors of a terminal left out; a click on a row shows what that one printed. While the task shown runs, a
+box under its output answers what it asks, `Enter` giving it the line typed, and **Stop** stops it, so that those
+after it do not run.
 
 Acceptance:
 
-- [ ] Opened during a long fetch, the drawer lists the fetch, and its time grows each second.
-- [ ] When the fetch ends, it leaves the list; with nothing else, the drawer says **Nothing is running now**.
-- [ ] **Show the commands Gitardo runs** shows the bottom panel at the Command log.
+- [ ] Shown during a long fetch, the tab lists the fetch, and its time grows each second.
+- [ ] When the fetch ends, it leaves what runs; with nothing else, the tab says **Nothing is running now**.
+- [ ] A click on the activity indicator shows the bottom panel at **Activity**, between **Terminal** and **Command
+      log**, and nothing is drawn over the timeline, which ends above the panel.
+- [ ] `Escape` with the panel at **Activity** hides nothing.
+- [ ] A click on the tab **Command log**, beside it, shows the commands Gitardo runs.
+- [ ] What runs less than half a second is listed neither while it runs nor under **Ran**.
+- [ ] During a fetch with forty reads in a row around it, no row moves, flashes or goes before the fetch ends; the
+      fetch counts its seconds from its start, and the reads are one row.
+- [ ] Two reads that end within the same frame are listed in the same order each time, the one that ended last first.
+- [ ] A fetch that ended is under **Ran** with the time it ended and how long it took, and is still there ten minutes
+      later.
+- [ ] **Ran** lists the latest first and keeps the last 50.
+- [ ] Reads of a repository one after the other are one row that counts them, `Reading app ×4`, where the first
+      was.
+- [ ] Reads that ended one after the other are one row under **Ran**, until something else ends.
+- [ ] With more rows than fit, the wheel brings the last into sight.
 
 ### `welcome.page` — The Welcome page
 
@@ -576,7 +628,7 @@ A tab holds a repository with its worktrees and its submodules, which are rows u
 (`repo.group-tabs`,
 [D57](../08-decisions.md#d57--worktrees-in-the-side-column-pages-that-keep-what-opened-them-the-way-back-in-the-title)). The tab's are: the header, the
 branches of the side column, the timeline, the inspector, the pages and the Changes page. The window's are: the bar of
-views, **Repositories**, the Activity drawer with the Tasks, the bottom panel's Command log, the status bar, the
+views, **Repositories**, the bottom panel's **Activity** tab with the Tasks and its Command log, the status bar, the
 settings and the dialogs.
 
 The extension has no tabs: VS Code's views have the list of `repo.select` for that. It keeps what each repository
@@ -595,6 +647,10 @@ and its submodules under it, the one shown marked, what each is on, and **+** to
 - **Offered when**: a workspace is open, even with a single repository, so that **+** is there.
 - **Uses**: `repo.switch-tab`, `repo.open-tab`, `repo.close-tab`, `repo.group-tabs`, `repo.name-repositories`,
   `repo.worktree-summary`.
+- **Extension**: planned for milestone M22
+  ([D70](../08-decisions.md#d70--the-extension-has-a-repositories-view-of-its-own)): **Repositories**, a view of the
+  Source Control side bar with the same rows for the repositories of the workspace, without **+**, **×** and the keys
+  of the tabs, which are VS Code's workspace to decide (Q720 to Q723).
 
 The heading of the section says **Repositories**, with the chevron that folds it on its left and **+** on its right
 (`repo.open-tab`). Under it, a row for each repository open, in the order they were opened, each one line high, the
@@ -618,8 +674,9 @@ the repository shown, and of its worktree or submodule shown, is in the color of
 row shows it (`repo.switch-tab`); unfolded, the row of a repository stands for its own folder, and a click on it shows
 that folder. Each row and each chevron takes the keyboard with `Tab`, `Enter` or `Space` acting as a click, and tells
 the screen reader its name and whether it is the one shown, or whether its rows are unfolded. The **×** of a row is on
-the row under the pointer and the row shown; a middle click closes it; its context menu has **Close tab** and **Close
-other tabs** (`repo.close-tab`), **Reveal in the file manager** and **Copy path**. Its tooltip is the folder of what it
+the row under the pointer and the row shown, and stays while the pointer is on it, the row still lit as a row under
+the pointer; a middle click closes it; its context menu has **Close tab** and **Close other tabs**
+(`repo.close-tab`), **Reveal in the file manager** and **Copy path**. Its tooltip is the folder of what it
 shows. A name too long for the row is cut at its start with `…`, so that the name of the repository's own folder
 stays. When the rows do not fit the height of the section, it scrolls.
 
@@ -638,6 +695,8 @@ Acceptance:
       logical pixels wide, a long name and a long branch are both cut with `…`, the name keeping half the row.
 - [ ] The snapshots of the section, with one repository, with several and with the rows of a worktree, in every
       theme, at 100 % and 200 %, match.
+- [ ] With the pointer moved from a row not shown onto its **×** and resting there ten frames, each frame draws the
+      **×** and the row with the background of a row under the pointer, and no frame differs from the one before.
 
 ### `repo.side-column` — The side column of repositories and branches
 
@@ -651,8 +710,8 @@ each folding by its heading, the line between them dragged
   back by the first button of the top row of the timeline and of the title row of every page
   (`graph.toggle-references`).
 - **Uses**: `repo.tabs`, `refs.tree`, `graph.resize-panes`, `graph.toggle-references`.
-- **Extension**: VS Code's Source Control side bar has the repositories, and the Branches view the branches: nothing to
-  build.
+- **Extension**: VS Code's Source Control side bar is the column, and Gitardo's views its sections: the Branches view
+  the branches, and the Repositories view of milestone M22 the repositories (`repo.tabs`); nothing else to build.
 
 - The island goes from under the header to the status bar; the timeline, the inspector, the pages and the bottom
   panel are on its right, and the header above them all (`graph.toolbar`).
@@ -715,6 +774,8 @@ pull and to push, for the rows of **Repositories** and the rows of the worktrees
   commit from its `# branch.head` and `# branch.oid` lines, the commits ahead and behind from `# branch.ab`, the files
   changed from the count of its other lines.
 - **Uses**: `repo.common-folder`, `repo.watch-changes`; by `repo.tabs` and `repo.group-tabs`.
+- **Extension**: planned for milestone M22: the engine gives it the same summaries, for the rows of its Repositories
+  view ([D70](../08-decisions.md#d70--the-extension-has-a-repositories-view-of-its-own)).
 
 - The repository shown takes its summary from its own read (`repo.read-state`), and runs no other.
 - Every other repository open and every worktree of each is read once when the window opens, then again only when its
@@ -871,6 +932,8 @@ Acceptance:
 - [ ] A tab closed is not there once the window is closed and opened again.
 - [ ] **Close other tabs** on `web` leaves `web` alone.
 - [ ] Closing a tab with a page whose edits are not saved asks what closing that page asks.
+- [ ] A press and a release on the **×** of a row not shown, after the pointer rested on it ten frames, close that
+      tab.
 
 ### `repo.switch-tab` — Show another tab
 

@@ -5,7 +5,7 @@
 //! asked for. The intents of each frame are reduced after it.
 
 mod reads;
-mod running;
+pub mod running;
 
 use std::collections::VecDeque;
 use std::path::PathBuf;
@@ -104,7 +104,7 @@ struct DesktopWindow {
     asking: crate::work::ai::Asking,
     /// What reads the pull requests of GitHub.
     github: GitHubReader,
-    /// The commands of new worktrees, in the Tasks of the Activity drawer.
+    /// The commands of new worktrees, in the Tasks of the Activity tab.
     tasks: TaskRunners,
     /// The terminals of the bottom panel (`terminal.view`).
     terminals: crate::work::Terminals,
@@ -362,7 +362,7 @@ impl DesktopWindow {
         Followed::Message(Box::new(Message::WorkspaceFileChosen(chosen)))
     }
 
-    /// Runs, answers or stops the tasks of the Activity drawer.
+    /// Runs, answers or stops the tasks of the Activity tab.
     fn tasks_asked(&mut self, asked: crate::store::tasks::TaskEffect) {
         use crate::store::tasks::TaskEffect;
         match asked {
@@ -401,8 +401,9 @@ impl DesktopWindow {
 
     /// Draws a frame of the views from the store, then reduces the intents they returned.
     fn draw(&mut self, context: &Context<'_>) -> Result<Flow, AppError> {
-        let running = self.running.tasks(&self.activities.running());
-        let data = ViewData::new(&self.state, running, seconds_now()).with_finished(self.running.finished());
+        let report = self.activities.report();
+        let running = self.running.tasks(&report, std::time::Instant::now());
+        let data = ViewData::new(&self.state, running, seconds_now()).with_ran(self.running.ran());
         self.surface.set_title(&views::text::window_title(data.name()));
         let state = &self.state;
         let intents = self

@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use model::filter::kinds_shown;
 use model::repo::name_repositories;
 use model::state::RepositoryState;
-use views::activity::{ActivityState, RunningTask, StatusBarState};
+use views::activity::{ActivityState, RanTask, RunningTask, StatusBarState};
 use views::branch::ReferenceMenus;
 use views::filter::NarrowedBar;
 use views::graph::{
@@ -44,10 +44,10 @@ pub struct ViewData {
     folder: String,
     /// The folder the dialog of an opened folder asks about.
     question_folder: String,
-    /// What is running, for the header and the Activity drawer.
+    /// What is running, for the status bar and the Activity tab.
     running: Vec<RunningTask>,
-    /// What ran a moment ago, the latest first, for the Activity drawer.
-    finished: Vec<RunningTask>,
+    /// What ran, the latest first, for the Activity tab.
+    ran: Vec<RanTask>,
     /// The lines of the Command log, while the bottom panel shows it.
     log_lines: Vec<LogLine>,
     /// The settings, while the settings page is open.
@@ -62,7 +62,7 @@ pub struct ViewData {
     changes: super::changes::ChangesData,
     /// The blame of the File page in front.
     blame: super::blame::BlameData,
-    /// The rows of the Tasks of the Activity drawer, while it is open.
+    /// The rows of the Tasks of the Activity tab, while it is shown.
     task_rows: Vec<views::activity::TaskRow>,
 }
 
@@ -107,7 +107,7 @@ impl ViewData {
             folder: shown.map_or_default(|folder| folder.display().to_string()),
             question_folder,
             running,
-            finished: Vec::new(),
+            ran: Vec::new(),
             log_lines: if super::panel::is_log_shown(state) {
                 super::log_lines::log_lines(&state.log)
             } else {
@@ -123,14 +123,14 @@ impl ViewData {
             search: search::SearchView::new(state),
             changes: super::changes::ChangesData::new(state),
             blame: super::blame::BlameData::new(state, now),
-            task_rows: state.tasks.rows_while(state.is_activity_open),
+            task_rows: state.tasks.rows_while(super::panel::is_activity_shown(state)),
         }
     }
 
-    /// The same words, with what ran a moment ago, the latest first, for the Activity drawer.
+    /// The same words, with what ran, the latest first, for the Activity tab.
     #[must_use]
-    pub fn with_finished(self, finished: Vec<RunningTask>) -> ViewData {
-        ViewData { finished, ..self }
+    pub fn with_ran(self, ran: Vec<RanTask>) -> ViewData {
+        ViewData { ran, ..self }
     }
 
     /// The name of the repository shown, for the title of the window.
@@ -156,11 +156,6 @@ impl ViewData {
             },
             content: self.content(state),
             panel: self.panel(state),
-            drawer: state.is_activity_open.then_some(ActivityState {
-                running: &self.running,
-                finished: &self.finished,
-                tasks: state.tasks.view(&self.task_rows),
-            }),
             theme_picker: (state.dialog == Some(Dialog::ThemePicker)).then_some(ThemePickerState {
                 current: crate::settings::theme_value(state.settings.theme),
             }),
@@ -220,6 +215,11 @@ impl ViewData {
         look.is_shown.then(|| BottomPanelState {
             tab: look.tab,
             height: look.height,
+            activity: ActivityState {
+                running: &self.running,
+                ran: &self.ran,
+                tasks: state.tasks.view(&self.task_rows),
+            },
             log: LogState {
                 lines: &self.log_lines,
                 dropped: state.log.dropped(),

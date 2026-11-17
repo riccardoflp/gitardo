@@ -1,5 +1,5 @@
-//! The Tasks of the Activity drawer: the commands of a new worktree run one after the other once it is made, what they
-//! print shown as it comes, what they ask answered from the drawer, and what the operation does after them waiting for
+//! The Tasks of the Activity tab: the commands of a new worktree run one after the other once it is made, what they
+//! print shown as it comes, what they ask answered from the tab, and what the operation does after them waiting for
 //! the last one (`worktree-setup.command-steps`).
 
 use std::cell::RefCell;
@@ -156,11 +156,14 @@ fn opens_a_window(effects: &[Effect]) -> bool {
 }
 
 #[test]
-fn worktree_setup_command_steps__tasks_in_the_drawer_shows_both_commands_one_after_the_other_in_the_worktree() {
+fn worktree_setup_command_steps__tasks_in_the_activity_tab_shows_both_commands_one_after_the_other() {
     let (_repository, mut state) = with_commands(&["echo one", "echo two"]);
     let tasks = TasksDriver::new();
     let _ended = create_fix(&mut state, &tasks);
-    assert!(state.is_activity_open, "the drawer opens on the tasks");
+    assert!(
+        app::store::panel::is_activity_shown(&state),
+        "the bottom panel is shown at Activity on the tasks"
+    );
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
     let _second = find(&tree, Role::Button, "echo two, fix \u{b7} waits");
@@ -173,7 +176,7 @@ fn worktree_setup_command_steps__tasks_in_the_drawer_shows_both_commands_one_aft
     let (_, tree) = window.draw(&state, &[]);
     let _first = find(&tree, Role::Button, "echo one, fix");
     let _second = find(&tree, Role::Button, "echo two, fix");
-    assert!(says_in(&tree, "two"), "the drawer shows what the last one printed");
+    assert!(says_in(&tree, "two"), "the tab shows what the last one printed");
 }
 
 #[test]
@@ -217,7 +220,7 @@ fn asking_command() -> String {
 }
 
 #[test]
-fn worktree_setup_command_steps__a_command_that_waits_for_input_is_answered_in_the_drawer() {
+fn worktree_setup_command_steps__a_command_that_waits_for_input_is_answered_in_the_activity_tab() {
     let command = asking_command();
     let (_repository, mut state) = with_commands(&[&command]);
     let tasks = TasksDriver::new();
@@ -305,7 +308,10 @@ fn worktree_setup_command_steps__the_tasks_are_drawn_beside_what_runs() {
         let _ = run(&mut state, Message::Task(told));
     }
     let data = ViewData::new(&state, Vec::new(), NOW);
-    let mut window = Window::new(ThemeName::Dark, WIDE);
-    let _ = window.frame(&[], |ui| views::view(&data.window_state(&state), ui));
-    window.assert_snapshot("activity-tasks-dark");
+    for (theme, name) in super::activity_tab::THEMES {
+        let mut window = Window::new(theme, WIDE);
+        let (_, tree) = window.frame(&[], |ui| views::view(&data.window_state(&state), ui));
+        let _panel = find(&tree, Role::Region, "Bottom panel");
+        window.assert_snapshot(&format!("activity-tab-tasks-{name}"));
+    }
 }

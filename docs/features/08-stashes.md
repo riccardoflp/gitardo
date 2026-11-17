@@ -80,7 +80,8 @@ What it shows:
 
 - its title counts the stashes and has a button that stashes all changes (`stash.push`), **Stash all changes…**, there
   under the pointer, as the **…** of the other titles, and while the list is open with no stash; it is not there before
-  the first commit, and cannot be clicked while Gitardo is running an operation;
+  the first commit, and cannot be clicked while Gitardo is running an operation; under the pointer the title is lit
+  whole, the button too;
 - with no stash: **No stashes. Put your changes aside with the button above, or from the Changes page: one file, what
   is staged, or everything.**;
 - each stash by its message and how long ago it was made; its tooltip has `stash@{N}: <message>` and the full date;
@@ -102,6 +103,11 @@ Acceptance:
 - [ ] The buttons of the rows are not there while Gitardo is running an operation.
 - [ ] With no stash, the list says how to make one.
 - [ ] A stash dropped from elsewhere leaves the list when the repository is read again.
+- [ ] With the pointer moved from the title of the list onto **Stash all changes…** and resting there ten frames, each
+      frame draws the button and the title lit, none differing from the one before; a click then asks to stash all
+      changes.
+- [ ] With the pointer moved from the row of a stash onto **Apply** and resting there ten frames, each frame draws the
+      three buttons and the row lit, none differing from the one before; a click then asks to apply that stash.
 - [ ] Extension: with the stash `Put aside`, made with the untracked file `new.txt`, the view lists one row whose name
       has `Put aside`, its header says `1`, and unfolded it lists `new.txt`.
 - [ ] Extension: with no stash, the header of the view has no count.

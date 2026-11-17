@@ -12,7 +12,7 @@ use crate::text::activity as words;
 /// The key of the list of the lines.
 const LINES: &str = "command log lines";
 
-/// A line of the log, as the drawer shows it.
+/// A line of the log, as the Command log shows it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LogLine {
     /// When it started: `14:02:09`.

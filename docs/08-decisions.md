@@ -1200,10 +1200,52 @@ of phase 1 is to confirm or set aside before anything is changed:
 - **More rows than room.** The rows are not in a list that scrolls: with more than fit, the last are cut under the
   button, and come back as others end.
 
+What the test of phase 1 found. The test (`activity_replay` among the tests of the places of `app`) gives the clock of
+the window what the engine says at each frame of a burst: a fetch of twelve seconds, first drawn 0.85 s after it
+started; forty reads of one repository in ten seconds, each over in a fifth of a second; and a read of each of two
+other repositories, which end within the same frame. It draws the window, 1000 by 640 pixels, at each of the 160 frames,
+ten a second while the burst lasts and one a second after it, until fifty seconds, and writes the list of every frame
+in `target/tmp/activity-replay.txt`. Against the drawer as it was, it confirms the five, sees the fourth otherwise than
+the code let think, and finds a sixth:
+
+- **What runs a moment is listed: confirmed.** Each of the forty reads, over in 200 ms, is a row of what runs for the
+  two frames that see it.
+- **What ran goes too soon: confirmed.** All 43 rows of what ran go while the test looks: a read is pushed out by the
+  five after it within a second and a half, the reads of the two other repositories in less, and the fetch thirty
+  seconds after it ended.
+- **Times counted from when the window saw it: confirmed.** The fetch says `0 s` when it has run 1.05 s, and is a second
+  behind in 88 of its frames, until it ends.
+- **The same read many times: confirmed, and it is not seen as rows that move.** Up to six rows are titled
+  `Reading app` at once. They would move down at each read, but all of them except the first are out of sight (the
+  cause below): what is seen is the second row of the drawer changing four times a second between the read that runs,
+  with its spinner, and the read that just ran, with its check, each with another file after **Because**, and the row
+  that ran pushed out of sight at each read.
+- **More rows than room: confirmed, and sooner than thought.** In a window 640 pixels high the drawer has room for two
+  rows under its title: from the third on, the rows are drawn with no height at the foot of the list, one over the
+  other, and the wheel does not reach them. The fetch that ended is so the only row of what ran that is ever read.
+- **Found beside the five: what ends within the same frame is listed in an order that changes.** The activities that
+  ended are taken from a hash map, so the two reads that end within the same frame are listed one way or the other: of
+  16 replays of the same burst, 12 to 14 list what ran in another order than the first.
+
 So in phase 3 the list is laid out from these rules: an activity is listed once it has run half a second, as the
 indicator shows it, and timed from its start; a row stays where it is while it runs; once it ended it goes under
 **Ran**, with the time it ended and how long it took, the latest first, the last 50 of the session kept; reads of the
 same repository one after the other are one row that counts them (`Reading app ×4`); the list scrolls.
+
+What phase 3 settled, building them. The engine says of each activity the moment it started and whether it is a read,
+and gives once, with what runs, what ended since it was last asked, each with the moment it ended
+(`Activities::report`): the list is kept from what happened and not from what each frame saw, so a read over between
+two frames is counted, and what ended within the same frame is listed by when it ended (the sixth cause). A read joins
+the row of the reads of the same words while that row runs, or within half a second of its last read, as long as
+something runs before it is listed; meanwhile the row is among what runs, its time stopped at the end of its last
+read. The cost is that a read alone is shown half a second longer than it ran (Q682): the other ways, a row that
+leaves and comes back at each read, or one taken back from **Ran**, are the jumps this decision is about. Under
+**Ran**, reads of the same words that end one after the other, with nothing else ending between them, are one row too,
+so that reads a second apart do not fill the last 50. A row is two lines high whether it has a detail or not, and
+**Nothing is running now** is as high as a row, so that the first thing listed takes its place. Against the tab so
+laid out, the replay of phase 1 finds no fault in its 160 frames: the fetch says `0 s` in its first frame and counts
+from its start, the forty reads are the one row `Reading app ×40`, second from 1.5 s until it goes under **Ran**
+half a second after its last read, and nothing listed goes in the fifty seconds.
 
 Rejected: keeping the drawer and making it a card that pushes the timeline up (two places for the same height, and the
 panel already has one); a window of its own for Activity (it is looked at for a moment, beside what it is about);
@@ -1296,6 +1338,28 @@ to be told from the row under the pointer and from the selection of a list witho
 neutral, and little enough for the text on it to be read as before. Teal stays where it means something: information,
 the incoming side of a merge, the labels of a stash. The high contrast themes keep their blue selection, since blue is
 their accent. The extension is not touched: its selection is that of VS Code's theme.
+
+## D70 — The extension has a Repositories view of its own
+
+*Asked by the maintainer for milestone M22; the details proposed by the agent.*
+
+When the side column was planned (D56), the list of repositories was left to VS Code in the extension: its Source
+Control side bar has a Repositories view, and `repo.tabs`, `repo.side-column` and `repo.worktree-summary` were *Host
+only*. But that view lists what VS Code's Git extension opened, not what Gitardo found: it leaves out the worktrees
+VS Code keeps to itself, shows a worktree apart from its repository, says neither the files changed nor the commits to
+pull and to push of the ones not shown, and Gitardo can select in it only while it lists one repository at a time
+(`repo.follow-source-control`). So the extension gets the list the desktop has: **Repositories**, a view of Gitardo in
+the Source Control side bar, with the same rows, read by the same engine (`repo.worktree-summary`), drawn by the
+webview. `repo.tabs` and `repo.worktree-summary` become *Planned* in the extension, then *Built*; `repo.side-column`
+stays *Host only*, since VS Code's side bar is the column and Gitardo's views are its sections.
+
+What VS Code decides stays VS Code's: which folders are in the workspace, so the view has neither **+** nor **×**
+(Q721), and no tabs to keep. Its own Repositories view is left where it is, and the two follow each other.
+
+Rejected: filling VS Code's Repositories view (an extension cannot add rows or text to it); a tree view of VS Code
+rather than a webview (a row could not put the counts at its right in their colors, nor fold as the desktop's does);
+putting the list inside the Branches view (two lists with two scrolls in one view, which VS Code already splits
+better).
 
 ## Open questions
 
@@ -3728,6 +3792,47 @@ each is built as it says until the maintainer answers otherwise.
   teal stays the color of information, of the incoming side of a merge and of the labels of a stash. Should any of
   these change too?
 
+### Of the tab of Activity, from Q680
+
+Questions of milestone M18 ([D64](#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)), asked while it is
+built, each built with the reading given until the card says otherwise.
+
+- **Q680** — `activity.what-is-running`, `panel.bottom`: D64 has the activity indicator, **Activity** in the bar of
+  views and **Show What Is Running** hide the panel when it is shown with the focus, as `` Ctrl+` `` does for
+  **Terminal**. A click cannot find the panel with the keyboard: the press gives the keyboard to what is clicked. Built
+  so: the indicator and **Activity** in the bar of views hide the panel whenever it shows **Activity**, whatever has
+  the keyboard, as **Terminal** in the bar of views does for its tabs; **Show What Is Running** always shows it, as
+  **Show Terminal** and **Show Command Log** do; and showing the panel at **Activity** leaves the keyboard where it
+  was, since nothing is typed there. Should a key show and hide it as `` Ctrl+` `` does the terminal, with the
+  keyboard in the list?
+- **Q681** — `graph.view-bar`, `panel.bottom`: with **Activity** a tab of the panel, **Terminal** in the bar of views
+  is marked only while the panel shows its terminals or the Command log, and a click on it while the panel shows
+  **Activity** shows the terminals rather than hiding the panel. Hidden at **Activity**, the panel comes back at
+  **Terminal** from that button, not at the Command log it may have shown before. Should the panel remember the tab
+  each of the two buttons showed last?
+- **Q682** — `activity.what-is-running`, `activity.status-bar`: a row of reads waits half a second after a read ended
+  for the next read of the same repository, and meanwhile it is among what runs, in the tab and in the activity
+  indicator, its spinner turning and its time stopped: a read alone is shown half a second longer than it ran. Reads a
+  change asks for after the second it waits (`repo.watch-changes`) are so a row each among what runs, and one row only
+  under **Ran**. Should the wait be longer, as long as the longest delay of a change, or should the row say that it
+  waits for the next read?
+- **Q683** — `activity.what-is-running`: what took between half a second and a second is said under **Ran** as `took
+  less than 1 s`, where what runs says its whole seconds, `0 s`, as `activity.describe-task` has it. Should what runs
+  say the same, or **Ran** say tenths of a second?
+- **Q684** — `activity.what-is-running`, `activity.describe-task`: every read of a repository is titled `Reading
+  <name>`, whether it reads the repository, the details of a commit, a diff or more commits, so one row counts them
+  together, with the detail of the latest; and the detail of a read a change asked for during another still says
+  `Read <n> times in a row`, a count of its own beside the one of the title. Should the row count only the reads of the
+  repository itself, and should the sentence of the detail go now that the title counts?
+- **Q685** — `activity.what-is-running`: a row under **Ran** has a check whether what it stands for succeeded or
+  failed, as the rows of the drawer had, though D64 keeps **Ran** because what failed a moment ago is what is looked
+  for. Not built: should a row of something that failed say so, with a link to its lines in the Command log
+  (`activity.said` has one)?
+- **Q686** — `activity.track`: the engine now says the moment each activity started, whether it is a read and, once,
+  what ended; the protocol still gives the extension the number, the words, the cause and the second of the start of
+  what runs. Nothing changes in the extension with M18. Should its picker of **Show What Is Running** list what ran
+  and count the reads as the tab does, with these in a minor version of the protocol?
+
 ### Of the tasks read and their groups, from Q700
 
 Questions of milestone M19 ([D65](#d65--tasks-a-tab-of-the-bottom-panel-with-the-tasks-of-the-repository-and-their-groups)),
@@ -3802,3 +3907,53 @@ groups are exported to and imported from. Each is built as it says until the mai
   still names the package manager. The watcher does not call them yet: it is among the files of milestone M18, and
   the phase of the tab calls them. Should the tasks have a read of their own, as built, or ride on the read of the
   repository with a cause of its own?
+
+### Of the Repositories view of the extension, from Q720
+
+Questions of [D70](#d70--the-extension-has-a-repositories-view-of-its-own), asked while planning milestone M22; each
+is built as it says until the maintainer answers otherwise.
+
+- **Q720** — `repo.tabs` in the extension: the view is in the Source Control side bar, with Gitardo's other views,
+  above them. Or should it be in Gitardo's panel beside the graph, as the side column is beside the timeline in the
+  desktop, or in both?
+- **Q721** — `repo.tabs` in the extension: no **+** and no **×**, VS Code's workspace saying which folders are open.
+  Should **+** run VS Code's **Add Folder to Workspace…**, and the menu of a row **Remove Folder from Workspace**?
+- **Q722** — `repo.tabs` in the extension: the view lists every repository Gitardo found in the workspace, the ones
+  inside another and the ones VS Code's Git extension has not opened among them, as the picker of the toolbar does.
+  Should it list only those VS Code's Source Control lists?
+- **Q723** — `repo.select`: the picker of the repository in the toolbar of the graph stays beside the view. Should it
+  go once the view is there, or stay only where the view is hidden?
+
+### Of what shows under the pointer, from Q730
+
+Questions asked while building milestone M23, which keeps what a row shows under the pointer there while the pointer
+is on it; each is built as it says until the maintainer answers otherwise.
+
+- **Q730** — rule R10.6: `cargo xtask check` refuses a widget declared in the statement that reads `hovered`, the form
+  the **×** of **Repositories**, the **…** of the titles of the branch rail and the history button of a file had. It
+  reads the text of a statement, not the types, so it does not follow the answer once it is kept in a variable or
+  handed to a function, nor a widget declared by a function of the views rather than by the toolkit: two of the places
+  of M23 had those forms and it would not have refused them. The test that rests the pointer on every sixteenth pixel
+  of the window and compares two frames in a row finds them where it looks. Should the check go further, as by
+  refusing every read of `hovered` in the views that a comment does not explain?
+- **Q731** — `ui`: a widget is drawn inside another when its rectangle is within the other's, on the same layer, with
+  a pixel of slack; the toolkit does not record which widget declared which. A button that sticks further out of its
+  row would take the pointer from the row again, and a widget that lies wholly within a row without being of it would
+  keep the row lit. No place of the window has either today. Should the toolkit record what is declared inside what
+  instead, as a list does for its rows?
+- **Q732** — the rows of the timeline, of the files of a commit, of a comparison and of the branch rail, and the
+  headings of the side column, are now lit as the row under the pointer while the pointer is on a label, a button or
+  a chevron they hold; before, the row went dark there, the label or the button being the topmost widget. The rows of
+  the list of all the labels of a commit are lit under the pointer for the same reason, which they never were. Is
+  that the look wanted everywhere, or should some of them stay as they were?
+- **Q733** — `stash.pane`: the title of the Stashes list is lit whole under the pointer, **Stash all changes…**
+  included, as the titles with **…** are; before, the room of the button stayed dark. Is that right?
+- **Q734** — `activity.what-is-running`, `activity.said`: the rows of the tasks (`views/src/activity/tasks.rs`) and
+  what was said in the status bar (`views/src/activity/said.rs`) were being changed by milestone M18 while M23 was
+  built, and moved to `contains_pointer` and `Ui::is_pointer_within` when the two were merged. Neither shows a control
+  only under the pointer, so they have no test of the window of their own beyond the one that rests the pointer all
+  over it.
+- **Q735** — while the main button is held on a widget and the pointer leaves it, nothing it passes over is lit and
+  nothing shows its buttons, as nothing is `hovered` then; a button pressed whose row the pointer leaves is drawn no
+  more until the release. A browser keeps the row of the press lit. Should a row keep what it showed while a press
+  that started on one of its buttons is held?

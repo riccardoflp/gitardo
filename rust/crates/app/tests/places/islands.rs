@@ -152,15 +152,34 @@ fn graph_view_bar__a_click_on_changes_opens_the_changes_page_and_a_click_on_time
 }
 
 #[test]
-fn graph_view_bar__a_click_on_activity_opens_the_drawer_and_another_closes_it() {
+fn graph_view_bar__a_click_on_activity_shows_the_bottom_panel_at_activity_and_another_hides_it() {
+    use views::panel::{PanelIntent, PanelTab};
     let (repository, _remote) = repository_with_history();
     let mut state = showing(repository.path().to_path_buf());
     let mut window = Window::new(ThemeName::Dark, WIDE);
-    let intents = window.click(&state, Role::Button, "Activity");
-    assert_eq!(intents, [Intent::OpenActivity]);
-    let _effects = run(&mut state, Message::Intent(Intent::OpenActivity));
-    let intents = window.click(&state, Role::Button, "Activity");
-    assert_eq!(intents, [Intent::CloseActivity]);
+    for is_shown in [true, false] {
+        let intents = window.click(&state, Role::Button, "Activity");
+        assert_eq!(intents, [Intent::Panel(PanelIntent::ToggleActivity)]);
+        let _effects = run(&mut state, Message::Intent(Intent::Panel(PanelIntent::ToggleActivity)));
+        let look = app::store::panel::look(&state);
+        assert_eq!((look.is_shown, look.tab), (is_shown, PanelTab::Activity));
+        let (_, tree) = window.draw(&state, &[]);
+        assert_eq!(has(&tree, Role::Region, "What is running"), is_shown);
+    }
+}
+
+#[test]
+fn graph_view_bar__with_the_panel_at_activity_a_click_on_terminal_shows_its_terminals() {
+    use views::panel::{PanelIntent, PanelTab};
+    let (repository, _remote) = repository_with_history();
+    let mut state = showing(repository.path().to_path_buf());
+    let _shown = run(&mut state, Message::Intent(Intent::Panel(PanelIntent::ToggleActivity)));
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let intents = window.click(&state, Role::Button, "Terminal");
+    assert_eq!(intents, [Intent::Panel(PanelIntent::Toggle)]);
+    let _effects = run(&mut state, Message::Intent(Intent::Panel(PanelIntent::Toggle)));
+    let look = app::store::panel::look(&state);
+    assert_eq!((look.is_shown, look.tab), (true, PanelTab::Terminal));
 }
 
 #[test]

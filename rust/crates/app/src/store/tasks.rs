@@ -1,4 +1,4 @@
-//! The Tasks of the Activity drawer (`worktree-setup.command-steps`): the commands of a new worktree, which an
+//! The Tasks of the Activity tab (`worktree-setup.command-steps`): the commands of a new worktree, which an
 //! operation hands over once its other steps ran, run apart from the operations one after the other. What the operation
 //! does once it succeeded, such as opening the worktree, waits for the last of them; when one does not succeed, Gitardo
 //! says which and offers to open the worktree all the same.
@@ -14,7 +14,7 @@ use views::activity::{TaskId, TaskIntent, TaskRow, TasksState};
 use super::feature::{Ended, Said};
 use super::{Effect, State, reads};
 
-/// How many runs of commands the drawer keeps, the latest; one still running is never dropped.
+/// How many runs of commands the Activity tab keeps, the latest; one still running is never dropped.
 const KEPT: usize = 5;
 
 /// What a plan hands over from its first task on, with what it offers when one does not succeed.
@@ -65,7 +65,7 @@ pub enum TaskEffect {
     Stop(u64),
 }
 
-/// A task, as the drawer shows it.
+/// A task, as the Activity tab shows it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Task {
     /// Its command.
@@ -106,7 +106,7 @@ pub struct Tasks {
     pub batches: Vec<TaskBatch>,
     /// The number of the next run.
     next: u64,
-    /// The task whose output the drawer shows.
+    /// The task whose output the Activity tab shows.
     pub shown: Option<TaskId>,
     /// What is typed in the box that answers the task running.
     pub typed: String,
@@ -127,13 +127,13 @@ impl Tasks {
         self.batches.iter_mut().find(|batch| batch.number == number)
     }
 
-    /// The rows of the drawer while it is open, in the order the tasks run; none while it is closed.
+    /// The rows of the Activity tab while it is shown, in the order the tasks run; none while it is not.
     #[must_use]
-    pub fn rows_while(&self, is_open: bool) -> Vec<TaskRow> {
-        if is_open { self.rows() } else { Vec::new() }
+    pub fn rows_while(&self, is_shown: bool) -> Vec<TaskRow> {
+        if is_shown { self.rows() } else { Vec::new() }
     }
 
-    /// The rows of the drawer, in the order the tasks run.
+    /// The rows of the Activity tab, in the order the tasks run.
     #[must_use]
     pub fn rows(&self) -> Vec<TaskRow> {
         let mut rows = Vec::new();
@@ -153,7 +153,7 @@ impl Tasks {
         rows
     }
 
-    /// What the drawer shows of the Tasks, with its rows; none before any command ran.
+    /// What the Activity tab shows of the Tasks, with its rows; none before any command ran.
     #[must_use]
     pub fn view<'a>(&'a self, rows: &'a [TaskRow]) -> Option<TasksState<'a>> {
         if rows.is_empty() {
@@ -171,8 +171,8 @@ impl Tasks {
 }
 
 /// An operation ended: when its plan handed tasks over, what follows it is held until they all succeed, they start
-/// in the drawer, which opens on them, and the repository is read again for the worktree made; otherwise the ending
-/// is given back as it came.
+/// in the Activity tab, which the bottom panel is shown at, and the repository is read again for the worktree made;
+/// otherwise the ending is given back as it came.
 ///
 /// # Errors
 ///
@@ -190,24 +190,7 @@ pub(super) fn hold(state: &mut State, ended: Ended) -> Result<Vec<Effect>, Box<E
     };
     let number = state.tasks.next;
     state.tasks.next += 1;
-    let tasks = waiting
-        .steps
-        .iter()
-        .filter_map(|step| match step {
-            Step::Task {
-                command,
-                directory,
-                name,
-            } => Some(Task {
-                command: command.clone(),
-                name: name.clone(),
-                folder: directory.clone(),
-                status: TaskStatus::Waiting,
-                output: TaskOutput::default(),
-            }),
-            _ => None, // The steps after the tasks run unseen, as the steps of any plan.
-        })
-        .collect();
+    let tasks = waiting_tasks(&waiting.steps);
     let said = after.iter().rev().find_map(|follow_up| match follow_up {
         FollowUp::Say(words) => Some(words.as_str().to_owned()),
         _ => None,
@@ -230,13 +213,37 @@ pub(super) fn hold(state: &mut State, ended: Ended) -> Result<Vec<Effect>, Box<E
             index: 0,
         },
     );
-    state.is_activity_open = true;
-    let mut effects = reads::asked(state, ReadCause::OperationEnded);
+    let mut effects = super::panel::reduce(
+        state,
+        &views::panel::PanelIntent::Show(views::panel::PanelTab::Activity),
+    );
+    effects.extend(reads::asked(state, ReadCause::OperationEnded));
     effects.push(Effect::Tasks(TaskEffect::Run {
         batch: number,
         steps: waiting.steps,
     }));
     Ok(effects)
+}
+
+/// The tasks among the steps a plan handed over, each waiting for those before it.
+fn waiting_tasks(steps: &[Step]) -> Vec<Task> {
+    steps
+        .iter()
+        .filter_map(|step| match step {
+            Step::Task {
+                command,
+                directory,
+                name,
+            } => Some(Task {
+                command: command.clone(),
+                name: name.clone(),
+                folder: directory.clone(),
+                status: TaskStatus::Waiting,
+                output: TaskOutput::default(),
+            }),
+            _ => None, // The steps after the tasks run unseen, as the steps of any plan.
+        })
+        .collect()
 }
 
 /// Forgets the oldest runs that ended, beyond the [`KEPT`] latest.
@@ -281,7 +288,7 @@ fn task_mut(tasks: &mut Tasks, id: TaskId) -> Option<&mut Task> {
     tasks.batch_mut(id.batch)?.tasks.get_mut(id.index)
 }
 
-/// A task started: the one before it succeeded, and the drawer follows it when it showed one of the same run.
+/// A task started: the one before it succeeded, and the Activity tab follows it when it showed one of the same run.
 fn started(tasks: &mut Tasks, id: TaskId) {
     let Some(batch) = tasks.batch_mut(id.batch) else {
         return;

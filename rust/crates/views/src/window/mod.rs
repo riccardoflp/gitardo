@@ -1,6 +1,6 @@
 //! The whole window (D21, D56, D58): the bar of views on its left edge under the logo of Gitardo, the header across the
 //! top on its right, its name first, and the status bar at its foot, on the ground of the window; under the header the islands: the side column of the repositories and
-//! the branches, and beside it the timeline and the inspector, or a page with its trail; the Activity drawer, the
+//! the branches, and beside it the timeline and the inspector, or a page with its trail, and the bottom panel; the
 //! picker of the repositories, the question of an opened folder and a notice over them. Below about 900 logical pixels
 //! the side column is put away (its button opens it over the timeline), the header shows only its icons and the gaps
 //! between the islands narrow; below about 700 the inspector is not beside the timeline (it opens over it once a commit
@@ -9,7 +9,7 @@
 use ui::layout::{Area, Insets, inset};
 use ui::{Key, Modifiers, NamedKey, Rect, Ui};
 
-use crate::activity::{ActivityState, StatusBarState, status_bar_view, what_is_running_view};
+use crate::activity::{StatusBarState, status_bar_view};
 use crate::bisect::BisectBanner;
 use crate::details::{DetailsState, show};
 use crate::feature::{ConfirmState, QuestionState, SaidState, confirm_view, question_view};
@@ -70,8 +70,6 @@ pub struct WindowState<'a> {
     pub content: Content<'a>,
     /// The bottom panel, while it is shown (`panel.bottom`).
     pub panel: Option<BottomPanelState<'a>>,
-    /// The Activity drawer, while it is open.
-    pub drawer: Option<ActivityState<'a>>,
     /// The picker of the repositories, while it is open.
     pub picker: Option<RepositoryPickerState<'a>>,
     /// The picker of the repositories to open in tabs, or of one to open in a tab, while it is open
@@ -218,13 +216,6 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         intents.extend(ui.clip(header, |ui| ui.faded(opacity, |ui| toolbar_view(&state.header, ui))));
         tab_islands(state, ui, (body, gap), &mut intents)
     });
-    if let Some(drawer) = &state.drawer {
-        // The drawer opens over what is above the bottom panel, which it would hide.
-        let above = panel.map_or(body, |panel| {
-            Rect::new(body.x, body.y, body.width, (panel.y - gap - body.y).max(0.0))
-        });
-        intents.extend(ui.clip(above, |ui| what_is_running_view(drawer, ui)));
-    }
     dialogs(state, ui, &mut intents);
     intents.extend(shortcuts(ui, state));
     intents.extend(panel_shortcut(ui, panel));
@@ -455,11 +446,10 @@ fn notice_said(notice: Notice) -> SaidState<'static> {
 }
 
 /// The keys of the window that no widget used: `Ctrl+Tab` goes through the timeline and the pages open, `Ctrl+,`
-/// opens the settings page, and `Escape` closes the side column opened over the timeline, else the Activity drawer
-/// while it is open, else brings the timeline back from the Diff page beside the inspector (`diff.beside-inspector`).
+/// opens the settings page, and `Escape` closes the side column opened over the timeline, else brings the timeline
+/// back from the Diff page beside the inspector (`diff.beside-inspector`).
 fn shortcuts(ui: &Ui<'_>, state: &WindowState<'_>) -> Vec<Intent> {
     let is_side_over = state.side.is_some() && is_narrow(ui) && state.side_place.is_open_over;
-    let is_drawer_open = state.drawer.is_some();
     let is_beside = matches!(
         &state.content,
         Content::Timeline(TimelineState::Repository { beside: Some(_), .. })
@@ -472,7 +462,6 @@ fn shortcuts(ui: &Ui<'_>, state: &WindowState<'_>) -> Vec<Intent> {
             (Key::Named(NamedKey::Escape), Modifiers::NONE) if is_side_over => {
                 Some(Intent::Graph(GraphIntent::CloseSideColumn))
             }
-            (Key::Named(NamedKey::Escape), Modifiers::NONE) if is_drawer_open => Some(Intent::CloseActivity),
             (Key::Named(NamedKey::Escape), Modifiers::NONE) if is_beside => Some(Intent::ShowTimeline),
             _ => None,
         })

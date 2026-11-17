@@ -1,4 +1,4 @@
-//! The threads of the Tasks of the Activity drawer (`worktree-setup.command-steps`): each run of commands a plan handed
+//! The threads of the Tasks of the Activity tab (`worktree-setup.command-steps`): each run of commands a plan handed
 //! over runs on a thread of its own, its tasks one after the other, each among the activities while it runs, and tells
 //! the window what they print as it comes.
 

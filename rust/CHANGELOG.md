@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- What a row shows only under the pointer no longer flickers and can be clicked: the **×** of a row of
+  **Repositories**, the **…** of the title of a list of the branch rail and the arrow that folds a merge in the
+  timeline stay while the pointer is on them. A frame drew them and the next did not, so that a press and its release
+  seldom met the same button. A row is still lit as the row under the pointer while the pointer is on one of its
+  buttons or its labels, in the timeline, the branch rail, the files of a commit and of a comparison and the headings
+  of the side column, and the title of the Stashes list is lit whole, **Stash all changes…** too.
+- The list of the **Activity** tab holds still while it is read. Each thing is timed from when the engine started it,
+  and is listed once it has run half a second, in the tab as in the activity indicator and its tooltip; a row stays
+  where it is while it runs, as high whether it has a detail or not. Reads of the same repository one after the other
+  are one row that counts them, `Reading app ×4`. What ended goes under **Ran**, the latest first, with the time it
+  ended and how long it took, `14:02:09 · took 4 s`; **Ran** keeps the last 50 of the session, where what ran left
+  after thirty seconds or once five more had ended, and the list scrolls when it is taller than the tab.
+- **Activity** is a tab of the bottom panel, between **Terminal** and **Command log**, in place of the drawer that
+  opened over the timeline and the inspector: it has the panel's height, its gap and its **Hide the panel**, and the
+  panel remembers it for the workspace. The activity indicator of the status bar and **Activity** in the bar of views
+  show the panel at it, and hide the panel when it shows it; **Show What Is Running** shows it, and `Escape` closes
+  nothing there. **Show the commands Gitardo runs** is gone: the Command log is the tab beside it. **Tasks**, the
+  commands of new worktrees, are at the right of the tab, what they print beside their rows, and the panel is shown at
+  the tab when they start. **Terminal** in the bar of views is marked while the panel shows its terminals or the
+  Command log, and shows the terminals when the panel is at **Activity**.
 - The labels of a commit, its branches, tags and the rest, come first on its row of the timeline, right after the
   graph and before its message, so that they are found at the same place on every row. They take the room the message
   leaves them, at least two fifths of the line, and those that do not fit are one label `+N`. The pointer resting on

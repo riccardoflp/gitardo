@@ -147,7 +147,7 @@ fn said_for(state: &SaidState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Option<Intent
         return None;
     }
     let now = ui.now();
-    let is_on = ui.pointer().is_some_and(|pointer| rect.contains(pointer));
+    let is_on = ui.is_pointer_within(rect);
     let shown = |at| Some(Intent::Feature(FeatureIntent::SaidShown(at)));
     match state.shown_at {
         None => shown(now),

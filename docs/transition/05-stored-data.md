@@ -70,8 +70,8 @@ the shape of `gitardo.scope`; the engine reads neither, since what the reference
 
 Since milestone M14 the entry of each workspace in `panes` of the desktop's `state.json` also keeps its bottom panel
 (`panel.bottom`): `panelShown` (`true` while it is shown, left out otherwise), `panelHeight` (the height dragged, in
-logical pixels, left out while it is where it starts) and `panelTab` (`"commandLog"`, left out for the terminal). The
-extension has nothing of the kind: its panel is VS Code's.
+logical pixels, left out while it is where it starts) and `panelTab` (`"commandLog"`, or `"activity"` since milestone
+M18, left out for the terminal). The extension has nothing of the kind: its panel is VS Code's.
 
 Since milestone M16 the same entry keeps the side column (`repo.side-column`): `repositories` among its sizes (the
 height of **Repositories** dragged, its heading included, in logical pixels, left out while it is where it starts),

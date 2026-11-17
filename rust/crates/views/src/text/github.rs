@@ -5,7 +5,7 @@
 pub const LOAD_PULL_REQUESTS: &str = "Load pull requests from GitHub";
 /// The command of Quick search that loads the pull requests.
 pub const SIGN_IN: &str = "Sign in to GitHub";
-/// What the Activity drawer says while the pull requests are read.
+/// What the Activity tab says while the pull requests are read.
 pub const READING_PULL_REQUESTS: &str = "Reading the pull requests from GitHub";
 /// The line under the tooltip of a badge.
 pub const CLICK_TO_OPEN: &str = "Click to open it on GitHub";

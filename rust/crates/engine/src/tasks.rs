@@ -1,6 +1,6 @@
-//! The tasks of the Activity drawer (`worktree-setup.command-steps`): the steps of a plan from its first task on, run
+//! The tasks of the Activity tab (`worktree-setup.command-steps`): the steps of a plan from its first task on, run
 //! apart from the plan once its other steps ran, one after the other. A task is a command of the user's run through the
-//! shell of the system, whose output is told as it comes and whose input is what the user types in the drawer; one that
+//! shell of the system, whose output is told as it comes and whose input is what the user types in the Activity tab; one that
 //! does not succeed, or is stopped, stops the steps after it.
 
 use std::io::{Read, Write};
@@ -328,7 +328,7 @@ fn take_text(bytes: &mut Vec<u8>) -> String {
 }
 
 /// On Windows, a program started from a window gets a console window of its own unless told not to: a task prints into
-/// the drawer.
+/// the Activity tab.
 #[cfg(windows)]
 fn hide_console_window(command: &mut std::process::Command) {
     use std::os::windows::process::CommandExt;

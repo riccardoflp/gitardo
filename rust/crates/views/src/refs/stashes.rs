@@ -173,16 +173,19 @@ fn file_lines<'a>(stash: &'a Stash, shown: &StashesShown<'a>) -> Vec<RailRow<'a>
 /// and while the list is open with no stash, as the **…** of the other titles; it cannot be clicked while an operation
 /// runs.
 fn title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListHead, rect: Rect) -> Vec<Intent> {
-    let is_pointed = ui
-        .pointer()
-        .is_some_and(|point| rect.contains(point) && ui.current_clip().contains(point));
+    let is_pointed = ui.is_pointer_within(rect);
     let is_empty = head.is_open && head.all == 0;
     if context.state.repository.head.commit.is_none() || !(is_pointed || is_empty) {
         return list_title(ui, context, head, rect);
     }
-    let side = ui.theme().sizes.row_height;
+    let theme = *ui.theme();
+    if is_pointed {
+        // The whole title is lit, its button too, as the other titles are with their **…**.
+        ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
+    }
+    let side = theme.sizes.row_height;
     let mut parts = Area::new(rect);
-    let cell = parts.right(side + ui.theme().sizes.spacing.small);
+    let cell = parts.right(side + theme.sizes.spacing.small);
     let mut intents = list_title(ui, context, head, parts.rest());
     let mut button = Button::icon(icons::STASH, words::STASH_ALL).kind(ButtonKind::Icon);
     if context.state.stashes.is_operation_running {
@@ -287,7 +290,7 @@ fn file_row(
     let theme = *ui.theme();
     let id = ui.id(("stash file", &stash.commit, &file.path, is_untracked));
     let response = ui.interact(id, rect, Sense::CLICK);
-    if response.hovered {
+    if response.contains_pointer {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     // The status of the file lines up with the message of its stash; `file_start` keeps a margin of its own.

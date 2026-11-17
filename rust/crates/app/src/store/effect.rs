@@ -85,7 +85,7 @@ pub enum Effect {
     },
     /// Looks for the repository on GitHub or reads its pull requests, on a thread of its own (`github.read-pull-requests`).
     GitHub(super::github::GitHubJob),
-    /// Runs, answers or stops the tasks of the Activity drawer (`worktree-setup.command-steps`).
+    /// Runs, answers or stops the tasks of the Activity tab (`worktree-setup.command-steps`).
     Tasks(super::tasks::TaskEffect),
     /// Starts, writes to, sizes or ends the terminals of the bottom panel (`terminal.view`).
     Terminal(super::terminals::TerminalEffect),

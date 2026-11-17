@@ -55,11 +55,11 @@ earns it.
 | [`activity.describe-task`](01-repositories.md#activitydescribe-task--say-what-gitardo-is-doing) | Say what Gitardo is doing | Derivation | Built | Built |
 | [`activity.status-bar`](01-repositories.md#activitystatus-bar--what-is-running-in-the-status-bar) | What is running, in the status bar | View | Built | Built |
 | [`activity.said`](01-repositories.md#activitysaid--what-was-said-in-the-status-bar) | What was said, in the status bar | View | Built | Host only |
-| [`activity.what-is-running`](01-repositories.md#activitywhat-is-running--what-is-running-in-the-activity-drawer) | What is running, in the Activity drawer | View | Built | Built |
+| [`activity.what-is-running`](01-repositories.md#activitywhat-is-running--what-is-running-in-the-activity-tab) | What is running, in the Activity tab | View | Built | Built |
 | [`welcome.page`](01-repositories.md#welcomepage--the-welcome-page) | The Welcome page | View | Built | Host only |
-| [`repo.tabs`](01-repositories.md#repotabs--the-repositories-open-in-the-side-column) | The repositories open, in the side column | View | Built | Host only |
+| [`repo.tabs`](01-repositories.md#repotabs--the-repositories-open-in-the-side-column) | The repositories open, in the side column | View | Built | Planned |
 | [`repo.side-column`](01-repositories.md#reposide-column--the-side-column-of-repositories-and-branches) | The side column of repositories and branches | View | Built | Host only |
-| [`repo.worktree-summary`](01-repositories.md#repoworktree-summary--what-a-repository-or-a-worktree-is-on) | What a repository or a worktree is on | Read | Built | Host only |
+| [`repo.worktree-summary`](01-repositories.md#repoworktree-summary--what-a-repository-or-a-worktree-is-on) | What a repository or a worktree is on | Read | Built | Planned |
 | [`repo.open-tab`](01-repositories.md#repoopen-tab--open-a-repository-in-a-tab) | Open a repository in a tab | Operation | Built | Host only |
 | [`repo.choose-tabs`](01-repositories.md#repochoose-tabs--choose-the-repositories-a-workspace-opens) | Choose the repositories a workspace opens | Operation | Built | Host only |
 | [`repo.open-code-workspace`](01-repositories.md#repoopen-code-workspace--open-a-workspace-file-of-vs-code) | Open a workspace file of VS Code | Operation | Built | Host only |

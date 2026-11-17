@@ -46,7 +46,7 @@ pub fn open_file_view(state: &OpenFileState<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
     let rect = ui.current_clip();
     let path = state.file.path.as_str();
     let response = ui.interact(ui.id(("conflict name", path)), rect, Sense::CLICK | Sense::HOVER);
-    if response.hovered {
+    if response.contains_pointer {
         let theme = *ui.theme();
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
