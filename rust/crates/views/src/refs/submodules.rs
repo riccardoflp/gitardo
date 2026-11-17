@@ -10,8 +10,7 @@ use model::contract::{FeatureId, Target};
 use model::submodule::{Submodule, SubmoduleStatus, status};
 use ui::layout::{Align, Area, place};
 use ui::{
-    AccessRole, Button, ButtonKind, Description, Icon, Label, MenuAnchor, MenuEntry, MenuItem, Rect, Sense, TextKind,
-    Tone, Ui,
+    AccessRole, Button, ButtonKind, Description, Icon, Label, MenuAnchor, MenuEntry, Rect, Sense, TextKind, Tone, Ui,
 };
 
 use super::draw::{Context, indent, list_title};
@@ -310,12 +309,8 @@ fn menu_entries(groups: &[Vec<OperationEntry>]) -> Vec<MenuEntry<'_, usize>> {
             entries.push(MenuEntry::Separator);
         }
         for operation in group {
-            let item = MenuItem::new(operation.label.as_str(), index);
-            entries.push(MenuEntry::Item(if operation.run.is_some() {
-                item
-            } else {
-                item.disabled()
-            }));
+            let items = crate::branch::menu_items(std::slice::from_ref(operation), |_| index);
+            entries.extend(items);
             index += 1;
         }
     }

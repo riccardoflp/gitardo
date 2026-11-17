@@ -43,6 +43,12 @@
   the theme, a color for each family of hues and the muted text for the gray of the folders, and change with it. The
   setting **File icons** (`fileIcons`, in **Appearance**) draws them in the colors of the theme (`symbols`, the
   default), in the color of the text (`monochrome`), or as the plain file and folder of before (`simple`).
+- Every item of the context menus and of the menus under a button that does something shows the icon of its action at
+  the left of its words, the one its button draws elsewhere, in the color of the words and dimmed with them: the copy
+  icon on every **Copy …**, the bin on every **Delete …**, **Remove …** and **Drop**, the Timeline on **Show in the
+  timeline**, the icons of **Merge**, **Cherry-pick**, **Fetch**, **Pull** and **Push**. Eight icons of Lucide join the
+  window for copy, cut, paste, rename, check out, a new window, reveal and unfold. The items that rewrite the history
+  and the lists of values have none, their words lined up with the others; a switch keeps its check.
 - The side column takes less room: a repository, a worktree and a submodule are each one row of one line, the name on
   the left and the branch, the files changed and `↓ ↑` smaller on the right, the name and the branch cut with `…`
   when the row is short; the heading of **Branches** has **Create branch**, **Compare** and the button of the rail's

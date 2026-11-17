@@ -4,7 +4,7 @@
 //! and **Theme…**.
 
 use model::filter::{Kinds, ReferenceKind};
-use ui::{Button, ButtonKind, MenuEntry, MenuItem, Ui};
+use ui::{Button, ButtonKind, MenuEntry, Ui};
 
 use super::fold::{FoldAllEntry, FoldAllState, fold_all_view};
 use super::intent::{GraphIntent, Switches, TimelineSwitch};
@@ -127,12 +127,11 @@ fn switch_words(switch: TimelineSwitch) -> &'static str {
 
 /// The item of a switch, with a check while it is on.
 fn switch_item(switches: Switches, switch: TimelineSwitch) -> MenuEntry<'static, MoreCommand> {
-    let item = MenuItem::new(switch_words(switch), MoreCommand::Switch(switch));
-    MenuEntry::Item(if switches.is_on(switch) {
-        item.with_icon(icons::CHOSEN)
-    } else {
-        item
-    })
+    MenuEntry::Item(icons::choice(
+        switch_words(switch),
+        MoreCommand::Switch(switch),
+        switches.is_on(switch),
+    ))
 }
 
 /// The entries of the timeline, in the order of the card: the switches of what is listed and brought out, the folds,
@@ -149,13 +148,21 @@ fn timeline_entries(menu: TimelineMenu) -> Vec<MenuEntry<'static, MoreCommand>> 
         entries.push(switch_item(menu.switches, switch));
     }
     if menu.drawn == GraphDrawn::WithLines && !menu.switches.is_on(TimelineSwitch::OneLane) {
-        let fold = MenuItem::new(words::FOLD_ALL, MoreCommand::FoldAll(FoldAllEntry::Fold));
-        let fold = match (menu.is_all_folded, menu.has_merges) {
-            (true, _) => fold.with_icon(icons::CHOSEN),
-            (false, true) => fold,
-            (false, false) => fold.disabled(),
+        let fold = icons::choice(
+            words::FOLD_ALL,
+            MoreCommand::FoldAll(FoldAllEntry::Fold),
+            menu.is_all_folded,
+        );
+        let fold = if menu.is_all_folded || menu.has_merges {
+            fold
+        } else {
+            fold.disabled()
         };
-        let unfold = MenuItem::new(words::UNFOLD_ALL, MoreCommand::FoldAll(FoldAllEntry::Unfold));
+        let unfold = icons::action(
+            icons::UNFOLD,
+            words::UNFOLD_ALL,
+            MoreCommand::FoldAll(FoldAllEntry::Unfold),
+        );
         entries.push(MenuEntry::Item(fold));
         entries.push(MenuEntry::Item(if menu.has_folds { unfold } else { unfold.disabled() }));
     }
@@ -182,11 +189,11 @@ pub(crate) fn kind_entries(kinds: Option<Kinds>) -> Vec<MenuEntry<'static, MoreC
     ]
     .into_iter()
     .map(|(kind, label)| {
-        let item = MenuItem::new(label, MoreCommand::Kind(kind));
+        let is_shown = kinds.is_some_and(|kinds| kinds.has(kind));
+        let item = icons::choice(label, MoreCommand::Kind(kind), is_shown);
         MenuEntry::Item(match kinds {
             None => item.disabled().with_shortcut(filter_words::CHOSEN_IN_FILTER),
-            Some(kinds) if kinds.has(kind) && kinds.count() == 1 => item.with_icon(icons::CHOSEN).disabled(),
-            Some(kinds) if kinds.has(kind) => item.with_icon(icons::CHOSEN),
+            Some(kinds) if kinds.has(kind) && kinds.count() == 1 => item.disabled(),
             Some(_) => item,
         })
     })
@@ -262,7 +269,7 @@ fn operation_entries(menu: OperationsMenu) -> Vec<MenuEntry<'static, MoreCommand
     ]
     .into_iter()
     .map(|(label, feature, can_run)| {
-        let item = MenuItem::new(label, MoreCommand::Operation(feature));
+        let item = icons::operation_item(label, feature, MoreCommand::Operation(feature));
         MenuEntry::Item(if can_run && !menu.is_running {
             item
         } else {
@@ -278,7 +285,7 @@ fn operation_item(
     feature: &'static str,
     operations: OperationsMenu,
 ) -> MenuEntry<'static, MoreCommand> {
-    let item = MenuItem::new(label, MoreCommand::Operation(feature));
+    let item = icons::operation_item(label, feature, MoreCommand::Operation(feature));
     MenuEntry::Item(if operations.is_running { item.disabled() } else { item })
 }
 
@@ -288,14 +295,22 @@ fn operation_item(
 fn ways_entries(operations: OperationsMenu, has_submodules: bool) -> Vec<MenuEntry<'static, MoreCommand>> {
     let mut entries = vec![
         operation_item(crate::text::compare::COMPARE_BRANCHES, "compare.choose", operations),
-        MenuEntry::Item(MenuItem::new(
+        MenuEntry::Item(icons::action(
+            icons::COMMIT,
             crate::text::search::GO_TO_COMMIT_ENTRY,
             MoreCommand::GoToCommit,
         )),
-        MenuEntry::Item(if operations.is_running {
-            MenuItem::new(words::ACTIVE_FILE_HISTORY, MoreCommand::ActiveFileHistory).disabled()
-        } else {
-            MenuItem::new(words::ACTIVE_FILE_HISTORY, MoreCommand::ActiveFileHistory)
+        MenuEntry::Item({
+            let history = icons::operation_item(
+                words::ACTIVE_FILE_HISTORY,
+                "file-history.file",
+                MoreCommand::ActiveFileHistory,
+            );
+            if operations.is_running {
+                history.disabled()
+            } else {
+                history
+            }
         }),
         operation_item(crate::text::bisect::REFLOG, "reflog.browse", operations),
         operation_item(crate::text::branch::CLEAN_UP_BRANCHES, "branch.clean-up", operations),
@@ -316,7 +331,7 @@ fn ways_entries(operations: OperationsMenu, has_submodules: bool) -> Vec<MenuEnt
 /// timeline; the ways to the pages and **Select repository…**; **Switch identity…**; **Load pull requests from
 /// GitHub** when the main remote is on GitHub; then **Settings** and **Theme…**.
 fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
-    let refresh = MenuItem::new(words::REFRESH, MoreCommand::Refresh).with_icon(icons::READ_AGAIN);
+    let refresh = icons::action(icons::READ_AGAIN, words::REFRESH, MoreCommand::Refresh);
     let mut entries = vec![MenuEntry::Item(if state.can_refresh {
         refresh
     } else {
@@ -335,7 +350,8 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
         entries.extend(ways_entries(operations, state.has_submodules));
     }
     if state.can_select_repository {
-        entries.push(MenuEntry::Item(MenuItem::new(
+        entries.push(MenuEntry::Item(icons::action(
+            icons::WORKTREE,
             words::SELECT_REPOSITORY,
             MoreCommand::SelectRepository,
         )));
@@ -358,9 +374,15 @@ fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
     }
     entries.push(MenuEntry::Separator);
     entries.push(MenuEntry::Item(
-        MenuItem::new(crate::text::settings::SETTINGS_ENTRY, MoreCommand::Settings).with_shortcut("Ctrl+,"),
+        icons::action(
+            icons::SETTINGS,
+            crate::text::settings::SETTINGS_ENTRY,
+            MoreCommand::Settings,
+        )
+        .with_shortcut("Ctrl+,"),
     ));
-    entries.push(MenuEntry::Item(MenuItem::new(
+    entries.push(MenuEntry::Item(icons::action(
+        icons::APPEARANCE,
         crate::text::settings::THEME_ENTRY,
         MoreCommand::Theme,
     )));

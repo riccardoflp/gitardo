@@ -3,9 +3,10 @@
 //! menu of a line open the file.
 
 use model::merge_view::Column;
-use ui::{Key, MenuEntry, MenuItem, Modifiers, NamedKey, Rect, Sense, Ui};
+use ui::{Key, MenuEntry, Modifiers, NamedKey, Rect, Sense, Ui};
 
 use super::{MergeIntent, MergePageIntent, MergePageState};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::merge_view as words;
 
@@ -46,7 +47,11 @@ pub(crate) fn line_cell(
     if response.clicked || response.secondary_clicked {
         intents.push(asked(state, MergePageIntent::Cursor(column, line)));
     }
-    let entries = [MenuEntry::Item(MenuItem::new(words::JUMP_TO_SOURCE, true))];
+    let entries = [MenuEntry::Item(icons::action(
+        icons::OPEN_FILE,
+        words::JUMP_TO_SOURCE,
+        true,
+    ))];
     if ui.context_menu(("merge line menu", state.id, column, line), &response, &entries) == Some(true) {
         intents.push(asked(state, MergePageIntent::OpenAtLine(column, line)));
     }

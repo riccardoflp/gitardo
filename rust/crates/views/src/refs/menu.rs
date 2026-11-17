@@ -4,7 +4,7 @@
 //! **Add submodule…**.
 
 use model::refs::SortOrder;
-use ui::{MenuEntry, MenuItem};
+use ui::MenuEntry;
 
 use super::ReferencesState;
 use super::rows::Entry;
@@ -54,12 +54,19 @@ pub(super) fn entry_menu<'t>(
         entries.extend(
             filter_entries(state.shown, &full, state.references)
                 .into_iter()
-                .map(|chosen| MenuEntry::Item(MenuItem::new(filter_entry_words(chosen), EntryCommand::Filter(chosen)))),
+                .map(|chosen| {
+                    MenuEntry::Item(icons::action(
+                        filter_icon(chosen),
+                        filter_entry_words(chosen),
+                        EntryCommand::Filter(chosen),
+                    ))
+                }),
         );
         entries.push(MenuEntry::Separator);
     }
     if entry.commit().is_some() {
-        entries.push(MenuEntry::Item(MenuItem::new(
+        entries.push(MenuEntry::Item(icons::action(
+            icons::TIMELINE,
             words::SHOW_IN_TIMELINE,
             EntryCommand::ShowInTimeline,
         )));
@@ -74,9 +81,11 @@ pub(super) fn entry_menu<'t>(
         } else {
             words::ADD_TO_FAVORITES
         };
-        entries.push(MenuEntry::Item(
-            MenuItem::new(label, EntryCommand::Favorite).with_icon(icons::FAVORITE),
-        ));
+        entries.push(MenuEntry::Item(icons::action(
+            icons::FAVORITE,
+            label,
+            EntryCommand::Favorite,
+        )));
     }
     let mut operations = menu_items(operations, EntryCommand::Operation);
     if let Entry::Stash(_) = entry {
@@ -122,15 +131,22 @@ pub(super) fn operations(state: &ReferencesState<'_>, entry: &Entry<'_>) -> Vec<
     }
 }
 
+/// The icon of an entry that changes the branches the timeline shows: the funnel narrows it to one history, the eye
+/// shows more of it, the struck eye hides one.
+fn filter_icon(entry: FilterEntry) -> ui::Icon {
+    match entry {
+        FilterEntry::ShowOnly => icons::FILTER,
+        FilterEntry::ShowToo | FilterEntry::ShowAll => icons::SHOW,
+        FilterEntry::Hide => icons::HIDE,
+    }
+}
+
 /// The operations of a stash, as its row in the timeline has them.
 fn stash_operations() -> Vec<MenuEntry<'static, EntryCommand>> {
     stash_menu()
         .into_iter()
         .filter_map(|entry| match entry {
-            MenuEntry::Item(item) => Some(MenuEntry::Item(MenuItem::new(
-                item.label,
-                EntryCommand::Stash(item.value),
-            ))),
+            MenuEntry::Item(item) => Some(MenuEntry::Item(item.map(EntryCommand::Stash))),
             MenuEntry::Separator => Some(MenuEntry::Separator),
             MenuEntry::Submenu { .. } => None, // The menu of a stash has no submenu.
         })
@@ -158,22 +174,16 @@ pub(super) fn list_menu<'t>(
     order: SortOrder,
     operations: &'t [OperationEntry],
 ) -> Vec<MenuEntry<'t, ListCommand>> {
-    let sort = |label, by| {
-        let item = MenuItem::new(label, ListCommand::Sort(by));
-        MenuEntry::Item(if order == by {
-            item.with_icon(icons::CHOSEN)
-        } else {
-            item
-        })
-    };
+    let sort = |label, by| MenuEntry::Item(icons::choice(label, ListCommand::Sort(by), order == by));
     match list {
         RailList::Local | RailList::Remote(_) | RailList::Tags => vec![
             sort(words::SORT_BY_NAME, SortOrder::Name),
             sort(words::SORT_BY_DATE, SortOrder::Date),
         ],
         RailList::Worktrees => menu_items(operations, ListCommand::Operation),
-        RailList::Submodules => vec![MenuEntry::Item(MenuItem::new(
+        RailList::Submodules => vec![MenuEntry::Item(icons::operation_item(
             words::ADD_SUBMODULE,
+            "submodule.add",
             ListCommand::Run("submodule.add"),
         ))],
         RailList::Favorites | RailList::Recent | RailList::Stashes => Vec::new(),

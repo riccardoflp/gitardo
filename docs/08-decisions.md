@@ -1131,6 +1131,46 @@ In the extension the views already show the file icon theme of VS Code, which th
 Rejected: icons drawn for Gitardo (a set of hundreds is years of work); the colors of the set as written (they do not
 read on the light and high contrast grounds); a set with icons of files only (folders would stay plain).
 
+## D63 — The icon of each action in the menus
+
+*Asked by the maintainer for milestone M17; the details proposed by the agent.*
+
+The menus of the window said their actions in words alone, while the same actions on the buttons of the header, the
+side column and the title rows of the pages had an icon: the eye had to read every line of a long menu to find
+**Delete** or **Copy hash**. Now every item of every context menu and of every menu under a button that does something
+has the icon of its action at the left of its words, the icon a button of the same action draws, so that one meaning
+is one icon across the window, as D53 asked of the buttons (`ui.menu-icons`):
+
+- **The same icon wherever the action is.** Every **Copy …** item draws the copy icon, every **Delete …**, **Remove …**,
+  **Drop** and **Prune** the bin, **Show in the timeline** the Timeline's `git-graph`, **Compare with…** the icon of
+  Compare, **Merge**, **Cherry-pick**, **Fetch**, **Pull** and **Push** the icons the table of `graph.icons` already had
+  for them. An item that runs an operation of the catalog gets its icon from one table, by the identifier of the
+  operation, so that the menu of a branch, the menu of its label in the timeline and the menu of a drop say it alike.
+- **Eight icons more, all Lucide's.** Copy (`copy`), cut (`scissors`), paste (`clipboard-paste`), rename and edit a
+  message (`pen-line`), check out (`log-in`), open in a new window (`app-window`), reveal in the file manager
+  (`folder-open`) and unfold the commits of a merge (`unfold-vertical`); folding them takes the `fold-vertical` of the
+  lines that did not change, the same act. Each is a line of the table of `graph.icons`.
+- **What has no icon.** An item that no icon says clearly has none, and its words still start where those of the other
+  items do, the toolkit keeping the column of the icons in every menu: the operations that rewrite the history
+  (rebase, reset, squash, split, fixup, the interactive rebase page), **Apply patch…**, **Switch identity…**,
+  **Synchronize URLs from .gitmodules**, **Go to line**, and the menus that list values rather than actions (the
+  action of a step of a rebase, the value of a setting, a font, a page of the way back). A test goes through every menu
+  the views make and fails on an item without an icon that is not on this list.
+- **The check stays where it is.** An item that switches something on and off, or chooses one of a list (the switches
+  of the **…** menu, the kinds of references shown, the order of a list, the mode of the search box, the repository and
+  the worktree of the header), keeps its check in the column of the icons while it is on, and has no icon of its own.
+- **The color of the words.** The icon is drawn in the color of the words of its item: lit with them under the pointer,
+  dimmed with them when the item cannot be chosen. No item is red, and no icon is.
+
+Rejected: an icon on every item, the switches and the values included (a check and an icon in one column cannot be
+told apart, and two columns make every menu wider for a few items); icons in color (the menu would draw the eye to
+**Delete** rather than to what is read); one icon for each kind of thing rather than for each action (the icon of a
+branch on **Check out**, **Rename** and **Delete** of a branch says nothing of what each does).
+
+In the extension the menus of the webviews are drawn by the extension itself (`ContextMenu.tsx`), and could take the
+same icons from the codicons it has; they are left as they are for now, desktop first ([Q619](#of-the-icons-of-the-menus-from-q610)).
+VS Code's own menus show no icons.
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -3362,6 +3402,48 @@ the reading given until the card says otherwise.
 - **Q604** — `file-view.files-changes`: the marks are taken when the files are listed, after each read; between a read
   and the end of the list that follows it, a moment, the tree still shows the marks of the read before, as it still
   shows its files.
+
+### Of the icons of the menus, from Q610
+
+Questions of [D63](#d63--the-icon-of-each-action-in-the-menus), each built with the reading given until the card says
+otherwise.
+
+- **Q610** — `ui.menu-icons`: how a check and an icon live together. Built: an item that switches or chooses keeps its
+  check in the column of the icons while it is on and has no icon of its own, so that the column says either what an
+  item does or that it is on, never both. **Fold all merges** is a switch, with its check; **Unfold all merges** an
+  action, with the icon of unfolding. Else a second column for the checks, which makes every menu with a switch wider.
+- **Q611** — `ui.menu-icons`: the operations that rewrite the history (**Rebase … onto this**, **Reset … to here**,
+  **Squash into the commit before it…**, **Squash N commits into one**, **Split this commit…**, the fixups, the
+  interactive rebase page and the **Rebase** of a drop) have no icon, Lucide having none that says a rebase. Should
+  they share one, such as `list-restart`, or keep none?
+- **Q612** — `ui.menu-icons`: **Check out** draws `log-in`, an arrow going in through a door, for a branch, a remote
+  branch (with **Check out and rebase** too), a tag, a commit, and **Update to `<recorded>`** of a submodule, which
+  checks out the commit recorded. Lucide has no icon of a check out; is the door clear enough, or should **Check out**
+  keep none?
+- **Q613** — `ui.menu-icons`: some actions take the icon of the thing they make or open, as Q433 did for the views:
+  **Create tag here** the tag; **Create worktree…**, **Open in worktree**, **Switch worktree…**, **Select
+  repository…** and a repository of the **+** of **Repositories** the worktree; **Initialize** of a submodule the
+  submodule, and **Deinitialize** the dashed circle of a submodule not initialized; **Choose what new worktrees get…**
+  the gear of the settings; **Manage remotes…** the cloud; **Go to commit…** the commit; **Theme…** the palette;
+  **Open workspace file…** the file with lines; a comparison opened before, in the chooser, the clock of Recent.
+- **Q614** — `ui.menu-icons`: **Fast-forward to `<upstream>`** and **Update to latest** of a submodule draw the arrow of
+  **Pull**, both bringing the commits of the remote into a branch; **Stage `<commit>` as recorded** the plus of
+  staging; **Clean up branches…** and **Prune missing worktrees** the bin, both ending in a deletion; the bisect,
+  started or marked, good or bad, the binoculars, since a check in a menu reads as a switch that is on.
+- **Q615** — `ui.menu-icons`: **Show this history too** and **Show all branches** draw the eye, **Hide this history**
+  the struck eye, **Show only this history** the funnel; **Show in Gitardo** of a worktree or a submodule the eye.
+- **Q616** — `ui.menu-icons`: **Close tab** and **Close other tabs** both draw the cross of closing; **Reveal in File
+  Explorer** the open folder, apart from **Open folder…**, which keeps the closed folder of choosing a repository.
+- **Q617** — `ui.menu-icons`: **Jump to source** of the Diff and Merge pages and **Open the file at this revision** draw
+  **Open the file**; **Open commit of current line as a page** the icon of opening a commit as a page; **Reveal commit
+  of current line in the timeline** the Timeline; **Toggle file blame** and **Blame file before commit of current
+  line** the person with a pen of the blame.
+- **Q618** — `ui.menu-icons`: the eight new outlines were taken from the icon nodes of `lucide-react` 0.577.0, written in
+  the form of the files of `lucide-static`, with the header `lucide-static v0.577.0`, while the others say `v1.66.0`.
+  Should they be replaced by the files of the same release as the others?
+- **Q619** — `ui.menu-icons`: the extension draws its own menus in its webviews (`ContextMenu.tsx`, with more than a
+  hundred items in `menus.ts` and in its views), which could show the same icons from the codicons; the card is
+  **Planned** there. Should it follow, with the codicon nearest to each icon of the table?
 
 ### Of the icons of files and folders, from Q620
 

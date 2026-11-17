@@ -7,6 +7,7 @@ use ui::{CodeEditor, MenuEntry, MenuItem, Ui};
 
 use super::{FilePageIntent, FilePageState, FileShown, page_intent};
 use crate::blame::FileBlameView;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::blame as blame_words;
 use crate::text::file_view as words;
@@ -89,49 +90,72 @@ pub fn edit_view(state: &FilePageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     intents
 }
 
+/// An entry of the context menu of the editor with its keys, disabled when it cannot be used.
+fn keyed(item: MenuItem<'static, MenuChoice>, keys: &'static str, is_on: bool) -> MenuEntry<'static, MenuChoice> {
+    let item = item.with_shortcut(keys);
+    MenuEntry::Item(if is_on { item } else { item.disabled() })
+}
+
+/// An entry of the context menu of the editor that runs an operation of the catalog on the file.
+fn run(label: &'static str, feature: &'static str) -> MenuItem<'static, MenuChoice> {
+    icons::operation_item(label, feature, MenuChoice::Run(feature))
+}
+
 /// The entries of the context menu of the editor: cut, copy and paste, **Find** and **Go to line**, then the history
 /// of the file and of the lines selected, and, in a file of a repository, the operations of the blame.
 fn menu_entries(state: &FilePageState<'_>, has_selection: bool) -> Vec<MenuEntry<'static, MenuChoice>> {
-    let entry = |label, keys, choice, is_on: bool| {
-        let item = MenuItem::new(label, choice).with_shortcut(keys);
-        MenuEntry::Item(if is_on { item } else { item.disabled() })
-    };
-    let run = |label, feature| MenuEntry::Item(MenuItem::new(label, MenuChoice::Run(feature)));
+    let can_cut = has_selection && !state.is_read_only;
     let mut entries = vec![
-        entry(
-            words::CUT,
+        keyed(
+            icons::action(icons::CUT, words::CUT, MenuChoice::Cut),
             words::CUT_KEYS,
-            MenuChoice::Cut,
-            has_selection && !state.is_read_only,
+            can_cut,
         ),
-        entry(words::COPY, words::COPY_KEYS, MenuChoice::Copy, has_selection),
-        entry(words::PASTE, words::PASTE_KEYS, MenuChoice::Paste, false),
+        keyed(
+            icons::action(icons::COPY, words::COPY, MenuChoice::Copy),
+            words::COPY_KEYS,
+            has_selection,
+        ),
+        keyed(
+            icons::action(icons::PASTE, words::PASTE, MenuChoice::Paste),
+            words::PASTE_KEYS,
+            false,
+        ),
         MenuEntry::Separator,
-        entry(words::FIND, words::FIND_KEYS, MenuChoice::Find, true),
-        entry(words::GO_TO_LINE, words::GO_TO_LINE_KEYS, MenuChoice::GoToLine, true),
+        keyed(
+            icons::action(icons::SEARCH, words::FIND, MenuChoice::Find),
+            words::FIND_KEYS,
+            true,
+        ),
+        keyed(
+            icons::without_icon(words::GO_TO_LINE, MenuChoice::GoToLine),
+            words::GO_TO_LINE_KEYS,
+            true,
+        ),
         MenuEntry::Separator,
-        run(blame_words::SHOW_FILE_HISTORY, "file-history.file"),
+        MenuEntry::Item(run(blame_words::SHOW_FILE_HISTORY, "file-history.file")),
     ];
     if !state.is_read_only {
-        entries.push(run(blame_words::SHOW_LINES_HISTORY, "file-history.lines"));
+        entries.push(MenuEntry::Item(run(
+            blame_words::SHOW_LINES_HISTORY,
+            "file-history.lines",
+        )));
     }
     if state.blame.can_blame {
         entries.extend([
             MenuEntry::Separator,
-            run(blame_words::TOGGLE_FILE_BLAME, "blame.toggle-file"),
-            entry(
-                blame_words::OPEN_LINE_COMMIT,
+            MenuEntry::Item(run(blame_words::TOGGLE_FILE_BLAME, "blame.toggle-file")),
+            keyed(
+                run(blame_words::OPEN_LINE_COMMIT, "blame.open-line-commit"),
                 blame_words::OPEN_LINE_COMMIT_KEYS,
-                MenuChoice::Run("blame.open-line-commit"),
                 true,
             ),
-            entry(
-                blame_words::REVEAL_LINE_COMMIT,
+            keyed(
+                run(blame_words::REVEAL_LINE_COMMIT, "blame.reveal-line-commit"),
                 blame_words::REVEAL_LINE_COMMIT_KEYS,
-                MenuChoice::Run("blame.reveal-line-commit"),
                 true,
             ),
-            run(blame_words::BLAME_BEFORE, "blame.previous"),
+            MenuEntry::Item(run(blame_words::BLAME_BEFORE, "blame.previous")),
         ]);
     }
     entries

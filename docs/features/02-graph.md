@@ -468,7 +468,7 @@ the same everywhere, and as it does in other applications; the logo of Gitardo i
 
 - **Kind**: View
 - **Function**: `render::Canvas::draw_icon(icon: Icon, origin: Point, size: f32, color: Color)`
-- **Entry points**: every button, menu, row and mark of the window that has an icon.
+- **Entry points**: every button, item of a menu (`ui.menu-icons`), row and mark of the window that has an icon.
 
 The outlines of the icons are Lucide's, kept in the repository with its licence (ISC), drawn in the color and at the
 size asked, 16 logical pixels unless said otherwise, with their stroke scaled so that they keep the weight of the text
@@ -492,7 +492,7 @@ own dash.
 | Filter what is shown or listed | `funnel` |
 | Show, show beside; hide | `eye`, `eye-off` |
 | Branch; create a branch | `git-branch`, `git-branch-plus` |
-| Tag | `tag` |
+| Tag; create a tag | `tag` |
 | Remote | `cloud` |
 | Commit; open a commit as a page | `git-commit-horizontal`, `maximize-2` |
 | Merge; cherry-pick | `git-merge`, `cherry` |
@@ -510,7 +510,7 @@ own dash.
 | Worktree, and a repository open in **Repositories** (Q502); submodule | `folder-git-2`, `boxes` |
 | Stash; apply; pop | `archive`, `archive-restore`, `package-open` |
 | Favorite; recent | `star`, `clock` |
-| History of a file or a folder | `history` |
+| History of a file, a folder or lines; the reflog | `history` |
 | Who changed each line; on every file | `user-pen`, `pin` |
 | Drafted or proposed for you: by the AI, for a conflict, for a worktree; resolved by the rules | `sparkles`, `wand-sparkles` |
 | Edited, not saved or not committed | `pencil` |
@@ -519,18 +519,22 @@ own dash.
 | What is running | `activity` |
 | More | `ellipsis` |
 | List; tree of folders | `list`, `list-tree` |
-| Fold the lines that did not change | `fold-vertical` |
+| Fold the lines that did not change, the commits a merge brought in; unfold them | `fold-vertical`, `unfold-vertical` |
 | A button that opens a list of choices below it | `chevrons-up-down` |
 | Accept every change that needs no choice | `check-check` |
 | Stop what is running: drafting a message | `circle-stop` |
 | Open in the external editor | `external-link` |
 | Take the incoming version, or the version of the other side of a comparison; take the current version | `circle-arrow-down`, `circle-arrow-up` |
 | Drag to move a row | `grip-vertical` |
-| A bisect | `binoculars` |
+| A bisect; start one, mark a commit good or bad (in a menu) | `binoculars` |
 | A submodule not initialized | `circle-dashed` |
 | The base of a merge, shown or hidden | `git-fork` |
 | The look of the window: the section **Appearance** of the settings | `palette` |
 | Experimental: the list of the experimental settings | `flask-conical` |
+| Copy: a hash, a message, a path, a patch, the text selected; cut; paste | `copy`, `scissors`, `clipboard-paste` |
+| Rename a branch or a worktree; edit the message of a commit | `pen-line` |
+| Check out a branch, a tag or a commit | `log-in` |
+| Open in a new window; reveal a folder in the file manager of the system | `app-window`, `folder-open` |
 | The logo of Gitardo, at the top left of the window | the extension's `gitardo.svg`, not Lucide's |
 
 Acceptance:
@@ -614,6 +618,58 @@ Acceptance:
 - [ ] `End` lights the last entry and shows it; `Enter` chooses it.
 - [ ] A menu that fits has no bar and opens where it opened before.
 - [ ] A context menu opened near the foot of the window opens above the pointer when it fits there.
+
+### `ui.menu-icons` — The icon of each action in the menus
+
+Every item of a menu that does something shows the icon of its action at the left of its words, the one a button of
+the same action draws, so that the eye finds an action in a long menu and one meaning is one icon across the window
+([D63](../08-decisions.md#d63--the-icon-of-each-action-in-the-menus)).
+
+- **Kind**: Derivation
+- **Function**: `views::icons::operation_icon(feature: &str) -> Option<Icon>`, which gives the icon of an item that
+  runs an operation of the catalog, by the identifier of its card; the other items name the meaning of their action
+  from `views::icons` where their menu is made.
+- **Entry points**: every context menu and every menu under a button: the menu of a commit and of its labels in the
+  timeline, of the draft, of a stash, of a selection, of a drop; the menus of a branch, a remote branch, a tag, a
+  worktree, a stash and a submodule in the side column, and of their lists; the **…** and the **Sync** menus of the
+  header, the repository and the worktree of the header, the menu of a repository tab and the **+** of
+  **Repositories**; the menus of a file in the Files page, the inspector, the Commit page and the comparison; the menus
+  of the editors of the File, Diff and Merge pages; the chooser of the comparison, the sections of the settings.
+- **Uses**: `graph.icons`.
+- **Extension**: the extension draws its own menus in its webviews, with no icons yet (Q619); VS Code's own menus show
+  none.
+
+- The icon is at the left of the words, in the column the toolkit keeps for icons in every menu, drawn at 16 logical
+  pixels in the color of the words: lit with them under the pointer or the keys, dimmed with them when the item cannot
+  be chosen. No icon has a color of its own.
+- An action has the icon the table of `graph.icons` gives its meaning, the one its button draws where it has one:
+  every **Copy …** the copy icon, every **Delete …**, **Remove …**, **Drop** and **Prune** the bin, **Show in the
+  timeline** the Timeline's, **Compare with…** the icon of Compare, wherever the item is. An item that runs an
+  operation takes its icon from `operation_icon`, so that the menu of a branch, of its label and of a drop agree.
+- An item that no icon says clearly has none: the operations that rewrite the history (rebase, reset, squash, split,
+  fixup, the interactive rebase page), **Apply patch…**, **Switch identity…**, **Synchronize URLs from .gitmodules**,
+  **Go to line**, and the items of the menus that list values (the action of a step of a rebase, the value of a
+  setting, a font, a page of the way back). Its words start where those of the items with an icon do.
+- An item that switches or chooses (the switches of **…**, the kinds of references shown, the order of a list, the mode
+  of the search box, the repository and the worktree of the header) shows the check in the column of the icons while
+  it is on, and no icon of its own (Q610).
+- The views make their items through `views::icons` only, never with `MenuItem::new`, so that an item without an icon
+  is one that was asked for by name.
+
+Acceptance:
+
+- [ ] Every item of every menu the views make has the icon of its action, or is on the short list of the items without
+      one with why: a test goes through the sources of the views and fails on any other item made without an icon, and
+      on an operation offered in a menu with no icon in `operation_icon`.
+- [ ] **Discard all** and **Stash changes** of the draft draw the icons of the buttons **Discard changes** and **Stash
+      file** of the Changes page; the items of a stash draw the icons of its buttons in the side column.
+- [ ] Every **Copy …** item draws the copy icon, and every **Delete …**, **Remove …** and **Drop** item the bin.
+- [ ] The kinds of references in **…** show the check while they are shown and no other icon, and none while the
+      branch filter chose them.
+- [ ] In a menu, the words of an item without an icon start where those of an item with one do.
+- [ ] An icon is drawn in the color of the words of its item, and in the dimmed color of an item that cannot be chosen.
+- [ ] The menu of a commit of the timeline and the menu of a file of the Files page match their snapshots in the dark,
+      the light and the two high contrast themes.
 
 ### `ui.picker-scroll` — A picker longer than its rows
 

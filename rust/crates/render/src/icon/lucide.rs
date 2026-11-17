@@ -3,7 +3,7 @@
 use super::Icon;
 
 /// Every icon, in the order of the enumeration.
-pub(super) const ALL: [Icon; 81] = [
+pub(super) const ALL: [Icon; 89] = [
     Icon::ChevronRight,
     Icon::ChevronDown,
     Icon::ChevronUp,
@@ -85,10 +85,18 @@ pub(super) const ALL: [Icon; 81] = [
     Icon::Base,
     Icon::Palette,
     Icon::Flask,
+    Icon::Copy,
+    Icon::Cut,
+    Icon::Paste,
+    Icon::Rename,
+    Icon::CheckOut,
+    Icon::NewWindow,
+    Icon::Reveal,
+    Icon::Unfold,
 ];
 
 /// Each icon with its name in Lucide's set and its SVG file as Lucide publishes it, in the order of the enumeration.
-const OUTLINES: [(Icon, &str, &str); 81] = [
+const OUTLINES: [(Icon, &str, &str); 89] = [
     (
         Icon::ChevronRight,
         "chevron-right",
@@ -365,6 +373,34 @@ const OUTLINES: [(Icon, &str, &str); 81] = [
         Icon::Flask,
         "flask-conical",
         include_str!("../../icons/lucide/flask-conical.svg"),
+    ),
+    (Icon::Copy, "copy", include_str!("../../icons/lucide/copy.svg")),
+    (Icon::Cut, "scissors", include_str!("../../icons/lucide/scissors.svg")),
+    (
+        Icon::Paste,
+        "clipboard-paste",
+        include_str!("../../icons/lucide/clipboard-paste.svg"),
+    ),
+    (
+        Icon::Rename,
+        "pen-line",
+        include_str!("../../icons/lucide/pen-line.svg"),
+    ),
+    (Icon::CheckOut, "log-in", include_str!("../../icons/lucide/log-in.svg")),
+    (
+        Icon::NewWindow,
+        "app-window",
+        include_str!("../../icons/lucide/app-window.svg"),
+    ),
+    (
+        Icon::Reveal,
+        "folder-open",
+        include_str!("../../icons/lucide/folder-open.svg"),
+    ),
+    (
+        Icon::Unfold,
+        "unfold-vertical",
+        include_str!("../../icons/lucide/unfold-vertical.svg"),
     ),
 ];
 

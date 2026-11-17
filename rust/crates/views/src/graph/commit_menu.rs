@@ -16,6 +16,7 @@ use crate::branch::{
     OperationEntry, ReferenceMenus, branch_entries, chosen, commit_entries, compare_entries, history_entries,
     menu_items, open_intent, remote_entries, tag_entries,
 };
+use crate::icons;
 use crate::intent::Intent;
 
 /// The label the pointer is on: its commit, and its place among the labels of the commit.
@@ -152,7 +153,7 @@ pub(super) fn commit_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usiz
         if operations.len() == groups.iter().sum::<usize>() && !entries.is_empty() {
             entries.push(MenuEntry::Separator);
         }
-        entries.push(MenuEntry::Item(ui::MenuItem::new(
+        entries.push(MenuEntry::Item(icons::without_icon(
             label.as_str(),
             CommitCommand::TodoPage,
         )));
@@ -165,7 +166,8 @@ pub(super) fn commit_menu(state: &HistoryState<'_>, ui: &mut Ui<'_>, shown: usiz
         if !entries.is_empty() {
             entries.push(MenuEntry::Separator);
         }
-        entries.push(MenuEntry::Item(ui::MenuItem::new(
+        entries.push(MenuEntry::Item(icons::action(
+            icons::COPY,
             words.as_str(),
             CommitCommand::CopyUpstream,
         )));
@@ -226,7 +228,7 @@ fn push_merge_entries(state: &HistoryState<'_>, commit: &CommitId, entries: &mut
         entries.push(MenuEntry::Separator);
     }
     entries.extend(merge.into_iter().map(|entry| match entry {
-        MenuEntry::Item(item) => MenuEntry::Item(ui::MenuItem::new(item.label, CommitCommand::Merge(item.value))),
+        MenuEntry::Item(item) => MenuEntry::Item(item.map(CommitCommand::Merge)),
         MenuEntry::Submenu { .. } | MenuEntry::Separator => MenuEntry::Separator,
     }));
 }

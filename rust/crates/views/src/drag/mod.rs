@@ -10,7 +10,7 @@ use model::branch::other_worktree;
 use model::contract::{Answer, AnswerKey, Answers, FeatureId, Target};
 use model::drag::{Dragged, DropEntry, DropInput, DropRow, list_drop_entries};
 use model::state::RepositoryState;
-use ui::{MenuEntry, MenuItem, Ui};
+use ui::{MenuEntry, Ui};
 
 use crate::feature::FeatureIntent;
 use crate::intent::Intent;
@@ -113,8 +113,9 @@ pub fn drop_view(state: &DropState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let labels: Vec<String> = offered.iter().map(|entry| words::drop_entry(&entry.label)).collect();
     let entries: Vec<MenuEntry<'_, usize>> = labels
         .iter()
+        .zip(&offered)
         .enumerate()
-        .map(|(index, label)| MenuEntry::Item(MenuItem::new(label, index)))
+        .map(|(index, (label, entry))| MenuEntry::Item(crate::icons::operation_item(label, entry.feature.0, index)))
         .collect();
     ui.menu(DROP_MENU, &entries)
         .and_then(|index| offered.get(index))

@@ -6,10 +6,11 @@ use model::branch::{OpenBranchInput, OpenedReference, can_fast_forward, local_na
 use model::contract::{Answers, FeatureId, OpenIn, Target};
 use model::state::{Branch, RemoteBranch, RepositoryState, Tag};
 use model::worktree::{OtherWorktreeInput, WorktreeBranch, branch_in_another_worktree};
-use ui::{MenuEntry, MenuItem};
+use ui::MenuEntry;
 
 use super::ReferenceMenus;
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::branch as words;
 use crate::text::history as history_words;
@@ -276,8 +277,8 @@ fn current(state: &RepositoryState) -> &str {
     state.checked_out_branch().unwrap_or("HEAD")
 }
 
-/// The items of the entries, each carrying the value of its place among them, greyed out while its operation comes
-/// later.
+/// The items of the entries, each carrying the value of its place among them and the icon of its operation, greyed out
+/// while its operation comes later.
 pub(crate) fn menu_items<Value>(
     entries: &[OperationEntry],
     value: impl Fn(usize) -> Value,
@@ -286,7 +287,12 @@ pub(crate) fn menu_items<Value>(
         .iter()
         .enumerate()
         .map(|(index, entry)| {
-            let item = MenuItem::new(entry.label.as_str(), value(index));
+            let feature = match (&entry.run, &entry.url) {
+                (Some((FeatureId(feature), _)), _) => feature,
+                (None, Some(_)) => "github.open-pull-request",
+                (None, None) => "",
+            };
+            let item = icons::operation_item(entry.label.as_str(), feature, value(index));
             MenuEntry::Item(if entry.run.is_some() || entry.url.is_some() {
                 item
             } else {

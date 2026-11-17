@@ -2,10 +2,7 @@
 //! the page and the button that closes it (`ui.page-trail`, `repo.side-column`).
 
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{
-    AccessRole, Axis, Button, ButtonKind, Key, Label, MenuEntry, MenuItem, Modifiers, NamedKey, Rect, TextKind, Tone,
-    Ui,
-};
+use ui::{AccessRole, Axis, Button, ButtonKind, Key, Label, MenuEntry, Modifiers, NamedKey, Rect, TextKind, Tone, Ui};
 
 use super::PageHostState;
 use crate::graph::{ReferencesShown, side_button};
@@ -112,7 +109,7 @@ fn folded_names(names: &[Name<'_>], ui: &mut Ui<'_>, parts: &mut Area) -> Option
     let entries: Vec<MenuEntry<'_, usize>> = names
         .iter()
         .enumerate()
-        .map(|(index, name)| MenuEntry::Item(MenuItem::new(name.words, index)))
+        .map(|(index, name)| MenuEntry::Item(icons::without_icon(name.words, index)))
         .collect();
     let chosen = ui.menu_button("trail folded", cell, &button, &entries)?;
     names.get(chosen).map(|name| name.intent.clone())

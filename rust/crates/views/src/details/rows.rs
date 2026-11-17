@@ -7,8 +7,8 @@ use model::details::CommitDetail;
 use model::state::FileChange;
 use ui::layout::{Align, Area, place};
 use ui::{
-    Button, ButtonKind, Key, Label, List, MenuEntry, MenuItem, Modifiers, NamedKey, Rect, Reveal, RevealPlace,
-    SelectionMode, Sense, Steering, TextKind, Tone, Ui,
+    Button, ButtonKind, Key, Label, List, MenuEntry, Modifiers, NamedKey, Rect, Reveal, RevealPlace, SelectionMode,
+    Sense, Steering, TextKind, Tone, Ui,
 };
 
 use super::files::{CappedList, FileRow, FilesState, directory_row, file_name, file_rows, file_start};
@@ -403,7 +403,7 @@ fn inspector_file(
         }
     }
     file_name(ui, parts.rest(), (file, layout));
-    let entries = [MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, ()))];
+    let entries = [MenuEntry::Item(icons::action(icons::COMPARE, words::COMPARE_WITH, ()))];
     if ui.context_menu((key.0, key.1, "menu"), &response, &entries).is_some() {
         picked = Some(Picked::Compare);
     }

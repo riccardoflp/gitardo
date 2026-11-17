@@ -5,11 +5,12 @@
 
 use model::contract::{FeatureId, Target};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, LineCap, MenuEntry, MenuItem, Point, Stroke, TextKind, TextRun, Ui};
+use ui::{Button, LineCap, MenuEntry, Point, Stroke, TextKind, TextRun, Ui};
 
 use super::state::DraftState;
 use crate::changes::{ChangesIntent, CommitBox};
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::timeline as words;
 
@@ -95,7 +96,8 @@ pub fn draft_menu(draft: &DraftState, is_running: bool) -> Vec<MenuEntry<'static
     draft_entries(draft)
         .into_iter()
         .map(|entry| {
-            let item = MenuItem::new(entry_words(entry), entry);
+            let feature = entry_operation(entry).unwrap_or_default();
+            let item = icons::operation_item(entry_words(entry), feature, entry);
             let item = if entry_operation(entry).is_none() || is_running {
                 item.disabled()
             } else {

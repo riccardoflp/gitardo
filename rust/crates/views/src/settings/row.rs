@@ -5,8 +5,7 @@
 use model::contract::{Answer, AnswerKey, Answers, FeatureId, Target};
 use ui::layout::{Align, Area, place};
 use ui::{
-    AccessRole, Badge, BadgeFill, Button, ButtonKind, Choice, Description, Label, MenuEntry, MenuItem, Rect, TextKind,
-    Tone, Ui,
+    AccessRole, Badge, BadgeFill, Button, ButtonKind, Choice, Description, Label, MenuEntry, Rect, TextKind, Tone, Ui,
 };
 
 use super::controls::{block_control, block_height, value_control};
@@ -209,7 +208,7 @@ fn setting_control(row: &SettingRow, ui: &mut Ui<'_>, rect: Rect) -> Option<Sett
             let current = row.text.as_str();
             let items: Vec<MenuEntry<'_, &'static str>> = choices
                 .iter()
-                .map(|choice| MenuEntry::Item(MenuItem::new(choice, *choice)))
+                .map(|choice| MenuEntry::Item(icons::without_icon(choice, *choice)))
                 .collect();
             let shown = if current.is_empty() { words::NOT_SET } else { current };
             let button = Button::secondary(shown)

@@ -5,10 +5,7 @@
 use std::hash::Hash;
 
 use ui::layout::{Align, Area, place};
-use ui::{
-    Border, Button, ButtonKind, Color, InputBox, Label, MenuEntry, MenuItem, Message, Rect, Severity, TextKind, Tone,
-    Ui,
-};
+use ui::{Border, Button, ButtonKind, Color, InputBox, Label, MenuEntry, Message, Rect, Severity, TextKind, Tone, Ui};
 
 use super::{Identity, SettingRow, SettingValue};
 use crate::icons;
@@ -143,7 +140,7 @@ fn font_menu(ui: &mut Ui<'_>, row: &SettingRow, rect: Rect) -> Option<SettingVal
         if index == BUNDLED_FONTS.len() {
             entries.push(MenuEntry::Separator);
         }
-        entries.push(MenuEntry::Item(MenuItem::new(name, index)));
+        entries.push(MenuEntry::Item(icons::without_icon(name, index)));
     }
     let button = Button::secondary(&row.text)
         .kind(ButtonKind::Outline)

@@ -100,6 +100,20 @@ impl<'text, T> MenuItem<'text, T> {
         }
     }
 
+    /// The same item, with its icon, its shortcut and its state, carrying another value: the item of one menu put in
+    /// another.
+    #[must_use]
+    pub fn map<U>(self, value: impl FnOnce(T) -> U) -> MenuItem<'text, U> {
+        MenuItem {
+            label: self.label,
+            icon: self.icon,
+            shortcut: self.shortcut,
+            availability: self.availability,
+            tooltip: self.tooltip,
+            value: value(self.value),
+        }
+    }
+
     /// The same item, disabled.
     #[must_use]
     pub fn disabled(self) -> MenuItem<'text, T> {

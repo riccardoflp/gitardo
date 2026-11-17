@@ -4,7 +4,7 @@
 use model::CommitId;
 use model::rebase::{TodoAction, TodoRow, write_todo_rows};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, ButtonKind, InputBox, Label, MenuAnchor, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
+use ui::{Button, ButtonKind, InputBox, Label, MenuAnchor, MenuEntry, Rect, TextKind, Tone, Ui};
 
 use super::RebaseIntent;
 use crate::icons;
@@ -243,7 +243,7 @@ fn action_button((index, action): (usize, TodoAction), ui: &mut Ui<'_>, cell: Re
     }
     let entries: Vec<MenuEntry<'_, TodoAction>> = ACTIONS
         .iter()
-        .map(|each| MenuEntry::Item(MenuItem::new(action_words(*each).0, *each)))
+        .map(|each| MenuEntry::Item(icons::without_icon(action_words(*each).0, *each)))
         .collect();
     let chosen = ui.menu(("todo actions", index), &entries)?;
     Some(Intent::Rebase(RebaseIntent::SetAction(index, chosen)))

@@ -4,10 +4,11 @@
 //! operation runs.
 
 use model::contract::{Answer, AnswerKey, Answers, FeatureId, Target};
-use ui::{MenuEntry, MenuItem};
+use ui::MenuEntry;
 
 use super::toolbar::{SyncCounts, SyncMenu};
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::header as words;
 
@@ -75,7 +76,11 @@ impl SyncWords {
 pub(super) fn sync_entries<'t>(menu: &SyncMenu, said: &'t SyncWords) -> Vec<MenuEntry<'t, SyncCommand>> {
     let [_, fetch, pull, pull_with, push, lease, force] = menu.built.map(|is_built| is_built && !menu.is_running);
     let item = |label: &'t str, command, tooltip: &'t str, can_run: bool| {
-        let item = MenuItem::new(label, command).with_tooltip(tooltip);
+        let feature = match command {
+            SyncCommand::Run(feature) => feature,
+            SyncCommand::Pull(_) => "sync.pull-with",
+        };
+        let item = icons::operation_item(label, feature, command).with_tooltip(tooltip);
         if can_run { item } else { item.disabled() }
     };
     let mut entries = vec![

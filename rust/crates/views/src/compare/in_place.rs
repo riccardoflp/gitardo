@@ -3,7 +3,7 @@
 use model::compare::{CompareSide, FileList, InPlaceSides, NamedCommit, Side};
 use model::state::FileChange;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Button, ButtonKind, Label, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, Label, MenuEntry, Rect, TextKind, Tone, Ui};
 
 use super::CompareIntent;
 use crate::graph::GraphIntent;
@@ -180,7 +180,11 @@ fn file_rows(
         if response.clicked {
             intents.push(Intent::Compare(CompareIntent::InPlaceFile(index)));
         }
-        let entries = [MenuEntry::Item(MenuItem::new(crate::text::details::COMPARE_WITH, ()))];
+        let entries = [MenuEntry::Item(icons::action(
+            icons::COMPARE,
+            crate::text::details::COMPARE_WITH,
+            (),
+        ))];
         if ui
             .context_menu(("in place file menu", index), &response, &entries)
             .is_some()

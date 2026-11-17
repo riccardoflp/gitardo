@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use model::diff::AlignedRow;
 use ui::editor::{Command, Position};
-use ui::{AccessRole, Description, Key, MenuEntry, MenuItem, Modifiers, NamedKey, Point, Rect, Sense, TextKind, Ui};
+use ui::{AccessRole, Description, Key, MenuEntry, Modifiers, NamedKey, Point, Rect, Sense, TextKind, Ui};
 
 use super::caret::draw_caret;
 use super::columns::Columns;
@@ -18,6 +18,7 @@ use super::{
     CaretSide, DiffCaret, DiffEditIntent, DiffIntent, DiffPageState, DiffText, DiffVersion, FileDiff, PageLine,
 };
 use crate::file_view::{FileTarget, FileViewIntent};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::diff as words;
 use crate::text::file_view as file_words;
@@ -359,23 +360,38 @@ fn menu(sides: &DrawnSides<'_>, ui: &mut Ui<'_>, (side, response): (CaretSide, &
         _ => None,
     };
     let has_selection = text.is_some_and(|(_, cursor)| cursor.has_selection());
-    let entry = |label, keys, choice, is_on: bool| {
-        let item = MenuItem::new(label, choice).with_shortcut(keys);
+    let entry = |icon, label, (keys, choice), is_on: bool| {
+        let item = icons::action(icon, label, choice).with_shortcut(keys);
         MenuEntry::Item(if is_on { item } else { item.disabled() })
     };
     let mut entries = Vec::new();
     if side == CaretSide::Right && *state.versions.1 == DiffVersion::WorkingTree {
         entries.extend([
-            entry(file_words::CUT, file_words::CUT_KEYS, MenuChoice::Cut, has_selection),
-            entry(file_words::COPY, file_words::COPY_KEYS, MenuChoice::Copy, has_selection),
-            entry(file_words::PASTE, file_words::PASTE_KEYS, MenuChoice::Paste, false),
+            entry(
+                icons::CUT,
+                file_words::CUT,
+                (file_words::CUT_KEYS, MenuChoice::Cut),
+                has_selection,
+            ),
+            entry(
+                icons::COPY,
+                file_words::COPY,
+                (file_words::COPY_KEYS, MenuChoice::Copy),
+                has_selection,
+            ),
+            entry(
+                icons::PASTE,
+                file_words::PASTE,
+                (file_words::PASTE_KEYS, MenuChoice::Paste),
+                false,
+            ),
             MenuEntry::Separator,
         ]);
     }
     entries.push(entry(
+        icons::OPEN_FILE,
         words::JUMP_TO_SOURCE,
-        words::JUMP_TO_SOURCE_KEYS,
-        MenuChoice::JumpToSource,
+        (words::JUMP_TO_SOURCE_KEYS, MenuChoice::JumpToSource),
         true,
     ));
     let chosen = ui.context_menu(
