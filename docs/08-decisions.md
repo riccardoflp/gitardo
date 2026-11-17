@@ -1171,6 +1171,89 @@ In the extension the menus of the webviews are drawn by the extension itself (`C
 same icons from the codicons it has; they are left as they are for now, desktop first ([Q619](#of-the-icons-of-the-menus-from-q610)).
 VS Code's own menus show no icons.
 
+## D64 — Activity, a tab of the bottom panel, whose list holds still
+
+*Asked by the maintainer for milestone M18, who found the drawer in the way and its list unsteady; the details
+proposed by the agent.*
+
+The Activity drawer (`activity.what-is-running`) is a card drawn over the bottom of the timeline and the inspector, above
+the bottom panel: it hides what it opens over, and since M14 the bottom panel is where the window keeps what it shows
+under its work, the terminals and the Command log, which the drawer already sends to. Now **Activity** is a tab of the
+bottom panel, after **Terminal** and before **Command log**, with the panel's height, its gap and its **Hide the
+panel**; nothing of the window is drawn over another to say what runs. The indicator of the status bar, **Activity** in
+the bar of views and **Show What Is Running** show the panel at that tab, or hide the panel when it is shown with the
+focus, as `` Ctrl+` `` does for **Terminal**. The commands of new worktrees keep their column at the right of the tab
+until M19 runs them as tasks ([D65](#d65--tasks-a-tab-of-the-bottom-panel-with-the-tasks-of-the-repository-and-their-groups)).
+
+The list jumps. Reading the code of `app/src/desktop/running.rs` and of the drawer points at five causes, which the test
+of phase 1 is to confirm or set aside before anything is changed:
+
+- **What runs a moment is listed.** The indicator leaves out what has run less than half a second, the drawer does not:
+  each of the reads that a burst of changes asks for comes and goes as a row.
+- **What ran goes too soon.** The drawer keeps the last five things that ran, for thirty seconds: while reads come one
+  after the other, a row read a moment ago is pushed out by the next.
+- **Times counted from when the window saw it.** An activity is timed from the frame that first drew it, not from when
+  the engine started it, so an activity seen late starts at nought and its time does not match the log.
+- **The same read many times.** Each read of the same repository is a row of its own, all named `Reading <name>`, so
+  that the rows move down at each one though nothing new is said; the engine counts them (`in_a_row`), the list does
+  not.
+- **More rows than room.** The rows are not in a list that scrolls: with more than fit, the last are cut under the
+  button, and come back as others end.
+
+So in phase 3 the list is laid out from these rules: an activity is listed once it has run half a second, as the
+indicator shows it, and timed from its start; a row stays where it is while it runs; once it ended it goes under
+**Ran**, with the time it ended and how long it took, the latest first, the last 50 of the session kept; reads of the
+same repository one after the other are one row that counts them (`Reading app ×4`); the list scrolls.
+
+Rejected: keeping the drawer and making it a card that pushes the timeline up (two places for the same height, and the
+panel already has one); a window of its own for Activity (it is looked at for a moment, beside what it is about);
+dropping **Ran** (what failed a moment ago is what is looked for).
+
+## D65 — Tasks, a tab of the bottom panel with the tasks of the repository and their groups
+
+*Asked by the maintainer for milestone M19, who wants the extension Run My Tasks, of their own, inside Gitardo
+Desktop, its groups kept in the git folder, and nothing changed in VS Code; the details proposed by the agent.*
+
+Run My Tasks lists in VS Code the tasks of a workspace and the configurations of `launch.json`, in a view of its own,
+with groups that run several at once, a picker on `Ctrl+Shift+T` and terminals in the panel or the editor. Gitardo
+Desktop has a terminal since M14 but nothing that runs what a repository says it runs: `npm run build`, a server, the
+watcher of the tests. Now the bottom panel has a tab **Tasks** after **Terminal**, with the tasks on the left and, on
+the right, the terminal of the task selected, as the two sides of one place (`tasks.view`):
+
+- **What a task is.** The tasks of `.vscode/tasks.json` of the worktree shown, of `type` `shell` and `process`, and the
+  scripts of each `package.json`, as VS Code finds them without an extension (`tasks.read`): what most repositories
+  already have, read where they are, so that nothing is written twice. Tasks of the other types are those of VS Code's
+  extensions, which Gitardo cannot run; they are listed dimmed so that a group that names one is understood. The
+  launch configurations are left out: Gitardo has no debugger.
+- **How it runs.** Each task in a pseudo-terminal of its own, as those of `terminal.view`, so that its colors, its
+  questions and `Ctrl+C` work, kept with what it printed once it ended, until it runs again (`tasks.run`). `dependsOn`
+  and the background tasks are read as VS Code reads them, enough for a task that waits for a server to be ready
+  (its `endsPattern`); the problem matchers are not, since Gitardo has no list of problems to fill. **Stop** ends the
+  task and what it started, the job object on Windows and the process group elsewhere, which an interrupt alone does
+  not (`tasks.stop`).
+- **Groups in the git folder.** Run My Tasks keeps its groups in VS Code's global state, by the git folder of the
+  repository; Gitardo cannot read it. The groups are kept in `gitardo/task-groups.json` in the common git folder, which
+  every worktree shares and no commit takes (`tasks.edit-groups`). **Import groups…** reads the file **Export
+  Groups...** of Run My Tasks saves, and **Export groups…** writes one it reads, so that a user moves their groups by
+  hand once (`tasks.import-groups`, `tasks.export-groups`).
+- **The picker and its key.** **Run Task…** in Quick search and on `Ctrl+Shift+T`, the key of Run My Tasks, free in the
+  window (`tasks.quick-run`).
+- **Trust.** A task runs what the repository says, so nothing runs in a folder not trusted (`trust.is-trusted`); the
+  tab says so with **Trust this folder**, as the commands of new worktrees do.
+- **The commands of new worktrees.** They are tasks already, run one after the other in a column of the drawer called
+  **Tasks**. In phase 7 they run in the Tasks tab, as tasks of a source of their own, **New worktrees**, each with its
+  terminal, rather than in a column of Activity: one place for what runs in a terminal, the same word for the same
+  thing. Proposed by the agent; Q630 asks whether to.
+
+In the extension nothing changes: VS Code runs its own tasks and Run My Tasks stays an extension of its own. Every card
+of the area is *Host only* there.
+
+Rejected: a file of tasks of Gitardo's own (repositories already have `tasks.json` and `package.json`); the groups in
+`.gitardo/settings.json` of the repository (it can be committed, and groups are one person's way of working); the
+groups in Gitardo's `state.json` (each worktree and each machine would have its own); a terminal under the list rather
+than beside it (the panel is wide and low); the terminals of tasks in the tab **Terminal** (the shells typed in and the
+tasks run would be one list).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -3465,3 +3548,21 @@ otherwise.
   shebang and no extension, has the icon of a document.
 - **Q625** — `file-view.file-icons`: the top row of the tree of the Files page has the gray folder, the icon the theme
   gives the folder of a workspace, not the icon of the name of the repository's folder.
+
+### Of the tab of Activity and of the Tasks, from Q630
+
+Questions of milestones M18 and M19 ([D64](#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still),
+[D65](#d65--tasks-a-tab-of-the-bottom-panel-with-the-tasks-of-the-repository-and-their-groups)), asked while they are
+planned.
+
+- **Q630** — `worktree-setup.command-steps`: phase 7 of M19 runs the commands of new worktrees as tasks of the source
+  **New worktrees** in the Tasks tab, rather than in a column of the tab of Activity. Should they move, or stay with
+  Activity?
+- **Q631** — `tasks.read`: Gitardo runs the scripts of `package.json` and the tasks of `tasks.json` only. Should it also
+  find the tasks of other tools of the repository, as extensions of VS Code do: `cargo build`, `cargo test` and
+  `cargo run` for a `Cargo.toml`, the targets of a `Makefile`, the tasks of a `justfile`?
+- **Q632** — `tasks.view`: Run My Tasks can open the terminals of tasks in the editor, side by side
+  (`runMyTasks.editorTerminalLayout`). Should the Tasks tab show two terminals side by side, a server and its tests,
+  or is one, chosen from the list, enough?
+- **Q633** — `tasks.stop`: closing a repository tab with tasks running asks first, while closing it with a shell
+  running in **Terminal** does not (`terminal.view`). Should both ask, or neither?

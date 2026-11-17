@@ -14,7 +14,7 @@ extension's side is [extension/11-data.md](../extension/11-data.md); the desktop
 | Settings of a repository | `.vscode/settings.json` of the workspace folder, `gitardo.*` | `.gitardo/settings.json` of the repository (`settings/src/folder.rs`), with `.vscode/settings.json`'s `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles` read as a fallback (`features/src/worktree_setup/files.rs`) |
 | Choices of the interface | VS Code's workspace state (7 keys) and each webview's state | `state.json` in Gitardo's folder, one per user, written whole (`persisted.rs`) |
 | Secrets | none: GitHub through VS Code's sign-in, models through VS Code | the credential store of the system: the GitHub token, the key of the AI provider (`system::read_secret`) |
-| Files in `.git` | `rebase-merge/gitardo-split` | `rebase-merge/gitardo-split` (`features/src/split.rs`), `gitardo-rebase-<time>/` (`features/src/message/edit.rs:189`, `rebase.rs:31`) |
+| Files in `.git` | `rebase-merge/gitardo-split` | `rebase-merge/gitardo-split` (`features/src/split.rs`), `gitardo-rebase-<time>/` (`features/src/message/edit.rs:189`, `rebase.rs:31`); from M19, `gitardo/task-groups.json` of the common git folder, the groups of tasks (`tasks.edit-groups`, D65) |
 | Temporary files | `<temp>/gitardo-rebase-*/`, `<temp>/gitardo-<uuid>.patch`, `<temp>/gitardo-worktree-*/` | `<temp>/gitardo-<process>-<random>.<extension>` (`engine/src/readings.rs:72`) |
 
 ## Settings
@@ -93,6 +93,9 @@ branches are VS Code's side bar.
   version is not looked at by either.
 - **A patch from the clipboard**: both write it to the temporary folder and delete it after. Only the name differs;
   nothing reads it back.
+- **The groups of tasks**, from M19: the desktop keeps them in `gitardo/task-groups.json` of the common git folder,
+  shared by every worktree (`tasks.edit-groups`). The extension has no tasks of its own: Run My Tasks keeps its groups in
+  VS Code's global state, and **Import groups…** and **Export groups…** carry them from one to the other by a file.
 - **The ignored entries of a worktree**: the extension writes the patterns to a temporary folder; the desktop gives them
   to `git ls-files` on its standard input. Nothing is kept.
 

@@ -440,6 +440,84 @@ menu of a branch the bin beside **Delete**; every card of the phase passes its t
 of the header bar match in each theme, focused and not, those of the preview of Markdown and those of the tree of the
 Files page with its marks and with the icons of its files, and those of the menus of a commit and of a file, in each theme.
 
+## M18 — Activity in the bottom panel, and a list that holds still
+
+What Gitardo is doing is a tab of the bottom panel, beside the terminals and the Command log, rather than a card over the
+timeline; its list keeps each row where it is while things start and end, and what ran stays long enough to be read
+([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)). Built in three phases, each
+one commit or more, each ending with its cards built and their tests passing. Desktop only: the extension says what is
+running in VS Code's status bar and in **Gitardo: Show What Is Running** (`activity.track`), and nothing changes there.
+
+1. **What makes the list jump, found.** A test that replays what the engine says while a burst of changes asks for reads
+   in a row (forty reads in ten seconds, a fetch running through them, two reads that end within the same frame) and
+   writes the list of every frame, so that a row moving, flashing or going while it is read fails it. The causes it
+   finds are written under the decision before anything is fixed; reading the code points at five (D64). No card
+   changes; the test stays for phase 3.
+2. **Activity, a tab of the bottom panel.** The drawer gone; **Activity** a tab of the bottom panel, after **Terminal**
+   and before **Command log**, with the height, the gap and the **Hide the panel** of the others; the indicator of the
+   status bar, **Activity** in the bar of views and **Show What Is Running** show the panel at it, or hide it when it is
+   shown with the focus; `Escape` no longer closes anything there. **Show the commands Gitardo runs** becomes the tab
+   beside it. The commands of new worktrees keep their column at the right of the tab until M19 takes them. Cards:
+   `activity.what-is-running`, `panel.bottom`, `activity.status-bar`, `graph.view-bar`,
+   `worktree-setup.command-steps`.
+3. **A list that holds still.** Each activity counted from when the engine started it; what runs less than half a
+   second listed neither in the indicator nor in the tab; a row keeps its place while it runs and, once it ended, goes
+   under **Ran** with the time it ended and how long it took; reads of the same repository in a row one row that counts
+   them; **Ran** keeps the last 50 of the session, the latest first, and the list scrolls when it is taller than the
+   tab. Cards: `activity.what-is-running`, `activity.describe-task`, `activity.status-bar`.
+
+Exit: the window has no card over the timeline while something runs; a click on the activity indicator shows the bottom
+panel at **Activity**, and the timeline keeps its height above it; during a fetch with forty reads in a row around it,
+the replay of phase 1 sees no row move or go before the fetch ends, the fetch counts its seconds from its start, and
+the reads are one row; a fetch that ended ten minutes ago is still under **Ran**, with its time; every card of the
+phase passes its tests, and the snapshots of the bottom panel at **Activity** match, empty, running and with the commands
+of a new worktree, in each theme.
+
+## M19 — Tasks: the tasks of the repository, in the bottom panel
+
+The tasks of the repository listed in a tab of the bottom panel, each run in a terminal beside the list, and the groups
+that run several at once: what the extension Run My Tasks does in VS Code, inside Gitardo Desktop
+([D65](../08-decisions.md#d65--tasks-a-tab-of-the-bottom-panel-with-the-tasks-of-the-repository-and-their-groups)).
+Built in seven phases, each one commit or more, each ending with its cards built and their tests passing. It comes
+after M18, whose tab of Activity gives the commands of new worktrees to this one. Desktop only: in VS Code, its tasks
+and Run My Tasks do it, and the cards are *Host only* there.
+
+1. **The tasks read.** The tasks of `.vscode/tasks.json` of the worktree shown, shell and process, with their options,
+   the overrides of each system and the variables Gitardo can resolve; the scripts of every `package.json` outside
+   `node_modules`, run with the package manager its lock file names; read again when one of those files changes. Cards:
+   `tasks.read`, `repo.watch-changes`.
+2. **The Tasks tab, and a task run.** **Tasks** a tab of the bottom panel, after **Terminal**: the list on the left,
+   by source, with its search; on the right, the terminal of the task selected, a pseudo-terminal as those of
+   `terminal.view`, which keeps what the task printed once it ended. **Run** and **Stop** on each row, a spinner while
+   it runs, its exit code once it ended; a task running asked to run again offers **Restart** or **Leave it running**.
+   Nothing runs in a folder that is not trusted. Cards: `tasks.view`, `tasks.run`, `tasks.stop`, `panel.bottom`.
+3. **Tasks that wait for others.** `dependsOn`, in sequence or in parallel, a task failed stopping those that wait for
+   it; a background task counted as ready when its problem matcher's `endsPattern` is printed, or when it is still
+   running after its `beginsPattern` and some time with nothing printed. Cards: `tasks.run`.
+4. **Groups.** **Groups** at the top of the list: a group made, renamed, deleted; a task added from its menu or dragged
+   onto a group, moved in it by dragging or with **Move up** and **Move down**; **Run all** and **Stop all** on each
+   group; the groups of the repository kept in a file of its git folder, the same for every worktree. Cards:
+   `tasks.edit-groups`, `tasks.run-group`.
+5. **Groups from Run My Tasks.** **Import groups…** reads the file that **Export Groups...** of Run My Tasks saves, and
+   **Export groups…** writes one it reads; a group named as one Gitardo has is merged, replaces it or is left out, as
+   asked; the launch configurations of the file are left out and said. Cards: `tasks.import-groups`,
+   `tasks.export-groups`.
+6. **A task from anywhere.** **Run Task…** in Quick search and on a key, a picker of every task by source, the groups
+   first, each with its command under its name; a task running shows a count beside **Tasks** in the tabs of the
+   panel. Cards: `tasks.quick-run`, `tasks.view`.
+7. **The commands of new worktrees among the tasks.** The commands of `worktrees.setupCommands` run as tasks of their
+   own source, **New worktrees**, in the Tasks tab, each with its terminal, rather than in the tab of Activity. Cards:
+   `worktree-setup.command-steps`, `activity.what-is-running`, `tasks.view`.
+
+Exit: in the repository of Gitardo, the Tasks tab lists the tasks of its `tasks.json` and the scripts of
+`extension/package.json`; `npm run build` run from it prints in color in its terminal and ends with its exit code, and
+**Stop** on `npm run watch` ends it and its children, on Windows too; a task that depends on a background task starts
+once that one prints its `endsPattern`; a group of two tasks runs both with **Run all** and is listed the same in another
+worktree of the repository; the file exported by Run My Tasks 0.8.0 is imported with its groups; **Run Task…** runs a
+task from the timeline; a new worktree's `npm ci` runs in the Tasks tab; in a folder not trusted nothing runs and the tab
+says why; every card of the phase passes its tests, and the snapshots of the Tasks tab match, with a task running and
+one ended, in each theme.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:
