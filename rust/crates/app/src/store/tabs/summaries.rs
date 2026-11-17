@@ -6,6 +6,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+use git::read::worktree::GitFolderStamp;
 use model::repo::{Change, group_tabs};
 use views::repo::TabSummary;
 
@@ -13,7 +14,7 @@ use super::super::message::Effect;
 use super::super::state::State;
 use super::menu::TabShows;
 use crate::persisted::same_folder;
-use crate::work::summaries::{GitFolderStamp, SummaryAsk, SummaryRead};
+use crate::work::summaries::{SummaryAsk, SummaryRead};
 
 /// What is known of the folders read in the background.
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -144,7 +145,7 @@ pub fn read(state: &mut State, reads: Vec<SummaryRead>) {
         else {
             continue;
         };
-        entry.stamp = read.stamp;
+        entry.stamp = Some(read.stamp);
         entry.read_at = Some(read.read_at);
         match read.result {
             Some(Ok(summary)) => {
@@ -164,8 +165,8 @@ pub fn read(state: &mut State, reads: Vec<SummaryRead>) {
 }
 
 /// Changes seen in a folder read in the background mark it due: a file of its working tree reads it whatever its git
-/// folder says; a change of its git folder reads it only when what [`crate::work::summaries::git_folder_changed`]
-/// looks at changed.
+/// folder says; a change of its git folder reads it only when what [`git::read::worktree::git_folder_changed`] looks
+/// at changed.
 pub fn changed(state: &mut State, folder: &Path, changes: &[Change]) {
     let Some(entry) = state
         .tabs

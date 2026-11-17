@@ -6,7 +6,8 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use app::store::{Effect, Message, State, ViewData};
-use app::work::summaries::{SummaryAsk, git_folder_stamp, read_summaries};
+use app::work::summaries::{SummaryAsk, read_summaries};
+use git::read::worktree::git_folder_changed;
 use model::repo::{Change, SummaryHead};
 use views::repo::{TabSummary, counts_words};
 
@@ -80,7 +81,7 @@ fn repo_worktree_summary__nothing_changing_in_a_worktree_runs_no_read_of_it() {
     );
     let ask = SummaryAsk {
         folder: login.clone(),
-        last: git_folder_stamp(&login),
+        last: Some(git_folder_changed(&login, None).stamp),
         read_at: None,
         is_forced: false,
     };

@@ -3,15 +3,15 @@
 //! read only when its files did.
 //!
 //! [`git_folder_changed`] is the one place that says whether the git folder of a worktree changed since it was last
-//! read: what it looks at is the files git changes when a branch moves, a commit is made, the index is written or a
-//! fetch brings commits.
+//! read: its own git folder, written when a commit is made, the index is written or a fetch brings commits, and the
+//! branches and the remote branches of its repository.
 
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::thread;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 
 use git::read::summary::worktree_summary;
+use git::read::worktree::{GitFolderStamp, git_folder_changed};
 use model::repo::WorktreeSummary;
 
 use super::Deliver;
@@ -19,11 +19,6 @@ use crate::store::Message;
 
 /// The least time between two reads of a folder.
 pub const LEAST_BETWEEN_READS: Duration = Duration::from_secs(2);
-
-/// When the files of a git folder that say what a worktree is on were last changed: its `HEAD` and its index, and the
-/// common folder's `packed-refs`, `FETCH_HEAD` and folders of refs. A file that is not there counts as such.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct GitFolderStamp(Vec<Option<SystemTime>>);
 
 /// A folder to read, with what is known of its last read.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -44,54 +39,11 @@ pub struct SummaryRead {
     /// The folder.
     pub folder: PathBuf,
     /// Its git folder now.
-    pub stamp: Option<GitFolderStamp>,
+    pub stamp: GitFolderStamp,
     /// When it was looked at.
     pub read_at: Instant,
     /// The summary read, or why git failed; none when nothing changed and git did not run.
     pub result: Option<Result<WorktreeSummary, String>>,
-}
-
-/// The git folder of a worktree, and the common one of its repository: `.git` itself, or the folder its `gitdir:` line
-/// names, whose `commondir` names the common one.
-fn git_folders(folder: &Path) -> Option<(PathBuf, PathBuf)> {
-    let dot_git = folder.join(".git");
-    let own = if dot_git.is_dir() {
-        dot_git
-    } else {
-        let text = fs::read_to_string(&dot_git).ok()?;
-        let named = PathBuf::from(text.strip_prefix("gitdir:")?.trim());
-        if named.is_absolute() { named } else { folder.join(named) }
-    };
-    let common = fs::read_to_string(own.join("commondir"))
-        .ok()
-        .map_or_else(|| own.clone(), |text| own.join(text.trim()));
-    Some((own, common))
-}
-
-/// The stamp of the git folder of a worktree now; none when it has none, its folder being gone.
-#[must_use]
-pub fn git_folder_stamp(folder: &Path) -> Option<GitFolderStamp> {
-    let (own, common) = git_folders(folder)?;
-    let changed = |path: PathBuf| fs::metadata(path).and_then(|metadata| metadata.modified()).ok();
-    let mut times = vec![changed(own.join("HEAD")), changed(own.join("index"))];
-    times.extend(["packed-refs", "FETCH_HEAD", "refs/heads", "refs/remotes"].map(|name| changed(common.join(name))));
-    if let Ok(remotes) = fs::read_dir(common.join("refs").join("remotes")) {
-        let mut folders: Vec<PathBuf> = remotes.filter_map(Result::ok).map(|entry| entry.path()).collect();
-        folders.sort();
-        times.extend(folders.into_iter().map(changed));
-    }
-    Some(GitFolderStamp(times))
-}
-
-/// Whether the git folder of a worktree changed since the stamp of its last read: gives the stamp now when it did, or
-/// when there was none; none when it is the same.
-#[must_use]
-pub fn git_folder_changed(folder: &Path, last: Option<&GitFolderStamp>) -> Option<Option<GitFolderStamp>> {
-    let now = git_folder_stamp(folder);
-    match (last, &now) {
-        (Some(last), Some(now)) if last == now => None,
-        _ => Some(now),
-    }
 }
 
 /// Reads each folder in turn, waiting first until two seconds have gone since its last read; a folder neither whose
@@ -103,11 +55,11 @@ pub fn read_summaries(asks: &[SummaryAsk]) -> Vec<SummaryRead> {
             if let Some(due) = ask.read_at.map(|at| at + LEAST_BETWEEN_READS) {
                 thread::sleep(due.saturating_duration_since(Instant::now()));
             }
-            let changed = git_folder_changed(&ask.folder, ask.last.as_ref());
-            let read = ask.is_forced || changed.is_some();
+            let check = git_folder_changed(&ask.folder, ask.last.as_ref());
+            let read = ask.is_forced || check.is_changed || check.have_branches_moved;
             SummaryRead {
                 folder: ask.folder.clone(),
-                stamp: changed.unwrap_or_else(|| ask.last.clone()),
+                stamp: check.stamp,
                 read_at: Instant::now(),
                 result: read.then(|| worktree_summary(&ask.folder).map_err(|error| error.to_string())),
             }
