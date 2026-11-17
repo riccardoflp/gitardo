@@ -468,6 +468,8 @@ cannot cross (an answer of the engine's own reads, such as a list of names) is l
 ### `journal/last`
 
 `{ repository }` → `{ entry: JournalEntry | null }`: the newest entry that still holds, for the label of **Undo**.
+Whether it holds is checked against the state of the last `read/repo.read-state` of the repository, which the engine
+keeps; the state is read again only when none was read since the last operation (M15), and the answer is the same.
 
 `journal/record`, by which the extension told the engine of an operation it ran in TypeScript, was removed in 1.7
 with that TypeScript (stage 10).

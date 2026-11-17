@@ -180,29 +180,69 @@ the other from the inspector, which never closes; a file opened from the Files p
 window means two things; with `gitardo.graph.islands` on, the Graph view of the extension is three islands; every card of the
 phase passes its tests, and the snapshots of the window match.
 
-## M15 — The whole history in one read
+## M15 — The whole history in one read, and reads that cost less
 
 The timeline reads its history with one `git log` as git prints it, rather than one for each page, and lays out only
-the rows that come ([D54](../08-decisions.md#d54--the-timeline-is-read-by-one-git-log-as-it-prints)). Built in four
-phases, each one commit or more, each ending with its cards built and their tests passing; the extension comes last.
+the rows that come ([D54](../08-decisions.md#d54--the-timeline-is-read-by-one-git-log-as-it-prints)). The repository is
+read again as often as before, but each read asks git only for what may have changed, and changes that git ignores ask
+for no read at all.
+
+Measured on 2026-11-17 on the repository of Gitardo (499 commits, six worktrees, four of them nested in
+`.claude/worktrees` with agents building in them), with the release build of `gitardo-engine --stdio` asked as the
+extension asks it: a read after a change costs 1.8 to 2.6 seconds (the median of twelve, the slowest above 5), and
+starts some forty git processes, each of which costs 80 to 150 ms to start on that machine before it does anything.
+`repo.read-state` takes 0.7 to 1.1 s of it, a page of `graph.read-commits` 0.35 to 0.5 s, and `journal/last`, for the
+tooltip of **Undo**, 0.6 to 1.1 s, because it reads the whole state again. In 90 seconds of that work, 144 changes to
+files git ignores asked for eight reads, all of them for nothing.
+
+Built in nine phases, each one commit or more, each ending with its cards built and their tests passing; the extension
+comes last.
 
 1. **The measure first.** `cargo xtask perf` times the whole history too: from the request to its first page, and to
-   its last row, and the layout of the timeline over every row, page after page, as `app` makes it today. Its table in
-   [06-testing.md](06-testing.md) gets the numbers of before. No card.
+   its last row, and the layout of the timeline over every row, page after page, as `app` makes it today. It also
+   times a read as the extension asks it after a change (`repo.read-state`, the first page of `graph.read-commits` and
+   `journal/last`, one after the other) and counts the git processes each starts, on the large repository and on one
+   with five other worktrees. Its table in [06-testing.md](06-testing.md) gets the numbers of before. No card.
 2. **The read as git prints.** `crates/git` runs a read whose output is taken as it comes, cancelled as any read; the
    read of the commits gives each page to the worker as soon as it is printed, and stops at 100,000 commits; the store
    adds each page under the rows, and starts again on another history. Cards: `graph.read-commits`, `graph.load-more`.
 3. **The layout from the last row.** The lanes as they stand under the last row are kept with the layout, and a page
    is laid out from them; the folds, the labels and the date separators of the new rows with it. Cards: `graph.lanes`.
-4. **The extension.** Version 1.8 of [the protocol](../transition/02-protocol.md), the pages sent as they are read,
+4. **The state read once for each read.** `journal/last` takes the state of the last `repo.read-state` of the
+   repository, which the engine keeps, instead of reading it again; it reads only when none was read since the last
+   operation. Cards: `undo.last`, `repo.read-state`.
+5. **What git ignores asks for no read.** A changed file that git ignores, or that is in the folder of another
+   worktree nested in this one, asks for nothing; whether git ignores them is asked once for the files of a burst, with
+   `git check-ignore --stdin`, before the read is scheduled. A `.gitignore` that changes is not ignored itself, and
+   asks for a read. Cards: `repo.watch-changes`, `repo.schedule-reads`.
+6. **The other worktrees counted when they change.** `git status` runs in another worktree on the first read, on
+   **Refresh**, and when something in its own git folder (`.git/worktrees/<name>/`) changed since the read before;
+   otherwise its count of what is not committed is the one read before. Cards: `repo.read-state`,
+   `repo.watch-changes`.
+7. **The commits not read again when the history is the same.** A read whose commit checked out, references and stashes
+   are those of the read before keeps the rows it has, without `git log`, as a change to the files leaves them;
+   **Refresh**, a filter, a search, the branches shown and `graph.load-more` read them as before. A read of
+   `graph.read-commits` asked after `repo.read-state` takes what is checked out, the references and the stashes from
+   it, instead of reading them again. Cards: `repo.schedule-reads`, `graph.read-commits`.
+8. **The focus asks for a read only when one is due.** The window getting the focus asks for a read only when a change
+   came while it asked for nothing (the window minimized), or when the last read is more than a minute old. Cards:
+   `repo.watch-changes`.
+9. **The extension.** Version 1.8 of [the protocol](../transition/02-protocol.md), the pages sent as they are read,
    `EngineGraph` and the controller taking them, and the lanes of `src/shared/graph.ts` laid out from the last row.
-   Cards: `graph.read-commits`, `graph.load-more` and `graph.lanes` in the extension.
+   Its watchers of the working tree (`Controller.watch`) ask the engine which files of a burst git ignores and leave
+   out the worktrees nested in the repository, `EngineGraph` keeps its rows when the history is the same, and the focus
+   follows phase 8. Cards: `graph.read-commits`, `graph.load-more`, `graph.lanes`, `repo.watch-changes`,
+   `repo.schedule-reads` and `undo.last` in the extension.
 
 Exit: on the repository that `extension/test/perf/big-repo.mjs` makes (56,120 commits), measured by `cargo xtask perf`
 with the release build, the first page comes no later than the first page did before M15, and every commit is read
 and laid out in less than 3 seconds, in the window and in the extension; scrolling to the last commit asks for nothing
-more; another branch filter shows its first page as soon as the first page did before; every card of the phase passes
-its tests, and the snapshots of the timeline match.
+more; another branch filter shows its first page as soon as the first page did before. On the repository of Gitardo
+with its worktrees, a read after a change to a file starts `git status` once in the worktree shown and in no other,
+reads the state once, and runs no `git log`; `cargo build` in `rust/target` and an agent writing in a worktree under
+`.claude/worktrees` ask for no read of the repository, in either app; `cargo xtask perf` reports a read after a change
+in at most half the time it reported in phase 1, on the same machine. Every card of the phase passes its tests, and the
+snapshots of the timeline match.
 
 ## M16 — The settings in sections, and a side column
 

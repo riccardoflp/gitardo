@@ -92,7 +92,9 @@ before it. It always shows what it is about to do first. With nothing in the jou
 - **Entry points**: **Undo** in the **…** menu of the header; **Undo Last Operation** in Quick search; the **Undo** of
   the messages that follow an operation.
 - **Extension**: **Undo** in the toolbar of the graph, whose tooltip names the newest operation of the journal (*Undo
-  "Commit"*, or *"Push main to origin" cannot be undone*, from `journal/last`); **Gitardo: Undo Last Operation** in the
+  "Commit"*, or *"Push main to origin" cannot be undone*, from `journal/last`, which checks the journal against the
+  state of the last `repo.read-state` instead of reading the repository again, and reads it only when no state was
+  read since the last operation (M15)); **Gitardo: Undo Last Operation** in the
   Command Palette and in the **…** of the headers of the Commits view and the Gitardo Graph; the **Undo** of the
   message after resolving conflicts automatically (`Controller.say`). Each sends `feature/run` of `undo.last` to
   Gitardo's engine (`Controller.runOnEngine` in `src/extension/controller.ts`), its plan always shown in a modal dialog
@@ -161,6 +163,8 @@ Acceptance:
 - [ ] During a merge stopped on conflicts, Undo refuses with *Finish or abort the merge first.*
 - [ ] Extension: a branch deleted, then a branch created: **Undo** removes the new branch, and **Undo** again restores
       the deleted one, from the journal.
+- [ ] Extension: `journal/last` asked right after `repo.read-state` runs no git; asked after an operation with no read
+      since, it reads the state once.
 - [ ] Extension: a stash dropped, then a commit made: **Undo** takes back the commit, then the drop.
 - [ ] Extension: a squash merge, a resolution of conflicts and a split of the last commit are each taken back whole.
 - [ ] Extension: with `gitardo.engine.path` naming a missing file, **Undo** shows **Gitardo's engine is not available

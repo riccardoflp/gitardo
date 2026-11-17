@@ -216,7 +216,9 @@ operation that stopped half way.
   - `git worktree list --porcelain`: each worktree, its folder, its commit, its branch or none, whether it is the main
     one (listed first), whether it is this one and whether it is missing (`prunable`). A bare repository is not listed.
     Then, in each other worktree that is not missing, `git status --porcelain=v2 -z --untracked-files=all` to count
-    what is not committed there; this one's count is the one of this read.
+    what is not committed there; this one's count is the one of this read. That `git status` runs on the first read of
+    the repository, on **Refresh**, and when something in the worktree's own git folder (`.git/worktrees/<name>/`)
+    changed since the read before (`repo.watch-changes`); otherwise the worktree keeps the count read before (M15).
   - `git remote`: the names of the remotes.
   - `git config --get-regexp ^user\.(name|email)$`: who commits are made as.
   - `git config --get branch.sort`: Git's own order of the branches, which `refs.sort` follows while
@@ -260,6 +262,9 @@ Acceptance:
 - [ ] Stopped in a cherry-pick, the operation is a cherry-pick; between two commits of a revert of a series, it is a
       revert; during `git am`, a patch, not a rebase.
 - [ ] Another worktree with three files not committed counts 3; a missing one counts nothing and is marked missing.
+- [ ] With five other worktrees and nothing changed in their git folders, a read after a change to a file of this one
+      runs `git status` here only, and each other worktree keeps its count; after `git add` in one of them, the next
+      read runs `git status` there too; **Refresh** runs it in all of them.
 - [ ] No read takes `index.lock`: while it runs, `git commit` in a terminal does not fail because of it.
 - [ ] With `readOnStartup` off, starting the window runs no git command until **Read the repository** is clicked.
 
@@ -293,13 +298,21 @@ What is watched, and what each change asks for:
 | Change | Asks for a read | After | Said as |
 | --- | --- | --- | --- |
 | In the common git folder (`git rev-parse --git-common-dir`): `HEAD`, `FETCH_HEAD`, `ORIG_HEAD`, `MERGE_HEAD`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, `BISECT_LOG`, `index`, `config`, `packed-refs`, anything under `refs/`, `logs/refs/stash`, anything under `worktrees/`, and `modules/**/HEAD`, `modules/**/refs/**` of the submodules | yes | 400 ms | `.git/<path> changed` |
-| A file of the working tree, anywhere but in a `.git` | yes | 1,000 ms (builds and installs write many files at once) | `<path> changed` |
+| A file of the working tree, anywhere but in a `.git`, that git does not ignore and that is not in the folder of another worktree nested in this one | yes | 1,000 ms (builds and installs write many files at once) | `<path> changed` |
+| A file of the working tree that git ignores (`git check-ignore --stdin`, asked once for the files of a burst), such as the output of a build | no | | |
+| A file in the folder of another worktree nested in this one, such as `.claude/worktrees/<name>/` | no | | |
 | A file saved by Gitardo's own editor | yes | 400 ms | `<path> was saved` |
 | Files created, deleted or renamed by Gitardo | yes | 400 ms | `files were created` (`deleted`, `renamed`) |
-| The window gets the focus | yes | 400 ms | `the window got the focus` |
+| The window gets the focus, after a change that asked for nothing while the window was minimized, or more than a minute after the last read | yes | 400 ms | `the window got the focus` |
+| The window gets the focus otherwise | no | | |
 | A setting under `conflicts`, `pull`, `worktrees`, `branches` or `graph` changes | yes | 400 ms | `the settings changed` |
 | Any path with a part named `fsmonitor--daemon`, or `fsmonitor--daemon.ipc` | no | | |
 | Any file whose name ends in `.lock` | no | | |
+
+Files git ignores and the folders of nested worktrees are left out because what changes there never changes what a read
+shows of this repository, and a build or an agent working in a nested worktree writes there many times a second
+(M15). A `.gitignore` that changes is not ignored itself, and asks for a read. A nested worktree is seen by its own
+git folder, `.git/worktrees/<name>/`, which asks for a read with the rules of the first row.
 
 The last two rules are what keep a repository from being read for ever: the daemon of `core.fsmonitor` leaves a file
 in the folder of a worktree (`.git/worktrees/<name>/fsmonitor--daemon/…`) each time `git status` runs there, as it
@@ -311,6 +324,12 @@ Acceptance:
 - [ ] `git commit` in a terminal asks for a read 400 ms after `.git/HEAD` or the branch's ref changes, said as
       `.git/refs/heads/main changed` (or the file that changed first).
 - [ ] Saving a file from another editor asks for a read after 1,000 ms.
+- [ ] `cargo build` writing in `target/`, which `.gitignore` lists, asks for nothing; changing `.gitignore` asks for a
+      read.
+- [ ] A file written in a worktree whose folder is inside this one's asks for nothing; `git commit` there asks for a
+      read, by `.git/worktrees/<name>/`.
+- [ ] Focus taken and given back to the window ten seconds after a read asks for nothing; two minutes after it, it asks
+      for a read; after the window was minimized while a file changed, it asks for a read.
 - [ ] A change to `.git/worktrees/feature/fsmonitor--daemon/cookies/…` asks for nothing.
 - [ ] A change to `.git/worktrees/feature/fsmonitor--daemon.ipc` asks for nothing.
 - [ ] A change to `.git/index.lock` asks for nothing.
@@ -353,6 +372,9 @@ The rules:
 - A read that fails while a search narrows the timeline (git refuses the search, as an invalid regular expression) drops
   the search, says "Gitardo: the search failed." with the first line of git's error, and reads again without it. Any
   other failure shows `repo.no-repository`.
+- A read whose commit checked out, references and stashes are those of the read before keeps the commits it has and
+  runs no `git log`: a change to the files leaves the history as it was. **Refresh**, a filter, a search, the branches
+  shown and the next page read the commits as before (M15).
 - After each read, the pull requests are read again when they are older than 2 minutes (`github.load-pull-requests`).
 
 Acceptance:
@@ -361,6 +383,8 @@ Acceptance:
 - [ ] A file that changes every 200 ms for 5 s leads to reads one after another, never two at once, and the activity
       indicator counts them.
 - [ ] **Refresh** during a read leads to exactly one more read after it.
+- [ ] A file changed and saved leads to a read that runs no `git log`, and the timeline keeps its rows; a commit made in
+      a terminal leads to a read that reads the commits again; so does **Refresh**.
 - [ ] Nothing is read while an operation runs; one read follows it.
 - [ ] A read started before a commit made by Gitardo is not shown: the state shown after the commit has the commit
       on its branch.

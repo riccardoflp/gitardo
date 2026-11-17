@@ -33,6 +33,9 @@ on to the end of the history, or to 100,000 commits (D54).
     `git log --no-walk=unsorted -z --format=<the same> <the hash of each stash> --`, for the stashes to be placed among
     the commits by `graph.place-stashes`, read before the first page so that each page comes with its stashes.
     `refs/stash` itself is never part of the selection: the commits of a stash would clutter the graph.
+  - What is checked out, the references and the stashes that say which history is listed come from the last
+    `repo.read-state` of the repository when there is one, and are not read again; a read of the graph with no state
+    read before reads them itself.
 - **Settings**: `graph.pageSize` (1,000 by default; a number under 100 counts as 100, over 10,000 as 10,000, and what
   is not a number as 1,000); `graph.firstParent`; `graph.showStashes`.
 - **Uses**: `filter.log-arguments`, `graph.place-stashes`, `graph.lanes`.
@@ -50,6 +53,8 @@ Acceptance:
 - [ ] Commit messages with a tab, a line break in the body, or non-ASCII characters are read whole: the subject is the
       first line.
 - [ ] With `graph.showStashes` off, no stash commit is read.
+- [ ] Asked right after `repo.read-state`, a read runs `git log` and nothing else: no `rev-parse`, `symbolic-ref` or
+      `stash list`.
 
 ### `graph.read-position` — Where a commit is in the history listed
 
