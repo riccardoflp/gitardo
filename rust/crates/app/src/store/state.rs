@@ -103,6 +103,8 @@ pub struct State {
     pub tabs: super::tabs::Tabs,
     /// The Tasks of the Activity drawer: the commands of new worktrees (`worktree-setup.command-steps`).
     pub tasks: super::tasks::Tasks,
+    /// The title bar, as the window draws it, and whether the window is maximized (`window.title-bar`).
+    pub caption: views::window::CaptionState,
 }
 
 /// The folders of a window and the repositories found in them.

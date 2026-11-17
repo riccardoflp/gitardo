@@ -183,6 +183,7 @@ impl ViewData {
             large_diff: super::diff_page::large_question(state),
             large_merge: super::merge_page::large_question(state),
             close_file: super::file_page::close_question(state),
+            caption: state.caption,
         }
     }
 

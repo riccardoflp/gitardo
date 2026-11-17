@@ -18,9 +18,11 @@ use crate::error::AppError;
 use crate::persisted::{FILE_NAME, Persisted};
 use crate::settings::{self, SettingsFiles, keys, read_files, user_settings_file};
 use crate::store::{Effect, Message, State, ViewData, reduce};
+use crate::window::frame::system_title_bar;
 use crate::window::{Step, Surface, SurfaceOptions};
 use crate::work::github::{GitHubAccess, GitHubReader};
 use crate::work::{Deliver, Operations, PersistedWriter, SettingWriter, SettingsWatcher, TaskRunners, Workers};
+use views::window::{CaptionState, WindowIntent};
 
 /// The timer of the frames of the window.
 const FRAME_TIMER: TimerId = TimerId(1);
@@ -143,13 +145,16 @@ impl DesktopWindow {
                 visibility: options.visibility,
                 theme: settings.theme,
                 frame_timer: FRAME_TIMER,
+                title_bar: system_title_bar(),
             },
         )?;
         apply_text(&mut surface, &settings)?;
         let activities = Activities::new();
+        let mut state = State::new(persisted, settings, user_file);
+        state.caption = caption_of(&surface);
         Ok(DesktopWindow {
             surface,
-            state: State::new(persisted, settings, user_file),
+            state,
             workers: Workers::new(WORKERS, &activities, deliver),
             operations: Operations::new(&activities, deliver),
             asking: crate::work::ai::Asking::new(deliver, &activities, Box::new(engine::SystemSecrets)),
@@ -191,20 +196,33 @@ impl DesktopWindow {
         {
             let _flow = self.dispatch(message)?;
         }
+        if let Event::Input {
+            event: platform::InputEvent::Resized(_),
+            ..
+        } = &event
+        {
+            let caption = caption_of(&self.surface);
+            if caption != self.state.caption {
+                let _flow = self.dispatch(Message::Caption(caption))?;
+            }
+        }
         match self.surface.handle(&event) {
             Step::Draw => self.draw(context),
-            Step::Close => {
-                let size = self.surface.window().size();
-                let scale = self.surface.window().scale().factor();
-                #[allow(
-                    clippy::cast_precision_loss,
-                    reason = "a window is far smaller than an f32 counts exactly"
-                )]
-                let window_size = Some((size.width as f32 / scale, size.height as f32 / scale));
-                self.dispatch(Message::CloseRequested { window_size })
-            }
+            Step::Close => self.dispatch(self.close_requested()),
             Step::Ignored | Step::Handled => Ok(Flow::Continue),
         }
+    }
+
+    /// The person asked to close the window, by the system's close request or by **Close** of its title bar.
+    fn close_requested(&self) -> Message {
+        let size = self.surface.window().size();
+        let scale = self.surface.window().scale().factor();
+        #[allow(
+            clippy::cast_precision_loss,
+            reason = "a window is far smaller than an f32 counts exactly"
+        )]
+        let window_size = Some((size.width as f32 / scale, size.height as f32 / scale));
+        Message::CloseRequested { window_size }
     }
 
     /// Reduces a message and the ones that follow from it, carries out what the store asks, and asks for a frame.
@@ -292,9 +310,23 @@ impl DesktopWindow {
                     return Ok(Some(Followed::Message(Box::new(Message::UrlNotOpened(said)))));
                 }
             }
+            Effect::Window(asked) => return Ok(self.window_asked(asked)),
             Effect::Quit => return Ok(Some(Followed::Quit)),
         }
         Ok(None)
+    }
+
+    /// Minimizes, maximizes, restores or closes the window, as a button of its title bar asked
+    /// (`window.caption-buttons`); closing goes as the system's close request.
+    fn window_asked(&self, asked: WindowIntent) -> Option<Followed> {
+        let window = self.surface.window();
+        match asked {
+            WindowIntent::Minimize => window.minimize(),
+            WindowIntent::Maximize => window.maximize(),
+            WindowIntent::Restore => window.restore(),
+            WindowIntent::Close => return Some(Followed::Message(Box::new(self.close_requested()))),
+        }
+        None
     }
 
     /// The system's folder dialog, for **Open folder…** (`repo.open-folder`), and the folder chosen.
@@ -371,6 +403,7 @@ impl DesktopWindow {
         let intents = self
             .surface
             .draw(context, |ui| views::view(&data.window_state(state), ui))?;
+        self.surface.keep_frame_parts(self.state.caption);
         let mut flow = Flow::Continue;
         for intent in intents {
             if self.dispatch(Message::Intent(intent))? == Flow::Quit {
@@ -387,6 +420,14 @@ enum Followed {
     Message(Box<Message>),
     /// The window is to close.
     Quit,
+}
+
+/// Who draws the title bar of a window, and whether it is maximized.
+fn caption_of(surface: &Surface) -> CaptionState {
+    CaptionState {
+        title_bar: system_title_bar(),
+        is_maximized: surface.window().is_maximized(),
+    }
 }
 
 /// Draws the window with the fonts and the size of the text of the settings.

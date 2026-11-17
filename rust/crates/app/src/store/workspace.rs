@@ -380,6 +380,12 @@ pub fn cancel_all(state: &mut State) -> Vec<Effect> {
         .collect()
 }
 
+/// Who draws the title bar, and whether the window is maximized, as it changed (`window.title-bar`).
+pub(super) fn caption_changed(state: &mut State, caption: views::window::CaptionState) -> Vec<Effect> {
+    state.caption = caption;
+    Vec::new()
+}
+
 /// The window is closed: every read and operation stopped, its size kept with what is persisted, then it quits.
 pub(super) fn close_requested(state: &mut State, window_size: Option<(f32, f32)>) -> Vec<Effect> {
     let mut effects = cancel_all(state);

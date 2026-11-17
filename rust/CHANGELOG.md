@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- On Windows the window has no title bar of the system: the header bar is the title bar. Its free parts move the
+  window, and dragged to the top of the screen maximize it; a double click maximizes and restores it; a right click or
+  `Alt+Space` opens the system's menu of the window. **Minimize**, **Maximize** or **Restore** and **Close** are at its
+  right end, drawn as Windows draws them, **Close** red under the pointer, named for the screen reader; the pointer
+  resting on **Maximize** shows Snap Layouts on Windows 11. The edges and the corners resize the window, and nothing
+  does while it is maximized. The window keeps its shadow and its rounded corners.
 - The side column takes less room: a repository, a worktree and a submodule are each one row of one line, the name on
   the left and the branch, the files changed and `↓ ↑` smaller on the right, the name and the branch cut with `…`
   when the row is short; the heading of **Branches** has **Create branch**, **Compare** and the button of the rail's

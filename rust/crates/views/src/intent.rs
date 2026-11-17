@@ -134,6 +134,8 @@ pub enum Intent {
     WorktreeSetup(crate::worktree_setup::SetupIntent),
     /// Something asked of the Tasks of the Activity drawer (`worktree-setup.command-steps`).
     Tasks(crate::activity::TaskIntent),
+    /// A button of the title bar the window draws itself (`window.caption-buttons`).
+    Window(crate::window::WindowIntent),
 }
 
 /// What is done with a folder opened while the window shows a workspace.

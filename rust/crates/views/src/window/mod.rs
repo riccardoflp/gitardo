@@ -33,8 +33,14 @@ use crate::settings::{ThemePickerState, theme_picker_view};
 use crate::text::repo as repo_words;
 use crate::view_bar::{VIEW_BAR_WIDTH, ViewBarState, view_bar_view};
 
+mod frame;
 mod side;
 mod timeline;
+
+pub use frame::{
+    CAPTION_BUTTON_WIDTH, CaptionState, Corner, EDGE, Edge, FrameState, Hit, TitleBar, WindowIntent, WindowSize,
+    caption_buttons_rect, caption_buttons_view, caption_height, hit,
+};
 
 use side::{puts_side_away, side_beside, side_over, side_toggle};
 
@@ -87,6 +93,8 @@ pub struct WindowState<'a> {
     pub large_merge: Option<crate::merge_view::LargeMergeQuestion<'a>>,
     /// The question asked before closing the page of a file with edits not saved (`file-view.edit`).
     pub close_file: Option<crate::file_view::CloseQuestion<'a>>,
+    /// The title bar, which the header bar is when the window draws it (`window.title-bar`).
+    pub caption: CaptionState,
 }
 
 /// Where the side column is, as the user left it (`graph.toggle-references`, `graph.resize-panes`).
@@ -167,7 +175,7 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let window = ui.window();
     ui.fill_rect(window, theme.colors.ground_background);
     let gap = gap(ui);
-    let bar_height = theme.sizes.control_height + 2.0 * theme.sizes.spacing.medium;
+    let bar_height = caption_height(&theme);
     let mut area = Area::new(window);
     let status = area.bottom(theme.sizes.row_height);
     let bar = area.left(VIEW_BAR_WIDTH);
@@ -195,6 +203,7 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut column = Area::new(rest);
     let header = column.top(bar_height);
     let body = column.rest();
+    let header = with_caption_buttons(state.caption, header, ui, &mut intents);
     // What is right of the bar of views and above the status bar is the tab's: its widgets remember how far they are
     // scrolled and what is typed in them apart from those of the other tabs (`repo.keep-open`).
     let shown_tab = state
@@ -218,6 +227,23 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     intents.extend(panel_shortcut(ui, panel));
     intents.extend(crate::terminal::new_terminal_shortcut(ui));
     intents
+}
+
+/// Draws the buttons of the title bar at the right end of the header bar, reaching the top and the right edges of
+/// the window, when the window draws its title bar; gives what is left of the header bar for the header
+/// (`window.caption-buttons`).
+fn with_caption_buttons(caption: CaptionState, header: Rect, ui: &mut Ui<'_>, intents: &mut Vec<Intent>) -> Rect {
+    if caption.title_bar != TitleBar::Drawn {
+        return header;
+    }
+    let window = ui.window();
+    let size = WindowSize {
+        width: window.width,
+        height: window.height,
+    };
+    let buttons = caption_buttons_rect(size, header.height);
+    intents.extend(ui.clip(buttons, |ui| caption_buttons_view(&caption, ui)));
+    Rect::new(header.x, header.y, (buttons.x - header.x).max(0.0), header.height)
 }
 
 /// The islands of the tab shown under the header: the side column beside the timeline or the page, and the bottom

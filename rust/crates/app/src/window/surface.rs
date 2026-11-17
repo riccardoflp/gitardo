@@ -12,6 +12,7 @@ use render::{Assets, FrameBuffer, Theme, ThemeName};
 use ui::{FrameInput, FrameOutput, FrameSettings, Typefaces, Ui, UiMemory};
 
 use super::fonts::{chosen_typefaces, load_system_fonts};
+use super::frame::{FrameParts, decorations};
 use super::input::{is_paste, system_cursor, toolkit_event};
 use super::theme::{resolve_theme, scale_text, title_bar};
 use crate::error::AppError;
@@ -29,6 +30,8 @@ pub struct SurfaceOptions {
     pub theme: ThemeName,
     /// The timer it uses to draw a frame when the last one asked for it, unique in its event loop.
     pub frame_timer: TimerId,
+    /// Who draws its title bar (`window.title-bar`).
+    pub title_bar: views::window::TitleBar,
 }
 
 /// What an event of the loop asks of the program that owns the window.
@@ -85,6 +88,8 @@ pub struct Surface {
     is_reader_listening: bool,
     /// The tree the screen reader was given last, so that a frame that changed nothing of it sends nothing.
     told_reader: Option<TreeUpdate>,
+    /// What each place of the window is, as the last frame drew it, for a title bar the window draws.
+    frame_parts: FrameParts,
 }
 
 impl Surface {
@@ -102,9 +107,12 @@ impl Surface {
             size: options.size,
             visibility: options.visibility,
             title_bar: title_bar(options.theme, &theme),
+            decorations: decorations(options.title_bar),
             ..WindowOptions::default()
         };
         let window = Window::open(context, &window_options)?;
+        let frame_parts = FrameParts::default();
+        frame_parts.attach(&window);
         let mut assets = Assets::new();
         let typefaces = load_system_fonts(&mut assets)?;
         let size = window.size();
@@ -127,6 +135,7 @@ impl Surface {
             frames_drawn: 0,
             is_reader_listening: false,
             told_reader: None,
+            frame_parts,
         })
     }
 
@@ -157,6 +166,13 @@ impl Surface {
     #[must_use]
     pub fn frames_drawn(&self) -> u64 {
         self.frames_drawn
+    }
+
+    /// Keeps what the frame just drawn says of the title bar, for the system's questions until the next one
+    /// (`window.title-bar`).
+    pub fn keep_frame_parts(&self, caption: views::window::CaptionState) {
+        let width = self.window.scale().to_logical(self.window.size()).width;
+        self.frame_parts.keep(caption, (&self.memory, &self.theme, width));
     }
 
     /// Changes the theme chosen: the title bar follows, and a frame is asked for.

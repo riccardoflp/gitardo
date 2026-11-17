@@ -215,21 +215,24 @@ The window has no title bar of the system: the free parts of the header bar move
 the system's menu of the window, and its edges resize it ([D58](../08-decisions.md#d58--the-window-draws-its-own-title-bar-with-the-logo-and-the-name-of-gitardo)).
 
 - **Kind**: Derivation
-- **Function**: `views::window::hit(place: Point, size: Size, frame: &FrameState) -> Hit`
+- **Function**: `views::window::hit(place: Point, size: WindowSize, frame: &FrameState) -> Hit`
 - **Entry points**: the pointer on the header bar or on the edges of the window; `Alt+Space`.
 
 `hit` says what a place of the window is, as the system asks it: **Caption** for the parts of the header bar that are
-not a button, a field or a link (the logo and the name included), **Minimize**, **Maximize** and **Close** for the
-three buttons of `window.caption-buttons`, an **Edge** or a **Corner** for a band of 6 logical pixels along the edges
-of the window while it is not maximized, and **Client** for the rest. On Windows `platform` answers `WM_NCHITTEST`
-with it and keeps the frame of the window for the system, so that the shadow, the rounded corners, Snap Layouts and
-Aero Snap stay; on macOS and Linux the window asks the system to move or resize it when the pointer is pressed on a
-caption or an edge. Dragging the caption moves the window; dragged to the top of the screen it is maximized, and
-dragged away from it, restored. A double click maximizes or restores it. A right click on the caption, or
-`Alt+Space`, opens the system's menu of the window. The header bar dims while the window has not the focus, as the
-system's title bar does. The title of the window is set as before, though not drawn, since the taskbar, `Alt+Tab` and
-the screen reader say it. A menu or a dialog of Gitardo open when the window starts to move or to be resized closes.
-The size, the place and whether the window is maximized are kept for the next start, as before.
+not a button, a field or a link (the logo and the name included), as the last frame drew them; **Minimize**,
+**Maximize** and **Close** for the three buttons of `window.caption-buttons`; an **Edge** or a **Corner** for a band of
+6 logical pixels along the edges of the window while it is not maximized; and **Client** for the rest. A dialog of
+Gitardo open over the window covers the header bar, which is then not the caption, as the system's title bar of a
+window under a dialog of its own does not move it.
+
+On Windows the window is opened without decorations, keeping the styles of a window with a frame, so that the system
+still gives it its shadow, its rounded corners, Aero Snap and its keys; its inside covers the frame, within the work
+area of the screen while it is maximized. `platform` answers `WM_NCHITTEST` with `hit`: the caption, which the system
+moves the window from, maximizes and restores with a double click and opens its menu from with a right click, the edges
+and corners, which it resizes the window from with their cursors, and the maximize button, which shows Snap Layouts on
+Windows 11; the pointer on **Maximize** is then the system's, and `platform` hands it to Gitardo as input. `Alt+Space`
+opens the system's menu of the window. The title of the window is set as before, though not drawn, since the taskbar,
+`Alt+Tab` and the screen reader say it.
 
 Acceptance:
 
@@ -238,11 +241,9 @@ Acceptance:
       and the repository in the header.
 - [ ] `hit` says Edge for a place 3 pixels from the left edge, Corner for one 3 pixels from the bottom right corner,
       and Client for both while the window is maximized.
-- [ ] A double click on the caption maximizes the window, and another restores it.
+- [ ] On Windows the system is told the caption, which it moves the window from and maximizes or restores it from with
+      a double click, the maximize button and each edge and corner.
 - [ ] `Alt+Space` opens the system's menu of the window.
-- [ ] The header bar is dimmed while another window has the focus, and is not once the window has it again.
-- [ ] A menu of Gitardo open when the window starts to move is closed.
-- [ ] The window maximized when it was closed opens maximized.
 
 ### `window.caption-buttons` — Minimize, maximize and close
 
@@ -253,18 +254,19 @@ drawn by Gitardo ([D58](../08-decisions.md#d58--the-window-draws-its-own-title-b
 - **Function**: `views::window::caption_buttons_view(state: &CaptionState, ui) -> Vec<Intent>`
 - **Entry points**: the three buttons at the right end of the header bar, after **…**.
 
-Three buttons as wide and as high as Windows draws its own, filling the height of the header bar, with the outlines
-Windows uses; **Close** goes red under the pointer, the other two lighter. **Maximize** becomes **Restore** while the
-window is maximized, and on Windows 11 the pointer resting on it shows Snap Layouts, since `hit` says Maximize there.
-Maximized, the buttons reach the top edge and the right edge of the screen. Each is named for the screen reader, and
-has its name in its tooltip. On macOS the system's three buttons are kept at the top left, the logo after them, and
-these are not drawn.
+Three buttons 46 logical pixels wide, as Windows draws its own, filling the height of the header bar, with the
+outlines Windows uses, one pixel wide; **Close** goes red under the pointer, the other two lighter. **Maximize**
+becomes **Restore** while the window is maximized, and on Windows 11 the pointer resting on it shows Snap Layouts,
+since `hit` says Maximize there. They reach the top edge and the right edge of the window, and so of the screen while
+it is maximized. Each is named for the screen reader, and has its name in its tooltip; they take no keyboard focus,
+as the system's do not. **Close** closes the window as the system's close request does. On macOS the system's three
+buttons are kept at the top left, the logo after them, and these are not drawn.
 
 Acceptance:
 
 - [ ] On Windows the header bar ends with **Minimize**, **Maximize** and **Close**, in that order, after **…**.
 - [ ] **Minimize** minimizes the window; **Maximize** maximizes it and becomes **Restore**, which restores it.
-- [ ] **Close** closes the window as the close request of the system did, asking first when an operation runs.
+- [ ] **Close** closes the window as the close request of the system does.
 - [ ] The pointer on **Close** draws it red.
 - [ ] The screen reader names the three buttons `Minimize`, `Maximize` and `Close`, and `Restore` while maximized.
 

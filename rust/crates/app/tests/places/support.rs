@@ -153,6 +153,11 @@ impl Window {
         self.draw(state, &events).0
     }
 
+    /// The places of the last frame that take the pointer and cross a rectangle.
+    pub fn pointer_targets(&self, within: ui::Rect) -> Vec<ui::Rect> {
+        self.memory.pointer_targets(within)
+    }
+
     /// Checks the pixels against `tests/snapshots/<name>.png`.
     pub fn assert_snapshot(&self, name: &str) {
         let reference = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("tests/snapshots/{name}.png"));

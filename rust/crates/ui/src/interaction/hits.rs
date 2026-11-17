@@ -125,6 +125,18 @@ impl Hits {
         )
     }
 
+    /// Where the widgets that take a click, a drag or the focus cross a rectangle, in the layers that take input now.
+    pub(crate) fn pointer_targets(&self, within: Rect) -> Vec<Rect> {
+        let lowest = self.lowest_layer();
+        self.entries
+            .iter()
+            .filter(|hit| hit.layer >= lowest && hit.layer.takes_input())
+            .filter(|hit| hit.sense.intersects(Sense::CLICK | Sense::DRAG | Sense::FOCUS))
+            .map(|hit| hit.rect.intersection(within))
+            .filter(|rect| !rect.is_empty())
+            .collect()
+    }
+
     /// The widgets Tab goes through, in order.
     pub(crate) fn focus_order(&self) -> Vec<WidgetId> {
         let lowest = self.lowest_layer();

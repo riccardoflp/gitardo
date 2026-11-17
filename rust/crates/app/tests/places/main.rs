@@ -95,6 +95,7 @@ mod tabs;
 mod tasks;
 mod terminal;
 mod timeline;
+mod title_bar;
 mod trust;
 mod views_drawn;
 mod watch;

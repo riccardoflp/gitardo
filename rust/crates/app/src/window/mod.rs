@@ -5,6 +5,7 @@
 //! when the theme or the size changes. Only the parts of the frame that changed are sent to the screen.
 
 pub mod fonts;
+pub mod frame;
 pub mod input;
 pub mod theme;
 

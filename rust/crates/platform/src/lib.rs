@@ -27,6 +27,7 @@ mod dialog;
 mod error;
 mod event;
 mod event_loop;
+mod frame;
 mod geometry;
 mod input;
 #[cfg(target_os = "linux")]
@@ -55,6 +56,7 @@ pub use dialog::{FileDialog, FileFilter};
 pub use error::PlatformError;
 pub use event::{Cursor, Event, TimerId, WindowId};
 pub use event_loop::{Context, EventLoop};
+pub use frame::{Decorations, FramePart, ResizeEdge};
 pub use geometry::{LogicalSize, PhysicalSize, PixelRect, Point, Scale, ScreenPosition};
 pub use input::{
     InputEvent, Key, KeyEvent, Modifiers, NamedKey, PointerButton, PointerButtonEvent, PointerMove, WheelDelta,

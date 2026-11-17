@@ -19,6 +19,7 @@ use crate::click::{ClickCounter, Press};
 use crate::convert::round_to_coordinate;
 use crate::error::PlatformError;
 use crate::event::{Cursor, WindowId};
+use crate::frame::{Decorations, DrawnFrame};
 use crate::geometry::{PhysicalSize, Point, Scale};
 use crate::input::{InputEvent, KeyEvent, Modifiers, PointerButtonEvent, PointerMove, WheelEvent};
 use crate::mailbox::Mailbox;
@@ -30,6 +31,9 @@ use crate::translate;
 pub(crate) struct WindowShared {
     /// Its name.
     pub(crate) id: WindowId,
+    /// What it keeps of a title bar the program draws. It goes before the screen reader adapter, whose procedure on
+    /// Windows is behind its own.
+    pub(crate) frame: DrawnFrame,
     /// What tells the screen reader about it.
     pub(crate) adapter: RefCell<Adapter>,
     /// What shows its frames.
@@ -59,7 +63,7 @@ impl WindowShared {
     pub(crate) fn new(
         active: &ActiveEventLoop,
         window: Rc<LibraryWindow>,
-        proxy: EventLoopProxy<()>,
+        (proxy, decorations): (EventLoopProxy<()>, Decorations),
     ) -> Result<WindowShared, PlatformError> {
         let inbox = Arc::new(Mailbox::new(proxy));
         let adapter = Adapter::with_direct_handlers(
@@ -69,8 +73,10 @@ impl WindowShared {
             Requests::new(&inbox),
             Requests::new(&inbox),
         );
+        let frame = DrawnFrame::new(&window, decorations, &inbox)?;
         Ok(WindowShared {
             id: WindowId(u64::from(window.id())),
+            frame,
             adapter: RefCell::new(adapter),
             presenter: RefCell::new(Presenter::new(&window)?),
             inbox,

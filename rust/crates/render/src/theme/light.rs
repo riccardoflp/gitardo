@@ -48,6 +48,8 @@ pub(super) const THEME: Theme = Theme {
         menu_selection_foreground: Color::rgb(0x14, 0x13, 0x12),
         tooltip_background: Color::rgb(0x1E, 0x1D, 0x1B),
         tooltip_foreground: Color::rgb(0xF5, 0xF3, 0xEE),
+        close_hover: Color::rgb(0xC4, 0x2B, 0x1C),
+        close_hover_foreground: Color::rgb(0xFF, 0xFF, 0xFF),
         shadow: Color::rgba(0x3A, 0x30, 0x20, 50),
         text_selection: Color::rgba(0x0B, 0x7C, 0x6E, 60),
         find_match: Color::rgba(0xB3, 0x5C, 0x00, 70),

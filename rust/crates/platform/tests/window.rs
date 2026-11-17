@@ -12,8 +12,8 @@ use std::time::Duration;
 
 use platform::accesskit::{Node, NodeId, Role, TreeId, TreeInfo, TreeUpdate};
 use platform::{
-    AccessibilityRequest, Appearance, Context, Cursor, Event, EventLoop, Frame, InputEvent, Key, KeyEvent, LogicalSize,
-    Modifiers, NamedKey, PhysicalSize, PixelRect, PlatformError, Point, PointerButton, PointerButtonEvent,
+    AccessibilityRequest, Appearance, Context, Cursor, Decorations, Event, EventLoop, Frame, InputEvent, Key, KeyEvent,
+    LogicalSize, Modifiers, NamedKey, PhysicalSize, PixelRect, PlatformError, Point, PointerButton, PointerButtonEvent,
     ScreenPosition, TextInputArea, TimerId, Visibility, Window, WindowOptions,
 };
 
@@ -59,6 +59,7 @@ fn hidden_window(event_loop: &mut Loop) -> Window {
         },
         visibility: Visibility::Hidden,
         title_bar: Some(Appearance::Dark),
+        decorations: Decorations::System,
     };
     let mut window = None;
     event_loop

@@ -14,6 +14,7 @@ pub mod compare;
 mod conflicts;
 mod diff_page;
 mod draft;
+mod effect;
 pub mod feature;
 pub mod file_page;
 pub mod files_page;
@@ -57,10 +58,11 @@ pub use changes::{Changes, ChangesData};
 pub use code_workspace::code_workspace_folders;
 pub use commit_page::{CommitPage, CommitPages, PageReadState};
 pub use diff_page::{DiffPage, DiffPages};
+pub use effect::Effect;
 pub use file_page::{FileContent, FilePage, FilePages};
 pub use inspector::{Inspector, InspectorRead, Subject, SubjectRow};
 pub use merge_page::{MergePage, MergePages};
-pub use message::{Effect, Found, Job, JobId, JobKind, Known, Message, MorePages, TimelineRequest};
+pub use message::{Found, Job, JobId, JobKind, Known, Message, MorePages, TimelineRequest};
 pub use rail::{FilterPicker, Rail};
 pub use reads::Reads;
 pub use stashes::StashesList;
@@ -170,6 +172,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
             Vec::new()
         }
         Message::Minimized(is_minimized) => reads::minimized(state, is_minimized),
+        Message::Caption(caption) => workspace::caption_changed(state, caption),
         Message::ReadTook { line, took, time } => {
             reads::read_took(state, (line, took, time));
             Vec::new()
@@ -418,6 +421,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::Conflicts(intent) => conflicts::reduce(state, intent),
         Intent::WorktreeSetup(intent) => new_worktrees::reduce(state, intent),
         Intent::Tasks(intent) => tasks::reduce(state, intent),
+        Intent::Window(intent) => vec![Effect::Window(intent)],
     }
 }
 

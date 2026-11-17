@@ -44,6 +44,7 @@ impl Demo {
             visibility,
             theme: ThemeName::System,
             frame_timer: FRAME_TIMER,
+            title_bar: views::window::TitleBar::System,
         };
         let mut surface = Surface::open(context, options)?;
         let theme = *surface.theme();

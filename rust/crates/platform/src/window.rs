@@ -4,11 +4,12 @@ use std::rc::Rc;
 
 use accesskit::TreeUpdate;
 use winit::dpi::{LogicalPosition as LibraryLogicalPosition, LogicalSize as LibraryLogicalSize, PhysicalPosition};
-use winit::window::Window as LibraryWindow;
+use winit::window::{Window as LibraryWindow, WindowAttributes};
 
 use crate::error::PlatformError;
 use crate::event::{Cursor, WindowId};
 use crate::event_loop::{Context, LoopState};
+use crate::frame::{Decorations, FramePart};
 use crate::geometry::{LogicalSize, PhysicalSize, PixelRect, Point, Scale, ScreenPosition};
 use crate::input::InputEvent;
 use crate::mailbox::InputSender;
@@ -40,6 +41,8 @@ pub struct WindowOptions {
     pub visibility: Visibility,
     /// Whether its title bar is dark or light; none follows the system.
     pub title_bar: Option<Appearance>,
+    /// Whether the system draws its title bar, or the program.
+    pub decorations: Decorations,
 }
 
 impl Default for WindowOptions {
@@ -56,6 +59,7 @@ impl Default for WindowOptions {
             },
             visibility: Visibility::Shown,
             title_bar: None,
+            decorations: Decorations::System,
         }
     }
 }
@@ -90,6 +94,7 @@ impl Window {
             .with_theme(options.title_bar.map(translate::library_theme))
             // Hidden until the screen reader adapter is made, as it asks.
             .with_visible(false);
+        let attributes = decorated(attributes, options.decorations);
         let window = context
             .active
             .create_window(attributes)
@@ -97,7 +102,7 @@ impl Window {
         let shared = Rc::new(WindowShared::new(
             context.active,
             Rc::new(window),
-            context.state.proxy.clone(),
+            (context.state.proxy.clone(), options.decorations),
         )?);
         context.state.register(&shared);
         let opened = Window {
@@ -182,6 +187,44 @@ impl Window {
         self.library().set_visible(false);
     }
 
+    /// Says what each place of the window is, when the program draws its title bar: where it is moved, resized,
+    /// minimized, maximized and closed from. The function is called with a place and the size of the inside of the
+    /// window, both in logical pixels, whenever the system asks.
+    pub fn set_frame_parts(&self, parts: impl Fn(Point, LogicalSize) -> FramePart + 'static) {
+        self.shared.frame.set_parts(Box::new(parts));
+    }
+
+    /// Minimizes it.
+    pub fn minimize(&self) {
+        self.library().set_minimized(true);
+    }
+
+    /// Maximizes it.
+    pub fn maximize(&self) {
+        self.library().set_maximized(true);
+    }
+
+    /// Restores it from maximized.
+    pub fn restore(&self) {
+        self.library().set_maximized(false);
+    }
+
+    /// Whether it is maximized.
+    #[must_use]
+    pub fn is_maximized(&self) -> bool {
+        self.library().is_maximized()
+    }
+
+    /// The size of the window with its frame, in physical pixels.
+    #[must_use]
+    pub fn outer_size(&self) -> PhysicalSize {
+        let size = self.library().outer_size();
+        PhysicalSize {
+            width: size.width,
+            height: size.height,
+        }
+    }
+
     /// Makes its title bar dark or light, as the theme of the program is; none follows the system.
     pub fn set_title_bar(&self, appearance: Option<Appearance>) {
         self.library().set_theme(appearance.map(translate::library_theme));
@@ -261,6 +304,23 @@ impl Drop for Window {
         self.shared.inbox.close();
         self.owner.forget(self.shared.id);
     }
+}
+
+/// The attributes of a window with the decorations asked for: without the system's title bar on Windows, keeping
+/// the shadow of its frame (D58).
+#[cfg(windows)]
+fn decorated(attributes: WindowAttributes, decorations: Decorations) -> WindowAttributes {
+    use winit::platform::windows::WindowAttributesExtWindows;
+    match decorations {
+        Decorations::System => attributes,
+        Decorations::Drawn => attributes.with_decorations(false).with_undecorated_shadow(true),
+    }
+}
+
+/// The attributes of a window with the decorations asked for: the systems other than Windows keep theirs for now.
+#[cfg(not(windows))]
+fn decorated(attributes: WindowAttributes, _decorations: Decorations) -> WindowAttributes {
+    attributes
 }
 
 /// A logical size as `winit` takes it.

@@ -146,6 +146,10 @@ pub struct Colors {
     pub tooltip_background: Color,
     /// The text of a tooltip.
     pub tooltip_foreground: Color,
+    /// Behind **Close** of the title bar under the pointer: the red Windows uses (`window.caption-buttons`).
+    pub close_hover: Color,
+    /// The outline of **Close** under the pointer.
+    pub close_hover_foreground: Color,
     /// The shadow under menus and dialogs, usually see-through.
     pub shadow: Color,
     /// Behind text selected in an editor or a box.

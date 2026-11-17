@@ -7,7 +7,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use render::{Point, ThemeName};
+use render::{Point, Rect, ThemeName};
 
 use crate::access::AccessMemory;
 use crate::frame::OverlayState;
@@ -202,6 +202,13 @@ impl UiMemory {
     /// Sets the size of the first pane of a splitter, in logical pixels.
     pub fn set_splitter(&mut self, id: WidgetId, size: f32) {
         let _ = self.splitters.insert(id, size);
+    }
+
+    /// The places of the last frame that take the pointer, a click, a drag or the keyboard, and cross a rectangle, in
+    /// the layers that take input now: where the header bar of a window drawing its own title bar is not its caption.
+    #[must_use]
+    pub fn pointer_targets(&self, within: Rect) -> Vec<Rect> {
+        self.interaction.hits.pointer_targets(within)
     }
 
     /// Forgets what the last frame drew, so that the next one draws all of the window: for when the frame buffer was

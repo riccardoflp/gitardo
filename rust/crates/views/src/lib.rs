@@ -53,7 +53,7 @@ pub mod terminal;
 pub mod text;
 mod view_bar;
 pub mod welcome;
-mod window;
+pub mod window;
 pub mod worktree;
 pub mod worktree_setup;
 
