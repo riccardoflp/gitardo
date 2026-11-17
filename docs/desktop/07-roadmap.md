@@ -440,6 +440,45 @@ menu of a branch the bin beside **Delete**; every card of the phase passes its t
 of the header bar match in each theme, focused and not, those of the preview of Markdown and those of the tree of the
 Files page with its marks and with the icons of its files, and those of the menus of a commit and of a file, in each theme.
 
+## M18 — The timeline in one line a commit, and its two menus
+
+The labels of a commit come first on its row, and the many labels of a busy commit open under the pointer rather than
+being cut ([D64](../08-decisions.md#d64--the-labels-of-a-commit-first-on-its-row-the-rest-under-the-pointer)); the
+timeline can show each commit on one line, the compact rows
+([D65](../08-decisions.md#d65--compact-rows-each-commit-on-one-line)); and the **…** menu of the header, which held
+the switches of the timeline and its actions together, becomes two menus
+([D66](../08-decisions.md#d66--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions)). Asked by the
+maintainer after M17. Built in four phases, each one commit or more, each ending with its cards built and their tests
+passing.
+
+1. **The labels first.** On each row of the timeline the labels of the commit (`graph.labels`) come at the start of
+   the line of its message, right after the cell of the graph, in their order, and the message after them. They take
+   at most a part of the width of the row; the labels that do not fit are gathered in one label `+N`. The pointer
+   resting on `+N`, or on any label of the row, opens under it a list of all the labels of the commit, each with its
+   icon and its color, each one doing what its label does: a click, a double click (check out, `branch.open`), a
+   right click (its menu), the hover that brings out its history. The list closes when the pointer leaves it and its
+   labels. Cards: `graph.labels`, `graph.label-overflow`, `graph.timeline`.
+2. **Compact rows.** A setting, `graph.compactRows` (off by default), and its switch **Compact rows** in the menu of
+   the view (phase 3): each commit on one line, its labels, then its message, then at the right end the author, the
+   date and the hash as `graph.columns` asks, in columns that line up from row to row; the rows lower, the cell of the
+   graph following them. The draft of the uncommitted changes, the separators of days and the stashes follow too.
+   Cards: `graph.compact-rows`, `graph.timeline`, `graph.columns`.
+3. **Two menus.** In the header, in place of **…**: a menu of the view of the timeline, with every switch of what it
+   shows and how (the kinds of branches, the stashes, the first parent, one lane, the history of the selected commit,
+   folding, the columns, the separators of dates, the combined upstream, **Compact rows**); and **…**, the menu of the
+   actions (refresh, branch, stash, undo, compare, go to commit, reflog, clean up, patches, remotes, submodules,
+   identity, pull requests, settings, theme). Cards: `graph.view-menu`, `graph.more-menu`.
+4. **The extension.** The labels first with their list under the pointer, the compact rows and the two menus in the
+   graph of the extension, where its webview draws them as the desktop does; what VS Code draws itself stays as VS
+   Code draws it. Cards: the same, in the extension.
+
+Exit: in a repository with a commit carrying `main`, `origin/main`, three tags and a stash, the row starts with the
+labels that fit and `+N`, the pointer on `+N` lists all six and a double click on `main` in that list checks it out;
+with **Compact rows** on, every commit is on one line with the author, the date and the hash lined up at the right, and
+off, as before; the header has the menu of the view, with every switch, and **…** with the actions alone; every card
+of the milestone passes its tests, and the snapshots of the timeline match in each theme, with compact rows and
+without, and those of the two menus.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

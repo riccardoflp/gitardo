@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 - 2026-11-17
+## Unreleased
 
 - The logo of Gitardo, the one of the extension, is at the top left of the window, in the accent of the theme, in a
   square above the bar of views, which starts under it; the header starts with the name **Gitardo**, before the

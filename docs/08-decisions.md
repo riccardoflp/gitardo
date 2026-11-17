@@ -1171,6 +1171,36 @@ In the extension the menus of the webviews are drawn by the extension itself (`C
 same icons from the codicons it has; they are left as they are for now, desktop first ([Q619](#of-the-icons-of-the-menus-from-q610)).
 VS Code's own menus show no icons.
 
+## D64 — The labels of a commit first on its row, the rest under the pointer
+
+*Asked by the maintainer for milestone M18; the details proposed by the agent.*
+
+The labels of a commit followed its message, so that the eye found the branches at a different place on each row, and
+a commit with many labels lost them past the edge or in a count whose names were only in a tooltip. Now the labels
+come first on the row, right after the cell of the graph, where they line up from row to row, and the message after
+them. They take at most a part of the row, so that the message is always seen; those that do not fit are one label
+`+N`. The pointer resting on `+N`, or on a label of the row, opens the list of all the labels of the commit under it,
+and each label of the list does what it does on the row: a click, a double click, its menu, its history brought out.
+
+## D65 — Compact rows: each commit on one line
+
+*Asked by the maintainer for milestone M18; the details proposed by the agent.*
+
+A row of the timeline has two lines, the labels and the message, then the author and the date. To see more commits at
+once the timeline can show each on one line, as a table: the labels, the message, then the author, the date and the
+hash at the right end, in columns that line up. It is a setting, `graph.compactRows`, off by default, switched from the
+menu of the view (D66). The graph follows the lower rows; nothing else of the timeline changes.
+
+## D66 — Two menus in the header: the view of the timeline, and its actions
+
+*Asked by the maintainer for milestone M18; the details proposed by the agent.*
+
+The **…** menu of the header held seven groups: the actions of the repository and the switches of what the timeline
+shows, so that a switch was looked for among actions and the other way around. Now they are two menus side by side at
+the end of the header: the menu of the view, with every switch of the timeline (what it shows, how it draws it, its
+columns, **Compact rows**), each checked while it is on; and **…**, with the actions alone. Each switch still writes its
+setting in the user's settings file.
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374

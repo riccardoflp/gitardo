@@ -2,7 +2,7 @@
 
 What changed in each version of Gitardo. The versions follow [Semantic Versioning](https://semver.org).
 
-## 1.1.0 - 2026-11-17
+## Unreleased
 
 ### Added
 
