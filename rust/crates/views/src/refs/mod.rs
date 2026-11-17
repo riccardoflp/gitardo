@@ -145,7 +145,7 @@ pub(crate) fn rail_view(
     };
     let mut report = RailReport::default();
     ui.region("rail region", (rect, AccessRole::Navigation, words::RAIL), |ui| {
-        let mut area = Area::with_gap(inset(rect, Insets::symmetric(across, spacing.large)), spacing.medium);
+        let mut area = Area::with_gap(inset(rect, Insets::symmetric(across, spacing.small)), spacing.small);
         if is_icons {
             let button = area.top(theme.sizes.control_height);
             report

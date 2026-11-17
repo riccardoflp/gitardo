@@ -121,6 +121,7 @@ fn entry(name: &str, is_shown: bool) -> TabEntry {
             is_stale: false,
         }),
         members: Vec::new(),
+        is_unfolded: true,
     }
 }
 
@@ -356,7 +357,8 @@ fn repo_tabs__there_is_no_island_above_the_header() {
 }
 
 #[test]
-fn repo_tabs__the_snapshots_of_the_section_with_one_repository_and_with_several_match_in_every_theme_at_both_scales() {
+fn repo_tabs__the_snapshots_of_the_section_with_one_repository_with_several_and_with_worktrees_match_in_every_theme_at_both_scales()
+ {
     let (_one_kept, one_folder) = {
         let (repository, remote) = repository_with_history();
         let folder = repository.path().to_path_buf();
@@ -365,6 +367,9 @@ fn repo_tabs__the_snapshots_of_the_section_with_one_repository_and_with_several_
     let one = showing(one_folder);
     let (_kept, _clones, mut several) = three_clones();
     ask(&mut several, Intent::SwitchTab(1));
+    let grouped = super::group_tabs::made(false);
+    let mut worktrees = super::group_tabs::window(&grouped);
+    ask(&mut worktrees, Intent::ShowInTab(0, grouped.login.clone()));
     let themes = [
         (ThemeName::Dark, "dark"),
         (ThemeName::Light, "light"),
@@ -373,7 +378,7 @@ fn repo_tabs__the_snapshots_of_the_section_with_one_repository_and_with_several_
     ];
     for (theme, theme_name) in themes {
         for scale in [1, 2] {
-            for (state, layout) in [(&one, "one"), (&several, "several")] {
+            for (state, layout) in [(&one, "one"), (&several, "several"), (&worktrees, "worktrees")] {
                 let mut window = Window::scaled(theme, (240, 220), scale);
                 let data = ViewData::new(state, Vec::new(), NOW);
                 let window_state = data.window_state(state);

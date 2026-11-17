@@ -13,7 +13,7 @@ use model::contract::{FeatureId, OpenIn, Target};
 use model::refs::{References, SortOrder};
 use model::state::RepositoryState;
 use model::submodule::{Checkout, Distance, Submodule, SubmoduleStatus, status};
-use platform::accesskit::Role;
+use platform::accesskit::{Node, Role, TreeUpdate};
 use render::ThemeName;
 use testkit::Repository;
 use views::feature::FeatureIntent;
@@ -21,11 +21,28 @@ use views::refs::{ReferencesState, StashesShown, tree_view};
 use views::{Intent, RailIntent, RailList, RailLists};
 
 use super::showing;
-use super::support::{OperationsDriver, Window, find, has, run, says};
+use super::support::{OperationsDriver, Window, has, run, says};
 use super::watch::{changes_within, reads_after, watched};
 
 /// The size of the window of these tests.
 const WIDE: (u32, u32) = (1000, 520);
+/// A window tall enough for the rows of the repository and its submodule above the rail, and the Submodules list in
+/// it.
+const TALL: (u32, u32) = (1000, 720);
+
+/// The row of `lib` in the branch rail, rather than its row under the repository in **Repositories**.
+fn lib_in_rail(tree: &TreeUpdate) -> &Node {
+    let rail = super::pointer::bounds(tree, Role::Navigation, views::text::rail::RAIL);
+    tree.nodes
+        .iter()
+        .map(|(_, node)| node)
+        .filter(|node| node.role() == Role::Button && node.label() == Some("lib"))
+        .find(|node| {
+            node.bounds()
+                .is_some_and(|bounds| super::pointer::rect(bounds).y >= rail.y)
+        })
+        .unwrap_or_else(|| panic!("no lib in the branch rail"))
+}
 
 /// A repository of its own with one commit, to be added as a submodule.
 fn library() -> Repository {
@@ -109,9 +126,9 @@ fn submodule_section__lib_two_commits_ahead_on_main_with_a_file_changed_shows_li
     }
     std::fs::write(lib.join("lib.txt"), "changed\n").unwrap();
     let state = with_submodules_open(&repository);
-    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let mut window = Window::new(ThemeName::Dark, TALL);
     let (_, tree) = window.draw(&state, &[]);
-    let row = find(&tree, Role::Button, "lib");
+    let row = lib_in_rail(&tree);
     let value = row.value().unwrap_or_default();
     for said in ["main", "1 file not committed", "2 commits ahead of the recorded commit"] {
         assert!(value.contains(said), "{said}: {value}");
@@ -139,8 +156,10 @@ fn submodule_section__a_repository_without_submodules_has_no_submodules_list() {
 fn submodule_open_in_new_window__a_double_click_on_lib_opens_a_window_on_its_folder() {
     let (repository, _kept) = with_lib(false);
     let mut state = with_submodules_open(&repository);
-    let mut window = Window::new(ThemeName::Dark, WIDE);
-    let intents = window.double_click(&state, Role::Button, "lib");
+    let mut window = Window::new(ThemeName::Dark, TALL);
+    let (_, tree) = window.draw(&state, &[]);
+    let row = super::pointer::rect(lib_in_rail(&tree).bounds().unwrap());
+    let intents = window.click_at(&state, super::pointer::middle(row), 2);
     let opens = Intent::Feature(FeatureIntent::Run(
         FeatureId("submodule.open-in-new-window"),
         Target::Submodule(String::from("lib")),

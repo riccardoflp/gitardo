@@ -81,6 +81,7 @@ pub fn reduce(state: &mut State, intent: Intent) -> Vec<Effect> {
     match intent {
         Intent::SwitchTab(index) => switch_tab(state, index),
         Intent::ShowInTab(index, folder) => show_in_tab(state, index, &folder),
+        Intent::FoldTab(index) => members::fold_tab(state, index),
         Intent::OpenTab(folder) => open_tab(state, &folder),
         Intent::PickTabToOpen => {
             open::pick_tab(state);

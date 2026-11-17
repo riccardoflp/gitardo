@@ -80,6 +80,7 @@ mod settings_search;
 mod settings_values;
 mod show_in_graph;
 mod side_column;
+mod side_room;
 mod speed;
 mod stashes;
 mod submodules;

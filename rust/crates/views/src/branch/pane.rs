@@ -1,111 +1,62 @@
-//! The branch rail as one place (`branch.pane`): its top, which names the branch checked out with the button of the
-//! rail's own filter and has **Create branch** and **Compare**, over the lists of `refs.tree`.
+//! The branch rail as one place (`branch.pane`): the lists of `refs.tree`, and its buttons, which the heading of
+//! **Branches** in the side column has on its right: **Create branch**, **Compare** and the button of the rail's own
+//! filter.
 
 use std::time::Duration;
 
 use model::contract::{FeatureId, Target};
-use model::state::RepositoryState;
-use ui::layout::{Area, Insets, inset};
-use ui::{Axis, Button, ButtonKind, Label, Rect, TextKind, Tone, Ui};
+use ui::layout::Area;
+use ui::{Button, ButtonKind, Rect, Ui};
 
 use crate::feature::FeatureIntent;
 use crate::graph::HoverTarget;
 use crate::icons;
 use crate::intent::Intent;
-use crate::line::is_icon_rail;
 use crate::refs::{ReferencesState, list_filter_view, rail_view};
-use crate::text::header::detached_at;
 use crate::text::rail as words;
 
-/// The branch rail, over the rectangle its caller clipped it to: at its top the branch checked out with the button of
-/// the rail's own filter (`refs.list-filter`), **Create branch**, which makes a branch at `HEAD` (`branch.create`), and
-/// **Compare** (`compare.choose`); under it the filter box, the line of what the rail lists and the lists of
-/// `refs.tree`. Narrowed to its icons there is no top, as there is no box: the button of the filter is at the top of the
-/// icons.
+/// The branch rail, over the rectangle its caller clipped it to: the filter box, the line of what the rail lists and
+/// the lists of `refs.tree`. Its buttons are in the heading of **Branches** ([`pane_buttons`]); narrowed to its icons,
+/// the button of the filter is at the top of the icons.
 ///
 /// Feature: branch.pane
 pub fn pane(state: &ReferencesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     pane_view(state, ui).0
 }
 
-/// The branch rail with its top, and the reference the pointer rests on with since when (`graph.hover-history`).
+/// The branch rail, and the reference the pointer rests on with since when (`graph.hover-history`).
 pub(crate) fn pane_view(
     state: &ReferencesState<'_>,
     ui: &mut Ui<'_>,
 ) -> (Vec<Intent>, Option<(HoverTarget, Duration)>) {
-    let rect = ui.current_clip();
-    if is_icon_rail(rect.width) {
-        return rail_view(state, ui);
-    }
-    let theme = *ui.theme();
-    let spacing = theme.sizes.spacing;
-    let height = spacing.large + 2.0 * theme.sizes.control_height + spacing.small;
-    let mut parts = Area::new(rect);
-    let top = parts.top(height);
-    ui.fill_rect(top, theme.colors.rail_background);
-    let edge = Rect::new(top.right() - theme.sizes.border, top.y, theme.sizes.border, top.height);
-    ui.separator(edge, Axis::Vertical);
-    let mut intents = ui.clip(top, |ui| top_view(state, ui));
-    let (rail_intents, hover) = ui.clip(parts.rest(), |ui| rail_view(state, ui));
-    intents.extend(rail_intents);
-    (intents, hover)
+    rail_view(state, ui)
 }
 
-/// The name of the branch checked out, or the commit of a detached `HEAD`, with the button of the rail's filter, over
-/// the two buttons; neither can be used before the first commit.
-fn top_view(state: &ReferencesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
-    let repository = state.repository;
-    let rect = ui.current_clip();
-    let theme = *ui.theme();
-    let spacing = theme.sizes.spacing;
-    let inner = inset(
-        rect,
-        Insets {
-            bottom: 0.0,
-            ..Insets::all(spacing.large)
-        },
-    );
-    let mut rows = Area::with_gap(inner, spacing.small);
-    let mut name_line = Area::with_gap(rows.top(theme.sizes.control_height), spacing.small);
-    ui.icon_in(name_line.left(theme.sizes.icon), icons::BRANCH, Tone::Muted);
-    let filter = name_line.right(theme.sizes.control_height);
+/// How wide the buttons of the rail are, side by side, square in a heading of a height.
+pub(crate) fn buttons_width(ui: &Ui<'_>, height: f32) -> f32 {
+    3.0 * height + 2.0 * ui.theme().sizes.spacing.tiny
+}
+
+/// The buttons of the rail, from the right of a rectangle: the button of the rail's own filter (`refs.list-filter`),
+/// **Compare** (`compare.choose`) and **Create branch**, which makes a branch at `HEAD` (`branch.create`), each an icon
+/// with its name in its tooltip; neither of the last two can be used before the first commit.
+pub(crate) fn pane_buttons(state: &ReferencesState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
+    let side = rect.height;
+    let mut parts = Area::with_gap(rect, ui.theme().sizes.spacing.tiny);
+    let filter = parts.right(side);
+    let compare_cell = parts.right(side);
+    let create_cell = parts.right(side);
     let mut intents = ui.clip(filter, |ui| list_filter_view(&state.list_filter, ui));
-    let name = checked_out(repository);
-    let _ = ui.label(name_line.rest(), &Label::new(&name).kind(TextKind::Strong));
-    let mut buttons = Area::with_gap(rows.top(theme.sizes.control_height), spacing.small);
-    let can_run = repository.has_commit();
+    let can_run = state.repository.has_commit();
     let available = |button: Button<'static>| if can_run { button } else { button.disabled() };
-    let compare = available(Button::secondary(words::COMPARE));
-    let create = Button::secondary(words::CREATE_BRANCH).with_icon(icons::CREATE_BRANCH);
-    let (compare_width, _) = ui.button_size(&compare);
-    let (create_width, _) = ui.button_size(&create);
-    let width = buttons.rest().width;
-    // The words of Create branch go when both buttons do not fit beside each other.
-    let create = if create_width + compare_width + spacing.small <= width {
-        create
-    } else {
-        Button::icon(icons::CREATE_BRANCH, words::CREATE_BRANCH).kind(ButtonKind::Secondary)
-    };
-    let create = available(create);
-    let (create_width, _) = ui.button_size(&create);
+    let create = available(Button::icon(icons::CREATE_BRANCH, words::CREATE_BRANCH).kind(ButtonKind::Icon));
+    let compare = available(Button::icon(icons::COMPARE, words::COMPARE).kind(ButtonKind::Icon));
     let run = |feature: &'static str| Intent::Feature(FeatureIntent::Run(FeatureId(feature), Target::Head));
-    if ui
-        .button("rail create branch", buttons.left(create_width), &create)
-        .clicked
-    {
+    if ui.button("rail create branch", create_cell, &create).clicked {
         intents.push(run("branch.create"));
     }
-    if ui.button("rail compare", buttons.left(compare_width), &compare).clicked {
+    if ui.button("rail compare", compare_cell, &compare).clicked {
         intents.push(run("compare.choose"));
     }
     intents
-}
-
-/// The branch checked out, or `detached at <short hash>`.
-fn checked_out(repository: &RepositoryState) -> String {
-    match (repository.checked_out_branch(), &repository.head.commit) {
-        (Some(branch), _) => branch.to_owned(),
-        (None, Some(commit)) => detached_at(commit.short()),
-        (None, None) => String::new(),
-    }
 }

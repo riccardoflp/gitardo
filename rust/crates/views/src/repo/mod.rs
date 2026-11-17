@@ -3,6 +3,7 @@
 //! (`repo.no-repository`), the picker of the repositories (`repo.select`), and the question asked when a folder is
 //! opened while the window shows a workspace (`repo.open-folder`).
 
+mod rows;
 mod side_column;
 mod summary;
 mod tabs;

@@ -1,5 +1,4 @@
-//! What a repository or a worktree is on, as the second line of a row of **Repositories** and the entries of its **▾**
-//! say it (`repo.worktree-summary`): `main ● 3 ↓2 ↑1`, what is not there not said.
+//! What a repository or a worktree is on, as a row of **Repositories** says it on its right (`repo.worktree-summary`): `main ● 3 ↓2 ↑1`, what is not there not said.
 
 use model::repo::{SummaryHead, WorktreeSummary};
 use ui::layout::{Align, Area, place};
@@ -40,6 +39,19 @@ pub fn counts_words(summary: &TabSummary) -> String {
         parts.push(distance);
     }
     parts.join(" ")
+}
+
+/// How wide the line of a summary is, all of it.
+pub(crate) fn summary_width(ui: &Ui<'_>, summary: &TabSummary) -> f32 {
+    let style = ui.text_style(TextKind::Detail);
+    let gap = ui.theme().sizes.spacing.small;
+    let head = head_words(&summary.summary.head);
+    let counts = counts_words(summary);
+    let mut width = ui.measure(&head, style);
+    if !counts.is_empty() {
+        width += gap + ui.measure(&counts, style);
+    }
+    width
 }
 
 /// The line of a summary over a rectangle, in the small text of a second line: the branch, muted; how many files are

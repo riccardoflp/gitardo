@@ -7,10 +7,12 @@ use model::repo::{TabGroup, group_tabs};
 
 use super::super::message::{Effect, Message};
 use super::super::state::{Shown, State};
+use super::super::timeline::workspace_panes;
 use super::super::workspace;
 use super::view::{Answered, put_view, take_view};
 use super::{RepositoryView, kept_on_leaving, switch_tab};
-use crate::persisted::same_folder;
+use crate::persisted::timeline::remember;
+use crate::persisted::{same_folder, same_folders};
 
 /// A repository of the group of a tab that the tab does not show, with what it kept.
 #[derive(Clone, Debug, PartialEq)]
@@ -41,6 +43,28 @@ pub fn tab_of(state: &State, folder: &Path) -> Option<usize> {
             let group = group_of(state, folder)?;
             tabs.iter().position(|tab| group.holds(&tab.folder))
         })
+}
+
+/// Folds or unfolds the rows of the worktrees and the submodules under the row of a tab, kept for the workspace as
+/// the folds of the sections of the side column are.
+pub fn fold_tab(state: &mut State, index: usize) -> Vec<Effect> {
+    let Some(folder) = state.tabs.open.get(index).map(|tab| tab.folder.clone()) else {
+        return Vec::new();
+    };
+    if state.workspace.is_none() {
+        return Vec::new();
+    }
+    let mut panes = workspace_panes(state);
+    let was_folded = panes.folded_tabs.iter().any(|kept| same_folder(kept, &folder));
+    panes.folded_tabs.retain(|kept| !same_folder(kept, &folder));
+    if !was_folded {
+        panes.folded_tabs.push(folder);
+    }
+    let folders = panes.folders.clone();
+    remember(&mut state.persisted.panes, panes, |kept| {
+        same_folders(&kept.folders, &folders)
+    });
+    vec![Effect::WritePersisted(state.persisted.clone())]
 }
 
 /// Shows a repository of a group in a tab: the tab is shown first, then the repository in it.

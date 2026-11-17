@@ -1,6 +1,7 @@
 //! The side column (`repo.side-column`, D56): one island on the left of the window, from under the header to the
 //! status bar, with **Repositories** above (`repo.tabs`) and **Branches** under it, which is the branch rail
-//! (`branch.pane`); each folds by its heading, and the line between them is dragged to share the height.
+//! (`branch.pane`); each folds by its heading, which has the buttons of its section on its right, and the line between
+//! them is dragged to share the height.
 
 use std::time::Duration;
 
@@ -134,7 +135,7 @@ pub(crate) fn side_column(
 ) -> (Vec<Intent>, Option<(HoverTarget, Duration)>) {
     let column = ui.current_clip();
     let theme = *ui.theme();
-    let heading = theme.sizes.control_height;
+    let heading = heading_height(ui);
     let line = theme.sizes.border;
     let rows = rows_height(ui, &state.tabs);
     let sections = state.sections;
@@ -148,7 +149,11 @@ pub(crate) fn side_column(
             if !sections.is_repositories_folded && !sections.is_branches_folded {
                 intents.extend(section_line(ui, column, sections, (heading, rows)));
             }
-            let open = heading_row(ui, rects.repositories_heading, (SideSection::Repositories, sections));
+            let open = heading_row(
+                ui,
+                rects.repositories_heading,
+                (SideSection::Repositories, sections, heading),
+            );
             intents.extend(open);
             intents.extend(open_button(
                 state.tabs.not_open,
@@ -158,11 +163,20 @@ pub(crate) fn side_column(
             if let Some(rows) = rects.repositories {
                 intents.extend(ui.clip(rows, |ui| tabs_view(&state.tabs, ui)));
             }
+            let buttons = state
+                .branches
+                .as_ref()
+                .map_or(0.0, |_| crate::branch::buttons_width(ui, heading));
             intents.extend(heading_row(
                 ui,
                 rects.branches_heading,
-                (SideSection::Branches, sections),
+                (SideSection::Branches, sections, buttons),
             ));
+            if let Some(references) = &state.branches {
+                let room = Area::new(rects.branches_heading).right(buttons + theme.sizes.spacing.small);
+                let room = inset(room, Insets::symmetric(theme.sizes.spacing.small, 0.0));
+                intents.extend(crate::branch::pane_buttons(references, ui, room));
+            }
             if let (Some(rail), Some(references)) = (rects.branches, &state.branches) {
                 let (rail_intents, rail_hover) = ui.clip(rail, |ui| crate::branch::pane_view(references, ui));
                 intents.extend(rail_intents);
@@ -199,9 +213,19 @@ fn section_line(ui: &mut Ui<'_>, column: Rect, sections: SideSections, (heading,
     }
 }
 
-/// The heading of a section: its chevron, down while it is open, and its name in capitals; a click folds or unfolds
-/// it.
-fn heading_row(ui: &mut Ui<'_>, rect: Rect, (section, sections): (SideSection, SideSections)) -> Option<Intent> {
+/// The height of the heading of a section: a row, with room for buttons of at least 24 logical pixels.
+pub(crate) fn heading_height(ui: &Ui<'_>) -> f32 {
+    let sizes = ui.theme().sizes;
+    sizes.control_height - sizes.spacing.small
+}
+
+/// The heading of a section: its chevron, down while it is open, and its name in capitals, short of the room its
+/// buttons take on its right; a click folds or unfolds it.
+fn heading_row(
+    ui: &mut Ui<'_>,
+    rect: Rect,
+    (section, sections, buttons): (SideSection, SideSections, f32),
+) -> Option<Intent> {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
     let (name, is_folded) = match section {
@@ -217,6 +241,7 @@ fn heading_row(ui: &mut Ui<'_>, rect: Rect, (section, sections): (SideSection, S
         ui.focus_ring(rect, theme.sizes.radius.medium);
     }
     let mut parts = Area::with_gap(inset(rect, Insets::symmetric(spacing.medium, 0.0)), spacing.small);
+    let _ = parts.right(buttons);
     let chevron = if is_folded { icons::FOLDED } else { icons::UNFOLDED };
     ui.icon_in(parts.left(theme.sizes.icon), chevron, Tone::Muted);
     let _ = ui.label(

@@ -1,6 +1,6 @@
 //! What the repositories open and their worktrees are on, read in the background (`repo.worktree-summary`): the
 //! worktree `login` of `api`, not shown, read once the window opens, again when a file of it is saved, and not when
-//! nothing changed; and its entry in the **▾** of `api` (`repo.group-tabs`). Then three repositories open, each on
+//! nothing changed; and its row under the row of `api` (`repo.group-tabs`). Then three repositories open, each on
 //! its own branch with its own files changed and commits to pull and to push, and a worktree in two of them.
 
 use std::path::{Path, PathBuf};
@@ -10,20 +10,20 @@ use app::store::{Effect, Message, State, ViewData};
 use app::work::summaries::{SummaryAsk, read_summaries};
 use git::read::worktree::git_folder_changed;
 use model::repo::{Change, SummaryHead};
-use platform::accesskit::{Role, TreeUpdate};
-use render::{Rect, ThemeName};
+use platform::accesskit::TreeUpdate;
+use render::ThemeName;
 use testkit::Repository;
-use ui::{InputEvent, Key, KeyEvent, Modifiers, NamedKey};
+use views::graph::{GraphIntent, SideSection};
 use views::repo::{TabSummary, counts_words, head_words};
 use views::text::repo::TAB_MEMBERS as MEMBERS;
 
-use super::pointer::{click_at, middle, rect};
+use super::pointer::rect;
 use super::side_column::{column, git_in};
 use super::support::{self, NOW, Window};
 use super::tabs::{WIDE, clone_three};
 use super::where_one_is::api_with_login;
 
-/// What the entry of a folder in the **▾** of the first row says it is on.
+/// What the row of a folder under the first row says it is on.
 fn member_summary(state: &State, folder: &Path) -> Option<TabSummary> {
     let data = ViewData::new(state, Vec::new(), NOW);
     let side = data.window_state(state).side.unwrap();
@@ -219,34 +219,10 @@ fn rows_and_members(state: &State) -> (Vec<String>, Vec<Vec<String>>) {
     (rows, members)
 }
 
-/// The labels of the entries of each **▾** drawn in the side column, opened one after the other.
-fn menus_drawn(window: &mut Window, state: &State, tree: &TreeUpdate) -> Vec<Vec<String>> {
-    let menus: Vec<Rect> = tree
-        .nodes
-        .iter()
-        .filter(|(_, node)| node.role() == Role::Button && node.label() == Some(MEMBERS))
-        .filter_map(|(_, node)| node.bounds().map(rect))
-        .collect();
-    let escape = InputEvent::KeyPressed(KeyEvent::press(Key::Named(NamedKey::Escape), Modifiers::NONE));
-    menus
-        .into_iter()
-        .map(|menu| {
-            let _ = click_at(window, state, middle(menu), 1);
-            let (_, tree) = window.draw(state, &[]);
-            let _ = window.draw(state, std::slice::from_ref(&escape));
-            tree.nodes
-                .iter()
-                .filter(|(_, node)| node.role() == Role::MenuItem)
-                .filter_map(|(_, node)| node.label().map(str::to_owned))
-                .collect()
-        })
-        .collect()
-}
-
 #[test]
-fn repo_worktree_summary__with_three_repositories_open_each_row_and_each_worktree_in_its_menu_says_its_own_branch_files_and_commits()
+fn repo_worktree_summary__with_three_repositories_open_each_row_and_each_worktree_under_it_says_its_own_branch_files_and_commits()
  {
-    let (_kept, state) = three_on_their_own();
+    let (_kept, mut state) = three_on_their_own();
     let (rows, members) = rows_and_members(&state);
     assert_eq!(
         rows,
@@ -266,31 +242,39 @@ fn repo_worktree_summary__with_three_repositories_open_each_row_and_each_worktre
         [api.to_vec(), Vec::new(), docs.to_vec()],
         "web has no other worktree"
     );
+    super::inspector::ask(
+        &mut state,
+        views::Intent::Graph(GraphIntent::FoldSection(SideSection::Branches)),
+    );
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
     let said = said_in_column(&tree);
     let rows_said = [
         "api",
-        "api",
         MEMBERS,
-        "Close tab",
+        "api",
         "main",
         "\u{2193}2 \u{2191}1",
+        "Close tab",
+        "login",
+        "login",
+        "feature/login",
+        "\u{2191}1",
         "web",
         "web",
         "feature/search",
         "\u{2193}2",
         "docs",
-        "docs",
         MEMBERS,
+        "docs",
         "main",
         "\u{2193}2",
+        "notes",
+        "notes",
+        "notes",
     ];
     assert!(
         said.windows(rows_said.len()).any(|window| window == rows_said),
         "each row says its branch and its commits to pull and to push: {said:?}"
     );
-    // Each entry of a ▾ is drawn with the counts of its member, which the summaries above are.
-    let menus = menus_drawn(&mut window, &state, &tree);
-    assert_eq!(menus, [["api", "feature/login"], ["docs", "notes"]]);
 }

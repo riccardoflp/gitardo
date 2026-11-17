@@ -3056,3 +3056,35 @@ each built with the reading given until the card says otherwise.
   runs `compare.change-side` as before, and neither changed closes the dialog with nothing run.
 - **Q515** — `compare.chooser`: `Enter` with a row lit and both boxes held. Built: with nothing typed it opens the
   comparison; with text typed it chooses the row lit, so that a typed name is chosen before it is compared.
+
+### Of the worktrees in the side column and a side column that takes less room, from Q530
+
+Questions of phases 13 and 14 of milestone M16
+([D57](#d57--worktrees-in-the-side-column-pages-that-keep-what-opened-them-the-way-back-in-the-title)), each built
+with the reading given until the card says otherwise.
+
+- **Q530** — `repo.group-tabs`: whether a repository starts with the rows of its worktrees and its submodules folded,
+  and what its own row says once they are shown. Built: every repository starts unfolded, since the maintainer asked
+  to see them; the folded ones are remembered for the workspace by their folders, `foldedTabs` in `panes`. Unfolded,
+  the row of the repository stands for its own folder, says what that is on and is marked only while that is shown,
+  a click on it showing that folder; folded, it says the member shown after ` › ` and a click shows the tab as it was
+  left, as before.
+- **Q531** — `repo.group-tabs`: what the row of a worktree is named. Built: the name of its folder, as the header names
+  it (`graph.where`), with its branch on the line of what it is on, so that the branch is not said twice; until it is
+  read, that line says the branch `git worktree list` gave. The room of the chevron is kept on every row while one
+  repository open has one, so that the names stay in line, and not otherwise. The chevron's target is as high as its
+  row, and it is the name `Worktrees and submodules` with whether it is unfolded for the screen reader.
+- **Q532** — `repo.side-column` and `branch.pane`: what the top of the branch rail keeps once its buttons are on
+  the line of the heading of **Branches**. Built: nothing: the name of the branch checked out goes, since the header
+  says it always (D56), and **Create branch**, **Compare** and the filter are icons with their names in their tooltips,
+  in that order, the filter last as **+** is last in the heading of **Repositories**. The headings are 28 logical pixels
+  high, `control_height` less a small gap, so that their buttons are 28 square.
+- **Q533** — `repo.tabs`: how a row of one line shares its room between the name and what it is on. Built: what it is
+  on is on the right, in the small text of details; when both do not fit, the name keeps the larger of what is left
+  and half the row, cut at its start, and the branch is cut with `…` by the label, the counts kept whole. The rows of
+  the rail are 28 logical pixels for a local branch and 26 for the others, the gap between two lists 8, and the filter
+  box and the scope line keep their heights, 4 apart.
+- **Q534** — `repo.side-column`: how "less high than before phase 14" is measured. Built: the height the side column
+  wants for a repository with three worktrees and two local branches, **Repositories** to the foot of its last row
+  and **Branches** to the foot of the last title of **Kept aside**, both unfolded: 572 logical pixels before
+  phase 14, 382 after.
