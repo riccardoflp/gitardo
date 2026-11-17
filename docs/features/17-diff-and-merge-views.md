@@ -959,7 +959,7 @@ A Markdown file in the File page shown laid out as it reads, with **Preview** an
 - **Entry points**: **Preview** and **Source** in the title row of the File page of a file ending in `.md` or
   `.markdown`; any way of opening such a file while `markdown.openAsPreview` is on.
 - **Settings**: `markdown.openAsPreview` (`false`).
-- **Uses**: `file-view.page`, `file-view.highlight`.
+- **Uses**: `file-view.page`, `file-view.highlight`, `file-view.mermaid`.
 
 Rules:
 
@@ -967,7 +967,7 @@ Rules:
   code, lists, quotes, rules, code blocks in the colors of the code of their language, tables with their alignment.
   The window has no italic typeface: emphasis is drawn in the medium weight, strong text in the bold one
   ([Q580](../08-decisions.md#open-questions)). A word wider than the page is cut where it overflows; a line of a code
-  block wider than it ends with `…`.
+  block wider than it ends with `…`. A block fenced as `mermaid` is drawn as its diagram (`file-view.mermaid`).
 - HTML in the file is shown as text, never rendered; nothing in the preview runs.
 - A link to a web page opens in the browser; a link to a file of the repository, relative to the file, opens that file
   in its File page, at the revision of the page when it shows one, at the line of a `#L12` after it; a link to a
@@ -999,6 +999,63 @@ Acceptance:
 - [x] `src/app.rs` has no **Preview**.
 - [x] Extension: with `gitardo.markdown.openAsPreview` on, a click on `README.md` in the Gitardo Changes view opens
       VS Code's preview of it; `src/app.rs` opens in its editor.
+
+### `file-view.mermaid` — A Mermaid diagram as it is drawn
+
+A block of code fenced as `mermaid` in the preview of a Markdown file, drawn as its diagram
+([D60](../08-decisions.md#d60--mermaid-diagrams-drawn-in-the-preview-of-markdown)).
+
+- **Kind**: Derivation
+- **Function**: `text::mermaid::diagram(source: &str, look: &Look) -> Result<Diagram, NotDrawn>`, the SVG of the
+  diagram, drawn into pixels by `render::Image::from_svg`
+- **Entry points**: the preview of a Markdown file (`file-view.markdown-preview`) with a block fenced as `mermaid`.
+- **Uses**: `file-view.markdown-preview`.
+- **Extension**: VS Code's preview of Markdown, through a plugin of its Markdown, with the SVG of
+  `read/file-view.mermaid`.
+
+Rules:
+
+- A block of code whose fence names `mermaid`, in any case, is drawn as its diagram, laid out by the library `merman`,
+  which reads Mermaid as Mermaid 12 does: flowcharts, sequence, class, state and entity relationship diagrams, Gantt
+  charts, pies, Git graphs, mind maps and the other kinds it draws ([Q590](../08-decisions.md#open-questions)). The
+  diagram takes the place of the block, as wide as it is, or as the page when it is wider, its height scaled with it.
+- Its colors are the window's, in the dark, light and both high contrast themes: the ground of the page, the color of
+  text, lines in the muted color, the borders of its shapes in the accent. Its labels are in Inter, measured with it so
+  that they fit their shapes. A switch of theme draws it again in the new one.
+- It is laid out and drawn on a worker, as an image of the preview is read; until it is, its code shows. A diagram
+  drawn is kept for its text and its theme while its page is open, so that scrolling, laying the preview out again or
+  coming back to a theme does not draw it again; an edit of its text draws the new text.
+- A diagram with an error, or of a kind the library does not draw, shows its block of code as any other, with one line
+  under it saying why: *This diagram has an error: \<what the library says\>*, *Gitardo does not draw this kind of
+  diagram.*, *This diagram is too large to draw.*
+- Nothing in a diagram is followed, run or fetched: a link or a `click` of it does nothing, a label written in HTML is
+  drawn as its text, and an image or a font it names is not read.
+- The screen reader reads its title and its description, `accTitle` and `accDescr`, or *Mermaid diagram* when it has
+  none.
+- **Source** shows the text of the file, the block as it is written. **Find** in the preview finds no text in a
+  diagram, which is a picture ([Q591](../08-decisions.md#open-questions)).
+- Extension: VS Code's preview of Markdown, which does not draw Mermaid, draws a block fenced as `mermaid` as the
+  diagram the engine drew for the kind of VS Code's theme (dark, light, high contrast dark or light), shown as an image
+  so that nothing in it runs ([Q592](../08-decisions.md#open-questions)). Until the engine answers, and without the
+  engine, the block shows its code; a diagram with an error shows its code and the line saying why.
+
+Acceptance:
+
+- [ ] A flowchart and a sequence diagram are drawn as their diagrams, with their labels.
+- [ ] The same diagram is drawn on the ground of the page in the dark, light, high contrast dark and high contrast light
+      themes, its text in the color of text of each.
+- [ ] `flowchart LR` with `A[Start --> B` shows its code and *This diagram has an error:* with what is wrong;
+      `notADiagram` shows its code and *Gitardo does not draw this kind of diagram.*
+- [ ] A diagram with `click A "https://example.com"` and a label with `<img src=…>` and `<script>` is drawn with no
+      link to click, no image read and no script, its label as text.
+- [ ] A diagram wider than the page is drawn as wide as the page, its height scaled with it.
+- [ ] A diagram is drawn on a worker once for its text and its theme: laying the preview out again starts no drawing,
+      a switch of theme starts one.
+- [ ] A diagram with `accTitle: How a commit is made` is read by the screen reader as that title; one without as
+      *Mermaid diagram*.
+- [ ] **Source** shows the block of the diagram as its text.
+- [ ] Extension: with a `mermaid` block, VS Code's preview of Markdown shows the diagram the engine drew for the theme
+      of VS Code; without the engine it shows the code.
 
 ### `file-view.read-revision` — A file at a revision
 

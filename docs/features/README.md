@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 454 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 455 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -33,7 +33,7 @@ earns it.
 | [14-patches.md](14-patches.md) | Patches | 7 |
 | [15-github.md](15-github.md) | GitHub | 6 |
 | [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 6 |
-| [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 42 |
+| [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 43 |
 | [18-settings.md](18-settings.md) | Settings | 7 |
 
 ## Repositories
@@ -560,6 +560,7 @@ earns it.
 | [`file-view.page`](17-diff-and-merge-views.md#file-viewpage--the-file-page) | The File page | View | Built | Host only |
 | [`file-view.beside-files`](17-diff-and-merge-views.md#file-viewbeside-files--a-file-opened-beside-the-tree-of-the-files-page) | A file opened beside the tree of the Files page | View | Built | Host only |
 | [`file-view.markdown-preview`](17-diff-and-merge-views.md#file-viewmarkdown-preview--a-markdown-file-as-it-reads) | A Markdown file as it reads | View | Built | Built |
+| [`file-view.mermaid`](17-diff-and-merge-views.md#file-viewmermaid--a-mermaid-diagram-as-it-is-drawn) | A Mermaid diagram as it is drawn | Derivation | Specified | Planned |
 | [`file-view.read-revision`](17-diff-and-merge-views.md#file-viewread-revision--a-file-at-a-revision) | A file at a revision | Read | Built | Built |
 | [`file-view.edit`](17-diff-and-merge-views.md#file-viewedit--editing-a-file) | Editing a file | View | Built | Host only |
 | [`file-view.save`](17-diff-and-merge-views.md#file-viewsave--save) | Save | Operation | Built | Host only |

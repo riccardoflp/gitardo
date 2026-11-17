@@ -376,13 +376,28 @@ Phases 5 and 6 were added by the maintainer after the plan of the first four ([D
    the Changes view, a commit) in VS Code's preview of Markdown rather than its editor. Cards:
    `file-view.markdown-preview` in the extension.
 
+Phases 7 and 8 were added by the maintainer after the plan of the first six ([D60](../08-decisions.md#d60--mermaid-diagrams-drawn-in-the-preview-of-markdown)):
+
+7. **Mermaid diagrams.** A block of code fenced as `mermaid` in the preview of a Markdown file is drawn as its diagram,
+   laid out by the library `merman` and drawn into pixels by `resvg`: flowcharts, sequence diagrams and the other kinds
+   it draws, in the colors of the window and with its labels in Inter, following the theme, as wide as the page at
+   most. It is drawn on a worker and kept for its text and its theme; until it is, its code shows. A diagram with an
+   error, or of a kind not drawn, shows its code and one line saying why; nothing in it is followed, run or fetched;
+   the screen reader reads its title. Cards: `file-view.mermaid`, `file-view.markdown-preview`.
+8. **The extension.** VS Code's preview of Markdown draws a `mermaid` block as the diagram the engine drew for the kind
+   of VS Code's theme, through a plugin of its Markdown (`markdown.markdownItPlugins`) and a read of the protocol that
+   needs no repository; until the engine answers, and without it, the block shows its code. Cards:
+   `file-view.mermaid` in the extension.
+
 Exit: the window opens with no title bar of the system, the logo at its top left and **Gitardo** at the start of the
 header bar; dragging the free part of the header bar moves the window and dragging it to the top of the screen
 maximizes it; a double click maximizes and restores it; the pointer on **Maximize** on Windows 11 shows Snap Layouts;
 the edges and corners resize it, and nothing resizes it while it is maximized; `Alt+Space` opens the system's menu of
 the window; the bar dims when another window has the focus; the size and place are kept from one start to the next;
 `README.md` opened from the Files page with **Open Markdown as a preview** on shows its headings, lists, a table and
-a code block laid out, and **Source** shows its text; every card of the phase passes its tests, and the snapshots of
+a code block laid out, and **Source** shows its text; a `mermaid` block of a flowchart and one of a sequence diagram
+are drawn as their diagrams in each theme, in VS Code's preview too, and one with an error shows its code and why;
+every card of the phase passes its tests, and the snapshots of
 the header bar match in each theme, focused and not, and those of the preview of Markdown in each theme.
 
 ## Before a release

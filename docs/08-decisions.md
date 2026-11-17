@@ -1057,6 +1057,34 @@ switch to the two sides as previews, side by side, is left to the maintainer.
 
 In the extension, `gitardo.markdown.openAsPreview` opens the Markdown files Gitardo opens in VS Code's own preview.
 
+## D60 — Mermaid diagrams drawn in the preview of Markdown
+
+*Asked by the maintainer for milestone M17; the details proposed by the agent.*
+
+The documents of a repository often explain with a diagram written in Mermaid: a block of code fenced as
+```` ```mermaid ````, which GitHub draws as its diagram. Read as code it says little, so the preview of D59 draws it
+as its diagram, where the block was (`file-view.mermaid`): in the colors of the window, following its theme, with its
+labels in Inter, as wide as it is or as the page when it is wider. **Source** still shows its text.
+
+Mermaid is laid out by a library chosen as D22 says, `merman`, which reads Mermaid as Mermaid 12 does and writes an
+SVG with no browser and no JavaScript; the SVG is drawn into pixels by `resvg`, which draws with `tiny-skia` as the
+window does and is given the fonts the program comes with. The SVG is written by `text`, pure, which the engine of the
+extension uses too, and drawn by `render`; both run on a worker, as the images of the preview are read, and a diagram
+drawn is kept for its text and its theme. `merman` brings `serde_json` with it, used inside the library: no type of it
+reaches the code of Gitardo, which keeps rule R1.7.
+
+Nothing in a diagram runs or is fetched: a link or a `click` of it is not followed, a label written in HTML is drawn as
+its text, an image it names is not read. A diagram with an error, or of a kind the library does not draw, shows its
+code with one line under it saying why, so that what is written is never lost.
+
+In the extension, VS Code's preview of Markdown does not draw Mermaid. The engine draws it there too (D37): Gitardo adds
+a plugin to the Markdown of VS Code (`markdown.markdownItPlugins`) that puts the SVG the engine wrote for the kind of
+VS Code's theme in place of the block, shown as an image, so that nothing in it runs there either.
+
+Rejected: mermaid.js in the extension (a second way to draw the same diagram, and JavaScript run in the preview); a
+Mermaid layout written for Gitardo (years of work a library has done); a diagram drawn by a web view in the desktop
+(WebKitGTK on Linux, [D16](#d16--libraries-for-the-window-the-text-and-the-pixels)).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -3257,3 +3285,15 @@ the reading given until the card says otherwise.
   blame of an earlier revision stay in the editor, where they are worked on. Should the extension get a way to open a
   file at a revision, VS Code's preview of a `gitardo:` document would be tried first. When VS Code's Markdown
   extension is turned off, the file opens in its editor and the log says why.
+
+### Of the Mermaid diagrams of the preview, from Q590
+
+- **Q590** — `file-view.mermaid`: which kinds of diagrams are drawn. Proposed: every kind `merman` draws, with its
+  Cytoscape layout for the mind maps and the architecture diagrams, and without its ELK layout, whose code is under
+  the EPL-2.0, a licence D22 does not take; a diagram that asks for the ELK layout is drawn with the default one, or
+  shows why it is not.
+- **Q591** — `file-view.mermaid`: what **Find** in the preview finds in a diagram. Proposed: nothing, a diagram being a
+  picture; its text is found in **Source**.
+- **Q592** — `file-view.mermaid`, the extension: which previews draw the diagrams. A plugin of VS Code's Markdown
+  serves every preview of Markdown, not only those Gitardo opens. Proposed: every preview, while the engine runs; a
+  block another extension of Mermaid has already turned into something else than a block of code is left to it.
