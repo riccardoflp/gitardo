@@ -2,15 +2,21 @@
 //! window, the pointer goes from its row onto it, rests there ten frames, each drawn as the one before with the control
 //! in it, and a click does what the control says.
 
-use app::store::State;
+use app::store::{Message, State};
+use model::contract::{FeatureId, Target};
+use model::filter::BranchesShown;
 use platform::accesskit::{Role, TreeUpdate};
 use render::{Point, Rect, ThemeName};
 use ui::{InputEvent, Modifiers, PointerButton, PointerButtonEvent};
-use views::Intent;
+use views::feature::FeatureIntent;
+use views::files::FilesPageIntent;
+use views::graph::GraphIntent;
+use views::{FilterIntent, Intent, RailIntent, RailList};
 
-use super::pointer::{bounds, middle, moved, rect};
-use super::support::Window;
+use super::pointer::{bounds, middle, moved, rect, rows_drawn, said_at};
+use super::support::{Window, has, run};
 use super::tabs::{WIDE, three_clones};
+use super::{repository_with_history, showing};
 
 /// How many frames the pointer rests on a control before it is clicked.
 const RESTING_FRAMES: usize = 10;
@@ -120,3 +126,150 @@ fn repo_close_tab__a_click_on_the_close_button_of_a_row_not_shown_closes_that_ta
     let intents = rest_and_click(&mut window, &state, left_of(row), |tree| control_in(tree, close, row));
     assert_eq!(intents, [Intent::CloseTab(1)]);
 }
+
+/// Hands an intent to the store, running the jobs it starts.
+fn ask(state: &mut State, intent: Intent) {
+    let _effects = run(state, Message::Intent(intent));
+}
+
+/// The row of an entry of the branch rail, by its name, as it is drawn before the pointer comes.
+fn rail_row(window: &mut Window, state: &State, name: &str) -> Rect {
+    let (_, tree) = window.draw(state, &[]);
+    super::rail::rail_entry(&tree, name).unwrap_or_else(|| panic!("the rail does not list {name}"))
+}
+
+#[test]
+fn refs_tree__the_menu_button_of_the_title_of_a_list_stays_under_the_pointer_and_a_click_opens_the_menu() {
+    let (repository, _remote) = repository_with_history();
+    let state = showing(repository.path().to_path_buf());
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let title = rail_row(&mut window, &state, views::text::rail::LOCAL);
+    let more = (Role::Button, views::text::rail::LIST_MENU);
+    let intents = rest_and_click(&mut window, &state, middle(title), |tree| control_in(tree, more, title));
+    assert!(intents.is_empty(), "the menu is the toolkit's to open: {intents:?}");
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(has(&tree, Role::MenuItem, views::text::rail::SORT_BY_NAME));
+}
+
+#[test]
+fn filter_list_too__the_eye_of_a_dimmed_branch_stays_under_the_pointer_and_a_click_adds_its_history() {
+    let (repository, _remote) = repository_with_history();
+    let mut state = showing(repository.path().to_path_buf());
+    let main = BranchesShown::References(vec![String::from("refs/heads/main")]);
+    ask(&mut state, Intent::Filter(FilterIntent::Show(Some(main))));
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let row = rail_row(&mut window, &state, "feature");
+    let eye = (Role::Button, views::text::filter::SHOW_TOO);
+    let intents = rest_and_click(&mut window, &state, middle(row), |tree| control_in(tree, eye, row));
+    let both = BranchesShown::References(vec![
+        String::from("refs/heads/main"),
+        String::from("refs/heads/feature"),
+    ]);
+    assert_eq!(intents, [Intent::Filter(FilterIntent::Show(Some(both)))]);
+}
+
+#[test]
+fn stash_pane__the_button_of_the_title_stays_under_the_pointer_and_a_click_asks_to_stash_all_changes() {
+    let (repository, _remote) = repository_with_history();
+    let state = showing(repository.path().to_path_buf());
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let title = rail_row(&mut window, &state, views::text::rail::STASHES);
+    let stash_all = (Role::Button, views::text::stash::STASH_ALL);
+    let intents = rest_and_click(&mut window, &state, middle(title), |tree| {
+        control_in(tree, stash_all, title)
+    });
+    let push = FeatureIntent::Run(FeatureId("stash.push"), Target::Head);
+    assert_eq!(intents, [Intent::Feature(push)]);
+}
+
+#[test]
+fn stash_pane__the_buttons_of_a_row_stay_under_the_pointer_and_a_click_on_apply_asks_to_apply_the_stash() {
+    let (repository, _remote) = repository_with_history();
+    let mut state = showing(repository.path().to_path_buf());
+    ask(&mut state, Intent::Rail(RailIntent::Toggle(RailList::Stashes)));
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let row = rail_row(&mut window, &state, "On main: half the tags");
+    let apply = (Role::Button, views::text::stash::APPLY);
+    let intents = rest_and_click(&mut window, &state, middle(row), |tree| control_in(tree, apply, row));
+    let applied = FeatureIntent::Run(FeatureId("stash.apply"), Target::Stash(0));
+    assert_eq!(intents, [Intent::Feature(applied)]);
+}
+
+#[test]
+fn details_show__the_history_button_of_a_file_stays_under_the_pointer_and_a_click_asks_for_its_history() {
+    let (repository, _remote) = repository_with_history();
+    let mut state = showing(repository.path().to_path_buf());
+    let _ = super::inspector::select(&mut state, "Show the branch rail");
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    let inspector = bounds(&tree, Role::Complementary, views::text::timeline::INSPECTOR);
+    let name = said_at(&tree, "rail.txt", inspector);
+    let history = views::text::details::FILE_HISTORY;
+    assert!(!has(&tree, Role::Button, history), "no row is under the pointer yet");
+    let intents = rest_and_click(&mut window, &state, middle(name), |tree| {
+        bounds(tree, Role::Button, history)
+    });
+    let asked = FilesPageIntent::Run(FeatureId("file-history.file"), String::from("rail.txt"));
+    assert_eq!(intents, [Intent::Files(asked)]);
+}
+
+#[test]
+fn graph_fold_merge__the_arrow_of_a_merge_stays_under_the_pointer_and_a_click_folds_it() {
+    let repository = super::folds::merged_feature();
+    let state = showing(repository.path().to_path_buf());
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    let merge = state
+        .timeline
+        .rows
+        .iter()
+        .filter_map(model::graph::Row::commit)
+        .find(|commit| commit.subject == "Merge branch 'feature'")
+        .map(|commit| commit.id.clone())
+        .unwrap();
+    let shown = state.timeline.layout.shown_of.get(&merge).unwrap();
+    let row = *rows_drawn(&tree).get(*shown).unwrap();
+    let fold = views::text::timeline::FOLD_MERGE;
+    assert!(
+        !has(&tree, Role::Button, fold),
+        "the merge is neither selected nor under the pointer yet"
+    );
+    let intents = rest_and_click(&mut window, &state, middle(row), |tree| {
+        bounds(tree, Role::Button, fold)
+    });
+    assert_eq!(intents, [Intent::Graph(GraphIntent::Fold(merge))]);
+}
+
+#[test]
+fn the_window_draws_the_same_twice_in_a_row_while_the_pointer_rests_anywhere_in_it() {
+    let (repository, _remote) = repository_with_history();
+    let mut state = showing(repository.path().to_path_buf());
+    ask(&mut state, Intent::Rail(RailIntent::Toggle(RailList::Stashes)));
+    let main = BranchesShown::References(vec![String::from("refs/heads/main")]);
+    ask(&mut state, Intent::Filter(FilterIntent::Show(Some(main))));
+    let _ = super::inspector::select(&mut state, "Show the branch rail");
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let _ = window.draw(&state, &[]);
+    let mut flickering = Vec::new();
+    for row in 0..WIDE.1 / STEP {
+        for column in 0..WIDE.0 / STEP {
+            #[allow(clippy::cast_precision_loss, reason = "a window is far smaller than an f32 counts")]
+            let point = Point::new((column * STEP + STEP / 2) as f32, (row * STEP + STEP / 2) as f32);
+            let _ = window.draw(&state, &[moved(point)]);
+            let _ = window.draw(&state, &[]);
+            let _ = window.draw(&state, &[]);
+            let settled = window.frame.pixels().to_vec();
+            let _ = window.draw(&state, &[]);
+            if window.frame.pixels() != settled.as_slice() {
+                flickering.push((point.x, point.y));
+            }
+        }
+    }
+    assert!(
+        flickering.is_empty(),
+        "the window flickers with the pointer at {flickering:?}"
+    );
+}
+
+/// How far apart, in logical pixels, the points the pointer rests on are.
+const STEP: u32 = 16;

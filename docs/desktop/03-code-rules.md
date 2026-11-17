@@ -157,7 +157,8 @@ first, in its own commit, with the reason.
   a row of a list. `Response::hovered` says the widget is the topmost one under the pointer: only what is about that
   one widget asks it, its own lit state when nothing is drawn inside it, the shape of the pointer, and the rest of the
   pointer before a tooltip or a card (`Ui::hovered_since`). A widget is never declared only while another is
-  `hovered`: the pointer on it takes `hovered` from the other, and the next frame draws it no more.
+  `hovered`: the pointer on it takes `hovered` from the other, and the next frame draws it no more. Over a place with
+  no widget of its own, `Ui::is_pointer_within` asks the first question of a rectangle.
 
 ## 11. Tests
 

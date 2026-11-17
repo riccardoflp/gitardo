@@ -200,7 +200,7 @@ fn commit_line(ui: &mut Ui<'_>, rect: Rect, read: &ReadDetails) -> Option<Intent
     });
     let id = ui.id("commit line");
     let response = ui.interact(id, rect, Sense::CLICK);
-    if response.hovered {
+    if response.contains_pointer {
         ui.fill_rect(rect, theme.colors.list_hover);
     }
     let _ = ui.label(rect, &Label::new(&said).kind(TextKind::Medium));
@@ -387,14 +387,14 @@ fn inspector_file(
     let response = ui.interact(ui.id(key), row.rect, Sense::CLICK | Sense::HOVER);
     if is_marked {
         ui.fill_rounded_rect(row.rect, theme.sizes.radius.medium, theme.colors.list_selection);
-    } else if response.hovered {
+    } else if response.contains_pointer {
         ui.fill_rounded_rect(row.rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let rest = file_start(ui, row.rect, (file, depth));
     let mut parts = Area::with_gap(rest, theme.sizes.spacing.small);
     let mut picked = response.clicked.then_some(Picked::Diff);
-    // The clock stays while the pointer is on it, which takes the hover from the row.
-    if response.hovered || ui.pointer().is_some_and(|pointer| row.rect.contains(pointer)) {
+    // The clock is on the row under the pointer, and stays while the pointer is on it.
+    if response.contains_pointer {
         let side = theme.sizes.row_height;
         let history = Button::icon(icons::HISTORY, words::FILE_HISTORY).kind(ButtonKind::Icon);
         let cell = place(parts.right(side), (side, side), (Align::Start, Align::Center));

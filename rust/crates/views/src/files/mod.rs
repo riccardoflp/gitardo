@@ -194,7 +194,7 @@ fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &Fi
     let is_marked = matches!(row, FilesRow::File { .. }) && state.marked == Some(path);
     if is_marked {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_selection);
-    } else if response.hovered {
+    } else if response.contains_pointer {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let indent = crate::number::float_of_count(depth) * (theme.sizes.icon + theme.sizes.spacing.small);

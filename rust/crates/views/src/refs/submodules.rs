@@ -86,7 +86,7 @@ fn submodule_row(ui: &mut Ui<'_>, context: Context<'_, '_>, submodule: &Submodul
     let theme = *ui.theme();
     let id = ui.id(("submodule", &submodule.folder));
     let response = ui.interact(id, rect, Sense::CLICK);
-    if response.hovered {
+    if response.contains_pointer {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let all = &context.state.repository.submodules;

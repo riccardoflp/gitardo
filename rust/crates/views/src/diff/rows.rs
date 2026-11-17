@@ -116,7 +116,7 @@ fn folded(ui: &mut Ui<'_>, state: &DiffPageState<'_>, (file, rows, rect): (usize
         rect,
         Sense::CLICK | Sense::HOVER,
     );
-    let background = if response.hovered {
+    let background = if response.contains_pointer {
         theme.colors.list_hover
     } else {
         theme.colors.card_background

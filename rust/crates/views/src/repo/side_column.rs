@@ -234,7 +234,7 @@ fn heading_row(
     };
     let id = ui.id(("side heading", section));
     let response = ui.interact(id, rect, Sense::CLICK | Sense::FOCUS);
-    if response.hovered {
+    if response.contains_pointer {
         ui.fill_rect(rect, theme.colors.list_hover);
     }
     if response.shows_focus {

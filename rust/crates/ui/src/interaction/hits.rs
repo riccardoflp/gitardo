@@ -80,16 +80,22 @@ impl Hit {
     /// rectangle but for the pixel a rounding moves an edge by. A button of a row is inside its row; the grip of a
     /// splitter and a scroll bar, which cross many rows, are inside none of them.
     pub(crate) fn is_inside(&self, layer: Layer, rect: Rect) -> bool {
-        let room = rect.inset(-INSIDE_SLACK);
-        self.layer == layer
-            && self.rect.x >= room.x
-            && self.rect.y >= room.y
-            && self.rect.right() <= room.right()
-            && self.rect.bottom() <= room.bottom()
+        self.layer == layer && holds(rect, self.rect)
+    }
+
+    /// Whether a rectangle of a layer is drawn inside the widget, as a row is inside the scroll area of its list.
+    pub(crate) fn holds(&self, layer: Layer, rect: Rect) -> bool {
+        self.layer == layer && holds(self.rect, rect)
     }
 }
 
-/// How far, in logical pixels, a widget may stick out of what it is drawn inside and still count as inside it.
+/// Whether a rectangle holds all of another, but for the pixel a rounding moves an edge by.
+fn holds(outer: Rect, inner: Rect) -> bool {
+    let room = outer.inset(-INSIDE_SLACK);
+    inner.x >= room.x && inner.y >= room.y && inner.right() <= room.right() && inner.bottom() <= room.bottom()
+}
+
+/// How far, in logical pixels, something may stick out of what it is drawn inside and still count as inside it.
 const INSIDE_SLACK: f32 = 1.0;
 
 /// The widgets of a frame that take input, in the order they are stacked: the lowest layer first, and in each layer

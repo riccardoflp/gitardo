@@ -134,7 +134,7 @@ fn section_button(
     let response = ui.interact(id, rect, Sense::CLICK);
     let background = if is_marked {
         Some(theme.colors.list_inactive_selection)
-    } else if response.hovered {
+    } else if response.contains_pointer {
         Some(theme.colors.list_hover)
     } else {
         None

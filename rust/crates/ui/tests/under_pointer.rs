@@ -214,3 +214,37 @@ fn a_list_scrolled_under_the_pointer_shows_the_button_of_the_row_that_comes_unde
         "and it is lit in every frame: {rows:?}"
     );
 }
+
+/// A title over a rectangle, short of the room of the button it shows beside it only while the pointer is within the
+/// rectangle, with a gap between the two that is neither; under a menu that covers the left end of the rectangle.
+fn title_with_button(ui: &mut Ui<'_>) -> Option<Response> {
+    let is_within = ui.is_pointer_within(ROW);
+    let room = if is_within { 250.0 } else { ROW.width };
+    let id = ui.id("title");
+    let _ = ui.interact(id, Rect::new(ROW.x, ROW.y, room, ROW.height), Sense::CLICK);
+    let button = is_within.then(|| ui.button("stash", BUTTON, &Button::secondary("Stash")));
+    let _ = ui.layer(Layer::Popup, |ui| {
+        ui.button("item", Rect::new(0.0, 0.0, 30.0, 100.0), &Button::secondary("Item"))
+    });
+    button
+}
+
+#[test]
+fn a_button_shown_beside_a_title_under_the_pointer_stays_on_the_title_the_button_and_the_gap_between() {
+    let mut window = Window::new(ThemeName::Dark, (400, 200), 1);
+    let _ = window.frame(&[], title_with_button);
+    for (x, place) in [(100.0, "the title"), (ON_BUTTON.0, "the button"), (270.0, "the gap")] {
+        for frame in 0..4 {
+            let events = if frame == 0 { vec![move_to(x, 23.0)] } else { Vec::new() };
+            let (button, _) = window.frame(&events, title_with_button);
+            assert!(
+                button.is_some(),
+                "the button is drawn with the pointer on {place}, in frame {frame}"
+            );
+        }
+    }
+    let (button, _) = window.frame(&[move_to(20.0, 23.0)], title_with_button);
+    assert!(button.is_none(), "a menu over the title takes the pointer from it");
+    let (button, _) = window.frame(&[move_to(100.0, 80.0)], title_with_button);
+    assert!(button.is_none(), "the pointer left the title");
+}

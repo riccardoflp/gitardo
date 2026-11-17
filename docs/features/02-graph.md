@@ -1453,6 +1453,8 @@ Acceptance:
 - [ ] Going to one of the folded commits from the reflog unfolds the merge and selects the commit.
 - [ ] The folds are there after the window is closed and opened again.
 - [ ] A merge that brought nothing in has no arrow and no entry.
+- [ ] With the pointer moved from the row of a merge not selected onto its arrow and resting there ten frames, each
+      frame draws the arrow and the row lit, none differing from the one before; a click then folds the merge.
 
 ### `graph.fold-all` — Fold all merges
 
@@ -1758,6 +1760,8 @@ Acceptance:
 - [ ] The checked-out branch, 150th by name, is listed after the first 100.
 - [ ] A click on `feature` narrows the timeline to its history, and the rail still lists `main` and every other local
       branch, `main` dimmed.
+- [ ] With the pointer moved from the title of **Local** onto its **…** and resting there ten frames, each frame draws
+      the **…** and the title lit, none differing from the one before; a click then opens the menu of the list.
 
 ### `refs.filter` — Filter the branch rail by name
 

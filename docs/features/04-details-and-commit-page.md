@@ -67,7 +67,8 @@ What it shows, from the top:
 - with more than one file, a button that opens the diffs of all of them one after the other in one Diff page (**Open
   all changes in one Diff page**), titled with the short hash and subject;
 - the files, each with its status, its icon from Symbols (`file-view.file-icons`), its name and, on its row, a button that shows
-  its history (**Show the history of this file**). A click opens its diff in the Diff page, against the first parent.
+  its history (**Show the history of this file**), there while the pointer is on the row or on the button. A click
+  opens its diff in the Diff page, against the first parent.
   Its context menu has **Compare with…**.
 
 On the draft the inspector has no author, hash or parents. Each file has a box to tick, the
@@ -86,6 +87,9 @@ Acceptance:
 - [ ] The layout chosen, list or tree, is the one the inspector has after the window is opened again.
 - [ ] The button beside the close button opens the page of the commit (`commit-page.open`).
 - [ ] While loading, the inspector says **Loading…**.
+- [ ] With the pointer moved from the row of a file onto the button of its history and resting there ten frames, each
+      frame draws the button and the row lit, none differing from the one before; a click then asks for the history
+      of that file.
 
 ### `details.message-title` — The title of a message
 
