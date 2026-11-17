@@ -34,7 +34,21 @@ impl Answered {
 impl Engine {
     /// Starts the engine at `binary` with `--stdio`; what it writes on its standard error is left out.
     pub fn start(binary: &Path) -> Result<Engine, Error> {
-        let mut child = Command::new(binary)
+        Engine::start_with(binary, None)
+    }
+
+    /// Starts the engine as [`Engine::start`] does, with every git it starts writing its events of trace2 to a file,
+    /// so that the git processes of each read can be counted.
+    pub fn start_traced(binary: &Path, trace: &Path) -> Result<Engine, Error> {
+        Engine::start_with(binary, Some(trace))
+    }
+
+    fn start_with(binary: &Path, trace: Option<&Path>) -> Result<Engine, Error> {
+        let mut command = Command::new(binary);
+        if let Some(trace) = trace {
+            let _ = command.env("GIT_TRACE2_EVENT", trace);
+        }
+        let mut child = command
             .arg("--stdio")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())

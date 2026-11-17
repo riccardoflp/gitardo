@@ -1,10 +1,14 @@
 //! `cargo xtask perf <folder>`: the reads of the graph timed in the engine the extension starts, on a large repository
 //! such as the one `extension/test/perf/big-repo.mjs` makes. Each read is timed from its request to the last byte of
 //! its answer, as the extension waits for it: a first page of 1,000 rows, the next pages asked with `skip`, a page far
-//! down the history, the position of a commit, two searches and the state. It prints a table of times; it is not pass
-//! or fail (`docs/desktop/06-testing.md`).
+//! down the history, the position of a commit, two searches and the state. Then the whole history, page after page
+//! as the extension reads it; a read after a change as the extension asks it, with the git processes each read starts;
+//! and the whole history in the window, read and laid out as `app` does, by a test of `app` built in release. It prints
+//! tables of times; it is not pass or fail (`docs/desktop/06-testing.md`).
 
+mod after_change;
 mod engine;
+mod whole;
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -17,13 +21,17 @@ use crate::error::Error;
 /// What `cargo xtask perf` with no folder says.
 const USAGE: &str = "Usage: cargo xtask perf <folder of a repository> [times each read is asked]
 
-Build the engine first: cargo build --release -p server";
+Build the engine first: cargo build --release -p server
+With --engine, the window is not timed, and the tests of app are not built in release.";
 
 /// How many times each read is asked when the command does not say.
 const TIMES: usize = 5;
 
 /// The rows of a page, as `gitardo.graph.pageSize` has them by default.
 const PAGE_SIZE: usize = 1_000;
+
+/// The test of `app` that times the whole history in the window.
+const WINDOW_TEST: &str = "speed::the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page";
 
 /// The page read far down the history.
 const FAR_PAGE: usize = 50;
@@ -37,6 +45,8 @@ struct Read {
 
 /// Runs the benchmark with the arguments after `perf`, and returns whether it could run.
 pub fn run(root: &Path, arguments: &[String]) -> Result<bool, Error> {
+    let engine_only = arguments.iter().any(|argument| argument == "--engine");
+    let arguments: Vec<&String> = arguments.iter().filter(|argument| *argument != "--engine").collect();
     let Some(folder) = arguments.first() else {
         writeln!(std::io::stderr().lock(), "{USAGE}")?;
         return Ok(false);
@@ -46,25 +56,17 @@ pub fn run(root: &Path, arguments: &[String]) -> Result<bool, Error> {
         .and_then(|times| times.parse().ok())
         .unwrap_or(TIMES)
         .max(1);
-    let binary = root
-        .join("target")
-        .join("release")
-        .join(format!("gitardo-engine{}", std::env::consts::EXE_SUFFIX));
-    if !binary.is_file() {
-        writeln!(
-            std::io::stderr().lock(),
-            "{} is not built.\n\n{USAGE}",
-            binary.display()
-        )?;
+    let Some(binary) = engine_binary(root)? else {
         return Ok(false);
-    }
+    };
     let folder = std::path::absolute(folder).map_err(|source| Error::Read {
         path: PathBuf::from(folder),
         source,
     })?;
     let mut engine = Engine::start(&binary)?;
     let repository = json_string(&folder.to_string_lossy());
-    let started = engine.ask("initialize", &initialize_params(root)?)?;
+    let initialize = initialize_params(root)?;
+    let started = engine.ask("initialize", &initialize)?;
     let opened = engine.ask("repository/open", &format!("{{\"repository\":{repository}}}"))?;
     if started.is_error() || opened.is_error() {
         writeln!(
@@ -89,7 +91,72 @@ pub fn run(root: &Path, arguments: &[String]) -> Result<bool, Error> {
         let answers = ask_times(&mut engine, &repository, &read, times)?;
         row(&mut out, &read.name, &answers)?;
     }
-    Ok(true)
+    whole::run(&mut engine, &repository, times, &mut out)?;
+    drop(engine);
+    let place = after_change::Place {
+        binary: &binary,
+        folder: &folder,
+        repository: &repository,
+        initialize: &initialize,
+    };
+    after_change::run(&place, times.max(TIMES * 2), &mut out)?;
+    drop(out);
+    if engine_only { Ok(true) } else { window(root, &folder) }
+}
+
+/// The engine built in release; none, said on the standard error, when it is not built.
+fn engine_binary(root: &Path) -> Result<Option<PathBuf>, Error> {
+    let binary = root
+        .join("target")
+        .join("release")
+        .join(format!("gitardo-engine{}", std::env::consts::EXE_SUFFIX));
+    if binary.is_file() {
+        return Ok(Some(binary));
+    }
+    writeln!(
+        std::io::stderr().lock(),
+        "{} is not built.
+
+{USAGE}",
+        binary.display()
+    )?;
+    Ok(None)
+}
+
+/// The whole history in the window, read and laid out as `app` does, page after page: the test of `app` that times it
+/// on the repository `GITARDO_PERF_REPOSITORY` names, built in release.
+fn window(root: &Path, folder: &Path) -> Result<bool, Error> {
+    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+    let arguments = [
+        "test",
+        "-p",
+        "app",
+        "--release",
+        "--quiet",
+        "--test",
+        "places",
+        "--",
+        "--ignored",
+        "--nocapture",
+        "--exact",
+        WINDOW_TEST,
+    ];
+    writeln!(
+        std::io::stdout().lock(),
+        "
+The window: cargo {}",
+        arguments.join(" ")
+    )?;
+    let status = std::process::Command::new(&cargo)
+        .args(arguments)
+        .env("GITARDO_PERF_REPOSITORY", folder)
+        .current_dir(root)
+        .status()
+        .map_err(|source| Error::Tool {
+            command: format!("cargo {}", arguments.join(" ")),
+            source,
+        })?;
+    Ok(status.success())
 }
 
 /// The pages of the timeline: the first, the next three with `skip` as the extension asks them, and one far down.

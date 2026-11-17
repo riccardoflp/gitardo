@@ -14,7 +14,7 @@ how they run, with the standard test harness of Rust, and a testing library wher
 | **Network** | `crates/http` against a local server on `127.0.0.1` started by the test (`http::test_server`): plain HTTP and HTTPS for requests, chunked bodies, server-sent events, redirects, proxies, cancelling and timeouts; and `crates/tls` against a local TLS server of the same library, with a test certificate authority kept in `crates/tls/fixtures/`, for a trusted certificate, an untrusted one and a wrong host name. The crates above reach the same server through the feature `test-server` of `http`, which only their dev-dependencies turn on, and send requests for `api.github.com` to it with `Http::with_address`. | `crates/http/src/tests.rs`, `crates/tls/src/tests.rs`, and the tests of the reads that send requests. | `cargo test`; nothing leaves the machine. |
 | **Views** | A view driven with intents and events, its pixels compared with a reference snapshot, in each theme. | `crates/views/tests/`, snapshots in `crates/views/tests/snapshots/<view>/<case>-<theme>.png`. | `cargo test`; `cargo xtask snapshots --accept` takes the new pixels as the reference, after they are looked at. |
 | **Application** | The whole program in a hidden window, driven by synthetic input through the platform layer, against throwaway repositories. | `crates/app/tests/`. | `cargo xtask app-tests`, on each system. |
-| **Performance** | Times of what a person waits for, on a large generated repository. Not pass or fail: numbers to read, kept between releases. | `xtask/src/perf/`. | `cargo xtask perf <folder>`. |
+| **Performance** | Times of what a person waits for, on a large generated repository, and the git processes a read starts. Not pass or fail: numbers to read, kept between releases. | `xtask/src/perf/`, and a test of `crates/app/tests/places/speed.rs` it runs. | `cargo xtask perf <folder> [times] [--engine]`. |
 
 ## Throwaway repositories
 
@@ -99,6 +99,45 @@ Without a commit-graph, `git log` alone takes about 310 ms to list the first 1,0
 is git's time and some 50 ms of the engine's; with one, about 120 ms. The pages after the first take about as long,
 since git walks the history from the top to reach them. The engine reads the references and the stashes only when the
 branches shown or the stashes need them, which took a page of the repository as made from about 510 ms to 360 ms.
+
+Since milestone M15 it also times three things more
+([the roadmap](07-roadmap.md#m15--the-whole-history-in-one-read-and-reads-that-cost-less)):
+
+- **The whole history**, page after page as the extension asks for it, each page with `skip` from the last row before
+  it until the engine says there are no more: the time to the first page and to the last row.
+- **A read after a change**, as the extension asks for it once a file of the working tree changed: `repo.read-state`,
+  the first page of `graph.read-commits` and `journal/last`, one after the other, a file of the working tree written
+  before each (`gitardo-perf-change.txt`, removed at the end), ten times at least; and the git processes each read
+  starts, counted from the events that git writes when `GIT_TRACE2_EVENT` names a file, each by its command. A git
+  that another git starts is not counted.
+- **The whole history in the window**, read and laid out as `app` does it: the folder opened, then every next page
+  asked for as the list is scrolled to its end, by the test
+  `speed::the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page` of `app`, built in release, on
+  the repository `GITARDO_PERF_REPOSITORY` names; with the time the layouts of the timeline took, over every row read
+  at each page. `--engine` leaves it out, and with it the build of the tests of `app` in release.
+
+What phase 1 of M15 measured, on 2026-11-17, before the rest of M15: the same machine and git as above, the release
+build, on the large repository as the script leaves it (56,120 commits), and on a clone of the repository of Gitardo
+(515 commits) with five other worktrees in `.claude/worktrees`. Three other agents built Rust on the machine at the
+same time, so the slowest runs were up to twice the median; a second run an hour later gave medians up to twice these.
+
+| The whole history | Pages | First page | Last row |
+| --- | ---: | ---: | ---: |
+| The engine, every page with `skip`, the large repository | 57 | 354.7 | 20,849.3 |
+| The window, the large repository, opened and scrolled to its end | 57 | 654.9 | 26,661.9 |
+| The window: of which the layouts of every page over every row before it | | | 1,847.8 |
+
+| A read after a change, the median | The large repository | Git processes | Five other worktrees | Git processes |
+| --- | ---: | --- | ---: | --- |
+| `repo.read-state` | 267.4 | 11 (`status` 1, `rev-parse` 2, `config` 2, 6 others) | 638.2 | 16 (`status` 6, `rev-parse` 2, `config` 2, 6 others) |
+| `graph.read-commits`, page 1 | 337.8 | 4 (`log` 1, `rev-parse` 1, `symbolic-ref` 1, `stash` 1) | 252.0 | 4 (the same) |
+| `journal/last` | 263.5 | 11 (as `repo.read-state`) | 684.8 | 16 (as `repo.read-state`) |
+| All three | 877.5 | 26 | 1,459.1 | 36 |
+
+A page after the first costs the engine as much as the first, since git walks the history from the top for each: the
+whole history is 57 walks. The window's layout of the timeline is made again over every row at each page, which
+grows the same way. A read after a change reads the state twice, once for `journal/last`, and runs `git status` in
+every worktree each time.
 
 ## What a change runs before it is committed
 

@@ -228,3 +228,71 @@ fn first_page() -> app::store::TimelineRequest {
         alone: None,
     }
 }
+
+/// The whole history of the repository `GITARDO_PERF_REPOSITORY` names, in the window as `app` reads and lays it out
+/// today: opened, then every next page asked for as the list is scrolled to its end, each read and laid out over every
+/// row. Run by `cargo xtask perf <folder>`; it prints the times, and asserts nothing about them.
+#[test]
+#[ignore = "times the repository GITARDO_PERF_REPOSITORY names; run by cargo xtask perf"]
+fn the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page() {
+    let Some(folder) = std::env::var_os("GITARDO_PERF_REPOSITORY").map(std::path::PathBuf::from) else {
+        println!("GITARDO_PERF_REPOSITORY names no repository: nothing to time.");
+        return;
+    };
+    let mut rounds = Vec::new();
+    for _ in 0..3 {
+        let started = Instant::now();
+        let mut state = State::default();
+        let _effects = run(
+            &mut state,
+            Message::Started {
+                folders: vec![folder.clone()],
+            },
+        );
+        let first_page = started.elapsed();
+        while state.timeline.has_more {
+            let loaded = state.timeline.loaded();
+            let _effects = run(
+                &mut state,
+                Message::Intent(Intent::Graph(GraphIntent::LoadMore { loaded })),
+            );
+            assert!(state.timeline.loaded() > loaded, "a page added no row");
+        }
+        let last_row = started.elapsed();
+        let layouts = layouts_page_after_page(&state);
+        rounds.push((first_page, last_row, layouts, state.timeline.loaded()));
+    }
+    rounds.sort_by_key(|(_, last_row, _, _)| *last_row);
+    let (first_page, last_row, layouts, rows) = rounds[rounds.len() / 2];
+    println!(
+        "The window, the median of three: {rows} commits; the first page in {first_page:?}, the last row in \
+         {last_row:?}, of which the layouts of every page over every row before it {layouts:?}"
+    );
+}
+
+/// How long the timeline takes to be laid out again over every row read at each page, as `app` does when a page is
+/// added: a layout of the first page, of the first two, and so on to all of them.
+fn layouts_page_after_page(state: &State) -> Duration {
+    let rows = &state.timeline.rows;
+    let page = state.settings.page_size.get();
+    let read = state.shown_read().unwrap();
+    let mut took = Duration::ZERO;
+    let mut end = 0;
+    while end < rows.len() {
+        end = (end + page).min(rows.len());
+        let input = views::graph::LayoutInput {
+            rows: rows.get(..end).unwrap(),
+            repository: &read.state,
+            folded: &state.timeline.folded,
+            combine_upstream: false,
+            separators_at: Some(model::graph::DateTime {
+                moment: model::Timestamp(state.timeline.read_at),
+                utc_offset: 0,
+            }),
+        };
+        let started = Instant::now();
+        let _layout = views::graph::TimelineLayout::new(&input);
+        took += started.elapsed();
+    }
+    took
+}
