@@ -271,12 +271,13 @@ impl State {
     }
 
     /// The File page in front: the page shown, or the file shown beside the tree of the Files page
-    /// (`file-view.beside-files`).
+    /// (`file-view.beside-files`) or beside the list of the Changes page (`changes.beside-file`).
     #[must_use]
     pub fn file_in_front(&self) -> Option<views::file_view::FilePageId> {
         match self.page_shown()? {
             Page::File(id) => Some(id),
             Page::Files => self.files_page.shown_file,
+            Page::Changes => super::changes_beside::shown_file(self),
             // The other pages show no file of their own.
             _ => None,
         }

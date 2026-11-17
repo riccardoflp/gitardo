@@ -24,10 +24,14 @@ pub fn show_page(state: &mut State, page: Page) {
     state.pages.shown = Some(index);
 }
 
-/// Shows a page, opening it when it is not open.
+/// Shows a page, opening it when it is not open; the Changes page shows whole, nothing beside its list
+/// (`changes.beside-file`).
 pub fn show(state: &mut State, page: Page) -> Vec<Effect> {
     if page == Page::Settings {
         state.settings_page.shown();
+    }
+    if page == Page::Changes {
+        super::changes_beside::leave(state);
     }
     show_page(state, page);
     Vec::new()

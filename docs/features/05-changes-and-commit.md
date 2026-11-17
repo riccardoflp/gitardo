@@ -35,7 +35,7 @@ commit checked out, the draft is not there, and this page is where one commits.
   `changes.unstage-all`, `conflicts.mark-resolved`, `changes.discard`, `changes.discard-all`, `changes.save`,
   `details.show-all-files`, `commit.create`, `commit.amend`, `commit.draft-message`, `identity.switch`, `stash.push`,
   `stash.push-staged`, `stash.push-file`, `conflicts.take-side`, `conflicts.resolve-by-rules`,
-  `ai.resolve-conflicts`, `repo.select`, `diff.page`, `merge-view.page`.
+  `ai.resolve-conflicts`, `repo.select`, `diff.page`, `merge-view.page`, `changes.beside-file`.
 
 From top to bottom the page shows:
 
@@ -62,6 +62,9 @@ From top to bottom the page shows:
    saved), **Stash this file…** and **Discard changes**. A file that only an editor has changed has its box greyed out,
    with the tooltip **Not saved: save it to stage it**, and the buttons **Compare with the saved file** and **Save**.
 6. **No changes** when there is nothing in either list.
+
+A file opened from the page, its diff or the file itself, shows on the right of the page, which stays on the left as a
+column with the file marked (`changes.beside-file`); the Changes view of the bar of views shows the whole page again.
 
 With no repository the page says **No Git repository in this workspace** with **Check again**, which reads the folders
 of the workspace again. While an operation runs, the buttons that change something are disabled.
@@ -207,7 +210,7 @@ Decides which page, and which two versions, a click or a button on a file of the
 - **Kind**: Derivation
 - **Function**: `model::changes::open(input: &OpenInput) -> PageRequest`
 - **Settings**: `changes.openOnClick`: `file` (the default) or `diff`. It changes only what a click on a row does.
-- **Uses**: `diff.page`, `file-view.page`, `merge-view.page`.
+- **Uses**: `diff.page`, `file-view.page`, `merge-view.page`, `changes.beside-file`.
 - **Extension**: a click on a file of the Changes view, its buttons **Open File** and **Open Changes**, **Open all
   changes in one editor** on the header of **Changes**, and **Compare with the saved file** on a file only an editor
   has changed, done by the extension itself (the messages `openChange`, `openFile`, `openDiff`, `openChanges` and
@@ -222,18 +225,19 @@ Decides which page, and which two versions, a click or a button on a file of the
 
 Rules:
 
-- **Open changes** opens a Diff page: the index against the file on disk while some of the file is not staged; the last
-  commit against the index once all of it is. A file added has nothing on its left side; a file deleted has nothing on
-  its right side.
-- **Open file** opens the file in the File page, as it is on disk. A deleted file opens its Diff page instead.
+- **Open changes** opens a Diff page, beside the list (`changes.beside-file`): the index against the file on disk while
+  some of the file is not staged; the last commit against the index once all of it is. A file added has nothing on its
+  left side; a file deleted has nothing on its right side.
+- **Open file** opens the file in the File page, as it is on disk, beside the list. A deleted file opens its Diff page
+  instead.
 - A click on a row does what **Open file** does, or, with `changes.openOnClick` set to `diff`, what **Open changes**
   does.
 - A click on a file in conflict opens its Merge page.
 - **Compare with the saved file**, on a file that only an editor has changed, opens a Diff page with the file as it is
   on disk on the left and the buffer not saved on the right, editable.
-- **Open all changes in one Diff page** opens one Diff page with the diffs of every file of the list, one after the
-  other, each between the last commit and the file on disk, titled **Changes**: a Diff page has one pair of versions
-  for all its files (Q342). The rows of files only an editor has changed are left out.
+- **Open all changes in one Diff page** opens one Diff page, beside the list, with the diffs of every file of the list,
+  one after the other, each between the last commit and the file on disk, titled **Changes**: a Diff page has one pair
+  of versions for all its files (Q342). The rows of files only an editor has changed are left out.
 
 Acceptance:
 
@@ -250,6 +254,62 @@ Acceptance:
       VS Code's comparison of the file on disk with what its editor has, not saved.
 - [ ] Extension: a click on a file in conflict that has its base and both sides opens it in the merge editor, whatever
       `gitardo.changes.openOnClick` says.
+
+### `changes.beside-file` — The Changes page beside what it opens
+
+A file of the Changes page opens its Diff page or its File page on the right of the list of changes, which stays on
+the left as a column, so that a review goes from file to file without coming back to the list
+([D57](../08-decisions.md#d57--worktrees-in-the-side-column-pages-that-keep-what-opened-them-the-way-back-in-the-title)),
+as the Files page keeps its tree (`file-view.beside-files`).
+
+- **Kind**: View
+- **Function**: `views::changes::beside_file_view(state: &BesideFileState, ui) -> Vec<Intent>`
+- **Entry points**: a click on a file of the Changes page, its buttons **Open changes** and **Open file**, and **Open
+  all changes in one Diff page**, as `changes.open` decides; `Alt+Down` and `Alt+Up` in the page opened so, for the
+  next and the previous file of the list.
+- **Uses**: `changes.pane`, `changes.open`, `diff.page`, `file-view.page`, `graph.resize-panes`.
+- **Extension**: VS Code keeps its Source Control view beside its editors: nothing to build.
+
+- The Changes page is split in two: the page itself on the left as a column, its commit box, its identity and its
+  lists as they are on the whole page with narrower margins, 360 logical pixels wide where it starts, dragged as
+  `graph.resize-panes` says and remembered for the workspace (`changesColumn`); and the Diff page or the File page of
+  the file opened on its right. The side column stays, as beside every page.
+- The row of the file shown is marked, as a row selected, and brought into sight each time another file is shown.
+  Staging, unstaging, discarding and stashing are done from the column as on the whole page, and the column follows
+  the working tree as the whole page does.
+- Another file of the list opens in the same place: one Diff page shows each diff in turn, and `Ctrl+Tab` lists no page
+  for it; a File page replaced while it has edits not saved stays open in its own page, listed in `Ctrl+Tab`, as
+  beside the Files page.
+- `Alt+Down` and `Alt+Up` show the next and the previous file of the list, in the order the list shows them, folder
+  by folder in **View as tree**: its diff while a diff is shown, the file itself while a File page is; from every file,
+  the first. The last file stays shown on `Alt+Down`, the first on `Alt+Up`.
+- Once the repository is read again, the place follows its file (Q550): a diff of one file shows what **Open changes**
+  gives it now, so that a file staged wholly while the index against the file on disk was shown shows the last commit
+  against the index; a file no longer in the list, discarded or committed, leaves the place, and the whole page is
+  shown; a diff of every file shows the files listed now, and the whole page once there are none. Another repository
+  shown leaves the place too.
+- The trail reads `Timeline › Changes › a.txt`: **Changes** shows the whole page again, as the Changes view of the bar
+  of views, **Show changes** in Quick search and **Review** in the draft do (Q551). The File page or the Diff page beside
+  the list is forgotten then, unless it has edits not saved.
+- In the narrow layout the page of the file takes the whole page, and **Changes** in the trail comes back to the list.
+- A file in conflict still opens its Merge page in place of the Changes page.
+
+Acceptance:
+
+- [x] **Open changes** on `a.txt` shows its diff on the right, and the list is still on the left with `a.txt` marked.
+- [x] **Open file** on `a.txt` shows the file in the same place; a click on `b.txt`, with `changes.openOnClick` set to
+      `diff`, then shows its diff there, and `Ctrl+Tab` lists the Changes page alone.
+- [x] Ticking the box of `a.txt` while its diff of the index against the file on disk is shown stages it, and the place
+      then shows the last commit against the index.
+- [x] Discarding the changes of `b.txt` while its diff is shown leaves the whole page, with `b.txt` gone from the list.
+- [x] `Alt+Down` from `a.txt` shows `b.txt`, then `src/c.txt`, which stays on another `Alt+Down`; `Alt+Up` goes back
+      to `b.txt`, in the same Diff page.
+- [x] In **View as tree**, `Alt+Down` from `src/c.txt` shows `a.txt`, which the tree lists after the folder `src`.
+- [x] **Changes** in the trail, and the Changes view of the bar of views, show the whole page again.
+- [x] The line between the column and the page dragged 60 pixels to the right makes the column 60 pixels wider.
+- [x] In a window narrower than the narrow layout, the diff is shown alone, with no column.
+- [x] **Open all changes in one Diff page** shows every file beside the list with no row marked; `Alt+Down` then shows
+      the first.
 
 ### `changes.stage` — Stage a file
 

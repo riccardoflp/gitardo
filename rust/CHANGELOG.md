@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- A file of the Changes page, clicked or opened with **Open changes** or **Open file**, shows its diff or the file on
+  the right of the list of changes, which stays on the left as a column with the file marked: its boxes still stage
+  and unstage, its buttons still discard and stash, and another file of the list opens in the same place. `Alt+Down`
+  and `Alt+Up` show the next and the previous file of the list. A file staged wholly while its changes are shown then
+  shows its staged changes; a file discarded or committed leaves the whole page. **Changes** in the trail, or the
+  Changes view of the bar of views, shows the whole page again; the line between the column and the page is dragged to
+  resize the column, kept for the workspace. **Open all changes in one Diff page** shows them beside the list too.
 - Version 1.8 of the protocol of `gitardo-engine --stdio`, for the extension: `read/graph.read-commits` asked with
   `stream` reads the history with one `git log` as git prints it and sends each page in a notification
   `read/graph.rows`, to the end of the history or to 100,000 commits; `read/repo.read-state` takes `refresh`, and

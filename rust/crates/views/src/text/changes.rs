@@ -26,6 +26,8 @@ pub const SWITCH_IDENTITY: &str = "Switch identity\u{2026}";
 pub const NO_IDENTITY: &str = "No identity configured";
 /// The heading of the files in conflict.
 pub const CONFLICTS: &str = "Conflicts";
+/// The Changes page as a column beside the file it opened, for the screen reader (`changes.beside-file`).
+pub const COLUMN: &str = "List of changes";
 /// The heading of the files changed.
 pub const CHANGES: &str = "Changes";
 /// The box on the header of the list, for the screen reader.

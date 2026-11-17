@@ -196,7 +196,7 @@ fn leave_file(state: &mut State) {
 }
 
 /// Lists a File page among the pages open, after the others, when it has edits not saved and is not listed yet.
-fn keep_if_unsaved(state: &mut State, id: FilePageId) {
+pub(super) fn keep_if_unsaved(state: &mut State, id: FilePageId) {
     let is_unsaved = state
         .file_pages
         .pages

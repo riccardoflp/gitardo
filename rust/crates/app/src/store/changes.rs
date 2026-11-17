@@ -37,6 +37,8 @@ pub struct Changes {
     pub checked: Option<Checked>,
     /// The question to git running, and what it asks about.
     pub checking: Option<(JobId, Checked)>,
+    /// The file shown beside the list, while one is (`changes.beside-file`).
+    pub beside: Option<super::changes_beside::Beside>,
 }
 
 /// The files with edits not saved that git was asked whether it ignores.
@@ -78,6 +80,7 @@ pub fn reduce(state: &mut State, intent: ChangesIntent) -> Vec<Effect> {
         }
         ChangesIntent::Files(FilesIntent::ShowAll) => Vec::new(),
         ChangesIntent::Open => {
+            super::changes_beside::leave(state);
             pages::show_page(state, Page::Changes);
             state.changes.wants_focus = true;
             Vec::new()
@@ -87,6 +90,13 @@ pub fn reduce(state: &mut State, intent: ChangesIntent) -> Vec<Effect> {
             Vec::new()
         }
         ChangesIntent::DraftMessage | ChangesIntent::StopDraft => super::draft::reduce(state, &intent),
+        ChangesIntent::OpenBeside(file) => super::changes_beside::open(state, file),
+        ChangesIntent::StepFile(step) => super::changes_beside::step(state, step),
+        ChangesIntent::ShowWhole => {
+            super::changes_beside::leave(state);
+            pages::show_page(state, Page::Changes);
+            Vec::new()
+        }
     }
 }
 
@@ -186,15 +196,12 @@ impl ChangesData {
     /// The list of the repository shown, while the Changes page is open.
     #[must_use]
     pub fn new(state: &State) -> ChangesData {
-        let read = match state.shown_read() {
-            Some(read) if state.pages.open.contains(&Page::Changes) => read,
-            _ => return ChangesData::default(),
+        if !state.pages.open.contains(&Page::Changes) {
+            return ChangesData::default();
+        }
+        let Some(list) = listed(state) else {
+            return ChangesData::default();
         };
-        let unsaved = unsaved_files(state);
-        let list = list(&ChangesInput {
-            working_tree: &read.state.working_tree,
-            unsaved: &unsaved,
-        });
         let files: Vec<FileChange> = list
             .rows
             .iter()
@@ -243,8 +250,22 @@ impl ChangesData {
             on_click: state.settings.open_on_click,
             banner: super::conflicts::banner_state(state, read),
             worktree: super::worktrees::banner_state(state, read),
+            marked: state.changes.beside.as_ref().and_then(|beside| beside.path.as_deref()),
+            serial: state.changes.beside.as_ref().map_or(0, |beside| beside.serial),
         })
     }
+}
+
+/// The one list of the changed files of the repository shown, as the Changes page lists them (`changes.list`); none
+/// while no repository is read.
+#[must_use]
+pub fn listed(state: &State) -> Option<ChangesList> {
+    let read = state.shown_read()?;
+    let unsaved = unsaved_files(state);
+    Some(list(&ChangesInput {
+        working_tree: &read.state.working_tree,
+        unsaved: &unsaved,
+    }))
 }
 
 /// What the files with edits not saved are worked out from, for the repository shown: the editors' files, its

@@ -295,13 +295,7 @@ impl ViewData {
                 }
             }
             Some(Page::Review) => self.page_or_timeline(state, super::review::page_state(state).map(PageState::Review)),
-            Some(Page::File(id)) => {
-                let page = super::file_page::page_state(state, id).map(|page| FilePageState {
-                    blame: self.blame.page_blame(state, id),
-                    ..page
-                });
-                self.page_or_timeline(state, page.map(PageState::File))
-            }
+            Some(Page::File(id)) => self.page_or_timeline(state, self.file_page(state, id).map(PageState::File)),
             Some(Page::Settings) => Content::Page(PageHostState {
                 has_trail: state.workspace.is_some(),
                 page: PageState::Settings(SettingsPageState {
@@ -320,7 +314,11 @@ impl ViewData {
             },
             Some(Page::Changes) => Content::Page(PageHostState {
                 has_trail: true,
-                page: PageState::Changes(self.changes.page_state(state)),
+                page: super::changes_beside::page_state(
+                    state,
+                    &self.changes,
+                    (&self.blame, self.panes.sizes.changes_column),
+                ),
             }),
             Some(Page::Files) => Content::Page(PageHostState {
                 has_trail: true,
@@ -336,13 +334,16 @@ impl ViewData {
 
     /// The Files page, with the file opened beside its tree when there is one (`file-view.beside-files`).
     fn files_page<'a>(&'a self, state: &'a State) -> PageState<'a> {
-        let file = state.files_page.shown_file.and_then(|id| {
-            super::file_page::page_state(state, id).map(|page| FilePageState {
-                blame: self.blame.page_blame(state, id),
-                ..page
-            })
-        });
+        let file = state.files_page.shown_file.and_then(|id| self.file_page(state, id));
         super::files_page::beside_state(state, file, self.panes.sizes.files_tree)
+    }
+
+    /// A File page with the blame of its lines, when it is still kept.
+    fn file_page<'a>(&'a self, state: &'a State, id: views::file_view::FilePageId) -> Option<FilePageState<'a>> {
+        super::file_page::page_state(state, id).map(|page| FilePageState {
+            blame: self.blame.page_blame(state, id),
+            ..page
+        })
     }
 
     /// The Diff page beside the inspector, in place of the commits; in place of everything when no repository is read.
