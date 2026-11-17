@@ -2874,3 +2874,15 @@ reading given until the card says otherwise.
   whole at each page, as before; with none, the lanes, the tips of the lines, the rows of each commit and the lines
   between days and months of the new rows are worked out alone, and the merges that can be folded and the commits not
   pushed again over all the rows, which costs a walk of the rows but no layout.
+- **Q442** — `repo.schedule-reads`: which reads keep the commits when the history is the same. The card names those
+  that read them again (**Refresh**, a filter, a search, the branches shown, the next page). Built: a change of a file
+  of the working tree or of the git folder, a file saved or made by Gitardo, the focus and the end of an operation keep
+  them; the settings and a repository chosen read them again, since they can change what is listed. The history is the
+  same when the commit checked out, the branches, the remote branches, the tags and the stashes point where they did,
+  and the arguments of `git log` are the same.
+- **Q443** — `graph.read-commits` in the engine of the extension: the state its last `repo.read-state` read can be
+  older than the repository when a reference moved since and the extension has not read the state again. Built: the
+  engine keeps the state of every read of the state of a repository opened (asked, after an operation, after the
+  changes it watches) and the reads of the graph (`graph.read-commits`, `graph.read-position`, `search.read-matches`)
+  take it; only a repository whose state was never read since it was opened asks git. The extension reads the state
+  after each change it sees, before the commits.

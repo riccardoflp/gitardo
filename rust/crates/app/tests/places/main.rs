@@ -68,6 +68,7 @@ mod review_choose;
 mod review_columns;
 mod review_entry;
 mod review_wiring;
+mod same_history;
 mod search;
 mod series_continued;
 mod settings_file;

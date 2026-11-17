@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use serde_json::{Value, json};
 use testkit::Repository;
 
-use crate::harness::{folder, repository};
+use crate::harness::{Engine, folder, repository};
 use crate::reads::{opened, read, result};
 
 /// The full id of a revision.
@@ -261,4 +261,56 @@ fn cancel_of_a_page_that_runs_answers_cancelled() {
         started.elapsed() < Duration::from_secs(8),
         "the read stops without waiting for git"
     );
+}
+
+/// The commands git was run as, from a byte of a file of trace2 events on: not those git ran itself.
+fn commands_started(trace: &std::path::Path, from: usize) -> Vec<String> {
+    let text = std::fs::read_to_string(trace).unwrap_or_default();
+    text.get(from..)
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|line| {
+            let event: Value = serde_json::from_str(line).ok()?;
+            let is_started = event["event"] == "start" && !event["sid"].as_str()?.contains('/');
+            is_started.then(|| command_of(event["argv"].as_array()?))?
+        })
+        .collect()
+}
+
+/// The command of git's arguments: the first one that is not an option of git itself, as `-c name=value`.
+fn command_of(argv: &[Value]) -> Option<String> {
+    let mut arguments = argv.iter().skip(1).filter_map(Value::as_str);
+    while let Some(argument) = arguments.next() {
+        match argument {
+            "-c" | "-C" => {
+                let _value = arguments.next();
+            }
+            option if option.starts_with('-') => {}
+            command => return Some(command.to_owned()),
+        }
+    }
+    None
+}
+
+#[test]
+fn asked_right_after_repo_read_state_a_read_of_the_commits_runs_git_log_and_nothing_else() {
+    let mut repository = repository();
+    for number in 0..5 {
+        let _ = repository.commit(&format!("Commit {number}"), &[]);
+    }
+    let trace = repository.path().join(".git").join("trace.json");
+    let mut engine = Engine::start_traced(&trace);
+    let _ = engine.initialize();
+    let opened = engine.ask("repository/open", &json!({ "repository": folder(&repository) }));
+    assert!(opened.get("result").is_some(), "{opened}");
+    let _state = result(&mut engine, &repository, "read/repo.read-state", Value::Null);
+    let before = std::fs::read_to_string(&trace).unwrap().len();
+    let page = result(
+        &mut engine,
+        &repository,
+        "read/graph.read-commits",
+        json!({ "pageSize": 100, "stashes": true }),
+    );
+    assert_eq!(page["rows"].as_array().unwrap().len(), 7);
+    assert_eq!(commands_started(&trace, before), ["log"]);
 }

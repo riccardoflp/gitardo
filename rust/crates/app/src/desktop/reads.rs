@@ -112,7 +112,7 @@ impl ReadClock {
     /// Notes a job started; for a read of a repository the schedule counts, gives what it is and why it runs, in the
     /// words of the Activity drawer.
     pub fn started(&mut self, state: &State, job: &Job, now: Timestamp) -> Option<(Text, Text)> {
-        let JobKind::ReadRepository { folder, request } = &job.kind else {
+        let JobKind::ReadRepository { folder, request, .. } = &job.kind else {
             return None;
         };
         let line = format!("read {}: the state and the commits", slashes(folder));

@@ -16,7 +16,9 @@ pub fn job_done(message: &Message) -> Option<JobId> {
         | Message::DetailsRead { job, .. }
         | Message::CommitPageRead { job, .. } => Some(*job),
         Message::RepositoryRead { job, result, .. } => {
-            let follows = result.as_ref().is_ok_and(|read| read.1.follows);
+            let follows = result
+                .as_ref()
+                .is_ok_and(|read| read.1.as_ref().is_some_and(|page| page.follows));
             (!follows).then_some(*job)
         }
         Message::TimelineRead { job, result } | Message::PagesRead { job, result } => {

@@ -157,17 +157,18 @@ fn carry_out(state: &mut State, actions: Vec<ReadAction>) -> Vec<Effect> {
     effects
 }
 
-/// Starts a read the schedule asked for: the repository shown, with as many pages as its timeline has loaded. With no
-/// repository shown any more, the schedule is told the read stopped.
+/// Starts a read the schedule asked for: the repository shown, its whole history, which a read for a change of files
+/// does not read again when it is the same. With no repository shown any more, the schedule is told the read stopped.
 fn start(state: &mut State, started: StartedRead) -> Option<Effect> {
     let Some(folder) = state.shown_read().map(|read| read.folder.clone()) else {
         stopped(state);
         return None;
     };
     let request = super::timeline::read_request(state);
+    let kept = super::timeline::kept_for(state, &folder).filter(|_| started.cause.may_keep_commits());
     let id = JobId(state.next_job);
     state.next_job += 1;
-    let kind = JobKind::ReadRepository { folder, request };
+    let kind = JobKind::ReadRepository { folder, request, kept };
     let _new = state.jobs.insert(id, kind.clone());
     let _counted = state.reads.scheduled.insert(id, started);
     Some(Effect::Start(Job { id, kind }))

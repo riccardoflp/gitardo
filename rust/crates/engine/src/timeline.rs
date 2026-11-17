@@ -50,6 +50,29 @@ pub fn history_of(repository: &RepositoryState, shown: Option<&BranchesShown>, p
     }
 }
 
+/// Whether a read of the timeline lists the same rows for a repository as read now as for it as read before: the same
+/// commit checked out, references and stashes, and the same arguments for git (`repo.schedule-reads`).
+#[must_use]
+pub fn is_same_history(before: &RepositoryState, after: &RepositoryState, request: &TimelineRequest) -> bool {
+    before.head.commit == after.head.commit
+        && same(&before.branches, &after.branches, |one, other| {
+            one.name == other.name && one.commit == other.commit
+        })
+        && same(&before.remote_branches, &after.remote_branches, |one, other| {
+            one.name == other.name && one.commit == other.commit
+        })
+        && same(&before.tags, &after.tags, |one, other| {
+            one.name == other.name && one.commit == other.commit
+        })
+        && same(&before.stashes, &after.stashes, |one, other| one.commit == other.commit)
+        && commits_request(before, request) == commits_request(after, request)
+}
+
+/// Whether two lists have the same things in the same order, as a comparison of two of them says.
+fn same<T>(before: &[T], after: &[T], is_same: impl Fn(&T, &T) -> bool) -> bool {
+    before.len() == after.len() && before.iter().zip(after).all(|(one, other)| is_same(one, other))
+}
+
 /// What a read of the timeline asks of git, for a repository as read: the commits of the pages asked for.
 #[must_use]
 pub fn commits_request(repository: &RepositoryState, request: &TimelineRequest) -> CommitsRequest {

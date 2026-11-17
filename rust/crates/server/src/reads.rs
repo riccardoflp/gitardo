@@ -16,6 +16,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use git::{CancelToken, Git, GitError};
+use model::state::RepositoryState;
 use protocol::messages::RepositoryParams;
 use protocol::reads::methods;
 use protocol::rpc::{ResponseError, codes};
@@ -34,6 +35,8 @@ pub struct Reading<'a> {
     pub git: Git,
     /// The token of the request.
     pub cancel: &'a CancelToken,
+    /// The state of the repository as last read (`repo.read-state`), for the reads of the graph.
+    pub last_state: Option<Arc<RepositoryState>>,
 }
 
 /// Whether a method is one of the reads of this module.
@@ -53,12 +56,14 @@ pub fn answer(
     cancel: &CancelToken,
 ) -> Result<Value, ResponseError> {
     let RepositoryParams { repository } = parameters(params.clone())?;
-    let folder = session.opened(&repository)?.folder().to_path_buf();
+    let opened = session.opened(&repository)?;
+    let folder = opened.folder().to_path_buf();
     let reading = Reading {
         session,
         git: Git::new(&folder).with_cancel(cancel.clone()),
         folder,
         cancel,
+        last_state: opened.last_state(),
     };
     let started = Instant::now();
     let answer = read(&reading, method, params);

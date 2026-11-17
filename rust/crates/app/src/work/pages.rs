@@ -12,6 +12,7 @@ use model::graph::Row;
 use model::state::RepositoryState;
 
 use crate::store::{JobId, Known, Message, MorePages, TimelineRequest, commits_request};
+use engine::timeline::is_same_history;
 
 /// What the first page of a read is sent in, and the pages after it.
 struct Sender<'a, First> {
@@ -49,17 +50,18 @@ fn whole(request: CommitsRequest) -> CommitsRequest {
 }
 
 /// Reads a repository as the window shows it: its state (`repo.read-state`), then its commits as git prints them
-/// (`graph.read-commits`), the first page with the state.
+/// (`graph.read-commits`), the first page with the state. When the state of the read before is given and the history is
+/// the same, the commits are not read: the timeline keeps its rows (`repo.schedule-reads`).
 pub fn read_repository(
     job: JobId,
-    (folder, request): (&Path, &TimelineRequest),
+    (folder, request, kept): (&Path, &TimelineRequest, Option<&RepositoryState>),
     cancel: &CancelToken,
     send: &mut dyn FnMut(Message),
 ) {
     let read_at = seconds_now();
     let git = Git::new(folder).with_cancel(cancel.clone());
     let folder_read = folder.to_path_buf();
-    let read = |result: Result<Box<(RepositoryState, CommitPage)>, String>| Message::RepositoryRead {
+    let read = |result: Result<Box<(RepositoryState, Option<CommitPage>)>, String>| Message::RepositoryRead {
         job,
         folder: folder_read.clone(),
         result,
@@ -74,13 +76,16 @@ pub fn read_repository(
         Ok(state) => state,
         Err(error) => return send(read(Err(error.to_string()))),
     };
+    if kept.is_some_and(|kept| is_same_history(kept, &state, request)) {
+        return send(read(Ok(Box::new((state, None)))));
+    }
     let commits = whole(commits_request(&state, request));
     let git = git.in_directory(&state.folder);
     let mut state = Some(state);
     let mut sender = Sender {
         job,
         first: Some(|result: Result<CommitPage, String>| {
-            read(result.map(|page| Box::new((state.take().unwrap_or_default(), page))))
+            read(result.map(|page| Box::new((state.take().unwrap_or_default(), Some(page)))))
         }),
         send,
     };

@@ -174,11 +174,69 @@ enum Change {
     Other,
 }
 
+/// The state of the repository shown as last read, for a read of it that may keep the rows of the timeline: none while
+/// the timeline is of another folder, or another history of it is being read.
+#[must_use]
+pub fn kept_for(state: &State, folder: &Path) -> Option<Arc<RepositoryState>> {
+    let timeline = &state.timeline;
+    let is_whole = timeline.folder.as_deref() == Some(folder)
+        && !timeline.is_reading_again
+        && timeline.narrow_job.is_none()
+        && timeline.more_job.is_none();
+    state
+        .shown_read()
+        .filter(|read| is_whole && read.folder == folder)
+        .map(|read| Arc::clone(&read.state))
+}
+
+/// Takes a read of the repository shown whose history is the one read before: the rows stay, the draft on top is worked
+/// out again, and the timeline is laid out again only when the draft or the labels changed. Says whether the rows
+/// changed.
+pub fn keep_rows(state: &mut State, repository: &RepositoryState) -> bool {
+    let switches = state.settings.switches;
+    let labels = model::graph::labels(
+        repository,
+        &model::graph::GraphSettings {
+            combine_upstream: switches.is_on(TimelineSwitch::CombineUpstream),
+        },
+    );
+    let is_draft_changed = refresh_draft(state, repository);
+    if is_draft_changed || labels != state.timeline.layout.labels {
+        relayout(state);
+    }
+    is_draft_changed
+}
+
+/// Works out the draft on top of the rows again, for the repository as read now. Says whether it changed.
+fn refresh_draft(state: &mut State, repository: &RepositoryState) -> bool {
+    let is_narrowed = super::search::is_narrowed(state);
+    let shown = state.timeline.shown.clone();
+    let timeline = &mut state.timeline;
+    let draft_before = if timeline.draft.is_some() && !timeline.rows.is_empty() {
+        Some(timeline.rows.remove(0))
+    } else {
+        None
+    };
+    let draft =
+        draft_of(repository, &timeline.rows).filter(|_| !is_narrowed && shows_checked_out(shown.as_ref(), repository));
+    let draft_row = draft.as_ref().map(|changes| Row::Uncommitted {
+        parent: repository.head.commit.clone(),
+        files: changes.files,
+    });
+    let is_changed = draft_row != draft_before;
+    if let Some(row) = draft_row {
+        timeline.rows.insert(0, row);
+    }
+    timeline.draft = draft;
+    if timeline.selected == Some(Selected::Draft) && timeline.draft.is_none() {
+        timeline.selected = None;
+    }
+    is_changed
+}
+
 /// Puts a page of a read where it goes among the rows, the draft on top worked out again from them, and keeps the read
 /// while more pages follow. Says how the rows changed.
 fn put_page(state: &mut State, stream: &mut Stream, page: CommitPage, repository: &RepositoryState) -> Change {
-    let is_narrowed = super::search::is_narrowed(state);
-    let shown = state.timeline.shown.clone();
     let timeline = &mut state.timeline;
     let draft_before = if timeline.draft.is_some() && !timeline.rows.is_empty() {
         Some(timeline.rows.remove(0))
@@ -199,20 +257,10 @@ fn put_page(state: &mut State, stream: &mut Stream, page: CommitPage, repository
     }
     timeline.has_more = has_more;
     timeline.stream = follows.then(|| stream.clone());
-    let draft =
-        draft_of(repository, &timeline.rows).filter(|_| !is_narrowed && shows_checked_out(shown.as_ref(), repository));
-    let draft_row = draft.as_ref().map(|changes| Row::Uncommitted {
-        parent: repository.head.commit.clone(),
-        files: changes.files,
-    });
-    let is_draft_changed = draft_row != draft_before;
-    if let Some(row) = draft_row {
+    if let Some(row) = draft_before {
         timeline.rows.insert(0, row);
     }
-    timeline.draft = draft;
-    if timeline.selected == Some(Selected::Draft) && timeline.draft.is_none() {
-        timeline.selected = None;
-    }
+    let is_draft_changed = refresh_draft(state, repository);
     match (is_changed, is_added && !is_draft_changed) {
         (_, true) => Change::Added,
         (false, false) if !is_draft_changed => Change::Nothing,

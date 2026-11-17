@@ -15,7 +15,6 @@ use git::{CancelToken, Git, GitError};
 use model::Timestamp;
 use model::contract::FeatureSettings;
 use model::contract::Text;
-use model::state::RepositoryState;
 use protocol::feature::{FeatureRunParams, SettingsParams, ValidateParams};
 use protocol::messages::{
     ActivityJson, ActivityParams, CancelParams, ChangedParams, EngineInfo, HostAbilities, InitializeParams,
@@ -314,8 +313,12 @@ impl Session {
         drop(activity);
         self.send_activity();
         self.log_read(repository, format!("Read the state of {repository}"), started.elapsed());
-        read.map(|state: RepositoryState| StateJson::from(&state))
-            .map_err(|error| git_failure(&error))
+        let state = read.map_err(|error| git_failure(&error))?;
+        let json = StateJson::from(&state);
+        if let Ok(opened) = self.opened(repository) {
+            opened.remember(state);
+        }
+        Ok(json)
     }
 
     /// Sends what runs now.

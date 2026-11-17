@@ -4,9 +4,9 @@
 
 use std::fmt;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Sender};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -14,6 +14,7 @@ use engine::{Clock, CommandLog, Engine, LogLevel};
 use git::Git;
 use model::Timestamp;
 use model::repo::{Change, watch_changes};
+use model::state::RepositoryState;
 
 use crate::session::locked;
 
@@ -29,6 +30,9 @@ pub struct Repository {
     burst: Mutex<Burst>,
     /// Whether `repository/close` dropped it, so that a read waiting for it is not made.
     is_closed: AtomicBool,
+    /// Its state as last read (`repo.read-state`): the reads of the graph take what is checked out, the references and
+    /// the stashes from it rather than asking git again.
+    last_state: Mutex<Option<Arc<RepositoryState>>>,
 }
 
 impl fmt::Debug for Repository {
@@ -99,7 +103,18 @@ impl Repository {
             folder,
             burst: Mutex::new(Burst::default()),
             is_closed: AtomicBool::new(false),
+            last_state: Mutex::new(None),
         }
+    }
+
+    /// Keeps its state as just read.
+    pub fn remember(&self, state: RepositoryState) {
+        *locked(&self.last_state) = Some(Arc::new(state));
+    }
+
+    /// Its state as last read; none before a read since it was opened.
+    pub fn last_state(&self) -> Option<Arc<RepositoryState>> {
+        locked(&self.last_state).clone()
     }
 
     /// Its folder.

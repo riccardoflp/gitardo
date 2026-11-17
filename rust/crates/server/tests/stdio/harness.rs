@@ -1,6 +1,7 @@
 //! The engine started as the extension starts it, and the repositories the tests run it on.
 
 use std::io::{BufRead, BufReader, Write};
+use std::path::Path;
 use std::process::{Child, ChildStdin, Command, ExitStatus, Stdio};
 use std::sync::mpsc::{Receiver, RecvTimeoutError, channel};
 use std::thread;
@@ -26,13 +27,26 @@ pub struct Engine {
 impl Engine {
     /// Starts `gitardo-engine --stdio`, and a thread that reads its messages.
     pub fn start() -> Engine {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_gitardo-engine"))
+        Engine::start_with(None)
+    }
+
+    /// Starts `gitardo-engine --stdio` as [`Engine::start`] does, every git it runs writing its trace2 events to a file.
+    pub fn start_traced(trace: &Path) -> Engine {
+        Engine::start_with(Some(trace))
+    }
+
+    /// Starts `gitardo-engine --stdio`, with the file of git's trace2 events when there is one.
+    fn start_with(trace: Option<&Path>) -> Engine {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_gitardo-engine"));
+        let _ = command
             .arg("--stdio")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::inherit())
-            .spawn()
-            .unwrap();
+            .stderr(Stdio::inherit());
+        if let Some(trace) = trace {
+            let _ = command.env("GIT_TRACE2_EVENT", trace);
+        }
+        let mut child = command.spawn().unwrap();
         let input = child.stdin.take();
         let mut output = BufReader::new(child.stdout.take().unwrap());
         let (sender, messages) = channel();

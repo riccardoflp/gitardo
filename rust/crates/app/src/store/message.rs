@@ -45,8 +45,9 @@ pub enum Message {
         job: JobId,
         /// The folder read.
         folder: PathBuf,
-        /// What was read, or what git said when the read failed.
-        result: Result<Box<(RepositoryState, CommitPage)>, String>,
+        /// What was read, or what git said when the read failed: no page when the history is the one read before,
+        /// whose rows the timeline keeps.
+        result: Result<Box<(RepositoryState, Option<CommitPage>)>, String>,
         /// When it was read, in seconds since 1970: the lines between days and months are counted from it.
         read_at: i64,
     },
@@ -279,6 +280,9 @@ pub enum JobKind {
         folder: PathBuf,
         /// How the timeline is read.
         request: TimelineRequest,
+        /// The state of the read before, when the timeline may keep its rows: the commits are not read again when the
+        /// history is the same (`repo.schedule-reads`).
+        kept: Option<std::sync::Arc<RepositoryState>>,
     },
     /// Reads the timeline for the branches shown, and nothing else of the repository: the timeline narrowed, or shown
     /// whole again (`filter.show-only`, `filter.show-all`).

@@ -29,7 +29,7 @@ fn answer(state: &mut State, effects: Vec<Effect>, read_at: i64) -> usize {
             Effect::Start(job) => match job.kind {
                 JobKind::ReadRepository { folder, .. } => Message::RepositoryRead {
                     job: job.id,
-                    result: Ok(Box::new((repository_state(&folder), CommitPage::default()))),
+                    result: Ok(Box::new((repository_state(&folder), Some(CommitPage::default())))),
                     folder,
                     read_at,
                 },

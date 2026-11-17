@@ -5,11 +5,9 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use git::read::graph::CommitPage;
 use model::filter::checked;
 use model::refs::References;
 use model::repo::Repository;
-use model::state::RepositoryState;
 use views::Notice;
 
 use super::message::{Effect, Found, Job, JobId, JobKind};
@@ -144,7 +142,7 @@ pub fn repository_read(
     state: &mut State,
     job: JobId,
     folder: &Path,
-    (result, read_at): (Result<Box<(RepositoryState, CommitPage)>, String>, i64),
+    (result, read_at): (super::ReadResult, i64),
 ) -> Vec<Effect> {
     let Some(JobKind::ReadRepository { request, .. }) = state.jobs.remove(&job) else {
         return Vec::new();
@@ -157,7 +155,12 @@ pub fn repository_read(
     }) else {
         // Another repository was chosen meanwhile: the pages that follow are not read.
         return result
-            .map(|read| super::timeline::cancel_unwanted(job, &read.1))
+            .map(|read| {
+                read.1
+                    .as_ref()
+                    .map(|page| super::timeline::cancel_unwanted(job, page))
+                    .unwrap_or_default()
+            })
             .unwrap_or_default();
     };
     match result {
@@ -170,9 +173,15 @@ pub fn repository_read(
                 state: Arc::clone(&repository),
                 generation,
             });
-            let shown = checked(request.shown.as_ref(), &References::of(&repository));
-            let mut effects = super::timeline::stop_stream(state);
-            let is_changed = super::timeline::take_read(state, (folder, &repository), (commits, shown), (job, read_at));
+            let mut effects = Vec::new();
+            let is_changed = match commits {
+                Some(commits) => {
+                    let shown = checked(request.shown.as_ref(), &References::of(&repository));
+                    effects.extend(super::timeline::stop_stream(state));
+                    super::timeline::take_read(state, (folder, &repository), (commits, shown), (job, read_at))
+                }
+                None => super::timeline::keep_rows(state, &repository),
+            };
             super::rail::arrange(state);
             effects.extend(super::timeline::keep_shown(state, folder));
             effects.extend(super::pages::tick_timeline(state));
@@ -307,7 +316,14 @@ fn find_repository<'a>(repositories: &'a [Repository], folder: &Path) -> Option<
 pub(super) fn start_read(state: &mut State, folder: PathBuf) -> Effect {
     let mut request = super::timeline::read_request(state);
     request.shown = super::timeline::kept_shown(state, &folder);
-    let job = start_job(state, JobKind::ReadRepository { folder, request });
+    let job = start_job(
+        state,
+        JobKind::ReadRepository {
+            folder,
+            request,
+            kept: None,
+        },
+    );
     super::reads::adopt(state, job.id, model::repo::ReadCause::RepositoryChosen);
     Effect::Start(job)
 }

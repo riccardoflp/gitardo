@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- A read of the repository after a file changed, the window got the focus or an operation ended keeps the commits of
+  the timeline when the commit checked out, the branches, the remote branches, the tags and the stashes are those of
+  the read before: no `git log` runs, the rows stay as they are, and only the draft on top changes. A commit made in a
+  terminal is read as before, and **Refresh**, the branches shown, a filter, a search and the settings read the
+  commits again.
 - A page of commits added under the timeline is laid out alone, from where the lines of the graph stopped under the
   rows above it, rather than every row again: the history of a large repository comes in at the same pace from its
   first page to its last. With merges folded, the timeline is still laid out whole at each page.

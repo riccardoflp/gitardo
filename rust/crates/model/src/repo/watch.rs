@@ -101,6 +101,23 @@ pub enum ReadCause {
 }
 
 impl ReadCause {
+    /// Whether a read for it may keep the commits the timeline has, when the commit checked out, the references and the
+    /// stashes are as they were (`repo.schedule-reads`): a change of files, the focus, the end of an operation.
+    /// **Refresh**, the settings, another repository, the branches shown, a search, a filter and the next page read the
+    /// commits again.
+    #[must_use]
+    pub fn may_keep_commits(&self) -> bool {
+        matches!(
+            self,
+            ReadCause::GitFile(_)
+                | ReadCause::File(_)
+                | ReadCause::Saved(_)
+                | ReadCause::Files(_)
+                | ReadCause::Focus
+                | ReadCause::OperationEnded
+        )
+    }
+
     /// Whether the bar along the top of the list of commits runs until a read asked for this is done: the commits of a
     /// filter, of the branches just chosen or of the next page are what the person waits for.
     #[must_use]

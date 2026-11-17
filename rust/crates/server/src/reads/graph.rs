@@ -53,10 +53,14 @@ pub fn matches(reading: &Reading<'_>, params: &MatchesParams) -> Result<Value, R
     })
 }
 
-/// What a read of the timeline asks of git, against what the repository has now: what is checked out always, the
-/// references only for the branches shown that need them, and the stashes only when they are placed among the commits.
+/// What a read of the timeline asks of git, against what the repository has: as its last `repo.read-state` read it,
+/// with nothing asked of git again; with no state read before, what is checked out always, the references only for the
+/// branches shown that need them, and the stashes only when they are placed among the commits.
 fn commits_of(reading: &Reading<'_>, timeline: &TimelineJson) -> Result<CommitsRequest, ResponseError> {
     let request = TimelineRequest::try_from(timeline).map_err(invalid)?;
+    if let Some(state) = &reading.last_state {
+        return Ok(commits_request(state, &request));
+    }
     let parts = TimelineParts {
         references: matches!(
             request.shown,

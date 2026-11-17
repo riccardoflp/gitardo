@@ -143,7 +143,7 @@ fn answer_asking(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[Pat
                 },
                 JobKind::ReadRepository { folder, .. } => Message::RepositoryRead {
                     job,
-                    result: Ok(Box::new((repository_state(&folder), CommitPage::default()))),
+                    result: Ok(Box::new((repository_state(&folder), Some(CommitPage::default())))),
                     folder,
                     read_at: 0,
                 },
