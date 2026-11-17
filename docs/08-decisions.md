@@ -3191,3 +3191,15 @@ the reading given until the card says otherwise.
   A window snapped to half the screen keeps that size and place, which Windows itself would restore to another. A
   place is used when a point 48 pixels in from its top left corner is on a screen; on Wayland, which does not say
   where a window is, nothing is kept of the place.
+- **Q570** — `window.title-bar`: the menu of the window on Linux. Built: a right click on the caption asks for it
+  through `winit`, whose version 0.30 opens it only on Windows, so nothing opens on X11 or Wayland until `winit` does;
+  the three buttons and the keys of the desktop remain. Asking the compositor directly (`xdg_toplevel.show_window_menu`
+  on Wayland, `_GTK_SHOW_WINDOW_MENU` on X11) would be code of our own, proposed apart.
+- **Q571** — `window.caption-buttons`: where the logo goes on macOS, whose three buttons take the top left. Built: the
+  header bar starts 78 logical pixels from the left edge, after the buttons, and the bar of views starts below the
+  header bar, so that the square of the logo above it (`window.brand`) is under the buttons; the logo moves to the
+  start of the header bar there when the two branches of M17 meet.
+- **Q572** — `window.title-bar`: whether Linux draws the title bar too. Built: yes, as the roadmap says, with no
+  decorations of the compositor; the shadow and the rounded corners are the compositor's to give or not. A compositor
+  that draws decorations on every window anyway (some with server-side decorations only) would show both, which no
+  one has seen yet.

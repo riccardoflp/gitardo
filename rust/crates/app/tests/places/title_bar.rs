@@ -270,3 +270,41 @@ fn window_title_bar__the_size_the_place_and_whether_maximized_are_kept_for_the_n
 fn has_menu_item(tree: &platform::accesskit::TreeUpdate) -> bool {
     tree.nodes.iter().any(|(_, node)| node.role() == Role::MenuItem)
 }
+
+#[test]
+fn window_caption_buttons__on_macos_the_header_bar_leaves_room_for_the_buttons_of_the_system_and_draws_none() {
+    let (_kept, mut state) = drawn(false);
+    let caption = CaptionState {
+        title_bar: TitleBar::Transparent,
+        is_maximized: false,
+    };
+    let _effects = support::run(&mut state, Message::Caption(caption));
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    for name in ["Minimize", "Maximize", "Close"] {
+        assert!(!support::has(&tree, Role::Button, name), "{name}");
+    }
+    let band = ui::Rect::new(0.0, 0.0, width(), HEADER);
+    let controls = window.pointer_targets(band);
+    assert!(
+        controls
+            .iter()
+            .all(|control| control.x >= views::window::SYSTEM_BUTTONS_ROOM),
+        "nothing under the buttons of the system: {controls:?}"
+    );
+    let size = WindowSize {
+        width: width(),
+        height: 580.0,
+    };
+    let frame = FrameState {
+        caption,
+        caption_height: HEADER,
+        controls,
+    };
+    // The free header bar is the caption, up to the right edge, and the edges are the system's.
+    assert_eq!(
+        views::window::hit(Point::new(width() - 3.0, 20.0), size, &frame),
+        Hit::Caption
+    );
+    assert_eq!(views::window::hit(Point::new(3.0, 300.0), size, &frame), Hit::Client);
+}

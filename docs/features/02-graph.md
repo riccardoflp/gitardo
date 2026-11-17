@@ -225,7 +225,10 @@ not a button, a field or a link (the logo and the name included), as the last fr
 Gitardo open over the window covers the header bar, which is then not the caption, as the system's title bar of a
 window under a dialog of its own does not move it.
 
-On Windows the window is opened without decorations, keeping the styles of a window with a frame, so that the system
+On Linux the window is opened without decorations, and a press on the caption or on an edge asks the compositor to
+move it, to maximize or restore it on a double click, to resize it or to open its menu, as `winit` lets a window ask; on
+macOS the system's title bar is transparent over the header bar, which starts after the system's three buttons, and
+the system resizes the window from its edges. On Windows the window is opened without decorations, keeping the styles of a window with a frame, so that the system
 still gives it its shadow, its rounded corners, Aero Snap and its keys; its inside covers the frame, within the work
 area of the screen while it is maximized. `platform` answers `WM_NCHITTEST` with `hit`: the caption, which the system
 moves the window from, maximizes and restores with a double click and opens its menu from with a right click, the edges
@@ -259,6 +262,8 @@ Acceptance:
 - [ ] After a change of scale the header bar is laid out again, and `hit` reads it as the new frame drew it.
 - [ ] The size, the place and whether the window is maximized when it closes are kept for the next start.
 - [ ] A place kept is used on a screen, and not when it is off every screen.
+- [ ] On Linux and macOS a press on the caption or an edge asks the system to move, maximize or restore, or resize
+      the window, or to open its menu.
 
 ### `window.caption-buttons` — Minimize, maximize and close
 
@@ -284,6 +289,7 @@ Acceptance:
 - [ ] **Close** closes the window as the close request of the system does.
 - [ ] The pointer on **Close** draws it red.
 - [ ] The screen reader names the three buttons `Minimize`, `Maximize` and `Close`, and `Restore` while maximized.
+- [ ] On macOS the header bar leaves room for the system's three buttons at the top left and draws none of its own.
 
 ### `graph.search-button` — The button of Quick search
 

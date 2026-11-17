@@ -243,7 +243,7 @@ impl Window {
     }
 
     /// The text of its title bar, which the taskbar, the switcher of windows and the screen reader say, even when the
-    /// program draws the title bar.
+    /// program draws the title bar; empty on Linux, whose systems do not say it.
     #[must_use]
     pub fn title(&self) -> String {
         self.library().title()
@@ -351,10 +351,28 @@ fn decorated(attributes: WindowAttributes, decorations: Decorations) -> WindowAt
     }
 }
 
-/// The attributes of a window with the decorations asked for: the systems other than Windows keep theirs for now.
-#[cfg(not(windows))]
-fn decorated(attributes: WindowAttributes, _decorations: Decorations) -> WindowAttributes {
-    attributes
+/// The attributes of a window with the decorations asked for: the system's title bar made transparent over the
+/// window, which reaches the top, its three buttons kept at the top left and its title not drawn (D58).
+#[cfg(target_os = "macos")]
+fn decorated(attributes: WindowAttributes, decorations: Decorations) -> WindowAttributes {
+    use winit::platform::macos::WindowAttributesExtMacOS;
+    match decorations {
+        Decorations::System => attributes,
+        Decorations::Drawn => attributes
+            .with_titlebar_transparent(true)
+            .with_fullsize_content_view(true)
+            .with_title_hidden(true),
+    }
+}
+
+/// The attributes of a window with the decorations asked for: no decorations, the program moving and resizing the
+/// window through the compositor (D58).
+#[cfg(not(any(windows, target_os = "macos")))]
+fn decorated(attributes: WindowAttributes, decorations: Decorations) -> WindowAttributes {
+    match decorations {
+        Decorations::System => attributes,
+        Decorations::Drawn => attributes.with_decorations(false),
+    }
 }
 
 /// A logical size as `winit` takes it.

@@ -38,8 +38,9 @@ mod side;
 mod timeline;
 
 pub use frame::{
-    CAPTION_BUTTON_WIDTH, CaptionState, Corner, EDGE, Edge, FrameState, Hit, TitleBar, UNFOCUSED_OPACITY, WindowIntent,
-    WindowSize, caption_buttons_rect, caption_buttons_view, caption_height, header_opacity, hit,
+    CAPTION_BUTTON_WIDTH, CaptionState, Corner, EDGE, Edge, FrameState, Hit, SYSTEM_BUTTONS_ROOM, TitleBar,
+    UNFOCUSED_OPACITY, WindowIntent, WindowSize, caption_buttons_rect, caption_buttons_view, caption_height,
+    header_opacity, hit,
 };
 
 use side::{puts_side_away, side_beside, side_over, side_toggle};
@@ -179,10 +180,16 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut area = Area::new(window);
     let status = area.bottom(theme.sizes.row_height);
     let bar = area.left(VIEW_BAR_WIDTH);
+    // Under the system's buttons of macOS, at the top left, the bar of views starts below the header bar.
+    let top = if state.caption.title_bar == TitleBar::Transparent {
+        bar_height
+    } else {
+        gap
+    };
     let bar = inset(
         bar,
         Insets {
-            top: gap,
+            top,
             ..Insets::all(0.0)
         },
     );
@@ -232,11 +239,21 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
 }
 
 /// Draws the buttons of the title bar at the right end of the header bar, reaching the top and the right edges of
-/// the window, when the window draws its title bar; gives what is left of the header bar for the header
-/// (`window.caption-buttons`).
+/// the window, when the window draws its title bar; gives what is left of the header bar for the header, which starts
+/// after the system's buttons on macOS (`window.caption-buttons`).
 fn with_caption_buttons(caption: CaptionState, header: Rect, ui: &mut Ui<'_>, intents: &mut Vec<Intent>) -> Rect {
-    if caption.title_bar != TitleBar::Drawn {
-        return header;
+    match caption.title_bar {
+        TitleBar::System => return header,
+        TitleBar::Transparent => {
+            let right = header.right();
+            return Rect::new(
+                SYSTEM_BUTTONS_ROOM,
+                header.y,
+                (right - SYSTEM_BUTTONS_ROOM).max(0.0),
+                header.height,
+            );
+        }
+        TitleBar::Drawn => {}
     }
     let window = ui.window();
     let size = WindowSize {

@@ -80,6 +80,7 @@ Windows are, and nothing else is linked.
 | File dialogs | `rfd` through the desktop's portal (`xdg-desktop-portal`), which falls back to `zenity` when there is no portal. |
 | Fonts of the system | `fontdb`, through `cosmic-text`, reads the usual folders (`/usr/share/fonts`, `/usr/local/share/fonts`, `~/.local/share/fonts`, `~/.fonts`), not the configuration of fontconfig. |
 | Terminal, external editor | The terminal is `x-terminal-emulator` started in the folder, unless `terminal.external` says another; the editor is `editor.external`. |
+| Title bar drawn by the program | `winit` opens the window without decorations. A press of the main button on a place `set_frame_parts` says is the caption asks the compositor to move the window (`drag_window`), twice to maximize or restore it; a press on an edge or a corner asks it to resize the window (`drag_resize_window`), whose shape the pointer shows over them; a press of the other button on the caption asks for the menu of the window (`show_window_menu`), which `winit` 0.30 does not open on X11 or Wayland yet. A move or a resize asked is handed to the program as `MoveStarted`. The press is the system's then, and does not reach the program. |
 
 ## macOS
 
@@ -98,6 +99,7 @@ other systems.
 | Credentials | `Security`: `SecItemCopyMatching`, `SecItemUpdate`, `SecItemAdd`, `SecItemDelete` with `kSecClassGenericPassword`, the service `Gitardo Desktop` and the name of the secret as the account. |
 | Clipboard, file dialogs | `arboard` and `rfd`, through `AppKit`. |
 | Terminal, external editor | The terminal is `Terminal.app` opened on the folder (`open -a Terminal`), unless `terminal.external` says another; the editor is `editor.external`. |
+| Title bar drawn by the program | `winit` makes the system's title bar transparent (`with_titlebar_transparent`), the inside of the window reaching the top (`with_fullsize_content_view`), and hides the title (`with_title_hidden`): the system keeps its three buttons at the top left, its frame and its edges. A press of the main button on the caption asks the system to move the window (`drag_window`), twice to zoom it, as on Linux; the system resizes the window from its edges itself. |
 
 ## Text
 

@@ -8,13 +8,14 @@ use platform::{Decorations, FramePart, ResizeEdge, Window};
 use ui::{Rect, Theme, UiMemory};
 use views::window::{CaptionState, Corner, Edge, FrameState, Hit, TitleBar, WindowSize};
 
-/// Who draws the title bar of the window on this system: Gitardo on Windows.
+/// Who draws the title bar of the window on this system: Gitardo on Windows and Linux, the system on macOS, transparent
+/// over the header bar with its three buttons.
 #[must_use]
 pub fn system_title_bar() -> TitleBar {
-    if cfg!(windows) {
-        TitleBar::Drawn
+    if cfg!(target_os = "macos") {
+        TitleBar::Transparent
     } else {
-        TitleBar::System
+        TitleBar::Drawn
     }
 }
 

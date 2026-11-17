@@ -9,6 +9,9 @@
   resting on **Maximize** shows Snap Layouts on Windows 11. The edges and the corners resize the window, and nothing
   does while it is maximized. The window keeps its shadow and its rounded corners. The header bar dims while another
   window has the focus; a menu or a picker open closes when the window starts to be moved or resized.
+- On Linux the window has no decorations either, and the header bar moves, maximizes and resizes it through the
+  compositor, with the same three buttons; on macOS the system's title bar is transparent over the header bar, which
+  starts after its three buttons.
 - The window opens where it was and maximized if it was, besides keeping its size; a place on a screen no longer there
   is left to the system.
 - The side column takes less room: a repository, a worktree and a submodule are each one row of one line, the name on

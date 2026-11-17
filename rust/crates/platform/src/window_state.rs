@@ -116,14 +116,9 @@ impl WindowShared {
             x: position.x,
             y: position.y,
         });
-        let size = self.window.inner_size();
-        let size = self.scale().to_logical(PhysicalSize {
-            width: size.width,
-            height: size.height,
-        });
         self.restored.set(WindowPlacement {
             position,
-            size,
+            size: self.logical_size(),
             is_maximized: false,
         });
     }
@@ -214,6 +209,8 @@ impl WindowShared {
     /// The pointer moved.
     fn moved(&self, position: PhysicalPosition<f64>) -> InputEvent {
         self.pointer.set(position);
+        self.frame
+            .pointer_over(&self.window, (self.position(), self.logical_size()), self.cursor.get());
         InputEvent::PointerMoved(PointerMove {
             position: self.position(),
             modifiers: self.modifiers.get(),
@@ -237,6 +234,18 @@ impl WindowShared {
             }
             ElementState::Released => clicks.last_count(),
         };
+        drop(clicks);
+        if state == ElementState::Pressed
+            && let Some(starts_moving) = self.frame.take_press(
+                &self.window,
+                (self.position(), self.logical_size()),
+                (button, click_count),
+                self.pointer.get(),
+            )
+        {
+            // The system has the press: the program hears only that the window starts to be moved or resized.
+            return starts_moving.then_some(InputEvent::MoveStarted);
+        }
         let event = PointerButtonEvent {
             button,
             position: self.position(),
@@ -246,6 +255,15 @@ impl WindowShared {
         Some(match state {
             ElementState::Pressed => InputEvent::PointerPressed(event),
             ElementState::Released => InputEvent::PointerReleased(event),
+        })
+    }
+
+    /// The size of the inside of the window, in logical pixels.
+    fn logical_size(&self) -> crate::geometry::LogicalSize {
+        let size = self.window.inner_size();
+        self.scale().to_logical(PhysicalSize {
+            width: size.width,
+            height: size.height,
         })
     }
 

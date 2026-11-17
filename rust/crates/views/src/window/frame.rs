@@ -16,6 +16,9 @@ pub const EDGE: f32 = 6.0;
 pub const CAPTION_BUTTON_WIDTH: f32 = 46.0;
 /// How wide the outlines of the buttons are, in logical pixels: as Windows draws them.
 const GLYPH: f32 = 10.0;
+/// How much room the system's three buttons take at the top left of a window on macOS, in logical pixels, with their
+/// margins: the header bar starts after them.
+pub const SYSTEM_BUTTONS_ROOM: f32 = 78.0;
 /// How opaque the header bar is drawn while the window has not the focus, out of 255: dimmed, as the system dims the
 /// title bar of a window behind another.
 pub const UNFOCUSED_OPACITY: u8 = 115;
