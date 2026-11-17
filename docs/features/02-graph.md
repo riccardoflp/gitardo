@@ -564,6 +564,7 @@ Acceptance:
 - [ ] Scrolling on while that read runs does not start it again.
 - [ ] After a page is added, the selected commit and the scroll position are as they were.
 - [ ] Choosing another branch while a read runs stops it: no page of the old read is added after the first of the new.
+- [ ] Choosing a branch of 2,500 commits lists its first 1,000 while its read goes on, and the other pages after.
 - [ ] The last row says **Loading more commits…** while there are more, and is gone at the end of the history.
 
 ### `graph.lanes` — Lay out the lines of the graph

@@ -4,7 +4,8 @@
 use std::collections::VecDeque;
 
 use app::settings::Settings;
-use app::store::{Effect, Message, State, reduce};
+use app::store::{Effect, JobKind, Message, State, reduce};
+use git::CancelToken;
 use model::filter::show_only;
 use platform::accesskit::Role;
 use render::ThemeName;
@@ -14,7 +15,7 @@ use views::{FilterIntent, Intent};
 
 use super::histories::{imported, line};
 use super::pointer::{apply, bounds, middle, says, wheel};
-use super::support::{Window, run_holding, showing_first_page};
+use super::support::{Window, give_held, run_holding, showing_first_page};
 use super::timeline::subjects;
 
 /// The size of the window of these tests.
@@ -102,4 +103,51 @@ fn graph_load_more__choosing_another_branch_while_a_read_runs_stops_it_and_no_pa
         let _effects = reduce(&mut state, page);
     }
     assert_eq!(subjects(&state), narrowed, "no page of the old read is added");
+}
+
+#[test]
+fn graph_load_more__another_branch_chosen_starts_a_new_read_whose_first_page_reaches_the_timeline_before_the_read_ends()
+{
+    let repository = imported(&line(3_000));
+    let _ = repository.git(&["branch", "feature", "main~500"]);
+    let (mut state, mut held) = opened(&repository);
+    give_held(&mut state, &mut held);
+    assert_eq!(state.timeline.loaded(), 3_000);
+    let effects = reduce(
+        &mut state,
+        Message::Intent(Intent::Filter(FilterIntent::Show(Some(show_only(
+            "refs/heads/feature",
+        ))))),
+    );
+    let reads: Vec<_> = effects
+        .iter()
+        .filter_map(|effect| match effect {
+            Effect::Start(job) if matches!(job.kind, JobKind::ReadTimeline { .. }) => Some(job.clone()),
+            _ => None,
+        })
+        .collect();
+    let [read] = reads.as_slice() else {
+        panic!("one read of the history of feature starts: {effects:?}");
+    };
+    // The worker sends each page as git prints it: the window is given each one while the read still runs.
+    let mut seen = Vec::new();
+    app::work::jobs::run(read, &CancelToken::new(), &mut |message| {
+        let _effects = reduce(&mut state, message);
+        seen.push((
+            state.timeline.loaded(),
+            state.timeline.narrow_job.is_none(),
+            state.timeline.stream.is_some(),
+            subjects(&state).first().cloned(),
+        ));
+    });
+    let first = String::from("Change 2500");
+    assert_eq!(
+        seen.first(),
+        Some(&(1_000, true, true, Some(first.clone()))),
+        "the first page of feature is listed while its next pages are still read: {seen:?}"
+    );
+    assert_eq!(seen.len(), 3, "three pages of 2,500 commits: {seen:?}");
+    assert_eq!(seen.last().map(|(loaded, ..)| *loaded), Some(2_500));
+    assert!(!state.timeline.has_more);
+    assert_eq!(subjects(&state).first(), Some(&first));
 }

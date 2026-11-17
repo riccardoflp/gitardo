@@ -237,8 +237,9 @@ pub(super) fn first_page() -> app::store::TimelineRequest {
 }
 
 /// The whole history of the repository `GITARDO_PERF_REPOSITORY` names, in the window as `app` reads and lays it out:
-/// opened, each page of the read taken as the worker sends it, and every next read asked for past those. Run by
-/// `cargo xtask perf <folder>`; it prints the times, and asserts nothing about them.
+/// opened, each page of the read taken as the worker sends it, and every next read asked for past those; then the
+/// branches shown changed, to the branch checked out, to the local branches and to one branch, each timed to its first
+/// page and to its last row. Run by `cargo xtask perf <folder>`; it prints the times, and asserts nothing about them.
 #[test]
 #[ignore = "times the repository GITARDO_PERF_REPOSITORY names; run by cargo xtask perf"]
 fn the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page() {
@@ -247,6 +248,7 @@ fn the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page() 
         return;
     };
     let mut rounds = Vec::new();
+    let mut filtered: Vec<(String, Vec<Narrowed>)> = Vec::new();
     for _ in 0..3 {
         let started = Instant::now();
         let mut state = State::default();
@@ -255,8 +257,10 @@ fn the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page() 
             folders: vec![folder.clone()],
         });
         while let Some(next) = message.take() {
-            timed(&mut state, next, &mut || {
-                let _first = first_page.get_or_insert_with(|| started.elapsed());
+            timed(&mut state, next, &mut |state| {
+                if !state.timeline.rows.is_empty() {
+                    let _first = first_page.get_or_insert_with(|| started.elapsed());
+                }
             });
             let loaded = state.timeline.loaded();
             if state.timeline.has_more {
@@ -271,6 +275,15 @@ fn the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page() 
             layouts,
             state.timeline.loaded(),
         ));
+        for (index, (name, shown)) in other_branches(&state).into_iter().enumerate() {
+            let timing = narrowed(&mut state, shown);
+            if filtered.len() <= index {
+                filtered.push((name, Vec::new()));
+            }
+            if let Some((_, timings)) = filtered.get_mut(index) {
+                timings.push(timing);
+            }
+        }
     }
     rounds.sort_by_key(|(_, last_row, _, _)| *last_row);
     let (first_page, last_row, layouts, rows) = rounds.get(rounds.len() / 2).copied().unwrap();
@@ -278,19 +291,66 @@ fn the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page() 
         "The window, the median of three: {rows} commits; the first page in {first_page:?}, the last row in \
          {last_row:?}; laying out every page over every row before it would take {layouts:?}"
     );
+    for (name, mut timings) in filtered {
+        timings.sort_by_key(|(first_page, _, _)| *first_page);
+        let (first_page, last_row, rows) = timings.get(timings.len() / 2).copied().unwrap();
+        println!(
+            "The window, the branches shown changed to {name}, the median of three: {rows} commits; the first \
+             page in {first_page:?}, the last row in {last_row:?}"
+        );
+    }
+}
+
+/// How long the branches shown changed took in the window: to the first page and to the last row, with the commits
+/// read.
+type Narrowed = (Duration, Duration, usize);
+
+/// The branches shown that the window is timed with after the whole history: the branch checked out, the local
+/// branches, and the first local branch not checked out, ticked alone.
+fn other_branches(state: &State) -> Vec<(String, Option<BranchesShown>)> {
+    let mut shown = vec![
+        (String::from("the current branch"), preset(Preset::Current)),
+        (String::from("the local branches"), preset(Preset::Local)),
+    ];
+    let other = state
+        .shown_read()
+        .and_then(|read| read.state.branches.iter().find(|branch| !branch.is_checked_out));
+    if let Some(branch) = other {
+        shown.push((
+            format!("one branch, {}", branch.name),
+            Some(show_only(&format!("refs/heads/{}", branch.name))),
+        ));
+    }
+    shown
+}
+
+/// Changes the branches shown and runs the read it starts to its end, as a worker would: how long the first page took
+/// to reach the timeline, from the intent, how long the last row took, and the commits read.
+fn narrowed(state: &mut State, shown: Option<BranchesShown>) -> Narrowed {
+    let started = Instant::now();
+    let mut first_page = None;
+    timed(
+        state,
+        Message::Intent(Intent::Filter(FilterIntent::Show(shown))),
+        &mut |state| {
+            if state.timeline.narrow_job.is_none() {
+                let _first = first_page.get_or_insert_with(|| started.elapsed());
+            }
+        },
+    );
+    let last_row = started.elapsed();
+    (first_page.unwrap_or(last_row), last_row, state.timeline.loaded())
 }
 
 /// Reduces a message and runs every job it starts as a worker would, each message reduced as soon as the job sends
-/// it; `rows_shown` is told each time the timeline has rows.
-fn timed(state: &mut State, message: Message, rows_shown: &mut dyn FnMut()) {
+/// it; `reduced` is given the state after each.
+fn timed(state: &mut State, message: Message, reduced: &mut dyn FnMut(&State)) {
     let mut jobs = VecDeque::new();
     jobs.extend(started_by(state, message));
     while let Some(job) = jobs.pop_front() {
         app::work::jobs::run(&job, &CancelToken::new(), &mut |message| {
             jobs.extend(started_by(state, message));
-            if !state.timeline.rows.is_empty() {
-                rows_shown();
-            }
+            reduced(state);
         });
     }
 }

@@ -2,12 +2,14 @@
 //! such as the one `extension/test/perf/big-repo.mjs` makes. Each read is timed from its request to the last byte of
 //! its answer, as the extension waits for it: a first page of 1,000 rows, the next pages asked with `skip`, a page far
 //! down the history, the position of a commit, two searches and the state. Then the whole history, page after page
-//! as the extension reads it; a read after a change as the extension asks it, with the git processes each read starts;
-//! and the whole history in the window, read and laid out as `app` does, by a test of `app` built in release. It prints
-//! tables of times; it is not pass or fail (`docs/desktop/06-testing.md`).
+//! as the extension reads it; the first page after the branches shown change, streamed as the extension asks it; a
+//! read after a change as the extension asks it, with the git processes each read starts; and the whole history in the
+//! window, read and laid out as `app` does, then after the branches shown change, by a test of `app` built in release.
+//! It prints tables of times; it is not pass or fail (`docs/desktop/06-testing.md`).
 
 mod after_change;
 mod engine;
+mod filters;
 mod whole;
 
 use std::io::Write;
@@ -92,6 +94,7 @@ pub fn run(root: &Path, arguments: &[String]) -> Result<bool, Error> {
         row(&mut out, &read.name, &answers)?;
     }
     whole::run(&mut engine, &repository, times, &mut out)?;
+    filters::run(&mut engine, &repository, times, &mut out)?;
     drop(engine);
     let place = after_change::Place {
         binary: &binary,

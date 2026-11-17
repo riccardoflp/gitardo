@@ -24,6 +24,18 @@ pub struct Answered {
     pub took: Duration,
 }
 
+/// A read of the commits asked with `stream`: when its first page came, how many pages and rows came, and its answer.
+pub struct Streamed {
+    /// From the first byte of the request written to the last byte of its first page; none when no page came.
+    pub first_page: Option<Duration>,
+    /// How many pages came before the answer.
+    pub pages: usize,
+    /// How many rows those pages had.
+    pub rows: usize,
+    /// The answer, once the read ended, and how long it took.
+    pub answered: Answered,
+}
+
 impl Answered {
     /// Whether the engine answered with an error.
     pub fn is_error(&self) -> bool {
@@ -74,6 +86,37 @@ impl Engine {
     /// Sends a request with its parameters, already JSON, and waits for its answer; the notifications that come
     /// before it are passed over.
     pub fn ask(&mut self, method: &str, params: &str) -> Result<Answered, Error> {
+        self.ask_watching(method, params, &mut |_| {})
+    }
+
+    /// Sends a read of the commits asked with `stream` (version 1.8 of the protocol), as the extension asks it, and
+    /// waits for its answer: the pages that come before it in notifications `read/graph.rows` of this read are timed
+    /// and counted; other notifications are passed over.
+    pub fn ask_streamed(&mut self, params: &str) -> Result<Streamed, Error> {
+        let id = self.next_id;
+        let rows = format!("{{\"jsonrpc\":\"2.0\",\"method\":\"read/graph.rows\",\"params\":{{\"read\":{id},");
+        let started = Instant::now();
+        let mut first_page = None;
+        let mut pages = 0;
+        let mut count = 0;
+        let answered = self.ask_watching("read/graph.read-commits", params, &mut |message| {
+            if message.starts_with(&rows) {
+                let _first = first_page.get_or_insert_with(|| started.elapsed());
+                pages += 1;
+                count += message.matches("\"kind\":\"commit\"").count() + message.matches("\"kind\":\"stash\"").count();
+            }
+        })?;
+        Ok(Streamed {
+            first_page,
+            pages,
+            rows: count,
+            answered,
+        })
+    }
+
+    /// Sends a request and waits for its answer, as [`Engine::ask`] does, with each message that comes before it
+    /// given to `before`.
+    fn ask_watching(&mut self, method: &str, params: &str, before: &mut dyn FnMut(&str)) -> Result<Answered, Error> {
         let id = self.next_id;
         self.next_id += 1;
         let body = format!("{{\"jsonrpc\":\"2.0\",\"id\":{id},\"method\":\"{method}\",\"params\":{params}}}");
@@ -92,6 +135,7 @@ impl Engine {
                     took: started.elapsed(),
                 });
             }
+            before(&message);
         }
     }
 

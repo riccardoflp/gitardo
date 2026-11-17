@@ -100,11 +100,15 @@ is git's time and some 50 ms of the engine's; with one, about 120 ms. The pages 
 since git walks the history from the top to reach them. The engine reads the references and the stashes only when the
 branches shown or the stashes need them, which took a page of the repository as made from about 510 ms to 360 ms.
 
-Since milestone M15 it also times three things more
+Since milestone M15 it also times four things more
 ([the roadmap](07-roadmap.md#m15--the-whole-history-in-one-read-and-reads-that-cost-less)):
 
 - **The whole history**, page after page as the extension asks for it, each page with `skip` from the last row before
   it until the engine says there are no more: the time to the first page and to the last row.
+- **The branches shown changed**, as the extension asks for it with version 1.8 of the protocol: `graph.read-commits`
+  with `stream`, for every branch, the current branch, the local branches and one local branch not checked out, each
+  after a read of another history: the time to the first page, in its notification `read/graph.rows`, and to the
+  answer, after the last row.
 - **A read after a change**, as the extension asks for it once a file of the working tree changed: `repo.read-state`,
   the first page of `graph.read-commits` and `journal/last`, one after the other, a file of the working tree written
   before each (`gitardo-perf-change.txt`, removed at the end), ten times at least; and the git processes each read
@@ -114,7 +118,9 @@ Since milestone M15 it also times three things more
   asked for as the list is scrolled to its end, by the test
   `speed::the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page` of `app`, built in release, on
   the repository `GITARDO_PERF_REPOSITORY` names; with the time the layouts of the timeline took, over every row read
-  at each page. `--engine` leaves it out, and with it the build of the tests of `app` in release.
+  at each page; then the branches shown changed to the current branch, to the local branches and to one branch, each
+  timed from the intent to its first page in the timeline and to its last row. `--engine` leaves it out, and with it
+  the build of the tests of `app` in release.
 
 What phase 1 of M15 measured, on 2026-11-17, before the rest of M15: the same machine and git as above, the release
 build, on the large repository as the script leaves it (56,120 commits), and on a clone of the repository of Gitardo
@@ -178,6 +184,21 @@ building on the machine, so that the times can be read against those of phase 1:
 | `graph.read-commits`, page 1 | 295.5 | 1 (`log` 1) | 36.2 | 1 (`log` 1) |
 | `journal/last` | 0.5 | 0 | 0.3 | 0 |
 | All three | 558.7 | 12 | 201.6 | 12 |
+
+| The branches shown changed, the large repository, the median | Commits | First page | Last row |
+| --- | ---: | ---: | ---: |
+| The engine, streamed (protocol 1.8), every branch | 56,120 | 295.6 | 386.1 |
+| The engine, streamed, the current branch | 55,355 | 170.8 | 255.9 |
+| The engine, streamed, the local branches | 56,120 | 185.4 | 271.2 |
+| The engine, streamed, one branch (`feature/001-export`) | 230 | 26.3 | 26.4 |
+| The window, the current branch | 55,355 | 186.8 | 1,019.5 |
+| The window, the local branches | 56,120 | 203.2 | 1,046.8 |
+| The window, one branch (`feature/001-export`) | 230 | 46.6 | 46.6 |
+
+Each read of the engine follows a read of another history, as the extension asks one when the branches shown change;
+each change of the window follows the whole history read, and is timed from the intent to the first page in the
+timeline. Another branch filter shows its first page in less than a third of the time the first page took before M15
+(654.9 ms in the window, 354.7 ms in the engine), and every branch streamed shows it no later than a page did then.
 
 The window reads and lays out every commit of the large repository in under 1.5 s, and shows its first page sooner
 than before M15. A read after a change takes a seventh of the time of phase 1 on the repository with five other
