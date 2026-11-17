@@ -2873,3 +2873,10 @@ reading given until the card says otherwise.
 - **Q461** — `repo.watch-changes`: a tab not shown (`repo.watch-hidden`) is still marked out of date by a change to a
   file git ignores or to a nested worktree, and read once it is shown. Built so: asking git for each tab not shown
   would start a git for each burst of each tab, for a read that waits until the tab is shown anyway.
+- **Q462** — `repo.read-state`: what tells that something changed in the git folder of another worktree. Built: the
+  size and the time of change of each file at the top of its own git folder (`HEAD`, `index`, `ORIG_HEAD`,
+  `MERGE_HEAD`…), of those of `rebase-merge`, `rebase-apply` and `sequencer`, and of `logs/HEAD`, leaving out the
+  `.lock` files and the socket of the file system monitor; a worktree whose git folder cannot be read is counted every
+  time. **Refresh** and choosing a repository count every worktree again. The engine of the extension still counts
+  every worktree on each `read/repo.read-state`, since the protocol does not say yet whether a read is a **Refresh**:
+  it keeps the counts once it does (phase 9 of M15).

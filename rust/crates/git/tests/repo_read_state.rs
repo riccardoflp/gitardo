@@ -9,6 +9,8 @@
 mod golden;
 #[path = "repo_read_state/speed.rs"]
 mod speed;
+#[path = "repo_read_state/worktrees.rs"]
+mod worktrees;
 
 use std::fs;
 use std::path::Path;

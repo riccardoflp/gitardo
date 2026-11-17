@@ -5,11 +5,9 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use git::read::graph::CommitPage;
 use model::filter::checked;
 use model::refs::References;
 use model::repo::Repository;
-use model::state::RepositoryState;
 use views::Notice;
 
 use super::message::{Effect, Found, Job, JobId, JobKind};
@@ -144,7 +142,7 @@ pub fn repository_read(
     state: &mut State,
     job: JobId,
     folder: &Path,
-    (result, read_at): (Result<Box<(RepositoryState, CommitPage)>, String>, i64),
+    (result, read_at): (super::ReadResult, i64),
 ) -> Vec<Effect> {
     let Some(JobKind::ReadRepository { request, .. }) = state.jobs.remove(&job) else {
         return Vec::new();
@@ -163,7 +161,7 @@ pub fn repository_read(
     }
     match result {
         Ok(read) => {
-            let (repository, commits) = *read;
+            let (repository, commits, counted) = *read;
             state.next_generation += 1;
             let repository = Arc::new(repository);
             workspace.shown = Shown::Read(RepositoryRead {
@@ -171,6 +169,7 @@ pub fn repository_read(
                 state: Arc::clone(&repository),
                 generation,
             });
+            state.reads.counted = counted;
             let page = (commits.has_more, request.pages, read_at);
             let shown = checked(request.shown.as_ref(), &References::of(&repository));
             let is_changed = super::timeline::take_read(state, (folder, &repository), (commits.rows, shown), page);
@@ -315,7 +314,16 @@ pub(super) fn start_read(state: &mut State, folder: PathBuf) -> Effect {
     let pages = if is_shown { state.timeline.pages } else { 1 };
     let mut request = super::timeline::read_request(state, pages);
     request.shown = super::timeline::kept_shown(state, &folder);
-    let job = start_job(state, JobKind::ReadRepository { folder, request });
+    // A repository chosen is read whole: every other worktree is counted again.
+    let counted = git::read::worktree::CountedWorktrees::default();
+    let job = start_job(
+        state,
+        JobKind::ReadRepository {
+            folder,
+            request,
+            counted,
+        },
+    );
     super::reads::adopt(state, job.id, model::repo::ReadCause::RepositoryChosen);
     Effect::Start(job)
 }

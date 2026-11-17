@@ -7,8 +7,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use git::read::commit_page::{PatchRequest, read_patch};
 use git::read::details::{CommitRequest, read_commit};
 use git::read::graph::{CommitPage, CommitsRequest, read_commits, read_position};
-use git::read::repo::{RepositoriesRequest, StateRequest, read_repositories, read_state};
+use git::read::repo::{RepositoriesRequest, StateRequest, read_repositories, read_state_counting};
 use git::read::search::{read_matches, read_revision};
+use git::read::worktree::CountedWorktrees;
 use git::{CancelToken, Git};
 use model::commit_page::PatchLines;
 use model::details::CommitDetail;
@@ -26,7 +27,7 @@ pub fn run(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             found: find_repositories(folders, cancel),
         },
-        JobKind::ReadRepository { folder, request } => repository_read(job, folder, request, cancel),
+        JobKind::ReadRepository { .. } => repository_read(job, cancel),
         JobKind::ReadTimeline { folder, request } => Message::TimelineRead {
             job: job.id,
             result: read_commits(&Git::new(folder).with_cancel(cancel.clone()), request)
@@ -116,11 +117,24 @@ fn files_read(job: &Job, cancel: &CancelToken) -> Message {
 }
 
 /// The message of a read of the repository, with when it was read.
-fn repository_read(job: &Job, folder: &Path, request: &TimelineRequest, cancel: &CancelToken) -> Message {
+fn repository_read(job: &Job, cancel: &CancelToken) -> Message {
+    let JobKind::ReadRepository {
+        folder,
+        request,
+        counted,
+    } = &job.kind
+    else {
+        return Message::RepositoryRead {
+            job: job.id,
+            folder: PathBuf::new(),
+            result: Err(String::from("not a read of a repository")),
+            read_at: seconds_now(),
+        };
+    };
     Message::RepositoryRead {
         job: job.id,
-        folder: folder.to_path_buf(),
-        result: read_repository(folder, request, cancel)
+        folder: folder.clone(),
+        result: read_repository_counting(folder, request, counted, cancel)
             .map(Box::new)
             .map_err(|error| error.to_string()),
         read_at: seconds_now(),
@@ -207,15 +221,29 @@ pub fn read_repository(
     request: &TimelineRequest,
     cancel: &CancelToken,
 ) -> Result<(RepositoryState, CommitPage), git::GitError> {
+    read_repository_counting(folder, request, &CountedWorktrees::default(), cancel)
+        .map(|(state, commits, _counted)| (state, commits))
+}
+
+/// A repository as [`read_repository`] reads it, each other worktree keeping the count `counted` has of it when nothing
+/// changed in its git folder since (`repo.read-state`, M15); with what was counted, for the read after it.
+///
+/// # Errors
+///
+/// What git said when a read failed, as when the folder is not a repository any more.
+pub fn read_repository_counting(
+    folder: &Path,
+    request: &TimelineRequest,
+    counted: &CountedWorktrees,
+    cancel: &CancelToken,
+) -> Result<(RepositoryState, CommitPage, CountedWorktrees), git::GitError> {
     let git = Git::new(folder).with_cancel(cancel.clone());
-    let state = read_state(
-        &git,
-        &StateRequest {
-            folder: folder.to_path_buf(),
-        },
-    )?;
+    let request_state = StateRequest {
+        folder: folder.to_path_buf(),
+    };
+    let (state, counted) = read_state_counting(&git, &request_state, counted)?;
     let commits = read_commits(&git.in_directory(&state.folder), &commits_request(&state, request))?;
-    Ok((state, commits))
+    Ok((state, commits, counted))
 }
 
 /// The next pages of the timeline, read from the last commit the window has: only the rows after it when the history

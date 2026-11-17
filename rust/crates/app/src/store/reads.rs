@@ -14,6 +14,8 @@ use model::repo::{
     watch_changes,
 };
 
+use git::read::worktree::CountedWorktrees;
+
 use super::changed_files::{self, ChangedFiles};
 use super::message::{Effect, Job, JobId, JobKind};
 use super::state::State;
@@ -33,6 +35,9 @@ pub struct Reads {
     pub is_not_read: bool,
     /// The files of the working tree that changed and wait for git to say whether it ignores them.
     pub files: ChangedFiles,
+    /// What the last read counted in the other worktrees, kept by the next read where nothing changed in their git
+    /// folders (`repo.read-state`, M15).
+    pub counted: CountedWorktrees,
 }
 
 impl Reads {
@@ -202,9 +207,20 @@ fn start(state: &mut State, started: StartedRead) -> Option<Effect> {
     };
     state.reads.files.read_started();
     let request = super::timeline::read_request(state, state.timeline.pages);
+    // **Refresh** counts what is not committed in every other worktree again; the other reads keep the counts of the
+    // worktrees whose git folders did not change.
+    let counted = if started.cause == ReadCause::Refresh {
+        CountedWorktrees::default()
+    } else {
+        state.reads.counted.clone()
+    };
     let id = JobId(state.next_job);
     state.next_job += 1;
-    let kind = JobKind::ReadRepository { folder, request };
+    let kind = JobKind::ReadRepository {
+        folder,
+        request,
+        counted,
+    };
     let _new = state.jobs.insert(id, kind.clone());
     let _counted = state.reads.scheduled.insert(id, started);
     Some(Effect::Start(Job { id, kind }))

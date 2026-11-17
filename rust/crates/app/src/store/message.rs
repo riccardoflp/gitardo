@@ -45,7 +45,7 @@ pub enum Message {
         /// The folder read.
         folder: PathBuf,
         /// What was read, or what git said when the read failed.
-        result: Result<Box<(RepositoryState, CommitPage)>, String>,
+        result: Result<Box<(RepositoryState, CommitPage, git::read::worktree::CountedWorktrees)>, String>,
         /// When it was read, in seconds since 1970: the lines between days and months are counted from it.
         read_at: i64,
     },
@@ -164,16 +164,14 @@ pub enum Message {
     },
     /// The settings files changed and were read again.
     SettingsRead(Box<Settings>),
-    /// The watcher of the repository saw changes (`repo.watch-changes`), at a moment counted from when the window
-    /// opened.
+    /// The watcher of the repository saw changes (`repo.watch-changes`), at a moment since the window opened.
     Changed {
         /// What changed.
         changes: Vec<Change>,
         /// When.
         at: Duration,
     },
-    /// The watcher of a tab not shown saw changes (`repo.watch-hidden`), at a moment counted from when the window
-    /// opened.
+    /// The watcher of a tab not shown saw changes (`repo.watch-hidden`), at a moment since the window opened.
     TabChanged {
         /// The working tree watched, as [`Effect::WatchTabs`] named it.
         folder: PathBuf,
@@ -296,6 +294,8 @@ pub enum JobKind {
         folder: PathBuf,
         /// How the timeline is read.
         request: TimelineRequest,
+        /// What the read before counted in the other worktrees; empty to count them all again (M15).
+        counted: git::read::worktree::CountedWorktrees,
     },
     /// Reads the first page of the timeline for the branches shown, and nothing else of the repository: the timeline
     /// narrowed, or shown whole again (`filter.show-only`, `filter.show-all`).

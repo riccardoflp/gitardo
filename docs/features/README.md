@@ -47,7 +47,7 @@ earns it.
 | [`repo.select`](01-repositories.md#reposelect--choose-the-repository-shown) | Choose the repository shown | Operation | Built | Built |
 | [`repo.owner-of-file`](01-repositories.md#repoowner-of-file--the-repository-a-file-is-in) | The repository a file is in | Derivation | Built | Built |
 | [`repo.no-repository`](01-repositories.md#repono-repository--no-repository-in-the-workspace) | No repository in the workspace | View | Built | Built |
-| [`repo.read-state`](01-repositories.md#reporead-state--read-the-state-of-the-repository) | Read the state of the repository | Read | Specified | Planned |
+| [`repo.read-state`](01-repositories.md#reporead-state--read-the-state-of-the-repository) | Read the state of the repository | Read | Built | Planned |
 | [`repo.common-folder`](01-repositories.md#repocommon-folder--the-git-folder-the-worktrees-share) | The git folder the worktrees share | Read | Built | Built |
 | [`repo.watch-changes`](01-repositories.md#repowatch-changes--which-changes-ask-for-a-read) | Which changes ask for a read | Derivation | Specified | Planned |
 | [`repo.schedule-reads`](01-repositories.md#reposchedule-reads--read-again-when-something-changed) | Read again when something changed | Derivation | Specified | Planned |

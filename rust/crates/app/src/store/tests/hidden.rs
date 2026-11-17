@@ -55,7 +55,11 @@ fn read(state: &mut State, (job, folder): (JobId, PathBuf)) -> Vec<Effect> {
         state,
         Message::RepositoryRead {
             job,
-            result: Ok(Box::new((repository_state(&folder), CommitPage::default()))),
+            result: Ok(Box::new((
+                repository_state(&folder),
+                CommitPage::default(),
+                git::read::worktree::CountedWorktrees::default(),
+            ))),
             folder,
             read_at: 0,
         },

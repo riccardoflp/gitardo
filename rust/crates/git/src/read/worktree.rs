@@ -2,7 +2,9 @@
 //! it removes it.
 
 mod folder_links;
+mod git_folder;
 
+use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::thread;
@@ -15,6 +17,7 @@ use crate::read::repo::{joined, parse_status, worktree_status_arguments};
 use crate::{Git, GitError};
 
 pub use folder_links::{FolderLinksRequest, folder_links_arguments, parse_folder_entries, read_folder_links};
+pub use git_folder::{GitFolderCheck, GitFolderStamp, git_folder_changed};
 
 /// What is being read, for the errors.
 const WHAT: &str = "the worktrees";
@@ -28,6 +31,25 @@ pub struct WorktreeListRequest {
     pub uncommitted_here: Option<usize>,
 }
 
+/// What a read counted in the other worktrees, kept for the read after it (M15): for each, by its folder, the stamp of
+/// its own git folder when it was counted, and its count. Empty, every other worktree is counted.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct CountedWorktrees {
+    /// The stamp and the count of each worktree counted.
+    counted: BTreeMap<PathBuf, (GitFolderStamp, Option<usize>)>,
+}
+
+impl CountedWorktrees {
+    /// The count of a worktree kept from the read before, when nothing changed in its git folder since and git could
+    /// count it then; with the stamp of its git folder now.
+    fn kept(&self, folder: &Path) -> (Option<usize>, GitFolderStamp) {
+        let before = self.counted.get(folder);
+        let check = git_folder_changed(folder, before.map(|(stamp, _)| stamp));
+        let kept = before.filter(|_| !check.is_changed).and_then(|(_, count)| *count);
+        (kept, check.stamp)
+    }
+}
+
 /// The worktrees of the repository, the main one first: the folder of each, the commit it has checked out, its branch
 /// or none when detached, whether it is the one the views show and whether its folder is missing. Each other worktree
 /// that is not missing has the number of its files not committed, all read at once and without a lock; one that git
@@ -39,18 +61,44 @@ pub struct WorktreeListRequest {
 ///
 /// When git cannot be started or fails, or prints a worktree this does not understand.
 pub fn read_list(git: &Git, request: &WorktreeListRequest) -> Result<Vec<Worktree>, GitError> {
+    read_list_counting(git, request, &CountedWorktrees::default()).map(|(worktrees, _counted)| worktrees)
+}
+
+/// The worktrees of the repository as [`read_list`] reads them, but each other worktree keeps the count `before` has
+/// of it when nothing changed in its own git folder since (`.git/worktrees/<name>/`, M15): `git status` runs only in
+/// the others. Gives what was counted, for the read after this one.
+///
+/// # Errors
+///
+/// When git cannot be started or fails, or prints a worktree this does not understand.
+pub fn read_list_counting(
+    git: &Git,
+    request: &WorktreeListRequest,
+    before: &CountedWorktrees,
+) -> Result<(Vec<Worktree>, CountedWorktrees), GitError> {
     let listed = parse_worktrees(&git.in_directory(&request.folder).run_read(&worktrees_arguments())?)?;
-    let counts: Vec<Option<usize>> = thread::scope(|scope| {
+    let counts: Vec<Option<(Option<usize>, GitFolderStamp)>> = thread::scope(|scope| {
         let readers: Vec<_> = listed
             .iter()
             .map(|worktree| {
                 let is_other = !worktree.is_missing && worktree.folder != request.folder;
-                is_other.then(|| scope.spawn(|| count_uncommitted(git, &worktree.folder)))
+                is_other.then(|| scope.spawn(|| count_unless_kept(git, &worktree.folder, before)))
             })
             .collect();
-        readers.into_iter().map(|reader| reader.and_then(joined)).collect()
+        readers.into_iter().map(|reader| reader.map(joined)).collect()
     });
-    Ok(listed
+    let mut counted = CountedWorktrees::default();
+    for (worktree, count) in listed.iter().zip(&counts) {
+        if let Some((uncommitted, stamp)) = count {
+            let _new = counted
+                .counted
+                .insert(worktree.folder.clone(), (stamp.clone(), *uncommitted));
+        }
+    }
+    let counts = counts
+        .into_iter()
+        .map(|count| count.and_then(|(uncommitted, _)| uncommitted));
+    let worktrees = listed
         .into_iter()
         .zip(counts)
         .map(|(worktree, uncommitted)| {
@@ -65,7 +113,17 @@ pub fn read_list(git: &Git, request: &WorktreeListRequest) -> Result<Vec<Worktre
                 ..worktree
             }
         })
-        .collect())
+        .collect();
+    Ok((worktrees, counted))
+}
+
+/// The count of another worktree: the one kept from the read before when nothing changed in its git folder, else read
+/// with `git status`; with the stamp of its git folder taken before.
+fn count_unless_kept(git: &Git, folder: &Path, before: &CountedWorktrees) -> (Option<usize>, GitFolderStamp) {
+    match before.kept(folder) {
+        (Some(count), stamp) => (Some(count), stamp),
+        (None, stamp) => (count_uncommitted(git, folder), stamp),
+    }
 }
 
 /// `git worktree list --porcelain -z`: one attribute per field, and an empty field after each worktree.

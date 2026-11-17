@@ -208,7 +208,14 @@ fn repository_read(
 }
 
 /// What a read of a repository found, or what git said.
-type ReadResult = Result<Box<(model::state::RepositoryState, git::read::graph::CommitPage)>, String>;
+pub(super) type ReadResult = Result<
+    Box<(
+        model::state::RepositoryState,
+        git::read::graph::CommitPage,
+        git::read::worktree::CountedWorktrees,
+    )>,
+    String,
+>;
 
 /// The settings read again: the theme and the fonts drawn with, the switches of the timeline in force, the level of the
 /// Command log; a change to a setting that changes what is read reads the repository again.

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- What is not committed in another worktree is counted again only when something changed in its own git folder, on
+  **Refresh**, or when the repository is chosen: a read after a change to a file runs `git status` in the worktree
+  shown only, however many worktrees the repository has.
 - A file that git ignores, such as the output of a build, and a file in the folder of another worktree nested in the
   repository, such as `.claude/worktrees/<name>`, no longer make the window read the repository again. Git is asked
   once for the files that changed in a burst, a second after the first of them, and a `.gitignore` that changes still

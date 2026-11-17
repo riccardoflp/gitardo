@@ -132,7 +132,15 @@ pub fn read_again(state: &mut State) -> Vec<Effect> {
         effects.push(Effect::Cancel(id));
     }
     let request = read_request(state, 1);
-    let job = start(state, JobKind::ReadRepository { folder, request });
+    let counted = state.reads.counted.clone();
+    let job = start(
+        state,
+        JobKind::ReadRepository {
+            folder,
+            request,
+            counted,
+        },
+    );
     super::super::reads::adopt(state, job.id, model::repo::ReadCause::Filter);
     effects.push(Effect::Start(job));
     state.timeline.is_reading_again = true;
