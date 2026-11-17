@@ -115,6 +115,7 @@ fn switch_words(switch: TimelineSwitch) -> &'static str {
     match switch {
         TimelineSwitch::ShowStashes => words::SHOW_STASHES,
         TimelineSwitch::FirstParent => words::FIRST_PARENT,
+        TimelineSwitch::OneLane => words::ONE_LANE,
         TimelineSwitch::TraceSelected => words::TRACE_SELECTED,
         TimelineSwitch::Author => words::SHOW_AUTHOR,
         TimelineSwitch::Date => words::SHOW_DATE,
@@ -135,18 +136,19 @@ fn switch_item(switches: Switches, switch: TimelineSwitch) -> MenuEntry<'static,
 }
 
 /// The entries of the timeline, in the order of the card: the switches of what is listed and brought out, the folds,
-/// while the graph has its lines, then the switches of what each row shows.
+/// while the graph has its lines and is not on one line, then the switches of what each row shows.
 fn timeline_entries(menu: TimelineMenu) -> Vec<MenuEntry<'static, MoreCommand>> {
     let mut entries = vec![MenuEntry::Separator];
     entries.extend(kind_entries(menu.kinds));
     for switch in [
         TimelineSwitch::ShowStashes,
         TimelineSwitch::FirstParent,
+        TimelineSwitch::OneLane,
         TimelineSwitch::TraceSelected,
     ] {
         entries.push(switch_item(menu.switches, switch));
     }
-    if menu.drawn == GraphDrawn::WithLines {
+    if menu.drawn == GraphDrawn::WithLines && !menu.switches.is_on(TimelineSwitch::OneLane) {
         let fold = MenuItem::new(words::FOLD_ALL, MoreCommand::FoldAll(FoldAllEntry::Fold));
         let fold = match (menu.is_all_folded, menu.has_merges) {
             (true, _) => fold.with_icon(icons::CHOSEN),

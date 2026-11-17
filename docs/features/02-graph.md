@@ -415,6 +415,8 @@ own dash.
 | A bisect | `binoculars` |
 | A submodule not initialized | `circle-dashed` |
 | The base of a merge, shown or hidden | `git-fork` |
+| The look of the window: the section **Appearance** of the settings | `palette` |
+| Experimental: the list of the experimental settings | `flask-conical` |
 
 Acceptance:
 
@@ -989,7 +991,8 @@ other lines. The dot of a merge is a ring, as wide as a dot. The line of the unc
 dashed, as before. The column of the graph is as narrow as one lane. The labels, the search, the selection, the
 history brought out by the selected commit and the folds of merges already folded are as before; **Fold all merges**
 and **Unfold all merges** are not in the menu while it is on. Turning it on or off draws the rows again without reading
-them.
+them. A page added under the rows is laid out alone on the same line, as `graph.lanes` lays it out from where the lanes
+stopped: the last row above it gets its line down to it (`one_lane_after`).
 
 Acceptance:
 
@@ -998,6 +1001,7 @@ Acceptance:
 - [ ] On, the column of the graph is as wide as one lane.
 - [ ] Turning it on writes `"graph.oneLane": true` in the user's settings, and asks no read of the repository.
 - [ ] On, **Fold all merges** is not in the **…** menu.
+- [ ] On, a page added under the rows is on the one line, as all the rows laid out at once are.
 
 ### `graph.fold-rows` — The rows of the timeline with merges folded
 

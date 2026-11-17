@@ -87,8 +87,8 @@ earns it.
 | [`terminal.view`](02-graph.md#terminalview--a-terminal-in-the-bottom-panel) | A terminal in the bottom panel | View | Built | Host only |
 | [`graph.icons`](02-graph.md#graphicons--the-icons-of-the-window) | The icons of the window | View | Built | Host only |
 | [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Built | Built |
-| [`ui.menu-scroll`](02-graph.md#uimenu-scroll--a-menu-taller-than-the-room-under-it) | A menu taller than the room under it | Derivation | Specified | Host only |
-| [`ui.picker-scroll`](02-graph.md#uipicker-scroll--a-picker-longer-than-its-rows) | A picker longer than its rows | Derivation | Specified | Host only |
+| [`ui.menu-scroll`](02-graph.md#uimenu-scroll--a-menu-taller-than-the-room-under-it) | A menu taller than the room under it | Derivation | Built | Host only |
+| [`ui.picker-scroll`](02-graph.md#uipicker-scroll--a-picker-longer-than-its-rows) | A picker longer than its rows | Derivation | Built | Host only |
 | [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Built | Planned |
 | [`graph.lanes`](02-graph.md#graphlanes--lay-out-the-lines-of-the-graph) | Lay out the lines of the graph | Derivation | Built | Planned |
 | [`graph.fit-width`](02-graph.md#graphfit-width--how-wide-the-graph-is-drawn) | How wide the graph is drawn | Derivation | Built | Built |
@@ -105,7 +105,7 @@ earns it.
 | [`graph.columns`](02-graph.md#graphcolumns--what-is-shown-with-each-message) | What is shown with each message | View | Built | Built |
 | [`graph.date-separators`](02-graph.md#graphdate-separators--lines-between-days-weeks-and-months) | Lines between days, weeks and months | Derivation | Built | Built |
 | [`graph.first-parent`](02-graph.md#graphfirst-parent--only-the-first-parent-of-merges) | Only the first parent of merges | View | Built | Built |
-| [`graph.one-lane`](02-graph.md#graphone-lane--all-commits-on-one-line) | All commits on one line | Derivation | Specified | Planned |
+| [`graph.one-lane`](02-graph.md#graphone-lane--all-commits-on-one-line) | All commits on one line | Derivation | Built | Built |
 | [`graph.fold-rows`](02-graph.md#graphfold-rows--the-rows-of-the-timeline-with-merges-folded) | The rows of the timeline with merges folded | Derivation | Built | Built |
 | [`graph.fold-merge`](02-graph.md#graphfold-merge--fold-the-commits-a-merge-brought-in) | Fold the commits a merge brought in | View | Built | Built |
 | [`graph.fold-all`](02-graph.md#graphfold-all--fold-all-merges) | Fold all merges | View | Built | Built |
@@ -567,11 +567,11 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`settings.read`](18-settings.md#settingsread--read-the-settings) | Read the settings | Read | Built | Host only |
-| [`settings.edit`](18-settings.md#settingsedit--open-the-settings-page) | Open the settings page | View | Specified | Host only |
-| [`settings.sections`](18-settings.md#settingssections--the-sections-of-the-settings-page) | The sections of the settings page | View | Specified | Planned |
-| [`settings.search`](18-settings.md#settingssearch--find-a-setting) | Find a setting | Derivation | Specified | Host only |
-| [`settings.reset`](18-settings.md#settingsreset--take-a-setting-back-to-its-default) | Take a setting back to its default | Operation | Specified | Host only |
-| [`settings.reveal`](18-settings.md#settingsreveal--open-the-settings-page-at-a-setting) | Open the settings page at a setting | Derivation | Specified | Host only |
+| [`settings.edit`](18-settings.md#settingsedit--open-the-settings-page) | Open the settings page | View | Built | Host only |
+| [`settings.sections`](18-settings.md#settingssections--the-sections-of-the-settings-page) | The sections of the settings page | View | Built | Built |
+| [`settings.search`](18-settings.md#settingssearch--find-a-setting) | Find a setting | Derivation | Built | Host only |
+| [`settings.reset`](18-settings.md#settingsreset--take-a-setting-back-to-its-default) | Take a setting back to its default | Operation | Built | Host only |
+| [`settings.reveal`](18-settings.md#settingsreveal--open-the-settings-page-at-a-setting) | Open the settings page at a setting | Derivation | Built | Host only |
 | [`settings.theme`](18-settings.md#settingstheme--choose-the-theme-and-the-fonts) | Choose the theme and the fonts | Operation | Built | Host only |
 
 ## The extension's identifiers

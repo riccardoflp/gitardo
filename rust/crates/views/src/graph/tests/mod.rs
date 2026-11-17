@@ -21,6 +21,7 @@ use crate::branch::ReferenceMenus;
 
 mod keys_and_pages;
 mod menus_and_panes;
+mod one_lane;
 mod selection;
 
 /// The hash of a commit named in a test: its name in hexadecimal, padded.
@@ -95,6 +96,7 @@ impl Fixture {
             folded: &folded,
             combine_upstream: true,
             separators_at: None,
+            one_lane: false,
         });
         let draft = rows
             .iter()

@@ -29,6 +29,8 @@ pub const DATE_SEPARATORS: &str = "graph.dateSeparators";
 pub const COMBINE_UPSTREAM: &str = "graph.combineUpstream";
 /// `graph.firstParent`.
 pub const FIRST_PARENT: &str = "graph.firstParent";
+/// `graph.oneLane`.
+pub const ONE_LANE: &str = "graph.oneLane";
 /// `log.level`.
 pub const LOG_LEVEL: &str = "log.level";
 /// The values `log.level` takes: what changes something, or the reads too.

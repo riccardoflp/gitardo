@@ -41,6 +41,8 @@ pub enum AccessRole {
     CheckBox,
     /// A radio button.
     RadioButton,
+    /// A tab, of tabs that choose what is shown under them.
+    Tab,
     /// A toggle switch.
     Switch,
     /// An input box.
@@ -75,6 +77,7 @@ impl AccessRole {
             AccessRole::Button
                 | AccessRole::CheckBox
                 | AccessRole::RadioButton
+                | AccessRole::Tab
                 | AccessRole::Switch
                 | AccessRole::TextInput
                 | AccessRole::SearchInput

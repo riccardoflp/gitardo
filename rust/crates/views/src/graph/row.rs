@@ -52,6 +52,17 @@ pub(crate) struct RowReport {
     pub pointed: Option<PointedLabel>,
 }
 
+/// The dot of a row: a ring in dashes for the draft and a fold, a square for a stash, a ring for a merge, and a filled
+/// dot for any other commit.
+pub(super) fn dot_of(shown: &ShownRow, read: Option<&Row>) -> Dot {
+    match (shown, read) {
+        (ShownRow::Fold(_), _) | (_, Some(Row::Uncommitted { .. })) => Dot::Dashed,
+        (_, Some(Row::Stash { .. })) => Dot::Stash,
+        (_, Some(row)) if row.parents().len() > 1 => Dot::Merge,
+        _ => Dot::Commit,
+    }
+}
+
 /// Draws a row of the list.
 pub(crate) fn draw_row(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row, report: &mut RowReport) {
     let layout = context.state.layout;
@@ -71,12 +82,7 @@ pub(crate) fn draw_row(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row,
         .read_of
         .get(row.index)
         .and_then(|index| context.state.rows.get(*index));
-    let dot = match (shown, read) {
-        (ShownRow::Fold(_), _) | (_, Some(Row::Uncommitted { .. })) => Dot::Dashed,
-        (_, Some(Row::Stash { .. })) => Dot::Stash,
-        (_, Some(row)) if row.parents().len() > 1 => Dot::Merge,
-        _ => Dot::Commit,
-    };
+    let dot = dot_of(shown, read);
     let id = read.and_then(Row::id);
     draw_graph(ui, context, (row.index, graph), (dot, id));
     let opacity = super::cell::row_opacity(trace_of(context, row.index));

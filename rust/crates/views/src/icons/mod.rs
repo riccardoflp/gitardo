@@ -253,9 +253,15 @@ pub(crate) const NOT_INITIALIZED: Icon = Icon::NotInitialized;
 /// The base of a merge, shown or hidden.
 pub(crate) const BASE: Icon = Icon::Base;
 
+/// The look of the window: the section **Appearance** of the settings.
+pub(crate) const APPEARANCE: Icon = Icon::Palette;
+
+/// Experimental: the list of the experimental settings.
+pub(crate) const EXPERIMENTAL: Icon = Icon::Flask;
+
 /// Each meaning of the table of `graph.icons` and its icon, in the order of the table.
 #[cfg(test)]
-pub(crate) const MEANINGS: [(&str, Icon); 80] = [
+pub(crate) const MEANINGS: [(&str, Icon); 82] = [
     (
         "Folded: a row whose content is hidden; a menu that opens to the side",
         FOLDED,
@@ -354,4 +360,9 @@ pub(crate) const MEANINGS: [(&str, Icon); 80] = [
     ("A bisect", BISECT),
     ("A submodule not initialized", NOT_INITIALIZED),
     ("The base of a merge, shown or hidden", BASE),
+    (
+        "The look of the window: the section Appearance of the settings",
+        APPEARANCE,
+    ),
+    ("Experimental: the list of the experimental settings", EXPERIMENTAL),
 ];

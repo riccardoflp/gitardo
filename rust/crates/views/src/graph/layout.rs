@@ -9,7 +9,8 @@ use model::CommitId;
 use model::commit::Commit;
 use model::graph::{
     CellTrace, DateTime, FoldedRows, GraphCell, GraphInput, GraphSettings, Label, LaneState, Row, ShownRow, Trace,
-    date_separators, fold_rows, foldable_merges, labels, lane_tips_after, lanes_after, trace_history, unpushed,
+    date_separators, fold_rows, foldable_merges, labels, lane_tips_after, lanes_after, one_lane, one_lane_after,
+    trace_history, unpushed,
 };
 use model::state::RepositoryState;
 
@@ -26,6 +27,8 @@ pub struct LayoutInput<'a> {
     pub combine_upstream: bool,
     /// The time the lines between days and months are counted from; none while `graph.dateSeparators` is off.
     pub separators_at: Option<DateTime>,
+    /// `graph.oneLane`: every commit on one line, without lanes (`graph.one-lane`).
+    pub one_lane: bool,
 }
 
 /// The timeline laid out: everything about its rows that does not change from one frame to the next.
@@ -75,6 +78,8 @@ pub struct LayoutEnd {
     pub combine_upstream: bool,
     /// The time the lines between days and months were counted from.
     pub separators_at: Option<DateTime>,
+    /// `graph.oneLane`, as the rows were laid out.
+    pub one_lane: bool,
 }
 
 /// The color of the line of each local branch and each remote branch whose commit is shown, by its name.
@@ -103,7 +108,11 @@ impl TimelineLayout {
     pub fn new(input: &LayoutInput<'_>) -> TimelineLayout {
         let folded = fold_rows(input.rows, input.folded);
         let inputs = folded.graph_inputs(input.rows);
-        let (cells, lanes) = lanes_after(&LaneState::default(), &inputs);
+        let (cells, lanes) = if input.one_lane {
+            (one_lane(&inputs), LaneState::default())
+        } else {
+            lanes_after(&LaneState::default(), &inputs)
+        };
         let lane_count = cells.iter().map(GraphCell::lane_count).max().unwrap_or(0);
         let labels = labels_of(input);
         let named: Vec<bool> = inputs
@@ -120,6 +129,7 @@ impl TimelineLayout {
             tips: bottom,
             combine_upstream: input.combine_upstream,
             separators_at: input.separators_at,
+            one_lane: input.one_lane,
         });
         let separators = input
             .separators_at
@@ -167,6 +177,7 @@ impl TimelineLayout {
                 && end.rows <= input.rows.len()
                 && end.combine_upstream == input.combine_upstream
                 && end.separators_at == input.separators_at
+                && end.one_lane == input.one_lane
         }) else {
             return false;
         };
@@ -178,13 +189,19 @@ impl TimelineLayout {
             .iter()
             .map(Row::graph_input)
             .collect();
-        let (cells, lanes) = lanes_after(&end.lanes, &inputs);
         self.labels = labels_of(input);
+        let (cells, lanes, above_tips) = if input.one_lane {
+            let cells = self.one_lane_after(input.rows, first, &inputs);
+            (cells, LaneState::default(), self.bottom_tips_of_last(input.rows, first))
+        } else {
+            let (cells, lanes) = lanes_after(&end.lanes, &inputs);
+            (cells, lanes, end.tips)
+        };
         let named: Vec<bool> = inputs
             .iter()
             .map(|row| row.id.is_some_and(|id| self.labels.contains_key(id)))
             .collect();
-        let (tips, bottom) = lane_tips_after(end.tips, (&cells, &named), first);
+        let (tips, bottom) = lane_tips_after(above_tips, (&cells, &named), first);
         if let Some(now) = input.separators_at {
             self.separators
                 .extend(separators_after(input.rows, first, &self.separators, now));
@@ -210,6 +227,33 @@ impl TimelineLayout {
             ..end
         });
         true
+    }
+
+    /// Lays out on one line the rows of a page added under the `first` rows laid out, giving the last of those its line
+    /// down to them, which it did not have while no row was under it (`graph.one-lane`).
+    fn one_lane_after(&mut self, rows: &[Row], first: usize, inputs: &[GraphInput<'_>]) -> Vec<GraphCell> {
+        let is_dashed = first
+            .checked_sub(1)
+            .and_then(|last| rows.get(last))
+            .is_some_and(Row::is_dashed);
+        let above = first.checked_sub(1).and_then(|last| self.cells.get_mut(last));
+        one_lane_after(above.map(|cell| (cell, is_dashed)), inputs)
+    }
+
+    /// The tip of the one lane at the bottom edge of the last of the `first` rows laid out on one line, given its line
+    /// down: its tip at the top edge, which it passes on, or itself when it is named or nothing comes down to it.
+    fn bottom_tips_of_last(&self, rows: &[Row], first: usize) -> Vec<Option<usize>> {
+        let Some(last) = first.checked_sub(1) else {
+            return Vec::new();
+        };
+        let (Some(cell), Some(top)) = (self.cells.get(last), self.tips.get(last)) else {
+            return Vec::new();
+        };
+        let is_named = rows
+            .get(last)
+            .and_then(Row::id)
+            .is_some_and(|id| self.labels.contains_key(id));
+        lane_tips_after(top.clone(), (std::slice::from_ref(cell), &[is_named]), last).1
     }
 
     /// Works out again what depends on every row, after rows were added: the row of the commit checked out, the color

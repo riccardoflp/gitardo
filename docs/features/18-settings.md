@@ -164,7 +164,8 @@ Acceptance:
 The settings page opened, or shown, with the list scrolled to a section or a setting, from where the user was.
 
 - **Kind**: Derivation
-- **Function**: `views::settings::scroll_to(rows: &[SettingRow], place: SettingsAnchor, list_height: f32) -> f32`
+- **Function**: `views::settings::scroll_to(layout: &ListLayout, place: SettingsAnchor, list_height: f32, rows: &[SettingRow]) -> Option<f32>`
+  ([Q481](../08-decisions.md#of-milestone-m16-the-settings-page-and-one-lane-from-q480))
 - **Entry points**: **Open Settings: <section>** in Quick search, one for each section; **Open Settings: <title>** in
   Quick search, one for each setting listed.
 

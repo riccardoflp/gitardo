@@ -148,6 +148,13 @@ impl Fonts {
         self.engine.get_mut().load_system_fonts();
     }
 
+    /// The names of the families of the fonts loaded, the program's and, once they are loaded, the system's, in the
+    /// order of the alphabet: what the menu of the fonts of the settings page lists.
+    #[must_use]
+    pub fn families(&self) -> Vec<String> {
+        self.engine.borrow_mut().families()
+    }
+
     /// Makes a typeface of a family at a weight; the face nearest that weight is used when the family has none of it.
     ///
     /// # Errors

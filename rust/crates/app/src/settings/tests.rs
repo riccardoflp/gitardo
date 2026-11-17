@@ -124,7 +124,7 @@ fn settings_read__the_files_on_disk_are_read_the_repositorys_first() {
 #[test]
 fn settings_read__the_settings_page_says_which_key_and_why_and_shows_the_default() {
     let settings = parse(Some(r#"{ "graph.pageSize": "many", "graph.firstParent": true }"#), None);
-    let rows = super::setting_rows(&settings);
+    let rows = super::setting_rows(&settings, views::settings::SettingsTarget::User);
     let row = |key: &str| rows.iter().find(|row| row.info.key == key).unwrap();
     let page_size = row("graph.pageSize");
     assert_eq!(page_size.value, "1000");

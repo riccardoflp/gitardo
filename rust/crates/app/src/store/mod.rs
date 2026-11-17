@@ -392,9 +392,11 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         }
         Intent::Refresh if state.reads.schedule.is_reading() => reads::asked(state, model::repo::ReadCause::Refresh),
         Intent::CheckAgain | Intent::Refresh => look_again(state, intent == Intent::Refresh),
-        Intent::PickTheme | Intent::CloseThemePicker | Intent::SetSetting(_) | Intent::ChooseSettingsFile(_) => {
-            settings_page::reduce_intent(state, &intent)
-        }
+        Intent::PickTheme
+        | Intent::CloseThemePicker
+        | Intent::SetSetting(_)
+        | Intent::ChooseSettingsFile(_)
+        | Intent::Settings(_) => settings_page::reduce_intent(state, &intent),
         Intent::ShowTimeline => pages::show_timeline(state),
         Intent::ShowPage(page) => pages::show(state, page),
         Intent::NextPage => pages::next_page(state),

@@ -289,6 +289,7 @@ pub fn relayout(state: &mut State) {
             moment: model::Timestamp(timeline.read_at),
             utc_offset: 0,
         }),
+        one_lane: switches.is_on(TimelineSwitch::OneLane),
     };
     let layout = TimelineLayout::new(&input);
     state.timeline.layout = Arc::new(layout);
@@ -314,6 +315,7 @@ fn relayout_added(state: &mut State) {
             moment: model::Timestamp(timeline.read_at),
             utc_offset: 0,
         }),
+        one_lane: switches.is_on(TimelineSwitch::OneLane),
     };
     if is_list || !Arc::make_mut(&mut timeline.layout).extend(&input) {
         relayout(state);

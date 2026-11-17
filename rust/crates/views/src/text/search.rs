@@ -35,6 +35,17 @@ pub const LIST_BAR: &str = "Only the commits found";
 pub const SEARCHING_HISTORY: &str = "Searching the history";
 /// What asks for the commit of a name or a hash, in the Activity drawer.
 pub const LOOKING_FOR_COMMIT: &str = "Looking for a commit";
+/// An entry of Quick search that opens the settings page at a section or a setting: `Open Settings: Worktrees`.
+#[must_use]
+pub fn open_settings_at(name: &str) -> String {
+    format!("Open Settings: {name}")
+}
+
+/// What an entry of Quick search that opens the settings page at a section is.
+pub const SETTINGS_SECTION: &str = "Section of the settings";
+/// What an entry of Quick search that opens the settings page at a setting is.
+pub const SETTING: &str = "Setting";
+
 /// The title of a read of the activity of a search: `Searching app`.
 #[must_use]
 pub fn searching(name: &str) -> String {

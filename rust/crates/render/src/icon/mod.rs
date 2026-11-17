@@ -185,6 +185,10 @@ pub enum Icon {
     NotInitialized,
     /// A line that forks in two: the base of a merge. Lucide's `git-fork`.
     Base,
+    /// A palette: the look of the window, the section **Appearance** of the settings. Lucide's `palette`.
+    Palette,
+    /// A flask: experimental, the list of the experimental settings. Lucide's `flask-conical`.
+    Flask,
 }
 
 impl Icon {

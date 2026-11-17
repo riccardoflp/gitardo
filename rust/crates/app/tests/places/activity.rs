@@ -340,9 +340,19 @@ fn settings_edit__a_setting_marked_experimental_says_so_and_the_page_is_drawn_in
         let _edit = find(&tree, Role::Button, "Edit in settings.json");
         window.assert_snapshot(name);
     }
-    let mut window = Window::new(ThemeName::Dark, (1000, 4_000));
+    let reveal = views::settings::SettingsIntent::Reveal(views::settings::SettingsAnchor::Setting("conflicts.ai"));
+    let _effects = run(&mut state, Message::Intent(Intent::Settings(reveal)));
+    let mut window = Window::new(ThemeName::Dark, (1000, 720));
+    let _ = window.draw(&state, &[]);
     let (_, tree) = window.draw(&state, &[]);
-    assert!(says(&tree, "Experimental"), "{}", "Experimental");
+    let everywhere = ui::Rect::new(0.0, 0.0, 4_000.0, 4_000.0);
+    let title = super::pointer::said_at(&tree, "Ask the AI about conflicts", everywhere);
+    let badge = super::pointer::said_at(
+        &tree,
+        "Experimental",
+        ui::Rect::new(0.0, title.y - 4.0, 4_000.0, title.height + 8.0),
+    );
+    assert!(badge.x > title.right(), "beside the title: {title:?} {badge:?}");
 }
 
 #[test]

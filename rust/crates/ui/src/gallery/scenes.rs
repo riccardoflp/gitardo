@@ -57,6 +57,9 @@ pub fn prepare_scene(memory: &mut UiMemory, theme: &Theme, scene: Scene) -> Gall
                 placement: Placement::At(MENU_AT),
                 levels: vec![Some(RESET_ENTRY), Some(2)],
                 rects: Vec::new(),
+                scrolls: Vec::new(),
+                shown: Vec::new(),
+                reveal: false,
             });
         }
         Scene::Dialog => {

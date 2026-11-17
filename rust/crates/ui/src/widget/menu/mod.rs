@@ -1,7 +1,8 @@
 //! Menus: a context menu opened at the pointer by its button or its key, or a menu opened under a button, with items
 //! that have an icon, a label, the text of their shortcut and may be disabled, separators, and submenus that open
 //! when the pointer is over their item or with the right arrow. The keys move through it (see [`keys`]), a click
-//! outside closes it, and it stays inside the window, turning to the other side where there is no room.
+//! outside closes it, and it stays inside the window, turning to the other side where there is no room. A level taller
+//! than the room it has scrolls, with the wheel, a bar and the keys (`ui.menu-scroll`).
 //!
 //! Whether a menu is open is the toolkit's to remember: the view opens it with [`Ui::open_menu`] and declares it in
 //! every frame with [`Ui::menu`], which draws it while it is open and returns the value of the item chosen.
@@ -19,6 +20,7 @@ use crate::id::WidgetId;
 use crate::interaction::{Response, WidgetEvent};
 use crate::widget::Availability;
 use crate::widget::button::Button;
+use crate::widget::scroll::ScrollAxis;
 use keys::KeyAction;
 pub(crate) use layout::Placement;
 
@@ -150,6 +152,13 @@ pub(crate) struct OpenMenu {
     pub(crate) levels: Vec<Option<usize>>,
     /// Where each level was drawn in the last frame.
     pub(crate) rects: Vec<Rect>,
+    /// How far each level is scrolled, with the item of the level above that opened it, so that another submenu
+    /// starts at its top.
+    pub(crate) scrolls: Vec<(Option<usize>, ScrollAxis)>,
+    /// How many entries each level showed whole in the last frame, which Page Up and Page Down move by.
+    pub(crate) shown: Vec<usize>,
+    /// Whether the keys moved the item lit since the level was drawn: its level scrolls to show it whole.
+    pub(crate) reveal: bool,
 }
 
 /// The entries of the deepest level open: those of the submenus the lit items of the levels above open.
@@ -182,6 +191,9 @@ impl Ui<'_> {
             placement,
             levels: vec![None],
             rects: Vec::new(),
+            scrolls: Vec::new(),
+            shown: Vec::new(),
+            reveal: false,
         });
     }
 
@@ -201,18 +213,29 @@ impl Ui<'_> {
         }
         let mut open = self.memory().menu.take()?;
         let is_new = self.declare_overlay(id, &[]);
+        let mut wheel = 0.0;
         for event in self.take_events(id) {
-            let WidgetEvent::Key(key) = event else {
-                continue;
+            let key = match event {
+                WidgetEvent::Key(key) => key,
+                WidgetEvent::Wheel { delta } => {
+                    wheel += delta.y;
+                    continue;
+                }
+                _ => continue,
             };
             self.claim_key(id, key);
-            match keys::apply_key(&mut open.levels, entries, key) {
-                KeyAction::Moved => {}
+            let page = open
+                .shown
+                .get(open.levels.len().saturating_sub(1))
+                .copied()
+                .unwrap_or(1);
+            match keys::apply_key(&mut open.levels, entries, key, page) {
+                KeyAction::Moved => open.reveal = true,
                 KeyAction::Chose(value) => return Some(value),
                 KeyAction::Closed => return None,
             }
         }
-        let chosen = self.draw_menu(id, &mut open, entries);
+        let chosen = self.draw_menu(id, &mut open, entries, wheel);
         let mut inside = open.rects.clone();
         if let Placement::Below(anchor) = open.placement {
             inside.push(anchor);

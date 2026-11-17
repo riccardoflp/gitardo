@@ -3,7 +3,7 @@
 use super::Icon;
 
 /// Every icon, in the order of the enumeration.
-pub(super) const ALL: [Icon; 79] = [
+pub(super) const ALL: [Icon; 81] = [
     Icon::ChevronRight,
     Icon::ChevronDown,
     Icon::ChevronUp,
@@ -83,10 +83,12 @@ pub(super) const ALL: [Icon; 79] = [
     Icon::Bisect,
     Icon::NotInitialized,
     Icon::Base,
+    Icon::Palette,
+    Icon::Flask,
 ];
 
 /// Each icon with its name in Lucide's set and its SVG file as Lucide publishes it, in the order of the enumeration.
-const OUTLINES: [(Icon, &str, &str); 79] = [
+const OUTLINES: [(Icon, &str, &str); 81] = [
     (
         Icon::ChevronRight,
         "chevron-right",
@@ -358,6 +360,12 @@ const OUTLINES: [(Icon, &str, &str); 79] = [
         include_str!("../../icons/lucide/circle-dashed.svg"),
     ),
     (Icon::Base, "git-fork", include_str!("../../icons/lucide/git-fork.svg")),
+    (Icon::Palette, "palette", include_str!("../../icons/lucide/palette.svg")),
+    (
+        Icon::Flask,
+        "flask-conical",
+        include_str!("../../icons/lucide/flask-conical.svg"),
+    ),
 ];
 
 /// The place of an icon in [`OUTLINES`], which is that of its variant.

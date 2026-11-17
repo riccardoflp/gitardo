@@ -26,6 +26,9 @@ pub fn show_page(state: &mut State, page: Page) {
 
 /// Shows a page, opening it when it is not open.
 pub fn show(state: &mut State, page: Page) -> Vec<Effect> {
+    if page == Page::Settings {
+        state.settings_page.shown();
+    }
     show_page(state, page);
     Vec::new()
 }

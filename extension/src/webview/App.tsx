@@ -510,6 +510,7 @@ export function App({ compact = false }: { compact?: boolean }) {
           columns={state.graphColumns}
           head={state.head.commit}
           dateSeparators={state.dateSeparators}
+          oneLane={state.oneLane}
           folded={connected ? folded : NONE}
           onFold={connected ? fold : undefined}
           onUnfold={(merge) => setFolds((previous) => foldMerge(previous, merge, false))}

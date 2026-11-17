@@ -27,6 +27,37 @@
   repository, such as `.claude/worktrees/<name>`, no longer make the window read the repository again. Git is asked
   once for the files that changed in a burst, a second after the first of them, and a `.gitignore` that changes still
   asks for a read.
+- **Show all commits on one line**, in the **…** menu, or `graph.oneLane`, draws every commit of the timeline on one
+  straight line, without lanes, merges as rings, in a column of the graph one lane wide; **Fold all merges** and
+  **Unfold all merges** are not in the menu while it is on. Turning it on or off draws the rows again without reading
+  them.
+- The settings page is in the middle of the window, at most 960 px wide, in sections: **General**, **Appearance**,
+  **Timeline**, **Branches**, **Pull and commits**, **Worktrees**, **Files and blame**, **AI and conflicts** and
+  **Terminal and tools**, each with a button and its icon on the left. A click on one scrolls the list to its name, and
+  the button of the section scrolled to is marked as the list moves; a page narrower than 640 px has a menu of the
+  sections at the top of the list instead. Each setting shows its title, its description whole, its key and where its
+  value comes from.
+- The settings page has a search at its top, which has the keyboard when the page opens and on `Ctrl+F`: it keeps the
+  settings whose title, key, description or value has every word typed, the sections with none dimmed, and `Escape`
+  empties it. Beside each section, how many of its settings a file sets, and a red mark while a value of one was not
+  taken; **Changed** and **Experimental** under the sections list only those settings.
+- Every value is changed on the settings page: numbers in a field that refuses a value out of its range and says the
+  range, strings in a field whose placeholder says what they can hold, colors with their swatch, fonts from a menu of
+  the program's and the system's, lists of strings a row each with **Add** and a button to take one out, and
+  `identities` as a table of name, email and signing key. A typed value is written once, when its field loses the
+  focus or `Enter` is pressed. A setting the file of the tab shown sets has a bar on its left and a button that takes
+  it out of the file, back to its default, comments and the rest of the file kept.
+- The settings page has two tabs, **User** and **Repository**, for the file a change is written in; **Repository**
+  lists only the settings that file may set and is not there while no repository is shown. In **User**, a setting the
+  repository's file sets too says `Set by the repository: <value>`. Quick search has **Open Settings: <section>** and
+  **Open Settings: <title>**, which open the page, or scroll the page already open, to that section or setting, the
+  setting marked for a second.
+- A menu taller than the room it has scrolls instead of moving: under a button, such as **…**, it opens below the
+  button and ends 8 px above the foot of the window, and a menu at the pointer opens above it when it fits only there.
+  The wheel scrolls it by entries, a bar on its right can be dragged, its first and last entries fade where there is
+  more, and the arrows, `Home`, `End`, `PageUp` and `PageDown` keep the entry lit in view. The pickers get the same
+  bar, `Home` and `End` while nothing is typed, and the list of the branch filter a row lit that the arrows move,
+  stepping over the headings, and that `Enter` ticks.
 - The Terminal tab of the bottom panel runs a shell in the folder of the repository tab shown: PowerShell 7 on Windows
   when it is installed, else Windows PowerShell, the shell of `SHELL` on Linux and macOS, or the one of
   `terminal.shellPath`. It shows the colors of what programs print, 16 from the theme, 256 and 24-bit, in the font of

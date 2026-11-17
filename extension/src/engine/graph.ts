@@ -99,6 +99,7 @@ export async function graphState(client: EngineClient, root: string, parts: Repo
     openBranches: 'checkout',
     showStashes: stashes,
     firstParent,
+    oneLane: false,
     graphColumns: GRAPH_COLUMNS,
     dateSeparators: true,
     combineUpstream: true,

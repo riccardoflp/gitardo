@@ -33,6 +33,7 @@ fn role(role: AccessRole) -> accesskit::Role {
         AccessRole::Button => accesskit::Role::Button,
         AccessRole::CheckBox => accesskit::Role::CheckBox,
         AccessRole::RadioButton => accesskit::Role::RadioButton,
+        AccessRole::Tab => accesskit::Role::Tab,
         AccessRole::Switch => accesskit::Role::Switch,
         AccessRole::TextInput => accesskit::Role::TextInput,
         AccessRole::SearchInput => accesskit::Role::SearchInput,

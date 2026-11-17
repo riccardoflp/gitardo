@@ -35,6 +35,8 @@ pub(crate) struct InputBoxState {
     pub(crate) changed_at: Duration,
     /// Whether the box hides what is typed, as its view said in the last frame.
     pub(crate) is_hidden: bool,
+    /// Whether the box had the keyboard in the last frame, to say when it loses it.
+    pub(crate) had_focus: bool,
 }
 
 /// The state of a scroll area between frames.
@@ -44,6 +46,9 @@ pub(crate) struct ScrollState {
     pub(crate) x: ScrollAxis,
     /// Down.
     pub(crate) y: ScrollAxis,
+    /// The number of the last place its view asked it to go to, and the time it went there, so that it goes to each
+    /// once.
+    pub(crate) revealed: Option<(u64, std::time::Duration)>,
 }
 
 /// The state of a list between frames.
@@ -124,6 +129,8 @@ pub struct UiMemory {
     pub(crate) menu: Option<OpenMenu>,
     /// The pickers open.
     pub(crate) pickers: HashMap<WidgetId, PickerState>,
+    /// The lists of pickers whose rows their views draw.
+    pub(crate) pick_lists: HashMap<WidgetId, crate::widget::picker::list::PickListState>,
     /// Find in page.
     pub(crate) find: FindState,
     /// The matches of the lists that search their rows, by list.

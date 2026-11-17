@@ -141,6 +141,7 @@ fn timeline_switches(lookup: &mut Lookup) -> Switches {
     let booleans = [
         (keys::SHOW_STASHES, TimelineSwitch::ShowStashes),
         (keys::FIRST_PARENT, TimelineSwitch::FirstParent),
+        (keys::ONE_LANE, TimelineSwitch::OneLane),
         (keys::TRACE_SELECTED, TimelineSwitch::TraceSelected),
         (keys::DATE_SEPARATORS, TimelineSwitch::DateSeparators),
         (keys::COMBINE_UPSTREAM, TimelineSwitch::CombineUpstream),

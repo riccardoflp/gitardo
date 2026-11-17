@@ -2908,3 +2908,46 @@ reading given until the card says otherwise.
   of the repository shown, whatever asked for it, kept by the window for each folder read, so that a tab shown again
   after a minute is read when the window gets the focus; a repository never read asks for a read. A change missed
   while the window was minimized is forgotten by the next read that starts, whatever asked for it.
+
+
+### Of milestone M16, the settings page and one lane, from Q480
+
+Questions of the phases of milestone M16 that make the settings page and all commits on one line
+([D55](#d55--the-settings-page-in-sections-in-the-middle-of-the-window)), each built with the reading given until the
+card says otherwise.
+
+- **Q480** — `settings.sections`: the icon of each section. Built: **General** the gear of Settings, **Appearance**
+  Lucide's `palette` (a meaning added to the table of `graph.icons`), **Timeline** `git-graph`, **Branches**
+  `git-branch`, **Pull and commits** `git-commit-horizontal`, **Worktrees** the worktree's, **Files and blame** the
+  person with a pen of the blame, **AI and conflicts** the sparkles of what the AI drafts, **Terminal and tools** the
+  terminal's; each draws the same thing it draws elsewhere.
+- **Q481** — `settings.reveal`: the card gives `scroll_to(rows, place, list_height) -> f32`, but the place of a row
+  depends on the height of its description wrapped to the width of the list, which the rows alone do not know. Built:
+  `scroll_to(layout, place, list_height, rows) -> Option<f32>`, from the list laid out for the width of the frame;
+  nothing when the list does not show that place.
+- **Q482** — `settings.sections`: the name of a section near the end of the list cannot reach its top. Built: when
+  the list is scrolled to its end, the section last asked for is marked while its name is in sight; otherwise the
+  section whose name was last scrolled past, and **General** at the top.
+- **Q483** — `settings.edit`: the card's table has no control for `branches.inputs`, a list of objects, nor for
+  `ai.provider` and `ai.effort`, whose values the card lists. Built: `branches.inputs` is a field of its JSON, written
+  only when it is JSON; `ai.provider` and `ai.effort` are fields whose placeholders say their values, since an empty
+  value means something for both.
+- **Q484** — `settings.edit`: `fileBlame.age.oldAfterDays` has no range in the card. Built: from 1 to 36,500 days,
+  as `settings.read` takes it.
+- **Q485** — `settings.edit`: **Add** under a list of strings writes the list with an empty entry, which its field then
+  fills; an entry left empty when its field loses the focus is taken out, so that no empty pattern stays in the file.
+  A list or the table of `identities` is drawn under the key of its row, across the row, since a column of 280 logical
+  pixels holds neither.
+- **Q486** — `settings.reset`: ↺ is named `Back to the default: <title>` for the screen reader and its tooltip, and
+  draws `undo-2`, the icon of what goes back to how it was.
+- **Q487** — `settings.edit`: **User** and **Repository** are tabs for the screen reader too, a role the toolkit did
+  not have; each row of a setting is a group named by its title, selected while it is marked, so that the row
+  `settings.reveal` marks is said and can be tested. While no repository is shown, the page shows **User** whatever tab
+  was chosen before.
+- **Q488** — `settings.reveal`: **Open Settings: <title>** empties the search of the page when something is typed in
+  it, and shows **User** when **Repository** is shown and the setting is not one its file may set, since the setting
+  would not be listed otherwise. Its entries come after the commands of Quick search, the sections first.
+- **Q489** — `graph.one-lane`: the line between two rows is dashed when the upper row is the uncommitted changes or a
+  stash, the line each had down to its commit. `graph.oneLane` is the one setting under `graph.` whose change, when the
+  settings file is read again, asks no read of the repository: it only lays the rows out again. The lanes themselves
+  are not changed; `one_lane` is used in their place while the setting is on.

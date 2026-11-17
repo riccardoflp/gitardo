@@ -325,6 +325,7 @@ fn layouts_page_after_page(state: &State) -> Duration {
                 moment: model::Timestamp(state.timeline.read_at),
                 utc_offset: 0,
             }),
+            one_lane: false,
         };
         let started = Instant::now();
         let _layout = views::graph::TimelineLayout::new(&input);

@@ -8,7 +8,9 @@ use views::search::{
     GoToCommitDialog, GoToCommitVerdict, HistorySearch, ListMode, MatchCount, Narrowed, QuickChoice, QuickCommand,
     QuickEntry, QuickSearchState, SearchBox,
 };
+use views::settings::SettingsAnchor;
 use views::text::search as words;
+use views::text::settings::{SettingsSection, settings};
 
 use super::super::state::State;
 use super::Found;
@@ -143,7 +145,24 @@ pub fn is_built(command: QuickCommand) -> bool {
             .is_some_and(|feature| features::operation(feature).is_some())
 }
 
-/// The entries of Quick search: the commands, then the branches, the remote branches and the tags of the repository
+/// **Open Settings: <section>** for each section of the settings page, then **Open Settings: <title>** for each setting
+/// it lists (`settings.reveal`).
+fn settings_entries() -> impl Iterator<Item = QuickEntry> {
+    let sections = SettingsSection::ALL.into_iter().map(|section| QuickEntry {
+        label: words::open_settings_at(section.name()),
+        detail: words::SETTINGS_SECTION.to_owned(),
+        choice: QuickChoice::Settings(SettingsAnchor::Section(section)),
+    });
+    let listed = settings().filter(|info| info.section.is_some()).map(|info| QuickEntry {
+        label: words::open_settings_at(info.title),
+        detail: words::SETTING.to_owned(),
+        choice: QuickChoice::Settings(SettingsAnchor::Setting(info.key)),
+    });
+    sections.chain(listed)
+}
+
+/// The entries of Quick search: the commands, then the sections and the settings of the settings page, then the
+/// branches, the remote branches and the tags of the repository
 /// shown, then its commits loaded.
 fn quick_entries(state: &State) -> Vec<QuickEntry> {
     let mut entries: Vec<QuickEntry> = QuickCommand::ALL
@@ -159,6 +178,7 @@ fn quick_entries(state: &State) -> Vec<QuickEntry> {
             choice: QuickChoice::Command(command),
         })
         .collect();
+    entries.extend(settings_entries());
     let Some(read) = state.shown_read() else {
         return entries;
     };

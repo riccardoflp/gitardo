@@ -62,8 +62,9 @@ fn graph_lanes__10000_rows_of_a_real_history_laid_out_a_page_at_a_time_give_the_
     );
 }
 
-#[test]
-fn graph_lanes__the_timeline_laid_out_a_page_at_a_time_is_the_one_laid_out_at_once() {
+/// The timeline of 10,000 commits laid out a page of 1,000 at a time, each from where the one before it stopped, and
+/// laid out at once.
+fn by_pages_and_at_once(one_lane: bool) -> (TimelineLayout, TimelineLayout) {
     let (rows, repository) = ten_thousand();
     let folded = HashSet::new();
     let input = |end: usize| LayoutInput {
@@ -75,10 +76,33 @@ fn graph_lanes__the_timeline_laid_out_a_page_at_a_time_is_the_one_laid_out_at_on
             moment: model::Timestamp(2_000_000_000),
             utc_offset: 0,
         }),
+        one_lane,
     };
     let mut layout = TimelineLayout::new(&input(1_000));
     for end in (2..=10).map(|page| page * 1_000) {
         assert!(layout.extend(&input(end)), "the page ending at {end} is laid out alone");
     }
-    assert_eq!(layout, TimelineLayout::new(&input(10_000)));
+    (layout, TimelineLayout::new(&input(10_000)))
+}
+
+#[test]
+fn graph_lanes__the_timeline_laid_out_a_page_at_a_time_is_the_one_laid_out_at_once() {
+    let (by_pages, at_once) = by_pages_and_at_once(false);
+    assert_eq!(by_pages, at_once);
+}
+
+#[test]
+fn graph_one_lane__on_a_page_added_under_the_rows_is_on_the_one_line_as_all_rows_laid_out_at_once() {
+    let (by_pages, at_once) = by_pages_and_at_once(true);
+    assert_eq!(by_pages.lane_count, 1);
+    assert!(
+        by_pages.cells.iter().all(|cell| cell.lane == 0),
+        "every dot in the first lane"
+    );
+    let joined = by_pages.cells.get(999..=1_000).unwrap();
+    assert!(
+        joined.iter().all(|cell| cell.lines.len() == 2),
+        "the last row of the first page and the first of the second are joined: {joined:?}"
+    );
+    assert_eq!(by_pages, at_once);
 }

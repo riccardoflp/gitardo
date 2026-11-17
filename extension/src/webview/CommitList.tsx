@@ -11,7 +11,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
-import { fitGraph, foldMerges, laneCount, laneTips, mergedBranch, mergedCommits, ownCommits, reachedFrom, reaching, traceGraph, type GraphTrace } from '../shared/graph';
+import { fitGraph, foldMerges, laneCount, laneTips, mergedBranch, mergedCommits, oneLane, ownCommits, reachedFrom, reaching, traceGraph, type GraphTrace } from '../shared/graph';
 import { WORKTREE, type GraphColumn, type GraphRow, type Loading, type PullRequest, type Row } from '../shared/protocol';
 import { pullTitle } from '../shared/refs';
 import { Icon } from './Icon';
@@ -87,6 +87,8 @@ interface Props {
   head: string | null;
   /** Whether a line with the name of a time further back, a day, a week or a month, comes before its first commit. */
   dateSeparators: boolean;
+  /** Whether every commit is on one line, without lanes, its merges rings (`graph.one-lane`). */
+  oneLane: boolean;
   /** The merges whose commits are folded into one row. */
   folded: ReadonlySet<string>;
   /** The row of the commits of a merge was clicked, or one of them is to be shown: they are shown again. */
@@ -151,7 +153,7 @@ interface GraphProps {
   /** The room each lane has: less than usual when the graph is squeezed. */
   lane: number;
   /** A dot for a commit, a ring for the uncommitted changes, a square for a stash. */
-  node: 'commit' | 'worktree' | 'stash' | 'folded';
+  node: 'commit' | 'merge' | 'worktree' | 'stash' | 'folded';
   /** While the history of a label stands out: which parts of the cell are in it. The others fade. */
   trace?: GraphTrace;
   /** For a commit not pushed yet, the upstream it would be pushed to: its dot has a ring around it. */
@@ -233,7 +235,8 @@ const Graph = memo(function Graph({ graph, width, height, lane, node, trace, unp
         <rect className={`hollow${nodeClass}`} x={x - radius + 0.5} y={mid - radius + 0.5} width={radius * 2 - 1} height={radius * 2 - 1} rx={1} stroke={laneColor(graph.color)} />
       )}
       {node === 'commit' && <circle className={nodeClass.trim() || undefined} cx={x} cy={mid} r={radius} fill={laneColor(graph.color)} />}
-      {node === 'commit' && unpushed && (
+      {node === 'merge' && <circle className={`hollow${nodeClass}`} cx={x} cy={mid} r={radius - 0.75} stroke={laneColor(graph.color)} strokeWidth={1.5} />}
+      {(node === 'commit' || node === 'merge') && unpushed && (
         <circle className={`unpushed${nodeClass}`} cx={x} cy={mid} r={radius + 2.5} stroke={laneColor(graph.color)}>
           <title>{`Not pushed to ${unpushed}`}</title>
         </circle>
@@ -308,7 +311,8 @@ function PullBadge({ request, branch }: { request: PullRequest; branch: string }
 export function CommitList(props: Props) {
   const { empty, hasMore, loading, labels, matches, selected, marked, reveal, onSelect, onRowMenu, onLabelMenu, onUnfold } = props;
   // The commits a folded merge brought in have one row for them all.
-  const { rows, hiddenBy } = useMemo(() => foldMerges(props.rows, props.folded), [props.rows, props.folded]);
+  const { rows: folded, hiddenBy } = useMemo(() => foldMerges(props.rows, props.folded), [props.rows, props.folded]);
+  const rows = useMemo(() => (props.oneLane ? oneLane(folded) : folded), [folded, props.oneLane]);
   const foldedNow = useMemo(() => new Set(hiddenBy.values()), [hiddenBy]);
   // Whether a merge brought in commits among those loaded, found out for each merge as it comes into sight.
   const foldable = useMemo(() => new Map<string, boolean>(), [props.rows]);
@@ -652,7 +656,7 @@ export function CommitList(props: Props) {
                   <span>{periods.get(index)}</span>
                 </span>
               )}
-              <Graph graph={row.graph} width={fit.width} height={rowHeight} lane={fit.lane} node={worktree ? 'worktree' : row.stash ? 'stash' : 'commit'} trace={trace?.[index]} unpushed={pushTo} />
+              <Graph graph={row.graph} width={fit.width} height={rowHeight} lane={fit.lane} node={worktree ? 'worktree' : row.stash ? 'stash' : props.oneLane && row.parents.length > 1 ? 'merge' : 'commit'} trace={trace?.[index]} unpushed={pushTo} />
               {tall ? (
                 <div className="lines">
                   <span className="subject">{row.subject}</span>

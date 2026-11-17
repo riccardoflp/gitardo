@@ -6,6 +6,8 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 ### Added
 
+- **Show all commits on one line** in the **…** menu of the Graph view, or `gitardo.graph.oneLane`, off by default: every commit of the graph on one straight line, without lanes, merges as rings, in a column one lane wide; **Fold all merges** and **Unfold all merges** leave the menu while it is on.
+- The settings of Gitardo are in sections in the Settings editor, with the names and the order of the sections of Gitardo Desktop's settings page: **General**, **Timeline**, **Branches**, **Pull and commits**, **Worktrees**, **Files and blame** and **AI and conflicts**.
 - `gitardo.graph.islands`, off by default: the references, the commits and the details of the Graph view are each a rounded island on a darker ground, with the toolbar above them, and the gap between two islands is the line dragged to resize them.
 
 ## 1.0.0 - 2026-11-17
