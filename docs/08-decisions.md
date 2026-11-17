@@ -3552,3 +3552,21 @@ otherwise.
 - **Q654** — `graph.compact-rows`: the switch is the last entry of the group of the columns in the **…** menu, until
   the menu of the view takes the switches (D66). `graph.compactRows` changed in the settings file asks no read of the
   repository, as `graph.oneLane` (Q489): the rows are only drawn again.
+- **Q655** — `graph.compact-rows` in the extension: left **Planned**. The rows of the Graph view of the extension
+  (`src/webview/CommitList.tsx`) are already one line, 24 pixels, where the view is wide: the labels, the message, then
+  the author, the date and the hash in columns at the right end, which is what **Compact rows** gives the desktop; they
+  are two lines (the message, then the labels, the author and the date under it) only in the Graph of the side bar,
+  which its code calls `compact`, chosen by where the view is and not by a setting. A `gitardo.graph.compactRows` off
+  by default would either give two lines to the wide view, which changes what the extension shows today, or mean there
+  something else than in the desktop under the same name, which the stored data may not do. Which is wanted: the
+  setting on by default in the extension, so that off gives the two lines of the desktop in any width; the setting only
+  for the narrow view; or nothing, the width choosing as now?
+- **Q656** — `graph.label-overflow` in the extension: left **Planned**. On the one line of the wide view the labels
+  already come first, all of them, each cut to 180 pixels, and the later ones to their icons in a view under 420
+  pixels; on the two lines of the narrow view they are under the message by choice, two named and the others counted in
+  `+N`, whose tooltip names them. The rule of the desktop (the message keeps three fifths, whole labels then `+N`)
+  needs the widths of the labels measured in the webview, and the list under the pointer is a component whose opening,
+  closing and place the unit tests of the extension cannot see, since Vitest runs them without a page: only the
+  end-to-end suite can, which the phase that built the desktop's part did not run. To build: `fitted_pills` ported to
+  `src/shared` with its tests, then the list in `CommitList.tsx` with a step of `test/e2e/suite.ts`; and whether the
+  two lines of the narrow view put the labels first too, before the message they are now under.

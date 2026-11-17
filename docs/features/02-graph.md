@@ -991,6 +991,8 @@ label `+N`, and the pointer resting on the labels opens the list of all of them
 - **Entry points**: the pointer resting on `+N`, or on any label of a row that does not show all its labels whole.
 - **Uses**: `graph.labels`, `graph.hover-history`, `graph.pull-request-badge`, `branch.open`, `branch.checkout`,
   `ui.menu-scroll`.
+- **Extension**: planned (Q656): the labels come first on the one line of its wide Graph view already, all of them,
+  with no list under the pointer yet.
 
 - The labels come right after the cell of the graph, in the order of `graph.labels`, then the message. The message keeps
   its width up to three fifths of the line, and the labels take the rest (Q640): as many as fit whole, in their order,
@@ -1224,6 +1226,8 @@ columns that line up, on rows half as tall, so that twice as many commits are se
 - **Settings**: `graph.compactRows` (off by default), in the user's settings file.
 - **Uses**: `graph.columns`, `graph.labels`, `graph.label-overflow`, `graph.lanes`, `graph.date-separators`,
   `graph.uncommitted-row`, `graph.stashes`.
+- **Extension**: planned (Q655): the rows of its wide Graph view are one line with the columns at the right end
+  already, and two lines in the side bar, by where the view is and not by a setting.
 
 - On, each row of the timeline is as tall as a row of a list, half the two lines (Q648), and the cell of the graph is
   as tall: the dots and the lines keep their sizes and their lanes, closer from row to row.
