@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 461 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 470 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -35,6 +35,7 @@ earns it.
 | [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 6 |
 | [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 45 |
 | [18-settings.md](18-settings.md) | Settings | 7 |
+| [19-tasks.md](19-tasks.md) | Tasks | 9 |
 
 ## Repositories
 
@@ -586,6 +587,20 @@ earns it.
 | [`settings.reset`](18-settings.md#settingsreset--take-a-setting-back-to-its-default) | Take a setting back to its default | Operation | Built | Host only |
 | [`settings.reveal`](18-settings.md#settingsreveal--open-the-settings-page-at-a-setting) | Open the settings page at a setting | Derivation | Built | Host only |
 | [`settings.theme`](18-settings.md#settingstheme--choose-the-theme-and-the-fonts) | Choose the theme and the fonts | Operation | Built | Host only |
+
+## Tasks
+
+| Feature | Title | Kind | Desktop | Extension |
+| --- | --- | --- | --- | --- |
+| [`tasks.read`](19-tasks.md#tasksread--read-the-tasks-of-a-repository) | Read the tasks of a repository | Read | Specified | Host only |
+| [`tasks.view`](19-tasks.md#tasksview--the-tasks-tab) | The Tasks tab | View | Specified | Host only |
+| [`tasks.run`](19-tasks.md#tasksrun--run-a-task) | Run a task | Operation | Specified | Host only |
+| [`tasks.stop`](19-tasks.md#tasksstop--stop-a-task) | Stop a task | Operation | Specified | Host only |
+| [`tasks.edit-groups`](19-tasks.md#tasksedit-groups--make-and-change-groups-of-tasks) | Make and change groups of tasks | Operation | Specified | Host only |
+| [`tasks.run-group`](19-tasks.md#tasksrun-group--run-or-stop-a-group-of-tasks) | Run or stop a group of tasks | Operation | Specified | Host only |
+| [`tasks.import-groups`](19-tasks.md#tasksimport-groups--import-groups-of-tasks) | Import groups of tasks | Operation | Specified | Host only |
+| [`tasks.export-groups`](19-tasks.md#tasksexport-groups--export-groups-of-tasks) | Export groups of tasks | Operation | Specified | Host only |
+| [`tasks.quick-run`](19-tasks.md#tasksquick-run--run-a-task-from-anywhere) | Run a task from anywhere | View | Specified | Host only |
 
 ## The extension's identifiers
 
