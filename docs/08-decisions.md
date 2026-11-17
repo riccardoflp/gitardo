@@ -3202,3 +3202,10 @@ the reading given until the card says otherwise.
   `markdown.openAsPreview` too, laid out when its page is first shown; **Preview** of a page lays out the text again
   each time it is shown, and the file read again does too, rather than at each edit, since the preview is not seen
   while the text is edited.
+- **Q584** — `file-view.markdown-preview`, the extension: which Markdown files open in VS Code's preview. The plan
+  named the Files view, the Changes view and a file of a commit; the extension has no Files view, and a file of a
+  commit opens as its diff, never as the file at that revision. Built: **Open File** and a click on a file of the
+  Gitardo Changes view, which open the file on disk; a diff stays a diff, a file opened to resolve a conflict and the
+  blame of an earlier revision stay in the editor, where they are worked on. Should the extension get a way to open a
+  file at a revision, VS Code's preview of a `gitardo:` document would be tried first. When VS Code's Markdown
+  extension is turned off, the file opens in its editor and the log says why.

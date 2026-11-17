@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { ThemeService } from '../flow/theme';
 import { CONFLICT_SIDES } from '../shared/conflicts';
 import { compareUrl, parseGitHubRemote, type GitHubRepo } from '../shared/github';
+import { openingOf } from '../shared/markdown';
 import { samePath } from '../shared/paths';
 import { GRAPH_COLUMNS, WORKTREE, showsGraph } from '../shared/protocol';
 import { isHash, sortRefs, worktreeLabel, worktreeStatus } from '../shared/refs';
@@ -2925,11 +2926,24 @@ export class Controller implements vscode.Disposable {
     if (resources.length) await vscode.commands.executeCommand('vscode.changes', title, resources);
   }
 
-  /** A file of the working tree in its editor. A deleted one is not there to open: its diff shows what it was. */
+  /**
+   * A file of the working tree in its editor, or a Markdown file in VS Code's preview of Markdown while
+   * `gitardo.markdown.openAsPreview` is on. A deleted one is not there to open: its diff shows what it was.
+   */
   private async openFile(file: FileChange, repo = this.repo): Promise<void> {
     if (!repo) return;
     if (file.kind === 'deleted') return this.openDiff({ kind: 'change' }, file, repo);
-    await vscode.commands.executeCommand('vscode.open', vscode.Uri.file(path.join(repo.root, file.path)));
+    const uri = vscode.Uri.file(path.join(repo.root, file.path));
+    const openAsPreview = vscode.workspace.getConfiguration('gitardo').get<boolean>('markdown.openAsPreview') ?? false;
+    if (openingOf(file.path, openAsPreview) === 'preview') {
+      try {
+        return void (await vscode.commands.executeCommand('markdown.showPreview', uri));
+      } catch (error) {
+        // VS Code's Markdown extension may be turned off: the file still opens, in its editor.
+        this.log.warn(`Could not open the preview of ${file.path}: ${errorText(error)}`);
+      }
+    }
+    await vscode.commands.executeCommand('vscode.open', uri);
   }
 
   private async openDiff(source: DiffSource, file: FileChange, repo = this.repo): Promise<void> {

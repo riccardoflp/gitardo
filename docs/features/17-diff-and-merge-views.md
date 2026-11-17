@@ -981,8 +981,9 @@ Rules:
   for the page while it is open. A file at a revision has the preview too, read-only as its text.
 - **Find** in the preview, `Ctrl+F`, finds in the text shown, as find in page does
   ([Q582](../08-decisions.md#open-questions)).
-- Extension: with `gitardo.markdown.openAsPreview` on, a Markdown file that Gitardo opens (the Files view, the Changes
-  view, a file of a commit) opens in VS Code's preview of Markdown (`markdown.showPreview`), not in its editor.
+- Extension: with `gitardo.markdown.openAsPreview` on, a Markdown file that Gitardo opens from the Gitardo Changes view
+  (**Open File**, or a click on it) opens in VS Code's preview of Markdown (`markdown.showPreview`), not in its editor;
+  its diffs stay diffs of its text ([Q584](../08-decisions.md#open-questions)).
 
 Acceptance:
 
@@ -996,8 +997,8 @@ Acceptance:
       browser to open it.
 - [x] An image `media/logo.png` of the repository is drawn; `https://example.com/a.png` shows its text.
 - [x] `src/app.rs` has no **Preview**.
-- [ ] Extension: with `gitardo.markdown.openAsPreview` on, a click on `README.md` in the Files view opens VS Code's
-      preview of it.
+- [x] Extension: with `gitardo.markdown.openAsPreview` on, a click on `README.md` in the Gitardo Changes view opens
+      VS Code's preview of it; `src/app.rs` opens in its editor.
 
 ### `file-view.read-revision` — A file at a revision
 
