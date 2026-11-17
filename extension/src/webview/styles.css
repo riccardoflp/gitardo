@@ -1973,6 +1973,81 @@ input:focus-visible,
   }
 }
 
+/* Islands: with `gitardo.graph.islands` on, the references, the commits and the details of the Graph view are each a
+   rounded card on a ground one step darker, and the gap between two of them is the line dragged to resize them. */
+
+.app.islands {
+  --island: var(--vscode-panel-background, var(--vscode-editor-background));
+  --island-border: var(--vscode-widget-border, var(--vscode-panel-border));
+  /* One step darker than the islands in the dark themes. */
+  --ground: color-mix(in srgb, var(--island) 78%, black);
+  background: var(--ground);
+}
+
+/* One step deeper in the light ones. */
+body.vscode-light .app.islands {
+  --ground: color-mix(in srgb, var(--island) 93%, black);
+}
+
+/* In the high contrast themes the ground is the islands' own, and their border tells them apart. */
+body.vscode-high-contrast .app.islands,
+body.vscode-high-contrast-light .app.islands {
+  --ground: var(--island);
+  --island-border: var(--vscode-contrastBorder, var(--vscode-panel-border));
+}
+
+/* The toolbar stays on the ground, above the islands, with no line under it. */
+.app.islands .toolbar {
+  border-bottom-color: transparent;
+}
+
+.app.islands .main {
+  --gap: 8px;
+  /* The toolbar has some room of its own under it already. */
+  margin: max(0px, calc(var(--gap) - 4px)) var(--gap) var(--gap);
+  gap: var(--gap);
+}
+
+.app.islands .main > .refs,
+.app.islands .main > .commits,
+.app.islands .main > .detail,
+.app.islands .main > .overlay {
+  background: var(--island);
+  border: 1px solid var(--island-border);
+  border-radius: 6px;
+}
+
+/* The gap is the line: the sash covers it, with a little of the islands on both sides to take hold of. */
+.app.islands .main > .sash.refs-sash {
+  left: calc(var(--refs) - 2px);
+  width: calc(var(--gap) + 4px);
+}
+
+.app.islands .main > .sash.detail-sash {
+  right: calc(var(--detail) - 2px);
+  width: calc(var(--gap) + 4px);
+}
+
+.app.islands .main > .sash.stack-sash {
+  bottom: calc(var(--detail-rows) - 2px);
+  height: calc(var(--gap) + 4px);
+}
+
+.app.islands .main > .sash::after {
+  inset: 0 calc(50% - 1px);
+}
+
+.app.islands .main > .sash.stack-sash::after {
+  inset: calc(50% - 1px) 0;
+}
+
+/* A narrow panel has smaller gaps. */
+@container (width < 900px) {
+  .app.islands .main {
+    --gap: 4px;
+  }
+}
+
 /* The views of the side bar */
 
 /* The commits: the search, and no buttons, which are in the header of the view. */

@@ -897,6 +897,104 @@ try {
     await graph.click('.detail .close');
   });
 
+  await step('with islands on, the references, the commits and the details are rounded islands on a darker ground, the gap between two is dragged to resize them, and off the graph is as it was', async () => {
+    const graph = await webview('graph');
+    /**
+     * Where the three panes are, their corners and their background, and the ground behind them, each color as the
+     * sum of its channels once painted, of 765.
+     */
+    const look = () =>
+      graph.evaluate(`(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 1;
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        const painted = (color) => {
+          context.clearRect(0, 0, 1, 1);
+          context.fillStyle = color;
+          context.fillRect(0, 0, 1, 1);
+          const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+          return alpha ? red + green + blue : null;
+        };
+        const pane = (selector) => {
+          const element = document.querySelector(selector);
+          if (!element) return null;
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          return {
+            left: Math.round(rect.left),
+            right: Math.round(rect.right),
+            top: Math.round(rect.top),
+            bottom: Math.round(rect.bottom),
+            radius: parseFloat(style.borderTopLeftRadius),
+            background: painted(style.backgroundColor),
+          };
+        };
+        const app = document.querySelector('.app');
+        return {
+          islands: app.classList.contains('islands'),
+          width: Math.round(app.getBoundingClientRect().width),
+          ground: painted(getComputedStyle(app).backgroundColor),
+          refs: pane('.main > .refs'),
+          commits: pane('.main > .commits'),
+          detail: pane('.main > .detail'),
+        };
+      })()`);
+    const panes = (seen) => [seen.refs, seen.commits, seen.detail].filter(Boolean);
+    await graph.click('.row', 'Add a');
+    await until('the details', () => graph.evaluate(`document.querySelector('.detail h2')?.textContent === 'Add a'`));
+    const off = await look();
+    assert(!off.islands && off.refs.right === off.commits.left && off.commits.right === off.detail.left, `without islands: ${JSON.stringify(off)}`);
+    assert(panes(off).every((seen) => seen.radius === 0), `corners without islands: ${JSON.stringify(off)}`);
+    try {
+      setting('gitardo.graph.islands', true);
+      const on = await until('the islands', async () => {
+        const seen = await look();
+        return seen.islands && seen.detail ? seen : null;
+      });
+      await shot('islands');
+      assert(on.commits.left - on.refs.right === 8 && on.detail.left - on.commits.right === 8, `gaps: ${JSON.stringify(on)}`);
+      assert(panes(on).every((seen) => seen.radius > 0), `corners: ${JSON.stringify(on)}`);
+      // The dark theme VS Code starts with: the ground is darker than the islands on it.
+      assert(on.ground !== null && panes(on).every((seen) => seen.background !== null && on.ground < seen.background), `colors: ${JSON.stringify(on)}`);
+      // The gap between the commits and the details is the line that is dragged.
+      const at = await graph.locate('.detail-sash');
+      assert(at.x > graph.frame.x + on.commits.right && at.x < graph.frame.x + on.detail.left, `the line is at ${at.x}, the gap from ${on.commits.right} to ${on.detail.left}`);
+      await window.drag(at, { x: at.x - 80, y: at.y });
+      const dragged = await until('the details wider', async () => {
+        const seen = await look();
+        return seen.detail.left === on.detail.left - 80 ? seen : null;
+      });
+      assert(dragged.detail.left - dragged.commits.right === 8, `gap once dragged: ${JSON.stringify(dragged)}`);
+      await mouse(at.x - 80, at.y);
+      await mouse(at.x - 80, at.y, 'left', 2);
+      await until('the width the details had', async () => (await look()).detail.left === on.detail.left);
+      // A narrower panel has smaller gaps, and one too narrow for the details beside the commits has them under the commits, an island too.
+      try {
+        await aside();
+        for (const width of [1250, 1050, 800]) {
+          await page.send('Emulation.setDeviceMetricsOverride', { width, height: HEIGHT, deviceScaleFactor: 1, mobile: false });
+          await sleep(700);
+          const narrow = await look();
+          await shot(`islands-${width}`);
+          const gap = narrow.width < 900 ? 4 : 8;
+          const under = narrow.detail.top >= narrow.commits.bottom;
+          const apart = under ? narrow.detail.top - narrow.commits.bottom : narrow.detail.left - narrow.commits.right;
+          assert(apart === gap, `at ${width}px, a panel ${narrow.width}px wide: the details are ${apart}px from the commits, not ${gap}`);
+          assert(panes(narrow).every((seen) => seen.radius > 0), `corners at ${width}px: ${JSON.stringify(narrow)}`);
+        }
+      } finally {
+        await page.send('Emulation.setDeviceMetricsOverride', { width: WIDTH, height: HEIGHT, deviceScaleFactor: 1, mobile: false });
+        await sleep(700);
+      }
+    } finally {
+      setting('gitardo.graph.islands', undefined);
+      await until('no islands', async () => !(await look()).islands);
+    }
+    const back = await look();
+    assert(JSON.stringify(back) === JSON.stringify(off), `from ${JSON.stringify(off)} to ${JSON.stringify(back)}`);
+    await graph.click('.detail .close');
+  });
+
   await step('follows the theme, and its buttons have a shape in each: dark, light and high contrast', async () => {
     const graph = await webview('graph');
     /**

@@ -1224,6 +1224,11 @@
           "default": true,
           "description": "Whether a branch and its upstream of the same name share one label in the graph while they are at the same commit, with the icon of the remote after the branch's. When not, `feature` and `origin/feature` have a label each. The menu of the toolbar of the graph has the same switch."
         },
+        "gitardo.graph.islands": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the references, the commits and the details of the Graph view are each a rounded island on a darker ground. The gap between two islands is the line dragged to resize them. The other views keep their look."
+        },
         "gitardo.graph.firstParent": {
           "type": "boolean",
           "default": false,

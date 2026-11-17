@@ -6,6 +6,8 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 ### Added
 
+- `gitardo.graph.islands`, off by default: the references, the commits and the details of the Graph view are each a rounded island on a darker ground, with the toolbar above them, and the gap between two islands is the line dragged to resize them.
+
 - `gitardo.repositories.keepOpen`, off by default: each repository you leave keeps what the views showed of it, the commit selected, the scroll of the graph, the search, the branches shown, the sections of the references open and the message of the Changes view, and shows it again at once when it is chosen again. A repository left is watched, and read again only once it is shown after something changed in it.
 
 - A filter of their own for the references beside the graph and the Branches view: the funnel at their top opens **Branches listed**, the same list as the branches shown in the graph, with **Show local branches**, **Show remote branches** and **Show tags** at its bottom, and the line above the names says what it lists, with **Show all**. It is remembered for each repository, and it and the branches shown in the graph never change each other.

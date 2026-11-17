@@ -102,6 +102,7 @@ export async function graphState(client: EngineClient, root: string, parts: Repo
     graphColumns: GRAPH_COLUMNS,
     dateSeparators: true,
     combineUpstream: true,
+    islands: false,
     traceSelected: true,
     listed: null,
     sortOrder: 'name',

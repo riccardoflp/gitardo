@@ -174,6 +174,10 @@ the window.
   panel are an island too. The toolbar stays above them, on the ground. Off, the view is as it was. The other views
   keep their look
   ([D53](../08-decisions.md#d53--pages-beside-the-inspector-a-bottom-panel-the-icons-of-lucide-islands-in-the-extension)).
+  The class `islands` of the Graph view's `App` (`src/webview/App.tsx`) and the rules under it in
+  `src/webview/styles.css`; the ground is mixed from `--vscode-panel-background` with black. Tested by
+  `test/e2e/ui.mjs`, step "with islands on, the references, the commits and the details are rounded islands on a
+  darker ground, the gap between two is dragged to resize them, and off the graph is as it was".
 
 The ground is one step darker than the islands in the dark themes and one step deeper in the light ones; each island
 has the radius of a dialog and a border, with a gap of 8 pixels between islands, 4 when the window is narrow. In the

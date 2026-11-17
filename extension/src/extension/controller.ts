@@ -487,6 +487,7 @@ export class Controller implements vscode.Disposable {
           graphColumns: graphColumns(),
           dateSeparators: vscode.workspace.getConfiguration('gitardo').get('graph.dateSeparators') !== false,
           combineUpstream: vscode.workspace.getConfiguration('gitardo').get('graph.combineUpstream') !== false,
+          islands: vscode.workspace.getConfiguration('gitardo').get('graph.islands') === true,
           resolveWithAI: this.resolveWithAI(),
           home: this.homeOf(state.root),
           keepOpen: keepOpen(),

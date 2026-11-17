@@ -20,7 +20,7 @@ extension's side is [extension/11-data.md](../extension/11-data.md); the desktop
 ## Settings
 
 The names coincide already: the desktop's key is the extension's without `gitardo.` (`settings/src/keys.rs` against
-`extension/package.json`). 33 keys are in both; 9 are only in the extension and 13 only in the desktop. That is what
+`extension/package.json`). 33 keys are in both; 10 are only in the extension and 13 only in the desktop. That is what
 lets the extension send its settings to the engine as they are ([02-protocol.md](02-protocol.md#settings)).
 `repositories.keepOpen` is in both since milestone M12, `true` by default in the desktop and `false` in the extension,
 where it is the extension's alone: the engine keeps the state of every repository opened anyway, and reads nothing of
@@ -33,6 +33,7 @@ Only in the extension, and what becomes of each:
 | `gitardo.conflicts.aiModel`, `gitardo.conflicts.aiEffort` | The desktop has `ai.model` and `ai.effort` for every use of AI. The extension keeps its two keys (they are on users' machines) and sends them as `ai.model` and `ai.effort`. Whether the extension gets `gitardo.ai.*` too is Q400. |
 | `gitardo.flowDiff.collapseUnchanged` | The desktop's `diff.collapseUnchanged`; sent under that name. The Flow Diff stays in the extension, so only the webview reads it. |
 | `gitardo.scm.stashButtons` | VS Code's Source Control only; never sent. |
+| `gitardo.graph.islands` | The look of the Graph view; the desktop always has its islands (`graph.islands`). Sent as the others are; the engine reads nothing of it. |
 | `gitardo.worktrees.branchFormat`, `gitardo.worktrees.inputs` | The desktop has `branches.format` and `branches.inputs` for every branch made from a format, the extension both pairs: the worktree's pair for a new worktree's branch. Sent as they are; the engine reads `worktrees.branchFormat` before `branches.format` for a worktree. That is a change to `features` (Q401). |
 | `gitardo.worktrees.linkFolders`, `copyFiles`, `setupCommands` | The desktop reads them from `.gitardo/settings.json` and the user's `settings.json`, not from its settings of the window; the extension from VS Code's settings. Sent as settings while `host` is `"vscode"`, and written with `WriteSetting` (Q399). |
 

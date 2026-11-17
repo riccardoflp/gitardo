@@ -398,7 +398,8 @@ export function App({ compact = false }: { compact?: boolean }) {
   };
 
   return (
-    <div className="app">
+    // The islands are the Graph view's: the graph in the side bar is too narrow for the gaps between them.
+    <div className={`app${state.islands && !compact ? ' islands' : ''}`}>
       <Toolbar
         state={state}
         busy={busy}

@@ -181,6 +181,11 @@ export interface RepoState extends RepoParts {
   /** Whether a branch and its upstream of the same name share one label while they are at the same commit, as the settings say. */
   combineUpstream: boolean;
   /**
+   * Whether the references, the commits and the details of the Graph view are each a rounded island on a darker
+   * ground, as the settings say. The graph in the side bar keeps its look.
+   */
+  islands: boolean;
+  /**
    * What the references list, beside the graph and in the Branches view, as their own filter says, apart from the
    * branches shown (`refs.list-filter`): the choice kept for this repository, without the references gone since. Null
    * when they list everything.

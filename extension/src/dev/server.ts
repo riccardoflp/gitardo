@@ -30,12 +30,15 @@ import { sortRefs } from '../shared/refs';
 import type { Asking, Choice } from '../shared/resolution';
 import { cleanCommands, cleanPatterns, type SetupLayer, type SetupSource } from '../shared/worktreeSetup';
 
-// Usage: node dist/dev-server.js [--port=5174] [--icon-theme=<file>] [--engine=<binary>] [folder...]   (every repository found in the folders can be chosen in the page)
+// Usage: node dist/dev-server.js [--port=5174] [--icon-theme=<file>] [--engine=<binary>] [--islands] [folder...]   (every repository found in the folders can be chosen in the page)
 // Read-only: actions that would change the repository or open an editor are only logged. The repositories are read by
-// Gitardo's engine: the binary of `--engine=`, else of GITARDO_ENGINE, else the debug build of rust/.
+// Gitardo's engine: the binary of `--engine=`, else of GITARDO_ENGINE, else the debug build of rust/. `--islands` draws the
+// graph as `gitardo.graph.islands` on does.
 
 const PAGE_SIZE = 1000;
 const options = process.argv.slice(2).filter((argument) => argument.startsWith('--'));
+/** The graph as islands on a darker ground, as `gitardo.graph.islands` says in VS Code. */
+const islands = options.includes('--islands');
 const port = Number(options.find((option) => option.startsWith('--port='))?.slice(7) ?? process.env.PORT ?? 5174);
 const assets = __dirname;
 const engineBinary =
@@ -145,6 +148,7 @@ function page(theme: keyof typeof THEMES, data: Record<string, string>): string 
   --vscode-foreground: ${t.foreground};
   --vscode-descriptionForeground: ${t.description};
   --vscode-panel-border: ${t.border};
+  --vscode-panel-background: ${t.background};
   --vscode-focusBorder: #0078d4;
   --vscode-progressBar-background: #0078d4;
   --vscode-list-hoverBackground: ${t.hover};
@@ -349,7 +353,7 @@ async function main() {
     scope = read.scope;
     worktrees = read.worktrees.filter((worktree) => !worktree.isMissing).map((worktree) => worktree.folder);
     const away = inRoots(read.root) ? null : home;
-    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', listed: pruneScope(listed.get(read.root), read), sortOrder: branchSort, traceSelected, graphColumns, dateSeparators, combineUpstream, resolveWithAI: true, home: away, keepOpen: false } }];
+    return [{ type: 'state', state: { ...sortRefs(read, branchSort), favorites: favorites.get(read.root) ?? [], defaultPull: 'pullRebaseAutostash', repos, github, agentsWindow: true, worktreesRoot: null, openBranches: 'checkout', listed: pruneScope(listed.get(read.root), read), sortOrder: branchSort, traceSelected, graphColumns, dateSeparators, combineUpstream, islands, resolveWithAI: true, home: away, keepOpen: false } }];
   }
 
   /** `light` for a page in the light theme, which can have other file icons. */

@@ -55,6 +55,7 @@ Acceptance:
 | `gitardo.graph.columns` | `["author", "date", "hash"]` | window | What is shown beside each message. | Graph (no cards yet) |
 | `gitardo.graph.dateSeparators` | `true` | window | The lines that name yesterday, this week, each month. Written by the toolbar's menu. | Graph (no cards yet) |
 | `gitardo.graph.combineUpstream` | `true` | window | A branch and its upstream on one label while at the same commit. Written by the toolbar's menu. | Graph (no cards yet); `branch.delete-remote` |
+| `gitardo.graph.islands` | `false` | window | The references, the commits and the details of the Graph view as rounded islands on a darker ground. | `graph.islands` |
 | `gitardo.graph.firstParent` | `false` | window | Follow only the first parent of merges. | Graph (no cards yet) |
 | `gitardo.graph.traceSelected` | `true` | window | Bring out the history of the selected commit. | Graph (no cards yet) |
 | `gitardo.branches.sortOrder` | not set | window | `name` or `date`; not set, VS Code's `git.branchSortOrder` decides, and by name without it. Written by the sections' menu. | `branch.sort` |
