@@ -180,34 +180,68 @@ the other from the inspector, which never closes; a file opened from the Files p
 window means two things; with `gitardo.graph.islands` on, the Graph view of the extension is three islands; every card of the
 phase passes its tests, and the snapshots of the window match.
 
-## M16 — The settings page in sections
+## M16 — The settings in sections, and a side column
 
-The settings page in the middle of the window, its settings in sections with their buttons on its left, every value
-changed on the page, the file written chosen with two tabs, and a search
-([D55](../08-decisions.md#d55--the-settings-page-in-sections-in-the-middle-of-the-window)). Built in six phases, each
-one commit or more, each ending with its cards built and their tests passing; the extension comes last. It comes after
-M14, whose icons of Lucide the buttons of the sections use.
+The settings page in the middle of the window, in sections, every value changed on it
+([D55](../08-decisions.md#d55--the-settings-page-in-sections-in-the-middle-of-the-window)); the repositories and the
+branches in one column on the left, the header a bar across the top that says the repository, the worktree and the
+branch, what was said in the status bar, the diffs of a commit and of a comparison beside their files, a chooser of the
+two sides of a comparison, all commits on one line, and menus that fit the window
+([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
+Built in twelve phases, each one commit or more, each ending with its cards built and their tests passing; the extension
+comes last. It comes after M14, whose icons of Lucide the buttons of the sections use, and whose Diff page beside the
+inspector phase 10 changes.
 
-1. **Sections, in the middle.** The page centered, the column of the sections and the list under their names, the
-   button of the section shown marked as the list scrolls, the menu of a narrow page; a title for each setting, its
+1. **Menus and pickers longer than the window.** A menu under a button stays under it and scrolls when it is too tall,
+   with a bar, the wheel and the arrows; a picker has the same bar and keeps the row lit in view. A fix first, since
+   the **…** menu cannot be used whole in a short window. Cards: `ui.menu-scroll`, `ui.picker-scroll`,
+   `graph.more-menu`.
+2. **Settings: sections, in the middle.** The page centered, the column of the sections and the list under their names,
+   the button of the section shown marked as the list scrolls, the menu of a narrow page; a title for each setting, its
    description as long as it needs, its key and the file that sets it. Cards: `settings.sections`, `settings.edit`.
-2. **The search, Changed and Experimental.** The field at the top, the sections with nothing found dimmed, the two
-   lists apart, the count and the mark beside each section. Cards: `settings.search`, `settings.sections`.
-3. **Every value on the page.** Numbers, strings, lists, `identities`, colors and fonts, written when the field loses
-   the focus; the bar of a setting a file sets, and the button that takes it back to its default. Cards:
+3. **Settings: the search, Changed and Experimental.** The field at the top, the sections with nothing found dimmed, the
+   two lists apart, the count and the mark beside each section. Cards: `settings.search`, `settings.sections`.
+4. **Settings: every value on the page.** Numbers, strings, lists, `identities`, colors and fonts, written when the
+   field loses the focus; the bar of a setting a file sets, and the button that takes it back to its default. Cards:
    `settings.edit`, `settings.reset`, `settings.theme`.
-4. **User and Repository as tabs.** The two tabs in place of the radio buttons, the settings a repository may set, and
-   `Set by the repository` in **User**. Cards: `settings.edit`.
-5. **A way in from Quick search.** **Open Settings: <section>** and **Open Settings: <title>**, the page scrolled to
-   it. Cards: `settings.reveal`.
-6. **The extension.** `contributes.configuration` as the same sections, in the same order, in VS Code's Settings
-   editor. Cards: `settings.sections` in the extension.
+5. **Settings: User and Repository as tabs, and a way in from Quick search.** The two tabs in place of the radio
+   buttons, `Set by the repository` in **User**; **Open Settings: <section>** and **Open Settings: <title>**, the page
+   scrolled to it. Cards: `settings.edit`, `settings.reveal`.
+6. **All commits on one line.** `graph.oneLane`, its switch in the **…** menu, every dot on one line, merges as rings.
+   Cards: `graph.one-lane`, `graph.more-menu`.
+7. **The side column and the header.** The island of tabs gone; **Repositories** and **Branches** in one island from
+   under the header to the status bar, each folding by its heading, the line between them dragged; a row for each
+   repository open, its **▾** with its worktrees and submodules; the header a bar on the ground across the top, always
+   shown, saying the repository, the worktree and the branch, without the counts, which **Sync** alone shows; the button
+   that puts the side column away in the top row of the timeline. Cards: `repo.side-column`, `repo.tabs`,
+   `repo.group-tabs`, `graph.toolbar`, `graph.where`, `graph.islands`, `graph.resize-panes`, `graph.toggle-references`,
+   `activity.status-bar`.
+8. **What each worktree is on.** The branch, the files changed and the commits to pull and to push of each repository
+   and of each of its worktrees, read in the background when their git folder changes, under each row and in each
+   **▾**. Cards: `repo.worktree-summary`, `repo.tabs`, `repo.group-tabs`.
+9. **What was said, in the status bar.** The bars under the header gone; what an operation said and the notices after
+   what is running, with their links and **×**, the status bar as high as it is. Cards: `activity.said`,
+   `activity.status-bar`.
+10. **A diff beside its commit.** The side column put away while the Diff page of a file of the inspector is shown, the
+    inspector as the column of the commit's files, a tree, the file shown marked. Cards: `diff.beside-inspector`.
+11. **A comparison beside its diffs, and the chooser.** A file of the comparison page opens its diff on the left with
+    the comparison as a column on the right; the chooser in place of the two questions, also for **Choose another
+    side**. Cards: `compare.beside-diff`, `compare.chooser`, `compare.choose`, `compare.change-side`.
+12. **The extension.** `contributes.configuration` as the same sections, in the same order, in VS Code's Settings
+    editor; `gitardo.graph.oneLane` and its switch in the Graph view. Cards: `settings.sections` and `graph.one-lane` in
+    the extension.
 
-Exit: the page opens in the middle of a window 1,600 logical pixels wide with **General** marked; a click on
-**Worktrees** shows its first setting at the top; `blame` typed in the search leaves only **Files and blame** lit;
-`graph.pageSize` set to 500 on the page writes only that key, comments kept, and ↺ takes it out again; a window 600
-logical pixels wide still reaches every section; the Settings editor of VS Code lists Gitardo's settings in the same
-sections; every card of the phase passes its tests, and the snapshots of the page match, in each theme.
+Exit: the **…** menu of a window 400 logical pixels high opens under its button and reaches its last entry; the settings
+page opens in the middle of a window 1,600 logical pixels wide with **General** marked, `blame` typed in its search
+leaves only **Files and blame** lit, and `graph.pageSize` set to 500 on it writes only that key, comments kept; with
+**Show all commits on one line** every dot of a repository with merges is on one line; the header says
+`api › login › feature/login` over the settings page as over the timeline; with three repositories open, the
+side column lists them under **Repositories** with the branch, the files changed and `↓ ↑` of each, and each worktree in
+its **▾** with its own; folding **Branches** gives its height to **Repositories**; a pull that succeeded says so in the
+status bar, which is as high as before; a file of a commit opened from the inspector leaves no side column and the
+commit's files as a tree on the right; a file of a comparison opened from its page leaves the comparison on the right;
+`main` then `feature` chosen in the chooser opens `main ↔ feature`; every card of the phase passes its tests, and the
+snapshots of the window, the settings page and the chooser match, in each theme.
 
 ## Before a release
 

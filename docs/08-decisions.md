@@ -822,7 +822,7 @@ sections, in the middle, with the sections beside it as buttons; the details pro
 maintainer as proposed.*
 
 The settings page of Gitardo Desktop (`settings.edit`) changes in five ways
-([the roadmap](desktop/07-roadmap.md#m16--the-settings-page-in-sections)):
+([the roadmap](desktop/07-roadmap.md#m16--the-settings-in-sections-and-a-side-column)):
 
 - **In the middle, in sections.** The page is centered in the place of the timeline and the inspector, at most 960
   logical pixels wide. On its left a column of buttons, one for each section, with its icon and its name; on its right
@@ -862,6 +862,78 @@ and settings near each other could not be read one after the other); a dialog or
 before (it reads as code, and the title says what the setting does); writing a field at each key (a file read again at
 each key, and the window drawn again with half a value); a separate section for the experimental settings (each stays
 with the feature it changes; **Experimental** lists them all).
+
+## D56 — A side column of repositories and branches, what was said in the status bar, diffs beside what opened them
+
+*Asked by the maintainer for milestone M16, with the settings page of D55; the details proposed by the agent, the
+choices the maintainer left to it said below.*
+
+Seven changes to the window of Gitardo Desktop
+([the roadmap](desktop/07-roadmap.md#m16--the-settings-in-sections-and-a-side-column)):
+
+- **All commits on one line.** A switch of the **…** menu, **Show all commits on one line** (`graph.oneLane`, off by
+  default), draws every dot of the timeline on one line, in the order listed, with the line straight from one to the
+  next: no lanes, no lines between lanes, one color. A merge is a ring rather than a dot, so that it is still told
+  apart. The labels, the folds of the rows and the selection are as before; **Fold all merges** is not offered while it
+  is on (`graph.one-lane`).
+- **A side column, the whole height under the header.** The island of tabs above the header goes. On the left of the
+  window, from under the header to the status bar, one island holds two sections, one above the other: **Repositories**
+  and **Branches**, which is the branch rail as it was. Each section folds and unfolds by its heading, and the line
+  between them is dragged to share the height; both are remembered for the workspace (`repo.side-column`).
+  **Repositories** has a row for each repository open, in place of its tab: its name, and under it, small, the branch
+  checked out in what it shows, how many files are changed there and how many commits are to pull and to push; its **▾**
+  lists its worktrees, each with the same three, and its submodules, and shows the one chosen (`repo.tabs`,
+  `repo.group-tabs`, `repo.worktree-summary`). The side column stays beside the timeline and beside every page, since
+  the repositories must be reachable from all of them, as the tabs were; the Diff pages of a commit and of a comparison
+  put it away, below. The button that puts it away and brings it back is the first of the top row of the timeline,
+  beside the branch filter; in the narrow layout it is put away, and that button opens it over the timeline.
+- **The header, a bar across the top of the window.** The header is no longer an island: it is a bar on the ground
+  of the window, across its whole width on the right of the bar of views, above the side column, the timeline and the
+  pages, always shown whatever is under it, so that one always sees where one is. It says, from its left, the
+  repository shown, the worktree or the submodule shown when it is not the repository's own folder, and the branch
+  checked out, as `gitardo › login › feature/login-page`; the repository opens the list of the repositories open, and
+  the worktree the **▾** of its row. Then **Search**, **Sync** and **…**. The branch is named without how far it is from
+  its upstream: **Sync** says it, `↓3 ↑2`, and only **Sync** (`graph.toolbar`). The button that put the branch rail
+  away leaves it for the top row of the timeline (`graph.toggle-references`).
+- **What was said, in the status bar.** What an operation said when it ended, with **Undo** and what it offers next,
+  and the notices, leave their bars under the header for the status bar, which keeps its height: after what is
+  running, the icon of its tone, its words cut with `…` when they are long and whole in its tooltip, its actions as
+  links in the text of the status bar, and **×**. What succeeded leaves after ten seconds unless the pointer is on it;
+  a warning or an error stays until **×** or the next operation (`activity.said`).
+- **A diff beside its commit.** A file of the inspector opens its Diff page as M14 made it, beside the inspector, and
+  now the side column is put away while it is shown, and the inspector becomes the column of the commit's files: the
+  commit in one line at its top, and its files as the tree of the Files page has them, the file shown marked, its
+  folders kept open or closed (`diff.beside-inspector`). The timeline brings everything back as it was.
+- **A comparison beside its diffs.** A file of the comparison page opens its diff on the left, and the comparison stays
+  on the right as a column: its two sides with the arrows that swap them, how far apart they are in one line, its
+  commits folded, and its files as a tree, the file shown marked (`compare.beside-diff`). On the right, where the
+  inspector is, so that the files of a commit and of a comparison are always in the same place.
+- **The comparison chooser.** The two questions one after the other of `compare.choose` become one dialog: **From**
+  and **To** side by side with the arrows that swap them, the list of what the side being chosen can be, in groups,
+  with a bar to scroll it, filtered by what is typed, a revision typed taken as it is when git knows it, the comparisons
+  opened before at its foot, what `compare.summary` says once both are chosen, and **Compare** (`compare.chooser`).
+- **Menus and pickers longer than the window.** A menu under a button opens below it and never moves above it; when it
+  is taller than the room under it, it ends at the foot of the window and scrolls, with the wheel, a bar, and the arrows
+  keeping the item lit in view (`ui.menu-scroll`). The pickers get the same bar and keep the row lit in view
+  (`ui.picker-scroll`).
+
+The maintainer left two choices to the agent: a long menu scrolls rather than splitting in two columns, and the
+comparison stays on the right of its diffs. The chooser is the agent's proposal, asked for since the picker of the
+sides did not scroll as one expects.
+
+In the extension, the Graph view gets the switch of one line (`gitardo.graph.oneLane`); the rest is VS Code's there
+(its Source Control repositories, its notifications, its diff editor and Quick Pick), and nothing changes.
+
+Rejected: a menu in two columns when it is too long (the arrows would have to cross from one column to the other, a
+submenu would open over the second column, and a menu twice as wide covers the timeline); the comparison on the left of
+its diffs (the files of a commit and those of a comparison would be on opposite sides); keeping the island of tabs above
+the side column (two lists of the repositories); how far the branch is from its upstream both beside its name and on
+**Sync** (the maintainer's choice: once, on **Sync**); a status bar taller when something was said (the maintainer's
+choice); what was said as a card over the timeline (it covers the rows being read, and is one more thing to put away);
+the header as an island over the timeline and the inspector only (the maintainer's choice: a bar over everything,
+always shown, so that the repository, the worktree and the branch are always seen); the two questions of
+`compare.choose` kept with a better picker (the first side is not seen while the second is chosen,
+and changing one side asks both again).
 
 ## Open questions
 

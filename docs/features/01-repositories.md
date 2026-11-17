@@ -396,13 +396,13 @@ Acceptance:
 
 ### `activity.status-bar` — What is running, in the status bar
 
-The status bar at the foot of the window says what Gitardo is running, for how long, and why, and the identity commits
-are made with; the branch of the header says how far it is from its upstream.
+The status bar at the foot of the window says what Gitardo is running, for how long, and why, what the last operation
+said (`activity.said`), and the identity commits are made with.
 
 - **Kind**: View
 - **Function**: `views::activity::status_bar_view(state: &StatusBarState, ui) -> Vec<Intent>`
-- **Entry points**: the status bar, and the branch of the header.
-- **Uses**: `activity.describe-task`, `activity.what-is-running`, `identity.switch`.
+- **Entry points**: the status bar.
+- **Uses**: `activity.describe-task`, `activity.what-is-running`, `activity.said`, `identity.switch`.
 
 - While Gitardo has been reading a repository, running an operation, comparing two sides, making a patch or asking
   GitHub for more than half a second, the activity indicator shows a spinning icon with the title of what has run
@@ -415,8 +415,8 @@ are made with; the branch of the header says how far it is from its upstream.
   and ends with **Click to open the Activity drawer.** The times go on every half second; the tooltip is
   drawn again only when its text changes.
 - A click opens the Activity drawer (`activity.what-is-running`).
-- The branch of the header names the branch checked out, `detached at 3f2a1c9` or `no commits yet`, with `↑<ahead>
-  ↓<behind>` from its upstream when it has one.
+- The status bar keeps its height whatever it says: what was said and its links are drawn in its text
+  ([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
 
 Acceptance:
 
@@ -426,6 +426,42 @@ Acceptance:
 - [ ] In a window 1000 pixels wide, a read of 2 s says `Reading app (2 s)` in the status bar, and the identity is at
   its end; a click on the identity asks to switch it.
 - [ ] With `main` two ahead of `origin/main`, the branch of the header says `main ↑2 ↓0`.
+
+### `activity.said` — What was said, in the status bar
+
+What an operation said when it ended, and the notices of the window, in the status bar, with **Undo** and what it offers
+next, in place of the bars that were under the header
+([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
+
+- **Kind**: View
+- **Function**: `views::activity::said_view(state: &SaidState, ui) -> Vec<Intent>`
+- **Entry points**: the status bar, after what is running.
+- **Uses**: `undo.last`, `conflicts.stopped`, `activity.status-bar`, `log.show`.
+- **Extension**: VS Code's notifications say it: nothing to build.
+
+- After the indicator of what is running, or at the start of the status bar when nothing runs: the icon of its tone
+  (done, warning, error), then its words, in the text of the status bar, cut with `…` where the room ends, and whole in
+  its tooltip. Then its actions, as links in the same text: **Undo** when it can be taken back, what it offers next
+  (**Create pull request**, **Show conflicts**), and **×**, which puts it away. The identity at the end of the status
+  bar gives up its room first, then the words of what is running, which keeps its icon.
+- What succeeded leaves after ten seconds, or ten seconds after the pointer left it. A warning or an error stays until
+  **×**, the next operation, or the repository shown changes; an error is in the color of errors.
+- A click on its words opens the Command log of the bottom panel at the command that said it (`log.show`).
+- The notices of the window (`None of the folders of this workspace is there any more.`, `This file looks binary.`)
+  are said in the same place, in the same way, with the tone of a warning.
+- What an operation that stopped on conflicts says (`conflicts.stopped`) is said here too; the banner of the operation
+  that stopped stays at the top of the timeline (`conflicts.banner`).
+- Nothing is said in a bar under the header any more, and the status bar is as high as it was.
+
+Acceptance:
+
+- [ ] After a pull that succeeded, the status bar says what it pulled, with **Undo**, and is as high as before.
+- [ ] Ten seconds later, without the pointer on it, it is gone.
+- [ ] After a push of a branch of a repository on GitHub, it offers **Create pull request**, which opens the page.
+- [ ] A failed push says why in the color of errors, and is there until **×**.
+- [ ] Words longer than the room are cut with `…`, and the tooltip has them whole.
+- [ ] A click on the words opens the Command log at that command.
+- [ ] No bar is drawn between the header and the timeline after an operation.
 
 ### `activity.what-is-running` — What is running, in the Activity drawer
 
@@ -489,61 +525,134 @@ Acceptance:
 
 ## Repository tabs
 
-Gitardo Desktop keeps several repositories open in one window, each in a **tab** of the island above the header, and
-shows one at a time ([D50](../08-decisions.md#d50--repository-tabs-and-what-each-repository-keeps)). A tab holds a
-repository with its worktrees and its submodules (`repo.group-tabs`). What is below the island is the tab's: the
-header, the branch rail, the timeline, the inspector, the pages and the Changes page. What is around it is the
-window's: the bar of views, the Activity drawer with the Command log and the Tasks, the status bar, the settings and
-the dialogs. The tabs take the place of the repository menu of the header, which is gone.
+Gitardo Desktop keeps several repositories open in one window, each a **tab**, and shows one at a time
+([D50](../08-decisions.md#d50--repository-tabs-and-what-each-repository-keeps)). Since milestone M16 a tab is a row of
+**Repositories**, the first section of the side column, and no longer a tab of an island above the header
+([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
+A tab holds a repository with its worktrees and its submodules (`repo.group-tabs`). The tab's are: the header, the
+branches of the side column, the timeline, the inspector, the pages and the Changes page. The window's are: the bar of
+views, **Repositories**, the Activity drawer with the Tasks, the bottom panel's Command log, the status bar, the
+settings and the dialogs.
 
 The extension has no tabs: VS Code's views have the list of `repo.select` for that. It keeps what each repository
 showed in the same way, behind the same setting, off by default there (`repo.keep-open`).
 
-### `repo.tabs` — The tabs of the repositories open
+### `repo.tabs` — The repositories open, in the side column
 
-The island at the top of the window: a tab for each repository open, the one shown marked, and **+** to open another.
+**Repositories**, the first section of the side column: a row for each repository open, the one shown marked, what
+each is on, and **+** to open another.
 
 - **Kind**: View
 - **Function**: `views::repo::tabs_view(state: &TabsState, ui: &mut Ui) -> Vec<Intent>`
-- **Entry points**: the island of tabs, above the header. `Ctrl+1` to `Ctrl+8` show the tab at that place and
-  `Ctrl+9` the last one; `Ctrl+PageDown` and `Ctrl+PageUp` the next tab and the one before, going round. On macOS
-  `Cmd+1` to `Cmd+9`, `Cmd+Shift+]` and `Cmd+Shift+[`.
-- **Offered when**: a workspace is open, even with a single tab, so that **+** is there.
-- **Uses**: `repo.switch-tab`, `repo.open-tab`, `repo.close-tab`, `repo.group-tabs`, `repo.name-repositories`.
+- **Entry points**: **Repositories** at the top of the side column (`repo.side-column`). `Ctrl+1` to `Ctrl+8` show the
+  repository at that place and `Ctrl+9` the last one; `Ctrl+PageDown` and `Ctrl+PageUp` the next and the one before,
+  going round. On macOS `Cmd+1` to `Cmd+9`, `Cmd+Shift+]` and `Cmd+Shift+[`.
+- **Offered when**: a workspace is open, even with a single repository, so that **+** is there.
+- **Uses**: `repo.switch-tab`, `repo.open-tab`, `repo.close-tab`, `repo.group-tabs`, `repo.name-repositories`,
+  `repo.worktree-summary`.
 
-A tab shows:
+The heading of the section says **Repositories**, with the chevron that folds it on its left and **+** on its right
+(`repo.open-tab`). Under it, a row for each repository open, in the order they were opened, each two lines high:
 
-- the name of its repository, from `repo.name-repositories`, and, while it shows one of its worktrees or submodules,
-  ` › ` and the name of that one, as `repo.group-tabs` says;
-- a **▾** when its repository has worktrees or submodules, which opens the menu of `repo.group-tabs`;
-- a spinner while an operation runs in it, whichever tab is shown;
-- a **×** on the tab shown and on the one under the pointer.
+- on the first line, the icon of a repository, its name from `repo.name-repositories`, and, while it shows one of its
+  worktrees or submodules, ` › ` and the name of that one, as `repo.group-tabs` says; then, on the right, a spinner
+  while an operation runs in it, and its **▾** when it has worktrees or submodules, which opens the menu of
+  `repo.group-tabs`;
+- on the second line, small and muted, what it shows is on (`repo.worktree-summary`): the branch checked out, or
+  `detached at 3f2a1c9`; `● 3` when 3 files are changed and not committed, in the color of changes; `↓2 ↑1` when there
+  are commits to pull and to push. What is not there is not said: a repository up to date with nothing changed says its
+  branch alone.
 
-Its tooltip is the folder of what it shows. Its context menu has **Close tab** and **Close other tabs**
-(`repo.close-tab`). A middle click closes it.
-
-The island is one row, and it fits the width of the window:
-
-- Each tab is as wide as its name, up to 200 logical pixels; a longer name is cut at its start with `…`, so that the
-  name of the repository's own folder stays.
-- When the tabs do not fit, each gets narrower, down to 96 logical pixels; those that still do not fit are listed in
-  **… N** at the end of the island, `N` being how many, in their order. The tab shown is never among them: it takes
-  the place of the last tab that fits.
-- Below 480 logical pixels the island is a single button, the name of the tab shown with a chevron, which lists every
-  tab and **Open a repository…**.
+The row shown has the background of a row selected, and a bar in the color of the accent on its left. A click on a row
+shows it (`repo.switch-tab`). The **×** of a row is on the row under the pointer and the row shown; a middle click
+closes it; its context menu has **Close tab** and **Close other tabs** (`repo.close-tab`), **Reveal in the file
+manager** and **Copy path**. Its tooltip is the folder of what it shows. A name too long for the row is cut at its start
+with `…`, so that the name of the repository's own folder stays. When the rows do not fit the height of the section, it
+scrolls.
 
 Acceptance:
 
-- [ ] A window with the tabs `api`, `web` and `docs`, `web` shown, draws three tabs with `web` marked and **+** after
-      them.
+- [ ] A window with `api`, `web` and `docs` open, `web` shown, lists three rows under **Repositories** with `web`
+      marked, and **+** in the heading.
 - [ ] Clicking `docs` shows it; `Ctrl+1` shows `api`; `Ctrl+PageDown` from `docs` shows `api`.
-- [ ] With eight tabs in a window 900 logical pixels wide, the tabs that do not fit are listed in **… N**, with their
-      number, and the tab shown is never among them.
-- [ ] Below 480 logical pixels the island is one button with the name of the tab shown, whose list has every tab and
-      **Open a repository…**.
-- [ ] A name longer than its tab is cut at its start with `…`, and the tooltip has the whole folder.
-- [ ] A tab whose repository runs an operation shows a spinner while another tab is shown.
-- [ ] The snapshots of the island, wide, narrow and as one button, in every theme, at 100 % and 200 %, match.
+- [ ] `web` on `main`, with 3 files changed and 2 commits to pull, says `main ● 3 ↓2` under its name.
+- [ ] `api` on `main`, up to date and with nothing changed, says `main` alone.
+- [ ] A repository that runs an operation shows a spinner while another is shown.
+- [ ] With twelve repositories open in a section 200 logical pixels high, the section scrolls to the last one.
+- [ ] A name longer than its row is cut at its start with `…`, and the tooltip has the whole folder.
+- [ ] There is no island above the header.
+- [ ] The snapshots of the section, with one repository and with several, in every theme, at 100 % and 200 %, match.
+
+### `repo.side-column` — The side column of repositories and branches
+
+One island on the left of the window, the whole height of it, with **Repositories** above and **Branches** under it,
+each folding by its heading, the line between them dragged
+([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
+
+- **Kind**: View
+- **Function**: `views::repo::side_column_view(state: &SideColumnState, ui: &mut Ui) -> Vec<Intent>`
+- **Entry points**: the left of the window, beside the bar of views, under the header; it is put away and brought
+  back by the first button of the top row of the timeline (`graph.toggle-references`).
+- **Uses**: `repo.tabs`, `refs.tree`, `graph.resize-panes`, `graph.toggle-references`.
+- **Extension**: VS Code's Source Control side bar has the repositories, and the Branches view the branches: nothing to
+  build.
+
+- The island goes from under the header to the status bar; the timeline, the inspector, the pages and the bottom
+  panel are on its right, and the header above them all (`graph.toolbar`).
+- **Repositories** (`repo.tabs`) is above, **Branches** (`refs.tree`, the branch rail as it was, with its filter and
+  its scope line) is under it. Each has a heading in capitals of the size of the headings of the rail, with a chevron
+  that folds and unfolds the section; a folded section is its heading alone, and the other takes the height.
+- The line between them is dragged to share the height (`graph.resize-panes`), the arrows moving it with the keyboard.
+  **Repositories** starts at 160 logical pixels, or as tall as its rows when they need less; neither is shorter than 64
+  logical pixels while both are open.
+- Which sections are folded and the height of **Repositories** are remembered for the workspace.
+- The side column stays beside the timeline and beside every page, except a Diff page beside the inspector
+  (`diff.beside-inspector`) or beside a comparison (`compare.beside-diff`), which put it away while they are shown and
+  give it back as it was.
+- In the narrow layout, below 900 logical pixels, it is put away, and the first button of the top row of the
+  timeline opens it over the timeline, as wide as it was, until a click outside it or `Escape`.
+
+Acceptance:
+
+- [ ] The side column's top is under the header, level with the timeline's top, and its foot touches the status
+      bar's gap.
+- [ ] Folding **Branches** gives **Repositories** the whole height but the heading of **Branches**.
+- [ ] Folding both leaves two headings at the top, and the rest of the island empty.
+- [ ] Dragging the line between the sections changes their heights, and they are the same after the window opens
+      again.
+- [ ] The side column stays beside the Changes page and the settings page.
+- [ ] In a window 800 logical pixels wide, the side column is not shown, and the first button of the top row of the
+      timeline opens it over the timeline.
+
+### `repo.worktree-summary` — What a repository or a worktree is on
+
+The branch checked out in a repository or a worktree, how many files are changed there, and how many commits are to
+pull and to push, for the rows of **Repositories** and the entries of their **▾**.
+
+- **Kind**: Read
+- **Function**: `git::read::worktree_summary(folder: &Path) -> WorktreeSummary`
+- **Reads**: `git status --porcelain=v2 --branch --untracked-files=normal` in the folder: the branch or the detached
+  commit from its `# branch.head` and `# branch.oid` lines, the commits ahead and behind from `# branch.ab`, the files
+  changed from the count of its other lines.
+- **Uses**: `repo.common-folder`, `repo.watch-changes`; by `repo.tabs` and `repo.group-tabs`.
+
+- The repository shown takes its summary from its own read (`repo.read-state`), and runs no other.
+- Every other repository open and every worktree of each is read once when the window opens, then again only when its
+  git folder changes (its `HEAD`, its index, its refs) or the files of its folder change, as `repo.watch-changes` says,
+  and not more than once in two seconds for each folder. The reads run in the background, one at a time, after the reads
+  of the repository shown.
+- A worktree whose folder is gone is said `missing`; a read that fails leaves the last summary, muted.
+- Ahead and behind are counted from the upstream of the branch, as `git status` does; a branch without an upstream says
+  neither.
+
+Acceptance:
+
+- [ ] A worktree on `feature/login`, with two files changed and one untracked, one commit ahead of its upstream, reads
+      as `feature/login`, 3 files, `↑1`.
+- [ ] A worktree detached at `3f2a1c9` reads as `detached at 3f2a1c9`.
+- [ ] Saving a file in a worktree not shown updates its count within two seconds.
+- [ ] Nothing in a worktree changing runs no read of it.
+- [ ] A worktree whose folder was deleted is said `missing`.
 
 ### `repo.open-tab` — Open a repository in a tab
 
@@ -552,9 +661,8 @@ Opens a repository of the workspace, or of a folder added to it, in a tab of its
 - **Kind**: Operation
 - **Function**: `app::store::tabs::open_tab(state: &mut State, folder: &Path) -> Vec<Effect>`, a function of the
   store (Q43)
-- **Entry points**: **+** in the island of tabs, whose menu lists the repositories of the workspace that are not open,
-  then **Open folder…** and **Open workspace file…**; **Open a repository…** in the list of the island when it is one
-  button; **Open Repository in a Tab** in Quick search.
+- **Entry points**: **+** in the heading of **Repositories**, whose menu lists the repositories of the workspace that
+  are not open, then **Open folder…** and **Open workspace file…**; **Open Repository in a Tab** in Quick search.
 - **Asks**: the repository, when it was not chosen in the menu, in Gitardo's picker titled **Open a repository in a
   tab**: the repositories of the workspace that are not open, each by its name with its folder under it.
 - **Reads**: `repo.read-state` and the first page of commits, for its first read; `repo.read-repositories` for a
@@ -562,7 +670,7 @@ Opens a repository of the workspace, or of a folder added to it, in a tab of its
 - **Plan**: no step: nothing runs in a repository.
 - **Danger**: None.
 - **Undo**: nothing in a repository changes; `repo.close-tab` closes the tab again.
-- **After**: the new tab is placed after the tab shown and is shown, saying **Loading repository…** until its first
+- **After**: the new row is placed after the one shown and is shown, saying **Loading repository…** until its first
   read is there. The tabs open are remembered with the workspace. A repository open already has its tab shown, and no
   second one opens. A repository that `repo.group-tabs` puts in the group of a tab open is shown in that tab. A folder
   added with **Open folder…** goes to the workspace, and its repositories are offered as `repo.choose-tabs` says.
@@ -655,8 +763,8 @@ Takes a repository out of the window. Nothing in the repository changes.
 - **Kind**: Operation
 - **Function**: `app::store::tabs::close_tab(state: &mut State, index: usize) -> Vec<Effect>`, a function of the
   store (Q43)
-- **Entry points**: the **×** of a tab; a middle click on it; **Close tab** and **Close other tabs** in its context
-  menu; **Close Tab** in Quick search, for the tab shown.
+- **Entry points**: the **×** of its row in **Repositories**; a middle click on the row; **Close tab** and **Close
+  other tabs** in its context menu; **Close Tab** in Quick search, for the tab shown.
 - **Asks**: for a File page of the tab with edits not saved, what closing that page asks, **Save changes to app.rs?**,
   the tab and the page shown while it asks: **Save** saves the file, then the tab closes; **Don't save** closes it with
   the edits lost; **Cancel** keeps it, and the tabs not closed yet. A save that fails keeps the tab.
@@ -686,7 +794,7 @@ Shows the repository of another tab, as it was left.
 - **Kind**: Operation
 - **Function**: `app::store::tabs::switch_tab(state: &mut State, index: usize) -> Vec<Effect>`, a function of the
   store (Q43)
-- **Entry points**: a click on a tab, the keys and the **… N** menu of `repo.tabs`; **Go to Repository…** in Quick
+- **Entry points**: a click on its row in **Repositories**, and the keys of `repo.tabs`; **Go to Repository…** in Quick
   search, which lists the tabs; and whatever shows a repository of another tab: a file of it chosen for its history or
   its blame (`repo.owner-of-file`).
 - **Offered when**: the window has two tabs or more.
@@ -779,11 +887,13 @@ chooses which of them it shows.
 - **Kind**: Derivation
 - **Function**: `model::repo::group_tabs(repositories: &[Repository]) -> Vec<TabGroup>`, each repository with the
   common git folder `repo.read-repositories` read for it
-- **Entry points**: the **▾** of a tab, which lists the group: the repository itself, its other worktrees, each by its
-  branch or `detached at <short>`, then its submodules, each by its path, a submodule's own submodules indented under
-  it. The one the tab shows has a check. Choosing another shows it in the tab, as `worktree.show-in-gitardo` and
-  `submodule.show-in-gitardo` do.
-- **Uses**: `repo.common-folder`, `repo.keep-open`, `worktree.show-in-gitardo`, `submodule.show-in-gitardo`.
+- **Entry points**: the **▾** of a row of **Repositories**, which lists the group: the repository itself, its other
+  worktrees, each by its branch or `detached at <short>`, with its folder under it and, on its right, `● 3` for the
+  files changed there and `↓2 ↑1` for the commits to pull and to push (`repo.worktree-summary`), then its submodules,
+  each by its path, a submodule's own submodules indented under it. The one the row shows has a check. Choosing another
+  shows it in the tab, as `worktree.show-in-gitardo` and `submodule.show-in-gitardo` do.
+- **Uses**: `repo.common-folder`, `repo.keep-open`, `repo.worktree-summary`, `worktree.show-in-gitardo`,
+  `submodule.show-in-gitardo`.
 - **Extension**: no tabs and no **▾**; the list of `repo.select` follows the first three rules, each member indented
   under its repository, its worktrees first (`groupRepositories` in `src/shared/repositoryGroups.ts`, tested by
   `test/repositoryGroups.test.ts`).

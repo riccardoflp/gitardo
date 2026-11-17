@@ -18,27 +18,27 @@ history fills it, and everything else opens from it.
 
 ```
 ┌───┬──────────────────────────────────────────────────────────────────────────────────────────┐
-│ ⑂ │ ╭──────────────────────────────────────────────────────────────────────────────────────╮ │
-│   │ │ [gitardo ▾ ×] [api] [web] [infra] [docs]                                   [… 3] [+] │ │
-│   │ ╰──────────────────────────────────────────────────────────────────────────────────────╯ │
-│   │ ╭──────────────────────────────────────────────────────────────────────────────────────╮ │
-│   │ │ ◧  feature/login-page ↑2 ↓0                    [⌕ Search  Ctrl K] [↓2 ↑1 Sync ▾] […] │ │
-│ ◷ │ ╰──────────────────────────────────────────────────────────────────────────────────────╯ │
-│ ▤3│ ╭───────────────╮ ╭────────────────────────────────────────────╮ ╭─────────────────────╮ │
-│ ▣ │ │ YOURS         │ │ [≡ All branches ▾] [⌕ Find by message…   ] │ │ 4b830a6 · 2 hours   │ │
-│ ⇄ │ │ ● feature ↑2  │ │ ┌ Draft ─────────────────────────────────┐ │ │ Add the login page  │ │
-│   │ │ ● main        │ │ │ Remember the e-mail of the last login  │ │ │ The page asks for … │ │
-│   │ │ ● fix/parser  │ │ │ 3 files · 2 staged  [Review] [Commit]  │ │ │                     │ │
-│   │ │               │ │ └────────────────────────────────────────┘ │ │ Dana Ruiz           │ │
-│   │ │ ORIGIN        │ │ ●   Add the login page  (feature/login…)   │ │ 4 files    +180 −7  │ │
-│   │ │ ○ origin/main │ │ ●   Validate the e-mail before sending     │ │ src/login/page.rs   │ │
-│   │ │ KEPT ASIDE    │ │ ◉─┐ Merge branch 'fix/parser' into main    │ │ [Show the changes]  │ │
-│ ⓘ │ │ Stashes     3 │ │ │ ● Read a section that has no name        │ │ [Cherry-pick] […]   │ │
-│ ⚙ │ ╰───────────────╯ ╰────────────────────────────────────────────╯ ╰─────────────────────╯ │
+│ ⑂ │ gitardo › login › feature/login-page               [⌕ Search  Ctrl K] [↓2 ↑1 Sync ▾] […] │
+│   │                                                                                          │
+│   │ ╭────────────────╮ ╭───────────────────────────────────────────╮ ╭─────────────────────╮ │
+│   │ │ ▾ REPOSITORIES+│ │ ◧ [≡ All branches ▾] [⌕ Find by message…] │ │ 4b830a6 · 2 hours   │ │
+│   │ │▌gitardo       ▾│ │ ┌ Draft ────────────────────────────────┐ │ │ Add the login page  │ │
+│   │ │ feature ●3 ↑2  │ │ │ Remember the e-mail of the last login │ │ │ The page asks for … │ │
+│ ◷ │ │ api            │ │ │ 3 files · 2 staged  [Review] [Commit] │ │ │                     │ │
+│ ▤3│ │ main ↓1        │ │ └───────────────────────────────────────┘ │ │ Dana Ruiz           │ │
+│ ▣ │ ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤ │ ●   Add the login page  (feature/login…)  │ │ 4 files    +180 −7  │ │
+│ ⇄ │ │ ▾ BRANCHES     │ │ ●   Validate the e-mail before sending    │ │ src/login/page.rs   │ │
+│   │ │ ● feature ↑2   │ │ ◉─┐ Merge branch 'fix/parser' into main   │ │ [Show the changes]  │ │
+│   │ │ ● main         │ │ │ ● Read a section that has no name       │ │ [Cherry-pick] […]   │ │
+│   │ │ ORIGIN         │ │                                           │ │                     │ │
+│   │ │ ○ origin/main  │ │                                           │ │                     │ │
+│   │ │ KEPT ASIDE     │ │                                           │ │                     │ │
+│ ⓘ │ │ Stashes     3  │ │                                           │ │                     │ │
+│ ⚙ │ ╰────────────────╯ ╰───────────────────────────────────────────╯ ╰─────────────────────╯ │
 ├───┴──────────────────────────────────────────────────────────────────────────────────────────┤
-│ ◔ Fetching origin (2 s)                                         Dana Ruiz <dana@example.com> │
+│ ◔ Fetching origin (2 s)   ✓ Pulled 3 commits  Undo  ×           Dana Ruiz <dana@example.com> │
 └──────────────────────────────────────────────────────────────────────────────────────────────┘
- Bar of   Tabs, header, then branch rail, timeline (the draft at its top) and inspector, each an island
+ Bar of   The header across the top; under it the side column, the timeline and the inspector
  views                                                                          Status bar
 ```
 
@@ -46,21 +46,25 @@ history fills it, and everything else opens from it.
   ([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)): **Timeline**, **Changes** with the number of
   changed files, **Files** and **Compare**; at its foot **Terminal**, which shows and hides the bottom panel,
   **Activity**, which opens and closes the Activity drawer, and **Settings**. The place shown is marked.
-- **Tabs**: the island at the top, a tab for each repository open, the one shown marked, its worktrees and submodules
-  in the **▾** of its tab, and **+** to open another (milestone M12,
-  [D50](../08-decisions.md#d50--repository-tabs-and-what-each-repository-keeps)). Everything under it is the tab's,
-  and is kept while another tab is shown. A narrow window narrows the tabs, lists those that do not fit in **… N**,
-  and at last makes the island one button.
-- **Islands**: the tabs, the header, the branch rail, the timeline and the inspector, or the page shown, are each a
-  rounded card on a ground one step darker, with a gap between them that is dragged to resize them.
-- **Header**: the button that shows or hides the branch rail, the **branch** checked out with how far it is from its
-  upstream, **Search**, the button of **Quick search** with `Ctrl K` beside it, **Sync**, which shows the commits to
-  pull and to push and, clicked, fetches, pulls and pushes them, with its menu (fetch, pull, push and their other
-  ways), and **…** (refresh, branch, stash, undo and the switches of the timeline). It gives up its words for icons
-  when the window is narrow.
+- **Side column**: the island on the left, the whole height of the window, with two sections that fold and share its
+  height: **Repositories**, a row for each repository open (a **tab**, milestone M12,
+  [D50](../08-decisions.md#d50--repository-tabs-and-what-each-repository-keeps)), the one shown marked, each with the
+  branch it is on, its files changed and its commits to pull and to push, its worktrees and submodules in its **▾**, and
+  **+** to open another; and **Branches**, the branch rail. The tab's are the branches, the header, the timeline, the
+  inspector and the pages, kept while another tab is shown (milestone M16,
+  [D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
+- **Islands**: the side column, the timeline and the inspector, or the page shown, are each a rounded card on a
+  ground one step darker, with a gap between them that is dragged to resize them. The header above them is not one.
+- **Header**: a bar across the top of the window, not an island, always shown: where one is, the **repository**, the
+  **worktree** when it is not the repository's own folder and the **branch** checked out, as `gitardo › login ›
+  feature/login-page`, then **Search**, the button of **Quick search** with `Ctrl K` beside it, **Sync**, which shows
+  the commits to pull and to push and, clicked, fetches, pulls and pushes them, with its menu (fetch, pull, push and
+  their other ways), and **…** (refresh, branch, stash, undo and the switches of the timeline). It gives up its words
+  for icons when the window is narrow.
 - **Status bar**: a line of small text at the foot of the window: the **activity** indicator on the left (what is
-  running, which opens the **Activity** drawer), and on the right the identity commits are made with, which a click
-  switches.
+  running, which opens the **Activity** drawer), then what the last operation said, with **Undo** and what it offers
+  as links, and on the right the identity commits are made with, which a click switches. It is as high whatever it
+  says.
 - **Branch rail**: the local branches, each with the color of its lane, so that the rail is also the legend of the
   graph; the branches of each remote, under a heading for each remote (**ORIGIN**); **Kept aside**: stashes,
   worktrees, tags and submodules, each a list that opens in the rail. The lists of Kept aside start closed and the
@@ -106,11 +110,12 @@ The cards of the catalog name the places of the window with these words, and onl
 | Place | What it is |
 | --- | --- |
 | **Bar of views** | The column of icons on the left edge: Timeline, Changes, Files, Compare, Activity, Settings. |
-| **Tabs** | The island at the top: a tab for each repository open, **… N** and **+**. |
-| **Header** | The island under the tabs: branch, Search, Sync, **…**. |
-| **Island** | Each rounded card of the window: the tabs, the header, the branch rail, the timeline, the inspector, a page. |
-| **Status bar** | The line of text at the foot of the window: what is running, the identity commits are made with. |
-| **Branch rail** | The list on the left: local branches, a heading for each remote, and **Kept aside** (stashes, worktrees, tags, submodules). |
+| **Side column** | The island on the left, the whole height of the window: **Repositories** above, **Branches** under it. |
+| **Repositories** | The first section of the side column: a row, a **tab**, for each repository open, and **+**. |
+| **Header** | The bar across the top of the window: repository, worktree and branch, Search, Sync, **…**. |
+| **Island** | Each rounded card of the window: the side column, the timeline, the inspector, a page. |
+| **Status bar** | The line of text at the foot of the window: what is running, what was said, the identity commits are made with. |
+| **Branch rail** | **Branches**, the second section of the side column: local branches, a heading for each remote, and **Kept aside** (stashes, worktrees, tags, submodules). |
 | **Timeline** | The history with its lanes, in the middle. "The graph" is the drawing of its lanes. |
 | **Draft** | The card of the uncommitted changes at the top of the timeline. |
 | **Inspector** | The card of the selected commit, on the right. |

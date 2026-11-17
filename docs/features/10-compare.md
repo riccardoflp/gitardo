@@ -84,22 +84,16 @@ Acceptance:
 
 ### `compare.choose` — Compare branches, tags or commits
 
-Asks for the two sides of a comparison, one after the other, and opens it.
+Asks for the two sides of a comparison in the comparison chooser (`compare.chooser`), and opens it.
 
 - **Kind**: Operation
 - **Function**: `features::compare::choose(context, answers) -> Outcome`
 - **Entry points**: **Compare Branches, Tags or Commits…** in Quick search; **Compare** at the top of the branch
   rail; **Compare branches, tags or commits…** in the **…** menu of the header.
-- **Asks**:
-  1. **Compare**, with the placeholder **The branch, tag or commit to start from, or a comparison opened before**: the
-     choices of `compare.side-choices`, with **Opened before** and the **Working tree**. Choosing a comparison opened
-     before opens it (`compare.recent`) and asks nothing more.
-  2. **Compare `<first>` with**, with the placeholder **The branch, tag or commit to compare it with**: the same
-     choices, without the first side and without **Opened before**.
-  3. After **Enter a hash or a revision…**, an input box with the title of the question and the prompt **A commit hash,
-     or anything else git understands: HEAD~3, v1.0^, main@{yesterday}**. What git does not know is refused while
-     typing: **Git does not know a commit by this name in this repository.** A hash typed is named by its first seven
-     characters, anything else by what was typed.
+- **Asks**: the two sides, together, in the comparison chooser (`compare.chooser`): **From**, which starts as what is
+  checked out, and **To**, each from the choices of `compare.side-choices`, with a revision typed taken as it is when
+  git knows it. Choosing a comparison under **Opened before** opens it (`compare.recent`) and asks nothing more. A hash
+  typed is named by its first seven characters, anything else by what was typed.
 - **Reads**: `compare.resolve-revision`, while typing and again once the text is accepted.
 - **Plan**: no step; it changes nothing.
 - **Danger**: None
@@ -108,7 +102,7 @@ Asks for the two sides of a comparison, one after the other, and opens it.
   comparison (`compare.recent`).
 - **Refuses**: a text accepted before its check came back, which git does not know: **"`<text>`" is not a commit of
   this repository.**
-- **Uses**: `compare.side-choices`, `compare.recent`, `compare.page`.
+- **Uses**: `compare.chooser`, `compare.side-choices`, `compare.recent`, `compare.page`.
 
 Acceptance:
 
@@ -117,7 +111,62 @@ Acceptance:
 - [ ] Typing `HEAD~3` as a side opens a comparison whose side is named `HEAD~3`.
 - [ ] Typing a name git does not know cannot be accepted.
 - [ ] Choosing an entry of **Opened before** opens that comparison, narrowed as it was, without a second question.
-- [ ] Escape at either question opens nothing.
+- [ ] Escape in the chooser opens nothing.
+
+### `compare.chooser` — The comparison chooser
+
+One dialog to choose both sides of a comparison, each seen while the other is chosen, in place of two questions one
+after the other
+([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
+
+- **Kind**: View
+- **Function**: `views::compare::chooser_view(state: &ChooserState, ui: &mut Ui) -> Vec<Intent>`
+- **Entry points**: `compare.choose`, and `compare.change-side` with the side clicked chosen.
+- **Reads**: `compare.resolve-revision` while a revision is typed; `compare.read-sides` for what it says once both
+  sides are chosen.
+- **Uses**: `compare.side-choices`, `compare.recent`, `compare.summary`, `compare.swap`, `ui.picker-scroll`.
+- **Extension**: VS Code's Quick Pick asks for the two sides, one after the other, as before: nothing to build.
+
+A dialog over the window, at its top, 720 logical pixels wide or the window less its margins, as high as two thirds of
+the window. From the top:
+
+- **From** and **To**, side by side, each a box with the icon of its side (branch, remote branch, tag, commit, working
+  tree), its name and its short hash, or its placeholder **Choose the first side** and **Choose the side to compare it
+  with**; between them the arrows that swap them (`compare.swap`). The box being chosen has the border of the focus; a
+  click on the other moves to it, and so does `Tab`.
+- Under them, one field that filters the list, with the focus, its placeholder **Find a branch, a tag or a commit, or
+  type a revision**.
+- The list of what the box being chosen can be (`compare.side-choices`), under the headings **Checked out**,
+  **Branches**, **Remote branches**, **Tags** and **Recent commits** (the 20 last of the branch checked out, each with
+  its subject), each row with its icon, its name, its short hash and how long ago its commit was made. The list has
+  the bar of `ui.picker-scroll`. What the other box holds is not in it.
+- Typing filters the list by name, hash and subject. A text that names no row but that git knows, as `HEAD~3` or
+  `v1.0^`, is offered at the top of the list as **Use `HEAD~3`** with the commit it names; a text git does not know
+  offers nothing and says `Git does not know a commit by this name.`
+- At the foot, **Opened before**: the comparisons opened before, the last first, as `<first> ↔ <second>`, as many as
+  fit on one line, the rest under **More…**; a click opens one (`compare.recent`).
+- Once both boxes hold a side, the line above the buttons says what `compare.summary` says of them, `feature is 3
+  commits ahead of main and 2 behind`, while the dialog is open.
+- **Compare**, enabled once both boxes hold a side, which opens the comparison page (`compare.page`); and **Cancel**.
+
+It opens with **From** holding what is checked out and **To** being chosen, so that the usual comparison is one choice.
+Choosing a row fills the box being chosen and moves to the other while it is empty; `Enter` on a row with both boxes
+held opens the comparison; `Escape` closes the dialog and opens nothing. Opened by `compare.change-side`, it holds both
+sides of the page and has the box clicked being chosen; **Compare** then puts the new pair in the same page.
+
+Acceptance:
+
+- [ ] Opened from the bar of views, **From** holds the branch checked out and the list is that of **To**.
+- [ ] Choosing `feature` fills **To**, says how far `feature` is from the branch checked out, and `Enter` opens the
+      comparison page of the two.
+- [ ] The swap arrows exchange **From** and **To**.
+- [ ] `HEAD~3` typed offers **Use `HEAD~3`**, and choosing it fills the box with `HEAD~3`.
+- [ ] A text git does not know offers nothing, and **Compare** stays disabled.
+- [ ] With 300 branches, the list scrolls to the last one with the bar and with `End`.
+- [ ] A click on an entry of **Opened before** opens that comparison, narrowed as it was.
+- [ ] A click on the second side of a comparison page opens the chooser with **To** being chosen and **From** holding
+      the first side; choosing `release` compares the first side with `release` in the same page.
+- [ ] `Escape` opens nothing.
 
 ### `compare.follow-sides` — Followed sides and fixed ones
 
@@ -259,10 +308,11 @@ What it shows, from the top:
   (`compare.open-on-github`);
 - **Commits** (`compare.commits`);
 - the files that differ and their changes, as the page of a commit has them (`commit-page.view`): tree or list, lines
-  gained and lost, **Show the changes**, folds, the cap of 20,000 lines and the click that opens a file in the Diff page,
-  between the two sides. Each file also has, when the second side is not the working tree, an arrow that takes the
-  version of the second side (`compare.take-file`), and in its context menu **Compare with…**, which compares the file
-  as the second side has it, or, for a file the second side deleted, as it was where the comparison starts.
+  gained and lost, **Show the changes**, folds, the cap of 20,000 lines and the click that opens a file in the Diff
+  page, between the two sides, with the comparison beside it (`compare.beside-diff`). Each file also has, when the
+  second side is not the working tree, an arrow that takes the version of the second side (`compare.take-file`), and in
+  its context menu **Compare with…**, which compares the file as the second side has it, or, for a file the second side
+  deleted, as it was where the comparison starts.
 
 The page is titled `<first> ↔ <second>`, followed by ` · <last part of the path>` when it is narrowed. While the page is
 compared again after the user changed something in it, it shows that it is waiting; **Comparing…** shows until the first
@@ -279,6 +329,41 @@ Acceptance:
 - [ ] **Open on GitHub** is not there for a repository that is not on GitHub, nor when a side is the working tree.
 - [ ] A click on a file opens its Diff page between the two sides as the mode says.
 - [ ] Closing the page while it is being compared drops the answer without error.
+
+### `compare.beside-diff` — A comparison beside its diffs
+
+A file of the comparison page opens its diff on the left, and the comparison stays on the right as a column, so that the
+files of a comparison are read one after the other as those of a commit are
+([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
+
+- **Kind**: View
+- **Function**: `views::compare::beside_diff_view(state: &BesideDiffState, ui: &mut Ui) -> Vec<Intent>`
+- **Entry points**: a click on a file of the comparison page; **Open in the Diff page** of the comparison page;
+  `Alt+Down` and `Alt+Up` in the Diff page opened so, for the next and the previous file of the comparison.
+- **Uses**: `compare.page`, `diff.page`, `compare.swap`, `compare.summary`, `compare.commits`, `details.file-tree`,
+  `graph.resize-panes`, `repo.side-column`.
+- **Extension**: VS Code's diff editor opens beside the panel, and the comparison stays: nothing to build.
+
+- The page becomes two: the Diff page on the left, and on the right the column of the comparison, as wide as the
+  inspector (320 logical pixels to start, resized and remembered as the line before the inspector is).
+- The column has, from its top: the two sides, each its icon and its name, with the arrows that swap them; what
+  `compare.summary` says, in one line; **Commits**, folded, with how many there are on each side; then the files that
+  differ as a tree, as the Files page has them, each with its lines gained and lost, the file shown marked and kept in
+  view, the folders opened or closed as the user left them.
+- A click on another file shows its diff in the same place; the trail names the comparison and the file shown;
+  `Ctrl+Tab` lists one page for the comparison, not one for each file.
+- The side column is put away while the diff is shown (`repo.side-column`). The trail's step of the comparison, or
+  `Escape` in the diff, gives the whole comparison page back, as it was scrolled.
+- In the narrow layout, the Diff page takes the whole page, and the trail comes back to the comparison.
+
+Acceptance:
+
+- [ ] A click on `src/a.rs` in the comparison of `main` and `feature` shows its diff on the left, and the comparison on
+      the right with `src/a.rs` marked.
+- [ ] A click on `src/b.rs` in the column shows its diff in the same place, and `Ctrl+Tab` lists one page.
+- [ ] The arrows of the column swap the sides, and the diff shown is the same file the other way.
+- [ ] `Escape` in the diff gives back the comparison page, scrolled where it was.
+- [ ] While the diff is shown, the side column is not.
 
 ### `compare.summary` — How far apart, and what merging would do
 
@@ -320,16 +405,17 @@ Puts another branch, tag, commit or the working tree in place of one side, in th
 
 - **Kind**: Operation
 - **Function**: `features::compare::change_side(context, answers) -> Outcome`
-- **Entry points**: a click on either side at the top of the comparison page.
-- **Asks**: **Compare with `<second>`** for the first side, or **Compare `<first>` with** for the second, with the
-  placeholder **The branch, tag or commit to put in place of `<side>`**: the choices of `compare.side-choices` of the
-  repository of the page, the other side left out, and **Working tree** unless the other side is the working tree.
+- **Entry points**: a click on either side at the top of the comparison page, or of its column beside a diff
+  (`compare.beside-diff`).
+- **Asks**: the side clicked, in the comparison chooser (`compare.chooser`) holding both sides of the page, with the box
+  of the side clicked being chosen: the choices of `compare.side-choices` of the repository of the page, the other side
+  left out, and **Working tree** unless the other side is the working tree.
 - **Plan**: no step; it changes nothing.
 - **Danger**: None
 - **Undo**: nothing to undo: it changes nothing.
 - **After**: the page compares the new pair, in the mode `compare.initial-mode` gives, with the path it had; the
   comparison is remembered (`compare.recent`).
-- **Uses**: `compare.side-choices`, `compare.follow-sides`, `compare.initial-mode`.
+- **Uses**: `compare.chooser`, `compare.side-choices`, `compare.follow-sides`, `compare.initial-mode`.
 
 Acceptance:
 

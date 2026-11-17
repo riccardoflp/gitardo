@@ -106,29 +106,35 @@ Acceptance:
 
 ### `graph.toolbar` — The header
 
-What applies to the whole repository, in the island at the top of the window.
+Where one is and what applies to the whole repository, in a bar across the top of the window, always shown
+([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
 
 - **Kind**: View
 - **Function**: `views::graph::toolbar_view(state: &ToolbarState, ui) -> Vec<Intent>`
 - **Entry points**: the top of the window.
-- **Uses**: `graph.toggle-references`, `repo.select`, `sync.sync`, `sync.fetch`, `sync.pull`, `sync.pull-with`,
+- **Uses**: `graph.where`, `repo.tabs`, `repo.group-tabs`, `sync.sync`, `sync.fetch`, `sync.pull`, `sync.pull-with`,
   `sync.push`, `branch.create`, `stash.push`, `undo.last`, `graph.search-button`, `repo.schedule-reads`,
   `graph.more-menu`.
 
-From left to right: the button that puts the branch rail away (`graph.toggle-references`); the repository menu, which
-names the repository shown and lists the others of the workspace (`repo.select`); the branch checked out, or `detached
-at 3f2a1c9`, or `no commits yet`, with how far it is from its upstream (`activity.status-bar`) and the folder of the
-repository in its tooltip; **Search**, which opens Quick search (`graph.search-button`); **Sync** with the number of
-commits to pull and to push, `↓3 ↑2`, which a click runs: a fetch, a pull, then a push of what is ahead (`sync.sync`),
-and its menu: **Fetch**, **Pull** and its other ways, **Push** and its other ways; and **…** (`graph.more-menu`), which
-has **Refresh**, **Branch**, which creates a branch at `HEAD`, **Stash**, which stashes all changes, and **Undo**, none
-of which is a button of the header. The button of the branches shown (`filter.picker`) and the search (`search.box`)
-are at the top of the timeline; what is running is in the status bar, and **Activity** in the bar of views
-([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)). Each entry says in its tooltip what it runs:
-**Sync: git fetch, git pull, git push**, **Fetch: git fetch --all --prune**, **Push: git push**, **Stash: git stash
-push --include-untracked**. When the window is narrow the header keeps its icons and gives up its words. While an
-operation runs, the entries that change something are disabled. **Branch** and **Undo** are disabled before the first
-commit, and **Stash** also while there is nothing to stash.
+The header is not an island: it is a bar on the ground of the window, as high as a button and its margins, across the
+whole width on the right of the bar of views, above the side column, the timeline, the inspector and the pages, and it
+is there whatever is shown under it. From left to right: where one is, as one line, `gitardo › login ›
+feature/login-page`: the repository shown, by its name (`repo.name-repositories`), which opens the list of the
+repositories open to show another (`repo.tabs`); the worktree or the submodule shown, with its icon, by the name of its
+folder or its path, only when it is not the repository's own folder, which opens the **▾** of the row of the repository
+(`repo.group-tabs`); and the branch checked out, or `detached at 3f2a1c9`, or `no commits yet`, with the folder in its
+tooltip and without how far it is from its upstream, which **Sync** alone says. Each part is cut at its start with `…`
+before the others when the room is short, the branch last; **Search**, which opens Quick search (`graph.search-button`);
+**Sync** with the number of commits to pull and to push, `↓3 ↑2`, which a click runs: a fetch, a pull, then a push of
+what is ahead (`sync.sync`), and its menu: **Fetch**, **Pull** and its other ways, **Push** and its other ways; and
+**…** (`graph.more-menu`), which has **Refresh**, **Branch**, which creates a branch at `HEAD`, **Stash**, which stashes
+all changes, and **Undo**, none of which is a button of the header. The button of the branches shown (`filter.picker`)
+and the search (`search.box`) are at the top of the timeline; what is running is in the status bar, and **Activity** in
+the bar of views ([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)). Each entry says in its
+tooltip what it runs: **Sync: git fetch, git pull, git push**, **Fetch: git fetch --all --prune**, **Push: git push**,
+**Stash: git stash push --include-untracked**. When the window is narrow the header keeps its icons and gives up its
+words. While an operation runs, the entries that change something are disabled. **Branch** and **Undo** are disabled
+before the first commit, and **Stash** also while there is nothing to stash.
 
 Acceptance:
 
@@ -137,6 +143,32 @@ Acceptance:
 - [ ] While a fetch runs, **Sync** itself, and **Pull** and **Push** in its menu, cannot be clicked.
 - [ ] Narrowing the window hides the words of the header and keeps its icons; **Refresh** stays in **…**.
 - [ ] The header has no box of text: the branch filter and the search box are at the top of the timeline.
+
+### `graph.where` — Where one is, in the header
+
+The repository, the worktree and the branch shown, at the start of the header, which is a bar across the top of the
+window, always shown ([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
+
+- **Kind**: View
+- **Function**: `views::graph::where_view(state: &WhereState, ui) -> Vec<Intent>`
+- **Entry points**: the start of the header (`graph.toolbar`), above whatever is shown.
+- **Uses**: `repo.name-repositories`, `repo.tabs`, `repo.group-tabs`.
+
+As `graph.toolbar` says: the repository, the worktree or the submodule when it is not the repository's own folder, and
+the branch checked out, `gitardo › login › feature/login-page`, the repository opening the list of the repositories
+open and the worktree the **▾** of its row. The header that holds them is a bar on the ground of the window, across its
+whole width on the right of the bar of views, above the side column and the pages.
+
+Acceptance:
+
+- [ ] The header goes across the whole window on the right of the bar of views, above the side column, and has no
+      border nor background of an island.
+- [ ] With the settings page shown, the header is still there, and says the repository and the branch.
+- [ ] In the worktree `login` of `api`, on `feature/login`, the header says `api › login › feature/login`; in `api`'s
+      own folder, on `main`, `api › main`.
+- [ ] A click on `api` in the header lists the repositories open; a click on `login` opens the menu of the worktrees of
+      `api`.
+- [ ] With `main` two ahead of its upstream, the name of the branch in the header has no `↑2`; **Sync** has it.
 
 ### `graph.search-button` — The button of Quick search
 
@@ -159,14 +191,14 @@ Acceptance:
 
 ### `graph.islands` — The islands of the window
 
-The header, the branch rail, the timeline, the inspector and the page shown are each a rounded card on the ground of
-the window.
+The side column, the timeline, the inspector and the page shown are each a rounded card on the ground of the window,
+under the header.
 
 - **Kind**: View
 - **Function**: `views::island(ui: &mut Ui, rect: Rect, inside: impl FnOnce(&mut Ui) -> R) -> R`
 - **Entry points**: the whole window.
 - **Settings**: `gitardo.graph.islands`, in the extension only, off by default.
-- **Uses**: `graph.view-bar`, `graph.toolbar`, `activity.status-bar`, `graph.resize-panes`.
+- **Uses**: `graph.view-bar`, `repo.side-column`, `graph.toolbar`, `activity.status-bar`, `graph.resize-panes`.
 - **Extension**: with `gitardo.graph.islands` on, the references, the commits and the details of the Graph view are each
   an island, on a ground one step darker than the panel's background in the dark themes and one step deeper in the
   light ones, with the radius and the border of VS Code's widgets and a gap of 8 pixels between them, 4 in a panel
@@ -178,6 +210,12 @@ the window.
   `src/webview/styles.css`; the ground is mixed from `--vscode-panel-background` with black. Tested by
   `test/e2e/ui.mjs`, step "with islands on, the references, the commits and the details are rounded islands on a
   darker ground, the gap between two is dragged to resize them, and off the graph is as it was".
+
+At the top, the header, a bar on the ground across the window (`graph.toolbar`). Under it, from the left: the bar of
+views, on the ground; the side column, from under the header to the status bar (`repo.side-column`); on its right, the
+timeline and the inspector, or the page, and the bottom panel. There is no island above the side column, and the header
+is not one
+([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
 
 The ground is one step darker than the islands in the dark themes and one step deeper in the light ones; each island
 has the radius of a dialog and a border, with a gap of 8 pixels between islands, 4 when the window is narrow. In the
@@ -385,9 +423,9 @@ In this order, separated in groups:
 1. **Refresh** (`repo.schedule-reads`); **Branch** (`branch.create` at `HEAD`), **Stash** (`stash.push`), **Undo**
    (`undo.last`).
 2. **Show local branches**, **Show remote branches**, **Show tags** (`filter.kinds`); **Show stashes**
-   (`graph.stashes`); **Show only the first parent of merges** (`graph.first-parent`); **Bring out the history of the
-   selected commit** (`graph.trace-selected`); **Fold all merges** and **Unfold all merges** (`graph.fold-all`), while
-   the graph has its lines.
+   (`graph.stashes`); **Show only the first parent of merges** (`graph.first-parent`); **Show all commits on one
+   line** (`graph.one-lane`); **Bring out the history of the selected commit** (`graph.trace-selected`); **Fold all
+   merges** and **Unfold all merges** (`graph.fold-all`), while the graph has its lines and is not on one line.
 3. **Show the author**, **Show the date**, **Show the hash** (`graph.columns`); **Separate the days, weeks and months**
    (`graph.date-separators`); **Put a branch and its upstream on one label** (`graph.combine-upstream`).
 4. **Compare branches, tags or commits…** (`compare.choose`), **Go to commit…** (`search.go-to-commit`), **History of
@@ -408,6 +446,67 @@ Acceptance:
 - [ ] Unchecking **Show the hash** takes the hashes out of the timeline and sets `graph.columns` to `["author", "date"]`
       in the user's settings.
 - [ ] **Add submodule…** is not in the menu of a repository with submodules.
+- [ ] In a window 400 logical pixels high, the menu opens under **…**, and its last entry can be scrolled to and chosen
+      (`ui.menu-scroll`).
+
+### `ui.menu-scroll` — A menu taller than the room under it
+
+A menu, or a level of one, that does not fit the window scrolls inside it, so that every entry can be reached, and it
+stays where it opened
+([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
+
+- **Kind**: Derivation
+- **Function**: `ui::widget::menu::layout::place(size, placement, window, padding) -> MenuPlace`, which gives where
+  the level goes and how much of it is shown.
+- **Entry points**: every menu of the window: the menus under a button (**…**, **Sync**, the **▾** of a repository),
+  the context menus and their submenus.
+
+- A menu under a button opens below it, its left side lined up with the button's, and never above it. When it is
+  taller than the room between the button and the foot of the window, less a gap of 8 logical pixels, it is as tall as
+  that room and its entries scroll.
+- A menu opened at the pointer opens below the pointer when it fits there, else above it when it fits there; when it
+  fits neither, it takes the taller of the two rooms and scrolls.
+- A submenu opens beside its item, its first entry level with the item, moved up only as much as the window needs, and
+  scrolls in the same way when it is taller than the window.
+- A level that scrolls has a bar on its right, inside its border, as thin as the bars of the lists, which can be
+  dragged; the wheel scrolls it by entries; the arrows move the entry lit and scroll so that it is shown whole; `Home`
+  and `End` light the first and the last entry; `PageUp` and `PageDown` move by as many entries as are shown. Its first
+  and last shown entries fade into its border when there is more above or below.
+- A menu that fits is drawn as before, without a bar.
+
+Acceptance:
+
+- [ ] Opened under **…** in a window 400 logical pixels high, the menu's top is at the button's foot, and its bottom 8
+      logical pixels above the foot of the window.
+- [ ] The wheel over that menu scrolls it until its last entry is shown whole, and no further.
+- [ ] `End` lights the last entry and shows it; `Enter` chooses it.
+- [ ] A menu that fits has no bar and opens where it opened before.
+- [ ] A context menu opened near the foot of the window opens above the pointer when it fits there.
+
+### `ui.picker-scroll` — A picker longer than its rows
+
+The list of a picker scrolls with a bar as well as the wheel, and keeps the row lit in view, so that a long list can be
+gone through with the pointer or the keys.
+
+- **Kind**: Derivation
+- **Function**: `ui::widget::picker::first_shown(lit: usize, first: usize, shown: usize, count: usize) -> usize`, which
+  gives the first row shown so that the lit one is shown.
+- **Entry points**: every picker: Quick search, the filters of the timeline and of the branch rail, the choices of an
+  operation.
+
+- When there are more rows than the picker shows, a bar on its right says how much is shown and where, and can be
+  dragged; a click above or below its thumb moves by a page.
+- The arrows move the row lit, scrolling so that it is shown whole; `PageUp` and `PageDown` move by a page, `Home` and
+  `End`, while nothing is typed, go to the first and the last row.
+- The headings of the groups of rows (**Branches**, **Remote branches**, **Tags**) are drawn above their rows and are
+  never lit; the arrows step over them.
+
+Acceptance:
+
+- [ ] With 200 branches in the branch filter, `End` lights the last one and shows it.
+- [ ] Dragging the bar to its foot shows the last row.
+- [ ] `Down` on the last row shown scrolls the list by one row.
+- [ ] The arrows never light a heading.
 
 ### `graph.load-more` — Load the next commits while scrolling
 
@@ -549,7 +648,8 @@ widths.
 
 | Line | Starts at | Least | Most | Double click |
 | --- | --- | --- | --- | --- |
-| Branch rail and commits | 210 px | 120 px | 35% of the window | back to 210 px |
+| Side column and commits | 210 px | 120 px | 35% of the window | back to 210 px |
+| **Repositories** and **Branches**, in the side column | 160 px for **Repositories** | 64 px for either | the column less 64 px | back to 160 px |
 | Commits and inspector, side by side | 320 px for the inspector | 200 px | 55% of the window | back to 320 px |
 | Inspector over the commits, in the narrow layout | half the height for the inspector | 80 px | 80% of the height | back to half |
 
@@ -559,24 +659,28 @@ are remembered for the workspace.
 
 Acceptance:
 
-- [ ] The branch rail cannot be dragged narrower than 120 px nor wider than 35% of the window.
+- [ ] The side column cannot be dragged narrower than 120 px nor wider than 35% of the window.
+- [ ] Dragging the line under **Repositories** down gives it the height **Branches** loses.
 - [ ] A double click on the line before the inspector gives it 320 px again.
 - [ ] The sizes are there after the window is closed and opened again on the same workspace.
 
 ### `graph.toggle-references` — Put the branch rail away
 
-The first button of the header puts the branch rail away, to leave its room to the commits, and brings it back.
+The first button of the top row of the timeline puts the side column away, its repositories and its branches, to
+leave its room to the commits, and brings it back.
 
 - **Kind**: View
 - **Function**: `views::graph::toggle_references_view(state: &ReferencesShown, ui) -> Vec<Intent>`
-- **Entry points**: the first button of the header, pressed while the branch rail is shown.
+- **Entry points**: the first button of the top row of the timeline, before the branch filter (`filter.picker`),
+  pressed while the side column is shown; **Toggle the Side Column** in Quick search, from any page.
 
-Its tooltip says **Hide the branches, tags and stashes beside the commits**, or **Show the branches, tags and stashes
-beside the commits**. Whether they are put away is remembered for the workspace.
+Its tooltip says **Hide the repositories and the branches beside the commits**, or **Show the repositories and the
+branches beside the commits**. Whether they are put away is remembered for the workspace. In the narrow layout, where
+the side column is put away, the button opens it over the timeline, and a click outside it or `Escape` closes it.
 
 Acceptance:
 
-- [ ] A click hides the branch rail and the commits take its room; another brings it back at the width it had.
+- [ ] A click hides the side column and the commits take its room; another brings it back at the width it had.
 - [ ] A hidden branch rail stays hidden after the window is opened again.
 
 ### `graph.labels` — The labels of each commit
@@ -835,6 +939,35 @@ Acceptance:
 - [ ] On, a merge of `feature` into `main` is one row on the line of `main`, and the commits of `feature` it merged are
       not listed unless `feature` itself is shown and reaches them.
 - [ ] A merge with the setting on has no fold button (`graph.fold-merge`): it brought nothing in.
+
+### `graph.one-lane` — All commits on one line
+
+Every commit of the timeline on one straight line, as a list of the history rather than a picture of its branches
+([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
+
+- **Kind**: Derivation
+- **Function**: `model::graph::one_lane(rows: &[GraphInput]) -> Vec<GraphCell>`
+- **Entry points**: **Show all commits on one line** in the **…** menu (`graph.more-menu`).
+- **Settings**: `graph.oneLane` (off by default).
+- **Uses**: in place of `graph.lanes` while it is on.
+- **Extension**: the same switch in the **…** menu of the Graph view, `gitardo.graph.oneLane`, which lays out the rows
+  of `src/webview/graph` with this function's rules.
+
+On, each row has its dot in the first lane, in the color of the first lane, with a line from the top edge to the dot
+when a row is above it and from the dot to the bottom edge when a row is below it; there are no other lanes and no
+other lines. The dot of a merge is a ring, as wide as a dot. The line of the uncommitted changes and of a stash is
+dashed, as before. The column of the graph is as narrow as one lane. The labels, the search, the selection, the
+history brought out by the selected commit and the folds of merges already folded are as before; **Fold all merges**
+and **Unfold all merges** are not in the menu while it is on. Turning it on or off draws the rows again without reading
+them.
+
+Acceptance:
+
+- [ ] On, every row of a history with three branches and two merges has its dot in the first lane.
+- [ ] On, the dot of a merge is a ring and the dot of any other commit is filled.
+- [ ] On, the column of the graph is as wide as one lane.
+- [ ] Turning it on writes `"graph.oneLane": true` in the user's settings, and asks no read of the repository.
+- [ ] On, **Fold all merges** is not in the **…** menu.
 
 ### `graph.fold-rows` — The rows of the timeline with merges folded
 

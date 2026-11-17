@@ -69,20 +69,29 @@ Acceptance:
 
 ### `diff.beside-inspector` — Files of a commit read beside the inspector
 
-A file of the commit in the inspector opens its diff where the timeline was, and the inspector stays on the right, so
-that every file of the commit can be read one after the other without it closing.
+A file of the commit in the inspector opens its diff where the timeline and the side column were, and the inspector
+stays on the right as the column of the commit's files, so that every file of the commit can be read one after the
+other without it closing.
 
 - **Kind**: View
 - **Function**: `views::diff::beside_inspector_view(state: &BesideInspectorState, ui) -> Vec<Intent>`
 - **Entry points**: a click on a file in the inspector, of a commit, a stash, the draft or a comparison in its place
   (`compare.in-place`); `Alt+Down` and `Alt+Up` in the Diff page opened so, for the next and the previous file of the
   inspector.
-- **Uses**: `diff.page`, `details.show`, `compare.in-place`, `graph.resize-panes`.
+- **Uses**: `diff.page`, `details.show`, `details.file-tree`, `compare.in-place`, `graph.resize-panes`,
+  `repo.side-column`.
 - **Extension**: VS Code's diff editor opens beside the panel, and the details stay: nothing to build.
 
-- The Diff page takes the place of the timeline only, between the branch rail and the inspector; the branch rail stays
-  as it was, shown or put away, and the inspector keeps its width (`graph.resize-panes`).
-- The inspector marks the file whose diff is shown, as a row selected, and keeps it in view.
+- The Diff page takes the place of the timeline and of the side column, which is put away while the diff is shown and
+  comes back as it was with the timeline
+  ([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them));
+  the inspector keeps its width (`graph.resize-panes`).
+- The inspector becomes the column of the commit's files, as the tree of the Files page is beside its file
+  (`file-view.beside-files`): at its top the commit in one line, its short hash and its subject, with its author and
+  its date in its tooltip, and a click on it giving back the whole card; under it, the files of the commit as a tree
+  (`details.file-tree`), each with its lines gained and lost, the folders opened or closed as the user leaves them. It
+  marks the file whose diff is shown, as a row selected, and keeps it in view; `Up` and `Down` in the tree move from
+  file to file and show each.
 - A click on another file of the inspector shows its diff in the same page, which is not opened again: the trail
   names the file shown, and `Ctrl+Tab` lists one page for the files of that commit, not one for each file.
 - **Open all changes in one Diff page** in the inspector opens the diffs one after the other in the same place.
@@ -97,6 +106,9 @@ Acceptance:
 
 - [ ] A click on `src/a.rs` in the inspector opens its diff, and the inspector is still shown on the right with
       `src/a.rs` marked.
+- [ ] While the diff is shown, the side column is not; **Timeline** in the trail brings it back at the width it had.
+- [ ] The inspector beside the diff shows the commit in one line and its files as a tree, the folder of `src/a.rs`
+      open.
 - [ ] A click on `src/b.rs` then shows its diff in the same page, and `Ctrl+Tab` lists one Diff page.
 - [ ] `Alt+Down` in that page shows the diff of the next file of the inspector.
 - [ ] **Timeline** in the trail shows the timeline with the same commit selected.

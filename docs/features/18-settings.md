@@ -89,10 +89,11 @@ about.
   on its left. The settings the desktop alone has are in none.
 
 The sections, in this order, each with its icon: **General**, **Appearance**, **Timeline**, **Branches**, **Pull and
-commits**, **Worktrees**, **Files and blame**, **AI and conflicts**, **Terminal and tools**. Each setting is in the section
-the table below names; `branches.followGraphFilter`, which is no longer read, is in none and not listed. The list on the
-right of the page holds every section, one after the other, each under its name; a click on a section scrolls the list
-so that its name is at the top, and the button of the section whose name was last scrolled past is marked.
+commits**, **Worktrees**, **Files and blame**, **AI and conflicts**, **Terminal and tools**. Each setting is in the
+section the table below names; `branches.followGraphFilter`, which is no longer read, is in none and not listed. The
+list on the right of the page holds every section, one after the other, each under its name; a click on a section
+scrolls the list so that its name is at the top, and the button of the section whose name was last scrolled past is
+marked.
 
 Beside the name of each section, how many of its settings a file sets, and a mark in the color of errors while one of
 them has a value that was not taken. Under the sections, after a line, **Changed** and **Experimental**: each lists, in
@@ -192,6 +193,7 @@ Acceptance:
 | `graph.dateSeparators` | Lines between dates | Timeline | `true` | User | The lines of yesterday, this week, last week and each month. | `graph.date-separators` |
 | `graph.combineUpstream` | Branch and upstream on one label | Timeline | `true` | User | A branch and its upstream of the same name share one label while at the same commit. | `graph.labels` |
 | `graph.firstParent` | Follow only the first parent | Timeline | `false` | User | Follow only the first parent of merges. | `graph.first-parent` |
+| `graph.oneLane` | All commits on one line | Timeline | `false` | User | Every commit of the timeline on one line, without lanes; merges are rings. | `graph.one-lane` |
 | `graph.traceSelected` | Bring out the history of the selected commit | Timeline | `true` | User | Bring out the history of the selected commit. | `graph.trace-selected` |
 | `branches.sortOrder` | Order of branches and tags | Branches | not set | User | `name` or `date`, for branches, remote branches and tags everywhere they are listed. Not set: by name, or by date when Git's `branch.sort` is `-committerdate` or `committerdate`. | `refs.sort` |
 | `branches.followGraphFilter` | Not listed on the page | — | `true` | User | Not read since [D51](../08-decisions.md#d51--the-branch-rail-has-a-filter-of-its-own): the branch rail has its own filter. Kept by its name, so that a file that sets it is no error. | `refs.list-filter` |
