@@ -128,7 +128,12 @@ fn in_row(tree: &TreeUpdate, (role, name): (Role, &str), path: &str) -> Point {
 }
 
 /// Clicks a button of the row of a file, and reduces what it asks.
-pub(super) fn click_in_row(driver: &OperationsDriver, state: &mut State, window: &mut Window, (name, path): (&str, &str)) {
+pub(super) fn click_in_row(
+    driver: &OperationsDriver,
+    state: &mut State,
+    window: &mut Window,
+    (name, path): (&str, &str),
+) {
     let (_, tree) = window.draw(state, &[]);
     let intents = window.click_at(state, in_row(&tree, (Role::Button, name), path), 1);
     apply(driver, state, intents);
@@ -321,7 +326,10 @@ fn changes_beside_file__its_title_row_starts_with_the_button_of_the_side_column_
     );
     let changes = trail_changes(&tree);
     let diff = bounds(&tree, Role::Main, views::text::diff::PAGE);
-    assert!(changes.x < diff.x, "Changes is in the title row, before the diff's name");
+    assert!(
+        changes.x < diff.x,
+        "Changes is in the title row, before the diff's name"
+    );
     let alt_left = InputEvent::KeyPressed(KeyEvent::press(Key::Named(NamedKey::ArrowLeft), Modifiers::ALT));
     let (intents, _) = window.draw(&state, &[alt_left]);
     assert_eq!(intents, [Intent::Changes(ChangesIntent::ShowWhole)]);
