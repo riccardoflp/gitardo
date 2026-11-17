@@ -13,6 +13,7 @@ use crate::frame::{Decorations, FramePart};
 use crate::geometry::{LogicalSize, PhysicalSize, PixelRect, Point, Scale, ScreenPosition};
 use crate::input::InputEvent;
 use crate::mailbox::InputSender;
+use crate::placement::{Screen, WindowPlacement, lands_on_a_screen};
 use crate::present::Frame;
 use crate::theme::Appearance;
 use crate::translate;
@@ -43,6 +44,11 @@ pub struct WindowOptions {
     pub title_bar: Option<Appearance>,
     /// Whether the system draws its title bar, or the program.
     pub decorations: Decorations,
+    /// Where the top left corner of its frame goes on the screen; none, or a place on no screen, lets the system
+    /// pick.
+    pub position: Option<ScreenPosition>,
+    /// Whether it is maximized when it shows, its size and its place being those it is restored to.
+    pub is_maximized: bool,
 }
 
 impl Default for WindowOptions {
@@ -60,6 +66,8 @@ impl Default for WindowOptions {
             visibility: Visibility::Shown,
             title_bar: None,
             decorations: Decorations::System,
+            position: None,
+            is_maximized: false,
         }
     }
 }
@@ -95,6 +103,13 @@ impl Window {
             // Hidden until the screen reader adapter is made, as it asks.
             .with_visible(false);
         let attributes = decorated(attributes, options.decorations);
+        let attributes = match options
+            .position
+            .filter(|position| lands_on_a_screen(*position, &screens(context)))
+        {
+            Some(position) => attributes.with_position(PhysicalPosition::new(position.x, position.y)),
+            None => attributes,
+        };
         let window = context
             .active
             .create_window(attributes)
@@ -104,6 +119,8 @@ impl Window {
             Rc::new(window),
             (context.state.proxy.clone(), options.decorations),
         )?);
+        shared.keep_placement();
+        shared.is_maximized_on_show.set(options.is_maximized);
         context.state.register(&shared);
         let opened = Window {
             shared,
@@ -175,10 +192,13 @@ impl Window {
         self.shared.scale()
     }
 
-    /// Shows it.
+    /// Shows it, maximized if it opened so.
     pub fn show(&self) {
         self.shared.is_visible.set(true);
         self.library().set_visible(true);
+        if self.shared.is_maximized_on_show.replace(false) {
+            self.maximize();
+        }
     }
 
     /// Hides it.
@@ -213,6 +233,20 @@ impl Window {
     #[must_use]
     pub fn is_maximized(&self) -> bool {
         self.library().is_maximized()
+    }
+
+    /// Where it is and how large as it is restored from maximized or minimized, and whether it is maximized: what is
+    /// kept for the next start.
+    #[must_use]
+    pub fn placement(&self) -> WindowPlacement {
+        self.shared.placement()
+    }
+
+    /// The text of its title bar, which the taskbar, the switcher of windows and the screen reader say, even when the
+    /// program draws the title bar.
+    #[must_use]
+    pub fn title(&self) -> String {
+        self.library().title()
     }
 
     /// The size of the window with its frame, in physical pixels.
@@ -326,4 +360,26 @@ fn decorated(attributes: WindowAttributes, _decorations: Decorations) -> WindowA
 /// A logical size as `winit` takes it.
 fn library_size(size: LogicalSize) -> LibraryLogicalSize<f32> {
     LibraryLogicalSize::new(size.width, size.height)
+}
+
+/// The screens, where each is and how large.
+fn screens(context: &Context<'_>) -> Vec<Screen> {
+    context
+        .active
+        .available_monitors()
+        .map(|monitor| {
+            let position = monitor.position();
+            let size = monitor.size();
+            Screen {
+                position: ScreenPosition {
+                    x: position.x,
+                    y: position.y,
+                },
+                size: PhysicalSize {
+                    width: size.width,
+                    height: size.height,
+                },
+            }
+        })
+        .collect()
 }

@@ -136,7 +136,7 @@ impl DesktopWindow {
             user: user_file.clone(),
             repository: None,
         });
-        let (width, height) = persisted.window_size.unwrap_or(FIRST_SIZE);
+        let (width, height) = persisted.window.size.unwrap_or(FIRST_SIZE);
         let mut surface = Surface::open(
             context,
             SurfaceOptions {
@@ -146,6 +146,11 @@ impl DesktopWindow {
                 theme: settings.theme,
                 frame_timer: FRAME_TIMER,
                 title_bar: system_title_bar(),
+                position: persisted
+                    .window
+                    .position
+                    .map(|(x, y)| platform::ScreenPosition { x, y }),
+                is_maximized: persisted.window.is_maximized,
             },
         )?;
         apply_text(&mut surface, &settings)?;
@@ -213,16 +218,15 @@ impl DesktopWindow {
         }
     }
 
-    /// The person asked to close the window, by the system's close request or by **Close** of its title bar.
+    /// The person asked to close the window, by the system's close request or by **Close** of its title bar: where it
+    /// is and how large as it is restored, and whether it is maximized, to open so at the next start.
     fn close_requested(&self) -> Message {
-        let size = self.surface.window().size();
-        let scale = self.surface.window().scale().factor();
-        #[allow(
-            clippy::cast_precision_loss,
-            reason = "a window is far smaller than an f32 counts exactly"
-        )]
-        let window_size = Some((size.width as f32 / scale, size.height as f32 / scale));
-        Message::CloseRequested { window_size }
+        let placement = self.surface.window().placement();
+        Message::CloseRequested(crate::persisted::WindowPlace {
+            size: Some((placement.size.width, placement.size.height)),
+            position: placement.position.map(|position| (position.x, position.y)),
+            is_maximized: placement.is_maximized,
+        })
     }
 
     /// Reduces a message and the ones that follow from it, carries out what the store asks, and asks for a frame.

@@ -67,6 +67,8 @@ unsafe extern "system" {
     pub(crate) fn GetDoubleClickTime() -> u32;
     pub(crate) fn GetDpiForWindow(hwnd: HWND) -> u32;
     pub(crate) fn GetSystemMetricsForDpi(index: i32, dpi: u32) -> i32;
+    pub(crate) fn IsIconic(hWnd: HWND) -> BOOL;
+    pub(crate) fn IsZoomed(hWnd: HWND) -> BOOL;
     pub(crate) fn ScreenToClient(hWnd: HWND, lpPoint: *mut POINT) -> BOOL;
     pub(crate) fn SystemParametersInfoW(action: u32, parameter: u32, value: *mut c_void, update: u32) -> BOOL;
     pub(crate) fn TrackMouseEvent(lpEventTrack: *mut TRACKMOUSEEVENT) -> BOOL;
@@ -95,6 +97,8 @@ pub(crate) const WM_NCLBUTTONUP: u32 = 0x00A2;
 pub(crate) const WM_NCLBUTTONDBLCLK: u32 = 0x00A3;
 /// A character typed with Alt held.
 pub(crate) const WM_SYSCHAR: u32 = 0x0106;
+/// The window starts to be moved or resized, by the pointer or by the keys of its menu.
+pub(crate) const WM_ENTERSIZEMOVE: u32 = 0x0231;
 /// The pointer left the places of the window that are not its inside.
 pub(crate) const WM_NCMOUSELEAVE: u32 = 0x02A2;
 

@@ -182,7 +182,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::Task(message) => tasks::reduce_message(state, message),
         Message::Terminal(message) => terminals::reduce_message(state, message),
         Message::UrlNotOpened(said) => github::not_opened(state, said),
-        Message::CloseRequested { window_size } => workspace::close_requested(state, window_size),
+        Message::CloseRequested(window) => workspace::close_requested(state, window),
     }
 }
 

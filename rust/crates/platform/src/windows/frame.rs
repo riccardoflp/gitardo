@@ -6,7 +6,8 @@
 //! caption moves the window, maximizes it with a double click and opens its menu with a right click, and the edges
 //! resize it, all done by the system. The maximize button is said to be one (`HTMAXBUTTON`), which shows Snap Layouts
 //! on Windows 11; the pointer over it then reaches the window as the system's and not as `winit`'s, so it is handed to
-//! the program as input. `Alt+Space` opens the system's menu of the window, which `winit` keeps from the system.
+//! the program as input. `Alt+Space` opens the system's menu of the window, which `winit` keeps from the system. The
+//! start of a move or a resize (`WM_ENTERSIZEMOVE`) is handed to the program too, which closes its menus then.
 
 use std::cell::{Cell, RefCell};
 use std::sync::Arc;
@@ -56,22 +57,17 @@ impl FrameProcedure {
     ///
     /// # Errors
     ///
-    /// `PlatformError::Unsupported` when the window is not one of Win32; `PlatformError::System` when the system or
-    /// `winit` refused.
+    /// `PlatformError::Unsupported` when the window is not one of Win32; `PlatformError::System` when the system
+    /// refused.
     pub(crate) fn install(
         window: &LibraryWindow,
         inbox: Arc<Mailbox<InputEvent>>,
     ) -> Result<FrameProcedure, PlatformError> {
-        let handle = window
-            .window_handle()
-            .map_err(|error| PlatformError::system("winit, for the handle of a window", &error))?;
-        let RawWindowHandle::Win32(handle) = handle.as_raw() else {
-            return Err(PlatformError::Unsupported {
-                what: "draw the title bar of a window that is not of Win32",
-            });
-        };
+        let handle = handle_of(window).ok_or(PlatformError::Unsupported {
+            what: "draw the title bar of a window that is not of Win32",
+        })?;
         let hook = Box::new(FrameHook {
-            window: std::ptr::with_exposed_provenance_mut(handle.hwnd.get().cast_unsigned()),
+            window: handle,
             parts: RefCell::new(None),
             inbox,
             is_over_maximize: Cell::new(false),
@@ -156,6 +152,10 @@ impl FrameHook {
                 // SAFETY: the message is the system's, for this window, which the system's own procedure answers
                 // with the menu of the window.
                 Some(unsafe { user32::DefWindowProcW(self.window, message, first, second) })
+            }
+            user32::WM_ENTERSIZEMOVE => {
+                self.post(InputEvent::MoveStarted);
+                None
             }
             user32::WM_NCDESTROY => {
                 self.remove();
@@ -259,6 +259,25 @@ impl FrameHook {
         // thread, and the procedure and its number are those it was put in front of it with.
         let _ = unsafe { comctl32::RemoveWindowSubclass(self.window, procedure, SUBCLASS) };
     }
+}
+
+/// Whether a window is as it is restored to: neither maximized nor minimized. The styles say it at once, before the
+/// window has its new size, while `winit` knows of a maximized window only once it is told its size.
+pub(crate) fn is_restored(window: &LibraryWindow) -> bool {
+    let Some(handle) = handle_of(window) else {
+        return !window.is_maximized() && window.is_minimized() != Some(true);
+    };
+    // SAFETY: the window is alive, since `window` is borrowed; both calls only read its styles.
+    unsafe { user32::IsZoomed(handle) == 0 && user32::IsIconic(handle) == 0 }
+}
+
+/// The handle of a window of Win32.
+fn handle_of(window: &LibraryWindow) -> Option<HWND> {
+    let handle = window.window_handle().ok()?;
+    let RawWindowHandle::Win32(handle) = handle.as_raw() else {
+        return None;
+    };
+    Some(std::ptr::with_exposed_provenance_mut(handle.hwnd.get().cast_unsigned()))
 }
 
 /// What the system is told a place of the window is. The two buttons the program takes the pointer on itself are the

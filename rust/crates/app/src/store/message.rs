@@ -251,11 +251,8 @@ pub enum Message {
     Terminal(super::terminals::TerminalMessage),
     /// The browser of the system could not open an address: what the system said.
     UrlNotOpened(String),
-    /// The person asked to close the window, whose inside had this size in logical pixels.
-    CloseRequested {
-        /// The size of the inside of the window.
-        window_size: Option<(f32, f32)>,
-    },
+    /// The person asked to close the window, which was there, so large and maximized or not.
+    CloseRequested(crate::persisted::WindowPlace),
 }
 
 /// The repositories found in some folders.

@@ -43,8 +43,8 @@ pub struct Persisted {
     pub welcome_steps: [bool; STEPS],
     /// The recent workspaces, the latest first.
     pub recent: Vec<RecentWorkspace>,
-    /// The size of the inside of the window, in logical pixels, when it was last closed.
-    pub window_size: Option<(f32, f32)>,
+    /// Where the window was, how large and whether it was maximized, when it was last closed.
+    pub window: WindowPlace,
     /// The width of the branch rail, in logical pixels, once it was changed.
     pub rail_width: Option<f32>,
     /// The sizes of the panes of the workspaces opened last.
@@ -71,6 +71,18 @@ pub struct Persisted {
     pub branch_inputs: Vec<inputs::WorkspaceInputs>,
     /// The folders the user trusts, in the order they were trusted (`trust.ask`, `trust.manage`).
     pub trusted_folders: Vec<PathBuf>,
+}
+
+/// Where a window was, how large and whether it was maximized (`window.title-bar`).
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
+pub struct WindowPlace {
+    /// The size of its inside, in logical pixels, as it is restored from maximized.
+    pub size: Option<(f32, f32)>,
+    /// Where its top left corner was on the screen, in physical pixels, as it is restored from maximized; none on a
+    /// system that does not say.
+    pub position: Option<(i32, i32)>,
+    /// Whether it was maximized.
+    pub is_maximized: bool,
 }
 
 /// A workspace opened before.
@@ -113,7 +125,14 @@ impl Persisted {
                 .filter_map(recent_workspace)
                 .take(MOST_RECENT)
                 .collect(),
-            window_size: document.get("windowSize").and_then(size),
+            window: WindowPlace {
+                size: document.get("windowSize").and_then(size),
+                position: document.get("windowPosition").and_then(position),
+                is_maximized: document
+                    .get("windowMaximized")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false),
+            },
             rail_width: document.get("railWidth").and_then(number),
             panes: list(&document, "panes", timeline::workspace_panes),
             folds: list(&document, "folds", timeline::repository_folds),
@@ -140,12 +159,7 @@ impl Persisted {
             ),
             member("recent", Value::Array(self.recent.iter().map(recent_value).collect())),
         ];
-        if let Some((width, height)) = self.window_size {
-            members.push(member(
-                "windowSize",
-                Value::Array(vec![number_value(width), number_value(height)]),
-            ));
-        }
+        members.extend(window_members(self.window));
         if let Some(width) = self.rail_width {
             members.push(member("railWidth", number_value(width)));
         }
@@ -281,6 +295,41 @@ fn size(value: &Value) -> Option<(f32, f32)> {
     }
 }
 
+/// The members of the place of the window, each written only when it is known or, for whether it was maximized, true.
+fn window_members(window: WindowPlace) -> Vec<Member> {
+    let mut members = Vec::new();
+    if let Some((width, height)) = window.size {
+        members.push(member(
+            "windowSize",
+            Value::Array(vec![number_value(width), number_value(height)]),
+        ));
+    }
+    if let Some((x, y)) = window.position {
+        members.push(member(
+            "windowPosition",
+            Value::Array(vec![Value::from(i64::from(x)), Value::from(i64::from(y))]),
+        ));
+    }
+    if window.is_maximized {
+        members.push(member("windowMaximized", Value::Bool(true)));
+    }
+    members
+}
+
+/// A place on the screen read back: two whole numbers of pixels.
+fn position(value: &Value) -> Option<(i32, i32)> {
+    let coordinate = |value: &Value| {
+        value
+            .as_number()
+            .and_then(Number::as_i64)
+            .and_then(|number| i32::try_from(number).ok())
+    };
+    match value.as_array()? {
+        [x, y] => Some((coordinate(x)?, coordinate(y)?)),
+        _ => None,
+    }
+}
+
 /// A recent workspace, as written.
 fn recent_value(workspace: &RecentWorkspace) -> Value {
     let folders = workspace
@@ -352,7 +401,11 @@ mod tests {
         let mut persisted = Persisted {
             has_started: true,
             welcome_steps: [true, false, false, true, false],
-            window_size: Some((1280.0, 800.0)),
+            window: super::WindowPlace {
+                size: Some((1280.0, 800.0)),
+                position: Some((-1500, 40)),
+                is_maximized: true,
+            },
             rail_width: Some(250.5),
             file_layouts: super::FileLayouts {
                 inspector: views::details::FileLayout::Tree,

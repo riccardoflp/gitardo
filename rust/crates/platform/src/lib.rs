@@ -35,6 +35,7 @@ mod linux;
 #[cfg(target_os = "macos")]
 mod macos;
 mod mailbox;
+mod placement;
 mod present;
 mod shell;
 mod system;
@@ -63,6 +64,7 @@ pub use input::{
     WheelEvent,
 };
 pub use mailbox::{InputSender, Waker};
+pub use placement::WindowPlacement;
 pub use present::Frame;
 pub use shell::open_url;
 pub use system::utc_offset;

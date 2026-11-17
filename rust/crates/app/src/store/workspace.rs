@@ -386,11 +386,17 @@ pub(super) fn caption_changed(state: &mut State, caption: views::window::Caption
     Vec::new()
 }
 
-/// The window is closed: every read and operation stopped, its size kept with what is persisted, then it quits.
-pub(super) fn close_requested(state: &mut State, window_size: Option<(f32, f32)>) -> Vec<Effect> {
+/// The window is closed: every read and operation stopped, its size, its place and whether it is maximized kept with
+/// what is persisted, then it quits.
+pub(super) fn close_requested(state: &mut State, window: crate::persisted::WindowPlace) -> Vec<Effect> {
     let mut effects = cancel_all(state);
     effects.extend(super::tabs::cancel_all(state));
-    state.persisted.window_size = window_size.or(state.persisted.window_size);
+    let kept = state.persisted.window;
+    state.persisted.window = crate::persisted::WindowPlace {
+        size: window.size.or(kept.size),
+        position: window.position.or(kept.position),
+        is_maximized: window.is_maximized,
+    };
     effects.push(Effect::WritePersisted(state.persisted.clone()));
     effects.push(Effect::Quit);
     effects

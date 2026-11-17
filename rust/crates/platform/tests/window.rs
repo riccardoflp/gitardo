@@ -60,6 +60,8 @@ fn hidden_window(event_loop: &mut Loop) -> Window {
         visibility: Visibility::Hidden,
         title_bar: Some(Appearance::Dark),
         decorations: Decorations::System,
+        position: None,
+        is_maximized: false,
     };
     let mut window = None;
     event_loop

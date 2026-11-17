@@ -35,6 +35,9 @@ pub enum InputEvent {
     Resized(PhysicalSize),
     /// The window moved to a screen of another scale, or the scale of its screen changed.
     ScaleChanged(Scale),
+    /// The person started to move or resize the window by its frame or by the keys of its menu: what opened over its
+    /// inside closes, as the menus of the system do (`window.title-bar`).
+    MoveStarted,
     /// The person asked to close the window. It stays open until the program closes it.
     CloseRequested,
     /// The window needs a new frame: it was resized, uncovered with nothing to show, or a redraw was asked for.

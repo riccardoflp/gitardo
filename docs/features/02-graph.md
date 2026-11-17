@@ -234,9 +234,19 @@ Windows 11; the pointer on **Maximize** is then the system's, and `platform` han
 opens the system's menu of the window. The title of the window is set as before, though not drawn, since the taskbar,
 `Alt+Tab` and the screen reader say it.
 
+The header bar is drawn dimmed while the window has not the focus, as the system dims the title bar of a window behind
+another; **Close** under the pointer is still red. When the window starts to be moved or resized (`WM_ENTERSIZEMOVE`
+on Windows), what a press outside closes, a menu, a picker, a popover or the side column opened over the timeline,
+closes, as the system closes its own menus; a dialog stays, since closing it would lose what it asks, and its backdrop
+already keeps the header bar from moving the window. A change of the scale of the screen while the window is dragged
+draws it again, and `hit` reads the header bar as that frame drew it. The size of the window as it is restored, where it
+is and whether it is maximized are kept when it closes, in `state.json` under `windowSize`, `windowPosition` and
+`windowMaximized`, and it opens so at the next start; a place where the window could not be taken by its title bar on
+any screen is not used, and the system places the window.
+
 Acceptance:
 
-- [ ] The window opens with no title bar of the system.
+- [ ] The window opens with no title bar of the system, and keeps the title it is given, which the taskbar says.
 - [ ] `hit` says Caption for a free place of the header bar, the logo and the name; Client for **Search**, **Sync**
       and the repository in the header.
 - [ ] `hit` says Edge for a place 3 pixels from the left edge, Corner for one 3 pixels from the bottom right corner,
@@ -244,6 +254,11 @@ Acceptance:
 - [ ] On Windows the system is told the caption, which it moves the window from and maximizes or restores it from with
       a double click, the maximize button and each edge and corner.
 - [ ] `Alt+Space` opens the system's menu of the window.
+- [ ] The header bar is dimmed while the window has not the focus, in each theme.
+- [ ] A menu or a picker open when the window starts to be moved or resized closes.
+- [ ] After a change of scale the header bar is laid out again, and `hit` reads it as the new frame drew it.
+- [ ] The size, the place and whether the window is maximized when it closes are kept for the next start.
+- [ ] A place kept is used on a screen, and not when it is off every screen.
 
 ### `window.caption-buttons` — Minimize, maximize and close
 

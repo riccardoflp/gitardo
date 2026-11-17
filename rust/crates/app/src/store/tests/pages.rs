@@ -285,13 +285,14 @@ fn the_window_closed_keeps_its_size_cancels_its_jobs_and_quits() {
     let job = super::started(&effects)[0].0;
     let effects = reduce(
         &mut state,
-        Message::CloseRequested {
-            window_size: Some((1000.0, 700.0)),
-        },
+        Message::CloseRequested(crate::persisted::WindowPlace {
+            size: Some((1000.0, 700.0)),
+            ..crate::persisted::WindowPlace::default()
+        }),
     );
     assert_eq!(effects.first(), Some(&Effect::Cancel(job)));
     assert_eq!(effects.last(), Some(&Effect::Quit));
-    assert_eq!(state.persisted.window_size, Some((1000.0, 700.0)));
+    assert_eq!(state.persisted.window.size, Some((1000.0, 700.0)));
 }
 
 #[test]

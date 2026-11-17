@@ -26,6 +26,7 @@ pub fn toolkit_event(event: &SystemEvent) -> Option<ToolkitEvent> {
         SystemEvent::TextTyped(text) => ToolkitEvent::TextTyped(text.clone()),
         SystemEvent::FocusGained => ToolkitEvent::FocusGained,
         SystemEvent::FocusLost => ToolkitEvent::FocusLost,
+        SystemEvent::MoveStarted => ToolkitEvent::WindowMoveStarted,
         // The text the input method composes is not drawn by the toolkit yet: only what it types reaches it.
         SystemEvent::TextComposing(_)
         | SystemEvent::Resized(_)

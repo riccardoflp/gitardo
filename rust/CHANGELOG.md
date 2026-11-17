@@ -7,7 +7,10 @@
   `Alt+Space` opens the system's menu of the window. **Minimize**, **Maximize** or **Restore** and **Close** are at its
   right end, drawn as Windows draws them, **Close** red under the pointer, named for the screen reader; the pointer
   resting on **Maximize** shows Snap Layouts on Windows 11. The edges and the corners resize the window, and nothing
-  does while it is maximized. The window keeps its shadow and its rounded corners.
+  does while it is maximized. The window keeps its shadow and its rounded corners. The header bar dims while another
+  window has the focus; a menu or a picker open closes when the window starts to be moved or resized.
+- The window opens where it was and maximized if it was, besides keeping its size; a place on a screen no longer there
+  is left to the system.
 - The side column takes less room: a repository, a worktree and a submodule are each one row of one line, the name on
   the left and the branch, the files changed and `↓ ↑` smaller on the right, the name and the branch cut with `…`
   when the row is short; the heading of **Branches** has **Create branch**, **Compare** and the button of the rail's

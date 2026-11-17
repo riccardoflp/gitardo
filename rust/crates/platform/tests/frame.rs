@@ -8,13 +8,13 @@
 use platform::{Decorations, Event, EventLoop, LogicalSize, Visibility, Window, WindowOptions};
 
 #[test]
-fn window_title_bar__the_window_opens_with_no_title_bar_of_the_system() {
+fn window_title_bar__the_window_opens_with_no_title_bar_of_the_system_and_keeps_the_title_it_is_given() {
     let mut event_loop = EventLoop::<u32>::new().unwrap();
     let options = WindowOptions {
         title: String::from("Gitardo Desktop test"),
         size: LogicalSize {
-            width: 320.0,
-            height: 200.0,
+            width: 640.0,
+            height: 400.0,
         },
         visibility: Visibility::Hidden,
         decorations: Decorations::Drawn,
@@ -37,4 +37,12 @@ fn window_title_bar__the_window_opens_with_no_title_bar_of_the_system() {
     assert!(outside.height <= inside.height + 1, "{outside:?} around {inside:?}");
     window.set_frame_parts(|_, _| platform::FramePart::Caption);
     assert!(!window.is_maximized());
+    // The title is the window's still, which the taskbar and the switcher of windows say, though it is not drawn.
+    assert_eq!(window.title(), "Gitardo Desktop test");
+    window.set_title("api \u{2014} Gitardo Desktop");
+    assert_eq!(window.title(), "api \u{2014} Gitardo Desktop");
+    // Where it is restored to is what it opened with.
+    let placement = window.placement();
+    assert!(!placement.is_maximized);
+    assert!((placement.size.width - 640.0).abs() < 1.0, "{placement:?}");
 }

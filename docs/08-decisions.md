@@ -3166,3 +3166,28 @@ the reading given until the card says otherwise.
   as `changesColumn`. The side column stays, as beside the Files page; phase 15 puts it away from the title row.
 - **Q553** — `changes.beside-file`: whether `Escape` brings the whole page back, as it does beside a comparison.
   Built: no, since `Escape` closes the box that finds in the File page shown there; **Changes** in the trail does it.
+
+### Of the title bar the window draws, from Q565
+
+- **Q565** — `window.caption-buttons`: whether **Close** of the title bar asks before closing while an operation runs.
+  Built: it does what the system's close request does, which never asked, so both close alike; asking would be a
+  change of both, proposed apart.
+- **Q566** — `window.title-bar`: which places of the header bar are the caption. Built: every place of the header bar
+  that no widget takes the pointer on in the last frame, the logo and the name included, read from the toolkit's hits
+  of that frame; the widgets of the header are not the caption, so a drag on **Search** does not move the window. The
+  header bar is not the caption while a dialog is open, whose backdrop covers it, as the system's title bar of a
+  window under a dialog of its own does not move it.
+- **Q567** — `window.title-bar`: what closes when the window starts to be moved or resized. Built: what a press outside
+  it closes (a menu, a picker, a popover, the side column opened over the timeline), as if the pointer was pressed off
+  the window; a dialog stays open, since closing it would lose what it asks and nothing else closes a dialog but its
+  buttons and `Escape`. The roadmap said "a menu or a dialog".
+- **Q568** — `window.title-bar`: how dim the header bar is while the window has not the focus. Built: its widgets at 115
+  out of 255 of their opacity, the buttons of the title bar too, except one under the pointer; the ground of the
+  window is not dimmed, since the system does not dim the frame of a window. In the high-contrast themes too, whose
+  outlines stay readable at that opacity.
+- **Q569** — `window.title-bar`: what is kept of the place of the window. Built: the size of its inside as it is
+  restored, where its top left corner is in physical pixels as it is restored, and whether it is maximized, under
+  `windowSize`, `windowPosition` (two whole numbers) and `windowMaximized` (written only when true) in `state.json`.
+  A window snapped to half the screen keeps that size and place, which Windows itself would restore to another. A
+  place is used when a point 48 pixels in from its top left corner is on a screen; on Wayland, which does not say
+  where a window is, nothing is kept of the place.

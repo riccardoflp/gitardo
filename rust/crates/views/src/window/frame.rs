@@ -16,6 +16,9 @@ pub const EDGE: f32 = 6.0;
 pub const CAPTION_BUTTON_WIDTH: f32 = 46.0;
 /// How wide the outlines of the buttons are, in logical pixels: as Windows draws them.
 const GLYPH: f32 = 10.0;
+/// How opaque the header bar is drawn while the window has not the focus, out of 255: dimmed, as the system dims the
+/// title bar of a window behind another.
+pub const UNFOCUSED_OPACITY: u8 = 115;
 
 /// Who draws the title bar of the window.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -121,6 +124,17 @@ pub enum WindowIntent {
 #[must_use]
 pub fn caption_height(theme: &Theme) -> f32 {
     theme.sizes.control_height + 2.0 * theme.sizes.spacing.medium
+}
+
+/// How opaque the header bar is drawn: whole while the window has the focus or the system draws the title bar,
+/// dimmed otherwise.
+#[must_use]
+pub fn header_opacity(caption: CaptionState, ui: &Ui<'_>) -> u8 {
+    if caption.title_bar == TitleBar::System || ui.is_window_focused() {
+        u8::MAX
+    } else {
+        UNFOCUSED_OPACITY
+    }
 }
 
 /// Where the three buttons of the title bar are, in a window of a size: at the right end of the header bar, as high
@@ -229,7 +243,7 @@ pub fn caption_buttons_view(state: &CaptionState, ui: &mut Ui<'_>) -> Vec<Intent
     for button in [Button::Minimize, middle, Button::Close] {
         let rect = Rect::new(left, area.y, CAPTION_BUTTON_WIDTH, area.height);
         left += CAPTION_BUTTON_WIDTH;
-        if caption_button(button, rect, ui) {
+        if caption_button(button, rect, header_opacity(*state, ui), ui) {
             intents.push(Intent::Window(match button {
                 Button::Minimize => WindowIntent::Minimize,
                 Button::Maximize => WindowIntent::Maximize,
@@ -241,8 +255,9 @@ pub fn caption_buttons_view(state: &CaptionState, ui: &mut Ui<'_>) -> Vec<Intent
     intents
 }
 
-/// One button, named for the screen reader and in its tooltip; whether it was clicked.
-fn caption_button(button: Button, rect: Rect, ui: &mut Ui<'_>) -> bool {
+/// One button, named for the screen reader and in its tooltip, its outline dimmed to an opacity unless the pointer is
+/// on it; whether it was clicked.
+fn caption_button(button: Button, rect: Rect, opacity: u8, ui: &mut Ui<'_>) -> bool {
     let name = match button {
         Button::Minimize => words::MINIMIZE,
         Button::Maximize => words::MAXIMIZE,
@@ -263,7 +278,8 @@ fn caption_button(button: Button, rect: Rect, ui: &mut Ui<'_>) -> bool {
     if let Some(background) = background {
         ui.fill_rect(rect, background);
     }
-    draw_glyph(button, rect, foreground, ui);
+    let opacity = if is_lit { u8::MAX } else { opacity };
+    ui.faded(opacity, |ui| draw_glyph(button, rect, foreground, ui));
     response.clicked
 }
 

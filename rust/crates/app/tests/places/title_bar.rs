@@ -2,6 +2,7 @@
 //! its right end, what they ask, what the screen reader names them, and the places of the header bar that are its
 //! caption, over clones made for each test.
 
+use app::persisted::{Persisted, WindowPlace};
 use app::store::{Effect, Message, State};
 use app::window::frame::frame_part;
 use platform::FramePart;
@@ -81,14 +82,13 @@ fn window_caption_buttons__close_closes_the_window_as_the_close_request_of_the_s
     let effects = support::run(&mut state, Message::Intent(Intent::Window(WindowIntent::Close)));
     assert!(effects.contains(&Effect::Window(WindowIntent::Close)), "{effects:?}");
     // The window answers it with the close request of the system, which keeps its size and quits.
-    let effects = support::run(
-        &mut state,
-        Message::CloseRequested {
-            window_size: Some((1000.0, 580.0)),
-        },
-    );
+    let place = WindowPlace {
+        size: Some((1000.0, 580.0)),
+        ..WindowPlace::default()
+    };
+    let effects = support::run(&mut state, Message::CloseRequested(place));
     assert!(effects.contains(&Effect::Quit), "{effects:?}");
-    assert_eq!(state.persisted.window_size, Some((1000.0, 580.0)));
+    assert_eq!(state.persisted.window.size, Some((1000.0, 580.0)));
 }
 
 #[test]
@@ -168,4 +168,105 @@ fn window_caption_buttons__the_header_bar_with_the_buttons_in_each_theme() {
         let _ = window.draw(&state, &[]);
         window.assert_snapshot(name);
     }
+}
+
+#[test]
+fn window_title_bar__the_header_bar_is_dimmed_while_the_window_has_not_the_focus_in_each_theme() {
+    let (_kept, state) = drawn(false);
+    for (theme, name) in [
+        (ThemeName::Dark, "title-bar-unfocused-dark"),
+        (ThemeName::Light, "title-bar-unfocused-light"),
+        (ThemeName::HighContrastDark, "title-bar-unfocused-high-contrast-dark"),
+        (ThemeName::HighContrastLight, "title-bar-unfocused-high-contrast-light"),
+    ] {
+        let mut window = Window::new(theme, (1000, 160));
+        let _ = window.draw(&state, &[]);
+        let focused = window.frame.to_rgba();
+        let _ = window.draw(&state, &[InputEvent::FocusLost]);
+        let _ = window.draw(&state, &[]);
+        assert_ne!(window.frame.to_rgba(), focused, "{name} changes");
+        window.assert_snapshot(name);
+    }
+}
+
+#[test]
+fn window_title_bar__a_menu_or_a_picker_open_when_the_window_starts_to_be_moved_or_resized_closes() {
+    let (_kept, state) = drawn(false);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let _ = window.click(&state, Role::Button, "More");
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(has_menu_item(&tree), "the menu is open");
+    let _ = window.draw(&state, &[InputEvent::WindowMoveStarted]);
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(!has_menu_item(&tree), "the menu closed");
+}
+
+#[test]
+fn window_title_bar__a_change_of_scale_lays_the_header_bar_out_again_and_hit_reads_it_as_drawn() {
+    let (_kept, state) = drawn(false);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let _ = window.draw(&state, &[]);
+    let band = ui::Rect::new(0.0, 0.0, width(), HEADER);
+    let before = window.pointer_targets(band);
+    // The window lands on a screen of twice the scale and is resized to 700 logical pixels.
+    let mut window = Window::scaled(ThemeName::Dark, (700, WIDE.1), 2);
+    let _ = window.draw(&state, &[]);
+    let size = WindowSize {
+        width: 700.0,
+        height: 580.0,
+    };
+    let mut controls = window.pointer_targets(ui::Rect::new(0.0, 0.0, size.width, HEADER));
+    assert_ne!(controls, before, "laid out again");
+    assert!(
+        controls.iter().all(|control| control.right() <= size.width + 0.5),
+        "{controls:?}"
+    );
+    let frame = FrameState {
+        caption: state.caption,
+        caption_height: HEADER,
+        controls: controls.clone(),
+    };
+    let at = |point: Point| views::window::hit(point, size, &frame);
+    assert_eq!(at(Point::new(690.0, 20.0)), Hit::Close);
+    assert_eq!(at(Point::new(700.0 - 3.0 * 46.0 + 5.0, 20.0)), Hit::Minimize);
+    for control in &controls {
+        assert_ne!(at(control.center()), Hit::Caption, "{control:?}");
+    }
+    // The widest free place between two controls of the header bar is the caption.
+    controls.sort_by(|first, second| first.x.total_cmp(&second.x));
+    let (left, right) = controls
+        .windows(2)
+        .map(|pair| (pair[0].right(), pair[1].x))
+        .max_by(|first, second| (first.1 - first.0).total_cmp(&(second.1 - second.0)))
+        .unwrap();
+    assert!(right - left > 8.0, "{controls:?}");
+    assert_eq!(at(Point::new(f32::midpoint(left, right), HEADER * 0.5)), Hit::Caption);
+}
+
+#[test]
+fn window_title_bar__the_size_the_place_and_whether_maximized_are_kept_for_the_next_start() {
+    let (_kept, mut state) = drawn(true);
+    let place = WindowPlace {
+        size: Some((1100.0, 700.0)),
+        position: Some((-1500, 40)),
+        is_maximized: true,
+    };
+    let _ = support::run(&mut state, Message::CloseRequested(place));
+    assert_eq!(state.persisted.window, place);
+    let next_start = Persisted::from_text(&state.persisted.to_text());
+    assert_eq!(next_start.window, place);
+    // A system that does not say where the window is keeps the place it had.
+    let unsaid = WindowPlace {
+        size: Some((900.0, 600.0)),
+        position: None,
+        is_maximized: false,
+    };
+    let _ = support::run(&mut state, Message::CloseRequested(unsaid));
+    assert_eq!(state.persisted.window.position, Some((-1500, 40)));
+    assert!(!state.persisted.window.is_maximized);
+}
+
+/// Whether a menu is open: the tree has an item of a menu.
+fn has_menu_item(tree: &platform::accesskit::TreeUpdate) -> bool {
+    tree.nodes.iter().any(|(_, node)| node.role() == Role::MenuItem)
 }

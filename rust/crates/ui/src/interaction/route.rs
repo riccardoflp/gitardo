@@ -221,6 +221,12 @@ pub(crate) fn route(state: &mut Interaction, events: &[InputEvent], settings: Ro
                 state.pressed_on = None;
                 state.modifiers = Modifiers::NONE;
             }
+            InputEvent::WindowMoveStarted => {
+                // A press outside every rectangle of the window: what a press outside closes, closes.
+                routed.presses.push(Point::new(f32::MIN, f32::MIN));
+                state.active = None;
+                state.pressed_on = None;
+            }
         }
     }
     update_hover(state, settings.now);

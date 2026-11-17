@@ -20,9 +20,10 @@ use crate::convert::round_to_coordinate;
 use crate::error::PlatformError;
 use crate::event::{Cursor, WindowId};
 use crate::frame::{Decorations, DrawnFrame};
-use crate::geometry::{PhysicalSize, Point, Scale};
+use crate::geometry::{PhysicalSize, Point, Scale, ScreenPosition};
 use crate::input::{InputEvent, KeyEvent, Modifiers, PointerButtonEvent, PointerMove, WheelEvent};
 use crate::mailbox::Mailbox;
+use crate::placement::WindowPlacement;
 use crate::present::Presenter;
 use crate::system::{click_limits, usable, wheel_steps};
 use crate::translate;
@@ -54,6 +55,10 @@ pub(crate) struct WindowShared {
     pub(crate) cursor: Cell<Cursor>,
     /// Whether the input method is on.
     pub(crate) is_composing_allowed: Cell<bool>,
+    /// Where it was and how large the last time it was neither maximized nor minimized.
+    restored: Cell<WindowPlacement>,
+    /// Whether it is maximized once it shows: maximizing a hidden window would show it.
+    pub(crate) is_maximized_on_show: Cell<bool>,
     /// The window of `winit`.
     pub(crate) window: Rc<LibraryWindow>,
 }
@@ -87,8 +92,40 @@ impl WindowShared {
             is_redraw_asked: Cell::new(false),
             cursor: Cell::new(Cursor::Arrow),
             is_composing_allowed: Cell::new(false),
+            restored: Cell::new(WindowPlacement::default()),
+            is_maximized_on_show: Cell::new(false),
             window,
         })
+    }
+
+    /// Where it is and how large as it is restored, and whether it is maximized.
+    pub(crate) fn placement(&self) -> WindowPlacement {
+        self.keep_placement();
+        WindowPlacement {
+            is_maximized: self.window.is_maximized() || self.is_maximized_on_show.get(),
+            ..self.restored.get()
+        }
+    }
+
+    /// Notes where it is and how large, while it is neither maximized nor minimized.
+    pub(crate) fn keep_placement(&self) {
+        if !is_restored(&self.window) {
+            return;
+        }
+        let position = self.window.outer_position().ok().map(|position| ScreenPosition {
+            x: position.x,
+            y: position.y,
+        });
+        let size = self.window.inner_size();
+        let size = self.scale().to_logical(PhysicalSize {
+            width: size.width,
+            height: size.height,
+        });
+        self.restored.set(WindowPlacement {
+            position,
+            size,
+            is_maximized: false,
+        });
     }
 
     /// The scale of the screen it is on.
@@ -128,17 +165,24 @@ impl WindowShared {
             } else {
                 InputEvent::FocusLost
             }),
-            WindowEvent::Resized(size) => Some(InputEvent::Resized(PhysicalSize {
-                width: size.width,
-                height: size.height,
-            })),
+            WindowEvent::Resized(size) => {
+                self.keep_placement();
+                Some(InputEvent::Resized(PhysicalSize {
+                    width: size.width,
+                    height: size.height,
+                }))
+            }
+            WindowEvent::Moved(_) => {
+                self.keep_placement();
+                None
+            }
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 Some(InputEvent::ScaleChanged(Scale::from_factor(*scale_factor)))
             }
             WindowEvent::CloseRequested => Some(InputEvent::CloseRequested),
             WindowEvent::RedrawRequested => Some(InputEvent::RedrawRequested),
             // The rest is no input of Gitardo: the input method turned on or off, files hovered, touch, the theme
-            // (which the loop reads itself), the window moved or destroyed, and the events `winit` makes up for keys
+            // (which the loop reads itself), the window destroyed, and the events `winit` makes up for keys
             // already held when the window gets the keyboard.
             _ => None,
         };
@@ -272,4 +316,16 @@ fn coordinate(value: f64) -> i32 {
 fn milliseconds_since(clock: Instant) -> u32 {
     let milliseconds = clock.elapsed().as_millis() % (u128::from(u32::MAX) + 1);
     u32::try_from(milliseconds).unwrap_or_default()
+}
+
+/// Whether a window is as it is restored to: neither maximized nor minimized.
+#[cfg(windows)]
+fn is_restored(window: &LibraryWindow) -> bool {
+    crate::windows::is_restored(window)
+}
+
+/// Whether a window is as it is restored to: neither maximized nor minimized.
+#[cfg(not(windows))]
+fn is_restored(window: &LibraryWindow) -> bool {
+    !window.is_maximized() && window.is_minimized() != Some(true)
 }

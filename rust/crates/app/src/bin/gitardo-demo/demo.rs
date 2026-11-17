@@ -45,6 +45,8 @@ impl Demo {
             theme: ThemeName::System,
             frame_timer: FRAME_TIMER,
             title_bar: views::window::TitleBar::System,
+            position: None,
+            is_maximized: false,
         };
         let mut surface = Surface::open(context, options)?;
         let theme = *surface.theme();

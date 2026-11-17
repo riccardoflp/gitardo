@@ -38,8 +38,8 @@ mod side;
 mod timeline;
 
 pub use frame::{
-    CAPTION_BUTTON_WIDTH, CaptionState, Corner, EDGE, Edge, FrameState, Hit, TitleBar, WindowIntent, WindowSize,
-    caption_buttons_rect, caption_buttons_view, caption_height, hit,
+    CAPTION_BUTTON_WIDTH, CaptionState, Corner, EDGE, Edge, FrameState, Hit, TitleBar, UNFOCUSED_OPACITY, WindowIntent,
+    WindowSize, caption_buttons_rect, caption_buttons_view, caption_height, header_opacity, hit,
 };
 
 use side::{puts_side_away, side_beside, side_over, side_toggle};
@@ -212,7 +212,9 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         .and_then(|side| side.tabs.tabs.iter().find(|tab| tab.is_shown))
         .map(|tab| tab.folder.as_str());
     let panel = ui.scope(("tab", shown_tab), |ui| {
-        intents.extend(ui.clip(header, |ui| toolbar_view(&state.header, ui)));
+        // The header bar dims while the window has not the focus, as the title bar it is (`window.title-bar`).
+        let opacity = header_opacity(state.caption, ui);
+        intents.extend(ui.clip(header, |ui| ui.faded(opacity, |ui| toolbar_view(&state.header, ui))));
         tab_islands(state, ui, (body, gap), &mut intents)
     });
     if let Some(drawer) = &state.drawer {

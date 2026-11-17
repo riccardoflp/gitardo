@@ -18,7 +18,7 @@ mod shell32;
 mod user32;
 mod watch;
 
-pub(crate) use frame::FrameProcedure;
+pub(crate) use frame::{FrameProcedure, is_restored};
 pub(crate) use settings::{click_limits, is_high_contrast, utc_offset, wheel_steps};
 pub(crate) use shell::open_url;
 pub(crate) use watch::DirectoryWatch;

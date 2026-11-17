@@ -34,6 +34,9 @@ pub enum InputEvent {
     FocusGained,
     /// The window lost the keyboard.
     FocusLost,
+    /// The window started to be moved or resized: what a press outside it closes, menus, pickers and popovers,
+    /// closes, as the system closes its own menus then.
+    WindowMoveStarted,
 }
 
 /// Where the pointer moved to.

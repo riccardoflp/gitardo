@@ -5,8 +5,8 @@ use std::time::{Duration, Instant};
 
 use platform::accesskit::{Node, NodeId, Role, TreeId, TreeInfo, TreeUpdate};
 use platform::{
-    AccessibilityRequest, Clipboard, Context, Event, Frame, InputEvent, LogicalSize, PhysicalSize, SystemTheme,
-    TextInputArea, TimerId, Visibility, Window, WindowOptions,
+    AccessibilityRequest, Clipboard, Context, Event, Frame, InputEvent, LogicalSize, PhysicalSize, ScreenPosition,
+    SystemTheme, TextInputArea, TimerId, Visibility, Window, WindowOptions,
 };
 use render::{Assets, FrameBuffer, Theme, ThemeName};
 use ui::{FrameInput, FrameOutput, FrameSettings, Typefaces, Ui, UiMemory};
@@ -32,6 +32,10 @@ pub struct SurfaceOptions {
     pub frame_timer: TimerId,
     /// Who draws its title bar (`window.title-bar`).
     pub title_bar: views::window::TitleBar,
+    /// Where its top left corner goes on the screen, as it was last; none lets the system pick.
+    pub position: Option<ScreenPosition>,
+    /// Whether it opens maximized.
+    pub is_maximized: bool,
 }
 
 /// What an event of the loop asks of the program that owns the window.
@@ -108,6 +112,8 @@ impl Surface {
             visibility: options.visibility,
             title_bar: title_bar(options.theme, &theme),
             decorations: decorations(options.title_bar),
+            position: options.position,
+            is_maximized: options.is_maximized,
             ..WindowOptions::default()
         };
         let window = Window::open(context, &window_options)?;
