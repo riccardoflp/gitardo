@@ -3771,6 +3771,13 @@ is built as it says until the maintainer answers otherwise.
 Questions asked while building milestone M23, which keeps what a row shows under the pointer there while the pointer
 is on it; each is built as it says until the maintainer answers otherwise.
 
+- **Q730** — rule R10.6: `cargo xtask check` refuses a widget declared in the statement that reads `hovered`, the form
+  the **×** of **Repositories**, the **…** of the titles of the branch rail and the history button of a file had. It
+  reads the text of a statement, not the types, so it does not follow the answer once it is kept in a variable or
+  handed to a function, nor a widget declared by a function of the views rather than by the toolkit: two of the places
+  of M23 had those forms and it would not have refused them. The test that rests the pointer on every sixteenth pixel
+  of the window and compares two frames in a row finds them where it looks. Should the check go further, as by
+  refusing every read of `hovered` in the views that a comment does not explain?
 - **Q731** — `ui`: a widget is drawn inside another when its rectangle is within the other's, on the same layer, with
   a pixel of slack; the toolkit does not record which widget declared which. A button that sticks further out of its
   row would take the pointer from the row again, and a widget that lies wholly within a row without being of it would

@@ -4,6 +4,7 @@
 mod catalog;
 mod edges;
 mod packages;
+mod pointer;
 mod purity;
 mod shape;
 mod tools;
@@ -63,6 +64,7 @@ pub fn problems(workspace: &Workspace) -> Vec<Problem> {
     found.extend(purity::check(workspace));
     found.extend(unsafe_code::check(workspace));
     found.extend(shape::check(workspace));
+    found.extend(pointer::check(workspace));
     found.sort();
     found
 }
