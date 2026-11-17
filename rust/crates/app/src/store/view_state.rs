@@ -17,6 +17,7 @@ use views::graph::{
 };
 use views::log::{LogLine, LogState};
 use views::page::{Page, PageHostState, PageState};
+use views::panel::BottomPanelState;
 use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState};
 use views::settings::{SettingRow, SettingsPageState, ThemePickerState};
 use views::welcome::WelcomeState;
@@ -47,7 +48,7 @@ pub struct ViewData {
     running: Vec<RunningTask>,
     /// What ran a moment ago, the latest first, for the Activity drawer.
     finished: Vec<RunningTask>,
-    /// The lines of the Command log, while the drawer shows it.
+    /// The lines of the Command log, while the bottom panel shows it.
     log_lines: Vec<LogLine>,
     /// The settings, while the settings page is open.
     setting_rows: Vec<SettingRow>,
@@ -107,7 +108,7 @@ impl ViewData {
             question_folder,
             running,
             finished: Vec::new(),
-            log_lines: if state.is_activity_open && state.is_log_shown {
+            log_lines: if super::panel::is_log_shown(state) {
                 super::log_lines::log_lines(&state.log)
             } else {
                 Vec::new()
@@ -152,13 +153,10 @@ impl ViewData {
                 is_running: state.is_operation_running,
             },
             content: self.content(state),
+            panel: self.panel(state),
             drawer: state.is_activity_open.then_some(ActivityState {
                 running: &self.running,
                 finished: &self.finished,
-                log: state.is_log_shown.then_some(LogState {
-                    lines: &self.log_lines,
-                    dropped: state.log.dropped(),
-                }),
                 tasks: state.tasks.view(&self.task_rows),
             }),
             theme_picker: (state.dialog == Some(Dialog::ThemePicker)).then_some(ThemePickerState {
@@ -183,6 +181,20 @@ impl ViewData {
             large_merge: super::merge_page::large_question(state),
             close_file: super::file_page::close_question(state),
         }
+    }
+
+    /// The bottom panel, while it is shown.
+    fn panel<'a>(&'a self, state: &'a State) -> Option<BottomPanelState<'a>> {
+        let look = super::panel::look(state);
+        look.is_shown.then_some(BottomPanelState {
+            tab: look.tab,
+            height: look.height,
+            log: LogState {
+                lines: &self.log_lines,
+                dropped: state.log.dropped(),
+            },
+            focus: state.panel.focus,
+        })
     }
 
     /// The header.

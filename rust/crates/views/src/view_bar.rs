@@ -23,6 +23,8 @@ pub struct ViewBarState {
     pub changed_files: Option<usize>,
     /// Whether the Activity drawer is open, which marks **Activity**.
     pub is_activity_open: bool,
+    /// Whether the bottom panel is shown, which marks **Terminal**.
+    pub is_panel_shown: bool,
 }
 
 /// The place of the window shown, as the bar of views marks it.
@@ -48,6 +50,7 @@ enum View {
     Changes,
     Files,
     Compare,
+    Terminal,
     Activity,
     Settings,
 }
@@ -60,6 +63,7 @@ impl View {
             View::Changes => (Icon::Pencil, words::CHANGES),
             View::Files => (Icon::Folder, words::FILES),
             View::Compare => (Icon::Compare, words::COMPARE),
+            View::Terminal => (Icon::ChevronRight, crate::text::panel::TERMINAL),
             View::Activity => (Icon::Activity, words::ACTIVITY),
             View::Settings => (Icon::Gear, words::SETTINGS),
         }
@@ -72,6 +76,7 @@ impl View {
             View::Changes => state.shown == ViewShown::Changes,
             View::Files => state.shown == ViewShown::Files,
             View::Compare => false,
+            View::Terminal => state.is_panel_shown,
             View::Activity => state.is_activity_open,
             View::Settings => state.shown == ViewShown::Settings,
         }
@@ -79,7 +84,10 @@ impl View {
 
     /// Whether it needs a repository read.
     fn needs_repository(self) -> bool {
-        matches!(self, View::Timeline | View::Changes | View::Files | View::Compare)
+        matches!(
+            self,
+            View::Timeline | View::Changes | View::Files | View::Compare | View::Terminal
+        )
     }
 
     /// What a click asks for.
@@ -89,6 +97,7 @@ impl View {
             View::Changes => Intent::ShowPage(Page::Changes),
             View::Files => Intent::ShowPage(Page::Files),
             View::Compare => Intent::Feature(FeatureIntent::Run(FeatureId("compare.choose"), Target::Head)),
+            View::Terminal => Intent::Panel(crate::panel::PanelIntent::Toggle),
             View::Activity if state.is_activity_open => Intent::CloseActivity,
             View::Activity => Intent::OpenActivity,
             View::Settings => Intent::ShowPage(Page::Settings),
@@ -97,8 +106,8 @@ impl View {
 }
 
 /// The bar of views over the rectangle its caller clipped it to: **Timeline**, **Changes** with the number of changed
-/// files, **Files** and **Compare** from the top; **Activity** and **Settings** at its foot. The place shown has the
-/// ground of an island behind its icon.
+/// files, **Files** and **Compare** from the top; **Terminal**, **Activity** and **Settings** at its foot. The place
+/// shown has the ground of an island behind its icon.
 ///
 /// Feature: graph.view-bar
 pub fn view_bar_view(state: &ViewBarState, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -113,7 +122,7 @@ pub fn view_bar_view(state: &ViewBarState, ui: &mut Ui<'_>) -> Vec<Intent> {
             let cell = place(column.top(side), (side, side), (Align::Center, Align::Center));
             intents.extend(button(view, state, ui, cell));
         }
-        for view in [View::Settings, View::Activity] {
+        for view in [View::Settings, View::Activity, View::Terminal] {
             let cell = place(column.bottom(side), (side, side), (Align::Center, Align::Center));
             intents.extend(button(view, state, ui, cell));
         }

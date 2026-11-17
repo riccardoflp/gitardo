@@ -12,12 +12,8 @@ pub const NOTHING_RUNNING_DETAIL: &str = "Gitardo is not reading or changing any
 
 /// The title of the column of what runs.
 pub const RUNNING_COLUMN: &str = "WHAT IS RUNNING";
-/// The title of the column of the Command log.
-pub const LOG_COLUMN: &str = "COMMAND LOG";
-/// The button under what runs that shows the Command log (`activity.what-is-running`).
+/// The button under what runs that shows the bottom panel at the Command log (`activity.what-is-running`).
 pub const SHOW_COMMANDS: &str = "Show the commands Gitardo runs";
-/// The button that puts the Command log away again.
-pub const HIDE_COMMANDS: &str = "Hide the commands";
 /// The Command log, as the screen reader says its list (`log.show`).
 pub const COMMAND_LOG: &str = "Command log";
 /// What the Command log says before anything was logged.

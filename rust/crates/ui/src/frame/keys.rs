@@ -71,6 +71,25 @@ impl Ui<'_> {
         }
     }
 
+    /// Gives the keyboard focus to a widget once for each number: a panel that takes it each time a key shows it, and
+    /// leaves it to a click elsewhere in between.
+    pub fn request_focus_once(&mut self, id: WidgetId, serial: u64) {
+        if self.memory.focus_serials.insert(id, serial) != Some(serial) {
+            self.request_focus(id);
+        }
+    }
+
+    /// Whether the widget with the keyboard focus was declared in this frame inside a rectangle: whether a place, such
+    /// as the bottom panel, has the keyboard.
+    #[must_use]
+    pub fn has_focus_within(&self, rect: Rect) -> bool {
+        self.memory
+            .interaction
+            .focus
+            .and_then(|id| self.hits.rect_of(id))
+            .is_some_and(|hit| rect.contains(render::Point::new(hit.x + hit.width * 0.5, hit.y + hit.height * 0.5)))
+    }
+
     /// Whether the pointer was pressed in this frame outside a rectangle: what closes a menu or a picker.
     #[must_use]
     pub fn pressed_outside(&self, rect: Rect) -> bool {

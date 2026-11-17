@@ -69,6 +69,8 @@ pub enum QuickCommand {
     FilterBranchRail,
     /// **Show Command Log** (`log.show`).
     ShowCommandLog,
+    /// **Show Terminal** (`panel.bottom`).
+    ShowTerminal,
     /// **Open Settings** (`settings.edit`).
     OpenSettings,
     /// **Welcome** (`welcome.page`).
@@ -139,7 +141,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 46] = [
+    pub const ALL: [QuickCommand; 47] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -153,6 +155,7 @@ impl QuickCommand {
         QuickCommand::ShowBranches,
         QuickCommand::FilterBranchRail,
         QuickCommand::ShowCommandLog,
+        QuickCommand::ShowTerminal,
         QuickCommand::OpenSettings,
         QuickCommand::Welcome,
         QuickCommand::ShowChanges,

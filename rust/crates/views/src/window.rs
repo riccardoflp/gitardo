@@ -22,6 +22,7 @@ use crate::islands::{gap, island};
 use crate::line::{ICON_RAIL_WIDTH, INSPECTOR_OVER_BELOW, control_in, is_narrow};
 use crate::page::Page;
 use crate::page::{PageHostState, host_view};
+use crate::panel::{BottomPanelState, bottom_view, panel_height, panel_shortcut, resize_panel_view, split_column};
 use crate::refs::ReferencesState;
 use crate::repo::{
     NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, TabsState, no_repository_view,
@@ -48,6 +49,8 @@ pub struct WindowState<'a> {
     pub status: StatusBarState<'a>,
     /// What is under the header.
     pub content: Content<'a>,
+    /// The bottom panel, while it is shown (`panel.bottom`).
+    pub panel: Option<BottomPanelState<'a>>,
     /// The Activity drawer, while it is open.
     pub drawer: Option<ActivityState<'a>>,
     /// The picker of the repositories, while it is open.
@@ -167,25 +170,30 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         .as_ref()
         .and_then(|tabs| tabs.tabs.iter().find(|tab| tab.is_shown))
         .map(|tab| tab.folder.as_str());
-    let body = ui.scope(("tab", shown_tab), |ui| {
+    let (body, panel) = ui.scope(("tab", shown_tab), |ui| {
         tab_islands(state, ui, (column, gap, bar_height), &mut intents)
     });
     if let Some(drawer) = &state.drawer {
-        intents.extend(ui.clip(body, |ui| what_is_running_view(drawer, ui)));
+        // The drawer opens over what is above the bottom panel, which it would hide.
+        let above = panel.map_or(body, |panel| {
+            Rect::new(body.x, body.y, body.width, (panel.y - gap - body.y).max(0.0))
+        });
+        intents.extend(ui.clip(above, |ui| what_is_running_view(drawer, ui)));
     }
     dialogs(state, ui, &mut intents);
     intents.extend(shortcuts(ui, state.drawer.is_some()));
+    intents.extend(panel_shortcut(ui, panel));
     intents
 }
 
-/// The islands of the tab shown: the header, what was said, a notice, and the timeline or the page; gives the rectangle
-/// under the notices, where the Activity drawer opens.
+/// The islands of the tab shown: the header, what was said, a notice, the timeline or the page, and the bottom panel;
+/// gives the rectangle under the notices, where the Activity drawer opens, and that of the bottom panel when it is shown.
 fn tab_islands(
     state: &WindowState<'_>,
     ui: &mut Ui<'_>,
     (mut column, gap, bar_height): (Area, f32, f32),
     intents: &mut Vec<Intent>,
-) -> Rect {
+) -> (Rect, Option<Rect>) {
     let top = column.top(bar_height);
     intents.extend(island(ui, top, |ui| toolbar_view(&state.header, ui)));
     let mut body = column.rest();
@@ -201,11 +209,34 @@ fn tab_islands(
         body = rows.rest();
         island(ui, bar, |ui| notice_bar(notice, ui, bar, intents));
     }
-    match &state.content {
-        Content::Timeline(timeline) => timeline_with_rail(timeline, ui, (body, gap), intents),
-        Content::Page(page) => intents.extend(island(ui, body, |ui| host_view(page, ui))),
-    }
-    body
+    let panel = state.panel.as_ref();
+    let shown = match &state.content {
+        Content::Timeline(timeline) => timeline_with_rail(timeline, panel, ui, (body, gap), intents),
+        Content::Page(page) => {
+            let above = above_panel(panel, ui, (body, gap), intents);
+            intents.extend(island(ui, above.0, |ui| host_view(page, ui)));
+            above.1
+        }
+    };
+    (body, shown)
+}
+
+/// The bottom panel at the foot of a column, when it is shown, with the gap above it that changes its height; gives
+/// what is left above it and where the panel is.
+fn above_panel(
+    panel: Option<&BottomPanelState<'_>>,
+    ui: &mut Ui<'_>,
+    (column, gap): (Rect, f32),
+    intents: &mut Vec<Intent>,
+) -> (Rect, Option<Rect>) {
+    let Some(panel) = panel else {
+        return (column, None);
+    };
+    let height = panel_height(panel.height, column.height, ui.window().height);
+    let (above, below) = split_column(column, height, gap);
+    intents.extend(island(ui, below, |ui| bottom_view(panel, ui)));
+    intents.extend(resize_panel_view(panel, (column, gap), ui));
+    (above, Some(below))
 }
 
 /// The dialogs over the window, those that are open.
@@ -242,57 +273,90 @@ fn dialogs(state: &WindowState<'_>, ui: &mut Ui<'_>, intents: &mut Vec<Intent>) 
 }
 
 /// The branch rail, the timeline and the inspector side by side, each an island with a gap between them that resizes
-/// them; in a narrow window the rail shows its icons and the inspector opens over the commits while something is
-/// selected.
-fn timeline_with_rail(state: &TimelineState<'_>, ui: &mut Ui<'_>, (body, gap): (Rect, f32), intents: &mut Vec<Intent>) {
-    let icon_rail = is_narrow(ui).then_some(ICON_RAIL_WIDTH);
+/// them, and the bottom panel under the timeline and the inspector when it is shown, the rail keeping its whole height;
+/// in a narrow window the rail shows its icons and the inspector opens over the commits while something is selected.
+/// Gives where the bottom panel is.
+fn timeline_with_rail(
+    state: &TimelineState<'_>,
+    panel: Option<&BottomPanelState<'_>>,
+    ui: &mut Ui<'_>,
+    (body, gap): (Rect, f32),
+    intents: &mut Vec<Intent>,
+) -> Option<Rect> {
     match state {
-        TimelineState::Repository {
-            rail: references,
-            graph,
-            inspector: details,
-            panes,
-            is_rail_hidden,
-            search,
-            filter,
-            ..
-        } => {
-            let is_inspector_over = ui.window().width < INSPECTOR_OVER_BELOW;
-            let layout = PaneLayout {
-                body,
-                sizes: *panes,
-                icon_rail,
-                is_rail_hidden: *is_rail_hidden,
-                is_inspector_over,
-                has_inspector: !is_inspector_over || details.selected.is_some(),
-                gap,
-            };
-            let rects = pane_rects(&layout, gap);
-            let mut rail_hover = None;
-            if let Some(rail) = rects.rail {
-                let (rail_intents, hover) = island(ui, rail, |ui| crate::branch::pane_view(references, ui));
-                intents.extend(rail_intents);
-                rail_hover = hover;
-            }
-            island(ui, rects.main, |ui| {
-                let main = search_row((&search.0, filter), ui, rects.main, intents);
-                let mut main = Area::new(main);
-                banners(state, ui, &mut main, intents);
-                let graph = with_rail_hover(graph, rail_hover);
-                intents.extend(ui.clip(main.rest(), |ui| graph_view(&graph, ui)));
-            });
-            if let Some(column) = rects.inspector {
-                intents.extend(island(ui, column, |ui| show(details, ui)));
-            }
-            intents.extend(resize_panes_view(&layout, ui));
-        }
+        TimelineState::Repository { .. } => repository_panes(state, panel, ui, (body, gap), intents),
         TimelineState::NoRepository(no_repository) => {
+            let icon_rail = is_narrow(ui).then_some(ICON_RAIL_WIDTH);
             let mut columns = Area::with_gap(body, gap);
             let rail = columns.left(icon_rail.unwrap_or(crate::graph::RAIL_START));
             island(ui, rail, |_| ());
-            intents.extend(island(ui, columns.rest(), |ui| no_repository_view(no_repository, ui)));
+            let (above, shown) = above_panel(panel, ui, (columns.rest(), gap), intents);
+            intents.extend(island(ui, above, |ui| no_repository_view(no_repository, ui)));
+            shown
         }
     }
+}
+
+/// The panes of a repository read: the branch rail, the commits, the inspector and the bottom panel under the last two.
+fn repository_panes(
+    state: &TimelineState<'_>,
+    panel: Option<&BottomPanelState<'_>>,
+    ui: &mut Ui<'_>,
+    (body, gap): (Rect, f32),
+    intents: &mut Vec<Intent>,
+) -> Option<Rect> {
+    let TimelineState::Repository {
+        rail: references,
+        graph,
+        inspector: details,
+        panes,
+        is_rail_hidden,
+        search,
+        filter,
+        ..
+    } = state
+    else {
+        return None;
+    };
+    let is_inspector_over = ui.window().width < INSPECTOR_OVER_BELOW;
+    let bottom = panel.map_or(0.0, |panel| {
+        panel_height(panel.height, body.height, ui.window().height) + gap
+    });
+    let layout = PaneLayout {
+        body,
+        sizes: *panes,
+        icon_rail: is_narrow(ui).then_some(ICON_RAIL_WIDTH),
+        is_rail_hidden: *is_rail_hidden,
+        is_inspector_over,
+        has_inspector: !is_inspector_over || details.selected.is_some(),
+        gap,
+        bottom,
+    };
+    let rects = pane_rects(&layout, gap);
+    let mut rail_hover = None;
+    if let Some(rail) = rects.rail {
+        let (rail_intents, hover) = island(ui, rail, |ui| crate::branch::pane_view(references, ui));
+        intents.extend(rail_intents);
+        rail_hover = hover;
+    }
+    island(ui, rects.main, |ui| {
+        let main = search_row((&search.0, filter), ui, rects.main, intents);
+        let mut main = Area::new(main);
+        banners(state, ui, &mut main, intents);
+        let graph = with_rail_hover(graph, rail_hover);
+        intents.extend(ui.clip(main.rest(), |ui| graph_view(&graph, ui)));
+    });
+    if let Some(column) = rects.inspector {
+        intents.extend(island(ui, column, |ui| show(details, ui)));
+    }
+    intents.extend(resize_panes_view(&layout, ui));
+    let column = Rect::new(
+        rects.main.x,
+        body.y,
+        (body.right() - rects.main.x).max(0.0),
+        body.height,
+    );
+    above_panel(panel, ui, (column, gap), intents).1
 }
 
 /// The bars above the commits, each the height of one: the list mode of the search or what the timeline is narrowed

@@ -54,10 +54,10 @@ pub enum Intent {
     Refresh,
     /// **Read the repository**: the window opened with `readOnStartup` off reads it now (`repo.read-state`).
     ReadRepository,
-    /// **Show the commands Gitardo runs**: the Command log in the Activity drawer (`log.show`).
+    /// **Show the commands Gitardo runs**: the bottom panel shown at the Command log (`log.show`, `panel.bottom`).
     ShowCommandLog,
-    /// The Command log put away again.
-    HideCommandLog,
+    /// Something asked of the bottom panel (`panel.bottom`).
+    Panel(crate::panel::PanelIntent),
     /// **Theme…**: the picker of the themes (`settings.theme`).
     PickTheme,
     /// The picker of the themes closed with nothing chosen.

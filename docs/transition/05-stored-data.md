@@ -65,6 +65,11 @@ is kept for a repository whose rail lists everything. The extension's references
 of M13, kept under `gitardo.branchesListed` in the workspace state, in the shape of `gitardo.scope`; the engine reads
 neither, since what the references list is drawn by the webviews alone.
 
+Since milestone M14 the entry of each workspace in `panes` of the desktop's `state.json` also keeps its bottom panel
+(`panel.bottom`): `panelShown` (`true` while it is shown, left out otherwise), `panelHeight` (the height dragged, in
+logical pixels, left out while it is where it starts) and `panelTab` (`"commandLog"`, left out for the terminal). The
+extension has nothing of the kind: its panel is VS Code's.
+
 ## Files in `.git` and in the temporary folder
 
 - **`gitardo-split`**, in `rebase-merge` of the worktree's git folder: the same name and the same meaning in both apps.

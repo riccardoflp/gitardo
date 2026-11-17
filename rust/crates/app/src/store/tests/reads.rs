@@ -173,7 +173,7 @@ fn repo_read_state__with_read_on_startup_off_nothing_runs_until_read_the_reposit
 }
 
 #[test]
-fn log_show__the_reads_at_debug_are_in_the_drawer_with_the_time_they_started() {
+fn log_show__the_reads_at_debug_are_in_the_command_log_with_the_time_they_started() {
     let (mut state, _app) = showing();
     state.log.set_level(engine::LogLevel::Debug);
     let _logged = reduce(
@@ -184,11 +184,10 @@ fn log_show__the_reads_at_debug_are_in_the_drawer_with_the_time_they_started() {
             time: model::Timestamp(14 * 3_600 + 2 * 60 + 9),
         },
     );
-    let _opened = intent(&mut state, Intent::OpenActivity);
     let _shown = intent(&mut state, Intent::ShowCommandLog);
     let data = view_data(&state);
     let window = data.window_state(&state);
-    let log = window.drawer.and_then(|drawer| drawer.log).unwrap();
+    let log = window.panel.map(|panel| panel.log).unwrap();
     assert_eq!(log.lines.len(), 1);
     assert_eq!(log.lines[0].time, "14:02:09");
     assert_eq!(

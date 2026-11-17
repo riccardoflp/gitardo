@@ -1,5 +1,5 @@
 //! What runs: the status bar at the foot of the window (`activity.status-bar`) and the Activity drawer
-//! (`activity.what-is-running`), with the Command log in it (`log.show`).
+//! (`activity.what-is-running`).
 
 mod drawer;
 mod tasks;

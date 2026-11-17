@@ -122,7 +122,6 @@ fn activity_what_is_running__when_the_fetch_ends_the_drawer_says_nothing_is_runn
         &ActivityState {
             running: &[],
             finished: &finished,
-            log: None,
             tasks: None,
         },
     );
@@ -131,7 +130,7 @@ fn activity_what_is_running__when_the_fetch_ends_the_drawer_says_nothing_is_runn
 }
 
 #[test]
-fn activity_what_is_running__show_the_commands_gitardo_runs_shows_the_command_log() {
+fn activity_what_is_running__show_the_commands_gitardo_runs_shows_the_bottom_panel_at_the_command_log() {
     let (repository, _remote) = repository_with_history();
     let mut state = showing(repository.path().to_path_buf());
     let _opened = reduce(&mut state, Message::Intent(Intent::OpenActivity));
@@ -141,7 +140,7 @@ fn activity_what_is_running__show_the_commands_gitardo_runs_shows_the_command_lo
     let _shown = reduce(&mut state, Message::Intent(Intent::ShowCommandLog));
     let (_, tree) = window.draw(&state, &[]);
     assert!(says(&tree, "No command has run yet"), "{}", "No command has run yet");
-    let _hide = find(&tree, Role::Button, "Hide the commands");
+    let _panel = find(&tree, Role::Region, "Bottom panel");
 }
 
 #[test]
@@ -163,38 +162,6 @@ fn activity_what_is_running__a_running_and_a_finished_task_are_drawn_in_the_draw
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let _ = window.frame(&[], |ui| views::view(&data.window_state(&state), ui));
     window.assert_snapshot("activity-drawer-dark");
-}
-
-#[test]
-fn log_show__the_command_log_is_drawn_beside_what_runs() {
-    let (repository, _remote) = repository_with_history();
-    let mut state = showing(repository.path().to_path_buf());
-    state.log.set_level(LogLevel::Debug);
-    for (index, line) in [
-        "read app: the state and 1 pages of commits",
-        "read app: the state and 2 pages of commits",
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let _logged = reduce(
-            &mut state,
-            Message::ReadTook {
-                line: line.to_owned(),
-                took: Duration::from_millis(40 + 10 * index as u64),
-                time: Timestamp(NOW + i64::try_from(index).unwrap()),
-            },
-        );
-    }
-    state
-        .log
-        .record_failure(Timestamp(NOW + 2), "fatal: not a git repository");
-    let _opened = reduce(&mut state, Message::Intent(Intent::OpenActivity));
-    let _shown = reduce(&mut state, Message::Intent(Intent::ShowCommandLog));
-    let mut window = Window::new(ThemeName::Dark, WIDE);
-    let (_, tree) = window.draw(&state, &[]);
-    let _list = find(&tree, Role::ListBox, "Command log");
-    window.assert_snapshot("command-log-dark");
 }
 
 /// Lines of the log, `14:02:0<n> git fetch --prune origin <n>`.

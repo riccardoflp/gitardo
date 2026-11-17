@@ -4,8 +4,9 @@
 
 use std::path::PathBuf;
 
-use json::Value;
+use json::{Member, Value};
 use views::graph::PaneSizes;
+use views::panel::PanelTab;
 
 use super::{MOST_RECENT, member, number, number_value, same_folder, same_folders};
 
@@ -23,6 +24,19 @@ pub struct WorkspacePanes {
     pub graph_width: Option<f32>,
     /// Whether the branch rail is put away.
     pub is_rail_hidden: bool,
+    /// The bottom panel (`panel.bottom`).
+    pub panel: PanelLook,
+}
+
+/// How the bottom panel is: shown or not, its height and its tab (`panel.bottom`).
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
+pub struct PanelLook {
+    /// Whether it is shown.
+    pub is_shown: bool,
+    /// The height it was dragged to; none while it is where it starts.
+    pub height: Option<f32>,
+    /// The tab it shows.
+    pub tab: PanelTab,
 }
 
 /// The folds of a repository.
@@ -72,6 +86,7 @@ pub(super) fn panes_value(panes: &WorkspacePanes) -> Value {
         }
     }
     members.push(member("railHidden", Value::Bool(panes.is_rail_hidden)));
+    members.extend(panel_members(panes.panel));
     Value::Object(members)
 }
 
@@ -88,6 +103,7 @@ pub(super) fn workspace_panes(value: &Value) -> Option<WorkspacePanes> {
         },
         graph_width: length("graph"),
         is_rail_hidden: value.get("railHidden").and_then(Value::as_bool).unwrap_or(false),
+        panel: panel_look(value),
     })
 }
 
@@ -143,4 +159,38 @@ fn folders(value: &Value) -> Option<Vec<PathBuf>> {
         .map(PathBuf::from)
         .collect();
     (!folders.is_empty()).then_some(folders)
+}
+
+/// The names the tabs of the bottom panel are written with.
+const PANEL_TABS: [(PanelTab, &str); 2] = [(PanelTab::Terminal, "terminal"), (PanelTab::CommandLog, "commandLog")];
+
+/// The bottom panel of a workspace, as written: nothing for a panel as it starts, hidden at its terminal.
+fn panel_members(panel: PanelLook) -> Vec<Member> {
+    let mut members = Vec::new();
+    if panel.is_shown {
+        members.push(member("panelShown", Value::Bool(true)));
+    }
+    if let Some(height) = panel.height {
+        members.push(member("panelHeight", number_value(height)));
+    }
+    if let Some((_, name)) = PANEL_TABS
+        .iter()
+        .find(|(tab, _)| *tab == panel.tab && *tab != PanelTab::Terminal)
+    {
+        members.push(member("panelTab", Value::String((*name).to_owned())));
+    }
+    members
+}
+
+/// The bottom panel of a workspace read back.
+fn panel_look(value: &Value) -> PanelLook {
+    let tab = value.get("panelTab").and_then(Value::as_str);
+    PanelLook {
+        is_shown: value.get("panelShown").and_then(Value::as_bool).unwrap_or(false),
+        height: value.get("panelHeight").and_then(number),
+        tab: PANEL_TABS
+            .iter()
+            .find(|(_, name)| Some(*name) == tab)
+            .map_or(PanelTab::Terminal, |(tab, _)| *tab),
+    }
 }

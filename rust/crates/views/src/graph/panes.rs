@@ -53,6 +53,9 @@ pub struct PaneLayout {
     pub has_inspector: bool,
     /// The room between two panes: the gap between their islands.
     pub gap: f32,
+    /// The room under the commits and the inspector kept for the bottom panel and the gap above it, the branch rail
+    /// keeping its whole height; none while the panel is hidden (`panel.bottom`).
+    pub bottom: f32,
 }
 
 /// Where each pane goes.
@@ -128,6 +131,7 @@ pub fn pane_rects(layout: &PaneLayout, line: f32) -> PaneRects {
         (false, Some(width)) => split_columns(body, width, line),
         (false, None) => split_columns(body, rail_splitter(layout, line).size.unwrap_or(RAIL_START), line),
     };
+    let rest = above_bottom(rest, layout.bottom);
     if !layout.has_inspector {
         return PaneRects {
             rail,
@@ -155,6 +159,11 @@ pub fn pane_rects(layout: &PaneLayout, line: f32) -> PaneRects {
         main,
         inspector: Some(inspector),
     }
+}
+
+/// What is left of a rectangle above the room kept at its foot.
+fn above_bottom(rect: Rect, bottom: f32) -> Rect {
+    Rect::new(rect.x, rect.y, rect.width, (rect.height - bottom).max(0.0))
 }
 
 /// A rectangle cut in two columns after a width, with a line between them.
@@ -194,6 +203,7 @@ pub fn resize_panes_view(state: &PaneLayout, ui: &mut Ui<'_>) -> Vec<Intent> {
         );
         response.second
     };
+    let rest = above_bottom(rest, state.bottom);
     if !state.has_inspector {
         return intents;
     }

@@ -78,7 +78,7 @@ earns it.
 | [`graph.toolbar`](02-graph.md#graphtoolbar--the-header) | The header | View | Built | Built |
 | [`graph.search-button`](02-graph.md#graphsearch-button--the-button-of-quick-search) | The button of Quick search | View | Built | Host only |
 | [`graph.islands`](02-graph.md#graphislands--the-islands-of-the-window) | The islands of the window | View | Built | Built |
-| [`graph.view-bar`](02-graph.md#graphview-bar--the-bar-of-views) | The bar of views | View | Specified | Host only |
+| [`graph.view-bar`](02-graph.md#graphview-bar--the-bar-of-views) | The bar of views | View | Built | Host only |
 | [`panel.bottom`](02-graph.md#panelbottom--the-bottom-panel) | The bottom panel | View | Specified | Host only |
 | [`terminal.view`](02-graph.md#terminalview--a-terminal-in-the-bottom-panel) | A terminal in the bottom panel | View | Specified | Host only |
 | [`graph.icons`](02-graph.md#graphicons--the-icons-of-the-window) | The icons of the window | View | Specified | Host only |

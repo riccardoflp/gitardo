@@ -1,4 +1,4 @@
-//! The Command log of the Activity drawer (`log.show`): what the log recorded, newest last, each line with the time it
+//! The Command log, a tab of the bottom panel (`log.show`): what the log recorded, newest last, each line with the time it
 //! started, following the log as it grows; the lines selected are copied with `Ctrl+C`.
 
 use ui::layout::{Area, Insets, inset};

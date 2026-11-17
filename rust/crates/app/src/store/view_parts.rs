@@ -98,5 +98,6 @@ pub(super) fn view_bar(state: &State) -> ViewBarState {
         shown,
         changed_files: state.shown_read().map(|read| read.state.working_tree.file_count()),
         is_activity_open: state.is_activity_open,
+        is_panel_shown: super::panel::look(state).is_shown,
     }
 }

@@ -20,6 +20,7 @@ pub mod header;
 pub mod history;
 pub mod merge_view;
 pub mod pages;
+pub mod panel;
 pub mod patch;
 pub mod rail;
 pub mod rebase;

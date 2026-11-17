@@ -73,8 +73,8 @@ pub struct State {
     pub reads: super::reads::Reads,
     /// The Command log of the window (`log.record`, `log.show`).
     pub log: engine::CommandLog,
-    /// Whether the Activity drawer shows the Command log beside what runs.
-    pub is_log_shown: bool,
+    /// The bottom panel (`panel.bottom`).
+    pub panel: super::panel::Panel,
     /// The file the settings page writes changes in (`settings.edit`).
     pub settings_target: views::settings::SettingsTarget,
     /// The Changes page and the commit box (`changes.pane`).

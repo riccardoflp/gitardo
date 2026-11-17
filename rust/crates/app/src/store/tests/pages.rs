@@ -174,7 +174,8 @@ fn quick_search_opens_the_command_log_and_the_settings_page() {
             Intent::Search(SearchIntent::ChooseQuick(QuickChoice::Command(command))),
         );
     }
-    assert!(state.is_activity_open && state.is_log_shown);
+    let look = super::super::panel::look(&state);
+    assert!(look.is_shown && look.tab == views::panel::PanelTab::CommandLog);
     assert_eq!(page_shown(&state), Some((Page::Settings, true)));
 }
 

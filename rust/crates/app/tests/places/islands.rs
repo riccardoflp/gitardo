@@ -164,11 +164,11 @@ fn graph_view_bar__a_click_on_activity_opens_the_drawer_and_another_closes_it() 
 }
 
 #[test]
-fn graph_view_bar__with_no_repository_read_timeline_changes_files_and_compare_cannot_be_clicked() {
+fn graph_view_bar__with_no_repository_read_timeline_changes_files_compare_and_terminal_cannot_be_clicked() {
     let state = window();
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
-    for name in ["Timeline", "Changes", "Files", "Compare"] {
+    for name in ["Timeline", "Changes", "Files", "Compare", "Terminal"] {
         assert!(find(&tree, Role::Button, name).is_disabled(), "{name} can be clicked");
     }
     for name in ["Activity", "Settings"] {

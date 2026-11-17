@@ -52,6 +52,7 @@ mod new_worktrees;
 mod open_tabs;
 mod operations;
 mod pane;
+mod panel;
 mod panes;
 mod patches;
 mod pointer;

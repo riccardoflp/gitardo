@@ -2,6 +2,13 @@
 
 ## 1.0.0 - 2026-11-17
 
+- A bottom panel, under the timeline and the inspector or the page shown, holds the Command log and, in a tab beside
+  it, the terminal; the branch rail keeps its whole height beside it. `` Ctrl+` `` (`` Cmd+` `` on macOS) shows it, or
+  hides it while it has the keyboard; **Terminal** at the foot of the bar of views shows and hides it; **Show
+  Terminal** and **Show Command Log** are in Quick search. Its height is dragged on the gap above it, from 100 px to 70%
+  of the window, and a double click gives it its 240 px again; whether it is shown, its height and its tab are kept for
+  the workspace. The Command log is no longer in the Activity drawer: **Show the commands Gitardo runs** there shows
+  the panel at the Command log, and the drawer opens above the panel.
 - With `core.fsmonitor` on, on Linux and macOS, a worktree no longer has its repository read again and again: the
   socket the daemon listens on in its git folder (`fsmonitor--daemon.ipc`) asks for nothing, as the daemon's folder
   already did.

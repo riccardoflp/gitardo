@@ -297,11 +297,13 @@ fn released(state: &mut Interaction, routed: &mut Routed, release: &PointerButto
     routed.send(id, event);
 }
 
-/// A key: Tab and Shift+Tab move the focus; any other key goes to the widget with the focus.
+/// A key: Tab and Shift+Tab move the focus, but from a widget that takes every key; any other key goes to the widget
+/// with the focus.
 fn key_pressed(state: &mut Interaction, routed: &mut Routed, key: KeyEvent) {
     routed.keys.push(key);
     let is_tab = key.key == Key::Named(NamedKey::Tab);
-    if is_tab && (key.modifiers == Modifiers::NONE || key.modifiers == Modifiers::SHIFT) {
+    let is_kept = state.focus.is_some_and(|id| state.hits.takes_all_keys(id));
+    if is_tab && !is_kept && (key.modifiers == Modifiers::NONE || key.modifiers == Modifiers::SHIFT) {
         let order = state.hits.focus_order();
         state.focus = next_focus(&order, state.focus, key.modifiers.shift());
         state.focus_visible = true;

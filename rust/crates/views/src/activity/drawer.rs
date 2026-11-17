@@ -1,6 +1,6 @@
 //! The Activity drawer (`activity.what-is-running`): a card over the bottom of what is under the header, with what runs
-//! and what ran a moment ago, the Command log beside them once it is asked for (`log.show`), and the Tasks once a new
-//! worktree runs commands (`worktree-setup.command-steps`).
+//! and what ran a moment ago, the way to the Command log of the bottom panel (`log.show`, `panel.bottom`), and the Tasks
+//! once a new worktree runs commands (`worktree-setup.command-steps`).
 
 use ui::layout::{Align, Area, Insets, Size, columns, inset, place};
 use ui::{AccessRole, Button, ButtonKind, Icon, Label, Layer, Rect, Sense, TextKind, Tone, Ui};
@@ -8,7 +8,6 @@ use ui::{AccessRole, Button, ButtonKind, Icon, Label, Layer, Rect, Sense, TextKi
 use super::tasks::{TasksState, tasks_column};
 use super::{RunningTask, ask_for_next_frame};
 use crate::intent::Intent;
-use crate::log::{LogState, log_view};
 use crate::text::activity as words;
 
 /// The highest the drawer is.
@@ -25,8 +24,6 @@ pub struct ActivityState<'a> {
     pub running: &'a [RunningTask],
     /// What ran a moment ago, the latest first, each with how long it took.
     pub finished: &'a [RunningTask],
-    /// The Command log, once **Show the commands Gitardo runs** was clicked.
-    pub log: Option<LogState<'a>>,
     /// The Tasks, once a new worktree ran commands.
     pub tasks: Option<TasksState<'a>>,
 }
@@ -45,8 +42,8 @@ fn drawer_rect(area: Rect, margin: f32, highest: f32) -> Rect {
 
 /// The Activity drawer, over the bottom of the rectangle its caller clipped it to: its title and the button that
 /// closes it; what runs, each with its title, how long it has run and its detail, or that nothing runs; what ran a
-/// moment ago; **Show the commands Gitardo runs**, which shows the Command log beside them; then the Tasks, once a new
-/// worktree ran commands. The times go on while it is open.
+/// moment ago; **Show the commands Gitardo runs**, which shows the bottom panel at the Command log; then the Tasks, once a
+/// new worktree ran commands. The times go on while it is open.
 ///
 /// Feature: activity.what-is-running
 pub fn what_is_running_view(state: &ActivityState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -70,25 +67,12 @@ pub fn what_is_running_view(state: &ActivityState<'_>, ui: &mut Ui<'_>) -> Vec<I
             |ui| {
                 let mut area = Area::with_gap(inset(rect, Insets::all(margin)), spacing.large);
                 title_bar(ui, area.top(theme.sizes.control_height), &mut intents);
-                match (&state.log, &state.tasks) {
-                    (Some(log), Some(tasks)) => {
-                        let sizes = [Size::Fill(1.0), Size::Fill(1.4), Size::Fill(1.4)];
-                        let [running, log_column, tasks_rect] = columns(area.rest(), margin, sizes);
-                        running_column(state, ui, running, &mut intents);
-                        log_column_view(log, ui, log_column, &mut intents);
-                        tasks_column(tasks, ui, tasks_rect, &mut intents);
-                    }
-                    (Some(log), None) => {
-                        let [running, log_column] = columns(area.rest(), margin, [Size::Fill(1.0), Size::Fill(1.4)]);
-                        running_column(state, ui, running, &mut intents);
-                        log_column_view(log, ui, log_column, &mut intents);
-                    }
-                    (None, Some(tasks)) => {
-                        let [running, tasks_rect] = columns(area.rest(), margin, [Size::Fill(1.0), Size::Fill(1.6)]);
-                        running_column(state, ui, running, &mut intents);
-                        tasks_column(tasks, ui, tasks_rect, &mut intents);
-                    }
-                    (None, None) => running_column(state, ui, area.rest(), &mut intents),
+                if let Some(tasks) = &state.tasks {
+                    let [running, tasks_rect] = columns(area.rest(), margin, [Size::Fill(1.0), Size::Fill(1.6)]);
+                    running_column(state, ui, running, &mut intents);
+                    tasks_column(tasks, ui, tasks_rect, &mut intents);
+                } else {
+                    running_column(state, ui, area.rest(), &mut intents);
                 }
             },
         );
@@ -113,18 +97,16 @@ fn column_title(ui: &mut Ui<'_>, area: &mut Area, text: &str) {
     let _ = ui.label(area.top(height), &label);
 }
 
-/// What runs and what ran, then the button that shows the Command log when it is not shown.
+/// What runs and what ran, then the button that shows the bottom panel at the Command log.
 fn running_column(state: &ActivityState<'_>, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
     let theme = *ui.theme();
     let mut area = Area::with_gap(rect, theme.sizes.spacing.medium);
     column_title(ui, &mut area, words::RUNNING_COLUMN);
-    if state.log.is_none() {
-        let show = Button::secondary(words::SHOW_COMMANDS).kind(ButtonKind::Outline);
-        let (width, height) = ui.button_size(&show);
-        let cell = place(area.bottom(height), (width, height), (Align::Start, Align::Center));
-        if ui.button("show the commands", cell, &show).clicked {
-            intents.push(Intent::ShowCommandLog);
-        }
+    let show = Button::secondary(words::SHOW_COMMANDS).kind(ButtonKind::Outline);
+    let (width, height) = ui.button_size(&show);
+    let cell = place(area.bottom(height), (width, height), (Align::Start, Align::Center));
+    if ui.button("show the commands", cell, &show).clicked {
+        intents.push(Intent::ShowCommandLog);
     }
     let mut rows = Area::new(area.rest());
     if state.running.is_empty() {
@@ -178,23 +160,4 @@ fn task_row(ui: &mut Ui<'_>, rows: &mut Area, task: &RunningTask, is_finished: b
         );
         let _ = ui.label(under, &Label::new(detail).kind(TextKind::Detail).tone(Tone::Muted));
     }
-}
-
-/// The Command log, under its title, with the button that puts it away.
-fn log_column_view(log: &LogState<'_>, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
-    let theme = *ui.theme();
-    let mut area = Area::with_gap(rect, theme.sizes.spacing.medium);
-    let mut top = Area::new(area.top(theme.sizes.row_height));
-    let hide = Button::secondary(words::HIDE_COMMANDS).kind(ButtonKind::Icon);
-    let (width, height) = ui.button_size(&hide);
-    let cell = place(top.right(width), (width, height), (Align::End, Align::Center));
-    if ui.button("hide the commands", cell, &hide).clicked {
-        intents.push(Intent::HideCommandLog);
-    }
-    let label = Label::new(words::LOG_COLUMN)
-        .kind(TextKind::SmallStrong)
-        .tone(Tone::Muted);
-    let _ = ui.label(top.rest(), &label);
-    let body = area.rest();
-    intents.extend(ui.clip(body, |ui| log_view(log, ui)));
 }

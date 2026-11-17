@@ -22,6 +22,7 @@ mod merge_page;
 mod message;
 pub mod new_worktrees;
 mod pages;
+pub mod panel;
 mod rail;
 mod reads;
 mod rebase;
@@ -381,11 +382,8 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::ShowPage(page) => pages::show(state, page),
         Intent::NextPage => pages::next_page(state),
         Intent::ClosePage => file_page::close_page(state),
-        Intent::ClosePicker
-        | Intent::OpenActivity
-        | Intent::CloseActivity
-        | Intent::ShowCommandLog
-        | Intent::HideCommandLog => {
+        Intent::ShowCommandLog | Intent::Panel(_) => panel::reduce_intent(state, intent),
+        Intent::ClosePicker | Intent::OpenActivity | Intent::CloseActivity => {
             reduce_view_intent(state, &intent);
             Vec::new()
         }
@@ -431,8 +429,6 @@ fn reduce_view_intent(state: &mut State, intent: &Intent) {
         Intent::ClosePicker => state.dialog = None,
         Intent::OpenActivity => state.is_activity_open = true,
         Intent::CloseActivity => state.is_activity_open = false,
-        Intent::ShowCommandLog => state.is_log_shown = true,
-        Intent::HideCommandLog => state.is_log_shown = false,
         _ => {}
     }
 }

@@ -26,6 +26,9 @@ impl Sense {
     pub const FOCUS: Sense = Sense { kinds: 8 };
     /// The wheel, when it is the topmost widget under the pointer that scrolls.
     pub const SCROLL: Sense = Sense { kinds: 16 };
+    /// Every key, Tab and Shift+Tab included, which go to it while it has the focus instead of moving the focus on, as
+    /// a terminal needs them; with [`Sense::FOCUS`].
+    pub const ALL_KEYS: Sense = Sense { kinds: 32 };
 
     /// Whether every kind of `other` is in this set.
     #[must_use]
@@ -130,6 +133,18 @@ impl Hits {
             .filter(|hit| hit.layer >= lowest && hit.sense.contains(Sense::FOCUS))
             .map(|hit| hit.id)
             .collect()
+    }
+
+    /// Where a widget declared in the frame can be seen.
+    pub(crate) fn rect_of(&self, id: WidgetId) -> Option<Rect> {
+        self.entries.iter().find(|hit| hit.id == id).map(|hit| hit.rect)
+    }
+
+    /// Whether a widget was declared and takes every key, Tab included.
+    pub(crate) fn takes_all_keys(&self, id: WidgetId) -> bool {
+        self.entries
+            .iter()
+            .any(|hit| hit.id == id && hit.sense.contains(Sense::ALL_KEYS | Sense::FOCUS))
     }
 
     /// Whether a widget was declared and can take the focus.
