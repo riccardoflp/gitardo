@@ -3184,3 +3184,21 @@ the reading given until the card says otherwise.
   as `changesColumn`. The side column stays, as beside the Files page; phase 15 puts it away from the title row.
 - **Q553** — `changes.beside-file`: whether `Escape` brings the whole page back, as it does beside a comparison.
   Built: no, since `Escape` closes the box that finds in the File page shown there; **Changes** in the trail does it.
+
+### Of the preview of Markdown, from Q580
+
+- **Q580** — `file-view.markdown-preview`: how emphasis is drawn, the window having Inter at three weights and no
+  italic. Built: emphasized text in the medium weight, strong text in the bold one, so that the two still differ;
+  Inter Italic would be one more font of the program, about 300 kB, to add if the maintainer wants emphasis drawn as
+  GitHub draws it.
+- **Q581** — `file-view.markdown-preview`: which formats of images are drawn. Built: PNG only, read by the library
+  `tiny-skia` takes for it (its feature `png-format`), on a worker; an SVG, a JPEG or a GIF of the repository shows its
+  text, as an image of the web does. SVG would need a library that draws it, JPEG and GIF one each.
+- **Q582** — `file-view.markdown-preview`: what **Find** in the preview finds. Built: the find in page of the window,
+  `Ctrl+F`, which finds in the text the preview draws in sight, as on the page of a commit; a word of a part not
+  scrolled into sight is found once it is. Finding in the whole text would need the preview drawn as a list of rows
+  that find in page searches out of sight.
+- **Q583** — `file-view.markdown-preview`: where the preview of a file a Diff page edits starts. Built: it follows
+  `markdown.openAsPreview` too, laid out when its page is first shown; **Preview** of a page lays out the text again
+  each time it is shown, and the file read again does too, rather than at each edit, since the preview is not seen
+  while the text is edited.

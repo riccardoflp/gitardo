@@ -69,6 +69,7 @@ fn settings_of(mut lookup: Lookup) -> Settings {
     let features = ::settings::feature_settings(&mut lookup);
     let file_blame = file_blame_look(&mut lookup);
     let word_wrap = word_wrap(&mut lookup);
+    let markdown_open_as_preview = lookup.boolean(keys::MARKDOWN_OPEN_AS_PREVIEW, Scope::User);
     let terminal = terminal_choice(&mut lookup);
     let values = lookup.written_values();
     Settings {
@@ -84,6 +85,7 @@ fn settings_of(mut lookup: Lookup) -> Settings {
         collapse_unchanged: collapse_unchanged.unwrap_or(defaults.collapse_unchanged),
         open_on_click,
         word_wrap,
+        markdown_open_as_preview: markdown_open_as_preview.unwrap_or(defaults.markdown_open_as_preview),
         read_on_startup: read_on_startup.unwrap_or(defaults.read_on_startup),
         keep_open: keep_open.unwrap_or(defaults.keep_open),
         page_size,

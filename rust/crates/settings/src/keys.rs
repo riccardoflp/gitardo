@@ -87,6 +87,8 @@ pub const EXTERNAL_EDITOR: &str = "editor.external";
 pub const WORD_WRAP: &str = "editor.wordWrap";
 /// The values of `editor.wordWrap`: lines cut at the right edge, or wrapped at the width of the page.
 pub const WORD_WRAPS: [&str; 2] = ["off", "on"];
+/// `markdown.openAsPreview`.
+pub const MARKDOWN_OPEN_AS_PREVIEW: &str = "markdown.openAsPreview";
 /// `blame.enabled`.
 pub const BLAME_ENABLED: &str = "blame.enabled";
 /// `blame.ignoreWhitespaceAndMoves`.

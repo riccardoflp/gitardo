@@ -10,6 +10,10 @@ publish.workspace = true
 # Regular expressions for the `pattern` of the inputs of `branches.inputs` (`branch.name-from-format`): no I/O, no
 # thread, no clock. Only the Unicode tables of `\d`, `\w` and `\s` are taken.
 regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-perl"] }
+# The parser of Markdown for its preview (`file-view.markdown-preview`): CommonMark with the tables, the task lists and
+# the strikethrough of GitHub; no I/O, no thread, no clock. Not its default features, which write HTML and bring a
+# parser of the command line.
+pulldown-cmark = { version = "=0.13.6", default-features = false }
 
 [lints]
 workspace = true

@@ -41,7 +41,7 @@ impl ViewData {
             })),
             Page::Commit(_) | Page::Diff(_) | Page::Merge(_) | Page::Compare(_) => opened_page(state, page),
             Page::Review => crate::store::review::page_state(state).map(PageState::Review),
-            Page::File(id) => self.file_page(state, id).map(PageState::File),
+            Page::File(id) => self.file_page(state, id).map(|page| PageState::File(Box::new(page))),
             Page::Settings => Some(PageState::Settings(SettingsPageState {
                 rows: &self.setting_rows,
                 target: crate::store::settings_page::shown_target(state),

@@ -66,6 +66,8 @@ pub struct Settings {
     pub open_on_click: OpenOnClick,
     /// `editor.wordWrap`: whether the File page wraps a line longer than the page or cuts it at its right edge.
     pub word_wrap: LineWrap,
+    /// `markdown.openAsPreview`: a Markdown file opens in its preview rather than its text.
+    pub markdown_open_as_preview: bool,
     /// `fileBlame.format`, `fileBlame.groupLines` and `fileBlame.age.*`: how the blame beside the lines of a file looks.
     pub file_blame: FileBlameLook,
     /// `terminal.shellPath` and `terminal.scrollbackLines`: the shell the terminals start, and what they keep.
@@ -91,6 +93,7 @@ impl Default for Settings {
             collapse_unchanged: true,
             open_on_click: OpenOnClick::File,
             word_wrap: LineWrap::Cut,
+            markdown_open_as_preview: false,
             file_blame: FileBlameLook::default(),
             terminal: TerminalChoice::default(),
             values: BTreeMap::new(),

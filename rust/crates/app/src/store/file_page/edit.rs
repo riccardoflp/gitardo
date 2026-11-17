@@ -23,6 +23,7 @@ pub fn reduce_page(state: &mut State, id: FilePageId, intent: FilePageIntent) ->
     };
     match intent {
         FilePageIntent::Edit(commands) => return edit(state, id, &commands),
+        FilePageIntent::Markdown(asked) => return super::markdown::reduce(state, id, asked),
         FilePageIntent::Save => return save(state, id, false),
         FilePageIntent::OpenExternal => return open_external(state, id),
         FilePageIntent::OpenFind => {

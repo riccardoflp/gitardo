@@ -6,6 +6,7 @@ mod beside;
 mod edit;
 mod find;
 mod go_to_line;
+mod markdown;
 mod question;
 
 use std::ops::Range;
@@ -24,6 +25,7 @@ pub use beside::{BesideFilesState, beside_files_view};
 pub use edit::edit_view;
 pub use find::find_view;
 pub use go_to_line::{GoToLineState, go_to_line_view, parse_line};
+pub use markdown::{MarkdownContent, MarkdownIntent, MarkdownState, markdown_view};
 pub use question::{CloseQuestion, close_question_view};
 
 /// The number of a File page, unique in its window.
@@ -134,6 +136,17 @@ pub struct FilePageState<'a> {
     pub wrap: ui::LineWrap,
     /// The blame the page shows, and the buttons of the blame in its title (`blame.file`, `blame.current-line`).
     pub blame: crate::blame::PageBlame<'a>,
+    /// Whether the file is Markdown, and whether it shows its text or its preview (`file-view.markdown-preview`).
+    pub markdown: Option<MarkdownShown<'a>>,
+}
+
+/// What the page of a Markdown file shows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MarkdownShown<'a> {
+    /// Its text, in the editor: **Source**.
+    Source,
+    /// Its preview: **Preview**.
+    Preview(&'a MarkdownContent),
 }
 
 /// Something asked of the File pages.
@@ -180,6 +193,8 @@ pub enum FilePageIntent {
     GoToLine(usize),
     /// **Go to line** cancelled.
     CloseGoToLine,
+    /// Something asked of the preview of a Markdown file.
+    Markdown(MarkdownIntent),
 }
 
 /// The answers to **Save changes to app.rs?**
@@ -221,7 +236,13 @@ pub fn page_view(state: &FilePageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
                 let place = inset(body, Insets::all(theme.sizes.spacing.huge));
                 let _ = ui.label(place, &Label::new(said).tone(Tone::Muted));
             }
-            None => intents.extend(ui.clip(body, |ui| edit_view(state, ui))),
+            None => match state.markdown {
+                Some(MarkdownShown::Preview(content)) => {
+                    let preview = MarkdownState { id: state.id, content };
+                    intents.extend(ui.clip(body, |ui| markdown_view(&preview, ui)));
+                }
+                _ => intents.extend(ui.clip(body, |ui| edit_view(state, ui))),
+            },
         }
     });
     if state.go_to_line.is_some() {
@@ -238,6 +259,7 @@ fn bar_view(state: &FilePageState<'_>, ui: &mut Ui<'_>, rect: ui::Rect, intents:
     let inner = inset(rect, Insets::symmetric(spacing.large + spacing.small, spacing.medium));
     let mut parts = Area::with_gap(inner, spacing.medium);
     intents.extend(blame_buttons(state, ui, &mut parts));
+    intents.extend(markdown_buttons(state, ui, &mut parts));
     if !state.is_read_only {
         let external = Button::secondary(words::OPEN_EXTERNAL).with_icon(icons::OPEN_EXTERNAL);
         let (width, height) = ui.button_size(&external);
@@ -257,6 +279,42 @@ fn bar_view(state: &FilePageState<'_>, ui: &mut Ui<'_>, rect: ui::Rect, intents:
         theme.sizes.border,
     );
     ui.separator(line, ui::Axis::Horizontal);
+}
+
+/// **Preview** and **Source** at the right of the title of a Markdown file, the one shown filled.
+fn markdown_buttons(state: &FilePageState<'_>, ui: &mut Ui<'_>, parts: &mut Area) -> Vec<Intent> {
+    let Some(shown) = state.markdown else {
+        return Vec::new();
+    };
+    let is_preview = matches!(shown, MarkdownShown::Preview(_));
+    let mut intents = Vec::new();
+    for (said, tooltip, is_on, asked) in [
+        (
+            words::SOURCE,
+            words::SOURCE_TOOLTIP,
+            !is_preview,
+            MarkdownIntent::ShowSource,
+        ),
+        (
+            words::PREVIEW,
+            words::PREVIEW_TOOLTIP,
+            is_preview,
+            MarkdownIntent::ShowPreview,
+        ),
+    ] {
+        let button = Button::secondary(said).with_tooltip(tooltip);
+        let button = if is_on {
+            button
+        } else {
+            button.kind(ButtonKind::Outline)
+        };
+        let (width, height) = ui.button_size(&button);
+        let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
+        if ui.button(("markdown switch", state.id, said), cell, &button).clicked {
+            intents.push(page_intent(state, FilePageIntent::Markdown(asked)));
+        }
+    }
+    intents
 }
 
 /// The buttons of the blame at the right of the title, while the page shows a file of a repository: the person with a
@@ -324,6 +382,8 @@ fn shortcuts(state: &FilePageState<'_>, ui: &Ui<'_>) -> Vec<Intent> {
     if !matches!(state.shown, FileShown::Text(_)) {
         return Vec::new();
     }
+    // The preview has no editor: its find is the page's own, and it has no lines to go to.
+    let is_preview = matches!(state.markdown, Some(MarkdownShown::Preview(_)));
     let mut asked = Vec::new();
     let mut blamed = Vec::new();
     for key in ui.unclaimed_keys() {
@@ -339,6 +399,7 @@ fn shortcuts(state: &FilePageState<'_>, ui: &Ui<'_>) -> Vec<Intent> {
         let go_to_line_key = if cfg!(target_os = "macos") { 'l' } else { 'g' };
         match (key.key, character) {
             (_, Some('s')) if is_command && !state.is_read_only => asked.push(FilePageIntent::Save),
+            _ if is_preview => {}
             (_, Some('f')) if is_command => asked.push(FilePageIntent::OpenFind),
             (_, Some(letter)) if is_command && letter == go_to_line_key => asked.push(FilePageIntent::OpenGoToLine),
             (Key::Named(NamedKey::Function(3)), _) if key.modifiers == Modifiers::NONE => {

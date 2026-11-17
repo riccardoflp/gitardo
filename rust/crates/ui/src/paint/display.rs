@@ -4,7 +4,9 @@
 
 use std::hash::{Hash, Hasher};
 
-use render::{Border, Canvas, Color, Command as PathCommand, FillRule, Icon, LineCap, Path, Point, Rect, Stroke};
+use render::{
+    Border, Canvas, Color, Command as PathCommand, FillRule, Icon, Image, LineCap, Path, Point, Rect, Stroke,
+};
 use render::{TextRun, TextStyle};
 
 use crate::id::StableHasher;
@@ -75,6 +77,13 @@ pub(crate) enum Shape {
         /// The color.
         color: Color,
     },
+    /// An image scaled into a rectangle.
+    Image {
+        /// The image.
+        image: Image,
+        /// Where.
+        rect: Rect,
+    },
 }
 
 impl Shape {
@@ -88,6 +97,8 @@ impl Shape {
             | Shape::Icon { color, .. } => *color = color.faded(opacity),
             Shape::Border { border, .. } => border.color = border.color.faded(opacity),
             Shape::StrokePath { stroke, .. } => stroke.color = stroke.color.faded(opacity),
+            // An image keeps its own colors: what is faded around it is the rows and the text that step back.
+            Shape::Image { .. } => {}
         }
         self
     }
@@ -151,6 +162,7 @@ fn draw_shape(canvas: &mut Canvas<'_>, shape: &Shape) {
             size,
             color,
         } => canvas.draw_icon(*icon, *origin, *size, *color),
+        Shape::Image { image, rect } => canvas.draw_image(image, *rect),
     }
 }
 
@@ -190,6 +202,11 @@ fn hash_shape(hasher: &mut StableHasher, shape: &Shape) {
             hash_stroke(hasher, stroke);
         }
         Shape::Text { .. } | Shape::Icon { .. } => hash_glyphs(hasher, shape),
+        Shape::Image { image, rect } => {
+            hasher.write_u8(7);
+            hasher.write_u64(image.key());
+            hash_rect(hasher, *rect);
+        }
     }
 }
 

@@ -84,6 +84,10 @@ fn answer(job: &Job, cancel: &CancelToken) -> Message {
             job: job.id,
             result: super::file_view::read_file(folder, file, cancel),
         },
+        JobKind::ReadImage { folder, job: file } => Message::ImageRead {
+            job: job.id,
+            image: super::file_view::read_image(folder, file, cancel),
+        },
         JobKind::ReadComparison { folder, target } => Message::ComparisonRead {
             job: job.id,
             result: super::compare::read_comparison(folder, target, cancel).map(Box::new),
