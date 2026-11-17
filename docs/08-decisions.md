@@ -3127,7 +3127,9 @@ the reading given until the card says otherwise.
 - **Q551** — `changes.beside-file`: which ways to the Changes page keep the file beside it. Built: **Changes** in the
   trail, the Changes view of the bar of views, **Show changes** in Quick search and **Review** in the draft show the
   whole page, as D57 says of a page opened from the bar of views or Quick search; `Ctrl+Tab` comes back to the page
-  with the file beside it, as it was left.
+  with the file beside it, as it was left, and so does the name of the Changes page in the trail of a page opened from
+  the page beside its list, as every name of a way goes back to its page as it was left; that name is the name of the
+  page beside the list, as the title row of the Changes page ends with it.
 - **Q552** — `changes.beside-file`: what the column holds, and whether the side column stays. Built: the column is the
   whole page, its commit box and its identity included, with narrower margins, so that one commits without leaving the
   review; 360 logical pixels wide where it starts, since its rows keep their buttons, and remembered for the workspace

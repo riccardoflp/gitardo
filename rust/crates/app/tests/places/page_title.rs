@@ -5,6 +5,7 @@ use app::store::State;
 use platform::accesskit::Role;
 use render::ThemeName;
 use views::Intent;
+use views::changes::{BesideFile, ChangesIntent};
 use views::graph::GraphIntent;
 use views::page::Page;
 use views::text::header::{HIDE_REFERENCES, SHOW_REFERENCES};
@@ -20,11 +21,22 @@ use super::support::{Window, has};
 /// A window wide enough for the side column beside the pages.
 const WIDE: (u32, u32) = (1200, 700);
 
-/// Shows the settings page, the Changes page or a Diff page of the file changed in the working tree.
+/// The pages whose title row has the button: the settings page, the Changes page, the Changes page with the diff of
+/// the file changed beside its list, and a Diff page of that file.
+const PAGES: [&str; 4] = ["settings", "changes", "changes beside a diff", "diff"];
+
+/// Shows the settings page, the Changes page, the Changes page with the diff of the file changed in the working tree
+/// beside its list, or a Diff page of that file.
 fn show(state: &mut State, page: &str) {
     match page {
         "settings" => ask(state, Intent::ShowPage(Page::Settings)),
         "changes" => ask(state, Intent::ShowPage(Page::Changes)),
+        "changes beside a diff" => {
+            ask(state, Intent::ShowPage(Page::Changes));
+            let diff = BesideFile::Diff(Box::new(head_to_working_tree("src/a.rs")));
+            ask(state, Intent::Changes(ChangesIntent::OpenBeside(diff)));
+            assert!(state.changes.beside.is_some(), "the diff is beside the list");
+        }
         _ => open(state, head_to_working_tree("src/a.rs")),
     }
 }
@@ -39,7 +51,7 @@ fn changed() -> (testkit::Repository, State) {
 
 #[test]
 fn repo_side_column__the_settings_page_the_changes_page_and_a_diff_page_put_it_away_and_bring_it_back() {
-    for page in ["settings", "changes", "diff"] {
+    for page in PAGES {
         let (_repository, mut state) = changed();
         show(&mut state, page);
         let mut window = Window::new(ThemeName::Dark, WIDE);
@@ -64,7 +76,7 @@ fn graph_toggle_references__the_button_of_the_title_row_of_a_page_is_where_the_f
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
     let in_timeline = bounds(&tree, Role::Button, HIDE_REFERENCES);
-    for page in ["settings", "changes", "diff"] {
+    for page in PAGES {
         show(&mut state, page);
         let (_, tree) = window.draw(&state, &[]);
         assert_eq!(bounds(&tree, Role::Button, HIDE_REFERENCES), in_timeline, "{page}");

@@ -697,8 +697,9 @@ Acceptance:
       each at least 24 logical pixels high.
 - [ ] A repository with three worktrees and two local branches wants a side column less high than before phase 14 of
       M16: 382 logical pixels against 572.
-- [ ] The first button of the title row of the settings page, of the Changes page and of a Diff page puts the side
-      column away, the page staying, and another click brings it back as it was.
+- [ ] The first button of the title row of the settings page, of the Changes page, alone or with a diff beside its
+      list, and of a Diff page puts the side column away, the page staying, and another click brings it back as it
+      was.
 - [ ] In a window 800 logical pixels wide, the first button of the title row of the settings page opens the side
       column over the page.
 - [ ] The Diff page beside the inspector, which puts the side column away, has no button for it.

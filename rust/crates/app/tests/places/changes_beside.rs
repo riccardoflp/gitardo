@@ -23,7 +23,7 @@ const NARROW: (u32, u32) = (680, 640);
 /// What is shown beside the list: the right side of the diff or the path of the file, whether it is a diff, and the
 /// path the list marks.
 #[derive(Debug, PartialEq, Eq)]
-struct Beside {
+pub(super) struct Beside {
     /// The file shown: the right side of a diff of one file, the path of a File page, or `*` for every file.
     shown: String,
     /// Whether it is a Diff page.
@@ -33,7 +33,7 @@ struct Beside {
 }
 
 /// A repository with one commit of `a.txt`, `b.txt` and `src/c.txt`, then each of them changed on disk.
-fn three_changed() -> Repository {
+pub(super) fn three_changed() -> Repository {
     let mut repository = Repository::new();
     let _ = repository.git(&["config", "user.name", "Ada"]);
     let _ = repository.git(&["config", "user.email", "ada@example.com"]);
@@ -52,7 +52,7 @@ fn three_changed() -> Repository {
 }
 
 /// A window showing a repository with its Changes page open.
-fn changes_page(repository: &Repository) -> (State, OperationsDriver) {
+pub(super) fn changes_page(repository: &Repository) -> (State, OperationsDriver) {
     let mut state = showing(repository.path().to_path_buf());
     let driver = OperationsDriver::new();
     driver.intent(&mut state, Intent::Changes(ChangesIntent::Open));
@@ -60,14 +60,14 @@ fn changes_page(repository: &Repository) -> (State, OperationsDriver) {
 }
 
 /// Reduces the intents of a frame.
-fn apply(driver: &OperationsDriver, state: &mut State, intents: Vec<Intent>) {
+pub(super) fn apply(driver: &OperationsDriver, state: &mut State, intents: Vec<Intent>) {
     for intent in intents {
         driver.intent(state, intent);
     }
 }
 
 /// What the Changes page shows beside its list; none while it shows the whole page.
-fn beside(state: &State) -> Option<Beside> {
+pub(super) fn beside(state: &State) -> Option<Beside> {
     let data = ViewData::new(state, Vec::new(), support::NOW);
     let Content::Page(host) = data.window_state(state).content else {
         panic!("a page is shown");
@@ -95,7 +95,7 @@ fn beside(state: &State) -> Option<Beside> {
 }
 
 /// What a file shown in a diff beside the list looks like.
-fn diff_of(path: &str) -> Beside {
+pub(super) fn diff_of(path: &str) -> Beside {
     Beside {
         shown: path.to_owned(),
         is_diff: true,
@@ -128,7 +128,7 @@ fn in_row(tree: &TreeUpdate, (role, name): (Role, &str), path: &str) -> Point {
 }
 
 /// Clicks a button of the row of a file, and reduces what it asks.
-fn click_in_row(driver: &OperationsDriver, state: &mut State, window: &mut Window, (name, path): (&str, &str)) {
+pub(super) fn click_in_row(driver: &OperationsDriver, state: &mut State, window: &mut Window, (name, path): (&str, &str)) {
     let (_, tree) = window.draw(state, &[]);
     let intents = window.click_at(state, in_row(&tree, (Role::Button, name), path), 1);
     apply(driver, state, intents);
@@ -158,7 +158,7 @@ fn read_again(state: &mut State) {
 }
 
 /// The step of the trail named **Changes**, not the view of the bar of views.
-fn trail_changes(tree: &TreeUpdate) -> Point {
+pub(super) fn trail_changes(tree: &TreeUpdate) -> Point {
     let trail = bounds(tree, Role::Navigation, views::text::pages::TRAIL);
     let found = tree
         .nodes
@@ -299,6 +299,35 @@ fn changes_beside_file__changes_in_the_trail_and_the_changes_view_of_the_bar_of_
         assert_eq!(beside(&state), None, "{way}");
         assert_eq!(state.page_shown(), Some(Page::Changes));
     }
+}
+
+#[test]
+fn changes_beside_file__its_title_row_starts_with_the_button_of_the_side_column_and_alt_left_shows_the_whole_page() {
+    let repository = three_changed();
+    // Shown from the bar of views, which leaves the keyboard to the page rather than to the box of the message, which
+    // uses `Alt+Left` while it has it.
+    let mut state = showing(repository.path().to_path_buf());
+    let driver = OperationsDriver::new();
+    driver.intent(&mut state, Intent::ShowPage(Page::Changes));
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let (_, tree) = window.draw(&state, &[]);
+    let side_button = bounds(&tree, Role::Button, views::text::header::HIDE_REFERENCES);
+    click_in_row(&driver, &mut state, &mut window, ("Open changes", "a.txt"));
+    let (_, tree) = window.draw(&state, &[]);
+    assert_eq!(
+        bounds(&tree, Role::Button, views::text::header::HIDE_REFERENCES),
+        side_button,
+        "the button of the side column stays where it is on the whole page"
+    );
+    let changes = trail_changes(&tree);
+    let diff = bounds(&tree, Role::Main, views::text::diff::PAGE);
+    assert!(changes.x < diff.x, "Changes is in the title row, before the diff's name");
+    let alt_left = InputEvent::KeyPressed(KeyEvent::press(Key::Named(NamedKey::ArrowLeft), Modifiers::ALT));
+    let (intents, _) = window.draw(&state, &[alt_left]);
+    assert_eq!(intents, [Intent::Changes(ChangesIntent::ShowWhole)]);
+    apply(&driver, &mut state, intents);
+    assert_eq!(beside(&state), None);
+    assert_eq!(state.page_shown(), Some(Page::Changes));
 }
 
 #[test]

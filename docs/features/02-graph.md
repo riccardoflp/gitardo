@@ -538,7 +538,8 @@ than always `Timeline › <page>`
 - **Function**: `model::trail::page_trail(way: &[P], change: WayChange<P>) -> Vec<P>`, which gives the way after the
   page shown changed; `model::trail::folded(count)` gives the names folded into **…**.
 - **Entry points**: the title row of every page, after the button of the side column (`repo.side-column`); `Alt+Left`.
-- **Uses**: `repo.side-column`, `diff.beside-inspector`, `compare.beside-diff`, `file-view.beside-files`.
+- **Uses**: `repo.side-column`, `diff.beside-inspector`, `compare.beside-diff`, `file-view.beside-files`,
+  `changes.beside-file`.
 - **Extension**: VS Code has its own way back between its editors: nothing to build.
 
 - The way is the chain of pages each opened from the one before, the timeline first: a page opened from the page
@@ -549,10 +550,10 @@ than always `Timeline › <page>`
   then (Q543).
 - A page already on the way is gone back to rather than added again, so that the way has no loops.
 - The title row says **Timeline**, then the name of each page of the way, each as its own title row names it, then the
-  step of the page inside it when it has one (**Files**, the comparison), then the name of the page shown. A click on a
-  name shows its page as it was left and drops what came after it from the way: each page keeps what it showed while
-  it is open, its scroll, its selection and the file shown beside it, so the way keeps the pages and not a copy of
-  them (Q542). **Timeline** shows the timeline.
+  step of the page inside it when it has one (**Files**, **Changes**, the comparison), then the name of the page shown.
+  A click on a name shows its page as it was left and drops what came after it from the way: each page keeps what it
+  showed while it is open, its scroll, its selection and the file shown beside it (the Changes page shows its file
+  beside its list again), so the way keeps the pages and not a copy of them (Q542). **Timeline** shows the timeline.
 - At most four names are shown, **Timeline** and the page's own among them; those in between are folded into **…**,
   whose menu lists them, the first opened first. A name before the page's own wider than 200 logical pixels is cut at
   its end with `…`.
@@ -572,6 +573,9 @@ Acceptance:
 - [ ] A page closed is left out of the way, and a way that does not end at the page shown is that page alone.
 - [ ] With five names, the second is folded into **…**, whose menu lists it and goes back to its page.
 - [ ] `Alt+Left` on the File page shows the Diff page it was opened from, and on that page the timeline.
+- [ ] A File page opened from the diff of `a.txt` beside the list of the Changes page says
+      `Timeline › <the diff's name> › <file>`, and that name shows the Changes page again with the same diff beside its
+      list, which says `Timeline › Changes › <the diff's name>`.
 
 ### `graph.load-more` — Load the next commits while scrolling
 

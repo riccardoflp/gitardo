@@ -195,3 +195,40 @@ fn the_title_row_of_a_page_reached_through_others_is_drawn_in_each_theme() {
         window.assert_snapshot(name);
     }
 }
+
+#[test]
+fn ui_page_trail__a_file_page_opened_from_the_diff_beside_the_list_of_the_changes_page_goes_back_to_it_with_the_diff() {
+    use super::changes_beside::{beside, changes_page, click_in_row, diff_of, three_changed};
+    let repository = three_changed();
+    let (mut state, driver) = changes_page(&repository);
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    click_in_row(&driver, &mut state, &mut window, ("Open changes", "a.txt"));
+    let diff = state
+        .diff_pages
+        .pages
+        .iter()
+        .find(|page| page.is_in_changes)
+        .map(|page| page.title.clone())
+        .unwrap();
+    let (_, tree) = window.draw(&state, &[]);
+    assert_eq!(
+        names(&tree),
+        [words::TIMELINE, views::text::changes::PAGE, diff.as_str()]
+    );
+    driver.intent(
+        &mut state,
+        Intent::FileView(FileViewIntent::Open(FileTarget::working_tree("a.txt"))),
+    );
+    let file = state.file_pages.pages.last().map(|page| page.title.clone()).unwrap();
+    let (_, tree) = window.draw(&state, &[]);
+    assert_eq!(names(&tree), [words::TIMELINE, diff.as_str(), file.as_str()]);
+    let intents = window.click(&state, Role::Button, &diff);
+    assert_eq!(intents, [Intent::BackTo(Page::Changes)]);
+    apply(&mut state, intents);
+    assert_eq!(beside(&state), Some(diff_of("a.txt")), "as it was left");
+    let (_, tree) = window.draw(&state, &[]);
+    assert_eq!(
+        names(&tree),
+        [words::TIMELINE, views::text::changes::PAGE, diff.as_str()]
+    );
+}

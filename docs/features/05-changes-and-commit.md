@@ -288,9 +288,12 @@ as the Files page keeps its tree (`file-view.beside-files`).
   against the index; a file no longer in the list, discarded or committed, leaves the place, and the whole page is
   shown; a diff of every file shows the files listed now, and the whole page once there are none. Another repository
   shown leaves the place too.
-- The trail reads `Timeline › Changes › a.txt`: **Changes** shows the whole page again, as the Changes view of the bar
-  of views, **Show changes** in Quick search and **Review** in the draft do (Q551). The File page or the Diff page beside
-  the list is forgotten then, unless it has edits not saved.
+- The title row starts with the button of the side column (`repo.side-column`), at the same place as on the whole
+  page, and its trail reads `Timeline › Changes › a.txt` (`ui.page-trail`): **Changes** shows the whole page again, as
+  `Alt+Left` does and as the Changes view of the bar of views, **Show changes** in Quick search and **Review** in the
+  draft do (Q551). The File page or the Diff page beside the list is forgotten then, unless it has edits not saved. A
+  page opened from the page beside the list names the Changes page by the name of that page, and that name goes back
+  to the Changes page as it was left, with the same file beside its list.
 - In the narrow layout the page of the file takes the whole page, and **Changes** in the trail comes back to the list.
 - A file in conflict still opens its Merge page in place of the Changes page.
 
@@ -306,6 +309,8 @@ Acceptance:
       to `b.txt`, in the same Diff page.
 - [x] In **View as tree**, `Alt+Down` from `src/c.txt` shows `a.txt`, which the tree lists after the folder `src`.
 - [x] **Changes** in the trail, and the Changes view of the bar of views, show the whole page again.
+- [x] With the diff of `a.txt` beside the list, the title row starts with the button of the side column where it is on
+      the whole page, then **Changes**; `Alt+Left` shows the whole page again.
 - [x] The line between the column and the page dragged 60 pixels to the right makes the column 60 pixels wider.
 - [x] In a window narrower than the narrow layout, the diff is shown alone, with no column.
 - [x] **Open all changes in one Diff page** shows every file beside the list with no row marked; `Alt+Down` then shows

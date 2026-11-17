@@ -20,6 +20,9 @@
   shows its staged changes; a file discarded or committed leaves the whole page. **Changes** in the trail, or the
   Changes view of the bar of views, shows the whole page again; the line between the column and the page is dragged to
   resize the column, kept for the workspace. **Open all changes in one Diff page** shows them beside the list too.
+  The title row starts with the button of the side column and says `Timeline › Changes › a.txt`, `Alt+Left` showing
+  the whole page; a page opened from the diff or the file beside the list names it, and goes back to the Changes page
+  with the same file beside its list.
 - Version 1.8 of the protocol of `gitardo-engine --stdio`, for the extension: `read/graph.read-commits` asked with
   `stream` reads the history with one `git log` as git prints it and sends each page in a notification
   `read/graph.rows`, to the end of the history or to 100,000 commits; `read/repo.read-state` takes `refresh`, and

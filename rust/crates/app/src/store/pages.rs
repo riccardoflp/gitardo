@@ -38,13 +38,13 @@ pub fn show_page(state: &mut State, page: Page) {
 
 /// What a view asked of the timeline and the pages: the bar of views, the **…** menu and `Ctrl+,` show a page, and
 /// `Ctrl+Tab` the next one, each starting the way again from the timeline; a name of the title row of a page goes back
-/// to its page.
+/// to its page as it was left, the Changes page with the file it showed beside its list (`changes.beside-file`).
 pub fn reduce(state: &mut State, intent: &Intent) -> Vec<Effect> {
     match intent {
         Intent::ShowTimeline => show_timeline(state),
         Intent::ShowPage(page) => starting_again(state, |state| show(state, *page)),
         Intent::NextPage => starting_again(state, next_page),
-        Intent::BackTo(page) => show(state, *page),
+        Intent::BackTo(page) => back_to(state, *page),
         _ => Vec::new(),
     }
 }
@@ -61,11 +61,16 @@ pub fn starting_again(state: &mut State, reduce: impl FnOnce(&mut State) -> Vec<
 /// Shows a page, opening it when it is not open; the Changes page shows whole, nothing beside its list
 /// (`changes.beside-file`).
 pub fn show(state: &mut State, page: Page) -> Vec<Effect> {
-    if page == Page::Settings {
-        state.settings_page.shown();
-    }
     if page == Page::Changes {
         super::changes_beside::leave(state);
+    }
+    back_to(state, page)
+}
+
+/// Shows a page as it was left, opening it when it is not open: a name of the title row of a page goes back to it.
+fn back_to(state: &mut State, page: Page) -> Vec<Effect> {
+    if page == Page::Settings {
+        state.settings_page.shown();
     }
     show_page(state, page);
     Vec::new()
