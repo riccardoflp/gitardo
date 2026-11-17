@@ -139,3 +139,41 @@ impl Disk {
         }
     }
 }
+
+/// The file of the groups of the repository of these tests.
+pub(super) const FILE: &str = "/work/app/.git/gitardo/task-groups.json";
+
+/// The main worktree of a repository in `/work/app`.
+pub(super) fn main_worktree() -> model::state::RepositoryState {
+    model::state::RepositoryState {
+        folder: PathBuf::from("/work/app"),
+        git_folder: PathBuf::from("/work/app/.git"),
+        ..crate::testing::state()
+    }
+}
+
+/// The groups on the disk, each as `name: task, task`.
+pub(super) fn kept(disk: &Disk) -> Vec<String> {
+    let groups = super::groups_file::parse_groups(disk.text(FILE).as_deref()).unwrap();
+    let shown = |group: &model::tasks::TaskGroup| {
+        let tasks: Vec<String> = group.tasks.iter().map(ToString::to_string).collect();
+        format!("{}: {}", group.name, tasks.join(", "))
+    };
+    groups.iter().map(shown).collect()
+}
+
+/// A disk with these groups kept for the repository.
+pub(super) fn disk_with(groups: &[model::tasks::TaskGroup]) -> Disk {
+    Disk::default().with(FILE, &super::groups_file::groups_text(groups))
+}
+
+/// A group of tasks of `tasks.json`, by their labels.
+pub(super) fn group(name: &str, tasks: &[&str]) -> model::tasks::TaskGroup {
+    model::tasks::TaskGroup {
+        name: name.to_owned(),
+        tasks: tasks
+            .iter()
+            .map(|task| model::tasks::TaskReference::workspace(task))
+            .collect(),
+    }
+}

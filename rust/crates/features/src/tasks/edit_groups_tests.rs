@@ -4,24 +4,11 @@ use std::path::PathBuf;
 
 use model::contract::{Answer, Answers, Context, Danger, Outcome, Plan, QuestionKind, Step, Target, Undo, Validation};
 use model::state::RepositoryState;
-use model::tasks::{GroupsAction, GroupsTarget, Shift, TaskGroup, TaskReference};
+use model::tasks::{GroupsAction, GroupsTarget, Shift, TaskReference};
 
 use super::{DELETE, NAME, edit_groups};
-use crate::tasks::groups_file::parse_groups;
-use crate::tasks::testing::Disk;
+use crate::tasks::testing::{Disk, FILE, kept, main_worktree};
 use crate::testing::{context, plan, question};
-
-/// The file of the groups of the repository of these tests.
-const FILE: &str = "/work/app/.git/gitardo/task-groups.json";
-
-/// The main worktree of a repository in `/work/app`.
-fn main_worktree() -> RepositoryState {
-    RepositoryState {
-        folder: PathBuf::from("/work/app"),
-        git_folder: PathBuf::from("/work/app/.git"),
-        ..crate::testing::state()
-    }
-}
 
 /// A linked worktree of the same repository.
 fn linked_worktree() -> RepositoryState {
@@ -57,16 +44,6 @@ fn refused(disk: &Disk, state: RepositoryState, action: GroupsAction, answers: A
         Outcome::Refuse(refusal) => refusal.message.to_string(),
         other => panic!("expected a refusal, got {other:?}"),
     }
-}
-
-/// The groups on the disk, each as `name: task, task`.
-fn kept(disk: &Disk) -> Vec<String> {
-    let groups = parse_groups(disk.text(FILE).as_deref()).unwrap();
-    let shown = |group: &TaskGroup| {
-        let tasks: Vec<String> = group.tasks.iter().map(ToString::to_string).collect();
-        format!("{}: {}", group.name, tasks.join(", "))
-    };
-    groups.iter().map(shown).collect()
 }
 
 /// The files a plan writes.
