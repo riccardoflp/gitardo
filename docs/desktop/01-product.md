@@ -122,7 +122,7 @@ The cards of the catalog name the places of the window with these words, and onl
 | **Draft** | The card of the uncommitted changes at the top of the timeline. |
 | **Inspector** | The card of the selected commit, on the right. |
 | **Changes page** | Every uncommitted file, staged or not, with its diff; opened by **Review** in the draft. |
-| **Files page** | The tree of the working tree, where a file or a folder is picked for its history, its blame or a comparison. |
+| **Files page** | The tree of the working tree, each file that differs from the last commit marked, where a file or a folder is picked for its history, its blame or a comparison. |
 | **Commit**, **Compare**, **Diff**, **Merge**, **Conflicts**, **File**, **Settings**, **Welcome** and **Worktree setup** pages | The other pages, each opened in place of the timeline with its trail. |
 | **Activity drawer** | What is running and the Tasks. |
 | **Bottom panel** | The island under the timeline: the terminals and the Command log. |

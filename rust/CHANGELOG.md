@@ -30,6 +30,13 @@
   draws, in the colors of the theme and in Inter, as wide as the page at most. Its code shows until it is drawn, and
   stays with a line saying why when it has an error or is of a kind not drawn. Nothing in a diagram is followed, run
   or fetched; the screen reader reads its `accTitle`, or *Mermaid diagram*.
+- The tree of the Files page shows which files differ from the last commit, as the Changes page does: the name in the
+  color of its state and its letter at the right end of the row (`A`, `M`, `D`, `R`, `C`, `T`, `?`, `!`), staged and
+  unstaged changes together, a conflict over everything; the screen reader hears the state after the name. A renamed
+  file is at its new path, its tooltip naming the old one. A deleted file is listed at its place, even once its
+  deletion is staged, dimmed and struck through, and a click on it opens its Diff page. A folder holding a changed
+  file, folded or not, has a dot in the color of the most important state under it. The marks follow every read of
+  the repository.
 - The side column takes less room: a repository, a worktree and a submodule are each one row of one line, the name on
   the left and the branch, the files changed and `↓ ↑` smaller on the right, the name and the branch cut with `…`
   when the row is short; the heading of **Branches** has **Create branch**, **Compare** and the button of the rail's

@@ -123,8 +123,9 @@ pub enum Incoming {
 pub struct Unreadable {
     /// The id, when the message had one that could be read.
     pub id: Option<RequestId>,
-    /// The error to answer with.
-    pub error: ResponseError,
+    /// The error to answer with, boxed: its data is a [`Value`], which is large while `serde_json` keeps the order of
+    /// the fields of an object, as a library of the window asks it to.
+    pub error: Box<ResponseError>,
 }
 
 /// The message in the bytes of a frame.
@@ -136,7 +137,10 @@ pub struct Unreadable {
 pub fn read_message(bytes: &[u8]) -> Result<Incoming, Unreadable> {
     let value: Value = serde_json::from_slice(bytes).map_err(|error| Unreadable {
         id: None,
-        error: ResponseError::new(codes::PARSE_ERROR, format!("The message is not JSON: {error}")),
+        error: Box::new(ResponseError::new(
+            codes::PARSE_ERROR,
+            format!("The message is not JSON: {error}"),
+        )),
     })?;
     let Value::Object(mut fields) = value else {
         return Err(invalid(None, "The message is not a JSON object."));
@@ -184,7 +188,7 @@ fn response(id: RequestId, fields: &mut Map<String, Value>) -> Result<Incoming, 
 fn invalid(id: Option<RequestId>, message: &str) -> Unreadable {
     Unreadable {
         id,
-        error: ResponseError::new(codes::INVALID_REQUEST, message),
+        error: Box::new(ResponseError::new(codes::INVALID_REQUEST, message)),
     }
 }
 

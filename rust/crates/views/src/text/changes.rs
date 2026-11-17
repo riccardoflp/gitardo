@@ -74,6 +74,8 @@ pub const RESOLVE_WITH_AI: &str = "Resolve with AI, after looking at what is pro
 pub const NO_CHANGES: &str = "No changes";
 /// The letter of an untracked file.
 pub const UNTRACKED: &str = "?";
+/// The letter of a file in conflict.
+pub const CONFLICTED: &str = "!";
 /// The letter of a file only an editor has changed.
 pub const UNSAVED: &str = "\u{25cf}";
 

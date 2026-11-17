@@ -1,10 +1,12 @@
 //! The Files page as the store keeps it: the files of the working tree of the repository shown, listed on a worker when
 //! the page opens and again each time the repository is read while it is open, as a tree whose folders are folded
-//! until they are opened; and what is done with a file or a folder picked in it.
+//! until they are opened, each file that differs from the last commit marked as the Changes page marks it; and what is
+//! done with a file or a folder picked in it.
 
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 
+use model::changes::{OpenAction, OpenInput, OpenOnClick, OpenTarget, TreeMarks};
 use model::contract::{FeatureId, Target};
 use model::details::{FilePath, TreeNode, file_tree};
 use views::feature::FeatureIntent;
@@ -23,8 +25,11 @@ pub struct FilesPage {
     pub folder: Option<PathBuf>,
     /// The read of the repository they were listed after.
     pub generation: Option<u64>,
-    /// The tree of the files listed; none before the first list.
+    /// The tree of the files listed, with the files deleted at their places; none before the first list.
     pub tree: Option<Vec<TreeNode>>,
+    /// How the files of the tree differ from the last commit, from the read they were listed after
+    /// (`file-view.files-changes`).
+    pub marks: TreeMarks,
     /// What git said when it could not list them.
     pub failed: Option<String>,
     /// The folders opened, by their paths.
@@ -122,15 +127,21 @@ pub(super) fn read(state: &mut State, message: super::message::Message) -> Vec<E
 /// Takes the files listed.
 pub fn files_read(state: &mut State, job: JobId, result: Result<Vec<String>, String>) -> Vec<Effect> {
     let _finished = state.jobs.remove(&job);
-    let page = &mut state.files_page;
-    if page.job != Some(job) {
+    if state.files_page.job != Some(job) {
         return Vec::new();
     }
+    let marks = super::changes::listed(state).map_or_default(|list| model::changes::tree_marks(&list));
+    let page = &mut state.files_page;
     page.job = None;
     match result {
-        Ok(paths) => {
-            let paths: Vec<FilePath> = paths.iter().map(|path| FilePath::from(path.as_str())).collect();
+        Ok(listed) => {
+            let mut paths: Vec<&str> = listed.iter().map(String::as_str).collect();
+            paths.extend(marks.deleted());
+            paths.sort_unstable();
+            paths.dedup();
+            let paths: Vec<FilePath> = paths.into_iter().map(FilePath::from).collect();
             page.tree = Some(file_tree(&paths));
+            page.marks = marks;
             page.failed = None;
         }
         Err(error) => page.failed = Some(error),
@@ -157,6 +168,7 @@ pub fn page_state(state: &State) -> FilesPageState<'_> {
         name,
         shown,
         opened: &page.opened,
+        marks: &page.marks,
         marked: page
             .shown_file
             .and_then(|id| state.file_pages.pages.iter().find(|file| file.id == id))
@@ -166,8 +178,12 @@ pub fn page_state(state: &State) -> FilesPageState<'_> {
 
 /// Opens a file of the working tree beside the tree of the Files page, in place of the one shown there: that one is
 /// forgotten, unless it has edits not saved, which keep it open in its own page (`file-view.beside-files`). A file
-/// that has its own page already keeps it too.
+/// that has its own page already keeps it too. A file deleted, which is not on disk, opens its Diff page instead, as
+/// **Open changes** of the Changes page does (`file-view.files-changes`).
 fn open_beside(state: &mut State, path: &str) -> Vec<Effect> {
+    if let Some(target) = deleted_diff(state, path) {
+        return super::diff_page::open(state, target);
+    }
     let listed = state.pages.open.clone();
     let effects = super::file_page::reduce(state, FileViewIntent::Open(FileTarget::working_tree(path)));
     let Some(Page::File(id)) = state.page_shown() else {
@@ -186,6 +202,20 @@ fn open_beside(state: &mut State, path: &str) -> Vec<Effect> {
         keep_if_unsaved(state, previous);
     }
     effects
+}
+
+/// The Diff page of a file deleted, between the last commit, or the index while the deletion is not staged, and nothing;
+/// none for a file on disk.
+fn deleted_diff(state: &State, path: &str) -> Option<views::diff::DiffTarget> {
+    let is_deleted = state.files_page.marks.deleted().any(|deleted| deleted == path);
+    let list = super::changes::listed(state).filter(|_| is_deleted)?;
+    let row = list.rows.iter().find(|row| row.path == path)?;
+    let request = model::changes::open(&OpenInput {
+        file: OpenTarget::Changed(row),
+        action: OpenAction::OpenChanges,
+        on_click: OpenOnClick::default(),
+    });
+    views::diff::changes_file(&request)
 }
 
 /// Takes the file away from beside the tree, keeping it open in its own page when it has edits not saved.

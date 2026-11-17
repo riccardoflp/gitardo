@@ -33,6 +33,7 @@ mod draft;
 mod drag;
 mod file_view;
 mod file_view_tools;
+mod files_changes;
 mod files_page;
 mod filter;
 mod folds;

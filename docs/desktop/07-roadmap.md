@@ -389,6 +389,18 @@ Phases 7 and 8 were added by the maintainer after the plan of the first six ([D6
    needs no repository; until the engine answers, and without it, the block shows its code. Cards:
    `file-view.mermaid` in the extension.
 
+Phase 9 was added by the maintainer after phases 7 and 8
+([D61](../08-decisions.md#d61--the-tree-of-the-files-page-shows-what-differs-from-the-last-commit)):
+
+9. **What differs, in the tree of the Files page.** Each file of the tree that differs from `HEAD` is marked as the
+   Changes page marks it: its name in the color of its state and its letter at the right end of its row (`A`, `M`,
+   `D`, `R`, `C`, `T`, `?`, `!`), staged and unstaged changes taken together, a conflict over everything. A renamed
+   file is at its new path, its tooltip naming the old one; a deleted file is at its place, even when its deletion is
+   staged, dimmed and struck through, and a click on it opens its Diff page. A folder holding a changed file, at any
+   depth, has a dot in the color of the most important state under it, so that a folded folder still tells. The marks
+   follow every read of the repository. The extension has no Files view, and VS Code's Explorer marks the changes of
+   git itself. Cards: `file-view.files-changes`.
+
 Exit: the window opens with no title bar of the system, the logo at its top left and **Gitardo** at the start of the
 header bar; dragging the free part of the header bar moves the window and dragging it to the top of the screen
 maximizes it; a double click maximizes and restores it; the pointer on **Maximize** on Windows 11 shows Snap Layouts;
@@ -396,9 +408,11 @@ the edges and corners resize it, and nothing resizes it while it is maximized; `
 the window; the bar dims when another window has the focus; the size and place are kept from one start to the next;
 `README.md` opened from the Files page with **Open Markdown as a preview** on shows its headings, lists, a table and
 a code block laid out, and **Source** shows its text; a `mermaid` block of a flowchart and one of a sequence diagram
-are drawn as their diagrams in each theme, in VS Code's preview too, and one with an error shows its code and why;
-every card of the phase passes its tests, and the snapshots of
-the header bar match in each theme, focused and not, and those of the preview of Markdown in each theme.
+are drawn as their diagrams in each theme, in VS Code's preview too, and one with an error shows its code and why; in
+the Files page a modified file shows `M`, a file whose deletion is staged is listed struck through and opens its Diff
+page, and a folded folder holding a change shows its dot; every card of the phase passes its tests, and the snapshots
+of the header bar match in each theme, focused and not, those of the preview of Markdown and those of the tree of the
+Files page with its marks in each theme.
 
 ## Before a release
 

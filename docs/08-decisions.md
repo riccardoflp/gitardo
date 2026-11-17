@@ -1085,6 +1085,23 @@ Rejected: mermaid.js in the extension (a second way to draw the same diagram, an
 Mermaid layout written for Gitardo (years of work a library has done); a diagram drawn by a web view in the desktop
 (WebKitGTK on Linux, [D16](#d16--libraries-for-the-window-the-text-and-the-pixels)).
 
+## D61 — The tree of the Files page shows what differs from the last commit
+
+*Asked by the maintainer for milestone M17; the details proposed by the agent.*
+
+The Files page lists the files of the working tree shown, but said nothing of which ones were changed: to see it, one
+went to the Changes page. Now the tree marks them as the Changes page does, with the same letters, colors and words:
+each file that differs from `HEAD` has its name in the color of its state and its letter at the right end of its row,
+staged and unstaged changes taken together, a conflict over everything; the screen reader hears the state after the
+name, `app.rs, modified` (`file-view.files-changes`). A renamed file is at its new path, its tooltip naming the old one.
+A deleted file is listed at its place even when its deletion is staged, dimmed and struck through, and a click opens
+its Diff page, there being no file on disk to open. A folder holding a changed file, at any depth, has a dot in the
+color of the most important state under it, a conflict over a deletion over a modification over a new file, so that a
+folded folder still tells. The marks come from the read of the repository the Changes page lists from, with no other
+git command, and follow every read without folding or unfolding anything. Ignored files stay unlisted.
+
+The extension has no Files view, and VS Code's Explorer marks the changes of git itself: the card is Host only there.
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -3297,3 +3314,22 @@ the reading given until the card says otherwise.
   serves every preview of Markdown, not only those Gitardo opens. Built: every preview, while the engine runs; when
   another extension that draws Mermaid in the preview is installed (one whose id names Mermaid and that contributes a
   plugin of VS Code's Markdown), its blocks are left to it and the log says so.
+
+### Of the changes in the tree of the Files page, from Q600
+
+- **Q600** — `file-view.files-changes`: a file only an editor of Gitardo has changed, which the Changes page lists with
+  a dot, is not marked in the tree, since git sees no change in it and the design names the states of git. Should it
+  show the dot of the Changes page too?
+- **Q601** — `file-view.files-changes`: the order of the dot of a folder. Built: a conflict over a deletion over a
+  modification (a renamed, copied or type-changed file counts as one) over a new file, added or untracked; the dot
+  takes the color of the letter of that state, red for a conflict and a deletion alike, and the color of a
+  modification for a rename, though the letter `R` has the accent color.
+- **Q602** — `file-view.files-changes`: where the Diff page of a deleted file opens. Built: as its own page, as
+  **Open changes** of the Changes page shows it (the index against nothing while the deletion is not staged, the last
+  commit against nothing once it is), not beside the tree as a File page is; the tree comes back with **Files** in the
+  trail. Should it open beside the tree instead?
+- **Q603** — `file-view.files-changes`: the top row, the repository itself, has no dot, the header bar already
+  counting the changes. Should it have one like any folder?
+- **Q604** — `file-view.files-changes`: the marks are taken when the files are listed, after each read; between a read
+  and the end of the list that follows it, a moment, the tree still shows the marks of the read before, as it still
+  shows its files.

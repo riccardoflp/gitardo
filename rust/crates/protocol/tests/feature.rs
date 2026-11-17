@@ -20,6 +20,21 @@ use serde::de::DeserializeOwned;
 use serde_json::json;
 use testkit::assert_golden;
 
+/// The value with the fields of each object in the order of their names, as the golden file has them, whether
+/// `serde_json` keeps the order they were written in or not: the library that lays out Mermaid asks it to, and a build
+/// of this test has that or not depending on which crates are built with it.
+fn sorted(value: serde_json::Value) -> serde_json::Value {
+    match value {
+        serde_json::Value::Object(fields) => {
+            let mut fields: Vec<_> = fields.into_iter().collect();
+            fields.sort_by(|(left, _), (right, _)| left.cmp(right));
+            serde_json::Value::Object(fields.into_iter().map(|(name, field)| (name, sorted(field))).collect())
+        }
+        serde_json::Value::Array(items) => serde_json::Value::Array(items.into_iter().map(sorted).collect()),
+        other => other,
+    }
+}
+
 /// Writes a value and reads it back, which must give the same value.
 fn round_trip<T: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug>(value: &T) {
     let text = serde_json::to_string(value).unwrap();
@@ -69,7 +84,7 @@ fn the_question_and_the_plan_of_branch_create_are_written_as_the_golden_file_say
         "ask": AskParams { run: RequestId::Number(4), question: QuestionJson::from(&name_question()) },
         "confirm": ConfirmParams { run: RequestId::Number(4), plan: PlanJson::from(&plan()) },
     });
-    let mut text = serde_json::to_string_pretty(&message).unwrap();
+    let mut text = serde_json::to_string_pretty(&sorted(message)).unwrap();
     text.push('\n');
     assert_golden(
         Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/branch-create.json"),

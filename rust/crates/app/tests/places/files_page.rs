@@ -29,7 +29,7 @@ use super::timeline::subjects;
 const SIZE: (u32, u32) = (1000, 700);
 
 /// A window showing the Files page of a repository, with the folders named opened.
-fn files_page(repository: &Repository, opened: &[&str]) -> (State, Window, OperationsDriver) {
+pub(super) fn files_page(repository: &Repository, opened: &[&str]) -> (State, Window, OperationsDriver) {
     let mut state = showing(repository.path().to_path_buf());
     let driver = OperationsDriver::new();
     quick(&driver, &mut state, QuickCommand::ShowFiles);
@@ -43,7 +43,7 @@ fn files_page(repository: &Repository, opened: &[&str]) -> (State, Window, Opera
 }
 
 /// The middle of the lowest thing of the window that says some words: the row of the tree that says them.
-fn row(tree: &TreeUpdate, name: &str) -> Point {
+pub(super) fn row(tree: &TreeUpdate, name: &str) -> Point {
     let found = tree
         .nodes
         .iter()

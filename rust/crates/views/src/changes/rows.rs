@@ -176,7 +176,7 @@ fn conflict_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index): (
             intents.push(intent);
         }
     }
-    let start = status_start(ui, area.rest(), ("!", ui.theme().colors.removed, 0));
+    let start = status_start(ui, area.rest(), (words::CONFLICTED, ui.theme().colors.removed, 0));
     let opened = OpenFileState { file };
     intents.extend(ui.clip(start, |ui| open_file_view(&opened, ui)));
     intents
