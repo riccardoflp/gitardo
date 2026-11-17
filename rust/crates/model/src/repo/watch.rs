@@ -9,6 +9,8 @@ use crate::state::RepositoryState;
 pub const SOON: Duration = Duration::from_millis(400);
 /// How long a change in the working tree waits before the read: builds and installs write many files at once.
 pub const LATER: Duration = Duration::from_millis(1_000);
+/// How long after the last read the window getting the focus asks for another (M15).
+pub const FOCUS_AFTER: Duration = Duration::from_secs(60);
 
 /// The files of the common git folder whose change asks for a read, by their names at its top.
 const GIT_FILES: [&str; 10] = [
@@ -61,9 +63,19 @@ pub enum Change {
     /// Files created, deleted or renamed by Gitardo.
     Files(FilesChange),
     /// The window got the focus.
-    Focus,
+    Focus(FocusChange),
     /// A setting changed, by its key: `graph.pageSize`.
     Setting(String),
+}
+
+/// The window got the focus: how long after the last read, and whether a change came that asked for nothing while the
+/// window was minimized.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct FocusChange {
+    /// How long since the last read of the repository shown ended; none when it was never read.
+    pub since_read: Option<Duration>,
+    /// Whether a change came while the window was minimized, which asked for nothing then.
+    pub is_change_missed: bool,
 }
 
 /// What Gitardo did to files.
@@ -145,7 +157,10 @@ pub fn watch_changes(change: &Change) -> Option<ReadRequest> {
         }
         Change::Saved(path) => (SOON, ReadCause::Saved(path.clone())),
         Change::Files(files) => (SOON, ReadCause::Files(*files)),
-        Change::Focus => (SOON, ReadCause::Focus),
+        Change::Focus(focus) => {
+            let is_due = focus.is_change_missed || focus.since_read.is_none_or(|since| since > FOCUS_AFTER);
+            is_due.then_some((SOON, ReadCause::Focus))?
+        }
         Change::Setting(key) => {
             let section = key.split('.').next().unwrap_or_default();
             READ_SETTINGS
@@ -240,7 +255,9 @@ mod tests {
     use std::path::PathBuf;
     use std::time::Duration;
 
-    use super::{Change, FilesChange, ReadCause, ReadRequest, TreeChange, sort_tree_change, watch_changes};
+    use super::{
+        Change, FilesChange, FocusChange, ReadCause, ReadRequest, TreeChange, sort_tree_change, watch_changes,
+    };
 
     fn git(path: &str) -> Option<ReadRequest> {
         watch_changes(&Change::GitFolder(PathBuf::from(path)))
@@ -328,6 +345,22 @@ mod tests {
     }
 
     #[test]
+    fn repo_watch_changes__the_focus_asks_for_a_read_only_a_minute_after_the_last_or_after_a_change_missed() {
+        let focus = |seconds: u64, is_change_missed: bool| {
+            watch_changes(&Change::Focus(FocusChange {
+                since_read: Some(Duration::from_secs(seconds)),
+                is_change_missed,
+            }))
+        };
+        assert_eq!(focus(10, false), None, "ten seconds after a read");
+        assert_eq!(focus(120, false).map(|request| request.cause), Some(ReadCause::Focus));
+        assert_eq!(
+            focus(10, true).map(|request| request.delay),
+            Some(Duration::from_millis(400))
+        );
+    }
+
+    #[test]
     fn repo_watch_changes__gitardo_files_focus_and_settings_ask_after_400_ms() {
         let soon = Duration::from_millis(400);
         let saved = watch_changes(&Change::Saved(PathBuf::from("a.rs"))).unwrap();
@@ -337,7 +370,8 @@ mod tests {
         );
         let files = watch_changes(&Change::Files(FilesChange::Renamed)).unwrap();
         assert_eq!(files.cause, ReadCause::Files(FilesChange::Renamed));
-        assert_eq!(watch_changes(&Change::Focus).map(|request| request.delay), Some(soon));
+        let focus = Change::Focus(FocusChange::default());
+        assert_eq!(watch_changes(&focus).map(|request| request.delay), Some(soon));
         let graph = watch_changes(&Change::Setting(String::from("graph.pageSize"))).unwrap();
         assert_eq!(graph.cause, ReadCause::Settings);
         assert_eq!(watch_changes(&Change::Setting(String::from("theme"))), None);

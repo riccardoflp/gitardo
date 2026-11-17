@@ -26,6 +26,9 @@ pub struct ReadSchedule {
     bar_until: Option<u64>,
     /// Whether the window is minimized: nothing of the repository is in sight.
     is_minimized: bool,
+    /// When the first change came while the window was minimized, if no read started since: the focus asks for one
+    /// (M15).
+    change_missed: Option<Duration>,
     /// Whether an operation runs: it is followed by a read of its own.
     is_operation_running: bool,
 }
@@ -133,6 +136,12 @@ impl ReadSchedule {
             .or(self.due.as_ref().map(|due| &due.cause))
     }
 
+    /// Whether a change came while the window was minimized, which asked for nothing then, and no read started since.
+    #[must_use]
+    pub fn is_change_missed(&self) -> bool {
+        self.change_missed.is_some()
+    }
+
     /// The moment the read waiting starts, if one waits.
     #[must_use]
     pub fn due_at(&self) -> Option<Duration> {
@@ -145,6 +154,7 @@ impl ReadSchedule {
         self.next_number += 1;
         self.in_a_row += 1;
         self.due = None;
+        self.change_missed = None;
         self.is_changed_during_read = false;
         self.running = Some(RunningRead {
             number,
@@ -218,7 +228,11 @@ fn stopped(schedule: &mut ReadSchedule, actions: &mut Vec<ReadAction>) {
 
 /// A change: it waits for its delay, unless the window is minimized or an operation runs.
 fn changed(schedule: &mut ReadSchedule, request: &ReadRequest, at: Duration, actions: &mut Vec<ReadAction>) {
-    if schedule.is_minimized || schedule.is_operation_running {
+    if schedule.is_minimized {
+        let _first = schedule.change_missed.get_or_insert(at);
+        return;
+    }
+    if schedule.is_operation_running {
         return;
     }
     if schedule.running.is_some() {

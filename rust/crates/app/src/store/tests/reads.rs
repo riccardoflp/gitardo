@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use model::contract::{Answer, Answers, FeatureId, Target};
-use model::repo::{Change, ReadCause};
+use model::repo::{Change, FocusChange, ReadCause};
 use views::feature::FeatureIntent;
 use views::settings::{SettingChange, SettingValue, SettingsTarget};
 use views::{Content, Intent, TimelineState};
@@ -278,4 +278,49 @@ fn settings_theme__the_theme_picked_runs_settings_theme_and_the_picker_closes() 
     );
     let _closed = intent(&mut state, Intent::CloseThemePicker);
     assert_eq!(state.dialog, None);
+}
+
+/// The window getting the focus at a moment, ten seconds after the last read.
+fn focus_gained(state: &mut State, at: u64) -> Vec<Effect> {
+    let focus = FocusChange {
+        since_read: Some(Duration::from_secs(10)),
+        is_change_missed: false,
+    };
+    reduce(
+        state,
+        Message::Changed {
+            changes: vec![Change::Focus(focus)],
+            at: Duration::from_millis(at),
+        },
+    )
+}
+
+#[test]
+fn repo_watch_changes__after_the_window_was_minimized_while_something_changed_the_focus_asks_for_a_read() {
+    let (mut state, app) = showing();
+    assert_eq!(
+        focus_gained(&mut state, 1_000),
+        [],
+        "ten seconds after a read, nothing changed"
+    );
+    let _minimized = reduce(&mut state, Message::Minimized(true));
+    let missed = reduce(
+        &mut state,
+        Message::Changed {
+            changes: vec![Change::GitFolder(PathBuf::from("refs/heads/main"))],
+            at: Duration::from_millis(2_000),
+        },
+    );
+    assert_eq!(missed, [], "nothing is read while the window is minimized");
+    let _shown = reduce(&mut state, Message::Minimized(false));
+    let asked = focus_gained(&mut state, 3_000);
+    assert_eq!(asked, [Effect::WakeAt(Duration::from_millis(3_400))]);
+    let woke = reduce(
+        &mut state,
+        Message::Wake {
+            at: Duration::from_millis(3_400),
+        },
+    );
+    assert_eq!(reads(&woke), [app]);
+    assert!(!state.reads.schedule.is_change_missed(), "the read sees what changed");
 }

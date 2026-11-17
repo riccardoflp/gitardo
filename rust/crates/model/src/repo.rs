@@ -12,8 +12,8 @@ pub use group::{TabGroup, group_tabs};
 pub use hidden::{HiddenTab, schedule_hidden};
 pub use schedule::{ReadAction, ReadEvent, ReadSchedule, StartedRead, schedule_reads};
 pub use watch::{
-    Change, FilesChange, LATER, ReadCause, ReadRequest, SOON, TreeChange, nested_worktrees, sort_tree_change,
-    watch_changes,
+    Change, FOCUS_AFTER, FilesChange, FocusChange, LATER, ReadCause, ReadRequest, SOON, TreeChange, nested_worktrees,
+    sort_tree_change, watch_changes,
 };
 
 /// A repository a window can show: one a folder of the workspace is in or holds, or a submodule of one of these.

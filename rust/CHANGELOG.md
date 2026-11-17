@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The window getting the focus reads the repository only when its last read ended more than a minute before, or when
+  something changed while the window was minimized; switching to another program and back no longer reads it each
+  time.
 - What is not committed in another worktree is counted again only when something changed in its own git folder, on
   **Refresh**, or when the repository is chosen: a read after a change to a file runs `git status` in the worktree
   shown only, however many worktrees the repository has.

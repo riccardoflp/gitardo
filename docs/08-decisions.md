@@ -2880,3 +2880,7 @@ reading given until the card says otherwise.
   time. **Refresh** and choosing a repository count every worktree again. The engine of the extension still counts
   every worktree on each `read/repo.read-state`, since the protocol does not say yet whether a read is a **Refresh**:
   it keeps the counts once it does (phase 9 of M15).
+- **Q463** — `repo.watch-changes`: from when the minute of the focus is counted. Built: from the end of the last read
+  of the repository shown, whatever asked for it, kept by the window for each folder read, so that a tab shown again
+  after a minute is read when the window gets the focus; a repository never read asks for a read. A change missed
+  while the window was minimized is forgotten by the next read that starts, whatever asked for it.

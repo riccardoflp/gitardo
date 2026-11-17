@@ -10,8 +10,8 @@ use std::time::Duration;
 
 use model::Timestamp;
 use model::repo::{
-    Change, LATER, ReadAction, ReadCause, ReadEvent, ReadSchedule, StartedRead, TreeChange, schedule_reads,
-    watch_changes,
+    Change, FocusChange, LATER, ReadAction, ReadCause, ReadEvent, ReadSchedule, StartedRead, TreeChange,
+    schedule_reads, watch_changes,
 };
 
 use git::read::worktree::CountedWorktrees;
@@ -59,6 +59,7 @@ pub fn changed(state: &mut State, changes: &[Change], at: Duration) -> Vec<Effec
     let files_due = state.reads.files.due_at();
     let mut effects = Vec::new();
     for change in changes {
+        let change = &missed_by_focus(state, change);
         let Some(request) = watch_changes(change) else {
             continue;
         };
@@ -71,6 +72,18 @@ pub fn changed(state: &mut State, changes: &[Change], at: Duration) -> Vec<Effec
     }
     let is_files_due_moved = state.reads.files.due_at() != files_due;
     one_wake(state, effects, is_files_due_moved)
+}
+
+/// A change as the store knows it: the focus says whether a change came while the window was minimized, which the
+/// schedule knows and the window does not.
+fn missed_by_focus(state: &State, change: &Change) -> Change {
+    match change {
+        Change::Focus(focus) => Change::Focus(FocusChange {
+            is_change_missed: focus.is_change_missed || state.reads.schedule.is_change_missed(),
+            ..*focus
+        }),
+        other => other.clone(),
+    }
 }
 
 /// The moment a wake asked for came: the read waiting starts, or the files waiting are asked of git.
