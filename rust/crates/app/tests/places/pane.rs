@@ -1,5 +1,5 @@
-//! The branch rail as one place, drawn from the store (`branch.pane`): its top with the branch checked out and its
-//! buttons, the branches the timeline leaves out dimmed, a click on a branch, and the lists open when the window opens.
+//! The branch rail as one place, drawn from the store (`branch.pane`): its buttons in the heading of **Branches**, the
+//! branches the timeline leaves out dimmed, a click on a branch, and the lists open when the window opens.
 
 use app::store::{Message, State};
 use model::contract::{FeatureId, Target};
@@ -50,21 +50,37 @@ fn narrowed_to_main(state: &mut State) {
 }
 
 #[test]
-fn branch_pane__the_top_names_the_branch_checked_out_and_create_branch_there_asks_for_a_branch_at_head() {
+fn branch_pane__the_heading_of_branches_has_create_branch_and_compare_on_its_line_and_the_rail_does_not_name_the_branch()
+ {
     let (repository, _remote) = repository_with_history();
     let state = showing(repository.path().to_path_buf());
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
+    let heading = bounds(&tree, Role::Button, views::text::repo::BRANCHES);
+    for name in ["Create branch", "Compare"] {
+        let button = tree
+            .nodes
+            .iter()
+            .filter(|(_, node)| node.role() == Role::Button && node.label() == Some(name))
+            .filter_map(|(_, node)| node.bounds().map(rect))
+            .find(|found| found.x >= heading.x)
+            .unwrap();
+        let middle_of = |found: Rect| found.y + found.height * 0.5;
+        assert!(
+            (middle_of(button) - middle_of(heading)).abs() < 0.5,
+            "{name} on the line of the heading: {button:?} {heading:?}"
+        );
+        assert!(button.height >= 24.0, "{name} is {} high", button.height);
+    }
     let rail = bounds(&tree, Role::Navigation, "Branches");
-    let create = bounds(&tree, Role::Button, "Create branch");
-    assert!(create.bottom() <= rail.y + 0.5, "the button is above the lists");
+    let local = bounds(&tree, Role::Button, views::text::rail::LOCAL);
     let is_named_on_top = tree
         .nodes
         .iter()
         .filter(|(_, node)| node.value() == Some("main") || node.label() == Some("main"))
         .filter_map(|(_, node)| node.bounds().map(rect))
-        .any(|found| found.x >= rail.x && found.right() <= rail.right() + 0.5 && found.bottom() <= create.y + 0.5);
-    assert!(is_named_on_top, "the top of the rail says main");
+        .any(|found| found.x >= rail.x && found.y >= rail.y && found.bottom() <= local.y + 0.5);
+    assert!(!is_named_on_top, "the rail does not name main above its lists");
     let intents = window.click(&state, Role::Button, "Create branch");
     assert_eq!(
         intents,
@@ -73,7 +89,15 @@ fn branch_pane__the_top_names_the_branch_checked_out_and_create_branch_there_ask
             Target::Head
         ))]
     );
-    let compared = window.click(&state, Role::Button, "Compare");
+    let (_, tree) = window.draw(&state, &[]);
+    let compare = tree
+        .nodes
+        .iter()
+        .filter(|(_, node)| node.role() == Role::Button && node.label() == Some("Compare"))
+        .filter_map(|(_, node)| node.bounds().map(rect))
+        .find(|found| found.x >= heading.x)
+        .unwrap();
+    let compared = window.click_at(&state, middle(compare), 1);
     assert_eq!(
         compared,
         [Intent::Feature(FeatureIntent::Run(

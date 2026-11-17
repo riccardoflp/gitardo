@@ -1434,8 +1434,8 @@ The branch rail's own filter: which branches, remote branches and tags it lists,
 
 - **Kind**: View
 - **Function**: `views::refs::list_filter_view(state: &ListFilterState, ui) -> Vec<Intent>`
-- **Entry points**: the button with the funnel at the top of the branch rail, beside the name of the branch checked out
-  (`branch.pane`), and in the narrow layout at the top of its icons; **Filter the Branch Rail** in Quick search.
+- **Entry points**: the button with the funnel at the end of the heading of **Branches** in the side column
+  (`branch.pane`), and in the narrow layout at the top of the icons of the rail; **Filter the Branch Rail** in Quick search.
 - **Uses**: `filter.picker`, `filter.preset`, `filter.tick`, `filter.kinds`, `filter.rank-names`, `filter.label`,
   `refs.listed`, `refs.scope-line`.
 - **Extension**: the funnel at the end of the top row of the references, after the box that finds a name, beside the

@@ -24,9 +24,9 @@ const TITLE: f32 = 20.0;
 /// The height of the title of a list that is not kept aside.
 const HEADING: f32 = 24.0;
 /// The height of the rows of the local branches.
-const BRANCH_ROW: f32 = 32.0;
+const BRANCH_ROW: f32 = 28.0;
 /// The height of the rows of the remote branches and of the lists of **Kept aside**.
-const QUIET_ROW: f32 = 30.0;
+const QUIET_ROW: f32 = 26.0;
 /// The side of the dot of a branch.
 pub(super) const DOT: f32 = 10.0;
 
@@ -61,7 +61,7 @@ impl RailRow<'_> {
                 _ => theme.sizes.row_height,
             },
             RailRow::InFull { .. } | RailRow::StashLine { .. } | RailRow::NoStashes => theme.sizes.row_height,
-            RailRow::Gap => theme.sizes.spacing.large + theme.sizes.spacing.small,
+            RailRow::Gap => theme.sizes.spacing.medium,
         }
     }
 }

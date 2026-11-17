@@ -18,7 +18,7 @@ pub(crate) use menu::{
     OperationEntry, branch_entries, chosen, commit_entries, menu_items, open_intent, remote_entries, tag_entries,
 };
 pub use pane::pane;
-pub(crate) use pane::pane_view;
+pub(crate) use pane::{buttons_width, pane_buttons, pane_view};
 
 /// What the menus of the references and of the commits are made from.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

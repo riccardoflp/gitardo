@@ -1,11 +1,12 @@
 //! The rows of **Repositories** (`repo.tabs`): a row for each repository open, and under it, while it is unfolded by
-//! the chevron at its left, a row for each of its worktrees and its submodules, indented (`repo.group-tabs`). Each
-//! says its name and what it is on (`repo.worktree-summary`); the one shown is marked, and a click shows it.
+//! the chevron at its left, a row for each of its worktrees and its submodules, indented (`repo.group-tabs`). Each is
+//! one line: its name, then what it is on (`repo.worktree-summary`), smaller, on its right; the one shown is marked,
+//! and a click shows it.
 
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{AccessRole, Button, ButtonKind, Description, Label, Rect, Response, Sense, TextKind, Tone, Ui};
 
-use super::summary::{TabSummary, summary_line};
+use super::summary::{TabSummary, summary_line, summary_width};
 use super::tabs::{TabEntry, TabMemberEntry, cut_at_start};
 use crate::icons;
 use crate::intent::Intent;
@@ -71,9 +72,8 @@ fn chevron_room(ui: &Ui<'_>, has_chevrons: bool) -> f32 {
     }
 }
 
-/// A row: its background, the bar of the one shown, its icon, its name and what it is on; and what a click, `Enter`
-/// or `Space` on it gave. Returns the response and the rectangle of its first line on the right of its name's start,
-/// where the row puts what goes on its right.
+/// A row: its background, the bar of the one shown and its icon, and what a click, `Enter` or `Space` on it gave.
+/// Returns the response and the rest of the row on the right of its icon.
 fn draw_row(ui: &mut Ui<'_>, cell: Rect, look: &RowLook<'_>) -> (Response, Rect) {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
@@ -89,36 +89,45 @@ fn draw_row(ui: &mut Ui<'_>, cell: Rect, look: &RowLook<'_>) -> (Response, Rect)
     if response.shows_focus {
         ui.focus_ring(cell, theme.sizes.radius.small);
     }
-    let inner = inset(cell, Insets::symmetric(spacing.medium, spacing.tiny));
-    let mut lines = Area::new(inner);
-    let first = lines.top(inner.height * 0.5);
-    let second = lines.rest();
-    let mut parts = Area::with_gap(first, spacing.small);
+    let inner = inset(cell, Insets::symmetric(spacing.medium, 0.0));
+    let mut parts = Area::with_gap(inner, spacing.small);
     if look.indent > 0.0 {
         let _ = parts.left((look.indent - spacing.small).max(0.0));
     }
     ui.icon_in(parts.left(theme.sizes.icon), look.icon, Tone::Muted);
-    let start = (parts.rest().x - second.x).max(0.0);
-    let summary_rect = Rect::new(
-        second.x + start,
-        second.y,
-        (second.width - start).max(0.0),
-        second.height,
-    );
-    match look.summary {
-        Some(summary) => summary_line(ui, summary_rect, summary),
-        None if !look.unknown.is_empty() => {
-            let _ = ui.label(
-                summary_rect,
-                &Label::new(look.unknown).kind(TextKind::Detail).tone(Tone::Muted),
-            );
-        }
-        None => {}
-    }
     let description = Description::new(AccessRole::Button, look.name).selected(look.is_shown);
     ui.describe(id, cell, &description);
     ui.tooltip(&response, look.folder);
     (response, parts.rest())
+}
+
+/// The name of a row and what it is on, on one line: the name on the left, what it is on on the right, in the small
+/// text of details. When both do not fit, the name keeps at least half the room, cut at its start with `…`, and the
+/// branch is cut with `…`.
+fn name_and_summary(ui: &mut Ui<'_>, rect: Rect, look: &RowLook<'_>) {
+    let gap = ui.theme().sizes.spacing.medium;
+    let name_width = ui.measure(look.name, ui.text_style(TextKind::Medium));
+    let said_width = match look.summary {
+        Some(summary) => summary_width(ui, summary),
+        None => ui.measure(look.unknown, ui.text_style(TextKind::Detail)),
+    };
+    let name_room = if said_width > 0.0 {
+        name_width.min((rect.width - gap - said_width).max(rect.width * 0.5))
+    } else {
+        rect.width
+    };
+    let mut parts = Area::with_gap(rect, gap);
+    draw_name(ui, parts.left(name_room), (look.name, look.is_tab_shown));
+    let right = parts.rest();
+    let width = said_width.min(right.width.max(0.0));
+    let said = Rect::new(right.right() - width, right.y, width, right.height);
+    match look.summary {
+        Some(summary) => summary_line(ui, said, summary),
+        None if !look.unknown.is_empty() => {
+            let _ = ui.label(said, &Label::new(look.unknown).kind(TextKind::Detail).tone(Tone::Muted));
+        }
+        None => {}
+    }
 }
 
 /// The name of a row over its room, cut at its start with `…` when it is too long.
@@ -151,19 +160,21 @@ pub(super) fn repository_row(
         is_tab_shown: tab.is_shown,
         folder: &tab.folder,
     };
-    let (response, first) = draw_row(ui, cell, &look);
-    let mut parts = Area::with_gap(first, theme.sizes.spacing.small);
+    let (response, line) = draw_row(ui, cell, &look);
+    let mut parts = Area::with_gap(line, theme.sizes.spacing.small);
     let close_cell = parts.right(side);
     if tab.is_running {
         running_spinner(ui, parts.right(theme.sizes.icon), index);
     }
-    draw_name(ui, parts.rest(), (look.name, look.is_tab_shown));
+    name_and_summary(ui, parts.rest(), &look);
     let mut intents = Vec::new();
     if !tab.members.is_empty() {
         let width = theme.sizes.icon + theme.sizes.spacing.medium;
-        let target = Rect::new(cell.x, cell.y, width, cell.height);
-        let line = Rect::new(cell.x, first.y, width, first.height);
-        intents.extend(chevron_button((index, tab), ui, (target, line)));
+        intents.extend(chevron_button(
+            (index, tab),
+            ui,
+            Rect::new(cell.x, cell.y, width, cell.height),
+        ));
     }
     let close_rect = place(close_cell, (side, side), (Align::End, Align::Center));
     let close_button = Button::icon(icons::CLOSE, words::CLOSE_TAB).kind(ButtonKind::Icon);
@@ -213,8 +224,11 @@ pub(super) fn member_row(
         is_tab_shown: tab.is_shown && member.is_shown,
         folder: &folder,
     };
-    let (response, first) = draw_row(ui, cell, &look);
-    draw_name(ui, first, (&member.name, look.is_tab_shown));
+    let (response, line) = draw_row(ui, cell, &look);
+    // The room of the **×** of a repository is kept, so that what each row is on ends at the same place.
+    let mut parts = Area::with_gap(line, theme.sizes.spacing.small);
+    let _ = parts.right(theme.sizes.icon + theme.sizes.spacing.small);
+    name_and_summary(ui, parts.rest(), &look);
     if response.clicked && !look.is_shown {
         vec![Intent::ShowInTab(index, member.folder.clone())]
     } else {
@@ -224,8 +238,7 @@ pub(super) fn member_row(
 
 /// The chevron at the left of the row of a repository with worktrees or submodules, right while their rows are folded
 /// and down while they are shown under it; a click, `Enter` or `Space` folds or unfolds them.
-/// Its target is the whole height of the row, its icon on the row's first line.
-fn chevron_button((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, (rect, line): (Rect, Rect)) -> Option<Intent> {
+fn chevron_button((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, rect: Rect) -> Option<Intent> {
     let theme = *ui.theme();
     let id = ui.id(("tab chevron", index));
     let response = ui.interact(id, rect, Sense::CLICK | Sense::FOCUS);
@@ -240,7 +253,7 @@ fn chevron_button((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, (rect, line
     } else {
         icons::FOLDED
     };
-    ui.icon_in(line, icon, Tone::Muted);
+    ui.icon_in(rect, icon, Tone::Muted);
     ui.describe(
         id,
         rect,

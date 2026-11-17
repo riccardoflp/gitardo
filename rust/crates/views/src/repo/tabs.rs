@@ -1,5 +1,5 @@
 //! **Repositories**, the first section of the side column (`repo.tabs`): a row for each repository open, the one
-//! shown marked, what each is on under its name, the rows of its worktrees and its submodules under it while it is
+//! shown marked, what each is on beside its name, the rows of its worktrees and its submodules under it while it is
 //! unfolded (`repo.group-tabs`), and a **×** on the row shown and the row under the pointer (`repo.close-tab`); and **+** in the heading of the section, which opens a repository of the workspace in
 //! a tab (`repo.open-tab`), a folder or a workspace file of VS Code.
 
@@ -10,7 +10,6 @@ use super::summary::TabSummary;
 use crate::graph::RepositoryEntry;
 use crate::icons;
 use crate::intent::Intent;
-use crate::line::control_in;
 use crate::number::float_of_count;
 use crate::text::header;
 use crate::text::repo as words;
@@ -107,25 +106,24 @@ enum TabCommand {
     CopyPath,
 }
 
-/// The height of a row of **Repositories**: two lines, its name and what it is on.
+/// The height of a row of **Repositories**: one line, its name and what it is on.
 #[must_use]
 pub fn row_height(ui: &Ui<'_>) -> f32 {
-    let theme = ui.theme();
-    2.0 * theme.sizes.row_height - theme.sizes.spacing.medium
+    ui.theme().sizes.row_height
 }
 
 /// The height the rows of **Repositories** want, all of them, those of the worktrees and the submodules unfolded
 /// included.
 #[must_use]
 pub fn rows_height(ui: &Ui<'_>, state: &TabsState<'_>) -> f32 {
-    float_of_count(rows_of(state.tabs).len()) * row_height(ui) + ui.theme().sizes.spacing.small
+    float_of_count(rows_of(state.tabs).len()) * row_height(ui) + ui.theme().sizes.spacing.tiny
 }
 
 /// The rows of **Repositories** over the rectangle their caller clipped them to, scrolling when they do not fit: on
-/// the first line of each the chevron that folds the rows of its worktrees and its submodules, the name of its
-/// repository, with the worktree or the submodule it shows after ` › ` while those are folded, cut at its start when it
-/// is too long, a spinner while an operation runs in it and its **×**; on the second line what it shows is on. Under
-/// it, while it is unfolded, a row for each of its worktrees and its submodules, indented. The row shown has the background of a row selected and a bar in the color of the accent on its
+/// one line each the chevron that folds the rows of its worktrees and its submodules, the name of its repository,
+/// with the worktree or the submodule it shows after ` › ` while those are folded, cut at its start when it is too long,
+/// what it shows is on, smaller, on its right, a spinner while an operation runs in it and its **×**. Under it, while
+/// it is unfolded, a row for each of its worktrees and its submodules, indented. The row shown has the background of a row selected and a bar in the color of the accent on its
 /// left. A middle click on a row closes it, a right click opens its menu. `Ctrl+1` to `Ctrl+8` show the row at that
 /// place and `Ctrl+9` the last, `Ctrl+PageDown` and `Ctrl+PageUp` the next and the one before, going round; on macOS
 /// `Cmd+1` to `Cmd+9`, `Cmd+Shift+]` and `Cmd+Shift+[`.
@@ -209,7 +207,11 @@ pub fn cut_at_start(ui: &Ui<'_>, name: &str, (room, kind): (f32, TextKind)) -> S
 /// no row, then **Open folder…** and **Open workspace file…**.
 pub(crate) fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, rect: Rect) -> Option<Intent> {
     let side = rect.height;
-    let rect = control_in(ui, rect, side);
+    let rect = ui::layout::place(
+        rect,
+        (side, side),
+        (ui::layout::Align::Center, ui::layout::Align::Center),
+    );
     let button = Button::icon(icons::ADD, words::OPEN_ANOTHER).kind(ButtonKind::Icon);
     let mut entries: Vec<MenuEntry<'_, OpenCommand>> = not_open
         .iter()

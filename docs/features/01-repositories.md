@@ -597,18 +597,21 @@ and its submodules under it, the one shown marked, what each is on, and **+** to
   `repo.worktree-summary`.
 
 The heading of the section says **Repositories**, with the chevron that folds it on its left and **+** on its right
-(`repo.open-tab`). Under it, a row for each repository open, in the order they were opened, each two lines high,
-and under the row of a repository with worktrees or submodules, while it is unfolded, a row for each of them, as
-`repo.group-tabs` says:
+(`repo.open-tab`). Under it, a row for each repository open, in the order they were opened, each one line high, the
+height of a row of a list (26 logical pixels), and under the row of a repository with worktrees or submodules, while it
+is unfolded, a row for each of them, as `repo.group-tabs` says. From its left, a row has:
 
-- on the first line, the chevron that folds and unfolds those rows when it has some, the icon of a repository, its
-  name from `repo.name-repositories`, and, while its rows are folded and it shows one of its worktrees or submodules,
-  ` › ` and the name of that one, as `repo.group-tabs` says; then, on the right, a spinner while an operation runs in
-  it;
-- on the second line, small and muted, what it shows is on (`repo.worktree-summary`): the branch checked out, or
-  `detached at 3f2a1c9`; `● 3` when 3 files are changed and not committed, in the color of changes; `↓2 ↑1` when there
-  are commits to pull and to push. What is not there is not said: a repository up to date with nothing changed says its
-  branch alone.
+- the chevron that folds and unfolds those rows when it has some, the icon of a repository, its name from
+  `repo.name-repositories`, and, while its rows are folded and it shows one of its worktrees or submodules, ` › ` and
+  the name of that one, as `repo.group-tabs` says;
+- on its right, in the small text of details and muted, what it shows is on (`repo.worktree-summary`): the branch
+  checked out, or `detached at 3f2a1c9`; `● 3` when 3 files are changed and not committed, in the color of changes;
+  `↓2 ↑1` when there are commits to pull and to push. What is not there is not said: a repository up to date with
+  nothing changed says its branch alone;
+- then a spinner while an operation runs in it, and the room of its **×**.
+
+When the name and what it is on do not both fit, the name keeps at least half the room, cut at its start with `…`, and
+the branch is cut with `…`, the counts kept whole.
 
 The row shown has the background of a row selected, and a bar in the color of the accent on its left; the name of
 the repository shown, and of its worktree or submodule shown, is in the color of text, the others muted. A click on a
@@ -631,6 +634,8 @@ Acceptance:
 - [ ] With twelve repositories open in a section 200 logical pixels high, the section scrolls to the last one.
 - [ ] A name longer than its row is cut at its start with `…`, and the tooltip has the whole folder.
 - [ ] There is no island above the header.
+- [ ] A row is one line, 26 logical pixels high, its name on the left and `main ● 3 ↓2` on its right; in a section 200
+      logical pixels wide, a long name and a long branch are both cut with `…`, the name keeping half the row.
 - [ ] The snapshots of the section, with one repository, with several and with the rows of a worktree, in every
       theme, at 100 % and 200 %, match.
 
@@ -651,9 +656,15 @@ each folding by its heading, the line between them dragged
 - The island goes from under the header to the status bar; the timeline, the inspector, the pages and the bottom
   panel are on its right, and the header above them all (`graph.toolbar`).
 - **Repositories** (`repo.tabs`), with the rows of the worktrees and the submodules of each repository under it
-  (`repo.group-tabs`), is above, **Branches** (`refs.tree`, the branch rail as it was, with its filter and its scope
-  line) is under it. Each has a heading in capitals of the size of the headings of the rail, with a chevron
-  that folds and unfolds the section; a folded section is its heading alone, and the other takes the height.
+  (`repo.group-tabs`), is above, **Branches** (`refs.tree`, the branch rail, with its filter box and its scope line) is
+  under it. Each has a heading in capitals of the size of the headings of the rail, 28 logical pixels high, with a
+  chevron that folds and unfolds the section on its left and its buttons on its right, on the same line: **+** for
+  **Repositories** (`repo.open-tab`); **Create branch**, **Compare** and the button of the rail's own filter for
+  **Branches** (`branch.pane`), each an icon with its name in its tooltip. A folded section is its heading alone, and
+  the other takes the height.
+- The side column is dense, as a list one reads at a glance: rows one line high, the gaps between them and between the
+  sections those of a list (4 logical pixels above the filter box and between it and the lists, 8 between two lists of
+  the rail), and no button less than 24 logical pixels high.
 - The line between them is dragged to share the height (`graph.resize-panes`), the arrows moving it with the keyboard.
   **Repositories** starts at 160 logical pixels, or as tall as its rows when they need less; neither is shorter than 64
   logical pixels while both are open.
@@ -675,6 +686,10 @@ Acceptance:
 - [ ] The side column stays beside the Changes page and the settings page.
 - [ ] In a window 800 logical pixels wide, the side column is not shown, and the first button of the top row of the
       timeline opens it over the timeline.
+- [ ] The heading of **Branches** has **Create branch**, **Compare** and the button of the rail's filter on its line,
+      each at least 24 logical pixels high.
+- [ ] A repository with three worktrees and two local branches wants a side column less high than before phase 14 of
+      M16: 382 logical pixels against 572.
 
 ### `repo.worktree-summary` — What a repository or a worktree is on
 
@@ -947,9 +962,10 @@ Which repositories share a tab: a repository, its worktrees and its submodules a
   common git folder `repo.read-repositories` read for it
 - **Entry points**: the rows under the row of a repository in **Repositories**, folded and unfolded by the chevron at
   its left: its other worktrees, each by the name of its folder, then its submodules, each by its path, a submodule's
-  own submodules indented further; each says what it is on, `feature/login ● 3 ↓2 ↑1` (`repo.worktree-summary`). The
-  one the tab shows is marked as the row shown is. A click on one shows it in the tab, as `worktree.show-in-gitardo`
-  and `submodule.show-in-gitardo` do. The worktree in the header lists the repository, its worktrees and its
+  own submodules indented further; each is one line, as the row of a repository is, and says what it is on on its
+  right, `feature/login ● 3 ↓2 ↑1` (`repo.worktree-summary`), ending where the rows of the repositories end. The one
+  the tab shows is marked as the row shown is. A click on one shows it in the tab, as `worktree.show-in-gitardo` and
+  `submodule.show-in-gitardo` do. The worktree in the header lists the repository, its worktrees and its
   submodules, the same choice (`graph.where`).
 - **Uses**: `repo.common-folder`, `repo.keep-open`, `repo.worktree-summary`, `worktree.show-in-gitardo`,
   `submodule.show-in-gitardo`.

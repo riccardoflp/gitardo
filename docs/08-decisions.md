@@ -3074,3 +3074,17 @@ with the reading given until the card says otherwise.
   read, that line says the branch `git worktree list` gave. The room of the chevron is kept on every row while one
   repository open has one, so that the names stay in line, and not otherwise. The chevron's target is as high as its
   row, and it is the name `Worktrees and submodules` with whether it is unfolded for the screen reader.
+- **Q532** — `repo.side-column` and `branch.pane`: what the top of the branch rail keeps once its buttons are on
+  the line of the heading of **Branches**. Built: nothing: the name of the branch checked out goes, since the header
+  says it always (D56), and **Create branch**, **Compare** and the filter are icons with their names in their tooltips,
+  in that order, the filter last as **+** is last in the heading of **Repositories**. The headings are 28 logical pixels
+  high, `control_height` less a small gap, so that their buttons are 28 square.
+- **Q533** — `repo.tabs`: how a row of one line shares its room between the name and what it is on. Built: what it is
+  on is on the right, in the small text of details; when both do not fit, the name keeps the larger of what is left
+  and half the row, cut at its start, and the branch is cut with `…` by the label, the counts kept whole. The rows of
+  the rail are 28 logical pixels for a local branch and 26 for the others, the gap between two lists 8, and the filter
+  box and the scope line keep their heights, 4 apart.
+- **Q534** — `repo.side-column`: how "less high than before phase 14" is measured. Built: the height the side column
+  wants for a repository with three worktrees and two local branches, **Repositories** to the foot of its last row
+  and **Branches** to the foot of the last title of **Kept aside**, both unfolded: 572 logical pixels before
+  phase 14, 382 after.

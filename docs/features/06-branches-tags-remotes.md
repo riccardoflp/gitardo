@@ -619,9 +619,9 @@ Acceptance:
 
 ### `branch.pane` — The branch rail, its buttons and its comparison
 
-The branch rail as one place, the legend and the filter of the timeline: its top, with the branch checked out and its
-buttons; the recent branches and the favorites, the local branches, the branches of each remote under a heading of its
-own, and the stashes, worktrees, tags and submodules kept aside, with their context menus (`refs.tree`); and the
+The branch rail as one place, the legend and the filter of the timeline: its buttons, in the heading of **Branches** of
+the side column; the recent branches and the favorites, the local branches, the branches of each remote under a heading
+of its own, and the stashes, worktrees, tags and submodules kept aside, with their context menus (`refs.tree`); and the
 comparison of a reference with the branch checked out.
 
 - **Kind**: View
@@ -640,10 +640,11 @@ comparison of a reference with the branch checked out.
 
 What the branch rail shows and does:
 
-- Its top names the branch checked out, or `detached at <short hash>`, with the button of the rail's own filter
-  (`refs.list-filter`), and has the buttons **Create branch** (`branch.create` at `HEAD`) and **Compare**
-  (`compare.choose`), which cannot be used before the first commit. When
-  the two do not fit side by side, **Create branch** is only its icon, `+`. In the narrow layout there is no top.
+- Its buttons are on the line of the heading of **Branches** in the side column (`repo.side-column`), on its right:
+  **Create branch** (`branch.create` at `HEAD`) and **Compare** (`compare.choose`), which cannot be used before the
+  first commit, and the button of the rail's own filter (`refs.list-filter`), each an icon with its name in its
+  tooltip. The branch checked out is not named again there: the header names it (`graph.where`). Narrowed to its
+  icons, the button of the filter is at the top of the icons.
 - The lists, their order, their menus, the filter box from 15 branches and tags on, and the cap of 100 entries per
   list with **Show all** are those of `refs.tree`: **Local**, then a heading for each remote (**ORIGIN**) with its
   branches, then **Kept aside** with **Stashes**, **Worktrees**, **Tags** and **Submodules**. The lists of **Kept
@@ -663,8 +664,8 @@ What the branch rail shows and does:
 
 Acceptance:
 
-- [ ] The top of the branch rail reads the name of the branch checked out, and **Create branch** there asks for the
-      name of a branch at `HEAD`.
+- [ ] The heading of **Branches** has **Create branch**, which asks for the name of a branch at `HEAD`, and
+      **Compare**, on its line, and the rail under it does not name the branch checked out again.
 - [ ] With the timeline narrowed to `main`, the branch rail lists every local branch, the others dimmed.
 - [ ] A click on `feature` narrows the timeline to its history and selects its tip, and opens no page; a second click
       brings the whole history back.
