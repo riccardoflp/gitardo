@@ -557,6 +557,42 @@ off, as before; the header has the menu of the view, with every switch, and **â€
 of the milestone passes its tests, and the snapshots of the timeline match in each theme, with compact rows and
 without, and those of the two menus.
 
+## M21 â€” The selection in the colors of the theme
+
+A selected commit, a selected row of any list and selected text were tinted teal in the dark and in the light theme:
+the color those themes give information, not their accent, so that what is selected looked foreign to the amber of
+the rest of the window
+([D69](../08-decisions.md#d69--what-is-selected-is-tinted-with-the-accent-of-the-theme)). Asked by the maintainer
+after M20. In Gitardo Desktop alone: the extension draws what is selected in the colors of VS Code's theme. Built in
+three phases, each one commit or more, each ending with its tests passing.
+
+1. **The colors of the two themes.** In the dark and in the light theme the ground of the selected rows of a list
+   that has the focus (`list_selection`) is the accent mixed into the ground of the page, about one part in six: a
+   warm brown near `#382D1F` in the dark theme, a sand near `#EADBC8` in the light one; the text on it keeps its
+   contrast. The ground of selected text (`text_selection`) loses its teal too (Q671). The selection of a list
+   without the focus, the row under the pointer and the row lit in a menu stay the neutral steps they are; the two
+   high contrast themes, whose accent is the blue of their selection, are left alone. A test of `render` holds for
+   every theme that the selection of a list has the hue of the accent or none, that text on it is read (4.5 to 1, 7
+   to 1 in high contrast), and that it is told apart from the ground, from the row under the pointer and from the
+   selection without the focus. Card: `settings.theme`.
+2. **Every place that shows a selection.** Each is looked at in the four themes and draws what is selected with the
+   colors of the theme, none with a color of its own: the rows of the timeline and of its compact rows, the side
+   column and its lists, the Changes page, the files of a commit and of a comparison, the tree of the Files page, the
+   chooser of a comparison, the pickers and Quick search, the settings page and its row marked for a second, the tabs
+   of the bottom panel, the log and the tasks of Activity, the text selected in the editor, in a box, in a diff, in the
+   Merge page and in the terminal. Their snapshots are recorded again and looked at. Cards: `settings.theme`,
+   `graph.view`, `ui.picker-scroll`, and those of the pages whose snapshots change.
+3. **The hues that are left.** Every color of the dark and of the light theme is checked against what the look allows
+   ([D17](../08-decisions.md#d17--the-timeline-a-window-of-gitardos-own)): the ground and its steps, one accent, the
+   colors of an error, a warning, information and success where they say that, the colors of the lanes and of the
+   kinds of labels, the colors of the code. A color used for something else is changed to the one of its meaning, or
+   written as a question when the choice is the maintainer's. Card: `settings.theme`.
+
+Exit: in the dark and in the light theme a selected commit, a selected file and a selected setting are tinted with
+the amber of the theme, as the buttons and the ring of the focus are, and no place of the window shows a selection in
+teal; text selected is told apart from a match of a search; the high contrast themes are as before; the test of the
+colors of the themes passes, and the snapshots of every place of phase 2 match in each theme.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

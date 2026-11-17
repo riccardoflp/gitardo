@@ -1284,6 +1284,19 @@ the end of the header: the menu of the view, with every switch of the timeline (
 columns, **Compact rows**), each checked while it is on; and **…**, with the actions alone. Each switch still writes its
 setting in the user's settings file.
 
+## D69 — What is selected is tinted with the accent of the theme
+
+*Asked by the maintainer for milestone M21; the details proposed by the agent.*
+
+The look of the window is one accent on a calm ground (D17), amber in the dark and in the light theme. The selected
+rows of a list and selected text were tinted teal there, the color of information, which nothing else of the window
+wears: a selected commit looked as if it belonged to another program. Now what is selected is tinted with the accent:
+the ground of the selected rows of a list that has the focus is the accent mixed into the ground of the page, enough
+to be told from the row under the pointer and from the selection of a list without the focus, both of which stay
+neutral, and little enough for the text on it to be read as before. Teal stays where it means something: information,
+the incoming side of a merge, the labels of a stash. The high contrast themes keep their blue selection, since blue is
+their accent. The extension is not touched: its selection is that of VS Code's theme.
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -3699,3 +3712,18 @@ reading given until the card says otherwise.
   its button; its entries are tested (`test/toolbarMenus.test.ts`), and the two buttons were looked at in the preview
   server of the webviews, the e2e and UI suites not having been run for them. In the graph of the side bar, which is
   narrow, the two buttons take the room of one more icon beside the search. Should the two be one there?
+
+### Of the color of the selection, from Q670
+
+Questions of [D69](#d69--what-is-selected-is-tinted-with-the-accent-of-the-theme), asked while planning milestone M21;
+each is built as it says until the maintainer answers otherwise.
+
+- **Q670** — `settings.theme`: the selected rows of a list are the accent mixed into the ground of the page, one part
+  in six (`#382D1F` in the dark theme, `#EADBC8` in the light one), rather than a neutral step with a bar of the accent
+  at the start of the row. Is the tint the one wanted, and as strong?
+- **Q671** — `settings.theme`: the ground of selected text. A wash of amber behind text is already a match of a search
+  (`find_match`), so that selected text in amber would read as a match; planned: selected text takes a neutral wash, of
+  the color of muted text, and the match keeps the amber. Or the other way around?
+- **Q672** — `settings.theme`: the two high contrast themes keep their blue selection, their accent being blue, and
+  teal stays the color of information, of the incoming side of a merge and of the labels of a stash. Should any of
+  these change too?
