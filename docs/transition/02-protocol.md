@@ -6,7 +6,7 @@ here are those of `rust/crates/model` and `rust/crates/engine`; the crate `proto
 converts them, so this page is what `protocol` must be, field by field. Where a type is long and plain, its fields are
 given once in [Types](#types) and the messages name it.
 
-This is version **1.7** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
+This is version **1.8** of the protocol. Version 1.0 is what stage 1 built: starting and stopping, the repositories,
 their state and the log. Version 1.1 adds what stage 2 built for the features: `feature/run`, `feature/ask`,
 `feature/confirm`, `question/validate`, `feature/followUps` and `settings/changed`. Version 1.2 adds what stage 3 built
 for Undo: `journal/last` and `journal/record`. Version 1.3 adds what stage 4 built for the conflicts (area 4): the
@@ -58,6 +58,15 @@ target `diffChange`, a change of a diff, for `diff.stage-change` and `diff.unsta
 Diff. `journal/record` is removed: no client sends it, since no operation runs outside the engine any more, so the
 major version stays. `compare.read-sides` counts the whole sides of a comparison narrowed to a path and compares the
 working tree from the merge base in **Since they diverged** (Q407), which changes no field.
+
+Version 1.8 adds what milestone M15 needed ([D54](../08-decisions.md#d54--the-timeline-is-read-by-one-git-log-as-it-prints)):
+`read/graph.read-commits` asked with `stream: true` sends its pages as git prints them, each in the notification
+`read/graph.rows`, and answers once its read ends ([The graph](#the-graph), Q436); `read/repo.read-state` takes
+`refresh`, true for **Refresh** and for a repository chosen, which counts what is not committed in every other worktree
+again, while any other read keeps the count of a worktree whose own git folder did not change (Q462); and the read
+`read/repo.watch-changes` says which files of the working tree that a burst changed ask for a read: none in a worktree
+nested in the repository, a `.gitignore` always, and of the others those `git check-ignore` does not ignore (Q460).
+Each field added is left out by an older extension, which gets what it got before.
 
 ## Transport
 
@@ -117,7 +126,7 @@ The extension's first request.
 
 ```ts
 params: {
-  protocol: "1.7",
+  protocol: "1.8",
   client: { name: "gitardo-vscode", version: string },   // the version of the extension
   settings: Settings,                                     // see "Settings"
   host: {
@@ -233,7 +242,7 @@ change the repository and run at the same time as each other and as an operation
 
 | Method | Parameters besides `repository` | Result | Card (desktop) |
 | --- | --- | --- | --- |
-| `read/repo.read-state` | — | `RepositoryState` | `repo.read-state` |
+| `read/repo.read-state` | `{ refresh: boolean }`, false when left out (1.8) | `RepositoryState` | `repo.read-state` |
 | `read/graph.read-commits` | `TimelineRequest` | `CommitPage` | `graph.read-commits` |
 | `read/graph.read-position` | `{ commit, timeline: TimelineRequest }` | `{ index: number \| null }` | `graph.read-position` |
 | `read/search.read-matches` | `{ text, mode: SearchMode, timeline: TimelineRequest }` | `{ commits: CommitId[], hasMore }` | `search.read-matches` |
@@ -270,9 +279,14 @@ change the repository and run at the same time as each other and as an operation
 | `read/repo.common-folder` | — | `{ folder: string }` | `repo.common-folder` |
 | `read/commit.prepared-message` | — | `{ message: string \| null }` | `commit.prepared-message` |
 | `read/commit.draft-message` | `{ subjects: string[] }` | `{ kind: "drafted", message } \| { kind: "failed", message }` | `commit.draft-message` (1.6) |
+| `read/repo.watch-changes` | `{ paths: string[] }`, from the top of the working tree with `/` | `{ paths: string[] }`, those that ask for a read | `repo.watch-changes` (1.8) |
 | `read/ai.ask-conflict` | `{ path, lines: string[], conflict: { start, end, current: string[], incoming: string[], base: string[] \| null } }` | `{ kind: "answered", model, lines: string[], reason, confidence } \| { kind: "failed", message, stopsTheRest }` | `ai.ask-conflict` (1.6) |
 
-The three reads at the end had no desktop card: the map found them read in `crates/app` or not at all
+`read/repo.watch-changes` takes the worktrees nested in the repository from the last `repo.read-state` the engine kept,
+or from `git worktree list` when none is kept, and gives every file asked to one `git check-ignore -z --stdin`; when git
+cannot answer, every file asked is one it does not ignore, so that no change is missed (Q460).
+
+The three reads before `read/commit.draft-message` had no desktop card: the map found them read in `crates/app` or not at all
 ([03-map.md](03-map.md#3-gaps-extension-side)). Stage 5 made each a card of the engine, desktop first (D39), before the
 extension uses it (Q397, Q398).
 
@@ -328,6 +342,19 @@ Row = { kind: "commit", commit: Commit }
     | { kind: "uncommitted", parent: CommitId | null, files: number }
 Commit = { id, parents: CommitId[], authorName, authorEmail, authorDate: Timestamp, subject }
 ```
+
+With `stream: true` (1.8, D54), beside the fields of `TimelineRequest`, the read goes on after `skip` to the end of the
+history or to 100,000 commits, whatever `pages` says. Each page of `pageSize` commits, with the stashes placed among
+them (Q440), is sent as soon as it is read in the notification `read/graph.rows`:
+
+```ts
+params: { read: number, rows: Row[] }   // read: the id of the request; rows: after those of the pages before
+```
+
+and the request is answered once the read ends, `{ rows: [], hasMore }`, after its last page on the same output.
+`$/cancel` stops it as any read: no page comes after its answer `cancelled`. The extension asks the read past 100,000
+commits from the last commit it has, as `skip` says below, without the stashes; without `stream` the read answers every
+row of the pages asked for at once, as before 1.8.
 
 `history_of` and `commits_request` are in the engine (`engine::timeline`, moved from `crates/app` in stage 1), since the
 extension must not build git's arguments. In `read/graph.read-commits` the fields of `TimelineRequest` are beside

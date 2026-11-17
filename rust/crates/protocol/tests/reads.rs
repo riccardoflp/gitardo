@@ -36,8 +36,13 @@ fn commit(letter: char) -> CommitId {
 }
 
 #[test]
-fn every_read_has_its_method_once_the_graphs_since_version_1_5() {
-    assert_eq!(methods::ALL.len(), 35);
+fn every_read_has_its_method_once_the_graphs_since_version_1_5_and_the_changes_to_read_since_1_8() {
+    assert_eq!(methods::ALL.len(), 36);
+    assert!(methods::ALL.contains(&"read/repo.watch-changes"));
+    assert!(
+        !methods::ALL.contains(&methods::GRAPH_ROWS),
+        "the pages of a read are a notification, not a read"
+    );
     for (index, method) in methods::ALL.iter().enumerate() {
         assert!(method.starts_with("read/"), "{method}");
         assert!(

@@ -300,3 +300,26 @@ fn each_read_leaves_a_line_with_its_method_and_how_long_it_took_when_the_log_say
     assert_eq!(line["params"]["entry"]["kind"]["kind"], json!("read"), "{line}");
     assert!(line["params"]["entry"]["kind"]["milliseconds"].is_u64(), "{line}");
 }
+
+#[test]
+fn the_files_of_a_burst_that_ask_for_a_read_leave_out_what_git_ignores_and_nested_worktrees() {
+    let repository = repository();
+    std::fs::write(repository.path().join(".gitignore"), "target/\n").unwrap();
+    let nested = repository.path().join(".claude").join("worktrees").join("feature");
+    let nested_text = nested.to_string_lossy().into_owned();
+    let _added = repository.git(&["worktree", "add", "--quiet", "--detach", &nested_text]);
+    let mut engine = opened(&repository);
+    let asked = json!({ "paths": [
+        "target/debug/app.exe",
+        "src/main.rs",
+        ".gitignore",
+        ".claude/worktrees/feature/src/a.rs",
+        ".claude/worktrees/feature-two/a.rs"
+    ] });
+    let found = result(&mut engine, &repository, "read/repo.watch-changes", asked);
+    assert_eq!(
+        found["paths"],
+        json!([".gitignore", "src/main.rs", ".claude/worktrees/feature-two/a.rs"]),
+        "{found}"
+    );
+}

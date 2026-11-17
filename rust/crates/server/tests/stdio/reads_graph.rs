@@ -285,3 +285,44 @@ fn asked_right_after_repo_read_state_a_read_of_the_commits_runs_git_log_and_noth
     assert_eq!(page["rows"].as_array().unwrap().len(), 7);
     assert_eq!(commands_started(&trace, before), ["log"]);
 }
+
+#[test]
+fn asked_with_stream_each_page_is_sent_as_it_is_read_and_the_answer_ends_the_read() {
+    let mut repository = repository();
+    for number in 0..248 {
+        let _ = repository.commit(&format!("Commit {number}"), &[]);
+    }
+    let mut engine = opened(&repository);
+    let all = listed(&repository);
+    assert_eq!(all.len(), 250);
+
+    let read = engine.send(
+        "read/graph.read-commits",
+        &json!({ "repository": folder(&repository), "pageSize": 100, "stream": true }),
+    );
+    let answer = engine.answer(read);
+    assert_eq!(answer["result"], json!({ "rows": [], "hasMore": false }), "{answer}");
+    let pages = engine.notifications("read/graph.rows", Duration::from_millis(100));
+    let sizes: Vec<usize> = pages
+        .iter()
+        .map(|page| page["params"]["rows"].as_array().map_or(0, Vec::len))
+        .collect();
+    assert_eq!(
+        sizes,
+        [100, 100, 50],
+        "a page of pageSize at a time, whatever pages says"
+    );
+    assert!(pages.iter().all(|page| page["params"]["read"] == json!(read)));
+    let streamed: Vec<String> = pages.iter().flat_map(|page| rows(&page["params"])).collect();
+    assert_eq!(streamed, all, "every commit, in the order of one read");
+
+    let after = engine.send(
+        "read/graph.read-commits",
+        &json!({ "repository": folder(&repository), "pageSize": 100, "skip": 199, "stream": true }),
+    );
+    let answer = engine.answer(after);
+    assert_eq!(answer["result"]["hasMore"], json!(false));
+    let pages = engine.notifications("read/graph.rows", Duration::from_millis(100));
+    let streamed: Vec<String> = pages.iter().flat_map(|page| rows(&page["params"])).collect();
+    assert_eq!(streamed, all[199..], "from the last commit the client has");
+}

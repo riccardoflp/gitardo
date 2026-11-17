@@ -1,4 +1,5 @@
-//! The reads of version 1.4, from stage 5 of the transition, and those of the graph that version 1.5 adds in stage 7:
+//! The reads of version 1.4, from stage 5 of the transition, those of the graph that version 1.5 adds in stage 7, and
+//! `repo.watch-changes` with the pages of the commits sent as they are read, which version 1.8 adds in milestone M15:
 //! every `read/<card>` of `docs/transition/02-protocol.md` (Reads), each with its parameters and its answer, and the
 //! conversion of the engine's types to their JSON. A read never changes the repository; the server answers each on a thread of its own.
 //!
@@ -34,8 +35,8 @@ pub use files::{
     NamesParams, NamesResult, PreviousVersionJson, VersionJson,
 };
 pub use graph::{
-    BranchesShownJson, CommitPageJson, CommitsParams, MatchesJson, MatchesParams, NarrowingJson, ParentsJson,
-    PositionParams, PositionResult, RowJson, SearchModeJson, TimelineJson,
+    BranchesShownJson, CommitPageJson, CommitsParams, GraphRowsParams, MatchesJson, MatchesParams, NarrowingJson,
+    ParentsJson, PositionParams, PositionResult, RowJson, SearchModeJson, TimelineJson,
 };
 pub use repository::{
     ChecksJson, CommandProposalJson, CommandsResult, CommonFolderResult, GitHubTokenParams, GitHubTokenResult,
@@ -120,9 +121,14 @@ pub mod methods {
     pub const GRAPH_POSITION: &str = "read/graph.read-position";
     /// `search.read-matches`: what a search of the whole history finds (version 1.5).
     pub const SEARCH_MATCHES: &str = "read/search.read-matches";
+    /// `repo.watch-changes`: which files of a burst ask for a read, those git ignores and those of nested worktrees
+    /// left out (version 1.8).
+    pub const WATCH_CHANGES: &str = "read/repo.watch-changes";
+    /// The notification of a page of `read/graph.read-commits` asked with `stream`, as it is read (version 1.8).
+    pub const GRAPH_ROWS: &str = "read/graph.rows";
 
-    /// Every read of version 1.5, in the order of the table of the protocol.
-    pub const ALL: [&str; 35] = [
+    /// Every read of version 1.8, in the order of the table of the protocol.
+    pub const ALL: [&str; 36] = [
         GRAPH_COMMITS,
         GRAPH_POSITION,
         SEARCH_MATCHES,
@@ -158,6 +164,7 @@ pub mod methods {
         BRANCH_LOG,
         COMMON_FOLDER,
         PREPARED_MESSAGE,
+        WATCH_CHANGES,
     ];
 
     /// The host question `read/github.read-pull-requests` asks: the token of GitHub that VS Code keeps.

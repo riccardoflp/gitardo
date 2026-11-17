@@ -13,7 +13,8 @@ use model::state::{
 };
 use model::{CommitId, Timestamp};
 use protocol::messages::{
-    InitializeParams, InitializeResult, LogEntryJson, LogLevelName, OpenResult, StateParams, StateReason, is_compatible,
+    InitializeParams, InitializeResult, LogEntryJson, LogLevelName, OpenResult, ReadStateParams, StateParams,
+    StateReason, is_compatible,
 };
 use protocol::state::StateJson;
 use serde::Serialize;
@@ -210,7 +211,17 @@ fn initialize_takes_what_the_extension_leaves_out_as_its_default() {
 fn a_version_is_spoken_when_its_major_number_is_the_engines() {
     assert!(is_compatible("1.0"));
     assert!(is_compatible("1.7"));
+    assert!(is_compatible("1.8"));
     assert!(!is_compatible("2.0"));
     assert!(!is_compatible("10.0"));
     assert!(!is_compatible(""));
+}
+
+#[test]
+fn a_read_of_the_state_is_a_refresh_only_when_it_says_so() {
+    let asked: ReadStateParams = serde_json::from_value(json!({ "repository": "/work/app" })).unwrap();
+    assert!(!asked.refresh, "an extension before 1.8 never says it");
+    let refresh: ReadStateParams =
+        serde_json::from_value(json!({ "repository": "/work/app", "refresh": true })).unwrap();
+    assert!(refresh.refresh);
 }

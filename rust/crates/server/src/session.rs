@@ -10,7 +10,8 @@ use std::thread;
 use std::time::{Instant, SystemTime};
 
 use engine::{Activities, LogEntry, LogKind, LogLevel};
-use git::read::repo::{StateRequest, read_state};
+use git::read::repo::{StateRequest, read_state_counting};
+use git::read::worktree::CountedWorktrees;
 use git::{CancelToken, Git, GitError};
 use model::Timestamp;
 use model::contract::FeatureSettings;
@@ -19,8 +20,8 @@ use model::state::RepositoryState;
 use protocol::feature::{FeatureRunParams, SettingsParams, ValidateParams};
 use protocol::messages::{
     ActivityJson, ActivityParams, CancelParams, ChangedParams, EngineInfo, HostAbilities, InitializeParams,
-    InitializeResult, LogEntryJson, LogLineParams, OpenResult, RepositoryParams, StateParams, StateReason, VERSION,
-    is_compatible, methods,
+    InitializeResult, LogEntryJson, LogLineParams, OpenResult, ReadStateParams, RepositoryParams, StateParams,
+    StateReason, VERSION, is_compatible, methods,
 };
 use protocol::rpc::{ErrorData, RequestId, ResponseError, codes, error_message, notification_message, result_message};
 use protocol::state::StateJson;
@@ -55,6 +56,22 @@ pub struct Session {
     runs_tasks: AtomicBool,
     /// The host questions the extension said at `initialize` that it answers.
     host: Mutex<HostAbilities>,
+}
+
+/// Why the state of a repository is read, and whether every other worktree is counted again (**Refresh**).
+struct Counting<'a> {
+    /// What the activity says it is read for.
+    cause: &'a str,
+    /// Whether the read is a **Refresh**, which counts what is not committed in every other worktree again.
+    refresh: bool,
+}
+
+/// Why a state is read, and what the read before counted in the other worktrees.
+struct Counted<'a> {
+    /// What the activity says it is read for.
+    cause: &'a str,
+    /// The counts of the read before, kept for each other worktree whose git folder did not change since.
+    before: &'a CountedWorktrees,
 }
 
 /// The value behind a lock, even when a thread that held it panicked: what it guards is plain data, still whole.
@@ -180,7 +197,7 @@ impl Session {
             methods::JOURNAL_LAST => crate::journal::last(self, &parameters(params)?),
             methods::DISCOVER => crate::discover::discover(&parameters(params)?, cancel),
             methods::INITIALIZE => self.initialize(&parameters(params)?),
-            read if crate::reads::is_read(read) => crate::reads::answer(self, read, params, cancel),
+            read if crate::reads::is_read(read) => crate::reads::answer(self, id, read, params, cancel),
             // Area 6 of stage 4: the reads that ask a language model of VS Code.
             read if crate::ai::is_ai_read(read) => crate::ai::answer(self, id, read, params, cancel),
             methods::SHUTDOWN => {
@@ -197,9 +214,13 @@ impl Session {
                 Ok(Value::Null)
             }
             methods::READ_STATE => {
-                let RepositoryParams { repository } = parameters(params)?;
+                let ReadStateParams { repository, refresh } = parameters(params)?;
                 let opened = self.opened(&repository)?;
-                json(&self.read_kept(&opened, &repository, "The extension asked for it", cancel)?)
+                let reading = Counting {
+                    cause: "The extension asked for it",
+                    refresh,
+                };
+                json(&self.read_kept(&opened, &repository, &reading, cancel)?)
             }
             _ => Err(ResponseError::new(
                 codes::METHOD_NOT_FOUND,
@@ -208,7 +229,8 @@ impl Session {
         }
     }
 
-    /// The answer of `repository/open`: the repository read, opened unless it was, and its state kept.
+    /// The answer of `repository/open`: the repository read, opened unless it was, and its state kept. Every other
+    /// worktree is counted, as on the first read of a repository chosen.
     fn open(
         &self,
         RepositoryParams { repository }: RepositoryParams,
@@ -216,7 +238,12 @@ impl Session {
     ) -> Result<Value, ResponseError> {
         let folder = PathBuf::from(&repository);
         let started = self.opened(&repository).ok().map(|opened| opened.read_starts());
-        let state = Arc::new(self.read(&repository, &folder, "The extension opened it", cancel)?);
+        let counted = Counted {
+            cause: "The extension opened it",
+            before: &CountedWorktrees::default(),
+        };
+        let (state, counted) = self.read(&repository, &folder, &counted, cancel)?;
+        let state = Arc::new(state);
         let opened = Arc::clone(
             locked(&self.repositories)
                 .entry(repository)
@@ -225,6 +252,7 @@ impl Session {
         let answer = OpenResult {
             state: StateJson::from(&*state),
         };
+        opened.keep_counted(counted);
         opened.keep_state(started.unwrap_or_else(|| opened.read_starts()), state);
         json(&answer)
     }
@@ -294,7 +322,8 @@ impl Session {
 
     /// Reads a repository and sends its state, saying why.
     fn read_and_send(&self, repository: &str, opened: &Repository, cause: &str, reason: StateReason) {
-        if let Ok(state) = self.read_kept(opened, repository, cause, &CancelToken::new()) {
+        let reading = Counting { cause, refresh: false };
+        if let Ok(state) = self.read_kept(opened, repository, &reading, &CancelToken::new()) {
             let params = StateParams {
                 repository: repository.to_owned(),
                 state,
@@ -307,40 +336,57 @@ impl Session {
     }
 
     /// Reads the state of a repository opened, keeps it for `journal/last` (`undo.last`) and the reads of the graph
-    /// (`graph.read-commits`), and gives its JSON.
+    /// (`graph.read-commits`), and gives its JSON. Each other worktree keeps the count of the read before when nothing
+    /// changed in its own git folder since, unless the read is a **Refresh** (M15, Q462).
     fn read_kept(
         &self,
         opened: &Repository,
         repository: &str,
-        cause: &str,
+        reading: &Counting<'_>,
         cancel: &CancelToken,
     ) -> Result<StateJson, ResponseError> {
         let started = opened.read_starts();
-        let state = Arc::new(self.read(repository, opened.folder(), cause, cancel)?);
+        let before = if reading.refresh {
+            CountedWorktrees::default()
+        } else {
+            opened.counted()
+        };
+        let counted = Counted {
+            cause: reading.cause,
+            before: &before,
+        };
+        let (state, counted) = self.read(repository, opened.folder(), &counted, cancel)?;
+        let state = Arc::new(state);
         let answer = StateJson::from(&*state);
+        opened.keep_counted(counted);
         opened.keep_state(started, state);
         Ok(answer)
     }
 
-    /// Reads the state of a repository (`repo.read-state`), shown as running while it does, and logged as a read.
+    /// Reads the state of a repository (`repo.read-state`), shown as running while it does, and logged as a read; each
+    /// other worktree keeps the count the read before has of it when nothing changed in its git folder since. Gives
+    /// what was counted, for the read after it.
     fn read(
         &self,
         repository: &str,
         folder: &Path,
-        cause: &str,
+        counted: &Counted<'_>,
         cancel: &CancelToken,
-    ) -> Result<RepositoryState, ResponseError> {
-        let activity = self
-            .activities
-            .track(Text::from(format!("Reading {repository}")), Text::from(cause), now());
+    ) -> Result<(RepositoryState, CountedWorktrees), ResponseError> {
+        let activity = self.activities.track(
+            Text::from(format!("Reading {repository}")),
+            Text::from(counted.cause),
+            now(),
+        );
         self.send_activity();
         let started = Instant::now();
         let git = Git::new(folder).with_cancel(cancel.clone());
-        let read = read_state(
+        let read = read_state_counting(
             &git,
             &StateRequest {
                 folder: folder.to_path_buf(),
             },
+            counted.before,
         );
         drop(activity);
         self.send_activity();

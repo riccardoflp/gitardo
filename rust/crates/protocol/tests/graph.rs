@@ -1,5 +1,6 @@
 //! The JSON of the reads of the graph, from version 1.5 (stage 7): the timeline as the extension asks for it, every
-//! variant of its enums in its JSON form, the timeline the engine reads from it, and the rows of a page.
+//! variant of its enums in its JSON form, the timeline the engine reads from it, and the rows of a page; and the pages
+//! sent as they are read, from version 1.8.
 
 #![cfg(test)]
 
@@ -13,9 +14,10 @@ use model::filter::{BranchesShown, Kinds};
 use model::graph::Row;
 use model::{CommitId, Timestamp};
 use protocol::reads::{
-    BranchesShownJson, CommitPageJson, CommitsParams, MatchesParams, NarrowingJson, ParentsJson, PositionParams,
-    SearchModeJson, TimelineJson,
+    BranchesShownJson, CommitPageJson, CommitsParams, GraphRowsParams, MatchesParams, NarrowingJson, ParentsJson,
+    PositionParams, SearchModeJson, TimelineJson,
 };
+use protocol::rpc::RequestId;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
@@ -243,4 +245,20 @@ fn a_page_has_its_commits_and_stashes_in_the_order_read() {
         json!({ "kind": "uncommitted", "parent": "a".repeat(40), "files": 2 })
     );
     round_trip(&CommitPageJson::from(&page));
+}
+
+#[test]
+fn a_read_of_the_commits_is_sent_as_it_is_read_only_when_asked_with_stream_and_each_page_names_it() {
+    let asked: CommitsParams = serde_json::from_value(json!({ "repository": "/work/app", "pageSize": 1000 })).unwrap();
+    assert!(!asked.stream, "an extension before 1.8 gets every row in the answer");
+    let streamed: CommitsParams =
+        serde_json::from_value(json!({ "repository": "/work/app", "pageSize": 1000, "stream": true })).unwrap();
+    assert!(streamed.stream);
+    assert_eq!(streamed.timeline.page_size, 1000);
+    round_trip(&streamed);
+    let page = GraphRowsParams {
+        read: RequestId::Number(7),
+        rows: Vec::new(),
+    };
+    assert_eq!(serde_json::to_value(&page).unwrap(), json!({ "read": 7, "rows": [] }));
 }

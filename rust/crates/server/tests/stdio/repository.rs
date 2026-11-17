@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use protocol::messages::VERSION;
 use serde_json::{Value, json};
 
-use crate::harness::{Engine, folder, repository};
+use crate::harness::{Engine, commands_started, folder, repository};
 
 #[test]
 fn initialize_answers_the_version_of_the_protocol_and_a_major_version_that_differs_with_its_error_and_the_engines_version()
@@ -130,4 +130,57 @@ fn cancel_of_a_read_that_runs_answers_cancelled() {
         started.elapsed() < Duration::from_secs(5),
         "the read stops without waiting for the hook"
     );
+}
+
+#[test]
+fn another_worktree_is_counted_again_only_when_its_git_folder_changed_or_on_refresh() {
+    let repository = repository();
+    let other = repository.path().with_file_name("other");
+    let other_text = other.to_string_lossy().into_owned();
+    let _added = repository.git(&["worktree", "add", "--quiet", "--detach", &other_text]);
+    let trace = repository.path().join(".git").join("trace.json");
+    let mut engine = Engine::start_traced(&trace);
+    let _ = engine.initialize();
+    let opened = engine.ask("repository/open", &json!({ "repository": folder(&repository) }));
+    let count = |state: &Value| state["worktrees"][1]["uncommitted"].clone();
+    assert_eq!(count(&opened["result"]["state"]), json!(0), "{opened}");
+    let statuses = |from: usize| {
+        commands_started(&trace, from)
+            .iter()
+            .filter(|command| *command == "status")
+            .count()
+    };
+    let read_state = |engine: &mut Engine, refresh: bool| {
+        let read = engine.ask(
+            "read/repo.read-state",
+            &json!({ "repository": folder(&repository), "refresh": refresh }),
+        );
+        read["result"].clone()
+    };
+
+    std::fs::write(
+        repository.path().join("a.txt"),
+        "changed here
+",
+    )
+    .unwrap();
+    let before = std::fs::read_to_string(&trace).unwrap().len();
+    let _state = read_state(&mut engine, false);
+    assert_eq!(statuses(before), 1, "git status here only");
+
+    std::fs::write(
+        other.join("b.txt"),
+        "new there
+",
+    )
+    .unwrap();
+    let _added = repository.git(&["-C", &other_text, "add", "b.txt"]);
+    let before = std::fs::read_to_string(&trace).unwrap().len();
+    let state = read_state(&mut engine, false);
+    assert_eq!(statuses(before), 2, "git add there changed its index");
+    assert_eq!(count(&state), json!(1));
+
+    let before = std::fs::read_to_string(&trace).unwrap().len();
+    let _state = read_state(&mut engine, true);
+    assert_eq!(statuses(before), 2, "Refresh counts every worktree");
 }

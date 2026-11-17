@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Version 1.8 of the protocol of `gitardo-engine --stdio`, for the extension: `read/graph.read-commits` asked with
+  `stream` reads the history with one `git log` as git prints it and sends each page in a notification
+  `read/graph.rows`, to the end of the history or to 100,000 commits; `read/repo.read-state` takes `refresh`, and
+  counts what is not committed in another worktree again only on **Refresh**, when the repository is opened, or when
+  something changed in that worktree's git folder; and `read/repo.watch-changes` says which files of a burst ask for a
+  read, leaving out those git ignores and those of worktrees nested in the repository, with one `git check-ignore`.
 - A read of the repository after a file changed, the window got the focus or an operation ended keeps the commits of
   the timeline when the commit checked out, the branches, the remote branches, the tags and the stashes are those of
   the read before: no `git log` runs, the rows stay as they are, and only the draft on top changes. A commit made in a
