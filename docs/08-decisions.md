@@ -2902,3 +2902,7 @@ card says otherwise.
 - **Q488** — `settings.reveal`: **Open Settings: <title>** empties the search of the page when something is typed in
   it, and shows **User** when **Repository** is shown and the setting is not one its file may set, since the setting
   would not be listed otherwise. Its entries come after the commands of Quick search, the sections first.
+- **Q489** — `graph.one-lane`: the line between two rows is dashed when the upper row is the uncommitted changes or a
+  stash, the line each had down to its commit. `graph.oneLane` is the one setting under `graph.` whose change, when the
+  settings file is read again, asks no read of the repository: it only lays the rows out again. The lanes themselves
+  are not changed; `one_lane` is used in their place while the setting is on.

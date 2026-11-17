@@ -105,7 +105,7 @@ earns it.
 | [`graph.columns`](02-graph.md#graphcolumns--what-is-shown-with-each-message) | What is shown with each message | View | Built | Built |
 | [`graph.date-separators`](02-graph.md#graphdate-separators--lines-between-days-weeks-and-months) | Lines between days, weeks and months | Derivation | Built | Built |
 | [`graph.first-parent`](02-graph.md#graphfirst-parent--only-the-first-parent-of-merges) | Only the first parent of merges | View | Built | Built |
-| [`graph.one-lane`](02-graph.md#graphone-lane--all-commits-on-one-line) | All commits on one line | Derivation | Specified | Planned |
+| [`graph.one-lane`](02-graph.md#graphone-lane--all-commits-on-one-line) | All commits on one line | Derivation | Built | Planned |
 | [`graph.fold-rows`](02-graph.md#graphfold-rows--the-rows-of-the-timeline-with-merges-folded) | The rows of the timeline with merges folded | Derivation | Built | Built |
 | [`graph.fold-merge`](02-graph.md#graphfold-merge--fold-the-commits-a-merge-brought-in) | Fold the commits a merge brought in | View | Built | Built |
 | [`graph.fold-all`](02-graph.md#graphfold-all--fold-all-merges) | Fold all merges | View | Built | Built |

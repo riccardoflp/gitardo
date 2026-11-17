@@ -1,4 +1,4 @@
-//! The graph of commits: its rows, the lines between them, how wide it is drawn, the labels of each commit, the history
+//! The graph of commits: its rows, the lines between them or all of them on one line, how wide it is drawn, the labels of each commit, the history
 //! that stands out, the lines between days and months, the merges folded, the branch each line comes from, and the
 //! stashes among the commits.
 
@@ -9,6 +9,7 @@ mod fold_rows;
 mod labels;
 mod lane_tips;
 mod lanes;
+mod one_lane;
 mod page_size;
 mod place_stashes;
 mod reach;
@@ -26,6 +27,7 @@ pub use fold_rows::{Fold, FoldedRows, ShownRow, fold_rows, foldable_merges};
 pub use labels::{BisectMark, GraphSettings, Label, LabelKind, labels};
 pub use lane_tips::lane_tips;
 pub use lanes::{CellLine, GraphCell, Half, PALETTE_SIZE, lanes};
+pub use one_lane::one_lane;
 pub use page_size::PageSize;
 pub use place_stashes::{StashCommit, place_stashes};
 pub use row::{GraphInput, Row};

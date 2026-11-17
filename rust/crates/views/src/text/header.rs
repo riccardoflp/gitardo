@@ -112,6 +112,8 @@ pub fn running(title: &str, seconds: u64) -> String {
 pub const SHOW_STASHES: &str = "Show stashes";
 /// **Show only the first parent of merges** in **…** (`graph.first-parent`).
 pub const FIRST_PARENT: &str = "Show only the first parent of merges";
+/// The switch that draws every commit on one line (`graph.one-lane`).
+pub const ONE_LANE: &str = "Show all commits on one line";
 /// **Bring out the history of the selected commit** in **…** (`graph.trace-selected`).
 pub const TRACE_SELECTED: &str = "Bring out the history of the selected commit";
 /// **Fold all merges** in **…** (`graph.fold-all`).

@@ -50,6 +50,7 @@ mod merge_actions;
 mod merge_at_line;
 mod narrow_tabs;
 mod new_worktrees;
+mod one_lane;
 mod open_tabs;
 mod operations;
 mod pane;

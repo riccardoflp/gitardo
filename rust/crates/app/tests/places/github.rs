@@ -28,7 +28,7 @@ const HELPER: &str =
     "!f() { echo ran >> \"$GITARDO_TEST_MARKER\"; echo username=ada; echo password=token-from-helper; }; f";
 
 /// The size of the window: tall enough for the whole **…** menu.
-const WIDE: (u32, u32) = (1000, 1000);
+const WIDE: (u32, u32) = (1000, 1100);
 
 /// A repository whose main remote is on GitHub, or elsewhere, with the server, the store and the git of the test.
 struct GitHubPlace {

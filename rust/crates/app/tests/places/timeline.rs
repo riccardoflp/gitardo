@@ -141,6 +141,7 @@ fn graph_view__scrolling_a_list_of_50000_commits_draws_only_the_rows_in_sight() 
         folded: &folded,
         combine_upstream: true,
         separators_at: None,
+        one_lane: false,
     });
     let history = HistoryState {
         rows: &rows,

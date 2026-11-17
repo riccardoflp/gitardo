@@ -5,7 +5,7 @@
 use super::{SettingInfo, SettingKind, SettingsSection};
 
 /// The settings of the first half of the table.
-pub(super) const FIRST: [SettingInfo; 26] = [
+pub(super) const FIRST: [SettingInfo; 27] = [
     SettingInfo {
         key: "commandPreview",
         title: "Show commands before they run",
@@ -104,6 +104,16 @@ pub(super) const FIRST: [SettingInfo; 26] = [
         title: "Follow only the first parent",
         section: Some(SettingsSection::Timeline),
         description: "Follow only the first parent of merges.",
+        default: "false",
+        is_repository: false,
+        is_experimental: false,
+        kind: SettingKind::Toggle,
+    },
+    SettingInfo {
+        key: "graph.oneLane",
+        title: "All commits on one line",
+        section: Some(SettingsSection::Timeline),
+        description: "Every commit of the timeline on one line, without lanes; merges are rings.",
         default: "false",
         is_repository: false,
         is_experimental: false,

@@ -48,8 +48,8 @@ pub fn resize(state: &mut State, intent: &GraphIntent) -> Vec<Effect> {
 }
 
 /// A switch of **…** turned: written in the user's settings file, and in force at once. Following only the first
-/// parent or showing the stashes reads the timeline again from one page; the labels and the separators lay it out
-/// again; the history of the selected commit is brought out or not.
+/// parent or showing the stashes reads the timeline again from one page; the labels, the separators and all commits on
+/// one line lay it out again; the history of the selected commit is brought out or not.
 pub fn switch(state: &mut State, switch: TimelineSwitch, is_on: bool) -> Vec<Effect> {
     let switches = state.settings.switches.with(switch, is_on);
     state.settings.switches = switches;
@@ -66,7 +66,7 @@ pub fn switch(state: &mut State, switch: TimelineSwitch, is_on: bool) -> Vec<Eff
 pub fn apply_switch(state: &mut State, switch: TimelineSwitch) -> Vec<Effect> {
     match switch {
         TimelineSwitch::FirstParent | TimelineSwitch::ShowStashes => paging::read_again(state),
-        TimelineSwitch::CombineUpstream | TimelineSwitch::DateSeparators => {
+        TimelineSwitch::CombineUpstream | TimelineSwitch::DateSeparators | TimelineSwitch::OneLane => {
             relayout(state);
             Vec::new()
         }

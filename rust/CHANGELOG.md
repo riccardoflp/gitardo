@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Show all commits on one line**, in the **…** menu, or `graph.oneLane`, draws every commit of the timeline on one
+  straight line, without lanes, merges as rings, in a column of the graph one lane wide; **Fold all merges** and
+  **Unfold all merges** are not in the menu while it is on. Turning it on or off draws the rows again without reading
+  them.
 - The settings page is in the middle of the window, at most 960 px wide, in sections: **General**, **Appearance**,
   **Timeline**, **Branches**, **Pull and commits**, **Worktrees**, **Files and blame**, **AI and conflicts** and
   **Terminal and tools**, each with a button and its icon on the left. A click on one scrolls the list to its name, and

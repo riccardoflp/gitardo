@@ -8,7 +8,7 @@ use model::CommitId;
 use model::commit::Commit;
 use model::graph::{
     CellTrace, DateTime, FoldedRows, GraphCell, GraphInput, GraphSettings, Label, Row, ShownRow, Trace,
-    date_separators, fold_rows, foldable_merges, labels, lane_tips, lanes, trace_history, unpushed,
+    date_separators, fold_rows, foldable_merges, labels, lane_tips, lanes, one_lane, trace_history, unpushed,
 };
 use model::state::RepositoryState;
 
@@ -25,6 +25,8 @@ pub struct LayoutInput<'a> {
     pub combine_upstream: bool,
     /// The time the lines between days and months are counted from; none while `graph.dateSeparators` is off.
     pub separators_at: Option<DateTime>,
+    /// `graph.oneLane`: every commit on one line, without lanes (`graph.one-lane`).
+    pub one_lane: bool,
 }
 
 /// The timeline laid out: everything about its rows that does not change from one frame to the next.
@@ -85,7 +87,11 @@ impl TimelineLayout {
     pub fn new(input: &LayoutInput<'_>) -> TimelineLayout {
         let folded = fold_rows(input.rows, input.folded);
         let inputs = folded.graph_inputs(input.rows);
-        let cells = lanes(&inputs);
+        let cells = if input.one_lane {
+            one_lane(&inputs)
+        } else {
+            lanes(&inputs)
+        };
         let lane_count = cells.iter().map(GraphCell::lane_count).max().unwrap_or(0);
         let labels = labels(
             input.repository,

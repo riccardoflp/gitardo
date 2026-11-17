@@ -186,6 +186,7 @@ pub fn switch_setting(switches: Switches, switch: views::graph::TimelineSwitch) 
     let key = match switch {
         TimelineSwitch::ShowStashes => keys::SHOW_STASHES,
         TimelineSwitch::FirstParent => keys::FIRST_PARENT,
+        TimelineSwitch::OneLane => keys::ONE_LANE,
         TimelineSwitch::TraceSelected => keys::TRACE_SELECTED,
         TimelineSwitch::DateSeparators => keys::DATE_SEPARATORS,
         TimelineSwitch::CombineUpstream => keys::COMBINE_UPSTREAM,

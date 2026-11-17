@@ -18,7 +18,7 @@ fn words(state: &MoreMenuState) -> Vec<&'static str> {
 }
 
 /// The words of the whole menu, in the groups and the order of the card.
-const IN_ORDER: [&str; 36] = [
+const IN_ORDER: [&str; 37] = [
     "Refresh",
     "Branch",
     "Stash",
@@ -29,6 +29,7 @@ const IN_ORDER: [&str; 36] = [
     "Show tags",
     "Show stashes",
     "Show only the first parent of merges",
+    "Show all commits on one line",
     "Bring out the history of the selected commit",
     "Fold all merges",
     "Unfold all merges",
@@ -152,4 +153,32 @@ fn graph_more_menu__the_entries_with_a_condition_are_there_only_while_it_holds()
         );
     }
     assert!(some.contains(&"History of the active file"));
+}
+
+#[test]
+fn graph_one_lane__on_fold_all_merges_is_not_in_the_menu() {
+    let timeline = TimelineMenu {
+        switches: Switches::DEFAULT,
+        has_merges: true,
+        has_folds: true,
+        is_all_folded: false,
+        kinds: Some(Kinds::ALL),
+        drawn: GraphDrawn::WithLines,
+    };
+    let off = MoreMenuState {
+        timeline: Some(timeline),
+        ..MoreMenuState::default()
+    };
+    assert!(words(&off).contains(&"Fold all merges"));
+    let on = MoreMenuState {
+        timeline: Some(TimelineMenu {
+            switches: Switches::DEFAULT.with(crate::graph::intent::TimelineSwitch::OneLane, true),
+            ..timeline
+        }),
+        ..off
+    };
+    let entries = words(&on);
+    assert!(entries.contains(&"Show all commits on one line"));
+    assert!(!entries.contains(&"Fold all merges"), "{entries:?}");
+    assert!(!entries.contains(&"Unfold all merges"));
 }
