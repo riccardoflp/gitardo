@@ -1,5 +1,7 @@
 //! The pages open in place of the timeline, and the steps of the Welcome page (`welcome.page`).
 
+use model::trail::{WayChange, page_trail, way_to};
+use views::Intent;
 use views::page::Page;
 
 use super::message::Effect;
@@ -10,8 +12,18 @@ const TIMELINE_STEP: usize = 0;
 /// The step of the Welcome page ticked when the page of a commit is opened.
 const COMMIT_STEP: usize = 2;
 
-/// Shows a page, opening it once: asking for it again shows the one there is.
+/// Shows a page, opening it once: asking for it again shows the one there is. The way to it goes on from the page
+/// shown, or starts again from the timeline when no page is shown or while an entry point that starts it again is
+/// reduced (`ui.page-trail`).
 pub fn show_page(state: &mut State, page: Page) {
+    let change = match state.page_shown() {
+        Some(shown) if !state.pages.is_starting_again => {
+            state.pages.way = way_to(&state.pages.way, &state.pages.open, &shown);
+            WayChange::Opened(page)
+        }
+        _ => WayChange::StartedAgain(page),
+    };
+    state.pages.way = page_trail(&state.pages.way, change);
     let index = state
         .pages
         .open
@@ -24,6 +36,28 @@ pub fn show_page(state: &mut State, page: Page) {
     state.pages.shown = Some(index);
 }
 
+/// What a view asked of the timeline and the pages: the bar of views, the **…** menu and `Ctrl+,` show a page, and
+/// `Ctrl+Tab` the next one, each starting the way again from the timeline; a name of the title row of a page goes back
+/// to its page.
+pub fn reduce(state: &mut State, intent: &Intent) -> Vec<Effect> {
+    match intent {
+        Intent::ShowTimeline => show_timeline(state),
+        Intent::ShowPage(page) => starting_again(state, |state| show(state, *page)),
+        Intent::NextPage => starting_again(state, next_page),
+        Intent::BackTo(page) => show(state, *page),
+        _ => Vec::new(),
+    }
+}
+
+/// Reduces an intent of an entry point that starts the way to a page again from the timeline: the bar of views, Quick
+/// search, the side column or a key (`ui.page-trail`).
+pub fn starting_again(state: &mut State, reduce: impl FnOnce(&mut State) -> Vec<Effect>) -> Vec<Effect> {
+    let was_starting_again = std::mem::replace(&mut state.pages.is_starting_again, true);
+    let effects = reduce(state);
+    state.pages.is_starting_again = was_starting_again;
+    effects
+}
+
 /// Shows a page, opening it when it is not open.
 pub fn show(state: &mut State, page: Page) -> Vec<Effect> {
     if page == Page::Settings {
@@ -33,9 +67,10 @@ pub fn show(state: &mut State, page: Page) -> Vec<Effect> {
     Vec::new()
 }
 
-/// Shows the timeline in place of the page shown.
+/// Shows the timeline in place of the page shown, which ends the way to it.
 pub fn show_timeline(state: &mut State) -> Vec<Effect> {
     state.pages.shown = None;
+    state.pages.way = page_trail(&state.pages.way, WayChange::Timeline);
     tick_timeline(state).into_iter().collect()
 }
 
@@ -48,8 +83,8 @@ pub fn next_page(state: &mut State) -> Vec<Effect> {
         None => 0,
         Some(index) => index + 1,
     };
-    if next < state.pages.open.len() {
-        state.pages.shown = Some(next);
+    if let Some(page) = state.pages.open.get(next).copied() {
+        show_page(state, page);
         Vec::new()
     } else {
         show_timeline(state)

@@ -100,6 +100,13 @@
   for the workspace. The column stays beside every page, and the first button at the top of the timeline puts it away
   or brings it back. In a window narrower than 900 px it is put away, and that button opens it over the timeline until
   a click outside it or `Escape`.
+- The title row of a page says the way it was reached: **Timeline**, then each page it was opened from, each a button
+  that goes back to that page as it was left, then the name of the page, rather than always `Timeline › <page>`. A
+  File page opened with `F4` from the Diff page of a file of a commit says `Timeline › a.rs (f947b97 ↔ eab0959) ›
+  a.rs (eab0959)`, and the name of the Diff page shows it again beside the inspector. A page opened from the bar of
+  views, Quick search, the **…** menu, the side column, `Ctrl+,` or `Ctrl+Tab` starts the way again from the timeline;
+  a page already on the way is gone back to rather than added again. At most four names are shown, those in between
+  folded into **…**, which lists them, and `Alt+Left` goes back one name.
 - The title row of every page starts with the button that puts the side column away and brings it back, at the same
   place as at the top of the timeline and with the same icon and tooltip: the settings page, the Changes page, the
   Files page, a File page, a Diff page, the page of a commit and a comparison leave their room to the page, and in a

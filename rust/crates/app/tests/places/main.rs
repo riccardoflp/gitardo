@@ -56,6 +56,7 @@ mod one_lane;
 mod open_tabs;
 mod operations;
 mod page_title;
+mod page_trail;
 mod pane;
 mod panel;
 mod panes;

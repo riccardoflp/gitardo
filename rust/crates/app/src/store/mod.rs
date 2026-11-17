@@ -379,16 +379,16 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         | Intent::CloseTab(_)
         | Intent::CloseOtherTabs(_)
         | Intent::CloseTabShown
-        | Intent::RevealTab(_) => tabs::reduce(state, intent),
+        | Intent::RevealTab(_) => pages::starting_again(state, |state| tabs::reduce(state, intent)),
         Intent::ReadRepository | Intent::CheckAgain | Intent::Refresh => read_again(state, &intent),
         Intent::PickTheme
         | Intent::CloseThemePicker
         | Intent::SetSetting(_)
         | Intent::ChooseSettingsFile(_)
         | Intent::Settings(_) => settings_page::reduce_intent(state, &intent),
-        Intent::ShowTimeline => pages::show_timeline(state),
-        Intent::ShowPage(page) => pages::show(state, page),
-        Intent::NextPage => pages::next_page(state),
+        Intent::ShowTimeline | Intent::ShowPage(_) | Intent::NextPage | Intent::BackTo(_) => {
+            pages::reduce(state, &intent)
+        }
         Intent::ClosePage => file_page::close_page(state),
         Intent::ShowCommandLog | Intent::Panel(_) => panel::reduce_intent(state, intent),
         Intent::Terminal(intent) => terminals::reduce(state, intent),
@@ -398,7 +398,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         }
         Intent::OpenUrl(url) => vec![Effect::OpenUrl(url)],
         Intent::DismissNotice => dismiss_notice(state),
-        Intent::Rail(intent) => rail::reduce_rail(state, intent),
+        Intent::Rail(intent) => pages::starting_again(state, |state| rail::reduce_rail(state, intent)),
         Intent::Filter(intent) => rail::reduce_filter(state, intent),
         Intent::Graph(intent) => reduce_graph(state, intent),
         Intent::Search(intent) => search::reduce(state, intent),

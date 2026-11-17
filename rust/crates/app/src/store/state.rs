@@ -202,6 +202,12 @@ pub struct Pages {
     pub open: Vec<Page>,
     /// The page shown; none when the timeline is.
     pub shown: Option<usize>,
+    /// The way to the page shown, which its title row names: the pages it was reached through, each opened from the
+    /// one before, the page shown last (`ui.page-trail`).
+    pub way: Vec<Page>,
+    /// Whether the page shown next starts the way again from the timeline, while an intent of the bar of views, of
+    /// Quick search, of the side column or of a key is reduced.
+    pub is_starting_again: bool,
 }
 
 /// A dialog over the window.

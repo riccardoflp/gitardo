@@ -143,9 +143,9 @@ impl<'a> PageState<'a> {
         }
     }
 
-    /// The step of the trail between **Timeline** and the name of the page, with what it asks: **Files**, which shows
-    /// the tree alone again, while a file is opened beside it; the comparison, which shows it whole again, while the
-    /// diff of one of its files is shown beside it.
+    /// The step of the trail between the pages it was reached through and the name of the page, with what it asks:
+    /// **Files**, which shows the tree alone again, while a file is opened beside it; the comparison, which shows it
+    /// whole again, while the diff of one of its files is shown beside it.
     #[must_use]
     pub fn step(&self) -> Option<(&'a str, Intent)> {
         match self {
@@ -157,7 +157,7 @@ impl<'a> PageState<'a> {
                 crate::text::files::PAGE,
                 Intent::Files(crate::files::FilesPageIntent::ShowTree),
             )),
-            // No other page is opened from another.
+            // No other page shows another inside it.
             _ => None,
         }
     }
@@ -190,13 +190,17 @@ pub struct PageHostState<'a> {
     /// Where the side column is, for the button at the start of the trail that puts it away and brings it back
     /// (`repo.side-column`); none without a workspace, and on a page that puts the side column away itself.
     pub side: Option<crate::SidePlace>,
+    /// The pages the page was reached through, after the timeline and before it, each with its name, the first
+    /// opened first (`ui.page-trail`).
+    pub way: Vec<(Page, &'a str)>,
     /// The page.
     pub page: PageState<'a>,
 }
 
 /// The page shown, over the rectangle its caller clipped it to, under its title row: the button that puts the side
-/// column away and brings it back, at the same place as in the top row of the timeline, **Timeline**, which comes back
-/// to the timeline, then the name of the page, and a button that closes it.
+/// column away and brings it back, at the same place as in the top row of the timeline, then the trail: **Timeline**,
+/// which comes back to the timeline, the pages the page was reached through, each going back to it, and the name of
+/// the page; and a button that closes it. `Alt+Left` goes back one name (`ui.page-trail`).
 ///
 /// Feature cards that fill it: every page of the catalog opens here (`commit-page.view`, `compare.page`, the Diff,
 /// Merge, Conflicts, File, Files, Changes, Settings and Worktree setup pages), each adding its own steps to the trail
@@ -211,7 +215,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             .side
             .filter(|_| !state.page.puts_side_away())
             .map(|place| ReferencesShown::of(place, is_narrow(ui)));
-        intents.extend(trail::trail_view(&state.page, side, ui, bar));
+        intents.extend(trail::trail_view(state, side, ui, bar));
     }
     let body = area.rest();
     intents.extend(ui.clip(body, |ui| match &state.page {
@@ -230,5 +234,9 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::FilesBeside(beside) => crate::file_view::beside_files_view(beside, ui),
         PageState::NewWorktrees(setup, _) => crate::worktree_setup::page(setup, ui),
     }));
+    // `Alt+Left` is read after the page, which may use it in a field.
+    if state.has_trail && trail::is_back_pressed(ui) {
+        intents.push(trail::back_one(state));
+    }
     intents
 }

@@ -1,6 +1,7 @@
 //! What is under the header: the Welcome page while there is no workspace, the page shown with its title row, or the
 //! timeline.
 
+use model::trail::way_to;
 use views::file_view::FilePageState;
 use views::page::{Page, PageHostState, PageState};
 use views::settings::SettingsPageState;
@@ -62,6 +63,16 @@ impl ViewData {
         }
     }
 
+    /// The pages the page shown was reached through, before it, each named as its own title row names it
+    /// (`ui.page-trail`).
+    fn way<'a>(&'a self, state: &'a State, shown: Page) -> Vec<(Page, &'a str)> {
+        let mut way = way_to(&state.pages.way, &state.pages.open, &shown);
+        let _shown = way.pop();
+        way.into_iter()
+            .filter_map(|page| Some((page, self.page_state(state, page)?.title())))
+            .collect()
+    }
+
     /// A page with its title row: the trail while there is a workspace, whose timeline it comes back to, and the button
     /// of the side column there (`repo.side-column`).
     fn host<'a>(&'a self, state: &'a State, page: PageState<'a>) -> PageHostState<'a> {
@@ -69,6 +80,7 @@ impl ViewData {
         PageHostState {
             has_trail: has_workspace,
             side: has_workspace.then(|| self.side_place(state)),
+            way: self.way(state, page.page()),
             page,
         }
     }

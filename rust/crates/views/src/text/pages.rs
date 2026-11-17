@@ -10,3 +10,6 @@ pub const TRAIL_SEPARATOR: &str = "\u{203a}";
 pub const CLOSE_PAGE: &str = "Close the page";
 /// The trail, for the screen reader.
 pub const TRAIL: &str = "Trail";
+/// The name of the trail in place of the pages folded between **Timeline** and the last names, which lists them
+/// (`ui.page-trail`).
+pub const FOLDED: &str = "\u{2026}";

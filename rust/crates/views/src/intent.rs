@@ -79,6 +79,9 @@ pub enum Intent {
     ShowPage(Page),
     /// `Ctrl+Tab`: show the next of the timeline and the pages open, in turn.
     NextPage,
+    /// A name of the title row of a page clicked, or `Alt+Left`: back to that page, as it was left, dropping the pages
+    /// after it from the way (`ui.page-trail`).
+    BackTo(Page),
     /// Close the page shown, which shows the timeline or the page before it.
     ClosePage,
     /// Open the Activity drawer (`activity.what-is-running`).
