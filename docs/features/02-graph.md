@@ -139,8 +139,8 @@ whole width on the right of the bar of views, above the side column, the timelin
 is there whatever is shown under it. From left to right: where one is, as one line, `gitardo › login ›
 feature/login-page`: the repository shown, by its name (`repo.name-repositories`), which opens the list of the
 repositories open to show another (`repo.tabs`); the worktree or the submodule shown, with its icon, by the name of its
-folder or its path, only when it is not the repository's own folder, which opens the **▾** of the row of the repository
-(`repo.group-tabs`); and the branch checked out, or `detached at 3f2a1c9`, or `no commits yet`, with the folder in its
+folder or its path, only when it is not the repository's own folder, which lists the repository, its worktrees and its
+submodules to show another (`repo.group-tabs`); and the branch checked out, or `detached at 3f2a1c9`, or `no commits yet`, with the folder in its
 tooltip and without how far it is from its upstream, which **Sync** alone says. Each part is cut at its start with `…`
 before the others when the room is short, the branch last; **Search**, which opens Quick search (`graph.search-button`);
 **Sync** with the number of commits to pull and to push, `↓3 ↑2`, which a click runs: a fetch, a pull, then a push of
@@ -174,7 +174,7 @@ window, always shown ([D56](../08-decisions.md#d56--a-side-column-of-repositorie
 
 As `graph.toolbar` says: the repository, the worktree or the submodule when it is not the repository's own folder, and
 the branch checked out, `gitardo › login › feature/login-page`, the repository opening the list of the repositories
-open and the worktree the **▾** of its row. The header that holds them is a bar on the ground of the window, across its
+open and the worktree the list of the repository, its worktrees and its submodules. The header that holds them is a bar on the ground of the window, across its
 whole width on the right of the bar of views, above the side column and the pages.
 
 Acceptance:
@@ -478,7 +478,7 @@ stays where it opened
 - **Kind**: Derivation
 - **Function**: `ui::widget::menu::layout::place(size, placement, window, padding) -> MenuPlace`, which gives where
   the level goes and how much of it is shown.
-- **Entry points**: every menu of the window: the menus under a button (**…**, **Sync**, the **▾** of a repository),
+- **Entry points**: every menu of the window: the menus under a button (**…**, **Sync**, the repository and the worktree of the header),
   the context menus and their submenus.
 
 - A menu under a button opens below it, its left side lined up with the button's, and never above it. When it is

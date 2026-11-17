@@ -28,6 +28,9 @@ pub struct WorkspacePanes {
     pub is_repositories_folded: bool,
     /// Whether **Branches** is folded in the side column.
     pub is_branches_folded: bool,
+    /// The repositories open whose worktrees and submodules are folded under their rows in **Repositories**, by their
+    /// folders (`repo.group-tabs`).
+    pub folded_tabs: Vec<PathBuf>,
     /// The bottom panel (`panel.bottom`).
     pub panel: PanelLook,
 }
@@ -100,6 +103,9 @@ pub(super) fn panes_value(panes: &WorkspacePanes) -> Value {
             members.push(member(name, Value::Bool(true)));
         }
     }
+    if !panes.folded_tabs.is_empty() {
+        members.push(member("foldedTabs", folders_value(&panes.folded_tabs)));
+    }
     members.extend(panel_members(panes.panel));
     Value::Object(members)
 }
@@ -124,6 +130,7 @@ pub(super) fn workspace_panes(value: &Value) -> Option<WorkspacePanes> {
             .and_then(Value::as_bool)
             .unwrap_or(false),
         is_branches_folded: value.get("branchesFolded").and_then(Value::as_bool).unwrap_or(false),
+        folded_tabs: listed_folders(value, "foldedTabs").unwrap_or_default(),
         panel: panel_look(value),
     })
 }
@@ -172,8 +179,13 @@ fn folders_value(folders: &[PathBuf]) -> Value {
 
 /// Folders read back; none when there are none.
 fn folders(value: &Value) -> Option<Vec<PathBuf>> {
+    listed_folders(value, "folders")
+}
+
+/// The folders of a member read back; none when there are none.
+fn listed_folders(value: &Value, name: &str) -> Option<Vec<PathBuf>> {
     let folders: Vec<PathBuf> = value
-        .get("folders")?
+        .get(name)?
         .as_array()?
         .iter()
         .filter_map(Value::as_str)

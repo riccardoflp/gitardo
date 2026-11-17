@@ -1,4 +1,4 @@
-//! What the **▾** of a tab lists, and the name of a tab while it shows a worktree or a submodule of its repository
+//! The worktrees and the submodules a tab lists as rows under its own, and the name of a tab while it shows one of them
 //! (`repo.group-tabs`).
 
 use std::path::{Path, PathBuf};
@@ -16,7 +16,8 @@ use crate::persisted::same_folder;
 pub(super) struct TabShows<'a> {
     /// The folder it shows: its own, or a worktree's or a submodule's.
     pub folder: PathBuf,
-    /// The entries of its **▾**; none when its repository has no other worktree and no submodule.
+    /// Its own repository, then its worktrees and its submodules, as rows under its row; none when its repository has no
+    /// other worktree and no submodule.
     pub members: Vec<TabMemberEntry>,
     /// The name of the worktree or the submodule it shows, put after its own name; none while it shows its own.
     pub shown_label: Option<String>,
@@ -50,7 +51,7 @@ impl<'a> TabShows<'a> {
         };
         let worktrees = shows.worktrees(state, is_shown, group);
         let mut members = vec![member(
-            name.to_owned(),
+            (name.to_owned(), name.to_owned()),
             (tab.folder.clone(), 0),
             same_folder(&shows.folder, &tab.folder),
         )];
@@ -60,7 +61,8 @@ impl<'a> TabShows<'a> {
                 let branch = worktree.branch.as_deref().map(short_branch);
                 shows.shown_label = Some(branch.map_or_else(|| folder_name(&worktree.folder), str::to_owned));
             }
-            members.push(member(worktree_entry(&worktree), (worktree.folder, 0), is_shown));
+            let names = (worktree_entry(&worktree), folder_name(&worktree.folder));
+            members.push(member(names, (worktree.folder, 0), is_shown));
         }
         for submodule in group.members.iter().filter(|member| member.superproject.is_some()) {
             let label = path_from(&tab.folder, &submodule.folder);
@@ -69,7 +71,9 @@ impl<'a> TabShows<'a> {
                 shows.shown_label = Some(label.clone());
             }
             let depth = depth(group, &submodule.folder);
-            members.push(member(label, (submodule.folder.clone(), depth), is_shown));
+            let mut entry = member((label.clone(), label), (submodule.folder.clone(), depth), is_shown);
+            entry.is_submodule = true;
+            members.push(entry);
         }
         if shows.shown_label.is_none() && !same_folder(&shows.folder, &tab.folder) {
             shows.shown_label = Some(folder_name(&shows.folder));
@@ -126,11 +130,13 @@ impl<'a> TabShows<'a> {
     }
 }
 
-/// An entry of the **▾** of a tab, by its label, its folder and how many submodules it is inside, and whether the tab
-/// shows it; what it is on comes from its own read.
-fn member(label: String, (folder, depth): (PathBuf, usize), is_shown: bool) -> TabMemberEntry {
+/// A repository of the group of a tab, by its label and the name of its row, its folder and how many submodules it is
+/// inside, and whether the tab shows it; a worktree until said otherwise. What it is on comes from its own read.
+fn member((label, name): (String, String), (folder, depth): (PathBuf, usize), is_shown: bool) -> TabMemberEntry {
     TabMemberEntry {
         label,
+        name,
+        is_submodule: false,
         folder,
         depth,
         is_shown,
@@ -166,7 +172,7 @@ pub(super) fn tab_name(name: &str, shown_label: Option<&str>) -> String {
     }
 }
 
-/// A worktree in the **▾**: its branch, or `detached at <short>`.
+/// A worktree in the menu of the header: its branch, or `detached at <short>`.
 fn worktree_entry(worktree: &Worktree) -> String {
     match (&worktree.branch, &worktree.commit) {
         (Some(branch), _) => short_branch(branch).to_owned(),

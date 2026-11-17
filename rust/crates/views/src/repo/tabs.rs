@@ -1,15 +1,12 @@
 //! **Repositories**, the first section of the side column (`repo.tabs`): a row for each repository open, the one
-//! shown marked, what each is on under its name, each with its **▾** and a **×** on the row shown and the row under
-//! the pointer (`repo.close-tab`); and **+** in the heading of the section, which opens a repository of the workspace in
+//! shown marked, what each is on under its name, the rows of its worktrees and its submodules under it while it is
+//! unfolded (`repo.group-tabs`), and a **×** on the row shown and the row under the pointer (`repo.close-tab`); and **+** in the heading of the section, which opens a repository of the workspace in
 //! a tab (`repo.open-tab`), a folder or a workspace file of VS Code.
 
-use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{
-    AccessRole, Button, ButtonKind, Description, Key, Label, MenuEntry, MenuItem, Modifiers, NamedKey, Rect, Sense,
-    TextKind, Tone, Ui,
-};
+use ui::{AccessRole, Button, ButtonKind, Key, MenuEntry, MenuItem, Modifiers, NamedKey, Rect, TextKind, Ui};
 
-use super::summary::{TabSummary, summary_line};
+use super::rows::{Row, has_chevrons, member_row, repository_row, rows_of};
+use super::summary::TabSummary;
 use crate::graph::RepositoryEntry;
 use crate::icons;
 use crate::intent::Intent;
@@ -49,9 +46,12 @@ pub struct TabEntry {
     pub is_running: bool,
     /// What it shows is on, once it is known (`repo.worktree-summary`).
     pub summary: Option<TabSummary>,
-    /// The repositories of its group its **▾** lists, its own first; none when it has no other worktree and no
-    /// submodule, and then it has no **▾** (`repo.group-tabs`).
+    /// The repositories of its group, its own first, then its worktrees and its submodules, which are rows under its
+    /// row while it is unfolded; none when it has no other worktree and no submodule, and then it has no chevron
+    /// (`repo.group-tabs`).
     pub members: Vec<TabMemberEntry>,
+    /// Whether the rows of its worktrees and its submodules are shown under its row.
+    pub is_unfolded: bool,
 }
 
 /// The worktree or the submodule a row shows, when it is not the repository's own folder.
@@ -63,11 +63,16 @@ pub struct TabPlace {
     pub is_submodule: bool,
 }
 
-/// A repository of the group of a row, in its **▾**.
+/// A repository of the group of a row, as a row under it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TabMemberEntry {
-    /// Its repository's name, a worktree's branch or `detached at <short>`, or a submodule's path.
+    /// Its repository's name, a worktree's branch or `detached at <short>`, or a submodule's path, as the menu of the
+    /// header lists it (`graph.where`).
     pub label: String,
+    /// The name of its row: its repository's name, the name of a worktree's folder, or a submodule's path.
+    pub name: String,
+    /// Whether it is a submodule, rather than its repository or a worktree.
+    pub is_submodule: bool,
     /// Its folder.
     pub folder: std::path::PathBuf,
     /// How many submodules it is inside, for its indent.
@@ -109,16 +114,18 @@ pub fn row_height(ui: &Ui<'_>) -> f32 {
     2.0 * theme.sizes.row_height - theme.sizes.spacing.medium
 }
 
-/// The height the rows of **Repositories** want, all of them.
+/// The height the rows of **Repositories** want, all of them, those of the worktrees and the submodules unfolded
+/// included.
 #[must_use]
 pub fn rows_height(ui: &Ui<'_>, state: &TabsState<'_>) -> f32 {
-    float_of_count(state.tabs.len()) * row_height(ui) + ui.theme().sizes.spacing.small
+    float_of_count(rows_of(state.tabs).len()) * row_height(ui) + ui.theme().sizes.spacing.small
 }
 
 /// The rows of **Repositories** over the rectangle their caller clipped them to, scrolling when they do not fit: on
-/// the first line of each the name of its repository, with the worktree or the submodule it shows after ` › `, cut at
-/// its start when it is too long, a spinner while an operation runs in it, its **▾** and its **×**; on the second line
-/// what it shows is on. The row shown has the background of a row selected and a bar in the color of the accent on its
+/// the first line of each the chevron that folds the rows of its worktrees and its submodules, the name of its
+/// repository, with the worktree or the submodule it shows after ` › ` while those are folded, cut at its start when it
+/// is too long, a spinner while an operation runs in it and its **×**; on the second line what it shows is on. Under
+/// it, while it is unfolded, a row for each of its worktrees and its submodules, indented. The row shown has the background of a row selected and a bar in the color of the accent on its
 /// left. A middle click on a row closes it, a right click opens its menu. `Ctrl+1` to `Ctrl+8` show the row at that
 /// place and `Ctrl+9` the last, `Ctrl+PageDown` and `Ctrl+PageUp` the next and the one before, going round; on macOS
 /// `Cmd+1` to `Cmd+9`, `Cmd+Shift+]` and `Cmd+Shift+[`.
@@ -130,15 +137,19 @@ pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let height = row_height(ui);
     let content = (rect.width, rows_height(ui, state));
     ui.region("tabs", (rect, AccessRole::Navigation, words::TABS), |ui| {
+        let has_chevrons = has_chevrons(state.tabs);
         let _ = ui.scroll_area("tabs rows", rect, content, |ui, inside| {
             let mut y = inside.y;
-            for (index, tab) in state.tabs.iter().enumerate() {
-                let row = Rect::new(inside.x, y, inside.width, height);
+            for row in rows_of(state.tabs) {
+                let cell = Rect::new(inside.x, y, inside.width, height);
                 y += height;
-                if row.bottom() < rect.y || row.y > rect.bottom() {
+                if cell.bottom() < rect.y || cell.y > rect.bottom() {
                     continue;
                 }
-                intents.extend(tab_row((index, tab), ui, row));
+                intents.extend(match row {
+                    Row::Repository(index, tab) => repository_row((index, tab), ui, (cell, has_chevrons)),
+                    Row::Member(index, tab, member) => member_row((index, tab, member), ui, (cell, has_chevrons)),
+                });
             }
         });
     });
@@ -146,71 +157,9 @@ pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     intents
 }
 
-/// One row, and what a click on it, on its **×**, a middle click or its menu asked.
-fn tab_row((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, cell: Rect) -> Vec<Intent> {
-    let theme = *ui.theme();
-    let spacing = theme.sizes.spacing;
-    let id = ui.id(("tab", index, &tab.folder));
-    let response = ui.interact(id, cell, Sense::CLICK);
-    if tab.is_shown {
-        ui.fill_rect(cell, theme.colors.list_inactive_selection);
-        let bar = Rect::new(cell.x, cell.y, 2.0 * theme.sizes.border, cell.height);
-        ui.fill_rect(bar, theme.colors.accent);
-    } else if response.hovered {
-        ui.fill_rect(cell, theme.colors.list_hover);
-    }
-    let inner = inset(cell, Insets::symmetric(spacing.medium, spacing.tiny));
-    let mut lines = Area::new(inner);
-    let first = lines.top(inner.height * 0.5);
-    let second = lines.rest();
-    let mut parts = Area::with_gap(first, spacing.small);
-    ui.icon_in(parts.left(theme.sizes.icon), icons::WORKTREE, Tone::Muted);
-    let side = theme.sizes.icon + spacing.small;
-    let close_cell = parts.right(side);
-    let mut intents = Vec::new();
-    if !tab.members.is_empty() {
-        let members_rect = parts.right(side);
-        intents.extend(members_button((index, tab), ui, members_rect));
-    }
-    if tab.is_running {
-        running_spinner(ui, parts.right(theme.sizes.icon), index);
-    }
-    let name_rect = parts.rest();
-    let name = cut_at_start(ui, &tab.name, (name_rect.width, TextKind::Medium));
-    let tone = if tab.is_shown { Tone::Normal } else { Tone::Muted };
-    let _ = ui.label(name_rect, &Label::new(&name).kind(TextKind::Medium).tone(tone));
-    let indent = theme.sizes.icon + spacing.small;
-    let summary_rect = Rect::new(
-        second.x + indent,
-        second.y,
-        (second.width - indent).max(0.0),
-        second.height,
-    );
-    if let Some(summary) = &tab.summary {
-        summary_line(ui, summary_rect, summary);
-    }
-    let description = Description::new(AccessRole::Button, &tab.name).selected(tab.is_shown);
-    ui.describe(id, cell, &description);
-    ui.tooltip(&response, &tab.folder);
-    let close_rect = place(close_cell, (side, side), (Align::End, Align::Center));
-    let close_button = Button::icon(icons::CLOSE, words::CLOSE_TAB).kind(ButtonKind::Icon);
-    // The room of the **×** is kept on every row, so that the name does not move under the pointer.
-    let is_closed = (tab.is_shown || response.hovered)
-        && ui
-            .scope(("tab close", index), |ui| ui.button("close", close_rect, &close_button))
-            .clicked;
-    intents.extend(row_menu((index, tab), ui, &response));
-    if is_closed || response.middle_clicked {
-        intents.push(Intent::CloseTab(index));
-    } else if response.clicked {
-        intents.push(Intent::SwitchTab(index));
-    }
-    intents
-}
-
 /// The context menu of a row: **Close tab**, **Close other tabs**, then **Reveal in File Explorer** on the row shown,
 /// and **Copy path**, which copies the folder of what the row shows.
-fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, response: &ui::Response) -> Option<Intent> {
+pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, response: &ui::Response) -> Option<Intent> {
     let mut entries = vec![
         MenuEntry::Item(MenuItem::new(words::CLOSE_TAB, TabCommand::Close)),
         MenuEntry::Item(MenuItem::new(words::CLOSE_OTHER_TABS, TabCommand::CloseOthers)),
@@ -235,63 +184,6 @@ fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, response: &ui::Re
             None
         }
     }
-}
-
-/// The **▾** of a row whose repository has other worktrees or submodules, and the one chosen in its menu: the
-/// repository, its worktrees, then its submodules indented by how many submodules they are inside, the one the row
-/// shows checked (`repo.group-tabs`).
-fn members_button((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, rect: Rect) -> Option<Intent> {
-    let labels: Vec<(String, String, String)> = tab
-        .members
-        .iter()
-        .map(|member| {
-            let label = format!("{}{}", "\u{2003}".repeat(member.depth), member.label);
-            let counts = member
-                .summary
-                .as_ref()
-                .map(super::summary::counts_words)
-                .unwrap_or_default();
-            (label, counts, member.folder.display().to_string())
-        })
-        .collect();
-    let entries: Vec<MenuEntry<'_, usize>> = tab
-        .members
-        .iter()
-        .zip(&labels)
-        .enumerate()
-        .map(|(at, (member, (label, counts, folder)))| {
-            let mut item = MenuItem::new(label.as_str(), at).with_tooltip(folder.as_str());
-            if !counts.is_empty() {
-                item = item.with_shortcut(counts.as_str());
-            }
-            MenuEntry::Item(if member.is_shown {
-                item.with_icon(icons::CHOSEN)
-            } else {
-                item
-            })
-        })
-        .collect();
-    let side = ui.theme().sizes.icon + ui.theme().sizes.spacing.small;
-    let rect = place(rect, (side, side), (Align::Center, Align::Center));
-    let button = Button::icon(icons::CHOOSE, words::TAB_MEMBERS).kind(ButtonKind::Icon);
-    let chosen = ui.scope(("tab members", index), |ui| {
-        ui.menu_button("members", rect, &button, &entries)
-    })?;
-    let member = tab.members.get(chosen)?;
-    Some(Intent::ShowInTab(index, member.folder.clone()))
-}
-
-/// The spinner of a row where an operation runs, before its **▾** and its **×**.
-fn running_spinner(ui: &mut Ui<'_>, cell: Rect, index: usize) {
-    let side = ui.theme().sizes.icon;
-    let mark = place(cell, (side, side), (Align::Center, Align::Center));
-    ui.spinner(mark);
-    let id = ui.id(("tab spinner", index));
-    ui.describe(
-        id,
-        mark,
-        &Description::new(AccessRole::Progress, words::OPERATION_RUNNING),
-    );
 }
 
 /// A name that does not fit cut at its start with `…`, so that its last part, the repository's own folder, stays.

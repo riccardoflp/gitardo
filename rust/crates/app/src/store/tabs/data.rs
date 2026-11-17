@@ -95,7 +95,7 @@ fn not_open(state: &State, repositories: &[RepositoryEntry]) -> Vec<RepositoryEn
         .collect()
 }
 
-/// What a row or an entry of its **▾** says a folder is on (`repo.worktree-summary`): the folder shown from its own
+/// What a row, or a row of a worktree or a submodule under it, says a folder is on (`repo.worktree-summary`): the folder shown from its own
 /// read; any other from its read in the background, or before that from what its tab read last; none before.
 fn summary_of(state: &State, (folder, tab): (&std::path::Path, &super::Tab)) -> Option<TabSummary> {
     let is_shown = state.shown_folder().is_some_and(|shown| same_folder(shown, folder));
@@ -120,9 +120,10 @@ fn summary_of(state: &State, (folder, tab): (&std::path::Path, &super::Tab)) -> 
 
 /// The tabs as the island draws them: each by the name of its repository among those of the workspace, with the
 /// worktree or the submodule it shows after ` › ` (`repo.group-tabs`), the folder of what it shows for its tooltip,
-/// and the repositories of its group for its **▾**.
+/// and the repositories of its group for the rows under it, unless it was folded.
 fn entries(state: &State, repositories: &[RepositoryEntry]) -> Vec<TabEntry> {
     let groups = group_tabs(state.repositories());
+    let folded = super::super::timeline::workspace_panes(state).folded_tabs;
     state
         .tabs
         .open
@@ -147,6 +148,7 @@ fn entries(state: &State, repositories: &[RepositoryEntry]) -> Vec<TabEntry> {
                 is_shown,
                 is_running: super::operation_tab(state) == Some(index),
                 members: shows.members,
+                is_unfolded: !folded.iter().any(|folder| same_folder(folder, &tab.folder)),
             }
         })
         .collect()

@@ -373,6 +373,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         | Intent::PickRepository => reduce_workspace_intent(state, intent),
         Intent::SwitchTab(_)
         | Intent::ShowInTab(..)
+        | Intent::FoldTab(_)
         | Intent::OpenTab(_)
         | Intent::PickTabToOpen
         | Intent::TabsChosen(_)

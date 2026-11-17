@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The worktrees and the submodules of a repository are rows under its row in **Repositories** rather than entries of
+  its **▾**, which is gone: each indented, by the name of its folder or its path, with its branch, its files changed
+  and the commits to pull and to push, the one shown marked; a click shows it. The chevron at the left of the row folds
+  and unfolds them, remembered for the workspace; folded, the row says the worktree shown after ` › ` as before. The
+  rows and the chevrons take the keyboard and tell the screen reader which one is shown and which are unfolded.
 - Version 1.8 of the protocol of `gitardo-engine --stdio`, for the extension: `read/graph.read-commits` asked with
   `stream` reads the history with one `git log` as git prints it and sends each page in a notification
   `read/graph.rows`, to the end of the history or to 100,000 commits; `read/repo.read-state` takes `refresh`, and
