@@ -1,8 +1,8 @@
-# The release (D52): a tag vX.Y.Z pushed by the maintainer, on a commit of main whose extension/package.json has the
-# version X.Y.Z and whose extension/CHANGELOG.md has its section, runs the whole of check.yml on that commit. Once it is
-# green, the seven vsix wait in the environment `marketplace` for the maintainer's approval and are then published on
-# the Marketplace by trusted publishing, with no token stored; beside that, a draft release on GitHub gets the vsix and
-# the desktop of each system, for the maintainer to read and publish. It can be run again by hand on the same tag, from
+# The release of both apps (D52): a tag vX.Y.Z pushed by the maintainer, on a commit of main whose
+# extension/package.json and rust/Cargo.toml have the version X.Y.Z and whose two CHANGELOGs have its section, runs the
+# whole of check.yml on that commit. Once it is green, the seven vsix wait in the environment `marketplace` for the
+# maintainer's approval and are then published on the Marketplace by trusted publishing, with no token stored; beside
+# that, a draft release on GitHub gets the vsix and the desktop of each system, for the maintainer to read and publish. It can be run again by hand on the same tag, from
 # the Actions tab with the tag chosen in "Use workflow from": what is already on the Marketplace is left as it is.
 
 name: Release
@@ -25,7 +25,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
-      desktop: ${{ steps.version.outputs.desktop }}
     steps:
       # The whole history, for the check that the tag is on main.
       - uses: actions/checkout@v4
@@ -44,18 +43,23 @@ jobs:
             echo "::error::The tag is $GITHUB_REF_NAME, but extension/package.json has the version $version."
             exit 1
           fi
-          if ! grep -q "^## $version - " extension/CHANGELOG.md; then
-            echo "::error::extension/CHANGELOG.md has no section \"## $version - <date>\"."
+          desktop=$(sed -n 's/^version = "\(.*\)"$/\1/p' rust/Cargo.toml | head -n 1)
+          if [ "$desktop" != "$version" ]; then
+            echo "::error::rust/Cargo.toml has the version $desktop, but the two apps have one version: $version."
             exit 1
           fi
+          for changelog in extension/CHANGELOG.md rust/CHANGELOG.md; do
+            if ! grep -q "^## $version - " "$changelog"; then
+              echo "::error::$changelog has no section \"## $version - <date>\"."
+              exit 1
+            fi
+          done
           if ! git merge-base --is-ancestor HEAD origin/main; then
             echo "::error::The commit of $GITHUB_REF_NAME is not on main."
             exit 1
           fi
-          desktop=$(sed -n 's/^version = "\(.*\)"$/\1/p' rust/Cargo.toml | head -n 1)
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "desktop=$desktop" >> "$GITHUB_OUTPUT"
-          echo "The extension $version, Gitardo Desktop $desktop."
+          echo "Gitardo $version, both apps."
 
   check:
     name: Check
@@ -112,7 +116,6 @@ jobs:
       GH_REPO: ${{ github.repository }}
       TAG: ${{ github.ref_name }}
       VERSION: ${{ needs.version.outputs.version }}
-      DESKTOP: ${{ needs.version.outputs.desktop }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -126,7 +129,7 @@ jobs:
       # An artifact keeps no mode, so the binaries of Linux and macOS are made executable again before they are packed.
       - name: The desktop of each system, in an archive with the license
         run: |
-          archive="$GITHUB_WORKSPACE/release/gitardo-desktop-$DESKTOP"
+          archive="$GITHUB_WORKSPACE/release/gitardo-desktop-$VERSION"
           for system in Windows Linux macOS; do cp LICENSE "desktop/desktop-$system/"; done
           chmod +x desktop/desktop-Linux/gitardo desktop/desktop-Linux/gitardo-cli
           chmod +x desktop/desktop-macOS/gitardo desktop/desktop-macOS/gitardo-cli
@@ -134,20 +137,27 @@ jobs:
           tar -czf "$archive-linux-x64.tar.gz" -C desktop/desktop-Linux gitardo gitardo-cli LICENSE
           tar -czf "$archive-macos-arm64.tar.gz" -C desktop/desktop-macOS gitardo gitardo-cli LICENSE
           ls -l release
-      - name: The notes, from the CHANGELOG of the extension
+      # The section of the version in each CHANGELOG, its headings one level down under the name of its app.
+      - name: The notes, from the CHANGELOG of each app
         run: |
+          section() {
+            awk -v heading="## $VERSION - " '
+              index($0, heading) == 1 { inside = 1; next }
+              inside && /^## / { exit }
+              inside { sub(/^### /, "#### "); print }' "$1"
+          }
           {
-            echo "## Gitardo for VS Code $VERSION"
+            echo "## Gitardo for VS Code"
             echo
             echo "On the Marketplace once approved; the vsix of each target are below too."
-            awk -v heading="## $VERSION - " \
-              'index($0, heading) == 1 { inside = 1; next } inside && /^## / { exit } inside' extension/CHANGELOG.md
+            section extension/CHANGELOG.md
             echo
-            echo "## Gitardo Desktop $DESKTOP"
+            echo "## Gitardo Desktop"
             echo
-            echo "Built from the same commit, for Windows x64, Linux x64 and macOS on Apple silicon."
-            echo "The binaries are not signed: Windows may warn before running them, and on macOS"
+            echo "For Windows x64, Linux x64 and macOS on Apple silicon. The binaries are not signed:"
+            echo "Windows may warn before running them, and on macOS"
             echo "\`xattr -d com.apple.quarantine gitardo gitardo-cli\` lets them start."
+            section rust/CHANGELOG.md
           } > notes.md
           cat notes.md
       # A run again on the same tag replaces the files of the release it made, and leaves its notes as they are.

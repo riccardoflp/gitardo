@@ -163,3 +163,7 @@ By hand, on each system, with a real account and a real model:
 - [ ] Remove a worktree with a linked `node_modules` on Windows, and check that the original `node_modules` is intact.
 - [ ] Look at every snapshot that changed since the last release.
 - [ ] Read `cargo xtask perf` on the large repository and compare with the last release.
+
+Then the release of both apps, with one version, as the extension's roadmap says in
+[Before a release](../extension/07-roadmap.md#before-a-release) and
+[D52](../08-decisions.md#d52--a-tag-publishes-the-release-once-the-maintainer-approves).

@@ -68,7 +68,8 @@ patches, GitHub, the Flow Diff and the Flow Merge. When an area is written, its 
 - [ ] `npm run test:e2e` and `npm run test:vsix`.
 - [ ] `npm run test:ui`, and the screenshots in `dist/ui` looked at.
 - [ ] The checklist of what no test reaches, in [06-testing.md](06-testing.md#what-no-test-reaches).
-- [ ] The CHANGELOG's **Unreleased** section becomes the version; `package.json` has the version.
+- [ ] The **Unreleased** section of both CHANGELOGs becomes the version; `package.json` and `../rust/Cargo.toml` have
+  it, the same for both apps (D52).
 - [ ] Every card changed since the last release has its status in the index.
 - [ ] [10-security.md](10-security.md) read again if a service, a secret or a file written was added.
 - [ ] The maintainer commits on `main`, pushes it and the tag `vX.Y.Z`; the workflow **Release** checks the commit,
