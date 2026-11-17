@@ -595,6 +595,10 @@ and its submodules under it, the one shown marked, what each is on, and **+** to
 - **Offered when**: a workspace is open, even with a single repository, so that **+** is there.
 - **Uses**: `repo.switch-tab`, `repo.open-tab`, `repo.close-tab`, `repo.group-tabs`, `repo.name-repositories`,
   `repo.worktree-summary`.
+- **Extension**: planned for milestone M22
+  ([D70](../08-decisions.md#d70--the-extension-has-a-repositories-view-of-its-own)): **Repositories**, a view of the
+  Source Control side bar with the same rows for the repositories of the workspace, without **+**, **×** and the keys
+  of the tabs, which are VS Code's workspace to decide (Q720 to Q723).
 
 The heading of the section says **Repositories**, with the chevron that folds it on its left and **+** on its right
 (`repo.open-tab`). Under it, a row for each repository open, in the order they were opened, each one line high, the
@@ -651,8 +655,8 @@ each folding by its heading, the line between them dragged
   back by the first button of the top row of the timeline and of the title row of every page
   (`graph.toggle-references`).
 - **Uses**: `repo.tabs`, `refs.tree`, `graph.resize-panes`, `graph.toggle-references`.
-- **Extension**: VS Code's Source Control side bar has the repositories, and the Branches view the branches: nothing to
-  build.
+- **Extension**: VS Code's Source Control side bar is the column, and Gitardo's views its sections: the Branches view
+  the branches, and the Repositories view of milestone M22 the repositories (`repo.tabs`); nothing else to build.
 
 - The island goes from under the header to the status bar; the timeline, the inspector, the pages and the bottom
   panel are on its right, and the header above them all (`graph.toolbar`).
@@ -715,6 +719,8 @@ pull and to push, for the rows of **Repositories** and the rows of the worktrees
   commit from its `# branch.head` and `# branch.oid` lines, the commits ahead and behind from `# branch.ab`, the files
   changed from the count of its other lines.
 - **Uses**: `repo.common-folder`, `repo.watch-changes`; by `repo.tabs` and `repo.group-tabs`.
+- **Extension**: planned for milestone M22: the engine gives it the same summaries, for the rows of its Repositories
+  view ([D70](../08-decisions.md#d70--the-extension-has-a-repositories-view-of-its-own)).
 
 - The repository shown takes its summary from its own read (`repo.read-state`), and runs no other.
 - Every other repository open and every worktree of each is read once when the window opens, then again only when its

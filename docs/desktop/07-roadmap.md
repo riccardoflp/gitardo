@@ -593,6 +593,41 @@ the amber of the theme, as the buttons and the ring of the focus are, and no pla
 teal; text selected is told apart from a match of a search; the high contrast themes are as before; the test of the
 colors of the themes passes, and the snapshots of every place of phase 2 match in each theme.
 
+## M22 — Repositories, a view of the extension
+
+The repositories of the workspace, with their worktrees and their submodules under them and what each is on, in a
+view of Gitardo in VS Code, as the **Repositories** section of the side column lists them in Gitardo Desktop
+([D70](../08-decisions.md#d70--the-extension-has-a-repositories-view-of-its-own)). Asked by the maintainer after
+M21. In the extension alone: the desktop has it since M16, and its cards are the ones built. Built in three phases,
+each one commit or more, each ending with its cards built in the extension and their tests passing.
+
+1. **What each is on, from the engine.** The engine gives the extension what the desktop reads for the rows of
+   **Repositories**: for each repository of the workspace and each of its worktrees and submodules, the branch checked
+   out or the commit `HEAD` is detached at, the files changed and the commits to pull and to push
+   (`repo.worktree-summary`), read once, then again only when its folder or its git folder changes, and said to the
+   extension when one changed. A read added to the protocol, a minor version. Cards: `repo.worktree-summary`,
+   `repo.watch-hidden`.
+2. **The view.** **Repositories**, a view of the Source Control side bar, above Gitardo's other views, drawn by the
+   webview as the desktop draws the section: a row for each repository Gitardo found in the workspace
+   (`repo.read-repositories`), named as `repo.name-repositories` says, the rows of its worktrees and its submodules
+   under it, folding (`repo.group-tabs`); at the right of each row what it is on, `main ● 3 ↓2 ↑1`; the one Gitardo
+   shows marked with the bar of the accent, a spinner on a row whose repository runs an operation. A click on a row
+   shows it in Gitardo (`repo.select`, `worktree.show-in-gitardo`, `submodule.show-in-gitardo`); the rows take the
+   keyboard and say themselves to the screen reader. Which rows are folded is remembered for the workspace. Cards:
+   `repo.tabs`, `repo.group-tabs`, `repo.select`.
+3. **Its menus, and VS Code's own view.** The menu of a row: **Reveal in File Explorer**, **Copy path**, **Open in
+   Integrated Terminal**, and for a worktree and a submodule what their menus have in the Branches view. The view and
+   VS Code's Repositories view follow each other as Gitardo and that view already do
+   (`repo.follow-source-control`). The picker of the repository in the toolbar of the graph stays. The README of the
+   extension and its walkthrough say the view; a step of the end-to-end suite opens it, reads its rows and clicks one.
+   Cards: `repo.tabs`, `repo.follow-source-control`.
+
+Exit: in a workspace with two repositories, one with two worktrees and a submodule, the view lists the two with
+their rows under them, each with its branch, its files changed and its commits to pull and to push; changing a file
+in a worktree not shown updates its count within two seconds; a click on a worktree shows it in the graph and marks
+its row, and choosing another repository in the toolbar of the graph marks that one; nothing is read while nothing
+changes; every card of the milestone is Built in both apps, and the end-to-end step passes.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

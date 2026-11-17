@@ -1297,6 +1297,28 @@ neutral, and little enough for the text on it to be read as before. Teal stays w
 the incoming side of a merge, the labels of a stash. The high contrast themes keep their blue selection, since blue is
 their accent. The extension is not touched: its selection is that of VS Code's theme.
 
+## D70 — The extension has a Repositories view of its own
+
+*Asked by the maintainer for milestone M22; the details proposed by the agent.*
+
+When the side column was planned (D56), the list of repositories was left to VS Code in the extension: its Source
+Control side bar has a Repositories view, and `repo.tabs`, `repo.side-column` and `repo.worktree-summary` were *Host
+only*. But that view lists what VS Code's Git extension opened, not what Gitardo found: it leaves out the worktrees
+VS Code keeps to itself, shows a worktree apart from its repository, says neither the files changed nor the commits to
+pull and to push of the ones not shown, and Gitardo can select in it only while it lists one repository at a time
+(`repo.follow-source-control`). So the extension gets the list the desktop has: **Repositories**, a view of Gitardo in
+the Source Control side bar, with the same rows, read by the same engine (`repo.worktree-summary`), drawn by the
+webview. `repo.tabs` and `repo.worktree-summary` become *Planned* in the extension, then *Built*; `repo.side-column`
+stays *Host only*, since VS Code's side bar is the column and Gitardo's views are its sections.
+
+What VS Code decides stays VS Code's: which folders are in the workspace, so the view has neither **+** nor **×**
+(Q721), and no tabs to keep. Its own Repositories view is left where it is, and the two follow each other.
+
+Rejected: filling VS Code's Repositories view (an extension cannot add rows or text to it); a tree view of VS Code
+rather than a webview (a row could not put the counts at its right in their colors, nor fold as the desktop's does);
+putting the list inside the Branches view (two lists with two scrolls in one view, which VS Code already splits
+better).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -3727,3 +3749,19 @@ each is built as it says until the maintainer answers otherwise.
 - **Q672** — `settings.theme`: the two high contrast themes keep their blue selection, their accent being blue, and
   teal stays the color of information, of the incoming side of a merge and of the labels of a stash. Should any of
   these change too?
+
+### Of the Repositories view of the extension, from Q720
+
+Questions of [D70](#d70--the-extension-has-a-repositories-view-of-its-own), asked while planning milestone M22; each
+is built as it says until the maintainer answers otherwise.
+
+- **Q720** — `repo.tabs` in the extension: the view is in the Source Control side bar, with Gitardo's other views,
+  above them. Or should it be in Gitardo's panel beside the graph, as the side column is beside the timeline in the
+  desktop, or in both?
+- **Q721** — `repo.tabs` in the extension: no **+** and no **×**, VS Code's workspace saying which folders are open.
+  Should **+** run VS Code's **Add Folder to Workspace…**, and the menu of a row **Remove Folder from Workspace**?
+- **Q722** — `repo.tabs` in the extension: the view lists every repository Gitardo found in the workspace, the ones
+  inside another and the ones VS Code's Git extension has not opened among them, as the picker of the toolbar does.
+  Should it list only those VS Code's Source Control lists?
+- **Q723** — `repo.select`: the picker of the repository in the toolbar of the graph stays beside the view. Should it
+  go once the view is there, or stay only where the view is hidden?
