@@ -26,9 +26,10 @@ fn graph_where__the_header_goes_across_the_window_right_of_the_bar_of_views_abov
     let column = column(&tree);
     let repository = header_button(&tree, "api");
     let more = header_button(&tree, "More");
+    let name = in_header(&tree, Role::Label, header::NAME);
     assert!(
-        (repository.x - column.x).abs() <= 12.0,
-        "it starts where the side column does: {repository:?}"
+        (name.x - column.x).abs() <= 12.0 && name.right() <= repository.x,
+        "it starts where the side column does, with the name of Gitardo before the repository: {name:?} {repository:?}"
     );
     #[allow(clippy::cast_precision_loss, reason = "the window is a few hundred pixels wide")]
     let width = WIDE.0 as f32;

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The logo of Gitardo, the one of the extension, is at the top left of the window, in the accent of the theme, in a
+  square above the bar of views, which starts under it; the header starts with the name **Gitardo**, before the
+  repository, the worktree and the branch. In a narrow window the name goes and the logo stays. Neither does anything
+  when clicked.
 - The side column takes less room: a repository, a worktree and a submodule are each one row of one line, the name on
   the left and the branch, the files changed and `↓ ↑` smaller on the right, the name and the branch cut with `…`
   when the row is short; the heading of **Branches** has **Create branch**, **Compare** and the button of the rail's

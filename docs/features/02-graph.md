@@ -196,18 +196,24 @@ The logo of Gitardo at the top left of the window, and its name at the start of 
 - **Function**: `views::window::brand_view(state: &BrandState, ui) -> Vec<Intent>`
 - **Entry points**: always shown, above the bar of views and at the start of the header bar.
 
-The logo is the one of `extension/media/gitardo.svg`, drawn as an icon of the window at the size of the icons of the
-bar of views, in the colors of each theme; it is in the square above the bar of views, at the left of the header bar.
-The name **Gitardo** comes first in the header bar, before what `graph.where` says, in the weight of a title. In a
-window too narrow for the header bar, the name goes and the logo stays. Neither does anything when clicked: the logo is
-part of the caption of `window.title-bar`, and the name too.
+The logo is the one of `extension/media/gitardo.svg`, kept as a copy beside the outlines of Lucide
+(`rust/crates/render/icons/gitardo.svg`, which a test compares with the extension's) and drawn as an icon of the
+window, as `graph.icons` draws Lucide's: at the size of the icons of the bar of views, 16 logical pixels, with their
+weight of line, in the accent of each theme (Q560). It is in the middle of the square above the bar of views, as high
+as the header bar and as wide as the bar of views, at the left of the header bar; the bar of views starts under it.
+The name **Gitardo** comes first in the header bar, before what `graph.where` says, in the weight of a title (the
+strong text of the interface), where the repository started before. In the narrow layout, below 900 logical pixels,
+where the header gives up its words, the name goes and the logo stays (Q561). The screen reader is told of both, as
+**Logo of Gitardo** and **Gitardo**. Neither does anything when clicked: the logo is part of the caption of
+`window.title-bar`, and the name too.
 
 Acceptance:
 
 - [ ] The logo is drawn in the square above the bar of views, in each theme.
 - [ ] The header bar says `Gitardo` before `api › login › feature/login`.
 - [ ] In a window 700 logical pixels wide the name is not drawn and the logo is.
-- [ ] A double click on the logo or on the name does what a double click on the caption does.
+- [ ] A double click on the logo or on the name does what a double click on the caption does: here it asks nothing
+      of Gitardo, and what the window does with it is shown by `window.title-bar`, whose `hit` says Caption there.
 
 ### `window.title-bar` — The header bar as the title bar of the window
 
@@ -433,7 +439,8 @@ Acceptance:
 ### `graph.icons` — The icons of the window
 
 Every icon of the window is one of [Lucide](https://lucide.dev)'s, each with one meaning, so that the same action looks
-the same everywhere, and as it does in other applications.
+the same everywhere, and as it does in other applications; the logo of Gitardo alone is not, and is drawn the same way
+(`window.brand`).
 
 - **Kind**: View
 - **Function**: `render::Canvas::draw_icon(icon: Icon, origin: Point, size: f32, color: Color)`
@@ -500,6 +507,7 @@ own dash.
 | The base of a merge, shown or hidden | `git-fork` |
 | The look of the window: the section **Appearance** of the settings | `palette` |
 | Experimental: the list of the experimental settings | `flask-conical` |
+| The logo of Gitardo, at the top left of the window | the extension's `gitardo.svg`, not Lucide's |
 
 Acceptance:
 

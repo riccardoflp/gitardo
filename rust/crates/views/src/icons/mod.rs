@@ -259,9 +259,12 @@ pub(crate) const APPEARANCE: Icon = Icon::Palette;
 /// Experimental: the list of the experimental settings.
 pub(crate) const EXPERIMENTAL: Icon = Icon::Flask;
 
+/// The logo of Gitardo, at the top left of the window.
+pub(crate) const LOGO: Icon = Icon::Logo;
+
 /// Each meaning of the table of `graph.icons` and its icon, in the order of the table.
 #[cfg(test)]
-pub(crate) const MEANINGS: [(&str, Icon); 82] = [
+pub(crate) const MEANINGS: [(&str, Icon); 83] = [
     (
         "Folded: a row whose content is hidden; a menu that opens to the side",
         FOLDED,
@@ -365,4 +368,5 @@ pub(crate) const MEANINGS: [(&str, Icon); 82] = [
         APPEARANCE,
     ),
     ("Experimental: the list of the experimental settings", EXPERIMENTAL),
+    ("The logo of Gitardo, at the top left of the window", LOGO),
 ];

@@ -1,5 +1,5 @@
-//! The whole window (D21, D56): the bar of views on its left edge, the header across the top on its right and the status
-//! bar at its foot, on the ground of the window; under the header the islands: the side column of the repositories and
+//! The whole window (D21, D56, D58): the bar of views on its left edge under the logo of Gitardo, the header across the
+//! top on its right, its name first, and the status bar at its foot, on the ground of the window; under the header the islands: the side column of the repositories and
 //! the branches, and beside it the timeline and the inspector, or a page with its trail; the Activity drawer, the
 //! picker of the repositories, the question of an opened folder and a notice over them. Below about 900 logical pixels
 //! the side column is put away (its button opens it over the timeline), the header shows only its icons and the gaps
@@ -33,8 +33,11 @@ use crate::settings::{ThemePickerState, theme_picker_view};
 use crate::text::repo as repo_words;
 use crate::view_bar::{VIEW_BAR_WIDTH, ViewBarState, view_bar_view};
 
+mod brand;
 mod side;
 mod timeline;
+
+use brand::{BrandState, brand_view};
 
 use side::{puts_side_away, side_beside, side_over, side_toggle};
 
@@ -170,14 +173,10 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let bar_height = theme.sizes.control_height + 2.0 * theme.sizes.spacing.medium;
     let mut area = Area::new(window);
     let status = area.bottom(theme.sizes.row_height);
-    let bar = area.left(VIEW_BAR_WIDTH);
-    let bar = inset(
-        bar,
-        Insets {
-            top: gap,
-            ..Insets::all(0.0)
-        },
-    );
+    // The square above the bar of views is the logo's, as high as the header (`window.brand`).
+    let mut bar_column = Area::new(area.left(VIEW_BAR_WIDTH));
+    let corner = bar_column.top(bar_height);
+    let bar = bar_column.rest();
     intents.extend(ui.clip(bar, |ui| view_bar_view(&state.view_bar, ui)));
     // What was said and the notices of the window are said in the status bar, which keeps its height (D56).
     let status_state = StatusBarState {
@@ -193,8 +192,15 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         },
     );
     let mut column = Area::new(rest);
-    let header = column.top(bar_height);
+    let mut header = Area::new(column.top(bar_height));
     let body = column.rest();
+    let brand = BrandState {
+        is_name_shown: !is_narrow(ui),
+    };
+    let name = header.left(brand::name_width(brand, ui));
+    let header = header.rest();
+    let top_left = Rect::new(corner.x, corner.y, corner.width + name.width, corner.height);
+    intents.extend(ui.clip(top_left, |ui| brand_view(&brand, ui)));
     // What is right of the bar of views and above the status bar is the tab's: its widgets remember how far they are
     // scrolled and what is typed in them apart from those of the other tabs (`repo.keep-open`).
     let shown_tab = state

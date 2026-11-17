@@ -1,6 +1,7 @@
 //! Icons: [Lucide](https://lucide.dev)'s, from the outlines of its SVG files kept in `icons/lucide/` with its licence
-//! (ISC). Each outline is read into paths the first time its icon is drawn, and each icon is rasterized once for each
-//! size and kept (`graph.icons`).
+//! (ISC), and the logo of Gitardo, from `icons/gitardo.svg`, the extension's own. Each outline is read into paths the
+//! first time its icon is drawn, and each icon is rasterized once for each size and kept (`graph.icons`,
+//! `window.brand`).
 
 mod lucide;
 mod outline;
@@ -24,7 +25,8 @@ const LUCIDE_GRID: f32 = 24.0;
 /// at that size (1.33), so that the icons keep the weight of the text beside them (Q420). It grows with the size.
 const LINE_WIDTH: f32 = 1.5;
 
-/// An icon of the window, each one of [Lucide](https://lucide.dev)'s, named in its doc comment (`graph.icons`).
+/// An icon of the window, each one of [Lucide](https://lucide.dev)'s, named in its doc comment (`graph.icons`), but
+/// the logo of Gitardo.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Icon {
     /// A chevron pointing right: folded, or a menu that opens to the side. Lucide's `chevron-right`.
@@ -189,13 +191,20 @@ pub enum Icon {
     Palette,
     /// A flask: experimental, the list of the experimental settings. Lucide's `flask-conical`.
     Flask,
+    /// The logo of Gitardo: a branch leaving a line of two commits, as the extension draws it (`window.brand`). Not one
+    /// of Lucide's, so not in [`Icon::ALL`].
+    Logo,
 }
 
+/// The outline of the logo of Gitardo, a copy of the extension's `media/gitardo.svg`, drawn on the same grid of 24 as
+/// Lucide's icons.
+const LOGO: &str = include_str!("../../icons/gitardo.svg");
+
 impl Icon {
-    /// Every icon, in the order of the enumeration.
+    /// Every icon of Lucide's, in the order of the enumeration: all but the logo.
     pub const ALL: [Icon; lucide::ALL.len()] = lucide::ALL;
 
-    /// The name of the icon in Lucide's set, such as `git-branch`.
+    /// The name of the icon in Lucide's set, such as `git-branch`; nothing for the logo, which is not Lucide's.
     #[must_use]
     pub fn lucide_name(self) -> &'static str {
         lucide::name(self)
@@ -244,7 +253,12 @@ impl Icons {
 /// The paths of an icon, read from its outline. The outlines are part of the program and a test reads every one of
 /// them, so an outline that cannot be read is a mistake of the build: the icon is left empty rather than stopping.
 fn design(icon: Icon) -> Design {
-    outline::outline(lucide::source(icon)).unwrap_or_default()
+    outline::outline(source(icon)).unwrap_or_default()
+}
+
+/// The SVG file of an icon: Lucide's, or the logo's.
+fn source(icon: Icon) -> &'static str {
+    if icon == Icon::Logo { LOGO } else { lucide::source(icon) }
 }
 
 /// The coverage of an icon whose grid is scaled to a side in physical pixels; nothing covered for a size of nothing.
@@ -311,6 +325,22 @@ mod tests {
                 assert!(covered > 8, "{icon:?} at {size} covers {covered} pixels");
             }
         }
+    }
+
+    #[test]
+    fn the_logo_is_read_and_draws_something_inside_its_square() {
+        let read = outline::outline(LOGO);
+        assert!(read.as_ref().is_ok_and(|design| !design.strokes.is_empty()), "{read:?}");
+        let mask = rasterize_icon(&design(Icon::Logo), 16.0);
+        assert!(mask.coverage.iter().filter(|amount| **amount > 128).count() > 8);
+        assert!(!Icon::ALL.contains(&Icon::Logo));
+    }
+
+    #[test]
+    fn the_logo_is_the_one_of_the_extension() {
+        let extension = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../extension/media/gitardo.svg");
+        let source = std::fs::read_to_string(extension).unwrap_or_default();
+        assert_eq!(source, LOGO, "the copy kept here is the logo of the extension");
     }
 
     #[test]
