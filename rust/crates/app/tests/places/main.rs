@@ -5,6 +5,8 @@
 #![allow(clippy::unwrap_used, clippy::panic, reason = "a test that cannot go on fails")]
 
 mod activity;
+mod activity_burst;
+mod activity_replay;
 mod ai;
 mod am_stopped;
 mod beside;

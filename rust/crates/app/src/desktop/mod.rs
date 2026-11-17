@@ -5,7 +5,7 @@
 //! asked for. The intents of each frame are reduced after it.
 
 mod reads;
-mod running;
+pub mod running;
 
 use std::collections::VecDeque;
 use std::path::PathBuf;
@@ -401,7 +401,9 @@ impl DesktopWindow {
 
     /// Draws a frame of the views from the store, then reduces the intents they returned.
     fn draw(&mut self, context: &Context<'_>) -> Result<Flow, AppError> {
-        let running = self.running.tasks(&self.activities.running());
+        let running = self
+            .running
+            .tasks(&self.activities.running(), std::time::Instant::now());
         let data = ViewData::new(&self.state, running, seconds_now()).with_finished(self.running.finished());
         self.surface.set_title(&views::text::window_title(data.name()));
         let state = &self.state;

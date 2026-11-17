@@ -1,6 +1,6 @@
 //! How long each activity has run, and what ran a moment ago. The activities say when they started in whole seconds;
 //! the window counts from when it first saw each, which is precise enough for the half second after which the header
-//! shows it.
+//! shows it. The moment of each frame is given, so that a test replays what the engine said at the moments it chooses.
 
 use std::collections::{HashMap, VecDeque};
 use std::time::{Duration, Instant};
@@ -23,9 +23,9 @@ pub struct RunningClock {
 }
 
 impl RunningClock {
-    /// What runs, for the views, with how long each has run; the activities that ended are kept among what ran.
-    pub fn tasks(&mut self, running: &[ActivityEntry]) -> Vec<RunningTask> {
-        let now = Instant::now();
+    /// What runs at a moment, for the views, with how long each has run; the activities that ended are kept among what
+    /// ran.
+    pub fn tasks(&mut self, running: &[ActivityEntry], now: Instant) -> Vec<RunningTask> {
         let ended: Vec<u64> = self
             .seen
             .keys()

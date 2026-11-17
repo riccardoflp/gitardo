@@ -1200,6 +1200,33 @@ of phase 1 is to confirm or set aside before anything is changed:
 - **More rows than room.** The rows are not in a list that scrolls: with more than fit, the last are cut under the
   button, and come back as others end.
 
+What the test of phase 1 found. The test (`activity_replay` among the tests of the places of `app`) gives the clock of
+the window what the engine says at each frame of a burst: a fetch of twelve seconds, first drawn 0.85 s after it
+started; forty reads of one repository in ten seconds, each over in a fifth of a second; and a read of each of two
+other repositories, which end within the same frame. It draws the window, 1000 by 640 pixels, at each of the 160 frames,
+ten a second while the burst lasts and one a second after it, until fifty seconds, and writes the list of every frame
+in `target/tmp/activity-replay.txt`. Against the drawer as it was, it confirms the five, sees the fourth otherwise than
+the code let think, and finds a sixth:
+
+- **What runs a moment is listed: confirmed.** Each of the forty reads, over in 200 ms, is a row of what runs for the
+  two frames that see it.
+- **What ran goes too soon: confirmed.** All 43 rows of what ran go while the test looks: a read is pushed out by the
+  five after it within a second and a half, the reads of the two other repositories in less, and the fetch thirty
+  seconds after it ended.
+- **Times counted from when the window saw it: confirmed.** The fetch says `0 s` when it has run 1.05 s, and is a second
+  behind in 88 of its frames, until it ends.
+- **The same read many times: confirmed, and it is not seen as rows that move.** Up to six rows are titled
+  `Reading app` at once. They would move down at each read, but all of them except the first are out of sight (the
+  cause below): what is seen is the second row of the drawer changing four times a second between the read that runs,
+  with its spinner, and the read that just ran, with its check, each with another file after **Because**, and the row
+  that ran pushed out of sight at each read.
+- **More rows than room: confirmed, and sooner than thought.** In a window 640 pixels high the drawer has room for two
+  rows under its title: from the third on, the rows are drawn with no height at the foot of the list, one over the
+  other, and the wheel does not reach them. The fetch that ended is so the only row of what ran that is ever read.
+- **Found beside the five: what ends within the same frame is listed in an order that changes.** The activities that
+  ended are taken from a hash map, so the two reads that end within the same frame are listed one way or the other: of
+  16 replays of the same burst, 12 to 14 list what ran in another order than the first.
+
 So in phase 3 the list is laid out from these rules: an activity is listed once it has run half a second, as the
 indicator shows it, and timed from its start; a row stays where it is while it runs; once it ended it goes under
 **Ran**, with the time it ended and how long it took, the latest first, the last 50 of the session kept; reads of the
