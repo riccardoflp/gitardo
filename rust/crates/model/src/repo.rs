@@ -4,6 +4,7 @@
 mod group;
 mod hidden;
 mod schedule;
+mod summary;
 pub(crate) mod watch;
 
 use std::path::{Path, PathBuf};
@@ -11,6 +12,7 @@ use std::path::{Path, PathBuf};
 pub use group::{TabGroup, group_tabs};
 pub use hidden::{HiddenTab, schedule_hidden};
 pub use schedule::{ReadAction, ReadEvent, ReadSchedule, StartedRead, schedule_reads};
+pub use summary::{SummaryHead, WorktreeSummary};
 pub use watch::{Change, FilesChange, LATER, ReadCause, ReadRequest, SOON, watch_changes};
 
 /// A repository a window can show: one a folder of the workspace is in or holds, or a submodule of one of these.

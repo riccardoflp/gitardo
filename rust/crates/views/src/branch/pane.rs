@@ -12,7 +12,7 @@ use crate::feature::FeatureIntent;
 use crate::graph::HoverTarget;
 use crate::icons;
 use crate::intent::Intent;
-use crate::line::is_narrow;
+use crate::line::is_icon_rail;
 use crate::refs::{ReferencesState, list_filter_view, rail_view};
 use crate::text::header::detached_at;
 use crate::text::rail as words;
@@ -20,7 +20,7 @@ use crate::text::rail as words;
 /// The branch rail, over the rectangle its caller clipped it to: at its top the branch checked out with the button of
 /// the rail's own filter (`refs.list-filter`), **Create branch**, which makes a branch at `HEAD` (`branch.create`), and
 /// **Compare** (`compare.choose`); under it the filter box, the line of what the rail lists and the lists of
-/// `refs.tree`. In the narrow layout there is no top, as there is no box: the button of the filter is at the top of the
+/// `refs.tree`. Narrowed to its icons there is no top, as there is no box: the button of the filter is at the top of the
 /// icons.
 ///
 /// Feature: branch.pane
@@ -34,7 +34,7 @@ pub(crate) fn pane_view(
     ui: &mut Ui<'_>,
 ) -> (Vec<Intent>, Option<(HoverTarget, Duration)>) {
     let rect = ui.current_clip();
-    if is_narrow(ui) {
+    if is_icon_rail(rect.width) {
         return rail_view(state, ui);
     }
     let theme = *ui.theme();

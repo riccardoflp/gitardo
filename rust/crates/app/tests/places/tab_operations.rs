@@ -46,8 +46,8 @@ fn until_ended(driver: &OperationsDriver, state: &mut State) {
 fn is_running(state: &State, place: usize) -> bool {
     let data = ViewData::new(state, Vec::new(), 0);
     data.window_state(state)
-        .tabs
-        .is_some_and(|tabs| tabs.tabs.get(place).is_some_and(|tab| tab.is_running))
+        .side
+        .is_some_and(|side| side.tabs.tabs.get(place).is_some_and(|tab| tab.is_running))
 }
 
 #[test]

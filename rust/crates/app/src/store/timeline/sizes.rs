@@ -1,7 +1,8 @@
-//! The sizes of the panes of the workspace (`graph.resize-panes`, `graph.resize-graph`, `graph.toggle-references`),
+//! The sizes of the panes of the workspace (`graph.resize-panes`, `graph.resize-graph`, `graph.toggle-references`,
+//! `repo.side-column`),
 //! kept between runs, and the switches of the timeline in **…**, written in the user's settings file.
 
-use views::graph::{GraphIntent, Pane, TimelineSwitch};
+use views::graph::{GraphIntent, Pane, SideSection, TimelineSwitch};
 
 use super::super::message::Effect;
 use super::super::state::State;
@@ -25,8 +26,20 @@ pub fn workspace_panes(state: &State) -> WorkspacePanes {
         })
 }
 
-/// A pane resized, the graph's width dragged, or the branch rail put away or brought back: kept for the workspace.
+/// A pane resized, the graph's width dragged, the side column put away or brought back, or a section of it folded:
+/// kept for the workspace. The side column opened over the timeline in the narrow layout is not kept.
 pub fn resize(state: &mut State, intent: &GraphIntent) -> Vec<Effect> {
+    match intent {
+        GraphIntent::OpenSideColumn => {
+            state.is_side_column_over = true;
+            return Vec::new();
+        }
+        GraphIntent::CloseSideColumn => {
+            state.is_side_column_over = false;
+            return Vec::new();
+        }
+        _ => {}
+    }
     if state.workspace.is_none() {
         return Vec::new();
     }
@@ -34,6 +47,11 @@ pub fn resize(state: &mut State, intent: &GraphIntent) -> Vec<Effect> {
     match intent {
         GraphIntent::SetGraphWidth(width) => panes.graph_width = *width,
         GraphIntent::SetPane(Pane::Rail, size) => panes.sizes.rail = *size,
+        GraphIntent::SetPane(Pane::Repositories, size) => panes.sizes.repositories = *size,
+        GraphIntent::FoldSection(SideSection::Repositories) => {
+            panes.is_repositories_folded = !panes.is_repositories_folded;
+        }
+        GraphIntent::FoldSection(SideSection::Branches) => panes.is_branches_folded = !panes.is_branches_folded,
         GraphIntent::SetPane(Pane::Inspector, size) => panes.sizes.inspector = *size,
         GraphIntent::SetPane(Pane::InspectorOver, size) => panes.sizes.inspector_over = *size,
         GraphIntent::SetPane(Pane::FilesTree, size) => panes.sizes.files_tree = *size,

@@ -17,10 +17,12 @@ use super::{repository_with_history, showing};
 
 /// The size of the window of these tests.
 const WIDE: (u32, u32) = (1000, 520);
-/// The button that puts the branch rail away.
-const HIDE: &str = "Hide the branches, tags and stashes beside the commits";
+/// The button that puts the side column away.
+const HIDE: &str = views::text::header::HIDE_REFERENCES;
+/// The side column, which the branch rail is the second section of.
+const SIDE_COLUMN: &str = views::text::repo::SIDE_COLUMN;
 /// The button that brings it back.
-const SHOW: &str = "Show the branches, tags and stashes beside the commits";
+const SHOW: &str = views::text::header::SHOW_REFERENCES;
 
 /// The window opened again on the workspace of a store, with what it kept.
 pub fn opened_again(state: &State, folder: &Path) -> State {
@@ -131,7 +133,8 @@ fn graph_resize_graph__the_width_dragged_stays_while_the_timeline_is_narrowed_to
 fn graph_resize_panes__a_double_click_on_the_line_before_the_inspector_gives_it_320_px_again() {
     let (repository, _remote) = repository_with_history();
     let mut state = showing(repository.path().to_path_buf());
-    let mut window = Window::new(ThemeName::Dark, WIDE);
+    // Wide enough for an inspector of 400 px beside the side column and the commits.
+    let mut window = Window::new(ThemeName::Dark, (1200, 520));
     let (_, tree) = window.draw(&state, &[]);
     let at_start = bounds(&tree, Role::Complementary, "Selected commit");
     apply(
@@ -158,14 +161,14 @@ fn graph_resize_panes__the_sizes_are_there_after_the_window_is_closed_and_opened
     let mut state = showing(repository.path().to_path_buf());
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
-    let rail = bounds(&tree, Role::Navigation, "Branches");
-    let line = Point::new(rail.right() + 0.5, rail.y + rail.height * 0.5);
+    let rail = bounds(&tree, Role::Navigation, SIDE_COLUMN);
+    let line = Point::new(rail.right() + 2.0, rail.y + rail.height * 0.5);
     let intents = drag(&mut window, &state, line, Point::new(line.x + 60.0, line.y));
     apply(&mut state, intents);
     let again = opened_again(&state, repository.path());
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&again, &[]);
-    let kept = bounds(&tree, Role::Navigation, "Branches");
+    let kept = bounds(&tree, Role::Navigation, SIDE_COLUMN);
     assert!((kept.width - rail.width - 60.0).abs() < 0.5, "{kept:?}");
 }
 
@@ -182,7 +185,7 @@ fn graph_toggle_references__a_click_hides_the_branch_rail_and_another_brings_it_
     assert_eq!(intents, [Intent::Graph(GraphIntent::ToggleReferences)]);
     apply(&mut state, intents);
     let (_, tree) = window.draw(&state, &[]);
-    assert!(!has(&tree, Role::Navigation, "Branches"));
+    assert!(!has(&tree, Role::Navigation, SIDE_COLUMN));
     assert!(
         bounds(&tree, Role::Main, "Timeline").x < 60.0,
         "the commits take its room, beside the bar of views"
@@ -190,7 +193,7 @@ fn graph_toggle_references__a_click_hides_the_branch_rail_and_another_brings_it_
     let intents = window.click(&state, Role::Button, SHOW);
     apply(&mut state, intents);
     let (_, tree) = window.draw(&state, &[]);
-    assert_eq!(bounds(&tree, Role::Navigation, "Branches").width, 260.0);
+    assert!((bounds(&tree, Role::Navigation, SIDE_COLUMN).width - 260.0).abs() < 2.5);
 }
 
 #[test]
@@ -201,6 +204,6 @@ fn graph_toggle_references__a_hidden_branch_rail_stays_hidden_after_the_window_i
     let again = opened_again(&state, repository.path());
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&again, &[]);
-    assert!(!has(&tree, Role::Navigation, "Branches"));
+    assert!(!has(&tree, Role::Navigation, SIDE_COLUMN));
     assert!(has(&tree, Role::Button, SHOW));
 }

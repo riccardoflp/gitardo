@@ -12,16 +12,16 @@ use views::branch::ReferenceMenus;
 use views::file_view::FilePageState;
 use views::filter::NarrowedBar;
 use views::graph::{
-    BranchChip, Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, ReferencesShown, RepositoryEntry,
-    SyncCounts, TimelineMenu, ToolbarState, TraceShown,
+    Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, RepositoryEntry, SyncCounts, TimelineMenu,
+    ToolbarState, TraceShown, WhereState,
 };
 use views::log::{LogLine, LogState};
 use views::page::{Page, PageHostState, PageState};
 use views::panel::BottomPanelState;
-use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState};
+use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, SideColumnState, SideSections};
 use views::settings::{SettingRow, SettingsPageState, ThemePickerState};
 use views::welcome::WelcomeState;
-use views::{Content, TimelineState, WindowState};
+use views::{Content, SidePlace, TimelineState, WindowState};
 
 use super::search::{self, view as search_view};
 use super::state::{Dialog, Shown, State};
@@ -144,7 +144,12 @@ impl ViewData {
     pub fn window_state<'a>(&'a self, state: &'a State) -> WindowState<'a> {
         WindowState {
             view_bar: view_bar(state),
-            tabs: self.tabs.island(state),
+            side: self.side_column(state),
+            side_place: SidePlace {
+                width: self.panes.sizes.rail,
+                is_hidden: self.panes.is_rail_hidden,
+                is_open_over: state.is_side_column_over,
+            },
             tabs_picker: self.tabs.picker(state),
             header: self.header(state),
             status: StatusBarState {
@@ -183,6 +188,25 @@ impl ViewData {
         }
     }
 
+    /// The side column, once a workspace is open: its repositories, and the branch rail of the repository shown once it
+    /// is read (`repo.side-column`).
+    fn side_column<'a>(&'a self, state: &'a State) -> Option<SideColumnState<'a>> {
+        let tabs = self.tabs.island(state)?;
+        let branches = match state.workspace.as_ref().map(|workspace| &workspace.shown) {
+            Some(Shown::Read(read)) => Some(Box::new(rail(state, read, self.now))),
+            _ => None,
+        };
+        Some(SideColumnState {
+            tabs,
+            branches,
+            sections: SideSections {
+                repositories_height: self.panes.sizes.repositories,
+                is_repositories_folded: self.panes.is_repositories_folded,
+                is_branches_folded: self.panes.is_branches_folded,
+            },
+        })
+    }
+
     /// The bottom panel, while it is shown.
     fn panel<'a>(&'a self, state: &'a State) -> Option<BottomPanelState<'a>> {
         let look = super::panel::look(state);
@@ -202,9 +226,9 @@ impl ViewData {
         let read = state.shown_read().map(|read| read.state.as_ref());
         let upstream = read.and_then(checked_out_upstream);
         ToolbarState {
-            branch: read.map(|repository| BranchChip {
-                head: head_name(repository),
-                upstream,
+            place: self.tabs.island(state).map(|tabs| WhereState {
+                tabs: tabs.tabs,
+                head: read.map(head_name),
                 folder: &self.folder,
             }),
             sync: read.map(|_| {
@@ -233,9 +257,6 @@ impl ViewData {
                 },
                 active_file: state.file_in_front(),
             },
-            references: read.map(|_| ReferencesShown {
-                is_shown: !self.panes.is_rail_hidden,
-            }),
             quick: self.search.quick(state),
         }
     }
@@ -343,7 +364,6 @@ impl ViewData {
         let shown = state.workspace.as_ref().map(|workspace| &workspace.shown);
         match shown {
             Some(Shown::Read(read)) => TimelineState::Repository {
-                rail: Box::new(rail(state, read, self.now)),
                 graph: GraphState::Listed(Box::new(self.history(state, read.state.head.commit.is_none()))),
                 inspector: Box::new(super::inspector::details_state(
                     state,
@@ -351,7 +371,6 @@ impl ViewData {
                 )),
                 panes: self.panes.sizes,
                 filter: Box::new(branch_picker(state)),
-                is_rail_hidden: self.panes.is_rail_hidden,
                 bar: state.timeline.shown.as_ref().map(|shown| NarrowedBar {
                     shown,
                     listed: state

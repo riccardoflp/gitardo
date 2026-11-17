@@ -1,23 +1,23 @@
-//! The island between the branch rail and the inspector: the search, the banners and the commits, or the Diff
-//! page beside the inspector (`diff.beside-inspector`).
+//! The island between the side column and the inspector: the button of the side column, the branch filter, the search,
+//! the banners and the commits, or the Diff page beside the inspector (`diff.beside-inspector`).
 
 use ui::layout::{Area, Insets, inset};
 use ui::{Rect, Ui};
 
 use crate::bisect::banner_view;
 use crate::filter::{BranchPicker, bar_height, bar_view, picker_button_width, picker_view};
-use crate::graph::{GraphState, HoverTarget, view as graph_view};
+use crate::graph::{GraphState, HoverTarget, ReferencesShown, toggle_references_view, view as graph_view};
 use crate::intent::Intent;
 use crate::line::control_in;
 use crate::search::{SearchBox, list_mode_view};
 
 use super::{SEARCH_BOX_ROOM, TimelineState};
 
-/// What the island between the branch rail and the inspector holds: the Diff page beside the inspector when a file of
-/// it is open (`diff.beside-inspector`), else the search, the banners and the commits.
+/// What the island between the side column and the inspector holds: the Diff page beside the inspector when a file of
+/// it is open (`diff.beside-inspector`), else the top row, the banners and the commits.
 pub(super) fn main_island(
     state: &TimelineState<'_>,
-    rail_hover: Option<(HoverTarget, std::time::Duration)>,
+    (rail_hover, side): (Option<(HoverTarget, std::time::Duration)>, Option<ReferencesShown>),
     ui: &mut Ui<'_>,
     rect: Rect,
     intents: &mut Vec<Intent>,
@@ -36,7 +36,7 @@ pub(super) fn main_island(
         intents.extend(crate::diff::beside_inspector_view(beside, ui));
         return;
     }
-    let main = search_row((&search.0, filter), ui, rect, intents);
+    let main = search_row((&search.0, filter, side), ui, rect, intents);
     let mut main = Area::new(main);
     banners(state, ui, &mut main, intents);
     let graph = with_rail_hover(graph, rail_hover);
@@ -93,10 +93,11 @@ pub(super) fn with_rail_hover<'a>(
     }
 }
 
-/// The branch filter and the search box at the top of the timeline; gives what is left under them, for the bar of what
-/// the timeline is narrowed to and the commits.
+/// The top row of the timeline: the button that puts the side column away and brings it back
+/// (`graph.toggle-references`), the branch filter and the search box; gives what is left under them, for the bar of
+/// what the timeline is narrowed to and the commits.
 pub(super) fn search_row(
-    (search_box, filter): (&SearchBox<'_>, &BranchPicker<'_>),
+    (search_box, filter, side): (&SearchBox<'_>, &BranchPicker<'_>, Option<ReferencesShown>),
     ui: &mut Ui<'_>,
     main: Rect,
     intents: &mut Vec<Intent>,
@@ -107,6 +108,12 @@ pub(super) fn search_row(
     let top = area.top(theme.sizes.control_height + 2.0 * spacing.medium);
     let row = inset(top, Insets::symmetric(spacing.medium, spacing.medium));
     let mut parts = Area::with_gap(row, spacing.medium);
+    if let Some(side) = side {
+        let button_width = theme.sizes.control_height;
+        let cell = control_in(ui, parts.left(button_width), button_width);
+        intents.extend(ui.clip(cell, |ui| toggle_references_view(&side, ui)));
+    }
+    let row = parts.rest();
     // The filter gives up its words where the search box would have less than its room beside them.
     let words = picker_button_width(filter, ui);
     let width = if row.width - words < SEARCH_BOX_ROOM {

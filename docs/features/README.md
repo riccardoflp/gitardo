@@ -56,8 +56,8 @@ earns it.
 | [`activity.said`](01-repositories.md#activitysaid--what-was-said-in-the-status-bar) | What was said, in the status bar | View | Specified | Host only |
 | [`activity.what-is-running`](01-repositories.md#activitywhat-is-running--what-is-running-in-the-activity-drawer) | What is running, in the Activity drawer | View | Built | Built |
 | [`welcome.page`](01-repositories.md#welcomepage--the-welcome-page) | The Welcome page | View | Built | Host only |
-| [`repo.tabs`](01-repositories.md#repotabs--the-repositories-open-in-the-side-column) | The repositories open, in the side column | View | Specified | Host only |
-| [`repo.side-column`](01-repositories.md#reposide-column--the-side-column-of-repositories-and-branches) | The side column of repositories and branches | View | Specified | Host only |
+| [`repo.tabs`](01-repositories.md#repotabs--the-repositories-open-in-the-side-column) | The repositories open, in the side column | View | Built | Host only |
+| [`repo.side-column`](01-repositories.md#reposide-column--the-side-column-of-repositories-and-branches) | The side column of repositories and branches | View | Built | Host only |
 | [`repo.worktree-summary`](01-repositories.md#repoworktree-summary--what-a-repository-or-a-worktree-is-on) | What a repository or a worktree is on | Read | Specified | Host only |
 | [`repo.open-tab`](01-repositories.md#repoopen-tab--open-a-repository-in-a-tab) | Open a repository in a tab | Operation | Built | Host only |
 | [`repo.choose-tabs`](01-repositories.md#repochoose-tabs--choose-the-repositories-a-workspace-opens) | Choose the repositories a workspace opens | Operation | Built | Host only |
@@ -79,7 +79,7 @@ earns it.
 | [`graph.read-position`](02-graph.md#graphread-position--where-a-commit-is-in-the-history-listed) | Where a commit is in the history listed | Read | Built | Built |
 | [`graph.view`](02-graph.md#graphview--the-timeline) | The timeline | View | Built | Built |
 | [`graph.toolbar`](02-graph.md#graphtoolbar--the-header) | The header | View | Built | Built |
-| [`graph.where`](02-graph.md#graphwhere--where-one-is-in-the-header) | Where one is, in the header | View | Specified | Host only |
+| [`graph.where`](02-graph.md#graphwhere--where-one-is-in-the-header) | Where one is, in the header | View | Built | Host only |
 | [`graph.search-button`](02-graph.md#graphsearch-button--the-button-of-quick-search) | The button of Quick search | View | Built | Host only |
 | [`graph.islands`](02-graph.md#graphislands--the-islands-of-the-window) | The islands of the window | View | Built | Built |
 | [`graph.view-bar`](02-graph.md#graphview-bar--the-bar-of-views) | The bar of views | View | Built | Host only |

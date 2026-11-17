@@ -260,8 +260,8 @@ fn tabs_listed(state: &State) -> Vec<(String, bool)> {
     let data = view_data(state);
     let window = data.window_state(state);
     window
-        .tabs
-        .map_or_default(|tabs| tabs.tabs)
+        .side
+        .map_or_default(|side| side.tabs.tabs)
         .iter()
         .map(|tab| (tab.name.clone(), tab.is_shown))
         .collect()
@@ -270,8 +270,9 @@ fn tabs_listed(state: &State) -> Vec<(String, bool)> {
 /// The folder of the repository the timeline shows, once read.
 fn timeline_folder(state: &State) -> Option<PathBuf> {
     let data = view_data(state);
-    match data.window_state(state).content {
-        Content::Timeline(TimelineState::Repository { rail, .. }) => Some(rail.repository.folder.clone()),
+    let window = data.window_state(state);
+    match (window.content, window.side.and_then(|side| side.branches)) {
+        (Content::Timeline(TimelineState::Repository { .. }), Some(rail)) => Some(rail.repository.folder.clone()),
         _ => None,
     }
 }

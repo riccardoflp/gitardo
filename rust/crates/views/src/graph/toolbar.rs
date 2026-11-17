@@ -1,14 +1,14 @@
-//! The header (`graph.toolbar`): the branch checked out and how far it is from its upstream, **Search**, Sync and the
-//! **…** menu, in the island under the tabs (D21, D50).
+//! The header (`graph.toolbar`): where one is (`graph.where`), **Search**, Sync and the **…** menu, in a bar on the
+//! ground across the top of the window, always shown (D56).
 
 use std::path::PathBuf;
 
 use ui::layout::{Area, Insets, inset};
-use ui::{AccessRole, Button, ButtonKind, Description, Label, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, Ui};
 
+use super::location::{WhereState, where_view};
 use super::more_menu::{MoreMenuState, more_menu_view};
 use super::sync_menu::{SyncWords, sync_entries, sync_intent};
-use super::toggle::{ReferencesShown, toggle_references_view};
 use crate::icons;
 use crate::intent::Intent;
 use crate::line::{control_in, is_narrow};
@@ -18,16 +18,14 @@ use crate::text::header as words;
 /// What the header shows.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ToolbarState<'a> {
-    /// What is checked out, once the repository is read.
-    pub branch: Option<BranchChip<'a>>,
+    /// Where one is: the repository, the worktree and the branch shown, once a workspace is open.
+    pub place: Option<WhereState<'a>>,
     /// How many commits Sync would bring and send, once the repository is read and its branch has an upstream.
     pub sync: Option<SyncCounts>,
     /// What **Sync** and its menu may run, once the repository is read.
     pub sync_menu: Option<SyncMenu>,
     /// What the **…** menu offers.
     pub more: MoreMenuState,
-    /// Whether the branch rail is shown, once a repository is: the first button puts it away.
-    pub references: Option<ReferencesShown>,
     /// Quick search.
     pub quick: search::QuickSearchState<'a>,
 }
@@ -41,17 +39,6 @@ pub struct RepositoryEntry {
     pub folder: PathBuf,
     /// Whether it is the one shown.
     pub is_current: bool,
-}
-
-/// What is checked out, as the branch of the header names it (`activity.status-bar`).
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BranchChip<'a> {
-    /// The branch, or how `HEAD` stands without one.
-    pub head: HeadName<'a>,
-    /// How far the branch is from its upstream, `(ahead, behind)`, when it has one.
-    pub upstream: Option<(u32, u32)>,
-    /// The folder of the repository, for the tooltip.
-    pub folder: &'a str,
 }
 
 /// What `HEAD` is.
@@ -85,77 +72,28 @@ pub struct SyncCounts {
     pub ahead: u32,
 }
 
-/// The header, over the rectangle its caller clipped it to: the button of the branch rail, the branch checked out,
-/// then at its end **Search**, **Sync** with its menu and **…**. In a narrow window each keeps its icon and
-/// gives up its words.
+/// The header, over the rectangle its caller clipped it to, on the ground of the window: where one is, then at its end
+/// **Search**, **Sync** with its menu and **…**. In a narrow window each keeps its icon and gives up its words.
 ///
 /// Feature: graph.toolbar
 pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut intents = Vec::new();
     let rect = ui.current_clip();
     let theme = *ui.theme();
-    ui.fill_rect(rect, theme.colors.header_background);
     ui.region("header", (rect, AccessRole::Header, words::HEADER), |ui| {
         let spacing = theme.sizes.spacing;
-        let inner = inset(rect, Insets::symmetric(spacing.medium, 0.0));
+        let inner = inset(rect, Insets::symmetric(spacing.small, 0.0));
         let mut area = Area::with_gap(inner, spacing.large);
-        if let Some(references) = &state.references {
-            let side = theme.sizes.control_height;
-            let rect = control_in(ui, area.left(side), side);
-            intents.extend(ui.clip(rect, |ui| toggle_references_view(references, ui)));
-        }
-        if let Some(branch) = &state.branch {
-            branch_chip(branch, ui, &mut area);
-        }
         more_button(state.more, ui, &mut area, &mut intents);
         sync_button((state.sync, state.sync_menu), ui, &mut area, &mut intents);
         let width = search::search_button_width(ui);
         let cell = control_in(ui, area.right(width), width);
         intents.extend(ui.clip(cell, |ui| search::quick_search_view(&state.quick, ui)));
+        if let Some(place) = &state.place {
+            intents.extend(ui.clip(area.rest(), |ui| where_view(place, ui)));
+        }
     });
     intents
-}
-
-/// The words of the branch of the header.
-fn head_words(head: HeadName<'_>) -> String {
-    match head {
-        HeadName::Branch(name) => name.to_owned(),
-        HeadName::Detached(short) => words::detached_at(short),
-        HeadName::NoCommits => words::NO_COMMITS_YET.to_owned(),
-    }
-}
-
-/// The branch checked out and how far it is from its upstream, with the folder of the repository in its tooltip.
-/// Picking another branch from it comes with the everyday operations.
-fn branch_chip(branch: &BranchChip<'_>, ui: &mut Ui<'_>, area: &mut Area) {
-    let theme = *ui.theme();
-    let spacing = theme.sizes.spacing;
-    let name = head_words(branch.head);
-    let distance = branch
-        .upstream
-        .map(|(ahead, behind)| words::upstream_distance(ahead, behind));
-    let shows_distance = !is_narrow(ui) && distance.is_some();
-    let name_width = ui.measure(&name, ui.text_style(TextKind::Medium));
-    let distance_width = match (&distance, shows_distance) {
-        (Some(words), true) => ui.measure(words, ui.text_style(TextKind::Detail)) + spacing.medium,
-        _ => 0.0,
-    };
-    let width = theme.sizes.icon + spacing.medium + name_width + distance_width + 2.0 * spacing.medium;
-    let rect = control_in(ui, area.left(width), width);
-    let id = ui.id("branch chip");
-    let response = ui.interact(id, rect, ui::Sense::HOVER);
-    let mut parts = Area::with_gap(inset(rect, Insets::symmetric(spacing.medium, 0.0)), spacing.medium);
-    ui.icon_in(parts.left(theme.sizes.icon), icons::BRANCH, Tone::Lane(0));
-    let _ = ui.label(parts.left(name_width), &Label::new(&name).kind(TextKind::Medium));
-    if let (Some(words), true) = (&distance, shows_distance) {
-        let _ = ui.label(
-            parts.rest(),
-            &Label::new(words).kind(TextKind::Detail).tone(Tone::Muted),
-        );
-    }
-    let description = Description::new(AccessRole::Label, &name).value(distance.as_deref().unwrap_or_default());
-    ui.describe(id, rect, &description);
-    ui.tooltip(&response, branch.folder);
 }
 
 /// Sync, with how many commits it would bring and send, which runs a fetch, a pull and a push (`sync.sync`); and the

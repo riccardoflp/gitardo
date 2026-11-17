@@ -88,8 +88,8 @@ inspector of the selected commit: what the window shows while no page is open, a
   `filter.bar`, `details.show`, `selection.select`, `drag.drop`, `commit-page.open`, `branch.open`.
 
 - From left to right: the branch rail (`refs.tree`), the commits, the inspector of the selected commit (`details.show`).
-  When the window is too narrow to have them side by side, the branch rail is narrowed to its icons and the inspector
-  opens over the commits. There, a commit with more than three labels names two of them, what is checked out first, and
+  When the window is too narrow to have them side by side, the side column is put away, its button at the top of the
+  timeline opening it over the commits (`repo.side-column`), and the inspector opens over the commits (Q501). There, a commit with more than three labels names two of them, what is checked out first, and
   counts the others, `+3`, with their names in the tooltip of the count.
 - Above the commits, in this order: the banner of a worktree (`worktree.`), of an operation stopped half way
   (`conflicts.`, `rebase.`), of a bisect (`bisect.`), the bar of what the timeline is narrowed to (`filter.bar`) and
@@ -113,8 +113,8 @@ Acceptance:
 - [ ] A repository with `main`, `feature` and a tag `v1.0` lists the commits of all three, the newest first, with a
       label at each tip.
 - [ ] The label of the branch checked out is filled; the others are outlined in the color of their commit's line.
-- [ ] Narrowing the window under the width of the branch rail, the commits and the inspector narrows the branch rail
-      to its icons and opens the inspector over the commits.
+- [ ] Narrowing the window under the width of the side column, the commits and the inspector puts the side column
+      away and opens the inspector over the commits (Q501).
 - [ ] A double click on a commit opens its page; on the label of a branch that is not checked out, checks it out.
 - [ ] In a new repository with no commits and no changes, the list says **No commits yet**.
 - [ ] Scrolling a list of 50,000 commits draws only the rows in sight.
@@ -393,7 +393,7 @@ own dash.
 | The bar of views: Timeline, Changes, Files, Compare, Terminal, Activity, Settings | `git-graph`, `file-diff`, `folder-tree`, `git-compare-arrows`, `square-terminal`, `activity`, `settings` |
 | Command log | `scroll-text` |
 | Folder; file; open the file; open its changes; open all the changes | `folder`, `file`, `file-text`, `file-diff`, `files` |
-| Worktree; submodule | `folder-git-2`, `boxes` |
+| Worktree, and a repository open in **Repositories** (Q502); submodule | `folder-git-2`, `boxes` |
 | Stash; apply; pop | `archive`, `archive-restore`, `package-open` |
 | Favorite; recent | `star`, `clock` |
 | History of a file or a folder | `history` |

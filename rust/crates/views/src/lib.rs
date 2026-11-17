@@ -60,4 +60,4 @@ pub mod worktree_setup;
 pub use intent::{FilterIntent, FolderAnswer, Intent, Notice, RailIntent, RailList, RailLists};
 pub use islands::island;
 pub use view_bar::{ViewBarState, ViewShown, view_bar_view};
-pub use window::{Content, FeatureDialog, TimelineState, WindowState, view};
+pub use window::{Content, FeatureDialog, SidePlace, TimelineState, WindowState, view};

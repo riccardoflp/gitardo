@@ -95,8 +95,26 @@ pub fn reduce(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::CloseTab(index) => close_tab(state, index),
         Intent::CloseOtherTabs(index) => close_other_tabs(state, index),
         Intent::CloseTabShown => state.tabs.shown.map_or_default(|shown| close_tab(state, shown)),
+        Intent::RevealTab(index) => reveal_tab(state, index),
         _ => Vec::new(),
     }
+}
+
+/// Shows the folder of the tab shown in the file manager of the system, as `worktree.reveal` does for its worktree;
+/// the menu of a row not shown does not offer it.
+fn reveal_tab(state: &mut State, index: usize) -> Vec<Effect> {
+    let Some(folder) = state
+        .shown_folder()
+        .cloned()
+        .filter(|_| state.tabs.shown == Some(index))
+    else {
+        return Vec::new();
+    };
+    let run = views::feature::FeatureIntent::Run(
+        model::contract::FeatureId("worktree.reveal"),
+        model::contract::Target::Worktree(folder),
+    );
+    super::reduce(state, Message::Intent(Intent::Feature(run)))
 }
 
 /// Marks the tab of the repository shown as the one shown, after a repository was chosen without the tabs.

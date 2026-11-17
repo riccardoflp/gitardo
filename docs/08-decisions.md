@@ -2863,3 +2863,27 @@ reading given until the card says otherwise.
 - **Q438** — `graph.load-more`: the bar along the top of the list ran while a page was read. Recommended: it runs
   until the first page of a read is there; while the rest is read, the last row says **Loading more commits…**, as it
   does while there are more.
+
+### Of the side column and the pages beside, from Q500
+
+Questions of phases 7 to 11 of milestone M16
+([D56](#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)),
+each built with the reading given until the card says otherwise.
+
+- **Q500** — `activity.status-bar`: its last acceptance line asked the branch of the header to say `main ↑2 ↓0`, which
+  D56 and `graph.where` take away. Built: the line now asks that the header name `main` without how far it is, and that
+  **Sync** say `↑2`.
+- **Q501** — `graph.view`: in the narrow layout the branch rail was narrowed to its icons, where `repo.side-column` puts
+  the side column away. Built: below 900 logical pixels the side column is put away and its button opens it over the
+  timeline, as wide as it was; the rail shows its icons only when it is narrower than 120 logical pixels, which the
+  side column never is.
+- **Q502** — `repo.tabs`: the row of a repository has "the icon of a repository", which the table of `graph.icons` does
+  not have. Built: the icon of a worktree, `folder-git-2`, whose line of the table now says a repository open too: a
+  repository open is the folder of its main worktree, and no other outline is added.
+- **Q503** — `repo.tabs`: **Reveal in the file manager** in the menu of a row not shown would run in a repository the
+  window has not read. Built: the menu of the row shown has it, as `worktree.reveal` does; **Copy path** is on every
+  row and copies the folder of what the row shows.
+- **Q504** — `repo.side-column`: in the narrow layout, **Toggle the Side Column** in Quick search has no button to open
+  the column over. Built: the button at the top of the timeline opens it over the timeline and closes it; Quick search
+  puts it away or brings it back, which is seen once the window is wide again. **Repositories** starts at 160 logical
+  pixels with its heading.

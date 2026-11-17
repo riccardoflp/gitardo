@@ -143,7 +143,10 @@ fn file_view_find__with_match_case_on_parse_with_a_capital_does_not_match_parse(
 
 #[test]
 fn file_view_find__an_invalid_regular_expression_says_so_and_marks_nothing() {
-    let (_repository, mut state, mut window) = page_of(&parse_twelve_times());
+    let (_repository, mut state, _) = page_of(&parse_twelve_times());
+    // Wide enough for every switch of the bar beside the side column.
+    let mut window = Window::new(ThemeName::Dark, (1260, 600));
+    let _ = step(&mut window, &mut state, &[]);
     let _ = step(&mut window, &mut state, &[shortcut('f', Modifiers::CONTROL)]);
     let _ = step(&mut window, &mut state, &[]);
     let _ = step(&mut window, &mut state, &[typed("parse(")]);

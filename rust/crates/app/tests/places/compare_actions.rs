@@ -32,6 +32,22 @@ fn click(driver: &OperationsDriver, state: &mut State, name: &str) {
     }
 }
 
+/// Clicks a button of the comparison page, the rightmost of that name: the branch rail beside it has one too.
+fn click_in_page(driver: &OperationsDriver, state: &mut State, name: &str) {
+    let mut window = Window::new(ThemeName::Dark, (1200, 900));
+    let (_, tree) = window.draw(state, &[]);
+    let at = tree
+        .nodes
+        .iter()
+        .filter(|(_, node)| node.role() == Role::Button && node.label() == Some(name))
+        .filter_map(|(_, node)| node.bounds().map(super::pointer::rect))
+        .max_by(|one, other| one.x.total_cmp(&other.x))
+        .unwrap_or_else(|| panic!("no button {name}"));
+    for intent in super::pointer::click_at(&mut window, state, super::pointer::middle(at), 1) {
+        driver.intent(state, intent);
+    }
+}
+
 /// Waits until the operation running ends, confirming its plan, and gives what it did after.
 fn after_it_ended(driver: &OperationsDriver, state: &mut State) -> Vec<FollowUp> {
     loop {
@@ -90,7 +106,7 @@ fn compare_change_side__choosing_release_in_place_of_main_compares_it_with_featu
     repository.branch("release");
     let (mut state, driver) = compared(&repository, ("ref:main", "ref:feature"));
     let id = page_id(&state);
-    click(&driver, &mut state, "main");
+    click_in_page(&driver, &mut state, "main");
     loop {
         if let Message::FeatureAsks(_) = driver.next(&mut state) {
             break;

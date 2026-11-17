@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use model::repo::TabGroup;
 use model::state::Worktree;
-use views::repo::TabMemberEntry;
+use views::repo::{TabMemberEntry, TabPlace};
 use views::text::repo as words;
 
 use super::super::state::{Shown, State};
@@ -20,6 +20,9 @@ pub(super) struct TabShows<'a> {
     pub members: Vec<TabMemberEntry>,
     /// The name of the worktree or the submodule it shows, put after its own name; none while it shows its own.
     pub shown_label: Option<String>,
+    /// The worktree or the submodule it shows, as the header says it: the name of the worktree's folder or the path of
+    /// the submodule; none while it shows its own folder.
+    pub place: Option<TabPlace>,
     /// The tab.
     tab: &'a Tab,
 }
@@ -39,30 +42,25 @@ impl<'a> TabShows<'a> {
             folder,
             members: Vec::new(),
             shown_label: None,
+            place: None,
             tab,
         };
         let Some(group) = group else {
             return shows;
         };
         let worktrees = shows.worktrees(state, is_shown, group);
-        let mut members = vec![TabMemberEntry {
-            label: name.to_owned(),
-            folder: tab.folder.clone(),
-            depth: 0,
-            is_shown: same_folder(&shows.folder, &tab.folder),
-        }];
+        let mut members = vec![member(
+            name.to_owned(),
+            (tab.folder.clone(), 0),
+            same_folder(&shows.folder, &tab.folder),
+        )];
         for worktree in worktrees {
             let is_shown = same_folder(&shows.folder, &worktree.folder);
             if is_shown {
                 let branch = worktree.branch.as_deref().map(short_branch);
                 shows.shown_label = Some(branch.map_or_else(|| folder_name(&worktree.folder), str::to_owned));
             }
-            members.push(TabMemberEntry {
-                label: worktree_entry(&worktree),
-                folder: worktree.folder,
-                depth: 0,
-                is_shown,
-            });
+            members.push(member(worktree_entry(&worktree), (worktree.folder, 0), is_shown));
         }
         for submodule in group.members.iter().filter(|member| member.superproject.is_some()) {
             let label = path_from(&tab.folder, &submodule.folder);
@@ -70,12 +68,8 @@ impl<'a> TabShows<'a> {
             if is_shown {
                 shows.shown_label = Some(label.clone());
             }
-            members.push(TabMemberEntry {
-                label,
-                folder: submodule.folder.clone(),
-                depth: depth(group, &submodule.folder),
-                is_shown,
-            });
+            let depth = depth(group, &submodule.folder);
+            members.push(member(label, (submodule.folder.clone(), depth), is_shown));
         }
         if shows.shown_label.is_none() && !same_folder(&shows.folder, &tab.folder) {
             shows.shown_label = Some(folder_name(&shows.folder));
@@ -83,6 +77,7 @@ impl<'a> TabShows<'a> {
         if members.len() > 1 {
             shows.members = members;
         }
+        shows.place = place_of(group, &tab.folder, &shows.folder);
         shows
     }
 
@@ -127,6 +122,38 @@ impl<'a> TabShows<'a> {
             .filter(|worktree| !worktree.is_missing && !same_folder(&worktree.folder, &self.tab.folder))
             .collect()
     }
+}
+
+/// An entry of the **▾** of a tab, by its label, its folder and how many submodules it is inside, and whether the tab
+/// shows it; what it is on comes from its own read.
+fn member(label: String, (folder, depth): (PathBuf, usize), is_shown: bool) -> TabMemberEntry {
+    TabMemberEntry {
+        label,
+        folder,
+        depth,
+        is_shown,
+        summary: None,
+    }
+}
+
+/// The worktree or the submodule a tab shows, when it is not its repository's own folder: a submodule by its path, a
+/// worktree by the name of its folder.
+fn place_of(group: &TabGroup, repository: &Path, shown: &Path) -> Option<TabPlace> {
+    if same_folder(repository, shown) {
+        return None;
+    }
+    let is_submodule = group
+        .members
+        .iter()
+        .any(|member| member.superproject.is_some() && same_folder(&member.folder, shown));
+    Some(TabPlace {
+        name: if is_submodule {
+            path_from(repository, shown)
+        } else {
+            folder_name(shown)
+        },
+        is_submodule,
+    })
 }
 
 /// The name of a tab: its repository's, and the name of the worktree or the submodule it shows after ` › `.

@@ -294,9 +294,12 @@ pub fn reduce_graph(state: &mut State, intent: GraphIntent) -> Vec<Effect> {
             state.timeline.hover_left_at = Some(at);
             Vec::new()
         }
-        GraphIntent::SetGraphWidth(_) | GraphIntent::SetPane(..) | GraphIntent::ToggleReferences => {
-            sizes::resize(state, &intent)
-        }
+        GraphIntent::SetGraphWidth(_)
+        | GraphIntent::SetPane(..)
+        | GraphIntent::ToggleReferences
+        | GraphIntent::OpenSideColumn
+        | GraphIntent::CloseSideColumn
+        | GraphIntent::FoldSection(_) => sizes::resize(state, &intent),
         GraphIntent::Switch(switch, is_on) => sizes::switch(state, switch, is_on),
         GraphIntent::Dropped(dropped) => {
             state.timeline.dropped = Some(dropped);

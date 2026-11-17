@@ -1,9 +1,10 @@
-//! The whole window (D21): the bar of views on its left edge and the status bar at its foot, on the ground of the
-//! window; beside them the islands: the tabs at the top (D50), the header under them, under it the branch rail, the timeline and the inspector, or
-//! a page with its trail; the Activity drawer, the picker of the repositories, the question of an opened folder and a
-//! notice over them. Below about 900 logical pixels the rail shows only icons, the header only its icons and the gaps
-//! between the islands narrow; below about 700 the inspector is not beside the timeline (it opens over it once a
-//! commit can be selected).
+//! The whole window (D21, D56): the bar of views on its left edge, the header across the top on its right and the status
+//! bar at its foot, on the ground of the window; under the header the islands: the side column of the repositories and
+//! the branches, and beside it the timeline and the inspector, or a page with its trail; the Activity drawer, the
+//! picker of the repositories, the question of an opened folder and a notice over them. Below about 900 logical pixels
+//! the side column is put away (its button opens it over the timeline), the header shows only its icons and the gaps
+//! between the islands narrow; below about 700 the inspector is not beside the timeline (it opens over it once a commit
+//! can be selected).
 
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{Button, ButtonKind, Key, Label, Modifiers, NamedKey, Rect, Tone, Ui};
@@ -13,25 +14,30 @@ use crate::bisect::BisectBanner;
 use crate::details::{DetailsState, show};
 use crate::feature::{ConfirmState, QuestionState, SaidState, confirm_view, question_view, said_view};
 use crate::filter::{BranchPicker, NarrowedBar};
-use crate::graph::{GraphState, PaneLayout, PaneSizes, ToolbarState, pane_rects, resize_panes_view, toolbar_view};
+use crate::graph::{
+    GraphIntent, GraphState, HoverTarget, PaneLayout, PaneSizes, ReferencesShown, ToolbarState, pane_rects,
+    resize_panes_view, toolbar_view,
+};
 use crate::icons;
 use crate::intent::{Intent, Notice};
 use crate::islands::{gap, island};
-use crate::line::{ICON_RAIL_WIDTH, INSPECTOR_OVER_BELOW, is_narrow};
+use crate::line::{INSPECTOR_OVER_BELOW, is_narrow};
 use crate::page::Page;
 use crate::page::{PageHostState, host_view};
 use crate::panel::{BottomPanelState, bottom_view, panel_height, panel_shortcut, resize_panel_view, split_column};
-use crate::refs::ReferencesState;
 use crate::repo::{
-    NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, TabsState, no_repository_view,
-    open_folder_question_view, repository_picker_view, tabs_view,
+    NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, SideColumnState, no_repository_view,
+    open_folder_question_view, repository_picker_view,
 };
 use crate::search::{GoToCommitDialog, ListMode, SearchBox, go_to_commit_dialog};
 use crate::settings::{ThemePickerState, theme_picker_view};
 use crate::text::repo as repo_words;
 use crate::view_bar::{VIEW_BAR_WIDTH, ViewBarState, view_bar_view};
 
+mod side;
 mod timeline;
+
+use side::{puts_side_away, side_beside, side_over, side_toggle};
 
 use timeline::main_island;
 
@@ -43,8 +49,10 @@ const SEARCH_BOX_ROOM: f32 = 360.0;
 pub struct WindowState<'a> {
     /// The bar of views, on the left edge.
     pub view_bar: ViewBarState,
-    /// The island of the tabs, at the top, once a workspace is open (`repo.tabs`).
-    pub tabs: Option<TabsState<'a>>,
+    /// The side column of the repositories and the branches, once a workspace is open (`repo.side-column`).
+    pub side: Option<SideColumnState<'a>>,
+    /// Where the side column is: beside what is shown, put away, or over the timeline in the narrow layout.
+    pub side_place: SidePlace,
     /// The header.
     pub header: ToolbarState<'a>,
     /// The status bar, at the foot.
@@ -80,6 +88,26 @@ pub struct WindowState<'a> {
     pub close_file: Option<crate::file_view::CloseQuestion<'a>>,
 }
 
+/// Where the side column is, as the user left it (`graph.toggle-references`, `graph.resize-panes`).
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
+pub struct SidePlace {
+    /// Its width, as dragged; none where it starts.
+    pub width: Option<f32>,
+    /// Whether it is put away.
+    pub is_hidden: bool,
+    /// Whether it is opened over the timeline, in the narrow layout.
+    pub is_open_over: bool,
+}
+
+impl SidePlace {
+    /// Whether the side column is shown: beside what is shown while the window is wide and it is not put away, over the
+    /// timeline while the window is narrow and it was opened over it.
+    #[must_use]
+    pub fn is_shown(self, is_narrow: bool) -> bool {
+        if is_narrow { self.is_open_over } else { !self.is_hidden }
+    }
+}
+
 /// What the operation running shows over the window.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FeatureDialog<'a> {
@@ -101,10 +129,8 @@ pub enum Content<'a> {
 /// The timeline and what is beside it.
 #[derive(Clone, Debug, PartialEq)]
 pub enum TimelineState<'a> {
-    /// A repository, as read: the rail of its references, its commits and the inspector.
+    /// A repository, as read: its commits and the inspector.
     Repository {
-        /// The branch rail.
-        rail: Box<ReferencesState<'a>>,
         /// The commits.
         graph: GraphState<'a>,
         /// The inspector.
@@ -113,8 +139,6 @@ pub enum TimelineState<'a> {
         panes: PaneSizes,
         /// The branch filter, beside the search box at the top of the timeline (`filter.picker`).
         filter: Box<BranchPicker<'a>>,
-        /// Whether the branch rail is put away (`graph.toggle-references`).
-        is_rail_hidden: bool,
         /// The bar above the commits, while the timeline is narrowed to some branches (`filter.bar`).
         bar: Option<NarrowedBar<'a>>,
         /// The search box at the top of the timeline, and the bar of a search shown as a list or of the history of a
@@ -131,7 +155,7 @@ pub enum TimelineState<'a> {
         /// (`diff.beside-inspector`).
         beside: Option<Box<crate::diff::BesideInspectorState<'a>>>,
     },
-    /// No repository to show yet, or none at all: the rail is empty and the timeline says why.
+    /// No repository to show yet, or none at all: the timeline says why.
     NoRepository(NoRepositoryState),
 }
 
@@ -155,28 +179,26 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     );
     intents.extend(ui.clip(bar, |ui| view_bar_view(&state.view_bar, ui)));
     intents.extend(ui.clip(status, |ui| status_bar_view(&state.status, ui)));
-    let islands = inset(
+    let rest = inset(
         area.rest(),
         Insets {
-            top: gap,
             right: gap,
             ..Insets::all(0.0)
         },
     );
-    let mut column = Area::with_gap(islands, gap);
-    if let Some(tabs) = &state.tabs {
-        let rect = column.top(bar_height);
-        intents.extend(island(ui, rect, |ui| tabs_view(tabs, ui)));
-    }
-    // What is under the tabs is the tab's: its widgets remember how far they are scrolled and what is typed in them
-    // apart from those of the other tabs (`repo.keep-open`).
+    let mut column = Area::new(rest);
+    let header = column.top(bar_height);
+    let body = column.rest();
+    // What is right of the bar of views and above the status bar is the tab's: its widgets remember how far they are
+    // scrolled and what is typed in them apart from those of the other tabs (`repo.keep-open`).
     let shown_tab = state
-        .tabs
+        .side
         .as_ref()
-        .and_then(|tabs| tabs.tabs.iter().find(|tab| tab.is_shown))
+        .and_then(|side| side.tabs.tabs.iter().find(|tab| tab.is_shown))
         .map(|tab| tab.folder.as_str());
-    let (body, panel) = ui.scope(("tab", shown_tab), |ui| {
-        tab_islands(state, ui, (column, gap, bar_height), &mut intents)
+    let panel = ui.scope(("tab", shown_tab), |ui| {
+        intents.extend(ui.clip(header, |ui| toolbar_view(&state.header, ui)));
+        tab_islands(state, ui, (body, gap, bar_height), &mut intents)
     });
     if let Some(drawer) = &state.drawer {
         // The drawer opens over what is above the bottom panel, which it would hide.
@@ -192,17 +214,14 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     intents
 }
 
-/// The islands of the tab shown: the header, what was said, a notice, the timeline or the page, and the bottom panel;
-/// gives the rectangle under the notices, where the Activity drawer opens, and that of the bottom panel when it is shown.
+/// The islands of the tab shown under the header: what was said, a notice, the side column beside the timeline or the
+/// page, and the bottom panel; gives where the bottom panel is when it is shown.
 fn tab_islands(
     state: &WindowState<'_>,
     ui: &mut Ui<'_>,
-    (mut column, gap, bar_height): (Area, f32, f32),
+    (mut body, gap, bar_height): (Rect, f32, f32),
     intents: &mut Vec<Intent>,
-) -> (Rect, Option<Rect>) {
-    let top = column.top(bar_height);
-    intents.extend(island(ui, top, |ui| toolbar_view(&state.header, ui)));
-    let mut body = column.rest();
+) -> Option<Rect> {
     if let Some(said) = &state.said {
         let mut rows = Area::with_gap(body, gap);
         let bar = rows.top(bar_height);
@@ -215,16 +234,35 @@ fn tab_islands(
         body = rows.rest();
         island(ui, bar, |ui| notice_bar(notice, ui, bar, intents));
     }
+    let is_narrow = is_narrow(ui);
+    let side = state
+        .side
+        .as_ref()
+        .filter(|_| !is_narrow && !state.side_place.is_hidden && !puts_side_away(&state.content));
+    let (content, hover) = match side {
+        Some(side) => side_beside(side, state.side_place, ui, (body, gap), intents),
+        None => (body, None),
+    };
     let panel = state.panel.as_ref();
     let shown = match &state.content {
-        Content::Timeline(timeline) => timeline_with_rail(timeline, panel, ui, (body, gap), intents),
+        Content::Timeline(timeline) => {
+            let toggle = side_toggle(state, ui);
+            timeline_with_rail(timeline, (panel, hover, toggle), ui, (content, gap), intents)
+        }
         Content::Page(page) => {
-            let above = above_panel(panel, ui, (body, gap), intents);
+            let above = above_panel(panel, ui, (content, gap), intents);
             intents.extend(island(ui, above.0, |ui| host_view(page, ui)));
             above.1
         }
     };
-    (body, shown)
+    if let Some(side) = state
+        .side
+        .as_ref()
+        .filter(|_| is_narrow && state.side_place.is_open_over)
+    {
+        side_over(side, state.side_place, ui, (content, gap), intents);
+    }
+    shown
 }
 
 /// The bottom panel at the foot of a column, when it is shown, with the gap above it that changes its height; gives
@@ -278,44 +316,45 @@ fn dialogs(state: &WindowState<'_>, ui: &mut Ui<'_>, intents: &mut Vec<Intent>) 
     }
 }
 
-/// The branch rail, the timeline and the inspector side by side, each an island with a gap between them that resizes
-/// them, and the bottom panel under the timeline and the inspector when it is shown, the rail keeping its whole height;
-/// in a narrow window the rail shows its icons and the inspector opens over the commits while something is selected.
-/// Gives where the bottom panel is.
+/// The timeline and the inspector side by side, each an island with a gap between them that resizes them, and the
+/// bottom panel under them when it is shown; in a narrow window the inspector opens over the commits while something
+/// is selected. Gives where the bottom panel is.
 fn timeline_with_rail(
     state: &TimelineState<'_>,
-    panel: Option<&BottomPanelState<'_>>,
+    beside: (
+        Option<&BottomPanelState<'_>>,
+        Option<(HoverTarget, std::time::Duration)>,
+        Option<ReferencesShown>,
+    ),
     ui: &mut Ui<'_>,
     (body, gap): (Rect, f32),
     intents: &mut Vec<Intent>,
 ) -> Option<Rect> {
     match state {
-        TimelineState::Repository { .. } => repository_panes(state, panel, ui, (body, gap), intents),
+        TimelineState::Repository { .. } => repository_panes(state, beside, ui, (body, gap), intents),
         TimelineState::NoRepository(no_repository) => {
-            let icon_rail = is_narrow(ui).then_some(ICON_RAIL_WIDTH);
-            let mut columns = Area::with_gap(body, gap);
-            let rail = columns.left(icon_rail.unwrap_or(crate::graph::RAIL_START));
-            island(ui, rail, |_| ());
-            let (above, shown) = above_panel(panel, ui, (columns.rest(), gap), intents);
+            let (above, shown) = above_panel(beside.0, ui, (body, gap), intents);
             intents.extend(island(ui, above, |ui| no_repository_view(no_repository, ui)));
             shown
         }
     }
 }
 
-/// The panes of a repository read: the branch rail, the commits, the inspector and the bottom panel under the last two.
+/// The panes of a repository read: the commits, the inspector and the bottom panel under them.
 fn repository_panes(
     state: &TimelineState<'_>,
-    panel: Option<&BottomPanelState<'_>>,
+    (panel, rail_hover, side): (
+        Option<&BottomPanelState<'_>>,
+        Option<(HoverTarget, std::time::Duration)>,
+        Option<ReferencesShown>,
+    ),
     ui: &mut Ui<'_>,
     (body, gap): (Rect, f32),
     intents: &mut Vec<Intent>,
 ) -> Option<Rect> {
     let TimelineState::Repository {
-        rail: references,
         inspector: details,
         panes,
-        is_rail_hidden,
         beside,
         ..
     } = state
@@ -335,34 +374,22 @@ fn repository_panes(
     let layout = PaneLayout {
         body,
         sizes: *panes,
-        icon_rail: is_narrow(ui).then_some(ICON_RAIL_WIDTH),
-        is_rail_hidden: *is_rail_hidden,
+        icon_rail: None,
+        is_rail_hidden: true,
         is_inspector_over,
         has_inspector: (!is_inspector_over && beside.is_none()) || details.selected.is_some(),
         gap,
         bottom,
     };
     let rects = pane_rects(&layout, gap);
-    let mut rail_hover = None;
-    if let Some(rail) = rects.rail {
-        let (rail_intents, hover) = island(ui, rail, |ui| crate::branch::pane_view(references, ui));
-        intents.extend(rail_intents);
-        rail_hover = hover;
-    }
     island(ui, rects.main, |ui| {
-        main_island(state, rail_hover, ui, rects.main, intents);
+        main_island(state, (rail_hover, side), ui, rects.main, intents);
     });
     if let Some(column) = rects.inspector {
         intents.extend(island(ui, column, |ui| show(details, ui)));
     }
     intents.extend(resize_panes_view(&layout, ui));
-    let column = Rect::new(
-        rects.main.x,
-        body.y,
-        (body.right() - rects.main.x).max(0.0),
-        body.height,
-    );
-    above_panel(panel, ui, (column, gap), intents).1
+    above_panel(panel, ui, (body, gap), intents).1
 }
 
 /// A notice across the top of what is under the header, with a button that puts it away.
@@ -392,9 +419,10 @@ fn notice_bar(notice: Notice, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Int
 }
 
 /// The keys of the window that no widget used: `Ctrl+Tab` goes through the timeline and the pages open, `Ctrl+,`
-/// opens the settings page, and `Escape` closes the Activity drawer while it is open, else brings the timeline back
-/// from the Diff page beside the inspector (`diff.beside-inspector`).
+/// opens the settings page, and `Escape` closes the side column opened over the timeline, else the Activity drawer
+/// while it is open, else brings the timeline back from the Diff page beside the inspector (`diff.beside-inspector`).
 fn shortcuts(ui: &Ui<'_>, state: &WindowState<'_>) -> Vec<Intent> {
+    let is_side_over = state.side.is_some() && is_narrow(ui) && state.side_place.is_open_over;
     let is_drawer_open = state.drawer.is_some();
     let is_beside = matches!(
         &state.content,
@@ -405,6 +433,9 @@ fn shortcuts(ui: &Ui<'_>, state: &WindowState<'_>) -> Vec<Intent> {
         .filter_map(|key| match (key.key, key.modifiers) {
             (Key::Named(NamedKey::Tab), Modifiers::CONTROL) => Some(Intent::NextPage),
             (Key::Character(','), Modifiers::CONTROL) => Some(Intent::ShowPage(Page::Settings)),
+            (Key::Named(NamedKey::Escape), Modifiers::NONE) if is_side_over => {
+                Some(Intent::Graph(GraphIntent::CloseSideColumn))
+            }
             (Key::Named(NamedKey::Escape), Modifiers::NONE) if is_drawer_open => Some(Intent::CloseActivity),
             (Key::Named(NamedKey::Escape), Modifiers::NONE) if is_beside => Some(Intent::ShowTimeline),
             _ => None,

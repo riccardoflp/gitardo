@@ -76,7 +76,8 @@ fn graph_toolbar__narrowing_the_window_hides_the_words_of_the_header_keeps_its_i
 fn a_list_kept_aside_opens_with_a_click() {
     let (repository, _remote) = repository_with_history();
     let state = showing(repository.path().to_path_buf());
-    let mut window = Window::new(ThemeName::Dark, WIDE);
+    // Tall enough for the lists kept aside under Repositories.
+    let mut window = Window::new(ThemeName::Dark, (WIDE.0, 720));
     let intents = window.click(&state, Role::Button, "Tags");
     assert_eq!(intents, [Intent::Rail(RailIntent::Toggle(RailList::Tags))]);
 }

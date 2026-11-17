@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- The repositories open are no longer tabs in an island above the header: they are the rows of **Repositories**, the
+  first section of a side column on the left of the window, from under the header to the status bar, with **Branches**
+  (the branch rail) under it. Each row is two lines high: the name of the repository, with the worktree or the
+  submodule it shows after ` › `, a spinner while an operation runs in it and its **▾**; then, small and muted, what it
+  is on: its branch, `● 3` in the color of changes when 3 files are changed, `↓2 ↑1` when there are commits to pull and
+  to push. The row shown has the background of a row selected and a bar of the accent on its left; its context menu
+  has **Close tab**, **Close other tabs**, **Reveal in File Explorer** and **Copy path**; the rows scroll when they do
+  not fit. Each section folds by its heading, the line between them is dragged to share the height, and both are kept
+  for the workspace. The column stays beside every page, and the first button at the top of the timeline puts it away
+  or brings it back. In a window narrower than 900 px it is put away, and that button opens it over the timeline until
+  a click outside it or `Escape`.
+- The header is a bar on the ground of the window, across its whole width on the right of the bar of views, above the
+  side column and every page, and starts with where one is: `api › login › feature/login`, the repository opening the
+  list of the repositories open, the worktree or the submodule, with its icon, opening the menu of its row, and the
+  branch with its folder in its tooltip. The branch no longer says how far it is from its upstream: **Sync** says it.
+
 - The Terminal tab of the bottom panel runs a shell in the folder of the repository tab shown: PowerShell 7 on Windows
   when it is installed, else Windows PowerShell, the shell of `SHELL` on Linux and macOS, or the one of
   `terminal.shellPath`. It shows the colors of what programs print, 16 from the theme, 256 and 24-bit, in the font of

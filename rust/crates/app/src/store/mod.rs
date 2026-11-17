@@ -367,7 +367,8 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         | Intent::TabsChosen(_)
         | Intent::CloseTab(_)
         | Intent::CloseOtherTabs(_)
-        | Intent::CloseTabShown => tabs::reduce(state, intent),
+        | Intent::CloseTabShown
+        | Intent::RevealTab(_) => tabs::reduce(state, intent),
         Intent::ReadRepository => {
             state.reads.is_not_read = false;
             look_again(state, false)

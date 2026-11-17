@@ -41,6 +41,9 @@ pub enum Intent {
     CloseOtherTabs(usize),
     /// Closes the tab shown, from Quick search (`repo.close-tab`).
     CloseTabShown,
+    /// Shows the folder of the tab at a place in the file manager of the system, from the menu of its row
+    /// (`repo.tabs`).
+    RevealTab(usize),
     /// **Open workspace file…**: the system's dialog for a workspace file of VS Code (`repo.open-code-workspace`).
     OpenWorkspaceFile,
     /// **Select repository…**: the picker of the repositories of the workspace (`repo.select`).

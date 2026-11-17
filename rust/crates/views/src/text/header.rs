@@ -128,10 +128,15 @@ pub const SHOW_HASH: &str = "Show the hash";
 pub const DATE_SEPARATORS: &str = "Separate the days, weeks and months";
 /// **Put a branch and its upstream on one label** in **…** (`graph.combine-upstream`).
 pub const COMBINE_UPSTREAM: &str = "Put a branch and its upstream on one label";
-/// The tooltip of the first button of the header while the branch rail is shown (`graph.toggle-references`).
-pub const HIDE_REFERENCES: &str = "Hide the branches, tags and stashes beside the commits";
-/// Its tooltip while the branch rail is put away.
-pub const SHOW_REFERENCES: &str = "Show the branches, tags and stashes beside the commits";
+/// The tooltip of the first button of the top row of the timeline while the side column is shown
+/// (`graph.toggle-references`).
+pub const HIDE_REFERENCES: &str = "Hide the repositories and the branches beside the commits";
+/// Its tooltip while the side column is put away.
+pub const SHOW_REFERENCES: &str = "Show the repositories and the branches beside the commits";
+/// What is put between the repository, the worktree and the branch at the start of the header (`graph.where`).
+pub const WHERE_SEPARATOR: &str = " \u{203a} ";
+/// The tooltip of the repository at the start of the header, which lists the repositories open.
+pub const REPOSITORIES_OPEN: &str = "Show another repository open";
 /// The button of Quick search in the header (`graph.search-button`).
 pub const SEARCH: &str = "Search";
 /// The tooltip of the button of Quick search when it shows its icon alone.
