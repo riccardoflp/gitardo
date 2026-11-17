@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
 import { findBinary } from './binary';
 import { EngineClient, type EngineOptions, type FeatureAsker } from './client';
 import type { Answer, Choice, Plan, Question, Settings } from './messages';
-import { engineSettings } from './settings';
+import { contributedKeys, engineSettings, type Configuration } from './settings';
 import { NO_ENGINE } from '../shared/protocol';
 
 /** Says that there is no engine to read or run anything, with the button that opens the log, which says why (D49). */
@@ -18,12 +18,8 @@ export function sayEngineMissing(): void {
 
 /** The keys of every `gitardo.*` setting the extension contributes, without the prefix. */
 function settingKeys(extension: vscode.Extension<unknown>): string[] {
-  const json = extension.packageJSON as {
-    contributes?: { configuration?: { properties?: Record<string, unknown> } };
-  };
-  return Object.keys(json.contributes?.configuration?.properties ?? {})
-    .filter((key) => key.startsWith('gitardo.'))
-    .map((key) => key.slice('gitardo.'.length));
+  const json = extension.packageJSON as { contributes?: { configuration?: Configuration } };
+  return contributedKeys(json.contributes?.configuration);
 }
 
 /** The settings as VS Code resolves them now, by the desktop's names. */

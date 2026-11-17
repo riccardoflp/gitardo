@@ -174,6 +174,8 @@ export interface RepoState extends RepoParts {
   traceSelected: boolean;
   /** Whether the graph follows only the first parent of each merge, as the settings say. */
   firstParent: boolean;
+  /** Whether every commit of the graph is on one line, without lanes, its merges rings, as the settings say. */
+  oneLane: boolean;
   /** What the graph shows of each commit beside its message, as the settings say. */
   graphColumns: GraphColumn[];
   /** Whether the graph names the days, weeks and months further back on a line before their first commit, as the settings say. */
@@ -641,6 +643,7 @@ export type WebviewMessage =
   | { type: 'setShowStashes'; show: boolean }
   | { type: 'setTraceSelected'; trace: boolean }
   | { type: 'setFirstParent'; only: boolean }
+  | { type: 'setOneLane'; one: boolean }
   | { type: 'setGraphColumns'; columns: GraphColumn[] }
   | { type: 'setDateSeparators'; show: boolean }
   | { type: 'setCombineUpstream'; combine: boolean }

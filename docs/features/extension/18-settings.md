@@ -1,8 +1,8 @@
 # Settings
 
 Every setting of Gitardo, with its default and the cards that read it. They are VS Code settings, declared in
-`package.json` under `contributes.configuration` with their descriptions, which are what the Settings editor shows; the
-naming is in [01-product.md](../../extension/01-product.md#settings). A setting whose area has no cards yet names the area.
+`package.json` under `contributes.configuration` with their descriptions, which are what the Settings editor shows, in
+the categories of the sections of the desktop's settings page (`settings.sections`); the naming is in [01-product.md](../../extension/01-product.md#settings). A setting whose area has no cards yet names the area.
 
 ### `settings.read` — Read the settings when they are needed
 
@@ -57,6 +57,7 @@ Acceptance:
 | `gitardo.graph.combineUpstream` | `true` | window | A branch and its upstream on one label while at the same commit. Written by the toolbar's menu. | Graph (no cards yet); `branch.delete-remote` |
 | `gitardo.graph.islands` | `false` | window | The references, the commits and the details of the Graph view as rounded islands on a darker ground. | `graph.islands` |
 | `gitardo.graph.firstParent` | `false` | window | Follow only the first parent of merges. | Graph (no cards yet) |
+| `gitardo.graph.oneLane` | `false` | window | Every commit of the graph on one line, without lanes; merges are rings. Written by the toolbar's menu. | `graph.one-lane` |
 | `gitardo.graph.traceSelected` | `true` | window | Bring out the history of the selected commit. | Graph (no cards yet) |
 | `gitardo.branches.sortOrder` | not set | window | `name` or `date`; not set, VS Code's `git.branchSortOrder` decides, and by name without it. Written by the sections' menu. | `branch.sort` |
 | `gitardo.branches.followGraphFilter` | `true` | window | Not read since [D51](../../08-decisions.md#d51--the-branch-rail-has-a-filter-of-its-own): the references have a filter of their own. Kept by its name, marked as no longer read, so that a file that sets it is no error. | `refs.list-filter`, `filter.list-too` |

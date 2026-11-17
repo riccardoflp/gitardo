@@ -1041,384 +1041,488 @@
         "when": "activeWebviewPanelId == gitardo.flowMerge"
       }
     ],
-    "configuration": {
-      "title": "Gitardo",
-      "properties": {
-        "gitardo.commandPreview": {
-          "type": "string",
-          "enum": [
-            "off",
-            "all"
-          ],
-          "enumDescriptions": [
-            "Only ask before commands that can lose work, such as a force push.",
-            "Show the exact Git commands and ask before running anything that changes the repository or a remote."
-          ],
-          "default": "off",
-          "description": "Controls when Gitardo shows the Git commands it is about to run and waits for you to approve them."
-        },
-        "gitardo.identities": {
-          "type": "array",
-          "default": [],
-          "description": "Names and emails to choose from with Gitardo: Switch Identity. The chosen one is saved in the configuration of the repository.",
-          "items": {
-            "type": "object",
-            "required": [
-              "name",
-              "email"
-            ],
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "Author name, as in user.name."
-              },
-              "email": {
-                "type": "string",
-                "description": "Author email, as in user.email."
-              },
-              "signingKey": {
-                "type": "string",
-                "description": "Optional key to sign commits with, as in user.signingkey."
-              }
-            }
-          }
-        },
-        "gitardo.blame.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show who last changed the current line, and when, at the end of that line in the editor."
-        },
-        "gitardo.blame.ignoreWhitespaceAndMoves": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Leave a line to who wrote it when all that was changed since is its whitespace, or where in the file it is (`git blame -w -M`). It holds for the blame of the line under the cursor and for the blame of a file, and the funnel at the top right of an editor that shows its blame switches it."
-        },
-        "gitardo.fileBlame.everyFile": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show the blame of a file beside its lines in every file that is opened, rather than in the ones it is asked for. The pin at the top right of an editor that shows its blame switches it, and the button of the blame still hides it file by file."
-        },
-        "gitardo.fileBlame.format": {
-          "type": "string",
-          "default": "${date} ${author:20}",
-          "markdownDescription": "What the blame of a file says beside each line. `${date}` is the day of the commit, `${ago}` how long ago it was, `${author}` who made it, `${summary}` the first line of its message, and `${hash}` its hash. A number after a colon is the most letters something may take, as in `${author:20}`; a hash is 7 letters unless told otherwise. Anything else is written as it is. Example: `${ago} ${author:16} ${summary:40}`."
-        },
-        "gitardo.fileBlame.groupLines": {
-          "type": "boolean",
-          "default": true,
-          "description": "In the blame of a file, say the commit beside the first of the lines it changed that follow each other, and leave the others with nothing but its colors; when that line is scrolled out of sight, the first line in sight says it. Turn it off to have it said beside every line."
-        },
-        "gitardo.fileBlame.age.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "In the blame of a file, draw a line beside each line of the file in a color that says how long ago it was changed."
-        },
-        "gitardo.fileBlame.age.recentColor": {
-          "type": "string",
-          "format": "color-hex",
-          "default": "#e5534b",
-          "markdownDescription": "The color of the age of a line that was just changed, as `#rrggbb`."
-        },
-        "gitardo.fileBlame.age.oldColor": {
-          "type": "string",
-          "format": "color-hex",
-          "default": "#316dca",
-          "markdownDescription": "The color of the age of a line that was changed long ago, as `#rrggbb`. The ages in between have the colors in between."
-        },
-        "gitardo.fileBlame.age.oldAfterDays": {
-          "type": "number",
-          "default": 730,
-          "minimum": 1,
-          "description": "After how many days a line has the color of the lines changed long ago. Recent days count more than old ones: a day and a week are further apart than a year and a year and a week."
-        },
-        "gitardo.changes.openOnClick": {
-          "type": "string",
-          "enum": [
-            "file",
-            "diff"
-          ],
-          "enumDescriptions": [
-            "Open the file, as it is on disk. A deleted file opens its diff.",
-            "Open the diff of the file against the last commit, what is staged and what is not together."
-          ],
-          "default": "file",
-          "markdownDescription": "What a click on a file of the Gitardo Changes view opens. The buttons on its row open either one, whatever is set here. The list of changes of VS Code, in the Source Control view, is not affected."
-        },
-        "gitardo.scm.stashButtons": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Add the buttons that stash to the list of changes of VS Code, in the Source Control view: on each file, on **Staged Changes** for what is staged, and on **Changes** for everything. The Changes view of Gitardo has them whatever is set here."
-        },
-        "gitardo.pull.autostash": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Whether the **Pull** button sets the changes that are not committed aside before it pulls, and puts them back after: `git pull --autostash`. Switched off, a pull that would touch a file with changes is refused by Git. The menu beside the button has every way to pull, whatever is set here."
-        },
-        "gitardo.submodules.updateOnCheckout": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Whether checking out a branch, a tag or a commit with Gitardo also checks out in each submodule the commit recorded for it there, cloning the ones that are new: `git submodule update --init --recursive`, run after the checkout when the repository has submodules, before or after it. Switched off, the submodules stay on what they had, and the Submodules section says how far that is from what is recorded."
-        },
-        "gitardo.pull.rebase": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Whether the **Pull** button puts your commits that are not pushed on top of what comes in, instead of merging the two: `git pull --rebase`. With `#gitardo.pull.autostash#` it runs `git pull --rebase --autostash`. Switched off, the button leaves the choice to the configuration of Git, which merges unless told otherwise. The menu beside the button has every way to pull, whatever is set here."
-        },
-        "gitardo.cherryPick.recordOrigin": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Whether a commit that Gitardo cherry-picks ends its message with the commit it was picked from: `(cherry picked from commit …)`, as `git cherry-pick -x` writes it. For one commit, for several selected in the graph and for one dropped on what is checked out."
-        },
-        "gitardo.branches.openIn": {
-          "type": "string",
-          "enum": [
-            "checkout",
-            "worktree"
-          ],
-          "enumDescriptions": [
-            "Check the branch out in this window.",
-            "Open the worktree of the branch, made for it first, named after it, when it has none. This window stays on its branch."
-          ],
-          "default": "checkout",
-          "description": "What a double click on a local branch does. A branch that another worktree has always opens that worktree, and the context menu of a branch has both, whatever is set here."
-        },
-        "gitardo.readOnStartup": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "Read the repository when VS Code starts, for the views of Gitardo to open with the graph, the commits and the branches already there. Off, it is read when the first of them opens: for a very large repository, in the settings of its workspace, when VS Code should not run git for it before you ask."
-        },
-        "gitardo.repositories.keepOpen": {
-          "type": "boolean",
-          "default": false,
-          "markdownDescription": "Keep what each repository showed while you look at another: choosing it again in the list of repositories, in the Repositories view of Source Control or with **Show in Gitardo** shows it at once as you left it, with the commit selected, the scroll of the graph, the search, the branches shown, the sections of the references and the message of the Changes view. A repository left is watched, and read again only when it is shown after something changed in it. Off, choosing another repository starts it afresh."
-        },
-        "gitardo.graph.pageSize": {
-          "type": "number",
-          "default": 1000,
-          "minimum": 100,
-          "maximum": 10000,
-          "markdownDescription": "How many commits the graph reads at a time. The next ones are read while you scroll, long before you get to the end of those shown. Fewer make each read quicker, on a slow machine or in a very large repository; more make the reads fewer."
-        },
-        "gitardo.graph.showStashes": {
-          "type": "boolean",
-          "default": true,
-          "description": "Whether the graph shows the stashes, each above the commit it was made on, while that commit is in the graph. The menu of the toolbar of the graph has the same switch."
-        },
-        "gitardo.graph.columns": {
-          "type": "array",
-          "items": {
+    "configuration": [
+      {
+        "id": "gitardo.general",
+        "title": "General",
+        "order": 1,
+        "properties": {
+          "gitardo.commandPreview": {
             "type": "string",
-            "enum": ["author", "date", "hash"]
-          },
-          "uniqueItems": true,
-          "default": ["author", "date", "hash"],
-          "description": "What the graph shows of each commit beside its message: who made it, when, and its hash. The menu of the toolbar of the graph switches each of them on and off."
-        },
-        "gitardo.graph.dateSeparators": {
-          "type": "boolean",
-          "default": true,
-          "description": "Whether a line before the first commit of yesterday, of this week, of last week and of each month before says which it is, in the graph. The menu of the toolbar of the graph has the same switch."
-        },
-        "gitardo.graph.combineUpstream": {
-          "type": "boolean",
-          "default": true,
-          "description": "Whether a branch and its upstream of the same name share one label in the graph while they are at the same commit, with the icon of the remote after the branch's. When not, `feature` and `origin/feature` have a label each. The menu of the toolbar of the graph has the same switch."
-        },
-        "gitardo.graph.islands": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether the references, the commits and the details of the Graph view are each a rounded island on a darker ground. The gap between two islands is the line dragged to resize them. The other views keep their look."
-        },
-        "gitardo.graph.firstParent": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether the graph follows only the first parent of each merge: the line of the branch that was merged into, without the commits that came with the merge. The menu of the toolbar of the graph has the same switch."
-        },
-        "gitardo.graph.traceSelected": {
-          "type": "boolean",
-          "default": true,
-          "description": "Whether the history of the commit selected in the graph stands out, the commits it comes from and the ones made on top of it, while the rest is dimmed. The menu of the toolbar of the graph has the same switch."
-        },
-        "gitardo.branches.sortOrder": {
-          "type": "string",
-          "enum": [
-            "name",
-            "date"
-          ],
-          "enumDescriptions": [
-            "In the order of their names.",
-            "The one committed to last first. For an annotated tag, when the tag was made."
-          ],
-          "markdownDescription": "How branches, remote branches and tags are listed beside the graph, in the Branches view and wherever one is chosen from a list. The menu of their sections switches it too. Not set, they are listed by name, or by date when `#git.branchSortOrder#` of VS Code is set to `committerdate`."
-        },
-        "gitardo.branches.followGraphFilter": {
-          "type": "boolean",
-          "default": true,
-          "description": "No longer read: the references beside the graph and in the Branches view list what the funnel at their top chooses, whatever the graph is narrowed to.",
-          "markdownDeprecationMessage": "No longer read: the references list what the funnel at their top chooses, whatever the graph is narrowed to, and the ones the graph leaves out are dimmed."
-        },
-        "gitardo.branches.format": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "A format for the names of the branches that **Create Branch** and **Create Worktree** make, such as `PRJ-${input:ticket}-${input:kind}-${base}`. `${input:<id>}` is asked for as `#gitardo.branches.inputs#` says, `${base}` is the branch it starts from without its remote, `${repo}` the name of the folder of the repository and `${date}` today, as `2026-10-15`. The name it makes can still be changed before the branch is created, and a branch name can be typed instead. Empty, the name is typed."
-        },
-        "gitardo.branches.inputs": {
-          "type": "array",
-          "default": [],
-          "markdownDescription": "What `${input:<id>}` in `#gitardo.branches.format#` asks for: a text typed (`promptString`), or a value picked from `options` (`pickString`), which can also be typed when `allowCustom` is true. The value used last is proposed the next time.",
-          "items": {
-            "type": "object",
-            "required": [
-              "id",
-              "type"
+            "enum": [
+              "off",
+              "all"
             ],
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The name used in the format, as in ${input:ticket}."
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "promptString",
-                  "pickString"
-                ],
-                "enumDescriptions": [
-                  "A text typed.",
-                  "A value picked from the options."
-                ]
-              },
-              "description": {
-                "type": "string",
-                "description": "What is asked, as the prompt says it."
-              },
-              "default": {
-                "type": "string",
-                "description": "The value proposed before any was used."
-              },
-              "pattern": {
-                "type": "string",
-                "description": "A regular expression that a typed value must match, such as ^\\d+$ for a number."
-              },
-              "options": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "The values to pick from, for pickString."
-              },
-              "allowCustom": {
-                "type": "boolean",
-                "default": false,
-                "description": "Whether a value that is not among the options can be typed, for pickString."
-              }
-            }
+            "enumDescriptions": [
+              "Only ask before commands that can lose work, such as a force push.",
+              "Show the exact Git commands and ask before running anything that changes the repository or a remote."
+            ],
+            "default": "off",
+            "description": "Controls when Gitardo shows the Git commands it is about to run and waits for you to approve them.",
+            "order": 1
+          },
+          "gitardo.readOnStartup": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Read the repository when VS Code starts, for the views of Gitardo to open with the graph, the commits and the branches already there. Off, it is read when the first of them opens: for a very large repository, in the settings of its workspace, when VS Code should not run git for it before you ask.",
+            "order": 2
+          },
+          "gitardo.repositories.keepOpen": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "Keep what each repository showed while you look at another: choosing it again in the list of repositories, in the Repositories view of Source Control or with **Show in Gitardo** shows it at once as you left it, with the commit selected, the scroll of the graph, the search, the branches shown, the sections of the references and the message of the Changes view. A repository left is watched, and read again only when it is shown after something changed in it. Off, choosing another repository starts it afresh.",
+            "order": 3
           }
-        },
-        "gitardo.worktrees.openIn": {
-          "type": "string",
-          "enum": [
-            "window",
-            "agents"
-          ],
-          "enumDescriptions": [
-            "A new VS Code window, with the worktree as its folder.",
-            "The Agents window of VS Code, for agent sessions that work in the worktree. Where VS Code has no Agents window, a new window."
-          ],
-          "default": "window",
-          "description": "Where a worktree opens on a double click, on it or on its branch, and by Open in worktree and Switch Worktree. The context menus of worktrees and their branches have both, whatever is set here."
-        },
-        "gitardo.worktrees.folder": {
-          "type": "string",
-          "default": "${repo}.worktrees",
-          "markdownDescription": "Where **Create Worktree** puts new worktrees, each in a folder named after it. `${repo}` is the name of the folder of the repository, and a relative path starts from the folder that holds it: with the default, the worktree `fix-login` of `~/code/app` goes in `~/code/app.worktrees/fix-login`."
-        },
-        "gitardo.worktrees.linkFolders": {
-          "type": "array",
-          "items": {
-            "type": "string"
+        }
+      },
+      {
+        "id": "gitardo.timeline",
+        "title": "Timeline",
+        "order": 2,
+        "properties": {
+          "gitardo.graph.pageSize": {
+            "type": "number",
+            "default": 1000,
+            "minimum": 100,
+            "maximum": 10000,
+            "markdownDescription": "How many commits the graph reads at a time. The next ones are read while you scroll, long before you get to the end of those shown. Fewer make each read quicker, on a slow machine or in a very large repository; more make the reads fewer.",
+            "order": 1
           },
-          "default": [],
-          "scope": "resource",
-          "markdownDescription": "Folders that git ignores to link into each new worktree from the folder it is created from, in `.gitignore` syntax, such as `node_modules/`: what changes through a link changes there too. On Windows the links are junctions, which Gitardo takes out before removing a worktree. Set here, even empty, it takes the place of VS Code's `#git.worktreeSymlinkFolders#` for the worktrees Gitardo creates. [Choose what new worktrees get](command:gitardo.worktreeSetup), from what git ignores now."
-        },
-        "gitardo.worktrees.copyFiles": {
-          "type": "array",
-          "items": {
-            "type": "string"
+          "gitardo.graph.showStashes": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the graph shows the stashes, each above the commit it was made on, while that commit is in the graph. The menu of the toolbar of the graph has the same switch.",
+            "order": 2
           },
-          "default": [],
-          "scope": "resource",
-          "markdownDescription": "Files and folders that git ignores to copy into each new worktree from the folder it is created from, in `.gitignore` syntax, such as `/.env`. What is inside a linked folder, and what the worktree has from its commit, is not copied. Set here, even empty, it takes the place of VS Code's `#git.worktreeIncludeFiles#` for the worktrees Gitardo creates. [Choose what new worktrees get](command:gitardo.worktreeSetup), from what git ignores now."
-        },
-        "gitardo.worktrees.setupCommands": {
-          "type": "array",
-          "items": {
-            "type": "string"
+          "gitardo.graph.columns": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "author",
+                "date",
+                "hash"
+              ]
+            },
+            "uniqueItems": true,
+            "default": [
+              "author",
+              "date",
+              "hash"
+            ],
+            "description": "What the graph shows of each commit beside its message: who made it, when, and its hash. The menu of the toolbar of the graph switches each of them on and off.",
+            "order": 3
           },
-          "default": [],
-          "scope": "resource",
-          "markdownDescription": "Commands to run in each new worktree once Gitardo has created it and made its links and copies, such as `npm ci`: one after the other, each as a task in a terminal of this window, with the worktree as its folder, in the shell VS Code runs tasks with. One that fails stops those after it. A worktree that opens in another window, or in the Agents window, opens once they have all succeeded. They run only in a trusted workspace. [Choose what new worktrees get](command:gitardo.worktreeSetup), with commands proposed from the lock files of the repository."
-        },
-        "gitardo.worktrees.branchFormat": {
-          "type": "string",
-          "default": "",
-          "markdownDeprecationMessage": "Now `#gitardo.branches.format#`, for every new branch. Set here, it is still used where that is not set."
-        },
-        "gitardo.worktrees.inputs": {
-          "type": "array",
-          "default": [],
-          "markdownDeprecationMessage": "Now `#gitardo.branches.inputs#`. Set here, it is still used where that is not set."
-        },
-        "gitardo.conflicts.autoResolve": {
-          "type": "boolean",
-          "default": false,
-          "tags": [
-            "experimental"
-          ],
-          "markdownDescription": "Offer to resolve automatically the conflicts that need no choice between the two sides: changes to lines next to each other, the same change made twice, changes that differ only in whitespace. Gitardo shows each resolution first, in a tab where they are accepted all at once or one by one, and the conflicts can be restored with **Undo**. This is still being tested: look at what it wrote before you commit."
-        },
-        "gitardo.conflicts.ai": {
-          "type": "boolean",
-          "default": false,
-          "tags": [
-            "experimental"
-          ],
-          "markdownDescription": "Offer to ask the language model you use in VS Code, such as GitHub Copilot, how to resolve the conflicts that `#gitardo.conflicts.autoResolve#` leaves. Gitardo sends each conflict and the lines around it to the model, and shows what it proposes in the tab of the review, where nothing is written until you accept it. A model can write lines that neither side has: look at each resolution before you accept it."
-        },
-        "gitardo.conflicts.aiModel": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "The id of the language model that `#gitardo.conflicts.ai#` asks, as **Gitardo: Choose the Model That Resolves Conflicts** writes it. Empty for the first model VS Code has."
-        },
-        "gitardo.conflicts.aiEffort": {
-          "type": "string",
-          "default": "",
-          "enum": [
-            "",
-            "low",
-            "medium",
-            "high",
-            "xhigh",
-            "max"
-          ],
-          "enumItemLabels": [
-            "As the model is set up",
-            "Low",
-            "Medium",
-            "High",
-            "Extra high",
-            "Max"
-          ],
-          "markdownDescription": "How much the model of `#gitardo.conflicts.aiModel#` thinks before it answers. Empty leaves it as the model is set up in VS Code; a model without such a setting ignores it."
-        },
-        "gitardo.flowDiff.collapseUnchanged": {
-          "type": "boolean",
-          "default": true,
-          "description": "Whether the Flow Diff folds long runs of unchanged lines, keeping 3 lines around each change. Its toolbar switches it for each diff."
+          "gitardo.graph.dateSeparators": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether a line before the first commit of yesterday, of this week, of last week and of each month before says which it is, in the graph. The menu of the toolbar of the graph has the same switch.",
+            "order": 4
+          },
+          "gitardo.graph.combineUpstream": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether a branch and its upstream of the same name share one label in the graph while they are at the same commit, with the icon of the remote after the branch's. When not, `feature` and `origin/feature` have a label each. The menu of the toolbar of the graph has the same switch.",
+            "order": 5
+          },
+          "gitardo.graph.islands": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether the references, the commits and the details of the Graph view are each a rounded island on a darker ground. The gap between two islands is the line dragged to resize them. The other views keep their look.",
+            "order": 6
+          },
+          "gitardo.graph.firstParent": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether the graph follows only the first parent of each merge: the line of the branch that was merged into, without the commits that came with the merge. The menu of the toolbar of the graph has the same switch.",
+            "order": 7
+          },
+          "gitardo.graph.oneLane": {
+            "type": "boolean",
+            "default": false,
+            "description": "Every commit of the graph on one line, without lanes; merges are rings.",
+            "order": 8
+          },
+          "gitardo.graph.traceSelected": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the history of the commit selected in the graph stands out, the commits it comes from and the ones made on top of it, while the rest is dimmed. The menu of the toolbar of the graph has the same switch.",
+            "order": 9
+          }
+        }
+      },
+      {
+        "id": "gitardo.branches",
+        "title": "Branches",
+        "order": 3,
+        "properties": {
+          "gitardo.branches.openIn": {
+            "type": "string",
+            "enum": [
+              "checkout",
+              "worktree"
+            ],
+            "enumDescriptions": [
+              "Check the branch out in this window.",
+              "Open the worktree of the branch, made for it first, named after it, when it has none. This window stays on its branch."
+            ],
+            "default": "checkout",
+            "description": "What a double click on a local branch does. A branch that another worktree has always opens that worktree, and the context menu of a branch has both, whatever is set here.",
+            "order": 1
+          },
+          "gitardo.branches.sortOrder": {
+            "type": "string",
+            "enum": [
+              "name",
+              "date"
+            ],
+            "enumDescriptions": [
+              "In the order of their names.",
+              "The one committed to last first. For an annotated tag, when the tag was made."
+            ],
+            "markdownDescription": "How branches, remote branches and tags are listed beside the graph, in the Branches view and wherever one is chosen from a list. The menu of their sections switches it too. Not set, they are listed by name, or by date when `#git.branchSortOrder#` of VS Code is set to `committerdate`.",
+            "order": 2
+          },
+          "gitardo.branches.followGraphFilter": {
+            "type": "boolean",
+            "default": true,
+            "description": "No longer read: the references beside the graph and in the Branches view list what the funnel at their top chooses, whatever the graph is narrowed to.",
+            "markdownDeprecationMessage": "No longer read: the references list what the funnel at their top chooses, whatever the graph is narrowed to, and the ones the graph leaves out are dimmed.",
+            "order": 3
+          },
+          "gitardo.branches.format": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "A format for the names of the branches that **Create Branch** and **Create Worktree** make, such as `PRJ-${input:ticket}-${input:kind}-${base}`. `${input:<id>}` is asked for as `#gitardo.branches.inputs#` says, `${base}` is the branch it starts from without its remote, `${repo}` the name of the folder of the repository and `${date}` today, as `2026-10-15`. The name it makes can still be changed before the branch is created, and a branch name can be typed instead. Empty, the name is typed.",
+            "order": 4
+          },
+          "gitardo.branches.inputs": {
+            "type": "array",
+            "default": [],
+            "markdownDescription": "What `${input:<id>}` in `#gitardo.branches.format#` asks for: a text typed (`promptString`), or a value picked from `options` (`pickString`), which can also be typed when `allowCustom` is true. The value used last is proposed the next time.",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "type"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The name used in the format, as in ${input:ticket}."
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "promptString",
+                    "pickString"
+                  ],
+                  "enumDescriptions": [
+                    "A text typed.",
+                    "A value picked from the options."
+                  ]
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What is asked, as the prompt says it."
+                },
+                "default": {
+                  "type": "string",
+                  "description": "The value proposed before any was used."
+                },
+                "pattern": {
+                  "type": "string",
+                  "description": "A regular expression that a typed value must match, such as ^\\d+$ for a number."
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "The values to pick from, for pickString."
+                },
+                "allowCustom": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Whether a value that is not among the options can be typed, for pickString."
+                }
+              }
+            },
+            "order": 5
+          }
+        }
+      },
+      {
+        "id": "gitardo.pull-and-commits",
+        "title": "Pull and commits",
+        "order": 4,
+        "properties": {
+          "gitardo.identities": {
+            "type": "array",
+            "default": [],
+            "description": "Names and emails to choose from with Gitardo: Switch Identity. The chosen one is saved in the configuration of the repository.",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "email"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Author name, as in user.name."
+                },
+                "email": {
+                  "type": "string",
+                  "description": "Author email, as in user.email."
+                },
+                "signingKey": {
+                  "type": "string",
+                  "description": "Optional key to sign commits with, as in user.signingkey."
+                }
+              }
+            },
+            "order": 1
+          },
+          "gitardo.changes.openOnClick": {
+            "type": "string",
+            "enum": [
+              "file",
+              "diff"
+            ],
+            "enumDescriptions": [
+              "Open the file, as it is on disk. A deleted file opens its diff.",
+              "Open the diff of the file against the last commit, what is staged and what is not together."
+            ],
+            "default": "file",
+            "markdownDescription": "What a click on a file of the Gitardo Changes view opens. The buttons on its row open either one, whatever is set here. The list of changes of VS Code, in the Source Control view, is not affected.",
+            "order": 2
+          },
+          "gitardo.scm.stashButtons": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Add the buttons that stash to the list of changes of VS Code, in the Source Control view: on each file, on **Staged Changes** for what is staged, and on **Changes** for everything. The Changes view of Gitardo has them whatever is set here.",
+            "order": 3
+          },
+          "gitardo.pull.autostash": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Whether the **Pull** button sets the changes that are not committed aside before it pulls, and puts them back after: `git pull --autostash`. Switched off, a pull that would touch a file with changes is refused by Git. The menu beside the button has every way to pull, whatever is set here.",
+            "order": 4
+          },
+          "gitardo.submodules.updateOnCheckout": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Whether checking out a branch, a tag or a commit with Gitardo also checks out in each submodule the commit recorded for it there, cloning the ones that are new: `git submodule update --init --recursive`, run after the checkout when the repository has submodules, before or after it. Switched off, the submodules stay on what they had, and the Submodules section says how far that is from what is recorded.",
+            "order": 5
+          },
+          "gitardo.pull.rebase": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Whether the **Pull** button puts your commits that are not pushed on top of what comes in, instead of merging the two: `git pull --rebase`. With `#gitardo.pull.autostash#` it runs `git pull --rebase --autostash`. Switched off, the button leaves the choice to the configuration of Git, which merges unless told otherwise. The menu beside the button has every way to pull, whatever is set here.",
+            "order": 6
+          },
+          "gitardo.cherryPick.recordOrigin": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "Whether a commit that Gitardo cherry-picks ends its message with the commit it was picked from: `(cherry picked from commit …)`, as `git cherry-pick -x` writes it. For one commit, for several selected in the graph and for one dropped on what is checked out.",
+            "order": 7
+          }
+        }
+      },
+      {
+        "id": "gitardo.worktrees",
+        "title": "Worktrees",
+        "order": 5,
+        "properties": {
+          "gitardo.worktrees.openIn": {
+            "type": "string",
+            "enum": [
+              "window",
+              "agents"
+            ],
+            "enumDescriptions": [
+              "A new VS Code window, with the worktree as its folder.",
+              "The Agents window of VS Code, for agent sessions that work in the worktree. Where VS Code has no Agents window, a new window."
+            ],
+            "default": "window",
+            "description": "Where a worktree opens on a double click, on it or on its branch, and by Open in worktree and Switch Worktree. The context menus of worktrees and their branches have both, whatever is set here.",
+            "order": 1
+          },
+          "gitardo.worktrees.folder": {
+            "type": "string",
+            "default": "${repo}.worktrees",
+            "markdownDescription": "Where **Create Worktree** puts new worktrees, each in a folder named after it. `${repo}` is the name of the folder of the repository, and a relative path starts from the folder that holds it: with the default, the worktree `fix-login` of `~/code/app` goes in `~/code/app.worktrees/fix-login`.",
+            "order": 2
+          },
+          "gitardo.worktrees.linkFolders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "scope": "resource",
+            "markdownDescription": "Folders that git ignores to link into each new worktree from the folder it is created from, in `.gitignore` syntax, such as `node_modules/`: what changes through a link changes there too. On Windows the links are junctions, which Gitardo takes out before removing a worktree. Set here, even empty, it takes the place of VS Code's `#git.worktreeSymlinkFolders#` for the worktrees Gitardo creates. [Choose what new worktrees get](command:gitardo.worktreeSetup), from what git ignores now.",
+            "order": 3
+          },
+          "gitardo.worktrees.copyFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "scope": "resource",
+            "markdownDescription": "Files and folders that git ignores to copy into each new worktree from the folder it is created from, in `.gitignore` syntax, such as `/.env`. What is inside a linked folder, and what the worktree has from its commit, is not copied. Set here, even empty, it takes the place of VS Code's `#git.worktreeIncludeFiles#` for the worktrees Gitardo creates. [Choose what new worktrees get](command:gitardo.worktreeSetup), from what git ignores now.",
+            "order": 4
+          },
+          "gitardo.worktrees.setupCommands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "scope": "resource",
+            "markdownDescription": "Commands to run in each new worktree once Gitardo has created it and made its links and copies, such as `npm ci`: one after the other, each as a task in a terminal of this window, with the worktree as its folder, in the shell VS Code runs tasks with. One that fails stops those after it. A worktree that opens in another window, or in the Agents window, opens once they have all succeeded. They run only in a trusted workspace. [Choose what new worktrees get](command:gitardo.worktreeSetup), with commands proposed from the lock files of the repository.",
+            "order": 5
+          },
+          "gitardo.worktrees.branchFormat": {
+            "type": "string",
+            "default": "",
+            "markdownDeprecationMessage": "Now `#gitardo.branches.format#`, for every new branch. Set here, it is still used where that is not set.",
+            "order": 6
+          },
+          "gitardo.worktrees.inputs": {
+            "type": "array",
+            "default": [],
+            "markdownDeprecationMessage": "Now `#gitardo.branches.inputs#`. Set here, it is still used where that is not set.",
+            "order": 7
+          }
+        }
+      },
+      {
+        "id": "gitardo.files-and-blame",
+        "title": "Files and blame",
+        "order": 6,
+        "properties": {
+          "gitardo.blame.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show who last changed the current line, and when, at the end of that line in the editor.",
+            "order": 1
+          },
+          "gitardo.blame.ignoreWhitespaceAndMoves": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "Leave a line to who wrote it when all that was changed since is its whitespace, or where in the file it is (`git blame -w -M`). It holds for the blame of the line under the cursor and for the blame of a file, and the funnel at the top right of an editor that shows its blame switches it.",
+            "order": 2
+          },
+          "gitardo.fileBlame.everyFile": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show the blame of a file beside its lines in every file that is opened, rather than in the ones it is asked for. The pin at the top right of an editor that shows its blame switches it, and the button of the blame still hides it file by file.",
+            "order": 3
+          },
+          "gitardo.fileBlame.format": {
+            "type": "string",
+            "default": "${date} ${author:20}",
+            "markdownDescription": "What the blame of a file says beside each line. `${date}` is the day of the commit, `${ago}` how long ago it was, `${author}` who made it, `${summary}` the first line of its message, and `${hash}` its hash. A number after a colon is the most letters something may take, as in `${author:20}`; a hash is 7 letters unless told otherwise. Anything else is written as it is. Example: `${ago} ${author:16} ${summary:40}`.",
+            "order": 4
+          },
+          "gitardo.fileBlame.groupLines": {
+            "type": "boolean",
+            "default": true,
+            "description": "In the blame of a file, say the commit beside the first of the lines it changed that follow each other, and leave the others with nothing but its colors; when that line is scrolled out of sight, the first line in sight says it. Turn it off to have it said beside every line.",
+            "order": 5
+          },
+          "gitardo.fileBlame.age.enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "In the blame of a file, draw a line beside each line of the file in a color that says how long ago it was changed.",
+            "order": 6
+          },
+          "gitardo.fileBlame.age.recentColor": {
+            "type": "string",
+            "format": "color-hex",
+            "default": "#e5534b",
+            "markdownDescription": "The color of the age of a line that was just changed, as `#rrggbb`.",
+            "order": 7
+          },
+          "gitardo.fileBlame.age.oldColor": {
+            "type": "string",
+            "format": "color-hex",
+            "default": "#316dca",
+            "markdownDescription": "The color of the age of a line that was changed long ago, as `#rrggbb`. The ages in between have the colors in between.",
+            "order": 8
+          },
+          "gitardo.fileBlame.age.oldAfterDays": {
+            "type": "number",
+            "default": 730,
+            "minimum": 1,
+            "description": "After how many days a line has the color of the lines changed long ago. Recent days count more than old ones: a day and a week are further apart than a year and a year and a week.",
+            "order": 9
+          },
+          "gitardo.flowDiff.collapseUnchanged": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether the Flow Diff folds long runs of unchanged lines, keeping 3 lines around each change. Its toolbar switches it for each diff.",
+            "order": 10
+          }
+        }
+      },
+      {
+        "id": "gitardo.ai-and-conflicts",
+        "title": "AI and conflicts",
+        "order": 7,
+        "properties": {
+          "gitardo.conflicts.autoResolve": {
+            "type": "boolean",
+            "default": false,
+            "tags": [
+              "experimental"
+            ],
+            "markdownDescription": "Offer to resolve automatically the conflicts that need no choice between the two sides: changes to lines next to each other, the same change made twice, changes that differ only in whitespace. Gitardo shows each resolution first, in a tab where they are accepted all at once or one by one, and the conflicts can be restored with **Undo**. This is still being tested: look at what it wrote before you commit.",
+            "order": 1
+          },
+          "gitardo.conflicts.ai": {
+            "type": "boolean",
+            "default": false,
+            "tags": [
+              "experimental"
+            ],
+            "markdownDescription": "Offer to ask the language model you use in VS Code, such as GitHub Copilot, how to resolve the conflicts that `#gitardo.conflicts.autoResolve#` leaves. Gitardo sends each conflict and the lines around it to the model, and shows what it proposes in the tab of the review, where nothing is written until you accept it. A model can write lines that neither side has: look at each resolution before you accept it.",
+            "order": 2
+          },
+          "gitardo.conflicts.aiModel": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "The id of the language model that `#gitardo.conflicts.ai#` asks, as **Gitardo: Choose the Model That Resolves Conflicts** writes it. Empty for the first model VS Code has.",
+            "order": 3
+          },
+          "gitardo.conflicts.aiEffort": {
+            "type": "string",
+            "default": "",
+            "enum": [
+              "",
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "enumItemLabels": [
+              "As the model is set up",
+              "Low",
+              "Medium",
+              "High",
+              "Extra high",
+              "Max"
+            ],
+            "markdownDescription": "How much the model of `#gitardo.conflicts.aiModel#` thinks before it answers. Empty leaves it as the model is set up in VS Code; a model without such a setting ignores it.",
+            "order": 4
+          }
         }
       }
-    },
+    ],
     "colors": [
       {
         "id": "gitardo.blameHighlightBackground",
@@ -1455,14 +1559,22 @@
               "image": "media/screenshots/graph-dark.png",
               "altText": "The graph in the panel, with the references, the commits of every branch and the details of a commit."
             },
-            "completionEvents": ["onCommand:gitardo.openGraph", "onView:gitardo.graph"]
+            "completionEvents": [
+              "onCommand:gitardo.openGraph",
+              "onView:gitardo.graph"
+            ]
           },
           {
             "id": "sideBar",
             "title": "Find the views in the side bar",
             "description": "Commits, Gitardo Graph, Branches and Stashes are in the Source Control side bar, under the views of VS Code. Click the header of one to unfold it.\n[Show the commits](command:gitardo.openCommits)",
-            "media": { "markdown": "media/walkthrough/side-bar.md" },
-            "completionEvents": ["onCommand:gitardo.openCommits", "onView:gitardo.commits"]
+            "media": {
+              "markdown": "media/walkthrough/side-bar.md"
+            },
+            "completionEvents": [
+              "onCommand:gitardo.openCommits",
+              "onView:gitardo.commits"
+            ]
           },
           {
             "id": "commit",
@@ -1472,21 +1584,33 @@
               "image": "media/screenshots/commit-tab.png",
               "altText": "The tab of a commit, with its message, author, date and hash, the file it changed and its diff."
             },
-            "completionEvents": ["onCommand:gitardo.openCommit", "onCommand:gitardo.compare"]
+            "completionEvents": [
+              "onCommand:gitardo.openCommit",
+              "onCommand:gitardo.compare"
+            ]
           },
           {
             "id": "blame",
             "title": "See who changed each line",
             "description": "The line under the cursor says who last changed it and when. The button with a person at the top right of an editor shows it for every line of the file.\n[Open a file](command:workbench.action.quickOpen)",
-            "media": { "markdown": "media/walkthrough/blame.md" },
-            "completionEvents": ["onCommand:gitardo.showFileBlame", "onCommand:gitardo.toggleFileBlame"]
+            "media": {
+              "markdown": "media/walkthrough/blame.md"
+            },
+            "completionEvents": [
+              "onCommand:gitardo.showFileBlame",
+              "onCommand:gitardo.toggleFileBlame"
+            ]
           },
           {
             "id": "worktrees",
             "title": "Work in another worktree",
             "description": "A worktree is another folder of the same repository, on a branch of its own: work on something else, or let an agent work, without touching this one.\n[Create a worktree…](command:gitardo.createWorktree)",
-            "media": { "markdown": "media/walkthrough/worktrees.md" },
-            "completionEvents": ["onCommand:gitardo.createWorktree"]
+            "media": {
+              "markdown": "media/walkthrough/worktrees.md"
+            },
+            "completionEvents": [
+              "onCommand:gitardo.createWorktree"
+            ]
           }
         ]
       }

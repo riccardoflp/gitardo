@@ -203,12 +203,14 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
       checked: state.firstParent,
       run: () => post({ type: 'setFirstParent', only: !state.firstParent }),
     },
+    { label: 'Show all commits on one line', checked: state.oneLane, run: () => post({ type: 'setOneLane', one: !state.oneLane }) },
     {
       label: 'Bring out the history of the selected commit',
       checked: state.traceSelected,
       run: () => post({ type: 'setTraceSelected', trace: !state.traceSelected }),
     },
-    onFoldAll && {
+    // On one line, the merges are not folded from the menu.
+    onFoldAll && !state.oneLane && {
       // Checked, it folds the merges loaded later too; unchecked, it shows all their commits again.
       label: 'Fold all merges',
       checked: folded === 'all',
@@ -216,7 +218,7 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
       disabled: folded !== 'all' && !state.rows.some((row) => row.parents.length > 1),
       run: () => onFoldAll(folded !== 'all'),
     },
-    onFoldAll && { label: 'Unfold all merges', disabled: folded === 'none', run: () => onFoldAll(false) },
+    onFoldAll && !state.oneLane && { label: 'Unfold all merges', disabled: folded === 'none', run: () => onFoldAll(false) },
     'separator',
     showColumn('author', 'Show the author'),
     showColumn('date', 'Show the date'),

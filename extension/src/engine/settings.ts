@@ -15,6 +15,18 @@ const RENAMED: Record<string, string> = {
 /** The extension's keys that are never sent: VS Code's Source Control only, and the place of the engine itself. */
 const KEPT = new Set(['scm.stashButtons', 'engine.path']);
 
+/** `contributes.configuration` of `package.json`: one category, or a list of them, each with its settings. */
+export type Configuration = { properties?: Record<string, unknown> } | { properties?: Record<string, unknown> }[];
+
+/** The keys of every `gitardo.*` setting of `contributes.configuration`, in every category, without the prefix. */
+export function contributedKeys(configuration: Configuration | undefined): string[] {
+  const categories = Array.isArray(configuration) ? configuration : configuration ? [configuration] : [];
+  return categories
+    .flatMap((category) => Object.keys(category.properties ?? {}))
+    .filter((key) => key.startsWith('gitardo.'))
+    .map((key) => key.slice('gitardo.'.length));
+}
+
 /** VS Code's own `git.*` settings that stand for an unset `gitardo.*` one (D31). */
 export interface GitFallbacks {
   branchSortOrder?: unknown;

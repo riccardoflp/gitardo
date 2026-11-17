@@ -252,6 +252,21 @@ export function foldMerges(rows: Row[], folded: ReadonlySet<string>): { rows: Sh
   return { rows: shown, hiddenBy };
 }
 
+/**
+ * Every row on one line, without lanes (`graph.one-lane`): its dot in the first lane, in the color of the first lane, a
+ * line from the top edge when a row is above it and to the bottom edge when a row is below it. The line between two
+ * rows is dashed when the upper one is the uncommitted changes or a stash.
+ */
+export function oneLane<T extends Pick<Row, 'hash' | 'stash'>>(rows: T[]): (T & { graph: GraphRow })[] {
+  const isDashed = (row: T) => row.hash === WORKTREE || row.stash !== undefined;
+  return rows.map((row, index) => {
+    const above = rows[index - 1];
+    const top: GraphLine[] = above ? [isDashed(above) ? { from: 0, to: 0, color: 0, dashed: true } : { from: 0, to: 0, color: 0 }] : [];
+    const bottom: GraphLine[] = index + 1 < rows.length ? [isDashed(row) ? { from: 0, to: 0, color: 0, dashed: true } : { from: 0, to: 0, color: 0 }] : [];
+    return { ...row, graph: { col: 0, color: 0, top, bottom } };
+  });
+}
+
 export function laneCount(row: GraphRow): number {
   let max = row.col;
   for (const line of row.top) max = Math.max(max, line.from, line.to);
