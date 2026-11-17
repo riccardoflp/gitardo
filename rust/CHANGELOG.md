@@ -8,6 +8,10 @@
   the button of the section scrolled to is marked as the list moves; a page narrower than 640 px has a menu of the
   sections at the top of the list instead. Each setting shows its title, its description whole, its key and where its
   value comes from.
+- The settings page has a search at its top, which has the keyboard when the page opens and on `Ctrl+F`: it keeps the
+  settings whose title, key, description or value has every word typed, the sections with none dimmed, and `Escape`
+  empties it. Beside each section, how many of its settings a file sets, and a red mark while a value of one was not
+  taken; **Changed** and **Experimental** under the sections list only those settings.
 - A menu taller than the room it has scrolls instead of moving: under a button, such as **…**, it opens below the
   button and ends 8 px above the foot of the window, and a menu at the pointer opens above it when it fits only there.
   The wheel scrolls it by entries, a bar on its right can be dragged, its first and last entries fade where there is

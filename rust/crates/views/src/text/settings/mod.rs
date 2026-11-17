@@ -118,8 +118,16 @@ pub fn settings() -> impl Iterator<Item = &'static SettingInfo> {
 
 /// The title of the settings page, in its trail.
 pub const PAGE: &str = "Settings";
-/// Said beside the name of an experimental setting.
+/// Said beside the name of an experimental setting, and the button that lists them alone.
 pub const EXPERIMENTAL: &str = "Experimental";
+/// The button that lists alone the settings a file sets.
+pub const CHANGED: &str = "Changed";
+/// What the field of the search says while it is empty.
+pub const SEARCH: &str = "Search settings";
+/// Said by the button of a section while a value of one of its settings was not taken.
+pub const NOT_TAKEN: &str = "a value not taken";
+/// What the list says when it holds nothing and nothing is typed.
+pub const NOTHING_LISTED: &str = "No setting is listed here.";
 /// Where a value comes from: the default.
 pub const FROM_DEFAULT: &str = "Default";
 /// Where a value comes from: the user's file.
@@ -150,6 +158,12 @@ pub const THEME_NAMES: [&str; 5] = [
 pub const THEME_VALUES: [&str; 5] = ["system", "dark", "light", "highContrastDark", "highContrastLight"];
 /// What the picker says of the theme in force.
 pub const CURRENT_THEME: &str = "current";
+
+/// What the list says when no setting answers the search.
+#[must_use]
+pub fn nothing_matches(query: &str) -> String {
+    format!("No setting matches \"{query}\"")
+}
 
 /// Where a value comes from, said under it.
 #[must_use]

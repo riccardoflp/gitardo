@@ -31,7 +31,7 @@ pub fn reduce_intent(state: &mut State, intent: &Intent) -> Vec<Effect> {
             Vec::new()
         }
         Intent::Settings(asked) => {
-            state.settings_page.apply(*asked);
+            state.settings_page.apply(asked.clone());
             Vec::new()
         }
         _ => Vec::new(),

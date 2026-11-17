@@ -416,6 +416,7 @@ own dash.
 | A submodule not initialized | `circle-dashed` |
 | The base of a merge, shown or hidden | `git-fork` |
 | The look of the window: the section **Appearance** of the settings | `palette` |
+| Experimental: the list of the experimental settings | `flask-conical` |
 
 Acceptance:
 

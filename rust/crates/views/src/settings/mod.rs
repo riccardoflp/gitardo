@@ -1,23 +1,31 @@
-//! The settings page (`settings.edit`), in sections (`settings.sections`), and the picker of the themes
-//! (`settings.theme`): every setting with its title, its description, its key and where its value comes from, under the
-//! name of its section; a switch or a choice changes it in the file chosen at the top.
+//! The settings page (`settings.edit`), in sections (`settings.sections`), with its search (`settings.search`), and the
+//! picker of the themes (`settings.theme`): every setting with its title, its description, its key and where its value
+//! comes from, under the name of its section; a switch or a choice changes it in the file chosen at the top.
 
 mod layout;
 mod list;
+mod page;
 mod row;
+mod search;
 mod sections;
 mod theme;
 
 use model::contract::{FeatureId, Target};
 use model::worktree_setup::{SettingsPlace, SetupSave};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Availability, Button, ButtonKind, Choice, Label, Rect, TextKind, Tone, Ui};
+use ui::{
+    AccessRole, Availability, Button, ButtonKind, Choice, InputBox, Key, Label, Modifiers, NamedKey, Rect, TextKind,
+    Tone, Ui,
+};
 
 pub use layout::{ListItem, ListLayout, PlacedItem, scroll_to};
+pub use page::{SettingsAnchor, SettingsIntent, SettingsList, SettingsPage, is_set};
+pub use search::{Found, find};
 pub use sections::{SectionButton, SectionsState, sections_view};
 pub use theme::{ThemePickerState, theme_picker_view};
 
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::settings::{self as words, SettingInfo, SettingsSection, settings};
 
@@ -84,43 +92,6 @@ pub struct SettingRow {
     pub problem: Option<String>,
 }
 
-/// A place of the list of the settings page: the name of a section, or the row of a setting by its key.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum SettingsAnchor {
-    /// The name of a section.
-    Section(SettingsSection),
-    /// The row of a setting.
-    Setting(&'static str),
-}
-
-/// Something asked of the settings page itself.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum SettingsIntent {
-    /// Scroll the list to the name of a section, or to the row of a setting (`settings.reveal`).
-    Reveal(SettingsAnchor),
-}
-
-/// What the window keeps of the settings page between frames: where the list was last asked to go.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct SettingsPage {
-    /// The place the list was last asked to go to, and the number of that request, so that the list goes there once.
-    pub reveal: Option<(SettingsAnchor, u64)>,
-    /// How many requests were made.
-    pub serial: u64,
-}
-
-impl SettingsPage {
-    /// The page after something asked of it.
-    pub fn apply(&mut self, intent: SettingsIntent) {
-        match intent {
-            SettingsIntent::Reveal(anchor) => {
-                self.serial += 1;
-                self.reveal = Some((anchor, self.serial));
-            }
-        }
-    }
-}
-
 /// What the settings page shows.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SettingsPageState<'a> {
@@ -131,7 +102,7 @@ pub struct SettingsPageState<'a> {
     /// Whether a repository is shown, whose file can be chosen.
     pub has_repository: bool,
     /// What the window keeps of the page.
-    pub page: SettingsPage,
+    pub page: &'a SettingsPage,
 }
 
 /// The rows of every setting at its default, for a page before any file was read.
@@ -147,11 +118,12 @@ pub fn default_rows() -> Vec<SettingRow> {
         .collect()
 }
 
-/// The settings page, centered in the rectangle its caller clipped it to and at most 960 logical pixels wide: the file
-/// changes are written in and **Edit in settings.json**, which opens it in a File page; then the column of the sections
-/// on the left and the list of the settings on the right, each setting with its title, **Experimental** beside the
-/// title of an experimental one, its description, its key, where its value comes from or why a value was not taken,
-/// and a switch or a choice for the settings that hold one.
+/// The settings page, centered in the rectangle its caller clipped it to and at most 960 logical pixels wide: the
+/// search, which has the keyboard when the page opens, the file changes are written in and **Edit in settings.json**,
+/// which opens it in a File page; then the column of the sections on the left and the list of the settings on the
+/// right, each setting with its title, **Experimental** beside the title of an experimental one, its description, its
+/// key, where its value comes from or why a value was not taken, and a switch or a choice for the settings that hold
+/// one.
 ///
 /// Feature: settings.edit
 pub fn settings_view(state: &SettingsPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -163,21 +135,23 @@ pub fn settings_view(state: &SettingsPageState<'_>, ui: &mut Ui<'_>) -> Vec<Inte
     let page = Rect::new(clip.x + (clip.width - width) / 2.0, clip.y, width, clip.height);
     ui.region("settings page", (page, AccessRole::Region, words::PAGE), |ui| {
         let mut area = Area::with_gap(inset(page, Insets::all(spacing.large + spacing.small)), spacing.large);
+        intents.extend(search_box(state, ui, area.top(theme.sizes.control_height)));
         target_bar(state, ui, area.top(theme.sizes.control_height), &mut intents);
         let body = area.rest();
         if page.width < NARROW {
             let mut column = Area::with_gap(body, spacing.medium);
             let menu = column.top(theme.sizes.control_height);
             let marked = list::list_view(state, ui, column.rest(), &mut intents);
-            intents.extend(sections::sections_menu(ui, menu, marked));
+            intents.extend(sections::sections_menu(ui, menu, (marked, state.page.list)));
         } else {
             let mut columns = Area::with_gap(body, spacing.huge);
             let column = columns.left(SECTIONS_WIDTH);
             let marked = list::list_view(state, ui, columns.rest(), &mut intents);
             let sections = SectionsState {
                 rect: column,
-                buttons: section_buttons(state.rows),
+                buttons: section_buttons(state),
                 marked,
+                list: state.page.list,
             };
             intents.extend(sections_view(&sections, ui));
         }
@@ -185,13 +159,53 @@ pub fn settings_view(state: &SettingsPageState<'_>, ui: &mut Ui<'_>) -> Vec<Inte
     intents
 }
 
-/// The button of each section.
-fn section_buttons(rows: &[SettingRow]) -> Vec<SectionButton> {
+/// The field of the search, which takes the keyboard when the page is shown and on `Ctrl+F`; `Escape` empties it.
+fn search_box(state: &SettingsPageState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
+    let id = ui.id("settings search");
+    let find_key = ui.unclaimed_keys().into_iter().find(|key| {
+        let is_command = key.modifiers.command() && !key.modifiers.shift() && !key.modifiers.contains(Modifiers::ALT);
+        is_command && matches!(key.key, Key::Character('f' | 'F'))
+    });
+    if let Some(key) = find_key {
+        ui.claim_key(id, key);
+        ui.focus_input_box(id);
+    } else {
+        ui.focus_input_box_once(id, state.page.opened);
+    }
+    let input = InputBox::new(&state.page.query, words::SEARCH).with_icon(icons::SEARCH);
+    let mut intents = Vec::new();
+    if let Some(text) = ui.input_box("settings search", rect, &input).changed_text {
+        intents.push(Intent::Settings(SettingsIntent::Search(text)));
+    }
+    for key in ui.unclaimed_keys_of(id) {
+        if key.key == Key::Named(NamedKey::Escape) && !state.page.query.is_empty() {
+            ui.claim_key(id, key);
+            intents.push(Intent::Settings(SettingsIntent::Search(String::new())));
+        }
+    }
+    intents
+}
+
+/// The button of each section, with how many of its settings a file sets, or answer the search while something is
+/// typed.
+fn section_buttons(state: &SettingsPageState<'_>) -> Vec<SectionButton> {
+    let is_searching = !state.page.query.is_empty();
+    let found = find(state.rows, &state.page.query);
     SettingsSection::ALL
         .iter()
-        .map(|section| SectionButton {
-            section: *section,
-            count: rows.iter().filter(|row| row.info.section == Some(*section)).count(),
+        .map(|section| {
+            let rows = state.rows.iter().filter(|row| row.info.section == Some(*section));
+            let answered = found.count_in(*section, state.rows);
+            SectionButton {
+                section: *section,
+                count: if is_searching {
+                    answered
+                } else {
+                    rows.clone().filter(|row| is_set(row)).count()
+                },
+                has_problem: rows.clone().any(|row| row.problem.is_some()),
+                is_dimmed: is_searching && answered == 0,
+            }
         })
         .collect()
 }

@@ -70,6 +70,7 @@ mod search;
 mod series_continued;
 mod settings_file;
 mod settings_page;
+mod settings_search;
 mod show_in_graph;
 mod speed;
 mod stashes;
