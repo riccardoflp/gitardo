@@ -1,10 +1,13 @@
 //! Undo of what the engine ran, kept in its journal, and of what was done outside it, read from the reflogs, all taken
-//! back by `feature/run` of `undo.last`.
+//! back by `feature/run` of `undo.last`; and the label of Undo, `journal/last`, checked against the state the last
+//! read found.
+
+#![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 
 use serde_json::{Value, json};
 use testkit::Repository;
 
-use crate::harness::{Engine, folder, repository};
+use crate::harness::{Engine, folder, repository, traced_commands};
 
 /// The engine started, initialized and the repository opened.
 fn opened(repository: &Repository) -> Engine {
@@ -115,6 +118,8 @@ fn a_commit_made_outside_after_an_operation_of_the_engine_drops_the_journal_and_
     );
     let before = head(&repository);
     let _commit = repository.commit("Add b", &[("b.txt", "b\n")]);
+    // The extension reads the state again once its watchers saw the commit, and asks for the label of Undo after it.
+    let _read = engine.ask("read/repo.read-state", &json!({ "repository": folder(&repository) }));
 
     let last = engine.ask("journal/last", &json!({ "repository": folder(&repository) }));
     assert_eq!(last["result"]["entry"], Value::Null, "{last}");
@@ -147,4 +152,65 @@ fn a_new_engine_has_an_empty_journal_and_undo_goes_by_the_reflog() {
     assert_eq!(last["result"]["entry"], Value::Null, "{last}");
     assert_eq!(undo(&mut engine, &repository)["kind"], json!("ran"));
     assert_eq!(repository.git(&["rev-parse", "HEAD"]).trim(), parent);
+}
+
+#[test]
+fn undo_last__journal_last_asked_right_after_read_state_runs_no_git() {
+    let repository = repository();
+    let trace = repository.path().join(".git").join("trace.txt");
+    let mut engine = Engine::start_traced(&trace);
+    let _ = engine.initialize();
+    let _state = engine.ask("repository/open", &json!({ "repository": folder(&repository) }));
+    let _created = run(
+        &mut engine,
+        &repository,
+        "branch.create",
+        &json!({ "kind": "head" }),
+        &json!({ "name": { "kind": "text", "text": "spike" }, "mode": { "kind": "choice", "identifier": "only" } }),
+    );
+    let _read = engine.ask("read/repo.read-state", &json!({ "repository": folder(&repository) }));
+    let before = traced_commands(&trace).len();
+
+    let last = engine.ask("journal/last", &json!({ "repository": folder(&repository) }));
+    assert_eq!(
+        last["result"]["entry"]["title"],
+        json!("Create branch spike at HEAD"),
+        "{last}"
+    );
+    let after = traced_commands(&trace);
+    assert_eq!(after.len(), before, "no git ran: {:?}", after.get(before..));
+}
+
+#[test]
+fn undo_last__journal_last_after_an_operation_takes_the_state_read_after_it_and_reads_no_more() {
+    let repository = repository();
+    let trace = repository.path().join(".git").join("trace.txt");
+    let mut engine = Engine::start_traced(&trace);
+    let _ = engine.initialize();
+    let _state = engine.ask("repository/open", &json!({ "repository": folder(&repository) }));
+    let before_operation = traced_commands(&trace).len();
+    let _created = run(
+        &mut engine,
+        &repository,
+        "branch.create",
+        &json!({ "kind": "head" }),
+        &json!({ "name": { "kind": "text", "text": "spike" }, "mode": { "kind": "choice", "identifier": "only" } }),
+    );
+    let ran = traced_commands(&trace);
+    assert!(
+        ran.len() > before_operation,
+        "the operation ran, and the state was read after it"
+    );
+
+    let last = engine.ask("journal/last", &json!({ "repository": folder(&repository) }));
+    assert_eq!(
+        last["result"]["entry"]["title"],
+        json!("Create branch spike at HEAD"),
+        "{last}"
+    );
+    assert_eq!(
+        traced_commands(&trace).len(),
+        ran.len(),
+        "the state read after the operation is the one checked"
+    );
 }

@@ -35,8 +35,9 @@ pub struct Reading<'a> {
     pub git: Git,
     /// The token of the request.
     pub cancel: &'a CancelToken,
-    /// The state of the repository as last read (`repo.read-state`), for the reads of the graph.
-    pub last_state: Option<Arc<RepositoryState>>,
+    /// The state the last read of the repository kept (`repo.read-state`), while no operation ran since it: the reads
+    /// of the graph take what is checked out, the references and the stashes from it rather than asking git again.
+    pub kept_state: Option<Arc<RepositoryState>>,
 }
 
 /// Whether a method is one of the reads of this module.
@@ -63,7 +64,7 @@ pub fn answer(
         git: Git::new(&folder).with_cancel(cancel.clone()),
         folder,
         cancel,
-        last_state: opened.last_state(),
+        kept_state: opened.kept_state(),
     };
     let started = Instant::now();
     let answer = read(&reading, method, params);

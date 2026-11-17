@@ -17,6 +17,16 @@
   the selection and the scroll position stay as they are while pages are added, and a read that finds the same commits
   changes none of them. Choosing another repository, other branches, a filter or a search stops the read running, and
   **Show in the timeline** on a commit of a page still to come selects it as soon as that page is there.
+- The window getting the focus reads the repository only when its last read ended more than a minute before, or when
+  something changed while the window was minimized; switching to another program and back no longer reads it each
+  time.
+- What is not committed in another worktree is counted again only when something changed in its own git folder, on
+  **Refresh**, or when the repository is chosen: a read after a change to a file runs `git status` in the worktree
+  shown only, however many worktrees the repository has.
+- A file that git ignores, such as the output of a build, and a file in the folder of another worktree nested in the
+  repository, such as `.claude/worktrees/<name>`, no longer make the window read the repository again. Git is asked
+  once for the files that changed in a burst, a second after the first of them, and a `.gitignore` that changes still
+  asks for a read.
 - The Terminal tab of the bottom panel runs a shell in the folder of the repository tab shown: PowerShell 7 on Windows
   when it is installed, else Windows PowerShell, the shell of `SHELL` on Linux and macOS, or the one of
   `terminal.shellPath`. It shows the colors of what programs print, 16 from the theme, 256 and 24-bit, in the font of

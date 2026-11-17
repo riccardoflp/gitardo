@@ -5,6 +5,7 @@
 //! `reduce` reads no file and runs no git: it is tested without a window.
 
 pub mod blame;
+mod changed_files;
 mod changes;
 mod code_workspace;
 mod commit_page;
@@ -153,6 +154,9 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),
         Message::ConflictsCounted { job, result } => conflicts::counted(state, job, result),
         message @ (Message::FilesRead { .. } | Message::NewWorktreesRead { .. }) => files_page::read(state, message),
+        Message::IgnoredRead { job, result } if state.reads.files.is_asking(job) => {
+            reads::files_checked(state, job, result)
+        }
         Message::IgnoredRead { job, result } => changes::ignored_read(state, job, result),
         Message::BlameRead { job, result } => blame::blame_read(state, job, result),
         Message::SettingsRead(settings) => settings_read(state, *settings),
@@ -207,7 +211,14 @@ fn repository_read(
 }
 
 /// What a read of a repository found, or what git said.
-pub(super) type ReadResult = Result<Box<(model::state::RepositoryState, Option<git::read::graph::CommitPage>)>, String>;
+pub(super) type ReadResult = Result<
+    Box<(
+        model::state::RepositoryState,
+        Option<git::read::graph::CommitPage>,
+        git::read::worktree::CountedWorktrees,
+    )>,
+    String,
+>;
 
 /// The settings read again: the theme and the fonts drawn with, the switches of the timeline in force, the level of the
 /// Command log; a change to a setting that changes what is read reads the repository again.

@@ -165,7 +165,7 @@ pub fn repository_read(
     };
     match result {
         Ok(read) => {
-            let (repository, commits) = *read;
+            let (repository, commits, counted) = *read;
             state.next_generation += 1;
             let repository = Arc::new(repository);
             workspace.shown = Shown::Read(RepositoryRead {
@@ -173,6 +173,7 @@ pub fn repository_read(
                 state: Arc::clone(&repository),
                 generation,
             });
+            state.reads.counted = counted;
             let mut effects = Vec::new();
             let is_changed = match commits {
                 Some(commits) => {
@@ -316,12 +317,15 @@ fn find_repository<'a>(repositories: &'a [Repository], folder: &Path) -> Option<
 pub(super) fn start_read(state: &mut State, folder: PathBuf) -> Effect {
     let mut request = super::timeline::read_request(state);
     request.shown = super::timeline::kept_shown(state, &folder);
+    // A repository chosen is read whole: every other worktree is counted again.
+    let counted = git::read::worktree::CountedWorktrees::default();
     let job = start_job(
         state,
         JobKind::ReadRepository {
             folder,
             request,
             kept: None,
+            counted,
         },
     );
     super::reads::adopt(state, job.id, model::repo::ReadCause::RepositoryChosen);

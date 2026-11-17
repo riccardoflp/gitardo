@@ -6,7 +6,7 @@ use std::sync::mpsc::{self, Receiver};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use app::store::{Effect, Message, State};
+use app::store::{Effect, JobKind, Message, State};
 use app::work::{Deliver, RepositoryWatch, change_of, common_git_folder};
 use model::repo::{Change, watch_changes};
 use platform::WatchEvent;
@@ -37,7 +37,8 @@ pub(super) fn changes_within(receiver: &Receiver<Message>, time: Duration) -> Ve
     changes
 }
 
-/// Reduces the changes into the store, then the moment every read they ask for is due; gives the reads started.
+/// Reduces the changes into the store, then the moment every read they ask for is due, the files asked of git first;
+/// gives the reads of the repository started.
 pub(super) fn reads_after(state: &mut State, changes: Vec<Change>) -> usize {
     let mut effects = run(
         state,
@@ -54,7 +55,7 @@ pub(super) fn reads_after(state: &mut State, changes: Vec<Change>) -> usize {
     ));
     effects
         .iter()
-        .filter(|effect| matches!(effect, Effect::Start(_)))
+        .filter(|effect| matches!(effect, Effect::Start(job) if matches!(job.kind, JobKind::ReadRepository { .. })))
         .count()
 }
 
@@ -115,4 +116,32 @@ fn repo_watch_changes__paths_are_made_relative_to_the_git_folder_or_the_working_
     assert_eq!(in_tree, Some(Change::WorkingTree("src/a.rs".into())));
     let outside = change_of(tree, Some(&git_folder), &WatchEvent::Changed("/elsewhere/a.rs".into()));
     assert_eq!(outside, None);
+}
+
+#[test]
+fn repo_watch_changes__cargo_build_in_target_which_gitignore_lists_asks_for_no_read_and_gitignore_asks_for_one() {
+    let (mut repository, _remote) = repository_with_history();
+    let _ignored = repository.commit("Ignore the builds", &[(".gitignore", "target/\n")]);
+    let folder = repository.path().to_path_buf();
+    let mut state = showing(folder.clone());
+    let build = vec![
+        Change::WorkingTree("target/debug/app.exe".into()),
+        Change::WorkingTree("target/debug/deps/app.d".into()),
+    ];
+    assert_eq!(reads_after(&mut state, build), 0, "git ignores them");
+    let changed = vec![Change::WorkingTree(".gitignore".into())];
+    assert_eq!(reads_after(&mut state, changed), 1);
+}
+
+#[test]
+fn repo_watch_changes__a_file_written_in_a_worktree_nested_in_this_one_asks_for_no_read() {
+    let (repository, _remote) = repository_with_history();
+    let folder = repository.path().to_path_buf();
+    let nested = folder.join(".claude").join("worktrees").join("feature");
+    let _added = repository.git(&["worktree", "add", "-b", "nested", &nested.to_string_lossy()]);
+    let mut state = showing(folder.clone());
+    let written = vec![Change::WorkingTree(".claude/worktrees/feature/src/new.rs".into())];
+    assert_eq!(reads_after(&mut state, written), 0);
+    let committed = vec![Change::GitFolder("worktrees/feature/HEAD".into())];
+    assert_eq!(reads_after(&mut state, committed), 1);
 }

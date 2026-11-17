@@ -8,6 +8,7 @@ use engine::{EngineError, Finished, TaskSteps};
 use git::read::repo::{StateRequest, read_state};
 use git::{CancelToken, Git};
 use model::contract::{Answer, AnswerKey, Answers, Context, Target, Validation};
+use model::state::RepositoryState;
 use protocol::feature::{
     AnswerJson, FeatureRunParams, FinishedJson, FollowUpJson, FollowUpsParams, ValidateParams, ValidateResult,
 };
@@ -17,6 +18,7 @@ use serde_json::Value;
 
 use crate::asker::HostAsker;
 use crate::host::HostQuestions;
+use crate::repository::Repository;
 use crate::session::{Session, git_failure, json, now};
 
 /// Runs a feature for `feature/run` of this id, on the thread of the repository's engine: its answer, or the error of
@@ -34,13 +36,11 @@ pub fn run(
     let target = Target::try_from(params.target)
         .map_err(|problem| ResponseError::new(codes::INVALID_PARAMS, problem.to_string()))?;
     let repository = session.opened(&params.repository)?;
-    let folder = repository.folder().to_path_buf();
-    let git = Git::new(&folder).with_cancel(cancel.clone());
-    let state = read_state(&git, &StateRequest { folder: folder.clone() }).map_err(|error| git_failure(&error))?;
+    let state = read_kept(&repository, cancel)?;
     let mut settings = session.feature_settings();
     settings.branch_values = params.inputs;
     let context = Context {
-        repository: Arc::new(state),
+        repository: state,
         target,
         settings,
         now: now(),
@@ -77,17 +77,27 @@ pub fn run(
                     follow_ups: FollowUpJson::all_of(&plan.after),
                 };
                 session.send(notification_message(methods::FEATURE_FOLLOW_UPS, json(&follow_ups)?));
-                session.read_after_plan(&params.repository, &folder);
+                session.read_after_plan(&params.repository, &repository);
             }
             json(&FinishedJson::from(&finished))
         }
         Err(error) => {
             if let EngineError::Step(_) = &error {
-                session.read_after_plan(&params.repository, &folder);
+                session.read_after_plan(&params.repository, &repository);
             }
             Err(engine_failure(&error))
         }
     }
+}
+
+/// The state of a repository read for the context of a feature, and kept for `journal/last` (`undo.last`).
+fn read_kept(repository: &Repository, cancel: &CancelToken) -> Result<Arc<RepositoryState>, ResponseError> {
+    let folder = repository.folder().to_path_buf();
+    let git = Git::new(&folder).with_cancel(cancel.clone());
+    let started = repository.read_starts();
+    let state = Arc::new(read_state(&git, &StateRequest { folder }).map_err(|error| git_failure(&error))?);
+    repository.keep_state(started, Arc::clone(&state));
+    Ok(state)
 }
 
 /// Area 6 of stage 4: the questions a feature asks of the extension in place of the credential store and the AI

@@ -13,7 +13,8 @@ use views::Intent;
 use super::support::run;
 use super::{repository_with_history, showing};
 
-/// The read of the repository a change asks for, once its delay is over.
+/// The read of the repository a change asks for, once its delay is over: a file of the working tree is asked of git
+/// first (`git check-ignore`), and the read starts once git answered.
 fn read_for(state: &mut State, change: Change) -> Job {
     let _waits = reduce(
         state,
@@ -22,12 +23,24 @@ fn read_for(state: &mut State, change: Change) -> Job {
             at: Duration::from_secs(1),
         },
     );
-    let effects = reduce(
+    let mut effects = reduce(
         state,
         Message::Wake {
             at: Duration::from_secs(10),
         },
     );
+    let asked: Vec<Job> = effects
+        .iter()
+        .filter_map(|effect| match effect {
+            Effect::Start(job) if matches!(job.kind, JobKind::ReadIgnored { .. }) => Some(job.clone()),
+            _ => None,
+        })
+        .collect();
+    for job in asked {
+        for message in jobs::messages(&job, &CancelToken::new()) {
+            effects.extend(reduce(state, message));
+        }
+    }
     started_read(&effects)
 }
 

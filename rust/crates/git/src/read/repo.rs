@@ -21,7 +21,7 @@ use std::thread::{self, ScopedJoinHandle};
 
 use model::state::{Head, Identity, Operation, RepositoryState, Stash, WorkingTree, Worktree};
 
-use crate::read::worktree::{self, WorktreeListRequest};
+use crate::read::worktree::{self, CountedWorktrees, WorktreeListRequest};
 use crate::{Git, GitError};
 
 pub use crate::read::worktree::{parse_worktrees, worktrees_arguments};
@@ -67,9 +67,25 @@ pub struct StateRequest {
 ///
 /// When the folder is not in a working tree, git cannot be started or fails, or prints what this does not understand.
 pub fn read_state(git: &Git, request: &StateRequest) -> Result<RepositoryState, GitError> {
+    read_state_counting(git, request, &CountedWorktrees::default()).map(|(state, _counted)| state)
+}
+
+/// The state of a repository as [`read_state`] reads it, but each other worktree keeps the count of what is not
+/// committed there that `before` has, when nothing changed in its own git folder since the read that counted it
+/// (M15): `git status` runs only in the others. Gives what was counted, for the read after this one; an empty
+/// `before`, on the first read and on **Refresh**, counts them all.
+///
+/// # Errors
+///
+/// As [`read_state`].
+pub fn read_state_counting(
+    git: &Git,
+    request: &StateRequest,
+    before: &CountedWorktrees,
+) -> Result<(RepositoryState, CountedWorktrees), GitError> {
     let location = location::read_location(&git.in_directory(&request.folder))?;
     let git = git.in_directory(&location.folder);
-    let parts = read_parts(&git, &location)?;
+    let (parts, counted) = read_parts(&git, &location, before)?;
     let rebase_stop = if parts.operation == Some(Operation::Rebase) {
         let request = crate::read::rebase::StopRequest {
             git_folder: location.git_folder.clone(),
@@ -78,10 +94,11 @@ pub fn read_state(git: &Git, request: &StateRequest) -> Result<RepositoryState, 
     } else {
         None
     };
-    Ok(RepositoryState {
+    let state = RepositoryState {
         rebase_stop,
         ..assemble(location, parts)
-    })
+    };
+    Ok((state, counted))
 }
 
 /// Which parts of the state a read of the graph needs besides what is checked out.
@@ -143,7 +160,11 @@ struct Parts {
 
 /// Runs every read at once, each in a thread of its own, so that the whole takes about as long as the slowest; the
 /// operation in progress is read from the disk meanwhile.
-fn read_parts(git: &Git, location: &Location) -> Result<Parts, GitError> {
+fn read_parts(
+    git: &Git,
+    location: &Location,
+    before: &CountedWorktrees,
+) -> Result<(Parts, CountedWorktrees), GitError> {
     let worktree_request = WorktreeListRequest {
         folder: location.folder.clone(),
         uncommitted_here: None,
@@ -153,7 +174,7 @@ fn read_parts(git: &Git, location: &Location) -> Result<Parts, GitError> {
         let head_commit = scope.spawn(|| head::read_head_commit(git));
         let head_branch = scope.spawn(|| head::read_head_branch(git));
         let stashes = scope.spawn(|| stashes::read_stashes(git));
-        let worktrees = scope.spawn(|| worktree::read_list(git, &worktree_request));
+        let worktrees = scope.spawn(|| worktree::read_list_counting(git, &worktree_request, before));
         let remotes = scope.spawn(|| remotes::read_remotes(git));
         let identity = scope.spawn(|| identity::read_identity(git));
         let branch_sort = scope.spawn(|| branch_sort::read_branch_sort(git));
@@ -168,14 +189,15 @@ fn read_parts(git: &Git, location: &Location) -> Result<Parts, GitError> {
         };
         let submodules = scope.spawn(move || crate::read::submodule::read_list(git, &submodules_request));
         let operation = operation::read_operation(&location.git_folder);
-        Ok(Parts {
+        let (worktrees, counted) = joined(worktrees)?;
+        let parts = Parts {
             references: joined(references)?,
             head: Head {
                 commit: joined(head_commit)?,
                 branch: joined(head_branch)?,
             },
             stashes: joined(stashes)?,
-            worktrees: joined(worktrees)?,
+            worktrees,
             remotes: joined(remotes)?,
             identity: joined(identity)?,
             branch_sort: joined(branch_sort)?,
@@ -184,7 +206,8 @@ fn read_parts(git: &Git, location: &Location) -> Result<Parts, GitError> {
             operation,
             bisect: joined(bisect)?,
             submodules: joined(submodules)?,
-        })
+        };
+        Ok((parts, counted))
     })
 }
 

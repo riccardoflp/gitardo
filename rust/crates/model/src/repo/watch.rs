@@ -3,10 +3,14 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use crate::state::RepositoryState;
+
 /// How long a change in the git folder, a file Gitardo saved or created, the focus or a setting waits before the read.
 pub const SOON: Duration = Duration::from_millis(400);
 /// How long a change in the working tree waits before the read: builds and installs write many files at once.
 pub const LATER: Duration = Duration::from_millis(1_000);
+/// How long after the last read the window getting the focus asks for another (M15).
+pub const FOCUS_AFTER: Duration = Duration::from_secs(60);
 
 /// The files of the common git folder whose change asks for a read, by their names at its top.
 const GIT_FILES: [&str; 10] = [
@@ -32,6 +36,21 @@ const FSMONITOR_FOLDER: &str = "fsmonitor--daemon";
 /// read either.
 const FSMONITOR_SOCKET: &str = "fsmonitor--daemon.ipc";
 
+/// The files that say what git ignores: a change to one is never ignored itself, and asks for a read.
+const IGNORE_FILE: &str = ".gitignore";
+
+/// What a change of a file of the working tree needs before it asks for a read (M15).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TreeChange {
+    /// It asks for a read: a `.gitignore`, or the whole working tree when the system could not say what changed in it.
+    Read,
+    /// Git is asked first, with the other files of its burst, whether it ignores the file (`git check-ignore`): only a
+    /// file it does not ignore asks for a read.
+    AskGit,
+    /// It asks for nothing: it is in the folder of another worktree nested in this one.
+    Nothing,
+}
+
 /// Something that changed, as the window learns it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Change {
@@ -44,9 +63,19 @@ pub enum Change {
     /// Files created, deleted or renamed by Gitardo.
     Files(FilesChange),
     /// The window got the focus.
-    Focus,
+    Focus(FocusChange),
     /// A setting changed, by its key: `graph.pageSize`.
     Setting(String),
+}
+
+/// The window got the focus: how long after the last read, and whether a change came that asked for nothing while the
+/// window was minimized.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct FocusChange {
+    /// How long since the last read of the repository shown ended; none when it was never read.
+    pub since_read: Option<Duration>,
+    /// Whether a change came while the window was minimized, which asked for nothing then.
+    pub is_change_missed: bool,
 }
 
 /// What Gitardo did to files.
@@ -145,7 +174,10 @@ pub fn watch_changes(change: &Change) -> Option<ReadRequest> {
         }
         Change::Saved(path) => (SOON, ReadCause::Saved(path.clone())),
         Change::Files(files) => (SOON, ReadCause::Files(*files)),
-        Change::Focus => (SOON, ReadCause::Focus),
+        Change::Focus(focus) => {
+            let is_due = focus.is_change_missed || focus.since_read.is_none_or(|since| since > FOCUS_AFTER);
+            is_due.then_some((SOON, ReadCause::Focus))?
+        }
         Change::Setting(key) => {
             let section = key.split('.').next().unwrap_or_default();
             READ_SETTINGS
@@ -154,6 +186,49 @@ pub fn watch_changes(change: &Change) -> Option<ReadRequest> {
         }
     };
     Some(ReadRequest { delay, cause })
+}
+
+/// What a change of a file of the working tree, by its path from the top, needs before it asks for a read: nothing in
+/// the folder of another worktree nested in this one (`nested`, as [`nested_worktrees`] gives them), a read at once
+/// for a `.gitignore` or the whole working tree, and a question to git for the others. What changes in a nested
+/// worktree never changes what a read of this one shows, and its own git folder asks for the read a commit there needs.
+#[must_use]
+pub fn sort_tree_change(path: &Path, nested: &[String]) -> TreeChange {
+    let parts = parts(path);
+    let is_nested = nested.iter().any(|folder| {
+        let folder: Vec<&str> = folder.split('/').collect();
+        parts.len() >= folder.len() && parts.iter().zip(&folder).all(|(part, name)| same_name(part, name))
+    });
+    if is_nested {
+        return TreeChange::Nothing;
+    }
+    match parts.last() {
+        None => TreeChange::Read,
+        Some(name) if same_name(name, IGNORE_FILE) => TreeChange::Read,
+        Some(_) => TreeChange::AskGit,
+    }
+}
+
+/// The folders of the other worktrees inside the working tree a state was read in, from its top with `/`, such as
+/// `.claude/worktrees/feature`.
+#[must_use]
+pub fn nested_worktrees(state: &RepositoryState) -> Vec<String> {
+    state
+        .worktrees
+        .iter()
+        .filter(|worktree| !worktree.is_current)
+        .filter_map(|worktree| super::path_in_folder(&worktree.folder, &state.folder))
+        .filter(|inside| !inside.is_empty())
+        .collect()
+}
+
+/// Whether two names of a path are the same: the case of a letter does not count on Windows.
+fn same_name(first: &str, second: &str) -> bool {
+    if cfg!(windows) {
+        first.eq_ignore_ascii_case(second)
+    } else {
+        first == second
+    }
 }
 
 /// Whether a path may ask for a read at all: not a path with a part named `fsmonitor--daemon` or
@@ -197,7 +272,9 @@ mod tests {
     use std::path::PathBuf;
     use std::time::Duration;
 
-    use super::{Change, FilesChange, ReadCause, ReadRequest, watch_changes};
+    use super::{
+        Change, FilesChange, FocusChange, ReadCause, ReadRequest, TreeChange, sort_tree_change, watch_changes,
+    };
 
     fn git(path: &str) -> Option<ReadRequest> {
         watch_changes(&Change::GitFolder(PathBuf::from(path)))
@@ -262,6 +339,45 @@ mod tests {
     }
 
     #[test]
+    fn repo_watch_changes__a_build_output_is_asked_of_git_and_a_gitignore_asks_for_a_read() {
+        let nested = [String::from(".claude/worktrees/feature")];
+        let sort = |path: &str| sort_tree_change(&PathBuf::from(path), &nested);
+        assert_eq!(sort("target/debug/app.exe"), TreeChange::AskGit);
+        assert_eq!(sort("src/main.rs"), TreeChange::AskGit);
+        assert_eq!(sort(".gitignore"), TreeChange::Read);
+        assert_eq!(sort("rust/.gitignore"), TreeChange::Read);
+        assert_eq!(sort("."), TreeChange::Read, "the whole working tree");
+    }
+
+    #[test]
+    fn repo_watch_changes__a_file_of_a_nested_worktree_asks_for_nothing_and_its_git_folder_asks_for_a_read() {
+        let nested = [String::from(".claude/worktrees/feature")];
+        let sort = |path: &str| sort_tree_change(&PathBuf::from(path), &nested);
+        assert_eq!(sort(".claude/worktrees/feature/src/a.rs"), TreeChange::Nothing);
+        assert_eq!(sort(".claude/worktrees/feature/.gitignore"), TreeChange::Nothing);
+        assert_eq!(sort(".claude/worktrees/feature-two/a.rs"), TreeChange::AskGit);
+        assert_eq!(sort(".claude/settings.json"), TreeChange::AskGit);
+        let commit = git("worktrees/feature/HEAD").unwrap();
+        assert_eq!(commit.delay, Duration::from_millis(400));
+    }
+
+    #[test]
+    fn repo_watch_changes__the_focus_asks_for_a_read_only_a_minute_after_the_last_or_after_a_change_missed() {
+        let focus = |seconds: u64, is_change_missed: bool| {
+            watch_changes(&Change::Focus(FocusChange {
+                since_read: Some(Duration::from_secs(seconds)),
+                is_change_missed,
+            }))
+        };
+        assert_eq!(focus(10, false), None, "ten seconds after a read");
+        assert_eq!(focus(120, false).map(|request| request.cause), Some(ReadCause::Focus));
+        assert_eq!(
+            focus(10, true).map(|request| request.delay),
+            Some(Duration::from_millis(400))
+        );
+    }
+
+    #[test]
     fn repo_watch_changes__gitardo_files_focus_and_settings_ask_after_400_ms() {
         let soon = Duration::from_millis(400);
         let saved = watch_changes(&Change::Saved(PathBuf::from("a.rs"))).unwrap();
@@ -271,7 +387,8 @@ mod tests {
         );
         let files = watch_changes(&Change::Files(FilesChange::Renamed)).unwrap();
         assert_eq!(files.cause, ReadCause::Files(FilesChange::Renamed));
-        assert_eq!(watch_changes(&Change::Focus).map(|request| request.delay), Some(soon));
+        let focus = Change::Focus(FocusChange::default());
+        assert_eq!(watch_changes(&focus).map(|request| request.delay), Some(soon));
         let graph = watch_changes(&Change::Setting(String::from("graph.pageSize"))).unwrap();
         assert_eq!(graph.cause, ReadCause::Settings);
         assert_eq!(watch_changes(&Change::Setting(String::from("theme"))), None);

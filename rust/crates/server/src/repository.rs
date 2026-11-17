@@ -1,6 +1,6 @@
 //! A repository the extension opened: its folder, its engine, which runs its features one at a time on a thread of
-//! its own and keeps their journal, and the burst of changes its watchers saw, which is read once after the burst is
-//! over, as `repo.watch-changes` says how long each kind of change waits.
+//! its own and keeps their journal, the state its last read found, and the burst of changes its watchers saw, which is
+//! read once after the burst is over, as `repo.watch-changes` says how long each kind of change waits.
 
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -30,10 +30,25 @@ pub struct Repository {
     burst: Mutex<Burst>,
     /// Whether `repository/close` dropped it, so that a read waiting for it is not made.
     is_closed: AtomicBool,
-    /// Its state as last read (`repo.read-state`): the reads of the graph take what is checked out, the references and
-    /// the stashes from it rather than asking git again.
-    last_state: Mutex<Option<Arc<RepositoryState>>>,
+    /// The state the last read of it found, while no operation ran since (`repo.read-state`, `undo.last`,
+    /// `graph.read-commits`).
+    kept: Mutex<KeptState>,
 }
+
+/// The state of the last read of a repository, kept (M15) so that `journal/last` checks what Undo would take back
+/// against it, and the reads of the graph take what is checked out, the references and the stashes from it, instead
+/// of reading the repository again.
+#[derive(Debug, Default)]
+struct KeptState {
+    /// The state; none before the first read, and once an operation ran since it.
+    state: Option<Arc<RepositoryState>>,
+    /// How many operations ran in the repository: a read that started before one of them ended is not kept.
+    operations: u64,
+}
+
+/// When a read of the state started: the number of the operations that had run by then.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ReadStarted(u64);
 
 impl fmt::Debug for Repository {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -103,18 +118,34 @@ impl Repository {
             folder,
             burst: Mutex::new(Burst::default()),
             is_closed: AtomicBool::new(false),
-            last_state: Mutex::new(None),
+            kept: Mutex::new(KeptState::default()),
         }
     }
 
-    /// Keeps its state as just read.
-    pub fn remember(&self, state: RepositoryState) {
-        *locked(&self.last_state) = Some(Arc::new(state));
+    /// Notes that a read of its state starts now, so that what it finds is kept only when no operation ended meanwhile.
+    pub fn read_starts(&self) -> ReadStarted {
+        ReadStarted(locked(&self.kept).operations)
     }
 
-    /// Its state as last read; none before a read since it was opened.
-    pub fn last_state(&self) -> Option<Arc<RepositoryState>> {
-        locked(&self.last_state).clone()
+    /// Keeps the state a read found, unless an operation ended since the read started: that read may be half from
+    /// before the operation and half from after it.
+    pub fn keep_state(&self, started: ReadStarted, state: Arc<RepositoryState>) {
+        let mut kept = locked(&self.kept);
+        if kept.operations == started.0 {
+            kept.state = Some(state);
+        }
+    }
+
+    /// The state the last read found, when no operation ran since it.
+    pub fn kept_state(&self) -> Option<Arc<RepositoryState>> {
+        locked(&self.kept).state.clone()
+    }
+
+    /// Notes that an operation ran: the state kept is dropped, and the reads under way are not kept.
+    pub fn operation_ran(&self) {
+        let mut kept = locked(&self.kept);
+        kept.operations += 1;
+        kept.state = None;
     }
 
     /// Its folder.
@@ -209,6 +240,10 @@ mod tests {
     use std::path::PathBuf;
     use std::time::Duration;
 
+    use std::sync::Arc;
+
+    use model::state::RepositoryState;
+
     use super::{Next, Repository};
 
     #[test]
@@ -232,6 +267,23 @@ mod tests {
         ];
         assert!(!repository.changed(&ignored));
         assert!(matches!(repository.next(), Next::End));
+    }
+
+    #[test]
+    fn a_state_read_is_kept_until_an_operation_runs_and_a_read_across_an_operation_is_not_kept() {
+        let repository = Repository::new(PathBuf::from("/work/app"));
+        assert!(repository.kept_state().is_none());
+        let started = repository.read_starts();
+        repository.keep_state(started, Arc::new(RepositoryState::default()));
+        assert!(repository.kept_state().is_some());
+        let across = repository.read_starts();
+        repository.operation_ran();
+        assert!(repository.kept_state().is_none(), "an operation drops it");
+        repository.keep_state(across, Arc::new(RepositoryState::default()));
+        assert!(
+            repository.kept_state().is_none(),
+            "a read that started before the operation is not kept"
+        );
     }
 
     #[test]

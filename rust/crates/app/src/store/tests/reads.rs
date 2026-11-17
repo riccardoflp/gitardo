@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use model::contract::{Answer, Answers, FeatureId, Target};
-use model::repo::{Change, ReadCause};
+use model::repo::{Change, FocusChange, ReadCause};
 use views::feature::FeatureIntent;
 use views::settings::{SettingChange, SettingValue, SettingsTarget};
 use views::{Content, Intent, TimelineState};
@@ -34,6 +34,24 @@ fn file_changed(state: &mut State, path: &str, at: u64) -> Vec<Effect> {
     )
 }
 
+/// Answers the questions to git of the effects, which ask which files git ignores, with none: gives the effects of
+/// the answers, such as the read the files ask for.
+fn asked_git(state: &mut State, effects: &[Effect]) -> Vec<Effect> {
+    let mut answered = Vec::new();
+    for (job, kind) in super::started(effects) {
+        if let crate::store::JobKind::ReadIgnored { .. } = kind {
+            answered.extend(reduce(
+                state,
+                Message::IgnoredRead {
+                    job,
+                    result: Ok(Vec::new()),
+                },
+            ));
+        }
+    }
+    answered
+}
+
 /// The moment the effects ask to be woken at.
 fn wake_at(effects: &[Effect]) -> Option<Duration> {
     effects.iter().find_map(|effect| match effect {
@@ -59,12 +77,13 @@ fn repo_schedule_reads__ten_files_written_within_half_a_second_lead_the_window_t
         },
     );
     assert_eq!(reads(&early), [] as [PathBuf; 0]);
-    let effects = reduce(
+    let woke = reduce(
         &mut state,
         Message::Wake {
             at: Duration::from_millis(2_000),
         },
     );
+    let effects = asked_git(&mut state, &woke);
     assert_eq!(reads(&effects), [app]);
     let after = answer(&mut state, effects, &[]);
     assert_eq!(reads(&after).len(), 1, "one read, and none after it");
@@ -74,12 +93,13 @@ fn repo_schedule_reads__ten_files_written_within_half_a_second_lead_the_window_t
 fn repo_schedule_reads__a_change_during_a_read_is_followed_by_exactly_one_more_read() {
     let (mut state, app) = showing();
     let _waits = file_changed(&mut state, "src/a.rs", 0);
-    let first = reduce(
+    let woke = reduce(
         &mut state,
         Message::Wake {
             at: Duration::from_secs(1),
         },
     );
+    let first = asked_git(&mut state, &woke);
     assert_eq!(reads(&first), std::slice::from_ref(&app));
     let job = super::started(&first)[0].0;
     assert_eq!(
@@ -95,6 +115,8 @@ fn repo_schedule_reads__a_change_during_a_read_is_followed_by_exactly_one_more_r
         },
     );
     assert_eq!(reads(&noted), [] as [PathBuf; 0], "never two reads at once");
+    let told = asked_git(&mut state, &noted);
+    assert_eq!(reads(&told), [] as [PathBuf; 0], "never two reads at once");
     let all = answer(&mut state, first, &[]);
     assert_eq!(reads(&all), [app.clone(), app], "the read, then one more");
     assert!(!state.reads.schedule.is_reading());
@@ -104,12 +126,13 @@ fn repo_schedule_reads__a_change_during_a_read_is_followed_by_exactly_one_more_r
 fn repo_schedule_reads__refresh_during_a_read_of_the_window_leads_to_exactly_one_more_read_after_it() {
     let (mut state, app) = showing();
     let _waits = file_changed(&mut state, "src/a.rs", 0);
-    let first = reduce(
+    let woke = reduce(
         &mut state,
         Message::Wake {
             at: Duration::from_secs(1),
         },
     );
+    let first = asked_git(&mut state, &woke);
     assert_eq!(reads(&first), std::slice::from_ref(&app));
     let refreshed = intent(&mut state, Intent::Refresh);
     let again = intent(&mut state, Intent::Refresh);
@@ -255,4 +278,49 @@ fn settings_theme__the_theme_picked_runs_settings_theme_and_the_picker_closes() 
     );
     let _closed = intent(&mut state, Intent::CloseThemePicker);
     assert_eq!(state.dialog, None);
+}
+
+/// The window getting the focus at a moment, ten seconds after the last read.
+fn focus_gained(state: &mut State, at: u64) -> Vec<Effect> {
+    let focus = FocusChange {
+        since_read: Some(Duration::from_secs(10)),
+        is_change_missed: false,
+    };
+    reduce(
+        state,
+        Message::Changed {
+            changes: vec![Change::Focus(focus)],
+            at: Duration::from_millis(at),
+        },
+    )
+}
+
+#[test]
+fn repo_watch_changes__after_the_window_was_minimized_while_something_changed_the_focus_asks_for_a_read() {
+    let (mut state, app) = showing();
+    assert_eq!(
+        focus_gained(&mut state, 1_000),
+        [],
+        "ten seconds after a read, nothing changed"
+    );
+    let _minimized = reduce(&mut state, Message::Minimized(true));
+    let missed = reduce(
+        &mut state,
+        Message::Changed {
+            changes: vec![Change::GitFolder(PathBuf::from("refs/heads/main"))],
+            at: Duration::from_millis(2_000),
+        },
+    );
+    assert_eq!(missed, [], "nothing is read while the window is minimized");
+    let _shown = reduce(&mut state, Message::Minimized(false));
+    let asked = focus_gained(&mut state, 3_000);
+    assert_eq!(asked, [Effect::WakeAt(Duration::from_millis(3_400))]);
+    let woke = reduce(
+        &mut state,
+        Message::Wake {
+            at: Duration::from_millis(3_400),
+        },
+    );
+    assert_eq!(reads(&woke), [app]);
+    assert!(!state.reads.schedule.is_change_missed(), "the read sees what changed");
 }

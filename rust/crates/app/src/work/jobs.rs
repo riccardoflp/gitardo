@@ -19,8 +19,19 @@ use crate::store::{Found, Job, JobKind, Message};
 /// give one for each page, as git prints them.
 pub fn run(job: &Job, cancel: &CancelToken, send: &mut dyn FnMut(Message)) {
     match &job.kind {
-        JobKind::ReadRepository { folder, request, kept } => {
-            super::pages::read_repository(job.id, (folder, request, kept.as_deref()), cancel, send);
+        JobKind::ReadRepository {
+            folder,
+            request,
+            kept,
+            counted,
+        } => {
+            let read = super::pages::ReadingRepository {
+                folder,
+                request,
+                kept: kept.as_deref(),
+                counted,
+            };
+            super::pages::read_repository(job.id, &read, cancel, send);
         }
         JobKind::ReadTimeline { folder, request } => {
             super::pages::read_timeline(job.id, (folder, request), cancel, send);

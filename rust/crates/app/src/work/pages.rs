@@ -6,12 +6,13 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use git::read::graph::{CommitPage, CommitsRequest, READ_LIMIT, read_commits, read_commits_at_once};
-use git::read::repo::{StateRequest, read_state};
+use git::read::repo::{StateRequest, read_state, read_state_counting};
+use git::read::worktree::CountedWorktrees;
 use git::{CancelToken, Git, GitError};
 use model::graph::Row;
 use model::state::RepositoryState;
 
-use crate::store::{JobId, Known, Message, MorePages, TimelineRequest, commits_request};
+use crate::store::{JobId, Known, Message, MorePages, ReadResult, TimelineRequest, commits_request};
 use engine::timeline::is_same_history;
 
 /// What the first page of a read is sent in, and the pages after it.
@@ -49,43 +50,56 @@ fn whole(request: CommitsRequest) -> CommitsRequest {
     }
 }
 
-/// Reads a repository as the window shows it: its state (`repo.read-state`), then its commits as git prints them
-/// (`graph.read-commits`), the first page with the state. When the state of the read before is given and the history is
-/// the same, the commits are not read: the timeline keeps its rows (`repo.schedule-reads`).
-pub fn read_repository(
-    job: JobId,
-    (folder, request, kept): (&Path, &TimelineRequest, Option<&RepositoryState>),
-    cancel: &CancelToken,
-    send: &mut dyn FnMut(Message),
-) {
+/// What a read of a repository is given: its folder, the history the timeline shows, the state of the read before when
+/// the timeline may keep its rows, and what the read before counted in the other worktrees.
+pub struct ReadingRepository<'a> {
+    /// The folder of the repository.
+    pub folder: &'a Path,
+    /// The history the timeline shows.
+    pub request: &'a TimelineRequest,
+    /// The state of the read before, when the timeline may keep its rows (`repo.schedule-reads`).
+    pub kept: Option<&'a RepositoryState>,
+    /// What the read before counted in the other worktrees; empty to count them all again (M15).
+    pub counted: &'a CountedWorktrees,
+}
+
+/// Reads a repository as the window shows it: its state (`repo.read-state`), each other worktree keeping the count of
+/// the read before when nothing changed in its git folder since, then its commits as git prints them
+/// (`graph.read-commits`), the first page with the state and what was counted. When the state of the read before is
+/// given and the history is the same, the commits are not read: the timeline keeps its rows (`repo.schedule-reads`).
+pub fn read_repository(job: JobId, read: &ReadingRepository<'_>, cancel: &CancelToken, send: &mut dyn FnMut(Message)) {
     let read_at = seconds_now();
-    let git = Git::new(folder).with_cancel(cancel.clone());
-    let folder_read = folder.to_path_buf();
-    let read = |result: Result<Box<(RepositoryState, Option<CommitPage>)>, String>| Message::RepositoryRead {
+    let git = Git::new(read.folder).with_cancel(cancel.clone());
+    let folder_read = read.folder.to_path_buf();
+    let message = |result: ReadResult| Message::RepositoryRead {
         job,
         folder: folder_read.clone(),
         result,
         read_at,
     };
-    let state = match read_state(
-        &git,
-        &StateRequest {
-            folder: folder.to_path_buf(),
-        },
-    ) {
-        Ok(state) => state,
-        Err(error) => return send(read(Err(error.to_string()))),
+    let request = StateRequest {
+        folder: read.folder.to_path_buf(),
     };
-    if kept.is_some_and(|kept| is_same_history(kept, &state, request)) {
-        return send(read(Ok(Box::new((state, None)))));
+    let (state, counted) = match read_state_counting(&git, &request, read.counted) {
+        Ok(found) => found,
+        Err(error) => return send(message(Err(error.to_string()))),
+    };
+    if read
+        .kept
+        .is_some_and(|kept| is_same_history(kept, &state, read.request))
+    {
+        return send(message(Ok(Box::new((state, None, counted)))));
     }
-    let commits = whole(commits_request(&state, request));
+    let commits = whole(commits_request(&state, read.request));
     let git = git.in_directory(&state.folder);
-    let mut state = Some(state);
+    let mut first = Some((state, counted));
     let mut sender = Sender {
         job,
         first: Some(|result: Result<CommitPage, String>| {
-            read(result.map(|page| Box::new((state.take().unwrap_or_default(), Some(page)))))
+            message(result.map(|page| {
+                let (state, counted) = first.take().unwrap_or_default();
+                Box::new((state, Some(page), counted))
+            }))
         }),
         send,
     };

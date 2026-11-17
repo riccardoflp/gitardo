@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use serde_json::{Value, json};
 use testkit::Repository;
 
-use crate::harness::{Engine, folder, repository};
+use crate::harness::{Engine, commands_started, folder, repository};
 use crate::reads::{opened, read, result};
 
 /// The full id of a revision.
@@ -261,35 +261,6 @@ fn cancel_of_a_page_that_runs_answers_cancelled() {
         started.elapsed() < Duration::from_secs(8),
         "the read stops without waiting for git"
     );
-}
-
-/// The commands git was run as, from a byte of a file of trace2 events on: not those git ran itself.
-fn commands_started(trace: &std::path::Path, from: usize) -> Vec<String> {
-    let text = std::fs::read_to_string(trace).unwrap_or_default();
-    text.get(from..)
-        .unwrap_or_default()
-        .lines()
-        .filter_map(|line| {
-            let event: Value = serde_json::from_str(line).ok()?;
-            let is_started = event["event"] == "start" && !event["sid"].as_str()?.contains('/');
-            is_started.then(|| command_of(event["argv"].as_array()?))?
-        })
-        .collect()
-}
-
-/// The command of git's arguments: the first one that is not an option of git itself, as `-c name=value`.
-fn command_of(argv: &[Value]) -> Option<String> {
-    let mut arguments = argv.iter().skip(1).filter_map(Value::as_str);
-    while let Some(argument) = arguments.next() {
-        match argument {
-            "-c" | "-C" => {
-                let _value = arguments.next();
-            }
-            option if option.starts_with('-') => {}
-            command => return Some(command.to_owned()),
-        }
-    }
-    None
 }
 
 #[test]

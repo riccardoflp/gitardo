@@ -45,9 +45,16 @@ pub enum Message {
         job: JobId,
         /// The folder read.
         folder: PathBuf,
-        /// What was read, or what git said when the read failed: no page when the history is the one read before,
-        /// whose rows the timeline keeps.
-        result: Result<Box<(RepositoryState, Option<CommitPage>)>, String>,
+        /// What was read, with what was counted in the other worktrees, or what git said when the read failed: no page
+        /// when the history is the one read before, whose rows the timeline keeps.
+        result: Result<
+            Box<(
+                RepositoryState,
+                Option<CommitPage>,
+                git::read::worktree::CountedWorktrees,
+            )>,
+            String,
+        >,
         /// When it was read, in seconds since 1970: the lines between days and months are counted from it.
         read_at: i64,
     },
@@ -174,16 +181,14 @@ pub enum Message {
     },
     /// The settings files changed and were read again.
     SettingsRead(Box<Settings>),
-    /// The watcher of the repository saw changes (`repo.watch-changes`), at a moment counted from when the window
-    /// opened.
+    /// The watcher of the repository saw changes (`repo.watch-changes`), at a moment since the window opened.
     Changed {
         /// What changed.
         changes: Vec<Change>,
         /// When.
         at: Duration,
     },
-    /// The watcher of a tab not shown saw changes (`repo.watch-hidden`), at a moment counted from when the window
-    /// opened.
+    /// The watcher of a tab not shown saw changes (`repo.watch-hidden`), at a moment since the window opened.
     TabChanged {
         /// The working tree watched, as [`Effect::WatchTabs`] named it.
         folder: PathBuf,
@@ -283,6 +288,8 @@ pub enum JobKind {
         /// The state of the read before, when the timeline may keep its rows: the commits are not read again when the
         /// history is the same (`repo.schedule-reads`).
         kept: Option<std::sync::Arc<RepositoryState>>,
+        /// What the read before counted in the other worktrees; empty to count them all again (M15).
+        counted: git::read::worktree::CountedWorktrees,
     },
     /// Reads the timeline for the branches shown, and nothing else of the repository: the timeline narrowed, or shown
     /// whole again (`filter.show-only`, `filter.show-all`).

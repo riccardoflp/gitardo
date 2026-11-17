@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 use model::Timestamp;
 use model::activity::{Task, TaskKind, describe_task};
 use model::contract::Text;
-use model::repo::{Change, name_repositories};
+use model::repo::{Change, FocusChange, name_repositories};
 use platform::{Context, InputEvent, TimerId};
 
 use crate::store::{Job, JobId, JobKind, Message, State};
@@ -34,6 +34,12 @@ pub struct ReadClock {
     is_minimized: bool,
     /// When each read of a repository started, with its line in the Command log.
     started: HashMap<JobId, (Instant, Timestamp, String)>,
+    /// The working tree watched, the one of the repository shown.
+    watched: Option<PathBuf>,
+    /// When the last read of each repository ended, by its folder: the focus asks for a read only a minute after it.
+    read_ended: HashMap<PathBuf, Instant>,
+    /// The folder of each read of a repository running.
+    reading: HashMap<JobId, PathBuf>,
 }
 
 impl ReadClock {
@@ -47,12 +53,16 @@ impl ReadClock {
             wake_at: None,
             is_minimized: false,
             started: HashMap::new(),
+            watched: None,
+            read_ended: HashMap::new(),
+            reading: HashMap::new(),
         }
     }
 
     /// Watches the working tree of the repository shown, in place of the one before.
     pub fn watch(&mut self, folder: Option<&Path>, deliver: &Deliver) {
         self.watch = None;
+        self.watched = folder.map(Path::to_path_buf);
         self.watch = folder.and_then(|folder| RepositoryWatch::new(folder, self.origin, deliver));
     }
 
@@ -90,14 +100,25 @@ impl ReadClock {
         }
     }
 
-    /// What input for the window tells the store: the focus gained asks for a read, a window made as small as nothing
-    /// is minimized.
+    /// What input for the window tells the store: the focus gained, with how long since the last read of the
+    /// repository shown, which may ask for a read; a window made as small as nothing is minimized.
     pub fn input(&mut self, event: &InputEvent) -> Option<Message> {
         match event {
-            InputEvent::FocusGained => Some(Message::Changed {
-                changes: vec![Change::Focus],
-                at: self.origin.elapsed(),
-            }),
+            InputEvent::FocusGained => {
+                let since_read = self
+                    .watched
+                    .as_ref()
+                    .and_then(|folder| self.read_ended.get(folder))
+                    .map(Instant::elapsed);
+                let focus = FocusChange {
+                    since_read,
+                    is_change_missed: false,
+                };
+                Some(Message::Changed {
+                    changes: vec![Change::Focus(focus)],
+                    at: self.origin.elapsed(),
+                })
+            }
             InputEvent::Resized(size) => {
                 let is_minimized = size.width == 0 || size.height == 0;
                 (is_minimized != self.is_minimized).then(|| {
@@ -117,6 +138,7 @@ impl ReadClock {
         };
         let line = format!("read {}: the state and the commits", slashes(folder));
         let _replaced = self.started.insert(job.id, (Instant::now(), now, line));
+        let _folder = self.reading.insert(job.id, folder.clone());
         let reason = state
             .reads
             .reason(job.id)
@@ -136,6 +158,9 @@ impl ReadClock {
 
     /// A read of a repository ended: its line in the Command log, with how long it took.
     pub fn finished(&mut self, job: JobId) -> Option<Message> {
+        if let Some(folder) = self.reading.remove(&job) {
+            let _ended = self.read_ended.insert(folder, Instant::now());
+        }
         let (started, time, line) = self.started.remove(&job)?;
         Some(Message::ReadTook {
             line,

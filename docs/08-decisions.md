@@ -2883,6 +2883,28 @@ reading given until the card says otherwise.
 - **Q443** — `graph.read-commits` in the engine of the extension: the state its last `repo.read-state` read can be
   older than the repository when a reference moved since and the extension has not read the state again. Built: the
   engine keeps the state of every read of the state of a repository opened (asked, after an operation, after the
-  changes it watches) and the reads of the graph (`graph.read-commits`, `graph.read-position`, `search.read-matches`)
-  take it; only a repository whose state was never read since it was opened asks git. The extension reads the state
-  after each change it sees, before the commits.
+  changes it watches), the same state `journal/last` checks Undo against, and the reads of the graph
+  (`graph.read-commits`, `graph.read-position`, `search.read-matches`) take it; only a repository whose state was not
+  read since it was opened, or since an operation ended, asks git. The extension reads the state after each change it
+  sees, before the commits.
+- **Q460** — `repo.watch-changes`: when the files of a burst are asked of git. Built: a second after the first of them
+  changed, the delay of a file of the working tree, every file changed until then is given to one
+  `git check-ignore -z --stdin`; the read the others ask for starts as soon as git answered, since their second is
+  over. The files that change while git is asked wait for the next question, a second after the first of them; a read
+  that starts meanwhile, for any reason, sees them, and they are not asked. When git cannot answer, every file asked is
+  taken as one it does not ignore. The Activity drawer says the question as **Asking git which files it ignores**, as
+  it says the files not saved of the Changes page.
+- **Q461** — `repo.watch-changes`: a tab not shown (`repo.watch-hidden`) is still marked out of date by a change to a
+  file git ignores or to a nested worktree, and read once it is shown. Built so: asking git for each tab not shown
+  would start a git for each burst of each tab, for a read that waits until the tab is shown anyway.
+- **Q462** — `repo.read-state`: what tells that something changed in the git folder of another worktree. Built: the
+  size and the time of change of each file at the top of its own git folder (`HEAD`, `index`, `ORIG_HEAD`,
+  `MERGE_HEAD`…), of those of `rebase-merge`, `rebase-apply` and `sequencer`, and of `logs/HEAD`, leaving out the
+  `.lock` files and the socket of the file system monitor; a worktree whose git folder cannot be read is counted every
+  time. **Refresh** and choosing a repository count every worktree again. The engine of the extension still counts
+  every worktree on each `read/repo.read-state`, since the protocol does not say yet whether a read is a **Refresh**:
+  it keeps the counts once it does (phase 9 of M15).
+- **Q463** — `repo.watch-changes`: from when the minute of the focus is counted. Built: from the end of the last read
+  of the repository shown, whatever asked for it, kept by the window for each folder read, so that a tab shown again
+  after a minute is read when the window gets the focus; a repository never read asks for a read. A change missed
+  while the window was minimized is forgotten by the next read that starts, whatever asked for it.

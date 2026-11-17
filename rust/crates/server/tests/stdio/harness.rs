@@ -237,6 +237,41 @@ pub fn repository() -> Repository {
     repository
 }
 
+/// The git commands a traced engine started, from the trace2 events git wrote: the first word of each, such as
+/// `status`, and not those git ran itself.
+pub fn traced_commands(trace: &Path) -> Vec<String> {
+    commands_started(trace, 0)
+}
+
+/// The git commands a traced engine started, from a byte of the file of trace2 events on: not those git ran itself.
+pub fn commands_started(trace: &Path, from: usize) -> Vec<String> {
+    let text = std::fs::read_to_string(trace).unwrap_or_default();
+    text.get(from..)
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|line| {
+            let event: Value = serde_json::from_str(line).ok()?;
+            let is_started = event["event"] == "start" && !event["sid"].as_str()?.contains('/');
+            is_started.then(|| command_of(event["argv"].as_array()?))?
+        })
+        .collect()
+}
+
+/// The command of git's arguments: the first one that is not an option of git itself, as `-c name=value`.
+fn command_of(argv: &[Value]) -> Option<String> {
+    let mut arguments = argv.iter().skip(1).filter_map(Value::as_str);
+    while let Some(argument) = arguments.next() {
+        match argument {
+            "-c" | "-C" => {
+                let _value = arguments.next();
+            }
+            option if option.starts_with('-') => {}
+            command => return Some(command.to_owned()),
+        }
+    }
+    None
+}
+
 /// The folder of a repository, as the extension names it.
 pub fn folder(repository: &Repository) -> String {
     repository.path().to_string_lossy().into_owned()

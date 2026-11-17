@@ -3,6 +3,7 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 #![allow(clippy::unwrap_used, clippy::panic, reason = "a test that cannot go on fails")]
 
+mod changed_files;
 mod code_workspace;
 mod github;
 mod hidden;
@@ -12,6 +13,7 @@ mod pages;
 mod reads;
 mod select;
 mod tabs;
+mod worktree_counts;
 
 use std::path::{Path, PathBuf};
 
@@ -143,7 +145,11 @@ fn answer_asking(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[Pat
                 },
                 JobKind::ReadRepository { folder, .. } => Message::RepositoryRead {
                     job,
-                    result: Ok(Box::new((repository_state(&folder), Some(CommitPage::default())))),
+                    result: Ok(Box::new((
+                        repository_state(&folder),
+                        Some(CommitPage::default()),
+                        git::read::worktree::CountedWorktrees::default(),
+                    ))),
                     folder,
                     read_at: 0,
                 },
