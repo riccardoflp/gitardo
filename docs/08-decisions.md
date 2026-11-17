@@ -3727,3 +3727,78 @@ each is built as it says until the maintainer answers otherwise.
 - **Q672** — `settings.theme`: the two high contrast themes keep their blue selection, their accent being blue, and
   teal stays the color of information, of the incoming side of a merge and of the labels of a stash. Should any of
   these change too?
+
+### Of the tasks read and their groups, from Q700
+
+Questions of milestone M19 ([D65](#d65--tasks-a-tab-of-the-bottom-panel-with-the-tasks-of-the-repository-and-their-groups)),
+asked while building what of it needs no window: the tasks read, the order they run in, their groups, and the file
+groups are exported to and imported from. Each is built as it says until the maintainer answers otherwise.
+
+- **Q700** — `tasks.import-groups`, `tasks.export-groups`: the card says the tasks of the file are taken by their source
+  and their name, while the file Run My Tasks 0.8.0 writes names a task only as VS Code names it: `build` for a task
+  of `tasks.json` and for a script of the `package.json` at the top alike, `build - extension` for a script of a
+  folder. Built: on import a name is the task of `tasks.json` with that label when the worktree shown has one, else the
+  script VS Code names so, else a task of `tasks.json` the worktree lacks; on export each task is written by that
+  name. So a script at the top and a task of `tasks.json` of the same name come back as the task, and a script the
+  worktree that imports lacks comes back as a task of `tasks.json`. Should the card say names? And should Gitardo
+  write, beside `tasks`, a member of its own with the source of each task, which Run My Tasks leaves aside, so that a
+  file exported by Gitardo and imported by Gitardo loses nothing?
+- **Q701** — `tasks.import-groups`: **Do the same for the others** is a box to tick in the card, and a question of the
+  feature contract has none. Built: for a group named as one of the repository, **Merge**, **Replace** and **Skip**,
+  and, when more of the groups chosen are named so, **Merge all**, **Replace all** and **Skip all**, which answer for
+  the others too. The answers have twelve keys: at the twelfth such group of one file only the three for all are
+  offered. Is this the dialog, or should the Tasks tab draw one with the box?
+- **Q702** — `tasks.export-groups`: **Show in folder**, beside where the file was saved, has no follow-up of the
+  feature contract that shows a file in the file manager of the system. Built: Gitardo says where the file was saved.
+  Should the phase of the tab add the follow-up, for this and for `patch.save`, which could offer the same?
+- **Q703** — `tasks.read`: the group of the scripts of a `package.json` is named by its folder (`extension`); the one
+  at the top of the worktree has no folder. Built: it is named by the folder of the worktree shown (`app`). Or **npm**
+  alone, with no group?
+- **Q704** — `tasks.read`: what is read of `tasks.json` beside what the card lists, as VS Code reads version 2.0.0: a
+  task with no `type` is a `process`; a task with no `label` is named by its `taskName`, else by its command, and one
+  of another type by `<type>: <script>` as VS Code names `npm: build`; `command` and an item of `args` may be
+  `{ "value", "quoting" }`; the `options` of the file, and those of the file for one system, hold for every task that
+  does not say otherwise, `env` added name by name; `dependsOn` takes a label, the name of a script (`npm: build`,
+  `npm: build - extension`) when no task has that label, or `{ "type": "npm", "script", "path" }`. Is all of it
+  wanted, or only what the card lists?
+- **Q705** — `tasks.read`: a variable only VS Code resolves (`${file}`, `${input:…}`, `${command:…}`, `${config:…}`,
+  `${workspaceFolder:name}`, `${defaultBuildTask}` and the others of the editor) stays as written, and the task says
+  **It cannot be run with `${input:name}`, which only VS Code resolves.**, naming each once. `${env:NAME}` of a
+  variable that is not set is empty, as in VS Code, and `${NAME}` that is no variable of VS Code, which a shell
+  resolves, is left to the shell. Are the words and the two cases right?
+- **Q706** — `tasks.read`: `.vscode/tasks.json` is read even where git ignores `.vscode`, as many repositories do,
+  while a `package.json` counts only where git tracks it or does not ignore it, as the card says. Is the difference
+  wanted?
+- **Q707** — `tasks.run`: a background task whose problem matcher is one of VS Code's own, named by a string
+  (`$tsc-watch`), has no `beginsPattern` nor `endsPattern` Gitardo can read: it is ready once it has printed nothing
+  for two seconds after its start. A pattern the regular expressions of Rust cannot take, a look-ahead or a
+  back-reference of JavaScript, counts as none too. Should Gitardo carry the patterns of the matchers VS Code ships
+  (`$tsc-watch`, `$eslint-stylish`), and say when a pattern was left out?
+- **Q708** — `tasks.run`: the card refuses a loop and a task `dependsOn` names that is not there. Built the same way,
+  with nothing run: a task among those depended on that Gitardo cannot run, of another type or with a variable only VS
+  Code resolves, saying **Nothing ran: `<task>` cannot be run here.** with why. And a task that waits for one that was
+  stopped, or could not be started, says **It did not run: `<task>` was stopped.** and **It did not run: `<task>`
+  could not be started: `<why>`.** Are these the words?
+- **Q709** — `tasks.run`: with `dependsOrder` `sequence`, the tasks the second depends on wait for the first too, so
+  that nothing of the second starts before the first ended; a task two tasks depend on runs once, and one already
+  wanted by an earlier task of the sequence does not wait again. Is this the order VS Code users expect, or should
+  only the second itself wait?
+- **Q710** — `tasks.edit-groups`: `gitardo/task-groups.json` is `{ "version": 1, "groups": [{ "name", "tasks": [{
+  "source": "Workspace", "name" } | { "source": "npm", "folder", "name" }] }] }`. A file that is not JSON, is not
+  this, or has a newer `version` lists no groups and says so, and every change of the groups is refused with **Nothing
+  was changed.** rather than written over it. Is refusing right, or should a change start again from no groups?
+- **Q711** — `tasks.edit-groups`: the state of a repository has the git folder of the worktree shown, not the common
+  one. Built: the operations read `commondir` in that folder and take the folder it names, with no git run. A query
+  that asks git (`git rev-parse --git-common-dir`) would also hold where the environment moves the common folder.
+  Should the phase of the tab add it to the state or to the queries?
+- **Q712** — `tasks.edit-groups`: the words of the refusals, none of them in the card but the first: **There is
+  already a group named `<name>`.**, **There is no group named `<name>` any more.** for a group another window deleted
+  or renamed, **`<task>` is already in the group `<name>`.**, **The group `<name>` does not have `<task>`.** and
+  **The groups are already so.** for a move that moves nothing. A name is taken without the spaces around it, and two
+  names that differ by case are two groups. Right?
+- **Q713** — `repo.watch-changes`, `tasks.read`: which changes ask for the tasks, and for the groups, to be read again
+  is derived apart from which ask for a read of the repository (`model::repo::sort_tasks_change`,
+  `model::repo::changes_task_groups`), since a lock file of `yarn` or `bun` asks for no read of the repository and
+  still names the package manager. The watcher does not call them yet: it is among the files of milestone M18, and
+  the phase of the tab calls them. Should the tasks have a read of their own, as built, or ride on the read of the
+  repository with a cause of its own?
