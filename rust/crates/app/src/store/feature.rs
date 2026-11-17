@@ -140,6 +140,12 @@ pub fn reduce(state: &mut State, intent: FeatureIntent) -> Vec<Effect> {
             state.operations.said = None;
             Vec::new()
         }
+        FeatureIntent::SaidShown(at) => {
+            if let Some(said) = state.operations.said.as_mut() {
+                said.shown_at = Some(at);
+            }
+            Vec::new()
+        }
     }
 }
 

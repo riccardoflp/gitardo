@@ -156,6 +156,7 @@ impl ViewData {
                 running: &self.running,
                 identity: state.shown_read().map(|read| &read.state.identity),
                 is_running: state.is_operation_running,
+                said: None,
             },
             content: self.content(state),
             panel: self.panel(state),
@@ -188,8 +189,7 @@ impl ViewData {
         }
     }
 
-    /// The side column, once a workspace is open: its repositories, and the branch rail of the repository shown once it
-    /// is read (`repo.side-column`).
+    /// The side column of an open workspace: its repositories, and the rail of the one read (`repo.side-column`).
     fn side_column<'a>(&'a self, state: &'a State) -> Option<SideColumnState<'a>> {
         let tabs = self.tabs.island(state)?;
         let branches = match state.workspace.as_ref().map(|workspace| &workspace.shown) {

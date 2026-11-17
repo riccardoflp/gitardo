@@ -45,5 +45,7 @@ pub fn said_state(state: &State) -> Option<SaidState<'_>> {
         stopped: super::super::conflicts::stopped_state(state, said),
         runs: &said.runs,
         link: said.link.as_ref().map(|(label, url)| (label.as_str(), url.as_str())),
+        is_notice: false,
+        shown_at: said.shown_at,
     })
 }

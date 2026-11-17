@@ -6,19 +6,18 @@
 //! between the islands narrow; below about 700 the inspector is not beside the timeline (it opens over it once a commit
 //! can be selected).
 
-use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, ButtonKind, Key, Label, Modifiers, NamedKey, Rect, Tone, Ui};
+use ui::layout::{Area, Insets, inset};
+use ui::{Key, Modifiers, NamedKey, Rect, Ui};
 
 use crate::activity::{ActivityState, StatusBarState, status_bar_view, what_is_running_view};
 use crate::bisect::BisectBanner;
 use crate::details::{DetailsState, show};
-use crate::feature::{ConfirmState, QuestionState, SaidState, confirm_view, question_view, said_view};
+use crate::feature::{ConfirmState, QuestionState, SaidState, confirm_view, question_view};
 use crate::filter::{BranchPicker, NarrowedBar};
 use crate::graph::{
     GraphIntent, GraphState, HoverTarget, PaneLayout, PaneSizes, ReferencesShown, ToolbarState, pane_rects,
     resize_panes_view, toolbar_view,
 };
-use crate::icons;
 use crate::intent::{Intent, Notice};
 use crate::islands::{gap, island};
 use crate::line::{INSPECTOR_OVER_BELOW, is_narrow};
@@ -178,7 +177,12 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         },
     );
     intents.extend(ui.clip(bar, |ui| view_bar_view(&state.view_bar, ui)));
-    intents.extend(ui.clip(status, |ui| status_bar_view(&state.status, ui)));
+    // What was said and the notices of the window are said in the status bar, which keeps its height (D56).
+    let status_state = StatusBarState {
+        said: state.said.or_else(|| state.notice.map(notice_said)),
+        ..state.status
+    };
+    intents.extend(ui.clip(status, |ui| status_bar_view(&status_state, ui)));
     let rest = inset(
         area.rest(),
         Insets {
@@ -198,7 +202,7 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         .map(|tab| tab.folder.as_str());
     let panel = ui.scope(("tab", shown_tab), |ui| {
         intents.extend(ui.clip(header, |ui| toolbar_view(&state.header, ui)));
-        tab_islands(state, ui, (body, gap, bar_height), &mut intents)
+        tab_islands(state, ui, (body, gap), &mut intents)
     });
     if let Some(drawer) = &state.drawer {
         // The drawer opens over what is above the bottom panel, which it would hide.
@@ -214,26 +218,14 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     intents
 }
 
-/// The islands of the tab shown under the header: what was said, a notice, the side column beside the timeline or the
-/// page, and the bottom panel; gives where the bottom panel is when it is shown.
+/// The islands of the tab shown under the header: the side column beside the timeline or the page, and the bottom
+/// panel; gives where the bottom panel is when it is shown.
 fn tab_islands(
     state: &WindowState<'_>,
     ui: &mut Ui<'_>,
-    (mut body, gap, bar_height): (Rect, f32, f32),
+    (body, gap): (Rect, f32),
     intents: &mut Vec<Intent>,
 ) -> Option<Rect> {
-    if let Some(said) = &state.said {
-        let mut rows = Area::with_gap(body, gap);
-        let bar = rows.top(bar_height);
-        body = rows.rest();
-        intents.extend(island(ui, bar, |ui| said_view(said, ui)));
-    }
-    if let Some(notice) = state.notice {
-        let mut rows = Area::with_gap(body, gap);
-        let bar = rows.top(bar_height);
-        body = rows.rest();
-        island(ui, bar, |ui| notice_bar(notice, ui, bar, intents));
-    }
     let is_narrow = is_narrow(ui);
     let side = state
         .side
@@ -392,11 +384,9 @@ fn repository_panes(
     above_panel(panel, ui, (body, gap), intents).1
 }
 
-/// A notice across the top of what is under the header, with a button that puts it away.
-fn notice_bar(notice: Notice, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
-    let theme = *ui.theme();
-    let spacing = theme.sizes.spacing;
-    let said = match notice {
+/// A notice of the window, said in the status bar as a warning, with **×** that puts it away (`activity.said`).
+fn notice_said(notice: Notice) -> SaidState<'static> {
+    let text = match notice {
         Notice::RecentGone => repo_words::RECENT_GONE,
         Notice::SingleRepository => repo_words::SINGLE_REPOSITORY,
         Notice::NoRepositoryToSelect => repo_words::NO_REPOSITORY_TO_SELECT,
@@ -404,18 +394,19 @@ fn notice_bar(notice: Notice, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Int
         Notice::DiffTooComplex => crate::text::diff::TOO_MANY_DIFFERENCES,
         Notice::MergeNotInConflict => crate::text::merge_view::NOT_IN_CONFLICT,
     };
-    let mut parts = Area::with_gap(
-        inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0)),
-        spacing.medium,
-    );
-    ui.icon_in(parts.left(theme.sizes.icon), icons::INFORMATION, Tone::Accent);
-    let dismiss = Button::secondary(repo_words::DISMISS).kind(ButtonKind::Outline);
-    let (width, height) = ui.button_size(&dismiss);
-    let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
-    if ui.button("dismiss notice", cell, &dismiss).clicked {
-        intents.push(Intent::DismissNotice);
+    SaidState {
+        text,
+        is_error: false,
+        can_undo: false,
+        offers_stashes: false,
+        found: None,
+        offer: None,
+        stopped: None,
+        runs: &[],
+        link: None,
+        is_notice: true,
+        shown_at: None,
     }
-    let _ = ui.label(parts.rest(), &Label::new(said));
 }
 
 /// The keys of the window that no widget used: `Ctrl+Tab` goes through the timeline and the pages open, `Ctrl+,`

@@ -2892,3 +2892,7 @@ each built with the reading given until the card says otherwise.
   summary, muted, as the card says. Whether a git folder changed is said by `app::work::summaries::git_folder_changed`,
   from the times its `HEAD`, its index, `packed-refs`, `FETCH_HEAD` and its folders of refs were written; the store
   forces a read when the files of the folder change.
+- **Q506** — `activity.said`: a click on its words opens the Command log "at the command that said it", where the
+  Command log keeps no link from what was said to its command. Built: the click shows the Command log of the bottom
+  panel, at its end, where the last command is; what failed keeps its links, and **×** is an icon with **Dismiss** in
+  its tooltip.

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- What an operation said when it ended, and the notices of the window, are said in the status bar after what is
+  running, no longer in a bar under the header: the icon of their tone, the words cut with `…` and whole in their
+  tooltip, then **Undo**, what is offered next (**Create pull request**, **Show stashes**…) as links, and **×**. What
+  succeeded goes ten seconds after it was said, or after the pointer left it; a warning or an error stays until **×**,
+  an error in the color of errors. A click on the words opens the Command log. The identity at the end of the status
+  bar gives up its room first, then the words of what is running.
 - The repositories open are no longer tabs in an island above the header: they are the rows of **Repositories**, the
   first section of a side column on the left of the window, from under the header to the status bar, with **Branches**
   (the branch rail) under it. Each row is two lines high: the name of the repository, with the worktree or the

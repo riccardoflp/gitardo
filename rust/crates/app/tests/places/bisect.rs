@@ -125,7 +125,9 @@ fn bisect_mark__marking_the_last_commit_left_says_which_is_the_first_bad_one_wit
     let driver = OperationsDriver::new();
     give_until_ended(&driver, &mut state, marked("bisect.mark", &d, "bad"));
     let mut window = Window::new(ThemeName::Dark, WIDE);
-    let (_, tree) = window.draw(&state, &[]);
+    // What was said is drawn, and the store keeps when (`activity.said`).
+    let (shown, tree) = window.draw(&state, &[]);
+    super::pointer::apply(&mut state, shown);
     assert!(says(&tree, &words::first_bad(d.short(), "Add d")));
     assert!(has(&tree, Role::Button, words::SHOW_IN_TIMELINE));
     assert!(has(&tree, Role::Button, words::END_BISECT));

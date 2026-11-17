@@ -236,7 +236,9 @@ fn review_report__after_writing_every_conflict_of_a_merge_continue_the_merge_run
     let mut state = reviewed(&repository);
     let _driver = write_accepted(&mut state);
     let mut window = window();
-    let tree = window.draw(&state, &[]).1;
+    // What was said is drawn, and the store keeps when (`activity.said`).
+    let (shown, tree) = window.draw(&state, &[]);
+    super::pointer::apply(&mut state, shown);
     assert!(says(&tree, "No file is left in conflict: the merge can continue."));
     let intents = window.click(&state, Role::Button, "Continue the merge");
     assert_eq!(intents, [Intent::Review(ReviewIntent::Continue)]);

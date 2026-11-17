@@ -120,6 +120,7 @@ pub fn open(state: &mut State, only: Option<Vec<String>>) -> Vec<Effect> {
             stopped: None,
             runs: Vec::new(),
             link: None,
+            shown_at: None,
         });
         return Vec::new();
     }
