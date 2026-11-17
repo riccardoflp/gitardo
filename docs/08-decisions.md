@@ -3167,6 +3167,17 @@ the reading given until the card says otherwise.
 - **Q553** — `changes.beside-file`: whether `Escape` brings the whole page back, as it does beside a comparison.
   Built: no, since `Escape` closes the box that finds in the File page shown there; **Changes** in the trail does it.
 
+### Of the logo and the name of Gitardo, from Q560
+
+- **Q560** — `window.brand`: which colors are "the colors of each theme" for a logo whose file draws its lines in the
+  color of the text, and with which weight of line. Built: the accent of the theme, so that the mark of the program
+  stands apart from the icons of the bar of views under it, which are in the color of the text; and the weight of the
+  other icons of the window (1.5 logical pixels at 16, Q420) rather than the file's 1.6 of 24, so that it looks drawn
+  with them. It is a copy of the extension's file, which a test keeps the same.
+- **Q561** — `window.brand`: which window is "too narrow for the header bar", whose acceptance names 700 logical
+  pixels and the roadmap the narrow layout. Built: the narrow layout, below 900 logical pixels, where the header gives
+  up its words for its icons; 700 is inside it.
+
 ### Of the title bar the window draws, from Q565
 
 - **Q565** — `window.caption-buttons`: whether **Close** of the title bar asks before closing while an operation runs.
@@ -3197,8 +3208,8 @@ the reading given until the card says otherwise.
   on Wayland, `_GTK_SHOW_WINDOW_MENU` on X11) would be code of our own, proposed apart.
 - **Q571** — `window.caption-buttons`: where the logo goes on macOS, whose three buttons take the top left. Built: the
   header bar starts 78 logical pixels from the left edge, after the buttons, and the bar of views starts below the
-  header bar, so that the square of the logo above it (`window.brand`) is under the buttons; the logo moves to the
-  start of the header bar there when the two branches of M17 meet.
+  header bar; the square above it is left empty under the buttons, and the logo of `window.brand` starts the header bar
+  there, before the name.
 - **Q572** — `window.title-bar`: whether Linux draws the title bar too. Built: yes, as the roadmap says, with no
   decorations of the compositor; the shadow and the rounded corners are the compositor's to give or not. A compositor
   that draws decorations on every window anyway (some with server-side decorations only) would show both, which no

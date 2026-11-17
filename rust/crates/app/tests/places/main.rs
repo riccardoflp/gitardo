@@ -12,6 +12,7 @@ mod bisect;
 mod blame;
 mod blame_file;
 mod branches;
+mod brand;
 mod changes;
 mod changes_beside;
 mod changes_save;

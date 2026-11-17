@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The logo of Gitardo, the one of the extension, is at the top left of the window, in the accent of the theme, in a
+  square above the bar of views, which starts under it; the header starts with the name **Gitardo**, before the
+  repository, the worktree and the branch. In a narrow window the name goes and the logo stays. Neither does anything
+  when clicked.
 - On Windows the window has no title bar of the system: the header bar is the title bar. Its free parts move the
   window, and dragged to the top of the screen maximize it; a double click maximizes and restores it; a right click or
   `Alt+Space` opens the system's menu of the window. **Minimize**, **Maximize** or **Restore** and **Close** are at its
@@ -11,7 +15,7 @@
   window has the focus; a menu or a picker open closes when the window starts to be moved or resized.
 - On Linux the window has no decorations either, and the header bar moves, maximizes and resizes it through the
   compositor, with the same three buttons; on macOS the system's title bar is transparent over the header bar, which
-  starts after its three buttons.
+  starts after its three buttons with the logo.
 - The window opens where it was and maximized if it was, besides keeping its size; a place on a screen no longer there
   is left to the system.
 - The side column takes less room: a repository, a worktree and a submodule are each one row of one line, the name on

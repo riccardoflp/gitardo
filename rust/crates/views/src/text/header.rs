@@ -1,5 +1,9 @@
-//! The words of the header (`graph.toolbar`, `activity.status-bar`, `graph.more-menu`).
+//! The words of the header (`graph.toolbar`, `activity.status-bar`, `graph.more-menu`, `window.brand`).
 
+/// The name of the program, at the start of the header bar (`window.brand`).
+pub const NAME: &str = "Gitardo";
+/// The logo at the top left of the window, for the screen reader (`window.brand`).
+pub const LOGO: &str = "Logo of Gitardo";
 /// The name of the header, for the screen reader.
 pub const HEADER: &str = "Header of the repository shown";
 /// The entry of the menu of **+** that opens a folder (`repo.open-folder`).

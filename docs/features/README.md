@@ -80,7 +80,7 @@ earns it.
 | [`graph.view`](02-graph.md#graphview--the-timeline) | The timeline | View | Built | Built |
 | [`graph.toolbar`](02-graph.md#graphtoolbar--the-header) | The header | View | Built | Built |
 | [`graph.where`](02-graph.md#graphwhere--where-one-is-in-the-header) | Where one is, in the header | View | Built | Host only |
-| [`window.brand`](02-graph.md#windowbrand--the-logo-and-the-name-of-gitardo) | The logo and the name of Gitardo | View | Specified | Host only |
+| [`window.brand`](02-graph.md#windowbrand--the-logo-and-the-name-of-gitardo) | The logo and the name of Gitardo | View | Built | Host only |
 | [`window.title-bar`](02-graph.md#windowtitle-bar--the-header-bar-as-the-title-bar-of-the-window) | The header bar as the title bar of the window | Derivation | Built | Host only |
 | [`window.caption-buttons`](02-graph.md#windowcaption-buttons--minimize-maximize-and-close) | Minimize, maximize and close | View | Built | Host only |
 | [`graph.search-button`](02-graph.md#graphsearch-button--the-button-of-quick-search) | The button of Quick search | View | Built | Host only |

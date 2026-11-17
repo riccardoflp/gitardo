@@ -43,7 +43,9 @@ history fills it, and everything else opens from it.
 ```
 
 - **Bar of views**: a column of icons on the left edge, outside the islands
-  ([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)): **Timeline**, **Changes** with the number of
+  ([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)), under the logo of Gitardo, which is in the
+  square at the top left of the window, before the name **Gitardo** that starts the header
+  ([D58](../08-decisions.md#d58--the-window-draws-its-own-title-bar-with-the-logo-and-the-name-of-gitardo)): **Timeline**, **Changes** with the number of
   changed files, **Files** and **Compare**; at its foot **Terminal**, which shows and hides the bottom panel,
   **Activity**, which opens and closes the Activity drawer, and **Settings**. The place shown is marked.
 - **Side column**: the island on the left, the whole height of the window, with two sections that fold and share its

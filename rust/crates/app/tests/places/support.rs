@@ -168,6 +168,27 @@ impl Window {
         };
         png::assert_snapshot(reference, &actual);
     }
+
+    /// Checks the pixels of the top of the window, a height in logical pixels across its whole width, against
+    /// `tests/snapshots/<name>.png`.
+    pub fn assert_top_snapshot(&self, name: &str, height: u32) {
+        let reference = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("tests/snapshots/{name}.png"));
+        #[allow(
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss,
+            reason = "a scale is a small whole number"
+        )]
+        let rows = (height * self.scale as u32).min(self.frame.height());
+        let width = self.frame.width();
+        let mut pixels = self.frame.to_rgba();
+        pixels.truncate((width * rows * 4) as usize);
+        let actual = Image {
+            width,
+            height: rows,
+            pixels,
+        };
+        png::assert_snapshot(reference, &actual);
+    }
 }
 
 /// The node of a role and a name in the tree, which the test fails without.
