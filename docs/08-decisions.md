@@ -3000,7 +3000,9 @@ each built with the reading given until the card says otherwise.
 - **Q507** — `diff.beside-inspector`: a click on the commit in one line at the top of the inspector "gives back the
   whole card", which the inspector beside a Diff page cannot show without leaving the page. Built: the click brings
   the timeline back, as **Timeline** in the trail does, where the inspector is the whole card of the same commit.
-  `Up` and `Down` in the tree are not built: `Alt+Down` and `Alt+Up` in the Diff page go from file to file.
+  `Up` and `Down` in the tree are built: a file clicked gives the tree the keyboard, and `Down` and `Up` show the next
+  and the previous file in the same page, as `Alt+Down` and `Alt+Up` in the Diff page do, both in the order the tree
+  lists the files.
 - **Q508** — `compare.beside-diff`: each file of the column is to have "its lines gained and lost", which
   `compare.read-sides` does not read (it gives the status of each file, not its counts). Built: the column shows the
   letter of the status of each file, as the comparison page does; counts would need `git diff --numstat` in that read.

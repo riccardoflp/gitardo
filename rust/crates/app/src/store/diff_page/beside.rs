@@ -1,12 +1,11 @@
 //! The Diff page beside the inspector (`diff.beside-inspector`): one page for the files of the inspector of a
 //! repository, which shows the file clicked in place of the one it showed, and the next or the previous file of the
-//! inspector with `Alt+Down` and `Alt+Up`.
+//! inspector with `Alt+Down` and `Alt+Up` in the page, or `Down` and `Up` in the tree of the inspector.
 
 use std::collections::BTreeSet;
 
 use model::details::TreeNode;
-use model::state::FileChange;
-use views::details::{FileLayout, ShownFile};
+use views::details::ShownFile;
 use views::diff::{DiffPageId, DiffTarget, FileDiff, FileStep};
 use views::page::Page;
 
@@ -119,8 +118,9 @@ pub fn step(state: &mut State, step: FileStep) -> Vec<Effect> {
     }
 }
 
-/// The diff of each file of the inspector, in the order it lists them: of the comparison shown in place of the card,
-/// or of the row selected, as a list or as a tree, then the untracked files of a stash.
+/// The diff of each file of the inspector, in the order it lists them beside the Diff page: of the comparison shown in
+/// place of the card, or of the row selected, as a tree whatever the layout of the inspector beside the timeline, then
+/// the untracked files of a stash.
 fn inspector_targets(state: &State) -> Vec<DiffTarget> {
     if let Some(in_place) = &state.compares.in_place {
         let files = match &in_place.files {
@@ -137,14 +137,8 @@ fn inspector_targets(state: &State) -> Vec<DiffTarget> {
         return Vec::new();
     };
     let detail = &read.detail;
-    let order: Vec<usize> = match state.persisted.file_layouts.inspector {
-        FileLayout::List => (0..shown_count(&detail.files, inspector.is_all_files_shown)).collect(),
-        FileLayout::Tree => {
-            let mut indices = Vec::new();
-            tree_files(&inspector.tree, &mut indices);
-            indices
-        }
-    };
+    let mut order = Vec::new();
+    tree_files(&inspector.tree, &mut order);
     let files = order.iter().filter_map(|index| detail.files.get(*index));
     let untracked = detail
         .untracked_files
@@ -164,15 +158,6 @@ pub(crate) fn tree_files(nodes: &[TreeNode], indices: &mut Vec<usize>) {
             TreeNode::Directory { children, .. } => tree_files(children, indices),
             TreeNode::File { index, .. } => indices.push(*index),
         }
-    }
-}
-
-/// How many files the inspector lists: the first 300, or all of them once **Show all** was clicked.
-fn shown_count(files: &[FileChange], is_all_shown: bool) -> usize {
-    if is_all_shown {
-        files.len()
-    } else {
-        files.len().min(views::details::FILE_CAP)
     }
 }
 

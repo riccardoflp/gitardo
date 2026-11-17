@@ -236,6 +236,66 @@ fn diff_beside_inspector__in_a_narrow_window_a_file_opens_its_diff_in_place_of_t
     assert!(has(&tree, Role::Navigation, views::text::pages::TRAIL));
 }
 
+/// Presses a key with no modifier in a window drawn from the store, and hands what it asks to the store; gives what it
+/// asked.
+fn press(window: &mut Window, state: &mut State, key: NamedKey) -> Vec<Intent> {
+    let pressed = InputEvent::KeyPressed(KeyEvent::press(Key::Named(key), Modifiers::NONE));
+    let (intents, _) = window.draw(state, &[pressed]);
+    for intent in intents.clone() {
+        let _effects = support::run(state, Message::Intent(intent));
+    }
+    intents
+}
+
+#[test]
+fn diff_beside_inspector__down_in_the_tree_of_the_inspector_shows_the_next_file_and_up_the_previous() {
+    let repository = three_files();
+    let mut state = showing(repository.path().to_path_buf());
+    let _ = select(&mut state, "Change three files");
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    click_words(&mut window, &mut state, "a.rs");
+    let intents = press(&mut window, &mut state, NamedKey::ArrowDown);
+    assert_eq!(
+        intents,
+        [Intent::Diff(DiffIntent::StepBeside(views::diff::FileStep::Next))]
+    );
+    assert_eq!(diff_file(&state), "src/b.rs");
+    assert_eq!(marked(&state).as_deref(), Some("src/b.rs"));
+    let _ = press(&mut window, &mut state, NamedKey::ArrowDown);
+    assert_eq!(diff_file(&state), "src/c.rs");
+    let _ = press(&mut window, &mut state, NamedKey::ArrowUp);
+    let _ = press(&mut window, &mut state, NamedKey::ArrowUp);
+    assert_eq!(diff_file(&state), "src/a.rs");
+    assert_eq!(marked(&state).as_deref(), Some("src/a.rs"));
+    let _ = press(&mut window, &mut state, NamedKey::ArrowUp);
+    assert_eq!(diff_file(&state), "src/a.rs", "the first file stays shown");
+}
+
+#[test]
+fn diff_beside_inspector__up_and_down_go_through_the_files_in_the_order_of_the_tree_whatever_the_layout_beside_the_timeline()
+ {
+    let mut repository = Repository::new();
+    let _ = repository.commit("Start", &[("README.md", "readme\n"), ("src/a.rs", "a\n")]);
+    let _ = repository.commit(
+        "Change two files",
+        &[("README.md", "readme, changed\n"), ("src/a.rs", "a, changed\n")],
+    );
+    let mut state = showing(repository.path().to_path_buf());
+    assert_eq!(state.persisted.file_layouts.inspector, views::details::FileLayout::List);
+    let _ = select(&mut state, "Change two files");
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    click_words(&mut window, &mut state, "a.rs");
+    let tree = drawn(&mut window, &state);
+    assert!(
+        words_at(&tree, "a.rs").y < words_at(&tree, "README.md").y,
+        "the folder src comes before README.md in the tree"
+    );
+    let _ = press(&mut window, &mut state, NamedKey::ArrowDown);
+    assert_eq!(diff_file(&state), "README.md");
+    let _ = press(&mut window, &mut state, NamedKey::ArrowUp);
+    assert_eq!(diff_file(&state), "src/a.rs");
+}
+
 /// A repository with `README.md` and `src/app.rs`, with the Files page shown and `src` opened.
 fn files_page() -> (Repository, State, Window) {
     let mut repository = Repository::new();

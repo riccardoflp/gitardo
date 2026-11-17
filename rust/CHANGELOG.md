@@ -78,8 +78,10 @@
   gives back the whole page, scrolled where it was; the side column is put away while the diff is shown.
 - Beside a Diff page opened from the inspector, the inspector is the column of the commit's files: at its top the
   commit in one line, its short hash and its subject, with its author and its date in its tooltip, which a click
-  takes back to the timeline; under it the files of the commit as a tree, the folders as they were left. The side
-  column is put away while the diff is shown and comes back at its width with the timeline.
+  takes back to the timeline; under it the files of the commit as a tree, the folders as they were left. A file
+  clicked gives the tree the keyboard: `Down` and `Up` show the next and the previous file, as `Alt+Down` and `Alt+Up`
+  in the page do, both in the order of the tree. The side column is put away while the diff is shown and comes back at
+  its width with the timeline.
 - What an operation said when it ended, and the notices of the window, are said in the status bar after what is
   running, no longer in a bar under the header: the icon of their tone, the words cut with `…` and whole in their
   tooltip, then **Undo**, what is offered next (**Create pull request**, **Show stashes**…) as links, and **×**. What

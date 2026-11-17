@@ -7,8 +7,8 @@ use model::details::CommitDetail;
 use model::state::FileChange;
 use ui::layout::{Align, Area, place};
 use ui::{
-    Button, ButtonKind, Label, List, MenuEntry, MenuItem, Rect, Reveal, RevealPlace, SelectionMode, Sense, Steering,
-    TextKind, Tone, Ui,
+    Button, ButtonKind, Key, Label, List, MenuEntry, MenuItem, Modifiers, NamedKey, Rect, Reveal, RevealPlace,
+    SelectionMode, Sense, Steering, TextKind, Tone, Ui,
 };
 
 use super::files::{CappedList, FileRow, FilesState, directory_row, file_name, file_rows, file_start};
@@ -16,6 +16,7 @@ use super::head::{Head, draw_head, head_height};
 use super::message::MessageState;
 use super::{DetailsRead, DetailsState, FilesOwner, ReadDetails, SelectedDetails, say, show_all_files};
 use crate::blocks::{block_top, rows_for};
+use crate::diff::{DiffIntent, FileStep};
 use crate::feature::FeatureIntent;
 use crate::icons;
 use crate::intent::Intent;
@@ -108,6 +109,7 @@ fn read_card(
     let key = ("inspector rows", detail.id.as_ref().map(model::CommitId::as_str));
     let steering = Steering {
         reveal: reveal_of(state, &rows, (&files, untracked)),
+        left_to_view: if is_beside { &FILE_STEPS } else { &[] },
         ..Steering::default()
     };
     let shown = state.shown_file.map(|shown| shown.path);
@@ -137,6 +139,48 @@ fn read_card(
             None => {}
         }
     });
+    let stepped = files_keyboard(ui, key, (is_beside, &intents));
+    intents.extend(stepped);
+    intents
+}
+
+/// The keyboard of the files of the inspector: a file clicked opens its diff beside the inspector, whose tree then has
+/// the keyboard; beside a Diff page, `Up` and `Down` in it go from file to file.
+fn files_keyboard(
+    ui: &mut Ui<'_>,
+    key: impl std::hash::Hash + Copy,
+    (is_beside, intents): (bool, &[Intent]),
+) -> Vec<Intent> {
+    let is_diff_opened = intents
+        .iter()
+        .any(|intent| matches!(intent, Intent::Diff(DiffIntent::OpenBeside(_))));
+    if is_diff_opened {
+        let id = ui.id(key);
+        ui.request_focus(id);
+    }
+    if is_beside { step_files(ui, key) } else { Vec::new() }
+}
+
+/// The keys of the tree of files beside a Diff page that go from file to file, which the list leaves to the inspector.
+const FILE_STEPS: [(Key, Modifiers); 2] = [
+    (Key::Named(NamedKey::ArrowUp), Modifiers::NONE),
+    (Key::Named(NamedKey::ArrowDown), Modifiers::NONE),
+];
+
+/// `Up` and `Down` in the tree of files beside a Diff page, while it has the keyboard: the diff of the previous or the
+/// next file of the tree, in the same page, as `Alt+Up` and `Alt+Down` in the page show it (Q507).
+fn step_files(ui: &mut Ui<'_>, key: impl std::hash::Hash) -> Vec<Intent> {
+    let id = ui.id(key);
+    let mut intents = Vec::new();
+    for pressed in ui.unclaimed_keys_of(id) {
+        let step = match (pressed.key, pressed.modifiers) {
+            (Key::Named(NamedKey::ArrowUp), Modifiers::NONE) => FileStep::Previous,
+            (Key::Named(NamedKey::ArrowDown), Modifiers::NONE) => FileStep::Next,
+            _ => continue,
+        };
+        ui.claim_key(id, pressed);
+        intents.push(Intent::Diff(DiffIntent::StepBeside(step)));
+    }
     intents
 }
 

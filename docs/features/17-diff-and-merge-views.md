@@ -76,8 +76,8 @@ other without it closing.
 - **Kind**: View
 - **Function**: `views::diff::beside_inspector_view(state: &BesideInspectorState, ui) -> Vec<Intent>`
 - **Entry points**: a click on a file in the inspector, of a commit, a stash, the draft or a comparison in its place
-  (`compare.in-place`); `Alt+Down` and `Alt+Up` in the Diff page opened so, for the next and the previous file of the
-  inspector.
+  (`compare.in-place`); `Alt+Down` and `Alt+Up` in the Diff page opened so, and `Down` and `Up` in the tree of the
+  inspector beside it, for the next and the previous file of the inspector.
 - **Uses**: `diff.page`, `details.show`, `details.file-tree`, `compare.in-place`, `graph.resize-panes`,
   `repo.side-column`.
 - **Extension**: VS Code's diff editor opens beside the panel, and the details stay: nothing to build.
@@ -90,8 +90,9 @@ other without it closing.
   (`file-view.beside-files`): at its top the commit in one line, its short hash and its subject, with its author and
   its date in its tooltip, and a click on it giving back the whole card; under it, the files of the commit as a tree
   (`details.file-tree`), each with its lines gained and lost, the folders opened or closed as the user leaves them. It
-  marks the file whose diff is shown, as a row selected, and keeps it in view; `Up` and `Down` in the tree move from
-  file to file and show each.
+  marks the file whose diff is shown, as a row selected, and keeps it in view. A file clicked gives the tree the
+  keyboard, and `Up` and `Down` in the tree move from file to file and show each, in the order of the tree whatever
+  the layout of the inspector beside the timeline (Q507).
 - A click on another file of the inspector shows its diff in the same page, which is not opened again: the trail
   names the file shown, and `Ctrl+Tab` lists one page for the files of that commit, not one for each file.
 - **Open all changes in one Diff page** in the inspector opens the diffs one after the other in the same place.
@@ -111,6 +112,10 @@ Acceptance:
       open.
 - [ ] A click on `src/b.rs` then shows its diff in the same page, and `Ctrl+Tab` lists one Diff page.
 - [ ] `Alt+Down` in that page shows the diff of the next file of the inspector.
+- [ ] After a click on `src/a.rs`, `Down` in the tree shows `src/b.rs`, then `src/c.rs`; `Up` goes back, and stays on
+      `src/a.rs`, the first.
+- [ ] With the inspector as a list beside the timeline, `Down` from `src/a.rs` shows `README.md`, which the tree lists
+      after the folder `src`.
 - [ ] **Timeline** in the trail shows the timeline with the same commit selected.
 - [ ] In a window narrower than the narrow layout, a click on a file of the inspector opens the Diff page in place of
       the timeline and the inspector.
