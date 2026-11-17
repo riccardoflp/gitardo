@@ -164,7 +164,7 @@ pub fn collapse_unchanged_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Ve
     } else {
         ButtonKind::Icon
     };
-    let button = Button::icon(icons::FOLD_UNCHANGED, words::COLLAPSE_UNCHANGED).kind(kind);
+    let button = Button::icon(icons::FOLD, words::COLLAPSE_UNCHANGED).kind(kind);
     let cell = place(rect, (side, side), (Align::Start, Align::Center));
     if ui.button(("diff collapse", state.id), cell, &button).clicked {
         let intent = DiffPageIntent::Collapse(!state.is_collapsed);

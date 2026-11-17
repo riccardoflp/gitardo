@@ -4,9 +4,7 @@
 //! page, a button at the top of the list that names the section marked and opens the menu of them all.
 
 use ui::layout::{Align, Area, place};
-use ui::{
-    AccessRole, Button, ButtonKind, Description, Icon, Label, MenuEntry, MenuItem, Rect, Sense, TextKind, Tone, Ui,
-};
+use ui::{AccessRole, Button, ButtonKind, Description, Icon, Label, MenuEntry, Rect, Sense, TextKind, Tone, Ui};
 
 use super::{SettingsAnchor, SettingsIntent, SettingsList};
 use crate::icons;
@@ -236,9 +234,7 @@ pub(super) fn sections_menu(
             entries.push(MenuEntry::Separator);
         }
         let (name, icon) = choice.look();
-        let mut item = MenuItem::new(name, choice);
-        item.icon = Some(icon);
-        entries.push(MenuEntry::Item(item));
+        entries.push(MenuEntry::Item(icons::action(icon, name, choice)));
     }
     let (name, icon) = shown.look();
     let button = Button::secondary(name)

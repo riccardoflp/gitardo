@@ -4,7 +4,7 @@
 
 use model::commit::Commit;
 use ui::layout::{Align, place};
-use ui::{Badge, BadgeFill, MenuEntry, MenuItem, Point, TextKind, TextRun, Tone, Ui};
+use ui::{Badge, BadgeFill, MenuEntry, Point, TextKind, TextRun, Tone, Ui};
 
 use crate::icons;
 use crate::intent::Intent;
@@ -37,13 +37,17 @@ pub enum StashEntry {
 /// The context menu of a stash: nothing of a commit.
 #[must_use]
 pub fn stash_menu() -> Vec<MenuEntry<'static, StashEntry>> {
-    let item = |label, entry| MenuEntry::Item(MenuItem::new(label, entry));
+    let item = |icon, label, entry| MenuEntry::Item(icons::action(icon, label, entry));
     vec![
-        item(words::APPLY, StashEntry::Apply),
-        item(words::POP, StashEntry::Pop),
-        item(words::CREATE_BRANCH_FROM_STASH, StashEntry::CreateBranch),
+        item(icons::APPLY, words::APPLY, StashEntry::Apply),
+        item(icons::POP, words::POP, StashEntry::Pop),
+        item(
+            icons::CREATE_BRANCH,
+            words::CREATE_BRANCH_FROM_STASH,
+            StashEntry::CreateBranch,
+        ),
         MenuEntry::Separator,
-        item(words::DROP, StashEntry::Drop),
+        item(icons::DELETE, words::DROP, StashEntry::Drop),
     ]
 }
 

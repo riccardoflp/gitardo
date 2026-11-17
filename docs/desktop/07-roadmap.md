@@ -388,17 +388,29 @@ Phase 9 was added by the maintainer after phases 5 and 6
    follow every read of the repository. The extension has no Files view, and VS Code's Explorer marks the changes of
    git itself. Cards: `file-view.files-changes`.
 
+Phase 11 was added by the maintainer after phase 9
+([D63](../08-decisions.md#d63--the-icon-of-each-action-in-the-menus)):
+
+11. **The icon of each action in the menus.** Every item of every context menu and of every menu under a button that
+    does something has the icon of its action at the left of its words, the one a button of the same action draws, in
+    the color of the words and dimmed with them: the copy icon on every **Copy …**, the bin on every **Delete …**, the
+    Timeline on **Show in the timeline**. Eight icons of Lucide are added for the actions the table did not have (copy,
+    cut, paste, rename, check out, a new window, reveal, unfold). The items no icon says (the rewrites of the history,
+    the values of a list) keep their words lined up with the others; the switches keep their check. The extension's
+    own menus are left for later. Cards: `ui.menu-icons`, `graph.icons`.
+
 Exit: the window opens with no title bar of the system, the logo at its top left and **Gitardo** at the start of the
-header bar; dragging the free part of the header bar moves the window and dragging it to the top of the screen
-maximizes it; a double click maximizes and restores it; the pointer on **Maximize** on Windows 11 shows Snap Layouts;
-the edges and corners resize it, and nothing resizes it while it is maximized; `Alt+Space` opens the system's menu of
-the window; the bar dims when another window has the focus; the size and place are kept from one start to the next;
-`README.md` opened from the Files page with **Open Markdown as a preview** on shows its headings, lists, a table and
-a code block laid out, and **Source** shows its text; in the Files page a modified file shows `M`, a file whose
-deletion is staged is listed struck through and opens its Diff page, and a folded folder holding a change shows its
-dot; every card of the phase passes its tests, and the snapshots of
-the header bar match in each theme, focused and not, those of the preview of Markdown and those of the tree of the Files
-page with its marks in each theme.
+header bar; dragging the free part of the header bar moves the window and dragging it to the top of the screen maximizes
+it; a double click maximizes and restores it; the pointer on **Maximize** on Windows 11 shows Snap Layouts; the edges
+and corners resize it, and nothing resizes it while it is maximized; `Alt+Space` opens the system's menu of the window;
+the bar dims when another window has the focus; the size and place are kept from one start to the next; `README.md`
+opened from the Files page with **Open Markdown as a preview** on shows its headings, lists, a table and a code block
+laid out, and **Source** shows its text; in the Files page a modified file shows `M`, a file whose deletion is staged is
+listed struck through and opens its Diff page, and a folded folder holding a change shows its dot; the menu of a commit
+shows the copy icon beside **Copy hash**, and the menu of a branch the bin beside **Delete**; every card of the phase
+passes its tests, and the snapshots of the header bar match in each theme, focused and not, those of the preview of
+Markdown, those of the tree of the Files page with its marks and those of the menus of a commit and of a file in each
+theme.
 
 ## Before a release
 

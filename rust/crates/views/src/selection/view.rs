@@ -1,10 +1,12 @@
 //! The selection of several commits drawn: what a click asks of it, its bar over the commits and its menu.
 
+use model::contract::FeatureId;
 use ui::layout::{Align, Area, place};
-use ui::{Button, Label, MenuAnchor, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
+use ui::{Button, Label, MenuAnchor, MenuEntry, Rect, TextKind, Tone, Ui};
 
-use super::{Click, Several, bar_entries, clicked, entry_intents, menu_entries};
+use super::{Click, SelectionAction, Several, bar_entries, clicked, entry_intents, menu_entries};
 use crate::graph::HistoryState;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::history as words;
 
@@ -116,7 +118,14 @@ pub(crate) fn menu_view(state: &HistoryState<'_>, several: &Several, ui: &mut Ui
         if index == separator && index > 0 {
             items.push(MenuEntry::Separator);
         }
-        let item = MenuItem::new(entry.label.as_str(), index);
+        let item = match entry.action {
+            SelectionAction::Run(FeatureId(feature)) | SelectionAction::Keep(FeatureId(feature)) => {
+                icons::operation_item(entry.label.as_str(), feature, index)
+            }
+            SelectionAction::CompareTwo => icons::action(icons::COMPARE, entry.label.as_str(), index),
+            SelectionAction::CopyHashes => icons::action(icons::COPY, entry.label.as_str(), index),
+            SelectionAction::Clear => icons::action(icons::CLOSE, entry.label.as_str(), index),
+        };
         items.push(MenuEntry::Item(
             if entry.runs_an_operation() && state.commit_box.is_running {
                 item.disabled()

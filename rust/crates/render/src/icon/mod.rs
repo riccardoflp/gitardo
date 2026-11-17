@@ -191,6 +191,22 @@ pub enum Icon {
     Palette,
     /// A flask: experimental, the list of the experimental settings. Lucide's `flask-conical`.
     Flask,
+    /// Two sheets one over the other: copy. Lucide's `copy`.
+    Copy,
+    /// Scissors: cut. Lucide's `scissors`.
+    Cut,
+    /// A clipboard with an arrow: paste. Lucide's `clipboard-paste`.
+    Paste,
+    /// A pen over a line: rename, or edit the message of a commit. Lucide's `pen-line`.
+    Rename,
+    /// An arrow going in through a door: check out. Lucide's `log-in`.
+    CheckOut,
+    /// A window with its bar: open in a new window. Lucide's `app-window`.
+    NewWindow,
+    /// An open folder: reveal in the file manager of the system. Lucide's `folder-open`.
+    Reveal,
+    /// Arrows going away from a line: unfold, the commits a merge brought in shown again. Lucide's `unfold-vertical`.
+    Unfold,
     /// The logo of Gitardo: a branch leaving a line of two commits, as the extension draws it (`window.brand`). Not one
     /// of Lucide's, so not in [`Icon::ALL`].
     Logo,

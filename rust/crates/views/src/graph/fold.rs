@@ -2,7 +2,7 @@
 
 use model::CommitId;
 use ui::layout::Area;
-use ui::{Button, MenuEntry, MenuItem, Rect, Sense, Tone, Ui};
+use ui::{Button, MenuEntry, Rect, Sense, Tone, Ui};
 
 use super::intent::GraphIntent;
 use crate::icons;
@@ -94,8 +94,16 @@ pub enum MergeEntry {
 #[must_use]
 pub fn merge_menu(is_foldable: bool, is_folded: bool) -> Vec<MenuEntry<'static, MergeEntry>> {
     match (is_foldable, is_folded) {
-        (_, true) => vec![MenuEntry::Item(MenuItem::new(words::UNFOLD_MERGE, MergeEntry::Unfold))],
-        (true, false) => vec![MenuEntry::Item(MenuItem::new(words::FOLD_MERGE, MergeEntry::Fold))],
+        (_, true) => vec![MenuEntry::Item(icons::action(
+            icons::UNFOLD,
+            words::UNFOLD_MERGE,
+            MergeEntry::Unfold,
+        ))],
+        (true, false) => vec![MenuEntry::Item(icons::action(
+            icons::FOLD,
+            words::FOLD_MERGE,
+            MergeEntry::Fold,
+        ))],
         (false, false) => Vec::new(),
     }
 }

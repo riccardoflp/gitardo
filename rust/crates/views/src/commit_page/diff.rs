@@ -5,7 +5,7 @@
 use model::commit_page::{DiffLine, Fold, LineKind};
 use model::state::ChangeKind;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, ButtonKind, Color, Label, MenuEntry, MenuItem, Point, Rect, Sense, TextKind, TextRun, Tone, Ui};
+use ui::{Button, ButtonKind, Color, Label, MenuEntry, Point, Rect, Sense, TextKind, TextRun, Tone, Ui};
 
 use super::CommitPageIntent;
 use super::rows::{HEADER_ROWS, Page, PageRow};
@@ -141,14 +141,14 @@ fn file_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index, depth): (&ui::Row, us
                 line: None,
             }))
         });
-    let open_at_revision = MenuItem::new(words::OPEN_AT_REVISION, true);
+    let open_at_revision = icons::action(icons::OPEN_FILE, words::OPEN_AT_REVISION, true);
     let entries = [
         MenuEntry::Item(if at_revision.is_some() {
             open_at_revision
         } else {
             open_at_revision.disabled()
         }),
-        MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, false)),
+        MenuEntry::Item(icons::action(icons::COMPARE, words::COMPARE_WITH, false)),
     ];
     match ui.context_menu(("page file menu", index), &response, &entries) {
         Some(true) => intents.extend(at_revision),
@@ -261,7 +261,7 @@ pub(crate) fn header(ui: &mut Ui<'_>, page: &Page<'_>, (file, rect): (usize, Rec
         |original| words::renamed(original, &change.path),
     );
     let _ = ui.label(name_cell, &Label::new(&path).kind(TextKind::Medium));
-    let entries = [MenuEntry::Item(MenuItem::new(words::COMPARE_WITH, ()))];
+    let entries = [MenuEntry::Item(icons::action(icons::COMPARE, words::COMPARE_WITH, ()))];
     if ui
         .context_menu(("diff header menu", file), &response, &entries)
         .is_some()

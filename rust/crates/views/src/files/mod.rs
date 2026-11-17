@@ -12,7 +12,7 @@ use model::changes::{FolderMark, MarkedFile, TreeMarks};
 use model::contract::FeatureId;
 use model::details::TreeNode;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Label, List, MenuEntry, MenuItem, Rect, SelectionMode, Sense, Tone, Ui};
+use ui::{AccessRole, Label, List, MenuEntry, Rect, SelectionMode, Sense, Tone, Ui};
 
 use crate::icons;
 use crate::intent::Intent;
@@ -246,20 +246,21 @@ fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &Fi
 /// The context menu of a row: **Open file**, **Show file history** and **Compare with…** for a file; **Show folder
 /// history** and **Compare with…** for a folder; **Compare with…** alone for the top folder, whose history is all of it.
 fn row_menu(ui: &mut Ui<'_>, response: &ui::Response, (row, path): (&FilesRow<'_>, &str)) -> Option<Intent> {
-    let item = |label, choice| MenuEntry::Item(MenuItem::new(label, choice));
+    let item = |icon, label, choice| MenuEntry::Item(icons::action(icon, label, choice));
+    let compare = item(icons::COMPARE, words::COMPARE_WITH, MenuChoice::Compare);
     let entries: Vec<MenuEntry<'_, MenuChoice>> = match row {
         FilesRow::File { .. } => vec![
-            item(words::OPEN_FILE, MenuChoice::Open),
-            item(words::SHOW_FILE_HISTORY, MenuChoice::FileHistory),
+            item(icons::OPEN_FILE, words::OPEN_FILE, MenuChoice::Open),
+            item(icons::HISTORY, words::SHOW_FILE_HISTORY, MenuChoice::FileHistory),
             MenuEntry::Separator,
-            item(words::COMPARE_WITH, MenuChoice::Compare),
+            compare,
         ],
         FilesRow::Folder { .. } => vec![
-            item(words::SHOW_FOLDER_HISTORY, MenuChoice::FolderHistory),
+            item(icons::HISTORY, words::SHOW_FOLDER_HISTORY, MenuChoice::FolderHistory),
             MenuEntry::Separator,
-            item(words::COMPARE_WITH, MenuChoice::Compare),
+            compare,
         ],
-        FilesRow::Top => vec![item(words::COMPARE_WITH, MenuChoice::Compare)],
+        FilesRow::Top => vec![compare],
     };
     let run = |feature: &'static str| files_intent(FilesPageIntent::Run(FeatureId(feature), path.to_owned()));
     match ui.context_menu(("files row menu", path), response, &entries)? {

@@ -3,9 +3,7 @@
 
 use model::search::{BoxMode, Direction};
 use ui::layout::{Area, Insets, inset};
-use ui::{
-    Button, ButtonKind, InputBox, Key, KeyEvent, MenuEntry, MenuItem, Modifiers, NamedKey, Rect, Severity, Ui, WidgetId,
-};
+use ui::{Button, ButtonKind, InputBox, Key, KeyEvent, MenuEntry, Modifiers, NamedKey, Rect, Severity, Ui, WidgetId};
 
 use super::SearchIntent;
 use super::go_to_hash::{go_to_hash_view, go_to_hash_width};
@@ -44,14 +42,7 @@ pub struct SearchBox<'a> {
 pub fn mode_entries(chosen: BoxMode) -> Vec<MenuEntry<'static, BoxMode>> {
     BoxMode::ALL
         .into_iter()
-        .map(|mode| {
-            let item = MenuItem::new(words::mode_name(mode), mode);
-            MenuEntry::Item(if mode == chosen {
-                item.with_icon(icons::CHOSEN)
-            } else {
-                item
-            })
-        })
+        .map(|mode| MenuEntry::Item(icons::choice(words::mode_name(mode), mode, mode == chosen)))
         .collect()
 }
 

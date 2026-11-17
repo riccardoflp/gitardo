@@ -4,7 +4,7 @@
 use model::compare::{CompareSide, Diverged, FileList, Side, SummaryInput, summary};
 use model::state::ChangeKind;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Button, ButtonKind, Label, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, Label, MenuEntry, Rect, TextKind, Tone, Ui};
 
 use super::parts::{commits, commits_height, narrow_to_path, set_mode, swap};
 use super::{CompareIntent, CompareRead, CompareState};
@@ -196,7 +196,11 @@ fn file_row(
     if response.clicked {
         intents.push(Intent::Compare(CompareIntent::OpenFile(state.id, index)));
     }
-    let entries = [MenuEntry::Item(MenuItem::new(crate::text::details::COMPARE_WITH, ()))];
+    let entries = [MenuEntry::Item(icons::action(
+        icons::COMPARE,
+        crate::text::details::COMPARE_WITH,
+        (),
+    ))];
     if ui.context_menu(("file menu", index), &response, &entries).is_some() {
         let list = FileList::Comparison {
             first: state.target.first.clone(),

@@ -3,8 +3,13 @@
 
 use ui::Icon;
 
+mod menu;
+#[cfg(test)]
+mod menu_tests;
 #[cfg(test)]
 mod tests;
+
+pub(crate) use menu::{action, choice, operation_item, without_icon};
 
 /// Folded: a row whose content is hidden; a menu that opens to the side.
 pub(crate) const FOLDED: Icon = Icon::ChevronRight;
@@ -55,7 +60,6 @@ pub(crate) const FILTER: Icon = Icon::Filter;
 pub(crate) const SHOW: Icon = Icon::Eye;
 
 /// Hide.
-#[allow(dead_code, reason = "a meaning of the table that no button of the window draws yet")]
 pub(crate) const HIDE: Icon = Icon::EyeOff;
 
 /// Branch.
@@ -64,7 +68,7 @@ pub(crate) const BRANCH: Icon = Icon::Branch;
 /// Create a branch.
 pub(crate) const CREATE_BRANCH: Icon = Icon::CreateBranch;
 
-/// Tag.
+/// Tag; create a tag.
 pub(crate) const TAG: Icon = Icon::Tag;
 
 /// Remote.
@@ -77,11 +81,9 @@ pub(crate) const COMMIT: Icon = Icon::Commit;
 pub(crate) const OPEN_AS_PAGE: Icon = Icon::OpenAsPage;
 
 /// Merge.
-#[allow(dead_code, reason = "a meaning of the table that no button of the window draws yet")]
 pub(crate) const MERGE: Icon = Icon::Merge;
 
 /// Cherry-pick.
-#[allow(dead_code, reason = "a meaning of the table that no button of the window draws yet")]
 pub(crate) const CHERRY_PICK: Icon = Icon::CherryPick;
 
 /// Compare; the Compare view.
@@ -97,15 +99,12 @@ pub(crate) const PULL_REQUEST: Icon = Icon::PullRequest;
 pub(crate) const DRAFT_PULL_REQUEST: Icon = Icon::DraftPullRequest;
 
 /// Fetch.
-#[allow(dead_code, reason = "a meaning of the table that no button of the window draws yet")]
 pub(crate) const FETCH: Icon = Icon::Fetch;
 
 /// Pull.
-#[allow(dead_code, reason = "a meaning of the table that no button of the window draws yet")]
 pub(crate) const PULL: Icon = Icon::Pull;
 
 /// Push.
-#[allow(dead_code, reason = "a meaning of the table that no button of the window draws yet")]
 pub(crate) const PUSH: Icon = Icon::Push;
 
 /// Sync.
@@ -184,7 +183,7 @@ pub(crate) const FAVORITE: Icon = Icon::Star;
 /// Recent.
 pub(crate) const RECENT: Icon = Icon::Clock;
 
-/// History of a file or a folder.
+/// History of a file, a folder or lines; the reflog.
 pub(crate) const HISTORY: Icon = Icon::History;
 
 /// Who changed each line.
@@ -226,8 +225,8 @@ pub(crate) const LIST: Icon = Icon::List;
 /// Tree of folders.
 pub(crate) const TREE: Icon = Icon::ListTree;
 
-/// Fold the lines that did not change.
-pub(crate) const FOLD_UNCHANGED: Icon = Icon::FoldUnchanged;
+/// Fold the lines that did not change; fold the commits a merge brought in into one row.
+pub(crate) const FOLD: Icon = Icon::FoldUnchanged;
 
 /// Stop what is running: drafting a message.
 pub(crate) const STOP: Icon = Icon::Stop;
@@ -244,7 +243,7 @@ pub(crate) const TAKE_CURRENT: Icon = Icon::TakeCurrent;
 /// Drag to move a row.
 pub(crate) const DRAG: Icon = Icon::Grip;
 
-/// A bisect.
+/// A bisect; start one, mark a commit good or bad.
 pub(crate) const BISECT: Icon = Icon::Bisect;
 
 /// A submodule not initialized.
@@ -262,9 +261,33 @@ pub(crate) const EXPERIMENTAL: Icon = Icon::Flask;
 /// The logo of Gitardo, at the top left of the window.
 pub(crate) const LOGO: Icon = Icon::Logo;
 
+/// Copy: a hash, a message, a path, a patch, the text selected.
+pub(crate) const COPY: Icon = Icon::Copy;
+
+/// Cut the text selected.
+pub(crate) const CUT: Icon = Icon::Cut;
+
+/// Paste.
+pub(crate) const PASTE: Icon = Icon::Paste;
+
+/// Rename a branch or a worktree; edit the message of a commit.
+pub(crate) const RENAME: Icon = Icon::Rename;
+
+/// Check out a branch, a tag or a commit.
+pub(crate) const CHECK_OUT: Icon = Icon::CheckOut;
+
+/// Open in a new window.
+pub(crate) const NEW_WINDOW: Icon = Icon::NewWindow;
+
+/// Reveal a folder in the file manager of the system.
+pub(crate) const REVEAL: Icon = Icon::Reveal;
+
+/// Unfold: show again the commits a merge brought in.
+pub(crate) const UNFOLD: Icon = Icon::Unfold;
+
 /// Each meaning of the table of `graph.icons` and its icon, in the order of the table.
 #[cfg(test)]
-pub(crate) const MEANINGS: [(&str, Icon); 83] = [
+pub(crate) const MEANINGS: [(&str, Icon); 91] = [
     (
         "Folded: a row whose content is hidden; a menu that opens to the side",
         FOLDED,
@@ -299,7 +322,7 @@ pub(crate) const MEANINGS: [(&str, Icon); 83] = [
     ("Hide", HIDE),
     ("Branch", BRANCH),
     ("Create a branch", CREATE_BRANCH),
-    ("Tag", TAG),
+    ("Tag; create a tag", TAG),
     ("Remote", REMOTE),
     ("Commit", COMMIT),
     ("Open a commit as a page", OPEN_AS_PAGE),
@@ -337,7 +360,7 @@ pub(crate) const MEANINGS: [(&str, Icon); 83] = [
     ("Pop a stash", POP),
     ("Favorite", FAVORITE),
     ("Recent", RECENT),
-    ("History of a file or a folder", HISTORY),
+    ("History of a file, a folder or lines; the reflog", HISTORY),
     ("Who changed each line", BLAME),
     ("Who changed each line, on every file", ON_EVERY_FILE),
     ("Drafted by the AI; proposed for a conflict", DRAFTED),
@@ -351,7 +374,10 @@ pub(crate) const MEANINGS: [(&str, Icon); 83] = [
     ("More", MORE),
     ("List", LIST),
     ("Tree of folders", TREE),
-    ("Fold the lines that did not change", FOLD_UNCHANGED),
+    (
+        "Fold the lines that did not change; fold the commits a merge brought in into one row",
+        FOLD,
+    ),
     ("Stop what is running: drafting a message", STOP),
     ("Open in the external editor", OPEN_EXTERNAL),
     (
@@ -360,7 +386,7 @@ pub(crate) const MEANINGS: [(&str, Icon); 83] = [
     ),
     ("Take the current version of a file", TAKE_CURRENT),
     ("Drag to move a row", DRAG),
-    ("A bisect", BISECT),
+    ("A bisect; start one, mark a commit good or bad", BISECT),
     ("A submodule not initialized", NOT_INITIALIZED),
     ("The base of a merge, shown or hidden", BASE),
     (
@@ -369,4 +395,12 @@ pub(crate) const MEANINGS: [(&str, Icon); 83] = [
     ),
     ("Experimental: the list of the experimental settings", EXPERIMENTAL),
     ("The logo of Gitardo, at the top left of the window", LOGO),
+    ("Copy: a hash, a message, a path, a patch, the text selected", COPY),
+    ("Cut the text selected", CUT),
+    ("Paste", PASTE),
+    ("Rename a branch or a worktree; edit the message of a commit", RENAME),
+    ("Check out a branch, a tag or a commit", CHECK_OUT),
+    ("Open in a new window", NEW_WINDOW),
+    ("Reveal a folder in the file manager of the system", REVEAL),
+    ("Unfold: show again the commits a merge brought in", UNFOLD),
 ];

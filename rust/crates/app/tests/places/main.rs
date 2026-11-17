@@ -52,6 +52,7 @@ mod large_diffs;
 mod load_more;
 mod log_secrets;
 mod markdown;
+mod menu_icons;
 mod merge;
 mod merge_actions;
 mod merge_at_line;

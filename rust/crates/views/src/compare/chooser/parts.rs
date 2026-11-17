@@ -4,8 +4,8 @@
 use model::compare::Side;
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{
-    AccessRole, Border, Button, ButtonKind, InputBox, Key, Label, List, MenuEntry, MenuItem, Message, Modifiers,
-    NamedKey, Rect, Reveal, RevealPlace, Row, SelectionMode, Sense, Severity, Steering, TextKind, Tone, Ui,
+    AccessRole, Border, Button, ButtonKind, InputBox, Key, Label, List, MenuEntry, Message, Modifiers, NamedKey, Rect,
+    Reveal, RevealPlace, Row, SelectionMode, Sense, Severity, Steering, TextKind, Tone, Ui,
 };
 
 use super::{
@@ -315,7 +315,7 @@ pub(super) fn recent_line(state: &ChooserState<'_>, ui: &mut Ui<'_>, row: Rect) 
             .iter()
             .enumerate()
             .skip(shown)
-            .map(|(index, label)| MenuEntry::Item(MenuItem::new(label, index)))
+            .map(|(index, label)| MenuEntry::Item(icons::action(icons::RECENT, label, index)))
             .collect();
         let (_, height) = ui.button_size(&more);
         let cell = place(

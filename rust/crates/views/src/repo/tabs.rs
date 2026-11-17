@@ -3,7 +3,7 @@
 //! unfolded (`repo.group-tabs`), and a **×** on the row shown and the row under the pointer (`repo.close-tab`); and **+** in the heading of the section, which opens a repository of the workspace in
 //! a tab (`repo.open-tab`), a folder or a workspace file of VS Code.
 
-use ui::{AccessRole, Button, ButtonKind, Key, MenuEntry, MenuItem, Modifiers, NamedKey, Rect, TextKind, Ui};
+use ui::{AccessRole, Button, ButtonKind, Key, MenuEntry, Modifiers, NamedKey, Rect, TextKind, Ui};
 
 use super::rows::{Row, has_chevrons, member_row, repository_row, rows_of};
 use super::summary::TabSummary;
@@ -159,17 +159,23 @@ pub fn tabs_view(state: &TabsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
 /// and **Copy path**, which copies the folder of what the row shows.
 pub(super) fn row_menu((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, response: &ui::Response) -> Option<Intent> {
     let mut entries = vec![
-        MenuEntry::Item(MenuItem::new(words::CLOSE_TAB, TabCommand::Close)),
-        MenuEntry::Item(MenuItem::new(words::CLOSE_OTHER_TABS, TabCommand::CloseOthers)),
+        MenuEntry::Item(icons::action(icons::CLOSE, words::CLOSE_TAB, TabCommand::Close)),
+        MenuEntry::Item(icons::action(
+            icons::CLOSE,
+            words::CLOSE_OTHER_TABS,
+            TabCommand::CloseOthers,
+        )),
         MenuEntry::Separator,
     ];
     if tab.is_shown {
-        entries.push(MenuEntry::Item(MenuItem::new(
+        entries.push(MenuEntry::Item(icons::action(
+            icons::REVEAL,
             worktree_words::reveal(),
             TabCommand::Reveal,
         )));
     }
-    entries.push(MenuEntry::Item(MenuItem::new(
+    entries.push(MenuEntry::Item(icons::action(
+        icons::COPY,
         worktree_words::COPY_PATH,
         TabCommand::CopyPath,
     )));
@@ -216,15 +222,24 @@ pub(crate) fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, rect: R
     let mut entries: Vec<MenuEntry<'_, OpenCommand>> = not_open
         .iter()
         .enumerate()
-        .map(|(index, entry)| MenuEntry::Item(MenuItem::new(entry.name.as_str(), OpenCommand::Repository(index))))
+        .map(|(index, entry)| {
+            MenuEntry::Item(icons::action(
+                icons::WORKTREE,
+                entry.name.as_str(),
+                OpenCommand::Repository(index),
+            ))
+        })
         .collect();
     if !entries.is_empty() {
         entries.push(MenuEntry::Separator);
     }
-    entries.push(MenuEntry::Item(
-        MenuItem::new(header::OPEN_FOLDER, OpenCommand::Folder).with_icon(icons::FOLDER),
-    ));
-    entries.push(MenuEntry::Item(MenuItem::new(
+    entries.push(MenuEntry::Item(icons::action(
+        icons::FOLDER,
+        header::OPEN_FOLDER,
+        OpenCommand::Folder,
+    )));
+    entries.push(MenuEntry::Item(icons::action(
+        icons::OPEN_FILE,
         words::OPEN_WORKSPACE_FILE,
         OpenCommand::WorkspaceFile,
     )));

@@ -2,7 +2,7 @@
 //! when it is not the repository's own folder, and the branch checked out, as `gitardo › login › feature/login-page`.
 
 use ui::layout::{Align, Area, place};
-use ui::{AccessRole, Button, ButtonKind, Description, Label, MenuEntry, MenuItem, Rect, Sense, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, Description, Label, MenuEntry, Rect, Sense, TextKind, Tone, Ui};
 
 use super::toolbar::HeadName;
 use crate::icons;
@@ -153,12 +153,8 @@ fn repositories_menu((tabs, name): (&[TabEntry], &str), ui: &mut Ui<'_>, room: R
         .iter()
         .enumerate()
         .map(|(index, tab)| {
-            let item = MenuItem::new(tab.name.as_str(), index).with_tooltip(tab.folder.as_str());
-            MenuEntry::Item(if tab.is_shown {
-                item.with_icon(icons::CHOSEN)
-            } else {
-                item
-            })
+            let item = icons::choice(tab.name.as_str(), index, tab.is_shown).with_tooltip(tab.folder.as_str());
+            MenuEntry::Item(item)
         })
         .collect();
     ui.menu_button("where repositories", rect, &button, &entries)
@@ -180,14 +176,7 @@ fn members_menu((index, tab, place): (usize, &TabEntry, &TabPlace), ui: &mut Ui<
         .members
         .iter()
         .enumerate()
-        .map(|(at, member)| {
-            let item = MenuItem::new(member.label.as_str(), at);
-            MenuEntry::Item(if member.is_shown {
-                item.with_icon(icons::CHOSEN)
-            } else {
-                item
-            })
-        })
+        .map(|(at, member)| MenuEntry::Item(icons::choice(member.label.as_str(), at, member.is_shown)))
         .collect();
     let chosen = ui.menu_button("where members", rect, &button, &entries)?;
     let member = tab.members.get(chosen)?;

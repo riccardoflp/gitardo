@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 455 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 456 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -91,6 +91,7 @@ earns it.
 | [`graph.icons`](02-graph.md#graphicons--the-icons-of-the-window) | The icons of the window | View | Built | Host only |
 | [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Built | Built |
 | [`ui.menu-scroll`](02-graph.md#uimenu-scroll--a-menu-taller-than-the-room-under-it) | A menu taller than the room under it | Derivation | Built | Host only |
+| [`ui.menu-icons`](02-graph.md#uimenu-icons--the-icon-of-each-action-in-the-menus) | The icon of each action in the menus | Derivation | Built | Planned |
 | [`ui.picker-scroll`](02-graph.md#uipicker-scroll--a-picker-longer-than-its-rows) | A picker longer than its rows | Derivation | Built | Host only |
 | [`ui.page-trail`](02-graph.md#uipage-trail--the-way-back-in-the-title-of-a-page) | The way back, in the title of a page | Derivation | Built | Host only |
 | [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Built | Built |
