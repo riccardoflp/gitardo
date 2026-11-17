@@ -61,7 +61,7 @@ fn diff_collapse_unchanged__with_the_setting_off_a_new_page_shows_every_line_and
         },
     );
     open(&mut state, head_to_working_tree("app.rs"));
-    assert_eq!(folds(&state), []);
+    assert_eq!(folds(&state), Vec::<usize>::new());
     assert_eq!(
         shown(&state).lines.len(),
         1 + 100,

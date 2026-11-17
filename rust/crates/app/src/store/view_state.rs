@@ -186,14 +186,14 @@ impl ViewData {
     /// The bottom panel, while it is shown.
     fn panel<'a>(&'a self, state: &'a State) -> Option<BottomPanelState<'a>> {
         let look = super::panel::look(state);
-        look.is_shown.then_some(BottomPanelState {
+        look.is_shown.then(|| BottomPanelState {
             tab: look.tab,
             height: look.height,
             log: LogState {
                 lines: &self.log_lines,
                 dropped: state.log.dropped(),
             },
-            focus: state.panel.focus,
+            terminal: super::terminals::view_state(state),
         })
     }
 

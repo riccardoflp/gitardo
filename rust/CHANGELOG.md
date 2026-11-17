@@ -2,6 +2,15 @@
 
 ## 1.0.0 - 2026-11-17
 
+- The Terminal tab of the bottom panel runs a shell in the folder of the repository tab shown: PowerShell 7 on Windows
+  when it is installed, else Windows PowerShell, the shell of `SHELL` on Linux and macOS, or the one of
+  `terminal.shellPath`. It shows the colors of what programs print, 16 from the theme, 256 and 24-bit, in the font of
+  code, keeps `terminal.scrollbackLines` lines (10,000) above its screen, and runs a pager or an editor. Every key goes
+  to the shell but `` Ctrl+` ``, `Ctrl+Tab`, `Ctrl+K`, `Ctrl+Shift+C` and `Ctrl+Shift+V`; `Ctrl+C` copies while text
+  is selected. The pointer selects, a double click selects a word. **New terminal** (or `` Ctrl+Shift+` ``, or **New
+  Terminal** in Quick search) adds another, the list beside it shows each, and **Kill the terminal** ends one. Each
+  repository tab keeps its own terminals while another is shown; closing it ends them. When the shell ends, the
+  terminal says so with its exit code, and `Enter` starts a new one.
 - A bottom panel, under the timeline and the inspector or the page shown, holds the Command log and, in a tab beside
   it, the terminal; the branch rail keeps its whole height beside it. `` Ctrl+` `` (`` Cmd+` `` on macOS) shows it, or
   hides it while it has the keyboard; **Terminal** at the foot of the bar of views shows and hides it; **Show

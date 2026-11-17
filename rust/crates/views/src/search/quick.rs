@@ -71,6 +71,8 @@ pub enum QuickCommand {
     ShowCommandLog,
     /// **Show Terminal** (`panel.bottom`).
     ShowTerminal,
+    /// **New Terminal**: another terminal in the repository tab shown (`terminal.view`).
+    NewTerminal,
     /// **Open Settings** (`settings.edit`).
     OpenSettings,
     /// **Welcome** (`welcome.page`).
@@ -141,7 +143,7 @@ pub enum QuickCommand {
 
 impl QuickCommand {
     /// Every command, in the order Quick search lists them: those that run now first.
-    pub const ALL: [QuickCommand; 47] = [
+    pub const ALL: [QuickCommand; 48] = [
         QuickCommand::OpenTimeline,
         QuickCommand::GoToCommit,
         QuickCommand::OpenCommitAsPage,
@@ -156,6 +158,7 @@ impl QuickCommand {
         QuickCommand::FilterBranchRail,
         QuickCommand::ShowCommandLog,
         QuickCommand::ShowTerminal,
+        QuickCommand::NewTerminal,
         QuickCommand::OpenSettings,
         QuickCommand::Welcome,
         QuickCommand::ShowChanges,

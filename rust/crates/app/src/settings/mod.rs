@@ -68,6 +68,8 @@ pub struct Settings {
     pub word_wrap: LineWrap,
     /// `fileBlame.format`, `fileBlame.groupLines` and `fileBlame.age.*`: how the blame beside the lines of a file looks.
     pub file_blame: FileBlameLook,
+    /// `terminal.shellPath` and `terminal.scrollbackLines`: the shell the terminals start, and what they keep.
+    pub terminal: TerminalChoice,
     /// Every value the files set, by key, the repository's file first: what the settings page shows.
     pub values: BTreeMap<String, Vec<(SettingsFile, json::Value)>>,
     /// The values that were not taken, with which key and why, for the settings page to say.
@@ -90,6 +92,7 @@ impl Default for Settings {
             open_on_click: OpenOnClick::File,
             word_wrap: LineWrap::Cut,
             file_blame: FileBlameLook::default(),
+            terminal: TerminalChoice::default(),
             values: BTreeMap::new(),
             problems: Vec::new(),
         }
@@ -113,6 +116,24 @@ impl Default for FontChoice {
             interface: String::from(keys::INTERFACE_FONT),
             code: String::from(keys::CODE_FONT),
             size: keys::FONT_SIZE,
+        }
+    }
+}
+
+/// The shell the terminals of the bottom panel start, and how much they keep (`terminal.view`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TerminalChoice {
+    /// `terminal.shellPath`: the program of the shell; empty for the system's own.
+    pub shell_path: String,
+    /// `terminal.scrollbackLines`: how many lines a terminal keeps above its screen.
+    pub scrollback: usize,
+}
+
+impl Default for TerminalChoice {
+    fn default() -> TerminalChoice {
+        TerminalChoice {
+            shell_path: String::new(),
+            scrollback: keys::SCROLLBACK_LINES,
         }
     }
 }

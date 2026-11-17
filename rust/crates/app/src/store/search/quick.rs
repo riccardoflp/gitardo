@@ -74,6 +74,7 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         }
         QuickCommand::ShowCommandLog => vec![Intent::ShowCommandLog],
         QuickCommand::ShowTerminal => vec![Intent::Panel(views::panel::PanelIntent::Open)],
+        QuickCommand::NewTerminal => vec![Intent::Terminal(views::terminal::TerminalIntent::New)],
         QuickCommand::OpenSettings => vec![Intent::ShowPage(views::page::Page::Settings)],
         QuickCommand::Welcome => vec![Intent::ShowPage(views::page::Page::Welcome)],
         QuickCommand::ShowChanges => vec![Intent::Changes(views::changes::ChangesIntent::Open)],

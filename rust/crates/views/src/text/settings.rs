@@ -35,7 +35,7 @@ pub struct SettingInfo {
 }
 
 /// Every setting, in the order of the card.
-pub const SETTINGS: [SettingInfo; 49] = [
+pub const SETTINGS: [SettingInfo; 51] = [
     SettingInfo {
         key: "commandPreview",
         description: "When the commands are shown before they run: off for the ones that can lose work, all for everything that changes something.",
@@ -387,6 +387,22 @@ pub const SETTINGS: [SettingInfo; 49] = [
         is_repository: false,
         is_experimental: false,
         kind: SettingKind::Text,
+    },
+    SettingInfo {
+        key: "terminal.shellPath",
+        description: "The shell the terminals of the bottom panel start. Empty: PowerShell 7 on Windows when it is installed, else Windows PowerShell; the shell of SHELL on Linux and macOS.",
+        default: "\"\"",
+        is_repository: false,
+        is_experimental: false,
+        kind: SettingKind::Text,
+    },
+    SettingInfo {
+        key: "terminal.scrollbackLines",
+        description: "How many lines a terminal keeps above its screen.",
+        default: "10000",
+        is_repository: false,
+        is_experimental: false,
+        kind: SettingKind::Number,
     },
     SettingInfo {
         key: "theme",

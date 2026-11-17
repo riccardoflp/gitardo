@@ -11,7 +11,7 @@ use model::changes::OpenOnClick;
 use render::ThemeName;
 use views::graph::{Switches, TimelineSwitch};
 
-use super::{FileBlameLook, FontChoice, ProblemReason, Settings, SettingsFiles};
+use super::{FileBlameLook, FontChoice, ProblemReason, Settings, SettingsFiles, TerminalChoice};
 
 /// The settings of the user's file and of the repository's, when a repository is shown. A file that is not there sets
 /// nothing; one that cannot be read or parsed sets nothing and is said as a problem.
@@ -69,11 +69,13 @@ fn settings_of(mut lookup: Lookup) -> Settings {
     let features = ::settings::feature_settings(&mut lookup);
     let file_blame = file_blame_look(&mut lookup);
     let word_wrap = word_wrap(&mut lookup);
+    let terminal = terminal_choice(&mut lookup);
     let values = lookup.written_values();
     Settings {
         log_level,
         features,
         file_blame,
+        terminal,
         values,
         theme,
         fonts,
@@ -172,6 +174,35 @@ fn columns(lookup: &mut Lookup) -> Option<Vec<String>> {
             })
             .ok_or(ProblemReason::WrongType { expected: "a list" })
     })
+}
+
+/// `terminal.shellPath` and `terminal.scrollbackLines`, from the user's file.
+fn terminal_choice(lookup: &mut Lookup) -> TerminalChoice {
+    let defaults = TerminalChoice::default();
+    let most = keys::SCROLLBACK_MOST;
+    let scrollback = lookup.first((keys::TERMINAL_SCROLLBACK, Scope::User), |value| {
+        let lines = value
+            .as_number()
+            .and_then(json::Number::as_f64)
+            .ok_or(ProblemReason::WrongType { expected: "a number" })?;
+        if (0.0..=most).contains(&lines) {
+            #[allow(
+                clippy::cast_possible_truncation,
+                clippy::cast_sign_loss,
+                reason = "between 0 and a million"
+            )]
+            let lines = lines as usize;
+            Ok(lines)
+        } else {
+            Err(ProblemReason::OutOfRange { least: 0.0, most })
+        }
+    });
+    TerminalChoice {
+        shell_path: lookup
+            .string(keys::TERMINAL_SHELL_PATH, Scope::User)
+            .unwrap_or(defaults.shell_path),
+        scrollback: scrollback.unwrap_or(defaults.scrollback),
+    }
 }
 
 /// `font.size`, a number within [`keys::FONT_SIZES`].

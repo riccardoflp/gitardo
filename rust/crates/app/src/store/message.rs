@@ -227,6 +227,8 @@ pub enum Message {
     GitHub(super::github::GitHubMessage),
     /// A task of the Activity drawer started, printed or ended (`worktree-setup.command-steps`).
     Task(super::tasks::TaskMessage),
+    /// A terminal of the bottom panel started, printed or ended (`terminal.view`).
+    Terminal(super::terminals::TerminalMessage),
     /// The browser of the system could not open an address: what the system said.
     UrlNotOpened(String),
     /// The person asked to close the window, whose inside had this size in logical pixels.
@@ -485,11 +487,12 @@ pub enum Effect {
         /// Whether it chooses where to save, rather than a file to open.
         is_saving: bool,
     },
-    /// Looks for the repository on GitHub, or reads its pull requests, on a thread of its own
-    /// (`github.read-pull-requests`).
+    /// Looks for the repository on GitHub or reads its pull requests, on a thread of its own (`github.read-pull-requests`).
     GitHub(super::github::GitHubJob),
     /// Runs, answers or stops the tasks of the Activity drawer (`worktree-setup.command-steps`).
     Tasks(super::tasks::TaskEffect),
+    /// Starts, writes to, sizes or ends the terminals of the bottom panel (`terminal.view`).
+    Terminal(super::terminals::TerminalEffect),
     /// Opens an address in the browser of the system: a pull request on GitHub (`github.open-pull-request`).
     OpenUrl(String),
     /// Closes the window and ends the program.

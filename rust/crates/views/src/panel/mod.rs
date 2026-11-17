@@ -2,12 +2,11 @@
 //! status bar, with the terminals and the Command log each in a tab; the gap above it is dragged to change its height.
 
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{
-    AccessRole, Button, ButtonKind, Icon, Key, Label, Modifiers, Rect, Sense, Split, Splitter, TextKind, Tone, Ui,
-};
+use ui::{AccessRole, Button, ButtonKind, Icon, Key, Modifiers, Rect, Split, Splitter, Ui};
 
 use crate::intent::Intent;
 use crate::log::{LogState, log_view};
+use crate::terminal::{TerminalState, terminal_buttons, terminal_view};
 use crate::text::panel as words;
 
 /// The height the panel starts at, and where a double click on its gap puts it back.
@@ -45,7 +44,7 @@ pub enum PanelIntent {
 }
 
 /// What the bottom panel shows.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BottomPanelState<'a> {
     /// The tab shown.
     pub tab: PanelTab,
@@ -53,8 +52,8 @@ pub struct BottomPanelState<'a> {
     pub height: Option<f32>,
     /// The Command log.
     pub log: LogState<'a>,
-    /// A number that changes each time the keyboard is to go to the terminal.
-    pub focus: u64,
+    /// The terminals of the repository tab shown.
+    pub terminal: TerminalState<'a>,
 }
 
 /// The height of the panel inside a column of a height, in a window of a height: as dragged, never less than its least
@@ -120,7 +119,7 @@ pub fn bottom_view(state: &BottomPanelState<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
         top_bar(state, ui, bar, &mut intents);
         let body = inset(area.rest(), Insets::symmetric(spacing.small, spacing.small));
         match state.tab {
-            PanelTab::Terminal => terminal_tab(state, ui, body),
+            PanelTab::Terminal => intents.extend(ui.clip(body, |ui| terminal_view(&state.terminal, ui))),
             PanelTab::CommandLog => intents.extend(ui.clip(body, |ui| log_view(&state.log, ui))),
         }
     });
@@ -134,6 +133,9 @@ fn top_bar(state: &BottomPanelState<'_>, ui: &mut Ui<'_>, bar: Rect, intents: &m
     let hide = Button::icon(Icon::ChevronDown, words::HIDE_PANEL).kind(ButtonKind::Icon);
     if ui.button("hide the panel", parts.right(bar.height), &hide).clicked {
         intents.push(Intent::Panel(PanelIntent::Hide));
+    }
+    if state.tab == PanelTab::Terminal {
+        intents.extend(terminal_buttons(&state.terminal, ui, &mut parts));
     }
     for (tab, name) in [
         (PanelTab::Terminal, words::TERMINAL),
@@ -151,21 +153,6 @@ fn top_bar(state: &BottomPanelState<'_>, ui: &mut Ui<'_>, bar: Rect, intents: &m
             intents.push(Intent::Panel(PanelIntent::Show(tab)));
         }
     }
-}
-
-/// The Terminal tab, until the terminals come (`terminal.view`): what it will hold, taking the keyboard when it is asked
-/// to.
-fn terminal_tab(state: &BottomPanelState<'_>, ui: &mut Ui<'_>, body: Rect) {
-    let id = ui.id("terminal");
-    if state.focus > 0 {
-        ui.request_focus_once(id, state.focus);
-    }
-    let _ = ui.interact(id, body, Sense::CLICK | Sense::FOCUS);
-    let height = ui.theme().sizes.row_height;
-    let label = Label::new(words::NO_REPOSITORY)
-        .kind(TextKind::Detail)
-        .tone(Tone::Muted);
-    let _ = ui.label(Rect::new(body.x, body.y, body.width, height), &label);
 }
 
 /// What `` Ctrl+` `` (`` Cmd+` `` on macOS) asks when it was pressed in this frame and no widget used it: the panel

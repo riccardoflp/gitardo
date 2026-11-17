@@ -16,6 +16,8 @@ state lives. The rules for writing the code are in [03-code-rules.md](03-code-ru
 - **The window, the text and the pixels** ([D16](../08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)):
   `platform` depends on `winit`, `softbuffer`, `arboard`, `rfd` and `accesskit_winit`; `render` on `tiny-skia` and
   `cosmic-text`; `ui` on `accesskit`, for the tree of what is on screen.
+- **The terminals** (D53, Q417): `crates/terminal` depends on `alacritty_terminal`, which parses what programs print,
+  keeps the grid with its scrollback and runs the pseudo-terminal of each system (ConPTY on Windows).
 - Their versions are those of `Cargo.lock`. No type of a library leaves the crate that uses it
   ([R1.6](03-code-rules.md)), but the tree of `accesskit`, which `ui` builds and `platform` hands to the system.
 - The Rust standard library is used freely: `std` is the toolchain, not a dependency.
@@ -51,6 +53,7 @@ crates/
   server/     the binary `gitardo-engine`: the engine without a window, spoken to over its standard input and output
   http/       HTTP/1.1 requests, chunked bodies, server-sent events for streamed answers, proxies
   tls/        a TLS stream over TCP, with the system's root certificates
+  terminal/   the terminals of the bottom panel: a shell in a pseudo-terminal, and the screen it prints as plain values
   testkit/    for tests only: throwaway repositories, golden files, pixel snapshots, a deterministic random source
 xtask/        the project's own checks and chores: `cargo xtask check`, `cargo xtask snapshots`, …
 ```
@@ -69,6 +72,7 @@ app ──► views ──► ui ──► render ──► platform ──► s
  ├──► features ──► model, text, json, git (types only, never running)
  ├──► settings ──► json, model (the files read, the settings of the features)
  ├──► json, http ──► tls ──► rustls, rustls-native-certs (D13)
+ ├──► terminal ──► model (the screen it reads), alacritty_terminal (D53)
  │   render ──► tiny-skia, cosmic-text (D16)
  │   platform ──► winit, softbuffer, arboard, rfd, accesskit_winit (D16)
  └──► every other crate below it: platform, system, ui, render, model, git, text (D15)
@@ -91,7 +95,7 @@ server ──► protocol ──► model, git, engine, text (the types it conve
 - `git` runs processes but knows nothing of the UI. `engine` is the only crate that changes the disk or the repository.
 - `platform` and `system` are the only crates with `unsafe`. Everything above them sees safe functions.
 - A crate uses the libraries of its own job ([D22](../08-decisions.md#d22--libraries-with-judgment)); today those are
-  `tls`, `render`, `platform` and `ui`
+  `tls`, `render`, `platform`, `ui` and `terminal`
   ([D13](../08-decisions.md#d13--one-library-for-tls), [D16](../08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)).
   The pure crates use only libraries that do no I/O.
 - `testkit` is a `dev-dependency` only.

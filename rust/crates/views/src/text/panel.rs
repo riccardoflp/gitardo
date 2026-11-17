@@ -19,10 +19,14 @@ pub const NO_REPOSITORY: &str = "Open a repository to start a terminal in its fo
 /// What the Terminal tab says when the shell could not start.
 pub const NOT_STARTED: &str = "The shell could not start";
 
-/// What a terminal says under what it printed once its shell ended: `The shell ended with exit code 0`.
+/// What a terminal says under what it printed once its shell ended: `The shell ended with exit code 0`, or without a
+/// code when the system gave none.
 #[must_use]
-pub fn shell_ended(code: i32) -> String {
-    format!("The shell ended with exit code {code}")
+pub fn shell_ended(code: Option<i32>) -> String {
+    match code {
+        Some(code) => format!("The shell ended with exit code {code}"),
+        None => String::from("The shell ended"),
+    }
 }
 
 /// What it says under that: `Enter` starts another shell.

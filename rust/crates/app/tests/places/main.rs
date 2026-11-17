@@ -77,6 +77,7 @@ mod sync_stash;
 mod tab_operations;
 mod tabs;
 mod tasks;
+mod terminal;
 mod timeline;
 mod trust;
 mod views_drawn;

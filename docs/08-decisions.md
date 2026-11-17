@@ -2625,3 +2625,19 @@ each built with the reading given until the card says otherwise.
 - **Q420** — `graph.icons`: the icons of Lucide are drawn at 24 units with a stroke of 2. Recommended: drawn at 16
   logical pixels, the stroke scaled to 1.5 so that they keep the weight of the text beside them, and the outlines
   turned into paths once, when the program starts.
+- **Q-T1** — `terminal.view`: the card reads `editor.fontFamily` and `editor.fontSize`, which Gitardo Desktop does not
+  have. Built: the terminal is drawn in the font of code, `font.code` at the size `font.size` gives code, as every
+  other place that shows code.
+- **Q-T2** — `terminal.view`: no italic and no bold of the font of code is drawn by the window yet. Built: italic text
+  is drawn upright, and bold text is drawn twice a hair apart, which makes it heavier without changing its width.
+- **Q-T3** — `terminal.view`: `Ctrl+V` pastes, as it does in every input of the window, rather than going to the
+  shell; `Ctrl+Shift+V` pastes too, there and in the inputs.
+- **Q-T4** — `terminal.view`: **Kill the terminal** on the last terminal of a repository tab hides the panel, as the
+  Terminal tab would start another at once otherwise.
+- **Q-T5** — `terminal.view`: the wheel over a program that draws on the second screen (a pager, an editor), which has
+  no scrollback, sends it the up and down arrows, three lines for a turn; elsewhere it scrolls into what was printed
+  before. On Windows the acceptance line of `tput cols` is checked with `[Console]::WindowWidth`, which PowerShell
+  reads from the same size.
+- **Q-T6** — `panel.bottom`: the tabs of the panel and its buttons are text buttons and the icons of the set the
+  window has; **Terminal** in the bar of views reuses the chevron pointing right until the icons of Lucide come
+  (`graph.icons`), which have a terminal of their own.

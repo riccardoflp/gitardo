@@ -183,6 +183,7 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     dialogs(state, ui, &mut intents);
     intents.extend(shortcuts(ui, state.drawer.is_some()));
     intents.extend(panel_shortcut(ui, panel));
+    intents.extend(crate::terminal::new_terminal_shortcut(ui));
     intents
 }
 

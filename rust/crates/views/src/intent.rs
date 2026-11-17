@@ -58,6 +58,8 @@ pub enum Intent {
     ShowCommandLog,
     /// Something asked of the bottom panel (`panel.bottom`).
     Panel(crate::panel::PanelIntent),
+    /// Something asked of the terminals of the bottom panel (`terminal.view`).
+    Terminal(crate::terminal::TerminalIntent),
     /// **Theme…**: the picker of the themes (`settings.theme`).
     PickTheme,
     /// The picker of the themes closed with nothing chosen.

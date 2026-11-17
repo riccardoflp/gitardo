@@ -61,7 +61,7 @@ mod widget;
 /// itself, can name them.
 pub use render::{
     Appearance, Assets, Border, CodeKind, Color, FillRule, FontFamily, FontWeight, FrameBuffer, Icon, LineCap, Path,
-    Point, Rect, Stroke, TextRun, Theme, ThemeName,
+    Point, Rect, Stroke, TextRun, TextStyle, Theme, ThemeName,
 };
 
 /// The text editor the editor of code edits: its documents, cursors and commands, which the views and the store name.

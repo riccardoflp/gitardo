@@ -65,7 +65,7 @@ fn panel_bottom__ctrl_backtick_shows_the_panel_at_the_terminal_with_the_focus_an
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (intents, tree) = window.draw(&state, &[shortcut('`', Modifiers::CONTROL)]);
     assert!(!has(&tree, Role::Region, "Bottom panel"));
-    assert_eq!(intents, [Intent::Panel(PanelIntent::Open)]);
+    assert_eq!(without_sizes(&intents), [Intent::Panel(PanelIntent::Open)]);
     reduce_all(&mut state, intents);
     let look = panel::look(&state);
     assert!(look.is_shown && look.tab == PanelTab::Terminal, "{look:?}");
@@ -73,7 +73,7 @@ fn panel_bottom__ctrl_backtick_shows_the_panel_at_the_terminal_with_the_focus_an
     let rect = panel_rect(&tree);
     let (intents, _) = window.draw(&state, &[shortcut('`', Modifiers::CONTROL)]);
     assert_eq!(
-        intents,
+        without_sizes(&intents),
         [Intent::Panel(PanelIntent::Hide)],
         "the panel has the keyboard: {rect:?}"
     );
@@ -88,7 +88,7 @@ fn panel_bottom__show_the_commands_gitardo_runs_in_the_activity_drawer_shows_the
     let _opened = run(&mut state, Message::Intent(Intent::OpenActivity));
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let intents = window.click(&state, Role::Button, "Show the commands Gitardo runs");
-    assert_eq!(intents, [Intent::ShowCommandLog]);
+    assert_eq!(without_sizes(&intents), [Intent::ShowCommandLog]);
     reduce_all(&mut state, intents);
     let look = panel::look(&state);
     assert!(look.is_shown && look.tab == PanelTab::CommandLog, "{look:?}");
@@ -125,7 +125,10 @@ fn panel_bottom__the_height_dragged_to_300_px_is_there_after_the_window_is_opene
             InputEvent::PointerReleased(button_at(end)),
         ],
     );
-    assert_eq!(intents, [Intent::Panel(PanelIntent::SetHeight(Some(300.0)))]);
+    assert_eq!(
+        without_sizes(&intents),
+        [Intent::Panel(PanelIntent::SetHeight(Some(300.0)))]
+    );
     reduce_all(&mut state, intents);
     let kept = Persisted::from_text(&state.persisted.to_text());
     let mut again = State::new(kept, Settings::default(), None);
@@ -167,7 +170,7 @@ fn graph_view_bar__a_click_on_terminal_shows_the_bottom_panel_and_another_hides_
     let mut state = showing(repository.path().to_path_buf());
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let intents = window.click(&state, Role::Button, "Terminal");
-    assert_eq!(intents, [Intent::Panel(PanelIntent::Toggle)]);
+    assert_eq!(without_sizes(&intents), [Intent::Panel(PanelIntent::Toggle)]);
     reduce_all(&mut state, intents);
     assert!(panel::look(&state).is_shown);
     let (_, tree) = window.draw(&state, &[]);
@@ -184,7 +187,7 @@ fn graph_view_bar__a_click_on_terminal_shows_the_bottom_panel_and_another_hides_
         bar_terminal.y + bar_terminal.height * 0.5,
     );
     let intents = window.click_at(&state, center, 1);
-    assert_eq!(intents, [Intent::Panel(PanelIntent::Toggle)]);
+    assert_eq!(without_sizes(&intents), [Intent::Panel(PanelIntent::Toggle)]);
     reduce_all(&mut state, intents);
     assert!(!panel::look(&state).is_shown);
 }
@@ -210,4 +213,14 @@ fn log_show__it_is_in_the_bottom_panel_and_no_longer_in_the_activity_drawer() {
     reduce_all(&mut state, vec![Intent::CloseActivity]);
     let _ = window.draw(&state, &[]);
     window.assert_snapshot("command-log-dark");
+}
+
+/// The intents of a frame without the size the terminal of the panel asks for, which every frame that first shows it
+/// tells.
+pub(super) fn without_sizes(intents: &[Intent]) -> Vec<Intent> {
+    intents
+        .iter()
+        .filter(|intent| !matches!(intent, Intent::Terminal(views::terminal::TerminalIntent::Resize(..))))
+        .cloned()
+        .collect()
 }

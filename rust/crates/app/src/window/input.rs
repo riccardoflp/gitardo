@@ -39,11 +39,14 @@ pub fn toolkit_event(event: &SystemEvent) -> Option<ToolkitEvent> {
     Some(translated)
 }
 
-/// Whether a key pastes: Ctrl+V or Shift+Insert. The application reads the clipboard then and hands its text to the
-/// toolkit, which cannot read it.
+/// Whether a key pastes: Ctrl+V, Ctrl+Shift+V as in a terminal, or Shift+Insert. The application reads the clipboard
+/// then and hands its text to the toolkit, which cannot read it.
 #[must_use]
 pub fn is_paste(key: &platform::KeyEvent) -> bool {
-    let control_v = key.key == platform::Key::Character('v') && key.modifiers == platform::Modifiers::CONTROL;
+    let control = platform::Modifiers::CONTROL;
+    let control_shift = platform::Modifiers::CONTROL | platform::Modifiers::SHIFT;
+    let control_v =
+        key.key == platform::Key::Character('v') && (key.modifiers == control || key.modifiers == control_shift);
     let shift_insert =
         key.key == platform::Key::Named(platform::NamedKey::Insert) && key.modifiers == platform::Modifiers::SHIFT;
     control_v || shift_insert

@@ -1,0 +1,19 @@
+[package]
+name = "terminal"
+description = "The terminals of Gitardo Desktop: a shell in a pseudo-terminal of the system, and the screen it prints, read on a thread of its own."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+# The parser of what programs print, the grid with its scrollback and selection, and the pseudo-terminal of each system
+# (ConPTY on Windows), without `serde` (R1.7) (D53, Q417).
+alacritty_terminal = { version = "=0.26.0", default-features = false }
+model = { path = "../model" }
+
+[dev-dependencies]
+testkit = { path = "../testkit" }
+
+[lints]
+workspace = true

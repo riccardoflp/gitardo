@@ -341,6 +341,9 @@ pub struct Theme {
     pub sizes: Sizes,
     /// The colors of the lanes of the graph, used in turn: four, told apart by lightness as well as hue.
     pub lanes: [Color; 4],
+    /// The 16 colors of the terminals (`terminal.view`): black, red, green, yellow, blue, magenta, cyan and white, then
+    /// their bright forms, in the order programs ask for them.
+    pub terminal: [Color; 16],
     /// The colors of the tokens of code.
     pub code: CodeColors,
 }
@@ -364,6 +367,21 @@ impl Theme {
             .get(lane % self.lanes.len())
             .copied()
             .unwrap_or(self.colors.accent)
+    }
+
+    /// A color of the 256 of a terminal: the 16 of the theme, then a cube of 6 by 6 by 6 and 24 greys, as xterm has them.
+    #[must_use]
+    pub fn terminal_color(&self, index: u8) -> Color {
+        if let Some(color) = self.terminal.get(usize::from(index)) {
+            return *color;
+        }
+        if index >= 232 {
+            let grey = 8 + (index - 232) * 10;
+            return Color::rgb(grey, grey, grey);
+        }
+        let cube = index - 16;
+        let level = |step: u8| if step == 0 { 0 } else { 55 + step * 40 };
+        Color::rgb(level(cube / 36), level((cube / 6) % 6), level(cube % 6))
     }
 }
 

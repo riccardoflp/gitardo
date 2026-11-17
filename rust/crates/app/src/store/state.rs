@@ -75,6 +75,8 @@ pub struct State {
     pub log: engine::CommandLog,
     /// The bottom panel (`panel.bottom`).
     pub panel: super::panel::Panel,
+    /// The terminals of the bottom panel, of each repository tab (`terminal.view`).
+    pub terminals: super::terminals::Terminals,
     /// The file the settings page writes changes in (`settings.edit`).
     pub settings_target: views::settings::SettingsTarget,
     /// The Changes page and the commit box (`changes.pane`).

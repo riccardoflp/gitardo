@@ -105,6 +105,10 @@ pub const FILE_BLAME_AGE_OLD_COLOR: &str = "fileBlame.age.oldColor";
 pub const FILE_BLAME_AGE_OLD_AFTER_DAYS: &str = "fileBlame.age.oldAfterDays";
 /// `terminal.external`.
 pub const EXTERNAL_TERMINAL: &str = "terminal.external";
+/// `terminal.shellPath`.
+pub const TERMINAL_SHELL_PATH: &str = "terminal.shellPath";
+/// `terminal.scrollbackLines`.
+pub const TERMINAL_SCROLLBACK: &str = "terminal.scrollbackLines";
 /// `worktrees.folder`.
 pub const WORKTREES_FOLDER: &str = "worktrees.folder";
 /// `worktrees.openIn`.
@@ -120,6 +124,10 @@ pub const CODE_FONT: &str = "JetBrains Mono";
 pub const FONT_SIZE: f32 = 13.0;
 /// The smallest and the largest `font.size` taken: text smaller cannot be read, larger does not fit the rows.
 pub const FONT_SIZES: (f64, f64) = (8.0, 24.0);
+/// The default of `terminal.scrollbackLines`.
+pub const SCROLLBACK_LINES: usize = 10_000;
+/// The most `terminal.scrollbackLines` takes: more would hold more memory than a terminal is worth.
+pub const SCROLLBACK_MOST: f64 = 1_000_000.0;
 
 /// Which files a setting may be set in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

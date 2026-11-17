@@ -126,3 +126,14 @@ fn code_is_readable_on_the_pages_in_every_theme() {
         }
     }
 }
+
+#[test]
+fn the_256_colors_of_a_terminal_are_the_16_of_the_theme_then_the_cube_and_the_greys_of_xterm() {
+    let theme = Theme::new(ThemeName::Dark, Appearance::Dark);
+    assert_eq!(theme.terminal_color(1), theme.terminal[1]);
+    assert_eq!(theme.terminal_color(16), Color::rgb(0, 0, 0));
+    assert_eq!(theme.terminal_color(196), Color::rgb(255, 0, 0));
+    assert_eq!(theme.terminal_color(231), Color::rgb(255, 255, 255));
+    assert_eq!(theme.terminal_color(232), Color::rgb(8, 8, 8));
+    assert_eq!(theme.terminal_color(255), Color::rgb(238, 238, 238));
+}

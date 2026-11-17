@@ -29,6 +29,7 @@ model = { path = "../model" }
 platform = { path = "../platform" }
 render = { path = "../render" }
 settings = { path = "../settings" }
+terminal = { path = "../terminal" }
 text = { path = "../text" }
 ui = { path = "../ui" }
 views = { path = "../views" }

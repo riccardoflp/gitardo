@@ -19,6 +19,7 @@ members = [
     "crates/settings",
     "crates/http",
     "crates/tls",
+    "crates/terminal",
     "crates/testkit",
     "xtask",
 ]

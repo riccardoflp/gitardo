@@ -6,12 +6,12 @@ use crate::workspace::{Origin, UseKind};
 
 /// The crates each crate may use directly, as the picture of "Who may use whom" draws them, with `app` using every
 /// crate below it (decision D15) and `engine` using `model` (decision D14).
-const ALLOWED: [(&str, &[&str]); 20] = [
+const ALLOWED: [(&str, &[&str]); 21] = [
     (
         "app",
         &[
             "views", "engine", "features", "settings", "json", "http", "ui", "editor", "render", "platform", "system",
-            "git", "model", "text", "tls",
+            "git", "model", "text", "tls", "terminal",
         ],
     ),
     ("views", &["ui", "model", "features"]),
@@ -25,6 +25,7 @@ const ALLOWED: [(&str, &[&str]); 20] = [
     ("settings", &["json", "model"]),
     ("git", &["model", "text"]),
     ("model", &[]),
+    ("terminal", &["model"]),
     ("text", &[]),
     ("json", &[]),
     ("http", &["tls"]),

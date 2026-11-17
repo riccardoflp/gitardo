@@ -33,6 +33,7 @@ mod stashes;
 mod state;
 pub mod tabs;
 pub mod tasks;
+pub mod terminals;
 #[cfg(test)]
 mod tests;
 mod timeline;
@@ -101,6 +102,7 @@ pub fn reduce(state: &mut State, message: Message) -> Vec<Effect> {
     effects.extend(changes::follow_unsaved(state));
     effects.extend(blame::follow(state));
     effects.extend(reads::watch(state));
+    effects.extend(terminals::follow(state));
     effects.extend(tabs::follow_hidden(state));
     effects
 }
@@ -162,6 +164,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         message @ (Message::AiPiece { .. } | Message::AiAnswered { .. }) => review::ai::reduce(state, message),
         Message::GitHub(message) => github::reduce(state, message),
         Message::Task(message) => tasks::reduce_message(state, message),
+        Message::Terminal(message) => terminals::reduce_message(state, message),
         Message::UrlNotOpened(said) => github::not_opened(state, said),
         Message::CloseRequested { window_size } => {
             let mut effects = workspace::cancel_all(state);
@@ -383,6 +386,7 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::NextPage => pages::next_page(state),
         Intent::ClosePage => file_page::close_page(state),
         Intent::ShowCommandLog | Intent::Panel(_) => panel::reduce_intent(state, intent),
+        Intent::Terminal(intent) => terminals::reduce(state, intent),
         Intent::ClosePicker | Intent::OpenActivity | Intent::CloseActivity => {
             reduce_view_intent(state, &intent);
             Vec::new()
