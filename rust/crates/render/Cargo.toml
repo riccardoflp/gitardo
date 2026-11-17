@@ -17,4 +17,9 @@ testkit = { path = "../testkit" }
 #   png library tiny-skia takes for it; no other format of images is read.
 tiny-skia = { version = "=0.12.0", default-features = false, features = ["std", "simd", "png-format"] }
 cosmic-text = { version = "=0.19.0", default-features = false, features = ["std", "swash"] }
-svgtypes = { version = "=0.16.1", default-features = false, features = ["std"] }
+# =0.16.2, the version `merman` (crate `text`) asks for.
+svgtypes = { version = "=0.16.2", default-features = false, features = ["std"] }
+# The diagrams of Mermaid in the preview of Markdown (`file-view.mermaid`, D60), whose SVG is drawn into pixels with the
+# fonts of the program. 0.47.0, the release that shares fontdb with cosmic-text, svgtypes with this crate and tiny-skia
+# with the window; only its feature `text`: no fonts of the system, no image decoders, no compressed SVG.
+resvg = { version = "=0.47.0", default-features = false, features = ["text"] }

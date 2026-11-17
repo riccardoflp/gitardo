@@ -1041,19 +1041,19 @@ Rules:
 
 Acceptance:
 
-- [ ] A flowchart and a sequence diagram are drawn as their diagrams, with their labels.
-- [ ] The same diagram is drawn on the ground of the page in the dark, light, high contrast dark and high contrast light
+- [x] A flowchart and a sequence diagram are drawn as their diagrams, with their labels.
+- [x] The same diagram is drawn on the ground of the page in the dark, light, high contrast dark and high contrast light
       themes, its text in the color of text of each.
-- [ ] `flowchart LR` with `A[Start --> B` shows its code and *This diagram has an error:* with what is wrong;
+- [x] `flowchart LR` with `A[Start --> B` shows its code and *This diagram has an error:* with what is wrong;
       `notADiagram` shows its code and *Gitardo does not draw this kind of diagram.*
-- [ ] A diagram with `click A "https://example.com"` and a label with `<img src=…>` and `<script>` is drawn with no
+- [x] A diagram with `click A "https://example.com"` and a label with `<img src=…>` and `<script>` is drawn with no
       link to click, no image read and no script, its label as text.
-- [ ] A diagram wider than the page is drawn as wide as the page, its height scaled with it.
-- [ ] A diagram is drawn on a worker once for its text and its theme: laying the preview out again starts no drawing,
+- [x] A diagram wider than the page is drawn as wide as the page, its height scaled with it.
+- [x] A diagram is drawn on a worker once for its text and its theme: laying the preview out again starts no drawing,
       a switch of theme starts one.
-- [ ] A diagram with `accTitle: How a commit is made` is read by the screen reader as that title; one without as
+- [x] A diagram with `accTitle: How a commit is made` is read by the screen reader as that title; one without as
       *Mermaid diagram*.
-- [ ] **Source** shows the block of the diagram as its text.
+- [x] **Source** shows the block of the diagram as its text.
 - [ ] Extension: with a `mermaid` block, VS Code's preview of Markdown shows the diagram the engine drew for the theme
       of VS Code; without the engine it shows the code.
 

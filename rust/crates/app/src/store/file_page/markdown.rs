@@ -1,12 +1,14 @@
 //! The preview of a Markdown file as the store keeps it (`file-view.markdown-preview`): whether the page shows it,
 //! its blocks laid out again from the text each time it is shown or the file is read again, the colors of its code, the
-//! images of the repository it shows, read on a worker, and where its links go.
+//! images of the repository it shows, read on a worker, its diagrams of Mermaid, drawn on a worker (`file-view.mermaid`),
+//! and where its links go.
 
 use model::markdown::{self, LinkTarget};
 use views::file_view::{FilePageId, FileTarget, MarkdownContent, MarkdownIntent, MarkdownShown};
 
+use super::diagrams::{self, Diagrams};
 use super::{FilePage, colors_of, next_serial, page_mut};
-use crate::store::message::{Effect, JobId, JobKind};
+use crate::store::message::{Effect, JobId, JobKind, Message};
 use crate::store::state::State;
 use crate::work::file_view::FileJob;
 
@@ -21,6 +23,8 @@ pub struct Preview {
     asked: Vec<String>,
     /// The reads of images running, each with the source it is for.
     reading: Vec<(JobId, String)>,
+    /// Its diagrams of Mermaid, drawn and being drawn.
+    pub(super) diagrams: Diagrams,
 }
 
 /// The preview a page of a file opens with: shown when `markdown.openAsPreview` is on, none for a file that is not
@@ -65,6 +69,12 @@ pub fn reduce(state: &mut State, id: FilePageId, intent: MarkdownIntent) -> Vec<
             Vec::new()
         }
         MarkdownIntent::OpenLink(href) => open_link(state, id, &href, serial),
+        MarkdownIntent::DrawDiagrams(theme) => {
+            if let Some(preview) = page.markdown.as_mut() {
+                preview.content.diagram_theme = Some(theme);
+            }
+            diagrams::draw(state, id)
+        }
     }
 }
 
@@ -95,7 +105,7 @@ fn open_link(state: &mut State, id: FilePageId, href: &str, serial: u64) -> Vec<
 }
 
 /// Lays out again what the preview of a page shows from its text, while it is shown, and starts the reads of the
-/// images of the repository it has not asked for yet.
+/// images of the repository and the drawings of the diagrams it has not asked for yet.
 pub fn refresh(state: &mut State, id: FilePageId) -> Vec<Effect> {
     let Some(page) = page_mut(state, id) else {
         return Vec::new();
@@ -123,7 +133,7 @@ pub fn refresh(state: &mut State, id: FilePageId) -> Vec<Effect> {
         }
     }
     preview.content.blocks = blocks;
-    to_read
+    let mut effects: Vec<Effect> = to_read
         .into_iter()
         .map(|(source, image)| {
             let job = FileJob {
@@ -133,7 +143,9 @@ pub fn refresh(state: &mut State, id: FilePageId) -> Vec<Effect> {
             };
             start_image_read(state, (id, source), (top.clone(), job))
         })
-        .collect()
+        .collect();
+    effects.extend(diagrams::draw(state, id));
+    effects
 }
 
 /// Starts the read of an image of a page, kept with the source it is for.
@@ -147,6 +159,16 @@ fn start_image_read(
         preview.reading.push((job.id, source));
     }
     Effect::Start(job)
+}
+
+/// Takes what a worker made for a preview: an image read, or a diagram drawn.
+pub fn preview_read(state: &mut State, message: Message) -> Vec<Effect> {
+    match message {
+        Message::ImageRead { job, image } => image_read(state, job, image),
+        Message::DiagramDrawn { job, diagram } => diagrams::drawn(state, job, diagram),
+        // Only those two messages are given here; any other has nothing of a preview.
+        _ => Vec::new(),
+    }
 }
 
 /// Takes an image read: drawn when it could be read, else its text stays in its place.
@@ -168,10 +190,13 @@ pub fn image_read(state: &mut State, job: JobId, image: Option<render::Image>) -
     Vec::new()
 }
 
-/// The reads of images of a page, to cancel when it closes.
+/// The reads of images and the drawings of diagrams of a page, to cancel when it closes.
 pub(super) fn image_jobs(page: &FilePage) -> Vec<JobId> {
-    page.markdown
+    let mut jobs: Vec<JobId> = page
+        .markdown
         .as_ref()
         .map(|preview| preview.reading.iter().map(|(job, _)| *job).collect())
-        .unwrap_or_default()
+        .unwrap_or_default();
+    jobs.extend(diagrams::jobs(page));
+    jobs
 }

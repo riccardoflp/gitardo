@@ -18,6 +18,8 @@ pub use draw::TextRun;
 pub(crate) use draw::{GlyphImage, GlyphRun};
 use engine::{Engine, Face};
 
+pub(crate) use bundled::{INTERFACE_FAMILY, database as bundled_fonts};
+
 /// A family of fonts text can be drawn in.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum FontFamily {

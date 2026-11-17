@@ -44,6 +44,19 @@ pub const SOURCE_TOOLTIP: &str = "Show the text of the file";
 pub const PREVIEW_REGION: &str = "Preview";
 /// What an image of the preview is called for the screen reader when its text says nothing.
 pub const IMAGE: &str = "Image";
+/// What a diagram of Mermaid is called for the screen reader when it has no title (`file-view.mermaid`).
+pub const DIAGRAM: &str = "Mermaid diagram";
+/// What the preview says under the code of a diagram of a kind it does not draw.
+pub const DIAGRAM_UNSUPPORTED: &str = "Gitardo does not draw this kind of diagram.";
+/// What the preview says under the code of a diagram too large to draw.
+pub const DIAGRAM_TOO_LARGE: &str = "This diagram is too large to draw.";
+
+/// What the preview says under the code of a diagram with an error: **This diagram has an error: Unterminated node
+/// label.**
+#[must_use]
+pub fn diagram_error(reason: &str) -> String {
+    format!("This diagram has an error: {reason}.")
+}
 
 /// The box that finds, empty, and its name for the screen reader.
 pub const FIND_PLACEHOLDER: &str = "Find in the file";

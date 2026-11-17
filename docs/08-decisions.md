@@ -3288,11 +3288,10 @@ the reading given until the card says otherwise.
 
 ### Of the Mermaid diagrams of the preview, from Q590
 
-- **Q590** — `file-view.mermaid`: which kinds of diagrams are drawn. Proposed: every kind `merman` draws, with its
+- **Q590** — `file-view.mermaid`: which kinds of diagrams are drawn. Built: every kind `merman` draws, with its
   Cytoscape layout for the mind maps and the architecture diagrams, and without its ELK layout, whose code is under
-  the EPL-2.0, a licence D22 does not take; a diagram that asks for the ELK layout is drawn with the default one, or
-  shows why it is not.
-- **Q591** — `file-view.mermaid`: what **Find** in the preview finds in a diagram. Proposed: nothing, a diagram being a
+  the EPL-2.0, a licence D22 does not take; a diagram that asks for the ELK layout is drawn with the default one.
+- **Q591** — `file-view.mermaid`: what **Find** in the preview finds in a diagram. Built: nothing, a diagram being a
   picture; its text is found in **Source**.
 - **Q592** — `file-view.mermaid`, the extension: which previews draw the diagrams. A plugin of VS Code's Markdown
   serves every preview of Markdown, not only those Gitardo opens. Proposed: every preview, while the engine runs; a

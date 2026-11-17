@@ -136,6 +136,14 @@ pub struct Look {
     pub is_code: bool,
 }
 
+impl CodeBlock {
+    /// Whether the block is a diagram of Mermaid: its fence names `mermaid`, in any case (`file-view.mermaid`).
+    #[must_use]
+    pub fn is_mermaid(&self) -> bool {
+        self.language.eq_ignore_ascii_case("mermaid")
+    }
+}
+
 impl Block {
     /// The text a block shows, its parts one after the other, for the screen reader and for find.
     #[must_use]
@@ -178,6 +186,18 @@ pub fn code_blocks(blocks: &[Block]) -> Vec<&CodeBlock> {
             Block::Quote(inner) => found.extend(code_blocks(inner)),
             Block::List(items) => found.extend(items.iter().flat_map(|item| code_blocks(&item.blocks))),
             Block::Heading { .. } | Block::Paragraph(_) | Block::Rule | Block::Table(_) => {}
+        }
+    }
+    found
+}
+
+/// The text of the diagrams of Mermaid of some blocks, each once, in the order they come (`file-view.mermaid`).
+#[must_use]
+pub fn mermaid_sources(blocks: &[Block]) -> Vec<&str> {
+    let mut found: Vec<&str> = Vec::new();
+    for code in code_blocks(blocks) {
+        if code.is_mermaid() && !found.contains(&code.text.as_str()) {
+            found.push(&code.text);
         }
     }
     found

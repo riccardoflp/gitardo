@@ -36,7 +36,7 @@ pub use error::Error;
 pub use frame::FrameBuffer;
 pub use geometry::{PixelRect, Point, Rect, Transform};
 pub use icon::{GRID as ICON_GRID, Icon, Icons};
-pub use image::Image;
+pub use image::{Image, SvgImage};
 pub use path::{Command, FillRule, LineCap, Path};
 pub use text::{FontFamily, FontWeight, Fonts, LineMetrics, TextRun, TextStyle, Truncation, TypefaceId};
 pub use theme::{Appearance, CodeColors, CodeKind, Colors, FontSizes, Radii, Sizes, Spacing, Theme, ThemeName};

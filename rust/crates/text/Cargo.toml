@@ -13,6 +13,11 @@ workspace = true
 # Regular expressions for finding in a file (`file-view.find`): no I/O, no thread, no clock. Only the Unicode tables of
 # case and of `\w` and `\b` are taken, for match case and whole word.
 regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-case", "unicode-perl"] }
+# The diagrams of Mermaid in the preview of Markdown (`file-view.mermaid`, D60): read and laid out as Mermaid 12 does,
+# written as SVG, with no browser and no JavaScript; no I/O, no thread, no clock, none of its features `system-*`.
+# Every kind of diagram, and the Cytoscape layout of the mind maps and the architecture diagrams; not the ELK layout,
+# whose code is under the EPL-2.0 (Q590).
+merman = { version = "=0.10.0", default-features = false, features = ["svg", "all-diagrams", "layout-cytoscape"] }
 
 [dev-dependencies]
 testkit = { path = "../testkit" }

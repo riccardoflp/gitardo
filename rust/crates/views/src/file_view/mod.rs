@@ -25,7 +25,9 @@ pub use beside::{BesideFilesState, beside_files_view};
 pub use edit::edit_view;
 pub use find::find_view;
 pub use go_to_line::{GoToLineState, go_to_line_view, parse_line};
-pub use markdown::{MarkdownContent, MarkdownIntent, MarkdownState, markdown_view};
+pub use markdown::{
+    DiagramFailure, DiagramShown, DrawnDiagram, MarkdownContent, MarkdownIntent, MarkdownState, markdown_view,
+};
 pub use question::{CloseQuestion, close_question_view};
 
 /// The number of a File page, unique in its window.

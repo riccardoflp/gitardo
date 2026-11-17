@@ -1,18 +1,20 @@
 //! A Markdown file as it reads (`file-view.markdown-preview`): its blocks laid out as wide as the page, which scrolls;
 //! a click on a link asks for where it goes, and find in page finds in the text shown.
 
+mod diagram;
 mod flow;
 mod layout;
 mod table;
 
 use model::markdown::Block;
 use ui::layout::{Insets, inset};
-use ui::{AccessRole, Border, CodeSpan, Cursor, Description, Image, Point, Rect, Sense, TextRun, Ui};
+use ui::{AccessRole, Border, CodeSpan, Cursor, Description, Image, Point, Rect, Sense, TextRun, ThemeName, Ui};
 
 use super::{FilePageId, FilePageIntent, FileViewIntent};
 use crate::icons;
 use crate::intent::Intent;
 use crate::text::file_view as words;
+pub use diagram::{DiagramFailure, DiagramShown, DrawnDiagram};
 use layout::{Laid, Mark, TextLook, lay_out};
 
 /// What the preview of a Markdown file shows.
@@ -34,6 +36,11 @@ pub struct MarkdownContent {
     /// The images of the repository read and drawn, by their source as the file writes it; the others show their
     /// text.
     pub images: Vec<(String, Image)>,
+    /// The diagrams of Mermaid drawn, or not, for the theme the preview asked them in, by their text
+    /// (`file-view.mermaid`); those not there yet show their code.
+    pub diagrams: Vec<(String, DiagramShown)>,
+    /// The theme the preview last asked its diagrams in.
+    pub diagram_theme: Option<ThemeName>,
     /// A heading to scroll to, by its anchor, once for each number.
     pub reveal: Option<(u64, String)>,
 }
@@ -47,6 +54,9 @@ pub enum MarkdownIntent {
     ShowSource,
     /// A click on a link, which goes where it says as the file writes it.
     OpenLink(String),
+    /// The diagrams of Mermaid of the preview, drawn in a theme: the one the window is drawn in, when the preview has
+    /// diagrams and has not asked for them in it (`file-view.mermaid`).
+    DrawDiagrams(ThemeName),
 }
 
 /// The preview of a Markdown file, over the rectangle its caller clipped it to: its blocks laid out one under the
@@ -66,12 +76,19 @@ pub fn markdown_view(state: &MarkdownState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> 
     }
     let size = (rect.width, laid.height + 2.0 * padding);
     let mut intents = Vec::new();
+    let theme = ui.theme().name;
+    if laid.has_diagrams && state.content.diagram_theme != Some(theme) {
+        intents.push(Intent::FileView(FileViewIntent::Page(
+            state.id,
+            FilePageIntent::Markdown(MarkdownIntent::DrawDiagrams(theme)),
+        )));
+    }
     ui.region(key, (rect, AccessRole::Region, words::PREVIEW_REGION), |ui| {
         let (_, asked) = ui.scroll_area(key, rect, size, |ui, content| {
             let origin = Point::new(content.x + padding, content.y + padding);
             draw(state, &laid, ui, origin)
         });
-        intents = asked;
+        intents.extend(asked);
     });
     let _ = ui.find_in_page(("find in markdown preview", state.id), rect);
     intents

@@ -129,6 +129,13 @@ pub enum Message {
         /// The image, none when it is not there or could not be read as an image.
         image: Option<render::Image>,
     },
+    /// A job that drew a diagram of Mermaid of the preview of a Markdown file is done (`file-view.mermaid`).
+    DiagramDrawn {
+        /// The job.
+        job: JobId,
+        /// The diagram, or why it is not drawn.
+        diagram: Result<views::file_view::DrawnDiagram, views::file_view::DiagramFailure>,
+    },
     /// A job that read a comparison page is done (`compare.read-sides`).
     ComparisonRead {
         /// The job.
@@ -362,6 +369,13 @@ pub enum JobKind {
         folder: PathBuf,
         /// The image read.
         job: crate::work::file_view::FileJob,
+    },
+    /// Draws a diagram of Mermaid of the preview of a Markdown file in a theme (`file-view.mermaid`).
+    DrawDiagram {
+        /// The top folder of the working tree of the file.
+        folder: PathBuf,
+        /// The diagram drawn.
+        job: crate::work::diagram::DiagramJob,
     },
     /// Reads a comparison page: its followed sides where they are now, then what differs (`compare.read-sides`).
     ReadComparison {

@@ -73,6 +73,11 @@ pub(crate) fn whole(value: f64) -> u32 {
     value.floor().max(0.0) as u32
 }
 
+/// A large count, such as of pixels, as a float.
+pub(crate) fn float_of_large(value: u64) -> f64 {
+    value as f64
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

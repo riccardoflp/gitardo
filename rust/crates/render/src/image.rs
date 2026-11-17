@@ -1,5 +1,10 @@
 //! Images read from files, drawn scaled into a rectangle: the images of a repository a preview of Markdown shows
-//! (`file-view.markdown-preview`). Only PNG is read, by the library `tiny-skia` takes for it.
+//! (`file-view.markdown-preview`), and its diagrams of Mermaid, drawn from their SVG (`file-view.mermaid`). Only PNG is
+//! read, by the library `tiny-skia` takes for it.
+
+mod svg;
+
+pub use svg::SvgImage;
 
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
@@ -34,6 +39,11 @@ impl Image {
         if u64::from(pixmap.width()) * u64::from(pixmap.height()) > MOST_PIXELS {
             return None;
         }
+        Some(Image::of_pixmap(&pixmap))
+    }
+
+    /// The image of the pixels of a pixmap of `tiny-skia`, which are multiplied by their opacity.
+    fn of_pixmap(pixmap: &tiny_skia::Pixmap) -> Image {
         let mut pixels = Vec::with_capacity(pixmap.pixels().len() * 4);
         for pixel in pixmap.pixels() {
             let color = pixel.demultiply();
@@ -42,12 +52,12 @@ impl Image {
         let mut hasher = DefaultHasher::new();
         pixels.hash(&mut hasher);
         (pixmap.width(), pixmap.height()).hash(&mut hasher);
-        Some(Image {
+        Image {
             width: pixmap.width(),
             height: pixmap.height(),
             pixels: pixels.into(),
             key: hasher.finish(),
-        })
+        }
     }
 
     /// An image of one color, for tests.

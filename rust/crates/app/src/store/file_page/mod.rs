@@ -3,6 +3,7 @@
 //! edits not saved, and the question asked before closing a page whose edits are not saved.
 
 mod colors;
+mod diagrams;
 mod edit;
 mod given;
 mod held;
@@ -29,7 +30,7 @@ pub(crate) use edit::save;
 pub use edit::{Edited, edit_with, ended, reduce_page};
 pub use given::open_with_text;
 pub use held::{HeldFile, document_of, hold};
-pub use markdown::{Preview, image_read};
+pub use markdown::{Preview, image_read, preview_read};
 pub use shown::{close_question, page_state};
 
 /// How many columns a tab goes to in the editor.

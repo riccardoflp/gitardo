@@ -4,6 +4,7 @@
 pub mod ai;
 pub mod blame;
 pub mod compare;
+pub mod diagram;
 pub mod diff;
 pub mod file_view;
 pub mod github;
@@ -184,6 +185,7 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadCommitPage { folder, .. } => (folder, activity::OPENING_COMMIT_PAGE),
         JobKind::ReadDiff { folder, .. } => (folder, activity::COMPUTING_DIFF),
         JobKind::ReadFile { folder, .. } | JobKind::ReadImage { folder, .. } => (folder, activity::OPENING_FILE),
+        JobKind::DrawDiagram { folder, .. } => (folder, activity::DRAWING_DIAGRAM),
         JobKind::ReadComparison { folder, .. } | JobKind::ReadInPlace { folder, .. } => (folder, activity::COMPARING),
         JobKind::CountConflicts { folder } => (folder, activity::COUNTING_CONFLICTS),
         JobKind::ReadMerge { folder, .. } => (folder, activity::SHOWING_MERGE),

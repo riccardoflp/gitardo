@@ -76,6 +76,8 @@ pub const COMPUTING_DIFF: &str = "Showing the diff of a file";
 pub const SHOWING_MERGE: &str = "Showing a file in conflict";
 /// Why the File page reads.
 pub const OPENING_FILE: &str = "Opening a file";
+/// Why a diagram of Mermaid of the preview of a Markdown file is drawn (`file-view.mermaid`).
+pub const DRAWING_DIAGRAM: &str = "Drawing a diagram";
 /// Why the Files page reads.
 pub const LISTING_FILES: &str = "Listing the files";
 /// Why the page of new worktrees reads.

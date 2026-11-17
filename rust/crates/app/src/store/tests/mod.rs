@@ -71,6 +71,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::ReadMerge { .. }
             | JobKind::ReadFile { .. }
             | JobKind::ReadImage { .. }
+            | JobKind::DrawDiagram { .. }
             | JobKind::ReadComparison { .. }
             | JobKind::ReadInPlace { .. }
             | JobKind::ReadReview { .. }
@@ -162,9 +163,24 @@ fn answer_asking(state: &mut State, effects: Vec<Effect>, found: &[(&Path, &[Pat
     all
 }
 
-/// What a list of the files of the Files page, a read of the page of new worktrees, or a question of the files git
-/// ignores gives in these tests: nothing.
+/// What a list of the files of the Files page, a read of the page of new worktrees, a question of the files git
+/// ignores, a blame, an image or a diagram gives in these tests: nothing.
 fn not_listed(job: JobId, kind: &JobKind) -> Message {
+    if let JobKind::ReadBlame { .. } = kind {
+        return Message::BlameRead {
+            job,
+            result: Err(String::from("not read in these tests")),
+        };
+    }
+    if let JobKind::ReadImage { .. } = kind {
+        return Message::ImageRead { job, image: None };
+    }
+    if let JobKind::DrawDiagram { .. } = kind {
+        return Message::DiagramDrawn {
+            job,
+            diagram: Err(views::file_view::DiagramFailure::Unsupported),
+        };
+    }
     if let JobKind::ReadNewWorktrees { .. } = kind {
         return Message::NewWorktreesRead {
             job,
@@ -229,7 +245,6 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
             job,
             result: Err(String::from("not read in these tests")),
         },
-        JobKind::ReadImage { .. } => Message::ImageRead { job, image: None },
         JobKind::ReadComparison { .. } => Message::ComparisonRead {
             job,
             result: Err(String::from("not read in these tests")),
@@ -242,13 +257,12 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
             job,
             result: Err(String::from("not read in these tests")),
         },
-        JobKind::ReadFiles { .. } | JobKind::ReadNewWorktrees { .. } | JobKind::ReadIgnored { .. } => {
-            not_listed(job, kind)
-        }
-        JobKind::ReadBlame { .. } => Message::BlameRead {
-            job,
-            result: Err(String::from("not read in these tests")),
-        },
+        JobKind::ReadFiles { .. }
+        | JobKind::ReadNewWorktrees { .. }
+        | JobKind::ReadIgnored { .. }
+        | JobKind::ReadImage { .. }
+        | JobKind::ReadBlame { .. }
+        | JobKind::DrawDiagram { .. } => not_listed(job, kind),
     }
 }
 

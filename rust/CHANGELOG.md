@@ -25,6 +25,11 @@
   repository is drawn, an image of the web is not fetched and shows its text, and HTML is shown as text. The setting
   **Open Markdown as a preview** (`markdown.openAsPreview`, in **Files and blame**, off by default) opens every
   Markdown file in its preview.
+- A block of code fenced as `mermaid` in the preview of a Markdown file is drawn as its diagram: flowcharts, sequence,
+  class, state and entity relationship diagrams, Gantt charts, pies, Git graphs, mind maps and the other kinds Mermaid
+  draws, in the colors of the theme and in Inter, as wide as the page at most. Its code shows until it is drawn, and
+  stays with a line saying why when it has an error or is of a kind not drawn. Nothing in a diagram is followed, run
+  or fetched; the screen reader reads its `accTitle`, or *Mermaid diagram*.
 - The side column takes less room: a repository, a worktree and a submodule are each one row of one line, the name on
   the left and the branch, the files changed and `↓ ↑` smaller on the right, the name and the branch cut with `…`
   when the row is short; the heading of **Branches** has **Create branch**, **Compare** and the button of the rail's

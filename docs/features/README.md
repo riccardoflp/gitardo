@@ -560,7 +560,7 @@ earns it.
 | [`file-view.page`](17-diff-and-merge-views.md#file-viewpage--the-file-page) | The File page | View | Built | Host only |
 | [`file-view.beside-files`](17-diff-and-merge-views.md#file-viewbeside-files--a-file-opened-beside-the-tree-of-the-files-page) | A file opened beside the tree of the Files page | View | Built | Host only |
 | [`file-view.markdown-preview`](17-diff-and-merge-views.md#file-viewmarkdown-preview--a-markdown-file-as-it-reads) | A Markdown file as it reads | View | Built | Built |
-| [`file-view.mermaid`](17-diff-and-merge-views.md#file-viewmermaid--a-mermaid-diagram-as-it-is-drawn) | A Mermaid diagram as it is drawn | Derivation | Specified | Planned |
+| [`file-view.mermaid`](17-diff-and-merge-views.md#file-viewmermaid--a-mermaid-diagram-as-it-is-drawn) | A Mermaid diagram as it is drawn | Derivation | Built | Planned |
 | [`file-view.read-revision`](17-diff-and-merge-views.md#file-viewread-revision--a-file-at-a-revision) | A file at a revision | Read | Built | Built |
 | [`file-view.edit`](17-diff-and-merge-views.md#file-viewedit--editing-a-file) | Editing a file | View | Built | Host only |
 | [`file-view.save`](17-diff-and-merge-views.md#file-viewsave--save) | Save | Operation | Built | Host only |

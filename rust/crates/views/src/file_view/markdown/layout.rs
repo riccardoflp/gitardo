@@ -5,6 +5,7 @@ use model::markdown::{Alignment, Block, CodeBlock, Item, Mark as ItemMark, Piece
 use ui::{AccessRole, CodeSpan, Color, Image, Point, Rect, TextKind, TextStyle, Ui};
 
 use super::MarkdownState;
+use super::diagram::{self, DiagramShown};
 use super::flow::{Place, flow};
 
 /// What the blocks are measured and drawn with.
@@ -15,6 +16,8 @@ pub(super) struct Ink<'a, 'u> {
     pub(super) images: &'a [(String, Image)],
     /// The colors of the code of each block of code, in order, by line.
     pub(super) code_colors: &'a [Vec<Vec<CodeSpan>>],
+    /// The diagrams of Mermaid drawn, or not, by their text.
+    pub(super) diagrams: &'a [(String, DiagramShown)],
     /// The typefaces, colors and spaces.
     pub(super) looks: Looks,
 }
@@ -170,6 +173,8 @@ pub(super) struct Laid {
     pub(super) nodes: Vec<(Rect, AccessRole, String)>,
     /// How many blocks of code are laid, to take the colors of the next.
     pub(super) code_count: usize,
+    /// Whether a block is a diagram of Mermaid.
+    pub(super) has_diagrams: bool,
     /// The bottom of the last block.
     pub(super) height: f32,
 }
@@ -207,6 +212,7 @@ pub(super) fn lay_out(state: &MarkdownState<'_>, ui: &Ui<'_>, width: f32) -> Lai
         ui,
         images: &state.content.images,
         code_colors: &state.content.code_colors,
+        diagrams: &state.content.diagrams,
         looks: Looks::of(ui),
     };
     let mut laid = Laid::default();
@@ -358,11 +364,33 @@ fn quote(ink: &Ink<'_, '_>, laid: &mut Laid, inner: &[Block], (column, top): (Co
     bottom
 }
 
-/// Lays a block of code on its ground, each line in the colors of its language, cut at the edge of the block.
+/// Lays a block of code: a diagram of Mermaid as its diagram once it is drawn (`file-view.mermaid`), its code with why
+/// under it when it cannot be, else the code.
 fn code_block(ink: &Ink<'_, '_>, laid: &mut Laid, code: &CodeBlock, (column, top): (Column, f32)) -> f32 {
-    let looks = ink.looks;
     let colors = ink.code_colors.get(laid.code_count);
     laid.code_count += 1;
+    if !code.is_mermaid() {
+        return code_lines(ink, laid, (code, colors), (column, top));
+    }
+    laid.has_diagrams = true;
+    match diagram::shown(ink, &code.text) {
+        Some(DiagramShown::Drawn(drawn)) => diagram::lay_drawn(laid, drawn, (column, top)),
+        Some(DiagramShown::NotDrawn(failure)) => {
+            let bottom = code_lines(ink, laid, (code, colors), (column, top));
+            diagram::lay_failure(ink, laid, failure, (column, bottom))
+        }
+        None => code_lines(ink, laid, (code, colors), (column, top)),
+    }
+}
+
+/// Lays the lines of a block of code on its ground, each in the colors of its language, cut at the edge of the block.
+fn code_lines(
+    ink: &Ink<'_, '_>,
+    laid: &mut Laid,
+    (code, colors): (&CodeBlock, Option<&Vec<Vec<CodeSpan>>>),
+    (column, top): (Column, f32),
+) -> f32 {
+    let looks = ink.looks;
     let line_height = ink.ui.line_height(looks.code);
     let start = laid.marks.len();
     let left = column.left + looks.padding;

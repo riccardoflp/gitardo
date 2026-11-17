@@ -54,6 +54,7 @@ mod markdown;
 mod merge;
 mod merge_actions;
 mod merge_at_line;
+mod mermaid;
 mod new_worktrees;
 mod one_lane;
 mod open_tabs;

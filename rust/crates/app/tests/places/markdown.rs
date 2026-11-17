@@ -46,7 +46,7 @@ fn repository() -> Repository {
 }
 
 /// Asks something of the page shown.
-fn ask_page(state: &mut State, intent: FilePageIntent) -> Vec<Effect> {
+pub(super) fn ask_page(state: &mut State, intent: FilePageIntent) -> Vec<Effect> {
     let id = shown(state).id;
     support::run(
         state,
@@ -55,18 +55,18 @@ fn ask_page(state: &mut State, intent: FilePageIntent) -> Vec<Effect> {
 }
 
 /// Opens a file of the working tree in its page, then shows its preview.
-fn preview_of(state: &mut State, path: &str) {
+pub(super) fn preview_of(state: &mut State, path: &str) {
     open(state, FileTarget::working_tree(path));
     let _effects = ask_page(state, FilePageIntent::Markdown(MarkdownIntent::ShowPreview));
 }
 
 /// Whether the page shown shows its preview.
-fn is_preview(state: &State) -> bool {
+pub(super) fn is_preview(state: &State) -> bool {
     shown(state).markdown.as_ref().is_some_and(|preview| preview.is_shown)
 }
 
 /// Clicks the widget of a role and a name, and gives what the click asked, run.
-fn click(window: &mut Window, state: &mut State, (role, name): (Role, &str)) -> Vec<Effect> {
+pub(super) fn click(window: &mut Window, state: &mut State, (role, name): (Role, &str)) -> Vec<Effect> {
     let intents = window.click(state, role, name);
     intents
         .into_iter()
@@ -75,7 +75,7 @@ fn click(window: &mut Window, state: &mut State, (role, name): (Role, &str)) -> 
 }
 
 /// The window drawn once, and its tree.
-fn drawn(window: &mut Window, state: &State) -> TreeUpdate {
+pub(super) fn drawn(window: &mut Window, state: &State) -> TreeUpdate {
     window.draw(state, &[]).1
 }
 

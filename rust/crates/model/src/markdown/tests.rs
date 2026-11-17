@@ -247,3 +247,11 @@ fn code_blocks_and_images_are_found_inside_lists_quotes_and_tables() {
     assert_eq!(codes, vec!["fn a() {}", "b"]);
     assert_eq!(image_sources(&read), vec!["a.png", "b.png"]);
 }
+
+#[test]
+fn the_diagrams_of_mermaid_are_the_blocks_fenced_as_mermaid_each_once() {
+    let read = blocks(
+        "```mermaid\nflowchart LR\n  A --> B\n```\n\n> ```Mermaid\n> pie\n> ```\n\n```mermaid\nflowchart LR\n  A --> B\n```\n\n```rust\nfn a() {}\n```\n",
+    );
+    assert_eq!(mermaid_sources(&read), vec!["flowchart LR\n  A --> B", "pie"]);
+}
