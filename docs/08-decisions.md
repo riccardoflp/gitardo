@@ -1326,6 +1326,41 @@ the end of the header: the menu of the view, with every switch of the timeline (
 columns, **Compact rows**), each checked while it is on; and **…**, with the actions alone. Each switch still writes its
 setting in the user's settings file.
 
+## D69 — What is selected is tinted with the accent of the theme
+
+*Asked by the maintainer for milestone M21; the details proposed by the agent.*
+
+The look of the window is one accent on a calm ground (D17), amber in the dark and in the light theme. The selected
+rows of a list and selected text were tinted teal there, the color of information, which nothing else of the window
+wears: a selected commit looked as if it belonged to another program. Now what is selected is tinted with the accent:
+the ground of the selected rows of a list that has the focus is the accent mixed into the ground of the page, enough
+to be told from the row under the pointer and from the selection of a list without the focus, both of which stay
+neutral, and little enough for the text on it to be read as before. Teal stays where it means something: information,
+the incoming side of a merge, the labels of a stash. The high contrast themes keep their blue selection, since blue is
+their accent. The extension is not touched: its selection is that of VS Code's theme.
+
+## D70 — The extension has a Repositories view of its own
+
+*Asked by the maintainer for milestone M22; the details proposed by the agent.*
+
+When the side column was planned (D56), the list of repositories was left to VS Code in the extension: its Source
+Control side bar has a Repositories view, and `repo.tabs`, `repo.side-column` and `repo.worktree-summary` were *Host
+only*. But that view lists what VS Code's Git extension opened, not what Gitardo found: it leaves out the worktrees
+VS Code keeps to itself, shows a worktree apart from its repository, says neither the files changed nor the commits to
+pull and to push of the ones not shown, and Gitardo can select in it only while it lists one repository at a time
+(`repo.follow-source-control`). So the extension gets the list the desktop has: **Repositories**, a view of Gitardo in
+the Source Control side bar, with the same rows, read by the same engine (`repo.worktree-summary`), drawn by the
+webview. `repo.tabs` and `repo.worktree-summary` become *Planned* in the extension, then *Built*; `repo.side-column`
+stays *Host only*, since VS Code's side bar is the column and Gitardo's views are its sections.
+
+What VS Code decides stays VS Code's: which folders are in the workspace, so the view has neither **+** nor **×**
+(Q721), and no tabs to keep. Its own Repositories view is left where it is, and the two follow each other.
+
+Rejected: filling VS Code's Repositories view (an extension cannot add rows or text to it); a tree view of VS Code
+rather than a webview (a row could not put the counts at its right in their colors, nor fold as the desktop's does);
+putting the list inside the Branches view (two lists with two scrolls in one view, which VS Code already splits
+better).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -3742,6 +3777,21 @@ reading given until the card says otherwise.
   server of the webviews, the e2e and UI suites not having been run for them. In the graph of the side bar, which is
   narrow, the two buttons take the room of one more icon beside the search. Should the two be one there?
 
+### Of the color of the selection, from Q670
+
+Questions of [D69](#d69--what-is-selected-is-tinted-with-the-accent-of-the-theme), asked while planning milestone M21;
+each is built as it says until the maintainer answers otherwise.
+
+- **Q670** — `settings.theme`: the selected rows of a list are the accent mixed into the ground of the page, one part
+  in six (`#382D1F` in the dark theme, `#EADBC8` in the light one), rather than a neutral step with a bar of the accent
+  at the start of the row. Is the tint the one wanted, and as strong?
+- **Q671** — `settings.theme`: the ground of selected text. A wash of amber behind text is already a match of a search
+  (`find_match`), so that selected text in amber would read as a match; planned: selected text takes a neutral wash, of
+  the color of muted text, and the match keeps the amber. Or the other way around?
+- **Q672** — `settings.theme`: the two high contrast themes keep their blue selection, their accent being blue, and
+  teal stays the color of information, of the incoming side of a merge and of the labels of a stash. Should any of
+  these change too?
+
 ### Of the tab of Activity, from Q680
 
 Questions of milestone M18 ([D64](#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)), asked while it is
@@ -3782,3 +3832,19 @@ built, each built with the reading given until the card says otherwise.
   what ended; the protocol still gives the extension the number, the words, the cause and the second of the start of
   what runs. Nothing changes in the extension with M18. Should its picker of **Show What Is Running** list what ran
   and count the reads as the tab does, with these in a minor version of the protocol?
+
+### Of the Repositories view of the extension, from Q720
+
+Questions of [D70](#d70--the-extension-has-a-repositories-view-of-its-own), asked while planning milestone M22; each
+is built as it says until the maintainer answers otherwise.
+
+- **Q720** — `repo.tabs` in the extension: the view is in the Source Control side bar, with Gitardo's other views,
+  above them. Or should it be in Gitardo's panel beside the graph, as the side column is beside the timeline in the
+  desktop, or in both?
+- **Q721** — `repo.tabs` in the extension: no **+** and no **×**, VS Code's workspace saying which folders are open.
+  Should **+** run VS Code's **Add Folder to Workspace…**, and the menu of a row **Remove Folder from Workspace**?
+- **Q722** — `repo.tabs` in the extension: the view lists every repository Gitardo found in the workspace, the ones
+  inside another and the ones VS Code's Git extension has not opened among them, as the picker of the toolbar does.
+  Should it list only those VS Code's Source Control lists?
+- **Q723** — `repo.select`: the picker of the repository in the toolbar of the graph stays beside the view. Should it
+  go once the view is there, or stay only where the view is hidden?

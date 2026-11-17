@@ -440,6 +440,43 @@ menu of a branch the bin beside **Delete**; every card of the phase passes its t
 of the header bar match in each theme, focused and not, those of the preview of Markdown and those of the tree of the
 Files page with its marks and with the icons of its files, and those of the menus of a commit and of a file, in each theme.
 
+## M23 — What shows under the pointer stays under it
+
+A fix, asked by the maintainer as urgent and built before the milestones that are not built yet, whatever its number:
+the **×** of a row of **Repositories** flickers while the pointer is on it and cannot be clicked, and so does every
+control the window shows only on the row under the pointer. In Gitardo Desktop alone: the webviews of the extension
+ask the browser, which answers right.
+
+The cause, read in the code: a widget is `hovered` only while it is the topmost one under the pointer
+(`ui::Response::hovered`), and a row draws its **×** only while the row is hovered (`views::repo::rows`). With the
+pointer on the **×**, the **×** is the topmost: the row is no longer hovered and does not draw it; in the next frame
+nothing is over the row, which is hovered again and draws it; and so on, a frame with and a frame without, so that a
+press and its release seldom meet the same button. The row shown always draws its **×**, which is why that one works.
+The rows of the files of a commit already work around it by asking where the pointer is (`views::details::rows`); the
+others do not.
+
+Built in two phases, each one commit or more, each ending with its tests passing.
+
+1. **The toolkit says whether the pointer is within a widget.** Beside `hovered`, what a widget is told says whether
+   the pointer is over it or over something drawn inside it, with nothing of another layer covering it; the
+   background of a row under the pointer and whatever a row shows only under the pointer ask that. A test of `ui`
+   holds, with a row and a button it shows under the pointer, that with the pointer resting on the button for ten
+   frames the button is drawn in each, the row keeps its background, and a click presses the button and not the row.
+   A rule of the code says which of the two a view asks, and the check of the rules refuses a control drawn only
+   while `hovered`. Cards: `repo.tabs`, `repo.close-tab`.
+2. **Every place that shows something under the pointer.** Each of the some forty places of `views` that read
+   `hovered` is looked at and asks the right one: the **×** of the rows of **Repositories**, the buttons on the titles
+   of the lists of the branch rail and of its filters, the rows of branches, stashes, worktrees and submodules, the
+   buttons of the rows of the Changes page, of the files of a commit (its workaround replaced) and of a comparison,
+   the rows of the tasks of Activity, of the settings and of what new worktrees get, the labels of the timeline and
+   their list. For each control shown only under the pointer, a test of the window moves the pointer from the row
+   onto the control, rests there ten frames and clicks: every frame draws the same, and the click does what the
+   control says. Cards: `repo.tabs`, `repo.close-tab`, `refs.tree`, and those of each place changed.
+
+Exit: with three repositories open, the pointer moved onto the **×** of one not shown finds it still, lit as a button
+under the pointer, and a click closes that tab; the same holds for each control of phase 2; while the pointer rests
+anywhere in the window, two frames in a row are the same; the check of the rules passes.
+
 ## M18 — Activity in the bottom panel, and a list that holds still
 
 What Gitardo is doing is a tab of the bottom panel, beside the terminals and the Command log, rather than a card over the
@@ -556,6 +593,77 @@ with **Compact rows** on, every commit is on one line with the author, the date 
 off, as before; the header has the menu of the view, with every switch, and **…** with the actions alone; every card
 of the milestone passes its tests, and the snapshots of the timeline match in each theme, with compact rows and
 without, and those of the two menus.
+
+## M21 — The selection in the colors of the theme
+
+A selected commit, a selected row of any list and selected text were tinted teal in the dark and in the light theme:
+the color those themes give information, not their accent, so that what is selected looked foreign to the amber of
+the rest of the window
+([D69](../08-decisions.md#d69--what-is-selected-is-tinted-with-the-accent-of-the-theme)). Asked by the maintainer
+after M20. In Gitardo Desktop alone: the extension draws what is selected in the colors of VS Code's theme. Built in
+three phases, each one commit or more, each ending with its tests passing.
+
+1. **The colors of the two themes.** In the dark and in the light theme the ground of the selected rows of a list
+   that has the focus (`list_selection`) is the accent mixed into the ground of the page, about one part in six: a
+   warm brown near `#382D1F` in the dark theme, a sand near `#EADBC8` in the light one; the text on it keeps its
+   contrast. The ground of selected text (`text_selection`) loses its teal too (Q671). The selection of a list
+   without the focus, the row under the pointer and the row lit in a menu stay the neutral steps they are; the two
+   high contrast themes, whose accent is the blue of their selection, are left alone. A test of `render` holds for
+   every theme that the selection of a list has the hue of the accent or none, that text on it is read (4.5 to 1, 7
+   to 1 in high contrast), and that it is told apart from the ground, from the row under the pointer and from the
+   selection without the focus. Card: `settings.theme`.
+2. **Every place that shows a selection.** Each is looked at in the four themes and draws what is selected with the
+   colors of the theme, none with a color of its own: the rows of the timeline and of its compact rows, the side
+   column and its lists, the Changes page, the files of a commit and of a comparison, the tree of the Files page, the
+   chooser of a comparison, the pickers and Quick search, the settings page and its row marked for a second, the tabs
+   of the bottom panel, the log and the tasks of Activity, the text selected in the editor, in a box, in a diff, in the
+   Merge page and in the terminal. Their snapshots are recorded again and looked at. Cards: `settings.theme`,
+   `graph.view`, `ui.picker-scroll`, and those of the pages whose snapshots change.
+3. **The hues that are left.** Every color of the dark and of the light theme is checked against what the look allows
+   ([D17](../08-decisions.md#d17--the-timeline-a-window-of-gitardos-own)): the ground and its steps, one accent, the
+   colors of an error, a warning, information and success where they say that, the colors of the lanes and of the
+   kinds of labels, the colors of the code. A color used for something else is changed to the one of its meaning, or
+   written as a question when the choice is the maintainer's. Card: `settings.theme`.
+
+Exit: in the dark and in the light theme a selected commit, a selected file and a selected setting are tinted with
+the amber of the theme, as the buttons and the ring of the focus are, and no place of the window shows a selection in
+teal; text selected is told apart from a match of a search; the high contrast themes are as before; the test of the
+colors of the themes passes, and the snapshots of every place of phase 2 match in each theme.
+
+## M22 — Repositories, a view of the extension
+
+The repositories of the workspace, with their worktrees and their submodules under them and what each is on, in a
+view of Gitardo in VS Code, as the **Repositories** section of the side column lists them in Gitardo Desktop
+([D70](../08-decisions.md#d70--the-extension-has-a-repositories-view-of-its-own)). Asked by the maintainer after
+M21. In the extension alone: the desktop has it since M16, and its cards are the ones built. Built in three phases,
+each one commit or more, each ending with its cards built in the extension and their tests passing.
+
+1. **What each is on, from the engine.** The engine gives the extension what the desktop reads for the rows of
+   **Repositories**: for each repository of the workspace and each of its worktrees and submodules, the branch checked
+   out or the commit `HEAD` is detached at, the files changed and the commits to pull and to push
+   (`repo.worktree-summary`), read once, then again only when its folder or its git folder changes, and said to the
+   extension when one changed. A read added to the protocol, a minor version. Cards: `repo.worktree-summary`,
+   `repo.watch-hidden`.
+2. **The view.** **Repositories**, a view of the Source Control side bar, above Gitardo's other views, drawn by the
+   webview as the desktop draws the section: a row for each repository Gitardo found in the workspace
+   (`repo.read-repositories`), named as `repo.name-repositories` says, the rows of its worktrees and its submodules
+   under it, folding (`repo.group-tabs`); at the right of each row what it is on, `main ● 3 ↓2 ↑1`; the one Gitardo
+   shows marked with the bar of the accent, a spinner on a row whose repository runs an operation. A click on a row
+   shows it in Gitardo (`repo.select`, `worktree.show-in-gitardo`, `submodule.show-in-gitardo`); the rows take the
+   keyboard and say themselves to the screen reader. Which rows are folded is remembered for the workspace. Cards:
+   `repo.tabs`, `repo.group-tabs`, `repo.select`.
+3. **Its menus, and VS Code's own view.** The menu of a row: **Reveal in File Explorer**, **Copy path**, **Open in
+   Integrated Terminal**, and for a worktree and a submodule what their menus have in the Branches view. The view and
+   VS Code's Repositories view follow each other as Gitardo and that view already do
+   (`repo.follow-source-control`). The picker of the repository in the toolbar of the graph stays. The README of the
+   extension and its walkthrough say the view; a step of the end-to-end suite opens it, reads its rows and clicks one.
+   Cards: `repo.tabs`, `repo.follow-source-control`.
+
+Exit: in a workspace with two repositories, one with two worktrees and a submodule, the view lists the two with
+their rows under them, each with its branch, its files changed and its commits to pull and to push; changing a file
+in a worktree not shown updates its count within two seconds; a click on a worktree shows it in the graph and marks
+its row, and choosing another repository in the toolbar of the graph marks that one; nothing is read while nothing
+changes; every card of the milestone is Built in both apps, and the end-to-end step passes.
 
 ## Before a release
 
