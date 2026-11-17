@@ -521,7 +521,7 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`diff.page`](17-diff-and-merge-views.md#diffpage--the-diff-page) | The Diff page | View | Built | Built |
-| [`diff.beside-inspector`](17-diff-and-merge-views.md#diffbeside-inspector--files-of-a-commit-read-beside-the-inspector) | Files of a commit read beside the inspector | View | Specified | Host only |
+| [`diff.beside-inspector`](17-diff-and-merge-views.md#diffbeside-inspector--files-of-a-commit-read-beside-the-inspector) | Files of a commit read beside the inspector | View | Built | Host only |
 | [`diff.read-sides`](17-diff-and-merge-views.md#diffread-sides--the-two-versions-of-a-file) | The two versions of a file | Read | Built | Built |
 | [`diff.line-diff`](17-diff-and-merge-views.md#diffline-diff--the-lines-that-changed) | The lines that changed | Derivation | Built | Built |
 | [`diff.word-diff`](17-diff-and-merge-views.md#diffword-diff--the-words-that-changed-in-a-line) | The words that changed in a line | Derivation | Built | Built |

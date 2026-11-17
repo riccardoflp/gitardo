@@ -2896,3 +2896,7 @@ each built with the reading given until the card says otherwise.
   Command log keeps no link from what was said to its command. Built: the click shows the Command log of the bottom
   panel, at its end, where the last command is; what failed keeps its links, and **×** is an icon with **Dismiss** in
   its tooltip.
+- **Q507** — `diff.beside-inspector`: a click on the commit in one line at the top of the inspector "gives back the
+  whole card", which the inspector beside a Diff page cannot show without leaving the page. Built: the click brings
+  the timeline back, as **Timeline** in the trail does, where the inspector is the whole card of the same commit.
+  `Up` and `Down` in the tree are not built: `Alt+Down` and `Alt+Up` in the Diff page go from file to file.

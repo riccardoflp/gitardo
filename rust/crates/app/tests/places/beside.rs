@@ -174,6 +174,56 @@ fn diff_beside_inspector__timeline_in_the_trail_shows_the_timeline_with_the_same
 }
 
 #[test]
+fn diff_beside_inspector__while_the_diff_is_shown_the_side_column_is_not_and_timeline_brings_it_back_at_its_width() {
+    let repository = three_files();
+    let mut state = showing(repository.path().to_path_buf());
+    let _ = select(&mut state, "Change three files");
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let side = views::text::repo::SIDE_COLUMN;
+    let before = bounds(&drawn(&mut window, &state), Role::Navigation, side);
+    click_words(&mut window, &mut state, "a.rs");
+    let tree = drawn(&mut window, &state);
+    assert!(
+        !has(&tree, Role::Navigation, side),
+        "the side column is put away beside the diff"
+    );
+    let intents = click_at(&mut window, &state, trail_timeline(&tree), 1);
+    for intent in intents {
+        let _effects = support::run(&mut state, Message::Intent(intent));
+    }
+    let after = bounds(&drawn(&mut window, &state), Role::Navigation, side);
+    assert!((after.width - before.width).abs() < 0.5, "{before:?} {after:?}");
+}
+
+#[test]
+fn diff_beside_inspector__beside_the_diff_the_inspector_shows_the_commit_in_one_line_and_its_files_as_a_tree() {
+    let repository = three_files();
+    let mut state = showing(repository.path().to_path_buf());
+    let commit = select(&mut state, "Change three files");
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    click_words(&mut window, &mut state, "a.rs");
+    let tree = drawn(&mut window, &state);
+    let line = format!("{}  Change three files", commit.short());
+    let head = bounds(&tree, Role::Button, &line);
+    let inspector = bounds(&tree, Role::Complementary, views::text::timeline::INSPECTOR);
+    assert!(
+        head.y - inspector.y < 60.0,
+        "the commit is in one line at the top: {head:?} {inspector:?}"
+    );
+    let src = words_at(&tree, "src");
+    let a = words_at(&tree, "a.rs");
+    let c = words_at(&tree, "c.rs");
+    assert!(src.y < a.y && a.y < c.y, "the folder src is open over its files");
+    assert!(a.x > src.x, "the files are under their folder");
+    let intents = click_at(&mut window, &state, middle(head), 1);
+    assert_eq!(
+        intents,
+        [Intent::ShowTimeline],
+        "a click on the commit gives the whole card back"
+    );
+}
+
+#[test]
 fn diff_beside_inspector__in_a_narrow_window_a_file_opens_its_diff_in_place_of_the_timeline_and_the_inspector() {
     let repository = three_files();
     let mut state = showing(repository.path().to_path_buf());
