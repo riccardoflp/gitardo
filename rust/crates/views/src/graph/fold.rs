@@ -2,9 +2,10 @@
 
 use model::CommitId;
 use ui::layout::Area;
-use ui::{Button, Icon, MenuEntry, MenuItem, Rect, Sense, Tone, Ui};
+use ui::{Button, MenuEntry, MenuItem, Rect, Sense, Tone, Ui};
 
 use super::intent::GraphIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::timeline as words;
 
@@ -32,13 +33,13 @@ pub fn fold_merge_view(state: &FoldsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
     let (icon, tooltip, intent) = if state.is_folded {
         (
-            Icon::ChevronRight,
+            icons::FOLDED,
             words::UNFOLD_MERGE,
             GraphIntent::Unfold(state.merge.clone()),
         )
     } else {
         (
-            Icon::ChevronDown,
+            icons::UNFOLDED,
             words::FOLD_MERGE,
             GraphIntent::Fold(state.merge.clone()),
         )
@@ -103,7 +104,7 @@ pub fn merge_menu(is_foldable: bool, is_folded: bool) -> Vec<MenuEntry<'static, 
 pub(super) fn fold_row(ui: &mut Ui<'_>, rect: Rect, title: &str) {
     let theme = *ui.theme();
     let mut area = Area::with_gap(rect, theme.sizes.spacing.medium);
-    ui.icon_in(area.left(theme.sizes.icon), Icon::ChevronRight, Tone::Muted);
+    ui.icon_in(area.left(theme.sizes.icon), crate::icons::FOLDED, Tone::Muted);
     let _ = ui.label(area.rest(), &ui::Label::new(title).tone(Tone::Muted));
     let id = ui.id(("fold row", rect.y.to_bits()));
     let response = ui.interact(id, rect, Sense::HOVER);

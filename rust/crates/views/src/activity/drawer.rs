@@ -3,10 +3,11 @@
 //! once a new worktree runs commands (`worktree-setup.command-steps`).
 
 use ui::layout::{Align, Area, Insets, Size, columns, inset, place};
-use ui::{AccessRole, Button, ButtonKind, Icon, Label, Layer, Rect, Sense, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, Label, Layer, Rect, Sense, TextKind, Tone, Ui};
 
 use super::tasks::{TasksState, tasks_column};
 use super::{RunningTask, ask_for_next_frame};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::activity as words;
 
@@ -83,7 +84,7 @@ pub fn what_is_running_view(state: &ActivityState<'_>, ui: &mut Ui<'_>) -> Vec<I
 /// The title of the drawer and the button that closes it.
 fn title_bar(ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
     let mut area = Area::new(rect);
-    let close = Button::icon(Icon::Close, words::CLOSE_DRAWER).kind(ButtonKind::Icon);
+    let close = Button::icon(icons::CLOSE, words::CLOSE_DRAWER).kind(ButtonKind::Icon);
     if ui.button("close activity", area.right(rect.height), &close).clicked {
         intents.push(Intent::CloseActivity);
     }
@@ -136,7 +137,7 @@ fn task_row(ui: &mut Ui<'_>, rows: &mut Area, task: &RunningTask, is_finished: b
     );
     let seconds = task.elapsed.as_secs();
     let time = if is_finished {
-        ui.icon_in(mark, Icon::Check, Tone::Success);
+        ui.icon_in(mark, icons::CHOSEN, Tone::Success);
         words::took(seconds)
     } else {
         ui.spinner(mark);

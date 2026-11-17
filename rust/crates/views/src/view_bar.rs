@@ -6,6 +6,7 @@ use ui::layout::{Align, Area, place};
 use ui::{AccessRole, Badge, BadgeFill, Button, ButtonKind, Icon, Rect, Tone, Ui};
 
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::page::Page;
 use crate::text::views as words;
@@ -59,13 +60,13 @@ impl View {
     /// Its icon and its name.
     fn look(self) -> (Icon, &'static str) {
         match self {
-            View::Timeline => (Icon::Commit, words::TIMELINE),
-            View::Changes => (Icon::Pencil, words::CHANGES),
-            View::Files => (Icon::Folder, words::FILES),
-            View::Compare => (Icon::Compare, words::COMPARE),
-            View::Terminal => (Icon::ChevronRight, crate::text::panel::TERMINAL),
-            View::Activity => (Icon::Activity, words::ACTIVITY),
-            View::Settings => (Icon::Gear, words::SETTINGS),
+            View::Timeline => (icons::TIMELINE, words::TIMELINE),
+            View::Changes => (icons::CHANGES, words::CHANGES),
+            View::Files => (icons::FILES, words::FILES),
+            View::Compare => (icons::COMPARE, words::COMPARE),
+            View::Terminal => (icons::TERMINAL, crate::text::panel::TERMINAL),
+            View::Activity => (icons::RUNNING, words::ACTIVITY),
+            View::Settings => (icons::SETTINGS, words::SETTINGS),
         }
     }
 

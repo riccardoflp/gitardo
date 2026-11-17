@@ -13,8 +13,9 @@ use std::ops::Range;
 use model::CommitId;
 use ui::editor::{Buffer, Command, Cursor};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Button, ButtonKind, CodeSpan, Icon, Key, Label, Modifiers, NamedKey, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, CodeSpan, Key, Label, Modifiers, NamedKey, TextKind, Tone, Ui};
 
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::blame as blame_words;
 use crate::text::file_view as words;
@@ -238,7 +239,7 @@ fn bar_view(state: &FilePageState<'_>, ui: &mut Ui<'_>, rect: ui::Rect, intents:
     let mut parts = Area::with_gap(inner, spacing.medium);
     intents.extend(blame_buttons(state, ui, &mut parts));
     if !state.is_read_only {
-        let external = Button::secondary(words::OPEN_EXTERNAL).with_icon(Icon::File);
+        let external = Button::secondary(words::OPEN_EXTERNAL).with_icon(icons::OPEN_EXTERNAL);
         let (width, height) = ui.button_size(&external);
         let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
         if ui.button(("open external", state.id), cell, &external).clicked {
@@ -258,8 +259,8 @@ fn bar_view(state: &FilePageState<'_>, ui: &mut Ui<'_>, rect: ui::Rect, intents:
     ui.separator(line, ui::Axis::Horizontal);
 }
 
-/// The buttons of the blame at the right of the title, while the page shows a file of a repository: the person, or the
-/// closed eye while the file shows its blame, then the funnel and the pin, each filled while its setting is on.
+/// The buttons of the blame at the right of the title, while the page shows a file of a repository: the person with a
+/// pen, filled while the file shows its blame, then the funnel and the pin, each filled while its setting is on.
 fn blame_buttons(state: &FilePageState<'_>, ui: &mut Ui<'_>, parts: &mut Area) -> Vec<Intent> {
     let blame = state.blame;
     if !blame.can_blame {
@@ -267,11 +268,12 @@ fn blame_buttons(state: &FilePageState<'_>, ui: &mut Ui<'_>, parts: &mut Area) -
     }
     let mut intents = Vec::new();
     let is_shown = blame.file.is_some();
-    let mut buttons = vec![if is_shown {
-        (Icon::Close, blame_words::HIDE_FILE_BLAME, false, "blame.toggle-file")
+    let toggle = if is_shown {
+        blame_words::HIDE_FILE_BLAME
     } else {
-        (Icon::Eye, blame_words::SHOW_FILE_BLAME, false, "blame.toggle-file")
-    }];
+        blame_words::SHOW_FILE_BLAME
+    };
+    let mut buttons = vec![(icons::BLAME, toggle, is_shown, "blame.toggle-file")];
     if is_shown {
         let funnel = if blame.ignores_whitespace {
             blame_words::STOP_IGNORING_WHITESPACE
@@ -284,12 +286,12 @@ fn blame_buttons(state: &FilePageState<'_>, ui: &mut Ui<'_>, parts: &mut Area) -
             blame_words::KEEP_IN_EVERY_FILE
         };
         buttons.push((
-            Icon::Filter,
+            icons::FILTER,
             funnel,
             blame.ignores_whitespace,
             "blame.ignore-whitespace",
         ));
-        buttons.push((Icon::Star, pin, blame.is_on_every_file, "blame.every-file"));
+        buttons.push((icons::ON_EVERY_FILE, pin, blame.is_on_every_file, "blame.every-file"));
     }
     let side = ui.theme().sizes.control_height;
     for (icon, said, is_on, feature) in buttons.into_iter().rev() {

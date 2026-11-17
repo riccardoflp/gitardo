@@ -6,6 +6,7 @@ use ui::layout::{Align, Insets, inset, place};
 use ui::{AccessRole, Description, Icon, Label, Rect, Sense, TextKind, Ui};
 
 use super::{MergeIntent, MergePageId, MergePageIntent, Offers};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::merge_view as words;
 
@@ -139,8 +140,8 @@ fn gutter_button(
         (Some(sign), _) => {
             let _ = ui.label(rect, &Label::new(sign).kind(TextKind::Strong).align(Align::Center));
         }
-        (None, GutterButton::Proposal(_)) => icon(ui, rect, Icon::Star),
-        (None, GutterButton::Take(_)) => icon(ui, rect, Icon::Plus),
+        (None, GutterButton::Proposal(_)) => icon(ui, rect, icons::DRAFTED),
+        (None, GutterButton::Take(_)) => icon(ui, rect, icons::ADD),
     }
     let description = match button {
         GutterButton::Proposal(_) => Description {

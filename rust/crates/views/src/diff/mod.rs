@@ -31,6 +31,8 @@ pub use data::{
     CaretSide, ChangePlace, DiffCaret, DiffFile, DiffTarget, DiffText, DiffVersion, FileDiff, Hint, PageLine,
 };
 pub use edit::{DrawnSides, RECOMPUTE_AFTER, edit_view, open_at_line_view};
+#[cfg(test)]
+pub(crate) use gutter::revert_change_icon;
 pub use question::{LargeDiffQuestion, large_diff_question_view};
 pub use targets::{
     changes_file, changes_files, commit_file, commit_files, commit_sides, file_sides, listed_file, untracked_file,

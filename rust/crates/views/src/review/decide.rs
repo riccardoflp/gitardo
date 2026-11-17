@@ -3,10 +3,11 @@
 
 use model::review::ProposalSource;
 use ui::layout::{Align, Area, place};
-use ui::{Button, Icon, Label, Rect, TextKind, Tone, Ui};
+use ui::{Button, Label, Rect, TextKind, Tone, Ui};
 
 use super::card::{CardState, fold_arrow};
 use super::{ConflictCard, Layout, ReviewIntent};
+use crate::icons;
 use crate::intent::Intent;
 use crate::merge_view::MergeIntent;
 use crate::text::review as words;
@@ -129,7 +130,7 @@ pub(super) fn origin(card: &ConflictCard) -> String {
 fn folded(state: &CardState<'_>, ui: &mut Ui<'_>, row: Rect, intents: &mut Vec<Intent>) {
     let card = state.card;
     let mut area = Area::with_gap(row, ui.theme().sizes.spacing.small);
-    if fold_arrow(ui, &mut area, ("unfold", Icon::ChevronRight, words::UNFOLD)) {
+    if fold_arrow(ui, &mut area, ("unfold", icons::FOLDED, words::UNFOLD)) {
         intents.push(Intent::Review(ReviewIntent::Fold(card.key.clone(), false)));
     }
     intents.extend(ui.clip(row, |ui| accept_view(state, ui)));
@@ -165,7 +166,7 @@ pub fn accept_view(state: &CardState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     }
     let rect = ui.current_clip();
     let button = if card.is_accepted {
-        Button::secondary(words::ACCEPTED).with_icon(Icon::Check)
+        Button::secondary(words::ACCEPTED).with_icon(icons::CHOSEN)
     } else {
         Button::primary(words::ACCEPT).with_tooltip(words::ACCEPT_TOOLTIP)
     };

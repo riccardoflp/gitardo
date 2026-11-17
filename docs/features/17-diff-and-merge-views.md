@@ -760,7 +760,7 @@ Shows the base, what the two sides started from, in a column at the left of the 
 
 - **Kind**: View
 - **Function**: `views::merge_view::show_base_view(state, ui) -> Vec<Intent>`
-- **Entry points**: the clock button over the result: **Show the base** or **Hide the base**.
+- **Entry points**: the fork button over the result: **Show the base** or **Hide the base**.
 
 - The column is labelled **Base — What the two sides started from**, the lines each region changed in the color of the
   region, and bands join it to the current side; it scrolls with the current side.

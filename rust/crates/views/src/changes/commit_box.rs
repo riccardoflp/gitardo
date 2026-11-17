@@ -3,10 +3,11 @@
 
 use model::contract::{FeatureId, Target};
 use ui::layout::{Align, Area, place};
-use ui::{Button, ButtonKind, Choice, Icon, InputBox, Key, NamedKey, Rect, Ui};
+use ui::{Button, ButtonKind, Choice, InputBox, Key, NamedKey, Rect, Ui};
 
 use super::{ChangesIntent, ChangesRepository};
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::changes as words;
 
@@ -96,9 +97,9 @@ pub(super) fn view(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -
     let commit = &state.commit;
     let is_drafting = commit.draft == Draft::Writing;
     let (icon, said, intent) = if is_drafting {
-        (Icon::Close, words::STOP_DRAFT, ChangesIntent::StopDraft)
+        (icons::STOP, words::STOP_DRAFT, ChangesIntent::StopDraft)
     } else {
-        (Icon::Star, words::DRAFT_MESSAGE, ChangesIntent::DraftMessage)
+        (icons::DRAFTED, words::DRAFT_MESSAGE, ChangesIntent::DraftMessage)
     };
     let sparkle = Button::icon(icon, said).kind(ButtonKind::Icon);
     let sparkle = if commit.has_changes || is_drafting {

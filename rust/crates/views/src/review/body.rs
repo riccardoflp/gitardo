@@ -2,13 +2,14 @@
 //! file's header with its arrow and **Accept the file**, its cards under it, and the files deleted on one side.
 
 use ui::layout::{Align, Area, place};
-use ui::{Icon, Label, Rect, TextKind, Ui};
+use ui::{Label, Rect, TextKind, Ui};
 
 use super::card::{CardState, card_height, card_view, fold_arrow};
 use super::deleted::{DeletedState, deleted_card_view, deleted_height};
 use super::files::{file_list_view, list_height};
 use super::head::{FileState, accept_file_view};
 use super::{FileCards, ReviewIntent, ReviewState};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::review as words;
 
@@ -122,9 +123,9 @@ fn file_header(state: &ReviewState<'_>, ui: &mut Ui<'_>, file: &FileCards) -> Ve
     let mut area = Area::with_gap(rect, ui.theme().sizes.spacing.small);
     ui.scope(("file header", &file.path), |ui| {
         let (icon, said) = if file.is_folded {
-            (Icon::ChevronRight, words::UNFOLD)
+            (icons::FOLDED, words::UNFOLD)
         } else {
-            (Icon::ChevronDown, words::FOLD)
+            (icons::UNFOLDED, words::FOLD)
         };
         if fold_arrow(ui, &mut area, ("fold file", icon, said)) {
             intents.push(Intent::Review(ReviewIntent::FoldFile(

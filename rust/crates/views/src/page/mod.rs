@@ -2,12 +2,13 @@
 //! first step comes back to the timeline.
 
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Axis, Button, ButtonKind, Icon, Label, Rect, TextKind, Tone, Ui};
+use ui::{AccessRole, Axis, Button, ButtonKind, Label, Rect, TextKind, Tone, Ui};
 
 use crate::commit_page::{CommitPageId, CommitPageState, view as commit_page_view};
 use crate::compare::{ComparePageId, CompareState, page as compare_page_view};
 use crate::diff::{DiffPageId, DiffPageState, page_view as diff_page_view};
 use crate::file_view::{FilePageId, FilePageState, page_view as file_page_view};
+use crate::icons;
 use crate::intent::Intent;
 use crate::settings::{SettingsPageState, settings_view};
 use crate::text::pages as words;
@@ -236,7 +237,7 @@ fn trail(page: &PageState<'_>, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<In
         }
         let side = theme.sizes.control_height;
         let close_cell = place(parts.right(side), (side, side), (Align::Start, Align::Center));
-        let close = Button::icon(Icon::Close, words::CLOSE_PAGE).kind(ButtonKind::Icon);
+        let close = Button::icon(icons::CLOSE, words::CLOSE_PAGE).kind(ButtonKind::Icon);
         if ui.button("close page", close_cell, &close).clicked {
             intents.push(Intent::ClosePage);
         }

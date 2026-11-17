@@ -14,8 +14,9 @@ state lives. The rules for writing the code are in [03-code-rules.md](03-code-ru
 - **TLS** ([D13](../08-decisions.md#d13--one-library-for-tls)): `crates/tls` depends on `rustls`, with `ring` for its
   cryptography, and on `rustls-native-certs` for the certificates the system trusts.
 - **The window, the text and the pixels** ([D16](../08-decisions.md#d16--libraries-for-the-window-the-text-and-the-pixels)):
-  `platform` depends on `winit`, `softbuffer`, `arboard`, `rfd` and `accesskit_winit`; `render` on `tiny-skia` and
-  `cosmic-text`; `ui` on `accesskit`, for the tree of what is on screen.
+  `platform` depends on `winit`, `softbuffer`, `arboard`, `rfd` and `accesskit_winit`; `render` on `tiny-skia`,
+  `cosmic-text`, and `svgtypes` for the path data of the outlines of the icons; `ui` on `accesskit`, for the tree of
+  what is on screen.
 - **The terminals** (D53, Q417): `crates/terminal` depends on `alacritty_terminal`, which parses what programs print,
   keeps the grid with its scrollback and runs the pseudo-terminal of each system (ConPTY on Windows).
 - Their versions are those of `Cargo.lock`. No type of a library leaves the crate that uses it
@@ -73,7 +74,7 @@ app ──► views ──► ui ──► render ──► platform ──► s
  ├──► settings ──► json, model (the files read, the settings of the features)
  ├──► json, http ──► tls ──► rustls, rustls-native-certs (D13)
  ├──► terminal ──► model (the screen it reads), alacritty_terminal (D53)
- │   render ──► tiny-skia, cosmic-text (D16)
+ │   render ──► tiny-skia, cosmic-text (D16), svgtypes (D53)
  │   platform ──► winit, softbuffer, arboard, rfd, accesskit_winit (D16)
  └──► every other crate below it: platform, system, ui, render, model, git, text (D15)
 
@@ -165,7 +166,9 @@ There is no GPU code and no system widget.
 
 - `render` draws shapes (rectangles, rounded rectangles, lines, circles, Bézier curves for the lines of the graph) with
   `tiny-skia`, text with `cosmic-text` in the fonts that come with the program
-  ([D18](../08-decisions.md#d18--the-fonts-come-with-the-program)), and icons from paths of its own.
+  ([D18](../08-decisions.md#d18--the-fonts-come-with-the-program)), and the icons of Lucide from the outlines of their
+  SVG files, kept in `crates/render/icons/lucide/` with its licence
+  ([D53](../08-decisions.md#d53--pages-beside-the-inspector-a-bottom-panel-the-icons-of-lucide-islands-in-the-extension)).
 - `ui` lays out and draws widgets with `render`. It redraws only what changed: each frame records what each part of the
   window drew, and only the parts that differ from the last frame are drawn again and sent to the window. It also
   builds the tree of what is on screen for the screen reader.

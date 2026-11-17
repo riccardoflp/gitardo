@@ -9,6 +9,7 @@ use ui::{AccessRole, Description, Icon, Rect, Sense, Ui};
 
 use super::{DiffPageState, DiffText, DiffVersion};
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::diff as words;
 
@@ -40,11 +41,11 @@ impl GutterButton {
     }
 
     /// Its icon.
-    fn icon(self) -> Icon {
+    pub(crate) fn icon(self) -> Icon {
         match self {
-            GutterButton::Stage => Icon::Plus,
-            GutterButton::Unstage { .. } => Icon::Minus,
-            GutterButton::Revert => Icon::Refresh,
+            GutterButton::Stage => icons::ADD,
+            GutterButton::Unstage { .. } => icons::UNSTAGE,
+            GutterButton::Revert => icons::UNDO,
         }
     }
 
@@ -202,4 +203,10 @@ fn side_of(version: &DiffVersion) -> DiffSide {
         // The base of a file in conflict offers no button (`offered`): it is never the side of a change.
         DiffVersion::Empty | DiffVersion::Base | DiffVersion::Resolved(_) => DiffSide::Empty,
     }
+}
+
+/// The icon of **Revert this change** in the gutter of a Diff page.
+#[cfg(test)]
+pub(crate) fn revert_change_icon() -> Icon {
+    GutterButton::Revert.icon()
 }

@@ -6,6 +6,7 @@ use model::graph::{Label, LabelKind};
 use ui::{AccessRole, Badge, BadgeFill, Description, Icon, Rect, Sense, Tone, Ui};
 
 use super::row::{RowContext, RowReport};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::github as words;
 
@@ -19,9 +20,9 @@ pub struct PullRequestBadge<'a> {
 }
 
 /// The icon of a pull request, and of a draft.
-const PULL_REQUEST: [Icon; 1] = [Icon::PullRequest];
+const PULL_REQUEST: [Icon; 1] = [icons::PULL_REQUEST];
 /// The icon of a draft pull request.
-const DRAFT: [Icon; 1] = [Icon::DraftPullRequest];
+const DRAFT: [Icon; 1] = [icons::DRAFT_PULL_REQUEST];
 
 impl PullRequestBadge<'_> {
     /// The tooltip: `Pull request #12: Add the parser · checks passed`, then **Click to open it on GitHub**.

@@ -1,5 +1,7 @@
-//! Snapshots of every icon at its size of 16 and at 24, at scale 1 and 2, on a dark and a light background.
+//! Snapshots of every icon at 16 and at 32 logical pixels, at scale 1 and 2, on the ground of the dark and of the light
+//! theme, and the licence of the outlines (`graph.icons`).
 
+#![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -8,45 +10,59 @@
 
 mod support;
 
-use render::{Assets, Canvas, Color, FrameBuffer, Icon, Point, Rect};
+use std::path::Path;
+
+use render::{Appearance, Assets, Canvas, FrameBuffer, Icon, Point, Rect, Theme, ThemeName};
 use support::assert_snapshot;
 
-/// The logical side of the cell of each icon.
-const CELL: u32 = 32;
+/// The number of icons on each line of a block.
+const COLUMNS: u16 = 16;
 
-/// Draws every icon in a row of cells, at 16 then at 24, first light on dark and then dark on light.
+/// The sizes each icon is drawn at, in logical pixels, and the side of its cell at that size.
+const SIZES: [(u16, u16); 2] = [(16, 24), (32, 40)];
+
+/// Draws every icon in blocks of lines of cells: at 16 then at 32, in the dark theme then in the light one.
 fn draw_icons(scale: u8) -> FrameBuffer {
-    let columns = u32::try_from(Icon::ALL.len()).unwrap();
-    let mut frame = FrameBuffer::new(columns * CELL * u32::from(scale), 4 * CELL * u32::from(scale));
+    let lines = u16::try_from(Icon::ALL.len()).unwrap().div_ceil(COLUMNS);
+    let height: u16 = SIZES.iter().map(|(_, cell)| 2 * cell * lines).sum();
+    let width = 40 * COLUMNS;
+    let physical = |logical: u16| u32::from(logical) * u32::from(scale);
+    let mut frame = FrameBuffer::new(physical(width), physical(height));
     let mut assets = Assets::new();
     let mut canvas = Canvas::new(&mut frame, &mut assets, f32::from(scale));
-    let cell = 32.0;
-    let rows = [
-        (16.0, Color::rgb(0x20, 0x23, 0x28), Color::rgb(0xDD, 0xE1, 0xE6)),
-        (24.0, Color::rgb(0x20, 0x23, 0x28), Color::rgb(0xDD, 0xE1, 0xE6)),
-        (16.0, Color::WHITE, Color::rgb(0x1F, 0x23, 0x28)),
-        (24.0, Color::WHITE, Color::rgb(0x1F, 0x23, 0x28)),
-    ];
-    let mut y = 0.0;
-    for (size, background, foreground) in rows {
-        canvas.fill_rect(Rect::new(0.0, y, 10_000.0, cell), background);
-        let mut x = 0.0;
-        for icon in Icon::ALL {
-            let inset = (cell - size) / 2.0;
-            canvas.draw_icon(icon, Point::new(x + inset, y + inset), size, foreground);
-            x += cell;
+    let mut y = 0;
+    for name in [ThemeName::Dark, ThemeName::Light] {
+        let colors = Theme::new(name, Appearance::Dark).colors;
+        for (size, cell) in SIZES {
+            let block = Rect::new(0.0, f32::from(y), f32::from(width), f32::from(cell * lines));
+            canvas.fill_rect(block, colors.page_background);
+            for (index, icon) in (0..).zip(Icon::ALL) {
+                let (line, column) = (index / COLUMNS, index % COLUMNS);
+                let inset = (cell - size) / 2;
+                let corner = Point::new(f32::from(column * cell + inset), f32::from(y + line * cell + inset));
+                canvas.draw_icon(icon, corner, f32::from(size), colors.foreground);
+            }
+            y += cell * lines;
         }
-        y += cell;
     }
     frame
 }
 
 #[test]
-fn icons_at_scale_1() {
+fn graph_icons__each_icon_at_16_and_32_px_matches_its_snapshot_in_the_dark_and_the_light_theme() {
     assert_snapshot("icons-1x", &draw_icons(1));
+    assert_snapshot("icons-2x", &draw_icons(2));
 }
 
 #[test]
-fn icons_at_scale_2() {
-    assert_snapshot("icons-2x", &draw_icons(2));
+fn graph_icons__the_licence_of_lucide_is_in_the_repository_beside_its_outlines() {
+    let folder = Path::new(env!("CARGO_MANIFEST_DIR")).join("icons").join("lucide");
+    let licence = std::fs::read_to_string(folder.join("LICENSE")).unwrap();
+    assert!(licence.starts_with("ISC License"), "{licence}");
+    assert!(licence.contains("Lucide Icons and Contributors"));
+    for icon in Icon::ALL {
+        let outline = folder.join(format!("{}.svg", icon.lucide_name()));
+        let source = std::fs::read_to_string(&outline).unwrap();
+        assert!(source.contains("@license lucide-static"), "{}", outline.display());
+    }
 }

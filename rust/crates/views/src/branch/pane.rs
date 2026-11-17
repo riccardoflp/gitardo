@@ -6,10 +6,11 @@ use std::time::Duration;
 use model::contract::{FeatureId, Target};
 use model::state::RepositoryState;
 use ui::layout::{Area, Insets, inset};
-use ui::{Axis, Button, ButtonKind, Icon, Label, Rect, TextKind, Tone, Ui};
+use ui::{Axis, Button, ButtonKind, Label, Rect, TextKind, Tone, Ui};
 
 use crate::feature::FeatureIntent;
 use crate::graph::HoverTarget;
+use crate::icons;
 use crate::intent::Intent;
 use crate::line::is_narrow;
 use crate::refs::{ReferencesState, list_filter_view, rail_view};
@@ -66,7 +67,7 @@ fn top_view(state: &ReferencesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     );
     let mut rows = Area::with_gap(inner, spacing.small);
     let mut name_line = Area::with_gap(rows.top(theme.sizes.control_height), spacing.small);
-    ui.icon_in(name_line.left(theme.sizes.icon), Icon::Branch, Tone::Muted);
+    ui.icon_in(name_line.left(theme.sizes.icon), icons::BRANCH, Tone::Muted);
     let filter = name_line.right(theme.sizes.control_height);
     let mut intents = ui.clip(filter, |ui| list_filter_view(&state.list_filter, ui));
     let name = checked_out(repository);
@@ -75,7 +76,7 @@ fn top_view(state: &ReferencesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let can_run = repository.has_commit();
     let available = |button: Button<'static>| if can_run { button } else { button.disabled() };
     let compare = available(Button::secondary(words::COMPARE));
-    let create = Button::secondary(words::CREATE_BRANCH).with_icon(Icon::Plus);
+    let create = Button::secondary(words::CREATE_BRANCH).with_icon(icons::CREATE_BRANCH);
     let (compare_width, _) = ui.button_size(&compare);
     let (create_width, _) = ui.button_size(&create);
     let width = buttons.rest().width;
@@ -83,7 +84,7 @@ fn top_view(state: &ReferencesState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let create = if create_width + compare_width + spacing.small <= width {
         create
     } else {
-        Button::icon(Icon::Plus, words::CREATE_BRANCH).kind(ButtonKind::Secondary)
+        Button::icon(icons::CREATE_BRANCH, words::CREATE_BRANCH).kind(ButtonKind::Secondary)
     };
     let create = available(create);
     let (create_width, _) = ui.button_size(&create);

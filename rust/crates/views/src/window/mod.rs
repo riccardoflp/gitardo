@@ -6,7 +6,7 @@
 //! commit can be selected).
 
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, ButtonKind, Icon, Key, Label, Modifiers, NamedKey, Rect, Tone, Ui};
+use ui::{Button, ButtonKind, Key, Label, Modifiers, NamedKey, Rect, Tone, Ui};
 
 use crate::activity::{ActivityState, StatusBarState, status_bar_view, what_is_running_view};
 use crate::bisect::BisectBanner;
@@ -14,6 +14,7 @@ use crate::details::{DetailsState, show};
 use crate::feature::{ConfirmState, QuestionState, SaidState, confirm_view, question_view, said_view};
 use crate::filter::{BranchPicker, NarrowedBar};
 use crate::graph::{GraphState, PaneLayout, PaneSizes, ToolbarState, pane_rects, resize_panes_view, toolbar_view};
+use crate::icons;
 use crate::intent::{Intent, Notice};
 use crate::islands::{gap, island};
 use crate::line::{ICON_RAIL_WIDTH, INSPECTOR_OVER_BELOW, is_narrow};
@@ -380,7 +381,7 @@ fn notice_bar(notice: Notice, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Int
         inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0)),
         spacing.medium,
     );
-    ui.icon_in(parts.left(theme.sizes.icon), Icon::Info, Tone::Accent);
+    ui.icon_in(parts.left(theme.sizes.icon), icons::INFORMATION, Tone::Accent);
     let dismiss = Button::secondary(repo_words::DISMISS).kind(ButtonKind::Outline);
     let (width, height) = ui.button_size(&dismiss);
     let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));

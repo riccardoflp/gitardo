@@ -3,9 +3,10 @@
 
 use model::search::Direction;
 use ui::layout::{Align, Area};
-use ui::{Button, ButtonKind, Icon, Label, Rect, Sense, TextKind, Tone, Ui};
+use ui::{Button, ButtonKind, Label, Rect, Sense, TextKind, Tone, Ui};
 
 use super::SearchIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::search as words;
 
@@ -82,11 +83,11 @@ pub fn history_view(state: &HistorySearch, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut area = Area::with_gap(rect, 0.0);
     let mut intents = Vec::new();
     if state.can_step() {
-        let next = Button::icon(Icon::ArrowDown, words::NEXT_MATCH).kind(ButtonKind::Icon);
+        let next = Button::icon(icons::NEXT, words::NEXT_MATCH).kind(ButtonKind::Icon);
         if ui.button("next match", area.right(side), &next).clicked {
             intents.push(Intent::Search(SearchIntent::Step(Direction::Next)));
         }
-        let previous = Button::icon(Icon::ArrowUp, words::PREVIOUS_MATCH).kind(ButtonKind::Icon);
+        let previous = Button::icon(icons::PREVIOUS, words::PREVIOUS_MATCH).kind(ButtonKind::Icon);
         if ui.button("previous match", area.right(side), &previous).clicked {
             intents.push(Intent::Search(SearchIntent::Step(Direction::Previous)));
         }

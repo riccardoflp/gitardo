@@ -9,6 +9,7 @@ use ui::{Button, ButtonKind, Icon, Key, Label, Modifiers, NamedKey, TextKind, To
 
 use super::{DiffIntent, DiffPageIntent, DiffPageState, DiffVersion};
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::diff as words;
 
@@ -81,7 +82,7 @@ pub fn open_file_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
     let rect = ui.current_clip();
     let side = ui.theme().sizes.control_height;
     let cell = place(rect, (side, side), (Align::Start, Align::Center));
-    let button = Button::icon(Icon::File, words::OPEN_FILE).kind(ButtonKind::Icon);
+    let button = Button::icon(icons::OPEN_FILE, words::OPEN_FILE).kind(ButtonKind::Icon);
     if ui.button(("diff open file", state.id), cell, &button).clicked {
         let target = crate::file_view::FileTarget::working_tree(path);
         return vec![Intent::FileView(crate::file_view::FileViewIntent::Open(target))];
@@ -98,10 +99,10 @@ fn file_buttons(state: &DiffPageState<'_>) -> Vec<(&'static str, Icon, &'static 
     }
     match state.versions {
         (DiffVersion::Head | DiffVersion::Index, DiffVersion::WorkingTree) => vec![
-            ("diff.discard-file", Icon::Close, words::DISCARD_FILE),
-            ("diff.stage-file", Icon::Plus, words::STAGE_FILE),
+            ("diff.discard-file", icons::UNDO, words::DISCARD_FILE),
+            ("diff.stage-file", icons::ADD, words::STAGE_FILE),
         ],
-        (_, DiffVersion::Index) => vec![("diff.unstage-file", Icon::Minus, words::UNSTAGE_FILE)],
+        (_, DiffVersion::Index) => vec![("diff.unstage-file", icons::UNSTAGE, words::UNSTAGE_FILE)],
         _ => Vec::new(),
     }
 }
@@ -119,12 +120,12 @@ pub fn navigate_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> 
     let mut parts = Area::with_gap(rect, theme.sizes.spacing.small);
     let at = ui.now();
     let mut asked = Vec::new();
-    let previous = Button::icon(Icon::ArrowUp, words::PREVIOUS_CHANGE).kind(ButtonKind::Icon);
+    let previous = Button::icon(icons::PREVIOUS, words::PREVIOUS_CHANGE).kind(ButtonKind::Icon);
     let cell = place(parts.left(side), (side, side), (Align::Start, Align::Center));
     if ui.button(("diff previous", state.id), cell, &previous).clicked {
         asked.push(DiffPageIntent::Previous(at));
     }
-    let next = Button::icon(Icon::ArrowDown, words::NEXT_CHANGE).kind(ButtonKind::Icon);
+    let next = Button::icon(icons::NEXT, words::NEXT_CHANGE).kind(ButtonKind::Icon);
     let cell = place(parts.left(side), (side, side), (Align::Start, Align::Center));
     if ui.button(("diff next", state.id), cell, &next).clicked {
         asked.push(DiffPageIntent::Next(at));
@@ -163,7 +164,7 @@ pub fn collapse_unchanged_view(state: &DiffPageState<'_>, ui: &mut Ui<'_>) -> Ve
     } else {
         ButtonKind::Icon
     };
-    let button = Button::icon(Icon::Minus, words::COLLAPSE_UNCHANGED).kind(kind);
+    let button = Button::icon(icons::FOLD_UNCHANGED, words::COLLAPSE_UNCHANGED).kind(kind);
     let cell = place(rect, (side, side), (Align::Start, Align::Center));
     if ui.button(("diff collapse", state.id), cell, &button).clicked {
         let intent = DiffPageIntent::Collapse(!state.is_collapsed);

@@ -13,6 +13,7 @@ use ui::{AccessRole, Axis, Button, ButtonKind, Icon, Label, Rect, Tone, Ui};
 
 use crate::feature::FeatureIntent;
 use crate::graph::GraphIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::bisect as words;
 
@@ -84,7 +85,7 @@ pub fn banner_view(state: &BisectBanner<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0)),
             spacing.medium,
         );
-        ui.icon_in(parts.left(theme.sizes.icon), Icon::Search, Tone::Accent);
+        ui.icon_in(parts.left(theme.sizes.icon), icons::BISECT, Tone::Accent);
         let buttons = buttons(&says, state.is_running);
         for (label, tooltip, intent) in buttons {
             let button = Button::secondary(label).kind(ButtonKind::Outline);
@@ -153,9 +154,9 @@ fn run(feature: FeatureId, answers: Answers) -> Intent {
 #[must_use]
 pub fn marks_view(mark: BisectMark) -> (&'static [Icon], Option<String>) {
     let icons: &'static [Icon] = match mark {
-        BisectMark::Good => &[Icon::Check],
-        BisectMark::Bad => &[Icon::Error],
-        BisectMark::Skipped => &[Icon::Minus],
+        BisectMark::Good => &[icons::CHOSEN],
+        BisectMark::Bad => &[icons::ERROR],
+        BisectMark::Skipped => &[icons::SKIPPED],
     };
     (icons, None)
 }

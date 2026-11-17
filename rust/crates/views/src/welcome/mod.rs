@@ -4,6 +4,7 @@
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{AccessRole, Button, Description, Icon, Label, Rect, TextKind, Tone, Ui};
 
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::welcome::{self as words, StepWords};
 
@@ -54,7 +55,7 @@ pub fn page_view(state: &WelcomeState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         let _ = ui.scroll_area("welcome page", column_area, (width, height), |ui, content| {
             let mut column = Area::with_gap(inset(content, Insets::symmetric(0.0, spacing.huge)), spacing.large);
             let _ = ui.heading(column.top(line * 2.0), words::TITLE);
-            let open = Button::primary(words::OPEN_FOLDER).with_icon(Icon::Folder);
+            let open = Button::primary(words::OPEN_FOLDER).with_icon(icons::FOLDER);
             let (open_width, open_height) = ui.button_size(&open);
             let cell = place(
                 column.top(open_height),
@@ -96,7 +97,7 @@ fn recent(recent: &[String], ui: &mut Ui<'_>, column: &mut Area, intents: &mut V
         let row = column.top(line);
         let button = Button::secondary(label)
             .kind(ui::ButtonKind::Icon)
-            .with_icon(Icon::Folder);
+            .with_icon(icons::FOLDER);
         let (width, height) = ui.button_size(&button);
         let cell = place(row, (width.min(row.width), height), (Align::Start, Align::Center));
         if ui.button(("recent", index), cell, &button).clicked {
@@ -108,11 +109,11 @@ fn recent(recent: &[String], ui: &mut Ui<'_>, column: &mut Area, intents: &mut V
 /// The picture of a step: for now the icon of the place it is about.
 fn picture(index: usize) -> Icon {
     match index {
-        0 => Icon::Commit,
-        1 => Icon::Branch,
-        2 => Icon::Search,
-        3 => Icon::File,
-        _ => Icon::Worktree,
+        0 => icons::TIMELINE,
+        1 => icons::BRANCH,
+        2 => icons::COMPARE,
+        3 => icons::BLAME,
+        _ => icons::WORKTREE,
     }
 }
 
@@ -135,7 +136,7 @@ fn step_card(
     let mut text = Area::with_gap(parts.rest(), spacing.small);
     let mut title_line = Area::with_gap(text.top(theme.sizes.row_height), spacing.small);
     if is_done {
-        ui.icon_in(title_line.left(theme.sizes.icon), Icon::Check, Tone::Success);
+        ui.icon_in(title_line.left(theme.sizes.icon), icons::CHOSEN, Tone::Success);
     }
     let _ = ui.label(title_line.rest(), &Label::new(step.title).kind(TextKind::Strong));
     let id = ui.id(("step", index));

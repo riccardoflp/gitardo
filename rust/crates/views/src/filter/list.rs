@@ -5,8 +5,9 @@
 use model::filter::{BranchesShown, Preset, ReferenceKind, kinds, kinds_shown, preset, rank_names, tick, ticked};
 use model::refs::References;
 use ui::layout::{Area, Insets, inset};
-use ui::{Choice, Icon, InputBox, Key, Label, NamedKey, Popover, Rect, TextKind, Tone, Ui};
+use ui::{Choice, InputBox, Key, Label, NamedKey, Popover, Rect, TextKind, Tone, Ui};
 
+use crate::icons;
 use crate::intent::{FilterIntent, Intent, RailIntent};
 use crate::line::rows_of;
 use crate::text::filter as words;
@@ -224,7 +225,7 @@ fn draw_body(body: &Body<'_, '_>, ui: &mut Ui<'_>, rect: Rect, is_new: bool) -> 
     if is_new {
         ui.request_focus(input_id);
     }
-    let input = InputBox::new(picking.typed, words::BOX).with_icon(Icon::Filter);
+    let input = InputBox::new(picking.typed, words::BOX).with_icon(icons::FILTER);
     if let Some(text) = ui.input_box("filter box", box_rect, &input).changed_text {
         intents.push(picking.target.typed(text));
     }

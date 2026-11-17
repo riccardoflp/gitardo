@@ -4,9 +4,10 @@
 use model::filter::{BranchesShown, label};
 use model::refs::References;
 use ui::layout::{Align, place};
-use ui::{AccessRole, Border, Description, Icon, Rect, Sense, Tone, Ui};
+use ui::{AccessRole, Border, Description, Rect, Sense, Tone, Ui};
 
 use crate::filter::{PickerFor, Picking, picker_list};
+use crate::icons;
 use crate::intent::{Intent, RailIntent};
 use crate::text::rail as words;
 
@@ -93,7 +94,7 @@ fn button(state: &ListFilterState<'_>, ui: &mut Ui<'_>, rect: Rect) -> bool {
         (theme.sizes.icon, theme.sizes.icon),
         (Align::Center, Align::Center),
     );
-    ui.icon_in(cell, Icon::Filter, tone);
+    ui.icon_in(cell, icons::FILTER, tone);
     if response.shows_focus {
         ui.focus_ring(rect, radius);
     }

@@ -1,9 +1,10 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 
 use model::search::BoxMode;
-use ui::{Icon, MenuEntry};
+use ui::MenuEntry;
 
 use super::{HistorySearch, MatchCount, mode_entries};
+use crate::icons;
 use crate::text::search as words;
 
 #[test]
@@ -12,7 +13,7 @@ fn search_box__lists_the_five_modes_in_order_with_loaded_chosen_when_the_window_
     let shown: Vec<(&str, bool)> = entries
         .iter()
         .filter_map(|entry| match entry {
-            MenuEntry::Item(item) => Some((item.label, item.icon == Some(Icon::Check))),
+            MenuEntry::Item(item) => Some((item.label, item.icon == Some(icons::CHOSEN))),
             _ => None,
         })
         .collect();

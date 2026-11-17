@@ -410,14 +410,14 @@ fn pill(label: &Label) -> Pill<'_> {
         LabelKind::Branch {
             worktree: Some(folder), ..
         } => (
-            &[Icon::Worktree],
+            &[crate::icons::WORKTREE],
             Some(words::checked_out_in(&folder.display().to_string())),
         ),
-        LabelKind::Branch { upstream: Some(_), .. } => (&[Icon::Branch, Icon::Cloud], None),
+        LabelKind::Branch { upstream: Some(_), .. } => (&[crate::icons::BRANCH, crate::icons::REMOTE], None),
         LabelKind::Head | LabelKind::Branch { .. } => (&[], None),
-        LabelKind::RemoteBranch => (&[Icon::Cloud], None),
-        LabelKind::Tag => (&[Icon::Tag], None),
-        LabelKind::Stash { .. } => (&[Icon::Stash], None),
+        LabelKind::RemoteBranch => (&[crate::icons::REMOTE], None),
+        LabelKind::Tag => (&[crate::icons::TAG], None),
+        LabelKind::Stash { .. } => (&[crate::icons::STASH], None),
         LabelKind::Bisect(mark) => crate::bisect::marks_view(*mark),
     };
     Pill {

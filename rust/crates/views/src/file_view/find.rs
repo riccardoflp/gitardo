@@ -3,9 +3,10 @@
 //! the button that closes it.
 
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, ButtonKind, Choice, Icon, InputBox, Key, Label, Message, NamedKey, Severity, TextKind, Tone, Ui};
+use ui::{Button, ButtonKind, Choice, InputBox, Key, Label, Message, NamedKey, Severity, TextKind, Tone, Ui};
 
 use super::{FilePageIntent, FilePageState, FindOptions, page_intent};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::file_view as words;
 
@@ -27,7 +28,7 @@ pub fn find_view(state: &FilePageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut asked = Vec::new();
     let input_id = ui.id(("find box", state.id));
     ui.focus_input_box_once(input_id, find.focus);
-    let mut input = InputBox::new(find.typed, words::FIND_PLACEHOLDER).with_icon(Icon::Search);
+    let mut input = InputBox::new(find.typed, words::FIND_PLACEHOLDER).with_icon(icons::SEARCH);
     if find.is_invalid {
         input = input.with_message(Message {
             text: words::INVALID_PATTERN,
@@ -70,8 +71,8 @@ fn buttons(state: &FilePageState<'_>, ui: &mut Ui<'_>, parts: &mut Area) -> Vec<
     let side = ui.theme().sizes.control_height;
     let mut asked = Vec::new();
     for (icon, tooltip, intent) in [
-        (Icon::ArrowUp, words::PREVIOUS_MATCH, FilePageIntent::FindPrevious),
-        (Icon::ArrowDown, words::NEXT_MATCH, FilePageIntent::FindNext),
+        (icons::PREVIOUS, words::PREVIOUS_MATCH, FilePageIntent::FindPrevious),
+        (icons::NEXT, words::NEXT_MATCH, FilePageIntent::FindNext),
     ] {
         let button = Button::icon(icon, tooltip).kind(ButtonKind::Icon);
         let cell = place(parts.left(side), (side, side), (Align::Start, Align::Center));
@@ -79,7 +80,7 @@ fn buttons(state: &FilePageState<'_>, ui: &mut Ui<'_>, parts: &mut Area) -> Vec<
             asked.push(intent);
         }
     }
-    let close = Button::icon(Icon::Close, words::CLOSE_FIND).kind(ButtonKind::Icon);
+    let close = Button::icon(icons::CLOSE, words::CLOSE_FIND).kind(ButtonKind::Icon);
     let cell = place(parts.right(side), (side, side), (Align::Start, Align::Center));
     if ui.button(("find close", state.id), cell, &close).clicked {
         asked.push(FilePageIntent::CloseFind);

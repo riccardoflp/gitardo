@@ -88,7 +88,7 @@ pub(super) fn repository_menu<'menu>(
         ),
         MenuEntry::Separator,
         MenuEntry::Item(
-            MenuItem::new("Create a branch", MenuCommand::Open(Overlay::CreateBranch)).with_icon(Icon::Branch),
+            MenuItem::new("Create a branch", MenuCommand::Open(Overlay::CreateBranch)).with_icon(Icon::CreateBranch),
         ),
         item("Delete the branch", MenuCommand::Open(Overlay::ConfirmDelete)),
         MenuEntry::Item(
@@ -121,11 +121,11 @@ pub(super) fn repository_menu<'menu>(
 /// The entries of the menu of Sync.
 pub(super) fn sync_menu() -> [MenuEntry<'static, MenuCommand>; 5] {
     [
-        MenuEntry::Item(MenuItem::new("Fetch", MenuCommand::Fetch).with_icon(Icon::ArrowDown)),
+        MenuEntry::Item(MenuItem::new("Fetch", MenuCommand::Fetch).with_icon(Icon::Fetch)),
         MenuEntry::Item(MenuItem::new("Pull", MenuCommand::Open(Overlay::Pull))),
-        MenuEntry::Item(MenuItem::new("Push", MenuCommand::Push).with_icon(Icon::ArrowUp)),
+        MenuEntry::Item(MenuItem::new("Push", MenuCommand::Push).with_icon(Icon::Push)),
         MenuEntry::Separator,
-        MenuEntry::Item(MenuItem::new("Sync with origin", MenuCommand::Sync).with_icon(Icon::Refresh)),
+        MenuEntry::Item(MenuItem::new("Sync with origin", MenuCommand::Sync).with_icon(Icon::Sync)),
     ]
 }
 
@@ -146,9 +146,10 @@ pub(super) fn row_menu<'menu>(resets: &'menu [MenuEntry<'menu, MenuCommand>; 3])
     [
         MenuEntry::Item(MenuItem::new("Copy the hash", MenuCommand::CopyHash).with_shortcut("Ctrl+C")),
         MenuEntry::Item(
-            MenuItem::new("Create a branch here", MenuCommand::Open(Overlay::CreateBranch)).with_icon(Icon::Branch),
+            MenuItem::new("Create a branch here", MenuCommand::Open(Overlay::CreateBranch))
+                .with_icon(Icon::CreateBranch),
         ),
-        MenuEntry::Item(MenuItem::new("Cherry-pick", MenuCommand::CherryPick).with_icon(Icon::Commit)),
+        MenuEntry::Item(MenuItem::new("Cherry-pick", MenuCommand::CherryPick).with_icon(Icon::CherryPick)),
         MenuEntry::Separator,
         MenuEntry::Submenu {
             label: "Reset the branch to here",
@@ -163,10 +164,10 @@ pub(super) fn row_menu<'menu>(resets: &'menu [MenuEntry<'menu, MenuCommand>; 3])
 /// The entries of the context menu of the branches of the rail.
 pub(super) fn branch_menu() -> [MenuEntry<'static, MenuCommand>; 5] {
     [
-        MenuEntry::Item(MenuItem::new("Switch to this branch", MenuCommand::SwitchBranch).with_icon(Icon::Check)),
+        MenuEntry::Item(MenuItem::new("Switch to this branch", MenuCommand::SwitchBranch).with_icon(Icon::Branch)),
         MenuEntry::Item(
             MenuItem::new("Create a branch from here", MenuCommand::Open(Overlay::CreateBranch))
-                .with_icon(Icon::Branch),
+                .with_icon(Icon::CreateBranch),
         ),
         MenuEntry::Item(MenuItem::new(
             "Choose the branches to show",

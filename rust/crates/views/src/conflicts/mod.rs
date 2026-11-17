@@ -14,9 +14,10 @@ use model::conflicts::RuleCounts;
 use model::contract::{FeatureId, Target};
 use model::state::Operation;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Axis, Button, ButtonKind, Icon, Label, Rect, Tone, Ui};
+use ui::{AccessRole, Axis, Button, ButtonKind, Label, Rect, Tone, Ui};
 
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::rebase::EditStopState;
 use crate::text::conflicts as words;
@@ -148,7 +149,7 @@ pub(crate) fn operation_banner(state: &BannerState<'_>, ui: &mut Ui<'_>) -> Vec<
             inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0)),
             spacing.medium,
         );
-        ui.icon_in(parts.left(theme.sizes.icon), Icon::Warning, Tone::Warning);
+        ui.icon_in(parts.left(theme.sizes.icon), icons::WARNING, Tone::Warning);
         for button in state.buttons().into_iter().rev() {
             let mut drawn = if button.label == words::CONTINUE {
                 Button::primary(&button.label)

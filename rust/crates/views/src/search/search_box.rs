@@ -4,13 +4,13 @@
 use model::search::{BoxMode, Direction};
 use ui::layout::{Area, Insets, inset};
 use ui::{
-    Button, ButtonKind, Icon, InputBox, Key, KeyEvent, MenuEntry, MenuItem, Modifiers, NamedKey, Rect, Severity, Ui,
-    WidgetId,
+    Button, ButtonKind, InputBox, Key, KeyEvent, MenuEntry, MenuItem, Modifiers, NamedKey, Rect, Severity, Ui, WidgetId,
 };
 
 use super::SearchIntent;
 use super::go_to_hash::{go_to_hash_view, go_to_hash_width};
 use super::history::{HistorySearch, history_view, history_width};
+use crate::icons;
 use crate::intent::Intent;
 use crate::line::control_in;
 use crate::text::search as words;
@@ -47,7 +47,7 @@ pub fn mode_entries(chosen: BoxMode) -> Vec<MenuEntry<'static, BoxMode>> {
         .map(|mode| {
             let item = MenuItem::new(words::mode_name(mode), mode);
             MenuEntry::Item(if mode == chosen {
-                item.with_icon(Icon::Check)
+                item.with_icon(icons::CHOSEN)
             } else {
                 item
             })
@@ -87,7 +87,7 @@ pub fn box_view(state: &SearchBox<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         end_width,
         box_rect.height,
     );
-    let mut input_box = InputBox::new(state.text, words::placeholder(state.mode)).with_icon(Icon::Search);
+    let mut input_box = InputBox::new(state.text, words::placeholder(state.mode)).with_icon(icons::SEARCH);
     if let Some(message) = state.message {
         input_box = input_box.with_message(ui::Message {
             text: message,
@@ -115,12 +115,12 @@ pub fn box_view(state: &SearchBox<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
 /// The list before the box, which says the mode chosen and what it runs, and chooses another.
 fn mode_list(chosen: BoxMode, ui: &mut Ui<'_>, area: &mut Area, intents: &mut Vec<Intent>) {
     let button = Button::secondary(words::mode_name(chosen))
-        .with_trailing(Icon::ChevronDown)
+        .with_trailing(icons::CHOOSE)
         .with_tooltip(words::mode_tooltip(chosen));
     let widest = BoxMode::ALL
         .into_iter()
         .map(|mode| {
-            ui.button_size(&Button::secondary(words::mode_name(mode)).with_trailing(Icon::ChevronDown))
+            ui.button_size(&Button::secondary(words::mode_name(mode)).with_trailing(icons::CHOOSE))
                 .0
         })
         .fold(0.0, f32::max);
@@ -141,7 +141,7 @@ fn funnel(is_pressed: bool, ui: &mut Ui<'_>, area: &mut Area, intents: &mut Vec<
     } else {
         ButtonKind::Icon
     };
-    let button = Button::icon(Icon::Filter, words::FUNNEL).kind(kind);
+    let button = Button::icon(icons::FILTER, words::FUNNEL).kind(kind);
     if ui.button("search funnel", rect, &button).clicked {
         intents.push(Intent::Search(SearchIntent::ToggleList));
     }

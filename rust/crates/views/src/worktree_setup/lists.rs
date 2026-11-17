@@ -3,10 +3,11 @@
 
 use model::worktree_setup::{PatternTake, SetupPatterns};
 use ui::layout::{Align, Area, place};
-use ui::{Button, ButtonKind, Icon, InputBox, Label, Rect, TextKind, Tone, Ui};
+use ui::{Button, ButtonKind, InputBox, Label, Rect, TextKind, Tone, Ui};
 
 use super::rows::Row;
 use super::{SetupBox, SetupIntent, SetupPageState};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::worktree_setup as words;
 
@@ -110,7 +111,7 @@ fn pattern_row(
     };
     let mut parts = Area::with_gap(rect, ui.theme().sizes.spacing.large);
     let mut intents = Vec::new();
-    let remove = Button::icon(Icon::Close, words::REMOVE).kind(ButtonKind::Icon);
+    let remove = Button::icon(icons::DELETE, words::REMOVE).kind(ButtonKind::Icon);
     let (width, height) = ui.button_size(&remove);
     let cell = place(parts.left(width), (width, height), (Align::Start, Align::Center));
     if ui.button(("remove pattern", which, index), cell, &remove).clicked {
@@ -144,7 +145,7 @@ fn add_row(state: &SetupPageState<'_>, which: SetupBox, ui: &mut Ui<'_>, rect: R
     };
     let typed = state.typed.of(which);
     let mut parts = Area::with_gap(rect, ui.theme().sizes.spacing.medium);
-    let add = Button::secondary(words::ADD).with_icon(Icon::Plus);
+    let add = Button::secondary(words::ADD).with_icon(icons::ADD);
     let (add_width, add_height) = ui.button_size(&add);
     let field_width = (ADD_WIDTH - add_width).min(rect.width - add_width).max(0.0);
     let field = parts.left(field_width);
@@ -201,9 +202,9 @@ fn command_row(state: &SetupPageState<'_>, index: usize, ui: &mut Ui<'_>, rect: 
     let mut intents = Vec::new();
     let last = state.commands.len().saturating_sub(1);
     let buttons = [
-        (Icon::ArrowUp, words::MOVE_UP, index > 0),
-        (Icon::ArrowDown, words::MOVE_DOWN, index < last),
-        (Icon::Close, words::REMOVE, true),
+        (icons::MOVE_UP, words::MOVE_UP, index > 0),
+        (icons::MOVE_DOWN, words::MOVE_DOWN, index < last),
+        (icons::DELETE, words::REMOVE, true),
     ];
     for (icon, tooltip, is_enabled) in buttons {
         let button = Button::icon(icon, tooltip).kind(ButtonKind::Icon);
@@ -213,8 +214,8 @@ fn command_row(state: &SetupPageState<'_>, index: usize, ui: &mut Ui<'_>, rect: 
         if ui.button(("command", index, tooltip), cell, &button).clicked {
             let mut commands = state.commands.to_vec();
             match icon {
-                Icon::ArrowUp => commands.swap(index, index - 1),
-                Icon::ArrowDown => commands.swap(index, index + 1),
+                icons::MOVE_UP => commands.swap(index, index - 1),
+                icons::MOVE_DOWN => commands.swap(index, index + 1),
                 _ => {
                     let _ = commands.remove(index);
                 }

@@ -9,7 +9,7 @@ clean room until its engine became the extension's too. The code has milestone M
 [roadmap](../docs/desktop/07-roadmap.md): the workspace of crates, `cargo xtask check`, the kit of the tests and JSON
 with comments; and M1: every read of git, what the model derives from it, the engine that runs features with its log and
 the journal of Undo, and the first features, run from a terminal by `gitardo-cli`; and M2: a window on Windows, drawn by
-the program itself, with its own fonts, icons, themes and toolkit, shown in `gitardo-demo`. The window does not show a
+the program itself, with its own fonts, themes and toolkit and the icons of Lucide, shown in `gitardo-demo`. The window does not show a
 repository yet.
 
 ## The documents

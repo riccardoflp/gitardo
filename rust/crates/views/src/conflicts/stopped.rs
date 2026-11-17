@@ -4,9 +4,10 @@ use model::conflicts::RuleCounts;
 use model::contract::{FeatureId, Target};
 use model::state::Operation;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, ButtonKind, Icon, Label, Tone, Ui};
+use ui::{Button, ButtonKind, Label, Tone, Ui};
 
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::conflicts as words;
 use crate::text::feature as feature_words;
@@ -78,7 +79,7 @@ pub fn stopped_view(state: &StoppedState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0)),
         spacing.medium,
     );
-    ui.icon_in(parts.left(theme.sizes.icon), Icon::Warning, Tone::Warning);
+    ui.icon_in(parts.left(theme.sizes.icon), icons::WARNING, Tone::Warning);
     let mut intents = Vec::new();
     let dismiss = (feature_words::DISMISS, Some(Intent::Feature(FeatureIntent::Dismiss)));
     for (label, intent) in std::iter::once(dismiss).chain(state.buttons().into_iter().rev()) {

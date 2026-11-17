@@ -19,6 +19,8 @@ use crate::repo::{NoRepositoryState, no_repository_view};
 use crate::text::changes as words;
 
 pub use commit_box::{CommitBox, CommitKind, Draft};
+#[cfg(test)]
+pub(crate) use rows::file_buttons;
 
 /// What the Changes page shows.
 #[derive(Clone, Debug, PartialEq, Eq)]

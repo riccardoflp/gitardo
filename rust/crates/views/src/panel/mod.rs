@@ -2,7 +2,7 @@
 //! status bar, with the terminals and the Command log each in a tab; the gap above it is dragged to change its height.
 
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Button, ButtonKind, Icon, Key, Modifiers, Rect, Split, Splitter, Ui};
+use ui::{AccessRole, Button, ButtonKind, Key, Modifiers, Rect, Split, Splitter, Ui};
 
 use crate::intent::Intent;
 use crate::log::{LogState, log_view};
@@ -130,7 +130,7 @@ pub fn bottom_view(state: &BottomPanelState<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
 fn top_bar(state: &BottomPanelState<'_>, ui: &mut Ui<'_>, bar: Rect, intents: &mut Vec<Intent>) {
     let theme = *ui.theme();
     let mut parts = Area::with_gap(bar, theme.sizes.spacing.small);
-    let hide = Button::icon(Icon::ChevronDown, words::HIDE_PANEL).kind(ButtonKind::Icon);
+    let hide = Button::icon(crate::icons::CLOSE, words::HIDE_PANEL).kind(ButtonKind::Icon);
     if ui.button("hide the panel", parts.right(bar.height), &hide).clicked {
         intents.push(Intent::Panel(PanelIntent::Hide));
     }

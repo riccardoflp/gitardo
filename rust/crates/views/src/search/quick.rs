@@ -2,9 +2,10 @@
 //! that name Quick search, the branches, remote branches and tags, and the commits loaded.
 
 use model::CommitId;
-use ui::{Button, Icon, Key, Modifiers, Picker, PickerAnswer, PickerItem, PickerMode, Ui};
+use ui::{Button, Key, Modifiers, Picker, PickerAnswer, PickerItem, PickerMode, Ui};
 
 use super::SearchIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::header as header_words;
 use crate::text::search as words;
@@ -256,10 +257,10 @@ impl QuickCommand {
 /// **Search**: its icon and its word, with the keys `Ctrl K` after it, or its icon alone in a narrow window.
 fn search_button(ui: &Ui<'_>) -> Button<'static> {
     if crate::line::is_narrow(ui) {
-        Button::icon(Icon::Search, header_words::SEARCH_TOOLTIP).kind(ui::ButtonKind::Secondary)
+        Button::icon(icons::SEARCH, header_words::SEARCH_TOOLTIP).kind(ui::ButtonKind::Secondary)
     } else {
         Button::secondary(header_words::SEARCH)
-            .with_icon(Icon::Search)
+            .with_icon(icons::SEARCH)
             .with_key_hint(header_words::QUICK_SEARCH_KEYS)
     }
 }

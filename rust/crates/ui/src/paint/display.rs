@@ -64,7 +64,7 @@ pub(crate) enum Shape {
         /// The widest it may be before it is cut with an ellipsis.
         max_width: Option<f32>,
     },
-    /// An icon of Gitardo's set.
+    /// An icon of Lucide's.
     Icon {
         /// Which.
         icon: Icon,

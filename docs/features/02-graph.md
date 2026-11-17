@@ -305,18 +305,21 @@ the same everywhere, and as it does in other applications.
 
 The outlines of the icons are Lucide's, kept in the repository with its licence (ISC), drawn in the color and at the
 size asked, 16 logical pixels unless said otherwise, with their stroke scaled so that they keep the weight of the text
-beside them (Q420). An icon is used for the meaning the table gives it, and for no other; a button whose meaning is
-not in the table gets a line of it before it gets an icon.
+beside them (Q420): 1.5 logical pixels at 16. An icon is used for the meaning the table gives it, and for no other; a
+button whose meaning is not in the table gets a line of it before it gets an icon. A view names the meaning of what it
+draws (`views::icons`), never the icon, and the widgets of the toolkit draw only the icons of closing, of a choice, of
+the previous and the next match, of a search and of a menu that opens to the side; the half-ticked check box draws its
+own dash.
 
 | Meaning | Lucide icon |
 | --- | --- |
-| Fold, unfold | `chevron-right`, `chevron-down` |
+| Folded, a menu that opens to the side; unfolded | `chevron-right`, `chevron-down` |
 | Close a page, a drawer, the inspector, a box, the bottom panel; empty a box | `x` |
 | Chosen in a menu; done; a good commit of a bisect | `check` |
-| Add: stage a file or a change, take a side into the result, a new terminal, add a submodule | `plus` |
+| Add: stage a file or a change, take a side into the result, a new terminal, add a submodule, another tab | `plus` |
 | Unstage | `minus` |
 | Back to how it was: discard the changes of a file, revert a change, Undo | `undo-2` |
-| Delete: a branch, a tag, a stash dropped, a terminal killed | `trash-2` |
+| Delete: a branch, a tag, a stash dropped, a terminal killed, an entry of a list | `trash-2` |
 | Save, save all | `save` |
 | Search | `search` |
 | Filter what is shown or listed | `funnel` |
@@ -342,7 +345,7 @@ not in the table gets a line of it before it gets an icon.
 | Favorite; recent | `star`, `clock` |
 | History of a file or a folder | `history` |
 | Who changed each line; on every file | `user-pen`, `pin` |
-| Drafted by the AI; resolved by the rules | `sparkles`, `wand-sparkles` |
+| Drafted or proposed for you: by the AI, for a conflict, for a worktree; resolved by the rules | `sparkles`, `wand-sparkles` |
 | Edited, not saved or not committed | `pencil` |
 | Waits; did not run, skipped | `hourglass`, `circle-slash` |
 | Warning; error, a bad commit of a bisect; information | `triangle-alert`, `circle-x`, `info` |
@@ -350,6 +353,15 @@ not in the table gets a line of it before it gets an icon.
 | More | `ellipsis` |
 | List; tree of folders | `list`, `list-tree` |
 | Fold the lines that did not change | `fold-vertical` |
+| A button that opens a list of choices below it | `chevrons-up-down` |
+| Accept every change that needs no choice | `check-check` |
+| Stop what is running: drafting a message | `circle-stop` |
+| Open in the external editor | `external-link` |
+| Take the incoming version, or the version of the other side of a comparison; take the current version | `circle-arrow-down`, `circle-arrow-up` |
+| Drag to move a row | `grip-vertical` |
+| A bisect | `binoculars` |
+| A submodule not initialized | `circle-dashed` |
+| The base of a merge, shown or hidden | `git-fork` |
 
 Acceptance:
 

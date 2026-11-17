@@ -15,6 +15,7 @@ use crate::conflicts::{OpenFileState, open_file_view};
 use crate::details::{CappedList, FileLayout, FileRow, FilesIntent, FilesOwner, FilesState, directory_row, file_rows};
 use crate::feature::FeatureIntent;
 use crate::file_view::{FileTarget, FileViewIntent};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::changes as words;
 
@@ -125,7 +126,7 @@ fn conflict_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index): (
     if state.banner.is_some_and(|banner| banner.ai) {
         let only = Some(vec![file.path.clone()]);
         let said = words::RESOLVE_WITH_AI;
-        if icon_button(ui, &mut area, ((said, path), Icon::Star, said), !state.is_running) {
+        if icon_button(ui, &mut area, ((said, path), icons::DRAFTED, said), !state.is_running) {
             intents.push(Intent::Review(crate::review::ReviewIntent::ResolveWithAi(only)));
         }
     }
@@ -133,18 +134,18 @@ fn conflict_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index): (
     if auto_resolve {
         let only = Some(vec![file.path.clone()]);
         let said = words::RESOLVE_AUTOMATICALLY;
-        if icon_button(ui, &mut area, ((said, path), Icon::Wand, said), true) {
+        if icon_button(ui, &mut area, ((said, path), icons::BY_THE_RULES, said), true) {
             intents.push(Intent::Review(crate::review::ReviewIntent::Open(only)));
         }
     }
     for (icon, said, intent) in [
         (
-            Icon::Plus,
+            icons::ADD,
             words::MARK_AS_RESOLVED,
             run("conflicts.mark-resolved", Target::File(file.path.clone())),
         ),
-        (Icon::ArrowDown, words::TAKE_INCOMING, take("incoming")),
-        (Icon::ArrowUp, words::TAKE_CURRENT, take("current")),
+        (icons::TAKE_INCOMING, words::TAKE_INCOMING, take("incoming")),
+        (icons::TAKE_CURRENT, words::TAKE_CURRENT, take("current")),
     ] {
         if icon_button(ui, &mut area, ((said, path), icon, said), !state.is_running) {
             intents.push(intent);
@@ -165,22 +166,22 @@ fn changes_heading(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -
     if icon_button(
         ui,
         &mut area,
-        ("discard all", Icon::Close, words::DISCARD_ALL),
+        ("discard all", icons::UNDO, words::DISCARD_ALL),
         can_change,
     ) {
         intents.push(run("changes.discard-all", Target::Changes));
     }
-    if state.list.has_unsaved() && icon_button(ui, &mut area, ("save all", Icon::Check, words::SAVE_ALL), can_change) {
+    if state.list.has_unsaved() && icon_button(ui, &mut area, ("save all", icons::SAVE, words::SAVE_ALL), can_change) {
         intents.push(Intent::FileView(FileViewIntent::SaveAll));
     }
-    if icon_button(ui, &mut area, ("stash all", Icon::Stash, words::STASH_ALL), can_change) {
+    if icon_button(ui, &mut area, ("stash all", icons::STASH, words::STASH_ALL), can_change) {
         intents.push(run("stash.push", Target::Head));
     }
     if state.list.has_staged()
         && icon_button(
             ui,
             &mut area,
-            ("stash staged", Icon::Stash, words::STASH_STAGED),
+            ("stash staged", icons::STASH, words::STASH_STAGED),
             can_change,
         )
     {
@@ -188,8 +189,8 @@ fn changes_heading(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, rect: Rect) -
     }
     intents.extend(open_all(state, ui, &mut area));
     let (layout, icon, said) = match state.layout {
-        FileLayout::List => (FileLayout::Tree, Icon::Folder, words::VIEW_AS_TREE),
-        FileLayout::Tree => (FileLayout::List, Icon::Minus, words::VIEW_AS_LIST),
+        FileLayout::List => (FileLayout::Tree, icons::TREE, words::VIEW_AS_TREE),
+        FileLayout::Tree => (FileLayout::List, icons::LIST, words::VIEW_AS_LIST),
     };
     if icon_button(ui, &mut area, ("layout", icon, said), true) {
         intents.push(Intent::Changes(ChangesIntent::Files(FilesIntent::Layout(layout))));
@@ -284,7 +285,7 @@ fn open_all(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, area: &mut Area) -> 
     let clicked = icon_button(
         ui,
         area,
-        ("open all", Icon::Eye, words::OPEN_ALL_CHANGES),
+        ("open all", icons::OPEN_ALL_CHANGES, words::OPEN_ALL_CHANGES),
         all.is_some(),
     );
     let target = all.filter(|_| clicked)?;
@@ -305,29 +306,29 @@ fn save_file(path: &str) -> Intent {
 /// are disabled. A file only an editor has changed has **Save** and **Compare with the saved file**; the others
 /// **Discard changes**, **Stash this file…**, **Save** when not saved, **Open changes**, and **Open file** when the
 /// file is still on disk.
-fn file_buttons(row: &ChangeRow) -> Vec<(&'static str, Icon, Option<Intent>)> {
+pub(crate) fn file_buttons(row: &ChangeRow) -> Vec<(&'static str, Icon, Option<Intent>)> {
     if row.status == FileStatus::Unsaved {
         return vec![
-            (words::SAVE, Icon::Check, Some(save_file(&row.path))),
-            (words::COMPARE_WITH_SAVED, Icon::Eye, None),
+            (words::SAVE, icons::SAVE, Some(save_file(&row.path))),
+            (words::COMPARE_WITH_SAVED, icons::CHANGES, None),
         ];
     }
     let discard = run("changes.discard", Target::File(row.path.clone()));
     let mut buttons = vec![
-        (words::DISCARD, Icon::Close, Some(discard)),
+        (words::DISCARD, icons::UNDO, Some(discard)),
         (
             words::STASH_FILE,
-            Icon::Stash,
+            icons::STASH,
             Some(run("stash.push-file", Target::Files(vec![row.path.clone()]))),
         ),
     ];
     if row.is_unsaved {
-        buttons.push((words::SAVE, Icon::Check, Some(save_file(&row.path))));
+        buttons.push((words::SAVE, icons::SAVE, Some(save_file(&row.path))));
     }
     let open_changes = open_page(row, OpenAction::OpenChanges, OpenOnClick::File);
-    buttons.push((words::OPEN_CHANGES, Icon::Eye, open_changes));
+    buttons.push((words::OPEN_CHANGES, icons::CHANGES, open_changes));
     if row.status != FileStatus::Changed(ChangeKind::Deleted) {
-        buttons.push((words::OPEN_FILE, Icon::File, Some(open_file(&row.path))));
+        buttons.push((words::OPEN_FILE, icons::OPEN_FILE, Some(open_file(&row.path))));
     }
     buttons
 }
@@ -395,7 +396,7 @@ fn status_start(ui: &mut Ui<'_>, rect: Rect, (letter, color, depth): (&str, ui::
         max_width: None,
     };
     let _ = ui.text(&run);
-    ui.icon_in(parts.left(theme.sizes.icon), Icon::File, Tone::Muted);
+    ui.icon_in(parts.left(theme.sizes.icon), icons::FILE, Tone::Muted);
     parts.rest()
 }
 

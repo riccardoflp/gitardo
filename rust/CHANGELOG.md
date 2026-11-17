@@ -30,6 +30,11 @@
 - While a history is brought out, by a label under the pointer or by the commit selected, the rows it leaves out
   are dimmed whole, their message, labels, author, date and hash, and not only their lines and dots, as in the
   extension: to about a third under a label, to about two thirds by the commit selected.
+- Every icon of the window is one of [Lucide](https://lucide.dev)'s, drawn from its outlines, and each icon means one
+  thing everywhere: discarding a file and reverting a change draw the same arrow turning back, dropping a stash a bin,
+  the drafts of the AI sparkles, the menus that open below a button two chevrons, showing the base of a merge a fork.
+  The bar of views has the timeline's graph, the changes of a file, a tree of folders, the compare arrows, the beat of
+  Activity and a gear; a half-ticked box shows a dash of its own.
 - With `core.fsmonitor` on, on Linux and macOS, a worktree no longer has its repository read again and again: the
   socket the daemon listens on in its git folder (`fsmonitor--daemon.ipc`) asks for nothing, as the daemon's folder
   already did.

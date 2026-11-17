@@ -5,11 +5,12 @@
 
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{
-    AccessRole, Button, ButtonKind, Description, Icon, Key, Label, MenuEntry, MenuItem, Modifiers, NamedKey, Rect,
-    Sense, TextKind, Tone, Ui,
+    AccessRole, Button, ButtonKind, Description, Key, Label, MenuEntry, MenuItem, Modifiers, NamedKey, Rect, Sense,
+    TextKind, Tone, Ui,
 };
 
 use crate::graph::RepositoryEntry;
+use crate::icons;
 use crate::intent::Intent;
 use crate::line::control_in;
 use crate::text::header;
@@ -186,7 +187,7 @@ fn one_button(tabs: &[TabEntry], ui: &mut Ui<'_>, room: Rect) -> Option<Intent> 
         .map_or(words::OPEN_A_REPOSITORY, |tab| tab.name.as_str());
     let button = Button::secondary(name)
         .kind(ButtonKind::Icon)
-        .with_trailing(Icon::ChevronDown);
+        .with_trailing(icons::CHOOSE);
     let width = ui.button_size(&button).0.min(room.width);
     let rect = control_in(ui, room, width);
     let mut entries: Vec<MenuEntry<'_, ListCommand>> = tabs
@@ -195,7 +196,7 @@ fn one_button(tabs: &[TabEntry], ui: &mut Ui<'_>, room: Rect) -> Option<Intent> 
         .map(|(index, tab)| {
             let item = MenuItem::new(tab.name.as_str(), ListCommand::Tab(index));
             MenuEntry::Item(if tab.is_shown {
-                item.with_icon(Icon::Check)
+                item.with_icon(icons::CHOSEN)
             } else {
                 item
             })
@@ -256,7 +257,7 @@ fn tab_button(
         let members_rect = place(close_cell, (side, side), (Align::Start, Align::Center));
         intents.extend(members_button((index, tab), ui, members_rect));
     }
-    let close_button = Button::icon(Icon::Close, words::CLOSE_TAB).kind(ButtonKind::Icon);
+    let close_button = Button::icon(icons::CLOSE, words::CLOSE_TAB).kind(ButtonKind::Icon);
     // The room of the **×** is kept on every tab, so that a tab does not change its width under the pointer.
     let is_closed = (tab.is_shown || response.hovered)
         && ui
@@ -296,13 +297,13 @@ fn members_button((index, tab): (usize, &TabEntry), ui: &mut Ui<'_>, rect: Rect)
         .map(|(at, (member, label))| {
             let item = MenuItem::new(label.as_str(), at);
             MenuEntry::Item(if member.is_shown {
-                item.with_icon(Icon::Check)
+                item.with_icon(icons::CHOSEN)
             } else {
                 item
             })
         })
         .collect();
-    let button = Button::icon(Icon::ChevronDown, words::TAB_MEMBERS).kind(ButtonKind::Icon);
+    let button = Button::icon(icons::CHOOSE, words::TAB_MEMBERS).kind(ButtonKind::Icon);
     let chosen = ui.scope(("tab members", index), |ui| {
         ui.menu_button("members", rect, &button, &entries)
     })?;
@@ -348,7 +349,7 @@ pub fn cut_at_start(ui: &Ui<'_>, name: &str, (room, kind): (f32, TextKind)) -> S
 fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, area: &mut Area, intents: &mut Vec<Intent>) {
     let side = ui.theme().sizes.control_height;
     let rect = control_in(ui, area.right(side), side);
-    let button = Button::icon(Icon::Plus, words::OPEN_ANOTHER).kind(ButtonKind::Icon);
+    let button = Button::icon(icons::ADD, words::OPEN_ANOTHER).kind(ButtonKind::Icon);
     let mut entries: Vec<MenuEntry<'_, OpenCommand>> = not_open
         .iter()
         .enumerate()
@@ -358,7 +359,7 @@ fn open_button(not_open: &[RepositoryEntry], ui: &mut Ui<'_>, area: &mut Area, i
         entries.push(MenuEntry::Separator);
     }
     entries.push(MenuEntry::Item(
-        MenuItem::new(header::OPEN_FOLDER, OpenCommand::Folder).with_icon(Icon::Folder),
+        MenuItem::new(header::OPEN_FOLDER, OpenCommand::Folder).with_icon(icons::FOLDER),
     ));
     entries.push(MenuEntry::Item(MenuItem::new(
         words::OPEN_WORKSPACE_FILE,

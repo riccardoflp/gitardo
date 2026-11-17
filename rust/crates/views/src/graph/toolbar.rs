@@ -4,11 +4,12 @@
 use std::path::PathBuf;
 
 use ui::layout::{Area, Insets, inset};
-use ui::{AccessRole, Button, ButtonKind, Description, Icon, Label, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, Description, Label, TextKind, Tone, Ui};
 
 use super::more_menu::{MoreMenuState, more_menu_view};
 use super::sync_menu::{SyncWords, sync_entries, sync_intent};
 use super::toggle::{ReferencesShown, toggle_references_view};
+use crate::icons;
 use crate::intent::Intent;
 use crate::line::{control_in, is_narrow};
 use crate::search;
@@ -144,7 +145,7 @@ fn branch_chip(branch: &BranchChip<'_>, ui: &mut Ui<'_>, area: &mut Area) {
     let id = ui.id("branch chip");
     let response = ui.interact(id, rect, ui::Sense::HOVER);
     let mut parts = Area::with_gap(inset(rect, Insets::symmetric(spacing.medium, 0.0)), spacing.medium);
-    ui.icon_in(parts.left(theme.sizes.icon), Icon::Branch, Tone::Lane(0));
+    ui.icon_in(parts.left(theme.sizes.icon), icons::BRANCH, Tone::Lane(0));
     let _ = ui.label(parts.left(name_width), &Label::new(&name).kind(TextKind::Medium));
     if let (Some(words), true) = (&distance, shows_distance) {
         let _ = ui.label(
@@ -177,7 +178,7 @@ fn sync_button(
     };
     let mut button = Button::primary(&words).with_tooltip(words::SYNC_TOOLTIP);
     if is_narrow {
-        button = button.with_icon(Icon::Refresh);
+        button = button.with_icon(icons::SYNC);
     }
     if !can_sync || menu.is_running {
         button = button.disabled();
@@ -190,7 +191,7 @@ fn sync_button(
     let rect = control_in(ui, pair.right(side), side);
     let said = SyncWords::new(counts, &menu);
     let entries = sync_entries(&menu, &said);
-    let chevron = Button::icon(Icon::ChevronDown, words::SYNC_MENU).kind(ButtonKind::Outline);
+    let chevron = Button::icon(icons::CHOOSE, words::SYNC_MENU).kind(ButtonKind::Outline);
     if let Some(command) = ui.menu_button("sync menu", rect, &chevron, &entries) {
         intents.push(sync_intent(command));
     }

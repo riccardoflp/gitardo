@@ -31,9 +31,10 @@ use model::filter::{BranchesShown, label};
 use model::refs::{References, SortOrder};
 use model::state::RepositoryState;
 use ui::layout::{Area, Insets, inset};
-use ui::{AccessRole, Axis, Button, ButtonKind, Icon, InputBox, Key, Label, NamedKey, Rect, TextKind, Tone, Ui};
+use ui::{AccessRole, Axis, Button, ButtonKind, InputBox, Key, Label, NamedKey, Rect, TextKind, Tone, Ui};
 
 use crate::graph::HoverTarget;
+use crate::icons;
 use crate::intent::{Intent, RailIntent, RailLists};
 use crate::line::is_narrow;
 use crate::text::rail as words;
@@ -41,6 +42,8 @@ use draw::{Context, RailReport, draw_row, row_height};
 use rows::{is_filter_offered, rail_rows};
 
 pub use list_filter::{ListFilterOpen, ListFilterState, list_filter_view};
+#[cfg(test)]
+pub(crate) use stashes::drop_stash_icon;
 pub use stashes::{StashFilesRead, StashesShown};
 
 /// What the branch rail lists.
@@ -194,7 +197,7 @@ fn lists(state: &ReferencesState<'_>, ui: &mut Ui<'_>, rect: Rect, report: &mut 
 pub fn filter_view(state: &ReferencesFilter<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
     let mut intents = Vec::new();
-    let input = InputBox::new(state.typed, words::FILTER).with_icon(Icon::Search);
+    let input = InputBox::new(state.typed, words::FILTER).with_icon(icons::SEARCH);
     let id = ui.id("rail filter");
     if let Some(text) = ui.input_box("rail filter", rect, &input).changed_text {
         intents.push(Intent::Rail(RailIntent::Type(text)));
@@ -206,7 +209,7 @@ pub fn filter_view(state: &ReferencesFilter<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
     if !state.typed.is_empty() {
         let side = rect.height;
         let end = Rect::new(rect.right() - side, rect.y, side, side);
-        let button = Button::icon(Icon::Close, words::EMPTY_FILTER).kind(ButtonKind::Icon);
+        let button = Button::icon(icons::CLOSE, words::EMPTY_FILTER).kind(ButtonKind::Icon);
         if ui.button("empty rail filter", end, &button).clicked || is_escaped {
             intents.push(Intent::Rail(RailIntent::Type(String::new())));
         }
@@ -234,7 +237,7 @@ pub fn scope_line_view(state: &ScopeLine<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     // The filter icon goes first while the words fit beside it.
     let words_width = ui.measure(&what, ui.text_style(TextKind::Body));
     if parts.rest().width >= words_width + theme.sizes.icon + spacing.small {
-        ui.icon_in(parts.left(theme.sizes.icon), Icon::Filter, Tone::Accent);
+        ui.icon_in(parts.left(theme.sizes.icon), icons::FILTER, Tone::Accent);
     }
     let _ = ui.label(parts.rest(), &Label::new(&what));
     intents

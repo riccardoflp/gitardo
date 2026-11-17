@@ -7,8 +7,8 @@ use model::details::CommitDetail;
 use model::state::FileChange;
 use ui::layout::{Align, Area, place};
 use ui::{
-    Button, ButtonKind, Icon, Label, List, MenuEntry, MenuItem, Rect, Reveal, RevealPlace, SelectionMode, Sense,
-    Steering, TextKind, Tone, Ui,
+    Button, ButtonKind, Label, List, MenuEntry, MenuItem, Rect, Reveal, RevealPlace, SelectionMode, Sense, Steering,
+    TextKind, Tone, Ui,
 };
 
 use super::files::{CappedList, FileRow, FilesState, directory_row, file_name, file_rows, file_start};
@@ -17,6 +17,7 @@ use super::message::MessageState;
 use super::{DetailsRead, DetailsState, FilesOwner, ReadDetails, SelectedDetails, say, show_all_files};
 use crate::blocks::{block_top, rows_for};
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::details as words;
 
@@ -315,7 +316,7 @@ fn inspector_file(
     // The clock stays while the pointer is on it, which takes the hover from the row.
     if response.hovered || ui.pointer().is_some_and(|pointer| row.rect.contains(pointer)) {
         let side = theme.sizes.row_height;
-        let history = Button::icon(Icon::Clock, words::FILE_HISTORY).kind(ButtonKind::Icon);
+        let history = Button::icon(icons::HISTORY, words::FILE_HISTORY).kind(ButtonKind::Icon);
         let cell = place(parts.right(side), (side, side), (Align::Start, Align::Center));
         if ui.button((key.0, key.1, "history"), cell, &history).clicked {
             picked = Some(Picked::History);

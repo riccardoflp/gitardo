@@ -4,11 +4,12 @@
 use model::conflicts::SideNames;
 use model::review::{DeletedFile, KeptChanges, KeptRow, Which};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, ButtonKind, Icon, Label, Rect, TextKind, Tone, Ui};
+use ui::{Button, ButtonKind, Label, Rect, TextKind, Tone, Ui};
 
 use super::ReviewIntent;
 use super::lines::{Look, code_line, gutter_width};
 use crate::conflicts::ConflictsIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::review as words;
 
@@ -116,7 +117,7 @@ fn decide(state: &DeletedState<'_>, ui: &mut Ui<'_>, row: Rect) -> Vec<Intent> {
             intents.push(Intent::Review(ReviewIntent::TakeSide(file.path.clone(), taken)));
         }
     }
-    let shown = Button::icon(Icon::Eye, words::SHOW_WHAT_IT_WAS).kind(ButtonKind::Icon);
+    let shown = Button::icon(icons::SHOW, words::SHOW_WHAT_IT_WAS).kind(ButtonKind::Icon);
     let (width, height) = ui.button_size(&shown);
     let cell = place(buttons.left(width), (width, height), (Align::Start, Align::Center));
     if ui.button("what it was", cell, &shown).clicked {

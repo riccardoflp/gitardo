@@ -18,6 +18,7 @@ use super::draw::{Context, indent, list_title};
 use super::rows::{Entry, ListHead, RailRow};
 use crate::branch::{OperationEntry, chosen};
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::{Intent, RailList};
 use crate::text::submodule as words;
 
@@ -64,7 +65,7 @@ fn title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListHead, rect: Rect)
     let mut parts = Area::new(rect);
     let cell = parts.right(side + ui.theme().sizes.spacing.small);
     let mut intents = list_title(ui, context, head, parts.rest());
-    let mut button = Button::icon(Icon::Plus, words::ADD).kind(ButtonKind::Icon);
+    let mut button = Button::icon(icons::ADD, words::ADD).kind(ButtonKind::Icon);
     if context.state.stashes.is_operation_running {
         button = button.disabled();
     }
@@ -161,7 +162,7 @@ fn draw_submodule(ui: &mut Ui<'_>, (submodule, depth): (&Submodule, usize), rect
         rect.height,
     );
     let mut parts = Area::with_gap(shown, spacing.small);
-    ui.icon_in(parts.left(theme.sizes.icon), Icon::Folder, Tone::Muted);
+    ui.icon_in(parts.left(theme.sizes.icon), icons::SUBMODULE, Tone::Muted);
     for (count, icon, tone) in status_marks(&status(submodule)).into_iter().rev() {
         ui.icon_in(parts.right(theme.sizes.icon), icon, tone);
         if let Some(count) = count {
@@ -171,7 +172,7 @@ fn draw_submodule(ui: &mut Ui<'_>, (submodule, depth): (&Submodule, usize), rect
     if let Some(checkout) = &submodule.checkout {
         if checkout.uncommitted > 0 {
             small(ui, &mut parts, &checkout.uncommitted.to_string(), Tone::Muted);
-            ui.icon_in(parts.right(theme.sizes.icon), Icon::Pencil, Tone::Muted);
+            ui.icon_in(parts.right(theme.sizes.icon), icons::EDITED, Tone::Muted);
         }
         small(
             ui,
@@ -193,16 +194,16 @@ fn small(ui: &mut Ui<'_>, parts: &mut Area, text: &str, tone: Tone) {
 /// is both ahead and behind.
 pub(super) fn status_marks(status: &SubmoduleStatus) -> Vec<(Option<u32>, Icon, Tone)> {
     match status {
-        SubmoduleStatus::NotInitialized => vec![(None, Icon::Minus, Tone::Muted)],
-        SubmoduleStatus::Added => vec![(None, Icon::Plus, Tone::Muted)],
-        SubmoduleStatus::Unknown { .. } => vec![(None, Icon::Warning, Tone::Warning)],
+        SubmoduleStatus::NotInitialized => vec![(None, icons::NOT_INITIALIZED, Tone::Muted)],
+        SubmoduleStatus::Added => vec![(None, icons::EDITED, Tone::Muted)],
+        SubmoduleStatus::Unknown { .. } => vec![(None, icons::WARNING, Tone::Warning)],
         SubmoduleStatus::Both { distance, .. } => vec![
-            (Some(distance.ahead), Icon::ArrowUp, Tone::Warning),
-            (Some(distance.behind), Icon::ArrowDown, Tone::Warning),
+            (Some(distance.ahead), icons::TO_PUSH, Tone::Warning),
+            (Some(distance.behind), icons::TO_PULL, Tone::Warning),
         ],
-        SubmoduleStatus::Ahead { commits, .. } => vec![(Some(*commits), Icon::ArrowUp, Tone::Warning)],
-        SubmoduleStatus::Behind { commits, .. } => vec![(Some(*commits), Icon::ArrowDown, Tone::Warning)],
-        SubmoduleStatus::OnIt { .. } => vec![(None, Icon::Check, Tone::Success)],
+        SubmoduleStatus::Ahead { commits, .. } => vec![(Some(*commits), icons::TO_PUSH, Tone::Warning)],
+        SubmoduleStatus::Behind { commits, .. } => vec![(Some(*commits), icons::TO_PULL, Tone::Warning)],
+        SubmoduleStatus::OnIt { .. } => vec![(None, icons::CHOSEN, Tone::Success)],
     }
 }
 

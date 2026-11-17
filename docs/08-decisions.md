@@ -2651,3 +2651,31 @@ each built with the reading given until the card says otherwise.
 - **Q-P3** — `file-view.beside-files`: the narrow layout of the Files page. Built: below 700 logical pixels, where the
   inspector goes over the timeline, the File page takes the whole page; a file that has its own page already is shown
   beside the tree too and keeps its page.
+- **Q-I1** — `graph.icons`: a button that opens a menu below it (the arrow of **Sync**, the list of a repository tab,
+  the mode of the search box, the action of a step of a rebase) had the chevron down, which the table gives to a row
+  unfolded. Built: `chevrons-up-down`, a line of its own in the table; the arrow of an entry of a menu that opens a menu
+  to the side keeps `chevron-right`, read as folded: more inside, shown when opened.
+- **Q-I2** — `graph.icons`: buttons and marks the table did not have, each given a line: **Accept the changes that need
+  no choice** of the Merge page `check-check` (the card's two ticks), **Stop drafting the message** `circle-stop` (it
+  had the cross of closing), **Open in external editor** `external-link`, **Take incoming** and **Take current** of a
+  file in conflict `circle-arrow-down` and `circle-arrow-up` (two plus signs side by side could not be told apart; the
+  arrow of the comparison page that takes a file into the working tree is the incoming one), the grip of a step of a
+  rebase `grip-vertical` (it had the three dots of More), the banner of a bisect `binoculars` (it had the magnifying
+  glass of Search), a submodule not initialized `circle-dashed` (it had the minus of Unstage), and **Show the base** of
+  the Merge page `git-fork` (it had the clock of Recent).
+- **Q-I3** — `graph.icons`: the proposals of the Merge page come from the rules or from the AI, and **Use what is
+  proposed** of the worktree setup from what Gitardo found. Built: all draw `sparkles` with the messages the AI drafts,
+  one meaning, made for you, to look at before taking it; the wand stays what the rules resolved, in the Changes view
+  and in the review. Else the proposals of the rules a wand and those of the AI sparkles, which the button that accepts
+  all of them at once cannot say.
+- **Q-I4** — `graph.icons`: some lines of the table share a meaning with an entry of the bar of views, and are built as
+  one: the Changes view and opening the changes of a file `file-diff`, the Compare view and Compare
+  `git-compare-arrows`, the Activity view and what is running `activity`; **Show in the timeline** draws the Timeline's
+  `git-graph`. A submodule added and not committed draws the pencil, the sticky name of a branch its branch, the button
+  that shows or hides the branch rail the branch, and the funnel of the blame (ignore whitespace) stays. The box that narrows the branch rail by name keeps the magnifying
+  glass: typing a name is a search, and the toolkit makes a box with it a search box for the screen reader. The person with
+  a pen of the blame of a file is filled while the blame is shown, in place of the closed eye.
+- **Q-I5** — `graph.icons`: Q420 asks for the outlines turned into paths when the program starts. Built: each outline
+  is read into paths the first time its icon is drawn and kept with the icons rasterized, which is once for the
+  program without reading the 79 files before the first frame; a test reads all of them. The path data is parsed with
+  `svgtypes` (MIT or Apache-2.0, kept up with `resvg`), which turns its arcs into curves.

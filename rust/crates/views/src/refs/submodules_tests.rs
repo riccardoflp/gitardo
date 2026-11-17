@@ -8,11 +8,11 @@ use model::contract::OpenIn;
 use model::refs::{References, SortOrder};
 use model::state::RepositoryState;
 use model::submodule::{Checkout, Distance, Submodule, status};
-use ui::Icon;
 
 use super::ReferencesState;
 use super::rows::{Entry, RailRow, rail_rows};
 use super::submodules::{menu_groups, shown_name, status_marks, tooltip};
+use crate::icons;
 use crate::intent::{RailList, RailLists};
 
 /// A commit of a test, by a digit.
@@ -109,7 +109,7 @@ fn submodule_section__lib_two_commits_ahead_on_main_with_a_file_changed_has_an_a
     assert_eq!(listed(vec![lib.clone()]), Some(vec![String::from("lib")]));
     assert_eq!(
         status_marks(&status(&lib)),
-        [(Some(2), Icon::ArrowUp, ui::Tone::Warning)]
+        [(Some(2), icons::TO_PUSH, ui::Tone::Warning)]
     );
     let checkout = lib.checkout.as_ref();
     assert_eq!(checkout.and_then(|checkout| checkout.branch.as_deref()), Some("main"));

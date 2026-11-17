@@ -32,6 +32,7 @@ pub mod files;
 pub mod filter;
 pub mod github;
 pub mod graph;
+mod icons;
 mod intent;
 mod islands;
 mod line;

@@ -5,12 +5,13 @@
 use model::CommitId;
 use model::details::{CommitDetail, Signature};
 use ui::layout::{Align, Area, place};
-use ui::{Button, ButtonKind, Icon, Label, Rect, Sense, TextKind, Tone, Ui};
+use ui::{Button, ButtonKind, Label, Rect, Sense, TextKind, Tone, Ui};
 
 use super::files::layout_buttons;
 use super::message::{MessageState, show_more, text_height};
 use super::{DetailsIntent, FileLayout, FilesOwner};
 use crate::graph::GraphIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::dates::full_date;
 use crate::text::details as words;
@@ -121,7 +122,7 @@ fn title_line(ui: &mut Ui<'_>, rect: Rect, head: &Head<'_>, intents: &mut Vec<In
     let side = ui.theme().sizes.control_height;
     let mut parts = Area::with_gap(rect, ui.theme().sizes.spacing.medium);
     let mut buttons = Area::new(parts.right(2.0 * side - ui.theme().sizes.spacing.medium));
-    let close = Button::icon(Icon::Close, words::CLOSE_INSPECTOR);
+    let close = Button::icon(icons::CLOSE, words::CLOSE_INSPECTOR);
     if ui
         .button("close inspector", buttons.right(side).with_height(side), &close)
         .clicked
@@ -129,7 +130,7 @@ fn title_line(ui: &mut Ui<'_>, rect: Rect, head: &Head<'_>, intents: &mut Vec<In
         intents.push(Intent::Details(DetailsIntent::Close));
     }
     if let Some(commit) = head.detail.and_then(|detail| detail.id.as_ref()) {
-        let open = Button::icon(Icon::Commit, words::OPEN_AS_PAGE);
+        let open = Button::icon(icons::OPEN_AS_PAGE, words::OPEN_AS_PAGE);
         if ui
             .button("open as page", buttons.right(side).with_height(side), &open)
             .clicked
@@ -230,7 +231,7 @@ fn files_header(ui: &mut Ui<'_>, rect: Rect, head: &Head<'_>, intents: &mut Vec<
     let mut parts = Area::with_gap(rect, ui.theme().sizes.spacing.small);
     intents.extend(layout_buttons(ui, &mut parts, (FilesOwner::Inspector, layout)));
     if count > 1 {
-        let open = Button::icon(Icon::File, words::OPEN_ALL_CHANGES);
+        let open = Button::icon(icons::OPEN_ALL_CHANGES, words::OPEN_ALL_CHANGES);
         let cell = place(parts.right(side), (side, side), (Align::Start, Align::Center));
         if ui.button("open all changes", cell, &open).clicked {
             let title = all_changes_title(head.read);

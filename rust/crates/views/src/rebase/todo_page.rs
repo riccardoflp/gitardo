@@ -4,9 +4,10 @@
 use model::CommitId;
 use model::rebase::{TodoAction, TodoRow, write_todo_rows};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, ButtonKind, Icon, InputBox, Label, MenuAnchor, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
+use ui::{Button, ButtonKind, InputBox, Label, MenuAnchor, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
 
 use super::RebaseIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::rebase as words;
 
@@ -187,14 +188,20 @@ fn todo_row(page: &TodoPage, (index, row): (usize, &TodoPageRow), ui: &mut Ui<'_
     let mut parts = Area::with_gap(inset(rect, Insets::symmetric(0.0, spacing.small)), spacing.medium);
     let grip = parts.left(theme.sizes.icon);
     let _ = ui.drag_source(("todo grip", index), grip, &row.subject);
-    ui.icon_in(grip, Icon::More, Tone::Muted);
+    ui.icon_in(grip, icons::DRAG, Tone::Muted);
     intents.extend(action_button((index, row.action), ui, parts.left(110.0)));
     let last = page.rows.len().saturating_sub(1);
     for (key, icon, label, to, is_end) in [
-        ("todo down", Icon::ArrowDown, words::MOVE_DOWN, index + 1, index == last),
+        (
+            "todo down",
+            icons::MOVE_DOWN,
+            words::MOVE_DOWN,
+            index + 1,
+            index == last,
+        ),
         (
             "todo up",
-            Icon::ArrowUp,
+            icons::MOVE_UP,
             words::MOVE_UP,
             index.saturating_sub(1),
             index == 0,
@@ -229,7 +236,7 @@ fn action_button((index, action): (usize, TodoAction), ui: &mut Ui<'_>, cell: Re
     let (name, help) = action_words(action);
     let button = Button::secondary(name)
         .kind(ButtonKind::Outline)
-        .with_trailing(Icon::ChevronDown)
+        .with_trailing(icons::CHOOSE)
         .with_tooltip(help);
     if ui.button(("todo action", index), cell, &button).clicked {
         ui.open_menu(("todo actions", index), MenuAnchor::Below(cell));

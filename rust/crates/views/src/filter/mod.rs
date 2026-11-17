@@ -12,8 +12,9 @@ mod tests;
 use model::filter::{BranchesShown, show_too};
 use model::refs::References;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Axis, Button, ButtonKind, Icon, Label, Rect, Tone, Ui};
+use ui::{Axis, Button, ButtonKind, Label, Rect, Tone, Ui};
 
+use crate::icons;
 use crate::intent::{FilterIntent, Intent};
 use crate::text::filter as words;
 
@@ -57,7 +58,7 @@ pub fn bar_height(ui: &Ui<'_>) -> f32 {
 /// Feature: filter.list-too
 pub fn list_too_view(state: &ListToo<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
-    let button = Button::icon(Icon::Eye, words::SHOW_TOO).kind(ButtonKind::Icon);
+    let button = Button::icon(icons::SHOW, words::SHOW_TOO).kind(ButtonKind::Icon);
     if ui.button(("eye", state.reference), rect, &button).clicked {
         let shown = show_too(state.shown, state.reference, state.references);
         vec![Intent::Filter(FilterIntent::Show(Some(shown)))]
@@ -90,7 +91,7 @@ pub fn bar_view(state: &NarrowedBar<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0)),
         spacing.medium,
     );
-    ui.icon_in(parts.left(theme.sizes.icon), Icon::Filter, Tone::Accent);
+    ui.icon_in(parts.left(theme.sizes.icon), icons::FILTER, Tone::Accent);
     let button = Button::secondary(words::SHOW_ALL_BRANCHES).kind(ButtonKind::Outline);
     let (width, height) = ui.button_size(&button);
     let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));

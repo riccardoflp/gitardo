@@ -16,9 +16,10 @@ use model::commit_page::{Fold, FoldSet, PatchLines};
 use model::details::{CommitDetail, TreeNode};
 use model::graph::Label;
 use ui::layout::{Insets, inset};
-use ui::{AccessRole, Button, Icon, List, ListSearch, Rect, Reveal, RevealPlace, SelectionMode, Steering, Ui};
+use ui::{AccessRole, Button, List, ListSearch, Rect, Reveal, RevealPlace, SelectionMode, Steering, Ui};
 
 use crate::details::{CappedList, FileLayout, FilesIntent, FilesOwner, FilesState, file_rows, say};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::details as words;
 
@@ -145,7 +146,7 @@ pub fn view(state: &CommitPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
 /// Feature: commit-page.show-in-graph
 pub fn show_in_graph(state: &CommitPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
-    let button = Button::outline(words::SHOW_IN_TIMELINE).with_icon(Icon::Branch);
+    let button = Button::outline(words::SHOW_IN_TIMELINE).with_icon(icons::TIMELINE);
     let width = ui.button_size(&button).0.min(rect.width);
     if ui
         .button(

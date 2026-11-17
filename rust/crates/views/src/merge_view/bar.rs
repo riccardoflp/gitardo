@@ -3,9 +3,10 @@
 //! (`merge-view.accept-simple`), the sparkle (`merge-view.accept-proposals`) and the clock (`merge-view.show-base`).
 
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, ButtonKind, Icon, Key, Label, Modifiers, NamedKey, TextKind, Tone, Ui};
+use ui::{Button, ButtonKind, Key, Label, Modifiers, NamedKey, TextKind, Tone, Ui};
 
 use super::{MergeIntent, MergePageIntent, MergePageState};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::diff as diff_words;
 use crate::text::merge_view as words;
@@ -53,12 +54,12 @@ pub fn navigate_view(state: &MergePageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
     let side = theme.sizes.control_height;
     let mut parts = Area::with_gap(rect, theme.sizes.spacing.small);
     let mut intents = Vec::new();
-    let previous = Button::icon(Icon::ArrowUp, diff_words::PREVIOUS_CHANGE).kind(ButtonKind::Icon);
+    let previous = Button::icon(icons::PREVIOUS, diff_words::PREVIOUS_CHANGE).kind(ButtonKind::Icon);
     let cell = place(parts.left(side), (side, side), (Align::Start, Align::Center));
     if ui.button(("merge previous", state.id), cell, &previous).clicked {
         intents.push(asked(state, MergePageIntent::Previous));
     }
-    let next = Button::icon(Icon::ArrowDown, diff_words::NEXT_CHANGE).kind(ButtonKind::Icon);
+    let next = Button::icon(icons::NEXT, diff_words::NEXT_CHANGE).kind(ButtonKind::Icon);
     let cell = place(parts.left(side), (side, side), (Align::Start, Align::Center));
     if ui.button(("merge next", state.id), cell, &next).clicked {
         intents.push(asked(state, MergePageIntent::Next));
@@ -111,7 +112,7 @@ pub fn accept_simple_view(state: &MergePageState<'_>, ui: &mut Ui<'_>) -> Vec<In
     } else {
         words::accept_simple(count)
     };
-    let button = Button::icon(Icon::Check, &tooltip).kind(ButtonKind::Icon);
+    let button = Button::icon(icons::ACCEPT_SIMPLE, &tooltip).kind(ButtonKind::Icon);
     let button = if count == 0 { button.disabled() } else { button };
     let cell = place(rect, (side, side), (Align::Start, Align::Center));
     if ui.button(("merge accept simple", state.id), cell, &button).clicked {
@@ -145,7 +146,7 @@ pub fn accept_proposals_view(state: &MergePageState<'_>, ui: &mut Ui<'_>) -> Vec
     } else {
         words::accept_proposals(&marked)
     };
-    let button = Button::icon(Icon::Star, &tooltip).kind(ButtonKind::Icon);
+    let button = Button::icon(icons::DRAFTED, &tooltip).kind(ButtonKind::Icon);
     let button = if marked.is_empty() { button.disabled() } else { button };
     let cell = place(rect, (side, side), (Align::Start, Align::Center));
     if ui.button(("merge accept proposals", state.id), cell, &button).clicked {
@@ -166,7 +167,7 @@ pub fn show_base_view(state: &MergePageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent
     } else {
         (words::SHOW_BASE, ButtonKind::Icon)
     };
-    let button = Button::icon(Icon::Clock, said).kind(kind);
+    let button = Button::icon(icons::BASE, said).kind(kind);
     let cell = place(rect, (side, side), (Align::Start, Align::Center));
     if ui.button(("merge show base", state.id), cell, &button).clicked {
         return vec![asked(state, MergePageIntent::ShowBase(!state.is_base_shown))];

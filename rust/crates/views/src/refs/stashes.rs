@@ -22,6 +22,7 @@ use crate::details::{FileLayout, file_name, file_start};
 use crate::diff::{DiffIntent, commit_file, untracked_file};
 use crate::feature::FeatureIntent;
 use crate::graph::{StashEntry, stash_intent};
+use crate::icons;
 use crate::intent::{Intent, RailIntent, RailList};
 use crate::text::dates::relative_date;
 use crate::text::stash as words;
@@ -183,7 +184,7 @@ fn title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListHead, rect: Rect)
     let mut parts = Area::new(rect);
     let cell = parts.right(side + ui.theme().sizes.spacing.small);
     let mut intents = list_title(ui, context, head, parts.rest());
-    let mut button = Button::icon(Icon::Plus, words::STASH_ALL).kind(ButtonKind::Icon);
+    let mut button = Button::icon(icons::STASH, words::STASH_ALL).kind(ButtonKind::Icon);
     if context.state.stashes.is_operation_running {
         button = button.disabled();
     }
@@ -214,9 +215,9 @@ pub(super) fn stash_entry(
     let arrow = Rect::new(start - (side - theme.sizes.icon) * 0.5, rect.y, side, side);
     let is_unfolded = shown.unfolded.contains(&stash.commit);
     let (icon, tooltip) = if is_unfolded {
-        (Icon::ChevronDown, words::FOLD)
+        (icons::UNFOLDED, words::FOLD)
     } else {
-        (Icon::ChevronRight, words::UNFOLD)
+        (icons::FOLDED, words::UNFOLD)
     };
     let button = Button::icon(icon, tooltip).kind(ButtonKind::Icon);
     if ui.button(("stash arrow", &stash.commit), arrow, &button).clicked {
@@ -233,12 +234,7 @@ pub(super) fn stash_entry(
         spacing.small,
     );
     if is_pointed && !shown.is_operation_running {
-        let buttons = [
-            (StashEntry::Drop, Icon::Close, words::DROP),
-            (StashEntry::Pop, Icon::ArrowUp, words::POP),
-            (StashEntry::Apply, Icon::Check, words::APPLY),
-        ];
-        for (chosen, icon, tooltip) in buttons {
+        for (chosen, icon, tooltip) in STASH_BUTTONS {
             let button = Button::icon(icon, tooltip).kind(ButtonKind::Icon);
             if ui
                 .button(("stash button", &stash.commit, tooltip), parts.right(side), &button)
@@ -336,4 +332,20 @@ pub(super) fn empty_height(ui: &Ui<'_>, width: f32) -> f32 {
     let room = empty_rect(ui, Rect::new(0.0, 0.0, width, 0.0));
     let lines = ui.fonts().wrap(words::NO_STASHES, style, room.width).len();
     crate::line::rows_of(lines) * ui.line_height(style) + 2.0 * ui.theme().sizes.spacing.small
+}
+
+/// The buttons of a stash under the pointer, from the right: **Drop**, **Pop**, **Apply**.
+const STASH_BUTTONS: [(StashEntry, Icon, &str); 3] = [
+    (StashEntry::Drop, icons::DELETE, words::DROP),
+    (StashEntry::Pop, icons::POP, words::POP),
+    (StashEntry::Apply, icons::APPLY, words::APPLY),
+];
+
+/// The icon of **Drop** on a stash.
+#[cfg(test)]
+pub(crate) fn drop_stash_icon() -> Icon {
+    STASH_BUTTONS
+        .iter()
+        .find(|(entry, _, _)| *entry == StashEntry::Drop)
+        .map_or(icons::MORE, |(_, icon, _)| *icon)
 }

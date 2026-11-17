@@ -182,9 +182,15 @@ impl Ui<'_> {
                 },
             );
         }
-        if state.is_on {
-            let icon = if is_mixed { Icon::Minus } else { Icon::Check };
-            self.icon(icon, Point::new(mark.x, mark.y), mark.height, colors.dot);
+        if state.is_on && is_mixed {
+            // The dash is the box's own, not an icon: the minus of the icons means unstage (`graph.icons`). It is as
+            // long and as thick as the minus would be at the size of the box.
+            let (width, thickness) = (mark.width * 7.0 / 12.0, mark.height * 3.0 / 32.0);
+            let center = mark.center();
+            let dash = Rect::new(center.x - width / 2.0, center.y - thickness / 2.0, width, thickness);
+            self.fill_rounded_rect(dash, thickness / 2.0, colors.dot);
+        } else if state.is_on {
+            self.icon(Icon::Check, Point::new(mark.x, mark.y), mark.height, colors.dot);
         }
     }
 

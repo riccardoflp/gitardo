@@ -5,13 +5,12 @@
 use model::commit_page::{DiffLine, Fold, LineKind};
 use model::state::ChangeKind;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{
-    Button, ButtonKind, Color, Icon, Label, MenuEntry, MenuItem, Point, Rect, Sense, TextKind, TextRun, Tone, Ui,
-};
+use ui::{Button, ButtonKind, Color, Label, MenuEntry, MenuItem, Point, Rect, Sense, TextKind, TextRun, Tone, Ui};
 
 use super::CommitPageIntent;
 use super::rows::{HEADER_ROWS, Page, PageRow};
 use crate::details::{FileRow, FilesOwner, commit_list, compare_file, directory_row, file_start, show_all_files};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::details as words;
 
@@ -118,7 +117,7 @@ fn file_row(ui: &mut Ui<'_>, page: &Page<'_>, (row, index, depth): (&ui::Row, us
     let rest = file_start(ui, row.rect, (file, depth));
     let mut parts = Area::with_gap(rest, theme.sizes.spacing.medium);
     let side = row.rect.height;
-    let eye = Button::icon(Icon::ArrowDown, words::SHOW_ITS_CHANGES).kind(ButtonKind::Icon);
+    let eye = Button::icon(icons::SHOW, words::SHOW_ITS_CHANGES).kind(ButtonKind::Icon);
     if ui.button(("page file eye", index), parts.right(side), &eye).clicked {
         intents.push(Intent::CommitPage(page.state.id, CommitPageIntent::ShowFile(index)));
     }
@@ -226,9 +225,9 @@ pub(crate) fn header(ui: &mut Ui<'_>, page: &Page<'_>, (file, rect): (usize, Rec
     let mut parts = Area::with_gap(inset(card, Insets::symmetric(theme.sizes.spacing.small, 0.0)), 4.0);
     let is_folded = page.state.folds.is_folded(file);
     let (arrow, said, wanted) = if is_folded {
-        (Icon::ChevronRight, words::UNFOLD_DIFF, Fold::Unfolded)
+        (icons::FOLDED, words::UNFOLD_DIFF, Fold::Unfolded)
     } else {
-        (Icon::ChevronDown, words::FOLD_DIFF, Fold::Folded)
+        (icons::UNFOLDED, words::FOLD_DIFF, Fold::Folded)
     };
     let mut intents = Vec::new();
     let side = theme.sizes.control_height.min(card.height);
@@ -244,7 +243,7 @@ pub(crate) fn header(ui: &mut Ui<'_>, page: &Page<'_>, (file, rect): (usize, Rec
     {
         intents.push(Intent::CommitPage(id, CommitPageIntent::Fold(file, wanted)));
     }
-    let open_button = Button::icon(Icon::File, words::OPEN_IN_DIFF_PAGE);
+    let open_button = Button::icon(icons::CHANGES, words::OPEN_IN_DIFF_PAGE);
     if ui
         .button(
             ("diff open", file),
@@ -389,7 +388,7 @@ pub(crate) fn back_to_top(ui: &mut Ui<'_>, page: &Page<'_>, (rect, drawn): (Rect
     let margin = theme.sizes.spacing.huge;
     let cell = Rect::new(rect.right() - side - margin, rect.bottom() - side - margin, side, side);
     ui.fill_circle(cell.center(), side * 0.5, theme.colors.secondary_button_background);
-    let button = Button::icon(Icon::ArrowUp, words::BACK_TO_TOP);
+    let button = Button::icon(icons::BACK_TO_TOP, words::BACK_TO_TOP);
     if ui.button(("back to top", page.state.id), cell, &button).clicked {
         return vec![Intent::CommitPage(page.state.id, CommitPageIntent::BackToTop)];
     }

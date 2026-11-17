@@ -8,9 +8,7 @@ use model::branch::OpenedReference;
 use model::filter::{ReferenceKind, show_only};
 use model::state::{Branch, Worktree};
 use ui::layout::{Area, Insets, inset};
-use ui::{
-    AccessRole, Description, Icon, Label, LineCap, MenuAnchor, Rect, Response, Sense, Stroke, TextKind, Tone, Ui,
-};
+use ui::{AccessRole, Description, Label, LineCap, MenuAnchor, Rect, Response, Sense, Stroke, TextKind, Tone, Ui};
 
 use super::ReferencesState;
 use super::draw::{Context, DOT, RailReport, indent};
@@ -22,6 +20,7 @@ use crate::filter::{ListToo, filter_entry_intent, list_too_view};
 use crate::graph::{
     GraphIntent, HoverTarget, HoverWay, PullRequestBadge, draw_pull_request_badge, pull_request_badge_width,
 };
+use crate::icons;
 use crate::intent::{FilterIntent, Intent, RailList};
 use crate::text::github as github_words;
 use crate::text::header;
@@ -357,7 +356,7 @@ fn name_parts(ui: &mut Ui<'_>, rect: Rect, marks: Marks) -> Area {
         spacing.medium + 2.0,
     );
     if marks.is_favorite {
-        ui.icon_in(parts.right(theme.sizes.icon), Icon::Star, Tone::Warning);
+        ui.icon_in(parts.right(theme.sizes.icon), icons::FAVORITE, Tone::Warning);
     }
     parts
 }
@@ -398,7 +397,7 @@ fn branch_row(
                 &Label::new(files).kind(TextKind::Small).tone(Tone::Muted),
             );
         }
-        ui.icon_in(parts.right(theme.sizes.icon), Icon::Worktree, Tone::Muted);
+        ui.icon_in(parts.right(theme.sizes.icon), icons::WORKTREE, Tone::Muted);
     }
     let kind = if branch.is_checked_out {
         TextKind::Strong
@@ -427,10 +426,10 @@ fn kept_entry(ui: &mut Ui<'_>, entry: &Entry<'_>, marks: Marks, rect: Rect) {
     let shown = Rect::new(rect.x + indent, rect.y, (rect.width - indent).max(0.0), rect.height);
     let mut parts = Area::with_gap(shown, theme.sizes.spacing.small);
     let icon = match entry {
-        Entry::Tag(_) => Icon::Tag,
-        Entry::Stash(_) => Icon::Stash,
-        Entry::Worktree(_) => Icon::Worktree,
-        _ => Icon::Folder,
+        Entry::Tag(_) => icons::TAG,
+        Entry::Stash(_) => icons::STASH,
+        Entry::Worktree(_) => icons::WORKTREE,
+        _ => icons::SUBMODULE,
     };
     ui.icon_in(parts.left(theme.sizes.icon), icon, Tone::Muted);
     let text = entry.name();
@@ -457,7 +456,7 @@ fn worktree_row(ui: &mut Ui<'_>, state: &ReferencesState<'_>, (worktree, marks):
     let indent = indent(&theme);
     let shown = Rect::new(rect.x + indent, rect.y, (rect.width - indent).max(0.0), rect.height);
     let mut parts = Area::with_gap(shown, theme.sizes.spacing.small);
-    ui.icon_in(parts.left(theme.sizes.icon), Icon::Worktree, Tone::Muted);
+    ui.icon_in(parts.left(theme.sizes.icon), icons::WORKTREE, Tone::Muted);
     if let Some((branch, pull_request)) = worktree_pull_request(state, worktree) {
         let lane = state.branch_colors.get(&branch.name).copied().unwrap_or_default();
         let badge = PullRequestBadge { pull_request, lane };
@@ -468,7 +467,7 @@ fn worktree_row(ui: &mut Ui<'_>, state: &ReferencesState<'_>, (worktree, marks):
         let count = files.to_string();
         let width = ui.measure(&count, ui.text_style(TextKind::Small));
         let _ = ui.label(parts.right(width), &small(&count));
-        ui.icon_in(parts.right(theme.sizes.icon), Icon::Pencil, Tone::Muted);
+        ui.icon_in(parts.right(theme.sizes.icon), icons::EDITED, Tone::Muted);
     }
     let stands = crate::worktree::standing(state.repository, worktree);
     let width = ui.measure(&stands, ui.text_style(TextKind::Small));

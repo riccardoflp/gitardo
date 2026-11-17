@@ -4,8 +4,9 @@
 
 use model::commit::Commit;
 use ui::layout::{Align, place};
-use ui::{Badge, BadgeFill, Icon, MenuEntry, MenuItem, Point, TextKind, TextRun, Tone, Ui};
+use ui::{Badge, BadgeFill, MenuEntry, MenuItem, Point, TextKind, TextRun, Tone, Ui};
 
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::timeline as words;
 
@@ -55,7 +56,7 @@ pub fn stashes_view(state: &StashRow<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let name = format!("stash@{{{}}}", state.index);
     let badge = Badge {
         text: &name,
-        icons: &[Icon::Stash],
+        icons: &[icons::STASH],
         tone: Tone::Lane(state.color),
         fill: BadgeFill::Outline,
     };

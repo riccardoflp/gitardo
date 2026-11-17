@@ -4,7 +4,7 @@
 //! **Add submodule…**.
 
 use model::refs::SortOrder;
-use ui::{Icon, MenuEntry, MenuItem};
+use ui::{MenuEntry, MenuItem};
 
 use super::ReferencesState;
 use super::rows::Entry;
@@ -12,6 +12,7 @@ use crate::branch::{OperationEntry, ReferenceMenus, branch_entries, menu_items, 
 use crate::filter::{FilterEntry, filter_entries, filter_entry_words};
 use crate::graph::with_compare;
 use crate::graph::{StashEntry, stash_menu};
+use crate::icons;
 use crate::intent::RailList;
 use crate::text::rail as words;
 use model::contract::Target;
@@ -74,7 +75,7 @@ pub(super) fn entry_menu<'t>(
             words::ADD_TO_FAVORITES
         };
         entries.push(MenuEntry::Item(
-            MenuItem::new(label, EntryCommand::Favorite).with_icon(Icon::Star),
+            MenuItem::new(label, EntryCommand::Favorite).with_icon(icons::FAVORITE),
         ));
     }
     let mut operations = menu_items(operations, EntryCommand::Operation);
@@ -159,7 +160,11 @@ pub(super) fn list_menu<'t>(
 ) -> Vec<MenuEntry<'t, ListCommand>> {
     let sort = |label, by| {
         let item = MenuItem::new(label, ListCommand::Sort(by));
-        MenuEntry::Item(if order == by { item.with_icon(Icon::Check) } else { item })
+        MenuEntry::Item(if order == by {
+            item.with_icon(icons::CHOSEN)
+        } else {
+            item
+        })
     };
     match list {
         RailList::Local | RailList::Remote(_) | RailList::Tags => vec![

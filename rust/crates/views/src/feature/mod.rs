@@ -8,10 +8,11 @@ mod tests;
 use model::contract::{Answer, Answers, FeatureId, Plan, Question, QuestionKind, Step, Target};
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{
-    Button, ButtonKind, Choice, ConfirmAnswer, ConfirmStyle, Confirmation, Dialog, DialogButton, DialogRole, Icon,
-    InputBox, Label, Message, Rect, Severity, TextKind, Tone, Ui,
+    Button, ButtonKind, Choice, ConfirmAnswer, ConfirmStyle, Confirmation, Dialog, DialogButton, DialogRole, InputBox,
+    Label, Message, Rect, Severity, TextKind, Tone, Ui,
 };
 
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::feature as words;
 
@@ -435,11 +436,11 @@ pub fn said_view(state: &SaidState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         spacing.medium,
     );
     let (icon, tone) = if state.is_error {
-        (Icon::Error, Tone::Error)
+        (icons::ERROR, Tone::Error)
     } else if state.offers_stashes {
-        (Icon::Warning, Tone::Warning)
+        (icons::WARNING, Tone::Warning)
     } else {
-        (Icon::Info, Tone::Accent)
+        (icons::INFORMATION, Tone::Accent)
     };
     ui.icon_in(parts.left(theme.sizes.icon), icon, tone);
     let mut intents = Vec::new();

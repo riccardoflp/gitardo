@@ -81,7 +81,7 @@ earns it.
 | [`graph.view-bar`](02-graph.md#graphview-bar--the-bar-of-views) | The bar of views | View | Built | Host only |
 | [`panel.bottom`](02-graph.md#panelbottom--the-bottom-panel) | The bottom panel | View | Built | Host only |
 | [`terminal.view`](02-graph.md#terminalview--a-terminal-in-the-bottom-panel) | A terminal in the bottom panel | View | Built | Host only |
-| [`graph.icons`](02-graph.md#graphicons--the-icons-of-the-window) | The icons of the window | View | Specified | Host only |
+| [`graph.icons`](02-graph.md#graphicons--the-icons-of-the-window) | The icons of the window | View | Built | Host only |
 | [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Built | Built |
 | [`graph.load-more`](02-graph.md#graphload-more--load-the-next-commits-while-scrolling) | Load the next commits while scrolling | View | Built | Built |
 | [`graph.lanes`](02-graph.md#graphlanes--lay-out-the-lines-of-the-graph) | Lay out the lines of the graph | Derivation | Built | Built |

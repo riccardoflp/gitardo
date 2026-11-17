@@ -5,11 +5,12 @@ use model::worktree_setup::{
     ChooseInput, ChosenLine, Gets, IgnoredEntry, IgnoredKind, Section, SettingSource, choose, use_proposed,
 };
 use ui::layout::{Align, Area, place};
-use ui::{Button, ButtonKind, Icon, Label, Rect, Sense, TextKind, Tone, Ui};
+use ui::{Button, ButtonKind, Label, Rect, Sense, TextKind, Tone, Ui};
 
 use super::lines::{SetupLine, bytes_of, is_folder, proposed};
 use super::rows::{Drawn, Row, SECTION_CAP};
 use super::{SetupBox, SetupIntent, SetupRead};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::worktree_setup as words;
 
@@ -86,13 +87,13 @@ fn ignored_bar(drawn: &Drawn<'_, '_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent
     } else {
         Button::secondary(words::LOOK_AGAIN)
     }
-    .with_icon(Icon::Refresh);
+    .with_icon(icons::READ_AGAIN);
     let (width, height) = ui.button_size(&again);
     let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
     if ui.button("look again", cell, &again).clicked {
         intents.push(page(SetupIntent::LookAgain));
     }
-    let mut proposed_button = Button::secondary(words::USE_PROPOSED).with_icon(Icon::Wand);
+    let mut proposed_button = Button::secondary(words::USE_PROPOSED).with_icon(icons::DRAFTED);
     if drawn.lines.is_empty() {
         proposed_button = proposed_button.disabled();
     }
@@ -155,7 +156,7 @@ pub(super) fn section_row(drawn: &Drawn<'_, '_>, section: Section, ui: &mut Ui<'
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let mut parts = Area::with_gap(rect, theme.sizes.spacing.large);
-    let arrow = if is_open { Icon::ChevronDown } else { Icon::ChevronRight };
+    let arrow = if is_open { icons::UNFOLDED } else { icons::FOLDED };
     ui.icon_in(parts.left(theme.sizes.icon), arrow, Tone::Muted);
     let summary = summary(&gets);
     let _ = ui.label(parts.right(gets_width(ui)), &Label::new(&summary).tone(Tone::Muted));
@@ -223,17 +224,13 @@ pub(super) fn line_row(drawn: &Drawn<'_, '_>, index: usize, ui: &mut Ui<'_>, rec
     let start = path.left(theme.sizes.spacing.large);
     if line.is_name() {
         let is_unfolded = state.unfolded.contains(&line.pattern);
-        let arrow = if is_unfolded {
-            Icon::ChevronDown
-        } else {
-            Icon::ChevronRight
-        };
+        let arrow = if is_unfolded { icons::UNFOLDED } else { icons::FOLDED };
         let fold = Button::icon(arrow, &line.pattern).kind(ButtonKind::Icon);
         if ui.button(("fold name", index), start, &fold).clicked {
             intents.push(page(SetupIntent::Unfold(line.pattern.clone())));
         }
     }
-    let icon = if line.is_folder { Icon::Folder } else { Icon::File };
+    let icon = if line.is_folder { icons::FOLDER } else { icons::FILE };
     ui.icon_in(path.left(theme.sizes.icon), icon, Tone::Muted);
     let name_width = ui.measure(line.path(), ui.text_style(TextKind::Body));
     let _ = ui.label(path.left(name_width), &Label::new(line.path()));

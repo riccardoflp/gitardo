@@ -15,6 +15,7 @@ use super::rows::{Entry, ListHead, RailRow};
 use super::stashes::{StashesRow, empty_height, is_of_stashes, stashes_view};
 use super::submodules::{SubmodulesRow, is_of_submodules, section};
 use crate::graph::HoverTarget;
+use crate::icons;
 use crate::intent::{Intent, RailIntent, RailList};
 use crate::text::rail as words;
 
@@ -148,7 +149,7 @@ fn matches_title(ui: &mut Ui<'_>, rect: Rect, (matches, all): (usize, usize)) {
         inset(rect, Insets::symmetric(theme.sizes.spacing.medium, 0.0)),
         theme.sizes.spacing.small,
     );
-    ui.icon_in(parts.left(theme.sizes.icon), Icon::Search, Tone::Muted);
+    ui.icon_in(parts.left(theme.sizes.icon), icons::SEARCH, Tone::Muted);
     let count = words::matches_of(matches, all);
     let style = ui.text_style(TextKind::SmallStrong);
     let count_width = ui.measure(&count, style);
@@ -185,14 +186,14 @@ pub(super) fn list_name(list: &RailList) -> String {
 /// The icon of a list.
 fn list_icon(list: &RailList) -> Icon {
     match list {
-        RailList::Favorites => Icon::Star,
-        RailList::Recent => Icon::Clock,
-        RailList::Local => Icon::Branch,
-        RailList::Remote(_) => Icon::Cloud,
-        RailList::Stashes => Icon::Stash,
-        RailList::Worktrees => Icon::Worktree,
-        RailList::Tags => Icon::Tag,
-        RailList::Submodules => Icon::Folder,
+        RailList::Favorites => icons::FAVORITE,
+        RailList::Recent => icons::RECENT,
+        RailList::Local => icons::BRANCH,
+        RailList::Remote(_) => icons::REMOTE,
+        RailList::Stashes => icons::STASH,
+        RailList::Worktrees => icons::WORKTREE,
+        RailList::Tags => icons::TAG,
+        RailList::Submodules => icons::SUBMODULE,
     }
 }
 
@@ -219,11 +220,7 @@ fn kept_icon(ui: &mut Ui<'_>, rect: Rect, head: &ListHead) {
 /// The chevron of a list's title, down while it is open, and the icon of the list.
 fn title_icons(ui: &mut Ui<'_>, parts: &mut Area, head: &ListHead) {
     let size = ui.theme().sizes.icon;
-    let chevron = if head.is_open {
-        Icon::ChevronDown
-    } else {
-        Icon::ChevronRight
-    };
+    let chevron = if head.is_open { icons::UNFOLDED } else { icons::FOLDED };
     ui.icon_in(parts.left(size), chevron, Tone::Muted);
     ui.icon_in(parts.left(size), list_icon(&head.list), Tone::Muted);
 }
@@ -249,7 +246,7 @@ pub(super) fn list_title(ui: &mut Ui<'_>, context: Context<'_, '_>, head: &ListH
     let mut parts = Area::with_gap(inset(rect, Insets::symmetric(spacing.medium, 0.0)), spacing.small);
     title_icons(ui, &mut parts, head);
     if !entries.is_empty() && (response.hovered || is_menu_open) {
-        let button = Button::icon(Icon::More, words::LIST_MENU).kind(ButtonKind::Icon);
+        let button = Button::icon(icons::MORE, words::LIST_MENU).kind(ButtonKind::Icon);
         let side = rect.height;
         if ui
             .button(("list menu button", &head.list), parts.right(side), &button)

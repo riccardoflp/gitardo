@@ -8,8 +8,8 @@ pub mod keys;
 use model::terminal::Screen;
 use ui::layout::{Align, Area, place};
 use ui::{
-    AccessRole, Button, ButtonKind, Description, Icon, Key, KeyEvent, Label, Modifiers, NamedKey, PointerButton, Rect,
-    Sense, TextKind, Tone, Ui, WidgetEvent,
+    AccessRole, Button, ButtonKind, Description, Key, KeyEvent, Label, Modifiers, NamedKey, PointerButton, Rect, Sense,
+    TextKind, Tone, Ui, WidgetEvent,
 };
 
 use self::draw::{Cells, draw_screen};
@@ -281,7 +281,7 @@ pub(crate) fn terminal_buttons(state: &TerminalState<'_>, ui: &mut Ui<'_>, parts
     }
     let height = ui.theme().sizes.control_height;
     if !state.names.is_empty() {
-        let kill = Button::icon(Icon::Close, words::KILL_TERMINAL).kind(ButtonKind::Icon);
+        let kill = Button::icon(crate::icons::DELETE, words::KILL_TERMINAL).kind(ButtonKind::Icon);
         if ui.button("kill the terminal", parts.right(height), &kill).clicked {
             intents.push(terminal(TerminalIntent::Kill));
         }
@@ -301,7 +301,7 @@ pub(crate) fn terminal_buttons(state: &TerminalState<'_>, ui: &mut Ui<'_>, parts
             }
         }
     }
-    let new = Button::icon(Icon::Plus, words::NEW_TERMINAL).kind(ButtonKind::Icon);
+    let new = Button::icon(crate::icons::ADD, words::NEW_TERMINAL).kind(ButtonKind::Icon);
     if ui.button("new terminal", parts.right(height), &new).clicked {
         intents.push(terminal(TerminalIntent::New));
     }

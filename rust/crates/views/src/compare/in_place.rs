@@ -3,10 +3,11 @@
 use model::compare::{CompareSide, FileList, InPlaceSides, NamedCommit, Side};
 use model::state::FileChange;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Button, ButtonKind, Icon, Label, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, Label, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
 
 use super::CompareIntent;
 use crate::graph::GraphIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::compare as words;
 
@@ -62,7 +63,7 @@ pub fn in_place(state: &InPlaceState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
                 |ui, content| {
                     let mut column = Area::with_gap(inset(content, Insets::all(spacing.large)), spacing.medium);
                     let mut heading = Area::with_gap(column.top(control), spacing.medium);
-                    let close = Button::icon(Icon::Close, words::CLOSE);
+                    let close = Button::icon(icons::CLOSE, words::CLOSE);
                     let (width, button_height) = ui.button_size(&close);
                     let cell = place(
                         heading.right(width),
@@ -150,7 +151,7 @@ fn file_rows(
     let spacing = ui.theme().sizes.spacing;
     let mut heading = Area::with_gap(column.top(line), spacing.medium);
     if files.len() > 1 {
-        let all = Button::icon(Icon::Eye, words::OPEN_ALL);
+        let all = Button::icon(icons::OPEN_ALL_CHANGES, words::OPEN_ALL);
         let (width, height) = ui.button_size(&all);
         let cell = place(heading.right(width), (width, height), (Align::Start, Align::Center));
         if ui.button("in place all", cell, &all).clicked {
@@ -169,7 +170,7 @@ fn file_rows(
             Some(original) => format!("{original} \u{2192} {}", file.path),
             None => file.path.clone(),
         };
-        let open = Button::secondary(&label).kind(ButtonKind::Icon).with_icon(Icon::File);
+        let open = Button::secondary(&label).kind(ButtonKind::Icon).with_icon(icons::FILE);
         let (width, height) = ui.button_size(&open);
         let cell = place(row, (width.min(row.width), height), (Align::Start, Align::Center));
         let response = ui.button(("in place file", index), cell, &open);

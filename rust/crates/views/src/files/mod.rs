@@ -8,8 +8,9 @@ use std::collections::BTreeSet;
 use model::contract::FeatureId;
 use model::details::TreeNode;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Icon, Label, List, MenuEntry, MenuItem, Rect, SelectionMode, Sense, Tone, Ui};
+use ui::{AccessRole, Label, List, MenuEntry, MenuItem, Rect, SelectionMode, Sense, Tone, Ui};
 
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::files as words;
 
@@ -169,17 +170,17 @@ fn tree_rows<'a>(nodes: &'a [TreeNode], (opened, depth): (&BTreeSet<String>, usi
 fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &FilesRow<'_>)) -> Vec<Intent> {
     let theme = *ui.theme();
     let (name, path, depth, icon) = match *row {
-        FilesRow::Top => (state.name, "", 0, Icon::Folder),
+        FilesRow::Top => (state.name, "", 0, icons::FOLDER),
         FilesRow::Folder {
             name,
             path,
             depth,
             is_open,
         } => {
-            let arrow = if is_open { Icon::ChevronDown } else { Icon::ChevronRight };
+            let arrow = if is_open { icons::UNFOLDED } else { icons::FOLDED };
             (name, path, depth, arrow)
         }
-        FilesRow::File { name, path, depth } => (name, path, depth, Icon::File),
+        FilesRow::File { name, path, depth } => (name, path, depth, icons::FILE),
     };
     let response = ui.interact(ui.id(("files row", path)), rect, Sense::CLICK | Sense::HOVER);
     let is_marked = matches!(row, FilesRow::File { .. }) && state.marked == Some(path);

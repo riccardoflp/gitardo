@@ -5,10 +5,11 @@
 use model::tasks::{TaskEnd, TaskStatus};
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{
-    AccessRole, Button, ButtonKind, Description, Icon, InputBox, Key, Label, List, Modifiers, Point, Rect, Reveal,
+    AccessRole, Button, ButtonKind, Description, InputBox, Key, Label, List, Modifiers, Point, Rect, Reveal,
     RevealPlace, SelectionMode, Sense, Steering, TextKind, TextRun, Tone, Ui,
 };
 
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::activity as words;
 
@@ -132,15 +133,15 @@ fn task_row(ui: &mut Ui<'_>, rect: Rect, (row, is_shown): (&TaskRow, bool), inte
         (Align::Start, Align::Center),
     );
     let said = match &row.status {
-        TaskStatus::Waiting => (Some((Icon::Clock, Tone::Muted)), words::TASK_WAITS.to_owned()),
+        TaskStatus::Waiting => (Some((icons::WAITS, Tone::Muted)), words::TASK_WAITS.to_owned()),
         TaskStatus::Running => (None, String::new()),
-        TaskStatus::Succeeded => (Some((Icon::Check, Tone::Success)), String::new()),
-        TaskStatus::Failed(TaskEnd::Code(code)) => (Some((Icon::Error, Tone::Error)), words::exit_code(*code)),
-        TaskStatus::Failed(TaskEnd::Stopped) => (Some((Icon::Warning, Tone::Warning)), words::TASK_STOPPED.to_owned()),
+        TaskStatus::Succeeded => (Some((icons::CHOSEN, Tone::Success)), String::new()),
+        TaskStatus::Failed(TaskEnd::Code(code)) => (Some((icons::ERROR, Tone::Error)), words::exit_code(*code)),
+        TaskStatus::Failed(TaskEnd::Stopped) => (Some((icons::WARNING, Tone::Warning)), words::TASK_STOPPED.to_owned()),
         TaskStatus::Failed(TaskEnd::NotStarted(_)) => {
-            (Some((Icon::Error, Tone::Error)), words::TASK_NOT_STARTED.to_owned())
+            (Some((icons::ERROR, Tone::Error)), words::TASK_NOT_STARTED.to_owned())
         }
-        TaskStatus::DidNotRun => (Some((Icon::Minus, Tone::Muted)), words::TASK_DID_NOT_RUN.to_owned()),
+        TaskStatus::DidNotRun => (Some((icons::SKIPPED, Tone::Muted)), words::TASK_DID_NOT_RUN.to_owned()),
     };
     match said.0 {
         Some((icon, tone)) => ui.icon_in(mark, icon, tone),

@@ -36,8 +36,8 @@ still shows on which branches the file changed.
 - **Kind**: Operation
 - **Function**: `features::file_history::file(context, answers) -> Outcome`
 - **Entry points**: **Show file history** in the context menu of a file in the Files page, of the File page and of its
-  title; the clock button next to each file in the inspector; **History of the active file** in the **…** menu of the
-  header; **Show file history** in Quick search, for the File page in front.
+  title; the history button (a clock with an arrow turning back) next to each file in the inspector; **History of the
+  active file** in the **…** menu of the header; **Show file history** in Quick search, for the File page in front.
 - **Offered when**: the file is inside a repository of the workspace. In a workspace with several, the repository that
   holds the file (the innermost one) is shown first.
 - **Reads**: `file-history.read-names`.
@@ -488,8 +488,8 @@ What it shows:
   file, **Blame the file as it was before** (`blame.previous`).
 - When lines wrap, the column stays: the parts of a wrapped line after the first start after the column, in line with
   the text, and nothing of the text is drawn under or past the column.
-- While the file shows its blame, the title of the File page has the closed eye (**Hide file blame**) in place of the
-  person, the funnel (`blame.ignore-whitespace`) and the pin (`blame.every-file`).
+- While the file shows its blame, the title of the File page has the person with a pen filled (**Hide file blame**),
+  the funnel (`blame.ignore-whitespace`) and the pin (`blame.every-file`).
 - While the blame is read the first time on request, the activity indicator of the status bar says *reading the blame…*.
 
 Acceptance:
@@ -509,8 +509,8 @@ Acceptance:
 
 - **Kind**: Operation
 - **Function**: `features::blame::toggle_file(context, answers) -> Outcome`
-- **Entry points**: the person button (**Show file blame**) and the closed eye (**Hide file blame**) at the top right of
-  the File page; **Toggle file blame** in its context menu and in Quick search.
+- **Entry points**: the person with a pen (**Show file blame**), filled while the blame is shown (**Hide file blame**),
+  at the top right of the File page; **Toggle file blame** in its context menu and in Quick search.
 - **Offered when**: the File page shows a file on disk while the workspace has a repository, or a file as it was in a
   commit.
 - **Reads**: `blame.read-file`, to show it.

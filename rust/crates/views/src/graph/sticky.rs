@@ -5,10 +5,11 @@ use std::time::Duration;
 
 use model::CommitId;
 use model::graph::{Half, Row};
-use ui::{Badge, BadgeFill, Icon, Rect, Sense, Tone, Ui};
+use ui::{Badge, BadgeFill, Rect, Sense, Tone, Ui};
 
 use super::intent::{GraphIntent, HoverTarget, HoverWay};
 use super::layout::TimelineLayout;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::timeline as words;
 
@@ -101,7 +102,7 @@ pub(crate) fn sticky_names_drawn(state: &StickyNames<'_>, ui: &mut Ui<'_>) -> St
     for name in &state.names {
         let badge = Badge {
             text: name.name,
-            icons: &[Icon::ArrowUp],
+            icons: &[icons::BRANCH],
             tone: Tone::Lane(name.color),
             fill: BadgeFill::Outline,
         };

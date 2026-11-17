@@ -1,9 +1,10 @@
 //! The files in conflict beside the cards (`review.file-list`), with where each one stands, and the filters.
 
 use ui::layout::{Align, Area, place};
-use ui::{AccessRole, Button, ButtonKind, Icon, Label, Rect, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, Label, Rect, TextKind, Tone, Ui};
 
 use super::{FileCards, Filter, ReviewIntent, ReviewState};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::review as words;
 
@@ -181,7 +182,7 @@ fn file_entry(state: &ReviewState<'_>, ui: &mut Ui<'_>, (file, rect): (&FileCard
     let side = theme.sizes.row_height;
     let mark = area.right(side);
     if accepted == total {
-        ui.icon_in(mark, Icon::Check, Tone::Success);
+        ui.icon_in(mark, icons::CHOSEN, Tone::Success);
         let id = ui.id(("accepted", &file.path));
         let response = ui.interact(id, mark, ui::Sense::HOVER);
         ui.tooltip(&response, words::ALL_ACCEPTED);

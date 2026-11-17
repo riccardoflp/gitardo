@@ -1,8 +1,9 @@
 //! The first button of the header, which puts the branch rail away and brings it back (`graph.toggle-references`).
 
-use ui::{Button, ButtonKind, Icon, Ui};
+use ui::{Button, ButtonKind, Ui};
 
 use super::intent::GraphIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::header as words;
 
@@ -28,7 +29,7 @@ pub fn toggle_references_view(state: &ReferencesShown, ui: &mut Ui<'_>) -> Vec<I
     } else {
         ButtonKind::Icon
     };
-    let button = Button::icon(Icon::Branch, tooltip).kind(kind);
+    let button = Button::icon(icons::BRANCH, tooltip).kind(kind);
     if ui.button("toggle references", rect, &button).clicked {
         vec![Intent::Graph(GraphIntent::ToggleReferences)]
     } else {

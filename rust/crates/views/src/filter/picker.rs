@@ -4,9 +4,10 @@
 use model::filter::{BranchesShown, label, label_parts};
 use model::refs::References;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Border, Description, Icon, Label, Rect, Sense, TextKind, Tone, Ui};
+use ui::{AccessRole, Border, Description, Label, Rect, Sense, TextKind, Tone, Ui};
 
 use super::list::{PickerFor, Picking, picker_list};
+use crate::icons;
 use crate::intent::{FilterIntent, Intent};
 use crate::line::is_narrow;
 use crate::text::filter as words;
@@ -111,10 +112,10 @@ fn button(state: &BranchPicker<'_>, ui: &mut Ui<'_>, rect: Rect) -> bool {
             (theme.sizes.icon, theme.sizes.icon),
             (Align::Center, Align::Center),
         );
-        ui.icon_in(cell, Icon::Filter, tone);
+        ui.icon_in(cell, icons::FILTER, tone);
     } else {
         let mut parts = Area::with_gap(inset(rect, Insets::symmetric(spacing.medium, 0.0)), spacing.small);
-        ui.icon_in(parts.left(theme.sizes.icon), Icon::Filter, tone);
+        ui.icon_in(parts.left(theme.sizes.icon), icons::FILTER, tone);
         let (name, count) = label_parts(state.shown);
         if let Some(count) = count {
             let count = format!("+{count}");

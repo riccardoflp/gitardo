@@ -4,10 +4,11 @@
 use model::compare::{CompareSide, Diverged, FileList, Side, SummaryInput, summary};
 use model::state::ChangeKind;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Button, ButtonKind, Icon, Label, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
+use ui::{AccessRole, Button, ButtonKind, Label, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
 
 use super::parts::{commits, commits_height, narrow_to_path, set_mode, swap};
 use super::{CompareIntent, CompareRead, CompareState};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::compare as words;
 
@@ -125,9 +126,9 @@ fn side(
     intents: &mut Vec<Intent>,
 ) {
     let icon = match &side.side {
-        Side::WorkingTree => Icon::File,
-        Side::Commit(_) if !side.is_followed => Icon::Commit,
-        Side::Commit(_) => Icon::Branch,
+        Side::WorkingTree => icons::EDITED,
+        Side::Commit(_) if !side.is_followed => icons::COMMIT,
+        Side::Commit(_) => icons::BRANCH,
     };
     let tooltip = side.tooltip();
     let button = Button::secondary(&side.name)
@@ -170,7 +171,7 @@ fn file_row(
     let second = &state.target.second;
     if !second.is_working_tree() {
         let tooltip = words::take_file(&second.name, file.kind == ChangeKind::Deleted);
-        let take = Button::icon(Icon::ArrowDown, &tooltip);
+        let take = Button::icon(icons::TAKE_INCOMING, &tooltip);
         let (width, height) = ui.button_size(&take);
         let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
         if ui.button(("take file", index), cell, &take).clicked {
@@ -181,7 +182,7 @@ fn file_row(
         Some(original) => format!("{original} \u{2192} {}", file.path),
         None => file.path.clone(),
     };
-    let open = Button::secondary(&label).kind(ButtonKind::Icon).with_icon(Icon::File);
+    let open = Button::secondary(&label).kind(ButtonKind::Icon).with_icon(icons::FILE);
     let rest = parts.rest();
     let (width, height) = ui.button_size(&open);
     let cell = place(rest, (width.min(rest.width), height), (Align::Start, Align::Center));

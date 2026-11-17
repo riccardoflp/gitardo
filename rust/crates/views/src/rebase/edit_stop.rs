@@ -4,9 +4,10 @@
 use model::contract::{FeatureId, Target};
 use model::rebase::{RebaseStop, StopKind};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Axis, Button, ButtonKind, Icon, Label, Rect, Tone, Ui};
+use ui::{Axis, Button, ButtonKind, Label, Rect, Tone, Ui};
 
 use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::rebase as words;
 
@@ -50,7 +51,7 @@ pub fn edit_stop_view(state: &EditStopState<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
         inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0)),
         spacing.medium,
     );
-    ui.icon_in(parts.left(theme.sizes.icon), Icon::Commit, Tone::Accent);
+    ui.icon_in(parts.left(theme.sizes.icon), icons::COMMIT, Tone::Accent);
     let abort = Button::secondary(words::ABORT)
         .kind(ButtonKind::Outline)
         .with_tooltip(words::ABORT_TOOLTIP);

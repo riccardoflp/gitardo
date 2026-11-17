@@ -7,9 +7,10 @@ use model::file_history::HistoryOf;
 use model::filter::BranchesShown;
 use model::search::SearchMode;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Axis, Button, ButtonKind, Icon, Label, Rect, Tone, Ui};
+use ui::{AccessRole, Axis, Button, ButtonKind, Label, Rect, Tone, Ui};
 
 use super::SearchIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::search as words;
 
@@ -71,7 +72,7 @@ pub fn list_mode_view(state: &ListMode<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0)),
             spacing.medium,
         );
-        ui.icon_in(parts.left(theme.sizes.icon), Icon::Filter, Tone::Accent);
+        ui.icon_in(parts.left(theme.sizes.icon), icons::FILTER, Tone::Accent);
         let button = Button::secondary(words::SHOW_ALL_COMMITS).kind(ButtonKind::Outline);
         let (width, height) = ui.button_size(&button);
         let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));

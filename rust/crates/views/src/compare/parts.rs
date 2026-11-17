@@ -3,9 +3,10 @@
 
 use model::compare::{COMMIT_LIMIT, CommitSide, CompareMode, CompareView, ComparedCommit, Side};
 use ui::layout::{Align, Area, place};
-use ui::{Button, ButtonKind, Icon, InputBox, Key, Label, NamedKey, Rect, TextKind, Tone, Ui};
+use ui::{Button, ButtonKind, InputBox, Key, Label, NamedKey, Rect, TextKind, Tone, Ui};
 
 use super::{CompareIntent, CompareRead, CompareState};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::compare as words;
 
@@ -17,7 +18,7 @@ const LISTED: usize = 300;
 /// Feature: compare.swap
 pub fn swap(state: &CompareState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
-    let button = Button::icon(Icon::Refresh, words::SWAP_TOOLTIP);
+    let button = Button::icon(icons::SWAP, words::SWAP_TOOLTIP);
     let (width, height) = ui.button_size(&button);
     let cell = place(rect, (width, height), (Align::Center, Align::Center));
     let response = ui.button(("swap", state.id.0), cell, &button);
@@ -126,7 +127,7 @@ pub fn narrow_to_path(state: &CompareState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> 
     let spacing = ui.theme().sizes.spacing;
     let mut parts = Area::with_gap(rect, spacing.medium);
     if state.target.path.is_some() {
-        let clear = Button::icon(Icon::Close, words::SHOW_EVERY_FILE);
+        let clear = Button::icon(icons::CLOSE, words::SHOW_EVERY_FILE);
         let (width, height) = ui.button_size(&clear);
         let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
         if ui.button(("clear path", state.id.0), cell, &clear).clicked {
@@ -271,7 +272,9 @@ fn commit_row(
         label.push_str(&words::also_in(other));
     }
     let also_tooltip = words::also_in_tooltip(other);
-    let mut button = Button::secondary(&label).kind(ButtonKind::Icon).with_icon(Icon::Commit);
+    let mut button = Button::secondary(&label)
+        .kind(ButtonKind::Icon)
+        .with_icon(icons::COMMIT);
     if commit.is_also_in_other_side {
         button = button.with_tooltip(&also_tooltip);
     }

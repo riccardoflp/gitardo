@@ -63,7 +63,7 @@ fn repository(ui: &mut Ui<'_>, area: &mut Area, intents: &mut Vec<GalleryIntent>
     let button = Button::secondary("gitardo")
         .kind(ButtonKind::Pill)
         .with_dot(accent)
-        .with_trailing(Icon::ChevronDown)
+        .with_trailing(Icon::ChevronsUpDown)
         .with_tooltip("Repositories, theme and settings");
     let (width, _) = ui.button_size(&button);
     let rect = control_in(ui, area.left(width), width);
@@ -182,7 +182,7 @@ fn sync(ui: &mut Ui<'_>, area: &mut Area, intents: &mut Vec<GalleryIntent>) {
 fn activity_button(state: &GalleryState, ui: &mut Ui<'_>, area: &mut Area, intents: &mut Vec<GalleryIntent>) {
     let side = metrics::control_height(ui.theme());
     let rect = control_in(ui, area.right(side), side);
-    let button = Button::icon(Icon::Info, "Activity and command log").kind(ButtonKind::Outline);
+    let button = Button::icon(Icon::Activity, "Activity and command log").kind(ButtonKind::Outline);
     let response = ui.button("activity", rect, &button);
     ui.access_expanded(response.id, state.is_activity_open);
     if response.clicked {

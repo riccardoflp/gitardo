@@ -4,11 +4,12 @@
 //! and **Theme…**.
 
 use model::filter::{Kinds, ReferenceKind};
-use ui::{Button, ButtonKind, Icon, MenuEntry, MenuItem, Ui};
+use ui::{Button, ButtonKind, MenuEntry, MenuItem, Ui};
 
 use super::fold::{FoldAllEntry, FoldAllState, fold_all_view};
 use super::intent::{GraphIntent, Switches, TimelineSwitch};
 use super::switches::{FirstParentState, SelectedTrace, first_parent_view, trace_selected_view};
+use crate::icons;
 use crate::intent::{FilterIntent, Intent};
 use crate::text::filter as filter_words;
 use crate::text::header as words;
@@ -127,7 +128,7 @@ fn switch_words(switch: TimelineSwitch) -> &'static str {
 fn switch_item(switches: Switches, switch: TimelineSwitch) -> MenuEntry<'static, MoreCommand> {
     let item = MenuItem::new(switch_words(switch), MoreCommand::Switch(switch));
     MenuEntry::Item(if switches.is_on(switch) {
-        item.with_icon(Icon::Check)
+        item.with_icon(icons::CHOSEN)
     } else {
         item
     })
@@ -148,7 +149,7 @@ fn timeline_entries(menu: TimelineMenu) -> Vec<MenuEntry<'static, MoreCommand>> 
     if menu.drawn == GraphDrawn::WithLines {
         let fold = MenuItem::new(words::FOLD_ALL, MoreCommand::FoldAll(FoldAllEntry::Fold));
         let fold = match (menu.is_all_folded, menu.has_merges) {
-            (true, _) => fold.with_icon(Icon::Check),
+            (true, _) => fold.with_icon(icons::CHOSEN),
             (false, true) => fold,
             (false, false) => fold.disabled(),
         };
@@ -182,8 +183,8 @@ pub(crate) fn kind_entries(kinds: Option<Kinds>) -> Vec<MenuEntry<'static, MoreC
         let item = MenuItem::new(label, MoreCommand::Kind(kind));
         MenuEntry::Item(match kinds {
             None => item.disabled().with_shortcut(filter_words::CHOSEN_IN_FILTER),
-            Some(kinds) if kinds.has(kind) && kinds.count() == 1 => item.with_icon(Icon::Check).disabled(),
-            Some(kinds) if kinds.has(kind) => item.with_icon(Icon::Check),
+            Some(kinds) if kinds.has(kind) && kinds.count() == 1 => item.with_icon(icons::CHOSEN).disabled(),
+            Some(kinds) if kinds.has(kind) => item.with_icon(icons::CHOSEN),
             Some(_) => item,
         })
     })
@@ -198,7 +199,7 @@ pub(crate) fn kind_entries(kinds: Option<Kinds>) -> Vec<MenuEntry<'static, MoreC
 /// Feature: graph.more-menu
 pub fn more_menu_view(state: &MoreMenuState, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
-    let button = Button::icon(Icon::More, words::MORE).kind(ButtonKind::Outline);
+    let button = Button::icon(icons::MORE, words::MORE).kind(ButtonKind::Outline);
     let entries = menu_entries(state);
     let switches = state.timeline.map_or(Switches::DEFAULT, |timeline| timeline.switches);
     match ui.menu_button(MORE_MENU, rect, &button, &entries) {
@@ -313,7 +314,7 @@ fn ways_entries(operations: OperationsMenu, has_submodules: bool) -> Vec<MenuEnt
 /// timeline; the ways to the pages and **Select repository…**; **Switch identity…**; **Load pull requests from
 /// GitHub** when the main remote is on GitHub; then **Settings** and **Theme…**.
 fn menu_entries(state: &MoreMenuState) -> Vec<MenuEntry<'static, MoreCommand>> {
-    let refresh = MenuItem::new(words::REFRESH, MoreCommand::Refresh).with_icon(Icon::Refresh);
+    let refresh = MenuItem::new(words::REFRESH, MoreCommand::Refresh).with_icon(icons::READ_AGAIN);
     let mut entries = vec![MenuEntry::Item(if state.can_refresh {
         refresh
     } else {

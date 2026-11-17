@@ -11,6 +11,7 @@ use ui::{Button, ButtonKind, Icon, Label, Rect, Sense, TextKind, Tone, Ui};
 use super::decide::{bottom_and_folded, choose_view};
 use super::lines::{Look, code_line, gutter_width, origin_bars};
 use super::{CardAi, CardProposal, ConflictCard, Layout, NumberedLine, ProposedLine, ReviewIntent};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::review as words;
 
@@ -291,7 +292,7 @@ fn plain_line(ui: &mut Ui<'_>, (row, gutter): (Rect, f32), (number, text, color)
 /// (`conflicts.open-file`).
 fn title(state: &CardState<'_>, ui: &mut Ui<'_>, row: Rect, intents: &mut Vec<Intent>) {
     let mut area = Area::with_gap(row, ui.theme().sizes.spacing.small);
-    if fold_arrow(ui, &mut area, ("fold", Icon::ChevronDown, words::FOLD)) {
+    if fold_arrow(ui, &mut area, ("fold", icons::UNFOLDED, words::FOLD)) {
         intents.push(Intent::Review(ReviewIntent::Fold(state.card.key.clone(), true)));
     }
     let said = words::conflict_at(state.card.line);
@@ -363,7 +364,7 @@ fn warnings(ui: &mut Ui<'_>, row: Rect, proposal: &CardProposal) {
     };
     let mut area = Area::with_gap(row, ui.theme().sizes.spacing.small);
     let side = ui.theme().sizes.row_height;
-    ui.icon_in(area.left(side), Icon::Warning, Tone::Warning);
+    ui.icon_in(area.left(side), icons::WARNING, Tone::Warning);
     let cell = area.rest();
     let _ = ui.label(cell, &Label::new(&said).tone(Tone::Warning));
     let whole: Vec<String> = proposal.warnings.iter().map(words::warning).collect();

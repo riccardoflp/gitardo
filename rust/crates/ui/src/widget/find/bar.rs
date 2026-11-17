@@ -102,8 +102,8 @@ impl Ui<'_> {
             self.request_frame_at(now);
         }
         let mut step = None;
-        let mut previous_button = Button::icon(Icon::ArrowUp, "Previous match (Shift+Enter)");
-        let mut next_button = Button::icon(Icon::ArrowDown, "Next match (Enter)");
+        let mut previous_button = Button::icon(Icon::ChevronUp, "Previous match (Shift+Enter)");
+        let mut next_button = Button::icon(Icon::ChevronDown, "Next match (Enter)");
         if total == 0 {
             previous_button = previous_button.disabled();
             next_button = next_button.disabled();

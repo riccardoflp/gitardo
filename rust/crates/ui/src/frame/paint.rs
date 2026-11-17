@@ -103,7 +103,7 @@ impl Ui<'_> {
         width
     }
 
-    /// Draws an icon of Gitardo's set, its top left corner at a point and its side `size` logical pixels.
+    /// Draws an icon of Lucide's, its top left corner at a point and its side `size` logical pixels.
     pub fn icon(&mut self, icon: Icon, origin: Point, size: f32, color: Color) {
         if color.is_transparent() {
             return;

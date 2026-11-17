@@ -58,6 +58,11 @@ pub(crate) fn size(value: i32) -> u32 {
     u32::try_from(value).unwrap_or(0)
 }
 
+/// A coordinate of a library that works in `f64` as one of drawing, to the nearest `f32`.
+pub(crate) fn narrowed(value: f64) -> f32 {
+    value as f32
+}
+
 /// A float as an unsigned key for a cache, rounded, zero when negative.
 pub(crate) fn key(value: f32) -> u32 {
     value.round().max(0.0) as u32

@@ -10,6 +10,7 @@ use ui::{Button, ButtonKind, Label, Rect, TextKind, Tone, Ui};
 use super::rows::Page;
 use super::{CommitPageIntent, CommitPageState, PageData, show_in_graph};
 use crate::details::{FilesOwner, layout_buttons};
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::dates::full_date;
 use crate::text::details as words;
@@ -195,7 +196,7 @@ fn key_line(ui: &mut Ui<'_>, rect: Rect, key: &str) -> Rect {
 /// changes one after the other in one Diff page.
 fn actions(ui: &mut Ui<'_>, rect: Rect, head: &PageHead<'_>, intents: &mut Vec<Intent>) {
     let mut parts = Area::with_gap(rect, ui.theme().sizes.spacing.medium);
-    let show = Button::outline(words::SHOW_IN_TIMELINE).with_icon(ui::Icon::Branch);
+    let show = Button::outline(words::SHOW_IN_TIMELINE).with_icon(icons::TIMELINE);
     let width = ui.button_size(&show).0;
     intents.extend(ui.clip(parts.left(width), |ui| show_in_graph(head.state, ui)));
     if !head.data.detail.files.is_empty() {

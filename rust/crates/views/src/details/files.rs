@@ -7,10 +7,11 @@ use std::collections::BTreeSet;
 use model::details::TreeNode;
 use model::state::{ChangeKind, FileChange};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, ButtonKind, Color, Icon, Label, Point, Rect, TextKind, TextRun, Tone, Ui};
+use ui::{Button, ButtonKind, Color, Label, Point, Rect, TextKind, TextRun, Tone, Ui};
 
 use crate::commit_page::{CommitPageId, CommitPageIntent};
 use crate::details::DetailsIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::details as words;
 
@@ -184,8 +185,8 @@ pub(crate) fn layout_buttons(
     let mut intents = Vec::new();
     let side = ui.theme().sizes.control_height;
     for (choice, icon, said) in [
-        (FileLayout::Tree, Icon::Folder, words::AS_TREE),
-        (FileLayout::List, Icon::Minus, words::AS_LIST),
+        (FileLayout::Tree, icons::TREE, words::AS_TREE),
+        (FileLayout::List, icons::LIST, words::AS_LIST),
     ] {
         let kind = if choice == layout {
             ButtonKind::Secondary
@@ -214,11 +215,7 @@ pub(crate) fn directory_row(ui: &mut Ui<'_>, rect: Rect, (owner, row): (FilesOwn
     };
     let indent = indent_of(ui, depth);
     let cell = Rect::new(rect.x + indent, rect.y, (rect.width - indent).max(0.0), rect.height);
-    let arrow = if is_folded {
-        Icon::ChevronRight
-    } else {
-        Icon::ChevronDown
-    };
+    let arrow = if is_folded { icons::FOLDED } else { icons::UNFOLDED };
     let button = Button::secondary(name).kind(ButtonKind::Icon).with_icon(arrow);
     let (width, height) = ui.button_size(&button);
     let placed = place(
@@ -272,7 +269,7 @@ pub(crate) fn file_start(ui: &mut Ui<'_>, rect: Rect, (file, depth): (&FileChang
         max_width: None,
     };
     let _ = ui.text(&run);
-    ui.icon_in(parts.left(theme.sizes.icon), Icon::File, Tone::Muted);
+    ui.icon_in(parts.left(theme.sizes.icon), icons::FILE, Tone::Muted);
     parts.rest()
 }
 

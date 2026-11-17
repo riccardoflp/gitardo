@@ -4,8 +4,9 @@
 use std::path::Path;
 
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Axis, Button, ButtonKind, Icon, Label, Rect, Sense, Tone, Ui};
+use ui::{AccessRole, Axis, Button, ButtonKind, Label, Rect, Sense, Tone, Ui};
 
+use crate::icons;
 use crate::intent::Intent;
 use crate::text::worktree as words;
 
@@ -54,9 +55,9 @@ pub fn banner(state: &BannerState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             spacing.medium,
         );
         let icon = if state.is_submodule {
-            Icon::Folder
+            icons::SUBMODULE
         } else {
-            Icon::Worktree
+            icons::WORKTREE
         };
         ui.icon_in(parts.left(theme.sizes.icon), icon, Tone::Accent);
         let back = words::back_to(&state.window_name);
