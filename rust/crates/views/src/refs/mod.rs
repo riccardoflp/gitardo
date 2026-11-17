@@ -3,8 +3,8 @@
 //! (`refs.filter`) and, while its filter lists less than everything, the line of what it lists (`refs.scope-line`);
 //! under them **Favorites** and **Recent**, the local branches each with the dot of its lane, the branches of each
 //! remote under its name, and **Kept aside**: the stashes, the worktrees, the tags and the submodules, in lists that
-//! open and close. The branches the timeline leaves out are dimmed (`filter.list-too`). In the narrow layout it shows
-//! only the button of its filter, the dots and the icons.
+//! open and close. The branches the timeline leaves out are dimmed (`filter.list-too`). Narrower than the side column
+//! can be dragged, it shows only the button of its filter, the dots and the icons.
 
 mod draw;
 mod entry;
@@ -36,7 +36,7 @@ use ui::{AccessRole, Axis, Button, ButtonKind, InputBox, Key, Label, NamedKey, R
 use crate::graph::HoverTarget;
 use crate::icons;
 use crate::intent::{Intent, RailIntent, RailLists};
-use crate::line::is_narrow;
+use crate::line::is_icon_rail;
 use crate::text::rail as words;
 use draw::{Context, RailReport, draw_row, row_height};
 use rows::{is_filter_offered, rail_rows};
@@ -136,7 +136,7 @@ pub(crate) fn rail_view(
         rect.height,
     );
     ui.separator(edge, Axis::Vertical);
-    let is_icons = is_narrow(ui);
+    let is_icons = is_icon_rail(rect.width);
     let spacing = theme.sizes.spacing;
     let across = if is_icons {
         spacing.small + spacing.tiny
@@ -164,14 +164,13 @@ pub(crate) fn rail_view(
                 .intents
                 .extend(ui.clip(area.top(theme.sizes.control_height), |ui| scope_line_view(&line, ui)));
         }
-        lists(state, ui, area.rest(), &mut report);
+        lists((state, is_icons), ui, area.rest(), &mut report);
     });
     (report.intents, report.hover)
 }
 
 /// The lists of the rail, in an area that scrolls.
-fn lists(state: &ReferencesState<'_>, ui: &mut Ui<'_>, rect: Rect, report: &mut RailReport) {
-    let is_icons = is_narrow(ui);
+fn lists((state, is_icons): (&ReferencesState<'_>, bool), ui: &mut Ui<'_>, rect: Rect, report: &mut RailReport) {
     let rows = rail_rows(state, is_icons);
     let heights: Vec<f32> = rows.iter().map(|row| row_height(ui, row, rect.width)).collect();
     let height: f32 = heights.iter().sum();

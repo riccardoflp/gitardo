@@ -96,7 +96,9 @@ fn window(repositories: &Repositories) -> State {
 /// The tabs as the island is given them.
 fn tabs(state: &State) -> Vec<TabEntry> {
     let data = ViewData::new(state, Vec::new(), 0);
-    data.window_state(state).tabs.map_or_default(|tabs| tabs.tabs.to_vec())
+    data.window_state(state)
+        .side
+        .map_or_default(|side| side.tabs.tabs.to_vec())
 }
 
 /// The labels of the **▾** of a tab.

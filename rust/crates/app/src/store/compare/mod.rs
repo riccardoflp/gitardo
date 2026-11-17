@@ -3,6 +3,8 @@
 //! comparisons opened before in each repository (`compare.recent`), and the comparison in the inspector
 //! (`compare.in-place`).
 
+pub mod beside;
+pub mod chooser;
 pub mod in_place;
 mod intents;
 
@@ -37,6 +39,8 @@ pub struct Compares {
     pub recent: Vec<(PathBuf, Vec<RecentComparison>)>,
     /// The comparison in the inspector, while it is shown.
     pub in_place: Option<in_place::InPlace>,
+    /// The comparison chooser, while it is open (`compare.chooser`).
+    pub chooser: Option<chooser::Chooser>,
 }
 
 /// How far a comparison page is read.
@@ -73,6 +77,8 @@ pub struct ComparePage {
     pub typed: String,
     /// Whether **Show all N commits…** was clicked.
     pub is_all_commits_shown: bool,
+    /// The files shown beside it, while one is (`compare.beside-diff`).
+    pub beside: Option<beside::Beside>,
 }
 
 impl ComparePage {
@@ -89,6 +95,11 @@ impl ComparePage {
             ..self.target.clone()
         }
     }
+}
+
+/// A page, to change.
+fn page_mut(state: &mut State, id: ComparePageId) -> Option<&mut ComparePage> {
+    state.compares.pages.iter_mut().find(|page| page.id == id)
 }
 
 /// The title of a comparison page.
@@ -133,8 +144,8 @@ fn remember(state: &mut State, folder: &Path, target: &ComparisonTarget) {
     }
 }
 
-/// What `FollowUp::OpenComparison` opens: the page whose side was being changed compares the new pair; otherwise the
-/// page of the pair in the repository shown, opened once.
+/// What `FollowUp::OpenComparison` opens: the page whose side was being changed compares the new pair, with the path it
+/// had when both sides were chosen again; otherwise the page of the pair in the repository shown, opened once.
 pub fn opened(state: &mut State, target: ComparisonTarget) -> Vec<Effect> {
     let target = ComparisonTarget {
         part: ComparisonPart::Whole,
@@ -143,6 +154,10 @@ pub fn opened(state: &mut State, target: ComparisonTarget) -> Vec<Effect> {
     if let Some(id) = state.compares.changing.take()
         && let Some(page) = state.compares.pages.iter_mut().find(|page| page.id == id)
     {
+        let target = ComparisonTarget {
+            path: target.path.or_else(|| page.target.path.clone()),
+            ..target
+        };
         page.title = title_of(&target);
         page.target = target.clone();
         let folder = page.folder.clone();
@@ -188,6 +203,7 @@ pub fn open_page(
         read: PageRead::Comparing,
         job: None,
         is_all_commits_shown: false,
+        beside: None,
     });
     super::pages::show_page(state, Page::Compare(id));
     let mut effects: Vec<Effect> = read_again(state, id).into_iter().collect();
@@ -224,9 +240,19 @@ fn read_again(state: &mut State, id: ComparePageId) -> Vec<Effect> {
 /// dropped.
 pub fn comparison_read(state: &mut State, job: JobId, result: Result<Box<ComparisonRead>, String>) -> Vec<Effect> {
     let _finished = state.jobs.remove(&job);
+    if state
+        .compares
+        .chooser
+        .as_ref()
+        .is_some_and(|chooser| chooser.summary_job == Some(job))
+    {
+        chooser::summary_read(state, result);
+        return Vec::new();
+    }
     let Some(page) = state.compares.pages.iter_mut().find(|page| page.job == Some(job)) else {
         return Vec::new();
     };
+    let id = page.id;
     page.job = None;
     match result {
         Ok(read) => {
@@ -240,7 +266,7 @@ pub fn comparison_read(state: &mut State, job: JobId, result: Result<Box<Compari
             state.last_error = Some(error);
         }
     }
-    Vec::new()
+    beside::follow_read(state, id)
 }
 
 /// Forgets the pages closed, and cancels their reads.

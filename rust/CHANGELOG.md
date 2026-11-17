@@ -64,6 +64,47 @@
   more, and the arrows, `Home`, `End`, `PageUp` and `PageDown` keep the entry lit in view. The pickers get the same
   bar, `Home` and `End` while nothing is typed, and the list of the branch filter a row lit that the arrows move,
   stepping over the headings, and that `Enter` ticks.
+- **Compare branches, tags or commits…** opens one dialog at the top of the window in place of two questions: **From**,
+  holding what is checked out, and **To**, side by side with the arrows that swap them; under them a field that filters
+  the list of what the box being chosen can be, under **Checked out**, **Branches**, **Remote branches**, **Tags** and
+  **Recent commits**, each with its short hash and its date. A revision git knows, as `HEAD~3`, is offered as **Use
+  `HEAD~3`**; a text it does not know offers nothing and says so. **Opened before** at its foot opens a comparison as it
+  was; once both sides are chosen the dialog says how far apart they are, and **Compare** or `Enter` opens them. A
+  click on a side of a comparison page opens the same dialog holding both sides, with the side clicked being chosen.
+- A file of a comparison page opens its diff on the left of the page, and the comparison stays on the right as a
+  column: its two sides with the arrows that swap them, how far apart they are, **Commits** folded, and the files as a
+  tree with the file shown marked. A click on another file shows it in the same place, `Alt+Down` and `Alt+Up` go to the
+  next and the previous file, and swapping shows the same file the other way. `Escape` or the comparison in the trail
+  gives back the whole page, scrolled where it was; the side column is put away while the diff is shown.
+- Beside a Diff page opened from the inspector, the inspector is the column of the commit's files: at its top the
+  commit in one line, its short hash and its subject, with its author and its date in its tooltip, which a click
+  takes back to the timeline; under it the files of the commit as a tree, the folders as they were left. The side
+  column is put away while the diff is shown and comes back at its width with the timeline.
+- What an operation said when it ended, and the notices of the window, are said in the status bar after what is
+  running, no longer in a bar under the header: the icon of their tone, the words cut with `…` and whole in their
+  tooltip, then **Undo**, what is offered next (**Create pull request**, **Show stashes**…) as links, and **×**. What
+  succeeded goes ten seconds after it was said, or after the pointer left it; a warning or an error stays until **×**,
+  an error in the color of errors. A click on the words opens the Command log. The identity at the end of the status
+  bar gives up its room first, then the words of what is running.
+- The repositories open are no longer tabs in an island above the header: they are the rows of **Repositories**, the
+  first section of a side column on the left of the window, from under the header to the status bar, with **Branches**
+  (the branch rail) under it. Each row is two lines high: the name of the repository, with the worktree or the
+  submodule it shows after ` › `, a spinner while an operation runs in it and its **▾**; then, small and muted, what it
+  is on: its branch, `● 3` in the color of changes when 3 files are changed, `↓2 ↑1` when there are commits to pull and
+  to push. The row shown has the background of a row selected and a bar of the accent on its left; its context menu
+  has **Close tab**, **Close other tabs**, **Reveal in File Explorer** and **Copy path**; the rows scroll when they do
+  not fit. Each section folds by its heading, the line between them is dragged to share the height, and both are kept
+  for the workspace. The column stays beside every page, and the first button at the top of the timeline puts it away
+  or brings it back. In a window narrower than 900 px it is put away, and that button opens it over the timeline until
+  a click outside it or `Escape`.
+- The header is a bar on the ground of the window, across its whole width on the right of the bar of views, above the
+  side column and every page, and starts with where one is: `api › login › feature/login`, the repository opening the
+  list of the repositories open, the worktree or the submodule, with its icon, opening the menu of its row, and the
+  branch with its folder in its tooltip. The branch no longer says how far it is from its upstream: **Sync** says it.
+- What each repository open and each of its worktrees is on is read in the background, one folder after the other,
+  once when the window opens and again when its git folder or its files change, at most once in two seconds for each:
+  the rows of **Repositories** and the entries of their **▾** say the branch, the files changed and the commits to
+  pull and to push of each, and `missing` for a worktree whose folder is gone.
 - The Terminal tab of the bottom panel runs a shell in the folder of the repository tab shown: PowerShell 7 on Windows
   when it is installed, else Windows PowerShell, the shell of `SHELL` on Linux and macOS, or the one of
   `terminal.shellPath`. It shows the colors of what programs print, 16 from the theme, 256 and 24-bit, in the font of

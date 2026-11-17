@@ -1,11 +1,11 @@
 //! What the island of the tabs and the pickers of the tabs are drawn from (`repo.tabs`, `repo.open-tab`,
 //! `repo.choose-tabs`).
 
-use model::repo::{group_tabs, name_repositories};
+use model::repo::{WorktreeSummary, group_tabs, name_repositories};
 use views::graph::RepositoryEntry;
-use views::repo::{TabEntry, TabsPickerKind, TabsPickerState, TabsState};
+use views::repo::{TabEntry, TabSummary, TabsPickerKind, TabsPickerState, TabsState};
 
-use super::super::state::{Dialog, State};
+use super::super::state::{Dialog, Shown, State};
 use super::menu::{TabShows, tab_name};
 use crate::persisted::same_folder;
 
@@ -95,6 +95,29 @@ fn not_open(state: &State, repositories: &[RepositoryEntry]) -> Vec<RepositoryEn
         .collect()
 }
 
+/// What a row or an entry of its **▾** says a folder is on (`repo.worktree-summary`): the folder shown from its own
+/// read; any other from its read in the background, or before that from what its tab read last; none before.
+fn summary_of(state: &State, (folder, tab): (&std::path::Path, &super::Tab)) -> Option<TabSummary> {
+    let is_shown = state.shown_folder().is_some_and(|shown| same_folder(shown, folder));
+    let read = if is_shown {
+        state.workspace.as_ref().map(|workspace| &workspace.shown)
+    } else if let Some(summary) = state.tabs.summaries.of(folder) {
+        return Some(summary.clone());
+    } else {
+        tab.kept
+            .as_ref()
+            .filter(|kept| super::kept_folder(kept).is_some_and(|kept| same_folder(kept, folder)))
+            .and_then(|kept| kept.shown.as_ref())
+    };
+    match read? {
+        Shown::Read(read) => Some(TabSummary {
+            summary: WorktreeSummary::of_state(&read.state),
+            is_stale: false,
+        }),
+        Shown::Looking | Shown::Reading { .. } | Shown::NoRepository => None,
+    }
+}
+
 /// The tabs as the island draws them: each by the name of its repository among those of the workspace, with the
 /// worktree or the submodule it shows after ` › ` (`repo.group-tabs`), the folder of what it shows for its tooltip,
 /// and the repositories of its group for its **▾**.
@@ -110,11 +133,18 @@ fn entries(state: &State, repositories: &[RepositoryEntry]) -> Vec<TabEntry> {
                 .iter()
                 .find(|entry| same_folder(&entry.folder, &tab.folder))
                 .map_or_else(|| tab.folder.display().to_string(), |entry| entry.name.clone());
-            let shows = TabShows::new(state, (index, tab), &groups, &own);
+            let mut shows = TabShows::new(state, (index, tab), &groups, &own);
+            for member in &mut shows.members {
+                member.summary = summary_of(state, (&member.folder, tab));
+            }
+            let is_shown = state.tabs.shown == Some(index);
             TabEntry {
                 name: tab_name(&own, shows.shown_label.as_deref()),
+                summary: summary_of(state, (&shows.folder, tab)),
+                repository: own,
+                place: shows.place,
                 folder: shows.folder.display().to_string(),
-                is_shown: state.tabs.shown == Some(index),
+                is_shown,
                 is_running: super::operation_tab(state) == Some(index),
                 members: shows.members,
             }

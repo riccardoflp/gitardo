@@ -164,7 +164,7 @@ fn repo_open_tab__with_only_api_open_plus_lists_web_and_docs_and_web_opens_after
     open_asking(&mut state, &work, &found);
     let _opened = act(&mut state, Intent::TabsChosen(Some(vec![0])), &found);
     let data = view_data(&state);
-    let island = data.window_state(&state).tabs.unwrap();
+    let island = data.window_state(&state).side.unwrap().tabs;
     let offered: Vec<PathBuf> = island.not_open.iter().map(|entry| entry.folder.clone()).collect();
     assert_eq!(offered, repositories[1..]);
     let _web = act(&mut state, Intent::OpenTab(repositories[1].clone()), &found);

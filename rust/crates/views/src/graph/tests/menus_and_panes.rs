@@ -150,14 +150,18 @@ fn graph_resize_panes__the_inspector_starts_at_320_px_and_a_size_larger_than_the
 }
 
 #[test]
-fn graph_view__narrowing_the_window_shows_the_rail_as_icons_and_the_inspector_over_the_commits() {
+fn graph_view__narrowing_the_window_puts_the_side_column_away_and_the_inspector_over_the_commits() {
+    let place = crate::SidePlace::default();
+    assert!(place.is_shown(false), "beside the commits in a wide window");
+    assert!(!place.is_shown(true), "put away in a narrow one");
     let layout = PaneLayout {
-        icon_rail: Some(56.0),
+        is_rail_hidden: !place.is_shown(true),
         is_inspector_over: true,
         ..panes(650.0, PaneSizes::default())
     };
     let rects = pane_rects(&layout, 1.0);
-    assert_eq!(rects.rail.map(|rail| rail.width), Some(56.0));
+    assert_eq!(rects.rail, None);
+    assert_eq!(rects.main.x, 0.0);
     let inspector = rects.inspector.unwrap_or_else(|| panic!("no inspector"));
     assert_eq!(inspector.x, rects.main.x);
     assert_eq!(inspector.width, rects.main.width);

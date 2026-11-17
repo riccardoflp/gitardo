@@ -240,6 +240,6 @@ pub(super) fn reduce_file_intent(state: &mut State, intent: views::Intent) -> Ve
     clippy::cast_sign_loss,
     reason = "the width is kept between zero and the most a u16 counts first"
 )]
-fn whole_pixels(width: f32) -> u16 {
+pub(crate) fn whole_pixels(width: f32) -> u16 {
     width.round().clamp(0.0, f32::from(u16::MAX)) as u16
 }

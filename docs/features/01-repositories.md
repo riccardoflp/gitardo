@@ -465,7 +465,8 @@ Acceptance:
 - [ ] The tooltip of a read asked for by a change says which file changed.
 - [ ] In a window 1000 pixels wide, a read of 2 s says `Reading app (2 s)` in the status bar, and the identity is at
   its end; a click on the identity asks to switch it.
-- [ ] With `main` two ahead of `origin/main`, the branch of the header says `main ↑2 ↓0`.
+- [ ] With `main` two ahead of `origin/main`, the header names `main` without how far it is, and **Sync** says `↑2`
+      (Q500).
 
 ### `activity.said` — What was said, in the status bar
 
@@ -670,7 +671,7 @@ The branch checked out in a repository or a worktree, how many files are changed
 pull and to push, for the rows of **Repositories** and the entries of their **▾**.
 
 - **Kind**: Read
-- **Function**: `git::read::worktree_summary(folder: &Path) -> WorktreeSummary`
+- **Function**: `git::read::summary::worktree_summary(folder: &Path) -> Result<WorktreeSummary, GitError>` (Q505)
 - **Reads**: `git status --porcelain=v2 --branch --untracked-files=normal` in the folder: the branch or the detached
   commit from its `# branch.head` and `# branch.oid` lines, the commits ahead and behind from `# branch.ab`, the files
   changed from the count of its other lines.

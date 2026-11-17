@@ -163,6 +163,10 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
         Message::TabChanged { folder, changes, at } => tabs::tab_changed(state, &folder, &changes, at),
         Message::Wake { at } => reads::wake(state, at),
+        Message::SummariesRead(reads) => {
+            tabs::summaries_read(state, reads);
+            Vec::new()
+        }
         Message::Minimized(is_minimized) => reads::minimized(state, is_minimized),
         Message::ReadTook { line, took, time } => {
             reads::read_took(state, (line, took, time));
@@ -173,14 +177,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::Task(message) => tasks::reduce_message(state, message),
         Message::Terminal(message) => terminals::reduce_message(state, message),
         Message::UrlNotOpened(said) => github::not_opened(state, said),
-        Message::CloseRequested { window_size } => {
-            let mut effects = workspace::cancel_all(state);
-            effects.extend(tabs::cancel_all(state));
-            state.persisted.window_size = window_size.or(state.persisted.window_size);
-            effects.push(Effect::WritePersisted(state.persisted.clone()));
-            effects.push(Effect::Quit);
-            effects
-        }
+        Message::CloseRequested { window_size } => workspace::close_requested(state, window_size),
     }
 }
 
@@ -381,17 +378,9 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         | Intent::TabsChosen(_)
         | Intent::CloseTab(_)
         | Intent::CloseOtherTabs(_)
-        | Intent::CloseTabShown => tabs::reduce(state, intent),
-        Intent::ReadRepository => {
-            state.reads.is_not_read = false;
-            look_again(state, false)
-        }
-        Intent::CheckAgain | Intent::Refresh if state.reads.is_not_read => {
-            state.reads.is_not_read = false;
-            look_again(state, false)
-        }
-        Intent::Refresh if state.reads.schedule.is_reading() => reads::asked(state, model::repo::ReadCause::Refresh),
-        Intent::CheckAgain | Intent::Refresh => look_again(state, intent == Intent::Refresh),
+        | Intent::CloseTabShown
+        | Intent::RevealTab(_) => tabs::reduce(state, intent),
+        Intent::ReadRepository | Intent::CheckAgain | Intent::Refresh => read_again(state, &intent),
         Intent::PickTheme
         | Intent::CloseThemePicker
         | Intent::SetSetting(_)
@@ -427,6 +416,19 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::WorktreeSetup(intent) => new_worktrees::reduce(state, intent),
         Intent::Tasks(intent) => tasks::reduce(state, intent),
     }
+}
+
+/// The repository read again: once when it was not read on startup, by **Check again**, or by **Refresh**, which asks
+/// for a read after the one under way.
+fn read_again(state: &mut State, intent: &Intent) -> Vec<Effect> {
+    if *intent == Intent::ReadRepository || state.reads.is_not_read {
+        state.reads.is_not_read = false;
+        return look_again(state, false);
+    }
+    if *intent == Intent::Refresh && state.reads.schedule.is_reading() {
+        return reads::asked(state, model::repo::ReadCause::Refresh);
+    }
+    look_again(state, *intent == Intent::Refresh)
 }
 
 /// Puts the notice shown away.

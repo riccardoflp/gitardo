@@ -120,6 +120,9 @@ pub struct Operations {
 /// What is asked of an operation, or answered to it.
 pub fn reduce(state: &mut State, intent: FeatureIntent) -> Vec<Effect> {
     match intent {
+        // The two sides of a comparison are chosen together in the comparison chooser (`compare.chooser`), which runs
+        // the operation with both answered.
+        FeatureIntent::Run(FeatureId("compare.choose"), _) => super::compare::chooser::open(state),
         FeatureIntent::Run(feature, target) => run(state, feature, target, Answers::new()),
         FeatureIntent::RunWith(feature, target, preset) => run(state, feature, target, preset),
         FeatureIntent::Typed(text) => {
@@ -138,6 +141,12 @@ pub fn reduce(state: &mut State, intent: FeatureIntent) -> Vec<Effect> {
         FeatureIntent::Confirm(is_confirmed) => reply(state, Reply::Confirm(is_confirmed)),
         FeatureIntent::Dismiss => {
             state.operations.said = None;
+            Vec::new()
+        }
+        FeatureIntent::SaidShown(at) => {
+            if let Some(said) = state.operations.said.as_mut() {
+                said.shown_at = Some(at);
+            }
             Vec::new()
         }
     }

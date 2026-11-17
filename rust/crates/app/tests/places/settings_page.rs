@@ -81,7 +81,21 @@ fn settings_sections__a_click_on_worktrees_scrolls_the_list_until_worktrees_is_a
     let (mut state, _repository) = settings_page();
     let mut window = Window::new(ThemeName::Dark, SIZE);
     let top = list_top(&mut window, &state);
-    let intents = window.click(&state, Role::Button, "Worktrees");
+    let (_, tree) = window.draw(&state, &[]);
+    // The button of the section, not the heading of the worktrees of the branch rail beside the page.
+    let (_, button) = tree
+        .nodes
+        .iter()
+        .find(|(_, node)| {
+            node.role() == Role::Button && node.label() == Some("Worktrees") && node.is_selected().is_some()
+        })
+        .unwrap();
+    let intents = super::pointer::click_at(
+        &mut window,
+        &state,
+        middle(super::pointer::rect(button.bounds().unwrap())),
+        1,
+    );
     assert_eq!(
         intents,
         vec![Intent::Settings(SettingsIntent::Reveal(SettingsAnchor::Section(

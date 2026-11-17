@@ -26,6 +26,8 @@ pub struct Said {
     /// The words of a button that opens an address in the browser, and the address: **Create pull request** after the
     /// first push of a branch (`github.offer-after-push`).
     pub link: Option<(String, String)>,
+    /// When it was first drawn, or the pointer was last on it, counted from when the window opened (`activity.said`).
+    pub shown_at: Option<std::time::Duration>,
 }
 
 impl Said {
@@ -47,6 +49,7 @@ impl Said {
             stopped: None,
             runs: Vec::new(),
             link: None,
+            shown_at: None,
         }
     }
 }

@@ -97,7 +97,9 @@ fn graph_toolbar__while_a_fetch_runs_sync_pull_and_push_cannot_be_clicked() {
     );
     let _ended = confirm_until_ended(&driver, &mut state);
     assert!(!state.is_operation_running);
-    let (_, tree) = window.draw(&state, &[]);
+    // What was said is drawn, and the store keeps when (`activity.said`).
+    let (shown, tree) = window.draw(&state, &[]);
+    super::pointer::apply(&mut state, shown);
     if !has(&tree, Role::MenuItem, words::PULL) {
         let _menu = window.click(&state, Role::Button, words::SYNC_MENU);
     }

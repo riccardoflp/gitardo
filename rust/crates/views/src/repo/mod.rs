@@ -1,12 +1,19 @@
-//! The repositories of the workspace: the island of the tabs (`repo.tabs`), what the timeline says while there is none
-//! to show (`repo.no-repository`), the picker of the repositories (`repo.select`), and the question asked when a folder
-//! is opened while the window shows a workspace (`repo.open-folder`).
+//! The repositories of the workspace: the side column (`repo.side-column`) and its **Repositories** (`repo.tabs`), what
+//! each repository is on (`repo.worktree-summary`), what the timeline says while there is none to show
+//! (`repo.no-repository`), the picker of the repositories (`repo.select`), and the question asked when a folder is
+//! opened while the window shows a workspace (`repo.open-folder`).
 
-mod fit;
+mod side_column;
+mod summary;
 mod tabs;
 
-pub use fit::{Fit, TAB_LEAST, fit_tabs};
-pub use tabs::{ONE_BUTTON_BELOW, TAB_MOST, TabEntry, TabMemberEntry, TabsState, cut_at_start, tabs_view};
+pub(crate) use side_column::side_column;
+pub use side_column::{
+    REPOSITORIES_START, SECTION_LEAST, SectionRects, SideColumnState, SideSections, repositories_height, section_rects,
+    side_column_view,
+};
+pub use summary::{TabSummary, counts_words, head_words};
+pub use tabs::{TabEntry, TabMemberEntry, TabPlace, TabsState, cut_at_start, row_height, rows_height, tabs_view};
 
 use ui::layout::{Align, Area, place};
 use ui::{Button, Dialog, DialogButton, DialogRole, Label, Picker, PickerAnswer, PickerItem, PickerMode, Tone, Ui};

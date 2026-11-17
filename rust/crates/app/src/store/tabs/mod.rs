@@ -12,6 +12,7 @@ mod members;
 mod menu;
 mod open;
 mod operation;
+mod summaries;
 mod view;
 
 use std::path::{Path, PathBuf};
@@ -24,6 +25,7 @@ pub use hidden::{Background, BackgroundRead, changed as tab_changed, follow as f
 pub use members::{Member, group_of, kept_folder, show_in_tab, show_member, tab_of};
 pub use open::{Choosing, choose_tabs, open_tab, repositories_found};
 pub use operation::{AfterOperation, before, operation_started, operation_tab, operation_title, refuse_operation};
+pub use summaries::{Summaries, SummaryEntry, read as summaries_read};
 pub use view::RepositoryView;
 use view::{Answered, put_view, take_view};
 
@@ -42,6 +44,8 @@ pub struct Tabs {
     pub closing: Option<Closing>,
     /// What the window does for the tabs not shown: their watchers, the read of one, the operation (`repo.watch-hidden`).
     pub background: Background,
+    /// What the folders not shown are on, read in the background (`repo.worktree-summary`).
+    pub summaries: Summaries,
 }
 
 /// A repository open in a tab.
@@ -95,8 +99,26 @@ pub fn reduce(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::CloseTab(index) => close_tab(state, index),
         Intent::CloseOtherTabs(index) => close_other_tabs(state, index),
         Intent::CloseTabShown => state.tabs.shown.map_or_default(|shown| close_tab(state, shown)),
+        Intent::RevealTab(index) => reveal_tab(state, index),
         _ => Vec::new(),
     }
+}
+
+/// Shows the folder of the tab shown in the file manager of the system, as `worktree.reveal` does for its worktree;
+/// the menu of a row not shown does not offer it.
+fn reveal_tab(state: &mut State, index: usize) -> Vec<Effect> {
+    let Some(folder) = state
+        .shown_folder()
+        .cloned()
+        .filter(|_| state.tabs.shown == Some(index))
+    else {
+        return Vec::new();
+    };
+    let run = views::feature::FeatureIntent::Run(
+        model::contract::FeatureId("worktree.reveal"),
+        model::contract::Target::Worktree(folder),
+    );
+    super::reduce(state, Message::Intent(Intent::Feature(run)))
 }
 
 /// Marks the tab of the repository shown as the one shown, after a repository was chosen without the tabs.

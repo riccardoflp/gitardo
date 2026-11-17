@@ -72,6 +72,12 @@ Since milestone M14 the entry of each workspace in `panes` of the desktop's `sta
 logical pixels, left out while it is where it starts) and `panelTab` (`"commandLog"`, left out for the terminal). The
 extension has nothing of the kind: its panel is VS Code's.
 
+Since milestone M16 the same entry keeps the side column (`repo.side-column`): `repositories` among its sizes (the
+height of **Repositories** dragged, its heading included, in logical pixels, left out while it is where it starts),
+and `repositoriesFolded` and `branchesFolded` (`true` while that section is folded, left out otherwise). `rail` and
+`railHidden` keep their names and now say the width of the side column and whether it is put away. The extension has
+nothing of the kind: its repositories and its branches are VS Code's side bar.
+
 ## Files in `.git` and in the temporary folder
 
 - **`gitardo-split`**, in `rebase-merge` of the worktree's git folder: the same name and the same meaning in both apps.

@@ -19,6 +19,8 @@ mod remotes_and_stashes;
 mod repositories;
 #[path = "reads/submodules.rs"]
 mod submodules;
+#[path = "reads/summary.rs"]
+mod summary;
 #[path = "reads/working_tree.rs"]
 mod working_tree;
 #[path = "reads/worktree_setup.rs"]

@@ -293,6 +293,9 @@ pub fn searched(state: &mut State, job: JobId, result: SearchResult) -> Vec<Effe
     }
     match result {
         SearchResult::Matches(matches) => matches_read(state, job, matches),
+        SearchResult::Revision(commit) if super::compare::chooser::is_typed_job(state, job) => {
+            super::compare::chooser::revision_read(state, commit)
+        }
         SearchResult::Revision(commit) => go_to::revision_read(state, job, commit),
         SearchResult::Position(position) => go_to::position_read(state, job, position),
     }

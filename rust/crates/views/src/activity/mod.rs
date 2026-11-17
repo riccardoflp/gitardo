@@ -2,6 +2,7 @@
 //! (`activity.what-is-running`).
 
 mod drawer;
+mod said;
 mod tasks;
 #[cfg(test)]
 mod tests;
@@ -18,6 +19,7 @@ use crate::line::is_narrow;
 use crate::text::header;
 
 pub use drawer::{ActivityState, what_is_running_view};
+pub use said::{SAID_FOR, said_view};
 pub use tasks::{TaskId, TaskIntent, TaskRow, TasksState};
 
 /// How long something runs before the activity indicator shows it, so that what is over sooner does not flicker.
@@ -49,7 +51,12 @@ pub struct StatusBarState<'a> {
     pub identity: Option<&'a model::state::Identity>,
     /// Whether an operation runs, while the identity cannot be switched.
     pub is_running: bool,
+    /// What was said last, or a notice of the window, after what runs (`activity.said`).
+    pub said: Option<crate::feature::SaidState<'a>>,
 }
+
+/// The least room what was said keeps: the identity gives its room up first, then the words of what runs.
+const SAID_LEAST: f32 = 240.0;
 
 /// What has run long enough to be shown, the oldest first.
 fn shown(running: &[RunningTask]) -> impl Iterator<Item = &RunningTask> {
@@ -96,8 +103,8 @@ pub fn tooltip(running: &[RunningTask]) -> String {
 /// The status bar, over the rectangle its caller clipped it to: at its start the activity indicator, a spinning icon
 /// with the title of what has run longest and for how long, once it has run for half a second, whose tooltip lists
 /// everything that runs and whose click opens the Activity drawer; at its end the identity commits are made with, which
-/// a click switches (`identity.switch`), when it fits after the indicator. It asks for the frames that make the
-/// indicator appear and its times go on.
+/// a click switches (`identity.switch`), when it fits after the indicator and what was said; between them what was
+/// said last (`activity.said`). It asks for the frames that make the indicator appear and its times go on.
 ///
 /// Feature: activity.status-bar
 pub fn status_bar_view(state: &StatusBarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -106,32 +113,15 @@ pub fn status_bar_view(state: &StatusBarState<'_>, ui: &mut Ui<'_>) -> Vec<Inten
     let spacing = theme.sizes.spacing;
     let bar = ui.current_clip();
     let mut parts = Area::with_gap(inset(bar, Insets::symmetric(spacing.large, 0.0)), spacing.large);
+    let said_least = if state.said.is_some() { SAID_LEAST } else { 0.0 };
     let room = parts.rest().width;
-    let width = indicator_width(state, ui, room);
+    let width = indicator_width(state, ui, room - said_least);
     let indicator = parts.left(width);
     let mut intents = Vec::new();
-    if let Some(identity) = state.identity {
-        let said = crate::text::changes::identity_said(identity.name.as_deref(), identity.email.as_deref());
-        let mut link = Button::secondary(&said)
-            .kind(ButtonKind::Icon)
-            .with_tooltip(crate::text::changes::SWITCH_IDENTITY);
-        if state.is_running {
-            link = link.disabled();
-        }
-        let (width, height) = ui.button_size(&link);
-        if width <= parts.rest().width {
-            let cell = place(
-                parts.right(width),
-                (width, height.min(bar.height)),
-                (Align::Start, Align::Center),
-            );
-            if ui.button("status identity", cell, &link).clicked {
-                intents.push(Intent::Feature(FeatureIntent::Run(
-                    FeatureId("identity.switch"),
-                    Target::Head,
-                )));
-            }
-        }
+    intents.extend(identity_link(state, ui, (&mut parts, said_least)));
+    if let Some(said) = &state.said {
+        let rect = parts.rest();
+        intents.extend(ui.clip(rect, |ui| said_view(said, ui)));
     }
     let Some(longest) = shown(state.running).next() else {
         return intents;
@@ -154,6 +144,37 @@ pub fn status_bar_view(state: &StatusBarState<'_>, ui: &mut Ui<'_>) -> Vec<Inten
     ui.tooltip(&response, &tooltip(state.running));
     if response.clicked {
         intents.push(Intent::OpenActivity);
+    }
+    intents
+}
+
+/// The identity commits are made with, at the end of the status bar, when it fits and leaves what was said its least
+/// room; a click switches it (`identity.switch`), except while an operation runs.
+fn identity_link(state: &StatusBarState<'_>, ui: &mut Ui<'_>, (parts, least): (&mut Area, f32)) -> Option<Intent> {
+    let bar = ui.current_clip();
+    let mut intents = None;
+    if let Some(identity) = state.identity {
+        let said = crate::text::changes::identity_said(identity.name.as_deref(), identity.email.as_deref());
+        let mut link = Button::secondary(&said)
+            .kind(ButtonKind::Icon)
+            .with_tooltip(crate::text::changes::SWITCH_IDENTITY);
+        if state.is_running {
+            link = link.disabled();
+        }
+        let (width, height) = ui.button_size(&link);
+        if width + least <= parts.rest().width {
+            let cell = place(
+                parts.right(width),
+                (width, height.min(bar.height)),
+                (Align::Start, Align::Center),
+            );
+            if ui.button("status identity", cell, &link).clicked {
+                intents = Some(Intent::Feature(FeatureIntent::Run(
+                    FeatureId("identity.switch"),
+                    Target::Head,
+                )));
+            }
+        }
     }
     intents
 }

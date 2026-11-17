@@ -2964,3 +2964,60 @@ card says otherwise.
   stash, the line each had down to its commit. `graph.oneLane` is the one setting under `graph.` whose change, when the
   settings file is read again, asks no read of the repository: it only lays the rows out again. The lanes themselves
   are not changed; `one_lane` is used in their place while the setting is on.
+
+### Of the side column and the pages beside, from Q500
+
+Questions of phases 7 to 11 of milestone M16
+([D56](#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)),
+each built with the reading given until the card says otherwise.
+
+- **Q500** — `activity.status-bar`: its last acceptance line asked the branch of the header to say `main ↑2 ↓0`, which
+  D56 and `graph.where` take away. Built: the line now asks that the header name `main` without how far it is, and that
+  **Sync** say `↑2`.
+- **Q501** — `graph.view`: in the narrow layout the branch rail was narrowed to its icons, where `repo.side-column` puts
+  the side column away. Built: below 900 logical pixels the side column is put away and its button opens it over the
+  timeline, as wide as it was; the rail shows its icons only when it is narrower than 120 logical pixels, which the
+  side column never is.
+- **Q502** — `repo.tabs`: the row of a repository has "the icon of a repository", which the table of `graph.icons` does
+  not have. Built: the icon of a worktree, `folder-git-2`, whose line of the table now says a repository open too: a
+  repository open is the folder of its main worktree, and no other outline is added.
+- **Q503** — `repo.tabs`: **Reveal in the file manager** in the menu of a row not shown would run in a repository the
+  window has not read. Built: the menu of the row shown has it, as `worktree.reveal` does; **Copy path** is on every
+  row and copies the folder of what the row shows.
+- **Q504** — `repo.side-column`: in the narrow layout, **Toggle the Side Column** in Quick search has no button to open
+  the column over. Built: the button at the top of the timeline opens it over the timeline and closes it; Quick search
+  puts it away or brings it back, which is seen once the window is wide again. **Repositories** starts at 160 logical
+  pixels with its heading.
+- **Q505** — `repo.worktree-summary`: its function gave a `WorktreeSummary` alone, where git may fail to run. Built:
+  it gives `Result<WorktreeSummary, GitError>`, a folder gone is `Ok` and said `missing`, and an error leaves the last
+  summary, muted, as the card says. Whether a git folder changed is said by `app::work::summaries::git_folder_changed`,
+  from the times its `HEAD`, its index, `packed-refs`, `FETCH_HEAD` and its folders of refs were written; the store
+  forces a read when the files of the folder change.
+- **Q506** — `activity.said`: a click on its words opens the Command log "at the command that said it", where the
+  Command log keeps no link from what was said to its command. Built: the click shows the Command log of the bottom
+  panel, at its end, where the last command is; what failed keeps its links, and **×** is an icon with **Dismiss** in
+  its tooltip.
+- **Q507** — `diff.beside-inspector`: a click on the commit in one line at the top of the inspector "gives back the
+  whole card", which the inspector beside a Diff page cannot show without leaving the page. Built: the click brings
+  the timeline back, as **Timeline** in the trail does, where the inspector is the whole card of the same commit.
+  `Up` and `Down` in the tree are not built: `Alt+Down` and `Alt+Up` in the Diff page go from file to file.
+- **Q508** — `compare.beside-diff`: each file of the column is to have "its lines gained and lost", which
+  `compare.read-sides` does not read (it gives the status of each file, not its counts). Built: the column shows the
+  letter of the status of each file, as the comparison page does; counts would need `git diff --numstat` in that read.
+- **Q509** — `compare.beside-diff`: **Commits** in the column could hold thousands of commits. Built: unfolded, it lists
+  the first 100 of the comparison, as rows that open the commit page; the comparison page keeps the whole list.
+- **Q510** — `compare.beside-diff`: whether **Open in the Diff page** of the comparison page also opens beside it.
+  Built: yes, every file in one diff on the left with no file marked in the column; `Alt+Down` then shows the first.
+- **Q511** — `compare.beside-diff`: whether the trail's step of the comparison, or `Escape`, closes the Diff page.
+  Built: it is kept, hidden, and shows the next file clicked; it is closed with the comparison page.
+- **Q512** — `compare.chooser`: **Recent commits** are "the 20 last of the branch checked out". Built: the 20 first
+  rows of the first parent of `HEAD` among the commits the timeline has read, with their dates; none when the timeline
+  shows another repository than the chooser. A branch, a tag or a remote branch has a date only when the timeline has
+  read its commit.
+- **Q513** — `compare.chooser`: what `Home` and `End` do while text is typed. Built: they move in the field, as in every
+  field; with nothing typed they light the first and the last row of the list.
+- **Q514** — `compare.chooser` and `compare.change-side`: **Compare** after both sides of a page were changed. Built: it
+  runs `compare.choose` with both sides into the same page, which keeps the path it was narrowed to; one side changed
+  runs `compare.change-side` as before, and neither changed closes the dialog with nothing run.
+- **Q515** — `compare.chooser`: `Enter` with a row lit and both boxes held. Built: with nothing typed it opens the
+  comparison; with text typed it chooses the row lit, so that a typed name is chosen before it is compared.

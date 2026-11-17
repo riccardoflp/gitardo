@@ -104,16 +104,30 @@ pub struct DiffPage {
     /// Whether it is the page beside the inspector (`diff.beside-inspector`), with the number of the last time it was
     /// given a file to show.
     pub beside: Option<u64>,
+    /// The comparison page it is shown beside, in place of being a page of its own (`compare.beside-diff`).
+    pub comparison: Option<views::compare::ComparePageId>,
+}
+
+/// Where a Diff page is shown.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Owner {
+    /// As a page of its own.
+    Alone,
+    /// Beside the inspector, with the number of the time it was given a file to show (`diff.beside-inspector`).
+    Inspector(u64),
+    /// Beside a comparison page, which it is shown in (`compare.beside-diff`).
+    Comparison(views::compare::ComparePageId),
 }
 
 /// Opens the Diff page of a target in the repository shown, or shows the one it has: there is never a second page for
 /// the same diff. A page of several files opens at once; a page of one file opens once its file is read.
 pub fn open(state: &mut State, target: DiffTarget) -> Vec<Effect> {
-    open_page(state, target, None)
+    open_page(state, target, Owner::Alone)
 }
 
-/// Opens a Diff page as [`open`] does, as the page beside the inspector when it is given the number of that.
-fn open_page(state: &mut State, target: DiffTarget, beside: Option<u64>) -> Vec<Effect> {
+/// Opens a Diff page as [`open`] does, as a page of its own or beside what opened it; gives the page beside a
+/// comparison its number.
+pub fn open_page(state: &mut State, target: DiffTarget, owner: Owner) -> Vec<Effect> {
     let Some(read) = state.shown_read() else {
         return Vec::new();
     };
@@ -122,13 +136,15 @@ fn open_page(state: &mut State, target: DiffTarget, beside: Option<u64>) -> Vec<
         .diff_pages
         .pages
         .iter()
-        .find(|page| page.target == target && page.beside.is_none() && same_folder(&page.folder, &folder));
+        .find(|page| page.target == target && page.owner() == Owner::Alone && same_folder(&page.folder, &folder))
+        .filter(|_| owner == Owner::Alone);
     if let Some(page) = found {
         if page.is_open {
             super::pages::show_page(state, Page::Diff(page.id));
         }
         return Vec::new();
     }
+    let (beside, comparison) = owner.fields();
     let id = DiffPageId(state.diff_pages.next);
     state.diff_pages.next += 1;
     let count = target.files.len();
@@ -156,6 +172,7 @@ fn open_page(state: &mut State, target: DiffTarget, beside: Option<u64>) -> Vec<
         edited_at: None,
         is_stale: false,
         beside,
+        comparison,
     };
     state.diff_pages.pages.push(page);
     let is_open = count != 1;
@@ -166,9 +183,46 @@ fn open_page(state: &mut State, target: DiffTarget, beside: Option<u64>) -> Vec<
         lines::rebuild(page);
     }
     if is_open {
-        super::pages::show_page(state, Page::Diff(id));
+        show_opened(state, id);
     }
     effects
+}
+
+impl Owner {
+    /// The fields of a page that say where it is shown: beside the inspector, and beside a comparison.
+    fn fields(self) -> (Option<u64>, Option<views::compare::ComparePageId>) {
+        match self {
+            Owner::Alone => (None, None),
+            Owner::Inspector(serial) => (Some(serial), None),
+            Owner::Comparison(page) => (None, Some(page)),
+        }
+    }
+}
+
+impl DiffPage {
+    /// Where it is shown.
+    #[must_use]
+    pub fn owner(&self) -> Owner {
+        match (self.beside, self.comparison) {
+            (_, Some(page)) => Owner::Comparison(page),
+            (Some(serial), None) => Owner::Inspector(serial),
+            (None, None) => Owner::Alone,
+        }
+    }
+}
+
+/// Shows a page once it can be: in the comparison page it is beside, or as a page.
+pub(super) fn show_opened(state: &mut State, id: DiffPageId) {
+    let comparison = state
+        .diff_pages
+        .pages
+        .iter()
+        .find(|page| page.id == id)
+        .and_then(|page| page.comparison);
+    match comparison {
+        Some(page) => super::pages::show_page(state, Page::Compare(page)),
+        None => super::pages::show_page(state, Page::Diff(id)),
+    }
 }
 
 /// Starts the read of a file of a page, the very large file asked about already when `is_confirmed`.
@@ -287,7 +341,7 @@ pub fn diff_read(state: &mut State, job: JobId, result: DiffRead) -> Vec<Effect>
                 *diff = FileDiff::Text(text);
             }
             lines::rebuild(page);
-            super::pages::show_page(state, Page::Diff(id));
+            show_opened(state, id);
         }
         DiffRead::Large => state.diff_pages.asking = Some(id),
         DiffRead::Binary => refuse(state, id, Some(Notice::DiffLooksBinary)),
@@ -340,7 +394,17 @@ pub fn prune(state: &mut State) -> Vec<Effect> {
     let open = &state.pages.open;
     let (kept, closed): (Vec<DiffPage>, Vec<DiffPage>) = std::mem::take(&mut state.diff_pages.pages)
         .into_iter()
-        .partition(|page| !page.is_open || open.contains(&Page::Diff(page.id)));
+        .partition(|page| {
+            let is_beside_comparison = page.comparison.is_some_and(|comparison| {
+                open.contains(&Page::Compare(comparison))
+                    && state
+                        .compares
+                        .pages
+                        .iter()
+                        .any(|compared| compared.beside.as_ref().is_some_and(|beside| beside.diff == page.id))
+            });
+            !page.is_open || open.contains(&Page::Diff(page.id)) || is_beside_comparison
+        });
     state.diff_pages.pages = kept;
     closed
         .into_iter()

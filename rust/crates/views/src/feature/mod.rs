@@ -6,13 +6,12 @@
 mod tests;
 
 use model::contract::{Answer, Answers, FeatureId, Plan, Question, QuestionKind, Step, Target};
-use ui::layout::{Align, Area, Insets, inset, place};
+use ui::layout::{Area, Insets, inset};
 use ui::{
-    Button, ButtonKind, Choice, ConfirmAnswer, ConfirmStyle, Confirmation, Dialog, DialogButton, DialogRole, InputBox,
-    Label, Message, Rect, Severity, TextKind, Tone, Ui,
+    Choice, ConfirmAnswer, ConfirmStyle, Confirmation, Dialog, DialogButton, DialogRole, InputBox, Label, Message,
+    Rect, Severity, TextKind, Tone, Ui,
 };
 
-use crate::icons;
 use crate::intent::Intent;
 use crate::text::feature as words;
 
@@ -34,6 +33,9 @@ pub enum FeatureIntent {
     Confirm(bool),
     /// Put away what was said once the operation ended.
     Dismiss,
+    /// What was said was drawn, or the pointer was on it, at this moment counted from when the window opened: what
+    /// succeeded goes ten seconds later (`activity.said`).
+    SaidShown(std::time::Duration),
 }
 
 /// A question of an operation, as it is being answered.
@@ -56,6 +58,10 @@ pub struct ConfirmState<'a> {
 
 /// What is said once an operation ended.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "each says one thing of what is said, apart from the others"
+)]
 pub struct SaidState<'a> {
     /// The sentence.
     pub text: &'a str,
@@ -77,6 +83,20 @@ pub struct SaidState<'a> {
     /// The words of a button that opens an address in the browser, and the address: **Create pull request**
     /// (`github.offer-after-push`).
     pub link: Option<(&'a str, &'a str)>,
+    /// Whether it is a notice of the window rather than what an operation said: **×** puts the notice away.
+    pub is_notice: bool,
+    /// When it was first drawn, or the pointer was last on it, counted from when the window opened; none before it is
+    /// drawn (`activity.said`).
+    pub shown_at: Option<std::time::Duration>,
+}
+
+impl SaidState<'_> {
+    /// Whether it stays until it is put away: a warning, a notice or an operation stopped on conflicts. What failed
+    /// stays too.
+    #[must_use]
+    pub fn lasts(&self) -> bool {
+        self.is_notice || self.offers_stashes || self.stopped.is_some()
+    }
 }
 
 /// A question of an operation over the window: its title, what it says will happen, and the box, the choices or the
@@ -395,95 +415,4 @@ pub fn confirm_view(state: &ConfirmState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         Some(ConfirmAnswer::Cancelled) => vec![Intent::Feature(FeatureIntent::Confirm(false))],
         None => Vec::new(),
     }
-}
-
-/// **End bisect** and **Show in the timeline** beside the message that names the first bad commit a bisect found.
-fn found_buttons(found: &model::CommitId, parts: &mut Area, ui: &mut Ui<'_>) -> Vec<Intent> {
-    let mut intents = Vec::new();
-    for (label, intent) in [
-        (
-            crate::text::bisect::END_BISECT,
-            Intent::Feature(FeatureIntent::Run(FeatureId("bisect.end"), Target::Head)),
-        ),
-        (
-            crate::text::bisect::SHOW_IN_TIMELINE,
-            Intent::Graph(crate::graph::GraphIntent::GoTo(found.clone())),
-        ),
-    ] {
-        let button = Button::secondary(label).kind(ButtonKind::Outline);
-        let (width, height) = ui.button_size(&button);
-        let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
-        if ui.button(("said", label), cell, &button).clicked {
-            intents.push(intent);
-        }
-    }
-    intents
-}
-
-/// What was said once an operation ended, across the top of what is under the header, with **Undo** when it can be
-/// taken back, what it offers next and a button that puts it away; the message of an operation that stopped on
-/// conflicts in its place (`conflicts.stopped`).
-pub fn said_view(state: &SaidState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
-    if let Some(stopped) = &state.stopped {
-        return crate::conflicts::stopped_view(stopped, ui);
-    }
-    let rect = ui.current_clip();
-    let theme = *ui.theme();
-    let spacing = theme.sizes.spacing;
-    ui.fill_rect(rect, theme.colors.card_background);
-    let mut parts = Area::with_gap(
-        inset(rect, Insets::symmetric(spacing.large + spacing.small, 0.0)),
-        spacing.medium,
-    );
-    let (icon, tone) = if state.is_error {
-        (icons::ERROR, Tone::Error)
-    } else if state.offers_stashes {
-        (icons::WARNING, Tone::Warning)
-    } else {
-        (icons::INFORMATION, Tone::Accent)
-    };
-    ui.icon_in(parts.left(theme.sizes.icon), icon, tone);
-    let mut intents = Vec::new();
-    if outlined(ui, &mut parts, ("dismiss said", words::DISMISS)) {
-        intents.push(Intent::Feature(FeatureIntent::Dismiss));
-    }
-    if let Some(found) = state.found {
-        intents.extend(found_buttons(found, &mut parts, ui));
-    }
-    if state.can_undo && outlined(ui, &mut parts, ("undo said", words::UNDO)) {
-        intents.push(Intent::Feature(FeatureIntent::Run(
-            FeatureId("undo.last"),
-            Target::Head,
-        )));
-    }
-    if let Some((feature, label)) = state.offer
-        && outlined(ui, &mut parts, ("offer said", label))
-    {
-        intents.push(Intent::Feature(FeatureIntent::Run(feature, Target::Head)));
-    }
-    if let Some((label, url)) = state.link
-        && outlined(ui, &mut parts, ("link said", label))
-    {
-        intents.push(Intent::OpenUrl(url.to_owned()));
-    }
-    // The first offered is the leftmost, since the buttons are placed from the right.
-    for (index, run) in state.runs.iter().enumerate().rev() {
-        if outlined(ui, &mut parts, (&format!("run said {index}"), run.label.as_str())) {
-            let intent = FeatureIntent::RunWith(run.feature, run.target.clone(), run.answers.clone());
-            intents.push(Intent::Feature(intent));
-        }
-    }
-    if state.offers_stashes && outlined(ui, &mut parts, ("show stashes said", crate::text::stash::SHOW_STASHES)) {
-        intents.push(Intent::Rail(crate::intent::RailIntent::ShowStashes));
-    }
-    let _ = ui.label(parts.rest(), &Label::new(state.text));
-    intents
-}
-
-/// An outlined button at the right of what is said; says whether it was clicked.
-fn outlined(ui: &mut Ui<'_>, parts: &mut Area, (key, label): (&str, &str)) -> bool {
-    let button = Button::secondary(label).kind(ButtonKind::Outline);
-    let (width, height) = ui.button_size(&button);
-    let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
-    ui.button(key, cell, &button).clicked
 }

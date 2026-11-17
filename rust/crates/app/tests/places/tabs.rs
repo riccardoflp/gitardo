@@ -63,9 +63,13 @@ fn test_identity(origin: &Repository, clone: &std::path::Path) {
 /// The tabs as the island is given them: the name of each, and whether it is the one shown.
 fn tabs(state: &State) -> Vec<(String, bool)> {
     let data = ViewData::new(state, Vec::new(), 0);
-    data.window_state(state)
-        .tabs
-        .map_or_default(|tabs| tabs.tabs.iter().map(|tab| (tab.name.clone(), tab.is_shown)).collect())
+    data.window_state(state).side.map_or_default(|side| {
+        side.tabs
+            .tabs
+            .iter()
+            .map(|tab| (tab.name.clone(), tab.is_shown))
+            .collect()
+    })
 }
 
 /// Whether the timeline shows a repository as read, and not **Loading repository…**.
@@ -75,6 +79,32 @@ fn shows_a_repository(state: &State) -> bool {
         data.window_state(state).content,
         Content::Timeline(TimelineState::Repository { .. })
     )
+}
+
+/// The pixels of the timeline, as red, green, blue and alpha, row after row: what the rows of **Repositories** say of
+/// the other tabs is left out.
+fn timeline_pixels(window: &Window, timeline: render::Rect) -> Vec<u8> {
+    let width = window.frame.width() as usize;
+    let pixels = window.frame.to_rgba();
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "the timeline is inside the window"
+    )]
+    let (left, top, right, bottom) = (
+        timeline.x as usize,
+        timeline.y as usize,
+        timeline.right() as usize,
+        timeline.bottom() as usize,
+    );
+    (top..bottom)
+        .flat_map(|y| {
+            pixels
+                .get((y * width + left) * 4..(y * width + right) * 4)
+                .unwrap()
+                .to_vec()
+        })
+        .collect()
 }
 
 /// The key that shows the first tab, as its card says: `Ctrl+1`, and `Cmd+1` on macOS.
@@ -230,19 +260,20 @@ fn repo_keep_open__the_timeline_of_api_scrolled_down_is_at_the_same_place_when_a
     );
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
-    let top = window.frame.to_rgba();
+    let timeline = bounds(&tree, Role::Main, "Timeline");
+    let top = timeline_pixels(&window, timeline);
     let list = middle(bounds(&tree, Role::ListBox, "History"));
     let _ = wheel(&mut window, &state, list, 20.0);
     // The pointer leaves the list, so that no row is drawn as hovered.
     let _ = window.draw(&state, &[moved(Point::new(500.0, 570.0))]);
-    let scrolled = window.frame.to_rgba();
+    let scrolled = timeline_pixels(&window, timeline);
     assert!(scrolled != top, "the wheel scrolled the timeline");
     ask(&mut state, Intent::SwitchTab(1));
     let _ = window.draw(&state, &[]);
     ask(&mut state, Intent::SwitchTab(0));
     let _ = window.draw(&state, &[]);
     assert!(
-        window.frame.to_rgba() == scrolled,
+        timeline_pixels(&window, timeline) == scrolled,
         "api is drawn as it was left, scrolled down"
     );
 }

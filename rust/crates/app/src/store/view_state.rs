@@ -12,16 +12,16 @@ use views::branch::ReferenceMenus;
 use views::file_view::FilePageState;
 use views::filter::NarrowedBar;
 use views::graph::{
-    BranchChip, Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, ReferencesShown, RepositoryEntry,
-    SyncCounts, TimelineMenu, ToolbarState, TraceShown,
+    Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, RepositoryEntry, SyncCounts, TimelineMenu,
+    ToolbarState, TraceShown, WhereState,
 };
 use views::log::{LogLine, LogState};
 use views::page::{Page, PageHostState, PageState};
 use views::panel::BottomPanelState;
-use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState};
+use views::repo::{NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, SideColumnState, SideSections};
 use views::settings::{SettingRow, SettingsPageState, ThemePickerState};
 use views::welcome::WelcomeState;
-use views::{Content, TimelineState, WindowState};
+use views::{Content, SidePlace, TimelineState, WindowState};
 
 use super::search::{self, view as search_view};
 use super::state::{Dialog, Shown, State};
@@ -104,7 +104,7 @@ impl ViewData {
             tabs: super::tabs::TabsData::new(state, &repositories),
             repositories,
             name,
-            folder: shown.map_or_default(|folder| display(folder)),
+            folder: shown.map_or_default(|folder| folder.display().to_string()),
             question_folder,
             running,
             finished: Vec::new(),
@@ -144,13 +144,19 @@ impl ViewData {
     pub fn window_state<'a>(&'a self, state: &'a State) -> WindowState<'a> {
         WindowState {
             view_bar: view_bar(state),
-            tabs: self.tabs.island(state),
+            side: self.side_column(state),
+            side_place: SidePlace {
+                width: self.panes.sizes.rail,
+                is_hidden: self.panes.is_rail_hidden,
+                is_open_over: state.is_side_column_over,
+            },
             tabs_picker: self.tabs.picker(state),
             header: self.header(state),
             status: StatusBarState {
                 running: &self.running,
                 identity: state.shown_read().map(|read| &read.state.identity),
                 is_running: state.is_operation_running,
+                said: None,
             },
             content: self.content(state),
             panel: self.panel(state),
@@ -170,6 +176,7 @@ impl ViewData {
             }),
             notice: state.notice,
             go_to_commit: search_view::go_to_commit(state),
+            chooser: super::compare::chooser::chooser_state(state),
             feature: super::feature::question_state(state)
                 .map(views::FeatureDialog::Question)
                 .or_else(|| {
@@ -181,6 +188,24 @@ impl ViewData {
             large_merge: super::merge_page::large_question(state),
             close_file: super::file_page::close_question(state),
         }
+    }
+
+    /// The side column of an open workspace: its repositories, and the rail of the one read (`repo.side-column`).
+    fn side_column<'a>(&'a self, state: &'a State) -> Option<SideColumnState<'a>> {
+        let tabs = self.tabs.island(state)?;
+        let branches = match state.workspace.as_ref().map(|workspace| &workspace.shown) {
+            Some(Shown::Read(read)) => Some(Box::new(rail(state, read, self.now))),
+            _ => None,
+        };
+        Some(SideColumnState {
+            tabs,
+            branches,
+            sections: SideSections {
+                repositories_height: self.panes.sizes.repositories,
+                is_repositories_folded: self.panes.is_repositories_folded,
+                is_branches_folded: self.panes.is_branches_folded,
+            },
+        })
     }
 
     /// The bottom panel, while it is shown.
@@ -202,9 +227,9 @@ impl ViewData {
         let read = state.shown_read().map(|read| read.state.as_ref());
         let upstream = read.and_then(checked_out_upstream);
         ToolbarState {
-            branch: read.map(|repository| BranchChip {
-                head: head_name(repository),
-                upstream,
+            place: self.tabs.island(state).map(|tabs| WhereState {
+                tabs: tabs.tabs,
+                head: read.map(head_name),
                 folder: &self.folder,
             }),
             sync: read.map(|_| {
@@ -233,9 +258,6 @@ impl ViewData {
                 },
                 active_file: state.file_in_front(),
             },
-            references: read.map(|_| ReferencesShown {
-                is_shown: !self.panes.is_rail_hidden,
-            }),
             quick: self.search.quick(state),
         }
     }
@@ -344,7 +366,6 @@ impl ViewData {
         let shown = state.workspace.as_ref().map(|workspace| &workspace.shown);
         match shown {
             Some(Shown::Read(read)) => TimelineState::Repository {
-                rail: Box::new(rail(state, read, self.now)),
                 graph: GraphState::Listed(Box::new(self.history(state, read.state.head.commit.is_none()))),
                 inspector: Box::new(super::inspector::details_state(
                     state,
@@ -352,7 +373,6 @@ impl ViewData {
                 )),
                 panes: self.panes.sizes,
                 filter: Box::new(branch_picker(state)),
-                is_rail_hidden: self.panes.is_rail_hidden,
                 bar: state.timeline.shown.as_ref().map(|shown| NarrowedBar {
                     shown,
                     listed: state
@@ -435,7 +455,7 @@ fn opened_page(state: &State, page: Page) -> Option<PageState<'_>> {
         Page::Commit(id) => super::commit_page::page_state(state, id).map(PageState::Commit),
         Page::Diff(id) => super::diff_page::page_state(state, id).map(PageState::Diff),
         Page::Merge(id) => super::merge_page::page_state(state, id).map(|(page, title)| PageState::Merge(page, title)),
-        Page::Compare(id) => super::compare::page_state(state, id).map(PageState::Compare),
+        Page::Compare(id) => super::compare::beside::page_state(state, id, workspace_panes(state).sizes.inspector),
         _ => None,
     }
 }
@@ -475,9 +495,4 @@ fn head_name(repository: &RepositoryState) -> HeadName<'_> {
         (None, Some(commit)) => HeadName::Detached(commit.short()),
         (None, None) => HeadName::NoCommits,
     }
-}
-
-/// A folder as the window writes it.
-fn display(folder: &std::path::Path) -> String {
-    folder.display().to_string()
 }

@@ -41,6 +41,14 @@ fn showing() -> (State, PathBuf) {
         },
     ];
     read.state = Arc::new(repository);
+    // The window asks once what the nested worktree is on, and watches it, as after its first read
+    // (`repo.worktree-summary`); that read in the background is under way for the rest of the test.
+    let summaries = reduce(&mut state, Message::SummariesRead(Vec::new()));
+    assert!(
+        summaries
+            .iter()
+            .any(|effect| matches!(effect, Effect::ReadSummaries(_)))
+    );
     (state, app)
 }
 

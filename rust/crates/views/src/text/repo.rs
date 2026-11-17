@@ -28,9 +28,17 @@ pub const RECENT_GONE: &str = "None of the folders of this workspace is there an
 pub const SINGLE_REPOSITORY: &str = "Gitardo: this workspace has a single repository.";
 /// Why Select repository… does nothing in a workspace of none.
 pub const NO_REPOSITORY_TO_SELECT: &str = "Gitardo: no Git repository in this workspace.";
-/// The island of the tabs, as the screen reader names it (`repo.tabs`).
+/// The rows of the repositories open, as the screen reader names them (`repo.tabs`).
 pub const TABS: &str = "Repositories open";
-/// The tooltip of **+** at the end of the island of the tabs.
+/// The heading of the first section of the side column (`repo.side-column`).
+pub const REPOSITORIES: &str = "REPOSITORIES";
+/// The heading of the second section of the side column: the branch rail.
+pub const BRANCHES: &str = "BRANCHES";
+/// The side column, as the screen reader names it.
+pub const SIDE_COLUMN: &str = "Repositories and branches";
+/// A worktree whose folder is gone (`repo.worktree-summary`).
+pub const MISSING: &str = "missing";
+/// The tooltip of **+** in the heading of **Repositories**.
 pub const OPEN_ANOTHER: &str = "Open a repository, a folder or a workspace file";
 /// The entry that opens a workspace file of VS Code (`repo.open-code-workspace`).
 pub const OPEN_WORKSPACE_FILE: &str = "Open workspace file\u{2026}";
@@ -52,17 +60,6 @@ pub const CLOSE_OTHER_TABS: &str = "Close other tabs";
 pub const TAB_MEMBERS: &str = "Worktrees and submodules";
 /// What is put between the name of a tab and the name of the worktree or the submodule it shows.
 pub const IN_TAB: &str = " \u{203a} ";
-
-/// The entry of the island drawn as one button that opens a repository in a tab (`repo.open-tab`).
-pub const OPEN_A_REPOSITORY: &str = "Open a repository\u{2026}";
-/// The tooltip of **… N**, the tabs that do not fit in the island.
-pub const MORE_TABS: &str = "Tabs that do not fit";
-
-/// **… N**, the button of the tabs that do not fit in the island, `N` being how many.
-#[must_use]
-pub fn more_tabs(count: usize) -> String {
-    format!("\u{2026} {count}")
-}
 
 /// A worktree with no branch checked out, in the **▾** of its tab.
 #[must_use]
@@ -92,4 +89,23 @@ pub const OPERATION_RUNNING: &str = "An operation is running";
 #[must_use]
 pub fn open_question(folder: &str) -> String {
     format!("Open {folder}")
+}
+
+/// How many files are changed and not committed in a repository or a worktree: `● 3` (`repo.worktree-summary`).
+#[must_use]
+pub fn changed_files(count: u32) -> String {
+    format!("\u{25cf} {count}")
+}
+
+/// The commits to pull and to push, each only when there are some: `↓2 ↑1`, `↓2`, `↑1`, or nothing.
+#[must_use]
+pub fn to_pull_and_push(behind: u32, ahead: u32) -> String {
+    let mut parts = Vec::new();
+    if behind > 0 {
+        parts.push(format!("\u{2193}{behind}"));
+    }
+    if ahead > 0 {
+        parts.push(format!("\u{2191}{ahead}"));
+    }
+    parts.join(" ")
 }

@@ -1,5 +1,5 @@
 //! What the timeline keeps between runs: the sizes of the panes of each workspace (`graph.resize-panes`,
-//! `graph.resize-graph`, `graph.toggle-references`) and the folds of each repository (`graph.fold-merge`,
+//! `graph.resize-graph`, `graph.toggle-references`, `repo.side-column`) and the folds of each repository (`graph.fold-merge`,
 //! `graph.fold-all`).
 
 use std::path::PathBuf;
@@ -22,8 +22,12 @@ pub struct WorkspacePanes {
     pub sizes: PaneSizes,
     /// The width the graph was dragged to.
     pub graph_width: Option<f32>,
-    /// Whether the branch rail is put away.
+    /// Whether the side column is put away.
     pub is_rail_hidden: bool,
+    /// Whether **Repositories** is folded in the side column (`repo.side-column`).
+    pub is_repositories_folded: bool,
+    /// Whether **Branches** is folded in the side column.
+    pub is_branches_folded: bool,
     /// The bottom panel (`panel.bottom`).
     pub panel: PanelLook,
 }
@@ -76,6 +80,7 @@ pub(super) fn panes_value(panes: &WorkspacePanes) -> Value {
     let mut members = vec![member("folders", folders_value(&panes.folders))];
     let lengths = [
         ("rail", panes.sizes.rail),
+        ("repositories", panes.sizes.repositories),
         ("inspector", panes.sizes.inspector),
         ("inspectorOver", panes.sizes.inspector_over),
         ("filesTree", panes.sizes.files_tree),
@@ -87,6 +92,14 @@ pub(super) fn panes_value(panes: &WorkspacePanes) -> Value {
         }
     }
     members.push(member("railHidden", Value::Bool(panes.is_rail_hidden)));
+    for (name, is_folded) in [
+        ("repositoriesFolded", panes.is_repositories_folded),
+        ("branchesFolded", panes.is_branches_folded),
+    ] {
+        if is_folded {
+            members.push(member(name, Value::Bool(true)));
+        }
+    }
     members.extend(panel_members(panes.panel));
     Value::Object(members)
 }
@@ -99,12 +112,18 @@ pub(super) fn workspace_panes(value: &Value) -> Option<WorkspacePanes> {
         folders,
         sizes: PaneSizes {
             rail: length("rail"),
+            repositories: length("repositories"),
             inspector: length("inspector"),
             inspector_over: length("inspectorOver"),
             files_tree: length("filesTree"),
         },
         graph_width: length("graph"),
         is_rail_hidden: value.get("railHidden").and_then(Value::as_bool).unwrap_or(false),
+        is_repositories_folded: value
+            .get("repositoriesFolded")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        is_branches_folded: value.get("branchesFolded").and_then(Value::as_bool).unwrap_or(false),
         panel: panel_look(value),
     })
 }

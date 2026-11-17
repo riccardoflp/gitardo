@@ -197,6 +197,8 @@ pub enum Message {
         /// When.
         at: Duration,
     },
+    /// What the reads in the background of the folders not shown found (`repo.worktree-summary`).
+    SummariesRead(Vec<crate::work::summaries::SummaryRead>),
     /// The moment an [`Effect::WakeAt`] asked for came, or later.
     Wake {
         /// The moment, counted from when the window opened.
@@ -449,6 +451,9 @@ pub enum Effect {
     /// Watches these working trees and their git folders, those of the tabs not shown, in place of the ones watched
     /// before; each sends [`Message::TabChanged`] (`repo.watch-hidden`).
     WatchTabs(Vec<PathBuf>),
+    /// Reads what these folders are on, on a thread of its own, which sends [`Message::SummariesRead`]
+    /// (`repo.worktree-summary`).
+    ReadSummaries(Vec<crate::work::summaries::SummaryAsk>),
     /// Sends [`Message::Wake`] at this moment, counted from when the window opened, in place of the wake asked for
     /// before (`repo.schedule-reads`).
     WakeAt(Duration),

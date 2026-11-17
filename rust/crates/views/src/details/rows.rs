@@ -54,12 +54,17 @@ fn row_height(ui: &Ui<'_>) -> f32 {
     ui.theme().sizes.row_height + ui.theme().sizes.spacing.small
 }
 
-/// The files of the commit of the card, as the inspector lists them.
+/// The files of the commit of the card, as the inspector lists them: as a tree beside a Diff page
+/// (`diff.beside-inspector`).
 fn files_of<'a>(state: &DetailsState<'a>, detail: &'a CommitDetail) -> FilesState<'a> {
     FilesState {
         files: &detail.files,
         tree: state.tree,
-        layout: state.layout,
+        layout: if state.shown_file.is_some() {
+            super::FileLayout::Tree
+        } else {
+            state.layout
+        },
         folded: state.folded,
         capped: CappedList {
             owner: FilesOwner::Inspector,
@@ -81,10 +86,15 @@ fn read_card(
     let files = files_of(state, detail);
     let height = row_height(ui);
     let untracked: &[FileChange] = if is_stash { &detail.untracked_files } else { &[] };
-    let head_rows = rows_for(
-        head_height(ui, &head, rect.width) + ui.theme().sizes.spacing.medium,
-        height,
-    );
+    let is_beside = state.shown_file.is_some();
+    let head_rows = if is_beside {
+        1
+    } else {
+        rows_for(
+            head_height(ui, &head, rect.width) + ui.theme().sizes.spacing.medium,
+            height,
+        )
+    };
     let rows = card_rows(head_rows, &files, untracked);
     let list = List {
         name: words::FILES,
@@ -104,6 +114,7 @@ fn read_card(
     let _ = ui.steered_list(key, (rect, &list), &steering, |ui, row| {
         let first = std::mem::replace(&mut is_first, false);
         match rows.get(row.index) {
+            Some(CardRow::Head) if is_beside => intents.extend(commit_line(ui, row.rect, read)),
             Some(CardRow::Head) => {
                 if let Some(top) = block_top(row, 0, first, height) {
                     intents.extend(draw_head(ui, &head, top));
@@ -127,6 +138,31 @@ fn read_card(
         }
     });
     intents
+}
+
+/// The commit in one line, at the top of the inspector beside a Diff page (`diff.beside-inspector`): its short hash and
+/// the title of its message, with who made it and when in its tooltip; a click brings the timeline back, where the
+/// inspector is the whole card again (Q507).
+fn commit_line(ui: &mut Ui<'_>, rect: Rect, read: &ReadDetails) -> Option<Intent> {
+    let theme = *ui.theme();
+    let short = read.detail.id.as_ref().map_or("", model::CommitId::short);
+    let said = format!("{short}  {}", read.title);
+    let who = read.detail.author.as_ref().map_or_else(String::new, |author| {
+        format!(
+            "{} \u{b7} {}",
+            author.name,
+            crate::text::dates::full_date(author.date.0)
+        )
+    });
+    let id = ui.id("commit line");
+    let response = ui.interact(id, rect, Sense::CLICK);
+    if response.hovered {
+        ui.fill_rect(rect, theme.colors.list_hover);
+    }
+    let _ = ui.label(rect, &Label::new(&said).kind(TextKind::Medium));
+    ui.describe(id, rect, &ui::Description::new(ui::AccessRole::Button, &said));
+    ui.tooltip(&response, &who);
+    response.clicked.then_some(Intent::ShowTimeline)
 }
 
 /// The row of the file shown beside the inspector, brought into sight once each time another file is shown.

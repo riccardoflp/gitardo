@@ -16,6 +16,7 @@ mod persist;
 mod repository_watch;
 pub mod review;
 mod setting_writer;
+pub mod summaries;
 mod tasks;
 mod terminals;
 mod watch;

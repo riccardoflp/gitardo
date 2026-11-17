@@ -49,6 +49,7 @@ fn status_bar(window: &mut Window, running: &[RunningTask]) -> TreeUpdate {
         running,
         identity: None,
         is_running: false,
+        said: None,
     };
     window
         .frame(&[], |ui| {
@@ -79,16 +80,26 @@ fn activity_status_bar__a_read_of_0_3_s_shows_nothing_and_one_of_2_s_shows_from_
 }
 
 #[test]
-fn activity_status_bar__with_main_two_ahead_of_origin_the_branch_of_the_header_says_main_2_0() {
+fn activity_status_bar__with_main_two_ahead_of_origin_the_header_names_main_without_how_far_and_sync_says_2() {
     let (mut repository, _remote) = repository_with_history();
     let _ahead = repository.commit("Show the drawer", &[("drawer.txt", "activity\n")]);
     let state = showing(repository.path().to_path_buf());
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
+    let header: Vec<&str> = tree
+        .nodes
+        .iter()
+        .filter(|(_, node)| node.bounds().is_some_and(|bounds| bounds.y1 <= 48.0))
+        .filter_map(|(_, node)| node.label().or(node.value()))
+        .collect();
+    assert!(header.contains(&"main"), "{header:?}");
     assert!(
-        says(&tree, "\u{2191}2 \u{2193}0"),
-        "the branch of the header says how far it is"
+        !header
+            .iter()
+            .any(|said| said.contains("main \u{2191}") || said.contains("\u{2191}2 \u{2193}0")),
+        "the branch of the header does not say how far it is: {header:?}"
     );
+    let _ = find(&tree, Role::Button, "\u{2193}0  \u{2191}2   Sync");
 }
 
 #[test]

@@ -247,6 +247,9 @@ pub fn run_asking(state: &mut State, message: Message) -> Vec<Effect> {
             if let Effect::Start(job) = &effect {
                 waiting.extend(jobs::messages(job, &CancelToken::new()).into_iter().rev());
             }
+            if let Effect::ReadSummaries(asks) = &effect {
+                waiting.push(Message::SummariesRead(app::work::summaries::read_summaries(asks)));
+            }
             all.push(effect);
         }
     }

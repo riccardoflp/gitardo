@@ -13,6 +13,7 @@ mod intent;
 mod keyboard;
 mod layout;
 mod load_more;
+mod location;
 mod marks;
 mod more_menu;
 mod panes;
@@ -37,16 +38,18 @@ pub use draft::{
 pub use edge::{GraphEdgeState, resize_graph_view};
 pub use fold::{FoldAllEntry, FoldAllState, FoldsState, MergeEntry, fold_all_view, fold_merge_view, merge_menu};
 pub use hover::{HoverState, LINGER, REST, hover_history_view, hover_intent};
-pub use intent::{GraphIntent, HoverTarget, HoverWay, Pane, Selected, Switches, TimelineSwitch};
+pub use intent::{GraphIntent, HoverTarget, HoverWay, Pane, Selected, SideSection, Switches, TimelineSwitch};
 pub use keyboard::{key_intent, keyboard_view};
 pub use layout::{LayoutEnd, LayoutInput, TimelineLayout};
 pub use load_more::{AHEAD, LoadMoreState, load_more_view, wants_more};
+pub use location::{WhereState, WhereWidths, fit_where, where_view};
 pub use marks::{ScrollMarks, mark_positions, scroll_marks_view};
 #[cfg(test)]
 pub(crate) use more_menu::kind_entries;
 pub use more_menu::{GraphDrawn, MainRemote, MoreMenuState, OperationsMenu, TimelineMenu, more_menu_view};
 pub use panes::{
-    PaneLayout, PaneRects, PaneSizes, RAIL_LEAST, RAIL_MOST, RAIL_START, STEP, pane_rects, resize_panes_view,
+    INSPECTOR_LEAST, INSPECTOR_MOST, INSPECTOR_START, PaneLayout, PaneRects, PaneSizes, RAIL_LEAST, RAIL_MOST,
+    RAIL_START, STEP, pane_rects, resize_panes_view,
 };
 pub use pull_request_badge::{
     PullRequestBadge, draw_pull_request_badge, pull_request_badge_tone, pull_request_badge_view,
@@ -60,4 +63,4 @@ pub use switches::{FirstParentState, SelectedTrace, first_parent_view, trace_sel
 pub use sync_menu::{PULL_WAYS, SYNC_FEATURES};
 pub use timeline::view;
 pub use toggle::{ReferencesShown, toggle_references_view};
-pub use toolbar::{BranchChip, HeadName, RepositoryEntry, SyncCounts, SyncMenu, ToolbarState, toolbar_view};
+pub use toolbar::{HeadName, RepositoryEntry, SyncCounts, SyncMenu, ToolbarState, toolbar_view};

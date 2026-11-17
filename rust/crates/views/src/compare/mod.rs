@@ -1,13 +1,20 @@
 //! Comparisons: the comparison page of two sides (`compare.page`) with its parts, the sides swapped (`compare.swap`),
 //! the mode (`compare.set-mode`), the box that narrows it (`compare.narrow-to-path`) and the commits only in each side
-//! (`compare.commits`); and the comparison of two commits in the inspector (`compare.in-place`).
+//! (`compare.commits`); a file of it opened beside it (`compare.beside-diff`); the dialog that chooses the two sides
+//! (`compare.chooser`); and the comparison of two commits in the inspector (`compare.in-place`).
 
+mod beside;
+mod chooser;
 mod in_place;
 mod page;
 mod parts;
 #[cfg(test)]
 mod tests;
 
+pub use beside::{BesideDiffState, beside_diff_view};
+pub use chooser::{
+    ChooserBox, ChooserGroup, ChooserIntent, ChooserSide, ChooserState, TypedCommit, chooser_view, offered,
+};
 pub use in_place::{InPlaceRead, InPlaceState, in_place};
 pub use page::page;
 pub use parts::{commits, narrow_to_path, set_mode, swap};
@@ -77,8 +84,19 @@ pub enum CompareIntent {
     OpenCommit(ComparePageId, CommitId),
     /// **Show all N commits…**.
     ShowAllCommits(ComparePageId),
-    /// A click on a file: its Diff page between the two sides, by its place in the list.
+    /// A click on a file: its diff between the two sides beside the comparison (`compare.beside-diff`), by its place in
+    /// the list.
     OpenFile(ComparePageId, usize),
+    /// `Alt+Down` or `Alt+Up` in the diff beside the comparison: the next or the previous file.
+    StepFile(ComparePageId, crate::diff::FileStep),
+    /// `Escape` in the diff beside the comparison, or its step in the trail: the whole comparison page again.
+    ShowWhole(ComparePageId),
+    /// **Commits** in the column beside a diff, which folds or unfolds them.
+    FoldCommits(ComparePageId),
+    /// Something asked of the files of the column beside a diff: a folder folded or unfolded.
+    Files(ComparePageId, crate::details::FilesIntent),
+    /// Something asked of the comparison chooser (`compare.chooser`).
+    Chooser(ChooserIntent),
     /// **Open in the Diff page**: every file listed.
     OpenAll(ComparePageId),
     /// The arrow of a file (`compare.take-file`), by its place in the list.

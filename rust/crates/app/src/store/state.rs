@@ -38,6 +38,8 @@ pub struct State {
     pub rail: super::rail::Rail,
     /// Whether the Activity drawer is open.
     pub is_activity_open: bool,
+    /// Whether the side column is opened over the timeline, in the narrow layout (`repo.side-column`).
+    pub is_side_column_over: bool,
     /// Whether an operation runs: choosing another repository waits for it (`repo.select`).
     pub is_operation_running: bool,
     /// The operation running, and what was said once the last one ended.

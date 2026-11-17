@@ -44,8 +44,16 @@ pub enum GraphIntent {
     SetGraphWidth(Option<f32>),
     /// The size of a pane, dragged; none brings back where it starts (`graph.resize-panes`).
     SetPane(Pane, Option<f32>),
-    /// Put the branch rail away, or bring it back (`graph.toggle-references`).
+    /// Put the side column away, or bring it back; in the narrow layout, open it over the timeline or close it
+    /// (`graph.toggle-references`).
     ToggleReferences,
+    /// Open the side column over the timeline, in the narrow layout.
+    OpenSideColumn,
+    /// Close the side column opened over the timeline in the narrow layout, by its button, a click outside it or
+    /// `Escape`.
+    CloseSideColumn,
+    /// Fold a section of the side column, or unfold it (`repo.side-column`).
+    FoldSection(SideSection),
     /// Turn a switch of the timeline on or off, from the **…** menu (`graph.more-menu`).
     Switch(TimelineSwitch, bool),
     /// Something was dropped on a row, which opened the menu of the drop (`drag.drop`).
@@ -82,14 +90,25 @@ pub enum HoverWay {
 /// A pane whose size is dragged.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Pane {
-    /// The width of the branch rail.
+    /// The width of the side column.
     Rail,
+    /// The height of **Repositories**, in the side column (`repo.side-column`).
+    Repositories,
     /// The width of the inspector beside the commits.
     Inspector,
     /// The height of the inspector over the commits, in the narrow layout.
     InspectorOver,
     /// The width of the tree of the Files page beside a file opened from it (`file-view.beside-files`).
     FilesTree,
+}
+
+/// A section of the side column (`repo.side-column`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SideSection {
+    /// **Repositories**, the repositories open.
+    Repositories,
+    /// **Branches**, the branch rail.
+    Branches,
 }
 
 /// A switch of the timeline in the **…** menu, each written in the user's settings.

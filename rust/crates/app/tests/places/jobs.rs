@@ -26,9 +26,8 @@ fn repo_read_state__the_header_shows_the_branch_checked_out_and_how_far_it_is_fr
     assert_eq!(state.timeline.loaded(), 4, "three commits and the stash");
     let data = ViewData::new(&state, Vec::new(), super::support::NOW);
     let header = data.window_state(&state).header;
-    let chip = header.branch.unwrap();
-    assert_eq!(chip.head, HeadName::Branch("main"));
-    assert_eq!(chip.upstream, Some((1, 0)));
+    let place = header.place.unwrap();
+    assert_eq!(place.head, Some(HeadName::Branch("main")));
     assert_eq!(header.sync.map(|sync| (sync.ahead, sync.behind)), Some((1, 0)));
 }
 
@@ -51,7 +50,7 @@ fn repo_no_repository__running_git_init_and_check_again_shows_the_new_repository
     assert_eq!(state.timeline.rows, [] as [model::graph::Row; 0]);
     let data = ViewData::new(&state, Vec::new(), super::support::NOW);
     assert_eq!(
-        data.window_state(&state).header.branch.map(|chip| chip.head),
+        data.window_state(&state).header.place.and_then(|place| place.head),
         Some(HeadName::Branch("main"))
     );
 }

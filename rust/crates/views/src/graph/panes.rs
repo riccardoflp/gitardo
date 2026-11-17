@@ -28,8 +28,10 @@ pub const STEP: f32 = 16.0;
 /// The sizes of the panes, as dragged; none where a pane is where it starts.
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub struct PaneSizes {
-    /// The width of the branch rail.
+    /// The width of the side column.
     pub rail: Option<f32>,
+    /// The height of **Repositories** in the side column (`repo.side-column`).
+    pub repositories: Option<f32>,
     /// The width of the inspector beside the commits.
     pub inspector: Option<f32>,
     /// The height of the inspector over the commits.

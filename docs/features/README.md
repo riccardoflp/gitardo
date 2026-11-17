@@ -53,12 +53,12 @@ earns it.
 | [`repo.schedule-reads`](01-repositories.md#reposchedule-reads--read-again-when-something-changed) | Read again when something changed | Derivation | Built | Built |
 | [`activity.describe-task`](01-repositories.md#activitydescribe-task--say-what-gitardo-is-doing) | Say what Gitardo is doing | Derivation | Built | Built |
 | [`activity.status-bar`](01-repositories.md#activitystatus-bar--what-is-running-in-the-status-bar) | What is running, in the status bar | View | Built | Built |
-| [`activity.said`](01-repositories.md#activitysaid--what-was-said-in-the-status-bar) | What was said, in the status bar | View | Specified | Host only |
+| [`activity.said`](01-repositories.md#activitysaid--what-was-said-in-the-status-bar) | What was said, in the status bar | View | Built | Host only |
 | [`activity.what-is-running`](01-repositories.md#activitywhat-is-running--what-is-running-in-the-activity-drawer) | What is running, in the Activity drawer | View | Built | Built |
 | [`welcome.page`](01-repositories.md#welcomepage--the-welcome-page) | The Welcome page | View | Built | Host only |
-| [`repo.tabs`](01-repositories.md#repotabs--the-repositories-open-in-the-side-column) | The repositories open, in the side column | View | Specified | Host only |
-| [`repo.side-column`](01-repositories.md#reposide-column--the-side-column-of-repositories-and-branches) | The side column of repositories and branches | View | Specified | Host only |
-| [`repo.worktree-summary`](01-repositories.md#repoworktree-summary--what-a-repository-or-a-worktree-is-on) | What a repository or a worktree is on | Read | Specified | Host only |
+| [`repo.tabs`](01-repositories.md#repotabs--the-repositories-open-in-the-side-column) | The repositories open, in the side column | View | Built | Host only |
+| [`repo.side-column`](01-repositories.md#reposide-column--the-side-column-of-repositories-and-branches) | The side column of repositories and branches | View | Built | Host only |
+| [`repo.worktree-summary`](01-repositories.md#repoworktree-summary--what-a-repository-or-a-worktree-is-on) | What a repository or a worktree is on | Read | Built | Host only |
 | [`repo.open-tab`](01-repositories.md#repoopen-tab--open-a-repository-in-a-tab) | Open a repository in a tab | Operation | Built | Host only |
 | [`repo.choose-tabs`](01-repositories.md#repochoose-tabs--choose-the-repositories-a-workspace-opens) | Choose the repositories a workspace opens | Operation | Built | Host only |
 | [`repo.open-code-workspace`](01-repositories.md#repoopen-code-workspace--open-a-workspace-file-of-vs-code) | Open a workspace file of VS Code | Operation | Built | Host only |
@@ -79,7 +79,7 @@ earns it.
 | [`graph.read-position`](02-graph.md#graphread-position--where-a-commit-is-in-the-history-listed) | Where a commit is in the history listed | Read | Built | Built |
 | [`graph.view`](02-graph.md#graphview--the-timeline) | The timeline | View | Built | Built |
 | [`graph.toolbar`](02-graph.md#graphtoolbar--the-header) | The header | View | Built | Built |
-| [`graph.where`](02-graph.md#graphwhere--where-one-is-in-the-header) | Where one is, in the header | View | Specified | Host only |
+| [`graph.where`](02-graph.md#graphwhere--where-one-is-in-the-header) | Where one is, in the header | View | Built | Host only |
 | [`graph.search-button`](02-graph.md#graphsearch-button--the-button-of-quick-search) | The button of Quick search | View | Built | Host only |
 | [`graph.islands`](02-graph.md#graphislands--the-islands-of-the-window) | The islands of the window | View | Built | Built |
 | [`graph.view-bar`](02-graph.md#graphview-bar--the-bar-of-views) | The bar of views | View | Built | Host only |
@@ -349,13 +349,13 @@ earns it.
 | [`compare.side-choices`](10-compare.md#compareside-choices--what-a-side-can-be-chosen-from) | What a side can be chosen from | Derivation | Built | Built |
 | [`compare.recent`](10-compare.md#comparerecent--the-comparisons-opened-before) | The comparisons opened before | Derivation | Built | Built |
 | [`compare.choose`](10-compare.md#comparechoose--compare-branches-tags-or-commits) | Compare branches, tags or commits | Operation | Built | Built |
-| [`compare.chooser`](10-compare.md#comparechooser--the-comparison-chooser) | The comparison chooser | View | Specified | Host only |
+| [`compare.chooser`](10-compare.md#comparechooser--the-comparison-chooser) | The comparison chooser | View | Built | Host only |
 | [`compare.follow-sides`](10-compare.md#comparefollow-sides--followed-sides-and-fixed-ones) | Followed sides and fixed ones | Derivation | Built | Built |
 | [`compare.initial-mode`](10-compare.md#compareinitial-mode--how-two-sides-are-compared-at-first) | How two sides are compared at first | Derivation | Built | Built |
 | [`compare.read-sides`](10-compare.md#compareread-sides--read-a-comparison) | Read a comparison | Read | Built | Built |
 | [`compare.read-patch`](10-compare.md#compareread-patch--read-the-lines-of-a-comparison) | Read the lines of a comparison | Read | Built | Built |
 | [`compare.page`](10-compare.md#comparepage--the-comparison-page) | The comparison page | View | Built | Built |
-| [`compare.beside-diff`](10-compare.md#comparebeside-diff--a-comparison-beside-its-diffs) | A comparison beside its diffs | View | Specified | Host only |
+| [`compare.beside-diff`](10-compare.md#comparebeside-diff--a-comparison-beside-its-diffs) | A comparison beside its diffs | View | Built | Host only |
 | [`compare.summary`](10-compare.md#comparesummary--how-far-apart-and-what-merging-would-do) | How far apart, and what merging would do | Derivation | Built | Built |
 | [`compare.change-side`](10-compare.md#comparechange-side--choose-another-side) | Choose another side | Operation | Built | Built |
 | [`compare.swap`](10-compare.md#compareswap--swap-the-two-sides) | Swap the two sides | View | Built | Built |
@@ -521,7 +521,7 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`diff.page`](17-diff-and-merge-views.md#diffpage--the-diff-page) | The Diff page | View | Built | Built |
-| [`diff.beside-inspector`](17-diff-and-merge-views.md#diffbeside-inspector--files-of-a-commit-read-beside-the-inspector) | Files of a commit read beside the inspector | View | Specified | Host only |
+| [`diff.beside-inspector`](17-diff-and-merge-views.md#diffbeside-inspector--files-of-a-commit-read-beside-the-inspector) | Files of a commit read beside the inspector | View | Built | Host only |
 | [`diff.read-sides`](17-diff-and-merge-views.md#diffread-sides--the-two-versions-of-a-file) | The two versions of a file | Read | Built | Built |
 | [`diff.line-diff`](17-diff-and-merge-views.md#diffline-diff--the-lines-that-changed) | The lines that changed | Derivation | Built | Built |
 | [`diff.word-diff`](17-diff-and-merge-views.md#diffword-diff--the-words-that-changed-in-a-line) | The words that changed in a line | Derivation | Built | Built |

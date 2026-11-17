@@ -4,7 +4,7 @@
 use app::store::feature::Ended;
 use app::store::{Message, State};
 use model::CommitId;
-use model::contract::{Answer, Answers, FeatureId, FollowUp, Target};
+use model::contract::{Answers, FeatureId, FollowUp, Target};
 use model::state::ChangeKind;
 use platform::accesskit::{Role, TreeUpdate};
 use render::ThemeName;
@@ -28,6 +28,22 @@ fn drawn(state: &State) -> TreeUpdate {
 fn click(driver: &OperationsDriver, state: &mut State, name: &str) {
     let intents = Window::new(ThemeName::Dark, (1200, 900)).click(state, Role::Button, name);
     for intent in intents {
+        driver.intent(state, intent);
+    }
+}
+
+/// Clicks a button of the comparison page, the rightmost of that name: the branch rail beside it has one too.
+fn click_in_page(driver: &OperationsDriver, state: &mut State, name: &str) {
+    let mut window = Window::new(ThemeName::Dark, (1200, 900));
+    let (_, tree) = window.draw(state, &[]);
+    let at = tree
+        .nodes
+        .iter()
+        .filter(|(_, node)| node.role() == Role::Button && node.label() == Some(name))
+        .filter_map(|(_, node)| node.bounds().map(super::pointer::rect))
+        .max_by(|one, other| one.x.total_cmp(&other.x))
+        .unwrap_or_else(|| panic!("no button {name}"));
+    for intent in super::pointer::click_at(&mut window, state, super::pointer::middle(at), 1) {
         driver.intent(state, intent);
     }
 }
@@ -90,14 +106,10 @@ fn compare_change_side__choosing_release_in_place_of_main_compares_it_with_featu
     repository.branch("release");
     let (mut state, driver) = compared(&repository, ("ref:main", "ref:feature"));
     let id = page_id(&state);
-    click(&driver, &mut state, "main");
-    loop {
-        if let Message::FeatureAsks(_) = driver.next(&mut state) {
-            break;
-        }
-    }
-    let answer = Answer::Choice(String::from("ref:release"));
-    driver.intent(&mut state, Intent::Feature(FeatureIntent::Answer(Some(answer))));
+    click_in_page(&driver, &mut state, "main");
+    assert!(state.compares.chooser.is_some(), "the chooser is open");
+    click_in_page(&driver, &mut state, "release");
+    click_in_page(&driver, &mut state, "Compare");
     until_ended(&driver, &mut state);
     assert_eq!(page_id(&state), id);
     assert_eq!(state.compares.pages.len(), 1);
