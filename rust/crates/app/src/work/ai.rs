@@ -22,7 +22,7 @@ use crate::store::Message;
 /// A question, among those of the window.
 pub type AskId = u64;
 
-/// What the Activity drawer says while a message is drafted.
+/// What the Activity tab says while a message is drafted.
 const DRAFTING: &str = "drafting commit message";
 /// Why.
 const DRAFTING_CAUSE: &str = "The sparkle of the commit box asked the AI provider for a message";

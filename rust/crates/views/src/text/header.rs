@@ -53,7 +53,7 @@ pub const PUSH_FORCE_WITH_LEASE_TOOLTIP: &str = "git push --force-with-lease";
 pub const PUSH_FORCE: &str = "Push (force)";
 /// What **Push (force)** runs.
 pub const PUSH_FORCE_TOOLTIP: &str = "git push --force";
-/// The button of the Activity drawer, as the screen reader and its tooltip say it.
+/// The button of what runs, as the screen reader and its tooltip say it.
 pub const ACTIVITY: &str = "Activity";
 /// The **…** button at the end of the header, as the screen reader and its tooltip say it.
 pub const MORE: &str = "More";
@@ -75,7 +75,7 @@ pub const UNDO: &str = "Undo";
 /// **Select repository…** in the **…** menu (`repo.select`).
 pub const SELECT_REPOSITORY: &str = "Select repository\u{2026}";
 /// The last line of the tooltip of the activity indicator (`activity.status-bar`).
-pub const OPEN_THE_DRAWER: &str = "Click to open the Activity drawer.";
+pub const SHOW_ACTIVITY: &str = "Click to show Activity in the bottom panel.";
 
 /// The branch of the header when `HEAD` is detached: `detached at 3f2a1c9`.
 #[must_use]

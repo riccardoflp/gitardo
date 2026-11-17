@@ -7,6 +7,7 @@
 mod activity;
 mod activity_burst;
 mod activity_replay;
+mod activity_tab;
 mod ai;
 mod am_stopped;
 mod beside;

@@ -104,7 +104,7 @@ struct DesktopWindow {
     asking: crate::work::ai::Asking,
     /// What reads the pull requests of GitHub.
     github: GitHubReader,
-    /// The commands of new worktrees, in the Tasks of the Activity drawer.
+    /// The commands of new worktrees, in the Tasks of the Activity tab.
     tasks: TaskRunners,
     /// The terminals of the bottom panel (`terminal.view`).
     terminals: crate::work::Terminals,
@@ -362,7 +362,7 @@ impl DesktopWindow {
         Followed::Message(Box::new(Message::WorkspaceFileChosen(chosen)))
     }
 
-    /// Runs, answers or stops the tasks of the Activity drawer.
+    /// Runs, answers or stops the tasks of the Activity tab.
     fn tasks_asked(&mut self, asked: crate::store::tasks::TaskEffect) {
         use crate::store::tasks::TaskEffect;
         match asked {

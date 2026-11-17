@@ -2,6 +2,9 @@
 
 /// The tab of the terminals, and the button of the bar of views that shows and hides the panel.
 pub const TERMINAL: &str = "Terminal";
+/// The tab of what runs, and the button of the bar of views that shows and hides the panel at it
+/// (`activity.what-is-running`).
+pub const ACTIVITY: &str = "Activity";
 /// The tab of the Command log (`log.show`).
 pub const COMMAND_LOG: &str = "Command log";
 /// The name of the panel, for a screen reader.

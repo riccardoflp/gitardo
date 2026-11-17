@@ -1,9 +1,9 @@
-//! The tasks of the Activity drawer, the commands a new worktree runs (`worktree-setup.command-steps`): how each
-//! stands, what it printed as the drawer shows it, and what Gitardo says when one did not succeed.
+//! The tasks of the Activity tab, the commands a new worktree runs (`worktree-setup.command-steps`): how each
+//! stands, what it printed as the Activity tab shows it, and what Gitardo says when one did not succeed.
 
 use std::path::{Path, PathBuf};
 
-/// The most lines the drawer keeps of what a task printed; older ones are dropped.
+/// The most lines the Activity tab keeps of what a task printed; older ones are dropped.
 const KEPT_LINES: usize = 5_000;
 
 /// How a task ended when it did not succeed.
@@ -68,7 +68,7 @@ fn shown(folder: &Path) -> String {
     folder.display().to_string()
 }
 
-/// What a task printed, as the drawer shows it: in lines, without the colors and the moves of the cursor a terminal
+/// What a task printed, as the Activity tab shows it: in lines, without the colors and the moves of the cursor a terminal
 /// would take, a line written again from its start after a carriage return, as progress bars do, and the last 5,000
 /// lines only.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

@@ -1,9 +1,9 @@
-//! The Tasks of the Activity drawer (`worktree-setup.command-steps`): the commands of new worktrees, one after the
-//! other, each named after its worktree, with what the one shown printed as it comes, the box that answers what the one
-//! running asks, and **Stop**.
+//! The Tasks of the Activity tab (`worktree-setup.command-steps`): the commands of new worktrees, one after the
+//! other, each named after its worktree, and beside them what the one shown printed as it comes, with the box that
+//! answers what the one running asks, and **Stop**.
 
 use model::tasks::{TaskEnd, TaskStatus};
-use ui::layout::{Align, Area, Insets, inset, place};
+use ui::layout::{Align, Area, Insets, Size, columns, inset, place};
 use ui::{
     AccessRole, Button, ButtonKind, Description, InputBox, Key, Label, List, Modifiers, Point, Rect, Reveal,
     RevealPlace, SelectionMode, Sense, Steering, TextKind, TextRun, Tone, Ui,
@@ -13,8 +13,6 @@ use crate::icons;
 use crate::intent::Intent;
 use crate::text::activity as words;
 
-/// The most rows of tasks the column shows, the latest; the output takes the rest.
-const MOST_ROWS: usize = 4;
 /// The key of the list of the lines of the output.
 const OUTPUT: &str = "task output";
 
@@ -73,8 +71,9 @@ fn running<'a>(state: &TasksState<'a>) -> Option<&'a TaskRow> {
     state.rows.iter().find(|row| row.status == TaskStatus::Running)
 }
 
-/// The Tasks, in the rectangle given: their title with **Stop** while one runs, a row for each of the latest, what the
-/// task shown printed, following its end, and the box that answers the task running while it is the one shown.
+/// The Tasks, in the rectangle given: their title with **Stop** while one runs; under it, on the left a row for each
+/// of the latest, as many as fit, and on the right what the task shown printed, following its end, over the box that
+/// answers the task running while it is the one shown.
 pub(super) fn tasks_column(state: &TasksState<'_>, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
@@ -95,23 +94,42 @@ pub(super) fn tasks_column(state: &TasksState<'_>, ui: &mut Ui<'_>, rect: Rect, 
         .kind(TextKind::SmallStrong)
         .tone(Tone::Muted);
     let _ = ui.label(top.rest(), &title);
-    let shown_rows = state
-        .rows
-        .get(state.rows.len().saturating_sub(MOST_ROWS)..)
-        .unwrap_or_default();
-    for row in shown_rows {
+    let [rows, printed] = columns(area.rest(), spacing.medium, [Size::Fill(1.0), Size::Fill(1.4)]);
+    let mut rows = Area::with_gap(rows, spacing.small);
+    for row in latest_rows(state, rows_that_fit(rows.rest().height, &theme)) {
         task_row(
             ui,
-            area.top(theme.sizes.row_height),
+            rows.top(theme.sizes.row_height),
             (row, state.shown == Some(row.id)),
             intents,
         );
     }
+    let mut printed = Area::with_gap(printed, spacing.medium);
     let answering = running.filter(|row| state.shown == Some(row.id));
     if let Some(row) = answering {
-        answer_box(state, ui, area.bottom(theme.sizes.control_height), (row, intents));
+        answer_box(state, ui, printed.bottom(theme.sizes.control_height), (row, intents));
     }
-    output_box(state, ui, area.rest());
+    output_box(state, ui, printed.rest());
+}
+
+/// How many rows of tasks fit in a height, one at least.
+fn rows_that_fit(height: f32, theme: &ui::Theme) -> usize {
+    let row = theme.sizes.row_height + theme.sizes.spacing.small;
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "a height in rows is a small number, never negative"
+    )]
+    let count = ((height + theme.sizes.spacing.small) / row).floor().max(1.0) as usize;
+    count
+}
+
+/// The latest rows of the tasks, as many as a count.
+fn latest_rows<'a>(state: &TasksState<'a>, count: usize) -> &'a [TaskRow] {
+    state
+        .rows
+        .get(state.rows.len().saturating_sub(count)..)
+        .unwrap_or_default()
 }
 
 /// A row of a task: the mark of how it stands, its command, its worktree and, when it did not succeed, why. A click

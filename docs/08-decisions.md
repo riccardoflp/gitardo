@@ -3726,3 +3726,22 @@ reading given until the card says otherwise.
   its button; its entries are tested (`test/toolbarMenus.test.ts`), and the two buttons were looked at in the preview
   server of the webviews, the e2e and UI suites not having been run for them. In the graph of the side bar, which is
   narrow, the two buttons take the room of one more icon beside the search. Should the two be one there?
+
+### Of the tab of Activity, from Q680
+
+Questions of milestone M18 ([D64](#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)), asked while it is
+built, each built with the reading given until the card says otherwise.
+
+- **Q680** — `activity.what-is-running`, `panel.bottom`: D64 has the activity indicator, **Activity** in the bar of
+  views and **Show What Is Running** hide the panel when it is shown with the focus, as `` Ctrl+` `` does for
+  **Terminal**. A click cannot find the panel with the keyboard: the press gives the keyboard to what is clicked. Built
+  so: the indicator and **Activity** in the bar of views hide the panel whenever it shows **Activity**, whatever has
+  the keyboard, as **Terminal** in the bar of views does for its tabs; **Show What Is Running** always shows it, as
+  **Show Terminal** and **Show Command Log** do; and showing the panel at **Activity** leaves the keyboard where it
+  was, since nothing is typed there. Should a key show and hide it as `` Ctrl+` `` does the terminal, with the
+  keyboard in the list?
+- **Q681** — `graph.view-bar`, `panel.bottom`: with **Activity** a tab of the panel, **Terminal** in the bar of views
+  is marked only while the panel shows its terminals or the Command log, and a click on it while the panel shows
+  **Activity** shows the terminals rather than hiding the panel. Hidden at **Activity**, the panel comes back at
+  **Terminal** from that button, not at the Command log it may have shown before. Should the panel remember the tab
+  each of the two buttons showed last?

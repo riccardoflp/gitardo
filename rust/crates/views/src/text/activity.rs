@@ -1,19 +1,16 @@
-//! The words of what runs: the activity indicator of the header and the Activity drawer (`activity.status-bar`,
-//! `activity.what-is-running`, `activity.describe-task`).
+//! The words of what runs: the activity indicator of the status bar and the Activity tab of the bottom panel
+//! (`activity.status-bar`, `activity.what-is-running`, `activity.describe-task`).
 
-/// The title of the Activity drawer.
-pub const DRAWER: &str = "Activity";
-/// The button that closes the Activity drawer.
-pub const CLOSE_DRAWER: &str = "Close the Activity drawer";
-/// What the drawer says with nothing running.
+/// The Activity tab, as the screen reader says what it holds; the tab itself is named by the words of the bottom
+/// panel.
+pub const ACTIVITY: &str = "What is running";
+/// What the Activity tab says with nothing running.
 pub const NOTHING_RUNNING: &str = "Nothing is running now";
-/// What the drawer says under it.
+/// What the Activity tab says under it.
 pub const NOTHING_RUNNING_DETAIL: &str = "Gitardo is not reading or changing anything";
 
 /// The title of the column of what runs.
 pub const RUNNING_COLUMN: &str = "WHAT IS RUNNING";
-/// The button under what runs that shows the bottom panel at the Command log (`activity.what-is-running`).
-pub const SHOW_COMMANDS: &str = "Show the commands Gitardo runs";
 /// The Command log, as the screen reader says its list (`log.show`).
 pub const COMMAND_LOG: &str = "Command log";
 /// What the Command log says before anything was logged.
@@ -116,7 +113,7 @@ pub fn dropped_lines(count: usize) -> String {
     }
 }
 
-/// What ran a moment ago, in the drawer: `Took 2 s`.
+/// What ran a moment ago, in the Activity tab: `Took 2 s`.
 #[must_use]
 pub fn took(seconds: u64) -> String {
     format!("Took {}", duration(seconds))

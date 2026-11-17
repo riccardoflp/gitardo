@@ -60,7 +60,7 @@ pub enum Intent {
     Refresh,
     /// **Read the repository**: the window opened with `readOnStartup` off reads it now (`repo.read-state`).
     ReadRepository,
-    /// **Show the commands Gitardo runs**: the bottom panel shown at the Command log (`log.show`, `panel.bottom`).
+    /// **Show Command Log**: the bottom panel shown at the Command log (`log.show`, `panel.bottom`).
     ShowCommandLog,
     /// Something asked of the bottom panel (`panel.bottom`).
     Panel(crate::panel::PanelIntent),
@@ -87,10 +87,6 @@ pub enum Intent {
     BackTo(Page),
     /// Close the page shown, which shows the timeline or the page before it.
     ClosePage,
-    /// Open the Activity drawer (`activity.what-is-running`).
-    OpenActivity,
-    /// Close the Activity drawer.
-    CloseActivity,
     /// Something asked of the branch rail.
     Rail(RailIntent),
     /// Something asked of the branches the timeline shows.
@@ -132,7 +128,7 @@ pub enum Intent {
     Blame(crate::blame::BlameIntent),
     /// Something asked of the page that chooses what new worktrees get (`worktree-setup.page`).
     WorktreeSetup(crate::worktree_setup::SetupIntent),
-    /// Something asked of the Tasks of the Activity drawer (`worktree-setup.command-steps`).
+    /// Something asked of the Tasks of the Activity tab (`worktree-setup.command-steps`).
     Tasks(crate::activity::TaskIntent),
     /// A button of the title bar the window draws itself (`window.caption-buttons`).
     Window(crate::window::WindowIntent),

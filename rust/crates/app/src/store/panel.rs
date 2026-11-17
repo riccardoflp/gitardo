@@ -75,7 +75,18 @@ pub fn reduce(state: &mut State, intent: &PanelIntent) -> Vec<Effect> {
             state.panel.log_at = Some((*line, serial));
         }
         PanelIntent::Hide => look.is_shown = false,
-        PanelIntent::Toggle => look.is_shown = !look.is_shown,
+        PanelIntent::Toggle => {
+            // The button of the terminal never leaves the panel at what runs, which has a button of its own.
+            let was_at_activity = look.tab == PanelTab::Activity;
+            look.is_shown = !look.is_shown || was_at_activity;
+            if was_at_activity {
+                look.tab = PanelTab::Terminal;
+            }
+        }
+        PanelIntent::ToggleActivity => {
+            look.is_shown = !(look.is_shown && look.tab == PanelTab::Activity);
+            look.tab = PanelTab::Activity;
+        }
         PanelIntent::SetHeight(height) => look.height = *height,
     }
     set(state, look)
@@ -88,7 +99,14 @@ pub fn is_log_shown(state: &State) -> bool {
     look.is_shown && look.tab == PanelTab::CommandLog
 }
 
-/// **Show Command Log**, **Show the commands Gitardo runs**, or something asked of the bottom panel.
+/// Whether the bottom panel shows its Activity tab, whose Tasks are then made.
+#[must_use]
+pub fn is_activity_shown(state: &State) -> bool {
+    let look = look(state);
+    look.is_shown && look.tab == PanelTab::Activity
+}
+
+/// **Show Command Log**, or something asked of the bottom panel.
 pub fn reduce_intent(state: &mut State, intent: views::Intent) -> Vec<Effect> {
     match intent {
         views::Intent::ShowCommandLog => reduce(state, &PanelIntent::Show(PanelTab::CommandLog)),

@@ -399,8 +399,8 @@ fn reduce_intent(state: &mut State, intent: Intent) -> Vec<Effect> {
         Intent::ClosePage => file_page::close_page(state),
         Intent::ShowCommandLog | Intent::Panel(_) => panel::reduce_intent(state, intent),
         Intent::Terminal(intent) => terminals::reduce(state, intent),
-        Intent::ClosePicker | Intent::OpenActivity | Intent::CloseActivity => {
-            reduce_view_intent(state, &intent);
+        Intent::ClosePicker => {
+            state.dialog = None;
             Vec::new()
         }
         Intent::OpenUrl(url) => vec![Effect::OpenUrl(url)],
@@ -451,16 +451,6 @@ fn reduce_graph(state: &mut State, intent: views::graph::GraphIntent) -> Vec<Eff
         state.compares.in_place = None;
     }
     timeline::reduce_graph(state, intent)
-}
-
-/// An intent that changes only what a view shows.
-fn reduce_view_intent(state: &mut State, intent: &Intent) {
-    match intent {
-        Intent::ClosePicker => state.dialog = None,
-        Intent::OpenActivity => state.is_activity_open = true,
-        Intent::CloseActivity => state.is_activity_open = false,
-        _ => {}
-    }
 }
 
 /// Opens a recent workspace, with the repository shown in it last; the window keeps what it shows until its

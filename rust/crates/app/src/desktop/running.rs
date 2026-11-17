@@ -8,9 +8,9 @@ use std::time::{Duration, Instant};
 use engine::ActivityEntry;
 use views::activity::RunningTask;
 
-/// How many of the things that ran the Activity drawer lists.
+/// How many of the things that ran the Activity tab lists.
 const FINISHED_KEPT: usize = 5;
-/// How long the drawer lists something after it ran.
+/// How long the Activity tab lists something after it ran.
 const FINISHED_FOR: Duration = Duration::from_secs(30);
 
 /// When each activity running was first seen, and what ran a moment ago.

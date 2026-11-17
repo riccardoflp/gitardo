@@ -3,8 +3,8 @@
 How a window finds the repositories of its workspace, which one it shows, what it reads of it, and how it keeps that up
 to date on its own while the repository and its files change, from Gitardo or from anything else. The tabs of the
 repositories a window of Gitardo Desktop keeps open, and what each keeps while another is shown. Also what the activity
-indicator of the status bar says Gitardo is doing, the **Activity** drawer, the **Welcome** page of the first start,
-and the folders the user trusts to run what they ask.
+indicator of the status bar says Gitardo is doing, the **Activity** tab of the bottom panel, the **Welcome** page of
+the first start, and the folders the user trusts to run what they ask.
 
 ### `repo.read-repositories` — Find the repositories of a workspace
 
@@ -409,7 +409,8 @@ Acceptance:
 
 ### `activity.describe-task` — Say what Gitardo is doing
 
-The words the activity indicator of the status bar and the **Activity** drawer use for each thing that takes time.
+The words the activity indicator of the status bar and the **Activity** tab of the bottom panel use for each thing
+that takes time.
 
 - **Kind**: Derivation
 - **Function**: `model::activity::describe_task(task: &Task, now: Instant) -> TaskText`
@@ -452,9 +453,10 @@ said (`activity.said`), and the identity commits are made with.
   <ada@example.com>`, the name or the email alone, or **No identity configured**, when there is room for it after
   what runs; a click switches it (`identity.switch`), except while an operation runs.
 - Its tooltip lists everything that runs, the oldest first, each with its title, how long it has run and its detail,
-  and ends with **Click to open the Activity drawer.** The times go on every half second; the tooltip is
+  and ends with **Click to show Activity in the bottom panel.** The times go on every half second; the tooltip is
   drawn again only when its text changes.
-- A click opens the Activity drawer (`activity.what-is-running`).
+- A click shows the bottom panel at its **Activity** tab (`activity.what-is-running`), or hides the panel when it
+  shows that tab ([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)).
 - The status bar keeps its height whatever it says: what was said and its links are drawn in its text
   ([D56](../08-decisions.md#d56--a-side-column-of-repositories-and-branches-what-was-said-in-the-status-bar-diffs-beside-what-opened-them)).
 
@@ -467,6 +469,7 @@ Acceptance:
   its end; a click on the identity asks to switch it.
 - [ ] With `main` two ahead of `origin/main`, the header names `main` without how far it is, and **Sync** says `↑2`
       (Q500).
+- [ ] A click on the indicator shows the bottom panel at **Activity**, and another hides the panel.
 
 ### `activity.said` — What was said, in the status bar
 
@@ -506,34 +509,45 @@ Acceptance:
 - [ ] A click on the words opens the Command log at that command.
 - [ ] No bar is drawn between the header and the timeline after an operation.
 
-### `activity.what-is-running` — What is running, in the Activity drawer
+### `activity.what-is-running` — What is running, in the Activity tab
 
-Lists what Gitardo is doing now, with the way to the commands it runs.
+Lists what Gitardo is doing now, in a tab of the bottom panel, beside the commands it runs.
 
 - **Kind**: View
 - **Function**: `views::activity::what_is_running_view(state: &ActivityState, ui) -> Vec<Intent>`
-- **Entry points**: a click on the activity indicator of the status bar; **Activity** in the bar of views; **Show
-  What Is Running** in Quick search.
+- **Entry points**: the tab **Activity** of the bottom panel (`panel.bottom`); a click on the activity indicator of the
+  status bar; **Activity** in the bar of views; **Show What Is Running** in Quick search.
 - **Uses**: `activity.describe-task`, `log.show`, `panel.bottom`.
+- **Extension**: a click on the item of the status bar, or **Gitardo: Show What Is Running**, lists what runs in a
+  picker of VS Code, kept up to date while it is open, whose last entry, **Show the commands Gitardo runs**, opens the
+  output channel **Gitardo**. The tab is the window's alone: VS Code has its own panel.
 
-The drawer lists each thing that runs, with its title, how long it has run and its detail, the times going on every
-second while it is open, and the list following what starts and ends. With nothing running it says **Nothing is running
-now** and "Gitardo is not reading or changing anything". Under the list, **Show the commands Gitardo runs** shows the
-bottom panel at the Command log (`panel.bottom`), which is no longer in the drawer. Opening the drawer while it is open
-leaves it as it is.
+**Activity** is a tab of the bottom panel, after **Terminal** and before **Command log**, with the panel's height, its
+gap and its **Hide the panel**: nothing is drawn over the timeline to say what runs
+([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)). The activity indicator of
+the status bar and **Activity** in the bar of views show the panel at it, and hide the panel when it shows it; **Show
+What Is Running** shows the panel at it (Q680). `Escape` closes nothing there.
 
-Once a new worktree has run commands (`worktree-setup.command-steps`), the drawer, higher, has **Tasks** at its right:
-a row for each of the latest commands, with its worktree and how it stands (a spinner while it runs, **waits**, a
-check, **exit code `<n>`**, **stopped**, **did not run**); below, what the task shown printed, following its end, the
-colors of a terminal left out; a click on a row shows what that one printed. While the task shown runs, a box under
-its output answers what it asks, `Enter` giving it the line typed, and **Stop** stops it, so that those after it do
-not run.
+The tab lists each thing that runs, with its title, how long it has run and its detail, the times going on every
+second while it is shown, and the list following what starts and ends. With nothing running it says **Nothing is running
+now** and "Gitardo is not reading or changing anything". The commands Gitardo runs are in the tab beside it,
+**Command log** (`log.show`).
+
+Once a new worktree has run commands (`worktree-setup.command-steps`), the tab has **Tasks** at its right: a row for
+each of the latest commands, as many as fit, with its worktree and how it stands (a spinner while it runs, **waits**,
+a check, **exit code `<n>`**, **stopped**, **did not run**); beside the rows, what the task shown printed, following
+its end, the colors of a terminal left out; a click on a row shows what that one printed. While the task shown runs, a
+box under its output answers what it asks, `Enter` giving it the line typed, and **Stop** stops it, so that those
+after it do not run.
 
 Acceptance:
 
-- [ ] Opened during a long fetch, the drawer lists the fetch, and its time grows each second.
-- [ ] When the fetch ends, it leaves the list; with nothing else, the drawer says **Nothing is running now**.
-- [ ] **Show the commands Gitardo runs** shows the bottom panel at the Command log.
+- [ ] Shown during a long fetch, the tab lists the fetch, and its time grows each second.
+- [ ] When the fetch ends, it leaves what runs; with nothing else, the tab says **Nothing is running now**.
+- [ ] A click on the activity indicator shows the bottom panel at **Activity**, between **Terminal** and **Command
+      log**, and nothing is drawn over the timeline, which ends above the panel.
+- [ ] `Escape` with the panel at **Activity** hides nothing.
+- [ ] A click on the tab **Command log**, beside it, shows the commands Gitardo runs.
 
 ### `welcome.page` — The Welcome page
 
@@ -576,7 +590,7 @@ A tab holds a repository with its worktrees and its submodules, which are rows u
 (`repo.group-tabs`,
 [D57](../08-decisions.md#d57--worktrees-in-the-side-column-pages-that-keep-what-opened-them-the-way-back-in-the-title)). The tab's are: the header, the
 branches of the side column, the timeline, the inspector, the pages and the Changes page. The window's are: the bar of
-views, **Repositories**, the Activity drawer with the Tasks, the bottom panel's Command log, the status bar, the
+views, **Repositories**, the bottom panel's **Activity** tab with the Tasks and its Command log, the status bar, the
 settings and the dialogs.
 
 The extension has no tabs: VS Code's views have the list of `repo.select` for that. It keeps what each repository

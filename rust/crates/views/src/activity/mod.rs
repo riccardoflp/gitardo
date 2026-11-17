@@ -1,8 +1,8 @@
-//! What runs: the status bar at the foot of the window (`activity.status-bar`) and the Activity drawer
-//! (`activity.what-is-running`).
+//! What runs: the status bar at the foot of the window (`activity.status-bar`) and the Activity tab of the bottom
+//! panel (`activity.what-is-running`).
 
-mod drawer;
 mod said;
+mod tab;
 mod tasks;
 #[cfg(test)]
 mod tests;
@@ -18,8 +18,8 @@ use crate::intent::Intent;
 use crate::line::is_narrow;
 use crate::text::header;
 
-pub use drawer::{ActivityState, what_is_running_view};
 pub use said::{SAID_FOR, said_view};
+pub use tab::{ActivityState, what_is_running_view};
 pub use tasks::{TaskId, TaskIntent, TaskRow, TasksState};
 
 /// How long something runs before the activity indicator shows it, so that what is over sooner does not flicker.
@@ -31,7 +31,7 @@ const WORDS_WIDTH: f32 = 240.0;
 /// The narrowest the words of the activity indicator are; in less room it shows its icon alone.
 const WORDS_LEAST_WIDTH: f32 = 80.0;
 
-/// Something running, or that ran, as the header and the drawer say it.
+/// Something running, or that ran, as the status bar and the Activity tab say it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RunningTask {
     /// What it is: `Reading app`.
@@ -86,7 +86,7 @@ fn indicator_width(state: &StatusBarState<'_>, ui: &Ui<'_>, room: f32) -> f32 {
 }
 
 /// The tooltip of the activity indicator: everything that runs, the oldest first, each with its title, how long it has
-/// run and its detail, then **Click to open the Activity drawer.**
+/// run and its detail, then **Click to show Activity in the bottom panel.**
 #[must_use]
 pub fn tooltip(running: &[RunningTask]) -> String {
     let mut lines: Vec<String> = Vec::new();
@@ -96,15 +96,15 @@ pub fn tooltip(running: &[RunningTask]) -> String {
             lines.push(detail.clone());
         }
     }
-    lines.push(header::OPEN_THE_DRAWER.to_owned());
+    lines.push(header::SHOW_ACTIVITY.to_owned());
     lines.join("\n")
 }
 
 /// The status bar, over the rectangle its caller clipped it to: at its start the activity indicator, a spinning icon
 /// with the title of what has run longest and for how long, once it has run for half a second, whose tooltip lists
-/// everything that runs and whose click opens the Activity drawer; at its end the identity commits are made with, which
-/// a click switches (`identity.switch`), when it fits after the indicator and what was said; between them what was
-/// said last (`activity.said`). It asks for the frames that make the indicator appear and its times go on.
+/// everything that runs and whose click shows the bottom panel at its Activity tab, or hides the panel when it shows
+/// that tab; at its end the identity commits are made with, which a click switches (`identity.switch`), when it fits
+/// after the indicator and what was said; between them what was said last (`activity.said`). It asks for the frames that make the indicator appear and its times go on.
 ///
 /// Feature: activity.status-bar
 pub fn status_bar_view(state: &StatusBarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -143,7 +143,7 @@ pub fn status_bar_view(state: &StatusBarState<'_>, ui: &mut Ui<'_>) -> Vec<Inten
     ui.describe(id, indicator, &Description::new(AccessRole::Button, &words));
     ui.tooltip(&response, &tooltip(state.running));
     if response.clicked {
-        intents.push(Intent::OpenActivity);
+        intents.push(Intent::Panel(crate::panel::PanelIntent::ToggleActivity));
     }
     intents
 }

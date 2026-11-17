@@ -377,39 +377,46 @@ A column of icons on the left edge of the window, each the way to a place of it.
 
 From the top: **Timeline**, which comes back to the timeline (`graph.view`); **Changes**, with the number of changed
 files on it, which opens the Changes page (`changes.pane`); **Files**, which opens the Files page; **Compare**, which
-asks what to compare (`compare.choose`); and at its foot **Terminal**, which shows and hides the bottom panel
-(`panel.bottom`), **Activity**, which opens and closes the Activity drawer (`activity.what-is-running`), and
-**Settings**, which opens the settings page (`settings.edit`). The place shown is marked with the ground of an island;
-**Terminal** is marked while the bottom panel is shown, **Activity** while the drawer is open. Each says its name in its
-tooltip. Before a repository is read only **Activity** and **Settings** can be clicked
+asks what to compare (`compare.choose`); and at its foot **Terminal**, which shows the bottom panel at its terminals
+or its Command log and hides it (`panel.bottom`), **Activity**, which shows the bottom panel at its **Activity** tab
+and hides it (`activity.what-is-running`), and **Settings**, which opens the settings page (`settings.edit`). The
+place shown is marked with the ground of an island; **Terminal** is marked while the bottom panel shows its terminals
+or the Command log, **Activity** while it shows its **Activity** tab. Each says its name in its tooltip. Before a
+repository is read only **Activity** and **Settings** can be clicked
 ([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)).
 
 Acceptance:
 
 - [ ] With three changed files, **Changes** shows `3`; with none, no number.
 - [ ] A click on **Changes** opens the Changes page and marks **Changes**; a click on **Timeline** comes back.
-- [ ] A click on **Activity** opens the Activity drawer, and another closes it.
+- [ ] A click on **Activity** shows the bottom panel at **Activity**, and another hides the panel.
 - [ ] A click on **Terminal** shows the bottom panel, and another hides it.
+- [ ] With the bottom panel at **Activity**, a click on **Terminal** shows its terminals.
 - [ ] With no repository read, **Timeline**, **Changes**, **Files**, **Compare** and **Terminal** cannot be clicked.
 
 ### `panel.bottom` — The bottom panel
 
-An island under the timeline and the inspector, or the page shown, with the terminals and the Command log, each in a
-tab of its own.
+An island under the timeline and the inspector, or the page shown, with the terminals, what is running and the
+Command log, each in a tab of its own.
 
 - **Kind**: View
 - **Function**: `views::panel::bottom_view(state: &BottomPanelState, ui) -> Vec<Intent>`
 - **Entry points**: `` Ctrl+` `` (`` Cmd+` `` on macOS), which shows the panel at its terminal, or hides it when it has
   the focus; **Terminal** in the bar of views (`graph.view-bar`); **Show Terminal** and **Show Command Log** in Quick
-  search; **Show the commands Gitardo runs** in the Activity drawer (`activity.what-is-running`).
-- **Uses**: `terminal.view`, `log.show`, `graph.islands`, `graph.resize-panes`.
+  search; the activity indicator of the status bar, **Activity** in the bar of views and **Show What Is Running**,
+  which show it at **Activity** (`activity.what-is-running`).
+- **Uses**: `terminal.view`, `activity.what-is-running`, `log.show`, `graph.islands`, `graph.resize-panes`.
 - **Extension**: VS Code's own panel, with its terminals and the output channel **Gitardo**: nothing to build.
 
 - The panel is an island of its own, as wide as the timeline and the inspector together, or as the page shown, above
   the status bar; the branch rail keeps its whole height beside it. Hidden, it leaves its room to the islands above.
-- At its top, on the left, its tabs: **Terminal** and **Command log**; the one shown is marked. On the right, with
-  **Terminal** shown: **New terminal**, the list of the terminals when there are more than one, each named by its
-  shell and numbered, and **Kill the terminal**; then, always, **Hide the panel**, which hides it and stops nothing.
+- At its top, on the left, its tabs: **Terminal**, **Activity** and **Command log**
+  ([D64](../08-decisions.md#d64--activity-a-tab-of-the-bottom-panel-whose-list-holds-still)); the one shown is marked.
+  On the right, with **Terminal** shown: **New terminal**, the list of the terminals when there are more than one, each
+  named by its shell and numbered, and **Kill the terminal**; then, always, **Hide the panel**, which hides it and
+  stops nothing.
+- **Terminal** in the bar of views hides the panel when it shows its terminals or the Command log; otherwise it shows
+  it at the tab it showed last, or at **Terminal** when that was **Activity**, which has a button of its own (Q681).
 - The gap above it is the line dragged to change its height: it starts at 240 px, never less than 100 px nor more than
   70% of the window, and a double click gives it 240 px again. In the narrow layout the gap is 4 px, as between the
   other islands.
@@ -419,8 +426,11 @@ tab of its own.
 Acceptance:
 
 - [ ] `` Ctrl+` `` shows the panel at the terminal, with the focus in it; pressed again there, it hides the panel.
-- [ ] **Show the commands Gitardo runs** in the Activity drawer shows the panel at the Command log.
+- [ ] The tabs are **Terminal**, **Activity** and **Command log**, from the left, and a click on **Activity** shows
+      what is running, the panel as high as before.
 - [ ] The height dragged to 300 px is there after the window is closed and opened again on the same workspace.
+- [ ] The panel shown at **Activity** is there, at that tab, after the window is closed and opened again on the same
+      workspace.
 - [ ] **Hide the panel** while a command runs in the terminal leaves it running: shown again, its output has grown.
 
 ### `terminal.view` — A terminal in the bottom panel
@@ -486,7 +496,7 @@ own dash.
 | Meaning | Lucide icon |
 | --- | --- |
 | Folded, a menu that opens to the side; unfolded | `chevron-right`, `chevron-down` |
-| Close a page, a drawer, the inspector, a box, the bottom panel; empty a box | `x` |
+| Close a page, the inspector, a box, the bottom panel; empty a box | `x` |
 | Chosen in a menu; done; a good commit of a bisect | `check` |
 | Add: stage a file or a change, take a side into the result, a new terminal, add a submodule, another tab | `plus` |
 | Unstage | `minus` |

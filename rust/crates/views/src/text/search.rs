@@ -31,9 +31,9 @@ pub const SHOW_ALL_COMMITS: &str = "Show all commits";
 /// The bar of a search shown as a list, for the screen reader.
 pub const LIST_BAR: &str = "Only the commits found";
 
-/// What asks for a search of the whole history, in the Activity drawer.
+/// What asks for a search of the whole history, in the Activity tab.
 pub const SEARCHING_HISTORY: &str = "Searching the history";
-/// What asks for the commit of a name or a hash, in the Activity drawer.
+/// What asks for the commit of a name or a hash, in the Activity tab.
 pub const LOOKING_FOR_COMMIT: &str = "Looking for a commit";
 /// An entry of Quick search that opens the settings page at a section or a setting: `Open Settings: Worktrees`.
 #[must_use]

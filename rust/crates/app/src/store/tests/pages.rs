@@ -296,14 +296,26 @@ fn the_window_closed_keeps_its_size_cancels_its_jobs_and_quits() {
 }
 
 #[test]
-fn the_lists_kept_aside_and_the_activity_drawer_open_and_close() {
+fn the_lists_kept_aside_and_the_activity_tab_of_the_bottom_panel_open_and_close() {
+    use views::panel::{PanelIntent, PanelTab};
     let mut state = window();
     let _open = intent(&mut state, Intent::Rail(RailIntent::Toggle(RailList::Tags)));
-    let _drawer = intent(&mut state, Intent::OpenActivity);
+    let _shown = intent(&mut state, Intent::Panel(PanelIntent::ToggleActivity));
     assert!(state.rail.lists.is_open(&RailList::Tags));
-    assert!(state.is_activity_open);
+    assert!(crate::store::panel::is_activity_shown(&state));
     let _closed = intent(&mut state, Intent::Rail(RailIntent::Toggle(RailList::Tags)));
-    let _drawer = intent(&mut state, Intent::CloseActivity);
+    let _hidden = intent(&mut state, Intent::Panel(PanelIntent::ToggleActivity));
     assert!(!state.rail.lists.is_open(&RailList::Tags));
-    assert!(!state.is_activity_open);
+    let look = crate::store::panel::look(&state);
+    assert!(!look.is_shown && look.tab == PanelTab::Activity, "{look:?}");
+    // The button of the terminal shows the panel at its terminals, never at what runs.
+    let _terminal = intent(&mut state, Intent::Panel(PanelIntent::Toggle));
+    let look = crate::store::panel::look(&state);
+    assert!(look.is_shown && look.tab == PanelTab::Terminal, "{look:?}");
+    let _activity = intent(&mut state, Intent::Panel(PanelIntent::ToggleActivity));
+    let _terminal = intent(&mut state, Intent::Panel(PanelIntent::Toggle));
+    let look = crate::store::panel::look(&state);
+    assert!(look.is_shown && look.tab == PanelTab::Terminal, "{look:?}");
+    let _hidden = intent(&mut state, Intent::Panel(PanelIntent::Toggle));
+    assert!(!crate::store::panel::look(&state).is_shown);
 }

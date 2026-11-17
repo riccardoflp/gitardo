@@ -285,7 +285,7 @@ pub(super) const FIRST: [SettingInfo; 28] = [
         key: "worktrees.setupCommands",
         title: "Commands to run",
         section: Some(SettingsSection::Worktrees),
-        description: "Commands to run in each new worktree, in Tasks of the Activity drawer, in a trusted folder only.",
+        description: "Commands to run in each new worktree, in Tasks of the Activity tab, in a trusted folder only.",
         default: "[]",
         is_repository: true,
         is_experimental: false,

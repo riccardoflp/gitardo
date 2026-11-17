@@ -34,7 +34,7 @@ pub struct BackgroundRead {
     pub folder: PathBuf,
     /// Its job.
     pub job: JobId,
-    /// Its number, why it runs and how many reads in a row it is, for the Activity drawer.
+    /// Its number, why it runs and how many reads in a row it is, for the Activity tab.
     pub started: StartedRead,
 }
 

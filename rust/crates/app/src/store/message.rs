@@ -259,7 +259,7 @@ pub enum Message {
     },
     /// A job of the pull requests of GitHub is done (`github.read-pull-requests`).
     GitHub(super::github::GitHubMessage),
-    /// A task of the Activity drawer started, printed or ended (`worktree-setup.command-steps`).
+    /// A task of the Activity tab started, printed or ended (`worktree-setup.command-steps`).
     Task(super::tasks::TaskMessage),
     /// A terminal of the bottom panel started, printed or ended (`terminal.view`).
     Terminal(super::terminals::TerminalMessage),

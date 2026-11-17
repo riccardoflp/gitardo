@@ -84,8 +84,8 @@ pub(super) fn selected_details(timeline: &Timeline) -> Option<SelectedDetails<'_
     }
 }
 
-/// The bar of views: the place shown, how many files are changed once a repository is read, and whether the Activity
-/// drawer is open.
+/// The bar of views: the place shown, how many files are changed once a repository is read, and whether the bottom
+/// panel shows its Activity tab or another.
 pub(super) fn view_bar(state: &State) -> ViewBarState {
     let shown = match (state.workspace.is_some(), state.page_shown()) {
         (true, None) => ViewShown::Timeline,
@@ -97,8 +97,8 @@ pub(super) fn view_bar(state: &State) -> ViewBarState {
     ViewBarState {
         shown,
         changed_files: state.shown_read().map(|read| read.state.working_tree.file_count()),
-        is_activity_open: state.is_activity_open,
-        is_panel_shown: super::panel::look(state).is_shown,
+        is_activity_shown: super::panel::is_activity_shown(state),
+        is_panel_shown: super::panel::look(state).is_shown && !super::panel::is_activity_shown(state),
     }
 }
 

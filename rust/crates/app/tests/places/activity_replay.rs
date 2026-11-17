@@ -55,7 +55,7 @@ fn drawn_at(tree: &TreeUpdate, words: &str) -> Option<f32> {
         })
 }
 
-/// A window whose list of what runs is open, with the clock that says how long each thing has run.
+/// A window whose bottom panel shows its Activity tab, with the clock that says how long each thing has run.
 struct Stage {
     /// The repository shown, kept while the window is.
     _repository: (testkit::Repository, testkit::Remote),
@@ -70,7 +70,10 @@ impl Stage {
     fn new() -> Stage {
         let repository = repository_with_history();
         let mut state = showing(repository.0.path().to_path_buf());
-        let _opened = run(&mut state, Message::Intent(Intent::OpenActivity));
+        let _shown = run(
+            &mut state,
+            Message::Intent(Intent::Panel(views::panel::PanelIntent::ToggleActivity)),
+        );
         Stage {
             _repository: repository,
             state,
@@ -167,7 +170,7 @@ fn write(frames: &[Frame]) -> std::path::PathBuf {
 }
 
 #[test]
-#[ignore = "the list of the drawer jumps: phase 3 of M18 lays it out by the rules of D64 and turns this on"]
+#[ignore = "the list of the tab jumps: phase 3 of M18 lays it out by the rules of D64 and turns this on"]
 fn activity_what_is_running__during_a_fetch_with_forty_reads_in_a_row_no_row_moves_flashes_or_goes() {
     let script = script();
     let fetch_ends = script.iter().find(|scripted| scripted.title == FETCH).unwrap().ends;

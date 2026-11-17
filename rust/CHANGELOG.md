@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **Activity** is a tab of the bottom panel, between **Terminal** and **Command log**, in place of the drawer that
+  opened over the timeline and the inspector: it has the panel's height, its gap and its **Hide the panel**, and the
+  panel remembers it for the workspace. The activity indicator of the status bar and **Activity** in the bar of views
+  show the panel at it, and hide the panel when it shows it; **Show What Is Running** shows it, and `Escape` closes
+  nothing there. **Show the commands Gitardo runs** is gone: the Command log is the tab beside it. **Tasks**, the
+  commands of new worktrees, are at the right of the tab, what they print beside their rows, and the panel is shown at
+  the tab when they start. **Terminal** in the bar of views is marked while the panel shows its terminals or the
+  Command log, and shows the terminals when the panel is at **Activity**.
 - The labels of a commit, its branches, tags and the rest, come first on its row of the timeline, right after the
   graph and before its message, so that they are found at the same place on every row. They take the room the message
   leaves them, at least two fifths of the line, and those that do not fit are one label `+N`. The pointer resting on

@@ -73,7 +73,7 @@ pub enum Step {
         /// The folder it runs in.
         directory: PathBuf,
     },
-    /// Runs a command of the user's through the system's shell as a task of the Activity drawer
+    /// Runs a command of the user's through the system's shell as a task of the Activity tab
     /// (`worktree-setup.command-steps`): what it prints is kept and shown as it comes, what it asks can be typed there,
     /// and what the plan does once it succeeded waits for it.
     Task {
@@ -81,7 +81,7 @@ pub enum Step {
         command: String,
         /// The folder it runs in.
         directory: PathBuf,
-        /// The name the drawer gives it: the worktree it runs in, as the views name it.
+        /// The name the Activity tab gives it: the worktree it runs in, as the views name it.
         name: String,
     },
     /// Makes a folder and the folders that lead to it, when they are missing.

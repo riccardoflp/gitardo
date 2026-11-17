@@ -94,7 +94,7 @@ fn activity_status_bar__a_fetch_and_a_read_at_once_are_both_in_the_tooltip_the_o
     ];
     assert_eq!(
         tooltip(&tasks),
-        "Fetching origin (4 s)\nReading work/app (1 s)\nBecause .git/FETCH_HEAD changed.\nClick to open the Activity drawer."
+        "Fetching origin (4 s)\nReading work/app (1 s)\nBecause .git/FETCH_HEAD changed.\nClick to show Activity in the bottom panel."
     );
 }
 

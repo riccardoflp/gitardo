@@ -8,7 +8,7 @@ pub const CHANGES: &str = "Changes";
 pub const FILES: &str = "Files";
 /// The button that asks what to compare.
 pub const COMPARE: &str = "Compare";
-/// The button that opens and closes the Activity drawer.
+/// The button that shows the bottom panel at its Activity tab, and hides it.
 pub const ACTIVITY: &str = "Activity";
 /// The button that opens the settings page.
 pub const SETTINGS: &str = "Settings";

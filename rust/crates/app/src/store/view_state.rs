@@ -44,9 +44,9 @@ pub struct ViewData {
     folder: String,
     /// The folder the dialog of an opened folder asks about.
     question_folder: String,
-    /// What is running, for the header and the Activity drawer.
+    /// What is running, for the status bar and the Activity tab.
     running: Vec<RunningTask>,
-    /// What ran a moment ago, the latest first, for the Activity drawer.
+    /// What ran a moment ago, the latest first, for the Activity tab.
     finished: Vec<RunningTask>,
     /// The lines of the Command log, while the bottom panel shows it.
     log_lines: Vec<LogLine>,
@@ -62,7 +62,7 @@ pub struct ViewData {
     changes: super::changes::ChangesData,
     /// The blame of the File page in front.
     blame: super::blame::BlameData,
-    /// The rows of the Tasks of the Activity drawer, while it is open.
+    /// The rows of the Tasks of the Activity tab, while it is shown.
     task_rows: Vec<views::activity::TaskRow>,
 }
 
@@ -123,11 +123,11 @@ impl ViewData {
             search: search::SearchView::new(state),
             changes: super::changes::ChangesData::new(state),
             blame: super::blame::BlameData::new(state, now),
-            task_rows: state.tasks.rows_while(state.is_activity_open),
+            task_rows: state.tasks.rows_while(super::panel::is_activity_shown(state)),
         }
     }
 
-    /// The same words, with what ran a moment ago, the latest first, for the Activity drawer.
+    /// The same words, with what ran a moment ago, the latest first, for the Activity tab.
     #[must_use]
     pub fn with_finished(self, finished: Vec<RunningTask>) -> ViewData {
         ViewData { finished, ..self }
@@ -156,11 +156,6 @@ impl ViewData {
             },
             content: self.content(state),
             panel: self.panel(state),
-            drawer: state.is_activity_open.then_some(ActivityState {
-                running: &self.running,
-                finished: &self.finished,
-                tasks: state.tasks.view(&self.task_rows),
-            }),
             theme_picker: (state.dialog == Some(Dialog::ThemePicker)).then_some(ThemePickerState {
                 current: crate::settings::theme_value(state.settings.theme),
             }),
@@ -220,6 +215,11 @@ impl ViewData {
         look.is_shown.then(|| BottomPanelState {
             tab: look.tab,
             height: look.height,
+            activity: ActivityState {
+                running: &self.running,
+                finished: &self.finished,
+                tasks: state.tasks.view(&self.task_rows),
+            },
             log: LogState {
                 lines: &self.log_lines,
                 dropped: state.log.dropped(),

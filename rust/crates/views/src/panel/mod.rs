@@ -1,9 +1,11 @@
-//! The bottom panel (`panel.bottom`, D53): an island under the timeline and the inspector, or the page shown, above the
-//! status bar, with the terminals and the Command log each in a tab; the gap above it is dragged to change its height.
+//! The bottom panel (`panel.bottom`, D53, D64): an island under the timeline and the inspector, or the page shown, above
+//! the status bar, with the terminals, what runs and the Command log each in a tab; the gap above it is dragged to
+//! change its height.
 
 use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{AccessRole, Button, ButtonKind, Key, Modifiers, Rect, Split, Splitter, Ui};
 
+use crate::activity::{ActivityState, what_is_running_view};
 use crate::intent::Intent;
 use crate::log::{LogState, log_view};
 use crate::terminal::{TerminalState, terminal_buttons, terminal_view};
@@ -24,6 +26,8 @@ pub enum PanelTab {
     /// The terminals of the repository tab shown (`terminal.view`).
     #[default]
     Terminal,
+    /// What runs, and the commands of new worktrees (`activity.what-is-running`).
+    Activity,
     /// The Command log (`log.show`).
     CommandLog,
 }
@@ -33,15 +37,19 @@ pub enum PanelTab {
 pub enum PanelIntent {
     /// `` Ctrl+` ``, or **Show Terminal** of Quick search: the panel shown at the terminal, with the keyboard in it.
     Open,
-    /// The panel shown at a tab: a tab clicked, **Show Command Log**.
+    /// The panel shown at a tab: a tab clicked, **Show Command Log**, **Show What Is Running**.
     Show(PanelTab),
     /// The panel shown at the Command log, scrolled to a line of it and the line marked, by its place among every line
     /// the log recorded, those dropped too: a click on what an operation said (`activity.said`).
     ShowLogAt(usize),
     /// **Hide the panel**, or `` Ctrl+` `` while the panel has the keyboard: it is hidden and nothing stops.
     Hide,
-    /// **Terminal** of the bar of views: the panel shown at the tab it showed last, or hidden.
+    /// **Terminal** of the bar of views: the panel hidden when it shows its terminals or the Command log, and
+    /// otherwise shown at the tab it showed last, or at its terminals when that was what runs.
     Toggle,
+    /// The activity indicator of the status bar, or **Activity** of the bar of views: the panel shown at its Activity
+    /// tab, or hidden when it shows that tab.
+    ToggleActivity,
     /// The height dragged; none when a double click puts it back where it starts.
     SetHeight(Option<f32>),
 }
@@ -53,6 +61,8 @@ pub struct BottomPanelState<'a> {
     pub tab: PanelTab,
     /// The height dragged; none while it is where it starts.
     pub height: Option<f32>,
+    /// What runs, and the commands of new worktrees.
+    pub activity: ActivityState<'a>,
     /// The Command log.
     pub log: LogState<'a>,
     /// The terminals of the repository tab shown.
@@ -108,7 +118,7 @@ pub(crate) fn resize_panel_view(
 }
 
 /// The bottom panel over the rectangle its caller clipped it to: its tabs on the left of its top, **Hide the panel** on
-/// the right, and under them the terminal or the Command log.
+/// the right, and under them the terminal, what runs or the Command log.
 ///
 /// Feature: panel.bottom
 pub fn bottom_view(state: &BottomPanelState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -123,6 +133,7 @@ pub fn bottom_view(state: &BottomPanelState<'_>, ui: &mut Ui<'_>) -> Vec<Intent>
         let body = inset(area.rest(), Insets::symmetric(spacing.small, spacing.small));
         match state.tab {
             PanelTab::Terminal => intents.extend(ui.clip(body, |ui| terminal_view(&state.terminal, ui))),
+            PanelTab::Activity => intents.extend(ui.clip(body, |ui| what_is_running_view(&state.activity, ui))),
             PanelTab::CommandLog => intents.extend(ui.clip(body, |ui| log_view(&state.log, ui))),
         }
     });
@@ -142,6 +153,7 @@ fn top_bar(state: &BottomPanelState<'_>, ui: &mut Ui<'_>, bar: Rect, intents: &m
     }
     for (tab, name) in [
         (PanelTab::Terminal, words::TERMINAL),
+        (PanelTab::Activity, words::ACTIVITY),
         (PanelTab::CommandLog, words::COMMAND_LOG),
     ] {
         let kind = if tab == state.tab {

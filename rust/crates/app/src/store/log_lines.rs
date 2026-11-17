@@ -1,4 +1,4 @@
-//! The lines of the Command log as the drawer shows them (`log.show`): each with the time it started, in UTC as the
+//! The lines of the Command log as the bottom panel shows them (`log.show`): each with the time it started, in UTC as the
 //! timeline says dates (open question Q58), and a read with how long it took; and the line it was opened at.
 
 use engine::{CommandLog, LogKind};

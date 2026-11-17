@@ -197,7 +197,11 @@ fn listed_folders(value: &Value, name: &str) -> Option<Vec<PathBuf>> {
 }
 
 /// The names the tabs of the bottom panel are written with.
-const PANEL_TABS: [(PanelTab, &str); 2] = [(PanelTab::Terminal, "terminal"), (PanelTab::CommandLog, "commandLog")];
+const PANEL_TABS: [(PanelTab, &str); 3] = [
+    (PanelTab::Terminal, "terminal"),
+    (PanelTab::Activity, "activity"),
+    (PanelTab::CommandLog, "commandLog"),
+];
 
 /// The bottom panel of a workspace, as written: nothing for a panel as it starts, hidden at its terminal.
 fn panel_members(panel: PanelLook) -> Vec<Member> {

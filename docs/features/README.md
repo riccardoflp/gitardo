@@ -55,7 +55,7 @@ earns it.
 | [`activity.describe-task`](01-repositories.md#activitydescribe-task--say-what-gitardo-is-doing) | Say what Gitardo is doing | Derivation | Built | Built |
 | [`activity.status-bar`](01-repositories.md#activitystatus-bar--what-is-running-in-the-status-bar) | What is running, in the status bar | View | Built | Built |
 | [`activity.said`](01-repositories.md#activitysaid--what-was-said-in-the-status-bar) | What was said, in the status bar | View | Built | Host only |
-| [`activity.what-is-running`](01-repositories.md#activitywhat-is-running--what-is-running-in-the-activity-drawer) | What is running, in the Activity drawer | View | Built | Built |
+| [`activity.what-is-running`](01-repositories.md#activitywhat-is-running--what-is-running-in-the-activity-tab) | What is running, in the Activity tab | View | Built | Built |
 | [`welcome.page`](01-repositories.md#welcomepage--the-welcome-page) | The Welcome page | View | Built | Host only |
 | [`repo.tabs`](01-repositories.md#repotabs--the-repositories-open-in-the-side-column) | The repositories open, in the side column | View | Built | Host only |
 | [`repo.side-column`](01-repositories.md#reposide-column--the-side-column-of-repositories-and-branches) | The side column of repositories and branches | View | Built | Host only |

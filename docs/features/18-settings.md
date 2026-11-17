@@ -211,7 +211,7 @@ Acceptance:
 | `worktrees.folder` | Folder of new worktrees | Worktrees | `"${repo}.worktrees"` | User, Repository | Where new worktrees go. | `worktree.create` |
 | `worktrees.linkFolders` | Folders to link | Worktrees | `[]` | User, Repository | Ignored folders to link into new worktrees, in `.gitignore` syntax. | `worktree-setup.link-and-copy-steps` |
 | `worktrees.copyFiles` | Files to copy | Worktrees | `[]` | User, Repository | Ignored files and folders to copy into new worktrees, in `.gitignore` syntax. | `worktree-setup.link-and-copy-steps` |
-| `worktrees.setupCommands` | Commands to run | Worktrees | `[]` | User, Repository | Commands to run in each new worktree, in Tasks of the Activity drawer, in a trusted folder only. | `worktree-setup.command-steps` |
+| `worktrees.setupCommands` | Commands to run | Worktrees | `[]` | User, Repository | Commands to run in each new worktree, in Tasks of the Activity tab, in a trusted folder only. | `worktree-setup.command-steps` |
 | `conflicts.autoResolve` | Resolve conflicts by rules | AI and conflicts | `false` | User | **Experimental.** Offer to resolve the conflicts that need no choice. | `conflicts.resolve-by-rules` |
 | `conflicts.ai` | Ask the AI about conflicts | AI and conflicts | `false` | User | **Experimental.** Offer to ask the AI provider about the conflicts the rules leave. | `ai.resolve-conflicts` |
 | `blame.enabled` | Blame of the current line | Files and blame | `true` | User | The blame of the line under the cursor, at its end, in the File page. | `blame.current-line` |

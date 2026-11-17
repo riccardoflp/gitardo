@@ -1,4 +1,4 @@
-//! The words the activity indicator of the header and the Activity drawer use for each thing that takes time
+//! The words the activity indicator of the header and the Activity tab use for each thing that takes time
 //! (`activity.describe-task`).
 //!
 //! The card gives this derivation its words, as `graph.date-separators` does (open question Q10): they are here rather
@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use crate::repo::{FilesChange, ReadCause};
 
-/// Something that takes time, as the activity indicator and the drawer know it.
+/// Something that takes time, as the activity indicator and the Activity tab know it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Task {
     /// What it is.
@@ -136,7 +136,7 @@ pub fn cause_words(cause: &ReadCause) -> String {
     }
 }
 
-/// A path with forward slashes, as the log and the drawer write paths on every system.
+/// A path with forward slashes, as the log and the Activity tab write paths on every system.
 fn slashes(path: &Path) -> String {
     path.to_string_lossy().replace('\\', "/")
 }

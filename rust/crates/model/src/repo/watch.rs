@@ -94,7 +94,7 @@ pub enum FilesChange {
 pub struct ReadRequest {
     /// How long after the change the read starts.
     pub delay: Duration,
-    /// Why it is read, as the Activity drawer says it.
+    /// Why it is read, as the Activity tab says it.
     pub cause: ReadCause,
 }
 

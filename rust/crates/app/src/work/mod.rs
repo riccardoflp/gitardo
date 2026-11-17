@@ -56,7 +56,7 @@ struct Task {
     job: Job,
     /// The token that cancels it.
     cancel: CancelToken,
-    /// What it is and why it runs, in the words of the Activity drawer, when the window says them; otherwise they are
+    /// What it is and why it runs, in the words of the Activity tab, when the window says them; otherwise they are
     /// made from the job.
     words: Option<(Text, Text)>,
 }
@@ -100,7 +100,7 @@ impl Workers {
         self.start_described(job, None);
     }
 
-    /// Gives a job to the next worker free, with what it is and why it runs in the words of the Activity drawer, such
+    /// Gives a job to the next worker free, with what it is and why it runs in the words of the Activity tab, such
     /// as `Reading app` and `Because src/a.rs changed.` (`activity.describe-task`).
     pub fn start_described(&mut self, job: Job, words: Option<(Text, Text)>) {
         let cancel = CancelToken::new();
@@ -158,7 +158,7 @@ fn work(receiver: &Mutex<Receiver<Task>>, activities: &Activities, deliver: &Del
     }
 }
 
-/// What a job is and what asked for it, in the words of the Activity drawer.
+/// What a job is and what asked for it, in the words of the Activity tab.
 fn words(kind: &JobKind) -> (Text, Text) {
     let (folder, cause) = match kind {
         JobKind::FindRepositories { folders } => {

@@ -36,8 +36,6 @@ pub struct State {
     pub notice: Option<Notice>,
     /// The branch rail and the branch filter.
     pub rail: super::rail::Rail,
-    /// Whether the Activity drawer is open.
-    pub is_activity_open: bool,
     /// Whether the side column is opened over the timeline, in the narrow layout (`repo.side-column`).
     pub is_side_column_over: bool,
     /// Whether an operation runs: choosing another repository waits for it (`repo.select`).
@@ -101,7 +99,7 @@ pub struct State {
     pub github: super::github::GitHub,
     /// The tabs of the repositories open, and what those not shown keep (`repo.tabs`, `repo.keep-open`).
     pub tabs: super::tabs::Tabs,
-    /// The Tasks of the Activity drawer: the commands of new worktrees (`worktree-setup.command-steps`).
+    /// The Tasks of the Activity tab: the commands of new worktrees (`worktree-setup.command-steps`).
     pub tasks: super::tasks::Tasks,
     /// The title bar, as the window draws it, and whether the window is maximized (`window.title-bar`).
     pub caption: views::window::CaptionState,

@@ -1176,7 +1176,8 @@ The rules:
 - Each command is a `Task` step in the worktree, named after it, `run <command>` in the log, after the links and
   copies. The engine runs the steps of the plan before the first task, then hands that task and the steps after it to
   **Tasks**, which runs them apart.
-- They run one after the other in **Tasks**, in the Activity drawer, each as a task named after the worktree's folder,
+- They run one after the other in **Tasks**, at the right of the **Activity** tab of the bottom panel, which is
+  shown at that tab when they start, each as a task named after the worktree's folder,
   with the shell of the system, so that what they print is seen and what they ask can be answered. One command to a
   line, with no `&&` between them, which Windows PowerShell does not know.
 - One that fails or is stopped stops those after it, and Gitardo says which: **`<command>` failed with exit code `<n>`
@@ -1194,9 +1195,9 @@ The rules:
 Acceptance:
 
 - [ ] With `["npm ci", "npm run build"]`, the plan ends with `run npm ci` and `run npm run build`, and Tasks, in the
-      Activity drawer, shows both, one after the other, with the worktree as their folder.
+      **Activity** tab, shows both, one after the other, with the worktree as their folder.
 - [ ] When `npm ci` exits with 1, `npm run build` does not run, and the warning says so and offers to open the worktree.
-- [ ] A command that waits for input can be answered in Tasks, in the Activity drawer.
+- [ ] A command that waits for input can be answered in Tasks, in the **Activity** tab.
 - [ ] In a folder that is not trusted, no command runs and the worktree is still created, linked and copied.
 - [ ] **Open in worktree** opens the worktree only once both commands exit with 0.
 - [ ] Extension: with `git update-ref refs/setup/one HEAD` and `git update-ref refs/setup/two refs/setup/one`, **Open in
