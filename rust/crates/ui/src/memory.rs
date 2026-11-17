@@ -35,6 +35,8 @@ pub(crate) struct InputBoxState {
     pub(crate) changed_at: Duration,
     /// Whether the box hides what is typed, as its view said in the last frame.
     pub(crate) is_hidden: bool,
+    /// Whether the box had the keyboard in the last frame, to say when it loses it.
+    pub(crate) had_focus: bool,
 }
 
 /// The state of a scroll area between frames.

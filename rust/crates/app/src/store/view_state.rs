@@ -114,7 +114,7 @@ impl ViewData {
                 Vec::new()
             },
             setting_rows: if state.pages.open.contains(&Page::Settings) {
-                crate::settings::setting_rows(&state.settings)
+                crate::settings::setting_rows(&state.settings, state.settings_target)
             } else {
                 Vec::new()
             },

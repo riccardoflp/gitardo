@@ -78,6 +78,8 @@ pub(crate) struct Engine {
     glyphs: SwashCache,
     /// How many glyphs were rasterized since the engine was made.
     rasterized: u64,
+    /// The names of the families of the fonts loaded, once they were asked for.
+    families: Option<Vec<String>>,
 }
 
 impl Engine {
@@ -89,6 +91,7 @@ impl Engine {
             line_count: 0,
             glyphs: SwashCache::new(),
             rasterized: 0,
+            families: None,
         }
     }
 
@@ -105,6 +108,25 @@ impl Engine {
         self.lines.clear();
         self.line_count = 0;
         self.glyphs = SwashCache::new();
+        self.families = None;
+    }
+
+    /// The names of the families of the fonts loaded, in the order of the alphabet, each once; listed the first time
+    /// they are asked for.
+    pub(crate) fn families(&mut self) -> Vec<String> {
+        let system = &self.system;
+        self.families
+            .get_or_insert_with(|| {
+                let mut names: Vec<String> = system
+                    .db()
+                    .faces()
+                    .filter_map(|face| face.families.first().map(|(name, _)| name.clone()))
+                    .collect();
+                names.sort_unstable();
+                names.dedup();
+                names
+            })
+            .clone()
     }
 
     /// The heights of the first font of a face, as fractions of its em: above the baseline, below it, and the gap

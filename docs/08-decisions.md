@@ -2883,3 +2883,15 @@ card says otherwise.
 - **Q482** — `settings.sections`: the name of a section near the end of the list cannot reach its top. Built: when
   the list is scrolled to its end, the section last asked for is marked while its name is in sight; otherwise the
   section whose name was last scrolled past, and **General** at the top.
+- **Q483** — `settings.edit`: the card's table has no control for `branches.inputs`, a list of objects, nor for
+  `ai.provider` and `ai.effort`, whose values the card lists. Built: `branches.inputs` is a field of its JSON, written
+  only when it is JSON; `ai.provider` and `ai.effort` are fields whose placeholders say their values, since an empty
+  value means something for both.
+- **Q484** — `settings.edit`: `fileBlame.age.oldAfterDays` has no range in the card. Built: from 1 to 36,500 days,
+  as `settings.read` takes it.
+- **Q485** — `settings.edit`: **Add** under a list of strings writes the list with an empty entry, which its field then
+  fills; an entry left empty when its field loses the focus is taken out, so that no empty pattern stays in the file.
+  A list or the table of `identities` is drawn under the key of its row, across the row, since a column of 280 logical
+  pixels holds neither.
+- **Q486** — `settings.reset`: ↺ is named `Back to the default: <title>` for the screen reader and its tooltip, and
+  draws `undo-2`, the icon of what goes back to how it was.

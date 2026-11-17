@@ -159,6 +159,43 @@ pub const THEME_VALUES: [&str; 5] = ["system", "dark", "light", "highContrastDar
 /// What the picker says of the theme in force.
 pub const CURRENT_THEME: &str = "current";
 
+/// What a menu of choices says while nothing sets a setting with no default.
+pub const NOT_SET: &str = "Not set";
+/// What the field of a new entry of a list says while it is empty.
+pub const NEW_ENTRY: &str = "New entry";
+/// The button that takes an entry out of a list.
+pub const REMOVE_ENTRY: &str = "Take out";
+/// The button under a list that adds an entry.
+pub const ADD_ENTRY: &str = "Add";
+/// What a field of a color refuses.
+pub const NOT_A_COLOR: &str = "A color as #rrggbb, such as #e5534b";
+/// The columns of the table of `identities`, which their empty fields say too.
+pub const IDENTITY_COLUMNS: [&str; 3] = ["Name", "Email", "Signing key"];
+
+/// What a field of numbers says while it is empty: `100 to 10000`.
+#[must_use]
+pub fn range(least: i64, most: i64) -> String {
+    format!("{least} to {most}")
+}
+
+/// What a field of numbers says of a value out of its range.
+#[must_use]
+pub fn between(least: i64, most: i64) -> String {
+    format!("A whole number from {least} to {most}")
+}
+
+/// What the row of a setting says in **User** when the repository's file sets it too.
+#[must_use]
+pub fn set_by_repository(value: &str) -> String {
+    format!("Set by the repository: {value}")
+}
+
+/// The button of a setting a file sets that takes it back to its default.
+#[must_use]
+pub fn reset(title: &str) -> String {
+    format!("Back to the default: {title}")
+}
+
 /// What the list says when no setting answers the search.
 #[must_use]
 pub fn nothing_matches(query: &str) -> String {

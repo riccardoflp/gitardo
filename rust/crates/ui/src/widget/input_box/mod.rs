@@ -3,6 +3,7 @@
 //! when empty, and a message under it when what is typed is not valid. Text longer than the box scrolls across to keep
 //! the caret in sight. A box may have an icon before its text and the keys that reach it after, as Quick search has.
 
+mod focus;
 mod keys;
 mod line;
 mod words;
@@ -139,6 +140,8 @@ pub struct InputBoxResponse {
     pub changed_text: Option<String>,
     /// Whether Enter was pressed in it.
     pub is_submitted: bool,
+    /// Whether it had the keyboard in the last frame and has it no more.
+    pub has_lost_focus: bool,
 }
 
 impl Ui<'_> {
@@ -162,6 +165,8 @@ impl Ui<'_> {
             state.changed_at = self.now();
         }
         let changed_text = (state.line.text() != before.0).then(|| state.line.text().to_owned());
+        let has_lost_focus = state.had_focus && !response.has_focus;
+        state.had_focus = response.has_focus;
         self.keep_caret_in_sight(&mut state, (style, inner));
         if response.hovered {
             self.set_cursor(Cursor::Text);
@@ -180,25 +185,7 @@ impl Ui<'_> {
             response,
             changed_text,
             is_submitted,
-        }
-    }
-
-    /// Gives the keyboard to an input box with all its text selected, as `Ctrl+F` does to a search box. Called before
-    /// the box is declared, the box is drawn so in the same frame.
-    pub fn focus_input_box(&mut self, id: WidgetId) {
-        let now = self.now();
-        if let Some(state) = self.memory().input_boxes.get_mut(&id) {
-            state.line.select_all();
-            state.changed_at = now;
-        }
-        self.request_focus(id);
-    }
-
-    /// Gives the keyboard to an input box with all its text selected, once for each number: the box that finds in a
-    /// page takes it each time `Ctrl+F` is pressed, and leaves it to a click elsewhere in between.
-    pub fn focus_input_box_once(&mut self, id: WidgetId, serial: u64) {
-        if self.memory().focus_serials.insert(id, serial) != Some(serial) {
-            self.focus_input_box(id);
+            has_lost_focus,
         }
     }
 

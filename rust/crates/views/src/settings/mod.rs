@@ -2,6 +2,7 @@
 //! picker of the themes (`settings.theme`): every setting with its title, its description, its key and where its value
 //! comes from, under the name of its section; a switch or a choice changes it in the file chosen at the top.
 
+mod controls;
 mod layout;
 mod list;
 mod page;
@@ -47,16 +48,60 @@ pub enum SettingsTarget {
 }
 
 /// A value the page writes.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SettingValue {
     /// `true` or `false`.
     Toggle(bool),
     /// One of the words of a choice.
     Choice(&'static str),
+    /// A whole number.
+    Number(i64),
+    /// A string: typed, a color or the name of a font.
+    Text(String),
+    /// A list of strings.
+    Strings(Vec<String>),
+    /// The identities of `identities`.
+    Identities(Vec<Identity>),
+    /// Text typed as JSON, written only when it is.
+    Json(String),
+}
+
+/// An identity of `identities`: its name, its email and its signing key, empty when it has none.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+pub struct Identity {
+    /// `name`.
+    pub name: String,
+    /// `email`.
+    pub email: String,
+    /// `signingKey`.
+    pub signing_key: String,
+}
+
+impl Identity {
+    /// An identity of the cells of a row of the table: its name, its email and its signing key.
+    #[must_use]
+    pub fn of(cells: &[String]) -> Identity {
+        let cell = |column: usize| cells.get(column).cloned().unwrap_or_default();
+        Identity {
+            name: cell(0),
+            email: cell(1),
+            signing_key: cell(2),
+        }
+    }
+
+    /// A cell of its row of the table, by its column.
+    #[must_use]
+    pub fn cell(&self, column: usize) -> &str {
+        match column {
+            0 => &self.name,
+            1 => &self.email,
+            _ => &self.signing_key,
+        }
+    }
 }
 
 /// A value to write in a settings file.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SettingChange {
     /// The key: `graph.firstParent`.
     pub key: &'static str,
@@ -83,8 +128,19 @@ pub enum SettingSource {
 pub struct SettingRow {
     /// What the card says of it.
     pub info: &'static SettingInfo,
-    /// The value in force, as written in a settings file: `true`, `"name"`, `500`.
+    /// The value the file of the tab shown sets, or else the value in force, as written in a settings file: `true`,
+    /// `"name"`, `500`.
     pub value: String,
+    /// The same value as its control shows it: a string without its quotes, empty when nothing sets a setting with no
+    /// default.
+    pub text: String,
+    /// The entries of a list of strings, each in a cell, or of `identities`, each its name, its email and its signing
+    /// key.
+    pub entries: Vec<Vec<String>>,
+    /// Whether the file of the tab shown sets it, which gives it a bar on its left and its button back to the default.
+    pub is_set_here: bool,
+    /// In **User**, the value the repository's file sets too, which is the one in force.
+    pub set_by_repository: Option<String>,
     /// Where it comes from.
     pub source: SettingSource,
     /// Why a value written in a file was not taken, when one was not: `Repository settings: not a number. The default
@@ -112,8 +168,12 @@ pub fn default_rows() -> Vec<SettingRow> {
         .map(|info| SettingRow {
             info,
             value: info.default.to_owned(),
+            text: info.default.trim_matches('"').to_owned(),
+            entries: Vec::new(),
             source: SettingSource::Default,
             problem: None,
+            is_set_here: false,
+            set_by_repository: None,
         })
         .collect()
 }

@@ -570,7 +570,7 @@ earns it.
 | [`settings.edit`](18-settings.md#settingsedit--open-the-settings-page) | Open the settings page | View | Specified | Host only |
 | [`settings.sections`](18-settings.md#settingssections--the-sections-of-the-settings-page) | The sections of the settings page | View | Built | Planned |
 | [`settings.search`](18-settings.md#settingssearch--find-a-setting) | Find a setting | Derivation | Built | Host only |
-| [`settings.reset`](18-settings.md#settingsreset--take-a-setting-back-to-its-default) | Take a setting back to its default | Operation | Specified | Host only |
+| [`settings.reset`](18-settings.md#settingsreset--take-a-setting-back-to-its-default) | Take a setting back to its default | Operation | Built | Host only |
 | [`settings.reveal`](18-settings.md#settingsreveal--open-the-settings-page-at-a-setting) | Open the settings page at a setting | Derivation | Specified | Host only |
 | [`settings.theme`](18-settings.md#settingstheme--choose-the-theme-and-the-fonts) | Choose the theme and the fonts | Operation | Built | Host only |
 

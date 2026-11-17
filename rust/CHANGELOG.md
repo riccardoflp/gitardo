@@ -12,6 +12,12 @@
   settings whose title, key, description or value has every word typed, the sections with none dimmed, and `Escape`
   empties it. Beside each section, how many of its settings a file sets, and a red mark while a value of one was not
   taken; **Changed** and **Experimental** under the sections list only those settings.
+- Every value is changed on the settings page: numbers in a field that refuses a value out of its range and says the
+  range, strings in a field whose placeholder says what they can hold, colors with their swatch, fonts from a menu of
+  the program's and the system's, lists of strings a row each with **Add** and a button to take one out, and
+  `identities` as a table of name, email and signing key. A typed value is written once, when its field loses the
+  focus or `Enter` is pressed. A setting the file of the tab shown sets has a bar on its left and a button that takes
+  it out of the file, back to its default, comments and the rest of the file kept.
 - A menu taller than the room it has scrolls instead of moving: under a button, such as **…**, it opens below the
   button and ends 8 px above the foot of the window, and a menu at the pointer opens above it when it fits only there.
   The wheel scrolls it by entries, a bar on its right can be dragged, its first and last entries fade where there is

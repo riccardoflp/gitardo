@@ -1,36 +1,47 @@
 //! A setting of the settings page (`settings.edit`): its title, **Experimental** beside it when it is, its description
-//! whole, its key and where its value comes from, and its control on the right.
+//! whole, its key and where its value comes from, its control on the right or its list under the key, and, when the
+//! file of the tab shown sets it, a bar on its left and ↺, which takes it back to its default (`settings.reset`).
 
+use model::contract::{Answer, AnswerKey, Answers, FeatureId, Target};
 use ui::layout::{Align, Area, place};
-use ui::{
-    Availability, Badge, BadgeFill, Button, ButtonKind, Choice, Label, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui,
-};
+use ui::{Badge, BadgeFill, Button, ButtonKind, Choice, Label, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
 
+use super::controls::{block_control, block_height, value_control};
 use super::layout::{RowMetrics, line_count};
 use super::{SettingChange, SettingRow, SettingSource, SettingValue, SettingsPageState, SettingsTarget};
+use crate::feature::FeatureIntent;
+use crate::icons;
 use crate::intent::Intent;
 use crate::number::float_of_count;
 use crate::text::settings::{self as words, SettingKind};
 
 /// The widest the column of the controls is.
-const CONTROL_WIDTH: f32 = 240.0;
+const CONTROL_WIDTH: f32 = 280.0;
 
 /// The width of the column of the controls of a row of a width.
 fn control_width(width: f32) -> f32 {
     CONTROL_WIDTH.min(width * 0.4)
 }
 
+/// How far the text of a row is from its left edge, which leaves room for the bar of a setting a file sets.
+fn indent(ui: &Ui<'_>) -> f32 {
+    ui.theme().sizes.spacing.large
+}
+
 /// The width of the column of the text of a row of a width: its title, its description and its key.
 fn text_width(ui: &Ui<'_>, width: f32) -> f32 {
-    (width - control_width(width) - ui.theme().sizes.spacing.huge).max(1.0)
+    (width - indent(ui) - control_width(width) - ui.theme().sizes.spacing.huge).max(1.0)
 }
 
 /// The height of the row of a setting in a list of a width: its title, its description wrapped on as many lines as it
-/// needs, and its key, with room above and below.
+/// needs, its key, and its list under them, with room above and below.
 pub(super) fn row_height(ui: &Ui<'_>, row: &SettingRow, width: f32) -> f32 {
     let metrics = RowMetrics::new(ui);
     let description = line_count(ui, row.info.description, text_width(ui, width));
-    metrics.padding * 2.0 + metrics.line * 2.0 + float_of_count(description) * metrics.description_line
+    metrics.padding * 2.0
+        + metrics.line * 2.0
+        + float_of_count(description) * metrics.description_line
+        + block_height(ui, row)
 }
 
 /// Draws a setting, marked in the color of the selection as strongly as `marked` says, and returns what its control
@@ -43,37 +54,78 @@ pub(super) fn setting_row(
 ) -> Vec<Intent> {
     let theme = *ui.theme();
     let metrics = RowMetrics::new(ui);
+    let shifted = row_ground(ui, row, (rect, marked));
+    let mut columns = Area::with_gap(shifted, theme.sizes.spacing.huge);
+    let control = columns.right(control_width(rect.width));
+    let mut lines = Area::new(columns.rest());
+    title_line(ui, row, lines.top(metrics.line));
+    let description_lines = line_count(ui, row.info.description, lines.rest().width);
+    let description = lines.top(float_of_count(description_lines) * metrics.description_line);
+    let _ = ui.paragraph(description, row.info.description, (TextKind::Body, Tone::Muted));
+    key_line(ui, row, lines.top(metrics.line));
+    let mut intents = Vec::new();
+    let control_line = Rect::new(control.x, control.y, control.width, theme.sizes.control_height);
+    let mut cells = Area::with_gap(control_line, theme.sizes.spacing.small);
+    let reset = cells.left(theme.sizes.control_height);
+    if row.is_set_here && reset_button(ui, row, reset) {
+        intents.push(reset_intent(state, row));
+    }
+    let below = Rect::new(
+        shifted.x,
+        lines.rest().y + theme.sizes.spacing.medium,
+        shifted.width,
+        block_height(ui, row),
+    );
+    let value = row_value(state, row, ui, (cells.rest(), below));
+    intents.extend(value.map(|value| {
+        Intent::SetSetting(SettingChange {
+            key: row.info.key,
+            value,
+            target: state.target,
+        })
+    }));
+    intents
+}
+
+/// The ground of a row: the color of the selection while it is marked, the line under it and the bar of a setting the
+/// file of the tab sets. Returns where its content goes, inside its padding and right of the bar.
+fn row_ground(ui: &mut Ui<'_>, row: &SettingRow, (rect, marked): (Rect, f32)) -> Rect {
+    let theme = *ui.theme();
+    let padding = RowMetrics::new(ui).padding;
     if marked > 0.0 {
         let color = theme.colors.list_selection.faded(crate::number::opacity(marked));
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, color);
     }
-    let separator = Rect::new(
-        rect.x,
-        rect.bottom() - theme.sizes.border,
-        rect.width,
-        theme.sizes.border,
+    let border = theme.sizes.border;
+    ui.fill_rect(
+        Rect::new(rect.x, rect.bottom() - border, rect.width, border),
+        theme.colors.border,
     );
-    ui.fill_rect(separator, theme.colors.border);
-    let inner = Rect::new(
-        rect.x,
-        rect.y + metrics.padding,
-        rect.width,
-        rect.height - metrics.padding * 2.0,
-    );
-    let mut columns = Area::with_gap(inner, theme.sizes.spacing.huge);
-    let control = columns.right(control_width(rect.width));
-    let mut lines = Area::new(columns.rest());
-    title_line(ui, row, lines.top(metrics.line));
-    let description_height =
-        float_of_count(line_count(ui, row.info.description, lines.rest().width)) * metrics.description_line;
-    let _ = ui.paragraph(
-        lines.top(description_height),
-        row.info.description,
-        (TextKind::Body, Tone::Muted),
-    );
-    key_line(ui, row, lines.top(metrics.line));
-    let control = Rect::new(control.x, control.y, control.width, theme.sizes.control_height);
-    setting_control(state, row, ui, control)
+    let inner = Rect::new(rect.x, rect.y + padding, rect.width, rect.height - padding * 2.0);
+    if row.is_set_here {
+        let bar = Rect::new(rect.x, inner.y, theme.sizes.spacing.tiny + 1.0, inner.height);
+        ui.fill_rounded_rect(bar, 1.5, theme.colors.accent);
+    }
+    Rect::new(inner.x + indent(ui), inner.y, inner.width - indent(ui), inner.height)
+}
+
+/// The control of a row, on its right or its list under its key, or its value alone in **Repository** for a setting
+/// that file may not set; returns the value to write.
+fn row_value(
+    state: &SettingsPageState<'_>,
+    row: &SettingRow,
+    ui: &mut Ui<'_>,
+    (right, below): (Rect, Rect),
+) -> Option<SettingValue> {
+    if state.target == SettingsTarget::User || row.info.is_repository {
+        return setting_control(row, ui, right).or_else(|| block_control(ui, row, below));
+    }
+    let label = Label::new(&row.text)
+        .kind(TextKind::Code)
+        .tone(Tone::Muted)
+        .align(Align::End);
+    let _ = ui.label(right, &label);
+    None
 }
 
 /// The title of a setting, in strong text, with **Experimental** beside it when it is.
@@ -103,7 +155,8 @@ fn title_line(ui: &mut Ui<'_>, row: &SettingRow, rect: Rect) {
     }
 }
 
-/// The key of a setting, in the text of code, then where its value comes from, or why a value was not taken, in red.
+/// The key of a setting, in the text of code, then where its value comes from, or why a value was not taken, in red,
+/// or, in **User**, the value of the repository's file when it sets it too.
 fn key_line(ui: &mut Ui<'_>, row: &SettingRow, rect: Rect) {
     let theme = *ui.theme();
     let mut parts = Area::with_gap(rect, theme.sizes.spacing.large);
@@ -112,9 +165,10 @@ fn key_line(ui: &mut Ui<'_>, row: &SettingRow, rect: Rect) {
         parts.left(key_width),
         &Label::new(row.info.key).kind(TextKind::Code).tone(Tone::Muted),
     );
-    let (said, tone) = match &row.problem {
-        Some(problem) => (problem.clone(), Tone::Error),
-        None => (source_words(row.source), Tone::Muted),
+    let (said, tone) = match (&row.problem, &row.set_by_repository) {
+        (Some(problem), _) => (problem.clone(), Tone::Error),
+        (None, Some(value)) => (words::set_by_repository(value), Tone::Warning),
+        (None, None) => (source_words(row.source), Tone::Muted),
     };
     let _ = ui.label(parts.rest(), &Label::new(&said).kind(TextKind::Detail).tone(tone));
 }
@@ -128,60 +182,58 @@ fn source_words(source: SettingSource) -> String {
     }
 }
 
-/// The control of a setting: a switch, a menu of its choices, or its value when the page cannot change it yet.
-fn setting_control(state: &SettingsPageState<'_>, row: &SettingRow, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
-    let theme = *ui.theme();
-    let is_writable = state.target == SettingsTarget::User || row.info.is_repository;
-    let change = |value| {
-        vec![Intent::SetSetting(SettingChange {
-            key: row.info.key,
-            value,
-            target: state.target,
-        })]
+/// ↺ of a setting the file of the tab shown sets; says whether it was clicked.
+fn reset_button(ui: &mut Ui<'_>, row: &SettingRow, rect: Rect) -> bool {
+    let name = words::reset(row.info.title);
+    ui.button(("reset", row.info.key), rect, &Button::icon(icons::UNDO, &name))
+        .clicked
+}
+
+/// The intent of ↺: `settings.reset` of the key in the file of the tab shown.
+fn reset_intent(state: &SettingsPageState<'_>, row: &SettingRow) -> Intent {
+    let file = match state.target {
+        SettingsTarget::User => "user",
+        SettingsTarget::Repository => "repository",
     };
+    let answers = Answers::new()
+        .with(AnswerKey("setting"), Answer::Choice(row.info.key.to_owned()))
+        .with(AnswerKey("settings-file"), Answer::Choice(file.to_owned()));
+    Intent::Feature(FeatureIntent::RunWith(
+        FeatureId("settings.reset"),
+        Target::Head,
+        answers,
+    ))
+}
+
+/// The control of a setting on the right of its row: a switch, a menu of its choices, or a field; returns the value
+/// to write.
+fn setting_control(row: &SettingRow, ui: &mut Ui<'_>, rect: Rect) -> Option<SettingValue> {
+    let theme = *ui.theme();
     match row.info.kind {
         SettingKind::Toggle => {
             let is_on = row.value == "true";
-            let mut toggle = Choice::toggle("", is_on);
-            if !is_writable {
-                toggle.availability = Availability::Disabled;
-            }
             let side = theme.sizes.icon * 2.5;
             let cell = place(rect, (side, theme.sizes.control_height), (Align::End, Align::Center));
-            let response = ui.choice(("setting", row.info.key), cell, &toggle);
-            if !is_writable {
-                ui.tooltip(&response, words::USER_ONLY);
-            }
-            if response.clicked {
-                change(SettingValue::Toggle(!is_on))
-            } else {
-                Vec::new()
-            }
+            let response = ui.choice(("setting", row.info.key), cell, &Choice::toggle("", is_on));
+            response.clicked.then_some(SettingValue::Toggle(!is_on))
         }
         SettingKind::Choice(choices) => {
-            let current = row.value.trim_matches('"');
+            let current = row.text.as_str();
             let items: Vec<MenuEntry<'_, &'static str>> = choices
                 .iter()
                 .map(|choice| MenuEntry::Item(MenuItem::new(choice, *choice)))
                 .collect();
-            let mut button = Button::secondary(current).kind(ButtonKind::Outline);
-            if !is_writable {
-                button = button.disabled();
-            }
+            let shown = if current.is_empty() { words::NOT_SET } else { current };
+            let button = Button::secondary(shown)
+                .kind(ButtonKind::Outline)
+                .with_trailing(icons::CHOOSE);
             let (width, height) = ui.button_size(&button);
             let cell = place(rect, (width.min(rect.width), height), (Align::End, Align::Center));
             match ui.menu_button(("setting", row.info.key), cell, &button, &items) {
-                Some(chosen) if chosen != current => change(SettingValue::Choice(chosen)),
-                _ => Vec::new(),
+                Some(chosen) if chosen != current => Some(SettingValue::Choice(chosen)),
+                _ => None,
             }
         }
-        _ => {
-            let label = Label::new(&row.value)
-                .kind(TextKind::Code)
-                .tone(Tone::Muted)
-                .align(Align::End);
-            let _ = ui.label(rect, &label);
-            Vec::new()
-        }
+        _ => value_control(ui, row, rect),
     }
 }

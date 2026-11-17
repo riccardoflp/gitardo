@@ -3,7 +3,7 @@
 //! changes of the settings ask for a read of the repository (`repo.watch-changes`).
 
 use views::Intent;
-use views::settings::{SettingChange, SettingValue, SettingsTarget};
+use views::settings::{Identity, SettingChange, SettingValue, SettingsTarget};
 
 use super::message::Effect;
 use super::state::{Dialog, State};
@@ -25,7 +25,7 @@ pub fn reduce_intent(state: &mut State, intent: &Intent) -> Vec<Effect> {
             }
             Vec::new()
         }
-        Intent::SetSetting(change) => set_setting(state, *change),
+        Intent::SetSetting(change) => set_setting(state, change.clone()),
         Intent::ChooseSettingsFile(target) => {
             state.settings_target = *target;
             Vec::new()
@@ -45,9 +45,8 @@ fn set_setting(state: &State, change: SettingChange) -> Vec<Effect> {
         SettingsTarget::User => state.user_settings_file.clone(),
         SettingsTarget::Repository => state.shown_folder().map(|folder| repository_settings_file(folder)),
     };
-    let value = match change.value {
-        SettingValue::Toggle(is_on) => json::Value::Bool(is_on),
-        SettingValue::Choice(word) => json::Value::String(word.to_owned()),
+    let Some(value) = json_of(change.value) else {
+        return Vec::new();
     };
     file.map(|file| Effect::WriteSetting {
         file,
@@ -56,6 +55,32 @@ fn set_setting(state: &State, change: SettingChange) -> Vec<Effect> {
     })
     .into_iter()
     .collect()
+}
+
+/// A value of the page as JSON: nothing for text typed as JSON that is not, which is not written.
+fn json_of(value: SettingValue) -> Option<json::Value> {
+    Some(match value {
+        SettingValue::Toggle(is_on) => json::Value::Bool(is_on),
+        SettingValue::Choice(word) => json::Value::from(word),
+        SettingValue::Number(number) => json::Value::from(number),
+        SettingValue::Text(text) => json::Value::String(text),
+        SettingValue::Strings(list) => json::Value::Array(list.into_iter().map(json::Value::String).collect()),
+        SettingValue::Identities(list) => json::Value::Array(list.into_iter().map(identity_json).collect()),
+        SettingValue::Json(text) => json::parse(&text).ok()?,
+    })
+}
+
+/// An identity as `identities` writes it: `{ "name", "email", "signingKey" }`, without a signing key when it has none.
+fn identity_json(identity: Identity) -> json::Value {
+    let member = |name: &str, text: String| json::Member {
+        name: name.to_owned(),
+        value: json::Value::String(text),
+    };
+    let mut members = vec![member("name", identity.name), member("email", identity.email)];
+    if !identity.signing_key.is_empty() {
+        members.push(member("signingKey", identity.signing_key));
+    }
+    json::Value::Object(members)
 }
 
 /// Whether a setting under `conflicts`, `pull`, `worktrees`, `branches` or `graph` changed between two readings of

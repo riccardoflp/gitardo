@@ -71,6 +71,7 @@ mod series_continued;
 mod settings_file;
 mod settings_page;
 mod settings_search;
+mod settings_values;
 mod show_in_graph;
 mod speed;
 mod stashes;
