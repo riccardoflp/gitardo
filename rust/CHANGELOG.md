@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- A file that git ignores, such as the output of a build, and a file in the folder of another worktree nested in the
+  repository, such as `.claude/worktrees/<name>`, no longer make the window read the repository again. Git is asked
+  once for the files that changed in a burst, a second after the first of them, and a `.gitignore` that changes still
+  asks for a read.
 - The Terminal tab of the bottom panel runs a shell in the folder of the repository tab shown: PowerShell 7 on Windows
   when it is installed, else Windows PowerShell, the shell of `SHELL` on Linux and macOS, or the one of
   `terminal.shellPath`. It shows the colors of what programs print, 16 from the theme, 256 and 24-bit, in the font of

@@ -187,7 +187,7 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadReview { folder, .. } => (folder, activity::REVIEWING_CONFLICTS),
         JobKind::ReadFiles { folder } => (folder, activity::LISTING_FILES),
         JobKind::ReadNewWorktrees { folder, .. } => (folder, activity::LOOKING_AT_IGNORED),
-        JobKind::ReadIgnored { folder, .. } => (folder, activity::CHECKING_UNSAVED),
+        JobKind::ReadIgnored { folder, .. } => (folder, activity::CHECKING_IGNORED),
         JobKind::ReadBlame { folder, .. } => (folder, activity::READING_BLAME),
     };
     (Text::from(activity::reading(&folder_name(folder))), Text::from(cause))

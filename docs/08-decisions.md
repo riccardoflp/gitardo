@@ -2863,3 +2863,13 @@ reading given until the card says otherwise.
 - **Q438** — `graph.load-more`: the bar along the top of the list ran while a page was read. Recommended: it runs
   until the first page of a read is there; while the rest is read, the last row says **Loading more commits…**, as it
   does while there are more.
+- **Q460** — `repo.watch-changes`: when the files of a burst are asked of git. Built: a second after the first of them
+  changed, the delay of a file of the working tree, every file changed until then is given to one
+  `git check-ignore -z --stdin`; the read the others ask for starts as soon as git answered, since their second is
+  over. The files that change while git is asked wait for the next question, a second after the first of them; a read
+  that starts meanwhile, for any reason, sees them, and they are not asked. When git cannot answer, every file asked is
+  taken as one it does not ignore. The Activity drawer says the question as **Asking git which files it ignores**, as
+  it says the files not saved of the Changes page.
+- **Q461** — `repo.watch-changes`: a tab not shown (`repo.watch-hidden`) is still marked out of date by a change to a
+  file git ignores or to a nested worktree, and read once it is shown. Built so: asking git for each tab not shown
+  would start a git for each burst of each tab, for a read that waits until the tab is shown anyway.

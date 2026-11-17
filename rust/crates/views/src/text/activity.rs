@@ -80,8 +80,9 @@ pub const OPENING_FILE: &str = "Opening a file";
 pub const LISTING_FILES: &str = "Listing the files";
 /// Why the page of new worktrees reads.
 pub const LOOKING_AT_IGNORED: &str = "Looking at what git ignores";
-/// Why git is asked which files not saved it ignores (`changes.unsaved`).
-pub const CHECKING_UNSAVED: &str = "Checking the files not saved";
+/// Why git is asked which files it ignores: the files not saved (`changes.unsaved`), and the files that changed
+/// (`repo.watch-changes`).
+pub const CHECKING_IGNORED: &str = "Asking git which files it ignores";
 /// Why the File page reads the blame of its file (`blame.file`, `blame.current-line`).
 pub const READING_BLAME: &str = "Reading the blame";
 /// Why a comparison is read: its page, or the inspector, shows it.
