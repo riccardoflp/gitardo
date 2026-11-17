@@ -19,9 +19,10 @@ const VIEW_MENU: &str = "view menu";
 /// What the timeline shows, after the kinds of references: the stashes, and only the first parent of merges.
 const SHOWN: [TimelineSwitch; 2] = [TimelineSwitch::ShowStashes, TimelineSwitch::FirstParent];
 
-/// How the timeline draws its rows, before the folds. **Compact rows** (D65) goes after one line.
-const DRAWN: [TimelineSwitch; 4] = [
+/// How the timeline draws its rows, before the folds: **Compact rows** (D65) right after one line.
+const DRAWN: [TimelineSwitch; 5] = [
     TimelineSwitch::OneLane,
+    TimelineSwitch::CompactRows,
     TimelineSwitch::TraceSelected,
     TimelineSwitch::DateSeparators,
     TimelineSwitch::CombineUpstream,
@@ -86,6 +87,7 @@ fn switch_words(switch: TimelineSwitch) -> &'static str {
         TimelineSwitch::Hash => words::SHOW_HASH,
         TimelineSwitch::DateSeparators => words::DATE_SEPARATORS,
         TimelineSwitch::CombineUpstream => words::COMBINE_UPSTREAM,
+        TimelineSwitch::CompactRows => words::COMPACT_ROWS,
     }
 }
 

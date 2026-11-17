@@ -131,6 +131,8 @@ impl Fixture {
             trace: None,
             hover: None,
             hover_left_at: None,
+            label_list: None,
+            label_list_closed_at: None,
             rail_hover: None,
             dropped: None,
             switches: Switches::DEFAULT,

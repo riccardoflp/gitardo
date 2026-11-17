@@ -12,8 +12,8 @@ use crate::settings::{Settings, repository_settings_file};
 /// The settings under which a change asks for a read of the repository: they change what is read.
 const READ_SETTINGS: [&str; 5] = ["conflicts.", "pull.", "worktrees.", "branches.", "graph."];
 
-/// The settings among those that only lay the timeline out again, which no read follows.
-const LAID_OUT_SETTINGS: [&str; 1] = [crate::settings::keys::ONE_LANE];
+/// The settings among those that only lay the timeline out again or draw its rows otherwise, which no read follows.
+const LAID_OUT_SETTINGS: [&str; 2] = [crate::settings::keys::ONE_LANE, crate::settings::keys::COMPACT_ROWS];
 
 /// An intent of the settings page or of the picker of the themes.
 pub fn reduce_intent(state: &mut State, intent: &Intent) -> Vec<Effect> {
@@ -96,7 +96,8 @@ fn identity_json(identity: Identity) -> json::Value {
 }
 
 /// Whether a setting under `conflicts`, `pull`, `worktrees`, `branches` or `graph` changed between two readings of
-/// the files, but `graph.oneLane`, which only lays the timeline out again.
+/// the files, but `graph.oneLane`, which only lays the timeline out again, and `graph.compactRows`, which only draws
+/// its rows lower.
 #[must_use]
 pub fn changes_reads(before: &Settings, after: &Settings) -> bool {
     let of_reads = |settings: &Settings| {

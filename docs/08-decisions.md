@@ -3496,6 +3496,81 @@ otherwise.
 - **Q625** — `file-view.file-icons`: the top row of the tree of the Files page has the gray folder, the icon the theme
   gives the folder of a workspace, not the icon of the name of the repository's folder.
 
+### Of the labels first and the compact rows, from Q640
+
+- **Q640** — `graph.label-overflow`: how much of the line the labels take. Built: the message keeps its width up to
+  three fifths of the line (the room left of the hash, less the arrow of a fold), and the labels take the rest, so that
+  a short message leaves them more room and a long one keeps at least three fifths. When not even the first label fits
+  whole beside `+N`, it is shortened, as long as it keeps three times the height of a label, so that its icon and a few
+  letters are seen; else `+N` alone stands for every label.
+- **Q641** — `graph.label-overflow`: which labels open the list. The plan said `+N` or any label of the row. Built: `+N`
+  and every label of a row that does not show all its labels whole (some counted in `+N`, or the first shortened); a
+  row whose labels are all whole opens nothing, since the list would only say again what the row shows, and resting on
+  a label there to see its history would open a list each time.
+- **Q642** — `graph.label-overflow`: the list opens after the pointer has rested 300 ms on a label, later than the
+  history of the label stands out (150 ms, `graph.hover-history`) and sooner than the hover of the blame (400 ms), so
+  that passing over the labels does not open it.
+- **Q643** — `graph.label-overflow`: the keyboard. The timeline's keys go from row to row and have no way to a label of
+  a row (`graph.keyboard`), so the list opens from the pointer only; once open, its labels take the arrows, `Enter` and
+  the key of the menu after a click in it, as any list does. The operations of each label stay reachable from the
+  keyboard in the branch rail and in the menu of the commit. Is a key wanted to open it on the row selected?
+- **Q644** — `graph.view`: the narrow layout named two labels and counted the others past three, with their names in
+  the tooltip of the count. That rule is replaced by the one of `graph.label-overflow`, the same in any width: as many
+  as fit, then `+N`, whose list names them.
+- **Q645** — `graph.label-overflow`: near the foot of the window the list opens above its label, when there is more
+  room above than under it. The popovers of the toolkit opened only under their control; they now have a side,
+  **Below** for the list of a branch filter and the hover of the blame, as before, and **Below or above** for this list.
+- **Q646** — `graph.label-overflow`: `+N` no longer has the tooltip with the names of the labels it counts, which would
+  open over the list once it is open.
+- **Q647** — `graph.label-overflow`: a click on a label of the list selects the commit and leaves the list open, as a
+  click on the row does with the pointer still there; a double click and a right click close it, the menu opened by the
+  right click staying open. Each label in the list has the badge of its pull request, which a click opens on GitHub.
+- **Q648** — `graph.compact-rows`: how tall a compact row is. Built: as tall as a row of a list of the theme, 26
+  pixels, half of the 52 of the two lines, so that the timeline and the lists beside it have the same rhythm. The dots
+  and the lines of the graph keep their sizes; the labels, as tall as before, leave four pixels over and under them.
+- **Q649** — `graph.compact-rows`: the widths of the columns. Built: the author 120 pixels, a fifth of the line at
+  most, a longer name shortened with an ellipsis; the date as wide as the longest date the timeline says, measured in
+  the font of the theme over the twelve months, so that `2d ago` and `Nov 20, 2024` start at the same place; the hash
+  seven characters of the font of code. They start from the left of their columns, 16 pixels apart, in the order
+  author, date, hash, and have no header and no handle to resize them. Are a header, or columns resized by dragging,
+  wanted?
+- **Q650** — `graph.compact-rows`: a line too short for the three columns, as with the side column and the inspector
+  open in a window 1000 pixels wide. Built: together the columns take half of the line at most; past it the hash
+  leaves, then the author, each as a whole so that those left still line up, and the date stays. The settings are not
+  changed: wider, the columns come back.
+- **Q651** — `graph.compact-rows`: the name of a line between days, weeks and months (`graph.date-separators`). On two
+  lines it is at the start of the line, over the gap between two rows; between compact rows the labels are under it
+  there, and the columns at the end. Built: the name ends where the messages end, before the first column, on a back
+  as tall as the gap between two lines of text, and the line runs the whole row as before. A long message ends close
+  under it.
+- **Q652** — `graph.compact-rows`: the draft. Built: one line in its dashed card, the message first, what it changes
+  after it on the same line, **Review** and **Commit** as tall as the row lets them, lower than the buttons of the two
+  lines.
+- **Q653** — `graph.compact-rows`: where the list is after the switch. Built: the row at the top stays at the top, and
+  the commit selected, when it was in sight, is scrolled the least to stay in sight; one that was out of sight is not
+  gone to. It is done by the list of the toolkit for any list whose rows change height from one frame to the next.
+- **Q654** — `graph.compact-rows`: the switch is in the menu of the view (D66), in the group of how the timeline draws
+  its rows, right after **Show all commits on one line**. `graph.compactRows` changed in the settings file asks no read
+  of the repository, as `graph.oneLane` (Q489): the rows are only drawn again.
+- **Q655** — `graph.compact-rows` in the extension: left **Planned**. The rows of the Graph view of the extension
+  (`src/webview/CommitList.tsx`) are already one line, 24 pixels, where the view is wide: the labels, the message, then
+  the author, the date and the hash in columns at the right end, which is what **Compact rows** gives the desktop; they
+  are two lines (the message, then the labels, the author and the date under it) only in the Graph of the side bar,
+  which its code calls `compact`, chosen by where the view is and not by a setting. A `gitardo.graph.compactRows` off
+  by default would either give two lines to the wide view, which changes what the extension shows today, or mean there
+  something else than in the desktop under the same name, which the stored data may not do. Which is wanted: the
+  setting on by default in the extension, so that off gives the two lines of the desktop in any width; the setting only
+  for the narrow view; or nothing, the width choosing as now?
+- **Q656** — `graph.label-overflow` in the extension: left **Planned**. On the one line of the wide view the labels
+  already come first, all of them, each cut to 180 pixels, and the later ones to their icons in a view under 420
+  pixels; on the two lines of the narrow view they are under the message by choice, two named and the others counted in
+  `+N`, whose tooltip names them. The rule of the desktop (the message keeps three fifths, whole labels then `+N`)
+  needs the widths of the labels measured in the webview, and the list under the pointer is a component whose opening,
+  closing and place the unit tests of the extension cannot see, since Vitest runs them without a page: only the
+  end-to-end suite can, which the phase that built the desktop's part did not run. To build: `fitted_pills` ported to
+  `src/shared` with its tests, then the list in `CommitList.tsx` with a step of `test/e2e/suite.ts`; and whether the
+  two lines of the narrow view put the labels first too, before the message they are now under.
+
 ### Of the two menus of the header, from Q660
 
 Questions of [D66](#d66--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions), each built with the

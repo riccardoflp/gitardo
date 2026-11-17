@@ -62,6 +62,8 @@ pub(crate) struct ListState {
     pub(crate) revealed: Option<u64>,
     /// The row the main button is held on, while it is, for a drag that starts from it.
     pub(crate) press: Option<crate::widget::list::RowPress>,
+    /// The height of its rows in the last frame; none before its first frame.
+    pub(crate) row_height: Option<f32>,
 }
 
 /// The state of an editor of code between frames.

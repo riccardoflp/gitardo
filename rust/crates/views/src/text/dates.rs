@@ -50,6 +50,11 @@ fn month_day_year(seconds: i64) -> String {
     format!("{} {day}, {year}", month_name(month))
 }
 
+/// A date of each month as the timeline says the days of long ago, `Sep 30, 2000`, to find how wide the widest is.
+pub(crate) fn date_samples() -> impl Iterator<Item = String> {
+    MONTHS.iter().map(|month| format!("{month} 30, 2000"))
+}
+
 /// The short name of a month, 1 for January.
 fn month_name(month: i64) -> &'static str {
     usize::try_from(month - 1)

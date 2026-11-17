@@ -36,6 +36,8 @@ pub const COMBINE_UPSTREAM: &str = "graph.combineUpstream";
 pub const FIRST_PARENT: &str = "graph.firstParent";
 /// `graph.oneLane`.
 pub const ONE_LANE: &str = "graph.oneLane";
+/// `graph.compactRows`.
+pub const COMPACT_ROWS: &str = "graph.compactRows";
 /// `log.level`.
 pub const LOG_LEVEL: &str = "log.level";
 /// The values `log.level` takes: what changes something, or the reads too.

@@ -18,7 +18,7 @@ fn words(menu: TimelineMenu) -> Vec<&'static str> {
 }
 
 /// The words of the whole menu, in the groups and the order of the card.
-const IN_ORDER: [&str; 16] = [
+const IN_ORDER: [&str; 17] = [
     "Show local branches",
     "Show remote branches",
     "Show tags",
@@ -26,6 +26,7 @@ const IN_ORDER: [&str; 16] = [
     "Show only the first parent of merges",
     "-",
     "Show all commits on one line",
+    "Compact rows",
     "Bring out the history of the selected commit",
     "Separate the days, weeks and months",
     "Put a branch and its upstream on one label",

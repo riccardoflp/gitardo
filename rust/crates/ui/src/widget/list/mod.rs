@@ -191,6 +191,7 @@ impl Ui<'_> {
     ) -> ListResponse {
         let (response, events) = self.interact_with_events(id, rect, Sense::CLICK | Sense::FOCUS | Sense::SCROLL);
         let mut state = self.memory().lists.remove(&id).unwrap_or_default();
+        state.follow_row_height(list.row_height, f64::from(rect.height));
         if let Some(steering) = steering {
             steering.apply(&mut state, (f64::from(list.row_height), f64::from(rect.height)));
         }

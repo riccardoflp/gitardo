@@ -195,6 +195,7 @@ Acceptance:
 | `graph.combineUpstream` | Branch and upstream on one label | Timeline | `true` | User | A branch and its upstream of the same name share one label while at the same commit. | `graph.labels` |
 | `graph.firstParent` | Follow only the first parent | Timeline | `false` | User | Follow only the first parent of merges. | `graph.first-parent` |
 | `graph.oneLane` | All commits on one line | Timeline | `false` | User | Every commit of the timeline on one line, without lanes; merges are rings. | `graph.one-lane` |
+| `graph.compactRows` | Compact rows | Timeline | `false` | User | Each commit on one line: its labels, its message, then the author, the date and the hash in columns. | `graph.compact-rows` |
 | `graph.traceSelected` | Bring out the history of the selected commit | Timeline | `true` | User | Bring out the history of the selected commit. | `graph.trace-selected` |
 | `branches.sortOrder` | Order of branches and tags | Branches | not set | User | `name` or `date`, for branches, remote branches and tags everywhere they are listed. Not set: by name, or by date when Git's `branch.sort` is `-committerdate` or `committerdate`. | `refs.sort` |
 | `branches.followGraphFilter` | Not listed on the page | — | `true` | User | Not read since [D51](../08-decisions.md#d51--the-branch-rail-has-a-filter-of-its-own): the branch rail has its own filter. Kept by its name, so that a file that sets it is no error. | `refs.list-filter` |

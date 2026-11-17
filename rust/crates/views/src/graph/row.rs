@@ -1,30 +1,27 @@
-//! A row of the timeline: its cell of the graph, then the message with the labels after it over the author and the
-//! date, and the hash at its end; a folded row, a stash, the draft, and the last row while more commits are read.
+//! A row of the timeline: its cell of the graph, then the labels and the message over the author and the date, and the
+//! hash at its end; a folded row, a stash, the draft, and the last row while more commits are read.
 
-use std::borrow::Cow;
 use std::time::Duration;
 
-use model::CommitId;
 use model::commit::Commit;
-use model::graph::{CellTrace, Label, LabelKind, Row, ShownRow};
+use model::graph::{CellTrace, Row, ShownRow};
 use ui::layout::{Align, Area, place};
-use ui::{Badge, BadgeFill, Icon, Point, Rect, Sense, TextKind, TextRun, Tone, Ui};
+use ui::{Point, Rect, Sense, TextKind, TextRun, Ui};
 
 use super::cell::{CellPlace, Dot, draw_cell};
 use super::columns::{ColumnsState, columns_view, hash_room};
 use super::commit_menu::PointedLabel;
+use super::compact::{CompactRow, CompactWidths, RowLines, compact_rows_view};
 use super::draft::{UncommittedRow, uncommitted_row_view};
 use super::fold::{FoldsState, fold_merge_view};
-use super::intent::{GraphIntent, HoverTarget, HoverWay, Selected};
+use super::intent::{GraphIntent, HoverTarget, Selected};
+use super::label_overflow::LabelList;
+use super::labels::{MESSAGE_SHARE, RowLabels, row_labels};
 use super::stashes::{StashRow, stashes_view};
-use super::{pull_request_badge::after_label, state::HistoryState, state::TraceStrength};
+use super::{state::HistoryState, state::TraceStrength};
 use crate::intent::Intent;
 use crate::text::timeline as words;
 
-/// How many labels a commit shows in the narrow layout before it counts the others.
-const NARROW_LABELS: usize = 3;
-/// How many labels it names then.
-const NAMED_WHEN_COUNTED: usize = 2;
 /// How opaque the veil over a row a search did not find is, out of 255.
 const DIMMED: u8 = 150;
 
@@ -37,8 +34,11 @@ pub(crate) struct RowContext<'a> {
     pub graph_width: f32,
     /// The width of each lane.
     pub lane_width: f32,
-    /// Whether the window is narrow: the hash is not shown, and a commit with many labels counts them.
+    /// Whether the window is narrow: the hash is not shown.
     pub is_narrow: bool,
+    /// The widths of the columns at the end of compact rows; none while each row has two lines
+    /// (`graph.compact-rows`).
+    pub compact: Option<CompactWidths>,
 }
 
 /// What the rows drawn in a frame report.
@@ -50,6 +50,10 @@ pub(crate) struct RowReport {
     pub label: Option<(HoverTarget, Duration)>,
     /// The label the pointer is on, for its menu and its double click.
     pub pointed: Option<PointedLabel>,
+    /// The list of the labels of a commit the pointer asks for (`graph.label-overflow`).
+    pub open_labels: Option<LabelList>,
+    /// While the list is open and its row drawn: the row, the label it opened from and all the labels of the row.
+    pub open_anchor: Option<(usize, Rect, Rect)>,
 }
 
 /// The dot of a row: a ring in dashes for the draft and a fold, a square for a stash, a ring for a merge, and a filled
@@ -113,6 +117,7 @@ fn row_text(
                 draft: context.state.draft.unwrap_or_default(),
                 is_selected: row.is_selected,
                 commit: context.state.commit_box,
+                lines: RowLines::of(context.state.switches),
             };
             report
                 .intents
@@ -175,7 +180,7 @@ fn lane_color(context: &RowContext<'_>, index: usize) -> usize {
     context.state.layout.cells.get(index).map_or(0, |cell| cell.color)
 }
 
-/// A commit: the message and the labels over the author and the date, the hash at the end, a merge's fold arrow.
+/// A commit: the labels and the message over the author and the date, the hash at the end, a merge's fold arrow.
 fn commit_row(
     ui: &mut Ui<'_>,
     context: &RowContext<'_>,
@@ -184,6 +189,10 @@ fn commit_row(
 ) {
     let theme = *ui.theme();
     let switches = context.state.switches;
+    if let Some(widths) = context.compact {
+        compact_row(ui, context, (row, rect, commit), widths, report);
+        return;
+    }
     let hash = hash_room(ui, switches, context.is_narrow);
     let mut area = Area::with_gap(rect, theme.sizes.spacing.large);
     let _hash = area.right(hash);
@@ -215,7 +224,41 @@ fn commit_row(
     report.intents.extend(ui.clip(rect, |ui| columns_view(&columns, ui)));
 }
 
-/// The first line of a commit: its message, the fold arrow of a merge and the labels, from the top of the lines.
+/// A commit on one line (`graph.compact-rows`): its labels and its message, then at the right end its author, its date
+/// and its hash, each in its column.
+fn compact_row(
+    ui: &mut Ui<'_>,
+    context: &RowContext<'_>,
+    (row, rect, commit): (&ui::Row, Rect, &Commit),
+    widths: CompactWidths,
+    report: &mut RowReport,
+) {
+    let room = widths.room(ui.theme().sizes.spacing.large);
+    let line = Rect::new(rect.x, rect.y, (rect.width - room).max(0.0), rect.height);
+    let style = ui.text_style(if row.is_selected {
+        TextKind::Strong
+    } else {
+        TextKind::Medium
+    });
+    let top = place(line, (line.width, ui.line_height(style)), (Align::Start, Align::Center)).y;
+    subject_line(ui, context, (row, line, top, commit), report);
+    let state = CompactRow {
+        columns: ColumnsState {
+            author: &commit.author_name,
+            date: commit.author_date.0,
+            hash: commit.id.short(),
+            switches: context.state.switches,
+            now: context.state.now,
+            is_narrow: context.is_narrow,
+            top,
+        },
+        widths,
+    };
+    report.intents.extend(ui.clip(rect, |ui| compact_rows_view(&state, ui)));
+}
+
+/// The first line of a commit, from the top of the lines: its labels from the start, then its message, then the fold
+/// arrow of a merge.
 fn subject_line(
     ui: &mut Ui<'_>,
     context: &RowContext<'_>,
@@ -229,13 +272,6 @@ fn subject_line(
         TextKind::Medium
     });
     let first = ui.line_height(subject_style);
-    let color = lane_color(context, row.index);
-    let labels = context
-        .state
-        .layout
-        .labels
-        .get(&commit.id)
-        .map_or(&[][..], Vec::as_slice);
     let folds = FoldsState {
         merge: &commit.id,
         is_foldable: context.state.layout.foldable.contains(&commit.id),
@@ -250,201 +286,31 @@ fn subject_line(
     let available = (lines.width - arrow).max(0.0);
     let kept = ui
         .measure(&commit.subject, subject_style)
-        .min(available * SUBJECT_SHARE);
-    let gap = theme.sizes.spacing.medium;
-    let (pills, pills_width) = fitted_pills(labels, available - kept, context.is_narrow, |pill| {
-        ui.badge_width(&pill.badge(color)) + gap
-    });
+        .min(available * MESSAGE_SHARE);
+    let labels = RowLabels {
+        shown: row.index,
+        commit: &commit.id,
+        color: lane_color(context, row.index),
+    };
+    let room = Rect::new(lines.x, top, (available - kept).max(0.0), first);
+    let start = row_labels(ui, context, labels, room, report);
     let subject = TextRun {
         text: &commit.subject,
         style: subject_style,
         color: row.foreground,
-        origin: Point::new(lines.x, top),
-        max_width: Some((available - pills_width).max(0.0)),
+        origin: Point::new(start, top),
+        max_width: Some((lines.x + available - start).max(0.0)),
     };
-    let mut x = lines.x + ui.text(&subject) + theme.sizes.spacing.medium;
+    let x = start + ui.text(&subject) + theme.sizes.spacing.medium;
     if folds.is_foldable {
         let cell = Rect::new(x, top, first, first);
         report.intents.extend(ui.clip(cell, |ui| fold_merge_view(&folds, ui)));
-        x += arrow;
-    }
-    for (index, pill) in pills.iter().enumerate() {
-        let badge = pill.badge(color);
-        let width = ui.badge_width(&badge).min((lines.right() - x).max(0.0));
-        // A label with less room than its own height is not drawn at all, rather than squeezed past the end.
-        if width < first {
-            break;
-        }
-        let drawn = ui.badge(Rect::new(x, top, width, first), &badge);
-        hover_label(ui, (drawn, pill), (&commit.id, index), report);
-        x = after_label(ui, context, (labels, index, pill.is_count), (drawn, color), report);
     }
 }
 
-/// Draws the labels of a commit as pills from the left of a rectangle, in the color of its line, as its row does: the
-/// page of a commit shows them so (`commit-page.view`); a label with less room than its own height is left out, as in
-/// a row.
-pub(crate) fn draw_labels(ui: &mut Ui<'_>, rect: Rect, (labels, color): (&[Label], usize)) {
-    let gap = ui.theme().sizes.spacing.medium;
-    let mut x = rect.x;
-    for pill in &pills(labels, false) {
-        let badge = pill.badge(color);
-        let width = ui.badge_width(&badge).min((rect.right() - x).max(0.0));
-        if width < rect.height {
-            break;
-        }
-        let _ = ui.badge(Rect::new(x, rect.y, width, rect.height), &badge);
-        x += width + gap;
-    }
-}
-
-/// Notes the label under the pointer, and the one the pointer is on, and gives a label its tooltip.
-fn hover_label(
-    ui: &mut Ui<'_>,
-    (rect, pill): (Rect, &Pill<'_>),
-    (commit, index): (&CommitId, usize),
-    report: &mut RowReport,
-) {
-    let id = ui.id(("label", commit.as_str(), pill.text.as_ref()));
-    let response = ui.interact(id, rect, Sense::HOVER);
-    if ui.is_pointed_at(&response) && !pill.is_count {
-        report.pointed = Some((commit.clone(), index));
-    }
-    if let Some(tooltip) = &pill.tooltip {
-        ui.tooltip(&response, tooltip);
-    }
-    let Some(since) = ui.hovered_since(&response) else {
-        return;
-    };
-    let way = if ui.modifiers().shift() {
-        HoverWay::NotCheckedOut
-    } else {
-        HoverWay::Reaches
-    };
-    let target = HoverTarget {
-        commit: commit.clone(),
-        way,
-    };
-    report.label = Some((target, since));
-}
-
-/// A label as a pill: its words, its icons and how it is filled, or the count of the labels not named.
-pub(super) struct Pill<'a> {
-    /// Its words.
-    pub(super) text: Cow<'a, str>,
-    /// Its icons.
-    icons: &'static [Icon],
-    /// How it is filled.
-    fill: BadgeFill,
-    /// Its tooltip.
-    pub(super) tooltip: Option<String>,
-    /// Whether it counts other labels, in the muted tone.
-    is_count: bool,
-}
-
-impl Pill<'_> {
-    /// The pill drawn in the color of the commit's line.
-    fn badge(&self, color: usize) -> Badge<'_> {
-        Badge {
-            text: &self.text,
-            icons: self.icons,
-            tone: if self.is_count { Tone::Muted } else { Tone::Lane(color) },
-            fill: self.fill,
-        }
-    }
-}
-
-/// The share of the first line of a row its message keeps, when it is that long, before the labels take the rest.
-const SUBJECT_SHARE: f32 = 0.5;
-
-/// The pills of the labels of a commit that fit in a width, each as wide as `width_of` says with the gap after it, and
-/// the width they take: as many named as fit, and the count of the others, `+2`, with their names in its tooltip; none
-/// when not even the count fits.
-pub(super) fn fitted_pills(
-    labels: &[Label],
-    room: f32,
-    is_narrow: bool,
-    width_of: impl Fn(&Pill<'_>) -> f32,
-) -> (Vec<Pill<'_>>, f32) {
-    for named in (0..=named_labels(labels, is_narrow)).rev() {
-        let pills = counted_pills(labels, named);
-        let width: f32 = pills.iter().map(&width_of).sum();
-        if width <= room {
-            return (pills, width);
-        }
-    }
-    (Vec::new(), 0.0)
-}
-
-/// How many labels of a commit are named before the count of the others: in the narrow layout, two past three.
-fn named_labels(labels: &[Label], is_narrow: bool) -> usize {
-    if is_narrow && labels.len() > NARROW_LABELS {
-        NAMED_WHEN_COUNTED
-    } else {
-        labels.len()
-    }
-}
-
-/// The pills of the labels of a commit: in the narrow layout, two and the count of the others past three.
-fn pills(labels: &[Label], is_narrow: bool) -> Vec<Pill<'_>> {
-    counted_pills(labels, named_labels(labels, is_narrow))
-}
-
-/// The pills of the first labels of a commit, then the count of the others when there are some.
-fn counted_pills(labels: &[Label], named: usize) -> Vec<Pill<'_>> {
-    let mut pills: Vec<Pill<'_>> = labels.iter().take(named).map(pill).collect();
-    if let Some(rest) = labels.get(named..).filter(|rest| !rest.is_empty()) {
-        pills.push(Pill {
-            text: Cow::Owned(format!("+{}", rest.len())),
-            icons: &[],
-            fill: BadgeFill::Tint,
-            tooltip: Some(
-                rest.iter()
-                    .map(|label| label.name.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", "),
-            ),
-            is_count: true,
-        });
-    }
-    pills
-}
-
-/// The pill of a label.
-fn pill(label: &Label) -> Pill<'_> {
-    let (icons, tooltip): (&'static [Icon], Option<String>) = match &label.kind {
-        LabelKind::Branch {
-            worktree: Some(folder), ..
-        } => (
-            &[crate::icons::WORKTREE],
-            Some(words::checked_out_in(&folder.display().to_string())),
-        ),
-        LabelKind::Branch { upstream: Some(_), .. } => (&[crate::icons::BRANCH, crate::icons::REMOTE], None),
-        LabelKind::Head | LabelKind::Branch { .. } => (&[], None),
-        LabelKind::RemoteBranch => (&[crate::icons::REMOTE], None),
-        LabelKind::Tag => (&[crate::icons::TAG], None),
-        LabelKind::Stash { .. } => (&[crate::icons::STASH], None),
-        LabelKind::Bisect(mark) => crate::bisect::marks_view(*mark),
-    };
-    Pill {
-        text: Cow::Borrowed(&label.name),
-        icons,
-        fill: label_fill(label),
-        tooltip,
-        is_count: false,
-    }
-}
-
-/// How a label is filled: the one checked out filled with the color of its line, the others outlined.
-pub(crate) fn label_fill(label: &Label) -> BadgeFill {
-    if label.is_checked_out {
-        BadgeFill::Solid
-    } else {
-        BadgeFill::Outline
-    }
-}
-
-/// The line before a row that starts a day, a week or a month further back, with its name (`graph.date-separators`).
+/// The line before a row that starts a day, a week or a month further back, with its name (`graph.date-separators`):
+/// at the start of the line, or between compact rows where the messages end, before the columns: their labels leave
+/// it no room at the start, and their columns none at the end.
 fn separator(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row) {
     let Some(name) = context.state.layout.separators.get(&row.index) else {
         return;
@@ -456,13 +322,21 @@ fn separator(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row) {
     let style = ui.text_style(TextKind::Small);
     let width = ui.measure(name, style) + 2.0 * theme.sizes.spacing.small;
     let height = ui.line_height(style);
-    let back = Rect::new(x, row.rect.y - height * 0.5, width, height);
+    let back = if let Some(widths) = context.compact {
+        let between = row.rect.height - ui.line_height(ui.text_style(TextKind::Detail));
+        let covered = height.min(between);
+        let end = row.rect.right() - theme.sizes.spacing.large - widths.room(theme.sizes.spacing.large);
+        let left = (end - width).max(x);
+        Rect::new(left, row.rect.y - covered * 0.5, width, covered)
+    } else {
+        Rect::new(x, row.rect.y - height * 0.5, width, height)
+    };
     ui.fill_rect(back, theme.colors.page_background);
     let run = TextRun {
         text: name,
         style,
         color: theme.colors.muted_foreground,
-        origin: Point::new(x + theme.sizes.spacing.small, back.y),
+        origin: Point::new(back.x + theme.sizes.spacing.small, row.rect.y - height * 0.5),
         max_width: None,
     };
     let _ = ui.text(&run);

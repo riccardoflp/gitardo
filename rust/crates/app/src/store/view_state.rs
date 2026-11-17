@@ -340,6 +340,8 @@ impl ViewData {
             }),
             hover: timeline.hover.as_ref(),
             hover_left_at: timeline.hover_left_at,
+            label_list: timeline.label_list.as_ref(),
+            label_list_closed_at: timeline.label_list_closed_at,
             rail_hover: None,
             switches: state.settings.switches,
             graph_width: self.panes.graph_width,

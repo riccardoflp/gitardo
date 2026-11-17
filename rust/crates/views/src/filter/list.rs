@@ -114,6 +114,7 @@ pub(crate) fn picker_list(picking: &Picking<'_>, ui: &mut Ui<'_>, anchor: Rect) 
         anchor,
         size: (WIDTH, height),
         name,
+        side: ui::PopoverSide::Below,
     };
     let body = Body { picking, rows };
     let response = ui.popover(key, &popover, |ui, rect, is_new| draw_body(&body, ui, rect, is_new));

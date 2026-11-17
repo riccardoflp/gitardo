@@ -20,6 +20,18 @@ pub struct Popover<'text> {
     pub size: (f32, f32),
     /// Its name, for the screen reader.
     pub name: &'text str,
+    /// Where it opens against its control.
+    pub side: PopoverSide,
+}
+
+/// Where a popover opens against its control.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum PopoverSide {
+    /// Under it, as tall as the room there is.
+    #[default]
+    Below,
+    /// Under it, or above it when it does not fit under it and there is more room above: never over the control.
+    BelowOrAbove,
 }
 
 /// What a popover tells its view.
@@ -66,7 +78,8 @@ impl Ui<'_> {
         }
     }
 
-    /// Where a popover goes: under its control, from its left edge, inside the window, as tall as the room there is.
+    /// Where a popover goes: under its control, from its left edge, inside the window, as tall as the room there is;
+    /// above it instead when its side allows it, it does not fit under it and there is more room above.
     fn popover_rect(&self, popover: &Popover<'_>) -> Rect {
         let window = self.window();
         let spacing = self.theme().sizes.spacing;
@@ -79,6 +92,11 @@ impl Ui<'_> {
             .max(window.x + spacing.medium);
         let y = popover.anchor.bottom() + spacing.tiny;
         let room = (window.bottom() - spacing.medium - y).max(0.0);
+        let above = (popover.anchor.y - spacing.tiny - (window.y + spacing.medium)).max(0.0);
+        if popover.side == PopoverSide::BelowOrAbove && height > room && above > room {
+            let height = height.min(above);
+            return Rect::new(x, popover.anchor.y - spacing.tiny - height, width, height);
+        }
         Rect::new(x, y, width, height.min(room))
     }
 }

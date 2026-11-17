@@ -5,8 +5,9 @@
 
 use model::contract::{FeatureId, Target};
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{Button, LineCap, MenuEntry, Point, Stroke, TextKind, TextRun, Ui};
+use ui::{Button, LineCap, MenuEntry, Point, Rect, Stroke, TextKind, TextRun, Ui};
 
+use super::compact::RowLines;
 use super::state::DraftState;
 use crate::changes::{ChangesIntent, CommitBox};
 use crate::feature::FeatureIntent;
@@ -26,6 +27,9 @@ pub struct UncommittedRow<'a> {
     pub is_selected: bool,
     /// The commit box of the Changes page, whose message and **Commit** the draft shows.
     pub commit: CommitBox<'a>,
+    /// How many lines the rows of the timeline have: on one, what it changes follows its message
+    /// (`graph.compact-rows`).
+    pub lines: RowLines,
 }
 
 /// An entry of the context menu of the draft.
@@ -115,15 +119,19 @@ pub fn draft_entry_intent(entry: DraftEntry) -> Option<Intent> {
 }
 
 /// The card of the draft over the rectangle of the row its caller clipped it to, beside its dashed ring in the graph:
-/// the message, `<n> files changed · <m> staged`, **Review** and **Commit**.
+/// the message, `<n> files changed · <m> staged`, **Review** and **Commit**; on a row of one line, what it changes
+/// follows the message.
 ///
 /// Feature: graph.uncommitted-row
 pub fn uncommitted_row_view(state: &UncommittedRow<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let rect = ui.current_clip();
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
-    let card = inset(rect, Insets::symmetric(0.0, spacing.small));
-    let radius = theme.sizes.radius.large;
+    let (margin, radius) = match state.lines {
+        RowLines::Two => (spacing.small, theme.sizes.radius.large),
+        RowLines::One => (theme.sizes.border, theme.sizes.radius.medium),
+    };
+    let card = inset(rect, Insets::symmetric(0.0, margin));
     ui.fill_rounded_rect(card, radius, theme.colors.card_background);
     let edge = Stroke {
         width: theme.sizes.border,
@@ -136,12 +144,22 @@ pub fn uncommitted_row_view(state: &UncommittedRow<'_>, ui: &mut Ui<'_>) -> Vec<
     };
     ui.dashed_border(card, radius, (edge, DASH));
     let mut area = Area::with_gap(inset(card, Insets::symmetric(spacing.large, 0.0)), spacing.medium);
-    let intents = buttons(state, ui, &mut area);
-    let lines = area.rest();
+    let intents = buttons(state, ui, (&mut area, card.height - 2.0 * spacing.tiny));
+    draft_text(state, ui, area.rest());
+    intents
+}
+
+/// The message of the draft, or what asks for it, and what it changes: under the message, or after it on a row of one
+/// line.
+fn draft_text(state: &UncommittedRow<'_>, ui: &mut Ui<'_>, lines: Rect) {
+    let theme = *ui.theme();
     let first = ui.text_style(TextKind::Medium);
     let second = ui.text_style(TextKind::Detail);
-    let gap = spacing.tiny + 1.0;
-    let height = ui.line_height(first) + gap + ui.line_height(second);
+    let gap = theme.sizes.spacing.tiny + 1.0;
+    let height = match state.lines {
+        RowLines::Two => ui.line_height(first) + gap + ui.line_height(second),
+        RowLines::One => ui.line_height(first),
+    };
     let top = place(lines, (lines.width, height), (Align::Start, Align::Center)).y;
     let typed = state.commit.message.trim();
     let (text, color) = if typed.is_empty() {
@@ -149,28 +167,42 @@ pub fn uncommitted_row_view(state: &UncommittedRow<'_>, ui: &mut Ui<'_>) -> Vec<
     } else {
         (typed.lines().next().unwrap_or(typed), theme.colors.foreground)
     };
+    let said = words::files_changed(state.draft.files, state.draft.staged);
+    let kept = match state.lines {
+        RowLines::Two => 0.0,
+        RowLines::One => (ui.measure(&said, second) + theme.sizes.spacing.large).min(lines.width * 0.5),
+    };
     let message = TextRun {
         text,
         style: first,
         color,
         origin: Point::new(lines.x, top),
-        max_width: Some(lines.width),
+        max_width: Some((lines.width - kept).max(0.0)),
     };
-    let _ = ui.text(&message);
-    let said = words::files_changed(state.draft.files, state.draft.staged);
+    let after = lines.x + ui.text(&message) + theme.sizes.spacing.large;
+    let origin = match state.lines {
+        RowLines::Two => Point::new(lines.x, top + ui.line_height(first) + gap),
+        RowLines::One => {
+            let line = Rect::new(after, lines.y, 0.0, lines.height);
+            Point::new(
+                after,
+                place(line, (0.0, ui.line_height(second)), (Align::Start, Align::Center)).y,
+            )
+        }
+    };
     let changes = TextRun {
         text: &said,
         style: second,
         color: theme.colors.muted_foreground,
-        origin: Point::new(lines.x, top + ui.line_height(first) + gap),
-        max_width: Some(lines.width),
+        origin,
+        max_width: Some((lines.right() - origin.x).max(0.0)),
     };
     let _ = ui.text(&changes);
-    intents
 }
 
-/// **Commit**, disabled as the one of the Changes page is, and **Review**, at the right of the card.
-fn buttons(state: &UncommittedRow<'_>, ui: &mut Ui<'_>, area: &mut Area) -> Vec<Intent> {
+/// **Commit**, disabled as the one of the Changes page is, and **Review**, at the right of the card, as tall as their
+/// kind or as the card leaves them room.
+fn buttons(state: &UncommittedRow<'_>, ui: &mut Ui<'_>, (area, tallest): (&mut Area, f32)) -> Vec<Intent> {
     let mut intents = Vec::new();
     let mut commit = Button::primary(state.commit.button_words());
     if !state.commit.can_commit() {
@@ -182,7 +214,8 @@ fn buttons(state: &UncommittedRow<'_>, ui: &mut Ui<'_>, area: &mut Area) -> Vec<
         ("review", review, ChangesIntent::Open),
     ] {
         let (width, height) = ui.button_size(&button);
-        let cell = place(area.right(width), (width, height), (Align::Start, Align::Center));
+        let size = (width, height.min(tallest));
+        let cell = place(area.right(width), size, (Align::Start, Align::Center));
         if ui.button(key, cell, &button).clicked {
             intents.push(Intent::Changes(intent));
         }

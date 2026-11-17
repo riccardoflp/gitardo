@@ -5,7 +5,7 @@ use model::github::{Checks, PullRequest};
 use model::graph::{Label, LabelKind};
 use ui::{AccessRole, Badge, BadgeFill, Description, Icon, Rect, Sense, Tone, Ui};
 
-use super::row::{RowContext, RowReport};
+use super::state::HistoryState;
 use crate::icons;
 use crate::intent::Intent;
 use crate::text::github as words;
@@ -95,38 +95,43 @@ pub fn draw_pull_request_badge(ui: &mut Ui<'_>, rect: Rect, state: &PullRequestB
     ui.badge(rect, &state.badge(&text))
 }
 
-/// The badge after a label of a row, when its branch has a pull request and there is room for it: where the next label
-/// starts.
+/// The room the badge of the pull request of a label takes after it, with the gap before it: none when its branch has
+/// no pull request.
+pub(super) fn badge_room(ui: &Ui<'_>, state: &HistoryState<'_>, label: &Label, lane: usize) -> f32 {
+    of_label(state, label).map_or(0.0, |pull_request| {
+        let badge = PullRequestBadge { pull_request, lane };
+        ui.theme().sizes.spacing.medium + pull_request_badge_width(ui, &badge)
+    })
+}
+
+/// The badge after a label of the timeline, when its branch has a pull request and there is room for it before `end`:
+/// where what follows starts.
 pub(super) fn after_label(
     ui: &mut Ui<'_>,
-    context: &RowContext<'_>,
-    (labels, index, is_count): (&[Label], usize, bool),
-    (drawn, lane): (Rect, usize),
-    report: &mut RowReport,
+    state: &HistoryState<'_>,
+    (labels, index): (&[Label], usize),
+    (drawn, lane, end): (Rect, usize, f32),
+    intents: &mut Vec<Intent>,
 ) -> f32 {
     let gap = ui.theme().sizes.spacing.medium;
     let next = drawn.right() + gap;
-    let right = ui.current_clip().right();
-    let label = labels.get(index).filter(|_| !is_count);
-    let Some(pull_request) = label.and_then(|label| of_label(context, label)) else {
+    let Some(pull_request) = labels.get(index).and_then(|label| of_label(state, label)) else {
         return next;
     };
     let state = PullRequestBadge { pull_request, lane };
     let width = pull_request_badge_width(ui, &state);
-    if next + width > right {
+    if next + width > end.min(ui.current_clip().right()) {
         return next;
     }
     let cell = Rect::new(next, drawn.y, width, drawn.height);
-    report
-        .intents
-        .extend(ui.clip(cell, |ui| pull_request_badge_view(&state, ui)));
+    intents.extend(ui.clip(cell, |ui| pull_request_badge_view(&state, ui)));
     next + width + gap
 }
 
 /// The pull request of the branch of a label: a local branch has the one of its upstream; a remote branch has one on
 /// its own label only when no local branch tracks it.
-fn of_label<'a>(context: &RowContext<'a>, label: &Label) -> Option<&'a PullRequest> {
-    let menus = context.state.references?;
+fn of_label<'a>(state: &HistoryState<'a>, label: &Label) -> Option<&'a PullRequest> {
+    let menus = state.references?;
     let repository = menus.repository;
     match &label.kind {
         LabelKind::Branch { .. } => {

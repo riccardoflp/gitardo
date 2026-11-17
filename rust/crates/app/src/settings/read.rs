@@ -155,6 +155,7 @@ fn timeline_switches(lookup: &mut Lookup) -> Switches {
         (keys::SHOW_STASHES, TimelineSwitch::ShowStashes),
         (keys::FIRST_PARENT, TimelineSwitch::FirstParent),
         (keys::ONE_LANE, TimelineSwitch::OneLane),
+        (keys::COMPACT_ROWS, TimelineSwitch::CompactRows),
         (keys::TRACE_SELECTED, TimelineSwitch::TraceSelected),
         (keys::DATE_SEPARATORS, TimelineSwitch::DateSeparators),
         (keys::COMBINE_UPSTREAM, TimelineSwitch::CombineUpstream),

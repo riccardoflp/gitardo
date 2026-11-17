@@ -194,6 +194,7 @@ pub fn switch_setting(switches: Switches, switch: views::graph::TimelineSwitch) 
         TimelineSwitch::ShowStashes => keys::SHOW_STASHES,
         TimelineSwitch::FirstParent => keys::FIRST_PARENT,
         TimelineSwitch::OneLane => keys::ONE_LANE,
+        TimelineSwitch::CompactRows => keys::COMPACT_ROWS,
         TimelineSwitch::TraceSelected => keys::TRACE_SELECTED,
         TimelineSwitch::DateSeparators => keys::DATE_SEPARATORS,
         TimelineSwitch::CombineUpstream => keys::COMBINE_UPSTREAM,

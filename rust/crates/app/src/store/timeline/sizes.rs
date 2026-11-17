@@ -93,6 +93,8 @@ pub fn apply_switch(state: &mut State, switch: TimelineSwitch) -> Vec<Effect> {
             retrace(state);
             Vec::new()
         }
-        TimelineSwitch::Author | TimelineSwitch::Date | TimelineSwitch::Hash => Vec::new(),
+        TimelineSwitch::Author | TimelineSwitch::Date | TimelineSwitch::Hash | TimelineSwitch::CompactRows => {
+            Vec::new()
+        }
     }
 }

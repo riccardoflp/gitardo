@@ -176,7 +176,7 @@ fn graph_view__the_label_of_the_branch_checked_out_is_filled_and_the_others_outl
     let fills = |name| {
         labels(name)
             .iter()
-            .map(super::super::row::label_fill)
+            .map(super::super::labels::label_fill)
             .collect::<Vec<_>>()
     };
     assert_eq!(fills("M3"), [ui::BadgeFill::Solid]);
@@ -187,7 +187,7 @@ fn graph_view__the_label_of_the_branch_checked_out_is_filled_and_the_others_outl
 fn graph_view__a_row_keeps_room_for_its_message_and_counts_the_labels_that_do_not_fit() {
     use model::graph::{Label, LabelKind};
 
-    use super::super::row::fitted_pills;
+    use super::super::labels::{FittedLabels, Pill, Room, fitted_pills};
 
     let labels: Vec<Label> = ["main", "feature", "origin/main", "origin/feature", "v1.0"]
         .iter()
@@ -197,28 +197,55 @@ fn graph_view__a_row_keeps_room_for_its_message_and_counts_the_labels_that_do_no
             is_checked_out: false,
         })
         .collect();
-    let width_of = |pill: &super::super::row::Pill<'_>| {
-        10.0 * f32::from(u8::try_from(pill.text.chars().count()).unwrap_or(u8::MAX)) + 20.0
+    let width_of = |pill: &Pill<'_>, _: Option<usize>| {
+        10.0 * f32::from(u8::try_from(pill.text.chars().count()).unwrap_or(u8::MAX)) + 10.0
     };
-    let words =
-        |pills: &[super::super::row::Pill<'_>]| pills.iter().map(|pill| pill.text.to_string()).collect::<Vec<_>>();
+    let room = |width| Room {
+        width,
+        least: 60.0,
+        gap: 10.0,
+    };
+    let words = |fitted: &FittedLabels<'_>| {
+        fitted
+            .pills
+            .iter()
+            .map(|pill| pill.pill.text.to_string())
+            .collect::<Vec<_>>()
+    };
 
-    let (all, width) = fitted_pills(&labels, 1_000.0, false, width_of);
+    let all = fitted_pills(&labels, room(1_000.0), width_of);
     assert_eq!(
         words(&all),
         ["main", "feature", "origin/main", "origin/feature", "v1.0"]
     );
-    assert!((width - 500.0).abs() < 0.01);
+    assert!((all.width - 500.0).abs() < 0.01);
+    assert!(!all.hides_some);
 
-    let (some, width) = fitted_pills(&labels, 200.0, false, width_of);
+    let some = fitted_pills(&labels, room(200.0), width_of);
     assert_eq!(words(&some), ["main", "feature", "+3"]);
-    assert!(width <= 200.0);
-    let tooltip = some.last().and_then(|pill| pill.tooltip.clone());
-    assert_eq!(tooltip.as_deref(), Some("origin/main, origin/feature, v1.0"));
+    assert!(some.width <= 200.0);
+    assert!(some.hides_some);
+    assert_eq!(
+        some.pills.last().and_then(|pill| pill.pill.tooltip.clone()),
+        None,
+        "the list says them"
+    );
 
-    let (none, width) = fitted_pills(&labels, 30.0, false, width_of);
-    assert!(none.is_empty(), "not even the count fits");
-    assert!(width.abs() < 0.01);
+    let shortened = fitted_pills(&labels[2..], room(120.0), width_of);
+    assert_eq!(words(&shortened), ["origin/main", "+2"]);
+    assert!(
+        shortened
+            .pills
+            .first()
+            .is_some_and(|pill| (pill.width - 70.0).abs() < 0.01)
+    );
+
+    let count = fitted_pills(&labels, room(50.0), width_of);
+    assert_eq!(words(&count), ["+5"]);
+
+    let none = fitted_pills(&labels, room(30.0), width_of);
+    assert!(none.pills.is_empty(), "not even the count fits");
+    assert!(none.width.abs() < 0.01);
 }
 
 #[test]

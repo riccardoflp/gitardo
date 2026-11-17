@@ -5,7 +5,7 @@
 use super::{SettingInfo, SettingKind, SettingsSection};
 
 /// The settings of the first half of the table.
-pub(super) const FIRST: [SettingInfo; 27] = [
+pub(super) const FIRST: [SettingInfo; 28] = [
     SettingInfo {
         key: "commandPreview",
         title: "Show commands before they run",
@@ -114,6 +114,16 @@ pub(super) const FIRST: [SettingInfo; 27] = [
         title: "All commits on one line",
         section: Some(SettingsSection::Timeline),
         description: "Every commit of the timeline on one line, without lanes; merges are rings.",
+        default: "false",
+        is_repository: false,
+        is_experimental: false,
+        kind: SettingKind::Toggle,
+    },
+    SettingInfo {
+        key: "graph.compactRows",
+        title: "Compact rows",
+        section: Some(SettingsSection::Timeline),
+        description: "Each commit on one line: its labels, its message, then the author, the date and the hash in columns.",
         default: "false",
         is_repository: false,
         is_experimental: false,
