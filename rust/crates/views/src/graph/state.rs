@@ -50,6 +50,11 @@ pub struct HistoryState<'a> {
     pub hover: Option<&'a HoverTarget>,
     /// When the pointer left the labels, while the history of the last one is still brought out.
     pub hover_left_at: Option<Duration>,
+    /// The list of all the labels of a commit, while it is open (`graph.label-overflow`).
+    pub label_list: Option<&'a super::label_overflow::LabelList>,
+    /// When the list of the labels was closed last, so that it does not open again from where the pointer rested
+    /// since before.
+    pub label_list_closed_at: Option<Duration>,
     /// The reference of the branch rail the pointer rests on, with since when, whose history is brought out as a
     /// label's is; the window sets it from the rail drawn before the timeline.
     pub rail_hover: Option<(HoverTarget, Duration)>,

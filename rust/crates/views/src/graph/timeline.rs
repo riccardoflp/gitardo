@@ -1,5 +1,5 @@
 //! The timeline (`graph.view`): the commits read by `graph.read-commits`, a row each with its cell of the graph, the
-//! labels after the message, the author and the date under it and the hash at the end; the draft on top, the stashes
+//! labels and the message, the author and the date under it and the hash at the end; the draft on top, the stashes
 //! and the folded merges among them; the names of the branches scrolled past at the top, the marks beside the scroll
 //! bar and the edge of the graph.
 
@@ -13,6 +13,7 @@ use super::edge::{GraphEdgeState, resize_graph_view};
 use super::hover::{HoverState, hover_history_view};
 use super::intent::GraphIntent;
 use super::keyboard::{LEFT_TO_VIEW, keyboard_view};
+use super::label_overflow::{LabelOverflow, label_list_drawn};
 use super::load_more::{LoadMoreState, load_more_view};
 use super::marks::{ScrollMarks, scroll_marks_view};
 use super::row::{RowContext, RowReport, draw_row, select_row, selected_row};
@@ -96,8 +97,9 @@ fn timeline(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent
     };
     let several = Several::of(state);
     let (mut intents, list_rect) = selection_bar(state, ui, rect, several.as_ref());
-    let (history_intents, report, visible) = history(state, ui, (list_rect, &context), several.as_ref());
+    let (history_intents, mut report, visible) = history(state, ui, (list_rect, &context), several.as_ref());
     intents.extend(history_intents);
+    intents.extend(label_list(state, ui, &mut report));
     let rect = list_rect;
     if matches!(state.reading, Reading::More | Reading::Again) {
         ui.running_bar(rect);
@@ -123,6 +125,14 @@ fn timeline(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent
     intents.extend(hover_history_view(&hover, ui));
     intents.extend(load_more_view(&load_more_state(state, visible.end), ui));
     intents.extend(keyboard_view(state, ui));
+    intents.extend(marks(state, ui, rect));
+    intents.extend(ui.clip(rect, |ui| resize_graph_view(&edge, ui)));
+    intents
+}
+
+/// The marks beside the scroll bar of the list (`graph.scroll-marks`).
+fn marks(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
+    let theme = *ui.theme();
     let marks = ScrollMarks {
         total: state.layout.len() + usize::from(state.has_more),
         checked_out: state
@@ -139,8 +149,36 @@ fn timeline(state: &HistoryState<'_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent
         MARKS_WIDTH,
         rect.height,
     );
-    intents.extend(ui.clip(strip, |ui| scroll_marks_view(&marks, ui)));
-    intents.extend(ui.clip(rect, |ui| resize_graph_view(&edge, ui)));
+    ui.clip(strip, |ui| scroll_marks_view(&marks, ui))
+}
+
+/// The list of all the labels of a commit while it is open and its row drawn, or what the rows asked of it: to open it,
+/// or to close it once its row is no longer drawn with labels hidden (`graph.label-overflow`).
+fn label_list(state: &HistoryState<'_>, ui: &mut Ui<'_>, report: &mut RowReport) -> Vec<Intent> {
+    let mut intents = Vec::new();
+    if let Some(list) = state.label_list {
+        match report.open_anchor.take() {
+            Some((shown, opener, labels)) => {
+                let shown = LabelOverflow {
+                    history: state,
+                    list,
+                    shown,
+                    opener,
+                    labels,
+                };
+                let drawn = label_list_drawn(&shown, ui);
+                intents.extend(drawn.intents);
+                report.label = drawn.label.or(report.label.take());
+            }
+            None => intents.push(Intent::Graph(GraphIntent::CloseLabels(ui.now()))),
+        }
+    }
+    intents.extend(
+        report
+            .open_labels
+            .take()
+            .map(|list| Intent::Graph(GraphIntent::OpenLabels(list))),
+    );
     intents
 }
 

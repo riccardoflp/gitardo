@@ -11,6 +11,8 @@ mod fold;
 mod hover;
 mod intent;
 mod keyboard;
+mod label_overflow;
+mod labels;
 mod layout;
 mod load_more;
 mod location;
@@ -40,6 +42,8 @@ pub use fold::{FoldAllEntry, FoldAllState, FoldsState, MergeEntry, fold_all_view
 pub use hover::{HoverState, LINGER, REST, hover_history_view, hover_intent};
 pub use intent::{GraphIntent, HoverTarget, HoverWay, Pane, Selected, SideSection, Switches, TimelineSwitch};
 pub use keyboard::{key_intent, keyboard_view};
+pub use label_overflow::{LabelList, LabelOverflow, OPEN_AFTER, label_overflow_view};
+pub(crate) use labels::draw_labels;
 pub use layout::{LayoutEnd, LayoutInput, TimelineLayout};
 pub use load_more::{AHEAD, LoadMoreState, load_more_view, wants_more};
 pub use location::{WhereState, WhereWidths, fit_where, where_view};
@@ -55,7 +59,6 @@ pub use pull_request_badge::{
     PullRequestBadge, draw_pull_request_badge, pull_request_badge_tone, pull_request_badge_view,
     pull_request_badge_width,
 };
-pub(crate) use row::draw_labels;
 pub use stashes::{StashEntry, StashRow, stash_intent, stash_menu, stashes_view};
 pub use state::{DraftState, Folds, GraphState, HistoryState, Reading, TraceShown, TraceStrength};
 pub use sticky::{StickyName, StickyNames, sticky_branch_names_view, sticky_names};

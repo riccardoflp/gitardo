@@ -48,6 +48,7 @@ mod inspector;
 mod inspector_files;
 mod islands;
 mod jobs;
+mod label_overflow;
 mod lanes;
 mod large_diffs;
 mod load_more;

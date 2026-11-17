@@ -85,22 +85,24 @@ inspector of the selected commit: what the window shows while no page is open, a
 - **Function**: `views::graph::view(state: &GraphState, ui) -> Vec<Intent>`
 - **Entry points**: the window, while no page is open; **Timeline**, the first step of the trail of a page; **Open
   Timeline** in Quick search shows it.
-- **Uses**: `graph.toolbar`, `refs.tree`, `graph.lanes`, `graph.fit-width`, `graph.labels`, `graph.columns`,
-  `graph.load-more`, `graph.uncommitted-row`, `graph.stashes`, `graph.hover-history`, `graph.trace-selected`,
+- **Uses**: `graph.toolbar`, `refs.tree`, `graph.lanes`, `graph.fit-width`, `graph.labels`, `graph.label-overflow`,
+  `graph.columns`, `graph.load-more`, `graph.uncommitted-row`, `graph.stashes`, `graph.hover-history`, `graph.trace-selected`,
   `graph.fold-merge`, `graph.sticky-branch-names`, `graph.scroll-marks`, `graph.keyboard`, `graph.resize-panes`,
   `filter.bar`, `details.show`, `selection.select`, `drag.drop`, `commit-page.open`, `branch.open`.
 
 - From left to right: the branch rail (`refs.tree`), the commits, the inspector of the selected commit (`details.show`).
   When the window is too narrow to have them side by side, the side column is put away, its button at the top of the
-  timeline opening it over the commits (`repo.side-column`), and the inspector opens over the commits (Q501). There, a commit with more than three labels names two of them, what is checked out first, and
-  counts the others, `+3`, with their names in the tooltip of the count.
+  timeline opening it over the commits (`repo.side-column`), and the inspector opens over the commits (Q501). There, as
+  in any width, the labels that do not fit are counted in `+N` (`graph.label-overflow`, Q644).
 - Above the commits, in this order: the banner of a worktree (`worktree.`), of an operation stopped half way
   (`conflicts.`, `rebase.`), of a bisect (`bisect.`), the bar of what the timeline is narrowed to (`filter.bar`) and
   the bar of several commits selected (`selection.select`). The draft of the uncommitted changes is the first card of
   the commits (`graph.uncommitted-row`).
 - Each row has its cell of the graph (`graph.lanes`): a dot for a commit, in the color of its line. Then two lines: its
-  labels (`graph.labels`) and its message, then the columns `graph.columns` asks for. The labels are outlined in the
-  color of the commit's line; the branch checked out is the one filled in.
+  labels (`graph.labels`) first, right after the cell of the graph, then its message; under them the columns
+  `graph.columns` asks for. The labels take at most the room the message leaves them, and those that do not fit are
+  one label `+N`, whose list opens under the pointer (`graph.label-overflow`). The labels are outlined in the color of
+  the commit's line; the branch checked out is the one filled in.
 - A click selects a commit and shows it in the inspector; `Ctrl`+click (`Cmd` on macOS) and `Shift`+click select several
   (`selection.select`). A double click, or `Enter`, opens it as a page (`commit-page.open`). A double click on the
   label of a branch checks it out instead, or does what `branch.open` does for it, as in the branch rail. A
@@ -955,7 +957,8 @@ Which labels a commit has in the timeline, and what each says.
 - **Function**: `model::graph::labels(state: &RepositoryState, settings: &GraphSettings) -> HashMap<Oid, Vec<Label>>`
 - **Uses**: `graph.combine-upstream`, `graph.pull-request-badge`.
 
-In this order on each commit:
+They come first on the row of the commit, right after its cell of the graph, before its message, so that they line up
+from row to row; those that do not fit are counted in `+N` (`graph.label-overflow`). In this order on each commit:
 
 1. `HEAD`, when nothing is checked out but a commit (detached), filled as what is checked out.
 2. Each local branch at it, the one checked out filled. A branch that another worktree has checked out has the icon of
@@ -973,6 +976,50 @@ Acceptance:
 - [ ] A branch checked out in another worktree has the worktree icon, and its tooltip names that worktree's folder.
 - [ ] `origin/HEAD` has no label.
 - [ ] An annotated tag labels the commit, not the tag object.
+
+### `graph.label-overflow` — All the labels of a commit, under the pointer
+
+The labels of a commit start the line of its message and leave the message its room; those that do not fit are one
+label `+N`, and the pointer resting on the labels opens the list of all of them
+([D64](../08-decisions.md#d64--the-labels-of-a-commit-first-on-its-row-the-rest-under-the-pointer)).
+
+- **Kind**: View
+- **Function**: `views::graph::label_overflow_view(state: &LabelOverflow, ui) -> Vec<Intent>`
+- **Entry points**: the pointer resting on `+N`, or on any label of a row that does not show all its labels whole.
+- **Uses**: `graph.labels`, `graph.hover-history`, `graph.pull-request-badge`, `branch.open`, `branch.checkout`,
+  `ui.menu-scroll`.
+
+- The labels come right after the cell of the graph, in the order of `graph.labels`, then the message. The message keeps
+  its width up to three fifths of the line, and the labels take the rest (Q640): as many as fit whole, in their order,
+  then `+N` for the others. When not even the first fits whole beside `+N`, it is shortened with an ellipsis, as long as
+  it keeps three times its height; else `+N` alone stands for all of them. A label with a pull request keeps room for
+  its badge (`graph.pull-request-badge`). The same holds in the narrow layout (Q644).
+- When a row does not show all its labels whole, the pointer resting 300 ms (Q642) on `+N` or on any of its labels
+  (Q641) opens under it the list of all the labels of the commit, each on its row with its icon and its color as on the
+  row, and the badge of its pull request. It never covers the label it opened from: with no room under it and more
+  above, it opens above (Q645). Taller than the room, it scrolls (`ui.menu-scroll`).
+- Each label of the list does what it does on the row: a click selects the commit; a double click checks out a branch,
+  or does what `branch.open` does for it, and opens the commit as a page on a tag; a right click opens its menu; the
+  pointer resting on it brings out its history (`graph.hover-history`). A double click or a menu closes the list
+  (Q647).
+- The list closes when the pointer leaves it and the labels of the row, on `Escape`, or on a press elsewhere; it does
+  not open again until the pointer has left the label it rested on. Rows whose labels are all whole open no list.
+- `+N` has no tooltip: the list names them (Q646). For the screen reader, the labels of a row are a list named
+  **Labels**, and so is the list under the pointer. From the keyboard, the list is not reached (Q643).
+
+Acceptance:
+
+- [ ] A commit with six labels in a window 1000 pixels wide starts its row with the labels that fit, then `+5`, then
+      its message, its labels a list for the screen reader.
+- [ ] Resting 300 ms on `+5` opens under it the list of the six labels in their order; resting 250 ms does not.
+- [ ] A double click on `main` in the list checks it out, and the list closes.
+- [ ] A click on a label of the list selects the commit.
+- [ ] A right click on `release` in the list opens the menu of `release`.
+- [ ] Resting on a label of the list keeps the history of the commit brought out.
+- [ ] Moving the pointer from `+5` into the list keeps it open; leaving both closes it; `Escape` closes it, and it does
+      not open again while the pointer stays.
+- [ ] In a window wide enough for all six labels, resting on one opens no list.
+- [ ] Near the foot of the window, the list opens above `+5`.
 
 ### `graph.combine-upstream` — A branch and its upstream on one label
 

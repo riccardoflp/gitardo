@@ -38,6 +38,11 @@ pub enum GraphIntent {
     Hover(Option<HoverTarget>),
     /// The pointer left the labels at a time of the frames: the history goes 100 ms later.
     HoverLeft(std::time::Duration),
+    /// Open the list of all the labels of a commit, the pointer resting on one of its labels (`graph.label-overflow`).
+    OpenLabels(super::label_overflow::LabelList),
+    /// Close the list of the labels at a time of the frames: it does not open again from the label the pointer rested
+    /// on since before.
+    CloseLabels(std::time::Duration),
     /// Scroll to a commit, centered, and select it: a sticky branch name clicked (`graph.sticky-branch-names`).
     GoTo(CommitId),
     /// The width the graph is drawn in, dragged; none brings back the one the graph chooses (`graph.resize-graph`).

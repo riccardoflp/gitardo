@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 458 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 459 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -18,7 +18,7 @@ earns it.
 | File | Area | Cards |
 | --- | --- | --- |
 | [01-repositories.md](01-repositories.md) | Repositories | 30 |
-| [02-graph.md](02-graph.md) | Graph | 55 |
+| [02-graph.md](02-graph.md) | Graph | 56 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 22 |
@@ -101,6 +101,7 @@ earns it.
 | [`graph.resize-panes`](02-graph.md#graphresize-panes--resize-the-branch-rail-and-the-inspector) | Resize the branch rail and the inspector | View | Built | Built |
 | [`graph.toggle-references`](02-graph.md#graphtoggle-references--put-the-branch-rail-away) | Put the branch rail away | View | Built | Built |
 | [`graph.labels`](02-graph.md#graphlabels--the-labels-of-each-commit) | The labels of each commit | Derivation | Built | Built |
+| [`graph.label-overflow`](02-graph.md#graphlabel-overflow--all-the-labels-of-a-commit-under-the-pointer) | All the labels of a commit, under the pointer | View | Built | Planned |
 | [`graph.combine-upstream`](02-graph.md#graphcombine-upstream--a-branch-and-its-upstream-on-one-label) | A branch and its upstream on one label | Derivation | Built | Built |
 | [`graph.pull-request-badge`](02-graph.md#graphpull-request-badge--pull-request-on-a-label) | Pull request on a label | View | Built | Built |
 | [`graph.unpushed`](02-graph.md#graphunpushed--commits-not-pushed-yet) | Commits not pushed yet | Derivation | Built | Built |

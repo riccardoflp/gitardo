@@ -71,6 +71,10 @@ pub struct Timeline {
     pub hover: Option<HoverTarget>,
     /// When the pointer left the labels.
     pub hover_left_at: Option<Duration>,
+    /// The list of all the labels of a commit, while it is open (`graph.label-overflow`).
+    pub label_list: Option<views::graph::LabelList>,
+    /// When the list of the labels was closed last.
+    pub label_list_closed_at: Option<Duration>,
     /// The history brought out, for each row shown, and how strongly.
     pub trace: Option<(Arc<Vec<CellTrace>>, TraceStrength)>,
     /// The merges folded.
@@ -415,6 +419,10 @@ pub fn reduce_graph(state: &mut State, intent: GraphIntent) -> Vec<Effect> {
             state.timeline.hover_left_at = Some(at);
             Vec::new()
         }
+        GraphIntent::OpenLabels(_) | GraphIntent::CloseLabels(_) => {
+            label_list(state, intent);
+            Vec::new()
+        }
         GraphIntent::SetGraphWidth(_)
         | GraphIntent::SetPane(..)
         | GraphIntent::ToggleReferences
@@ -426,6 +434,19 @@ pub fn reduce_graph(state: &mut State, intent: GraphIntent) -> Vec<Effect> {
             state.timeline.dropped = Some(dropped);
             Vec::new()
         }
+    }
+}
+
+/// Opens the list of the labels of a commit, or closes it at a time of the frames (`graph.label-overflow`).
+fn label_list(state: &mut State, intent: GraphIntent) {
+    match intent {
+        GraphIntent::OpenLabels(list) => state.timeline.label_list = Some(list),
+        GraphIntent::CloseLabels(at) => {
+            state.timeline.label_list = None;
+            state.timeline.label_list_closed_at = Some(at);
+        }
+        // The other intents are not about the list.
+        _ => {}
     }
 }
 

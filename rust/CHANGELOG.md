@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- The labels of a commit, its branches, tags and the rest, come first on its row of the timeline, right after the
+  graph and before its message, so that they are found at the same place on every row. They take the room the message
+  leaves them, at least two fifths of the line, and those that do not fit are one label `+N`. The pointer resting on
+  `+N`, or on any label of such a row, opens under it the list of all the labels of the commit, each with its icon and
+  its color, each doing what it does on the row: a click selects the commit, a double click checks a branch out, a
+  right click opens its menu, and resting on it brings out its history. The list closes when the pointer leaves it and
+  the labels, on `Escape` or on a click elsewhere, and opens above its label near the foot of the window. The narrow
+  window counts the labels by the same rule, and `+N` has no tooltip any more.
 - The logo of Gitardo, the one of the extension, is at the top left of the window, in the accent of the theme, in a
   square above the bar of views, which starts under it; the header starts with the name **Gitardo**, before the
   repository, the worktree and the branch. In a narrow window the name goes and the logo stays. Neither does anything

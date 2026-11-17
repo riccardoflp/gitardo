@@ -84,6 +84,9 @@ pub fn go_up_to(name: &str) -> String {
     format!("Go up to {name}")
 }
 
+/// The labels of a commit, on its row and in the list of all of them (`graph.label-overflow`), for the screen reader.
+pub const LABELS: &str = "Labels";
+
 /// The tooltip of the ring of a commit not pushed (`graph.unpushed`).
 #[must_use]
 pub fn not_pushed_to(upstream: &str) -> String {

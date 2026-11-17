@@ -44,6 +44,7 @@ pub(super) fn hover_card(
         anchor,
         size: (WIDTH, row * (3.0 + links) + 2.0 * theme.sizes.spacing.large),
         name: words::HOVER,
+        side: ui::PopoverSide::Below,
     };
     let date = crate::text::dates::full_date(commit.author_time.0);
     let short = commit.id.short();

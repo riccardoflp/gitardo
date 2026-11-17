@@ -3495,3 +3495,33 @@ otherwise.
   shebang and no extension, has the icon of a document.
 - **Q625** — `file-view.file-icons`: the top row of the tree of the Files page has the gray folder, the icon the theme
   gives the folder of a workspace, not the icon of the name of the repository's folder.
+
+### Of the labels first and the compact rows, from Q640
+
+- **Q640** — `graph.label-overflow`: how much of the line the labels take. Built: the message keeps its width up to
+  three fifths of the line (the room left of the hash, less the arrow of a fold), and the labels take the rest, so that
+  a short message leaves them more room and a long one keeps at least three fifths. When not even the first label fits
+  whole beside `+N`, it is shortened, as long as it keeps three times the height of a label, so that its icon and a few
+  letters are seen; else `+N` alone stands for every label.
+- **Q641** — `graph.label-overflow`: which labels open the list. The plan said `+N` or any label of the row. Built: `+N`
+  and every label of a row that does not show all its labels whole (some counted in `+N`, or the first shortened); a
+  row whose labels are all whole opens nothing, since the list would only say again what the row shows, and resting on
+  a label there to see its history would open a list each time.
+- **Q642** — `graph.label-overflow`: the list opens after the pointer has rested 300 ms on a label, later than the
+  history of the label stands out (150 ms, `graph.hover-history`) and sooner than the hover of the blame (400 ms), so
+  that passing over the labels does not open it.
+- **Q643** — `graph.label-overflow`: the keyboard. The timeline's keys go from row to row and have no way to a label of
+  a row (`graph.keyboard`), so the list opens from the pointer only; once open, its labels take the arrows, `Enter` and
+  the key of the menu after a click in it, as any list does. The operations of each label stay reachable from the
+  keyboard in the branch rail and in the menu of the commit. Is a key wanted to open it on the row selected?
+- **Q644** — `graph.view`: the narrow layout named two labels and counted the others past three, with their names in
+  the tooltip of the count. That rule is replaced by the one of `graph.label-overflow`, the same in any width: as many
+  as fit, then `+N`, whose list names them.
+- **Q645** — `graph.label-overflow`: near the foot of the window the list opens above its label, when there is more
+  room above than under it. The popovers of the toolkit opened only under their control; they now have a side,
+  **Below** for the list of a branch filter and the hover of the blame, as before, and **Below or above** for this list.
+- **Q646** — `graph.label-overflow`: `+N` no longer has the tooltip with the names of the labels it counts, which would
+  open over the list once it is open.
+- **Q647** — `graph.label-overflow`: a click on a label of the list selects the commit and leaves the list open, as a
+  click on the row does with the pointer still there; a double click and a right click close it, the menu opened by the
+  right click staying open. Each label in the list has the badge of its pull request, which a click opens on GitHub.

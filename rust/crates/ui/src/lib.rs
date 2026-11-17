@@ -97,7 +97,7 @@ pub use widget::panel::Axis;
 pub use widget::picker::fuzzy::{self, FuzzyMatch};
 pub use widget::picker::list::{PickList, PickListResponse};
 pub use widget::picker::{Picker, PickerAnswer, PickerItem, PickerMode, first_shown};
-pub use widget::popover::{Popover, PopoverResponse};
+pub use widget::popover::{Popover, PopoverResponse, PopoverSide};
 pub use widget::scroll::{ScrollAxis, ScrollResponse};
 pub use widget::splitter::{Split, SplitResponse, Splitter};
 pub use widget::{Availability, Tone};
