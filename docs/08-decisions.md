@@ -2868,3 +2868,9 @@ reading given until the card says otherwise.
   waits, and is given with the stash once its commit is read, or without it when the read ends without it (the stash
   is made on a commit the history shown does not have). Pages stay of `graph.pageSize` commits otherwise; a page held
   so is given with the next.
+- **Q441** — `graph.lanes`: a page added under the timeline is laid out alone from the lanes under the row above it,
+  but folding a merge (`graph.fold-rows`) can move rows of earlier pages, and which merges can be folded and which
+  commits are not pushed depend on the commits further down. Built: with any merge folded, the timeline is laid out
+  whole at each page, as before; with none, the lanes, the tips of the lines, the rows of each commit and the lines
+  between days and months of the new rows are worked out alone, and the merges that can be folded and the commits not
+  pushed again over all the rows, which costs a walk of the rows but no layout.

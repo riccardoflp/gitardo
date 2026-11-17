@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- A page of commits added under the timeline is laid out alone, from where the lines of the graph stopped under the
+  rows above it, rather than every row again: the history of a large repository comes in at the same pace from its
+  first page to its last. With merges folded, the timeline is still laid out whole at each page.
 - The timeline reads the history with one `git log`, as git prints it: the first 1,000 commits are shown as soon as
   they are read, and the others are added under them a page at a time, without waiting for the list to be scrolled,
   up to 100,000 commits; past those, the next commits are read as the list nears its end. The bar along the top runs

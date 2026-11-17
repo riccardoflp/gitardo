@@ -1,14 +1,15 @@
 //! What the timeline is drawn from besides the rows read: the rows shown with the merges folded, the lines of the
 //! graph, the labels, the commits not pushed, the lines between days and months and the branch each line comes from.
-//! It is made again when the rows, the folds, the repository or the settings change, not for each frame.
+//! It is made again when the rows, the folds, the repository or the settings change, not for each frame; a page added
+//! under the rows is laid out alone, from where the layout stopped (D54).
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use model::CommitId;
 use model::commit::Commit;
 use model::graph::{
-    CellTrace, DateTime, FoldedRows, GraphCell, GraphInput, GraphSettings, Label, Row, ShownRow, Trace,
-    date_separators, fold_rows, foldable_merges, labels, lane_tips, lanes, trace_history, unpushed,
+    CellTrace, DateTime, FoldedRows, GraphCell, GraphInput, GraphSettings, Label, LaneState, Row, ShownRow, Trace,
+    date_separators, fold_rows, foldable_merges, labels, lane_tips_after, lanes_after, trace_history, unpushed,
 };
 use model::state::RepositoryState;
 
@@ -57,6 +58,23 @@ pub struct TimelineLayout {
     pub branch_colors: HashMap<String, usize>,
     /// The same for each remote branch whose commit is shown, by its name, as `origin/main`, for its ring.
     pub remote_colors: HashMap<String, usize>,
+    /// Where the layout stopped, for a page added under its rows to be laid out alone; none while merges are folded.
+    pub end: Option<LayoutEnd>,
+}
+
+/// Where a layout stopped: what the rows of a page added under its last row are laid out from.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct LayoutEnd {
+    /// How many rows read are laid out.
+    pub rows: usize,
+    /// The lanes under the last row.
+    pub lanes: LaneState,
+    /// The tip of each lane at the bottom edge of the last row.
+    pub tips: Vec<Option<usize>>,
+    /// `graph.combineUpstream`, as the rows were laid out.
+    pub combine_upstream: bool,
+    /// The time the lines between days and months were counted from.
+    pub separators_at: Option<DateTime>,
 }
 
 /// The color of the line of each local branch and each remote branch whose commit is shown, by its name.
@@ -85,14 +103,9 @@ impl TimelineLayout {
     pub fn new(input: &LayoutInput<'_>) -> TimelineLayout {
         let folded = fold_rows(input.rows, input.folded);
         let inputs = folded.graph_inputs(input.rows);
-        let cells = lanes(&inputs);
+        let (cells, lanes) = lanes_after(&LaneState::default(), &inputs);
         let lane_count = cells.iter().map(GraphCell::lane_count).max().unwrap_or(0);
-        let labels = labels(
-            input.repository,
-            &GraphSettings {
-                combine_upstream: input.combine_upstream,
-            },
-        );
+        let labels = labels_of(input);
         let named: Vec<bool> = inputs
             .iter()
             .zip(&folded.rows)
@@ -100,7 +113,14 @@ impl TimelineLayout {
                 matches!(shown, ShownRow::Row { .. }) && row.id.is_some_and(|id| labels.contains_key(id))
             })
             .collect();
-        let tips = lane_tips(&cells, &named);
+        let (tips, bottom) = lane_tips_after(Vec::new(), (&cells, &named), 0);
+        let end = input.folded.is_empty().then_some(LayoutEnd {
+            rows: input.rows.len(),
+            lanes,
+            tips: bottom,
+            combine_upstream: input.combine_upstream,
+            separators_at: input.separators_at,
+        });
         let separators = input
             .separators_at
             .map_or_default(|now| date_separators(&shown_dates(input.rows, &folded), now));
@@ -134,7 +154,80 @@ impl TimelineLayout {
             checked_out,
             branch_colors,
             remote_colors,
+            end,
         }
+    }
+
+    /// Lays out the rows of a page added under those of this layout alone, from where it stopped, as
+    /// [`TimelineLayout::new`] would lay out all of them. Changes nothing, and says so, when it cannot: merges are
+    /// folded, there are fewer rows than it laid out, or the settings it was laid out with changed.
+    pub fn extend(&mut self, input: &LayoutInput<'_>) -> bool {
+        let Some(end) = self.end.take_if(|end| {
+            input.folded.is_empty()
+                && end.rows <= input.rows.len()
+                && end.combine_upstream == input.combine_upstream
+                && end.separators_at == input.separators_at
+        }) else {
+            return false;
+        };
+        let first = end.rows;
+        let inputs: Vec<GraphInput<'_>> = input
+            .rows
+            .get(first..)
+            .unwrap_or_default()
+            .iter()
+            .map(Row::graph_input)
+            .collect();
+        let (cells, lanes) = lanes_after(&end.lanes, &inputs);
+        self.labels = labels_of(input);
+        let named: Vec<bool> = inputs
+            .iter()
+            .map(|row| row.id.is_some_and(|id| self.labels.contains_key(id)))
+            .collect();
+        let (tips, bottom) = lane_tips_after(end.tips, (&cells, &named), first);
+        if let Some(now) = input.separators_at {
+            self.separators
+                .extend(separators_after(input.rows, first, &self.separators, now));
+        }
+        self.lane_count = cells
+            .iter()
+            .map(GraphCell::lane_count)
+            .fold(self.lane_count, usize::max);
+        for (index, row) in (first..).zip(&inputs) {
+            if let Some(id) = row.id {
+                let _ = self.shown_of.insert(id.clone(), index);
+            }
+            self.folded.rows.push(ShownRow::Row { index, parents: None });
+            self.read_of.push(index);
+        }
+        self.cells.extend(cells);
+        self.tips.extend(tips);
+        self.rework_whole(input);
+        self.end = Some(LayoutEnd {
+            rows: input.rows.len(),
+            lanes,
+            tips: bottom,
+            ..end
+        });
+        true
+    }
+
+    /// Works out again what depends on every row, after rows were added: the row of the commit checked out, the color
+    /// of each branch, the commits not pushed and the merges that can be folded.
+    fn rework_whole(&mut self, input: &LayoutInput<'_>) {
+        self.checked_out = input
+            .repository
+            .head
+            .commit
+            .as_ref()
+            .and_then(|commit| self.shown_of.get(commit).copied());
+        (self.branch_colors, self.remote_colors) = reference_colors(input.repository, &self.cells, &self.shown_of);
+        self.unpushed = unpushed(
+            input.rows,
+            &input.repository.branches,
+            &input.repository.remote_branches,
+        );
+        self.foldable = foldable_merges(input.rows);
     }
 
     /// How many rows are shown.
@@ -172,6 +265,39 @@ impl TimelineLayout {
         let traced: Vec<Row> = self.folded.graph_inputs(rows).iter().map(trace_row).collect();
         Some(trace_history(&traced, &self.cells, wanted))
     }
+}
+
+/// The labels of the commits, from the references of the repository.
+fn labels_of(input: &LayoutInput<'_>) -> HashMap<CommitId, Vec<Label>> {
+    labels(
+        input.repository,
+        &GraphSettings {
+            combine_upstream: input.combine_upstream,
+        },
+    )
+}
+
+/// The lines between days and months among rows added under others, none folded: the period furthest back above them
+/// is the one of the row of the last line, or else of the first row with a date.
+fn separators_after(
+    rows: &[Row],
+    first: usize,
+    separators: &BTreeMap<usize, String>,
+    now: DateTime,
+) -> BTreeMap<usize, String> {
+    let date = |row: &Row| row.commit().map(|commit| commit.author_date.0);
+    let furthest = separators
+        .keys()
+        .next_back()
+        .and_then(|index| rows.get(*index))
+        .and_then(date)
+        .or_else(|| rows.get(..first)?.iter().find_map(date));
+    let mut dates = vec![furthest];
+    dates.extend(rows.get(first..).unwrap_or_default().iter().map(date));
+    date_separators(&dates, now)
+        .into_iter()
+        .map(|(index, name)| ((first + index).saturating_sub(1), name))
+        .collect()
 }
 
 /// The date of each row shown: a commit's or a stash's, none for the draft and a folded row.

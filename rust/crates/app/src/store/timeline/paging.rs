@@ -10,7 +10,7 @@ use views::graph::TimelineSwitch;
 
 use super::super::message::{Effect, Job, JobId, JobKind, Known, MorePages, TimelineRequest};
 use super::super::state::State;
-use super::{Stream, commits_request, folds, put_page, relayout};
+use super::{Change, Stream, commits_request, folds, put_page, relayout, relayout_added};
 
 /// How the timeline of the repository shown is read now: the whole history as git prints it, a page at a time.
 #[must_use]
@@ -87,7 +87,7 @@ pub fn commits_read(state: &mut State, job: JobId, result: Result<MorePages, Str
         return Vec::new();
     }
     state.timeline.more_job = None;
-    let follows = match result {
+    let (follows, change) = match result {
         Ok(MorePages::Appended {
             rows,
             has_more,
@@ -95,7 +95,7 @@ pub fn commits_read(state: &mut State, job: JobId, result: Result<MorePages, Str
         }) => {
             state.timeline.rows.extend(rows);
             state.timeline.has_more = has_more;
-            follows
+            (follows, Change::Added)
         }
         Ok(MorePages::Replaced(page)) => {
             let draft: Vec<Row> = state
@@ -107,7 +107,7 @@ pub fn commits_read(state: &mut State, job: JobId, result: Result<MorePages, Str
                 .collect();
             state.timeline.rows = draft.into_iter().chain(page.rows).collect();
             state.timeline.has_more = page.has_more;
-            page.follows
+            (page.follows, Change::Other)
         }
         Err(error) => {
             state.last_error = Some(error);
@@ -116,7 +116,7 @@ pub fn commits_read(state: &mut State, job: JobId, result: Result<MorePages, Str
     };
     let read_rows = state.timeline.read_rows().len();
     state.timeline.stream = follows.then(|| Stream::under(job, read_rows));
-    pages_taken(state, true)
+    pages_taken(state, change)
 }
 
 /// Takes a page of a read after its first, as git printed it: it goes under the pages before it, the rows listed
@@ -136,16 +136,21 @@ pub fn pages_read(state: &mut State, job: JobId, result: Result<CommitPage, Stri
     let Some(repository) = state.shown_read().map(|read| Arc::clone(&read.state)) else {
         return Vec::new();
     };
-    let is_changed = put_page(state, &mut stream, page, &repository);
-    pages_taken(state, is_changed)
+    let change = put_page(state, &mut stream, page, &repository);
+    pages_taken(state, change)
 }
 
-/// After a page is taken: the merges it brings folded as all are, the timeline laid out again when its rows changed, a
-/// commit being gone to selected once it is there, and the folds of merges gone forgotten once the whole history is.
-fn pages_taken(state: &mut State, is_changed: bool) -> Vec<Effect> {
-    if is_changed {
+/// After a page is taken: the merges it brings folded as all are, the timeline laid out again when its rows changed (the
+/// rows added under the others alone), a commit being gone to selected once it is there, and the folds of merges gone
+/// forgotten once the whole history is.
+fn pages_taken(state: &mut State, change: Change) -> Vec<Effect> {
+    if change != Change::Nothing {
         folds::fold_new_merges(state);
-        relayout(state);
+    }
+    match change {
+        Change::Nothing => {}
+        Change::Added => relayout_added(state),
+        Change::Other => relayout(state),
     }
     let mut effects = super::super::search::settle(state);
     let timeline = &state.timeline;

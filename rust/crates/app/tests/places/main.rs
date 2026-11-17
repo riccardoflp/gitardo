@@ -43,6 +43,7 @@ mod inspector;
 mod inspector_files;
 mod islands;
 mod jobs;
+mod lanes;
 mod large_diffs;
 mod load_more;
 mod log_secrets;

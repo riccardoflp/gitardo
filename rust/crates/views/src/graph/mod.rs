@@ -39,7 +39,7 @@ pub use fold::{FoldAllEntry, FoldAllState, FoldsState, MergeEntry, fold_all_view
 pub use hover::{HoverState, LINGER, REST, hover_history_view, hover_intent};
 pub use intent::{GraphIntent, HoverTarget, HoverWay, Pane, Selected, Switches, TimelineSwitch};
 pub use keyboard::{key_intent, keyboard_view};
-pub use layout::{LayoutInput, TimelineLayout};
+pub use layout::{LayoutEnd, LayoutInput, TimelineLayout};
 pub use load_more::{AHEAD, LoadMoreState, load_more_view, wants_more};
 pub use marks::{ScrollMarks, mark_positions, scroll_marks_view};
 #[cfg(test)]

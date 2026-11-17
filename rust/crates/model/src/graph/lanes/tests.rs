@@ -1,6 +1,6 @@
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 
-use super::{CellLine, GraphCell, Half, lanes};
+use super::{CellLine, GraphCell, Half, LaneState, lanes, lanes_after};
 use crate::graph::row::{GraphInput, Row};
 use crate::graph::testing::{commit_at, rows};
 
@@ -154,4 +154,18 @@ fn graph_lanes__a_second_parent_already_waited_for_joins_its_lane() {
         cells[1],
         cell(1, 1, &[up(0, 0, 0), down(0, 0, 0), down(1, 1, 1), down(1, 0, 0)])
     );
+}
+
+#[test]
+fn graph_lanes__the_rows_cut_anywhere_and_laid_out_from_the_lanes_above_give_the_cells_of_all_of_them() {
+    let rows = rows(&["W: C", "F2: F1", "F1: M1", "M2: M1 X", "X: M1", "M1: A", "B: A", "A:"]);
+    let inputs: Vec<GraphInput<'_>> = rows.iter().map(Row::graph_input).collect();
+    let all = lanes(&inputs);
+    for cut in 0..=inputs.len() {
+        let (above, under) = inputs.split_at(cut);
+        let (mut cells, state) = lanes_after(&LaneState::default(), above);
+        let (rest, _) = lanes_after(&state, under);
+        cells.extend(rest);
+        assert_eq!(cells, all, "cut after {cut} rows");
+    }
 }

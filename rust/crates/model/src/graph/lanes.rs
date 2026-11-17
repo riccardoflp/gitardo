@@ -66,11 +66,51 @@ impl GraphCell {
 /// Feature: graph.lanes
 #[must_use]
 pub fn lanes(rows: &[GraphInput<'_>]) -> Vec<GraphCell> {
+    lanes_after(&LaneState::default(), rows).0
+}
+
+/// Lays out rows under others, from the lanes as they stood under the last of them, as [`lanes`] would lay them out
+/// with the rows above: a page of the timeline added under those laid out already. Gives the cells of the rows, and the
+/// lanes as they stand under the last of them.
+#[must_use]
+pub fn lanes_after<'rows>(start: &'rows LaneState, rows: &[GraphInput<'rows>]) -> (Vec<GraphCell>, LaneState) {
     let mut layout = Layout {
-        numbers: HashMap::with_capacity(rows.len() + rows.len() / 4),
-        ..Layout::default()
+        numbers: HashMap::with_capacity(rows.len() + rows.len() / 4 + start.lanes.len()),
+        ids: Vec::with_capacity(rows.len() + rows.len() / 4 + start.lanes.len()),
+        lanes: Vec::with_capacity(start.lanes.len()),
+        next_color: start.next_color,
     };
-    rows.iter().map(|row| layout.cell(row)).collect()
+    for lane in &start.lanes {
+        let waiting = lane.as_ref().map(|lane| Waiting {
+            commit: layout.number(&lane.commit),
+            color: lane.color,
+            is_dashed: lane.is_dashed,
+        });
+        layout.lanes.push(waiting);
+    }
+    let cells = rows.iter().map(|row| layout.cell(row)).collect();
+    (cells, layout.state())
+}
+
+/// The lanes as they stand under a row: which wait, for which commit, in which color and whether dashed, and the color
+/// the next new lane gets. [`lanes_after`] goes on from it.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct LaneState {
+    /// Each lane, from the left: free, or waiting for a commit further down.
+    pub lanes: Vec<Option<WaitingLane>>,
+    /// The color the next new lane gets.
+    pub next_color: usize,
+}
+
+/// A lane that waits for a commit further down, as the state under a row keeps it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WaitingLane {
+    /// The commit it waits for.
+    pub commit: CommitId,
+    /// Its color, which it keeps while it waits.
+    pub color: usize,
+    /// Whether its line is dashed.
+    pub is_dashed: bool,
 }
 
 /// A lane that waits for a commit further down.
@@ -91,6 +131,8 @@ struct Layout<'rows> {
     lanes: Vec<Option<Waiting>>,
     /// The number of each commit seen, as a row or as a parent, so that lanes compare numbers and not hashes.
     numbers: HashMap<&'rows CommitId, usize>,
+    /// The commit of each number.
+    ids: Vec<&'rows CommitId>,
     /// The color the next new lane gets.
     next_color: usize,
 }
@@ -207,7 +249,31 @@ impl<'rows> Layout<'rows> {
     /// The number of a commit, given the first time it is seen.
     fn number(&mut self, id: &'rows CommitId) -> usize {
         let next = self.numbers.len();
-        *self.numbers.entry(id).or_insert(next)
+        let number = *self.numbers.entry(id).or_insert(next);
+        if number == next {
+            self.ids.push(id);
+        }
+        number
+    }
+
+    /// The lanes as they stand now, with the commits they wait for by their hashes.
+    fn state(&self) -> LaneState {
+        let lanes = self
+            .lanes
+            .iter()
+            .map(|lane| {
+                let waiting = (*lane)?;
+                Some(WaitingLane {
+                    commit: (*self.ids.get(waiting.commit)?).clone(),
+                    color: waiting.color,
+                    is_dashed: waiting.is_dashed,
+                })
+            })
+            .collect();
+        LaneState {
+            lanes,
+            next_color: self.next_color,
+        }
     }
 }
 

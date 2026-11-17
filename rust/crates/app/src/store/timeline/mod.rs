@@ -154,7 +154,7 @@ pub fn take_read(
     state.timeline.is_reading_again = false;
     state.timeline.read_at = read_at;
     let mut stream = Stream::from_top(job);
-    let is_changed = put_page(state, &mut stream, page, repository);
+    let is_changed = put_page(state, &mut stream, page, repository) != Change::Nothing;
     if is_changed {
         state.timeline.asked_at = None;
     }
@@ -163,9 +163,20 @@ pub fn take_read(
     is_changed
 }
 
+/// How a page changed the rows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Change {
+    /// They are as they were.
+    Nothing,
+    /// Rows were added under them, and nothing else changed.
+    Added,
+    /// Any other change.
+    Other,
+}
+
 /// Puts a page of a read where it goes among the rows, the draft on top worked out again from them, and keeps the read
-/// while more pages follow. Says whether the rows changed.
-fn put_page(state: &mut State, stream: &mut Stream, page: CommitPage, repository: &RepositoryState) -> bool {
+/// while more pages follow. Says how the rows changed.
+fn put_page(state: &mut State, stream: &mut Stream, page: CommitPage, repository: &RepositoryState) -> Change {
     let is_narrowed = super::search::is_narrowed(state);
     let shown = state.timeline.shown.clone();
     let timeline = &mut state.timeline;
@@ -179,9 +190,12 @@ fn put_page(state: &mut State, stream: &mut Stream, page: CommitPage, repository
         has_more,
         follows,
     } = page;
+    let is_under = stream.at == timeline.rows.len();
     let mut is_changed = stream.take(&mut timeline.rows, rows);
-    if !follows {
-        is_changed |= stream.finish(&mut timeline.rows, has_more);
+    let mut is_added = is_changed && is_under;
+    if !follows && stream.finish(&mut timeline.rows, has_more) {
+        is_changed = true;
+        is_added = false;
     }
     timeline.has_more = has_more;
     timeline.stream = follows.then(|| stream.clone());
@@ -191,7 +205,7 @@ fn put_page(state: &mut State, stream: &mut Stream, page: CommitPage, repository
         parent: repository.head.commit.clone(),
         files: changes.files,
     });
-    is_changed |= draft_row != draft_before;
+    let is_draft_changed = draft_row != draft_before;
     if let Some(row) = draft_row {
         timeline.rows.insert(0, row);
     }
@@ -199,7 +213,11 @@ fn put_page(state: &mut State, stream: &mut Stream, page: CommitPage, repository
     if timeline.selected == Some(Selected::Draft) && timeline.draft.is_none() {
         timeline.selected = None;
     }
-    is_changed
+    match (is_changed, is_added && !is_draft_changed) {
+        (_, true) => Change::Added,
+        (false, false) if !is_draft_changed => Change::Nothing,
+        _ => Change::Other,
+    }
 }
 
 /// Lays the timeline out again from its rows, its folds and the repository as last read, then its history and the
@@ -226,6 +244,33 @@ pub fn relayout(state: &mut State) {
     };
     let layout = TimelineLayout::new(&input);
     state.timeline.layout = Arc::new(layout);
+    retrace(state);
+    super::search::after_layout(state);
+}
+
+/// Lays out the rows of a page added under the others alone, from where the layout stopped, with no merge folded and
+/// no search shown as a list (`graph.lanes`); the whole timeline again otherwise.
+fn relayout_added(state: &mut State) {
+    let Some(repository) = state.shown_read().map(|read| Arc::clone(&read.state)) else {
+        return;
+    };
+    let switches = state.settings.switches;
+    let is_list = state.search.list.is_some();
+    let timeline = &mut state.timeline;
+    let input = LayoutInput {
+        rows: &timeline.rows,
+        repository: &repository,
+        folded: &timeline.folded,
+        combine_upstream: switches.is_on(TimelineSwitch::CombineUpstream),
+        separators_at: switches.is_on(TimelineSwitch::DateSeparators).then_some(DateTime {
+            moment: model::Timestamp(timeline.read_at),
+            utc_offset: 0,
+        }),
+    };
+    if is_list || !Arc::make_mut(&mut timeline.layout).extend(&input) {
+        relayout(state);
+        return;
+    }
     retrace(state);
     super::search::after_layout(state);
 }

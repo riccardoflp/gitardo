@@ -11,9 +11,21 @@ use crate::graph::lanes::{GraphCell, Half};
 /// Feature: graph.lane-tips
 #[must_use]
 pub fn lane_tips(cells: &[GraphCell], named: &[bool]) -> Vec<Vec<Option<usize>>> {
-    let mut bottom: Vec<Option<usize>> = Vec::new();
+    lane_tips_after(Vec::new(), (cells, named), 0).0
+}
+
+/// The tips of the lines of rows laid out under others, as [`lane_tips`] gives them with the rows above: `bottom` is
+/// the tip of each lane at the bottom edge of the row above them, and `first` the number of their first row. Gives
+/// their tips, and the tip of each lane at the bottom edge of the last of them.
+#[must_use]
+pub fn lane_tips_after(
+    mut bottom: Vec<Option<usize>>,
+    (cells, named): (&[GraphCell], &[bool]),
+    first: usize,
+) -> (Vec<Vec<Option<usize>>>, Vec<Option<usize>>) {
     let mut tips = Vec::with_capacity(cells.len());
-    for (row, cell) in cells.iter().enumerate() {
+    for (index, cell) in cells.iter().enumerate() {
+        let row = first + index;
         let top = std::mem::take(&mut bottom);
         let tip_at_top = |lane: usize| top.get(lane).copied().flatten();
         let mut coming: Vec<Option<usize>> = Vec::new();
@@ -22,7 +34,7 @@ pub fn lane_tips(cells: &[GraphCell], named: &[bool]) -> Vec<Vec<Option<usize>>>
             set(&mut coming, line.from, tip_at_top(line.from));
             has_line_in = has_line_in || line.to == cell.lane;
         }
-        let is_named = named.get(row).copied().unwrap_or(false);
+        let is_named = named.get(index).copied().unwrap_or(false);
         let passed = if is_named || !has_line_in {
             Some(row)
         } else {
@@ -46,7 +58,7 @@ pub fn lane_tips(cells: &[GraphCell], named: &[bool]) -> Vec<Vec<Option<usize>>>
         }
         tips.push(coming);
     }
-    tips
+    (tips, bottom)
 }
 
 /// Sets the tip of a lane, adding lanes up to it.

@@ -41,6 +41,11 @@ const NARROW_AT_MOST: Duration = Duration::from_millis(500);
 
 /// The stream of the history, the oldest commit first.
 fn history() -> String {
+    history_of(ROUNDS)
+}
+
+/// The stream of a history of some rounds of ten commits, the oldest commit first, with the branches and the tags.
+pub(super) fn history_of(rounds: u64) -> String {
     let mut stream = String::new();
     let mut mark = 0;
     let mut commit = |stream: &mut String, branch: &str, (from, merge): (Option<u64>, Option<u64>), message: &str| {
@@ -60,7 +65,7 @@ fn history() -> String {
         mark
     };
     let mut topic_tips = Vec::new();
-    for round in 0..ROUNDS {
+    for round in 0..rounds {
         let mut base = 0;
         for step in 0..6 {
             base = commit(&mut stream, "main", (None, None), &format!("Change {round}.{step}"));
@@ -74,7 +79,7 @@ fn history() -> String {
     }
     let spread = |count: u64, index: u64| {
         *topic_tips
-            .get(usize::try_from(index * ROUNDS / count).unwrap())
+            .get(usize::try_from(index * rounds / count).unwrap())
             .unwrap()
     };
     for number in 0..BRANCHES {
@@ -218,7 +223,7 @@ fn next_pages(folder: &std::path::Path) -> Vec<Duration> {
 }
 
 /// The first page of the timeline, as a window reads it with the default settings.
-fn first_page() -> app::store::TimelineRequest {
+pub(super) fn first_page() -> app::store::TimelineRequest {
     app::store::TimelineRequest {
         page_size: PageSize::DEFAULT,
         pages: 1,
