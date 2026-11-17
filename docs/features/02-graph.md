@@ -188,6 +188,86 @@ Acceptance:
       `api`.
 - [ ] With `main` two ahead of its upstream, the name of the branch in the header has no `↑2`; **Sync** has it.
 
+### `window.brand` — The logo and the name of Gitardo
+
+The logo of Gitardo at the top left of the window, and its name at the start of the header bar ([D58](../08-decisions.md#d58--the-window-draws-its-own-title-bar-with-the-logo-and-the-name-of-gitardo)).
+
+- **Kind**: View
+- **Function**: `views::window::brand_view(state: &BrandState, ui) -> Vec<Intent>`
+- **Entry points**: always shown, above the bar of views and at the start of the header bar.
+
+The logo is the one of `extension/media/gitardo.svg`, drawn as an icon of the window at the size of the icons of the
+bar of views, in the colors of each theme; it is in the square above the bar of views, at the left of the header bar.
+The name **Gitardo** comes first in the header bar, before what `graph.where` says, in the weight of a title. In a
+window too narrow for the header bar, the name goes and the logo stays. Neither does anything when clicked: the logo is
+part of the caption of `window.title-bar`, and the name too.
+
+Acceptance:
+
+- [ ] The logo is drawn in the square above the bar of views, in each theme.
+- [ ] The header bar says `Gitardo` before `api › login › feature/login`.
+- [ ] In a window 700 logical pixels wide the name is not drawn and the logo is.
+- [ ] A double click on the logo or on the name does what a double click on the caption does.
+
+### `window.title-bar` — The header bar as the title bar of the window
+
+The window has no title bar of the system: the free parts of the header bar move it, maximize and restore it, and open
+the system's menu of the window, and its edges resize it ([D58](../08-decisions.md#d58--the-window-draws-its-own-title-bar-with-the-logo-and-the-name-of-gitardo)).
+
+- **Kind**: Derivation
+- **Function**: `views::window::hit(place: Point, size: Size, frame: &FrameState) -> Hit`
+- **Entry points**: the pointer on the header bar or on the edges of the window; `Alt+Space`.
+
+`hit` says what a place of the window is, as the system asks it: **Caption** for the parts of the header bar that are
+not a button, a field or a link (the logo and the name included), **Minimize**, **Maximize** and **Close** for the
+three buttons of `window.caption-buttons`, an **Edge** or a **Corner** for a band of 6 logical pixels along the edges
+of the window while it is not maximized, and **Client** for the rest. On Windows `platform` answers `WM_NCHITTEST`
+with it and keeps the frame of the window for the system, so that the shadow, the rounded corners, Snap Layouts and
+Aero Snap stay; on macOS and Linux the window asks the system to move or resize it when the pointer is pressed on a
+caption or an edge. Dragging the caption moves the window; dragged to the top of the screen it is maximized, and
+dragged away from it, restored. A double click maximizes or restores it. A right click on the caption, or
+`Alt+Space`, opens the system's menu of the window. The header bar dims while the window has not the focus, as the
+system's title bar does. The title of the window is set as before, though not drawn, since the taskbar, `Alt+Tab` and
+the screen reader say it. A menu or a dialog of Gitardo open when the window starts to move or to be resized closes.
+The size, the place and whether the window is maximized are kept for the next start, as before.
+
+Acceptance:
+
+- [ ] The window opens with no title bar of the system.
+- [ ] `hit` says Caption for a free place of the header bar, the logo and the name; Client for **Search**, **Sync**
+      and the repository in the header.
+- [ ] `hit` says Edge for a place 3 pixels from the left edge, Corner for one 3 pixels from the bottom right corner,
+      and Client for both while the window is maximized.
+- [ ] A double click on the caption maximizes the window, and another restores it.
+- [ ] `Alt+Space` opens the system's menu of the window.
+- [ ] The header bar is dimmed while another window has the focus, and is not once the window has it again.
+- [ ] A menu of Gitardo open when the window starts to move is closed.
+- [ ] The window maximized when it was closed opens maximized.
+
+### `window.caption-buttons` — Minimize, maximize and close
+
+**Minimize**, **Maximize** or **Restore**, and **Close**, at the right end of the header bar on Windows and Linux,
+drawn by Gitardo ([D58](../08-decisions.md#d58--the-window-draws-its-own-title-bar-with-the-logo-and-the-name-of-gitardo)).
+
+- **Kind**: View
+- **Function**: `views::window::caption_buttons_view(state: &CaptionState, ui) -> Vec<Intent>`
+- **Entry points**: the three buttons at the right end of the header bar, after **…**.
+
+Three buttons as wide and as high as Windows draws its own, filling the height of the header bar, with the outlines
+Windows uses; **Close** goes red under the pointer, the other two lighter. **Maximize** becomes **Restore** while the
+window is maximized, and on Windows 11 the pointer resting on it shows Snap Layouts, since `hit` says Maximize there.
+Maximized, the buttons reach the top edge and the right edge of the screen. Each is named for the screen reader, and
+has its name in its tooltip. On macOS the system's three buttons are kept at the top left, the logo after them, and
+these are not drawn.
+
+Acceptance:
+
+- [ ] On Windows the header bar ends with **Minimize**, **Maximize** and **Close**, in that order, after **…**.
+- [ ] **Minimize** minimizes the window; **Maximize** maximizes it and becomes **Restore**, which restores it.
+- [ ] **Close** closes the window as the close request of the system did, asking first when an operation runs.
+- [ ] The pointer on **Close** draws it red.
+- [ ] The screen reader names the three buttons `Minimize`, `Maximize` and `Close`, and `Restore` while maximized.
+
 ### `graph.search-button` — The button of Quick search
 
 **Search** in the header opens Quick search, as `Ctrl+K` does.

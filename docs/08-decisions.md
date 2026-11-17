@@ -1009,6 +1009,36 @@ Five changes to the window of Gitardo Desktop
 In the extension nothing changes: VS Code has its own Source Control repositories, its editors beside the Changes view
 and its own way back.
 
+## D58 — The window draws its own title bar, with the logo and the name of Gitardo
+
+*Asked by the maintainer for the milestone after M16; the details proposed by the agent.*
+
+The title bar of the system takes a row of the height of the window for a title that the header bar under it says
+better, and the window has no mark of the program it is. So, for milestone M17
+([the roadmap](desktop/07-roadmap.md#m17--the-window-draws-its-own-title-bar)):
+
+- **The logo and the name.** The logo of Gitardo, the one the extension has (`extension/media/gitardo.svg`), at the top
+  left of the window above the bar of views, and the name **Gitardo** at the start of the header bar, before the
+  repository, the worktree and the branch (`window.brand`).
+- **The header bar is the title bar.** The window has no title bar of the system. The parts of the header bar that are
+  not a button or a field are its caption, which moves the window, maximizes and restores it with a double click, and
+  opens the system's menu of the window with a right click or `Alt+Space`; **Minimize**, **Maximize** or **Restore**
+  and **Close** are at its right end on Windows and Linux; the edges and corners of the window resize it
+  (`window.title-bar`, `window.caption-buttons`).
+- **What the system does for its windows is kept.** On Windows that is the shadow, the rounded corners, Snap Layouts
+  on the maximize button, Aero Snap, the keys of the window and the dimmed bar of a window without the focus. A window
+  opened without decorations loses most of it, so on Windows the window keeps its frame for the system and draws over
+  its title bar: `platform` answers what Windows asks of the frame and of where the pointer is (`WM_NCCALCSIZE`,
+  `WM_NCHITTEST`), which is `unsafe` and stays in `platform` (rule R5.1). Where the header bar is caption, button or
+  edge is one pure function the tests reach. On macOS the system's title bar becomes transparent and keeps its three
+  buttons; on Linux the compositor is asked to move, resize and show the menu.
+
+Rejected: a thin title bar of the system kept above the header bar (the row the maintainer wants back); a window with
+no decorations at all on Windows (no Snap Layouts, no shadow, no rounded corners); the buttons of the window drawn on
+the left on Windows (not where Windows puts them).
+
+In the extension nothing changes: VS Code draws its own title bar, and the extension already has its logo.
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374

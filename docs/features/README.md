@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 450 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 453 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -18,7 +18,7 @@ earns it.
 | File | Area | Cards |
 | --- | --- | --- |
 | [01-repositories.md](01-repositories.md) | Repositories | 30 |
-| [02-graph.md](02-graph.md) | Graph | 51 |
+| [02-graph.md](02-graph.md) | Graph | 54 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 22 |
@@ -80,6 +80,9 @@ earns it.
 | [`graph.view`](02-graph.md#graphview--the-timeline) | The timeline | View | Built | Built |
 | [`graph.toolbar`](02-graph.md#graphtoolbar--the-header) | The header | View | Built | Built |
 | [`graph.where`](02-graph.md#graphwhere--where-one-is-in-the-header) | Where one is, in the header | View | Built | Host only |
+| [`window.brand`](02-graph.md#windowbrand--the-logo-and-the-name-of-gitardo) | The logo and the name of Gitardo | View | Specified | Host only |
+| [`window.title-bar`](02-graph.md#windowtitle-bar--the-header-bar-as-the-title-bar-of-the-window) | The header bar as the title bar of the window | Derivation | Specified | Host only |
+| [`window.caption-buttons`](02-graph.md#windowcaption-buttons--minimize-maximize-and-close) | Minimize, maximize and close | View | Specified | Host only |
 | [`graph.search-button`](02-graph.md#graphsearch-button--the-button-of-quick-search) | The button of Quick search | View | Built | Host only |
 | [`graph.islands`](02-graph.md#graphislands--the-islands-of-the-window) | The islands of the window | View | Built | Built |
 | [`graph.view-bar`](02-graph.md#graphview-bar--the-bar-of-views) | The bar of views | View | Built | Host only |

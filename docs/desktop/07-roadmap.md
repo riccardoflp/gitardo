@@ -334,6 +334,43 @@ and a Diff page; a file of the Changes page opened in its Diff page leaves the l
 opened from the Diff page of a file of a commit says `Timeline › <commit> › <file>` and its commit goes back to the
 Diff page.
 
+## M17 — The window draws its own title bar
+
+The logo and the name of Gitardo at the top left of the window, and no title bar of the system: the header bar is the
+title bar, which moves, maximizes and closes the window as the system's did, with everything the system does for its
+own ([D58](../08-decisions.md#d58--the-window-draws-its-own-title-bar-with-the-logo-and-the-name-of-gitardo)). Built in
+four phases, each one commit or more, each ending with its cards built and their tests passing. The extension has
+VS Code's title bar, and nothing changes there.
+
+1. **The logo and the name.** At the top left of the window, above the bar of views, the logo of Gitardo, the one of
+   `extension/media/gitardo.svg` drawn as an icon of the window, in each theme; then, at the start of the header bar,
+   the name **Gitardo**, before `repository › worktree › branch`. In the narrow layout the name goes and the logo stays.
+   Cards: `window.brand`, `graph.where`.
+2. **No title bar of the system, on Windows.** The window opens without the system's title bar, keeping what Windows
+   gives its windows: the shadow, the rounded corners, Snap Layouts on the maximize button, Aero Snap and its keys. The
+   free parts of the header bar are the caption: dragged they move the window, a double click maximizes or restores it,
+   a right click or `Alt+Space` opens the system's menu of the window. **Minimize**, **Maximize** or **Restore** and
+   **Close** are at the right end of the header bar, drawn by Gitardo as Windows draws them, **Close** red under the
+   pointer, named for the screen reader. The edges and the corners resize the window, with their cursors; maximized,
+   nothing resizes and the buttons reach the top edge of the screen. Cards: `window.title-bar`,
+   `window.caption-buttons`.
+3. **Every event of the window.** The header bar dims when the window loses the focus, as the system's title bar does;
+   the title of the window, which the taskbar, `Alt+Tab` and the screen reader say, is set as before though it is not
+   drawn; a menu or a dialog of Gitardo open while the window is moved or resized closes; a change of screen or of
+   scale while dragging lays out the bar again; the size, the place and whether it is maximized are kept for the next
+   start, as before. Cards: `window.title-bar`, `window.caption-buttons`.
+4. **macOS and Linux.** On macOS the title bar of the system is transparent, the window's content under it, its three
+   buttons kept at the top left with the logo after them; on Linux, no decorations, the bar moves, resizes and opens the
+   menu of the window through the compositor, and the three buttons are drawn as on Windows. Cards:
+   `window.title-bar`, `window.caption-buttons`.
+
+Exit: the window opens with no title bar of the system, the logo at its top left and **Gitardo** at the start of the
+header bar; dragging the free part of the header bar moves the window and dragging it to the top of the screen
+maximizes it; a double click maximizes and restores it; the pointer on **Maximize** on Windows 11 shows Snap Layouts;
+the edges and corners resize it, and nothing resizes it while it is maximized; `Alt+Space` opens the system's menu of
+the window; the bar dims when another window has the focus; the size and place are kept from one start to the next;
+every card of the phase passes its tests, and the snapshots of the header bar match in each theme, focused and not.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:
