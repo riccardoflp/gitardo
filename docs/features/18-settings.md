@@ -272,3 +272,7 @@ Acceptance:
 - [ ] A commit selected in the timeline, on its tall rows and on its compact rows, stands on the selection of the
       theme while its list has the focus, and on the selection of a list without the focus once the window loses it;
       the snapshots of each theme are those of the reference.
+- [ ] In the dark and in the light theme every color of the interface is a step of the ground, has the hue of the
+      accent, or is the color of a state: an error, a warning, information, success, a conflict, the red behind
+      **Close**. A file added, removed or changed wears the color of success, of an error or of a warning, and the
+      main button, the ring of the focus, a match of a search and the first lane wear the accent.

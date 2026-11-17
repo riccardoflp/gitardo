@@ -38,7 +38,7 @@ fn colors_and_least_contrast(name: ThemeName) -> (Colors, f64) {
 }
 
 /// What a color adds to the ground it is drawn on: red, green and blue, each from -255 to 255.
-fn tint(color: Color, ground: Color) -> [i16; 3] {
+pub(super) fn tint(color: Color, ground: Color) -> [i16; 3] {
     let channel = |color: u8, ground: u8| i16::from(color) - i16::from(ground);
     [
         channel(color.red, ground.red),
@@ -67,7 +67,7 @@ fn hue(tint: [i16; 3]) -> Option<f64> {
 }
 
 /// Whether a ground drawn on another has the hue the accent would give it, or none.
-fn has_the_hue_of_the_accent_or_none(color: Color, ground: Color, accent: Color) -> bool {
+pub(super) fn has_the_hue_of_the_accent_or_none(color: Color, ground: Color, accent: Color) -> bool {
     let Some(hue_of_color) = hue(tint(color, ground)) else {
         return true;
     };
