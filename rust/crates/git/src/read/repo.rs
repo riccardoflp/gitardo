@@ -14,7 +14,7 @@ mod reflog_subjects;
 mod remotes;
 mod repositories;
 mod stashes;
-mod status;
+pub(crate) mod status;
 
 use std::path::PathBuf;
 use std::thread::{self, ScopedJoinHandle};

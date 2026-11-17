@@ -2887,3 +2887,8 @@ each built with the reading given until the card says otherwise.
   the column over. Built: the button at the top of the timeline opens it over the timeline and closes it; Quick search
   puts it away or brings it back, which is seen once the window is wide again. **Repositories** starts at 160 logical
   pixels with its heading.
+- **Q505** — `repo.worktree-summary`: its function gave a `WorktreeSummary` alone, where git may fail to run. Built:
+  it gives `Result<WorktreeSummary, GitError>`, a folder gone is `Ok` and said `missing`, and an error leaves the last
+  summary, muted, as the card says. Whether a git folder changed is said by `app::work::summaries::git_folder_changed`,
+  from the times its `HEAD`, its index, `packed-refs`, `FETCH_HEAD` and its folders of refs were written; the store
+  forces a read when the files of the folder change.

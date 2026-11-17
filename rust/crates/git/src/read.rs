@@ -33,6 +33,7 @@ pub mod rewrite;
 pub mod search;
 pub mod stash;
 pub mod submodule;
+pub mod summary;
 pub mod sync;
 pub mod worktree;
 pub mod worktree_setup;

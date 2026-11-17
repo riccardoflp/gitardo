@@ -95,15 +95,21 @@ fn not_open(state: &State, repositories: &[RepositoryEntry]) -> Vec<RepositoryEn
         .collect()
 }
 
-/// What a row says it is on (`repo.worktree-summary`): the repository shown from its own read, a row not shown from
-/// what it read last; none before its first read.
-fn summary_of(state: &State, (is_shown, tab): (bool, &super::Tab)) -> Option<TabSummary> {
-    let shown = if is_shown {
+/// What a row or an entry of its **▾** says a folder is on (`repo.worktree-summary`): the folder shown from its own
+/// read; any other from its read in the background, or before that from what its tab read last; none before.
+fn summary_of(state: &State, (folder, tab): (&std::path::Path, &super::Tab)) -> Option<TabSummary> {
+    let is_shown = state.shown_folder().is_some_and(|shown| same_folder(shown, folder));
+    let read = if is_shown {
         state.workspace.as_ref().map(|workspace| &workspace.shown)
+    } else if let Some(summary) = state.tabs.summaries.of(folder) {
+        return Some(summary.clone());
     } else {
-        tab.kept.as_ref().and_then(|kept| kept.shown.as_ref())
+        tab.kept
+            .as_ref()
+            .filter(|kept| super::kept_folder(kept).is_some_and(|kept| same_folder(kept, folder)))
+            .and_then(|kept| kept.shown.as_ref())
     };
-    match shown? {
+    match read? {
         Shown::Read(read) => Some(TabSummary {
             summary: WorktreeSummary::of_state(&read.state),
             is_stale: false,
@@ -127,11 +133,14 @@ fn entries(state: &State, repositories: &[RepositoryEntry]) -> Vec<TabEntry> {
                 .iter()
                 .find(|entry| same_folder(&entry.folder, &tab.folder))
                 .map_or_else(|| tab.folder.display().to_string(), |entry| entry.name.clone());
-            let shows = TabShows::new(state, (index, tab), &groups, &own);
+            let mut shows = TabShows::new(state, (index, tab), &groups, &own);
+            for member in &mut shows.members {
+                member.summary = summary_of(state, (&member.folder, tab));
+            }
             let is_shown = state.tabs.shown == Some(index);
             TabEntry {
                 name: tab_name(&own, shows.shown_label.as_deref()),
-                summary: summary_of(state, (is_shown, tab)),
+                summary: summary_of(state, (&shows.folder, tab)),
                 repository: own,
                 place: shows.place,
                 folder: shows.folder.display().to_string(),

@@ -8,10 +8,13 @@ use git::read::graph::{CommitPage, CommitsRequest};
 use model::CommitId;
 use model::commit_page::PatchLines;
 use model::details::CommitDetail;
-use model::graph::Row;
 use model::repo::{Change, Repository};
 use model::state::RepositoryState;
 use views::Intent;
+
+mod pages;
+
+pub use pages::{Known, MorePages};
 
 use crate::persisted::Persisted;
 use crate::settings::{Settings, SettingsFiles};
@@ -182,6 +185,8 @@ pub enum Message {
         /// When.
         at: Duration,
     },
+    /// What the reads in the background of the folders not shown found (`repo.worktree-summary`).
+    SummariesRead(Vec<crate::work::summaries::SummaryRead>),
     /// The moment an [`Effect::WakeAt`] asked for came, or later.
     Wake {
         /// The moment, counted from when the window opened.
@@ -247,32 +252,6 @@ pub enum Found {
     AllGone,
     /// Git could not be run: what it said.
     Failed(String),
-}
-
-/// The next pages of the timeline, as a worker sends them.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum MorePages {
-    /// The commits known are read again as they were: only the rows after them are sent.
-    Appended {
-        /// The rows after those known.
-        rows: Vec<Row>,
-        /// Whether the history has more.
-        has_more: bool,
-    },
-    /// The history changed under the commits known: every row read.
-    Replaced(CommitPage),
-}
-
-/// The commits a window has of a timeline, as a worker checks them.
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
-pub struct Known {
-    /// How many rows were read, the stashes among them.
-    pub count: usize,
-    /// How many of them are commits.
-    pub commits: usize,
-    /// The last commit read: the read of the next pages starts from it again, to tell whether the history is the
-    /// same above it.
-    pub last: Option<model::CommitId>,
 }
 
 /// How the timeline of a repository is read: the engine's, which turns it into git's arguments.
@@ -455,6 +434,9 @@ pub enum Effect {
     /// Watches these working trees and their git folders, those of the tabs not shown, in place of the ones watched
     /// before; each sends [`Message::TabChanged`] (`repo.watch-hidden`).
     WatchTabs(Vec<PathBuf>),
+    /// Reads what these folders are on, on a thread of its own, which sends [`Message::SummariesRead`]
+    /// (`repo.worktree-summary`).
+    ReadSummaries(Vec<crate::work::summaries::SummaryAsk>),
     /// Sends [`Message::Wake`] at this moment, counted from when the window opened, in place of the wake asked for
     /// before (`repo.schedule-reads`).
     WakeAt(Duration),

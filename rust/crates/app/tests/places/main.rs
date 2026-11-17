@@ -73,6 +73,7 @@ mod side_column;
 mod speed;
 mod stashes;
 mod submodules;
+mod summaries;
 mod support;
 mod sync_stash;
 mod tab_operations;

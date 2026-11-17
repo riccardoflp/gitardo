@@ -12,6 +12,7 @@ mod members;
 mod menu;
 mod open;
 mod operation;
+mod summaries;
 mod view;
 
 use std::path::{Path, PathBuf};
@@ -24,6 +25,7 @@ pub use hidden::{Background, BackgroundRead, changed as tab_changed, follow as f
 pub use members::{Member, group_of, kept_folder, show_in_tab, show_member, tab_of};
 pub use open::{Choosing, choose_tabs, open_tab, repositories_found};
 pub use operation::{AfterOperation, before, operation_started, operation_tab, operation_title, refuse_operation};
+pub use summaries::{Summaries, SummaryEntry, read as summaries_read};
 pub use view::RepositoryView;
 use view::{Answered, put_view, take_view};
 
@@ -42,6 +44,8 @@ pub struct Tabs {
     pub closing: Option<Closing>,
     /// What the window does for the tabs not shown: their watchers, the read of one, the operation (`repo.watch-hidden`).
     pub background: Background,
+    /// What the folders not shown are on, read in the background (`repo.worktree-summary`).
+    pub summaries: Summaries,
 }
 
 /// A repository open in a tab.

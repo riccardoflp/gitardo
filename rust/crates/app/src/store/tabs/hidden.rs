@@ -85,6 +85,7 @@ fn watched_folder(tab: &super::Tab) -> PathBuf {
 /// Changes seen by the watcher of a tab not shown: they read nothing, and mark it out of date. Changes of the tab shown,
 /// seen before its watcher took over, are the tab shown's.
 pub fn changed(state: &mut State, folder: &Path, changes: &[Change], at: Duration) -> Vec<Effect> {
+    super::summaries::changed(state, folder, changes);
     let Some(index) = state
         .tabs
         .open
@@ -132,6 +133,7 @@ pub fn follow(state: &mut State) -> Vec<Effect> {
         || state.reads.schedule.is_reading()
         || state.shown_read().is_none();
     let mut effects = if is_busy { stop(state) } else { read_next(state) };
+    effects.extend(super::summaries::follow(state));
     effects.extend(watch(state));
     effects
 }
@@ -240,6 +242,18 @@ fn watch(state: &mut State) -> Option<Effect> {
     } else {
         Vec::new()
     };
+    let mut wanted = wanted;
+    // The other folders whose rows say what they are on are watched too, and a change in one reads it again.
+    let summaries = if state.settings.keep_open {
+        state.tabs.summaries.folders()
+    } else {
+        Vec::new()
+    };
+    for folder in summaries {
+        if !wanted.iter().any(|known| same_folder(known, &folder)) {
+            wanted.push(folder);
+        }
+    }
     if wanted == state.tabs.background.watched {
         return None;
     }

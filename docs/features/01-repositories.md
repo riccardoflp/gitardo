@@ -655,7 +655,7 @@ The branch checked out in a repository or a worktree, how many files are changed
 pull and to push, for the rows of **Repositories** and the entries of their **▾**.
 
 - **Kind**: Read
-- **Function**: `git::read::worktree_summary(folder: &Path) -> WorktreeSummary`
+- **Function**: `git::read::summary::worktree_summary(folder: &Path) -> Result<WorktreeSummary, GitError>` (Q505)
 - **Reads**: `git status --porcelain=v2 --branch --untracked-files=normal` in the folder: the branch or the detached
   commit from its `# branch.head` and `# branch.oid` lines, the commits ahead and behind from `# branch.ab`, the files
   changed from the count of its other lines.

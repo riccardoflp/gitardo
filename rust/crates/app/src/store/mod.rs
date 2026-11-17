@@ -156,6 +156,10 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::Changed { changes, at } => reads::changed(state, &changes, at),
         Message::TabChanged { folder, changes, at } => tabs::tab_changed(state, &folder, &changes, at),
         Message::Wake { at } => reads::wake(state, at),
+        Message::SummariesRead(reads) => {
+            tabs::summaries_read(state, reads);
+            Vec::new()
+        }
         Message::Minimized(is_minimized) => reads::minimized(state, is_minimized),
         Message::ReadTook { line, took, time } => {
             reads::read_took(state, (line, took, time));
