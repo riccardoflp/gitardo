@@ -81,3 +81,61 @@ pub(super) const EXTENSION_PACKAGE: &str = r#"{
     "test": "vitest run"
   }
 }"#;
+
+/// The files of a disk that is not there: what a feature asks to read is taken from them, and what its plan writes
+/// goes to them, so that a test follows a change from the click to the file and back.
+#[derive(Debug, Default)]
+pub(super) struct Disk(pub std::collections::BTreeMap<PathBuf, Vec<u8>>);
+
+/// A feature of the contract.
+pub(super) type Feature = fn(&model::contract::Context, &model::contract::Answers) -> model::contract::Outcome;
+
+impl Disk {
+    /// The disk with one more file.
+    pub(super) fn with(mut self, path: impl Into<PathBuf>, text: &str) -> Self {
+        let _before = self.0.insert(path.into(), text.as_bytes().to_vec());
+        self
+    }
+
+    /// The text of a file; none when it is not there.
+    pub(super) fn text(&self, path: impl Into<PathBuf>) -> Option<String> {
+        let bytes = self.0.get(&path.into())?;
+        Some(String::from_utf8_lossy(bytes).into_owned())
+    }
+
+    /// What a feature comes to once every file it asks for is read from here: a question, a refusal or a plan.
+    pub(super) fn asked(
+        &self,
+        feature: Feature,
+        context: &model::contract::Context,
+        mut answers: model::contract::Answers,
+    ) -> model::contract::Outcome {
+        use model::contract::{Answer, Outcome, Query};
+        for _read in 0..8 {
+            let answer = match feature(context, &answers) {
+                Outcome::Read(key, Query::FileTexts { paths }) => (
+                    key,
+                    Answer::Files(paths.iter().map(|path| self.0.get(path).cloned()).collect()),
+                ),
+                Outcome::Read(key, Query::FileContents { path }) => {
+                    (key, Answer::Contents(self.0.get(&path).cloned().unwrap_or_default()))
+                }
+                outcome => return outcome,
+            };
+            answers.insert(answer.0, answer.1);
+        }
+        panic!("the feature never stops reading");
+    }
+
+    /// Runs a plan that only writes files.
+    pub(super) fn run(&mut self, plan: &model::contract::Plan) {
+        for step in &plan.steps {
+            match step {
+                model::contract::Step::Write { path, contents } => {
+                    let _before = self.0.insert(path.clone(), contents.clone());
+                }
+                other => panic!("a step that is no write: {other:?}"),
+            }
+        }
+    }
+}

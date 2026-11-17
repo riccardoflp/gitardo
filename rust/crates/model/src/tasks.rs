@@ -2,12 +2,13 @@
 //! stands, what it printed as the drawer shows it, and what Gitardo says when one did not succeed.
 //!
 //! And the tasks of a repository (`docs/features/19-tasks.md`): those its worktree defines, the order they run in,
-//! and when one that runs in the background is ready.
+//! when one that runs in the background is ready, and the groups the user makes of them.
 
 use std::path::{Path, PathBuf};
 
 mod defined;
 mod files;
+mod groups;
 mod order;
 mod ready;
 mod run;
@@ -21,6 +22,10 @@ pub use defined::{
 pub use files::{
     LOCK_FILES, MODULES_FOLDER, PACKAGE_FILE, PackageFile, TASKS_FILE, TaskFiles, TaskSystem, TasksContext,
     package_manager,
+};
+pub use groups::{
+    GROUPS_FILE, GROUPS_FOLDER, GroupEntry, GroupsAction, GroupsEdit, GroupsRefusal, GroupsTarget, Shift, TaskGroup,
+    edited_groups, group_entries,
 };
 pub use order::{OrderRefusal, RunOrder, RunStep, run_order};
 pub use ready::{QUIET, Readiness};

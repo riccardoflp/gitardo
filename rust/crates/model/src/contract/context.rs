@@ -77,6 +77,9 @@ pub enum Target {
     /// A file of a list, the files of a commit, of a comparison or the uncommitted changes
     /// (`details.compare-file-with`).
     ListedFile(Box<crate::compare::ListedFile>),
+    /// What the Tasks tab asks of the groups of tasks, or the tasks of the worktree shown for an import
+    /// (`tasks.edit-groups`, `tasks.import-groups`).
+    TaskGroups(Box<crate::tasks::GroupsTarget>),
 }
 
 /// The settings the features read, with the defaults of `docs/features/18-settings.md`.

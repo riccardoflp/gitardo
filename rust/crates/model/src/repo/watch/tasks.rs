@@ -1,10 +1,10 @@
-//! Which changes ask for the tasks of the worktree shown to be read again (`tasks.read`), beside the read of the
-//! repository they may also ask for.
+//! Which changes ask for the tasks of the worktree shown, and for the groups of the repository, to be read again
+//! (`tasks.read`, `tasks.edit-groups`), beside the read of the repository they may also ask for.
 
 use std::path::Path;
 
-use super::{TreeChange, parts, same_name};
-use crate::tasks::{LOCK_FILES, MODULES_FOLDER, PACKAGE_FILE, TASKS_FILE};
+use super::{Change, TreeChange, parts, same_name};
+use crate::tasks::{GROUPS_FILE, GROUPS_FOLDER, LOCK_FILES, MODULES_FOLDER, PACKAGE_FILE, TASKS_FILE};
 
 /// What a change of a file of the working tree, by its path from the top, needs before it asks for the tasks to be
 /// read again: a read at once for `.vscode/tasks.json`, which is read even where git ignores it, and for the whole
@@ -42,12 +42,24 @@ pub fn sort_tasks_change(path: &Path, nested: &[String]) -> TreeChange {
     }
 }
 
+/// Whether a change asks for the groups of tasks to be read again: their file in the common git folder,
+/// `gitardo/task-groups.json`, which another window or another worktree of the repository wrote.
+#[must_use]
+pub fn changes_task_groups(change: &Change) -> bool {
+    let Change::GitFolder(path) = change else {
+        return false;
+    };
+    let parts = parts(path);
+    let names: Vec<&str> = parts.iter().map(String::as_str).collect();
+    matches!(names.as_slice(), [folder, file] if same_name(folder, GROUPS_FOLDER) && same_name(file, GROUPS_FILE))
+}
+
 #[cfg(test)]
 #[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 mod tests {
     use std::path::PathBuf;
 
-    use super::sort_tasks_change;
+    use super::{changes_task_groups, sort_tasks_change};
     use crate::repo::{Change, TreeChange, watch_changes};
 
     fn sort(path: &str) -> TreeChange {
@@ -102,5 +114,22 @@ mod tests {
         );
         assert_eq!(sort(".claude/worktrees/feature/package.json"), TreeChange::Nothing);
         assert_eq!(sort(".claude/worktrees/other/package.json"), TreeChange::AskGit);
+    }
+
+    #[test]
+    fn tasks_edit_groups__the_file_of_the_groups_changed_asks_for_the_groups_again() {
+        let git = |path: &str| Change::GitFolder(PathBuf::from(path));
+        assert!(changes_task_groups(&git("gitardo/task-groups.json")));
+        assert!(changes_task_groups(&git("gitardo\\task-groups.json")));
+        assert!(!changes_task_groups(&git("gitardo/task-groups.json.lock")));
+        assert!(!changes_task_groups(&git("worktrees/feature/gitardo/task-groups.json")));
+        assert!(!changes_task_groups(&git("HEAD")));
+        let in_tree = Change::WorkingTree(PathBuf::from("gitardo/task-groups.json"));
+        assert!(!changes_task_groups(&in_tree));
+        assert_eq!(
+            watch_changes(&git("gitardo/task-groups.json")),
+            None,
+            "no read of the repository"
+        );
     }
 }
