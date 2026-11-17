@@ -52,6 +52,13 @@ impl Color {
         Color { alpha, ..self }
     }
 
+    /// The same color at a part of its opacity, out of 255: 255 leaves it as it is, 0 makes it transparent.
+    #[must_use]
+    pub fn faded(self, opacity: u8) -> Color {
+        let alpha = coverage_alpha(self.alpha, opacity);
+        self.with_alpha(u8::try_from(alpha).unwrap_or(u8::MAX))
+    }
+
     /// The color as a pixel of the frame buffer, `0x00RRGGBB`, its alpha left out.
     #[must_use]
     pub const fn pixel(self) -> u32 {
@@ -165,5 +172,14 @@ mod tests {
         assert_eq!(coverage_alpha(255, 255), 255);
         assert_eq!(coverage_alpha(128, 255), 128);
         assert_eq!(coverage_alpha(0, 255), 0);
+    }
+
+    #[test]
+    fn a_faded_color_keeps_its_channels_and_multiplies_its_alpha() {
+        let color = Color::rgba(10, 20, 30, 200);
+        assert_eq!(color.faded(255), color);
+        assert_eq!(color.faded(0), Color::rgba(10, 20, 30, 0));
+        assert_eq!(Color::WHITE.faded(153), Color::rgba(255, 255, 255, 153));
+        assert_eq!(color.faded(128).alpha, 100);
     }
 }

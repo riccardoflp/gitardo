@@ -1,9 +1,11 @@
 //! Asking for the next page of commits while scrolling (`graph.load-more`), long before the end of those loaded.
 
-use ui::Ui;
+use ui::layout::{Align, Area, place};
+use ui::{Rect, Tone, Ui};
 
 use super::intent::GraphIntent;
 use crate::intent::Intent;
+use crate::text::timeline as words;
 
 /// How close to the end of the commits loaded the last row drawn is when the next page is asked for.
 pub const AHEAD: usize = 500;
@@ -46,4 +48,24 @@ pub fn load_more_view(state: &LoadMoreState, _ui: &mut Ui<'_>) -> Vec<Intent> {
     } else {
         Vec::new()
     }
+}
+
+/// The last row while more commits are to be read: **Loading more commits…** with a turning icon.
+pub(super) fn loading_row(ui: &mut Ui<'_>, graph_width: f32, row: &ui::Row) {
+    let theme = *ui.theme();
+    let rect = Rect::new(
+        row.rect.x + graph_width + theme.sizes.spacing.large,
+        row.rect.y,
+        (row.rect.width - graph_width - 2.0 * theme.sizes.spacing.large).max(0.0),
+        row.rect.height,
+    );
+    let mut area = Area::with_gap(rect, theme.sizes.spacing.medium);
+    let icon = area.left(theme.sizes.icon);
+    let spinner = place(
+        icon,
+        (theme.sizes.icon, theme.sizes.icon),
+        (Align::Center, Align::Center),
+    );
+    ui.spinner(spinner);
+    let _ = ui.label(area.rest(), &ui::Label::new(words::LOADING_MORE).tone(Tone::Muted));
 }

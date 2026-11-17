@@ -132,6 +132,8 @@ pub struct Ui<'frame> {
     clips: Vec<Rect>,
     /// The layer drawn into.
     layer: Layer,
+    /// How opaque what is drawn now is, out of 255 (`Ui::faded`).
+    opacity: u8,
     /// The shapes declared.
     display: DisplayList,
     /// The widgets declared that take input.
@@ -195,6 +197,7 @@ impl<'frame> Ui<'frame> {
             scopes: Vec::new(),
             clips: Vec::new(),
             layer: Layer::Base,
+            opacity: u8::MAX,
             display: DisplayList::default(),
             hits: Hits::default(),
             routed,
@@ -291,6 +294,8 @@ impl<'frame> Ui<'frame> {
     /// before them.
     pub fn layer<R>(&mut self, layer: Layer, inside: impl FnOnce(&mut Ui<'frame>) -> R) -> R {
         let before = std::mem::replace(&mut self.layer, layer);
+        // What opens above, such as a menu or a dialog, is not faded with what opened it.
+        let opacity = std::mem::replace(&mut self.opacity, u8::MAX);
         if layer == Layer::Modal {
             self.hits.mark_modal();
         }
@@ -298,6 +303,7 @@ impl<'frame> Ui<'frame> {
         let result = inside(self);
         self.clips = clips;
         self.layer = before;
+        self.opacity = opacity;
         result
     }
 
@@ -466,7 +472,11 @@ impl<'frame> Ui<'frame> {
             return;
         }
         let command = crate::paint::Command {
-            shape,
+            shape: if self.opacity == u8::MAX {
+                shape
+            } else {
+                shape.faded(self.opacity)
+            },
             clip,
             bounds: visible,
         };

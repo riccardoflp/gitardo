@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use model::CommitId;
 use model::commit::Commit;
-use model::graph::{Label, LabelKind, Row, ShownRow};
+use model::graph::{CellTrace, Label, LabelKind, Row, ShownRow};
 use ui::layout::{Align, Area, place};
 use ui::{Badge, BadgeFill, Icon, Point, Rect, Sense, TextKind, TextRun, Tone, Ui};
 
@@ -17,7 +17,7 @@ use super::draft::{UncommittedRow, uncommitted_row_view};
 use super::fold::{FoldsState, fold_merge_view};
 use super::intent::{GraphIntent, HoverTarget, HoverWay, Selected};
 use super::stashes::{StashRow, stashes_view};
-use super::{pull_request_badge::after_label, state::HistoryState};
+use super::{pull_request_badge::after_label, state::HistoryState, state::TraceStrength};
 use crate::intent::Intent;
 use crate::text::timeline as words;
 
@@ -56,7 +56,7 @@ pub(crate) struct RowReport {
 pub(crate) fn draw_row(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row, report: &mut RowReport) {
     let layout = context.state.layout;
     let Some(shown) = layout.folded.rows.get(row.index) else {
-        loading_row(ui, context, row);
+        super::load_more::loading_row(ui, context.graph_width, row);
         return;
     };
     let graph = Rect::new(row.rect.x, row.rect.y, context.graph_width, row.rect.height);
@@ -79,10 +79,28 @@ pub(crate) fn draw_row(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row,
     };
     let id = read.and_then(Row::id);
     draw_graph(ui, context, (row.index, graph), (dot, id));
+    let opacity = super::cell::row_opacity(trace_of(context, row.index));
+    ui.faded(opacity, |ui| row_text(ui, context, (row, text, shown, read), report));
+    separator(ui, context, row);
+    if context.state.dims_others && context.state.found.binary_search(&row.index).is_err() {
+        let veil = ui.theme().colors.page_background.with_alpha(DIMMED);
+        ui.fill_rect(row.rect, veil);
+    }
+}
+
+/// What a row shows right of its cell of the graph: its message, labels, author, date and hash, or what a fold, the
+/// draft or a stash shows.
+fn row_text(
+    ui: &mut Ui<'_>,
+    context: &RowContext<'_>,
+    (row, text, shown, read): (&ui::Row, Rect, &ShownRow, Option<&Row>),
+    report: &mut RowReport,
+) {
+    let layout = context.state.layout;
     match (shown, read) {
         (ShownRow::Fold(fold), _) => {
             let title = fold.title(&layout.labels);
-            ui.clip(text, |ui| fold_row(ui, text, &title));
+            ui.clip(text, |ui| super::fold::fold_row(ui, text, &title));
         }
         (_, Some(Row::Uncommitted { .. })) => {
             let state = UncommittedRow {
@@ -105,11 +123,6 @@ pub(crate) fn draw_row(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row,
         (_, Some(Row::Commit(commit))) => commit_row(ui, context, (row, text, commit), report),
         (_, None) => {}
     }
-    separator(ui, context, row);
-    if context.state.dims_others && context.state.found.binary_search(&row.index).is_err() {
-        let veil = ui.theme().colors.page_background.with_alpha(DIMMED);
-        ui.fill_rect(row.rect, veil);
-    }
 }
 
 /// Draws the cell of the graph of a row, faded by the history brought out.
@@ -129,10 +142,7 @@ fn draw_graph(
         dot,
         is_unpushed: id.is_some_and(|id| layout.unpushed.contains_key(id)),
     };
-    let trace = context
-        .state
-        .trace
-        .and_then(|trace| trace.cells.get(index).map(|cells| (cells, trace.strength)));
+    let trace = trace_of(context, index);
     ui.clip(rect, |ui| draw_cell(ui, cell, &place, trace));
     if let Some(upstream) = id.and_then(|id| layout.unpushed.get(id)) {
         let center = Point::new(
@@ -146,6 +156,12 @@ fn draw_graph(
         let response = ui.interact(id, dot_rect, Sense::HOVER);
         ui.tooltip(&response, &words::not_pushed_to(upstream));
     }
+}
+
+/// What the history brought out says of a row, and how strongly it is brought out; none while nothing is.
+fn trace_of<'a>(context: &RowContext<'a>, index: usize) -> Option<(&'a CellTrace, TraceStrength)> {
+    let trace = context.state.trace?;
+    trace.cells.get(index).map(|cells| (cells, trace.strength))
 }
 
 /// The color of the line of a row.
@@ -420,37 +436,6 @@ pub(crate) fn label_fill(label: &Label) -> BadgeFill {
     } else {
         BadgeFill::Outline
     }
-}
-
-/// A folded row: the icon of unfolding and what it holds, `3 commits of feature`.
-fn fold_row(ui: &mut Ui<'_>, rect: Rect, title: &str) {
-    let theme = *ui.theme();
-    let mut area = Area::with_gap(rect, theme.sizes.spacing.medium);
-    ui.icon_in(area.left(theme.sizes.icon), Icon::ChevronRight, Tone::Muted);
-    let _ = ui.label(area.rest(), &ui::Label::new(title).tone(Tone::Muted));
-    let id = ui.id(("fold row", rect.y.to_bits()));
-    let response = ui.interact(id, rect, Sense::HOVER);
-    ui.tooltip(&response, words::CLICK_TO_SHOW);
-}
-
-/// The last row while more commits are to be read: **Loading more commits…** with a turning icon.
-fn loading_row(ui: &mut Ui<'_>, context: &RowContext<'_>, row: &ui::Row) {
-    let theme = *ui.theme();
-    let rect = Rect::new(
-        row.rect.x + context.graph_width + theme.sizes.spacing.large,
-        row.rect.y,
-        (row.rect.width - context.graph_width - 2.0 * theme.sizes.spacing.large).max(0.0),
-        row.rect.height,
-    );
-    let mut area = Area::with_gap(rect, theme.sizes.spacing.medium);
-    let icon = area.left(theme.sizes.icon);
-    let spinner = place(
-        icon,
-        (theme.sizes.icon, theme.sizes.icon),
-        (Align::Center, Align::Center),
-    );
-    ui.spinner(spinner);
-    let _ = ui.label(area.rest(), &ui::Label::new(words::LOADING_MORE).tone(Tone::Muted));
 }
 
 /// The line before a row that starts a day, a week or a month further back, with its name (`graph.date-separators`).

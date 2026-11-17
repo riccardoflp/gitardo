@@ -18,6 +18,9 @@
   of the window, and a double click gives it its 240 px again; whether it is shown, its height and its tab are kept for
   the workspace. The Command log is no longer in the Activity drawer: **Show the commands Gitardo runs** there shows
   the panel at the Command log, and the drawer opens above the panel.
+- While a history is brought out, by a label under the pointer or by the commit selected, the rows it leaves out
+  are dimmed whole, their message, labels, author, date and hash, and not only their lines and dots, as in the
+  extension: to about a third under a label, to about two thirds by the commit selected.
 - With `core.fsmonitor` on, on Linux and macOS, a worktree no longer has its repository read again and again: the
   socket the daemon listens on in its git folder (`fsmonitor--daemon.ipc`) asks for nothing, as the daemon's folder
   already did.

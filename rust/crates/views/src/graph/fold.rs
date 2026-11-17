@@ -1,7 +1,8 @@
 //! Folding the commits a merge brought in (`graph.fold-merge`) and every merge at once (`graph.fold-all`).
 
 use model::CommitId;
-use ui::{Button, Icon, MenuEntry, MenuItem, Ui};
+use ui::layout::Area;
+use ui::{Button, Icon, MenuEntry, MenuItem, Rect, Sense, Tone, Ui};
 
 use super::intent::GraphIntent;
 use crate::intent::Intent;
@@ -96,4 +97,15 @@ pub fn merge_menu(is_foldable: bool, is_folded: bool) -> Vec<MenuEntry<'static, 
         (true, false) => vec![MenuEntry::Item(MenuItem::new(words::FOLD_MERGE, MergeEntry::Fold))],
         (false, false) => Vec::new(),
     }
+}
+
+/// A folded row: the icon of unfolding and what it holds, `3 commits of feature`.
+pub(super) fn fold_row(ui: &mut Ui<'_>, rect: Rect, title: &str) {
+    let theme = *ui.theme();
+    let mut area = Area::with_gap(rect, theme.sizes.spacing.medium);
+    ui.icon_in(area.left(theme.sizes.icon), Icon::ChevronRight, Tone::Muted);
+    let _ = ui.label(area.rest(), &ui::Label::new(title).tone(Tone::Muted));
+    let id = ui.id(("fold row", rect.y.to_bits()));
+    let response = ui.interact(id, rect, Sense::HOVER);
+    ui.tooltip(&response, words::CLICK_TO_SHOW);
 }

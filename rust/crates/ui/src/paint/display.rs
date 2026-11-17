@@ -77,6 +77,22 @@ pub(crate) enum Shape {
     },
 }
 
+impl Shape {
+    /// The same shape at a part of its opacity, out of 255.
+    pub(crate) fn faded(mut self, opacity: u8) -> Shape {
+        match &mut self {
+            Shape::Rect { color, .. }
+            | Shape::RoundedRect { color, .. }
+            | Shape::FillPath { color, .. }
+            | Shape::Text { color, .. }
+            | Shape::Icon { color, .. } => *color = color.faded(opacity),
+            Shape::Border { border, .. } => border.color = border.color.faded(opacity),
+            Shape::StrokePath { stroke, .. } => stroke.color = stroke.color.faded(opacity),
+        }
+        self
+    }
+}
+
 /// A shape with the clip it is drawn in and the part of the window it can change.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Command {

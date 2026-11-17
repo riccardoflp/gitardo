@@ -54,6 +54,45 @@ fn ask(state: &mut State, intent: GraphIntent) -> Vec<app::store::Effect> {
     run(state, Message::Intent(Intent::Graph(intent)))
 }
 
+/// How strongly the row of each commit is drawn right of its graph: the most any pixel of its message, labels, author,
+/// date and hash stands out from the ground of the list.
+fn strengths(window: &mut Window, state: &State, subjects: &[&str]) -> Vec<f32> {
+    let (_, tree) = window.draw(state, &[]);
+    let rows = rows_drawn(&tree);
+    subjects
+        .iter()
+        .map(|subject| {
+            let shown = state.timeline.layout.shown_of.get(&commit_of(state, subject)).unwrap();
+            strongest(window, *rows.get(*shown).unwrap())
+        })
+        .collect()
+}
+
+/// The width of the graph of these tests, whose two lanes take less: what is in it is checked by the cells traced.
+const GRAPH: f32 = 40.0;
+
+/// The most any pixel of a row right of its graph differs from the ground at its right end, summed over the three
+/// channels.
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "a window is far smaller than an i32 counts"
+)]
+fn strongest(window: &Window, row: render::Rect) -> f32 {
+    let middle = (row.y + row.height * 0.5) as i32;
+    let ground = window.frame.pixel((row.right() - 2.0) as i32, middle).unwrap();
+    let mut most = 0;
+    for y in row.y as i32..row.bottom() as i32 {
+        for x in (row.x + GRAPH) as i32..row.right() as i32 {
+            let pixel = window.frame.pixel(x, y).unwrap();
+            let difference = u16::from(pixel.red.abs_diff(ground.red))
+                + u16::from(pixel.green.abs_diff(ground.green))
+                + u16::from(pixel.blue.abs_diff(ground.blue));
+            most = most.max(difference);
+        }
+    }
+    f32::from(most)
+}
+
 /// Whether the history brought out has the row of a commit in it; none when nothing is brought out.
 fn is_brought_out(state: &State, commit: &CommitId) -> Option<bool> {
     let (cells, _) = state.timeline.trace.as_ref()?;
@@ -198,12 +237,23 @@ pub fn feature_left_main() -> Repository {
 fn graph_trace_selected__selecting_a_commit_on_feature_dims_the_commits_of_main_made_after_feature_left_it() {
     let repository = feature_left_main();
     let mut state = showing(repository.path().to_path_buf());
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let before = strengths(&mut window, &state, &["Main 1", "Main 2", "Start"]);
     let feature = commit_of(&state, "Feature 1");
     let _effects = ask(&mut state, GraphIntent::Select(Selected::Commit(feature.clone())));
     assert_eq!(is_brought_out(&state, &feature), Some(true));
     assert_eq!(is_brought_out(&state, &commit_of(&state, "Start")), Some(true));
     assert_eq!(is_brought_out(&state, &commit_of(&state, "Main 1")), Some(false));
     assert_eq!(is_brought_out(&state, &commit_of(&state, "Main 2")), Some(false));
+    let after = strengths(&mut window, &state, &["Main 1", "Main 2", "Start"]);
+    for (index, subject) in ["Main 1", "Main 2"].into_iter().enumerate() {
+        let share = after[index] / before[index];
+        assert!(
+            (0.45..0.75).contains(&share),
+            "{subject} is drawn at {share} of its strength"
+        );
+    }
+    assert!(after[2] >= before[2] * 0.95, "Start keeps its strength");
 }
 
 #[test]
@@ -299,6 +349,36 @@ fn graph_hover_history__with_shift_held_on_feature_only_the_commits_of_feature_n
             is_brought_out(&state, &commit_of(&state, other)),
             Some(false),
             "{other}"
+        );
+    }
+}
+
+#[test]
+fn graph_hover_history__resting_on_feature_fades_the_message_and_author_of_every_commit_it_does_not_reach() {
+    let repository = feature_left_main();
+    let mut state = showing(repository.path().to_path_buf());
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let subjects = ["Main 1", "Main 2", "Feature 1", "Start"];
+    let before = strengths(&mut window, &state, &subjects);
+    let target = HoverTarget {
+        commit: commit_of(&state, "Feature 1"),
+        way: HoverWay::Reaches,
+    };
+    let _effects = ask(&mut state, GraphIntent::Hover(Some(target)));
+    let after = strengths(&mut window, &state, &subjects);
+    for index in 0..2 {
+        let share = after[index] / before[index];
+        assert!(
+            (0.25..0.45).contains(&share),
+            "{} is drawn at {share} of its strength",
+            subjects[index]
+        );
+    }
+    for index in 2..4 {
+        assert!(
+            after[index] >= before[index] * 0.95,
+            "{} keeps its strength",
+            subjects[index]
         );
     }
 }

@@ -117,3 +117,15 @@ impl Ui<'_> {
         self.record(shape, Rect::new(origin.x, origin.y, size, size));
     }
 }
+
+impl<'frame> Ui<'frame> {
+    /// Declares widgets drawn at a part of their opacity, out of 255, so that they step back from what is around them;
+    /// inside another such part, the two multiply. Menus and dialogs opened on a layer above are drawn whole.
+    pub fn faded<R>(&mut self, opacity: u8, inside: impl FnOnce(&mut Ui<'frame>) -> R) -> R {
+        let before = self.opacity;
+        self.opacity = u8::try_from(u32::from(before) * u32::from(opacity) / 255).unwrap_or(u8::MAX);
+        let result = inside(self);
+        self.opacity = before;
+        result
+    }
+}

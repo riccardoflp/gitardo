@@ -1,6 +1,7 @@
 //! The cell of the graph of a row (`graph.lanes`): the lines through it and its dot, a dot for a commit, a ring for a
 //! merge, a dashed ring for the draft and a fold, a square for a stash, and the ring of a commit not pushed
-//! (`graph.unpushed`); what is not in the history brought out fades (`graph.trace-history`).
+//! (`graph.unpushed`); what is not in the history brought out fades (`graph.trace-history`), and so does the rest of
+//! its row (`graph.hover-history`, `graph.trace-selected`).
 
 use model::graph::{CellLine, CellTrace, GraphCell, Half};
 use ui::{Color, Point, Rect, Stroke, Ui};
@@ -17,6 +18,11 @@ const RING_DASHES: u8 = 8;
 const FADED_UNDER_LABEL: u8 = 50;
 /// How opaque what is dimmed by the selected commit is, out of 255.
 const FADED_BY_SELECTION: u8 = 110;
+/// How opaque the message, labels, author, date and hash of a row left out under a label are, out of 255: about a
+/// third, as the extension does.
+const ROW_FADED_UNDER_LABEL: u8 = 89;
+/// How opaque they are when the selected commit leaves the row out: about two thirds, as the extension does.
+const ROW_FADED_BY_SELECTION: u8 = 153;
 
 /// What the dot of a cell is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -64,6 +70,16 @@ fn faded(color: Color, is_in: bool, strength: Option<TraceStrength>) -> Color {
         (false, Some(TraceStrength::Label)) => color.with_alpha(FADED_UNDER_LABEL),
         (false, Some(TraceStrength::Selected)) => color.with_alpha(FADED_BY_SELECTION),
         _ => color,
+    }
+}
+
+/// How opaque the rest of a row is, out of 255: a row the history brought out leaves out steps back whole, more under
+/// a label than by the selected commit; its background and its selection stay as they are.
+pub(crate) fn row_opacity(trace: Option<(&CellTrace, TraceStrength)>) -> u8 {
+    match trace {
+        Some((cells, TraceStrength::Label)) if !cells.is_in => ROW_FADED_UNDER_LABEL,
+        Some((cells, TraceStrength::Selected)) if !cells.is_in => ROW_FADED_BY_SELECTION,
+        _ => u8::MAX,
     }
 }
 
