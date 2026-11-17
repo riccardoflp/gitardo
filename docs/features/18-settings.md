@@ -269,3 +269,6 @@ Acceptance:
       the pointer and from the selection of a list without the focus.
 - [ ] In every theme selected text is told apart from a match of a search and from its ground, on a page, on a card
       and in an input box, and its text is read.
+- [ ] A commit selected in the timeline, on its tall rows and on its compact rows, stands on the selection of the
+      theme while its list has the focus, and on the selection of a list without the focus once the window loses it;
+      the snapshots of each theme are those of the reference.
