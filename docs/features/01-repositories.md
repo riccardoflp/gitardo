@@ -694,6 +694,8 @@ Acceptance:
 - [ ] Saving a file in a worktree not shown updates its count within two seconds.
 - [ ] Nothing in a worktree changing runs no read of it.
 - [ ] A worktree whose folder was deleted is said `missing`.
+- [ ] With three repositories open, each shown once, each row says its own branch, files changed and `↓ ↑`, and each
+      worktree in the **▾** of its repository says its own.
 
 ### `repo.open-tab` — Open a repository in a tab
 
