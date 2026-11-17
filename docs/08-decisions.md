@@ -1039,6 +1039,24 @@ the left on Windows (not where Windows puts them).
 
 In the extension nothing changes: VS Code draws its own title bar, and the extension already has its logo.
 
+## D59 — Markdown files shown as they read
+
+*Asked by the maintainer for milestone M17; the details proposed by the agent.*
+
+A Markdown file is mostly read, not edited, in Gitardo: a README, a CHANGELOG, the documents of a repository. So the
+File page can show it as a preview, laid out as it reads, with **Preview** and **Source** in its title row to switch,
+and the setting **Open Markdown as a preview** (`markdown.openAsPreview`, off by default) opens every Markdown file in
+its preview (`file-view.markdown-preview`). It is CommonMark with the tables, the task lists and the strikethrough of
+GitHub, parsed by a library chosen as D22 says, laid out with the text and the colors of the code of the window; a link
+to a web page opens in the browser, a link to a file of the repository opens that file, an image of the repository is
+drawn, an image from the web is not fetched and shows its text. Nothing in the preview runs: no HTML is rendered, it is
+shown as text.
+
+The Diff page of a Markdown file stays a diff of its text, since what changed is what a review reads; whether it gets a
+switch to the two sides as previews, side by side, is left to the maintainer.
+
+In the extension, `gitardo.markdown.openAsPreview` opens the Markdown files Gitardo opens in VS Code's own preview.
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374

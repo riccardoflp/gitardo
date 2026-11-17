@@ -216,6 +216,7 @@ Acceptance:
 | `blame.enabled` | Blame of the current line | Files and blame | `true` | User | The blame of the line under the cursor, at its end, in the File page. | `blame.current-line` |
 | `blame.ignoreWhitespaceAndMoves` | Ignore whitespace and moved lines | Files and blame | `false` | User | Blame with `-w -M`. | `blame.ignore-whitespace` |
 | `fileBlame.everyFile` | Blame in every file | Files and blame | `false` | User | Show the blame beside the lines of every file opened. | `blame.every-file` |
+| `markdown.openAsPreview` | Open Markdown as a preview | Files and blame | `false` | User | Open Markdown files in their preview rather than their text. | `file-view.markdown-preview` |
 | `fileBlame.format` | What the blame says | Files and blame | `"${date} ${author:20}"` | User | What the blame says beside each line. | `blame.format-line` |
 | `fileBlame.groupLines` | Group the lines of a commit | Files and blame | `true` | User | Say the commit once for the lines of it that follow each other. | `blame.file` |
 | `fileBlame.age.enabled` | Color lines by age | Files and blame | `true` | User | The bar in the color of the age of each line. | `blame.age-color` |

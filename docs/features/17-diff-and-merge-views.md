@@ -947,6 +947,50 @@ Acceptance:
 - [ ] A click on `README.md` then shows it in the same place, and the folder `src` is still open in the tree.
 - [ ] With unsaved edits in `src/app.rs`, opening `README.md` keeps `src/app.rs` in `Ctrl+Tab`.
 
+### `file-view.markdown-preview` — A Markdown file as it reads
+
+A Markdown file in the File page shown laid out as it reads, with **Preview** and **Source** to switch
+([D59](../08-decisions.md#d59--markdown-files-shown-as-they-read)).
+
+- **Kind**: View
+- **Function**: `views::file_view::markdown_view(state: &MarkdownState, ui) -> Vec<Intent>`, over the derivation
+  `model::markdown::blocks(text: &str) -> Vec<Block>`
+- **Entry points**: **Preview** and **Source** in the title row of the File page of a file ending in `.md` or
+  `.markdown`; any way of opening such a file while `markdown.openAsPreview` is on.
+- **Settings**: `markdown.openAsPreview` (`false`).
+- **Uses**: `file-view.page`, `file-view.highlight`.
+
+Rules:
+
+- CommonMark with the tables, the task lists and the strikethrough of GitHub. Headings, paragraphs, emphasis, inline
+  code, lists, quotes, rules, code blocks in the colors of the code of their language, tables with their alignment.
+- HTML in the file is shown as text, never rendered; nothing in the preview runs.
+- A link to a web page opens in the browser; a link to a file of the repository, relative to the file, opens that file
+  in its File page; a link to a heading of the file scrolls to it. An image of the repository is drawn, as wide as the
+  page at most; an image from the web is not fetched, and shows its text.
+- The preview follows the text: edits made in **Source** show in **Preview** when it is shown again; a file of the
+  working tree changed on disk is read again, as in **Source**.
+- With `markdown.openAsPreview` on, a Markdown file opens in **Preview**; otherwise in **Source**. The switch is kept
+  for the page while it is open. A file at a revision has the preview too, read-only as its text.
+- **Find** in the preview finds in the text shown.
+- Extension: with `gitardo.markdown.openAsPreview` on, a Markdown file that Gitardo opens (the Files view, the Changes
+  view, a file of a commit) opens in VS Code's preview of Markdown (`markdown.showPreview`), not in its editor.
+
+Acceptance:
+
+- [ ] `README.md` with a heading, a list, a table and a Rust code block shows them laid out in **Preview**, the code in
+      the colors of Rust.
+- [ ] **Source** shows the text of the file, editable; **Preview** shows it laid out again, with the edit.
+- [ ] With `markdown.openAsPreview` on, `docs/guide.md` opened from the Files page opens in **Preview**; off, in
+      **Source**.
+- [ ] `<script>alert(1)</script>` in the file is shown as that text.
+- [ ] A link to `../CHANGELOG.md` opens the File page of `CHANGELOG.md`; a link to `https://example.com` asks the
+      browser to open it.
+- [ ] An image `media/logo.png` of the repository is drawn; `https://example.com/a.png` shows its text.
+- [ ] `src/app.rs` has no **Preview**.
+- [ ] Extension: with `gitardo.markdown.openAsPreview` on, a click on `README.md` in the Files view opens VS Code's
+      preview of it.
+
 ### `file-view.read-revision` — A file at a revision
 
 Reads the text of a file as it is in a commit.
