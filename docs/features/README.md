@@ -512,7 +512,7 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`diff.page`](17-diff-and-merge-views.md#diffpage--the-diff-page) | The Diff page | View | Built | Built |
-| [`diff.beside-inspector`](17-diff-and-merge-views.md#diffbeside-inspector--files-of-a-commit-read-beside-the-inspector) | Files of a commit read beside the inspector | View | Specified | Host only |
+| [`diff.beside-inspector`](17-diff-and-merge-views.md#diffbeside-inspector--files-of-a-commit-read-beside-the-inspector) | Files of a commit read beside the inspector | View | Built | Host only |
 | [`diff.read-sides`](17-diff-and-merge-views.md#diffread-sides--the-two-versions-of-a-file) | The two versions of a file | Read | Built | Built |
 | [`diff.line-diff`](17-diff-and-merge-views.md#diffline-diff--the-lines-that-changed) | The lines that changed | Derivation | Built | Built |
 | [`diff.word-diff`](17-diff-and-merge-views.md#diffword-diff--the-words-that-changed-in-a-line) | The words that changed in a line | Derivation | Built | Built |
@@ -544,7 +544,7 @@ earns it.
 | [`merge-view.mark-resolved`](17-diff-and-merge-views.md#merge-viewmark-resolved--mark-as-resolved) | Mark as resolved | Operation | Built | Built |
 | [`merge-view.close`](17-diff-and-merge-views.md#merge-viewclose--closing-with-unsaved-changes) | Closing with unsaved changes | View | Built | Built |
 | [`file-view.page`](17-diff-and-merge-views.md#file-viewpage--the-file-page) | The File page | View | Built | Host only |
-| [`file-view.beside-files`](17-diff-and-merge-views.md#file-viewbeside-files--a-file-opened-beside-the-tree-of-the-files-page) | A file opened beside the tree of the Files page | View | Specified | Host only |
+| [`file-view.beside-files`](17-diff-and-merge-views.md#file-viewbeside-files--a-file-opened-beside-the-tree-of-the-files-page) | A file opened beside the tree of the Files page | View | Built | Host only |
 | [`file-view.read-revision`](17-diff-and-merge-views.md#file-viewread-revision--a-file-at-a-revision) | A file at a revision | Read | Built | Built |
 | [`file-view.edit`](17-diff-and-merge-views.md#file-viewedit--editing-a-file) | Editing a file | View | Built | Host only |
 | [`file-view.save`](17-diff-and-merge-views.md#file-viewsave--save) | Save | Operation | Built | Host only |

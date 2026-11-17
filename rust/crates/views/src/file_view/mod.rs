@@ -2,6 +2,7 @@
 //! read only, in Gitardo's own editor (`file-view.edit`), with the colors of its code (`file-view.highlight`), a box
 //! that finds in it (`file-view.find`) and **Go to line** (`file-view.go-to-line`).
 
+mod beside;
 mod edit;
 mod find;
 mod go_to_line;
@@ -18,6 +19,7 @@ use crate::intent::Intent;
 use crate::text::blame as blame_words;
 use crate::text::file_view as words;
 
+pub use beside::{BesideFilesState, beside_files_view};
 pub use edit::edit_view;
 pub use find::find_view;
 pub use go_to_line::{GoToLineState, go_to_line_view, parse_line};

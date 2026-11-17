@@ -48,6 +48,17 @@ pub struct DetailsState<'a> {
     pub folded: &'a BTreeSet<String>,
     /// The comparison of two commits shown in place of the card (`compare.in-place`), while it is.
     pub in_place: Option<crate::compare::InPlaceState<'a>>,
+    /// The file whose diff is shown beside the inspector, which it marks (`diff.beside-inspector`).
+    pub shown_file: Option<ShownFile<'a>>,
+}
+
+/// The file whose diff the Diff page beside the inspector shows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ShownFile<'a> {
+    /// Its path, as the inspector lists it.
+    pub path: &'a str,
+    /// A number that changes each time another file is shown, for the inspector to bring it into sight once.
+    pub serial: u64,
 }
 
 /// The row selected, as the timeline read it.

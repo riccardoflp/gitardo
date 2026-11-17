@@ -3,6 +3,7 @@
 //! opens nothing, a very large one asks first), the page read again when `HEAD`, the index or the working tree it shows
 //! changes, and what the user changed in it.
 
+pub mod beside;
 mod edit;
 mod follow;
 mod lines;
@@ -29,6 +30,8 @@ pub use navigate::reduce_page;
 pub fn reduce(state: &mut State, intent: views::diff::DiffIntent) -> Vec<Effect> {
     match intent {
         views::diff::DiffIntent::Open(target) => open(state, *target),
+        views::diff::DiffIntent::OpenBeside(target) => beside::open(state, *target),
+        views::diff::DiffIntent::StepBeside(step) => beside::step(state, step),
         views::diff::DiffIntent::Page(id, intent) => reduce_page(state, id, intent),
         views::diff::DiffIntent::AnswerLarge(is_continued) => answer_large(state, is_continued),
         views::diff::DiffIntent::Edit(id, intent) => reduce_edit(state, id, intent),
@@ -98,11 +101,19 @@ pub struct DiffPage {
     pub edited_at: Option<Duration>,
     /// Whether the rows were moved by an edit and the diff not computed again since.
     pub is_stale: bool,
+    /// Whether it is the page beside the inspector (`diff.beside-inspector`), with the number of the last time it was
+    /// given a file to show.
+    pub beside: Option<u64>,
 }
 
 /// Opens the Diff page of a target in the repository shown, or shows the one it has: there is never a second page for
 /// the same diff. A page of several files opens at once; a page of one file opens once its file is read.
 pub fn open(state: &mut State, target: DiffTarget) -> Vec<Effect> {
+    open_page(state, target, None)
+}
+
+/// Opens a Diff page as [`open`] does, as the page beside the inspector when it is given the number of that.
+fn open_page(state: &mut State, target: DiffTarget, beside: Option<u64>) -> Vec<Effect> {
     let Some(read) = state.shown_read() else {
         return Vec::new();
     };
@@ -111,7 +122,7 @@ pub fn open(state: &mut State, target: DiffTarget) -> Vec<Effect> {
         .diff_pages
         .pages
         .iter()
-        .find(|page| page.target == target && same_folder(&page.folder, &folder));
+        .find(|page| page.target == target && page.beside.is_none() && same_folder(&page.folder, &folder));
     if let Some(page) = found {
         if page.is_open {
             super::pages::show_page(state, Page::Diff(page.id));
@@ -144,6 +155,7 @@ pub fn open(state: &mut State, target: DiffTarget) -> Vec<Effect> {
         caret_reveal: None,
         edited_at: None,
         is_stale: false,
+        beside,
     };
     state.diff_pages.pages.push(page);
     let is_open = count != 1;

@@ -26,7 +26,7 @@ use views::{Content, TimelineState, WindowState};
 use super::search::{self, view as search_view};
 use super::state::{Dialog, Shown, State};
 use super::timeline::workspace_panes;
-use super::view_parts::{branch_picker, rail, selected_details, view_bar};
+use super::view_parts::{branch_picker, pull_way, rail, selected_details, view_bar};
 use crate::persisted::{WorkspacePanes, same_folder};
 
 /// The words the views need that the store does not keep.
@@ -231,11 +231,7 @@ impl ViewData {
                 } else {
                     views::graph::MainRemote::Elsewhere
                 },
-                active_file: match state.page_shown() {
-                    Some(Page::File(page)) => Some(page),
-                    // Every other page, and the timeline, shows no file of its own.
-                    _ => None,
-                },
+                active_file: state.file_in_front(),
             },
             references: read.map(|_| ReferencesShown {
                 is_shown: !self.panes.is_rail_hidden,
@@ -268,6 +264,7 @@ impl ViewData {
                     has_timeline: state.workspace.is_some(),
                 }),
             }),
+            Some(Page::Diff(id)) if super::diff_page::beside::is_beside(state, id) => self.beside_inspector(state, id),
             Some(page @ (Page::Commit(_) | Page::Diff(_) | Page::Merge(_) | Page::Compare(_))) => {
                 match opened_page(state, page) {
                     Some(page) => Content::Page(PageHostState { has_trail: true, page }),
@@ -303,7 +300,7 @@ impl ViewData {
             }),
             Some(Page::Files) => Content::Page(PageHostState {
                 has_trail: true,
-                page: PageState::Files(super::files_page::page_state(state)),
+                page: self.files_page(state),
             }),
             Some(Page::NewWorktrees) => Content::Page(PageHostState {
                 has_trail: true,
@@ -311,6 +308,34 @@ impl ViewData {
             }),
             None => Content::Timeline(self.timeline(state)),
         }
+    }
+
+    /// The Files page, with the file opened beside its tree when there is one (`file-view.beside-files`).
+    fn files_page<'a>(&'a self, state: &'a State) -> PageState<'a> {
+        let file = state.files_page.shown_file.and_then(|id| {
+            super::file_page::page_state(state, id).map(|page| FilePageState {
+                blame: self.blame.page_blame(state, id),
+                ..page
+            })
+        });
+        super::files_page::beside_state(state, file, self.panes.sizes.files_tree)
+    }
+
+    /// The Diff page beside the inspector, in place of the commits; in place of everything when no repository is read.
+    fn beside_inspector<'a>(&'a self, state: &'a State, id: views::diff::DiffPageId) -> Content<'a> {
+        let Some(page) = super::diff_page::page_state(state, id) else {
+            return Content::Timeline(self.timeline(state));
+        };
+        let host = PageHostState {
+            has_trail: true,
+            page: PageState::Diff(page),
+        };
+        let mut timeline = self.timeline(state);
+        if let TimelineState::Repository { beside, .. } = &mut timeline {
+            *beside = Some(Box::new(views::diff::BesideInspectorState { host }));
+            return Content::Timeline(timeline);
+        }
+        Content::Page(host)
     }
 
     /// The timeline, the branch rail and the inspector of the repository shown.
@@ -345,6 +370,7 @@ impl ViewData {
                     is_running: state.is_operation_running,
                 }),
                 worktree: super::worktrees::banner_state(state, read),
+                beside: None,
             },
             Some(Shown::NoRepository) => TimelineState::NoRepository(NoRepositoryState::NoRepository),
             Some(Shown::Looking) if state.reads.is_not_read => TimelineState::NoRepository(NoRepositoryState::NotRead),
@@ -452,41 +478,4 @@ fn head_name(repository: &RepositoryState) -> HeadName<'_> {
 /// A folder as the window writes it.
 fn display(folder: &std::path::Path) -> String {
     folder.display().to_string()
-}
-
-/// The place among the ways to pull of the menu of **Sync** of the way **Pull** takes, as the settings say.
-fn pull_way(settings: &model::contract::FeatureSettings) -> usize {
-    let way = features::sync::default_way(settings);
-    views::graph::PULL_WAYS
-        .iter()
-        .position(|(choice, _, _)| *choice == way)
-        .unwrap_or_default()
-}
-
-#[cfg(test)]
-#[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
-mod tests {
-    use super::pull_way;
-    use model::contract::FeatureSettings;
-
-    #[test]
-    fn sync_pull_with__with_pull_rebase_off_the_menu_marks_pull_autostash_as_the_default() {
-        let settings = FeatureSettings {
-            pull_rebase: false,
-            ..FeatureSettings::default()
-        };
-        let marked = views::graph::PULL_WAYS
-            .get(pull_way(&settings))
-            .map(|(_, label, _)| *label);
-        assert_eq!(marked, Some(views::text::header::PULL_AUTOSTASH));
-        let both = views::graph::PULL_WAYS.get(pull_way(&FeatureSettings::default()));
-        assert_eq!(both.map(|(choice, ..)| *choice), Some("rebase-autostash"));
-    }
-
-    #[test]
-    fn the_ways_of_the_menu_are_the_choices_of_pull_with() {
-        let menu: Vec<&str> = views::graph::PULL_WAYS.iter().map(|(choice, ..)| *choice).collect();
-        let feature: Vec<&str> = features::sync::WAYS.iter().map(|(choice, ..)| *choice).collect();
-        assert_eq!(menu, feature);
-    }
 }

@@ -23,7 +23,7 @@ const HIDE: &str = "Hide the branches, tags and stashes beside the commits";
 const SHOW: &str = "Show the branches, tags and stashes beside the commits";
 
 /// The window opened again on the workspace of a store, with what it kept.
-fn opened_again(state: &State, folder: &Path) -> State {
+pub fn opened_again(state: &State, folder: &Path) -> State {
     let mut again = State::new(state.persisted.clone(), Settings::default(), None);
     let _effects = run(
         &mut again,

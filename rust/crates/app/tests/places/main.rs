@@ -7,6 +7,7 @@
 mod activity;
 mod ai;
 mod am_stopped;
+mod beside;
 mod bisect;
 mod blame;
 mod blame_file;

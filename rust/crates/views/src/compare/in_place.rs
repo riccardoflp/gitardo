@@ -28,6 +28,8 @@ pub struct InPlaceState<'a> {
     pub sides: &'a InPlaceSides,
     /// Its files, as far as they are read.
     pub read: InPlaceRead<'a>,
+    /// The file whose diff is shown beside the inspector, by its path, which it marks (`diff.beside-inspector`).
+    pub marked: Option<&'a str>,
 }
 
 /// The comparison in the inspector: **Comparison** and the button that closes it, **From** and **To** with the name
@@ -81,7 +83,9 @@ pub fn in_place(state: &InPlaceState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
                         InPlaceRead::Failed => {
                             let _ = ui.label(column.top(line), &Label::new(words::FAILED).tone(Tone::Muted));
                         }
-                        InPlaceRead::Read(files) => file_rows((files, state.sides), ui, &mut column, &mut intents),
+                        InPlaceRead::Read(files) => {
+                            file_rows((files, state.sides, state.marked), ui, &mut column, &mut intents);
+                        }
                     }
                 },
             );
@@ -137,7 +141,7 @@ fn actions(ui: &mut Ui<'_>, row: Rect, intents: &mut Vec<Intent>) {
 /// **N changed files**, the button that opens them all when there are more than one, and the files, with **Compare
 /// with…** in the context menu of each (`details.compare-file-with`).
 fn file_rows(
-    (files, sides): (&[FileChange], &InPlaceSides),
+    (files, sides, marked): (&[FileChange], &InPlaceSides, Option<&str>),
     ui: &mut Ui<'_>,
     column: &mut Area,
     intents: &mut Vec<Intent>,
@@ -157,6 +161,10 @@ fn file_rows(
     let _ = ui.label(heading.rest(), &Label::new(&count).kind(TextKind::Strong));
     for (index, file) in files.iter().enumerate() {
         let row = column.top(line);
+        if marked == Some(file.path.as_str()) {
+            let radius = ui.theme().sizes.radius.medium;
+            ui.fill_rounded_rect(row, radius, ui.theme().colors.list_selection);
+        }
         let label = match &file.original_path {
             Some(original) => format!("{original} \u{2192} {}", file.path),
             None => file.path.clone(),

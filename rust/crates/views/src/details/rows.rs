@@ -6,7 +6,10 @@ use model::contract::{FeatureId, Target};
 use model::details::CommitDetail;
 use model::state::FileChange;
 use ui::layout::{Align, Area, place};
-use ui::{Button, ButtonKind, Icon, Label, List, MenuEntry, MenuItem, Rect, SelectionMode, Sense, TextKind, Tone, Ui};
+use ui::{
+    Button, ButtonKind, Icon, Label, List, MenuEntry, MenuItem, Rect, Reveal, RevealPlace, SelectionMode, Sense,
+    Steering, TextKind, Tone, Ui,
+};
 
 use super::files::{CappedList, FileRow, FilesState, directory_row, file_name, file_rows, file_start};
 use super::head::{Head, draw_head, head_height};
@@ -50,16 +53,9 @@ fn row_height(ui: &Ui<'_>) -> f32 {
     ui.theme().sizes.row_height + ui.theme().sizes.spacing.small
 }
 
-/// The rows of the card of details read.
-fn read_card(
-    state: &DetailsState<'_>,
-    (read, is_stash): (&ReadDetails, bool),
-    ui: &mut Ui<'_>,
-    rect: Rect,
-) -> Vec<Intent> {
-    let detail = &read.detail;
-    let head = head_of(state, (read, is_stash));
-    let files = FilesState {
+/// The files of the commit of the card, as the inspector lists them.
+fn files_of<'a>(state: &DetailsState<'a>, detail: &'a CommitDetail) -> FilesState<'a> {
+    FilesState {
         files: &detail.files,
         tree: state.tree,
         layout: state.layout,
@@ -69,7 +65,19 @@ fn read_card(
             count: detail.files.len(),
             is_all_shown: state.is_all_files_shown,
         },
-    };
+    }
+}
+
+/// The rows of the card of details read.
+fn read_card(
+    state: &DetailsState<'_>,
+    (read, is_stash): (&ReadDetails, bool),
+    ui: &mut Ui<'_>,
+    rect: Rect,
+) -> Vec<Intent> {
+    let detail = &read.detail;
+    let head = head_of(state, (read, is_stash));
+    let files = files_of(state, detail);
     let height = row_height(ui);
     let untracked: &[FileChange] = if is_stash { &detail.untracked_files } else { &[] };
     let head_rows = rows_for(
@@ -87,7 +95,12 @@ fn read_card(
     let mut intents = Vec::new();
     let mut is_first = true;
     let key = ("inspector rows", detail.id.as_ref().map(model::CommitId::as_str));
-    let _ = ui.list(key, rect, &list, |ui, row| {
+    let steering = Steering {
+        reveal: reveal_of(state, &rows, (&files, untracked)),
+        ..Steering::default()
+    };
+    let shown = state.shown_file.map(|shown| shown.path);
+    let _ = ui.steered_list(key, (rect, &list), &steering, |ui, row| {
         let first = std::mem::replace(&mut is_first, false);
         match rows.get(row.index) {
             Some(CardRow::Head) => {
@@ -95,28 +108,44 @@ fn read_card(
                     intents.extend(draw_head(ui, &head, top));
                 }
             }
-            Some(CardRow::File(file)) => intents.extend(file_row(ui, row, (&files, file, detail))),
+            Some(CardRow::File(file)) => intents.extend(file_row(ui, row, (&files, file, detail), shown)),
             Some(CardRow::ShowAll) => intents.extend(ui.clip(row.rect, |ui| show_all_files(&files.capped, ui))),
             Some(CardRow::UntrackedHeading) => {
                 let said = words::untracked_files(untracked.len());
                 let _ = ui.label(row.rect, &Label::new(&said).kind(TextKind::Detail).tone(Tone::Muted));
             }
             Some(CardRow::Untracked(index)) => {
-                if let Some(file) = untracked.get(*index) {
-                    match inspector_file(ui, row, (file, 0, files.layout), ("untracked file", *index)) {
-                        Some(Picked::Diff) => intents.extend(crate::diff::untracked_file(detail, file).map(open_diff)),
-                        Some(Picked::History) => intents.push(file_history(file)),
-                        Some(Picked::Compare) => {
-                            intents.extend(untracked_list(detail).map(|list| compare_file(file, list)));
-                        }
-                        None => {}
-                    }
-                }
+                intents.extend(untracked_row(
+                    ui,
+                    row,
+                    (detail, untracked, *index),
+                    (files.layout, shown),
+                ));
             }
             None => {}
         }
     });
     intents
+}
+
+/// The row of the file shown beside the inspector, brought into sight once each time another file is shown.
+fn reveal_of(
+    state: &DetailsState<'_>,
+    rows: &[CardRow<'_>],
+    (files, untracked): (&FilesState<'_>, &[FileChange]),
+) -> Option<Reveal> {
+    let shown = state.shown_file?;
+    let path_of = |row: &CardRow<'_>| match row {
+        CardRow::File(FileRow::File(index, _)) => files.files.get(*index).map(|file| file.path.as_str()),
+        CardRow::Untracked(index) => untracked.get(*index).map(|file| file.path.as_str()),
+        CardRow::Head | CardRow::File(FileRow::Directory { .. }) | CardRow::ShowAll | CardRow::UntrackedHeading => None,
+    };
+    let row = rows.iter().position(|row| path_of(row) == Some(shown.path))?;
+    Some(Reveal {
+        serial: shown.serial,
+        row,
+        place: RevealPlace::Nearest,
+    })
 }
 
 /// What the head of the card shows.
@@ -149,11 +178,38 @@ fn card_rows<'a>(head_rows: usize, files: &FilesState<'a>, untracked: &[FileChan
     rows
 }
 
+/// A row of the untracked files of a stash, marked while the page beside the inspector shows it, with what a click or
+/// its buttons ask.
+fn untracked_row(
+    ui: &mut Ui<'_>,
+    row: &ui::Row,
+    (detail, untracked, index): (&CommitDetail, &[FileChange], usize),
+    (layout, shown): (super::FileLayout, Option<&str>),
+) -> Vec<Intent> {
+    let Some(file) = untracked.get(index) else {
+        return Vec::new();
+    };
+    let is_marked = shown == Some(file.path.as_str());
+    match inspector_file(ui, row, (file, 0, layout, is_marked), ("untracked file", index)) {
+        Some(Picked::Diff) => crate::diff::untracked_file(detail, file)
+            .map(open_diff)
+            .into_iter()
+            .collect(),
+        Some(Picked::History) => vec![file_history(file)],
+        Some(Picked::Compare) => untracked_list(detail)
+            .map(|list| compare_file(file, list))
+            .into_iter()
+            .collect(),
+        None => Vec::new(),
+    }
+}
+
 /// A row of the files: a directory, which folds, or a file, which opens its diff when clicked.
 fn file_row(
     ui: &mut Ui<'_>,
     row: &ui::Row,
     (files, file_row, detail): (&FilesState<'_>, &FileRow<'_>, &CommitDetail),
+    shown: Option<&str>,
 ) -> Vec<Intent> {
     match file_row {
         FileRow::Directory { .. } => directory_row(ui, row.rect, (FilesOwner::Inspector, file_row)),
@@ -161,7 +217,8 @@ fn file_row(
             let Some(file) = files.files.get(*index) else {
                 return Vec::new();
             };
-            match inspector_file(ui, row, (file, *depth, files.layout), ("file", *index)) {
+            let is_marked = shown == Some(file.path.as_str());
+            match inspector_file(ui, row, (file, *depth, files.layout, is_marked), ("file", *index)) {
                 Some(Picked::Diff) => vec![open_diff(crate::diff::commit_file(detail, file))],
                 Some(Picked::History) => vec![file_history(file)],
                 Some(Picked::Compare) => vec![compare_file(file, commit_list(detail))],
@@ -171,9 +228,9 @@ fn file_row(
     }
 }
 
-/// What opens the Diff page of a target.
+/// What opens the Diff page of files of the inspector, beside it (`diff.beside-inspector`).
 pub(crate) fn open_diff(target: crate::diff::DiffTarget) -> Intent {
-    Intent::Diff(crate::diff::DiffIntent::Open(Box::new(target)))
+    Intent::Diff(crate::diff::DiffIntent::OpenBeside(Box::new(target)))
 }
 
 /// What a file of the inspector was picked for.
@@ -236,17 +293,20 @@ fn file_history(file: &FileChange) -> Intent {
     Intent::Files(run)
 }
 
-/// A file of the inspector: its status, icon and name, lit under the pointer, with the clock of its history at its
-/// end and **Compare with…** in its context menu; what it was picked for.
+/// A file of the inspector: its status, icon and name, lit under the pointer or marked while its diff is shown beside
+/// the inspector, with the clock of its history at its end and **Compare with…** in its context menu; what it was
+/// picked for.
 fn inspector_file(
     ui: &mut Ui<'_>,
     row: &ui::Row,
-    (file, depth, layout): (&FileChange, usize, super::FileLayout),
+    (file, depth, layout, is_marked): (&FileChange, usize, super::FileLayout, bool),
     key: (&'static str, usize),
 ) -> Option<Picked> {
     let theme = *ui.theme();
     let response = ui.interact(ui.id(key), row.rect, Sense::CLICK | Sense::HOVER);
-    if response.hovered {
+    if is_marked {
+        ui.fill_rounded_rect(row.rect, theme.sizes.radius.medium, theme.colors.list_selection);
+    } else if response.hovered {
         ui.fill_rounded_rect(row.rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let rest = file_start(ui, row.rect, (file, depth));

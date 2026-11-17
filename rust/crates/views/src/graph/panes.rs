@@ -34,6 +34,8 @@ pub struct PaneSizes {
     pub inspector: Option<f32>,
     /// The height of the inspector over the commits.
     pub inspector_over: Option<f32>,
+    /// The width of the tree of the Files page beside a file opened from it.
+    pub files_tree: Option<f32>,
 }
 
 /// How the panes are laid out in a frame.

@@ -2641,3 +2641,13 @@ each built with the reading given until the card says otherwise.
 - **Q-T6** — `panel.bottom`: the tabs of the panel and its buttons are text buttons and the icons of the set the
   window has; **Terminal** in the bar of views reuses the chevron pointing right until the icons of Lucide come
   (`graph.icons`), which have a terminal of their own.
+- **Q-P1** — `diff.beside-inspector`: which file is the next one for `Alt+Down` while the files are laid out as a
+  tree, and what `Escape` does while the Activity drawer is open. Built: the order the inspector shows them in, files
+  of folded directories included, then the untracked files of a stash; from a page of all the files, the first.
+  `Escape` closes the drawer first, as it did, and brings the timeline back once it is closed.
+- **Q-P2** — `diff.beside-inspector`: a file of more than 100,000 lines clicked while the page beside the inspector
+  already shows another. Built: the page is open, so the file is shown as one with too many differences, as `F7`
+  going from file to file shows it, rather than asking; only the first file of the page asks.
+- **Q-P3** — `file-view.beside-files`: the narrow layout of the Files page. Built: below 700 logical pixels, where the
+  inspector goes over the timeline, the File page takes the whole page; a file that has its own page already is shown
+  beside the tree too and keeps its page.

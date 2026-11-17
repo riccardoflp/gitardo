@@ -22,6 +22,8 @@ pub struct FilesPageState<'a> {
     pub shown: FilesShown<'a>,
     /// The folders opened, by their paths; the others are folded.
     pub opened: &'a BTreeSet<String>,
+    /// The file shown beside the tree, by its path, which the tree marks (`file-view.beside-files`).
+    pub marked: Option<&'a str>,
 }
 
 /// The files of the page, or why there are none to show.
@@ -42,8 +44,10 @@ pub enum FilesPageIntent {
     Open,
     /// Open or fold a folder, by its path.
     Fold(String),
-    /// Open a file in its File page, by its path.
+    /// Open a file beside the tree, by its path (`file-view.beside-files`).
     OpenFile(String),
+    /// **Files** in the trail: the tree alone again, without the file opened beside it.
+    ShowTree,
     /// Run an operation on a file or a folder, by its path from the top of the working tree; empty for the top folder.
     Run(FeatureId, String),
 }
@@ -122,11 +126,15 @@ pub fn page_view(state: &FilesPageState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
             selection_mode: SelectionMode::Single,
             lead: 0.0,
         };
-        let _ = ui.list("files tree", inner, &list, |ui, row| {
+        let response = ui.list("files tree", inner, &list, |ui, row| {
             if let Some(files_row) = rows.get(row.index) {
                 intents.extend(row_view(ui, row.rect, (state, files_row)));
             }
         });
+        // `Enter` on a file opens it, as a click does.
+        if let Some(FilesRow::File { path, .. }) = response.activated.and_then(|index| rows.get(index)) {
+            intents.push(files_intent(FilesPageIntent::OpenFile((*path).to_owned())));
+        }
     });
     intents
 }
@@ -174,7 +182,10 @@ fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &Fi
         FilesRow::File { name, path, depth } => (name, path, depth, Icon::File),
     };
     let response = ui.interact(ui.id(("files row", path)), rect, Sense::CLICK | Sense::HOVER);
-    if response.hovered {
+    let is_marked = matches!(row, FilesRow::File { .. }) && state.marked == Some(path);
+    if is_marked {
+        ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_selection);
+    } else if response.hovered {
         ui.fill_rounded_rect(rect, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let indent = crate::number::float_of_count(depth) * (theme.sizes.icon + theme.sizes.spacing.small);

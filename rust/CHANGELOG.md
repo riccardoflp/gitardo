@@ -18,6 +18,15 @@
   of the window, and a double click gives it its 240 px again; whether it is shown, its height and its tab are kept for
   the workspace. The Command log is no longer in the Activity drawer: **Show the commands Gitardo runs** there shows
   the panel at the Command log, and the drawer opens above the panel.
+- A file of the inspector opens its Diff page where the timeline was, and the inspector stays on the right with the
+  file marked: a click on another of its files shows that one in the same page, `Alt+Down` and `Alt+Up` go to the
+  next and the previous file, and **Timeline** in the trail or `Escape` brings the timeline back with the same commit
+  selected. **Open all changes in one Diff page** and the files of a comparison shown in the inspector open there too.
+  In a window too narrow for the inspector beside the timeline, the Diff page takes the whole place, as before.
+- A file of the Files page opens on the right of the tree, which stays with the file marked and its folders as they
+  were: another file shows in the same place, and a file with edits not saved stays open in its own page. The line
+  between the tree and the file is dragged to resize the tree, which keeps its width for the workspace, and **Files**
+  in the trail shows the tree alone again. `Enter` on a file of the tree opens it too.
 - While a history is brought out, by a label under the pointer or by the commit selected, the rows it leaves out
   are dimmed whole, their message, labels, author, date and hash, and not only their lines and dots, as in the
   extension: to about a third under a label, to about two thirds by the commit selected.

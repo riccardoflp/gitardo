@@ -78,6 +78,7 @@ pub(super) fn panes_value(panes: &WorkspacePanes) -> Value {
         ("rail", panes.sizes.rail),
         ("inspector", panes.sizes.inspector),
         ("inspectorOver", panes.sizes.inspector_over),
+        ("filesTree", panes.sizes.files_tree),
         ("graph", panes.graph_width),
     ];
     for (name, length) in lengths {
@@ -100,6 +101,7 @@ pub(super) fn workspace_panes(value: &Value) -> Option<WorkspacePanes> {
             rail: length("rail"),
             inspector: length("inspector"),
             inspector_over: length("inspectorOver"),
+            files_tree: length("filesTree"),
         },
         graph_width: length("graph"),
         is_rail_hidden: value.get("railHidden").and_then(Value::as_bool).unwrap_or(false),

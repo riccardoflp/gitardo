@@ -89,6 +89,8 @@ pub enum PageState<'a> {
     File(FilePageState<'a>),
     /// The Files page.
     Files(crate::files::FilesPageState<'a>),
+    /// The Files page with a file opened beside its tree (`file-view.beside-files`).
+    FilesBeside(Box<crate::file_view::BesideFilesState<'a>>),
     /// The page that chooses what new worktrees get, with its title.
     NewWorktrees(crate::worktree_setup::SetupPageState<'a>, &'a str),
 }
@@ -108,7 +110,7 @@ impl PageState<'_> {
             PageState::Merge(merge, _) => Page::Merge(merge.id),
             PageState::Review(_) => Page::Review,
             PageState::File(file) => Page::File(file.id),
-            PageState::Files(_) => Page::Files,
+            PageState::Files(_) | PageState::FilesBeside(_) => Page::Files,
             PageState::NewWorktrees(..) => Page::NewWorktrees,
         }
     }
@@ -128,6 +130,21 @@ impl PageState<'_> {
             PageState::Merge(_, title) | PageState::NewWorktrees(_, title) => title,
             PageState::Review(review) => review.title,
             PageState::File(file) => file.title,
+            PageState::FilesBeside(beside) => beside.file.title,
+        }
+    }
+
+    /// The step of the trail between **Timeline** and the name of the page, with what it asks: **Files**, which shows
+    /// the tree alone again, while a file is opened beside it.
+    #[must_use]
+    pub fn step(&self) -> Option<(&'static str, Intent)> {
+        match self {
+            PageState::FilesBeside(_) => Some((
+                crate::text::files::PAGE,
+                Intent::Files(crate::files::FilesPageIntent::ShowTree),
+            )),
+            // No other page is opened from another.
+            _ => None,
         }
     }
 
@@ -137,6 +154,7 @@ impl PageState<'_> {
         match self {
             PageState::File(file) => file.is_unsaved,
             PageState::Diff(diff) => diff.is_unsaved,
+            PageState::FilesBeside(beside) => beside.file.is_unsaved,
             _ => false,
         }
     }
@@ -163,7 +181,7 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     let mut area = Area::new(rect);
     if state.has_trail {
         let bar = area.top(ui.theme().sizes.header_height * 0.75);
-        trail((state.page.title(), state.page.is_unsaved()), ui, bar, &mut intents);
+        trail(&state.page, ui, bar, &mut intents);
     }
     let body = area.rest();
     intents.extend(ui.clip(body, |ui| match &state.page {
@@ -178,13 +196,16 @@ pub fn host_view(state: &PageHostState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         PageState::Review(review) => crate::review::page_view(review, ui),
         PageState::File(file) => file_page_view(file, ui),
         PageState::Files(files) => crate::files::page_view(files, ui),
+        PageState::FilesBeside(beside) => crate::file_view::beside_files_view(beside, ui),
         PageState::NewWorktrees(setup, _) => crate::worktree_setup::page(setup, ui),
     }));
     intents
 }
 
-/// The trail above a page, with a dot after the name of a file with edits not saved, and the button that closes it.
-fn trail((title, is_unsaved): (&str, bool), ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
+/// The trail above a page, with the step of the page it was opened from, a dot after the name of a file with edits not
+/// saved, and the button that closes it.
+fn trail(page: &PageState<'_>, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
+    let (title, is_unsaved) = (page.title(), page.is_unsaved());
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
     let line = Rect::new(
@@ -203,11 +224,16 @@ fn trail((title, is_unsaved): (&str, bool), ui: &mut Ui<'_>, rect: Rect, intents
         if ui.button("trail timeline", cell, &timeline).clicked {
             intents.push(Intent::ShowTimeline);
         }
-        let separator_width = ui.measure(words::TRAIL_SEPARATOR, ui.text_style(TextKind::Body));
-        let _ = ui.label(
-            parts.left(separator_width),
-            &Label::new(words::TRAIL_SEPARATOR).tone(Tone::Muted),
-        );
+        separator(ui, &mut parts);
+        if let Some((name, intent)) = page.step() {
+            let step = Button::secondary(name).kind(ButtonKind::Icon);
+            let (width, height) = ui.button_size(&step);
+            let cell = place(parts.left(width), (width, height), (Align::Start, Align::Center));
+            if ui.button("trail step", cell, &step).clicked {
+                intents.push(intent);
+            }
+            separator(ui, &mut parts);
+        }
         let side = theme.sizes.control_height;
         let close_cell = place(parts.right(side), (side, side), (Align::Start, Align::Center));
         let close = Button::icon(Icon::Close, words::CLOSE_PAGE).kind(ButtonKind::Icon);
@@ -224,4 +250,10 @@ fn trail((title, is_unsaved): (&str, bool), ui: &mut Ui<'_>, rect: Rect, intents
             let _ = ui.label(parts.rest(), &Label::new(title).kind(TextKind::Strong));
         }
     });
+}
+
+/// The `›` between two steps of the trail.
+fn separator(ui: &mut Ui<'_>, parts: &mut Area) {
+    let width = ui.measure(words::TRAIL_SEPARATOR, ui.text_style(TextKind::Body));
+    let _ = ui.label(parts.left(width), &Label::new(words::TRAIL_SEPARATOR).tone(Tone::Muted));
 }

@@ -47,7 +47,7 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         }
         QuickChoice::Command(command) => command,
     };
-    if let (Some(feature), Some(views::page::Page::File(id))) = (command.file_page_operation(), state.page_shown()) {
+    if let (Some(feature), Some(id)) = (command.file_page_operation(), state.file_in_front()) {
         let run = views::blame::BlameIntent::Run(id, model::contract::FeatureId(feature), None);
         return super::super::reduce(state, Message::Intent(Intent::Blame(run)));
     }

@@ -265,4 +265,16 @@ impl State {
     pub fn page_shown(&self) -> Option<Page> {
         self.pages.shown.and_then(|index| self.pages.open.get(index)).copied()
     }
+
+    /// The File page in front: the page shown, or the file shown beside the tree of the Files page
+    /// (`file-view.beside-files`).
+    #[must_use]
+    pub fn file_in_front(&self) -> Option<views::file_view::FilePageId> {
+        match self.page_shown()? {
+            Page::File(id) => Some(id),
+            Page::Files => self.files_page.shown_file,
+            // The other pages show no file of their own.
+            _ => None,
+        }
+    }
 }

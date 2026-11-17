@@ -7,7 +7,6 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use std::time::Duration;
 
 use views::file_view::FilePageId;
-use views::page::Page;
 
 use super::{Inputs, PageBlame, Wanted};
 use crate::persisted::same_folder;
@@ -23,7 +22,7 @@ const EDIT_REST: Duration = Duration::from_millis(400);
 /// Forgets the blame of the pages closed, and starts the reads the page in front wants.
 pub fn follow(state: &mut State) -> Vec<Effect> {
     let mut effects = prune(state);
-    if let Some(Page::File(id)) = state.page_shown() {
+    if let Some(id) = state.file_in_front() {
         effects.extend(follow_file(state, id));
         effects.extend(follow_line(state, id));
     }

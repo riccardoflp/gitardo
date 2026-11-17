@@ -6,6 +6,7 @@
 //! sight; both sides are drawn in the same rows, so they scroll together.
 
 mod bar;
+mod beside;
 mod caret;
 mod columns;
 mod data;
@@ -24,6 +25,7 @@ use crate::intent::Intent;
 use crate::text::diff as words;
 
 pub use bar::{collapse_unchanged_view, navigate_view, open_file_view};
+pub use beside::{BesideInspectorState, FileStep, beside_inspector_view};
 pub use columns::{LEAST_WIDTH, resize_sides_view};
 pub use data::{
     CaretSide, ChangePlace, DiffCaret, DiffFile, DiffTarget, DiffText, DiffVersion, FileDiff, Hint, PageLine,
@@ -83,6 +85,11 @@ pub struct DiffPageState<'a> {
 pub enum DiffIntent {
     /// Open the Diff page of these files between these versions, or show the one there is.
     Open(Box<DiffTarget>),
+    /// Open the diff of a file of the inspector beside it, in the page that shows the files of the inspector one after
+    /// the other (`diff.beside-inspector`).
+    OpenBeside(Box<DiffTarget>),
+    /// `Alt+Down` or `Alt+Up` in the Diff page beside the inspector: the next or the previous file of the inspector.
+    StepBeside(FileStep),
     /// Something asked of a page.
     Page(DiffPageId, DiffPageIntent),
     /// The answer to the question asked before a very large diff: **Continue**, or anything else.

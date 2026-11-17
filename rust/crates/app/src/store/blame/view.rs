@@ -8,7 +8,6 @@ use model::graph::DateTime;
 use ui::Color;
 use views::blame::{FileBlame, LineNote, PageBlame};
 use views::file_view::FilePageId;
-use views::page::Page;
 use views::text::blame as words;
 
 use crate::store::state::State;
@@ -32,7 +31,7 @@ impl BlameData {
     /// What the blame of the page in front is drawn with, the dates said from a moment, in seconds since 1970.
     #[must_use]
     pub fn new(state: &State, now: i64) -> BlameData {
-        let Some(Page::File(id)) = state.page_shown() else {
+        let Some(id) = state.file_in_front() else {
             return BlameData::default();
         };
         let Some(blame) = state.blames.pages.get(&id) else {

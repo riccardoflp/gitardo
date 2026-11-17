@@ -1,5 +1,5 @@
 //! The parts of the state of the views that are made from the store alone: the branch rail, the branch filter of the
-//! timeline, what the inspector shows of the row selected and the bar of views.
+//! timeline, what the inspector shows of the row selected, the bar of views and the way **Pull** takes.
 
 use model::graph::Row;
 use views::details::SelectedDetails;
@@ -99,5 +99,42 @@ pub(super) fn view_bar(state: &State) -> ViewBarState {
         changed_files: state.shown_read().map(|read| read.state.working_tree.file_count()),
         is_activity_open: state.is_activity_open,
         is_panel_shown: super::panel::look(state).is_shown,
+    }
+}
+
+/// The place among the ways to pull of the menu of **Sync** of the way **Pull** takes, as the settings say.
+pub(super) fn pull_way(settings: &model::contract::FeatureSettings) -> usize {
+    let way = features::sync::default_way(settings);
+    views::graph::PULL_WAYS
+        .iter()
+        .position(|(choice, _, _)| *choice == way)
+        .unwrap_or_default()
+}
+
+#[cfg(test)]
+#[allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
+mod tests {
+    use super::pull_way;
+    use model::contract::FeatureSettings;
+
+    #[test]
+    fn sync_pull_with__with_pull_rebase_off_the_menu_marks_pull_autostash_as_the_default() {
+        let settings = FeatureSettings {
+            pull_rebase: false,
+            ..FeatureSettings::default()
+        };
+        let marked = views::graph::PULL_WAYS
+            .get(pull_way(&settings))
+            .map(|(_, label, _)| *label);
+        assert_eq!(marked, Some(views::text::header::PULL_AUTOSTASH));
+        let both = views::graph::PULL_WAYS.get(pull_way(&FeatureSettings::default()));
+        assert_eq!(both.map(|(choice, ..)| *choice), Some("rebase-autostash"));
+    }
+
+    #[test]
+    fn the_ways_of_the_menu_are_the_choices_of_pull_with() {
+        let menu: Vec<&str> = views::graph::PULL_WAYS.iter().map(|(choice, ..)| *choice).collect();
+        let feature: Vec<&str> = features::sync::WAYS.iter().map(|(choice, ..)| *choice).collect();
+        assert_eq!(menu, feature);
     }
 }

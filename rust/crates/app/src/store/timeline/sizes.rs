@@ -36,6 +36,7 @@ pub fn resize(state: &mut State, intent: &GraphIntent) -> Vec<Effect> {
         GraphIntent::SetPane(Pane::Rail, size) => panes.sizes.rail = *size,
         GraphIntent::SetPane(Pane::Inspector, size) => panes.sizes.inspector = *size,
         GraphIntent::SetPane(Pane::InspectorOver, size) => panes.sizes.inspector_over = *size,
+        GraphIntent::SetPane(Pane::FilesTree, size) => panes.sizes.files_tree = *size,
         GraphIntent::ToggleReferences => panes.is_rail_hidden = !panes.is_rail_hidden,
         _ => return Vec::new(),
     }

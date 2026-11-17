@@ -358,10 +358,10 @@ pub fn prune(state: &mut State) -> Vec<Effect> {
         .filter(|page| page.is_hidden && held::is_needed(state, page))
         .map(|page| page.id)
         .collect();
-    let open = &state.pages.open;
+    let (open, beside) = (&state.pages.open, state.files_page.shown_file);
     let (kept, closed): (Vec<FilePage>, Vec<FilePage>) = std::mem::take(&mut state.file_pages.pages)
         .into_iter()
-        .partition(|page| open.contains(&Page::File(page.id)) || needed.contains(&page.id));
+        .partition(|page| open.contains(&Page::File(page.id)) || needed.contains(&page.id) || beside == Some(page.id));
     state.file_pages.pages = kept;
     closed
         .into_iter()

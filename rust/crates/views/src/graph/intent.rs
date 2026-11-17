@@ -88,6 +88,8 @@ pub enum Pane {
     Inspector,
     /// The height of the inspector over the commits, in the narrow layout.
     InspectorOver,
+    /// The width of the tree of the Files page beside a file opened from it (`file-view.beside-files`).
+    FilesTree,
 }
 
 /// A switch of the timeline in the **…** menu, each written in the user's settings.

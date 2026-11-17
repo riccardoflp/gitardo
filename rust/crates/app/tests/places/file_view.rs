@@ -47,9 +47,9 @@ pub fn open(state: &mut State, target: FileTarget) {
     ask(state, Intent::FileView(FileViewIntent::Open(target)));
 }
 
-/// The File page shown, which the test fails without.
+/// The File page shown, on its own or beside the tree of the Files page, which the test fails without.
 pub fn shown(state: &State) -> &FilePage {
-    let Some(Page::File(id)) = state.page_shown() else {
+    let Some(id) = state.file_in_front() else {
         panic!("a File page is shown, not {:?}", state.page_shown());
     };
     state.file_pages.pages.iter().find(|page| page.id == id).unwrap()

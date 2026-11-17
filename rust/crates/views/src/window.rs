@@ -125,6 +125,9 @@ pub enum TimelineState<'a> {
         bisect: Option<BisectBanner<'a>>,
         /// The banner of another worktree shown in this window, above the commits (`worktree.banner`).
         worktree: Option<Box<crate::worktree::BannerState<'a>>>,
+        /// The Diff page opened from the inspector, shown in place of the commits while it is
+        /// (`diff.beside-inspector`).
+        beside: Option<Box<crate::diff::BesideInspectorState<'a>>>,
     },
     /// No repository to show yet, or none at all: the rail is empty and the timeline says why.
     NoRepository(NoRepositoryState),
@@ -181,7 +184,7 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         intents.extend(ui.clip(above, |ui| what_is_running_view(drawer, ui)));
     }
     dialogs(state, ui, &mut intents);
-    intents.extend(shortcuts(ui, state.drawer.is_some()));
+    intents.extend(shortcuts(ui, state));
     intents.extend(panel_shortcut(ui, panel));
     intents.extend(crate::terminal::new_terminal_shortcut(ui));
     intents
@@ -314,12 +317,19 @@ fn repository_panes(
         is_rail_hidden,
         search,
         filter,
+        beside,
         ..
     } = state
     else {
         return None;
     };
     let is_inspector_over = ui.window().width < INSPECTOR_OVER_BELOW;
+    if let Some(beside) = beside.as_deref().filter(|_| is_inspector_over) {
+        // In the narrow layout the page takes the place of the timeline and of the inspector, as before.
+        let (above, below) = above_panel(panel, ui, (body, gap), intents);
+        intents.extend(island(ui, above, |ui| crate::diff::beside_inspector_view(beside, ui)));
+        return below;
+    }
     let bottom = panel.map_or(0.0, |panel| {
         panel_height(panel.height, body.height, ui.window().height) + gap
     });
@@ -329,7 +339,7 @@ fn repository_panes(
         icon_rail: is_narrow(ui).then_some(ICON_RAIL_WIDTH),
         is_rail_hidden: *is_rail_hidden,
         is_inspector_over,
-        has_inspector: !is_inspector_over || details.selected.is_some(),
+        has_inspector: (!is_inspector_over && beside.is_none()) || details.selected.is_some(),
         gap,
         bottom,
     };
@@ -341,11 +351,15 @@ fn repository_panes(
         rail_hover = hover;
     }
     island(ui, rects.main, |ui| {
-        let main = search_row((&search.0, filter), ui, rects.main, intents);
-        let mut main = Area::new(main);
-        banners(state, ui, &mut main, intents);
-        let graph = with_rail_hover(graph, rail_hover);
-        intents.extend(ui.clip(main.rest(), |ui| graph_view(&graph, ui)));
+        if let Some(beside) = beside {
+            intents.extend(crate::diff::beside_inspector_view(beside, ui));
+        } else {
+            let main = search_row((&search.0, filter), ui, rects.main, intents);
+            let mut main = Area::new(main);
+            banners(state, ui, &mut main, intents);
+            let graph = with_rail_hover(graph, rail_hover);
+            intents.extend(ui.clip(main.rest(), |ui| graph_view(&graph, ui)));
+        }
     });
     if let Some(column) = rects.inspector {
         intents.extend(island(ui, column, |ui| show(details, ui)));
@@ -461,14 +475,21 @@ fn notice_bar(notice: Notice, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Int
 }
 
 /// The keys of the window that no widget used: `Ctrl+Tab` goes through the timeline and the pages open, `Ctrl+,`
-/// opens the settings page, and `Escape` closes the Activity drawer while it is open.
-fn shortcuts(ui: &Ui<'_>, is_drawer_open: bool) -> Vec<Intent> {
+/// opens the settings page, and `Escape` closes the Activity drawer while it is open, else brings the timeline back
+/// from the Diff page beside the inspector (`diff.beside-inspector`).
+fn shortcuts(ui: &Ui<'_>, state: &WindowState<'_>) -> Vec<Intent> {
+    let is_drawer_open = state.drawer.is_some();
+    let is_beside = matches!(
+        &state.content,
+        Content::Timeline(TimelineState::Repository { beside: Some(_), .. })
+    );
     ui.unclaimed_keys()
         .into_iter()
         .filter_map(|key| match (key.key, key.modifiers) {
             (Key::Named(NamedKey::Tab), Modifiers::CONTROL) => Some(Intent::NextPage),
             (Key::Character(','), Modifiers::CONTROL) => Some(Intent::ShowPage(Page::Settings)),
             (Key::Named(NamedKey::Escape), Modifiers::NONE) if is_drawer_open => Some(Intent::CloseActivity),
+            (Key::Named(NamedKey::Escape), Modifiers::NONE) if is_beside => Some(Intent::ShowTimeline),
             _ => None,
         })
         .collect()

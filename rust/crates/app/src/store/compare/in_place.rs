@@ -170,7 +170,7 @@ fn open_files(state: &mut State, index: Option<usize>) -> Vec<Effect> {
         return Vec::new();
     }
     let target = in_place_diff_target(sides, files);
-    crate::store::diff_page::open(state, target)
+    crate::store::diff_page::beside::open(state, target)
 }
 
 /// What the inspector shows of the comparison in place of the card, while it is shown.
@@ -184,5 +184,6 @@ pub fn in_place_state(state: &State) -> Option<InPlaceState<'_>> {
             Some(Ok(files)) => InPlaceRead::Read(files),
             Some(Err(())) => InPlaceRead::Failed,
         },
+        marked: crate::store::diff_page::beside::shown_file(state).map(|shown| shown.path),
     })
 }
