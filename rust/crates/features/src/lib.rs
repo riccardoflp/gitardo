@@ -43,6 +43,7 @@ pub mod stash;
 pub mod submodule;
 pub mod sync;
 pub mod tag;
+pub mod tasks;
 pub mod trust;
 pub mod undo;
 pub mod worktree;

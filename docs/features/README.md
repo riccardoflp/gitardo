@@ -592,7 +592,7 @@ earns it.
 
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
-| [`tasks.read`](19-tasks.md#tasksread--read-the-tasks-of-a-repository) | Read the tasks of a repository | Read | Specified | Host only |
+| [`tasks.read`](19-tasks.md#tasksread--read-the-tasks-of-a-repository) | Read the tasks of a repository | Read | Built | Host only |
 | [`tasks.view`](19-tasks.md#tasksview--the-tasks-tab) | The Tasks tab | View | Specified | Host only |
 | [`tasks.run`](19-tasks.md#tasksrun--run-a-task) | Run a task | Operation | Specified | Host only |
 | [`tasks.stop`](19-tasks.md#tasksstop--stop-a-task) | Stop a task | Operation | Specified | Host only |

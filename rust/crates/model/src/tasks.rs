@@ -1,7 +1,21 @@
 //! The tasks of the Activity drawer, the commands a new worktree runs (`worktree-setup.command-steps`): how each
 //! stands, what it printed as the drawer shows it, and what Gitardo says when one did not succeed.
+//!
+//! And the tasks of a repository (`docs/features/19-tasks.md`): those its worktree defines.
 
 use std::path::{Path, PathBuf};
+
+mod defined;
+mod files;
+
+pub use defined::{
+    Background, DependsOrder, NotRunnable, PackageManager, PackageScripts, Quoting, Task, TaskCategory,
+    TaskFileProblem, TaskKind, TaskReference, TaskShell, TaskSource, Tasks, Word,
+};
+pub use files::{
+    LOCK_FILES, MODULES_FOLDER, PACKAGE_FILE, PackageFile, TASKS_FILE, TaskFiles, TaskSystem, TasksContext,
+    package_manager,
+};
 
 /// The most lines the drawer keeps of what a task printed; older ones are dropped.
 const KEPT_LINES: usize = 5_000;

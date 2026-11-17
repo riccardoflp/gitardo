@@ -35,5 +35,6 @@ pub mod stash;
 pub mod submodule;
 pub mod summary;
 pub mod sync;
+pub mod tasks;
 pub mod worktree;
 pub mod worktree_setup;
