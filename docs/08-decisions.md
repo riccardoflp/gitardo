@@ -2901,13 +2901,26 @@ reading given until the card says otherwise.
   size and the time of change of each file at the top of its own git folder (`HEAD`, `index`, `ORIG_HEAD`,
   `MERGE_HEAD`…), of those of `rebase-merge`, `rebase-apply` and `sequencer`, and of `logs/HEAD`, leaving out the
   `.lock` files and the socket of the file system monitor; a worktree whose git folder cannot be read is counted every
-  time. **Refresh** and choosing a repository count every worktree again. The engine of the extension still counts
-  every worktree on each `read/repo.read-state`, since the protocol does not say yet whether a read is a **Refresh**:
-  it keeps the counts once it does (phase 9 of M15).
+  time. **Refresh** and choosing a repository count every worktree again. In the extension, version 1.8 of the
+  protocol says it with `refresh` on `read/repo.read-state`; `repository/open` counts every worktree (phase 9 of M15).
 - **Q463** — `repo.watch-changes`: from when the minute of the focus is counted. Built: from the end of the last read
   of the repository shown, whatever asked for it, kept by the window for each folder read, so that a tab shown again
   after a minute is read when the window gets the focus; a repository never read asks for a read. A change missed
   while the window was minimized is forgotten by the next read that starts, whatever asked for it.
+- **Q520** — `repo.watch-changes` in the extension: what stands for the window minimized, whose changes are read when
+  it gets the focus. Built: no view of Gitardo open (the graph, the Source Control views, a tab of Gitardo), since VS
+  Code says nothing of its window being minimized; a change then marks the repository, and VS Code getting the focus
+  reads it, as a change missed does in the desktop.
+- **Q521** — `graph.load-more` in the extension: how often the pages a read adds are sent to the views. Built: those
+  that come within 150 ms of the first together, and the last at once, with only the rows the views do not have; a
+  page each time would draw the graph again for each of the 56 pages of a history of 56,000 commits.
+- **Q522** — `graph.read-commits` in the extension: what the controller's cancel stops. Built: the wait for the first
+  page of a read; once a page came, the read goes on in `EngineGraph` until it ends, another history is asked for, or
+  another repository is shown, so that a read of the state that another takes the place of does not throw away the
+  commits read.
+- **Q523** — the name of the read that says which files of a burst ask for a read. Built: `read/repo.watch-changes`,
+  after the card whose behavior it is, with `{ paths }` asked like `read/changes.read-ignored`; a request, not the
+  notification `repository/changed`, since the extension reads the state itself and only asks whether a read is due.
 
 
 ### Of milestone M16, the settings page and one lane, from Q480

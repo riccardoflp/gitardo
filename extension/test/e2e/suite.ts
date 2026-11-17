@@ -2310,13 +2310,12 @@ export async function run(): Promise<void> {
     await internals.onMessage(graph, { type: 'goTo', revision: oldest.slice(0, 8) });
     assert.deepEqual(revealed(), [`${oldest} in graph`]);
 
-    // Further back than the history is loaded: it is loaded up to there, in whole pages. The views, whose short
-    // lists end in sight, would ask for the rest themselves: they are not answered, to see who loads it.
+    // Further back than the first page: the read goes on to the end of the history as git prints it (D54), and the
+    // commit is shown once its page came. The views, whose lists end in sight, would ask for more themselves: they are
+    // not answered, to see that nothing needs to.
     unanswered.add('loadMore');
     try {
-      internals.limit = 2;
       await vscode.commands.executeCommand('gitardo.refresh');
-      assert.ok(!loaded(oldest) && state().hasMore, 'only the last commits are loaded');
       forget();
       await internals.onMessage(view('sideGraph'), { type: 'goTo', revision: oldest });
       assert.ok(loaded(oldest), 'the history is loaded up to the commit');
@@ -3683,22 +3682,19 @@ export async function run(): Promise<void> {
       assert.equal(outgoing.state!.rows[0].subject, 'Two files');
       assert.equal(outgoing.state!.rows.length, commits + 1);
 
-      // Loading more of the history sends the commits after the ones the graph has, and only those.
+      // Refresh reads every commit again as git prints them (D54); once the read ended, asking for more sends no row.
       const all = state().rows.map((row) => row.hash);
-      const pages = internals.limit;
-      try {
-        internals.limit = 2;
-        await vscode.commands.executeCommand('gitardo.refresh');
-        assert.deepEqual(state().rows.map((row) => row.hash), all.slice(0, 2));
-        const from = sent.length;
-        await internals.onMessage(graph, { type: 'loadMore' });
-        outgoing = await until('the state with the next commits', () => sent.slice(from).find((told) => told.state?.hasMore === false));
-        assert.equal(outgoing.kept, 2);
-        assert.deepEqual(outgoing.state!.rows.map((row) => row.hash), all.slice(2));
-        assert.deepEqual(state().rows.map((row) => row.hash), all);
-      } finally {
-        internals.limit = pages;
-      }
+      await vscode.commands.executeCommand('gitardo.refresh');
+      assert.deepEqual(
+        state().rows.map((row) => row.hash),
+        all,
+      );
+      assert.equal(state().hasMore, false);
+      const from = sent.length;
+      await internals.onMessage(graph, { type: 'loadMore' });
+      outgoing = await until('the state after asking for more', () => sent.slice(from).find((told) => told.state));
+      assert.equal(outgoing.kept, all.length);
+      assert.deepEqual(outgoing.state!.rows, []);
     } finally {
       graph.postMessage = postMessage;
     }

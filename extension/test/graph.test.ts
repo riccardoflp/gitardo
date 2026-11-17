@@ -86,6 +86,40 @@ describe('GraphLayout', () => {
     expect(graph.next('root', []).top.every((line) => !line.dashed)).toBe(true);
   });
 
+  it('lays out pages from the lanes under the last row as it lays out every row at once (graph.lanes)', () => {
+    // A history of 10,000 commits, oldest first: a branch forked every ten commits, merged back three later, and every
+    // fiftieth left open; then listed newest first, as git lists them.
+    const made: { hash: string; parents: string[]; dashed: boolean }[] = [];
+    let main = 'm0';
+    made.push({ hash: main, parents: [], dashed: false });
+    const sides: { tip: string; merge: number }[] = [];
+    for (let index = 1; made.length < 10_000; index++) {
+      if (index % 10 === 0) sides.push({ tip: main, merge: index % 50 === 0 ? Infinity : index + 3 });
+      sides.forEach((side, number) => {
+        if (side.merge <= index) return;
+        const hash = `s${index}-${number}`;
+        made.push({ hash, parents: [side.tip], dashed: false });
+        side.tip = hash;
+      });
+      const ready = sides.find((side) => side.merge === index);
+      const hash = `m${index}`;
+      made.push({ hash, parents: ready ? [main, ready.tip] : [main], dashed: false });
+      main = hash;
+      if (ready) sides.splice(sides.indexOf(ready), 1);
+      // The branches left open end after a while, as a branch deleted does.
+      while (sides.filter((side) => side.merge === Infinity).length > 6) sides.splice(sides.findIndex((side) => side.merge === Infinity), 1);
+    }
+    const rows = made.reverse();
+    const atOnce = new GraphLayout().page(rows);
+    const merge = rows.findIndex((row) => row.parents.length > 1);
+    // Pages of 1,000, then pages cut after a merge and between a commit and its first parent.
+    for (const cuts of [Array.from({ length: 10 }, (_, page) => page * 1000), [0, merge + 1, merge + 2, 5_000]]) {
+      const layout = new GraphLayout();
+      const paged = cuts.flatMap((start, index) => layout.page(rows.slice(start, cuts[index + 1] ?? rows.length)));
+      expect(paged).toEqual(atOnce);
+    }
+  }, 30_000);
+
   it('draws nothing above a branch tip', () => {
     const [tip] = layout([['tip', 'parent']]);
     expect(tip.top).toEqual([]);

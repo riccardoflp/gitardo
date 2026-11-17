@@ -10,7 +10,7 @@ import * as path from 'node:path';
 import { afterEach } from 'vitest';
 import { binaryName } from '../../src/engine/binary';
 import { EngineClient, type EngineLog, type EngineOptions, type FeatureAsker } from '../../src/engine/client';
-import { EngineGraph, graphState } from '../../src/engine/graph';
+import { graphState, readCommits } from '../../src/engine/graph';
 import type { Answer, Finished, Plan, Question, Settings, Target } from '../../src/engine/messages';
 import { Reads } from '../../src/engine/reads';
 import { engineSettings } from '../../src/engine/settings';
@@ -157,5 +157,5 @@ export async function engineState(root: string, limit = 10): Promise<RepoState> 
   const engine = client();
   const reads = new Reads(() => engine);
   const asked = { limit, filter: null, scope: null, stashes: true, firstParent: false };
-  return graphState(engine, root, await reads.parts({ root }), asked, (graph) => new EngineGraph().commits(engine, root, graph, limit));
+  return graphState(engine, root, await reads.parts({ root }), asked, (graph) => readCommits(engine, root, graph, limit));
 }

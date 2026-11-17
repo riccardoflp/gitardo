@@ -143,11 +143,13 @@ export class Reads {
 
   /**
    * The state of the repository but the commits of the graph (`repo.read-state`). With `resolve`, the files in
-   * conflict say how many of their conflicts the rules resolve (`conflicts.resolve-by-rules`).
+   * conflict say how many of their conflicts the rules resolve (`conflicts.resolve-by-rules`). With `refresh`, for
+   * **Refresh** and a repository chosen, every other worktree is counted again; otherwise only those whose git folder
+   * changed since the read before (M15).
    */
-  async parts(repo: Repository, resolve = false): Promise<RepoParts> {
+  async parts(repo: Repository, resolve = false, refresh = false): Promise<RepoParts> {
     const client = this.client();
-    const state = await client.currentState(repo.root);
+    const state = await client.currentState(repo.root, undefined, refresh);
     const conflicts = resolve && state.workingTree.conflicted.length ? conflictFiles(await client.conflictRules(repo.root, null)) : [];
     return { ...state, conflictFiles: conflicts };
   }

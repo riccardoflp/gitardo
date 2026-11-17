@@ -1,16 +1,17 @@
 /**
  * The reads of the graph of stage 7 of `docs/transition/06-roadmap.md`: the rows of the graph read by the engine,
- * compared with what `git log` lists of the same history, page after page as the graph asks for them; and the position
- * of a commit and the matches of a search, against where `git log` lists the commit and what it finds.
+ * compared with what `git log` lists of the same history, read as git prints them and laid out page after page (D54);
+ * and the position of a commit and the matches of a search, against where `git log` lists the commit and what it finds.
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { EngineClient } from '../src/engine/client';
-import { type CommitsReader, EngineGraph, graphState, historyOf, matchesOnEngine, positionOnEngine } from '../src/engine/graph';
+import { type CommitsReader, EngineGraph, graphState, historyOf, laidOutOf, matchesOnEngine, positionOnEngine } from '../src/engine/graph';
 import type { Timeline } from '../src/engine/messages';
 import { Reads } from '../src/engine/reads';
-import type { Filter, RepoState, Scope, Search } from '../src/shared/protocol';
+import { GraphLayout } from '../src/shared/graph';
+import { type Filter, type RepoState, type Scope, type Search, WORKTREE } from '../src/shared/protocol';
 import { git } from './git';
 import { built, cleanUpAfterEach, client, commitFile, repository } from './engine/harness';
 
@@ -92,15 +93,15 @@ async function small(): Promise<string> {
   return root;
 }
 
-/** Counts the pages the engine is asked for, and from where. */
-function counting(engine: EngineClient): number[] {
-  const skips: number[] = [];
-  const read = engine.graphCommits.bind(engine);
-  engine.graphCommits = (repository: string, timeline: Timeline, signal?: AbortSignal) => {
-    skips.push(timeline.skip);
-    return read(repository, timeline, signal);
+/** Counts the reads of the commits the engine is asked for, sent as they are read. */
+function counting(engine: EngineClient): Timeline[] {
+  const asked: Timeline[] = [];
+  const read = engine.graphStream.bind(engine);
+  engine.graphStream = (repository, timeline, onRows, signal) => {
+    asked.push(timeline);
+    return read(repository, timeline, onRows, signal);
   };
-  return skips;
+  return asked;
 }
 
 interface Asked {
@@ -182,19 +183,23 @@ async function engineGraphState(engine: EngineClient, root: string, limit: numbe
   return graphState(engine, root, parts, state, reader);
 }
 
-/** Reads a graph with the engine page after page of `pageSize`, and compares every commit each time with `git log`. */
-async function compare(root: string, asked: Asked, pages = 1, pageSize = 100, engine = client()): Promise<number[]> {
+/** The rows of a graph once its read ended, every page laid out under the rows before it. */
+async function wholeRows(graph: EngineGraph, root: string, state: RepoState): Promise<RepoState> {
+  await graph.reached(root, Number.POSITIVE_INFINITY);
+  const laid = laidOutOf(state.rows)!;
+  return { ...state, rows: laid.catchUp(), hasMore: laid.source.hasMore };
+}
+
+/** Reads a graph with the engine as git prints it, in pages of `pageSize`, and compares every commit with `git log`. */
+async function compare(root: string, asked: Asked, pageSize = 100, engine = client()): Promise<RepoState> {
   const graph = new EngineGraph();
-  const skips = counting(engine);
   const reader: CommitsReader = (reading) => graph.commits(engine, root, reading, pageSize);
-  for (let page = 1; page <= pages; page++) {
-    const viaEngine = await engineGraphState(engine, root, page * pageSize, asked, reader);
-    const plain = await gitLog(root, page * pageSize, asked);
-    const what = `${JSON.stringify(asked)}, ${page * pageSize} commits`;
-    expect(commitsOf(viaEngine), what).toEqual(plain.commits);
-    expect(viaEngine.hasMore, what).toBe(plain.hasMore);
-  }
-  return skips;
+  const viaEngine = await wholeRows(graph, root, await engineGraphState(engine, root, pageSize, asked, reader));
+  const plain = await gitLog(root, 100_000, asked);
+  const what = JSON.stringify(asked);
+  expect(commitsOf(viaEngine), what).toEqual(plain.commits);
+  expect(viaEngine.hasMore, what).toBe(false);
+  return viaEngine;
 }
 
 describe.skipIf(!built)('the graph read by the engine', { timeout: 120_000 }, () => {
@@ -220,7 +225,7 @@ describe.skipIf(!built)('the graph read by the engine', { timeout: 120_000 }, ()
       { filter: { kind: 'pickaxe', query: 'more' } },
       { filter: { kind: 'regex', query: '^m.re' } },
     ];
-    for (const asked of ways) await compare(root, asked, 1, 100, engine);
+    for (const asked of ways) await compare(root, asked, 100, engine);
   });
 
   it('places the stashes above the commits they were made on, the newest first', async () => {
@@ -238,46 +243,70 @@ describe.skipIf(!built)('the graph read by the engine', { timeout: 120_000 }, ()
     }
   });
 
-  it('lists the commits git lists page after page, each next page read from the last row the graph has', async () => {
+  it('reads the whole history in one read, each page laid out under the rows before it as all the rows at once', async () => {
     const root = await history(330);
     for (const asked of [{}, { firstParent: true }, { scope: { kind: 'refs', refs: ['refs/heads/keep'] } } satisfies Asked]) {
-      const skips = await compare(root, asked, 5);
-      // The first page from the newest commit, then each from the last commit of the pages before.
-      expect(skips[0], JSON.stringify(asked)).toBe(0);
+      const engine = client();
+      const reads = counting(engine);
+      const viaEngine = await compare(root, asked, 100, engine);
+      expect(reads.map((timeline) => timeline.skip), JSON.stringify(asked)).toEqual([0]);
+      // The lanes of each page went on from the last row of the page before: they are those of every row at once.
+      const layout = new GraphLayout();
+      const atOnce = viaEngine.rows.map((row) => layout.next(row.hash, row.parents, row.hash === WORKTREE || row.stash !== undefined));
       expect(
-        skips.slice(1).every((skip) => skip > 0),
-        `${JSON.stringify(asked)}: ${skips}`,
-      ).toBe(true);
+        viaEngine.rows.map((row) => row.graph),
+        JSON.stringify(asked),
+      ).toEqual(atOnce);
     }
   });
 
-  it('reads the whole pages again when a stash of a new page goes above the rows the graph has', async () => {
+  it('gives the first page as soon as it is read, and the next ones as they come', async () => {
+    const root = await history(330);
+    const engine = client();
+    let pages = 0;
+    const graph = new EngineGraph(() => pages++);
+    const state = await engineGraphState(engine, root, 100, {}, (reading) => graph.commits(engine, root, reading, 100));
+    const first = state.rows.filter((row) => row.stash === undefined && row.hash !== WORKTREE).length;
+    expect(first).toBeGreaterThanOrEqual(100);
+    const whole = await wholeRows(graph, root, state);
+    expect(commitsOf(whole).length).toBe((await gitLog(root, 100_000, {})).commits.length);
+    expect(pages).toBeGreaterThan(1);
+  });
+
+  it('places a stash of a later page where all the commits read at once put it', async () => {
     const root = await history(260);
     // A stash made on an old commit is newer than every commit: it goes to the top once that commit is listed.
     await git(root, ['checkout', '--quiet', 'main~230']);
     fs.writeFileSync(path.join(root, 'stashed.txt'), 'kept\n');
     await git(root, ['stash', 'push', '--quiet', '--include-untracked', '-m', 'Old']);
     await git(root, ['checkout', '--quiet', 'main']);
-    const skips = await compare(root, { stashes: true }, 3);
-    expect(skips.filter((skip) => skip === 0).length, `${skips}`).toBeGreaterThan(1);
+    const viaEngine = await compare(root, { stashes: true });
+    const stash = viaEngine.rows.findIndex((row) => row.stash === 'stash@{0}');
+    const made = viaEngine.rows.findIndex((row) => row.hash === viaEngine.rows[stash]?.parents[0] && row.stash === undefined);
+    expect(stash).toBeGreaterThanOrEqual(0);
+    expect(made).toBeGreaterThan(stash);
   });
 
-  it('reads every page again when the history changed, and a repository with no commit', async () => {
+  it('keeps its commits while the history is the same, reads them again when it changed, and a repository with no commit', async () => {
     const root = await history(150);
     const engine = client();
     const graph = new EngineGraph();
     const reader: CommitsReader = (asked) => graph.commits(engine, root, asked, 100);
-    await engineGraphState(engine, root, 100, {}, reader);
+    const reads = counting(engine);
+    const before = await wholeRows(graph, root, await engineGraphState(engine, root, 100, {}, reader));
+    fs.writeFileSync(path.join(root, 'changed.txt'), 'not committed\n');
+    const same = await wholeRows(graph, root, await engineGraphState(engine, root, 100, {}, reader));
+    expect(reads.length, 'a change to the files reads no commits').toBe(1);
+    expect(commitsOf(same)).toEqual(commitsOf(before));
     await commitFile(root, 'new.txt', 'new\n', 'A new commit');
-    const skips = counting(engine);
-    const viaEngine = await engineGraphState(engine, root, 200, {}, reader);
-    expect(commitsOf(viaEngine)).toEqual((await gitLog(root, 200, {})).commits);
-    expect(skips).toEqual([0]);
+    const viaEngine = await wholeRows(graph, root, await engineGraphState(engine, root, 100, {}, reader));
+    expect(commitsOf(viaEngine)).toEqual((await gitLog(root, 100_000, {})).commits);
+    expect(reads.map((timeline) => timeline.skip)).toEqual([0, 0]);
 
     const empty = await repository(false);
     fs.writeFileSync(path.join(empty, 'first.txt'), 'first\n');
-    await compare(empty, {}, 1, 100, engine);
-    await compare(empty, { scope: { kind: 'current' } }, 1, 100, engine);
+    await compare(empty, {}, 100, engine);
+    await compare(empty, { scope: { kind: 'current' } }, 100, engine);
   });
 
   it('lists two stashes of the same second on one commit the newest first', async () => {

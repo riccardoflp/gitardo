@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{CommitJson, LineRangeJson, commit_of, id, ids};
 use crate::feature::NotACommit;
+use crate::rpc::RequestId;
 
 /// The branches the graph shows (`BranchesShown` of `model`); none in a timeline is every branch.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -254,6 +255,22 @@ pub struct CommitsParams {
     /// The timeline and how much of it.
     #[serde(flatten)]
     pub timeline: TimelineJson,
+    /// Whether the pages are sent as they are read (version 1.8, D54): each in a notification `read/graph.rows`, the
+    /// read going on after `skip` to the end of the history or to 100,000 commits, whatever `pages` says, and its
+    /// answer with no rows once it ends. Without it, every row of the pages asked for comes in the answer.
+    #[serde(default)]
+    pub stream: bool,
+}
+
+/// The notification `read/graph.rows` (version 1.8): a page of a read of the commits asked with `stream`, as it is
+/// read.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GraphRowsParams {
+    /// The id of the request `read/graph.read-commits` it is a page of.
+    pub read: RequestId,
+    /// The rows of the page, newest first, after those of the pages before.
+    pub rows: Vec<RowJson>,
 }
 
 /// One row of the graph (`Row` of `model`).

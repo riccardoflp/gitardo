@@ -247,6 +247,10 @@ operation that stopped half way.
   first read.
 - **Uses**: `repo.schedule-reads`, `graph.read-commits`, `refs.recent`, `submodule.read-list`,
   `conflicts.resolve-by-rules`.
+- **Extension**: `read/repo.read-state` of Gitardo's engine, from `Reads.parts` in `src/engine/reads.ts`, with
+  `refresh` (version 1.8 of the protocol) for **Refresh** and for a repository chosen: the engine keeps what each read
+  counted in the other worktrees, and counts again only those whose git folder changed (Q462). `repository/open` counts
+  them all. `gitardo.readOnStartup` is the setting `readOnStartup`.
 
 Acceptance:
 
@@ -292,6 +296,14 @@ This says which changes count, and how soon.
 - **Kind**: Derivation
 - **Function**: `model::repo::watch_changes(change: &Change) -> Option<ReadRequest>`
 - **Uses**: by `repo.schedule-reads`.
+- **Extension**: the watchers of `Controller.watch` in `src/extension/controller.ts`, of the common git folder and of
+  the working tree. A file of the working tree in the folder of another worktree of `RepoState.worktrees` inside the
+  repository asks for nothing; the others of a burst are given, a second after the first of them, to
+  `read/repo.watch-changes` of Gitardo's engine (version 1.8), which leaves out those in nested worktrees and those
+  `git check-ignore` ignores, a `.gitignore` never, and the repository is read at once when one is left. A file saved,
+  created, deleted or renamed in VS Code's editor stands for Gitardo's own editor. VS Code getting the focus stands for
+  the window getting it, and a change that came while no view of Gitardo was open for one that came while it was
+  minimized; the minute is counted from the end of the last read of the repository shown.
 
 What is watched, and what each change asks for:
 
@@ -346,6 +358,10 @@ changing during each read, never during an operation. **Refresh** asks for a rea
   every change `repo.watch-changes` counts.
 - **Settings**: `readOnStartup`, for the first read (see `repo.read-state`).
 - **Uses**: `repo.watch-changes`, `repo.read-state`, `graph.read-commits`, `activity.describe-task`.
+- **Extension**: `Controller.refresh` and `Controller.load` in `src/extension/controller.ts`, with the status bar item
+  of `activity.status-bar`; **Refresh** of the views and **Gitardo: Refresh** are `Controller.refreshAll`, which reads
+  every commit and counts every worktree again. `EngineGraph` of `src/engine/graph.ts` keeps the commits of a read while
+  the commit checked out, the references and the stashes are those of the read before.
 
 Each tab has a schedule of its own, kept with what the tab keeps (`repo.keep-open`): these rules are those of the tab
 shown, and the tabs not shown follow `repo.watch-hidden`.

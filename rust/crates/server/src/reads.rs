@@ -1,5 +1,5 @@
-//! The reads of stage 5, and those of the graph from stage 7: every `read/<card>` of the protocol but
-//! `repo.read-state`, each answered by the function its card names. A read runs on the thread of its request, never
+//! The reads of stage 5, those of the graph from stage 7, and `repo.watch-changes` from milestone M15: every
+//! `read/<card>` of the protocol but `repo.read-state`, each answered by the function its card names. A read runs on the thread of its request, never
 //! on the thread of the repository's engine, so that reads run at the same time as each other and as an operation;
 //! its git is given the token that `$/cancel` cancels, and it is logged as a read with how long it took. Nothing here
 //! changes the repository.
@@ -19,7 +19,7 @@ use git::{CancelToken, Git, GitError};
 use model::state::RepositoryState;
 use protocol::messages::RepositoryParams;
 use protocol::reads::methods;
-use protocol::rpc::{ResponseError, codes};
+use protocol::rpc::{RequestId, ResponseError, codes};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -29,6 +29,8 @@ use crate::session::{Session, git_failure, json, parameters};
 pub struct Reading<'a> {
     /// The session, for the settings and the host questions.
     pub session: &'a Arc<Session>,
+    /// The id of the request, which the pages of a read of the commits sent as they are read name (1.8).
+    pub id: &'a RequestId,
     /// The folder of the top of the working tree.
     pub folder: PathBuf,
     /// Git, run in that folder, with the token of the request.
@@ -52,6 +54,7 @@ pub fn is_read(method: &str) -> bool {
 /// When the repository is not open, the parameters are not the read's, or git fails or is cancelled.
 pub fn answer(
     session: &Arc<Session>,
+    id: &RequestId,
     method: &str,
     params: Value,
     cancel: &CancelToken,
@@ -61,6 +64,7 @@ pub fn answer(
     let folder = opened.folder().to_path_buf();
     let reading = Reading {
         session,
+        id,
         git: Git::new(&folder).with_cancel(cancel.clone()),
         folder,
         cancel,
@@ -110,6 +114,7 @@ fn read(reading: &Reading<'_>, method: &str, params: Value) -> Result<Value, Res
         methods::SETUP_COMMANDS => repository::setup_commands(reading),
         methods::SETUP_PATHS => repository::path_statuses(reading, &parameters(params)?),
         methods::PULL_REQUESTS => repository::pull_requests(reading, &parameters(params)?),
+        methods::WATCH_CHANGES => files::changes_to_read(reading, parameters(params)?),
         _ => Err(ResponseError::new(
             codes::METHOD_NOT_FOUND,
             format!("Gitardo's engine has no method named {method}."),

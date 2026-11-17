@@ -24,6 +24,7 @@ import {
   type Bytes,
   type CommitAsked,
   type CommitPage,
+  type EngineRow,
   type CommitDetail,
   type CommittedLines,
   type CompareRequest,
@@ -35,6 +36,8 @@ import {
   type Finished,
   type FollowUp,
   type FollowUpsParams,
+  GRAPH_ROWS,
+  type GraphRowsParams,
   HostMethod,
   type IgnoredEntry,
   type InitializeParams,
@@ -149,6 +152,8 @@ export class EngineClient {
   private readonly followUps = new Map<number, FollowUp[]>();
   /** Where the answer of a language model is shown as it comes, by the id of the read that asked for it (area 6). */
   private readonly modelText = new Map<number, (text: string) => void>();
+  /** Who takes the pages of each read of the commits sent as they are read, by the id of its request (1.8). */
+  private readonly graphRows = new Map<number, (rows: EngineRow[]) => void>();
   private stopping = false;
   private current: EngineStatus = 'stopped';
 
@@ -196,10 +201,14 @@ export class EngineClient {
     await connection.request(Method.close, { repository });
   }
 
-  /** Reads the state of a repository opened. */
-  async readState(repository: string, signal?: AbortSignal): Promise<RepositoryState> {
+  /**
+   * Reads the state of a repository opened. A `refresh` (**Refresh**, or a repository chosen) counts what is not
+   * committed in every other worktree again; any other read keeps the count of a worktree whose git folder did not
+   * change since (1.8).
+   */
+  async readState(repository: string, signal?: AbortSignal, refresh = false): Promise<RepositoryState> {
     const connection = await this.ready();
-    return connection.request<RepositoryState>(Method.readState, { repository }, signal);
+    return connection.request<RepositoryState>(Method.readState, { repository, refresh }, signal);
   }
 
   /** Opens a repository unless it is open, once for the reads that ask at the same time. */
@@ -208,9 +217,12 @@ export class EngineClient {
     await this.opening(repository);
   }
 
-  /** The state of a repository as it is now: the one read as it opens, when it was not open yet (`repo.read-state`). */
-  async currentState(repository: string, signal?: AbortSignal): Promise<RepositoryState> {
-    if (this.opened.has(repository)) return this.readState(repository, signal);
+  /**
+   * The state of a repository as it is now: the one read as it opens, when it was not open yet (`repo.read-state`).
+   * `refresh` counts every other worktree again, as opening it does.
+   */
+  async currentState(repository: string, signal?: AbortSignal, refresh = false): Promise<RepositoryState> {
+    if (this.opened.has(repository)) return this.readState(repository, signal, refresh);
     return this.opening(repository);
   }
 
@@ -438,6 +450,31 @@ export class EngineClient {
     return this.read(ReadMethod.graphCommits, repository, timeline, signal);
   }
 
+  /**
+   * Reads the commits of the timeline after the `skip` the client has as git prints them, to the end of the history or
+   * to 100,000 commits, giving each page to `onRows` as soon as it is read (`graph.read-commits` with `stream`, 1.8).
+   * It ends once the read does, saying whether the history has more; cancelled, no page comes after it.
+   */
+  async graphStream(repository: string, timeline: Timeline, onRows: (rows: EngineRow[]) => void, signal?: AbortSignal): Promise<{ hasMore: boolean }> {
+    const connection = await this.ready();
+    await this.ensureOpen(repository);
+    const { id, answer } = connection.send<CommitPage>(ReadMethod.graphCommits, { ...timeline, repository, stream: true }, signal);
+    this.graphRows.set(id, onRows);
+    try {
+      return { hasMore: (await answer).hasMore };
+    } finally {
+      this.graphRows.delete(id);
+    }
+  }
+
+  /**
+   * Which files of the working tree a burst changed ask for a read, from the top with `/`: none in a worktree nested in
+   * this one, a `.gitignore` always, and of the others those git does not ignore (`repo.watch-changes`, 1.8).
+   */
+  async changesToRead(repository: string, paths: string[], signal?: AbortSignal): Promise<string[]> {
+    return (await this.read<{ paths: string[] }>(ReadMethod.watchChanges, repository, { paths }, signal)).paths;
+  }
+
   /** How many commits come before a commit in the timeline; null when it is not there (`graph.read-position`). */
   async graphPosition(repository: string, commit: string, timeline: Timeline, signal?: AbortSignal): Promise<number | null> {
     return (await this.read<{ index: number | null }>(ReadMethod.graphPosition, repository, { commit, timeline }, signal)).index;
@@ -576,6 +613,10 @@ export class EngineClient {
       return this.options.languageModel(request, onText, signal);
     });
     connection.onRequest(AiMethod.languageModels, async () => ({ models: this.options.languageModels ? await this.options.languageModels() : [] }));
+    connection.on(GRAPH_ROWS, (params) => {
+      const { read, rows } = params as GraphRowsParams;
+      this.graphRows.get(read)?.(rows);
+    });
     connection.on(Method.state, (params) => {
       const { repository, state } = params as StateParams;
       for (const handler of this.stateHandlers) handler(repository, state);

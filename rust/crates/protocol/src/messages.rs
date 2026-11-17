@@ -58,8 +58,10 @@ pub mod methods {
 /// models, the reads of the draft of a commit message and of the question about a conflict, the follow-up that writes a
 /// setting, and the target of a comparison; 1.7 what stage 10 needs once the extension has no git of its own:
 /// `repository/discover` with the common git folder of each repository, a change of a diff and a file of a comparison
-/// as targets, and `journal/record` gone, which no client sends any more.
-pub const VERSION: &str = "1.7";
+/// as targets, and `journal/record` gone, which no client sends any more; 1.8 what milestone M15 needs: the pages of
+/// `read/graph.read-commits` sent as they are read (`stream`, `read/graph.rows`), `refresh` in
+/// `read/repo.read-state`, and `read/repo.watch-changes`, which says which files of a burst ask for a read.
+pub const VERSION: &str = "1.8";
 
 /// Whether a version of the protocol is one the engine speaks: the same major number, whatever the minor one.
 #[must_use]
@@ -165,6 +167,19 @@ pub struct EngineInfo {
 pub struct RepositoryParams {
     /// The folder of the top of its working tree.
     pub repository: String,
+}
+
+/// The parameters of `read/repo.read-state` (1.8): the repository, and whether the read is a **Refresh**, or the read
+/// of a repository chosen, which counts what is not committed in every other worktree again; any other read keeps the
+/// count of a worktree whose own git folder did not change since the read before (M15).
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadStateParams {
+    /// The folder of the top of its working tree.
+    pub repository: String,
+    /// Whether every other worktree is counted again.
+    #[serde(default)]
+    pub refresh: bool,
 }
 
 /// The parameters of `repository/discover`.

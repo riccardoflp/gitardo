@@ -178,8 +178,10 @@ file and its sides with `conflictPlans` (`src/engine/conflictPlans.ts`), and wor
 
 The rows of the graph, the position of a commit and the matches of a search are read by the engine
 (`src/engine/graph.ts`): `graphState` puts the parts and the rows together and lays out the lines from their parents
-(`src/shared/graph.ts`), the next pages are asked with `skip` from the last row read, and a read that another takes the
-place of is cancelled.
+(`src/shared/graph.ts`). `EngineGraph` keeps one read of the commits for each repository, asked with `stream` (version
+1.8 of the protocol) so that its pages come as git prints them; each page is laid out under the rows before it from the
+lanes under the last of them (`LaidOutRows`), the read is kept while the history is the same, and one that another takes
+the place of is cancelled. Past 100,000 commits the next read is asked with `skip` from the last row read.
 
 ### The views' shapes
 

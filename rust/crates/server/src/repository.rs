@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 
 use engine::{Clock, CommandLog, Engine, LogLevel};
 use git::Git;
+use git::read::worktree::CountedWorktrees;
 use model::Timestamp;
 use model::repo::{Change, watch_changes};
 use model::state::RepositoryState;
@@ -33,6 +34,9 @@ pub struct Repository {
     /// The state the last read of it found, while no operation ran since (`repo.read-state`, `undo.last`,
     /// `graph.read-commits`).
     kept: Mutex<KeptState>,
+    /// What the last read of its state counted in the other worktrees, kept by the next read where nothing changed in
+    /// their git folders (`repo.read-state`, M15).
+    counted: Mutex<CountedWorktrees>,
 }
 
 /// The state of the last read of a repository, kept (M15) so that `journal/last` checks what Undo would take back
@@ -119,6 +123,7 @@ impl Repository {
             burst: Mutex::new(Burst::default()),
             is_closed: AtomicBool::new(false),
             kept: Mutex::new(KeptState::default()),
+            counted: Mutex::new(CountedWorktrees::default()),
         }
     }
 
@@ -139,6 +144,16 @@ impl Repository {
     /// The state the last read found, when no operation ran since it.
     pub fn kept_state(&self) -> Option<Arc<RepositoryState>> {
         locked(&self.kept).state.clone()
+    }
+
+    /// What the last read counted in the other worktrees.
+    pub fn counted(&self) -> CountedWorktrees {
+        locked(&self.counted).clone()
+    }
+
+    /// Keeps what a read counted in the other worktrees, for the read after it.
+    pub fn keep_counted(&self, counted: CountedWorktrees) {
+        *locked(&self.counted) = counted;
     }
 
     /// Notes that an operation ran: the state kept is dropped, and the reads under way are not kept.

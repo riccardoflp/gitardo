@@ -264,7 +264,7 @@ export function activate(context: vscode.ExtensionContext): GitardoApi {
     command('gitardo.openBranches', () => vscode.commands.executeCommand(`${BRANCHES_VIEW}.focus`)),
     command('gitardo.openStashes', () => vscode.commands.executeCommand(`${STASHES_VIEW}.focus`)),
     command('gitardo.openInEditor', openInEditor),
-    command('gitardo.refresh', () => controller.refresh()),
+    command('gitardo.refresh', () => controller.refreshAll()),
     command(SHOW_ACTIVITY, () => controller.activity.show()),
     command('gitardo.showLog', () => log.show()),
     command('gitardo.stash', () => controller.action({ kind: 'stashPush' })),

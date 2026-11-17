@@ -121,8 +121,10 @@ node test/perf/vscode.mjs ../big
   that many changed and untracked files. The two git commands after it leave the references and the history the way
   `git gc` or `git maintenance` leave them in a repository that is looked after; without them git itself takes about
   three times as long to list the commits.
-- `dist/perf.js <repository>` times what Gitardo reads: the state at 1,000, 5,000 and 20,000 commits, the details of a
-  commit, the working tree, each kind of search, the history of a file, blame.
+- `dist/perf.js <repository>` times what Gitardo reads: the whole history as the controller reads it (the state, then
+  one read whose pages are laid out as they come, D54), the state at 1,000, 5,000 and 20,000 commits, the details of a
+  commit, the working tree, each kind of search, the history of a file, blame. `--engine=<binary>` names the engine,
+  the release build for the numbers of M15.
 - `vscode.mjs <repository> [--out=<folder>]` opens the repository in the throwaway VS Code of `npm run test:ui` and
   times what a person waits for: opening the graph, a refresh, a new file showing up, the next pages of commits,
   selecting a commit, typing a commit message. It saves screenshots to `dist/perf`, and adds and removes one file in the
@@ -173,8 +175,10 @@ the extension finds it from `gitardo.engine.path`, which the e2e and UI scripts 
   --line-porcelain`, …). `test/reads.test.ts` asks the reads as the views ask them, through `src/engine/reads.ts`,
   against git's own output, and, with the binary missing, checks that each read throws `EngineMissing`.
 - `test/engineGraph.test.ts` reads the graph through the engine (`src/engine/graph.ts`), in every way the graph can be
-  shown, page after page with each next page read from the last row with `skip`, with a stash that makes the pages be
-  read whole again, and checks the rows, the positions and the matches against `git log` with the same arguments; R8
+  shown, as one read whose pages come as git prints them (1.8, D54), each page laid out under the rows before it as all
+  the rows at once, with a stash of a later page placed where all the commits read at once put it, the commits kept
+  while the history is the same and read again when it changed, and checks the rows, the positions and the matches
+  against `git log` with the same arguments; R8
   of [04-differences.md](../transition/04-differences.md#reads-of-the-graph-stage-7) is its own test.
 - `test/engineAi.test.ts`, for the AI and GitHub, answers the engine's host questions with a fake language model,
   which keeps what it was asked: what the draft of a commit message and the question about a conflict send the model,

@@ -39,6 +39,9 @@ on to the end of the history, or to 100,000 commits (D54).
 - **Settings**: `graph.pageSize` (1,000 by default; a number under 100 counts as 100, over 10,000 as 10,000, and what
   is not a number as 1,000); `graph.firstParent`; `graph.showStashes`.
 - **Uses**: `filter.log-arguments`, `graph.place-stashes`, `graph.lanes`.
+- **Extension**: `read/graph.read-commits` of Gitardo's engine with `stream` (version 1.8 of the protocol), each page
+  in a notification `read/graph.rows` as it is read; `EngineGraph` of `src/engine/graph.ts` keeps one read for each
+  repository, adds its pages as they come, and stops it when another history is asked for.
 
 Acceptance:
 
@@ -536,6 +539,9 @@ shown (D54).
 - **Entry points**: scrolling the list of commits.
 - **Settings**: `graph.pageSize`.
 - **Uses**: `graph.read-commits`.
+- **Extension**: the pages `EngineGraph` adds are laid out and sent to the views by `Controller.showPages`, those that
+  come within 150 ms together, with only the rows the views do not have; `loadMore` of the list of commits asks for
+  nothing while a read adds its pages, and past 100,000 commits reads from the last one.
 
 - Each page of a read is added under the rows as soon as it is read, whether the list is scrolled or not, until the
   read ends at the end of the history or at 100,000 commits (`graph.read-commits`).
@@ -566,6 +572,9 @@ Where each commit's dot goes, and the lines between commits, row by row.
 
 - **Kind**: Derivation
 - **Function**: `model::graph::lanes(rows: &[GraphInput]) -> Vec<GraphCell>`
+- **Extension**: `GraphLayout` of `src/shared/graph.ts`, whose `page` lays out a page under the rows before it from the
+  lanes under the last of them; `LaidOutRows` of `src/engine/graph.ts` keeps the layout with the rows of a read. Folded
+  merges are laid out again whole in the view (`foldMerges`).
 
 Input: the rows in the order listed, newest first, each commit before its parents, each with its hash, its parents and
 whether its line is dashed (the uncommitted changes and the stashes). Output, for each row: the lane of its dot, its
