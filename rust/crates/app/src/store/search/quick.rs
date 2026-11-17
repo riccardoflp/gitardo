@@ -5,6 +5,8 @@ use views::Intent;
 use views::feature::FeatureIntent;
 use views::graph::GraphIntent;
 use views::search::{QuickChoice, QuickCommand, SearchIntent};
+use views::settings::{SettingsAnchor, SettingsIntent, SettingsTarget};
+use views::text::settings::settings;
 
 use super::super::message::{Effect, Message};
 use super::super::pages;
@@ -45,6 +47,7 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
             effects.extend(go_to(state, commit));
             return effects;
         }
+        QuickChoice::Settings(anchor) => return reveal_setting(state, anchor),
         QuickChoice::Command(command) => command,
     };
     if let (Some(feature), Some(id)) = (command.file_page_operation(), state.file_in_front()) {
@@ -86,6 +89,27 @@ fn choose(state: &mut State, choice: QuickChoice) -> Vec<Effect> {
         }
         _ => Vec::new(),
     };
+    intents
+        .into_iter()
+        .flat_map(|intent| super::super::reduce(state, Message::Intent(intent)))
+        .collect()
+}
+
+/// **Open Settings: <section>** or **Open Settings: <title>**: the settings page shown, or opened, with its list
+/// scrolled there; the search of the page emptied and the tab of the user's file shown when the setting is not
+/// listed otherwise.
+fn reveal_setting(state: &mut State, anchor: SettingsAnchor) -> Vec<Effect> {
+    let mut intents = vec![Intent::ShowPage(views::page::Page::Settings)];
+    if !state.settings_page.query.is_empty() {
+        intents.push(Intent::Settings(SettingsIntent::Search(String::new())));
+    }
+    if let SettingsAnchor::Setting(key) = anchor {
+        let is_repository = settings().any(|info| info.key == key && info.is_repository);
+        if state.settings_target == SettingsTarget::Repository && !is_repository {
+            intents.push(Intent::ChooseSettingsFile(SettingsTarget::User));
+        }
+    }
+    intents.push(Intent::Settings(SettingsIntent::Reveal(anchor)));
     intents
         .into_iter()
         .flat_map(|intent| super::super::reduce(state, Message::Intent(intent)))

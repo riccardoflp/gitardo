@@ -8,10 +8,14 @@ use views::text::settings::{self as words, SettingInfo, SettingKind, settings};
 
 use super::{ProblemReason, SettingProblem, Settings, SettingsFile, keys};
 
-/// Every setting, in the order of the card, as the settings read say it, for the tab of a file.
+/// Every setting, in the order of the card, as the settings read say it, for the tab of a file: in **Repository**, only
+/// the settings that file may set.
 #[must_use]
 pub fn setting_rows(read: &Settings, target: SettingsTarget) -> Vec<SettingRow> {
-    settings().map(|info| setting_row(read, info, target)).collect()
+    settings()
+        .filter(|info| target == SettingsTarget::User || info.is_repository)
+        .map(|info| setting_row(read, info, target))
+        .collect()
 }
 
 /// A setting: the first value taken of the files that may set it, the repository's first, or its default; and the

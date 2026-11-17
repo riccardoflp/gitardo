@@ -38,6 +38,15 @@ pub fn reduce_intent(state: &mut State, intent: &Intent) -> Vec<Effect> {
     }
 }
 
+/// The tab of the file the settings page shows: **User** while no repository is shown, whose tab is not there.
+pub(super) fn shown_target(state: &State) -> SettingsTarget {
+    if state.shown_folder().is_some() {
+        state.settings_target
+    } else {
+        SettingsTarget::User
+    }
+}
+
 /// Writes a value in the user's file, or in `.gitardo/settings.json` of the repository shown; nothing when that file
 /// has no place.
 fn set_setting(state: &State, change: SettingChange) -> Vec<Effect> {

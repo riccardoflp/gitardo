@@ -2895,3 +2895,10 @@ card says otherwise.
   pixels holds neither.
 - **Q486** — `settings.reset`: ↺ is named `Back to the default: <title>` for the screen reader and its tooltip, and
   draws `undo-2`, the icon of what goes back to how it was.
+- **Q487** — `settings.edit`: **User** and **Repository** are tabs for the screen reader too, a role the toolkit did
+  not have; each row of a setting is a group named by its title, selected while it is marked, so that the row
+  `settings.reveal` marks is said and can be tested. While no repository is shown, the page shows **User** whatever tab
+  was chosen before.
+- **Q488** — `settings.reveal`: **Open Settings: <title>** empties the search of the page when something is typed in
+  it, and shows **User** when **Repository** is shown and the setting is not one its file may set, since the setting
+  would not be listed otherwise. Its entries come after the commands of Quick search, the sections first.

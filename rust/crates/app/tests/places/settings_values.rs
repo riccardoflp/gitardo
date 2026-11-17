@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use app::store::State;
 use platform::accesskit::{Role, TreeUpdate};
-use render::{Rect, ThemeName};
+use render::ThemeName;
 use ui::{InputEvent, Key, KeyEvent, Modifiers, NamedKey, Point};
 use views::Intent;
 use views::page::Page;
@@ -173,8 +173,8 @@ fn settings_edit__an_identity_added_to_the_table_writes_identities_with_its_name
     let (mut state, _repository, file) = settings_page("{}\n", "identities");
     let mut window = Window::new(ThemeName::Dark, SIZE);
     let tree = settled(&mut window, &state);
-    let title = super::pointer::said_at(&tree, "Identities", Rect::new(0.0, 0.0, 4_000.0, 4_000.0));
-    let added = click_at(&mut window, &state, add_under(&tree, middle(title)), 1);
+    let row = bounds(&tree, Role::Group, "Identities");
+    let added = click_at(&mut window, &state, add_under(&tree, Point::new(row.x, row.y)), 1);
     let one = SettingValue::Identities(vec![Identity::default()]);
     assert_eq!(written(&added), vec![user_change("identities", one)]);
     std::fs::write(&file, "{\n  \"identities\": [{ \"name\": \"\", \"email\": \"\" }]\n}\n").unwrap();
@@ -251,4 +251,18 @@ fn settings_reset__with_pull_rebase_in_both_files_reset_in_repository_takes_it_o
 /// The repository's settings file.
 fn repository_file(folder: &Path) -> PathBuf {
     folder.join(".gitardo").join("settings.json")
+}
+
+#[test]
+fn settings_edit__page_size_500_in_the_repository_2000_in_the_user_file_user_shows_2000_and_set_by_the_repository_500()
+{
+    let (mut state, repository, _file) = settings_page("{\n  \"graph.pageSize\": 2000\n}\n", "graph.pageSize");
+    let repository_file = repository_file(repository.path());
+    std::fs::create_dir_all(repository_file.parent().unwrap()).unwrap();
+    std::fs::write(&repository_file, "{\n  \"graph.pageSize\": 500\n}\n").unwrap();
+    read_again(&mut state);
+    let mut window = Window::new(ThemeName::Dark, SIZE);
+    let tree = settled(&mut window, &state);
+    let _shown = field_with(&tree, "2000");
+    assert!(says_in(&tree, "Set by the repository: 500"));
 }

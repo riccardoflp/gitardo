@@ -18,6 +18,11 @@
   `identities` as a table of name, email and signing key. A typed value is written once, when its field loses the
   focus or `Enter` is pressed. A setting the file of the tab shown sets has a bar on its left and a button that takes
   it out of the file, back to its default, comments and the rest of the file kept.
+- The settings page has two tabs, **User** and **Repository**, for the file a change is written in; **Repository**
+  lists only the settings that file may set and is not there while no repository is shown. In **User**, a setting the
+  repository's file sets too says `Set by the repository: <value>`. Quick search has **Open Settings: <section>** and
+  **Open Settings: <title>**, which open the page, or scroll the page already open, to that section or setting, the
+  setting marked for a second.
 - A menu taller than the room it has scrolls instead of moving: under a button, such as **…**, it opens below the
   button and ends 8 px above the foot of the window, and a menu at the pointer opens above it when it fits only there.
   The wheel scrolls it by entries, a bar on its right can be dragged, its first and last entries fade where there is

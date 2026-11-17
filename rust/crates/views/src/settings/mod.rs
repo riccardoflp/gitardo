@@ -9,15 +9,11 @@ mod page;
 mod row;
 mod search;
 mod sections;
+mod tabs;
 mod theme;
 
-use model::contract::{FeatureId, Target};
-use model::worktree_setup::{SettingsPlace, SetupSave};
-use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{
-    AccessRole, Availability, Button, ButtonKind, Choice, InputBox, Key, Label, Modifiers, NamedKey, Rect, TextKind,
-    Tone, Ui,
-};
+use ui::layout::{Area, Insets, inset};
+use ui::{AccessRole, InputBox, Key, Modifiers, NamedKey, Rect, Ui};
 
 pub use layout::{ListItem, ListLayout, PlacedItem, scroll_to};
 pub use page::{SettingsAnchor, SettingsIntent, SettingsList, SettingsPage, is_set};
@@ -25,7 +21,6 @@ pub use search::{Found, find};
 pub use sections::{SectionButton, SectionsState, sections_view};
 pub use theme::{ThemePickerState, theme_picker_view};
 
-use crate::feature::FeatureIntent;
 use crate::icons;
 use crate::intent::Intent;
 use crate::text::settings::{self as words, SettingInfo, SettingsSection, settings};
@@ -179,8 +174,8 @@ pub fn default_rows() -> Vec<SettingRow> {
 }
 
 /// The settings page, centered in the rectangle its caller clipped it to and at most 960 logical pixels wide: the
-/// search, which has the keyboard when the page opens, the file changes are written in and **Edit in settings.json**,
-/// which opens it in a File page; then the column of the sections on the left and the list of the settings on the
+/// search, which has the keyboard when the page opens, the tabs **User** and **Repository**, which choose the file
+/// changes are written in, and **Edit in settings.json**, which opens it in a File page; then the column of the sections on the left and the list of the settings on the
 /// right, each setting with its title, **Experimental** beside the title of an experimental one, its description, its
 /// key, where its value comes from or why a value was not taken, and a switch or a choice for the settings that hold
 /// one.
@@ -196,7 +191,7 @@ pub fn settings_view(state: &SettingsPageState<'_>, ui: &mut Ui<'_>) -> Vec<Inte
     ui.region("settings page", (page, AccessRole::Region, words::PAGE), |ui| {
         let mut area = Area::with_gap(inset(page, Insets::all(spacing.large + spacing.small)), spacing.large);
         intents.extend(search_box(state, ui, area.top(theme.sizes.control_height)));
-        target_bar(state, ui, area.top(theme.sizes.control_height), &mut intents);
+        tabs::target_bar(state, ui, area.top(theme.sizes.control_height), &mut intents);
         let body = area.rest();
         if page.width < NARROW {
             let mut column = Area::with_gap(body, spacing.medium);
@@ -268,51 +263,4 @@ fn section_buttons(state: &SettingsPageState<'_>) -> Vec<SectionButton> {
             }
         })
         .collect()
-}
-
-/// The choice of the file changes are written in, and **Edit in settings.json**, which opens that file in a File page
-/// (`worktree-setup.edit-settings-file`).
-fn target_bar(state: &SettingsPageState<'_>, ui: &mut Ui<'_>, rect: Rect, intents: &mut Vec<Intent>) {
-    let theme = *ui.theme();
-    let mut parts = Area::with_gap(rect, theme.sizes.spacing.large);
-    let edit = Button::secondary(words::EDIT_IN_FILE).kind(ButtonKind::Outline);
-    let (width, height) = ui.button_size(&edit);
-    let cell = place(parts.right(width), (width, height), (Align::Start, Align::Center));
-    if ui.button("edit settings file", cell, &edit).clicked {
-        intents.push(edit_file(state.target));
-    }
-    let label_width = ui.measure(words::WRITE_IN, ui.text_style(TextKind::Body));
-    let _ = ui.label(parts.left(label_width), &Label::new(words::WRITE_IN).tone(Tone::Muted));
-    let targets = [
-        (SettingsTarget::User, words::FROM_USER, true),
-        (SettingsTarget::Repository, words::FROM_REPOSITORY, state.has_repository),
-    ];
-    for (target, label, is_enabled) in targets {
-        let mut choice = Choice::radio(label, state.target == target);
-        if !is_enabled {
-            choice.availability = Availability::Disabled;
-        }
-        let choice_width = ui.measure(label, ui.text_style(TextKind::Body)) + theme.sizes.icon * 2.0;
-        if ui
-            .choice(("settings target", label), parts.left(choice_width), &choice)
-            .clicked
-        {
-            intents.push(Intent::ChooseSettingsFile(target));
-        }
-    }
-}
-
-/// The intent of **Edit in settings.json**: the operation that opens the file chosen, made first when the repository
-/// has none.
-fn edit_file(target: SettingsTarget) -> Intent {
-    let place = match target {
-        SettingsTarget::User => SettingsPlace::User,
-        SettingsTarget::Repository => SettingsPlace::Repository,
-    };
-    let save = SetupSave {
-        place,
-        ..SetupSave::default()
-    };
-    let feature = FeatureId("worktree-setup.edit-settings-file");
-    Intent::Feature(FeatureIntent::Run(feature, Target::SetupSettings(Box::new(save))))
 }

@@ -114,7 +114,7 @@ impl ViewData {
                 Vec::new()
             },
             setting_rows: if state.pages.open.contains(&Page::Settings) {
-                crate::settings::setting_rows(&state.settings, state.settings_target)
+                crate::settings::setting_rows(&state.settings, super::settings_page::shown_target(state))
             } else {
                 Vec::new()
             },
@@ -283,7 +283,7 @@ impl ViewData {
                 has_trail: state.workspace.is_some(),
                 page: PageState::Settings(SettingsPageState {
                     rows: &self.setting_rows,
-                    target: state.settings_target,
+                    target: super::settings_page::shown_target(state),
                     has_repository: state.shown_folder().is_some(),
                     page: &state.settings_page,
                 }),

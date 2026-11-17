@@ -134,12 +134,12 @@ pub const FROM_DEFAULT: &str = "Default";
 pub const FROM_USER: &str = "User settings";
 /// Where a value comes from: the repository's file.
 pub const FROM_REPOSITORY: &str = "Repository settings";
-/// The label of the choice of the file the page writes in.
-pub const WRITE_IN: &str = "Write changes in";
+/// The tab of the user's file.
+pub const USER_TAB: &str = "User";
+/// The tab of the repository's file, there while a repository is shown.
+pub const REPOSITORY_TAB: &str = "Repository";
 /// The button that opens the settings file in a File page.
 pub const EDIT_IN_FILE: &str = "Edit in settings.json";
-/// The tooltip of the control of a setting the repository's file may not set, while changes go to that file.
-pub const USER_ONLY: &str = "Only the user settings can set this";
 /// The picker of the themes (`settings.theme`).
 pub const CHOOSE_THEME: &str = "Choose the theme";
 /// **Theme…** in the **…** menu.

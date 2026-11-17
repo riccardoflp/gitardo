@@ -39,6 +39,9 @@ pub enum QuickChoice {
     Command(QuickCommand),
     /// Goes to a commit in the timeline: a commit found, or the commit of a reference.
     Commit(CommitId),
+    /// **Open Settings: <section>** or **Open Settings: <title>**: the settings page at a section or a setting
+    /// (`settings.reveal`).
+    Settings(crate::settings::SettingsAnchor),
 }
 
 /// A command of the catalog whose card names Quick search among its entry points.

@@ -84,10 +84,12 @@ pub fn bounds(tree: &TreeUpdate, role: Role, name: &str) -> Rect {
     rect(bounds)
 }
 
-/// The rectangle of a node inside another that says some words, as a label does, which the test fails without.
+/// The rectangle of a node inside another that says some words, as a label does, which the test fails without; a
+/// group named so, such as the row of a setting, is not one.
 pub fn said_at(tree: &TreeUpdate, words: &str, within: Rect) -> Rect {
     tree.nodes
         .iter()
+        .filter(|(_, node)| node.role() != Role::Group)
         .filter(|(_, node)| node.value() == Some(words) || node.label() == Some(words))
         .filter_map(|(_, node)| node.bounds().map(rect))
         .find(|found| found.x >= within.x && found.y >= within.y && found.bottom() <= within.bottom())

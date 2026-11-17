@@ -4,7 +4,10 @@
 
 use model::contract::{Answer, AnswerKey, Answers, FeatureId, Target};
 use ui::layout::{Align, Area, place};
-use ui::{Badge, BadgeFill, Button, ButtonKind, Choice, Label, MenuEntry, MenuItem, Rect, TextKind, Tone, Ui};
+use ui::{
+    AccessRole, Badge, BadgeFill, Button, ButtonKind, Choice, Description, Label, MenuEntry, MenuItem, Rect, TextKind,
+    Tone, Ui,
+};
 
 use super::controls::{block_control, block_height, value_control};
 use super::layout::{RowMetrics, line_count};
@@ -76,7 +79,7 @@ pub(super) fn setting_row(
         shifted.width,
         block_height(ui, row),
     );
-    let value = row_value(state, row, ui, (cells.rest(), below));
+    let value = setting_control(row, ui, cells.rest()).or_else(|| block_control(ui, row, below));
     intents.extend(value.map(|value| {
         Intent::SetSetting(SettingChange {
             key: row.info.key,
@@ -88,9 +91,13 @@ pub(super) fn setting_row(
 }
 
 /// The ground of a row: the color of the selection while it is marked, the line under it and the bar of a setting the
-/// file of the tab sets. Returns where its content goes, inside its padding and right of the bar.
+/// file of the tab sets. Returns where its content goes, inside its padding and right of the bar. The row is a group
+/// named by its title for the screen reader, selected while it is marked.
 fn row_ground(ui: &mut Ui<'_>, row: &SettingRow, (rect, marked): (Rect, f32)) -> Rect {
     let theme = *ui.theme();
+    let id = ui.id(("setting row", row.info.key));
+    let description = Description::new(AccessRole::Group, row.info.title).selected(marked > 0.0);
+    ui.describe(id, rect, &description);
     let padding = RowMetrics::new(ui).padding;
     if marked > 0.0 {
         let color = theme.colors.list_selection.faded(crate::number::opacity(marked));
@@ -107,25 +114,6 @@ fn row_ground(ui: &mut Ui<'_>, row: &SettingRow, (rect, marked): (Rect, f32)) ->
         ui.fill_rounded_rect(bar, 1.5, theme.colors.accent);
     }
     Rect::new(inner.x + indent(ui), inner.y, inner.width - indent(ui), inner.height)
-}
-
-/// The control of a row, on its right or its list under its key, or its value alone in **Repository** for a setting
-/// that file may not set; returns the value to write.
-fn row_value(
-    state: &SettingsPageState<'_>,
-    row: &SettingRow,
-    ui: &mut Ui<'_>,
-    (right, below): (Rect, Rect),
-) -> Option<SettingValue> {
-    if state.target == SettingsTarget::User || row.info.is_repository {
-        return setting_control(row, ui, right).or_else(|| block_control(ui, row, below));
-    }
-    let label = Label::new(&row.text)
-        .kind(TextKind::Code)
-        .tone(Tone::Muted)
-        .align(Align::End);
-    let _ = ui.label(right, &label);
-    None
 }
 
 /// The title of a setting, in strong text, with **Experimental** beside it when it is.
