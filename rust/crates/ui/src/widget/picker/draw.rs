@@ -15,6 +15,9 @@ use crate::widget::button::Button;
 use crate::widget::input_box::InputBox;
 use crate::widget::label::Label;
 use crate::widget::metrics;
+use crate::widget::panel::Axis;
+use crate::widget::scroll::ScrollAxis;
+use crate::widget::scroll::bar::BarSpec;
 
 /// A row of a picker being drawn.
 struct PickerRow<'item, 'text> {
@@ -84,6 +87,7 @@ impl Ui<'_> {
                 }
             }
         }
+        let rect = self.picker_bar(rect, matches.len(), state);
         let mut answer = None;
         let shown = matches.iter().enumerate().skip(state.first_shown).take(SHOWN_ROWS);
         for (offset, (place, (item_index, found))) in shown.enumerate() {
@@ -121,6 +125,28 @@ impl Ui<'_> {
             self.access_node(response.id, row_rect, &description);
         }
         answer
+    }
+
+    /// Draws the bar of a picker with more rows than it shows, on the right of its rows, and moves the first row shown
+    /// as it is dragged or its track clicked. Returns where the rows go, left of the bar.
+    fn picker_bar(&mut self, rect: Rect, count: usize, state: &mut PickerState) -> Rect {
+        if count <= SHOWN_ROWS {
+            return rect;
+        }
+        let row_height = f64::from(self.theme().sizes.row_height);
+        let thickness = self.theme().sizes.scrollbar;
+        let track = Rect::new(rect.right() - thickness, rect.y, thickness, rect.height);
+        let spec = BarSpec {
+            axis: Axis::Vertical,
+            view: crate::number::wide_of_count(SHOWN_ROWS) * row_height,
+            content: crate::number::wide_of_count(count) * row_height,
+        };
+        let mut scroll = ScrollAxis::default();
+        scroll.jump(crate::number::wide_of_count(state.first_shown) * row_height);
+        self.scroll_bar(self.id("bar"), track, spec, &mut scroll);
+        let first = crate::number::index_at(scroll.target() + row_height * 0.5, row_height);
+        state.first_shown = first.min(count - SHOWN_ROWS);
+        Rect::new(rect.x, rect.y, rect.width - thickness, rect.height)
     }
 
     /// Draws a row of a picker.

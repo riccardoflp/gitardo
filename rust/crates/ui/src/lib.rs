@@ -94,7 +94,8 @@ pub use widget::list::{List, ListResponse, Reveal, RevealPlace, Row, RowDrag, Se
 pub use widget::menu::{MenuAnchor, MenuEntry, MenuItem};
 pub use widget::panel::Axis;
 pub use widget::picker::fuzzy::{self, FuzzyMatch};
-pub use widget::picker::{Picker, PickerAnswer, PickerItem, PickerMode};
+pub use widget::picker::list::{PickList, PickListResponse};
+pub use widget::picker::{Picker, PickerAnswer, PickerItem, PickerMode, first_shown};
 pub use widget::popover::{Popover, PopoverResponse};
 pub use widget::scroll::{ScrollAxis, ScrollResponse};
 pub use widget::splitter::{Split, SplitResponse, Splitter};

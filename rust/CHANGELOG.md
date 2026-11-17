@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- A menu taller than the room it has scrolls instead of moving: under a button, such as **…**, it opens below the
+  button and ends 8 px above the foot of the window, and a menu at the pointer opens above it when it fits only there.
+  The wheel scrolls it by entries, a bar on its right can be dragged, its first and last entries fade where there is
+  more, and the arrows, `Home`, `End`, `PageUp` and `PageDown` keep the entry lit in view. The pickers get the same
+  bar, `Home` and `End` while nothing is typed, and the list of the branch filter a row lit that the arrows move,
+  stepping over the headings, and that `Enter` ticks.
 - The Terminal tab of the bottom panel runs a shell in the folder of the repository tab shown: PowerShell 7 on Windows
   when it is installed, else Windows PowerShell, the shell of `SHELL` on Linux and macOS, or the one of
   `terminal.shellPath`. It shows the colors of what programs print, 16 from the theme, 256 and 24-bit, in the font of

@@ -5,7 +5,7 @@
 use model::filter::{BranchesShown, Preset, ReferenceKind, kinds, kinds_shown, preset, rank_names, tick, ticked};
 use model::refs::References;
 use ui::layout::{Area, Insets, inset};
-use ui::{Choice, InputBox, Key, Label, NamedKey, Popover, Rect, TextKind, Tone, Ui};
+use ui::{Choice, InputBox, Key, Label, NamedKey, PickList, Popover, Rect, TextKind, Tone, Ui};
 
 use crate::icons;
 use crate::intent::{FilterIntent, Intent, RailIntent};
@@ -225,15 +225,16 @@ fn draw_body(body: &Body<'_, '_>, ui: &mut Ui<'_>, rect: Rect, is_new: bool) -> 
     if is_new {
         ui.request_focus(input_id);
     }
-    let input = InputBox::new(picking.typed, words::BOX).with_icon(icons::FILTER);
-    if let Some(text) = ui.input_box("filter box", box_rect, &input).changed_text {
-        intents.push(picking.target.typed(text));
-    }
     if picking.target == PickerFor::Rail {
         let kinds_rect = area.bottom(theme.sizes.row_height * rows_of(ReferenceKind::ALL.len()));
         intents.extend(kind_rows(picking.chosen, ui, kinds_rect));
     }
+    // The list reads the keys of the box before the box does, so that the arrows move through the list.
     intents.extend(reference_rows(body, ui, area.rest()));
+    let input = InputBox::new(picking.typed, words::BOX).with_icon(icons::FILTER);
+    if let Some(text) = ui.input_box("filter box", box_rect, &input).changed_text {
+        intents.push(picking.target.typed(text));
+    }
     let is_escaped = ui
         .unclaimed_keys()
         .iter()
@@ -310,21 +311,31 @@ fn kind_rows(chosen: Option<&BranchesShown>, ui: &mut Ui<'_>, rect: Rect) -> Vec
     intents
 }
 
-/// The references with their ticks, in a list that scrolls.
+/// The references with their ticks, in a list that scrolls, whose row lit the keys of the box move and `Enter` ticks
+/// (`ui.picker-scroll`).
 fn reference_rows(body: &Body<'_, '_>, ui: &mut Ui<'_>, rect: Rect) -> Vec<Intent> {
-    let theme = *ui.theme();
-    let row_height = theme.sizes.row_height;
     let picking = body.picking;
     let names = ticked(picking.chosen, picking.references);
-    let content = (rect.width, row_height * rows_of(body.rows.len()));
+    let headings: Vec<bool> = body
+        .rows
+        .iter()
+        .map(|row| !matches!(row, PickRow::Reference { .. }))
+        .collect();
+    let list = PickList {
+        headings: &headings,
+        typed: picking.typed,
+        keys_from: ui.id("filter box"),
+    };
+    let response = ui.pick_list("references", rect, &list);
     let mut intents = Vec::new();
-    let _ = ui.scroll_area("references", rect, content, |ui, inner| {
-        for (index, row) in body.rows.iter().enumerate() {
-            let row_rect = Rect::new(inner.x, inner.y + row_height * rows_of(index), inner.width, row_height);
-            if row_rect.bottom() < rect.y || row_rect.y > rect.bottom() {
-                continue;
+    if let Some(PickRow::Reference { full, .. }) = response.chosen.and_then(|index| body.rows.get(index)) {
+        intents.push(picking.target.choose(tick(picking.chosen, full, picking.references)));
+    }
+    ui.clip(rect, |ui| {
+        for (index, row_rect) in &response.rows {
+            if let Some(row) = body.rows.get(*index) {
+                intents.extend(pick_row(ui, row, *row_rect, (picking, &names)));
             }
-            intents.extend(pick_row(ui, row, row_rect, (picking, &names)));
         }
     });
     intents

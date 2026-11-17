@@ -14,6 +14,7 @@ use model::state::RepositoryState;
 use model::{CommitId, Timestamp};
 use platform::accesskit::Role;
 use render::ThemeName;
+use ui::{InputEvent, Key, KeyEvent, Modifiers, NamedKey};
 use views::graph::{
     Folds, GraphIntent, GraphState, HistoryState, LayoutInput, Reading, Selected, Switches, TimelineLayout,
     TimelineSwitch,
@@ -233,6 +234,8 @@ fn graph_more_menu__unchecking_show_the_hash_takes_the_hashes_out_and_writes_aut
     let _ = window.draw(&state, &[]);
     let with_hashes = window.frame.to_rgba();
     let _ = window.click(&state, Role::Button, "More");
+    let menu = bounds(&window.draw(&state, &[]).1, Role::MenuItem, "Refresh");
+    let _ = wheel(&mut window, &state, menu.center(), 5.0);
     let intents = window.click(&state, Role::MenuItem, "Show the hash");
     let effects: Vec<Effect> = intents
         .into_iter()
@@ -247,6 +250,31 @@ fn graph_more_menu__unchecking_show_the_hash_takes_the_hashes_out_and_writes_aut
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let _ = window.draw(&state, &[]);
     assert_ne!(window.frame.to_rgba(), with_hashes, "the hashes are taken out");
+}
+
+#[test]
+fn graph_more_menu__in_a_window_400_high_the_menu_opens_under_its_button_and_its_last_entry_is_chosen() {
+    let (repository, _remote) = repository_with_history();
+    let state = showing_with(repository.path().to_path_buf(), Settings::default());
+    let mut window = Window::new(ThemeName::Dark, (1000, 400));
+    let _ = window.draw(&state, &[]);
+    let button = bounds(&window.draw(&state, &[]).1, Role::Button, "More");
+    let _ = window.click(&state, Role::Button, "More");
+    let (_, tree) = window.draw(&state, &[]);
+    let refresh = bounds(&tree, Role::MenuItem, "Refresh");
+    assert!(refresh.y >= button.bottom(), "under its button: {refresh:?} {button:?}");
+    assert!(
+        !super::support::has(&tree, Role::MenuItem, "Theme\u{2026}"),
+        "the last entry is not shown yet"
+    );
+    let end = InputEvent::KeyPressed(KeyEvent::press(Key::Named(NamedKey::End), Modifiers::NONE));
+    let _ = window.draw(&state, &[end]);
+    let (_, tree) = window.draw(&state, &[]);
+    let theme = bounds(&tree, Role::MenuItem, "Theme\u{2026}");
+    assert!(theme.bottom() <= 400.0 - 8.0, "shown whole: {theme:?}");
+    let enter = InputEvent::KeyPressed(KeyEvent::press(Key::Named(NamedKey::Enter), Modifiers::NONE));
+    let (intents, _) = window.draw(&state, &[enter]);
+    assert_eq!(intents, [Intent::PickTheme]);
 }
 
 #[test]

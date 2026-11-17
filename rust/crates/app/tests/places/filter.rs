@@ -309,3 +309,28 @@ fn the_timeline_narrowed_to_two_branches_is_drawn_with_its_bar_and_the_button_pr
     assert!(has(&tree, Role::Button, "Show all branches"));
     window.assert_snapshot("timeline-narrowed-dark");
 }
+
+#[test]
+fn ui_picker_scroll__with_200_branches_in_the_branch_filter_end_lights_the_last_one_and_shows_it() {
+    let (repository, _remote) = repository_with_history();
+    let head = repository.git(&["rev-parse", "HEAD"]);
+    let heads = repository.path().join(".git").join("refs").join("heads");
+    for index in 0..200 {
+        std::fs::write(heads.join(format!("topic-{index:03}")), format!("{}\n", head.trim())).unwrap();
+    }
+    let mut state = showing(repository.path().to_path_buf());
+    let mut window = Window::new(ThemeName::Dark, WIDE);
+    let tree = open_picker(&mut window, &mut state, "All branches");
+    assert!(
+        !has(&tree, Role::CheckBox, "v1.0"),
+        "the last reference is far down the list"
+    );
+    let (_, _) = window.draw(&state, &[press(Key::Named(NamedKey::End))]);
+    let (_, tree) = window.draw(&state, &[]);
+    assert!(has(&tree, Role::CheckBox, "v1.0"), "the last reference is shown");
+    let (intents, _) = window.draw(&state, &[press(Key::Named(NamedKey::Enter))]);
+    assert_eq!(
+        intents,
+        [Intent::Filter(FilterIntent::Show(Some(ticked(&["refs/tags/v1.0"]))))]
+    );
+}

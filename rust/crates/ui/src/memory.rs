@@ -124,6 +124,8 @@ pub struct UiMemory {
     pub(crate) menu: Option<OpenMenu>,
     /// The pickers open.
     pub(crate) pickers: HashMap<WidgetId, PickerState>,
+    /// The lists of pickers whose rows their views draw.
+    pub(crate) pick_lists: HashMap<WidgetId, crate::widget::picker::list::PickListState>,
     /// Find in page.
     pub(crate) find: FindState,
     /// The matches of the lists that search their rows, by list.
