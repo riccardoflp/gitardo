@@ -259,3 +259,13 @@ Acceptance:
 - [ ] With `system`, the window follows the system when it switches between dark and light, without restarting.
 - [ ] Every place of the window and every page is drawn with the tokens of the theme chosen, and the snapshots of each
       theme are those of the reference.
+- [ ] In the dark and in the light theme the selected rows of a list that has the focus are tinted with the accent of
+      the theme: their ground is the accent mixed into the ground of the page, about one part in six (D69).
+- [ ] In every theme the ground of the selected rows of a list, with the focus and without, of the row under the
+      pointer, of the row lit in a menu and of selected text has the hue of the accent or none.
+- [ ] In every theme the text of a selected row, and muted text on it, are read: 4.5 to 1, 7 to 1 in the high contrast
+      themes.
+- [ ] In every theme a selected row is told apart from the ground of a page, from that of a card, from the row under
+      the pointer and from the selection of a list without the focus.
+- [ ] In every theme selected text is told apart from a match of a search and from its ground, on a page, on a card
+      and in an input box, and its text is read.

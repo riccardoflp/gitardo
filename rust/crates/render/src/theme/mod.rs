@@ -86,7 +86,8 @@ pub struct Colors {
     pub disabled_foreground: Color,
     /// Behind a row of a list under the pointer.
     pub list_hover: Color,
-    /// Behind the selected rows of a list that has the focus.
+    /// Behind the selected rows of a list that has the focus: the accent mixed into the ground of the page, so that
+    /// what is selected wears the one accent of the window (D69).
     pub list_selection: Color,
     /// The text of the selected rows of a list that has the focus.
     pub list_selection_foreground: Color,
@@ -152,7 +153,8 @@ pub struct Colors {
     pub close_hover_foreground: Color,
     /// The shadow under menus and dialogs, usually see-through.
     pub shadow: Color,
-    /// Behind text selected in an editor or a box.
+    /// Behind text selected in an editor or a box: a wash with the hue of the accent, or with none where that would
+    /// make it look like `find_match`.
     pub text_selection: Color,
     /// Behind what find in page found.
     pub find_match: Color,
