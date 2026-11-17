@@ -164,6 +164,28 @@ the references and the stashes from the last `repo.read-state` of the same sessi
 the window, a read for a file changed or saved runs no `git log` while the history is the same, which
 `same_history.rs` of `app` checks, and which this measure does not time.
 
+What the same measure gave on 2026-11-18 with all of M15 and M16 built, on the same repositories, with nothing else
+building on the machine, so that the times can be read against those of phase 1:
+
+| The whole history | Pages | First page | Last row |
+| --- | ---: | ---: | ---: |
+| The engine, every page with `skip`, the large repository | 57 | 300.2 | 17,207.3 |
+| The window, the large repository, opened with one read to its end | 57 | 596.2 | 1,442.2 |
+
+| A read after a change, the median | The large repository | Git processes | Five other worktrees | Git processes |
+| --- | ---: | --- | ---: | --- |
+| `repo.read-state` | 256.9 | 11 | 164.6 | 11 (`status` 1) |
+| `graph.read-commits`, page 1 | 295.5 | 1 (`log` 1) | 36.2 | 1 (`log` 1) |
+| `journal/last` | 0.5 | 0 | 0.3 | 0 |
+| All three | 558.7 | 12 | 201.6 | 12 |
+
+The window reads and lays out every commit of the large repository in under 1.5 s, and shows its first page sooner
+than before M15. A read after a change takes a seventh of the time of phase 1 on the repository with five other
+worktrees, and two thirds of it on the large repository, where `repo.read-state` and the first page are git's own
+time. The engine's whole history page after page with `skip` is what a client of version 1.7 of the protocol still
+asks; the extension asks for the pages streamed (version 1.8), which phase 9 measured at 1.4 to 2.2 s for every commit
+of the large repository, read and laid out.
+
 ## What a change runs before it is committed
 
 `cargo xtask check`, which is `rustfmt --check`, `clippy` with warnings denied, `cargo test`, and the checks of the
