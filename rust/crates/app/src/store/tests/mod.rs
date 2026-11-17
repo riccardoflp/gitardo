@@ -70,6 +70,7 @@ fn reads(effects: &[Effect]) -> Vec<PathBuf> {
             | JobKind::ReadDiff { .. }
             | JobKind::ReadMerge { .. }
             | JobKind::ReadFile { .. }
+            | JobKind::ReadImage { .. }
             | JobKind::ReadComparison { .. }
             | JobKind::ReadInPlace { .. }
             | JobKind::ReadReview { .. }
@@ -228,6 +229,7 @@ fn not_read(job: JobId, kind: &JobKind) -> Message {
             job,
             result: Err(String::from("not read in these tests")),
         },
+        JobKind::ReadImage { .. } => Message::ImageRead { job, image: None },
         JobKind::ReadComparison { .. } => Message::ComparisonRead {
             job,
             result: Err(String::from("not read in these tests")),

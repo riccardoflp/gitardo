@@ -18,6 +18,13 @@
   starts after its three buttons with the logo.
 - The window opens where it was and maximized if it was, besides keeping its size; a place on a screen no longer there
   is left to the system.
+- A Markdown file in the File page can be shown as it reads: **Preview** and **Source** in its title row switch
+  between its text and a preview with its headings, paragraphs, emphasis, lists and task lists, quotes, tables with
+  their alignment and blocks of code in the colors of their language. A link to a web page opens in the browser, a
+  link to a file of the repository opens its File page, and a link to a heading scrolls to it; a PNG image of the
+  repository is drawn, an image of the web is not fetched and shows its text, and HTML is shown as text. The setting
+  **Open Markdown as a preview** (`markdown.openAsPreview`, in **Files and blame**, off by default) opens every
+  Markdown file in its preview.
 - The side column takes less room: a repository, a worktree and a submodule are each one row of one line, the name on
   the left and the branch, the files changed and `↓ ↑` smaller on the right, the name and the branch cut with `…`
   when the row is short; the heading of **Branches** has **Create branch**, **Compare** and the button of the rail's

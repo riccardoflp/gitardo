@@ -1,8 +1,11 @@
-//! What the store of a window asks of the outside ([`Effect`]), carried out after each reduce.
+//! What the store asks of the outside once it has reduced a message: jobs for the workers, dialogs, settings and
+//! watches, operations, and the end of the program.
 
 use std::path::PathBuf;
 use std::time::Duration;
 
+#[cfg(doc)]
+use super::message::Message;
 use super::message::{Job, JobId};
 use crate::persisted::Persisted;
 use crate::settings::SettingsFiles;

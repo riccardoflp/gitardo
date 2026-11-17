@@ -41,6 +41,15 @@ pub fn read_file(folder: &Path, job: &FileJob, cancel: &CancelToken) -> Result<O
     }
 }
 
+/// Reads an image of the repository and decodes it; none when it is not there, could not be read, or is not a PNG,
+/// which the preview shows as its text in its place.
+#[must_use]
+pub fn read_image(folder: &Path, job: &FileJob, cancel: &CancelToken) -> Option<render::Image> {
+    // A read that fails is not said: the preview shows the text of the image in its place, as for any image not drawn.
+    let bytes = read_file(folder, job, cancel).ok().flatten()?;
+    render::Image::decode_png(&bytes)
+}
+
 /// Where a file of the working tree is on disk; a whole path, such as that of the user's settings file, is itself.
 fn on_disk(folder: &Path, path: &str) -> PathBuf {
     if Path::new(path).is_absolute() {

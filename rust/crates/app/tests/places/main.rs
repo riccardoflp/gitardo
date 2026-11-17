@@ -50,6 +50,7 @@ mod lanes;
 mod large_diffs;
 mod load_more;
 mod log_secrets;
+mod markdown;
 mod merge;
 mod merge_actions;
 mod merge_at_line;

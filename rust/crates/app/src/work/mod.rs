@@ -183,7 +183,7 @@ fn words(kind: &JobKind) -> (Text, Text) {
         JobKind::ReadDetails { folder, .. } => (folder, activity::SHOWING_DETAILS),
         JobKind::ReadCommitPage { folder, .. } => (folder, activity::OPENING_COMMIT_PAGE),
         JobKind::ReadDiff { folder, .. } => (folder, activity::COMPUTING_DIFF),
-        JobKind::ReadFile { folder, .. } => (folder, activity::OPENING_FILE),
+        JobKind::ReadFile { folder, .. } | JobKind::ReadImage { folder, .. } => (folder, activity::OPENING_FILE),
         JobKind::ReadComparison { folder, .. } | JobKind::ReadInPlace { folder, .. } => (folder, activity::COMPARING),
         JobKind::CountConflicts { folder } => (folder, activity::COUNTING_CONFLICTS),
         JobKind::ReadMerge { folder, .. } => (folder, activity::SHOWING_MERGE),

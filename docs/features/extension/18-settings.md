@@ -75,6 +75,7 @@ Acceptance:
 | `gitardo.conflicts.aiModel` | `""` | window | The model asked; empty for the first VS Code has. | `conflict.choose-model`, `conflict.resolve-ai` |
 | `gitardo.conflicts.aiEffort` | `""` | window | How much the model thinks before it answers. | `conflict.choose-model`, `conflict.resolve-ai` |
 | `gitardo.flowDiff.collapseUnchanged` | `true` | window | The Flow Diff folds long runs of unchanged lines. | The Flow Diff and the Flow Merge (no cards yet) |
+| `gitardo.markdown.openAsPreview` | `false` | window | A Markdown file opened from the Gitardo Changes view opens in VS Code's preview of Markdown. | `file-view.markdown-preview` |
 
 Settings of VS Code's Git extension that Gitardo reads: `git.branchSortOrder`, `git.worktreeSymlinkFolders`,
 `git.worktreeIncludeFiles`; and that it writes, when the user asks on the page of what new worktrees get:

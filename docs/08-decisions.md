@@ -1039,6 +1039,24 @@ the left on Windows (not where Windows puts them).
 
 In the extension nothing changes: VS Code draws its own title bar, and the extension already has its logo.
 
+## D59 — Markdown files shown as they read
+
+*Asked by the maintainer for milestone M17; the details proposed by the agent.*
+
+A Markdown file is mostly read, not edited, in Gitardo: a README, a CHANGELOG, the documents of a repository. So the
+File page can show it as a preview, laid out as it reads, with **Preview** and **Source** in its title row to switch,
+and the setting **Open Markdown as a preview** (`markdown.openAsPreview`, off by default) opens every Markdown file in
+its preview (`file-view.markdown-preview`). It is CommonMark with the tables, the task lists and the strikethrough of
+GitHub, parsed by a library chosen as D22 says, laid out with the text and the colors of the code of the window; a link
+to a web page opens in the browser, a link to a file of the repository opens that file, an image of the repository is
+drawn, an image from the web is not fetched and shows its text. Nothing in the preview runs: no HTML is rendered, it is
+shown as text.
+
+The Diff page of a Markdown file stays a diff of its text, since what changed is what a review reads; whether it gets a
+switch to the two sides as previews, side by side, is left to the maintainer.
+
+In the extension, `gitardo.markdown.openAsPreview` opens the Markdown files Gitardo opens in VS Code's own preview.
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -3214,3 +3232,28 @@ the reading given until the card says otherwise.
   decorations of the compositor; the shadow and the rounded corners are the compositor's to give or not. A compositor
   that draws decorations on every window anyway (some with server-side decorations only) would show both, which no
   one has seen yet.
+
+### Of the preview of Markdown, from Q580
+
+- **Q580** — `file-view.markdown-preview`: how emphasis is drawn, the window having Inter at three weights and no
+  italic. Built: emphasized text in the medium weight, strong text in the bold one, so that the two still differ;
+  Inter Italic would be one more font of the program, about 300 kB, to add if the maintainer wants emphasis drawn as
+  GitHub draws it.
+- **Q581** — `file-view.markdown-preview`: which formats of images are drawn. Built: PNG only, read by the library
+  `tiny-skia` takes for it (its feature `png-format`), on a worker; an SVG, a JPEG or a GIF of the repository shows its
+  text, as an image of the web does. SVG would need a library that draws it, JPEG and GIF one each.
+- **Q582** — `file-view.markdown-preview`: what **Find** in the preview finds. Built: the find in page of the window,
+  `Ctrl+F`, which finds in the text the preview draws in sight, as on the page of a commit; a word of a part not
+  scrolled into sight is found once it is. Finding in the whole text would need the preview drawn as a list of rows
+  that find in page searches out of sight.
+- **Q583** — `file-view.markdown-preview`: where the preview of a file a Diff page edits starts. Built: it follows
+  `markdown.openAsPreview` too, laid out when its page is first shown; **Preview** of a page lays out the text again
+  each time it is shown, and the file read again does too, rather than at each edit, since the preview is not seen
+  while the text is edited.
+- **Q584** — `file-view.markdown-preview`, the extension: which Markdown files open in VS Code's preview. The plan
+  named the Files view, the Changes view and a file of a commit; the extension has no Files view, and a file of a
+  commit opens as its diff, never as the file at that revision. Built: **Open File** and a click on a file of the
+  Gitardo Changes view, which open the file on disk; a diff stays a diff, a file opened to resolve a conflict and the
+  blame of an earlier revision stay in the editor, where they are worked on. Should the extension get a way to open a
+  file at a revision, VS Code's preview of a `gitardo:` document would be tried first. When VS Code's Markdown
+  extension is turned off, the file opens in its editor and the log says why.

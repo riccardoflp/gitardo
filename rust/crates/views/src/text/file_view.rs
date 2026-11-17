@@ -32,6 +32,19 @@ pub const FIND_KEYS: &str = "Ctrl+F";
 /// The keys of Go to line.
 pub const GO_TO_LINE_KEYS: &str = "Ctrl+G";
 
+/// The title button that shows a Markdown file laid out as it reads (`file-view.markdown-preview`).
+pub const PREVIEW: &str = "Preview";
+/// What **Preview** does.
+pub const PREVIEW_TOOLTIP: &str = "Show the file laid out as it reads";
+/// The title button that shows the text of a Markdown file, to edit it.
+pub const SOURCE: &str = "Source";
+/// What **Source** does.
+pub const SOURCE_TOOLTIP: &str = "Show the text of the file";
+/// The preview of a Markdown file, for the screen reader.
+pub const PREVIEW_REGION: &str = "Preview";
+/// What an image of the preview is called for the screen reader when its text says nothing.
+pub const IMAGE: &str = "Image";
+
 /// The box that finds, empty, and its name for the screen reader.
 pub const FIND_PLACEHOLDER: &str = "Find in the file";
 /// What the box says when nothing is found.

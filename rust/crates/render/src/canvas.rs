@@ -155,6 +155,13 @@ impl<'frame> Canvas<'frame> {
         self.frame.fill_rect(snapped, color);
     }
 
+    /// Draws an image scaled into a rectangle, its sides snapped to whole physical pixels.
+    pub fn draw_image(&mut self, image: &crate::Image, rect: Rect) {
+        let snapped = self.snap(rect);
+        let clip = self.state.clip;
+        self.frame.fill_image(snapped, image, clip);
+    }
+
     /// Fills a path with a color, anti-aliased, by a fill rule.
     pub fn fill_path(&mut self, path: &Path, color: Color, rule: FillRule) {
         let physical = path.transformed(self.transform());

@@ -93,6 +93,7 @@ impl Answered {
             | Message::DiffRead { job, .. }
             | Message::MergeRead { job, .. }
             | Message::FileRead { job, .. }
+            | Message::ImageRead { job, .. }
             | Message::ComparisonRead { job, .. }
             | Message::InPlaceRead { job, .. }
             | Message::ConflictsCounted { job, .. }

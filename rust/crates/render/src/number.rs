@@ -68,6 +68,11 @@ pub(crate) fn key(value: f32) -> u32 {
     value.round().max(0.0) as u32
 }
 
+/// A position in an image as the whole pixel it is in, zero when it is negative, saturating at the largest `u32`.
+pub(crate) fn whole(value: f64) -> u32 {
+    value.floor().max(0.0) as u32
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

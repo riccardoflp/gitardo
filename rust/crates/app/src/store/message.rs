@@ -122,6 +122,13 @@ pub enum Message {
         /// The bytes, none when the file is not there, or what the system or git said.
         result: Result<Option<Vec<u8>>, String>,
     },
+    /// A job that read an image of the preview of a Markdown file is done (`file-view.markdown-preview`).
+    ImageRead {
+        /// The job.
+        job: JobId,
+        /// The image, none when it is not there or could not be read as an image.
+        image: Option<render::Image>,
+    },
     /// A job that read a comparison page is done (`compare.read-sides`).
     ComparisonRead {
         /// The job.
@@ -346,6 +353,14 @@ pub enum JobKind {
         /// The top folder of the working tree.
         folder: PathBuf,
         /// What is read.
+        job: crate::work::file_view::FileJob,
+    },
+    /// Reads an image of the repository the preview of a Markdown file shows, from the disk or at a revision
+    /// (`file-view.markdown-preview`).
+    ReadImage {
+        /// The top folder of the working tree.
+        folder: PathBuf,
+        /// The image read.
         job: crate::work::file_view::FileJob,
     },
     /// Reads a comparison page: its followed sides where they are now, then what differs (`compare.read-sides`).

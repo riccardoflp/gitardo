@@ -3,7 +3,7 @@
 use super::{SettingInfo, SettingKind, SettingsSection};
 
 /// The settings of the second half of the table.
-pub(super) const REST: [SettingInfo; 26] = [
+pub(super) const REST: [SettingInfo; 27] = [
     SettingInfo {
         key: "conflicts.autoResolve",
         title: "Resolve conflicts by rules",
@@ -49,6 +49,16 @@ pub(super) const REST: [SettingInfo; 26] = [
         title: "Blame in every file",
         section: Some(SettingsSection::FilesAndBlame),
         description: "Show the blame beside the lines of every file opened.",
+        default: "false",
+        is_repository: false,
+        is_experimental: false,
+        kind: SettingKind::Toggle,
+    },
+    SettingInfo {
+        key: "markdown.openAsPreview",
+        title: "Open Markdown as a preview",
+        section: Some(SettingsSection::FilesAndBlame),
+        description: "Open Markdown files in their preview rather than their text.",
         default: "false",
         is_repository: false,
         is_experimental: false,

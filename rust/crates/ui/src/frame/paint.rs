@@ -1,7 +1,7 @@
 //! Drawing on a frame: the shapes a widget or a view draws, in logical pixels of the window, kept until the end of the
 //! frame and drawn then, by layer, where the window changed.
 
-use render::{Border, Color, FillRule, Icon, Path, Point, Rect, Stroke, TextRun};
+use render::{Border, Color, FillRule, Icon, Image, Path, Point, Rect, Stroke, TextRun};
 
 use super::Ui;
 use crate::paint::Shape;
@@ -101,6 +101,18 @@ impl Ui<'_> {
             }
         }
         width
+    }
+
+    /// Draws an image scaled into a rectangle.
+    pub fn image(&mut self, rect: Rect, image: &Image) {
+        if rect.is_empty() {
+            return;
+        }
+        let shape = Shape::Image {
+            image: image.clone(),
+            rect,
+        };
+        self.record(shape, rect);
     }
 
     /// Draws an icon of Lucide's, its top left corner at a point and its side `size` logical pixels.

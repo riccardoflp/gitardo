@@ -1466,6 +1466,12 @@
             "default": true,
             "description": "Whether the Flow Diff folds long runs of unchanged lines, keeping 3 lines around each change. Its toolbar switches it for each diff.",
             "order": 10
+          },
+          "gitardo.markdown.openAsPreview": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "Open a Markdown file (`.md`, `.markdown`) that Gitardo opens, from the Gitardo Changes view, in VS Code's preview of Markdown rather than in its editor. The diffs of such a file are still diffs of its text.",
+            "order": 11
           }
         }
       },

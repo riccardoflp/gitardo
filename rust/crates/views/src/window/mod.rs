@@ -201,23 +201,10 @@ pub fn view(state: &WindowState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         },
     );
     let mut column = Area::new(rest);
-    let mut header = Area::new(column.top(bar_height));
+    let header = Area::new(column.top(bar_height));
     let body = column.rest();
     let header = with_caption_buttons(state.caption, header.rest(), ui, &mut intents);
-    let brand = BrandState {
-        is_name_shown: !is_narrow(ui),
-    };
-    let name_width = brand::name_width(brand, ui);
-    let mut header = Area::new(header);
-    let top_left = if state.caption.title_bar == TitleBar::Transparent {
-        // The system's buttons of macOS take the square above the bar of views, so the logo starts the header bar.
-        header.left(VIEW_BAR_WIDTH + name_width)
-    } else {
-        let name = header.left(name_width);
-        Rect::new(corner.x, corner.y, corner.width + name.width, corner.height)
-    };
-    let header = header.rest();
-    intents.extend(ui.clip(top_left, |ui| brand_view(&brand, ui)));
+    let header = with_brand(state.caption, (corner, header), ui, &mut intents);
     // What is right of the bar of views and above the status bar is the tab's: its widgets remember how far they are
     // scrolled and what is typed in them apart from those of the other tabs (`repo.keep-open`).
     let shown_tab = state
@@ -270,6 +257,30 @@ fn with_caption_buttons(caption: CaptionState, header: Rect, ui: &mut Ui<'_>, in
     let buttons = caption_buttons_rect(size, header.height);
     intents.extend(ui.clip(buttons, |ui| caption_buttons_view(&caption, ui)));
     Rect::new(header.x, header.y, (buttons.x - header.x).max(0.0), header.height)
+}
+
+/// Draws the logo in the square above the bar of views and the name at the start of the header bar, or both at the
+/// start of the header bar on macOS, whose buttons take that square; gives what is left of the header bar for the
+/// header (`window.brand`).
+fn with_brand(
+    caption: CaptionState,
+    (corner, header): (Rect, Rect),
+    ui: &mut Ui<'_>,
+    intents: &mut Vec<Intent>,
+) -> Rect {
+    let brand = BrandState {
+        is_name_shown: !is_narrow(ui),
+    };
+    let name_width = brand::name_width(brand, ui);
+    let mut header = Area::new(header);
+    let top_left = if caption.title_bar == TitleBar::Transparent {
+        header.left(VIEW_BAR_WIDTH + name_width)
+    } else {
+        let name = header.left(name_width);
+        Rect::new(corner.x, corner.y, corner.width + name.width, corner.height)
+    };
+    intents.extend(ui.clip(top_left, |ui| brand_view(&brand, ui)));
+    header.rest()
 }
 
 /// The islands of the tab shown under the header: the side column beside the timeline or the page, and the bottom

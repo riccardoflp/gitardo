@@ -364,12 +364,26 @@ VS Code's title bar, and nothing changes there.
    menu of the window through the compositor, and the three buttons are drawn as on Windows. Cards:
    `window.title-bar`, `window.caption-buttons`.
 
+Phases 5 and 6 were added by the maintainer after the plan of the first four ([D59](../08-decisions.md#d59--markdown-files-shown-as-they-read)):
+
+5. **Markdown as it reads.** A Markdown file in the File page can be shown as a preview, laid out as it reads: headings,
+   paragraphs, emphasis, lists and task lists, quotes, code blocks in the colors of the code, tables, links that open
+   in the browser or open the file of the repository they name, images of the repository; **Preview** and **Source**
+   in the title row switch between the two, the preview following the text as it is edited. The setting
+   **Open Markdown as a preview** (`markdown.openAsPreview`, in **Files and blame**, off by default) opens every
+   Markdown file in its preview. Cards: `file-view.markdown-preview`, `file-view.page`, `settings.edit`.
+6. **The extension.** `gitardo.markdown.openAsPreview` opens a Markdown file that Gitardo opens (from the Files view,
+   the Changes view, a commit) in VS Code's preview of Markdown rather than its editor. Cards:
+   `file-view.markdown-preview` in the extension.
+
 Exit: the window opens with no title bar of the system, the logo at its top left and **Gitardo** at the start of the
 header bar; dragging the free part of the header bar moves the window and dragging it to the top of the screen
 maximizes it; a double click maximizes and restores it; the pointer on **Maximize** on Windows 11 shows Snap Layouts;
 the edges and corners resize it, and nothing resizes it while it is maximized; `Alt+Space` opens the system's menu of
 the window; the bar dims when another window has the focus; the size and place are kept from one start to the next;
-every card of the phase passes its tests, and the snapshots of the header bar match in each theme, focused and not.
+`README.md` opened from the Files page with **Open Markdown as a preview** on shows its headings, lists, a table and
+a code block laid out, and **Source** shows its text; every card of the phase passes its tests, and the snapshots of
+the header bar match in each theme, focused and not, and those of the preview of Markdown in each theme.
 
 ## Before a release
 

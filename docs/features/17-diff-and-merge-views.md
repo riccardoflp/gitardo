@@ -894,7 +894,7 @@ read-only.
   the conflicts; `merge-view.close`; **Open the file at this revision** on a file of a commit; **Blame the file as it
   was before** in the blame (`blame.`).
 - **Reads**: the file from the disk; at a revision, `file-view.read-revision`.
-- **Settings**: `editor.wordWrap`.
+- **Settings**: `editor.wordWrap`, `markdown.openAsPreview`.
 - **Uses**: `file-view.read-revision`, `file-view.edit`, `file-view.save`, `file-view.find`, `file-view.go-to-line`,
   `file-view.open-external`, `file-view.highlight`, `blame.` (the blame of the line under the cursor and of the whole
   file, which draw in this page), `file-history.` (the history of the file and of the selected lines, from its context
@@ -909,7 +909,8 @@ read-only.
   blame beside it, stay on its first row; its other rows start in the column of the text. A click on a row puts the
   cursor on that row, and a selection is drawn on every row it covers.
 - The title buttons: **Open in external editor**; the buttons of the blame; **Open in the Merge page** when the file is
-  in conflict with a version on each side.
+  in conflict with a version on each side; **Preview** and **Source** for a Markdown file
+  (`file-view.markdown-preview`), the one shown filled.
 - The context menu: cut, copy, paste, **Find**, **Go to line**, and the entries the blame and the file history add.
 - A file of the working tree that changes on disk while it has no unsaved edits is read again.
 - A file that is not text (a NUL byte) shows *This file is not text.* and nothing else.
@@ -946,6 +947,58 @@ Acceptance:
       `src/app.rs` marked.
 - [ ] A click on `README.md` then shows it in the same place, and the folder `src` is still open in the tree.
 - [ ] With unsaved edits in `src/app.rs`, opening `README.md` keeps `src/app.rs` in `Ctrl+Tab`.
+
+### `file-view.markdown-preview` — A Markdown file as it reads
+
+A Markdown file in the File page shown laid out as it reads, with **Preview** and **Source** to switch
+([D59](../08-decisions.md#d59--markdown-files-shown-as-they-read)).
+
+- **Kind**: View
+- **Function**: `views::file_view::markdown_view(state: &MarkdownState, ui) -> Vec<Intent>`, over the derivation
+  `model::markdown::blocks(text: &str) -> Vec<Block>`
+- **Entry points**: **Preview** and **Source** in the title row of the File page of a file ending in `.md` or
+  `.markdown`; any way of opening such a file while `markdown.openAsPreview` is on.
+- **Settings**: `markdown.openAsPreview` (`false`).
+- **Uses**: `file-view.page`, `file-view.highlight`.
+
+Rules:
+
+- CommonMark with the tables, the task lists and the strikethrough of GitHub. Headings, paragraphs, emphasis, inline
+  code, lists, quotes, rules, code blocks in the colors of the code of their language, tables with their alignment.
+  The window has no italic typeface: emphasis is drawn in the medium weight, strong text in the bold one
+  ([Q580](../08-decisions.md#open-questions)). A word wider than the page is cut where it overflows; a line of a code
+  block wider than it ends with `…`.
+- HTML in the file is shown as text, never rendered; nothing in the preview runs.
+- A link to a web page opens in the browser; a link to a file of the repository, relative to the file, opens that file
+  in its File page, at the revision of the page when it shows one, at the line of a `#L12` after it; a link to a
+  heading of the file scrolls to it, the heading named as GitHub names it (`#getting-started`). Another scheme, such as
+  `javascript:`, and a path out of the repository go nowhere. An image of the repository is drawn, as wide as the page
+  at most, read on a worker; only PNG is read, and an image of another format shows its text, as an image from the
+  web, which is not fetched ([Q581](../08-decisions.md#open-questions)).
+- The preview follows the text: edits made in **Source** show in **Preview** when it is shown again; a file of the
+  working tree changed on disk is read again, as in **Source**.
+- With `markdown.openAsPreview` on, a Markdown file opens in **Preview**; otherwise in **Source**. The switch is kept
+  for the page while it is open. A file at a revision has the preview too, read-only as its text.
+- **Find** in the preview, `Ctrl+F`, finds in the text shown, as find in page does
+  ([Q582](../08-decisions.md#open-questions)).
+- Extension: with `gitardo.markdown.openAsPreview` on, a Markdown file that Gitardo opens from the Gitardo Changes view
+  (**Open File**, or a click on it) opens in VS Code's preview of Markdown (`markdown.showPreview`), not in its editor;
+  its diffs stay diffs of its text ([Q584](../08-decisions.md#open-questions)).
+
+Acceptance:
+
+- [x] `README.md` with a heading, a list, a table and a Rust code block shows them laid out in **Preview**, the code in
+      the colors of Rust.
+- [x] **Source** shows the text of the file, editable; **Preview** shows it laid out again, with the edit.
+- [x] With `markdown.openAsPreview` on, `docs/guide.md` opened from the Files page opens in **Preview**; off, in
+      **Source**.
+- [x] `<script>alert(1)</script>` in the file is shown as that text.
+- [x] A link to `../CHANGELOG.md` opens the File page of `CHANGELOG.md`; a link to `https://example.com` asks the
+      browser to open it.
+- [x] An image `media/logo.png` of the repository is drawn; `https://example.com/a.png` shows its text.
+- [x] `src/app.rs` has no **Preview**.
+- [x] Extension: with `gitardo.markdown.openAsPreview` on, a click on `README.md` in the Gitardo Changes view opens
+      VS Code's preview of it; `src/app.rs` opens in its editor.
 
 ### `file-view.read-revision` — A file at a revision
 

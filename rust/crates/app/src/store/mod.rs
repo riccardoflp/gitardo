@@ -153,6 +153,7 @@ pub(super) fn reduce_message(state: &mut State, message: Message) -> Vec<Effect>
         Message::DiffRead { job, result } => diff_page::diff_read(state, job, result),
         Message::MergeRead { job, result } => merge_page::merge_read(state, job, result),
         Message::FileRead { job, result } => file_page::file_read(state, job, result),
+        Message::ImageRead { job, image } => file_page::image_read(state, job, image),
         Message::ComparisonRead { job, result } => compare::comparison_read(state, job, result),
         Message::ReviewRead { job, result } => review::review_read(state, job, result),
         Message::InPlaceRead { job, result } => compare::in_place::in_place_read(state, job, result),

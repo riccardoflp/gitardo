@@ -96,7 +96,7 @@ pub enum PageState<'a> {
     /// The review of the resolutions of the conflicts.
     Review(crate::review::ReviewState<'a>),
     /// A File page.
-    File(FilePageState<'a>),
+    File(Box<FilePageState<'a>>),
     /// The Files page.
     Files(crate::files::FilesPageState<'a>),
     /// The Files page with a file opened beside its tree (`file-view.beside-files`).

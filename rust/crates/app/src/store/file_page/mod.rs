@@ -6,17 +6,16 @@ mod colors;
 mod edit;
 mod given;
 mod held;
+mod markdown;
 mod save_all;
+mod shown;
 
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 
 use model::CommitId;
 use ui::editor::{Cursor, Document, NotText};
-use views::file_view::{
-    CloseAnswer, CloseQuestion, FilePageId, FilePageState, FileShown, FileTarget, FileText, FileViewIntent,
-    FindOptions, FindState, GoToLineState,
-};
+use views::file_view::{CloseAnswer, FilePageId, FileTarget, FileViewIntent, FindOptions};
 use views::page::Page;
 use views::text::file_view as words;
 
@@ -30,6 +29,8 @@ pub(crate) use edit::save;
 pub use edit::{Edited, edit_with, ended, reduce_page};
 pub use given::open_with_text;
 pub use held::{HeldFile, document_of, hold};
+pub use markdown::{Preview, image_read};
+pub use shown::{close_question, page_state};
 
 /// How many columns a tab goes to in the editor.
 const TAB_WIDTH: usize = 4;
@@ -141,6 +142,8 @@ pub struct FilePage {
     pub go_to_line: Option<String>,
     /// Whether it is not among the pages of the window: it holds the text of a file a Diff page edits (`diff.edit`).
     pub is_hidden: bool,
+    /// The preview of a Markdown file, none for another file (`file-view.markdown-preview`).
+    pub markdown: Option<Preview>,
 }
 
 impl FilePage {
@@ -170,20 +173,7 @@ pub fn open(state: &mut State, target: FileTarget) -> Vec<Effect> {
         page.path == target.path && page.revision == target.revision && same_folder(&page.folder, &folder)
     });
     if let Some(index) = found {
-        let serial = next_serial(state);
-        if let Some(page) = state.file_pages.pages.get_mut(index) {
-            if page.is_hidden {
-                // Shown for the first time: the text a Diff page edited takes the keyboard, as a page read does.
-                page.is_hidden = false;
-                page.focus = Some(serial);
-            }
-            if let Some(line) = target.line {
-                go_to(page, line, serial);
-            }
-            let id = page.id;
-            super::pages::show_page(state, Page::File(id));
-        }
-        return Vec::new();
+        return show_again(state, index, target.line);
     }
     let id = FilePageId(state.file_pages.next);
     state.file_pages.next += 1;
@@ -193,6 +183,7 @@ pub fn open(state: &mut State, target: FileTarget) -> Vec<Effect> {
         .next()
         .unwrap_or(&target.path)
         .to_owned();
+    let preview = markdown::preview_of(&target.path, state.settings.markdown_open_as_preview);
     let title = match &target.revision {
         Some(commit) => words::at_revision(&name, commit.short()),
         None => name,
@@ -217,9 +208,33 @@ pub fn open(state: &mut State, target: FileTarget) -> Vec<Effect> {
         find: None,
         go_to_line: None,
         is_hidden: false,
+        markdown: preview,
     });
     super::pages::show_page(state, Page::File(id));
     start_read(state, id).into_iter().collect()
+}
+
+/// Shows the page of a file open already, at the line asked for; a page that held the text a Diff page edited, shown
+/// for the first time, takes the keyboard as a page read does, and lays out its preview.
+fn show_again(state: &mut State, index: usize, line: Option<usize>) -> Vec<Effect> {
+    let serial = next_serial(state);
+    let Some(page) = state.file_pages.pages.get_mut(index) else {
+        return Vec::new();
+    };
+    let was_hidden = page.is_hidden;
+    if was_hidden {
+        page.is_hidden = false;
+        page.focus = Some(serial);
+    }
+    if let Some(line) = line {
+        go_to(page, line, serial);
+    }
+    let id = page.id;
+    super::pages::show_page(state, Page::File(id));
+    if was_hidden {
+        return markdown::refresh(state, id);
+    }
+    Vec::new()
 }
 
 /// The next number of a reveal or of a focus.
@@ -304,7 +319,9 @@ pub fn file_read(state: &mut State, job: JobId, result: Result<Option<Vec<u8>>, 
         let line = page.pending_line.take().unwrap_or(1);
         go_to(page, line, serial);
     }
-    given::take_pending(state, id)
+    let mut effects = markdown::refresh(state, id);
+    effects.extend(given::take_pending(state, id));
+    effects
 }
 
 /// Shows the bytes of a file: its text in a new document, keeping the cursor where it can, or that it is not text.
@@ -368,7 +385,7 @@ pub fn prune(state: &mut State) -> Vec<Effect> {
     state.file_pages.pages = kept;
     closed
         .into_iter()
-        .filter_map(|page| page.job)
+        .flat_map(|page| page.job.into_iter().chain(markdown::image_jobs(&page)))
         .map(|job| {
             let _cancelled = state.jobs.remove(&job);
             Effect::Cancel(job)
@@ -444,55 +461,4 @@ pub fn unsaved_paths(state: &State, top: &Path) -> Vec<String> {
         .filter(|page| !Path::new(&page.path).is_absolute())
         .map(|page| page.path.clone())
         .collect()
-}
-
-/// What a page is drawn from.
-#[must_use]
-pub fn page_state(state: &State, id: FilePageId) -> Option<FilePageState<'_>> {
-    let page = state.file_pages.pages.iter().find(|page| page.id == id)?;
-    let shown = match &page.content {
-        FileContent::Reading => FileShown::Reading,
-        FileContent::NotText => FileShown::NotText,
-        FileContent::Failed(error) => FileShown::Failed(error),
-        FileContent::Text(document) => FileShown::Text(FileText {
-            buffer: document.buffer(),
-            cursor: page.cursor,
-            colors: &page.colors.spans,
-            reveal: page.reveal,
-            focus: page.focus,
-        }),
-    };
-    let line_count = page.document().map_or(1, |document| document.buffer().line_count());
-    Some(FilePageState {
-        id,
-        title: &page.title,
-        path: &page.path,
-        is_read_only: page.revision.is_some(),
-        is_unsaved: page.is_unsaved(),
-        shown,
-        find: page.find.as_ref().map(|find| FindState {
-            typed: &find.typed,
-            options: find.options,
-            marks: &find.marks,
-            current: find.current,
-            is_invalid: find.is_invalid,
-            focus: find.focus,
-        }),
-        go_to_line: page
-            .go_to_line
-            .as_deref()
-            .map(|typed| GoToLineState { typed, line_count }),
-        tab_width: TAB_WIDTH,
-        wrap: state.settings.word_wrap,
-        blame: views::blame::PageBlame::default(),
-    })
-}
-
-/// The question asked before closing a page with edits not saved, while it waits.
-#[must_use]
-pub fn close_question(state: &State) -> Option<CloseQuestion<'_>> {
-    let id = state.file_pages.closing?;
-    let page = state.file_pages.pages.iter().find(|page| page.id == id)?;
-    let name = page.path.rsplit('/').next().unwrap_or(&page.path);
-    Some(CloseQuestion { name })
 }
