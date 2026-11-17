@@ -1,4 +1,4 @@
-//! The two menus at the end of the header (D66): the menu of the view, with the switches of the timeline
+//! The two menus at the end of the header (D68): the menu of the view, with the switches of the timeline
 //! (`graph.view-menu`), and **…**, with the actions (`graph.more-menu`): where their buttons are, what a switch writes,
 //! and their pictures open in each theme.
 

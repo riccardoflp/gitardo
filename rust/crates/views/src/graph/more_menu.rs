@@ -1,7 +1,7 @@
 //! The **…** menu at the end of the header (`graph.more-menu`): the actions alone, in the groups of its card:
 //! **Refresh** and the operations at `HEAD`; the ways to what is not elsewhere in the header; **Switch identity…**;
 //! **Load pull requests from GitHub**; then **Settings** and **Theme…**. The switches of the timeline are in the menu
-//! of the view beside it (`graph.view-menu`, D66).
+//! of the view beside it (`graph.view-menu`, D68).
 
 use ui::{Button, ButtonKind, MenuEntry, Ui};
 

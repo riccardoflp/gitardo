@@ -555,7 +555,7 @@ Acceptance:
 ### `graph.view-menu` — The menu of the view of the header
 
 Every switch of what the timeline shows and how it draws it, in one menu apart from the actions
-([D66](../08-decisions.md#d66--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions)).
+([D68](../08-decisions.md#d68--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions)).
 
 - **Kind**: View
 - **Function**: `views::graph::view_menu_view(state: &ViewMenuState, ui) -> Vec<Intent>`
@@ -604,7 +604,7 @@ Acceptance:
 
 The actions on the repository and the ways to what is not elsewhere in the header, apart from the switches of the
 timeline, which are in the menu of the view (`graph.view-menu`,
-[D66](../08-decisions.md#d66--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions)).
+[D68](../08-decisions.md#d68--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions)).
 
 - **Kind**: View
 - **Function**: `views::graph::more_menu_view(state: &MoreMenuState, ui) -> Vec<Intent>`
@@ -1036,7 +1036,7 @@ Acceptance:
 
 The labels of a commit start the line of its message and leave the message its room; those that do not fit are one
 label `+N`, and the pointer resting on the labels opens the list of all of them
-([D64](../08-decisions.md#d64--the-labels-of-a-commit-first-on-its-row-the-rest-under-the-pointer)).
+([D66](../08-decisions.md#d66--the-labels-of-a-commit-first-on-its-row-the-rest-under-the-pointer)).
 
 - **Kind**: View
 - **Function**: `views::graph::label_overflow_view(state: &LabelOverflow, ui) -> Vec<Intent>`
@@ -1269,7 +1269,7 @@ Acceptance:
 
 The timeline as a table: each commit on one line, its labels, its message, then its author, its date and its hash in
 columns that line up, on rows half as tall, so that twice as many commits are seen at once
-([D65](../08-decisions.md#d65--compact-rows-each-commit-on-one-line)).
+([D67](../08-decisions.md#d67--compact-rows-each-commit-on-one-line)).
 
 - **Kind**: View
 - **Function**: `views::graph::compact_rows_view(state: &CompactRow, ui) -> Vec<Intent>`

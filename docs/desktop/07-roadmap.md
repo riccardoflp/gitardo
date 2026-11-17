@@ -440,14 +440,14 @@ menu of a branch the bin beside **Delete**; every card of the phase passes its t
 of the header bar match in each theme, focused and not, those of the preview of Markdown and those of the tree of the
 Files page with its marks and with the icons of its files, and those of the menus of a commit and of a file, in each theme.
 
-## M18 — The timeline in one line a commit, and its two menus
+## M20 — The timeline in one line a commit, and its two menus
 
 The labels of a commit come first on its row, and the many labels of a busy commit open under the pointer rather than
-being cut ([D64](../08-decisions.md#d64--the-labels-of-a-commit-first-on-its-row-the-rest-under-the-pointer)); the
+being cut ([D66](../08-decisions.md#d66--the-labels-of-a-commit-first-on-its-row-the-rest-under-the-pointer)); the
 timeline can show each commit on one line, the compact rows
-([D65](../08-decisions.md#d65--compact-rows-each-commit-on-one-line)); and the **…** menu of the header, which held
+([D67](../08-decisions.md#d67--compact-rows-each-commit-on-one-line)); and the **…** menu of the header, which held
 the switches of the timeline and its actions together, becomes two menus
-([D66](../08-decisions.md#d66--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions)). Asked by the
+([D68](../08-decisions.md#d68--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions)). Asked by the
 maintainer after M17. Built in four phases, each one commit or more, each ending with its cards built and their tests
 passing.
 

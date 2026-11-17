@@ -242,7 +242,7 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
       )}
     </div>
   );
-  // The switches of the graph and the actions are two menus side by side, as in Gitardo Desktop (D66).
+  // The switches of the graph and the actions are two menus side by side, as in Gitardo Desktop (D68).
   const menuButtons = (
     <>
       <button className="button icon" onClick={(event) => openMenu(event, viewMenu(state, { onFoldAll, folded }))} aria-label="View" title="View">

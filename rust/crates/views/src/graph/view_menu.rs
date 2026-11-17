@@ -1,6 +1,6 @@
 //! The menu of the view, right before **…** at the end of the header (`graph.view-menu`): every switch of the
 //! timeline, each checked while it is on, in three groups: what the timeline shows, how it draws it, and the columns
-//! of each row (D66).
+//! of each row (D68).
 
 use model::filter::{Kinds, ReferenceKind};
 use ui::{Button, ButtonKind, MenuEntry, Ui};
@@ -19,7 +19,7 @@ const VIEW_MENU: &str = "view menu";
 /// What the timeline shows, after the kinds of references: the stashes, and only the first parent of merges.
 const SHOWN: [TimelineSwitch; 2] = [TimelineSwitch::ShowStashes, TimelineSwitch::FirstParent];
 
-/// How the timeline draws its rows, before the folds: **Compact rows** (D65) right after one line.
+/// How the timeline draws its rows, before the folds: **Compact rows** (D67) right after one line.
 const DRAWN: [TimelineSwitch; 5] = [
     TimelineSwitch::OneLane,
     TimelineSwitch::CompactRows,

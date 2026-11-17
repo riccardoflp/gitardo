@@ -1171,9 +1171,9 @@ In the extension the menus of the webviews are drawn by the extension itself (`C
 same icons from the codicons it has; they are left as they are for now, desktop first ([Q619](#of-the-icons-of-the-menus-from-q610)).
 VS Code's own menus show no icons.
 
-## D64 — The labels of a commit first on its row, the rest under the pointer
+## D66 — The labels of a commit first on its row, the rest under the pointer
 
-*Asked by the maintainer for milestone M18; the details proposed by the agent.*
+*Asked by the maintainer for milestone M20; the details proposed by the agent.*
 
 The labels of a commit followed its message, so that the eye found the branches at a different place on each row, and
 a commit with many labels lost them past the edge or in a count whose names were only in a tooltip. Now the labels
@@ -1182,18 +1182,18 @@ them. They take at most a part of the row, so that the message is always seen; t
 `+N`. The pointer resting on `+N`, or on a label of the row, opens the list of all the labels of the commit under it,
 and each label of the list does what it does on the row: a click, a double click, its menu, its history brought out.
 
-## D65 — Compact rows: each commit on one line
+## D67 — Compact rows: each commit on one line
 
-*Asked by the maintainer for milestone M18; the details proposed by the agent.*
+*Asked by the maintainer for milestone M20; the details proposed by the agent.*
 
 A row of the timeline has two lines, the labels and the message, then the author and the date. To see more commits at
 once the timeline can show each on one line, as a table: the labels, the message, then the author, the date and the
 hash at the right end, in columns that line up. It is a setting, `graph.compactRows`, off by default, switched from the
-menu of the view (D66). The graph follows the lower rows; nothing else of the timeline changes.
+menu of the view (D68). The graph follows the lower rows; nothing else of the timeline changes.
 
-## D66 — Two menus in the header: the view of the timeline, and its actions
+## D68 — Two menus in the header: the view of the timeline, and its actions
 
-*Asked by the maintainer for milestone M18; the details proposed by the agent.*
+*Asked by the maintainer for milestone M20; the details proposed by the agent.*
 
 The **…** menu of the header held seven groups: the actions of the repository and the switches of what the timeline
 shows, so that a switch was looked for among actions and the other way around. Now they are two menus side by side at
@@ -3549,7 +3549,7 @@ otherwise.
 - **Q653** — `graph.compact-rows`: where the list is after the switch. Built: the row at the top stays at the top, and
   the commit selected, when it was in sight, is scrolled the least to stay in sight; one that was out of sight is not
   gone to. It is done by the list of the toolkit for any list whose rows change height from one frame to the next.
-- **Q654** — `graph.compact-rows`: the switch is in the menu of the view (D66), in the group of how the timeline draws
+- **Q654** — `graph.compact-rows`: the switch is in the menu of the view (D68), in the group of how the timeline draws
   its rows, right after **Show all commits on one line**. `graph.compactRows` changed in the settings file asks no read
   of the repository, as `graph.oneLane` (Q489): the rows are only drawn again.
 - **Q655** — `graph.compact-rows` in the extension: left **Planned**. The rows of the Graph view of the extension
@@ -3573,7 +3573,7 @@ otherwise.
 
 ### Of the two menus of the header, from Q660
 
-Questions of [D66](#d66--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions), each built with the
+Questions of [D68](#d68--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions), each built with the
 reading given until the card says otherwise.
 
 - **Q660** — `graph.view-menu`: the button is named **View**, for its tooltip and the screen reader, as short as
@@ -3588,7 +3588,7 @@ reading given until the card says otherwise.
   view is about. Should it move to the menu of the view, in a group of its own?
 - **Q663** — `graph.view-menu`: the groups are what the timeline shows (the kinds of references, the stashes, only the
   first parent of merges), how it draws it (one line, the history of the selected commit, the separators of dates, the
-  combined upstream, then the folds), and the columns of each row. **Compact rows** (D65) goes in the second group,
+  combined upstream, then the folds), and the columns of each row. **Compact rows** (D67) goes in the second group,
   right after **Show all commits on one line**: both choose the shape of the rows. Should the folds, which act on the
   merges loaded rather than write a setting, have a group of their own?
 - **Q664** — `graph.view-menu`: neither menu has a key, **…** had none before, and the keymap has none for them.
