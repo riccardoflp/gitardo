@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 - 2026-11-17
+## Unreleased
 
 - The Terminal tab of the bottom panel runs a shell in the folder of the repository tab shown: PowerShell 7 on Windows
   when it is installed, else Windows PowerShell, the shell of `SHELL` on Linux and macOS, or the one of
@@ -35,6 +35,9 @@
   the drafts of the AI sparkles, the menus that open below a button two chevrons, showing the base of a merge a fork.
   The bar of views has the timeline's graph, the changes of a file, a tree of folders, the compare arrows, the beat of
   Activity and a gear; a half-ticked box shows a dash of its own.
+
+## 1.0.0 - 2026-11-17
+
 - With `core.fsmonitor` on, on Linux and macOS, a worktree no longer has its repository read again and again: the
   socket the daemon listens on in its git folder (`fsmonitor--daemon.ipc`) asks for nothing, as the daemon's folder
   already did.
