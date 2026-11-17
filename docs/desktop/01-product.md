@@ -147,7 +147,7 @@ The cards of the catalog name the places of the window with these words, and onl
 | `settings.json` of the user | `settings.json` in Gitardo's folder of the user's configuration. |
 | `.vscode/settings.json` of a repository | `.gitardo/settings.json` of the repository, which can be committed to share it. For worktrees, VS Code's `git.worktreeSymlinkFolders` and `git.worktreeIncludeFiles` in `.vscode/settings.json` are still read as the fallback the extension has. |
 | Workspace trust | A folder is trusted once the user says so; until then nothing it asks to run is run. |
-| Theme colors and the file icon theme | Gitardo's own themes (dark, light, dark and light high contrast, or as the system is), its own fonts, and a built-in set of file icons. |
+| Theme colors and the file icon theme | Gitardo's own themes (dark, light, dark and light high contrast, or as the system is), its own fonts, and the icons of files and folders of Symbols, in the colors of the theme (`file-view.file-icons`). |
 | Codicons | The icons of Lucide, drawn from their outlines, one meaning each (`graph.icons`). |
 | The integrated terminal of VS Code | The **Terminal** in the bottom panel (`terminal.view`). |
 | Language models of VS Code (Copilot) | A language model reached over HTTP, as the settings `ai.*` say, with its key in the credential store of the system. |

@@ -1,7 +1,7 @@
 //! The two high contrast themes: black and white backgrounds, text at the strongest contrast, colored borders around
 //! every part, and a wider focus ring.
 
-use super::{CodeColors, Colors, SIZES, Sizes, Theme, ThemeName};
+use super::{CodeColors, Colors, FileIconHues, SIZES, Sizes, Theme, ThemeName};
 use crate::color::Color;
 
 /// The sizes of the high contrast themes: those of the others, with a focus ring twice as wide.
@@ -107,6 +107,17 @@ pub(super) const DARK: Theme = Theme {
         tag: Color::rgb(0x8C, 0xC8, 0xFF),
         attribute: Color::rgb(0xCD, 0xEB, 0xFF),
     },
+    file_icons: FileIconHues {
+        red: Color::rgb(0xFF, 0x7A, 0x7A),
+        orange: Color::rgb(0xFF, 0xA0, 0x5A),
+        yellow: Color::rgb(0xFF, 0xD0, 0x40),
+        green: Color::rgb(0x70, 0xE0, 0x90),
+        teal: Color::rgb(0x50, 0xE6, 0xD0),
+        sky: Color::rgb(0x7F, 0xD0, 0xFF),
+        blue: Color::rgb(0x8C, 0xB4, 0xFF),
+        violet: Color::rgb(0xE0, 0xA0, 0xFF),
+        pink: Color::rgb(0xFF, 0x8C, 0xC8),
+    },
 };
 
 /// The light high contrast theme: black text on white.
@@ -205,5 +216,16 @@ pub(super) const LIGHT: Theme = Theme {
         constant: Color::rgb(0x00, 0x3F, 0x7F),
         tag: Color::rgb(0x0A, 0x2F, 0x8F),
         attribute: Color::rgb(0x5A, 0x1A, 0x6A),
+    },
+    file_icons: FileIconHues {
+        red: Color::rgb(0xB5, 0x20, 0x0D),
+        orange: Color::rgb(0xA0, 0x48, 0x00),
+        yellow: Color::rgb(0x7A, 0x4D, 0x00),
+        green: Color::rgb(0x0D, 0x6B, 0x30),
+        teal: Color::rgb(0x00, 0x66, 0x5A),
+        sky: Color::rgb(0x00, 0x5F, 0x8F),
+        blue: Color::rgb(0x0F, 0x4A, 0x85),
+        violet: Color::rgb(0x6A, 0x2A, 0x9A),
+        pink: Color::rgb(0x9A, 0x1A, 0x6A),
     },
 };

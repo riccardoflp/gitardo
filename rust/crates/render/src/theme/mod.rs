@@ -257,6 +257,30 @@ impl CodeColors {
     }
 }
 
+/// The color of each family of hues the icons of files and folders are drawn with (`file-view.file-icons`), chosen to
+/// read on the ground of the theme: an icon drawn in blue by its set is drawn in the blue of the theme.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct FileIconHues {
+    /// Reds.
+    pub red: Color,
+    /// Oranges.
+    pub orange: Color,
+    /// Ambers and yellows.
+    pub yellow: Color,
+    /// Greens.
+    pub green: Color,
+    /// Teals.
+    pub teal: Color,
+    /// Light blues, toward cyan.
+    pub sky: Color,
+    /// Blues.
+    pub blue: Color,
+    /// Violets and purples.
+    pub violet: Color,
+    /// Pinks.
+    pub pink: Color,
+}
+
 /// The distances between things, in logical pixels.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Spacing {
@@ -350,6 +374,9 @@ pub struct Theme {
     pub terminal: [Color; 16],
     /// The colors of the tokens of code.
     pub code: CodeColors,
+    /// The colors the icons of files and folders are drawn in, one for each family of their colors
+    /// (`file-view.file-icons`); the gray of the icons is the muted text.
+    pub file_icons: FileIconHues,
 }
 
 impl Theme {

@@ -208,7 +208,8 @@ pub(crate) fn layout_buttons(
     intents
 }
 
-/// A directory of the tree: its arrow, its icon and its name, a button that folds it.
+/// A directory of the tree: its arrow, the icon of its folder (`file-view.file-icons`) and its name, a button that folds
+/// it. With the plain icons of files, its arrow and its name alone.
 pub(crate) fn directory_row(ui: &mut Ui<'_>, rect: Rect, (owner, row): (FilesOwner, &FileRow<'_>)) -> Vec<Intent> {
     let FileRow::Directory {
         name,
@@ -222,7 +223,10 @@ pub(crate) fn directory_row(ui: &mut Ui<'_>, rect: Rect, (owner, row): (FilesOwn
     let indent = indent_of(ui, depth);
     let cell = Rect::new(rect.x + indent, rect.y, (rect.width - indent).max(0.0), rect.height);
     let arrow = if is_folded { icons::FOLDED } else { icons::UNFOLDED };
-    let button = Button::secondary(name).kind(ButtonKind::Icon).with_icon(arrow);
+    let mut button = Button::secondary(name).kind(ButtonKind::Icon).with_icon(arrow);
+    if ui.file_icons() != ui::FileIconStyle::Simple {
+        button = button.with_file_icon(ui::FileOrFolder::Folder(name.rsplit('/').next().unwrap_or(name)));
+    }
     let (width, height) = ui.button_size(&button);
     let placed = place(
         cell,
@@ -253,7 +257,8 @@ pub(crate) fn status(kind: ChangeKind, ui: &Ui<'_>) -> (&'static str, Color) {
     }
 }
 
-/// The start of a row of a file: its status and its icon, then its name; gives the rest of the row.
+/// The start of a row of a file: its status and the icon of its file (`file-view.file-icons`), then its name; gives the
+/// rest of the row.
 pub(crate) fn file_start(ui: &mut Ui<'_>, rect: Rect, (file, depth): (&FileChange, usize)) -> Rect {
     let theme = *ui.theme();
     let spacing = theme.sizes.spacing;
@@ -275,7 +280,8 @@ pub(crate) fn file_start(ui: &mut Ui<'_>, rect: Rect, (file, depth): (&FileChang
         max_width: None,
     };
     let _ = ui.text(&run);
-    ui.icon_in(parts.left(theme.sizes.icon), icons::FILE, Tone::Muted);
+    let name = file.path.rsplit('/').next().unwrap_or(&file.path);
+    ui.file_icon_in(parts.left(theme.sizes.icon), ui::FileOrFolder::File(name), Tone::Muted);
     parts.rest()
 }
 

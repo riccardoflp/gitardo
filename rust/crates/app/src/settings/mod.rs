@@ -1,7 +1,8 @@
 //! The settings of Gitardo Desktop (`docs/features/18-settings.md`): read from the user's `settings.json` in Gitardo's
 //! configuration folder and from `.gitardo/settings.json` of the repository shown, both JSON with comments.
 //!
-//! Only the settings this window uses are read here: the theme and the fonts (`settings.theme`), `readOnStartup`,
+//! Only the settings this window uses are read here: the theme and the fonts (`settings.theme`), `fileIcons`,
+//! `readOnStartup`,
 //! `graph.pageSize`, the switches of the timeline, `branches.sortOrder`, `log.level`, and `commandPreview`,
 //! `branches.format` and `submodules.updateOnCheckout`, which the operations read. `branches.followGraphFilter` is not
 //! read since D51: the branch rail has a filter of its own.
@@ -24,7 +25,7 @@ use model::contract::FeatureSettings;
 use model::graph::PageSize;
 use model::refs::SortOrder;
 use render::ThemeName;
-use ui::LineWrap;
+use ui::{FileIconStyle, LineWrap};
 use views::graph::Switches;
 
 pub use ::settings::keys;
@@ -44,6 +45,8 @@ pub struct Settings {
     pub theme: ThemeName,
     /// `font.ui`, `font.code`, `font.size`: the fonts of the interface and of code, and the size of the text.
     pub fonts: FontChoice,
+    /// `fileIcons`: how the icons of files and folders are drawn (`file-view.file-icons`).
+    pub file_icons: FileIconStyle,
     /// `readOnStartup`: read the repository when the window opens.
     pub read_on_startup: bool,
     /// `repositories.keepOpen`: each repository keeps what it showed while another is shown (`repo.keep-open`).
@@ -83,6 +86,7 @@ impl Default for Settings {
         Settings {
             theme: ThemeName::System,
             fonts: FontChoice::default(),
+            file_icons: FileIconStyle::Symbols,
             read_on_startup: true,
             keep_open: true,
             page_size: PageSize::DEFAULT,

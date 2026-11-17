@@ -2,12 +2,14 @@
 //! the [`UiMemory`]; the view declares its widgets on it, which react to the input and say what happened; and
 //! [`Ui::finish`] draws what changed and says what the application should do next, in a [`FrameOutput`].
 
+mod file_icon;
 mod finish;
 mod keys;
 mod overlay;
 mod paint;
 mod raised;
 
+pub use file_icon::FileIconStyle;
 pub(crate) use overlay::OverlayState;
 
 use std::time::Duration;
@@ -70,6 +72,8 @@ pub struct FrameSettings {
     /// The time of the frame, from a moment the application chose, such as its start: animations, the blinking of
     /// the caret and the delay of tooltips are measured with it, so that tests can give any time they like.
     pub now: Duration,
+    /// How the icons of files and folders are drawn (`fileIcons`).
+    pub file_icons: FileIconStyle,
 }
 
 /// Everything a frame is made from.

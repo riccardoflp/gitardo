@@ -71,7 +71,7 @@ of the workspace again. While an operation runs, the buttons that change somethi
 
 **View as tree** shows the files under their directories, which fold; **View as list** shows them one after the other,
 each with its directory beside its name. The choice is kept for the page, and the folds while the window is open. Each
-file has the icon of its kind from Gitardo's set of file icons.
+file has the icon of its kind, from Symbols (`file-view.file-icons`).
 
 Acceptance:
 

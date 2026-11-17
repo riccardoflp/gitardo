@@ -401,6 +401,18 @@ Phase 9 was added by the maintainer after phases 7 and 8
    follow every read of the repository. The extension has no Files view, and VS Code's Explorer marks the changes of
    git itself. Cards: `file-view.files-changes`.
 
+Phase 10 was added by the maintainer after phase 9
+([D62](../08-decisions.md#d62--the-icons-of-files-and-folders-are-those-of-symbols-in-the-colors-of-the-theme)):
+
+10. **The icons of files and folders.** Each file and folder of the repository has the icon of its kind, from the icon
+    theme of Symbols (MIT), chosen by its name, its extension or its language as the theme chooses them in VS Code: in
+    the tree of the Files page, the rows of the Changes page, the files of a commit and of a comparison, the page of new
+    worktrees. Each color of an icon is drawn in the color the theme gives its family of hues, the gray of the folders
+    in the muted text; the icons are drawn into pixels by `resvg` once for each size, scale and theme. The setting
+    **File icons** (`fileIcons`, in **Appearance**) draws them in the colors of the theme (`symbols`, the default), in
+    the color of the text (`monochrome`) or as the plain file and folder of before (`simple`). The extension shows the
+    file icon theme of VS Code. Cards: `file-view.file-icons`, `settings.edit`.
+
 Exit: the window opens with no title bar of the system, the logo at its top left and **Gitardo** at the start of the
 header bar; dragging the free part of the header bar moves the window and dragging it to the top of the screen
 maximizes it; a double click maximizes and restores it; the pointer on **Maximize** on Windows 11 shows Snap Layouts;
@@ -410,9 +422,11 @@ the window; the bar dims when another window has the focus; the size and place a
 a code block laid out, and **Source** shows its text; a `mermaid` block of a flowchart and one of a sequence diagram
 are drawn as their diagrams in each theme, in VS Code's preview too, and one with an error shows its code and why; in
 the Files page a modified file shows `M`, a file whose deletion is staged is listed struck through and opens its Diff
-page, and a folded folder holding a change shows its dot; every card of the phase passes its tests, and the snapshots
+page, and a folded folder holding a change shows its dot; `src/main.rs` has the icon of Rust and `src` its folder of
+code in the Files page, in the orange and the gray of each theme, in the color of the text with **File icons** set to
+`monochrome` and as before with `simple`; every card of the phase passes its tests, and the snapshots
 of the header bar match in each theme, focused and not, those of the preview of Markdown and those of the tree of the
-Files page with its marks in each theme.
+Files page with its marks and with the icons of its files in each theme.
 
 ## Before a release
 

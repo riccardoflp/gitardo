@@ -154,7 +154,12 @@ pub(crate) const COMMAND_LOG: Icon = Icon::CommandLog;
 /// Folder.
 pub(crate) const FOLDER: Icon = Icon::Folder;
 
-/// File.
+/// File: drawn by the toolkit beside the name of a file when `fileIcons` is `simple`, in place of the icon of Symbols
+/// (`file-view.file-icons`).
+#[allow(
+    dead_code,
+    reason = "the toolkit draws it for the plain icons of files; the views name the file instead"
+)]
 pub(crate) const FILE: Icon = Icon::File;
 
 /// Open the file.

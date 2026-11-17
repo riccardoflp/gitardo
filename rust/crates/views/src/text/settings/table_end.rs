@@ -3,7 +3,7 @@
 use super::{SettingInfo, SettingKind, SettingsSection};
 
 /// The settings of the second half of the table.
-pub(super) const REST: [SettingInfo; 27] = [
+pub(super) const REST: [SettingInfo; 28] = [
     SettingInfo {
         key: "conflicts.autoResolve",
         title: "Resolve conflicts by rules",
@@ -282,6 +282,16 @@ pub(super) const REST: [SettingInfo; 27] = [
         is_repository: false,
         is_experimental: false,
         kind: SettingKind::Number { least: 8, most: 24 },
+    },
+    SettingInfo {
+        key: "fileIcons",
+        title: "File icons",
+        section: Some(SettingsSection::Appearance),
+        description: "The icons beside the names of files and folders: symbols draws those of Symbols in the colors of the theme, monochrome the same in the color of the text, simple a plain file and folder.",
+        default: "\"symbols\"",
+        is_repository: false,
+        is_experimental: false,
+        kind: SettingKind::Choice(&["symbols", "monochrome", "simple"]),
     },
     SettingInfo {
         key: "log.level",

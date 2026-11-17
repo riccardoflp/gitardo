@@ -52,6 +52,7 @@ fn settings_of(mut lookup: Lookup) -> Settings {
             .unwrap_or(defaults.fonts.code),
         size: font_size(&mut lookup).unwrap_or(defaults.fonts.size),
     };
+    let file_icons = file_icons(&mut lookup);
     let read_on_startup = lookup.boolean(keys::READ_ON_STARTUP, Scope::UserAndRepository);
     let keep_open = lookup.boolean(keys::KEEP_OPEN, Scope::User);
     let page_size = ::settings::page_size(&mut lookup);
@@ -80,6 +81,7 @@ fn settings_of(mut lookup: Lookup) -> Settings {
         values,
         theme,
         fonts,
+        file_icons,
         switches,
         sort_order,
         collapse_unchanged: collapse_unchanged.unwrap_or(defaults.collapse_unchanged),
@@ -90,6 +92,15 @@ fn settings_of(mut lookup: Lookup) -> Settings {
         keep_open: keep_open.unwrap_or(defaults.keep_open),
         page_size,
         problems: lookup.into_problems(),
+    }
+}
+
+/// `fileIcons`, from the user's file: how the icons of files and folders are drawn (`file-view.file-icons`).
+fn file_icons(lookup: &mut Lookup) -> ui::FileIconStyle {
+    match lookup.choice(keys::FILE_ICONS, &keys::FILE_ICON_STYLES) {
+        Some("monochrome") => ui::FileIconStyle::Monochrome,
+        Some("simple") => ui::FileIconStyle::Simple,
+        _ => ui::FileIconStyle::Symbols,
     }
 }
 

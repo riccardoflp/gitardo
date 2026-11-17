@@ -5,7 +5,8 @@
 //! and an origin that can be saved and restored, and marks what it draws as dirty so that only that is shown again.
 //! It fills rectangles (snapped to whole pixels, the fast path), rounded rectangles, borders, circles and any
 //! [`Path`] (anti-aliased by `tiny-skia`), strokes lines and curves, draws text with the [`Fonts`] of its [`Assets`]
-//! (shaped and rasterized by `cosmic-text`), and draws the [`Icon`]s of Lucide from their outlines. The colors and
+//! (shaped and rasterized by `cosmic-text`), draws the [`Icon`]s of Lucide from their outlines, and the
+//! [`FileIcon`]s of Symbols from their SVG, by `resvg`, in the colors of the theme. The colors and
 //! sizes come from the tokens of a [`Theme`].
 //!
 //! The fonts that come with the program are part of it ([`Fonts::bundled`]); the only files read are those of the
@@ -19,6 +20,7 @@ mod canvas;
 mod color;
 mod dirty;
 mod error;
+mod file_icon;
 mod frame;
 mod geometry;
 mod icon;
@@ -33,10 +35,13 @@ pub use assets::Assets;
 pub use canvas::{Border, Canvas, Stroke};
 pub use color::Color;
 pub use error::Error;
+pub use file_icon::{ColorFamily, FileIcon, FileIconColors, FileIconLook, FileIcons, FileOrFolder};
 pub use frame::FrameBuffer;
 pub use geometry::{PixelRect, Point, Rect, Transform};
 pub use icon::{GRID as ICON_GRID, Icon, Icons};
 pub use image::{Image, SvgImage};
 pub use path::{Command, FillRule, LineCap, Path};
 pub use text::{FontFamily, FontWeight, Fonts, LineMetrics, TextRun, TextStyle, Truncation, TypefaceId};
-pub use theme::{Appearance, CodeColors, CodeKind, Colors, FontSizes, Radii, Sizes, Spacing, Theme, ThemeName};
+pub use theme::{
+    Appearance, CodeColors, CodeKind, Colors, FileIconHues, FontSizes, Radii, Sizes, Spacing, Theme, ThemeName,
+};

@@ -1,9 +1,10 @@
 //! What drawing keeps from one frame to the next: the fonts with the lines and glyphs drawn with them, and the icons.
 
+use crate::file_icon::FileIcons;
 use crate::icon::Icons;
 use crate::text::Fonts;
 
-/// The fonts, glyphs and icons a [`Canvas`](crate::Canvas) draws with, kept by the caller between frames so that
+/// The fonts, glyphs, icons and icons of files a [`Canvas`](crate::Canvas) draws with, kept by the caller between frames so that
 /// each line is shaped once and each glyph and icon rasterized once.
 #[derive(Debug, Default)]
 pub struct Assets {
@@ -11,6 +12,8 @@ pub struct Assets {
     pub fonts: Fonts,
     /// The icons drawn so far, at each size.
     pub icons: Icons,
+    /// The icons of files and folders drawn so far, at each size and in each colors, and the theme that names them.
+    pub file_icons: FileIcons,
 }
 
 impl Assets {
@@ -26,6 +29,7 @@ impl Assets {
         Assets {
             fonts: Fonts::bundled(),
             icons: Icons::default(),
+            file_icons: FileIcons::default(),
         }
     }
 }

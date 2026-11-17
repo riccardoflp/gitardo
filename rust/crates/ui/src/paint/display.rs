@@ -5,7 +5,8 @@
 use std::hash::{Hash, Hasher};
 
 use render::{
-    Border, Canvas, Color, Command as PathCommand, FillRule, Icon, Image, LineCap, Path, Point, Rect, Stroke,
+    Border, Canvas, Color, Command as PathCommand, FileIcon, FileIconLook, FillRule, Icon, Image, LineCap, Path, Point,
+    Rect, Stroke,
 };
 use render::{TextRun, TextStyle};
 
@@ -77,6 +78,17 @@ pub(crate) enum Shape {
         /// The color.
         color: Color,
     },
+    /// An icon of a file or a folder, of Symbols (`file-view.file-icons`).
+    FileIcon {
+        /// Which.
+        icon: FileIcon,
+        /// The top left corner.
+        origin: Point,
+        /// The side.
+        size: f32,
+        /// Its colors and how opaque it is.
+        look: FileIconLook,
+    },
     /// An image scaled into a rectangle.
     Image {
         /// The image.
@@ -97,6 +109,10 @@ impl Shape {
             | Shape::Icon { color, .. } => *color = color.faded(opacity),
             Shape::Border { border, .. } => border.color = border.color.faded(opacity),
             Shape::StrokePath { stroke, .. } => stroke.color = stroke.color.faded(opacity),
+            Shape::FileIcon { look, .. } => {
+                let faded = u16::from(look.opacity) * u16::from(opacity) / 255;
+                look.opacity = u8::try_from(faded).unwrap_or(u8::MAX);
+            }
             // An image keeps its own colors: what is faded around it is the rows and the text that step back.
             Shape::Image { .. } => {}
         }
@@ -162,6 +178,12 @@ fn draw_shape(canvas: &mut Canvas<'_>, shape: &Shape) {
             size,
             color,
         } => canvas.draw_icon(*icon, *origin, *size, *color),
+        Shape::FileIcon {
+            icon,
+            origin,
+            size,
+            look,
+        } => canvas.draw_file_icon(*icon, *origin, *size, look),
         Shape::Image { image, rect } => canvas.draw_image(image, *rect),
     }
 }
@@ -202,6 +224,18 @@ fn hash_shape(hasher: &mut StableHasher, shape: &Shape) {
             hash_stroke(hasher, stroke);
         }
         Shape::Text { .. } | Shape::Icon { .. } => hash_glyphs(hasher, shape),
+        Shape::FileIcon {
+            icon,
+            origin,
+            size,
+            look,
+        } => {
+            hasher.write_u8(8);
+            icon.hash(hasher);
+            hash_point(hasher, *origin);
+            hasher.write_f32(*size);
+            look.hash(hasher);
+        }
         Shape::Image { image, rect } => {
             hasher.write_u8(7);
             hasher.write_u64(image.key());

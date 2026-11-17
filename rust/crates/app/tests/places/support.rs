@@ -41,6 +41,8 @@ pub struct Window {
     pub now: Duration,
     /// What the last frame put on the clipboard.
     pub clipboard: Option<String>,
+    /// How the icons of files and folders are drawn: as the settings of the store drawn last say.
+    file_icons: ui::FileIconStyle,
 }
 
 impl Window {
@@ -68,6 +70,7 @@ impl Window {
             theme: Theme::new(theme, Appearance::Dark),
             now: Duration::from_secs(1),
             clipboard: None,
+            file_icons: ui::FileIconStyle::default(),
         }
     }
 
@@ -94,6 +97,7 @@ impl Window {
                 typefaces: self.typefaces,
                 scale: self.scale,
                 now: self.now,
+                file_icons: self.file_icons,
             },
         });
         let returned = view(&mut ui);
@@ -105,6 +109,7 @@ impl Window {
 
     /// Draws the window of a store with some input, and gives the intents of the frame and its tree.
     pub fn draw(&mut self, state: &State, events: &[InputEvent]) -> (Vec<Intent>, TreeUpdate) {
+        self.file_icons = state.settings.file_icons;
         let data = ViewData::new(state, Vec::new(), NOW);
         self.frame(events, |ui| views::view(&data.window_state(state), ui))
     }

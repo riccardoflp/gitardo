@@ -1,10 +1,10 @@
 //! Buttons: the main button of a place in the accent, the other buttons on the sunken tone, buttons drawn as their
-//! outline, pills and buttons that are only an icon, each with an optional dot or icon before its words, a chevron
+//! outline, pills and buttons that are only an icon, each with an optional dot, icon or icon of a file before its words, a chevron
 //! after them for a button that opens a menu, and a tooltip that finishes the thought of its label.
 
 use std::hash::Hash;
 
-use render::{Border, Color, Icon, Point, Rect, TextRun, Theme};
+use render::{Border, Color, FileOrFolder, Icon, Point, Rect, TextRun, Theme};
 
 use super::{Availability, is_high_contrast, metrics};
 use crate::access::{AccessRole, Description};
@@ -39,6 +39,8 @@ pub struct Button<'text> {
     pub icon: Option<Icon>,
     /// A dot of a color before the words, such as the color of a repository or of the lane of a branch.
     pub dot: Option<Color>,
+    /// The icon of a file or a folder before the words, after the icon (`file-view.file-icons`).
+    pub file_icon: Option<FileOrFolder<'text>>,
     /// The icon after the words, such as the chevron of a button that opens a menu.
     pub trailing: Option<Icon>,
     /// The keys that do what it does, in a small box after its words, such as `Ctrl K`.
@@ -59,6 +61,7 @@ impl<'text> Button<'text> {
             label,
             icon: None,
             dot: None,
+            file_icon: None,
             trailing: None,
             key_hint: None,
             kind: ButtonKind::Primary,
@@ -106,6 +109,15 @@ impl<'text> Button<'text> {
     pub fn with_icon(self, icon: Icon) -> Button<'text> {
         Button {
             icon: Some(icon),
+            ..self
+        }
+    }
+
+    /// The same button with the icon of a file or a folder before its words, after its icon.
+    #[must_use]
+    pub fn with_file_icon(self, asked: FileOrFolder<'text>) -> Button<'text> {
+        Button {
+            file_icon: Some(asked),
             ..self
         }
     }
@@ -180,6 +192,8 @@ struct Parts {
     dot: f32,
     /// The icon before the words, with the gap after it when words follow.
     icon: f32,
+    /// The icon of a file or a folder, with the gap after it when words follow.
+    file_icon: f32,
     /// The words.
     words: f32,
     /// The icon after the words, with the gap before it.
@@ -191,7 +205,7 @@ struct Parts {
 impl Parts {
     /// The width of all the parts.
     fn width(&self) -> f32 {
-        self.dot + self.icon + self.words + self.key_hint + self.trailing
+        self.dot + self.icon + self.file_icon + self.words + self.key_hint + self.trailing
     }
 }
 
@@ -224,6 +238,7 @@ impl Ui<'_> {
         Parts {
             dot: button.dot.map_or(0.0, |_| then(dot_side(theme))),
             icon: button.icon.map_or(0.0, |_| then(theme.sizes.icon)),
+            file_icon: button.file_icon.map_or(0.0, |_| then(theme.sizes.icon)),
             words,
             trailing: button.trailing.map_or(0.0, |_| trailing_side(theme) + gap * 0.5),
             key_hint: button.key_hint.map_or(0.0, |keys| self.key_hint_width(keys) + gap),
@@ -305,6 +320,11 @@ impl Ui<'_> {
             let at = middle(theme.sizes.icon, x);
             self.icon(icon, Point::new(at.x, at.y), theme.sizes.icon, color);
             x += parts.icon;
+        }
+        if let Some(asked) = button.file_icon {
+            let at = middle(theme.sizes.icon, x);
+            self.file_icon(asked, Point::new(at.x, at.y), theme.sizes.icon, color);
+            x += parts.file_icon;
         }
         if !button.label.is_empty() {
             let style = self.text_style(button.text_kind());

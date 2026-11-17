@@ -12,7 +12,9 @@ use model::changes::{FolderMark, MarkedFile, TreeMarks};
 use model::contract::FeatureId;
 use model::details::TreeNode;
 use ui::layout::{Align, Area, Insets, inset, place};
-use ui::{AccessRole, Label, List, MenuEntry, MenuItem, Rect, SelectionMode, Sense, Tone, Ui};
+use ui::{
+    AccessRole, FileIconStyle, FileOrFolder, Label, List, MenuEntry, MenuItem, Rect, SelectionMode, Sense, Tone, Ui,
+};
 
 use crate::icons;
 use crate::intent::Intent;
@@ -181,23 +183,14 @@ fn tree_rows<'a>(
     }
 }
 
-/// A row: its arrow and icon and its name, lit under the pointer, and how it differs from the last commit; a click
-/// opens a file or opens or folds a folder, and its context menu offers what can be done with it.
+/// A row: its arrow and the icon of its file or folder and its name, lit under the pointer, and how it differs from
+/// the last commit; a click opens a file or opens or folds a folder, and its context menu offers what can be done with
+/// it.
 fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &FilesRow<'_>)) -> Vec<Intent> {
     let theme = *ui.theme();
-    let (name, path, depth, icon) = match *row {
-        FilesRow::Top => (state.name, "", 0, icons::FOLDER),
-        FilesRow::Folder {
-            name,
-            path,
-            depth,
-            is_open,
-            ..
-        } => {
-            let arrow = if is_open { icons::UNFOLDED } else { icons::FOLDED };
-            (name, path, depth, arrow)
-        }
-        FilesRow::File { name, path, depth, .. } => (name, path, depth, icons::FILE),
+    let (name, path, depth) = match *row {
+        FilesRow::Top => (state.name, "", 0),
+        FilesRow::Folder { name, path, depth, .. } | FilesRow::File { name, path, depth, .. } => (name, path, depth),
     };
     let response = ui.interact(ui.id(("files row", path)), rect, Sense::CLICK | Sense::HOVER);
     let is_marked = matches!(row, FilesRow::File { .. }) && state.marked == Some(path);
@@ -212,17 +205,12 @@ fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &Fi
         Rect::new(inner.x + indent, inner.y, (inner.width - indent).max(0.0), inner.height),
         theme.sizes.spacing.small,
     );
-    let icon_cell = place(
-        parts.left(theme.sizes.icon),
-        (theme.sizes.icon, theme.sizes.icon),
-        (Align::Start, Align::Center),
-    );
     let opacity = match row {
         FilesRow::File { mark, .. } if marks::is_deleted(*mark) => marks::DIMMED,
         _ => u8::MAX,
     };
     ui.faded(opacity, |ui| {
-        ui.icon_in(icon_cell, icon, Tone::Muted);
+        row_icons(ui, &mut parts, row);
         match *row {
             FilesRow::File { mark: Some(file), .. } => marks::marked_file(ui, (parts.rest(), &response), (name, file)),
             FilesRow::Folder { mark: Some(mark), .. } => marks::marked_folder(ui, parts.rest(), (name, mark)),
@@ -241,6 +229,32 @@ fn row_view(ui: &mut Ui<'_>, rect: Rect, (state, row): (&FilesPageState<'_>, &Fi
     }
     intents.extend(row_menu(ui, &response, (row, path)));
     intents
+}
+
+/// The start of a row: the arrow of a folder, and the icon of its file or folder (`file-view.file-icons`). The icon of a
+/// folder follows its arrow, and that of a file the place of an arrow, so that the names of a folder line up; with the
+/// plain icons, a folder has its arrow alone and a file its icon in the place of the arrow, as before them.
+fn row_icons(ui: &mut Ui<'_>, parts: &mut Area, row: &FilesRow<'_>) {
+    let side = ui.theme().sizes.icon;
+    let cell = |parts: &mut Area| place(parts.left(side), (side, side), (Align::Start, Align::Center));
+    let is_simple = ui.file_icons() == FileIconStyle::Simple;
+    match *row {
+        FilesRow::Top => ui.file_icon_in(cell(parts), FileOrFolder::Top, Tone::Muted),
+        FilesRow::Folder { name, is_open, .. } => {
+            let arrow = if is_open { icons::UNFOLDED } else { icons::FOLDED };
+            ui.icon_in(cell(parts), arrow, Tone::Muted);
+            if !is_simple {
+                let last = name.rsplit('/').next().unwrap_or(name);
+                ui.file_icon_in(cell(parts), FileOrFolder::Folder(last), Tone::Muted);
+            }
+        }
+        FilesRow::File { name, .. } => {
+            if !is_simple {
+                let _ = cell(parts);
+            }
+            ui.file_icon_in(cell(parts), FileOrFolder::File(name), Tone::Muted);
+        }
+    }
 }
 
 /// The context menu of a row: **Open file**, **Show file history** and **Compare with…** for a file; **Show folder

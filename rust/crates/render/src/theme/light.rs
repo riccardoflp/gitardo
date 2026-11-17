@@ -1,6 +1,6 @@
 //! The light theme: dark text on a paper ground, white cards, a burnt orange accent.
 
-use super::{CodeColors, Colors, SIZES, Theme, ThemeName};
+use super::{CodeColors, Colors, FileIconHues, SIZES, Theme, ThemeName};
 use crate::color::Color;
 
 /// The light theme.
@@ -99,5 +99,16 @@ pub(super) const THEME: Theme = Theme {
         constant: Color::rgb(0x0B, 0x5F, 0xA8),
         tag: Color::rgb(0x1F, 0x7A, 0x3A),
         attribute: Color::rgb(0x6A, 0x3A, 0xB2),
+    },
+    file_icons: FileIconHues {
+        red: Color::rgb(0xB3, 0x26, 0x1E),
+        orange: Color::rgb(0xB8, 0x5A, 0x12),
+        yellow: Color::rgb(0x8A, 0x61, 0x00),
+        green: Color::rgb(0x2A, 0x7A, 0x3F),
+        teal: Color::rgb(0x0B, 0x7C, 0x6E),
+        sky: Color::rgb(0x0A, 0x6F, 0xA8),
+        blue: Color::rgb(0x2F, 0x5F, 0xC8),
+        violet: Color::rgb(0x6B, 0x4F, 0xD1),
+        pink: Color::rgb(0xB8, 0x36, 0x7E),
     },
 };

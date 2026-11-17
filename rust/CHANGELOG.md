@@ -37,6 +37,12 @@
   deletion is staged, dimmed and struck through, and a click on it opens its Diff page. A folder holding a changed
   file, folded or not, has a dot in the color of the most important state under it. The marks follow every read of
   the repository.
+- Each file and folder has the icon of its kind, from the icons of Symbols, by Miguel Solorio (MIT), chosen by its
+  name, its extension or its language as Symbols chooses them in VS Code: in the tree of the Files page, the rows of
+  the Changes page, the files of a commit and of a comparison, and the page of new worktrees. Their colors are those of
+  the theme, a color for each family of hues and the muted text for the gray of the folders, and change with it. The
+  setting **File icons** (`fileIcons`, in **Appearance**) draws them in the colors of the theme (`symbols`, the
+  default), in the color of the text (`monochrome`), or as the plain file and folder of before (`simple`).
 - The side column takes less room: a repository, a worktree and a submodule are each one row of one line, the name on
   the left and the branch, the files changed and `↓ ↑` smaller on the right, the name and the branch cut with `…`
   when the row is short; the heading of **Branches** has **Create branch**, **Compare** and the button of the rail's

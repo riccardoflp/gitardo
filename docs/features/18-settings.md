@@ -235,6 +235,7 @@ Acceptance:
 | `terminal.scrollbackLines` | Lines a terminal keeps | Terminal and tools | `10000` | User | **New.** How many lines a terminal keeps above its screen. | `terminal.view` |
 | `theme` | Theme | Appearance | `"system"` | User | **New.** `system`, `dark`, `light`, `highContrastDark` or `highContrastLight`. | `settings.theme` |
 | `font.ui`, `font.code`, `font.size` | Interface font, code font, font size | Appearance | `"Inter"`, `"JetBrains Mono"`, `13` | User | **New.** The families and the size of the text of the interface and of code: the fonts that come with the program, or the name of a font of the system. | `settings.theme` |
+| `fileIcons` | File icons | Appearance | `"symbols"` | User | **New.** The icons beside the names of files and folders: `symbols` draws those of Symbols in the colors of the theme, `monochrome` the same in the color of the text, `simple` a plain file and folder. | `file-view.file-icons` |
 | `log.level` | What the log records | General | `"info"` | User | **New.** `info` logs what changes something; `debug` logs the reads too. | `log.record` |
 
 Settings of the extension that have no place here: `gitardo.scm.stashButtons` (VS Code's list of changes),

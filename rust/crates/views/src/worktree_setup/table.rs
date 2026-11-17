@@ -230,8 +230,13 @@ pub(super) fn line_row(drawn: &Drawn<'_, '_>, index: usize, ui: &mut Ui<'_>, rec
             intents.push(page(SetupIntent::Unfold(line.pattern.clone())));
         }
     }
-    let icon = if line.is_folder { icons::FOLDER } else { icons::FILE };
-    ui.icon_in(path.left(theme.sizes.icon), icon, Tone::Muted);
+    let last = line.path().trim_end_matches('/').rsplit('/').next().unwrap_or_default();
+    let asked = if line.is_folder {
+        ui::FileOrFolder::Folder(last)
+    } else {
+        ui::FileOrFolder::File(last)
+    };
+    ui.file_icon_in(path.left(theme.sizes.icon), asked, Tone::Muted);
     let name_width = ui.measure(line.path(), ui.text_style(TextKind::Body));
     let _ = ui.label(path.left(name_width), &Label::new(line.path()));
     let notes = notes(drawn, line, gets);

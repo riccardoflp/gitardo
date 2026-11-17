@@ -204,18 +204,57 @@ fn file_view_files_changes__the_marks_follow_each_read_without_folding_or_unfold
     assert_eq!(state.files_page.opened.iter().collect::<Vec<_>>(), ["src"]);
 }
 
-#[test]
-fn the_tree_of_the_files_page_with_its_marks_is_drawn_in_each_theme() {
+/// A repository with a change of each kind: modified, untracked, added, deleted, renamed and in conflict.
+fn changed() -> Repository {
     let mut repository = committed();
-    let _ = repository.commit("Add the old files", &[("gone.txt", "gone\n"), ("src/old.rs", "old\n")]);
+    let _ = repository.commit(
+        "Add the old files",
+        &[
+            (
+                "gone.txt", "gone
+",
+            ),
+            (
+                "src/old.rs",
+                "old
+",
+            ),
+        ],
+    );
     repository.conflict();
-    write(&repository, "src/app.rs", "app, changed\n");
-    write(&repository, "src/ui/list.rs", "list, changed\n");
-    write(&repository, "notes.txt", "notes\n");
-    write(&repository, "todo.txt", "todo\n");
+    write(
+        &repository,
+        "src/app.rs",
+        "app, changed
+",
+    );
+    write(
+        &repository,
+        "src/ui/list.rs",
+        "list, changed
+",
+    );
+    write(
+        &repository,
+        "notes.txt",
+        "notes
+",
+    );
+    write(
+        &repository,
+        "todo.txt",
+        "todo
+",
+    );
     let _ = repository.git(&["add", "todo.txt"]);
     std::fs::remove_file(repository.path().join("gone.txt")).unwrap();
     let _ = repository.git(&["mv", "src/old.rs", "src/renamed.rs"]);
+    repository
+}
+
+#[test]
+fn the_tree_of_the_files_page_with_its_marks_is_drawn_in_each_theme() {
+    let repository = changed();
     for (theme, name) in [
         (ThemeName::Dark, "files-changes-dark"),
         (ThemeName::Light, "files-changes-light"),
@@ -228,6 +267,19 @@ fn the_tree_of_the_files_page_with_its_marks_is_drawn_in_each_theme() {
         let _ = window.draw(&state, &[]);
         window.assert_snapshot(name);
     }
+}
+
+/// `file-icons-simple-dark.png` is the snapshot of the tree with its marks as it was drawn before the icons of
+/// Symbols (`file-view.file-icons`).
+#[test]
+fn file_view_file_icons__with_simple_the_tree_is_drawn_with_the_plain_icons_as_before() {
+    let repository = changed();
+    let (mut state, _window, _driver) = files_page(&repository, &["src"]);
+    state.settings.file_icons = ui::FileIconStyle::Simple;
+    let mut window = Window::new(ThemeName::Dark, (1000, 700));
+    let _ = window.draw(&state, &[]);
+    let _ = window.draw(&state, &[]);
+    window.assert_snapshot("file-icons-simple-dark");
 }
 
 /// How many pixels are of the background of tooltips.

@@ -1102,6 +1102,35 @@ git command, and follow every read without folding or unfolding anything. Ignore
 
 The extension has no Files view, and VS Code's Explorer marks the changes of git itself: the card is Host only there.
 
+## D62 — The icons of files and folders are those of Symbols, in the colors of the theme
+
+*Asked by the maintainer for milestone M17, who chose the set and its colors; the details proposed by the agent.*
+
+The window drew one icon for every file and none for folders, where VS Code shows the icon of each kind of file from
+its file icon theme. Now each file and folder of the repository has the icon of its kind (`file-view.file-icons`), from
+[Symbols](https://github.com/miguelsolorio/vscode-symbols), by Miguel Solorio, under the MIT licence: chosen among the
+sets of file icons for its plain drawings, which sit well beside the icons of Lucide, and because it draws folders too,
+by their names. Its SVG files and what its theme maps to them are kept in `rust/crates/render/icons/symbols/`, with the
+licence and the commit they were copied from; no code of it is copied. A file is named as the theme names it in
+VS Code: by its name, then its extensions from the longest, then its language, which Gitardo knows from a table of its
+own of the languages of VS Code by extension and name.
+
+The SVG files are drawn into pixels by `resvg`, already used for the diagrams of Mermaid (D60), once for each size,
+scale of the screen and colors, and kept. Their colors are not drawn as written: Symbols draws with about twenty colors
+of Tailwind, which read well on a dark ground and less on others; each color is taken to a family of hues, and the
+family to a color of the theme, chosen to read on its ground, the strong colors in the high contrast themes, the gray of
+the folders to the muted text. A shade lighter or darker than the family's own stays as much lighter or darker, so that
+an icon keeps its parts.
+
+The setting `fileIcons` (in **Appearance**, `symbols` by default) draws them in the colors of the theme, in the color of
+the text (`monochrome`), or as the plain file and folder of Lucide they replace (`simple`). Its name is one word, as
+`theme` and `commandPreview` are, since it is about every list of files of the window and not one area of it.
+
+In the extension the views already show the file icon theme of VS Code, which the user can set to Symbols there.
+
+Rejected: icons drawn for Gitardo (a set of hundreds is years of work); the colors of the set as written (they do not
+read on the light and high contrast grounds); a set with icons of files only (folders would stay plain).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374
@@ -3333,3 +3362,24 @@ the reading given until the card says otherwise.
 - **Q604** — `file-view.files-changes`: the marks are taken when the files are listed, after each read; between a read
   and the end of the list that follows it, a moment, the tree still shows the marks of the read before, as it still
   shows its files.
+
+### Of the icons of files and folders, from Q620
+
+- **Q620** — `file-view.file-icons`: in the tree of the Files page, a folder has its icon after its arrow and a file an
+  empty place as wide as an arrow before its icon, as VS Code lays its trees out, so that the names under a folder line
+  up; the names of files moved right by one icon. Built so; with `simple`, the tree is laid out as before. Should the
+  icon of a folder take the place of its arrow instead, as Symbols does with `symbols.hidesExplorerArrows`?
+- **Q621** — `file-view.file-icons`: the folder `src` has `folder-orange-code`, as the theme of Symbols maps it;
+  `folder-src.svg`, in the repository of Symbols, is used by no entry of its theme and was not copied. Should `src`
+  have it?
+- **Q622** — `file-view.file-icons`: the places that showed no icon of a file before this phase have none still: the
+  title row of the File, Diff and Merge pages, the results of Quick search that are files, the files of the review of
+  the conflicts. Should they get one?
+- **Q623** — `file-view.file-icons`: the icons drawn in colors of their own rather than in those of Tailwind, the logos
+  of Kubb, Jenkins, Earthfile, Expressive Code, Azure, Visual Studio Code and a few others, are taken to the families of
+  their hues too, so that they lose some of their colors. Should they keep them?
+- **Q624** — `file-view.file-icons`: the language of a file is known by its extension or its name alone, from a table
+  written for Gitardo of 88 languages of VS Code; a file VS Code knows by its first line, such as a script with a
+  shebang and no extension, has the icon of a document.
+- **Q625** — `file-view.file-icons`: the top row of the tree of the Files page has the gray folder, the icon the theme
+  gives the folder of a workspace, not the icon of the name of the repository's folder.

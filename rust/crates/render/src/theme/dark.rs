@@ -1,6 +1,6 @@
 //! The dark theme: light warm text on a graphite ground, cards a step lighter, an amber accent.
 
-use super::{CodeColors, Colors, SIZES, Theme, ThemeName};
+use super::{CodeColors, Colors, FileIconHues, SIZES, Theme, ThemeName};
 use crate::color::Color;
 
 /// The dark theme.
@@ -99,5 +99,16 @@ pub(super) const THEME: Theme = Theme {
         constant: Color::rgb(0xE3, 0xA2, 0x6F),
         tag: Color::rgb(0xF0, 0x8A, 0x8A),
         attribute: Color::rgb(0xE3, 0xA2, 0x6F),
+    },
+    file_icons: FileIconHues {
+        red: Color::rgb(0xF0, 0x7F, 0x7F),
+        orange: Color::rgb(0xF0, 0x90, 0x4F),
+        yellow: Color::rgb(0xF0, 0xC3, 0x5A),
+        green: Color::rgb(0x6C, 0xC9, 0x8F),
+        teal: Color::rgb(0x3C, 0xC4, 0xB1),
+        sky: Color::rgb(0x5B, 0xBC, 0xE8),
+        blue: Color::rgb(0x74, 0xA8, 0xF5),
+        violet: Color::rgb(0xAD, 0x91, 0xF7),
+        pink: Color::rgb(0xF0, 0x8A, 0xC4),
     },
 };

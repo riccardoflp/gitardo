@@ -462,8 +462,9 @@ Acceptance:
 ### `graph.icons` — The icons of the window
 
 Every icon of the window is one of [Lucide](https://lucide.dev)'s, each with one meaning, so that the same action looks
-the same everywhere, and as it does in other applications; the logo of Gitardo alone is not, and is drawn the same way
-(`window.brand`).
+the same everywhere, and as it does in other applications; the logo of Gitardo is not, and is drawn the same way
+(`window.brand`), nor are the icons beside the names of files and folders, which are those of Symbols
+(`file-view.file-icons`).
 
 - **Kind**: View
 - **Function**: `render::Canvas::draw_icon(icon: Icon, origin: Point, size: f32, color: Color)`
@@ -505,7 +506,7 @@ own dash.
 | Move up, move down in a list | `move-up`, `move-down` |
 | The bar of views: Timeline, Changes, Files, Compare, Terminal, Activity, Settings | `git-graph`, `file-diff`, `folder-tree`, `git-compare-arrows`, `square-terminal`, `activity`, `settings` |
 | Command log | `scroll-text` |
-| Folder; file; open the file; open its changes; open all the changes | `folder`, `file`, `file-text`, `file-diff`, `files` |
+| Folder; file, beside a name only with `fileIcons` set to `simple`; open the file; open its changes; open all the changes | `folder`, `file`, `file-text`, `file-diff`, `files` |
 | Worktree, and a repository open in **Repositories** (Q502); submodule | `folder-git-2`, `boxes` |
 | Stash; apply; pop | `archive`, `archive-restore`, `package-open` |
 | Favorite; recent | `star`, `clock` |

@@ -176,7 +176,11 @@ fn conflict_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index): (
             intents.push(intent);
         }
     }
-    let start = status_start(ui, area.rest(), (words::CONFLICTED, ui.theme().colors.removed, 0));
+    let start = status_start(
+        ui,
+        area.rest(),
+        (words::CONFLICTED, ui.theme().colors.removed, &file.path),
+    );
     let opened = OpenFileState { file };
     intents.extend(ui.clip(start, |ui| open_file_view(&opened, ui)));
     intents
@@ -285,7 +289,7 @@ fn file_row(state: &ChangesRepository<'_>, ui: &mut Ui<'_>, (rect, index, depth)
         ui.fill_rounded_rect(named, theme.sizes.radius.medium, theme.colors.list_hover);
     }
     let (letter, color) = letter_of(row.status, ui);
-    let name = status_start(ui, named, (letter, color, 0));
+    let name = status_start(ui, named, (letter, color, &row.path));
     file_name(state, ui, (name, index));
     if response.clicked {
         intents.extend(open_page(row, OpenAction::Click, state.on_click));
@@ -400,14 +404,11 @@ fn letter_of(status: FileStatus, ui: &Ui<'_>) -> (&'static str, ui::Color) {
     }
 }
 
-/// The start of a row: a letter in its color and the icon of a file, indented to a depth; gives the rest of the row.
-fn status_start(ui: &mut Ui<'_>, rect: Rect, (letter, color, depth): (&str, ui::Color, usize)) -> Rect {
+/// The start of a row: a letter in its color and the icon of its file (`file-view.file-icons`); gives the rest of the
+/// row.
+fn status_start(ui: &mut Ui<'_>, rect: Rect, (letter, color, path): (&str, ui::Color, &str)) -> Rect {
     let theme = *ui.theme();
-    let indent = crate::details::indent_of(ui, depth);
-    let mut parts = Area::with_gap(
-        Rect::new(rect.x + indent, rect.y, (rect.width - indent).max(0.0), rect.height),
-        theme.sizes.spacing.medium,
-    );
+    let mut parts = Area::with_gap(rect, theme.sizes.spacing.medium);
     let style = ui.text_style(TextKind::Hash);
     let cell = parts.left(ui.measure("M", style));
     let line = place(cell, (cell.width, ui.line_height(style)), (Align::Start, Align::Center));
@@ -419,7 +420,8 @@ fn status_start(ui: &mut Ui<'_>, rect: Rect, (letter, color, depth): (&str, ui::
         max_width: None,
     };
     let _ = ui.text(&run);
-    ui.icon_in(parts.left(theme.sizes.icon), icons::FILE, Tone::Muted);
+    let name = path.rsplit('/').next().unwrap_or(path);
+    ui.file_icon_in(parts.left(theme.sizes.icon), ui::FileOrFolder::File(name), Tone::Muted);
     parts.rest()
 }
 

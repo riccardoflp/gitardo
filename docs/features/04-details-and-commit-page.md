@@ -66,7 +66,7 @@ What it shows, from the top:
   remembered and starts as the list;
 - with more than one file, a button that opens the diffs of all of them one after the other in one Diff page (**Open
   all changes in one Diff page**), titled with the short hash and subject;
-- the files, each with its status, its icon from the built-in file icons, its name and, on its row, a button that shows
+- the files, each with its status, its icon from Symbols (`file-view.file-icons`), its name and, on its row, a button that shows
   its history (**Show the history of this file**). A click opens its diff in the Diff page, against the first parent.
   Its context menu has **Compare with…**.
 

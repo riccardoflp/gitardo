@@ -285,6 +285,7 @@ impl DesktopWindow {
             Effect::WatchSettings(files) => self.watcher.watch(files),
             Effect::ApplySettings => {
                 self.surface.set_theme(self.state.settings.theme);
+                self.surface.set_file_icons(self.state.settings.file_icons);
                 apply_text(&mut self.surface, &self.state.settings)?;
             }
             Effect::RunFeature {

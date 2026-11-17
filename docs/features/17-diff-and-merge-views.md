@@ -1004,6 +1004,73 @@ Acceptance:
 - [x] Changing `src/app.rs` on disk, with `src` open, marks it `M` once the repository is read again, and putting it
       back takes the mark away; `src` stays open.
 
+### `file-view.file-icons` — The icon of a file or a folder
+
+Beside the name of each file and folder of the repository, the icon of its kind, from the icon theme of Symbols, in the
+colors of the theme of the window
+([D62](../08-decisions.md#d62--the-icons-of-files-and-folders-are-those-of-symbols-in-the-colors-of-the-theme)).
+
+- **Kind**: View
+- **Function**: `render::Canvas::draw_file_icon(icon: FileIcon, origin: Point, size: f32, look: &FileIconLook)`, the
+  icon chosen by `render::FileIcons::icon_of(asked: FileOrFolder) -> FileIcon`
+- **Entry points**: the tree of the Files page; the rows of the Changes page; the files of a commit in the inspector, the
+  Commit page and a stash; the files of a comparison, beside it and on its page; the files and folders of the page of
+  new worktrees.
+- **Settings**: `fileIcons` (`symbols`).
+- **Uses**: `graph.icons`, `file-view.files-changes`.
+- **Extension**: its views show the file icon theme of VS Code, Seti when none is installed, and Symbols once the user
+  installs it there: nothing to build.
+
+Rules:
+
+- The icons are those of [Symbols](https://github.com/miguelsolorio/vscode-symbols), by Miguel Solorio, under the MIT
+  licence, kept in `rust/crates/render/icons/symbols/` with the licence and the commit they were copied from, and
+  chosen as its theme chooses them in VS Code: a file by its whole name (`package.json`, `Dockerfile`), then by its
+  extensions from the longest (`index.d.ts` before `.ts`), then by its language as VS Code names it from its name
+  (`.php`, `Makefile`), else the icon of a document; a folder by its name (`src`, `.github`), else the plain folder; the
+  folder of the repository, at the top of the tree, the gray folder. Names are compared whatever their case. A chain of
+  folders shown as one row, `src/git`, has the icon of its last folder. The theme of Symbols has no icons of open
+  folders: an open folder keeps its icon, its arrow saying it is open.
+- The colors of the icons come from the theme: each color of an icon belongs to a family of hues (gray, red, orange,
+  yellow, green, teal, sky, blue, violet, pink), and is drawn in the color the theme gives that family, chosen to read on
+  its ground, the strong colors in the high contrast themes; the gray of the folders is the muted text. A shade lighter
+  or darker than the family's own in the set is drawn as much lighter or darker, so that the parts of an icon stay
+  apart. A switch of theme draws the icons again in its colors.
+- `fileIcons` says how they are drawn: `symbols`, in the colors of the theme; `monochrome`, every icon in the color of
+  the text beside it, as the other icons of the window, its shades kept; `simple`, the plain icons of a file and a
+  folder of Lucide, as before the icons of Symbols, and none beside the folders of a tree.
+- An icon is 16 logical pixels, as the other icons of the rows, at the place the icon of a file had. In the tree of the
+  Files page a folder has its icon after its arrow, and a file the place of an arrow before its icon, so that the names
+  under a folder line up; in the trees of the files of a commit, of the Changes page and of a comparison, a folder has
+  its icon between its arrow and its name.
+- The marks of the Files page (`file-view.files-changes`) are unchanged: the color of the name, its letter, the dot of a
+  folder; a deleted file, dimmed, has its icon dimmed with it.
+- An icon is drawn into pixels by `resvg` once for its size, the scale of the screen and the colors of the theme, and
+  kept; a row drawn again draws nothing new.
+- The screen reader hears the name of the row, not its icon, which is decoration.
+
+Acceptance:
+
+- [x] `src/main.rs` has the icon of Rust, `package.json` that of Node by its name, `Dockerfile` that of Docker by its
+      name, `index.d.ts` that of the types of TypeScript by its longer extension, `INDEX.PHP` that of PHP by its
+      language, and `notes.xyz` and `notes` that of a document.
+- [x] The folder `src` has `folder-orange-code`, `SRC` too, `node_modules`, `.github` and `docs` their own, `notes` the
+      plain folder, and the top of the tree the gray folder.
+- [x] Every entry of the theme names an icon the program has, and every icon draws inside its square at 16 and 32
+      pixels.
+- [x] Each family of hues reads on the ground of each theme, at least 3:1, 4.5:1 in the high contrast themes; the gray
+      is the muted text.
+- [x] A point of the icon of Rust is drawn in the orange of the dark, light, high contrast dark and high contrast light
+      themes.
+- [x] With `monochrome`, the icon of Rust is drawn in the color of the text; two shades of a family stay apart.
+- [x] With `simple`, the tree of the Files page with its marks is drawn as it was before the icons of Symbols.
+- [x] An icon drawn in a second row is not drawn into pixels again; at another scale, or in another theme, it is, once.
+- [x] The Files page of a repository with Rust, TypeScript, CSS, a Dockerfile, a README, `package.json` and the folders
+      `.github`, `assets`, `docs`, `src` and `tests` matches its snapshots in the four themes, and in `monochrome` in the
+      dark theme.
+- [x] The screen reader hears `main.rs` and `src`, and nothing of their icons.
+- [x] `fileIcons` set to `monochrome` or `simple` is taken; a value it does not know is the default, and said.
+
 ### `file-view.markdown-preview` — A Markdown file as it reads
 
 A Markdown file in the File page shown laid out as it reads, with **Preview** and **Source** to switch

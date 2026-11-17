@@ -29,6 +29,21 @@ fn settings_read__editor_word_wrap_on_wraps_the_lines_of_the_file_page_and_off_c
 }
 
 #[test]
+fn file_view_file_icons__the_setting_file_icons_chooses_symbols_monochrome_or_simple() {
+    let style = |user: &str| parse(Some(user), None).file_icons;
+    assert_eq!(style("{}"), ui::FileIconStyle::Symbols);
+    assert_eq!(style(r#"{ "fileIcons": "monochrome" }"#), ui::FileIconStyle::Monochrome);
+    assert_eq!(style(r#"{ "fileIcons": "simple" }"#), ui::FileIconStyle::Simple);
+    let unknown = parse(Some(r#"{ "fileIcons": "seti" }"#), None);
+    assert_eq!(unknown.file_icons, ui::FileIconStyle::Symbols);
+    assert!(
+        unknown.problems.iter().any(|problem| problem.key == "fileIcons"),
+        "{:?}",
+        unknown.problems
+    );
+}
+
+#[test]
 fn settings_read__a_user_setting_the_repository_sets_is_not_taken_and_is_said() {
     let settings = parse(
         Some(r#"{ "theme": "dark" }"#),

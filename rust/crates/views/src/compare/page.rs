@@ -188,7 +188,10 @@ fn file_row(
         Some(original) => format!("{original} \u{2192} {}", file.path),
         None => file.path.clone(),
     };
-    let open = Button::secondary(&label).kind(ButtonKind::Icon).with_icon(icons::FILE);
+    let name = file.path.rsplit('/').next().unwrap_or(&file.path);
+    let open = Button::secondary(&label)
+        .kind(ButtonKind::Icon)
+        .with_file_icon(ui::FileOrFolder::File(name));
     let rest = parts.rest();
     let (width, height) = ui.button_size(&open);
     let cell = place(rest, (width.min(rest.width), height), (Align::Start, Align::Center));

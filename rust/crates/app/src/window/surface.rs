@@ -9,7 +9,7 @@ use platform::{
     SystemTheme, TextInputArea, TimerId, Visibility, Window, WindowOptions,
 };
 use render::{Assets, FrameBuffer, Theme, ThemeName};
-use ui::{FrameInput, FrameOutput, FrameSettings, Typefaces, Ui, UiMemory};
+use ui::{FileIconStyle, FrameInput, FrameOutput, FrameSettings, Typefaces, Ui, UiMemory};
 
 use super::fonts::{chosen_typefaces, load_system_fonts};
 use super::frame::{FrameParts, decorations};
@@ -82,6 +82,8 @@ pub struct Surface {
     theme: Theme,
     /// How much larger the text is drawn than the theme says: `font.size` over its default.
     text_scale: f32,
+    /// How the icons of files and folders are drawn (`fileIcons`).
+    file_icons: FileIconStyle,
     /// The timer of the next frame.
     frame_timer: TimerId,
     /// Where the caret was in the last frame, given to the input method.
@@ -136,6 +138,7 @@ impl Surface {
             system,
             theme,
             text_scale: 1.0,
+            file_icons: FileIconStyle::default(),
             frame_timer: options.frame_timer,
             caret: None,
             frames_drawn: 0,
@@ -187,6 +190,14 @@ impl Surface {
         self.window
             .set_title_bar(title_bar(choice, &resolve_theme(choice, self.system)));
         self.apply_theme();
+    }
+
+    /// Changes how the icons of files and folders are drawn (`fileIcons`): a frame is asked for when it changed.
+    pub fn set_file_icons(&mut self, style: FileIconStyle) {
+        if self.file_icons != style {
+            self.file_icons = style;
+            self.window.request_redraw();
+        }
     }
 
     /// Changes the text of the title bar, which the screen reader says too.
@@ -248,6 +259,7 @@ impl Surface {
             typefaces: self.typefaces,
             scale: self.window.scale().factor(),
             now,
+            file_icons: self.file_icons,
         };
         let mut ui = Ui::new(FrameInput {
             frame: &mut self.frame,

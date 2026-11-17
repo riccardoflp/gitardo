@@ -5,6 +5,11 @@
 pub const THEME: &str = "theme";
 /// The values `theme` takes, in the order of the themes of `render`: the system's first.
 pub const THEMES: [&str; 5] = ["system", "dark", "light", "highContrastDark", "highContrastLight"];
+/// `fileIcons`.
+pub const FILE_ICONS: &str = "fileIcons";
+/// The values of `fileIcons`: the icons of Symbols in the colors of the theme, the same in the color of the text, or
+/// the plain icons of a file and a folder.
+pub const FILE_ICON_STYLES: [&str; 3] = ["symbols", "monochrome", "simple"];
 /// `font.ui`.
 pub const FONT_INTERFACE: &str = "font.ui";
 /// `font.code`.

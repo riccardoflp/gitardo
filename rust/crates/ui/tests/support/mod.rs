@@ -76,6 +76,7 @@ impl Window {
                 typefaces: self.typefaces,
                 scale: self.scale,
                 now: self.now,
+                file_icons: ui::FileIconStyle::default(),
             },
         });
         let result = view(&mut ui);
