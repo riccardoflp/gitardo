@@ -9,17 +9,14 @@ use ui::layout::{Align, Area, Insets, inset, place};
 use ui::{Button, ButtonKind, Icon, Key, Label, Modifiers, NamedKey, Rect, Tone, Ui};
 
 use crate::activity::{ActivityState, StatusBarState, status_bar_view, what_is_running_view};
-use crate::bisect::{BisectBanner, banner_view};
+use crate::bisect::BisectBanner;
 use crate::details::{DetailsState, show};
 use crate::feature::{ConfirmState, QuestionState, SaidState, confirm_view, question_view, said_view};
-use crate::filter::{BranchPicker, NarrowedBar, bar_height, bar_view, picker_button_width, picker_view};
-use crate::graph::{
-    GraphState, HoverTarget, PaneLayout, PaneSizes, ToolbarState, pane_rects, resize_panes_view, toolbar_view,
-    view as graph_view,
-};
+use crate::filter::{BranchPicker, NarrowedBar};
+use crate::graph::{GraphState, PaneLayout, PaneSizes, ToolbarState, pane_rects, resize_panes_view, toolbar_view};
 use crate::intent::{Intent, Notice};
 use crate::islands::{gap, island};
-use crate::line::{ICON_RAIL_WIDTH, INSPECTOR_OVER_BELOW, control_in, is_narrow};
+use crate::line::{ICON_RAIL_WIDTH, INSPECTOR_OVER_BELOW, is_narrow};
 use crate::page::Page;
 use crate::page::{PageHostState, host_view};
 use crate::panel::{BottomPanelState, bottom_view, panel_height, panel_shortcut, resize_panel_view, split_column};
@@ -28,10 +25,14 @@ use crate::repo::{
     NoRepositoryState, OpenFolderQuestion, RepositoryPickerState, TabsState, no_repository_view,
     open_folder_question_view, repository_picker_view, tabs_view,
 };
-use crate::search::{GoToCommitDialog, ListMode, SearchBox, go_to_commit_dialog, list_mode_view};
+use crate::search::{GoToCommitDialog, ListMode, SearchBox, go_to_commit_dialog};
 use crate::settings::{ThemePickerState, theme_picker_view};
 use crate::text::repo as repo_words;
 use crate::view_bar::{VIEW_BAR_WIDTH, ViewBarState, view_bar_view};
+
+mod timeline;
+
+use timeline::main_island;
 
 /// The room the search box at the top of the timeline keeps before the branch filter beside it gives up its words.
 const SEARCH_BOX_ROOM: f32 = 360.0;
@@ -311,12 +312,9 @@ fn repository_panes(
 ) -> Option<Rect> {
     let TimelineState::Repository {
         rail: references,
-        graph,
         inspector: details,
         panes,
         is_rail_hidden,
-        search,
-        filter,
         beside,
         ..
     } = state
@@ -351,15 +349,7 @@ fn repository_panes(
         rail_hover = hover;
     }
     island(ui, rects.main, |ui| {
-        if let Some(beside) = beside {
-            intents.extend(crate::diff::beside_inspector_view(beside, ui));
-        } else {
-            let main = search_row((&search.0, filter), ui, rects.main, intents);
-            let mut main = Area::new(main);
-            banners(state, ui, &mut main, intents);
-            let graph = with_rail_hover(graph, rail_hover);
-            intents.extend(ui.clip(main.rest(), |ui| graph_view(&graph, ui)));
-        }
+        main_island(state, rail_hover, ui, rects.main, intents);
     });
     if let Some(column) = rects.inspector {
         intents.extend(island(ui, column, |ui| show(details, ui)));
@@ -372,80 +362,6 @@ fn repository_panes(
         body.height,
     );
     above_panel(panel, ui, (column, gap), intents).1
-}
-
-/// The bars above the commits, each the height of one: the list mode of the search or what the timeline is narrowed
-/// to, then the banner of an operation stopped, then that of a bisect.
-fn banners(state: &TimelineState<'_>, ui: &mut Ui<'_>, main: &mut Area, intents: &mut Vec<Intent>) {
-    let TimelineState::Repository {
-        bar,
-        search,
-        conflicts,
-        bisect,
-        worktree,
-        ..
-    } = state
-    else {
-        return;
-    };
-    if let Some(list) = &search.1 {
-        let top = main.top(bar_height(ui));
-        intents.extend(ui.clip(top, |ui| list_mode_view(list, ui)));
-    } else if let Some(bar) = bar {
-        let top = main.top(bar_height(ui));
-        intents.extend(ui.clip(top, |ui| bar_view(bar, ui)));
-    }
-    if let Some(banner) = worktree {
-        let top = main.top(bar_height(ui));
-        intents.extend(ui.clip(top, |ui| crate::worktree::banner(banner, ui)));
-    }
-    if let Some(banner) = conflicts {
-        let top = main.top(bar_height(ui));
-        intents.extend(ui.clip(top, |ui| crate::conflicts::banner_view(banner, ui)));
-    }
-    if let Some(banner) = bisect {
-        let top = main.top(bar_height(ui));
-        intents.extend(ui.clip(top, |ui| banner_view(banner, ui)));
-    }
-}
-
-/// The timeline with the reference of the branch rail the pointer rests on, whose history it brings out.
-fn with_rail_hover<'a>(graph: &GraphState<'a>, hover: Option<(HoverTarget, std::time::Duration)>) -> GraphState<'a> {
-    match (graph, hover) {
-        (GraphState::Listed(history), Some(hover)) => {
-            let mut history = history.as_ref().clone();
-            history.rail_hover = Some(hover);
-            GraphState::Listed(Box::new(history))
-        }
-        _ => graph.clone(),
-    }
-}
-
-/// The branch filter and the search box at the top of the timeline; gives what is left under them, for the bar of what
-/// the timeline is narrowed to and the commits.
-fn search_row(
-    (search_box, filter): (&SearchBox<'_>, &BranchPicker<'_>),
-    ui: &mut Ui<'_>,
-    main: Rect,
-    intents: &mut Vec<Intent>,
-) -> Rect {
-    let theme = *ui.theme();
-    let spacing = theme.sizes.spacing;
-    let mut area = Area::new(main);
-    let top = area.top(theme.sizes.control_height + 2.0 * spacing.medium);
-    let row = inset(top, Insets::symmetric(spacing.medium, spacing.medium));
-    let mut parts = Area::with_gap(row, spacing.medium);
-    // The filter gives up its words where the search box would have less than its room beside them.
-    let words = picker_button_width(filter, ui);
-    let width = if row.width - words < SEARCH_BOX_ROOM {
-        theme.sizes.control_height
-    } else {
-        words
-    };
-    let cell = control_in(ui, parts.left(width), width);
-    intents.extend(ui.clip(cell, |ui| picker_view(filter, ui)));
-    intents.extend(ui.clip(parts.rest(), |ui| crate::search::box_view(search_box, ui)));
-    area.rest()
 }
 
 /// A notice across the top of what is under the header, with a button that puts it away.
