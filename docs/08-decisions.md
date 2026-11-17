@@ -815,6 +815,54 @@ the application, and the window would look like VS Code again, which D16 left); 
 in the inspector (they would pile up in `Ctrl+Tab`); islands in every webview of the extension (the side bar views are
 too narrow for the gaps).
 
+## D55 — The settings page in sections, in the middle of the window
+
+*Asked by the maintainer for milestone M16: the settings page is one long list against the left edge, and should be in
+sections, in the middle, with the sections beside it as buttons; the details proposed by the agent and accepted by the
+maintainer as proposed.*
+
+The settings page of Gitardo Desktop (`settings.edit`) changes in five ways
+([the roadmap](desktop/07-roadmap.md#m16--the-settings-page-in-sections)):
+
+- **In the middle, in sections.** The page is centered in the place of the timeline and the inspector, at most 960
+  logical pixels wide. On its left a column of buttons, one for each section, with its icon and its name; on its right
+  the settings of every section, one after the other under the name of each, in one list that scrolls. A click on a
+  section scrolls the list to it; the button of the section at the top of the list is marked as the list scrolls. The
+  sections are **General**, **Appearance**, **Timeline**, **Branches**, **Pull and commits**, **Worktrees**, **Files and
+  blame**, **AI and conflicts** and **Terminal and tools**, which hold the settings as the table of
+  [18-settings.md](features/18-settings.md#the-list) says (`settings.sections`). Under them, apart, **Changed** lists
+  only the settings a file sets, and **Experimental** only the experimental ones. Beside each section, how many of its
+  settings a file sets, and a mark when one of them has a value that was not taken. Narrower than 640 logical pixels,
+  the column becomes a menu at the top of the page that names the section shown.
+- **A title for each setting.** Each setting has a title in sentence case, the first line of its row (**Commits read at
+  a time**), with its description under it, as long as it needs to be, and its key in small under that, with the file
+  that sets it. A setting a file sets has a bar on its left and a button that takes it back to its default
+  (`settings.reset`).
+- **Every value can be changed on the page.** A number in a field that refuses a value out of its range; a string in a
+  field that says the `${…}` it can hold; a list as rows to add, change and take out, with `identities` as a table of
+  name, email and signing key; a color as a swatch and its hexadecimal value; a font from the fonts that come with the
+  program and those of the system. A field is written to the file when it loses the focus or `Enter` is pressed,
+  never at each key.
+- **User and Repository as two tabs.** The choice of the file written moves from the row of radio buttons to two tabs at
+  the top of the page, **User** and **Repository**. **Repository** lists only the settings marked **Repository**, and is
+  not there while no repository is shown. In **User**, a setting the repository's file also sets says so, `Set by the
+  repository: 500`, since that value is the one in force.
+- **A search, and a way in from Quick search.** A field at the top of the page, with the focus when the page opens,
+  finds settings by title, key, description and value, and the sections with nothing found are dimmed
+  (`settings.search`). **Open Settings: <section>** and **Open Settings: <title of a setting>** in Quick search open the
+  page scrolled to that section or that setting (`settings.reveal`).
+
+In the extension the settings are VS Code's, in its Settings editor: `contributes.configuration` becomes a list of
+categories, the same sections with the same names and order, which the Settings editor shows in the column on its left.
+Nothing else changes there.
+
+Rejected: one section shown at a time, the others hidden (a search would have to say in which section each result is,
+and settings near each other could not be read one after the other); a dialog or a window of its own for the settings
+(the pages are where the window shows a whole thing, and `Ctrl+Tab` reaches them); the key as the title of a row, as
+before (it reads as code, and the title says what the setting does); writing a field at each key (a file read again at
+each key, and the window drawn again with half a value); a separate section for the experimental settings (each stays
+with the feature it changes; **Experimental** lists them all).
+
 ## Open questions
 
 ### Of Gitardo Desktop, Q1 to Q374

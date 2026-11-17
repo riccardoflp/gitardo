@@ -180,6 +180,35 @@ the other from the inspector, which never closes; a file opened from the Files p
 window means two things; with `gitardo.graph.islands` on, the Graph view of the extension is three islands; every card of the
 phase passes its tests, and the snapshots of the window match.
 
+## M16 — The settings page in sections
+
+The settings page in the middle of the window, its settings in sections with their buttons on its left, every value
+changed on the page, the file written chosen with two tabs, and a search
+([D55](../08-decisions.md#d55--the-settings-page-in-sections-in-the-middle-of-the-window)). Built in six phases, each
+one commit or more, each ending with its cards built and their tests passing; the extension comes last. It comes after
+M14, whose icons of Lucide the buttons of the sections use.
+
+1. **Sections, in the middle.** The page centered, the column of the sections and the list under their names, the
+   button of the section shown marked as the list scrolls, the menu of a narrow page; a title for each setting, its
+   description as long as it needs, its key and the file that sets it. Cards: `settings.sections`, `settings.edit`.
+2. **The search, Changed and Experimental.** The field at the top, the sections with nothing found dimmed, the two
+   lists apart, the count and the mark beside each section. Cards: `settings.search`, `settings.sections`.
+3. **Every value on the page.** Numbers, strings, lists, `identities`, colors and fonts, written when the field loses
+   the focus; the bar of a setting a file sets, and the button that takes it back to its default. Cards:
+   `settings.edit`, `settings.reset`, `settings.theme`.
+4. **User and Repository as tabs.** The two tabs in place of the radio buttons, the settings a repository may set, and
+   `Set by the repository` in **User**. Cards: `settings.edit`.
+5. **A way in from Quick search.** **Open Settings: <section>** and **Open Settings: <title>**, the page scrolled to
+   it. Cards: `settings.reveal`.
+6. **The extension.** `contributes.configuration` as the same sections, in the same order, in VS Code's Settings
+   editor. Cards: `settings.sections` in the extension.
+
+Exit: the page opens in the middle of a window 1,600 logical pixels wide with **General** marked; a click on
+**Worktrees** shows its first setting at the top; `blame` typed in the search leaves only **Files and blame** lit;
+`graph.pageSize` set to 500 on the page writes only that key, comments kept, and ↺ takes it out again; a window 600
+logical pixels wide still reaches every section; the Settings editor of VS Code lists Gitardo's settings in the same
+sections; every card of the phase passes its tests, and the snapshots of the page match, in each theme.
+
 ## Before a release
 
 By hand, on each system, with a real account and a real model:

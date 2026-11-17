@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 435 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 439 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -34,7 +34,7 @@ earns it.
 | [15-github.md](15-github.md) | GitHub | 6 |
 | [16-undo-preview-log.md](16-undo-preview-log.md) | Undo, command preview and the log | 6 |
 | [17-diff-and-merge-views.md](17-diff-and-merge-views.md) | Diff, Merge and File pages | 41 |
-| [18-settings.md](18-settings.md) | Settings | 3 |
+| [18-settings.md](18-settings.md) | Settings | 7 |
 
 ## Repositories
 
@@ -558,7 +558,11 @@ earns it.
 | Feature | Title | Kind | Desktop | Extension |
 | --- | --- | --- | --- | --- |
 | [`settings.read`](18-settings.md#settingsread--read-the-settings) | Read the settings | Read | Built | Host only |
-| [`settings.edit`](18-settings.md#settingsedit--open-the-settings-page) | Open the settings page | View | Built | Host only |
+| [`settings.edit`](18-settings.md#settingsedit--open-the-settings-page) | Open the settings page | View | Specified | Host only |
+| [`settings.sections`](18-settings.md#settingssections--the-sections-of-the-settings-page) | The sections of the settings page | View | Specified | Planned |
+| [`settings.search`](18-settings.md#settingssearch--find-a-setting) | Find a setting | Derivation | Specified | Host only |
+| [`settings.reset`](18-settings.md#settingsreset--take-a-setting-back-to-its-default) | Take a setting back to its default | Operation | Specified | Host only |
+| [`settings.reveal`](18-settings.md#settingsreveal--open-the-settings-page-at-a-setting) | Open the settings page at a setting | Derivation | Specified | Host only |
 | [`settings.theme`](18-settings.md#settingstheme--choose-the-theme-and-the-fonts) | Choose the theme and the fonts | Operation | Built | Host only |
 
 ## The extension's identifiers
