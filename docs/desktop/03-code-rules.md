@@ -151,6 +151,13 @@ first, in its own commit, with the reason.
 - **R10.4** Everything a mouse can do, a keyboard can do. Every interactive widget has a label for accessibility.
 - **R10.5** The UI thread never waits: no git, no disk, no network on it. A frame is drawn in under 8 ms on the reference
   machine; work that might not be moves to a worker.
+- **R10.6** A widget is asked two questions about the pointer, and a view asks the one it means.
+  `Response::contains_pointer` says the pointer is on the widget or on something drawn inside it: the background of a
+  row under the pointer and whatever a row shows only under the pointer ask it, and `Row::is_hovered` says the same of
+  a row of a list. `Response::hovered` says the widget is the topmost one under the pointer: only what is about that
+  one widget asks it, its own lit state when nothing is drawn inside it, the shape of the pointer, and the rest of the
+  pointer before a tooltip or a card (`Ui::hovered_since`). A widget is never declared only while another is
+  `hovered`: the pointer on it takes `hovered` from the other, and the next frame draws it no more.
 
 ## 11. Tests
 
