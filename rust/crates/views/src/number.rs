@@ -15,6 +15,16 @@ pub(crate) fn float_of_count(count: usize) -> f32 {
     count as f32
 }
 
+/// A length of the toolkit, kept in an `f64`, as the `f32` of layout.
+pub(crate) fn narrow(value: f64) -> f32 {
+    value as f32
+}
+
+/// A part between 0 and 1 as an opacity out of 255.
+pub(crate) fn opacity(part: f32) -> u8 {
+    (part.clamp(0.0, 1.0) * 255.0).round() as u8
+}
+
 /// A whole length as a count, zero when it is negative or not a number.
 pub(crate) fn count_of_float(value: f32) -> usize {
     value.max(0.0) as usize

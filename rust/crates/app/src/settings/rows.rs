@@ -3,14 +3,14 @@
 
 use render::ThemeName;
 use views::settings::{SettingRow, SettingSource};
-use views::text::settings::{self as words, SETTINGS, SettingInfo};
+use views::text::settings::{self as words, SettingInfo, settings};
 
 use super::{ProblemReason, SettingProblem, Settings, SettingsFile, keys};
 
 /// Every setting, in the order of the card, as the settings read say it.
 #[must_use]
-pub fn setting_rows(settings: &Settings) -> Vec<SettingRow> {
-    SETTINGS.iter().map(|info| setting_row(settings, info)).collect()
+pub fn setting_rows(read: &Settings) -> Vec<SettingRow> {
+    settings().map(|info| setting_row(read, info)).collect()
 }
 
 /// A setting: the first value taken of the files that may set it, the repository's first, or its default.

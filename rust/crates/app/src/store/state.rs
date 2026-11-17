@@ -79,6 +79,8 @@ pub struct State {
     pub terminals: super::terminals::Terminals,
     /// The file the settings page writes changes in (`settings.edit`).
     pub settings_target: views::settings::SettingsTarget,
+    /// Where the list of the settings page was asked to go (`settings.sections`, `settings.reveal`).
+    pub settings_page: views::settings::SettingsPage,
     /// The Changes page and the commit box (`changes.pane`).
     pub changes: super::changes::Changes,
     /// The interactive rebase page, while it is open (`rebase.todo-page`).

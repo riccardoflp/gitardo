@@ -113,6 +113,24 @@ impl Ui<'_> {
         (response, result)
     }
 
+    /// Scrolls a scroll area down to an offset, once for each number: called before the area is declared, with the
+    /// number of the view's request, the area goes there at once the first time it sees that number, and is left to
+    /// the wheel and the keys after. The offset is kept inside the content when the area is declared. Returns the time
+    /// it went there.
+    pub fn scroll_to_once(&mut self, key: impl Hash, serial: u64, offset: f32) -> std::time::Duration {
+        let id = self.id(key);
+        let now = self.now();
+        let state = self.memory().scrolls.entry(id).or_default();
+        match state.revealed {
+            Some((seen, since)) if seen == serial => since,
+            _ => {
+                state.revealed = Some((serial, now));
+                state.y.jump(f64::from(offset));
+                now
+            }
+        }
+    }
+
     /// Keeps the offsets inside the content and moves them along their glides, asking for the next frame of a glide.
     fn settle(&mut self, state: &mut ScrollState, largest: (f64, f64)) {
         let now = self.now();

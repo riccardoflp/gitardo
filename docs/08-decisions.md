@@ -2863,3 +2863,23 @@ reading given until the card says otherwise.
 - **Q438** — `graph.load-more`: the bar along the top of the list ran while a page was read. Recommended: it runs
   until the first page of a read is there; while the rest is read, the last row says **Loading more commits…**, as it
   does while there are more.
+
+
+### Of milestone M16, the settings page and one lane, from Q480
+
+Questions of the phases of milestone M16 that make the settings page and all commits on one line
+([D55](#d55--the-settings-page-in-sections-in-the-middle-of-the-window)), each built with the reading given until the
+card says otherwise.
+
+- **Q480** — `settings.sections`: the icon of each section. Built: **General** the gear of Settings, **Appearance**
+  Lucide's `palette` (a meaning added to the table of `graph.icons`), **Timeline** `git-graph`, **Branches**
+  `git-branch`, **Pull and commits** `git-commit-horizontal`, **Worktrees** the worktree's, **Files and blame** the
+  person with a pen of the blame, **AI and conflicts** the sparkles of what the AI drafts, **Terminal and tools** the
+  terminal's; each draws the same thing it draws elsewhere.
+- **Q481** — `settings.reveal`: the card gives `scroll_to(rows, place, list_height) -> f32`, but the place of a row
+  depends on the height of its description wrapped to the width of the list, which the rows alone do not know. Built:
+  `scroll_to(layout, place, list_height, rows) -> Option<f32>`, from the list laid out for the width of the frame;
+  nothing when the list does not show that place.
+- **Q482** — `settings.sections`: the name of a section near the end of the list cannot reach its top. Built: when
+  the list is scrolled to its end, the section last asked for is marked while its name is in sight; otherwise the
+  section whose name was last scrolled past, and **General** at the top.

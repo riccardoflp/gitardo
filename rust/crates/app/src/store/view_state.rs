@@ -285,6 +285,7 @@ impl ViewData {
                     rows: &self.setting_rows,
                     target: state.settings_target,
                     has_repository: state.shown_folder().is_some(),
+                    page: state.settings_page,
                 }),
             }),
             Some(Page::Rebase) => match super::rebase::page_state(state) {

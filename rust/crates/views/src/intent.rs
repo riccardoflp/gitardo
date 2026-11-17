@@ -68,6 +68,8 @@ pub enum Intent {
     SetSetting(crate::settings::SettingChange),
     /// The file the settings page writes changes in (`settings.edit`).
     ChooseSettingsFile(crate::settings::SettingsTarget),
+    /// Something asked of the settings page itself: its list scrolled to a section (`settings.sections`).
+    Settings(crate::settings::SettingsIntent),
     /// Show the timeline: the first step of a trail, or **Show the timeline** on the Welcome page.
     ShowTimeline,
     /// Show a page, opening it when it is not open; a page is open once.

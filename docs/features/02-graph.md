@@ -415,6 +415,7 @@ own dash.
 | A bisect | `binoculars` |
 | A submodule not initialized | `circle-dashed` |
 | The base of a merge, shown or hidden | `git-fork` |
+| The look of the window: the section **Appearance** of the settings | `palette` |
 
 Acceptance:
 

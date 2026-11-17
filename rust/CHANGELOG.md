@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- The settings page is in the middle of the window, at most 960 px wide, in sections: **General**, **Appearance**,
+  **Timeline**, **Branches**, **Pull and commits**, **Worktrees**, **Files and blame**, **AI and conflicts** and
+  **Terminal and tools**, each with a button and its icon on the left. A click on one scrolls the list to its name, and
+  the button of the section scrolled to is marked as the list moves; a page narrower than 640 px has a menu of the
+  sections at the top of the list instead. Each setting shows its title, its description whole, its key and where its
+  value comes from.
 - A menu taller than the room it has scrolls instead of moving: under a button, such as **…**, it opens below the
   button and ends 8 px above the foot of the window, and a menu at the pointer opens above it when it fits only there.
   The wheel scrolls it by entries, a bar on its right can be dragged, its first and last entries fade where there is

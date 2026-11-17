@@ -44,6 +44,9 @@ pub(crate) struct ScrollState {
     pub(crate) x: ScrollAxis,
     /// Down.
     pub(crate) y: ScrollAxis,
+    /// The number of the last place its view asked it to go to, and the time it went there, so that it goes to each
+    /// once.
+    pub(crate) revealed: Option<(u64, std::time::Duration)>,
 }
 
 /// The state of a list between frames.

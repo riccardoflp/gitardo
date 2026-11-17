@@ -30,6 +30,10 @@ pub fn reduce_intent(state: &mut State, intent: &Intent) -> Vec<Effect> {
             state.settings_target = *target;
             Vec::new()
         }
+        Intent::Settings(asked) => {
+            state.settings_page.apply(*asked);
+            Vec::new()
+        }
         _ => Vec::new(),
     }
 }
