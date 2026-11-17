@@ -44,11 +44,11 @@ pub const SHOW_TOO: &str = "Show this history too";
 pub const HIDE: &str = "Hide this history";
 /// **Show all branches**, in the menu of a reference and on the bar above the commits.
 pub const SHOW_ALL_BRANCHES: &str = "Show all branches";
-/// **Show local branches** in **…**.
+/// **Show local branches** in the menu of the view.
 pub const SHOW_LOCAL: &str = "Show local branches";
-/// **Show remote branches** in **…**.
+/// **Show remote branches** in the menu of the view.
 pub const SHOW_REMOTE: &str = "Show remote branches";
-/// **Show tags** in **…**.
+/// **Show tags** in the menu of the view.
 pub const SHOW_TAGS: &str = "Show tags";
 /// The hint of the kinds while the filter chose otherwise.
 pub const CHOSEN_IN_FILTER: &str = "Chosen in the filter";

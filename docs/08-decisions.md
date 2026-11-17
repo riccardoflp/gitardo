@@ -3495,3 +3495,26 @@ otherwise.
   shebang and no extension, has the icon of a document.
 - **Q625** — `file-view.file-icons`: the top row of the tree of the Files page has the gray folder, the icon the theme
   gives the folder of a workspace, not the icon of the name of the repository's folder.
+
+### Of the two menus of the header, from Q660
+
+Questions of [D66](#d66--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions), each built with the
+reading given until the card says otherwise.
+
+- **Q660** — `graph.view-menu`: the button is named **View**, for its tooltip and the screen reader, as short as
+  **More** beside it. The bar of views also has views (Timeline, Changes, Files); should it say **View options**, or
+  **Show**, instead?
+- **Q661** — `graph.view-menu`: the button draws Lucide's `sliders-horizontal`, added for it to the table of
+  `graph.icons` as how the timeline is shown, since `eye` already means show and `settings` the settings page. Its file
+  was written in the form of the files of `lucide-static` with the header `v1.66.0`, from its icon nodes rather than
+  copied from that release's file; should it be checked against that file, as Q618 asks of eight others?
+- **Q662** — `graph.more-menu`: **Theme…** stays in **…**, though it is about how the window looks: it opens a picker
+  rather than switching something on or off, and it is about the whole window, not the timeline, which the menu of the
+  view is about. Should it move to the menu of the view, in a group of its own?
+- **Q663** — `graph.view-menu`: the groups are what the timeline shows (the kinds of references, the stashes, only the
+  first parent of merges), how it draws it (one line, the history of the selected commit, the separators of dates, the
+  combined upstream, then the folds), and the columns of each row. **Compact rows** (D65) goes in the second group,
+  right after **Show all commits on one line**: both choose the shape of the rows. Should the folds, which act on the
+  merges loaded rather than write a setting, have a group of their own?
+- **Q664** — `graph.view-menu`: neither menu has a key, **…** had none before, and the keymap has none for them.
+  Should the menu of the view open with `Alt+V`, which no key of the window takes?

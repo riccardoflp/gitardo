@@ -54,7 +54,7 @@ pub enum GraphIntent {
     CloseSideColumn,
     /// Fold a section of the side column, or unfold it (`repo.side-column`).
     FoldSection(SideSection),
-    /// Turn a switch of the timeline on or off, from the **…** menu (`graph.more-menu`).
+    /// Turn a switch of the timeline on or off, from the menu of the view (`graph.view-menu`).
     Switch(TimelineSwitch, bool),
     /// Something was dropped on a row, which opened the menu of the drop (`drag.drop`).
     Dropped(crate::drag::Dropped),
@@ -113,7 +113,7 @@ pub enum SideSection {
     Branches,
 }
 
-/// A switch of the timeline in the **…** menu, each written in the user's settings.
+/// A switch of the timeline in the menu of the view, each written in the user's settings.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum TimelineSwitch {
     /// `graph.showStashes`.

@@ -132,7 +132,7 @@ Where one is and what applies to the whole repository, in a bar across the top o
 - **Entry points**: the top of the window.
 - **Uses**: `graph.where`, `repo.tabs`, `repo.group-tabs`, `sync.sync`, `sync.fetch`, `sync.pull`, `sync.pull-with`,
   `sync.push`, `branch.create`, `stash.push`, `undo.last`, `graph.search-button`, `repo.schedule-reads`,
-  `graph.more-menu`.
+  `graph.view-menu`, `graph.more-menu`.
 
 The header is not an island: it is a bar on the ground of the window, as high as a button and its margins, across the
 whole width on the right of the bar of views, above the side column, the timeline, the inspector and the pages, and it
@@ -144,8 +144,9 @@ submodules to show another (`repo.group-tabs`); and the branch checked out, or `
 tooltip and without how far it is from its upstream, which **Sync** alone says. Each part is cut at its start with `…`
 before the others when the room is short, the branch last; **Search**, which opens Quick search (`graph.search-button`);
 **Sync** with the number of commits to pull and to push, `↓3 ↑2`, which a click runs: a fetch, a pull, then a push of
-what is ahead (`sync.sync`), and its menu: **Fetch**, **Pull** and its other ways, **Push** and its other ways; and
-**…** (`graph.more-menu`), which has **Refresh**, **Branch**, which creates a branch at `HEAD`, **Stash**, which stashes
+what is ahead (`sync.sync`), and its menu: **Fetch**, **Pull** and its other ways, **Push** and its other ways; the
+menu of the view (`graph.view-menu`), with every switch of the timeline; and **…** (`graph.more-menu`), with the
+actions alone, which has **Refresh**, **Branch**, which creates a branch at `HEAD`, **Stash**, which stashes
 all changes, and **Undo**, none of which is a button of the header. The button of the branches shown (`filter.picker`)
 and the search (`search.box`) are at the top of the timeline; what is running is in the status bar, and **Activity** in
 the bar of views ([D21](../08-decisions.md#d21--islands-a-bar-of-views-and-a-status-bar)). Each entry says in its
@@ -518,6 +519,7 @@ own dash.
 | Warning; error, a bad commit of a bisect; information | `triangle-alert`, `circle-x`, `info` |
 | What is running | `activity` |
 | More | `ellipsis` |
+| How the timeline is shown: the menu of the view | `sliders-horizontal` |
 | List; tree of folders | `list`, `list-tree` |
 | Fold the lines that did not change, the commits a merge brought in; unfold them | `fold-vertical`, `unfold-vertical` |
 | A button that opens a list of choices below it | `chevrons-up-down` |
@@ -546,9 +548,54 @@ Acceptance:
 - [ ] Each icon drawn at 16 px and at 32 px matches its snapshot, in the dark and the light theme.
 - [ ] The licence of Lucide is in the repository beside its outlines.
 
+### `graph.view-menu` — The menu of the view of the header
+
+Every switch of what the timeline shows and how it draws it, in one menu apart from the actions
+([D66](../08-decisions.md#d66--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions)).
+
+- **Kind**: View
+- **Function**: `views::graph::view_menu_view(state: &ViewMenuState, ui) -> Vec<Intent>`
+- **Entry points**: the button **View**, with the icon of the sliders, right before **…** at the end of the header
+  (Q660, Q661).
+- **Offered when**: a repository is read; before, the button cannot be clicked.
+- **Uses**: `filter.kinds`, `graph.stashes`, `graph.first-parent`, `graph.one-lane`, `graph.trace-selected`,
+  `graph.date-separators`, `graph.combine-upstream`, `graph.fold-all`, `graph.columns`.
+
+In this order, separated in groups (Q663):
+
+1. What the timeline shows: **Show local branches**, **Show remote branches**, **Show tags** (`filter.kinds`); **Show
+   stashes** (`graph.stashes`); **Show only the first parent of merges** (`graph.first-parent`).
+2. How it draws it: **Show all commits on one line** (`graph.one-lane`); **Bring out the history of the selected
+   commit** (`graph.trace-selected`); **Separate the days, weeks and months** (`graph.date-separators`); **Put a
+   branch and its upstream on one label** (`graph.combine-upstream`); **Fold all merges** and **Unfold all merges**
+   (`graph.fold-all`), while the graph has its lines and is not on one line.
+3. What each row shows beside its message: **Show the author**, **Show the date**, **Show the hash**
+   (`graph.columns`).
+
+Each switch shows the check in the column of the icons while it is on, and no icon of its own (`ui.menu-icons`, Q610);
+**Unfold all merges**, an action, has the icon of unfolding. Each writes its setting in the user's settings file,
+which every window follows. The menu opens under its button and scrolls when it is taller than the room
+(`ui.menu-scroll`); in the narrow layout of the window the button is the same, an icon alone. It has no key (Q664).
+
+Acceptance:
+
+- [ ] Every entry above is in the menu, in its group and in that order, with its condition.
+- [ ] Each switch shows the check while it is on and no other icon.
+- [ ] **Fold all merges** and **Unfold all merges** are in the menu only while the graph has its lines and is not on
+      one line.
+- [ ] The button is right before **…**, with the tooltip **View**, in a wide and in a narrow window, and its menu opens
+      under it with the switches alone.
+- [ ] Unchecking **Show the hash** takes the hashes out of the timeline and sets `graph.columns` to `["author",
+      "date"]` in the user's settings.
+- [ ] In a window 400 logical pixels high, the menu opens under its button, and its last entry can be scrolled to and
+      chosen (`ui.menu-scroll`).
+- [ ] The menu open matches its snapshots in the dark, the light and the two high contrast themes.
+
 ### `graph.more-menu` — The … menu of the header
 
-The switches of the timeline and the ways to what is not elsewhere in the header.
+The actions on the repository and the ways to what is not elsewhere in the header, apart from the switches of the
+timeline, which are in the menu of the view (`graph.view-menu`,
+[D66](../08-decisions.md#d66--two-menus-in-the-header-the-view-of-the-timeline-and-its-actions)).
 
 - **Kind**: View
 - **Function**: `views::graph::more_menu_view(state: &MoreMenuState, ui) -> Vec<Intent>`
@@ -558,32 +605,26 @@ In this order, separated in groups:
 
 1. **Refresh** (`repo.schedule-reads`); **Branch** (`branch.create` at `HEAD`), **Stash** (`stash.push`), **Undo**
    (`undo.last`).
-2. **Show local branches**, **Show remote branches**, **Show tags** (`filter.kinds`); **Show stashes**
-   (`graph.stashes`); **Show only the first parent of merges** (`graph.first-parent`); **Show all commits on one
-   line** (`graph.one-lane`); **Bring out the history of the selected commit** (`graph.trace-selected`); **Fold all
-   merges** and **Unfold all merges** (`graph.fold-all`), while the graph has its lines and is not on one line.
-3. **Show the author**, **Show the date**, **Show the hash** (`graph.columns`); **Separate the days, weeks and months**
-   (`graph.date-separators`); **Put a branch and its upstream on one label** (`graph.combine-upstream`).
-4. **Compare branches, tags or commits…** (`compare.choose`), **Go to commit…** (`search.go-to-commit`), **History of
+2. **Compare branches, tags or commits…** (`compare.choose`), **Go to commit…** (`search.go-to-commit`), **History of
    the active file** (`file-history.file`) of the File page in front, which says to open a file when none is,
    **Reflog** (`reflog.browse`), **Clean up branches…** (`branch.clean-up`), **Apply patch…** (`patch.apply`),
    **Manage remotes…** (`remote.manage`), **Add submodule…** (`submodule.add`) while the repository has no submodule
    (the Submodules list has it otherwise), **Select repository…** (`repo.select`) when it is offered.
-5. **Switch identity…** (`identity.switch`).
-6. **Load pull requests from GitHub** (`github.load-pull-requests`), when the main remote is on GitHub.
-7. **Settings** (`settings.edit`), **Theme…** (`settings.theme`).
+3. **Switch identity…** (`identity.switch`).
+4. **Load pull requests from GitHub** (`github.load-pull-requests`), when the main remote is on GitHub.
+5. **Settings** (`settings.edit`), **Theme…** (`settings.theme`).
 
-The switches are checked while they are on, and write their setting in the user's settings file, which every window
-follows.
+**Theme…** stays here, though it changes how the window looks: it opens a picker rather than switching something on
+or off, and it is about the whole window, not the timeline (Q662).
 
 Acceptance:
 
 - [ ] Every entry above is in the menu, in that order, with its condition.
-- [ ] Unchecking **Show the hash** takes the hashes out of the timeline and sets `graph.columns` to `["author", "date"]`
-      in the user's settings.
+- [ ] No switch of the timeline is in the menu: they are in the menu of the view.
 - [ ] **Add submodule…** is not in the menu of a repository with submodules.
 - [ ] In a window 400 logical pixels high, the menu opens under **…**, and its last entry can be scrolled to and chosen
       (`ui.menu-scroll`).
+- [ ] The menu open matches its snapshots in the dark, the light and the two high contrast themes.
 
 ### `ui.menu-scroll` — A menu taller than the room under it
 
@@ -594,7 +635,8 @@ stays where it opened
 - **Kind**: Derivation
 - **Function**: `ui::widget::menu::layout::place(size, placement, window, padding) -> MenuPlace`, which gives where
   the level goes and how much of it is shown.
-- **Entry points**: every menu of the window: the menus under a button (**…**, **Sync**, the repository and the worktree of the header),
+- **Entry points**: every menu of the window: the menus under a button (the menu of the view, **…**, **Sync**, the
+  repository and the worktree of the header),
   the context menus and their submenus.
 
 - A menu under a button opens below it, its left side lined up with the button's, and never above it. When it is
@@ -631,10 +673,11 @@ the same action draws, so that the eye finds an action in a long menu and one me
   from `views::icons` where their menu is made.
 - **Entry points**: every context menu and every menu under a button: the menu of a commit and of its labels in the
   timeline, of the draft, of a stash, of a selection, of a drop; the menus of a branch, a remote branch, a tag, a
-  worktree, a stash and a submodule in the side column, and of their lists; the **…** and the **Sync** menus of the
-  header, the repository and the worktree of the header, the menu of a repository tab and the **+** of
-  **Repositories**; the menus of a file in the Files page, the inspector, the Commit page and the comparison; the menus
-  of the editors of the File, Diff and Merge pages; the chooser of the comparison, the sections of the settings.
+  worktree, a stash and a submodule in the side column, and of their lists; the menu of the view, the **…** and the
+  **Sync** menus of the header, the repository and the worktree of the header, the menu of a repository tab and the
+  **+** of **Repositories**; the menus of a file in the Files page, the inspector, the Commit page and the comparison;
+  the menus of the editors of the File, Diff and Merge pages; the chooser of the comparison, the sections of the
+  settings.
 - **Uses**: `graph.icons`.
 - **Extension**: the extension draws its own menus in its webviews, with no icons yet (Q619); VS Code's own menus show
   none.
@@ -650,9 +693,9 @@ the same action draws, so that the eye finds an action in a long menu and one me
   fixup, the interactive rebase page), **Apply patch…**, **Switch identity…**, **Synchronize URLs from .gitmodules**,
   **Go to line**, and the items of the menus that list values (the action of a step of a rebase, the value of a
   setting, a font, a page of the way back). Its words start where those of the items with an icon do.
-- An item that switches or chooses (the switches of **…**, the kinds of references shown, the order of a list, the mode
-  of the search box, the repository and the worktree of the header) shows the check in the column of the icons while
-  it is on, and no icon of its own (Q610).
+- An item that switches or chooses (the switches of the menu of the view, the kinds of references shown, the order of a
+  list, the mode of the search box, the repository and the worktree of the header) shows the check in the column of the
+  icons while it is on, and no icon of its own (Q610).
 - The views make their items through `views::icons` only, never with `MenuItem::new`, so that an item without an icon
   is one that was asked for by name.
 
@@ -664,8 +707,8 @@ Acceptance:
 - [ ] **Discard all** and **Stash changes** of the draft draw the icons of the buttons **Discard changes** and **Stash
       file** of the Changes page; the items of a stash draw the icons of its buttons in the side column.
 - [ ] Every **Copy …** item draws the copy icon, and every **Delete …**, **Remove …** and **Drop** item the bin.
-- [ ] The kinds of references in **…** show the check while they are shown and no other icon, and none while the
-      branch filter chose them.
+- [ ] The kinds of references in the menu of the view show the check while they are shown and no other icon, and none
+      while the branch filter chose them.
 - [ ] In a menu, the words of an item without an icon start where those of an item with one do.
 - [ ] An icon is drawn in the color of the words of its item, and in the dimmed color of an item that cannot be chosen.
 - [ ] The menu of a commit of the timeline and the menu of a file of the Files page match their snapshots in the dark,
@@ -981,7 +1024,7 @@ on, each has its own label again.
 
 - **Kind**: Derivation
 - **Function**: `model::graph::combine_upstream(branch: &Branch, remote_branches: &[RemoteBranch]) -> Option<String>`
-- **Entry points**: **Put a branch and its upstream on one label** in the **…** menu of the header.
+- **Entry points**: **Put a branch and its upstream on one label** in the menu of the view of the header.
 - **Settings**: `graph.combineUpstream` (on by default); off, `feature` and `origin/feature` have a label each.
 - **Uses**: `refs.favorite`, `remote.delete-branch`.
 
@@ -1119,7 +1162,7 @@ the ones made on top of it.
 
 - **Kind**: View
 - **Function**: `views::graph::trace_selected_view(state: &SelectedTrace, ui) -> Vec<Intent>`
-- **Entry points**: selecting a commit; **Bring out the history of the selected commit** in the **…** menu.
+- **Entry points**: selecting a commit; **Bring out the history of the selected commit** in the menu of the view.
 - **Settings**: `graph.traceSelected` (on by default).
 - **Uses**: `graph.trace-history`.
 
@@ -1135,7 +1178,7 @@ Acceptance:
       messages, labels, authors, dates and hashes, while those `feature` reaches keep their full color.
 - [ ] Selecting the draft dims nothing.
 - [ ] With two commits selected, nothing is dimmed.
-- [ ] Unchecking the entry in **…** sets `graph.traceSelected` to false and nothing is dimmed.
+- [ ] Unchecking the entry in the menu of the view sets `graph.traceSelected` to false and nothing is dimmed.
 
 ### `graph.columns` — What is shown with each message
 
@@ -1143,7 +1186,7 @@ Who made each commit and when, on the line under its message, and its hash at th
 
 - **Kind**: View
 - **Function**: `views::graph::columns_view(state: &ColumnsState, ui) -> Vec<Intent>`
-- **Entry points**: **Show the author**, **Show the date** and **Show the hash** in the **…** menu.
+- **Entry points**: **Show the author**, **Show the date** and **Show the hash** in the menu of the view.
 - **Settings**: `graph.columns`: a list of `author`, `date` and `hash`, all three by default; not a list, all three.
 
 - The author is the name git has for the author. The date is when the commit was made, said as `now` under a minute,
@@ -1166,7 +1209,7 @@ its end, so that you see how far back you are as you scroll.
 
 - **Kind**: Derivation
 - **Function**: `model::graph::date_separators(dates: &[Option<i64>], now: DateTime) -> BTreeMap<usize, String>`
-- **Entry points**: **Separate the days, weeks and months** in the **…** menu.
+- **Entry points**: **Separate the days, weeks and months** in the menu of the view.
 - **Settings**: `graph.dateSeparators` (on by default).
 
 Each commit's date, in local time, falls in a period, from the nearest: **Today**, **Yesterday**, **This week** (from
@@ -1191,7 +1234,7 @@ Follows each branch along its own line only: a merge is one commit on it, withou
 
 - **Kind**: View
 - **Function**: `views::graph::first_parent_view(state: &FirstParentState, ui) -> Vec<Intent>`
-- **Entry points**: **Show only the first parent of merges** in the **…** menu.
+- **Entry points**: **Show only the first parent of merges** in the menu of the view.
 - **Settings**: `graph.firstParent` (off by default).
 - **Uses**: `graph.read-commits`, `graph.read-position`.
 
@@ -1211,7 +1254,7 @@ Every commit of the timeline on one straight line, as a list of the history rath
 
 - **Kind**: Derivation
 - **Function**: `model::graph::one_lane(rows: &[GraphInput]) -> Vec<GraphCell>`
-- **Entry points**: **Show all commits on one line** in the **…** menu (`graph.more-menu`).
+- **Entry points**: **Show all commits on one line** in the menu of the view (`graph.view-menu`).
 - **Settings**: `graph.oneLane` (off by default).
 - **Uses**: in place of `graph.lanes` while it is on.
 - **Extension**: the same switch in the **…** menu of the Graph view, `gitardo.graph.oneLane`, which lays out the rows
@@ -1232,7 +1275,7 @@ Acceptance:
 - [ ] On, the dot of a merge is a ring and the dot of any other commit is filled.
 - [ ] On, the column of the graph is as wide as one lane.
 - [ ] Turning it on writes `"graph.oneLane": true` in the user's settings, and asks no read of the repository.
-- [ ] On, **Fold all merges** is not in the **…** menu.
+- [ ] On, **Fold all merges** is not in the menu of the view.
 - [ ] On, a page added under the rows is on the one line, as all the rows laid out at once are.
 
 ### `graph.fold-rows` — The rows of the timeline with merges folded
@@ -1301,7 +1344,7 @@ Folds every merge, also the ones loaded later, until it is unchecked.
 
 - **Kind**: View
 - **Function**: `views::graph::fold_all_view(state: &FoldsState, ui) -> Vec<Intent>`
-- **Entry points**: **Fold all merges** and **Unfold all merges** in the **…** menu.
+- **Entry points**: **Fold all merges** and **Unfold all merges** in the menu of the view.
 - **Offered when**: the graph has its lines. **Fold all merges** is greyed out while no merge is loaded and it is not
   checked; **Unfold all merges** while no merge is folded.
 - **Uses**: `graph.fold-rows`, `graph.fold-merge`.
@@ -1471,7 +1514,7 @@ The stashes are in the timeline too, each above the commit it was made on, as lo
 
 - **Kind**: View
 - **Function**: `views::graph::stashes_view(state: &StashRows, ui) -> Vec<Intent>`
-- **Entry points**: **Show stashes** in the **…** menu; the context menu of a stash row.
+- **Entry points**: **Show stashes** in the menu of the view; the context menu of a stash row.
 - **Extension**: the stashes in the graph, placed by the engine's read of the graph (`graphState` in
   `src/engine/graph.ts`), each above the commit it was made on, labeled `stash@{N}`; the **Stashes** section of the
   references beside the graph, one entry per stash named by its message, with the tooltip `stash@{N}: <message>`,

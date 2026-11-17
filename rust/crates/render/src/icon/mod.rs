@@ -207,6 +207,9 @@ pub enum Icon {
     Reveal,
     /// Arrows going away from a line: unfold, the commits a merge brought in shown again. Lucide's `unfold-vertical`.
     Unfold,
+    /// Three sliders on their rails: how the timeline is shown, the menu of the view of the header. Lucide's
+    /// `sliders-horizontal`.
+    Sliders,
     /// The logo of Gitardo: a branch leaving a line of two commits, as the extension draws it (`window.brand`). Not one
     /// of Lucide's, so not in [`Icon::ALL`].
     Logo,

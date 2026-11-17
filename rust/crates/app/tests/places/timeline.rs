@@ -20,7 +20,7 @@ use views::graph::{
 };
 use views::{FilterIntent, Intent};
 
-use super::pointer::{bounds, rows_drawn, says, wheel};
+use super::pointer::{bounds, rows_drawn, says};
 use super::support::{Window, run};
 use super::{repository_with_history, showing};
 
@@ -223,32 +223,6 @@ fn graph_columns__unchecking_show_the_date_removes_the_dates_and_writes_the_colu
         json::Value::String("hash".into()),
     ]);
     assert_eq!(written(&effects), Some(("graph.columns", columns)));
-}
-
-#[test]
-fn graph_more_menu__unchecking_show_the_hash_takes_the_hashes_out_and_writes_author_and_date() {
-    let (repository, _remote) = repository_with_history();
-    let mut state = showing_with(repository.path().to_path_buf(), Settings::default());
-    let mut window = Window::new(ThemeName::Dark, WIDE);
-    let _ = window.draw(&state, &[]);
-    let with_hashes = window.frame.to_rgba();
-    let _ = window.click(&state, Role::Button, "More");
-    let menu = bounds(&window.draw(&state, &[]).1, Role::MenuItem, "Refresh");
-    let _ = wheel(&mut window, &state, menu.center(), 5.0);
-    let intents = window.click(&state, Role::MenuItem, "Show the hash");
-    let effects: Vec<Effect> = intents
-        .into_iter()
-        .flat_map(|intent| run(&mut state, Message::Intent(intent)))
-        .collect();
-    assert!(!state.settings.switches.is_on(TimelineSwitch::Hash));
-    let columns = json::Value::Array(vec![
-        json::Value::String("author".into()),
-        json::Value::String("date".into()),
-    ]);
-    assert_eq!(written(&effects), Some(("graph.columns", columns)));
-    let mut window = Window::new(ThemeName::Dark, WIDE);
-    let _ = window.draw(&state, &[]);
-    assert_ne!(window.frame.to_rgba(), with_hashes, "the hashes are taken out");
 }
 
 #[test]

@@ -1,5 +1,5 @@
-//! The header (`graph.toolbar`): where one is (`graph.where`), **Search**, Sync and the **…** menu, in a bar on the
-//! ground across the top of the window, always shown (D56).
+//! The header (`graph.toolbar`): where one is (`graph.where`), **Search**, Sync, the menu of the view and the **…**
+//! menu, in a bar on the ground across the top of the window, always shown (D56).
 
 use std::path::PathBuf;
 
@@ -9,6 +9,7 @@ use ui::{AccessRole, Button, ButtonKind, Ui};
 use super::location::{WhereState, where_view};
 use super::more_menu::{MoreMenuState, more_menu_view};
 use super::sync_menu::{SyncWords, sync_entries, sync_intent};
+use super::view_menu::{ViewMenuState, view_menu_view};
 use crate::icons;
 use crate::intent::Intent;
 use crate::line::{control_in, is_narrow};
@@ -24,7 +25,9 @@ pub struct ToolbarState<'a> {
     pub sync: Option<SyncCounts>,
     /// What **Sync** and its menu may run, once the repository is read.
     pub sync_menu: Option<SyncMenu>,
-    /// What the **…** menu offers.
+    /// What the menu of the view offers: the switches of the timeline.
+    pub view: ViewMenuState,
+    /// What the **…** menu offers: the actions.
     pub more: MoreMenuState,
     /// Quick search.
     pub quick: search::QuickSearchState<'a>,
@@ -73,7 +76,8 @@ pub struct SyncCounts {
 }
 
 /// The header, over the rectangle its caller clipped it to, on the ground of the window: where one is, then at its end
-/// **Search**, **Sync** with its menu and **…**. In a narrow window each keeps its icon and gives up its words.
+/// **Search**, **Sync** with its menu, the menu of the view and **…**. In a narrow window each keeps its icon and gives
+/// up its words.
 ///
 /// Feature: graph.toolbar
 pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
@@ -85,6 +89,7 @@ pub fn toolbar_view(state: &ToolbarState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
         let inner = inset(rect, Insets::symmetric(spacing.small, 0.0));
         let mut area = Area::with_gap(inner, spacing.large);
         more_button(state.more, ui, &mut area, &mut intents);
+        view_button(state.view, ui, &mut area, &mut intents);
         sync_button((state.sync, state.sync_menu), ui, &mut area, &mut intents);
         let width = search::search_button_width(ui);
         let cell = control_in(ui, area.right(width), width);
@@ -145,6 +150,13 @@ fn run(feature: &'static str) -> Intent {
         model::contract::FeatureId(feature),
         model::contract::Target::Head,
     ))
+}
+
+/// The button of the menu of the view, right before **…**, with its menu.
+fn view_button(state: ViewMenuState, ui: &mut Ui<'_>, area: &mut Area, intents: &mut Vec<Intent>) {
+    let side = ui.theme().sizes.control_height;
+    let rect = control_in(ui, area.right(side), side);
+    intents.extend(ui.clip(rect, |ui| view_menu_view(&state, ui)));
 }
 
 /// The **…** button at the end of the header, with its menu.

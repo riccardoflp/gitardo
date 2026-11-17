@@ -1,4 +1,5 @@
-//! The words of the header (`graph.toolbar`, `activity.status-bar`, `graph.more-menu`, `window.brand`).
+//! The words of the header (`graph.toolbar`, `activity.status-bar`, `graph.view-menu`, `graph.more-menu`,
+//! `window.brand`).
 
 /// The name of the program, at the start of the header bar (`window.brand`).
 pub const NAME: &str = "Gitardo";
@@ -56,6 +57,9 @@ pub const PUSH_FORCE_TOOLTIP: &str = "git push --force";
 pub const ACTIVITY: &str = "Activity";
 /// The **…** button at the end of the header, as the screen reader and its tooltip say it.
 pub const MORE: &str = "More";
+/// The button of the menu of the view, right before **…**, as the screen reader and its tooltip say it
+/// (`graph.view-menu`).
+pub const VIEW: &str = "View";
 /// **Refresh** in the **…** menu: reads the repository again at once.
 pub const REFRESH: &str = "Refresh";
 /// **Branch** in **…**: create a branch at `HEAD`.
@@ -112,27 +116,27 @@ pub fn counts_only(behind: u32, ahead: u32) -> String {
 pub fn running(title: &str, seconds: u64) -> String {
     format!("{title} ({})", super::activity::duration(seconds))
 }
-/// **Show stashes** in **…** (`graph.stashes`).
+/// **Show stashes** in the menu of the view (`graph.stashes`).
 pub const SHOW_STASHES: &str = "Show stashes";
-/// **Show only the first parent of merges** in **…** (`graph.first-parent`).
+/// **Show only the first parent of merges** in the menu of the view (`graph.first-parent`).
 pub const FIRST_PARENT: &str = "Show only the first parent of merges";
 /// The switch that draws every commit on one line (`graph.one-lane`).
 pub const ONE_LANE: &str = "Show all commits on one line";
-/// **Bring out the history of the selected commit** in **…** (`graph.trace-selected`).
+/// **Bring out the history of the selected commit** in the menu of the view (`graph.trace-selected`).
 pub const TRACE_SELECTED: &str = "Bring out the history of the selected commit";
-/// **Fold all merges** in **…** (`graph.fold-all`).
+/// **Fold all merges** in the menu of the view (`graph.fold-all`).
 pub const FOLD_ALL: &str = "Fold all merges";
-/// **Unfold all merges** in **…** (`graph.fold-all`).
+/// **Unfold all merges** in the menu of the view (`graph.fold-all`).
 pub const UNFOLD_ALL: &str = "Unfold all merges";
-/// **Show the author** in **…** (`graph.columns`).
+/// **Show the author** in the menu of the view (`graph.columns`).
 pub const SHOW_AUTHOR: &str = "Show the author";
-/// **Show the date** in **…** (`graph.columns`).
+/// **Show the date** in the menu of the view (`graph.columns`).
 pub const SHOW_DATE: &str = "Show the date";
-/// **Show the hash** in **…** (`graph.columns`).
+/// **Show the hash** in the menu of the view (`graph.columns`).
 pub const SHOW_HASH: &str = "Show the hash";
-/// **Separate the days, weeks and months** in **…** (`graph.date-separators`).
+/// **Separate the days, weeks and months** in the menu of the view (`graph.date-separators`).
 pub const DATE_SEPARATORS: &str = "Separate the days, weeks and months";
-/// **Put a branch and its upstream on one label** in **…** (`graph.combine-upstream`).
+/// **Put a branch and its upstream on one label** in the menu of the view (`graph.combine-upstream`).
 pub const COMBINE_UPSTREAM: &str = "Put a branch and its upstream on one label";
 /// The tooltip of the first button of the top row of the timeline and of the title row of a page while the side column
 /// is shown (`graph.toggle-references`, `repo.side-column`).

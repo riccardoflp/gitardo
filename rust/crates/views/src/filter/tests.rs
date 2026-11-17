@@ -1,5 +1,5 @@
 //! The words of the bar above the commits, the rows of the list of the branch filter, the entries of the menus of a
-//! reference and the kinds of **…**.
+//! reference and the kinds of the menu of the view.
 
 #![allow(non_snake_case, reason = "tests are named <feature>__<what they check>")]
 

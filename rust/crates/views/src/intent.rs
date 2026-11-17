@@ -246,7 +246,7 @@ pub enum RailIntent {
 pub enum FilterIntent {
     /// Show these branches; none is everything.
     Show(Option<BranchesShown>),
-    /// A kind of reference switched in **…** (`filter.kinds`).
+    /// A kind of reference switched in the menu of the view (`filter.kinds`).
     SwitchKind(ReferenceKind),
     /// Open the list of the branch filter, in a window of this size, in logical pixels (`filter.picker`).
     OpenPicker {

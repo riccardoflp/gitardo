@@ -1,6 +1,6 @@
 # The catalog of features
 
-Every feature of Gitardo, one card each, 458 in all, with its status in each app. A card says what the feature does
+Every feature of Gitardo, one card each, 459 in all, with its status in each app. A card says what the feature does
 from the user's side, which function it is, what it asks, what it runs, how it is undone, and what has to be true for
 it to be done. The template and the rules of the cards are in [04-feature-contract.md](../desktop/04-feature-contract.md).
 
@@ -18,7 +18,7 @@ earns it.
 | File | Area | Cards |
 | --- | --- | --- |
 | [01-repositories.md](01-repositories.md) | Repositories | 30 |
-| [02-graph.md](02-graph.md) | Graph | 55 |
+| [02-graph.md](02-graph.md) | Graph | 56 |
 | [03-search-and-filter.md](03-search-and-filter.md) | Search and filter | 23 |
 | [04-details-and-commit-page.md](04-details-and-commit-page.md) | Details, commits and the page of a commit | 17 |
 | [05-changes-and-commit.md](05-changes-and-commit.md) | Changes and commit | 22 |
@@ -89,6 +89,7 @@ earns it.
 | [`panel.bottom`](02-graph.md#panelbottom--the-bottom-panel) | The bottom panel | View | Built | Host only |
 | [`terminal.view`](02-graph.md#terminalview--a-terminal-in-the-bottom-panel) | A terminal in the bottom panel | View | Built | Host only |
 | [`graph.icons`](02-graph.md#graphicons--the-icons-of-the-window) | The icons of the window | View | Built | Host only |
+| [`graph.view-menu`](02-graph.md#graphview-menu--the-menu-of-the-view-of-the-header) | The menu of the view of the header | View | Built | Planned |
 | [`graph.more-menu`](02-graph.md#graphmore-menu--the--menu-of-the-header) | The … menu of the header | View | Built | Built |
 | [`ui.menu-scroll`](02-graph.md#uimenu-scroll--a-menu-taller-than-the-room-under-it) | A menu taller than the room under it | Derivation | Built | Host only |
 | [`ui.menu-icons`](02-graph.md#uimenu-icons--the-icon-of-each-action-in-the-menus) | The icon of each action in the menus | Derivation | Built | Planned |

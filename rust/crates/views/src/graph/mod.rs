@@ -1,6 +1,7 @@
 //! The timeline and the header above it: the commits (`graph.view`) with their graph, labels, columns, draft, stashes,
 //! folds, sticky names, marks and edge; moving through them with the keyboard; the header (`graph.toolbar`), its
-//! **…** menu (`graph.more-menu`) and the panes beside the timeline (`graph.resize-panes`).
+//! menu of the view (`graph.view-menu`), its **…** menu (`graph.more-menu`) and the panes beside the timeline
+//! (`graph.resize-panes`).
 
 mod cell;
 mod columns;
@@ -29,6 +30,7 @@ mod tests;
 mod timeline;
 mod toggle;
 mod toolbar;
+mod view_menu;
 
 pub use columns::{ColumnsState, columns_view};
 pub(crate) use commit_menu::with_compare;
@@ -44,9 +46,7 @@ pub use layout::{LayoutEnd, LayoutInput, TimelineLayout};
 pub use load_more::{AHEAD, LoadMoreState, load_more_view, wants_more};
 pub use location::{WhereState, WhereWidths, fit_where, where_view};
 pub use marks::{ScrollMarks, mark_positions, scroll_marks_view};
-#[cfg(test)]
-pub(crate) use more_menu::kind_entries;
-pub use more_menu::{GraphDrawn, MainRemote, MoreMenuState, OperationsMenu, TimelineMenu, more_menu_view};
+pub use more_menu::{MainRemote, MoreMenuState, OperationsMenu, more_menu_view};
 pub use panes::{
     INSPECTOR_LEAST, INSPECTOR_MOST, INSPECTOR_START, PaneLayout, PaneRects, PaneSizes, RAIL_LEAST, RAIL_MOST,
     RAIL_START, STEP, pane_rects, resize_panes_view,
@@ -65,3 +65,6 @@ pub use timeline::view;
 pub use toggle::{ReferencesShown, toggle_references_view};
 pub(crate) use toggle::{side_button, top_row_height};
 pub use toolbar::{HeadName, RepositoryEntry, SyncCounts, SyncMenu, ToolbarState, toolbar_view};
+#[cfg(test)]
+pub(crate) use view_menu::kind_entries;
+pub use view_menu::{GraphDrawn, TimelineMenu, ViewMenuState, view_menu_view};
