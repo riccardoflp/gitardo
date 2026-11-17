@@ -460,7 +460,7 @@ is seen where it belongs.
 
 - **Kind**: Derivation
 - **Function**: `model::stash::in_graph(input: &GraphWithStashes) -> Vec<Row>`
-- **Entry points**: the timeline and its narrow layout; **Show stashes** in the **…** menu of the header, which
+- **Entry points**: the timeline and its narrow layout; **Show stashes** in the menu of the view of the header, which
   switches them on and off.
 - **Reads**: `stash.read-list`; the commits of the stashes with `git log --no-walk=unsorted -z --format=<hash, parents,
   author name, author email, author date, subject> <hashes of the stashes> --`.

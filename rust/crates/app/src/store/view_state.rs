@@ -12,7 +12,7 @@ use views::branch::ReferenceMenus;
 use views::filter::NarrowedBar;
 use views::graph::{
     Folds, GraphState, HeadName, HistoryState, MoreMenuState, Reading, RepositoryEntry, SyncCounts, TimelineMenu,
-    ToolbarState, TraceShown, WhereState,
+    ToolbarState, TraceShown, ViewMenuState, WhereState,
 };
 use views::log::{LogLine, LogState};
 use views::page::Page;
@@ -248,10 +248,12 @@ impl ViewData {
                 built: views::graph::SYNC_FEATURES.map(|feature| features::operation(feature).is_some()),
                 pull_way: pull_way(&state.settings.features),
             }),
+            view: ViewMenuState {
+                timeline: read.map(|_| timeline_menu(state)),
+            },
             more: MoreMenuState {
                 can_refresh: state.workspace.is_some(),
                 can_select_repository: state.workspace.is_some(),
-                timeline: read.map(|_| timeline_menu(state)),
                 operations: read.map(|read| views::graph::OperationsMenu {
                     is_running: state.is_operation_running,
                     has_commits: read.head.commit.is_some(),
@@ -357,7 +359,7 @@ impl ViewData {
     }
 }
 
-/// The entries of **…** about the timeline.
+/// The switches of the menu of the view.
 fn timeline_menu(state: &State) -> TimelineMenu {
     let timeline = &state.timeline;
     TimelineMenu {

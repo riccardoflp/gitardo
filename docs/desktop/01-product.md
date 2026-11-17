@@ -61,8 +61,8 @@ history fills it, and everything else opens from it.
   **worktree** when it is not the repository's own folder and the **branch** checked out, as `gitardo › login ›
   feature/login-page`, then **Search**, the button of **Quick search** with `Ctrl K` beside it, **Sync**, which shows
   the commits to pull and to push and, clicked, fetches, pulls and pushes them, with its menu (fetch, pull, push and
-  their other ways), and **…** (refresh, branch, stash, undo and the switches of the timeline). It gives up its words
-  for icons when the window is narrow.
+  their other ways), **View**, the menu of the switches of the timeline, and **…** (refresh, branch, stash, undo and
+  the other actions). It gives up its words for icons when the window is narrow.
 - **Status bar**: a line of small text at the foot of the window: the **activity** indicator on the left (what is
   running, which opens the **Activity** drawer), then what the last operation said, with **Undo** and what it offers
   as links, and on the right the identity commits are made with, which a click switches. It is as high whatever it
@@ -114,7 +114,7 @@ The cards of the catalog name the places of the window with these words, and onl
 | **Bar of views** | The column of icons on the left edge: Timeline, Changes, Files, Compare, Activity, Settings. |
 | **Side column** | The island on the left, the whole height of the window: **Repositories** above, **Branches** under it. |
 | **Repositories** | The first section of the side column: a row, a **tab**, for each repository open, and **+**. |
-| **Header** | The bar across the top of the window: repository, worktree and branch, Search, Sync, **…**. |
+| **Header** | The bar across the top of the window: repository, worktree and branch, Search, Sync, the menu of the view, **…**. |
 | **Island** | Each rounded card of the window: the side column, the timeline, the inspector, a page. |
 | **Status bar** | The line of text at the foot of the window: what is running, what was said, the identity commits are made with. |
 | **Branch rail** | **Branches**, the second section of the side column: local branches, a heading for each remote, and **Kept aside** (stashes, worktrees, tags, submodules). |

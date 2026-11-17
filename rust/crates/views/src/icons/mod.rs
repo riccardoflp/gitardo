@@ -290,9 +290,12 @@ pub(crate) const REVEAL: Icon = Icon::Reveal;
 /// Unfold: show again the commits a merge brought in.
 pub(crate) const UNFOLD: Icon = Icon::Unfold;
 
+/// How the timeline is shown: the menu of the view of the header (`graph.view-menu`).
+pub(crate) const VIEW_MENU: Icon = Icon::Sliders;
+
 /// Each meaning of the table of `graph.icons` and its icon, in the order of the table.
 #[cfg(test)]
-pub(crate) const MEANINGS: [(&str, Icon); 91] = [
+pub(crate) const MEANINGS: [(&str, Icon); 92] = [
     (
         "Folded: a row whose content is hidden; a menu that opens to the side",
         FOLDED,
@@ -408,4 +411,5 @@ pub(crate) const MEANINGS: [(&str, Icon); 91] = [
     ("Open in a new window", NEW_WINDOW),
     ("Reveal a folder in the file manager of the system", REVEAL),
     ("Unfold: show again the commits a merge brought in", UNFOLD),
+    ("How the timeline is shown: the menu of the view", VIEW_MENU),
 ];

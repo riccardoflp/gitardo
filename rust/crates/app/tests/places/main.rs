@@ -42,6 +42,7 @@ mod github;
 mod go_to;
 mod going_to;
 mod group_tabs;
+mod header_menus;
 mod histories;
 mod history;
 mod inspector;

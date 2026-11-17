@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
-import type { GraphColumn, PullAction, RefKind, RepoState, Search, SyncAction, UiCommand } from '../shared/protocol';
-import { kindsScope, scopeKinds } from '../shared/scope';
-import { useMenu, type MenuEntry } from './ContextMenu';
+import type { PullAction, RepoState, Search, SyncAction } from '../shared/protocol';
+import { useMenu } from './ContextMenu';
 import { Icon } from './Icon';
 import { RepoSelect } from './RepoSelect';
 import { ScopeButton } from './ScopeButton';
 import { WorktreeSelect } from './WorktreeSelect';
 import { act } from './menus';
 import { useKept } from './kept';
+import { moreMenu, viewMenu } from './toolbarMenus';
 import { loadUiState, post, saveUiState } from './vscode';
 
 interface Props {
@@ -171,85 +171,6 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
   /** A click on a button of the search leaves the focus in the box, where Enter and Shift+Enter go on from it. */
   const keepFocus = (event: MouseEvent) => event.preventDefault();
 
-  const run = (command: UiCommand) => () => post({ type: 'command', command });
-  // The kinds of references the graph shows, as the list of branches has them. Not while some are chosen one by one there.
-  const kinds = scopeKinds(state.scope);
-  const showKind = (kind: RefKind, label: string): MenuEntry => {
-    const on = !!kinds?.includes(kind);
-    return {
-      label,
-      checked: on,
-      // With no kind left the graph would have nothing to show.
-      disabled: !kinds || (on && kinds.length === 1),
-      hint: kinds ? undefined : 'Chosen in the filter',
-      run: () => kinds && post({ type: 'setScope', scope: kindsScope(on ? kinds.filter((each) => each !== kind) : [...kinds, kind]) }),
-    };
-  };
-  const showColumn = (column: GraphColumn, label: string): MenuEntry => {
-    const on = state.graphColumns.includes(column);
-    const columns = on ? state.graphColumns.filter((each) => each !== column) : [...state.graphColumns, column];
-    return { label, checked: on, run: () => post({ type: 'setGraphColumns', columns }) };
-  };
-  const more: MenuEntry[] = [
-    // Its button is the first to go when the toolbar is short of room.
-    !compact && { label: 'Refresh', run: () => post({ type: 'refresh' }) },
-    !compact && 'separator',
-    showKind('branch', 'Show local branches'),
-    showKind('remote', 'Show remote branches'),
-    showKind('tag', 'Show tags'),
-    { label: 'Show stashes', checked: state.showStashes, run: () => post({ type: 'setShowStashes', show: !state.showStashes }) },
-    {
-      label: 'Show only the first parent of merges',
-      checked: state.firstParent,
-      run: () => post({ type: 'setFirstParent', only: !state.firstParent }),
-    },
-    { label: 'Show all commits on one line', checked: state.oneLane, run: () => post({ type: 'setOneLane', one: !state.oneLane }) },
-    {
-      label: 'Bring out the history of the selected commit',
-      checked: state.traceSelected,
-      run: () => post({ type: 'setTraceSelected', trace: !state.traceSelected }),
-    },
-    // On one line, the merges are not folded from the menu.
-    onFoldAll && !state.oneLane && {
-      // Checked, it folds the merges loaded later too; unchecked, it shows all their commits again.
-      label: 'Fold all merges',
-      checked: folded === 'all',
-      // A stash keeps only its first parent in the graph: a row with more is a merge.
-      disabled: folded !== 'all' && !state.rows.some((row) => row.parents.length > 1),
-      run: () => onFoldAll(folded !== 'all'),
-    },
-    onFoldAll && !state.oneLane && { label: 'Unfold all merges', disabled: folded === 'none', run: () => onFoldAll(false) },
-    'separator',
-    showColumn('author', 'Show the author'),
-    showColumn('date', 'Show the date'),
-    showColumn('hash', 'Show the hash'),
-    {
-      label: 'Separate the days, weeks and months',
-      checked: state.dateSeparators,
-      run: () => post({ type: 'setDateSeparators', show: !state.dateSeparators }),
-    },
-    {
-      label: 'Put a branch and its upstream on one label',
-      checked: state.combineUpstream,
-      run: () => post({ type: 'setCombineUpstream', combine: !state.combineUpstream }),
-    },
-    'separator',
-    { label: 'Compare branches, tags or commits…', run: () => post({ type: 'compare' }) },
-    { label: 'Go to commit…', run: run('goToCommit') },
-    { label: 'History of the active file', run: run('activeFileHistory') },
-    { label: 'Browse reflog…', run: run('reflog') },
-    { label: 'Clean up branches…', run: run('cleanupBranches') },
-    { label: 'Apply patch…', run: () => act({ kind: 'applyPatch' }) },
-    { label: 'Manage remotes…', run: run('remotes') },
-    // With submodules, their section has the same button.
-    !state.submodules.length && { label: 'Add submodule…', run: () => act({ kind: 'submoduleAdd' }) },
-    (state.repos.length > 1 || state.home) && { label: 'Select repository…', run: run('selectRepository') },
-    'separator',
-    { label: 'Switch identity…', run: run('switchIdentity') },
-    state.github && 'separator',
-    state.github && { label: 'Load pull requests from GitHub', run: run('signInGitHub') },
-  ];
-
   const search = (
     <div className="search">
       <Icon name="search" />
@@ -321,10 +242,16 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
       )}
     </div>
   );
-  const moreButton = (
-    <button className="button icon" onClick={(event) => openMenu(event, more)} aria-label="More actions" title="More actions">
-      <Icon name="ellipsis" />
-    </button>
+  // The switches of the graph and the actions are two menus side by side, as in Gitardo Desktop (D66).
+  const menuButtons = (
+    <>
+      <button className="button icon" onClick={(event) => openMenu(event, viewMenu(state, { onFoldAll, folded }))} aria-label="View" title="View">
+        <Icon name="settings" />
+      </button>
+      <button className="button icon" onClick={(event) => openMenu(event, moreMenu(state, !!compact))} aria-label="More actions" title="More actions">
+        <Icon name="ellipsis" />
+      </button>
+    </>
   );
   const working = busy && (
     <span className="busy" title={`${busy}…`}>
@@ -339,7 +266,7 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
         {search}
         <ScopeButton state={state} compact />
         {working}
-        {moreButton}
+        {menuButtons}
       </div>
     );
   }
@@ -433,7 +360,7 @@ export function Toolbar({ state, busy, compact, matches, searching, refsHidden, 
       <button className="button icon refresh" onClick={() => post({ type: 'refresh' })} aria-label="Refresh" title="Refresh">
         <Icon name="refresh" />
       </button>
-      {moreButton}
+      {menuButtons}
     </div>
   );
 }

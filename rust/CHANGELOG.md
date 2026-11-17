@@ -225,6 +225,12 @@
   the drafts of the AI sparkles, the menus that open below a button two chevrons, showing the base of a merge a fork.
   The bar of views has the timeline's graph, the changes of a file, a tree of folders, the compare arrows, the beat of
   Activity and a gear; a half-ticked box shows a dash of its own.
+- The header has two menus where **…** had one: **View**, with the icon of the sliders, right before **…**, has every
+  switch of the timeline, in three groups: what it shows (the local branches, the remote branches, the tags, the
+  stashes, only the first parent of merges), how it draws it (one line, the history of the selected commit, the
+  separators of days, weeks and months, a branch and its upstream on one label, the folds of merges), and the author,
+  the date and the hash of each row. **…** keeps the actions alone: **Refresh**, **Branch**, **Stash**, **Undo**, the
+  ways to the pages, **Switch identity…**, **Load pull requests from GitHub**, **Settings** and **Theme…**.
 
 ## 1.0.0 - 2026-11-17
 

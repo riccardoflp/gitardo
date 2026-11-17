@@ -1,10 +1,11 @@
-//! The entries of the **…** menu of the header, in the groups and the order of its card (`graph.more-menu`).
+//! The entries of the **…** menu of the header, in the groups and the order of its card (`graph.more-menu`): the
+//! actions alone.
 
-use model::filter::Kinds;
 use ui::MenuEntry;
 
-use super::{GraphDrawn, MainRemote, MoreMenuState, OperationsMenu, TimelineMenu, menu_entries};
-use crate::graph::intent::Switches;
+use super::{MainRemote, MoreMenuState, OperationsMenu, menu_entries};
+use crate::text::filter as filter_words;
+use crate::text::header as header_words;
 
 /// The words of the menu, with `-` for a separator.
 fn words(state: &MoreMenuState) -> Vec<&'static str> {
@@ -18,27 +19,11 @@ fn words(state: &MoreMenuState) -> Vec<&'static str> {
 }
 
 /// The words of the whole menu, in the groups and the order of the card.
-const IN_ORDER: [&str; 37] = [
+const IN_ORDER: [&str; 21] = [
     "Refresh",
     "Branch",
     "Stash",
     "Undo",
-    "-",
-    "Show local branches",
-    "Show remote branches",
-    "Show tags",
-    "Show stashes",
-    "Show only the first parent of merges",
-    "Show all commits on one line",
-    "Bring out the history of the selected commit",
-    "Fold all merges",
-    "Unfold all merges",
-    "-",
-    "Show the author",
-    "Show the date",
-    "Show the hash",
-    "Separate the days, weeks and months",
-    "Put a branch and its upstream on one label",
     "-",
     "Compare branches, tags or commits\u{2026}",
     "Go to commit\u{2026}",
@@ -58,19 +43,11 @@ const IN_ORDER: [&str; 37] = [
     "Theme\u{2026}",
 ];
 
-#[test]
-fn graph_more_menu__the_entries_built_are_in_the_groups_and_the_order_of_the_card() {
-    let state = MoreMenuState {
+/// A repository on GitHub with no submodule, in a workspace of several, and nothing running.
+fn everything() -> MoreMenuState {
+    MoreMenuState {
         can_refresh: true,
         can_select_repository: true,
-        timeline: Some(TimelineMenu {
-            switches: Switches::DEFAULT,
-            has_merges: true,
-            has_folds: false,
-            is_all_folded: false,
-            kinds: Some(Kinds::ALL),
-            drawn: GraphDrawn::WithLines,
-        }),
         operations: Some(OperationsMenu {
             is_running: false,
             has_commits: true,
@@ -79,8 +56,35 @@ fn graph_more_menu__the_entries_built_are_in_the_groups_and_the_order_of_the_car
         has_submodules: false,
         main_remote: MainRemote::OnGitHub,
         active_file: None,
-    };
-    assert_eq!(words(&state), IN_ORDER);
+    }
+}
+
+#[test]
+fn graph_more_menu__the_entries_built_are_in_the_groups_and_the_order_of_the_card() {
+    assert_eq!(words(&everything()), IN_ORDER);
+}
+
+#[test]
+fn graph_more_menu__no_switch_of_the_timeline_is_in_the_menu() {
+    let all = words(&everything());
+    for switch in [
+        filter_words::SHOW_LOCAL,
+        filter_words::SHOW_REMOTE,
+        filter_words::SHOW_TAGS,
+        header_words::SHOW_STASHES,
+        header_words::FIRST_PARENT,
+        header_words::ONE_LANE,
+        header_words::TRACE_SELECTED,
+        header_words::FOLD_ALL,
+        header_words::UNFOLD_ALL,
+        header_words::SHOW_AUTHOR,
+        header_words::SHOW_DATE,
+        header_words::SHOW_HASH,
+        header_words::DATE_SEPARATORS,
+        header_words::COMBINE_UPSTREAM,
+    ] {
+        assert!(!all.contains(&switch), "{switch} is in the menu of the view");
+    }
 }
 
 #[test]
@@ -105,47 +109,17 @@ fn graph_more_menu__add_submodule_is_not_in_the_menu_of_a_repository_with_submod
 
 #[test]
 fn graph_more_menu__the_entries_with_a_condition_are_there_only_while_it_holds() {
-    let timeline = TimelineMenu {
-        switches: Switches::DEFAULT,
-        has_merges: true,
-        has_folds: true,
-        is_all_folded: false,
-        kinds: Some(Kinds::ALL),
-        drawn: GraphDrawn::WithLines,
-    };
-    let state = MoreMenuState {
-        can_refresh: true,
-        can_select_repository: true,
-        timeline: Some(timeline),
-        operations: Some(OperationsMenu {
-            is_running: false,
-            has_commits: true,
-            can_stash: true,
-        }),
-        has_submodules: false,
-        main_remote: MainRemote::OnGitHub,
-        active_file: None,
-    };
-    let conditional = [
-        "Fold all merges",
-        "Unfold all merges",
-        "Select repository\u{2026}",
-        "Load pull requests from GitHub",
-    ];
+    let state = everything();
+    let conditional = ["Select repository\u{2026}", "Load pull requests from GitHub"];
     let all = words(&state);
     for entry in conditional {
         assert!(all.contains(&entry), "{entry} is there while its condition holds");
     }
-    let listed = MoreMenuState {
-        timeline: Some(TimelineMenu {
-            drawn: GraphDrawn::AsList,
-            ..timeline
-        }),
+    let some = words(&MoreMenuState {
         can_select_repository: false,
         main_remote: MainRemote::Elsewhere,
         ..state
-    };
-    let some = words(&listed);
+    });
     for entry in conditional {
         assert!(
             !some.contains(&entry),
@@ -153,32 +127,4 @@ fn graph_more_menu__the_entries_with_a_condition_are_there_only_while_it_holds()
         );
     }
     assert!(some.contains(&"History of the active file"));
-}
-
-#[test]
-fn graph_one_lane__on_fold_all_merges_is_not_in_the_menu() {
-    let timeline = TimelineMenu {
-        switches: Switches::DEFAULT,
-        has_merges: true,
-        has_folds: true,
-        is_all_folded: false,
-        kinds: Some(Kinds::ALL),
-        drawn: GraphDrawn::WithLines,
-    };
-    let off = MoreMenuState {
-        timeline: Some(timeline),
-        ..MoreMenuState::default()
-    };
-    assert!(words(&off).contains(&"Fold all merges"));
-    let on = MoreMenuState {
-        timeline: Some(TimelineMenu {
-            switches: Switches::DEFAULT.with(crate::graph::intent::TimelineSwitch::OneLane, true),
-            ..timeline
-        }),
-        ..off
-    };
-    let entries = words(&on);
-    assert!(entries.contains(&"Show all commits on one line"));
-    assert!(!entries.contains(&"Fold all merges"), "{entries:?}");
-    assert!(!entries.contains(&"Unfold all merges"));
 }

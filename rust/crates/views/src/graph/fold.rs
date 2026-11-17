@@ -51,7 +51,7 @@ pub fn fold_merge_view(state: &FoldsState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     Vec::new()
 }
 
-/// What **Fold all merges** and **Unfold all merges** in **…** stand for.
+/// What **Fold all merges** and **Unfold all merges** in the menu of the view stand for.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FoldAllState {
     /// The entry chosen.
@@ -60,7 +60,7 @@ pub struct FoldAllState {
     pub is_all_folded: bool,
 }
 
-/// An entry of **…** about every merge.
+/// An entry of the menu of the view about every merge.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FoldAllEntry {
     /// **Fold all merges**.
@@ -69,8 +69,8 @@ pub enum FoldAllEntry {
     Unfold,
 }
 
-/// What choosing **Fold all merges** or **Unfold all merges** in **…** asks: **Fold all merges** checked, or
-/// **Unfold all merges**, shows every commit again and forgets the folds.
+/// What choosing **Fold all merges** or **Unfold all merges** in the menu of the view asks: **Fold all merges**
+/// checked, or **Unfold all merges**, shows every commit again and forgets the folds.
 ///
 /// Feature: graph.fold-all
 pub fn fold_all_view(state: &FoldAllState, _ui: &mut Ui<'_>) -> Vec<Intent> {

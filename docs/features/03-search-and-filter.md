@@ -400,8 +400,8 @@ Under the presets, every local branch, remote branch and tag has a tick: the tim
 - **Uses**: `filter.log-arguments`.
 
 - The references ticked are those the choice in use stands for: with **All**, none; with **Local**, **Remotes** or a
-  kind switched off in the **…** menu, every reference of the kinds shown; with **Current**, the branch checked out,
-  none when detached; with **Upstream**, that branch and its upstream; with references ticked one by one, those.
+  kind switched off in the menu of the view, every reference of the kinds shown; with **Current**, the branch checked
+  out, none when detached; with **Upstream**, that branch and its upstream; with references ticked one by one, those.
 - Ticking a reference adds it to them, and ticking it again takes it out. From a preset, a tick added or taken away
   starts from the references it stands for, and the result is references ticked one by one.
 - Taking out the last one shows everything again.
@@ -476,8 +476,8 @@ Switch each kind of reference on and off in the timeline, the same choice the li
 
 - **Kind**: Derivation
 - **Function**: `model::filter::kinds(shown: Option<&BranchesShown>, kind: ReferenceKind) -> Option<BranchesShown>`
-- **Entry points**: **Show local branches**, **Show remote branches** and **Show tags** in the **…** menu of the header
-  (`graph.more-menu`), each checked while that kind is shown.
+- **Entry points**: **Show local branches**, **Show remote branches** and **Show tags** in the menu of the view of the
+  header (`graph.view-menu`), each checked while that kind is shown.
 - **Offered when**: always, but greyed out with the hint **Chosen in the filter** while references are ticked one by
   one, or **Current** or **Upstream** is chosen; the one kind left on is greyed out too: one of them is always on.
 

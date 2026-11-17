@@ -21,7 +21,7 @@ titles of the commands in `package.json`, the words of the webviews, and the typ
 | Branches view | The view of the side bar with the references tree. | references | | view kind `branches`, `BranchesApp.tsx` |
 | Stashes view | The view of the side bar with the stashes and their files. | | | view kind `stashes`, `StashesApp.tsx` |
 | Changes view | **Gitardo Changes**: the view of the side bar that stages and commits, hidden until asked for. | uncommitted changes (the row of the graph), VS Code's own Changes | staging area | view kind `changes`, `ChangesApp.tsx` |
-| toolbar | The row of buttons above the graph: fetch, pull, push, undo, the search, the **…** menu. | | | `Toolbar.tsx` |
+| toolbar | The row of buttons above the graph: fetch, pull, push, undo, the search, the **View** menu of the switches of the graph, the **…** menu of the actions. | | | `Toolbar.tsx` |
 | references | The tree beside the graph, and in the Branches view: recent, favorites, local branches, remote branches, tags, stashes, worktrees, submodules. | label | | `RefsTree.tsx` |
 | label | The name of a branch, remote branch, tag or stash on the row of its commit in the graph, outlined in the color of its line. | reference (the thing a label names) | badge, pill | `labels.ts` |
 | combined label | One label for a branch and its upstream of the same name while they are at the same commit. | | | `gitardo.graph.combineUpstream` |
@@ -109,6 +109,7 @@ titles of the commands in `package.json`, the words of the webviews, and the typ
 | protocol | The messages between the extension and `gitardo-engine`, JSON-RPC over the standard input and output. | | | crate `protocol` |
 | tab (of a repository) | In Gitardo Desktop, a repository open in the window, with its worktrees and its submodules, a row of **Repositories** in the side column; one is shown at a time, and each keeps what it showed. | page, tab of a commit | | `app::store::tabs`, `repo.tabs` |
 | side column | In Gitardo Desktop, the island on the left, from under the header to the status bar, with **Repositories** above and **Branches**, the branch rail, under it. | side bar | | `repo.side-column` |
+| menu of the view | The menu at the end of the header, right before **…**, with every switch of what the timeline shows and how it draws it; **…** has the actions. In the extension, **View** in the toolbar of the graph. | view (of the bar of views) | | `graph.view-menu` |
 | desktop first | The order every feature is built in: the engine and the window of Gitardo Desktop, then the extension. | | | D39 |
 | status (of a card) | Where a feature stands in one app: **Specified**, **Reviewed**, **Built**, **Seen** in the desktop; **Planned**, **Built**, **Seen**, **Differs**, **Host only** in the extension. | | | the columns of `docs/features/README.md` |
 | fallback | What the extension ran in TypeScript when the engine's binary was missing, until stage 10 removed `src/git`; since then, without the engine, it says so with **Show the log**. Also what an operation offers when git refuses it, such as **Delete anyway**. | | | D49, `offerRun` |
