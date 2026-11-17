@@ -81,8 +81,9 @@ impl<'a> TabShows<'a> {
         shows
     }
 
-    /// The other worktrees of the tab's repository: from what the tab, or a worktree of its group, read last; from the
-    /// worktrees of the group found in the workspace when none was read.
+    /// The other worktrees of the tab's repository: from what the tab, or a worktree of its group, read last; from what
+    /// the reads in the background listed when none was read; from the worktrees of the group found in the workspace
+    /// before that.
     fn worktrees(&self, state: &State, is_shown: bool, group: &TabGroup) -> Vec<Worktree> {
         let is_submodule = |folder: &Path| {
             group
@@ -100,9 +101,10 @@ impl<'a> TabShows<'a> {
             Shown::Read(read) if !is_submodule(&read.folder) => Some(read),
             _ => None,
         });
-        let listed: Vec<Worktree> = match read {
-            Some(read) => read.state.worktrees.clone(),
-            None => group
+        let listed: Vec<Worktree> = match (read, state.tabs.summaries.worktrees_of(&self.tab.folder)) {
+            (Some(read), _) => read.state.worktrees.clone(),
+            (None, Some(worktrees)) => worktrees.to_vec(),
+            (None, None) => group
                 .members
                 .iter()
                 .filter(|member| member.superproject.is_none())

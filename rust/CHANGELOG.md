@@ -107,7 +107,8 @@
 - What each repository open and each of its worktrees is on is read in the background, one folder after the other,
   once when the window opens and again when its git folder or its files change, at most once in two seconds for each:
   the rows of **Repositories** and the entries of their **▾** say the branch, the files changed and the commits to
-  pull and to push of each, and `missing` for a worktree whose folder is gone.
+  pull and to push of each, and `missing` for a worktree whose folder is gone. The **▾** of a repository never shown
+  lists its worktrees too.
 - The Terminal tab of the bottom panel runs a shell in the folder of the repository tab shown: PowerShell 7 on Windows
   when it is installed, else Windows PowerShell, the shell of `SHELL` on Linux and macOS, or the one of
   `terminal.shellPath`. It shows the colors of what programs print, 16 from the theme, 256 and 24-bit, in the font of

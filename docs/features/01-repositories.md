@@ -684,6 +684,8 @@ pull and to push, for the rows of **Repositories** and the entries of their **�
   git folder changes (its `HEAD`, its index, its refs) or the files of its folder change, as `repo.watch-changes` says,
   and not more than once in two seconds for each folder. The reads run in the background, one at a time, after the reads
   of the repository shown.
+- The read of a repository not shown lists its worktrees too, with `git worktree list` alone, so that its **▾** has
+  them, each with its own summary, before its tab is shown.
 - A worktree whose folder is gone is said `missing`; a read that fails leaves the last summary, muted.
 - Ahead and behind are counted from the upstream of the branch, as `git status` does; a branch without an upstream says
   neither.
@@ -696,8 +698,8 @@ Acceptance:
 - [ ] Saving a file in a worktree not shown updates its count within two seconds.
 - [ ] Nothing in a worktree changing runs no read of it.
 - [ ] A worktree whose folder was deleted is said `missing`.
-- [ ] With three repositories open, each shown once, each row says its own branch, files changed and `↓ ↑`, and each
-      worktree in the **▾** of its repository says its own.
+- [ ] With three repositories open, the side column lists them under **Repositories** with the branch, the files
+      changed and `↓ ↑` of each, and each worktree in its **▾** with its own.
 
 ### `repo.open-tab` — Open a repository in a tab
 
@@ -955,8 +957,9 @@ The rules:
 - Which member a tab shows is kept while the window is open; when the window opens again each tab shows its
   repository, as `worktree.show-in-gitardo` says.
 - The group is named after its main worktree when that is a folder of the workspace, otherwise after the first of it
-  found. The other worktrees the **▾** lists are those git lists for the repository, a folder of the workspace or not;
-  before the tab was read, those of the workspace.
+  found. The other worktrees the **▾** lists are those git lists for the repository, a folder of the workspace or not:
+  before the tab was read, those its read in the background listed (`repo.worktree-summary`), and before that read,
+  those of the workspace.
 - Closing the tab asks about a page with edits not saved of any member, that member shown, as `repo.close-tab` says.
 
 Acceptance:

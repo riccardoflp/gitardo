@@ -93,6 +93,7 @@ fn repo_worktree_summary__nothing_changing_in_a_worktree_runs_no_read_of_it() {
         last: Some(git_folder_changed(&login, None).stamp),
         read_at: None,
         is_forced: false,
+        lists_worktrees: false,
     };
     let read = read_summaries(&[ask]);
     assert_eq!(
@@ -129,7 +130,7 @@ fn said_in_column(tree: &TreeUpdate) -> Vec<String> {
 /// `main`, one file changed, two commits to pull and one to push, with its worktree `login` on `feature/login`, which
 /// follows `origin/main`, two files changed and one commit to push; `web` on `feature/search`, three files changed and
 /// two commits to pull; `docs` on `main` with nothing changed and two commits to pull, with its worktree `notes` on a
-/// branch with no upstream and one file changed. A window opened on them has shown each once, then `api` again.
+/// branch with no upstream and one file changed. A window opened on them shows `api` and has shown neither of the others.
 fn three_on_their_own() -> ((Repository, Repository), State) {
     let ((mut origin, holder), clones) = clone_three();
     let [api, web, docs] = &clones;
@@ -172,10 +173,6 @@ fn three_on_their_own() -> ((Repository, Repository), State) {
             folders: clones.to_vec(),
         },
     );
-    // The worktrees of a repository are known from its own read.
-    for index in [1, 2, 0] {
-        let _ = support::run(&mut state, Message::Intent(views::Intent::SwitchTab(index)));
-    }
     ((origin, holder), state)
 }
 

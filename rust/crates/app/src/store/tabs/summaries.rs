@@ -1,13 +1,15 @@
 //! What the repositories open and their worktrees and submodules are on, for the rows of **Repositories** and the
 //! entries of their **▾** (`repo.worktree-summary`): the folder shown says it from its own read; every other one is
 //! read in the background once the window opens, after the read of the folder shown, then again only when its files
-//! or its git folder change, one batch at a time and never while an operation runs.
+//! or its git folder change, one batch at a time and never while an operation runs. The folder of a repository open in
+//! a tab lists its worktrees with its summary, so that the **▾** of a tab never shown has them, each read in turn.
 
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use git::read::worktree::GitFolderStamp;
 use model::repo::{Change, group_tabs};
+use model::state::Worktree;
 use views::repo::TabSummary;
 
 use super::super::message::Effect;
@@ -40,6 +42,8 @@ pub struct SummaryEntry {
     pub is_due: bool,
     /// Whether files of its working tree changed, which reads it whatever its git folder says.
     pub is_forced: bool,
+    /// The worktrees of its repository as last listed, when it is the folder of a repository open in a tab.
+    pub worktrees: Option<Vec<Worktree>>,
 }
 
 impl Summaries {
@@ -50,6 +54,15 @@ impl Summaries {
             .iter()
             .find(|entry| same_folder(&entry.folder, folder))
             .and_then(|entry| entry.summary.as_ref())
+    }
+
+    /// The worktrees of a repository open in a tab, as the reads in the background last listed them.
+    #[must_use]
+    pub fn worktrees_of(&self, repository: &Path) -> Option<&[Worktree]> {
+        self.entries
+            .iter()
+            .find(|entry| same_folder(&entry.folder, repository))
+            .and_then(|entry| entry.worktrees.as_deref())
     }
 
     /// The folders read in the background, for their watchers.
@@ -103,6 +116,7 @@ pub fn follow(state: &mut State) -> Option<Effect> {
                 read_at: None,
                 is_due: true,
                 is_forced: true,
+                worktrees: None,
             });
         }
     }
@@ -110,6 +124,7 @@ pub fn follow(state: &mut State) -> Option<Effect> {
         || state.opening.is_some()
         || state.reads.schedule.is_reading()
         || state.shown_read().is_none();
+    let repositories: Vec<PathBuf> = state.tabs.open.iter().map(|tab| tab.folder.clone()).collect();
     let summaries = &mut state.tabs.summaries;
     if is_busy || summaries.is_reading {
         return None;
@@ -125,6 +140,7 @@ pub fn follow(state: &mut State) -> Option<Effect> {
                 last: entry.stamp.clone(),
                 read_at: entry.read_at,
                 is_forced: std::mem::take(&mut entry.is_forced),
+                lists_worktrees: repositories.iter().any(|folder| same_folder(folder, &entry.folder)),
             }
         })
         .collect();
@@ -133,7 +149,8 @@ pub fn follow(state: &mut State) -> Option<Effect> {
 }
 
 /// What a batch of reads found: a summary read takes the place of the one before; a read that failed keeps it, muted;
-/// a folder in which nothing changed keeps it as it was.
+/// a folder in which nothing changed keeps it as it was. Worktrees listed take the place of those before, whose folders
+/// the next batch reads.
 pub fn read(state: &mut State, reads: Vec<SummaryRead>) {
     let summaries = &mut state.tabs.summaries;
     summaries.is_reading = false;
@@ -147,6 +164,9 @@ pub fn read(state: &mut State, reads: Vec<SummaryRead>) {
         };
         entry.stamp = Some(read.stamp);
         entry.read_at = Some(read.read_at);
+        if let Some(Ok(worktrees)) = read.worktrees {
+            entry.worktrees = Some(worktrees);
+        }
         match read.result {
             Some(Ok(summary)) => {
                 entry.summary = Some(TabSummary {
