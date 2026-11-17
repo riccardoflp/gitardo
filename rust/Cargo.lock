@@ -189,7 +189,7 @@ checksum = "fc7eb209b1518d6bb87b283c20095f5228ecda460da70b44f0802523dea6da04"
 
 [[package]]
 name = "app"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "engine",
  "features",
@@ -897,7 +897,7 @@ dependencies = [
 
 [[package]]
 name = "editor"
-version = "1.0.0"
+version = "1.1.0"
 
 [[package]]
 name = "endi"
@@ -907,7 +907,7 @@ checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
 
 [[package]]
 name = "engine"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "git",
  "http",
@@ -1006,7 +1006,7 @@ dependencies = [
 
 [[package]]
 name = "features"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "json",
  "model",
@@ -1210,7 +1210,7 @@ dependencies = [
 
 [[package]]
 name = "git"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "model",
  "testkit",
@@ -1296,7 +1296,7 @@ dependencies = [
 
 [[package]]
 name = "http"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "tls",
 ]
@@ -1519,7 +1519,7 @@ dependencies = [
 
 [[package]]
 name = "json"
-version = "1.0.0"
+version = "1.1.0"
 
 [[package]]
 name = "json5"
@@ -1864,7 +1864,7 @@ dependencies = [
 
 [[package]]
 name = "model"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "pulldown-cmark",
  "regex",
@@ -2481,7 +2481,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "platform"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -2569,7 +2569,7 @@ dependencies = [
 
 [[package]]
 name = "protocol"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "engine",
  "git",
@@ -2722,7 +2722,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "render"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "cosmic-text",
  "resvg",
@@ -3077,7 +3077,7 @@ dependencies = [
 
 [[package]]
 name = "server"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "engine",
  "features",
@@ -3095,7 +3095,7 @@ dependencies = [
 
 [[package]]
 name = "settings"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "json",
  "model",
@@ -3403,7 +3403,7 @@ dependencies = [
 
 [[package]]
 name = "system"
-version = "1.0.0"
+version = "1.1.0"
 
 [[package]]
 name = "tempfile"
@@ -3429,7 +3429,7 @@ dependencies = [
 
 [[package]]
 name = "terminal"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "alacritty_terminal",
  "model",
@@ -3438,11 +3438,11 @@ dependencies = [
 
 [[package]]
 name = "testkit"
-version = "1.0.0"
+version = "1.1.0"
 
 [[package]]
 name = "text"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "merman",
  "regex",
@@ -3546,7 +3546,7 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 
 [[package]]
 name = "tls"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "rustls",
  "rustls-native-certs",
@@ -3656,7 +3656,7 @@ dependencies = [
 
 [[package]]
 name = "ui"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "accesskit",
  "editor",
@@ -3816,7 +3816,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "views"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "model",
  "ui",
@@ -4403,7 +4403,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 
 [[package]]
 name = "xtask"
-version = "1.0.0"
+version = "1.1.0"
 
 [[package]]
 name = "yazi"
