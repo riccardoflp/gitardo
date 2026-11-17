@@ -457,12 +457,12 @@ passing.
    resting on `+N`, or on any label of the row, opens under it a list of all the labels of the commit, each with its
    icon and its color, each one doing what its label does: a click, a double click (check out, `branch.open`), a
    right click (its menu), the hover that brings out its history. The list closes when the pointer leaves it and its
-   labels. Cards: `graph.labels`, `graph.label-overflow`, `graph.timeline`.
+   labels. Cards: `graph.labels`, `graph.label-overflow`, `graph.view`.
 2. **Compact rows.** A setting, `graph.compactRows` (off by default), and its switch **Compact rows** in the menu of
    the view (phase 3): each commit on one line, its labels, then its message, then at the right end the author, the
    date and the hash as `graph.columns` asks, in columns that line up from row to row; the rows lower, the cell of the
    graph following them. The draft of the uncommitted changes, the separators of days and the stashes follow too.
-   Cards: `graph.compact-rows`, `graph.timeline`, `graph.columns`.
+   Cards: `graph.compact-rows`, `graph.view`, `graph.columns`.
 3. **Two menus.** In the header, in place of **…**: a menu of the view of the timeline, with every switch of what it
    shows and how (the kinds of branches, the stashes, the first parent, one lane, the history of the selected commit,
    folding, the columns, the separators of dates, the combined upstream, **Compact rows**); and **…**, the menu of the
