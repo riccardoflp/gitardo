@@ -319,17 +319,22 @@ pub fn confirms(state: &mut State, plan: Plan) -> Vec<Effect> {
     Vec::new()
 }
 
-/// The operation running ended: its lines go to the Command log, what it says is said, and the repository is read
-/// again when it changed something.
+/// The operation running ended: its lines go to the Command log, what it says is said, with the line of the command
+/// that said it, and the repository is read again when it changed something.
 pub fn ended(state: &mut State, ended: Ended, log: Vec<LogEntry>) -> Vec<Effect> {
     let feature = state.operations.running.take().map(|running| running.feature);
     state.is_operation_running = false;
-    state.log.append(log);
+    let log_at = said::append_log(state, log);
     let mut effects = super::review::ended(state, feature, matches!(ended, Ended::Ran { .. }));
     effects.extend(super::trust::keep(state, &ended));
     match super::tasks::hold(state, ended) {
         Ok(held) => effects.extend(held),
-        Err(ended) => effects.extend(ended_as_said(state, (*ended, feature))),
+        Err(ended) => {
+            effects.extend(ended_as_said(state, (*ended, feature)));
+            if let Some(said) = state.operations.said.as_mut() {
+                said.log_at = log_at;
+            }
+        }
     }
     effects
 }

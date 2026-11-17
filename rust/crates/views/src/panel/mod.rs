@@ -35,6 +35,9 @@ pub enum PanelIntent {
     Open,
     /// The panel shown at a tab: a tab clicked, **Show Command Log**.
     Show(PanelTab),
+    /// The panel shown at the Command log, scrolled to a line of it and the line marked, by its place among every line
+    /// the log recorded, those dropped too: a click on what an operation said (`activity.said`).
+    ShowLogAt(usize),
     /// **Hide the panel**, or `` Ctrl+` `` while the panel has the keyboard: it is hidden and nothing stops.
     Hide,
     /// **Terminal** of the bar of views: the panel shown at the tab it showed last, or hidden.

@@ -1,8 +1,10 @@
 //! The lines of the Command log as the drawer shows them (`log.show`): each with the time it started, in UTC as the
-//! timeline says dates (open question Q58), and a read with how long it took.
+//! timeline says dates (open question Q58), and a read with how long it took; and the line it was opened at.
 
 use engine::{CommandLog, LogKind};
-use views::log::LogLine;
+use views::log::{LogAt, LogLine};
+
+use super::state::State;
 
 /// The lines kept, oldest first.
 #[must_use]
@@ -26,4 +28,12 @@ pub fn log_lines(log: &CommandLog) -> Vec<LogLine> {
 fn time_of_day(seconds: i64) -> String {
     let of_day = seconds.rem_euclid(86_400);
     format!("{:02}:{:02}:{:02}", of_day / 3_600, of_day % 3_600 / 60, of_day % 60)
+}
+
+/// The line the Command log was opened at, among the lines kept, while it is still kept (`activity.said`).
+#[must_use]
+pub fn log_at(state: &State, kept: usize) -> Option<LogAt> {
+    let (line, serial) = state.panel.log_at?;
+    let line = line.checked_sub(state.log.dropped()).filter(|line| *line < kept)?;
+    Some(LogAt { line, serial })
 }

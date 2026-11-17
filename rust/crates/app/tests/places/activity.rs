@@ -192,6 +192,7 @@ fn log_show__the_lines_selected_are_copied_with_their_time() {
     let state = LogState {
         lines: &lines,
         dropped: 0,
+        at: None,
     };
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let area = Rect::new(20.0, 20.0, 600.0, 300.0);
@@ -242,6 +243,7 @@ fn log_show__it_keeps_the_last_10_000_lines_and_says_how_many_were_dropped() {
     let state = LogState {
         lines: &lines,
         dropped: log.dropped(),
+        at: None,
     };
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.frame(&[], |ui| {

@@ -2994,8 +2994,10 @@ each built with the reading given until the card says otherwise.
   from the times its `HEAD`, its index, `packed-refs`, `FETCH_HEAD` and its folders of refs were written; the store
   forces a read when the files of the folder change.
 - **Q506** — `activity.said`: a click on its words opens the Command log "at the command that said it", where the
-  Command log keeps no link from what was said to its command. Built: the click shows the Command log of the bottom
-  panel, at its end, where the last command is; what failed keeps its links, and **×** is an icon with **Dismiss** in
+  Command log keeps no link from what was said to its command. Built: what an operation said keeps the place, among
+  every line the log recorded, of the first line the operation added, or of the step before what git said when a step
+  failed; the click shows the Command log of the bottom panel with that line at the top, marked. A line dropped since,
+  past the last 10,000, shows the log at its end. What failed keeps its links, and **×** is an icon with **Dismiss** in
   its tooltip.
 - **Q507** — `diff.beside-inspector`: a click on the commit in one line at the top of the inspector "gives back the
   whole card", which the inspector beside a Diff page cannot show without leaving the page. Built: the click brings

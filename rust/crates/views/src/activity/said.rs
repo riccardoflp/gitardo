@@ -84,7 +84,8 @@ fn words_and_tone(state: &SaidState<'_>) -> (String, ui::Icon, Tone) {
 }
 
 /// What was said, over the rectangle its caller clipped it to in the status bar: the icon of its tone, its words cut
-/// with `…` where the room ends and whole in their tooltip, which a click opens the Command log at; then its links,
+/// with `…` where the room ends and whole in their tooltip, which a click opens the Command log at, at the command that
+/// said it; then its links,
 /// **Undo** and what it offers next, and **×**, which puts it away. What succeeded goes ten seconds after it was said,
 /// or ten seconds after the pointer left it; a warning or an error stays.
 ///
@@ -123,7 +124,9 @@ pub fn said_view(state: &SaidState<'_>, ui: &mut Ui<'_>) -> Vec<Intent> {
     ui.describe(id, text, &Description::new(AccessRole::Button, &said));
     ui.tooltip(&response, &said);
     if response.clicked {
-        intents.push(Intent::ShowCommandLog);
+        intents.push(state.log_at.map_or(Intent::ShowCommandLog, |line| {
+            Intent::Panel(crate::panel::PanelIntent::ShowLogAt(line))
+        }));
     }
     intents.extend(said_for(state, ui, rect));
     intents

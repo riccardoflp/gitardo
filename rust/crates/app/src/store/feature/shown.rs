@@ -46,6 +46,7 @@ pub fn said_state(state: &State) -> Option<SaidState<'_>> {
         runs: &said.runs,
         link: said.link.as_ref().map(|(label, url)| (label.as_str(), url.as_str())),
         is_notice: false,
+        log_at: said.log_at,
         shown_at: said.shown_at,
     })
 }

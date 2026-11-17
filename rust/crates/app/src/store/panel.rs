@@ -18,6 +18,9 @@ pub struct Panel {
     pub look: PanelLook,
     /// A number that changes each time the keyboard is to go to the terminal.
     pub focus: u64,
+    /// The line the Command log was opened at, counted from the first line the log recorded, with a number that changes
+    /// each time it is opened so; none to follow the last line (`activity.said`).
+    pub log_at: Option<(usize, u64)>,
 }
 
 /// How the bottom panel is: as kept for the workspace open, or as the window has it before one is.
@@ -61,6 +64,15 @@ pub fn reduce(state: &mut State, intent: &PanelIntent) -> Vec<Effect> {
         PanelIntent::Show(tab) => {
             look.is_shown = true;
             look.tab = *tab;
+            if *tab == PanelTab::CommandLog {
+                state.panel.log_at = None;
+            }
+        }
+        PanelIntent::ShowLogAt(line) => {
+            look.is_shown = true;
+            look.tab = PanelTab::CommandLog;
+            let serial = state.panel.log_at.map_or(1, |(_, serial)| serial + 1);
+            state.panel.log_at = Some((*line, serial));
         }
         PanelIntent::Hide => look.is_shown = false,
         PanelIntent::Toggle => look.is_shown = !look.is_shown,

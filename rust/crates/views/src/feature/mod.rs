@@ -85,6 +85,9 @@ pub struct SaidState<'a> {
     pub link: Option<(&'a str, &'a str)>,
     /// Whether it is a notice of the window rather than what an operation said: **×** puts the notice away.
     pub is_notice: bool,
+    /// The line of the Command log of the command that said it, counted from the first line the log recorded, those
+    /// dropped too; none for a notice, or when the operation recorded no line.
+    pub log_at: Option<usize>,
     /// When it was first drawn, or the pointer was last on it, counted from when the window opened; none before it is
     /// drawn (`activity.said`).
     pub shown_at: Option<std::time::Duration>,

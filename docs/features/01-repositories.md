@@ -487,7 +487,9 @@ next, in place of the bars that were under the header
   bar gives up its room first, then the words of what is running, which keeps its icon.
 - What succeeded leaves after ten seconds, or ten seconds after the pointer left it. A warning or an error stays until
   **×**, the next operation, or the repository shown changes; an error is in the color of errors.
-- A click on its words opens the Command log of the bottom panel at the command that said it (`log.show`).
+- A click on its words opens the Command log of the bottom panel at the command that said it (`log.show`): the first
+  line of the operation, or the step that failed when one failed, brought to the top of the log and marked (Q506).
+  **Show Command Log**, or the tab of the log, follows its last line again.
 - The notices of the window (`None of the folders of this workspace is there any more.`, `This file looks binary.`)
   are said in the same place, in the same way, with the tone of a warning.
 - What an operation that stopped on conflicts says (`conflicts.stopped`) is said here too; the banner of the operation

@@ -217,6 +217,7 @@ impl ViewData {
             log: LogState {
                 lines: &self.log_lines,
                 dropped: state.log.dropped(),
+                at: super::log_lines::log_at(state, self.log_lines.len()),
             },
             terminal: super::terminals::view_state(state),
         })

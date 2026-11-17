@@ -410,6 +410,7 @@ fn notice_said(notice: Notice) -> SaidState<'static> {
         runs: &[],
         link: None,
         is_notice: true,
+        log_at: None,
         shown_at: None,
     }
 }

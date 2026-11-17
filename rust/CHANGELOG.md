@@ -86,7 +86,8 @@
   running, no longer in a bar under the header: the icon of their tone, the words cut with `…` and whole in their
   tooltip, then **Undo**, what is offered next (**Create pull request**, **Show stashes**…) as links, and **×**. What
   succeeded goes ten seconds after it was said, or after the pointer left it; a warning or an error stays until **×**,
-  an error in the color of errors. A click on the words opens the Command log. The identity at the end of the status
+  an error in the color of errors. A click on the words opens the Command log at the command that said it, the step
+  that failed when one failed, at the top of the log and marked. The identity at the end of the status
   bar gives up its room first, then the words of what is running.
 - The repositories open are no longer tabs in an island above the header: they are the rows of **Repositories**, the
   first section of a side column on the left of the window, from under the header to the status bar, with **Branches**

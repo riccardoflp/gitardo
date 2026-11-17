@@ -319,5 +319,6 @@ fn refuse(state: &mut State) {
         runs: Vec::new(),
         link: None,
         shown_at: None,
+        log_at: None,
     });
 }

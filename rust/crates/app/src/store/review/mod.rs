@@ -121,6 +121,7 @@ pub fn open(state: &mut State, only: Option<Vec<String>>) -> Vec<Effect> {
             runs: Vec::new(),
             link: None,
             shown_at: None,
+            log_at: None,
         });
         return Vec::new();
     }

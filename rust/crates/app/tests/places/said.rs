@@ -3,14 +3,16 @@
 
 use std::time::Duration;
 
-use app::store::State;
-use app::store::feature::Said;
+use app::store::feature::{Ended, Said};
+use app::store::{Message, State, ViewData, reduce};
+use engine::{LogEntry, LogKind};
 use model::contract::FeatureId;
 use platform::accesskit::{Role, TreeUpdate};
 use render::{Rect, ThemeName};
 use ui::{Appearance, TextKind, Theme};
 use views::Intent;
 use views::feature::FeatureIntent;
+use views::panel::{PanelIntent, PanelTab};
 
 use super::pointer::{apply, bounds, click_at, middle, moved};
 use super::support::{self, Window, find};
@@ -34,6 +36,7 @@ fn said(text: &str) -> Said {
         runs: Vec::new(),
         link: None,
         shown_at: None,
+        log_at: None,
     }
 }
 
@@ -237,15 +240,100 @@ fn tooltip_pixels(window: &Window) -> usize {
         .count()
 }
 
+/// A line of the Command log, as a step of an operation or what git said of the step that failed.
+fn logged(line: &str, kind: LogKind) -> LogEntry {
+    LogEntry {
+        time: model::Timestamp(1_700_000_000),
+        kind,
+        line: line.to_owned(),
+    }
+}
+
+/// How many pixels of a rectangle of a window are of the color that marks a line of the Command log.
+fn marked_pixels(window: &Window, within: Rect) -> usize {
+    let color = Theme::new(ThemeName::Dark, Appearance::Dark)
+        .colors
+        .list_inactive_selection;
+    let pixels = window.frame.to_rgba();
+    let width = WIDE.0 as usize;
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "inside the window"
+    )]
+    let (left, top, right, bottom) = (
+        within.x as usize,
+        within.y as usize,
+        within.right() as usize,
+        within.bottom() as usize,
+    );
+    (top..bottom)
+        .flat_map(|y| (left..right).map(move |x| (y * width + x) * 4))
+        .filter(|at| pixels.get(*at..*at + 3) == Some(&[color.red, color.green, color.blue][..]))
+        .count()
+}
+
 #[test]
-fn activity_said__a_click_on_the_words_opens_the_command_log() {
-    let (_kept, mut state) = pulled();
+fn activity_said__a_click_on_the_words_opens_the_command_log_at_that_command() {
+    let (_kept, _clones, mut state) = three_clones();
+    let before: Vec<LogEntry> = (0..300)
+        .map(|number| logged(&format!("git step {number}"), LogKind::Step))
+        .collect();
+    state.log.append(before);
+    let log = vec![
+        logged("git fetch origin", LogKind::Step),
+        logged("git push origin main", LogKind::Step),
+        logged("! [rejected] main -> main (non-fast-forward)", LogKind::Failure),
+    ];
+    let failed = Ended::Failed {
+        title: String::from("Push main"),
+        said: String::from("the remote has commits you do not have"),
+        plan: String::from("Push main"),
+        on_failure: Vec::new(),
+    };
+    let _effects = reduce(&mut state, Message::FeatureEnded { ended: failed, log });
+    let after: Vec<LogEntry> = (0..50)
+        .map(|number| logged(&format!("git later {number}"), LogKind::Step))
+        .collect();
+    state.log.append(after);
+    let said = state.operations.said.as_ref().unwrap();
+    assert_eq!(
+        said.log_at,
+        Some(301),
+        "the step that failed, before what git said of it"
+    );
+    let text = said.text.clone();
     let mut window = Window::new(ThemeName::Dark, WIDE);
     let (_, tree) = window.draw(&state, &[]);
-    let intents = click_at(&mut window, &state, middle(words(&tree, PULLED)), 1);
-    assert!(intents.contains(&Intent::ShowCommandLog), "{intents:?}");
+    let intents = click_at(&mut window, &state, middle(words(&tree, &text)), 1);
+    assert_eq!(intents, [Intent::Panel(PanelIntent::ShowLogAt(301))]);
     apply(&mut state, intents);
     assert!(app::store::panel::is_log_shown(&state));
+    let data = ViewData::new(&state, Vec::new(), support::NOW);
+    let shown = data
+        .window_state(&state)
+        .panel
+        .map(|panel| panel.log.at.map(|at| at.line));
+    assert_eq!(shown, Some(Some(301)));
+    let _ = window.draw(&state, &[]);
+    let (_, tree) = window.draw(&state, &[]);
+    let list = bounds(&tree, Role::ListBox, views::text::activity::COMMAND_LOG);
+    let first_line = Rect::new(list.x, list.y, list.width, 18.0);
+    assert!(
+        marked_pixels(&window, first_line) > 100,
+        "the command that said it is the first line in sight, marked"
+    );
+    let _ = reduce(
+        &mut state,
+        Message::Intent(Intent::Panel(PanelIntent::Show(PanelTab::CommandLog))),
+    );
+    let (_, tree) = window.draw(&state, &[]);
+    let list = bounds(&tree, Role::ListBox, views::text::activity::COMMAND_LOG);
+    assert_eq!(
+        marked_pixels(&window, list),
+        0,
+        "Show Command Log follows the last line again"
+    );
 }
 
 #[test]
