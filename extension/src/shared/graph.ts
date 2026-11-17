@@ -57,6 +57,15 @@ export class GraphLayout {
     return { col, color, top, bottom };
   }
 
+  /**
+   * Lays out a page of rows under those laid out before, from the lanes as they stand under the last of them (D54):
+   * the layout is kept with the rows, so that the rows of a page added under them are laid out alone, and get the
+   * cells a layout of every row at once gives them. `dashed` is the line of the uncommitted changes or of a stash.
+   */
+  page(rows: readonly { hash: string; parents: string[]; dashed: boolean }[]): GraphRow[] {
+    return rows.map((row) => this.next(row.hash, row.parents, row.dashed));
+  }
+
   private alloc(hash: string): number {
     let lane = this.lanes.indexOf(null);
     if (lane === -1) lane = this.lanes.length;

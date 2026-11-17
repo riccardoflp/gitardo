@@ -8,6 +8,14 @@ What changed in each version of Gitardo. The versions follow [Semantic Versionin
 
 - `gitardo.graph.islands`, off by default: the references, the commits and the details of the Graph view are each a rounded island on a darker ground, with the toolbar above them, and the gap between two islands is the line dragged to resize them.
 
+### Changed
+
+- The graph reads the history with one read as git prints it: the first commits are shown as soon as they are read, and the others are added under them a page at a time, without waiting for the list to be scrolled, up to 100,000 commits; past those, the next ones are read as the list nears its end. While the rest comes, the last row says **Loading more commits…**; the rows, the selection and the scroll position stay as they are. Each page is laid out alone from where the lines of the graph stopped above it, so the history of a large repository comes in at the same pace from its first page to its last.
+- A read after a file changed, VS Code got the focus or an operation ended keeps the commits of the graph when what is checked out, the branches, the tags and the stashes are those of the read before: it reads no commits, and the rows stay as they are. **Refresh**, a filter, a search, the branches shown and the settings read the commits again.
+- A file that git ignores, such as the output of a build, and a file of another worktree inside the repository, such as `.claude/worktrees/<name>`, no longer have the repository read again. Gitardo's engine is asked once for the files that changed in a burst, a second after the first of them; a `.gitignore` that changes still has it read.
+- What is not committed in another worktree is counted again only when something changed in its own git folder, on **Refresh**, or when the repository is chosen: a read after a change to a file counts the worktree shown only, however many worktrees the repository has.
+- VS Code getting the focus reads the repository only when its last read ended more than a minute before, or something changed while no view of Gitardo was open; switching to another program and back no longer reads it each time.
+
 ## 1.0.0 - 2026-11-17
 
 ### Added

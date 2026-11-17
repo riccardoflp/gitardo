@@ -4,7 +4,7 @@
 import * as path from 'node:path';
 import { binaryName } from '../../src/engine/binary';
 import { EngineClient } from '../../src/engine/client';
-import { EngineGraph, graphState, type StateAsked } from '../../src/engine/graph';
+import { EngineGraph, graphState, laidOutOf, readCommits, type StateAsked } from '../../src/engine/graph';
 import { Reads } from '../../src/engine/reads';
 import { engineSettings } from '../../src/engine/settings';
 import type { Filter } from '../../src/shared/protocol';
@@ -37,8 +37,33 @@ async function main() {
   const repo = { root };
   const state = async (limit: number, filter: Filter | null = null) => {
     const asked: StateAsked = { limit, filter, scope: null, stashes: true, firstParent: false };
-    return graphState(client, root, await reads.parts(repo), asked, (graph) => new EngineGraph().commits(client, root, graph, limit));
+    return graphState(client, root, await reads.parts(repo), asked, (graph) => readCommits(client, root, graph, limit));
   };
+
+  // The whole history as the controller reads it (D54): the state, then one read whose pages are laid out as they come.
+  for (const run of [1, 2]) {
+    const started = performance.now();
+    let pages = 0;
+    let firstPage = 0;
+    let rowsLaid = 0;
+    const graph = new EngineGraph(() => {
+      pages++;
+      firstPage ||= performance.now() - started;
+    });
+    const asked: StateAsked = { limit: 1000, filter: null, scope: null, stashes: true, firstParent: false };
+    const shown = await graphState(client, root, await reads.parts(repo, false, true), asked, (wanted) => graph.commits(client, root, wanted, 1000));
+    const atFirst = performance.now() - started;
+    const laid = laidOutOf(shown.rows)!;
+    await graph.reached(root, Number.MAX_SAFE_INTEGER);
+    rowsLaid = laid.catchUp().length;
+    const total = performance.now() - started;
+    console.log(
+      `${`${Math.round(total)} ms`.padStart(9)}  whole history, read ${run}: ${rowsLaid} rows laid out in ${pages} pages, ` +
+        `the first page in ${Math.round(firstPage)} ms, the state with it in ${Math.round(atFirst)} ms, ` +
+        `widest ${Math.max(...laid.rows.map((row) => laneCount(row.graph)))} lanes`,
+    );
+    graph.forget();
+  }
 
   for (const limit of [1000, 5000, 20000]) {
     const read = await timed(

@@ -9,8 +9,11 @@ import type { ChangeKind, FileChange, Operation, RepositoryState } from '../shar
 
 export type { CommitDetail, Signature, Submodule } from '../shared/state';
 
-/** The version of the protocol the extension speaks. */
-export const PROTOCOL = '1.7';
+/**
+ * The version of the protocol the extension speaks: 1.8 has the pages of the commits sent as they are read, `refresh` in
+ * `read/repo.read-state` and `read/repo.watch-changes` (milestone M15).
+ */
+export const PROTOCOL = '1.8';
 
 /** The names of the methods. */
 export const Method = {
@@ -261,7 +264,18 @@ export const ReadMethod = {
   graphCommits: 'read/graph.read-commits',
   graphPosition: 'read/graph.read-position',
   searchMatches: 'read/search.read-matches',
+  // Version 1.8, milestone M15.
+  watchChanges: 'read/repo.watch-changes',
 } as const;
+
+/** The notification of a page of `read/graph.read-commits` asked with `stream`, as it is read (1.8). */
+export const GRAPH_ROWS = 'read/graph.rows';
+
+/** A page of a read of the commits sent as it is read: the id of the request, and its rows after those before. */
+export interface GraphRowsParams {
+  read: number;
+  rows: EngineRow[];
+}
 
 /** The host question that `read/github.read-pull-requests` asks. */
 export const HostMethod = { githubToken: 'host/githubToken' } as const;

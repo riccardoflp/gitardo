@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { binaryName } from '../engine/binary';
 import { EngineClient } from '../engine/client';
 import { conflictPlans, deletedConflicts } from '../engine/conflictPlans';
-import { EngineGraph, graphState, historyOf, matchesOnEngine, positionOnEngine } from '../engine/graph';
+import { graphState, historyOf, matchesOnEngine, positionOnEngine, readCommits } from '../engine/graph';
 import { Reads, type Repository, repositoryName } from '../engine/reads';
 import { engineSettings } from '../engine/settings';
 import { parseGitHubRemote } from '../shared/github';
@@ -224,7 +224,6 @@ async function main() {
   const settings = engineSettings({}, new Set(), {}, 0);
   const client = new EngineClient({ binary: engineBinary, clientVersion: '0.0.0-preview', settings: () => settings, logLevel: () => 'info', log });
   const reads = new Reads(() => client);
-  const graph = new EngineGraph();
   const discovered = await reads.discover(folders);
   const roots = discovered.map((found) => found.folder);
   const repos = groupRepositories(discovered).map(({ repository, depth }) => ({ root: repository.folder, name: repositoryName(repository.folder, folders), depth }));
@@ -349,7 +348,7 @@ async function main() {
     const root = repo.root;
     const github = parseGitHubRemote((await reads.remotes(repo)).find((remote) => remote.name === 'origin')?.url ?? '');
     const asked = { limit, filter, scope, stashes: showStashes, firstParent };
-    const read = await graphState(client, root, await reads.parts(repo, true), asked, (wanted) => graph.commits(client, root, wanted, PAGE_SIZE));
+    const read = await graphState(client, root, await reads.parts(repo, true), asked, (wanted) => readCommits(client, root, wanted, PAGE_SIZE));
     scope = read.scope;
     worktrees = read.worktrees.filter((worktree) => !worktree.isMissing).map((worktree) => worktree.folder);
     const away = inRoots(read.root) ? null : home;

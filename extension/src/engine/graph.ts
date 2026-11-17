@@ -1,13 +1,15 @@
 /**
  * The graph read by Gitardo's engine, from stage 7 of the transition: the rows of the timeline, the position of a
  * commit and the matches of a search, asked with the timeline the graph shows (`read/graph.read-commits`,
- * `read/graph.read-position`, `read/search.read-matches`). The lines of the graph are laid out here from the parents of
- * the rows; the next pages are asked with `skip`, so that only the rows the views do not have are read.
+ * `read/graph.read-position`, `read/search.read-matches`). From version 1.8 of the protocol the commits of the timeline
+ * come from one read that sends its pages as git prints them, to the end of the history or to 100,000 commits (D54),
+ * and the lines of the graph are laid out here from the parents of the rows, each page from the last row before it.
  */
-import { createHash } from 'node:crypto';
+import { type Hash, createHash } from 'node:crypto';
 import * as path from 'node:path';
 import { changedPaths } from '../shared/changes';
 import { GraphLayout } from '../shared/graph';
+import { EngineError, ErrorCode } from './connection';
 import { GRAPH_COLUMNS, WORKTREE, type Commit, type Filter, type RepoParts, type RepoState, type Row, type Scope, type Search } from '../shared/protocol';
 import { pruneScope } from '../shared/scope';
 import type { EngineClient } from './client';
@@ -50,9 +52,19 @@ export type CommitsReader = (asked: GraphAsked) => Promise<GraphCommits>;
 /**
  * The state of a repository from what `repo.read-state` read, with the commits of the graph `read` gives, the row of the
  * uncommitted changes above them, and the lines of the graph laid out. The parts that are the window's own, such as
- * the favorites, are left at their defaults for the caller to fill.
+ * the favorites, are left at their defaults for the caller to fill. `previous` is the layout of the rows shown: when
+ * the commits are the same read, laid out the same way, it is kept, and only the rows read since are laid out, under
+ * its last row (`graph.lanes`).
  */
-export async function graphState(client: EngineClient, root: string, parts: RepoParts, asked: StateAsked, read: CommitsReader, signal?: AbortSignal): Promise<RepoState> {
+export async function graphState(
+  client: EngineClient,
+  root: string,
+  parts: RepoParts,
+  asked: StateAsked,
+  read: CommitsReader,
+  signal?: AbortSignal,
+  previous?: LaidOutRows,
+): Promise<RepoState> {
   const { limit, filter, stashes, firstParent } = asked;
   const head = parts.head.commit;
   const changes = changedPaths(parts.workingTree);
@@ -65,19 +77,19 @@ export async function graphState(client: EngineClient, root: string, parts: Repo
   const commits = await read({ limit, filter, scope: shown, names, stashes: stashes && !filter, firstParent, head, refs, stashList: parts.stashes });
   const listed = commits.commits;
 
-  const layout = new GraphLayout();
-  const rows: Row[] = [];
   // Search results are unrelated commits: drawing lines between them would suggest a history that is not there.
   const connected = !filter || filter.kind === 'path' || filter.kind === 'lines' || filter.kind === 'ref';
   // Nor are the changes shown above a graph that leaves out the commit they are made on.
   const headListed = !shown || !head || listed.some((commit) => commit.stash === undefined && commit.hash === head);
+  let worktree: Listed | null = null;
   if (changes.length && !filter && headListed) {
     // Before the first commit there is no HEAD to hang the changes on, and they are all there is to show.
     const parents = head ? [head] : [];
-    const subject = `Uncommitted changes (${changes.length})`;
-    rows.push({ hash: WORKTREE, parents, author: '', email: '', date: 0, subject, graph: layout.next(WORKTREE, parents, true) });
+    worktree = { hash: WORKTREE, parents, author: '', email: '', date: 0, subject: `Uncommitted changes (${changes.length})` };
   }
-  for (const commit of listed) rows.push({ ...commit, graph: layout.next(commit.hash, connected ? commit.parents : [], commit.stash !== undefined) });
+  const prefix = `${root}\0${JSON.stringify(filter)}\0${firstParent}\0${connected}\0`;
+  const laid = previous?.fits(commits, prefix, worktree) ? previous : new LaidOutRows(commits, prefix, connected, worktree);
+  const rows = laid.catchUp();
 
   return {
     root,
@@ -112,10 +124,95 @@ export async function graphState(client: EngineClient, root: string, parts: Repo
   };
 }
 
-/** The commits read, and whether the history has more. */
+/**
+ * The commits read, and whether the history has more, read or still to read. A read that goes on adds the commits of
+ * each page to `commits` as it comes.
+ */
 export interface GraphCommits {
-  commits: Listed[];
-  hasMore: boolean;
+  readonly commits: Listed[];
+  readonly hasMore: boolean;
+}
+
+/** The layout of each array of rows given to the views, to lay out the rows of the next pages from its last row. */
+const layouts = new WeakMap<Row[], LaidOutRows>();
+
+/** The layout rows were laid out with by `graphState`, which lays out the next pages of the same read under them. */
+export function laidOutOf(rows: Row[]): LaidOutRows | undefined {
+  return layouts.get(rows);
+}
+
+/**
+ * The rows of a read of the commits laid out, the row of the uncommitted changes first when there is one, with the
+ * lanes as they stand under the last of them (`graph.lanes`, D54): each page the read adds is laid out alone from
+ * there, which gives the cells a layout of every row gives. It also says what identifies the first rows given, so that
+ * the views are sent only the rows they do not have.
+ */
+export class LaidOutRows {
+  private readonly layout = new GraphLayout();
+  /** How many of the commits read are laid out. */
+  private laid = 0;
+  private readonly hash: Hash;
+  /** What identifies the first rows, by how many they are. */
+  private readonly keys = new Map<number, string>();
+  /** The rows laid out until now: a new array each time rows are added. */
+  rows: Row[] = [];
+
+  constructor(
+    /** The read whose commits are laid out. */
+    readonly source: GraphCommits,
+    /** The repository, the filter and what else changes the rows of the same commits. */
+    private readonly prefix: string,
+    /** Whether lines are drawn between the commits: not between those a search found. */
+    private readonly connected: boolean,
+    worktree: Listed | null,
+  ) {
+    this.hash = createHash('sha1').update(prefix);
+    if (worktree) this.add([{ ...worktree, graph: this.layout.next(WORKTREE, worktree.parents, true) }]);
+  }
+
+  /**
+   * Whether these rows can stand for a read: the same read, laid out the same way, with the row of the uncommitted
+   * changes above them as before. Its subject, which counts the files, is taken from the one given.
+   */
+  fits(source: GraphCommits, prefix: string, worktree: Listed | null): boolean {
+    const top = this.rows[0]?.hash === WORKTREE ? this.rows[0] : null;
+    if (source !== this.source || prefix !== this.prefix || !top !== !worktree) return false;
+    if (top && worktree && top.subject !== worktree.subject) {
+      this.rows = [{ ...top, subject: worktree.subject }, ...this.rows.slice(1)];
+      layouts.set(this.rows, this);
+    }
+    return true;
+  }
+
+  /** The rows, with the commits read since the last call laid out under them. */
+  catchUp(): Row[] {
+    const listed = this.source.commits;
+    if (this.laid >= listed.length && this.rows.length) return this.rows;
+    const added = listed.slice(this.laid);
+    this.laid = listed.length;
+    const cells = this.layout.page(added.map((commit) => ({ hash: commit.hash, parents: this.connected ? commit.parents : [], dashed: commit.stash !== undefined })));
+    this.add(added.map((commit, index) => ({ ...commit, graph: cells[index] })));
+    return this.rows;
+  }
+
+  /** What identifies the first `count` rows, as the views were last sent them. */
+  keyAt(count: number): string {
+    let key = this.keys.get(count);
+    if (key === undefined) {
+      const hash = createHash('sha1').update(this.prefix);
+      for (const row of this.rows.slice(0, count)) hash.update(row.hash);
+      key = hash.digest('hex');
+      this.keys.set(count, key);
+    }
+    return key;
+  }
+
+  private add(rows: Row[]): void {
+    for (const row of rows) this.hash.update(row.hash);
+    this.rows = this.rows.length ? this.rows.concat(rows) : rows;
+    this.keys.set(this.rows.length, this.hash.copy().digest('hex'));
+    layouts.set(this.rows, this);
+  }
 }
 
 /** Which history a timeline lists, without how much of it. */
@@ -206,64 +303,207 @@ function cut(read: GraphCommits, limit: number): GraphCommits {
   return { commits: kept.filter((commit) => commit.stash === undefined || listed.has(commit.parents[0])), hasMore: true };
 }
 
-/** The commits read last in each repository, and what they were read for, to ask the next pages from the last of them. */
-interface Read extends GraphCommits {
-  key: string;
+/**
+ * The first `limit` commits of the graph, read at once in pages of `pageSize` and given together: for what needs a
+ * few commits once, such as the subjects of the commits before a draft or a repository the views do not show.
+ */
+export async function readCommits(client: EngineClient, repository: string, asked: GraphAsked, pageSize: number, signal?: AbortSignal): Promise<GraphCommits> {
+  const history = await historyOf(client, repository, asked.filter, asked.scope, asked.head, asked.firstParent, asked.names, signal);
+  const timeline: Timeline = { ...history, pageSize, pages: Math.max(1, Math.ceil(asked.limit / pageSize)), skip: 0, stashes: asked.stashes };
+  const page = await client.graphCommits(repository, timeline, signal);
+  return cut({ commits: listedOf(page.rows), hasMore: page.hasMore }, asked.limit);
+}
+
+/** The error of a read of the commits stopped because another took its place, or because it was no longer wanted. */
+function stopped(): EngineError {
+  return new EngineError(ErrorCode.cancelled, 'The read was cancelled.');
+}
+
+/** One read of the commits of a history as git prints them, and the reads past its 100,000 commits (D54). */
+class StreamedRead implements GraphCommits {
+  readonly commits: Listed[] = [];
+  /** How many of them are commits, not stashes: where the read past them starts. */
+  count = 0;
+  /** Whether the history has more commits than those read, once the reads end. */
+  more = false;
+  /** Whether a read still adds pages. */
+  reading = true;
+  /** Whether it was stopped or failed: it gives nothing more, and is read again when asked. */
+  over = false;
+  /** Stops the read under way. */
+  stop = new AbortController();
+  /** Who waits for some commits. */
+  private waiting: { count: number; resolve: () => void; reject: (error: unknown) => void }[] = [];
+
+  constructor(readonly key: string) {}
+
+  get hasMore(): boolean {
+    return this.reading || this.more;
+  }
+
+  /** Adds the commits of a page. */
+  add(listed: Listed[]): void {
+    for (const commit of listed) {
+      this.commits.push(commit);
+      if (commit.stash === undefined) this.count++;
+    }
+    this.settle();
+  }
+
+  /** The read under way ended, the history having more commits or not. */
+  end(more: boolean): void {
+    this.reading = false;
+    this.more = more;
+    this.settle();
+  }
+
+  /** The read under way failed or was stopped: who waits is given the error. */
+  fail(error: unknown): void {
+    this.reading = false;
+    this.over = true;
+    for (const waiter of this.waiting.splice(0)) waiter.reject(error);
+  }
+
+  /** Stops the read under way: no page of it is added after. */
+  cancel(): void {
+    if (this.over) return;
+    this.stop.abort();
+    this.fail(stopped());
+  }
+
+  /** Waits until `count` commits are read, or the read ends. When `signal` aborts first, the read is stopped. */
+  until(count: number, signal?: AbortSignal): Promise<void> {
+    if (this.over) return Promise.reject(stopped());
+    if (this.count >= count || !this.reading) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      const abort = () => this.cancel();
+      // Once its commits are there, the signal of who waited no longer stops the read: its next pages are wanted too.
+      const done = () => signal?.removeEventListener('abort', abort);
+      this.waiting.push({ count, resolve: () => (done(), resolve()), reject: (error) => (done(), reject(error)) });
+      if (signal?.aborted) abort();
+      else signal?.addEventListener('abort', abort, { once: true });
+    });
+  }
+
+  private settle(): void {
+    const ready = this.waiting.filter((waiter) => this.count >= waiter.count || !this.reading);
+    this.waiting = this.waiting.filter((waiter) => !ready.includes(waiter));
+    for (const waiter of ready) waiter.resolve();
+  }
 }
 
 /**
- * Reads the timeline in the engine. The rows read last are kept for each repository: when the graph asks for more of
- * the same history, of the same references, only the rows after the last of them are read (`skip`). Anything that
- * makes those rows not what a read of every page would give, such as a stash that would go above them, is read whole.
+ * Reads the timeline in the engine, one read for each history, as git prints it (D54): the first page is given as soon
+ * as it is read, and the commits of the next ones are added to the same read as they come, `onPage` told of each. The
+ * read of each repository is kept: asked again for the same history, of the same references and stashes, it keeps its
+ * commits and asks git nothing (`repo.schedule-reads`); another history stops it and starts a new one. Past 100,000
+ * commits, the next read starts from the last commit read, when more are asked for (`graph.load-more`).
  */
 export class EngineGraph {
-  private readonly last = new Map<string, Read>();
+  private readonly reads = new Map<string, StreamedRead>();
 
-  /** The commits of the graph, `limit` at most, read in pages of `pageSize`. */
+  constructor(private readonly onPage: (repository: string) => void = () => {}) {}
+
+  /**
+   * The commits of the graph, as soon as `asked.limit` commits or a page of them is read, whichever is fewer, and the
+   * commits after them as they come. A read under way of another history of the repository is stopped.
+   */
   async commits(client: EngineClient, repository: string, asked: GraphAsked, pageSize: number, signal?: AbortSignal): Promise<GraphCommits> {
     const history = await historyOf(client, repository, asked.filter, asked.scope, asked.head, asked.firstParent, asked.names, signal);
-    const timeline: Timeline = { ...history, pageSize, pages: Math.max(1, Math.ceil(asked.limit / pageSize)), skip: 0, stashes: asked.stashes };
+    const timeline: Timeline = { ...history, pageSize, pages: 1, skip: 0, stashes: asked.stashes };
     const key = createHash('sha1')
-      .update(JSON.stringify([history, asked.stashes, asked.head, asked.refs, asked.stashList]))
+      .update(JSON.stringify([history, asked.stashes, asked.head, asked.refs, asked.stashList, pageSize]))
       .digest('hex');
-    const last = this.last.get(repository);
-    const known = last?.key === key ? last : undefined;
-    const wantsMore = known && known.commits.filter((commit) => commit.stash === undefined).length < asked.limit;
-    const more = wantsMore ? await this.after(client, repository, timeline, known, signal) : undefined;
-    const read = cut(more ?? this.page(await client.graphCommits(repository, timeline, signal)), asked.limit);
-    this.last.set(repository, { ...read, key });
+    const known = this.reads.get(repository);
+    if (known?.key === key && !known.over) {
+      // The same history: its commits are kept, unless more are asked for than one read lists.
+      if (known.reading || !known.more || known.count >= asked.limit) return known;
+      const wanted = known.count + pageSize;
+      this.more(client, repository, known, timeline);
+      await known.until(Math.min(asked.limit, wanted), signal);
+      return known;
+    }
+    known?.cancel();
+    const read = new StreamedRead(key);
+    this.reads.set(repository, read);
+    this.stream(client, repository, read, timeline, (listed) => read.add(listed));
+    await read.until(Math.min(asked.limit, pageSize), signal);
     return read;
   }
 
-  /** Forgets the rows read in a repository, or in every one. */
+  /** Whether a read of the commits of a repository is still adding pages. */
+  isReading(repository: string): boolean {
+    return this.reads.get(repository)?.reading === true;
+  }
+
+  /** Waits until the read of a repository has `count` commits, or ends. */
+  async reached(repository: string, count: number): Promise<void> {
+    await this.reads.get(repository)?.until(count);
+  }
+
+  /** Stops the read of a repository that is not shown any more, when it still adds pages: it is read again once shown. */
+  stop(repository: string): void {
+    const read = this.reads.get(repository);
+    if (!read?.reading) return;
+    read.cancel();
+    this.reads.delete(repository);
+  }
+
+  /** Forgets the commits read in a repository, or in every one, stopping their reads: the next read asks git again. */
   forget(repository?: string): void {
-    if (repository === undefined) this.last.clear();
-    else this.last.delete(repository);
+    for (const [root, read] of this.reads) {
+      if (repository !== undefined && root !== repository) continue;
+      read.cancel();
+      this.reads.delete(root);
+    }
+  }
+
+  /** Runs a read of the engine for a read of the commits, `take` given the rows of each page. */
+  private stream(client: EngineClient, repository: string, read: StreamedRead, timeline: Timeline, take: (listed: Listed[]) => void): void {
+    read.reading = true;
+    const stop = read.stop;
+    client
+      .graphStream(
+        repository,
+        timeline,
+        (rows) => {
+          if (stop.signal.aborted) return;
+          take(listedOf(rows));
+          this.onPage(repository);
+        },
+        stop.signal,
+      )
+      .then(
+        ({ hasMore }) => {
+          if (stop.signal.aborted) return;
+          read.end(hasMore);
+          this.onPage(repository);
+        },
+        (error: unknown) => {
+          if (stop.signal.aborted) return;
+          read.fail(error);
+          if (this.reads.get(repository) === read) this.reads.delete(repository);
+          this.onPage(repository);
+        },
+      );
   }
 
   /**
-   * The rows read before with those after the last of their commits, read from it; undefined when the history is not
-   * the same up to it, or when a stash of the new rows would go above it.
+   * Reads the commits after the 100,000 of a read, from the last of them: the read starts with it when the history is
+   * the same up to it. When it does not, the history changed under the commits read, and the read is forgotten.
    */
-  private async after(client: EngineClient, repository: string, timeline: Timeline, known: Read, signal?: AbortSignal): Promise<GraphCommits | undefined> {
-    const commits = known.commits.filter((commit) => commit.stash === undefined);
-    const lastKnown = commits.at(-1);
-    if (!lastKnown) return undefined;
-    const page = this.page(await client.graphCommits(repository, { ...timeline, skip: commits.length - 1 }, signal));
-    const first = page.commits.findIndex((commit) => commit.stash === undefined);
-    // The read starts from the last commit known: anything above it, or another commit there, is another history.
-    if (first !== 0 || page.commits[0].hash !== lastKnown.hash) return undefined;
-    const rows = page.commits.slice(1);
-    // A stash goes where its date puts it among all the commits: above the rows known when one of them is not newer.
-    const earlier = commits.slice(0, -1);
-    const placedAbove = rows.some((row) => row.stash !== undefined && earlier.some((commit) => commit.date <= row.date));
-    if (placedAbove) return undefined;
-    return { commits: [...known.commits, ...rows], hasMore: page.hasMore };
-  }
-
-  /** A page of the engine as the graph lists it. */
-  private page(page: CommitPage): GraphCommits {
-    return { commits: listedOf(page.rows), hasMore: page.hasMore };
+  private more(client: EngineClient, repository: string, read: StreamedRead, timeline: Timeline): void {
+    const last = read.commits.findLast((commit) => commit.stash === undefined);
+    read.stop = new AbortController();
+    let first = true;
+    this.stream(client, repository, read, { ...timeline, skip: read.count - 1, stashes: false }, (listed) => {
+      if (!first) return read.add(listed);
+      first = false;
+      if (listed[0]?.hash === last?.hash) return read.add(listed.slice(1));
+      read.stop.abort();
+      read.end(true);
+      if (this.reads.get(repository) === read) this.reads.delete(repository);
+    });
   }
 }
 
