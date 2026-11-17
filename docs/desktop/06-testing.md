@@ -139,6 +139,31 @@ whole history is 57 walks. The window's layout of the timeline is made again ove
 grows the same way. A read after a change reads the state twice, once for `journal/last`, and runs `git status` in
 every worktree each time.
 
+What the same measure gave on 2026-11-17 after phases 2, 3 and 7 of M15 (the history read with one `git log` as it
+prints, each page laid out alone, the commits not read again when the history is the same), on the same repositories.
+The machine was busier than for the measure before: the reads no phase changed, such as `repo.read-state`, took 1.4
+to 1.8 times as long, so the times say less than the git processes. The engine still reads page after page with
+`skip` for the extension, until it streams the pages too.
+
+| The whole history | Pages | First page | Last row |
+| --- | ---: | ---: | ---: |
+| The engine, every page with `skip`, the large repository | 57 | 426.0 | 28,526.9 |
+| The window, the large repository, opened with one read to its end | 57 | 1,747.5 | 4,359.7 |
+| Laying out every page over every row before it, which the window no longer does | | | 4,508.4 |
+
+| A read after a change, the median | The large repository | Git processes | Five other worktrees | Git processes |
+| --- | ---: | --- | ---: | --- |
+| `repo.read-state` | 473.7 | 11 (the same) | 860.4 | 16 (the same) |
+| `graph.read-commits`, page 1 | 508.5 | 1 (`log` 1) | 134.3 | 1 (`log` 1) |
+| `journal/last` | 494.8 | 11 (the same) | 957.0 | 16 (the same) |
+| All three | 1,483.2 | 23 | 1,874.4 | 33 |
+
+`git log` alone takes as long to print the first 1,001 commits of the large repository as it streams as with
+`--max-count=1001`, so the first page of the window waits for git as before. A page of `graph.read-commits` takes
+the references and the stashes from the last `repo.read-state` of the same session, which leaves `git log` alone. In
+the window, a read for a file changed or saved runs no `git log` while the history is the same, which
+`same_history.rs` of `app` checks, and which this measure does not time.
+
 ## What a change runs before it is committed
 
 `cargo xtask check`, which is `rustfmt --check`, `clippy` with warnings denied, `cargo test`, and the checks of the

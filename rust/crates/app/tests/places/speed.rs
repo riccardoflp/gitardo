@@ -9,10 +9,11 @@
 //! With `GITARDO_COMMIT_GRAPH` set, the repository gets a commit-graph file, as `git gc` writes one: `--date-order`
 //! then no longer walks the whole history before the first commit.
 
+use std::collections::VecDeque;
 use std::fmt::Write as _;
 use std::time::{Duration, Instant};
 
-use app::store::{Effect, JobKind, Message, State};
+use app::store::{Effect, Job, JobKind, Message, State};
 use app::work::jobs::find_repositories;
 use app::work::pages::read_repository_at_once;
 use git::CancelToken;
@@ -282,27 +283,27 @@ fn the_whole_history_of_the_perf_repository_read_and_laid_out_page_after_page() 
 /// Reduces a message and runs every job it starts as a worker would, each message reduced as soon as the job sends
 /// it; `rows_shown` is told each time the timeline has rows.
 fn timed(state: &mut State, message: Message, rows_shown: &mut dyn FnMut()) {
-    let mut waiting = vec![message];
-    while let Some(message) = waiting.pop() {
-        let mut started = Vec::new();
-        for effect in app::store::reduce(state, message) {
-            if let Effect::Start(job) = effect {
-                started.push(job);
+    let mut jobs = VecDeque::new();
+    jobs.extend(started_by(state, message));
+    while let Some(job) = jobs.pop_front() {
+        app::work::jobs::run(&job, &CancelToken::new(), &mut |message| {
+            jobs.extend(started_by(state, message));
+            if !state.timeline.rows.is_empty() {
+                rows_shown();
             }
-        }
-        for job in started {
-            app::work::jobs::run(&job, &CancelToken::new(), &mut |message| {
-                for effect in app::store::reduce(state, message) {
-                    if let Effect::Start(job) = effect {
-                        waiting.extend(app::work::jobs::messages(&job, &CancelToken::new()));
-                    }
-                }
-                if !state.timeline.rows.is_empty() {
-                    rows_shown();
-                }
-            });
-        }
+        });
     }
+}
+
+/// The jobs a message starts, in the order the store asks for them.
+fn started_by(state: &mut State, message: Message) -> Vec<Job> {
+    app::store::reduce(state, message)
+        .into_iter()
+        .filter_map(|effect| match effect {
+            Effect::Start(job) => Some(job),
+            _ => None,
+        })
+        .collect()
 }
 
 /// How long the timeline takes to be laid out again over every row read at each page, as `app` does when a page is
